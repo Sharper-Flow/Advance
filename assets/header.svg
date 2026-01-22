@@ -1,0 +1,38 @@
+<svg width="1280" height="640" viewBox="0 0 1280 640" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&amp;display=swap');
+      .adv-text {
+        font-family: 'Geist Mono', 'SF Mono', 'Fira Code', 'Consolas', monospace;
+        font-weight: 500;
+        letter-spacing: 0.15em;
+      }
+    </style>
+  </defs>
+  
+  <!-- Black background -->
+  <rect width="100%" height="100%" fill="#000000"/>
+  
+  <!-- Sharp text -->
+  <text 
+    x="640" 
+    y="340" 
+    class="adv-text"
+    font-size="140"
+    fill="rgba(255,255,255,1)"
+    text-anchor="middle">
+    ADVANCE
+  </text>
+  
+  <!-- Subtle tagline -->
+  <text 
+    x="640" 
+    y="420" 
+    class="adv-text"
+    font-size="24"
+    fill="rgba(255,255,255,0.4)"
+    text-anchor="middle"
+    letter-spacing="0.3em">
+    SPEC-DRIVEN DEVELOPMENT
+  </text>
+</svg>

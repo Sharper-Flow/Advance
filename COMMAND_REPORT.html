@@ -303,7 +303,7 @@
                 <td>2.5KB</td>
                 <td><span class="confidence-high">HIGH</span></td>
                 <td>No</td>
-                <td>Project overview - specs, changes, recommendations</td>
+                <td>Provides a comprehensive dashboard of the ADV project state by calling the <code>adv_status</code> tool. The command displays all deployed specs (capabilities), active changes with their task progress, and archived changes. It analyzes the current state to provide contextual recommendations—suggesting <code>/adv-proposal</code> when no changes exist, <code>/adv-validate</code> for draft changes, or <code>/adv-archive</code> when all tasks are complete. The outcome is a clear action plan that guides users to the most appropriate next step in the spec-driven workflow.</td>
             </tr>
             <tr>
                 <td><span class="cmd">adv-proposal</span></td>
@@ -311,7 +311,7 @@
                 <td>4.8KB</td>
                 <td><span class="confidence-high">HIGH</span></td>
                 <td>No</td>
-                <td>Create new change proposal with scaffolding</td>
+                <td>Creates a new change proposal by scaffolding the required directory structure and files using the <code>adv_change_create</code> tool. The command interactively gathers requirements through <code>mcp_question</code> prompts—determining change type (feature, fix, refactor), identifying affected specs, and building initial task lists tailored to the change category. This structured approach ensures every change starts with clear scope, acceptance criteria, and a defined implementation path before any code is written. The outcome is a complete <code>changes/&lt;change-id&gt;/</code> directory with <code>change.json</code>, <code>proposal.md</code>, and initial tasks ready for validation.</td>
             </tr>
             <tr>
                 <td><span class="cmd">adv-validate</span></td>
@@ -319,7 +319,7 @@
                 <td>4.4KB</td>
                 <td><span class="confidence-high">HIGH</span></td>
                 <td>No</td>
-                <td>Validate change against specs</td>
+                <td>Validates a change proposal against deployed specs using the <code>adv_change_validate</code> tool with comprehensive error detection. The command checks for duplicate requirement IDs, orphaned delta targets, missing spec references, invalid ID formats, and completeness of tasks and deltas. When validation fails, it provides specific guidance for each error type with concrete fix suggestions and examples. The outcome is a gate that prevents implementation of malformed or conflicting changes—changes must pass validation before <code>/adv-apply</code> can proceed.</td>
             </tr>
             <tr>
                 <td><span class="cmd">adv-clarify</span></td>
@@ -327,7 +327,7 @@
                 <td>3.0KB</td>
                 <td><span class="confidence-high">HIGH</span></td>
                 <td>No</td>
-                <td>Socratic clarifying questions for requirements</td>
+                <td>Applies the Socratic method to uncover hidden assumptions, edge cases, and acceptance criteria through guided questioning. The command analyzes conversation context to identify stated and unstated assumptions, potential contradictions, and knowledge gaps before generating 3-15 targeted questions based on complexity. Questions are structured across categories including scope, users, happy path, edge cases, error handling, state management, performance, security, and observability. The outcome is a set of clarifying questions that produce concrete, testable acceptance criteria—preventing requirement ambiguity before implementation begins.</td>
             </tr>
             <tr>
                 <td><span class="cmd">adv-prep</span></td>
@@ -335,7 +335,7 @@
                 <td>5.5KB</td>
                 <td><span class="confidence-high">HIGH</span></td>
                 <td>Optional</td>
-                <td>Gap analysis - missing scenarios, tasks, concerns</td>
+                <td>Performs comprehensive pre-implementation gap analysis across five dimensions: acceptance criteria completeness, task coverage, cross-cutting concerns, codebase impact, and cross-spec consistency. The command uses ADV tools to load change data, then systematically identifies missing scenarios, vague criteria, unaddressed concerns (error handling, logging, security, config, performance), and potential conflicts with existing specs. Gaps are fixed using <code>adv_task_add</code> for missing tasks, direct edits for scenarios, and documentation updates for cross-cutting concerns. The outcome is a change proposal that passes strict validation and is ready for TDD implementation—no gaps or ambiguities remain.</td>
             </tr>
             <tr>
                 <td><span class="cmd">adv-research</span></td>
@@ -343,7 +343,7 @@
                 <td>5.4KB</td>
                 <td><span class="confidence-medium">MEDIUM</span></td>
                 <td>Yes (N)</td>
-                <td>Validate architectural decisions via Context7</td>
+                <td>Validates architectural decisions in specs or changes by spawning parallel sub-agents that research technologies, patterns, and integration points using Context7 and web search. Each sub-agent investigates a specific decision—validating library choices, checking for anti-patterns, evaluating simpler alternatives, and identifying security considerations. Findings are synthesized into a research report with validated decisions, simplification opportunities, concerns requiring attention, and anti-patterns requiring revision. The outcome is evidence-based architectural validation with actionable recommendations, either confirming decisions are sound or creating tasks to address identified issues.</td>
             </tr>
             <tr>
                 <td><span class="cmd">adv-apply</span></td>
@@ -351,7 +351,7 @@
                 <td>5.8KB</td>
                 <td><span class="confidence-high">HIGH</span></td>
                 <td>No</td>
-                <td>Implement change with TDD workflow</td>
+                <td>Implements a change using strict Test-Driven Development workflow with task state managed entirely through ADV tools (<code>adv_task_update</code>, <code>adv_task_ready</code>). For each ready task, the command executes Red Phase (write failing test with evidence), Green Phase (implement minimal code to pass with evidence), then marks complete only after verification succeeds. Contract banners are derived from tool state—not hardcoded—ensuring the display always reflects actual progress. The outcome is a fully implemented change with TDD evidence for every task, ready for post-implementation review and eventual archiving.</td>
             </tr>
             <tr>
                 <td><span class="cmd">adv-review</span></td>
@@ -359,7 +359,7 @@
                 <td>6.5KB</td>
                 <td><span class="confidence-medium">MEDIUM</span></td>
                 <td>Yes (4)</td>
-                <td>Code review - correctness, security, architecture</td>
+                <td>Orchestrates a multi-dimensional code review using four parallel sub-agents: Requirement Traceability (verifies each spec scenario has implementation evidence), Logic Review (detects off-by-one errors, null handling, unreachable code, edge cases), Security Review (checks auth, input validation, secrets, data exposure), and Architecture Conformance (validates pattern adherence, module boundaries, naming conventions). Findings are aggregated by severity (CRITICAL/MAJOR/MINOR/INFO), deduplicated across scanners, and used to determine a verdict: BLOCKED, CHANGES_REQUESTED, or APPROVED. When issues are found, the command offers remediation options through <code>mcp_question</code> and can spawn fix sub-agents under contract. The outcome is a comprehensive review report with clear verdict and actionable fix suggestions.</td>
             </tr>
             <tr>
                 <td><span class="cmd">adv-harden</span></td>
@@ -367,7 +367,7 @@
                 <td>7.8KB</td>
                 <td><span class="confidence-medium">MEDIUM</span></td>
                 <td>Yes (5)</td>
-                <td>AI-slop detection, test coverage, cleanup</td>
+                <td>Executes post-implementation hardening through five parallel sub-agents: Test Coverage Scanner (verifies test file existence and TDD adherence), AI-Slop Detection Scanner (finds placeholders, silent catches, excessive Any types, god classes, magic numbers), Documentation Scanner (checks README, inline docs, CHANGELOG), Cleanup Scanner (identifies temp files, dead imports, dev directories), and Spec Alignment Scanner (verifies task evidence and scenario coverage). Issues are categorized by root cause and severity to determine status: READY, NEEDS_WORK, or BLOCKED. The cleanup phase can preview or execute deletion of temp files and artifacts with <code>--execute</code>, <code>--interactive</code>, or <code>--force</code> flags. The outcome is production-ready code with verified quality, no AI-generated slop, complete documentation, and a clean repository.</td>
             </tr>
             <tr>
                 <td><span class="cmd">adv-audit</span></td>
@@ -375,7 +375,7 @@
                 <td>6.8KB</td>
                 <td><span class="confidence-medium">MEDIUM</span></td>
                 <td>Yes (4)</td>
-                <td>Project-wide spec/implementation drift detection</td>
+                <td>Detects drift between specifications and implementation through a staged multi-agent analysis: Stage 1 parses all specs to extract requirements and scenarios, Stage 2 runs Code Mapper and Conflict Detector in parallel (mapping specs to files and finding contradictions), Stage 3 runs Drift Scanner to compare spec values against actual code values. The audit checks for constraint drift, missing implementations, test-spec mismatches, normative violations (MUST/SHOULD/MAY), and orphaned code not covered by any spec. Health status is determined as ALIGNED (no issues), DRIFT_DETECTED (violations found), or MAJOR_DRIFT (MUST violations or contradictions). The outcome is a comprehensive alignment report that identifies exactly where implementation has diverged from specifications, with remediation recommendations.</td>
             </tr>
             <tr>
                 <td><span class="cmd">adv-archive</span></td>
@@ -383,7 +383,7 @@
                 <td>5.2KB</td>
                 <td><span class="confidence-high">HIGH</span></td>
                 <td>No</td>
-                <td>Archive completed change, update specs</td>
+                <td>Finalizes a completed change by applying deltas to deployed specs, generating documentation, and moving the change to archive using the <code>adv_change_archive</code> tool. Pre-archive checks verify all tasks are complete and strict validation passes—blocking archive if any task remains undone or validation fails. The command shows a detailed preview of actions (deltas to apply, specs to update, docs to generate, archive location) and requires explicit confirmation before execution. The outcome is updated <code>specs/*/spec.json</code> files with new requirements merged in, generated <code>docs/specs/*.md</code> documentation, and a permanent record in <code>archive/{date}-{change-id}/</code>.</td>
             </tr>
             <tr>
                 <td><span class="cmd">adv-refactor</span></td>
@@ -391,7 +391,7 @@
                 <td>6.2KB</td>
                 <td><span class="confidence-low">LOW</span></td>
                 <td>Yes (5)</td>
-                <td>Refresh stale proposals to match codebase</td>
+                <td>Refreshes stale change proposals through bidirectional reconciliation using five parallel sub-agents: Codebase Drift Scanner (3-pass detection for moved/renamed files using hash, metadata, and fuzzy matching), Dependency Scanner (detects outdated libraries and breaking changes via Context7), Conflict Scanner (finds overlaps with archived changes), Task Validator (verifies task file references still exist), and Obsolescence Detector (identifies requirements already implemented elsewhere). When code contradicts a requirement, an Intent Verification Gate prompts the user to decide whether code represents a new requirement or a bug. The command supports dry-run mode (default) and <code>--execute</code> to apply changes, updating paths, marking obsolete requirements, and adding validation tasks. The outcome is a proposal aligned with current codebase reality, with confidence levels (HIGH/MEDIUM/LOW) for each update.</td>
             </tr>
             <tr>
                 <td><span class="cmd">adv-ralph</span></td>
@@ -399,7 +399,7 @@
                 <td>5.5KB</td>
                 <td><span class="confidence-medium">MEDIUM</span></td>
                 <td>No</td>
-                <td>Autonomous implementation with retry on failures</td>
+                <td>Extends <code>/adv-apply</code> with autonomous retry protocol for unattended implementation—named after "Wreck-it Ralph" for its persistence in breaking through obstacles. Errors are classified as SEMANTIC (type/logic/test failures → 3 retries with diagnosis), TRANSIENT (network/flaky → 1 retry with 5s delay), or ENVIRONMENTAL (missing deps → immediate escalation). Before any retry, a DIAGNOSIS must be emitted explaining root cause and planned fix—this "reflexion" step prevents repeated ineffective fixes. A Global Final Loop runs full verification (build, tests, lint, types) before declaring completion. The outcome is fully implemented changes with minimal human intervention, escalating only when retry budget is exhausted after 4 total attempts.</td>
             </tr>
             <tr>
                 <td><span class="cmd">adv-coordinate</span></td>
@@ -407,7 +407,7 @@
                 <td>3.9KB</td>
                 <td><span class="confidence-medium">MEDIUM</span></td>
                 <td>No</td>
-                <td>Multi-change conflict detection</td>
+                <td>Analyzes all active changes to detect conflicts and recommend sequencing for multi-change coordination. The command loads each change's affected files and requirements, then performs three analyses: Overlap Detection (files modified by 2+ changes), Semantic Conflict Detection (same identifier targeted differently), and Dependency Cycle Detection (circular blocking relationships). Findings are prioritized by severity—cycles are CRITICAL, hot files with 3+ changes are HIGH, semantic conflicts are HIGH, and simple overlaps are MEDIUM. The outcome is a Coordination Dashboard showing all active changes, hot files, conflicts, cycles, and a suggested implementation sequence to minimize merge conflicts and dependency issues.</td>
             </tr>
             <tr>
                 <td><span class="cmd">adv-roadmap</span></td>
@@ -415,7 +415,7 @@
                 <td>3.3KB</td>
                 <td><span class="confidence-high">HIGH</span></td>
                 <td>No</td>
-                <td>Progress dashboard for specs and changes</td>
+                <td>Displays a tiered progress dashboard by aggregating data from <code>adv_status</code>, <code>adv_change_list</code>, and <code>adv_task_list</code> for each change. Items are tiered as NOW (>0% completion, work in progress), NEXT (0% completion, not started), or LATER (archived, 100% complete). Each item shows a 10-character progress bar using filled (█) and empty (░) blocks, with task counts and DONE badges for completed items. The outcome is an at-a-glance project status view that shows specs defined, work in progress, queued changes, and completed history—enabling informed prioritization decisions.</td>
             </tr>
         </tbody>
     </table>
