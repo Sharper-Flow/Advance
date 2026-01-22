@@ -60,13 +60,40 @@ ADV (Advance) enables spec-driven development where **specs become laws**. Requi
 
 ## Available Commands
 
+### Core Workflow
+
 | Command | Purpose |
 |---------|---------|
 | `/adv-status` | Show project overview (specs, changes, recommendations) |
 | `/adv-proposal <summary>` | Create a new change proposal |
-| `/adv-validate <change-id> [strict]` | Validate change against specs |
+| `/adv-validate <change-id>` | Validate change against specs |
 | `/adv-apply <change-id>` | Implement change with TDD |
-| `/adv-archive <change-id> [dry-run]` | Archive completed change |
+| `/adv-archive <change-id>` | Archive completed change |
+
+### Pre-Implementation
+
+| Command | Purpose |
+|---------|---------|
+| `/adv-clarify` | Ask Socratic clarifying questions |
+| `/adv-prep <change-id>` | Gap analysis - add missing scenarios, tasks |
+| `/adv-research <target>` | Validate architectural decisions via Context7 |
+
+### Post-Implementation
+
+| Command | Purpose |
+|---------|---------|
+| `/adv-review <change-id>` | Code review with sub-agents (correctness, security, architecture) |
+| `/adv-harden <change-id>` | AI-slop detection, test coverage, cleanup |
+| `/adv-audit [capability]` | Project-wide spec/implementation drift detection |
+
+### Advanced
+
+| Command | Purpose |
+|---------|---------|
+| `/adv-ralph <change-id>` | Autonomous implementation with retry on failures |
+| `/adv-refactor <change-id>` | Refresh stale proposals to match codebase |
+| `/adv-coordinate` | Multi-change conflict detection |
+| `/adv-roadmap` | Progress dashboard |
 
 ## Available Tools
 

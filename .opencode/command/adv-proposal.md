@@ -1,124 +1,219 @@
 ---
 name: adv-proposal
-description: Create a new ADV change proposal with requirements and tasks
+description: Create a new ADV change proposal with scaffolding
+agent: build
 args:
   - name: summary
-    description: Brief description of what this change accomplishes
+    description: Brief summary of the change (becomes change title)
     required: true
 ---
 
-# /adv-proposal - Create Change Proposal
+# ADV Proposal
 
-Create a structured change proposal that defines new requirements, modifications, or removals to existing specs.
+Create a new change proposal for the ADV system.
 
-## Arguments
+<UserRequest>
+  $ARGUMENTS
+</UserRequest>
 
-- `summary` (required): Brief description of the change (e.g., "Add user authentication")
+## Pre-flight Checks
 
-## Process
+### Step 1: Validate Arguments
 
-### Phase 1: Gather Requirements
+If `$ARGUMENTS` is empty or whitespace:
+```
+Usage: /adv-proposal "brief summary of the change"
 
-1. Analyze the provided summary
-2. If the change affects existing specs, use `adv_spec_search` to find related requirements
-3. Determine:
-   - Which capabilities are affected
-   - What requirements need to be added/modified/removed
-   - What tasks are needed to implement the change
+Example: /adv-proposal "add user authentication"
+```
+Stop execution.
 
-### Phase 2: Create Change Scaffold
+### Step 2: Check for Existing Changes
 
-1. Call `adv_change_create` with the summary to create the change directory
-2. This creates:
-   - `changes/{change-id}/change.json` - The change definition
-   - `changes/{change-id}/proposal.md` - Human-readable proposal
+Call `adv_change_list` to check for active changes.
 
-### Phase 3: Define Requirements
+**If similar change exists:**
+- Use `mcp_question`:
+  ```
+  header: "Similar Change"
+  question: "Found similar active change '<change-id>'. Continue anyway?"
+  options:
+    - label: "Create new (Recommended)"
+      description: "Create a separate change proposal"
+    - label: "Show existing"
+      description: "View the existing change instead"
+    - label: "Cancel"
+      description: "Do not create"
+  ```
 
-For each requirement being added, ensure it has:
-- Clear, testable title
-- Body explaining the requirement
-- Priority (must/should/may)
-- At least one scenario (Given/When/Then)
+## Create Change
 
-Present the proposed requirements to the user for review:
+### Step 3: Create Change Scaffold
+
+Call `adv_change_create summary: "$ARGUMENTS"`
+
+This will create:
+- `changes/<change-id>/change.json` - Change metadata
+- `changes/<change-id>/proposal.md` - Human-readable proposal template
+
+### Step 4: Read Created Files
+
+Read the created `proposal.md` to understand the template.
+
+### Step 5: Gather Requirements
+
+Use `mcp_question` to gather initial requirements:
 
 ```
-============================================================
-                  CHANGE PROPOSAL
-============================================================
-ID: {change-id}
-Title: {title}
-
-AFFECTED CAPABILITIES:
-- {capability-1}: {add/modify/remove} {count} requirement(s)
-
-PROPOSED REQUIREMENTS:
-{for each requirement}
-[{priority}] {id}: {title}
-  {body summary}
-  Scenarios: {scenario_count}
-{end}
-
-TASKS:
-{for each task}
-- [ ] {task_title}
-{end}
-============================================================
-```
-
-### Phase 4: Confirm
-
-Use `mcp_question` to confirm:
-
-```
-header: "Confirm Proposal"
-question: "Create this change proposal?"
+header: "Change Scope"
+question: "What type of change is this?"
 options:
-  - label: "Create proposal (Recommended)"
-    description: "Create the change and begin work"
-  - label: "Modify requirements"
-    description: "Adjust before creating"
-  - label: "Cancel"
-    description: "Discard the proposal"
+  - label: "New feature"
+    description: "Adding new functionality"
+  - label: "Enhancement"
+    description: "Improving existing functionality"
+  - label: "Bug fix"
+    description: "Fixing incorrect behavior"
+  - label: "Refactor"
+    description: "Restructuring without behavior change"
+  - label: "Breaking change"
+    description: "Changes that affect existing behavior"
 ```
 
-## Post-Creation
+### Step 6: Identify Affected Specs
 
-After confirmation:
-1. Update the `change.json` with the full requirement definitions
-2. Set status to "active" if ready to begin work
-3. Output the path to the proposal file for editing
-4. Suggest next step: `/adv-validate {change-id}` to validate
+Use `adv_spec_list` to show existing specs.
 
-## Example
+Use `mcp_question`:
+```
+header: "Affected Specs"
+question: "Which capabilities does this change affect?"
+multiple: true
+options:
+  - <list of existing capabilities>
+  - label: "New capability"
+    description: "This creates a new capability spec"
+```
+
+### Step 7: Fill Proposal Template
+
+Update `changes/<change-id>/proposal.md` with:
+
+```markdown
+# Change: <summary>
+
+## Why
+
+<Explain the motivation for this change>
+
+## What Changes
+
+<List the specific changes being made>
+
+## Affected Code
+
+<List files that will be modified - can be discovered later>
+
+## Acceptance Criteria
+
+- [ ] <criterion 1>
+- [ ] <criterion 2>
+
+## Constraints
+
+- MUST NOT: <any hard boundaries>
+- MUST: <any requirements>
+
+## Impact
+
+- Affected specs: <list>
+- Breaking changes: <yes/no>
+- Migration needed: <yes/no>
+```
+
+### Step 8: Add Initial Tasks
+
+Use `adv_task_add` to create initial tasks based on the change type:
+
+**For new features:**
+```
+adv_task_add change_id: <id> title: "Define spec requirements"
+adv_task_add change_id: <id> title: "Write acceptance tests"
+adv_task_add change_id: <id> title: "Implement core functionality"
+adv_task_add change_id: <id> title: "Add documentation"
+```
+
+**For bug fixes:**
+```
+adv_task_add change_id: <id> title: "Write failing test for bug"
+adv_task_add change_id: <id> title: "Implement fix"
+adv_task_add change_id: <id> title: "Verify fix with test"
+```
+
+**For refactors:**
+```
+adv_task_add change_id: <id> title: "Add characterization tests"
+adv_task_add change_id: <id> title: "Perform refactoring"
+adv_task_add change_id: <id> title: "Verify behavior preserved"
+```
+
+---
+
+## Output
 
 ```
-User: /adv-proposal Add rate limiting to API endpoints
-
-Agent: I'll create a change proposal for adding rate limiting.
-
-[Searches for existing API-related requirements]
-[Creates change scaffold]
-[Presents proposed requirements]
-[Confirms with user]
-
 ============================================================
                   CHANGE CREATED
 ============================================================
-Change ID: add-rate-limiting-abc123
-Proposal: changes/add-rate-limiting-abc123/proposal.md
 
-Next steps:
-1. Edit proposal.md to refine requirements
-2. Run /adv-validate add-rate-limiting-abc123
-3. Begin implementation with /adv-apply add-rate-limiting-abc123
+Change ID: <change-id>
+Title: <summary>
+Status: draft
+
+FILES CREATED:
+- changes/<change-id>/change.json
+- changes/<change-id>/proposal.md
+
+INITIAL TASKS:
+- [ ] <task-1>
+- [ ] <task-2>
+- [ ] <task-3>
+
+============================================================
+
+NEXT STEPS:
+
+1. Review and edit the proposal:
+   changes/<change-id>/proposal.md
+
+2. Add spec deltas defining requirements:
+   - Create specs/<capability>/spec.json in the change
+   - Or modify existing specs with deltas
+
+3. Validate the change:
+   /adv-validate <change-id>
+
+4. When ready, implement:
+   /adv-apply <change-id>
+
 ============================================================
 ```
 
-## Notes
+### Completion Banner
 
-- Each change should focus on a single coherent feature or fix
-- Requirements must be verifiable (testable)
-- Scenarios should cover happy path and error cases
-- Tasks should be granular enough to track progress
+```
+============================================================
+      /adv-proposal COMPLETE
+============================================================
+Result: Change <change-id> created
+============================================================
+```
+
+---
+
+## ADV Tools Reference
+
+- `adv_change_create summary: "..."` - Create change scaffold
+- `adv_change_list` - List existing changes
+- `adv_spec_list` - List existing specs
+- `adv_task_add change_id: <id> title: "..."` - Add task

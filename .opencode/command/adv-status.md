@@ -1,53 +1,114 @@
 ---
 name: adv-status
-description: Show ADV project status - specs, changes, and recommendations
+description: Show ADV project overview - specs, changes, and recommendations
+agent: build
 ---
 
-# /adv-status - Project Status Overview
+# ADV Status
 
-Display the current state of the ADV-managed project including specs, active changes, and recommendations.
+Show the current state of the ADV project including specs, active changes, and recommendations.
 
 ## Execution
 
-1. Call the `adv_status` tool to get project overview
-2. Format and display the results clearly
+Call `adv_status` to get the project overview.
 
-## Output Format
+Display the results in a formatted view:
 
 ```
 ============================================================
                     ADV PROJECT STATUS
 ============================================================
 
-SPECS ({count} capabilities):
-{for each spec}
-- {name}: {requirementCount} requirements (v{version})
-{end}
+SPECS (The Laws)
+----------------
+Total: <count> capabilities
 
-CHANGES:
-- Active: {active_count}
-- By Status: draft={draft}, pending={pending}, active={active}, archived={archived}
+<for each capability>
+- <capability-name>: <requirement-count> requirements
+<end>
 
-{if recommendations.length > 0}
-RECOMMENDATIONS:
-{for each recommendation}
-- {recommendation}
-{end}
-{end}
+ACTIVE CHANGES
+--------------
+<if none>
+No active changes.
+
+Suggestions:
+- Create a new change: /adv-proposal "summary"
+<end>
+
+<if changes exist>
+Total: <count> changes
+
+<for each change>
+- <change-id>: <title>
+  Status: <status>
+  Tasks: <completed>/<total> complete
+  <if has blockers>Blocked by: <blocker><end>
+<end>
+<end>
+
+ARCHIVED CHANGES
+----------------
+<if none>
+No archived changes.
+<end>
+
+<if archives exist>
+Total: <count> archived
+Recent:
+<for last 5>
+- <date>: <change-id> - <title>
+<end>
+<end>
+
+RECOMMENDATIONS
+---------------
+<based on state>
+
+<if no specs and no changes>
+1. Initialize your first spec: Create specs/<capability>/spec.json
+2. Or start with a change: /adv-proposal "add user authentication"
+<end>
+
+<if specs exist but no changes>
+1. Review existing specs: adv_spec_list
+2. Create a change when ready: /adv-proposal "summary"
+<end>
+
+<if changes in draft>
+1. Complete draft change: Edit changes/<change-id>/
+2. Validate when ready: /adv-validate <change-id>
+<end>
+
+<if changes active>
+1. Continue implementation: /adv-apply <change-id>
+2. Or review progress: adv_task_list change_id: <id>
+<end>
+
+<if all tasks done>
+1. Archive completed change: /adv-archive <change-id>
+<end>
 
 ============================================================
 ```
 
-## Example Usage
+## Quick Actions
+
+Based on the status, suggest the most relevant next action:
+
+| State | Suggested Action |
+|-------|------------------|
+| No specs, no changes | `/adv-proposal "initial feature"` |
+| Specs exist, no changes | `/adv-proposal "next feature"` |
+| Draft change exists | `/adv-validate <change-id>` |
+| Active change, tasks pending | `/adv-apply <change-id>` |
+| Active change, all tasks done | `/adv-archive <change-id>` |
+| Multiple active changes | Show selection for focus |
+
+## Completion Banner
 
 ```
-User: /adv-status
-Agent: [calls adv_status tool]
-Agent: [displays formatted status]
+============================================================
+      /adv-status COMPLETE
+============================================================
 ```
-
-## Notes
-
-- This is a read-only command - it doesn't modify any state
-- Use this to get an overview before starting work
-- Recommendations will suggest next actions (e.g., "Ready to archive: change-xyz")

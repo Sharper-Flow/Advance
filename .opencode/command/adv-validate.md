@@ -1,149 +1,214 @@
 ---
 name: adv-validate
-description: Validate a change against existing specs (specs as laws)
+description: Validate an ADV change against specs - check for conflicts, missing requirements, and errors
+agent: build
 args:
   - name: change_id
-    description: The change ID to validate
-    required: true
+    description: Change ID to validate (or --all for project-wide)
+    required: false
   - name: strict
-    description: Treat warnings as errors
+    description: Enable strict validation (warnings become errors)
     required: false
 ---
 
-# /adv-validate - Validate Change Against Specs
+# ADV Validate - Check Change Against Specs
 
-Validate a change proposal against existing specs to ensure it doesn't violate the "specs as laws" principle.
+Validate a change proposal against deployed specs. Uses `adv_change_validate` tool for all validation logic.
 
-## Arguments
+<UserRequest>
+  $ARGUMENTS
+</UserRequest>
 
-- `change_id` (required): The ID of the change to validate
-- `strict` (optional): If "strict", treat warnings as errors
+## Target Resolution
 
-## Validation Checks
+Parse `$ARGUMENTS` for:
+- `change-id`: The change to validate
+- `--strict` or `strict`: Enable strict mode
+- `--all`: Validate entire project (future feature)
 
-The validator performs two categories of checks:
+1. **If change-id provided**: Use directly
+2. **If empty**: Call `adv_change_list`, select via `mcp_question`
+3. **If --all**: Run project-wide validation (if supported)
 
-### Completeness Checks (Warnings)
-- `NO_TASKS`: Change has no tasks defined
-- `NO_DELTAS`: Change has no spec deltas defined
-- `MISSING_SCENARIO`: Added requirement has no scenarios
-- `INCOMPLETE_SCENARIO`: Scenario missing given/when/then
+---
 
-### Conflict Checks (Errors)
-- `DUPLICATE_REQUIREMENT_ID`: Requirement ID already exists in specs
-- `ORPHANED_DELTA_TARGET`: Modify/remove targets non-existent requirement
-- `SPEC_NOT_FOUND`: Modifying a capability that doesn't exist
-- `INVALID_ID_FORMAT`: IDs don't match expected patterns
+## Phase 1: Run Validation
 
-### Priority Checks (Warnings)
-- `MODIFYING_MUST_TO_MAY`: Downgrading requirement priority
-- `REMOVING_REFERENCED_REQUIREMENT`: Removing a requirement referenced by others
+### Execute Validation Tool
 
-## Process
+```
+adv_change_validate change_id: <target> strict: {true if --strict else false}
+```
 
-1. Call `adv_change_validate` with the change ID
-2. Format and display results
-3. If errors exist, suggest fixes
-4. If only warnings, allow proceeding with acknowledgment
+The tool returns:
+```json
+{
+  "valid": true|false,
+  "errors": [...],
+  "warnings": [...],
+  "info": [...]
+}
+```
 
-## Output Format
+---
 
-### Validation Passed
+## Phase 2: Display Results
+
+### If Valid (No Errors)
+
 ```
 ============================================================
-                 VALIDATION PASSED
+              VALIDATION PASSED
 ============================================================
-Change: {change_id}
-Checks: {checks_performed}
-Errors: 0
-Warnings: {warning_count}
 
-{if warnings}
-WARNINGS (non-blocking):
+Change: {change-id}
+Mode: {strict ? "strict" : "normal"}
+
+RESULT: VALID
+
+{if warnings.length > 0}
+WARNINGS ({warnings.length}):
 {for each warning}
-- [{code}] {message}
-  Path: {path}
+- [{warning.code}] {warning.message}
+  {if warning.location}at {warning.location}{end}
 {end}
 {end}
 
-Ready to proceed with /adv-apply {change_id}
+{if info.length > 0}
+INFO ({info.length}):
+{for each info}
+- {info.message}
+{end}
+{end}
+
 ============================================================
+
+Ready for implementation: /adv-apply {change-id}
 ```
 
-### Validation Failed
+### If Invalid (Has Errors)
+
 ```
 ============================================================
-                 VALIDATION FAILED
+              VALIDATION FAILED
 ============================================================
-Change: {change_id}
-Checks: {checks_performed}
-Errors: {error_count}
 
-ERRORS (must fix):
+Change: {change-id}
+Mode: {strict ? "strict" : "normal"}
+
+RESULT: INVALID
+
+ERRORS ({errors.length}):
 {for each error}
-- [{code}] {message}
-  Path: {path}
-  {if details}Details: {details}{end}
+{n}. [{error.code}] {error.message}
+   {if error.location}Location: {error.location}{end}
+   {if error.suggestion}Fix: {error.suggestion}{end}
 {end}
 
-{if warnings}
-WARNINGS:
+{if warnings.length > 0}
+WARNINGS ({warnings.length}):
 {for each warning}
-- [{code}] {message}
+- [{warning.code}] {warning.message}
 {end}
 {end}
 
-FIX SUGGESTIONS:
-{for each error, suggest fix}
+============================================================
+
+Fix errors before proceeding.
+```
+
+---
+
+## Phase 3: Error Guidance
+
+For common errors, provide specific guidance:
+
+### DUPLICATE_REQUIREMENT_ID
+```
+Error: Requirement ID '{id}' already exists in specs/{capability}
+
+Fix: Use a unique ID. Generate new one:
+  rq-{nanoid()}
+```
+
+### ORPHANED_DELTA_TARGET
+```
+Error: Delta targets '{id}' which doesn't exist
+
+Fix: Either:
+1. Create the target requirement first (add delta)
+2. Remove this delta
+3. Fix the target ID
+```
+
+### SPEC_NOT_FOUND
+```
+Error: Capability '{name}' not found in deployed specs
+
+Fix: Either:
+1. Create the spec first: specs/{name}/spec.json
+2. This is a new capability - use 'add' delta type
+```
+
+### INVALID_ID_FORMAT
+```
+Error: ID '{id}' doesn't match expected format
+
+Expected formats:
+- Requirement: rq-{nanoid}
+- Scenario: rq-{parent}.{n}
+- Task: tk-{nanoid}
+- Delta: dl-{nanoid}
+```
+
+### NO_TASKS (Warning)
+```
+Warning: No tasks defined for change
+
+Suggestion: Add tasks with /adv-prep or:
+  adv_task_add change_id: {id} title: "..."
+```
+
+### NO_DELTAS (Warning)
+```
+Warning: No spec deltas defined
+
+Suggestion: Define what specs this change modifies.
+Add deltas to changes/{id}/change.json
+```
+
+---
+
+## Phase 4: Completion
+
+### Completion Banner
+
+```
+============================================================
+      /adv-validate {change-id} COMPLETE
+============================================================
+Result: {valid ? "PASSED" : "FAILED"} ({error_count} errors, {warning_count} warnings)
 ============================================================
 ```
 
-## Fix Suggestions
-
-| Error Code | Suggestion |
-|------------|------------|
-| `DUPLICATE_REQUIREMENT_ID` | Change the requirement ID to a unique value |
-| `ORPHANED_DELTA_TARGET` | Verify the target requirement exists, or change to "add" operation |
-| `SPEC_NOT_FOUND` | Create the spec first, or use "add" operations only |
-| `INVALID_ID_FORMAT` | Use format: `rq-{nanoid}` for requirements, `dl-{nanoid}` for deltas |
-
-## Example
-
-```
-User: /adv-validate add-rate-limiting-abc123
-
-Agent: [calls adv_change_validate]
-
-============================================================
-                 VALIDATION PASSED
-============================================================
-Change: add-rate-limiting-abc123
-Checks: completeness, conflicts
-Errors: 0
-Warnings: 1
-
-WARNINGS (non-blocking):
-- [MISSING_SCENARIO] Requirement rq-rate001 has no scenarios
-  Path: deltas.api-capability.dl-rate001
-
-Ready to proceed with /adv-apply add-rate-limiting-abc123
-============================================================
-```
+---
 
 ## Strict Mode
 
-When `strict` is specified, warnings are treated as errors:
+In strict mode (`--strict`):
+- Warnings are promoted to errors
+- All issues must be resolved before proceeding
 
-```
-User: /adv-validate add-rate-limiting-abc123 strict
+Use strict mode before:
+- `/adv-apply` (implementation)
+- `/adv-archive` (finalization)
 
-Agent: [calls adv_change_validate with strict=true]
-[Reports warnings as errors, validation fails]
-```
+---
 
-## Notes
+## Key Tool
 
-- Always validate before applying changes
-- Fix all errors before proceeding
-- Warnings indicate potential issues but don't block progress
-- Use strict mode for production-critical changes
+| Purpose | Tool |
+|---------|------|
+| Validate | `adv_change_validate change_id: <id> strict: <bool>` |
+
+All validation logic is in the tool. This command formats output and provides guidance.

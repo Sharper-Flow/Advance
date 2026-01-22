@@ -1,221 +1,263 @@
 ---
 name: adv-archive
-description: Archive a completed change - apply deltas to specs and generate docs
-args:
-  - name: change_id
-    description: The change ID to archive
-    required: true
-  - name: dry_run
-    description: Preview changes without writing files
-    required: false
+description: Archive completed change - apply deltas to specs, generate docs, move to archive
+agent: build
 ---
 
-# /adv-archive - Archive Completed Change
+# ADV Archive - Finalize Completed Change
 
-Archive a completed change by applying its deltas to specs and generating documentation.
+Archive a completed change by applying deltas to deployed specs. All state managed by `adv_change_archive` tool.
 
-## Arguments
+<UserRequest>
+  $ARGUMENTS
+</UserRequest>
 
-- `change_id` (required): The ID of the change to archive
-- `dry_run` (optional): If "dry-run", preview changes without writing
+## Target Resolution
 
-## Prerequisites
+Parse `$ARGUMENTS` for:
+- `change-id`: Required
+- `--dry-run` or `dry-run`: Optional flag
 
-1. All tasks in the change must be "done" or "cancelled"
-2. Change should be validated (`/adv-validate` passed)
+1. **If $ARGUMENTS provided**: Extract change-id (and dry-run flag if present)
+2. **If empty**: Call `adv_change_list`, select via `mcp_question`
 
-## Process
+---
 
-### Phase 1: Verify Completion
+## Phase 1: Pre-Archive Checks
 
-1. Call `adv_change_show` to load the change
-2. Check all tasks are complete
-3. If incomplete tasks exist, report and abort
+### Fetch Change Data
 
-### Phase 2: Preview Changes (Optional)
+```
+adv_change_show change_id: <target>
+```
 
-If `dry_run` specified, or as confirmation step:
+Verify `status` is "active".
+
+### Verify Tasks Complete
+
+```
+adv_task_list change_id: <target>
+```
+
+**If any task not "done":**
+```
+============================================================
+            ARCHIVE BLOCKED - INCOMPLETE TASKS
+============================================================
+
+Incomplete tasks:
+{for each task where status != "done"}
+- [ ] {task.id}: {task.title} ({task.status})
+{end}
+
+Complete tasks first: /adv-apply {change-id}
+============================================================
+```
+Stop execution.
+
+### Run Validation
+
+```
+adv_change_validate change_id: <target> strict: true
+```
+
+**If validation fails:** Show errors, stop execution.
+
+---
+
+## Phase 2: Archive Preview
+
+Display what will happen:
 
 ```
 ============================================================
                    ARCHIVE PREVIEW
 ============================================================
-Change: {change_id}
-Title: {title}
 
-SPECS TO UPDATE:
+Change: {change-id}
+Title: {change.title}
+Tasks: {total} complete
+
+ACTIONS:
+1. Apply {delta_count} deltas to specs
+   {for each affected capability}
+   - {capability}: {delta_count} deltas
+   {end}
+
+2. Update deployed specs
+   {for each capability}
+   - specs/{capability}/spec.json
+   {end}
+
+3. Generate documentation
+   {for each capability}
+   - docs/specs/{capability}.md
+   {end}
+
+4. Create archive record
+   - archive/{date}-{change-id}/
+
+============================================================
+```
+
+---
+
+## Phase 3: Dry Run Check
+
+**If --dry-run flag:**
+
+```
+============================================================
+                  DRY RUN COMPLETE
+============================================================
+
+No changes made. To archive:
+  /adv-archive {change-id}
+============================================================
+```
+Stop execution.
+
+---
+
+## Phase 4: Confirmation
+
+Use `mcp_question`:
+```
+header: "Confirm Archive"
+question: "Archive '{change-id}'? This updates deployed specs."
+options:
+  - label: "Archive (Recommended)"
+    description: "Apply deltas and archive"
+  - label: "Dry run first"
+    description: "Preview without changes"
+  - label: "Cancel"
+```
+
+**If "Dry run"**: Re-run with dry-run flag.
+**If "Cancel"**: Stop execution.
+
+---
+
+## Phase 5: Execute Archive
+
+```
+adv_change_archive change_id: <target>
+```
+
+The tool handles:
+1. Applying deltas to `specs/*/spec.json`
+2. Updating SQLite cache
+3. Generating `docs/specs/*.md`
+4. Moving change to `archive/{date}-{change-id}/`
+5. Returning summary
+
+---
+
+## Phase 6: Verify Archive
+
+### Check Specs Updated
+
+For each affected capability:
+```
+adv_spec_show capability: <name>
+```
+
+Verify new requirements present.
+
+### Check Archive Created
+
+Verify `archive/{date}-{change-id}/` exists with:
+- `change.json`
+- `ARCHIVE_SUMMARY.md`
+
+---
+
+## Phase 7: Completion
+
+### Archive Report
+
+```
+============================================================
+                  ARCHIVE COMPLETE
+============================================================
+
+Change: {change-id}
+Title: {title}
+Archived: {timestamp}
+
+SPECS UPDATED:
 {for each capability}
-- {capability}: {original_version} → {new_version}
-  Deltas: {delta_count}
-  {for each delta}
-    - [{operation}] {description}
-  {end}
+- specs/{capability}/spec.json
+  - Added: {add_count} requirements
+  - Modified: {modify_count} requirements
+  - Removed: {remove_count} requirements
 {end}
 
-DOCS TO GENERATE:
-{for each doc}
-- {doc_path}
+DOCS GENERATED:
+{for each capability}
+- docs/specs/{capability}.md
 {end}
 
 ARCHIVE LOCATION:
-{archive_path}
-============================================================
-```
-
-### Phase 3: Confirm Archive
-
-Use `mcp_question` to confirm:
-
-```
-header: "Confirm Archive"
-question: "Archive this change? This will update specs and generate docs."
-options:
-  - label: "Archive now (Recommended)"
-    description: "Apply deltas and archive the change"
-  - label: "Preview only"
-    description: "Show what would happen without making changes"
-  - label: "Cancel"
-    description: "Don't archive"
-```
-
-### Phase 4: Execute Archive
-
-Call `adv_change_archive` with the change ID.
-
-The archive operation:
-1. Applies each delta to the target spec
-2. Bumps spec versions (minor for adds, patch for modifications)
-3. Writes updated specs to disk
-4. Generates markdown documentation
-5. Creates archive directory with change copy
-6. Updates change status to "archived"
-
-### Phase 5: Report Results
-
-```
-============================================================
-                  CHANGE ARCHIVED
-============================================================
-Change: {change_id}
-Archived At: {timestamp}
-
-SPECS UPDATED:
-{for each spec_update}
-- {capability}: {original} → {new_version}
-  Applied {delta_count} delta(s)
-{end}
-
-DOCS GENERATED:
-{for each doc}
-- {doc_path}
-{end}
-
-ARCHIVE:
-{archive_path}
+  archive/{date}-{change-id}/
 
 ============================================================
 ```
+
+### Completion Banner
+
+```
+============================================================
+      /adv-archive {change-id} COMPLETE
+============================================================
+Result: Specs updated, change archived
+============================================================
+```
+
+---
+
+## Post-Archive Suggestions
+
+```
+NEXT STEPS:
+1. Commit changes:
+   git add specs/ docs/specs/ archive/
+   git commit -m "chore: archive {change-id}"
+
+2. Optional validation:
+   /adv-validate --all
+
+3. Optional hardening:
+   /adv-harden <affected-files>
+```
+
+---
 
 ## Error Handling
 
-### Incomplete Tasks
+### Delta Application Error
+
 ```
 ============================================================
-                 CANNOT ARCHIVE
+            ARCHIVE FAILED - DELTA ERROR
 ============================================================
-Change: {change_id}
 
-INCOMPLETE TASKS:
-{for each incomplete}
-- {task.id}: {task.title} (status: {status})
-{end}
+Failed delta: {delta-id}
+Target: {capability}/{requirement-id}
+Error: {message}
 
-Complete all tasks before archiving, or cancel tasks that won't be done.
-============================================================
-```
-
-### Delta Application Failure
-```
-============================================================
-               ARCHIVE FAILED
-============================================================
-Change: {change_id}
-
-ERRORS:
-{for each error}
-- {error_message}
-{end}
-
-The archive was rolled back. Fix the issues and try again.
+Change NOT archived. Fix and retry:
+  /adv-validate {change-id}
+  /adv-archive {change-id}
 ============================================================
 ```
 
-## Dry Run Mode
+---
 
-```
-User: /adv-archive add-rate-limiting-abc123 dry-run
+## Key Tool
 
-Agent: [calls adv_change_archive with dryRun=true]
+| Purpose | Tool |
+|---------|------|
+| Archive change | `adv_change_archive change_id: <id>` |
 
-============================================================
-                  DRY RUN RESULTS
-============================================================
-Change: add-rate-limiting-abc123
-
-WOULD UPDATE:
-- api-capability: 1.2.0 → 1.3.0
-  + Add rq-rate001: Rate Limiting
-
-WOULD GENERATE:
-- docs/specs/api-capability.md
-
-WOULD CREATE:
-- archive/2026-01-21-add-rate-limiting-abc123/
-
-No changes were made. Run without dry-run to apply.
-============================================================
-```
-
-## Example
-
-```
-User: /adv-archive add-rate-limiting-abc123
-
-Agent: [loads change, verifies all tasks complete]
-[shows preview]
-[confirms with user]
-[executes archive]
-
-============================================================
-                  CHANGE ARCHIVED
-============================================================
-Change: add-rate-limiting-abc123
-Archived At: 2026-01-21T15:30:00Z
-
-SPECS UPDATED:
-- api-capability: 1.2.0 → 1.3.0
-  Applied 2 delta(s)
-
-DOCS GENERATED:
-- docs/specs/api-capability.md
-
-ARCHIVE:
-archive/2026-01-21-add-rate-limiting-abc123/
-
-============================================================
-```
-
-## Post-Archive
-
-After archiving:
-- The change is immutable (status: "archived")
-- Specs are updated with new requirements
-- Documentation reflects the changes
-- The archive directory contains a copy of the change for history
-
-## Notes
-
-- Archive is a one-way operation - changes cannot be "unarchived"
-- Use dry-run first to preview changes
-- All deltas must apply successfully or the operation fails
-- Version bumping follows semantic versioning (minor for features, patch for fixes)
+This single tool does all the work. The command orchestrates pre-checks, confirmation, and verification.

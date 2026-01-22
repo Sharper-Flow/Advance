@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ADV Command Implementation Report</title>
+    <style>
+        @page {
+            size: letter;
+            margin: 0.5in;
+        }
+        
+        * {
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 9pt;
+            line-height: 1.3;
+            color: #1a1a1a;
+            max-width: 8.5in;
+            margin: 0 auto;
+            padding: 0.25in;
+            background: white;
+        }
+        
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            border-bottom: 3px solid #2563eb;
+            padding-bottom: 8px;
+            margin-bottom: 12px;
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: 18pt;
+            color: #1e40af;
+        }
+        
+        .header-meta {
+            text-align: right;
+            font-size: 8pt;
+            color: #64748b;
+        }
+        
+        .header-meta strong {
+            color: #1e40af;
+            font-size: 10pt;
+        }
+        
+        .summary-cards {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+        
+        .card {
+            flex: 1;
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            padding: 8px 12px;
+            text-align: center;
+        }
+        
+        .card-value {
+            font-size: 20pt;
+            font-weight: bold;
+            color: #1e40af;
+        }
+        
+        .card-label {
+            font-size: 7pt;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        h2 {
+            font-size: 11pt;
+            color: #1e40af;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 3px;
+            margin: 12px 0 6px 0;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 8pt;
+            margin-bottom: 10px;
+        }
+        
+        th {
+            background: #1e40af;
+            color: white;
+            padding: 5px 6px;
+            text-align: left;
+            font-weight: 600;
+        }
+        
+        td {
+            padding: 4px 6px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        tr:nth-child(even) {
+            background: #f8fafc;
+        }
+        
+        .cmd {
+            font-family: 'Consolas', 'Monaco', monospace;
+            background: #f1f5f9;
+            padding: 1px 4px;
+            border-radius: 3px;
+            font-size: 7.5pt;
+        }
+        
+        .confidence-high {
+            background: #dcfce7;
+            color: #166534;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 7pt;
+        }
+        
+        .confidence-medium {
+            background: #fef3c7;
+            color: #92400e;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 7pt;
+        }
+        
+        .confidence-low {
+            background: #fee2e2;
+            color: #991b1b;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 7pt;
+        }
+        
+        .two-col {
+            display: flex;
+            gap: 15px;
+        }
+        
+        .two-col > div {
+            flex: 1;
+        }
+        
+        .architecture-box {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 8px;
+            font-family: 'Consolas', monospace;
+            font-size: 7pt;
+            line-height: 1.4;
+        }
+        
+        .priority-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .priority-list li {
+            padding: 3px 0;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .priority-num {
+            background: #1e40af;
+            color: white;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 8pt;
+            font-weight: bold;
+        }
+        
+        .footer {
+            margin-top: 12px;
+            padding-top: 8px;
+            border-top: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            font-size: 7pt;
+            color: #64748b;
+        }
+        
+        .approval-section {
+            margin-top: 15px;
+            padding: 10px;
+            border: 2px solid #1e40af;
+            border-radius: 6px;
+            background: #f8fafc;
+        }
+        
+        .approval-section h3 {
+            margin: 0 0 8px 0;
+            color: #1e40af;
+            font-size: 10pt;
+        }
+        
+        .signature-line {
+            display: flex;
+            gap: 30px;
+            margin-top: 10px;
+        }
+        
+        .signature-box {
+            flex: 1;
+        }
+        
+        .signature-box label {
+            font-size: 7pt;
+            color: #64748b;
+        }
+        
+        .signature-box .line {
+            border-bottom: 1px solid #1a1a1a;
+            height: 25px;
+            margin-top: 3px;
+        }
+        
+        @media print {
+            body {
+                padding: 0;
+            }
+            .approval-section {
+                page-break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div>
+            <h1>ADV Command Implementation Report</h1>
+            <div style="color: #64748b; font-size: 9pt;">Advance Plugin - Spec-Driven Development System</div>
+        </div>
+        <div class="header-meta">
+            <strong>CONFIDENTIAL</strong><br>
+            Generated: January 22, 2026<br>
+            Version: 1.0.0<br>
+            Status: Ready for Review
+        </div>
+    </div>
+    
+    <div class="summary-cards">
+        <div class="card">
+            <div class="card-value">15</div>
+            <div class="card-label">Total Commands</div>
+        </div>
+        <div class="card">
+            <div class="card-value">3,578</div>
+            <div class="card-label">Lines of Code</div>
+        </div>
+        <div class="card">
+            <div class="card-value">77KB</div>
+            <div class="card-label">Total Size</div>
+        </div>
+        <div class="card">
+            <div class="card-value">8</div>
+            <div class="card-label">High Confidence</div>
+        </div>
+        <div class="card">
+            <div class="card-value">5</div>
+            <div class="card-label">Sub-Agent Commands</div>
+        </div>
+    </div>
+    
+    <h2>Command Inventory</h2>
+    <table>
+        <thead>
+            <tr>
+                <th style="width: 15%">Command</th>
+                <th style="width: 6%">Lines</th>
+                <th style="width: 6%">Size</th>
+                <th style="width: 10%">Confidence</th>
+                <th style="width: 8%">Agents</th>
+                <th>Description</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><span class="cmd">adv-status</span></td>
+                <td>114</td>
+                <td>2.5KB</td>
+                <td><span class="confidence-high">HIGH</span></td>
+                <td>No</td>
+                <td>Project overview - specs, changes, recommendations</td>
+            </tr>
+            <tr>
+                <td><span class="cmd">adv-proposal</span></td>
+                <td>219</td>
+                <td>4.8KB</td>
+                <td><span class="confidence-high">HIGH</span></td>
+                <td>No</td>
+                <td>Create new change proposal with scaffolding</td>
+            </tr>
+            <tr>
+                <td><span class="cmd">adv-validate</span></td>
+                <td>214</td>
+                <td>4.4KB</td>
+                <td><span class="confidence-high">HIGH</span></td>
+                <td>No</td>
+                <td>Validate change against specs</td>
+            </tr>
+            <tr>
+                <td><span class="cmd">adv-clarify</span></td>
+                <td>87</td>
+                <td>3.0KB</td>
+                <td><span class="confidence-high">HIGH</span></td>
+                <td>No</td>
+                <td>Socratic clarifying questions for requirements</td>
+            </tr>
+            <tr>
+                <td><span class="cmd">adv-prep</span></td>
+                <td>254</td>
+                <td>5.5KB</td>
+                <td><span class="confidence-high">HIGH</span></td>
+                <td>Optional</td>
+                <td>Gap analysis - missing scenarios, tasks, concerns</td>
+            </tr>
+            <tr>
+                <td><span class="cmd">adv-research</span></td>
+                <td>275</td>
+                <td>5.4KB</td>
+                <td><span class="confidence-medium">MEDIUM</span></td>
+                <td>Yes (N)</td>
+                <td>Validate architectural decisions via Context7</td>
+            </tr>
+            <tr>
+                <td><span class="cmd">adv-apply</span></td>
+                <td>287</td>
+                <td>5.8KB</td>
+                <td><span class="confidence-high">HIGH</span></td>
+                <td>No</td>
+                <td>Implement change with TDD workflow</td>
+            </tr>
+            <tr>
+                <td><span class="cmd">adv-review</span></td>
+                <td>307</td>
+                <td>6.5KB</td>
+                <td><span class="confidence-medium">MEDIUM</span></td>
+                <td>Yes (4)</td>
+                <td>Code review - correctness, security, architecture</td>
+            </tr>
+            <tr>
+                <td><span class="cmd">adv-harden</span></td>
+                <td>348</td>
+                <td>7.8KB</td>
+                <td><span class="confidence-medium">MEDIUM</span></td>
+                <td>Yes (5)</td>
+                <td>AI-slop detection, test coverage, cleanup</td>
+            </tr>
+            <tr>
+                <td><span class="cmd">adv-audit</span></td>
+                <td>327</td>
+                <td>6.8KB</td>
+                <td><span class="confidence-medium">MEDIUM</span></td>
+                <td>Yes (4)</td>
+                <td>Project-wide spec/implementation drift detection</td>
+            </tr>
+            <tr>
+                <td><span class="cmd">adv-archive</span></td>
+                <td>263</td>
+                <td>5.2KB</td>
+                <td><span class="confidence-high">HIGH</span></td>
+                <td>No</td>
+                <td>Archive completed change, update specs</td>
+            </tr>
+            <tr>
+                <td><span class="cmd">adv-refactor</span></td>
+                <td>307</td>
+                <td>6.2KB</td>
+                <td><span class="confidence-low">LOW</span></td>
+                <td>Yes (5)</td>
+                <td>Refresh stale proposals to match codebase</td>
+            </tr>
+            <tr>
+                <td><span class="cmd">adv-ralph</span></td>
+                <td>245</td>
+                <td>5.5KB</td>
+                <td><span class="confidence-medium">MEDIUM</span></td>
+                <td>No</td>
+                <td>Autonomous implementation with retry on failures</td>
+            </tr>
+            <tr>
+                <td><span class="cmd">adv-coordinate</span></td>
+                <td>170</td>
+                <td>3.9KB</td>
+                <td><span class="confidence-medium">MEDIUM</span></td>
+                <td>No</td>
+                <td>Multi-change conflict detection</td>
+            </tr>
+            <tr>
+                <td><span class="cmd">adv-roadmap</span></td>
+                <td>161</td>
+                <td>3.3KB</td>
+                <td><span class="confidence-high">HIGH</span></td>
+                <td>No</td>
+                <td>Progress dashboard for specs and changes</td>
+            </tr>
+        </tbody>
+    </table>
+    
+    <div class="two-col">
+        <div>
+            <h2>Architecture Pattern</h2>
+            <div class="architecture-box">
+                <strong>Hybrid: Tools for State + Banners for Visibility</strong><br><br>
+                1. Target Resolution<br>
+                &nbsp;&nbsp;&nbsp;└─ adv_change_list / mcp_question<br>
+                2. Load Context<br>
+                &nbsp;&nbsp;&nbsp;└─ adv_change_show / adv_task_list<br>
+                3. CONTRACT ACTIVE Banner<br>
+                &nbsp;&nbsp;&nbsp;└─ Derived from tool state<br>
+                4. Execute Work<br>
+                &nbsp;&nbsp;&nbsp;└─ adv_task_update / adv_change_validate<br>
+                5. CONTRACT FULFILLED Banner
+            </div>
+            
+            <h2>Sub-Agent Orchestration</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Command</th>
+                        <th>Agents</th>
+                        <th>Scanners</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><span class="cmd">adv-review</span></td>
+                        <td>4 parallel</td>
+                        <td>Trace, Logic, Security, Arch</td>
+                    </tr>
+                    <tr>
+                        <td><span class="cmd">adv-harden</span></td>
+                        <td>5 parallel</td>
+                        <td>Tests, Slop, Docs, Clean, Spec</td>
+                    </tr>
+                    <tr>
+                        <td><span class="cmd">adv-audit</span></td>
+                        <td>4 staged</td>
+                        <td>Parse → Map + Conflict → Drift</td>
+                    </tr>
+                    <tr>
+                        <td><span class="cmd">adv-research</span></td>
+                        <td>N parallel</td>
+                        <td>One per decision</td>
+                    </tr>
+                    <tr>
+                        <td><span class="cmd">adv-refactor</span></td>
+                        <td>5 parallel</td>
+                        <td>Drift, Deps, Conflict, Task, Obs</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <div>
+            <h2>Testing Priority</h2>
+            <ul class="priority-list">
+                <li><span class="priority-num">1</span> <strong>adv-apply</strong> - Core workflow, critical path</li>
+                <li><span class="priority-num">2</span> <strong>adv-validate</strong> - Gate for all implementations</li>
+                <li><span class="priority-num">3</span> <strong>adv-archive</strong> - Spec update integrity</li>
+                <li><span class="priority-num">4</span> <strong>adv-review</strong> - 4-agent orchestration</li>
+                <li><span class="priority-num">5</span> <strong>adv-harden</strong> - 5-agent orchestration</li>
+                <li><span class="priority-num">6</span> <strong>adv-refactor</strong> - Novel reconciliation</li>
+                <li><span class="priority-num">7</span> <strong>adv-audit</strong> - Staged execution</li>
+            </ul>
+            
+            <h2>Key Features</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Feature</th>
+                        <th>Commands</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Contract Banners</td>
+                        <td>All 15 commands</td>
+                    </tr>
+                    <tr>
+                        <td>mcp_question</td>
+                        <td>7 commands</td>
+                    </tr>
+                    <tr>
+                        <td>Anti-Loop Protocol</td>
+                        <td>6 commands</td>
+                    </tr>
+                    <tr>
+                        <td>TDD (Red/Green)</td>
+                        <td>apply, ralph</td>
+                    </tr>
+                    <tr>
+                        <td>Doom Loop Detection</td>
+                        <td>apply, ralph</td>
+                    </tr>
+                    <tr>
+                        <td>Autonomous Retry</td>
+                        <td>ralph only</td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            <h2>Confidence Summary</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Level</th>
+                        <th>Count</th>
+                        <th>Testing Required</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><span class="confidence-high">HIGH</span></td>
+                        <td>8</td>
+                        <td>Basic smoke test</td>
+                    </tr>
+                    <tr>
+                        <td><span class="confidence-medium">MEDIUM</span></td>
+                        <td>6</td>
+                        <td>Integration test</td>
+                    </tr>
+                    <tr>
+                        <td><span class="confidence-low">LOW</span></td>
+                        <td>1</td>
+                        <td>Full workflow validation</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <div class="approval-section">
+        <h3>Approval</h3>
+        <p style="margin: 0 0 10px 0; font-size: 8pt;">
+            I have reviewed this implementation report and approve the ADV command architecture for deployment.
+        </p>
+        <div class="signature-line">
+            <div class="signature-box">
+                <label>Technical Lead Signature</label>
+                <div class="line"></div>
+            </div>
+            <div class="signature-box">
+                <label>Date</label>
+                <div class="line"></div>
+            </div>
+            <div class="signature-box">
+                <label>Product Owner Signature</label>
+                <div class="line"></div>
+            </div>
+            <div class="signature-box">
+                <label>Date</label>
+                <div class="line"></div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="footer">
+        <div>ADV Plugin v1.0.0 | Advance - Spec-Driven Development</div>
+        <div>Ported from OpenSpec (Goost) | 15 commands | 3,578 lines</div>
+        <div>Page 1 of 1</div>
+    </div>
+</body>
+</html>

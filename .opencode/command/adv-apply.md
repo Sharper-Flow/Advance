@@ -1,203 +1,287 @@
 ---
 name: adv-apply
-description: Begin implementing an approved change - work through tasks with TDD
-args:
-  - name: change_id
-    description: The change ID to implement
-    required: true
+description: Implement an ADV change using TDD - tasks tracked via ADV tools, progress shown via contract banners
+agent: build
 ---
 
-# /adv-apply - Implement Change with TDD
+# ADV Apply - Implement Change with TDD
 
-Begin implementing an approved change by working through its tasks using Test-Driven Development.
+Implement an ADV change by working through tasks using Test-Driven Development. Task state is managed by ADV tools; contract banners provide visibility.
 
-## Arguments
+<UserRequest>
+  $ARGUMENTS
+</UserRequest>
 
-- `change_id` (required): The ID of the change to implement
+## Target Resolution
 
-## Prerequisites
+1. **If $ARGUMENTS provided**: Use as change-id
+2. **If empty**: Call `adv_change_list`, then:
+   - If one active change: Confirm with `mcp_question`
+   - If multiple: Present selection with `mcp_question`
+   - If none: Suggest `/adv-proposal`
 
-1. Change must exist and be in "active" status
-2. Change should be validated (`/adv-validate` passed)
-3. Tasks should be defined in the change
+## Phase 1: Load Change Context
 
-## Process
+### Step 1: Fetch Change Data
 
-### Phase 1: Load and Verify Change
+```
+adv_change_show change_id: <target>
+```
 
-1. Call `adv_change_show` to load the change
-2. Verify status is "active"
-3. Call `adv_task_ready` to get available tasks
+Extract from response:
+- `title`, `summary` for objective
+- `status` (must be "active" to proceed)
+- `deltas` for acceptance criteria
 
-### Phase 2: Display Work Plan
+### Step 2: Fetch Task State
+
+```
+adv_task_list change_id: <target>
+```
+
+Extract:
+- Total task count
+- Completed count
+- Task details (id, title, status, blocked_by)
+
+### Step 3: Get Ready Tasks
+
+```
+adv_task_ready change_id: <target>
+```
+
+Returns tasks that can be started (not blocked, not done).
+
+---
+
+## Phase 2: Display Contract (Derived from Tools)
+
+Generate contract banner **from tool outputs** (not hardcoded):
 
 ```
 ============================================================
-                   APPLYING CHANGE
+                    CONTRACT ACTIVE
 ============================================================
-Change: {change_id}
-Title: {title}
-Status: {status}
 
-TASKS:
-Ready to start:
-{for each ready task}
-- [ ] {task.id}: {task.title}
+OBJECTIVE: {change.title}
+
+SUCCESS CRITERIA (from change deltas):
+{for each delta with type "add" or "modify"}
+- [ ] (C{n}) {delta.title or requirement summary}
+{end}
+- [ ] (C{n+1}) All tasks completed
+- [ ] (C{n+2}) Build passes
+
+TASKS (from adv_task_list):
+{for each task}
+- [{task.status == "done" ? "x" : " "}] {task.id}: {task.title}
+  {if task.blocked_by} Blocked by: {blocked_by}{end}
 {end}
 
-Blocked:
-{for each blocked task}
-- [ ] {task.id}: {task.title}
-  Blocked by: {blocked_by}
-{end}
+Progress: {done_count}/{total_count} tasks
 
-Progress: {completed}/{total} tasks complete
 ============================================================
 ```
 
-### Phase 3: Work Loop
+### Confirmation
 
-For each ready task, follow the TDD protocol:
+Use `mcp_question`:
+```
+header: "Confirm"
+question: "Begin implementation of '{change.title}'?"
+options:
+  - label: "Begin work (Recommended)"
+    description: "Start TDD implementation"
+  - label: "Cancel"
+    description: "Exit without changes"
+```
 
-#### 3a. Start Task
+---
+
+## Phase 3: TDD Work Loop
+
+For each task from `adv_task_ready`:
+
+### 3a. Start Task
+
 ```
 [ADV:ROCKET]
-
-Starting task: {task.title}
+Starting: {task.title}
 ```
 
-Call `adv_task_update` with status "in_progress".
+Update task state:
+```
+adv_task_update change_id: <target> task_id: {task.id} status: "in_progress"
+```
 
-#### 3b. Red Phase (Write Test)
+### 3b. Red Phase
+
 ```
 [ADV:TDD_RED]
-
 Writing test for: {task.title}
 ```
 
-1. Write the failing test first
-2. Run tests to confirm failure (red phase evidence)
-3. Show test output
+1. Write failing test
+2. Run tests, capture failure output
+3. Show evidence: `Test fails as expected: <output snippet>`
 
-#### 3c. Green Phase (Implement)
+### 3c. Green Phase
+
 ```
 [ADV:TDD_GREEN]
-
 Implementing: {task.title}
 ```
 
-1. Write minimal code to pass the test
-2. Run tests to confirm success (green phase evidence)
-3. Show test output
+1. Write minimal code to pass
+2. Run tests, capture success output
+3. Show evidence: `Test passes: <output snippet>`
 
-#### 3d. Complete Task
+### 3d. Complete Task
 
-Call `adv_task_update` with status "done".
+Update task state:
+```
+adv_task_update change_id: <target> task_id: {task.id} status: "done"
+```
 
 ```
 Task complete: {task.title}
-Evidence: {test_output_or_commit}
+Evidence: {test output or commit hash}
 ```
 
-### Phase 4: Progress Update
+### 3e. Refresh Ready Tasks
 
-After each task, emit status:
+After each completion:
+```
+adv_task_ready change_id: <target>
+```
+
+Continue with next ready task.
+
+---
+
+## Phase 4: Progress Tracking
+
+After EACH task, emit CONTRACT STATUS derived from current tool state:
 
 ```
 ---
-CHANGE STATUS:
-- [x] {completed_task} (evidence: {link})
-- [ ] {pending_task} (status: pending)
-Progress: {completed}/{total} tasks
+CONTRACT STATUS (from adv_task_list):
+{for each task}
+- [{status == "done" ? "x" : " "}] {task.id}: {task.title}
+  {if done} (evidence: {evidence}){end}
+  {if in_progress} (status: in progress){end}
+  {if blocked} (blocked by: {blocked_by}){end}
+{end}
+Phase: TDD | Tasks: {done}/{total}
 ---
 ```
 
-### Phase 5: Completion Check
+---
 
-When all tasks are done:
+## Phase 5: Completion
+
+When `adv_task_ready` returns empty AND all tasks are "done":
+
+### Verify Completion
+
+```
+adv_task_list change_id: <target>
+```
+
+Confirm all tasks show `status: "done"`.
+
+### Final Validation
+
+```
+adv_change_validate change_id: <target>
+```
+
+Must pass before declaring complete.
+
+### Contract Fulfilled Banner
 
 ```
 ============================================================
-                 ALL TASKS COMPLETE
+                  CONTRACT FULFILLED
 ============================================================
-Change: {change_id}
-Tasks: {total}/{total} complete
 
-Ready to archive with /adv-archive {change_id}
+OBJECTIVE: {change.title}
+
+ALL TASKS COMPLETE (from adv_task_list):
+{for each task}
+- [x] {task.id}: {task.title}
+{end}
+
+VALIDATION: adv_change_validate - PASSED
+
 ============================================================
 ```
 
-## Status Markers
+### Completion Banner
 
-Emit appropriate markers during work:
+```
+============================================================
+      /adv-apply {change-id} COMPLETE
+============================================================
+Result: All tasks done, ready for /adv-archive
+============================================================
+```
 
-| Marker | When |
-|--------|------|
-| `[ADV:ROCKET]` | Starting work on a task |
-| `[ADV:TDD_RED]` | Writing tests (red phase) |
-| `[ADV:TDD_GREEN]` | Implementing (green phase) |
-| `[ADV:MOON]` | Waiting for sub-agent results |
-| `[ADV:DOOM_LOOP]` | Stuck in retry cycle (3+ attempts) |
-| `[ADV:MIC]` | Need user decision |
+---
 
 ## Doom Loop Protocol
 
-If stuck on a task after 3 attempts:
+If same task fails 3 times:
 
 1. Emit `[ADV:DOOM_LOOP]`
-2. Stop retrying the same approach
+2. STOP retrying
 3. Use `mcp_question`:
    ```
    header: "Task Blocked"
-   question: "Task '{task.title}' is stuck after 3 attempts. How to proceed?"
+   question: "Task '{task.title}' stuck after 3 attempts"
    options:
      - label: "Try different approach"
-       description: "I'll suggest an alternative solution"
-     - label: "Get more context"
-       description: "Ask clarifying questions"
-     - label: "Mark as blocked"
-       description: "Skip and continue with other tasks"
+     - label: "Get more context"  
+     - label: "Mark blocked"
      - label: "Cancel change"
-       description: "Abandon this change"
    ```
 
-## Example
+If "Mark blocked":
+```
+adv_task_update change_id: <target> task_id: {task.id} status: "blocked"
+```
+
+---
+
+## Trivial Tasks
+
+For non-logic tasks (docs, config):
 
 ```
-User: /adv-apply add-rate-limiting-abc123
-
-Agent: [loads change, shows work plan]
-
 [ADV:ROCKET]
-Starting task: tk-rate001 - Create rate limiter middleware
-
-[ADV:TDD_RED]
-Writing test for rate limiter...
-[creates test file]
-[runs tests - FAIL as expected]
-
-[ADV:TDD_GREEN]
-Implementing rate limiter...
-[creates implementation]
-[runs tests - PASS]
-
-Task complete: Create rate limiter middleware
-Evidence: commit abc1234
-
----
-CHANGE STATUS:
-- [x] tk-rate001: Create rate limiter (evidence: abc1234)
-- [ ] tk-rate002: Add rate limit headers (pending)
-Progress: 1/3 tasks
----
-
-[continues with next task...]
+Task: {task.title} (trivial: {rationale})
 ```
 
-## Notes
+Skip Red/Green phases. Verify manually, then:
+```
+adv_task_update change_id: <target> task_id: {task.id} status: "done"
+```
 
-- Follow TDD strictly: test first, then implement
-- Provide evidence for each completed task
-- Update task status in real-time
-- Don't skip ahead - work through blocked dependencies
-- Ask for help if stuck rather than spinning
+Include rationale in status:
+```
+- [x] {task.id}: Update README (trivial: docs, manual review)
+```
+
+---
+
+## Key Principle
+
+**All state lives in ADV tools. Contract banners are views, not source of truth.**
+
+| State | Tool | Display |
+|-------|------|---------|
+| Task status | `adv_task_update` | CONTRACT STATUS block |
+| Task list | `adv_task_list` | Task checkboxes |
+| Ready tasks | `adv_task_ready` | "Next task" selection |
+| Change data | `adv_change_show` | OBJECTIVE in banner |
+| Validation | `adv_change_validate` | Pass/fail line |
