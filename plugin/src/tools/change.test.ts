@@ -1,0 +1,258 @@
+/**
+ * Change Tools Tests
+ *
+ * TDD tests for change management tools
+ */
+
+import { describe, test, expect, beforeEach, afterEach } from "vitest";
+import { changeTools } from "./change";
+import { createStore, type Store } from "../storage/store";
+import {
+  createTempDir,
+  cleanupTempDir,
+  createTestProject,
+} from "../__tests__/setup";
+
+describe("Change Tools", () => {
+  let tempDir: string;
+  let store: Store;
+
+  beforeEach(async () => {
+    tempDir = await createTempDir();
+    await createTestProject(tempDir);
+    store = await createStore(tempDir);
+  });
+
+  afterEach(async () => {
+    store.close();
+    await cleanupTempDir(tempDir);
+  });
+
+  describe("adv_change_list", () => {
+    test("returns active changes with task counts", async () => {
+      const result = await changeTools.adv_change_list.execute({}, store);
+      const parsed = JSON.parse(result);
+
+      expect(parsed.changes).toHaveLength(1);
+      expect(parsed.changes[0]).toMatchObject({
+        id: "add-feature-abc123",
+        title: "Add New Feature",
+        status: "active",
+        taskCount: 3,
+        completedTasks: 0,
+      });
+    });
+
+    test("filters by status", async () => {
+      const result = await changeTools.adv_change_list.execute(
+        { status: "draft" },
+        store
+      );
+      const parsed = JSON.parse(result);
+
+      // No draft changes in sample data
+      expect(parsed.changes).toHaveLength(0);
+    });
+
+    test("excludes archived by default", async () => {
+      // Archive the existing change
+      const change = await store.changes.get("add-feature-abc123");
+      change!.status = "archived";
+      await store.changes.save(change!);
+
+      const result = await changeTools.adv_change_list.execute({}, store);
+      const parsed = JSON.parse(result);
+
+      expect(parsed.changes).toHaveLength(0);
+    });
+
+    test("includes archived when requested", async () => {
+      const change = await store.changes.get("add-feature-abc123");
+      change!.status = "archived";
+      await store.changes.save(change!);
+
+      const result = await changeTools.adv_change_list.execute(
+        { includeArchived: true },
+        store
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed.changes).toHaveLength(1);
+    });
+  });
+
+  describe("adv_change_show", () => {
+    test("returns full change with tasks and deltas", async () => {
+      const result = await changeTools.adv_change_show.execute(
+        { changeId: "add-feature-abc123" },
+        store
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed.id).toBe("add-feature-abc123");
+      expect(parsed.title).toBe("Add New Feature");
+      expect(parsed.tasks).toHaveLength(3);
+      expect(parsed.deltas["test-capability"]).toHaveLength(1);
+    });
+
+    test("returns error for nonexistent change", async () => {
+      const result = await changeTools.adv_change_show.execute(
+        { changeId: "nonexistent" },
+        store
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed.error).toContain("not found");
+    });
+  });
+
+  describe("adv_change_create", () => {
+    test("creates new change with generated ID", async () => {
+      const result = await changeTools.adv_change_create.execute(
+        { summary: "Add user authentication" },
+        store
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed.changeId).toMatch(/^add-user-authentication-[a-zA-Z0-9_-]+$/);
+      expect(parsed.path).toContain("proposal.md");
+    });
+
+    test("creates change.json with draft status", async () => {
+      const result = await changeTools.adv_change_create.execute(
+        { summary: "New feature" },
+        store
+      );
+      const parsed = JSON.parse(result);
+
+      const change = await store.changes.get(parsed.changeId);
+      expect(change).not.toBeNull();
+      expect(change!.status).toBe("draft");
+      expect(change!.tasks).toEqual([]);
+      expect(change!.deltas).toEqual({});
+    });
+
+    test("truncates long summaries in ID", async () => {
+      const result = await changeTools.adv_change_create.execute(
+        { summary: "This is a very long summary that should be truncated in the change ID" },
+        store
+      );
+      const parsed = JSON.parse(result);
+
+      // ID should be truncated to 30 chars + nanoid
+      expect(parsed.changeId.length).toBeLessThan(50);
+    });
+  });
+
+  describe("adv_change_validate", () => {
+    test("passes for valid change", async () => {
+      const result = await changeTools.adv_change_validate.execute(
+        { changeId: "add-feature-abc123" },
+        store
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed.passed).toBe(true);
+      expect(parsed.errors).toHaveLength(0);
+    });
+
+    test("warns when no tasks defined", async () => {
+      // Create a change with no tasks
+      const createResult = await changeTools.adv_change_create.execute(
+        { summary: "Empty change" },
+        store
+      );
+      const { changeId } = JSON.parse(createResult);
+
+      const result = await changeTools.adv_change_validate.execute(
+        { changeId },
+        store
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed.passed).toBe(true); // Warnings don't fail by default
+      expect(parsed.warnings.some((w: { code: string }) => w.code === "NO_TASKS")).toBe(true);
+    });
+
+    test("warns when no deltas defined", async () => {
+      const createResult = await changeTools.adv_change_create.execute(
+        { summary: "No deltas change" },
+        store
+      );
+      const { changeId } = JSON.parse(createResult);
+
+      const result = await changeTools.adv_change_validate.execute(
+        { changeId },
+        store
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed.warnings.some((w: { code: string }) => w.code === "NO_DELTAS")).toBe(true);
+    });
+
+    test("fails in strict mode with warnings", async () => {
+      const createResult = await changeTools.adv_change_create.execute(
+        { summary: "Empty change" },
+        store
+      );
+      const { changeId } = JSON.parse(createResult);
+
+      const result = await changeTools.adv_change_validate.execute(
+        { changeId, strict: true },
+        store
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed.passed).toBe(false);
+    });
+
+    test("returns error for nonexistent change", async () => {
+      const result = await changeTools.adv_change_validate.execute(
+        { changeId: "nonexistent" },
+        store
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed.error).toContain("not found");
+    });
+  });
+
+  describe("adv_change_archive", () => {
+    test("archives change with all tasks completed", async () => {
+      // Complete all tasks
+      await store.tasks.update("tk-task0001", "done");
+      await store.tasks.update("tk-task0002", "done");
+      await store.tasks.update("tk-task0003", "done");
+
+      const result = await changeTools.adv_change_archive.execute(
+        { changeId: "add-feature-abc123" },
+        store
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed.success).toBe(true);
+      expect(parsed.specsUpdated).toContain("test-capability");
+    });
+
+    test("fails when tasks are incomplete", async () => {
+      const result = await changeTools.adv_change_archive.execute(
+        { changeId: "add-feature-abc123" },
+        store
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed.error).toContain("incomplete tasks");
+      expect(parsed.incompleteTasks).toHaveLength(3);
+    });
+
+    test("returns error for nonexistent change", async () => {
+      const result = await changeTools.adv_change_archive.execute(
+        { changeId: "nonexistent" },
+        store
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed.error).toContain("not found");
+    });
+  });
+});
