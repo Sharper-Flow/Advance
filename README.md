@@ -1,35 +1,30 @@
-# ADV - Advance Spec-Driven Development
+<p align="center">
+  <img src="assets/header.svg" alt="ADVANCE" width="100%">
+</p>
 
-[![CI](https://github.com/Sharper-Flow/Advance/actions/workflows/ci.yml/badge.svg)](https://github.com/Sharper-Flow/Advance/actions/workflows/ci.yml)
+<p align="center">
+  <strong>Spec-Driven Development for AI Agents</strong>
+</p>
 
-ADV (Advance) is an OpenCode plugin that enables **spec-driven development** where specifications become enforceable laws. Changes to your system are formally proposed, validated, and tracked through a structured workflow.
+<p align="center">
+  <a href="https://github.com/Sharper-Flow/Advance/actions/workflows/ci.yml"><img src="https://github.com/Sharper-Flow/Advance/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License"></a>
+  <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-5.0+-3178c6?logo=typescript&logoColor=white" alt="TypeScript"></a>
+</p>
 
-## Core Concept
+ADV (Advance) is an OpenCode plugin that enables **spec-driven development** where specifications become enforceable laws. Changes to your system are formally proposed, validated against existing specs, implemented with TDD, and permanently archived.
 
-```
-SPECS ARE LAWS → CHANGES ARE PROPOSALS → VALIDATION ENFORCES LAWS
-```
+## Why ADV?
 
-1. **Specs** define requirements with Given/When/Then scenarios
-2. **Changes** propose additions, modifications, or removals to specs
-3. **Validation** ensures changes don't violate existing specs
-4. **Archive** promotes approved changes to the spec canon
+| Challenge | ADV's Solution |
+|-----------|----------------|
+| **Requirements drift** | Specs are the single source of truth |
+| **Incomplete implementations** | Validation gates block malformed changes |
+| **No audit trail** | Every change is archived with full history |
+| **Ad-hoc testing** | TDD workflow with Red/Green phase evidence |
+| **Scattered docs** | Auto-generated documentation from specs |
 
-## Features
-
-- **13 MCP Tools** for managing specs, changes, and tasks
-- **Validation Engine** - "specs as laws" enforcement
-- **TDD Workflow** - Test-first development with evidence tracking
-- **Delta Application** - Semantic version bumping and spec updates
-- **Documentation Generation** - Auto-generated markdown from specs
-- **Terminal Integration** - Status markers and tab colors
-- **Doom Loop Detection** - Automatic stuck detection with recovery
-
-## Installation
-
-See [INSTALL.md](INSTALL.md) for detailed setup instructions.
-
-### Quick Start
+## Quick Start
 
 ```bash
 # Clone the repository
@@ -43,111 +38,137 @@ pnpm install
 pnpm test
 ```
 
+See [INSTALL.md](INSTALL.md) for detailed setup instructions.
+
 ## Workflow
 
 ```
 /adv-proposal "Add user authentication"
        │
        ▼
-┌─────────────────────────────┐
-│  Define Requirements        │
-│  - Requirements with IDs    │
-│  - Given/When/Then scenarios│
-│  - Tasks for implementation │
-└──────────────┬──────────────┘
+┌─────────────────────────────────┐
+│  DRAFT                          │
+│  Define requirements & tasks    │
+└──────────────┬──────────────────┘
                │
                ▼
 /adv-validate {change-id}
        │
        ▼
-┌─────────────────────────────┐
-│  Validation Checks          │
-│  - No duplicate IDs         │
-│  - Targets exist            │
-│  - Valid ID formats         │
-└──────────────┬──────────────┘
+┌─────────────────────────────────┐
+│  ACTIVE                         │
+│  Validation passed              │
+└──────────────┬──────────────────┘
                │
                ▼
 /adv-apply {change-id}
        │
        ▼
-┌─────────────────────────────┐
-│  TDD Implementation         │
-│  - [TDD_RED] Write tests    │
-│  - [TDD_GREEN] Implement    │
-│  - Mark tasks complete      │
-└──────────────┬──────────────┘
+┌─────────────────────────────────┐
+│  TDD LOOP                       │
+│  [TDD_RED]   Write failing test │
+│  [TDD_GREEN] Implement to pass  │
+│  Repeat until all tasks done    │
+└──────────────┬──────────────────┘
                │
                ▼
 /adv-archive {change-id}
        │
        ▼
-┌─────────────────────────────┐
-│  Specs Updated              │
-│  Docs Generated             │
-│  Change Archived            │
-└─────────────────────────────┘
+┌─────────────────────────────────┐
+│  ARCHIVED                       │
+│  Specs updated, docs generated  │
+└─────────────────────────────────┘
 ```
 
 ## Commands
 
+### Core Workflow
+
 | Command | Description |
 |---------|-------------|
-| `/adv-status` | Show project overview |
-| `/adv-proposal <summary>` | Create change proposal |
-| `/adv-validate <id> [strict]` | Validate against specs |
-| `/adv-apply <id>` | Implement with TDD |
-| `/adv-archive <id> [dry-run]` | Archive completed change |
+| `/adv-status` | Project overview with specs, changes, and recommendations |
+| `/adv-proposal <summary>` | Create a new change proposal with scaffolding |
+| `/adv-validate <id>` | Validate change against specs before implementation |
+| `/adv-apply <id>` | Implement change with TDD workflow |
+| `/adv-archive <id>` | Archive completed change and update specs |
 
-## Tools
+### Pre-Implementation
+
+| Command | Description |
+|---------|-------------|
+| `/adv-clarify` | Socratic questions to uncover requirements |
+| `/adv-prep <id>` | Gap analysis for missing scenarios and tasks |
+| `/adv-research <target>` | Validate architectural decisions via Context7 |
+
+### Post-Implementation
+
+| Command | Description |
+|---------|-------------|
+| `/adv-review <id>` | 4-agent code review (traceability, logic, security, architecture) |
+| `/adv-harden <id>` | 5-agent hardening (tests, AI-slop, docs, cleanup, spec alignment) |
+| `/adv-audit [capability]` | Project-wide spec/implementation drift detection |
+
+### Advanced
+
+| Command | Description |
+|---------|-------------|
+| `/adv-ralph <id>` | Autonomous implementation with retry protocol |
+| `/adv-refactor <id>` | Refresh stale proposals to match codebase |
+| `/adv-coordinate` | Multi-change conflict detection |
+| `/adv-roadmap` | Progress dashboard with tiered view |
+
+## MCP Tools
+
+ADV exposes 13 MCP tools for programmatic access:
 
 ### Spec Tools
 | Tool | Description |
 |------|-------------|
-| `adv_spec_list` | List capabilities with filters |
+| `adv_spec_list` | List capabilities with optional filtering |
 | `adv_spec_show` | Get full spec details |
-| `adv_spec_search` | Search requirements |
+| `adv_spec_search` | Search requirements by keyword (FTS5) |
 
 ### Change Tools
 | Tool | Description |
 |------|-------------|
 | `adv_change_list` | List changes by status |
-| `adv_change_show` | Get change details |
-| `adv_change_create` | Create new change |
-| `adv_change_validate` | Validate change |
-| `adv_change_archive` | Archive change |
+| `adv_change_show` | Get change details with tasks and deltas |
+| `adv_change_create` | Create new change scaffold |
+| `adv_change_validate` | Validate change against specs |
+| `adv_change_archive` | Archive change and update specs |
 
 ### Task Tools
 | Tool | Description |
 |------|-------------|
-| `adv_task_list` | List tasks in change |
-| `adv_task_ready` | Get ready tasks |
+| `adv_task_list` | List tasks in a change |
+| `adv_task_ready` | Get tasks ready to start (unblocked) |
 | `adv_task_update` | Update task status |
 | `adv_task_add` | Add task to change |
 
-### Status Tool
+### Status
 | Tool | Description |
 |------|-------------|
-| `adv_status` | Get project status |
+| `adv_status` | Get project overview |
 
 ## Status Markers
 
 | Marker | Meaning |
 |--------|---------|
-| `[ADV:ROCKET]` | Active work |
-| `[ADV:TDD_RED]` | Writing tests |
-| `[ADV:TDD_GREEN]` | Implementing |
-| `[ADV:MOON]` | Waiting for sub-agents |
-| `[ADV:EARTH]` | Complete/idle |
-| `[ADV:DOOM_LOOP]` | Stuck (3+ retries) |
-| `[ADV:MIC]` | Needs approval |
+| `[ADV:ROCKET]` | Active work in progress |
+| `[ADV:TDD_RED]` | Red phase - writing failing test |
+| `[ADV:TDD_GREEN]` | Green phase - implementing to pass |
+| `[ADV:MOON]` | Waiting for sub-agent results |
+| `[ADV:EARTH]` | Complete or awaiting input |
+| `[ADV:DOOM_LOOP]` | Stuck after 3+ retries |
+| `[ADV:MIC]` | Needs user approval |
 
 ## Project Structure
 
 ```
 project/
 ├── project.json          # ADV configuration
-├── specs/                # Capability specifications
+├── specs/                # The Laws (capability specifications)
 │   └── {capability}/
 │       └── spec.json
 ├── changes/              # Active change proposals
@@ -158,70 +179,35 @@ project/
 │   └── {date}-{change-id}/
 ├── docs/specs/           # Generated documentation
 │   └── {capability}.md
-└── .specdb/              # SQLite cache
+└── .specdb/              # SQLite cache with FTS5
     └── spec.db
 ```
 
-## Spec Format
+## Architecture
 
-```json
-{
-  "name": "user-auth",
-  "title": "User Authentication",
-  "purpose": "Secure user identity verification",
-  "version": "1.0.0",
-  "updated_at": "2026-01-21T00:00:00Z",
-  "requirements": [
-    {
-      "id": "rq-auth0001",
-      "title": "Password Requirements",
-      "body": "Passwords must be at least 12 characters.",
-      "priority": "must",
-      "scenarios": [
-        {
-          "id": "rq-auth0001.1",
-          "title": "Valid password accepted",
-          "given": ["a registration form"],
-          "when": "user enters a 12+ character password",
-          "then": ["password is accepted"]
-        }
-      ]
-    }
-  ]
-}
 ```
-
-## Change Format
-
-```json
-{
-  "id": "add-mfa-support",
-  "title": "Add Multi-Factor Authentication",
-  "status": "active",
-  "created_at": "2026-01-21T00:00:00Z",
-  "tasks": [
-    {
-      "id": "tk-mfa0001",
-      "title": "Implement TOTP generation",
-      "status": "pending",
-      "priority": 0
-    }
-  ],
-  "deltas": {
-    "user-auth": [
-      {
-        "id": "dl-mfa0001",
-        "operation": "add",
-        "requirement": {
-          "id": "rq-mfa0001",
-          "title": "TOTP Support",
-          "body": "Support TOTP-based MFA",
-          "priority": "should"
-        }
-      }
-    ]
-  }
-}
+┌─────────────────────────────────────────────────────────────┐
+│                      AI Agent (OpenCode)                    │
+└───────────────────────────┬─────────────────────────────────┘
+                            │ MCP Tool Calls
+                            ▼
+┌─────────────────────────────────────────────────────────────┐
+│                       ADV Plugin                            │
+│  ┌─────────────────────────────────────────────────────┐    │
+│  │                   13 MCP Tools                      │    │
+│  │   spec_list  change_create  task_update  status     │    │
+│  └──────────────────────┬──────────────────────────────┘    │
+│                         │                                   │
+│  ┌──────────────────────▼──────────────────────────────┐    │
+│  │              Validation Engine                      │    │
+│  │   ID checks, conflicts, completeness, references   │    │
+│  └──────────────────────┬──────────────────────────────┘    │
+│                         │                                   │
+│  ┌──────────────────────▼──────────────────────────────┐    │
+│  │                 Storage Layer                       │    │
+│  │         JSON (source of truth) + SQLite FTS5       │    │
+│  └─────────────────────────────────────────────────────┘    │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 ## Development
@@ -229,43 +215,36 @@ project/
 ```bash
 cd plugin
 
-# Install dependencies
-pnpm install
-
-# Run tests
-pnpm test
-
-# Type check
-pnpm run typecheck
-
-# Lint
-pnpm run lint
-
-# Format
-pnpm run format
-
-# All checks
-pnpm run check
+pnpm install      # Install dependencies
+pnpm test         # Run 222 tests
+pnpm run check    # Typecheck + lint + format
 ```
 
-## Testing
+### Test Coverage
 
-222 tests across 11 test files:
+- 222 tests across 11 test files
 - Storage layer (JSON, SQLite, Store)
-- All 13 tools
-- Validation engine
+- All 13 MCP tools
+- Validation engine with error paths
 - Archive operations
-- Events and status
+- Events and status detection
 
-```bash
-pnpm test
-```
+## Documentation
+
+- [INSTALL.md](INSTALL.md) — Installation and setup
+- [ADV_INSTRUCTIONS.md](ADV_INSTRUCTIONS.md) — Agent instructions
+- [CHANGELOG.md](CHANGELOG.md) — Version history
+- [COMMAND_REPORT.html](COMMAND_REPORT.html) — Detailed command documentation
+
+## Related Projects
+
+- [Goost](https://github.com/anomalyco/goost) — Contract-based task persistence (complementary)
+- [OpenCode](https://github.com/anomalyco/opencode) — AI coding CLI
 
 ## License
 
 MIT
 
-## Related Projects
+---
 
-- [Goost](https://github.com/anomalyco/goost) - Contract-based task persistence
-- [OpenCode](https://github.com/anomalyco/opencode) - AI coding CLI
+<sub>Built with TypeScript. Specs become laws.</sub>
