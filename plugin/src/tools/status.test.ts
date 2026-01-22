@@ -77,7 +77,7 @@ describe("Status Tools", () => {
       const parsed = JSON.parse(result);
 
       const archiveRecs = parsed.recommendations.filter((r: string) =>
-        r.includes("Ready to archive")
+        r.includes("Ready to archive"),
       );
       expect(archiveRecs).toHaveLength(0);
     });
@@ -91,7 +91,9 @@ describe("Status Tools", () => {
         requirements: SAMPLE_SPEC.requirements.map((r, i) => ({
           ...r,
           id: `rq-second${i}`,
-          scenarios: r.scenarios?.map((s, j) => ({ ...s, id: `rq-second${i}.${j}` })) ?? [],
+          scenarios:
+            r.scenarios?.map((s, j) => ({ ...s, id: `rq-second${i}.${j}` })) ??
+            [],
         })),
       };
       await store.specs.save(newSpec);
@@ -107,7 +109,10 @@ describe("Status Tools", () => {
     test("handles empty project", async () => {
       // Create empty project
       const emptyDir = await createTempDir();
-      await createTestProject(emptyDir, { withSpecs: false, withChanges: false });
+      await createTestProject(emptyDir, {
+        withSpecs: false,
+        withChanges: false,
+      });
       const emptyStore = await createStore(emptyDir);
 
       const result = await statusTools.adv_status.execute({}, emptyStore);

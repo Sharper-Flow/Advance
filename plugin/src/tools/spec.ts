@@ -20,7 +20,7 @@ export const specTools = {
     },
     execute: async (
       { capability, tag }: { capability?: string; tag?: string },
-      store: Store
+      store: Store,
     ) => {
       const result = await store.specs.list({ capability, tag });
       return JSON.stringify(result, null, 2);
@@ -30,7 +30,9 @@ export const specTools = {
   adv_spec_show: {
     description: "Get full specification details by capability ID",
     args: {
-      capability: z.string().describe("Capability ID (e.g., 'contract-system')"),
+      capability: z
+        .string()
+        .describe("Capability ID (e.g., 'contract-system')"),
     },
     execute: async ({ capability }: { capability: string }, store: Store) => {
       const spec = await store.specs.get(capability);
@@ -49,7 +51,7 @@ export const specTools = {
     },
     execute: async (
       { query, limit }: { query: string; limit?: number },
-      store: Store
+      store: Store,
     ) => {
       const results = await store.specs.search(query, limit);
       return JSON.stringify({ results }, null, 2);

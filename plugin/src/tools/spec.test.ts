@@ -11,7 +11,6 @@ import {
   createTempDir,
   cleanupTempDir,
   createTestProject,
-  SAMPLE_SPEC,
 } from "../__tests__/setup";
 
 describe("Spec Tools", () => {
@@ -46,7 +45,7 @@ describe("Spec Tools", () => {
     test("filters by capability name", async () => {
       const result = await specTools.adv_spec_list.execute(
         { capability: "test-capability" },
-        store
+        store,
       );
       const parsed = JSON.parse(result);
 
@@ -57,7 +56,7 @@ describe("Spec Tools", () => {
     test("returns empty array for non-matching capability", async () => {
       const result = await specTools.adv_spec_list.execute(
         { capability: "nonexistent" },
-        store
+        store,
       );
       const parsed = JSON.parse(result);
 
@@ -67,7 +66,7 @@ describe("Spec Tools", () => {
     test("filters by tag", async () => {
       const result = await specTools.adv_spec_list.execute(
         { tag: "security" },
-        store
+        store,
       );
       const parsed = JSON.parse(result);
 
@@ -78,7 +77,7 @@ describe("Spec Tools", () => {
     test("returns empty for non-matching tag", async () => {
       const result = await specTools.adv_spec_list.execute(
         { tag: "nonexistent-tag" },
-        store
+        store,
       );
       const parsed = JSON.parse(result);
 
@@ -90,7 +89,7 @@ describe("Spec Tools", () => {
     test("returns full spec with requirements", async () => {
       const result = await specTools.adv_spec_show.execute(
         { capability: "test-capability" },
-        store
+        store,
       );
       const parsed = JSON.parse(result);
 
@@ -103,7 +102,7 @@ describe("Spec Tools", () => {
     test("includes scenarios in requirements", async () => {
       const result = await specTools.adv_spec_show.execute(
         { capability: "test-capability" },
-        store
+        store,
       );
       const parsed = JSON.parse(result);
 
@@ -118,7 +117,7 @@ describe("Spec Tools", () => {
     test("returns error for nonexistent spec", async () => {
       const result = await specTools.adv_spec_show.execute(
         { capability: "nonexistent" },
-        store
+        store,
       );
       const parsed = JSON.parse(result);
 
@@ -130,7 +129,7 @@ describe("Spec Tools", () => {
     test("finds requirements by body content", async () => {
       const result = await specTools.adv_spec_search.execute(
         { query: "authentication" },
-        store
+        store,
       );
       const parsed = JSON.parse(result);
 
@@ -141,7 +140,7 @@ describe("Spec Tools", () => {
     test("finds requirements by title", async () => {
       const result = await specTools.adv_spec_search.execute(
         { query: "Sample" },
-        store
+        store,
       );
       const parsed = JSON.parse(result);
 
@@ -152,7 +151,7 @@ describe("Spec Tools", () => {
     test("respects limit parameter", async () => {
       const result = await specTools.adv_spec_search.execute(
         { query: "requirement", limit: 1 },
-        store
+        store,
       );
       const parsed = JSON.parse(result);
 
@@ -162,7 +161,7 @@ describe("Spec Tools", () => {
     test("returns empty array for no matches", async () => {
       const result = await specTools.adv_spec_search.execute(
         { query: "xyznonexistent123" },
-        store
+        store,
       );
       const parsed = JSON.parse(result);
 
@@ -172,7 +171,7 @@ describe("Spec Tools", () => {
     test("includes spec name in results", async () => {
       const result = await specTools.adv_spec_search.execute(
         { query: "testing" },
-        store
+        store,
       );
       const parsed = JSON.parse(result);
 

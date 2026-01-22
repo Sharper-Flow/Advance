@@ -24,7 +24,10 @@ export interface ProjectPaths {
   config: string;
 }
 
-export function getProjectPaths(root: string, config?: Partial<ProjectConfig>): ProjectPaths {
+export function getProjectPaths(
+  root: string,
+  config?: Partial<ProjectConfig>,
+): ProjectPaths {
   return {
     root,
     specs: join(root, config?.specs_dir ?? "specs"),
@@ -40,7 +43,9 @@ export function getProjectPaths(root: string, config?: Partial<ProjectConfig>): 
 // Project Config
 // =============================================================================
 
-export async function loadProjectConfig(root: string): Promise<ProjectConfig | null> {
+export async function loadProjectConfig(
+  root: string,
+): Promise<ProjectConfig | null> {
   const configPath = join(root, "project.json");
 
   try {
@@ -51,7 +56,10 @@ export async function loadProjectConfig(root: string): Promise<ProjectConfig | n
   }
 }
 
-export async function saveProjectConfig(root: string, config: ProjectConfig): Promise<void> {
+export async function saveProjectConfig(
+  root: string,
+  config: ProjectConfig,
+): Promise<void> {
   const configPath = join(root, "project.json");
   await writeFile(configPath, JSON.stringify(config, null, 2));
 }
@@ -69,7 +77,10 @@ export async function listSpecDirs(specsDir: string): Promise<string[]> {
   }
 }
 
-export async function loadSpec(specsDir: string, capability: string): Promise<Spec | null> {
+export async function loadSpec(
+  specsDir: string,
+  capability: string,
+): Promise<Spec | null> {
   const specPath = join(specsDir, capability, "spec.json");
 
   try {
@@ -81,7 +92,9 @@ export async function loadSpec(specsDir: string, capability: string): Promise<Sp
   }
 }
 
-export async function loadAllSpecs(specsDir: string): Promise<Map<string, Spec>> {
+export async function loadAllSpecs(
+  specsDir: string,
+): Promise<Map<string, Spec>> {
   const specs = new Map<string, Spec>();
   const dirs = await listSpecDirs(specsDir);
 
@@ -118,7 +131,10 @@ export async function listChangeDirs(changesDir: string): Promise<string[]> {
   }
 }
 
-export async function loadChange(changesDir: string, changeId: string): Promise<Change | null> {
+export async function loadChange(
+  changesDir: string,
+  changeId: string,
+): Promise<Change | null> {
   const changePath = join(changesDir, changeId, "change.json");
 
   try {
@@ -130,7 +146,9 @@ export async function loadChange(changesDir: string, changeId: string): Promise<
   }
 }
 
-export async function loadAllChanges(changesDir: string): Promise<Map<string, Change>> {
+export async function loadAllChanges(
+  changesDir: string,
+): Promise<Map<string, Change>> {
   const changes = new Map<string, Change>();
   const dirs = await listChangeDirs(changesDir);
 
@@ -144,7 +162,10 @@ export async function loadAllChanges(changesDir: string): Promise<Map<string, Ch
   return changes;
 }
 
-export async function saveChange(changesDir: string, change: Change): Promise<string> {
+export async function saveChange(
+  changesDir: string,
+  change: Change,
+): Promise<string> {
   const changeDir = join(changesDir, change.id);
   const changePath = join(changeDir, "change.json");
 
@@ -157,7 +178,7 @@ export async function saveChange(changesDir: string, change: Change): Promise<st
 export async function createChangeScaffold(
   changesDir: string,
   changeId: string,
-  title: string
+  title: string,
 ): Promise<{ changePath: string; proposalPath: string }> {
   const changeDir = join(changesDir, changeId);
   const changePath = join(changeDir, "change.json");

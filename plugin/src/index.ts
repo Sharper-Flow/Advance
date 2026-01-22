@@ -5,30 +5,50 @@
  * Primary interface for AI agents to manage specs, changes, and tasks.
  */
 
-import type { Plugin } from "@opencode-ai/plugin";
 import { z } from "zod";
-import { createStore } from "./storage/store";
+import { createStore, type Store } from "./storage/store";
 import { specTools } from "./tools/spec";
 import { changeTools } from "./tools/change";
 import { taskTools } from "./tools/task";
 import { statusTools } from "./tools/status";
+import {
+  initializeStatus,
+  cleanup as cleanupEvents,
+  getProjectName,
+} from "./events";
+
+// =============================================================================
+// Plugin Types (stub until @opencode-ai/plugin SDK is published)
+// =============================================================================
+
+interface PluginContext {
+  directory: string;
+}
+
+interface PluginResult {
+  name: string;
+  version: string;
+  tools: Record<string, unknown>;
+  onSessionStart?: () => Promise<void>;
+  onSessionEnd?: () => Promise<void>;
+}
+
+type Plugin = (context: PluginContext) => Promise<PluginResult>;
 
 // =============================================================================
 // Plugin Export
 // =============================================================================
 
-export const AdvancePlugin: Plugin = async ({ directory }) => {
+export const AdvancePlugin: Plugin = async ({ directory }: PluginContext) => {
   // Initialize store
   const store = await createStore(directory);
 
   // Helper to wrap tool execution with store injection
-  const wrapTool = <T extends Record<string, unknown>>(
-    toolDef: {
-      description: string;
-      args: Record<string, z.ZodType>;
-      execute: (args: T, store: typeof store) => Promise<string>;
-    }
-  ) => ({
+  const wrapTool = <T extends Record<string, unknown>>(toolDef: {
+    description: string;
+    args: Record<string, z.ZodType>;
+    execute: (args: T, store: Store) => Promise<string>;
+  }) => ({
     description: toolDef.description,
     parameters: z.object(toolDef.args as z.ZodRawShape),
     execute: async (args: T) => toolDef.execute(args, store),
@@ -66,10 +86,15 @@ export const AdvancePlugin: Plugin = async ({ directory }) => {
     onSessionStart: async () => {
       await store.init();
       await store.sync();
+
+      // Initialize terminal status
+      const projectName = getProjectName(directory);
+      initializeStatus(projectName);
     },
 
     onSessionEnd: async () => {
       store.close();
+      cleanupEvents();
     },
   };
 };
@@ -80,3 +105,6 @@ export default AdvancePlugin;
 // Re-export types for consumers
 export * from "./types";
 export type { Store } from "./storage/store";
+
+// Re-export events for direct usage
+export * from "./events";

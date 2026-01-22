@@ -48,7 +48,10 @@ export interface Store {
 
   // Specs
   specs: {
-    list: (filter?: { capability?: string; tag?: string }) => Promise<SpecListResponse>;
+    list: (filter?: {
+      capability?: string;
+      tag?: string;
+    }) => Promise<SpecListResponse>;
     get: (capability: string) => Promise<Spec | null>;
     search: (query: string, limit?: number) => Promise<SearchResult[]>;
     save: (spec: Spec) => Promise<void>;
@@ -56,9 +59,15 @@ export interface Store {
 
   // Changes
   changes: {
-    list: (filter?: { status?: string; includeArchived?: boolean }) => Promise<ChangeListResponse>;
+    list: (filter?: {
+      status?: string;
+      includeArchived?: boolean;
+    }) => Promise<ChangeListResponse>;
     get: (changeId: string) => Promise<Change | null>;
-    create: (summary: string, capability?: string) => Promise<{ changeId: string; path: string }>;
+    create: (
+      summary: string,
+      capability?: string,
+    ) => Promise<{ changeId: string; path: string }>;
     save: (change: Change) => Promise<void>;
   };
 
@@ -66,11 +75,15 @@ export interface Store {
   tasks: {
     list: (changeId: string, status?: string) => Promise<Task[]>;
     ready: (changeId: string) => Promise<TaskReadyResponse>;
-    update: (taskId: string, status: string, notes?: string) => Promise<Task | null>;
+    update: (
+      taskId: string,
+      status: string,
+      notes?: string,
+    ) => Promise<Task | null>;
     add: (
       changeId: string,
       content: string,
-      options?: { blockedBy?: string[]; section?: string }
+      options?: { blockedBy?: string[]; section?: string },
     ) => Promise<Task>;
   };
 
@@ -167,7 +180,9 @@ export async function createStore(directory: string): Promise<Store> {
           for (const row of rows) {
             const spec = await loadSpec(paths.specs, row.name);
             if (spec) {
-              const hasTags = spec.requirements.some((r) => r.tags?.includes(filter.tag!));
+              const hasTags = spec.requirements.some((r) =>
+                r.tags?.includes(filter.tag!),
+              );
               if (hasTags) filtered.push(row);
             }
           }
@@ -248,7 +263,7 @@ export async function createStore(directory: string): Promise<Store> {
         const { changePath, proposalPath } = await createChangeScaffold(
           paths.changes,
           changeId,
-          summary
+          summary,
         );
 
         // Create change.json
@@ -402,9 +417,13 @@ export async function createStore(directory: string): Promise<Store> {
       for (const change of changeRows) {
         if (change.status === "active") {
           const tasks = sqlite.tasks.list(change.id);
-          const allDone = tasks.every((t) => t.status === "done" || t.status === "cancelled");
+          const allDone = tasks.every(
+            (t) => t.status === "done" || t.status === "cancelled",
+          );
           if (allDone && tasks.length > 0) {
-            recommendations.push(`Ready to archive: \`/adv-archive ${change.id}\``);
+            recommendations.push(
+              `Ready to archive: \`/adv-archive ${change.id}\``,
+            );
           }
         }
       }

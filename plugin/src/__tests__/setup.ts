@@ -31,7 +31,7 @@ export async function createTestProject(
     withSpecs?: boolean;
     withChanges?: boolean;
     withConfig?: boolean;
-  } = {}
+  } = {},
 ): Promise<void> {
   const { withSpecs = true, withChanges = true, withConfig = true } = options;
 
@@ -52,8 +52,8 @@ export async function createTestProject(
           db_dir: ".specdb",
         },
         null,
-        2
-      )
+        2,
+      ),
     );
   }
 
@@ -61,7 +61,7 @@ export async function createTestProject(
     await mkdir(join(dir, "specs/test-capability"), { recursive: true });
     await writeFile(
       join(dir, "specs/test-capability/spec.json"),
-      JSON.stringify(SAMPLE_SPEC, null, 2)
+      JSON.stringify(SAMPLE_SPEC, null, 2),
     );
   }
 
@@ -69,11 +69,11 @@ export async function createTestProject(
     await mkdir(join(dir, "changes/add-feature-abc123"), { recursive: true });
     await writeFile(
       join(dir, "changes/add-feature-abc123/change.json"),
-      JSON.stringify(SAMPLE_CHANGE, null, 2)
+      JSON.stringify(SAMPLE_CHANGE, null, 2),
     );
     await writeFile(
       join(dir, "changes/add-feature-abc123/proposal.md"),
-      SAMPLE_PROPOSAL
+      SAMPLE_PROPOSAL,
     );
   }
 }
@@ -222,7 +222,7 @@ export async function assertFileExists(path: string): Promise<void> {
  */
 export async function assertFileContains(
   path: string,
-  content: string
+  content: string,
 ): Promise<void> {
   const text = await readFile(path, "utf-8");
   if (!text.includes(content)) {
@@ -236,7 +236,7 @@ export async function assertFileContains(
 export async function assertJsonFile<T>(
   path: string,
   validator: (data: T) => boolean,
-  message?: string
+  message?: string,
 ): Promise<T> {
   const text = await readFile(path, "utf-8");
   const data = JSON.parse(text);

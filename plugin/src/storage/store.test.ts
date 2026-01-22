@@ -14,7 +14,6 @@ import {
   createTestProject,
   SAMPLE_SPEC,
 } from "../__tests__/setup";
-import type { Spec } from "../types";
 
 describe("Store", () => {
   let tempDir: string;
@@ -101,7 +100,9 @@ describe("Store", () => {
         requirements: SAMPLE_SPEC.requirements.map((r, i) => ({
           ...r,
           id: `rq-newcap${i}`,
-          scenarios: r.scenarios?.map((s, j) => ({ ...s, id: `rq-newcap${i}.${j}` })) ?? [],
+          scenarios:
+            r.scenarios?.map((s, j) => ({ ...s, id: `rq-newcap${i}.${j}` })) ??
+            [],
         })),
       };
       await store.specs.save(newSpec);
@@ -197,7 +198,7 @@ describe("Store", () => {
       const task = await store.tasks.add(
         "add-feature-abc123",
         "New task content",
-        { section: "Testing" }
+        { section: "Testing" },
       );
 
       expect(task.id).toMatch(/^tk-/);
@@ -209,11 +210,9 @@ describe("Store", () => {
     });
 
     test("add with blockedBy creates dependency", async () => {
-      const task = await store.tasks.add(
-        "add-feature-abc123",
-        "Blocked task",
-        { blockedBy: ["tk-task0001"] }
-      );
+      const task = await store.tasks.add("add-feature-abc123", "Blocked task", {
+        blockedBy: ["tk-task0001"],
+      });
 
       expect(task.deps).toHaveLength(1);
       expect(task.deps![0].type).toBe("blocked_by");

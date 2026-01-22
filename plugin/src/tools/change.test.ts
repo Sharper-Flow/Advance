@@ -46,7 +46,7 @@ describe("Change Tools", () => {
     test("filters by status", async () => {
       const result = await changeTools.adv_change_list.execute(
         { status: "draft" },
-        store
+        store,
       );
       const parsed = JSON.parse(result);
 
@@ -73,7 +73,7 @@ describe("Change Tools", () => {
 
       const result = await changeTools.adv_change_list.execute(
         { includeArchived: true },
-        store
+        store,
       );
       const parsed = JSON.parse(result);
 
@@ -85,7 +85,7 @@ describe("Change Tools", () => {
     test("returns full change with tasks and deltas", async () => {
       const result = await changeTools.adv_change_show.execute(
         { changeId: "add-feature-abc123" },
-        store
+        store,
       );
       const parsed = JSON.parse(result);
 
@@ -98,7 +98,7 @@ describe("Change Tools", () => {
     test("returns error for nonexistent change", async () => {
       const result = await changeTools.adv_change_show.execute(
         { changeId: "nonexistent" },
-        store
+        store,
       );
       const parsed = JSON.parse(result);
 
@@ -110,18 +110,20 @@ describe("Change Tools", () => {
     test("creates new change with generated ID", async () => {
       const result = await changeTools.adv_change_create.execute(
         { summary: "Add user authentication" },
-        store
+        store,
       );
       const parsed = JSON.parse(result);
 
-      expect(parsed.changeId).toMatch(/^add-user-authentication-[a-zA-Z0-9_-]+$/);
+      expect(parsed.changeId).toMatch(
+        /^add-user-authentication-[a-zA-Z0-9_-]+$/,
+      );
       expect(parsed.path).toContain("proposal.md");
     });
 
     test("creates change.json with draft status", async () => {
       const result = await changeTools.adv_change_create.execute(
         { summary: "New feature" },
-        store
+        store,
       );
       const parsed = JSON.parse(result);
 
@@ -134,8 +136,11 @@ describe("Change Tools", () => {
 
     test("truncates long summaries in ID", async () => {
       const result = await changeTools.adv_change_create.execute(
-        { summary: "This is a very long summary that should be truncated in the change ID" },
-        store
+        {
+          summary:
+            "This is a very long summary that should be truncated in the change ID",
+        },
+        store,
       );
       const parsed = JSON.parse(result);
 
@@ -148,7 +153,7 @@ describe("Change Tools", () => {
     test("passes for valid change", async () => {
       const result = await changeTools.adv_change_validate.execute(
         { changeId: "add-feature-abc123" },
-        store
+        store,
       );
       const parsed = JSON.parse(result);
 
@@ -160,46 +165,50 @@ describe("Change Tools", () => {
       // Create a change with no tasks
       const createResult = await changeTools.adv_change_create.execute(
         { summary: "Empty change" },
-        store
+        store,
       );
       const { changeId } = JSON.parse(createResult);
 
       const result = await changeTools.adv_change_validate.execute(
         { changeId },
-        store
+        store,
       );
       const parsed = JSON.parse(result);
 
       expect(parsed.passed).toBe(true); // Warnings don't fail by default
-      expect(parsed.warnings.some((w: { code: string }) => w.code === "NO_TASKS")).toBe(true);
+      expect(
+        parsed.warnings.some((w: { code: string }) => w.code === "NO_TASKS"),
+      ).toBe(true);
     });
 
     test("warns when no deltas defined", async () => {
       const createResult = await changeTools.adv_change_create.execute(
         { summary: "No deltas change" },
-        store
+        store,
       );
       const { changeId } = JSON.parse(createResult);
 
       const result = await changeTools.adv_change_validate.execute(
         { changeId },
-        store
+        store,
       );
       const parsed = JSON.parse(result);
 
-      expect(parsed.warnings.some((w: { code: string }) => w.code === "NO_DELTAS")).toBe(true);
+      expect(
+        parsed.warnings.some((w: { code: string }) => w.code === "NO_DELTAS"),
+      ).toBe(true);
     });
 
     test("fails in strict mode with warnings", async () => {
       const createResult = await changeTools.adv_change_create.execute(
         { summary: "Empty change" },
-        store
+        store,
       );
       const { changeId } = JSON.parse(createResult);
 
       const result = await changeTools.adv_change_validate.execute(
         { changeId, strict: true },
-        store
+        store,
       );
       const parsed = JSON.parse(result);
 
@@ -209,7 +218,7 @@ describe("Change Tools", () => {
     test("returns error for nonexistent change", async () => {
       const result = await changeTools.adv_change_validate.execute(
         { changeId: "nonexistent" },
-        store
+        store,
       );
       const parsed = JSON.parse(result);
 
@@ -226,18 +235,20 @@ describe("Change Tools", () => {
 
       const result = await changeTools.adv_change_archive.execute(
         { changeId: "add-feature-abc123" },
-        store
+        store,
       );
       const parsed = JSON.parse(result);
 
       expect(parsed.success).toBe(true);
-      expect(parsed.specsUpdated).toContain("test-capability");
+      expect(
+        parsed.specsUpdated.map((s: { capability: string }) => s.capability),
+      ).toContain("test-capability");
     });
 
     test("fails when tasks are incomplete", async () => {
       const result = await changeTools.adv_change_archive.execute(
         { changeId: "add-feature-abc123" },
-        store
+        store,
       );
       const parsed = JSON.parse(result);
 
@@ -248,7 +259,7 @@ describe("Change Tools", () => {
     test("returns error for nonexistent change", async () => {
       const result = await changeTools.adv_change_archive.execute(
         { changeId: "nonexistent" },
-        store
+        store,
       );
       const parsed = JSON.parse(result);
 

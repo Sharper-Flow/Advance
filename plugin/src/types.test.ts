@@ -68,7 +68,7 @@ describe("ScenarioSchema", () => {
         id: "rq-abc123.1",
         title: "Test",
         // missing given, when, then
-      })
+      }),
     ).toThrow();
   });
 });
@@ -122,7 +122,7 @@ describe("SpecSchema", () => {
       SpecSchema.parse({
         name: "test",
         // missing title, purpose, version, updated_at, requirements
-      })
+      }),
     ).toThrow();
   });
 });
@@ -137,13 +137,13 @@ describe("DependencySchema", () => {
 
   test("accepts all dependency types", () => {
     expect(DependencySchema.parse({ type: "related", target: "x" }).type).toBe(
-      "related"
+      "related",
     );
     expect(
-      DependencySchema.parse({ type: "discovered_from", target: "x" }).type
+      DependencySchema.parse({ type: "discovered_from", target: "x" }).type,
     ).toBe("discovered_from");
     expect(DependencySchema.parse({ type: "parent", target: "x" }).type).toBe(
-      "parent"
+      "parent",
     );
   });
 });
@@ -254,7 +254,7 @@ describe("ChangeSchema", () => {
       ChangeSchema.parse({
         id: "test",
         // missing title, status, created_at, tasks, deltas
-      })
+      }),
     ).toThrow();
   });
 });

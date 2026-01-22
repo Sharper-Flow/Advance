@@ -6,11 +6,7 @@
  */
 
 import Database from "better-sqlite3";
-import type {
-  Spec,
-  Change,
-  Task,
-} from "../types";
+import type { Spec, Change, Task } from "../types";
 
 // =============================================================================
 // Database Schema
@@ -272,7 +268,9 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
       INSERT INTO requirements (id, spec_name, title, body, priority, tags)
       VALUES (?, ?, ?, ?, ?, ?)
     `),
-    reqsDeleteBySpec: db.prepare("DELETE FROM requirements WHERE spec_name = ?"),
+    reqsDeleteBySpec: db.prepare(
+      "DELETE FROM requirements WHERE spec_name = ?",
+    ),
     reqsSearch: db.prepare(`
       SELECT r.id, r.spec_name, r.title, 
              snippet(requirements_fts, 2, '<mark>', '</mark>', '...', 32) as match,
@@ -290,7 +288,9 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
     `),
 
     changesList: db.prepare("SELECT * FROM changes ORDER BY created_at DESC"),
-    changesListByStatus: db.prepare("SELECT * FROM changes WHERE status = ? ORDER BY created_at DESC"),
+    changesListByStatus: db.prepare(
+      "SELECT * FROM changes WHERE status = ? ORDER BY created_at DESC",
+    ),
     changesGet: db.prepare("SELECT * FROM changes WHERE id = ?"),
     changesUpsert: db.prepare(`
       INSERT INTO changes (id, title, status, created_at, created_by, json_path, synced_at)
@@ -304,15 +304,21 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
     `),
     changesDelete: db.prepare("DELETE FROM changes WHERE id = ?"),
 
-    tasksList: db.prepare("SELECT * FROM tasks WHERE change_id = ? ORDER BY priority, created_at"),
-    tasksListByStatus: db.prepare("SELECT * FROM tasks WHERE change_id = ? AND status = ? ORDER BY priority, created_at"),
+    tasksList: db.prepare(
+      "SELECT * FROM tasks WHERE change_id = ? ORDER BY priority, created_at",
+    ),
+    tasksListByStatus: db.prepare(
+      "SELECT * FROM tasks WHERE change_id = ? AND status = ? ORDER BY priority, created_at",
+    ),
     tasksGet: db.prepare("SELECT * FROM tasks WHERE id = ?"),
     tasksInsert: db.prepare(`
       INSERT INTO tasks (id, change_id, title, section, status, priority, created_at, started_at, completed_at, completed_by)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `),
     tasksDeleteByChange: db.prepare("DELETE FROM tasks WHERE change_id = ?"),
-    tasksPending: db.prepare("SELECT * FROM tasks WHERE change_id = ? AND status = 'pending' ORDER BY priority"),
+    tasksPending: db.prepare(
+      "SELECT * FROM tasks WHERE change_id = ? AND status = 'pending' ORDER BY priority",
+    ),
     tasksBlockers: db.prepare(`
       SELECT d.target_id 
       FROM dependencies d
@@ -322,7 +328,9 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
         AND t.status NOT IN ('done', 'cancelled')
     `),
 
-    depInsert: db.prepare("INSERT OR IGNORE INTO dependencies (source_id, target_id, type) VALUES (?, ?, ?)"),
+    depInsert: db.prepare(
+      "INSERT OR IGNORE INTO dependencies (source_id, target_id, type) VALUES (?, ?, ?)",
+    ),
 
     deltaInsert: db.prepare(`
       INSERT INTO deltas (id, change_id, capability, operation, target_id, requirement_json, changes_json, reason)
@@ -363,7 +371,7 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
             spec.version,
             spec.updated_at,
             jsonPath,
-            now
+            now,
           );
 
           // Delete old requirements
@@ -377,7 +385,7 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
               req.title,
               req.body,
               req.priority,
-              req.tags ? JSON.stringify(req.tags) : null
+              req.tags ? JSON.stringify(req.tags) : null,
             );
 
             // Insert scenarios
@@ -388,7 +396,7 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
                 scenario.title,
                 JSON.stringify(scenario.given),
                 scenario.when,
-                JSON.stringify(scenario.then)
+                JSON.stringify(scenario.then),
               );
             }
           }
@@ -439,7 +447,7 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
             change.created_at,
             change.created_by ?? null,
             jsonPath,
-            now
+            now,
           );
 
           // Delete old tasks
@@ -457,7 +465,7 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
               task.created_at,
               task.started_at ?? null,
               task.completed_at ?? null,
-              task.completed_by ?? null
+              task.completed_by ?? null,
             );
 
             // Insert dependencies
@@ -478,9 +486,13 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
                 capability,
                 delta.operation,
                 "target_id" in delta ? delta.target_id : null,
-                delta.operation === "add" ? JSON.stringify(delta.requirement) : null,
-                delta.operation === "modify" ? JSON.stringify(delta.changes) : null,
-                delta.operation === "remove" ? delta.reason : null
+                delta.operation === "add"
+                  ? JSON.stringify(delta.requirement)
+                  : null,
+                delta.operation === "modify"
+                  ? JSON.stringify(delta.changes)
+                  : null,
+                delta.operation === "remove" ? delta.reason : null,
               );
             }
           }
@@ -513,7 +525,9 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
         const blocked: BlockedTask[] = [];
 
         for (const task of pending) {
-          const blockers = stmts.tasksBlockers.all(task.id) as { target_id: string }[];
+          const blockers = stmts.tasksBlockers.all(task.id) as {
+            target_id: string;
+          }[];
 
           if (blockers.length === 0) {
             ready.push(task);
@@ -551,14 +565,18 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
 
         if (fields.length > 0) {
           values.push(id);
-          db.prepare(`UPDATE tasks SET ${fields.join(", ")} WHERE id = ?`).run(...values);
+          db.prepare(`UPDATE tasks SET ${fields.join(", ")} WHERE id = ?`).run(
+            ...values,
+          );
         }
       },
     },
 
     sync: {
       needsSync: (jsonPath) => {
-        const result = stmts.syncMetaGet.get(`mtime:${jsonPath}`) as { value: string } | undefined;
+        const result = stmts.syncMetaGet.get(`mtime:${jsonPath}`) as
+          | { value: string }
+          | undefined;
         return !result;
       },
 
@@ -568,7 +586,9 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
       },
 
       getLastSync: () => {
-        const result = stmts.syncMetaGet.get("last_sync") as { value: string } | undefined;
+        const result = stmts.syncMetaGet.get("last_sync") as
+          | { value: string }
+          | undefined;
         return result?.value ?? null;
       },
     },

@@ -23,7 +23,7 @@ export const taskTools = {
     },
     execute: async (
       { changeId, status }: { changeId: string; status?: string },
-      store: Store
+      store: Store,
     ) => {
       const tasks = await store.tasks.list(changeId, status);
       return JSON.stringify({ tasks }, null, 2);
@@ -48,11 +48,18 @@ export const taskTools = {
       status: z
         .enum(["pending", "in_progress", "done", "cancelled"])
         .describe("New status"),
-      notes: z.string().optional().describe("Completion notes or cancellation reason"),
+      notes: z
+        .string()
+        .optional()
+        .describe("Completion notes or cancellation reason"),
     },
     execute: async (
-      { taskId, status, notes }: { taskId: string; status: string; notes?: string },
-      store: Store
+      {
+        taskId,
+        status,
+        notes,
+      }: { taskId: string; status: string; notes?: string },
+      store: Store,
     ) => {
       const task = await store.tasks.update(taskId, status, notes);
       if (!task) {
@@ -71,7 +78,10 @@ export const taskTools = {
         .array(z.string())
         .optional()
         .describe("Task IDs that block this task"),
-      section: z.string().optional().describe("Section header (e.g., 'Testing')"),
+      section: z
+        .string()
+        .optional()
+        .describe("Section header (e.g., 'Testing')"),
     },
     execute: async (
       {
@@ -85,10 +95,13 @@ export const taskTools = {
         blockedBy?: string[];
         section?: string;
       },
-      store: Store
+      store: Store,
     ) => {
       try {
-        const task = await store.tasks.add(changeId, content, { blockedBy, section });
+        const task = await store.tasks.add(changeId, content, {
+          blockedBy,
+          section,
+        });
         return JSON.stringify({ taskId: task.id, task }, null, 2);
       } catch (error) {
         return JSON.stringify({

@@ -75,7 +75,7 @@ describe("SQLiteStore", () => {
 
     test("list filters by name", () => {
       store.specs.upsert(SAMPLE_SPEC as Spec, "/path/1.json");
-      
+
       // Create a different spec with different requirement IDs
       const otherSpec = {
         ...SAMPLE_SPEC,
@@ -83,7 +83,9 @@ describe("SQLiteStore", () => {
         requirements: SAMPLE_SPEC.requirements.map((r, i) => ({
           ...r,
           id: `rq-other${i}`,
-          scenarios: r.scenarios?.map((s, j) => ({ ...s, id: `rq-other${i}.${j}` })) ?? [],
+          scenarios:
+            r.scenarios?.map((s, j) => ({ ...s, id: `rq-other${i}.${j}` })) ??
+            [],
         })),
       };
       store.specs.upsert(otherSpec as Spec, "/path/2.json");
@@ -143,18 +145,21 @@ describe("SQLiteStore", () => {
 
     test("list filters by status", () => {
       store.changes.upsert(SAMPLE_CHANGE as Change, "/path/1.json");
-      
+
       // Create archived change with different task and delta IDs
       const archivedChange = {
         ...SAMPLE_CHANGE,
         id: "archived-xyz",
         status: "archived",
-        tasks: SAMPLE_CHANGE.tasks.map((t, i) => ({ ...t, id: `tk-archived${i}` })),
+        tasks: SAMPLE_CHANGE.tasks.map((t, i) => ({
+          ...t,
+          id: `tk-archived${i}`,
+        })),
         deltas: Object.fromEntries(
           Object.entries(SAMPLE_CHANGE.deltas).map(([cap, deltas]) => [
             cap,
             deltas.map((d, i) => ({ ...d, id: `dl-archived${i}` })),
-          ])
+          ]),
         ),
       };
       store.changes.upsert(archivedChange as Change, "/path/2.json");

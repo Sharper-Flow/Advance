@@ -220,7 +220,7 @@ describe("createChangeScaffold", () => {
     const result = await createChangeScaffold(
       changesDir,
       "new-feature-abc123",
-      "Add New Feature"
+      "Add New Feature",
     );
 
     expect(result.proposalPath).toContain("proposal.md");

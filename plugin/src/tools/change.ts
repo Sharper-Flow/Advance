@@ -5,7 +5,10 @@
  */
 
 import { z } from "zod";
+import type { Spec } from "../types";
 import type { Store } from "../storage/store";
+import { validateChange } from "../validator";
+import { archiveChange } from "../archive";
 
 // =============================================================================
 // Tool Definitions
@@ -25,8 +28,11 @@ export const changeTools = {
         .describe("Include archived changes (default: false)"),
     },
     execute: async (
-      { status, includeArchived }: { status?: string; includeArchived?: boolean },
-      store: Store
+      {
+        status,
+        includeArchived,
+      }: { status?: string; includeArchived?: boolean },
+      store: Store,
     ) => {
       const result = await store.changes.list({ status, includeArchived });
       return JSON.stringify(result, null, 2);
@@ -55,7 +61,7 @@ export const changeTools = {
     },
     execute: async (
       { summary, capability }: { summary: string; capability?: string },
-      store: Store
+      store: Store,
     ) => {
       const result = await store.changes.create(summary, capability);
       return JSON.stringify(result, null, 2);
@@ -70,46 +76,41 @@ export const changeTools = {
     },
     execute: async (
       { changeId, strict }: { changeId: string; strict?: boolean },
-      store: Store
+      store: Store,
     ) => {
       const change = await store.changes.get(changeId);
       if (!change) {
         return JSON.stringify({ error: `Change not found: ${changeId}` });
       }
 
-      // TODO: Implement full validation engine
-      // For now, return basic validation result
-      const errors: Array<{ code: string; message: string }> = [];
-      const warnings: Array<{ code: string; message: string }> = [];
-
-      // Check for empty deltas
-      const deltaCount = Object.values(change.deltas).flat().length;
-      if (deltaCount === 0) {
-        warnings.push({
-          code: "NO_DELTAS",
-          message: "Change has no spec deltas defined",
-        });
+      // Load all specs for validation context
+      const specList = await store.specs.list();
+      const specs: Spec[] = [];
+      for (const specInfo of specList.specs) {
+        const spec = await store.specs.get(specInfo.name);
+        if (spec) {
+          specs.push(spec);
+        }
       }
 
-      // Check for tasks
-      if (change.tasks.length === 0) {
-        warnings.push({
-          code: "NO_TASKS",
-          message: "Change has no tasks defined",
-        });
-      }
+      // Run full validation
+      const result = await validateChange(change, { specs });
 
-      const passed = errors.length === 0 && (!strict || warnings.length === 0);
+      // In strict mode, treat warnings as errors
+      const passed = strict
+        ? result.errors.length === 0 && result.warnings.length === 0
+        : result.passed;
 
       return JSON.stringify(
         {
           passed,
-          errors,
-          warnings,
-          checkedAt: new Date().toISOString(),
+          errors: result.errors,
+          warnings: result.warnings,
+          checksPerformed: result.checksPerformed,
+          checkedAt: result.checkedAt,
         },
         null,
-        2
+        2,
       );
     },
   },
@@ -118,8 +119,15 @@ export const changeTools = {
     description: "Archive a completed change (applies deltas to specs)",
     args: {
       changeId: z.string().describe("Change ID to archive"),
+      dryRun: z
+        .boolean()
+        .optional()
+        .describe("Preview changes without writing"),
     },
-    execute: async ({ changeId }: { changeId: string }, store: Store) => {
+    execute: async (
+      { changeId, dryRun }: { changeId: string; dryRun?: boolean },
+      store: Store,
+    ) => {
       const change = await store.changes.get(changeId);
       if (!change) {
         return JSON.stringify({ error: `Change not found: ${changeId}` });
@@ -127,30 +135,57 @@ export const changeTools = {
 
       // Check all tasks complete
       const incompleteTasks = change.tasks.filter(
-        (t) => t.status !== "done" && t.status !== "cancelled"
+        (t) => t.status !== "done" && t.status !== "cancelled",
       );
       if (incompleteTasks.length > 0) {
         return JSON.stringify({
           error: "Cannot archive: incomplete tasks",
-          incompleteTasks: incompleteTasks.map((t) => ({ id: t.id, title: t.title })),
+          incompleteTasks: incompleteTasks.map((t) => ({
+            id: t.id,
+            title: t.title,
+          })),
         });
       }
 
-      // TODO: Implement delta application and doc generation
-      // For now, just update status
+      // Load all specs for delta application
+      const specList = await store.specs.list();
+      const specs = new Map<string, Spec>();
+      for (const specInfo of specList.specs) {
+        const spec = await store.specs.get(specInfo.name);
+        if (spec) {
+          specs.set(specInfo.name, spec);
+        }
+      }
 
-      change.status = "archived";
-      await store.changes.save(change);
+      // Run the archive operation
+      const result = await archiveChange({
+        change,
+        specs,
+        paths: store.paths,
+        dryRun,
+      });
+
+      // Update change status in store (unless dry run)
+      if (!dryRun && result.success) {
+        change.status = "archived";
+        await store.changes.save(change);
+      }
 
       return JSON.stringify(
         {
-          success: true,
-          specsUpdated: Object.keys(change.deltas),
-          docsGenerated: [],
-          archivePath: `archive/${new Date().toISOString().split("T")[0]}-${changeId}`,
+          success: result.success,
+          specsUpdated: result.specsUpdated.map((s) => ({
+            capability: s.capability,
+            version: `${s.originalVersion} → ${s.newVersion}`,
+            deltas: s.deltaResults.length,
+          })),
+          docsGenerated: result.docsGenerated,
+          archivePath: result.archivePath,
+          errors: result.errors,
+          dryRun: dryRun ?? false,
         },
         null,
-        2
+        2,
       );
     },
   },
