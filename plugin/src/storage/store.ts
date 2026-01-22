@@ -1,0 +1,427 @@
+/**
+ * Unified Store Interface
+ *
+ * Combines JSON file storage (source of truth) with SQLite caching.
+ */
+
+import { join } from "path";
+import { mkdir } from "fs/promises";
+import { nanoid } from "nanoid";
+import type {
+  Spec,
+  Change,
+  Task,
+  ProjectConfig,
+  SpecListResponse,
+  ChangeListResponse,
+  TaskReadyResponse,
+  ProjectStatus,
+  ChangeStatus,
+} from "../types";
+import { createSQLiteStore, type SQLiteStore } from "./sqlite";
+import {
+  loadProjectConfig,
+  saveProjectConfig,
+  loadAllSpecs,
+  loadSpec,
+  saveSpec,
+  loadAllChanges,
+  loadChange,
+  saveChange,
+  createChangeScaffold,
+  getProjectPaths,
+  type ProjectPaths,
+} from "./json";
+
+// =============================================================================
+// Store Interface
+// =============================================================================
+
+export interface Store {
+  paths: ProjectPaths;
+  config: ProjectConfig | null;
+
+  // Lifecycle
+  init: () => Promise<void>;
+  sync: () => Promise<void>;
+  close: () => void;
+
+  // Specs
+  specs: {
+    list: (filter?: { capability?: string; tag?: string }) => Promise<SpecListResponse>;
+    get: (capability: string) => Promise<Spec | null>;
+    search: (query: string, limit?: number) => Promise<SearchResult[]>;
+    save: (spec: Spec) => Promise<void>;
+  };
+
+  // Changes
+  changes: {
+    list: (filter?: { status?: string; includeArchived?: boolean }) => Promise<ChangeListResponse>;
+    get: (changeId: string) => Promise<Change | null>;
+    create: (summary: string, capability?: string) => Promise<{ changeId: string; path: string }>;
+    save: (change: Change) => Promise<void>;
+  };
+
+  // Tasks
+  tasks: {
+    list: (changeId: string, status?: string) => Promise<Task[]>;
+    ready: (changeId: string) => Promise<TaskReadyResponse>;
+    update: (taskId: string, status: string, notes?: string) => Promise<Task | null>;
+    add: (
+      changeId: string,
+      content: string,
+      options?: { blockedBy?: string[]; section?: string }
+    ) => Promise<Task>;
+  };
+
+  // Status
+  status: () => Promise<ProjectStatus>;
+}
+
+export interface SearchResult {
+  spec: string;
+  requirement: string;
+  title: string;
+  match: string;
+}
+
+// =============================================================================
+// Create Store
+// =============================================================================
+
+export async function createStore(directory: string): Promise<Store> {
+  // Load project config
+  const config = await loadProjectConfig(directory);
+  const paths = getProjectPaths(directory, config ?? undefined);
+
+  // Ensure .specdb directory exists
+  await mkdir(paths.db, { recursive: true });
+
+  // Initialize SQLite
+  const dbPath = join(paths.db, "spec.db");
+  const sqlite: SQLiteStore = createSQLiteStore(dbPath);
+
+  // Track if synced this session
+  let synced = false;
+
+  const store: Store = {
+    paths,
+    config,
+
+    init: async () => {
+      // Create directory structure if needed
+      await mkdir(paths.specs, { recursive: true });
+      await mkdir(paths.changes, { recursive: true });
+      await mkdir(paths.archive, { recursive: true });
+      await mkdir(paths.docs, { recursive: true });
+
+      // Create default config if missing
+      if (!config) {
+        const defaultConfig: ProjectConfig = {
+          name: directory.split("/").pop() ?? "project",
+          version: "0.1.0",
+          specs_dir: "specs",
+          changes_dir: "changes",
+          archive_dir: "archive",
+          docs_dir: "docs/specs",
+          db_dir: ".specdb",
+        };
+        await saveProjectConfig(directory, defaultConfig);
+      }
+    },
+
+    sync: async () => {
+      if (synced) return;
+
+      // Sync specs
+      const specs = await loadAllSpecs(paths.specs);
+      for (const [name, spec] of specs) {
+        const jsonPath = join(paths.specs, name, "spec.json");
+        sqlite.specs.upsert(spec, jsonPath);
+      }
+
+      // Sync changes
+      const changes = await loadAllChanges(paths.changes);
+      for (const [id, change] of changes) {
+        const jsonPath = join(paths.changes, id, "change.json");
+        sqlite.changes.upsert(change, jsonPath);
+      }
+
+      synced = true;
+    },
+
+    close: () => {
+      sqlite.close();
+    },
+
+    specs: {
+      list: async (filter) => {
+        await store.sync();
+
+        const rows = sqlite.specs.list({ name: filter?.capability });
+
+        // Filter by tag if needed (requires loading full specs)
+        let specs = rows;
+        if (filter?.tag) {
+          const filtered = [];
+          for (const row of rows) {
+            const spec = await loadSpec(paths.specs, row.name);
+            if (spec) {
+              const hasTags = spec.requirements.some((r) => r.tags?.includes(filter.tag!));
+              if (hasTags) filtered.push(row);
+            }
+          }
+          specs = filtered;
+        }
+
+        return {
+          specs: specs.map((s) => ({
+            name: s.name,
+            title: s.title,
+            version: s.version,
+            requirementCount: sqlite.requirements.list(s.name).length,
+          })),
+        };
+      },
+
+      get: async (capability) => {
+        return loadSpec(paths.specs, capability);
+      },
+
+      search: async (query, limit = 20) => {
+        await store.sync();
+
+        const results = sqlite.requirements.search(query, limit);
+        return results.map((r) => ({
+          spec: r.spec_name,
+          requirement: r.id,
+          title: r.title,
+          match: r.match,
+        }));
+      },
+
+      save: async (spec) => {
+        const jsonPath = await saveSpec(paths.specs, spec);
+        sqlite.specs.upsert(spec, jsonPath);
+      },
+    },
+
+    changes: {
+      list: async (filter) => {
+        await store.sync();
+
+        let rows = sqlite.changes.list({ status: filter?.status });
+
+        // Exclude archived unless requested
+        if (!filter?.includeArchived) {
+          rows = rows.filter((r) => r.status !== "archived");
+        }
+
+        return {
+          changes: rows.map((c) => {
+            const tasks = sqlite.tasks.list(c.id);
+            return {
+              id: c.id,
+              title: c.title,
+              status: c.status as ChangeStatus,
+              taskCount: tasks.length,
+              completedTasks: tasks.filter((t) => t.status === "done").length,
+            };
+          }),
+        };
+      },
+
+      get: async (changeId) => {
+        return loadChange(paths.changes, changeId);
+      },
+
+      create: async (summary, _capability) => {
+        // Generate change ID from summary
+        const slug = summary
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-|-$/g, "")
+          .slice(0, 30);
+        const changeId = `${slug}-${nanoid(6)}`;
+
+        // Create scaffold
+        const { changePath, proposalPath } = await createChangeScaffold(
+          paths.changes,
+          changeId,
+          summary
+        );
+
+        // Create change.json
+        const change: Change = {
+          id: changeId,
+          title: summary,
+          status: "draft",
+          created_at: new Date().toISOString(),
+          tasks: [],
+          deltas: {},
+        };
+
+        await saveChange(paths.changes, change);
+        sqlite.changes.upsert(change, changePath);
+
+        return { changeId, path: proposalPath };
+      },
+
+      save: async (change) => {
+        const jsonPath = await saveChange(paths.changes, change);
+        sqlite.changes.upsert(change, jsonPath);
+      },
+    },
+
+    tasks: {
+      list: async (changeId, status) => {
+        await store.sync();
+
+        const rows = sqlite.tasks.list(changeId, status);
+        return rows.map((r) => ({
+          id: r.id,
+          title: r.title,
+          section: r.section ?? undefined,
+          status: r.status as Task["status"],
+          priority: r.priority,
+          created_at: r.created_at,
+          started_at: r.started_at ?? undefined,
+          completed_at: r.completed_at ?? undefined,
+          completed_by: r.completed_by ?? undefined,
+        }));
+      },
+
+      ready: async (changeId) => {
+        await store.sync();
+
+        const { ready, blocked } = sqlite.tasks.ready(changeId);
+
+        return {
+          ready: ready.map((r) => ({
+            id: r.id,
+            title: r.title,
+            section: r.section ?? undefined,
+            status: r.status as Task["status"],
+            priority: r.priority,
+            created_at: r.created_at,
+          })),
+          blocked: blocked.map((b) => ({
+            task: {
+              id: b.task.id,
+              title: b.task.title,
+              section: b.task.section ?? undefined,
+              status: b.task.status as Task["status"],
+              priority: b.task.priority,
+              created_at: b.task.created_at,
+            },
+            blockedBy: b.blockedBy,
+          })),
+        };
+      },
+
+      update: async (taskId, status, notes) => {
+        await store.sync();
+
+        // Find which change this task belongs to
+        const taskRow = sqlite.tasks.get(taskId);
+        if (!taskRow) return null;
+
+        // Load the change
+        const change = await loadChange(paths.changes, taskRow.change_id);
+        if (!change) return null;
+
+        // Update task in change
+        const task = change.tasks.find((t) => t.id === taskId);
+        if (!task) return null;
+
+        task.status = status as Task["status"];
+
+        if (status === "in_progress" && !task.started_at) {
+          task.started_at = new Date().toISOString();
+        }
+
+        if (status === "done" || status === "cancelled") {
+          task.completed_at = new Date().toISOString();
+          if (notes) {
+            task.completed_by = notes;
+          }
+        }
+
+        // Save change
+        await store.changes.save(change);
+
+        return task;
+      },
+
+      add: async (changeId, content, options) => {
+        const change = await loadChange(paths.changes, changeId);
+        if (!change) {
+          throw new Error(`Change not found: ${changeId}`);
+        }
+
+        const task: Task = {
+          id: `tk-${nanoid(8)}`,
+          title: content,
+          section: options?.section,
+          status: "pending",
+          priority: change.tasks.length, // Append at end
+          created_at: new Date().toISOString(),
+          deps: options?.blockedBy?.map((target) => ({
+            type: "blocked_by" as const,
+            target,
+          })),
+        };
+
+        change.tasks.push(task);
+        await store.changes.save(change);
+
+        return task;
+      },
+    },
+
+    status: async () => {
+      await store.sync();
+
+      const specRows = sqlite.specs.list();
+      const changeRows = sqlite.changes.list();
+
+      const byStatus: Record<ChangeStatus, number> = {
+        draft: 0,
+        pending: 0,
+        active: 0,
+        archived: 0,
+      };
+
+      for (const change of changeRows) {
+        byStatus[change.status as ChangeStatus]++;
+      }
+
+      const recommendations: string[] = [];
+
+      // Check for ready-to-archive changes
+      for (const change of changeRows) {
+        if (change.status === "active") {
+          const tasks = sqlite.tasks.list(change.id);
+          const allDone = tasks.every((t) => t.status === "done" || t.status === "cancelled");
+          if (allDone && tasks.length > 0) {
+            recommendations.push(`Ready to archive: \`/adv-archive ${change.id}\``);
+          }
+        }
+      }
+
+      return {
+        specs: {
+          count: specRows.length,
+          capabilities: specRows.map((s) => s.name),
+        },
+        changes: {
+          active: changeRows.filter((c) => c.status !== "archived").length,
+          byStatus,
+        },
+        recommendations,
+      };
+    },
+  };
+
+  return store;
+}

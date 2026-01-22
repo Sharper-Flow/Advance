@@ -1,0 +1,143 @@
+# Advance (ADV) - Agent Instructions
+
+## Overview
+
+Advance is a spec-driven development plugin where **specs become laws**. Requirements in `spec.json` files are enforced during change validation.
+
+## Core Concepts
+
+### Specs (Laws)
+- `specs/{capability}/spec.json` contains enforced requirements
+- Each requirement has scenarios (Given/When/Then)
+- Tags enable cross-cutting queries
+
+### Changes (Proposals)
+- `changes/{id}/change.json` contains tasks and deltas
+- Deltas describe modifications to specs
+- Must be validated before archiving
+
+### Tasks
+- Tasks have dependencies (`blocked_by`, `related`, etc.)
+- Use `adv_task_ready` to get unblocked tasks
+- Update status as work progresses
+
+## Workflow
+
+1. **Create Change**: `adv_change_create({ summary: "..." })`
+2. **Add Tasks**: `adv_task_add({ changeId, content: "..." })`
+3. **Get Ready Tasks**: `adv_task_ready({ changeId })`
+4. **Work on Tasks**: Implement, then `adv_task_update`
+5. **Validate**: `adv_change_validate({ changeId })`
+6. **Archive**: `adv_change_archive({ changeId })`
+
+## Tool Usage
+
+### Spec Tools
+```typescript
+// List all specs
+adv_spec_list({})
+
+// Filter by tag
+adv_spec_list({ tag: "security" })
+
+// Get full spec
+adv_spec_show({ capability: "contract-system" })
+
+// Search across specs
+adv_spec_search({ query: "authentication" })
+```
+
+### Change Tools
+```typescript
+// List active changes
+adv_change_list({})
+
+// Get change details
+adv_change_show({ changeId: "add-feature" })
+
+// Create new change
+adv_change_create({ summary: "Add feature X" })
+
+// Validate change
+adv_change_validate({ changeId: "add-feature" })
+
+// Archive completed change
+adv_change_archive({ changeId: "add-feature" })
+```
+
+### Task Tools
+```typescript
+// List all tasks
+adv_task_list({ changeId: "add-feature" })
+
+// Get unblocked tasks
+adv_task_ready({ changeId: "add-feature" })
+
+// Update task status
+adv_task_update({ taskId: "tk-abc", status: "done" })
+
+// Add new task
+adv_task_add({ 
+  changeId: "add-feature", 
+  content: "Write tests",
+  section: "Testing"
+})
+```
+
+## ID Formats
+
+| Entity | Format | Example |
+|--------|--------|---------|
+| Requirement | `rq-{nanoid(8)}` | `rq-V1StGXR8` |
+| Scenario | `rq-{parent}.{n}` | `rq-V1StGXR8.1` |
+| Task | `tk-{nanoid(8)}` | `tk-Hf7dK2mN` |
+| Delta | `dl-{nanoid(8)}` | `dl-Xt5zW3vB` |
+| Change | `{slug}-{nanoid(6)}` | `add-auth-abc123` |
+
+## Dependency Types
+
+| Type | Effect |
+|------|--------|
+| `blocked_by` | Cannot start until target completes |
+| `related` | Informational, no blocking |
+| `discovered_from` | Provenance tracking |
+| `parent` | Hierarchical containment |
+
+## Priority (RFC 2119)
+
+- `must`: Required functionality
+- `should`: Expected but not critical
+- `may`: Optional enhancement
+
+## Directory Structure
+
+```
+project/
+├── project.json           # Config
+├── specs/                 # THE LAW
+│   └── {cap}/spec.json
+├── changes/               # Proposals
+│   └── {id}/
+│       ├── proposal.md
+│       └── change.json
+├── archive/               # Completed
+└── .specdb/spec.db        # SQLite cache
+```
+
+## For Agents Modifying This Plugin
+
+### Adding New Tools
+1. Create tool in `src/tools/`
+2. Add to index.ts exports
+3. Register in plugin entry
+
+### Modifying Storage
+- JSON files are source of truth
+- SQLite is derived cache
+- Always sync both on write
+
+### Testing
+```bash
+bun run check    # Full validation
+bun test         # Run tests
+```
