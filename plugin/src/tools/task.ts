@@ -6,6 +6,12 @@
 
 import { z } from "zod";
 import type { Store } from "../storage/store";
+import {
+  getTddComplianceStatus,
+  isLogicTask,
+  isTrivialTask,
+  truncateOutput,
+} from "../types";
 
 // =============================================================================
 // Tool Definitions
@@ -108,6 +114,180 @@ export const taskTools = {
           error: error instanceof Error ? error.message : "Failed to add task",
         });
       }
+    },
+  },
+
+  adv_task_evidence: {
+    description:
+      "Record TDD evidence (red/green phase) for a task. Captures test file, command, output, and exit code for audit trail.",
+    args: {
+      taskId: z.string().describe("Task ID"),
+      phase: z
+        .enum(["red", "green"])
+        .describe("TDD phase (red=failing test, green=passing test)"),
+      testFile: z
+        .string()
+        .optional()
+        .describe("Test file or test name that was run"),
+      command: z.string().optional().describe("Command used to run the test"),
+      output: z
+        .string()
+        .optional()
+        .describe("Test output (will be truncated to 500 chars)"),
+      exitCode: z
+        .number()
+        .optional()
+        .describe("Exit code from test runner (0=pass, non-zero=fail)"),
+    },
+    execute: async (
+      {
+        taskId,
+        phase,
+        testFile,
+        command,
+        output,
+        exitCode,
+      }: {
+        taskId: string;
+        phase: "red" | "green";
+        testFile?: string;
+        command?: string;
+        output?: string;
+        exitCode?: number;
+      },
+      store: Store,
+    ) => {
+      const evidence = {
+        test_file: testFile,
+        command,
+        output_snippet: output ? truncateOutput(output) : undefined,
+        exit_code: exitCode,
+      };
+
+      const task = await store.tasks.recordEvidence(taskId, phase, evidence);
+      if (!task) {
+        return JSON.stringify({ error: `Task not found: ${taskId}` });
+      }
+
+      return JSON.stringify(
+        {
+          success: true,
+          task,
+          compliance: getTddComplianceStatus(task),
+          message: `Recorded ${phase} phase evidence for task ${taskId}`,
+        },
+        null,
+        2,
+      );
+    },
+  },
+
+  adv_task_tdd_phase: {
+    description:
+      "Manually set the TDD phase for a task (use adv_task_evidence to record with proof)",
+    args: {
+      taskId: z.string().describe("Task ID"),
+      phase: z
+        .enum(["none", "red", "green", "refactor", "complete"])
+        .describe("TDD phase to set"),
+    },
+    execute: async (
+      {
+        taskId,
+        phase,
+      }: {
+        taskId: string;
+        phase: "none" | "red" | "green" | "refactor" | "complete";
+      },
+      store: Store,
+    ) => {
+      const task = await store.tasks.setPhase(taskId, phase);
+      if (!task) {
+        return JSON.stringify({ error: `Task not found: ${taskId}` });
+      }
+
+      return JSON.stringify(
+        {
+          success: true,
+          task,
+          message: `Set TDD phase to '${phase}' for task ${taskId}`,
+        },
+        null,
+        2,
+      );
+    },
+  },
+
+  adv_task_skip_tdd: {
+    description:
+      "Skip TDD for a task with a documented reason (e.g., 'trivial: docs change', 'legacy: existing code')",
+    args: {
+      taskId: z.string().describe("Task ID"),
+      reason: z
+        .string()
+        .describe(
+          "Rationale for skipping TDD (e.g., 'trivial: config change')",
+        ),
+    },
+    execute: async (
+      { taskId, reason }: { taskId: string; reason: string },
+      store: Store,
+    ) => {
+      const task = await store.tasks.skipTdd(taskId, reason);
+      if (!task) {
+        return JSON.stringify({ error: `Task not found: ${taskId}` });
+      }
+
+      return JSON.stringify(
+        {
+          success: true,
+          task,
+          compliance: getTddComplianceStatus(task),
+          message: `TDD skipped for task ${taskId}: ${reason}`,
+        },
+        null,
+        2,
+      );
+    },
+  },
+
+  adv_task_tdd_status: {
+    description:
+      "Get TDD compliance status for a task (analyzes task title to determine if TDD is required)",
+    args: {
+      taskId: z.string().describe("Task ID"),
+    },
+    execute: async ({ taskId }: { taskId: string }, store: Store) => {
+      const task = await store.tasks.get(taskId);
+      if (!task) {
+        return JSON.stringify({ error: `Task not found: ${taskId}` });
+      }
+
+      const compliance = getTddComplianceStatus(task);
+      const requiresTdd = isLogicTask(task.title);
+      const trivial = isTrivialTask(task.title);
+
+      return JSON.stringify(
+        {
+          taskId: task.id,
+          title: task.title,
+          tdd_phase: task.tdd_phase,
+          tdd_evidence: task.tdd_evidence,
+          analysis: {
+            requires_tdd: requiresTdd,
+            is_trivial: trivial,
+            compliance,
+          },
+          recommendation:
+            compliance === "missing"
+              ? "Record TDD evidence with adv_task_evidence or skip with adv_task_skip_tdd"
+              : compliance === "compliant"
+                ? "TDD requirements satisfied"
+                : "TDD not required for this task type",
+        },
+        null,
+        2,
+      );
     },
   },
 };

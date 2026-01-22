@@ -17,6 +17,8 @@ import type {
   TaskReadyResponse,
   ProjectStatus,
   ChangeStatus,
+  TddPhase,
+  TddPhaseEvidence,
 } from "../types";
 import { createSQLiteStore, type SQLiteStore } from "./sqlite";
 import {
@@ -85,6 +87,18 @@ export interface Store {
       content: string,
       options?: { blockedBy?: string[]; section?: string },
     ) => Promise<Task>;
+    /** Get a single task by ID */
+    get: (taskId: string) => Promise<Task | null>;
+    /** Record TDD evidence for a task */
+    recordEvidence: (
+      taskId: string,
+      phase: "red" | "green",
+      evidence: TddPhaseEvidence,
+    ) => Promise<Task | null>;
+    /** Update TDD phase for a task */
+    setPhase: (taskId: string, phase: TddPhase) => Promise<Task | null>;
+    /** Skip TDD for a task with reason */
+    skipTdd: (taskId: string, reason: string) => Promise<Task | null>;
   };
 
   // Status
@@ -292,46 +306,37 @@ export async function createStore(directory: string): Promise<Store> {
       list: async (changeId, status) => {
         await store.sync();
 
-        const rows = sqlite.tasks.list(changeId, status);
-        return rows.map((r) => ({
-          id: r.id,
-          title: r.title,
-          section: r.section ?? undefined,
-          status: r.status as Task["status"],
-          priority: r.priority,
-          created_at: r.created_at,
-          started_at: r.started_at ?? undefined,
-          completed_at: r.completed_at ?? undefined,
-          completed_by: r.completed_by ?? undefined,
-        }));
+        // Load from JSON to get full task data including TDD fields
+        const change = await loadChange(paths.changes, changeId);
+        if (!change) return [];
+
+        let tasks = change.tasks;
+        if (status) {
+          tasks = tasks.filter((t) => t.status === status);
+        }
+
+        return tasks;
       },
 
       ready: async (changeId) => {
         await store.sync();
 
-        const { ready, blocked } = sqlite.tasks.ready(changeId);
+        // Load from JSON to get full task data including TDD fields
+        const change = await loadChange(paths.changes, changeId);
+        if (!change) return { ready: [], blocked: [] };
 
-        return {
-          ready: ready.map((r) => ({
-            id: r.id,
-            title: r.title,
-            section: r.section ?? undefined,
-            status: r.status as Task["status"],
-            priority: r.priority,
-            created_at: r.created_at,
-          })),
-          blocked: blocked.map((b) => ({
-            task: {
-              id: b.task.id,
-              title: b.task.title,
-              section: b.task.section ?? undefined,
-              status: b.task.status as Task["status"],
-              priority: b.task.priority,
-              created_at: b.task.created_at,
-            },
-            blockedBy: b.blockedBy,
-          })),
-        };
+        // Use SQLite for dependency resolution
+        const { ready: readyIds, blocked: blockedInfo } =
+          sqlite.tasks.ready(changeId);
+        const readyIdSet = new Set(readyIds.map((r) => r.id));
+
+        const ready = change.tasks.filter((t) => readyIdSet.has(t.id));
+        const blocked = blockedInfo.map((b) => ({
+          task: change.tasks.find((t) => t.id === b.task.id)!,
+          blockedBy: b.blockedBy,
+        }));
+
+        return { ready, blocked };
       },
 
       update: async (taskId, status, notes) => {
@@ -385,9 +390,124 @@ export async function createStore(directory: string): Promise<Store> {
             type: "blocked_by" as const,
             target,
           })),
+          tdd_phase: "none",
         };
 
         change.tasks.push(task);
+        await store.changes.save(change);
+
+        return task;
+      },
+
+      get: async (taskId) => {
+        await store.sync();
+
+        // Find which change this task belongs to
+        const taskRow = sqlite.tasks.get(taskId);
+        if (!taskRow) return null;
+
+        // Load from JSON to get full task data including TDD fields
+        const change = await loadChange(paths.changes, taskRow.change_id);
+        if (!change) return null;
+
+        return change.tasks.find((t) => t.id === taskId) ?? null;
+      },
+
+      recordEvidence: async (taskId, phase, evidence) => {
+        await store.sync();
+
+        // Find which change this task belongs to
+        const taskRow = sqlite.tasks.get(taskId);
+        if (!taskRow) return null;
+
+        // Load the change
+        const change = await loadChange(paths.changes, taskRow.change_id);
+        if (!change) return null;
+
+        // Update task in change
+        const task = change.tasks.find((t) => t.id === taskId);
+        if (!task) return null;
+
+        // Initialize tdd_evidence if needed
+        if (!task.tdd_evidence) {
+          task.tdd_evidence = {};
+        }
+
+        // Add timestamp if not provided
+        const evidenceWithTimestamp = {
+          ...evidence,
+          recorded_at: evidence.recorded_at ?? new Date().toISOString(),
+        };
+
+        // Record evidence for the phase
+        task.tdd_evidence[phase] = evidenceWithTimestamp;
+
+        // Update TDD phase based on evidence
+        if (phase === "red") {
+          task.tdd_phase = "red";
+        } else if (phase === "green") {
+          // If we have both red and green, mark as complete
+          if (task.tdd_evidence.red?.recorded_at) {
+            task.tdd_phase = "complete";
+          } else {
+            task.tdd_phase = "green";
+          }
+        }
+
+        // Save change
+        await store.changes.save(change);
+
+        return task;
+      },
+
+      setPhase: async (taskId, phase) => {
+        await store.sync();
+
+        // Find which change this task belongs to
+        const taskRow = sqlite.tasks.get(taskId);
+        if (!taskRow) return null;
+
+        // Load the change
+        const change = await loadChange(paths.changes, taskRow.change_id);
+        if (!change) return null;
+
+        // Update task in change
+        const task = change.tasks.find((t) => t.id === taskId);
+        if (!task) return null;
+
+        task.tdd_phase = phase;
+
+        // Save change
+        await store.changes.save(change);
+
+        return task;
+      },
+
+      skipTdd: async (taskId, reason) => {
+        await store.sync();
+
+        // Find which change this task belongs to
+        const taskRow = sqlite.tasks.get(taskId);
+        if (!taskRow) return null;
+
+        // Load the change
+        const change = await loadChange(paths.changes, taskRow.change_id);
+        if (!change) return null;
+
+        // Update task in change
+        const task = change.tasks.find((t) => t.id === taskId);
+        if (!task) return null;
+
+        // Initialize tdd_evidence if needed
+        if (!task.tdd_evidence) {
+          task.tdd_evidence = {};
+        }
+
+        task.tdd_evidence.skipped = true;
+        task.tdd_evidence.skip_reason = reason;
+        task.tdd_phase = "none";
+
+        // Save change
         await store.changes.save(change);
 
         return task;

@@ -56,6 +56,9 @@ export const ValidationCodes = {
   // Schema validation
   INVALID_SCHEMA: "INVALID_SCHEMA",
   INVALID_ID_FORMAT: "INVALID_ID_FORMAT",
+
+  // TDD compliance
+  MISSING_TDD_EVIDENCE: "MISSING_TDD_EVIDENCE",
 } as const;
 
 export type ValidationCode =

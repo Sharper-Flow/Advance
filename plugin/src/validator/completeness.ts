@@ -5,6 +5,7 @@
  */
 
 import type { Change } from "../types";
+import { getTddComplianceStatus, isLogicTask } from "../types";
 import type { ValidationIssue } from "./types";
 import { ValidationCodes } from "./types";
 
@@ -157,6 +158,40 @@ export function checkIdFormats(change: Change): ValidationIssue[] {
 }
 
 /**
+ * Check if completed logic tasks have TDD evidence
+ */
+export function checkTddCompliance(change: Change): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+
+  for (const task of change.tasks) {
+    // Only check completed tasks
+    if (task.status !== "done") continue;
+
+    // Only check logic-heavy tasks
+    if (!isLogicTask(task.title)) continue;
+
+    // Check TDD compliance
+    const compliance = getTddComplianceStatus(task);
+    if (compliance === "missing") {
+      issues.push({
+        code: ValidationCodes.MISSING_TDD_EVIDENCE,
+        severity: "warning",
+        message: `Task "${task.title}" (${task.id}) is logic-heavy but lacks TDD evidence`,
+        path: `tasks.${task.id}`,
+        details: {
+          taskId: task.id,
+          tdd_phase: task.tdd_phase,
+          recommendation:
+            "Record TDD evidence with adv_task_evidence or skip with adv_task_skip_tdd",
+        },
+      });
+    }
+  }
+
+  return issues;
+}
+
+/**
  * Run all completeness checks
  */
 export function runCompletenessChecks(change: Change): ValidationIssue[] {
@@ -171,6 +206,7 @@ export function runCompletenessChecks(change: Change): ValidationIssue[] {
   issues.push(...checkRequirementScenarios(change));
   issues.push(...checkScenarioCompleteness(change));
   issues.push(...checkIdFormats(change));
+  issues.push(...checkTddCompliance(change));
 
   return issues;
 }

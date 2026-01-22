@@ -78,6 +78,12 @@ export const AdvancePlugin: Plugin = async ({ directory }: PluginContext) => {
       adv_task_update: wrapTool(taskTools.adv_task_update),
       adv_task_add: wrapTool(taskTools.adv_task_add),
 
+      // TDD evidence tools
+      adv_task_evidence: wrapTool(taskTools.adv_task_evidence),
+      adv_task_tdd_phase: wrapTool(taskTools.adv_task_tdd_phase),
+      adv_task_skip_tdd: wrapTool(taskTools.adv_task_skip_tdd),
+      adv_task_tdd_status: wrapTool(taskTools.adv_task_tdd_status),
+
       // Status tool
       adv_status: wrapTool(statusTools.adv_status),
     },

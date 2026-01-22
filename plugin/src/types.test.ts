@@ -16,6 +16,15 @@ import {
   PrioritySchema,
   TaskStatusSchema,
   DependencySchema,
+  TddPhaseSchema,
+  TddPhaseEvidenceSchema,
+  TddEvidenceSchema,
+  isLogicTask,
+  isTrivialTask,
+  hasCompleteTddEvidence,
+  getTddComplianceStatus,
+  truncateOutput,
+  type Task,
 } from "./types";
 import { SAMPLE_SPEC, SAMPLE_CHANGE } from "./__tests__/setup";
 
@@ -277,5 +286,229 @@ describe("ProjectConfigSchema", () => {
     const result = ProjectConfigSchema.parse(config);
     expect(result.specs_dir).toBe("custom/specs");
     expect(result.db_dir).toBe(".custom-db");
+  });
+});
+
+// =============================================================================
+// TDD Schema Tests
+// =============================================================================
+
+describe("TddPhaseSchema", () => {
+  test("accepts valid phases", () => {
+    expect(TddPhaseSchema.parse("none")).toBe("none");
+    expect(TddPhaseSchema.parse("red")).toBe("red");
+    expect(TddPhaseSchema.parse("green")).toBe("green");
+    expect(TddPhaseSchema.parse("refactor")).toBe("refactor");
+    expect(TddPhaseSchema.parse("complete")).toBe("complete");
+  });
+
+  test("rejects invalid phases", () => {
+    expect(() => TddPhaseSchema.parse("failing")).toThrow();
+    expect(() => TddPhaseSchema.parse("passing")).toThrow();
+  });
+});
+
+describe("TddPhaseEvidenceSchema", () => {
+  test("parses full evidence", () => {
+    const evidence = {
+      test_file: "test/feature.test.ts",
+      command: "pnpm test",
+      output_snippet: "PASS: 1 test",
+      exit_code: 0,
+      recorded_at: "2026-01-22T00:00:00Z",
+    };
+    const result = TddPhaseEvidenceSchema.parse(evidence);
+    expect(result.test_file).toBe("test/feature.test.ts");
+    expect(result.exit_code).toBe(0);
+  });
+
+  test("accepts partial evidence", () => {
+    const evidence = { exit_code: 1 };
+    const result = TddPhaseEvidenceSchema.parse(evidence);
+    expect(result.exit_code).toBe(1);
+    expect(result.test_file).toBeUndefined();
+  });
+
+  test("accepts empty evidence", () => {
+    const result = TddPhaseEvidenceSchema.parse({});
+    expect(result).toEqual({});
+  });
+});
+
+describe("TddEvidenceSchema", () => {
+  test("parses full TDD evidence", () => {
+    const evidence = {
+      red: { exit_code: 1, recorded_at: "2026-01-22T00:00:00Z" },
+      green: { exit_code: 0, recorded_at: "2026-01-22T01:00:00Z" },
+    };
+    const result = TddEvidenceSchema.parse(evidence);
+    expect(result.red?.exit_code).toBe(1);
+    expect(result.green?.exit_code).toBe(0);
+  });
+
+  test("parses skipped evidence", () => {
+    const evidence = {
+      skipped: true,
+      skip_reason: "trivial: docs change",
+    };
+    const result = TddEvidenceSchema.parse(evidence);
+    expect(result.skipped).toBe(true);
+    expect(result.skip_reason).toBe("trivial: docs change");
+  });
+});
+
+// =============================================================================
+// TDD Helper Function Tests
+// =============================================================================
+
+describe("isLogicTask", () => {
+  test("detects logic-heavy tasks", () => {
+    expect(isLogicTask("Implement user authentication")).toBe(true);
+    expect(isLogicTask("Create API endpoint")).toBe(true);
+    expect(isLogicTask("Add validation for input")).toBe(true);
+    expect(isLogicTask("Fix the login bug")).toBe(true);
+    expect(isLogicTask("Refactor the handler")).toBe(true);
+    expect(isLogicTask("Implement the feature")).toBe(true);
+  });
+
+  test("returns false for trivial tasks", () => {
+    expect(isLogicTask("Update README")).toBe(false);
+    expect(isLogicTask("Fix typo in docs")).toBe(false);
+    expect(isLogicTask("Update configuration")).toBe(false);
+  });
+
+  test("returns false for non-matching tasks", () => {
+    expect(isLogicTask("Deploy to production")).toBe(false);
+    expect(isLogicTask("Review PR")).toBe(false);
+  });
+});
+
+describe("isTrivialTask", () => {
+  test("detects trivial tasks", () => {
+    expect(isTrivialTask("Update README")).toBe(true);
+    expect(isTrivialTask("Fix typo")).toBe(true);
+    expect(isTrivialTask("Update documentation")).toBe(true);
+    expect(isTrivialTask("Update config file")).toBe(true);
+    expect(isTrivialTask("Format code")).toBe(true);
+    expect(isTrivialTask("Lint fixes")).toBe(true);
+    expect(isTrivialTask("Rename variable")).toBe(true);
+    expect(isTrivialTask("Cleanup unused imports")).toBe(true);
+  });
+
+  test("returns false for logic tasks", () => {
+    expect(isTrivialTask("Implement feature")).toBe(false);
+    expect(isTrivialTask("Create endpoint")).toBe(false);
+  });
+});
+
+describe("hasCompleteTddEvidence", () => {
+  const baseTask: Task = {
+    id: "tk-test",
+    title: "Test task",
+    status: "pending",
+    priority: 0,
+    created_at: "2026-01-22T00:00:00Z",
+    tdd_phase: "none",
+  };
+
+  test("returns false when no evidence", () => {
+    expect(hasCompleteTddEvidence(baseTask)).toBe(false);
+  });
+
+  test("returns false with only red phase", () => {
+    const task = {
+      ...baseTask,
+      tdd_evidence: { red: { recorded_at: "2026-01-22T00:00:00Z" } },
+    };
+    expect(hasCompleteTddEvidence(task)).toBe(false);
+  });
+
+  test("returns true with both red and green", () => {
+    const task = {
+      ...baseTask,
+      tdd_evidence: {
+        red: { recorded_at: "2026-01-22T00:00:00Z" },
+        green: { recorded_at: "2026-01-22T01:00:00Z" },
+      },
+    };
+    expect(hasCompleteTddEvidence(task)).toBe(true);
+  });
+
+  test("returns true when skipped with reason", () => {
+    const task = {
+      ...baseTask,
+      tdd_evidence: { skipped: true, skip_reason: "trivial" },
+    };
+    expect(hasCompleteTddEvidence(task)).toBe(true);
+  });
+
+  test("returns false when skipped without reason", () => {
+    const task = {
+      ...baseTask,
+      tdd_evidence: { skipped: true },
+    };
+    expect(hasCompleteTddEvidence(task)).toBe(false);
+  });
+});
+
+describe("getTddComplianceStatus", () => {
+  const baseTask: Task = {
+    id: "tk-test",
+    title: "Implement feature",
+    status: "pending",
+    priority: 0,
+    created_at: "2026-01-22T00:00:00Z",
+    tdd_phase: "none",
+  };
+
+  test("returns missing for logic task without evidence", () => {
+    expect(getTddComplianceStatus(baseTask)).toBe("missing");
+  });
+
+  test("returns compliant for logic task with evidence", () => {
+    const task = {
+      ...baseTask,
+      tdd_evidence: {
+        red: { recorded_at: "2026-01-22T00:00:00Z" },
+        green: { recorded_at: "2026-01-22T01:00:00Z" },
+      },
+    };
+    expect(getTddComplianceStatus(task)).toBe("compliant");
+  });
+
+  test("returns compliant when skipped with reason", () => {
+    const task = {
+      ...baseTask,
+      tdd_evidence: { skipped: true, skip_reason: "legacy code" },
+    };
+    expect(getTddComplianceStatus(task)).toBe("compliant");
+  });
+
+  test("returns not_required for trivial task", () => {
+    const task = { ...baseTask, title: "Update README" };
+    expect(getTddComplianceStatus(task)).toBe("not_required");
+  });
+
+  test("returns not_required for non-matching task", () => {
+    const task = { ...baseTask, title: "Deploy to production" };
+    expect(getTddComplianceStatus(task)).toBe("not_required");
+  });
+});
+
+describe("truncateOutput", () => {
+  test("returns short output unchanged", () => {
+    expect(truncateOutput("short")).toBe("short");
+  });
+
+  test("truncates long output", () => {
+    const long = "x".repeat(1000);
+    const result = truncateOutput(long);
+    expect(result.length).toBeLessThan(600);
+    expect(result).toContain("[truncated]");
+  });
+
+  test("respects custom max length", () => {
+    const result = truncateOutput("hello world", 5);
+    expect(result).toBe("hello\n... [truncated]");
   });
 });

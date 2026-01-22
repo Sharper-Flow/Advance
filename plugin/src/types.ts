@@ -105,6 +105,64 @@ export const TaskStatusSchema = z.enum([
 export type TaskStatus = z.infer<typeof TaskStatusSchema>;
 
 // =============================================================================
+// TDD Phase & Evidence
+// =============================================================================
+
+/**
+ * TDD phase for a task.
+ * - none: Not a TDD task (docs, config, etc.)
+ * - red: Writing failing test
+ * - green: Implementing to make test pass
+ * - refactor: Refactoring with passing tests
+ * - complete: TDD cycle finished with evidence
+ */
+export const TddPhaseSchema = z.enum([
+  "none",
+  "red",
+  "green",
+  "refactor",
+  "complete",
+]);
+
+export type TddPhase = z.infer<typeof TddPhaseSchema>;
+
+/**
+ * Evidence for a single TDD phase (red or green).
+ * Captures the test run details for audit and verification.
+ */
+export const TddPhaseEvidenceSchema = z.object({
+  /** Test file or test name that was run */
+  test_file: z.string().optional(),
+  /** Command used to run the test */
+  command: z.string().optional(),
+  /** First 500 chars of test output (truncated for storage) */
+  output_snippet: z.string().optional(),
+  /** Exit code from test runner (0 = pass, non-zero = fail) */
+  exit_code: z.number().optional(),
+  /** ISO8601 timestamp when evidence was recorded */
+  recorded_at: z.string().optional(),
+});
+
+export type TddPhaseEvidence = z.infer<typeof TddPhaseEvidenceSchema>;
+
+/**
+ * Complete TDD evidence for a task.
+ * Tracks both red (failing) and green (passing) phases.
+ */
+export const TddEvidenceSchema = z.object({
+  /** Red phase: test written and failing */
+  red: TddPhaseEvidenceSchema.optional(),
+  /** Green phase: implementation makes test pass */
+  green: TddPhaseEvidenceSchema.optional(),
+  /** Whether TDD was skipped with rationale */
+  skipped: z.boolean().optional(),
+  /** Rationale for skipping TDD (e.g., "trivial: docs change") */
+  skip_reason: z.string().optional(),
+});
+
+export type TddEvidence = z.infer<typeof TddEvidenceSchema>;
+
+// =============================================================================
 // Task
 // =============================================================================
 
@@ -119,6 +177,10 @@ export const TaskSchema = z.object({
   started_at: z.string().nullable().optional(),
   completed_at: z.string().nullable().optional(),
   completed_by: z.string().nullable().optional(),
+  /** Current TDD phase for this task */
+  tdd_phase: TddPhaseSchema.default("none"),
+  /** TDD evidence (red/green phase recordings) */
+  tdd_evidence: TddEvidenceSchema.optional(),
 });
 
 export type Task = z.infer<typeof TaskSchema>;
@@ -310,4 +372,135 @@ export const TAB_COLORS: Record<StatusMarker, string> = {
   EARTH: "#95E1A3",
   DOOM_LOOP: "#E74C3C",
   MIC: "#F39C12",
+};
+
+// =============================================================================
+// TDD Detection Patterns
+// =============================================================================
+
+/**
+ * Keywords that indicate a task requires TDD (logic-heavy).
+ * Tasks matching these patterns should have TDD evidence.
+ */
+export const TDD_REQUIRED_PATTERNS = [
+  /\bimplement\b/i,
+  /\bcreate\b/i,
+  /\badd\b/i,
+  /\bfix\b/i,
+  /\brefactor\b/i,
+  /\bhandle\b/i,
+  /\bvalidate\b/i,
+  /\bparse\b/i,
+  /\bcalculate\b/i,
+  /\bprocess\b/i,
+  /\bgenerate\b/i,
+  /\btransform\b/i,
+  /\bconvert\b/i,
+  /\bfilter\b/i,
+  /\bsort\b/i,
+  /\bmerge\b/i,
+  /\bauth/i,
+  /\bapi\b/i,
+  /\bendpoint\b/i,
+  /\bfunction\b/i,
+  /\bmethod\b/i,
+  /\bclass\b/i,
+  /\bmodule\b/i,
+  /\bservice\b/i,
+  /\bhandler\b/i,
+  /\bcontroller\b/i,
+  /\brepository\b/i,
+  /\bstore\b/i,
+];
+
+/**
+ * Keywords that indicate a task is trivial (no TDD required).
+ * Tasks matching these patterns can skip TDD.
+ */
+export const TDD_TRIVIAL_PATTERNS = [
+  /\bdoc(s|umentation)?\b/i,
+  /\breadme\b/i,
+  /\bchangelog\b/i,
+  /\bconfig(uration)?\b/i,
+  /\bformat(ting)?\b/i,
+  /\blint(ing)?\b/i,
+  /\btypo\b/i,
+  /\bcomment\b/i,
+  /\brename\b/i,
+  /\bmove\b/i,
+  /\bcleanup\b/i,
+  /\bclean up\b/i,
+  /\bremove unused\b/i,
+  /\bupdate version\b/i,
+  /\bbump version\b/i,
+];
+
+/**
+ * Check if a task title indicates logic-heavy work requiring TDD.
+ */
+export const isLogicTask = (title: string): boolean => {
+  // First check if explicitly trivial
+  if (TDD_TRIVIAL_PATTERNS.some((p) => p.test(title))) {
+    return false;
+  }
+  // Then check if matches logic patterns
+  return TDD_REQUIRED_PATTERNS.some((p) => p.test(title));
+};
+
+/**
+ * Check if a task title indicates trivial work (TDD optional).
+ */
+export const isTrivialTask = (title: string): boolean => {
+  return TDD_TRIVIAL_PATTERNS.some((p) => p.test(title));
+};
+
+/**
+ * Check if a task has complete TDD evidence (both red and green phases).
+ */
+export const hasCompleteTddEvidence = (task: Task): boolean => {
+  if (!task.tdd_evidence) return false;
+
+  // If explicitly skipped with reason, that counts as complete
+  if (task.tdd_evidence.skipped && task.tdd_evidence.skip_reason) {
+    return true;
+  }
+
+  // Otherwise need both red and green phases
+  const hasRed = !!task.tdd_evidence.red?.recorded_at;
+  const hasGreen = !!task.tdd_evidence.green?.recorded_at;
+
+  return hasRed && hasGreen;
+};
+
+/**
+ * Get TDD compliance status for a task.
+ */
+export const getTddComplianceStatus = (
+  task: Task,
+): "compliant" | "missing" | "not_required" => {
+  // Trivial tasks don't require TDD
+  if (isTrivialTask(task.title)) {
+    return "not_required";
+  }
+
+  // Explicitly skipped with reason
+  if (task.tdd_evidence?.skipped && task.tdd_evidence.skip_reason) {
+    return "compliant";
+  }
+
+  // Logic tasks require evidence
+  if (isLogicTask(task.title)) {
+    return hasCompleteTddEvidence(task) ? "compliant" : "missing";
+  }
+
+  // Default: not required for non-matching tasks
+  return "not_required";
+};
+
+/**
+ * Truncate output to max length for storage.
+ */
+export const truncateOutput = (output: string, maxLength = 500): string => {
+  if (output.length <= maxLength) return output;
+  return output.slice(0, maxLength) + "\n... [truncated]";
 };

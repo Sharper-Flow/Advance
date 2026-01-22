@@ -287,4 +287,232 @@ describe("Task Tools", () => {
       expect(parsed.error).toContain("not found");
     });
   });
+
+  describe("adv_task_evidence", () => {
+    test("records red phase evidence", async () => {
+      const result = await taskTools.adv_task_evidence.execute(
+        {
+          taskId: "tk-task0001",
+          phase: "red",
+          testFile: "test/feature.test.ts",
+          command: "pnpm test",
+          output: "FAIL: expected true, got false",
+          exitCode: 1,
+        },
+        store,
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed.success).toBe(true);
+      expect(parsed.task.tdd_phase).toBe("red");
+      expect(parsed.task.tdd_evidence.red.test_file).toBe(
+        "test/feature.test.ts",
+      );
+      expect(parsed.task.tdd_evidence.red.exit_code).toBe(1);
+      expect(parsed.task.tdd_evidence.red.recorded_at).toBeDefined();
+    });
+
+    test("records green phase evidence and marks complete", async () => {
+      // First record red
+      await taskTools.adv_task_evidence.execute(
+        {
+          taskId: "tk-task0001",
+          phase: "red",
+          exitCode: 1,
+        },
+        store,
+      );
+
+      // Then record green
+      const result = await taskTools.adv_task_evidence.execute(
+        {
+          taskId: "tk-task0001",
+          phase: "green",
+          testFile: "test/feature.test.ts",
+          command: "pnpm test",
+          output: "PASS: all tests passed",
+          exitCode: 0,
+        },
+        store,
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed.success).toBe(true);
+      expect(parsed.task.tdd_phase).toBe("complete");
+      expect(parsed.task.tdd_evidence.green.exit_code).toBe(0);
+      expect(parsed.compliance).toBe("compliant");
+    });
+
+    test("truncates long output", async () => {
+      const longOutput = "x".repeat(1000);
+      const result = await taskTools.adv_task_evidence.execute(
+        {
+          taskId: "tk-task0001",
+          phase: "red",
+          output: longOutput,
+          exitCode: 1,
+        },
+        store,
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed.task.tdd_evidence.red.output_snippet.length).toBeLessThan(
+        600,
+      );
+      expect(parsed.task.tdd_evidence.red.output_snippet).toContain(
+        "[truncated]",
+      );
+    });
+
+    test("persists evidence to JSON", async () => {
+      await taskTools.adv_task_evidence.execute(
+        {
+          taskId: "tk-task0001",
+          phase: "red",
+          command: "npm test",
+          exitCode: 1,
+        },
+        store,
+      );
+
+      // Reload from store
+      const change = await store.changes.get("add-feature-abc123");
+      const task = change!.tasks.find((t) => t.id === "tk-task0001");
+      expect(task!.tdd_evidence?.red?.command).toBe("npm test");
+    });
+
+    test("returns error for nonexistent task", async () => {
+      const result = await taskTools.adv_task_evidence.execute(
+        { taskId: "nonexistent", phase: "red" },
+        store,
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed.error).toContain("not found");
+    });
+  });
+
+  describe("adv_task_tdd_phase", () => {
+    test("sets TDD phase", async () => {
+      const result = await taskTools.adv_task_tdd_phase.execute(
+        { taskId: "tk-task0001", phase: "refactor" },
+        store,
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed.success).toBe(true);
+      expect(parsed.task.tdd_phase).toBe("refactor");
+    });
+
+    test("returns error for nonexistent task", async () => {
+      const result = await taskTools.adv_task_tdd_phase.execute(
+        { taskId: "nonexistent", phase: "red" },
+        store,
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed.error).toContain("not found");
+    });
+  });
+
+  describe("adv_task_skip_tdd", () => {
+    test("skips TDD with reason", async () => {
+      const result = await taskTools.adv_task_skip_tdd.execute(
+        { taskId: "tk-task0001", reason: "trivial: config change" },
+        store,
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed.success).toBe(true);
+      expect(parsed.task.tdd_evidence.skipped).toBe(true);
+      expect(parsed.task.tdd_evidence.skip_reason).toBe(
+        "trivial: config change",
+      );
+      expect(parsed.task.tdd_phase).toBe("none");
+      expect(parsed.compliance).toBe("compliant");
+    });
+
+    test("persists skip to JSON", async () => {
+      await taskTools.adv_task_skip_tdd.execute(
+        { taskId: "tk-task0001", reason: "legacy code" },
+        store,
+      );
+
+      const change = await store.changes.get("add-feature-abc123");
+      const task = change!.tasks.find((t) => t.id === "tk-task0001");
+      expect(task!.tdd_evidence?.skipped).toBe(true);
+    });
+
+    test("returns error for nonexistent task", async () => {
+      const result = await taskTools.adv_task_skip_tdd.execute(
+        { taskId: "nonexistent", reason: "test" },
+        store,
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed.error).toContain("not found");
+    });
+  });
+
+  describe("adv_task_tdd_status", () => {
+    test("returns TDD status for logic task", async () => {
+      // Task title is "Implement the feature" - should require TDD
+      const result = await taskTools.adv_task_tdd_status.execute(
+        { taskId: "tk-task0001" },
+        store,
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed.analysis.requires_tdd).toBe(true);
+      expect(parsed.analysis.is_trivial).toBe(false);
+      expect(parsed.analysis.compliance).toBe("missing");
+      expect(parsed.recommendation).toContain("Record TDD evidence");
+    });
+
+    test("returns compliant after evidence recorded", async () => {
+      // Record both phases
+      await taskTools.adv_task_evidence.execute(
+        { taskId: "tk-task0001", phase: "red", exitCode: 1 },
+        store,
+      );
+      await taskTools.adv_task_evidence.execute(
+        { taskId: "tk-task0001", phase: "green", exitCode: 0 },
+        store,
+      );
+
+      const result = await taskTools.adv_task_tdd_status.execute(
+        { taskId: "tk-task0001" },
+        store,
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed.analysis.compliance).toBe("compliant");
+      expect(parsed.recommendation).toContain("satisfied");
+    });
+
+    test("returns compliant after skip", async () => {
+      await taskTools.adv_task_skip_tdd.execute(
+        { taskId: "tk-task0001", reason: "test" },
+        store,
+      );
+
+      const result = await taskTools.adv_task_tdd_status.execute(
+        { taskId: "tk-task0001" },
+        store,
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed.analysis.compliance).toBe("compliant");
+    });
+
+    test("returns error for nonexistent task", async () => {
+      const result = await taskTools.adv_task_tdd_status.execute(
+        { taskId: "nonexistent" },
+        store,
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed.error).toContain("not found");
+    });
+  });
 });
