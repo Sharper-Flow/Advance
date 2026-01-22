@@ -6,7 +6,7 @@
  */
 
 import { join } from "path";
-import { readdir, mkdir } from "fs/promises";
+import { readdir, mkdir, readFile, writeFile, access, stat } from "fs/promises";
 import { SpecSchema, ChangeSchema, ProjectConfigSchema } from "../types";
 import type { Spec, Change, ProjectConfig } from "../types";
 
@@ -44,12 +44,8 @@ export async function loadProjectConfig(root: string): Promise<ProjectConfig | n
   const configPath = join(root, "project.json");
 
   try {
-    const file = Bun.file(configPath);
-    const exists = await file.exists();
-    if (!exists) return null;
-
-    const content = await file.json();
-    return ProjectConfigSchema.parse(content);
+    const content = await readFile(configPath, "utf-8");
+    return ProjectConfigSchema.parse(JSON.parse(content));
   } catch {
     return null;
   }
@@ -57,7 +53,7 @@ export async function loadProjectConfig(root: string): Promise<ProjectConfig | n
 
 export async function saveProjectConfig(root: string, config: ProjectConfig): Promise<void> {
   const configPath = join(root, "project.json");
-  await Bun.write(configPath, JSON.stringify(config, null, 2));
+  await writeFile(configPath, JSON.stringify(config, null, 2));
 }
 
 // =============================================================================
@@ -77,12 +73,8 @@ export async function loadSpec(specsDir: string, capability: string): Promise<Sp
   const specPath = join(specsDir, capability, "spec.json");
 
   try {
-    const file = Bun.file(specPath);
-    const exists = await file.exists();
-    if (!exists) return null;
-
-    const content = await file.json();
-    return SpecSchema.parse(content);
+    const content = await readFile(specPath, "utf-8");
+    return SpecSchema.parse(JSON.parse(content));
   } catch (error) {
     console.error(`Failed to load spec ${capability}:`, error);
     return null;
@@ -108,7 +100,7 @@ export async function saveSpec(specsDir: string, spec: Spec): Promise<string> {
   const specPath = join(specDir, "spec.json");
 
   await mkdir(specDir, { recursive: true });
-  await Bun.write(specPath, JSON.stringify(spec, null, 2));
+  await writeFile(specPath, JSON.stringify(spec, null, 2));
 
   return specPath;
 }
@@ -130,12 +122,8 @@ export async function loadChange(changesDir: string, changeId: string): Promise<
   const changePath = join(changesDir, changeId, "change.json");
 
   try {
-    const file = Bun.file(changePath);
-    const exists = await file.exists();
-    if (!exists) return null;
-
-    const content = await file.json();
-    return ChangeSchema.parse(content);
+    const content = await readFile(changePath, "utf-8");
+    return ChangeSchema.parse(JSON.parse(content));
   } catch (error) {
     console.error(`Failed to load change ${changeId}:`, error);
     return null;
@@ -161,7 +149,7 @@ export async function saveChange(changesDir: string, change: Change): Promise<st
   const changePath = join(changeDir, "change.json");
 
   await mkdir(changeDir, { recursive: true });
-  await Bun.write(changePath, JSON.stringify(change, null, 2));
+  await writeFile(changePath, JSON.stringify(change, null, 2));
 
   return changePath;
 }
@@ -200,7 +188,7 @@ export async function createChangeScaffold(
 - [ ] Criterion 2
 `;
 
-  await Bun.write(proposalPath, proposalContent);
+  await writeFile(proposalPath, proposalContent);
 
   return { changePath, proposalPath };
 }
@@ -215,8 +203,8 @@ export async function ensureDir(dir: string): Promise<void> {
 
 export async function fileExists(path: string): Promise<boolean> {
   try {
-    const file = Bun.file(path);
-    return await file.exists();
+    await access(path);
+    return true;
   } catch {
     return false;
   }
@@ -224,9 +212,8 @@ export async function fileExists(path: string): Promise<boolean> {
 
 export async function getFileMtime(path: string): Promise<Date | null> {
   try {
-    const file = Bun.file(path);
-    const stat = await file.stat();
-    return new Date(stat.mtime);
+    const stats = await stat(path);
+    return stats.mtime;
   } catch {
     return null;
   }

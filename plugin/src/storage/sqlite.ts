@@ -5,14 +5,11 @@
  * JSON files remain source of truth; SQLite is derived.
  */
 
-import { Database } from "bun:sqlite";
+import Database from "better-sqlite3";
 import type {
   Spec,
-  Requirement,
-  Scenario,
   Change,
   Task,
-  Delta,
 } from "../types";
 
 // =============================================================================
@@ -38,7 +35,7 @@ CREATE TABLE IF NOT EXISTS requirements (
   title TEXT NOT NULL,
   body TEXT NOT NULL,
   priority TEXT NOT NULL CHECK (priority IN ('must', 'should', 'may')),
-  tags TEXT, -- JSON array
+  tags TEXT,
   UNIQUE(spec_name, id)
 );
 
@@ -75,9 +72,9 @@ CREATE TABLE IF NOT EXISTS scenarios (
   id TEXT PRIMARY KEY,
   requirement_id TEXT NOT NULL REFERENCES requirements(id) ON DELETE CASCADE,
   title TEXT NOT NULL,
-  given_json TEXT NOT NULL, -- JSON array
+  given_json TEXT NOT NULL,
   when_clause TEXT NOT NULL,
-  then_json TEXT NOT NULL -- JSON array
+  then_json TEXT NOT NULL
 );
 
 -- Changes
@@ -120,9 +117,9 @@ CREATE TABLE IF NOT EXISTS deltas (
   capability TEXT NOT NULL,
   operation TEXT NOT NULL CHECK (operation IN ('add', 'modify', 'remove')),
   target_id TEXT,
-  requirement_json TEXT, -- For 'add' operations
-  changes_json TEXT, -- For 'modify' operations
-  reason TEXT -- For 'remove' operations
+  requirement_json TEXT,
+  changes_json TEXT,
+  reason TEXT
 );
 
 -- Sync metadata
@@ -137,7 +134,7 @@ CREATE TABLE IF NOT EXISTS sync_meta (
 // =============================================================================
 
 export interface SQLiteStore {
-  db: Database;
+  db: Database.Database;
 
   // Specs
   specs: {
@@ -245,165 +242,212 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
   const db = new Database(dbPath);
 
   // Enable WAL mode for better concurrent performance
-  db.run("PRAGMA journal_mode = WAL");
-  db.run("PRAGMA foreign_keys = ON");
+  db.pragma("journal_mode = WAL");
+  db.pragma("foreign_keys = ON");
 
   // Run schema
-  db.run(SCHEMA);
+  db.exec(SCHEMA);
+
+  // Prepare statements
+  const stmts = {
+    specsList: db.prepare("SELECT * FROM specs"),
+    specsListByName: db.prepare("SELECT * FROM specs WHERE name = ?"),
+    specsGet: db.prepare("SELECT * FROM specs WHERE name = ?"),
+    specsUpsert: db.prepare(`
+      INSERT INTO specs (name, title, purpose, version, updated_at, json_path, synced_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(name) DO UPDATE SET
+        title = excluded.title,
+        purpose = excluded.purpose,
+        version = excluded.version,
+        updated_at = excluded.updated_at,
+        json_path = excluded.json_path,
+        synced_at = excluded.synced_at
+    `),
+    specsDelete: db.prepare("DELETE FROM specs WHERE name = ?"),
+
+    reqsList: db.prepare("SELECT * FROM requirements WHERE spec_name = ?"),
+    reqsGet: db.prepare("SELECT * FROM requirements WHERE id = ?"),
+    reqsInsert: db.prepare(`
+      INSERT INTO requirements (id, spec_name, title, body, priority, tags)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `),
+    reqsDeleteBySpec: db.prepare("DELETE FROM requirements WHERE spec_name = ?"),
+    reqsSearch: db.prepare(`
+      SELECT r.id, r.spec_name, r.title, 
+             snippet(requirements_fts, 2, '<mark>', '</mark>', '...', 32) as match,
+             rank
+      FROM requirements_fts
+      JOIN requirements r ON requirements_fts.id = r.id
+      WHERE requirements_fts MATCH ?
+      ORDER BY rank
+      LIMIT ?
+    `),
+
+    scenarioInsert: db.prepare(`
+      INSERT INTO scenarios (id, requirement_id, title, given_json, when_clause, then_json)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `),
+
+    changesList: db.prepare("SELECT * FROM changes ORDER BY created_at DESC"),
+    changesListByStatus: db.prepare("SELECT * FROM changes WHERE status = ? ORDER BY created_at DESC"),
+    changesGet: db.prepare("SELECT * FROM changes WHERE id = ?"),
+    changesUpsert: db.prepare(`
+      INSERT INTO changes (id, title, status, created_at, created_by, json_path, synced_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(id) DO UPDATE SET
+        title = excluded.title,
+        status = excluded.status,
+        created_by = excluded.created_by,
+        json_path = excluded.json_path,
+        synced_at = excluded.synced_at
+    `),
+    changesDelete: db.prepare("DELETE FROM changes WHERE id = ?"),
+
+    tasksList: db.prepare("SELECT * FROM tasks WHERE change_id = ? ORDER BY priority, created_at"),
+    tasksListByStatus: db.prepare("SELECT * FROM tasks WHERE change_id = ? AND status = ? ORDER BY priority, created_at"),
+    tasksGet: db.prepare("SELECT * FROM tasks WHERE id = ?"),
+    tasksInsert: db.prepare(`
+      INSERT INTO tasks (id, change_id, title, section, status, priority, created_at, started_at, completed_at, completed_by)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `),
+    tasksDeleteByChange: db.prepare("DELETE FROM tasks WHERE change_id = ?"),
+    tasksPending: db.prepare("SELECT * FROM tasks WHERE change_id = ? AND status = 'pending' ORDER BY priority"),
+    tasksBlockers: db.prepare(`
+      SELECT d.target_id 
+      FROM dependencies d
+      JOIN tasks t ON d.target_id = t.id
+      WHERE d.source_id = ? 
+        AND d.type = 'blocked_by'
+        AND t.status NOT IN ('done', 'cancelled')
+    `),
+
+    depInsert: db.prepare("INSERT OR IGNORE INTO dependencies (source_id, target_id, type) VALUES (?, ?, ?)"),
+
+    deltaInsert: db.prepare(`
+      INSERT INTO deltas (id, change_id, capability, operation, target_id, requirement_json, changes_json, reason)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `),
+    deltasDeleteByChange: db.prepare("DELETE FROM deltas WHERE change_id = ?"),
+
+    syncMetaGet: db.prepare("SELECT value FROM sync_meta WHERE key = ?"),
+    syncMetaUpsert: db.prepare(`
+      INSERT INTO sync_meta (key, value) VALUES (?, ?)
+      ON CONFLICT(key) DO UPDATE SET value = excluded.value
+    `),
+  };
 
   return {
     db,
 
     specs: {
       list: (filter) => {
-        let query = "SELECT * FROM specs";
-        const params: string[] = [];
-
         if (filter?.name) {
-          query += " WHERE name = ?";
-          params.push(filter.name);
+          return stmts.specsListByName.all(filter.name) as SpecRow[];
         }
-
-        return db.query(query).all(...params) as SpecRow[];
+        return stmts.specsList.all() as SpecRow[];
       },
 
       get: (name) => {
-        return db.query("SELECT * FROM specs WHERE name = ?").get(name) as SpecRow | null;
+        return stmts.specsGet.get(name) as SpecRow | null;
       },
 
       upsert: (spec, jsonPath) => {
         const now = new Date().toISOString();
 
-        db.run(
-          `INSERT INTO specs (name, title, purpose, version, updated_at, json_path, synced_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?)
-           ON CONFLICT(name) DO UPDATE SET
-             title = excluded.title,
-             purpose = excluded.purpose,
-             version = excluded.version,
-             updated_at = excluded.updated_at,
-             json_path = excluded.json_path,
-             synced_at = excluded.synced_at`,
-          [spec.name, spec.title, spec.purpose, spec.version, spec.updated_at, jsonPath, now]
-        );
+        const upsertSpec = db.transaction(() => {
+          stmts.specsUpsert.run(
+            spec.name,
+            spec.title,
+            spec.purpose,
+            spec.version,
+            spec.updated_at,
+            jsonPath,
+            now
+          );
 
-        // Sync requirements
-        db.run("DELETE FROM requirements WHERE spec_name = ?", [spec.name]);
+          // Delete old requirements
+          stmts.reqsDeleteBySpec.run(spec.name);
 
-        for (const req of spec.requirements) {
-          db.run(
-            `INSERT INTO requirements (id, spec_name, title, body, priority, tags)
-             VALUES (?, ?, ?, ?, ?, ?)`,
-            [
+          // Insert requirements
+          for (const req of spec.requirements) {
+            stmts.reqsInsert.run(
               req.id,
               spec.name,
               req.title,
               req.body,
               req.priority,
-              req.tags ? JSON.stringify(req.tags) : null,
-            ]
-          );
+              req.tags ? JSON.stringify(req.tags) : null
+            );
 
-          // Sync scenarios
-          for (const scenario of req.scenarios ?? []) {
-            db.run(
-              `INSERT INTO scenarios (id, requirement_id, title, given_json, when_clause, then_json)
-               VALUES (?, ?, ?, ?, ?, ?)`,
-              [
+            // Insert scenarios
+            for (const scenario of req.scenarios ?? []) {
+              stmts.scenarioInsert.run(
                 scenario.id,
                 req.id,
                 scenario.title,
                 JSON.stringify(scenario.given),
                 scenario.when,
-                JSON.stringify(scenario.then),
-              ]
-            );
+                JSON.stringify(scenario.then)
+              );
+            }
           }
-        }
+        });
+
+        upsertSpec();
       },
 
       delete: (name) => {
-        db.run("DELETE FROM specs WHERE name = ?", [name]);
+        stmts.specsDelete.run(name);
       },
     },
 
     requirements: {
       list: (specName) => {
-        return db
-          .query("SELECT * FROM requirements WHERE spec_name = ?")
-          .all(specName) as RequirementRow[];
+        return stmts.reqsList.all(specName) as RequirementRow[];
       },
 
       get: (id) => {
-        return db.query("SELECT * FROM requirements WHERE id = ?").get(id) as RequirementRow | null;
+        return stmts.reqsGet.get(id) as RequirementRow | null;
       },
 
       search: (query, limit = 20) => {
-        return db
-          .query(
-            `SELECT r.id, r.spec_name, r.title, 
-                    snippet(requirements_fts, 2, '<mark>', '</mark>', '...', 32) as match,
-                    rank
-             FROM requirements_fts
-             JOIN requirements r ON requirements_fts.id = r.id
-             WHERE requirements_fts MATCH ?
-             ORDER BY rank
-             LIMIT ?`
-          )
-          .all(query, limit) as SearchResult[];
+        return stmts.reqsSearch.all(query, limit) as SearchResult[];
       },
     },
 
     changes: {
       list: (filter) => {
-        let query = "SELECT * FROM changes";
-        const params: string[] = [];
-
         if (filter?.status) {
-          query += " WHERE status = ?";
-          params.push(filter.status);
+          return stmts.changesListByStatus.all(filter.status) as ChangeRow[];
         }
-
-        query += " ORDER BY created_at DESC";
-
-        return db.query(query).all(...params) as ChangeRow[];
+        return stmts.changesList.all() as ChangeRow[];
       },
 
       get: (id) => {
-        return db.query("SELECT * FROM changes WHERE id = ?").get(id) as ChangeRow | null;
+        return stmts.changesGet.get(id) as ChangeRow | null;
       },
 
       upsert: (change, jsonPath) => {
         const now = new Date().toISOString();
 
-        db.run(
-          `INSERT INTO changes (id, title, status, created_at, created_by, json_path, synced_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?)
-           ON CONFLICT(id) DO UPDATE SET
-             title = excluded.title,
-             status = excluded.status,
-             created_by = excluded.created_by,
-             json_path = excluded.json_path,
-             synced_at = excluded.synced_at`,
-          [
+        const upsertChange = db.transaction(() => {
+          stmts.changesUpsert.run(
             change.id,
             change.title,
             change.status,
             change.created_at,
             change.created_by ?? null,
             jsonPath,
-            now,
-          ]
-        );
+            now
+          );
 
-        // Sync tasks
-        db.run("DELETE FROM tasks WHERE change_id = ?", [change.id]);
+          // Delete old tasks
+          stmts.tasksDeleteByChange.run(change.id);
 
-        for (const task of change.tasks) {
-          db.run(
-            `INSERT INTO tasks (id, change_id, title, section, status, priority, created_at, started_at, completed_at, completed_by)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [
+          // Insert tasks
+          for (const task of change.tasks) {
+            stmts.tasksInsert.run(
               task.id,
               change.id,
               task.title,
@@ -413,29 +457,22 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
               task.created_at,
               task.started_at ?? null,
               task.completed_at ?? null,
-              task.completed_by ?? null,
-            ]
-          );
-
-          // Sync dependencies
-          for (const dep of task.deps ?? []) {
-            db.run(
-              `INSERT OR IGNORE INTO dependencies (source_id, target_id, type)
-               VALUES (?, ?, ?)`,
-              [task.id, dep.target, dep.type]
+              task.completed_by ?? null
             );
+
+            // Insert dependencies
+            for (const dep of task.deps ?? []) {
+              stmts.depInsert.run(task.id, dep.target, dep.type);
+            }
           }
-        }
 
-        // Sync deltas
-        db.run("DELETE FROM deltas WHERE change_id = ?", [change.id]);
+          // Delete old deltas
+          stmts.deltasDeleteByChange.run(change.id);
 
-        for (const [capability, deltas] of Object.entries(change.deltas)) {
-          for (const delta of deltas) {
-            db.run(
-              `INSERT INTO deltas (id, change_id, capability, operation, target_id, requirement_json, changes_json, reason)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-              [
+          // Insert deltas
+          for (const [capability, deltas] of Object.entries(change.deltas)) {
+            for (const delta of deltas) {
+              stmts.deltaInsert.run(
                 delta.id,
                 change.id,
                 capability,
@@ -443,58 +480,40 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
                 "target_id" in delta ? delta.target_id : null,
                 delta.operation === "add" ? JSON.stringify(delta.requirement) : null,
                 delta.operation === "modify" ? JSON.stringify(delta.changes) : null,
-                delta.operation === "remove" ? delta.reason : null,
-              ]
-            );
+                delta.operation === "remove" ? delta.reason : null
+              );
+            }
           }
-        }
+        });
+
+        upsertChange();
       },
 
       delete: (id) => {
-        db.run("DELETE FROM changes WHERE id = ?", [id]);
+        stmts.changesDelete.run(id);
       },
     },
 
     tasks: {
       list: (changeId, status) => {
-        let query = "SELECT * FROM tasks WHERE change_id = ?";
-        const params: (string | number)[] = [changeId];
-
         if (status) {
-          query += " AND status = ?";
-          params.push(status);
+          return stmts.tasksListByStatus.all(changeId, status) as TaskRow[];
         }
-
-        query += " ORDER BY priority, created_at";
-
-        return db.query(query).all(...params) as TaskRow[];
+        return stmts.tasksList.all(changeId) as TaskRow[];
       },
 
       get: (id) => {
-        return db.query("SELECT * FROM tasks WHERE id = ?").get(id) as TaskRow | null;
+        return stmts.tasksGet.get(id) as TaskRow | null;
       },
 
       ready: (changeId) => {
-        // Get all pending tasks
-        const pending = db
-          .query("SELECT * FROM tasks WHERE change_id = ? AND status = 'pending' ORDER BY priority")
-          .all(changeId) as TaskRow[];
+        const pending = stmts.tasksPending.all(changeId) as TaskRow[];
 
         const ready: TaskRow[] = [];
         const blocked: BlockedTask[] = [];
 
         for (const task of pending) {
-          // Check if blocked by incomplete tasks
-          const blockers = db
-            .query(
-              `SELECT d.target_id 
-               FROM dependencies d
-               JOIN tasks t ON d.target_id = t.id
-               WHERE d.source_id = ? 
-                 AND d.type = 'blocked_by'
-                 AND t.status NOT IN ('done', 'cancelled')`
-            )
-            .all(task.id) as { target_id: string }[];
+          const blockers = stmts.tasksBlockers.all(task.id) as { target_id: string }[];
 
           if (blockers.length === 0) {
             ready.push(task);
@@ -532,41 +551,24 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
 
         if (fields.length > 0) {
           values.push(id);
-          db.run(`UPDATE tasks SET ${fields.join(", ")} WHERE id = ?`, values);
+          db.prepare(`UPDATE tasks SET ${fields.join(", ")} WHERE id = ?`).run(...values);
         }
       },
     },
 
     sync: {
       needsSync: (jsonPath) => {
-        const result = db
-          .query("SELECT value FROM sync_meta WHERE key = ?")
-          .get(`mtime:${jsonPath}`) as { value: string } | null;
-
-        if (!result) return true;
-
-        try {
-          const file = Bun.file(jsonPath);
-          const stat = file.size; // Check if file exists
-          return stat > 0; // Simple check - in production, compare mtimes
-        } catch {
-          return true;
-        }
+        const result = stmts.syncMetaGet.get(`mtime:${jsonPath}`) as { value: string } | undefined;
+        return !result;
       },
 
       markSynced: (jsonPath) => {
         const now = new Date().toISOString();
-        db.run(
-          `INSERT INTO sync_meta (key, value) VALUES (?, ?)
-           ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
-          [`mtime:${jsonPath}`, now]
-        );
+        stmts.syncMetaUpsert.run(`mtime:${jsonPath}`, now);
       },
 
       getLastSync: () => {
-        const result = db
-          .query("SELECT value FROM sync_meta WHERE key = 'last_sync'")
-          .get() as { value: string } | null;
+        const result = stmts.syncMetaGet.get("last_sync") as { value: string } | undefined;
         return result?.value ?? null;
       },
     },
