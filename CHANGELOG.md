@@ -5,6 +5,38 @@ All notable changes to ADV (Advance) will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2026-01-22
+
+### Added
+
+#### New Slash Commands (10)
+- `/adv-clarify` - Requirements clarification assistant
+- `/adv-prep` - Implementation preparation with analysis and planning
+- `/adv-research` - Research context and generate ADRs for architectural decisions
+- `/adv-review` - 4-agent parallel code review (Traceability, Logic, Security, Architecture)
+- `/adv-harden` - 5-agent production hardening (Tests, AI-Slop, Docs, Cleanup, Spec Alignment)
+- `/adv-audit` - Full system audit with staged analysis
+- `/adv-ralph` - "Wreck-it Ralph" demolition protocol for removing capabilities
+- `/adv-refactor` - Multi-agent refactoring with conflict detection
+- `/adv-coordinate` - Multi-change coordination and dependency resolution
+- `/adv-roadmap` - Strategic roadmap with change sequencing
+
+#### Enhanced Commands (5)
+- `/adv-status` - Enhanced with contract status display
+- `/adv-proposal` - Hybrid architecture with tool-based state
+- `/adv-validate` - Enhanced validation workflow
+- `/adv-apply` - Full TDD workflow with contract banners
+- `/adv-archive` - Complete archive workflow with validation
+
+#### Documentation
+- COMMAND_REPORT.md - Implementation details for all commands
+- COMMAND_REPORT.html - Printable approval document
+
+### Changed
+- All commands now use hybrid architecture: tools for state, banners for visibility
+- Commands derive CONTRACT banners from adv_* tool state instead of file parsing
+- Sub-agent orchestration standardized across review, harden, audit, and refactor
+
 ## [0.1.0] - 2026-01-21
 
 ### Added
@@ -79,4 +111,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Linting**: ESLint 9 with TypeScript support
 - **Formatting**: Prettier
 
+[0.2.0]: https://github.com/Sharper-Flow/Advance/releases/tag/v0.2.0
 [0.1.0]: https://github.com/Sharper-Flow/Advance/releases/tag/v0.1.0
