@@ -1,17 +1,22 @@
 ---
 name: adv-quick
-description: Quickly create a contract by inferring criteria from your request and begin implementation
+description: Create a contract and START IMMEDIATELY - infers criteria, confirms, then begins work
 ---
 
-# /adv-quick - Rapid Contract Creation
+# /adv-quick - Start Working Now
 
-For when you want a lightweight contract without the full spec/change workflow. Parse the user's request, create an agenda item with success criteria, and begin implementation after confirmation.
+For when you want to **start working immediately** with a lightweight contract. Parse the request, infer success criteria, get confirmation, and begin implementation right away.
+
+**Key behavior**: Adds task to **top of agenda** and starts immediately after confirmation.
 
 **Use this for:**
 - Quick features that don't need spec-level formality
 - Bug fixes with clear acceptance criteria
 - Refactoring tasks
 - Technical improvements
+- Anything you want done NOW
+
+**vs /adv-task**: Use `/adv-task` to queue work for later without starting. `/adv-quick` starts immediately.
 
 **Use `/adv-change` instead for:**
 - Features that affect existing specs

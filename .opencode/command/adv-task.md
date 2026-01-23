@@ -1,16 +1,17 @@
 ---
 name: adv-task
-description: Add a quick task to the agenda without full spec ceremony. For tests, bugfixes, refactors, and small features.
+description: Add a task to the agenda for later - AI places it based on priority. Use /adv-quick to start immediately.
 ---
 
-# ADV Task - Lightweight Task Contracts
+# ADV Task - Queue a Task for Later
 
-Add a task to your working agenda without the full spec/change/proposal workflow. Use this for:
-- Adding tests
-- Fixing bugs
-- Quick refactors
-- Small feature additions
-- Technical debt items
+Add a task to your working agenda **without starting it**. The AI places it in the queue based on priority. Use this for:
+- Capturing work to do later
+- Building up a backlog
+- Tracking discovered tasks while working on something else
+- Technical debt items to address eventually
+
+**vs /adv-quick**: Use `/adv-quick` when you want to start working immediately. `/adv-task` just queues work for later.
 
 ## Argument Parsing
 
