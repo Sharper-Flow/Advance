@@ -162,6 +162,29 @@ If stuck on a task after 3 attempts:
    - Mark as blocked
    - Cancel change
 
+## User Interaction
+
+Use `mcp_question` for predefined choices (confirmations, selections, doom loop recovery).
+Skip for: open-ended questions, debugging, free-form input.
+
+**Constraints:**
+- `header`: max 30 characters
+- `label`: max 30 characters (1-5 words, concise)
+- `options`: 2-5 choices recommended
+
+**Example:**
+```
+mcp_question:
+  header: "Confirm"
+  question: "Apply changes to spec?"
+  options:
+    - label: "Apply (Recommended)", description: "Merge deltas into spec"
+    - label: "Review first", description: "Show diff before applying"
+    - label: "Cancel", description: "Abort operation"
+```
+
+Best practices: recommended option first with "(Recommended)", "Other" is automatic.
+
 ## Validation Rules
 
 ### Errors (Must Fix)
