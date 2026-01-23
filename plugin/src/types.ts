@@ -365,16 +365,6 @@ export const STATUS_MARKERS = {
 
 export type StatusMarker = keyof typeof STATUS_MARKERS;
 
-export const TAB_COLORS: Record<StatusMarker, string> = {
-  ROCKET: "#FF6B6B",
-  TDD_RED: "#FF8C42",
-  TDD_GREEN: "#4ECDC4",
-  MOON: "#6B7FD7",
-  EARTH: "#95E1A3",
-  DOOM_LOOP: "#E74C3C",
-  MIC: "#F39C12",
-};
-
 // =============================================================================
 // TDD Detection Patterns
 // =============================================================================

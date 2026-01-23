@@ -9,8 +9,6 @@ export {
   isTmux,
   setTitle,
   resetTitle,
-  setTabColor,
-  resetTabColor,
   getProjectName,
   updateTerminalStatus,
   cleanupTerminal,

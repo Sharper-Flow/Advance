@@ -8,7 +8,6 @@
 import * as fs from "fs";
 import { execSync } from "child_process";
 import type { StatusMarker } from "../types";
-import { TAB_COLORS } from "../types";
 
 // =============================================================================
 // Debug Logging
@@ -187,48 +186,6 @@ export const resetTitle = (): void => {
   setTitle("");
 };
 
-/**
- * Set terminal tab color via OSC 9;9 sequence.
- */
-export const setTabColor = (color: string): void => {
-  log(`setTabColor: ${color}`);
-  const sequence = `\x1b]9;9;1;${color}\x07`;
-
-  if (isTmux()) {
-    const clientTty = getClientTty();
-    if (clientTty) {
-      writeToTty(clientTty, sequence);
-    }
-  } else {
-    try {
-      process.stdout.write(sequence);
-    } catch {
-      // ignore
-    }
-  }
-};
-
-/**
- * Reset terminal tab color.
- */
-export const resetTabColor = (): void => {
-  log("resetTabColor");
-  const sequence = `\x1b]9;9;0;\x07`;
-
-  if (isTmux()) {
-    const clientTty = getClientTty();
-    if (clientTty) {
-      writeToTty(clientTty, sequence);
-    }
-  } else {
-    try {
-      process.stdout.write(sequence);
-    } catch {
-      // ignore
-    }
-  }
-};
-
 // =============================================================================
 // Public API
 // =============================================================================
@@ -276,6 +233,7 @@ let lastAlertedStatus: StatusMarker | null = null;
 
 /**
  * Update terminal based on status.
+ * Updates title with emoji and rings bell for states needing user attention.
  */
 export const updateTerminalStatus = (
   status: StatusMarker,
@@ -283,13 +241,7 @@ export const updateTerminalStatus = (
   changeId?: string,
   progress?: string,
 ): void => {
-  // Update tab color
-  const color = TAB_COLORS[status];
-  if (color) {
-    setTabColor(color);
-  }
-
-  // Build title
+  // Build title with emoji
   const emoji = getStatusEmoji(status);
   const progressText = progress ? ` [${progress}]` : "";
   const changeText = changeId ? `: ${changeId}` : "";
@@ -331,10 +283,9 @@ const getStatusEmoji = (status: StatusMarker): string => {
 };
 
 /**
- * Full cleanup - reset title and color.
+ * Full cleanup - reset title.
  */
 export const cleanupTerminal = (): void => {
   resetTitle();
-  resetTabColor();
   lastAlertedStatus = null;
 };
