@@ -86,6 +86,7 @@ interface MigrationReport {
   specsProcessed: number;
   requirementsMigrated: number;
   scenariosMigrated: number;
+  projectMdCopied: boolean;
   warnings: string[];
   errors: string[];
 }
@@ -404,9 +405,29 @@ async function migrate(
     specsProcessed: 0,
     requirementsMigrated: 0,
     scenariosMigrated: 0,
+    projectMdCopied: false,
     warnings: [],
     errors: [],
   };
+
+  // Copy project.md if it exists
+  const projectMdSource = join(openspecDir, "project.md");
+  const projectMdDest = join(outputDir, "..", "project.md");
+  
+  if (existsSync(projectMdSource)) {
+    try {
+      const content = await readFile(projectMdSource, "utf-8");
+      await mkdir(join(outputDir, ".."), { recursive: true });
+      await writeFile(projectMdDest, content);
+      report.projectMdCopied = true;
+      console.log("Copied project.md to output directory\n");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      report.warnings.push(`Failed to copy project.md: ${msg}`);
+    }
+  } else {
+    report.warnings.push("No project.md found in source directory");
+  }
 
   // Find all spec files
   const specFiles = await findSpecFiles(openspecDir);
@@ -512,9 +533,10 @@ Example:
   console.log("=".repeat(60));
   console.log("  Migration Report");
   console.log("=".repeat(60));
-  console.log(`Specs processed:      ${report.specsProcessed}`);
+  console.log(`Specs processed:       ${report.specsProcessed}`);
   console.log(`Requirements migrated: ${report.requirementsMigrated}`);
   console.log(`Scenarios migrated:    ${report.scenariosMigrated}`);
+  console.log(`Project context:       ${report.projectMdCopied ? "copied" : "not found"}`);
 
   if (report.warnings.length > 0) {
     console.log(`\nWarnings (${report.warnings.length}):`);

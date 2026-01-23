@@ -152,6 +152,7 @@ export async function createStore(directory: string): Promise<Store> {
           archive_dir: "archive",
           docs_dir: "docs/specs",
           db_dir: ".specdb",
+          project_file: "project.md",
         };
         await saveProjectConfig(directory, defaultConfig);
       }

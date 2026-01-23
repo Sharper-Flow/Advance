@@ -294,6 +294,7 @@ export const ProjectConfigSchema = z.object({
   archive_dir: z.string().default("archive"),
   docs_dir: z.string().default("docs/specs"),
   db_dir: z.string().default(".specdb"),
+  project_file: z.string().default("project.md"),
 });
 
 export type ProjectConfig = z.infer<typeof ProjectConfigSchema>;

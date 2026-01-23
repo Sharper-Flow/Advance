@@ -12,6 +12,7 @@ import { changeTools } from "./tools/change";
 import { taskTools } from "./tools/task";
 import { statusTools } from "./tools/status";
 import { agendaTools } from "./tools/agenda";
+import { projectTools } from "./tools/project";
 import {
   initializeStatus,
   cleanup as cleanupEvents,
@@ -110,6 +111,9 @@ export const AdvancePlugin: Plugin = async ({ directory }: PluginContext) => {
       adv_agenda_stats: wrapAgendaTool(agendaTools.adv_agenda_stats),
       adv_agenda_evidence: wrapAgendaTool(agendaTools.adv_agenda_evidence),
       adv_agenda_compact: wrapAgendaTool(agendaTools.adv_agenda_compact),
+
+      // Project tools
+      adv_project_context: wrapTool(projectTools.adv_project_context),
     },
 
     // Lifecycle hooks

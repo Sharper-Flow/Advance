@@ -6,3 +6,4 @@ export { specTools } from "./spec";
 export { changeTools } from "./change";
 export { taskTools } from "./task";
 export { statusTools } from "./status";
+export { projectTools } from "./project";
