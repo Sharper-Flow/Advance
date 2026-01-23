@@ -1,12 +1,12 @@
 ---
 name: adv-prep
-description: Pre-implementation gap analysis - identify missing scenarios, tasks, and concerns using ADV tools
+description: Pre-implementation gap analysis using structured frameworks and cross-cutting concern checklists
 agent: general
 ---
 
 # ADV Prep - Pre-Implementation Gap Analysis
 
-Analyze a change for gaps (missing scenarios, tasks, cross-cutting concerns) and add them using ADV tools. Contract banners show progress; tools manage state.
+Analyze a change for gaps (missing scenarios, tasks, cross-cutting concerns) and add them using ADV tools. Uses the 4-Step Gap Analysis framework and IEEE-based completeness criteria.
 
 > **SUB-AGENT CONTEXT**: Return findings directly. Skip status markers and CONTRACT STATUS blocks.
 
@@ -18,6 +18,8 @@ Analyze a change for gaps (missing scenarios, tasks, cross-cutting concerns) and
 
 1. **If $ARGUMENTS provided**: Use as change-id
 2. **If empty**: Call `adv_change_list`, select via `mcp_question`
+
+---
 
 ## Phase 1: Load Context
 
@@ -41,64 +43,116 @@ adv_spec_show capability: <name>
 
 ---
 
-## Phase 2: Gap Analysis
+## Phase 2: Gap Analysis Framework
 
-Analyze across these dimensions, building a numbered gap list.
+Use the **4-Step Gap Analysis**:
+1. Define desired state (from change objectives)
+2. Benchmark current state (from specs/codebase)
+3. Analyze the gap (structured checklists below)
+4. Compile action plan (tasks to add)
 
-**TERMINATION CRITERIA**: Analysis complete when:
-1. All requirements checked for scenarios
-2. Codebase searched for 3+ key terms
-3. 2+ libraries researched via Context7 (if applicable)
-4. All deployed specs scanned for conflicts
+### Completeness Heuristics
 
-### 2.1 Acceptance Criteria Completeness
+Analysis is complete when:
+- [ ] All requirements checked for scenarios
+- [ ] Codebase searched for 3+ key terms
+- [ ] 2+ libraries researched via Context7 (if applicable)
+- [ ] All deployed specs scanned for conflicts
+- [ ] Cross-cutting concerns checklist completed
 
-For each requirement in change deltas:
-- Has testable success criteria?
-- Has Given/When/Then scenario?
-- Error cases documented?
+---
 
-**Flag gaps**: Missing scenarios, vague criteria.
+## Phase 3: Structured Gap Detection
 
-### 2.2 Task Completeness
+### 3.1 Requirements Quality (INVEST Criteria)
+
+For each requirement in change deltas, verify:
+
+| Criterion | Check | Gap if Missing |
+|-----------|-------|----------------|
+| **I**ndependent | Self-contained? | "Decouple requirement from X" |
+| **N**egotiable | Leaves solution flexibility? | "Clarify intent vs implementation" |
+| **V**aluable | Delivers demonstrable value? | "Define user benefit" |
+| **E**stimable | Can be sized? | "Break down into smaller pieces" |
+| **S**mall | Fits in one iteration? | "Split into phases" |
+| **T**estable | Can write test for it? | "Add acceptance scenario" |
+
+### 3.2 Requirements Smell Detection
+
+Scan for these smells indicating incomplete requirements:
+
+| Smell | Pattern | Action |
+|-------|---------|--------|
+| Subjective | "user-friendly", "intuitive" | Add measurable criterion |
+| Ambiguous | "quickly", "efficiently" | Specify metric |
+| Superlative | "best", "most efficient" | Define baseline |
+| Totality | "all", "every", "never" | Identify exceptions |
+| Negative | "must not", "won't" | Convert to positive or add test |
+
+**Flag gaps**: Vague criteria, untestable requirements.
+
+### 3.3 Task Completeness
 
 From `adv_task_list` output:
 - Tasks atomic and verifiable?
 - Tasks cover all requirements?
 - Verification steps included?
+- Dependencies explicit?
 
-**Flag gaps**: Missing tasks, vague tasks.
+**Flag gaps**: Missing tasks, vague tasks, hidden dependencies.
 
-### 2.3 Cross-Cutting Concerns
+### 3.4 Cross-Cutting Concerns Checklist
 
-| Concern | Check |
-|---------|-------|
-| Error Handling | Failure scenarios? |
-| Logging | Structured logs? |
-| Security | Auth, validation? |
-| Config | New options? |
-| Performance | Latency requirements? |
+For EVERY feature, check if these concerns are addressed:
 
-**Flag gaps**: Unaddressed concerns.
+| Concern | Questions | Gap Task Template |
+|---------|-----------|-------------------|
+| **Error Handling** | Failure scenarios? Recovery? | "Add error handling for X" |
+| **Logging** | Audit trail? Debug info? | "Add structured logging for X" |
+| **Validation** | Input/output verification? | "Add validation for X" |
+| **Security** | Auth? AuthZ? Injection? | "Add security review for X" |
+| **Performance** | Latency requirements? N+1? | "Add performance test for X" |
+| **Caching** | Optimization opportunity? | "Evaluate caching for X" |
+| **Config** | New options needed? | "Document config for X" |
+| **Monitoring** | Health checks? Metrics? | "Add observability for X" |
+| **Persistence** | Data storage implications? | "Define data model for X" |
+| **Concurrency** | Thread safety? Race conditions? | "Add concurrency test for X" |
+| **i18n/L10n** | Internationalization? | "Add i18n support for X" |
+| **Privacy** | Data protection? GDPR? | "Review data handling for X" |
 
-### 2.4 Codebase Impact
+Document N/A with rationale for concerns that don't apply.
+
+### 3.5 Codebase Impact
 
 Search codebase for key terms. Compare with change's affected files.
 
-**Flag gaps**: Missing files in scope.
+**Flag gaps**: Missing files in scope, undiscovered dependencies.
 
-### 2.5 Cross-Spec Consistency
+### 3.6 Cross-Spec Consistency
 
 Use `adv_spec_search` to find conflicts:
 ```
 adv_spec_search keyword: <key-term-from-change>
 ```
 
-**Flag gaps**: Conflicts, terminology inconsistencies.
+**Flag gaps**: Conflicts, terminology inconsistencies, overlapping scope.
 
 ---
 
-## Phase 3: Contract Establishment
+## Phase 4: Prioritize Gaps (MoSCoW)
+
+Categorize each gap:
+
+| Priority | Criteria | Action |
+|----------|----------|--------|
+| **Must** | Without it = failure | Add as blocking task |
+| **Should** | Important, workarounds exist | Add as task |
+| **Could** | Desirable, time permitting | Add as optional |
+| **Won't** | Out of scope this time | Document in proposal.md |
+
+---
+
+## Phase 5: Contract Establishment
 
 Generate contract from gap analysis:
 
@@ -110,17 +164,24 @@ Generate contract from gap analysis:
 OBJECTIVE: Prepare {change-id} for implementation
 
 SUCCESS CRITERIA:
-- [ ] All requirements have scenarios
-- [ ] Error cases documented
+- [ ] All requirements pass INVEST check
+- [ ] No requirements smells remain
 - [ ] Tasks cover all requirements
 - [ ] Cross-cutting concerns addressed
 - [ ] No cross-spec conflicts
 - [ ] adv_change_validate passes
 
 GAPS TO FIX: {gap_count}
-{for each gap}
+{for each gap, grouped by priority}
+
+MUST:
 - [ ] (G{n}) {gap description}
-{end}
+
+SHOULD:
+- [ ] (G{n}) {gap description}
+
+COULD:
+- [ ] (G{n}) {gap description}
 
 ============================================================
 ```
@@ -129,7 +190,7 @@ GAPS TO FIX: {gap_count}
 
 ---
 
-## Phase 4: Fix Gaps Using Tools
+## Phase 6: Fix Gaps Using Tools
 
 > **Anti-Loop Protocol**: After contract display, output:
 > `>>> SYNTHESIS COMPLETE - FIXING GAPS <<<`
@@ -158,15 +219,22 @@ Either:
 1. Add task: `adv_task_add ... title: "Add error handling for X"`
 2. Or document N/A in proposal.md with rationale
 
+### For Requirements Smells
+
+Update the requirement text to be:
+- Specific and measurable
+- Positively framed
+- Testable
+
 ### For Cross-Spec Conflicts
 
 Document resolution in proposal.md:
 - Align with existing spec, OR
-- Document intentional override
+- Document intentional override with rationale
 
 ---
 
-## Phase 5: Progress Tracking
+## Phase 7: Progress Tracking
 
 After EACH gap fix, emit status derived from work done:
 
@@ -177,13 +245,13 @@ CONTRACT STATUS:
 - [{fixed ? "x" : " "}] (G{n}) {gap}
   {if fixed} (evidence: {tool call or edit}){end}
 {end}
-Gaps: {fixed}/{total}
+Gaps: {fixed}/{total} | Priority: {must_done}/{must_total} MUST complete
 ---
 ```
 
 ---
 
-## Phase 6: Validation
+## Phase 8: Validation
 
 After all gaps fixed:
 
@@ -195,7 +263,7 @@ If errors: fix and re-validate.
 
 ---
 
-## Phase 7: Completion
+## Phase 9: Completion
 
 ### Verify Final State
 
@@ -214,8 +282,8 @@ adv_change_validate change_id: <target>
 OBJECTIVE: Prepare {change-id} for implementation
 
 ALL CRITERIA MET:
-- [x] All requirements have scenarios
-- [x] Error cases documented  
+- [x] All requirements pass INVEST check
+- [x] No requirements smells remain
 - [x] Tasks cover all requirements
 - [x] Cross-cutting concerns addressed
 - [x] No cross-spec conflicts
@@ -224,6 +292,7 @@ ALL CRITERIA MET:
 CHANGES MADE:
 - Added {n} tasks via adv_task_add
 - Added {n} scenarios to deltas
+- Resolved {n} requirements smells
 - Updated proposal.md with {n} notes
 
 ============================================================
@@ -233,9 +302,9 @@ CHANGES MADE:
 
 ```
 ============================================================
-      /adv-prep {change-id} COMPLETE
+       /adv-prep {change-id} COMPLETE
 ============================================================
-Result: Spec ready for /adv-apply
+Result: {gap_count} gaps fixed, ready for /adv-apply
 ============================================================
 ```
 

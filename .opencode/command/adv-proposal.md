@@ -1,6 +1,6 @@
 ---
 name: adv-proposal
-description: Create a new ADV change proposal with scaffolding
+description: Create a new ADV change proposal with INVEST-quality requirements
 agent: build
 args:
   - name: summary
@@ -8,9 +8,9 @@ args:
     required: true
 ---
 
-# ADV Proposal
+# ADV Proposal - Create Change with Quality Requirements
 
-Create a new change proposal for the ADV system.
+Create a new change proposal for the ADV system. Uses INVEST criteria and requirements smell detection to ensure high-quality, implementable specifications.
 
 <UserRequest>
   $ARGUMENTS
@@ -25,6 +25,8 @@ If `$ARGUMENTS` is empty or whitespace:
 Usage: /adv-proposal "brief summary of the change"
 
 Example: /adv-proposal "add user authentication"
+
+For quick ideation first: /adv-brainstorm "topic"
 ```
 Stop execution.
 
@@ -46,19 +48,26 @@ Call `adv_change_list` to check for active changes.
       description: "Do not create"
   ```
 
+### Step 3: Check for Brainstorm Context
+
+Look for `./temp/brainstorm-*.md` files that might provide context.
+
+**If found:**
+- Read the brainstorm document
+- Use decisions and findings to inform the proposal
+- Reference in proposal.md
+
+---
+
 ## Create Change
 
-### Step 3: Create Change Scaffold
+### Step 4: Create Change Scaffold
 
 Call `adv_change_create summary: "$ARGUMENTS"`
 
 This will create:
 - `changes/<change-id>/change.json` - Change metadata
 - `changes/<change-id>/proposal.md` - Human-readable proposal template
-
-### Step 4: Read Created Files
-
-Read the created `proposal.md` to understand the template.
 
 ### Step 5: Gather Requirements
 
@@ -95,7 +104,38 @@ options:
     description: "This creates a new capability spec"
 ```
 
-### Step 7: Fill Proposal Template
+---
+
+## Requirements Quality
+
+### INVEST Criteria
+
+Ensure each requirement meets INVEST:
+
+| Criterion | Check | If Missing |
+|-----------|-------|------------|
+| **I**ndependent | Self-contained? | Decouple from other requirements |
+| **N**egotiable | Leaves solution flexibility? | Focus on intent, not implementation |
+| **V**aluable | Delivers demonstrable value? | State the user benefit |
+| **E**stimable | Can be sized? | Break into smaller pieces |
+| **S**mall | Fits in one iteration? | Split into phases |
+| **T**estable | Can write test for it? | Add acceptance scenario |
+
+### Requirements Smell Detection
+
+Avoid these patterns:
+
+| Smell | Example | Fix |
+|-------|---------|-----|
+| Subjective | "user-friendly" | "Loads in < 2 seconds" |
+| Ambiguous | "efficiently" | "Uses < 100MB memory" |
+| Superlative | "best performance" | "95th percentile < 200ms" |
+| Totality | "handles all errors" | List specific error types |
+| Negative only | "must not crash" | "Returns error code on failure" |
+
+---
+
+## Step 7: Fill Proposal Template
 
 Update `changes/<change-id>/proposal.md` with:
 
@@ -104,34 +144,51 @@ Update `changes/<change-id>/proposal.md` with:
 
 ## Why
 
-<Explain the motivation for this change>
+<Explain the motivation for this change - the problem being solved>
 
 ## What Changes
 
-<List the specific changes being made>
+<List the specific changes being made - high level>
+
+## Success Criteria
+
+Each criterion should be:
+- Specific and measurable
+- Testable (can write a test for it)
+- Independent (verifiable on its own)
+
+1. [ ] <INVEST-quality criterion>
+2. [ ] <INVEST-quality criterion>
 
 ## Affected Code
 
-<List files that will be modified - can be discovered later>
-
-## Acceptance Criteria
-
-- [ ] <criterion 1>
-- [ ] <criterion 2>
+<List files that will be modified - can be discovered via /adv-prep>
 
 ## Constraints
 
-- MUST NOT: <any hard boundaries>
-- MUST: <any requirements>
+- MUST: <non-negotiable requirement>
+- MUST NOT: <hard boundary>
+- SHOULD: <strong preference>
 
 ## Impact
 
 - Affected specs: <list>
-- Breaking changes: <yes/no>
-- Migration needed: <yes/no>
+- Breaking changes: <yes/no - if yes, document migration>
+- Dependencies: <new deps needed?>
+
+## Context
+
+{If brainstorm exists}
+- Brainstorm: ./temp/<brainstorm-file>.md
+- Key decisions carried forward:
+  - <decision 1>
+  - <decision 2>
+{end}
 ```
 
-### Step 8: Add Initial Tasks
+---
+
+## Step 8: Add Initial Tasks
 
 Use `adv_task_add` to create initial tasks based on the change type:
 
@@ -159,6 +216,19 @@ adv_task_add change_id: <id> title: "Verify behavior preserved"
 
 ---
 
+## Step 9: Quick Quality Check
+
+Before finishing, verify:
+
+- [ ] Each criterion is testable (can imagine the test)
+- [ ] No subjective language remains
+- [ ] Requirements are independent
+- [ ] Scope is achievable in reasonable time
+
+If any fail, use `mcp_question` to refine.
+
+---
+
 ## Output
 
 ```
@@ -168,6 +238,7 @@ adv_task_add change_id: <id> title: "Verify behavior preserved"
 
 Change ID: <change-id>
 Title: <summary>
+Type: <feature|enhancement|bugfix|refactor|breaking>
 Status: draft
 
 FILES CREATED:
@@ -179,18 +250,26 @@ INITIAL TASKS:
 - [ ] <task-2>
 - [ ] <task-3>
 
+REQUIREMENTS QUALITY:
+- INVEST check: {pass|needs review}
+- Smell check: {clean|N items to address}
+
+{If brainstorm context used}
+CONTEXT FROM:
+- ./temp/<brainstorm-file>.md
+{end}
+
 ============================================================
 
 NEXT STEPS:
 
-1. Review and edit the proposal:
+1. Review and refine the proposal:
    changes/<change-id>/proposal.md
 
-2. Add spec deltas defining requirements:
-   - Create specs/<capability>/spec.json in the change
-   - Or modify existing specs with deltas
+2. Run gap analysis for completeness:
+   /adv-prep <change-id>
 
-3. Validate the change:
+3. Validate before implementation:
    /adv-validate <change-id>
 
 4. When ready, implement:
@@ -203,7 +282,7 @@ NEXT STEPS:
 
 ```
 ============================================================
-      /adv-proposal COMPLETE
+       /adv-proposal COMPLETE
 ============================================================
 Result: Change <change-id> created
 ============================================================
@@ -213,7 +292,9 @@ Result: Change <change-id> created
 
 ## ADV Tools Reference
 
-- `adv_change_create summary: "..."` - Create change scaffold
-- `adv_change_list` - List existing changes
-- `adv_spec_list` - List existing specs
-- `adv_task_add change_id: <id> title: "..."` - Add task
+| Purpose | Tool |
+|---------|------|
+| Create change | `adv_change_create summary: "..."` |
+| List changes | `adv_change_list` |
+| List specs | `adv_spec_list` |
+| Add task | `adv_task_add change_id: <id> title: "..."` |

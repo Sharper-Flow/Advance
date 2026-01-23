@@ -1,12 +1,12 @@
 ---
 name: adv-harden
-description: Post-implementation hardening - AI-slop detection, test coverage, documentation, cleanup
+description: Post-implementation hardening - AI-slop detection, tech debt scoring, quality gates
 agent: general
 ---
 
 # ADV Harden - Post-Implementation Quality Analysis
 
-Orchestrate multi-dimensional hardening analysis using sub-agents for test coverage, AI-slop detection, documentation, and cleanup.
+Orchestrate multi-dimensional hardening analysis using sub-agents for AI-slop detection, technical debt assessment, and production readiness verification.
 
 > **SUB-AGENT CONTEXT**: Return findings as JSON. Skip status markers.
 
@@ -46,6 +46,17 @@ From change data:
 
 ---
 
+## Technical Debt Quadrant
+
+Classify any debt found using Fowler's quadrant:
+
+| | Prudent | Reckless |
+|---|---------|----------|
+| **Deliberate** | "Ship now, fix later" → Track | "No time for design" → Escalate |
+| **Inadvertent** | "Now we know better" → Refactor | "What's layering?" → Train |
+
+---
+
 ## Phase 1: Spawn Analysis Sub-Agents
 
 Spawn **5 parallel sub-agents** with `subagent_type: "explore"`:
@@ -81,15 +92,53 @@ Analyze AI-SLOP PATTERNS for change: {change-id}
 
 Affected files: {files}
 
-CATEGORIES:
-1. INCOMPLETE: pass, NotImplementedError, placeholder values, TODO/FIXME
-2. EXCEPTION: except pass, overly broad catches, missing error handling
-3. TYPING: excessive Any, undocumented kwargs, type bypasses
-4. STRUCTURAL: god classes (>20 methods), god functions (>100 lines), deep nesting, magic numbers
-5. DOCUMENTATION: stale comments, noqa without reason, dead docs
-6. ASYNC: blocking in async, thread safety, missing await
+DETECTION PATTERNS:
 
-SEVERITY: BLOCKER > HIGH > MEDIUM > LOW
+1. PLACEHOLDER INDICATORS:
+   - TODO/FIXME in implementation (not comments)
+   - "// ..." or "/* ... */" indicating skipped code
+   - "throw new Error('not implemented')"
+   - "pass # placeholder" (Python)
+   - NotImplementedError, undefined functions
+
+2. OVER-GENERIC ERROR HANDLING:
+   - catch (error) { console.log(error) } - log and ignore
+   - catch (e) { throw e } - useless re-throw
+   - catch (error: any) { } - silent swallow
+   - except: pass (Python)
+   - Overly broad catches without specific handling
+
+3. TYPE EROSION (TypeScript):
+   - Excessive ": any" usage (>1 per 100 lines)
+   - "as any" type assertions
+   - @ts-ignore without explanation
+   - Non-null assertions (!) without justification
+   - Record<string, any> patterns
+
+4. STRUCTURAL ISSUES:
+   - God classes (>20 methods)
+   - God functions (>100 lines, cyclomatic >20)
+   - Deep nesting (>4 levels)
+   - Magic numbers without constants
+   - Copy-paste duplication (>10 lines repeated)
+
+5. NAIVE IMPLEMENTATIONS:
+   - Manual JSON parsing instead of schema validation
+   - String concatenation for SQL (injection risk!)
+   - Synchronous file I/O in async contexts
+   - Polling instead of event-driven
+   - Global mutable state
+
+6. EXCESSIVE COMMENTS:
+   - Comment-to-code ratio > 0.3 in business logic
+   - Comments explaining obvious code
+   - Stale comments that don't match code
+
+SEVERITY:
+- BLOCKER: Security risk, data loss, crashes
+- HIGH: Silent failures, maintainability crisis
+- MEDIUM: Technical debt accumulation
+- LOW: Style issues, minor inefficiencies
 
 RETURN JSON:
 {
@@ -101,15 +150,16 @@ RETURN JSON:
     "by_category": {...}
   },
   "issues": [{
-    "severity": "...",
-    "category": "...",
+    "severity": "BLOCKER|HIGH|MEDIUM|LOW",
+    "category": "placeholder|error_handling|type_erosion|structural|naive|comments",
     "file": "...",
     "line": N,
+    "pattern": "...",
     "code_snippet": "...",
     "message": "...",
     "fix_suggestion": "..."
   }],
-  "patterns_detected": [...]
+  "debt_quadrant": "deliberate_prudent|deliberate_reckless|inadvertent_prudent|inadvertent_reckless"
 }
 ```
 
@@ -124,6 +174,7 @@ TASK:
 1. Check README for new features
 2. Check inline docs (JSDoc, docstrings)
 3. Check CHANGELOG entry
+4. Check API documentation
 
 RETURN JSON:
 {
@@ -138,14 +189,15 @@ RETURN JSON:
 ### Sub-Agent 4: Cleanup Scanner
 
 ```
-Analyze CLEANUP for change: {change-id}
+Analyze CLEANUP candidates for change: {change-id}
 
 TASK:
 1. Find temp files: *.bak, *.tmp, *.orig, *~, *.swp
 2. Find marked files: ONETIME-*, DELETE-AFTER-*
 3. Find dev directories: poc/, scratch/, temp/
 4. Find dead imports
-5. Find orphaned tests
+5. Find orphaned tests (tests for deleted code)
+6. Find debug code: console.log, debugger, print()
 
 Preserve: scripts/, tools/, migrations
 
@@ -156,26 +208,62 @@ RETURN JSON:
   "explicitly_marked": [...],
   "dev_directories": [...],
   "dead_imports": [...],
+  "debug_code": [...],
   "total_candidates": N
 }
 ```
 
-### Sub-Agent 5: Spec Alignment Scanner
+### Sub-Agent 5: Production Readiness Scanner
 
 ```
-Analyze SPEC ALIGNMENT for change: {change-id}
+Analyze PRODUCTION READINESS for change: {change-id}
 
-TASK:
-1. Verify completed tasks have evidence
-2. Check scenario coverage in tests
-3. Detect scope creep (files outside stated scope)
+Affected files: {files}
+
+QUALITY GATE CHECKLIST:
+
+Security:
+- [ ] No critical/high CVEs in dependencies
+- [ ] No hardcoded secrets
+- [ ] Authentication/authorization tested
+- [ ] Input validation on all user inputs
+
+Reliability:
+- [ ] Error handling covers all failure modes
+- [ ] Graceful degradation for external dependencies
+- [ ] Health check endpoint exists (if applicable)
+- [ ] Logging sufficient for debugging
+
+Performance:
+- [ ] No N+1 queries
+- [ ] No obvious bottlenecks
+- [ ] Bounded memory usage
+
+Maintainability:
+- [ ] No TODO/FIXME in critical paths
+- [ ] Test coverage on business logic
+- [ ] Documentation for public APIs
+
+COMPLEXITY THRESHOLDS:
+- 1-10: Low risk (acceptable)
+- 11-20: Moderate (review)
+- 21-50: High (refactor required)
+- 51+: Very high (block, redesign)
 
 RETURN JSON:
 {
-  "dimension": "spec_alignment",
-  "tasks": {"total": N, "verified": N, "unverified": [...]},
-  "scenarios": {"total": N, "covered": N, "uncovered": [...]},
-  "scope": {"clean": bool, "out_of_scope": [...]}
+  "dimension": "production_readiness",
+  "security": {"pass": bool, "issues": [...]},
+  "reliability": {"pass": bool, "issues": [...]},
+  "performance": {"pass": bool, "issues": [...]},
+  "maintainability": {"pass": bool, "issues": [...]},
+  "complexity_hotspots": [{
+    "file": "...",
+    "function": "...",
+    "complexity": N,
+    "risk": "low|moderate|high|very_high"
+  }],
+  "overall_status": "READY|NEEDS_WORK|BLOCKED"
 }
 ```
 
@@ -191,21 +279,26 @@ RETURN JSON:
 
 Combine by severity: BLOCKER > HIGH > MEDIUM > LOW
 
-### Identify Root Causes
+### Severity Scoring (Impact × Effort)
 
-| Root Cause | Indicators | Remediation |
-|------------|------------|-------------|
-| Incomplete work | TODO, placeholder | Complete |
-| AI-slop | Silent catches, Any types | Refactor |
-| Testing gap | Low coverage | Add tests |
-| Doc debt | Missing docs | Document |
-| Cleanup needed | Temp files | Remove |
+For each issue:
+```
+Impact (1-5): Security=5, Production=4, Friction=3, Debt=2, Style=1
+Effort (1-5): <1hr=5, <1day=4, <1week=3, <1sprint=2, >1sprint=1
+Priority = Impact × Effort
+  20-25: Critical (fix immediately)
+  12-19: High (this sprint)
+  6-11: Medium (next sprint)
+  1-5: Low (backlog)
+```
 
 ### Determine Status
 
-- **READY**: No BLOCKER, no HIGH, ≤3 MEDIUM
-- **NEEDS_WORK**: No BLOCKER but HIGH or >3 MEDIUM
-- **BLOCKED**: Any BLOCKER
+| Status | Criteria |
+|--------|----------|
+| **READY** | No BLOCKER, no HIGH, ≤3 MEDIUM |
+| **NEEDS_WORK** | No BLOCKER but HIGH or >3 MEDIUM |
+| **BLOCKED** | Any BLOCKER |
 
 ---
 
@@ -219,10 +312,14 @@ Combine by severity: BLOCKER > HIGH > MEDIUM > LOW
 header: "Fix Issues"
 question: "Found {count} issues. How to proceed?"
 options:
-  - label: "Fix all"
-  - label: "Fix blockers and high only"
+  - label: "Fix all (Recommended)"
+    description: "Address all blocking and high items"
+  - label: "Fix blockers only"
+    description: "Minimum to unblock"
   - label: "Report only"
+    description: "Review findings, fix manually"
   - label: "Accept current"
+    description: "Document as known debt"
 ```
 
 If fixing, establish contract:
@@ -235,10 +332,16 @@ If fixing, establish contract:
 OBJECTIVE: Fix hardening issues in {change-id}
 
 SUCCESS CRITERIA:
-{for each issue}
-- [ ] (H{n}) {description} - {file:line}
-{end}
+{for each issue, grouped by category}
+
+AI-SLOP:
+- [ ] (H{n}) {category}: {message} - {file}:{line}
+
+PRODUCTION READINESS:
+- [ ] (H{n}) {category}: {message}
+
 - [ ] All fixes verified
+- [ ] No new issues introduced
 
 ============================================================
 ```
@@ -262,22 +365,28 @@ From scanner + any session artifacts.
               CLEANUP CANDIDATES
 ============================================================
 
-EXTENSION-BASED:
+TEMP FILES:
 1. path/to/file.bak (1.2 KB)
 
-EXPLICITLY MARKED:
-2. ONETIME-fix.sh (0.5 KB)
+DEBUG CODE:
+2. src/utils.ts:45 - console.log(...)
 
-Total: N files, X KB
+EXPLICITLY MARKED:
+3. ONETIME-fix.sh (0.5 KB)
+
+Total: N items
+
 ============================================================
 ```
 
 ### Execute Based on Flags
 
-- **No flags (preview)**: Show preview, suggest `--execute`
-- **`--execute`**: Delete all candidates
-- **`--interactive`**: Use `mcp_question` to select
-- **`--force`**: Delete without prompts
+| Flag | Behavior |
+|------|----------|
+| (none) | Preview only, suggest `--execute` |
+| `--execute` | Delete all candidates |
+| `--interactive` | Use `mcp_question` to select |
+| `--force` | Delete without prompts |
 
 ---
 
@@ -290,21 +399,29 @@ Total: N files, X KB
 
 STATUS: {READY | NEEDS_WORK | BLOCKED}
 
-TEST COVERAGE                              [{status}]
+TEST COVERAGE                              [{pass|warn|fail}]
   Files: {with_tests}/{total} ({percent}%)
+  TDD Evidence: {present|missing}
 
-AI-SLOP DETECTION                          [{status}]
+AI-SLOP DETECTION                          [{pass|warn|fail}]
   Issues: {total} ({blockers} blocker, {high} high)
-  By Category: {breakdown}
+  Categories: {breakdown}
+  Debt Quadrant: {classification}
 
-DOCUMENTATION                              [{status}]
+DOCUMENTATION                              [{pass|warn|fail}]
   README: {status} | Inline: {percent}% | CHANGELOG: {status}
 
-CLEANUP                                    [{status}]
-  Candidates: {count}
+PRODUCTION READINESS                       [{pass|warn|fail}]
+  Security: {pass|fail} | Reliability: {pass|fail}
+  Performance: {pass|fail} | Maintainability: {pass|fail}
 
-SPEC ALIGNMENT                             [{status}]
-  Tasks: {verified}/{total} | Scenarios: {percent}%
+COMPLEXITY HOTSPOTS:
+{for top 3}
+  - {file}:{function} - complexity {N} ({risk})
+{end}
+
+CLEANUP                                    [{status}]
+  Candidates: {count} ({action taken})
 
 ------------------------------------------------------------
 {If fixes applied}
@@ -314,16 +431,20 @@ FIXES APPLIED:
 {end}
 
 ------------------------------------------------------------
-CLEANUP ACTIONS:
-{based on flags - preview/executed/skipped}
-
-------------------------------------------------------------
 {If READY}
 NEXT STEPS: Ready to ship! Run /adv-archive {change-id}
 
 {If issues remain}
 REMAINING:
-1. {action}
+1. {highest priority action}
+2. {next action}
+
+DEBT TRACKING:
+If accepting debt, document in proposal.md with:
+- Debt type and quadrant
+- Interest rate estimate (cost of not fixing)
+- Planned payoff date
+
 ============================================================
 ```
 
@@ -331,7 +452,7 @@ REMAINING:
 
 ```
 ============================================================
-      /adv-harden {change-id} COMPLETE
+       /adv-harden {change-id} COMPLETE
 ============================================================
 Result: {READY | N fixed | Report only}
 ============================================================

@@ -6,7 +6,7 @@ agent: build
 
 # ADV Research - Architectural Decision Validation
 
-Spawn sub-agents to research and validate architectural decisions in specs/changes using Context7 and web search.
+Spawn sub-agents to research and validate architectural decisions in specs/changes using Context7 and web search. Applies simplicity bias - prefer boring solutions over clever ones.
 
 <UserRequest>
   $ARGUMENTS
@@ -54,20 +54,27 @@ Identify from requirements/deltas:
 
 ## Phase 2: Generate Research Questions
 
-For each decision, formulate questions:
+For each decision, formulate questions across these dimensions:
 
-**Technology Validation:**
+### Technology Validation
 - "Is {library} best practice for {use case}?"
-- "Security considerations for {technology}?"
+- "What are security considerations for {technology}?"
+- "What's the maintenance status of {library}?"
 
-**Pattern Validation:**
+### Pattern Validation
 - "Is {pattern} appropriate for {context}?"
-- "Trade-offs of {approach} vs alternatives?"
+- "What are trade-offs of {approach} vs alternatives?"
+- "Are there simpler patterns that achieve the same goal?"
 
-**Simplicity Analysis:**
+### Simplicity Analysis (Critical)
 - "Could {approach} be simpler?"
-- "Does {library} have built-in solution?"
-- "What's the simplest proven approach?"
+- "Does {library} have built-in solution for this?"
+- "What's the most boring, proven approach?"
+- "Are we over-engineering?"
+
+### Security Considerations
+- "What OWASP risks apply to {approach}?"
+- "What are common vulnerabilities in {technology}?"
 
 ---
 
@@ -88,7 +95,14 @@ TASK:
 1. Use Context7: resolve-library-id, then query-docs
 2. Web search for best practices
 3. Identify red flags, anti-patterns
-4. Evaluate simpler alternatives
+4. Evaluate simpler alternatives (CRITICAL)
+5. Check for security implications
+
+SIMPLICITY BIAS:
+- Prefer boring technology over exciting technology
+- Prefer fewer dependencies over more
+- Prefer built-in solutions over custom
+- Prefer proven patterns over novel approaches
 
 RETURN:
 RESEARCH QUESTION: {question}
@@ -96,7 +110,11 @@ RESEARCH QUESTION: {question}
 FINDINGS:
 - {finding with source}
 
-VALIDATION: VALIDATED | CONCERNS | ANTI-PATTERN
+VALIDATION: VALIDATED | CONCERNS | ANTI-PATTERN | OVER-ENGINEERED
+
+SIMPLICITY CHECK:
+- Simpler alternative exists: YES/NO
+- If YES: {what and why}
 
 RECOMMENDATION: {specific action}
 
@@ -121,29 +139,35 @@ SOURCES:
 {2-3 sentence overview}
 
 ## Validated Decisions
-{confirmed best practices}
+{confirmed best practices - keep these}
 
 ## Simplification Opportunities
-{simpler approaches that meet requirements}
+{simpler approaches that meet requirements - prioritize these}
+
+| Current | Simpler Alternative | Effort | Recommendation |
+|---------|---------------------|--------|----------------|
+| {approach} | {alternative} | {effort} | {action} |
 
 ## Concerns
 {trade-offs requiring attention}
 
-## Anti-Patterns
+## Anti-Patterns Detected
 {contradicts best practices - requires revision}
+
+## Over-Engineering Flags
+{complexity without corresponding benefit}
 
 ## Detailed Findings
 
 ### {Decision Area}
 **Current:** {spec decision}
 **Research:** {findings}
-**Simplicity:** {simpler approach?}
+**Simpler Option:** {if exists}
 **Recommendation:** {action}
 **Sources:** {list}
 
 ## Action Items
-- [ ] {specific change}
-- [ ] {simplification}
+- [ ] {specific change - prioritize simplifications}
 
 ## Confidence
 - High: {well-validated aspects}
@@ -163,7 +187,7 @@ SOURCES:
 
 1. Create change:
    ```
-   adv_change_create summary: "Harden {capability} based on research"
+   adv_change_create summary: "Simplify/harden {capability} based on research"
    ```
 
 2. Add tasks for each finding:
@@ -199,7 +223,13 @@ SUCCESS CRITERIA:
 {for each finding requiring action}
 - [ ] (R{n}) {finding} - {action}
 {end}
-- [ ] All sources cited
+- [ ] All sources cited in proposal.md
+
+PRIORITIZED BY:
+1. Security issues
+2. Simplification opportunities
+3. Anti-pattern fixes
+4. General improvements
 
 ============================================================
 ```
@@ -236,6 +266,9 @@ FILES UPDATED:
 KEY CHANGES:
 1. {change with rationale}
 
+SIMPLIFICATIONS APPLIED:
+- {what was simplified and why}
+
 NEXT STEPS:
 - [ ] Review updates
 - [ ] /adv-validate {change-id}
@@ -245,22 +278,24 @@ NEXT STEPS:
 
 ```
 ============================================================
-      /adv-research {target} COMPLETE
+       /adv-research {target} COMPLETE
 ============================================================
 Result: {N findings applied | All validated | Report only}
+Simplifications: {N opportunities identified}
 ============================================================
 ```
 
 ---
 
-## Constraints
+## Guiding Principles
 
 1. **Context7 first** for library research
 2. **Parallel sub-agents** for efficiency
 3. **Cite sources** for every claim
 4. **Actionable recommendations** for every concern
-5. **Question complexity** - prefer boring solutions
-6. **Always update files** - research without action is incomplete
+5. **Simplicity bias** - always ask "could this be simpler?"
+6. **Boring is better** - prefer proven over novel
+7. **Always update files** - research without action is incomplete
 
 ---
 

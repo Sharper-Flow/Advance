@@ -1,12 +1,12 @@
 ---
 name: adv-audit
-description: Project-wide audit to detect spec/implementation drift, orphaned code, and conflicts
+description: Project-wide audit with quality gates - detect spec/implementation drift, orphaned code, and conflicts
 agent: general
 ---
 
 # ADV Audit - Spec/Implementation Alignment Check
 
-Orchestrate a multi-phase audit using sub-agents to detect drift between specs and implementation.
+Orchestrate a multi-phase audit using sub-agents to detect drift between specs and implementation. Uses SonarQube-style quality gates for objective pass/fail criteria.
 
 > **SUB-AGENT CONTEXT**: Return findings as JSON. Skip status markers.
 
@@ -20,6 +20,7 @@ Parse `$ARGUMENTS` for:
 - `capability`: Specific capability to audit (optional)
 - `--json`: Output as JSON instead of text
 - `--all`: Audit all capabilities (default if no target)
+- `--strict`: Apply strict quality gate (warnings become errors)
 
 1. **If capability provided**: Audit only that capability
 2. **If empty or --all**: Audit all specs
@@ -52,6 +53,32 @@ Consider archiving completed changes first.
 
 ---
 
+## Quality Gate Definition
+
+Based on SonarQube best practices:
+
+### Standard Gate
+
+| Metric | Threshold | Meaning |
+|--------|-----------|---------|
+| Drift findings (HIGH) | 0 | No MUST/SHALL violations |
+| Drift findings (MEDIUM) | ≤ 3 | Limited SHOULD violations |
+| Orphaned code | ≤ 3 files | Minimal unmapped code |
+| Spec conflicts | 0 | No contradictions |
+| Coverage | ≥ 80% | Most requirements traced |
+
+### Strict Gate (--strict)
+
+| Metric | Threshold |
+|--------|-----------|
+| Drift findings (HIGH) | 0 |
+| Drift findings (MEDIUM) | 0 |
+| Orphaned code | 0 |
+| Spec conflicts | 0 |
+| Coverage | 100% |
+
+---
+
 ## Phase 1: Spawn Analysis Sub-Agents
 
 Execute in stages due to dependencies:
@@ -73,7 +100,10 @@ TASK:
    - ID, title, normative language (MUST/SHOULD/MAY)
    - Scenarios with Given/When/Then
    - File references mentioned
-3. Flag malformed specs (requirements without scenarios)
+3. Flag malformed specs:
+   - Requirements without scenarios
+   - Subjective language (smell detection)
+   - Missing normative keywords
 
 RETURN JSON:
 {
@@ -81,14 +111,16 @@ RETURN JSON:
   "requirements": [{
     "id": "rq-abc",
     "title": "...",
-    "normative": "MUST",
+    "normative": "MUST|SHOULD|MAY",
     "scenarios": [...],
-    "file_references": [...]
+    "file_references": [...],
+    "smells": []
   }],
   "summary": {
     "total_requirements": N,
     "total_scenarios": N,
-    "malformed": N
+    "malformed": N,
+    "by_normative": {"MUST": N, "SHOULD": N, "MAY": N}
   }
 }
 ```
@@ -105,16 +137,18 @@ TASK:
 2. For requirements without references, infer from capability name
 3. Build bidirectional map: spec -> code, code -> specs
 4. Flag unmapped specs (no code found)
+5. Calculate traceability coverage
 
 RETURN JSON:
 {
   "dimension": "code_mapper",
   "mappings": [{
     "requirement_id": "rq-abc",
-    "files": [{"path": "...", "exists": true, "confidence": "HIGH"}]
+    "files": [{"path": "...", "exists": true, "confidence": "HIGH|MEDIUM|LOW"}]
   }],
   "unmapped_requirements": [...],
   "missing_files": [...],
+  "coverage_percent": N,
   "summary": {...}
 }
 ```
@@ -132,25 +166,33 @@ TASK:
 3. TEST-SPEC MISMATCH: Compare test assertions to spec assertions
 4. NORMATIVE VIOLATIONS: Check MUST NOT constraints
 
-SEVERITY:
+SEVERITY (based on normative language):
 - HIGH: MUST/SHALL violation, security issue
 - MEDIUM: SHOULD violation, functional gap
-- LOW: Minor inconsistency
+- LOW: MAY violation, minor inconsistency
 - REVIEW: Needs human judgment
 
 RETURN JSON:
 {
   "dimension": "drift_scanner",
   "findings": [{
-    "type": "constraint_drift",
-    "severity": "HIGH",
+    "type": "constraint_drift|missing_impl|test_mismatch|normative_violation",
+    "severity": "HIGH|MEDIUM|LOW|REVIEW",
     "requirement_id": "...",
+    "normative": "MUST|SHOULD|MAY",
     "spec_text": "...",
     "code_text": "...",
     "expected": "...",
-    "actual": "..."
+    "actual": "...",
+    "file": "...",
+    "line": N
   }],
-  "summary": {...}
+  "summary": {
+    "high": N,
+    "medium": N,
+    "low": N,
+    "review": N
+  }
 }
 ```
 
@@ -166,15 +208,17 @@ TASK:
 2. Check for overlapping scope (multiple specs for same code)
 3. Find stale references (code that no longer exists)
 4. Check internal consistency within each spec
+5. Detect terminology inconsistencies
 
 RETURN JSON:
 {
   "dimension": "conflict_detector",
   "conflicts": [{
-    "type": "contradictory",
-    "severity": "HIGH",
+    "type": "contradictory|overlapping|stale|terminology",
+    "severity": "HIGH|MEDIUM",
     "specs": ["...", "..."],
-    "description": "..."
+    "description": "...",
+    "resolution_hint": "..."
   }],
   "overlaps": [...],
   "summary": {...}
@@ -189,7 +233,11 @@ After Code Mapper completes, identify orphaned code:
 
 1. List source files not mapped to any spec
 2. Filter by significance (>50 lines)
-3. Exclude config, types, generated code
+3. Exclude: config, types, generated code, test utilities
+4. Categorize:
+   - **Undocumented feature**: Works, no spec
+   - **Dead code**: Unreachable, deletable
+   - **Infrastructure**: Utilities, shared code
 
 Build orphan list for report.
 
@@ -204,19 +252,29 @@ Build orphan list for report.
 ### Aggregate Findings
 
 Combine from all dimensions:
-- Drift findings
+- Drift findings (grouped by severity)
 - Conflicts
 - Unmapped specs
 - Orphaned code
 - Malformed specs
 
+### Apply Quality Gate
+
+| Metric | Value | Threshold | Status |
+|--------|-------|-----------|--------|
+| HIGH drift | N | 0 | {PASS/FAIL} |
+| MEDIUM drift | N | ≤3 | {PASS/FAIL} |
+| Conflicts | N | 0 | {PASS/FAIL} |
+| Orphans | N | ≤3 | {PASS/FAIL} |
+| Coverage | N% | ≥80% | {PASS/FAIL} |
+
 ### Determine Health Status
 
 | Status | Criteria |
 |--------|----------|
-| **ALIGNED** | Zero HIGH findings, <3 orphans, zero conflicts |
-| **DRIFT_DETECTED** | Any HIGH drift OR >3 orphans OR SHOULD violations |
-| **MAJOR_DRIFT** | Any MUST/SHALL violation OR contradictory requirements |
+| **ALIGNED** | All gates pass |
+| **DRIFT_DETECTED** | Any gate fails (not HIGH drift) |
+| **MAJOR_DRIFT** | HIGH drift present OR conflicts present |
 
 ---
 
@@ -230,10 +288,14 @@ Combine from all dimensions:
 header: "Fix Issues"
 question: "Found {count} drift issues. How to proceed?"
 options:
-  - label: "Fix all"
+  - label: "Fix all (Recommended)"
+    description: "Address all drift findings"
   - label: "Fix high severity only"
+    description: "Address MUST violations only"
   - label: "Report only"
+    description: "Review findings, fix manually"
   - label: "Accept current"
+    description: "Document as known drift"
 ```
 
 If fixing, establish contract and spawn fix sub-agents.
@@ -252,16 +314,20 @@ If fixing, establish contract and spawn fix sub-agents.
 SCOPE: {all | capability}
 HEALTH: {ALIGNED | DRIFT_DETECTED | MAJOR_DRIFT}
 
-SPECS AUDITED: N capabilities
-REQUIREMENTS: M checked
-SCENARIOS: K verified
-
-DRIFT SUMMARY
+QUALITY GATE: {PASS | FAIL}
 ------------------------------------------------------------
-Constraint Drift: N issues
-Missing Implementation: N issues
-Test-Spec Mismatch: N issues
-Stale References: N issues
+| Metric          | Value | Threshold | Status |
+|-----------------|-------|-----------|--------|
+| HIGH drift      | N     | 0         | {P/F}  |
+| MEDIUM drift    | N     | ≤3        | {P/F}  |
+| Conflicts       | N     | 0         | {P/F}  |
+| Orphans         | N     | ≤3        | {P/F}  |
+| Coverage        | N%    | ≥80%      | {P/F}  |
+------------------------------------------------------------
+
+SPECS AUDITED: N capabilities
+REQUIREMENTS: M total ({MUST}/{SHOULD}/{MAY})
+SCENARIOS: K verified
 
 {If ALIGNED}
 All specifications align with implementation.
@@ -269,25 +335,35 @@ All specifications align with implementation.
 {If issues}
 DETAILED FINDINGS
 ------------------------------------------------------------
-{for each finding}
+
+HIGH SEVERITY (MUST violations):
+{for each HIGH finding}
 ## DRIFT: {capability}/{requirement}
 - Spec: "{spec_text}"
-- Code: {actual}
+- Actual: {actual}
 - Evidence: {file:line}
-- Severity: {severity}
-- Action: {suggestion}
+- Action: {fix suggestion}
 {end}
 
-## CONFLICTS DETECTED
+MEDIUM SEVERITY (SHOULD violations):
 {list}
 
-## ORPHANED CODE
-{list}
+CONFLICTS DETECTED:
+{list with resolution hints}
+
+ORPHANED CODE:
+{list with categorization}
 
 RECOMMENDATIONS
 ------------------------------------------------------------
-1. {priority action}
-2. {next action}
+1. {highest priority - usually HIGH drift}
+2. {next priority}
+3. {next priority}
+
+{If strict mode failed}
+STRICT MODE FAILURES:
+- {items that pass standard but fail strict}
+{end}
 
 ============================================================
 ```
@@ -297,6 +373,10 @@ RECOMMENDATIONS
 ```json
 {
   "health": "ALIGNED|DRIFT_DETECTED|MAJOR_DRIFT",
+  "quality_gate": {
+    "status": "PASS|FAIL",
+    "metrics": {...}
+  },
   "summary": {...},
   "drift": [...],
   "conflicts": [...],
@@ -309,9 +389,10 @@ RECOMMENDATIONS
 
 ```
 ============================================================
-      /adv-audit {scope} COMPLETE
+       /adv-audit {scope} COMPLETE
 ============================================================
 Result: {ALIGNED | N drift issues | Report only}
+Quality Gate: {PASS | FAIL}
 ============================================================
 ```
 

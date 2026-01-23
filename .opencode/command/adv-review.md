@@ -1,12 +1,12 @@
 ---
 name: adv-review
-description: Post-implementation code review - spawn sub-agents for correctness, security, architecture analysis
+description: Post-implementation code review using structured dimensions and conventional comment labeling
 agent: general
 ---
 
 # ADV Review - Post-Implementation Code Review
 
-Orchestrate a multi-dimensional code review using sub-agents. Change context from ADV tools; findings tracked via contract banners.
+Orchestrate a multi-dimensional code review using sub-agents. Uses the 12-dimension review framework and conventional comment labeling for actionable feedback.
 
 > **SUB-AGENT CONTEXT**: Return findings as structured JSON. Skip status markers.
 
@@ -46,6 +46,52 @@ From change data, extract:
 - Affected files (from proposal.md)
 - Spec scenarios (from deltas)
 - Task completion evidence
+
+---
+
+## The 12-Dimension Review Framework
+
+Structure review across these dimensions (from Google Engineering Practices):
+
+| # | Dimension | Focus |
+|---|-----------|-------|
+| 1 | **Design** | Architecture, system integration, timing |
+| 2 | **Functionality** | Does it work? Edge cases? Concurrency? |
+| 3 | **Complexity** | Can it be understood quickly? Over-engineered? |
+| 4 | **Tests** | Coverage, tests actually fail when code breaks |
+| 5 | **Naming** | Clear, communicative, appropriate length |
+| 6 | **Comments** | Explain "why" not "what" |
+| 7 | **Style** | Conformance to style guide |
+| 8 | **Documentation** | READMEs, API docs updated |
+| 9 | **Security** | Auth, validation, secrets |
+| 10 | **Performance** | Degradation risks, optimization opportunities |
+| 11 | **Error Handling** | Correct approach, user-friendly, debuggable |
+| 12 | **Consistency** | Matches existing patterns |
+
+---
+
+## Conventional Comment Labels
+
+Every finding MUST use a severity label:
+
+| Label | Meaning | Blocking? |
+|-------|---------|-----------|
+| `blocker:` | Must fix before merge | YES |
+| `issue:` | Should fix, real problem | YES |
+| `suggestion:` | Would improve code | NO |
+| `nit:` | Minor style/preference | NO |
+| `question:` | Need clarification | MAYBE |
+| `praise:` | Good work worth noting | NO |
+
+### Comment Structure
+
+Every comment follows: **What** + **Why** + **How** (optional)
+
+```
+blocker: [file:line] Input not validated before SQL query
+  Why: Allows SQL injection attacks
+  Fix: Use parameterized query or input sanitization
+```
 
 ---
 
@@ -91,11 +137,20 @@ Check for:
 - Boolean logic errors
 - Unreachable code
 - Edge cases (empty, zero, max values)
+- Concurrency issues
 
 Return JSON:
 {
   "dimension": "logic_review",
-  "issues": [{severity, category, file, line, finding, suggestion}],
+  "issues": [{
+    "label": "blocker|issue|suggestion",
+    "category": "logic|edge_case|null_handling",
+    "file": "...",
+    "line": N,
+    "what": "...",
+    "why": "...",
+    "fix": "..."
+  }],
   "edge_cases_checked": {...}
 }
 ```
@@ -108,42 +163,66 @@ Analyze SECURITY for change: {change-id}
 Context:
 - Affected files: {files}
 
-Check:
-- Auth/authz presence
-- Input validation
-- Secrets handling
-- Data exposure
+Check (OWASP-based):
+- A01: Broken Access Control
+- A02: Cryptographic Failures (sensitive data exposure)
+- A03: Injection (SQL, command, XSS)
+- A04: Insecure Design
+- A05: Security Misconfiguration
+- A06: Vulnerable Components
+- A07: Auth Failures
+- A08: Data Integrity Failures
+- A09: Logging Failures
+- A10: SSRF
 
 Return JSON:
 {
   "dimension": "security_review",
-  "issues": [{severity, category, file, line, finding, suggestion}],
+  "issues": [{
+    "label": "blocker|issue|suggestion",
+    "owasp": "A01-A10",
+    "file": "...",
+    "line": N,
+    "what": "...",
+    "why": "...",
+    "fix": "..."
+  }],
   "auth_assessment": {...},
   "secrets_scan": {...}
 }
 ```
 
-### Sub-Agent 4: Architecture Conformance
+### Sub-Agent 4: Architecture & Quality
 
 ```
-Analyze ARCHITECTURE for change: {change-id}
+Analyze ARCHITECTURE and CODE QUALITY for change: {change-id}
 
 Context:
 - Affected files: {files}
-- Project root: {path}
+- Project patterns: Check AGENTS.md if exists
 
 Check:
-- Pattern conformance (AGENTS.md)
-- Module boundaries
+- Pattern conformance
+- Module boundaries respected
 - Naming conventions
-- Code organization
+- Complexity (functions > 50 lines, cyclomatic > 10)
+- DRY violations (duplicated code)
+- SOLID principle violations
 
 Return JSON:
 {
   "dimension": "architecture_conformance",
-  "issues": [{severity, category, file, line, finding, suggestion}],
-  "god_files": [],
-  "god_functions": []
+  "issues": [{
+    "label": "issue|suggestion|nit",
+    "category": "complexity|naming|duplication|solid",
+    "file": "...",
+    "line": N,
+    "what": "...",
+    "why": "...",
+    "fix": "..."
+  }],
+  "complexity_hotspots": [...],
+  "praise_worthy": [...]
 }
 ```
 
@@ -158,17 +237,36 @@ Return JSON:
 ### Aggregate Issues
 
 1. Combine all issues from sub-agents
-2. Group by severity: CRITICAL > MAJOR > MINOR > INFO
+2. Group by label: `blocker` > `issue` > `suggestion` > `nit`
 3. Deduplicate (same file:line from multiple scanners)
 4. Cross-reference with spec scenarios
 
 ### Determine Verdict
 
-- **BLOCKED**: Any CRITICAL issues
-- **CHANGES_REQUESTED**: Any MAJOR issues (no CRITICAL)
-- **APPROVED**: Only MINOR/INFO (or none)
+| Verdict | Criteria |
+|---------|----------|
+| **BLOCKED** | Any `blocker:` findings |
+| **CHANGES_REQUESTED** | Any `issue:` findings (no blockers) |
+| **APPROVED** | Only `suggestion:` / `nit:` / none |
 
-### Display Summary
+### The Approval Threshold
+
+Approve when the change "definitely improves overall code health," even if imperfect.
+
+**Block only on:**
+- Security vulnerabilities
+- Correctness bugs
+- Code that degrades system health
+- Missing tests for risky changes
+
+**Don't block on:**
+- Personal style preferences not in style guide
+- Minor optimizations that aren't critical
+- "Better" ways that are equivalent
+
+---
+
+## Phase 4: Display Summary
 
 ```
 ============================================================
@@ -179,20 +277,21 @@ REQUIREMENT TRACEABILITY                    [{status}]
   Coverage: {percent}% ({traced}/{total})
 
 LOGIC REVIEW                                [{status}]
-  Issues: {count} ({critical} critical, {major} major)
+  Issues: {count} ({blocker} blocker, {issue} issue)
 
 SECURITY REVIEW                             [{status}]
   Concerns: {count}
 
-ARCHITECTURE CONFORMANCE                    [{status}]
+ARCHITECTURE & QUALITY                      [{status}]
   Violations: {count}
+  {if praise} Praise: {praise_items} {end}
 
 ------------------------------------------------------------
 SEVERITY BREAKDOWN:
-  CRITICAL: {count} (blocks approval)
-  MAJOR: {count} (requires changes)
-  MINOR: {count} (recommended)
-  INFO: {count} (suggestions)
+  blocker: {count} (blocks approval)
+  issue: {count} (requires changes)
+  suggestion: {count} (recommended)
+  nit: {count} (optional)
 
 VERDICT: [{verdict}]
 ============================================================
@@ -200,7 +299,7 @@ VERDICT: [{verdict}]
 
 ---
 
-## Phase 4: Remediation (If Issues Found)
+## Phase 5: Remediation (If Issues Found)
 
 ### If APPROVED
 
@@ -213,10 +312,14 @@ Use `mcp_question`:
 header: "Fix Issues"
 question: "Found {count} issues. How to proceed?"
 options:
-  - label: "Fix critical only"
-  - label: "Fix critical and major"
+  - label: "Fix blockers and issues (Recommended)"
+    description: "Address all blocking items"
+  - label: "Fix blockers only"
+    description: "Minimum to unblock"
   - label: "Show report only"
+    description: "Review findings, fix manually"
   - label: "Accept current state"
+    description: "Proceed without fixes"
 ```
 
 ### If Fixing
@@ -227,11 +330,11 @@ Establish fix contract:
                     CONTRACT ACTIVE
 ============================================================
 
-OBJECTIVE: Fix issues in {change-id}
+OBJECTIVE: Fix code review issues in {change-id}
 
 SUCCESS CRITERIA:
-{for each issue to fix}
-- [ ] (F{n}) {issue.finding} - {issue.file}:{issue.line}
+{for each blocker/issue to fix}
+- [ ] (F{n}) {label}: {what} - {file}:{line}
 {end}
 - [ ] All fixes verified
 
@@ -244,7 +347,7 @@ After fixes, verify and update status.
 
 ---
 
-## Phase 5: Final Report
+## Phase 6: Final Report
 
 ```
 ============================================================
@@ -256,14 +359,26 @@ VERDICT: [{verdict}]
 {for each dimension}
 {DIMENSION}                                 [{status}]
   {summary}
-  {if issues}- {top issues}{end}
+  {if issues}
+  - {top 3 issues with labels}
+  {end}
 {end}
 
 ------------------------------------------------------------
 REVIEW COMMENTS:
 {for each issue, sorted by severity}
-{n}. [{severity}] {file}:{line} - {finding}
-   Suggestion: {suggestion}
+{n}. {label}: {file}:{line}
+    What: {what}
+    Why: {why}
+    {if fix}Fix: {fix}{end}
+{end}
+
+{if praise_items}
+------------------------------------------------------------
+POSITIVE NOTES:
+{for each praise}
+- {praise}: {file} - {why it's good}
+{end}
 {end}
 
 {if fixes applied}
@@ -289,11 +404,23 @@ REMAINING: Fix issues, re-run /adv-review {change-id}
 
 ```
 ============================================================
-      /adv-review {change-id} COMPLETE
+       /adv-review {change-id} COMPLETE
 ============================================================
 Result: {verdict} ({fix_count} fixes applied)
 ============================================================
 ```
+
+---
+
+## Anti-Patterns to Avoid
+
+| Anti-Pattern | Why It Fails | Fix |
+|--------------|--------------|-----|
+| **Perfection-seeking** | Delays progress | Seek "better" not "perfect" |
+| **Style-only blocking** | Personal preference | Only block on style guide rules |
+| **Missing "why"** | Not actionable, not learnable | Always explain reasoning |
+| **Code vs person** | Creates defensiveness | Comment on code, not developer |
+| **No positive feedback** | Discouraging | Include `praise:` for good work |
 
 ---
 
