@@ -268,20 +268,20 @@ const getModelName = (): string => {
 
 /**
  * Update terminal based on status.
- * Title format: Status_Emoji ADV Model_Name
+ * Title format: Status_Emoji Project_Name Model_Name
  * Rings bell for states needing user attention.
  */
 export const updateTerminalStatus = (
   status: StatusMarker,
-  _projectName: string, // Kept for API compatibility, not used in title
+  projectName: string,
   _changeId?: string,
   _progress?: string,
 ): void => {
-  // Build title: emoji ADV model
+  // Build title: emoji projectName model
   const emoji = getStatusEmoji(status);
   const modelName = getModelName();
   const modelText = modelName ? ` ${modelName}` : "";
-  const title = `${emoji} ADV${modelText}`;
+  const title = `${emoji} ${projectName}${modelText}`;
 
   setTitle(title);
 
