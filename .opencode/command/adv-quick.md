@@ -122,17 +122,59 @@ mcp_question:
       description: "Discard this contract"
 ```
 
-### Step 5: On Acceptance
+### Step 5: On Acceptance - Quick Prep Analysis
+
+Before starting implementation, perform a **lightweight prep analysis** (30-60 seconds):
+
+#### 5.1 Codebase Impact Scan
+
+Quick search for files that might be affected:
+```
+- Search for key terms from the task (function names, modules, etc.)
+- Identify 2-5 files likely to be modified
+- Note any existing similar patterns to follow
+```
+
+#### 5.2 Cross-Cutting Concerns Check
+
+Run through this checklist mentally (add criteria if gaps found):
+
+| Concern | Question | If Yes → Add Criterion |
+|---------|----------|------------------------|
+| Error Handling | Will this need error cases? | "Error cases return appropriate status" |
+| Logging | Should this log actions? | "Appropriate logging added" |
+| Security | Auth/validation needed? | "Input validated / auth checked" |
+| Config | New config options? | "Config documented" |
+| Performance | Latency-sensitive? | "No performance regression" |
+
+#### 5.3 Library Check (if applicable)
+
+If task mentions a library/framework:
+- Quick Context7 lookup: `resolve-library-id` → `query-docs`
+- Verify the approach aligns with library best practices
+- Note any simpler built-in alternatives
+
+#### 5.4 Conflict Check
+
+```
+adv_change_list
+```
+- If active changes touch same area, warn user
+- Consider if this should wait or be coordinated
+
+---
+
+### Step 6: Create and Start
 
 1. **Create agenda item** using `adv_agenda_add`:
    - `title`: The objective
    - `description`: Full criteria list (markdown formatted)
-   - `priority`: Infer from request (urgent language = high, etc.)
+   - `priority`: critical (goes to top of queue)
    - `category`: Inferred task type
 
 2. **Start the task** using `adv_agenda_start`
 
-3. **Output locked contract**:
+3. **Output locked contract with prep findings**:
 
 ```
 ============================================================
@@ -141,17 +183,22 @@ mcp_question:
 Agenda ID: <ag-xxxxxxxx>
 Status: in_progress
 
+PREP ANALYSIS:
+- Files to modify: <list of 2-5 files>
+- Cross-cutting: <any added criteria>
+- Conflicts: <none | warning about active changes>
+
 Beginning implementation...
 ============================================================
 ```
 
 4. **Begin implementation immediately** - don't wait for another user message
 
-### Step 6: On "Suggest Changes"
+### Step 7: On "Suggest Changes"
 
 Ask what they'd like to modify, adjust the contract, and re-present for confirmation.
 
-### Step 7: On "Cancel"
+### Step 8: On "Cancel"
 
 ```
 Contract cancelled. No agenda item created.

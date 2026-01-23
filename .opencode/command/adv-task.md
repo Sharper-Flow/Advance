@@ -64,23 +64,71 @@ Current Agenda:
   Next up: <title of next item>
 ```
 
-### Step 3: Analyze Task
+### Step 3: Quick Prep Analysis (Before Showing Plan)
+
+Perform lightweight analysis to enrich the task before adding:
+
+#### 3.1 Similar Code Check
+
+Quick search for related code:
+```
+- Search codebase for key terms from task title
+- Note if similar patterns exist to follow
+- Identify potential files that will be affected
+```
+
+#### 3.2 Cross-Cutting Concerns Scan
+
+Check if task implies these concerns (add to description if relevant):
+
+| Concern | Signal in Title | Note to Add |
+|---------|-----------------|-------------|
+| Error Handling | "fix", "handle", "validate" | "Include error cases" |
+| Testing | "add", "implement", "create" | "Add tests" |
+| Security | "auth", "user", "input" | "Validate inputs" |
+| Performance | "optimize", "slow", "cache" | "Measure before/after" |
+
+#### 3.3 Conflict Detection
+
+```
+adv_change_list
+```
+- Check if active changes touch related areas
+- If conflict likely, add note to task description
+
+#### 3.4 TDD Determination
 
 Determine if this task requires TDD based on title patterns:
 - Logic-heavy (implement, create, fix, validate, etc.) → Recommend TDD
 - Trivial (docs, config, rename, format) → Skip TDD
 
-### Step 4: Add Task
+#### 3.5 Simplicity Check
 
-Use `adv_agenda_add` to add the task:
+Before finalizing:
+- Is there a simpler way to accomplish this?
+- Does a library already solve this? (Quick Context7 check if applicable)
+- Add note if simpler approach found
+
+---
+
+### Step 4: Add Task with Enriched Description
+
+Use `adv_agenda_add` to add the task with findings from prep analysis:
 
 ```json
 {
   "title": "<parsed title>",
+  "description": "<prep findings: files affected, concerns, conflicts, simplicity notes>",
   "priority": "<parsed or default priority>",
   "category": "<parsed or auto-detected category>"
 }
 ```
+
+The description should include:
+- Files likely to be modified (from 3.1)
+- Cross-cutting concerns identified (from 3.2)
+- Conflict warnings if any (from 3.3)
+- Simplicity notes if relevant (from 3.5)
 
 ### Step 5: Suggest Priority Placement
 
@@ -154,6 +202,12 @@ Title: <title>
 Priority: <priority>
 Category: <category>
 Status: pending
+
+PREP FINDINGS:
+- Files: <list of likely affected files>
+- Concerns: <cross-cutting concerns identified>
+- Conflicts: <none | active changes in same area>
+- Simplicity: <any simpler approaches noted>
 
 Queue Position: #<N> of <total active>
 TDD Required: <Yes/No>
