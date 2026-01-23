@@ -232,20 +232,56 @@ export const ringBell = (): void => {
 let lastAlertedStatus: StatusMarker | null = null;
 
 /**
+ * Get model name from environment, formatting it for display.
+ * Strips "Claude" prefix and common suffixes for brevity.
+ * Falls back to empty string if not set.
+ */
+const getModelName = (): string => {
+  const model = process.env.OPENCODE_MODEL || process.env.ANTHROPIC_MODEL || "";
+  if (!model) return "";
+
+  // Format model name for display
+  let displayName = model
+    .replace(/^claude-/i, "") // Remove "claude-" prefix
+    .replace(/-\d{8}$/, "") // Remove date suffix like -20250514
+    .replace(/-latest$/, ""); // Remove -latest suffix
+
+  // Capitalize and format common model names
+  const modelMappings: Record<string, string> = {
+    "opus-4": "Opus 4",
+    "sonnet-4": "Sonnet 4",
+    "haiku-4": "Haiku 4",
+    "3-5-sonnet": "Sonnet 3.5",
+    "3-opus": "Opus 3",
+    "3-haiku": "Haiku 3",
+  };
+
+  for (const [pattern, replacement] of Object.entries(modelMappings)) {
+    if (displayName.toLowerCase().includes(pattern)) {
+      displayName = replacement;
+      break;
+    }
+  }
+
+  return displayName;
+};
+
+/**
  * Update terminal based on status.
- * Updates title with emoji and rings bell for states needing user attention.
+ * Title format: Status_Emoji ADV Model_Name
+ * Rings bell for states needing user attention.
  */
 export const updateTerminalStatus = (
   status: StatusMarker,
-  projectName: string,
-  changeId?: string,
-  progress?: string,
+  _projectName: string, // Kept for API compatibility, not used in title
+  _changeId?: string,
+  _progress?: string,
 ): void => {
-  // Build title with emoji
+  // Build title: emoji ADV model
   const emoji = getStatusEmoji(status);
-  const progressText = progress ? ` [${progress}]` : "";
-  const changeText = changeId ? `: ${changeId}` : "";
-  const title = `${emoji} ${projectName}${changeText}${progressText}`;
+  const modelName = getModelName();
+  const modelText = modelName ? ` ${modelName}` : "";
+  const title = `${emoji} ADV${modelText}`;
 
   setTitle(title);
 
