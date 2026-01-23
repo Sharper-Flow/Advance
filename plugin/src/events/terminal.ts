@@ -246,6 +246,35 @@ export const getProjectName = (directory: string): string => {
 };
 
 /**
+ * Ring the terminal bell (audio alert).
+ * Used to notify user when attention is needed (EARTH, MIC states).
+ */
+export const ringBell = (): void => {
+  log("ringBell");
+  const bellSequence = "\x07"; // BEL character
+
+  if (isTmux()) {
+    const clientTty = getClientTty();
+    if (clientTty) {
+      writeToTty(clientTty, bellSequence);
+    }
+    const paneTty = getPaneTty();
+    if (paneTty) {
+      writeToTty(paneTty, bellSequence);
+    }
+  } else {
+    try {
+      process.stdout.write(bellSequence);
+    } catch {
+      // ignore
+    }
+  }
+};
+
+// Track last status to avoid repeated alerts
+let lastAlertedStatus: StatusMarker | null = null;
+
+/**
  * Update terminal based on status.
  */
 export const updateTerminalStatus = (
@@ -267,6 +296,14 @@ export const updateTerminalStatus = (
   const title = `${emoji} ${projectName}${changeText}${progressText}`;
 
   setTitle(title);
+
+  // Ring bell for states that need user attention (only on transition)
+  if (status !== lastAlertedStatus) {
+    if (status === "EARTH" || status === "MIC") {
+      ringBell();
+    }
+    lastAlertedStatus = status;
+  }
 };
 
 /**
@@ -299,4 +336,5 @@ const getStatusEmoji = (status: StatusMarker): string => {
 export const cleanupTerminal = (): void => {
   resetTitle();
   resetTabColor();
+  lastAlertedStatus = null;
 };

@@ -14,6 +14,7 @@ export {
   getProjectName,
   updateTerminalStatus,
   cleanupTerminal,
+  ringBell,
 } from "./terminal";
 
 // Status management

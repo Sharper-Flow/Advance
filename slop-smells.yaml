@@ -1,0 +1,761 @@
+# Slop Smells: AI-Generated Code Anti-Patterns
+# A comprehensive catalog of code smells commonly found in AI-generated ("slop") code
+# Compiled from industry research and practitioner experience (End of 2025)
+#
+# Reference: This builds on classic code smells (Fowler) while adding AI-specific patterns
+# that have emerged from widespread LLM coding tool adoption.
+
+meta:
+  version: "1.2"
+  last_updated: "2026-01-12"
+  description: "Catalog of code smells associated with AI-generated code, vibe coding, and technical debt patterns"
+  sources:
+    - "Stack Overflow Blog: Generative AI is not going to build your engineering team for you"
+    - "Daniel Stenberg (curl): The I in LLM stands for intelligence"
+    - "Refactoring.Guru Code Smells Catalog"
+    - "arXiv: Technical Debt in AI-Based Competition Platforms"
+    - "arXiv: A Survey of Bugs in AI-Generated Code (2512.05239)"
+    - "Community discussions: r/programming, dev.to"
+
+categories:
+  hallucination_smells:
+    description: "Code patterns that look plausible but contain fabricated elements"
+    smells:
+      - id: HALLU-001
+        name: phantom_imports
+        severity: high
+        description: "Import statements for packages, modules, or APIs that don't exist"
+        indicators:
+          - "Import of non-existent npm packages or Python modules"
+          - "References to made-up standard library functions"
+          - "API calls to endpoints that were never documented"
+        detection: "Build failures, import errors, 'module not found' errors"
+        example: "import { validateEmail } from 'react-email-validator-pro'  // Package doesn't exist"
+
+      - id: HALLU-002
+        name: invented_methods
+        severity: high
+        description: "Calls to methods or functions that don't exist on the object/class"
+        indicators:
+          - "Method calls that look reasonable but aren't part of the API"
+          - "Chained methods that mix valid and invalid operations"
+          - "Constructor arguments that the class doesn't accept"
+        detection: "Runtime errors, TypeScript/type checker failures"
+        example: "response.data.toSafeJSON()  // No such method exists"
+
+      - id: HALLU-003
+        name: fabricated_config
+        severity: medium
+        description: "Configuration options or flags that don't exist in the tool/library"
+        indicators:
+          - "CLI flags that sound reasonable but aren't implemented"
+          - "Config file options that are plausible but invalid"
+          - "Environment variables that don't do anything"
+        detection: "Warnings about unknown options, silent failures"
+        example: "eslint --auto-fix-unsafe  // Not a real flag"
+
+      - id: HALLU-004
+        name: version_confusion
+        severity: high
+        description: "Code mixing APIs from different versions of a library"
+        indicators:
+          - "Deprecated method calls alongside modern patterns"
+          - "Breaking change patterns from future versions"
+          - "Syntax from older versions in a modern codebase"
+        detection: "Deprecation warnings mixed with undefined errors"
+        example: "Using React class components with hooks syntax incorrectly"
+
+      - id: HALLU-005
+        name: api_misuse
+        severity: high
+        description: "Correct API names used with wrong parameters, return types, or calling conventions"
+        indicators:
+          - "Wrong number or order of arguments to real functions"
+          - "Incorrect exception handling for APIs"
+          - "Missing required setup/teardown for API calls"
+          - "Using synchronous patterns with async APIs or vice versa"
+        detection: "Runtime errors, incorrect behavior despite valid-looking code"
+        example: "fetch(url).then(data => ...) // Missing .json() call"
+
+      - id: HALLU-006
+        name: confident_nonsense
+        severity: critical
+        description: "Plausible-sounding explanations or comments that are factually wrong"
+        indicators:
+          - "Comments explaining code that contradict what the code does"
+          - "Incorrect algorithm complexity claims"
+          - "Wrong security assumptions stated as fact"
+        detection: "Manual review by domain expert"
+        example: "// This is O(n) - actually O(n²) nested loops"
+
+  structural_smells:
+    description: "Architectural and structural problems common in AI slop"
+    smells:
+      - id: STRUCT-001
+        name: cargo_cult_patterns
+        severity: medium
+        description: "Design patterns applied without understanding, just because they appear in training data"
+        indicators:
+          - "Factory patterns for classes with no variants"
+          - "Singleton where a simple module export suffices"
+          - "Observer pattern with a single observer"
+          - "Excessive abstraction layers with no benefit"
+        detection: "Code review, complexity metrics disproportionate to functionality"
+
+      - id: STRUCT-002
+        name: context_amnesia
+        severity: high
+        description: "Code that ignores the existing codebase patterns and conventions"
+        indicators:
+          - "Different naming conventions than surrounding code"
+          - "New dependencies for functionality that already exists in codebase"
+          - "Reimplementation of utility functions that are already available"
+          - "Style/formatting that doesn't match the project"
+        detection: "Linting inconsistencies, duplicate code detection"
+
+      - id: STRUCT-003
+        name: kitchen_sink_imports
+        severity: low
+        description: "Importing everything possible, often including unused modules"
+        indicators:
+          - "Large import blocks with many unused imports"
+          - "Importing entire libraries when only one function is needed"
+          - "Circular or redundant import chains"
+        detection: "Dead code analysis, bundle size analysis, import linters"
+
+      - id: STRUCT-004
+        name: premature_abstraction
+        severity: medium
+        description: "Over-engineered abstractions for simple problems"
+        indicators:
+          - "Interface with single implementation"
+          - "Generic types where concrete types would suffice"
+          - "Abstract base classes with one child"
+          - "Configuration objects for hard-coded values"
+        detection: "Inheritance depth metrics, cyclomatic complexity"
+
+      - id: STRUCT-005
+        name: frankencode
+        severity: high
+        description: "Code stitched together from multiple incompatible patterns or paradigms"
+        indicators:
+          - "Mixing callbacks, promises, and async/await randomly"
+          - "OOP and functional patterns fighting in the same file"
+          - "Multiple state management approaches in conflict"
+        detection: "Code review, consistency analysis"
+
+      - id: STRUCT-006
+        name: wrong_abstraction_level
+        severity: medium
+        description: "Code that operates at the wrong level of abstraction for the task"
+        indicators:
+          - "Manual string manipulation when a parser library exists"
+          - "Hand-rolled crypto instead of using standard libraries"
+          - "Reimplementing standard library functions"
+        detection: "Code review, dependency analysis"
+
+  quality_smells:
+    description: "Code quality issues particularly prevalent in AI-generated code"
+    smells:
+      - id: QUAL-001
+        name: confident_incorrectness
+        severity: critical
+        description: "Code that looks authoritative and correct but contains subtle bugs"
+        indicators:
+          - "Logical errors in edge cases"
+          - "Off-by-one errors in loops or array access"
+          - "Incorrect boundary condition handling"
+          - "Subtle race conditions in async code"
+        detection: "Thorough testing, edge case analysis, code review"
+
+      - id: QUAL-002
+        name: happy_path_only
+        severity: high
+        description: "Code that only handles the success case, ignoring errors and edge cases"
+        indicators:
+          - "No try/catch blocks around fallible operations"
+          - "Unchecked null/undefined access"
+          - "Missing input validation"
+          - "No error handling for network/IO operations"
+        detection: "Error path analysis, null safety checks, test coverage"
+
+      - id: QUAL-003
+        name: security_blindness
+        severity: critical
+        description: "Missing security considerations that a human would catch"
+        indicators:
+          - "SQL queries built with string concatenation"
+          - "User input directly rendered in HTML (XSS)"
+          - "Hardcoded credentials or API keys"
+          - "Missing authentication/authorization checks"
+          - "Insecure cryptographic practices"
+        detection: "Security scanners (SAST), security-focused code review"
+
+      - id: QUAL-004
+        name: placeholder_pollution
+        severity: medium
+        description: "Leftover TODO comments, placeholder values, or incomplete implementations"
+        indicators:
+          - "TODO: fix this later"
+          - "FIXME comments from AI suggestions"
+          - "Placeholder strings like 'example@email.com' in production code"
+          - "Stub implementations that were never completed"
+        detection: "TODO/FIXME grep, code review for placeholder patterns"
+
+      - id: QUAL-005
+        name: test_theater
+        severity: high
+        description: "Tests that look comprehensive but don't actually test anything meaningful"
+        indicators:
+          - "Tests that only verify mock behavior"
+          - "Assertions that always pass"
+          - "Tests that duplicate implementation rather than verifying behavior"
+          - "Missing edge case and error condition tests"
+        detection: "Mutation testing, test coverage with branch analysis"
+
+      - id: QUAL-006
+        name: copy_paste_drift
+        severity: medium
+        description: "Repeated code blocks with slight variations that should be abstracted"
+        indicators:
+          - "Nearly identical functions with minor differences"
+          - "Duplicated logic across files"
+          - "Copy-pasted error handling with inconsistent modifications"
+        detection: "Clone detection tools, code duplication metrics"
+
+      - id: QUAL-007
+        name: error_suppression
+        severity: high
+        description: "Errors explicitly caught and ignored to force code to continue"
+        indicators:
+          - "Empty catch blocks"
+          - "catch (e) { console.log(e) } as the only error handling"
+          - "Using 'as unknown as T' to bypass type errors without checks"
+        detection: "Linting rules (no-empty-catch), code review"
+
+      - id: QUAL-008
+        name: missing_corner_cases
+        severity: high
+        description: "Code handles happy path but fails on edge cases and boundary conditions"
+        indicators:
+          - "No handling for empty arrays, null inputs, or zero values"
+          - "Missing bounds checks on array/string operations"
+          - "No validation of numeric ranges or overflow conditions"
+          - "Ignoring Unicode edge cases in string processing"
+        detection: "Mutation testing, boundary value analysis, fuzzing"
+        example: "function avg(arr) { return arr.reduce((a,b)=>a+b) / arr.length } // Crashes on empty array"
+
+      - id: QUAL-009
+        name: incomplete_generation
+        severity: high
+        description: "Code that is cut off mid-function or missing critical parts"
+        indicators:
+          - "Functions that end abruptly without return statements"
+          - "Missing closing braces or incomplete control structures"
+          - "Placeholder comments like '// TODO: implement' in production code"
+          - "Functions that only implement part of the documented behavior"
+        detection: "Static analysis, manual review"
+
+      - id: QUAL-010
+        name: misinterpretation
+        severity: high
+        description: "Code that fundamentally misunderstands the requirements"
+        indicators:
+          - "Algorithm solves a different problem than specified"
+          - "Output format doesn't match expected format"
+          - "Off-by-one errors in indexing logic"
+          - "Incorrect understanding of domain terminology"
+        detection: "Test failures, code review against requirements"
+        example: "// Asked to find 'second largest' but returns second element"
+
+  documentation_smells:
+    description: "AI-characteristic documentation and comment anti-patterns"
+    smells:
+      - id: DOC-001
+        name: verbose_obvious_comments
+        severity: low
+        description: "Excessive comments explaining obvious code"
+        indicators:
+          - "// Increment i by 1"
+          - "// Return the result"
+          - "// Create a new instance"
+          - "JSDoc for every trivial getter/setter"
+        detection: "Comment density metrics, code review"
+
+      - id: DOC-002
+        name: confident_lies
+        severity: high
+        description: "Comments or documentation that confidently describe what the code doesn't do"
+        indicators:
+          - "Function description doesn't match implementation"
+          - "Parameter documentation for non-existent parameters"
+          - "Return type documentation that's incorrect"
+        detection: "Code review, documentation testing tools"
+
+      - id: DOC-003
+        name: ai_signature_phrases
+        severity: low
+        description: "Telltale AI-generated language patterns in comments"
+        indicators:
+          - "'Certainly!', 'Sure!', 'Great question!'"
+          - "'As an AI language model...'"
+          - "Overly formal or promotional language"
+          - "'This ensures that...', 'This allows for...'"
+          - "Unnecessarily verbose explanations"
+        detection: "Text pattern matching, code review"
+        example: "// This function ensures that the data is properly validated before being processed"
+
+      - id: DOC-004
+        name: stale_inline_docs
+        severity: medium
+        description: "Documentation that was generated for an earlier version of the code"
+        indicators:
+          - "References to removed parameters or methods"
+          - "Examples that no longer work"
+          - "Changelogs that don't reflect current state"
+        detection: "Documentation validation tools, code review"
+
+      - id: DOC-005
+        name: copy_paste_attribution
+        severity: medium
+        description: "Attribution or license headers copied from training data"
+        indicators:
+          - "Copyright notices for unrelated projects"
+          - "Author names or emails from open source projects"
+          - "License text that doesn't match project's actual license"
+        detection: "License scanners, grep for known OSS author names"
+        example: "// Copyright 2019 The TensorFlow Authors - in a project that doesn't use TensorFlow"
+
+  dependency_smells:
+    description: "Issues related to dependency management in AI-generated code"
+    smells:
+      - id: DEP-001
+        name: dependency_bloat
+        severity: medium
+        description: "Unnecessary dependencies added for trivial functionality"
+        indicators:
+          - "NPM package for left-pad type functionality"
+          - "Library imports for single-function use cases"
+          - "Multiple libraries solving the same problem"
+        detection: "Bundle analysis, dependency auditing"
+
+      - id: DEP-002
+        name: version_roulette
+        severity: high
+        description: "Dependencies pinned to outdated or incompatible versions"
+        indicators:
+          - "Major versions behind current releases"
+          - "Dependencies with known security vulnerabilities"
+          - "Incompatible peer dependency requirements"
+        detection: "npm audit, dependency update scanners"
+
+      - id: DEP-003
+        name: phantom_dependencies
+        severity: high
+        description: "Code that relies on transitive dependencies not in package.json"
+        indicators:
+          - "Imports that work but aren't declared dependencies"
+          - "Reliance on peer dependencies of dependencies"
+        detection: "Strict dependency resolution, fresh install testing"
+
+      - id: DEP-004
+        name: training_data_leakage
+        severity: critical
+        description: "Secrets, credentials, or sensitive data from training corpus appearing in generated code"
+        indicators:
+          - "API keys or tokens that look real but aren't yours"
+          - "Database connection strings with actual credentials"
+          - "URLs pointing to internal/private services"
+        detection: "Secret scanning tools (gitleaks, truffleHog)"
+        example: "const API_KEY = 'sk-abc123...' // Real key from training data"
+
+  maintainability_smells:
+    description: "Long-term maintenance issues common in AI-generated code"
+    smells:
+      - id: MAINT-001
+        name: context_collapse
+        severity: high
+        description: "Code that only makes sense with AI context that isn't preserved"
+        indicators:
+          - "Magic numbers without explanation"
+          - "Business logic that assumes domain knowledge"
+          - "Workarounds without comments explaining why"
+        detection: "Code review by someone unfamiliar with the context"
+
+      - id: MAINT-002
+        name: style_whiplash
+        severity: low
+        description: "Inconsistent coding style within and across files"
+        indicators:
+          - "Mixed quotation styles (single/double quotes)"
+          - "Inconsistent indentation"
+          - "Variable naming convention changes"
+          - "Different function declaration styles"
+        detection: "Linter configuration, code formatters"
+
+      - id: MAINT-003
+        name: dead_code_accumulation
+        severity: medium
+        description: "Unreachable or unused code that accumulates over iterations"
+        indicators:
+          - "Functions that are never called"
+          - "Commented-out code blocks"
+          - "Feature flags that are always true/false"
+          - "Unreachable branches in conditionals"
+        detection: "Dead code elimination tools, coverage analysis"
+
+      - id: MAINT-004
+        name: refactor_resistance
+        severity: medium
+        description: "Code structure that makes future changes difficult"
+        indicators:
+          - "Deep nesting that's hard to extract"
+          - "Tight coupling between unrelated modules"
+          - "Global state mutations scattered throughout"
+          - "Monolithic functions that do too many things"
+        detection: "Cyclomatic complexity, coupling metrics, change impact analysis"
+
+      - id: MAINT-005
+        name: hardcoded_environment
+        severity: high
+        description: "Environment-specific values hardcoded into logic"
+        indicators:
+          - "Local file paths (/Users/name/...)"
+          - "Hardcoded URLs (localhost:3000)"
+          - "API keys or secrets in code (also a security smell)"
+        detection: "Grep for 'localhost', '/', common secret patterns"
+
+      - id: MAINT-006
+        name: language_confusion
+        severity: medium
+        description: "Syntax or idioms from one programming language used incorrectly in another"
+        indicators:
+          - "Python-style list comprehensions attempted in JavaScript"
+          - "Java-style getters/setters in Python"
+          - "C-style memory management patterns in garbage-collected languages"
+        detection: "Linting, code review by language experts"
+        example: "// JavaScript: if x == None:  // Python syntax in JS"
+
+  ai_specific_smells:
+    description: "Patterns uniquely characteristic of AI-assisted or vibe-coded projects"
+    smells:
+      - id: AI-001
+        name: prompt_residue
+        severity: low
+        description: "Artifacts from the prompting process left in the code"
+        indicators:
+          - "Comments referencing 'the above code'"
+          - "Variable names from example prompts"
+          - "URLs or paths from training data examples"
+        detection: "Code review, pattern matching"
+
+      - id: AI-002
+        name: dataset_echo
+        severity: medium
+        description: "Code that mirrors common training data patterns too closely"
+        indicators:
+          - "TODO/FIXME applications that appear in many OSS projects"
+          - "License headers copied from random projects"
+          - "Author names or email addresses from training data"
+        detection: "Clone detection against public repositories"
+
+      - id: AI-003
+        name: overconfident_complexity
+        severity: high
+        description: "Unnecessarily complex solutions for simple problems"
+        indicators:
+          - "Regex for simple string operations"
+          - "Recursive solutions where iteration is clearer"
+          - "Bitwise operations for boolean logic"
+          - "Custom implementations of standard library functions"
+        detection: "Complexity analysis, code review"
+
+      - id: AI-004
+        name: temporal_confusion
+        severity: medium
+        description: "Mixing patterns from different eras of a technology"
+        indicators:
+          - "var alongside const/let in JavaScript"
+          - "XMLHttpRequest with async/await"
+          - "Class components in a hooks-based React app"
+        detection: "Linting for deprecated patterns, code review"
+
+      - id: AI-005
+        name: solution_shopping
+        severity: medium
+        description: "Multiple different approaches to the same problem in one codebase"
+        indicators:
+          - "Different HTTP clients in different files"
+          - "Multiple date formatting approaches"
+          - "Inconsistent error handling strategies"
+        detection: "Pattern analysis, dependency review"
+
+      - id: AI-006
+        name: eslint_disable_abuse
+        severity: high
+        description: "Excessive use of linting disables to silence warnings rather than fix issues"
+        indicators:
+          - "// eslint-disable-next-line @typescript-eslint/no-explicit-any"
+          - "Large blocks of disabled rules"
+          - "Disabling rules at file level without justification"
+        detection: "Count of disable comments, code review"
+        example: |
+          // TODO: Fix this the next time the file is edited
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          function process(data: any) { ... }
+
+      - id: AI-007
+        name: type_evasion
+        severity: high
+        description: "Abusing the type system to avoid fixing type errors properly"
+        indicators:
+          - "Excessive use of 'any' or 'unknown'"
+          - "Double casting (as unknown as T)"
+          - "Non-null assertions (!) used without checks"
+        detection: "Strict linting rules, type coverage analysis"
+
+      - id: AI-008
+        name: context_length_blindness
+        severity: high
+        description: "Code quality degrades or becomes inconsistent in longer files due to context window limits"
+        indicators:
+          - "Naming conventions change partway through file"
+          - "Error handling present early but missing later"
+          - "Style/formatting inconsistent between top and bottom of file"
+          - "Later functions don't use helpers defined earlier"
+        detection: "Compare quality metrics at different file positions"
+
+      - id: AI-009
+        name: sycophantic_code
+        severity: medium
+        description: "Code that technically satisfies the prompt but avoids the hard parts"
+        indicators:
+          - "Stub implementations that just log or return placeholder values"
+          - "Error handling that just re-raises or passes"
+          - "Functions that claim to implement something but actually don't"
+        detection: "Test coverage analysis, manual review"
+        example: "def validate_email(email): return True  # 'Validates' by always passing"
+
+      - id: AI-010
+        name: hallucinated_security_reports
+        severity: low
+        description: "False security vulnerability reports generated by AI tools"
+        indicators:
+          - "References to CVEs that don't exist or don't apply"
+          - "Security issues described in generic terms without proof-of-concept"
+          - "Buffer overflow claims in memory-safe languages"
+        detection: "Expert review, CVE database verification"
+        reference: "Daniel Stenberg - The I in LLM stands for intelligence"
+
+      - id: AI-011
+        name: planning_loop
+        severity: critical
+        description: "Model gets stuck repeating planning statements instead of executing tool calls"
+        indicators:
+          - "Repeated phrases like 'Actually, I'll...', 'Let me now...', 'I will proceed to...'"
+          - "Re-stating the same plan multiple times without action"
+          - "Verbose internal monologue that doesn't produce tool calls"
+          - "Self-reinforcing text generation that feeds back on itself"
+        triggers:
+          - "High cognitive load from synthesizing multiple sub-agent results"
+          - "Complex state transitions (e.g., research → implementation mode)"
+          - "Mapping many inputs to many outputs simultaneously"
+        detection: "Token generation without tool calls, repeated phrase patterns"
+        mitigation:
+          - "Add explicit state transition markers (e.g., '>>> EXECUTING <<<')"
+          - "Require immediate tool call after planning phase"
+          - "Process items sequentially, not batched"
+          - "Add anti-loop warnings in prompts"
+        example: |
+          # Bad: Planning loop
+          "I'll now edit the files. Actually, let me start with file A.
+           I will proceed to edit file A. Let me now make the changes.
+           Actually, I'll edit file A first..."
+          # Good: Immediate action
+          ">>> EXECUTING <<<" [tool call]
+
+  performance_smells:
+    description: "Performance bottlenecks introduced by vibe coding"
+    smells:
+      - id: PERF-001
+        name: n_plus_one_queries
+        severity: high
+        description: "Database queries executed inside loops"
+        indicators:
+          - "await inside for-loops fetching data"
+          - "Mapping over an array to fetch details one by one"
+        detection: "Query logging, performance profiling"
+
+      - id: PERF-002
+        name: excessive_renders
+        severity: medium
+        description: "Inefficient React patterns causing valid but wasteful re-renders"
+        indicators:
+          - "New object/function references created during render passed as props"
+          - "Missing dependency array optimization"
+        detection: "React dev tools, why-did-you-render"
+
+      - id: PERF-003
+        name: algorithmic_inefficiency
+        severity: high
+        description: "Using inefficient algorithms when better alternatives exist"
+        indicators:
+          - "Nested loops where a hash map lookup would suffice"
+          - "Repeated array searches instead of building an index"
+          - "Recursive solutions without memoization for overlapping subproblems"
+        detection: "Performance profiling, complexity analysis"
+        example: "// O(n²) includes() in a loop instead of O(n) Set lookup"
+
+      - id: PERF-004
+        name: resource_leaks
+        severity: high
+        description: "Failing to properly release resources like file handles, connections, or listeners"
+        indicators:
+          - "Opening files/connections without corresponding close"
+          - "Adding event listeners without removal"
+          - "Creating intervals/timeouts without cleanup"
+        detection: "Memory profiling, resource monitoring"
+
+  test_smells:
+    description: "Issues specific to AI-generated test code"
+    smells:
+      - id: TEST-001
+        name: magic_number_test
+        severity: low
+        description: "Test assertions use unexplained magic numbers"
+        indicators:
+          - "assertEquals(result, 42) without explaining why 42"
+          - "Hardcoded expected values without derivation"
+        detection: "Code review, test smell detection tools"
+
+      - id: TEST-002
+        name: assertion_roulette
+        severity: medium
+        description: "Multiple assertions without clear failure messages"
+        indicators:
+          - "Many assertions in one test with no descriptions"
+          - "Impossible to tell which assertion failed from test output"
+        detection: "Test smell analyzers"
+
+      - id: TEST-003
+        name: testing_the_mock
+        severity: high
+        description: "Tests that verify mock behavior rather than actual code"
+        indicators:
+          - "Tests pass even when implementation is broken"
+          - "Assertions only check mock was called, not results"
+          - "100% coverage but no real logic tested"
+        detection: "Mutation testing, coverage analysis"
+
+      - id: TEST-004
+        name: external_resource_assumption
+        severity: high
+        description: "Tests that assume existence of external files, URLs, or services"
+        indicators:
+          - "Hardcoded file paths that don't exist in CI"
+          - "Network calls to external APIs in unit tests"
+          - "Database connections in tests without mocking"
+        detection: "Test isolation analysis, CI failures"
+
+  classic_smells_amplified:
+    description: "Traditional code smells that AI tends to produce at higher rates"
+    smells:
+      - id: CLASSIC-001
+        name: god_objects
+        severity: high
+        description: "Classes or modules that know too much and do too much"
+        amplification: "AI tends to add functionality to existing objects rather than creating new abstractions"
+        reference: "Fowler: God Class"
+
+      - id: CLASSIC-002
+        name: long_methods
+        severity: medium
+        description: "Methods that are too long and do too many things"
+        amplification: "AI generates complete solutions in single functions rather than composing smaller ones"
+        reference: "Fowler: Long Method"
+
+      - id: CLASSIC-003
+        name: primitive_obsession
+        severity: medium
+        description: "Overuse of primitives instead of small objects for simple tasks"
+        amplification: "AI defaults to strings and numbers rather than creating domain types"
+        reference: "Fowler: Primitive Obsession"
+
+      - id: CLASSIC-004
+        name: feature_envy
+        severity: medium
+        description: "Methods that use another class's data more than their own"
+        amplification: "AI doesn't understand object boundaries and domain separation"
+        reference: "Fowler: Feature Envy"
+
+      - id: CLASSIC-005
+        name: speculative_generality
+        severity: medium
+        description: "Unused hooks, parameters, or abstractions for 'future use'"
+        amplification: "AI adds extensibility points based on training patterns, not actual requirements"
+        reference: "Fowler: Speculative Generality"
+
+detection_strategies:
+  automated:
+    - name: "Static Analysis"
+      tools: ["ESLint", "SonarQube", "Semgrep", "CodeClimate"]
+      detects: ["STRUCT-*", "QUAL-*", "MAINT-*"]
+
+    - name: "Type Checking"
+      tools: ["TypeScript", "mypy", "Flow"]
+      detects: ["HALLU-001", "HALLU-002", "QUAL-001"]
+
+    - name: "Security Scanning"
+      tools: ["Snyk", "npm audit", "Dependabot", "OWASP ZAP"]
+      detects: ["QUAL-003", "DEP-002"]
+
+    - name: "Clone Detection"
+      tools: ["jscpd", "PMD CPD", "SonarQube"]
+      detects: ["QUAL-006", "AI-002"]
+
+    - name: "Dependency Analysis"
+      tools: ["depcheck", "webpack-bundle-analyzer", "npm-check"]
+      detects: ["DEP-*", "STRUCT-003"]
+
+  manual:
+    - name: "Focused Code Review"
+      focus_areas:
+        - "Edge case handling"
+        - "Error paths"
+        - "Security implications"
+        - "Consistency with existing patterns"
+        - "Actual vs documented behavior"
+
+    - name: "Fresh Eyes Review"
+      description: "Have someone unfamiliar with the context review the code"
+      detects: ["MAINT-001", "DOC-002"]
+
+    - name: "Integration Testing"
+      description: "Test that the code actually works in the full system context"
+      detects: ["HALLU-*", "QUAL-002"]
+
+mitigation:
+  before_generation:
+    - "Provide clear, specific prompts with context"
+    - "Include existing code patterns and conventions"
+    - "Specify the exact libraries and versions to use"
+    - "Define error handling requirements explicitly"
+
+  during_review:
+    - "Never trust AI output without verification"
+    - "Check every import and API call"
+    - "Verify edge cases and error handling"
+    - "Run the code, don't just read it"
+    - "Check for consistency with existing codebase"
+
+  tooling:
+    - "Enforce strict linting and type checking"
+    - "Require comprehensive test coverage"
+    - "Use pre-commit hooks for quality gates"
+    - "Automate dependency auditing"
+
+  process:
+    - "Require human review for all AI-generated code"
+    - "Maintain style guides and enforce them automatically"
+    - "Track metrics on AI-generated code quality over time"
+    - "Create AI-specific review checklists"

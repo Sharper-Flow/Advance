@@ -11,6 +11,7 @@ import { specTools } from "./tools/spec";
 import { changeTools } from "./tools/change";
 import { taskTools } from "./tools/task";
 import { statusTools } from "./tools/status";
+import { agendaTools } from "./tools/agenda";
 import {
   initializeStatus,
   cleanup as cleanupEvents,
@@ -54,6 +55,17 @@ export const AdvancePlugin: Plugin = async ({ directory }: PluginContext) => {
     execute: async (args: T) => toolDef.execute(args, store),
   });
 
+  // Helper to wrap agenda tools (use directory instead of store)
+  const wrapAgendaTool = <T extends Record<string, unknown>>(toolDef: {
+    description: string;
+    args: Record<string, z.ZodType>;
+    execute: (args: T, projectDir: string) => Promise<string>;
+  }) => ({
+    description: toolDef.description,
+    parameters: z.object(toolDef.args as z.ZodRawShape),
+    execute: async (args: T) => toolDef.execute(args, directory),
+  });
+
   return {
     name: "advance",
     version: "0.1.0",
@@ -86,6 +98,18 @@ export const AdvancePlugin: Plugin = async ({ directory }: PluginContext) => {
 
       // Status tool
       adv_status: wrapTool(statusTools.adv_status),
+
+      // Agenda tools (lightweight task contracts)
+      adv_agenda_list: wrapAgendaTool(agendaTools.adv_agenda_list),
+      adv_agenda_add: wrapAgendaTool(agendaTools.adv_agenda_add),
+      adv_agenda_start: wrapAgendaTool(agendaTools.adv_agenda_start),
+      adv_agenda_complete: wrapAgendaTool(agendaTools.adv_agenda_complete),
+      adv_agenda_cancel: wrapAgendaTool(agendaTools.adv_agenda_cancel),
+      adv_agenda_prioritize: wrapAgendaTool(agendaTools.adv_agenda_prioritize),
+      adv_agenda_next: wrapAgendaTool(agendaTools.adv_agenda_next),
+      adv_agenda_stats: wrapAgendaTool(agendaTools.adv_agenda_stats),
+      adv_agenda_evidence: wrapAgendaTool(agendaTools.adv_agenda_evidence),
+      adv_agenda_compact: wrapAgendaTool(agendaTools.adv_agenda_compact),
     },
 
     // Lifecycle hooks
