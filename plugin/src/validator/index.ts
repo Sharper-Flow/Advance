@@ -20,6 +20,7 @@ export {
   type ValidationResult,
   type ValidationContext,
   type ExistingSpec,
+  type ActiveChange,
 } from "./types";
 
 // Individual check modules (for fine-grained use)
@@ -39,4 +40,5 @@ export {
   checkPriorityDowngrades,
   checkRemovalReferences,
   checkSpecsExist,
+  checkChangeConflicts,
 } from "./conflicts";

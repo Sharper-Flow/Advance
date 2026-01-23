@@ -59,6 +59,9 @@ export const ValidationCodes = {
 
   // TDD compliance
   MISSING_TDD_EVIDENCE: "MISSING_TDD_EVIDENCE",
+
+  // Change-to-change conflicts
+  OVERLAPPING_CAPABILITY: "OVERLAPPING_CAPABILITY",
 } as const;
 
 export type ValidationCode =
@@ -75,6 +78,15 @@ export interface ValidationContext {
   existingRequirementIds: Set<string>;
   /** Requirements that reference other requirements */
   requirementReferences: Map<string, string[]>;
+  /** Other active changes (for conflict detection) */
+  activeChanges?: ActiveChange[];
+}
+
+export interface ActiveChange {
+  id: string;
+  title: string;
+  /** Capabilities this change touches (has deltas for) */
+  capabilities: string[];
 }
 
 export interface ExistingSpec {

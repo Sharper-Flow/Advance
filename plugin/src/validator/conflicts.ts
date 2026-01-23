@@ -203,6 +203,53 @@ export function checkSpecsExist(
 }
 
 /**
+ * Check for overlapping capabilities with other active changes
+ *
+ * When multiple changes touch the same capability, there's potential for
+ * merge conflicts when archiving. This check warns about such overlaps.
+ */
+export function checkChangeConflicts(
+  change: Change,
+  context: ValidationContext,
+): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+
+  if (!context.activeChanges || context.activeChanges.length === 0) {
+    return issues;
+  }
+
+  // Get capabilities this change touches
+  const thisCapabilities = new Set(Object.keys(change.deltas));
+
+  // Check against other active changes
+  for (const otherChange of context.activeChanges) {
+    // Skip self
+    if (otherChange.id === change.id) continue;
+
+    // Find overlapping capabilities
+    const overlapping = otherChange.capabilities.filter((cap) =>
+      thisCapabilities.has(cap),
+    );
+
+    if (overlapping.length > 0) {
+      issues.push({
+        code: ValidationCodes.OVERLAPPING_CAPABILITY,
+        severity: "warning",
+        message: `Change "${otherChange.title}" (${otherChange.id}) also modifies: ${overlapping.join(", ")}`,
+        path: "deltas",
+        details: {
+          otherChangeId: otherChange.id,
+          otherChangeTitle: otherChange.title,
+          overlappingCapabilities: overlapping,
+        },
+      });
+    }
+  }
+
+  return issues;
+}
+
+/**
  * Run all conflict detection checks
  */
 export function runConflictChecks(
@@ -216,6 +263,7 @@ export function runConflictChecks(
   issues.push(...checkPriorityDowngrades(change, context));
   issues.push(...checkRemovalReferences(change, context));
   issues.push(...checkSpecsExist(change, context));
+  issues.push(...checkChangeConflicts(change, context));
 
   return issues;
 }

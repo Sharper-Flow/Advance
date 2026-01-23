@@ -69,7 +69,8 @@ export const changeTools = {
   },
 
   adv_change_validate: {
-    description: "Validate change against existing specs (specs as laws)",
+    description:
+      "Validate change against existing specs (specs as laws) and check for conflicts with other active changes",
     args: {
       changeId: z.string().describe("Change ID to validate"),
       strict: z.boolean().optional().describe("Treat warnings as errors"),
@@ -93,8 +94,26 @@ export const changeTools = {
         }
       }
 
-      // Run full validation
-      const result = await validateChange(change, { specs });
+      // Load other active changes for conflict detection
+      const changeList = await store.changes.list({ includeArchived: false });
+      const activeChanges = changeList.changes
+        .filter((c) => c.id !== changeId) // Exclude self
+        .map((c) => ({
+          id: c.id,
+          title: c.title,
+          capabilities: [] as string[], // Will be populated below
+        }));
+
+      // Load full change data to get capabilities
+      for (const activeChange of activeChanges) {
+        const fullChange = await store.changes.get(activeChange.id);
+        if (fullChange) {
+          activeChange.capabilities = Object.keys(fullChange.deltas);
+        }
+      }
+
+      // Run full validation with active changes for conflict detection
+      const result = await validateChange(change, { specs, activeChanges });
 
       // In strict mode, treat warnings as errors
       const passed = strict

@@ -10,6 +10,7 @@ import type {
   ValidationResult,
   ValidationContext,
   ExistingSpec,
+  ActiveChange,
 } from "./types";
 import { runCompletenessChecks } from "./completeness";
 import { runConflictChecks } from "./conflicts";
@@ -21,6 +22,8 @@ import { runConflictChecks } from "./conflicts";
 export interface ValidatorOptions {
   /** Existing specs to validate against */
   specs: Spec[];
+  /** Other active changes (for conflict detection) */
+  activeChanges?: ActiveChange[];
   /** Skip specific check types (for testing) */
   skipChecks?: ("completeness" | "conflicts")[];
 }
@@ -33,7 +36,10 @@ export interface ValidatorOptions {
  * Build validation context from existing specs.
  * Extracts requirement IDs, references, and spec metadata for validation.
  */
-export function buildValidationContext(specs: Spec[]): ValidationContext {
+export function buildValidationContext(
+  specs: Spec[],
+  activeChanges?: ActiveChange[],
+): ValidationContext {
   const existingSpecs = new Map<string, ExistingSpec>();
   const existingRequirementIds = new Set<string>();
   const requirementReferences = new Map<string, string[]>();
@@ -65,6 +71,7 @@ export function buildValidationContext(specs: Spec[]): ValidationContext {
     existingSpecs,
     existingRequirementIds,
     requirementReferences,
+    activeChanges,
   };
 }
 
@@ -93,8 +100,8 @@ export async function validateChange(
   change: Change,
   options: ValidatorOptions,
 ): Promise<ValidationResult> {
-  const { specs, skipChecks = [] } = options;
-  const context = buildValidationContext(specs);
+  const { specs, activeChanges, skipChecks = [] } = options;
+  const context = buildValidationContext(specs, activeChanges);
 
   const errors: ValidationResult["errors"] = [];
   const warnings: ValidationResult["warnings"] = [];

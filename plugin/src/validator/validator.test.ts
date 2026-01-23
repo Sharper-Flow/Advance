@@ -406,6 +406,269 @@ describe("Validator", () => {
     });
   });
 
+  describe("change conflict detection", () => {
+    it("warns when another active change touches the same capability", async () => {
+      const change = structuredClone(SAMPLE_CHANGE) as Change;
+
+      // Ensure the change has proper scenarios
+      const delta = change.deltas["test-capability"][0] as Extract<
+        Delta,
+        { operation: "add" }
+      >;
+      delta.requirement.scenarios = [
+        {
+          id: "rq-new00001.1",
+          title: "Test scenario",
+          given: ["a precondition"],
+          when: "action occurs",
+          then: ["expected outcome"],
+        },
+      ];
+
+      const activeChanges = [
+        {
+          id: "other-change-123",
+          title: "Another Change",
+          capabilities: ["test-capability"], // Same capability
+        },
+      ];
+
+      const specs: Spec[] = [SAMPLE_SPEC as Spec];
+      const result = await validateChange(change, { specs, activeChanges });
+
+      expect(
+        result.warnings.some(
+          (w) => w.code === ValidationCodes.OVERLAPPING_CAPABILITY,
+        ),
+      ).toBe(true);
+
+      const warning = result.warnings.find(
+        (w) => w.code === ValidationCodes.OVERLAPPING_CAPABILITY,
+      );
+      expect(warning?.details?.otherChangeId).toBe("other-change-123");
+      expect(warning?.details?.overlappingCapabilities).toContain(
+        "test-capability",
+      );
+    });
+
+    it("does not warn when active changes touch different capabilities", async () => {
+      const change = structuredClone(SAMPLE_CHANGE) as Change;
+
+      const delta = change.deltas["test-capability"][0] as Extract<
+        Delta,
+        { operation: "add" }
+      >;
+      delta.requirement.scenarios = [
+        {
+          id: "rq-new00001.1",
+          title: "Test scenario",
+          given: ["a precondition"],
+          when: "action occurs",
+          then: ["expected outcome"],
+        },
+      ];
+
+      const activeChanges = [
+        {
+          id: "other-change-456",
+          title: "Different Change",
+          capabilities: ["different-capability"], // Different capability
+        },
+      ];
+
+      const specs: Spec[] = [SAMPLE_SPEC as Spec];
+      const result = await validateChange(change, { specs, activeChanges });
+
+      expect(
+        result.warnings.some(
+          (w) => w.code === ValidationCodes.OVERLAPPING_CAPABILITY,
+        ),
+      ).toBe(false);
+    });
+
+    it("excludes self from conflict detection", async () => {
+      const change = structuredClone(SAMPLE_CHANGE) as Change;
+
+      const delta = change.deltas["test-capability"][0] as Extract<
+        Delta,
+        { operation: "add" }
+      >;
+      delta.requirement.scenarios = [
+        {
+          id: "rq-new00001.1",
+          title: "Test scenario",
+          given: ["a precondition"],
+          when: "action occurs",
+          then: ["expected outcome"],
+        },
+      ];
+
+      // Include the same change ID in active changes (simulating real scenario)
+      const activeChanges = [
+        {
+          id: change.id, // Same ID as the change being validated
+          title: change.title,
+          capabilities: ["test-capability"],
+        },
+      ];
+
+      const specs: Spec[] = [SAMPLE_SPEC as Spec];
+      const result = await validateChange(change, { specs, activeChanges });
+
+      // Should not warn about itself
+      expect(
+        result.warnings.some(
+          (w) => w.code === ValidationCodes.OVERLAPPING_CAPABILITY,
+        ),
+      ).toBe(false);
+    });
+
+    it("detects multiple overlapping capabilities", async () => {
+      const change: Change = {
+        id: "multi-cap-change",
+        title: "Multi-Capability Change",
+        status: "draft",
+        created_at: new Date().toISOString(),
+        tasks: [
+          {
+            id: "tk-multi001",
+            title: "Update multiple",
+            status: "pending",
+            priority: 0,
+            created_at: new Date().toISOString(),
+          },
+        ],
+        deltas: {
+          "capability-a": [
+            {
+              id: "dl-a001",
+              operation: "add",
+              requirement: {
+                id: "rq-a001",
+                title: "Req A",
+                body: "Body A",
+                priority: "must",
+                scenarios: [
+                  {
+                    id: "rq-a001.1",
+                    title: "Scenario",
+                    given: ["x"],
+                    when: "y",
+                    then: ["z"],
+                  },
+                ],
+              },
+            } as Extract<Delta, { operation: "add" }>,
+          ],
+          "capability-b": [
+            {
+              id: "dl-b001",
+              operation: "add",
+              requirement: {
+                id: "rq-b001",
+                title: "Req B",
+                body: "Body B",
+                priority: "must",
+                scenarios: [
+                  {
+                    id: "rq-b001.1",
+                    title: "Scenario",
+                    given: ["x"],
+                    when: "y",
+                    then: ["z"],
+                  },
+                ],
+              },
+            } as Extract<Delta, { operation: "add" }>,
+          ],
+        },
+      };
+
+      const activeChanges = [
+        {
+          id: "conflicting-change",
+          title: "Conflicting Change",
+          capabilities: ["capability-a", "capability-b"], // Both overlap
+        },
+      ];
+
+      const result = await validateChange(change, {
+        specs: [],
+        activeChanges,
+      });
+
+      const warning = result.warnings.find(
+        (w) => w.code === ValidationCodes.OVERLAPPING_CAPABILITY,
+      );
+      expect(warning).toBeDefined();
+      expect(warning?.details?.overlappingCapabilities).toContain(
+        "capability-a",
+      );
+      expect(warning?.details?.overlappingCapabilities).toContain(
+        "capability-b",
+      );
+    });
+
+    it("handles no active changes gracefully", async () => {
+      const change = structuredClone(SAMPLE_CHANGE) as Change;
+
+      const delta = change.deltas["test-capability"][0] as Extract<
+        Delta,
+        { operation: "add" }
+      >;
+      delta.requirement.scenarios = [
+        {
+          id: "rq-new00001.1",
+          title: "Test scenario",
+          given: ["a precondition"],
+          when: "action occurs",
+          then: ["expected outcome"],
+        },
+      ];
+
+      const specs: Spec[] = [SAMPLE_SPEC as Spec];
+
+      // No activeChanges passed
+      const result = await validateChange(change, { specs });
+
+      expect(
+        result.warnings.some(
+          (w) => w.code === ValidationCodes.OVERLAPPING_CAPABILITY,
+        ),
+      ).toBe(false);
+    });
+
+    it("handles empty active changes array gracefully", async () => {
+      const change = structuredClone(SAMPLE_CHANGE) as Change;
+
+      const delta = change.deltas["test-capability"][0] as Extract<
+        Delta,
+        { operation: "add" }
+      >;
+      delta.requirement.scenarios = [
+        {
+          id: "rq-new00001.1",
+          title: "Test scenario",
+          given: ["a precondition"],
+          when: "action occurs",
+          then: ["expected outcome"],
+        },
+      ];
+
+      const specs: Spec[] = [SAMPLE_SPEC as Spec];
+      const result = await validateChange(change, {
+        specs,
+        activeChanges: [],
+      });
+
+      expect(
+        result.warnings.some(
+          (w) => w.code === ValidationCodes.OVERLAPPING_CAPABILITY,
+        ),
+      ).toBe(false);
+    });
+  });
+
   describe("edge cases", () => {
     it("handles change with no deltas", async () => {
       const change: Change = {
