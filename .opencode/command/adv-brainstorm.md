@@ -10,56 +10,102 @@ args:
 
 # ADV Brainstorm - Interactive Ideation Session
 
-Collaborative ideation to explore, refine, and document ideas before formalizing into a change proposal. Creates a living document in `./temp/` that evolves through conversation.
+Collaborative ideation using diverge-then-converge methodology. Creates a living document in `./temp/` that evolves through structured phases: problem framing → idea generation → clustering → evaluation → refinement.
+
+> **Key principle**: During diverge phases, quantity beats quality. All judgment is postponed until converge phases.
 
 <UserRequest>
   $ARGUMENTS
 </UserRequest>
+
+---
+
+## Pre-flight Check
+
+### Check for Existing Session
+
+Look for `./temp/brainstorm-*.md` files:
+
+**If found**, use `mcp_question`:
+```
+header: "Existing Session"
+question: "Found existing brainstorm: <filename>. What would you like to do?"
+options:
+  - label: "Resume session (Recommended)"
+    description: "Continue where you left off"
+  - label: "Start fresh"
+    description: "Archive existing and begin new"
+  - label: "View existing"
+    description: "Read the document first"
+```
+
+---
 
 ## Phase 1: Session Setup
 
 ### Create Working Document
 
 1. Create `./temp/` directory if it doesn't exist
-2. Generate filename from topic: `brainstorm-<slugified-topic>.md`
-   - If no topic: `brainstorm-<timestamp>.md`
-3. Initialize document with template:
+2. Generate filename: `brainstorm-<slugified-topic>.md` (or `brainstorm-<timestamp>.md` if no topic)
+3. Initialize with template:
 
 ```markdown
 # Brainstorm: <topic or "Untitled Session">
 
 **Started:** <timestamp>
 **Status:** Active
+**Phase:** Setup
 
 ---
 
-## Problem Space
+## Problem Framing
 
+**Point of View:**
 <to be defined>
 
-## Goals
-
+**How Might We...?**
 <to be defined>
 
-## Ideas
+---
 
-<to be defined>
+## Ideas (Diverge)
+
+<to be captured during diverge phase>
+
+---
+
+## Clusters
+
+<to be organized after diverge>
+
+---
+
+## Evaluation (Converge)
+
+<to be completed after clustering>
+
+---
 
 ## Decisions
 
-<to be defined>
-
-## Open Questions
-
-<to be defined>
-
-## Next Steps
-
-<to be defined>
+| Decision | Choice | Rationale |
+|----------|--------|-----------|
 
 ---
 
-*This document is a working draft. When ready, use `/adv-proposal` to formalize.*
+## Open Questions
+
+- [ ] <captured during session>
+
+---
+
+## Next Steps
+
+<defined during wrap-up>
+
+---
+
+*Working draft. When ready: `/adv-proposal "<summary>"`*
 ```
 
 ### Announce Session
@@ -71,325 +117,427 @@ Collaborative ideation to explore, refine, and document ideas before formalizing
 
 Document: ./temp/<filename>.md
 
-This is an interactive ideation session. I'll help you:
-- Explore and refine your idea
-- Identify requirements and constraints
-- Surface edge cases and concerns
-- Document decisions as we go
+This is a structured ideation session with distinct phases:
 
-The document will be updated as we progress.
+1. FRAME    - Define the problem clearly
+2. DIVERGE  - Generate many ideas (no judgment!)
+3. CLUSTER  - Group related ideas
+4. CONVERGE - Evaluate and prioritize
+5. REFINE   - Develop selected ideas
+
+I'll guide you through each phase. The document updates as we go.
 
 ============================================================
 ```
 
 ---
 
-## Phase 2: Initial Discovery
+## Phase 2: Problem Framing
 
-### If Topic Provided
+Frame the problem before generating solutions. Clear framing enables focused creativity.
 
-Analyze the topic and ask clarifying questions using `mcp_question`:
+### Step 2.1: Establish Point of View
+
+Use `mcp_question` to understand the problem space:
 
 ```
-header: "Problem Space"
-question: "What's the core problem you're trying to solve?"
+header: "Problem Type"
+question: "What kind of problem are we solving?"
 options:
   - label: "User pain point"
-    description: "Something is frustrating or slow for users"
-  - label: "Technical debt"
-    description: "Code is hard to maintain or extend"
+    description: "Something frustrates or slows users"
   - label: "Missing capability"
     description: "Need functionality that doesn't exist"
-  - label: "Performance issue"
-    description: "Something is too slow or resource-heavy"
-  - label: "Integration need"
-    description: "Need to connect with external system"
+  - label: "Technical limitation"
+    description: "Current approach has hit a wall"
+  - label: "Opportunity"
+    description: "Possibility worth exploring"
 ```
 
-### If No Topic
+### Step 2.2: Construct POV Statement
 
-Start with open exploration:
+Guide user to articulate:
 
 ```
-header: "Getting Started"
-question: "What would you like to brainstorm about?"
+[WHO] needs [WHAT - verb phrase] because [WHY - insight].
+```
+
+Example: "Developers need to quickly test API changes because the current feedback loop takes 5 minutes."
+
+**Ask clarifying questions** to refine until POV is crisp.
+
+### Step 2.3: Generate "How Might We" Questions
+
+Transform the POV into 3-5 HMW questions that open exploration:
+
+```
+Based on your POV, here are some "How Might We" questions:
+
+1. How might we <reduce the feedback loop time>?
+2. How might we <make testing feel instant>?
+3. How might we <eliminate the need to wait>?
+4. How might we <test without deploying>?
+5. How might we <catch issues before testing>?
+
+Which of these feels most promising to explore?
+```
+
+Use `mcp_question` with `multiple: true` to let user select focus areas.
+
+### Update Document
+
+Write POV and selected HMW questions to the document.
+
+---
+
+## Phase 3: Diverge (Idea Generation)
+
+**Rules for this phase:**
+- Quantity over quality
+- Wild ideas welcome - "scaling back crazy is easier than making mundane desirable"
+- No evaluation, no "but", no "that won't work"
+- Build on ideas with "Yes, and..."
+
+### Step 3.1: Set Diverge Context
+
+```
+============================================================
+                    DIVERGE PHASE
+============================================================
+
+Goal: Generate as many ideas as possible. 
+Rules: No judgment. Wild ideas welcome. Quantity > quality.
+
+For each HMW question, I'll help you brainstorm solutions.
+We're aiming for 10+ ideas before we evaluate anything.
+
+============================================================
+```
+
+### Step 3.2: Idea Generation Techniques
+
+Cycle through these techniques to stimulate ideas:
+
+**Open Prompt:**
+```
+header: "Ideas"
+question: "What solutions come to mind for: <HMW question>?"
 options:
-  - label: "New feature idea"
-    description: "Something I want to add"
-  - label: "Improve existing"
-    description: "Make something better"
-  - label: "Solve a problem"
-    description: "Fix something that's broken or painful"
-  - label: "Explore possibility"
-    description: "Not sure yet, let's discover"
+  - label: "I have ideas"
+    description: "Let me share my thoughts"
+  - label: "Need prompts"
+    description: "Give me provocations to spark ideas"
+  - label: "Explore codebase"
+    description: "Look at existing patterns first"
+```
+
+**SCAMPER Provocations** (use when user needs prompts):
+
+| Lens | Provocation |
+|------|-------------|
+| **Substitute** | What if we replaced <component> with something else? |
+| **Combine** | What if we merged this with <existing feature>? |
+| **Adapt** | How do other systems solve this? |
+| **Modify** | What if we made it 10x faster? 10x simpler? |
+| **Put to other use** | What else could this enable? |
+| **Eliminate** | What if we removed the need for this entirely? |
+| **Rearrange** | What if the order was reversed? |
+
+Present 2-3 relevant provocations at a time:
+```
+header: "Provocation"
+question: "<SCAMPER provocation relevant to context>?"
+options:
+  - label: "That sparks an idea"
+    description: "Let me build on that"
+  - label: "Try another"
+    description: "Give me a different angle"
+  - label: "I'm stuck"
+    description: "Let's look at examples"
+```
+
+**Wild Ideas Push:**
+If ideas feel too safe:
+```
+header: "Go Wilder"
+question: "What's the craziest solution that might work if constraints didn't exist?"
+options:
+  - label: "Let me think wild"
+    description: "Removing constraints now"
+  - label: "Show me examples"
+    description: "What have others done?"
+```
+
+### Step 3.3: Research Grounding
+
+When needed, ground ideas in reality:
+
+- **Codebase search**: How do similar features work here?
+- **Context7**: What do libraries recommend?
+- **`adv_spec_list`**: What capabilities exist?
+
+Present findings as inspiration, not constraints.
+
+### Step 3.4: Capture All Ideas
+
+Update document continuously. Use simple format:
+
+```markdown
+## Ideas (Diverge)
+
+### For: <HMW question 1>
+
+1. <idea> 
+2. <idea>
+3. <wild idea> ⚡
+4. <idea building on #2>
+...
+
+### For: <HMW question 2>
+
+1. <idea>
+...
+```
+
+Mark wild ideas with ⚡ to preserve them.
+
+### Diverge Exit Criteria
+
+Ready to cluster when:
+- 10+ ideas generated across HMW questions
+- Ideas starting to repeat or overlap
+- User signals readiness
+
+```
+header: "Diverge Check"
+question: "We have <N> ideas. Ready to organize them?"
+options:
+  - label: "Yes, let's cluster"
+    description: "Move to organizing phase"
+  - label: "More ideas first"
+    description: "Continue diverging"
+  - label: "Take a break"
+    description: "Pause session, resume later"
 ```
 
 ---
 
-## Phase 3: Iterative Exploration
+## Phase 4: Cluster (Organize)
 
-This is the core loop. Use these techniques **liberally**:
+Group ideas to reveal patterns. This is a transition phase - still avoid hard evaluation.
 
-### Tool Usage (Use Frequently)
+### Step 4.1: Identify Themes
 
-| Technique | When to Use |
-|-----------|-------------|
-| `mcp_question` | Preferences, trade-offs, multiple valid paths |
-| Codebase search | Ground ideas in existing code patterns |
-| Context7 | Research libraries, patterns, best practices |
-| `adv_spec_list` / `adv_spec_show` | Check existing specs for conflicts/overlap |
-| `adv_change_list` | Check for related active changes |
+Review all ideas and propose groupings:
 
-### Question Patterns
-
-**Scope Questions:**
 ```
-header: "Scope"
-question: "How ambitious should this be?"
+Looking at your ideas, I see these emerging themes:
+
+1. **<Theme A>**: Ideas #1, #4, #7
+2. **<Theme B>**: Ideas #2, #5, #8
+3. **<Theme C>**: Ideas #3, #6
+4. **Outliers**: Ideas #9, #10 (unique angles)
+```
+
+Use `mcp_question`:
+```
+header: "Clusters"
+question: "Do these groupings make sense?"
 options:
-  - label: "Minimal viable"
-    description: "Smallest useful increment"
-  - label: "Well-rounded"
-    description: "Complete but not over-engineered"
-  - label: "Comprehensive"
-    description: "Handle all edge cases"
+  - label: "Yes, good clusters"
+    description: "Move to evaluation"
+  - label: "Adjust groupings"
+    description: "Some ideas fit differently"
+  - label: "Need more themes"
+    description: "I see other patterns"
 ```
 
-**Trade-off Questions:**
-```
-header: "Trade-off"
-question: "<specific trade-off>?"
-options:
-  - label: "<option A>"
-    description: "<pros of A>"
-  - label: "<option B>"
-    description: "<pros of B>"
-  - label: "Need more info"
-    description: "Research before deciding"
+### Step 4.2: Update Document
+
+```markdown
+## Clusters
+
+### Theme: <Theme A>
+- Idea 1: <description>
+- Idea 4: <description>
+- Idea 7: <description>
+
+**Common thread:** <what unites these>
+
+### Theme: <Theme B>
+- Idea 2: <description>
+...
+
+### Outliers (Don't Discard)
+- Idea 9: <wild idea worth keeping>
 ```
 
-**Priority Questions:**
+---
+
+## Phase 5: Converge (Evaluate)
+
+Now apply judgment. Evaluate ideas against criteria.
+
+### Step 5.1: Establish Evaluation Criteria
+
 ```
-header: "Priority"
-question: "Which aspect matters most?"
+header: "Priorities"
+question: "What matters most for this solution?"
 multiple: true
 options:
   - label: "Simplicity"
-    description: "Easy to understand and maintain"
-  - label: "Performance"
-    description: "Fast and efficient"
-  - label: "Flexibility"
-    description: "Easy to extend later"
-  - label: "User experience"
-    description: "Intuitive and pleasant"
+    description: "Easy to build and maintain"
+  - label: "User impact"
+    description: "Significant improvement for users"
+  - label: "Speed to ship"
+    description: "Can implement quickly"
+  - label: "Future-proof"
+    description: "Scales and extends well"
+  - label: "Low risk"
+    description: "Minimal chance of problems"
 ```
 
-**Validation Questions:**
+### Step 5.2: Evaluate Top Candidates
+
+For each cluster, identify 1-2 strongest ideas:
+
 ```
-header: "Validate"
-question: "Does this capture your intent?"
+header: "Evaluate <Theme A>"
+question: "Which idea from this cluster is most promising?"
 options:
-  - label: "Yes, continue"
-    description: "This is right"
-  - label: "Partially"
-    description: "Close but needs adjustment"
-  - label: "No, rethink"
-    description: "Let's try a different approach"
+  - label: "Idea 1"
+    description: "<brief description>"
+  - label: "Idea 4"
+    description: "<brief description>"
+  - label: "Combine 1+4"
+    description: "Merge best aspects"
+  - label: "None yet"
+    description: "Need to develop further"
 ```
 
-### Document Updates
+### Step 5.3: Check Feasibility
 
-After each significant exchange, update the brainstorm document:
+For selected ideas, quick feasibility check:
 
-1. **Add new ideas** to the Ideas section
-2. **Record decisions** when user makes choices
-3. **Capture open questions** that surface
-4. **Refine problem/goals** as clarity emerges
+- Search codebase for complexity indicators
+- Check for conflicts with existing specs: `adv_change_list`, `adv_spec_search`
+- Estimate effort: trivial | small | medium | large | huge
 
-Use markers to show evolution:
-- `[IDEA]` - Proposed, not yet validated
-- `[CONSIDERING]` - Actively discussing
-- `[DECIDED]` - User confirmed
-- `[REJECTED]` - Explicitly ruled out
-- `[QUESTION]` - Needs resolution
-
----
-
-## Phase 4: Deepening
-
-As the idea takes shape, dig deeper:
-
-### Technical Feasibility
-
-Search codebase for relevant patterns:
-- How do similar features work?
-- What patterns exist?
-- What would need to change?
-
-### Existing Spec Alignment
-
-```
-adv_spec_list
-adv_spec_search keyword: <relevant-term>
-```
-
-- Does this fit existing capabilities?
-- Would it require new specs?
-- Any conflicts with current design?
-
-### Library/Pattern Research
-
-Use Context7 for:
-- Best practices for this type of feature
-- Libraries that might help
-- Common pitfalls to avoid
-
-### Edge Cases
-
-Proactively surface:
-- Error scenarios
-- Performance considerations
-- Security implications
-- Migration/compatibility concerns
-
----
-
-## Phase 5: Convergence
-
-When ideas are crystallizing, help converge:
-
-### Synthesis Prompt
-
-```
-header: "Synthesis"
-question: "Ready to synthesize what we've discussed?"
-options:
-  - label: "Yes, summarize"
-    description: "Capture current state"
-  - label: "More exploration"
-    description: "Still have questions"
-  - label: "Pivot direction"
-    description: "Want to explore different angle"
-```
-
-### Update Document Structure
-
-Transform working notes into structured sections:
+### Step 5.4: Update Document
 
 ```markdown
-## Problem Space
+## Evaluation (Converge)
 
-<clear problem statement>
+**Criteria:** <selected priorities>
 
-## Goals
+### Top Candidates
 
-1. <primary goal>
-2. <secondary goal>
+| Idea | Theme | Pros | Cons | Effort |
+|------|-------|------|------|--------|
+| <idea 1> | A | <pros> | <cons> | medium |
+| <idea 2> | B | <pros> | <cons> | small |
 
-## Proposed Approach
+### Deferred (Good but not now)
+- <idea> - <reason to defer>
 
-<high-level solution>
+### Rejected
+- <idea> - <why not viable>
+```
 
-### Key Ideas
+---
 
-- [DECIDED] <idea 1> - <rationale>
-- [DECIDED] <idea 2> - <rationale>
+## Phase 6: Refine (Develop Selected Ideas)
 
-### Rejected Alternatives
+Develop the top 1-3 ideas into actionable concepts.
 
-- [REJECTED] <alternative> - <why not>
+### Step 6.1: Deep Dive Each Candidate
 
+For each selected idea:
+
+```
+header: "Develop <idea>"
+question: "What aspects need clarification?"
+multiple: true
+options:
+  - label: "Technical approach"
+    description: "How would we build it?"
+  - label: "User experience"
+    description: "How would users interact?"
+  - label: "Edge cases"
+    description: "What could go wrong?"
+  - label: "Dependencies"
+    description: "What do we need first?"
+```
+
+### Step 6.2: Research Specifics
+
+Use tools to answer questions:
+- Context7 for library/pattern research
+- Codebase search for integration points
+- `adv_spec_show` for related capabilities
+
+### Step 6.3: Capture Decisions
+
+As choices are made, record them:
+
+```markdown
 ## Decisions
 
 | Decision | Choice | Rationale |
 |----------|--------|-----------|
-| <decision point> | <choice> | <why> |
+| Approach | <choice> | <why> |
+| Library | <choice> | <why> |
+| Scope | <choice> | <why> |
+```
 
+### Step 6.4: Document Open Questions
+
+```markdown
 ## Open Questions
 
-- [ ] <unresolved question>
-
-## Risks & Concerns
-
-- <risk 1>
-- <concern 1>
-
-## Next Steps
-
-- [ ] <action item>
+- [ ] <question needing more research>
+- [ ] <question for stakeholder>
+- [ ] <technical uncertainty>
 ```
 
 ---
 
-## Phase 6: Session Management
+## Phase 7: Wrap-Up
 
-### Pause Session
-
-If user needs to step away:
+### Step 7.1: Check Readiness
 
 ```
-header: "Pause Session"
-question: "Save progress and pause?"
+header: "Session Status"
+question: "Where are you with this brainstorm?"
 options:
-  - label: "Pause (Recommended)"
-    description: "Save document, resume later"
-  - label: "Continue"
-    description: "Keep going"
+  - label: "Ready for proposal"
+    description: "Idea is clear enough to formalize"
+  - label: "Need more time"
+    description: "Pause and resume later"
+  - label: "Pivot direction"
+    description: "Want to explore different angle"
+  - label: "Archive this"
+    description: "Not pursuing right now"
+```
+
+### Step 7.2: If Ready for Proposal
+
+1. Update document status to `Complete`
+2. Generate summary
+3. Define next steps
+
+```markdown
+## Next Steps
+
+1. Create proposal: `/adv-proposal "<summary>"`
+2. Key decisions to carry forward:
+   - <decision 1>
+   - <decision 2>
+3. Open questions to address in proposal:
+   - <question>
 ```
 
 Output:
-```
-============================================================
-              BRAINSTORM SESSION PAUSED
-============================================================
-
-Document saved: ./temp/<filename>.md
-
-To resume: /adv-brainstorm (I'll detect the existing document)
-
-============================================================
-```
-
-### Resume Session
-
-If `./temp/brainstorm-*.md` exists, offer to resume:
-
-```
-header: "Existing Session"
-question: "Found existing brainstorm. Resume or start fresh?"
-options:
-  - label: "Resume (Recommended)"
-    description: "Continue from where you left off"
-  - label: "Start fresh"
-    description: "Archive old, begin new session"
-```
-
----
-
-## Phase 7: Completion
-
-### Ready for Proposal
-
-When user is ready to formalize:
-
-```
-header: "Ready to Propose"
-question: "Convert this brainstorm into a formal proposal?"
-options:
-  - label: "Create proposal (Recommended)"
-    description: "Run /adv-proposal with this context"
-  - label: "Keep brainstorming"
-    description: "Not ready yet"
-  - label: "End session"
-    description: "Save document, decide later"
-```
-
-### If Creating Proposal
-
-1. Update document status to `Complete`
-2. Add summary section
-3. Suggest proposal command:
-
 ```
 ============================================================
               BRAINSTORM SESSION COMPLETE
@@ -399,28 +547,49 @@ Document: ./temp/<filename>.md
 Status: Ready for proposal
 
 SUMMARY:
-<2-3 sentence summary of the idea>
+<2-3 sentence summary of the refined idea>
 
-SUGGESTED NEXT STEP:
+TOP APPROACH:
+<selected approach from evaluation>
+
+SUGGESTED NEXT:
 /adv-proposal "<one-line summary>"
 
-The brainstorm document will serve as context for the proposal.
+The brainstorm document provides context for the proposal.
 
 ============================================================
 ```
 
-### If Ending Without Proposal
+### Step 7.3: If Pausing
+
+Update status to `Paused`:
 
 ```
 ============================================================
-              BRAINSTORM SESSION ENDED
+              BRAINSTORM SESSION PAUSED
 ============================================================
 
-Document saved: ./temp/<filename>.md
+Document: ./temp/<filename>.md
+Phase: <current phase>
 
-When ready to continue:
-- Resume brainstorming: /adv-brainstorm
-- Create proposal: /adv-proposal "<summary>"
+Progress saved. To resume:
+/adv-brainstorm
+
+============================================================
+```
+
+### Step 7.4: If Archiving
+
+Move to `./temp/archive/` with timestamp:
+
+```
+============================================================
+              BRAINSTORM SESSION ARCHIVED
+============================================================
+
+Document moved to: ./temp/archive/<filename>-<timestamp>.md
+
+To start fresh: /adv-brainstorm <new topic>
 
 ============================================================
 ```
@@ -429,34 +598,67 @@ When ready to continue:
 
 ## Behavioral Guidelines
 
-### Be Proactive
+### During Diverge Phases
 
-- **Ask questions frequently** - Use `mcp_question` liberally
-- **Surface concerns early** - Don't wait for user to ask
-- **Research actively** - Use tools to ground ideas in reality
-- **Update document often** - Keep the living document current
+- Generate prompts actively - offer provocations, ask "what else?"
+- Capture everything - no idea too small or wild
+- Build on user ideas - "Yes, and..." not "But..."
+- Research for inspiration, not limitation
+- Update document continuously
 
-### Be Collaborative
+### During Converge Phases
 
-- **Build on user ideas** - Enhance, don't replace
-- **Offer alternatives** - "Have you considered...?"
-- **Validate understanding** - "So if I understand correctly..."
-- **Respect decisions** - Once decided, move forward
+- Apply judgment now - evaluate against stated criteria
+- Surface trade-offs honestly
+- Check feasibility with real research
+- Respect user decisions - once decided, move forward
 
-### Be Organized
+### Throughout Session
 
-- **Track state in document** - Single source of truth
-- **Use clear markers** - [DECIDED], [QUESTION], etc.
-- **Summarize periodically** - Help user see progress
-- **Connect to specs** - Ground in existing system
+- Use `mcp_question` frequently - every 2-3 exchanges
+- Keep document as single source of truth
+- Summarize progress periodically
+- Connect ideas to existing specs/codebase when relevant
 
-### Avoid
+---
 
-- Long monologues without interaction
-- Making decisions for the user
-- Ignoring existing codebase patterns
-- Over-engineering during ideation
-- Letting document get stale
+## Session Management
+
+### Resuming Sessions
+
+When resuming an existing session:
+1. Read the document to understand current state
+2. Check the Phase field
+3. Summarize where we left off
+4. Continue from that phase
+
+### Multiple Sessions
+
+If multiple `brainstorm-*.md` files exist:
+```
+header: "Multiple Sessions"
+question: "Found multiple brainstorms. Which one?"
+options:
+  - label: "<filename1> (<topic>)"
+    description: "Status: <status>"
+  - label: "<filename2> (<topic>)"
+    description: "Status: <status>"
+  - label: "Start new"
+    description: "Begin fresh session"
+```
+
+---
+
+## Completion Banner
+
+```
+============================================================
+       /adv-brainstorm COMPLETE
+============================================================
+Result: <Session complete | Session paused | Session archived>
+Document: ./temp/<filename>.md
+============================================================
+```
 
 ---
 
