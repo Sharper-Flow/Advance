@@ -87,10 +87,52 @@ interface MigrationReport {
   specsProcessed: number;
   requirementsMigrated: number;
   scenariosMigrated: number;
+  proposalsMigrated: number;
+  proposalsSkipped: number;
   projectMdCopied: boolean;
   backupFile: string | null;
   warnings: string[];
   errors: string[];
+}
+
+// =============================================================================
+// ADV Change Types
+// =============================================================================
+
+interface ADVTask {
+  id: string;
+  title: string;
+  section?: string;
+  status: "pending" | "in_progress" | "done" | "blocked" | "cancelled";
+  priority: number;
+  deps?: Array<{ task_id: string }>;
+  created_at: string;
+  tdd_phase: "none" | "red" | "green" | "refactor" | "complete";
+}
+
+interface ADVChange {
+  $schema: string;
+  id: string;
+  title: string;
+  status: "draft" | "pending" | "active" | "archived";
+  created_at: string;
+  tasks: ADVTask[];
+  deltas: Record<string, unknown[]>;
+}
+
+interface ParsedProposal {
+  id: string;
+  title: string;
+  content: string;
+  tasks: ParsedTask[];
+  hasStartedTasks: boolean;
+}
+
+interface ParsedTask {
+  title: string;
+  section?: string;
+  completed: boolean;
+  subtasks?: ParsedTask[];
 }
 
 // =============================================================================
@@ -409,6 +451,228 @@ function createBackup(openspecDir: string, outputDir: string): string | null {
 }
 
 // =============================================================================
+// Proposal Parser
+// =============================================================================
+
+/**
+ * Parse tasks from OpenSpec tasks.md format.
+ * Detects if any tasks have been started (checked off).
+ */
+function parseTasksMd(content: string): { tasks: ParsedTask[]; hasStartedTasks: boolean } {
+  const lines = content.split("\n");
+  const tasks: ParsedTask[] = [];
+  let hasStartedTasks = false;
+  let currentSection: string | undefined;
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+
+    // Section headers (## or ###)
+    if (trimmed.startsWith("## ") || trimmed.startsWith("### ")) {
+      currentSection = trimmed.replace(/^#+\s*/, "").trim();
+      // Skip certain sections
+      if (currentSection.toLowerCase().includes("dependencies") ||
+          currentSection.toLowerCase().includes("estimated") ||
+          currentSection.toLowerCase().includes("verification checklist") ||
+          currentSection.toLowerCase().includes("prerequisites")) {
+        currentSection = undefined;
+      }
+      continue;
+    }
+
+    // Task items: - [ ] or - [x]
+    const taskMatch = trimmed.match(/^-\s*\[([ xX])\]\s*(.+)$/);
+    if (taskMatch) {
+      const isCompleted = taskMatch[1].toLowerCase() === "x";
+      const taskTitle = taskMatch[2].trim();
+
+      if (isCompleted) {
+        hasStartedTasks = true;
+      }
+
+      // Skip prerequisite-like items
+      if (taskTitle.toLowerCase().includes("prerequisite") ||
+          taskTitle.toLowerCase().includes("complete ✅")) {
+        continue;
+      }
+
+      tasks.push({
+        title: taskTitle,
+        section: currentSection,
+        completed: isCompleted,
+      });
+    }
+  }
+
+  return { tasks, hasStartedTasks };
+}
+
+/**
+ * Extract title from proposal.md content.
+ */
+function extractProposalTitle(content: string): string {
+  const lines = content.split("\n");
+  for (const line of lines) {
+    const trimmed = line.trim();
+    // Look for "# Change: Title" or just "# Title"
+    if (trimmed.startsWith("# ")) {
+      return trimmed
+        .replace(/^#\s*/, "")
+        .replace(/^Change:\s*/i, "")
+        .trim();
+    }
+  }
+  return "Untitled Change";
+}
+
+/**
+ * Find and parse all unstarted proposals in the changes directory.
+ */
+async function findUnstartedProposals(openspecDir: string): Promise<ParsedProposal[]> {
+  const changesDir = join(openspecDir, "changes");
+  const proposals: ParsedProposal[] = [];
+
+  if (!existsSync(changesDir)) {
+    return proposals;
+  }
+
+  const entries = await readdir(changesDir, { withFileTypes: true });
+
+  for (const entry of entries) {
+    // Skip archive directory
+    if (!entry.isDirectory() || entry.name === "archive") {
+      continue;
+    }
+
+    const changeDir = join(changesDir, entry.name);
+    const proposalFile = join(changeDir, "proposal.md");
+    const tasksFile = join(changeDir, "tasks.md");
+
+    // Must have proposal.md
+    if (!existsSync(proposalFile)) {
+      continue;
+    }
+
+    try {
+      const proposalContent = await readFile(proposalFile, "utf-8");
+      const title = extractProposalTitle(proposalContent);
+
+      let tasks: ParsedTask[] = [];
+      let hasStartedTasks = false;
+
+      // Parse tasks.md if it exists
+      if (existsSync(tasksFile)) {
+        const tasksContent = await readFile(tasksFile, "utf-8");
+        const parsed = parseTasksMd(tasksContent);
+        tasks = parsed.tasks;
+        hasStartedTasks = parsed.hasStartedTasks;
+      }
+
+      proposals.push({
+        id: entry.name,
+        title,
+        content: proposalContent,
+        tasks,
+        hasStartedTasks,
+      });
+    } catch (err) {
+      // Skip on error
+      continue;
+    }
+  }
+
+  return proposals;
+}
+
+/**
+ * Convert a parsed proposal to ADV change format.
+ */
+function convertProposalToADV(proposal: ParsedProposal): ADVChange {
+  const now = new Date().toISOString();
+  
+  const tasks: ADVTask[] = proposal.tasks.map((t, idx) => ({
+    id: `tk-${nanoid(8)}`,
+    title: t.title,
+    section: t.section,
+    status: "pending" as const,
+    priority: idx,
+    created_at: now,
+    tdd_phase: "none" as const,
+  }));
+
+  return {
+    $schema: "../change.schema.json",
+    id: proposal.id,
+    title: proposal.title,
+    status: "draft",
+    created_at: now,
+    tasks,
+    deltas: {},
+  };
+}
+
+/**
+ * Migrate unstarted proposals to ADV format.
+ */
+async function migrateProposals(
+  openspecDir: string,
+  outputDir: string,
+  report: MigrationReport
+): Promise<void> {
+  const proposals = await findUnstartedProposals(openspecDir);
+  
+  if (proposals.length === 0) {
+    console.log("No proposals found to migrate\n");
+    return;
+  }
+
+  console.log(`Found ${proposals.length} proposals in changes/\n`);
+
+  // Create changes directory
+  const changesDir = join(outputDir, "..", "changes");
+  await mkdir(changesDir, { recursive: true });
+
+  for (const proposal of proposals) {
+    // Skip proposals that have started (have completed tasks)
+    if (proposal.hasStartedTasks) {
+      console.log(`Skipping: ${proposal.id} (has started tasks)`);
+      report.proposalsSkipped++;
+      report.warnings.push(`${proposal.id}: Skipped - has completed tasks`);
+      continue;
+    }
+
+    console.log(`Migrating: ${proposal.id}`);
+    console.log(`  - Title: ${proposal.title}`);
+    console.log(`  - Tasks: ${proposal.tasks.length}`);
+
+    try {
+      // Convert to ADV format
+      const advChange = convertProposalToADV(proposal);
+
+      // Create change directory
+      const changeDir = join(changesDir, proposal.id);
+      await mkdir(changeDir, { recursive: true });
+
+      // Write change.json
+      const changeFile = join(changeDir, "change.json");
+      await writeFile(changeFile, JSON.stringify(advChange, null, 2));
+
+      // Copy original proposal.md
+      const proposalDest = join(changeDir, "proposal.md");
+      await writeFile(proposalDest, proposal.content);
+
+      report.proposalsMigrated++;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      report.errors.push(`Proposal ${proposal.id}: ${msg}`);
+      console.error(`  - Error: ${msg}`);
+    }
+  }
+
+  console.log("");
+}
+
+// =============================================================================
 // Main
 // =============================================================================
 
@@ -443,6 +707,8 @@ async function migrate(
     specsProcessed: 0,
     requirementsMigrated: 0,
     scenariosMigrated: 0,
+    proposalsMigrated: 0,
+    proposalsSkipped: 0,
     projectMdCopied: false,
     backupFile: null,
     warnings: [],
@@ -528,6 +794,12 @@ async function migrate(
     }
   }
 
+  // Migrate unstarted proposals
+  console.log("\n" + "-".repeat(60));
+  console.log("  Migrating Proposals");
+  console.log("-".repeat(60) + "\n");
+  await migrateProposals(openspecDir, outputDir, report);
+
   return report;
 }
 
@@ -586,6 +858,8 @@ Example:
   console.log(`Specs processed:       ${report.specsProcessed}`);
   console.log(`Requirements migrated: ${report.requirementsMigrated}`);
   console.log(`Scenarios migrated:    ${report.scenariosMigrated}`);
+  console.log(`Proposals migrated:    ${report.proposalsMigrated}`);
+  console.log(`Proposals skipped:     ${report.proposalsSkipped} (already started)`);
   console.log(`Project context:       ${report.projectMdCopied ? "copied" : "not found"}`);
   console.log(`Backup:                ${report.backupFile ?? "not created"}`);
 
