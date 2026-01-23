@@ -13,9 +13,10 @@
  */
 
 import { readdir, readFile, mkdir, writeFile } from "fs/promises";
-import { join, basename } from "path";
-import { randomBytes } from "crypto";
+import { join, basename, dirname } from "path";
+import { randomBytes, execSync } from "crypto";
 import { existsSync } from "fs";
+import { spawnSync } from "child_process";
 
 // Simple nanoid replacement using crypto
 function nanoid(size: number = 8): string {
@@ -87,6 +88,7 @@ interface MigrationReport {
   requirementsMigrated: number;
   scenariosMigrated: number;
   projectMdCopied: boolean;
+  backupFile: string | null;
   warnings: string[];
   errors: string[];
 }
@@ -371,6 +373,42 @@ function convertToADV(parsed: ParsedSpec): ADVSpec {
 }
 
 // =============================================================================
+// Backup
+// =============================================================================
+
+/**
+ * Create a backup tarball of the OpenSpec directory.
+ * Returns the path to the backup file, or null if backup failed.
+ */
+function createBackup(openspecDir: string, outputDir: string): string | null {
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
+  const backupName = `openspec-backup-${timestamp}.tar.gz`;
+  const backupPath = join(dirname(outputDir), backupName);
+  
+  try {
+    // Use tar to create a compressed backup
+    const result = spawnSync("tar", [
+      "-czf",
+      backupPath,
+      "-C",
+      dirname(openspecDir),
+      basename(openspecDir),
+    ], { encoding: "utf-8" });
+    
+    if (result.status !== 0) {
+      console.error(`Backup failed: ${result.stderr}`);
+      return null;
+    }
+    
+    return backupPath;
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(`Backup failed: ${msg}`);
+    return null;
+  }
+}
+
+// =============================================================================
 // Main
 // =============================================================================
 
@@ -406,6 +444,7 @@ async function migrate(
     requirementsMigrated: 0,
     scenariosMigrated: 0,
     projectMdCopied: false,
+    backupFile: null,
     warnings: [],
     errors: [],
   };
@@ -529,6 +568,17 @@ Example:
 
   const report = await migrate(openspecDir, outputDir);
 
+  // Create backup after successful migration
+  if (report.errors.length === 0 && report.specsProcessed > 0) {
+    console.log("\nCreating backup of original OpenSpec directory...");
+    report.backupFile = createBackup(openspecDir, outputDir);
+    if (report.backupFile) {
+      console.log(`Backup created: ${report.backupFile}`);
+    } else {
+      report.warnings.push("Failed to create backup (migration still succeeded)");
+    }
+  }
+
   console.log("");
   console.log("=".repeat(60));
   console.log("  Migration Report");
@@ -537,6 +587,7 @@ Example:
   console.log(`Requirements migrated: ${report.requirementsMigrated}`);
   console.log(`Scenarios migrated:    ${report.scenariosMigrated}`);
   console.log(`Project context:       ${report.projectMdCopied ? "copied" : "not found"}`);
+  console.log(`Backup:                ${report.backupFile ?? "not created"}`);
 
   if (report.warnings.length > 0) {
     console.log(`\nWarnings (${report.warnings.length}):`);
