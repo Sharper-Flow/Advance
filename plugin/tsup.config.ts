@@ -5,5 +5,5 @@ export default defineConfig({
   format: ["esm"],
   dts: true,
   clean: true,
-  external: ["@opencode-ai/plugin"],
+  external: ["@opencode-ai/plugin", "bun:sqlite"],
 });
