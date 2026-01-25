@@ -1,0 +1,10 @@
+{
+  "name": "advance",
+  "version": "0.1.0",
+  "specs_dir": "specs",
+  "changes_dir": "changes",
+  "archive_dir": "archive",
+  "docs_dir": "docs/specs",
+  "db_dir": ".specdb",
+  "project_file": "project.md"
+}

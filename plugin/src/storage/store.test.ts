@@ -144,7 +144,8 @@ describe("Store", () => {
     test("create generates new change", async () => {
       const result = await store.changes.create("Test new feature");
 
-      expect(result.changeId).toMatch(/^test-new-feature-[a-zA-Z0-9_-]+$/);
+      // ID format: 15-char max slug + 4-char nanoid
+      expect(result.changeId).toMatch(/^test-new-featur-[a-zA-Z0-9_-]{4}$/);
       expect(result.path).toContain("proposal.md");
 
       const loaded = await store.changes.get(result.changeId);

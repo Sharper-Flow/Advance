@@ -32,6 +32,7 @@ import {
   saveChange,
   createChangeScaffold,
   getProjectPaths,
+  resolveChangeId,
   type ProjectPaths,
 } from "./json";
 
@@ -262,17 +263,34 @@ export async function createStore(directory: string): Promise<Store> {
       },
 
       get: async (changeId) => {
-        return loadChange(paths.changes, changeId);
+        // Support partial ID matching (e.g., just "abc1" instead of full ID)
+        const { id: resolvedId, candidates } = await resolveChangeId(
+          paths.changes,
+          changeId,
+        );
+
+        if (!resolvedId) {
+          if (candidates.length > 1) {
+            console.error(
+              `Ambiguous change ID "${changeId}". Matches: ${candidates.join(", ")}`,
+            );
+          }
+          return null;
+        }
+
+        return loadChange(paths.changes, resolvedId);
       },
 
       create: async (summary, _capability) => {
         // Generate change ID from summary
+        // Keep slug short (15 chars) + 4-char nanoid for quick typing
+        // Users can reference by just the nanoid suffix (e.g., "abc1")
         const slug = summary
           .toLowerCase()
           .replace(/[^a-z0-9]+/g, "-")
           .replace(/^-|-$/g, "")
-          .slice(0, 30);
-        const changeId = `${slug}-${nanoid(6)}`;
+          .slice(0, 15);
+        const changeId = `${slug}-${nanoid(4)}`;
 
         // Create scaffold
         const { changePath, proposalPath } = await createChangeScaffold(

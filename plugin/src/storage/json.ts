@@ -131,6 +131,53 @@ export async function listChangeDirs(changesDir: string): Promise<string[]> {
   }
 }
 
+/**
+ * Resolve a partial change ID to a full change ID.
+ * Supports:
+ * - Full ID: "add-feature-abc1" → "add-feature-abc1"
+ * - Suffix match: "abc1" → "add-feature-abc1" (if unique)
+ * - Prefix match: "add-feat" → "add-feature-abc1" (if unique)
+ *
+ * Returns null if no match or multiple matches found.
+ */
+export async function resolveChangeId(
+  changesDir: string,
+  partialId: string,
+): Promise<{ id: string | null; candidates: string[] }> {
+  const dirs = await listChangeDirs(changesDir);
+
+  // Exact match first
+  if (dirs.includes(partialId)) {
+    return { id: partialId, candidates: [partialId] };
+  }
+
+  // Suffix match (user typed just the nanoid part)
+  const suffixMatches = dirs.filter((d) => d.endsWith(`-${partialId}`));
+  if (suffixMatches.length === 1) {
+    return { id: suffixMatches[0], candidates: suffixMatches };
+  }
+  if (suffixMatches.length > 1) {
+    return { id: null, candidates: suffixMatches };
+  }
+
+  // Prefix match
+  const prefixMatches = dirs.filter((d) => d.startsWith(partialId));
+  if (prefixMatches.length === 1) {
+    return { id: prefixMatches[0], candidates: prefixMatches };
+  }
+  if (prefixMatches.length > 1) {
+    return { id: null, candidates: prefixMatches };
+  }
+
+  // Contains match (last resort)
+  const containsMatches = dirs.filter((d) => d.includes(partialId));
+  if (containsMatches.length === 1) {
+    return { id: containsMatches[0], candidates: containsMatches };
+  }
+
+  return { id: null, candidates: containsMatches };
+}
+
 export async function loadChange(
   changesDir: string,
   changeId: string,

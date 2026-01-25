@@ -3,9 +3,11 @@
  *
  * Handles SQLite caching for fast queries.
  * JSON files remain source of truth; SQLite is derived.
+ *
+ * Uses bun:sqlite for Bun runtime compatibility.
  */
 
-import Database from "better-sqlite3";
+import { Database } from "bun:sqlite";
 import type { Spec, Change, Task } from "../types";
 
 // =============================================================================
@@ -130,7 +132,7 @@ CREATE TABLE IF NOT EXISTS sync_meta (
 // =============================================================================
 
 export interface SQLiteStore {
-  db: Database.Database;
+  db: Database;
 
   // Specs
   specs: {
@@ -235,21 +237,21 @@ export interface BlockedTask {
 // =============================================================================
 
 export function createSQLiteStore(dbPath: string): SQLiteStore {
-  const db = new Database(dbPath);
+  const db = new Database(dbPath, { create: true });
 
   // Enable WAL mode for better concurrent performance
-  db.pragma("journal_mode = WAL");
-  db.pragma("foreign_keys = ON");
+  db.exec("PRAGMA journal_mode = WAL");
+  db.exec("PRAGMA foreign_keys = ON");
 
   // Run schema
   db.exec(SCHEMA);
 
-  // Prepare statements
+  // Prepare statements using db.query() for bun:sqlite
   const stmts = {
-    specsList: db.prepare("SELECT * FROM specs"),
-    specsListByName: db.prepare("SELECT * FROM specs WHERE name = ?"),
-    specsGet: db.prepare("SELECT * FROM specs WHERE name = ?"),
-    specsUpsert: db.prepare(`
+    specsList: db.query("SELECT * FROM specs"),
+    specsListByName: db.query("SELECT * FROM specs WHERE name = ?"),
+    specsGet: db.query("SELECT * FROM specs WHERE name = ?"),
+    specsUpsert: db.query(`
       INSERT INTO specs (name, title, purpose, version, updated_at, json_path, synced_at)
       VALUES (?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(name) DO UPDATE SET
@@ -260,18 +262,16 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
         json_path = excluded.json_path,
         synced_at = excluded.synced_at
     `),
-    specsDelete: db.prepare("DELETE FROM specs WHERE name = ?"),
+    specsDelete: db.query("DELETE FROM specs WHERE name = ?"),
 
-    reqsList: db.prepare("SELECT * FROM requirements WHERE spec_name = ?"),
-    reqsGet: db.prepare("SELECT * FROM requirements WHERE id = ?"),
-    reqsInsert: db.prepare(`
+    reqsList: db.query("SELECT * FROM requirements WHERE spec_name = ?"),
+    reqsGet: db.query("SELECT * FROM requirements WHERE id = ?"),
+    reqsInsert: db.query(`
       INSERT INTO requirements (id, spec_name, title, body, priority, tags)
       VALUES (?, ?, ?, ?, ?, ?)
     `),
-    reqsDeleteBySpec: db.prepare(
-      "DELETE FROM requirements WHERE spec_name = ?",
-    ),
-    reqsSearch: db.prepare(`
+    reqsDeleteBySpec: db.query("DELETE FROM requirements WHERE spec_name = ?"),
+    reqsSearch: db.query(`
       SELECT r.id, r.spec_name, r.title, 
              snippet(requirements_fts, 2, '<mark>', '</mark>', '...', 32) as match,
              rank
@@ -282,17 +282,17 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
       LIMIT ?
     `),
 
-    scenarioInsert: db.prepare(`
+    scenarioInsert: db.query(`
       INSERT INTO scenarios (id, requirement_id, title, given_json, when_clause, then_json)
       VALUES (?, ?, ?, ?, ?, ?)
     `),
 
-    changesList: db.prepare("SELECT * FROM changes ORDER BY created_at DESC"),
-    changesListByStatus: db.prepare(
+    changesList: db.query("SELECT * FROM changes ORDER BY created_at DESC"),
+    changesListByStatus: db.query(
       "SELECT * FROM changes WHERE status = ? ORDER BY created_at DESC",
     ),
-    changesGet: db.prepare("SELECT * FROM changes WHERE id = ?"),
-    changesUpsert: db.prepare(`
+    changesGet: db.query("SELECT * FROM changes WHERE id = ?"),
+    changesUpsert: db.query(`
       INSERT INTO changes (id, title, status, created_at, created_by, json_path, synced_at)
       VALUES (?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(id) DO UPDATE SET
@@ -302,24 +302,24 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
         json_path = excluded.json_path,
         synced_at = excluded.synced_at
     `),
-    changesDelete: db.prepare("DELETE FROM changes WHERE id = ?"),
+    changesDelete: db.query("DELETE FROM changes WHERE id = ?"),
 
-    tasksList: db.prepare(
+    tasksList: db.query(
       "SELECT * FROM tasks WHERE change_id = ? ORDER BY priority, created_at",
     ),
-    tasksListByStatus: db.prepare(
+    tasksListByStatus: db.query(
       "SELECT * FROM tasks WHERE change_id = ? AND status = ? ORDER BY priority, created_at",
     ),
-    tasksGet: db.prepare("SELECT * FROM tasks WHERE id = ?"),
-    tasksInsert: db.prepare(`
+    tasksGet: db.query("SELECT * FROM tasks WHERE id = ?"),
+    tasksInsert: db.query(`
       INSERT INTO tasks (id, change_id, title, section, status, priority, created_at, started_at, completed_at, completed_by)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `),
-    tasksDeleteByChange: db.prepare("DELETE FROM tasks WHERE change_id = ?"),
-    tasksPending: db.prepare(
+    tasksDeleteByChange: db.query("DELETE FROM tasks WHERE change_id = ?"),
+    tasksPending: db.query(
       "SELECT * FROM tasks WHERE change_id = ? AND status = 'pending' ORDER BY priority",
     ),
-    tasksBlockers: db.prepare(`
+    tasksBlockers: db.query(`
       SELECT d.target_id 
       FROM dependencies d
       JOIN tasks t ON d.target_id = t.id
@@ -328,18 +328,18 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
         AND t.status NOT IN ('done', 'cancelled')
     `),
 
-    depInsert: db.prepare(
+    depInsert: db.query(
       "INSERT OR IGNORE INTO dependencies (source_id, target_id, type) VALUES (?, ?, ?)",
     ),
 
-    deltaInsert: db.prepare(`
+    deltaInsert: db.query(`
       INSERT INTO deltas (id, change_id, capability, operation, target_id, requirement_json, changes_json, reason)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `),
-    deltasDeleteByChange: db.prepare("DELETE FROM deltas WHERE change_id = ?"),
+    deltasDeleteByChange: db.query("DELETE FROM deltas WHERE change_id = ?"),
 
-    syncMetaGet: db.prepare("SELECT value FROM sync_meta WHERE key = ?"),
-    syncMetaUpsert: db.prepare(`
+    syncMetaGet: db.query("SELECT value FROM sync_meta WHERE key = ?"),
+    syncMetaUpsert: db.query(`
       INSERT INTO sync_meta (key, value) VALUES (?, ?)
       ON CONFLICT(key) DO UPDATE SET value = excluded.value
     `),
@@ -363,7 +363,9 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
       upsert: (spec, jsonPath) => {
         const now = new Date().toISOString();
 
-        const upsertSpec = db.transaction(() => {
+        // Use transaction for atomic updates
+        db.exec("BEGIN TRANSACTION");
+        try {
           stmts.specsUpsert.run(
             spec.name,
             spec.title,
@@ -400,9 +402,11 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
               );
             }
           }
-        });
-
-        upsertSpec();
+          db.exec("COMMIT");
+        } catch (e) {
+          db.exec("ROLLBACK");
+          throw e;
+        }
       },
 
       delete: (name) => {
@@ -439,7 +443,9 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
       upsert: (change, jsonPath) => {
         const now = new Date().toISOString();
 
-        const upsertChange = db.transaction(() => {
+        // Use transaction for atomic updates
+        db.exec("BEGIN TRANSACTION");
+        try {
           stmts.changesUpsert.run(
             change.id,
             change.title,
@@ -496,9 +502,11 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
               );
             }
           }
-        });
-
-        upsertChange();
+          db.exec("COMMIT");
+        } catch (e) {
+          db.exec("ROLLBACK");
+          throw e;
+        }
       },
 
       delete: (id) => {
@@ -565,7 +573,7 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
 
         if (fields.length > 0) {
           values.push(id);
-          db.prepare(`UPDATE tasks SET ${fields.join(", ")} WHERE id = ?`).run(
+          db.query(`UPDATE tasks SET ${fields.join(", ")} WHERE id = ?`).run(
             ...values,
           );
         }

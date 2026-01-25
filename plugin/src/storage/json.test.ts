@@ -21,6 +21,7 @@ import {
   listChangeDirs,
   getProjectPaths,
   fileExists,
+  resolveChangeId,
 } from "./json";
 import {
   createTempDir,
@@ -201,6 +202,54 @@ describe("Change Operations", () => {
 
     const changes = await loadAllChanges(changesDir);
     expect(changes.size).toBe(2);
+  });
+});
+
+describe("resolveChangeId", () => {
+  let tempDir: string;
+  let changesDir: string;
+
+  beforeEach(async () => {
+    tempDir = await createTempDir();
+    changesDir = join(tempDir, "changes");
+
+    // Create multiple changes for testing
+    await saveChange(changesDir, { ...SAMPLE_CHANGE, id: "add-feature-abc1" });
+    await saveChange(changesDir, { ...SAMPLE_CHANGE, id: "add-feature-xyz9" });
+    await saveChange(changesDir, { ...SAMPLE_CHANGE, id: "fix-bug-def2" });
+  });
+
+  afterEach(async () => {
+    await cleanupTempDir(tempDir);
+  });
+
+  test("exact match returns the ID", async () => {
+    const result = await resolveChangeId(changesDir, "add-feature-abc1");
+    expect(result.id).toBe("add-feature-abc1");
+    expect(result.candidates).toEqual(["add-feature-abc1"]);
+  });
+
+  test("suffix match with nanoid returns unique match", async () => {
+    const result = await resolveChangeId(changesDir, "abc1");
+    expect(result.id).toBe("add-feature-abc1");
+  });
+
+  test("suffix match with multiple candidates returns null", async () => {
+    // Both add-feature-abc1 and add-feature-xyz9 match "add-feature-"
+    const result = await resolveChangeId(changesDir, "add-feature");
+    expect(result.id).toBeNull();
+    expect(result.candidates).toHaveLength(2);
+  });
+
+  test("prefix match returns unique match", async () => {
+    const result = await resolveChangeId(changesDir, "fix-bug");
+    expect(result.id).toBe("fix-bug-def2");
+  });
+
+  test("no match returns null with empty candidates", async () => {
+    const result = await resolveChangeId(changesDir, "nonexistent");
+    expect(result.id).toBeNull();
+    expect(result.candidates).toHaveLength(0);
   });
 });
 

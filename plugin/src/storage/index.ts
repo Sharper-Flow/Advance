@@ -15,5 +15,6 @@ export {
   loadAllChanges,
   createChangeScaffold,
   getProjectPaths,
+  resolveChangeId,
   type ProjectPaths,
 } from "./json";

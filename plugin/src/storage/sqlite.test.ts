@@ -53,7 +53,7 @@ describe("SQLiteStore", () => {
 
     test("get returns null for missing spec", () => {
       const spec = store.specs.get("nonexistent");
-      expect(spec).toBeUndefined();
+      expect(spec).toBeNull();
     });
 
     test("upsert updates existing spec", () => {

@@ -114,8 +114,9 @@ describe("Change Tools", () => {
       );
       const parsed = JSON.parse(result);
 
+      // ID format: 15-char max slug + 4-char nanoid
       expect(parsed.changeId).toMatch(
-        /^add-user-authentication-[a-zA-Z0-9_-]+$/,
+        /^add-user-authen-[a-zA-Z0-9_-]{4}$/,
       );
       expect(parsed.path).toContain("proposal.md");
     });
@@ -144,8 +145,8 @@ describe("Change Tools", () => {
       );
       const parsed = JSON.parse(result);
 
-      // ID should be truncated to 30 chars + nanoid
-      expect(parsed.changeId.length).toBeLessThan(50);
+      // ID should be truncated to 15 chars + 4-char nanoid (max ~20 chars)
+      expect(parsed.changeId.length).toBeLessThanOrEqual(20);
     });
   });
 
