@@ -19,6 +19,7 @@ import {
   TddPhaseSchema,
   TddPhaseEvidenceSchema,
   TddEvidenceSchema,
+  AgendaItemSchema,
   isLogicTask,
   isTrivialTask,
   hasCompleteTddEvidence,
@@ -641,6 +642,134 @@ describe("Schema Backward Compatibility", () => {
       );
       expect((result.tasks[0] as Record<string, unknown>).estimate_hours).toBe(
         4,
+      );
+    });
+  });
+
+  describe("SpecSchema", () => {
+    test("parses spec with extra/unknown fields (passthrough)", () => {
+      const specWithExtraFields = {
+        name: "test-spec",
+        title: "Test Spec",
+        purpose: "Testing",
+        version: "1.0.0",
+        updated_at: "2026-01-01T00:00:00Z",
+        requirements: [],
+        // Extra fields
+        custom_metadata: { author: "test" },
+        legacy_field: "old value",
+      };
+
+      const result = SpecSchema.parse(specWithExtraFields);
+      expect(result.name).toBe("test-spec");
+      expect((result as Record<string, unknown>).custom_metadata).toEqual({
+        author: "test",
+      });
+    });
+
+    test("parses spec with requirements containing extra fields", () => {
+      const specWithCustomReqs = {
+        name: "custom-reqs-spec",
+        title: "Spec with Custom Requirements",
+        purpose: "Testing",
+        version: "1.0.0",
+        updated_at: "2026-01-01T00:00:00Z",
+        requirements: [
+          {
+            id: "rq-test123",
+            title: "Test Requirement",
+            body: "Test body",
+            priority: "must",
+            // Extra fields on requirement
+            author: "dev@example.com",
+            reviewed: true,
+          },
+        ],
+      };
+
+      const result = SpecSchema.parse(specWithCustomReqs);
+      expect(result.requirements[0].id).toBe("rq-test123");
+      expect((result.requirements[0] as Record<string, unknown>).author).toBe(
+        "dev@example.com",
+      );
+    });
+  });
+
+  describe("ProjectConfigSchema", () => {
+    test("parses config with extra/unknown fields (passthrough)", () => {
+      const configWithExtraFields = {
+        name: "test-project",
+        version: "1.0.0",
+        // Extra fields
+        custom_setting: true,
+        legacy_paths: { old: "/path" },
+      };
+
+      const result = ProjectConfigSchema.parse(configWithExtraFields);
+      expect(result.name).toBe("test-project");
+      expect((result as Record<string, unknown>).custom_setting).toBe(true);
+    });
+
+    test("applies defaults for missing optional fields", () => {
+      const minimalConfig = {
+        name: "minimal-project",
+      };
+
+      const result = ProjectConfigSchema.parse(minimalConfig);
+      expect(result.name).toBe("minimal-project");
+      expect(result.specs_dir).toBe("specs");
+      expect(result.changes_dir).toBe("changes");
+    });
+  });
+
+  describe("AgendaItemSchema", () => {
+    test("parses agenda item with extra/unknown fields (passthrough)", () => {
+      const itemWithExtraFields = {
+        id: "ag-test123",
+        title: "Test Item",
+        created_at: "2026-01-01T00:00:00Z",
+        // Extra fields
+        custom_tag: "urgent",
+        external_id: "JIRA-123",
+      };
+
+      const result = AgendaItemSchema.parse(itemWithExtraFields);
+      expect(result.id).toBe("ag-test123");
+      expect((result as Record<string, unknown>).custom_tag).toBe("urgent");
+      expect((result as Record<string, unknown>).external_id).toBe("JIRA-123");
+    });
+
+    test("applies defaults for missing optional fields", () => {
+      const minimalItem = {
+        id: "ag-minimal",
+        title: "Minimal Item",
+        created_at: "2026-01-01T00:00:00Z",
+      };
+
+      const result = AgendaItemSchema.parse(minimalItem);
+      expect(result.priority).toBe("medium");
+      expect(result.status).toBe("pending");
+      expect(result.tdd_phase).toBe("none");
+    });
+  });
+
+  describe("ScenarioSchema", () => {
+    test("parses scenario with extra/unknown fields (passthrough)", () => {
+      const scenarioWithExtraFields = {
+        id: "rq-test.1",
+        title: "Test Scenario",
+        given: ["A user exists"],
+        when: "User logs in",
+        then: ["User sees dashboard"],
+        // Extra fields
+        notes: "Manual test required",
+        automation_status: "pending",
+      };
+
+      const result = ScenarioSchema.parse(scenarioWithExtraFields);
+      expect(result.id).toBe("rq-test.1");
+      expect((result as Record<string, unknown>).notes).toBe(
+        "Manual test required",
       );
     });
   });

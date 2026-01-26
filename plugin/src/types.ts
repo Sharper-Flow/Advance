@@ -30,13 +30,15 @@ export type Priority = z.infer<typeof PrioritySchema>;
 // Scenario (Given/When/Then)
 // =============================================================================
 
-export const ScenarioSchema = z.object({
-  id: z.string(), // Hierarchical: rq-V1StGXR8.1
-  title: z.string(),
-  given: z.array(z.string()),
-  when: z.string(),
-  then: z.array(z.string()),
-});
+export const ScenarioSchema = z
+  .object({
+    id: z.string(), // Hierarchical: rq-V1StGXR8.1
+    title: z.string(),
+    given: z.array(z.string()),
+    when: z.string(),
+    then: z.array(z.string()),
+  })
+  .passthrough(); // Allow extra fields for forward/backward compatibility
 
 export type Scenario = z.infer<typeof ScenarioSchema>;
 
@@ -44,14 +46,16 @@ export type Scenario = z.infer<typeof ScenarioSchema>;
 // Requirement
 // =============================================================================
 
-export const RequirementSchema = z.object({
-  id: z.string(), // rq-V1StGXR8
-  title: z.string(),
-  body: z.string(), // Markdown allowed
-  priority: PrioritySchema,
-  tags: z.array(z.string()).optional(),
-  scenarios: z.array(ScenarioSchema).optional(),
-});
+export const RequirementSchema = z
+  .object({
+    id: z.string(), // rq-V1StGXR8
+    title: z.string(),
+    body: z.string(), // Markdown allowed
+    priority: PrioritySchema,
+    tags: z.array(z.string()).optional(),
+    scenarios: z.array(ScenarioSchema).optional(),
+  })
+  .passthrough(); // Allow extra fields for forward/backward compatibility
 
 export type Requirement = z.infer<typeof RequirementSchema>;
 
@@ -59,15 +63,17 @@ export type Requirement = z.infer<typeof RequirementSchema>;
 // Spec (The Law)
 // =============================================================================
 
-export const SpecSchema = z.object({
-  $schema: z.string().optional(),
-  name: z.string(), // kebab-case capability ID
-  title: z.string(),
-  purpose: z.string(),
-  version: z.string(), // Semantic version
-  updated_at: z.string(), // ISO8601
-  requirements: z.array(RequirementSchema),
-});
+export const SpecSchema = z
+  .object({
+    $schema: z.string().optional(),
+    name: z.string(), // kebab-case capability ID
+    title: z.string(),
+    purpose: z.string(),
+    version: z.string(), // Semantic version
+    updated_at: z.string(), // ISO8601
+    requirements: z.array(RequirementSchema),
+  })
+  .passthrough(); // Allow extra fields for forward/backward compatibility
 
 export type Spec = z.infer<typeof SpecSchema>;
 
@@ -327,17 +333,19 @@ export type Change = z.infer<typeof ChangeSchema>;
 // Project Configuration
 // =============================================================================
 
-export const ProjectConfigSchema = z.object({
-  $schema: z.string().optional(),
-  name: z.string(),
-  version: z.string().optional(),
-  specs_dir: z.string().default("specs"),
-  changes_dir: z.string().default("changes"),
-  archive_dir: z.string().default("archive"),
-  docs_dir: z.string().default("docs/specs"),
-  db_dir: z.string().default(".specdb"),
-  project_file: z.string().default("project.md"),
-});
+export const ProjectConfigSchema = z
+  .object({
+    $schema: z.string().optional(),
+    name: z.string(),
+    version: z.string().optional(),
+    specs_dir: z.string().default("specs"),
+    changes_dir: z.string().default("changes"),
+    archive_dir: z.string().default("archive"),
+    docs_dir: z.string().default("docs/specs"),
+    db_dir: z.string().default(".specdb"),
+    project_file: z.string().default("project.md"),
+  })
+  .passthrough(); // Allow extra fields for forward/backward compatibility
 
 export type ProjectConfig = z.infer<typeof ProjectConfigSchema>;
 
@@ -573,46 +581,50 @@ export type AgendaStatus = z.infer<typeof AgendaStatusSchema>;
  * Agenda item - lightweight task without full spec ceremony.
  * Stored in JSONL format for easy append-only operations.
  */
-export const AgendaItemSchema = z.object({
-  /** Unique ID (ag-{nanoid}) */
-  id: z.string(),
-  /** Task description */
-  title: z.string(),
-  /** Optional detailed description or acceptance criteria */
-  description: z.string().optional(),
-  /** Priority level */
-  priority: AgendaPrioritySchema.default("medium"),
-  /** Current status */
-  status: AgendaStatusSchema.default("pending"),
-  /** Category/tag for grouping (e.g., "tests", "bugfix", "refactor") */
-  category: z.string().optional(),
-  /** Blocked by another agenda item ID */
-  blocked_by: z.string().optional(),
-  /** Created timestamp */
-  created_at: z.string(),
-  /** Started timestamp */
-  started_at: z.string().optional(),
-  /** Completed timestamp */
-  completed_at: z.string().optional(),
-  /** Completion notes or evidence */
-  completion_notes: z.string().optional(),
-  /** TDD phase if applicable */
-  tdd_phase: TddPhaseSchema.default("none"),
-  /** TDD evidence if recorded */
-  tdd_evidence: TddEvidenceSchema.optional(),
-});
+export const AgendaItemSchema = z
+  .object({
+    /** Unique ID (ag-{nanoid}) */
+    id: z.string(),
+    /** Task description */
+    title: z.string(),
+    /** Optional detailed description or acceptance criteria */
+    description: z.string().optional(),
+    /** Priority level */
+    priority: AgendaPrioritySchema.default("medium"),
+    /** Current status */
+    status: AgendaStatusSchema.default("pending"),
+    /** Category/tag for grouping (e.g., "tests", "bugfix", "refactor") */
+    category: z.string().optional(),
+    /** Blocked by another agenda item ID */
+    blocked_by: z.string().optional(),
+    /** Created timestamp */
+    created_at: z.string(),
+    /** Started timestamp */
+    started_at: z.string().optional(),
+    /** Completed timestamp */
+    completed_at: z.string().optional(),
+    /** Completion notes or evidence */
+    completion_notes: z.string().optional(),
+    /** TDD phase if applicable */
+    tdd_phase: TddPhaseSchema.default("none"),
+    /** TDD evidence if recorded */
+    tdd_evidence: TddEvidenceSchema.optional(),
+  })
+  .passthrough(); // Allow extra fields for forward/backward compatibility
 
 export type AgendaItem = z.infer<typeof AgendaItemSchema>;
 
 /**
  * Agenda file metadata stored at top of JSONL.
  */
-export const AgendaMetaSchema = z.object({
-  type: z.literal("meta"),
-  version: z.string().default("1.0"),
-  created_at: z.string(),
-  project: z.string().optional(),
-});
+export const AgendaMetaSchema = z
+  .object({
+    type: z.literal("meta"),
+    version: z.string().default("1.0"),
+    created_at: z.string(),
+    project: z.string().optional(),
+  })
+  .passthrough(); // Allow extra fields for forward/backward compatibility
 
 export type AgendaMeta = z.infer<typeof AgendaMetaSchema>;
 
