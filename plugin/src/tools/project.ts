@@ -2,6 +2,7 @@
  * Project Tools
  *
  * Tools for reading project-level context.
+ * Data retrieval tool - returns pure JSON.
  */
 
 import { readFile } from "fs/promises";

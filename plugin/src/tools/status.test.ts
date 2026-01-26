@@ -11,6 +11,7 @@ import {
   createTempDir,
   cleanupTempDir,
   createTestProject,
+  parseToolOutput,
   SAMPLE_SPEC,
 } from "../__tests__/setup";
 
@@ -32,7 +33,7 @@ describe("Status Tools", () => {
   describe("adv_status", () => {
     test("returns spec count and capabilities", async () => {
       const result = await statusTools.adv_status.execute({}, store);
-      const parsed = JSON.parse(result);
+      const parsed = parseToolOutput(result);
 
       expect(parsed.specs.count).toBe(1);
       expect(parsed.specs.capabilities).toContain("test-capability");
@@ -40,7 +41,7 @@ describe("Status Tools", () => {
 
     test("returns change counts by status", async () => {
       const result = await statusTools.adv_status.execute({}, store);
-      const parsed = JSON.parse(result);
+      const parsed = parseToolOutput(result);
 
       expect(parsed.changes.active).toBe(1);
       expect(parsed.changes.byStatus.active).toBe(1);
@@ -52,7 +53,7 @@ describe("Status Tools", () => {
       await store.changes.create("Draft feature");
 
       const result = await statusTools.adv_status.execute({}, store);
-      const parsed = JSON.parse(result);
+      const parsed = parseToolOutput(result);
 
       expect(parsed.changes.active).toBe(2);
       expect(parsed.changes.byStatus.draft).toBe(1);
@@ -65,7 +66,7 @@ describe("Status Tools", () => {
       await store.tasks.update("tk-task0003", "done");
 
       const result = await statusTools.adv_status.execute({}, store);
-      const parsed = JSON.parse(result);
+      const parsed = parseToolOutput(result);
 
       expect(parsed.recommendations.length).toBeGreaterThan(0);
       expect(parsed.recommendations[0]).toContain("Ready to archive");
@@ -74,7 +75,7 @@ describe("Status Tools", () => {
 
     test("no archive recommendation when tasks incomplete", async () => {
       const result = await statusTools.adv_status.execute({}, store);
-      const parsed = JSON.parse(result);
+      const parsed = parseToolOutput(result);
 
       const archiveRecs = parsed.recommendations.filter((r: string) =>
         r.includes("Ready to archive"),
@@ -99,7 +100,7 @@ describe("Status Tools", () => {
       await store.specs.save(newSpec);
 
       const result = await statusTools.adv_status.execute({}, store);
-      const parsed = JSON.parse(result);
+      const parsed = parseToolOutput(result);
 
       expect(parsed.specs.count).toBe(2);
       expect(parsed.specs.capabilities).toContain("test-capability");
@@ -116,7 +117,7 @@ describe("Status Tools", () => {
       const emptyStore = await createStore(emptyDir);
 
       const result = await statusTools.adv_status.execute({}, emptyStore);
-      const parsed = JSON.parse(result);
+      const parsed = parseToolOutput(result);
 
       expect(parsed.specs.count).toBe(0);
       expect(parsed.changes.active).toBe(0);

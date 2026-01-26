@@ -2,6 +2,7 @@
  * Spec Tools
  *
  * Tools for querying and managing specifications.
+ * These are data retrieval tools - no banners (return pure JSON).
  */
 
 import { z } from "zod";

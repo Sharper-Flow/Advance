@@ -11,6 +11,7 @@ import {
   createTempDir,
   cleanupTempDir,
   createTestProject,
+  parseToolOutput,
 } from "../__tests__/setup";
 
 describe("Change Tools", () => {
@@ -112,12 +113,10 @@ describe("Change Tools", () => {
         { summary: "Add user authentication" },
         store,
       );
-      const parsed = JSON.parse(result);
+      const parsed = parseToolOutput(result);
 
       // ID format: 15-char max slug + 4-char nanoid
-      expect(parsed.changeId).toMatch(
-        /^add-user-authen-[a-zA-Z0-9_-]{4}$/,
-      );
+      expect(parsed.changeId).toMatch(/^add-user-authen-[a-zA-Z0-9_-]{4}$/);
       expect(parsed.path).toContain("proposal.md");
     });
 
@@ -126,7 +125,7 @@ describe("Change Tools", () => {
         { summary: "New feature" },
         store,
       );
-      const parsed = JSON.parse(result);
+      const parsed = parseToolOutput(result);
 
       const change = await store.changes.get(parsed.changeId);
       expect(change).not.toBeNull();
@@ -143,7 +142,7 @@ describe("Change Tools", () => {
         },
         store,
       );
-      const parsed = JSON.parse(result);
+      const parsed = parseToolOutput(result);
 
       // ID should be truncated to 15 chars + 4-char nanoid (max ~20 chars)
       expect(parsed.changeId.length).toBeLessThanOrEqual(20);
@@ -156,7 +155,7 @@ describe("Change Tools", () => {
         { changeId: "add-feature-abc123" },
         store,
       );
-      const parsed = JSON.parse(result);
+      const parsed = parseToolOutput(result);
 
       expect(parsed.passed).toBe(true);
       expect(parsed.errors).toHaveLength(0);
@@ -168,13 +167,13 @@ describe("Change Tools", () => {
         { summary: "Empty change" },
         store,
       );
-      const { changeId } = JSON.parse(createResult);
+      const { changeId } = parseToolOutput(createResult);
 
       const result = await changeTools.adv_change_validate.execute(
         { changeId },
         store,
       );
-      const parsed = JSON.parse(result);
+      const parsed = parseToolOutput(result);
 
       expect(parsed.passed).toBe(true); // Warnings don't fail by default
       expect(
@@ -187,13 +186,13 @@ describe("Change Tools", () => {
         { summary: "No deltas change" },
         store,
       );
-      const { changeId } = JSON.parse(createResult);
+      const { changeId } = parseToolOutput(createResult);
 
       const result = await changeTools.adv_change_validate.execute(
         { changeId },
         store,
       );
-      const parsed = JSON.parse(result);
+      const parsed = parseToolOutput(result);
 
       expect(
         parsed.warnings.some((w: { code: string }) => w.code === "NO_DELTAS"),
@@ -205,13 +204,13 @@ describe("Change Tools", () => {
         { summary: "Empty change" },
         store,
       );
-      const { changeId } = JSON.parse(createResult);
+      const { changeId } = parseToolOutput(createResult);
 
       const result = await changeTools.adv_change_validate.execute(
         { changeId, strict: true },
         store,
       );
-      const parsed = JSON.parse(result);
+      const parsed = parseToolOutput(result);
 
       expect(parsed.passed).toBe(false);
     });
@@ -221,7 +220,7 @@ describe("Change Tools", () => {
         { changeId: "nonexistent" },
         store,
       );
-      const parsed = JSON.parse(result);
+      const parsed = parseToolOutput(result);
 
       expect(parsed.error).toContain("not found");
     });
@@ -238,7 +237,7 @@ describe("Change Tools", () => {
         { changeId: "add-feature-abc123" },
         store,
       );
-      const parsed = JSON.parse(result);
+      const parsed = parseToolOutput(result);
 
       expect(parsed.success).toBe(true);
       expect(
@@ -251,7 +250,7 @@ describe("Change Tools", () => {
         { changeId: "add-feature-abc123" },
         store,
       );
-      const parsed = JSON.parse(result);
+      const parsed = parseToolOutput(result);
 
       expect(parsed.error).toContain("incomplete tasks");
       expect(parsed.incompleteTasks).toHaveLength(3);
@@ -262,7 +261,7 @@ describe("Change Tools", () => {
         { changeId: "nonexistent" },
         store,
       );
-      const parsed = JSON.parse(result);
+      const parsed = parseToolOutput(result);
 
       expect(parsed.error).toContain("not found");
     });

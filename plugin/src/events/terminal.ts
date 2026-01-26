@@ -297,7 +297,8 @@ export const updateTerminalStatus = (
   lastAlertedStatus = status;
 
   const isCompletionState = status === "EARTH" || status === "MIC";
-  const wasActiveWork = previousStatus === "ROCKET" || previousStatus === "MOON";
+  const wasActiveWork =
+    previousStatus === "ROCKET" || previousStatus === "MOON";
 
   if (isCompletionState && previousStatus !== null && wasActiveWork) {
     ringBell();

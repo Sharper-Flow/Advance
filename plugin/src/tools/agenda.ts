@@ -2,6 +2,7 @@
  * Agenda Tools
  *
  * MCP tools for lightweight task management without full spec ceremony.
+ * Most are data tools (pure JSON), except adv_agenda_next and adv_agenda_stats which are user-facing.
  */
 
 import { z } from "zod";
@@ -25,6 +26,7 @@ import {
   isLogicTask,
   type TddPhaseEvidence,
 } from "../types";
+import { wrapWithBanner } from "../utils/banner";
 
 // =============================================================================
 // Tool Definitions
@@ -167,7 +169,6 @@ export const agendaTools = {
       { itemId, notes }: { itemId: string; notes?: string },
       projectDir: string,
     ) => {
-      // Check TDD compliance before completing
       const { items } = await loadAgenda(projectDir);
       const existing = items.find((i) => i.id === itemId);
 
@@ -177,7 +178,6 @@ export const agendaTools = {
 
       const compliance = getTddComplianceStatus({
         ...existing,
-        // Map agenda fields to task fields for compliance check
         id: existing.id,
         title: existing.title,
         status: "done",
@@ -257,26 +257,32 @@ export const agendaTools = {
     execute: async (_args: Record<string, never>, projectDir: string) => {
       const item = await getNextAgendaItem(projectDir);
       if (!item) {
-        return JSON.stringify({
-          message: "No pending items in agenda",
-          suggestion: "Add items with adv_agenda_add",
-        });
+        return wrapWithBanner(
+          { command: "adv_agenda_next" },
+          JSON.stringify({
+            message: "No pending items in agenda",
+            suggestion: "Add items with adv_agenda_add",
+          }),
+        );
       }
 
       const requiresTdd = isLogicTask(item.title);
 
-      return JSON.stringify(
-        {
-          next: item,
-          analysis: {
-            requires_tdd: requiresTdd,
-            recommendation: requiresTdd
-              ? "Start with a failing test (Red phase)"
-              : "Ready to implement",
+      return wrapWithBanner(
+        { command: "adv_agenda_next", target: item.id },
+        JSON.stringify(
+          {
+            next: item,
+            analysis: {
+              requires_tdd: requiresTdd,
+              recommendation: requiresTdd
+                ? "Start with a failing test (Red phase)"
+                : "Ready to implement",
+            },
           },
-        },
-        null,
-        2,
+          null,
+          2,
+        ),
       );
     },
   },
@@ -288,17 +294,20 @@ export const agendaTools = {
       const stats = await getAgendaStats(projectDir);
       const active = await getActiveAgenda(projectDir);
 
-      return JSON.stringify(
-        {
-          ...stats,
-          activeQueue: active.length,
-          nextUp:
-            active.length > 0
-              ? { id: active[0].id, title: active[0].title }
-              : null,
-        },
-        null,
-        2,
+      return wrapWithBanner(
+        { command: "adv_agenda_stats" },
+        JSON.stringify(
+          {
+            ...stats,
+            activeQueue: active.length,
+            nextUp:
+              active.length > 0
+                ? { id: active[0].id, title: active[0].title }
+                : null,
+          },
+          null,
+          2,
+        ),
       );
     },
   },
@@ -356,7 +365,6 @@ export const agendaTools = {
       const tddEvidence = existing.tdd_evidence ?? {};
       tddEvidence[phase] = evidence;
 
-      // Update TDD phase based on evidence
       let tddPhase: "none" | "red" | "green" | "refactor" | "complete" =
         existing.tdd_phase;
       if (phase === "red") {

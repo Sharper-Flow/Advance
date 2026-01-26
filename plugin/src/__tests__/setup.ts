@@ -245,3 +245,36 @@ export async function assertJsonFile<T>(
   }
   return data as T;
 }
+
+// =============================================================================
+// Tool Output Helpers
+// =============================================================================
+
+/**
+ * Extract JSON from banner-wrapped tool output.
+ *
+ * Banner format:
+ * ```
+ * ╔═══════════════════╗
+ * ║ 📊 adv_status     ║
+ * ╚═══════════════════╝
+ *
+ * { json data }
+ * ```
+ *
+ * Also handles pure JSON output (no banner).
+ */
+export function parseToolOutput<T = unknown>(output: string): T {
+  // If it starts with { or [, it's pure JSON
+  const trimmed = output.trim();
+  if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
+    return JSON.parse(trimmed) as T;
+  }
+
+  // Find first { or [ which starts the JSON
+  const jsonStart = output.search(/[{[]/);
+  if (jsonStart === -1) {
+    throw new Error("No JSON found in output");
+  }
+  return JSON.parse(output.slice(jsonStart)) as T;
+}

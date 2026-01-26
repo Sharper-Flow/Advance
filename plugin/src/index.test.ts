@@ -11,6 +11,7 @@ import {
   createTempDir,
   cleanupTempDir,
   createTestProject,
+  parseToolOutput,
 } from "./__tests__/setup";
 
 // =============================================================================
@@ -268,7 +269,7 @@ describe("Advance Plugin SDK Integration", () => {
       const result = await hooks.tool!.adv_status.execute({}, context);
 
       expect(typeof result).toBe("string");
-      const parsed = JSON.parse(result);
+      const parsed = parseToolOutput(result);
       expect(parsed).toHaveProperty("specs");
       expect(parsed).toHaveProperty("changes");
     });
@@ -284,7 +285,7 @@ describe("Advance Plugin SDK Integration", () => {
       );
 
       expect(typeof result).toBe("string");
-      const parsed = JSON.parse(result);
+      const parsed = parseToolOutput(result);
       expect(parsed).toHaveProperty("changeId");
     });
   });

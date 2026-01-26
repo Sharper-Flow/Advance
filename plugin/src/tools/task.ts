@@ -2,6 +2,7 @@
  * Task Tools
  *
  * Tools for managing tasks within changes.
+ * All are data tools returning pure JSON.
  */
 
 import { z } from "zod";

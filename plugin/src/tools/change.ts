@@ -9,6 +9,7 @@ import type { Spec } from "../types";
 import type { Store } from "../storage/store";
 import { validateChange } from "../validator";
 import { archiveChange } from "../archive";
+import { wrapWithBanner } from "../utils/banner";
 
 // =============================================================================
 // Tool Definitions
@@ -64,7 +65,10 @@ export const changeTools = {
       store: Store,
     ) => {
       const result = await store.changes.create(summary, capability);
-      return JSON.stringify(result, null, 2);
+      return wrapWithBanner(
+        { command: "adv_change_create", target: result.changeId },
+        JSON.stringify(result, null, 2),
+      );
     },
   },
 
@@ -81,7 +85,10 @@ export const changeTools = {
     ) => {
       const change = await store.changes.get(changeId);
       if (!change) {
-        return JSON.stringify({ error: `Change not found: ${changeId}` });
+        return wrapWithBanner(
+          { command: "adv_change_validate", target: changeId },
+          JSON.stringify({ error: `Change not found: ${changeId}` }),
+        );
       }
 
       // Load all specs for validation context
@@ -120,16 +127,19 @@ export const changeTools = {
         ? result.errors.length === 0 && result.warnings.length === 0
         : result.passed;
 
-      return JSON.stringify(
-        {
-          passed,
-          errors: result.errors,
-          warnings: result.warnings,
-          checksPerformed: result.checksPerformed,
-          checkedAt: result.checkedAt,
-        },
-        null,
-        2,
+      return wrapWithBanner(
+        { command: "adv_change_validate", target: changeId },
+        JSON.stringify(
+          {
+            passed,
+            errors: result.errors,
+            warnings: result.warnings,
+            checksPerformed: result.checksPerformed,
+            checkedAt: result.checkedAt,
+          },
+          null,
+          2,
+        ),
       );
     },
   },
@@ -149,7 +159,10 @@ export const changeTools = {
     ) => {
       const change = await store.changes.get(changeId);
       if (!change) {
-        return JSON.stringify({ error: `Change not found: ${changeId}` });
+        return wrapWithBanner(
+          { command: "adv_change_archive", target: changeId },
+          JSON.stringify({ error: `Change not found: ${changeId}` }),
+        );
       }
 
       // Check all tasks complete
@@ -157,13 +170,16 @@ export const changeTools = {
         (t) => t.status !== "done" && t.status !== "cancelled",
       );
       if (incompleteTasks.length > 0) {
-        return JSON.stringify({
-          error: "Cannot archive: incomplete tasks",
-          incompleteTasks: incompleteTasks.map((t) => ({
-            id: t.id,
-            title: t.title,
-          })),
-        });
+        return wrapWithBanner(
+          { command: "adv_change_archive", target: changeId },
+          JSON.stringify({
+            error: "Cannot archive: incomplete tasks",
+            incompleteTasks: incompleteTasks.map((t) => ({
+              id: t.id,
+              title: t.title,
+            })),
+          }),
+        );
       }
 
       // Load all specs for delta application
@@ -190,21 +206,24 @@ export const changeTools = {
         await store.changes.save(change);
       }
 
-      return JSON.stringify(
-        {
-          success: result.success,
-          specsUpdated: result.specsUpdated.map((s) => ({
-            capability: s.capability,
-            version: `${s.originalVersion} → ${s.newVersion}`,
-            deltas: s.deltaResults.length,
-          })),
-          docsGenerated: result.docsGenerated,
-          archivePath: result.archivePath,
-          errors: result.errors,
-          dryRun: dryRun ?? false,
-        },
-        null,
-        2,
+      return wrapWithBanner(
+        { command: "adv_change_archive", target: changeId },
+        JSON.stringify(
+          {
+            success: result.success,
+            specsUpdated: result.specsUpdated.map((s) => ({
+              capability: s.capability,
+              version: `${s.originalVersion} → ${s.newVersion}`,
+              deltas: s.deltaResults.length,
+            })),
+            docsGenerated: result.docsGenerated,
+            archivePath: result.archivePath,
+            errors: result.errors,
+            dryRun: dryRun ?? false,
+          },
+          null,
+          2,
+        ),
       );
     },
   },
