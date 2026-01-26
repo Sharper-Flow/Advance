@@ -1,0 +1,100 @@
+/**
+ * Wisdom Tools
+ *
+ * Tools for managing cross-task learning (wisdom) within changes.
+ * Wisdom entries capture patterns, successes, failures, gotchas, and conventions
+ * discovered during task execution for injection into subsequent task context.
+ */
+
+import { z } from "zod";
+import type { Store } from "../storage/store";
+import { WisdomTypeSchema } from "../types";
+
+// =============================================================================
+// Tool Definitions
+// =============================================================================
+
+export const wisdomTools = {
+  adv_wisdom_add: {
+    description:
+      "Add a wisdom entry (learning) to a change. Captures patterns, successes, failures, gotchas, or conventions discovered during task execution.",
+    args: {
+      changeId: z.string().describe("Change ID to add wisdom to"),
+      type: WisdomTypeSchema.describe(
+        "Category: pattern | success | failure | gotcha | convention",
+      ),
+      content: z
+        .string()
+        .max(2000)
+        .describe("The learning content (max 2000 chars)"),
+      sourceTask: z
+        .string()
+        .optional()
+        .describe("Task ID that generated this wisdom"),
+    },
+    execute: async (
+      {
+        changeId,
+        type,
+        content,
+        sourceTask,
+      }: {
+        changeId: string;
+        type: "pattern" | "success" | "failure" | "gotcha" | "convention";
+        content: string;
+        sourceTask?: string;
+      },
+      store: Store,
+    ) => {
+      try {
+        const entry = await store.wisdom.add(changeId, type, content, sourceTask);
+        return JSON.stringify(
+          {
+            success: true,
+            entry,
+            message: `Added ${type} wisdom to change ${changeId}`,
+          },
+          null,
+          2,
+        );
+      } catch (error) {
+        return JSON.stringify({
+          error: error instanceof Error ? error.message : "Failed to add wisdom",
+        });
+      }
+    },
+  },
+
+  adv_wisdom_list: {
+    description:
+      "List all wisdom entries for a change. Returns accumulated learnings with summary by type.",
+    args: {
+      changeId: z.string().describe("Change ID to list wisdom for"),
+    },
+    execute: async ({ changeId }: { changeId: string }, store: Store) => {
+      try {
+        const wisdom = await store.wisdom.list(changeId);
+
+        // Calculate summary by type
+        const byType: Record<string, number> = {};
+        for (const entry of wisdom) {
+          byType[entry.type] = (byType[entry.type] || 0) + 1;
+        }
+
+        return JSON.stringify(
+          {
+            wisdom,
+            count: wisdom.length,
+            byType,
+          },
+          null,
+          2,
+        );
+      } catch (error) {
+        return JSON.stringify({
+          error: error instanceof Error ? error.message : "Failed to list wisdom",
+        });
+      }
+    },
+  },
+};

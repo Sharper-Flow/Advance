@@ -5,7 +5,7 @@
  * Primary interface for AI agents to manage specs, changes, and tasks.
  *
  * Implements the @opencode-ai/plugin SDK interface with:
- * - tool: 28 MCP tools for spec/change/task management
+ * - tool: 30 MCP tools for spec/change/task/wisdom management
  * - event: Session status tracking, terminal UI updates
  * - tool.execute.before/after: TDD phase detection, test runner tracking
  * - experimental.session.compacting: Change preservation during compaction
@@ -16,6 +16,7 @@ import { createStore } from "./storage/store";
 import { specTools } from "./tools/spec";
 import { changeTools } from "./tools/change";
 import { taskTools } from "./tools/task";
+import { wisdomTools } from "./tools/wisdom";
 import { statusTools } from "./tools/status";
 import { agendaTools } from "./tools/agenda";
 import { projectTools } from "./tools/project";
@@ -36,11 +37,35 @@ interface PluginState {
   status: StatusMarker;
   activeSubAgents: number;
   lastBashCommand: string | null;
-  activeChange: {
-    id: string | null;
-    objective: string | null;
-  };
-}
+    activeChange: {
+      id: string | null;
+      objective: string | null;
+    };
+    lastCompletedTask: {
+      id: string;
+      title: string;
+    } | null;
+  }
+
+// =============================================================================
+// Debug Logging
+// =============================================================================
+
+const DEBUG = process.env.ADV_DEBUG === "1";
+
+const debugLog = (msg: string): void => {
+  if (DEBUG) {
+    const fs = require("fs");
+    try {
+      fs.appendFileSync(
+        "/tmp/adv-debug.log",
+        `${new Date().toISOString()} [index] ${msg}\n`,
+      );
+    } catch {
+      // ignore
+    }
+  }
+};
 
 // =============================================================================
 // Constants
@@ -67,6 +92,8 @@ const TEST_FAILURE_PATTERNS = /FAIL|FAILED|Error:|AssertionError|✗|✘/;
 // =============================================================================
 
 export const AdvancePlugin: Plugin = async ({ directory }) => {
+  debugLog(`Plugin initializing: directory=${directory}`);
+
   // Initialize store
   const store = await createStore(directory);
   await store.init();
@@ -74,6 +101,7 @@ export const AdvancePlugin: Plugin = async ({ directory }) => {
 
   // Initialize terminal status
   const projectName = getProjectName(directory);
+  debugLog(`Initializing status: projectName=${projectName}`);
   initializeStatus(projectName);
 
   // Plugin state
@@ -85,6 +113,7 @@ export const AdvancePlugin: Plugin = async ({ directory }) => {
       id: null,
       objective: null,
     },
+    lastCompletedTask: null,
   };
 
   // Helper to update state and terminal
@@ -335,6 +364,36 @@ export const AdvancePlugin: Plugin = async ({ directory }) => {
       }),
 
       // ----------------------------------------------------------------------
+      // Wisdom Tools (Cross-Task Learning)
+      // ----------------------------------------------------------------------
+      adv_wisdom_add: tool({
+        description: wisdomTools.adv_wisdom_add.description,
+        args: {
+          changeId: tool.schema.string().describe("Change ID to add wisdom to"),
+          type: tool.schema
+            .enum(["pattern", "success", "failure", "gotcha", "convention"])
+            .describe("Category of wisdom"),
+          content: tool.schema
+            .string()
+            .describe("The learning content (max 2000 chars)"),
+          sourceTask: tool.schema
+            .string()
+            .optional()
+            .describe("Task ID that generated this wisdom"),
+        },
+        execute: async (args) => wisdomTools.adv_wisdom_add.execute(args, store),
+      }),
+
+      adv_wisdom_list: tool({
+        description: wisdomTools.adv_wisdom_list.description,
+        args: {
+          changeId: tool.schema.string().describe("Change ID to list wisdom for"),
+        },
+        execute: async (args) =>
+          wisdomTools.adv_wisdom_list.execute(args, store),
+      }),
+
+      // ----------------------------------------------------------------------
       // Status Tool
       // ----------------------------------------------------------------------
       adv_status: tool({
@@ -481,6 +540,7 @@ export const AdvancePlugin: Plugin = async ({ directory }) => {
       try {
         // Use string comparison for flexibility with SDK event types
         const eventType = event.type as string;
+        debugLog(`event: type="${eventType}"`);
 
         if (eventType === "session.status") {
           const props = event.properties as { status?: { type?: string } };
@@ -510,13 +570,17 @@ export const AdvancePlugin: Plugin = async ({ directory }) => {
     // ========================================================================
     "tool.execute.before": async (input, output): Promise<void> => {
       try {
+        debugLog(`tool.execute.before: tool="${input.tool}"`);
+
         // Track bash commands for test runner detection
         if (input.tool === "bash" && output.args?.command) {
           state.lastBashCommand = String(output.args.command);
         }
 
         // Detect sub-agent spawning (Task tool)
-        if (input.tool === "Task" || input.tool === "mcp_task") {
+        // OpenCode uses lowercase "task" for the built-in Task tool
+        if (input.tool === "task") {
+          debugLog(`Sub-agent spawned: count=${state.activeSubAgents + 1}`);
           setState({
             activeSubAgents: state.activeSubAgents + 1,
             status: "MOON",
@@ -524,11 +588,12 @@ export const AdvancePlugin: Plugin = async ({ directory }) => {
         }
 
         // Detect question tools (needs user input)
-        if (input.tool === "mcp_question" || input.tool === "Question") {
+        // OpenCode uses lowercase "question" for the built-in Question tool
+        if (input.tool === "question") {
           setState({ status: "MIC" });
         }
-      } catch {
-        // Silently handle errors
+      } catch (e) {
+        debugLog(`tool.execute.before error: ${e}`);
       }
     },
 
@@ -537,6 +602,33 @@ export const AdvancePlugin: Plugin = async ({ directory }) => {
     // ========================================================================
     "tool.execute.after": async (input, output): Promise<void> => {
       try {
+        debugLog(`tool.execute.after: tool="${input.tool}"`);
+
+        // Track active change ID from tool arguments
+        if (output.args?.changeId) {
+          state.activeChange.id = String(output.args.changeId);
+        }
+
+        // Track task status changes for hooks
+        if (input.tool === "adv_task_update" && output.output) {
+          try {
+            const result = JSON.parse(output.output);
+            if (result.success && result.task) {
+              const task = result.task;
+
+              // Track completed tasks for wisdom prompt
+              if (task.status === "done") {
+                state.lastCompletedTask = {
+                  id: task.id,
+                  title: task.title,
+                };
+              }
+            }
+          } catch {
+            // ignore parse errors
+          }
+        }
+
         // Check for test runner completion
         if (input.tool === "bash" && state.lastBashCommand) {
           const isTestRunner = TEST_RUNNER_PATTERNS.some((p) =>
@@ -559,8 +651,10 @@ export const AdvancePlugin: Plugin = async ({ directory }) => {
         }
 
         // Handle sub-agent completion
-        if (input.tool === "Task" || input.tool === "mcp_task") {
+        // OpenCode uses lowercase "task" for the built-in Task tool
+        if (input.tool === "task") {
           const newCount = Math.max(0, state.activeSubAgents - 1);
+          debugLog(`Sub-agent completed: count=${newCount}`);
           setState({
             activeSubAgents: newCount,
             status: newCount > 0 ? "MOON" : "ROCKET",
@@ -568,11 +662,68 @@ export const AdvancePlugin: Plugin = async ({ directory }) => {
         }
 
         // Handle question tool completion
-        if (input.tool === "mcp_question" || input.tool === "Question") {
+        if (input.tool === "question") {
           setState({ status: state.activeSubAgents > 0 ? "MOON" : "ROCKET" });
         }
-      } catch {
-        // Silently handle errors
+      } catch (e) {
+        debugLog(`tool.execute.after error: ${e}`);
+      }
+    },
+
+    // ========================================================================
+    // Context Injection Hook (Continuation & Wisdom)
+    // ========================================================================
+    "experimental.chat.system.transform": async (
+      input,
+      output,
+    ): Promise<void> => {
+      try {
+        if (!state.activeChange.id) return;
+
+        const changeId = state.activeChange.id;
+        const wisdom = await store.wisdom.list(changeId);
+        const tasks = await store.tasks.list(changeId);
+
+        // 1. Accumulated Wisdom Injection (limit to most recent entries to avoid context bloat)
+        const MAX_WISDOM_ENTRIES = 10;
+        if (wisdom.length > 0) {
+          const recentWisdom = wisdom.slice(-MAX_WISDOM_ENTRIES);
+          const wisdomList = recentWisdom
+            .map((w) => `- [${w.type.toUpperCase()}] ${w.content}`)
+            .join("\n");
+          const truncationNote =
+            wisdom.length > MAX_WISDOM_ENTRIES
+              ? `\n(Showing ${MAX_WISDOM_ENTRIES} of ${wisdom.length} most recent entries)`
+              : "";
+          output.system.push(
+            `[ADV:ACCUMULATED_WISDOM] The following wisdom has been accumulated for change ${changeId}:\n${wisdomList}${truncationNote}`,
+          );
+        }
+
+        // 2. Todo Continuation Reminder
+        const pendingTasks = tasks.filter(
+          (t) => t.status === "pending" || t.status === "in_progress",
+        );
+        if (pendingTasks.length > 0) {
+          const nextTasks = pendingTasks
+            .slice(0, 3)
+            .map((t) => `- ${t.title} (${t.id})`)
+            .join("\n");
+          output.system.push(
+            `[ADV:TODO_CONTINUATION] Change ${changeId} has ${pendingTasks.length} tasks remaining. Next up:\n${nextTasks}\nPlease continue with these tasks until the change is complete.`,
+          );
+        }
+
+        // 3. Wisdom Recording Prompt (if task just finished)
+        if (state.lastCompletedTask) {
+          output.system.push(
+            `[ADV:RECORD_WISDOM] You just completed task "${state.lastCompletedTask.title}" (${state.lastCompletedTask.id}). If you learned anything (gotchas, patterns, successes), please record it using 'adv_wisdom_add'.`,
+          );
+          // Clear it after injecting so it only prompts once
+          state.lastCompletedTask = null;
+        }
+      } catch (e) {
+        debugLog(`experimental.chat.system.transform error: ${e}`);
       }
     },
 

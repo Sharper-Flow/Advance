@@ -7,6 +7,9 @@
 import { join } from "path";
 import { mkdir } from "fs/promises";
 import { nanoid } from "nanoid";
+import {
+  WisdomEntrySchema,
+} from "../types";
 import type {
   Spec,
   Change,
@@ -19,6 +22,8 @@ import type {
   ChangeStatus,
   TddPhase,
   TddPhaseEvidence,
+  WisdomEntry,
+  WisdomType,
 } from "../types";
 import { createSQLiteStore, type SQLiteStore } from "./sqlite";
 import {
@@ -100,6 +105,19 @@ export interface Store {
     setPhase: (taskId: string, phase: TddPhase) => Promise<Task | null>;
     /** Skip TDD for a task with reason */
     skipTdd: (taskId: string, reason: string) => Promise<Task | null>;
+  };
+
+  // Wisdom (cross-task learning)
+  wisdom: {
+    /** Add a wisdom entry to a change */
+    add: (
+      changeId: string,
+      type: WisdomType,
+      content: string,
+      sourceTask?: string,
+    ) => Promise<WisdomEntry>;
+    /** List all wisdom entries for a change */
+    list: (changeId: string) => Promise<WisdomEntry[]>;
   };
 
   // Status
@@ -530,6 +548,42 @@ export async function createStore(directory: string): Promise<Store> {
         await store.changes.save(change);
 
         return task;
+      },
+    },
+
+    wisdom: {
+      add: async (changeId, type, content, sourceTask) => {
+        const change = await loadChange(paths.changes, changeId);
+        if (!change) {
+          throw new Error(`Change not found: ${changeId}`);
+        }
+
+        // Initialize wisdom array if needed
+        if (!change.wisdom) {
+          change.wisdom = [];
+        }
+
+        const entry: WisdomEntry = WisdomEntrySchema.parse({
+          id: `ws-${nanoid(6)}`,
+          type,
+          content,
+          source_task: sourceTask,
+          recorded_at: new Date().toISOString(),
+        });
+
+        change.wisdom.push(entry);
+        await store.changes.save(change);
+
+        return entry;
+      },
+
+      list: async (changeId) => {
+        const change = await loadChange(paths.changes, changeId);
+        if (!change) {
+          throw new Error(`Change not found: ${changeId}`);
+        }
+
+        return change.wisdom ?? [];
       },
     },
 

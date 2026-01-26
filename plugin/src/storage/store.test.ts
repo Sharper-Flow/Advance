@@ -242,4 +242,45 @@ describe("Store", () => {
       expect(status.recommendations[0]).toContain("Ready to archive");
     });
   });
+
+  describe("wisdom", () => {
+    test("add wisdom entry to change", async () => {
+      const entry = await store.wisdom.add(
+        "add-feature-abc123",
+        "pattern",
+        "Use factory pattern for store creation",
+      );
+
+      expect(entry.id).toMatch(/^ws-/);
+      expect(entry.type).toBe("pattern");
+      expect(entry.content).toBe("Use factory pattern for store creation");
+      expect(entry.recorded_at).toBeDefined();
+
+      const change = await store.changes.get("add-feature-abc123");
+      expect(change!.wisdom).toContainEqual(entry);
+    });
+
+    test("add wisdom with invalid content (exceeds max length) throws error", async () => {
+      const longContent = "x".repeat(2001);
+      await expect(
+        store.wisdom.add("add-feature-abc123", "pattern", longContent),
+      ).rejects.toThrow(/max.*2000/);
+    });
+
+    test("list wisdom returns all entries for a change", async () => {
+      await store.wisdom.add("add-feature-abc123", "success", "Test 1");
+      await store.wisdom.add("add-feature-abc123", "gotcha", "Test 2");
+
+      const wisdom = await store.wisdom.list("add-feature-abc123");
+      expect(wisdom).toHaveLength(2);
+      expect(wisdom[0].content).toBe("Test 1");
+      expect(wisdom[1].content).toBe("Test 2");
+    });
+
+    test("list wisdom for nonexistent change throws error", async () => {
+      await expect(store.wisdom.list("nonexistent")).rejects.toThrow(
+        /not found/,
+      );
+    });
+  });
 });

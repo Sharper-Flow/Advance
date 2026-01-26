@@ -8,6 +8,16 @@ agent: build
 
 Implement an ADV change by working through tasks using Test-Driven Development. Task state is managed by ADV tools; contract banners provide visibility.
 
+## ⚠️ Task Completion Policy
+
+Tasks should be completed, not skipped or deferred. If stuck:
+
+1. **First**: Try a different approach (at least 3 attempts)
+2. **Then**: Ask for user guidance via doom loop protocol
+3. **Never**: Skip tasks, defer "for later", or mark blocked without genuine attempts
+
+See Doom Loop Protocol section for proper handling of stuck tasks.
+
 <UserRequest>
   $ARGUMENTS
 </UserRequest>
@@ -234,22 +244,32 @@ Result: All tasks done, ready for /adv-archive
 If same task fails 3 times:
 
 1. Emit `[ADV:DOOM_LOOP]`
-2. STOP retrying
-3. Use `mcp_question`:
+2. Document ALL 3 attempts with diagnosis
+3. STOP retrying
+4. Use `mcp_question`:
    ```
    header: "Task Blocked"
-   question: "Task '{task.title}' stuck after 3 attempts"
+   question: "Task '{task.title}' stuck after 3 documented attempts. See diagnosis above."
    options:
-     - label: "Try different approach"
-     - label: "Get more context"  
-     - label: "Mark blocked"
+     - label: "Provide hint (Recommended)"
+       description: "Give guidance for a 4th attempt"
+     - label: "User takes over"
+       description: "I'll complete this task manually"
      - label: "Cancel change"
+       description: "Abort entire change"
    ```
 
-If "Mark blocked":
+**NOTE:** "Skip" and "defer" are NOT options. Each attempt must be documented with:
+- What was tried
+- Why it failed  
+- What was learned
+
+If "User takes over":
 ```
-adv_task_update change_id: <target> task_id: {task.id} status: "blocked"
+adv_task_update change_id: <target> task_id: {task.id} status: "blocked" notes: "User takeover after 3 attempts"
 ```
+
+The user must then complete the task before the change can be archived.
 
 ---
 

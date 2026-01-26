@@ -111,6 +111,8 @@ ADV (Advance) enables spec-driven development where **specs become laws**. Requi
 | `adv_task_ready` | Get tasks ready to start |
 | `adv_task_update` | Update task status |
 | `adv_task_add` | Add new task to change |
+| `adv_wisdom_add` | Add a wisdom entry (learning) |
+| `adv_wisdom_list` | List all wisdom for a change |
 | `adv_status` | Get project status overview |
 
 ## Status Markers
@@ -126,6 +128,14 @@ Emit at START of each response:
 | `[ADV:EARTH]` | Complete / awaiting input |
 | `[ADV:DOOM_LOOP]` | Stuck in retry cycle |
 | `[ADV:MIC]` | Needs user approval |
+
+The following markers are emitted automatically by the system:
+
+| Marker | Purpose |
+|--------|---------|
+| `[ADV:ACCUMULATED_WISDOM]` | Injected context of previous learnings |
+| `[ADV:TODO_CONTINUATION]` | Reminder of remaining tasks |
+| `[ADV:RECORD_WISDOM]` | Prompt to record new learnings |
 
 ## TDD Protocol (RSTC)
 
@@ -155,12 +165,31 @@ If stuck on a task after 3 attempts:
 
 1. **STOP** - Don't retry the same approach
 2. **Emit** `[ADV:DOOM_LOOP]` marker
-3. **Analyze** - What assumption is wrong?
+3. **Document** - Show all 3 attempts with diagnosis
 4. **Ask** - Use `mcp_question` to get user guidance:
-   - Try alternative approach
-   - Get more context
-   - Mark as blocked
-   - Cancel change
+   - Provide hint (recommended) - get guidance for 4th attempt
+   - User takes over - user completes task manually
+   - Cancel change - abort entire change
+
+### ⛔ No Skip / No Defer Policy
+
+**Tasks must be completed, not avoided.** The following are PROHIBITED:
+
+- Skipping tasks "to revisit later"
+- Deferring tasks "until more information"
+- Marking tasks blocked without 3 genuine attempts
+- Suggesting user complete "difficult" tasks
+- Offering "skip" as an option to the user
+
+**Each doom loop attempt must be distinct** - different diagnosis, different fix approach. Repeating the same fix does not count toward the 3-attempt budget.
+
+## Runtime Enforcement
+
+Advance provides automated runtime assistance to maintain focus and accumulate knowledge:
+
+1. **Accumulated Wisdom**: Injects patterns, successes, and gotchas discovered in previous tasks into the current session context (`[ADV:ACCUMULATED_WISDOM]`).
+2. **Todo Continuation**: Automatically reminds the agent of remaining tasks when a task is completed but the change is not yet finished (`[ADV:TODO_CONTINUATION]`).
+3. **Wisdom Recording**: Prompts the agent to record any non-obvious learnings after task completion (`[ADV:RECORD_WISDOM]`).
 
 ## User Interaction
 

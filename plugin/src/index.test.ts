@@ -144,12 +144,12 @@ describe("Advance Plugin SDK Integration", () => {
   // ===========================================================================
 
   describe("Tool Registration", () => {
-    test("registers all 28 tools", async () => {
+    test("registers all 30 tools", async () => {
       const mockInput = createMockPluginInput(tempDir);
       const hooks = await AdvancePlugin(mockInput as any);
 
       const toolNames = Object.keys(hooks.tool!);
-      expect(toolNames).toHaveLength(28);
+      expect(toolNames).toHaveLength(30);
     });
 
     test("registers spec tools", async () => {
@@ -187,6 +187,15 @@ describe("Advance Plugin SDK Integration", () => {
       expect(toolNames).toContain("adv_task_tdd_phase");
       expect(toolNames).toContain("adv_task_skip_tdd");
       expect(toolNames).toContain("adv_task_tdd_status");
+    });
+
+    test("registers wisdom tools", async () => {
+      const mockInput = createMockPluginInput(tempDir);
+      const hooks = await AdvancePlugin(mockInput as any);
+
+      const toolNames = Object.keys(hooks.tool!);
+      expect(toolNames).toContain("adv_wisdom_add");
+      expect(toolNames).toContain("adv_wisdom_list");
     });
 
     test("registers agenda tools", async () => {
@@ -322,7 +331,124 @@ describe("Advance Plugin SDK Integration", () => {
         }),
       ).resolves.not.toThrow();
     });
+  });
 
+  describe("Hooks", () => {
+    test("experimental.chat.system.transform injects wisdom and continuation", async () => {
+      const mockInput = createMockPluginInput(tempDir);
+      const hooks = await AdvancePlugin(mockInput as any);
+
+      // 1. Set active change ID by calling a tool with it
+      const changeId = "add-feature-abc123";
+      await hooks["tool.execute.after"]!(
+        { tool: "adv_task_list" } as any,
+        { args: { changeId }, output: "{}" } as any,
+      );
+
+      // 2. Add some wisdom
+      const context = createMockToolContext();
+      await hooks.tool!.adv_wisdom_add.execute(
+        { changeId, type: "success", content: "Test wisdom" },
+        context,
+      );
+
+      // 3. Call the hook
+      const transformHook = hooks["experimental.chat.system.transform"]!;
+      const hookOutput = { system: [] as string[] };
+      await transformHook({ sessionID: "test" } as any, hookOutput as any);
+
+      // 4. Verify injections
+      expect(
+        hookOutput.system.some((s) => s.includes("[ADV:ACCUMULATED_WISDOM]")),
+      ).toBe(true);
+      expect(hookOutput.system.some((s) => s.includes("Test wisdom"))).toBe(
+        true,
+      );
+      expect(
+        hookOutput.system.some((s) => s.includes("[ADV:TODO_CONTINUATION]")),
+      ).toBe(true);
+    });
+
+    test("experimental.chat.system.transform injects wisdom recording prompt after task completion", async () => {
+      const mockInput = createMockPluginInput(tempDir);
+      const hooks = await AdvancePlugin(mockInput as any);
+      const changeId = "add-feature-abc123";
+      const taskId = "tk-task0001";
+
+      // 1. Set active change
+      await hooks["tool.execute.after"]!(
+        { tool: "adv_task_list" } as any,
+        { args: { changeId }, output: "{}" } as any,
+      );
+
+      // 2. Mock task completion
+      const toolOutput = JSON.stringify({
+        success: true,
+        task: { id: taskId, title: "Test Task", status: "done" },
+      });
+      await hooks["tool.execute.after"]!(
+        { tool: "adv_task_update" } as any,
+        { args: { taskId, status: "done" }, output: toolOutput } as any,
+      );
+
+      // 3. Call hook
+      const transformHook = hooks["experimental.chat.system.transform"]!;
+      const hookOutput = { system: [] as string[] };
+      await transformHook({ sessionID: "test" } as any, hookOutput as any);
+
+      // 4. Verify prompt
+      expect(
+        hookOutput.system.some((s) => s.includes("[ADV:RECORD_WISDOM]")),
+      ).toBe(true);
+      expect(hookOutput.system.some((s) => s.includes("Test Task"))).toBe(true);
+
+      // 5. Verify it's cleared (call again)
+      const secondOutput = { system: [] as string[] };
+      await transformHook({ sessionID: "test" } as any, secondOutput as any);
+      expect(
+        secondOutput.system.some((s) => s.includes("[ADV:RECORD_WISDOM]")),
+      ).toBe(false);
+    });
+
+    test("experimental.chat.system.transform truncates wisdom to most recent 10 entries", async () => {
+      const mockInput = createMockPluginInput(tempDir);
+      const hooks = await AdvancePlugin(mockInput as any);
+      const changeId = "add-feature-abc123";
+
+      // 1. Set active change
+      await hooks["tool.execute.after"]!(
+        { tool: "adv_task_list" } as any,
+        { args: { changeId }, output: "{}" } as any,
+      );
+
+      // 2. Add 12 wisdom entries
+      const context = createMockToolContext();
+      for (let i = 1; i <= 12; i++) {
+        await hooks.tool!.adv_wisdom_add.execute(
+          { changeId, type: "pattern", content: `Wisdom entry ${i}` },
+          context,
+        );
+      }
+
+      // 3. Call hook
+      const transformHook = hooks["experimental.chat.system.transform"]!;
+      const hookOutput = { system: [] as string[] };
+      await transformHook({ sessionID: "test" } as any, hookOutput as any);
+
+      // 4. Verify truncation
+      const wisdomMessage = hookOutput.system.find((s) =>
+        s.includes("[ADV:ACCUMULATED_WISDOM]"),
+      );
+      expect(wisdomMessage).toBeDefined();
+      expect(wisdomMessage).toContain("Showing 10 of 12 most recent entries");
+      expect(wisdomMessage).not.toContain("Wisdom entry 1\n"); // Oldest should be gone
+      expect(wisdomMessage).not.toContain("Wisdom entry 2\n"); // 2nd oldest should be gone
+      expect(wisdomMessage).toContain("Wisdom entry 3"); // 3rd oldest (entry 3) should be the first shown
+      expect(wisdomMessage).toContain("Wisdom entry 12"); // Newest should be present
+    });
+  });
+
+  describe("Internal SDK Hooks", () => {
     test("tool.execute.before hook handles tool input", async () => {
       const mockInput = createMockPluginInput(tempDir);
       const hooks = await AdvancePlugin(mockInput as any);

@@ -33,6 +33,10 @@ export interface Hooks {
     input: unknown,
     output: unknown,
   ) => Promise<void>;
+  "experimental.chat.system.transform"?: (
+    input: { sessionID: string },
+    output: { system: string[] },
+  ) => Promise<void>;
 }
 
 export interface ToolContext {
