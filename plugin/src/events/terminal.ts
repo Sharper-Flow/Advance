@@ -229,6 +229,8 @@ export const ringBell = (): void => {
 };
 
 // Track last status to avoid repeated alerts
+// null = new session (bell should not ring)
+// StatusMarker = previous status for transition detection
 let lastAlertedStatus: StatusMarker | null = null;
 
 /**
@@ -285,12 +287,20 @@ export const updateTerminalStatus = (
 
   setTitle(title);
 
-  // Ring bell for states that need user attention (only on transition)
-  if (status !== lastAlertedStatus) {
-    if (status === "EARTH" || status === "MIC") {
-      ringBell();
-    }
-    lastAlertedStatus = status;
+  // Ring bell when transitioning from active work (ROCKET/MOON) to:
+  // - EARTH (work complete, awaiting input)
+  // - MIC (user input needed)
+  // Do NOT ring on:
+  // - New session (lastAlertedStatus is null)
+  // - ROCKET -> MOON transitions (still working, just waiting for sub-agent)
+  const previousStatus = lastAlertedStatus;
+  lastAlertedStatus = status;
+
+  const isCompletionState = status === "EARTH" || status === "MIC";
+  const wasActiveWork = previousStatus === "ROCKET" || previousStatus === "MOON";
+
+  if (isCompletionState && previousStatus !== null && wasActiveWork) {
+    ringBell();
   }
 };
 
