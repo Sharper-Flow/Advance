@@ -5,10 +5,53 @@
  * JSON files are the source of truth.
  */
 
-import { join } from "path";
-import { readdir, mkdir, readFile, writeFile, access, stat } from "fs/promises";
+import { join, dirname } from "path";
+import {
+  readdir,
+  mkdir,
+  readFile,
+  writeFile,
+  access,
+  stat,
+  rename,
+  unlink,
+} from "fs/promises";
 import { SpecSchema, ChangeSchema, ProjectConfigSchema } from "../types";
 import type { Spec, Change, ProjectConfig } from "../types";
+
+// =============================================================================
+// Atomic Write
+// =============================================================================
+
+/**
+ * Atomically write a file by writing to a temp file first, then renaming.
+ * This prevents corrupted files from interrupted writes.
+ */
+async function atomicWriteFile(
+  filePath: string,
+  content: string,
+): Promise<void> {
+  const tempPath = `${filePath}.tmp.${Date.now()}`;
+
+  try {
+    // Ensure parent directory exists
+    await mkdir(dirname(filePath), { recursive: true });
+
+    // Write to temp file
+    await writeFile(tempPath, content, "utf-8");
+
+    // Atomic rename (this is atomic on POSIX systems)
+    await rename(tempPath, filePath);
+  } catch (error) {
+    // Clean up temp file if it exists
+    try {
+      await unlink(tempPath);
+    } catch {
+      // Ignore cleanup errors
+    }
+    throw error;
+  }
+}
 
 // =============================================================================
 // File Paths
@@ -61,7 +104,7 @@ export async function saveProjectConfig(
   config: ProjectConfig,
 ): Promise<void> {
   const configPath = join(root, "project.json");
-  await writeFile(configPath, JSON.stringify(config, null, 2));
+  await atomicWriteFile(configPath, JSON.stringify(config, null, 2));
 }
 
 // =============================================================================
@@ -112,8 +155,7 @@ export async function saveSpec(specsDir: string, spec: Spec): Promise<string> {
   const specDir = join(specsDir, spec.name);
   const specPath = join(specDir, "spec.json");
 
-  await mkdir(specDir, { recursive: true });
-  await writeFile(specPath, JSON.stringify(spec, null, 2));
+  await atomicWriteFile(specPath, JSON.stringify(spec, null, 2));
 
   return specPath;
 }
@@ -216,8 +258,7 @@ export async function saveChange(
   const changeDir = join(changesDir, change.id);
   const changePath = join(changeDir, "change.json");
 
-  await mkdir(changeDir, { recursive: true });
-  await writeFile(changePath, JSON.stringify(change, null, 2));
+  await atomicWriteFile(changePath, JSON.stringify(change, null, 2));
 
   return changePath;
 }
@@ -256,7 +297,7 @@ export async function createChangeScaffold(
 - [ ] Criterion 2
 `;
 
-  await writeFile(proposalPath, proposalContent);
+  await atomicWriteFile(proposalPath, proposalContent);
 
   return { changePath, proposalPath };
 }
