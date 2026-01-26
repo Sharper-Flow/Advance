@@ -166,22 +166,24 @@ export type TddEvidence = z.infer<typeof TddEvidenceSchema>;
 // Task
 // =============================================================================
 
-export const TaskSchema = z.object({
-  id: z.string(), // tk-Hf7dK2mN
-  title: z.string(),
-  section: z.string().optional(), // Grouping label
-  status: TaskStatusSchema,
-  priority: z.number().default(0), // Lower = higher priority
-  deps: z.array(DependencySchema).optional(),
-  created_at: z.string(), // ISO8601
-  started_at: z.string().nullable().optional(),
-  completed_at: z.string().nullable().optional(),
-  completed_by: z.string().nullable().optional(),
-  /** Current TDD phase for this task */
-  tdd_phase: TddPhaseSchema.default("none"),
-  /** TDD evidence (red/green phase recordings) */
-  tdd_evidence: TddEvidenceSchema.optional(),
-});
+export const TaskSchema = z
+  .object({
+    id: z.string(), // tk-Hf7dK2mN
+    title: z.string(),
+    section: z.string().optional(), // Grouping label
+    status: TaskStatusSchema,
+    priority: z.number().default(0), // Lower = higher priority
+    deps: z.array(DependencySchema).optional(),
+    created_at: z.string(), // ISO8601
+    started_at: z.string().nullable().optional(),
+    completed_at: z.string().nullable().optional(),
+    completed_by: z.string().nullable().optional(),
+    /** Current TDD phase for this task */
+    tdd_phase: TddPhaseSchema.default("none"),
+    /** TDD evidence (red/green phase recordings) */
+    tdd_evidence: TddEvidenceSchema.optional(),
+  })
+  .passthrough(); // Allow extra fields for forward/backward compatibility
 
 export type Task = z.infer<typeof TaskSchema>;
 
@@ -303,19 +305,21 @@ export type ChangeStatus = z.infer<typeof ChangeStatusSchema>;
 // Change
 // =============================================================================
 
-export const ChangeSchema = z.object({
-  $schema: z.string().optional(),
-  id: z.string(), // kebab-case slug
-  title: z.string(),
-  status: ChangeStatusSchema,
-  created_at: z.string(), // ISO8601
-  created_by: z.string().optional(),
-  tasks: z.array(TaskSchema),
-  deltas: z.record(z.array(DeltaSchema)), // Keyed by capability
-  validation: ValidationResultSchema.optional(),
-  /** Accumulated wisdom/learnings for this change (optional, backwards compatible) */
-  wisdom: z.array(WisdomEntrySchema).optional(),
-});
+export const ChangeSchema = z
+  .object({
+    $schema: z.string().optional(),
+    id: z.string(), // kebab-case slug
+    title: z.string(),
+    status: ChangeStatusSchema,
+    created_at: z.string(), // ISO8601
+    created_by: z.string().optional(),
+    tasks: z.array(TaskSchema),
+    deltas: z.record(z.array(DeltaSchema)), // Keyed by capability
+    validation: ValidationResultSchema.optional(),
+    /** Accumulated wisdom/learnings for this change (optional, backwards compatible) */
+    wisdom: z.array(WisdomEntrySchema).optional(),
+  })
+  .passthrough(); // Allow extra fields for forward/backward compatibility
 
 export type Change = z.infer<typeof ChangeSchema>;
 
