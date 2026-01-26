@@ -512,3 +512,136 @@ describe("truncateOutput", () => {
     expect(result).toBe("hello\n... [truncated]");
   });
 });
+
+// =============================================================================
+// Backward Compatibility Tests
+// =============================================================================
+
+describe("Schema Backward Compatibility", () => {
+  describe("TaskSchema", () => {
+    test("parses task with extra/unknown fields (passthrough)", () => {
+      const taskWithExtraFields = {
+        id: "tk-test123",
+        title: "Test task",
+        status: "pending",
+        priority: 0,
+        created_at: "2026-01-22T00:00:00Z",
+        tdd_phase: "none",
+        // Extra fields that might exist in older/other projects
+        custom_field: "some value",
+        legacy_notes: "old data",
+        metadata: { foo: "bar" },
+      };
+
+      const result = TaskSchema.parse(taskWithExtraFields);
+      expect(result.id).toBe("tk-test123");
+      expect(result.title).toBe("Test task");
+      // Extra fields should be preserved
+      expect((result as Record<string, unknown>).custom_field).toBe(
+        "some value",
+      );
+      expect((result as Record<string, unknown>).legacy_notes).toBe("old data");
+    });
+
+    test("parses task without optional tdd fields (pre-TDD era)", () => {
+      const oldTask = {
+        id: "tk-old123",
+        title: "Old task",
+        status: "done",
+        priority: 1,
+        created_at: "2025-01-01T00:00:00Z",
+        // No tdd_phase or tdd_evidence - defaults should apply
+      };
+
+      const result = TaskSchema.parse(oldTask);
+      expect(result.id).toBe("tk-old123");
+      expect(result.tdd_phase).toBe("none"); // default
+      expect(result.tdd_evidence).toBeUndefined();
+    });
+  });
+
+  describe("ChangeSchema", () => {
+    test("parses change with extra/unknown fields (passthrough)", () => {
+      const changeWithExtraFields = {
+        id: "old-change-123",
+        title: "Old change",
+        status: "draft",
+        created_at: "2025-06-01T00:00:00Z",
+        tasks: [],
+        deltas: {},
+        // Extra fields from other projects/versions
+        custom_metadata: { version: "1.0" },
+        legacy_field: true,
+        old_format_data: [1, 2, 3],
+      };
+
+      const result = ChangeSchema.parse(changeWithExtraFields);
+      expect(result.id).toBe("old-change-123");
+      expect(result.title).toBe("Old change");
+      // Extra fields should be preserved
+      expect((result as Record<string, unknown>).custom_metadata).toEqual({
+        version: "1.0",
+      });
+      expect((result as Record<string, unknown>).legacy_field).toBe(true);
+    });
+
+    test("parses change without wisdom field (pre-wisdom era)", () => {
+      const preWisdomChange = {
+        id: "pre-wisdom-change",
+        title: "Change before wisdom was added",
+        status: "active",
+        created_at: "2025-01-01T00:00:00Z",
+        tasks: [
+          {
+            id: "tk-task1",
+            title: "Task 1",
+            status: "done",
+            priority: 0,
+            created_at: "2025-01-01T00:00:00Z",
+          },
+        ],
+        deltas: {},
+        // No wisdom field
+      };
+
+      const result = ChangeSchema.parse(preWisdomChange);
+      expect(result.id).toBe("pre-wisdom-change");
+      expect(result.wisdom).toBeUndefined(); // optional, not present
+      expect(result.tasks).toHaveLength(1);
+    });
+
+    test("parses change with nested tasks containing extra fields", () => {
+      const changeWithCustomTasks = {
+        id: "custom-tasks-change",
+        title: "Change with custom task fields",
+        status: "draft",
+        created_at: "2026-01-01T00:00:00Z",
+        tasks: [
+          {
+            id: "tk-custom1",
+            title: "Custom task",
+            status: "pending",
+            priority: 0,
+            created_at: "2026-01-01T00:00:00Z",
+            tdd_phase: "none",
+            // Extra task fields
+            assignee: "user@example.com",
+            estimate_hours: 4,
+            labels: ["bug", "urgent"],
+          },
+        ],
+        deltas: {},
+      };
+
+      const result = ChangeSchema.parse(changeWithCustomTasks);
+      expect(result.tasks[0].id).toBe("tk-custom1");
+      // Extra fields on tasks should be preserved
+      expect((result.tasks[0] as Record<string, unknown>).assignee).toBe(
+        "user@example.com",
+      );
+      expect((result.tasks[0] as Record<string, unknown>).estimate_hours).toBe(
+        4,
+      );
+    });
+  });
+});
