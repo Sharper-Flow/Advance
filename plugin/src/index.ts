@@ -577,6 +577,12 @@ export const AdvancePlugin: Plugin = async ({ directory }) => {
           state.lastBashCommand = String(output.args.command);
         }
 
+        // Track changeId from ADV tools for context injection
+        // (args are only available in before hook, not after)
+        if (output.args?.changeId) {
+          state.activeChange.id = String(output.args.changeId);
+        }
+
         // Detect sub-agent spawning (Task tool)
         // OpenCode uses lowercase "task" for the built-in Task tool
         if (input.tool === "task") {
@@ -604,10 +610,8 @@ export const AdvancePlugin: Plugin = async ({ directory }) => {
       try {
         debugLog(`tool.execute.after: tool="${input.tool}"`);
 
-        // Track active change ID from tool arguments
-        if (output.args?.changeId) {
-          state.activeChange.id = String(output.args.changeId);
-        }
+        // Note: changeId tracking moved to tool.execute.before since
+        // output.args is not available in the after hook
 
         // Track task status changes for hooks
         if (input.tool === "adv_task_update" && output.output) {

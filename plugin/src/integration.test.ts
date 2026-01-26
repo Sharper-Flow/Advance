@@ -39,10 +39,10 @@ describe("Wisdom Lifecycle Integration", () => {
     await transformHook({ sessionID: "test" } as any, out1 as any);
     expect(out1.system).toHaveLength(0);
 
-    // 2. Start working on a task (sets active change)
-    await hooks["tool.execute.after"]!(
+    // 2. Start working on a task (sets active change via before hook)
+    await hooks["tool.execute.before"]!(
       { tool: "adv_task_list" } as any,
-      { args: { changeId }, output: "{}" } as any,
+      { args: { changeId } } as any,
     );
 
     const out2 = { system: [] as string[] };

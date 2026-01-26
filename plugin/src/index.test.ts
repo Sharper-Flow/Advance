@@ -338,11 +338,11 @@ describe("Advance Plugin SDK Integration", () => {
       const mockInput = createMockPluginInput(tempDir);
       const hooks = await AdvancePlugin(mockInput as any);
 
-      // 1. Set active change ID by calling a tool with it
+      // 1. Set active change ID by calling a tool with it (args are in before hook)
       const changeId = "add-feature-abc123";
-      await hooks["tool.execute.after"]!(
+      await hooks["tool.execute.before"]!(
         { tool: "adv_task_list" } as any,
-        { args: { changeId }, output: "{}" } as any,
+        { args: { changeId } } as any,
       );
 
       // 2. Add some wisdom
@@ -375,10 +375,10 @@ describe("Advance Plugin SDK Integration", () => {
       const changeId = "add-feature-abc123";
       const taskId = "tk-task0001";
 
-      // 1. Set active change
-      await hooks["tool.execute.after"]!(
+      // 1. Set active change (args are in before hook)
+      await hooks["tool.execute.before"]!(
         { tool: "adv_task_list" } as any,
-        { args: { changeId }, output: "{}" } as any,
+        { args: { changeId } } as any,
       );
 
       // 2. Mock task completion
@@ -415,10 +415,10 @@ describe("Advance Plugin SDK Integration", () => {
       const hooks = await AdvancePlugin(mockInput as any);
       const changeId = "add-feature-abc123";
 
-      // 1. Set active change
-      await hooks["tool.execute.after"]!(
+      // 1. Set active change (args are in before hook)
+      await hooks["tool.execute.before"]!(
         { tool: "adv_task_list" } as any,
-        { args: { changeId }, output: "{}" } as any,
+        { args: { changeId } } as any,
       );
 
       // 2. Add 12 wisdom entries
