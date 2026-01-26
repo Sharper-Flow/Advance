@@ -1,0 +1,51 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/anomalyco/oc-plugins/advance/schemas/project.schema.json",
+  "title": "ADV Project",
+  "description": "ADV Project Configuration",
+  "$ref": "#/definitions/project",
+  "definitions": {
+    "project": {
+      "type": "object",
+      "properties": {
+        "$schema": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        },
+        "specs_dir": {
+          "type": "string",
+          "default": "specs"
+        },
+        "changes_dir": {
+          "type": "string",
+          "default": "changes"
+        },
+        "archive_dir": {
+          "type": "string",
+          "default": "archive"
+        },
+        "docs_dir": {
+          "type": "string",
+          "default": "docs/specs"
+        },
+        "db_dir": {
+          "type": "string",
+          "default": ".specdb"
+        },
+        "project_file": {
+          "type": "string",
+          "default": "project.md"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "additionalProperties": true
+    }
+  }
+}

@@ -319,6 +319,8 @@ export async function createStore(directory: string): Promise<Store> {
 
         // Create change.json
         const change: Change = {
+          $schema:
+            "https://raw.githubusercontent.com/anomalyco/oc-plugins/main/advance/plugin/schemas/change.schema.json",
           id: changeId,
           title: summary,
           status: "draft",

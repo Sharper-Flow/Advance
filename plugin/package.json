@@ -15,9 +15,10 @@
   },
   "author": "Anomaly",
   "scripts": {
-    "build": "tsup src/index.ts --format esm --dts",
+    "build": "tsup src/index.ts --format esm --dts && pnpm run generate:schemas",
     "dev": "tsup src/index.ts --format esm --watch",
     "check": "pnpm run typecheck && pnpm run lint && pnpm run format:check",
+    "prepublishOnly": "pnpm run build",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src/",
     "lint:fix": "eslint src/ --fix",
@@ -25,7 +26,8 @@
     "format:check": "prettier --check src/",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "generate:schemas": "npx tsx scripts/generate-schemas.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.52.0",
@@ -45,7 +47,8 @@
     "tsup": "^8.3.5",
     "typescript": "^5.7.2",
     "typescript-eslint": "^8.19.1",
-    "vitest": "^2.1.8"
+    "vitest": "^2.1.8",
+    "zod-to-json-schema": "^3.25.1"
   },
   "peerDependencies": {
     "typescript": "^5.0.0"
@@ -55,7 +58,8 @@
   },
   "files": [
     "dist",
-    "src"
+    "src",
+    "schemas"
   ],
   "keywords": [
     "opencode",

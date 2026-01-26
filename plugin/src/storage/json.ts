@@ -18,6 +18,7 @@ import {
 } from "fs/promises";
 import { SpecSchema, ChangeSchema, ProjectConfigSchema } from "../types";
 import type { Spec, Change, ProjectConfig } from "../types";
+import { ZodError } from "zod";
 
 // =============================================================================
 // Atomic Write
@@ -130,7 +131,25 @@ export async function loadSpec(
     const content = await readFile(specPath, "utf-8");
     return SpecSchema.parse(JSON.parse(content));
   } catch (error) {
-    console.error(`Failed to load spec ${capability}:`, error);
+    if (error instanceof ZodError) {
+      // Provide helpful error message for schema violations
+      const issues = error.issues.map((issue) => {
+        const path = issue.path.join(".");
+        return `  - ${path}: ${issue.message} (expected ${issue.code === "invalid_type" ? (issue as { expected?: string }).expected : "valid value"})`;
+      });
+      console.error(
+        `\n[ADV] Schema validation failed for spec "${capability}":\n` +
+          `File: ${specPath}\n` +
+          `Issues:\n${issues.join("\n")}\n\n` +
+          `Hint: Ensure the spec.json matches the schema at:\n` +
+          `  https://raw.githubusercontent.com/anomalyco/oc-plugins/main/advance/plugin/schemas/spec.schema.json\n`,
+      );
+    } else if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      // File not found - not an error, just return null
+      return null;
+    } else {
+      console.error(`Failed to load spec ${capability}:`, error);
+    }
     return null;
   }
 }
@@ -230,7 +249,25 @@ export async function loadChange(
     const content = await readFile(changePath, "utf-8");
     return ChangeSchema.parse(JSON.parse(content));
   } catch (error) {
-    console.error(`Failed to load change ${changeId}:`, error);
+    if (error instanceof ZodError) {
+      // Provide helpful error message for schema violations
+      const issues = error.issues.map((issue) => {
+        const path = issue.path.join(".");
+        return `  - ${path}: ${issue.message} (expected ${issue.code === "invalid_type" ? (issue as { expected?: string }).expected : "valid value"})`;
+      });
+      console.error(
+        `\n[ADV] Schema validation failed for change "${changeId}":\n` +
+          `File: ${changePath}\n` +
+          `Issues:\n${issues.join("\n")}\n\n` +
+          `Hint: Ensure the change.json matches the schema at:\n` +
+          `  https://raw.githubusercontent.com/anomalyco/oc-plugins/main/advance/plugin/schemas/change.schema.json\n`,
+      );
+    } else if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      // File not found - not an error, just return null
+      return null;
+    } else {
+      console.error(`Failed to load change ${changeId}:`, error);
+    }
     return null;
   }
 }

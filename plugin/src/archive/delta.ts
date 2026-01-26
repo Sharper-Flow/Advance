@@ -208,6 +208,8 @@ export function createSpecFromDeltas(
 ): { spec: Spec; result: SpecUpdateResult } {
   // Create empty spec
   const spec: Spec = {
+    $schema:
+      "https://raw.githubusercontent.com/anomalyco/oc-plugins/main/advance/plugin/schemas/spec.schema.json",
     name: capability,
     title: formatTitle(capability),
     purpose: `Capability: ${formatTitle(capability)}`,
