@@ -25,6 +25,7 @@ import {
   cleanup as cleanupTerminal,
   getProjectName,
   setStatus,
+  setActiveChange,
 } from "./events";
 import type { StatusMarker } from "./types";
 import { safeExecute, safeExecuteSimple } from "./utils/safe-execute";
@@ -658,6 +659,7 @@ export const AdvancePlugin: Plugin = async ({ directory }) => {
         // (args are only available in before hook, not after)
         if (output.args?.changeId) {
           state.activeChange.id = String(output.args.changeId);
+          setActiveChange(state.activeChange.id);
         }
 
         // Detect sub-agent spawning (Task tool)
