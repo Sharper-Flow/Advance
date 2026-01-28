@@ -139,11 +139,70 @@ Analyze the codebase for gaps across **6 core categories**.
 
 ---
 
-## Part 2: Greenfield Perspective
+## Part 2: Architecture Health Assessment (By-the-Book)
+
+**This is not a subjective review.** Compare the existing architecture against the **canonical reference architecture** for the project's tech stack. Use Context7 (`resolve-library-id`, `query-docs`) and authoritative documentation to determine what "correct" looks like.
+
+### 2.1 Reference Architecture Lookup (CRITICAL)
+
+For the detected tech stack, look up the **canonical/reference architecture**:
+
+1. **Use Context7** to query the framework's official documentation for recommended project structure, layer patterns, and architectural guidance
+2. **Identify the reference architecture** — what does the framework/ecosystem recommend?
+   - Layer boundaries (e.g., controller → service → repository)
+   - Dependency direction (dependencies point inward toward domain)
+   - Separation of concerns (business logic isolated from I/O, transport, persistence)
+   - Error handling strategy (centralized vs. distributed, typed errors vs. exceptions)
+   - Observability patterns (where logs/traces/metrics belong in the architecture)
+   - Configuration management (environment-based, validated at startup)
+   - Module/package organization (by feature vs. by layer vs. hybrid)
+
+3. **Document the reference** with source citations:
+   ```
+   REFERENCE ARCHITECTURE: {framework/stack}
+   Source: {official docs URL or Context7 library}
+   
+   Recommended structure:
+   - {layer/pattern}: {description}
+   - {layer/pattern}: {description}
+   ```
+
+### 2.2 Architecture Deviation Analysis
+
+For each architectural area, compare existing vs. reference and classify:
+
+| Area | Existing Pattern | Reference Pattern | Classification | Source |
+|------|-----------------|-------------------|----------------|--------|
+| Layer boundaries | {what exists} | {what's correct} | SOUND / DRIFTED / ANTI-PATTERN | {citation} |
+| Dependency direction | {what exists} | {what's correct} | SOUND / DRIFTED / ANTI-PATTERN | {citation} |
+| Separation of concerns | {what exists} | {what's correct} | SOUND / DRIFTED / ANTI-PATTERN | {citation} |
+| Error handling | {what exists} | {what's correct} | SOUND / DRIFTED / ANTI-PATTERN | {citation} |
+| Observability | {what exists} | {what's correct} | SOUND / DRIFTED / ANTI-PATTERN | {citation} |
+| Module organization | {what exists} | {what's correct} | SOUND / DRIFTED / ANTI-PATTERN | {citation} |
+
+**Classification criteria:**
+- `SOUND` — Follows best practices, safe to extend
+- `DRIFTED` — Was good, has accumulated inconsistencies that compound over time
+- `ANTI-PATTERN` — Fundamentally wrong, every new feature built on it makes things worse
+
+### 2.3 Architecture Corrections
+
+**For each DRIFTED or ANTI-PATTERN area**, produce a correction recommendation:
+
+1. **What is wrong** — Specific deviation with file path evidence
+2. **What is correct** — The by-the-book approach with authoritative source
+3. **Why it matters** — Concrete consequences of continuing the current pattern
+4. **Correction scope:**
+   - `TARGETED` — Can be fixed in a single focused change
+   - `INCREMENTAL` — Requires multiple changes, new code should follow correct pattern
+   - `REWRITE` — Area needs fundamental restructuring
+5. **Minimum viable correction** — The smallest change that stops the bleeding (prevents new code from perpetuating the anti-pattern)
+
+**IMPORTANT**: Architecture corrections are NOT optional "nice-to-haves." DRIFTED areas should be flagged as HIGH severity. ANTI-PATTERN areas should be flagged as CRITICAL. These take priority in the recommendations.
+
+### 2.4 Greenfield Perspective
 
 **The Critical Question**: If you were building this project from scratch today, knowing what you know about the domain, what would you do differently?
-
-### 2.1 Architectural Decisions
 
 Evaluate current architecture against modern alternatives:
 
@@ -155,7 +214,7 @@ Evaluate current architecture against modern alternatives:
 | **Module Boundaries** | Different package/folder structure? |
 | **Dependency Choices** | Different libraries knowing their current limitations? |
 
-### 2.2 Technical Debt Assessment
+### 2.5 Technical Debt Assessment
 
 Identify debt that would not exist in a greenfield rewrite:
 
@@ -167,7 +226,7 @@ Identify debt that would not exist in a greenfield rewrite:
 | **Premature Abstractions** | What abstractions weren't needed? |
 | **Missing Abstractions** | What abstractions are needed but missing? |
 
-### 2.3 Pre-Production Launch Readiness
+### 2.6 Pre-Production Launch Readiness
 
 If launching to production users tomorrow, what's missing?
 
@@ -249,12 +308,42 @@ PART 1: CURRENT STATE GAPS
 
 ... (continue for each finding, sorted by severity)
 
-PART 2: GREENFIELD PERSPECTIVE
+PART 2: ARCHITECTURE HEALTH & GREENFIELD PERSPECTIVE
 ============================================================
 
-If rebuilding this project from scratch today:
+REFERENCE ARCHITECTURE
+------------------------------------------------------------
+Stack: <detected tech stack>
+Source: <authoritative documentation / Context7 library>
+Key patterns: <canonical layer/structure recommendations>
 
-ARCHITECTURAL CHANGES
+ARCHITECTURE DEVIATION ANALYSIS
+------------------------------------------------------------
+
+| Area | Existing | Reference | Class | Source |
+|------|----------|-----------|-------|--------|
+| <area> | <pattern> | <correct> | SOUND/DRIFTED/ANTI-PATTERN | <cite> |
+
+ARCHITECTURE CORRECTIONS (ordered by severity)
+------------------------------------------------------------
+
+[CRITICAL] <Anti-Pattern Area>
+  Existing: <what the code does>
+  Reference: <what it should do, with source>
+  Evidence: <file paths>
+  Impact: <consequences of continuing>
+  Scope: <TARGETED | INCREMENTAL | REWRITE>
+  Minimum Viable Correction: <smallest fix to stop the bleeding>
+
+[HIGH] <Drifted Area>
+  Existing: <what the code does>
+  Reference: <what it should do, with source>
+  Evidence: <file paths>
+  Impact: <consequences of continuing>
+  Scope: <TARGETED | INCREMENTAL | REWRITE>
+  Minimum Viable Correction: <smallest fix to stop the bleeding>
+
+GREENFIELD CHANGES
 ------------------------------------------------------------
 
 [GREENFIELD] <What Would Change>
@@ -290,12 +379,14 @@ PRE-PRODUCTION LAUNCH GAPS
                       SUMMARY
 ============================================================
 
+Architecture Health: <N SOUND, N DRIFTED, N ANTI-PATTERN areas>
 Current State Issues: <N total - X critical, Y high, Z medium>
+Architecture Corrections: <N required (prioritize these)>
 Greenfield Changes: <N architectural differences identified>
 Technical Debt Items: <N items totaling ~X effort>
 Launch Blockers: <N must-haves, M should-haves>
 
-Top 3 Recommendations:
+Top 3 Recommendations (architecture corrections first):
 1. <Most impactful improvement>
 2. <Second priority>
 3. <Third priority>
@@ -325,6 +416,10 @@ Current State:
 - Testing: <brief positive finding>
 - Observability: <brief positive finding>
 - DX: <brief positive finding>
+
+Architecture Health:
+All areas classified as SOUND against reference architecture.
+Source: <authoritative docs consulted>
 
 Greenfield Assessment:
 The current architecture aligns well with modern best practices.
@@ -365,11 +460,14 @@ Recommendation: Run on specific directories for deeper analysis.
 2. **Output PROJECT CONTEXT** summary
 3. Run pre-flight checks
 4. **Part 1**: Analyze current state (6 categories)
-5. **Part 2**: Apply greenfield perspective
-   - Architectural alternatives
+5. **Part 2**: Architecture health and greenfield perspective
+   - **Reference architecture lookup** via Context7 (CRITICAL — do this first)
+   - Architecture deviation analysis (SOUND / DRIFTED / ANTI-PATTERN)
+   - Architecture corrections for deviations
+   - Greenfield architectural alternatives
    - Technical debt identification
    - Launch readiness check
-6. Generate summary and top recommendations
+6. Generate summary and top recommendations (architecture corrections first)
 7. Output the complete report
 
 ---
