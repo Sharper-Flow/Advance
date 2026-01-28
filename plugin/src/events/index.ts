@@ -13,12 +13,12 @@ export {
   updateTerminalStatus,
   cleanupTerminal,
   ringBell,
+  invalidateTtyCache,
 } from "./terminal";
 
 // Status management
 export {
   getStatusMarker,
-  emitStatusMarker,
   initializeStatus,
   setStatus,
   setActiveChange,
@@ -32,4 +32,6 @@ export {
   trackRetry,
   clearRetry,
   getDoomLoopInfo,
+  pruneStaleRetries,
+  clearAllRetries,
 } from "./status";

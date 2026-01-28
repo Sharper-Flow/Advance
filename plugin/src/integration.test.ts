@@ -12,6 +12,7 @@ import {
 
 describe("Wisdom Lifecycle Integration", () => {
   let tempDir: string;
+  let hooks: any;
 
   beforeEach(async () => {
     tempDir = await createTempDir();
@@ -19,11 +20,22 @@ describe("Wisdom Lifecycle Integration", () => {
   });
 
   afterEach(async () => {
+    // Fire session.deleted to remove process listeners and prevent memory leaks
+    if (hooks?.event) {
+      try {
+        await hooks.event({
+          event: { type: "session.deleted", properties: {} },
+        });
+      } catch {
+        // ignore cleanup errors
+      }
+    }
+    hooks = null;
     await cleanupTempDir(tempDir);
   });
 
   test("full wisdom lifecycle: tool calls and hook responses", async () => {
-    const hooks = await AdvancePlugin({
+    hooks = await AdvancePlugin({
       project: { name: "test", path: tempDir },
       directory: tempDir,
       worktree: tempDir,

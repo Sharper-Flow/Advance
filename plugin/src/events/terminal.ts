@@ -100,22 +100,39 @@ const getTmuxClientTty = (): string | null => {
   return null;
 };
 
-// Cache TTY paths
+// Cache TTY paths with expiry to handle tmux reattach/detach
+const TTY_CACHE_TTL_MS = 60_000; // Re-detect TTY every 60 seconds
 let cachedPaneTty: string | null | undefined;
 let cachedClientTty: string | null | undefined;
+let ttyCacheTimestamp = 0;
+
+const isTtyCacheStale = (): boolean =>
+  Date.now() - ttyCacheTimestamp > TTY_CACHE_TTL_MS;
 
 const getPaneTty = (): string | null => {
-  if (cachedPaneTty === undefined) {
+  if (cachedPaneTty === undefined || isTtyCacheStale()) {
     cachedPaneTty = getTmuxPaneTty();
+    ttyCacheTimestamp = Date.now();
   }
   return cachedPaneTty;
 };
 
 const getClientTty = (): string | null => {
-  if (cachedClientTty === undefined) {
+  if (cachedClientTty === undefined || isTtyCacheStale()) {
     cachedClientTty = getTmuxClientTty();
+    ttyCacheTimestamp = Date.now();
   }
   return cachedClientTty;
+};
+
+/**
+ * Invalidate the TTY cache, forcing re-detection on next use.
+ * Useful after tmux detach/reattach or environment changes.
+ */
+export const invalidateTtyCache = (): void => {
+  cachedPaneTty = undefined;
+  cachedClientTty = undefined;
+  ttyCacheTimestamp = 0;
 };
 
 // =============================================================================
@@ -272,19 +289,20 @@ const _getModelName = (): string => {
 
 /**
  * Update terminal based on status.
- * Title format: Status_Emoji Project_Name Change_ID
+ * Title format: Status_Emoji Project_Name [Progress] Change_ID
  * Rings bell for states needing user attention.
  */
 export const updateTerminalStatus = (
   status: StatusMarker,
   projectName: string,
   changeId?: string,
-  _progress?: string,
+  progress?: string,
 ): void => {
-  // Build title: emoji projectName changeId
+  // Build title: emoji projectName [progress] changeId
   const emoji = getStatusEmoji(status);
+  const progressText = progress ? ` [${progress}]` : "";
   const changeIdText = changeId ? ` ${changeId.substring(0, 15)}` : "";
-  const title = `${emoji} ${projectName}${changeIdText}`;
+  const title = `${emoji} ${projectName}${progressText}${changeIdText}`;
 
   setTitle(title);
 
@@ -331,9 +349,10 @@ const getStatusEmoji = (status: StatusMarker): string => {
 };
 
 /**
- * Full cleanup - reset title.
+ * Full cleanup - reset title and all module-level state.
  */
 export const cleanupTerminal = (): void => {
   resetTitle();
   lastAlertedStatus = null;
+  invalidateTtyCache();
 };

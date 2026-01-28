@@ -39,15 +39,6 @@ export const getStatusMarker = (status: StatusMarker): string => {
   return STATUS_MARKERS[status];
 };
 
-/**
- * Emit a status marker to stdout for agent detection.
- */
-export const emitStatusMarker = (status: StatusMarker): void => {
-  const marker = getStatusMarker(status);
-  // Emit to stdout for the agent to detect
-  process.stdout.write(`${marker}\n`);
-};
-
 // =============================================================================
 // Status State Management
 // =============================================================================
@@ -68,13 +59,13 @@ export const initializeStatus = (projectName: string): void => {
 
 /**
  * Set the current status.
+ * Always refreshes the terminal display to pick up any changeId/progress changes.
+ * Bell logic in terminal.ts independently tracks transitions.
  */
 export const setStatus = (status: StatusMarker): void => {
-  if (state.currentStatus !== status) {
-    state.currentStatus = status;
-    state.lastUpdated = Date.now();
-    updateTerminal();
-  }
+  state.currentStatus = status;
+  state.lastUpdated = Date.now();
+  updateTerminal();
 };
 
 /**
@@ -139,9 +130,11 @@ export const resetStatus = (): void => {
 
 /**
  * Full cleanup on session end.
+ * Resets all module-level state to prevent stale data across sessions.
  */
 export const cleanup = (): void => {
   cleanupTerminal();
+  retryTrackers.clear();
 };
 
 // =============================================================================
@@ -286,4 +279,27 @@ export const getDoomLoopInfo = (
     attempts: tracker.attempts,
     lastError: tracker.lastError,
   };
+};
+
+/**
+ * Prune stale retry trackers that have exceeded the retry window.
+ * Prevents unbounded memory growth over long sessions.
+ */
+export const pruneStaleRetries = (): number => {
+  const now = Date.now();
+  let pruned = 0;
+  for (const [taskId, tracker] of retryTrackers) {
+    if (now - tracker.startTime > RETRY_WINDOW_MS) {
+      retryTrackers.delete(taskId);
+      pruned++;
+    }
+  }
+  return pruned;
+};
+
+/**
+ * Clear all retry trackers. Used during cleanup/reset.
+ */
+export const clearAllRetries = (): void => {
+  retryTrackers.clear();
 };

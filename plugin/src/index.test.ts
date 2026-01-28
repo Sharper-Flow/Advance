@@ -51,6 +51,21 @@ const createMockPluginInput = (directory: string): MockPluginInput => ({
   $: {},
 });
 
+/**
+ * Create plugin hooks and track them for cleanup.
+ * Each test should use this instead of calling AdvancePlugin directly
+ * to ensure process listeners are removed in afterEach.
+ */
+const createTrackedPlugin = async (
+  directory: string,
+  tracker: any[],
+): Promise<any> => {
+  const input = createMockPluginInput(directory);
+  const hooks = await AdvancePlugin(input as any);
+  tracker.push(hooks);
+  return hooks;
+};
+
 // Mock ToolContext for execute calls
 const createMockToolContext = (): MockToolContext => ({
   sessionID: "test-session",
@@ -67,6 +82,8 @@ const createMockToolContext = (): MockToolContext => ({
 
 describe("Advance Plugin SDK Integration", () => {
   let tempDir: string;
+  // Track plugin hooks for cleanup to prevent listener leaks
+  const pluginInstances: any[] = [];
 
   beforeEach(async () => {
     tempDir = await createTempDir();
@@ -74,6 +91,19 @@ describe("Advance Plugin SDK Integration", () => {
   });
 
   afterEach(async () => {
+    // Fire session.deleted on all plugin instances to remove process listeners
+    for (const hooks of pluginInstances) {
+      if (hooks?.event) {
+        try {
+          await hooks.event({
+            event: { type: "session.deleted", properties: {} },
+          });
+        } catch {
+          // ignore cleanup errors
+        }
+      }
+    }
+    pluginInstances.length = 0;
     await cleanupTempDir(tempDir);
   });
 
@@ -98,8 +128,7 @@ describe("Advance Plugin SDK Integration", () => {
 
   describe("Hooks Structure", () => {
     test("returns Hooks object with tool key", async () => {
-      const mockInput = createMockPluginInput(tempDir);
-      const hooks = await AdvancePlugin(mockInput as any);
+      const hooks = await createTrackedPlugin(tempDir, pluginInstances);
 
       expect(hooks).toHaveProperty("tool");
       expect(typeof hooks.tool).toBe("object");
@@ -107,32 +136,28 @@ describe("Advance Plugin SDK Integration", () => {
     });
 
     test("returns Hooks object with event function", async () => {
-      const mockInput = createMockPluginInput(tempDir);
-      const hooks = await AdvancePlugin(mockInput as any);
+      const hooks = await createTrackedPlugin(tempDir, pluginInstances);
 
       expect(hooks).toHaveProperty("event");
       expect(typeof hooks.event).toBe("function");
     });
 
     test("returns Hooks with tool.execute.before hook", async () => {
-      const mockInput = createMockPluginInput(tempDir);
-      const hooks = await AdvancePlugin(mockInput as any);
+      const hooks = await createTrackedPlugin(tempDir, pluginInstances);
 
       expect(hooks["tool.execute.before"]).toBeDefined();
       expect(typeof hooks["tool.execute.before"]).toBe("function");
     });
 
     test("returns Hooks with tool.execute.after hook", async () => {
-      const mockInput = createMockPluginInput(tempDir);
-      const hooks = await AdvancePlugin(mockInput as any);
+      const hooks = await createTrackedPlugin(tempDir, pluginInstances);
 
       expect(hooks["tool.execute.after"]).toBeDefined();
       expect(typeof hooks["tool.execute.after"]).toBe("function");
     });
 
     test("returns Hooks with experimental.session.compacting hook", async () => {
-      const mockInput = createMockPluginInput(tempDir);
-      const hooks = await AdvancePlugin(mockInput as any);
+      const hooks = await createTrackedPlugin(tempDir, pluginInstances);
 
       expect(hooks["experimental.session.compacting"]).toBeDefined();
       expect(typeof hooks["experimental.session.compacting"]).toBe("function");
@@ -145,16 +170,14 @@ describe("Advance Plugin SDK Integration", () => {
 
   describe("Tool Registration", () => {
     test("registers all 30 tools", async () => {
-      const mockInput = createMockPluginInput(tempDir);
-      const hooks = await AdvancePlugin(mockInput as any);
+      const hooks = await createTrackedPlugin(tempDir, pluginInstances);
 
       const toolNames = Object.keys(hooks.tool!);
       expect(toolNames).toHaveLength(30);
     });
 
     test("registers spec tools", async () => {
-      const mockInput = createMockPluginInput(tempDir);
-      const hooks = await AdvancePlugin(mockInput as any);
+      const hooks = await createTrackedPlugin(tempDir, pluginInstances);
 
       const toolNames = Object.keys(hooks.tool!);
       expect(toolNames).toContain("adv_spec_list");
@@ -163,8 +186,7 @@ describe("Advance Plugin SDK Integration", () => {
     });
 
     test("registers change tools", async () => {
-      const mockInput = createMockPluginInput(tempDir);
-      const hooks = await AdvancePlugin(mockInput as any);
+      const hooks = await createTrackedPlugin(tempDir, pluginInstances);
 
       const toolNames = Object.keys(hooks.tool!);
       expect(toolNames).toContain("adv_change_list");
@@ -175,8 +197,7 @@ describe("Advance Plugin SDK Integration", () => {
     });
 
     test("registers task tools", async () => {
-      const mockInput = createMockPluginInput(tempDir);
-      const hooks = await AdvancePlugin(mockInput as any);
+      const hooks = await createTrackedPlugin(tempDir, pluginInstances);
 
       const toolNames = Object.keys(hooks.tool!);
       expect(toolNames).toContain("adv_task_list");
@@ -190,8 +211,7 @@ describe("Advance Plugin SDK Integration", () => {
     });
 
     test("registers wisdom tools", async () => {
-      const mockInput = createMockPluginInput(tempDir);
-      const hooks = await AdvancePlugin(mockInput as any);
+      const hooks = await createTrackedPlugin(tempDir, pluginInstances);
 
       const toolNames = Object.keys(hooks.tool!);
       expect(toolNames).toContain("adv_wisdom_add");
@@ -199,8 +219,7 @@ describe("Advance Plugin SDK Integration", () => {
     });
 
     test("registers agenda tools", async () => {
-      const mockInput = createMockPluginInput(tempDir);
-      const hooks = await AdvancePlugin(mockInput as any);
+      const hooks = await createTrackedPlugin(tempDir, pluginInstances);
 
       const toolNames = Object.keys(hooks.tool!);
       expect(toolNames).toContain("adv_agenda_list");
@@ -216,8 +235,7 @@ describe("Advance Plugin SDK Integration", () => {
     });
 
     test("registers status and project tools", async () => {
-      const mockInput = createMockPluginInput(tempDir);
-      const hooks = await AdvancePlugin(mockInput as any);
+      const hooks = await createTrackedPlugin(tempDir, pluginInstances);
 
       const toolNames = Object.keys(hooks.tool!);
       expect(toolNames).toContain("adv_status");
@@ -231,8 +249,7 @@ describe("Advance Plugin SDK Integration", () => {
 
   describe("Tool Definition Structure", () => {
     test("each tool has description, args, execute", async () => {
-      const mockInput = createMockPluginInput(tempDir);
-      const hooks = await AdvancePlugin(mockInput as any);
+      const hooks = await createTrackedPlugin(tempDir, pluginInstances);
 
       for (const [_name, toolDef] of Object.entries(hooks.tool!)) {
         expect(toolDef).toHaveProperty("description", expect.any(String));
@@ -243,8 +260,7 @@ describe("Advance Plugin SDK Integration", () => {
     });
 
     test("tool descriptions are non-empty strings", async () => {
-      const mockInput = createMockPluginInput(tempDir);
-      const hooks = await AdvancePlugin(mockInput as any);
+      const hooks = await createTrackedPlugin(tempDir, pluginInstances);
 
       for (const [_name, toolDef] of Object.entries(hooks.tool!)) {
         expect(toolDef.description.length).toBeGreaterThan(10);
@@ -258,8 +274,7 @@ describe("Advance Plugin SDK Integration", () => {
 
   describe("Tool Execution", () => {
     test("adv_spec_list executes and returns JSON", async () => {
-      const mockInput = createMockPluginInput(tempDir);
-      const hooks = await AdvancePlugin(mockInput as any);
+      const hooks = await createTrackedPlugin(tempDir, pluginInstances);
       const context = createMockToolContext();
 
       const result = await hooks.tool!.adv_spec_list.execute({}, context);
@@ -271,8 +286,7 @@ describe("Advance Plugin SDK Integration", () => {
     });
 
     test("adv_status executes and returns project status", async () => {
-      const mockInput = createMockPluginInput(tempDir);
-      const hooks = await AdvancePlugin(mockInput as any);
+      const hooks = await createTrackedPlugin(tempDir, pluginInstances);
       const context = createMockToolContext();
 
       const result = await hooks.tool!.adv_status.execute({}, context);
@@ -284,8 +298,7 @@ describe("Advance Plugin SDK Integration", () => {
     });
 
     test("adv_change_create creates a new change", async () => {
-      const mockInput = createMockPluginInput(tempDir);
-      const hooks = await AdvancePlugin(mockInput as any);
+      const hooks = await createTrackedPlugin(tempDir, pluginInstances);
       const context = createMockToolContext();
 
       const result = await hooks.tool!.adv_change_create.execute(
@@ -305,8 +318,7 @@ describe("Advance Plugin SDK Integration", () => {
 
   describe("Event Hooks", () => {
     test("event hook handles session.status without error", async () => {
-      const mockInput = createMockPluginInput(tempDir);
-      const hooks = await AdvancePlugin(mockInput as any);
+      const hooks = await createTrackedPlugin(tempDir, pluginInstances);
 
       await expect(
         hooks.event!({
@@ -319,8 +331,7 @@ describe("Advance Plugin SDK Integration", () => {
     });
 
     test("event hook handles unknown event types gracefully", async () => {
-      const mockInput = createMockPluginInput(tempDir);
-      const hooks = await AdvancePlugin(mockInput as any);
+      const hooks = await createTrackedPlugin(tempDir, pluginInstances);
 
       await expect(
         hooks.event!({
@@ -335,8 +346,7 @@ describe("Advance Plugin SDK Integration", () => {
 
   describe("Hooks", () => {
     test("experimental.chat.system.transform injects wisdom and continuation", async () => {
-      const mockInput = createMockPluginInput(tempDir);
-      const hooks = await AdvancePlugin(mockInput as any);
+      const hooks = await createTrackedPlugin(tempDir, pluginInstances);
 
       // 1. Set active change ID by calling a tool with it (args are in before hook)
       const changeId = "add-feature-abc123";
@@ -370,8 +380,7 @@ describe("Advance Plugin SDK Integration", () => {
     });
 
     test("experimental.chat.system.transform injects wisdom recording prompt after task completion", async () => {
-      const mockInput = createMockPluginInput(tempDir);
-      const hooks = await AdvancePlugin(mockInput as any);
+      const hooks = await createTrackedPlugin(tempDir, pluginInstances);
       const changeId = "add-feature-abc123";
       const taskId = "tk-task0001";
 
@@ -411,8 +420,7 @@ describe("Advance Plugin SDK Integration", () => {
     });
 
     test("experimental.chat.system.transform truncates wisdom to most recent 10 entries", async () => {
-      const mockInput = createMockPluginInput(tempDir);
-      const hooks = await AdvancePlugin(mockInput as any);
+      const hooks = await createTrackedPlugin(tempDir, pluginInstances);
       const changeId = "add-feature-abc123";
 
       // 1. Set active change (args are in before hook)
@@ -450,8 +458,7 @@ describe("Advance Plugin SDK Integration", () => {
 
   describe("Internal SDK Hooks", () => {
     test("tool.execute.before hook handles tool input", async () => {
-      const mockInput = createMockPluginInput(tempDir);
-      const hooks = await AdvancePlugin(mockInput as any);
+      const hooks = await createTrackedPlugin(tempDir, pluginInstances);
 
       const toolInput = {
         tool: "bash",
@@ -466,8 +473,7 @@ describe("Advance Plugin SDK Integration", () => {
     });
 
     test("tool.execute.after hook handles tool output", async () => {
-      const mockInput = createMockPluginInput(tempDir);
-      const hooks = await AdvancePlugin(mockInput as any);
+      const hooks = await createTrackedPlugin(tempDir, pluginInstances);
 
       const toolInput = {
         tool: "bash",
@@ -486,8 +492,7 @@ describe("Advance Plugin SDK Integration", () => {
     });
 
     test("experimental.session.compacting hook adds context", async () => {
-      const mockInput = createMockPluginInput(tempDir);
-      const hooks = await AdvancePlugin(mockInput as any);
+      const hooks = await createTrackedPlugin(tempDir, pluginInstances);
 
       const input = { sessionID: "test-session" };
       const output = { context: [] as string[], prompt: undefined };

@@ -26,6 +26,7 @@ import {
   getProjectName,
   setStatus,
   setActiveChange,
+  pruneStaleRetries,
 } from "./events";
 import type { StatusMarker } from "./types";
 import { safeExecute, safeExecuteSimple } from "./utils/safe-execute";
@@ -87,8 +88,11 @@ const TEST_RUNNER_PATTERNS = [
   /\buv\s+run\s+pytest\b/,
 ];
 
-/** Patterns indicating test failure in output */
-const TEST_FAILURE_PATTERNS = /FAIL|FAILED|Error:|AssertionError|✗|✘/;
+/** Patterns indicating test failure in output (used as fallback when exitCode is unavailable).
+ *  Anchored to test-runner-specific output to reduce false positives from
+ *  general log output containing "Error:" or "FAIL" substrings. */
+const TEST_FAILURE_PATTERNS =
+  /\bFAILED\b|Tests?\s+Failed|Test Suites?:.*failed|FAIL\s+(?:src\/|test\/|\.\/)|AssertionError|AssertError|✗|✘|(?:^|\n)\s*\d+\s+(?:failing|failed)\b/;
 
 // =============================================================================
 // Plugin Export
@@ -127,17 +131,26 @@ export const AdvancePlugin: Plugin = async ({ directory }) => {
     }
   };
 
-  // Register cleanup handlers
+  // Register cleanup handlers (store references for removal)
   const handleExit = () => cleanupTerminal();
+  const handleSigInt = () => {
+    cleanupTerminal();
+    process.exit(0);
+  };
+  const handleSigTerm = () => {
+    cleanupTerminal();
+    process.exit(0);
+  };
   process.on("exit", handleExit);
-  process.on("SIGINT", () => {
-    cleanupTerminal();
-    process.exit(0);
-  });
-  process.on("SIGTERM", () => {
-    cleanupTerminal();
-    process.exit(0);
-  });
+  process.on("SIGINT", handleSigInt);
+  process.on("SIGTERM", handleSigTerm);
+
+  // Remove listeners on session.deleted to prevent memory leaks
+  const removeProcessListeners = () => {
+    process.removeListener("exit", handleExit);
+    process.removeListener("SIGINT", handleSigInt);
+    process.removeListener("SIGTERM", handleSigTerm);
+  };
 
   // ==========================================================================
   // Return Hooks
@@ -623,6 +636,8 @@ export const AdvancePlugin: Plugin = async ({ directory }) => {
             if (state.activeSubAgents === 0) {
               setState({ status: "EARTH" });
             }
+            // Prune stale retry trackers on idle to prevent memory growth
+            pruneStaleRetries();
           } else if (statusType === "busy") {
             // Don't override MOON status - sub-agents are still working
             if (state.activeSubAgents === 0) {
@@ -631,6 +646,7 @@ export const AdvancePlugin: Plugin = async ({ directory }) => {
           }
         } else if (eventType === "session.deleted") {
           cleanupTerminal();
+          removeProcessListeners();
         } else if (
           eventType === "permission.updated" ||
           eventType === "permission.asked"
