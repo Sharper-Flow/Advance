@@ -50,11 +50,41 @@ Identify from requirements/deltas:
 3. **Integration points** with external systems
 4. **Performance/security assumptions**
 
+### Existing Architecture Audit (CRITICAL)
+
+Before validating individual decisions, audit the **existing codebase architecture** that the change builds upon. The goal is to determine whether the change is **extending a bad pattern** or **moving toward best practices**.
+
+1. **Scan the affected code area** - Read the files the change touches and their neighbors
+2. **Identify existing architectural patterns** in use:
+   - Layer boundaries (controller → service → repository)
+   - Dependency direction (do dependencies point inward?)
+   - Separation of concerns (is business logic mixed with I/O?)
+   - Error handling strategy (consistent? ad-hoc?)
+   - Observability patterns (where do logs/traces/metrics live?)
+3. **Compare against by-the-book best practices** for the project's tech stack:
+   - Use Context7 to look up canonical architecture patterns for the framework
+   - Compare actual structure vs. recommended structure
+4. **Classify the existing architecture**:
+   - `SOUND` — Follows best practices, safe to extend
+   - `DRIFTED` — Was good, has accumulated inconsistencies
+   - `ANTI-PATTERN` — Fundamentally wrong, extending it makes things worse
+
+**If DRIFTED or ANTI-PATTERN**: The change MUST NOT simply add to the existing structure. Instead, the research output MUST recommend modifications to steer the change toward best-practice architecture. The change should leave the architecture *better* than it found it, not perpetuate existing problems.
+
+Document findings in the research report under `## Architecture Health Assessment`.
+
 ---
 
 ## Phase 2: Generate Research Questions
 
 For each decision, formulate questions across these dimensions:
+
+### Architecture Correctness (HIGHEST PRIORITY)
+- "Does {approach} follow the canonical architecture for {framework/stack}?"
+- "Is this change building on a sound architectural foundation, or extending an anti-pattern?"
+- "What does the by-the-book reference architecture look like for this use case?"
+- "Where does {pattern} violate separation of concerns, dependency direction, or layer boundaries?"
+- "If the existing code structure is wrong, what would the correct structure look like?"
 
 ### Technology Validation
 - "Is {library} best practice for {use case}?"
@@ -91,12 +121,27 @@ QUESTION: {question}
 
 CONTEXT: {spec excerpt}
 
+EXISTING CODEBASE PATTERNS: {summary of patterns found in Phase 1 audit}
+
 TASK:
 1. Use Context7: resolve-library-id, then query-docs
-2. Web search for best practices
-3. Identify red flags, anti-patterns
-4. Evaluate simpler alternatives (CRITICAL)
-5. Check for security implications
+2. Look up the CANONICAL/REFERENCE architecture for this tech stack
+3. Web search for best practices
+4. Identify red flags, anti-patterns
+5. Evaluate simpler alternatives (CRITICAL)
+6. Check for security implications
+7. Compare the PROPOSED architecture against the REFERENCE architecture
+8. If the existing code deviates from best practices, recommend how the
+   change should CORRECT the architecture rather than extend the deviation
+
+ARCHITECTURE CORRECTION MANDATE:
+- Never recommend "follow the existing pattern" if the existing pattern is wrong
+- Always recommend the by-the-book correct approach
+- If correcting the architecture is too large for this change, recommend
+  the minimum correction needed to avoid making things worse, plus a
+  follow-up task for full correction
+- Cite the authoritative source for what "correct" means (framework docs,
+  design pattern book, official style guide)
 
 SIMPLICITY BIAS:
 - Prefer boring technology over exciting technology
@@ -109,6 +154,12 @@ RESEARCH QUESTION: {question}
 
 FINDINGS:
 - {finding with source}
+
+ARCHITECTURE ASSESSMENT:
+- Existing pattern: {what the codebase currently does}
+- Reference pattern: {what the by-the-book approach is}
+- Deviation: {NONE | MINOR | MAJOR}
+- If deviation: {what the change should do differently}
 
 VALIDATION: VALIDATED | CONCERNS | ANTI-PATTERN | OVER-ENGINEERED
 
@@ -138,6 +189,27 @@ SOURCES:
 ## Summary
 {2-3 sentence overview}
 
+## Architecture Health Assessment
+
+### Existing Architecture Classification: {SOUND | DRIFTED | ANTI-PATTERN}
+
+{Assessment of the existing code architecture the change builds upon}
+
+| Area | Existing Pattern | Reference Pattern | Deviation | Impact |
+|------|-----------------|-------------------|-----------|--------|
+| {area} | {what exists} | {what's correct} | {NONE/MINOR/MAJOR} | {risk if unchanged} |
+
+### Architecture Corrections Required
+{If DRIFTED or ANTI-PATTERN: specific changes needed to steer toward
+ best practices. These take priority over feature work.}
+
+1. {correction with authoritative source citation}
+
+### Minimum Viable Correction
+{If full correction is too large: the minimum changes this proposal
+ MUST make to avoid perpetuating the anti-pattern, plus follow-up
+ tasks for complete correction.}
+
 ## Validated Decisions
 {confirmed best practices - keep these}
 
@@ -161,13 +233,16 @@ SOURCES:
 
 ### {Decision Area}
 **Current:** {spec decision}
+**Reference (by-the-book):** {canonical approach with source}
 **Research:** {findings}
 **Simpler Option:** {if exists}
 **Recommendation:** {action}
 **Sources:** {list}
 
 ## Action Items
-- [ ] {specific change - prioritize simplifications}
+- [ ] {architecture corrections first}
+- [ ] {then simplifications}
+- [ ] {then feature-specific changes}
 
 ## Confidence
 - High: {well-validated aspects}
@@ -224,12 +299,14 @@ SUCCESS CRITERIA:
 - [ ] (R{n}) {finding} - {action}
 {end}
 - [ ] All sources cited in proposal.md
+- [ ] Architecture corrections applied (if any deviations found)
 
 PRIORITIZED BY:
-1. Security issues
-2. Simplification opportunities
-3. Anti-pattern fixes
-4. General improvements
+1. Architecture corrections (DRIFTED/ANTI-PATTERN fixes)
+2. Security issues
+3. Simplification opportunities
+4. Anti-pattern fixes in proposed design
+5. General improvements
 
 ============================================================
 ```
@@ -289,13 +366,16 @@ Simplifications: {N opportunities identified}
 
 ## Guiding Principles
 
-1. **Context7 first** for library research
-2. **Parallel sub-agents** for efficiency
-3. **Cite sources** for every claim
-4. **Actionable recommendations** for every concern
-5. **Simplicity bias** - always ask "could this be simpler?"
-6. **Boring is better** - prefer proven over novel
-7. **Always update files** - research without action is incomplete
+1. **Never extend a bad architecture** - If the existing structure is wrong, recommend corrections, don't rubber-stamp it
+2. **By-the-book first** - Always compare against the canonical/reference architecture for the tech stack
+3. **Context7 first** for library and framework research
+4. **Parallel sub-agents** for efficiency
+5. **Cite sources** for every claim, especially for what "correct architecture" means
+6. **Actionable recommendations** for every concern
+7. **Simplicity bias** - always ask "could this be simpler?"
+8. **Boring is better** - prefer proven over novel
+9. **Always update files** - research without action is incomplete
+10. **Correct, then extend** - Fix architectural deviations before adding new features on top of them
 
 ---
 
