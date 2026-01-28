@@ -287,20 +287,20 @@ export const updateTerminalStatus = (
 
   setTitle(title);
 
-  // Ring bell when transitioning from active work (ROCKET/MOON) to:
+  // Ring bell when transitioning from active work (ROCKET) to:
   // - EARTH (work complete, awaiting input)
-  // - MIC (user input needed)
   // Do NOT ring on:
   // - New session (lastAlertedStatus is null)
   // - ROCKET -> MOON transitions (still working, just waiting for sub-agent)
+  // - MOON -> EARTH transitions (sub-agent completed, but work not necessarily done)
+  // - MIC transitions (user attention needed, but not completion)
   const previousStatus = lastAlertedStatus;
   lastAlertedStatus = status;
 
-  const isCompletionState = status === "EARTH" || status === "MIC";
-  const wasActiveWork =
-    previousStatus === "ROCKET" || previousStatus === "MOON";
+  const isEarthState = status === "EARTH";
+  const wasActiveWork = previousStatus === "ROCKET";
 
-  if (isCompletionState && previousStatus !== null && wasActiveWork) {
+  if (isEarthState && previousStatus !== null && wasActiveWork) {
     ringBell();
   }
 };
