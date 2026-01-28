@@ -19,7 +19,7 @@ Parse `$ARGUMENTS` for:
 - `--dry-run` or `dry-run`: Optional flag
 
 1. **If $ARGUMENTS provided**: Extract change-id (and dry-run flag if present)
-2. **If empty**: Call `adv_change_list`, select via `mcp_question`
+2. **If empty**: Call `adv_change_list`, select via the `question` tool
 
 ---
 
@@ -121,16 +121,19 @@ Stop execution.
 
 ## Phase 4: Confirmation
 
-Use `mcp_question`:
-```
-header: "Confirm Archive"
-question: "Archive '{change-id}'? This updates deployed specs."
-options:
-  - label: "Archive (Recommended)"
-    description: "Apply deltas and archive"
-  - label: "Dry run first"
-    description: "Preview without changes"
-  - label: "Cancel"
+Use the `question` tool:
+```json
+{
+  "questions": [{
+    "header": "Confirm Archive",
+    "question": "Archive '{change-id}'? This updates deployed specs.",
+    "options": [
+      { "label": "Archive (Recommended)", "description": "Apply deltas and archive" },
+      { "label": "Dry run first", "description": "Preview without changes" },
+      { "label": "Cancel", "description": "Abort" }
+    ]
+  }]
+}
 ```
 
 **If "Dry run"**: Re-run with dry-run flag.

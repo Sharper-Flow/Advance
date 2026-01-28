@@ -35,17 +35,19 @@ Stop execution.
 Call `adv_change_list` to check for active changes.
 
 **If similar change exists:**
-- Use `mcp_question`:
-  ```
-  header: "Similar Change"
-  question: "Found similar active change '<change-id>'. Continue anyway?"
-  options:
-    - label: "Create new (Recommended)"
-      description: "Create a separate change proposal"
-    - label: "Show existing"
-      description: "View the existing change instead"
-    - label: "Cancel"
-      description: "Do not create"
+- Use the `question` tool:
+  ```json
+  {
+    "questions": [{
+      "header": "Similar Change",
+      "question": "Found similar active change '<change-id>'. Continue anyway?",
+      "options": [
+        { "label": "Create new (Recommended)", "description": "Create a separate change proposal" },
+        { "label": "Show existing", "description": "View the existing change instead" },
+        { "label": "Cancel", "description": "Do not create" }
+      ]
+    }]
+  }
   ```
 
 ### Step 3: Check for Brainstorm Context
@@ -71,37 +73,42 @@ This will create:
 
 ### Step 5: Gather Requirements
 
-Use `mcp_question` to gather initial requirements:
+Use the `question` tool to gather initial requirements:
 
-```
-header: "Change Scope"
-question: "What type of change is this?"
-options:
-  - label: "New feature"
-    description: "Adding new functionality"
-  - label: "Enhancement"
-    description: "Improving existing functionality"
-  - label: "Bug fix"
-    description: "Fixing incorrect behavior"
-  - label: "Refactor"
-    description: "Restructuring without behavior change"
-  - label: "Breaking change"
-    description: "Changes that affect existing behavior"
+```json
+{
+  "questions": [{
+    "header": "Change Scope",
+    "question": "What type of change is this?",
+    "options": [
+      { "label": "New feature", "description": "Adding new functionality" },
+      { "label": "Enhancement", "description": "Improving existing functionality" },
+      { "label": "Bug fix", "description": "Fixing incorrect behavior" },
+      { "label": "Refactor", "description": "Restructuring without behavior change" },
+      { "label": "Breaking change", "description": "Changes that affect existing behavior" }
+    ]
+  }]
+}
 ```
 
 ### Step 6: Identify Affected Specs
 
 Use `adv_spec_list` to show existing specs.
 
-Use `mcp_question`:
-```
-header: "Affected Specs"
-question: "Which capabilities does this change affect?"
-multiple: true
-options:
-  - <list of existing capabilities>
-  - label: "New capability"
-    description: "This creates a new capability spec"
+Use the `question` tool:
+```json
+{
+  "questions": [{
+    "header": "Affected Specs",
+    "question": "Which capabilities does this change affect?",
+    "multiple": true,
+    "options": [
+      { "label": "<capability-1>", "description": "Existing capability" },
+      { "label": "<capability-2>", "description": "Existing capability" },
+      { "label": "New capability", "description": "This creates a new capability spec" }
+    ]
+  }]
+}
 ```
 
 ---
@@ -225,7 +232,7 @@ Before finishing, verify:
 - [ ] Requirements are independent
 - [ ] Scope is achievable in reasonable time
 
-If any fail, use `mcp_question` to refine.
+If any fail, use the `question` tool to refine.
 
 ---
 

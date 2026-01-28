@@ -26,17 +26,19 @@ Collaborative ideation using diverge-then-converge methodology. Creates a living
 
 Look for `./temp/brainstorm-*.md` files:
 
-**If found**, use `mcp_question`:
-```
-header: "Existing Session"
-question: "Found existing brainstorm: <filename>. What would you like to do?"
-options:
-  - label: "Resume session (Recommended)"
-    description: "Continue where you left off"
-  - label: "Start fresh"
-    description: "Archive existing and begin new"
-  - label: "View existing"
-    description: "Read the document first"
+**If found**, use the `question` tool:
+```json
+{
+  "questions": [{
+    "header": "Existing Session",
+    "question": "Found existing brainstorm: <filename>. What would you like to do?",
+    "options": [
+      { "label": "Resume (Recommended)", "description": "Continue where you left off" },
+      { "label": "Start fresh", "description": "Archive existing and begin new" },
+      { "label": "View existing", "description": "Read the document first" }
+    ]
+  }]
+}
 ```
 
 ---
@@ -138,20 +140,21 @@ Frame the problem before generating solutions. Clear framing enables focused cre
 
 ### Step 2.1: Establish Point of View
 
-Use `mcp_question` to understand the problem space:
+Use the `question` tool to understand the problem space:
 
-```
-header: "Problem Type"
-question: "What kind of problem are we solving?"
-options:
-  - label: "User pain point"
-    description: "Something frustrates or slows users"
-  - label: "Missing capability"
-    description: "Need functionality that doesn't exist"
-  - label: "Technical limitation"
-    description: "Current approach has hit a wall"
-  - label: "Opportunity"
-    description: "Possibility worth exploring"
+```json
+{
+  "questions": [{
+    "header": "Problem Type",
+    "question": "What kind of problem are we solving?",
+    "options": [
+      { "label": "User pain point", "description": "Something frustrates or slows users" },
+      { "label": "Missing capability", "description": "Need functionality that doesn't exist" },
+      { "label": "Technical limitation", "description": "Current approach has hit a wall" },
+      { "label": "Opportunity", "description": "Possibility worth exploring" }
+    ]
+  }]
+}
 ```
 
 ### Step 2.2: Construct POV Statement
@@ -182,7 +185,7 @@ Based on your POV, here are some "How Might We" questions:
 Which of these feels most promising to explore?
 ```
 
-Use `mcp_question` with `multiple: true` to let user select focus areas.
+Use the `question` tool with `multiple: true` to let user select focus areas.
 
 ### Update Document
 
@@ -219,16 +222,19 @@ We're aiming for 10+ ideas before we evaluate anything.
 Cycle through these techniques to stimulate ideas:
 
 **Open Prompt:**
-```
-header: "Ideas"
-question: "What solutions come to mind for: <HMW question>?"
-options:
-  - label: "I have ideas"
-    description: "Let me share my thoughts"
-  - label: "Need prompts"
-    description: "Give me provocations to spark ideas"
-  - label: "Explore codebase"
-    description: "Look at existing patterns first"
+Use the `question` tool:
+```json
+{
+  "questions": [{
+    "header": "Ideas",
+    "question": "What solutions come to mind for: <HMW question>?",
+    "options": [
+      { "label": "I have ideas", "description": "Let me share my thoughts" },
+      { "label": "Need prompts", "description": "Give me provocations to spark ideas" },
+      { "label": "Explore codebase", "description": "Look at existing patterns first" }
+    ]
+  }]
+}
 ```
 
 **SCAMPER Provocations** (use when user needs prompts):
@@ -243,29 +249,34 @@ options:
 | **Eliminate** | What if we removed the need for this entirely? |
 | **Rearrange** | What if the order was reversed? |
 
-Present 2-3 relevant provocations at a time:
-```
-header: "Provocation"
-question: "<SCAMPER provocation relevant to context>?"
-options:
-  - label: "That sparks an idea"
-    description: "Let me build on that"
-  - label: "Try another"
-    description: "Give me a different angle"
-  - label: "I'm stuck"
-    description: "Let's look at examples"
+Present 2-3 relevant provocations at a time using the `question` tool:
+```json
+{
+  "questions": [{
+    "header": "Provocation",
+    "question": "<SCAMPER provocation relevant to context>?",
+    "options": [
+      { "label": "That sparks an idea", "description": "Let me build on that" },
+      { "label": "Try another", "description": "Give me a different angle" },
+      { "label": "I'm stuck", "description": "Let's look at examples" }
+    ]
+  }]
+}
 ```
 
 **Wild Ideas Push:**
-If ideas feel too safe:
-```
-header: "Go Wilder"
-question: "What's the craziest solution that might work if constraints didn't exist?"
-options:
-  - label: "Let me think wild"
-    description: "Removing constraints now"
-  - label: "Show me examples"
-    description: "What have others done?"
+If ideas feel too safe, use the `question` tool:
+```json
+{
+  "questions": [{
+    "header": "Go Wilder",
+    "question": "What's the craziest solution that might work if constraints didn't exist?",
+    "options": [
+      { "label": "Let me think wild", "description": "Removing constraints now" },
+      { "label": "Show me examples", "description": "What have others done?" }
+    ]
+  }]
+}
 ```
 
 ### Step 3.3: Research Grounding
@@ -308,16 +319,19 @@ Ready to cluster when:
 - Ideas starting to repeat or overlap
 - User signals readiness
 
-```
-header: "Diverge Check"
-question: "We have <N> ideas. Ready to organize them?"
-options:
-  - label: "Yes, let's cluster"
-    description: "Move to organizing phase"
-  - label: "More ideas first"
-    description: "Continue diverging"
-  - label: "Take a break"
-    description: "Pause session, resume later"
+Use the `question` tool:
+```json
+{
+  "questions": [{
+    "header": "Diverge Check",
+    "question": "We have <N> ideas. Ready to organize them?",
+    "options": [
+      { "label": "Yes, let's cluster", "description": "Move to organizing phase" },
+      { "label": "More ideas first", "description": "Continue diverging" },
+      { "label": "Take a break", "description": "Pause session, resume later" }
+    ]
+  }]
+}
 ```
 
 ---
@@ -339,17 +353,19 @@ Looking at your ideas, I see these emerging themes:
 4. **Outliers**: Ideas #9, #10 (unique angles)
 ```
 
-Use `mcp_question`:
-```
-header: "Clusters"
-question: "Do these groupings make sense?"
-options:
-  - label: "Yes, good clusters"
-    description: "Move to evaluation"
-  - label: "Adjust groupings"
-    description: "Some ideas fit differently"
-  - label: "Need more themes"
-    description: "I see other patterns"
+Use the `question` tool:
+```json
+{
+  "questions": [{
+    "header": "Clusters",
+    "question": "Do these groupings make sense?",
+    "options": [
+      { "label": "Yes, good clusters", "description": "Move to evaluation" },
+      { "label": "Adjust groupings", "description": "Some ideas fit differently" },
+      { "label": "Need more themes", "description": "I see other patterns" }
+    ]
+  }]
+}
 ```
 
 ### Step 4.2: Update Document
@@ -380,39 +396,42 @@ Now apply judgment. Evaluate ideas against criteria.
 
 ### Step 5.1: Establish Evaluation Criteria
 
-```
-header: "Priorities"
-question: "What matters most for this solution?"
-multiple: true
-options:
-  - label: "Simplicity"
-    description: "Easy to build and maintain"
-  - label: "User impact"
-    description: "Significant improvement for users"
-  - label: "Speed to ship"
-    description: "Can implement quickly"
-  - label: "Future-proof"
-    description: "Scales and extends well"
-  - label: "Low risk"
-    description: "Minimal chance of problems"
+Use the `question` tool:
+```json
+{
+  "questions": [{
+    "header": "Priorities",
+    "question": "What matters most for this solution?",
+    "multiple": true,
+    "options": [
+      { "label": "Simplicity", "description": "Easy to build and maintain" },
+      { "label": "User impact", "description": "Significant improvement for users" },
+      { "label": "Speed to ship", "description": "Can implement quickly" },
+      { "label": "Future-proof", "description": "Scales and extends well" },
+      { "label": "Low risk", "description": "Minimal chance of problems" }
+    ]
+  }]
+}
 ```
 
 ### Step 5.2: Evaluate Top Candidates
 
 For each cluster, identify 1-2 strongest ideas:
 
-```
-header: "Evaluate <Theme A>"
-question: "Which idea from this cluster is most promising?"
-options:
-  - label: "Idea 1"
-    description: "<brief description>"
-  - label: "Idea 4"
-    description: "<brief description>"
-  - label: "Combine 1+4"
-    description: "Merge best aspects"
-  - label: "None yet"
-    description: "Need to develop further"
+Use the `question` tool:
+```json
+{
+  "questions": [{
+    "header": "Evaluate <Theme A>",
+    "question": "Which idea from this cluster is most promising?",
+    "options": [
+      { "label": "Idea 1", "description": "<brief description>" },
+      { "label": "Idea 4", "description": "<brief description>" },
+      { "label": "Combine 1+4", "description": "Merge best aspects" },
+      { "label": "None yet", "description": "Need to develop further" }
+    ]
+  }]
+}
 ```
 
 ### Step 5.3: Check Feasibility
@@ -454,19 +473,21 @@ Develop the top 1-3 ideas into actionable concepts.
 
 For each selected idea:
 
-```
-header: "Develop <idea>"
-question: "What aspects need clarification?"
-multiple: true
-options:
-  - label: "Technical approach"
-    description: "How would we build it?"
-  - label: "User experience"
-    description: "How would users interact?"
-  - label: "Edge cases"
-    description: "What could go wrong?"
-  - label: "Dependencies"
-    description: "What do we need first?"
+Use the `question` tool:
+```json
+{
+  "questions": [{
+    "header": "Develop <idea>",
+    "question": "What aspects need clarification?",
+    "multiple": true,
+    "options": [
+      { "label": "Technical approach", "description": "How would we build it?" },
+      { "label": "User experience", "description": "How would users interact?" },
+      { "label": "Edge cases", "description": "What could go wrong?" },
+      { "label": "Dependencies", "description": "What do we need first?" }
+    ]
+  }]
+}
 ```
 
 ### Step 6.2: Research Specifics
@@ -506,18 +527,20 @@ As choices are made, record them:
 
 ### Step 7.1: Check Readiness
 
-```
-header: "Session Status"
-question: "Where are you with this brainstorm?"
-options:
-  - label: "Ready for proposal"
-    description: "Idea is clear enough to formalize"
-  - label: "Need more time"
-    description: "Pause and resume later"
-  - label: "Pivot direction"
-    description: "Want to explore different angle"
-  - label: "Archive this"
-    description: "Not pursuing right now"
+Use the `question` tool:
+```json
+{
+  "questions": [{
+    "header": "Session Status",
+    "question": "Where are you with this brainstorm?",
+    "options": [
+      { "label": "Ready for proposal", "description": "Idea is clear enough to formalize" },
+      { "label": "Need more time", "description": "Pause and resume later" },
+      { "label": "Pivot direction", "description": "Want to explore different angle" },
+      { "label": "Archive this", "description": "Not pursuing right now" }
+    ]
+  }]
+}
 ```
 
 ### Step 7.2: If Ready for Proposal
@@ -615,7 +638,7 @@ To start fresh: /adv-brainstorm <new topic>
 
 ### Throughout Session
 
-- Use `mcp_question` frequently - every 2-3 exchanges
+- Use the `question` tool frequently - every 2-3 exchanges
 - Keep document as single source of truth
 - Summarize progress periodically
 - Connect ideas to existing specs/codebase when relevant
@@ -634,17 +657,19 @@ When resuming an existing session:
 
 ### Multiple Sessions
 
-If multiple `brainstorm-*.md` files exist:
-```
-header: "Multiple Sessions"
-question: "Found multiple brainstorms. Which one?"
-options:
-  - label: "<filename1> (<topic>)"
-    description: "Status: <status>"
-  - label: "<filename2> (<topic>)"
-    description: "Status: <status>"
-  - label: "Start new"
-    description: "Begin fresh session"
+If multiple `brainstorm-*.md` files exist, use the `question` tool:
+```json
+{
+  "questions": [{
+    "header": "Multiple Sessions",
+    "question": "Found multiple brainstorms. Which one?",
+    "options": [
+      { "label": "<filename1> (<topic>)", "description": "Status: <status>" },
+      { "label": "<filename2> (<topic>)", "description": "Status: <status>" },
+      { "label": "Start new", "description": "Begin fresh session" }
+    ]
+  }]
+}
 ```
 
 ---
@@ -666,7 +691,7 @@ Document: ./temp/<filename>.md
 
 | Purpose | Tool |
 |---------|------|
-| User choices | `mcp_question` |
+| User choices | `question` tool |
 | List specs | `adv_spec_list` |
 | Show spec | `adv_spec_show` |
 | Search specs | `adv_spec_search` |

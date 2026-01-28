@@ -22,7 +22,7 @@ Determine target (spec OR change):
    - Ambiguous? Ask for clarification
 2. **If empty**: 
    - Call `adv_change_list` and `adv_spec_list` in parallel
-   - Present selection via `mcp_question`
+   - Present selection via the `question` tool
 
 ---
 

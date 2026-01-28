@@ -17,7 +17,7 @@ Analyze a change for gaps (missing scenarios, tasks, cross-cutting concerns) and
 ## Target Resolution
 
 1. **If $ARGUMENTS provided**: Use as change-id
-2. **If empty**: Call `adv_change_list`, select via `mcp_question`
+2. **If empty**: Call `adv_change_list`, select via the `question` tool
 
 ---
 

@@ -282,20 +282,21 @@ Combine from all dimensions:
 
 **If ALIGNED**: Skip to report.
 
-**If DRIFT_DETECTED or MAJOR_DRIFT**: Use `mcp_question`:
+**If DRIFT_DETECTED or MAJOR_DRIFT**: Use the `question` tool:
 
-```
-header: "Fix Issues"
-question: "Found {count} drift issues. How to proceed?"
-options:
-  - label: "Fix all (Recommended)"
-    description: "Address all drift findings"
-  - label: "Fix high severity only"
-    description: "Address MUST violations only"
-  - label: "Report only"
-    description: "Review findings, fix manually"
-  - label: "Accept current"
-    description: "Document as known drift"
+```json
+{
+  "questions": [{
+    "header": "Fix Issues",
+    "question": "Found {count} drift issues. How to proceed?",
+    "options": [
+      { "label": "Fix all (Recommended)", "description": "Address all drift findings" },
+      { "label": "Fix high severity only", "description": "Address MUST violations only" },
+      { "label": "Report only", "description": "Review findings, fix manually" },
+      { "label": "Accept current", "description": "Document as known drift" }
+    ]
+  }]
+}
 ```
 
 If fixing, establish contract and spawn fix sub-agents.

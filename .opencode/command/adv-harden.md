@@ -26,7 +26,7 @@ Extract from `$ARGUMENTS`:
 ## Target Resolution
 
 1. **If change-id provided**: Use directly
-2. **If empty**: Call `adv_change_list`, select via `mcp_question`
+2. **If empty**: Call `adv_change_list`, select via the `question` tool
 
 ## Pre-flight
 
@@ -306,20 +306,21 @@ Priority = Impact × Effort
 
 **If READY**: Skip to cleanup.
 
-**If NEEDS_WORK or BLOCKED**: Use `mcp_question`:
+**If NEEDS_WORK or BLOCKED**: Use the `question` tool:
 
-```
-header: "Fix Issues"
-question: "Found {count} issues. How to proceed?"
-options:
-  - label: "Fix all (Recommended)"
-    description: "Address all blocking and high items"
-  - label: "Fix blockers only"
-    description: "Minimum to unblock"
-  - label: "Report only"
-    description: "Review findings, fix manually"
-  - label: "Accept current"
-    description: "Document as known debt"
+```json
+{
+  "questions": [{
+    "header": "Fix Issues",
+    "question": "Found {count} issues. How to proceed?",
+    "options": [
+      { "label": "Fix all (Recommended)", "description": "Address all blocking and high items" },
+      { "label": "Fix blockers only", "description": "Minimum to unblock" },
+      { "label": "Report only", "description": "Review findings, fix manually" },
+      { "label": "Accept current", "description": "Document as known debt" }
+    ]
+  }]
+}
 ```
 
 If fixing, establish contract:
@@ -385,7 +386,7 @@ Total: N items
 |------|----------|
 | (none) | Preview only, suggest `--execute` |
 | `--execute` | Delete all candidates |
-| `--interactive` | Use `mcp_question` to select |
+| `--interactive` | Use the `question` tool to select |
 | `--force` | Delete without prompts |
 
 ---

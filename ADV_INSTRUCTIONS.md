@@ -128,6 +128,7 @@ Emit at START of each response:
 | `[ADV:EARTH]` | Complete / awaiting input |
 | `[ADV:DOOM_LOOP]` | Stuck in retry cycle |
 | `[ADV:MIC]` | Needs user approval |
+| `[ADV:TASK_STATUS_REPORT]` | Emitting task status report on loop stop or compaction |
 
 The following markers are emitted automatically by the system:
 
@@ -166,7 +167,7 @@ If stuck on a task after 3 attempts:
 1. **STOP** - Don't retry the same approach
 2. **Emit** `[ADV:DOOM_LOOP]` marker
 3. **Document** - Show all 3 attempts with diagnosis
-4. **Ask** - Use `mcp_question` to get user guidance:
+4. **Ask** - Use the `question` tool to get user guidance:
    - Provide hint (recommended) - get guidance for 4th attempt
    - User takes over - user completes task manually
    - Cancel change - abort entire change
@@ -191,28 +192,141 @@ Advance provides automated runtime assistance to maintain focus and accumulate k
 2. **Todo Continuation**: Automatically reminds the agent of remaining tasks when a task is completed but the change is not yet finished (`[ADV:TODO_CONTINUATION]`).
 3. **Wisdom Recording**: Prompts the agent to record any non-obvious learnings after task completion (`[ADV:RECORD_WISDOM]`).
 
+## Task Status Report
+
+When the `/apply` or `/ralph` loop stops, or when opencode runs a `/compaction`, the AI-Agent **MUST** report any tasks that were modified or cancelled and output a formatted report to the console.
+
+### Trigger Events
+
+| Event | Description |
+|-------|-------------|
+| **Loop Stop** | `/apply` or `/ralph` terminates (success, error, doom loop, or user cancel) |
+| **Compaction** | opencode runs `/compaction` to reduce context |
+
+### Report Requirement
+
+**MANDATORY**: When any trigger event occurs, emit `[ADV:TASK_STATUS_REPORT]` and output the report.
+
+### Report Format
+
+```
+╔══════════════════════════════════════════════════════════════╗
+║ 📋 TASK STATUS REPORT                                        ║
+╠══════════════════════════════════════════════════════════════╣
+║ Change: {change-id}                                          ║
+║ Trigger: {loop_stop | compaction}                            ║
+║ Timestamp: {ISO timestamp}                                   ║
+╠══════════════════════════════════════════════════════════════╣
+║ COMPLETED THIS SESSION:                                      ║
+║   ✓ tk-abc123: Implement feature X                           ║
+║   ✓ tk-def456: Write tests for feature X                     ║
+╠══════════════════════════════════════════════════════════════╣
+║ IN PROGRESS (interrupted):                                   ║
+║   ⚡ tk-ghi789: Refactor module Y                            ║
+╠══════════════════════════════════════════════════════════════╣
+║ CANCELLED (with reasoning):                                  ║
+║   ✗ tk-jkl012: Deprecated approach                           ║
+║     → Reason: Superseded by tk-xyz789 which uses new API     ║
+╠══════════════════════════════════════════════════════════════╣
+║ REMAINING:                                                   ║
+║   ○ tk-mno345: Document API changes                          ║
+║   ○ tk-pqr678: Update README                                 ║
+╚══════════════════════════════════════════════════════════════╝
+```
+
+### Report Contents
+
+| Section | Description |
+|---------|-------------|
+| **COMPLETED THIS SESSION** | Tasks marked `done` during this session |
+| **IN PROGRESS (interrupted)** | Tasks with `in_progress` status when loop stopped |
+| **CANCELLED** | Tasks marked `cancelled` during this session |
+| **REMAINING** | Tasks still `pending` that need future work |
+
+**IMPORTANT**: For any cancelled tasks, you MUST provide full reasoning on the line below the task. This ensures traceability and allows users to understand why work was abandoned. The reasoning should explain:
+- Why the task was cancelled (e.g., superseded, duplicate, out of scope)
+- What alternative approach was taken, if any
+- Any related tasks that replaced or absorbed this work
+
+### Example Usage
+
+When loop completes successfully:
+```
+[ADV:TASK_STATUS_REPORT]
+╔══════════════════════════════════════════════════════════════╗
+║ 📋 TASK STATUS REPORT                                        ║
+╠══════════════════════════════════════════════════════════════╣
+║ Change: add-auth-abc123                                      ║
+║ Trigger: loop_stop                                           ║
+║ Timestamp: 2026-01-28T05:30:00.000Z                          ║
+╠══════════════════════════════════════════════════════════════╣
+║ COMPLETED THIS SESSION:                                      ║
+║   ✓ tk-LaZwj2Cu: Define auth requirements                    ║
+║   ✓ tk-cb-UkvSc: Implement JWT validation                    ║
+║   ✓ tk-PahN3JZw: Write auth tests                            ║
+╠══════════════════════════════════════════════════════════════╣
+║ IN PROGRESS (interrupted):                                   ║
+║   (none)                                                     ║
+╠══════════════════════════════════════════════════════════════╣
+║ CANCELLED:                                                   ║
+║   (none)                                                     ║
+╠══════════════════════════════════════════════════════════════╣
+║ REMAINING:                                                   ║
+║   (none - all tasks complete)                                ║
+╚══════════════════════════════════════════════════════════════╝
+```
+
 ## User Interaction
 
-Use `mcp_question` for predefined choices (confirmations, selections, doom loop recovery).
+Use the `question` tool for predefined choices (confirmations, selections, doom loop recovery).
 Skip for: open-ended questions, debugging, free-form input.
 
-**Constraints:**
-- `header`: max 30 characters
-- `label`: max 30 characters (1-5 words, concise)
-- `options`: 2-5 choices recommended
+### Question Tool Schema
 
-**Example:**
-```
-mcp_question:
-  header: "Confirm"
-  question: "Apply changes to spec?"
-  options:
-    - label: "Apply (Recommended)", description: "Merge deltas into spec"
-    - label: "Review first", description: "Show diff before applying"
-    - label: "Cancel", description: "Abort operation"
+```typescript
+{
+  "questions": [{
+    "header": string,      // Short label, max 30 chars (required)
+    "question": string,    // Full question text (required)
+    "multiple": boolean,   // Allow multiple selections (optional, default: false)
+    "options": [{          // Available choices (required)
+      "label": string,     // Display text, 1-5 words (required)
+      "description": string // Explanation of choice (required)
+    }]
+  }]
+}
 ```
 
-Best practices: recommended option first with "(Recommended)", "Other" is automatic.
+### Constraints
+
+| Field | Limit | Notes |
+|-------|-------|-------|
+| `header` | max 30 chars | Very short label |
+| `label` | 1-5 words | Concise display text |
+| `options` | 2-5 choices | Don't include "Other" - custom input is automatic |
+
+### Example
+
+```json
+{
+  "questions": [{
+    "header": "Confirm",
+    "question": "Apply changes to spec?",
+    "options": [
+      { "label": "Apply (Recommended)", "description": "Merge deltas into spec" },
+      { "label": "Review first", "description": "Show diff before applying" },
+      { "label": "Cancel", "description": "Abort operation" }
+    ]
+  }]
+}
+```
+
+### Best Practices
+
+- Put recommended option first with "(Recommended)" suffix
+- Custom input ("Type your own answer") is added automatically - don't include catch-all options
+- Answers are returned as arrays of labels
+- Use `multiple: true` when users should select more than one option
 
 ## Validation Rules
 

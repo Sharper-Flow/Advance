@@ -47,7 +47,7 @@
 │                                                             │
 │  1. Target Resolution                                       │
 │     └── adv_change_list / adv_spec_list                     │
-│     └── mcp_question (if ambiguous)                         │
+│     └── question tool (if ambiguous)                        │
 │                                                             │
 │  2. Load Context                                            │
 │     └── adv_change_show / adv_spec_show                     │
@@ -86,7 +86,7 @@
 | Feature | Commands Using It |
 |---------|-------------------|
 | Contract Banners | All 15 |
-| `mcp_question` | apply, archive, review, harden, audit, ralph, coordinate |
+| `question` tool | apply, archive, review, harden, audit, ralph, coordinate |
 | Anti-Loop Protocol | prep, research, review, harden, audit, refactor |
 | Doom Loop Detection | apply, ralph |
 | TDD (Red/Green) | apply, ralph |

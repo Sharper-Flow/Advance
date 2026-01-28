@@ -35,7 +35,7 @@ Implement an ADV change with **autonomous retry enabled**. This extends `/adv-ap
 
 Same as `/adv-apply`:
 1. **If $ARGUMENTS provided**: Use as change-id
-2. **If empty**: Call `adv_change_list`, select via `mcp_question`
+2. **If empty**: Call `adv_change_list`, select via the `question` tool
 
 ---
 
@@ -68,14 +68,19 @@ AUTONOMOUS RETRY ENABLED:
 
 ### Confirmation
 
-```
-header: "Confirm"
-question: "Begin autonomous implementation of '{title}'?"
-options:
-  - label: "Begin Autonomous Implementation (Recommended)"
-    description: "Start with autonomous retry on failures"
-  - label: "Modify criteria"
-  - label: "Cancel"
+Use the `question` tool:
+```json
+{
+  "questions": [{
+    "header": "Confirm",
+    "question": "Begin autonomous implementation of '{title}'?",
+    "options": [
+      { "label": "Begin Autonomous (Recommended)", "description": "Start with autonomous retry on failures" },
+      { "label": "Modify criteria", "description": "Adjust before starting" },
+      { "label": "Cancel", "description": "Abort" }
+    ]
+  }]
+}
 ```
 
 ---
@@ -165,17 +170,19 @@ BLOCKING REASON (select one):
 
 **IMPORTANT:** You CANNOT reach this state without showing 3 genuine, distinct fix attempts above. Each attempt must have a different diagnosis and approach. Repeating the same fix does not count.
 
-Then `mcp_question`:
-```
-header: "Budget Exhausted"
-question: "3 retry attempts failed for '{task.title}'. All attempts documented above."
-options:
-  - label: "Provide hint (Recommended)"
-    description: "Give me guidance to try a 4th approach"
-  - label: "Take over task"
-    description: "User will complete this task manually"
-  - label: "Void contract"
-    description: "Cancel entire change - this is a fundamental blocker"
+Then use the `question` tool:
+```json
+{
+  "questions": [{
+    "header": "Budget Exhausted",
+    "question": "3 retry attempts failed for '{task.title}'. All attempts documented above.",
+    "options": [
+      { "label": "Provide hint (Recommended)", "description": "Give me guidance to try a 4th approach" },
+      { "label": "Take over task", "description": "User will complete this task manually" },
+      { "label": "Void contract", "description": "Cancel entire change - this is a fundamental blocker" }
+    ]
+  }]
+}
 ```
 
 **NOTE:** "Skip task" is NOT an option. The task must be completed, taken over by user, or the entire contract voided.

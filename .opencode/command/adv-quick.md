@@ -107,19 +107,20 @@ TDD APPROACH: <Required | Recommended | Not required>
 
 ### Step 4: Request Confirmation
 
-Emit `[GOOST:MIC]` and use `mcp_question`:
+Emit `[ADV:MIC]` and use the `question` tool:
 
-```
-mcp_question:
-  header: "Confirm Contract"
-  question: "Does this capture your requirements?"
-  options:
-    - label: "Accept and begin (Recommended)"
-      description: "Lock the contract and start implementation"
-    - label: "Suggest changes"
-      description: "Modify criteria before locking"
-    - label: "Cancel"
-      description: "Discard this contract"
+```json
+{
+  "questions": [{
+    "header": "Confirm Contract",
+    "question": "Does this capture your requirements?",
+    "options": [
+      { "label": "Accept and begin (Recommended)", "description": "Lock the contract and start implementation" },
+      { "label": "Suggest changes", "description": "Modify criteria before locking" },
+      { "label": "Cancel", "description": "Discard this contract" }
+    ]
+  }]
+}
 ```
 
 ### Step 5: On Acceptance - Quick Prep Analysis

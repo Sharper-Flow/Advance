@@ -25,7 +25,7 @@ Extract from `$ARGUMENTS`:
 ## Target Resolution
 
 1. **If change-id provided**: Use directly
-2. **If empty**: Call `adv_change_list`, select via `mcp_question`
+2. **If empty**: Call `adv_change_list`, select via the `question` tool
 
 ## Pre-flight
 
@@ -167,16 +167,19 @@ Combine drift, deps, conflicts, tasks, obsolescence findings.
 
 **If code contradicts a requirement:**
 
-Emit `[ADV:MIC]` and use `mcp_question`:
+Emit `[ADV:MIC]` and use the `question` tool:
 
-```
-header: "Intent Check"
-question: "Code does [X] but requirement says [Y]. Is code a new requirement or bug?"
-options:
-  - label: "New requirement"
-    description: "Update spec to match code"
-  - label: "Bug in code"
-    description: "Keep spec, flag code as incorrect"
+```json
+{
+  "questions": [{
+    "header": "Intent Check",
+    "question": "Code does [X] but requirement says [Y]. Is code a new requirement or bug?",
+    "options": [
+      { "label": "New requirement", "description": "Update spec to match code" },
+      { "label": "Bug in code", "description": "Keep spec, flag code as incorrect" }
+    ]
+  }]
+}
 ```
 
 ---

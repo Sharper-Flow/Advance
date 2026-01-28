@@ -17,7 +17,7 @@ Orchestrate a multi-dimensional code review using sub-agents. Uses the 12-dimens
 ## Target Resolution
 
 1. **If $ARGUMENTS provided**: Use as change-id
-2. **If empty**: Call `adv_change_list`, auto-select if one, else `mcp_question`
+2. **If empty**: Call `adv_change_list`, auto-select if one, else use the `question` tool
 
 ---
 
@@ -307,19 +307,20 @@ Skip to completion.
 
 ### If CHANGES_REQUESTED or BLOCKED
 
-Use `mcp_question`:
-```
-header: "Fix Issues"
-question: "Found {count} issues. How to proceed?"
-options:
-  - label: "Fix blockers and issues (Recommended)"
-    description: "Address all blocking items"
-  - label: "Fix blockers only"
-    description: "Minimum to unblock"
-  - label: "Show report only"
-    description: "Review findings, fix manually"
-  - label: "Accept current state"
-    description: "Proceed without fixes"
+Use the `question` tool:
+```json
+{
+  "questions": [{
+    "header": "Fix Issues",
+    "question": "Found {count} issues. How to proceed?",
+    "options": [
+      { "label": "Fix blockers+issues (Recommended)", "description": "Address all blocking items" },
+      { "label": "Fix blockers only", "description": "Minimum to unblock" },
+      { "label": "Show report only", "description": "Review findings, fix manually" },
+      { "label": "Accept current state", "description": "Proceed without fixes" }
+    ]
+  }]
+}
 ```
 
 ### If Fixing

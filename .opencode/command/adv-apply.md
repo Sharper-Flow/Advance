@@ -26,8 +26,8 @@ See Doom Loop Protocol section for proper handling of stuck tasks.
 
 1. **If $ARGUMENTS provided**: Use as change-id
 2. **If empty**: Call `adv_change_list`, then:
-   - If one active change: Confirm with `mcp_question`
-   - If multiple: Present selection with `mcp_question`
+   - If one active change: Confirm with the `question` tool
+   - If multiple: Present selection with the `question` tool
    - If none: Suggest `/adv-proposal`
 
 ## Phase 1: Load Change Context
@@ -95,15 +95,18 @@ Progress: {done_count}/{total_count} tasks
 
 ### Confirmation
 
-Use `mcp_question`:
-```
-header: "Confirm"
-question: "Begin implementation of '{change.title}'?"
-options:
-  - label: "Begin work (Recommended)"
-    description: "Start TDD implementation"
-  - label: "Cancel"
-    description: "Exit without changes"
+Use the `question` tool:
+```json
+{
+  "questions": [{
+    "header": "Confirm",
+    "question": "Begin implementation of '{change.title}'?",
+    "options": [
+      { "label": "Begin work (Recommended)", "description": "Start TDD implementation" },
+      { "label": "Cancel", "description": "Exit without changes" }
+    ]
+  }]
+}
 ```
 
 ---
@@ -246,17 +249,19 @@ If same task fails 3 times:
 1. Emit `[ADV:DOOM_LOOP]`
 2. Document ALL 3 attempts with diagnosis
 3. STOP retrying
-4. Use `mcp_question`:
-   ```
-   header: "Task Blocked"
-   question: "Task '{task.title}' stuck after 3 documented attempts. See diagnosis above."
-   options:
-     - label: "Provide hint (Recommended)"
-       description: "Give guidance for a 4th attempt"
-     - label: "User takes over"
-       description: "I'll complete this task manually"
-     - label: "Cancel change"
-       description: "Abort entire change"
+4. Use the `question` tool:
+   ```json
+   {
+     "questions": [{
+       "header": "Task Blocked",
+       "question": "Task '{task.title}' stuck after 3 documented attempts. See diagnosis above.",
+       "options": [
+         { "label": "Provide hint (Recommended)", "description": "Give guidance for a 4th attempt" },
+         { "label": "User takes over", "description": "I'll complete this task manually" },
+         { "label": "Cancel change", "description": "Abort entire change" }
+       ]
+     }]
+   }
    ```
 
 **NOTE:** "Skip" and "defer" are NOT options. Each attempt must be documented with:

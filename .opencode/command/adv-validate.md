@@ -27,7 +27,7 @@ Parse `$ARGUMENTS` for:
 - `--all`: Validate entire project (future feature)
 
 1. **If change-id provided**: Use directly
-2. **If empty**: Call `adv_change_list`, select via `mcp_question`
+2. **If empty**: Call `adv_change_list`, select via the `question` tool
 3. **If --all**: Run project-wide validation (if supported)
 
 ---
