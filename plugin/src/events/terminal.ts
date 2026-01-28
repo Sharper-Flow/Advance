@@ -237,8 +237,10 @@ let lastAlertedStatus: StatusMarker | null = null;
  * Get model name from environment, formatting it for display.
  * Strips "Claude" prefix and common suffixes for brevity.
  * Falls back to empty string if not set.
+ *
+ * NOTE: Currently unused but kept for future use.
  */
-const getModelName = (): string => {
+const _getModelName = (): string => {
   const model = process.env.OPENCODE_MODEL || process.env.ANTHROPIC_MODEL || "";
   if (!model) return "";
 

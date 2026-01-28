@@ -53,11 +53,12 @@ interface PluginState {
 // Debug Logging
 // =============================================================================
 
+import * as fs from "fs";
+
 const DEBUG = process.env.ADV_DEBUG === "1";
 
 const debugLog = (msg: string): void => {
   if (DEBUG) {
-    const fs = require("fs");
     try {
       fs.appendFileSync(
         "/tmp/adv-debug.log",

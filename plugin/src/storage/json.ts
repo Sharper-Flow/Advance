@@ -161,10 +161,6 @@ export async function loadSpec(
   } catch (error) {
     if (error instanceof ZodError) {
       // Provide helpful error message for schema violations
-      const issues = error.issues.map((issue) => {
-        const path = issue.path.join(".");
-        return `  - ${path}: ${issue.message} (expected ${issue.code === "invalid_type" ? (issue as { expected?: string }).expected : "valid value"})`;
-      });
       return {
         success: false,
         error: formatZodError(error, { type: "spec", id: capability, path: specPath }),
