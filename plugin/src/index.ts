@@ -616,9 +616,16 @@ export const AdvancePlugin: Plugin = async ({ directory }) => {
           const props = event.properties as { status?: { type?: string } };
           const statusType = props.status?.type;
           if (statusType === "idle") {
-            setState({ status: "EARTH" });
+            // Don't transition to EARTH if sub-agents are still active
+            // This prevents false "completion" alerts during MOON phase
+            if (state.activeSubAgents === 0) {
+              setState({ status: "EARTH" });
+            }
           } else if (statusType === "busy") {
-            setState({ status: "ROCKET" });
+            // Don't override MOON status - sub-agents are still working
+            if (state.activeSubAgents === 0) {
+              setState({ status: "ROCKET" });
+            }
           }
         } else if (eventType === "session.deleted") {
           cleanupTerminal();
