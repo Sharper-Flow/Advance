@@ -41,3 +41,7 @@ coverage/
 tmp/
 temp/
 *.tmp
+
+# ADV working state (local project data)
+changes/
+archive/
