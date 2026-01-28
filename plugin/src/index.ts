@@ -27,6 +27,7 @@ import {
   setStatus,
 } from "./events";
 import type { StatusMarker } from "./types";
+import { safeExecute, safeExecuteSimple } from "./utils/safe-execute";
 
 // =============================================================================
 // Types
@@ -157,7 +158,10 @@ export const AdvancePlugin: Plugin = async ({ directory }) => {
             .describe("Filter by capability name"),
           tag: tool.schema.string().optional().describe("Filter by tag"),
         },
-        execute: async (args) => specTools.adv_spec_list.execute(args, store),
+        execute: safeExecute(
+          async (args) => specTools.adv_spec_list.execute(args, store),
+          "adv_spec_list",
+        ),
       }),
 
       adv_spec_show: tool({
@@ -167,7 +171,10 @@ export const AdvancePlugin: Plugin = async ({ directory }) => {
             .string()
             .describe("Capability ID (e.g., 'contract-system')"),
         },
-        execute: async (args) => specTools.adv_spec_show.execute(args, store),
+        execute: safeExecute(
+          async (args) => specTools.adv_spec_show.execute(args, store),
+          "adv_spec_show",
+        ),
       }),
 
       adv_spec_search: tool({
@@ -179,7 +186,10 @@ export const AdvancePlugin: Plugin = async ({ directory }) => {
             .optional()
             .describe("Maximum results (default: 20)"),
         },
-        execute: async (args) => specTools.adv_spec_search.execute(args, store),
+        execute: safeExecute(
+          async (args) => specTools.adv_spec_search.execute(args, store),
+          "adv_spec_search",
+        ),
       }),
 
       // ----------------------------------------------------------------------
@@ -197,8 +207,10 @@ export const AdvancePlugin: Plugin = async ({ directory }) => {
             .optional()
             .describe("Include archived changes"),
         },
-        execute: async (args) =>
-          changeTools.adv_change_list.execute(args, store),
+        execute: safeExecute(
+          async (args) => changeTools.adv_change_list.execute(args, store),
+          "adv_change_list",
+        ),
       }),
 
       adv_change_show: tool({
@@ -206,8 +218,10 @@ export const AdvancePlugin: Plugin = async ({ directory }) => {
         args: {
           changeId: tool.schema.string().describe("Change ID to show"),
         },
-        execute: async (args) =>
-          changeTools.adv_change_show.execute(args, store),
+        execute: safeExecute(
+          async (args) => changeTools.adv_change_show.execute(args, store),
+          "adv_change_show",
+        ),
       }),
 
       adv_change_create: tool({
@@ -219,8 +233,10 @@ export const AdvancePlugin: Plugin = async ({ directory }) => {
             .optional()
             .describe("Target capability"),
         },
-        execute: async (args) =>
-          changeTools.adv_change_create.execute(args, store),
+        execute: safeExecute(
+          async (args) => changeTools.adv_change_create.execute(args, store),
+          "adv_change_create",
+        ),
       }),
 
       adv_change_validate: tool({
@@ -232,8 +248,10 @@ export const AdvancePlugin: Plugin = async ({ directory }) => {
             .optional()
             .describe("Enable strict validation"),
         },
-        execute: async (args) =>
-          changeTools.adv_change_validate.execute(args, store),
+        execute: safeExecute(
+          async (args) => changeTools.adv_change_validate.execute(args, store),
+          "adv_change_validate",
+        ),
       }),
 
       adv_change_archive: tool({
@@ -245,8 +263,10 @@ export const AdvancePlugin: Plugin = async ({ directory }) => {
             .optional()
             .describe("Preview without archiving"),
         },
-        execute: async (args) =>
-          changeTools.adv_change_archive.execute(args, store),
+        execute: safeExecute(
+          async (args) => changeTools.adv_change_archive.execute(args, store),
+          "adv_change_archive",
+        ),
       }),
 
       // ----------------------------------------------------------------------
@@ -261,7 +281,10 @@ export const AdvancePlugin: Plugin = async ({ directory }) => {
             .optional()
             .describe("Filter by status"),
         },
-        execute: async (args) => taskTools.adv_task_list.execute(args, store),
+        execute: safeExecute(
+          async (args) => taskTools.adv_task_list.execute(args, store),
+          "adv_task_list",
+        ),
       }),
 
       adv_task_ready: tool({
@@ -269,7 +292,10 @@ export const AdvancePlugin: Plugin = async ({ directory }) => {
         args: {
           changeId: tool.schema.string().describe("Change ID"),
         },
-        execute: async (args) => taskTools.adv_task_ready.execute(args, store),
+        execute: safeExecute(
+          async (args) => taskTools.adv_task_ready.execute(args, store),
+          "adv_task_ready",
+        ),
       }),
 
       adv_task_update: tool({
@@ -284,7 +310,10 @@ export const AdvancePlugin: Plugin = async ({ directory }) => {
             .optional()
             .describe("Completion notes or cancellation reason"),
         },
-        execute: async (args) => taskTools.adv_task_update.execute(args, store),
+        execute: safeExecute(
+          async (args) => taskTools.adv_task_update.execute(args, store),
+          "adv_task_update",
+        ),
       }),
 
       adv_task_add: tool({
@@ -301,7 +330,10 @@ export const AdvancePlugin: Plugin = async ({ directory }) => {
             .optional()
             .describe("Section header (e.g., 'Testing')"),
         },
-        execute: async (args) => taskTools.adv_task_add.execute(args, store),
+        execute: safeExecute(
+          async (args) => taskTools.adv_task_add.execute(args, store),
+          "adv_task_add",
+        ),
       }),
 
       adv_task_evidence: tool({
@@ -328,8 +360,10 @@ export const AdvancePlugin: Plugin = async ({ directory }) => {
             .optional()
             .describe("Exit code from test runner"),
         },
-        execute: async (args) =>
-          taskTools.adv_task_evidence.execute(args, store),
+        execute: safeExecute(
+          async (args) => taskTools.adv_task_evidence.execute(args, store),
+          "adv_task_evidence",
+        ),
       }),
 
       adv_task_tdd_phase: tool({
@@ -340,8 +374,10 @@ export const AdvancePlugin: Plugin = async ({ directory }) => {
             .enum(["none", "red", "green", "refactor", "complete"])
             .describe("TDD phase to set"),
         },
-        execute: async (args) =>
-          taskTools.adv_task_tdd_phase.execute(args, store),
+        execute: safeExecute(
+          async (args) => taskTools.adv_task_tdd_phase.execute(args, store),
+          "adv_task_tdd_phase",
+        ),
       }),
 
       adv_task_skip_tdd: tool({
@@ -350,8 +386,10 @@ export const AdvancePlugin: Plugin = async ({ directory }) => {
           taskId: tool.schema.string().describe("Task ID"),
           reason: tool.schema.string().describe("Rationale for skipping TDD"),
         },
-        execute: async (args) =>
-          taskTools.adv_task_skip_tdd.execute(args, store),
+        execute: safeExecute(
+          async (args) => taskTools.adv_task_skip_tdd.execute(args, store),
+          "adv_task_skip_tdd",
+        ),
       }),
 
       adv_task_tdd_status: tool({
@@ -359,8 +397,10 @@ export const AdvancePlugin: Plugin = async ({ directory }) => {
         args: {
           taskId: tool.schema.string().describe("Task ID"),
         },
-        execute: async (args) =>
-          taskTools.adv_task_tdd_status.execute(args, store),
+        execute: safeExecute(
+          async (args) => taskTools.adv_task_tdd_status.execute(args, store),
+          "adv_task_tdd_status",
+        ),
       }),
 
       // ----------------------------------------------------------------------
@@ -381,7 +421,10 @@ export const AdvancePlugin: Plugin = async ({ directory }) => {
             .optional()
             .describe("Task ID that generated this wisdom"),
         },
-        execute: async (args) => wisdomTools.adv_wisdom_add.execute(args, store),
+        execute: safeExecute(
+          async (args) => wisdomTools.adv_wisdom_add.execute(args, store),
+          "adv_wisdom_add",
+        ),
       }),
 
       adv_wisdom_list: tool({
@@ -389,8 +432,10 @@ export const AdvancePlugin: Plugin = async ({ directory }) => {
         args: {
           changeId: tool.schema.string().describe("Change ID to list wisdom for"),
         },
-        execute: async (args) =>
-          wisdomTools.adv_wisdom_list.execute(args, store),
+        execute: safeExecute(
+          async (args) => wisdomTools.adv_wisdom_list.execute(args, store),
+          "adv_wisdom_list",
+        ),
       }),
 
       // ----------------------------------------------------------------------
@@ -399,7 +444,10 @@ export const AdvancePlugin: Plugin = async ({ directory }) => {
       adv_status: tool({
         description: statusTools.adv_status.description,
         args: {},
-        execute: async (args) => statusTools.adv_status.execute(args, store),
+        execute: safeExecute(
+          async (args) => statusTools.adv_status.execute(args, store),
+          "adv_status",
+        ),
       }),
 
       // ----------------------------------------------------------------------
@@ -417,8 +465,10 @@ export const AdvancePlugin: Plugin = async ({ directory }) => {
             .optional()
             .describe("Include done/cancelled items"),
         },
-        execute: async (args) =>
-          agendaTools.adv_agenda_list.execute(args, directory),
+        execute: safeExecuteSimple(
+          async (args) => agendaTools.adv_agenda_list.execute(args, directory),
+          "adv_agenda_list",
+        ),
       }),
 
       adv_agenda_add: tool({
@@ -439,8 +489,10 @@ export const AdvancePlugin: Plugin = async ({ directory }) => {
             .optional()
             .describe("ID of blocking item"),
         },
-        execute: async (args) =>
-          agendaTools.adv_agenda_add.execute(args, directory),
+        execute: safeExecuteSimple(
+          async (args) => agendaTools.adv_agenda_add.execute(args, directory),
+          "adv_agenda_add",
+        ),
       }),
 
       adv_agenda_start: tool({
@@ -448,8 +500,10 @@ export const AdvancePlugin: Plugin = async ({ directory }) => {
         args: {
           itemId: tool.schema.string().describe("Agenda item ID"),
         },
-        execute: async (args) =>
-          agendaTools.adv_agenda_start.execute(args, directory),
+        execute: safeExecuteSimple(
+          async (args) => agendaTools.adv_agenda_start.execute(args, directory),
+          "adv_agenda_start",
+        ),
       }),
 
       adv_agenda_complete: tool({
@@ -458,8 +512,10 @@ export const AdvancePlugin: Plugin = async ({ directory }) => {
           itemId: tool.schema.string().describe("Agenda item ID"),
           notes: tool.schema.string().optional().describe("Completion notes"),
         },
-        execute: async (args) =>
-          agendaTools.adv_agenda_complete.execute(args, directory),
+        execute: safeExecuteSimple(
+          async (args) => agendaTools.adv_agenda_complete.execute(args, directory),
+          "adv_agenda_complete",
+        ),
       }),
 
       adv_agenda_cancel: tool({
@@ -471,8 +527,10 @@ export const AdvancePlugin: Plugin = async ({ directory }) => {
             .optional()
             .describe("Cancellation reason"),
         },
-        execute: async (args) =>
-          agendaTools.adv_agenda_cancel.execute(args, directory),
+        execute: safeExecuteSimple(
+          async (args) => agendaTools.adv_agenda_cancel.execute(args, directory),
+          "adv_agenda_cancel",
+        ),
       }),
 
       adv_agenda_prioritize: tool({
@@ -483,22 +541,28 @@ export const AdvancePlugin: Plugin = async ({ directory }) => {
             .enum(["critical", "high", "medium", "low", "backlog"])
             .describe("New priority"),
         },
-        execute: async (args) =>
-          agendaTools.adv_agenda_prioritize.execute(args, directory),
+        execute: safeExecuteSimple(
+          async (args) => agendaTools.adv_agenda_prioritize.execute(args, directory),
+          "adv_agenda_prioritize",
+        ),
       }),
 
       adv_agenda_next: tool({
         description: agendaTools.adv_agenda_next.description,
         args: {},
-        execute: async (args) =>
-          agendaTools.adv_agenda_next.execute(args, directory),
+        execute: safeExecuteSimple(
+          async (args) => agendaTools.adv_agenda_next.execute(args, directory),
+          "adv_agenda_next",
+        ),
       }),
 
       adv_agenda_stats: tool({
         description: agendaTools.adv_agenda_stats.description,
         args: {},
-        execute: async (args) =>
-          agendaTools.adv_agenda_stats.execute(args, directory),
+        execute: safeExecuteSimple(
+          async (args) => agendaTools.adv_agenda_stats.execute(args, directory),
+          "adv_agenda_stats",
+        ),
       }),
 
       adv_agenda_evidence: tool({
@@ -511,15 +575,19 @@ export const AdvancePlugin: Plugin = async ({ directory }) => {
           output: tool.schema.string().optional().describe("Test output"),
           exitCode: tool.schema.number().optional().describe("Exit code"),
         },
-        execute: async (args) =>
-          agendaTools.adv_agenda_evidence.execute(args, directory),
+        execute: safeExecuteSimple(
+          async (args) => agendaTools.adv_agenda_evidence.execute(args, directory),
+          "adv_agenda_evidence",
+        ),
       }),
 
       adv_agenda_compact: tool({
         description: agendaTools.adv_agenda_compact.description,
         args: {},
-        execute: async (args) =>
-          agendaTools.adv_agenda_compact.execute(args, directory),
+        execute: safeExecuteSimple(
+          async (args) => agendaTools.adv_agenda_compact.execute(args, directory),
+          "adv_agenda_compact",
+        ),
       }),
 
       // ----------------------------------------------------------------------
@@ -528,8 +596,10 @@ export const AdvancePlugin: Plugin = async ({ directory }) => {
       adv_project_context: tool({
         description: projectTools.adv_project_context.description,
         args: {},
-        execute: async (args) =>
-          projectTools.adv_project_context.execute(args, store),
+        execute: safeExecute(
+          async (args) => projectTools.adv_project_context.execute(args, store),
+          "adv_project_context",
+        ),
       }),
     },
 

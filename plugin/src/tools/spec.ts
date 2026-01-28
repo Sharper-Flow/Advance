@@ -36,11 +36,14 @@ export const specTools = {
         .describe("Capability ID (e.g., 'contract-system')"),
     },
     execute: async ({ capability }: { capability: string }, store: Store) => {
-      const spec = await store.specs.get(capability);
-      if (!spec) {
+      const result = await store.specs.get(capability);
+      if (!result.success) {
+        return JSON.stringify({ error: result.error });
+      }
+      if (!result.data) {
         return JSON.stringify({ error: `Spec not found: ${capability}` });
       }
-      return JSON.stringify(spec, null, 2);
+      return JSON.stringify(result.data, null, 2);
     },
   },
 

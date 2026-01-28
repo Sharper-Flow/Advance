@@ -182,8 +182,9 @@ describe("Task Tools", () => {
       );
 
       // Reload from store
-      const change = await store.changes.get("add-feature-abc123");
-      const task = change!.tasks.find((t) => t.id === "tk-task0001");
+      const changeResult = await store.changes.get("add-feature-abc123");
+      expect(changeResult.success).toBe(true);
+      const task = changeResult.data!.tasks.find((t) => t.id === "tk-task0001");
       expect(task!.status).toBe("done");
     });
 
@@ -271,8 +272,9 @@ describe("Task Tools", () => {
       );
       const parsed = JSON.parse(result);
 
-      const change = await store.changes.get("add-feature-abc123");
-      const task = change!.tasks.find((t) => t.id === parsed.taskId);
+      const changeResult = await store.changes.get("add-feature-abc123");
+      expect(changeResult.success).toBe(true);
+      const task = changeResult.data!.tasks.find((t) => t.id === parsed.taskId);
       expect(task).toBeDefined();
       expect(task!.title).toBe("Persisted task");
     });
@@ -376,8 +378,9 @@ describe("Task Tools", () => {
       );
 
       // Reload from store
-      const change = await store.changes.get("add-feature-abc123");
-      const task = change!.tasks.find((t) => t.id === "tk-task0001");
+      const changeResult = await store.changes.get("add-feature-abc123");
+      expect(changeResult.success).toBe(true);
+      const task = changeResult.data!.tasks.find((t) => t.id === "tk-task0001");
       expect(task!.tdd_evidence?.red?.command).toBe("npm test");
     });
 
@@ -438,8 +441,9 @@ describe("Task Tools", () => {
         store,
       );
 
-      const change = await store.changes.get("add-feature-abc123");
-      const task = change!.tasks.find((t) => t.id === "tk-task0001");
+      const changeResult = await store.changes.get("add-feature-abc123");
+      expect(changeResult.success).toBe(true);
+      const task = changeResult.data!.tasks.find((t) => t.id === "tk-task0001");
       expect(task!.tdd_evidence?.skipped).toBe(true);
     });
 

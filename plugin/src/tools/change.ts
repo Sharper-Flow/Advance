@@ -46,11 +46,14 @@ export const changeTools = {
       changeId: z.string().describe("Change ID"),
     },
     execute: async ({ changeId }: { changeId: string }, store: Store) => {
-      const change = await store.changes.get(changeId);
-      if (!change) {
+      const result = await store.changes.get(changeId);
+      if (!result.success) {
+        return JSON.stringify({ error: result.error });
+      }
+      if (!result.data) {
         return JSON.stringify({ error: `Change not found: ${changeId}` });
       }
-      return JSON.stringify(change, null, 2);
+      return JSON.stringify(result.data, null, 2);
     },
   },
 
@@ -83,21 +86,29 @@ export const changeTools = {
       { changeId, strict }: { changeId: string; strict?: boolean },
       store: Store,
     ) => {
-      const change = await store.changes.get(changeId);
-      if (!change) {
+      const result = await store.changes.get(changeId);
+      if (!result.success) {
+        return wrapWithBanner(
+          { command: "adv_change_validate", target: changeId },
+          JSON.stringify({ error: result.error }),
+        );
+      }
+      if (!result.data) {
         return wrapWithBanner(
           { command: "adv_change_validate", target: changeId },
           JSON.stringify({ error: `Change not found: ${changeId}` }),
         );
       }
 
+      const change = result.data;
+
       // Load all specs for validation context
       const specList = await store.specs.list();
       const specs: Spec[] = [];
       for (const specInfo of specList.specs) {
-        const spec = await store.specs.get(specInfo.name);
-        if (spec) {
-          specs.push(spec);
+        const specResult = await store.specs.get(specInfo.name);
+        if (specResult.success && specResult.data) {
+          specs.push(specResult.data);
         }
       }
 
@@ -113,29 +124,29 @@ export const changeTools = {
 
       // Load full change data to get capabilities
       for (const activeChange of activeChanges) {
-        const fullChange = await store.changes.get(activeChange.id);
-        if (fullChange) {
-          activeChange.capabilities = Object.keys(fullChange.deltas);
+        const fullChangeResult = await store.changes.get(activeChange.id);
+        if (fullChangeResult.success && fullChangeResult.data) {
+          activeChange.capabilities = Object.keys(fullChangeResult.data.deltas);
         }
       }
 
       // Run full validation with active changes for conflict detection
-      const result = await validateChange(change, { specs, activeChanges });
+      const validationResult = await validateChange(change, { specs, activeChanges });
 
       // In strict mode, treat warnings as errors
       const passed = strict
-        ? result.errors.length === 0 && result.warnings.length === 0
-        : result.passed;
+        ? validationResult.errors.length === 0 && validationResult.warnings.length === 0
+        : validationResult.passed;
 
       return wrapWithBanner(
         { command: "adv_change_validate", target: changeId },
         JSON.stringify(
           {
             passed,
-            errors: result.errors,
-            warnings: result.warnings,
-            checksPerformed: result.checksPerformed,
-            checkedAt: result.checkedAt,
+            errors: validationResult.errors,
+            warnings: validationResult.warnings,
+            checksPerformed: validationResult.checksPerformed,
+            checkedAt: validationResult.checkedAt,
           },
           null,
           2,
@@ -157,13 +168,21 @@ export const changeTools = {
       { changeId, dryRun }: { changeId: string; dryRun?: boolean },
       store: Store,
     ) => {
-      const change = await store.changes.get(changeId);
-      if (!change) {
+      const result = await store.changes.get(changeId);
+      if (!result.success) {
+        return wrapWithBanner(
+          { command: "adv_change_archive", target: changeId },
+          JSON.stringify({ error: result.error }),
+        );
+      }
+      if (!result.data) {
         return wrapWithBanner(
           { command: "adv_change_archive", target: changeId },
           JSON.stringify({ error: `Change not found: ${changeId}` }),
         );
       }
+
+      const change = result.data;
 
       // Check all tasks complete
       const incompleteTasks = change.tasks.filter(
@@ -186,14 +205,14 @@ export const changeTools = {
       const specList = await store.specs.list();
       const specs = new Map<string, Spec>();
       for (const specInfo of specList.specs) {
-        const spec = await store.specs.get(specInfo.name);
-        if (spec) {
-          specs.set(specInfo.name, spec);
+        const specResult = await store.specs.get(specInfo.name);
+        if (specResult.success && specResult.data) {
+          specs.set(specInfo.name, specResult.data);
         }
       }
 
       // Run the archive operation
-      const result = await archiveChange({
+      const archiveResult = await archiveChange({
         change,
         specs,
         paths: store.paths,
@@ -201,7 +220,7 @@ export const changeTools = {
       });
 
       // Update change status in store (unless dry run)
-      if (!dryRun && result.success) {
+      if (!dryRun && archiveResult.success) {
         change.status = "archived";
         await store.changes.save(change);
       }
@@ -210,15 +229,15 @@ export const changeTools = {
         { command: "adv_change_archive", target: changeId },
         JSON.stringify(
           {
-            success: result.success,
-            specsUpdated: result.specsUpdated.map((s) => ({
+            success: archiveResult.success,
+            specsUpdated: archiveResult.specsUpdated.map((s) => ({
               capability: s.capability,
               version: `${s.originalVersion} → ${s.newVersion}`,
               deltas: s.deltaResults.length,
             })),
-            docsGenerated: result.docsGenerated,
-            archivePath: result.archivePath,
-            errors: result.errors,
+            docsGenerated: archiveResult.docsGenerated,
+            archivePath: archiveResult.archivePath,
+            errors: archiveResult.errors,
             dryRun: dryRun ?? false,
           },
           null,

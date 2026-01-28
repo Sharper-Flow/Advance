@@ -21,6 +21,34 @@ import type { Spec, Change, ProjectConfig } from "../types";
 import { ZodError } from "zod";
 
 // =============================================================================
+// Result Types
+// =============================================================================
+
+/**
+ * Result type for load operations that can fail with schema validation errors.
+ * Errors are returned as data, not logged to console, so AI agents can see them.
+ */
+export type LoadResult<T> =
+  | { success: true; data: T }
+  | { success: false; error: string; type: "not_found" | "schema_error" | "read_error" };
+
+/**
+ * Format a Zod validation error into a human-readable string for AI agents.
+ */
+function formatZodError(error: ZodError, context: { type: string; id: string; path: string }): string {
+  const issues = error.issues.map((issue) => {
+    const path = issue.path.join(".");
+    return `  - ${path || "(root)"}: ${issue.message}`;
+  });
+  return (
+    `Schema validation failed for ${context.type} "${context.id}":\n` +
+    `File: ${context.path}\n` +
+    `Issues:\n${issues.join("\n")}\n` +
+    `Hint: Ensure the ${context.type}.json matches the schema.`
+  );
+}
+
+// =============================================================================
 // Atomic Write
 // =============================================================================
 
@@ -124,12 +152,12 @@ export async function listSpecDirs(specsDir: string): Promise<string[]> {
 export async function loadSpec(
   specsDir: string,
   capability: string,
-): Promise<Spec | null> {
+): Promise<LoadResult<Spec | null>> {
   const specPath = join(specsDir, capability, "spec.json");
 
   try {
     const content = await readFile(specPath, "utf-8");
-    return SpecSchema.parse(JSON.parse(content));
+    return { success: true, data: SpecSchema.parse(JSON.parse(content)) };
   } catch (error) {
     if (error instanceof ZodError) {
       // Provide helpful error message for schema violations
@@ -137,20 +165,21 @@ export async function loadSpec(
         const path = issue.path.join(".");
         return `  - ${path}: ${issue.message} (expected ${issue.code === "invalid_type" ? (issue as { expected?: string }).expected : "valid value"})`;
       });
-      console.error(
-        `\n[ADV] Schema validation failed for spec "${capability}":\n` +
-          `File: ${specPath}\n` +
-          `Issues:\n${issues.join("\n")}\n\n` +
-          `Hint: Ensure the spec.json matches the schema at:\n` +
-          `  https://raw.githubusercontent.com/anomalyco/oc-plugins/main/advance/plugin/schemas/spec.schema.json\n`,
-      );
+      return {
+        success: false,
+        error: formatZodError(error, { type: "spec", id: capability, path: specPath }),
+        type: "schema_error",
+      };
     } else if ((error as NodeJS.ErrnoException).code === "ENOENT") {
       // File not found - not an error, just return null
-      return null;
+      return { success: true, data: null };
     } else {
-      console.error(`Failed to load spec ${capability}:`, error);
+      return {
+        success: false,
+        error: `Failed to load spec ${capability}: ${String(error)}`,
+        type: "read_error",
+      };
     }
-    return null;
   }
 }
 
@@ -162,8 +191,8 @@ export async function loadAllSpecs(
 
   for (const dir of dirs) {
     const spec = await loadSpec(specsDir, dir);
-    if (spec) {
-      specs.set(spec.name, spec);
+    if (spec.success && spec.data) {
+      specs.set(spec.data.name, spec.data);
     }
   }
 
@@ -242,33 +271,29 @@ export async function resolveChangeId(
 export async function loadChange(
   changesDir: string,
   changeId: string,
-): Promise<Change | null> {
+): Promise<LoadResult<Change | null>> {
   const changePath = join(changesDir, changeId, "change.json");
 
   try {
     const content = await readFile(changePath, "utf-8");
-    return ChangeSchema.parse(JSON.parse(content));
+    return { success: true, data: ChangeSchema.parse(JSON.parse(content)) };
   } catch (error) {
     if (error instanceof ZodError) {
-      // Provide helpful error message for schema violations
-      const issues = error.issues.map((issue) => {
-        const path = issue.path.join(".");
-        return `  - ${path}: ${issue.message} (expected ${issue.code === "invalid_type" ? (issue as { expected?: string }).expected : "valid value"})`;
-      });
-      console.error(
-        `\n[ADV] Schema validation failed for change "${changeId}":\n` +
-          `File: ${changePath}\n` +
-          `Issues:\n${issues.join("\n")}\n\n` +
-          `Hint: Ensure the change.json matches the schema at:\n` +
-          `  https://raw.githubusercontent.com/anomalyco/oc-plugins/main/advance/plugin/schemas/change.schema.json\n`,
-      );
+      return {
+        success: false,
+        error: formatZodError(error, { type: "change", id: changeId, path: changePath }),
+        type: "schema_error",
+      };
     } else if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-      // File not found - not an error, just return null
-      return null;
+      // File not found - return success with null data
+      return { success: true, data: null };
     } else {
-      console.error(`Failed to load change ${changeId}:`, error);
+      return {
+        success: false,
+        error: `Failed to read change ${changeId}: ${error instanceof Error ? error.message : String(error)}`,
+        type: "read_error",
+      };
     }
-    return null;
   }
 }
 
@@ -280,8 +305,8 @@ export async function loadAllChanges(
 
   for (const dir of dirs) {
     const change = await loadChange(changesDir, dir);
-    if (change) {
-      changes.set(change.id, change);
+    if (change.success && change.data) {
+      changes.set(change.data.id, change.data);
     }
   }
 

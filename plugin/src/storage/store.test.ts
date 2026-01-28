@@ -80,9 +80,10 @@ describe("Store", () => {
     });
 
     test("get returns full spec", async () => {
-      const spec = await store.specs.get("test-capability");
-      expect(spec).not.toBeNull();
-      expect(spec!.requirements).toHaveLength(2);
+      const result = await store.specs.get("test-capability");
+      expect(result.success).toBe(true);
+      expect(result.data).not.toBeNull();
+      expect(result.data!.requirements).toHaveLength(2);
     });
 
     test("search finds requirements", async () => {
@@ -110,8 +111,9 @@ describe("Store", () => {
       const result = await store.specs.list();
       expect(result.specs).toHaveLength(2);
 
-      const loaded = await store.specs.get("new-cap");
-      expect(loaded!.title).toBe("New");
+      const loadedResult = await store.specs.get("new-cap");
+      expect(loadedResult.success).toBe(true);
+      expect(loadedResult.data!.title).toBe("New");
     });
   });
 
@@ -124,9 +126,10 @@ describe("Store", () => {
 
     test("list excludes archived by default", async () => {
       // First get the change and archive it
-      const change = await store.changes.get("add-feature-abc123");
-      change!.status = "archived";
-      await store.changes.save(change!);
+      const changeResult = await store.changes.get("add-feature-abc123");
+      expect(changeResult.success).toBe(true);
+      changeResult.data!.status = "archived";
+      await store.changes.save(changeResult.data!);
 
       const result = await store.changes.list();
       expect(result.changes).toHaveLength(0);
@@ -136,9 +139,10 @@ describe("Store", () => {
     });
 
     test("get returns full change", async () => {
-      const change = await store.changes.get("add-feature-abc123");
-      expect(change).not.toBeNull();
-      expect(change!.tasks).toHaveLength(3);
+      const result = await store.changes.get("add-feature-abc123");
+      expect(result.success).toBe(true);
+      expect(result.data).not.toBeNull();
+      expect(result.data!.tasks).toHaveLength(3);
     });
 
     test("create generates new change", async () => {
@@ -148,9 +152,10 @@ describe("Store", () => {
       expect(result.changeId).toMatch(/^test-new-featur-[a-zA-Z0-9_-]{4}$/);
       expect(result.path).toContain("proposal.md");
 
-      const loaded = await store.changes.get(result.changeId);
-      expect(loaded).not.toBeNull();
-      expect(loaded!.status).toBe("draft");
+      const loadedResult = await store.changes.get(result.changeId);
+      expect(loadedResult.success).toBe(true);
+      expect(loadedResult.data).not.toBeNull();
+      expect(loadedResult.data!.status).toBe("draft");
     });
   });
 
@@ -180,8 +185,9 @@ describe("Store", () => {
       expect(task!.completed_at).toBeDefined();
 
       // Verify persistence
-      const change = await store.changes.get("add-feature-abc123");
-      const updatedTask = change!.tasks.find((t) => t.id === "tk-task0001");
+      const changeResult = await store.changes.get("add-feature-abc123");
+      expect(changeResult.success).toBe(true);
+      const updatedTask = changeResult.data!.tasks.find((t) => t.id === "tk-task0001");
       expect(updatedTask!.status).toBe("done");
     });
 
@@ -256,8 +262,9 @@ describe("Store", () => {
       expect(entry.content).toBe("Use factory pattern for store creation");
       expect(entry.recorded_at).toBeDefined();
 
-      const change = await store.changes.get("add-feature-abc123");
-      expect(change!.wisdom).toContainEqual(entry);
+      const changeResult = await store.changes.get("add-feature-abc123");
+      expect(changeResult.success).toBe(true);
+      expect(changeResult.data!.wisdom).toContainEqual(entry);
     });
 
     test("add wisdom with invalid content (exceeds max length) throws error", async () => {

@@ -31,7 +31,6 @@ import {
   SAMPLE_CHANGE,
 } from "../__tests__/setup";
 import type { Spec, Change, ProjectConfig } from "../types";
-import type { Spec, Change, ProjectConfig } from "../types";
 
 describe("getProjectPaths", () => {
   test("returns default paths", () => {
@@ -105,17 +104,19 @@ describe("Spec Operations", () => {
 
   test("loadSpec loads spec from JSON", async () => {
     const specsDir = join(tempDir, "specs");
-    const spec = await loadSpec(specsDir, "test-capability");
+    const result = await loadSpec(specsDir, "test-capability");
 
-    expect(spec).not.toBeNull();
-    expect(spec!.name).toBe("test-capability");
-    expect(spec!.requirements).toHaveLength(2);
+    expect(result.success).toBe(true);
+    expect(result.data).not.toBeNull();
+    expect(result.data!.name).toBe("test-capability");
+    expect(result.data!.requirements).toHaveLength(2);
   });
 
-  test("loadSpec returns null for missing spec", async () => {
+  test("loadSpec returns success with null data for missing spec", async () => {
     const specsDir = join(tempDir, "specs");
-    const spec = await loadSpec(specsDir, "nonexistent");
-    expect(spec).toBeNull();
+    const result = await loadSpec(specsDir, "nonexistent");
+    expect(result.success).toBe(true);
+    expect(result.data).toBeNull();
   });
 
   test("saveSpec creates spec directory and file", async () => {
@@ -129,8 +130,9 @@ describe("Spec Operations", () => {
     const path = await saveSpec(specsDir, newSpec);
     expect(path).toContain("new-capability/spec.json");
 
-    const loaded = await loadSpec(specsDir, "new-capability");
-    expect(loaded!.title).toBe("New Capability");
+    const result = await loadSpec(specsDir, "new-capability");
+    expect(result.success).toBe(true);
+    expect(result.data!.title).toBe("New Capability");
   });
 
   test("loadAllSpecs loads all specs", async () => {
@@ -166,17 +168,19 @@ describe("Change Operations", () => {
 
   test("loadChange loads change from JSON", async () => {
     const changesDir = join(tempDir, "changes");
-    const change = await loadChange(changesDir, "add-feature-abc123");
+    const result = await loadChange(changesDir, "add-feature-abc123");
 
-    expect(change).not.toBeNull();
-    expect(change!.id).toBe("add-feature-abc123");
-    expect(change!.tasks).toHaveLength(3);
+    expect(result.success).toBe(true);
+    expect(result.data).not.toBeNull();
+    expect(result.data!.id).toBe("add-feature-abc123");
+    expect(result.data!.tasks).toHaveLength(3);
   });
 
-  test("loadChange returns null for missing change", async () => {
+  test("loadChange returns success with null data for missing change", async () => {
     const changesDir = join(tempDir, "changes");
-    const change = await loadChange(changesDir, "nonexistent");
-    expect(change).toBeNull();
+    const result = await loadChange(changesDir, "nonexistent");
+    expect(result.success).toBe(true);
+    expect(result.data).toBeNull();
   });
 
   test("saveChange creates change directory and file", async () => {
@@ -190,8 +194,9 @@ describe("Change Operations", () => {
     const path = await saveChange(changesDir, newChange);
     expect(path).toContain("new-change-xyz789/change.json");
 
-    const loaded = await loadChange(changesDir, "new-change-xyz789");
-    expect(loaded!.title).toBe("New Change");
+    const result = await loadChange(changesDir, "new-change-xyz789");
+    expect(result.success).toBe(true);
+    expect(result.data!.title).toBe("New Change");
   });
 
   test("loadAllChanges loads all changes", async () => {

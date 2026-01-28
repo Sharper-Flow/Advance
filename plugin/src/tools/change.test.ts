@@ -57,9 +57,10 @@ describe("Change Tools", () => {
 
     test("excludes archived by default", async () => {
       // Archive the existing change
-      const change = await store.changes.get("add-feature-abc123");
-      change!.status = "archived";
-      await store.changes.save(change!);
+      const changeResult = await store.changes.get("add-feature-abc123");
+      expect(changeResult.success).toBe(true);
+      changeResult.data!.status = "archived";
+      await store.changes.save(changeResult.data!);
 
       const result = await changeTools.adv_change_list.execute({}, store);
       const parsed = JSON.parse(result);
@@ -68,9 +69,10 @@ describe("Change Tools", () => {
     });
 
     test("includes archived when requested", async () => {
-      const change = await store.changes.get("add-feature-abc123");
-      change!.status = "archived";
-      await store.changes.save(change!);
+      const changeResult = await store.changes.get("add-feature-abc123");
+      expect(changeResult.success).toBe(true);
+      changeResult.data!.status = "archived";
+      await store.changes.save(changeResult.data!);
 
       const result = await changeTools.adv_change_list.execute(
         { includeArchived: true },
@@ -127,11 +129,12 @@ describe("Change Tools", () => {
       );
       const parsed = parseToolOutput(result);
 
-      const change = await store.changes.get(parsed.changeId);
-      expect(change).not.toBeNull();
-      expect(change!.status).toBe("draft");
-      expect(change!.tasks).toEqual([]);
-      expect(change!.deltas).toEqual({});
+      const changeResult = await store.changes.get(parsed.changeId);
+      expect(changeResult.success).toBe(true);
+      expect(changeResult.data).not.toBeNull();
+      expect(changeResult.data!.status).toBe("draft");
+      expect(changeResult.data!.tasks).toEqual([]);
+      expect(changeResult.data!.deltas).toEqual({});
     });
 
     test("truncates long summaries in ID", async () => {

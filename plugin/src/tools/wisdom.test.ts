@@ -98,9 +98,10 @@ describe("Wisdom Tools", () => {
       );
 
       // Reload from store
-      const change = await store.changes.get("add-feature-abc123");
-      expect(change!.wisdom).toHaveLength(1);
-      expect(change!.wisdom![0].content).toBe(
+      const changeResult = await store.changes.get("add-feature-abc123");
+      expect(changeResult.success).toBe(true);
+      expect(changeResult.data!.wisdom).toHaveLength(1);
+      expect(changeResult.data!.wisdom![0].content).toBe(
         "Early validation prevents downstream errors",
       );
     });
@@ -137,8 +138,9 @@ describe("Wisdom Tools", () => {
         store,
       );
 
-      const change = await store.changes.get("add-feature-abc123");
-      expect(change!.wisdom).toHaveLength(2);
+      const changeResult = await store.changes.get("add-feature-abc123");
+      expect(changeResult.success).toBe(true);
+      expect(changeResult.data!.wisdom).toHaveLength(2);
     });
   });
 

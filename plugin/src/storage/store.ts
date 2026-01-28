@@ -39,6 +39,7 @@ import {
   getProjectPaths,
   resolveChangeId,
   type ProjectPaths,
+  type LoadResult,
 } from "./json";
 
 // =============================================================================
@@ -60,7 +61,7 @@ export interface Store {
       capability?: string;
       tag?: string;
     }) => Promise<SpecListResponse>;
-    get: (capability: string) => Promise<Spec | null>;
+    get: (capability: string) => Promise<LoadResult<Spec | null>>;
     search: (query: string, limit?: number) => Promise<SearchResult[]>;
     save: (spec: Spec) => Promise<void>;
   };
@@ -71,7 +72,7 @@ export interface Store {
       status?: string;
       includeArchived?: boolean;
     }) => Promise<ChangeListResponse>;
-    get: (changeId: string) => Promise<Change | null>;
+    get: (changeId: string) => Promise<LoadResult<Change | null>>;
     create: (
       summary: string,
       capability?: string,
@@ -212,9 +213,9 @@ export async function createStore(directory: string): Promise<Store> {
         if (filter?.tag) {
           const filtered = [];
           for (const row of rows) {
-            const spec = await loadSpec(paths.specs, row.name);
-            if (spec) {
-              const hasTags = spec.requirements.some((r) =>
+            const specResult = await loadSpec(paths.specs, row.name);
+            if (specResult.success && specResult.data) {
+              const hasTags = specResult.data.requirements.some((r) =>
                 r.tags?.includes(filter.tag!),
               );
               if (hasTags) filtered.push(row);
@@ -289,11 +290,17 @@ export async function createStore(directory: string): Promise<Store> {
 
         if (!resolvedId) {
           if (candidates.length > 1) {
-            console.error(
-              `Ambiguous change ID "${changeId}". Matches: ${candidates.join(", ")}`,
-            );
+            return {
+              success: false,
+              error: `Ambiguous change ID "${changeId}". Matches: ${candidates.join(", ")}. Please be more specific.`,
+              type: "not_found" as const,
+            };
           }
-          return null;
+          return {
+            success: false,
+            error: `Change not found: ${changeId}`,
+            type: "not_found" as const,
+          };
         }
 
         return loadChange(paths.changes, resolvedId);
@@ -346,10 +353,10 @@ export async function createStore(directory: string): Promise<Store> {
         await store.sync();
 
         // Load from JSON to get full task data including TDD fields
-        const change = await loadChange(paths.changes, changeId);
-        if (!change) return [];
+        const result = await loadChange(paths.changes, changeId);
+        if (!result.success || !result.data) return [];
 
-        let tasks = change.tasks;
+        let tasks = result.data.tasks;
         if (status) {
           tasks = tasks.filter((t) => t.status === status);
         }
@@ -361,8 +368,10 @@ export async function createStore(directory: string): Promise<Store> {
         await store.sync();
 
         // Load from JSON to get full task data including TDD fields
-        const change = await loadChange(paths.changes, changeId);
-        if (!change) return { ready: [], blocked: [] };
+        const result = await loadChange(paths.changes, changeId);
+        if (!result.success || !result.data) return { ready: [], blocked: [] };
+
+        const change = result.data;
 
         // Use SQLite for dependency resolution
         const { ready: readyIds, blocked: blockedInfo } =
@@ -386,8 +395,10 @@ export async function createStore(directory: string): Promise<Store> {
         if (!taskRow) return null;
 
         // Load the change
-        const change = await loadChange(paths.changes, taskRow.change_id);
-        if (!change) return null;
+        const result = await loadChange(paths.changes, taskRow.change_id);
+        if (!result.success || !result.data) return null;
+
+        const change = result.data;
 
         // Update task in change
         const task = change.tasks.find((t) => t.id === taskId);
@@ -413,10 +424,15 @@ export async function createStore(directory: string): Promise<Store> {
       },
 
       add: async (changeId, content, options) => {
-        const change = await loadChange(paths.changes, changeId);
-        if (!change) {
+        const result = await loadChange(paths.changes, changeId);
+        if (!result.success) {
+          throw new Error(result.error);
+        }
+        if (!result.data) {
           throw new Error(`Change not found: ${changeId}`);
         }
+
+        const change = result.data;
 
         const task: Task = {
           id: `tk-${nanoid(8)}`,
@@ -446,10 +462,10 @@ export async function createStore(directory: string): Promise<Store> {
         if (!taskRow) return null;
 
         // Load from JSON to get full task data including TDD fields
-        const change = await loadChange(paths.changes, taskRow.change_id);
-        if (!change) return null;
+        const result = await loadChange(paths.changes, taskRow.change_id);
+        if (!result.success || !result.data) return null;
 
-        return change.tasks.find((t) => t.id === taskId) ?? null;
+        return result.data.tasks.find((t) => t.id === taskId) ?? null;
       },
 
       recordEvidence: async (taskId, phase, evidence) => {
@@ -460,8 +476,10 @@ export async function createStore(directory: string): Promise<Store> {
         if (!taskRow) return null;
 
         // Load the change
-        const change = await loadChange(paths.changes, taskRow.change_id);
-        if (!change) return null;
+        const result = await loadChange(paths.changes, taskRow.change_id);
+        if (!result.success || !result.data) return null;
+
+        const change = result.data;
 
         // Update task in change
         const task = change.tasks.find((t) => t.id === taskId);
@@ -507,8 +525,10 @@ export async function createStore(directory: string): Promise<Store> {
         if (!taskRow) return null;
 
         // Load the change
-        const change = await loadChange(paths.changes, taskRow.change_id);
-        if (!change) return null;
+        const result = await loadChange(paths.changes, taskRow.change_id);
+        if (!result.success || !result.data) return null;
+
+        const change = result.data;
 
         // Update task in change
         const task = change.tasks.find((t) => t.id === taskId);
@@ -530,8 +550,10 @@ export async function createStore(directory: string): Promise<Store> {
         if (!taskRow) return null;
 
         // Load the change
-        const change = await loadChange(paths.changes, taskRow.change_id);
-        if (!change) return null;
+        const result = await loadChange(paths.changes, taskRow.change_id);
+        if (!result.success || !result.data) return null;
+
+        const change = result.data;
 
         // Update task in change
         const task = change.tasks.find((t) => t.id === taskId);
@@ -555,10 +577,15 @@ export async function createStore(directory: string): Promise<Store> {
 
     wisdom: {
       add: async (changeId, type, content, sourceTask) => {
-        const change = await loadChange(paths.changes, changeId);
-        if (!change) {
+        const result = await loadChange(paths.changes, changeId);
+        if (!result.success) {
+          throw new Error(result.error);
+        }
+        if (!result.data) {
           throw new Error(`Change not found: ${changeId}`);
         }
+
+        const change = result.data;
 
         // Initialize wisdom array if needed
         if (!change.wisdom) {
@@ -580,12 +607,15 @@ export async function createStore(directory: string): Promise<Store> {
       },
 
       list: async (changeId) => {
-        const change = await loadChange(paths.changes, changeId);
-        if (!change) {
+        const result = await loadChange(paths.changes, changeId);
+        if (!result.success) {
+          throw new Error(result.error);
+        }
+        if (!result.data) {
           throw new Error(`Change not found: ${changeId}`);
         }
 
-        return change.wisdom ?? [];
+        return result.data.wisdom ?? [];
       },
     },
 
