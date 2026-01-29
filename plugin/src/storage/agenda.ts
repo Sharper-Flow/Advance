@@ -5,9 +5,17 @@
  * Append-only format for durability, with periodic compaction.
  */
 
-import { readFile, writeFile, appendFile, mkdir } from "fs/promises";
+import {
+  readFile,
+  writeFile,
+  appendFile,
+  mkdir,
+  rename,
+  unlink,
+  copyFile,
+} from "fs/promises";
 import { existsSync } from "fs";
-import { join } from "path";
+import { join, dirname } from "path";
 import { nanoid } from "nanoid";
 import {
   AgendaItemSchema,
@@ -25,9 +33,134 @@ import {
 
 const AGENDA_DIR = ".adv";
 const AGENDA_FILE = "agenda.jsonl";
+const LOCK_TIMEOUT_MS = 5000;
+const LOCK_RETRY_MS = 50;
 
 // =============================================================================
-// File Operations
+// File Safety Utilities
+// =============================================================================
+
+/**
+ * Atomic write - writes to temp file then renames.
+ * Prevents corruption if process crashes mid-write.
+ */
+async function atomicWriteFile(
+  filePath: string,
+  content: string,
+): Promise<void> {
+  const tempPath = `${filePath}.tmp.${Date.now()}`;
+
+  try {
+    await mkdir(dirname(filePath), { recursive: true });
+    await writeFile(tempPath, content, "utf-8");
+    await rename(tempPath, filePath);
+  } catch (error) {
+    try {
+      await unlink(tempPath);
+    } catch {
+      // Ignore cleanup errors
+    }
+    throw error;
+  }
+}
+
+/**
+ * Create a backup of a file before destructive operations.
+ */
+async function createBackup(filePath: string): Promise<string | null> {
+  if (!existsSync(filePath)) return null;
+
+  const backupPath = `${filePath}.backup.${Date.now()}`;
+  try {
+    await copyFile(filePath, backupPath);
+    return backupPath;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Clean up old backup files (keep only the most recent).
+ */
+async function cleanupOldBackups(filePath: string): Promise<void> {
+  const { readdir } = await import("fs/promises");
+  const dir = dirname(filePath);
+  const baseName = filePath.split("/").pop() ?? "";
+
+  try {
+    const files = await readdir(dir);
+    const backups = files
+      .filter((f) => f.startsWith(`${baseName}.backup.`))
+      .sort()
+      .slice(0, -1); // Keep most recent
+
+    for (const backup of backups) {
+      try {
+        await unlink(join(dir, backup));
+      } catch {
+        // Ignore cleanup errors
+      }
+    }
+  } catch {
+    // Ignore errors
+  }
+}
+
+/**
+ * Simple file lock using a .lock file.
+ * Returns a release function, or throws on timeout.
+ */
+async function acquireFileLock(
+  filePath: string,
+  timeoutMs = LOCK_TIMEOUT_MS,
+): Promise<() => Promise<void>> {
+  const lockPath = `${filePath}.lock`;
+  const startTime = Date.now();
+
+  while (Date.now() - startTime < timeoutMs) {
+    try {
+      // Try to create lock file exclusively
+      await writeFile(lockPath, `${process.pid}\n${Date.now()}`, {
+        flag: "wx",
+      });
+
+      // Lock acquired
+      return async () => {
+        try {
+          await unlink(lockPath);
+        } catch {
+          // Ignore unlock errors
+        }
+      };
+    } catch (e) {
+      const error = e as NodeJS.ErrnoException;
+      if (error.code === "EEXIST") {
+        // Lock exists, check if stale (older than 30s)
+        try {
+          const content = await readFile(lockPath, "utf-8");
+          const timestamp = parseInt(content.split("\n")[1] ?? "0", 10);
+          if (Date.now() - timestamp > 30000) {
+            // Stale lock, remove it
+            await unlink(lockPath);
+            continue;
+          }
+        } catch {
+          // Can't read lock, try again
+        }
+
+        // Wait and retry
+        await new Promise((resolve) => setTimeout(resolve, LOCK_RETRY_MS));
+        continue;
+      }
+      throw error;
+    }
+  }
+
+  throw new Error(`Failed to acquire lock on ${filePath} after ${timeoutMs}ms`);
+}
+
+// =============================================================================
+// File Paths
 // =============================================================================
 
 /**
@@ -129,7 +262,8 @@ export const initAgenda = async (
     project: projectName,
   };
 
-  await writeFile(path, JSON.stringify(meta) + "\n", "utf-8");
+  // Use atomic write for safety
+  await atomicWriteFile(path, JSON.stringify(meta) + "\n");
   return meta;
 };
 
@@ -303,22 +437,42 @@ export const getNextAgendaItem = async (
 /**
  * Compact the agenda file (remove superseded entries).
  * Call periodically to keep file size manageable.
+ *
+ * Creates a backup before compacting and uses file locking
+ * to prevent concurrent access issues.
  */
 export const compactAgenda = async (projectDir: string): Promise<void> => {
-  const { meta, items } = await loadAgenda(projectDir);
   const path = getAgendaPath(projectDir);
 
-  const lines: string[] = [];
+  // Acquire lock to prevent concurrent modifications
+  const releaseLock = await acquireFileLock(path);
 
-  if (meta) {
-    lines.push(JSON.stringify(meta));
+  try {
+    // Create backup before destructive operation
+    const backupPath = await createBackup(path);
+
+    const { meta, items } = await loadAgenda(projectDir);
+
+    const lines: string[] = [];
+
+    if (meta) {
+      lines.push(JSON.stringify(meta));
+    }
+
+    for (const item of items) {
+      lines.push(JSON.stringify(item));
+    }
+
+    // Use atomic write to prevent corruption
+    await atomicWriteFile(path, lines.join("\n") + "\n");
+
+    // Clean up old backups (keep only most recent)
+    if (backupPath) {
+      await cleanupOldBackups(path);
+    }
+  } finally {
+    await releaseLock();
   }
-
-  for (const item of items) {
-    lines.push(JSON.stringify(item));
-  }
-
-  await writeFile(path, lines.join("\n") + "\n", "utf-8");
 };
 
 /**
