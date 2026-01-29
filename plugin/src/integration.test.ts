@@ -59,9 +59,9 @@ describe("Wisdom Lifecycle Integration", () => {
 
     const out2 = { system: [] as string[] };
     await transformHook({ sessionID: "test" } as any, out2 as any);
-    expect(
-      out2.system.some((s) => s.includes("[ADV:TODO_CONTINUATION]")),
-    ).toBe(true);
+    expect(out2.system.some((s) => s.includes("[ADV:TODO_CONTINUATION]"))).toBe(
+      true,
+    );
     expect(out2.system.some((s) => s.includes("remaining"))).toBe(true);
 
     // 3. Complete a task

@@ -77,7 +77,12 @@ describe("Wisdom Tools", () => {
         const result = await wisdomTools.adv_wisdom_add.execute(
           {
             changeId: "add-feature-abc123",
-            type: type as "pattern" | "success" | "failure" | "gotcha" | "convention",
+            type: type as
+              | "pattern"
+              | "success"
+              | "failure"
+              | "gotcha"
+              | "convention",
             content: `Test ${type}`,
           },
           store,
@@ -158,11 +163,7 @@ describe("Wisdom Tools", () => {
 
     test("returns all wisdom entries for a change", async () => {
       // Add some wisdom first
-      await store.wisdom.add(
-        "add-feature-abc123",
-        "pattern",
-        "Pattern wisdom",
-      );
+      await store.wisdom.add("add-feature-abc123", "pattern", "Pattern wisdom");
       await store.wisdom.add(
         "add-feature-abc123",
         "gotcha",
@@ -193,21 +194,9 @@ describe("Wisdom Tools", () => {
     });
 
     test("includes summary by type", async () => {
-      await store.wisdom.add(
-        "add-feature-abc123",
-        "pattern",
-        "Pattern 1",
-      );
-      await store.wisdom.add(
-        "add-feature-abc123",
-        "pattern",
-        "Pattern 2",
-      );
-      await store.wisdom.add(
-        "add-feature-abc123",
-        "gotcha",
-        "Gotcha 1",
-      );
+      await store.wisdom.add("add-feature-abc123", "pattern", "Pattern 1");
+      await store.wisdom.add("add-feature-abc123", "pattern", "Pattern 2");
+      await store.wisdom.add("add-feature-abc123", "gotcha", "Gotcha 1");
 
       const result = await wisdomTools.adv_wisdom_list.execute(
         { changeId: "add-feature-abc123" },

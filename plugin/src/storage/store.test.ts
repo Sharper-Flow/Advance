@@ -187,7 +187,9 @@ describe("Store", () => {
       // Verify persistence
       const changeResult = await store.changes.get("add-feature-abc123");
       expect(changeResult.success).toBe(true);
-      const updatedTask = changeResult.data!.tasks.find((t) => t.id === "tk-task0001");
+      const updatedTask = changeResult.data!.tasks.find(
+        (t) => t.id === "tk-task0001",
+      );
       expect(updatedTask!.status).toBe("done");
     });
 

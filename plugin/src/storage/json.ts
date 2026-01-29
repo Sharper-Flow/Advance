@@ -30,12 +30,19 @@ import { ZodError } from "zod";
  */
 export type LoadResult<T> =
   | { success: true; data: T }
-  | { success: false; error: string; type: "not_found" | "schema_error" | "read_error" };
+  | {
+      success: false;
+      error: string;
+      type: "not_found" | "schema_error" | "read_error";
+    };
 
 /**
  * Format a Zod validation error into a human-readable string for AI agents.
  */
-function formatZodError(error: ZodError, context: { type: string; id: string; path: string }): string {
+function formatZodError(
+  error: ZodError,
+  context: { type: string; id: string; path: string },
+): string {
   const issues = error.issues.map((issue) => {
     const path = issue.path.join(".");
     return `  - ${path || "(root)"}: ${issue.message}`;
@@ -163,7 +170,11 @@ export async function loadSpec(
       // Provide helpful error message for schema violations
       return {
         success: false,
-        error: formatZodError(error, { type: "spec", id: capability, path: specPath }),
+        error: formatZodError(error, {
+          type: "spec",
+          id: capability,
+          path: specPath,
+        }),
         type: "schema_error",
       };
     } else if ((error as NodeJS.ErrnoException).code === "ENOENT") {
@@ -277,7 +288,11 @@ export async function loadChange(
     if (error instanceof ZodError) {
       return {
         success: false,
-        error: formatZodError(error, { type: "change", id: changeId, path: changePath }),
+        error: formatZodError(error, {
+          type: "change",
+          id: changeId,
+          path: changePath,
+        }),
         type: "schema_error",
       };
     } else if ((error as NodeJS.ErrnoException).code === "ENOENT") {

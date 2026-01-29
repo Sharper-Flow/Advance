@@ -7,9 +7,7 @@
 import { join } from "path";
 import { mkdir } from "fs/promises";
 import { nanoid } from "nanoid";
-import {
-  WisdomEntrySchema,
-} from "../types";
+import { WisdomEntrySchema } from "../types";
 import type {
   Spec,
   Change,
@@ -26,6 +24,12 @@ import type {
   WisdomType,
 } from "../types";
 import { createSQLiteStore, type SQLiteStore } from "./sqlite";
+import {
+  checkpointWAL,
+  shouldCheckpoint,
+  initDatabase,
+  closeDatabase,
+} from "./health";
 import {
   loadProjectConfig,
   saveProjectConfig,
@@ -148,6 +152,38 @@ export async function createStore(directory: string): Promise<Store> {
   const dbPath = join(paths.db, "spec.db");
   const sqlite: SQLiteStore = createSQLiteStore(dbPath);
 
+  // Add health check on startup
+  try {
+    initDatabase(sqlite.db);
+  } catch (e) {
+    const error = e as Error;
+    const isCorruption =
+      error.message.includes("corrupted") ||
+      error.message.includes("malformed") ||
+      error.message.includes("corrupt");
+
+    if (isCorruption) {
+      console.warn(
+        `⚠️  Database corrupted: ${error.message}\n` +
+          "   Deleting corrupted database and rebuilding from JSON...",
+      );
+
+      // Delete corrupted files
+      const { rm } = await import("fs/promises");
+      await rm(dbPath, { force: true });
+      await rm(`${dbPath}-wal`, { force: true });
+      await rm(`${dbPath}-shm`, { force: true });
+
+      // Recreate database
+      const newStore = createSQLiteStore(dbPath);
+      sqlite.db = newStore.db;
+      initDatabase(sqlite.db);
+      console.log("✅ Database recovered and rebuilt from JSON");
+    } else {
+      throw e;
+    }
+  }
+
   // Track if synced this session
   let synced = false;
 
@@ -186,6 +222,9 @@ export async function createStore(directory: string): Promise<Store> {
       for (const [name, spec] of specs) {
         const jsonPath = join(paths.specs, name, "spec.json");
         sqlite.specs.upsert(spec, jsonPath);
+        if (shouldCheckpoint(dbPath)) {
+          checkpointWAL(sqlite.db);
+        }
       }
 
       // Sync changes
@@ -193,13 +232,16 @@ export async function createStore(directory: string): Promise<Store> {
       for (const [id, change] of changes) {
         const jsonPath = join(paths.changes, id, "change.json");
         sqlite.changes.upsert(change, jsonPath);
+        if (shouldCheckpoint(dbPath)) {
+          checkpointWAL(sqlite.db);
+        }
       }
 
       synced = true;
     },
 
     close: () => {
-      sqlite.close();
+      closeDatabase(sqlite.db);
     },
 
     specs: {
@@ -253,6 +295,9 @@ export async function createStore(directory: string): Promise<Store> {
       save: async (spec) => {
         const jsonPath = await saveSpec(paths.specs, spec);
         sqlite.specs.upsert(spec, jsonPath);
+        if (shouldCheckpoint(dbPath)) {
+          checkpointWAL(sqlite.db);
+        }
       },
     },
 
@@ -345,6 +390,9 @@ export async function createStore(directory: string): Promise<Store> {
       save: async (change) => {
         const jsonPath = await saveChange(paths.changes, change);
         sqlite.changes.upsert(change, jsonPath);
+        if (shouldCheckpoint(dbPath)) {
+          checkpointWAL(sqlite.db);
+        }
       },
     },
 

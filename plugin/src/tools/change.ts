@@ -131,11 +131,15 @@ export const changeTools = {
       }
 
       // Run full validation with active changes for conflict detection
-      const validationResult = await validateChange(change, { specs, activeChanges });
+      const validationResult = await validateChange(change, {
+        specs,
+        activeChanges,
+      });
 
       // In strict mode, treat warnings as errors
       const passed = strict
-        ? validationResult.errors.length === 0 && validationResult.warnings.length === 0
+        ? validationResult.errors.length === 0 &&
+          validationResult.warnings.length === 0
         : validationResult.passed;
 
       return wrapWithBanner(

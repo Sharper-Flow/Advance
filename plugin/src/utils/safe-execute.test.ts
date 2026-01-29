@@ -84,7 +84,9 @@ describe("safe-execute", () => {
     });
 
     it("formats unknown error types", () => {
-      const result = JSON.parse(formatErrorResponse("string error", "test_tool"));
+      const result = JSON.parse(
+        formatErrorResponse("string error", "test_tool"),
+      );
       expect(result.error).toBe("string error");
       expect(result.tool).toBe("test_tool");
     });

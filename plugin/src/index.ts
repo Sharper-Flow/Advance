@@ -40,15 +40,15 @@ interface PluginState {
   status: StatusMarker;
   activeSubAgents: number;
   lastBashCommand: string | null;
-    activeChange: {
-      id: string | null;
-      objective: string | null;
-    };
-    lastCompletedTask: {
-      id: string;
-      title: string;
-    } | null;
-  }
+  activeChange: {
+    id: string | null;
+    objective: string | null;
+  };
+  lastCompletedTask: {
+    id: string;
+    title: string;
+  } | null;
+}
 
 // =============================================================================
 // Debug Logging
@@ -445,7 +445,9 @@ export const AdvancePlugin: Plugin = async ({ directory }) => {
       adv_wisdom_list: tool({
         description: wisdomTools.adv_wisdom_list.description,
         args: {
-          changeId: tool.schema.string().describe("Change ID to list wisdom for"),
+          changeId: tool.schema
+            .string()
+            .describe("Change ID to list wisdom for"),
         },
         execute: safeExecute(
           async (args) => wisdomTools.adv_wisdom_list.execute(args, store),
@@ -528,7 +530,8 @@ export const AdvancePlugin: Plugin = async ({ directory }) => {
           notes: tool.schema.string().optional().describe("Completion notes"),
         },
         execute: safeExecuteSimple(
-          async (args) => agendaTools.adv_agenda_complete.execute(args, directory),
+          async (args) =>
+            agendaTools.adv_agenda_complete.execute(args, directory),
           "adv_agenda_complete",
         ),
       }),
@@ -543,7 +546,8 @@ export const AdvancePlugin: Plugin = async ({ directory }) => {
             .describe("Cancellation reason"),
         },
         execute: safeExecuteSimple(
-          async (args) => agendaTools.adv_agenda_cancel.execute(args, directory),
+          async (args) =>
+            agendaTools.adv_agenda_cancel.execute(args, directory),
           "adv_agenda_cancel",
         ),
       }),
@@ -557,7 +561,8 @@ export const AdvancePlugin: Plugin = async ({ directory }) => {
             .describe("New priority"),
         },
         execute: safeExecuteSimple(
-          async (args) => agendaTools.adv_agenda_prioritize.execute(args, directory),
+          async (args) =>
+            agendaTools.adv_agenda_prioritize.execute(args, directory),
           "adv_agenda_prioritize",
         ),
       }),
@@ -591,7 +596,8 @@ export const AdvancePlugin: Plugin = async ({ directory }) => {
           exitCode: tool.schema.number().optional().describe("Exit code"),
         },
         execute: safeExecuteSimple(
-          async (args) => agendaTools.adv_agenda_evidence.execute(args, directory),
+          async (args) =>
+            agendaTools.adv_agenda_evidence.execute(args, directory),
           "adv_agenda_evidence",
         ),
       }),
@@ -600,7 +606,8 @@ export const AdvancePlugin: Plugin = async ({ directory }) => {
         description: agendaTools.adv_agenda_compact.description,
         args: {},
         execute: safeExecuteSimple(
-          async (args) => agendaTools.adv_agenda_compact.execute(args, directory),
+          async (args) =>
+            agendaTools.adv_agenda_compact.execute(args, directory),
           "adv_agenda_compact",
         ),
       }),

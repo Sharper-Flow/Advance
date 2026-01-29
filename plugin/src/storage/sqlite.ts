@@ -239,9 +239,9 @@ export interface BlockedTask {
 export function createSQLiteStore(dbPath: string): SQLiteStore {
   const db = new Database(dbPath, { create: true });
 
-  // Enable WAL mode for better concurrent performance
-  db.exec("PRAGMA journal_mode = WAL");
-  db.exec("PRAGMA foreign_keys = ON");
+  // Note: PRAGMA settings moved to initDatabase() in health.ts
+  // to enable health checks before initialization
+  // Health checks and auto-recovery are handled in store.ts
 
   // Run schema
   db.exec(SCHEMA);

@@ -1,0 +1,190 @@
+/**
+ * Database Health & Recovery
+ *
+ * Detects SQLite corruption and auto-recovers from JSON source of truth.
+ */
+
+import { Database } from "bun:sqlite";
+import { rm } from "fs/promises";
+import { statSync } from "fs";
+import type { SQLiteStore } from "./sqlite";
+
+export interface HealthCheckResult {
+  healthy: boolean;
+  corruptionDetected: boolean;
+  message?: string;
+}
+
+export interface RecoveryOptions {
+  dbPath: string;
+  onProgress?: (step: string) => void;
+}
+
+// =============================================================================
+// Health Checks
+// =============================================================================
+
+export function checkDatabaseHealth(db: Database): HealthCheckResult {
+  try {
+    // Check if database is readable
+    const _result = db.query("SELECT count(*) as count FROM specs").get() as {
+      count: number;
+    };
+
+    // Run integrity check
+    const integrity = db.query("PRAGMA integrity_check").all() as {
+      integrity_check: string;
+    }[];
+
+    const isCorrupted = integrity.some((r) => r.integrity_check !== "ok");
+
+    if (isCorrupted) {
+      return {
+        healthy: false,
+        corruptionDetected: true,
+        message: "Database corruption detected via integrity_check",
+      };
+    }
+
+    return { healthy: true, corruptionDetected: false };
+  } catch (e) {
+    const error = e as Error;
+    const isCorruption =
+      error.message.includes("malformed") ||
+      error.message.includes("corrupt") ||
+      error.message.includes("database disk image is malformed");
+
+    return {
+      healthy: false,
+      corruptionDetected: isCorruption,
+      message: error.message,
+    };
+  }
+}
+
+// =============================================================================
+// WAL Checkpointing
+// =============================================================================
+
+export function checkpointWAL(db: Database): void {
+  try {
+    db.exec("PRAGMA wal_checkpoint(PASSIVE)");
+  } catch (e) {
+    // Non-fatal if checkpoint fails
+    console.warn("WAL checkpoint failed:", (e as Error).message);
+  }
+}
+
+export function getWALSize(dbPath: string): number {
+  try {
+    const walPath = `${dbPath}-wal`;
+    const stats = statSync(walPath);
+    return stats.size;
+  } catch {
+    return 0;
+  }
+}
+
+// Should checkpoint when WAL grows beyond 1MB
+export function shouldCheckpoint(
+  dbPath: string,
+  thresholdBytes = 1024 * 1024,
+): boolean {
+  return getWALSize(dbPath) > thresholdBytes;
+}
+
+// =============================================================================
+// Corruption Recovery
+// =============================================================================
+
+/**
+ * Delete corrupted database files so they can be rebuilt from JSON.
+ * Safe because JSON files are the source of truth.
+ */
+export async function recoverFromCorruption(dbPath: string): Promise<void> {
+  const filesToDelete = [dbPath, `${dbPath}-wal`, `${dbPath}-shm`];
+
+  for (const file of filesToDelete) {
+    try {
+      await rm(file, { force: true });
+    } catch {
+      // Ignore if file doesn't exist
+    }
+  }
+}
+
+// =============================================================================
+// Database Lifecycle
+// =============================================================================
+
+export function initDatabase(db: Database): void {
+  // Enable WAL for performance
+  db.exec("PRAGMA journal_mode = WAL");
+  db.exec("PRAGMA foreign_keys = ON");
+
+  // Optimize for our workload
+  db.exec("PRAGMA synchronous = NORMAL");
+  db.exec("PRAGMA cache_size = -64000"); // 64MB cache
+
+  // Check health on startup
+  const health = checkDatabaseHealth(db);
+  if (!health.healthy) {
+    if (health.corruptionDetected) {
+      throw new Error(
+        `Database corrupted on startup: ${health.message}. Recovery required.`,
+      );
+    }
+    throw new Error(`Database unhealthy: ${health.message}`);
+  }
+}
+
+export function closeDatabase(db: Database): void {
+  try {
+    // Checkpoint before closing to sync WAL to main database
+    checkpointWAL(db);
+    db.close();
+  } catch (e) {
+    console.error("Error closing database:", (e as Error).message);
+    db.close(); // Force close
+  }
+}
+
+// =============================================================================
+// Auto-Checkpoint Wrapper
+// =============================================================================
+
+/**
+ * Wrap SQLiteStore with automatic WAL checkpointing.
+ * Call checkpoint after writes when WAL grows large.
+ */
+export function createAutoCheckpointingStore(
+  store: SQLiteStore,
+  dbPath: string,
+): SQLiteStore {
+  const originalSpecsUpsert = store.specs.upsert;
+  const originalChangesUpsert = store.changes.upsert;
+
+  return {
+    ...store,
+
+    specs: {
+      ...store.specs,
+      upsert: (...args: Parameters<typeof store.specs.upsert>) => {
+        originalSpecsUpsert(...args);
+        if (shouldCheckpoint(dbPath)) {
+          checkpointWAL(store.db);
+        }
+      },
+    },
+
+    changes: {
+      ...store.changes,
+      upsert: (...args: Parameters<typeof store.changes.upsert>) => {
+        originalChangesUpsert(...args);
+        if (shouldCheckpoint(dbPath)) {
+          checkpointWAL(store.db);
+        }
+      },
+    },
+  };
+}

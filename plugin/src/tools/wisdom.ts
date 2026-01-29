@@ -47,7 +47,12 @@ export const wisdomTools = {
       store: Store,
     ) => {
       try {
-        const entry = await store.wisdom.add(changeId, type, content, sourceTask);
+        const entry = await store.wisdom.add(
+          changeId,
+          type,
+          content,
+          sourceTask,
+        );
         return JSON.stringify(
           {
             success: true,
@@ -59,7 +64,8 @@ export const wisdomTools = {
         );
       } catch (error) {
         return JSON.stringify({
-          error: error instanceof Error ? error.message : "Failed to add wisdom",
+          error:
+            error instanceof Error ? error.message : "Failed to add wisdom",
         });
       }
     },
@@ -92,7 +98,8 @@ export const wisdomTools = {
         );
       } catch (error) {
         return JSON.stringify({
-          error: error instanceof Error ? error.message : "Failed to list wisdom",
+          error:
+            error instanceof Error ? error.message : "Failed to list wisdom",
         });
       }
     },
