@@ -159,13 +159,94 @@ Use the `question` tool. **If gates were auto-completed, include in question tex
 
 ## Phase 3: TDD Work Loop
 
+### ⚠️ Context Freshness Policy
+
+**CRITICAL: Do NOT batch tasks into a local todo list with descriptive blurbs.**
+
+Before starting EACH task, you MUST:
+
+1. **Re-read the change context** via `adv_change_show` to refresh your understanding
+2. **Check the specific task details** in the change.json (not a cached summary)
+3. **Read any relevant proposal sections** that describe the task requirements
+
+**Why this matters:** Context drift causes implementation errors. When agents batch multiple tasks with abbreviated summaries, they lose nuance and make incorrect assumptions about requirements.
+
+### TodoWrite Rules for ADV Tasks
+
+When using the `TodoWrite` tool during `/adv-apply`:
+
+**✅ CORRECT - IDs only (forces context lookup):**
+```json
+{
+  "todos": [
+    { "id": "1", "content": "tk-abc123", "status": "pending", "priority": "high" },
+    { "id": "2", "content": "tk-def456", "status": "pending", "priority": "high" },
+    { "id": "3", "content": "tk-ghi789", "status": "pending", "priority": "medium" }
+  ]
+}
+```
+
+**❌ WRONG - Descriptive blurbs (causes context drift):**
+```json
+{
+  "todos": [
+    { "id": "1", "content": "Add hero section with pricing", "status": "pending", "priority": "high" },
+    { "id": "2", "content": "Add price display component", "status": "pending", "priority": "high" },
+    { "id": "3", "content": "Add tab navigation", "status": "pending", "priority": "medium" }
+  ]
+}
+```
+
+**Why IDs only:** When you see `tk-abc123` in your todo list, you MUST call `adv_change_show` to understand what that task actually requires. This prevents working from stale/abbreviated mental models.
+
+### Anti-pattern to avoid
+
+```
+❌ "I'll add these to my todo list:
+   1. Add hero section
+   2. Add price display
+   3. Add tabs
+   Then work through them..."
+```
+
+### Correct approach
+
+```
+✓ "I have 3 tasks to complete. Adding task IDs to my todo list..."
+   [TodoWrite with just tk-abc123, tk-def456, tk-ghi789]
+   
+   "Starting tk-abc123. Let me look up what this task requires..."
+   [calls adv_change_show]
+   "The proposal specifies that the hero section needs compact price variants,
+   not the full expanded version. Now implementing..."
+```
+
 For each task from `adv_task_ready`:
 
 ### 3a. Start Task
 
+**Step 1: Refresh Context (MANDATORY)**
+
+Before any implementation, re-read the change to get fresh context:
+
+```
+adv_change_show change_id: <target>
+```
+
+Review:
+- The task's full description in the change.json
+- Related deltas that define acceptance criteria
+- Any relevant sections in proposal.md
+
+**Step 2: Announce and Update Status**
+
 ```
 [ADV:ROCKET]
 Starting: {task.title}
+
+Context refreshed from change {change-id}:
+- Task requirement: {full task description from change.json}
+- Acceptance criteria: {relevant delta or requirement}
 ```
 
 Update task state:

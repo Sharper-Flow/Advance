@@ -212,6 +212,18 @@ For full spec workflow: /adv-change <summary>
 
 ## During Implementation
 
+### ⚠️ Context Freshness Policy
+
+**CRITICAL: Keep criteria descriptions in sync with the agenda item.**
+
+When working through criteria:
+
+1. **Re-read the agenda item** via `adv_agenda_list` if returning to work after interruption
+2. **Check the full criteria text** stored in the agenda description (not your memory of it)
+3. **Verify against the original contract** if any ambiguity arises
+
+**Why this matters:** Even with quick contracts, context drift can cause you to implement something different from what was agreed.
+
 ### Status Updates
 
 Every response during implementation should end with:

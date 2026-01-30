@@ -181,6 +181,47 @@ The following markers are emitted automatically by the system:
 | `[ADV:TODO_CONTINUATION]` | Reminder of remaining tasks |
 | `[ADV:RECORD_WISDOM]` | Prompt to record new learnings |
 
+## Context Freshness Policy
+
+**CRITICAL: Work one task at a time with fresh context.**
+
+Before starting EACH task during `/adv-apply` or `/adv-ralph`:
+
+1. **Re-read** the change via `adv_change_show` 
+2. **Check** the task's full description (not a cached summary)
+3. **Review** relevant proposal sections
+
+### TodoWrite Rules for ADV Tasks
+
+When tracking ADV tasks with TodoWrite, use **task IDs only** - no descriptive blurbs:
+
+```json
+// ✅ CORRECT - forces context lookup
+{ "content": "tk-abc123", "status": "pending", "priority": "high" }
+
+// ❌ WRONG - causes context drift  
+{ "content": "Add hero section with pricing", "status": "pending", "priority": "high" }
+```
+
+**Why IDs only:** Seeing just `tk-abc123` forces you to call `adv_change_show` to understand requirements. Descriptive blurbs lead to working from stale/abbreviated mental models.
+
+**Anti-pattern to avoid:**
+```
+❌ "I'll batch these tasks into my todo list:
+   1. Add hero section  
+   2. Add price display
+   Then work through them..."
+```
+
+**Correct approach:**
+```
+✓ "Starting task tk-abc123. Let me refresh context..."
+   [calls adv_change_show]
+   "The proposal specifies compact price variants. Now implementing..."
+```
+
+**Why:** Context drift causes implementation errors when agents work from abbreviated summaries.
+
 ## TDD Protocol (RSTC)
 
 For implementation tasks, follow **Requirement → Spec → Test → Code**:
