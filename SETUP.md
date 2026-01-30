@@ -199,27 +199,25 @@ After setup, your project should have this structure:
 ```
 your-project/
 ├── project.json              # ADV configuration (required)
-├── .gitignore                # Should exclude .specdb/
+├── .gitignore                # Should exclude .adv/db/
 │
-├── specs/                    # The Laws - capability specifications
-│   └── {capability}/
-│       └── spec.json         # Spec definition
+├── .adv/                     # ADV internals
+│   ├── specs/                # The Laws (capability specifications)
+│   │   └── {capability}/
+│   │       └── spec.json
+│   ├── changes/              # Active change proposals
+│   │   └── {change-id}/
+│   │       ├── change.json
+│   │       └── proposal.md
+│   ├── archive/              # Completed changes (historical record)
+│   │   └── {date}-{change-id}/
+│   │       ├── change.json
+│   │       └── ARCHIVE_SUMMARY.md
+│   └── db/                   # SQLite cache (gitignored)
+│       └── spec.db
 │
-├── changes/                  # Active change proposals
-│   └── {change-id}/
-│       ├── change.json       # Change metadata and deltas
-│       └── proposal.md       # Human-readable proposal
-│
-├── archive/                  # Completed changes (historical record)
-│   └── {date}-{change-id}/
-│       ├── change.json
-│       └── ARCHIVE_SUMMARY.md
-│
-├── docs/specs/               # Auto-generated documentation
+├── docs/specs/               # Auto-generated documentation (user-facing)
 │   └── {capability}.md
-│
-├── .specdb/                  # SQLite cache (gitignored)
-│   └── spec.db
 │
 └── temp/                     # Brainstorm working documents (gitignored)
     └── brainstorm-*.md
@@ -231,11 +229,11 @@ your-project/
 |--------|---------|-------------|
 | `name` | (required) | Project name |
 | `version` | `"0.1.0"` | Project version |
-| `specs_dir` | `"specs"` | Directory for spec files |
-| `changes_dir` | `"changes"` | Directory for change proposals |
-| `archive_dir` | `"archive"` | Directory for archived changes |
+| `specs_dir` | `".adv/specs"` | Directory for spec files |
+| `changes_dir` | `".adv/changes"` | Directory for change proposals |
+| `archive_dir` | `".adv/archive"` | Directory for archived changes |
 | `docs_dir` | `"docs/specs"` | Directory for generated docs |
-| `db_dir` | `".specdb"` | Directory for SQLite cache |
+| `db_dir` | `".adv/db"` | Directory for SQLite cache |
 | `project_file` | `"project.md"` | Optional project context file |
 
 ---

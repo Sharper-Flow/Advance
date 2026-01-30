@@ -242,6 +242,35 @@ If TDD is required/recommended:
 
 When ALL criteria are verified:
 
+#### Lightweight Gate Completion
+
+For agenda items, complete gates in expedited fashion:
+
+1. **Research gate** (if not already done):
+   - Quick Context7 lookup for any libraries/frameworks used
+   - Mark with `adv_agenda_evidence` or note "trivial: no external libs"
+
+2. **Prep gate** (if not already done):
+   - Files already scanned in Step 5
+   - Mark complete with scan results as evidence
+
+3. **Implementation gate**:
+   - All criteria verified = implementation complete
+
+4. **Review gate** (expedited):
+   - Quick self-review: any obvious issues?
+   - Check: no security holes, no broken tests, code readable
+   - Mark complete with "self-review: passed" or note issues
+
+5. **Harden gate** (expedited):
+   - Quick check: no debug code left, no console.logs in production paths
+   - Mark complete with "quick-harden: passed"
+
+6. **Signoff gate**:
+   - User confirmation via completion prompt (below)
+
+#### Complete Agenda Item
+
 1. **Complete the agenda item** using `adv_agenda_complete` with notes summarizing what was done
 
 2. **Output completion**:
@@ -257,6 +286,14 @@ ALL CRITERIA MET:
 - [x] (C1) <criterion> (evidence: ...)
 - [x] (C2) <criterion> (evidence: ...)
 - [x] (C3) <criterion> (evidence: ...)
+
+GATES (expedited):
+- [x] Research: {evidence}
+- [x] Prep: {evidence}
+- [x] Implementation: criteria verified
+- [x] Review: self-review passed
+- [x] Harden: quick-harden passed
+- [x] Signoff: user confirmed
 
 Duration: ~X minutes
 ============================================================

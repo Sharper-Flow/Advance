@@ -25,6 +25,9 @@ import {
   getTddComplianceStatus,
   isLogicTask,
   type TddPhaseEvidence,
+  createDefaultGates,
+  getIncompleteGates,
+  allGatesSatisfied,
 } from "../types";
 import { wrapWithBanner } from "../utils/banner";
 
@@ -174,6 +177,19 @@ export const agendaTools = {
 
       if (!existing) {
         return JSON.stringify({ error: `Agenda item not found: ${itemId}` });
+      }
+
+      // Check gates if present (agenda items can optionally use 6-gate quality checklist)
+      if (existing.gates) {
+        const gates = existing.gates;
+        if (!allGatesSatisfied(gates)) {
+          const incompleteGates = getIncompleteGates(gates);
+          return JSON.stringify({
+            error: "Cannot complete: incomplete gates. Complete all 6 quality gates before marking done.",
+            incompleteGates,
+            hint: `Complete gates with adv_gate_complete for each: ${incompleteGates.join(", ")}`,
+          });
+        }
       }
 
       const compliance = getTddComplianceStatus({

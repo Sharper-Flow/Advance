@@ -19,15 +19,15 @@
         },
         "specs_dir": {
           "type": "string",
-          "default": "specs"
+          "default": ".adv/specs"
         },
         "changes_dir": {
           "type": "string",
-          "default": "changes"
+          "default": ".adv/changes"
         },
         "archive_dir": {
           "type": "string",
-          "default": "archive"
+          "default": ".adv/archive"
         },
         "docs_dir": {
           "type": "string",
@@ -35,7 +35,7 @@
         },
         "db_dir": {
           "type": "string",
-          "default": ".specdb"
+          "default": ".adv/db"
         },
         "project_file": {
           "type": "string",

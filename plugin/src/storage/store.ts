@@ -7,7 +7,20 @@
 import { join } from "path";
 import { mkdir } from "fs/promises";
 import { nanoid } from "nanoid";
-import { WisdomEntrySchema } from "../types";
+import {
+  WisdomEntrySchema,
+  GatesSchema,
+  GateIdSchema,
+  GATE_ORDER,
+  canCompleteGate,
+  allGatesSatisfied,
+  createLegacyGates,
+  createDefaultGates,
+  isGateSatisfied,
+  type GateId,
+  type GateStatus,
+  type Gates,
+} from "../types";
 import type {
   Spec,
   Change,
@@ -125,6 +138,19 @@ export interface Store {
     list: (changeId: string) => Promise<WisdomEntry[]>;
   };
 
+  // Gates (6-gate quality checklist)
+  gates: {
+    /** Get gates for a change or agenda item */
+    get: (changeId: string) => Promise<Gates | null>;
+    /** Complete a gate with sequence enforcement */
+    complete: (
+      changeId: string,
+      gateId: "research" | "prep" | "implementation" | "review" | "harden" | "signoff",
+    ) => Promise<void>;
+    /** Migrate gates to legacy status (except signoff) */
+    migrate: (changeId: string) => Promise<void>;
+  };
+
   // Status
   status: () => Promise<ProjectStatus>;
 }
@@ -203,11 +229,11 @@ export async function createStore(directory: string): Promise<Store> {
         const defaultConfig: ProjectConfig = {
           name: directory.split("/").pop() ?? "project",
           version: "0.1.0",
-          specs_dir: "specs",
-          changes_dir: "changes",
-          archive_dir: "archive",
+          specs_dir: ".adv/specs",
+          changes_dir: ".adv/changes",
+          archive_dir: ".adv/archive",
           docs_dir: "docs/specs",
-          db_dir: ".specdb",
+          db_dir: ".adv/db",
           project_file: "project.md",
         };
         await saveProjectConfig(directory, defaultConfig);
@@ -217,23 +243,33 @@ export async function createStore(directory: string): Promise<Store> {
     sync: async () => {
       if (synced) return;
 
-      // Sync specs
+      // Sync specs (incremental - only load changed files)
       const specs = await loadAllSpecs(paths.specs);
       for (const [name, spec] of specs) {
         const jsonPath = join(paths.specs, name, "spec.json");
-        sqlite.specs.upsert(spec, jsonPath);
-        if (shouldCheckpoint(dbPath)) {
-          checkpointWAL(sqlite.db);
+        
+        if (sqlite.sync.needsSync(jsonPath)) {
+          sqlite.specs.upsert(spec, jsonPath);
+          sqlite.sync.markSynced(jsonPath);
+          
+          if (shouldCheckpoint(dbPath)) {
+            checkpointWAL(sqlite.db);
+          }
         }
       }
 
-      // Sync changes
+      // Sync changes (incremental - only load changed files)
       const changes = await loadAllChanges(paths.changes);
       for (const [id, change] of changes) {
         const jsonPath = join(paths.changes, id, "change.json");
-        sqlite.changes.upsert(change, jsonPath);
-        if (shouldCheckpoint(dbPath)) {
-          checkpointWAL(sqlite.db);
+        
+        if (sqlite.sync.needsSync(jsonPath)) {
+          sqlite.changes.upsert(change, jsonPath);
+          sqlite.sync.markSynced(jsonPath);
+          
+          if (shouldCheckpoint(dbPath)) {
+            checkpointWAL(sqlite.db);
+          }
         }
       }
 
@@ -664,6 +700,95 @@ export async function createStore(directory: string): Promise<Store> {
         }
 
         return result.data.wisdom ?? [];
+      },
+    },
+
+    gates: {
+      get: async (changeId) => {
+        await store.sync();
+
+        const result = await loadChange(paths.changes, changeId);
+        if (!result.success || !result.data) return null;
+
+        return result.data.gates ?? createDefaultGates();
+      },
+
+      complete: async (changeId, gateId) => {
+        await store.sync();
+
+        const result = await loadChange(paths.changes, changeId);
+        if (!result.success || !result.data) {
+          throw new Error(`Change not found: ${changeId}`);
+        }
+
+        const change = result.data;
+
+        if (!change.gates) {
+          change.gates = createDefaultGates();
+        }
+
+        const gates = change.gates!;
+
+        if (!canCompleteGate(gates, gateId)) {
+          const prevIdx = GATE_ORDER.indexOf(gateId);
+          const prevGateId = GATE_ORDER[prevIdx - 1];
+          const prevStatus = gates[prevGateId].status;
+
+          const reason = `Cannot complete ${gateId} gate: previous gate ${
+            prevGateId
+          } is not satisfied (status: ${prevStatus})`;
+          throw new Error(reason);
+        }
+
+        const oldStatus = gates[gateId].status;
+        const now = new Date().toISOString();
+
+        gates[gateId].status = "done";
+        gates[gateId].completed_at = now;
+        gates[gateId].completed_by = "agent";
+
+        // Structured log for gate transition
+        if (process.env.ADV_DEBUG) {
+          console.log(
+            JSON.stringify({
+              event: "gate_complete",
+              changeId,
+              gateId,
+              oldStatus,
+              newStatus: "done",
+              timestamp: now,
+            }),
+          );
+        }
+
+        await store.changes.save(change);
+      },
+
+      migrate: async (changeId) => {
+        await store.sync();
+
+        const result = await loadChange(paths.changes, changeId);
+        if (!result.success || !result.data) {
+          throw new Error(`Change not found: ${changeId}`);
+        }
+
+        const change = result.data;
+        const now = new Date().toISOString();
+        change.gates = createLegacyGates();
+
+        // Structured log for gate migration
+        if (process.env.ADV_DEBUG) {
+          console.log(
+            JSON.stringify({
+              event: "gates_migrated",
+              changeId,
+              status: "legacy",
+              timestamp: now,
+            }),
+          );
+        }
+
+        await store.changes.save(change);
       },
     },
 

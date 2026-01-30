@@ -37,6 +37,31 @@ adv_change_show change_id: <target>
 adv_task_list change_id: <target>
 ```
 
+### Gate Prerequisite Check
+
+```
+adv_gate_status changeId: {change-id}
+```
+
+**If review gate is NOT complete (status != 'done' and status != 'legacy'):**
+
+```
+============================================================
+            HARDEN BLOCKED - PREREQUISITE GATE INCOMPLETE
+============================================================
+
+The review gate must be completed before running harden.
+
+GATE STATUS:
+- [ ] Review: {status}
+
+REQUIRED ACTION:
+Run /adv-review {change-id} to complete code review and mark the gate.
+
+============================================================
+```
+Stop execution.
+
 ### Extract Details
 
 From change data:
@@ -393,6 +418,16 @@ Total: N items
 
 ## Final Report
 
+### Mark Harden Gate (if READY)
+
+If status is READY, mark the harden gate as complete:
+
+```
+adv_gate_complete changeId: {change-id} gateId: harden
+```
+
+### Final Report Display
+
 ```
 ============================================================
              HARDENING REPORT: {change-id}
@@ -433,6 +468,9 @@ FIXES APPLIED:
 
 ------------------------------------------------------------
 {If READY}
+GATE STATUS:
+- Harden gate: COMPLETE ✓
+
 NEXT STEPS: Ready to ship! Run /adv-archive {change-id}
 
 {If issues remain}
@@ -456,6 +494,7 @@ If accepting debt, document in proposal.md with:
        /adv-harden {change-id} COMPLETE
 ============================================================
 Result: {READY | N fixed | Report only}
+{if READY}Harden Gate: MARKED COMPLETE{end}
 ============================================================
 ```
 

@@ -39,6 +39,44 @@ Same as `/adv-apply`:
 
 ---
 
+## Gate Auto-Completion
+
+Before starting implementation, check prerequisite gates and auto-complete if missing:
+
+### Check Gate Status
+
+```
+adv_gate_status changeId: {change-id}
+```
+
+### Auto-Complete Missing Gates
+
+**If research gate is pending:**
+
+1. Quick Context7 lookup for libraries in affected files:
+   - Read proposal.md to identify technologies/frameworks
+   - For each library: `context7_resolve-library-id` → `context7_query-docs`
+   - Document findings briefly
+2. Mark gate complete:
+   ```
+   adv_gate_complete changeId: {change-id} gateId: research
+   ```
+
+**If prep gate is pending:**
+
+1. Quick prep analysis:
+   - Scan affected files for conflicts with other active changes
+   - Check cross-cutting concerns (error handling, logging, validation)
+   - Identify any obvious gaps
+2. Mark gate complete:
+   ```
+   adv_gate_complete changeId: {change-id} gateId: prep
+   ```
+
+**Note:** The user will be notified of auto-completed gates in the confirmation prompt.
+
+---
+
 ## Phase 1: Load and Display Contract
 
 Same as `/adv-apply`, plus retry protocol section:
@@ -68,12 +106,13 @@ AUTONOMOUS RETRY ENABLED:
 
 ### Confirmation
 
-Use the `question` tool:
+Use the `question` tool. **If gates were auto-completed, include in question text:**
+
 ```json
 {
   "questions": [{
     "header": "Confirm",
-    "question": "Begin autonomous implementation of '{title}'?",
+    "question": "Begin autonomous implementation of '{title}'?{if gates auto-completed}\n\nNote: The following gates were auto-completed:\n- {gateId}: {evidence}{end}",
     "options": [
       { "label": "Begin Autonomous (Recommended)", "description": "Start with autonomous retry on failures" },
       { "label": "Modify criteria", "description": "Adjust before starting" },
@@ -276,7 +315,7 @@ TASK AUDIT:
 - {task.id}: {task.title}
   Status: {status}
   Evidence: {test output, commit, or "user takeover"}
-  {if status != "done"} ⚠️ INCOMPLETE - CANNOT FULFILL CONTRACT
+  {if status != "done" and status != "cancelled"} ⚠️ INCOMPLETE - CANNOT FULFILL CONTRACT
 {end}
 
 SKIP/DEFER CHECK:
@@ -289,6 +328,36 @@ SKIP/DEFER CHECK:
 ```
 
 **If ANY task is incomplete without proper documentation, you CANNOT proceed to CONTRACT FULFILLED.**
+
+### Cancelled Task Approval
+
+**If ANY tasks are cancelled**, use the `question` tool to get explicit user approval:
+
+```json
+{
+  "questions": [{
+    "header": "Cancelled Tasks",
+    "question": "The following tasks were cancelled during implementation. Confirm you accept these cancellations before marking the implementation gate complete.",
+    "options": [
+      { "label": "Approve cancellations (Recommended)", "description": "Accept that these tasks are legitimately cancelled" },
+      { "label": "Review each task", "description": "I need to see the rationale for each cancellation" },
+      { "label": "Block completion", "description": "Do not mark implementation complete - need to address cancelled tasks" }
+    ]
+  }]
+}
+```
+
+**If "Review each task"**: Display each cancelled task with its cancellation reason, then re-prompt.
+
+**If "Block completion"**: Stop without marking the implementation gate. User must decide how to proceed.
+
+### Mark Implementation Gate
+
+After pre-completion verification passes (and cancelled tasks are approved, if any):
+
+```
+adv_gate_complete changeId: {change-id} gateId: implementation
+```
 
 ### Contract Fulfilled Banner
 
@@ -303,11 +372,21 @@ ALL CRITERIA MET:
 - [x] (C1) {criterion}
 - [x] (C5) Global Final Loop - PASSED
 
+{if cancelled tasks}
+CANCELLED TASKS (user approved):
+{for each cancelled task}
+- [~] {task.id}: {task.title} - {cancellation reason}
+{end}
+{end}
+
 COMPLETION MODE:
 {one of}
 - FULLY AUTONOMOUS - All tasks completed without human intervention
 - GUIDED - {N} tasks required user hints
 - PARTIAL TAKEOVER - {N} tasks completed by user
+
+GATE STATUS:
+- Implementation gate: COMPLETE ✓
 
 ============================================================
 ```
@@ -321,6 +400,7 @@ COMPLETION MODE:
 Result: CONTRACT FULFILLED (autonomous retry enabled)
 Completion: {FULLY AUTONOMOUS | GUIDED | PARTIAL TAKEOVER}
 Tasks: {completed}/{total}
+Implementation Gate: MARKED COMPLETE
 ============================================================
 ```
 

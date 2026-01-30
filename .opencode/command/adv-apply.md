@@ -30,6 +30,44 @@ See Doom Loop Protocol section for proper handling of stuck tasks.
    - If multiple: Present selection with the `question` tool
    - If none: Suggest `/adv-proposal`
 
+## Gate Auto-Completion
+
+Before starting implementation, check prerequisite gates and auto-complete if missing:
+
+### Check Gate Status
+
+```
+adv_gate_status changeId: {change-id}
+```
+
+### Auto-Complete Missing Gates
+
+**If research gate is pending:**
+
+1. Quick Context7 lookup for libraries in affected files:
+   - Read proposal.md to identify technologies/frameworks
+   - For each library: `context7_resolve-library-id` → `context7_query-docs`
+   - Document findings briefly
+2. Mark gate complete:
+   ```
+   adv_gate_complete changeId: {change-id} gateId: research
+   ```
+
+**If prep gate is pending:**
+
+1. Quick prep analysis:
+   - Scan affected files for conflicts with other active changes
+   - Check cross-cutting concerns (error handling, logging, validation)
+   - Identify any obvious gaps
+2. Mark gate complete:
+   ```
+   adv_gate_complete changeId: {change-id} gateId: prep
+   ```
+
+**Note:** The user will be notified of auto-completed gates in the confirmation prompt (see Phase 2).
+
+---
+
 ## Phase 1: Load Change Context
 
 ### Step 1: Fetch Change Data
@@ -90,17 +128,25 @@ TASKS (from adv_task_list):
 
 Progress: {done_count}/{total_count} tasks
 
+{if gates were auto-completed}
+GATES AUTO-COMPLETED:
+{for each auto-completed gate}
+- {gateId}: {brief evidence}
+{end}
+{end}
+
 ============================================================
 ```
 
 ### Confirmation
 
-Use the `question` tool:
+Use the `question` tool. **If gates were auto-completed, include in question text:**
+
 ```json
 {
   "questions": [{
     "header": "Confirm",
-    "question": "Begin implementation of '{change.title}'?",
+    "question": "Begin implementation of '{change.title}'?{if gates auto-completed}\n\nNote: The following gates were auto-completed:\n- {gateId}: {evidence}{end}",
     "options": [
       { "label": "Begin work (Recommended)", "description": "Start TDD implementation" },
       { "label": "Cancel", "description": "Exit without changes" }
@@ -193,7 +239,7 @@ Phase: TDD | Tasks: {done}/{total}
 
 ## Phase 5: Completion
 
-When `adv_task_ready` returns empty AND all tasks are "done":
+When `adv_task_ready` returns empty AND all tasks are "done" or "cancelled":
 
 ### Verify Completion
 
@@ -201,7 +247,29 @@ When `adv_task_ready` returns empty AND all tasks are "done":
 adv_task_list change_id: <target>
 ```
 
-Confirm all tasks show `status: "done"`.
+Confirm all tasks show `status: "done"` or `status: "cancelled"`.
+
+### Cancelled Task Approval
+
+**If ANY tasks are cancelled**, use the `question` tool to get explicit user approval:
+
+```json
+{
+  "questions": [{
+    "header": "Cancelled Tasks",
+    "question": "The following tasks were cancelled during implementation. Confirm you accept these cancellations before marking the implementation gate complete.",
+    "options": [
+      { "label": "Approve cancellations (Recommended)", "description": "Accept that these tasks are legitimately cancelled" },
+      { "label": "Review each task", "description": "I need to see the rationale for each cancellation" },
+      { "label": "Block completion", "description": "Do not mark implementation complete - need to address cancelled tasks" }
+    ]
+  }]
+}
+```
+
+**If "Review each task"**: Display each cancelled task with its cancellation reason, then re-prompt.
+
+**If "Block completion"**: Stop without marking the implementation gate. User must decide how to proceed.
 
 ### Final Validation
 
@@ -210,6 +278,14 @@ adv_change_validate change_id: <target>
 ```
 
 Must pass before declaring complete.
+
+### Mark Implementation Gate
+
+After validation passes (and cancelled tasks are approved, if any):
+
+```
+adv_gate_complete changeId: {change-id} gateId: implementation
+```
 
 ### Contract Fulfilled Banner
 
@@ -225,7 +301,17 @@ ALL TASKS COMPLETE (from adv_task_list):
 - [x] {task.id}: {task.title}
 {end}
 
+{if cancelled tasks}
+CANCELLED TASKS (user approved):
+{for each cancelled task}
+- [~] {task.id}: {task.title} - {cancellation reason}
+{end}
+{end}
+
 VALIDATION: adv_change_validate - PASSED
+
+GATE STATUS:
+- Implementation gate: COMPLETE ✓
 
 ============================================================
 ```
@@ -236,7 +322,8 @@ VALIDATION: adv_change_validate - PASSED
 ============================================================
       /adv-apply {change-id} COMPLETE
 ============================================================
-Result: All tasks done, ready for /adv-archive
+Result: All tasks done, ready for /adv-review
+Implementation Gate: MARKED COMPLETE
 ============================================================
 ```
 

@@ -168,19 +168,20 @@ ADV exposes 13 MCP tools for programmatic access:
 ```
 project/
 ├── project.json          # ADV configuration
-├── specs/                # The Laws (capability specifications)
-│   └── {capability}/
-│       └── spec.json
-├── changes/              # Active change proposals
-│   └── {change-id}/
-│       ├── change.json
-│       └── proposal.md
-├── archive/              # Completed changes
-│   └── {date}-{change-id}/
-├── docs/specs/           # Generated documentation
-│   └── {capability}.md
-└── .specdb/              # SQLite cache with FTS5
-    └── spec.db
+├── .adv/                 # ADV internals
+│   ├── specs/            # The Laws (capability specifications)
+│   │   └── {capability}/
+│   │       └── spec.json
+│   ├── changes/          # Active change proposals
+│   │   └── {change-id}/
+│   │       ├── change.json
+│   │       └── proposal.md
+│   ├── archive/          # Completed changes
+│   │   └── {date}-{change-id}/
+│   └── db/               # SQLite cache with FTS5
+│       └── spec.db
+└── docs/specs/           # Generated documentation (user-facing)
+    └── {capability}.md
 ```
 
 ## Architecture

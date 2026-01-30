@@ -36,9 +36,9 @@ describe("getProjectPaths", () => {
   test("returns default paths", () => {
     const paths = getProjectPaths("/project");
     expect(paths.root).toBe("/project");
-    expect(paths.specs).toBe("/project/specs");
-    expect(paths.changes).toBe("/project/changes");
-    expect(paths.db).toBe("/project/.specdb");
+    expect(paths.specs).toBe("/project/.adv/specs");
+    expect(paths.changes).toBe("/project/.adv/changes");
+    expect(paths.db).toBe("/project/.adv/db");
   });
 
   test("respects custom config", () => {
@@ -70,11 +70,11 @@ describe("ProjectConfig", () => {
   test("saveProjectConfig creates config file", async () => {
     const config: ProjectConfig = {
       name: "test",
-      specs_dir: "specs",
-      changes_dir: "changes",
-      archive_dir: "archive",
+      specs_dir: ".adv/specs",
+      changes_dir: ".adv/changes",
+      archive_dir: ".adv/archive",
       docs_dir: "docs/specs",
-      db_dir: ".specdb",
+      db_dir: ".adv/db",
     };
     await saveProjectConfig(tempDir, config);
 
@@ -97,13 +97,13 @@ describe("Spec Operations", () => {
   });
 
   test("listSpecDirs returns capability directories", async () => {
-    const specsDir = join(tempDir, "specs");
+    const specsDir = join(tempDir, ".adv/specs");
     const dirs = await listSpecDirs(specsDir);
     expect(dirs).toContain("test-capability");
   });
 
   test("loadSpec loads spec from JSON", async () => {
-    const specsDir = join(tempDir, "specs");
+    const specsDir = join(tempDir, ".adv/specs");
     const result = await loadSpec(specsDir, "test-capability");
 
     expect(result.success).toBe(true);
@@ -113,14 +113,14 @@ describe("Spec Operations", () => {
   });
 
   test("loadSpec returns success with null data for missing spec", async () => {
-    const specsDir = join(tempDir, "specs");
+    const specsDir = join(tempDir, ".adv/specs");
     const result = await loadSpec(specsDir, "nonexistent");
     expect(result.success).toBe(true);
     expect(result.data).toBeNull();
   });
 
   test("saveSpec creates spec directory and file", async () => {
-    const specsDir = join(tempDir, "specs");
+    const specsDir = join(tempDir, ".adv/specs");
     const newSpec: Spec = {
       ...SAMPLE_SPEC,
       name: "new-capability",
@@ -136,7 +136,7 @@ describe("Spec Operations", () => {
   });
 
   test("loadAllSpecs loads all specs", async () => {
-    const specsDir = join(tempDir, "specs");
+    const specsDir = join(tempDir, ".adv/specs");
 
     // Add another spec
     await saveSpec(specsDir, { ...SAMPLE_SPEC, name: "second-cap" });
@@ -161,13 +161,13 @@ describe("Change Operations", () => {
   });
 
   test("listChangeDirs returns change directories", async () => {
-    const changesDir = join(tempDir, "changes");
+    const changesDir = join(tempDir, ".adv/changes");
     const dirs = await listChangeDirs(changesDir);
     expect(dirs).toContain("add-feature-abc123");
   });
 
   test("loadChange loads change from JSON", async () => {
-    const changesDir = join(tempDir, "changes");
+    const changesDir = join(tempDir, ".adv/changes");
     const result = await loadChange(changesDir, "add-feature-abc123");
 
     expect(result.success).toBe(true);
@@ -177,14 +177,14 @@ describe("Change Operations", () => {
   });
 
   test("loadChange returns success with null data for missing change", async () => {
-    const changesDir = join(tempDir, "changes");
+    const changesDir = join(tempDir, ".adv/changes");
     const result = await loadChange(changesDir, "nonexistent");
     expect(result.success).toBe(true);
     expect(result.data).toBeNull();
   });
 
   test("saveChange creates change directory and file", async () => {
-    const changesDir = join(tempDir, "changes");
+    const changesDir = join(tempDir, ".adv/changes");
     const newChange: Change = {
       ...SAMPLE_CHANGE,
       id: "new-change-xyz789",
@@ -200,7 +200,7 @@ describe("Change Operations", () => {
   });
 
   test("loadAllChanges loads all changes", async () => {
-    const changesDir = join(tempDir, "changes");
+    const changesDir = join(tempDir, ".adv/changes");
 
     // Add another change
     await saveChange(changesDir, { ...SAMPLE_CHANGE, id: "second-change" });
@@ -216,7 +216,7 @@ describe("resolveChangeId", () => {
 
   beforeEach(async () => {
     tempDir = await createTempDir();
-    changesDir = join(tempDir, "changes");
+    changesDir = join(tempDir, ".adv/changes");
 
     // Create multiple changes for testing
     await saveChange(changesDir, { ...SAMPLE_CHANGE, id: "add-feature-abc1" });

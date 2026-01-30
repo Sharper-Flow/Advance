@@ -308,6 +308,153 @@ export const ChangeStatusSchema = z.enum([
 export type ChangeStatus = z.infer<typeof ChangeStatusSchema>;
 
 // =============================================================================
+// Quality Gates (6-Gate Checklist)
+// =============================================================================
+
+/**
+ * Gate IDs for the 6-gate quality checklist.
+ * Gates must be completed in sequence before archival/completion.
+ */
+export const GateIdSchema = z.enum([
+  "research", // Research-Done: Context7 docs lookup or /adv-research
+  "prep", // Prep-Done: /adv-prep gap analysis
+  "implementation", // Implementation-Done: All tasks done (cancelled need approval)
+  "review", // Review-Done: /adv-review code review
+  "harden", // Harden-Done: /adv-harden hardening
+  "signoff", // User-Signoff: Explicit user confirmation
+]);
+
+export type GateId = z.infer<typeof GateIdSchema>;
+
+/**
+ * Ordered list of gate IDs for sequence enforcement.
+ * Gates must be completed in this order.
+ */
+export const GATE_ORDER: GateId[] = [
+  "research",
+  "prep",
+  "implementation",
+  "review",
+  "harden",
+  "signoff",
+];
+
+/**
+ * Gate status values.
+ * - pending: Not yet completed
+ * - done: Actually completed with timestamp + actor evidence
+ * - legacy: Predates gate system, counts as "satisfied" but wasn't performed
+ * - skipped: Explicitly skipped with documented reason (future use)
+ */
+export const GateStatusSchema = z.enum(["pending", "done", "legacy", "skipped"]);
+
+export type GateStatus = z.infer<typeof GateStatusSchema>;
+
+/**
+ * Single gate completion record.
+ * Tracks who completed the gate and when.
+ */
+export const GateCompletionSchema = z.object({
+  /** Current status of this gate */
+  status: GateStatusSchema.default("pending"),
+  /** ISO8601 timestamp when gate was completed */
+  completed_at: z.string().optional(),
+  /** Who completed the gate (user, agent, migration) */
+  completed_by: z.string().optional(),
+});
+
+export type GateCompletion = z.infer<typeof GateCompletionSchema>;
+
+/**
+ * Full gates object containing all 6 gate completion records.
+ * Each gate tracks its completion status independently.
+ */
+export const GatesSchema = z.object({
+  research: GateCompletionSchema.default({ status: "pending" }),
+  prep: GateCompletionSchema.default({ status: "pending" }),
+  implementation: GateCompletionSchema.default({ status: "pending" }),
+  review: GateCompletionSchema.default({ status: "pending" }),
+  harden: GateCompletionSchema.default({ status: "pending" }),
+  signoff: GateCompletionSchema.default({ status: "pending" }),
+});
+
+export type Gates = z.infer<typeof GatesSchema>;
+
+/**
+ * Check if a gate is "satisfied" (done or legacy).
+ * Legacy gates count as satisfied for sequence enforcement.
+ */
+export const isGateSatisfied = (gate: GateCompletion): boolean => {
+  return gate.status === "done" || gate.status === "legacy";
+};
+
+/**
+ * Check if a gate can be completed (previous gate must be satisfied).
+ * @param gates - Current gates state
+ * @param gateId - Gate to check
+ * @returns true if the gate can be completed
+ */
+export const canCompleteGate = (gates: Gates, gateId: GateId): boolean => {
+  const idx = GATE_ORDER.indexOf(gateId);
+  if (idx === 0) return true; // First gate can always be completed
+
+  // Check all previous gates are satisfied
+  for (let i = 0; i < idx; i++) {
+    const prevGateId = GATE_ORDER[i];
+    if (!isGateSatisfied(gates[prevGateId])) {
+      return false;
+    }
+  }
+  return true;
+};
+
+/**
+ * Get list of incomplete gates (not done or legacy).
+ */
+export const getIncompleteGates = (gates: Gates): GateId[] => {
+  return GATE_ORDER.filter((gateId) => !isGateSatisfied(gates[gateId]));
+};
+
+/**
+ * Check if all gates are satisfied (can archive/complete).
+ */
+export const allGatesSatisfied = (gates: Gates): boolean => {
+  return GATE_ORDER.every((gateId) => isGateSatisfied(gates[gateId]));
+};
+
+/**
+ * Create default gates object with all gates pending.
+ */
+export const createDefaultGates = (): Gates => ({
+  research: { status: "pending" },
+  prep: { status: "pending" },
+  implementation: { status: "pending" },
+  review: { status: "pending" },
+  harden: { status: "pending" },
+  signoff: { status: "pending" },
+});
+
+/**
+ * Create legacy gates object for migration.
+ * All gates set to 'legacy' except signoff which stays 'pending'.
+ */
+export const createLegacyGates = (): Gates => {
+  const now = new Date().toISOString();
+  return {
+    research: { status: "legacy", completed_at: now, completed_by: "migration" },
+    prep: { status: "legacy", completed_at: now, completed_by: "migration" },
+    implementation: {
+      status: "legacy",
+      completed_at: now,
+      completed_by: "migration",
+    },
+    review: { status: "legacy", completed_at: now, completed_by: "migration" },
+    harden: { status: "legacy", completed_at: now, completed_by: "migration" },
+    signoff: { status: "pending" }, // NEVER auto-marked
+  };
+};
+
+// =============================================================================
 // Change
 // =============================================================================
 
@@ -324,6 +471,8 @@ export const ChangeSchema = z
     validation: ValidationResultSchema.optional(),
     /** Accumulated wisdom/learnings for this change (optional, backwards compatible) */
     wisdom: z.array(WisdomEntrySchema).optional(),
+    /** 6-gate quality checklist (optional, backwards compatible with migration) */
+    gates: GatesSchema.optional(),
   })
   .passthrough(); // Allow extra fields for forward/backward compatibility
 
@@ -338,11 +487,11 @@ export const ProjectConfigSchema = z
     $schema: z.string().optional(),
     name: z.string(),
     version: z.string().optional(),
-    specs_dir: z.string().default("specs"),
-    changes_dir: z.string().default("changes"),
-    archive_dir: z.string().default("archive"),
+    specs_dir: z.string().default(".adv/specs"),
+    changes_dir: z.string().default(".adv/changes"),
+    archive_dir: z.string().default(".adv/archive"),
     docs_dir: z.string().default("docs/specs"),
-    db_dir: z.string().default(".specdb"),
+    db_dir: z.string().default(".adv/db"),
     project_file: z.string().default("project.md"),
   })
   .passthrough(); // Allow extra fields for forward/backward compatibility
@@ -609,6 +758,8 @@ export const AgendaItemSchema = z
     tdd_phase: TddPhaseSchema.default("none"),
     /** TDD evidence if recorded */
     tdd_evidence: TddEvidenceSchema.optional(),
+    /** 6-gate quality checklist (optional, backwards compatible with migration) */
+    gates: GatesSchema.optional(),
   })
   .passthrough(); // Allow extra fields for forward/backward compatibility
 

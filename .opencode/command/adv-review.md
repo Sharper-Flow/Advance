@@ -40,6 +40,31 @@ No implementation found. Run /adv-apply {change-id} first.
 ```
 Stop execution.
 
+### Gate Prerequisite Check
+
+```
+adv_gate_status changeId: {change-id}
+```
+
+**If implementation gate is NOT complete (status != 'done' and status != 'legacy'):**
+
+```
+============================================================
+            REVIEW BLOCKED - PREREQUISITE GATE INCOMPLETE
+============================================================
+
+The implementation gate must be completed before running review.
+
+GATE STATUS:
+- [ ] Implementation: {status}
+
+REQUIRED ACTION:
+Run /adv-apply {change-id} to complete implementation and mark the gate.
+
+============================================================
+```
+Stop execution.
+
 ### Extract Review Context
 
 From change data, extract:
@@ -350,6 +375,16 @@ After fixes, verify and update status.
 
 ## Phase 6: Final Report
 
+### Mark Review Gate (if APPROVED)
+
+If verdict is APPROVED, mark the review gate as complete:
+
+```
+adv_gate_complete changeId: {change-id} gateId: review
+```
+
+### Final Report Display
+
 ```
 ============================================================
               CODE REVIEW: {change-id}
@@ -394,6 +429,9 @@ ROLLBACK: git checkout -- {files}
 
 ------------------------------------------------------------
 {if APPROVED}
+GATE STATUS:
+- Review gate: COMPLETE ✓
+
 NEXT STEPS: /adv-harden {change-id}
 {else}
 REMAINING: Fix issues, re-run /adv-review {change-id}
@@ -408,6 +446,7 @@ REMAINING: Fix issues, re-run /adv-review {change-id}
        /adv-review {change-id} COMPLETE
 ============================================================
 Result: {verdict} ({fix_count} fixes applied)
+{if APPROVED}Review Gate: MARKED COMPLETE{end}
 ============================================================
 ```
 

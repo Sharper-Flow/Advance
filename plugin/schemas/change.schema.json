@@ -436,6 +436,162 @@
             ],
             "additionalProperties": false
           }
+        },
+        "gates": {
+          "type": "object",
+          "properties": {
+            "research": {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "pending",
+                    "done",
+                    "legacy",
+                    "skipped"
+                  ],
+                  "default": "pending"
+                },
+                "completed_at": {
+                  "type": "string"
+                },
+                "completed_by": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false,
+              "default": {
+                "status": "pending"
+              }
+            },
+            "prep": {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "pending",
+                    "done",
+                    "legacy",
+                    "skipped"
+                  ],
+                  "default": "pending"
+                },
+                "completed_at": {
+                  "type": "string"
+                },
+                "completed_by": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false,
+              "default": {
+                "status": "pending"
+              }
+            },
+            "implementation": {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "pending",
+                    "done",
+                    "legacy",
+                    "skipped"
+                  ],
+                  "default": "pending"
+                },
+                "completed_at": {
+                  "type": "string"
+                },
+                "completed_by": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false,
+              "default": {
+                "status": "pending"
+              }
+            },
+            "review": {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "pending",
+                    "done",
+                    "legacy",
+                    "skipped"
+                  ],
+                  "default": "pending"
+                },
+                "completed_at": {
+                  "type": "string"
+                },
+                "completed_by": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false,
+              "default": {
+                "status": "pending"
+              }
+            },
+            "harden": {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "pending",
+                    "done",
+                    "legacy",
+                    "skipped"
+                  ],
+                  "default": "pending"
+                },
+                "completed_at": {
+                  "type": "string"
+                },
+                "completed_by": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false,
+              "default": {
+                "status": "pending"
+              }
+            },
+            "signoff": {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "pending",
+                    "done",
+                    "legacy",
+                    "skipped"
+                  ],
+                  "default": "pending"
+                },
+                "completed_at": {
+                  "type": "string"
+                },
+                "completed_by": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false,
+              "default": {
+                "status": "pending"
+              }
+            }
+          },
+          "additionalProperties": false
         }
       },
       "required": [

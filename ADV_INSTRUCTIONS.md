@@ -95,6 +95,49 @@ ADV (Advance) enables spec-driven development where **specs become laws**. Requi
 | `/adv-coordinate` | Multi-change conflict detection |
 | `/adv-roadmap` | Progress dashboard |
 
+## 6-Gate Quality Checklist
+
+All changes and agenda items must complete 6 sequential quality gates before archival/completion:
+
+### Gate Sequence
+
+| # | Gate ID | Name | Triggered By |
+|---|-----------|------|--------------|
+| 1 | `research` | Research-Done | `/adv-research` or Context7 lookup |
+| 2 | `prep` | Prep-Done | `/adv-prep` |
+| 3 | `implementation` | Implementation-Done | All tasks done (cancelled need approval) |
+| 4 | `review` | Review-Done | `/adv-review` |
+| 5 | `harden` | Harden-Done | `/adv-harden` |
+| 6 | `signoff` | User-Signoff | Explicit user confirmation |
+
+### Gate Status Values
+
+| Value | Meaning |
+|--------|----------|
+| `pending` | Not yet completed |
+| `done` | Actually completed with timestamp + actor evidence |
+| `legacy` | Predates gate system, counts as "satisfied" but wasn't performed |
+| `skipped` | Explicitly skipped with documented reason (future use) |
+
+### Enforcement Rules
+
+- Gates MUST be completed in sequence (cannot skip)
+- Archive/Complete BLOCKS unless all 6 gates are complete/legacy
+- At `implementation` gate, ANY cancelled tasks require explicit user approval
+- `legacy` gates count as "satisfied" for sequence enforcement
+- Migration: Existing changes get gates set to `legacy` (NOT `done`), except `signoff` stays `pending`
+
+### Auto-Completion
+
+If a command is invoked with incomplete prerequisite gates, the agent MUST automatically execute the lightweight version of each missing gate before proceeding:
+
+| If Missing | Auto-Execute | Lightweight Version |
+|------------|--------------|---------------------|
+| `research` | Context7 docs lookup | Query relevant library docs, no full research report |
+| `prep` | Quick prep analysis | Scan affected files, check for conflicts |
+
+User is notified before proceeding with gates that will be auto-completed.
+
 ## Available Tools
 
 | Tool | Purpose |
@@ -357,21 +400,22 @@ Skip for: open-ended questions, debugging, free-form input.
 ```
 project/
 ├── project.json          # ADV configuration
-├── specs/                # The Laws
-│   └── {capability}/
-│       └── spec.json     # Capability spec
-├── changes/              # Active proposals
-│   └── {change-id}/
-│       ├── change.json   # Change definition
-│       └── proposal.md   # Human-readable proposal
-├── archive/              # Completed changes
-│   └── {date}-{change-id}/
-│       ├── change.json
-│       └── ARCHIVE_SUMMARY.md
-├── docs/specs/           # Generated documentation
-│   └── {capability}.md
-└── .specdb/              # SQLite cache
-    └── spec.db
+├── .adv/                 # ADV internals
+│   ├── specs/            # The Laws
+│   │   └── {capability}/
+│   │       └── spec.json
+│   ├── changes/          # Active proposals
+│   │   └── {change-id}/
+│   │       ├── change.json
+│   │       └── proposal.md
+│   ├── archive/          # Completed changes
+│   │   └── {date}-{change-id}/
+│   │       ├── change.json
+│   │       └── ARCHIVE_SUMMARY.md
+│   └── db/               # SQLite cache
+│       └── spec.db
+└── docs/specs/           # Generated documentation (user-facing)
+    └── {capability}.md
 ```
 
 ## Best Practices

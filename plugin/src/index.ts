@@ -20,6 +20,7 @@ import { wisdomTools } from "./tools/wisdom";
 import { statusTools } from "./tools/status";
 import { agendaTools } from "./tools/agenda";
 import { projectTools } from "./tools/project";
+import { gateTools } from "./tools/gate";
 import {
   initializeStatus,
   cleanup as cleanupTerminal,
@@ -621,6 +622,45 @@ export const AdvancePlugin: Plugin = async ({ directory }) => {
         execute: safeExecute(
           async (args) => projectTools.adv_project_context.execute(args, store),
           "adv_project_context",
+        ),
+      }),
+
+      // ----------------------------------------------------------------------
+      // Gate Tools (6-gate quality checklist)
+      // ----------------------------------------------------------------------
+      adv_gate_status: tool({
+        description: gateTools.adv_gate_status.description,
+        args: {
+          changeId: tool.schema.string().describe("Change ID"),
+        },
+        execute: safeExecute(
+          async (args) => gateTools.adv_gate_status.execute(args, store),
+          "adv_gate_status",
+        ),
+      }),
+
+      adv_gate_complete: tool({
+        description: gateTools.adv_gate_complete.description,
+        args: {
+          changeId: tool.schema.string().describe("Change ID"),
+          gateId: tool.schema
+            .enum([
+              "research",
+              "prep",
+              "implementation",
+              "review",
+              "harden",
+              "signoff",
+            ])
+            .describe("Gate to mark complete"),
+          completedBy: tool.schema
+            .string()
+            .optional()
+            .describe("Who completed the gate (default: agent)"),
+        },
+        execute: safeExecute(
+          async (args) => gateTools.adv_gate_complete.execute(args, store),
+          "adv_gate_complete",
         ),
       }),
     },

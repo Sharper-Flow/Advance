@@ -332,6 +332,14 @@ ALL CRITERIA MET:
 
 ## Phase 7: Completion
 
+### Mark Research Gate (for changes)
+
+If target is a change, mark the research gate as complete:
+
+```
+adv_gate_complete changeId: {change-id} gateId: research
+```
+
 ### Summary
 
 ```
@@ -346,8 +354,12 @@ KEY CHANGES:
 SIMPLIFICATIONS APPLIED:
 - {what was simplified and why}
 
+GATE STATUS:
+- Research gate: COMPLETE ✓
+
 NEXT STEPS:
 - [ ] Review updates
+- [ ] /adv-prep {change-id} (next gate)
 - [ ] /adv-validate {change-id}
 ```
 
@@ -359,6 +371,7 @@ NEXT STEPS:
 ============================================================
 Result: {N findings applied | All validated | Report only}
 Simplifications: {N opportunities identified}
+Research Gate: MARKED COMPLETE
 ============================================================
 ```
 

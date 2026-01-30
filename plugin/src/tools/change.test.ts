@@ -230,11 +230,23 @@ describe("Change Tools", () => {
   });
 
   describe("adv_change_archive", () => {
-    test("archives change with all tasks completed", async () => {
+    test("archives change with all tasks and gates completed", async () => {
       // Complete all tasks
       await store.tasks.update("tk-task0001", "done");
       await store.tasks.update("tk-task0002", "done");
       await store.tasks.update("tk-task0003", "done");
+
+      // Complete all gates (required for archive)
+      const change = (await store.changes.get("add-feature-abc123")).data!;
+      change.gates = {
+        research: { status: "done", completed_at: new Date().toISOString() },
+        prep: { status: "done", completed_at: new Date().toISOString() },
+        implementation: { status: "done", completed_at: new Date().toISOString() },
+        review: { status: "done", completed_at: new Date().toISOString() },
+        harden: { status: "done", completed_at: new Date().toISOString() },
+        signoff: { status: "done", completed_at: new Date().toISOString() },
+      };
+      await store.changes.save(change);
 
       const result = await changeTools.adv_change_archive.execute(
         { changeId: "add-feature-abc123" },
@@ -267,6 +279,24 @@ describe("Change Tools", () => {
       const parsed = parseToolOutput(result);
 
       expect(parsed.error).toContain("not found");
+    });
+
+    test("blocks archive when gates are incomplete", async () => {
+      // Complete all tasks
+      await store.tasks.update("tk-task0001", "done");
+      await store.tasks.update("tk-task0002", "done");
+      await store.tasks.update("tk-task0003", "done");
+
+      // Don't complete any gates - they should block archive
+      const result = await changeTools.adv_change_archive.execute(
+        { changeId: "add-feature-abc123" },
+        store,
+      );
+      const parsed = parseToolOutput(result);
+
+      expect(parsed.error).toContain("gate");
+      expect(parsed.incompleteGates).toBeDefined();
+      expect(parsed.incompleteGates.length).toBeGreaterThan(0);
     });
   });
 });

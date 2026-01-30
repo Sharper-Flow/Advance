@@ -43,9 +43,9 @@ function findAndFixFiles(projectDir: string): { changes: number; specs: number; 
   const results = { changes: 0, specs: 0, skipped: 0 };
 
   // Find changes directory
-  const changesDir = join(projectDir, "changes");
+  const changesDir = join(projectDir, ".adv/changes");
   if (existsSync(changesDir)) {
-    console.log("\nProcessing changes/...");
+    console.log("\nProcessing .adv/changes/...");
     const changeDirs = readdirSync(changesDir).filter((name) => {
       const path = join(changesDir, name);
       return statSync(path).isDirectory();
@@ -64,9 +64,9 @@ function findAndFixFiles(projectDir: string): { changes: number; specs: number; 
   }
 
   // Find specs directory
-  const specsDir = join(projectDir, "specs");
+  const specsDir = join(projectDir, ".adv/specs");
   if (existsSync(specsDir)) {
-    console.log("\nProcessing specs/...");
+    console.log("\nProcessing .adv/specs/...");
     const specDirs = readdirSync(specsDir).filter((name) => {
       const path = join(specsDir, name);
       return statSync(path).isDirectory();
@@ -85,9 +85,9 @@ function findAndFixFiles(projectDir: string): { changes: number; specs: number; 
   }
 
   // Check archive directory too
-  const archiveDir = join(projectDir, "archive");
+  const archiveDir = join(projectDir, ".adv/archive");
   if (existsSync(archiveDir)) {
-    console.log("\nProcessing archive/...");
+    console.log("\nProcessing .adv/archive/...");
     const archiveDirs = readdirSync(archiveDir).filter((name) => {
       const path = join(archiveDir, name);
       return statSync(path).isDirectory();

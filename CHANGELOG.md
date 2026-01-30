@@ -5,6 +5,41 @@ All notable changes to ADV (Advance) will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-01-29
+
+### Added
+
+#### 6-Gate Quality Checklist
+- Sequential quality gates: research, prep, implementation, review, harden, signoff
+- Gate status tracking with timestamps and completion evidence
+- Sequence enforcement - gates must be completed in order
+- Auto-completion logic for research/prep gates in `/adv-apply` and `/adv-ralph`
+- Gate prerequisite checks in `/adv-review` (requires implementation) and `/adv-harden` (requires review)
+- User signoff gate required before archive
+
+#### Gate Tools
+- `adv_gate_status` - Get gate status for a change with completion timestamps
+- `adv_gate_complete` - Mark a gate complete with sequence enforcement
+
+#### Incremental Sync Optimization
+- Triple-attribute file change detection (mtime + size + inode)
+- `sync_files` SQLite table for tracking file attributes
+- Skip unchanged files during sync for improved performance
+
+#### Command Updates
+- All workflow commands updated with gate integration
+- Cancelled task approval flow via question tool
+- Gate status displayed in completion banners
+- Auto-completed gates notification in acceptance prompts
+
+#### Migration Support
+- Legacy gate status for existing changes (counts as "satisfied")
+- Migration sets all gates to 'legacy' except signoff which stays 'pending'
+
+### Changed
+- Archive workflow requires all 6 gates complete (or legacy)
+- Agenda completion checks gates if present
+
 ## [0.2.0] - 2026-01-22
 
 ### Added

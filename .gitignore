@@ -7,7 +7,7 @@ dist/
 *.tsbuildinfo
 
 # SQLite database (derived, not committed)
-.specdb/
+.adv/db/
 *.db
 *.db-wal
 *.db-shm

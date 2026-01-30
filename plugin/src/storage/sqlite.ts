@@ -8,6 +8,7 @@
  */
 
 import { Database } from "bun:sqlite";
+import { statSync } from "node:fs";
 import type { Spec, Change, Task } from "../types";
 
 // =============================================================================
@@ -125,6 +126,16 @@ CREATE TABLE IF NOT EXISTS sync_meta (
   key TEXT PRIMARY KEY,
   value TEXT NOT NULL
 );
+
+-- Sync files with triple-attribute tracking (mtime_ms, size, inode)
+-- For reliable incremental sync: all three must match to skip re-sync
+CREATE TABLE IF NOT EXISTS sync_files (
+  path TEXT PRIMARY KEY,
+  mtime_ms INTEGER NOT NULL,
+  size INTEGER NOT NULL,
+  inode INTEGER NOT NULL,
+  synced_at TEXT NOT NULL
+);
 `;
 
 // =============================================================================
@@ -165,11 +176,19 @@ export interface SQLiteStore {
     update: (id: string, updates: Partial<Task>) => void;
   };
 
-  // Sync
+  // Sync (legacy - key-value based)
   sync: {
     needsSync: (jsonPath: string) => boolean;
     markSynced: (jsonPath: string) => void;
     getLastSync: () => string | null;
+  };
+
+  // Sync files with triple-attribute tracking (mtime_ms, size, inode)
+  syncFiles: {
+    needsSync: (path: string, attrs?: FileAttrs) => boolean;
+    markSynced: (path: string, attrs: FileAttrs) => void;
+    getFileAttrs: (path: string) => FileAttrs | null;
+    deleteFileRecord: (path: string) => void;
   };
 
   // Lifecycle
@@ -230,6 +249,16 @@ export interface SearchResult {
 export interface BlockedTask {
   task: TaskRow;
   blockedBy: string[];
+}
+
+/**
+ * File attributes for triple-attribute sync.
+ * All three must match to consider a file unchanged.
+ */
+export interface FileAttrs {
+  mtime_ms: number;
+  size: number;
+  inode: number;
 }
 
 // =============================================================================
@@ -343,6 +372,21 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
       INSERT INTO sync_meta (key, value) VALUES (?, ?)
       ON CONFLICT(key) DO UPDATE SET value = excluded.value
     `),
+
+    // Sync files with triple-attribute tracking
+    syncFilesGet: db.query(
+      "SELECT mtime_ms, size, inode FROM sync_files WHERE path = ?",
+    ),
+    syncFilesUpsert: db.query(`
+      INSERT INTO sync_files (path, mtime_ms, size, inode, synced_at)
+      VALUES (?, ?, ?, ?, ?)
+      ON CONFLICT(path) DO UPDATE SET
+        mtime_ms = excluded.mtime_ms,
+        size = excluded.size,
+        inode = excluded.inode,
+        synced_at = excluded.synced_at
+    `),
+    syncFilesDelete: db.query("DELETE FROM sync_files WHERE path = ?"),
   };
 
   return {
@@ -581,16 +625,45 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
     },
 
     sync: {
-      needsSync: (jsonPath) => {
-        const result = stmts.syncMetaGet.get(`mtime:${jsonPath}`) as
-          | { value: string }
-          | undefined;
-        return !result;
+      needsSync: (path) => {
+        try {
+          const stats = statSync(path);
+          const currentAttrs: FileAttrs = {
+            mtime_ms: Math.floor(stats.mtimeMs),
+            size: stats.size,
+            inode: stats.ino,
+          };
+          const stored = stmts.syncFilesGet.get(path) as
+            | { mtime_ms: number; size: number; inode: number }
+            | undefined;
+          
+          if (!stored) return true;
+          
+          return (
+            stored.mtime_ms !== currentAttrs.mtime_ms ||
+            stored.size !== currentAttrs.size ||
+            stored.inode !== currentAttrs.inode
+          );
+        } catch {
+          return true;
+        }
       },
 
-      markSynced: (jsonPath) => {
+      markSynced: (path) => {
+        const stats = statSync(path);
+        const attrs: FileAttrs = {
+          mtime_ms: Math.floor(stats.mtimeMs),
+          size: stats.size,
+          inode: stats.ino,
+        };
         const now = new Date().toISOString();
-        stmts.syncMetaUpsert.run(`mtime:${jsonPath}`, now);
+        stmts.syncFilesUpsert.run(
+          path,
+          attrs.mtime_ms,
+          attrs.size,
+          attrs.inode,
+          now,
+        );
       },
 
       getLastSync: () => {
@@ -598,6 +671,49 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
           | { value: string }
           | undefined;
         return result?.value ?? null;
+      },
+    },
+
+    syncFiles: {
+      needsSync: (path, attrs) => {
+        const stored = stmts.syncFilesGet.get(path) as
+          | { mtime_ms: number; size: number; inode: number }
+          | undefined;
+
+        // If no record exists, needs sync
+        if (!stored) return true;
+
+        // If no attrs provided (just checking existence), doesn't need sync
+        if (!attrs) return false;
+
+        // Triple-attribute comparison: all three must match
+        return (
+          stored.mtime_ms !== attrs.mtime_ms ||
+          stored.size !== attrs.size ||
+          stored.inode !== attrs.inode
+        );
+      },
+
+      markSynced: (path, attrs) => {
+        const now = new Date().toISOString();
+        stmts.syncFilesUpsert.run(
+          path,
+          attrs.mtime_ms,
+          attrs.size,
+          attrs.inode,
+          now,
+        );
+      },
+
+      getFileAttrs: (path) => {
+        const result = stmts.syncFilesGet.get(path) as
+          | { mtime_ms: number; size: number; inode: number }
+          | undefined;
+        return result ?? null;
+      },
+
+      deleteFileRecord: (path) => {
+        stmts.syncFilesDelete.run(path);
       },
     },
 

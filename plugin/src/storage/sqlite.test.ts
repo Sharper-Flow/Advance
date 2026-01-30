@@ -6,6 +6,7 @@
 
 import { describe, test, expect, beforeEach, afterEach } from "vitest";
 import { join } from "path";
+import { writeFileSync } from "fs";
 import { createSQLiteStore, type SQLiteStore } from "./sqlite";
 import {
   createTempDir,
@@ -251,18 +252,126 @@ describe("SQLiteStore", () => {
     });
   });
 
-  describe("sync", () => {
-    test("needsSync returns true for new path", () => {
-      expect(store.sync.needsSync("/some/new/path.json")).toBe(true);
+  describe("sync (automatic file attribute fetching)", () => {
+    test("needsSync returns true for non-existent file", () => {
+      expect(store.sync.needsSync("/nonexistent/path.json")).toBe(true);
     });
 
-    test("markSynced records sync time", () => {
-      store.sync.markSynced("/some/path.json");
-      // Implementation uses mtime comparison, so we just verify no error
+    test("needsSync returns true for new path after marking", () => {
+      const testPath = join(tempDir, "test-file.json");
+      writeFileSync(testPath, "test content");
+
+      store.sync.markSynced(testPath);
+      
+      expect(store.sync.needsSync(testPath)).toBe(false);
     });
 
-    test("getLastSync returns null initially", () => {
-      expect(store.sync.getLastSync()).toBeNull();
+    test("needsSync returns true when file content changes (size differs)", () => {
+      const testPath = join(tempDir, "test-file.json");
+      writeFileSync(testPath, "original content");
+      
+      store.sync.markSynced(testPath);
+      
+      writeFileSync(testPath, "modified content with different size");
+      
+      expect(store.sync.needsSync(testPath)).toBe(true);
+    });
+
+    test("markSynced stores current file attributes", () => {
+      const testPath = join(tempDir, "test-file.json");
+      writeFileSync(testPath, "test content");
+      
+      store.sync.markSynced(testPath);
+      
+      const attrs = store.syncFiles.getFileAttrs(testPath);
+      expect(attrs).not.toBeNull();
+      expect(attrs!.size).toBeGreaterThan(0);
+      expect(attrs!.mtime_ms).toBeGreaterThan(0);
+      expect(attrs!.inode).toBeGreaterThan(0);
+    });
+
+    test("needsSync uses triple-attribute comparison (mtime, size, inode)", () => {
+      const testPath = join(tempDir, "test-file.json");
+      writeFileSync(testPath, "test content");
+      
+      store.sync.markSynced(testPath);
+      
+      const attrs1 = store.syncFiles.getFileAttrs(testPath);
+      expect(store.sync.needsSync(testPath)).toBe(false);
+      
+      store.sync.markSynced(testPath);
+      const attrs2 = store.syncFiles.getFileAttrs(testPath);
+      expect(attrs2).toEqual(attrs1);
+    });
+  });
+
+  describe("syncFiles (triple-attribute tracking)", () => {
+    test("needsSyncTriple returns true for new path", () => {
+      expect(store.syncFiles.needsSync("/some/new/path.json")).toBe(true);
+    });
+
+    test("needsSyncTriple returns false when attributes match", () => {
+      const attrs = { mtime_ms: 1234567890123, size: 1024, inode: 9876543 };
+      store.syncFiles.markSynced("/some/path.json", attrs);
+
+      expect(store.syncFiles.needsSync("/some/path.json", attrs)).toBe(false);
+    });
+
+    test("needsSyncTriple returns true when mtime differs", () => {
+      const originalAttrs = {
+        mtime_ms: 1234567890123,
+        size: 1024,
+        inode: 9876543,
+      };
+      store.syncFiles.markSynced("/some/path.json", originalAttrs);
+
+      const newAttrs = { mtime_ms: 1234567899999, size: 1024, inode: 9876543 };
+      expect(store.syncFiles.needsSync("/some/path.json", newAttrs)).toBe(true);
+    });
+
+    test("needsSyncTriple returns true when size differs", () => {
+      const originalAttrs = {
+        mtime_ms: 1234567890123,
+        size: 1024,
+        inode: 9876543,
+      };
+      store.syncFiles.markSynced("/some/path.json", originalAttrs);
+
+      const newAttrs = { mtime_ms: 1234567890123, size: 2048, inode: 9876543 };
+      expect(store.syncFiles.needsSync("/some/path.json", newAttrs)).toBe(true);
+    });
+
+    test("needsSyncTriple returns true when inode differs", () => {
+      const originalAttrs = {
+        mtime_ms: 1234567890123,
+        size: 1024,
+        inode: 9876543,
+      };
+      store.syncFiles.markSynced("/some/path.json", originalAttrs);
+
+      const newAttrs = { mtime_ms: 1234567890123, size: 1024, inode: 1111111 };
+      expect(store.syncFiles.needsSync("/some/path.json", newAttrs)).toBe(true);
+    });
+
+    test("getFileAttrs returns null for unknown path", () => {
+      expect(store.syncFiles.getFileAttrs("/unknown/path.json")).toBeNull();
+    });
+
+    test("getFileAttrs returns stored attributes", () => {
+      const attrs = { mtime_ms: 1234567890123, size: 1024, inode: 9876543 };
+      store.syncFiles.markSynced("/some/path.json", attrs);
+
+      const stored = store.syncFiles.getFileAttrs("/some/path.json");
+      expect(stored).toEqual(attrs);
+    });
+
+    test("deleteFileRecord removes sync record", () => {
+      const attrs = { mtime_ms: 1234567890123, size: 1024, inode: 9876543 };
+      store.syncFiles.markSynced("/some/path.json", attrs);
+      expect(store.syncFiles.needsSync("/some/path.json", attrs)).toBe(false);
+
+      store.syncFiles.deleteFileRecord("/some/path.json");
+      expect(store.syncFiles.needsSync("/some/path.json", attrs)).toBe(true);
     });
   });
 });

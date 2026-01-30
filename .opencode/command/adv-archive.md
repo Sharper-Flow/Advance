@@ -95,7 +95,7 @@ ACTIONS:
    {end}
 
 4. Create archive record
-   - archive/{date}-{change-id}/
+   - .adv/archive/{date}-{change-id}/
 
 ============================================================
 ```
@@ -119,44 +119,87 @@ Stop execution.
 
 ---
 
-## Phase 4: Confirmation
+## Phase 4: Gate Status Check
 
-Use the `question` tool:
+### Check All Gates
+
+```
+adv_gate_status changeId: {change-id}
+```
+
+Display gate status:
+
+```
+============================================================
+                    GATE STATUS
+============================================================
+
+GATES:
+- [x] Research: {status}
+- [x] Prep: {status}
+- [x] Implementation: {status}
+- [x] Review: {status}
+- [x] Harden: {status}
+- [ ] Signoff: pending
+
+{if incompleteGates (excluding signoff)}
+BLOCKED: Cannot archive - incomplete gates:
+{for each incomplete gate}
+- {gateId}: Run /{command} first
+{end}
+============================================================
+```
+
+**If any gates incomplete (excluding signoff)**: Stop execution with guidance.
+
+---
+
+## Phase 5: User Signoff (Final Gate)
+
+Use the `question` tool for explicit user signoff:
+
 ```json
 {
   "questions": [{
-    "header": "Confirm Archive",
-    "question": "Archive '{change-id}'? This updates deployed specs.",
+    "header": "Final Signoff",
+    "question": "This is the final quality gate. By signing off, you confirm:\n- All requirements are implemented correctly\n- Code quality meets standards\n- Change is ready for production\n\nArchive '{change-id}' and apply to specs?",
     "options": [
-      { "label": "Archive (Recommended)", "description": "Apply deltas and archive" },
-      { "label": "Dry run first", "description": "Preview without changes" },
-      { "label": "Cancel", "description": "Abort" }
+      { "label": "Sign off and archive (Recommended)", "description": "I confirm this change is ready - apply deltas and archive" },
+      { "label": "Dry run first", "description": "Preview what will change without committing" },
+      { "label": "Cancel", "description": "Do not archive - need more work" }
     ]
   }]
 }
 ```
+
+**If "Sign off and archive"**: 
+1. Mark signoff gate complete:
+   ```
+   adv_gate_complete changeId: {change-id} gateId: signoff
+   ```
+2. Proceed to archive execution
 
 **If "Dry run"**: Re-run with dry-run flag.
 **If "Cancel"**: Stop execution.
 
 ---
 
-## Phase 5: Execute Archive
+## Phase 6: Execute Archive
 
 ```
 adv_change_archive change_id: <target>
 ```
 
 The tool handles:
-1. Applying deltas to `specs/*/spec.json`
+1. Applying deltas to `.adv/specs/*/spec.json`
 2. Updating SQLite cache
 3. Generating `docs/specs/*.md`
-4. Moving change to `archive/{date}-{change-id}/`
+4. Moving change to `.adv/archive/{date}-{change-id}/`
 5. Returning summary
 
 ---
 
-## Phase 6: Verify Archive
+## Phase 7: Verify Archive
 
 ### Check Specs Updated
 
@@ -169,13 +212,13 @@ Verify new requirements present.
 
 ### Check Archive Created
 
-Verify `archive/{date}-{change-id}/` exists with:
+Verify `.adv/archive/{date}-{change-id}/` exists with:
 - `change.json`
 - `ARCHIVE_SUMMARY.md`
 
 ---
 
-## Phase 7: Completion
+## Phase 8: Completion
 
 ### Archive Report
 
@@ -187,6 +230,14 @@ Verify `archive/{date}-{change-id}/` exists with:
 Change: {change-id}
 Title: {title}
 Archived: {timestamp}
+
+QUALITY GATES (all complete):
+- [x] Research
+- [x] Prep
+- [x] Implementation
+- [x] Review
+- [x] Harden
+- [x] Signoff ← User confirmed
 
 SPECS UPDATED:
 {for each capability}
@@ -202,7 +253,7 @@ DOCS GENERATED:
 {end}
 
 ARCHIVE LOCATION:
-  archive/{date}-{change-id}/
+  .adv/archive/{date}-{change-id}/
 
 ============================================================
 ```
@@ -224,7 +275,7 @@ Result: Specs updated, change archived
 ```
 NEXT STEPS:
 1. Commit changes:
-   git add specs/ docs/specs/ archive/
+   git add .adv/specs/ docs/specs/ .adv/archive/
    git commit -m "chore: archive {change-id}"
 
 2. Optional validation:

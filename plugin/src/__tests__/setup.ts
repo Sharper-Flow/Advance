@@ -45,11 +45,11 @@ export async function createTestProject(
         {
           name: "test-project",
           version: "0.1.0",
-          specs_dir: "specs",
-          changes_dir: "changes",
-          archive_dir: "archive",
+          specs_dir: ".adv/specs",
+          changes_dir: ".adv/changes",
+          archive_dir: ".adv/archive",
           docs_dir: "docs/specs",
-          db_dir: ".specdb",
+          db_dir: ".adv/db",
         },
         null,
         2,
@@ -58,21 +58,23 @@ export async function createTestProject(
   }
 
   if (withSpecs) {
-    await mkdir(join(dir, "specs/test-capability"), { recursive: true });
+    await mkdir(join(dir, ".adv/specs/test-capability"), { recursive: true });
     await writeFile(
-      join(dir, "specs/test-capability/spec.json"),
+      join(dir, ".adv/specs/test-capability/spec.json"),
       JSON.stringify(SAMPLE_SPEC, null, 2),
     );
   }
 
   if (withChanges) {
-    await mkdir(join(dir, "changes/add-feature-abc123"), { recursive: true });
+    await mkdir(join(dir, ".adv/changes/add-feature-abc123"), {
+      recursive: true,
+    });
     await writeFile(
-      join(dir, "changes/add-feature-abc123/change.json"),
+      join(dir, ".adv/changes/add-feature-abc123/change.json"),
       JSON.stringify(SAMPLE_CHANGE, null, 2),
     );
     await writeFile(
-      join(dir, "changes/add-feature-abc123/proposal.md"),
+      join(dir, ".adv/changes/add-feature-abc123/proposal.md"),
       SAMPLE_PROPOSAL,
     );
   }

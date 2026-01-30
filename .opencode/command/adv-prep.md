@@ -356,6 +356,14 @@ adv_task_list change_id: <target>
 adv_change_validate change_id: <target>
 ```
 
+### Mark Prep Gate
+
+Mark the prep gate as complete:
+
+```
+adv_gate_complete changeId: {change-id} gateId: prep
+```
+
 ### Contract Fulfilled
 
 ```
@@ -382,6 +390,9 @@ CHANGES MADE:
 - Resolved {n} requirements smells
 - Updated proposal.md with {n} notes
 
+GATE STATUS:
+- Prep gate: COMPLETE ✓
+
 ============================================================
 ```
 
@@ -392,6 +403,7 @@ CHANGES MADE:
        /adv-prep {change-id} COMPLETE
 ============================================================
 Result: {gap_count} gaps fixed, ready for /adv-apply
+Prep Gate: MARKED COMPLETE
 ============================================================
 ```
 

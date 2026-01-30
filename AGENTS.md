@@ -114,14 +114,16 @@ adv_task_add({
 ```
 project/
 ├── project.json           # Config
-├── specs/                 # THE LAW
-│   └── {cap}/spec.json
-├── changes/               # Proposals
-│   └── {id}/
-│       ├── proposal.md
-│       └── change.json
-├── archive/               # Completed
-└── .specdb/spec.db        # SQLite cache
+├── .adv/                  # ADV internals
+│   ├── specs/             # THE LAW
+│   │   └── {cap}/spec.json
+│   ├── changes/           # Proposals
+│   │   └── {id}/
+│   │       ├── proposal.md
+│   │       └── change.json
+│   ├── archive/           # Completed
+│   └── db/spec.db         # SQLite cache
+└── docs/specs/            # Generated docs
 ```
 
 ## For Agents Modifying This Plugin

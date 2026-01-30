@@ -33,7 +33,7 @@ describe("Store", () => {
   describe("lifecycle", () => {
     test("createStore initializes with project paths", async () => {
       expect(store.paths.root).toBe(tempDir);
-      expect(store.paths.specs).toBe(join(tempDir, "specs"));
+      expect(store.paths.specs).toBe(join(tempDir, ".adv/specs"));
     });
 
     test("init creates directory structure", async () => {

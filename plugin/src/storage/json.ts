@@ -109,11 +109,11 @@ export function getProjectPaths(
 ): ProjectPaths {
   return {
     root,
-    specs: join(root, config?.specs_dir ?? "specs"),
-    changes: join(root, config?.changes_dir ?? "changes"),
-    archive: join(root, config?.archive_dir ?? "archive"),
+    specs: join(root, config?.specs_dir ?? ".adv/specs"),
+    changes: join(root, config?.changes_dir ?? ".adv/changes"),
+    archive: join(root, config?.archive_dir ?? ".adv/archive"),
     docs: join(root, config?.docs_dir ?? "docs/specs"),
-    db: join(root, config?.db_dir ?? ".specdb"),
+    db: join(root, config?.db_dir ?? ".adv/db"),
     config: join(root, "project.json"),
   };
 }

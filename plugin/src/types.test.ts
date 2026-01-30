@@ -274,8 +274,8 @@ describe("ProjectConfigSchema", () => {
     const config = { name: "test-project" };
     const result = ProjectConfigSchema.parse(config);
     expect(result.name).toBe("test-project");
-    expect(result.specs_dir).toBe("specs");
-    expect(result.changes_dir).toBe("changes");
+    expect(result.specs_dir).toBe(".adv/specs");
+    expect(result.changes_dir).toBe(".adv/changes");
   });
 
   test("accepts custom paths", () => {
@@ -717,8 +717,8 @@ describe("Schema Backward Compatibility", () => {
 
       const result = ProjectConfigSchema.parse(minimalConfig);
       expect(result.name).toBe("minimal-project");
-      expect(result.specs_dir).toBe("specs");
-      expect(result.changes_dir).toBe("changes");
+      expect(result.specs_dir).toBe(".adv/specs");
+      expect(result.changes_dir).toBe(".adv/changes");
     });
   });
 
