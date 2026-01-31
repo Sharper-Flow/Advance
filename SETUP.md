@@ -361,7 +361,7 @@ Suggestions:
 2. **Check the created files**:
    ```bash
    ls changes/
-   # Should show: add-email-validation-{id}/
+   # Should show: addEmailValidation/
    ```
 
 3. **Validate the change**:
