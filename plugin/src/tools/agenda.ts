@@ -25,7 +25,6 @@ import {
   getTddComplianceStatus,
   isLogicTask,
   type TddPhaseEvidence,
-  createDefaultGates,
   getIncompleteGates,
   allGatesSatisfied,
 } from "../types";
@@ -185,7 +184,8 @@ export const agendaTools = {
         if (!allGatesSatisfied(gates)) {
           const incompleteGates = getIncompleteGates(gates);
           return JSON.stringify({
-            error: "Cannot complete: incomplete gates. Complete all 6 quality gates before marking done.",
+            error:
+              "Cannot complete: incomplete gates. Complete all 6 quality gates before marking done.",
             incompleteGates,
             hint: `Complete gates with adv_gate_complete for each: ${incompleteGates.join(", ")}`,
           });

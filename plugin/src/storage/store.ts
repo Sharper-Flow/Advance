@@ -9,16 +9,10 @@ import { mkdir } from "fs/promises";
 import { nanoid } from "nanoid";
 import {
   WisdomEntrySchema,
-  GatesSchema,
-  GateIdSchema,
   GATE_ORDER,
   canCompleteGate,
-  allGatesSatisfied,
   createLegacyGates,
   createDefaultGates,
-  isGateSatisfied,
-  type GateId,
-  type GateStatus,
   type Gates,
 } from "../types";
 import type {
@@ -55,6 +49,7 @@ import {
   createChangeScaffold,
   getProjectPaths,
   resolveChangeId,
+  listChangeDirs,
   type ProjectPaths,
   type LoadResult,
 } from "./json";
@@ -145,7 +140,13 @@ export interface Store {
     /** Complete a gate with sequence enforcement */
     complete: (
       changeId: string,
-      gateId: "research" | "prep" | "implementation" | "review" | "harden" | "signoff",
+      gateId:
+        | "research"
+        | "prep"
+        | "implementation"
+        | "review"
+        | "harden"
+        | "signoff",
     ) => Promise<void>;
     /** Migrate gates to legacy status (except signoff) */
     migrate: (changeId: string) => Promise<void>;
@@ -247,11 +248,11 @@ export async function createStore(directory: string): Promise<Store> {
       const specs = await loadAllSpecs(paths.specs);
       for (const [name, spec] of specs) {
         const jsonPath = join(paths.specs, name, "spec.json");
-        
+
         if (sqlite.sync.needsSync(jsonPath)) {
           sqlite.specs.upsert(spec, jsonPath);
           sqlite.sync.markSynced(jsonPath);
-          
+
           if (shouldCheckpoint(dbPath)) {
             checkpointWAL(sqlite.db);
           }
@@ -262,11 +263,11 @@ export async function createStore(directory: string): Promise<Store> {
       const changes = await loadAllChanges(paths.changes);
       for (const [id, change] of changes) {
         const jsonPath = join(paths.changes, id, "change.json");
-        
+
         if (sqlite.sync.needsSync(jsonPath)) {
           sqlite.changes.upsert(change, jsonPath);
           sqlite.sync.markSynced(jsonPath);
-          
+
           if (shouldCheckpoint(dbPath)) {
             checkpointWAL(sqlite.db);
           }
@@ -388,15 +389,25 @@ export async function createStore(directory: string): Promise<Store> {
       },
 
       create: async (summary, _capability) => {
-        // Generate change ID from summary
-        // Keep slug short (15 chars) + 4-char nanoid for quick typing
-        // Users can reference by just the nanoid suffix (e.g., "abc1")
-        const slug = summary
-          .toLowerCase()
-          .replace(/[^a-z0-9]+/g, "-")
-          .replace(/^-|-$/g, "")
-          .slice(0, 15);
-        const changeId = `${slug}-${nanoid(4)}`;
+        // Generate change ID from summary in camelCase
+        const words = summary.split(/[^a-zA-Z0-9]+/).filter(Boolean);
+        const camelCase = words
+          .map((w, i) =>
+            i === 0
+              ? w.toLowerCase()
+              : w.charAt(0).toUpperCase() + w.slice(1).toLowerCase(),
+          )
+          .join("")
+          .slice(0, 30);
+
+        // Check for collisions and auto-increment
+        const existingDirs = await listChangeDirs(paths.changes);
+        let changeId = camelCase;
+        let counter = 2;
+        while (existingDirs.includes(changeId)) {
+          changeId = `${camelCase}${counter}`;
+          counter++;
+        }
 
         // Create scaffold
         const { changePath, proposalPath } = await createChangeScaffold(

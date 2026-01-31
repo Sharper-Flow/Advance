@@ -434,7 +434,7 @@ Skip for: open-ended questions, debugging, free-form input.
 | Scenario | `rq-{parent}.{n}` | `rq-V1StGXR8.1` |
 | Task | `tk-{nanoid}` | `tk-Hf7dK2mN` |
 | Delta | `dl-{nanoid}` | `dl-Xt5zW3vB` |
-| Change | `{slug}-{nanoid}` | `add-auth-abc123` |
+| Change | `{camelCaseTitle}` | `addUserAuth` |
 
 ## File Structure
 

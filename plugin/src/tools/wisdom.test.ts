@@ -32,7 +32,7 @@ describe("Wisdom Tools", () => {
     test("adds wisdom entry to change", async () => {
       const result = await wisdomTools.adv_wisdom_add.execute(
         {
-          changeId: "add-feature-abc123",
+          changeId: "addFeature",
           type: "pattern",
           content: "Use dependency injection for testability",
         },
@@ -52,7 +52,7 @@ describe("Wisdom Tools", () => {
     test("adds wisdom entry with source task", async () => {
       const result = await wisdomTools.adv_wisdom_add.execute(
         {
-          changeId: "add-feature-abc123",
+          changeId: "addFeature",
           type: "gotcha",
           content: "SQLite requires explicit transaction commit",
           sourceTask: "tk-task0001",
@@ -76,7 +76,7 @@ describe("Wisdom Tools", () => {
       ]) {
         const result = await wisdomTools.adv_wisdom_add.execute(
           {
-            changeId: "add-feature-abc123",
+            changeId: "addFeature",
             type: type as
               | "pattern"
               | "success"
@@ -95,7 +95,7 @@ describe("Wisdom Tools", () => {
     test("persists wisdom to JSON file", async () => {
       await wisdomTools.adv_wisdom_add.execute(
         {
-          changeId: "add-feature-abc123",
+          changeId: "addFeature",
           type: "success",
           content: "Early validation prevents downstream errors",
         },
@@ -103,7 +103,7 @@ describe("Wisdom Tools", () => {
       );
 
       // Reload from store
-      const changeResult = await store.changes.get("add-feature-abc123");
+      const changeResult = await store.changes.get("addFeature");
       expect(changeResult.success).toBe(true);
       expect(changeResult.data!.wisdom).toHaveLength(1);
       expect(changeResult.data!.wisdom![0].content).toBe(
@@ -128,7 +128,7 @@ describe("Wisdom Tools", () => {
     test("allows multiple wisdom entries", async () => {
       await wisdomTools.adv_wisdom_add.execute(
         {
-          changeId: "add-feature-abc123",
+          changeId: "addFeature",
           type: "pattern",
           content: "First wisdom",
         },
@@ -136,14 +136,14 @@ describe("Wisdom Tools", () => {
       );
       await wisdomTools.adv_wisdom_add.execute(
         {
-          changeId: "add-feature-abc123",
+          changeId: "addFeature",
           type: "gotcha",
           content: "Second wisdom",
         },
         store,
       );
 
-      const changeResult = await store.changes.get("add-feature-abc123");
+      const changeResult = await store.changes.get("addFeature");
       expect(changeResult.success).toBe(true);
       expect(changeResult.data!.wisdom).toHaveLength(2);
     });
@@ -152,7 +152,7 @@ describe("Wisdom Tools", () => {
   describe("adv_wisdom_list", () => {
     test("returns empty array when no wisdom exists", async () => {
       const result = await wisdomTools.adv_wisdom_list.execute(
-        { changeId: "add-feature-abc123" },
+        { changeId: "addFeature" },
         store,
       );
       const parsed = JSON.parse(result);
@@ -163,16 +163,16 @@ describe("Wisdom Tools", () => {
 
     test("returns all wisdom entries for a change", async () => {
       // Add some wisdom first
-      await store.wisdom.add("add-feature-abc123", "pattern", "Pattern wisdom");
+      await store.wisdom.add("addFeature", "pattern", "Pattern wisdom");
       await store.wisdom.add(
-        "add-feature-abc123",
+        "addFeature",
         "gotcha",
         "Gotcha wisdom",
         "tk-task0001",
       );
 
       const result = await wisdomTools.adv_wisdom_list.execute(
-        { changeId: "add-feature-abc123" },
+        { changeId: "addFeature" },
         store,
       );
       const parsed = JSON.parse(result);
@@ -194,12 +194,12 @@ describe("Wisdom Tools", () => {
     });
 
     test("includes summary by type", async () => {
-      await store.wisdom.add("add-feature-abc123", "pattern", "Pattern 1");
-      await store.wisdom.add("add-feature-abc123", "pattern", "Pattern 2");
-      await store.wisdom.add("add-feature-abc123", "gotcha", "Gotcha 1");
+      await store.wisdom.add("addFeature", "pattern", "Pattern 1");
+      await store.wisdom.add("addFeature", "pattern", "Pattern 2");
+      await store.wisdom.add("addFeature", "gotcha", "Gotcha 1");
 
       const result = await wisdomTools.adv_wisdom_list.execute(
-        { changeId: "add-feature-abc123" },
+        { changeId: "addFeature" },
         store,
       );
       const parsed = JSON.parse(result);

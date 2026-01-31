@@ -231,9 +231,9 @@ export async function listChangeDirs(changesDir: string): Promise<string[]> {
 /**
  * Resolve a partial change ID to a full change ID.
  * Supports:
- * - Full ID: "add-feature-abc1" → "add-feature-abc1"
- * - Suffix match: "abc1" → "add-feature-abc1" (if unique)
- * - Prefix match: "add-feat" → "add-feature-abc1" (if unique)
+ * - Full ID: "addUserAuth" → "addUserAuth"
+ * - Prefix match: "addUs" → "addUserAuth" (if unique)
+ * - Case-insensitive prefix: "adduser" → "addUserAuth" (if unique)
  *
  * Returns null if no match or multiple matches found.
  */
@@ -248,17 +248,10 @@ export async function resolveChangeId(
     return { id: partialId, candidates: [partialId] };
   }
 
-  // Suffix match (user typed just the nanoid part)
-  const suffixMatches = dirs.filter((d) => d.endsWith(`-${partialId}`));
-  if (suffixMatches.length === 1) {
-    return { id: suffixMatches[0], candidates: suffixMatches };
-  }
-  if (suffixMatches.length > 1) {
-    return { id: null, candidates: suffixMatches };
-  }
-
-  // Prefix match
-  const prefixMatches = dirs.filter((d) => d.startsWith(partialId));
+  // Case-insensitive prefix match
+  const prefixMatches = dirs.filter((d) =>
+    d.toLowerCase().startsWith(partialId.toLowerCase()),
+  );
   if (prefixMatches.length === 1) {
     return { id: prefixMatches[0], candidates: prefixMatches };
   }
@@ -266,13 +259,7 @@ export async function resolveChangeId(
     return { id: null, candidates: prefixMatches };
   }
 
-  // Contains match (last resort)
-  const containsMatches = dirs.filter((d) => d.includes(partialId));
-  if (containsMatches.length === 1) {
-    return { id: containsMatches[0], candidates: containsMatches };
-  }
-
-  return { id: null, candidates: containsMatches };
+  return { id: null, candidates: [] };
 }
 
 export async function loadChange(

@@ -636,9 +636,9 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
           const stored = stmts.syncFilesGet.get(path) as
             | { mtime_ms: number; size: number; inode: number }
             | undefined;
-          
+
           if (!stored) return true;
-          
+
           return (
             stored.mtime_ms !== currentAttrs.mtime_ms ||
             stored.size !== currentAttrs.size ||

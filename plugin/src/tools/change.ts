@@ -6,7 +6,11 @@
 
 import { z } from "zod";
 import type { Spec } from "../types";
-import { createDefaultGates, getIncompleteGates, allGatesSatisfied } from "../types";
+import {
+  createDefaultGates,
+  getIncompleteGates,
+  allGatesSatisfied,
+} from "../types";
 import type { Store } from "../storage/store";
 import { validateChange } from "../validator";
 import { archiveChange } from "../archive";
@@ -213,7 +217,8 @@ export const changeTools = {
         return wrapWithBanner(
           { command: "adv_change_archive", target: changeId },
           JSON.stringify({
-            error: "Cannot archive: incomplete gates. Complete all 6 quality gates before archiving.",
+            error:
+              "Cannot archive: incomplete gates. Complete all 6 quality gates before archiving.",
             incompleteGates,
             hint: `Run /adv-gate-status ${changeId} to see gate details`,
           }),

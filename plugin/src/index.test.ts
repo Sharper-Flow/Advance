@@ -349,7 +349,7 @@ describe("Advance Plugin SDK Integration", () => {
       const hooks = await createTrackedPlugin(tempDir, pluginInstances);
 
       // 1. Set active change ID by calling a tool with it (args are in before hook)
-      const changeId = "add-feature-abc123";
+      const changeId = "addFeature";
       await hooks["tool.execute.before"]!(
         { tool: "adv_task_list" } as any,
         { args: { changeId } } as any,
@@ -381,7 +381,7 @@ describe("Advance Plugin SDK Integration", () => {
 
     test("experimental.chat.system.transform injects wisdom recording prompt after task completion", async () => {
       const hooks = await createTrackedPlugin(tempDir, pluginInstances);
-      const changeId = "add-feature-abc123";
+      const changeId = "addFeature";
       const taskId = "tk-task0001";
 
       // 1. Set active change (args are in before hook)
@@ -421,7 +421,7 @@ describe("Advance Plugin SDK Integration", () => {
 
     test("experimental.chat.system.transform truncates wisdom to most recent 10 entries", async () => {
       const hooks = await createTrackedPlugin(tempDir, pluginInstances);
-      const changeId = "add-feature-abc123";
+      const changeId = "addFeature";
 
       // 1. Set active change (args are in before hook)
       await hooks["tool.execute.before"]!(

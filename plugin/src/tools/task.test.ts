@@ -31,7 +31,7 @@ describe("Task Tools", () => {
   describe("adv_task_list", () => {
     test("returns all tasks for a change", async () => {
       const result = await taskTools.adv_task_list.execute(
-        { changeId: "add-feature-abc123" },
+        { changeId: "addFeature" },
         store,
       );
       const parsed = JSON.parse(result);
@@ -45,7 +45,7 @@ describe("Task Tools", () => {
       await store.tasks.update("tk-task0001", "done");
 
       const result = await taskTools.adv_task_list.execute(
-        { changeId: "add-feature-abc123", status: "pending" },
+        { changeId: "addFeature", status: "pending" },
         store,
       );
       const parsed = JSON.parse(result);
@@ -74,7 +74,7 @@ describe("Task Tools", () => {
   describe("adv_task_ready", () => {
     test("returns unblocked pending tasks", async () => {
       const result = await taskTools.adv_task_ready.execute(
-        { changeId: "add-feature-abc123" },
+        { changeId: "addFeature" },
         store,
       );
       const parsed = JSON.parse(result);
@@ -86,7 +86,7 @@ describe("Task Tools", () => {
 
     test("returns blocked tasks with blockers list", async () => {
       const result = await taskTools.adv_task_ready.execute(
-        { changeId: "add-feature-abc123" },
+        { changeId: "addFeature" },
         store,
       );
       const parsed = JSON.parse(result);
@@ -104,7 +104,7 @@ describe("Task Tools", () => {
       await store.tasks.update("tk-task0001", "done");
 
       const result = await taskTools.adv_task_ready.execute(
-        { changeId: "add-feature-abc123" },
+        { changeId: "addFeature" },
         store,
       );
       const parsed = JSON.parse(result);
@@ -119,7 +119,7 @@ describe("Task Tools", () => {
       await store.tasks.update("tk-task0001", "cancelled");
 
       const result = await taskTools.adv_task_ready.execute(
-        { changeId: "add-feature-abc123" },
+        { changeId: "addFeature" },
         store,
       );
       const parsed = JSON.parse(result);
@@ -182,7 +182,7 @@ describe("Task Tools", () => {
       );
 
       // Reload from store
-      const changeResult = await store.changes.get("add-feature-abc123");
+      const changeResult = await store.changes.get("addFeature");
       expect(changeResult.success).toBe(true);
       const task = changeResult.data!.tasks.find((t) => t.id === "tk-task0001");
       expect(task!.status).toBe("done");
@@ -202,7 +202,7 @@ describe("Task Tools", () => {
   describe("adv_task_add", () => {
     test("adds new task to change", async () => {
       const result = await taskTools.adv_task_add.execute(
-        { changeId: "add-feature-abc123", content: "Write integration tests" },
+        { changeId: "addFeature", content: "Write integration tests" },
         store,
       );
       const parsed = JSON.parse(result);
@@ -215,7 +215,7 @@ describe("Task Tools", () => {
     test("adds task with section", async () => {
       const result = await taskTools.adv_task_add.execute(
         {
-          changeId: "add-feature-abc123",
+          changeId: "addFeature",
           content: "Add error handling",
           section: "Error Handling",
         },
@@ -229,7 +229,7 @@ describe("Task Tools", () => {
     test("adds task with blocked_by dependency", async () => {
       const result = await taskTools.adv_task_add.execute(
         {
-          changeId: "add-feature-abc123",
+          changeId: "addFeature",
           content: "Final review",
           blockedBy: ["tk-task0003"],
         },
@@ -245,7 +245,7 @@ describe("Task Tools", () => {
     test("new task appears in blocked list when dependency exists", async () => {
       await taskTools.adv_task_add.execute(
         {
-          changeId: "add-feature-abc123",
+          changeId: "addFeature",
           content: "Blocked task",
           blockedBy: ["tk-task0001"],
         },
@@ -253,7 +253,7 @@ describe("Task Tools", () => {
       );
 
       const result = await taskTools.adv_task_ready.execute(
-        { changeId: "add-feature-abc123" },
+        { changeId: "addFeature" },
         store,
       );
       const parsed = JSON.parse(result);
@@ -267,12 +267,12 @@ describe("Task Tools", () => {
 
     test("persists new task to JSON file", async () => {
       const result = await taskTools.adv_task_add.execute(
-        { changeId: "add-feature-abc123", content: "Persisted task" },
+        { changeId: "addFeature", content: "Persisted task" },
         store,
       );
       const parsed = JSON.parse(result);
 
-      const changeResult = await store.changes.get("add-feature-abc123");
+      const changeResult = await store.changes.get("addFeature");
       expect(changeResult.success).toBe(true);
       const task = changeResult.data!.tasks.find((t) => t.id === parsed.taskId);
       expect(task).toBeDefined();
@@ -378,7 +378,7 @@ describe("Task Tools", () => {
       );
 
       // Reload from store
-      const changeResult = await store.changes.get("add-feature-abc123");
+      const changeResult = await store.changes.get("addFeature");
       expect(changeResult.success).toBe(true);
       const task = changeResult.data!.tasks.find((t) => t.id === "tk-task0001");
       expect(task!.tdd_evidence?.red?.command).toBe("npm test");
@@ -441,7 +441,7 @@ describe("Task Tools", () => {
         store,
       );
 
-      const changeResult = await store.changes.get("add-feature-abc123");
+      const changeResult = await store.changes.get("addFeature");
       expect(changeResult.success).toBe(true);
       const task = changeResult.data!.tasks.find((t) => t.id === "tk-task0001");
       expect(task!.tdd_evidence?.skipped).toBe(true);

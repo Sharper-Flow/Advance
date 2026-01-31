@@ -254,7 +254,7 @@ describe("DeltaSchema", () => {
 describe("ChangeSchema", () => {
   test("parses sample change fixture", () => {
     const result = ChangeSchema.parse(SAMPLE_CHANGE);
-    expect(result.id).toBe("add-feature-abc123");
+    expect(result.id).toBe("addFeature");
     expect(result.tasks).toHaveLength(3);
     expect(result.deltas["test-capability"]).toHaveLength(1);
   });

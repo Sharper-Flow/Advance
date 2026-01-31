@@ -141,7 +141,7 @@ describe("SQLiteStore", () => {
 
       const changes = store.changes.list();
       expect(changes).toHaveLength(1);
-      expect(changes[0].id).toBe("add-feature-abc123");
+      expect(changes[0].id).toBe("addFeature");
     });
 
     test("list filters by status", () => {
@@ -167,20 +167,20 @@ describe("SQLiteStore", () => {
 
       const active = store.changes.list({ status: "active" });
       expect(active).toHaveLength(1);
-      expect(active[0].id).toBe("add-feature-abc123");
+      expect(active[0].id).toBe("addFeature");
     });
 
     test("get returns change by id", () => {
       store.changes.upsert(SAMPLE_CHANGE as Change, "/path/to/change.json");
 
-      const change = store.changes.get("add-feature-abc123");
+      const change = store.changes.get("addFeature");
       expect(change).not.toBeNull();
       expect(change!.title).toBe("Add New Feature");
     });
 
     test("delete removes change", () => {
       store.changes.upsert(SAMPLE_CHANGE as Change, "/path/to/change.json");
-      store.changes.delete("add-feature-abc123");
+      store.changes.delete("addFeature");
 
       expect(store.changes.list()).toHaveLength(0);
     });
@@ -192,7 +192,7 @@ describe("SQLiteStore", () => {
     });
 
     test("list returns tasks for change", () => {
-      const tasks = store.tasks.list("add-feature-abc123");
+      const tasks = store.tasks.list("addFeature");
       expect(tasks).toHaveLength(3);
     });
 
@@ -200,10 +200,10 @@ describe("SQLiteStore", () => {
       // First update a task
       store.tasks.update("tk-task0001", { status: "in_progress" });
 
-      const pending = store.tasks.list("add-feature-abc123", "pending");
+      const pending = store.tasks.list("addFeature", "pending");
       expect(pending).toHaveLength(2);
 
-      const inProgress = store.tasks.list("add-feature-abc123", "in_progress");
+      const inProgress = store.tasks.list("addFeature", "in_progress");
       expect(inProgress).toHaveLength(1);
     });
 
@@ -225,7 +225,7 @@ describe("SQLiteStore", () => {
     });
 
     test("ready returns unblocked tasks", () => {
-      const { ready, blocked } = store.tasks.ready("add-feature-abc123");
+      const { ready, blocked } = store.tasks.ready("addFeature");
 
       // Only tk-task0001 has no blockers
       expect(ready).toHaveLength(1);
@@ -239,7 +239,7 @@ describe("SQLiteStore", () => {
       // Complete the first task
       store.tasks.update("tk-task0001", { status: "done" });
 
-      const { ready, blocked } = store.tasks.ready("add-feature-abc123");
+      const { ready, blocked } = store.tasks.ready("addFeature");
 
       // Now tk-task0002 should be ready
       expect(ready).toHaveLength(1);
@@ -262,27 +262,27 @@ describe("SQLiteStore", () => {
       writeFileSync(testPath, "test content");
 
       store.sync.markSynced(testPath);
-      
+
       expect(store.sync.needsSync(testPath)).toBe(false);
     });
 
     test("needsSync returns true when file content changes (size differs)", () => {
       const testPath = join(tempDir, "test-file.json");
       writeFileSync(testPath, "original content");
-      
+
       store.sync.markSynced(testPath);
-      
+
       writeFileSync(testPath, "modified content with different size");
-      
+
       expect(store.sync.needsSync(testPath)).toBe(true);
     });
 
     test("markSynced stores current file attributes", () => {
       const testPath = join(tempDir, "test-file.json");
       writeFileSync(testPath, "test content");
-      
+
       store.sync.markSynced(testPath);
-      
+
       const attrs = store.syncFiles.getFileAttrs(testPath);
       expect(attrs).not.toBeNull();
       expect(attrs!.size).toBeGreaterThan(0);
@@ -293,12 +293,12 @@ describe("SQLiteStore", () => {
     test("needsSync uses triple-attribute comparison (mtime, size, inode)", () => {
       const testPath = join(tempDir, "test-file.json");
       writeFileSync(testPath, "test content");
-      
+
       store.sync.markSynced(testPath);
-      
+
       const attrs1 = store.syncFiles.getFileAttrs(testPath);
       expect(store.sync.needsSync(testPath)).toBe(false);
-      
+
       store.sync.markSynced(testPath);
       const attrs2 = store.syncFiles.getFileAttrs(testPath);
       expect(attrs2).toEqual(attrs1);

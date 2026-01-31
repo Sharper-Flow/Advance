@@ -30,7 +30,7 @@ import {
   SAMPLE_SPEC,
   SAMPLE_CHANGE,
 } from "../__tests__/setup";
-import type { Spec, Change, ProjectConfig } from "../types";
+import type { Spec, ProjectConfig } from "../types";
 
 describe("getProjectPaths", () => {
   test("returns default paths", () => {
@@ -163,16 +163,16 @@ describe("Change Operations", () => {
   test("listChangeDirs returns change directories", async () => {
     const changesDir = join(tempDir, ".adv/changes");
     const dirs = await listChangeDirs(changesDir);
-    expect(dirs).toContain("add-feature-abc123");
+    expect(dirs).toContain("addFeature");
   });
 
   test("loadChange loads change from JSON", async () => {
     const changesDir = join(tempDir, ".adv/changes");
-    const result = await loadChange(changesDir, "add-feature-abc123");
+    const result = await loadChange(changesDir, "addFeature");
 
     expect(result.success).toBe(true);
     expect(result.data).not.toBeNull();
-    expect(result.data!.id).toBe("add-feature-abc123");
+    expect(result.data!.id).toBe("addFeature");
     expect(result.data!.tasks).toHaveLength(3);
   });
 
@@ -183,27 +183,31 @@ describe("Change Operations", () => {
     expect(result.data).toBeNull();
   });
 
-  test("saveChange creates change directory and file", async () => {
+  test("loadChange handles malformed JSON", async () => {
     const changesDir = join(tempDir, ".adv/changes");
-    const newChange: Change = {
-      ...SAMPLE_CHANGE,
-      id: "new-change-xyz789",
-      title: "New Change",
-    };
+    const changePath = join(changesDir, "addFeature/change.json");
+    await writeFile(changePath, "invalid json");
 
-    const path = await saveChange(changesDir, newChange);
-    expect(path).toContain("new-change-xyz789/change.json");
+    const result = await loadChange(changesDir, "addFeature");
+    expect(result.success).toBe(false);
+    expect(result.type).toBe("read_error");
+  });
 
-    const result = await loadChange(changesDir, "new-change-xyz789");
+  test("saveChange writes change to JSON", async () => {
+    const changesDir = join(tempDir, ".adv/changes");
+    const change = { ...SAMPLE_CHANGE, id: "newFeature" };
+    await saveChange(changesDir, change);
+
+    const result = await loadChange(changesDir, "newFeature");
     expect(result.success).toBe(true);
-    expect(result.data!.title).toBe("New Change");
+    expect(result.data!.id).toBe("newFeature");
   });
 
   test("loadAllChanges loads all changes", async () => {
     const changesDir = join(tempDir, ".adv/changes");
 
     // Add another change
-    await saveChange(changesDir, { ...SAMPLE_CHANGE, id: "second-change" });
+    await saveChange(changesDir, { ...SAMPLE_CHANGE, id: "secondFeature" });
 
     const changes = await loadAllChanges(changesDir);
     expect(changes.size).toBe(2);
@@ -219,9 +223,9 @@ describe("resolveChangeId", () => {
     changesDir = join(tempDir, ".adv/changes");
 
     // Create multiple changes for testing
-    await saveChange(changesDir, { ...SAMPLE_CHANGE, id: "add-feature-abc1" });
-    await saveChange(changesDir, { ...SAMPLE_CHANGE, id: "add-feature-xyz9" });
-    await saveChange(changesDir, { ...SAMPLE_CHANGE, id: "fix-bug-def2" });
+    await saveChange(changesDir, { ...SAMPLE_CHANGE, id: "addFeature" });
+    await saveChange(changesDir, { ...SAMPLE_CHANGE, id: "fixLoginBug" });
+    await saveChange(changesDir, { ...SAMPLE_CHANGE, id: "add-kebab-1234" });
   });
 
   afterEach(async () => {
@@ -229,26 +233,37 @@ describe("resolveChangeId", () => {
   });
 
   test("exact match returns the ID", async () => {
-    const result = await resolveChangeId(changesDir, "add-feature-abc1");
-    expect(result.id).toBe("add-feature-abc1");
-    expect(result.candidates).toEqual(["add-feature-abc1"]);
-  });
-
-  test("suffix match with nanoid returns unique match", async () => {
-    const result = await resolveChangeId(changesDir, "abc1");
-    expect(result.id).toBe("add-feature-abc1");
-  });
-
-  test("suffix match with multiple candidates returns null", async () => {
-    // Both add-feature-abc1 and add-feature-xyz9 match "add-feature-"
-    const result = await resolveChangeId(changesDir, "add-feature");
-    expect(result.id).toBeNull();
-    expect(result.candidates).toHaveLength(2);
+    const result = await resolveChangeId(changesDir, "addFeature");
+    expect(result.id).toBe("addFeature");
+    expect(result.candidates).toEqual(["addFeature"]);
   });
 
   test("prefix match returns unique match", async () => {
-    const result = await resolveChangeId(changesDir, "fix-bug");
-    expect(result.id).toBe("fix-bug-def2");
+    const result = await resolveChangeId(changesDir, "fixLog");
+    expect(result.id).toBe("fixLoginBug");
+  });
+
+  test("case-insensitive prefix match returns unique match", async () => {
+    const result = await resolveChangeId(changesDir, "addfeature");
+    expect(result.id).toBe("addFeature");
+  });
+
+  test("suffix match no longer works", async () => {
+    const result = await resolveChangeId(changesDir, "1234");
+    expect(result.id).toBeNull();
+  });
+
+  test("ambiguous prefix match returns exact if present", async () => {
+    await saveChange(changesDir, { ...SAMPLE_CHANGE, id: "addFeatureProfile" });
+    const result = await resolveChangeId(changesDir, "addFeature");
+    expect(result.id).toBe("addFeature");
+  });
+
+  test("ambiguous prefix (non-exact) returns null with candidates", async () => {
+    await saveChange(changesDir, { ...SAMPLE_CHANGE, id: "addFeatureProfile" });
+    const result = await resolveChangeId(changesDir, "addFeat");
+    expect(result.id).toBeNull();
+    expect(result.candidates).toHaveLength(2);
   });
 
   test("no match returns null with empty candidates", async () => {
@@ -273,7 +288,7 @@ describe("createChangeScaffold", () => {
     const changesDir = join(tempDir, "changes");
     const result = await createChangeScaffold(
       changesDir,
-      "new-feature-abc123",
+      "newFeature",
       "Add New Feature",
     );
 

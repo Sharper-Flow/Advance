@@ -36,7 +36,7 @@ describe("Change Tools", () => {
 
       expect(parsed.changes).toHaveLength(1);
       expect(parsed.changes[0]).toMatchObject({
-        id: "add-feature-abc123",
+        id: "addFeature",
         title: "Add New Feature",
         status: "active",
         taskCount: 3,
@@ -57,7 +57,7 @@ describe("Change Tools", () => {
 
     test("excludes archived by default", async () => {
       // Archive the existing change
-      const changeResult = await store.changes.get("add-feature-abc123");
+      const changeResult = await store.changes.get("addFeature");
       expect(changeResult.success).toBe(true);
       changeResult.data!.status = "archived";
       await store.changes.save(changeResult.data!);
@@ -69,7 +69,7 @@ describe("Change Tools", () => {
     });
 
     test("includes archived when requested", async () => {
-      const changeResult = await store.changes.get("add-feature-abc123");
+      const changeResult = await store.changes.get("addFeature");
       expect(changeResult.success).toBe(true);
       changeResult.data!.status = "archived";
       await store.changes.save(changeResult.data!);
@@ -87,12 +87,12 @@ describe("Change Tools", () => {
   describe("adv_change_show", () => {
     test("returns full change with tasks and deltas", async () => {
       const result = await changeTools.adv_change_show.execute(
-        { changeId: "add-feature-abc123" },
+        { changeId: "addFeature" },
         store,
       );
       const parsed = JSON.parse(result);
 
-      expect(parsed.id).toBe("add-feature-abc123");
+      expect(parsed.id).toBe("addFeature");
       expect(parsed.title).toBe("Add New Feature");
       expect(parsed.tasks).toHaveLength(3);
       expect(parsed.deltas["test-capability"]).toHaveLength(1);
@@ -117,8 +117,8 @@ describe("Change Tools", () => {
       );
       const parsed = parseToolOutput(result);
 
-      // ID format: 15-char max slug + 4-char nanoid
-      expect(parsed.changeId).toMatch(/^add-user-authen-[a-zA-Z0-9_-]{4}$/);
+      // ID format: camelCase title
+      expect(parsed.changeId).toBe("addUserAuthentication");
       expect(parsed.path).toContain("proposal.md");
     });
 
@@ -147,15 +147,15 @@ describe("Change Tools", () => {
       );
       const parsed = parseToolOutput(result);
 
-      // ID should be truncated to 15 chars + 4-char nanoid (max ~20 chars)
-      expect(parsed.changeId.length).toBeLessThanOrEqual(20);
+      // ID should be truncated to 30 chars
+      expect(parsed.changeId.length).toBeLessThanOrEqual(30);
     });
   });
 
   describe("adv_change_validate", () => {
     test("passes for valid change", async () => {
       const result = await changeTools.adv_change_validate.execute(
-        { changeId: "add-feature-abc123" },
+        { changeId: "addFeature" },
         store,
       );
       const parsed = parseToolOutput(result);
@@ -237,11 +237,14 @@ describe("Change Tools", () => {
       await store.tasks.update("tk-task0003", "done");
 
       // Complete all gates (required for archive)
-      const change = (await store.changes.get("add-feature-abc123")).data!;
+      const change = (await store.changes.get("addFeature")).data!;
       change.gates = {
         research: { status: "done", completed_at: new Date().toISOString() },
         prep: { status: "done", completed_at: new Date().toISOString() },
-        implementation: { status: "done", completed_at: new Date().toISOString() },
+        implementation: {
+          status: "done",
+          completed_at: new Date().toISOString(),
+        },
         review: { status: "done", completed_at: new Date().toISOString() },
         harden: { status: "done", completed_at: new Date().toISOString() },
         signoff: { status: "done", completed_at: new Date().toISOString() },
@@ -249,7 +252,7 @@ describe("Change Tools", () => {
       await store.changes.save(change);
 
       const result = await changeTools.adv_change_archive.execute(
-        { changeId: "add-feature-abc123" },
+        { changeId: "addFeature" },
         store,
       );
       const parsed = parseToolOutput(result);
@@ -262,7 +265,7 @@ describe("Change Tools", () => {
 
     test("fails when tasks are incomplete", async () => {
       const result = await changeTools.adv_change_archive.execute(
-        { changeId: "add-feature-abc123" },
+        { changeId: "addFeature" },
         store,
       );
       const parsed = parseToolOutput(result);
@@ -289,7 +292,7 @@ describe("Change Tools", () => {
 
       // Don't complete any gates - they should block archive
       const result = await changeTools.adv_change_archive.execute(
-        { changeId: "add-feature-abc123" },
+        { changeId: "addFeature" },
         store,
       );
       const parsed = parseToolOutput(result);

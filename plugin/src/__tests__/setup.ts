@@ -66,15 +66,15 @@ export async function createTestProject(
   }
 
   if (withChanges) {
-    await mkdir(join(dir, ".adv/changes/add-feature-abc123"), {
+    await mkdir(join(dir, ".adv/changes/addFeature"), {
       recursive: true,
     });
     await writeFile(
-      join(dir, ".adv/changes/add-feature-abc123/change.json"),
+      join(dir, ".adv/changes/addFeature/change.json"),
       JSON.stringify(SAMPLE_CHANGE, null, 2),
     );
     await writeFile(
-      join(dir, ".adv/changes/add-feature-abc123/proposal.md"),
+      join(dir, ".adv/changes/addFeature/proposal.md"),
       SAMPLE_PROPOSAL,
     );
   }
@@ -128,7 +128,7 @@ export const SAMPLE_SPEC = {
 
 export const SAMPLE_CHANGE = {
   $schema: "https://advance.dev/schemas/change.v1.json",
-  id: "add-feature-abc123",
+  id: "addFeature",
   title: "Add New Feature",
   status: "active",
   created_at: "2026-01-21T00:00:00Z",

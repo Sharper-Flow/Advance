@@ -16,7 +16,7 @@ export const ID_PREFIXES = {
   requirement: "rq-",
   task: "tk-",
   delta: "dl-",
-  change: "", // Changes use kebab-case slug
+  change: "", // Changes use camelCase title
 } as const;
 
 // =============================================================================
@@ -346,7 +346,12 @@ export const GATE_ORDER: GateId[] = [
  * - legacy: Predates gate system, counts as "satisfied" but wasn't performed
  * - skipped: Explicitly skipped with documented reason (future use)
  */
-export const GateStatusSchema = z.enum(["pending", "done", "legacy", "skipped"]);
+export const GateStatusSchema = z.enum([
+  "pending",
+  "done",
+  "legacy",
+  "skipped",
+]);
 
 export type GateStatus = z.infer<typeof GateStatusSchema>;
 
@@ -441,7 +446,11 @@ export const createDefaultGates = (): Gates => ({
 export const createLegacyGates = (): Gates => {
   const now = new Date().toISOString();
   return {
-    research: { status: "legacy", completed_at: now, completed_by: "migration" },
+    research: {
+      status: "legacy",
+      completed_at: now,
+      completed_by: "migration",
+    },
     prep: { status: "legacy", completed_at: now, completed_by: "migration" },
     implementation: {
       status: "legacy",
@@ -461,7 +470,7 @@ export const createLegacyGates = (): Gates => {
 export const ChangeSchema = z
   .object({
     $schema: z.string().optional(),
-    id: z.string(), // kebab-case slug
+    id: z.string(), // camelCase title
     title: z.string(),
     status: ChangeStatusSchema,
     created_at: z.string(), // ISO8601

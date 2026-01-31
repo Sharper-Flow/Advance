@@ -70,7 +70,7 @@ describe("Status Tools", () => {
 
       expect(parsed.recommendations.length).toBeGreaterThan(0);
       expect(parsed.recommendations[0]).toContain("Ready to archive");
-      expect(parsed.recommendations[0]).toContain("add-feature-abc123");
+      expect(parsed.recommendations[0]).toContain("addFeature");
     });
 
     test("no archive recommendation when tasks incomplete", async () => {

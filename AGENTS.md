@@ -92,7 +92,7 @@ adv_task_add({
 | Scenario | `rq-{parent}.{n}` | `rq-V1StGXR8.1` |
 | Task | `tk-{nanoid(8)}` | `tk-Hf7dK2mN` |
 | Delta | `dl-{nanoid(8)}` | `dl-Xt5zW3vB` |
-| Change | `{slug}-{nanoid(6)}` | `add-auth-abc123` |
+| Change | `{camelCaseTitle}` | `addUserAuth` |
 
 ## Dependency Types
 

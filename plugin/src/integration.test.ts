@@ -42,7 +42,7 @@ describe("Wisdom Lifecycle Integration", () => {
       serverUrl: new URL("http://localhost"),
     } as any);
 
-    const changeId = "add-feature-abc123";
+    const changeId = "addFeature";
     const taskId = "tk-task0001";
     const transformHook = hooks["experimental.chat.system.transform"]!;
 
