@@ -482,6 +482,69 @@ project/
 - Dependency updates
 - Exploratory work
 
+## Specialized Agents
+
+ADV includes purpose-built agents optimized for specific tasks.
+
+### adv-researcher Agent
+
+The `/adv-research` command uses a specialized `adv-researcher` subagent for architectural validation.
+
+**Location:** `.opencode/agents/adv-researcher.md`
+
+**Default Configuration:**
+
+| Setting | Value | Rationale |
+|---------|-------|-----------|
+| Model | `google/gemini-3-flash-preview` | Blind-tested winner, 1M context, near-Pro reasoning |
+| Temperature | `0.10` | Conservative - maximum accuracy for research |
+| Hidden | `true` | Not shown in @ menu, only used by `/adv-research` |
+
+**Tools Enabled:**
+
+| Category | Tools | Purpose |
+|----------|-------|---------|
+| Docs lookup | `context7_*` | Library/framework documentation |
+| Web search | `kagi_*`, `google_search` | Best practices, discussions |
+| Web fetch | `webfetch`, `fetch-mcp_*`, `firecrawl_*` | Page content extraction |
+| Code search | `grep-app_*` | Real-world code patterns |
+| Academic | `arxiv-mcp_*` | Research papers |
+| ADV read-only | `adv_spec_*`, `adv_change_*`, `adv_project_context` | Query specs/changes |
+| Code read-only | `read`, `glob`, `grep` | Explore codebase |
+
+**Disabled Tools:** `write`, `edit`, `bash`, `morph_edit`, `task`, `todowrite` (research agents are read-only)
+
+### User Override
+
+Override the agent configuration in your `opencode.json`:
+
+```json
+{
+  "agent": {
+    "adv-researcher": {
+      "model": "anthropic/claude-haiku-4-20250514",
+      "temperature": 0.15
+    }
+  }
+}
+```
+
+**Alternative Models:**
+
+| Model | Context | Cost (Input/MTok) | Best For |
+|-------|---------|-------------------|----------|
+| `google/gemini-3-flash-preview` (default) | 1M | $0.50 | All research |
+| `anthropic/claude-haiku-4-20250514` | 200K | $1.00 | Proven Claude quality |
+| `minimax/minimax-m2.1` | 196K | $0.27 | Budget, agentic-optimized |
+| `deepseek/deepseek-v3.2` | 164K | $0.25 | Ultra-budget |
+
+### Fallback Behavior
+
+If `.opencode/agents/adv-researcher.md` is missing:
+1. `/adv-research` falls back to the generic `explore` agent
+2. A warning is logged: "⚠️ adv-researcher agent not found"
+3. Research continues with reduced quality (generic prompting)
+
 ## Integration with Goost
 
 ADV can work alongside Goost contracts:

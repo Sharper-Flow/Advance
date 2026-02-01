@@ -182,19 +182,91 @@ Flag these indicators of incomplete requirements:
 
 ## Output Format
 
-### During Questioning
+### MANDATORY: Use the `mcp_question` Tool
 
+**ALWAYS use the `mcp_question` tool for asking questions.** Never output questions as plain text - instead use the structured question tool for better UX.
+
+#### Question Tool Schema
+
+```typescript
+mcp_question({
+  questions: [{
+    header: string,      // Short label, max 30 chars
+    question: string,    // Full question text
+    multiple?: boolean,  // Allow multiple selections (default: false)
+    options: [{
+      label: string,     // Display text, 1-5 words
+      description: string // Explanation of choice
+    }]
+  }]
+})
 ```
-Based on what you've shared, I notice [assumption/gap].
 
-Let me ask a few questions to clarify:
+#### Question Tool Constraints
 
-**[Category]**
-1. [Open question] - (this helps define [what])
-2. [Follow-up] - (this clarifies [what])
+| Field | Limit | Notes |
+|-------|-------|-------|
+| `header` | max 30 chars | Very short label |
+| `label` | 1-5 words | Concise display text |
+| `options` | 2-5 choices | Don't include "Other" - custom input is automatic |
 
-Take your time - we can explore each in depth.
+#### Example: Clarifying a Requirement
+
+```json
+{
+  "questions": [{
+    "header": "Performance Target",
+    "question": "You mentioned the system should be 'fast'. What response time target do you have in mind?",
+    "options": [
+      { "label": "Under 100ms", "description": "Real-time user interactions" },
+      { "label": "Under 1 second", "description": "Standard web response time" },
+      { "label": "Under 5 seconds", "description": "Background processing acceptable" },
+      { "label": "No specific target", "description": "Just faster than current" }
+    ]
+  }]
+}
 ```
+
+#### Example: Exploring Assumptions
+
+```json
+{
+  "questions": [{
+    "header": "User Authentication",
+    "question": "You're assuming users will have accounts. What about anonymous access?",
+    "options": [
+      { "label": "Accounts required", "description": "All users must sign in" },
+      { "label": "Optional accounts", "description": "Anonymous with limited features" },
+      { "label": "No accounts", "description": "Fully anonymous access" }
+    ]
+  }]
+}
+```
+
+#### Example: Multiple Selection
+
+```json
+{
+  "questions": [{
+    "header": "Error Handling",
+    "question": "Which error scenarios should we handle explicitly?",
+    "multiple": true,
+    "options": [
+      { "label": "Network failures", "description": "Connection timeouts, DNS errors" },
+      { "label": "Auth failures", "description": "Invalid tokens, expired sessions" },
+      { "label": "Rate limiting", "description": "API quota exhausted" },
+      { "label": "Data validation", "description": "Invalid input formats" }
+    ]
+  }]
+}
+```
+
+### During Questioning Flow
+
+1. **Analyze** - Silently review context for assumptions and gaps
+2. **Summarize** - Output a brief text summary of your understanding so far
+3. **Ask** - Use `mcp_question` tool with 1-2 questions max per round
+4. **Wait** - Process user's selections before next round
 
 ### After Each Exchange
 
@@ -203,10 +275,9 @@ Summarize before new questions:
 So far I understand:
 - [Requirement 1]
 - [Requirement 2]
-- [Open question]
-
-This leads me to ask...
 ```
+
+Then use `mcp_question` for the next round of clarification.
 
 ### Final Summary
 
@@ -243,6 +314,7 @@ SUGGESTED NEXT STEPS:
 
 | Anti-Pattern | Why It Fails | Fix |
 |--------------|--------------|-----|
+| **Plain text questions** | Poor UX, no structure | Always use `mcp_question` tool |
 | **Leading questions** | Suggests desired answer | Use neutral framing |
 | **Rapid-fire** | Overwhelms, interrogation feel | Max 2-3, pause for response |
 | **Closed-only** | Yields yes/no, no discovery | Lead with open |

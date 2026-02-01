@@ -110,9 +110,71 @@ For each decision, formulate questions across these dimensions:
 
 ## Phase 3: Spawn Research Sub-Agents
 
-Use SINGLE response with MULTIPLE Task calls (parallel execution):
+Use SINGLE response with MULTIPLE Task calls (parallel execution).
+
+### Agent Selection (REQUIRED)
+
+**Step 1: Detect Agent Availability**
+
+Before spawning any research tasks, check if the specialized agent exists:
+
+```
+Use glob tool: .opencode/agents/adv-researcher.md
+```
+
+**Step 2: Select Agent Type**
+
+If `adv-researcher.md` exists:
+- Use `subagent_type: "adv-researcher"` for all research tasks
+- Research quality will be optimized with low temperature and focused tools
+
+If `adv-researcher.md` does NOT exist:
+- Log: "⚠️ adv-researcher agent not found. Using explore agent with research protocol."
+- Use `subagent_type: "explore"` 
+- Include the full research protocol in the Task prompt (see Fallback Prompt below)
+- Note in final report: "Research conducted with generic agent (reduced quality)"
+
+### Fallback Prompt Enhancement
+
+When using `explore` as fallback, prepend this to the Task prompt:
+
+```
+RESEARCH PROTOCOL (Generic Agent Mode):
+- You MUST cite sources for every factual claim
+- Use Context7 first for library/framework questions (resolve-library-id → query-docs)
+- Use grep.app to find real-world code examples
+- Prefer simple, boring solutions over complex ones
+- If unsure, say "I don't know" rather than guess
+- Every finding MUST include a source URL
+```
 
 ### Sub-Agent Template
+
+When using `adv-researcher` agent, the system prompt already contains all behavioral instructions. Only pass task-specific context:
+
+```
+RESEARCH QUESTION: {question}
+
+CONTEXT:
+{relevant spec/proposal excerpt}
+
+EXISTING CODEBASE PATTERNS:
+{summary of patterns found in Phase 1 audit}
+
+CODEBASE FILES:
+{list of relevant files the subagent should read}
+```
+
+The agent's system prompt handles:
+- Research protocol (Context7 → grep.app → Kagi → arxiv)
+- Citation requirements
+- Simplicity bias
+- Response format
+- Anti-hallucination controls
+
+### Fallback Sub-Agent Template
+
+When using `explore` agent as fallback (no adv-researcher.md), include full instructions:
 
 ```
 Research architectural decision:
@@ -123,49 +185,32 @@ CONTEXT: {spec excerpt}
 
 EXISTING CODEBASE PATTERNS: {summary of patterns found in Phase 1 audit}
 
+RESEARCH PROTOCOL:
+- You MUST cite sources for every factual claim
+- Use Context7 first for library/framework questions (resolve-library-id → query-docs)
+- Use grep.app to find real-world code examples
+- Prefer simple, boring solutions over complex ones
+- If unsure, say "I don't know" rather than guess
+- Every finding MUST include a source URL
+
 TASK:
 1. Use Context7: resolve-library-id, then query-docs
 2. Look up the CANONICAL/REFERENCE architecture for this tech stack
 3. Web search for best practices
-4. Identify red flags, anti-patterns
-5. Evaluate simpler alternatives (CRITICAL)
-6. Check for security implications
-7. Compare the PROPOSED architecture against the REFERENCE architecture
-8. If the existing code deviates from best practices, recommend how the
-   change should CORRECT the architecture rather than extend the deviation
-
-ARCHITECTURE CORRECTION MANDATE:
-- Never recommend "follow the existing pattern" if the existing pattern is wrong
-- Always recommend the by-the-book correct approach
-- If correcting the architecture is too large for this change, recommend
-  the minimum correction needed to avoid making things worse, plus a
-  follow-up task for full correction
-- Cite the authoritative source for what "correct" means (framework docs,
-  design pattern book, official style guide)
-
-SIMPLICITY BIAS:
-- Prefer boring technology over exciting technology
-- Prefer fewer dependencies over more
-- Prefer built-in solutions over custom
-- Prefer proven patterns over novel approaches
+4. Compare the PROPOSED architecture against the REFERENCE architecture
 
 RETURN:
 RESEARCH QUESTION: {question}
 
 FINDINGS:
-- {finding with source}
+- {finding with source URL}
 
 ARCHITECTURE ASSESSMENT:
 - Existing pattern: {what the codebase currently does}
 - Reference pattern: {what the by-the-book approach is}
 - Deviation: {NONE | MINOR | MAJOR}
-- If deviation: {what the change should do differently}
 
-VALIDATION: VALIDATED | CONCERNS | ANTI-PATTERN | OVER-ENGINEERED
-
-SIMPLICITY CHECK:
-- Simpler alternative exists: YES/NO
-- If YES: {what and why}
+VALIDATION: VALIDATED | CONCERNS | ANTI-PATTERN | NEEDS_MORE_INFO
 
 RECOMMENDATION: {specific action}
 
