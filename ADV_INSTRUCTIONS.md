@@ -514,6 +514,16 @@ The `/adv-research` command uses a specialized `adv-researcher` subagent for arc
 
 **Disabled Tools:** `write`, `edit`, `bash`, `morph_edit`, `task`, `todowrite` (research agents are read-only)
 
+**Context Passed to Sub-Agent:**
+
+The `/adv-research` command passes full project context to sub-agents:
+- **PROJECT TECH STACK**: Complete `project.md` content (frameworks, component libraries, primitives)
+- **CONTEXT**: Relevant spec/proposal excerpt
+- **EXISTING CODEBASE PATTERNS**: Summary from Phase 1 architecture audit
+- **CODEBASE FILES**: List of files the sub-agent should read
+
+This enables the sub-agent to research the correct libraries. For example, if your project uses shadcn-svelte (built on Bits UI), the sub-agent will look up both shadcn-svelte AND Bits UI documentation for component questions.
+
 ### User Override
 
 Override the agent configuration in your `opencode.json`:

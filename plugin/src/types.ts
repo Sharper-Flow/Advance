@@ -482,6 +482,8 @@ export const ChangeSchema = z
     wisdom: z.array(WisdomEntrySchema).optional(),
     /** 6-gate quality checklist (optional, backwards compatible with migration) */
     gates: GatesSchema.optional(),
+    /** Linked GitHub issue URLs (optional, backwards compatible) */
+    github_issues: z.array(z.string().url()).optional(),
   })
   .passthrough(); // Allow extra fields for forward/backward compatibility
 
@@ -769,6 +771,8 @@ export const AgendaItemSchema = z
     tdd_evidence: TddEvidenceSchema.optional(),
     /** 6-gate quality checklist (optional, backwards compatible with migration) */
     gates: GatesSchema.optional(),
+    /** Linked GitHub issue URLs (optional, backwards compatible) */
+    github_issues: z.array(z.string().url()).optional(),
   })
   .passthrough(); // Allow extra fields for forward/backward compatibility
 

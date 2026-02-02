@@ -38,6 +38,8 @@ const COMMAND_EMOJIS: Record<string, string> = {
   adv_change_create: "✨",
   adv_change_validate: "✅",
   adv_change_archive: "📦",
+  adv_change_add_issue: "🔗",
+  adv_change_remove_issue: "🔓",
 
   // Task Operations
   adv_task_list: "📝",

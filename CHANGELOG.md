@@ -96,6 +96,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 #### Validation Engine
 - Completeness checks (tasks, deltas, scenarios, ID formats)
 - Conflict detection (duplicates, orphans, priority downgrades)
+s**: `adv_task_list`, `adv_task_ready`, `adv_task_update`, `adv_task_add`
+- **Status Tool**: `adv_status`
+
+#### Validation Engine
+- Completeness checks (tasks, deltas, scenarios, ID formats)
+- Conflict detection (duplicates, orphans, priority downgrades)
 - Reference validation (spec existence, requirement existence)
 - "Specs as laws" enforcement
 

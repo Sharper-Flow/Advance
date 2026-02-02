@@ -267,6 +267,52 @@ describe("ChangeSchema", () => {
       }),
     ).toThrow();
   });
+
+  test("parses change with github_issues field", () => {
+    const changeWithIssues = {
+      id: "testChange",
+      title: "Test Change",
+      status: "draft",
+      created_at: "2026-01-01T00:00:00Z",
+      tasks: [],
+      deltas: {},
+      github_issues: [
+        "https://github.com/org/repo/issues/123",
+        "https://github.com/org/repo/issues/456",
+      ],
+    };
+    const result = ChangeSchema.parse(changeWithIssues);
+    expect(result.github_issues).toEqual([
+      "https://github.com/org/repo/issues/123",
+      "https://github.com/org/repo/issues/456",
+    ]);
+  });
+
+  test("accepts change without github_issues (backwards compatible)", () => {
+    const changeWithoutIssues = {
+      id: "testChange",
+      title: "Test Change",
+      status: "draft",
+      created_at: "2026-01-01T00:00:00Z",
+      tasks: [],
+      deltas: {},
+    };
+    const result = ChangeSchema.parse(changeWithoutIssues);
+    expect(result.github_issues).toBeUndefined();
+  });
+
+  test("rejects invalid URL in github_issues", () => {
+    const changeWithInvalidUrl = {
+      id: "testChange",
+      title: "Test Change",
+      status: "draft",
+      created_at: "2026-01-01T00:00:00Z",
+      tasks: [],
+      deltas: {},
+      github_issues: ["not-a-valid-url"],
+    };
+    expect(() => ChangeSchema.parse(changeWithInvalidUrl)).toThrow();
+  });
 });
 
 describe("ProjectConfigSchema", () => {
@@ -750,6 +796,45 @@ describe("Schema Backward Compatibility", () => {
       expect(result.priority).toBe("medium");
       expect(result.status).toBe("pending");
       expect(result.tdd_phase).toBe("none");
+    });
+
+    test("parses agenda item with github_issues field", () => {
+      const itemWithIssues = {
+        id: "ag-issues123",
+        title: "Linked Item",
+        created_at: "2026-01-01T00:00:00Z",
+        github_issues: [
+          "https://github.com/org/repo/issues/1",
+          "https://github.com/org/repo/issues/2",
+        ],
+      };
+
+      const result = AgendaItemSchema.parse(itemWithIssues);
+      expect(result.github_issues).toEqual([
+        "https://github.com/org/repo/issues/1",
+        "https://github.com/org/repo/issues/2",
+      ]);
+    });
+
+    test("accepts agenda item without github_issues (backwards compatible)", () => {
+      const itemWithoutIssues = {
+        id: "ag-noissues",
+        title: "No Issues",
+        created_at: "2026-01-01T00:00:00Z",
+      };
+
+      const result = AgendaItemSchema.parse(itemWithoutIssues);
+      expect(result.github_issues).toBeUndefined();
+    });
+
+    test("rejects invalid URL in agenda item github_issues", () => {
+      const itemWithInvalidUrl = {
+        id: "ag-badurl",
+        title: "Bad URL",
+        created_at: "2026-01-01T00:00:00Z",
+        github_issues: ["not-a-valid-url"],
+      };
+      expect(() => AgendaItemSchema.parse(itemWithInvalidUrl)).toThrow();
     });
   });
 

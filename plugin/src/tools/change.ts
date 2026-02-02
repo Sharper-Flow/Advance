@@ -270,4 +270,121 @@ export const changeTools = {
       );
     },
   },
+
+  adv_change_add_issue: {
+    description: "Add a GitHub issue URL to a change",
+    args: {
+      changeId: z.string().describe("Change ID"),
+      issueUrl: z.string().url().describe("GitHub issue URL to add"),
+    },
+    execute: async (
+      { changeId, issueUrl }: { changeId: string; issueUrl: string },
+      store: Store,
+    ) => {
+      const result = await store.changes.get(changeId);
+      if (!result.success) {
+        return wrapWithBanner(
+          { command: "adv_change_add_issue", target: changeId },
+          JSON.stringify({ error: result.error }),
+        );
+      }
+      if (!result.data) {
+        return wrapWithBanner(
+          { command: "adv_change_add_issue", target: changeId },
+          JSON.stringify({ error: `Change not found: ${changeId}` }),
+        );
+      }
+
+      const change = result.data;
+
+      // Initialize github_issues array if not present
+      if (!change.github_issues) {
+        change.github_issues = [];
+      }
+
+      // Check for duplicate
+      if (change.github_issues.includes(issueUrl)) {
+        return wrapWithBanner(
+          { command: "adv_change_add_issue", target: changeId },
+          JSON.stringify({
+            success: true,
+            message: `Issue already linked: ${issueUrl}`,
+            github_issues: change.github_issues,
+          }),
+        );
+      }
+
+      // Add the issue URL
+      change.github_issues.push(issueUrl);
+
+      // Save the change
+      await store.changes.save(change);
+
+      return wrapWithBanner(
+        { command: "adv_change_add_issue", target: changeId },
+        JSON.stringify({
+          success: true,
+          message: `Added issue: ${issueUrl}`,
+          github_issues: change.github_issues,
+        }),
+      );
+    },
+  },
+
+  adv_change_remove_issue: {
+    description: "Remove a GitHub issue URL from a change",
+    args: {
+      changeId: z.string().describe("Change ID"),
+      issueUrl: z.string().url().describe("GitHub issue URL to remove"),
+    },
+    execute: async (
+      { changeId, issueUrl }: { changeId: string; issueUrl: string },
+      store: Store,
+    ) => {
+      const result = await store.changes.get(changeId);
+      if (!result.success) {
+        return wrapWithBanner(
+          { command: "adv_change_remove_issue", target: changeId },
+          JSON.stringify({ error: result.error }),
+        );
+      }
+      if (!result.data) {
+        return wrapWithBanner(
+          { command: "adv_change_remove_issue", target: changeId },
+          JSON.stringify({ error: `Change not found: ${changeId}` }),
+        );
+      }
+
+      const change = result.data;
+
+      // Check if github_issues exists and contains the URL
+      if (!change.github_issues || !change.github_issues.includes(issueUrl)) {
+        return wrapWithBanner(
+          { command: "adv_change_remove_issue", target: changeId },
+          JSON.stringify({
+            success: true,
+            message: `Issue not linked: ${issueUrl}`,
+            github_issues: change.github_issues || [],
+          }),
+        );
+      }
+
+      // Remove the issue URL
+      change.github_issues = change.github_issues.filter(
+        (url) => url !== issueUrl,
+      );
+
+      // Save the change
+      await store.changes.save(change);
+
+      return wrapWithBanner(
+        { command: "adv_change_remove_issue", target: changeId },
+        JSON.stringify({
+          success: true,
+          message: `Removed issue: ${issueUrl}`,
+          github_issues: change.github_issues,
+        }),
+      );
+    },
+  },
 };

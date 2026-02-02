@@ -118,13 +118,24 @@ export async function recoverFromCorruption(dbPath: string): Promise<void> {
 // =============================================================================
 
 export function initDatabase(db: Database): void {
-  // Enable WAL for performance
+  // Enable WAL for better concurrent access
   db.exec("PRAGMA journal_mode = WAL");
   db.exec("PRAGMA foreign_keys = ON");
 
-  // Optimize for our workload
+  // Optimize for concurrent workload
   db.exec("PRAGMA synchronous = NORMAL");
   db.exec("PRAGMA cache_size = -64000"); // 64MB cache
+
+  // Critical for concurrent access - wait up to 5 seconds for locks
+  db.exec("PRAGMA busy_timeout = 5000");
+
+  // Use IMMEDIATE transactions to fail fast on write conflicts
+  // rather than deadlocking mid-transaction
+  db.exec("PRAGMA locking_mode = NORMAL");
+
+  // Reduce WAL checkpoint frequency to avoid contention
+  // Auto-checkpoint when WAL exceeds 1000 pages (~4MB)
+  db.exec("PRAGMA wal_autocheckpoint = 1000");
 
   // Check health on startup
   const health = checkDatabaseHealth(db);

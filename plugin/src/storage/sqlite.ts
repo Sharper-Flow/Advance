@@ -12,6 +12,51 @@ import { statSync } from "node:fs";
 import type { Spec, Change, Task } from "../types";
 
 // =============================================================================
+// Retry Logic for Concurrent Access
+// =============================================================================
+
+const MAX_RETRIES = 3;
+const RETRY_DELAY_MS = 100;
+
+/**
+ * Execute a database operation with retry logic for busy/locked errors.
+ * SQLite can return SQLITE_BUSY when another process holds a lock.
+ */
+function withRetry<T>(operation: () => T, operationName: string): T {
+  let lastError: Error | null = null;
+
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      return operation();
+    } catch (e) {
+      const error = e as Error;
+      const isBusy =
+        error.message.includes("database is locked") ||
+        error.message.includes("SQLITE_BUSY") ||
+        error.message.includes("cannot start a transaction");
+
+      if (isBusy && attempt < MAX_RETRIES) {
+        lastError = error;
+        // Exponential backoff: 100ms, 200ms, 400ms...
+        const delay = RETRY_DELAY_MS * Math.pow(2, attempt - 1);
+        // Synchronous sleep - not ideal but necessary for synchronous API
+        const start = Date.now();
+        while (Date.now() - start < delay) {
+          // busy wait
+        }
+        continue;
+      }
+      throw error;
+    }
+  }
+
+  throw (
+    lastError ??
+    new Error(`${operationName} failed after ${MAX_RETRIES} retries`)
+  );
+}
+
+// =============================================================================
 // Database Schema
 // =============================================================================
 
@@ -405,52 +450,54 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
       },
 
       upsert: (spec, jsonPath) => {
-        const now = new Date().toISOString();
+        withRetry(() => {
+          const now = new Date().toISOString();
 
-        // Use transaction for atomic updates
-        db.exec("BEGIN TRANSACTION");
-        try {
-          stmts.specsUpsert.run(
-            spec.name,
-            spec.title,
-            spec.purpose,
-            spec.version,
-            spec.updated_at,
-            jsonPath,
-            now,
-          );
-
-          // Delete old requirements
-          stmts.reqsDeleteBySpec.run(spec.name);
-
-          // Insert requirements
-          for (const req of spec.requirements) {
-            stmts.reqsInsert.run(
-              req.id,
+          // Use IMMEDIATE transaction to acquire write lock upfront
+          db.exec("BEGIN IMMEDIATE TRANSACTION");
+          try {
+            stmts.specsUpsert.run(
               spec.name,
-              req.title,
-              req.body,
-              req.priority,
-              req.tags ? JSON.stringify(req.tags) : null,
+              spec.title,
+              spec.purpose,
+              spec.version,
+              spec.updated_at,
+              jsonPath,
+              now,
             );
 
-            // Insert scenarios
-            for (const scenario of req.scenarios ?? []) {
-              stmts.scenarioInsert.run(
-                scenario.id,
+            // Delete old requirements
+            stmts.reqsDeleteBySpec.run(spec.name);
+
+            // Insert requirements
+            for (const req of spec.requirements) {
+              stmts.reqsInsert.run(
                 req.id,
-                scenario.title,
-                JSON.stringify(scenario.given),
-                scenario.when,
-                JSON.stringify(scenario.then),
+                spec.name,
+                req.title,
+                req.body,
+                req.priority,
+                req.tags ? JSON.stringify(req.tags) : null,
               );
+
+              // Insert scenarios
+              for (const scenario of req.scenarios ?? []) {
+                stmts.scenarioInsert.run(
+                  scenario.id,
+                  req.id,
+                  scenario.title,
+                  JSON.stringify(scenario.given),
+                  scenario.when,
+                  JSON.stringify(scenario.then),
+                );
+              }
             }
+            db.exec("COMMIT");
+          } catch (e) {
+            db.exec("ROLLBACK");
+            throw e;
           }
-          db.exec("COMMIT");
-        } catch (e) {
-          db.exec("ROLLBACK");
-          throw e;
-        }
+        }, "specs.upsert");
       },
 
       delete: (name) => {
@@ -485,72 +532,74 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
       },
 
       upsert: (change, jsonPath) => {
-        const now = new Date().toISOString();
+        withRetry(() => {
+          const now = new Date().toISOString();
 
-        // Use transaction for atomic updates
-        db.exec("BEGIN TRANSACTION");
-        try {
-          stmts.changesUpsert.run(
-            change.id,
-            change.title,
-            change.status,
-            change.created_at,
-            change.created_by ?? null,
-            jsonPath,
-            now,
-          );
-
-          // Delete old tasks
-          stmts.tasksDeleteByChange.run(change.id);
-
-          // Insert tasks
-          for (const task of change.tasks) {
-            stmts.tasksInsert.run(
-              task.id,
+          // Use IMMEDIATE transaction to acquire write lock upfront
+          db.exec("BEGIN IMMEDIATE TRANSACTION");
+          try {
+            stmts.changesUpsert.run(
               change.id,
-              task.title,
-              task.section ?? null,
-              task.status,
-              task.priority ?? 0,
-              task.created_at,
-              task.started_at ?? null,
-              task.completed_at ?? null,
-              task.completed_by ?? null,
+              change.title,
+              change.status,
+              change.created_at,
+              change.created_by ?? null,
+              jsonPath,
+              now,
             );
 
-            // Insert dependencies
-            for (const dep of task.deps ?? []) {
-              stmts.depInsert.run(task.id, dep.target, dep.type);
-            }
-          }
+            // Delete old tasks
+            stmts.tasksDeleteByChange.run(change.id);
 
-          // Delete old deltas
-          stmts.deltasDeleteByChange.run(change.id);
-
-          // Insert deltas
-          for (const [capability, deltas] of Object.entries(change.deltas)) {
-            for (const delta of deltas) {
-              stmts.deltaInsert.run(
-                delta.id,
+            // Insert tasks
+            for (const task of change.tasks) {
+              stmts.tasksInsert.run(
+                task.id,
                 change.id,
-                capability,
-                delta.operation,
-                "target_id" in delta ? delta.target_id : null,
-                delta.operation === "add"
-                  ? JSON.stringify(delta.requirement)
-                  : null,
-                delta.operation === "modify"
-                  ? JSON.stringify(delta.changes)
-                  : null,
-                delta.operation === "remove" ? delta.reason : null,
+                task.title,
+                task.section ?? null,
+                task.status,
+                task.priority ?? 0,
+                task.created_at,
+                task.started_at ?? null,
+                task.completed_at ?? null,
+                task.completed_by ?? null,
               );
+
+              // Insert dependencies
+              for (const dep of task.deps ?? []) {
+                stmts.depInsert.run(task.id, dep.target, dep.type);
+              }
             }
+
+            // Delete old deltas
+            stmts.deltasDeleteByChange.run(change.id);
+
+            // Insert deltas
+            for (const [capability, deltas] of Object.entries(change.deltas)) {
+              for (const delta of deltas) {
+                stmts.deltaInsert.run(
+                  delta.id,
+                  change.id,
+                  capability,
+                  delta.operation,
+                  "target_id" in delta ? delta.target_id : null,
+                  delta.operation === "add"
+                    ? JSON.stringify(delta.requirement)
+                    : null,
+                  delta.operation === "modify"
+                    ? JSON.stringify(delta.changes)
+                    : null,
+                  delta.operation === "remove" ? delta.reason : null,
+                );
+              }
+            }
+            db.exec("COMMIT");
+          } catch (e) {
+            db.exec("ROLLBACK");
+            throw e;
           }
-          db.exec("COMMIT");
-        } catch (e) {
-          db.exec("ROLLBACK");
-          throw e;
-        }
+        }, "changes.upsert");
       },
 
       delete: (id) => {

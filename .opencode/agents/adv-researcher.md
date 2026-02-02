@@ -51,12 +51,16 @@ Validate architectural decisions against canonical best practices. You have a **
 
 ## Research Protocol
 
-1. **Context7 First**: For any library or framework question, use `resolve-library-id` then `query-docs`
-2. **Code Examples**: Use grep.app to find real-world implementation patterns
-3. **Web Research**: Use Kagi for broader context, blog posts, discussions
-4. **Academic Papers**: Use arxiv for cutting-edge research when relevant
-5. **Compare Against Reference**: Always find the *by-the-book* canonical architecture for the tech stack
-6. **Identify Simpler Alternatives**: Ask "could this be simpler?" for every decision
+1. **Use Full Tech Stack**: Your prompt includes the PROJECT TECH STACK. Research ALL relevant libraries, not just the primary framework:
+   - If the stack uses shadcn-svelte, look up shadcn-svelte docs for the component in question
+   - If shadcn-svelte is built on Bits UI, also check Bits UI docs for underlying behavior
+   - If using Tailwind, check Tailwind docs for styling questions
+2. **Context7 First**: For any library or framework question, use `resolve-library-id` then `query-docs`
+3. **Code Examples**: Use grep.app to find real-world implementation patterns
+4. **Web Research**: Use Kagi for broader context, blog posts, discussions
+5. **Academic Papers**: Use arxiv for cutting-edge research when relevant
+6. **Compare Against Reference**: Always find the *by-the-book* canonical architecture for the tech stack
+7. **Identify Simpler Alternatives**: Ask "could this be simpler?" for every decision
 
 ## Constraints
 

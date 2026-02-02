@@ -30,6 +30,22 @@ Determine target (spec OR change):
 
 ### Load Context
 
+**Step 1: Load Project Context (REQUIRED)**
+
+Always load the full project context first:
+```
+adv_project_context
+```
+
+This provides the complete tech stack including:
+- Primary framework (e.g., SvelteKit, Next.js)
+- Component libraries (e.g., shadcn-svelte, Radix)
+- Underlying primitives (e.g., Bits UI, Headless UI)
+- CSS approach (e.g., Tailwind, CSS Modules)
+- State management, testing tools, etc.
+
+**Step 2: Load Target**
+
 For specs:
 ```
 adv_spec_show capability: <name>
@@ -155,6 +171,9 @@ When using `adv-researcher` agent, the system prompt already contains all behavi
 ```
 RESEARCH QUESTION: {question}
 
+PROJECT TECH STACK:
+{full content from adv_project_context - include ALL libraries, not just the primary framework}
+
 CONTEXT:
 {relevant spec/proposal excerpt}
 
@@ -164,6 +183,13 @@ EXISTING CODEBASE PATTERNS:
 CODEBASE FILES:
 {list of relevant files the subagent should read}
 ```
+
+**CRITICAL**: Include the FULL project context, not a summary. The sub-agent needs to know:
+- Component libraries (e.g., shadcn-svelte) to look up component-specific docs
+- Underlying primitives (e.g., Bits UI) that power those components
+- CSS frameworks, state management, testing tools, etc.
+
+Without this, the sub-agent cannot research the correct libraries for the project's actual stack.
 
 The agent's system prompt handles:
 - Research protocol (Context7 → grep.app → Kagi → arxiv)
@@ -180,6 +206,9 @@ When using `explore` agent as fallback (no adv-researcher.md), include full inst
 Research architectural decision:
 
 QUESTION: {question}
+
+PROJECT TECH STACK:
+{full content from adv_project_context - include ALL libraries}
 
 CONTEXT: {spec excerpt}
 

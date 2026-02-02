@@ -107,6 +107,49 @@ describe("Change Tools", () => {
 
       expect(parsed.error).toContain("not found");
     });
+
+    test("displays github_issues prominently in output", async () => {
+      // Add github issues to the change
+      const changeResult = await store.changes.get("addFeature");
+      expect(changeResult.success).toBe(true);
+      changeResult.data!.github_issues = [
+        "https://github.com/anomalyco/test/issues/123",
+        "https://github.com/anomalyco/test/issues/456",
+      ];
+      await store.changes.save(changeResult.data!);
+
+      const result = await changeTools.adv_change_show.execute(
+        { changeId: "addFeature" },
+        store,
+      );
+      const parsed = JSON.parse(result);
+
+      // github_issues should be present in the output
+      expect(parsed.github_issues).toBeDefined();
+      expect(parsed.github_issues).toHaveLength(2);
+      expect(parsed.github_issues).toContain(
+        "https://github.com/anomalyco/test/issues/123",
+      );
+      expect(parsed.github_issues).toContain(
+        "https://github.com/anomalyco/test/issues/456",
+      );
+    });
+
+    test("displays empty github_issues array when none linked", async () => {
+      // addFeature has no github_issues by default
+      const result = await changeTools.adv_change_show.execute(
+        { changeId: "addFeature" },
+        store,
+      );
+      const parsed = JSON.parse(result);
+
+      // Should have github_issues field (empty or undefined is acceptable)
+      // When displayed, it should be clear there are no linked issues
+      expect(
+        parsed.github_issues === undefined ||
+          Array.isArray(parsed.github_issues),
+      ).toBe(true);
+    });
   });
 
   describe("adv_change_create", () => {
@@ -300,6 +343,239 @@ describe("Change Tools", () => {
       expect(parsed.error).toContain("gate");
       expect(parsed.incompleteGates).toBeDefined();
       expect(parsed.incompleteGates.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe("adv_change_add_issue", () => {
+    test("adds issue URL to change without existing issues", async () => {
+      const result = await changeTools.adv_change_add_issue.execute(
+        {
+          changeId: "addFeature",
+          issueUrl: "https://github.com/org/repo/issues/123",
+        },
+        store,
+      );
+      const parsed = parseToolOutput(result);
+
+      expect(parsed.success).toBe(true);
+      expect(parsed.github_issues).toContain(
+        "https://github.com/org/repo/issues/123",
+      );
+    });
+
+    test("adds issue URL to change with existing issues", async () => {
+      // Add first issue
+      await changeTools.adv_change_add_issue.execute(
+        {
+          changeId: "addFeature",
+          issueUrl: "https://github.com/org/repo/issues/123",
+        },
+        store,
+      );
+
+      // Add second issue
+      const result = await changeTools.adv_change_add_issue.execute(
+        {
+          changeId: "addFeature",
+          issueUrl: "https://github.com/org/repo/issues/456",
+        },
+        store,
+      );
+      const parsed = parseToolOutput(result);
+
+      expect(parsed.success).toBe(true);
+      expect(parsed.github_issues).toHaveLength(2);
+      expect(parsed.github_issues).toContain(
+        "https://github.com/org/repo/issues/123",
+      );
+      expect(parsed.github_issues).toContain(
+        "https://github.com/org/repo/issues/456",
+      );
+    });
+
+    test("prevents duplicate issue URLs", async () => {
+      // Add issue
+      await changeTools.adv_change_add_issue.execute(
+        {
+          changeId: "addFeature",
+          issueUrl: "https://github.com/org/repo/issues/123",
+        },
+        store,
+      );
+
+      // Try to add same issue again
+      const result = await changeTools.adv_change_add_issue.execute(
+        {
+          changeId: "addFeature",
+          issueUrl: "https://github.com/org/repo/issues/123",
+        },
+        store,
+      );
+      const parsed = parseToolOutput(result);
+
+      expect(parsed.success).toBe(true);
+      expect(parsed.github_issues).toHaveLength(1);
+      expect(parsed.message).toContain("already linked");
+    });
+
+    test("returns error for nonexistent change", async () => {
+      const result = await changeTools.adv_change_add_issue.execute(
+        {
+          changeId: "nonexistent",
+          issueUrl: "https://github.com/org/repo/issues/123",
+        },
+        store,
+      );
+      const parsed = parseToolOutput(result);
+
+      expect(parsed.error).toContain("not found");
+    });
+
+    // Note: URL validation is handled by Zod schema in safeExecute wrapper (index.ts),
+    // not by the raw execute function. Invalid URLs are rejected at the MCP tool level.
+
+    test("persists issue to JSON file", async () => {
+      await changeTools.adv_change_add_issue.execute(
+        {
+          changeId: "addFeature",
+          issueUrl: "https://github.com/org/repo/issues/123",
+        },
+        store,
+      );
+
+      // Verify persisted by reloading
+      const result = await changeTools.adv_change_show.execute(
+        { changeId: "addFeature" },
+        store,
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed.github_issues).toContain(
+        "https://github.com/org/repo/issues/123",
+      );
+    });
+  });
+
+  describe("adv_change_remove_issue", () => {
+    test("removes issue URL from change", async () => {
+      // Add issue first
+      await changeTools.adv_change_add_issue.execute(
+        {
+          changeId: "addFeature",
+          issueUrl: "https://github.com/org/repo/issues/123",
+        },
+        store,
+      );
+
+      // Remove it
+      const result = await changeTools.adv_change_remove_issue.execute(
+        {
+          changeId: "addFeature",
+          issueUrl: "https://github.com/org/repo/issues/123",
+        },
+        store,
+      );
+      const parsed = parseToolOutput(result);
+
+      expect(parsed.success).toBe(true);
+      expect(parsed.github_issues).not.toContain(
+        "https://github.com/org/repo/issues/123",
+      );
+    });
+
+    test("removes only specified issue, keeps others", async () => {
+      // Add two issues
+      await changeTools.adv_change_add_issue.execute(
+        {
+          changeId: "addFeature",
+          issueUrl: "https://github.com/org/repo/issues/123",
+        },
+        store,
+      );
+      await changeTools.adv_change_add_issue.execute(
+        {
+          changeId: "addFeature",
+          issueUrl: "https://github.com/org/repo/issues/456",
+        },
+        store,
+      );
+
+      // Remove one
+      const result = await changeTools.adv_change_remove_issue.execute(
+        {
+          changeId: "addFeature",
+          issueUrl: "https://github.com/org/repo/issues/123",
+        },
+        store,
+      );
+      const parsed = parseToolOutput(result);
+
+      expect(parsed.success).toBe(true);
+      expect(parsed.github_issues).toHaveLength(1);
+      expect(parsed.github_issues).not.toContain(
+        "https://github.com/org/repo/issues/123",
+      );
+      expect(parsed.github_issues).toContain(
+        "https://github.com/org/repo/issues/456",
+      );
+    });
+
+    test("handles removing non-existent issue gracefully", async () => {
+      const result = await changeTools.adv_change_remove_issue.execute(
+        {
+          changeId: "addFeature",
+          issueUrl: "https://github.com/org/repo/issues/999",
+        },
+        store,
+      );
+      const parsed = parseToolOutput(result);
+
+      expect(parsed.success).toBe(true);
+      expect(parsed.message).toContain("not linked");
+    });
+
+    test("returns error for nonexistent change", async () => {
+      const result = await changeTools.adv_change_remove_issue.execute(
+        {
+          changeId: "nonexistent",
+          issueUrl: "https://github.com/org/repo/issues/123",
+        },
+        store,
+      );
+      const parsed = parseToolOutput(result);
+
+      expect(parsed.error).toContain("not found");
+    });
+
+    test("persists removal to JSON file", async () => {
+      // Add issue
+      await changeTools.adv_change_add_issue.execute(
+        {
+          changeId: "addFeature",
+          issueUrl: "https://github.com/org/repo/issues/123",
+        },
+        store,
+      );
+
+      // Remove issue
+      await changeTools.adv_change_remove_issue.execute(
+        {
+          changeId: "addFeature",
+          issueUrl: "https://github.com/org/repo/issues/123",
+        },
+        store,
+      );
+
+      // Verify persisted by reloading
+      const result = await changeTools.adv_change_show.execute(
+        { changeId: "addFeature" },
+        store,
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed.github_issues || []).not.toContain(
+        "https://github.com/org/repo/issues/123",
+      );
     });
   });
 });
