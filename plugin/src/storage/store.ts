@@ -213,6 +213,8 @@ export async function createStore(directory: string): Promise<Store> {
 
   // Track if synced this session
   let synced = false;
+  // Track if closed to prevent double-close
+  let closed = false;
 
   const store: Store = {
     paths,
@@ -242,7 +244,7 @@ export async function createStore(directory: string): Promise<Store> {
     },
 
     sync: async () => {
-      if (synced) return;
+      if (synced || closed) return;
 
       // Sync specs (incremental - only load changed files)
       const specs = await loadAllSpecs(paths.specs);
@@ -278,6 +280,8 @@ export async function createStore(directory: string): Promise<Store> {
     },
 
     close: () => {
+      if (closed) return; // Prevent double-close
+      closed = true;
       closeDatabase(sqlite.db);
     },
 

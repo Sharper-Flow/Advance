@@ -133,13 +133,30 @@ export const AdvancePlugin: Plugin = async ({ directory }) => {
   };
 
   // Register cleanup handlers (store references for removal)
-  const handleExit = () => cleanupTerminal();
+  const handleExit = () => {
+    cleanupTerminal();
+    try {
+      store.close();
+    } catch {
+      // Ignore errors during exit
+    }
+  };
   const handleSigInt = () => {
     cleanupTerminal();
+    try {
+      store.close();
+    } catch {
+      // Ignore errors during signal handling
+    }
     process.exit(0);
   };
   const handleSigTerm = () => {
     cleanupTerminal();
+    try {
+      store.close();
+    } catch {
+      // Ignore errors during signal handling
+    }
     process.exit(0);
   };
   process.on("exit", handleExit);
@@ -282,6 +299,31 @@ export const AdvancePlugin: Plugin = async ({ directory }) => {
         execute: safeExecute(
           async (args) => changeTools.adv_change_archive.execute(args, store),
           "adv_change_archive",
+        ),
+      }),
+
+      adv_change_add_issue: tool({
+        description: changeTools.adv_change_add_issue.description,
+        args: {
+          changeId: tool.schema.string().describe("Change ID"),
+          issueUrl: tool.schema.string().describe("GitHub issue URL to add"),
+        },
+        execute: safeExecute(
+          async (args) => changeTools.adv_change_add_issue.execute(args, store),
+          "adv_change_add_issue",
+        ),
+      }),
+
+      adv_change_remove_issue: tool({
+        description: changeTools.adv_change_remove_issue.description,
+        args: {
+          changeId: tool.schema.string().describe("Change ID"),
+          issueUrl: tool.schema.string().describe("GitHub issue URL to remove"),
+        },
+        execute: safeExecute(
+          async (args) =>
+            changeTools.adv_change_remove_issue.execute(args, store),
+          "adv_change_remove_issue",
         ),
       }),
 
@@ -694,6 +736,13 @@ export const AdvancePlugin: Plugin = async ({ directory }) => {
         } else if (eventType === "session.deleted") {
           cleanupTerminal();
           removeProcessListeners();
+          // Close SQLite database to release resources
+          try {
+            store.close();
+            debugLog("Store closed on session.deleted");
+          } catch (e) {
+            debugLog(`Error closing store: ${e}`);
+          }
         } else if (
           eventType === "permission.updated" ||
           eventType === "permission.asked"
