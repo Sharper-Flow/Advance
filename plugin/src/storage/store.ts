@@ -211,10 +211,159 @@ export async function createStore(directory: string): Promise<Store> {
     }
   }
 
-  // Track if synced this session
-  let synced = false;
   // Track if closed to prevent double-close
   let closed = false;
+
+  // ==========================================================================
+  // Lazy Sync Infrastructure
+  // ==========================================================================
+  // Instead of syncing ALL specs/changes on startup, we sync on-demand
+  // This dramatically reduces plugin initialization time
+
+  // Track what's been synced this session
+  const syncedSpecs = new Set<string>();
+  const syncedChanges = new Set<string>();
+
+  // Track pending sync promises to handle concurrent access
+  const pendingSpecSyncs = new Map<string, Promise<void>>();
+  const pendingChangeSyncs = new Map<string, Promise<void>>();
+
+  // Full sync promises (for list/search operations that need everything)
+  let allSpecsSyncPromise: Promise<void> | null = null;
+  let allChangesSyncPromise: Promise<void> | null = null;
+
+  /**
+   * Ensure a single spec is synced to SQLite.
+   * Used for targeted operations like specs.get()
+   */
+  const ensureSpecSynced = async (capability: string): Promise<void> => {
+    if (closed) return;
+    if (syncedSpecs.has(capability)) return;
+
+    // Check if sync is already in progress
+    let pending = pendingSpecSyncs.get(capability);
+    if (pending) return pending;
+
+    // Start new sync
+    pending = (async () => {
+      try {
+        const jsonPath = join(paths.specs, capability, "spec.json");
+        if (sqlite.sync.needsSync(jsonPath)) {
+          const result = await loadSpec(paths.specs, capability);
+          if (result.success && result.data) {
+            sqlite.specs.upsert(result.data, jsonPath);
+            sqlite.sync.markSynced(jsonPath);
+            if (shouldCheckpoint(dbPath)) {
+              checkpointWAL(sqlite.db);
+            }
+          }
+        }
+        syncedSpecs.add(capability);
+      } finally {
+        pendingSpecSyncs.delete(capability);
+      }
+    })();
+
+    pendingSpecSyncs.set(capability, pending);
+    return pending;
+  };
+
+  /**
+   * Ensure all specs are synced to SQLite.
+   * Required for list() and search() operations that need full FTS index.
+   * Uses promise singleton pattern - only runs once per session.
+   */
+  const ensureAllSpecsSynced = async (): Promise<void> => {
+    if (closed) return;
+    if (allSpecsSyncPromise) return allSpecsSyncPromise;
+
+    allSpecsSyncPromise = (async () => {
+      const specs = await loadAllSpecs(paths.specs);
+      for (const [name, spec] of specs) {
+        if (syncedSpecs.has(name)) continue;
+
+        const jsonPath = join(paths.specs, name, "spec.json");
+        if (sqlite.sync.needsSync(jsonPath)) {
+          sqlite.specs.upsert(spec, jsonPath);
+          sqlite.sync.markSynced(jsonPath);
+          if (shouldCheckpoint(dbPath)) {
+            checkpointWAL(sqlite.db);
+          }
+        }
+        syncedSpecs.add(name);
+      }
+    })();
+
+    return allSpecsSyncPromise;
+  };
+
+  /**
+   * Ensure a single change is synced to SQLite.
+   * Used for targeted operations like changes.get()
+   */
+  const ensureChangeSynced = async (changeId: string): Promise<void> => {
+    if (closed) return;
+    if (syncedChanges.has(changeId)) return;
+
+    // Check if sync is already in progress
+    let pending = pendingChangeSyncs.get(changeId);
+    if (pending) return pending;
+
+    // Start new sync
+    pending = (async () => {
+      try {
+        const jsonPath = join(paths.changes, changeId, "change.json");
+        if (sqlite.sync.needsSync(jsonPath)) {
+          const result = await loadChange(paths.changes, changeId);
+          if (result.success && result.data) {
+            sqlite.changes.upsert(result.data, jsonPath);
+            sqlite.sync.markSynced(jsonPath);
+            if (shouldCheckpoint(dbPath)) {
+              checkpointWAL(sqlite.db);
+            }
+          }
+        }
+        syncedChanges.add(changeId);
+      } finally {
+        pendingChangeSyncs.delete(changeId);
+      }
+    })();
+
+    pendingChangeSyncs.set(changeId, pending);
+    return pending;
+  };
+
+  /**
+   * Ensure all changes are synced to SQLite.
+   * Required for list() operations.
+   * Uses promise singleton pattern - only runs once per session.
+   */
+  const ensureAllChangesSynced = async (): Promise<void> => {
+    if (closed) return;
+    if (allChangesSyncPromise) return allChangesSyncPromise;
+
+    allChangesSyncPromise = (async () => {
+      const changes = await loadAllChanges(paths.changes);
+      for (const [id, change] of changes) {
+        if (syncedChanges.has(id)) continue;
+
+        const jsonPath = join(paths.changes, id, "change.json");
+        if (sqlite.sync.needsSync(jsonPath)) {
+          sqlite.changes.upsert(change, jsonPath);
+          sqlite.sync.markSynced(jsonPath);
+          if (shouldCheckpoint(dbPath)) {
+            checkpointWAL(sqlite.db);
+          }
+        }
+        syncedChanges.add(id);
+      }
+    })();
+
+    return allChangesSyncPromise;
+  };
+
+  // Legacy flag for backwards compatibility
+  let synced = false;
 
   const store: Store = {
     paths,
@@ -244,37 +393,13 @@ export async function createStore(directory: string): Promise<Store> {
     },
 
     sync: async () => {
+      // Use lazy sync infrastructure - this is now idempotent
+      // and can be called multiple times safely
       if (synced || closed) return;
 
-      // Sync specs (incremental - only load changed files)
-      const specs = await loadAllSpecs(paths.specs);
-      for (const [name, spec] of specs) {
-        const jsonPath = join(paths.specs, name, "spec.json");
-
-        if (sqlite.sync.needsSync(jsonPath)) {
-          sqlite.specs.upsert(spec, jsonPath);
-          sqlite.sync.markSynced(jsonPath);
-
-          if (shouldCheckpoint(dbPath)) {
-            checkpointWAL(sqlite.db);
-          }
-        }
-      }
-
-      // Sync changes (incremental - only load changed files)
-      const changes = await loadAllChanges(paths.changes);
-      for (const [id, change] of changes) {
-        const jsonPath = join(paths.changes, id, "change.json");
-
-        if (sqlite.sync.needsSync(jsonPath)) {
-          sqlite.changes.upsert(change, jsonPath);
-          sqlite.sync.markSynced(jsonPath);
-
-          if (shouldCheckpoint(dbPath)) {
-            checkpointWAL(sqlite.db);
-          }
-        }
-      }
+      // Delegate to lazy sync helpers (they handle deduplication)
+      await ensureAllSpecsSynced();
+      await ensureAllChangesSynced();
 
       synced = true;
     },
@@ -287,7 +412,8 @@ export async function createStore(directory: string): Promise<Store> {
 
     specs: {
       list: async (filter) => {
-        await store.sync();
+        // Lazy sync: list needs all specs for complete results
+        await ensureAllSpecsSynced();
 
         const rows = sqlite.specs.list({ name: filter?.capability });
 
@@ -318,11 +444,14 @@ export async function createStore(directory: string): Promise<Store> {
       },
 
       get: async (capability) => {
+        // Lazy sync: only sync this specific spec
+        await ensureSpecSynced(capability);
         return loadSpec(paths.specs, capability);
       },
 
       search: async (query, limit = 20) => {
-        await store.sync();
+        // Lazy sync: search needs full FTS index
+        await ensureAllSpecsSynced();
 
         const results = sqlite.requirements.search(query, limit);
         return results.map((r) => ({
@@ -344,7 +473,8 @@ export async function createStore(directory: string): Promise<Store> {
 
     changes: {
       list: async (filter) => {
-        await store.sync();
+        // Lazy sync: list needs all changes for complete results
+        await ensureAllChangesSynced();
 
         let rows = sqlite.changes.list({ status: filter?.status });
 
@@ -449,7 +579,8 @@ export async function createStore(directory: string): Promise<Store> {
 
     tasks: {
       list: async (changeId, status) => {
-        await store.sync();
+        // Lazy sync: only sync this specific change
+        await ensureChangeSynced(changeId);
 
         // Load from JSON to get full task data including TDD fields
         const result = await loadChange(paths.changes, changeId);
@@ -464,7 +595,8 @@ export async function createStore(directory: string): Promise<Store> {
       },
 
       ready: async (changeId) => {
-        await store.sync();
+        // Lazy sync: only sync this specific change
+        await ensureChangeSynced(changeId);
 
         // Load from JSON to get full task data including TDD fields
         const result = await loadChange(paths.changes, changeId);
@@ -487,7 +619,8 @@ export async function createStore(directory: string): Promise<Store> {
       },
 
       update: async (taskId, status, notes) => {
-        await store.sync();
+        // Lazy sync: need all changes synced to find which change owns this task
+        await ensureAllChangesSynced();
 
         // Find which change this task belongs to
         const taskRow = sqlite.tasks.get(taskId);
@@ -554,7 +687,8 @@ export async function createStore(directory: string): Promise<Store> {
       },
 
       get: async (taskId) => {
-        await store.sync();
+        // Lazy sync: need all changes synced to find which change owns this task
+        await ensureAllChangesSynced();
 
         // Find which change this task belongs to
         const taskRow = sqlite.tasks.get(taskId);
@@ -568,7 +702,8 @@ export async function createStore(directory: string): Promise<Store> {
       },
 
       recordEvidence: async (taskId, phase, evidence) => {
-        await store.sync();
+        // Lazy sync: need all changes synced to find which change owns this task
+        await ensureAllChangesSynced();
 
         // Find which change this task belongs to
         const taskRow = sqlite.tasks.get(taskId);
@@ -617,7 +752,8 @@ export async function createStore(directory: string): Promise<Store> {
       },
 
       setPhase: async (taskId, phase) => {
-        await store.sync();
+        // Lazy sync: need all changes synced to find which change owns this task
+        await ensureAllChangesSynced();
 
         // Find which change this task belongs to
         const taskRow = sqlite.tasks.get(taskId);
@@ -642,7 +778,8 @@ export async function createStore(directory: string): Promise<Store> {
       },
 
       skipTdd: async (taskId, reason) => {
-        await store.sync();
+        // Lazy sync: need all changes synced to find which change owns this task
+        await ensureAllChangesSynced();
 
         // Find which change this task belongs to
         const taskRow = sqlite.tasks.get(taskId);
@@ -720,7 +857,8 @@ export async function createStore(directory: string): Promise<Store> {
 
     gates: {
       get: async (changeId) => {
-        await store.sync();
+        // Lazy sync: only sync this specific change
+        await ensureChangeSynced(changeId);
 
         const result = await loadChange(paths.changes, changeId);
         if (!result.success || !result.data) return null;
@@ -729,7 +867,8 @@ export async function createStore(directory: string): Promise<Store> {
       },
 
       complete: async (changeId, gateId) => {
-        await store.sync();
+        // Lazy sync: only sync this specific change
+        await ensureChangeSynced(changeId);
 
         const result = await loadChange(paths.changes, changeId);
         if (!result.success || !result.data) {
@@ -780,7 +919,8 @@ export async function createStore(directory: string): Promise<Store> {
       },
 
       migrate: async (changeId) => {
-        await store.sync();
+        // Lazy sync: only sync this specific change
+        await ensureChangeSynced(changeId);
 
         const result = await loadChange(paths.changes, changeId);
         if (!result.success || !result.data) {
@@ -808,7 +948,9 @@ export async function createStore(directory: string): Promise<Store> {
     },
 
     status: async () => {
-      await store.sync();
+      // Lazy sync: status needs complete overview
+      await ensureAllSpecsSynced();
+      await ensureAllChangesSynced();
 
       const specRows = sqlite.specs.list();
       const changeRows = sqlite.changes.list();

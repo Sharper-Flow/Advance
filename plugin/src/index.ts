@@ -102,10 +102,11 @@ const TEST_FAILURE_PATTERNS =
 export const AdvancePlugin: Plugin = async ({ directory }) => {
   debugLog(`Plugin initializing: directory=${directory}`);
 
-  // Initialize store
+  // Initialize store (lazy sync - don't call store.sync() here)
+  // Sync happens on-demand when tools access specs/changes
   const store = await createStore(directory);
   await store.init();
-  await store.sync();
+  // Note: store.sync() removed for faster startup - see Phase 2 lazy sync
 
   // Initialize terminal status
   const projectName = getProjectName(directory);
