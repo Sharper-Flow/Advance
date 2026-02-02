@@ -8,6 +8,7 @@ import { describe, test, expect, beforeEach, afterEach } from "vitest";
 import { join } from "path";
 import { writeFileSync } from "fs";
 import { createSQLiteStore, type SQLiteStore } from "./sqlite";
+import { initDatabase } from "./health";
 import {
   createTempDir,
   cleanupTempDir,
@@ -23,6 +24,8 @@ describe("SQLiteStore", () => {
     tempDir = await createTempDir();
     const dbPath = join(tempDir, "test.db");
     store = createSQLiteStore(dbPath);
+    // Enable foreign keys for CASCADE to work
+    initDatabase(store.db);
   });
 
   afterEach(async () => {

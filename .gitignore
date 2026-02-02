@@ -42,6 +42,6 @@ tmp/
 temp/
 *.tmp
 
-# ADV working state (local project data)
-changes/
-archive/
+# ADV working state (local project data - in .adv directory)
+.adv/changes/
+.adv/archive/

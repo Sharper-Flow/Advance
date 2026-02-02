@@ -322,27 +322,25 @@ describe("Advance Plugin SDK Integration", () => {
     test("event hook handles session.status without error", async () => {
       const hooks = await createTrackedPlugin(tempDir, pluginInstances);
 
-      await expect(
-        hooks.event!({
-          event: {
-            type: "session.status",
-            properties: { status: { type: "busy" } },
-          } as MockEvent as any,
-        }),
-      ).resolves.not.toThrow();
+      // Should complete without throwing
+      await hooks.event!({
+        event: {
+          type: "session.status",
+          properties: { status: { type: "busy" } },
+        } as MockEvent as any,
+      });
     });
 
     test("event hook handles unknown event types gracefully", async () => {
       const hooks = await createTrackedPlugin(tempDir, pluginInstances);
 
-      await expect(
-        hooks.event!({
-          event: {
-            type: "unknown.event.type",
-            properties: {},
-          } as MockEvent as any,
-        }),
-      ).resolves.not.toThrow();
+      // Should complete without throwing
+      await hooks.event!({
+        event: {
+          type: "unknown.event.type",
+          properties: {},
+        } as MockEvent as any,
+      });
     });
   });
 
@@ -469,9 +467,8 @@ describe("Advance Plugin SDK Integration", () => {
       };
       const toolOutput = { args: { command: "echo test" } };
 
-      await expect(
-        hooks["tool.execute.before"]!(toolInput, toolOutput),
-      ).resolves.not.toThrow();
+      // Should complete without throwing
+      await hooks["tool.execute.before"]!(toolInput, toolOutput);
     });
 
     test("tool.execute.after hook handles tool output", async () => {
@@ -488,9 +485,8 @@ describe("Advance Plugin SDK Integration", () => {
         metadata: {},
       };
 
-      await expect(
-        hooks["tool.execute.after"]!(toolInput, toolOutput),
-      ).resolves.not.toThrow();
+      // Should complete without throwing
+      await hooks["tool.execute.after"]!(toolInput, toolOutput);
     });
 
     test("experimental.session.compacting hook adds context", async () => {
