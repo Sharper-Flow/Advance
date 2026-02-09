@@ -331,6 +331,17 @@ export const AdvancePlugin: Plugin = async ({ directory }) => {
       // ----------------------------------------------------------------------
       // Task Tools
       // ----------------------------------------------------------------------
+      adv_task_show: tool({
+        description: taskTools.adv_task_show.description,
+        args: {
+          taskId: tool.schema.string().describe("Task ID"),
+        },
+        execute: safeExecute(
+          async (args) => taskTools.adv_task_show.execute(args, store),
+          "adv_task_show",
+        ),
+      }),
+
       adv_task_list: tool({
         description: taskTools.adv_task_list.description,
         args: {

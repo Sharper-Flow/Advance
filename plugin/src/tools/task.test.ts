@@ -458,6 +458,46 @@ describe("Task Tools", () => {
     });
   });
 
+  describe("adv_task_show", () => {
+    test("returns full task with changeId for existing task", async () => {
+      const result = await taskTools.adv_task_show.execute(
+        { taskId: "tk-task0001" },
+        store,
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed.task).toBeDefined();
+      expect(parsed.changeId).toBe("addFeature");
+      expect(parsed.task.id).toBe("tk-task0001");
+      expect(parsed.task.title).toBe("Implement core logic");
+      expect(parsed.task.status).toBe("pending");
+      expect(parsed.task.tdd_phase).toBeDefined();
+    });
+
+    test("returns all task fields", async () => {
+      const result = await taskTools.adv_task_show.execute(
+        { taskId: "tk-task0002" },
+        store,
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed.task.id).toBe("tk-task0002");
+      expect(parsed.task.deps).toBeDefined();
+      expect(parsed.task.created_at).toBeDefined();
+    });
+
+    test("returns error for nonexistent task", async () => {
+      const result = await taskTools.adv_task_show.execute(
+        { taskId: "tk-nonexistent" },
+        store,
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed.error).toContain("Task not found");
+      expect(parsed.error).toContain("tk-nonexistent");
+    });
+  });
+
   describe("adv_task_tdd_status", () => {
     test("returns TDD status for logic task", async () => {
       // Task title is "Implement the feature" - should require TDD

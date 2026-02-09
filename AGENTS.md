@@ -73,6 +73,9 @@ adv_task_list({ changeId: "add-feature" })
 // Get unblocked tasks
 adv_task_ready({ changeId: "add-feature" })
 
+// Get full task details by ID (includes parent changeId)
+adv_task_show({ taskId: "tk-abc" })
+
 // Update task status
 adv_task_update({ taskId: "tk-abc", status: "done" })
 

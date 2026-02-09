@@ -108,6 +108,8 @@ export interface Store {
     ) => Promise<Task>;
     /** Get a single task by ID */
     get: (taskId: string) => Promise<Task | null>;
+    /** Get a single task by ID with its parent change ID */
+    show: (taskId: string) => Promise<{ task: Task; changeId: string } | null>;
     /** Record TDD evidence for a task */
     recordEvidence: (
       taskId: string,
@@ -360,6 +362,28 @@ export async function createStore(directory: string): Promise<Store> {
     })();
 
     return allChangesSyncPromise;
+  };
+
+  /**
+   * Resolve a taskId to its Task, parent Change, and changeId.
+   * Extracted to DRY up the 6 methods that all need this lookup.
+   * Not exposed on the Store interface — internal to the closure.
+   */
+  const resolveTask = async (
+    taskId: string,
+  ): Promise<{ task: Task; change: Change; changeId: string } | null> => {
+    await ensureAllChangesSynced();
+
+    const taskRow = sqlite.tasks.get(taskId);
+    if (!taskRow) return null;
+
+    const result = await loadChange(paths.changes, taskRow.change_id);
+    if (!result.success || !result.data) return null;
+
+    const task = result.data.tasks.find((t) => t.id === taskId);
+    if (!task) return null;
+
+    return { task, change: result.data, changeId: taskRow.change_id };
   };
 
   // Legacy flag for backwards compatibility
@@ -619,22 +643,9 @@ export async function createStore(directory: string): Promise<Store> {
       },
 
       update: async (taskId, status, notes) => {
-        // Lazy sync: need all changes synced to find which change owns this task
-        await ensureAllChangesSynced();
-
-        // Find which change this task belongs to
-        const taskRow = sqlite.tasks.get(taskId);
-        if (!taskRow) return null;
-
-        // Load the change
-        const result = await loadChange(paths.changes, taskRow.change_id);
-        if (!result.success || !result.data) return null;
-
-        const change = result.data;
-
-        // Update task in change
-        const task = change.tasks.find((t) => t.id === taskId);
-        if (!task) return null;
+        const resolved = await resolveTask(taskId);
+        if (!resolved) return null;
+        const { task, change } = resolved;
 
         task.status = status as Task["status"];
 
@@ -687,37 +698,20 @@ export async function createStore(directory: string): Promise<Store> {
       },
 
       get: async (taskId) => {
-        // Lazy sync: need all changes synced to find which change owns this task
-        await ensureAllChangesSynced();
+        const resolved = await resolveTask(taskId);
+        return resolved?.task ?? null;
+      },
 
-        // Find which change this task belongs to
-        const taskRow = sqlite.tasks.get(taskId);
-        if (!taskRow) return null;
-
-        // Load from JSON to get full task data including TDD fields
-        const result = await loadChange(paths.changes, taskRow.change_id);
-        if (!result.success || !result.data) return null;
-
-        return result.data.tasks.find((t) => t.id === taskId) ?? null;
+      show: async (taskId) => {
+        const resolved = await resolveTask(taskId);
+        if (!resolved) return null;
+        return { task: resolved.task, changeId: resolved.changeId };
       },
 
       recordEvidence: async (taskId, phase, evidence) => {
-        // Lazy sync: need all changes synced to find which change owns this task
-        await ensureAllChangesSynced();
-
-        // Find which change this task belongs to
-        const taskRow = sqlite.tasks.get(taskId);
-        if (!taskRow) return null;
-
-        // Load the change
-        const result = await loadChange(paths.changes, taskRow.change_id);
-        if (!result.success || !result.data) return null;
-
-        const change = result.data;
-
-        // Update task in change
-        const task = change.tasks.find((t) => t.id === taskId);
-        if (!task) return null;
+        const resolved = await resolveTask(taskId);
+        if (!resolved) return null;
+        const { task, change } = resolved;
 
         // Initialize tdd_evidence if needed
         if (!task.tdd_evidence) {
@@ -752,22 +746,9 @@ export async function createStore(directory: string): Promise<Store> {
       },
 
       setPhase: async (taskId, phase) => {
-        // Lazy sync: need all changes synced to find which change owns this task
-        await ensureAllChangesSynced();
-
-        // Find which change this task belongs to
-        const taskRow = sqlite.tasks.get(taskId);
-        if (!taskRow) return null;
-
-        // Load the change
-        const result = await loadChange(paths.changes, taskRow.change_id);
-        if (!result.success || !result.data) return null;
-
-        const change = result.data;
-
-        // Update task in change
-        const task = change.tasks.find((t) => t.id === taskId);
-        if (!task) return null;
+        const resolved = await resolveTask(taskId);
+        if (!resolved) return null;
+        const { task, change } = resolved;
 
         task.tdd_phase = phase;
 
@@ -778,22 +759,9 @@ export async function createStore(directory: string): Promise<Store> {
       },
 
       skipTdd: async (taskId, reason) => {
-        // Lazy sync: need all changes synced to find which change owns this task
-        await ensureAllChangesSynced();
-
-        // Find which change this task belongs to
-        const taskRow = sqlite.tasks.get(taskId);
-        if (!taskRow) return null;
-
-        // Load the change
-        const result = await loadChange(paths.changes, taskRow.change_id);
-        if (!result.success || !result.data) return null;
-
-        const change = result.data;
-
-        // Update task in change
-        const task = change.tasks.find((t) => t.id === taskId);
-        if (!task) return null;
+        const resolved = await resolveTask(taskId);
+        if (!resolved) return null;
+        const { task, change } = resolved;
 
         // Initialize tdd_evidence if needed
         if (!task.tdd_evidence) {

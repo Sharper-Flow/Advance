@@ -70,10 +70,10 @@ System-emitted: `[ADV:ACCUMULATED_WISDOM]`, `[ADV:TODO_CONTINUATION]`, `[ADV:REC
 
 **Work one task at a time with fresh context.** Before EACH task:
 1. Re-read change via `adv_change_show`
-2. Check task's full description
+2. Look up the specific task via `adv_task_show` (returns full task + parent changeId)
 3. Review relevant proposal sections
 
-**TodoWrite Rules:** Use task IDs only (`tk-abc123`), not descriptions. Forces context lookup.
+**TodoWrite Rules:** Use task IDs only (`tk-abc123`), not descriptions. Forces context lookup via `adv_task_show`.
 
 ### TDD Protocol (RSTC)
 
@@ -113,6 +113,48 @@ See: [docs/adv-task-report.md](docs/adv-task-report.md)
 
 Gates are sequential. Archive blocks until all 6 satisfied.
 See: [docs/adv-gates.md](docs/adv-gates.md)
+
+## Sub-Agent Selection
+
+When spawning sub-agents via the Task tool, select based on the task type:
+
+| Agent | Use For | Tools |
+|-------|---------|-------|
+| `librarian` | Documentation, API references, code examples | Context7, grep.app, Kagi |
+| `adv-researcher` | Architectural validation, simplicity analysis | Context7, Kagi, ADV read-only |
+| `explore` | Codebase navigation, find usages | Read, Glob, Grep |
+| `general` | Complex multi-step implementation | Full tool access |
+
+### When to Use Each Agent
+
+**librarian** - Documentation and examples:
+- "How do I use X in library Y?"
+- "Show examples of pattern Z"
+- "What are the params for function F?"
+
+**adv-researcher** - Architectural decisions:
+- "Does this follow best practices?"
+- "Could this be simpler?"
+- "Compare existing vs reference architecture"
+
+**explore** - Codebase questions:
+- "Where is feature X implemented?"
+- "Find all usages of function Y"
+
+**general** - Implementation tasks:
+- Complex multi-step work requiring TDD
+- Code modifications across multiple files
+
+### Orchestrator Pattern
+
+For research tasks requiring both documentation and architectural validation, spawn agents in parallel:
+
+```
+Task(subagent_type: "librarian", prompt: "Find docs for {tech}")
+Task(subagent_type: "adv-researcher", prompt: "Validate architecture")
+```
+
+Then synthesize results. See `/adv-research` command for implementation.
 
 ## When to Use ADV
 

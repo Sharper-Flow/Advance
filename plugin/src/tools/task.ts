@@ -19,6 +19,25 @@ import {
 // =============================================================================
 
 export const taskTools = {
+  adv_task_show: {
+    description:
+      "Get full details of a single task by ID, including its parent change ID. Use when you have a task ID but need the complete task object.",
+    args: {
+      taskId: z.string().describe("Task ID (e.g., 'tk-Hf7dK2mN')"),
+    },
+    execute: async ({ taskId }: { taskId: string }, store: Store) => {
+      const result = await store.tasks.show(taskId);
+      if (!result) {
+        return JSON.stringify({ error: `Task not found: ${taskId}` });
+      }
+      return JSON.stringify(
+        { task: result.task, changeId: result.changeId },
+        null,
+        2,
+      );
+    },
+  },
+
   adv_task_list: {
     description: "List tasks for a change with optional status filter",
     args: {

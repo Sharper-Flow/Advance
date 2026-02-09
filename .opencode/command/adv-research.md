@@ -128,43 +128,74 @@ For each decision, formulate questions across these dimensions:
 
 Use SINGLE response with MULTIPLE Task calls (parallel execution).
 
-### Agent Selection (REQUIRED)
+### Orchestrator Pattern (Recommended)
 
-**Step 1: Detect Agent Availability**
+When researching, spawn TWO agents in parallel for best results:
 
-Before spawning any research tasks, check if the specialized agent exists:
+1. **librarian** - Documentation lookups, API references, code examples
+2. **adv-researcher** - Architectural validation, simplicity analysis
+
+This follows the industry-standard orchestrator-worker pattern where the command orchestrates and agents specialize.
+
+### Agent Detection
+
+Check which agents are available:
 
 ```
 Use glob tool: .opencode/agents/adv-researcher.md
 ```
 
-**Step 2: Select Agent Type**
+The global `librarian` agent is always available (defined in `~/.config/opencode/agents/`).
 
-If `adv-researcher.md` exists:
-- Use `subagent_type: "adv-researcher"` for all research tasks
-- Research quality will be optimized with low temperature and focused tools
+### Parallel Research Spawning
 
-If `adv-researcher.md` does NOT exist:
-- Log: "⚠️ adv-researcher agent not found. Using explore agent with research protocol."
-- Use `subagent_type: "explore"` 
-- Include the full research protocol in the Task prompt (see Fallback Prompt below)
-- Note in final report: "Research conducted with generic agent (reduced quality)"
+**CRITICAL: Spawn BOTH agents in a SINGLE message for parallel execution.**
 
-### Fallback Prompt Enhancement
+Split research questions by agent specialty:
 
-When using `explore` as fallback, prepend this to the Task prompt:
+| Question Type | Agent | Examples |
+|--------------|-------|----------|
+| Documentation lookup | `librarian` | "How to use X", "API params for Y", "Examples of Z" |
+| Architecture validation | `adv-researcher` | "Is this the right pattern?", "Could this be simpler?" |
+| Best practices | Both | Librarian finds docs, Researcher validates |
+
+### When to Skip Librarian
+
+**Skip librarian spawning if the research is purely architectural with no library/API lookups:**
+
+| Research Type | Spawn librarian? | Example |
+|---------------|------------------|---------|
+| "Is this design pattern correct?" | No | Internal architecture review |
+| "Could this be simpler?" | No | Complexity analysis |
+| "How to use library X?" | **Yes** | Documentation lookup needed |
+| "Best practices for pattern Y?" | **Yes** | Need external references |
+| "Compare our approach to industry standard" | **Yes** | Need reference implementations |
+
+**Decision heuristic**: If the research involves:
+- Specific libraries, frameworks, or APIs → Spawn librarian
+- Internal architecture or design patterns → adv-researcher only
+- Both external docs AND internal validation → Spawn both
+
+### Librarian Sub-Agent Template
 
 ```
-RESEARCH PROTOCOL (Generic Agent Mode):
-- You MUST cite sources for every factual claim
-- Use Context7 first for library/framework questions (resolve-library-id → query-docs)
-- Use grep.app to find real-world code examples
-- Prefer simple, boring solutions over complex ones
-- If unsure, say "I don't know" rather than guess
-- Every finding MUST include a source URL
+Find documentation and examples for the following:
+
+TOPIC: {technology or pattern being researched}
+
+PROJECT CONTEXT:
+{brief description of what we're building}
+
+SPECIFIC QUESTIONS:
+{list of documentation/example questions}
+
+Return:
+- Key documentation findings with sources
+- Code examples from real projects
+- API reference information if relevant
 ```
 
-### Sub-Agent Template
+### adv-researcher Sub-Agent Template
 
 When using `adv-researcher` agent, the system prompt already contains all behavioral instructions. Only pass task-specific context:
 
@@ -197,6 +228,23 @@ The agent's system prompt handles:
 - Simplicity bias
 - Response format
 - Anti-hallucination controls
+
+### Fallback Handling
+
+**If librarian agent fails or times out:**
+1. Log: "Librarian agent unavailable, continuing with adv-researcher only"
+2. Proceed with adv-researcher results
+3. Note in synthesis: "Documentation research incomplete - manual lookup may be needed"
+
+**If adv-researcher fails:**
+1. Log: "adv-researcher agent unavailable, falling back to explore with research protocol"
+2. Use the Fallback Sub-Agent Template below
+3. Spawn librarian normally for documentation
+
+**If both fail:**
+1. Log: "All research agents unavailable"
+2. Emit warning in report: "Research incomplete - no sub-agents available"
+3. Do manual research using Context7, grep.app, Kagi directly
 
 ### Fallback Sub-Agent Template
 
