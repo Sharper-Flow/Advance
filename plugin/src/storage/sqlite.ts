@@ -159,7 +159,7 @@ CREATE TABLE IF NOT EXISTS deltas (
   id TEXT PRIMARY KEY,
   change_id TEXT NOT NULL REFERENCES changes(id) ON DELETE CASCADE,
   capability TEXT NOT NULL,
-  operation TEXT NOT NULL CHECK (operation IN ('add', 'modify', 'remove')),
+  operation TEXT NOT NULL CHECK (operation IN ('add', 'modify', 'remove', 'rename')),
   target_id TEXT,
   requirement_json TEXT,
   changes_json TEXT,
@@ -319,6 +319,33 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
 
   // Run schema
   db.exec(SCHEMA);
+
+  // Migration: update deltas CHECK constraint to include 'rename'.
+  // SQLite doesn't support ALTER TABLE ... ALTER COLUMN, so we recreate
+  // the table if the old constraint is present. This is safe because
+  // SQLite is a derived cache — data will be re-synced from JSON.
+  try {
+    const tableInfo = db.query(
+      "SELECT sql FROM sqlite_master WHERE type='table' AND name='deltas'",
+    ).get() as { sql: string } | null;
+    if (tableInfo?.sql && !tableInfo.sql.includes("'rename'")) {
+      db.exec("DROP TABLE IF EXISTS deltas");
+      db.exec(`
+        CREATE TABLE deltas (
+          id TEXT PRIMARY KEY,
+          change_id TEXT NOT NULL REFERENCES changes(id) ON DELETE CASCADE,
+          capability TEXT NOT NULL,
+          operation TEXT NOT NULL CHECK (operation IN ('add', 'modify', 'remove', 'rename')),
+          target_id TEXT,
+          requirement_json TEXT,
+          changes_json TEXT,
+          reason TEXT
+        )
+      `);
+    }
+  } catch {
+    // If migration fails, the DB will be rebuilt on next sync
+  }
 
   // Prepare statements using db.query() for bun:sqlite
   const stmts = {
@@ -589,7 +616,12 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
                     : null,
                   delta.operation === "modify"
                     ? JSON.stringify(delta.changes)
-                    : null,
+                    : delta.operation === "rename"
+                      ? JSON.stringify({
+                          new_title: delta.new_title,
+                          ...(delta.new_id ? { new_id: delta.new_id } : {}),
+                        })
+                      : null,
                   delta.operation === "remove" ? delta.reason : null,
                 );
               }

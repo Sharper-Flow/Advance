@@ -152,6 +152,71 @@ ADV exposes 13 MCP tools for programmatic access:
 |------|-------------|
 | `adv_status` | Get project overview |
 
+## Delta Operations
+
+Changes modify specs through typed deltas. Four operations are supported:
+
+| Operation | Purpose | Version Bump |
+|-----------|---------|-------------|
+| `add` | Add new requirement | Minor (1.x.0) |
+| `modify` | Update fields on existing requirement | Patch (1.0.x) |
+| `remove` | Remove a requirement | Patch (1.0.x) |
+| `rename` | Rename title and/or ID of a requirement | Patch (1.0.x) |
+
+Deltas are applied in canonical order: **rename > remove > modify > add**.
+
+### Examples
+
+```json
+{
+  "deltas": {
+    "auth-system": [
+      {
+        "id": "dl-add001",
+        "operation": "add",
+        "requirement": {
+          "id": "rq-mfa001",
+          "title": "Multi-Factor Authentication",
+          "body": "The system MUST support MFA.",
+          "priority": "must",
+          "scenarios": [{ "id": "rq-mfa001.1", "title": "...", "given": ["..."], "when": "...", "then": ["..."] }]
+        }
+      },
+      {
+        "id": "dl-mod001",
+        "operation": "modify",
+        "target_id": "rq-auth001",
+        "changes": { "priority": "must", "tags": ["security", "critical"] }
+      },
+      {
+        "id": "dl-ren001",
+        "operation": "rename",
+        "target_id": "rq-login01",
+        "new_title": "User Authentication Flow",
+        "new_id": "rq-authflow"
+      },
+      {
+        "id": "dl-rem001",
+        "operation": "remove",
+        "target_id": "rq-legacy01",
+        "reason": "Superseded by rq-authflow"
+      }
+    ]
+  }
+}
+```
+
+### Typed Modify
+
+The `changes` field in modify deltas is type-checked against the Requirement schema. Only known fields (`title`, `body`, `priority`, `tags`, `scenarios`) are accepted; unknown keys are rejected at parse time.
+
+### Validation
+
+Intra-delta conflicts are detected automatically:
+- Rename + remove targeting the same requirement
+- Multiple renames on the same requirement
+- Rename `new_id` colliding with an add delta's requirement ID
+
 ## Status Markers
 
 | Marker | Meaning |

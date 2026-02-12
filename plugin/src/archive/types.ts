@@ -16,7 +16,7 @@ export interface DeltaApplicationResult {
   /** The delta that was applied */
   deltaId: string;
   /** Operation performed */
-  operation: "add" | "modify" | "remove";
+  operation: "add" | "modify" | "remove" | "rename";
   /** Target requirement ID (for modify/remove) */
   targetId?: string;
   /** New requirement ID (for add) */

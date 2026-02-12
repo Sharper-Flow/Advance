@@ -197,7 +197,12 @@ export type Task = z.infer<typeof TaskSchema>;
 // Delta Operations
 // =============================================================================
 
-export const DeltaOperationSchema = z.enum(["add", "modify", "remove"]);
+export const DeltaOperationSchema = z.enum([
+  "add",
+  "modify",
+  "remove",
+  "rename",
+]);
 export type DeltaOperation = z.infer<typeof DeltaOperationSchema>;
 
 export const DeltaAddSchema = z.object({
@@ -206,11 +211,28 @@ export const DeltaAddSchema = z.object({
   requirement: RequirementSchema,
 });
 
+/**
+ * Typed partial of RequirementSchema for modify delta changes.
+ * Only allows known requirement fields with correct types.
+ * Uses .strict() to reject unknown keys at parse time.
+ */
+export const DeltaModifyChangesSchema = z
+  .object({
+    title: z.string().optional(),
+    body: z.string().optional(),
+    priority: PrioritySchema.optional(),
+    tags: z.array(z.string()).optional(),
+    scenarios: z.array(ScenarioSchema).optional(),
+  })
+  .strict(); // Reject unknown keys
+
+export type DeltaModifyChanges = z.infer<typeof DeltaModifyChangesSchema>;
+
 export const DeltaModifySchema = z.object({
   id: z.string(),
   operation: z.literal("modify"),
   target_id: z.string(), // Requirement ID to modify
-  changes: z.record(z.unknown()), // Fields to update
+  changes: DeltaModifyChangesSchema, // Typed fields to update
 });
 
 export const DeltaRemoveSchema = z.object({
@@ -220,10 +242,23 @@ export const DeltaRemoveSchema = z.object({
   reason: z.string(),
 });
 
+/**
+ * Rename delta - changes a requirement's title and optionally its ID.
+ * Applied before remove/modify/add to avoid target-not-found errors.
+ */
+export const DeltaRenameSchema = z.object({
+  id: z.string(), // dl-{nanoid}
+  operation: z.literal("rename"),
+  target_id: z.string(), // Existing requirement ID
+  new_title: z.string(), // New title for the requirement
+  new_id: z.string().optional(), // Optional new ID (if renaming the identifier too)
+});
+
 export const DeltaSchema = z.discriminatedUnion("operation", [
   DeltaAddSchema,
   DeltaModifySchema,
   DeltaRemoveSchema,
+  DeltaRenameSchema,
 ]);
 
 export type Delta = z.infer<typeof DeltaSchema>;

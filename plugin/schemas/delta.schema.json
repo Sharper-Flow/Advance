@@ -112,7 +112,66 @@
             },
             "changes": {
               "type": "object",
-              "additionalProperties": {}
+              "properties": {
+                "title": {
+                  "type": "string"
+                },
+                "body": {
+                  "type": "string"
+                },
+                "priority": {
+                  "type": "string",
+                  "enum": [
+                    "must",
+                    "should",
+                    "may"
+                  ]
+                },
+                "tags": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "scenarios": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "title": {
+                        "type": "string"
+                      },
+                      "given": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "when": {
+                        "type": "string"
+                      },
+                      "then": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "title",
+                      "given",
+                      "when",
+                      "then"
+                    ],
+                    "additionalProperties": true
+                  }
+                }
+              },
+              "additionalProperties": false
             }
           },
           "required": [
@@ -145,6 +204,34 @@
             "operation",
             "target_id",
             "reason"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "operation": {
+              "type": "string",
+              "const": "rename"
+            },
+            "target_id": {
+              "type": "string"
+            },
+            "new_title": {
+              "type": "string"
+            },
+            "new_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "operation",
+            "target_id",
+            "new_title"
           ],
           "additionalProperties": false
         }

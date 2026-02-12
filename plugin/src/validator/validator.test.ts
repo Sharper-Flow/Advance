@@ -669,6 +669,403 @@ describe("Validator", () => {
     });
   });
 
+  describe("intra-delta conflict detection", () => {
+    it("detects rename and remove targeting same requirement", async () => {
+      const change: Change = {
+        id: "rename-remove-conflict",
+        title: "Rename Remove Conflict",
+        status: "draft",
+        created_at: new Date().toISOString(),
+        tasks: [
+          { id: "tk-conflict1", title: "Do work", status: "pending", priority: 0, created_at: new Date().toISOString() },
+        ],
+        deltas: {
+          "test-capability": [
+            {
+              id: "dl-ren-c1",
+              operation: "rename",
+              target_id: "rq-test0001",
+              new_title: "Renamed",
+            } as Extract<Delta, { operation: "rename" }>,
+            {
+              id: "dl-rem-c1",
+              operation: "remove",
+              target_id: "rq-test0001",
+              reason: "Also removing",
+            } as Extract<Delta, { operation: "remove" }>,
+          ],
+        },
+      };
+
+      const specs: Spec[] = [SAMPLE_SPEC as Spec];
+      const result = await validateChange(change, { specs });
+
+      expect(
+        result.errors.some((e) => e.code === ValidationCodes.INTRA_DELTA_CONFLICT),
+      ).toBe(true);
+    });
+
+    it("detects two renames targeting same requirement", async () => {
+      const change: Change = {
+        id: "double-rename",
+        title: "Double Rename",
+        status: "draft",
+        created_at: new Date().toISOString(),
+        tasks: [
+          { id: "tk-conflict2", title: "Do work", status: "pending", priority: 0, created_at: new Date().toISOString() },
+        ],
+        deltas: {
+          "test-capability": [
+            {
+              id: "dl-ren-d1",
+              operation: "rename",
+              target_id: "rq-test0001",
+              new_title: "First Rename",
+            } as Extract<Delta, { operation: "rename" }>,
+            {
+              id: "dl-ren-d2",
+              operation: "rename",
+              target_id: "rq-test0001",
+              new_title: "Second Rename",
+            } as Extract<Delta, { operation: "rename" }>,
+          ],
+        },
+      };
+
+      const specs: Spec[] = [SAMPLE_SPEC as Spec];
+      const result = await validateChange(change, { specs });
+
+      expect(
+        result.errors.some((e) => e.code === ValidationCodes.INTRA_DELTA_CONFLICT),
+      ).toBe(true);
+    });
+
+    it("detects rename new_id conflicting with add in same change", async () => {
+      const change: Change = {
+        id: "rename-add-conflict",
+        title: "Rename Add Conflict",
+        status: "draft",
+        created_at: new Date().toISOString(),
+        tasks: [
+          { id: "tk-conflict3", title: "Do work", status: "pending", priority: 0, created_at: new Date().toISOString() },
+        ],
+        deltas: {
+          "test-capability": [
+            {
+              id: "dl-ren-a1",
+              operation: "rename",
+              target_id: "rq-test0001",
+              new_title: "Renamed",
+              new_id: "rq-collide1",
+            } as Extract<Delta, { operation: "rename" }>,
+            {
+              id: "dl-add-a1",
+              operation: "add",
+              requirement: {
+                id: "rq-collide1",
+                title: "Colliding Add",
+                body: "This ID collides with rename new_id",
+                priority: "must",
+                scenarios: [{ id: "rq-collide1.1", title: "S", given: ["x"], when: "y", then: ["z"] }],
+              },
+            } as Extract<Delta, { operation: "add" }>,
+          ],
+        },
+      };
+
+      const specs: Spec[] = [SAMPLE_SPEC as Spec];
+      const result = await validateChange(change, { specs });
+
+      expect(
+        result.errors.some((e) => e.code === ValidationCodes.INTRA_DELTA_CONFLICT),
+      ).toBe(true);
+    });
+
+    it("allows rename chain: rename rq-A to rq-B, then modify rq-B", async () => {
+      const change: Change = {
+        id: "rename-chain",
+        title: "Rename Chain",
+        status: "draft",
+        created_at: new Date().toISOString(),
+        tasks: [
+          { id: "tk-chain01", title: "Do work", status: "pending", priority: 0, created_at: new Date().toISOString() },
+        ],
+        deltas: {
+          "test-capability": [
+            {
+              id: "dl-ren-ch1",
+              operation: "rename",
+              target_id: "rq-test0001",
+              new_title: "Renamed",
+              new_id: "rq-chainB",
+            } as Extract<Delta, { operation: "rename" }>,
+            {
+              id: "dl-mod-ch1",
+              operation: "modify",
+              target_id: "rq-chainB",
+              changes: { body: "Modified after rename" },
+            } as Extract<Delta, { operation: "modify" }>,
+          ],
+        },
+      };
+
+      const specs: Spec[] = [SAMPLE_SPEC as Spec];
+      const result = await validateChange(change, { specs });
+
+      // Should NOT flag as intra-delta conflict — this is a valid chain
+      expect(
+        result.errors.some((e) => e.code === ValidationCodes.INTRA_DELTA_CONFLICT),
+      ).toBe(false);
+
+      // The modify targets rq-chainB which doesn't exist in specs yet
+      // (it's created by the rename), but ORPHANED_DELTA_TARGET only checks
+      // against existing specs, not chained deltas — this is expected
+    });
+
+    it("allows non-conflicting rename and modify on different targets", async () => {
+      const change: Change = {
+        id: "no-conflict",
+        title: "No Conflict",
+        status: "draft",
+        created_at: new Date().toISOString(),
+        tasks: [
+          { id: "tk-noconflict", title: "Do work", status: "pending", priority: 0, created_at: new Date().toISOString() },
+        ],
+        deltas: {
+          "test-capability": [
+            {
+              id: "dl-ren-nc1",
+              operation: "rename",
+              target_id: "rq-test0001",
+              new_title: "Renamed",
+            } as Extract<Delta, { operation: "rename" }>,
+            {
+              id: "dl-mod-nc1",
+              operation: "modify",
+              target_id: "rq-test0002",
+              changes: { body: "Modified different target" },
+            } as Extract<Delta, { operation: "modify" }>,
+          ],
+        },
+      };
+
+      const specs: Spec[] = [SAMPLE_SPEC as Spec];
+      const result = await validateChange(change, { specs });
+
+      expect(
+        result.errors.some((e) => e.code === ValidationCodes.INTRA_DELTA_CONFLICT),
+      ).toBe(false);
+    });
+
+    it("detects rename target not found in spec", async () => {
+      const change: Change = {
+        id: "rename-not-found",
+        title: "Rename Not Found",
+        status: "draft",
+        created_at: new Date().toISOString(),
+        tasks: [
+          { id: "tk-notfound", title: "Do work", status: "pending", priority: 0, created_at: new Date().toISOString() },
+        ],
+        deltas: {
+          "test-capability": [
+            {
+              id: "dl-ren-nf1",
+              operation: "rename",
+              target_id: "rq-nonexistent",
+              new_title: "Ghost Rename",
+            } as Extract<Delta, { operation: "rename" }>,
+          ],
+        },
+      };
+
+      const specs: Spec[] = [SAMPLE_SPEC as Spec];
+      const result = await validateChange(change, { specs });
+
+      expect(result.passed).toBe(false);
+      expect(
+        result.errors.some((e) => e.code === ValidationCodes.RENAME_TARGET_NOT_FOUND),
+      ).toBe(true);
+    });
+  });
+
+  describe("rename new_id collision with existing specs", () => {
+    it("detects rename new_id colliding with existing spec requirement", async () => {
+      // rq-test0002 already exists in SAMPLE_SPEC — renaming rq-test0001 to rq-test0002 should fail
+      const change: Change = {
+        id: "rename-existing-collision",
+        title: "Rename Existing Collision",
+        status: "draft",
+        created_at: new Date().toISOString(),
+        tasks: [
+          { id: "tk-rencol01", title: "Do work", status: "pending", priority: 0, created_at: new Date().toISOString() },
+        ],
+        deltas: {
+          "test-capability": [
+            {
+              id: "dl-rencol01",
+              operation: "rename",
+              target_id: "rq-test0001",
+              new_title: "Renamed to Existing",
+              new_id: "rq-test0002",
+            } as Extract<Delta, { operation: "rename" }>,
+          ],
+        },
+      };
+
+      const specs: Spec[] = [SAMPLE_SPEC as Spec];
+      const result = await validateChange(change, { specs });
+
+      expect(result.passed).toBe(false);
+      expect(
+        result.errors.some(
+          (e) => e.code === ValidationCodes.DUPLICATE_REQUIREMENT_ID && e.message.includes("rq-test0002"),
+        ),
+      ).toBe(true);
+    });
+
+    it("detects rename new_id colliding with another rename new_id", async () => {
+      // Two renames both targeting new_id "rq-newname1" — should conflict
+      const change: Change = {
+        id: "rename-rename-collision",
+        title: "Rename Rename Collision",
+        status: "draft",
+        created_at: new Date().toISOString(),
+        tasks: [
+          { id: "tk-rr-col01", title: "Do work", status: "pending", priority: 0, created_at: new Date().toISOString() },
+        ],
+        deltas: {
+          "test-capability": [
+            {
+              id: "dl-rr-col01",
+              operation: "rename",
+              target_id: "rq-test0001",
+              new_title: "First Rename",
+              new_id: "rq-newname1",
+            } as Extract<Delta, { operation: "rename" }>,
+            {
+              id: "dl-rr-col02",
+              operation: "rename",
+              target_id: "rq-test0002",
+              new_title: "Second Rename",
+              new_id: "rq-newname1",
+            } as Extract<Delta, { operation: "rename" }>,
+          ],
+        },
+      };
+
+      const specs: Spec[] = [SAMPLE_SPEC as Spec];
+      const result = await validateChange(change, { specs });
+
+      expect(result.passed).toBe(false);
+      expect(
+        result.errors.some(
+          (e) => e.code === ValidationCodes.DUPLICATE_REQUIREMENT_ID && e.message.includes("rq-newname1"),
+        ),
+      ).toBe(true);
+    });
+
+    it("allows rename with new_id not colliding with anything", async () => {
+      const change: Change = {
+        id: "rename-no-collision",
+        title: "Rename No Collision",
+        status: "draft",
+        created_at: new Date().toISOString(),
+        tasks: [
+          { id: "tk-rn-nc01", title: "Do work", status: "pending", priority: 0, created_at: new Date().toISOString() },
+        ],
+        deltas: {
+          "test-capability": [
+            {
+              id: "dl-rn-nc01",
+              operation: "rename",
+              target_id: "rq-test0001",
+              new_title: "Renamed Safely",
+              new_id: "rq-safeone1",
+            } as Extract<Delta, { operation: "rename" }>,
+          ],
+        },
+      };
+
+      const specs: Spec[] = [SAMPLE_SPEC as Spec];
+      const result = await validateChange(change, { specs });
+
+      // Should NOT have duplicate ID error for the new_id
+      expect(
+        result.errors.some(
+          (e) => e.code === ValidationCodes.DUPLICATE_REQUIREMENT_ID && e.message.includes("rq-safeone1"),
+        ),
+      ).toBe(false);
+    });
+  });
+
+  describe("ID format checks for rename deltas", () => {
+    it("validates rename delta new_id format", async () => {
+      const change: Change = {
+        id: "rename-bad-id",
+        title: "Rename Bad ID",
+        status: "draft",
+        created_at: new Date().toISOString(),
+        tasks: [
+          { id: "tk-badid01", title: "Do work", status: "pending", priority: 0, created_at: new Date().toISOString() },
+        ],
+        deltas: {
+          "test-capability": [
+            {
+              id: "dl-renid001",
+              operation: "rename",
+              target_id: "rq-test0001",
+              new_title: "Renamed",
+              new_id: "bad-format-id",
+            } as Extract<Delta, { operation: "rename" }>,
+          ],
+        },
+      };
+
+      const specs: Spec[] = [SAMPLE_SPEC as Spec];
+      const result = await validateChange(change, { specs });
+
+      expect(result.passed).toBe(false);
+      expect(
+        result.errors.some(
+          (e) => e.code === ValidationCodes.INVALID_ID_FORMAT && e.message.includes("bad-format-id"),
+        ),
+      ).toBe(true);
+    });
+
+    it("accepts rename delta with valid new_id format", async () => {
+      const change: Change = {
+        id: "rename-good-id",
+        title: "Rename Good ID",
+        status: "draft",
+        created_at: new Date().toISOString(),
+        tasks: [
+          { id: "tk-goodid1", title: "Do work", status: "pending", priority: 0, created_at: new Date().toISOString() },
+        ],
+        deltas: {
+          "test-capability": [
+            {
+              id: "dl-rengood1",
+              operation: "rename",
+              target_id: "rq-test0001",
+              new_title: "Renamed",
+              new_id: "rq-validnew",
+            } as Extract<Delta, { operation: "rename" }>,
+          ],
+        },
+      };
+
+      const specs: Spec[] = [SAMPLE_SPEC as Spec];
+      const result = await validateChange(change, { specs });
+
+      // Should not have INVALID_ID_FORMAT for the new_id
+      expect(
+        result.errors.some(
+          (e) => e.code === ValidationCodes.INVALID_ID_FORMAT && e.message.includes("rq-validnew"),
+        ),
+      ).toBe(false);
+    });
+  });
+
   describe("edge cases", () => {
     it("handles change with no deltas", async () => {
       const change: Change = {

@@ -151,6 +151,17 @@ export function checkIdFormats(change: Change): ValidationIssue[] {
           }
         }
       }
+
+      if (delta.operation === "rename" && delta.new_id) {
+        if (!reqIdPattern.test(delta.new_id)) {
+          issues.push({
+            code: ValidationCodes.INVALID_ID_FORMAT,
+            severity: "error",
+            message: `Rename new_id "${delta.new_id}" does not match expected format "rq-{nanoid}"`,
+            path: `deltas.${capability}.${delta.id}.new_id`,
+          });
+        }
+      }
     }
   }
 

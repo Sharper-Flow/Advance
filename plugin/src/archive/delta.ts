@@ -1,7 +1,7 @@
 /**
  * Delta Application
  *
- * Applies deltas (add/modify/remove) to specs.
+ * Applies deltas (add/modify/remove/rename) to specs.
  */
 
 import type { Spec, Delta } from "../types";
@@ -19,13 +19,17 @@ export function applyDelta(spec: Spec, delta: Delta): DeltaApplicationResult {
       return applyModifyDelta(spec, delta);
     case "remove":
       return applyRemoveDelta(spec, delta);
-    default:
+    case "rename":
+      return applyRenameDelta(spec, delta);
+    default: {
+      const _exhaustive: never = delta;
       return {
         success: false,
-        deltaId: (delta as Delta).id,
-        operation: (delta as Delta).operation,
-        error: `Unknown operation: ${(delta as Delta).operation}`,
+        deltaId: (_exhaustive as Delta).id,
+        operation: (_exhaustive as Delta).operation,
+        error: `Unknown operation: ${(_exhaustive as Delta).operation}`,
       };
+    }
   }
 }
 
@@ -128,21 +132,142 @@ function applyRemoveDelta(
 }
 
 /**
+ * Apply a "rename" delta - renames a requirement's title and optionally its ID.
+ * Preserves all other fields on the requirement.
+ */
+function applyRenameDelta(
+  spec: Spec,
+  delta: Extract<Delta, { operation: "rename" }>,
+): DeltaApplicationResult {
+  const { target_id, new_title, new_id } = delta;
+
+  // Find the requirement
+  const reqIndex = spec.requirements.findIndex((r) => r.id === target_id);
+  if (reqIndex === -1) {
+    return {
+      success: false,
+      deltaId: delta.id,
+      operation: "rename",
+      targetId: target_id,
+      error: `Requirement "${target_id}" not found in spec`,
+    };
+  }
+
+  // If new_id is provided, check it doesn't already exist
+  if (new_id && new_id !== target_id) {
+    const existing = spec.requirements.find((r) => r.id === new_id);
+    if (existing) {
+      return {
+        success: false,
+        deltaId: delta.id,
+        operation: "rename",
+        targetId: target_id,
+        error: `Requirement ID "${new_id}" already exists in spec`,
+      };
+    }
+  }
+
+  // Apply rename: update title, optionally update ID
+  spec.requirements[reqIndex] = {
+    ...spec.requirements[reqIndex],
+    title: new_title,
+    ...(new_id ? { id: new_id } : {}),
+  };
+
+  return {
+    success: true,
+    deltaId: delta.id,
+    operation: "rename",
+    targetId: target_id,
+    ...(new_id ? { newId: new_id } : {}),
+  };
+}
+
+/**
+ * Log the result of applying a single delta.
+ * Emits structured info for observability/debugging.
+ */
+function logDeltaResult(
+  specName: string,
+  delta: Delta,
+  result: DeltaApplicationResult,
+): void {
+  const base = {
+    spec: specName,
+    deltaId: delta.id,
+    operation: delta.operation,
+    success: result.success,
+  };
+
+  if (!result.success) {
+    console.warn("[adv:delta]", { ...base, error: result.error });
+    return;
+  }
+
+  // Build operation-specific details
+  const details: Record<string, unknown> = {};
+  if (delta.operation === "rename") {
+    const r = delta as Extract<Delta, { operation: "rename" }>;
+    details.targetId = r.target_id;
+    details.newTitle = r.new_title;
+    if (r.new_id) details.newId = r.new_id;
+  } else if (delta.operation === "modify") {
+    const m = delta as Extract<Delta, { operation: "modify" }>;
+    details.targetId = m.target_id;
+    details.changedKeys = Object.keys(m.changes);
+  } else if (delta.operation === "remove") {
+    details.targetId = (delta as Extract<Delta, { operation: "remove" }>).target_id;
+  } else if (delta.operation === "add") {
+    details.newId = (delta as Extract<Delta, { operation: "add" }>).requirement.id;
+  }
+
+  console.log("[adv:delta]", { ...base, ...details });
+}
+
+/**
+ * Canonical delta application order.
+ * Renames first (so subsequent ops can reference new IDs),
+ * then removes, then modifies, then adds last.
+ */
+const DELTA_ORDER: Record<string, number> = {
+  rename: 0,
+  remove: 1,
+  modify: 2,
+  add: 3,
+};
+
+/**
+ * Sort deltas into canonical application order.
+ * Returns a new array; does not mutate the input.
+ */
+function sortDeltas(deltas: Delta[]): Delta[] {
+  return [...deltas].sort(
+    (a, b) => (DELTA_ORDER[a.operation] ?? 99) - (DELTA_ORDER[b.operation] ?? 99),
+  );
+}
+
+/**
  * Apply multiple deltas to a spec.
- * Stops on first error. Mutates the spec in place.
+ * Deltas are sorted into canonical order (rename → remove → modify → add)
+ * before application. Stops on first error. Mutates the spec in place.
  */
 export function applyDeltasToSpec(
   spec: Spec,
   deltas: Delta[],
   currentVersion: string,
 ): SpecUpdateResult {
+  const sorted = sortDeltas(deltas);
   const deltaResults: DeltaApplicationResult[] = [];
   let hasAdd = false;
   let hasModify = false;
+  let hasRenameOrRemove = false;
 
-  for (const delta of deltas) {
+  for (const delta of sorted) {
     const result = applyDelta(spec, delta);
     deltaResults.push(result);
+
+    // Structured log for delta application
+    logDeltaResult(spec.name, delta, result);
 
     if (!result.success) {
       // Stop on first error
@@ -151,10 +276,12 @@ export function applyDeltasToSpec(
 
     if (delta.operation === "add") hasAdd = true;
     if (delta.operation === "modify") hasModify = true;
+    if (delta.operation === "rename" || delta.operation === "remove")
+      hasRenameOrRemove = true;
   }
 
   // Calculate new version
-  const newVersion = bumpVersion(currentVersion, hasAdd, hasModify);
+  const newVersion = bumpVersion(currentVersion, hasAdd, hasModify || hasRenameOrRemove);
 
   // Update spec metadata
   spec.version = newVersion;
@@ -172,12 +299,12 @@ export function applyDeltasToSpec(
 /**
  * Bump semantic version based on changes.
  * - Add operations bump minor (feature)
- * - Modify/Remove operations bump patch (fix)
+ * - Modify/Remove/Rename operations bump patch (fix/identity change)
  */
 function bumpVersion(
   version: string,
   hasAdd: boolean,
-  hasModify: boolean,
+  hasPatchChange: boolean,
 ): string {
   const parts = version.split(".").map(Number);
   if (parts.length !== 3) {
@@ -190,12 +317,13 @@ function bumpVersion(
   if (hasAdd) {
     // Minor bump for new features
     return `${major}.${minor + 1}.0`;
-  } else if (hasModify) {
-    // Patch bump for modifications
+  } else if (hasPatchChange) {
+    // Patch bump for modifications, removals, renames
     return `${major}.${minor}.${patch + 1}`;
   }
 
-  // No changes? Just bump patch
+  // Fallback: all deltas failed (stopped on first error) but version
+  // metadata still updates. Bump patch as a conservative default.
   return `${major}.${minor}.${patch + 1}`;
 }
 

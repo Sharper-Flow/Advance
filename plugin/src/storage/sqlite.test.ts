@@ -9,6 +9,7 @@ import { join } from "path";
 import { writeFileSync } from "fs";
 import { createSQLiteStore, type SQLiteStore } from "./sqlite";
 import { initDatabase } from "./health";
+import type { Change, Spec } from "../types";
 import {
   createTempDir,
   cleanupTempDir,
@@ -186,6 +187,54 @@ describe("SQLiteStore", () => {
       store.changes.delete("addFeature");
 
       expect(store.changes.list()).toHaveLength(0);
+    });
+
+    test("upsert handles change with rename deltas", () => {
+      const changeWithRename: Change = {
+        id: "rename-test",
+        title: "Rename Test",
+        status: "active",
+        created_at: new Date().toISOString(),
+        tasks: [
+          { id: "tk-ren001", title: "Rename task", status: "pending", priority: 0, created_at: new Date().toISOString() },
+        ],
+        deltas: {
+          "test-capability": [
+            {
+              id: "dl-ren001",
+              operation: "rename" as const,
+              target_id: "rq-test0001",
+              new_title: "Renamed Requirement",
+              new_id: "rq-renamed1",
+            },
+          ],
+        },
+      };
+
+      // Should not throw — rename operation is accepted by the schema
+      expect(() => {
+        store.changes.upsert(changeWithRename, "/path/to/rename.json");
+      }).not.toThrow();
+
+      const change = store.changes.get("rename-test");
+      expect(change).not.toBeNull();
+      expect(change!.title).toBe("Rename Test");
+
+      // Verify the delta was stored by querying the deltas table directly
+      const deltas = store.db.query("SELECT * FROM deltas WHERE change_id = ?").all("rename-test") as Array<{
+        id: string;
+        operation: string;
+        target_id: string;
+        changes_json: string | null;
+      }>;
+      expect(deltas).toHaveLength(1);
+      expect(deltas[0].operation).toBe("rename");
+      expect(deltas[0].target_id).toBe("rq-test0001");
+
+      // Rename data stored in changes_json
+      const renameData = JSON.parse(deltas[0].changes_json!);
+      expect(renameData.new_title).toBe("Renamed Requirement");
+      expect(renameData.new_id).toBe("rq-renamed1");
     });
   });
 

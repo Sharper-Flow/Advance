@@ -1,0 +1,50 @@
+{
+  "$schema": "https://raw.githubusercontent.com/anomalyco/oc-plugins/main/advance/plugin/schemas/spec.schema.json",
+  "name": "contract-system",
+  "title": "Contract System",
+  "purpose": "Capability: Contract System",
+  "version": "1.0.0",
+  "updated_at": "2026-02-12T22:23:26.916Z",
+  "requirements": [
+    {
+      "id": "rq-typedmod",
+      "title": "Typed Delta Modifications",
+      "body": "The delta system MUST enforce type safety for modifications to requirements. Any keys not present in the RequirementSchema MUST be rejected at parse time.",
+      "priority": "must",
+      "scenarios": [
+        {
+          "id": "rq-typedmod.1",
+          "title": "Reject unknown keys",
+          "given": [
+            "A DeltaModifySchema object with unknown keys"
+          ],
+          "when": "The schema is parsed by Zod",
+          "then": [
+            "The parse operation MUST fail with a validation error"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-renameop",
+      "title": "Rename Operation",
+      "body": "The delta system MUST support a rename operation that updates a requirement's title and optionally its ID while preserving all other fields.",
+      "priority": "must",
+      "scenarios": [
+        {
+          "id": "rq-renameop.1",
+          "title": "Successful rename",
+          "given": [
+            "An existing requirement",
+            "A rename delta targeting its ID"
+          ],
+          "when": "The delta is applied",
+          "then": [
+            "The requirement's title is updated",
+            "All other fields are preserved"
+          ]
+        }
+      ]
+    }
+  ]
+}

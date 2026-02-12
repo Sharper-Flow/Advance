@@ -60,6 +60,10 @@ export const ValidationCodes = {
   // TDD compliance
   MISSING_TDD_EVIDENCE: "MISSING_TDD_EVIDENCE",
 
+  // Intra-delta conflicts
+  INTRA_DELTA_CONFLICT: "INTRA_DELTA_CONFLICT",
+  RENAME_TARGET_NOT_FOUND: "RENAME_TARGET_NOT_FOUND",
+
   // Change-to-change conflicts
   OVERLAPPING_CAPABILITY: "OVERLAPPING_CAPABILITY",
 } as const;

@@ -222,18 +222,101 @@ describe("DeltaSchema", () => {
     }
   });
 
-  test("parses modify delta", () => {
+  test("parses modify delta with valid requirement keys", () => {
     const delta = {
       id: "dl-abc12345",
       operation: "modify",
       target_id: "rq-existing",
-      changes: { body: "Updated body" },
+      changes: { body: "Updated body", priority: "should" },
     };
     const result = DeltaSchema.parse(delta);
     expect(result.operation).toBe("modify");
     if (result.operation === "modify") {
       expect(result.target_id).toBe("rq-existing");
+      expect(result.changes.body).toBe("Updated body");
+      expect(result.changes.priority).toBe("should");
     }
+  });
+
+  test("rejects modify delta with unknown keys in changes", () => {
+    const delta = {
+      id: "dl-abc12345",
+      operation: "modify",
+      target_id: "rq-existing",
+      changes: { nonexistent_field: 42 },
+    };
+    expect(() => DeltaSchema.parse(delta)).toThrow();
+  });
+
+  test("accepts modify delta with title change", () => {
+    const delta = {
+      id: "dl-abc12345",
+      operation: "modify",
+      target_id: "rq-existing",
+      changes: { title: "New Title" },
+    };
+    const result = DeltaSchema.parse(delta);
+    if (result.operation === "modify") {
+      expect(result.changes.title).toBe("New Title");
+    }
+  });
+
+  test("accepts modify delta with tags change", () => {
+    const delta = {
+      id: "dl-abc12345",
+      operation: "modify",
+      target_id: "rq-existing",
+      changes: { tags: ["new-tag", "security"] },
+    };
+    const result = DeltaSchema.parse(delta);
+    if (result.operation === "modify") {
+      expect(result.changes.tags).toEqual(["new-tag", "security"]);
+    }
+  });
+
+  test("accepts modify delta with scenarios replacement", () => {
+    const delta = {
+      id: "dl-abc12345",
+      operation: "modify",
+      target_id: "rq-existing",
+      changes: {
+        scenarios: [
+          {
+            id: "rq-existing.1",
+            title: "Updated scenario",
+            given: ["condition"],
+            when: "action",
+            then: ["result"],
+          },
+        ],
+      },
+    };
+    const result = DeltaSchema.parse(delta);
+    if (result.operation === "modify") {
+      expect(result.changes.scenarios).toHaveLength(1);
+    }
+  });
+
+  test("rejects modify delta with invalid priority value in changes", () => {
+    const delta = {
+      id: "dl-abc12345",
+      operation: "modify",
+      target_id: "rq-existing",
+      changes: { priority: "critical" }, // not a valid priority
+    };
+    expect(() => DeltaSchema.parse(delta)).toThrow();
+  });
+
+  test("accepts modify delta with empty changes object", () => {
+    const delta = {
+      id: "dl-abc12345",
+      operation: "modify",
+      target_id: "rq-existing",
+      changes: {},
+    };
+    // Empty changes is valid (no-op modify)
+    const result = DeltaSchema.parse(delta);
+    expect(result.operation).toBe("modify");
   });
 
   test("parses remove delta", () => {
@@ -248,6 +331,55 @@ describe("DeltaSchema", () => {
     if (result.operation === "remove") {
       expect(result.reason).toBe("Superseded by rq-new");
     }
+  });
+
+  test("parses rename delta with title only", () => {
+    const delta = {
+      id: "dl-abc12345",
+      operation: "rename",
+      target_id: "rq-existing",
+      new_title: "Renamed Requirement",
+    };
+    const result = DeltaSchema.parse(delta);
+    expect(result.operation).toBe("rename");
+    if (result.operation === "rename") {
+      expect(result.target_id).toBe("rq-existing");
+      expect(result.new_title).toBe("Renamed Requirement");
+      expect(result.new_id).toBeUndefined();
+    }
+  });
+
+  test("parses rename delta with title and new ID", () => {
+    const delta = {
+      id: "dl-abc12345",
+      operation: "rename",
+      target_id: "rq-old-id",
+      new_title: "New Name",
+      new_id: "rq-new-id",
+    };
+    const result = DeltaSchema.parse(delta);
+    if (result.operation === "rename") {
+      expect(result.new_title).toBe("New Name");
+      expect(result.new_id).toBe("rq-new-id");
+    }
+  });
+
+  test("rejects rename delta without new_title", () => {
+    const delta = {
+      id: "dl-abc12345",
+      operation: "rename",
+      target_id: "rq-existing",
+    };
+    expect(() => DeltaSchema.parse(delta)).toThrow();
+  });
+
+  test("rejects rename delta without target_id", () => {
+    const delta = {
+      id: "dl-abc12345",
+      operation: "rename",
+      new_title: "Some Title",
+    };
+    expect(() => DeltaSchema.parse(delta)).toThrow();
   });
 });
 
@@ -856,6 +988,60 @@ describe("Schema Backward Compatibility", () => {
       expect((result as Record<string, unknown>).notes).toBe(
         "Manual test required",
       );
+    });
+  });
+
+  describe("backward compatibility", () => {
+    test("ChangeSchema parses change with empty deltas object", () => {
+      const changeWithEmptyDeltas = {
+        id: "compat-test",
+        title: "Compat Test",
+        status: "draft",
+        created_at: new Date().toISOString(),
+        tasks: [],
+        deltas: {},
+      };
+
+      const result = ChangeSchema.parse(changeWithEmptyDeltas);
+      expect(result.id).toBe("compat-test");
+      expect(Object.keys(result.deltas)).toHaveLength(0);
+    });
+
+    test("ChangeSchema parses change with only add deltas (pre-rename era)", () => {
+      const result = ChangeSchema.parse(SAMPLE_CHANGE);
+      expect(result.id).toBe("addFeature");
+      const deltas = Object.values(result.deltas).flat();
+      expect(deltas.every((d) => d.operation === "add")).toBe(true);
+    });
+
+    test("DeltaSchema still parses legacy add/modify/remove operations", () => {
+      const addDelta = {
+        id: "dl-compat01",
+        operation: "add",
+        requirement: {
+          id: "rq-compat01",
+          title: "Compat Requirement",
+          body: "Test",
+          priority: "must",
+        },
+      };
+      expect(() => DeltaSchema.parse(addDelta)).not.toThrow();
+
+      const modifyDelta = {
+        id: "dl-compat02",
+        operation: "modify",
+        target_id: "rq-test0001",
+        changes: { title: "Updated" },
+      };
+      expect(() => DeltaSchema.parse(modifyDelta)).not.toThrow();
+
+      const removeDelta = {
+        id: "dl-compat03",
+        operation: "remove",
+        target_id: "rq-test0001",
+        reason: "Obsolete",
+      };
+      expect(() => DeltaSchema.parse(removeDelta)).not.toThrow();
     });
   });
 });
