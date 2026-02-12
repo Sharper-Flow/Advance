@@ -156,6 +156,35 @@ Task(subagent_type: "adv-researcher", prompt: "Validate architecture")
 
 Then synthesize results. See `/adv-research` command for implementation.
 
+## Worktree Integration
+
+ADV changes that involve risky or large-scale modifications should use git worktrees for isolation. The `worktree_create` and `worktree_delete` tools are available globally.
+
+### When to Use Worktrees in ADV
+
+| Scenario | Use Worktree? | Reason |
+|----------|---------------|--------|
+| Large refactor with 5+ file changes | Yes | Protects main branch during implementation |
+| Breaking API changes | Yes | Isolated testing before merge |
+| Experimental spike / proof-of-concept | Yes | Throwaway-safe if approach fails |
+| `/adv-ralph` autonomous implementation | Consider | Reduces blast radius of autonomous work |
+| Small task (1-2 files, low risk) | No | Overhead not justified |
+| Docs-only or config changes | No | Trivial, easily reversible |
+
+### ADV + Worktree Workflow
+
+1. **Create change** via `/adv-proposal`
+2. **Prep and research** in main worktree (gates 1-2)
+3. **Create worktree** before implementation gate: `worktree_create("change/<change-id>")`
+4. **Implement with TDD** in the worktree (gate 3)
+5. **Review and harden** in the worktree (gates 4-5)
+6. **Delete worktree** after signoff — changes auto-commit to the branch
+7. **Merge branch** back to main and archive the change
+
+### Always Ask First
+
+Before creating a worktree for an ADV change, explain why isolation is needed and confirm with the user. Not every change needs a worktree.
+
 ## When to Use ADV
 
 **Use for:** New features, breaking changes, architecture, compliance

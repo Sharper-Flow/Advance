@@ -77,6 +77,42 @@ adv_gate_status changeId: {change-id}
 
 ---
 
+## Phase 0: Worktree Assessment
+
+Before autonomous implementation, assess whether this change benefits from worktree isolation. This is especially important for ralph since autonomous work has higher blast radius.
+
+### When to Suggest a Worktree
+
+| Signal | Action |
+|--------|--------|
+| 5+ files affected in proposal | Suggest worktree |
+| Breaking API changes | Suggest worktree |
+| Risky refactor (structural changes) | Suggest worktree |
+| Experimental / spike work | Suggest worktree |
+| 1-2 files, low risk | Skip worktree |
+| Docs-only or config changes | Skip worktree |
+
+If a worktree is warranted, use the `question` tool:
+
+```json
+{
+  "questions": [{
+    "header": "Worktree Isolation",
+    "question": "This change involves {reason}. For autonomous work, I recommend a worktree for isolation. Branch: change/{change-id}",
+    "options": [
+      { "label": "Create worktree (Recommended)", "description": "Isolate autonomous work in a new tmux window" },
+      { "label": "Work in place", "description": "Implement directly in the current branch" }
+    ]
+  }]
+}
+```
+
+If approved: `worktree_create branch: "change/{change-id}"` — autonomous implementation continues in the new tmux window.
+
+If declined or not warranted: proceed to Phase 1 directly.
+
+---
+
 ## Phase 1: Load and Display Contract
 
 Same as `/adv-apply`, plus retry protocol section:
