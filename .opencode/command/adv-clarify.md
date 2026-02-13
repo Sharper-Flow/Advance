@@ -302,7 +302,7 @@ REMAINING QUESTIONS:
 - [ ] [Question needing follow-up]
 
 SUGGESTED NEXT STEPS:
-- Use these criteria in /adv-proposal or /adv-quick
+- Use these criteria in /adv-proposal
 - Validate assumptions with stakeholders
 
 ============================================================

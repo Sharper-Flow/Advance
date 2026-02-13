@@ -9,6 +9,8 @@ agent: general
 Orchestrate a multi-dimensional code review using sub-agents. Uses the 12-dimension review framework and conventional comment labeling for actionable feedback.
 
 > **SUB-AGENT CONTEXT**: Return findings as structured JSON. Skip status markers.
+>
+> **CHECKLIST**: Follow [docs/checklists/review-checklist.md](../../docs/checklists/review-checklist.md) for minimum findings enforcement.
 
 <UserRequest>
   $ARGUMENTS
@@ -266,13 +268,21 @@ Return JSON:
 3. Deduplicate (same file:line from multiple scanners)
 4. Cross-reference with spec scenarios
 
+### Minimum Findings Enforcement
+
+Count non-nit findings (`blocker:`, `issue:`, `suggestion:`, `question:`).
+
+**If >= 3 non-nit findings**: Proceed to verdict.
+
+**If < 3 non-nit findings**: The review MUST include a genuinely-clean justification with file-level evidence per [review-checklist.md](../../docs/checklists/review-checklist.md). Without this justification, the review gate cannot be marked complete.
+
 ### Determine Verdict
 
 | Verdict | Criteria |
 |---------|----------|
 | **BLOCKED** | Any `blocker:` findings |
 | **CHANGES_REQUESTED** | Any `issue:` findings (no blockers) |
-| **APPROVED** | Only `suggestion:` / `nit:` / none |
+| **APPROVED** | Only `suggestion:` / `nit:` / none (with justification if < 3 non-nit) |
 
 ### The Approval Threshold
 

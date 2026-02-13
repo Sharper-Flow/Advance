@@ -13,6 +13,7 @@ import {
   createTestProject,
   parseToolOutput,
 } from "./__tests__/setup";
+import { addProjectWisdom } from "./storage/project-wisdom";
 
 // =============================================================================
 // Mock Plugin Input
@@ -169,11 +170,11 @@ describe("Advance Plugin SDK Integration", () => {
   // ===========================================================================
 
   describe("Tool Registration", () => {
-    test("registers all 34 tools", async () => {
+    test("registers all 36 tools", async () => {
       const hooks = await createTrackedPlugin(tempDir, pluginInstances);
 
       const toolNames = Object.keys(hooks.tool!);
-      expect(toolNames).toHaveLength(34);
+      expect(toolNames).toHaveLength(36);
     });
 
     test("registers spec tools", async () => {
@@ -218,6 +219,7 @@ describe("Advance Plugin SDK Integration", () => {
       const toolNames = Object.keys(hooks.tool!);
       expect(toolNames).toContain("adv_wisdom_add");
       expect(toolNames).toContain("adv_wisdom_list");
+      expect(toolNames).toContain("adv_wisdom_promote");
     });
 
     test("registers agenda tools", async () => {
@@ -453,6 +455,123 @@ describe("Advance Plugin SDK Integration", () => {
       expect(wisdomMessage).not.toContain("Wisdom entry 2\n"); // 2nd oldest should be gone
       expect(wisdomMessage).toContain("Wisdom entry 3"); // 3rd oldest (entry 3) should be the first shown
       expect(wisdomMessage).toContain("Wisdom entry 12"); // Newest should be present
+    });
+
+    test("experimental.chat.system.transform injects project-level wisdom alongside change wisdom", async () => {
+      const hooks = await createTrackedPlugin(tempDir, pluginInstances);
+      const changeId = "addFeature";
+
+      // 1. Set active change
+      await hooks["tool.execute.before"]!(
+        { tool: "adv_task_list" } as any,
+        { args: { changeId } } as any,
+      );
+
+      // 2. Add change-level wisdom
+      const context = createMockToolContext();
+      await hooks.tool!.adv_wisdom_add.execute(
+        { changeId, type: "success", content: "Change-level insight" },
+        context,
+      );
+
+      // 3. Add project-level wisdom directly to JSONL
+      await addProjectWisdom(tempDir, {
+        type: "convention",
+        content: "Project-level convention: always use TDD",
+        sourceChange: "previousChange",
+      });
+      await addProjectWisdom(tempDir, {
+        type: "pattern",
+        content: "Project-level pattern: prefer JSONL for append logs",
+        sourceChange: "anotherChange",
+      });
+
+      // 4. Call the hook
+      const transformHook = hooks["experimental.chat.system.transform"]!;
+      const hookOutput = { system: [] as string[] };
+      await transformHook({ sessionID: "test" } as any, hookOutput as any);
+
+      // 5. Verify both change-level AND project-level wisdom are injected
+      expect(
+        hookOutput.system.some((s) => s.includes("[ADV:ACCUMULATED_WISDOM]")),
+      ).toBe(true);
+      expect(
+        hookOutput.system.some((s) => s.includes("Change-level insight")),
+      ).toBe(true);
+
+      // Project wisdom should appear in a separate section
+      const projectWisdomMsg = hookOutput.system.find((s) =>
+        s.includes("[ADV:PROJECT_WISDOM]"),
+      );
+      expect(projectWisdomMsg).toBeDefined();
+      expect(projectWisdomMsg).toContain("Project-level convention: always use TDD");
+      expect(projectWisdomMsg).toContain("Project-level pattern: prefer JSONL for append logs");
+    });
+
+    test("experimental.chat.system.transform limits project wisdom to 10 entries", async () => {
+      const hooks = await createTrackedPlugin(tempDir, pluginInstances);
+      const changeId = "addFeature";
+
+      // 1. Set active change
+      await hooks["tool.execute.before"]!(
+        { tool: "adv_task_list" } as any,
+        { args: { changeId } } as any,
+      );
+
+      // 2. Add 15 project-level wisdom entries
+      for (let i = 1; i <= 15; i++) {
+        await addProjectWisdom(tempDir, {
+          type: "pattern",
+          content: `Project wisdom ${i}`,
+          sourceChange: "someChange",
+        });
+      }
+
+      // 3. Call the hook
+      const transformHook = hooks["experimental.chat.system.transform"]!;
+      const hookOutput = { system: [] as string[] };
+      await transformHook({ sessionID: "test" } as any, hookOutput as any);
+
+      // 4. Verify truncation — only 10 of 15 shown
+      const projectWisdomMsg = hookOutput.system.find((s) =>
+        s.includes("[ADV:PROJECT_WISDOM]"),
+      );
+      expect(projectWisdomMsg).toBeDefined();
+      expect(projectWisdomMsg).toContain("Showing 10 of 15");
+      // Most recent should be present (listProjectWisdom returns newest first)
+      expect(projectWisdomMsg).toContain("Project wisdom 15");
+    });
+
+    test("experimental.chat.system.transform skips project wisdom when none exist", async () => {
+      const hooks = await createTrackedPlugin(tempDir, pluginInstances);
+      const changeId = "addFeature";
+
+      // 1. Set active change
+      await hooks["tool.execute.before"]!(
+        { tool: "adv_task_list" } as any,
+        { args: { changeId } } as any,
+      );
+
+      // 2. Add change-level wisdom only (no project wisdom)
+      const context = createMockToolContext();
+      await hooks.tool!.adv_wisdom_add.execute(
+        { changeId, type: "success", content: "Change-only insight" },
+        context,
+      );
+
+      // 3. Call the hook
+      const transformHook = hooks["experimental.chat.system.transform"]!;
+      const hookOutput = { system: [] as string[] };
+      await transformHook({ sessionID: "test" } as any, hookOutput as any);
+
+      // 4. Verify no project wisdom section (no JSONL file exists)
+      expect(
+        hookOutput.system.some((s) => s.includes("[ADV:PROJECT_WISDOM]")),
+      ).toBe(false);
+      // But change-level wisdom should still be there
+      expect(
+        hookOutput.system.some((s) => s.includes("[ADV:ACCUMULATED_WISDOM]")),
+      ).toBe(true);
     });
   });
 

@@ -297,8 +297,43 @@ describe("createChangeScaffold", () => {
 
     const content = await readFile(result.proposalPath, "utf-8");
     expect(content).toContain("# Add New Feature");
-    expect(content).toContain("## Summary");
-    expect(content).toContain("## Acceptance Criteria");
+  });
+
+  test("proposal template includes all 8 required sections", async () => {
+    const changesDir = join(tempDir, "changes");
+    const result = await createChangeScaffold(
+      changesDir,
+      "testSections",
+      "Test All Sections",
+    );
+
+    const content = await readFile(result.proposalPath, "utf-8");
+
+    // All 8 sections from the structured proposal template
+    expect(content).toContain("## Why");
+    expect(content).toContain("## What Changes");
+    expect(content).toContain("## Success Criteria");
+    expect(content).toContain("## Affected Code");
+    expect(content).toContain("## Constraints");
+    expect(content).toContain("## Impact");
+    expect(content).toContain("## Risks");
+    expect(content).toContain("## Validation Plan");
+  });
+
+  test("proposal template includes actionable placeholder guidance", async () => {
+    const changesDir = join(tempDir, "changes");
+    const result = await createChangeScaffold(
+      changesDir,
+      "testGuidance",
+      "Test Guidance Content",
+    );
+
+    const content = await readFile(result.proposalPath, "utf-8");
+
+    // Validation Plan should mention TDD
+    expect(content).toMatch(/TDD|test.*first|red.*green/i);
+    // Success Criteria should have checklist items
+    expect(content).toContain("- [ ]");
   });
 });
 

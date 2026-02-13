@@ -63,7 +63,7 @@ Recent:
 
 RECOMMENDATIONS
 ---------------
-<based on state>
+<based on state — includes manifest-driven gate recommendations>
 
 <if no specs and no changes>
 1. Initialize your first spec: Create specs/<capability>/spec.json
@@ -80,9 +80,17 @@ RECOMMENDATIONS
 2. Validate when ready: /adv-validate <change-id>
 <end>
 
-<if changes active>
-1. Continue implementation: /adv-apply <change-id>
-2. Or review progress: adv_task_list change_id: <id>
+<if changes active with incomplete gates>
+Gate-based recommendations are derived from the workflow manifest
+(plugin/src/manifest.ts). For each active change, the tool identifies
+the first incomplete gate and recommends the command that triggers it:
+
+  research → /adv-research <change-id>
+  prep → /adv-prep <change-id>
+  implementation → /adv-apply <change-id>
+  review → /adv-review <change-id>
+  harden → /adv-harden <change-id>
+  signoff → (user confirmation required)
 <end>
 
 <if all tasks done>

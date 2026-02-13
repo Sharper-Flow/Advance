@@ -31,6 +31,7 @@ import {
 } from "./events";
 import type { StatusMarker } from "./types";
 import { safeExecute, safeExecuteSimple } from "./utils/safe-execute";
+import { listProjectWisdom } from "./storage/project-wisdom";
 
 // =============================================================================
 // Types
@@ -510,6 +511,25 @@ export const AdvancePlugin: Plugin = async ({ directory }) => {
         ),
       }),
 
+      adv_wisdom_promote: tool({
+        description: wisdomTools.adv_wisdom_promote.description,
+        args: {
+          changeId: tool.schema
+            .string()
+            .describe("Change ID containing the wisdom entry"),
+          wisdomId: tool.schema
+            .string()
+            .describe(
+              "Wisdom entry ID (ws-xxx) to promote to project level",
+            ),
+        },
+        execute: safeExecute(
+          async (args) =>
+            wisdomTools.adv_wisdom_promote.execute(args, store),
+          "adv_wisdom_promote",
+        ),
+      }),
+
       // ----------------------------------------------------------------------
       // Status Tool
       // ----------------------------------------------------------------------
@@ -906,6 +926,27 @@ export const AdvancePlugin: Plugin = async ({ directory }) => {
           output.system.push(
             `[ADV:ACCUMULATED_WISDOM] The following wisdom has been accumulated for change ${changeId}:\n${wisdomList}${truncationNote}`,
           );
+        }
+
+        // 1b. Project-Level Wisdom Injection (cross-change durable learnings)
+        const MAX_PROJECT_WISDOM = 10;
+        try {
+          const projectWisdom = await listProjectWisdom(store.paths.root);
+          if (projectWisdom.length > 0) {
+            const recentProjectWisdom = projectWisdom.slice(0, MAX_PROJECT_WISDOM);
+            const projectWisdomList = recentProjectWisdom
+              .map((w) => `- [${w.type.toUpperCase()}] ${w.content}`)
+              .join("\n");
+            const projectTruncationNote =
+              projectWisdom.length > MAX_PROJECT_WISDOM
+                ? `\n(Showing ${MAX_PROJECT_WISDOM} of ${projectWisdom.length} project-level entries)`
+                : "";
+            output.system.push(
+              `[ADV:PROJECT_WISDOM] The following project-level wisdom applies across all changes:\n${projectWisdomList}${projectTruncationNote}`,
+            );
+          }
+        } catch (e) {
+          debugLog(`Project wisdom read error: ${e}`);
         }
 
         // 2. Todo Continuation Reminder

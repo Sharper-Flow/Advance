@@ -107,6 +107,35 @@ describe("Status Tools", () => {
       expect(parsed.specs.capabilities).toContain("second-cap");
     });
 
+    test("recommends next gate command for active changes", async () => {
+      // The test fixture change "addFeature" starts with no gates completed
+      // The manifest should recommend the research gate command first
+      const result = await statusTools.adv_status.execute({}, store);
+      const parsed = parseToolOutput(result);
+
+      // Should have a gate-based recommendation for the active change
+      const gateRecs = parsed.recommendations.filter(
+        (r: string) => r.includes("/adv-research") || r.includes("next gate"),
+      );
+      expect(gateRecs.length).toBeGreaterThan(0);
+    });
+
+    test("recommends review after implementation gate is complete", async () => {
+      // Complete research, prep, implementation gates
+      await store.gates.complete("addFeature", "research");
+      await store.gates.complete("addFeature", "prep");
+      await store.gates.complete("addFeature", "implementation");
+
+      const result = await statusTools.adv_status.execute({}, store);
+      const parsed = parseToolOutput(result);
+
+      // Should recommend review (next incomplete gate)
+      const reviewRecs = parsed.recommendations.filter((r: string) =>
+        r.includes("/adv-review"),
+      );
+      expect(reviewRecs.length).toBeGreaterThan(0);
+    });
+
     test("handles empty project", async () => {
       // Create empty project
       const emptyDir = await createTempDir();

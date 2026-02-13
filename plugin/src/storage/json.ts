@@ -5,7 +5,7 @@
  * JSON files are the source of truth.
  */
 
-import { join, dirname } from "path";
+import { join } from "path";
 import {
   readdir,
   mkdir,
@@ -13,12 +13,11 @@ import {
   writeFile,
   access,
   stat,
-  rename,
-  unlink,
 } from "fs/promises";
 import { SpecSchema, ChangeSchema, ProjectConfigSchema } from "../types";
 import type { Spec, Change, ProjectConfig } from "../types";
 import { ZodError } from "zod";
+import { atomicWriteFile } from "../utils/fs";
 
 // =============================================================================
 // Result Types
@@ -55,39 +54,7 @@ function formatZodError(
   );
 }
 
-// =============================================================================
-// Atomic Write
-// =============================================================================
 
-/**
- * Atomically write a file by writing to a temp file first, then renaming.
- * This prevents corrupted files from interrupted writes.
- */
-async function atomicWriteFile(
-  filePath: string,
-  content: string,
-): Promise<void> {
-  const tempPath = `${filePath}.tmp.${Date.now()}`;
-
-  try {
-    // Ensure parent directory exists
-    await mkdir(dirname(filePath), { recursive: true });
-
-    // Write to temp file
-    await writeFile(tempPath, content, "utf-8");
-
-    // Atomic rename (this is atomic on POSIX systems)
-    await rename(tempPath, filePath);
-  } catch (error) {
-    // Clean up temp file if it exists
-    try {
-      await unlink(tempPath);
-    } catch {
-      // Ignore cleanup errors
-    }
-    throw error;
-  }
-}
 
 // =============================================================================
 // File Paths
@@ -334,27 +301,51 @@ export async function createChangeScaffold(
 
   await mkdir(changeDir, { recursive: true });
 
-  // Create proposal.md template
+  // Create proposal.md template with structured sections
   const proposalContent = `# ${title}
 
-## Summary
+## Why
 
-<!-- Brief description of what this change accomplishes -->
+<!-- What problem does this change solve? Why is it needed now? -->
 
-## Motivation
+## What Changes
 
-<!-- Why is this change needed? What problem does it solve? -->
+<!-- Describe the specific modifications: new files, modified APIs, changed behavior -->
 
-## Design
+## Success Criteria
 
-<!-- How will this be implemented? -->
-
-## Acceptance Criteria
-
-<!-- How will we know when this is done? -->
+<!-- How will we know this is done? Measurable outcomes. -->
 
 - [ ] Criterion 1
 - [ ] Criterion 2
+- [ ] All tests pass
+
+## Affected Code
+
+<!-- List files, modules, or subsystems that will be modified -->
+
+- \`path/to/file.ts\` — description of change
+- \`path/to/other.ts\` — description of change
+
+## Constraints
+
+<!-- Technical, time, or resource constraints that shape the solution -->
+
+## Impact
+
+<!-- Who/what is affected? Breaking changes? Migration needed? -->
+
+## Risks
+
+<!-- What could go wrong? Dependencies on external systems? -->
+
+## Validation Plan
+
+<!-- How will correctness be verified? TDD: write tests first (red → green → refactor) -->
+
+- Write failing tests for new behavior (red phase)
+- Implement to make tests pass (green phase)
+- Run full test suite to verify no regressions
 `;
 
   await atomicWriteFile(proposalPath, proposalContent);

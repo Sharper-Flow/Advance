@@ -1,0 +1,67 @@
+{
+  "$schema": "https://raw.githubusercontent.com/anomalyco/oc-plugins/main/advance/plugin/schemas/spec.schema.json",
+  "name": "advance",
+  "title": "Advance",
+  "purpose": "Capability: Advance",
+  "version": "1.0.0",
+  "updated_at": "2026-02-13T18:31:33.591Z",
+  "requirements": [
+    {
+      "id": "rq-W1sD0mR1",
+      "title": "Project-Level Wisdom System",
+      "body": "Durable cross-change learnings must be persisted in a project-level JSONL store to improve agent performance across sessions.",
+      "priority": "must",
+      "scenarios": [
+        {
+          "id": "rq-W1sD0mR1.1",
+          "title": "Durable learning promotion",
+          "given": [
+            "A convention-level learning discovered in a change"
+          ],
+          "when": "adv_wisdom_promote is executed",
+          "then": [
+            "The entry is appended to project-level wisdom.jsonl"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-M4n1f3s1",
+      "title": "Manifest-Driven Workflow recommendations",
+      "body": "Command recommendations in adv-status must be derived from a type-safe workflow manifest to ensure consistent pathing.",
+      "priority": "must",
+      "scenarios": [
+        {
+          "id": "rq-M4n1f3s1.1",
+          "title": "Context-aware recommendations",
+          "given": [
+            "A change at implementation gate"
+          ],
+          "when": "adv-status is run",
+          "then": [
+            "It recommends adv-review or adv-harden based on manifest successors"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-R3v13wR1",
+      "title": "Adversarial Review Enforcement",
+      "body": "/adv-review and /adv-harden must enforce a minimum findings threshold to prevent shallow 'LGTM' behavior.",
+      "priority": "must",
+      "scenarios": [
+        {
+          "id": "rq-R3v13wR1.1",
+          "title": "Minimum findings validation",
+          "given": [
+            "A review with fewer than 3 non-nit findings"
+          ],
+          "when": "Gate completion is attempted",
+          "then": [
+            "The gate remains open and requires explicit justification for the clean result"
+          ]
+        }
+      ]
+    }
+  ]
+}

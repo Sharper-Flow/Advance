@@ -10,7 +10,6 @@ import {
   writeFile,
   appendFile,
   mkdir,
-  rename,
   unlink,
   copyFile,
 } from "fs/promises";
@@ -26,6 +25,7 @@ import {
   type AgendaPriority,
   type AgendaStatus,
 } from "../types";
+import { atomicWriteFile, acquireFileLock } from "../utils/fs";
 
 // =============================================================================
 // Constants
@@ -33,36 +33,10 @@ import {
 
 const AGENDA_DIR = ".adv";
 const AGENDA_FILE = "agenda.jsonl";
-const LOCK_TIMEOUT_MS = 5000;
-const LOCK_RETRY_MS = 50;
 
 // =============================================================================
 // File Safety Utilities
 // =============================================================================
-
-/**
- * Atomic write - writes to temp file then renames.
- * Prevents corruption if process crashes mid-write.
- */
-async function atomicWriteFile(
-  filePath: string,
-  content: string,
-): Promise<void> {
-  const tempPath = `${filePath}.tmp.${Date.now()}`;
-
-  try {
-    await mkdir(dirname(filePath), { recursive: true });
-    await writeFile(tempPath, content, "utf-8");
-    await rename(tempPath, filePath);
-  } catch (error) {
-    try {
-      await unlink(tempPath);
-    } catch {
-      // Ignore cleanup errors
-    }
-    throw error;
-  }
-}
 
 /**
  * Create a backup of a file before destructive operations.
@@ -106,58 +80,7 @@ async function cleanupOldBackups(filePath: string): Promise<void> {
   }
 }
 
-/**
- * Simple file lock using a .lock file.
- * Returns a release function, or throws on timeout.
- */
-async function acquireFileLock(
-  filePath: string,
-  timeoutMs = LOCK_TIMEOUT_MS,
-): Promise<() => Promise<void>> {
-  const lockPath = `${filePath}.lock`;
-  const startTime = Date.now();
 
-  while (Date.now() - startTime < timeoutMs) {
-    try {
-      // Try to create lock file exclusively
-      await writeFile(lockPath, `${process.pid}\n${Date.now()}`, {
-        flag: "wx",
-      });
-
-      // Lock acquired
-      return async () => {
-        try {
-          await unlink(lockPath);
-        } catch {
-          // Ignore unlock errors
-        }
-      };
-    } catch (e) {
-      const error = e as NodeJS.ErrnoException;
-      if (error.code === "EEXIST") {
-        // Lock exists, check if stale (older than 30s)
-        try {
-          const content = await readFile(lockPath, "utf-8");
-          const timestamp = parseInt(content.split("\n")[1] ?? "0", 10);
-          if (Date.now() - timestamp > 30000) {
-            // Stale lock, remove it
-            await unlink(lockPath);
-            continue;
-          }
-        } catch {
-          // Can't read lock, try again
-        }
-
-        // Wait and retry
-        await new Promise((resolve) => setTimeout(resolve, LOCK_RETRY_MS));
-        continue;
-      }
-      throw error;
-    }
-  }
-
-  throw new Error(`Failed to acquire lock on ${filePath} after ${timeoutMs}ms`);
-}
 
 // =============================================================================
 // File Paths

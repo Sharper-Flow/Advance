@@ -1,6 +1,6 @@
 ---
 name: adv-task
-description: Add a task to the agenda for later - AI places it based on priority. Use /adv-quick to start immediately.
+description: Add a task to the agenda for later - AI places it based on priority.
 ---
 
 # ADV Task - Queue a Task for Later
@@ -11,7 +11,7 @@ Add a task to your working agenda **without starting it**. The AI places it in t
 - Tracking discovered tasks while working on something else
 - Technical debt items to address eventually
 
-**vs /adv-quick**: Use `/adv-quick` when you want to start working immediately. `/adv-task` just queues work for later.
+**Starting work**: Use `adv_agenda_start` on any queued task when you're ready to begin.
 
 ## Argument Parsing
 

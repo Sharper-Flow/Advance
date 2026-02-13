@@ -9,6 +9,7 @@
 import { z } from "zod";
 import type { Store } from "../storage/store";
 import { WisdomTypeSchema } from "../types";
+import { addProjectWisdom, compactProjectWisdom, listProjectWisdom } from "../storage/project-wisdom";
 
 // =============================================================================
 // Tool Definitions
@@ -100,6 +101,79 @@ export const wisdomTools = {
         return JSON.stringify({
           error:
             error instanceof Error ? error.message : "Failed to list wisdom",
+        });
+      }
+    },
+  },
+
+  adv_wisdom_promote: {
+    description:
+      "Promote a change-level wisdom entry to project-level wisdom. Only durable, convention-level learnings should be promoted — not one-off fixes or session-specific notes.",
+    args: {
+      changeId: z.string().describe("Change ID containing the wisdom entry"),
+      wisdomId: z
+        .string()
+        .describe("Wisdom entry ID (ws-xxx) to promote to project level"),
+    },
+    execute: async (
+      { changeId, wisdomId }: { changeId: string; wisdomId: string },
+      store: Store,
+    ) => {
+      try {
+        // Look up the change-level wisdom entry
+        const entries = await store.wisdom.list(changeId);
+        const entry = entries.find((e) => e.id === wisdomId);
+
+        if (!entry) {
+          return JSON.stringify({
+            error: `Wisdom entry ${wisdomId} not found in change ${changeId}`,
+          });
+        }
+
+        // Idempotency check: reject if already promoted
+        const existing = await listProjectWisdom(store.paths.root);
+        const isDuplicate = existing.some(
+          (e) =>
+            e.source_change === changeId &&
+            e.content === entry.content &&
+            e.type === entry.type,
+        );
+        if (isDuplicate) {
+          return JSON.stringify({
+            error: `Wisdom entry ${wisdomId} already promoted from change ${changeId}`,
+          });
+        }
+
+        // Promote to project-level wisdom
+        const promoted = await addProjectWisdom(store.paths.root, {
+          type: entry.type,
+          content: entry.content,
+          sourceChange: changeId,
+          sourceTask: entry.source_task,
+        });
+
+        // Compact if over the 50-entry cap (best-effort — don't fail promotion)
+        try {
+          await compactProjectWisdom(store.paths.root);
+        } catch {
+          // Compaction failure is non-fatal; promotion already succeeded
+        }
+
+        return JSON.stringify(
+          {
+            success: true,
+            promoted,
+            message: `Promoted ${entry.type} wisdom to project level`,
+          },
+          null,
+          2,
+        );
+      } catch (error) {
+        return JSON.stringify({
+          error:
+            error instanceof Error
+              ? error.message
+              : "Failed to promote wisdom",
         });
       }
     },

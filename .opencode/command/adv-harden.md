@@ -9,6 +9,8 @@ agent: general
 Orchestrate multi-dimensional hardening analysis using sub-agents for AI-slop detection, technical debt assessment, and production readiness verification.
 
 > **SUB-AGENT CONTEXT**: Return findings as JSON. Skip status markers.
+>
+> **CHECKLIST**: Follow [docs/checklists/harden-checklist.md](../../docs/checklists/harden-checklist.md) for minimum findings enforcement.
 
 <UserRequest>
   $ARGUMENTS
@@ -317,11 +319,19 @@ Priority = Impact × Effort
   1-5: Low (backlog)
 ```
 
+### Minimum Findings Enforcement
+
+Count non-nit findings (`BLOCKER`, `HIGH`, `MEDIUM`, or any actionable finding).
+
+**If >= 3 non-nit findings**: Proceed to status determination.
+
+**If < 3 non-nit findings**: The hardening pass MUST include a genuinely-clean justification with scanner-level evidence per [harden-checklist.md](../../docs/checklists/harden-checklist.md). Without this justification, the harden gate cannot be marked complete.
+
 ### Determine Status
 
 | Status | Criteria |
 |--------|----------|
-| **READY** | No BLOCKER, no HIGH, ≤3 MEDIUM |
+| **READY** | No BLOCKER, no HIGH, ≤3 MEDIUM (with justification if < 3 non-nit) |
 | **NEEDS_WORK** | No BLOCKER but HIGH or >3 MEDIUM |
 | **BLOCKED** | Any BLOCKER |
 
