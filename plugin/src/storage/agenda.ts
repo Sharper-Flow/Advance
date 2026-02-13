@@ -88,16 +88,28 @@ async function cleanupOldBackups(filePath: string): Promise<void> {
 
 /**
  * Get the agenda file path for a project.
+ *
+ * When `overridePath` is provided (e.g. from ProjectPaths.agenda),
+ * it is returned directly — supporting external state directories.
+ * Otherwise falls back to `{projectDir}/.adv/agenda.jsonl`.
  */
-export const getAgendaPath = (projectDir: string): string => {
-  return join(projectDir, AGENDA_DIR, AGENDA_FILE);
+export const getAgendaPath = (
+  projectDir: string,
+  overridePath?: string,
+): string => {
+  return overridePath ?? join(projectDir, AGENDA_DIR, AGENDA_FILE);
 };
 
 /**
- * Ensure the .adv directory exists.
+ * Ensure the agenda parent directory exists.
  */
-const ensureAgendaDir = async (projectDir: string): Promise<void> => {
-  const dir = join(projectDir, AGENDA_DIR);
+const ensureAgendaDir = async (
+  projectDir: string,
+  overridePath?: string,
+): Promise<void> => {
+  const dir = overridePath
+    ? dirname(overridePath)
+    : join(projectDir, AGENDA_DIR);
   if (!existsSync(dir)) {
     await mkdir(dir, { recursive: true });
   }
@@ -131,8 +143,9 @@ const parseLine = (line: string): AgendaItem | AgendaMeta | null => {
  */
 export const loadAgenda = async (
   projectDir: string,
+  options?: { agendaPath?: string },
 ): Promise<{ meta: AgendaMeta | null; items: AgendaItem[] }> => {
-  const path = getAgendaPath(projectDir);
+  const path = getAgendaPath(projectDir, options?.agendaPath);
 
   if (!existsSync(path)) {
     return { meta: null, items: [] };
@@ -174,9 +187,10 @@ export const loadAgenda = async (
 export const initAgenda = async (
   projectDir: string,
   projectName?: string,
+  options?: { agendaPath?: string },
 ): Promise<AgendaMeta> => {
-  await ensureAgendaDir(projectDir);
-  const path = getAgendaPath(projectDir);
+  await ensureAgendaDir(projectDir, options?.agendaPath);
+  const path = getAgendaPath(projectDir, options?.agendaPath);
 
   const meta: AgendaMeta = {
     type: "meta",
@@ -201,14 +215,15 @@ export const addAgendaItem = async (
     priority?: AgendaPriority;
     category?: string;
     blocked_by?: string;
+    agendaPath?: string;
   },
 ): Promise<AgendaItem> => {
-  await ensureAgendaDir(projectDir);
-  const path = getAgendaPath(projectDir);
+  await ensureAgendaDir(projectDir, options?.agendaPath);
+  const path = getAgendaPath(projectDir, options?.agendaPath);
 
   // Initialize if doesn't exist
   if (!existsSync(path)) {
-    await initAgenda(projectDir);
+    await initAgenda(projectDir, undefined, { agendaPath: options?.agendaPath });
   }
 
   const item: AgendaItem = {
@@ -235,8 +250,9 @@ export const updateAgendaItem = async (
   projectDir: string,
   itemId: string,
   updates: Partial<Omit<AgendaItem, "id" | "created_at">>,
+  options?: { agendaPath?: string },
 ): Promise<AgendaItem | null> => {
-  const { items } = await loadAgenda(projectDir);
+  const { items } = await loadAgenda(projectDir, { agendaPath: options?.agendaPath });
   const existing = items.find((i) => i.id === itemId);
 
   if (!existing) return null;
@@ -246,7 +262,7 @@ export const updateAgendaItem = async (
     ...updates,
   };
 
-  const path = getAgendaPath(projectDir);
+  const path = getAgendaPath(projectDir, options?.agendaPath);
   await appendFile(path, JSON.stringify(updated) + "\n", "utf-8");
   return updated;
 };
@@ -257,11 +273,12 @@ export const updateAgendaItem = async (
 export const startAgendaItem = async (
   projectDir: string,
   itemId: string,
+  options?: { agendaPath?: string },
 ): Promise<AgendaItem | null> => {
   return updateAgendaItem(projectDir, itemId, {
     status: "active",
     started_at: new Date().toISOString(),
-  });
+  }, options);
 };
 
 /**
@@ -271,12 +288,13 @@ export const completeAgendaItem = async (
   projectDir: string,
   itemId: string,
   notes?: string,
+  options?: { agendaPath?: string },
 ): Promise<AgendaItem | null> => {
   return updateAgendaItem(projectDir, itemId, {
     status: "done",
     completed_at: new Date().toISOString(),
     completion_notes: notes,
-  });
+  }, options);
 };
 
 /**
@@ -286,12 +304,13 @@ export const cancelAgendaItem = async (
   projectDir: string,
   itemId: string,
   reason?: string,
+  options?: { agendaPath?: string },
 ): Promise<AgendaItem | null> => {
   return updateAgendaItem(projectDir, itemId, {
     status: "cancelled",
     completed_at: new Date().toISOString(),
     completion_notes: reason,
-  });
+  }, options);
 };
 
 /**
@@ -301,11 +320,12 @@ export const blockAgendaItem = async (
   projectDir: string,
   itemId: string,
   blockedBy: string,
+  options?: { agendaPath?: string },
 ): Promise<AgendaItem | null> => {
   return updateAgendaItem(projectDir, itemId, {
     status: "blocked",
     blocked_by: blockedBy,
-  });
+  }, options);
 };
 
 /**
@@ -315,8 +335,9 @@ export const reprioritizeAgendaItem = async (
   projectDir: string,
   itemId: string,
   priority: AgendaPriority,
+  options?: { agendaPath?: string },
 ): Promise<AgendaItem | null> => {
-  return updateAgendaItem(projectDir, itemId, { priority });
+  return updateAgendaItem(projectDir, itemId, { priority }, options);
 };
 
 /**
@@ -324,8 +345,9 @@ export const reprioritizeAgendaItem = async (
  */
 export const getActiveAgenda = async (
   projectDir: string,
+  options?: { agendaPath?: string },
 ): Promise<AgendaItem[]> => {
-  const { items } = await loadAgenda(projectDir);
+  const { items } = await loadAgenda(projectDir, { agendaPath: options?.agendaPath });
   return items.filter((i) => i.status === "pending" || i.status === "active");
 };
 
@@ -334,8 +356,9 @@ export const getActiveAgenda = async (
  */
 export const getNextAgendaItem = async (
   projectDir: string,
+  options?: { agendaPath?: string },
 ): Promise<AgendaItem | null> => {
-  const { items } = await loadAgenda(projectDir);
+  const { items } = await loadAgenda(projectDir, { agendaPath: options?.agendaPath });
 
   // First check for active items
   const active = items.find((i) => i.status === "active");
@@ -364,8 +387,11 @@ export const getNextAgendaItem = async (
  * Creates a backup before compacting and uses file locking
  * to prevent concurrent access issues.
  */
-export const compactAgenda = async (projectDir: string): Promise<void> => {
-  const path = getAgendaPath(projectDir);
+export const compactAgenda = async (
+  projectDir: string,
+  options?: { agendaPath?: string },
+): Promise<void> => {
+  const path = getAgendaPath(projectDir, options?.agendaPath);
 
   // Acquire lock to prevent concurrent modifications
   const releaseLock = await acquireFileLock(path);
@@ -374,7 +400,7 @@ export const compactAgenda = async (projectDir: string): Promise<void> => {
     // Create backup before destructive operation
     const backupPath = await createBackup(path);
 
-    const { meta, items } = await loadAgenda(projectDir);
+    const { meta, items } = await loadAgenda(projectDir, { agendaPath: options?.agendaPath });
 
     const lines: string[] = [];
 
@@ -403,13 +429,14 @@ export const compactAgenda = async (projectDir: string): Promise<void> => {
  */
 export const getAgendaStats = async (
   projectDir: string,
+  options?: { agendaPath?: string },
 ): Promise<{
   total: number;
   byStatus: Record<AgendaStatus, number>;
   byPriority: Record<AgendaPriority, number>;
   byCategory: Record<string, number>;
 }> => {
-  const { items } = await loadAgenda(projectDir);
+  const { items } = await loadAgenda(projectDir, { agendaPath: options?.agendaPath });
 
   const byStatus: Record<AgendaStatus, number> = {
     pending: 0,

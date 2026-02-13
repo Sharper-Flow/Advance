@@ -79,37 +79,69 @@ adv_gate_status changeId: {change-id}
 
 ## Phase 0: Worktree Assessment
 
-Before autonomous implementation, assess whether this change benefits from worktree isolation. This is especially important for ralph since autonomous work has higher blast radius.
+Before autonomous implementation, assess whether this change benefits from worktree isolation. **Ralph defaults to worktree isolation** because autonomous work has higher blast radius — only skip for trivially small changes.
 
-### When to Suggest a Worktree
+### Step 1: Assess Risk
 
-| Signal | Action |
-|--------|--------|
-| 5+ files affected in proposal | Suggest worktree |
-| Breaking API changes | Suggest worktree |
-| Risky refactor (structural changes) | Suggest worktree |
-| Experimental / spike work | Suggest worktree |
-| 1-2 files, low risk | Skip worktree |
-| Docs-only or config changes | Skip worktree |
+Count files affected in the proposal and evaluate risk. Ralph uses a **lower threshold** than adv-apply:
 
-If a worktree is warranted, use the `question` tool:
+| Signal | Risk Level |
+|--------|------------|
+| 3+ files affected | High — suggest worktree (default for ralph) |
+| Breaking API changes | High — suggest worktree |
+| Risky refactor (structural changes) | High — suggest worktree |
+| Experimental / spike work | High — suggest worktree |
+| 1-2 files, trivial changes only | Low — skip worktree |
+| Docs-only or config changes | Low — skip worktree |
+
+If risk is **Low**, skip to Phase 1.
+
+### Step 2: Check Tool Availability
+
+Before suggesting a worktree, verify `worktree_create` is available. If not, emit:
+```
+[ADV:INFO] Worktree tools not available — proceeding with in-place autonomous implementation.
+```
+Then skip to Phase 1.
+
+### Step 3: Ask User
+
+Use the `question` tool. Note: ralph **recommends worktree by default** for autonomous safety:
 
 ```json
 {
   "questions": [{
     "header": "Worktree Isolation",
-    "question": "This change involves {reason}. For autonomous work, I recommend a worktree for isolation. Branch: change/{change-id}",
+    "question": "This change affects {N} files and involves {reason}. For autonomous implementation (ralph), I strongly recommend a worktree to contain blast radius. Branch: change/{change-id}",
     "options": [
-      { "label": "Create worktree (Recommended)", "description": "Isolate autonomous work in a new tmux window" },
-      { "label": "Work in place", "description": "Implement directly in the current branch" }
+      { "label": "Create worktree (Recommended)", "description": "Isolate autonomous work in a new tmux window with full ADV context" },
+      { "label": "Work in place", "description": "Implement directly in the current branch (higher risk for autonomous work)" }
     ]
   }]
 }
 ```
 
-If approved: `worktree_create branch: "change/{change-id}"` — autonomous implementation continues in the new tmux window.
+If **declined**: skip to Phase 1.
 
-If declined or not warranted: proceed to Phase 1 directly.
+### Step 4: Write Handoff & Create Worktree
+
+If **approved**, execute this exact sequence:
+
+1. **Write handoff state** — the plugin automatically persists `{changeId, currentTaskId, gateStatus, objective}` to the external state directory. The new session will hydrate from this on startup.
+
+2. **Create worktree**:
+   ```
+   worktree_create branch: "change/{change-id}"
+   ```
+
+3. **Stop this session** — emit:
+   ```
+   [ADV:EARTH] Worktree created for change {change-id}. Autonomous implementation continues in the new tmux window.
+   The new session will automatically hydrate change context via [ADV:WORKTREE_SESSION].
+   This session's work on this change is complete.
+   ```
+
+**CRITICAL**: After creating the worktree, do NOT continue implementation in this session. The new session inherits full ADV context (change, tasks, wisdom, gates) via shared external storage.
 
 ---
 

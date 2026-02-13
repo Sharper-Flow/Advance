@@ -131,7 +131,7 @@ export const wisdomTools = {
         }
 
         // Idempotency check: reject if already promoted
-        const existing = await listProjectWisdom(store.paths.root);
+        const existing = await listProjectWisdom(store.paths.root, { wisdomPath: store.paths.wisdom });
         const isDuplicate = existing.some(
           (e) =>
             e.source_change === changeId &&
@@ -150,11 +150,12 @@ export const wisdomTools = {
           content: entry.content,
           sourceChange: changeId,
           sourceTask: entry.source_task,
+          wisdomPath: store.paths.wisdom,
         });
 
         // Compact if over the 50-entry cap (best-effort — don't fail promotion)
         try {
-          await compactProjectWisdom(store.paths.root);
+          await compactProjectWisdom(store.paths.root, { wisdomPath: store.paths.wisdom });
         } catch {
           // Compaction failure is non-fatal; promotion already succeeded
         }

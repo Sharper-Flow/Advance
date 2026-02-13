@@ -62,9 +62,16 @@ const DEFAULT_MAX_ENTRIES = 50;
 
 /**
  * Get the project wisdom file path.
+ *
+ * When `overridePath` is provided (e.g. from ProjectPaths.wisdom),
+ * it is returned directly — supporting external state directories.
+ * Otherwise falls back to `{projectDir}/.adv/wisdom.jsonl`.
  */
-export const getProjectWisdomPath = (projectDir: string): string => {
-  return join(projectDir, ADV_DIR, WISDOM_FILE);
+export const getProjectWisdomPath = (
+  projectDir: string,
+  overridePath?: string,
+): string => {
+  return overridePath ?? join(projectDir, ADV_DIR, WISDOM_FILE);
 };
 
 // =============================================================================
@@ -82,6 +89,8 @@ export async function addProjectWisdom(
     content: string;
     sourceChange?: string;
     sourceTask?: string;
+    /** Override path — pass ProjectPaths.wisdom for external state support */
+    wisdomPath?: string;
   },
 ): Promise<ProjectWisdomEntry> {
   // Validate type
@@ -98,7 +107,7 @@ export async function addProjectWisdom(
     throw new Error("Wisdom content exceeds 2000 character limit");
   }
 
-  const path = getProjectWisdomPath(projectDir);
+  const path = getProjectWisdomPath(projectDir, input.wisdomPath);
 
   // Ensure directory exists
   await mkdir(dirname(path), { recursive: true });
@@ -160,9 +169,9 @@ function parseWisdomEntries(content: string): ProjectWisdomEntry[] {
  */
 export async function listProjectWisdom(
   projectDir: string,
-  options?: { maxEntries?: number; _skipLock?: boolean },
+  options?: { maxEntries?: number; _skipLock?: boolean; wisdomPath?: string },
 ): Promise<ProjectWisdomEntry[]> {
-  const path = getProjectWisdomPath(projectDir);
+  const path = getProjectWisdomPath(projectDir, options?.wisdomPath);
 
   if (!existsSync(path)) {
     return [];
@@ -198,9 +207,9 @@ export async function listProjectWisdom(
  */
 export async function compactProjectWisdom(
   projectDir: string,
-  options?: { maxEntries?: number },
+  options?: { maxEntries?: number; wisdomPath?: string },
 ): Promise<void> {
-  const path = getProjectWisdomPath(projectDir);
+  const path = getProjectWisdomPath(projectDir, options?.wisdomPath);
 
   if (!existsSync(path)) {
     return;
@@ -211,7 +220,7 @@ export async function compactProjectWisdom(
   const releaseLock = await acquireFileLock(path);
   try {
     // Re-read under lock to get consistent state (skip lock — we already hold it)
-    const entries = await listProjectWisdom(projectDir, { _skipLock: true });
+    const entries = await listProjectWisdom(projectDir, { _skipLock: true, wisdomPath: options?.wisdomPath });
 
     if (entries.length <= maxEntries) {
       return; // Nothing to compact

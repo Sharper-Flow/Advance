@@ -169,10 +169,15 @@ export interface SearchResult {
 // Create Store
 // =============================================================================
 
-export async function createStore(directory: string): Promise<Store> {
+export async function createStore(
+  directory: string,
+  options?: { externalRoot?: string },
+): Promise<Store> {
   // Load project config
   const config = await loadProjectConfig(directory);
-  const paths = getProjectPaths(directory, config ?? undefined);
+  const paths = getProjectPaths(directory, config ?? undefined, {
+    externalRoot: options?.externalRoot,
+  });
 
   // Ensure .specdb directory exists
   await mkdir(paths.db, { recursive: true });

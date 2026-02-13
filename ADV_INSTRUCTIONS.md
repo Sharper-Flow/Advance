@@ -158,32 +158,56 @@ Then synthesize results. See `/adv-research` command for implementation.
 
 ## Worktree Integration
 
-ADV changes that involve risky or large-scale modifications should use git worktrees for isolation. The `worktree_create` and `worktree_delete` tools are available globally.
+ADV uses **external mutable state** so that all worktrees of the same repo share changes, archive, wisdom, agenda, and the SQLite cache. Specs remain in-repo (`.adv/specs/`).
 
-### When to Use Worktrees in ADV
+### External State Layout
 
-| Scenario | Use Worktree? | Reason |
-|----------|---------------|--------|
-| Large refactor with 5+ file changes | Yes | Protects main branch during implementation |
-| Breaking API changes | Yes | Isolated testing before merge |
-| Experimental spike / proof-of-concept | Yes | Throwaway-safe if approach fails |
-| `/adv-ralph` autonomous implementation | Consider | Reduces blast radius of autonomous work |
-| Small task (1-2 files, low risk) | No | Overhead not justified |
-| Docs-only or config changes | No | Trivial, easily reversible |
+Mutable state lives at `$XDG_DATA_HOME/opencode/plugins/advance/{project-id}/`:
 
-### ADV + Worktree Workflow
+```
+{project-id}/
+├── changes/          # Active change proposals
+├── archive/          # Completed changes
+├── db/spec.db        # SQLite FTS cache
+├── wisdom.jsonl      # Project-level learnings
+├── agenda.jsonl      # Work queue
+└── handoff.json      # Session handoff (temporary)
+```
 
-1. **Create change** via `/adv-proposal`
-2. **Prep and research** in main worktree (gates 1-2)
-3. **Create worktree** before implementation gate: `worktree_create("change/<change-id>")`
-4. **Implement with TDD** in the worktree (gate 3)
-5. **Review and harden** in the worktree (gates 4-5)
-6. **Delete worktree** after signoff — changes auto-commit to the branch
-7. **Merge branch** back to main and archive the change
+**project-id** = root commit SHA (`git rev-list --max-parents=0 HEAD`), stable across all worktrees.
 
-### Always Ask First
+### Session Handoff Protocol
 
-Before creating a worktree for an ADV change, explain why isolation is needed and confirm with the user. Not every change needs a worktree.
+When a worktree is created during an active ADV change:
+
+1. **Parent session** writes `handoff.json` with `{changeId, currentTaskId, gateStatus, objective}`
+2. **New session** reads and clears `handoff.json` on startup, hydrating `PluginState.activeChange`
+3. **system.transform** injects `[ADV:WORKTREE_SESSION]` marker with full change context
+
+This means the new session starts with change context loaded — no manual re-loading needed.
+
+### When Worktrees Are Used
+
+Phase 0 of `/adv-apply` and `/adv-ralph` handles worktree assessment automatically:
+
+| Command | Threshold | Default |
+|---------|-----------|---------|
+| `/adv-apply` | 5+ files or high-risk signals | Skip worktree |
+| `/adv-ralph` | 3+ files (lower threshold for autonomous work) | Suggest worktree |
+
+Both commands follow a deterministic 4-step sequence:
+1. **Assess risk** — count affected files, evaluate risk signals
+2. **Check tool availability** — verify `worktree_create` is available, skip with `[ADV:INFO]` if not
+3. **Ask user** — present choice via `question` tool
+4. **Write handoff & create** — persist state, create worktree, stop parent session
+
+### Graceful Degradation
+
+If `worktree_create`/`worktree_delete` tools are not installed, commands skip Phase 0 with:
+```
+[ADV:INFO] Worktree tools not available — proceeding with in-place implementation.
+```
+All other ADV functionality works identically.
 
 ## When to Use ADV
 

@@ -33,12 +33,17 @@ import {
 import type { Spec, ProjectConfig } from "../types";
 
 describe("getProjectPaths", () => {
-  test("returns default paths", () => {
+  test("returns default paths (no external root — legacy fallback)", () => {
     const paths = getProjectPaths("/project");
     expect(paths.root).toBe("/project");
     expect(paths.specs).toBe("/project/.adv/specs");
     expect(paths.changes).toBe("/project/.adv/changes");
+    expect(paths.archive).toBe("/project/.adv/archive");
     expect(paths.db).toBe("/project/.adv/db");
+    expect(paths.wisdom).toBe("/project/.adv/wisdom.jsonl");
+    expect(paths.agenda).toBe("/project/.adv/agenda.jsonl");
+    expect(paths.handoff).toBe("/project/.adv/handoff.json");
+    expect(paths.external).toBeNull();
   });
 
   test("respects custom config", () => {
@@ -48,6 +53,38 @@ describe("getProjectPaths", () => {
     });
     expect(paths.specs).toBe("/project/custom/specs");
     expect(paths.db).toBe("/project/.custom-db");
+  });
+
+  test("uses external root for mutable paths when provided", () => {
+    const paths = getProjectPaths("/project", undefined, {
+      externalRoot: "/ext/data/abc123",
+    });
+    // Immutable paths stay in-repo
+    expect(paths.root).toBe("/project");
+    expect(paths.specs).toBe("/project/.adv/specs");
+    expect(paths.docs).toBe("/project/docs/specs");
+    expect(paths.config).toBe("/project/project.json");
+    // Mutable paths go external
+    expect(paths.changes).toBe("/ext/data/abc123/changes");
+    expect(paths.archive).toBe("/ext/data/abc123/archive");
+    expect(paths.db).toBe("/ext/data/abc123/db");
+    expect(paths.wisdom).toBe("/ext/data/abc123/wisdom.jsonl");
+    expect(paths.agenda).toBe("/ext/data/abc123/agenda.jsonl");
+    expect(paths.handoff).toBe("/ext/data/abc123/handoff.json");
+    expect(paths.external).toBe("/ext/data/abc123");
+  });
+
+  test("external root with custom config uses config subdirectory names", () => {
+    const paths = getProjectPaths(
+      "/project",
+      { changes_dir: "my-changes", db_dir: "my-db" },
+      { externalRoot: "/ext/data/abc123" },
+    );
+    // Custom subdirectory names applied within external root
+    expect(paths.changes).toBe("/ext/data/abc123/my-changes");
+    expect(paths.db).toBe("/ext/data/abc123/my-db");
+    // Specs still in-repo (unaffected by external)
+    expect(paths.specs).toBe("/project/.adv/specs");
   });
 });
 

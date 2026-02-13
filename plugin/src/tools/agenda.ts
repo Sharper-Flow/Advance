@@ -53,8 +53,9 @@ export const agendaTools = {
         includeCompleted,
       }: { status?: string; includeCompleted?: boolean },
       projectDir: string,
+      agendaPath?: string,
     ) => {
-      const { items } = await loadAgenda(projectDir);
+      const { items } = await loadAgenda(projectDir, { agendaPath });
 
       let filtered = items;
       if (status) {
@@ -120,12 +121,14 @@ export const agendaTools = {
         blocked_by?: string;
       },
       projectDir: string,
+      agendaPath?: string,
     ) => {
       const item = await addAgendaItem(projectDir, title, {
         description,
         priority,
         category,
         blocked_by,
+        agendaPath,
       });
 
       const requiresTdd = isLogicTask(title);
@@ -152,8 +155,8 @@ export const agendaTools = {
     args: {
       itemId: z.string().describe("Agenda item ID"),
     },
-    execute: async ({ itemId }: { itemId: string }, projectDir: string) => {
-      const item = await startAgendaItem(projectDir, itemId);
+    execute: async ({ itemId }: { itemId: string }, projectDir: string, agendaPath?: string) => {
+      const item = await startAgendaItem(projectDir, itemId, { agendaPath });
       if (!item) {
         return JSON.stringify({ error: `Agenda item not found: ${itemId}` });
       }
@@ -170,8 +173,9 @@ export const agendaTools = {
     execute: async (
       { itemId, notes }: { itemId: string; notes?: string },
       projectDir: string,
+      agendaPath?: string,
     ) => {
-      const { items } = await loadAgenda(projectDir);
+      const { items } = await loadAgenda(projectDir, { agendaPath });
       const existing = items.find((i) => i.id === itemId);
 
       if (!existing) {
@@ -217,7 +221,7 @@ export const agendaTools = {
         );
       }
 
-      const item = await completeAgendaItem(projectDir, itemId, notes);
+      const item = await completeAgendaItem(projectDir, itemId, notes, { agendaPath });
       return JSON.stringify({ success: true, item, compliance }, null, 2);
     },
   },
@@ -231,8 +235,9 @@ export const agendaTools = {
     execute: async (
       { itemId, reason }: { itemId: string; reason?: string },
       projectDir: string,
+      agendaPath?: string,
     ) => {
-      const item = await cancelAgendaItem(projectDir, itemId, reason);
+      const item = await cancelAgendaItem(projectDir, itemId, reason, { agendaPath });
       if (!item) {
         return JSON.stringify({ error: `Agenda item not found: ${itemId}` });
       }
@@ -257,8 +262,9 @@ export const agendaTools = {
         priority: "critical" | "high" | "medium" | "low" | "backlog";
       },
       projectDir: string,
+      agendaPath?: string,
     ) => {
-      const item = await reprioritizeAgendaItem(projectDir, itemId, priority);
+      const item = await reprioritizeAgendaItem(projectDir, itemId, priority, { agendaPath });
       if (!item) {
         return JSON.stringify({ error: `Agenda item not found: ${itemId}` });
       }
@@ -270,8 +276,8 @@ export const agendaTools = {
     description:
       "Get the next agenda item to work on (highest priority unblocked item).",
     args: {},
-    execute: async (_args: Record<string, never>, projectDir: string) => {
-      const item = await getNextAgendaItem(projectDir);
+    execute: async (_args: Record<string, never>, projectDir: string, agendaPath?: string) => {
+      const item = await getNextAgendaItem(projectDir, { agendaPath });
       if (!item) {
         return wrapWithBanner(
           { command: "adv_agenda_next" },
@@ -306,9 +312,9 @@ export const agendaTools = {
   adv_agenda_stats: {
     description: "Get statistics about the current agenda.",
     args: {},
-    execute: async (_args: Record<string, never>, projectDir: string) => {
-      const stats = await getAgendaStats(projectDir);
-      const active = await getActiveAgenda(projectDir);
+    execute: async (_args: Record<string, never>, projectDir: string, agendaPath?: string) => {
+      const stats = await getAgendaStats(projectDir, { agendaPath });
+      const active = await getActiveAgenda(projectDir, { agendaPath });
 
       return wrapWithBanner(
         { command: "adv_agenda_stats" },
@@ -362,8 +368,9 @@ export const agendaTools = {
         exitCode?: number;
       },
       projectDir: string,
+      agendaPath?: string,
     ) => {
-      const { items } = await loadAgenda(projectDir);
+      const { items } = await loadAgenda(projectDir, { agendaPath });
       const existing = items.find((i) => i.id === itemId);
 
       if (!existing) {
@@ -392,7 +399,7 @@ export const agendaTools = {
       const updated = await updateAgendaItem(projectDir, itemId, {
         tdd_evidence: tddEvidence,
         tdd_phase: tddPhase,
-      });
+      }, { agendaPath });
 
       return JSON.stringify(
         {
@@ -410,9 +417,9 @@ export const agendaTools = {
     description:
       "Compact the agenda file by removing superseded entries. Run periodically to keep file size manageable.",
     args: {},
-    execute: async (_args: Record<string, never>, projectDir: string) => {
-      await compactAgenda(projectDir);
-      const stats = await getAgendaStats(projectDir);
+    execute: async (_args: Record<string, never>, projectDir: string, agendaPath?: string) => {
+      await compactAgenda(projectDir, { agendaPath });
+      const stats = await getAgendaStats(projectDir, { agendaPath });
 
       return JSON.stringify(
         {

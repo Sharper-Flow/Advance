@@ -5,7 +5,7 @@
  * JSON files are the source of truth.
  */
 
-import { join } from "path";
+import { join, basename } from "path";
 import {
   readdir,
   mkdir,
@@ -61,27 +61,72 @@ function formatZodError(
 // =============================================================================
 
 export interface ProjectPaths {
+  // In-repo (immutable, git-tracked)
   root: string;
   specs: string;
+  docs: string;
+  config: string;
+
+  // Mutable (external when externalRoot is provided, else in-repo fallback)
   changes: string;
   archive: string;
-  docs: string;
   db: string;
-  config: string;
+  wisdom: string;
+  agenda: string;
+  handoff: string;
+
+  /** External root directory, or null when using legacy in-repo paths */
+  external: string | null;
 }
 
 export function getProjectPaths(
   root: string,
   config?: Partial<ProjectConfig>,
+  options?: { externalRoot?: string },
 ): ProjectPaths {
+  const ext = options?.externalRoot || null; // Reject empty strings
+
+  // Immutable paths always resolve within the repo
+  const specs = join(root, config?.specs_dir ?? ".adv/specs");
+  const docs = join(root, config?.docs_dir ?? "docs/specs");
+  const configPath = join(root, "project.json");
+
+  if (ext) {
+    // Mutable paths resolve within the external state directory.
+    // Use basename() to extract the leaf directory name from config paths
+    // like ".adv/changes" -> "changes", "my-changes" -> "my-changes"
+    const changesDir = basename(config?.changes_dir ?? ".adv/changes");
+    const archiveDir = basename(config?.archive_dir ?? ".adv/archive");
+    const dbDir = basename(config?.db_dir ?? ".adv/db");
+
+    return {
+      root,
+      specs,
+      docs,
+      config: configPath,
+      changes: join(ext, changesDir),
+      archive: join(ext, archiveDir),
+      db: join(ext, dbDir),
+      wisdom: join(ext, "wisdom.jsonl"),
+      agenda: join(ext, "agenda.jsonl"),
+      handoff: join(ext, "handoff.json"),
+      external: ext,
+    };
+  }
+
+  // Legacy fallback: all paths in-repo under .adv/
   return {
     root,
-    specs: join(root, config?.specs_dir ?? ".adv/specs"),
+    specs,
+    docs,
+    config: configPath,
     changes: join(root, config?.changes_dir ?? ".adv/changes"),
     archive: join(root, config?.archive_dir ?? ".adv/archive"),
-    docs: join(root, config?.docs_dir ?? "docs/specs"),
     db: join(root, config?.db_dir ?? ".adv/db"),
-    config: join(root, "project.json"),
+    wisdom: join(root, ".adv/wisdom.jsonl"),
+    agenda: join(root, ".adv/agenda.jsonl"),
+    handoff: join(root, ".adv/handoff.json"),
+    external: null,
   };
 }
 

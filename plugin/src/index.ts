@@ -32,6 +32,9 @@ import {
 import type { StatusMarker } from "./types";
 import { safeExecute, safeExecuteSimple } from "./utils/safe-execute";
 import { listProjectWisdom } from "./storage/project-wisdom";
+import { getProjectId, getExternalRoot } from "./utils/project-id";
+import { migrateToExternalState } from "./storage/migrate";
+import { consumeHandoff } from "./storage/handoff";
 
 // =============================================================================
 // Types
@@ -50,6 +53,8 @@ interface PluginState {
     id: string;
     title: string;
   } | null;
+  /** True when running inside a git worktree (directory !== main repo root) */
+  isWorktree: boolean;
 }
 
 // =============================================================================
@@ -100,14 +105,37 @@ const TEST_FAILURE_PATTERNS =
 // Plugin Export
 // =============================================================================
 
-export const AdvancePlugin: Plugin = async ({ directory }) => {
-  debugLog(`Plugin initializing: directory=${directory}`);
+export const AdvancePlugin: Plugin = async ({ directory, worktree }) => {
+  const isWorktree = !!worktree && worktree !== directory;
+  debugLog(`Plugin initializing: directory=${directory}, worktree=${worktree}, isWorktree=${isWorktree}`);
+
+  // Derive project identity and resolve external state directory
+  const projectId = await getProjectId(directory);
+  let externalRoot: string | undefined;
+
+  if (projectId) {
+    externalRoot = getExternalRoot(projectId);
+    debugLog(`External state: projectId=${projectId}, externalRoot=${externalRoot}`);
+
+    // One-time migration: copy any existing .adv/ mutable state to external dir
+    try {
+      const report = await migrateToExternalState(directory, externalRoot);
+      if (report.migrated.length > 0) {
+        debugLog(`Migration completed: migrated=${report.migrated.join(",")}, skipped=${report.skipped.join(",")}`);
+      }
+    } catch (e) {
+      debugLog(`Migration failed (non-fatal): ${(e as Error).message}`);
+      // Migration failure is non-fatal — external dir may not be writable in some envs
+    }
+  } else {
+    debugLog("No project ID (not a git repo?) — using legacy in-repo paths");
+  }
 
   // Initialize store (lazy sync - don't call store.sync() here)
   // Sync happens on-demand when tools access specs/changes
-  const store = await createStore(directory);
+  const store = await createStore(directory, { externalRoot });
   await store.init();
-  // Note: store.sync() removed for faster startup - see Phase 2 lazy sync
+  // Sync happens on-demand via store.sync() when tools access specs/changes
 
   // Initialize terminal status
   const projectName = getProjectName(directory);
@@ -124,7 +152,25 @@ export const AdvancePlugin: Plugin = async ({ directory }) => {
       objective: null,
     },
     lastCompletedTask: null,
+    isWorktree,
   };
+
+  // Session hydration: atomically consume handoff.json and populate active change
+  if (store.paths.external) {
+    try {
+      const handoff = await consumeHandoff(store.paths.handoff);
+      if (handoff) {
+        state.activeChange = {
+          id: handoff.changeId,
+          objective: handoff.objective,
+        };
+        setActiveChange(handoff.changeId);
+        debugLog(`Hydrated from handoff: changeId=${handoff.changeId}, objective=${handoff.objective}`);
+      }
+    } catch (e) {
+      debugLog(`Handoff hydration failed (non-fatal): ${(e as Error).message}`);
+    }
+  }
 
   // Helper to update state and terminal
   const setState = (updates: Partial<PluginState>) => {
@@ -558,7 +604,7 @@ export const AdvancePlugin: Plugin = async ({ directory }) => {
             .describe("Include done/cancelled items"),
         },
         execute: safeExecuteSimple(
-          async (args) => agendaTools.adv_agenda_list.execute(args, directory),
+          async (args) => agendaTools.adv_agenda_list.execute(args, directory, store.paths.agenda),
           "adv_agenda_list",
         ),
       }),
@@ -582,7 +628,7 @@ export const AdvancePlugin: Plugin = async ({ directory }) => {
             .describe("ID of blocking item"),
         },
         execute: safeExecuteSimple(
-          async (args) => agendaTools.adv_agenda_add.execute(args, directory),
+          async (args) => agendaTools.adv_agenda_add.execute(args, directory, store.paths.agenda),
           "adv_agenda_add",
         ),
       }),
@@ -593,7 +639,7 @@ export const AdvancePlugin: Plugin = async ({ directory }) => {
           itemId: tool.schema.string().describe("Agenda item ID"),
         },
         execute: safeExecuteSimple(
-          async (args) => agendaTools.adv_agenda_start.execute(args, directory),
+          async (args) => agendaTools.adv_agenda_start.execute(args, directory, store.paths.agenda),
           "adv_agenda_start",
         ),
       }),
@@ -606,7 +652,7 @@ export const AdvancePlugin: Plugin = async ({ directory }) => {
         },
         execute: safeExecuteSimple(
           async (args) =>
-            agendaTools.adv_agenda_complete.execute(args, directory),
+            agendaTools.adv_agenda_complete.execute(args, directory, store.paths.agenda),
           "adv_agenda_complete",
         ),
       }),
@@ -622,7 +668,7 @@ export const AdvancePlugin: Plugin = async ({ directory }) => {
         },
         execute: safeExecuteSimple(
           async (args) =>
-            agendaTools.adv_agenda_cancel.execute(args, directory),
+            agendaTools.adv_agenda_cancel.execute(args, directory, store.paths.agenda),
           "adv_agenda_cancel",
         ),
       }),
@@ -637,7 +683,7 @@ export const AdvancePlugin: Plugin = async ({ directory }) => {
         },
         execute: safeExecuteSimple(
           async (args) =>
-            agendaTools.adv_agenda_prioritize.execute(args, directory),
+            agendaTools.adv_agenda_prioritize.execute(args, directory, store.paths.agenda),
           "adv_agenda_prioritize",
         ),
       }),
@@ -646,7 +692,7 @@ export const AdvancePlugin: Plugin = async ({ directory }) => {
         description: agendaTools.adv_agenda_next.description,
         args: {},
         execute: safeExecuteSimple(
-          async (args) => agendaTools.adv_agenda_next.execute(args, directory),
+          async (args) => agendaTools.adv_agenda_next.execute(args, directory, store.paths.agenda),
           "adv_agenda_next",
         ),
       }),
@@ -655,7 +701,7 @@ export const AdvancePlugin: Plugin = async ({ directory }) => {
         description: agendaTools.adv_agenda_stats.description,
         args: {},
         execute: safeExecuteSimple(
-          async (args) => agendaTools.adv_agenda_stats.execute(args, directory),
+          async (args) => agendaTools.adv_agenda_stats.execute(args, directory, store.paths.agenda),
           "adv_agenda_stats",
         ),
       }),
@@ -672,7 +718,7 @@ export const AdvancePlugin: Plugin = async ({ directory }) => {
         },
         execute: safeExecuteSimple(
           async (args) =>
-            agendaTools.adv_agenda_evidence.execute(args, directory),
+            agendaTools.adv_agenda_evidence.execute(args, directory, store.paths.agenda),
           "adv_agenda_evidence",
         ),
       }),
@@ -682,7 +728,7 @@ export const AdvancePlugin: Plugin = async ({ directory }) => {
         args: {},
         execute: safeExecuteSimple(
           async (args) =>
-            agendaTools.adv_agenda_compact.execute(args, directory),
+            agendaTools.adv_agenda_compact.execute(args, directory, store.paths.agenda),
           "adv_agenda_compact",
         ),
       }),
@@ -906,6 +952,16 @@ export const AdvancePlugin: Plugin = async ({ directory }) => {
       output,
     ): Promise<void> => {
       try {
+        // Inject worktree session marker if running in a worktree
+        if (state.isWorktree && state.activeChange.id) {
+          output.system.push(
+            `[ADV:WORKTREE_SESSION] You are working in a git worktree. ` +
+            `Active change: ${state.activeChange.id}. ` +
+            `All ADV state (changes, tasks, wisdom) is shared via external storage. ` +
+            `Use adv_change_show and adv_task_ready to pick up where the parent session left off.`,
+          );
+        }
+
         if (!state.activeChange.id) return;
 
         const changeId = state.activeChange.id;
@@ -931,7 +987,7 @@ export const AdvancePlugin: Plugin = async ({ directory }) => {
         // 1b. Project-Level Wisdom Injection (cross-change durable learnings)
         const MAX_PROJECT_WISDOM = 10;
         try {
-          const projectWisdom = await listProjectWisdom(store.paths.root);
+          const projectWisdom = await listProjectWisdom(store.paths.root, { wisdomPath: store.paths.wisdom });
           if (projectWisdom.length > 0) {
             const recentProjectWisdom = projectWisdom.slice(0, MAX_PROJECT_WISDOM);
             const projectWisdomList = recentProjectWisdom
@@ -1033,5 +1089,3 @@ export const AdvancePlugin: Plugin = async ({ directory }) => {
 
 // Default export for OpenCode
 export default AdvancePlugin;
-
-// Named export is already provided by `export const AdvancePlugin` at line 69
