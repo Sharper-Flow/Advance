@@ -1,9 +1,9 @@
 <p align="center">
-  <img src="assets/header.svg" alt="ADVANCE" width="100%">
+  <strong>Context Engineering for AI Agents</strong>
 </p>
 
 <p align="center">
-  <strong>Spec-Driven Development for AI Agents</strong>
+  <em>Specs become laws. Context survives context switches.</em>
 </p>
 
 <p align="center">
@@ -12,7 +12,29 @@
   <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-5.0+-3178c6?logo=typescript&logoColor=white" alt="TypeScript"></a>
 </p>
 
-ADV (Advance) is an OpenCode plugin that enables **spec-driven development** where specifications become enforceable laws. Changes to your system are formally proposed, validated against existing specs, implemented with TDD, and permanently archived.
+ADV (Advance) is an OpenCode plugin that solves the **context loss problem** for AI coding agents. When your agent switches tasks, starts a new session, or opens a worktree — ADV ensures the context survives.
+
+## The Problem ADV Solves
+
+AI agents lose context constantly:
+- Session resets erase progress
+- Task switches scatter attention  
+- Worktree isolation breaks continuity
+- Accumulated learnings vanish
+
+**ADV provides structured context engineering** — specs, tasks, wisdom, and progress persist across all session boundaries.
+
+## Context Engineering Features
+
+| Feature | What It Does |
+|---------|--------------|
+| **Accumulated Wisdom** | Learnings (patterns, gotchas, conventions) persist across changes and sessions |
+| **Worktree Handoff** | Create worktrees mid-change; new session auto-hydrates full context |
+| **External State** | All worktrees share the same changes, archive, wisdom, and agenda |
+| **Status Markers** | `[ADV:ROCKET]`, `[ADV:TDD_RED]`, etc. — progress visible at glance |
+| **Task Reports** | Structured handoff format for context switches and compactions |
+| **6-Gate Quality** | Research → Prep → Implementation → Review → Harden → Signoff |
+| **TDD Evidence** | Red/Green phase output captured for audit trail |
 
 ## Why ADV?
 
@@ -22,7 +44,8 @@ ADV (Advance) is an OpenCode plugin that enables **spec-driven development** whe
 | **Incomplete implementations** | Validation gates block malformed changes |
 | **No audit trail** | Every change is archived with full history |
 | **Ad-hoc testing** | TDD workflow with Red/Green phase evidence |
-| **Scattered docs** | Auto-generated documentation from specs |
+| **Context loss** | Wisdom, tasks, and progress persist across sessions |
+| **Worktree isolation** | External state shared across all worktrees |
 
 ## Quick Start
 
@@ -120,7 +143,7 @@ See [INSTALL.md](INSTALL.md) for detailed setup instructions.
 
 ## MCP Tools
 
-ADV exposes 13 MCP tools for programmatic access:
+ADV exposes 36 MCP tools for programmatic access:
 
 ### Spec Tools
 | Tool | Description |
@@ -146,11 +169,43 @@ ADV exposes 13 MCP tools for programmatic access:
 | `adv_task_show` | Get full details of a single task by ID |
 | `adv_task_update` | Update task status |
 | `adv_task_add` | Add task to change |
+| `adv_task_evidence` | Record TDD red/green phase evidence |
+| `adv_task_tdd_phase` | Manually set TDD phase |
+| `adv_task_skip_tdd` | Skip TDD with documented reason |
+| `adv_task_tdd_status` | Get TDD compliance status |
+
+### Wisdom Tools
+| Tool | Description |
+|------|-------------|
+| `adv_wisdom_add` | Record learning (pattern, gotcha, convention, etc.) |
+| `adv_wisdom_list` | List wisdom entries for a change |
+| `adv_wisdom_promote` | Promote change-level wisdom to project-level |
+
+### Agenda Tools
+| Tool | Description |
+|------|-------------|
+| `adv_agenda_list` | List agenda items by status |
+| `adv_agenda_add` | Add quick work item to agenda |
+| `adv_agenda_start` | Start working on an item |
+| `adv_agenda_complete` | Mark item complete |
+| `adv_agenda_cancel` | Cancel an item |
+| `adv_agenda_prioritize` | Change item priority |
+| `adv_agenda_next` | Get highest priority unblocked item |
+| `adv_agenda_stats` | Get agenda statistics |
+| `adv_agenda_evidence` | Record TDD evidence for agenda item |
+| `adv_agenda_compact` | Compact agenda file |
+
+### Gate Tools
+| Tool | Description |
+|------|-------------|
+| `adv_gate_status` | Get gate completion status |
+| `adv_gate_complete` | Mark a gate as complete |
 
 ### Status
 | Tool | Description |
 |------|-------------|
 | `adv_status` | Get project overview |
+| `adv_project_context` | Get project.md content (tech stack, conventions) |
 
 ## Delta Operations
 
@@ -164,6 +219,20 @@ Changes modify specs through typed deltas. Four operations are supported:
 | `rename` | Rename title and/or ID of a requirement | Patch (1.0.x) |
 
 Deltas are applied in canonical order: **rename > remove > modify > add**.
+
+## Accumulated Wisdom
+
+ADV captures learnings during implementation that persist across sessions:
+
+| Type | Purpose |
+|------|---------|
+| `pattern` | Reusable solution patterns |
+| `gotcha` | Non-obvious pitfalls discovered |
+| `convention` | Project-specific conventions |
+| `success` | What worked well |
+| `failure` | What didn't work |
+
+Wisdom is accumulated at the **change level** and can be **promoted** to project-level for cross-change reuse. The `[ADV:ACCUMULATED_WISDOM]` marker injects relevant learnings at session start.
 
 ### Examples
 
@@ -219,6 +288,8 @@ Intra-delta conflicts are detected automatically:
 
 ## Status Markers
 
+ADV emits structured markers for real-time progress visibility:
+
 | Marker | Meaning |
 |--------|---------|
 | `[ADV:ROCKET]` | Active work in progress |
@@ -228,30 +299,80 @@ Intra-delta conflicts are detected automatically:
 | `[ADV:EARTH]` | Complete or awaiting input |
 | `[ADV:DOOM_LOOP]` | Stuck after 3+ retries |
 | `[ADV:MIC]` | Needs user approval |
+| `[ADV:WORKTREE_SESSION]` | Running in worktree with hydrated context |
+
+System-emitted markers:
+| Marker | When |
+|--------|------|
+| `[ADV:ACCUMULATED_WISDOM]` | Session start, injects relevant learnings |
+| `[ADV:TODO_CONTINUATION]` | Resuming from context switch |
+| `[ADV:TASK_STATUS_REPORT]` | Structured progress handoff |
 
 ## Project Structure
 
 ```
 project/
 ├── project.json          # ADV configuration
-├── .adv/                 # ADV internals
+├── .adv/                 # ADV internals (in-repo)
 │   ├── specs/            # The Laws (capability specifications)
 │   │   └── {capability}/
 │   │       └── spec.json
-│   ├── changes/          # Active change proposals
-│   │   └── {change-id}/
-│   │       ├── change.json
-│   │       └── proposal.md
-│   ├── archive/          # Completed changes
-│   │   └── {date}-{change-id}/
-│   └── db/               # SQLite cache with FTS5
-│       └── spec.db
-└── docs/specs/           # Generated documentation (user-facing)
-    └── {capability}.md
+│   └── (legacy paths migrated on first run)
+│
+└── ~/.local/share/opencode/plugins/advance/{project-id}/  # External state
+    ├── changes/          # Active change proposals (shared across worktrees)
+    ├── archive/          # Completed changes
+    ├── db/spec.db        # SQLite FTS cache
+    ├── wisdom.jsonl      # Project-level learnings
+    ├── agenda.jsonl      # Work queue
+    └── handoff.json      # Session handoff (temporary)
 ```
+
+**project-id** = root commit SHA, stable across all worktrees of the same repo.
+
+## Worktree Integration
+
+ADV automatically detects worktree contexts and:
+
+1. **Shares mutable state** — Changes, wisdom, and agenda available in all worktrees
+2. **Handoff protocol** — When creating a worktree mid-change, new session auto-hydrates context
+3. **Graceful degradation** — Works identically without worktree tools installed
+
+Phase 0 of `/adv-apply` and `/adv-ralph` assesses risk and suggests worktree isolation when appropriate.
 
 ## Architecture
 
+```
+┌─────────────────────────────────────────────────────────────┐
+│                      AI Agent (OpenCode)                    │
+└───────────────────────────┬─────────────────────────────────┘
+                            │ MCP Tool Calls
+                            ▼
+┌─────────────────────────────────────────────────────────────┐
+│                       ADV Plugin                            │
+│  ┌─────────────────────────────────────────────────────┐    │
+│  │                   36 MCP Tools                      │    │
+│  │   Spec: list, show, search                          │    │
+│  │   Change: list, show, create, validate, archive     │    │
+│  │   Task: list, show, ready, update, add, evidence    │    │
+│  │   Wisdom: add, list, promote                        │    │
+│  │   Agenda: list, add, start, complete, next, stats   │    │
+│  │   Gate: status, complete                            │    │
+│  │   Status, Project Context                            │    │
+│  └──────────────────────┬──────────────────────────────┘    │
+│                         │                                   │
+│  ┌──────────────────────▼──────────────────────────────┐    │
+│  │              Validation Engine                      │    │
+│  │   ID checks, conflicts, completeness, references   │    │
+│  └──────────────────────┬──────────────────────────────┘    │
+│                         │                                   │
+│  ┌──────────────────────▼──────────────────────────────┐    │
+│  │                 Storage Layer                       │    │
+│  │   In-repo: specs/ (immutable)                       │    │
+│  │   External: changes/, archive/, db/, wisdom/, agenda│    │
+│  │   (shared across worktrees via project-id)          │    │
+│  └─────────────────────────────────────────────────────┘    │
+└─────────────────────────────────────────────────────────────┘
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                      AI Agent (OpenCode)                    │
@@ -289,11 +410,12 @@ pnpm run check    # Typecheck + lint + format
 
 ### Test Coverage
 
-- 222 tests across 11 test files
-- Storage layer (JSON, SQLite, Store)
-- All 13 MCP tools
+- 534 tests across 23 test files
+- Storage layer (JSON, SQLite, Store, Migration, Handoff)
+- All 36 MCP tools
 - Validation engine with error paths
 - Archive operations
+- Worktree integration and cross-session state
 - Events and status detection
 
 ## Documentation
@@ -314,4 +436,6 @@ MIT
 
 ---
 
-<sub>Built with TypeScript. Specs become laws.</sub>
+<p align="center">
+  <strong>Built with TypeScript. Specs become laws. Context survives context switches.</strong>
+</p>
