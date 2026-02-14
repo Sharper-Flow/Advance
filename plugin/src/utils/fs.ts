@@ -20,6 +20,8 @@ const STALE_LOCK_MS = 30000;
 // Atomic Write
 // =============================================================================
 
+let tempCounter = 0;
+
 /**
  * Atomically write a file by writing to a temp file first, then renaming.
  * This prevents corrupted files from interrupted writes.
@@ -28,7 +30,7 @@ export async function atomicWriteFile(
   filePath: string,
   content: string,
 ): Promise<void> {
-  const tempPath = `${filePath}.tmp.${Date.now()}`;
+  const tempPath = `${filePath}.tmp.${process.pid}.${Date.now()}.${tempCounter++}`;
 
   try {
     await mkdir(dirname(filePath), { recursive: true });

@@ -7,6 +7,7 @@
 
 import { join } from "path";
 import { mkdir, writeFile } from "fs/promises";
+import { atomicWriteFile } from "../utils/fs";
 import type { Spec, Change } from "../types";
 import type {
   ArchiveContext,
@@ -109,8 +110,7 @@ async function writeSpecToDisk(spec: Spec, specsDir: string): Promise<void> {
   const specDir = join(specsDir, spec.name);
   const specPath = join(specDir, "spec.json");
 
-  await mkdir(specDir, { recursive: true });
-  await writeFile(specPath, JSON.stringify(spec, null, 2), "utf-8");
+  await atomicWriteFile(specPath, JSON.stringify(spec, null, 2));
 }
 
 /**
@@ -125,22 +125,19 @@ async function createArchive(
   const archivePath = join(archiveDir, `${date}-${change.id}`);
 
   if (!dryRun) {
-    await mkdir(archivePath, { recursive: true });
-
     // Write the change as archived
     const archivedChange: Change = {
       ...change,
       status: "archived",
     };
-    await writeFile(
+    await atomicWriteFile(
       join(archivePath, "change.json"),
       JSON.stringify(archivedChange, null, 2),
-      "utf-8",
     );
 
     // Write archive summary
     const summary = generateArchiveSummary(change);
-    await writeFile(join(archivePath, "ARCHIVE_SUMMARY.md"), summary, "utf-8");
+    await atomicWriteFile(join(archivePath, "ARCHIVE_SUMMARY.md"), summary);
   }
 
   return archivePath;

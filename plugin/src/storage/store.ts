@@ -53,6 +53,7 @@ import {
   type ProjectPaths,
   type LoadResult,
 } from "./json";
+import { acquireFileLock } from "../utils/fs";
 
 // =============================================================================
 // Store Interface
@@ -391,6 +392,60 @@ export async function createStore(
     return { task, change: result.data, changeId: taskRow.change_id };
   };
 
+  /**
+   * Execute a function within a file lock for a specific change.json.
+   * Prevents read-modify-write race conditions.
+   */
+  const withChangeLock = async <T>(
+    changeId: string,
+    fn: (change: Change) => Promise<T>,
+  ): Promise<T> => {
+    const changePath = join(paths.changes, changeId, "change.json");
+
+    let release;
+    try {
+      release = await acquireFileLock(changePath);
+    } catch (e) {
+      const error = e as NodeJS.ErrnoException;
+      if (error.code === "ENOENT") {
+        throw new Error(`Change not found: ${changeId}`);
+      }
+      throw e;
+    }
+
+    try {
+      const result = await loadChange(paths.changes, changeId);
+      if (!result.success || !result.data) {
+        throw new Error(`Change not found: ${changeId}`);
+      }
+      return await fn(result.data);
+    } finally {
+      await release();
+    }
+  };
+
+  /**
+   * Execute a function within a file lock for the change containing a specific task.
+   * Resolves the task and change under the lock.
+   */
+  const withTaskLock = async <T>(
+    taskId: string,
+    fn: (task: Task, change: Change, changeId: string) => Promise<T>,
+  ): Promise<T | null> => {
+    await ensureAllChangesSynced();
+    const taskRow = sqlite.tasks.get(taskId);
+    if (!taskRow) return null;
+
+    const changeId = taskRow.change_id;
+    return withChangeLock(changeId, async (change) => {
+      const task = change.tasks.find((t) => t.id === taskId);
+      if (!task) {
+        throw new Error(`Task ${taskId} not found in change ${changeId}`);
+      }
+      return await fn(task, change, changeId);
+    });
+  };
+
   // Legacy flag for backwards compatibility
   let synced = false;
 
@@ -648,58 +703,48 @@ export async function createStore(
       },
 
       update: async (taskId, status, notes) => {
-        const resolved = await resolveTask(taskId);
-        if (!resolved) return null;
-        const { task, change } = resolved;
+        return withTaskLock(taskId, async (task, change) => {
+          task.status = status as Task["status"];
 
-        task.status = status as Task["status"];
-
-        if (status === "in_progress" && !task.started_at) {
-          task.started_at = new Date().toISOString();
-        }
-
-        if (status === "done" || status === "cancelled") {
-          task.completed_at = new Date().toISOString();
-          if (notes) {
-            task.completed_by = notes;
+          if (status === "in_progress" && !task.started_at) {
+            task.started_at = new Date().toISOString();
           }
-        }
 
-        // Save change
-        await store.changes.save(change);
+          if (status === "done" || status === "cancelled") {
+            task.completed_at = new Date().toISOString();
+            if (notes) {
+              task.completed_by = notes;
+            }
+          }
 
-        return task;
+          // Save change
+          await store.changes.save(change);
+
+          return task;
+        });
       },
 
       add: async (changeId, content, options) => {
-        const result = await loadChange(paths.changes, changeId);
-        if (!result.success) {
-          throw new Error(result.error);
-        }
-        if (!result.data) {
-          throw new Error(`Change not found: ${changeId}`);
-        }
+        return withChangeLock(changeId, async (change) => {
+          const task: Task = {
+            id: `tk-${nanoid(8)}`,
+            title: content,
+            section: options?.section,
+            status: "pending",
+            priority: change.tasks.length, // Append at end
+            created_at: new Date().toISOString(),
+            deps: options?.blockedBy?.map((target) => ({
+              type: "blocked_by" as const,
+              target,
+            })),
+            tdd_phase: "none",
+          };
 
-        const change = result.data;
+          change.tasks.push(task);
+          await store.changes.save(change);
 
-        const task: Task = {
-          id: `tk-${nanoid(8)}`,
-          title: content,
-          section: options?.section,
-          status: "pending",
-          priority: change.tasks.length, // Append at end
-          created_at: new Date().toISOString(),
-          deps: options?.blockedBy?.map((target) => ({
-            type: "blocked_by" as const,
-            target,
-          })),
-          tdd_phase: "none",
-        };
-
-        change.tasks.push(task);
-        await store.changes.save(change);
-
-        return task;
+          return task;
+        });
       },
 
       get: async (taskId) => {
@@ -714,105 +759,91 @@ export async function createStore(
       },
 
       recordEvidence: async (taskId, phase, evidence) => {
-        const resolved = await resolveTask(taskId);
-        if (!resolved) return null;
-        const { task, change } = resolved;
-
-        // Initialize tdd_evidence if needed
-        if (!task.tdd_evidence) {
-          task.tdd_evidence = {};
-        }
-
-        // Add timestamp if not provided
-        const evidenceWithTimestamp = {
-          ...evidence,
-          recorded_at: evidence.recorded_at ?? new Date().toISOString(),
-        };
-
-        // Record evidence for the phase
-        task.tdd_evidence[phase] = evidenceWithTimestamp;
-
-        // Update TDD phase based on evidence
-        if (phase === "red") {
-          task.tdd_phase = "red";
-        } else if (phase === "green") {
-          // If we have both red and green, mark as complete
-          if (task.tdd_evidence.red?.recorded_at) {
-            task.tdd_phase = "complete";
-          } else {
-            task.tdd_phase = "green";
+        return withTaskLock(taskId, async (task, change) => {
+          // Initialize tdd_evidence if needed
+          if (!task.tdd_evidence) {
+            task.tdd_evidence = {};
           }
-        }
 
-        // Save change
-        await store.changes.save(change);
+          // Add timestamp if not provided
+          const evidenceWithTimestamp = {
+            ...evidence,
+            recorded_at: evidence.recorded_at ?? new Date().toISOString(),
+          };
 
-        return task;
+          // Record evidence for the phase
+          task.tdd_evidence[phase] = evidenceWithTimestamp;
+
+          // Update TDD phase based on evidence
+          if (phase === "red") {
+            task.tdd_phase = "red";
+          } else if (phase === "green") {
+            // If we have both red and green, mark as complete
+            if (task.tdd_evidence.red?.recorded_at) {
+              task.tdd_phase = "complete";
+            } else {
+              task.tdd_phase = "green";
+            }
+          }
+
+          // Save change
+          await store.changes.save(change);
+
+          return task;
+        });
       },
 
       setPhase: async (taskId, phase) => {
-        const resolved = await resolveTask(taskId);
-        if (!resolved) return null;
-        const { task, change } = resolved;
+        return withTaskLock(taskId, async (task, change) => {
+          task.tdd_phase = phase;
 
-        task.tdd_phase = phase;
+          // Save change
+          await store.changes.save(change);
 
-        // Save change
-        await store.changes.save(change);
-
-        return task;
+          return task;
+        });
       },
 
       skipTdd: async (taskId, reason) => {
-        const resolved = await resolveTask(taskId);
-        if (!resolved) return null;
-        const { task, change } = resolved;
+        return withTaskLock(taskId, async (task, change) => {
+          // Initialize tdd_evidence if needed
+          if (!task.tdd_evidence) {
+            task.tdd_evidence = {};
+          }
 
-        // Initialize tdd_evidence if needed
-        if (!task.tdd_evidence) {
-          task.tdd_evidence = {};
-        }
+          task.tdd_evidence.skipped = true;
+          task.tdd_evidence.skip_reason = reason;
+          task.tdd_phase = "none";
 
-        task.tdd_evidence.skipped = true;
-        task.tdd_evidence.skip_reason = reason;
-        task.tdd_phase = "none";
+          // Save change
+          await store.changes.save(change);
 
-        // Save change
-        await store.changes.save(change);
-
-        return task;
+          return task;
+        });
       },
     },
 
     wisdom: {
       add: async (changeId, type, content, sourceTask) => {
-        const result = await loadChange(paths.changes, changeId);
-        if (!result.success) {
-          throw new Error(result.error);
-        }
-        if (!result.data) {
-          throw new Error(`Change not found: ${changeId}`);
-        }
+        return withChangeLock(changeId, async (change) => {
+          // Initialize wisdom array if needed
+          if (!change.wisdom) {
+            change.wisdom = [];
+          }
 
-        const change = result.data;
+          const entry: WisdomEntry = WisdomEntrySchema.parse({
+            id: `ws-${nanoid(6)}`,
+            type,
+            content,
+            source_task: sourceTask,
+            recorded_at: new Date().toISOString(),
+          });
 
-        // Initialize wisdom array if needed
-        if (!change.wisdom) {
-          change.wisdom = [];
-        }
+          change.wisdom.push(entry);
+          await store.changes.save(change);
 
-        const entry: WisdomEntry = WisdomEntrySchema.parse({
-          id: `ws-${nanoid(6)}`,
-          type,
-          content,
-          source_task: sourceTask,
-          recorded_at: new Date().toISOString(),
+          return entry;
         });
-
-        change.wisdom.push(entry);
-        await store.changes.save(change);
-
-        return entry;
       },
 
       list: async (changeId) => {
@@ -840,83 +871,68 @@ export async function createStore(
       },
 
       complete: async (changeId, gateId) => {
-        // Lazy sync: only sync this specific change
-        await ensureChangeSynced(changeId);
+        return withChangeLock(changeId, async (change) => {
+          if (!change.gates) {
+            change.gates = createDefaultGates();
+          }
 
-        const result = await loadChange(paths.changes, changeId);
-        if (!result.success || !result.data) {
-          throw new Error(`Change not found: ${changeId}`);
-        }
+          const gates = change.gates!;
 
-        const change = result.data;
+          if (!canCompleteGate(gates, gateId)) {
+            const prevIdx = GATE_ORDER.indexOf(gateId);
+            const prevGateId = GATE_ORDER[prevIdx - 1];
+            const prevStatus = gates[prevGateId].status;
 
-        if (!change.gates) {
-          change.gates = createDefaultGates();
-        }
+            const reason = `Cannot complete ${gateId} gate: previous gate ${
+              prevGateId
+            } is not satisfied (status: ${prevStatus})`;
+            throw new Error(reason);
+          }
 
-        const gates = change.gates!;
+          const oldStatus = gates[gateId].status;
+          const now = new Date().toISOString();
 
-        if (!canCompleteGate(gates, gateId)) {
-          const prevIdx = GATE_ORDER.indexOf(gateId);
-          const prevGateId = GATE_ORDER[prevIdx - 1];
-          const prevStatus = gates[prevGateId].status;
+          gates[gateId].status = "done";
+          gates[gateId].completed_at = now;
+          gates[gateId].completed_by = "agent";
 
-          const reason = `Cannot complete ${gateId} gate: previous gate ${
-            prevGateId
-          } is not satisfied (status: ${prevStatus})`;
-          throw new Error(reason);
-        }
+          // Structured log for gate transition
+          if (process.env.ADV_DEBUG) {
+            console.log(
+              JSON.stringify({
+                event: "gate_complete",
+                changeId,
+                gateId,
+                oldStatus,
+                newStatus: "done",
+                timestamp: now,
+              }),
+            );
+          }
 
-        const oldStatus = gates[gateId].status;
-        const now = new Date().toISOString();
-
-        gates[gateId].status = "done";
-        gates[gateId].completed_at = now;
-        gates[gateId].completed_by = "agent";
-
-        // Structured log for gate transition
-        if (process.env.ADV_DEBUG) {
-          console.log(
-            JSON.stringify({
-              event: "gate_complete",
-              changeId,
-              gateId,
-              oldStatus,
-              newStatus: "done",
-              timestamp: now,
-            }),
-          );
-        }
-
-        await store.changes.save(change);
+          await store.changes.save(change);
+        });
       },
 
       migrate: async (changeId) => {
-        // Lazy sync: only sync this specific change
-        await ensureChangeSynced(changeId);
+        return withChangeLock(changeId, async (change) => {
+          const now = new Date().toISOString();
+          change.gates = createLegacyGates();
 
-        const result = await loadChange(paths.changes, changeId);
-        if (!result.success || !result.data) {
-          throw new Error(`Change not found: ${changeId}`);
-        }
+          // Structured log for gate migration
+          if (process.env.ADV_DEBUG) {
+            console.log(
+              JSON.stringify({
+                event: "gates_migrated",
+                changeId,
+                status: "legacy",
+                timestamp: now,
+              }),
+            );
+          }
 
-        const change = result.data;
-        const now = new Date().toISOString();
-        change.gates = createLegacyGates();
-
-        // Structured log for gate migration
-        if (process.env.ADV_DEBUG) {
-          console.log(
-            JSON.stringify({
-              event: "gates_migrated",
-              changeId,
-              status: "legacy",
-              timestamp: now,
-            }),
-          );
-        }
-
-        await store.changes.save(change);
+          await store.changes.save(change);
+        });
       },
     },
 

@@ -121,27 +121,19 @@ export const gateTools = {
         });
       }
 
-      // Mark gate complete
-      const now = new Date().toISOString();
-      gates[gateId] = {
-        status: "done",
-        completed_at: now,
-        completed_by: completedBy,
-      };
-
-      // Save to change with error handling
-      change.gates = gates;
+      // Mark gate complete via store (handles locking and sequence enforcement)
       try {
-        await store.changes.save(change);
+        await store.gates.complete(changeId, gateId);
       } catch (saveError) {
         return JSON.stringify({
-          error: `Failed to save gate completion: ${(saveError as Error).message}`,
+          error: `Failed to complete gate: ${(saveError as Error).message}`,
           changeId,
           gateId,
           hint: "Gate state was not persisted. Retry the operation.",
         });
       }
 
+      const now = new Date().toISOString();
       return wrapWithBanner(
         { command: "adv_gate_complete", target: `${changeId}:${gateId}` },
         JSON.stringify(
