@@ -5,7 +5,7 @@
  * Used by json.ts, agenda.ts, and project-wisdom.ts.
  */
 
-import { writeFile, mkdir, rename, unlink, readFile } from "fs/promises";
+import { writeFile, mkdir, rename, unlink, readFile, open } from "fs/promises";
 import { dirname } from "path";
 
 // =============================================================================
@@ -34,7 +34,18 @@ export async function atomicWriteFile(
 
   try {
     await mkdir(dirname(filePath), { recursive: true });
-    await writeFile(tempPath, content, "utf-8");
+    
+    // Write data to temp file
+    const handle = await open(tempPath, "w");
+    try {
+      await handle.writeFile(content, "utf-8");
+      // Force data to be flushed to disk before rename
+      // This prevents the "truncated file with NUL bytes" failure mode
+      await handle.sync();
+    } finally {
+      await handle.close();
+    }
+
     await rename(tempPath, filePath);
   } catch (error) {
     try {
