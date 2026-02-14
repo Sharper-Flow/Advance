@@ -70,8 +70,30 @@ export function formatErrorResponse(
   );
 }
 
+// =============================================================================
+// Constants
+// =============================================================================
+
+const DEFAULT_TRUNCATION_LIMIT = 30000;
+
+/**
+ * Truncate output if it exceeds character limit.
+ */
+export function truncateOutput(
+  output: string,
+  limit = DEFAULT_TRUNCATION_LIMIT,
+): string {
+  if (output.length <= limit) {
+    return output;
+  }
+
+  const truncationMessage = `\n\n[WARNING: Output truncated. Length ${output.length} exceeds limit of ${limit} characters. Please use more specific queries or filters.]`;
+  return output.slice(0, limit) + truncationMessage;
+}
+
 /**
  * Wraps an execute function to catch all errors and return them as JSON content.
+ * Also enforces output truncation limits.
  *
  * @param fn - The original execute function
  * @param toolName - Name of the tool (for error context)
@@ -83,7 +105,8 @@ export function safeExecute<TArgs, TContext>(
 ): (args: TArgs, context: TContext) => Promise<string> {
   return async (args: TArgs, context: TContext): Promise<string> => {
     try {
-      return await fn(args, context);
+      const result = await fn(args, context);
+      return truncateOutput(result);
     } catch (error) {
       return formatErrorResponse(error, toolName, args);
     }
@@ -100,7 +123,8 @@ export function safeExecuteSimple<TArgs, TExtra>(
 ): (args: TArgs, extra: TExtra) => Promise<string> {
   return async (args: TArgs, extra: TExtra): Promise<string> => {
     try {
-      return await fn(args, extra);
+      const result = await fn(args, extra);
+      return truncateOutput(result);
     } catch (error) {
       return formatErrorResponse(error, toolName, args);
     }

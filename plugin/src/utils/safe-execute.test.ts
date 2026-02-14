@@ -9,6 +9,7 @@ import {
   safeExecuteSimple,
   formatZodError,
   formatErrorResponse,
+  truncateOutput,
 } from "./safe-execute";
 
 describe("safe-execute", () => {
@@ -156,6 +157,23 @@ describe("safe-execute", () => {
       const parsed = JSON.parse(result);
       expect(parsed.error).toBe("File not found");
       expect(parsed.tool).toBe("test_tool");
+    });
+  });
+
+  describe("truncateOutput", () => {
+    it("returns original string if within limit", () => {
+      const output = "short string";
+      expect(truncateOutput(output, 20)).toBe(output);
+    });
+
+    it("truncates string if it exceeds limit and appends warning", () => {
+      const output = "a".repeat(100);
+      const limit = 50;
+      const result = truncateOutput(output, limit);
+      expect(result.length).toBeGreaterThan(limit);
+      expect(result.slice(0, limit)).toBe("a".repeat(limit));
+      expect(result).toContain("[WARNING: Output truncated");
+      expect(result).toContain("100 exceeds limit of 50");
     });
   });
 });
