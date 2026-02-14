@@ -29,6 +29,7 @@ import {
   allGatesSatisfied,
 } from "../types";
 import { wrapWithBanner } from "../utils/banner";
+import { formatToolOutput } from "../utils/tool-output";
 
 // =============================================================================
 // Tool Definitions
@@ -66,22 +67,18 @@ export const agendaTools = {
         );
       }
 
-      return JSON.stringify(
-        {
-          count: filtered.length,
-          items: filtered.map((i) => ({
-            id: i.id,
-            title: i.title,
-            priority: i.priority,
-            status: i.status,
-            category: i.category,
-            blocked_by: i.blocked_by,
-            tdd_phase: i.tdd_phase,
-          })),
-        },
-        null,
-        2,
-      );
+      return formatToolOutput({
+        count: filtered.length,
+        items: filtered.map((i) => ({
+          id: i.id,
+          title: i.title,
+          priority: i.priority,
+          status: i.status,
+          category: i.category,
+          blocked_by: i.blocked_by,
+          tdd_phase: i.tdd_phase,
+        })),
+      });
     },
   },
 
@@ -133,20 +130,16 @@ export const agendaTools = {
 
       const requiresTdd = isLogicTask(title);
 
-      return JSON.stringify(
-        {
-          success: true,
-          item,
-          analysis: {
-            requires_tdd: requiresTdd,
-            recommendation: requiresTdd
-              ? "This task appears logic-heavy. Consider TDD workflow."
-              : "Task added. Ready to start when prioritized.",
-          },
+      return formatToolOutput({
+        success: true,
+        item,
+        analysis: {
+          requires_tdd: requiresTdd,
+          recommendation: requiresTdd
+            ? "This task appears logic-heavy. Consider TDD workflow."
+            : "Task added. Ready to start when prioritized.",
         },
-        null,
-        2,
-      );
+      });
     },
   },
 
@@ -158,9 +151,9 @@ export const agendaTools = {
     execute: async ({ itemId }: { itemId: string }, projectDir: string, agendaPath?: string) => {
       const item = await startAgendaItem(projectDir, itemId, { agendaPath });
       if (!item) {
-        return JSON.stringify({ error: `Agenda item not found: ${itemId}` });
+        return formatToolOutput({ error: `Agenda item not found: ${itemId}` });
       }
-      return JSON.stringify({ success: true, item }, null, 2);
+      return formatToolOutput({ success: true, item });
     },
   },
 
@@ -179,7 +172,7 @@ export const agendaTools = {
       const existing = items.find((i) => i.id === itemId);
 
       if (!existing) {
-        return JSON.stringify({ error: `Agenda item not found: ${itemId}` });
+        return formatToolOutput({ error: `Agenda item not found: ${itemId}` });
       }
 
       // Check gates if present (agenda items can optionally use 6-gate quality checklist)
@@ -187,7 +180,7 @@ export const agendaTools = {
         const gates = existing.gates;
         if (!allGatesSatisfied(gates)) {
           const incompleteGates = getIncompleteGates(gates);
-          return JSON.stringify({
+          return formatToolOutput({
             error:
               "Cannot complete: incomplete gates. Complete all 6 quality gates before marking done.",
             incompleteGates,
@@ -208,21 +201,17 @@ export const agendaTools = {
       });
 
       if (compliance === "missing") {
-        return JSON.stringify(
-          {
-            warning: "TDD evidence missing for logic-heavy task",
-            item: existing,
-            compliance,
-            recommendation:
-              "Record TDD evidence with adv_agenda_evidence or complete with --force",
-          },
-          null,
-          2,
-        );
+        return formatToolOutput({
+          warning: "TDD evidence missing for logic-heavy task",
+          item: existing,
+          compliance,
+          recommendation:
+            "Record TDD evidence with adv_agenda_evidence or complete with --force",
+        });
       }
 
       const item = await completeAgendaItem(projectDir, itemId, notes, { agendaPath });
-      return JSON.stringify({ success: true, item, compliance }, null, 2);
+      return formatToolOutput({ success: true, item, compliance });
     },
   },
 
@@ -239,9 +228,9 @@ export const agendaTools = {
     ) => {
       const item = await cancelAgendaItem(projectDir, itemId, reason, { agendaPath });
       if (!item) {
-        return JSON.stringify({ error: `Agenda item not found: ${itemId}` });
+        return formatToolOutput({ error: `Agenda item not found: ${itemId}` });
       }
-      return JSON.stringify({ success: true, item }, null, 2);
+      return formatToolOutput({ success: true, item });
     },
   },
 
@@ -266,9 +255,9 @@ export const agendaTools = {
     ) => {
       const item = await reprioritizeAgendaItem(projectDir, itemId, priority, { agendaPath });
       if (!item) {
-        return JSON.stringify({ error: `Agenda item not found: ${itemId}` });
+        return formatToolOutput({ error: `Agenda item not found: ${itemId}` });
       }
-      return JSON.stringify({ success: true, item }, null, 2);
+      return formatToolOutput({ success: true, item });
     },
   },
 
@@ -281,7 +270,7 @@ export const agendaTools = {
       if (!item) {
         return wrapWithBanner(
           { command: "adv_agenda_next" },
-          JSON.stringify({
+          formatToolOutput({
             message: "No pending items in agenda",
             suggestion: "Add items with adv_agenda_add",
           }),
@@ -292,19 +281,15 @@ export const agendaTools = {
 
       return wrapWithBanner(
         { command: "adv_agenda_next", target: item.id },
-        JSON.stringify(
-          {
-            next: item,
-            analysis: {
-              requires_tdd: requiresTdd,
-              recommendation: requiresTdd
-                ? "Start with a failing test (Red phase)"
-                : "Ready to implement",
-            },
+        formatToolOutput({
+          next: item,
+          analysis: {
+            requires_tdd: requiresTdd,
+            recommendation: requiresTdd
+              ? "Start with a failing test (Red phase)"
+              : "Ready to implement",
           },
-          null,
-          2,
-        ),
+        }),
       );
     },
   },
@@ -318,18 +303,14 @@ export const agendaTools = {
 
       return wrapWithBanner(
         { command: "adv_agenda_stats" },
-        JSON.stringify(
-          {
-            ...stats,
-            activeQueue: active.length,
-            nextUp:
-              active.length > 0
-                ? { id: active[0].id, title: active[0].title }
-                : null,
-          },
-          null,
-          2,
-        ),
+        formatToolOutput({
+          ...stats,
+          activeQueue: active.length,
+          nextUp:
+            active.length > 0
+              ? { id: active[0].id, title: active[0].title }
+              : null,
+        }),
       );
     },
   },
@@ -374,7 +355,7 @@ export const agendaTools = {
       const existing = items.find((i) => i.id === itemId);
 
       if (!existing) {
-        return JSON.stringify({ error: `Agenda item not found: ${itemId}` });
+        return formatToolOutput({ error: `Agenda item not found: ${itemId}` });
       }
 
       const evidence: TddPhaseEvidence = {
@@ -401,15 +382,11 @@ export const agendaTools = {
         tdd_phase: tddPhase,
       }, { agendaPath });
 
-      return JSON.stringify(
-        {
-          success: true,
-          item: updated,
-          message: `Recorded ${phase} phase evidence`,
-        },
-        null,
-        2,
-      );
+      return formatToolOutput({
+        success: true,
+        item: updated,
+        message: `Recorded ${phase} phase evidence`,
+      });
     },
   },
 
@@ -421,15 +398,11 @@ export const agendaTools = {
       await compactAgenda(projectDir, { agendaPath });
       const stats = await getAgendaStats(projectDir, { agendaPath });
 
-      return JSON.stringify(
-        {
-          success: true,
-          message: "Agenda compacted",
-          items: stats.total,
-        },
-        null,
-        2,
-      );
+      return formatToolOutput({
+        success: true,
+        message: "Agenda compacted",
+        items: stats.total,
+      });
     },
   },
 };

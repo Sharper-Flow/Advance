@@ -15,6 +15,7 @@ import type { Store } from "../storage/store";
 import { validateChange } from "../validator";
 import { archiveChange } from "../archive";
 import { wrapWithBanner } from "../utils/banner";
+import { formatToolOutput, paginate } from "../utils/tool-output";
 
 // =============================================================================
 // Tool Definitions
@@ -32,16 +33,32 @@ export const changeTools = {
         .boolean()
         .optional()
         .describe("Include archived changes (default: false)"),
+      limit: z
+        .number()
+        .optional()
+        .describe("Max changes to return (default: 50)"),
+      offset: z
+        .number()
+        .optional()
+        .describe("Offset for pagination (default: 0)"),
     },
     execute: async (
       {
         status,
         includeArchived,
-      }: { status?: string; includeArchived?: boolean },
+        limit,
+        offset,
+      }: { status?: string; includeArchived?: boolean; limit?: number; offset?: number },
       store: Store,
     ) => {
       const result = await store.changes.list({ status, includeArchived });
-      return JSON.stringify(result, null, 2);
+      const paged = paginate(result.changes, {
+        limit,
+        offset,
+        tool: "adv_change_list",
+        args: status ? `status: "${status}"` : undefined,
+      });
+      return formatToolOutput({ changes: paged.items, pagination: paged.pagination });
     },
   },
 
@@ -49,16 +66,38 @@ export const changeTools = {
     description: "Get full change details including tasks and deltas",
     args: {
       changeId: z.string().describe("Change ID"),
+      limit: z
+        .number()
+        .optional()
+        .describe("Max tasks to return (default: 50)"),
+      offset: z
+        .number()
+        .optional()
+        .describe("Task offset for pagination (default: 0)"),
     },
-    execute: async ({ changeId }: { changeId: string }, store: Store) => {
+    execute: async (
+      { changeId, limit, offset }: { changeId: string; limit?: number; offset?: number },
+      store: Store,
+    ) => {
       const result = await store.changes.get(changeId);
       if (!result.success) {
-        return JSON.stringify({ error: result.error });
+        return formatToolOutput({ error: result.error });
       }
       if (!result.data) {
-        return JSON.stringify({ error: `Change not found: ${changeId}` });
+        return formatToolOutput({ error: `Change not found: ${changeId}` });
       }
-      return JSON.stringify(result.data, null, 2);
+      const change = result.data;
+      const paged = paginate(change.tasks, {
+        limit,
+        offset,
+        tool: "adv_change_show",
+        args: `changeId: "${changeId}"`,
+      });
+      return formatToolOutput({
+        ...change,
+        tasks: paged.items,
+        _taskPagination: paged.pagination,
+      });
     },
   },
 
@@ -75,7 +114,7 @@ export const changeTools = {
       const result = await store.changes.create(summary, capability);
       return wrapWithBanner(
         { command: "adv_change_create", target: result.changeId },
-        JSON.stringify(result, null, 2),
+        formatToolOutput(result),
       );
     },
   },
@@ -95,13 +134,13 @@ export const changeTools = {
       if (!result.success) {
         return wrapWithBanner(
           { command: "adv_change_validate", target: changeId },
-          JSON.stringify({ error: result.error }),
+          formatToolOutput({ error: result.error }),
         );
       }
       if (!result.data) {
         return wrapWithBanner(
           { command: "adv_change_validate", target: changeId },
-          JSON.stringify({ error: `Change not found: ${changeId}` }),
+          formatToolOutput({ error: `Change not found: ${changeId}` }),
         );
       }
 
@@ -149,17 +188,13 @@ export const changeTools = {
 
       return wrapWithBanner(
         { command: "adv_change_validate", target: changeId },
-        JSON.stringify(
-          {
-            passed,
-            errors: validationResult.errors,
-            warnings: validationResult.warnings,
-            checksPerformed: validationResult.checksPerformed,
-            checkedAt: validationResult.checkedAt,
-          },
-          null,
-          2,
-        ),
+        formatToolOutput({
+          passed,
+          errors: validationResult.errors,
+          warnings: validationResult.warnings,
+          checksPerformed: validationResult.checksPerformed,
+          checkedAt: validationResult.checkedAt,
+        }),
       );
     },
   },
@@ -181,13 +216,13 @@ export const changeTools = {
       if (!result.success) {
         return wrapWithBanner(
           { command: "adv_change_archive", target: changeId },
-          JSON.stringify({ error: result.error }),
+          formatToolOutput({ error: result.error }),
         );
       }
       if (!result.data) {
         return wrapWithBanner(
           { command: "adv_change_archive", target: changeId },
-          JSON.stringify({ error: `Change not found: ${changeId}` }),
+          formatToolOutput({ error: `Change not found: ${changeId}` }),
         );
       }
 
@@ -200,7 +235,7 @@ export const changeTools = {
       if (incompleteTasks.length > 0) {
         return wrapWithBanner(
           { command: "adv_change_archive", target: changeId },
-          JSON.stringify({
+          formatToolOutput({
             error: "Cannot archive: incomplete tasks",
             incompleteTasks: incompleteTasks.map((t) => ({
               id: t.id,
@@ -216,7 +251,7 @@ export const changeTools = {
         const incompleteGates = getIncompleteGates(gates);
         return wrapWithBanner(
           { command: "adv_change_archive", target: changeId },
-          JSON.stringify({
+          formatToolOutput({
             error:
               "Cannot archive: incomplete gates. Complete all 6 quality gates before archiving.",
             incompleteGates,
@@ -251,22 +286,18 @@ export const changeTools = {
 
       return wrapWithBanner(
         { command: "adv_change_archive", target: changeId },
-        JSON.stringify(
-          {
-            success: archiveResult.success,
-            specsUpdated: archiveResult.specsUpdated.map((s) => ({
-              capability: s.capability,
-              version: `${s.originalVersion} → ${s.newVersion}`,
-              deltas: s.deltaResults.length,
-            })),
-            docsGenerated: archiveResult.docsGenerated,
-            archivePath: archiveResult.archivePath,
-            errors: archiveResult.errors,
-            dryRun: dryRun ?? false,
-          },
-          null,
-          2,
-        ),
+        formatToolOutput({
+          success: archiveResult.success,
+          specsUpdated: archiveResult.specsUpdated.map((s) => ({
+            capability: s.capability,
+            version: `${s.originalVersion} → ${s.newVersion}`,
+            deltas: s.deltaResults.length,
+          })),
+          docsGenerated: archiveResult.docsGenerated,
+          archivePath: archiveResult.archivePath,
+          errors: archiveResult.errors,
+          dryRun: dryRun ?? false,
+        }),
       );
     },
   },
@@ -285,13 +316,13 @@ export const changeTools = {
       if (!result.success) {
         return wrapWithBanner(
           { command: "adv_change_add_issue", target: changeId },
-          JSON.stringify({ error: result.error }),
+          formatToolOutput({ error: result.error }),
         );
       }
       if (!result.data) {
         return wrapWithBanner(
           { command: "adv_change_add_issue", target: changeId },
-          JSON.stringify({ error: `Change not found: ${changeId}` }),
+          formatToolOutput({ error: `Change not found: ${changeId}` }),
         );
       }
 
@@ -306,7 +337,7 @@ export const changeTools = {
       if (change.github_issues.includes(issueUrl)) {
         return wrapWithBanner(
           { command: "adv_change_add_issue", target: changeId },
-          JSON.stringify({
+          formatToolOutput({
             success: true,
             message: `Issue already linked: ${issueUrl}`,
             github_issues: change.github_issues,
@@ -322,7 +353,7 @@ export const changeTools = {
 
       return wrapWithBanner(
         { command: "adv_change_add_issue", target: changeId },
-        JSON.stringify({
+        formatToolOutput({
           success: true,
           message: `Added issue: ${issueUrl}`,
           github_issues: change.github_issues,
@@ -345,13 +376,13 @@ export const changeTools = {
       if (!result.success) {
         return wrapWithBanner(
           { command: "adv_change_remove_issue", target: changeId },
-          JSON.stringify({ error: result.error }),
+          formatToolOutput({ error: result.error }),
         );
       }
       if (!result.data) {
         return wrapWithBanner(
           { command: "adv_change_remove_issue", target: changeId },
-          JSON.stringify({ error: `Change not found: ${changeId}` }),
+          formatToolOutput({ error: `Change not found: ${changeId}` }),
         );
       }
 
@@ -361,7 +392,7 @@ export const changeTools = {
       if (!change.github_issues || !change.github_issues.includes(issueUrl)) {
         return wrapWithBanner(
           { command: "adv_change_remove_issue", target: changeId },
-          JSON.stringify({
+          formatToolOutput({
             success: true,
             message: `Issue not linked: ${issueUrl}`,
             github_issues: change.github_issues || [],
@@ -379,7 +410,7 @@ export const changeTools = {
 
       return wrapWithBanner(
         { command: "adv_change_remove_issue", target: changeId },
-        JSON.stringify({
+        formatToolOutput({
           success: true,
           message: `Removed issue: ${issueUrl}`,
           github_issues: change.github_issues,

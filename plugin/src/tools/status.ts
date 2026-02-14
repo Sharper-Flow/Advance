@@ -8,6 +8,7 @@
 
 import type { Store } from "../storage/store";
 import { wrapWithBanner } from "../utils/banner";
+import { formatToolOutput } from "../utils/tool-output";
 import { GATE_ORDER, isGateSatisfied, type GateId } from "../types";
 import { getCommandsByGate } from "../manifest";
 
@@ -71,7 +72,7 @@ export const statusTools = {
 
       return wrapWithBanner(
         { command: "adv_status" },
-        JSON.stringify(status, null, 2),
+        formatToolOutput(status),
       );
     },
   },

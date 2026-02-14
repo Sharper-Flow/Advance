@@ -13,6 +13,7 @@ import {
   isTrivialTask,
   truncateOutput,
 } from "../types";
+import { formatToolOutput, paginate } from "../utils/tool-output";
 
 // =============================================================================
 // Tool Definitions
@@ -28,13 +29,9 @@ export const taskTools = {
     execute: async ({ taskId }: { taskId: string }, store: Store) => {
       const result = await store.tasks.show(taskId);
       if (!result) {
-        return JSON.stringify({ error: `Task not found: ${taskId}` });
+        return formatToolOutput({ error: `Task not found: ${taskId}` });
       }
-      return JSON.stringify(
-        { task: result.task, changeId: result.changeId },
-        null,
-        2,
-      );
+      return formatToolOutput({ task: result.task, changeId: result.changeId });
     },
   },
 
@@ -46,13 +43,27 @@ export const taskTools = {
         .enum(["pending", "in_progress", "done", "cancelled"])
         .optional()
         .describe("Filter by status"),
+      limit: z
+        .number()
+        .optional()
+        .describe("Max tasks to return (default: 50)"),
+      offset: z
+        .number()
+        .optional()
+        .describe("Offset for pagination (default: 0)"),
     },
     execute: async (
-      { changeId, status }: { changeId: string; status?: string },
+      { changeId, status, limit, offset }: { changeId: string; status?: string; limit?: number; offset?: number },
       store: Store,
     ) => {
       const tasks = await store.tasks.list(changeId, status);
-      return JSON.stringify({ tasks }, null, 2);
+      const paged = paginate(tasks, {
+        limit,
+        offset,
+        tool: "adv_task_list",
+        args: `changeId: "${changeId}"${status ? `, status: "${status}"` : ""}`,
+      });
+      return formatToolOutput({ tasks: paged.items, pagination: paged.pagination });
     },
   },
 
@@ -63,7 +74,7 @@ export const taskTools = {
     },
     execute: async ({ changeId }: { changeId: string }, store: Store) => {
       const result = await store.tasks.ready(changeId);
-      return JSON.stringify(result, null, 2);
+      return formatToolOutput(result);
     },
   },
 
@@ -89,9 +100,9 @@ export const taskTools = {
     ) => {
       const task = await store.tasks.update(taskId, status, notes);
       if (!task) {
-        return JSON.stringify({ error: `Task not found: ${taskId}` });
+        return formatToolOutput({ error: `Task not found: ${taskId}` });
       }
-      return JSON.stringify({ success: true, task }, null, 2);
+      return formatToolOutput({ success: true, task });
     },
   },
 
@@ -128,9 +139,9 @@ export const taskTools = {
           blockedBy,
           section,
         });
-        return JSON.stringify({ taskId: task.id, task }, null, 2);
+        return formatToolOutput({ taskId: task.id, task });
       } catch (error) {
-        return JSON.stringify({
+        return formatToolOutput({
           error: error instanceof Error ? error.message : "Failed to add task",
         });
       }
@@ -186,19 +197,15 @@ export const taskTools = {
 
       const task = await store.tasks.recordEvidence(taskId, phase, evidence);
       if (!task) {
-        return JSON.stringify({ error: `Task not found: ${taskId}` });
+        return formatToolOutput({ error: `Task not found: ${taskId}` });
       }
 
-      return JSON.stringify(
-        {
-          success: true,
-          task,
-          compliance: getTddComplianceStatus(task),
-          message: `Recorded ${phase} phase evidence for task ${taskId}`,
-        },
-        null,
-        2,
-      );
+      return formatToolOutput({
+        success: true,
+        task,
+        compliance: getTddComplianceStatus(task),
+        message: `Recorded ${phase} phase evidence for task ${taskId}`,
+      });
     },
   },
 
@@ -223,18 +230,14 @@ export const taskTools = {
     ) => {
       const task = await store.tasks.setPhase(taskId, phase);
       if (!task) {
-        return JSON.stringify({ error: `Task not found: ${taskId}` });
+        return formatToolOutput({ error: `Task not found: ${taskId}` });
       }
 
-      return JSON.stringify(
-        {
-          success: true,
-          task,
-          message: `Set TDD phase to '${phase}' for task ${taskId}`,
-        },
-        null,
-        2,
-      );
+      return formatToolOutput({
+        success: true,
+        task,
+        message: `Set TDD phase to '${phase}' for task ${taskId}`,
+      });
     },
   },
 
@@ -255,19 +258,15 @@ export const taskTools = {
     ) => {
       const task = await store.tasks.skipTdd(taskId, reason);
       if (!task) {
-        return JSON.stringify({ error: `Task not found: ${taskId}` });
+        return formatToolOutput({ error: `Task not found: ${taskId}` });
       }
 
-      return JSON.stringify(
-        {
-          success: true,
-          task,
-          compliance: getTddComplianceStatus(task),
-          message: `TDD skipped for task ${taskId}: ${reason}`,
-        },
-        null,
-        2,
-      );
+      return formatToolOutput({
+        success: true,
+        task,
+        compliance: getTddComplianceStatus(task),
+        message: `TDD skipped for task ${taskId}: ${reason}`,
+      });
     },
   },
 
@@ -280,34 +279,30 @@ export const taskTools = {
     execute: async ({ taskId }: { taskId: string }, store: Store) => {
       const task = await store.tasks.get(taskId);
       if (!task) {
-        return JSON.stringify({ error: `Task not found: ${taskId}` });
+        return formatToolOutput({ error: `Task not found: ${taskId}` });
       }
 
       const compliance = getTddComplianceStatus(task);
       const requiresTdd = isLogicTask(task.title);
       const trivial = isTrivialTask(task.title);
 
-      return JSON.stringify(
-        {
-          taskId: task.id,
-          title: task.title,
-          tdd_phase: task.tdd_phase,
-          tdd_evidence: task.tdd_evidence,
-          analysis: {
-            requires_tdd: requiresTdd,
-            is_trivial: trivial,
-            compliance,
-          },
-          recommendation:
-            compliance === "missing"
-              ? "Record TDD evidence with adv_task_evidence or skip with adv_task_skip_tdd"
-              : compliance === "compliant"
-                ? "TDD requirements satisfied"
-                : "TDD not required for this task type",
+      return formatToolOutput({
+        taskId: task.id,
+        title: task.title,
+        tdd_phase: task.tdd_phase,
+        tdd_evidence: task.tdd_evidence,
+        analysis: {
+          requires_tdd: requiresTdd,
+          is_trivial: trivial,
+          compliance,
         },
-        null,
-        2,
-      );
+        recommendation:
+          compliance === "missing"
+            ? "Record TDD evidence with adv_task_evidence or skip with adv_task_skip_tdd"
+            : compliance === "compliant"
+              ? "TDD requirements satisfied"
+              : "TDD not required for this task type",
+      });
     },
   },
 };

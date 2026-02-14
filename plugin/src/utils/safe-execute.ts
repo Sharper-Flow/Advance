@@ -9,6 +9,7 @@
  */
 
 import { ZodError } from "zod";
+import { formatToolOutput } from "./tool-output";
 
 /**
  * Format a Zod validation error into a human-readable message
@@ -32,42 +33,30 @@ export function formatErrorResponse(
 ): string {
   // Handle Zod schema validation errors specially
   if (error instanceof ZodError) {
-    return JSON.stringify(
-      {
-        error: formatZodError(error),
-        tool: toolName,
-        hint: "Please check your arguments and try again.",
-        received_args: args,
-      },
-      null,
-      2,
-    );
+    return formatToolOutput({
+      error: formatZodError(error),
+      tool: toolName,
+      hint: "Please check your arguments and try again.",
+      received_args: args,
+    });
   }
 
   // Handle standard Error objects
   if (error instanceof Error) {
-    return JSON.stringify(
-      {
-        error: error.message,
-        tool: toolName,
-        hint: "An unexpected error occurred. Please check your arguments.",
-        ...(args !== undefined && { received_args: args }),
-      },
-      null,
-      2,
-    );
+    return formatToolOutput({
+      error: error.message,
+      tool: toolName,
+      hint: "An unexpected error occurred. Please check your arguments.",
+      ...(args !== undefined && { received_args: args }),
+    });
   }
 
   // Handle unknown error types
-  return JSON.stringify(
-    {
-      error: String(error),
-      tool: toolName,
-      hint: "An unknown error occurred.",
-    },
-    null,
-    2,
-  );
+  return formatToolOutput({
+    error: String(error),
+    tool: toolName,
+    hint: "An unknown error occurred.",
+  });
 }
 
 // =============================================================================
@@ -78,6 +67,7 @@ const DEFAULT_TRUNCATION_LIMIT = 30000;
 
 /**
  * Truncate output if it exceeds character limit.
+ * @deprecated Use formatToolOutput() for JSON data. This remains for non-JSON (banner-wrapped) strings.
  */
 export function truncateOutput(
   output: string,
@@ -92,8 +82,28 @@ export function truncateOutput(
 }
 
 /**
+ * Apply budget-aware output formatting.
+ * - For JSON strings: parse and re-serialize via formatToolOutput (compact + truncation envelope)
+ * - For non-JSON (e.g. banner-wrapped): fall back to truncateOutput
+ */
+function applyOutputBudget(output: string): string {
+  // Try to parse as JSON first — if it's valid JSON, use formatToolOutput
+  if (output.startsWith("{") || output.startsWith("[")) {
+    try {
+      const parsed = JSON.parse(output);
+      return formatToolOutput(parsed);
+    } catch {
+      // Not valid JSON despite starting with { or [, fall through
+    }
+  }
+
+  // Non-JSON output (banner-wrapped, etc.) — use legacy truncation
+  return truncateOutput(output);
+}
+
+/**
  * Wraps an execute function to catch all errors and return them as JSON content.
- * Also enforces output truncation limits.
+ * Also enforces output budget via formatToolOutput (compact JSON + truncation envelope).
  *
  * @param fn - The original execute function
  * @param toolName - Name of the tool (for error context)
@@ -106,7 +116,7 @@ export function safeExecute<TArgs, TContext>(
   return async (args: TArgs, context: TContext): Promise<string> => {
     try {
       const result = await fn(args, context);
-      return truncateOutput(result);
+      return applyOutputBudget(result);
     } catch (error) {
       return formatErrorResponse(error, toolName, args);
     }
@@ -124,7 +134,7 @@ export function safeExecuteSimple<TArgs, TExtra>(
   return async (args: TArgs, extra: TExtra): Promise<string> => {
     try {
       const result = await fn(args, extra);
-      return truncateOutput(result);
+      return applyOutputBudget(result);
     } catch (error) {
       return formatErrorResponse(error, toolName, args);
     }

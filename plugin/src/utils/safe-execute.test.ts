@@ -61,7 +61,7 @@ describe("safe-execute", () => {
   });
 
   describe("formatErrorResponse", () => {
-    it("formats ZodError with args", () => {
+    it("formats ZodError with args as compact JSON", () => {
       const schema = z.object({ id: z.string() });
       try {
         schema.parse({ id: 123 });
@@ -76,20 +76,23 @@ describe("safe-execute", () => {
       }
     });
 
-    it("formats standard Error", () => {
+    it("formats standard Error as compact JSON", () => {
       const error = new Error("Something went wrong");
-      const result = JSON.parse(formatErrorResponse(error, "test_tool"));
+      const raw = formatErrorResponse(error, "test_tool");
+      const result = JSON.parse(raw);
       expect(result.error).toBe("Something went wrong");
       expect(result.tool).toBe("test_tool");
       expect(result.hint).toBeDefined();
+      // Compact: no pretty-printing whitespace
+      expect(raw).not.toContain("\n");
     });
 
-    it("formats unknown error types", () => {
-      const result = JSON.parse(
-        formatErrorResponse("string error", "test_tool"),
-      );
+    it("formats unknown error types as compact JSON", () => {
+      const raw = formatErrorResponse("string error", "test_tool");
+      const result = JSON.parse(raw);
       expect(result.error).toBe("string error");
       expect(result.tool).toBe("test_tool");
+      expect(raw).not.toContain("\n");
     });
   });
 
@@ -100,6 +103,16 @@ describe("safe-execute", () => {
       const wrapped = safeExecute(fn, "test_tool");
       const result = await wrapped({ id: "123" }, {} as any);
       expect(JSON.parse(result)).toEqual({ success: true, id: "123" });
+    });
+
+    it("returns compact JSON for small outputs", async () => {
+      const fn = async () =>
+        JSON.stringify({ a: 1, b: 2 }, null, 2); // pretty input
+      const wrapped = safeExecute(fn, "test_tool");
+      const result = await wrapped({}, {} as any);
+      // applyOutputBudget parses and re-serializes via formatToolOutput (compact)
+      expect(result).not.toContain("\n");
+      expect(JSON.parse(result)).toEqual({ a: 1, b: 2 });
     });
 
     it("catches and returns Error as JSON", async () => {
@@ -137,6 +150,15 @@ describe("safe-execute", () => {
       const parsed = JSON.parse(result);
       expect(parsed.error).toBe("raw string error");
     });
+
+    it("passes through non-JSON output (e.g. banner-wrapped) with truncation", async () => {
+      const banner = "╔══════╗\n║ test ║\n╚══════╝\n\n{\"ok\":true}";
+      const fn = async () => banner;
+      const wrapped = safeExecute(fn, "test_tool");
+      const result = await wrapped({}, {} as any);
+      // Non-JSON, so falls through to truncateOutput (which passes short strings through)
+      expect(result).toBe(banner);
+    });
   });
 
   describe("safeExecuteSimple", () => {
@@ -160,7 +182,7 @@ describe("safe-execute", () => {
     });
   });
 
-  describe("truncateOutput", () => {
+  describe("truncateOutput (deprecated, still functional)", () => {
     it("returns original string if within limit", () => {
       const output = "short string";
       expect(truncateOutput(output, 20)).toBe(output);

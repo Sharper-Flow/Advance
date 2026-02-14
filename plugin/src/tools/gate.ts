@@ -16,6 +16,7 @@ import {
   createDefaultGates,
 } from "../types";
 import { wrapWithBanner } from "../utils/banner";
+import { formatToolOutput } from "../utils/tool-output";
 
 // =============================================================================
 // Tool Definitions
@@ -31,10 +32,10 @@ export const gateTools = {
     execute: async ({ changeId }: { changeId: string }, store: Store) => {
       const result = await store.changes.get(changeId);
       if (!result.success) {
-        return JSON.stringify({ error: result.error });
+        return formatToolOutput({ error: result.error });
       }
       if (!result.data) {
-        return JSON.stringify({ error: `Change not found: ${changeId}` });
+        return formatToolOutput({ error: `Change not found: ${changeId}` });
       }
 
       // Get or create gates
@@ -43,17 +44,13 @@ export const gateTools = {
       const canArchive = allGatesSatisfied(gates);
       const nextGate = incomplete.length > 0 ? incomplete[0] : null;
 
-      return JSON.stringify(
-        {
-          changeId,
-          gates,
-          incomplete,
-          canArchive,
-          nextGate,
-        },
-        null,
-        2,
-      );
+      return formatToolOutput({
+        changeId,
+        gates,
+        incomplete,
+        canArchive,
+        nextGate,
+      });
     },
   },
 
@@ -91,17 +88,17 @@ export const gateTools = {
     ) => {
       // Validate gate ID
       if (!GATE_ORDER.includes(gateId)) {
-        return JSON.stringify({
+        return formatToolOutput({
           error: `Invalid gate ID: ${gateId}. Valid gates: ${GATE_ORDER.join(", ")}`,
         });
       }
 
       const result = await store.changes.get(changeId);
       if (!result.success) {
-        return JSON.stringify({ error: result.error });
+        return formatToolOutput({ error: result.error });
       }
       if (!result.data) {
-        return JSON.stringify({ error: `Change not found: ${changeId}` });
+        return formatToolOutput({ error: `Change not found: ${changeId}` });
       }
 
       const change = result.data;
@@ -115,7 +112,7 @@ export const gateTools = {
         ).filter(
           (g) => gates[g].status !== "done" && gates[g].status !== "legacy",
         );
-        return JSON.stringify({
+        return formatToolOutput({
           error: `Cannot complete ${gateId}: prior gate(s) incomplete`,
           blockedBy,
         });
@@ -125,7 +122,7 @@ export const gateTools = {
       try {
         await store.gates.complete(changeId, gateId);
       } catch (saveError) {
-        return JSON.stringify({
+        return formatToolOutput({
           error: `Failed to complete gate: ${(saveError as Error).message}`,
           changeId,
           gateId,
@@ -136,18 +133,14 @@ export const gateTools = {
       const now = new Date().toISOString();
       return wrapWithBanner(
         { command: "adv_gate_complete", target: `${changeId}:${gateId}` },
-        JSON.stringify(
-          {
-            success: true,
-            changeId,
-            gateId,
-            status: "done",
-            completed_at: now,
-            completed_by: completedBy,
-          },
-          null,
-          2,
-        ),
+        formatToolOutput({
+          success: true,
+          changeId,
+          gateId,
+          status: "done",
+          completed_at: now,
+          completed_by: completedBy,
+        }),
       );
     },
   },

@@ -8,6 +8,7 @@
 import { readFile } from "fs/promises";
 import { join } from "path";
 import type { Store } from "../storage/store";
+import { formatToolOutput } from "../utils/tool-output";
 
 // =============================================================================
 // Tool Definitions
@@ -24,17 +25,13 @@ export const projectTools = {
 
       try {
         const content = await readFile(projectPath, "utf-8");
-        return JSON.stringify(
-          {
-            file: projectFile,
-            content,
-          },
-          null,
-          2,
-        );
+        return formatToolOutput({
+          file: projectFile,
+          content,
+        });
       } catch (err) {
         if ((err as NodeJS.ErrnoException).code === "ENOENT") {
-          return JSON.stringify({
+          return formatToolOutput({
             file: projectFile,
             content: null,
             message: `No project context file found at ${projectFile}. Create one to document tech stack, conventions, and domain knowledge.`,

@@ -10,6 +10,7 @@ import { z } from "zod";
 import type { Store } from "../storage/store";
 import { WisdomTypeSchema } from "../types";
 import { addProjectWisdom, compactProjectWisdom, listProjectWisdom } from "../storage/project-wisdom";
+import { formatToolOutput } from "../utils/tool-output";
 
 // =============================================================================
 // Tool Definitions
@@ -54,17 +55,13 @@ export const wisdomTools = {
           content,
           sourceTask,
         );
-        return JSON.stringify(
-          {
-            success: true,
-            entry,
-            message: `Added ${type} wisdom to change ${changeId}`,
-          },
-          null,
-          2,
-        );
+        return formatToolOutput({
+          success: true,
+          entry,
+          message: `Added ${type} wisdom to change ${changeId}`,
+        });
       } catch (error) {
-        return JSON.stringify({
+        return formatToolOutput({
           error:
             error instanceof Error ? error.message : "Failed to add wisdom",
         });
@@ -88,17 +85,13 @@ export const wisdomTools = {
           byType[entry.type] = (byType[entry.type] || 0) + 1;
         }
 
-        return JSON.stringify(
-          {
-            wisdom,
-            count: wisdom.length,
-            byType,
-          },
-          null,
-          2,
-        );
+        return formatToolOutput({
+          wisdom,
+          count: wisdom.length,
+          byType,
+        });
       } catch (error) {
-        return JSON.stringify({
+        return formatToolOutput({
           error:
             error instanceof Error ? error.message : "Failed to list wisdom",
         });
@@ -125,7 +118,7 @@ export const wisdomTools = {
         const entry = entries.find((e) => e.id === wisdomId);
 
         if (!entry) {
-          return JSON.stringify({
+          return formatToolOutput({
             error: `Wisdom entry ${wisdomId} not found in change ${changeId}`,
           });
         }
@@ -139,7 +132,7 @@ export const wisdomTools = {
             e.type === entry.type,
         );
         if (isDuplicate) {
-          return JSON.stringify({
+          return formatToolOutput({
             error: `Wisdom entry ${wisdomId} already promoted from change ${changeId}`,
           });
         }
@@ -160,17 +153,13 @@ export const wisdomTools = {
           // Compaction failure is non-fatal; promotion already succeeded
         }
 
-        return JSON.stringify(
-          {
-            success: true,
-            promoted,
-            message: `Promoted ${entry.type} wisdom to project level`,
-          },
-          null,
-          2,
-        );
+        return formatToolOutput({
+          success: true,
+          promoted,
+          message: `Promoted ${entry.type} wisdom to project level`,
+        });
       } catch (error) {
-        return JSON.stringify({
+        return formatToolOutput({
           error:
             error instanceof Error
               ? error.message

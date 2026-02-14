@@ -7,6 +7,7 @@
 
 import { z } from "zod";
 import type { Store } from "../storage/store";
+import { formatToolOutput, paginate } from "../utils/tool-output";
 
 // =============================================================================
 // Tool Definitions
@@ -24,7 +25,7 @@ export const specTools = {
       store: Store,
     ) => {
       const result = await store.specs.list({ capability, tag });
-      return JSON.stringify(result, null, 2);
+      return formatToolOutput(result);
     },
   },
 
@@ -34,16 +35,38 @@ export const specTools = {
       capability: z
         .string()
         .describe("Capability ID (e.g., 'contract-system')"),
+      limit: z
+        .number()
+        .optional()
+        .describe("Max requirements to return (default: 50)"),
+      offset: z
+        .number()
+        .optional()
+        .describe("Requirement offset for pagination (default: 0)"),
     },
-    execute: async ({ capability }: { capability: string }, store: Store) => {
+    execute: async (
+      { capability, limit, offset }: { capability: string; limit?: number; offset?: number },
+      store: Store,
+    ) => {
       const result = await store.specs.get(capability);
       if (!result.success) {
-        return JSON.stringify({ error: result.error });
+        return formatToolOutput({ error: result.error });
       }
       if (!result.data) {
-        return JSON.stringify({ error: `Spec not found: ${capability}` });
+        return formatToolOutput({ error: `Spec not found: ${capability}` });
       }
-      return JSON.stringify(result.data, null, 2);
+      const spec = result.data;
+      const paged = paginate(spec.requirements, {
+        limit,
+        offset,
+        tool: "adv_spec_show",
+        args: `capability: "${capability}"`,
+      });
+      return formatToolOutput({
+        ...spec,
+        requirements: paged.items,
+        _requirementPagination: paged.pagination,
+      });
     },
   },
 
@@ -58,7 +81,7 @@ export const specTools = {
       store: Store,
     ) => {
       const results = await store.specs.search(query, limit);
-      return JSON.stringify({ results }, null, 2);
+      return formatToolOutput({ results });
     },
   },
 };
