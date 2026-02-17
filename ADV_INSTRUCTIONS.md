@@ -35,7 +35,7 @@ ADV (Advance) enables spec-driven development where **specs become laws**. Requi
 | Command | Purpose |
 |---------|---------|
 | `/adv-review <change-id>` | Code review (correctness, security, architecture) |
-| `/adv-harden <change-id>` | AI-slop detection, test coverage, cleanup |
+| `/adv-harden <change-id>` | AI-slop detection, test coverage, doc hygiene, cleanup |
 | `/adv-audit [capability]` | Spec/implementation drift detection |
 
 ### Advanced

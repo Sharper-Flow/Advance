@@ -1,6 +1,6 @@
 ---
 name: adv-harden
-description: Post-implementation hardening - AI-slop detection, tech debt scoring, quality gates
+description: Post-implementation hardening - AI-slop detection, doc hygiene, tech debt scoring, quality gates
 agent: general
 ---
 
@@ -190,25 +190,94 @@ RETURN JSON:
 }
 ```
 
-### Sub-Agent 3: Documentation Scanner
+### Sub-Agent 3: Documentation Hygiene Scanner
 
 ```
-Analyze DOCUMENTATION for change: {change-id}
+Analyze DOCUMENTATION HYGIENE for change: {change-id}
 
 Affected files: {files}
 
+PURPOSE: Documentation is agent infrastructure. Stale, conflicting, or verbose
+docs poison every future session. This scanner aggressively identifies docs that
+must be deleted, corrected, or consolidated.
+
 TASK:
-1. Check README for new features
-2. Check inline docs (JSDoc, docstrings)
-3. Check CHANGELOG entry
-4. Check API documentation
+
+1. CONFLICT DETECTION (highest priority):
+   - Cross-reference ALL doc files (README.md, SETUP.md, CHANGELOG.md,
+     ADV_INSTRUCTIONS.md, docs/*.md, AGENTS.md) against actual implementation
+   - Flag any doc that describes behavior differently than the code implements it
+   - Flag any doc that references deleted/renamed files, functions, or commands
+   - Flag duplicate information across multiple files (pick one canonical source)
+   - Flag docs that contradict each other
+
+2. STALENESS DETECTION:
+   - Identify docs referencing features, APIs, or patterns removed by this change
+   - Identify docs whose code examples no longer compile or match current signatures
+   - Identify generated files (*.html reports, comparison docs) that are now outdated
+   - Check that command descriptions in manifests/READMEs match actual command behavior
+
+3. VERBOSITY AUDIT:
+   - Flag docs with excessive prose that could be a table or bullet list
+   - Flag docs that repeat information available in code (e.g., re-listing all
+     function params when JSDoc already covers them)
+   - Flag README sections that belong in dedicated docs (and vice versa)
+   - Ideal: an agent should get what it needs in <30 seconds of reading
+
+4. ACTIONABLE UPDATES:
+   - For each affected file, check if the change introduces behavior an agent
+     would need to know about long-term (new commands, changed defaults,
+     new constraints, new patterns)
+   - Propose succinct additions (1-3 lines) to the canonical doc location
+   - Inline docs (JSDoc/docstrings) MUST exist for public APIs; keep them
+     to purpose + params + return, no filler
+
+5. DELETION CANDIDATES:
+   - Any doc file that is >80% stale or superseded → recommend deletion
+   - Any generated report that's not auto-regenerated → recommend deletion
+   - Prefer fewer, accurate docs over many outdated ones
+
+SEVERITY:
+- BLOCKER: Doc actively contradicts implementation (will mislead agents)
+- HIGH: Stale doc references deleted code/features (will cause confusion)
+- MEDIUM: Duplicate info across files, verbose sections
+- LOW: Missing inline docs, minor formatting
 
 RETURN JSON:
 {
-  "dimension": "documentation",
-  "readme": {"updated": bool, "needs_update": bool},
+  "dimension": "documentation_hygiene",
+  "conflicts": [{
+    "file": "...",
+    "line": N,
+    "claims": "what the doc says",
+    "reality": "what the code does",
+    "severity": "BLOCKER|HIGH"
+  }],
+  "stale": [{
+    "file": "...",
+    "reason": "references deleted X",
+    "action": "delete|update",
+    "severity": "HIGH|MEDIUM"
+  }],
+  "deletions": [{
+    "file": "...",
+    "reason": "superseded by X / >80% stale",
+    "severity": "MEDIUM"
+  }],
+  "updates_needed": [{
+    "file": "...",
+    "what": "new command /foo added",
+    "proposed_addition": "1-3 line succinct text",
+    "severity": "MEDIUM"
+  }],
+  "verbose": [{
+    "file": "...",
+    "section": "...",
+    "current_lines": N,
+    "suggested_lines": N,
+    "severity": "LOW"
+  }],
   "inline_docs": {"documented": N, "undocumented": N, "coverage_percent": N},
-  "changelog": {"entry_exists": bool},
   "issues": [...]
 }
 ```
@@ -454,8 +523,9 @@ AI-SLOP DETECTION                          [{pass|warn|fail}]
   Categories: {breakdown}
   Debt Quadrant: {classification}
 
-DOCUMENTATION                              [{pass|warn|fail}]
-  README: {status} | Inline: {percent}% | CHANGELOG: {status}
+DOCUMENTATION HYGIENE                      [{pass|warn|fail}]
+  Conflicts: {count} | Stale: {count} | Deletions: {count}
+  Inline Docs: {percent}% | Updates Needed: {count}
 
 PRODUCTION READINESS                       [{pass|warn|fail}]
   Security: {pass|fail} | Reliability: {pass|fail}

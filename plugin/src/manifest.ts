@@ -137,7 +137,7 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
   },
   "adv-harden": {
     name: "adv-harden",
-    description: "AI-slop detection, test coverage, cleanup",
+    description: "AI-slop detection, test coverage, doc hygiene, cleanup",
     phase: "post-implementation",
     gate: "harden",
     requiresChangeId: true,

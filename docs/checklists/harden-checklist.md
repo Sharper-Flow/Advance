@@ -10,7 +10,7 @@ Every hardening pass MUST run all 5 scanners. Mark `[x]` when analyzed (even if 
 
 - [ ] **Test Coverage** — File-level coverage ratio, TDD evidence audit
 - [ ] **AI-Slop Detection** — Placeholders, type erosion, naive patterns, structural issues
-- [ ] **Documentation** — README, inline docs, CHANGELOG, API docs
+- [ ] **Documentation Hygiene** — Conflict detection, staleness audit, deletion of superseded docs, succinct long-term updates
 - [ ] **Cleanup** — Temp files, debug code, dead imports, orphaned tests
 - [ ] **Production Readiness** — Security, reliability, performance, maintainability
 
@@ -89,6 +89,24 @@ Why this is genuinely clean:
 | **READY** | No BLOCKER, no HIGH, <=3 MEDIUM |
 | **NEEDS_WORK** | No BLOCKER but HIGH or >3 MEDIUM |
 | **BLOCKED** | Any BLOCKER |
+
+---
+
+## Documentation Hygiene Standard
+
+Docs are agent infrastructure — stale docs actively harm every future session. The harden pass enforces:
+
+1. **Delete > Update**: If a doc is >80% stale or superseded, delete it. Fewer accurate docs beat many outdated ones.
+2. **No Conflicts**: Any doc that contradicts the implementation is a BLOCKER. Fix or delete immediately.
+3. **No Duplication**: Information lives in ONE canonical location. Remove copies elsewhere.
+4. **Succinct**: Docs should be scannable in <30 seconds. Tables and bullet lists over prose. No filler.
+5. **Long-term Value**: Only document what an agent needs to know across sessions — commands, constraints, patterns, defaults. Omit transient details.
+
+**Red flags (escalate to BLOCKER/HIGH):**
+- Doc references deleted files, functions, or commands
+- Two docs describe the same behavior differently
+- Generated reports (HTML, comparison docs) not auto-regenerated and now outdated
+- README re-explains what inline docs already cover
 
 ---
 
