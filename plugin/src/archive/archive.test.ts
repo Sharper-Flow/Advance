@@ -583,9 +583,9 @@ describe("Archive Workflow", () => {
 
       expect(result.docsGenerated.length).toBeGreaterThan(0);
 
-      // Verify doc file exists
+      // Verify doc file exists (access() throws if file missing)
       const docPath = result.docsGenerated[0];
-      await expect(access(docPath)).resolves.toBeUndefined();
+      await access(docPath);
     });
 
     it("creates archive directory with change copy", async () => {
@@ -606,7 +606,8 @@ describe("Archive Workflow", () => {
       });
 
       expect(result.archivePath).toBeDefined();
-      await expect(access(result.archivePath)).resolves.toBeUndefined();
+      // access() throws if path missing
+      await access(result.archivePath);
     });
 
     it("performs dry run without writing files", async () => {
@@ -704,9 +705,9 @@ describe("Archive Workflow", () => {
       expect(result.success).toBe(true);
       expect(result.specsUpdated[0].capability).toBe("brand-new-capability");
 
-      // Verify new spec file was created
+      // Verify new spec file was created (access() throws if missing)
       const specPath = join(testDir, "specs/brand-new-capability/spec.json");
-      await expect(access(specPath)).resolves.toBeUndefined();
+      await access(specPath);
     });
   });
 });
