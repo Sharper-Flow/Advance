@@ -54,6 +54,7 @@ import {
   type LoadResult,
 } from "./json";
 import { acquireFileLock } from "../utils/fs";
+import { generateChangeId } from "../utils/change-id";
 
 // =============================================================================
 // Store Interface
@@ -607,23 +608,15 @@ export async function createStore(
       },
 
       create: async (summary, _capability) => {
-        // Generate change ID from summary in camelCase
-        const words = summary.split(/[^a-zA-Z0-9]+/).filter(Boolean);
-        const camelCase = words
-          .map((w, i) =>
-            i === 0
-              ? w.toLowerCase()
-              : w.charAt(0).toUpperCase() + w.slice(1).toLowerCase(),
-          )
-          .join("")
-          .slice(0, 30);
+        // Generate concise change ID from summary
+        const baseId = generateChangeId(summary);
 
         // Check for collisions and auto-increment
         const existingDirs = await listChangeDirs(paths.changes);
-        let changeId = camelCase;
+        let changeId = baseId;
         let counter = 2;
         while (existingDirs.includes(changeId)) {
-          changeId = `${camelCase}${counter}`;
+          changeId = `${baseId}${counter}`;
           counter++;
         }
 

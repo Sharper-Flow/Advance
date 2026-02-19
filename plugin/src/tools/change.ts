@@ -48,7 +48,12 @@ export const changeTools = {
         includeArchived,
         limit,
         offset,
-      }: { status?: string; includeArchived?: boolean; limit?: number; offset?: number },
+      }: {
+        status?: string;
+        includeArchived?: boolean;
+        limit?: number;
+        offset?: number;
+      },
       store: Store,
     ) => {
       const result = await store.changes.list({ status, includeArchived });
@@ -58,7 +63,10 @@ export const changeTools = {
         tool: "adv_change_list",
         args: status ? `status: "${status}"` : undefined,
       });
-      return formatToolOutput({ changes: paged.items, pagination: paged.pagination });
+      return formatToolOutput({
+        changes: paged.items,
+        pagination: paged.pagination,
+      });
     },
   },
 
@@ -76,7 +84,11 @@ export const changeTools = {
         .describe("Task offset for pagination (default: 0)"),
     },
     execute: async (
-      { changeId, limit, offset }: { changeId: string; limit?: number; offset?: number },
+      {
+        changeId,
+        limit,
+        offset,
+      }: { changeId: string; limit?: number; offset?: number },
       store: Store,
     ) => {
       const result = await store.changes.get(changeId);
@@ -104,7 +116,15 @@ export const changeTools = {
   adv_change_create: {
     description: "Create a new change proposal",
     args: {
-      summary: z.string().describe("Brief description of the change"),
+      summary: z
+        .string()
+        .describe(
+          "2-5 word summary used as the change title and ID. " +
+            "Start with an action verb (add, fix, update, remove, refactor). " +
+            "Be specific, not generic. " +
+            'Good: "Add rate limiting", "Fix auth token refresh". ' +
+            'Bad: "Implement comprehensive authentication system", "Full update".',
+        ),
       capability: z.string().optional().describe("Primary capability affected"),
     },
     execute: async (
