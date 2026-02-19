@@ -53,7 +53,10 @@ export function checkDuplicateRequirementIds(
         const newId = delta.new_id;
 
         // Check against existing spec requirements (excluding the target being renamed)
-        if (newId !== delta.target_id && context.existingRequirementIds.has(newId)) {
+        if (
+          newId !== delta.target_id &&
+          context.existingRequirementIds.has(newId)
+        ) {
           issues.push({
             code: ValidationCodes.DUPLICATE_REQUIREMENT_ID,
             severity: "error",
@@ -299,26 +302,33 @@ export function checkChangeConflicts(
  * - Multiple operations targeting the same requirement (rename+remove, double rename)
  * - Rename new_id colliding with an add delta's requirement ID
  */
-export function checkIntraDeltaConflicts(
-  change: Change,
-): ValidationIssue[] {
+export function checkIntraDeltaConflicts(change: Change): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
 
   for (const [capability, deltas] of Object.entries(change.deltas)) {
     // Track target_ids used by rename/remove/modify operations
-    const targetOps = new Map<string, { deltaId: string; operation: string }[]>();
+    const targetOps = new Map<
+      string,
+      { deltaId: string; operation: string }[]
+    >();
     // Track IDs being added (from add deltas)
     const addedIds = new Set<string>();
     // Track new_ids from renames
     const renameNewIds = new Map<string, string>(); // new_id -> deltaId
 
     for (const delta of deltas) {
-      if (delta.operation === "rename" || delta.operation === "remove" || delta.operation === "modify") {
+      if (
+        delta.operation === "rename" ||
+        delta.operation === "remove" ||
+        delta.operation === "modify"
+      ) {
         const targetId = delta.target_id;
         if (!targetOps.has(targetId)) {
           targetOps.set(targetId, []);
         }
-        targetOps.get(targetId)!.push({ deltaId: delta.id, operation: delta.operation });
+        targetOps
+          .get(targetId)!
+          .push({ deltaId: delta.id, operation: delta.operation });
       }
 
       if (delta.operation === "add") {
@@ -335,7 +345,8 @@ export function checkIntraDeltaConflicts(
       // Rename + any other operation on same target is a conflict
       const hasRename = ops.some((o) => o.operation === "rename");
       const hasOther = ops.some((o) => o.operation !== "rename");
-      const multipleRenames = ops.filter((o) => o.operation === "rename").length > 1;
+      const multipleRenames =
+        ops.filter((o) => o.operation === "rename").length > 1;
 
       if (hasRename && hasOther) {
         issues.push({
@@ -345,7 +356,10 @@ export function checkIntraDeltaConflicts(
           path: `deltas.${capability}`,
           details: {
             targetId,
-            operations: ops.map((o) => ({ deltaId: o.deltaId, operation: o.operation })),
+            operations: ops.map((o) => ({
+              deltaId: o.deltaId,
+              operation: o.operation,
+            })),
           },
         });
       }
@@ -354,11 +368,16 @@ export function checkIntraDeltaConflicts(
         issues.push({
           code: ValidationCodes.INTRA_DELTA_CONFLICT,
           severity: "error",
-          message: `Multiple renames targeting "${targetId}": ${ops.filter((o) => o.operation === "rename").map((o) => o.deltaId).join(", ")}`,
+          message: `Multiple renames targeting "${targetId}": ${ops
+            .filter((o) => o.operation === "rename")
+            .map((o) => o.deltaId)
+            .join(", ")}`,
           path: `deltas.${capability}`,
           details: {
             targetId,
-            operations: ops.filter((o) => o.operation === "rename").map((o) => ({ deltaId: o.deltaId, operation: o.operation })),
+            operations: ops
+              .filter((o) => o.operation === "rename")
+              .map((o) => ({ deltaId: o.deltaId, operation: o.operation })),
           },
         });
       }

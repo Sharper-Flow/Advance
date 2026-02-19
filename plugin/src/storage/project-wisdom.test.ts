@@ -7,14 +7,13 @@
 
 import { describe, test, expect, beforeEach, afterEach } from "vitest";
 import { join } from "path";
-import { readFile, writeFile, mkdir } from "fs/promises";
+import { writeFile, mkdir } from "fs/promises";
 import { existsSync } from "fs";
 import {
   getProjectWisdomPath,
   addProjectWisdom,
   listProjectWisdom,
   compactProjectWisdom,
-  type ProjectWisdomEntry,
 } from "./project-wisdom";
 import { createTempDir, cleanupTempDir } from "../__tests__/setup";
 
@@ -323,7 +322,11 @@ describe("Project-Level Wisdom Store", () => {
         content: "Valid entry",
         promoted_at: new Date().toISOString(),
       });
-      await writeFile(path, `${missingId}\n${missingContent}\n${valid}\n`, "utf-8");
+      await writeFile(
+        path,
+        `${missingId}\n${missingContent}\n${valid}\n`,
+        "utf-8",
+      );
 
       const entries = await listProjectWisdom(tempDir);
       expect(entries).toHaveLength(1);
@@ -401,7 +404,9 @@ describe("Project-Level Wisdom Store", () => {
       const entries = await listProjectWisdom(tempDir);
       expect(entries.length).toBeGreaterThan(0);
       // Convention entry should be findable
-      expect(entries.some((e) => e.content === "Added during compaction")).toBe(true);
+      expect(entries.some((e) => e.content === "Added during compaction")).toBe(
+        true,
+      );
     });
   });
 });

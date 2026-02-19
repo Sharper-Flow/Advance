@@ -216,9 +216,13 @@ function logDeltaResult(
     details.targetId = m.target_id;
     details.changedKeys = Object.keys(m.changes);
   } else if (delta.operation === "remove") {
-    details.targetId = (delta as Extract<Delta, { operation: "remove" }>).target_id;
+    details.targetId = (
+      delta as Extract<Delta, { operation: "remove" }>
+    ).target_id;
   } else if (delta.operation === "add") {
-    details.newId = (delta as Extract<Delta, { operation: "add" }>).requirement.id;
+    details.newId = (
+      delta as Extract<Delta, { operation: "add" }>
+    ).requirement.id;
   }
 
   console.log("[adv:delta]", { ...base, ...details });
@@ -242,7 +246,8 @@ const DELTA_ORDER: Record<string, number> = {
  */
 function sortDeltas(deltas: Delta[]): Delta[] {
   return [...deltas].sort(
-    (a, b) => (DELTA_ORDER[a.operation] ?? 99) - (DELTA_ORDER[b.operation] ?? 99),
+    (a, b) =>
+      (DELTA_ORDER[a.operation] ?? 99) - (DELTA_ORDER[b.operation] ?? 99),
   );
 }
 
@@ -281,7 +286,11 @@ export function applyDeltasToSpec(
   }
 
   // Calculate new version
-  const newVersion = bumpVersion(currentVersion, hasAdd, hasModify || hasRenameOrRemove);
+  const newVersion = bumpVersion(
+    currentVersion,
+    hasAdd,
+    hasModify || hasRenameOrRemove,
+  );
 
   // Update spec metadata
   spec.version = newVersion;

@@ -196,7 +196,13 @@ describe("SQLiteStore", () => {
         status: "active",
         created_at: new Date().toISOString(),
         tasks: [
-          { id: "tk-ren001", title: "Rename task", status: "pending", priority: 0, created_at: new Date().toISOString() },
+          {
+            id: "tk-ren001",
+            title: "Rename task",
+            status: "pending",
+            priority: 0,
+            created_at: new Date().toISOString(),
+          },
         ],
         deltas: {
           "test-capability": [
@@ -221,7 +227,9 @@ describe("SQLiteStore", () => {
       expect(change!.title).toBe("Rename Test");
 
       // Verify the delta was stored by querying the deltas table directly
-      const deltas = store.db.query("SELECT * FROM deltas WHERE change_id = ?").all("rename-test") as Array<{
+      const deltas = store.db
+        .query("SELECT * FROM deltas WHERE change_id = ?")
+        .all("rename-test") as Array<{
         id: string;
         operation: string;
         target_id: string;

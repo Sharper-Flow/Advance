@@ -504,8 +504,12 @@ describe("Advance Plugin SDK Integration", () => {
         s.includes("[ADV:PROJECT_WISDOM]"),
       );
       expect(projectWisdomMsg).toBeDefined();
-      expect(projectWisdomMsg).toContain("Project-level convention: always use TDD");
-      expect(projectWisdomMsg).toContain("Project-level pattern: prefer JSONL for append logs");
+      expect(projectWisdomMsg).toContain(
+        "Project-level convention: always use TDD",
+      );
+      expect(projectWisdomMsg).toContain(
+        "Project-level pattern: prefer JSONL for append logs",
+      );
     });
 
     test("experimental.chat.system.transform limits project wisdom to 10 entries", async () => {

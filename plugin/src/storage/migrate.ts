@@ -48,15 +48,35 @@ export async function migrateToExternalState(
 
   // Directories to migrate
   const dirs = [
-    { name: "changes", local: join(advDir, "changes"), external: join(externalDir, "changes") },
-    { name: "archive", local: join(advDir, "archive"), external: join(externalDir, "archive") },
-    { name: "db", local: join(advDir, "db"), external: join(externalDir, "db") },
+    {
+      name: "changes",
+      local: join(advDir, "changes"),
+      external: join(externalDir, "changes"),
+    },
+    {
+      name: "archive",
+      local: join(advDir, "archive"),
+      external: join(externalDir, "archive"),
+    },
+    {
+      name: "db",
+      local: join(advDir, "db"),
+      external: join(externalDir, "db"),
+    },
   ];
 
   // Files to migrate
   const files = [
-    { name: "wisdom.jsonl", local: join(advDir, "wisdom.jsonl"), external: join(externalDir, "wisdom.jsonl") },
-    { name: "agenda.jsonl", local: join(advDir, "agenda.jsonl"), external: join(externalDir, "agenda.jsonl") },
+    {
+      name: "wisdom.jsonl",
+      local: join(advDir, "wisdom.jsonl"),
+      external: join(externalDir, "wisdom.jsonl"),
+    },
+    {
+      name: "agenda.jsonl",
+      local: join(advDir, "agenda.jsonl"),
+      external: join(externalDir, "agenda.jsonl"),
+    },
   ];
 
   // Ensure external dir exists

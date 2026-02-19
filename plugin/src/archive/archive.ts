@@ -6,7 +6,6 @@
  */
 
 import { join } from "path";
-import { mkdir, writeFile } from "fs/promises";
 import { atomicWriteFile } from "../utils/fs";
 import type { Spec, Change } from "../types";
 import type {

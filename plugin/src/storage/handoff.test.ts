@@ -9,7 +9,12 @@ import { join } from "path";
 import { existsSync } from "fs";
 import { readFile } from "fs/promises";
 import { createTempDir, cleanupTempDir } from "../__tests__/setup";
-import { writeHandoff, readHandoff, clearHandoff, type HandoffState } from "./handoff";
+import {
+  writeHandoff,
+  readHandoff,
+  clearHandoff,
+  type HandoffState,
+} from "./handoff";
 
 describe("Handoff", () => {
   let tempDir: string;

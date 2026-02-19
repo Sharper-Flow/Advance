@@ -78,7 +78,10 @@ export async function readHandoff(
 export async function consumeHandoff(
   handoffPath: string,
 ): Promise<HandoffState | null> {
-  const tmpPath = join(dirname(handoffPath), `.handoff.consuming.${process.pid}.json`);
+  const tmpPath = join(
+    dirname(handoffPath),
+    `.handoff.consuming.${process.pid}.json`,
+  );
 
   try {
     // Atomic rename — only one process wins this race
@@ -132,12 +135,21 @@ function validateHandoff(content: string): HandoffState | null {
     // Normalize optional fields with safe defaults
     const state: HandoffState = {
       changeId: parsed.changeId,
-      currentTaskId: typeof parsed.currentTaskId === "string" ? parsed.currentTaskId : null,
-      gateStatus: typeof parsed.gateStatus === "object" && parsed.gateStatus !== null ? parsed.gateStatus : {},
+      currentTaskId:
+        typeof parsed.currentTaskId === "string" ? parsed.currentTaskId : null,
+      gateStatus:
+        typeof parsed.gateStatus === "object" && parsed.gateStatus !== null
+          ? parsed.gateStatus
+          : {},
       objective: typeof parsed.objective === "string" ? parsed.objective : "",
-      createdAt: typeof parsed.createdAt === "string" ? parsed.createdAt : new Date().toISOString(),
-      sourceBranch: typeof parsed.sourceBranch === "string" ? parsed.sourceBranch : "",
-      worktreeBranch: typeof parsed.worktreeBranch === "string" ? parsed.worktreeBranch : "",
+      createdAt:
+        typeof parsed.createdAt === "string"
+          ? parsed.createdAt
+          : new Date().toISOString(),
+      sourceBranch:
+        typeof parsed.sourceBranch === "string" ? parsed.sourceBranch : "",
+      worktreeBranch:
+        typeof parsed.worktreeBranch === "string" ? parsed.worktreeBranch : "",
     };
 
     return state;

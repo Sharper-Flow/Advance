@@ -53,7 +53,12 @@ export const taskTools = {
         .describe("Offset for pagination (default: 0)"),
     },
     execute: async (
-      { changeId, status, limit, offset }: { changeId: string; status?: string; limit?: number; offset?: number },
+      {
+        changeId,
+        status,
+        limit,
+        offset,
+      }: { changeId: string; status?: string; limit?: number; offset?: number },
       store: Store,
     ) => {
       const tasks = await store.tasks.list(changeId, status);
@@ -63,7 +68,10 @@ export const taskTools = {
         tool: "adv_task_list",
         args: `changeId: "${changeId}"${status ? `, status: "${status}"` : ""}`,
       });
-      return formatToolOutput({ tasks: paged.items, pagination: paged.pagination });
+      return formatToolOutput({
+        tasks: paged.items,
+        pagination: paged.pagination,
+      });
     },
   },
 

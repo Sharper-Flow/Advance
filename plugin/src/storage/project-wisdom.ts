@@ -96,7 +96,9 @@ export async function addProjectWisdom(
   // Validate type
   const typeResult = WisdomTypeSchema.safeParse(input.type);
   if (!typeResult.success) {
-    throw new Error(`Invalid wisdom type: ${input.type}. Must be one of: pattern, success, failure, gotcha, convention`);
+    throw new Error(
+      `Invalid wisdom type: ${input.type}. Must be one of: pattern, success, failure, gotcha, convention`,
+    );
   }
 
   // Validate content
@@ -148,11 +150,15 @@ function parseWisdomEntries(content: string): ProjectWisdomEntry[] {
       if (result.success) {
         entries.push(result.data as ProjectWisdomEntry);
       } else if (process.env.ADV_DEBUG) {
-        console.warn(`[adv:wisdom] Skipping invalid entry: ${result.error.message}`);
+        console.warn(
+          `[adv:wisdom] Skipping invalid entry: ${result.error.message}`,
+        );
       }
     } catch (e) {
       if (process.env.ADV_DEBUG) {
-        console.warn(`[adv:wisdom] Skipping malformed JSON line: ${(e as Error).message}`);
+        console.warn(
+          `[adv:wisdom] Skipping malformed JSON line: ${(e as Error).message}`,
+        );
       }
     }
   }
@@ -193,7 +199,10 @@ export async function listProjectWisdom(
   const entries = parseWisdomEntries(content);
 
   // Apply maxEntries limit
-  if (options?.maxEntries !== undefined && entries.length > options.maxEntries) {
+  if (
+    options?.maxEntries !== undefined &&
+    entries.length > options.maxEntries
+  ) {
     return entries.slice(0, options.maxEntries);
   }
 
@@ -220,7 +229,10 @@ export async function compactProjectWisdom(
   const releaseLock = await acquireFileLock(path);
   try {
     // Re-read under lock to get consistent state (skip lock — we already hold it)
-    const entries = await listProjectWisdom(projectDir, { _skipLock: true, wisdomPath: options?.wisdomPath });
+    const entries = await listProjectWisdom(projectDir, {
+      _skipLock: true,
+      wisdomPath: options?.wisdomPath,
+    });
 
     if (entries.length <= maxEntries) {
       return; // Nothing to compact

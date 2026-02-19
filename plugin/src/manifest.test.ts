@@ -8,7 +8,6 @@
 import { describe, test, expect } from "vitest";
 import {
   COMMAND_MANIFEST,
-  type CommandDef,
   getCommandDef,
   getCommandsByGate,
   getSuccessors,
@@ -133,7 +132,11 @@ describe("Command Manifest", () => {
       const successors = getSuccessors("adv-prep");
       expect(successors.length).toBeGreaterThan(0);
       // After prep, you typically do apply or research
-      expect(successors.some((s) => s.name === "adv-apply" || s.name === "adv-research")).toBe(true);
+      expect(
+        successors.some(
+          (s) => s.name === "adv-apply" || s.name === "adv-research",
+        ),
+      ).toBe(true);
     });
 
     test("returns empty array for unknown command", () => {

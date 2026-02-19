@@ -45,7 +45,11 @@ export const specTools = {
         .describe("Requirement offset for pagination (default: 0)"),
     },
     execute: async (
-      { capability, limit, offset }: { capability: string; limit?: number; offset?: number },
+      {
+        capability,
+        limit,
+        offset,
+      }: { capability: string; limit?: number; offset?: number },
       store: Store,
     ) => {
       const result = await store.specs.get(capability);

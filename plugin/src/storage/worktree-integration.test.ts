@@ -16,7 +16,12 @@ import { mkdir, writeFile, readFile } from "fs/promises";
 import { existsSync } from "fs";
 import { createTempDir, cleanupTempDir } from "../__tests__/setup";
 import { getProjectPaths, type ProjectPaths } from "./json";
-import { writeHandoff, readHandoff, clearHandoff, type HandoffState } from "./handoff";
+import {
+  writeHandoff,
+  readHandoff,
+  clearHandoff,
+  type HandoffState,
+} from "./handoff";
 import { migrateToExternalState } from "./migrate";
 
 describe("Worktree State Sharing", () => {
@@ -32,8 +37,12 @@ describe("Worktree State Sharing", () => {
     externalDir = await createTempDir();
 
     // Both sessions use the same externalRoot (keyed by project-id in production)
-    mainPaths = getProjectPaths(mainRepoDir, undefined, { externalRoot: externalDir });
-    worktreePaths = getProjectPaths(worktreeDir, undefined, { externalRoot: externalDir });
+    mainPaths = getProjectPaths(mainRepoDir, undefined, {
+      externalRoot: externalDir,
+    });
+    worktreePaths = getProjectPaths(worktreeDir, undefined, {
+      externalRoot: externalDir,
+    });
   });
 
   afterEach(async () => {
@@ -78,11 +87,22 @@ describe("Worktree State Sharing", () => {
       // Main session writes a change
       const changeDir = join(mainPaths.changes, "testChange");
       await mkdir(changeDir, { recursive: true });
-      const changeData = { id: "testChange", title: "Test", status: "draft", tasks: [] };
-      await writeFile(join(changeDir, "change.json"), JSON.stringify(changeData));
+      const changeData = {
+        id: "testChange",
+        title: "Test",
+        status: "draft",
+        tasks: [],
+      };
+      await writeFile(
+        join(changeDir, "change.json"),
+        JSON.stringify(changeData),
+      );
 
       // Worktree session reads the same change
-      const worktreeChangePath = join(worktreePaths.changes, "testChange/change.json");
+      const worktreeChangePath = join(
+        worktreePaths.changes,
+        "testChange/change.json",
+      );
       expect(existsSync(worktreeChangePath)).toBe(true);
       const content = JSON.parse(await readFile(worktreeChangePath, "utf-8"));
       expect(content.id).toBe("testChange");
@@ -113,7 +133,11 @@ describe("Worktree State Sharing", () => {
     test("wisdom file is shared between sessions", async () => {
       // Main session appends wisdom
       await mkdir(externalDir, { recursive: true });
-      const wisdomEntry = JSON.stringify({ id: "ws-001", type: "pattern", content: "test wisdom" });
+      const wisdomEntry = JSON.stringify({
+        id: "ws-001",
+        type: "pattern",
+        content: "test wisdom",
+      });
       await writeFile(mainPaths.wisdom, wisdomEntry + "\n");
 
       // Worktree session reads wisdom
@@ -124,7 +148,11 @@ describe("Worktree State Sharing", () => {
     test("agenda file is shared between sessions", async () => {
       // Main session writes agenda
       await mkdir(externalDir, { recursive: true });
-      const agendaEntry = JSON.stringify({ id: "ag-001", title: "Do something", status: "pending" });
+      const agendaEntry = JSON.stringify({
+        id: "ag-001",
+        title: "Do something",
+        status: "pending",
+      });
       await writeFile(mainPaths.agenda, agendaEntry + "\n");
 
       // Worktree session reads agenda
@@ -192,12 +220,19 @@ describe("Worktree State Sharing", () => {
       await mkdir(localChanges, { recursive: true });
       await writeFile(
         join(localChanges, "change.json"),
-        JSON.stringify({ id: "legacyChange", title: "Legacy", status: "draft" }),
+        JSON.stringify({
+          id: "legacyChange",
+          title: "Legacy",
+          status: "draft",
+        }),
       );
 
       const localWisdom = join(mainRepoDir, ".adv/wisdom.jsonl");
       await mkdir(join(mainRepoDir, ".adv"), { recursive: true });
-      await writeFile(localWisdom, '{"id":"ws-legacy","content":"old wisdom"}\n');
+      await writeFile(
+        localWisdom,
+        '{"id":"ws-legacy","content":"old wisdom"}\n',
+      );
 
       // Run migration from main repo to external dir
       const report = await migrateToExternalState(mainRepoDir, externalDir);
@@ -205,7 +240,10 @@ describe("Worktree State Sharing", () => {
       expect(report.migrated).toContain("wisdom.jsonl");
 
       // Worktree session can read the migrated change
-      const changePath = join(worktreePaths.changes, "legacyChange/change.json");
+      const changePath = join(
+        worktreePaths.changes,
+        "legacyChange/change.json",
+      );
       expect(existsSync(changePath)).toBe(true);
       const change = JSON.parse(await readFile(changePath, "utf-8"));
       expect(change.id).toBe("legacyChange");

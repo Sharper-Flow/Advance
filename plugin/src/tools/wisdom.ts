@@ -9,7 +9,11 @@
 import { z } from "zod";
 import type { Store } from "../storage/store";
 import { WisdomTypeSchema } from "../types";
-import { addProjectWisdom, compactProjectWisdom, listProjectWisdom } from "../storage/project-wisdom";
+import {
+  addProjectWisdom,
+  compactProjectWisdom,
+  listProjectWisdom,
+} from "../storage/project-wisdom";
 import { formatToolOutput } from "../utils/tool-output";
 
 // =============================================================================
@@ -124,7 +128,9 @@ export const wisdomTools = {
         }
 
         // Idempotency check: reject if already promoted
-        const existing = await listProjectWisdom(store.paths.root, { wisdomPath: store.paths.wisdom });
+        const existing = await listProjectWisdom(store.paths.root, {
+          wisdomPath: store.paths.wisdom,
+        });
         const isDuplicate = existing.some(
           (e) =>
             e.source_change === changeId &&
@@ -148,7 +154,9 @@ export const wisdomTools = {
 
         // Compact if over the 50-entry cap (best-effort — don't fail promotion)
         try {
-          await compactProjectWisdom(store.paths.root, { wisdomPath: store.paths.wisdom });
+          await compactProjectWisdom(store.paths.root, {
+            wisdomPath: store.paths.wisdom,
+          });
         } catch {
           // Compaction failure is non-fatal; promotion already succeeded
         }
@@ -161,9 +169,7 @@ export const wisdomTools = {
       } catch (error) {
         return formatToolOutput({
           error:
-            error instanceof Error
-              ? error.message
-              : "Failed to promote wisdom",
+            error instanceof Error ? error.message : "Failed to promote wisdom",
         });
       }
     },

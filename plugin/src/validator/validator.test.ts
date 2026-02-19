@@ -677,7 +677,13 @@ describe("Validator", () => {
         status: "draft",
         created_at: new Date().toISOString(),
         tasks: [
-          { id: "tk-conflict1", title: "Do work", status: "pending", priority: 0, created_at: new Date().toISOString() },
+          {
+            id: "tk-conflict1",
+            title: "Do work",
+            status: "pending",
+            priority: 0,
+            created_at: new Date().toISOString(),
+          },
         ],
         deltas: {
           "test-capability": [
@@ -701,7 +707,9 @@ describe("Validator", () => {
       const result = await validateChange(change, { specs });
 
       expect(
-        result.errors.some((e) => e.code === ValidationCodes.INTRA_DELTA_CONFLICT),
+        result.errors.some(
+          (e) => e.code === ValidationCodes.INTRA_DELTA_CONFLICT,
+        ),
       ).toBe(true);
     });
 
@@ -712,7 +720,13 @@ describe("Validator", () => {
         status: "draft",
         created_at: new Date().toISOString(),
         tasks: [
-          { id: "tk-conflict2", title: "Do work", status: "pending", priority: 0, created_at: new Date().toISOString() },
+          {
+            id: "tk-conflict2",
+            title: "Do work",
+            status: "pending",
+            priority: 0,
+            created_at: new Date().toISOString(),
+          },
         ],
         deltas: {
           "test-capability": [
@@ -736,7 +750,9 @@ describe("Validator", () => {
       const result = await validateChange(change, { specs });
 
       expect(
-        result.errors.some((e) => e.code === ValidationCodes.INTRA_DELTA_CONFLICT),
+        result.errors.some(
+          (e) => e.code === ValidationCodes.INTRA_DELTA_CONFLICT,
+        ),
       ).toBe(true);
     });
 
@@ -747,7 +763,13 @@ describe("Validator", () => {
         status: "draft",
         created_at: new Date().toISOString(),
         tasks: [
-          { id: "tk-conflict3", title: "Do work", status: "pending", priority: 0, created_at: new Date().toISOString() },
+          {
+            id: "tk-conflict3",
+            title: "Do work",
+            status: "pending",
+            priority: 0,
+            created_at: new Date().toISOString(),
+          },
         ],
         deltas: {
           "test-capability": [
@@ -766,7 +788,15 @@ describe("Validator", () => {
                 title: "Colliding Add",
                 body: "This ID collides with rename new_id",
                 priority: "must",
-                scenarios: [{ id: "rq-collide1.1", title: "S", given: ["x"], when: "y", then: ["z"] }],
+                scenarios: [
+                  {
+                    id: "rq-collide1.1",
+                    title: "S",
+                    given: ["x"],
+                    when: "y",
+                    then: ["z"],
+                  },
+                ],
               },
             } as Extract<Delta, { operation: "add" }>,
           ],
@@ -777,7 +807,9 @@ describe("Validator", () => {
       const result = await validateChange(change, { specs });
 
       expect(
-        result.errors.some((e) => e.code === ValidationCodes.INTRA_DELTA_CONFLICT),
+        result.errors.some(
+          (e) => e.code === ValidationCodes.INTRA_DELTA_CONFLICT,
+        ),
       ).toBe(true);
     });
 
@@ -788,7 +820,13 @@ describe("Validator", () => {
         status: "draft",
         created_at: new Date().toISOString(),
         tasks: [
-          { id: "tk-chain01", title: "Do work", status: "pending", priority: 0, created_at: new Date().toISOString() },
+          {
+            id: "tk-chain01",
+            title: "Do work",
+            status: "pending",
+            priority: 0,
+            created_at: new Date().toISOString(),
+          },
         ],
         deltas: {
           "test-capability": [
@@ -814,7 +852,9 @@ describe("Validator", () => {
 
       // Should NOT flag as intra-delta conflict — this is a valid chain
       expect(
-        result.errors.some((e) => e.code === ValidationCodes.INTRA_DELTA_CONFLICT),
+        result.errors.some(
+          (e) => e.code === ValidationCodes.INTRA_DELTA_CONFLICT,
+        ),
       ).toBe(false);
 
       // The modify targets rq-chainB which doesn't exist in specs yet
@@ -829,7 +869,13 @@ describe("Validator", () => {
         status: "draft",
         created_at: new Date().toISOString(),
         tasks: [
-          { id: "tk-noconflict", title: "Do work", status: "pending", priority: 0, created_at: new Date().toISOString() },
+          {
+            id: "tk-noconflict",
+            title: "Do work",
+            status: "pending",
+            priority: 0,
+            created_at: new Date().toISOString(),
+          },
         ],
         deltas: {
           "test-capability": [
@@ -853,7 +899,9 @@ describe("Validator", () => {
       const result = await validateChange(change, { specs });
 
       expect(
-        result.errors.some((e) => e.code === ValidationCodes.INTRA_DELTA_CONFLICT),
+        result.errors.some(
+          (e) => e.code === ValidationCodes.INTRA_DELTA_CONFLICT,
+        ),
       ).toBe(false);
     });
 
@@ -864,7 +912,13 @@ describe("Validator", () => {
         status: "draft",
         created_at: new Date().toISOString(),
         tasks: [
-          { id: "tk-notfound", title: "Do work", status: "pending", priority: 0, created_at: new Date().toISOString() },
+          {
+            id: "tk-notfound",
+            title: "Do work",
+            status: "pending",
+            priority: 0,
+            created_at: new Date().toISOString(),
+          },
         ],
         deltas: {
           "test-capability": [
@@ -883,7 +937,9 @@ describe("Validator", () => {
 
       expect(result.passed).toBe(false);
       expect(
-        result.errors.some((e) => e.code === ValidationCodes.RENAME_TARGET_NOT_FOUND),
+        result.errors.some(
+          (e) => e.code === ValidationCodes.RENAME_TARGET_NOT_FOUND,
+        ),
       ).toBe(true);
     });
   });
@@ -897,7 +953,13 @@ describe("Validator", () => {
         status: "draft",
         created_at: new Date().toISOString(),
         tasks: [
-          { id: "tk-rencol01", title: "Do work", status: "pending", priority: 0, created_at: new Date().toISOString() },
+          {
+            id: "tk-rencol01",
+            title: "Do work",
+            status: "pending",
+            priority: 0,
+            created_at: new Date().toISOString(),
+          },
         ],
         deltas: {
           "test-capability": [
@@ -918,7 +980,9 @@ describe("Validator", () => {
       expect(result.passed).toBe(false);
       expect(
         result.errors.some(
-          (e) => e.code === ValidationCodes.DUPLICATE_REQUIREMENT_ID && e.message.includes("rq-test0002"),
+          (e) =>
+            e.code === ValidationCodes.DUPLICATE_REQUIREMENT_ID &&
+            e.message.includes("rq-test0002"),
         ),
       ).toBe(true);
     });
@@ -931,7 +995,13 @@ describe("Validator", () => {
         status: "draft",
         created_at: new Date().toISOString(),
         tasks: [
-          { id: "tk-rr-col01", title: "Do work", status: "pending", priority: 0, created_at: new Date().toISOString() },
+          {
+            id: "tk-rr-col01",
+            title: "Do work",
+            status: "pending",
+            priority: 0,
+            created_at: new Date().toISOString(),
+          },
         ],
         deltas: {
           "test-capability": [
@@ -959,7 +1029,9 @@ describe("Validator", () => {
       expect(result.passed).toBe(false);
       expect(
         result.errors.some(
-          (e) => e.code === ValidationCodes.DUPLICATE_REQUIREMENT_ID && e.message.includes("rq-newname1"),
+          (e) =>
+            e.code === ValidationCodes.DUPLICATE_REQUIREMENT_ID &&
+            e.message.includes("rq-newname1"),
         ),
       ).toBe(true);
     });
@@ -971,7 +1043,13 @@ describe("Validator", () => {
         status: "draft",
         created_at: new Date().toISOString(),
         tasks: [
-          { id: "tk-rn-nc01", title: "Do work", status: "pending", priority: 0, created_at: new Date().toISOString() },
+          {
+            id: "tk-rn-nc01",
+            title: "Do work",
+            status: "pending",
+            priority: 0,
+            created_at: new Date().toISOString(),
+          },
         ],
         deltas: {
           "test-capability": [
@@ -992,7 +1070,9 @@ describe("Validator", () => {
       // Should NOT have duplicate ID error for the new_id
       expect(
         result.errors.some(
-          (e) => e.code === ValidationCodes.DUPLICATE_REQUIREMENT_ID && e.message.includes("rq-safeone1"),
+          (e) =>
+            e.code === ValidationCodes.DUPLICATE_REQUIREMENT_ID &&
+            e.message.includes("rq-safeone1"),
         ),
       ).toBe(false);
     });
@@ -1006,7 +1086,13 @@ describe("Validator", () => {
         status: "draft",
         created_at: new Date().toISOString(),
         tasks: [
-          { id: "tk-badid01", title: "Do work", status: "pending", priority: 0, created_at: new Date().toISOString() },
+          {
+            id: "tk-badid01",
+            title: "Do work",
+            status: "pending",
+            priority: 0,
+            created_at: new Date().toISOString(),
+          },
         ],
         deltas: {
           "test-capability": [
@@ -1027,7 +1113,9 @@ describe("Validator", () => {
       expect(result.passed).toBe(false);
       expect(
         result.errors.some(
-          (e) => e.code === ValidationCodes.INVALID_ID_FORMAT && e.message.includes("bad-format-id"),
+          (e) =>
+            e.code === ValidationCodes.INVALID_ID_FORMAT &&
+            e.message.includes("bad-format-id"),
         ),
       ).toBe(true);
     });
@@ -1039,7 +1127,13 @@ describe("Validator", () => {
         status: "draft",
         created_at: new Date().toISOString(),
         tasks: [
-          { id: "tk-goodid1", title: "Do work", status: "pending", priority: 0, created_at: new Date().toISOString() },
+          {
+            id: "tk-goodid1",
+            title: "Do work",
+            status: "pending",
+            priority: 0,
+            created_at: new Date().toISOString(),
+          },
         ],
         deltas: {
           "test-capability": [
@@ -1060,7 +1154,9 @@ describe("Validator", () => {
       // Should not have INVALID_ID_FORMAT for the new_id
       expect(
         result.errors.some(
-          (e) => e.code === ValidationCodes.INVALID_ID_FORMAT && e.message.includes("rq-validnew"),
+          (e) =>
+            e.code === ValidationCodes.INVALID_ID_FORMAT &&
+            e.message.includes("rq-validnew"),
         ),
       ).toBe(false);
     });

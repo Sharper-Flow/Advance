@@ -180,7 +180,9 @@ describe("Delta Application", () => {
       expect(result.newId).toBe("rq-renamed1");
 
       // Old ID no longer exists
-      expect(spec.requirements.find((r) => r.id === "rq-test0001")).toBeUndefined();
+      expect(
+        spec.requirements.find((r) => r.id === "rq-test0001"),
+      ).toBeUndefined();
       // New ID exists with correct title
       const renamed = spec.requirements.find((r) => r.id === "rq-renamed1");
       expect(renamed?.title).toBe("Fully Renamed");

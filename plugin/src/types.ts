@@ -425,7 +425,11 @@ export type Gates = z.infer<typeof GatesSchema>;
  * Legacy gates count as satisfied for sequence enforcement.
  */
 export const isGateSatisfied = (gate: GateCompletion): boolean => {
-  return gate.status === "done" || gate.status === "legacy" || gate.status === "skipped";
+  return (
+    gate.status === "done" ||
+    gate.status === "legacy" ||
+    gate.status === "skipped"
+  );
 };
 
 /**

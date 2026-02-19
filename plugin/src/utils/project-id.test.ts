@@ -62,8 +62,6 @@ describe("getExternalRoot", () => {
     delete process.env.XDG_DATA_HOME;
     const root = getExternalRoot("");
     // Should still return a path (caller is responsible for null-checking projectId)
-    expect(root).toBe(
-      join(homedir(), ".local/share/opencode/plugins/advance"),
-    );
+    expect(root).toBe(join(homedir(), ".local/share/opencode/plugins/advance"));
   });
 });

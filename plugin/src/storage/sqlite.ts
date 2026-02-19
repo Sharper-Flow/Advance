@@ -325,9 +325,11 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
   // the table if the old constraint is present. This is safe because
   // SQLite is a derived cache — data will be re-synced from JSON.
   try {
-    const tableInfo = db.query(
-      "SELECT sql FROM sqlite_master WHERE type='table' AND name='deltas'",
-    ).get() as { sql: string } | null;
+    const tableInfo = db
+      .query(
+        "SELECT sql FROM sqlite_master WHERE type='table' AND name='deltas'",
+      )
+      .get() as { sql: string } | null;
     if (tableInfo?.sql && !tableInfo.sql.includes("'rename'")) {
       db.exec("DROP TABLE IF EXISTS deltas");
       db.exec(`

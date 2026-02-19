@@ -279,7 +279,13 @@ describe("Wisdom Tools", () => {
 
     test("promotes entries of any type", async () => {
       // All types should be promotable (the tool doesn't restrict)
-      for (const type of ["pattern", "success", "failure", "gotcha", "convention"] as const) {
+      for (const type of [
+        "pattern",
+        "success",
+        "failure",
+        "gotcha",
+        "convention",
+      ] as const) {
         await store.wisdom.add("addFeature", type, `${type} learning`);
       }
       const entries = await store.wisdom.list("addFeature");
@@ -344,7 +350,11 @@ describe("Wisdom Tools", () => {
       expect(projectWisdom).toHaveLength(50);
 
       // Add a change-level entry and promote it (should go to 51, then compact to 50)
-      await store.wisdom.add("addFeature", "convention", "New promoted learning");
+      await store.wisdom.add(
+        "addFeature",
+        "convention",
+        "New promoted learning",
+      );
       const entries = await store.wisdom.list("addFeature");
       const wisdomId = entries[0].id;
 
@@ -358,7 +368,9 @@ describe("Wisdom Tools", () => {
       expect(projectWisdom).toHaveLength(50);
 
       // The promoted convention entry should be retained (conventions are prioritized)
-      expect(projectWisdom.some((e) => e.content === "New promoted learning")).toBe(true);
+      expect(
+        projectWisdom.some((e) => e.content === "New promoted learning"),
+      ).toBe(true);
     });
   });
 });

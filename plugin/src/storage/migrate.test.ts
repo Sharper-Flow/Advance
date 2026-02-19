@@ -29,10 +29,7 @@ describe("migrateToExternalState", () => {
     // Set up local .adv/changes with a change
     const localChanges = join(repoDir, ".adv/changes/myChange");
     await mkdir(localChanges, { recursive: true });
-    await writeFile(
-      join(localChanges, "change.json"),
-      '{"id": "myChange"}',
-    );
+    await writeFile(join(localChanges, "change.json"), '{"id": "myChange"}');
 
     await migrateToExternalState(repoDir, extDir);
 
@@ -46,10 +43,7 @@ describe("migrateToExternalState", () => {
   test("copies archive/ directory from repo to external", async () => {
     const localArchive = join(repoDir, ".adv/archive/oldChange");
     await mkdir(localArchive, { recursive: true });
-    await writeFile(
-      join(localArchive, "change.json"),
-      '{"id": "oldChange"}',
-    );
+    await writeFile(join(localArchive, "change.json"), '{"id": "oldChange"}');
 
     await migrateToExternalState(repoDir, extDir);
 
@@ -98,17 +92,11 @@ describe("migrateToExternalState", () => {
     // Set up both local and external with different content
     const localChanges = join(repoDir, ".adv/changes/localChange");
     await mkdir(localChanges, { recursive: true });
-    await writeFile(
-      join(localChanges, "change.json"),
-      '{"id": "localChange"}',
-    );
+    await writeFile(join(localChanges, "change.json"), '{"id": "localChange"}');
 
     const extChanges = join(extDir, "changes/extChange");
     await mkdir(extChanges, { recursive: true });
-    await writeFile(
-      join(extChanges, "change.json"),
-      '{"id": "extChange"}',
-    );
+    await writeFile(join(extChanges, "change.json"), '{"id": "extChange"}');
 
     await migrateToExternalState(repoDir, extDir);
 
@@ -132,10 +120,7 @@ describe("migrateToExternalState", () => {
   test("leaves local files in place after migration (safety net)", async () => {
     const localChanges = join(repoDir, ".adv/changes/myChange");
     await mkdir(localChanges, { recursive: true });
-    await writeFile(
-      join(localChanges, "change.json"),
-      '{"id": "myChange"}',
-    );
+    await writeFile(join(localChanges, "change.json"), '{"id": "myChange"}');
 
     await migrateToExternalState(repoDir, extDir);
 
@@ -147,10 +132,7 @@ describe("migrateToExternalState", () => {
     const localAdv = join(repoDir, ".adv");
     const localChanges = join(localAdv, "changes/myChange");
     await mkdir(localChanges, { recursive: true });
-    await writeFile(
-      join(localChanges, "change.json"),
-      '{"id": "myChange"}',
-    );
+    await writeFile(join(localChanges, "change.json"), '{"id": "myChange"}');
     await writeFile(join(localAdv, "wisdom.jsonl"), "test\n");
 
     const report = await migrateToExternalState(repoDir, extDir);

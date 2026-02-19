@@ -6,14 +6,7 @@
  */
 
 import { join, basename } from "path";
-import {
-  readdir,
-  mkdir,
-  readFile,
-  writeFile,
-  access,
-  stat,
-} from "fs/promises";
+import { readdir, mkdir, readFile, access, stat } from "fs/promises";
 import { SpecSchema, ChangeSchema, ProjectConfigSchema } from "../types";
 import type { Spec, Change, ProjectConfig } from "../types";
 import { ZodError } from "zod";
@@ -53,8 +46,6 @@ function formatZodError(
     `Hint: Ensure the ${context.type}.json matches the schema.`
   );
 }
-
-
 
 // =============================================================================
 // File Paths

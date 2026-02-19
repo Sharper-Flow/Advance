@@ -106,8 +106,7 @@ describe("safe-execute", () => {
     });
 
     it("returns compact JSON for small outputs", async () => {
-      const fn = async () =>
-        JSON.stringify({ a: 1, b: 2 }, null, 2); // pretty input
+      const fn = async () => JSON.stringify({ a: 1, b: 2 }, null, 2); // pretty input
       const wrapped = safeExecute(fn, "test_tool");
       const result = await wrapped({}, {} as any);
       // applyOutputBudget parses and re-serializes via formatToolOutput (compact)
@@ -152,7 +151,7 @@ describe("safe-execute", () => {
     });
 
     it("passes through non-JSON output (e.g. banner-wrapped) with truncation", async () => {
-      const banner = "╔══════╗\n║ test ║\n╚══════╝\n\n{\"ok\":true}";
+      const banner = '╔══════╗\n║ test ║\n╚══════╝\n\n{"ok":true}';
       const fn = async () => banner;
       const wrapped = safeExecute(fn, "test_tool");
       const result = await wrapped({}, {} as any);

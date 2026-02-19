@@ -34,7 +34,7 @@ export async function atomicWriteFile(
 
   try {
     await mkdir(dirname(filePath), { recursive: true });
-    
+
     // Write data to temp file
     const handle = await open(tempPath, "w");
     try {

@@ -22,9 +22,10 @@ const DEFAULT_MAX_CHARS = 21000;
 const OUTPUT_MODE: "compact" | "pretty" =
   ENV_OUTPUT_MODE === "pretty" ? "pretty" : "compact";
 
-const MAX_CHARS = !isNaN(ENV_MAX_CHARS) && ENV_MAX_CHARS > 0
-  ? ENV_MAX_CHARS
-  : DEFAULT_MAX_CHARS;
+const MAX_CHARS =
+  !isNaN(ENV_MAX_CHARS) && ENV_MAX_CHARS > 0
+    ? ENV_MAX_CHARS
+    : DEFAULT_MAX_CHARS;
 
 // =============================================================================
 // Types
@@ -79,7 +80,7 @@ export function formatToolOutput(
   data: unknown,
   options?: ToolOutputOptions,
 ): string {
-  const indent = (options?.pretty || OUTPUT_MODE === "pretty") ? 2 : undefined;
+  const indent = options?.pretty || OUTPUT_MODE === "pretty" ? 2 : undefined;
   const maxChars = options?.maxChars ?? MAX_CHARS;
 
   const serialized = JSON.stringify(data, null, indent);

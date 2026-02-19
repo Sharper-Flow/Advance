@@ -26,9 +26,7 @@ import { homedir } from "os";
  * This ID is identical across all worktrees of the same repo because
  * they share the same commit history.
  */
-export async function getProjectId(
-  directory: string,
-): Promise<string | null> {
+export async function getProjectId(directory: string): Promise<string | null> {
   try {
     const sha = await execGit(
       ["rev-list", "--max-parents=0", "HEAD"],
@@ -57,8 +55,7 @@ export async function getProjectId(
  * If XDG_DATA_HOME is not set, defaults to ~/.local/share.
  */
 export function getExternalRoot(projectId: string): string {
-  const dataHome =
-    process.env.XDG_DATA_HOME || join(homedir(), ".local/share");
+  const dataHome = process.env.XDG_DATA_HOME || join(homedir(), ".local/share");
   return join(dataHome, "opencode/plugins/advance", projectId);
 }
 

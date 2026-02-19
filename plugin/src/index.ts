@@ -107,7 +107,9 @@ const TEST_FAILURE_PATTERNS =
 
 export const AdvancePlugin: Plugin = async ({ directory, worktree }) => {
   const isWorktree = !!worktree && worktree !== directory;
-  debugLog(`Plugin initializing: directory=${directory}, worktree=${worktree}, isWorktree=${isWorktree}`);
+  debugLog(
+    `Plugin initializing: directory=${directory}, worktree=${worktree}, isWorktree=${isWorktree}`,
+  );
 
   // Derive project identity and resolve external state directory
   const projectId = await getProjectId(directory);
@@ -115,13 +117,17 @@ export const AdvancePlugin: Plugin = async ({ directory, worktree }) => {
 
   if (projectId) {
     externalRoot = getExternalRoot(projectId);
-    debugLog(`External state: projectId=${projectId}, externalRoot=${externalRoot}`);
+    debugLog(
+      `External state: projectId=${projectId}, externalRoot=${externalRoot}`,
+    );
 
     // One-time migration: copy any existing .adv/ mutable state to external dir
     try {
       const report = await migrateToExternalState(directory, externalRoot);
       if (report.migrated.length > 0) {
-        debugLog(`Migration completed: migrated=${report.migrated.join(",")}, skipped=${report.skipped.join(",")}`);
+        debugLog(
+          `Migration completed: migrated=${report.migrated.join(",")}, skipped=${report.skipped.join(",")}`,
+        );
       }
     } catch (e) {
       debugLog(`Migration failed (non-fatal): ${(e as Error).message}`);
@@ -165,7 +171,9 @@ export const AdvancePlugin: Plugin = async ({ directory, worktree }) => {
           objective: handoff.objective,
         };
         setActiveChange(handoff.changeId);
-        debugLog(`Hydrated from handoff: changeId=${handoff.changeId}, objective=${handoff.objective}`);
+        debugLog(
+          `Hydrated from handoff: changeId=${handoff.changeId}, objective=${handoff.objective}`,
+        );
       }
     } catch (e) {
       debugLog(`Handoff hydration failed (non-fatal): ${(e as Error).message}`);
@@ -565,13 +573,10 @@ export const AdvancePlugin: Plugin = async ({ directory, worktree }) => {
             .describe("Change ID containing the wisdom entry"),
           wisdomId: tool.schema
             .string()
-            .describe(
-              "Wisdom entry ID (ws-xxx) to promote to project level",
-            ),
+            .describe("Wisdom entry ID (ws-xxx) to promote to project level"),
         },
         execute: safeExecute(
-          async (args) =>
-            wisdomTools.adv_wisdom_promote.execute(args, store),
+          async (args) => wisdomTools.adv_wisdom_promote.execute(args, store),
           "adv_wisdom_promote",
         ),
       }),
@@ -604,7 +609,12 @@ export const AdvancePlugin: Plugin = async ({ directory, worktree }) => {
             .describe("Include done/cancelled items"),
         },
         execute: safeExecuteSimple(
-          async (args) => agendaTools.adv_agenda_list.execute(args, directory, store.paths.agenda),
+          async (args) =>
+            agendaTools.adv_agenda_list.execute(
+              args,
+              directory,
+              store.paths.agenda,
+            ),
           "adv_agenda_list",
         ),
       }),
@@ -628,7 +638,12 @@ export const AdvancePlugin: Plugin = async ({ directory, worktree }) => {
             .describe("ID of blocking item"),
         },
         execute: safeExecuteSimple(
-          async (args) => agendaTools.adv_agenda_add.execute(args, directory, store.paths.agenda),
+          async (args) =>
+            agendaTools.adv_agenda_add.execute(
+              args,
+              directory,
+              store.paths.agenda,
+            ),
           "adv_agenda_add",
         ),
       }),
@@ -639,7 +654,12 @@ export const AdvancePlugin: Plugin = async ({ directory, worktree }) => {
           itemId: tool.schema.string().describe("Agenda item ID"),
         },
         execute: safeExecuteSimple(
-          async (args) => agendaTools.adv_agenda_start.execute(args, directory, store.paths.agenda),
+          async (args) =>
+            agendaTools.adv_agenda_start.execute(
+              args,
+              directory,
+              store.paths.agenda,
+            ),
           "adv_agenda_start",
         ),
       }),
@@ -652,7 +672,11 @@ export const AdvancePlugin: Plugin = async ({ directory, worktree }) => {
         },
         execute: safeExecuteSimple(
           async (args) =>
-            agendaTools.adv_agenda_complete.execute(args, directory, store.paths.agenda),
+            agendaTools.adv_agenda_complete.execute(
+              args,
+              directory,
+              store.paths.agenda,
+            ),
           "adv_agenda_complete",
         ),
       }),
@@ -668,7 +692,11 @@ export const AdvancePlugin: Plugin = async ({ directory, worktree }) => {
         },
         execute: safeExecuteSimple(
           async (args) =>
-            agendaTools.adv_agenda_cancel.execute(args, directory, store.paths.agenda),
+            agendaTools.adv_agenda_cancel.execute(
+              args,
+              directory,
+              store.paths.agenda,
+            ),
           "adv_agenda_cancel",
         ),
       }),
@@ -683,7 +711,11 @@ export const AdvancePlugin: Plugin = async ({ directory, worktree }) => {
         },
         execute: safeExecuteSimple(
           async (args) =>
-            agendaTools.adv_agenda_prioritize.execute(args, directory, store.paths.agenda),
+            agendaTools.adv_agenda_prioritize.execute(
+              args,
+              directory,
+              store.paths.agenda,
+            ),
           "adv_agenda_prioritize",
         ),
       }),
@@ -692,7 +724,12 @@ export const AdvancePlugin: Plugin = async ({ directory, worktree }) => {
         description: agendaTools.adv_agenda_next.description,
         args: {},
         execute: safeExecuteSimple(
-          async (args) => agendaTools.adv_agenda_next.execute(args, directory, store.paths.agenda),
+          async (args) =>
+            agendaTools.adv_agenda_next.execute(
+              args,
+              directory,
+              store.paths.agenda,
+            ),
           "adv_agenda_next",
         ),
       }),
@@ -701,7 +738,12 @@ export const AdvancePlugin: Plugin = async ({ directory, worktree }) => {
         description: agendaTools.adv_agenda_stats.description,
         args: {},
         execute: safeExecuteSimple(
-          async (args) => agendaTools.adv_agenda_stats.execute(args, directory, store.paths.agenda),
+          async (args) =>
+            agendaTools.adv_agenda_stats.execute(
+              args,
+              directory,
+              store.paths.agenda,
+            ),
           "adv_agenda_stats",
         ),
       }),
@@ -718,7 +760,11 @@ export const AdvancePlugin: Plugin = async ({ directory, worktree }) => {
         },
         execute: safeExecuteSimple(
           async (args) =>
-            agendaTools.adv_agenda_evidence.execute(args, directory, store.paths.agenda),
+            agendaTools.adv_agenda_evidence.execute(
+              args,
+              directory,
+              store.paths.agenda,
+            ),
           "adv_agenda_evidence",
         ),
       }),
@@ -728,7 +774,11 @@ export const AdvancePlugin: Plugin = async ({ directory, worktree }) => {
         args: {},
         execute: safeExecuteSimple(
           async (args) =>
-            agendaTools.adv_agenda_compact.execute(args, directory, store.paths.agenda),
+            agendaTools.adv_agenda_compact.execute(
+              args,
+              directory,
+              store.paths.agenda,
+            ),
           "adv_agenda_compact",
         ),
       }),
@@ -956,9 +1006,9 @@ export const AdvancePlugin: Plugin = async ({ directory, worktree }) => {
         if (state.isWorktree && state.activeChange.id) {
           output.system.push(
             `[ADV:WORKTREE_SESSION] You are working in a git worktree. ` +
-            `Active change: ${state.activeChange.id}. ` +
-            `All ADV state (changes, tasks, wisdom) is shared via external storage. ` +
-            `Use adv_change_show and adv_task_ready to pick up where the parent session left off.`,
+              `Active change: ${state.activeChange.id}. ` +
+              `All ADV state (changes, tasks, wisdom) is shared via external storage. ` +
+              `Use adv_change_show and adv_task_ready to pick up where the parent session left off.`,
           );
         }
 
@@ -987,9 +1037,14 @@ export const AdvancePlugin: Plugin = async ({ directory, worktree }) => {
         // 1b. Project-Level Wisdom Injection (cross-change durable learnings)
         const MAX_PROJECT_WISDOM = 10;
         try {
-          const projectWisdom = await listProjectWisdom(store.paths.root, { wisdomPath: store.paths.wisdom });
+          const projectWisdom = await listProjectWisdom(store.paths.root, {
+            wisdomPath: store.paths.wisdom,
+          });
           if (projectWisdom.length > 0) {
-            const recentProjectWisdom = projectWisdom.slice(0, MAX_PROJECT_WISDOM);
+            const recentProjectWisdom = projectWisdom.slice(
+              0,
+              MAX_PROJECT_WISDOM,
+            );
             const projectWisdomList = recentProjectWisdom
               .map((w) => `- [${w.type.toUpperCase()}] ${w.content}`)
               .join("\n");
