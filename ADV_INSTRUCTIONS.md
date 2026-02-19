@@ -171,20 +171,29 @@ Mutable state lives at `$XDG_DATA_HOME/opencode/plugins/advance/{project-id}/`:
 ├── db/spec.db        # SQLite FTS cache
 ├── wisdom.jsonl      # Project-level learnings
 ├── agenda.jsonl      # Work queue
-└── handoff.json      # Session handoff (temporary)
+└── handoff.json      # Session handoff (fallback, multi-session only)
 ```
 
 **project-id** = root commit SHA (`git rev-list --max-parents=0 HEAD`), stable across all worktrees.
 
-### Session Handoff Protocol
+### Inline Worktree Protocol (Default)
 
-When a worktree is created during an active ADV change:
+When a worktree is created during an active ADV change, continue in the same agent session:
+
+1. **Create worktree** via `worktree_create`
+2. **Capture worktree path** from tool output
+3. **Switch execution context** by setting `workdir` to the worktree path for subsequent tool calls
+4. **Continue implementation inline** in the same conversation/session
+
+No session handoff is required for the default flow.
+
+### Session Handoff Protocol (Fallback)
+
+Use handoff only when explicitly using multi-session workflows (for example, a separate OpenCode session):
 
 1. **Parent session** writes `handoff.json` with `{changeId, currentTaskId, gateStatus, objective}`
-2. **New session** reads and clears `handoff.json` on startup, hydrating `PluginState.activeChange`
+2. **Child session** reads and clears `handoff.json` on startup, hydrating `PluginState.activeChange`
 3. **system.transform** injects `[ADV:WORKTREE_SESSION]` marker with full change context
-
-This means the new session starts with change context loaded — no manual re-loading needed.
 
 ### When Worktrees Are Used
 
@@ -199,7 +208,36 @@ Both commands follow a deterministic 4-step sequence:
 1. **Assess risk** — count affected files, evaluate risk signals
 2. **Check tool availability** — verify `worktree_create` is available, skip with `[ADV:INFO]` if not
 3. **Ask user** — present choice via `question` tool
-4. **Write handoff & create** — persist state, create worktree, stop parent session
+4. **Create and switch inline** — create worktree, then continue in the same session with `workdir` set to the new path
+
+### Worktree Cleanup Protocol
+
+**ADV archive != git merge.** Archiving a change updates specs and moves ADV state to the archive directory, but it does NOT merge the worktree branch into the default branch. You must merge separately.
+
+After `/adv-archive` completes and signoff gate passes:
+
+1. **Verify clean** — `git status` in the worktree shows no uncommitted changes
+2. **Merge to default branch** — from the main working directory (not the worktree):
+   ```bash
+   git checkout trunk      # or main — use the repo's default branch
+   git merge --no-edit change/{change-id}
+   ```
+   Or push and open a PR:
+   ```bash
+   git push -u origin change/{change-id}
+   gh pr create --title "Archive {change-id}" --body "Merges completed change."
+   ```
+3. **Verify merge** — confirm no commits remain ahead:
+   ```bash
+   git log --oneline trunk..change/{change-id}
+   # Must return EMPTY
+   ```
+4. **Delete worktree** — only after merge is confirmed:
+   ```bash
+   worktree_delete reason: "Change {change-id} merged to default branch"
+   ```
+
+**Never delete a worktree with unmerged commits.** The worktree protects work that hasn't reached the default branch yet.
 
 ### Graceful Degradation
 

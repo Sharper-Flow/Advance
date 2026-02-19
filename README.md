@@ -12,7 +12,7 @@
   <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-5.0+-3178c6?logo=typescript&logoColor=white" alt="TypeScript"></a>
 </p>
 
-ADV (Advance) is an OpenCode plugin that solves the **context loss problem** for AI coding agents. When your agent switches tasks, starts a new session, or opens a worktree — ADV ensures the context survives.
+ADV (Advance) is an OpenCode plugin that solves the **context loss problem** for AI coding agents. When your agent switches tasks, starts a new session, or creates a worktree inline — ADV ensures the context survives.
 
 ## The Problem ADV Solves
 
@@ -29,7 +29,7 @@ AI agents lose context constantly:
 | Feature | What It Does |
 |---------|--------------|
 | **Accumulated Wisdom** | Learnings (patterns, gotchas, conventions) persist across changes and sessions |
-| **Worktree Handoff** | Create worktrees mid-change; new session auto-hydrates full context |
+| **Inline Worktree Flow** | Create worktrees mid-change and continue in the same session via `workdir` |
 | **External State** | All worktrees share the same changes, archive, wisdom, and agenda |
 | **Status Markers** | `[ADV:ROCKET]`, `[ADV:TDD_RED]`, etc. — progress visible at glance |
 | **Task Reports** | Structured handoff format for context switches and compactions |
@@ -325,7 +325,7 @@ project/
     ├── db/spec.db        # SQLite FTS cache
     ├── wisdom.jsonl      # Project-level learnings
     ├── agenda.jsonl      # Work queue
-    └── handoff.json      # Session handoff (temporary)
+    └── handoff.json      # Session handoff (fallback, multi-session only)
 ```
 
 **project-id** = root commit SHA, stable across all worktrees of the same repo.
@@ -335,10 +335,13 @@ project/
 ADV automatically detects worktree contexts and:
 
 1. **Shares mutable state** — Changes, wisdom, and agenda available in all worktrees
-2. **Handoff protocol** — When creating a worktree mid-change, new session auto-hydrates context
-3. **Graceful degradation** — Works identically without worktree tools installed
+2. **Inline protocol (default)** — Create worktree, switch `workdir`, continue in same session
+3. **Handoff protocol (fallback)** — Use `handoff.json` only for explicit multi-session workflows
+4. **Graceful degradation** — Works identically without worktree tools installed
 
 Phase 0 of `/adv-apply` and `/adv-ralph` assesses risk and suggests worktree isolation when appropriate.
+
+> **Important:** ADV archive != git merge. After `/adv-archive`, you must still merge the worktree branch to your default branch (`main`/`trunk`) and verify the merge before deleting the worktree. See [ADV_INSTRUCTIONS.md](ADV_INSTRUCTIONS.md#worktree-cleanup-protocol) for the full cleanup protocol.
 
 ## Architecture
 

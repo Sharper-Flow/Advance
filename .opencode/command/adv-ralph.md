@@ -111,37 +111,34 @@ Use the `question` tool. Note: ralph **recommends worktree by default** for auto
 ```json
 {
   "questions": [{
-    "header": "Worktree Isolation",
-    "question": "This change affects {N} files and involves {reason}. For autonomous implementation (ralph), I strongly recommend a worktree to contain blast radius. Branch: change/{change-id}",
-    "options": [
-      { "label": "Create worktree (Recommended)", "description": "Isolate autonomous work in a new tmux window with full ADV context" },
+      "header": "Worktree Isolation",
+      "question": "This change affects {N} files and involves {reason}. For autonomous implementation (ralph), I strongly recommend a worktree to contain blast radius. Branch: change/{change-id}",
+      "options": [
+      { "label": "Create worktree (Recommended)", "description": "Isolate autonomous work and continue inline in this session" },
       { "label": "Work in place", "description": "Implement directly in the current branch (higher risk for autonomous work)" }
-    ]
+      ]
   }]
 }
 ```
 
 If **declined**: skip to Phase 1.
 
-### Step 4: Write Handoff & Create Worktree
+### Step 4: Create and Switch Inline
 
 If **approved**, execute this exact sequence:
 
-1. **Write handoff state** — the plugin automatically persists `{changeId, currentTaskId, gateStatus, objective}` to the external state directory. The new session will hydrate from this on startup.
-
-2. **Create worktree**:
+1. **Create worktree**:
    ```
    worktree_create branch: "change/{change-id}"
    ```
 
-3. **Stop this session** — emit:
-   ```
-   [ADV:EARTH] Worktree created for change {change-id}. Autonomous implementation continues in the new tmux window.
-   The new session will automatically hydrate change context via [ADV:WORKTREE_SESSION].
-   This session's work on this change is complete.
-   ```
+2. **Capture worktree path** from tool output.
 
-**CRITICAL**: After creating the worktree, do NOT continue implementation in this session. The new session inherits full ADV context (change, tasks, wisdom, gates) via shared external storage.
+3. **Switch to inline worktree execution** by setting `workdir` to the returned path for all subsequent tool calls.
+
+4. **Continue autonomous implementation in this same session**. Do not stop after worktree creation.
+
+5. **Optional fallback**: If you are explicitly using multi-session workflow, you may use handoff and continue in a separate session.
 
 ---
 

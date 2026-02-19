@@ -278,10 +278,29 @@ NEXT STEPS:
    git add .adv/specs/ docs/specs/ .adv/archive/
    git commit -m "chore: archive {change-id}"
 
-2. Optional validation:
+2. Merge worktree branch (if using worktree):
+   # Switch to main working directory (not the worktree)
+   git checkout trunk   # or main — use the repo's default branch
+   git merge --no-edit change/{change-id}
+
+   # Or push and open a PR:
+   git push -u origin change/{change-id}
+   gh pr create --title "Archive {change-id}" --body "Merges completed change."
+
+3. Verify merge (required before worktree cleanup):
+   git log --oneline trunk..change/{change-id}
+   # Must return EMPTY — all commits reachable from default branch
+
+4. Clean up worktree (only after merge verified):
+   worktree_delete reason: "Change {change-id} merged to default branch"
+
+   ⚠️  Do NOT delete the worktree until the branch is merged.
+       The worktree protects unmerged work from being lost.
+
+5. Optional validation:
    /adv-validate --all
 
-3. Optional hardening:
+6. Optional hardening:
    /adv-harden <affected-files>
 ```
 
