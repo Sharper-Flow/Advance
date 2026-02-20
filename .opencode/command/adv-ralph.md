@@ -18,12 +18,17 @@ Implement an ADV change with **autonomous retry enabled**. This extends `/adv-ap
 - ❌ Suggest "manual completion" by the user
 - ❌ Propose partial implementation as acceptable
 - ❌ Ask the user if they want to skip a difficult task
+- ❌ Cancel tasks because they target a different repository
+- ❌ Cancel tasks via `adv_task_update` (use `adv_task_cancel` with user approval)
 
 **The ONLY acceptable exits from a task are:**
 
 1. ✅ **Task completed** - Implementation verified, tests pass
 2. ✅ **Retry budget exhausted** - 3 genuine fix attempts failed with documented diagnosis
 3. ✅ **Environmental blocker** - Missing external dependency (API key, service down, etc.)
+
+**Cross-repo tasks MUST be executed in the target repo.** "Different repo" or "out of scope" is
+NOT a valid cancellation reason. Switch `workdir` to the target path and execute there.
 
 **If you catch yourself wanting to skip or defer:** STOP. This is the autonomous retry protocol. Your job is to solve the problem, not avoid it. Apply the retry protocol.
 
@@ -139,6 +144,82 @@ If **approved**, execute this exact sequence:
 4. **Continue autonomous implementation in this same session**. Do not stop after worktree creation.
 
 5. **Optional fallback**: If you are explicitly using multi-session workflow, you may use handoff and continue in a separate session.
+
+---
+
+## Cross-Repo Execution Protocol
+
+Tasks may target repositories other than the current one. This is common in full-stack features
+where frontend changes require corresponding backend, database, or infrastructure changes.
+
+### Step 1: Detect Cross-Repo Tasks
+
+When loading tasks from `adv_task_list`, check each task for:
+- `target_repo` or `target_path` fields set in task metadata
+- Task title containing path hints (e.g., `~/dev/pokeedge`, `backend/`, `api/`, `db/`, `migrations/`)
+- Proposal.md mentioning changes to external repositories
+
+### Step 2: Resolve Target Repository
+
+For tasks with `target_repo` set:
+1. Load project config to get `related_repos` mapping
+2. Resolve `target_repo` ID to an absolute `path`
+3. If no `related_repos` config exists, use `target_path` directly
+
+For tasks with path hints in title but no explicit metadata:
+1. Use the `question` tool to confirm the target directory with the user
+2. Record the resolved path for subsequent tasks
+
+### Step 3: Execute in Target Repo
+
+For each cross-repo task:
+
+1. **Switch workdir**: Set `workdir` to the resolved target repo path for all tool calls related to this task
+2. **Execute normally**: Run the same TDD workflow (red/green) in the target repo
+3. **Return to source**: After completing the task, switch `workdir` back to the source repo
+
+```
+[ADV:ROCKET]
+Starting cross-repo task: {task.title}
+Target: {target_path} (repo: {target_repo})
+Switching workdir to {target_path}...
+```
+
+### Prohibited Cancellation Reasons
+
+The following are NOT valid reasons to cancel a task:
+
+| Prohibited Reason | Why It's Invalid | Correct Action |
+|-------------------|------------------|----------------|
+| "Out of scope for this repo" | Cross-repo tasks are in-scope by design | Switch workdir and execute |
+| "Different repository" | The task explicitly targets another repo | Switch workdir and execute |
+| "Cannot modify external code" | You have filesystem access | Use workdir parameter |
+| "Backend/API changes needed" | That's the task's purpose | Switch workdir and execute |
+| "Would need database changes" | That's the task's purpose | Switch workdir and execute |
+
+---
+
+## Cancellation Policy
+
+**All cancellations require explicit user approval.** The `adv_task_update` tool rejects `status: "cancelled"`.
+Use `adv_task_cancel` instead.
+
+### To Cancel Tasks
+
+1. **Collect reasons**: Prepare a per-task reason for each task you want to cancel
+2. **Present to user**: Use the `question` tool to show all proposed cancellations with per-task reasons
+3. **Execute cancellation** (only after user approval):
+
+```
+adv_task_cancel taskIds: [...] reasons: {...} approvedByUser: true approvalEvidence: "User selected 'Approve all' via question tool"
+```
+
+### Batch Approval
+
+Multiple cancellations can be approved in a single batch. The agent MUST:
+- Show every task with its individual reason
+- Wait for explicit user approval
+- Pass the approval evidence to `adv_task_cancel`
 
 ---
 
@@ -289,7 +370,7 @@ Then use the `question` tool:
 }
 ```
 
-**NOTE:** "Skip task" is NOT an option. The task must be completed, taken over by user, or the entire contract voided.
+**NOTE:** "Skip task" is NOT an option. The task must be completed, taken over by user, or the entire contract voided. The agent cannot cancel individual tasks without user approval via `adv_task_cancel`.
 
 ---
 
@@ -373,6 +454,9 @@ These behaviors violate the autonomous retry protocol:
 | "This is complex, let's defer" | Complexity is not a blocker | Break down and implement |
 | "Tests are flaky, marking done" | False completion | Fix flaky tests or document as environmental |
 | Marking "blocked" after 1 try | Premature surrender | Must attempt 3 distinct fixes |
+| "This targets another repo" | Cross-repo is in-scope | Switch workdir and execute |
+| "Out of scope for this codebase" | Change defines scope, not repo | Switch workdir and execute |
+| Direct `adv_task_update status: cancelled` | Bypasses approval | Use `adv_task_cancel` with user signoff |
 
 **If you recognize yourself doing any of these:** STOP. Re-read the retry protocol. Your purpose is autonomous completion.
 
@@ -472,13 +556,15 @@ SKIP/DEFER CHECK:
 
 ### Cancelled Task Approval
 
-**If ANY tasks are cancelled**, use the `question` tool to get explicit user approval:
+**If ANY tasks are cancelled**, verify each has structured cancellation metadata with `approved_by_user: true`.
+
+If any cancelled task lacks approval metadata (e.g., legacy data), use the `question` tool to get retroactive approval before proceeding:
 
 ```json
 {
   "questions": [{
-    "header": "Cancelled Tasks",
-    "question": "The following tasks were cancelled during implementation. Confirm you accept these cancellations before marking the implementation gate complete.",
+    "header": "Unapproved Cancellations",
+    "question": "The following cancelled tasks lack user approval records:\n\n{for each unapproved task}\n- {task.id}: {task.title}\n  Cancellation reason: {task.completed_by or 'unknown'}\n{end}\n\nApprove these cancellations?",
     "options": [
       { "label": "Approve cancellations (Recommended)", "description": "Accept that these tasks are legitimately cancelled" },
       { "label": "Review each task", "description": "I need to see the rationale for each cancellation" },

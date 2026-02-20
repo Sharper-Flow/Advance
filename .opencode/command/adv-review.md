@@ -67,6 +67,66 @@ Run /adv-apply {change-id} to complete implementation and mark the gate.
 ```
 Stop execution.
 
+### Cancellation & Cross-Repo Audit
+
+Before proceeding to code review, audit all cancelled and cross-repo tasks:
+
+**Step 1: Check for unapproved cancellations**
+
+From `adv_task_list`, find all tasks with `status: "cancelled"`.
+For each, verify `task.cancellation.approved_by_user === true`.
+
+**If ANY cancelled task lacks approval metadata:**
+
+```
+============================================================
+        REVIEW BLOCKED - UNAPPROVED CANCELLATIONS
+============================================================
+
+The following cancelled tasks lack user approval records:
+
+{for each unapproved task}
+- {task.id}: {task.title}
+  Status: cancelled (NO APPROVAL RECORD)
+{end}
+
+REQUIRED ACTION:
+Re-open these tasks and complete them, or obtain user approval
+via adv_task_cancel before re-running /adv-review.
+
+============================================================
+```
+Stop execution.
+
+**Step 2: Check cross-repo task completion**
+
+For tasks with `target_repo` or `target_path` set:
+1. Verify the task status is `done` (not just `in_progress` or `pending`)
+2. If a cross-repo task is cancelled, verify it has approval metadata (covered by Step 1)
+
+**If ANY cross-repo task is incomplete (not done or approved-cancelled):**
+
+```
+============================================================
+        REVIEW BLOCKED - INCOMPLETE CROSS-REPO TASKS
+============================================================
+
+The following cross-repo tasks are not completed:
+
+{for each incomplete cross-repo task}
+- {task.id}: {task.title}
+  Target: {target_repo} ({target_path})
+  Status: {status}
+{end}
+
+REQUIRED ACTION:
+Complete these tasks in their target repositories before review.
+Use workdir to switch to the target repo and execute.
+
+============================================================
+```
+Stop execution.
+
 ### Extract Review Context
 
 From change data, extract:
@@ -250,6 +310,30 @@ Return JSON:
   }],
   "complexity_hotspots": [...],
   "praise_worthy": [...]
+}
+```
+
+### Sub-Agent 5: Cross-Repo Verification
+
+```
+Verify cross-repo tasks for change: {change-id}
+
+Context:
+- Affected files: {files}
+- Tasks with target_repo or target_path
+
+Check:
+- All tasks with target_repo are in the 'done' state
+- All tasks with target_path are in the 'done' state
+- All cancelled tasks have approval metadata
+
+Return JSON:
+{
+  "dimension": "cross_repo_verification",
+  "status": "passed|failed",
+  "missing_tasks": [...],
+  "unapproved_cancellations": [...],
+  "issues": []
 }
 ```
 

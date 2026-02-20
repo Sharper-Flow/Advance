@@ -111,6 +111,31 @@ export const TaskStatusSchema = z.enum([
 export type TaskStatus = z.infer<typeof TaskStatusSchema>;
 
 // =============================================================================
+// Cancellation Metadata (required for any task cancellation)
+// =============================================================================
+
+/**
+ * Structured cancellation record.
+ * Every task cancellation MUST have user approval with evidence.
+ * Batch approvals are allowed — agents present all cancellations to the user,
+ * each with a reason, and the user approves the batch.
+ */
+export const CancellationSchema = z.object({
+  /** Why this task was cancelled (required per-task even in batch) */
+  reason: z.string(),
+  /** Must be true — cancellations require explicit user signoff */
+  approved_by_user: z.literal(true),
+  /** Evidence of approval (e.g., question tool response, user message) */
+  approval_evidence: z.string(),
+  /** Task ID that supersedes this one (if applicable) */
+  superseded_by: z.string().optional(),
+  /** ISO8601 timestamp when cancellation was approved */
+  approved_at: z.string(),
+});
+
+export type Cancellation = z.infer<typeof CancellationSchema>;
+
+// =============================================================================
 // TDD Phase & Evidence
 // =============================================================================
 
@@ -188,6 +213,12 @@ export const TaskSchema = z
     tdd_phase: TddPhaseSchema.default("none"),
     /** TDD evidence (red/green phase recordings) */
     tdd_evidence: TddEvidenceSchema.optional(),
+    /** Target repository ID for cross-repo tasks (matches related_repos[].id in project config) */
+    target_repo: z.string().optional(),
+    /** Absolute path to the target repo directory (resolved from related_repos or explicit) */
+    target_path: z.string().optional(),
+    /** Structured cancellation metadata — required when status is "cancelled" */
+    cancellation: CancellationSchema.optional(),
   })
   .passthrough(); // Allow extra fields for forward/backward compatibility
 
@@ -529,6 +560,25 @@ export const ChangeSchema = z
 export type Change = z.infer<typeof ChangeSchema>;
 
 // =============================================================================
+// Related Repositories (Cross-Repo Routing)
+// =============================================================================
+
+/**
+ * A related repository that tasks in this project may target.
+ * Generic model — any repo/path pair, not hardcoded to specific projects.
+ */
+export const RelatedRepoSchema = z.object({
+  /** Short identifier used in task metadata (e.g., "backend", "api", "db") */
+  id: z.string(),
+  /** Absolute path to the repository root */
+  path: z.string(),
+  /** Human-readable role description (e.g., "Backend API server", "Database migrations") */
+  role: z.string().optional(),
+});
+
+export type RelatedRepo = z.infer<typeof RelatedRepoSchema>;
+
+// =============================================================================
 // Project Configuration
 // =============================================================================
 
@@ -543,6 +593,8 @@ export const ProjectConfigSchema = z
     docs_dir: z.string().default("docs/specs"),
     db_dir: z.string().default(".adv/db"),
     project_file: z.string().default("project.md"),
+    /** Related repositories for cross-repo task routing */
+    related_repos: z.array(RelatedRepoSchema).optional(),
   })
   .passthrough(); // Allow extra fields for forward/backward compatibility
 

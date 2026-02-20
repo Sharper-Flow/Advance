@@ -94,6 +94,47 @@ After 3 failed attempts on a task:
 - Skipping "to revisit later"
 - Deferring "until more information"
 - Marking blocked without 3 genuine attempts
+- Cancelling tasks without explicit user approval (use `adv_task_cancel`)
+- Cancelling cross-repo tasks because they target a different repository
+
+### Cross-Repo Execution Protocol
+
+Changes often span multiple repositories (e.g., frontend + backend, app + database).
+Tasks targeting other repos MUST be executed there — not cancelled or skipped.
+
+**Key rules:**
+1. Tasks with `target_repo`/`target_path` metadata must be executed in the target directory
+2. Switch `workdir` to the target repo path for all tool calls on that task
+3. "Different repo" / "out of scope" is NEVER a valid cancellation reason
+4. If a task title hints at another repo but lacks metadata, confirm with the user via `question` tool
+
+**Project config supports generic repo routing:**
+```json
+{
+  "related_repos": [
+    { "id": "backend", "path": "/home/user/dev/my-backend", "role": "API server" },
+    { "id": "db", "path": "/home/user/dev/my-db", "role": "Database migrations" }
+  ]
+}
+```
+
+**Review and Harden gates block** if cross-repo tasks are incomplete or cancelled without approval.
+
+### Cancellation Policy
+
+**All task cancellations require explicit user approval.**
+
+- `adv_task_update` rejects `status: "cancelled"` — use `adv_task_cancel` instead
+- `adv_task_cancel` requires: per-task reasons, `approvedByUser: true`, approval evidence
+- Batch cancellation is allowed — agent presents all cancellations to user, user approves the batch
+- The agent MUST show each task with its reason before calling `adv_task_cancel`
+- Review and Harden gates BLOCK if any cancelled task lacks `cancellation.approved_by_user`
+
+**Workflow:**
+1. Agent identifies tasks to cancel with per-task reasons
+2. Agent presents table to user via `question` tool
+3. User approves (or rejects/reviews individually)
+4. Agent calls `adv_task_cancel` with approval evidence
 
 ### Task Status Report
 

@@ -60,6 +60,7 @@ Analysis is complete when:
 - [ ] All deployed specs scanned for conflicts
 - [ ] Cross-cutting concerns checklist completed
 - [ ] Task sequencing validated (absorption, TDD ordering, dependency coherence)
+- [ ] Cross-repo routing validated (all external tasks have target_repo/target_path)
 
 ---
 
@@ -201,6 +202,39 @@ adv_spec_search keyword: <key-term-from-change>
 ```
 
 **Flag gaps**: Conflicts, terminology inconsistencies, overlapping scope.
+
+### 3.7 Cross-Repo Routing Validation
+
+If the change involves tasks targeting external repositories:
+
+#### Check 1: Task Routing Metadata
+
+For each task, determine if it targets an external repo by checking:
+- `target_repo` or `target_path` fields in task metadata
+- Task title containing repo hints (e.g., `[backend]`, `[db]`, `~/dev/...`)
+- Proposal.md "Related Repositories" section listing external repos
+
+**Flag as MUST gap** if:
+- A task mentions another repo in its title but lacks `target_repo`/`target_path` metadata
+- The proposal mentions cross-repo changes but no tasks have routing metadata
+
+#### Check 2: Related Repos Config
+
+If any task targets an external repo:
+1. Check if `project.json` has `related_repos` configured
+2. If not, flag as **SHOULD** gap: "Add related_repos config to project.json for cross-repo routing"
+3. Verify each `target_repo` value maps to a valid entry in `related_repos`
+
+#### Check 3: Routing Completeness
+
+For each external repo mentioned in the proposal:
+- Verify at least one task targets that repo
+- Flag as **MUST** gap if a repo is mentioned but has no corresponding tasks
+
+**Gap Task Templates:**
+- "Add target_repo metadata to task {task.id} (targets {repo})"
+- "Add related_repos config to project.json: { id: '{id}', path: '{path}' }"
+- "Create task for {repo} changes described in proposal (currently missing)"
 
 ---
 

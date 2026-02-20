@@ -29,6 +29,7 @@ import type {
   TddPhaseEvidence,
   WisdomEntry,
   WisdomType,
+  Cancellation,
 } from "../types";
 import { createSQLiteStore, type SQLiteStore } from "./sqlite";
 import {
@@ -122,6 +123,11 @@ export interface Store {
     setPhase: (taskId: string, phase: TddPhase) => Promise<Task | null>;
     /** Skip TDD for a task with reason */
     skipTdd: (taskId: string, reason: string) => Promise<Task | null>;
+    /** Cancel a task with required user-approved cancellation metadata */
+    cancel: (
+      taskId: string,
+      cancellation: Cancellation,
+    ) => Promise<Task | null>;
   };
 
   // Wisdom (cross-task learning)
@@ -807,6 +813,19 @@ export async function createStore(
           task.tdd_evidence.skipped = true;
           task.tdd_evidence.skip_reason = reason;
           task.tdd_phase = "none";
+
+          // Save change
+          await store.changes.save(change);
+
+          return task;
+        });
+      },
+
+      cancel: async (taskId, cancellation) => {
+        return withTaskLock(taskId, async (task, change) => {
+          task.status = "cancelled";
+          task.completed_at = new Date().toISOString();
+          task.cancellation = cancellation;
 
           // Save change
           await store.changes.save(change);

@@ -160,7 +160,7 @@ describe("Task Tools", () => {
       expect(parsed.task.completed_by).toBe("Implementation complete");
     });
 
-    test("updates task status to cancelled", async () => {
+    test("rejects direct cancellation via adv_task_update", async () => {
       const result = await taskTools.adv_task_update.execute(
         {
           taskId: "tk-task0001",
@@ -171,8 +171,12 @@ describe("Task Tools", () => {
       );
       const parsed = JSON.parse(result);
 
-      expect(parsed.success).toBe(true);
-      expect(parsed.task.status).toBe("cancelled");
+      expect(parsed.error).toContain("Direct task cancellation is not allowed");
+      expect(parsed.hint).toContain("adv_task_cancel");
+
+      // Verify task was NOT cancelled
+      const task = await store.tasks.get("tk-task0001");
+      expect(task!.status).not.toBe("cancelled");
     });
 
     test("persists changes to JSON file", async () => {
@@ -557,6 +561,134 @@ describe("Task Tools", () => {
       const parsed = JSON.parse(result);
 
       expect(parsed.error).toContain("not found");
+    });
+  });
+
+  describe("adv_task_cancel", () => {
+    test("cancels a single task with full approval metadata", async () => {
+      const result = await taskTools.adv_task_cancel.execute(
+        {
+          taskIds: ["tk-task0001"],
+          reasons: { "tk-task0001": "Absorbed into tk-task0002" },
+          approvedByUser: true,
+          approvalEvidence:
+            "User approved via question tool: selected 'Approve cancellations'",
+          supersededBy: { "tk-task0001": "tk-task0002" },
+        },
+        store,
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed.success).toBe(true);
+      expect(parsed.cancelled).toHaveLength(1);
+      expect(parsed.cancelled[0].id).toBe("tk-task0001");
+
+      // Verify task was actually cancelled with metadata
+      const task = await store.tasks.get("tk-task0001");
+      expect(task!.status).toBe("cancelled");
+      expect(task!.cancellation).toBeDefined();
+      expect(task!.cancellation!.reason).toBe("Absorbed into tk-task0002");
+      expect(task!.cancellation!.approved_by_user).toBe(true);
+      expect(task!.cancellation!.approval_evidence).toContain(
+        "question tool",
+      );
+      expect(task!.cancellation!.superseded_by).toBe("tk-task0002");
+      expect(task!.cancellation!.approved_at).toBeDefined();
+      expect(task!.completed_at).toBeDefined();
+    });
+
+    test("cancels multiple tasks in batch", async () => {
+      const result = await taskTools.adv_task_cancel.execute(
+        {
+          taskIds: ["tk-task0001", "tk-task0002"],
+          reasons: {
+            "tk-task0001": "Out of scope per user decision",
+            "tk-task0002": "Superseded by new approach",
+          },
+          approvedByUser: true,
+          approvalEvidence: "User confirmed batch cancellation in chat",
+        },
+        store,
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed.success).toBe(true);
+      expect(parsed.cancelled).toHaveLength(2);
+
+      const task1 = await store.tasks.get("tk-task0001");
+      const task2 = await store.tasks.get("tk-task0002");
+      expect(task1!.status).toBe("cancelled");
+      expect(task2!.status).toBe("cancelled");
+      expect(task1!.cancellation!.reason).toBe(
+        "Out of scope per user decision",
+      );
+      expect(task2!.cancellation!.reason).toBe(
+        "Superseded by new approach",
+      );
+    });
+
+    test("rejects when missing per-task reason", async () => {
+      const result = await taskTools.adv_task_cancel.execute(
+        {
+          taskIds: ["tk-task0001", "tk-task0002"],
+          reasons: {
+            "tk-task0001": "Has a reason",
+            // tk-task0002 missing
+          },
+          approvedByUser: true,
+          approvalEvidence: "User approved",
+        },
+        store,
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed.error).toContain("Missing cancellation reason");
+      expect(parsed.error).toContain("tk-task0002");
+
+      // Verify neither task was cancelled
+      const task1 = await store.tasks.get("tk-task0001");
+      const task2 = await store.tasks.get("tk-task0002");
+      expect(task1!.status).not.toBe("cancelled");
+      expect(task2!.status).not.toBe("cancelled");
+    });
+
+    test("rejects when approval evidence is empty", async () => {
+      const result = await taskTools.adv_task_cancel.execute(
+        {
+          taskIds: ["tk-task0001"],
+          reasons: { "tk-task0001": "Some reason" },
+          approvedByUser: true,
+          approvalEvidence: "   ",
+        },
+        store,
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed.error).toContain("approvalEvidence is required");
+    });
+
+    test("handles nonexistent task in batch gracefully", async () => {
+      const result = await taskTools.adv_task_cancel.execute(
+        {
+          taskIds: ["tk-task0001", "nonexistent"],
+          reasons: {
+            "tk-task0001": "Valid cancellation",
+            nonexistent: "Does not exist",
+          },
+          approvedByUser: true,
+          approvalEvidence: "User approved",
+        },
+        store,
+      );
+      const parsed = JSON.parse(result);
+
+      // Partial success
+      expect(parsed.success).toBe(false);
+      expect(parsed.cancelled).toHaveLength(1);
+      expect(parsed.results).toHaveLength(2);
+      expect(parsed.results[0].success).toBe(true);
+      expect(parsed.results[1].success).toBe(false);
+      expect(parsed.results[1].error).toContain("not found");
     });
   });
 });

@@ -16,6 +16,12 @@ Tasks should be completed, not skipped or deferred. If stuck:
 2. **Then**: Ask for user guidance via doom loop protocol
 3. **Never**: Skip tasks, defer "for later", or mark blocked without genuine attempts
 
+**Cancellation requires user approval.** You cannot cancel tasks directly via `adv_task_update`.
+All cancellations must go through `adv_task_cancel` with per-task reasons shown to the user.
+
+**Cross-repo tasks must be executed in the target repo.** "Different repo" or "out of scope" is
+NOT a valid reason to cancel. Switch `workdir` and execute there.
+
 See Doom Loop Protocol section for proper handling of stuck tasks.
 
 <UserRequest>
@@ -130,6 +136,97 @@ If **approved**, execute this exact sequence:
 4. **Continue implementation in this same session**. Do not stop after worktree creation.
 
 5. **Optional fallback**: If you are explicitly using multi-session workflow, you may use handoff and continue in a separate session.
+
+---
+
+## Cross-Repo Execution Protocol
+
+Tasks may target repositories other than the current one. This is common in full-stack features
+where frontend changes require corresponding backend, database, or infrastructure changes.
+
+### Step 1: Detect Cross-Repo Tasks
+
+When loading tasks from `adv_task_list`, check each task for:
+- `target_repo` or `target_path` fields set in task metadata
+- Task title containing path hints (e.g., `~/dev/pokeedge`, `backend/`, `api/`, `db/`, `migrations/`)
+- Proposal.md mentioning changes to external repositories
+
+### Step 2: Resolve Target Repository
+
+For tasks with `target_repo` set:
+1. Load project config to get `related_repos` mapping
+2. Resolve `target_repo` ID to an absolute `path`
+3. If no `related_repos` config exists, use `target_path` directly
+
+For tasks with path hints in title but no explicit metadata:
+1. Use the `question` tool to confirm the target directory with the user
+2. Record the resolved path for subsequent tasks
+
+### Step 3: Execute in Target Repo
+
+For each cross-repo task:
+
+1. **Switch workdir**: Set `workdir` to the resolved target repo path for all tool calls related to this task
+2. **Execute normally**: Run the same TDD workflow (red/green) in the target repo
+3. **Return to source**: After completing the task, switch `workdir` back to the source repo
+
+```
+[ADV:ROCKET]
+Starting cross-repo task: {task.title}
+Target: {target_path} (repo: {target_repo})
+Switching workdir to {target_path}...
+```
+
+### Prohibited Cancellation Reasons
+
+The following are NOT valid reasons to cancel a task:
+
+| Prohibited Reason | Why It's Invalid | Correct Action |
+|-------------------|------------------|----------------|
+| "Out of scope for this repo" | Cross-repo tasks are in-scope by design | Switch workdir and execute |
+| "Different repository" | The task explicitly targets another repo | Switch workdir and execute |
+| "Cannot modify external code" | You have filesystem access | Use workdir parameter |
+| "Backend/API changes needed" | That's the task's purpose | Switch workdir and execute |
+| "Would need database changes" | That's the task's purpose | Switch workdir and execute |
+
+---
+
+## Cancellation Policy
+
+**All cancellations require explicit user approval.** The `adv_task_update` tool rejects `status: "cancelled"`.
+Use `adv_task_cancel` instead.
+
+### To Cancel Tasks
+
+1. **Collect reasons**: Prepare a per-task reason for each task you want to cancel
+2. **Present to user**: Use the `question` tool to show all proposed cancellations:
+
+```json
+{
+  "questions": [{
+    "header": "Approve Cancellations",
+    "question": "The following tasks are proposed for cancellation:\n\n{for each task}\n- {task.id}: {task.title}\n  Reason: {reason}\n  {if superseded_by}Replaced by: {superseded_by}{end}\n{end}\n\nDo you approve these cancellations?",
+    "options": [
+      { "label": "Approve all (Recommended)", "description": "Cancel all listed tasks" },
+      { "label": "Review individually", "description": "Decide each task separately" },
+      { "label": "Reject", "description": "Do not cancel any tasks" }
+    ]
+  }]
+}
+```
+
+3. **Execute cancellation** (only after user approval):
+
+```
+adv_task_cancel taskIds: [...] reasons: {...} approvedByUser: true approvalEvidence: "User selected 'Approve all' via question tool"
+```
+
+### Batch Approval
+
+Multiple cancellations can be approved in a single batch. The agent MUST:
+- Show every task with its individual reason
+- Wait for explicit user approval
+- Pass the approval evidence to `adv_task_cancel`
 
 ---
 
@@ -395,15 +492,18 @@ adv_task_list change_id: <target>
 
 Confirm all tasks show `status: "done"` or `status: "cancelled"`.
 
-### Cancelled Task Approval
+### Cancelled Task Verification
 
-**If ANY tasks are cancelled**, use the `question` tool to get explicit user approval:
+**If ANY tasks are cancelled**, verify each has structured cancellation metadata:
+
+1. Check that every cancelled task has a `cancellation` field with `approved_by_user: true`
+2. If any cancelled task lacks approval metadata (e.g., legacy data), use the `question` tool to get retroactive approval:
 
 ```json
 {
   "questions": [{
-    "header": "Cancelled Tasks",
-    "question": "The following tasks were cancelled during implementation. Confirm you accept these cancellations before marking the implementation gate complete.",
+    "header": "Unapproved Cancellations",
+    "question": "The following cancelled tasks lack user approval records:\n\n{for each unapproved task}\n- {task.id}: {task.title}\n  Cancellation reason: {task.completed_by or 'unknown'}\n{end}\n\nApprove these cancellations?",
     "options": [
       { "label": "Approve cancellations (Recommended)", "description": "Accept that these tasks are legitimately cancelled" },
       { "label": "Review each task", "description": "I need to see the rationale for each cancellation" },
@@ -508,6 +608,8 @@ adv_task_update change_id: <target> task_id: {task.id} status: "blocked" notes: 
 ```
 
 The user must then complete the task before the change can be archived.
+
+**NOTE:** The agent cannot cancel the task here. Only the user can approve cancellation via `adv_task_cancel`.
 
 ---
 

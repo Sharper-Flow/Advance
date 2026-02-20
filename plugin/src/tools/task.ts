@@ -12,6 +12,7 @@ import {
   isLogicTask,
   isTrivialTask,
   truncateOutput,
+  type Cancellation,
 } from "../types";
 import { formatToolOutput, paginate } from "../utils/tool-output";
 
@@ -87,7 +88,8 @@ export const taskTools = {
   },
 
   adv_task_update: {
-    description: "Update task status",
+    description:
+      "Update task status. NOTE: To cancel a task, use adv_task_cancel instead — direct cancellation via this tool is not allowed.",
     args: {
       taskId: z.string().describe("Task ID"),
       status: z
@@ -96,7 +98,7 @@ export const taskTools = {
       notes: z
         .string()
         .optional()
-        .describe("Completion notes or cancellation reason"),
+        .describe("Completion notes"),
     },
     execute: async (
       {
@@ -106,6 +108,15 @@ export const taskTools = {
       }: { taskId: string; status: string; notes?: string },
       store: Store,
     ) => {
+      // Reject direct cancellation — must use adv_task_cancel with user approval
+      if (status === "cancelled") {
+        return formatToolOutput({
+          error:
+            "Direct task cancellation is not allowed. Use adv_task_cancel instead, which requires presenting cancellation reasons to the user and obtaining explicit approval.",
+          hint: "Call adv_task_cancel with taskIds, reasons (per task), and user approval evidence.",
+        });
+      }
+
       const task = await store.tasks.update(taskId, status, notes);
       if (!task) {
         return formatToolOutput({ error: `Task not found: ${taskId}` });
@@ -310,6 +321,116 @@ export const taskTools = {
             : compliance === "compliant"
               ? "TDD requirements satisfied"
               : "TDD not required for this task type",
+      });
+    },
+  },
+
+  adv_task_cancel: {
+    description:
+      "Cancel one or more tasks with required user approval. " +
+      "Before calling this tool, the agent MUST present all proposed cancellations " +
+      "to the user (each with a per-task reason) via the question tool, and obtain " +
+      "explicit approval. Batch approval is allowed.",
+    args: {
+      taskIds: z
+        .array(z.string())
+        .describe("Task IDs to cancel (batch supported)"),
+      reasons: z
+        .record(z.string())
+        .describe(
+          "Per-task cancellation reasons keyed by task ID (e.g., { 'tk-abc': 'Absorbed into tk-xyz' })",
+        ),
+      approvedByUser: z
+        .literal(true)
+        .describe("Must be true — confirms user explicitly approved"),
+      approvalEvidence: z
+        .string()
+        .describe(
+          "Evidence of user approval (e.g., 'User approved via question tool: selected Approve cancellations')",
+        ),
+      supersededBy: z
+        .record(z.string())
+        .optional()
+        .describe(
+          "Optional per-task superseding task ID (e.g., { 'tk-abc': 'tk-xyz' })",
+        ),
+    },
+    execute: async (
+      {
+        taskIds,
+        reasons,
+        approvedByUser,
+        approvalEvidence,
+        supersededBy,
+      }: {
+        taskIds: string[];
+        reasons: Record<string, string>;
+        approvedByUser: true;
+        approvalEvidence: string;
+        supersededBy?: Record<string, string>;
+      },
+      store: Store,
+    ) => {
+      // Validate every task has a reason
+      const missingReasons = taskIds.filter((id) => !reasons[id]);
+      if (missingReasons.length > 0) {
+        return formatToolOutput({
+          error: `Missing cancellation reason for tasks: ${missingReasons.join(", ")}. Every task requires a per-task reason.`,
+        });
+      }
+
+      if (!approvedByUser) {
+        return formatToolOutput({
+          error:
+            "approvedByUser must be true. You must present cancellations to the user and obtain explicit approval before calling this tool.",
+        });
+      }
+
+      if (!approvalEvidence || approvalEvidence.trim().length === 0) {
+        return formatToolOutput({
+          error:
+            "approvalEvidence is required. Describe how the user approved (e.g., question tool response).",
+        });
+      }
+
+      const results: Array<{
+        taskId: string;
+        success: boolean;
+        error?: string;
+      }> = [];
+      const cancelledTasks: Array<{ id: string; title: string }> = [];
+      const now = new Date().toISOString();
+
+      for (const taskId of taskIds) {
+        const cancellation: Cancellation = {
+          reason: reasons[taskId],
+          approved_by_user: true,
+          approval_evidence: approvalEvidence,
+          superseded_by: supersededBy?.[taskId],
+          approved_at: now,
+        };
+
+        const task = await store.tasks.cancel(taskId, cancellation);
+        if (!task) {
+          results.push({
+            taskId,
+            success: false,
+            error: `Task not found: ${taskId}`,
+          });
+        } else {
+          results.push({ taskId, success: true });
+          cancelledTasks.push({ id: task.id, title: task.title });
+        }
+      }
+
+      const allSuccess = results.every((r) => r.success);
+      return formatToolOutput({
+        success: allSuccess,
+        cancelled: cancelledTasks,
+        results,
+        message: allSuccess
+          ? `Cancelled ${cancelledTasks.length} task(s) with user approval.`
+          : `Partial cancellation: ${results.filter((r) => r.success).length}/${taskIds.length} succeeded.`,
       });
     },
   },

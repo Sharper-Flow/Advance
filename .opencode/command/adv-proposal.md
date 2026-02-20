@@ -171,6 +171,14 @@ Each criterion should be:
 
 <List files that will be modified - can be discovered via /adv-prep>
 
+## Related Repositories
+
+If this change requires modifications to other repositories:
+
+| Repo ID | Path | Changes Needed |
+|---------|------|----------------|
+| <id> | <absolute path> | <brief description> |
+
 ## Constraints
 
 - MUST: <non-negotiable requirement>
@@ -182,6 +190,7 @@ Each criterion should be:
 - Affected specs: <list>
 - Breaking changes: <yes/no - if yes, document migration>
 - Dependencies: <new deps needed?>
+- Cross-repo impact: <yes/no - if yes, list repos and changes>
 
 ## Context
 
@@ -192,6 +201,61 @@ Each criterion should be:
   - <decision 2>
 {end}
 ```
+
+---
+
+## Step 7.5: Cross-Repo Routing
+
+If the change affects multiple repositories (e.g., frontend + backend, app + database):
+
+### Identify Related Repos
+
+Use the `question` tool:
+```json
+{
+  "questions": [{
+    "header": "Cross-Repo Impact",
+    "question": "Does this change require modifications to other repositories?",
+    "options": [
+      { "label": "No", "description": "All changes are in this repository" },
+      { "label": "Yes", "description": "Changes needed in other repos too" }
+    ]
+  }]
+}
+```
+
+If **Yes**: Gather repo details:
+```json
+{
+  "questions": [{
+    "header": "Related Repos",
+    "question": "Which repositories need changes? Provide the absolute path for each.",
+    "options": [
+      { "label": "Backend API", "description": "e.g., ~/dev/my-backend" },
+      { "label": "Database/Migrations", "description": "e.g., ~/dev/my-db" },
+      { "label": "Infrastructure", "description": "e.g., ~/dev/my-infra" }
+    ],
+    "multiple": true
+  }]
+}
+```
+
+### Document in Proposal
+
+Add each related repo to the "Related Repositories" table in `proposal.md`.
+
+### Tag Tasks with Target Repo
+
+When adding tasks in Step 8, tasks targeting other repos should include
+the `target_repo` or `target_path` in their description. Example:
+
+```
+adv_task_add change_id: <id> title: "[backend] Add /api/users endpoint"
+adv_task_add change_id: <id> title: "[db] Add users migration"
+```
+
+The `/adv-prep` gap analysis will later verify all cross-repo tasks have
+proper routing metadata.
 
 ---
 

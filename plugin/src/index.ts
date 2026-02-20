@@ -429,11 +429,13 @@ export const AdvancePlugin: Plugin = async ({ directory, worktree }) => {
           taskId: tool.schema.string().describe("Task ID"),
           status: tool.schema
             .enum(["pending", "in_progress", "done", "cancelled"])
-            .describe("New status"),
+            .describe(
+              "New status. NOTE: 'cancelled' is rejected here — use adv_task_cancel instead",
+            ),
           notes: tool.schema
             .string()
             .optional()
-            .describe("Completion notes or cancellation reason"),
+            .describe("Completion notes"),
         },
         execute: safeExecute(
           async (args) => taskTools.adv_task_update.execute(args, store),
@@ -525,6 +527,48 @@ export const AdvancePlugin: Plugin = async ({ directory, worktree }) => {
         execute: safeExecute(
           async (args) => taskTools.adv_task_tdd_status.execute(args, store),
           "adv_task_tdd_status",
+        ),
+      }),
+
+      adv_task_cancel: tool({
+        description: taskTools.adv_task_cancel.description,
+        args: {
+          taskIds: tool.schema
+            .array(tool.schema.string())
+            .describe("Task IDs to cancel (batch supported)"),
+          reasons: tool.schema
+            .record(tool.schema.string(), tool.schema.string())
+            .describe(
+              "Per-task cancellation reasons keyed by task ID",
+            ),
+          approvedByUser: tool.schema
+            .literal(true)
+            .describe("Must be true — confirms user explicitly approved"),
+          approvalEvidence: tool.schema
+            .string()
+            .describe(
+              "Evidence of user approval (e.g., question tool response)",
+            ),
+          supersededBy: tool.schema
+            .record(tool.schema.string(), tool.schema.string())
+            .optional()
+            .describe(
+              "Optional per-task superseding task ID",
+            ),
+        },
+        execute: safeExecute(
+          async (args) =>
+            taskTools.adv_task_cancel.execute(
+              {
+                ...args,
+                reasons: args.reasons as Record<string, string>,
+                supersededBy: args.supersededBy as
+                  | Record<string, string>
+                  | undefined,
+              },
+              store,
+            ),
+          "adv_task_cancel",
         ),
       }),
 
