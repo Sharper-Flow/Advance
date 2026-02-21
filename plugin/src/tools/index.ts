@@ -1,11 +1,9 @@
-/**
- * Tools Module Exports
- */
-
-export { specTools } from "./spec";
-export { changeTools } from "./change";
-export { taskTools } from "./task";
-export { wisdomTools } from "./wisdom";
-export { statusTools } from "./status";
-export { projectTools } from "./project";
-export { gateTools } from "./gate";
+export * from "./spec";
+export * from "./change";
+export * from "./task";
+export * from "./wisdom";
+export * from "./agenda";
+export * from "./project";
+export * from "./status";
+export * from "./gate";
+export * from "./test";

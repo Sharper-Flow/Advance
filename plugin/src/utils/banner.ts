@@ -28,9 +28,7 @@ const COMMAND_EMOJIS: Record<string, string> = {
   adv_project_context: "📁",
 
   // Spec Operations
-  adv_spec_list: "📜",
-  adv_spec_show: "🔍",
-  adv_spec_search: "🔎",
+  adv_spec: "📜",
 
   // Change Operations
   adv_change_list: "📋",
@@ -50,6 +48,9 @@ const COMMAND_EMOJIS: Record<string, string> = {
   adv_task_tdd_phase: "🔬",
   adv_task_skip_tdd: "⏭️",
   adv_task_tdd_status: "📈",
+
+  // Test Operations
+  adv_run_test: "🧪",
 
   // Agenda Operations
   adv_agenda_list: "📅",

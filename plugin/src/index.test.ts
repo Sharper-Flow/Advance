@@ -170,20 +170,18 @@ describe("Advance Plugin SDK Integration", () => {
   // ===========================================================================
 
   describe("Tool Registration", () => {
-    test("registers all 37 tools", async () => {
+    test("registers all 36 tools", async () => {
       const hooks = await createTrackedPlugin(tempDir, pluginInstances);
 
       const toolNames = Object.keys(hooks.tool!);
-      expect(toolNames).toHaveLength(37);
+      expect(toolNames).toHaveLength(36);
     });
 
     test("registers spec tools", async () => {
       const hooks = await createTrackedPlugin(tempDir, pluginInstances);
 
       const toolNames = Object.keys(hooks.tool!);
-      expect(toolNames).toContain("adv_spec_list");
-      expect(toolNames).toContain("adv_spec_show");
-      expect(toolNames).toContain("adv_spec_search");
+      expect(toolNames).toContain("adv_spec");
     });
 
     test("registers change tools", async () => {
@@ -278,11 +276,14 @@ describe("Advance Plugin SDK Integration", () => {
   // ===========================================================================
 
   describe("Tool Execution", () => {
-    test("adv_spec_list executes and returns JSON", async () => {
+    test("adv_spec executes list action and returns JSON", async () => {
       const hooks = await createTrackedPlugin(tempDir, pluginInstances);
       const context = createMockToolContext();
 
-      const result = await hooks.tool!.adv_spec_list.execute({}, context);
+      const result = await hooks.tool!.adv_spec.execute(
+        { action: "list" },
+        context,
+      );
 
       expect(typeof result).toBe("string");
       const parsed = JSON.parse(result);
@@ -348,7 +349,7 @@ describe("Advance Plugin SDK Integration", () => {
   });
 
   describe("Hooks", () => {
-    test("experimental.chat.system.transform injects wisdom and continuation", async () => {
+    test("experimental.chat.system.transform does NOT inject dynamic wisdom or continuation", async () => {
       const hooks = await createTrackedPlugin(tempDir, pluginInstances);
 
       // 1. Set active change ID by calling a tool with it (args are in before hook)
@@ -370,16 +371,13 @@ describe("Advance Plugin SDK Integration", () => {
       const hookOutput = { system: [] as string[] };
       await transformHook({ sessionID: "test" } as any, hookOutput as any);
 
-      // 4. Verify injections
+      // 4. Verify dynamic context injection is NOT happening (removed for prompt caching)
       expect(
         hookOutput.system.some((s) => s.includes("[ADV:ACCUMULATED_WISDOM]")),
-      ).toBe(true);
-      expect(hookOutput.system.some((s) => s.includes("Test wisdom"))).toBe(
-        true,
-      );
+      ).toBe(false);
       expect(
         hookOutput.system.some((s) => s.includes("[ADV:TODO_CONTINUATION]")),
-      ).toBe(true);
+      ).toBe(false);
     });
 
     test("experimental.chat.system.transform injects wisdom recording prompt after task completion", async () => {
@@ -422,7 +420,7 @@ describe("Advance Plugin SDK Integration", () => {
       ).toBe(false);
     });
 
-    test("experimental.chat.system.transform truncates wisdom to most recent 10 entries", async () => {
+    test("experimental.chat.system.transform does NOT inject dynamic wisdom (removed for prompt caching)", async () => {
       const hooks = await createTrackedPlugin(tempDir, pluginInstances);
       const changeId = "addFeature";
 
@@ -432,151 +430,37 @@ describe("Advance Plugin SDK Integration", () => {
         { args: { changeId } } as any,
       );
 
-      // 2. Add 12 wisdom entries
+      // 2. Add wisdom entries
       const context = createMockToolContext();
-      for (let i = 1; i <= 12; i++) {
+      for (let i = 1; i <= 5; i++) {
         await hooks.tool!.adv_wisdom_add.execute(
           { changeId, type: "pattern", content: `Wisdom entry ${i}` },
           context,
         );
       }
 
-      // 3. Call hook
-      const transformHook = hooks["experimental.chat.system.transform"]!;
-      const hookOutput = { system: [] as string[] };
-      await transformHook({ sessionID: "test" } as any, hookOutput as any);
-
-      // 4. Verify truncation
-      const wisdomMessage = hookOutput.system.find((s) =>
-        s.includes("[ADV:ACCUMULATED_WISDOM]"),
-      );
-      expect(wisdomMessage).toBeDefined();
-      expect(wisdomMessage).toContain("Showing 10 of 12 most recent entries");
-      expect(wisdomMessage).not.toContain("Wisdom entry 1\n"); // Oldest should be gone
-      expect(wisdomMessage).not.toContain("Wisdom entry 2\n"); // 2nd oldest should be gone
-      expect(wisdomMessage).toContain("Wisdom entry 3"); // 3rd oldest (entry 3) should be the first shown
-      expect(wisdomMessage).toContain("Wisdom entry 12"); // Newest should be present
-    });
-
-    test("experimental.chat.system.transform injects project-level wisdom alongside change wisdom", async () => {
-      const hooks = await createTrackedPlugin(tempDir, pluginInstances);
-      const changeId = "addFeature";
-
-      // 1. Set active change
-      await hooks["tool.execute.before"]!(
-        { tool: "adv_task_list" } as any,
-        { args: { changeId } } as any,
-      );
-
-      // 2. Add change-level wisdom
-      const context = createMockToolContext();
-      await hooks.tool!.adv_wisdom_add.execute(
-        { changeId, type: "success", content: "Change-level insight" },
-        context,
-      );
-
-      // 3. Add project-level wisdom directly to JSONL
+      // 3. Add project-level wisdom
       await addProjectWisdom(tempDir, {
         type: "convention",
         content: "Project-level convention: always use TDD",
         sourceChange: "previousChange",
       });
-      await addProjectWisdom(tempDir, {
-        type: "pattern",
-        content: "Project-level pattern: prefer JSONL for append logs",
-        sourceChange: "anotherChange",
-      });
 
-      // 4. Call the hook
+      // 4. Call hook
       const transformHook = hooks["experimental.chat.system.transform"]!;
       const hookOutput = { system: [] as string[] };
       await transformHook({ sessionID: "test" } as any, hookOutput as any);
 
-      // 5. Verify both change-level AND project-level wisdom are injected
+      // 5. Verify NO dynamic injection (agents should explicitly call tools instead)
       expect(
         hookOutput.system.some((s) => s.includes("[ADV:ACCUMULATED_WISDOM]")),
-      ).toBe(true);
-      expect(
-        hookOutput.system.some((s) => s.includes("Change-level insight")),
-      ).toBe(true);
-
-      // Project wisdom should appear in a separate section
-      const projectWisdomMsg = hookOutput.system.find((s) =>
-        s.includes("[ADV:PROJECT_WISDOM]"),
-      );
-      expect(projectWisdomMsg).toBeDefined();
-      expect(projectWisdomMsg).toContain(
-        "Project-level convention: always use TDD",
-      );
-      expect(projectWisdomMsg).toContain(
-        "Project-level pattern: prefer JSONL for append logs",
-      );
-    });
-
-    test("experimental.chat.system.transform limits project wisdom to 10 entries", async () => {
-      const hooks = await createTrackedPlugin(tempDir, pluginInstances);
-      const changeId = "addFeature";
-
-      // 1. Set active change
-      await hooks["tool.execute.before"]!(
-        { tool: "adv_task_list" } as any,
-        { args: { changeId } } as any,
-      );
-
-      // 2. Add 15 project-level wisdom entries
-      for (let i = 1; i <= 15; i++) {
-        await addProjectWisdom(tempDir, {
-          type: "pattern",
-          content: `Project wisdom ${i}`,
-          sourceChange: "someChange",
-        });
-      }
-
-      // 3. Call the hook
-      const transformHook = hooks["experimental.chat.system.transform"]!;
-      const hookOutput = { system: [] as string[] };
-      await transformHook({ sessionID: "test" } as any, hookOutput as any);
-
-      // 4. Verify truncation — only 10 of 15 shown
-      const projectWisdomMsg = hookOutput.system.find((s) =>
-        s.includes("[ADV:PROJECT_WISDOM]"),
-      );
-      expect(projectWisdomMsg).toBeDefined();
-      expect(projectWisdomMsg).toContain("Showing 10 of 15");
-      // Most recent should be present (listProjectWisdom returns newest first)
-      expect(projectWisdomMsg).toContain("Project wisdom 15");
-    });
-
-    test("experimental.chat.system.transform skips project wisdom when none exist", async () => {
-      const hooks = await createTrackedPlugin(tempDir, pluginInstances);
-      const changeId = "addFeature";
-
-      // 1. Set active change
-      await hooks["tool.execute.before"]!(
-        { tool: "adv_task_list" } as any,
-        { args: { changeId } } as any,
-      );
-
-      // 2. Add change-level wisdom only (no project wisdom)
-      const context = createMockToolContext();
-      await hooks.tool!.adv_wisdom_add.execute(
-        { changeId, type: "success", content: "Change-only insight" },
-        context,
-      );
-
-      // 3. Call the hook
-      const transformHook = hooks["experimental.chat.system.transform"]!;
-      const hookOutput = { system: [] as string[] };
-      await transformHook({ sessionID: "test" } as any, hookOutput as any);
-
-      // 4. Verify no project wisdom section (no JSONL file exists)
+      ).toBe(false);
       expect(
         hookOutput.system.some((s) => s.includes("[ADV:PROJECT_WISDOM]")),
       ).toBe(false);
-      // But change-level wisdom should still be there
       expect(
-        hookOutput.system.some((s) => s.includes("[ADV:ACCUMULATED_WISDOM]")),
-      ).toBe(true);
+        hookOutput.system.some((s) => s.includes("[ADV:TODO_CONTINUATION]")),
+      ).toBe(false);
     });
   });
 

@@ -59,10 +59,10 @@ describe("Wisdom Lifecycle Integration", () => {
 
     const out2 = { system: [] as string[] };
     await transformHook({ sessionID: "test" } as any, out2 as any);
+    // Dynamic injection removed for prompt caching — no TODO_CONTINUATION
     expect(out2.system.some((s) => s.includes("[ADV:TODO_CONTINUATION]"))).toBe(
-      true,
+      false,
     );
-    expect(out2.system.some((s) => s.includes("remaining"))).toBe(true);
 
     // 3. Complete a task
     const completeOutput = JSON.stringify({
@@ -88,14 +88,11 @@ describe("Wisdom Lifecycle Integration", () => {
       {} as any,
     );
 
-    // 6. Hook should now inject accumulated wisdom
+    // 6. Hook should NOT inject accumulated wisdom (removed for prompt caching)
     const out4 = { system: [] as string[] };
     await transformHook({ sessionID: "test" } as any, out4 as any);
     expect(
       out4.system.some((s) => s.includes("[ADV:ACCUMULATED_WISDOM]")),
-    ).toBe(true);
-    expect(out4.system.some((s) => s.includes("Persistence pays off"))).toBe(
-      true,
-    );
+    ).toBe(false);
   });
 });

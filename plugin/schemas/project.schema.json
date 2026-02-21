@@ -40,6 +40,28 @@
         "project_file": {
           "type": "string",
           "default": "project.md"
+        },
+        "related_repos": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "path": {
+                "type": "string"
+              },
+              "role": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "path"
+            ],
+            "additionalProperties": false
+          }
         }
       },
       "required": [

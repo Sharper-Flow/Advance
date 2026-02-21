@@ -140,6 +140,40 @@
             }
           },
           "additionalProperties": false
+        },
+        "target_repo": {
+          "type": "string"
+        },
+        "target_path": {
+          "type": "string"
+        },
+        "cancellation": {
+          "type": "object",
+          "properties": {
+            "reason": {
+              "type": "string"
+            },
+            "approved_by_user": {
+              "type": "boolean",
+              "const": true
+            },
+            "approval_evidence": {
+              "type": "string"
+            },
+            "superseded_by": {
+              "type": "string"
+            },
+            "approved_at": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "reason",
+            "approved_by_user",
+            "approval_evidence",
+            "approved_at"
+          ],
+          "additionalProperties": false
         }
       },
       "required": [

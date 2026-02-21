@@ -5,9 +5,9 @@
  * Primary interface for AI agents to manage specs, changes, and tasks.
  *
  * Implements the @opencode-ai/plugin SDK interface with:
- * - tool: 30 MCP tools for spec/change/task/wisdom management
+ * - tool: 36 MCP tools for spec/change/task/wisdom/agenda/test management
  * - event: Session status tracking, terminal UI updates
- * - tool.execute.before/after: TDD phase detection, test runner tracking
+ * - tool.execute.before/after: Active change tracking, task completion detection
  * - experimental.session.compacting: Change preservation during compaction
  */
 
@@ -21,6 +21,7 @@ import { statusTools } from "./tools/status";
 import { agendaTools } from "./tools/agenda";
 import { projectTools } from "./tools/project";
 import { gateTools } from "./tools/gate";
+import { testTools } from "./tools/test";
 import {
   initializeStatus,
   cleanup as cleanupTerminal,
@@ -31,7 +32,7 @@ import {
 } from "./events";
 import type { StatusMarker } from "./types";
 import { safeExecute, safeExecuteSimple } from "./utils/safe-execute";
-import { listProjectWisdom } from "./storage/project-wisdom";
+
 import { getProjectId, getExternalRoot } from "./utils/project-id";
 import { migrateToExternalState } from "./storage/migrate";
 import { consumeHandoff } from "./storage/handoff";
@@ -44,7 +45,6 @@ import { consumeHandoff } from "./storage/handoff";
 interface PluginState {
   status: StatusMarker;
   activeSubAgents: number;
-  lastBashCommand: string | null;
   activeChange: {
     id: string | null;
     objective: string | null;
@@ -81,25 +81,6 @@ const debugLog = (msg: string): void => {
 // =============================================================================
 // Constants
 // =============================================================================
-
-/** Patterns indicating a test runner command */
-const TEST_RUNNER_PATTERNS = [
-  /\bvitest\b/,
-  /\bjest\b/,
-  /\bmocha\b/,
-  /\bpytest\b/,
-  /\bnpm\s+test\b/,
-  /\bpnpm\s+test\b/,
-  /\byarn\s+test\b/,
-  /\bbun\s+test\b/,
-  /\buv\s+run\s+pytest\b/,
-];
-
-/** Patterns indicating test failure in output (used as fallback when exitCode is unavailable).
- *  Anchored to test-runner-specific output to reduce false positives from
- *  general log output containing "Error:" or "FAIL" substrings. */
-const TEST_FAILURE_PATTERNS =
-  /\bFAILED\b|Tests?\s+Failed|Test Suites?:.*failed|FAIL\s+(?:src\/|test\/|\.\/)|AssertionError|AssertError|✗|✘|(?:^|\n)\s*\d+\s+(?:failing|failed)\b/;
 
 // =============================================================================
 // Plugin Export
@@ -152,7 +133,6 @@ export const AdvancePlugin: Plugin = async ({ directory, worktree }) => {
   const state: PluginState = {
     status: "EARTH",
     activeSubAgents: 0,
-    lastBashCommand: null,
     activeChange: {
       id: null,
       objective: null,
@@ -238,46 +218,36 @@ export const AdvancePlugin: Plugin = async ({ directory, worktree }) => {
       // ----------------------------------------------------------------------
       // Spec Tools
       // ----------------------------------------------------------------------
-      adv_spec_list: tool({
-        description: specTools.adv_spec_list.description,
+      adv_spec: tool({
+        description: specTools.adv_spec.description,
         args: {
+          action: tool.schema
+            .enum(["list", "show", "search"])
+            .describe("Action to perform on specifications"),
           capability: tool.schema
             .string()
             .optional()
-            .describe("Filter by capability name"),
-          tag: tool.schema.string().optional().describe("Filter by tag"),
-        },
-        execute: safeExecute(
-          async (args) => specTools.adv_spec_list.execute(args, store),
-          "adv_spec_list",
-        ),
-      }),
-
-      adv_spec_show: tool({
-        description: specTools.adv_spec_show.description,
-        args: {
-          capability: tool.schema
+            .describe("Capability ID for show or filter for list"),
+          tag: tool.schema
             .string()
-            .describe("Capability ID (e.g., 'contract-system')"),
-        },
-        execute: safeExecute(
-          async (args) => specTools.adv_spec_show.execute(args, store),
-          "adv_spec_show",
-        ),
-      }),
-
-      adv_spec_search: tool({
-        description: specTools.adv_spec_search.description,
-        args: {
-          query: tool.schema.string().describe("Search query"),
+            .optional()
+            .describe("Filter by tag for list"),
+          query: tool.schema
+            .string()
+            .optional()
+            .describe("Search query for search"),
           limit: tool.schema
             .number()
             .optional()
-            .describe("Maximum results (default: 20)"),
+            .describe("Maximum results to return"),
+          offset: tool.schema
+            .number()
+            .optional()
+            .describe("Offset for pagination"),
         },
         execute: safeExecute(
-          async (args) => specTools.adv_spec_search.execute(args, store),
-          "adv_spec_search",
+          async (args) => specTools.adv_spec.execute(args, store),
+          "adv_spec",
         ),
       }),
 
@@ -432,10 +402,7 @@ export const AdvancePlugin: Plugin = async ({ directory, worktree }) => {
             .describe(
               "New status. NOTE: 'cancelled' is rejected here — use adv_task_cancel instead",
             ),
-          notes: tool.schema
-            .string()
-            .optional()
-            .describe("Completion notes"),
+          notes: tool.schema.string().optional().describe("Completion notes"),
         },
         execute: safeExecute(
           async (args) => taskTools.adv_task_update.execute(args, store),
@@ -538,9 +505,7 @@ export const AdvancePlugin: Plugin = async ({ directory, worktree }) => {
             .describe("Task IDs to cancel (batch supported)"),
           reasons: tool.schema
             .record(tool.schema.string(), tool.schema.string())
-            .describe(
-              "Per-task cancellation reasons keyed by task ID",
-            ),
+            .describe("Per-task cancellation reasons keyed by task ID"),
           approvedByUser: tool.schema
             .literal(true)
             .describe("Must be true — confirms user explicitly approved"),
@@ -552,9 +517,7 @@ export const AdvancePlugin: Plugin = async ({ directory, worktree }) => {
           supersededBy: tool.schema
             .record(tool.schema.string(), tool.schema.string())
             .optional()
-            .describe(
-              "Optional per-task superseding task ID",
-            ),
+            .describe("Optional per-task superseding task ID"),
         },
         execute: safeExecute(
           async (args) =>
@@ -853,6 +816,32 @@ export const AdvancePlugin: Plugin = async ({ directory, worktree }) => {
         ),
       }),
 
+      adv_run_test: tool({
+        description: testTools.adv_run_test.description,
+        args: {
+          taskId: tool.schema
+            .string()
+            .describe("Task ID to record evidence for"),
+          command: tool.schema
+            .string()
+            .describe("The exact shell command to run"),
+          phase: tool.schema
+            .enum(["red", "green"])
+            .describe("TDD phase (red=failing test, green=passing test)"),
+          workdir: tool.schema
+            .string()
+            .optional()
+            .describe(
+              "Working directory to run the test in (default: project root)",
+            ),
+        },
+        execute: safeExecute(
+          async (args) =>
+            testTools.adv_run_test.execute(args, store, directory),
+          "adv_run_test",
+        ),
+      }),
+
       adv_gate_complete: tool({
         description: gateTools.adv_gate_complete.description,
         args: {
@@ -935,11 +924,6 @@ export const AdvancePlugin: Plugin = async ({ directory, worktree }) => {
       try {
         debugLog(`tool.execute.before: tool="${input.tool}"`);
 
-        // Track bash commands for test runner detection
-        if (input.tool === "bash" && output.args?.command) {
-          state.lastBashCommand = String(output.args.command);
-        }
-
         // Track changeId from ADV tools for context injection
         // (args are only available in before hook, not after)
         if (output.args?.changeId) {
@@ -997,27 +981,6 @@ export const AdvancePlugin: Plugin = async ({ directory, worktree }) => {
           }
         }
 
-        // Check for test runner completion
-        if (input.tool === "bash" && state.lastBashCommand) {
-          const isTestRunner = TEST_RUNNER_PATTERNS.some((p) =>
-            p.test(state.lastBashCommand!),
-          );
-
-          if (isTestRunner) {
-            const exitCode =
-              (output.metadata as { exitCode?: number })?.exitCode ??
-              (TEST_FAILURE_PATTERNS.test(output.output) ? 1 : 0);
-
-            setState({
-              status: exitCode === 0 ? "TDD_GREEN" : "TDD_RED",
-              lastBashCommand: null,
-            });
-            return;
-          }
-
-          state.lastBashCommand = null;
-        }
-
         // Handle sub-agent completion
         // OpenCode uses lowercase "task" for the built-in Task tool
         if (input.tool === "task") {
@@ -1058,65 +1021,8 @@ export const AdvancePlugin: Plugin = async ({ directory, worktree }) => {
 
         if (!state.activeChange.id) return;
 
-        const changeId = state.activeChange.id;
-        const wisdom = await store.wisdom.list(changeId);
-        const tasks = await store.tasks.list(changeId);
-
-        // 1. Accumulated Wisdom Injection (limit to most recent entries to avoid context bloat)
-        const MAX_WISDOM_ENTRIES = 10;
-        if (wisdom.length > 0) {
-          const recentWisdom = wisdom.slice(-MAX_WISDOM_ENTRIES);
-          const wisdomList = recentWisdom
-            .map((w) => `- [${w.type.toUpperCase()}] ${w.content}`)
-            .join("\n");
-          const truncationNote =
-            wisdom.length > MAX_WISDOM_ENTRIES
-              ? `\n(Showing ${MAX_WISDOM_ENTRIES} of ${wisdom.length} most recent entries)`
-              : "";
-          output.system.push(
-            `[ADV:ACCUMULATED_WISDOM] The following wisdom has been accumulated for change ${changeId}:\n${wisdomList}${truncationNote}`,
-          );
-        }
-
-        // 1b. Project-Level Wisdom Injection (cross-change durable learnings)
-        const MAX_PROJECT_WISDOM = 10;
-        try {
-          const projectWisdom = await listProjectWisdom(store.paths.root, {
-            wisdomPath: store.paths.wisdom,
-          });
-          if (projectWisdom.length > 0) {
-            const recentProjectWisdom = projectWisdom.slice(
-              0,
-              MAX_PROJECT_WISDOM,
-            );
-            const projectWisdomList = recentProjectWisdom
-              .map((w) => `- [${w.type.toUpperCase()}] ${w.content}`)
-              .join("\n");
-            const projectTruncationNote =
-              projectWisdom.length > MAX_PROJECT_WISDOM
-                ? `\n(Showing ${MAX_PROJECT_WISDOM} of ${projectWisdom.length} project-level entries)`
-                : "";
-            output.system.push(
-              `[ADV:PROJECT_WISDOM] The following project-level wisdom applies across all changes:\n${projectWisdomList}${projectTruncationNote}`,
-            );
-          }
-        } catch (e) {
-          debugLog(`Project wisdom read error: ${e}`);
-        }
-
-        // 2. Todo Continuation Reminder
-        const pendingTasks = tasks.filter(
-          (t) => t.status === "pending" || t.status === "in_progress",
-        );
-        if (pendingTasks.length > 0) {
-          const nextTasks = pendingTasks
-            .slice(0, 3)
-            .map((t) => `- ${t.title} (${t.id})`)
-            .join("\n");
-          output.system.push(
-            `[ADV:TODO_CONTINUATION] Change ${changeId} has ${pendingTasks.length} tasks remaining. Next up:\n${nextTasks}\nPlease continue with these tasks until the change is complete.`,
-          );
-        }
+        // Removed dynamic context injection (wisdom, tasks) to preserve prompt caching.
+        // Agents should rely on explicitly calling tools to fetch context when needed.
 
         // 3. Wisdom Recording Prompt (if task just finished)
         if (state.lastCompletedTask) {

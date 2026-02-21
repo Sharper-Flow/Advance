@@ -589,9 +589,7 @@ describe("Task Tools", () => {
       expect(task!.cancellation).toBeDefined();
       expect(task!.cancellation!.reason).toBe("Absorbed into tk-task0002");
       expect(task!.cancellation!.approved_by_user).toBe(true);
-      expect(task!.cancellation!.approval_evidence).toContain(
-        "question tool",
-      );
+      expect(task!.cancellation!.approval_evidence).toContain("question tool");
       expect(task!.cancellation!.superseded_by).toBe("tk-task0002");
       expect(task!.cancellation!.approved_at).toBeDefined();
       expect(task!.completed_at).toBeDefined();
@@ -622,9 +620,7 @@ describe("Task Tools", () => {
       expect(task1!.cancellation!.reason).toBe(
         "Out of scope per user decision",
       );
-      expect(task2!.cancellation!.reason).toBe(
-        "Superseded by new approach",
-      );
+      expect(task2!.cancellation!.reason).toBe("Superseded by new approach");
     });
 
     test("rejects when missing per-task reason", async () => {

@@ -95,10 +95,7 @@ export const taskTools = {
       status: z
         .enum(["pending", "in_progress", "done", "cancelled"])
         .describe("New status"),
-      notes: z
-        .string()
-        .optional()
-        .describe("Completion notes"),
+      notes: z.string().optional().describe("Completion notes"),
     },
     execute: async (
       {
