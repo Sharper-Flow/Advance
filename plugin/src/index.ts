@@ -36,6 +36,7 @@ import { safeExecute, safeExecuteSimple } from "./utils/safe-execute";
 import { getProjectId, getExternalRoot } from "./utils/project-id";
 import { migrateToExternalState } from "./storage/migrate";
 import { consumeHandoff } from "./storage/handoff";
+import { enforceBashPolicy } from "./guards/bash";
 
 // =============================================================================
 // Types
@@ -923,6 +924,13 @@ export const AdvancePlugin: Plugin = async ({ directory, worktree }) => {
     "tool.execute.before": async (input, output): Promise<void> => {
       try {
         debugLog(`tool.execute.before: tool="${input.tool}"`);
+
+        // Enforce read-only bash policy for restricted sub-agents
+        if (input.tool === "bash") {
+          const agent = (input as any).agent || "unknown";
+          const command = (output.args as any)?.command || "";
+          enforceBashPolicy(agent, command);
+        }
 
         // Track changeId from ADV tools for context injection
         // (args are only available in before hook, not after)

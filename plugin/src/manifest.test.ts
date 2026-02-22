@@ -42,12 +42,13 @@ describe("Command Manifest", () => {
       "adv-improve",
       "adv-slop-scan",
       "adv-task",
+      "adv-quick",
     ];
 
     for (const cmd of expectedCommands) {
       expect(COMMAND_MANIFEST).toHaveProperty(cmd);
     }
-    expect(Object.keys(COMMAND_MANIFEST)).toHaveLength(19);
+    expect(Object.keys(COMMAND_MANIFEST)).toHaveLength(20);
   });
 
   test("every command has required fields", () => {

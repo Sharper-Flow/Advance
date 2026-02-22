@@ -124,6 +124,16 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
     prerequisites: ["adv-prep"],
     successors: ["adv-apply"],
   },
+  "adv-quick": {
+    name: "adv-quick",
+    description:
+      "Fast-track a pre-discussed change — synthesize chat contract, validate LBP, then autonomously research, prep, and implement",
+    phase: "implementation",
+    gate: "implementation",
+    requiresChangeId: false,
+    prerequisites: [],
+    successors: ["adv-review", "adv-harden"],
+  },
 
   // ---- Post-Implementation ----
   "adv-review": {
