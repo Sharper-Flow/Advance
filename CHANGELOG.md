@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.4.0] - 2026-02-22
 
+### Fixed (post-release)
+- `/adv-quick` now always derives its contract from the recent conversation when called with no arguments — never asks "what do you want to build?"
+- `/adv-proposal` no longer stops with a usage error when called with no summary argument — derives title from conversation context instead
+
 ### Added
 
 #### `/adv-quick` — Fast-Track Contract Execution
