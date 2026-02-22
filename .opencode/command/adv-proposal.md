@@ -4,8 +4,8 @@ description: Create a new ADV change proposal with INVEST-quality requirements
 agent: build
 args:
   - name: summary
-    description: Brief summary of the change (becomes change title)
-    required: true
+    description: Brief summary of the change (becomes change title). Optional — if omitted the agent derives a title from the recent conversation.
+    required: false
 ---
 
 # ADV Proposal - Create Change with Quality Requirements
@@ -18,17 +18,16 @@ Create a new change proposal for the ADV system. Uses INVEST criteria and requir
 
 ## Pre-flight Checks
 
-### Step 1: Validate Arguments
+### Step 1: Resolve Summary
 
-If `$ARGUMENTS` is empty or whitespace:
-```
-Usage: /adv-proposal "brief summary of the change"
+`$ARGUMENTS` is **optional**. The agent always has enough context to proceed.
 
-Example: /adv-proposal "add user authentication"
+| Invocation | Behaviour |
+|------------|-----------|
+| `/adv-proposal` (no args) | Derive a concise 2-5 word summary from the recent conversation. Never ask the user "what do you want to build?" — synthesize from context and let the question tool confirm scope. |
+| `/adv-proposal <summary>` | Use the provided text as the change summary verbatim. |
 
-For quick ideation first: /adv-brainstorm "topic"
-```
-Stop execution.
+**Never stop execution or print a usage error when `$ARGUMENTS` is empty.** If the conversation contains no clear prior topic, pick a reasonable working title (e.g. "explore new feature") — the user will refine it via the scope question in Step 5.
 
 ### Step 2: Check for Existing Changes
 
@@ -65,7 +64,7 @@ Look for `./temp/brainstorm-*.md` files that might provide context.
 
 ### Step 4: Create Change Scaffold
 
-Call `adv_change_create summary: "$ARGUMENTS"`
+Call `adv_change_create summary: "<resolved summary from Step 1>"`
 
 This will create:
 - `changes/<change-id>/change.json` - Change metadata
