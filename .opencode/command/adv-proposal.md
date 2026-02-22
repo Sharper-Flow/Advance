@@ -1,11 +1,7 @@
 ---
 name: adv-proposal
-description: Create a new ADV change proposal with INVEST-quality requirements
+description: Create a new ADV change proposal with INVEST-quality requirements. Optionally pass a summary — if omitted, the agent derives a title from the recent conversation.
 agent: build
-args:
-  - name: summary
-    description: Brief summary of the change (becomes change title). Optional — if omitted the agent derives a title from the recent conversation.
-    required: false
 ---
 
 # ADV Proposal - Create Change with Quality Requirements
