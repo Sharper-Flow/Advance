@@ -37,9 +37,22 @@ Same as `/adv-ralph`. Once the contract is confirmed, every task MUST be complet
 
 ---
 
+## Argument Handling
+
+`$ARGUMENTS` is **always optional**. `/adv-quick` is designed to be invoked with no arguments — the agent derives everything it needs from the recent conversation.
+
+| Invocation | Behaviour |
+|------------|-----------|
+| `/adv-quick` (no args) | Synthesize contract entirely from recent conversation. Derive a title from the topic discussed. |
+| `/adv-quick <hint>` | Use the hint to anchor the contract (e.g. `/adv-quick fix login timeout`). Fill remaining details from conversation. |
+
+**Never ask the user "what do you want to work on?" when `$ARGUMENTS` is empty.** The assumption is always: *the user is referring to whatever was just discussed.* If the conversation contains no clear prior discussion of a change, synthesize a contract from the most recent topic and let the confirmation step (question tool) surface any corrections.
+
+---
+
 ## Phase 0: Synthesize the Quick Contract
 
-Read the recent conversation history and extract the agreed-upon change.
+Read the recent conversation history and extract the agreed-upon change. If `$ARGUMENTS` is provided, use it as an anchor; otherwise derive everything from context.
 
 Emit this block in the chat:
 
