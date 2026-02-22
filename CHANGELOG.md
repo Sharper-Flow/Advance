@@ -7,9 +7,101 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-02-22
+
 ### Added
-- `adv_task_show` tool to retrieve full task details by task ID.
-- `resolveTask` internal helper in Store to DRY up task resolution across tools.
+
+#### `/adv-quick` — Fast-Track Contract Execution
+- New command that turns a pre-discussed change into a fully-executed ADV change without the heavyweight proposal phase
+- Synthesizes a **Quick Contract** from the conversation (intent, LBP targets, scope, success criteria)
+- Chat-based confirmation via `question` tool — no file review required
+- Autonomous pipeline: Research (LBP validation) → Prep (task generation) → Implement (full `/adv-ralph` behavior)
+- **LBP halt condition**: pauses with options if a best-practice conflict is detected before writing any code
+- Registered in command manifest with `gate: "implementation"`, successors `["adv-review", "adv-harden"]`
+
+#### BMAD-Inspired Quality Infrastructure
+- Adversarial review enforcement: minimum 3 non-nit findings or explicit genuinely-clean justification
+- `docs/checklists/review-checklist.md` — 12-dimension review coverage checklist
+- `docs/checklists/harden-checklist.md` — 5-scanner hardening checklist with severity scoring
+- `docs/checklists/prep-checklist.md` — INVEST-based requirement specificity and scenario completeness criteria
+- Project-level wisdom JSONL store (`wisdom.jsonl`) with add, list, compact operations
+- `adv_wisdom_promote` tool to promote change-level entries to project wisdom with pruning criteria
+- Project wisdom injected into session context as `[ADV:PROJECT_WISDOM]` (max 10 entries, newest first)
+
+#### Worktree Integration
+- Phase 0 worktree assessment in `/adv-apply` and `/adv-ralph` — risk-based suggestion with user confirmation
+- Inline worktree protocol: create worktree, switch `workdir`, continue in same session
+- External mutable state shared across all worktrees of the same repo via project-id (root commit SHA)
+- Worktree cleanup protocol documented: archive ≠ merge, must verify merge before `worktree_delete`
+- Graceful degradation when worktree tools unavailable (`[ADV:INFO]` marker, continues in-place)
+
+#### Cross-Repo Task Routing
+- Tasks with `target_repo` or `target_path` metadata execute in the target directory via `workdir` switching
+- `related_repos` config in `project.json` for generic repo routing (id → absolute path)
+- Prohibited cancellation reasons enforced: "different repo" and "out of scope" are invalid
+- Cross-repo protocol documented in `/adv-ralph` and `/adv-apply`
+
+#### Mandatory User-Approved Cancellation
+- `adv_task_cancel` tool replacing direct `status: "cancelled"` via `adv_task_update` (now rejected)
+- Per-task cancellation reasons required, batch approval supported via `question` tool
+- Cancellation approval metadata (`approved_by_user: true`) tracked in `change.json`
+- Review and Harden gates block if any cancelled task lacks approval
+
+#### Typed Delta Modifications
+- `modify` delta now type-checked against Requirement schema — unknown keys rejected at parse time
+- `rename` operation: update title and/or ID of existing requirement
+- Intra-delta conflict detection: rename + remove on same requirement, duplicate renames, ID collisions
+- Delta application order enforced: rename → remove → modify → add
+
+#### Tools
+- `adv_task_show` — get full task details by task ID (includes parent changeId)
+- `adv_run_test` — run test command and record TDD evidence in one call
+- `adv_task_cancel` — cancel tasks with mandatory user approval and per-task reasons
+- `adv_change_add_issue` / `adv_change_remove_issue` — link/unlink GitHub issue URLs to changes
+- Wisdom tools: `adv_wisdom_add`, `adv_wisdom_list`, `adv_wisdom_promote`
+- Gate tools: `adv_gate_status`, `adv_gate_complete`
+
+#### Performance & Reliability
+- Lazy sync on startup — reduced cold-start latency
+- All 36 tools switched to compact JSON output with pagination support
+- Auto-truncation on tool outputs to protect context window
+- SQLite: WAL mode, auto-recovery, checkpointing to prevent corruption
+- Atomic writes with fsync hardening for `change.json` and `agenda.jsonl`
+- File locking to prevent concurrent write corruption
+- Change IDs: camelCase format with stop-word filtering and auto-increment deduplication
+
+#### Developer Experience
+- `adv-researcher` sub-agent definition (`.opencode/agents/adv-researcher.md`)
+- Bash policy guard (`plugin/src/guards/bash.ts`) enforcing read-only restrictions on `explore`/`librarian` agents
+- JSON Schema generation script to prevent schema drift
+- Migration script: add `$schema` refs to existing `change.json` / `spec.json` files
+- Context freshness policy: re-read change via `adv_change_show` before each task (prevents drift)
+- TodoWrite rules: task IDs only in todo list (forces `adv_task_show` lookup, prevents stale mental models)
+
+### Changed
+- `/adv-harden` doc scanner replaced with aggressive documentation hygiene (stale content detection, orphan files)
+- `/adv-review` enforces minimum findings threshold with genuinely-clean justification template
+- Change ID format: `camelCase` (e.g., `fixLoginBug`) with short-form partial matching
+- `adv_task_update` rejects `status: "cancelled"` — use `adv_task_cancel` instead
+- Archive workflow validates all 6 gates complete (or legacy) before proceeding
+- Plugin context window optimized: reduced injected system context size
+
+### Fixed
+- Archive tests failing on Bun due to `access()` resolving to `null`
+- `change.json` corruption under concurrent writes — strict locking + fsync
+- SQLite corruption — WAL checkpointing and auto-recovery
+- Bell/chime fires only on `ROCKET`/`MOON` → `EARTH`/`MIC` transitions (was firing spuriously)
+- SQLite store now closes cleanly on session exit (memory leak)
+- Schema errors returned to AI instead of silently logged to console
+- `MOON` status preserved correctly during `session.status` events
+- `$schema` field and extra fields in task/change schemas handled via `.passthrough()`
+
+### Security
+- Resolved 3 dependency vulnerabilities: `minimatch` (high ReDoS), `ajv` (moderate ReDoS), `esbuild` (moderate dev-server exposure)
+- Updated `vitest` to v4, `tsup` to v8.5, `eslint` to v9.39, `typescript-eslint` to v8.56
+- Added `overrides` in `package.json` to force patched `minimatch >=10.0.1` and `ajv >=8.17.1`
+- Removed stale `pnpm-lock.yaml` (was being scanned by Dependabot instead of `bun.lock`)
+- Migrated from `pnpm` to `bun` as primary package manager and test runner
 
 ## [0.3.0] - 2026-01-29
 
@@ -158,5 +250,6 @@ s**: `adv_task_list`, `adv_task_ready`, `adv_task_update`, `adv_task_add`
 - **Linting**: ESLint 9 with TypeScript support
 - **Formatting**: Prettier
 
+[0.4.0]: https://github.com/Sharper-Flow/Advance/releases/tag/v0.4.0
 [0.2.0]: https://github.com/Sharper-Flow/Advance/releases/tag/v0.2.0
 [0.1.0]: https://github.com/Sharper-Flow/Advance/releases/tag/v0.1.0

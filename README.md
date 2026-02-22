@@ -55,10 +55,10 @@ git clone https://github.com/Sharper-Flow/Advance.git
 cd Advance/plugin
 
 # Install dependencies
-pnpm install
+bun install
 
 # Run tests
-pnpm test
+bun test
 ```
 
 See [INSTALL.md](INSTALL.md) for detailed setup instructions.
@@ -132,6 +132,12 @@ See [INSTALL.md](INSTALL.md) for detailed setup instructions.
 | `/adv-harden <id>` | 5-agent hardening (tests, AI-slop, docs, cleanup, spec alignment) |
 | `/adv-audit [capability]` | Project-wide spec/implementation drift detection |
 
+### Fast-Track
+
+| Command | Description |
+|---------|-------------|
+| `/adv-quick` | Chat contract → LBP research → prep → autonomous implement (no proposal phase) |
+
 ### Advanced
 
 | Command | Description |
@@ -143,7 +149,7 @@ See [INSTALL.md](INSTALL.md) for detailed setup instructions.
 
 ## MCP Tools
 
-ADV exposes 36 MCP tools for programmatic access:
+ADV exposes 37 MCP tools for programmatic access:
 
 ### Spec Tools
 | Tool | Description |
@@ -354,7 +360,7 @@ Phase 0 of `/adv-apply` and `/adv-ralph` assesses risk and suggests worktree iso
 ┌─────────────────────────────────────────────────────────────┐
 │                       ADV Plugin                            │
 │  ┌─────────────────────────────────────────────────────┐    │
-│  │                   36 MCP Tools                      │    │
+│  │                   37 MCP Tools                      │    │
 │  │   Spec: list, show, search                          │    │
 │  │   Change: list, show, create, validate, archive     │    │
 │  │   Task: list, show, ready, update, add, evidence    │    │
@@ -377,45 +383,23 @@ Phase 0 of `/adv-apply` and `/adv-ralph` assesses risk and suggests worktree iso
 │  └─────────────────────────────────────────────────────┘    │
 └─────────────────────────────────────────────────────────────┘
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                      AI Agent (OpenCode)                    │
-└───────────────────────────┬─────────────────────────────────┘
-                            │ MCP Tool Calls
-                            ▼
-┌─────────────────────────────────────────────────────────────┐
-│                       ADV Plugin                            │
-│  ┌─────────────────────────────────────────────────────┐    │
-│  │                   13 MCP Tools                      │    │
-│  │   spec_list  change_create  task_update  status     │    │
-│  └──────────────────────┬──────────────────────────────┘    │
-│                         │                                   │
-│  ┌──────────────────────▼─────────────────────────└�──────────────────▼──────────────────────────────┐    │
-│  │              Validation Engine                      │    │
-│  │   ID checks, conflicts, completeness, references   │    │
-│  └──────────────────────┬──────────────────────────────┘    │
-│                         │                                   │
-│  ┌──────────────────────▼──────────────────────────────┐    │
-│  │                 Storage Layer                       │    │
-│  │         JSON (source of truth) + SQLite FTS5       │    │
-│  └─────────────────────────────────────────────────────┘    │
-└─────────────────────────────────────────────────────────────┘
-```
 
 ## Development
 
 ```bash
 cd plugin
 
-pnpm install      # Install dependencies
-pnpm test         # Run 222 tests
-pnpm run check    # Typecheck + lint + format
+bun install       # Install dependencies
+bun test          # Run 570 tests
+bun run typecheck # Typecheck
+bun run lint      # Lint
 ```
 
 ### Test Coverage
 
-- 534 tests across 23 test files
+- 570 tests across 25 test files
 - Storage layer (JSON, SQLite, Store, Migration, Handoff)
-- All 36 MCP tools
+- All 37 MCP tools
 - Validation engine with error paths
 - Archive operations
 - Worktree integration and cross-session state
