@@ -219,6 +219,95 @@ export const getProjectName = (directory: string): string => {
   }
 };
 
+// =============================================================================
+// Tab Title Helpers
+// =============================================================================
+
+/**
+ * Common verb prefixes to strip from camelCase/kebab/snake change IDs.
+ * Applied before title-casing to surface the meaningful noun phrase.
+ */
+const CHANGE_ID_PREFIXES = [
+  "refactor",
+  "improve",
+  "remove",
+  "create",
+  "update",
+  "change",
+  "add",
+  "fix",
+];
+
+/**
+ * Normalize a camelCase, kebab-case, or snake_case change ID into
+ * a human-readable Title Case label suitable for a terminal tab title.
+ *
+ * Algorithm:
+ *   1. Insert space at camelCase boundaries
+ *   2. Replace separators (- _) with spaces
+ *   3. Normalize whitespace
+ *   4. Strip leading verb prefix (if result would remain non-empty)
+ *   5. Title-case each word
+ *   6. Fall back to full raw ID (title-cased) if result is empty
+ *
+ * Examples:
+ *   addFeatureX            → "Feature X"
+ *   fixAuthTimeout         → "Auth Timeout"
+ *   improve-terminal-tab   → "Terminal Tab"
+ *   fix_auth_timeout       → "Auth Timeout"
+ *   terminalTabTitle       → "Terminal Tab Title"
+ */
+export const normalizeChangeCode = (changeId: string): string => {
+  if (!changeId) return "";
+
+  // Step 1: split camelCase → "add Feature X"
+  // Step 2: replace separators → words
+  // Step 3: normalise whitespace
+  const spaced = changeId
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/[-_]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  const words = spaced.split(" ").filter(Boolean);
+  if (words.length === 0) return changeId;
+
+  // Step 4: strip leading verb prefix (case-insensitive, whole-word only)
+  const firstLower = words[0].toLowerCase();
+  const matchedPrefix = CHANGE_ID_PREFIXES.find((p) => firstLower === p);
+  const remainder =
+    matchedPrefix && words.length > 1 ? words.slice(1) : words;
+
+  // Step 5: title-case
+  const titled = remainder
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+    .join(" ");
+
+  // Step 6: fallback — should not be empty given the guard above, but be safe
+  return titled || words.map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ");
+};
+
+/**
+ * Build the terminal tab title string.
+ *
+ * Format:
+ *   - Active change: "<emoji> <normalizedChangeCode>"
+ *   - No active change: "<emoji>"  (bare emoji only — project name dropped)
+ *
+ * No progress counter is ever included.
+ */
+export const buildTabTitle = (
+  emoji: string,
+  _projectName: string,
+  changeId: string | undefined,
+): string => {
+  if (changeId) {
+    const label = normalizeChangeCode(changeId);
+    return label ? `${emoji} ${label}` : emoji;
+  }
+  return emoji;
+};
+
 /**
  * Ring the terminal bell (audio alert).
  * Used to notify user when attention is needed (EARTH, MIC states).
@@ -289,20 +378,19 @@ const _getModelName = (): string => {
 
 /**
  * Update terminal based on status.
- * Title format: Status_Emoji Project_Name [Progress] Change_ID
+ * Title format:
+ *   - Active change: "<emoji> <normalizedChangeCode>"
+ *   - No active change: "<emoji>"
  * Rings bell for states needing user attention.
  */
 export const updateTerminalStatus = (
   status: StatusMarker,
   projectName: string,
   changeId?: string,
-  progress?: string,
+  _progress?: string,
 ): void => {
-  // Build title: emoji projectName [progress] changeId
   const emoji = getStatusEmoji(status);
-  const progressText = progress ? ` [${progress}]` : "";
-  const changeIdText = changeId ? ` ${changeId.substring(0, 15)}` : "";
-  const title = `${emoji} ${projectName}${progressText}${changeIdText}`;
+  const title = buildTabTitle(emoji, projectName, changeId);
 
   setTitle(title);
 
@@ -336,7 +424,7 @@ const getStatusEmoji = (status: StatusMarker): string => {
     case "TDD_GREEN":
       return "🟢";
     case "MOON":
-      return "🌙";
+      return "📡";
     case "EARTH":
       return "🌍";
     case "DOOM_LOOP":

@@ -57,16 +57,18 @@ ADV (Advance) enables spec-driven development where **specs become laws**. Requi
 
 Emit at START of each response:
 
-| Marker | When |
-|--------|------|
-| `[ADV:ROCKET]` | Active work |
-| `[ADV:TDD_RED]` | Writing tests (red phase) |
-| `[ADV:TDD_GREEN]` | Implementing (green phase) |
-| `[ADV:MOON]` | Waiting for sub-agents |
-| `[ADV:EARTH]` | Complete / awaiting input |
-| `[ADV:DOOM_LOOP]` | Stuck in retry cycle |
-| `[ADV:MIC]` | Needs user approval |
-| `[ADV:TASK_STATUS_REPORT]` | Emitting task report |
+| Marker | When | Tab emoji |
+|--------|------|-----------|
+| `[ADV:ROCKET]` | Active work | 🚀 |
+| `[ADV:TDD_RED]` | Writing tests (red phase) | 🔴 |
+| `[ADV:TDD_GREEN]` | Implementing (green phase) | 🟢 |
+| `[ADV:MOON]` | Sub-agents running | 📡 |
+| `[ADV:EARTH]` | Complete / awaiting input | 🌍 |
+| `[ADV:DOOM_LOOP]` | Stuck in retry cycle | 💀 |
+| `[ADV:MIC]` | Needs user approval | 🎤 |
+| `[ADV:TASK_STATUS_REPORT]` | Emitting task report | — |
+
+Tab title format: `<emoji> <normalized change code>` when active change is set (e.g. `📡 Feature X`); bare `<emoji>` when no active change. camelCase/kebab/snake_case IDs are split to Title Case words; common verb prefixes (add/fix/update/improve/create/remove/refactor/change) are stripped.
 
 System-emitted: `[ADV:ACCUMULATED_WISDOM]`, `[ADV:TODO_CONTINUATION]`, `[ADV:RECORD_WISDOM]`
 

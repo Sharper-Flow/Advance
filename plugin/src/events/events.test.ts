@@ -22,6 +22,7 @@ import {
   getDoomLoopInfo,
 } from "./status";
 import { getProjectName, isTmux } from "./terminal";
+import { normalizeChangeCode, buildTabTitle } from "./terminal";
 
 describe("Status Markers", () => {
   describe("getStatusMarker", () => {
@@ -416,5 +417,157 @@ describe("Terminal Utilities", () => {
       // Can't reliably test this without mocking process.env
       expect(typeof isTmux()).toBe("boolean");
     });
+  });
+});
+
+// =============================================================================
+// normalizeChangeCode
+// =============================================================================
+
+describe("normalizeChangeCode", () => {
+  describe("camelCase inputs", () => {
+    it("strips leading add prefix and title-cases remainder", () => {
+      expect(normalizeChangeCode("addFeatureX")).toBe("Feature X");
+    });
+
+    it("strips leading fix prefix", () => {
+      expect(normalizeChangeCode("fixAuthTimeout")).toBe("Auth Timeout");
+    });
+
+    it("strips leading improve prefix", () => {
+      expect(normalizeChangeCode("improveTerminalTabTitle")).toBe(
+        "Terminal Tab Title",
+      );
+    });
+
+    it("strips leading update prefix", () => {
+      expect(normalizeChangeCode("updateUserProfile")).toBe("User Profile");
+    });
+
+    it("strips leading create prefix", () => {
+      expect(normalizeChangeCode("createNewSession")).toBe("New Session");
+    });
+
+    it("strips leading remove prefix", () => {
+      expect(normalizeChangeCode("removeDeprecatedApi")).toBe("Deprecated Api");
+    });
+
+    it("strips leading refactor prefix", () => {
+      expect(normalizeChangeCode("refactorStorageLayer")).toBe("Storage Layer");
+    });
+
+    it("strips leading change prefix", () => {
+      expect(normalizeChangeCode("changeTabTitle")).toBe("Tab Title");
+    });
+
+    it("handles multi-word camelCase without prefix", () => {
+      expect(normalizeChangeCode("terminalTabTitle")).toBe(
+        "Terminal Tab Title",
+      );
+    });
+  });
+
+  describe("kebab-case inputs", () => {
+    it("normalizes kebab-case with prefix", () => {
+      expect(normalizeChangeCode("fix-auth-timeout")).toBe("Auth Timeout");
+    });
+
+    it("normalizes kebab-case without prefix", () => {
+      expect(normalizeChangeCode("terminal-tab-title")).toBe(
+        "Terminal Tab Title",
+      );
+    });
+
+    it("normalizes improve- prefix kebab", () => {
+      expect(normalizeChangeCode("improve-terminal-tab-title")).toBe(
+        "Terminal Tab Title",
+      );
+    });
+  });
+
+  describe("snake_case inputs", () => {
+    it("normalizes snake_case with prefix", () => {
+      expect(normalizeChangeCode("fix_auth_timeout")).toBe("Auth Timeout");
+    });
+
+    it("normalizes snake_case without prefix", () => {
+      expect(normalizeChangeCode("terminal_tab_title")).toBe(
+        "Terminal Tab Title",
+      );
+    });
+  });
+
+  describe("edge cases", () => {
+    it("falls back to raw ID title-cased when prefix consumes entire string", () => {
+      // 'add' alone — prefix strip yields empty, fallback to title-cased raw
+      expect(normalizeChangeCode("add")).toBe("Add");
+    });
+
+    it("falls back to raw ID title-cased for very short unknown IDs", () => {
+      expect(normalizeChangeCode("x")).toBe("X");
+    });
+
+    it("handles nanoid suffix style change IDs (add-claude-code-lP0b)", () => {
+      const result = normalizeChangeCode("add-claude-code-lP0b");
+      // strips 'add' prefix → 'Claude Code L P0b' — acceptable output
+      expect(result).toBeTruthy();
+      expect(result.length).toBeGreaterThan(0);
+    });
+
+    it("does not strip prefix that is a substring match only", () => {
+      // 'address' starts with 'add' but 'address' is not the prefix alone
+      expect(normalizeChangeCode("addressBug")).toBe("Address Bug");
+    });
+
+    it("returns non-empty string for any non-empty input", () => {
+      const inputs = [
+        "addFeatureX",
+        "fix-bug",
+        "refactor_code",
+        "someChange",
+        "x",
+      ];
+      for (const input of inputs) {
+        expect(normalizeChangeCode(input).length).toBeGreaterThan(0);
+      }
+    });
+  });
+});
+
+// =============================================================================
+// buildTabTitle
+// =============================================================================
+
+describe("buildTabTitle", () => {
+  it("shows normalized change code only when change is active", () => {
+    expect(buildTabTitle("🚀", "advance", "addFeatureX")).toBe(
+      "🚀 Feature X",
+    );
+  });
+
+  it("shows emoji only when no active change", () => {
+    expect(buildTabTitle("🌍", "advance", undefined)).toBe("🌍");
+  });
+
+  it("shows emoji only when change ID is empty string", () => {
+    expect(buildTabTitle("🌍", "advance", "")).toBe("🌍");
+  });
+
+  it("never includes project name when change is active", () => {
+    const title = buildTabTitle("🚀", "my-project", "fixAuthTimeout");
+    expect(title).not.toContain("my-project");
+    expect(title).toBe("🚀 Auth Timeout");
+  });
+
+  it("never includes progress text", () => {
+    // buildTabTitle has no progress parameter — just verify shape
+    const title = buildTabTitle("🚀", "advance", "addFeatureX");
+    expect(title).not.toMatch(/\[\d+\/\d+\]/);
+  });
+
+  it("shows only emoji (no project name) when no change is active", () => {
+    const title = buildTabTitle("🌍", "advance", undefined);
+    expect(title).not.toContain("advance");
+    expect(title).toBe("🌍");
   });
 });

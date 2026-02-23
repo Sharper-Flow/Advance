@@ -10,6 +10,8 @@ export {
   setTitle,
   resetTitle,
   getProjectName,
+  normalizeChangeCode,
+  buildTabTitle,
   updateTerminalStatus,
   cleanupTerminal,
   ringBell,

@@ -294,18 +294,42 @@ Intra-delta conflicts are detected automatically:
 
 ## Status Markers
 
-ADV emits structured markers for real-time progress visibility:
+ADV emits structured markers for real-time progress visibility. Each marker also updates the
+terminal tab title via OSC escape sequences.
 
-| Marker | Meaning |
-|--------|---------|
-| `[ADV:ROCKET]` | Active work in progress |
-| `[ADV:TDD_RED]` | Red phase - writing failing test |
-| `[ADV:TDD_GREEN]` | Green phase - implementing to pass |
-| `[ADV:MOON]` | Waiting for sub-agent results |
-| `[ADV:EARTH]` | Complete or awaiting input |
-| `[ADV:DOOM_LOOP]` | Stuck after 3+ retries |
-| `[ADV:MIC]` | Needs user approval |
-| `[ADV:WORKTREE_SESSION]` | Running in worktree with hydrated context |
+| Marker | Meaning | Tab emoji |
+|--------|---------|-----------|
+| `[ADV:ROCKET]` | Active work in progress | 🚀 |
+| `[ADV:TDD_RED]` | Red phase - writing failing test | 🔴 |
+| `[ADV:TDD_GREEN]` | Green phase - implementing to pass | 🟢 |
+| `[ADV:MOON]` | Sub-agents running | 📡 |
+| `[ADV:EARTH]` | Complete or awaiting input | 🌍 |
+| `[ADV:DOOM_LOOP]` | Stuck after 3+ retries | 💀 |
+| `[ADV:MIC]` | Needs user approval | 🎤 |
+| `[ADV:WORKTREE_SESSION]` | Running in worktree with hydrated context | — |
+
+### Terminal Tab Title Format
+
+The tab title is updated on every status change:
+
+| Condition | Title |
+|-----------|-------|
+| Active change | `<emoji> <normalized change code>` |
+| No active change | `<emoji>` (bare emoji only) |
+
+**Change ID normalization** — camelCase, kebab-case, and snake_case IDs are split into
+Title Case words. Common verb prefixes (`add`, `fix`, `update`, `improve`, `create`,
+`remove`, `refactor`, `change`) are stripped:
+
+```
+addFeatureX           →  🚀 Feature X
+fixAuthTimeout        →  🚀 Auth Timeout
+improve-terminal-tab  →  🚀 Terminal Tab
+fix_auth_timeout      →  🚀 Auth Timeout
+terminalTabTitle      →  🚀 Terminal Tab Title
+```
+
+Progress counters (`[2/7]`) are not shown in the title.
 
 System-emitted markers:
 | Marker | When |

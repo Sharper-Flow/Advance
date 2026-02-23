@@ -658,7 +658,7 @@ export const STATUS_MARKERS = {
   ROCKET: "[ADV:ROCKET]", // Active work
   TDD_RED: "[ADV:TDD_RED]", // Red phase
   TDD_GREEN: "[ADV:TDD_GREEN]", // Green phase
-  MOON: "[ADV:MOON]", // Waiting for sub-agents
+  MOON: "[ADV:MOON]", // Sub-agents running (📡)
   EARTH: "[ADV:EARTH]", // Complete / awaiting input
   DOOM_LOOP: "[ADV:DOOM_LOOP]", // Stuck
   MIC: "[ADV:MIC]", // Needs approval
