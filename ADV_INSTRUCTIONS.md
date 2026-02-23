@@ -162,6 +162,11 @@ See: [docs/adv-task-report.md](docs/adv-task-report.md)
 Gates are sequential. Archive blocks until all 6 satisfied.
 See: [docs/adv-gates.md](docs/adv-gates.md)
 
+**Gate behaviors:**
+- `/adv-review` emits a `REVIEW_FINDINGS` block listing all actionable findings (`blocker`, `issue`, `suggestion`, `question`).
+- `/adv-harden` **blocks** if any actionable review findings are unresolved and not documented as accepted debt in `proposal.md`. `nit:` findings are not required.
+- `/adv-archive` **runs mandatory Phase 9 Git Finalization**: stage+commit all changes, detect default branch, merge (or open PR), verify merge is clean, clean up worktree, remove temp artifacts.
+
 ## Sub-Agent Selection
 
 When spawning sub-agents via the Task tool, select based on the task type:
@@ -259,32 +264,17 @@ Phase 0 of `/adv-apply` handles worktree assessment automatically:
 
 ### Worktree Cleanup Protocol
 
-**ADV archive != git merge.** Archiving a change updates specs and moves ADV state to the archive directory, but it does NOT merge the worktree branch into the default branch. You must merge separately.
+**`/adv-archive` handles git finalization automatically** via its mandatory Phase 9. This includes staging+committing all changes, merging to the default branch, verifying the merge is clean, and deleting the worktree.
 
-After `/adv-archive` completes and signoff gate passes:
+Phase 9 steps (run automatically after archive):
+1. Stage and commit all modified files
+2. Detect default branch (`main` / `trunk` / remote HEAD)
+3. Merge `change/{change-id}` to default branch (or push + open PR)
+4. Verify merge: `git log --oneline {default}..change/{change-id}` must return empty
+5. Delete worktree via `worktree_delete` (gracefully skipped if tool unavailable)
+6. Remove temp artifacts (`.bak`, `.tmp`, `.orig`)
 
-1. **Verify clean** — `git status` in the worktree shows no uncommitted changes
-2. **Merge to default branch** — from the main working directory (not the worktree):
-   ```bash
-   git checkout trunk      # or main — use the repo's default branch
-   git merge --no-edit change/{change-id}
-   ```
-   Or push and open a PR:
-   ```bash
-   git push -u origin change/{change-id}
-   gh pr create --title "Archive {change-id}" --body "Merges completed change."
-   ```
-3. **Verify merge** — confirm no commits remain ahead:
-   ```bash
-   git log --oneline trunk..change/{change-id}
-   # Must return EMPTY
-   ```
-4. **Delete worktree** — only after merge is confirmed:
-   ```bash
-   worktree_delete reason: "Change {change-id} merged to default branch"
-   ```
-
-**Never delete a worktree with unmerged commits.** The worktree protects work that hasn't reached the default branch yet.
+**Never delete a worktree with unmerged commits.** Phase 9 enforces this — it will not call `worktree_delete` until the merge is verified clean.
 
 ### Graceful Degradation
 

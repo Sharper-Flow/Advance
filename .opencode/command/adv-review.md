@@ -533,6 +533,41 @@ REMAINING: Fix issues, re-run /adv-review {change-id}
 ============================================================
 ```
 
+### Emit REVIEW_FINDINGS Block
+
+After the final report, always emit a `REVIEW_FINDINGS` block. This is consumed by `/adv-harden` to audit unresolved findings before allowing the harden gate to complete.
+
+Emit this block **regardless of verdict** (APPROVED, CHANGES_REQUESTED, or BLOCKED):
+
+```
+REVIEW_FINDINGS:
+change: {change-id}
+verdict: {APPROVED|CHANGES_REQUESTED|BLOCKED}
+reviewed_at: {ISO timestamp}
+findings:
+{for each finding with label blocker/issue/suggestion/question/nit, sorted by severity}
+  - id: {dimension}-{n}
+    label: {blocker|issue|suggestion|question|nit}
+    file: {file}
+    line: {N}
+    what: {what}
+    status: {unresolved|fixed|accepted_debt}
+    fix_notes: {empty if unresolved; task ID or fix description if fixed; debt doc ref if accepted}
+{end}
+END_REVIEW_FINDINGS
+```
+
+**Rules for `status` field:**
+- Set `status: unresolved` for all findings at time of review emission
+- `/adv-harden` updates logical status by checking task notes for fix evidence
+- If a finding was fixed during review remediation phase, set `status: fixed` and `fix_notes` to the task or description
+- `nit:` findings always emit as `status: unresolved` but are excluded from harden blocking
+
+**Store the REVIEW_FINDINGS block**: Record it in the review gate completion notes via:
+```
+adv_gate_complete changeId: {change-id} gateId: review completedBy: "agent — {verdict}; {finding_count} findings; REVIEW_FINDINGS emitted"
+```
+
 ### Completion Banner
 
 ```

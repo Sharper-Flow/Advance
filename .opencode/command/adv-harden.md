@@ -124,6 +124,73 @@ Use workdir to switch to the target repo and execute.
 ```
 Stop execution.
 
+### Review Findings Audit
+
+Before running hardening scanners, verify all actionable review findings have been addressed.
+
+**Step 1: Load stored review findings**
+
+Check change notes and task completion evidence for a `REVIEW_FINDINGS` block emitted by `/adv-review`. If present in any task's `completed_by` notes or in the change proposal, extract the finding list.
+
+If no stored findings are available, check the review gate completion timestamp and ask the agent to recall or re-read the review output. If truly unavailable, emit a warning but do not block.
+
+**Step 2: Identify unresolved actionable findings**
+
+Actionable findings are those labeled: `blocker:`, `issue:`, `suggestion:`, `question:`.
+`nit:` findings are excluded — they are optional and do not block harden.
+
+For each actionable finding, determine if it was:
+- **Resolved**: Fixed in a subsequent task (verifiable in task `completed_by` notes mentioning the finding) ✅
+- **Accepted as debt**: Documented in `proposal.md` with debt quadrant, interest rate, and payoff date ✅
+- **Unresolved**: Not fixed and not documented as debt ❌
+
+**If ANY unresolved actionable findings exist:**
+
+```
+============================================================
+        HARDEN BLOCKED - UNRESOLVED REVIEW FINDINGS
+============================================================
+
+The following review findings were not addressed:
+
+{for each unresolved finding}
+- [{label}] {file}:{line} — {what}
+  Why: {why}
+  Status: UNRESOLVED (not fixed, not documented as accepted debt)
+{end}
+
+REQUIRED ACTIONS (choose one per finding):
+a) Fix the issue and update task notes with evidence
+b) Document as accepted debt in proposal.md:
+   - Debt type and Fowler quadrant
+   - Interest rate (cost of not fixing)
+   - Planned payoff date
+
+Once resolved or documented, re-run /adv-harden {change-id}.
+
+============================================================
+```
+Stop execution.
+
+**If all actionable findings are resolved or accepted:**
+
+```
+============================================================
+           REVIEW FINDINGS AUDIT: PASSED
+============================================================
+
+Actionable findings from /adv-review: {total}
+  Resolved: {resolved_count}
+  Accepted as debt: {debt_count}
+  Unresolved: 0 ✓
+
+nit: findings (not required): {nit_count}
+
+============================================================
+```
+
+Proceed to Phase 1 scanners.
+
 ### Extract Details
 
 From change data:

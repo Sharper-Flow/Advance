@@ -114,7 +114,7 @@ See [INSTALL.md](INSTALL.md) for detailed setup instructions.
 | `/adv-proposal <summary>` | Create a new change proposal with scaffolding |
 | `/adv-validate <id>` | Validate change against specs before implementation |
 | `/adv-apply <id>` | Implement change with autonomous retry, TDD, and global final loop |
-| `/adv-archive <id>` | Archive completed change and update specs |
+| `/adv-archive <id>` | Archive completed change, update specs, and run mandatory git finalization (commit, merge, cleanup) |
 
 ### Pre-Implementation
 
@@ -128,8 +128,8 @@ See [INSTALL.md](INSTALL.md) for detailed setup instructions.
 
 | Command | Description |
 |---------|-------------|
-| `/adv-review <id>` | 4-agent code review (traceability, logic, security, architecture) |
-| `/adv-harden <id>` | 5-agent hardening (tests, AI-slop, docs, cleanup, spec alignment) |
+| `/adv-review <id>` | 4-agent code review (traceability, logic, security, architecture); emits `REVIEW_FINDINGS` block |
+| `/adv-harden <id>` | 5-agent hardening (tests, AI-slop, docs, cleanup, spec alignment); blocks if review findings unresolved |
 | `/adv-audit [capability]` | Project-wide spec/implementation drift detection |
 
 ### Fast-Track
@@ -370,7 +370,7 @@ ADV automatically detects worktree contexts and:
 
 Phase 0 of `/adv-apply` assesses risk and suggests worktree isolation when appropriate (threshold: 3+ files or high-risk signals).
 
-> **Important:** ADV archive != git merge. After `/adv-archive`, you must still merge the worktree branch to your default branch (`main`/`trunk`) and verify the merge before deleting the worktree. See [ADV_INSTRUCTIONS.md](ADV_INSTRUCTIONS.md#worktree-cleanup-protocol) for the full cleanup protocol.
+> **Note:** `/adv-archive` runs mandatory **Phase 9 Git Finalization** automatically — it stages and commits all changes, merges the worktree branch to the default branch, verifies the merge is clean, and deletes the worktree. No manual git steps required after archive.
 
 ## Architecture
 
