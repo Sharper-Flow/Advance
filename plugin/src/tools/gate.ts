@@ -17,6 +17,7 @@ import {
 } from "../types";
 import { wrapWithBanner } from "../utils/banner";
 import { formatToolOutput } from "../utils/tool-output";
+import { runPrepReadinessChecks } from "../validator/prep-readiness";
 
 // =============================================================================
 // Tool Definitions
@@ -116,6 +117,64 @@ export const gateTools = {
           error: `Cannot complete ${gateId}: prior gate(s) incomplete`,
           blockedBy,
         });
+      }
+
+      // Prep gate: run readiness checks before marking done
+      if (gateId === "prep") {
+        const readiness = runPrepReadinessChecks(change);
+        if (!readiness.passed) {
+          return formatToolOutput({
+            error: `Prep gate blocked: ${readiness.mustFailures.length} readiness failure(s) must be resolved`,
+            changeId,
+            gateId,
+            readinessFailures: readiness.mustFailures.map((f) => ({
+              code: f.code,
+              severity: f.severity,
+              message: f.message,
+              path: f.path,
+              remediation: (f.details as Record<string, unknown> | undefined)
+                ?.remediation,
+            })),
+            hint: "Fix all readiness failures listed above, then retry adv_gate_complete.",
+          });
+        }
+        // Warnings-only: gate proceeds but advisory warnings included in response
+        const warningsPayload =
+          readiness.warnings.length > 0
+            ? {
+                readinessWarnings: readiness.warnings.map((w) => ({
+                  code: w.code,
+                  message: w.message,
+                  path: w.path,
+                })),
+              }
+            : {};
+
+        // Mark gate complete via store
+        try {
+          await store.gates.complete(changeId, gateId);
+        } catch (saveError) {
+          return formatToolOutput({
+            error: `Failed to complete gate: ${(saveError as Error).message}`,
+            changeId,
+            gateId,
+            hint: "Gate state was not persisted. Retry the operation.",
+          });
+        }
+
+        const now = new Date().toISOString();
+        return wrapWithBanner(
+          { command: "adv_gate_complete", target: `${changeId}:${gateId}` },
+          formatToolOutput({
+            success: true,
+            changeId,
+            gateId,
+            status: "done",
+            completed_at: now,
+            completed_by: completedBy,
+            ...warningsPayload,
+          }),
+        );
       }
 
       // Mark gate complete via store (handles locking and sequence enforcement)

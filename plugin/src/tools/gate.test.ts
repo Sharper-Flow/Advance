@@ -12,6 +12,8 @@ import {
   cleanupTempDir,
   createTestProject,
 } from "../__tests__/setup";
+import { mkdir, writeFile } from "fs/promises";
+import { join } from "path";
 
 /**
  * Extract JSON content from banner-wrapped output.
@@ -195,15 +197,41 @@ describe("Gate Tools", () => {
     });
 
     test("allows completing gate after prior gate done", async () => {
+      // Create a clean change (no readiness failures) to test gate sequencing
+      const cleanChange = {
+        $schema: "https://advance.dev/schemas/change.v1.json",
+        id: "cleanSeqChange",
+        title: "Clean Sequence Change",
+        status: "draft",
+        created_at: "2026-01-01T00:00:00Z",
+        tasks: [],
+        deltas: {}, // no deltas — bug fix scenario, no scenario checks
+      };
+      const { mkdir: mkdirFs, writeFile: writeFileFs } =
+        await import("fs/promises");
+      const { join: joinPath } = await import("path");
+      await mkdirFs(joinPath(tempDir, ".adv/changes/cleanSeqChange"), {
+        recursive: true,
+      });
+      await writeFileFs(
+        joinPath(tempDir, ".adv/changes/cleanSeqChange/change.json"),
+        JSON.stringify(cleanChange, null, 2),
+      );
+      await writeFileFs(
+        joinPath(tempDir, ".adv/changes/cleanSeqChange/proposal.md"),
+        "# Clean Change\n\nTest.\n",
+      );
+      await store.sync();
+
       // Complete research first
       await gateTools.adv_gate_complete.execute(
-        { changeId: "addFeature", gateId: "research" },
+        { changeId: "cleanSeqChange", gateId: "research" },
         store,
       );
 
-      // Now prep should work
+      // Now prep should work (clean change passes readiness checks)
       const result = await gateTools.adv_gate_complete.execute(
-        { changeId: "addFeature", gateId: "prep" },
+        { changeId: "cleanSeqChange", gateId: "prep" },
         store,
       );
       const parsed = extractJson(result) as Record<string, unknown>;
@@ -251,5 +279,364 @@ describe("Gate Tools", () => {
 
       expect(parsed.error).toContain("Invalid gate");
     });
+  });
+});
+
+// =============================================================================
+// Prep Gate Readiness Integration Tests
+// =============================================================================
+
+describe("adv_gate_complete prep — readiness enforcement", () => {
+  let tempDir: string;
+  let store: Store;
+
+  beforeEach(async () => {
+    tempDir = await createTempDir();
+    await createTestProject(tempDir);
+    store = await createStore(tempDir);
+    await store.init();
+    await store.sync();
+
+    // Complete research gate so we can attempt prep
+    await gateTools.adv_gate_complete.execute(
+      { changeId: "addFeature", gateId: "research" },
+      store,
+    );
+  });
+
+  afterEach(async () => {
+    await cleanupTempDir(tempDir);
+  });
+
+  /**
+   * Helper: create a change file on disk and reload the store
+   */
+  async function createChangeFile(
+    changeId: string,
+    changeData: unknown,
+  ): Promise<void> {
+    await mkdir(join(tempDir, `.adv/changes/${changeId}`), { recursive: true });
+    await writeFile(
+      join(tempDir, `.adv/changes/${changeId}/change.json`),
+      JSON.stringify(changeData, null, 2),
+    );
+    await writeFile(
+      join(tempDir, `.adv/changes/${changeId}/proposal.md`),
+      `# ${changeId}\n\nTest change.\n`,
+    );
+    // Reload store to pick up the new change
+    await store.sync();
+  }
+
+  test("blocks prep gate when change has a requirement with no scenarios (SCENARIO_MISSING)", async () => {
+    // Create a change with a delta that has a requirement with no scenarios
+    await createChangeFile("badScenarios", {
+      $schema: "https://advance.dev/schemas/change.v1.json",
+      id: "badScenarios",
+      title: "Bad Scenarios Change",
+      status: "draft",
+      created_at: "2026-01-01T00:00:00Z",
+      tasks: [],
+      deltas: {
+        "some-cap": [
+          {
+            id: "dl-bad00001",
+            operation: "add",
+            requirement: {
+              id: "rq-bad00001",
+              title: "Feature with no scenarios",
+              body: "body",
+              priority: "must",
+              scenarios: [], // <-- no scenarios
+            },
+          },
+        ],
+      },
+    });
+
+    // Complete research gate for the new change
+    await gateTools.adv_gate_complete.execute(
+      { changeId: "badScenarios", gateId: "research" },
+      store,
+    );
+
+    // Attempt to complete prep — should be blocked
+    const result = await gateTools.adv_gate_complete.execute(
+      { changeId: "badScenarios", gateId: "prep" },
+      store,
+    );
+    const parsed = extractJson(result) as Record<string, unknown>;
+
+    expect(parsed.error).toBeDefined();
+    expect(parsed.readinessFailures).toBeDefined();
+    const failures = parsed.readinessFailures as Array<Record<string, unknown>>;
+    expect(failures.some((f) => f.code === "SCENARIO_MISSING")).toBe(true);
+  });
+
+  test("blocks prep gate when change has TDD inversion (TASK_TDD_INVERSION)", async () => {
+    await createChangeFile("tddInversion", {
+      $schema: "https://advance.dev/schemas/change.v1.json",
+      id: "tddInversion",
+      title: "TDD Inversion Change",
+      status: "draft",
+      created_at: "2026-01-01T00:00:00Z",
+      tasks: [
+        {
+          id: "tk-impl0001",
+          title: "Implement the feature",
+          status: "pending",
+          priority: 0,
+          created_at: "2026-01-01T00:00:00Z",
+          tdd_phase: "none",
+          deps: [],
+        },
+        {
+          id: "tk-test0001",
+          title: "Write tests for the feature",
+          status: "pending",
+          priority: 1,
+          created_at: "2026-01-01T00:00:00Z",
+          tdd_phase: "none",
+          deps: [{ type: "blocked_by", target: "tk-impl0001" }], // <-- inversion
+        },
+      ],
+      deltas: {},
+    });
+
+    await gateTools.adv_gate_complete.execute(
+      { changeId: "tddInversion", gateId: "research" },
+      store,
+    );
+
+    const result = await gateTools.adv_gate_complete.execute(
+      { changeId: "tddInversion", gateId: "prep" },
+      store,
+    );
+    const parsed = extractJson(result) as Record<string, unknown>;
+
+    expect(parsed.error).toBeDefined();
+    const failures = parsed.readinessFailures as Array<Record<string, unknown>>;
+    expect(failures.some((f) => f.code === "TASK_TDD_INVERSION")).toBe(true);
+  });
+
+  test("blocks prep gate when task has incomplete cross-repo routing (CROSS_REPO_MISSING_METADATA)", async () => {
+    await createChangeFile("badRouting", {
+      $schema: "https://advance.dev/schemas/change.v1.json",
+      id: "badRouting",
+      title: "Bad Routing Change",
+      status: "draft",
+      created_at: "2026-01-01T00:00:00Z",
+      tasks: [
+        {
+          id: "tk-xrp0001",
+          title: "Cross-repo task",
+          status: "pending",
+          priority: 0,
+          created_at: "2026-01-01T00:00:00Z",
+          tdd_phase: "none",
+          deps: [],
+          target_repo: "backend", // has repo but no path
+        },
+      ],
+      deltas: {},
+    });
+
+    await gateTools.adv_gate_complete.execute(
+      { changeId: "badRouting", gateId: "research" },
+      store,
+    );
+
+    const result = await gateTools.adv_gate_complete.execute(
+      { changeId: "badRouting", gateId: "prep" },
+      store,
+    );
+    const parsed = extractJson(result) as Record<string, unknown>;
+
+    expect(parsed.error).toBeDefined();
+    const failures = parsed.readinessFailures as Array<Record<string, unknown>>;
+    expect(failures.some((f) => f.code === "CROSS_REPO_MISSING_METADATA")).toBe(
+      true,
+    );
+  });
+
+  test("readinessFailures items include code and path fields", async () => {
+    await createChangeFile("checkShape", {
+      $schema: "https://advance.dev/schemas/change.v1.json",
+      id: "checkShape",
+      title: "Check Shape",
+      status: "draft",
+      created_at: "2026-01-01T00:00:00Z",
+      tasks: [],
+      deltas: {
+        cap: [
+          {
+            id: "dl-shape001",
+            operation: "add",
+            requirement: {
+              id: "rq-shape001",
+              title: "Feature",
+              body: "body",
+              priority: "must",
+              scenarios: [],
+            },
+          },
+        ],
+      },
+    });
+
+    await gateTools.adv_gate_complete.execute(
+      { changeId: "checkShape", gateId: "research" },
+      store,
+    );
+
+    const result = await gateTools.adv_gate_complete.execute(
+      { changeId: "checkShape", gateId: "prep" },
+      store,
+    );
+    const parsed = extractJson(result) as Record<string, unknown>;
+    const failures = parsed.readinessFailures as Array<Record<string, unknown>>;
+
+    expect(failures.length).toBeGreaterThan(0);
+    const failure = failures[0];
+    expect(failure.code).toBeDefined();
+    expect(typeof failure.code).toBe("string");
+    expect(failure.message).toBeDefined();
+  });
+
+  test("prep gate succeeds with only warnings (no must-failures) and includes readinessWarnings", async () => {
+    // A change with smell warnings only (no scenarios issues, valid TDD order)
+    await createChangeFile("warningsOnly", {
+      $schema: "https://advance.dev/schemas/change.v1.json",
+      id: "warningsOnly",
+      title: "Warnings Only Change",
+      status: "draft",
+      created_at: "2026-01-01T00:00:00Z",
+      tasks: [
+        {
+          id: "tk-test0002",
+          title: "Write failing tests",
+          status: "pending",
+          priority: 0,
+          created_at: "2026-01-01T00:00:00Z",
+          tdd_phase: "none",
+          deps: [],
+        },
+        {
+          id: "tk-impl0002",
+          title: "Implement the feature",
+          status: "pending",
+          priority: 1,
+          created_at: "2026-01-01T00:00:00Z",
+          tdd_phase: "none",
+          deps: [{ type: "blocked_by", target: "tk-test0002" }],
+        },
+      ],
+      deltas: {
+        cap: [
+          {
+            id: "dl-warn0001",
+            operation: "add",
+            requirement: {
+              id: "rq-warn0001",
+              title: "Easy login for all users", // smell: easy + all
+              body: "body",
+              priority: "must",
+              scenarios: [
+                {
+                  id: "rq-warn0001.1",
+                  title: "Happy path",
+                  given: ["user exists"],
+                  when: "user logs in",
+                  then: ["login succeeds"],
+                },
+              ],
+            },
+          },
+        ],
+      },
+    });
+
+    await gateTools.adv_gate_complete.execute(
+      { changeId: "warningsOnly", gateId: "research" },
+      store,
+    );
+
+    const result = await gateTools.adv_gate_complete.execute(
+      { changeId: "warningsOnly", gateId: "prep" },
+      store,
+    );
+    const parsed = extractJson(result) as Record<string, unknown>;
+
+    // Should succeed (no must-failures)
+    expect(parsed.success).toBe(true);
+    expect(parsed.gateId).toBe("prep");
+    // Should include advisory warnings
+    expect(parsed.readinessWarnings).toBeDefined();
+    expect(Array.isArray(parsed.readinessWarnings)).toBe(true);
+    expect((parsed.readinessWarnings as unknown[]).length).toBeGreaterThan(0);
+  });
+
+  test("prep gate succeeds cleanly with no issues when change is clean", async () => {
+    // A minimal valid change: correct TDD order, no deltas (bug fix), no routing issues
+    await createChangeFile("cleanChange", {
+      $schema: "https://advance.dev/schemas/change.v1.json",
+      id: "cleanChange",
+      title: "Clean Change",
+      status: "draft",
+      created_at: "2026-01-01T00:00:00Z",
+      tasks: [
+        {
+          id: "tk-test0003",
+          title: "Write failing tests",
+          status: "pending",
+          priority: 0,
+          created_at: "2026-01-01T00:00:00Z",
+          tdd_phase: "none",
+          deps: [],
+        },
+        {
+          id: "tk-impl0003",
+          title: "Implement the fix",
+          status: "pending",
+          priority: 1,
+          created_at: "2026-01-01T00:00:00Z",
+          tdd_phase: "none",
+          deps: [{ type: "blocked_by", target: "tk-test0003" }],
+        },
+      ],
+      deltas: {}, // no deltas — bug fix scenario
+    });
+
+    await gateTools.adv_gate_complete.execute(
+      { changeId: "cleanChange", gateId: "research" },
+      store,
+    );
+
+    const result = await gateTools.adv_gate_complete.execute(
+      { changeId: "cleanChange", gateId: "prep" },
+      store,
+    );
+    const parsed = extractJson(result) as Record<string, unknown>;
+
+    expect(parsed.success).toBe(true);
+    expect(parsed.gateId).toBe("prep");
+    // No readinessFailures or empty
+    expect(
+      !parsed.readinessFailures ||
+        (parsed.readinessFailures as unknown[]).length === 0,
+    ).toBe(true);
+  });
+
+  test("non-prep gates (research, implementation) are not affected by readiness checks", async () => {
+    // research gate should complete without running prep-readiness
+    const result = await gateTools.adv_gate_complete.execute(
+      { changeId: "addFeature", gateId: "research" },
+      store,
+    );
+    // research is already done (completed in beforeEach), expect it to either
+    // succeed again (idempotent) or return a non-readiness-related response
+    const parsed = extractJson(result) as Record<string, unknown>;
+    // Either success or a gate-already-done message — no readinessFailures
+    expect(parsed.readinessFailures).toBeUndefined();
   });
 });

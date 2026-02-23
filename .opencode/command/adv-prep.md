@@ -26,8 +26,8 @@ Analyze a change for gaps (missing scenarios, tasks, cross-cutting concerns) and
 ### Fetch Change Data
 
 ```
-adv_change_show change_id: <target>
-adv_task_list change_id: <target>
+adv_change_show changeId: <target>
+adv_task_list changeId: <target>
 ```
 
 ### Fetch Related Specs
@@ -299,28 +299,30 @@ COULD:
 ### For Missing Tasks
 
 ```
-adv_task_add change_id: <target> title: "<task description>"
+adv_task_add changeId: <target> content: "<task description>"
 ```
 
 With dependencies:
 ```
-adv_task_add change_id: <target> title: "<task>" blocked_by: ["<dep-task-id>"]
+adv_task_add changeId: <target> content: "<task>" blockedBy: ["<dep-task-id>"]
 ```
 
 ### For Task Sequencing Issues
 
 **Absorbing/merging tasks**: When a task should be absorbed into another:
-1. Cancel the absorbed task with rationale:
+1. Present the proposed cancellation to the user via the `question` tool with per-task reasons, then call `adv_task_cancel` only after receiving explicit approval:
    ```
-   adv_task_update task_id: "<absorbed-task-id>" status: "cancelled" notes: "Absorbed into <parent-task-id>: <rationale>"
+   # Step 1: Ask user via question tool — show each task and reason
+   # Step 2: On approval:
+   adv_task_cancel taskIds: ["<absorbed-task-id>"] reasons: { "<id>": "Absorbed into <parent-task-id>: <rationale>" } approvedByUser: true approvalEvidence: "User approved via question tool"
    ```
 2. Update the parent task description in `changes/<change-id>/change.json` to explicitly mention the absorbed behavior
 3. Update any tasks that were `blocked_by` the cancelled task to point to the parent task instead
 
 **Fixing TDD ordering**: When test tasks are incorrectly sequenced after implementation:
-1. Cancel the separate test task:
+1. Present to user via question tool with reason, then cancel on approval:
    ```
-   adv_task_update task_id: "<test-task-id>" status: "cancelled" notes: "Merged into <impl-task-id> for proper TDD sequencing"
+   adv_task_cancel taskIds: ["<test-task-id>"] reasons: { "<id>": "Merged into <impl-task-id> for proper TDD sequencing" } approvedByUser: true approvalEvidence: "User approved via question tool"
    ```
 2. Update the implementation task description to include "TDD: write failing tests first (red), then implement (green)"
 3. Update any tasks that depended on the cancelled test task
@@ -374,10 +376,42 @@ Gaps: {fixed}/{total} | Priority: {must_done}/{must_total} MUST complete
 After all gaps fixed:
 
 ```
-adv_change_validate change_id: <target> strict: true
+adv_change_validate changeId: <target> strict: true
 ```
 
 If errors: fix and re-validate.
+
+---
+
+## Phase 8.5: Readiness Report
+
+After validation passes, run the prep gate to get a machine-enforced readiness check:
+
+```
+adv_gate_complete changeId: <target> gateId: prep
+```
+
+### On Must-Failures (gate blocked)
+
+The response will include `readinessFailures[]` — each with a `code`, `message`, `path`, and `remediation` hint.
+
+For each must-failure, take the indicated remediation action before continuing:
+
+| Failure Code | Cause | Remediation |
+|---|---|---|
+| `SCENARIO_MISSING` | A delta requirement has no scenarios | Add at least one Given/When/Then scenario to the requirement |
+| `TASK_TDD_INVERSION` | Test task is blocked_by an impl task | Reverse the dependency (impl should block_by test, not vice versa) |
+| `CROSS_REPO_MISSING_METADATA` | Task has target_repo XOR target_path | Set both `target_repo` AND `target_path` on the task |
+
+After fixing, re-run `adv_gate_complete changeId: <target> gateId: prep` to confirm the gate passes.
+
+### On Warnings Only (gate passes)
+
+The response may include `readinessWarnings[]` — advisory items that do not block. Surface these to the user as follow-up items (smell improvements, orphan task review, unrouted cross-repo hints) but do NOT block on them.
+
+### On Clean Pass (no issues)
+
+Gate completes immediately. Proceed to Phase 9.
 
 ---
 
@@ -392,11 +426,13 @@ adv_change_validate change_id: <target>
 
 ### Mark Prep Gate
 
-Mark the prep gate as complete:
+Mark the prep gate as complete (if not already marked in Phase 8.5):
 
 ```
 adv_gate_complete changeId: {change-id} gateId: prep
 ```
+
+> **Note:** If Phase 8.5 already successfully completed the prep gate, this step is a no-op — the gate is already marked done.
 
 ### Contract Fulfilled
 
@@ -415,6 +451,7 @@ ALL CRITERIA MET:
 - [x] Cross-cutting concerns addressed
 - [x] No cross-spec conflicts
 - [x] adv_change_validate - PASSED
+- [x] adv_gate_complete prep - PASSED (readiness checks cleared)
 
 CHANGES MADE:
 - Added {n} tasks via adv_task_add
@@ -450,7 +487,9 @@ Prep Gate: MARKED COMPLETE
 | Load change | `adv_change_show` |
 | List tasks | `adv_task_list` |
 | Add task | `adv_task_add` |
+| Cancel tasks (requires user approval) | `adv_task_cancel` |
 | List specs | `adv_spec_list` |
 | Show spec | `adv_spec_show` |
 | Search specs | `adv_spec_search` |
 | Validate | `adv_change_validate` |
+| Prep gate readiness | `adv_gate_complete gateId: prep` |

@@ -42,3 +42,15 @@ export {
   checkSpecsExist,
   checkChangeConflicts,
 } from "./conflicts";
+
+// Prep-readiness checks (for prep gate enforcement)
+export {
+  runPrepReadinessChecks,
+  checkRequirementSmells,
+  checkScenarioAdequacy,
+  checkTaskGraphIntegrity,
+  checkCrossRepoRouting,
+  PrepReadinessCodes,
+  type PrepReadinessResult,
+  type PrepReadinessCode,
+} from "./prep-readiness";

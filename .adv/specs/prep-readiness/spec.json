@@ -1,0 +1,252 @@
+{
+  "$schema": "https://raw.githubusercontent.com/anomalyco/oc-plugins/main/advance/plugin/schemas/spec.schema.json",
+  "name": "prep-readiness",
+  "title": "Prep Readiness",
+  "purpose": "Machine-enforced readiness checks that gate the prep phase. Answers: 'Do we have everything we need ready to make the full change?'",
+  "version": "1.0.0",
+  "updated_at": "2026-02-23T22:00:00.000Z",
+  "requirements": [
+    {
+      "id": "rq-PR001sml",
+      "title": "Requirement Smell Detection",
+      "body": "The validator must scan requirement titles and bodies in spec deltas for language patterns that indicate ambiguity, subjectivity, or unmeasurable claims. These patterns are advisory warnings — not blockers — because smell heuristics have false-positive risk.",
+      "priority": "should",
+      "tags": ["prep", "quality", "requirements"],
+      "scenarios": [
+        {
+          "id": "rq-PR001sml.1",
+          "title": "Subjective language detected as warning",
+          "given": ["A change delta whose requirement title contains 'easy' or 'simple' or 'nice'"],
+          "when": "runPrepReadinessChecks is called",
+          "then": [
+            "A SMELL_SUBJECTIVE warning is returned",
+            "The gate is NOT blocked (severity is warning, not error)"
+          ]
+        },
+        {
+          "id": "rq-PR001sml.2",
+          "title": "Ambiguous scope detected as warning",
+          "given": ["A requirement title containing 'etc' or 'and/or' or 'various'"],
+          "when": "runPrepReadinessChecks is called",
+          "then": ["A SMELL_AMBIGUOUS warning is returned"]
+        },
+        {
+          "id": "rq-PR001sml.3",
+          "title": "Superlative language detected as warning",
+          "given": ["A requirement title containing 'best' or 'fastest' or 'always'"],
+          "when": "runPrepReadinessChecks is called",
+          "then": ["A SMELL_SUPERLATIVE warning is returned"]
+        },
+        {
+          "id": "rq-PR001sml.4",
+          "title": "Negative phrasing detected as warning",
+          "given": ["A requirement title containing 'not' or 'never' or 'without'"],
+          "when": "runPrepReadinessChecks is called",
+          "then": ["A SMELL_NEGATIVE warning is returned"]
+        },
+        {
+          "id": "rq-PR001sml.5",
+          "title": "Totality claim detected as warning",
+          "given": ["A requirement title containing 'all' or 'every' or 'none'"],
+          "when": "runPrepReadinessChecks is called",
+          "then": ["A SMELL_TOTALITY warning is returned"]
+        },
+        {
+          "id": "rq-PR001sml.6",
+          "title": "Clean requirement produces no smell warnings",
+          "given": ["A requirement with a specific, measurable, positively-phrased title"],
+          "when": "runPrepReadinessChecks is called",
+          "then": ["No smell warnings are returned for that requirement"]
+        },
+        {
+          "id": "rq-PR001sml.7",
+          "title": "No smell checks run when change has no deltas",
+          "given": ["A change with tasks but no spec deltas (bug-fix scenario)"],
+          "when": "runPrepReadinessChecks is called",
+          "then": ["No smell issues are emitted (nothing to check)"]
+        }
+      ]
+    },
+    {
+      "id": "rq-PR002scn",
+      "title": "Scenario Adequacy Enforcement",
+      "body": "Requirements added via deltas must have at least one scenario defined. This is a must-level failure because requirements without any scenarios cannot be tested or validated.",
+      "priority": "must",
+      "tags": ["prep", "quality", "scenarios"],
+      "scenarios": [
+        {
+          "id": "rq-PR002scn.1",
+          "title": "Requirement with no scenarios is a must-failure",
+          "given": ["A change delta that adds a requirement with no scenarios array or an empty scenarios array"],
+          "when": "runPrepReadinessChecks is called",
+          "then": [
+            "A SCENARIO_MISSING issue with severity 'error' is returned",
+            "The prep gate is blocked"
+          ]
+        },
+        {
+          "id": "rq-PR002scn.2",
+          "title": "Requirement with at least one scenario passes",
+          "given": ["A change delta that adds a requirement with one or more scenarios"],
+          "when": "runPrepReadinessChecks is called",
+          "then": ["No SCENARIO_MISSING error is returned for that requirement"]
+        },
+        {
+          "id": "rq-PR002scn.3",
+          "title": "Only happy-path scenario on non-trivial requirement is a warning",
+          "given": ["A requirement with exactly one scenario whose title contains only 'happy path' language and the requirement body suggests error/edge conditions exist"],
+          "when": "runPrepReadinessChecks is called",
+          "then": ["A SCENARIO_INADEQUATE warning is returned (advisory only)"]
+        },
+        {
+          "id": "rq-PR002scn.4",
+          "title": "Bug-fix change with no deltas is not penalized",
+          "given": ["A change with tasks but zero spec deltas"],
+          "when": "runPrepReadinessChecks is called",
+          "then": ["No SCENARIO_MISSING errors are emitted"]
+        }
+      ]
+    },
+    {
+      "id": "rq-PR003tdd",
+      "title": "TDD Inversion Detection",
+      "body": "A task graph where a test task is blocked_by an implementation task of the same scope violates the TDD contract. This must be detected and flagged as a must-level failure to enforce red-before-green ordering.",
+      "priority": "must",
+      "tags": ["prep", "tdd", "task-graph"],
+      "scenarios": [
+        {
+          "id": "rq-PR003tdd.1",
+          "title": "Test task blocked by impl task is a must-failure",
+          "given": [
+            "A task whose title contains 'test' or 'spec'",
+            "That task has a blocked_by dependency on another task whose title contains 'implement' or 'impl' or 'create'"
+          ],
+          "when": "runPrepReadinessChecks is called",
+          "then": [
+            "A TASK_TDD_INVERSION issue with severity 'error' is returned",
+            "The prep gate is blocked"
+          ]
+        },
+        {
+          "id": "rq-PR003tdd.2",
+          "title": "Impl task blocked by test task is correct TDD order",
+          "given": [
+            "An implementation task blocked_by a test task"
+          ],
+          "when": "runPrepReadinessChecks is called",
+          "then": ["No TASK_TDD_INVERSION error is returned"]
+        },
+        {
+          "id": "rq-PR003tdd.3",
+          "title": "Tasks with no TDD-significant keywords are not flagged",
+          "given": ["Tasks about docs, chores, or releases with no test/impl naming pattern"],
+          "when": "runPrepReadinessChecks is called",
+          "then": ["No TASK_TDD_INVERSION error is returned"]
+        },
+        {
+          "id": "rq-PR003tdd.4",
+          "title": "Orphan task warning",
+          "given": ["A task with no deps and which is not a dependency of any other task"],
+          "when": "runPrepReadinessChecks is called",
+          "then": ["A TASK_ORPHAN warning is returned (advisory only)"]
+        }
+      ]
+    },
+    {
+      "id": "rq-PR004xrp",
+      "title": "Cross-Repo Routing Completeness",
+      "body": "Tasks that have one of target_repo or target_path set but not both have incomplete routing metadata. This creates ambiguity about where the task should be executed and must be flagged as a must-level failure.",
+      "priority": "must",
+      "tags": ["prep", "cross-repo", "routing"],
+      "scenarios": [
+        {
+          "id": "rq-PR004xrp.1",
+          "title": "Task with target_repo but missing target_path is a must-failure",
+          "given": ["A task with target_repo set but target_path absent"],
+          "when": "runPrepReadinessChecks is called",
+          "then": [
+            "A CROSS_REPO_MISSING_METADATA issue with severity 'error' is returned",
+            "The prep gate is blocked"
+          ]
+        },
+        {
+          "id": "rq-PR004xrp.2",
+          "title": "Task with target_path but missing target_repo is a must-failure",
+          "given": ["A task with target_path set but target_repo absent"],
+          "when": "runPrepReadinessChecks is called",
+          "then": [
+            "A CROSS_REPO_MISSING_METADATA issue with severity 'error' is returned"
+          ]
+        },
+        {
+          "id": "rq-PR004xrp.3",
+          "title": "Task with both fields set passes routing check",
+          "given": ["A task with both target_repo and target_path set"],
+          "when": "runPrepReadinessChecks is called",
+          "then": ["No CROSS_REPO_MISSING_METADATA error is returned for that task"]
+        },
+        {
+          "id": "rq-PR004xrp.4",
+          "title": "Task with neither field set passes routing check",
+          "given": ["A task with neither target_repo nor target_path set (local task)"],
+          "when": "runPrepReadinessChecks is called",
+          "then": ["No CROSS_REPO_MISSING_METADATA error is returned"]
+        },
+        {
+          "id": "rq-PR004xrp.5",
+          "title": "Task with repo hint in title but no routing metadata warns",
+          "given": ["A task title containing '[backend]' or '~/dev/' but no target_repo/target_path"],
+          "when": "runPrepReadinessChecks is called",
+          "then": ["A CROSS_REPO_HINT_UNROUTED warning is returned (advisory only)"]
+        }
+      ]
+    },
+    {
+      "id": "rq-PR005gat",
+      "title": "Prep Gate Readiness Enforcement",
+      "body": "The adv_gate_complete tool for the prep gate must run all prep-readiness checks before marking the gate done. Must-level failures block gate completion; warnings produce advisory output but do not block.",
+      "priority": "must",
+      "tags": ["prep", "gate", "enforcement"],
+      "scenarios": [
+        {
+          "id": "rq-PR005gat.1",
+          "title": "Gate blocked when must-failures exist",
+          "given": ["A change with at least one prep-readiness must-failure"],
+          "when": "adv_gate_complete with gateId 'prep' is called",
+          "then": [
+            "The gate is NOT marked done",
+            "The response includes readinessFailures array with check IDs and remediation hints",
+            "The response has success: false or error field"
+          ]
+        },
+        {
+          "id": "rq-PR005gat.2",
+          "title": "Gate succeeds with only warnings",
+          "given": ["A change with no must-failures but one or more warnings"],
+          "when": "adv_gate_complete with gateId 'prep' is called",
+          "then": [
+            "The gate IS marked done",
+            "The response includes readinessWarnings array (advisory)"
+          ]
+        },
+        {
+          "id": "rq-PR005gat.3",
+          "title": "Gate succeeds cleanly with no issues",
+          "given": ["A change that passes all prep-readiness checks with no failures and no warnings"],
+          "when": "adv_gate_complete with gateId 'prep' is called",
+          "then": [
+            "The gate IS marked done",
+            "No readinessFailures or readinessWarnings in response"
+          ]
+        },
+        {
+          "id": "rq-PR005gat.4",
+          "title": "Non-prep gates are not affected",
+          "given": ["adv_gate_complete called for research, implementation, review, harden, or signoff"],
+          "when": "The gate is completed",
+          "then": ["No prep-readiness checks are run; behavior is unchanged from baseline"]
+        }
+      ]
+    }
+  ]
+}
