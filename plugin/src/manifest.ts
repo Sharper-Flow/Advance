@@ -119,14 +119,6 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
   },
   "adv-task": {
     name: "adv-task",
-    description: "Manage individual tasks within a change",
-    phase: "implementation",
-    requiresChangeId: true,
-    prerequisites: ["adv-prep"],
-    successors: ["adv-apply"],
-  },
-  "adv-quick": {
-    name: "adv-quick",
     description:
       "Fast-track a pre-discussed change — synthesize chat contract, validate LBP, then autonomously research, prep, and implement",
     phase: "implementation",

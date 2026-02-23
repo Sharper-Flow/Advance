@@ -42,7 +42,7 @@ ADV (Advance) enables spec-driven development where **specs become laws**. Requi
 
 | Command | Purpose |
 |---------|---------|
-| `/adv-quick` | Fast-track a pre-discussed change — chat contract → LBP research → prep → autonomous implement |
+| `/adv-task` | Fast-track a pre-discussed change — chat contract → LBP research → prep → autonomous implement |
 
 ### Advanced
 

@@ -136,7 +136,7 @@ See [INSTALL.md](INSTALL.md) for detailed setup instructions.
 
 | Command | Description |
 |---------|-------------|
-| `/adv-quick` | Chat contract → LBP research → prep → autonomous implement (no proposal phase) |
+| `/adv-task` | Chat contract → LBP research → prep → autonomous implement (no proposal phase) |
 
 ### Advanced
 
