@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+#### Terminal Tab Title — Normalized Change Code
+
+- Tab title now shows `<emoji> <normalized change code>` when a change is active (e.g. `🚀 Feature X`)
+- Project name **dropped entirely** from the tab title — not needed as context
+- When no active change, tab shows bare emoji only (e.g. `🌍`)
+- Progress counter `[n/m]` removed — was broken and cluttered the title
+- Change IDs are normalized to human-readable Title Case words:
+  - `addFeatureX` → `Feature X`
+  - `fixAuthTimeout` → `Auth Timeout`
+  - `improve-terminal-tab-title` → `Terminal Tab Title`
+  - Handles camelCase, kebab-case, and snake_case
+  - Strips common verb prefixes: `add`, `fix`, `update`, `improve`, `create`, `remove`, `refactor`, `change`
+- `normalizeChangeCode` and `buildTabTitle` exported from events module as public API
+- **MOON emoji changed**: 🌙 → 📡 (satellite) — clearly conveys "sub-agents running" rather than "idle"
+- README and ADV_INSTRUCTIONS updated with tab emoji column and title format documentation
+
+### Removed
+
+- Stale generated report files (`COMMAND_REPORT.html`, `COMMAND_REPORT.md`, `GOOST_VS_ADV_COMPARISON.html`)
+- Unused `_getModelName` helper in `terminal.ts` (35 lines of speculative/dead code)
+
 ## [0.4.0] - 2026-02-22
 
 ### Fixed (post-release)
