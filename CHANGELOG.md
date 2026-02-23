@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+#### `/adv-ralph` Consolidated into `/adv-apply`
+
+- `/adv-ralph` has been removed. Its autonomous-retry behavior is now the default in `/adv-apply`.
+- `/adv-apply` now includes: autonomous retry protocol (3 attempts with diagnosis), global final
+  loop verification, error classification (SEMANTIC/TRANSIENT/ENVIRONMENTAL), completion modes
+  (FULLY AUTONOMOUS / GUIDED / PARTIAL TAKEOVER), and the stricter no-skip/no-defer policy.
+- Worktree threshold changed from 5+ files to **3+ files** (was the ralph default).
+- **Migration**: Replace any references to `/adv-ralph` with `/adv-apply`. Behavior is identical.
+- `adv-ralph` entry removed from `plugin/src/manifest.ts`; command count is now 19.
+
+### Changed
+
 #### Terminal Tab Title — Normalized Change Code
 
 - Tab title now shows `<emoji> <normalized change code>` when a change is active (e.g. `🚀 Feature X`)

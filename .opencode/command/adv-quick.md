@@ -16,7 +16,7 @@ Use this when you and the user have already agreed on what needs to be done in c
 3. Create a standard ADV change (camelCase ID, `tk-` tasks)
 4. **Research** — validate LBP targets via Context7 (halt if major conflict found)
 5. **Prep** — generate `tk-` tasks automatically
-6. **Implement** — execute autonomously with TDD (full `/adv-ralph` behavior)
+6. **Implement** — execute autonomously with TDD (full `/adv-apply` behavior)
 
 <UserRequest>
   $ARGUMENTS
@@ -26,7 +26,7 @@ Use this when you and the user have already agreed on what needs to be done in c
 
 ## ⛔ CRITICAL: NO SKIP / NO DEFER POLICY
 
-Same as `/adv-ralph`. Once the contract is confirmed, every task MUST be completed.
+Same as `/adv-apply`. Once the contract is confirmed, every task MUST be completed.
 
 - ❌ Skip tasks "to revisit later"
 - ❌ Defer tasks "until more information is available"
@@ -285,7 +285,7 @@ Proceeding to Implementation...
 
 ## Phase 4: Implement — Autonomous Execution
 
-This phase is **identical to `/adv-ralph`** Phase 0 (worktree assessment) through Phase 4 (completion).
+This phase is **identical to `/adv-apply`** Phase 0 (worktree assessment) through Phase 6 (completion).
 
 Emit:
 
@@ -297,7 +297,7 @@ Retry protocol: ENABLED
 
 ### Worktree Assessment
 
-Apply the same worktree logic as `/adv-ralph` Phase 0:
+Apply the same worktree logic as `/adv-apply` Phase 0:
 
 | Signal | Risk Level |
 |--------|------------|
@@ -308,11 +308,11 @@ Apply the same worktree logic as `/adv-ralph` Phase 0:
 
 Check `worktree_create` availability. If unavailable, emit `[ADV:INFO]` and proceed in-place.
 
-If risk is High, ask via `question` tool (see `/adv-ralph` Phase 0 for exact format).
+If risk is High, ask via `question` tool (see `/adv-apply` Phase 0 for exact format).
 
 ### TDD Work Loop
 
-Follow `/adv-ralph` Phase 2 exactly:
+Follow `/adv-apply` Phase 3 exactly:
 
 1. **Get ready tasks**: `adv_task_ready changeId: {changeId}`
 2. **For each task**:
@@ -326,7 +326,7 @@ Follow `/adv-ralph` Phase 2 exactly:
 
 ### Retry Protocol
 
-Same as `/adv-ralph`:
+Same as `/adv-apply`:
 - **SEMANTIC** errors: 3 retries with distinct diagnosis each time
 - **TRANSIENT** errors: 1 retry after 5s delay
 - **ENVIRONMENTAL** errors: Immediate escalation to user
@@ -388,7 +388,7 @@ NEXT STEPS:
 
 ## TodoWrite Rules
 
-Same as `/adv-ralph`: use task IDs only in the todo list (e.g., `tk-abc123`), not descriptions. Forces context lookup via `adv_change_show` before each task.
+Same as `/adv-apply`: use task IDs only in the todo list (e.g., `tk-abc123`), not descriptions. Forces context lookup via `adv_change_show` before each task.
 
 ---
 

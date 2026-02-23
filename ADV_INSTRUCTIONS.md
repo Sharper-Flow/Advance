@@ -19,7 +19,7 @@ ADV (Advance) enables spec-driven development where **specs become laws**. Requi
 | `/adv-status` | Project overview (specs, changes, recommendations) |
 | `/adv-proposal <summary>` | Create new change proposal |
 | `/adv-validate <change-id>` | Validate change against specs |
-| `/adv-apply <change-id>` | Implement change with TDD |
+| `/adv-apply <change-id>` | Implement change with autonomous retry and TDD |
 | `/adv-archive <change-id>` | Archive completed change |
 
 ### Pre-Implementation
@@ -48,7 +48,6 @@ ADV (Advance) enables spec-driven development where **specs become laws**. Requi
 
 | Command | Purpose |
 |---------|---------|
-| `/adv-ralph <change-id>` | Autonomous implementation with retry |
 | `/adv-refactor <change-id>` | Refresh stale proposals |
 | `/adv-coordinate` | Multi-change conflict detection |
 | `/adv-roadmap` | Progress dashboard |
@@ -246,14 +245,13 @@ Use handoff only when explicitly using multi-session workflows (for example, a s
 
 ### When Worktrees Are Used
 
-Phase 0 of `/adv-apply` and `/adv-ralph` handles worktree assessment automatically:
+Phase 0 of `/adv-apply` handles worktree assessment automatically:
 
 | Command | Threshold | Default |
 |---------|-----------|---------|
-| `/adv-apply` | 5+ files or high-risk signals | Skip worktree |
-| `/adv-ralph` | 3+ files (lower threshold for autonomous work) | Suggest worktree |
+| `/adv-apply` | 3+ files or high-risk signals | Suggest worktree |
 
-Both commands follow a deterministic 4-step sequence:
+`/adv-apply` follows a deterministic 4-step sequence:
 1. **Assess risk** — count affected files, evaluate risk signals
 2. **Check tool availability** — verify `worktree_create` is available, skip with `[ADV:INFO]` if not
 3. **Ask user** — present choice via `question` tool

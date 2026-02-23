@@ -39,8 +39,12 @@ describe("Bash Policy Guard", () => {
 
   describe("enforceBashPolicy", () => {
     it("should throw error for restricted agents with mutating commands", () => {
-      expect(() => enforceBashPolicy("explore", "rm -rf /")).toThrow(/Mutation blocked/);
-      expect(() => enforceBashPolicy("librarian", "sed -i 's/x/y/' f")).toThrow(/Mutation blocked/);
+      expect(() => enforceBashPolicy("explore", "rm -rf /")).toThrow(
+        /Mutation blocked/,
+      );
+      expect(() => enforceBashPolicy("librarian", "sed -i 's/x/y/' f")).toThrow(
+        /Mutation blocked/,
+      );
     });
 
     it("should NOT throw for restricted agents with safe commands", () => {

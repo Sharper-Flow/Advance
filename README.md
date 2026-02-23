@@ -113,7 +113,7 @@ See [INSTALL.md](INSTALL.md) for detailed setup instructions.
 | `/adv-status` | Project overview with specs, changes, and recommendations |
 | `/adv-proposal <summary>` | Create a new change proposal with scaffolding |
 | `/adv-validate <id>` | Validate change against specs before implementation |
-| `/adv-apply <id>` | Implement change with TDD workflow |
+| `/adv-apply <id>` | Implement change with autonomous retry, TDD, and global final loop |
 | `/adv-archive <id>` | Archive completed change and update specs |
 
 ### Pre-Implementation
@@ -142,7 +142,6 @@ See [INSTALL.md](INSTALL.md) for detailed setup instructions.
 
 | Command | Description |
 |---------|-------------|
-| `/adv-ralph <id>` | Autonomous implementation with retry protocol |
 | `/adv-refactor <id>` | Refresh stale proposals to match codebase |
 | `/adv-coordinate` | Multi-change conflict detection |
 | `/adv-roadmap` | Progress dashboard with tiered view |
@@ -369,7 +368,7 @@ ADV automatically detects worktree contexts and:
 3. **Handoff protocol (fallback)** — Use `handoff.json` only for explicit multi-session workflows
 4. **Graceful degradation** — Works identically without worktree tools installed
 
-Phase 0 of `/adv-apply` and `/adv-ralph` assesses risk and suggests worktree isolation when appropriate.
+Phase 0 of `/adv-apply` assesses risk and suggests worktree isolation when appropriate (threshold: 3+ files or high-risk signals).
 
 > **Important:** ADV archive != git merge. After `/adv-archive`, you must still merge the worktree branch to your default branch (`main`/`trunk`) and verify the merge before deleting the worktree. See [ADV_INSTRUCTIONS.md](ADV_INSTRUCTIONS.md#worktree-cleanup-protocol) for the full cleanup protocol.
 

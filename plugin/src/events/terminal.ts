@@ -275,8 +275,7 @@ export const normalizeChangeCode = (changeId: string): string => {
   // Step 4: strip leading verb prefix (case-insensitive, whole-word only)
   const firstLower = words[0].toLowerCase();
   const matchedPrefix = CHANGE_ID_PREFIXES.find((p) => firstLower === p);
-  const remainder =
-    matchedPrefix && words.length > 1 ? words.slice(1) : words;
+  const remainder = matchedPrefix && words.length > 1 ? words.slice(1) : words;
 
   // Step 5: title-case
   const titled = remainder
@@ -284,7 +283,12 @@ export const normalizeChangeCode = (changeId: string): string => {
     .join(" ");
 
   // Step 6: fallback — should not be empty given the guard above, but be safe
-  return titled || words.map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ");
+  return (
+    titled ||
+    words
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+      .join(" ")
+  );
 };
 
 /**
@@ -338,8 +342,6 @@ export const ringBell = (): void => {
 // null = new session (bell should not ring)
 // StatusMarker = previous status for transition detection
 let lastAlertedStatus: StatusMarker | null = null;
-
-
 
 /**
  * Update terminal based on status.

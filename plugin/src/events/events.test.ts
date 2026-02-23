@@ -540,9 +540,7 @@ describe("normalizeChangeCode", () => {
 
 describe("buildTabTitle", () => {
   it("shows normalized change code only when change is active", () => {
-    expect(buildTabTitle("🚀", "advance", "addFeatureX")).toBe(
-      "🚀 Feature X",
-    );
+    expect(buildTabTitle("🚀", "advance", "addFeatureX")).toBe("🚀 Feature X");
   });
 
   it("shows emoji only when no active change", () => {

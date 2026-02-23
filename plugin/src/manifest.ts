@@ -103,13 +103,14 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
     gate: "prep",
     requiresChangeId: true,
     prerequisites: ["adv-research"],
-    successors: ["adv-apply", "adv-ralph"],
+    successors: ["adv-apply"],
   },
 
   // ---- Implementation ----
   "adv-apply": {
     name: "adv-apply",
-    description: "Implement change with TDD (red/green/refactor)",
+    description:
+      "Implement change with autonomous retry, TDD, and global final loop verification",
     phase: "implementation",
     gate: "implementation",
     requiresChangeId: true,
@@ -172,15 +173,6 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
   },
 
   // ---- Advanced ----
-  "adv-ralph": {
-    name: "adv-ralph",
-    description: "Autonomous implementation with retry and doom-loop detection",
-    phase: "advanced",
-    gate: "implementation",
-    requiresChangeId: true,
-    prerequisites: ["adv-prep"],
-    successors: ["adv-review", "adv-harden"],
-  },
   "adv-refactor": {
     name: "adv-refactor",
     description: "Refresh stale proposals with current codebase state",

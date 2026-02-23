@@ -1,28 +1,36 @@
 ---
 name: adv-apply
-description: Implement an ADV change using TDD - tasks tracked via ADV tools, progress shown via contract banners
+description: Implement change with autonomous retry, TDD, and global final loop verification
 agent: build
 ---
 
-# ADV Apply - Implement Change with TDD
+# ADV Apply - Implement Change with Autonomous Retry
 
-Implement an ADV change by working through tasks using Test-Driven Development. Task state is managed by ADV tools; contract banners provide visibility.
+Implement an ADV change with **autonomous retry enabled**. Every task is pursued to completion using Test-Driven Development. Failures trigger automatic diagnosis and retry before escalating.
 
-## ⚠️ Task Completion Policy
+## ⛔ CRITICAL: NO SKIP / NO DEFER POLICY
 
-Tasks should be completed, not skipped or deferred. If stuck:
+**This command enforces MANDATORY task completion.** Agents MUST NOT:
 
-1. **First**: Try a different approach (at least 3 attempts)
-2. **Then**: Ask for user guidance via doom loop protocol
-3. **Never**: Skip tasks, defer "for later", or mark blocked without genuine attempts
+- ❌ Skip tasks "to revisit later"
+- ❌ Defer tasks "until more information is available"
+- ❌ Mark tasks as blocked without exhausting ALL retry attempts
+- ❌ Suggest "manual completion" by the user
+- ❌ Propose partial implementation as acceptable
+- ❌ Ask the user if they want to skip a difficult task
+- ❌ Cancel tasks because they target a different repository
+- ❌ Cancel tasks via `adv_task_update` (use `adv_task_cancel` with user approval)
 
-**Cancellation requires user approval.** You cannot cancel tasks directly via `adv_task_update`.
-All cancellations must go through `adv_task_cancel` with per-task reasons shown to the user.
+**The ONLY acceptable exits from a task are:**
 
-**Cross-repo tasks must be executed in the target repo.** "Different repo" or "out of scope" is
-NOT a valid reason to cancel. Switch `workdir` and execute there.
+1. ✅ **Task completed** - Implementation verified, tests pass
+2. ✅ **Retry budget exhausted** - 3 genuine fix attempts failed with documented diagnosis
+3. ✅ **Environmental blocker** - Missing external dependency (API key, service down, etc.)
 
-See Doom Loop Protocol section for proper handling of stuck tasks.
+**Cross-repo tasks MUST be executed in the target repo.** "Different repo" or "out of scope" is
+NOT a valid cancellation reason. Switch `workdir` to the target path and execute there.
+
+**If you catch yourself wanting to skip or defer:** STOP. Your job is to solve the problem, not avoid it. Apply the retry protocol.
 
 <UserRequest>
   $ARGUMENTS
@@ -35,6 +43,8 @@ See Doom Loop Protocol section for proper handling of stuck tasks.
    - If one active change: Confirm with the `question` tool
    - If multiple: Present selection with the `question` tool
    - If none: Suggest `/adv-proposal`
+
+---
 
 ## Gate Auto-Completion
 
@@ -70,13 +80,13 @@ adv_gate_status changeId: {change-id}
    adv_gate_complete changeId: {change-id} gateId: prep
    ```
 
-**Note:** The user will be notified of auto-completed gates in the confirmation prompt (see Phase 2).
+**Note:** The user will be notified of auto-completed gates in the confirmation prompt (see Phase 1).
 
 ---
 
 ## Phase 0: Worktree Assessment
 
-Before implementation, assess whether this change benefits from worktree isolation.
+Before implementation, assess whether this change benefits from worktree isolation. `/adv-apply` defaults to worktree isolation because autonomous work has higher blast radius — only skip for trivially small changes.
 
 ### Step 1: Assess Risk
 
@@ -84,11 +94,11 @@ Count files affected in the proposal and evaluate risk:
 
 | Signal | Risk Level |
 |--------|------------|
-| 5+ files affected | High — suggest worktree |
+| 3+ files affected | High — suggest worktree |
 | Breaking API changes | High — suggest worktree |
 | Risky refactor (structural changes) | High — suggest worktree |
 | Experimental / spike work | High — suggest worktree |
-| 1-2 files, low risk | Low — skip worktree |
+| 1-2 files, trivial changes only | Low — skip worktree |
 | Docs-only or config changes | Low — skip worktree |
 
 If risk is **Low**, skip to Phase 1.
@@ -109,10 +119,10 @@ Use the `question` tool:
 {
   "questions": [{
       "header": "Worktree Isolation",
-      "question": "This change affects {N} files and involves {reason}. I recommend creating a worktree for isolation. Branch: change/{change-id}",
+      "question": "This change affects {N} files and involves {reason}. I recommend creating a worktree to contain blast radius. Branch: change/{change-id}",
       "options": [
       { "label": "Create worktree (Recommended)", "description": "Isolate work and continue inline in this session" },
-      { "label": "Work in place", "description": "Implement directly in the current branch" }
+      { "label": "Work in place", "description": "Implement directly in the current branch (higher risk for autonomous work)" }
       ]
   }]
 }
@@ -221,13 +231,6 @@ Use `adv_task_cancel` instead.
 adv_task_cancel taskIds: [...] reasons: {...} approvedByUser: true approvalEvidence: "User selected 'Approve all' via question tool"
 ```
 
-### Batch Approval
-
-Multiple cancellations can be approved in a single batch. The agent MUST:
-- Show every task with its individual reason
-- Wait for explicit user approval
-- Pass the approval evidence to `adv_task_cancel`
-
 ---
 
 ## Phase 1: Load Change Context
@@ -264,7 +267,7 @@ Returns tasks that can be started (not blocked, not done).
 
 ---
 
-## Phase 2: Display Contract (Derived from Tools)
+## Phase 2: Display Contract
 
 Generate contract banner **from tool outputs** (not hardcoded):
 
@@ -281,6 +284,7 @@ SUCCESS CRITERIA (from change deltas):
 {end}
 - [ ] (C{n+1}) All tasks completed
 - [ ] (C{n+2}) Build passes
+- [ ] (C{n+3}) Global Final Loop verification passed
 
 TASKS (from adv_task_list):
 {for each task}
@@ -289,6 +293,12 @@ TASKS (from adv_task_list):
 {end}
 
 Progress: {done_count}/{total_count} tasks
+
+AUTONOMOUS RETRY ENABLED:
+- SEMANTIC errors (type/logic/test): 3 retries with diagnosis
+- TRANSIENT errors (network/flaky): 1 retry with 5s delay
+- ENVIRONMENTAL errors (missing deps): immediate escalation
+- Global Final Loop required before CONTRACT FULFILLED
 
 {if gates were auto-completed}
 GATES AUTO-COMPLETED:
@@ -308,9 +318,10 @@ Use the `question` tool. **If gates were auto-completed, include in question tex
 {
   "questions": [{
     "header": "Confirm",
-    "question": "Begin implementation of '{change.title}'?{if gates auto-completed}\n\nNote: The following gates were auto-completed:\n- {gateId}: {evidence}{end}",
+    "question": "Begin autonomous implementation of '{change.title}'?{if gates auto-completed}\n\nNote: The following gates were auto-completed:\n- {gateId}: {evidence}{end}",
     "options": [
-      { "label": "Begin work (Recommended)", "description": "Start TDD implementation" },
+      { "label": "Begin work (Recommended)", "description": "Start autonomous TDD implementation" },
+      { "label": "Modify criteria", "description": "Adjust before starting" },
       { "label": "Cancel", "description": "Exit without changes" }
     ]
   }]
@@ -319,9 +330,113 @@ Use the `question` tool. **If gates were auto-completed, include in question tex
 
 ---
 
+## Autonomous Retry Protocol
+
+### Error Classification
+
+When verification fails, classify BEFORE acting:
+
+| Type | Examples | Action |
+|------|----------|--------|
+| **SEMANTIC** | Type errors, test failures, logic bugs | Diagnose → Fix → Retry (3x) |
+| **TRANSIENT** | Network timeout, flaky test | Wait 5s → Retry once |
+| **ENVIRONMENTAL** | Missing dep, config not found | Escalate immediately |
+
+### Diagnosis Requirement (Reflexion)
+
+Before ANY fix for SEMANTIC errors:
+
+```
+[ADV:DOOM_LOOP] RETRY 1/3
+
+DIAGNOSIS: The test fails because calculateTotal() returns undefined when
+the cart is empty. The function lacks a guard clause.
+
+FIX: Add early return of 0 when items.length === 0.
+
+Applying fix...
+```
+
+The diagnosis MUST appear before fix is applied. This ensures:
+1. You understand root cause
+2. User can see reasoning
+3. No repeated ineffective fixes
+
+### Retry Budget
+
+Track per verification failure. Budget **resets per task**.
+
+```
+[ADV:DOOM_LOOP] RETRY 1/3 - SEMANTIC
+DIAGNOSIS: ...
+FIX: ...
+<verify>
+
+[ADV:DOOM_LOOP] RETRY 2/3 - SEMANTIC
+DIAGNOSIS: Previous fix addressed symptom not cause...
+FIX: ...
+<verify>
+```
+
+### Budget Exhaustion
+
+If 3 retries fail (4 total attempts), STOP:
+
+```
+============================================================
+        AUTONOMOUS RETRY BUDGET EXHAUSTED
+============================================================
+
+TASK: {task.id}: {task.title}
+
+ATTEMPTS (must show ALL 3):
+1. DIAGNOSIS: {root cause analysis}
+   FIX: {what was tried}
+   RESULT: {specific error}
+
+2. DIAGNOSIS: {why attempt 1 failed, new analysis}
+   FIX: {different approach}
+   RESULT: {specific error}
+
+3. DIAGNOSIS: {why attempt 2 failed, new analysis}
+   FIX: {third approach}
+   RESULT: {specific error}
+
+PERSISTENT ERROR:
+{final error message}
+
+BLOCKING REASON (select one):
+[ ] SEMANTIC - Logic/algorithm fundamentally flawed, need design change
+[ ] KNOWLEDGE - Missing domain knowledge or context
+[ ] ENVIRONMENTAL - External dependency unavailable
+
+============================================================
+```
+
+**IMPORTANT:** You CANNOT reach this state without showing 3 genuine, distinct fix attempts above. Each attempt must have a different diagnosis and approach. Repeating the same fix does not count.
+
+Then use the `question` tool:
+```json
+{
+  "questions": [{
+    "header": "Budget Exhausted",
+    "question": "3 retry attempts failed for '{task.title}'. All attempts documented above.",
+    "options": [
+      { "label": "Provide hint (Recommended)", "description": "Give me guidance to try a 4th approach" },
+      { "label": "Take over task", "description": "User will complete this task manually" },
+      { "label": "Void contract", "description": "Cancel entire change - this is a fundamental blocker" }
+    ]
+  }]
+}
+```
+
+**NOTE:** "Skip task" is NOT an option. The task must be completed, taken over by user, or the entire contract voided. The agent cannot cancel individual tasks without user approval via `adv_task_cancel`.
+
+---
+
 ## Phase 3: TDD Work Loop
 
-### ⚠️ Context Freshness Policy
+### ⚠️ Context Freshness Policy (MANDATORY)
 
 **CRITICAL: Do NOT batch tasks into a local todo list with descriptive blurbs.**
 
@@ -361,29 +476,29 @@ When using the `TodoWrite` tool during `/adv-apply`:
 
 **Why IDs only:** When you see `tk-abc123` in your todo list, you MUST call `adv_change_show` to understand what that task actually requires. This prevents working from stale/abbreviated mental models.
 
-### Anti-pattern to avoid
+### ⚠️ Anti-Patterns (PROHIBITED)
+
+| Anti-Pattern | Why It's Wrong | Correct Behavior |
+|--------------|----------------|------------------|
+| "Let's skip this for now" | Avoids the problem | Apply retry protocol |
+| "We can come back to this" | Defers without reason | Complete now or exhaust retries |
+| "This might need manual work" | Offloads to user prematurely | Try 3 times first |
+| "I'm not sure how to proceed" | Gives up too early | Research, diagnose, attempt fix |
+| "Would you like me to skip?" | Seeks permission to avoid | Never offer skip as option |
+| "This is complex, let's defer" | Complexity is not a blocker | Break down and implement |
+| "Tests are flaky, marking done" | False completion | Fix flaky tests or document as environmental |
+| Marking "blocked" after 1 try | Premature surrender | Must attempt 3 distinct fixes |
+| "This targets another repo" | Cross-repo is in-scope | Switch workdir and execute |
+| "Out of scope for this codebase" | Change defines scope, not repo | Switch workdir and execute |
+| Direct `adv_task_update status: cancelled` | Bypasses approval | Use `adv_task_cancel` with user signoff |
+
+### Task Flow
 
 ```
-❌ "I'll add these to my todo list:
-   1. Add hero section
-   2. Add price display
-   3. Add tabs
-   Then work through them..."
+adv_task_ready change_id: <id>
 ```
 
-### Correct approach
-
-```
-✓ "I have 3 tasks to complete. Adding task IDs to my todo list..."
-   [TodoWrite with just tk-abc123, tk-def456, tk-ghi789]
-   
-   "Starting tk-abc123. Let me look up what this task requires..."
-   [calls adv_change_show]
-   "The proposal specifies that the hero section needs compact price variants,
-   not the full expanded version. Now implementing..."
-```
-
-For each task from `adv_task_ready`:
+For each ready task:
 
 ### 3a. Start Task
 
@@ -436,7 +551,8 @@ Implementing: {task.title}
 
 1. Write minimal code to pass
 2. Run tests, capture success output
-3. Show evidence: `Test passes: <output snippet>`
+3. If fails: Apply **Autonomous Retry Protocol**
+4. Show evidence: `Test passes: <output snippet>`
 
 ### 3d. Complete Task
 
@@ -459,6 +575,13 @@ adv_task_ready change_id: <target>
 
 Continue with next ready task.
 
+### Incremental Verification
+
+After EACH task:
+1. Run verification (build, tests, lint)
+2. If fails: Apply Autonomous Retry Protocol
+3. Only mark complete after pass
+
 ---
 
 ## Phase 4: Progress Tracking
@@ -480,17 +603,61 @@ Phase: TDD | Tasks: {done}/{total}
 
 ---
 
-## Phase 5: Completion
+## Phase 5: Global Final Loop
 
-When `adv_task_ready` returns empty AND all tasks are "done" or "cancelled":
-
-### Verify Completion
+Before CONTRACT FULFILLED:
 
 ```
-adv_task_list change_id: <target>
+============================================================
+              GLOBAL FINAL LOOP VERIFICATION
+============================================================
+
+Running full verification suite...
+- [ ] Full build
+- [ ] All tests
+- [ ] No lint errors
+- [ ] No type errors
+
+============================================================
 ```
 
-Confirm all tasks show `status: "done"` or `status: "cancelled"`.
+Execute ALL verification. If any fail:
+1. Apply Autonomous Retry Protocol
+2. Continue until all pass OR budget exhausted
+
+---
+
+## Phase 6: Completion
+
+Only after Global Final Loop passes:
+
+### Pre-Completion Checklist
+
+Before declaring CONTRACT FULFILLED, verify:
+
+```
+============================================================
+              PRE-COMPLETION VERIFICATION
+============================================================
+
+TASK AUDIT:
+{for each task}
+- {task.id}: {task.title}
+  Status: {status}
+  Evidence: {test output, commit, or "user takeover"}
+  {if status != "done" and status != "cancelled"} ⚠️ INCOMPLETE - CANNOT FULFILL CONTRACT
+{end}
+
+SKIP/DEFER CHECK:
+- [ ] No tasks were skipped
+- [ ] No tasks marked "blocked" without 3 retry attempts
+- [ ] No tasks deferred "for later"
+- [ ] All "trivial" task skips have documented rationale
+
+============================================================
+```
+
+**If ANY task is incomplete without proper documentation, you CANNOT proceed to CONTRACT FULFILLED.**
 
 ### Cancelled Task Verification
 
@@ -527,7 +694,7 @@ Must pass before declaring complete.
 
 ### Mark Implementation Gate
 
-After validation passes (and cancelled tasks are approved, if any):
+After pre-completion verification passes (and cancelled tasks are approved, if any):
 
 ```
 adv_gate_complete changeId: {change-id} gateId: implementation
@@ -542,10 +709,9 @@ adv_gate_complete changeId: {change-id} gateId: implementation
 
 OBJECTIVE: {change.title}
 
-ALL TASKS COMPLETE (from adv_task_list):
-{for each task}
-- [x] {task.id}: {task.title}
-{end}
+ALL CRITERIA MET:
+- [x] (C1) {criterion}
+- [x] Global Final Loop - PASSED
 
 {if cancelled tasks}
 CANCELLED TASKS (user approved):
@@ -554,7 +720,11 @@ CANCELLED TASKS (user approved):
 {end}
 {end}
 
-VALIDATION: adv_change_validate - PASSED
+COMPLETION MODE:
+{one of}
+- FULLY AUTONOMOUS - All tasks completed without human intervention
+- GUIDED - {N} tasks required user hints
+- PARTIAL TAKEOVER - {N} tasks completed by user
 
 GATE STATUS:
 - Implementation gate: COMPLETE ✓
@@ -562,58 +732,27 @@ GATE STATUS:
 ============================================================
 ```
 
+**Completion mode definitions:**
+- **FULLY AUTONOMOUS**: All tasks done by agent, no hints needed
+- **GUIDED**: Agent completed all tasks but needed user hints for some
+- **PARTIAL TAKEOVER**: User manually completed some tasks
+
 ### Completion Banner
 
 ```
 ============================================================
       /adv-apply {change-id} COMPLETE
 ============================================================
-Result: All tasks done, ready for /adv-review
+Result: CONTRACT FULFILLED (autonomous retry enabled)
+Completion: {FULLY AUTONOMOUS | GUIDED | PARTIAL TAKEOVER}
+Tasks: {completed}/{total}
 Implementation Gate: MARKED COMPLETE
 ============================================================
 ```
 
 ---
 
-## Doom Loop Protocol
-
-If same task fails 3 times:
-
-1. Emit `[ADV:DOOM_LOOP]`
-2. Document ALL 3 attempts with diagnosis
-3. STOP retrying
-4. Use the `question` tool:
-   ```json
-   {
-     "questions": [{
-       "header": "Task Blocked",
-       "question": "Task '{task.title}' stuck after 3 documented attempts. See diagnosis above.",
-       "options": [
-         { "label": "Provide hint (Recommended)", "description": "Give guidance for a 4th attempt" },
-         { "label": "User takes over", "description": "I'll complete this task manually" },
-         { "label": "Cancel change", "description": "Abort entire change" }
-       ]
-     }]
-   }
-   ```
-
-**NOTE:** "Skip" and "defer" are NOT options. Each attempt must be documented with:
-- What was tried
-- Why it failed  
-- What was learned
-
-If "User takes over":
-```
-adv_task_update change_id: <target> task_id: {task.id} status: "blocked" notes: "User takeover after 3 attempts"
-```
-
-The user must then complete the task before the change can be archived.
-
-**NOTE:** The agent cannot cancel the task here. Only the user can approve cancellation via `adv_task_cancel`.
-
----
-
-## Trivial Tasks
+## Doom Loop Protocol (Trivial Tasks)
 
 For non-logic tasks (docs, config):
 
