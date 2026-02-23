@@ -265,42 +265,144 @@ ARCHIVE LOCATION:
       /adv-archive {change-id} COMPLETE
 ============================================================
 Result: Specs updated, change archived
+Proceeding to Phase 9: Git Finalization...
 ============================================================
 ```
 
 ---
 
-## Post-Archive Suggestions
+## Phase 9: Git Finalization (Mandatory)
+
+This phase is **required**, not optional. All changes must be committed and merged before the archive workflow is considered complete.
+
+### Step 1: Stage and Commit
+
+Detect the repo root and stage all modified tracked files plus any newly created archive/spec/docs files:
+
+```bash
+# Detect repo root
+git rev-parse --show-toplevel
+
+# Stage all relevant files
+git add .adv/specs/ docs/specs/ .adv/archive/ .opencode/ plugin/ \
+        ADV_INSTRUCTIONS.md README.md CHANGELOG.md SETUP.md \
+        docs/ --ignore-errors
+
+# Commit (skip if nothing staged)
+git diff --cached --quiet || \
+  git commit -m "chore: archive {change-id} — apply deltas, update specs and docs"
+```
+
+**If commit fails**: Show error, stop — do NOT proceed to merge with uncommitted changes.
+
+### Step 2: Detect Default Branch
+
+```bash
+# Try common names in order
+git rev-parse --verify main 2>/dev/null && echo main || \
+  git rev-parse --verify trunk 2>/dev/null && echo trunk || \
+  git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's|refs/remotes/origin/||' || \
+  echo "UNKNOWN"
+```
+
+If branch is UNKNOWN, prompt the user for the default branch name via the `question` tool.
+
+### Step 3: Check Worktree Context
+
+Determine if currently running in a worktree branch:
+
+```bash
+git branch --show-current
+```
+
+**If on a `change/{change-id}` branch** (worktree context):
+- Proceed to Step 4 (merge required before cleanup)
+
+**If already on the default branch** (no worktree):
+- Skip merge — nothing to merge, jump to Step 5 (verify)
+
+### Step 4: Merge to Default Branch
+
+```bash
+# Switch to default branch
+git checkout {default-branch}
+
+# Merge the change branch (no-edit to avoid interactive mode)
+git merge --no-edit change/{change-id}
+```
+
+**If merge has conflicts**: Show conflict list, stop — user must resolve manually before proceeding.
+
+**Alternative (if project uses PRs)**:
+```bash
+git push -u origin change/{change-id}
+gh pr create --title "Archive {change-id}" --body "Merges completed change."
+```
+
+When using PR workflow, pause and ask user to merge the PR before continuing to Step 5.
+
+### Step 5: Verify Merge Complete
+
+```bash
+git log --oneline {default-branch}..change/{change-id}
+# MUST return EMPTY — all commits reachable from default branch
+```
+
+**If output is non-empty**: Merge is incomplete. Stop and show unmerged commits. Do NOT delete worktree.
+
+### Step 6: Clean Up Worktree (If Applicable)
+
+Only run if currently in a `change/{change-id}` worktree AND Step 5 verified empty:
 
 ```
-NEXT STEPS:
-1. Commit changes:
-   git add .adv/specs/ docs/specs/ .adv/archive/
-   git commit -m "chore: archive {change-id}"
+worktree_delete reason: "Change {change-id} merged to {default-branch}"
+```
 
-2. Merge worktree branch (if using worktree):
-   # Switch to main working directory (not the worktree)
-   git checkout trunk   # or main — use the repo's default branch
-   git merge --no-edit change/{change-id}
+**If `worktree_delete` is unavailable**: Emit `[ADV:INFO] worktree_delete not available — delete manually with: git worktree remove <path>`.
 
-   # Or push and open a PR:
-   git push -u origin change/{change-id}
-   gh pr create --title "Archive {change-id}" --body "Merges completed change."
+### Step 7: Clean Temp Artifacts
 
-3. Verify merge (required before worktree cleanup):
-   git log --oneline trunk..change/{change-id}
-   # Must return EMPTY — all commits reachable from default branch
+Remove any temporary files generated during this archive session:
 
-4. Clean up worktree (only after merge verified):
-   worktree_delete reason: "Change {change-id} merged to default branch"
+```bash
+# Remove common temp artifacts
+find . -maxdepth 3 -name "*.bak" -o -name "*.tmp" -o -name "*.orig" | \
+  grep -v node_modules | xargs rm -f 2>/dev/null || true
+```
 
-   ⚠️  Do NOT delete the worktree until the branch is merged.
-       The worktree protects unmerged work from being lost.
+---
 
-5. Optional validation:
+## Phase 9 Completion Report
+
+```
+============================================================
+                 GIT FINALIZATION COMPLETE
+============================================================
+
+Commit: {short-sha} — chore: archive {change-id}
+Merged to: {default-branch}
+Merge verified: ✓ (no unmerged commits)
+Worktree cleanup: {deleted | skipped (no worktree) | skipped (worktree_delete unavailable)}
+Temp artifacts: {N removed | none found}
+
+============================================================
+        /adv-archive {change-id} FULLY COMPLETE
+============================================================
+```
+
+---
+
+## Optional Next Steps
+
+```
+OPTIONAL:
+1. Push to remote:
+   git push origin {default-branch}
+
+2. Validate all specs are consistent:
    /adv-validate --all
 
-6. Optional hardening:
+3. Re-harden affected files:
    /adv-harden <affected-files>
 ```
 
