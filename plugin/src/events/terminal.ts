@@ -339,42 +339,7 @@ export const ringBell = (): void => {
 // StatusMarker = previous status for transition detection
 let lastAlertedStatus: StatusMarker | null = null;
 
-/**
- * Get model name from environment, formatting it for display.
- * Strips "Claude" prefix and common suffixes for brevity.
- * Falls back to empty string if not set.
- *
- * NOTE: Currently unused but kept for future use.
- */
-const _getModelName = (): string => {
-  const model = process.env.OPENCODE_MODEL || process.env.ANTHROPIC_MODEL || "";
-  if (!model) return "";
 
-  // Format model name for display
-  let displayName = model
-    .replace(/^claude-/i, "") // Remove "claude-" prefix
-    .replace(/-\d{8}$/, "") // Remove date suffix like -20250514
-    .replace(/-latest$/, ""); // Remove -latest suffix
-
-  // Capitalize and format common model names
-  const modelMappings: Record<string, string> = {
-    "opus-4": "Opus 4",
-    "sonnet-4": "Sonnet 4",
-    "haiku-4": "Haiku 4",
-    "3-5-sonnet": "Sonnet 3.5",
-    "3-opus": "Opus 3",
-    "3-haiku": "Haiku 3",
-  };
-
-  for (const [pattern, replacement] of Object.entries(modelMappings)) {
-    if (displayName.toLowerCase().includes(pattern)) {
-      displayName = replacement;
-      break;
-    }
-  }
-
-  return displayName;
-};
 
 /**
  * Update terminal based on status.
