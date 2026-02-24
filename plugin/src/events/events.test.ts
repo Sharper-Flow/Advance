@@ -6,7 +6,6 @@
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { STATUS_MARKERS } from "../types";
-import type { Change, Task } from "../types";
 import {
   getStatusMarker,
   initializeStatus,
@@ -15,8 +14,6 @@ import {
   setTaskProgress,
   getStatus,
   resetStatus,
-  detectStatusFromChange,
-  detectTddStatus,
   trackRetry,
   clearRetry,
   getDoomLoopInfo,
@@ -140,169 +137,6 @@ describe("Status State Management", () => {
       expect(status.activeChangeId).toBeNull();
       expect(status.taskProgress).toBeNull();
       expect(status.projectName).toBe("test-project"); // Preserved
-    });
-  });
-});
-
-describe("Status Detection", () => {
-  describe("detectStatusFromChange", () => {
-    it("returns EARTH when all tasks are done", () => {
-      const change: Change = {
-        id: "test",
-        title: "Test",
-        status: "active",
-        created_at: new Date().toISOString(),
-        tasks: [
-          {
-            id: "t1",
-            title: "Task 1",
-            status: "done",
-            priority: 0,
-            created_at: "",
-          },
-          {
-            id: "t2",
-            title: "Task 2",
-            status: "done",
-            priority: 1,
-            created_at: "",
-          },
-        ],
-        deltas: {},
-      };
-      expect(detectStatusFromChange(change)).toBe("EARTH");
-    });
-
-    it("returns ROCKET when tasks in progress", () => {
-      const change: Change = {
-        id: "test",
-        title: "Test",
-        status: "active",
-        created_at: new Date().toISOString(),
-        tasks: [
-          {
-            id: "t1",
-            title: "Task 1",
-            status: "in_progress",
-            priority: 0,
-            created_at: "",
-          },
-          {
-            id: "t2",
-            title: "Task 2",
-            status: "pending",
-            priority: 1,
-            created_at: "",
-          },
-        ],
-        deltas: {},
-      };
-      expect(detectStatusFromChange(change)).toBe("ROCKET");
-    });
-
-    it("returns ROCKET when tasks pending in active change", () => {
-      const change: Change = {
-        id: "test",
-        title: "Test",
-        status: "active",
-        created_at: new Date().toISOString(),
-        tasks: [
-          {
-            id: "t1",
-            title: "Task 1",
-            status: "pending",
-            priority: 0,
-            created_at: "",
-          },
-        ],
-        deltas: {},
-      };
-      expect(detectStatusFromChange(change)).toBe("ROCKET");
-    });
-
-    it("returns MIC for draft status", () => {
-      const change: Change = {
-        id: "test",
-        title: "Test",
-        status: "draft",
-        created_at: new Date().toISOString(),
-        tasks: [],
-        deltas: {},
-      };
-      expect(detectStatusFromChange(change)).toBe("MIC");
-    });
-
-    it("returns MIC for pending approval status", () => {
-      const change: Change = {
-        id: "test",
-        title: "Test",
-        status: "pending",
-        created_at: new Date().toISOString(),
-        tasks: [],
-        deltas: {},
-      };
-      expect(detectStatusFromChange(change)).toBe("MIC");
-    });
-  });
-
-  describe("detectTddStatus", () => {
-    it("returns TDD_RED for test writing tasks", () => {
-      const task: Task = {
-        id: "t1",
-        title: "Write tests for validation",
-        status: "in_progress",
-        priority: 0,
-        created_at: "",
-      };
-      expect(detectTddStatus(task)).toBe("TDD_RED");
-    });
-
-    it("returns TDD_GREEN for implementation tasks", () => {
-      const task: Task = {
-        id: "t1",
-        title: "Implement validation logic",
-        status: "in_progress",
-        priority: 0,
-        created_at: "",
-      };
-      expect(detectTddStatus(task)).toBe("TDD_GREEN");
-    });
-
-    it("returns ROCKET for generic tasks", () => {
-      const task: Task = {
-        id: "t1",
-        title: "Update documentation",
-        status: "in_progress",
-        priority: 0,
-        created_at: "",
-      };
-      expect(detectTddStatus(task)).toBe("ROCKET");
-    });
-
-    it("returns ROCKET for null task", () => {
-      expect(detectTddStatus(null)).toBe("ROCKET");
-    });
-
-    it("detects red phase indicator", () => {
-      const task: Task = {
-        id: "t1",
-        title: "RED PHASE: Create failing test",
-        status: "in_progress",
-        priority: 0,
-        created_at: "",
-      };
-      expect(detectTddStatus(task)).toBe("TDD_RED");
-    });
-
-    it("detects green phase indicator", () => {
-      const task: Task = {
-        id: "t1",
-        title: "GREEN PHASE: Make tests pass",
-        status: "in_progress",
-        priority: 0,
-        created_at: "",
-      };
-      expect(detectTddStatus(task)).toBe("TDD_GREEN");
     });
   });
 });

@@ -37,8 +37,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **MOON emoji changed**: 🌙 → 📡 (satellite) — clearly conveys "sub-agents running" rather than "idle"
 - README and ADV_INSTRUCTIONS updated with tab emoji column and title format documentation
 
+### Fixed
+
+#### Emoji Status Consistency
+
+- Status emoji now driven by a single `resolveStatus()` function with explicit precedence:
+  `MIC > MOON > TDD_RED > TDD_GREEN > ROCKET > EARTH`
+- `🔴`/`🟢` (TDD_RED/TDD_GREEN) now actually appear — previously wired only in tests, never set at runtime
+- `📡` (MOON) no longer stomped by `session.status busy/idle` events firing while a sub-agent runs
+- `🎤` (MIC) from `permission.asked` correctly returns to `🚀` (ROCKET) after `permission.replied`
+- TDD phase cleared on `session.status idle` — stale red/green can no longer linger after a tool completes
+- Plugin state replaced scattered `setState({ status })` calls with `StatusFlags` interface + `setFlags()` helper
+
 ### Removed
 
+- `detectStatusFromChange()` — dead code, never called from production paths
+- `detectTddStatus()` — superseded by direct phase detection in `tool.execute.before`
+- `updateProgressFromChange()` — dead code, never called from production paths
 - Stale generated report files (`COMMAND_REPORT.html`, `COMMAND_REPORT.md`, `GOOST_VS_ADV_COMPARISON.html`)
 - Unused `_getModelName` helper in `terminal.ts` (35 lines of speculative/dead code)
 

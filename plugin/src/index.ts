@@ -42,10 +42,16 @@ import { enforceBashPolicy } from "./guards/bash";
 // Types
 // =============================================================================
 
-/** Plugin state for tracking active work */
-interface PluginState {
-  status: StatusMarker;
+/** Flags that drive the resolved StatusMarker (via resolveStatus). */
+interface StatusFlags {
+  sessionIdle: boolean;
   activeSubAgents: number;
+  permissionPending: boolean;
+  tddPhase: "TDD_RED" | "TDD_GREEN" | null;
+}
+
+/** Plugin state for tracking active work */
+interface PluginState extends StatusFlags {
   activeChange: {
     id: string | null;
     objective: string | null;
@@ -57,6 +63,23 @@ interface PluginState {
   /** True when running inside a git worktree (directory !== main repo root) */
   isWorktree: boolean;
 }
+
+/**
+ * Resolve the current StatusMarker from plugin state flags.
+ *
+ * Precedence (highest → lowest):
+ *   MIC > MOON > TDD_RED > TDD_GREEN > ROCKET > EARTH
+ *
+ * EARTH is only shown when the session is idle AND no other flag is set.
+ * DOOM_LOOP is set directly by trackRetry() in status.ts, bypassing the resolver.
+ */
+const resolveStatus = (s: PluginState): StatusMarker => {
+  if (s.permissionPending) return "MIC";
+  if (s.activeSubAgents > 0) return "MOON";
+  if (s.tddPhase) return s.tddPhase;
+  if (s.sessionIdle) return "EARTH";
+  return "ROCKET";
+};
 
 // =============================================================================
 // Debug Logging
@@ -132,8 +155,10 @@ export const AdvancePlugin: Plugin = async ({ directory, worktree }) => {
 
   // Plugin state
   const state: PluginState = {
-    status: "EARTH",
+    sessionIdle: true,
     activeSubAgents: 0,
+    permissionPending: false,
+    tddPhase: null,
     activeChange: {
       id: null,
       objective: null,
@@ -161,12 +186,10 @@ export const AdvancePlugin: Plugin = async ({ directory, worktree }) => {
     }
   }
 
-  // Helper to update state and terminal
-  const setState = (updates: Partial<PluginState>) => {
+  // Helper to update status flags and push the resolved status to the terminal
+  const setFlags = (updates: Partial<StatusFlags>) => {
     Object.assign(state, updates);
-    if (updates.status) {
-      setStatus(updates.status);
-    }
+    setStatus(resolveStatus(state));
   };
 
   // Register cleanup handlers (store references for removal)
@@ -885,15 +908,13 @@ export const AdvancePlugin: Plugin = async ({ directory, worktree }) => {
             // Don't transition to EARTH if sub-agents are still active
             // This prevents false "completion" alerts during MOON phase
             if (state.activeSubAgents === 0) {
-              setState({ status: "EARTH" });
+              setFlags({ sessionIdle: true, tddPhase: null });
             }
             // Prune stale retry trackers on idle to prevent memory growth
             pruneStaleRetries();
           } else if (statusType === "busy") {
-            // Don't override MOON status - sub-agents are still working
-            if (state.activeSubAgents === 0) {
-              setState({ status: "ROCKET" });
-            }
+            // Mark session as active — resolveStatus will pick the right marker
+            setFlags({ sessionIdle: false });
           }
         } else if (eventType === "session.deleted") {
           cleanupTerminal();
@@ -909,9 +930,9 @@ export const AdvancePlugin: Plugin = async ({ directory, worktree }) => {
           eventType === "permission.updated" ||
           eventType === "permission.asked"
         ) {
-          setState({ status: "MIC" });
+          setFlags({ permissionPending: true, sessionIdle: false });
         } else if (eventType === "permission.replied") {
-          setState({ status: state.activeSubAgents > 0 ? "MOON" : "ROCKET" });
+          setFlags({ permissionPending: false });
         }
       } catch {
         // Silently handle event errors to not break OpenCode
@@ -943,16 +964,29 @@ export const AdvancePlugin: Plugin = async ({ directory, worktree }) => {
         // OpenCode uses lowercase "task" for the built-in Task tool
         if (input.tool === "task") {
           debugLog(`Sub-agent spawned: count=${state.activeSubAgents + 1}`);
-          setState({
+          setFlags({
             activeSubAgents: state.activeSubAgents + 1,
-            status: "MOON",
+            sessionIdle: false,
           });
         }
 
         // Detect question tools (needs user input)
         // OpenCode uses lowercase "question" for the built-in Question tool
         if (input.tool === "question") {
-          setState({ status: "MIC" });
+          setFlags({ permissionPending: true, sessionIdle: false });
+        }
+
+        // Detect TDD phase from adv_run_test and adv_task_evidence
+        if (
+          input.tool === "adv_run_test" ||
+          input.tool === "adv_task_evidence"
+        ) {
+          const phase = (output.args as any)?.phase;
+          if (phase === "red") {
+            setFlags({ tddPhase: "TDD_RED", sessionIdle: false });
+          } else if (phase === "green") {
+            setFlags({ tddPhase: "TDD_GREEN", sessionIdle: false });
+          }
         }
       } catch (e) {
         debugLog(`tool.execute.before error: ${e}`);
@@ -994,15 +1028,20 @@ export const AdvancePlugin: Plugin = async ({ directory, worktree }) => {
         if (input.tool === "task") {
           const newCount = Math.max(0, state.activeSubAgents - 1);
           debugLog(`Sub-agent completed: count=${newCount}`);
-          setState({
-            activeSubAgents: newCount,
-            status: newCount > 0 ? "MOON" : "ROCKET",
-          });
+          setFlags({ activeSubAgents: newCount });
         }
 
         // Handle question tool completion
         if (input.tool === "question") {
-          setState({ status: state.activeSubAgents > 0 ? "MOON" : "ROCKET" });
+          setFlags({ permissionPending: false });
+        }
+
+        // Clear TDD phase after test tool completes
+        if (
+          input.tool === "adv_run_test" ||
+          input.tool === "adv_task_evidence"
+        ) {
+          setFlags({ tddPhase: null });
         }
       } catch (e) {
         debugLog(`tool.execute.after error: ${e}`);

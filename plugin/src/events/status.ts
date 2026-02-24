@@ -4,7 +4,7 @@
  * Manages ADV status markers and state transitions.
  */
 
-import type { StatusMarker, Change, Task } from "../types";
+import type { StatusMarker } from "../types";
 import { STATUS_MARKERS } from "../types";
 import { updateTerminalStatus, cleanupTerminal } from "./terminal";
 
@@ -85,17 +85,6 @@ export const setTaskProgress = (completed: number, total: number): void => {
 };
 
 /**
- * Calculate progress from a change's tasks.
- */
-export const updateProgressFromChange = (change: Change): void => {
-  const total = change.tasks.length;
-  const completed = change.tasks.filter(
-    (t) => t.status === "done" || t.status === "cancelled",
-  ).length;
-  setTaskProgress(completed, total);
-};
-
-/**
  * Update the terminal display.
  */
 const updateTerminal = (): void => {
@@ -135,78 +124,6 @@ export const resetStatus = (): void => {
 export const cleanup = (): void => {
   cleanupTerminal();
   retryTrackers.clear();
-};
-
-// =============================================================================
-// Status Detection from Context
-// =============================================================================
-
-/**
- * Determine appropriate status based on change state.
- */
-export const detectStatusFromChange = (change: Change): StatusMarker => {
-  const incompleteTasks = change.tasks.filter(
-    (t) => t.status !== "done" && t.status !== "cancelled",
-  );
-  const inProgressTasks = change.tasks.filter(
-    (t) => t.status === "in_progress",
-  );
-
-  // If all tasks complete, ready for archive
-  if (incompleteTasks.length === 0 && change.tasks.length > 0) {
-    return "EARTH";
-  }
-
-  // If tasks in progress, active work
-  if (inProgressTasks.length > 0) {
-    return "ROCKET";
-  }
-
-  // If tasks pending but none started
-  if (change.status === "active" && incompleteTasks.length > 0) {
-    return "ROCKET";
-  }
-
-  // Draft or pending approval
-  if (change.status === "draft" || change.status === "pending") {
-    return "MIC";
-  }
-
-  return "EARTH";
-};
-
-/**
- * Determine TDD status based on task title patterns.
- */
-export const detectTddStatus = (currentTask: Task | null): StatusMarker => {
-  if (!currentTask) {
-    return "ROCKET";
-  }
-
-  const title = currentTask.title.toLowerCase();
-
-  // Check for TDD red phase indicators
-  if (
-    title.includes("write test") ||
-    title.includes("create test") ||
-    title.includes("add test") ||
-    title.includes("failing test") ||
-    title.includes("red phase")
-  ) {
-    return "TDD_RED";
-  }
-
-  // Check for TDD green phase indicators
-  if (
-    title.includes("implement") ||
-    title.includes("make test pass") ||
-    title.includes("green phase") ||
-    title.includes("fix test")
-  ) {
-    return "TDD_GREEN";
-  }
-
-  return "ROCKET";
 };
 
 // =============================================================================

@@ -509,4 +509,177 @@ describe("Advance Plugin SDK Integration", () => {
       expect(Array.isArray(output.context)).toBe(true);
     });
   });
+
+  // ===========================================================================
+  // Status Transition Consistency
+  // ===========================================================================
+
+  describe("Status Transition Consistency", () => {
+    test("adv_run_test red phase sets TDD_RED status", async () => {
+      const hooks = await createTrackedPlugin(tempDir, pluginInstances);
+      const changeId = "addFeature";
+      const taskId = "tk-task0001";
+
+      // Set active change
+      await hooks["tool.execute.before"]!(
+        { tool: "adv_task_list" } as any,
+        { args: { changeId } } as any,
+      );
+
+      // Simulate adv_run_test tool call with red phase in before hook
+      await hooks["tool.execute.before"]!(
+        { tool: "adv_run_test" } as any,
+        { args: { taskId, phase: "red", command: "bun test" } } as any,
+      );
+
+      // Should be TDD_RED now — not ROCKET
+      const { getStatus } = await import("./events");
+      expect(getStatus().currentStatus).toBe("TDD_RED");
+    });
+
+    test("adv_run_test green phase sets TDD_GREEN status", async () => {
+      const hooks = await createTrackedPlugin(tempDir, pluginInstances);
+      const changeId = "addFeature";
+      const taskId = "tk-task0001";
+
+      await hooks["tool.execute.before"]!(
+        { tool: "adv_task_list" } as any,
+        { args: { changeId } } as any,
+      );
+
+      await hooks["tool.execute.before"]!(
+        { tool: "adv_run_test" } as any,
+        { args: { taskId, phase: "green", command: "bun test" } } as any,
+      );
+
+      const { getStatus } = await import("./events");
+      expect(getStatus().currentStatus).toBe("TDD_GREEN");
+    });
+
+    test("adv_task_evidence red phase sets TDD_RED status", async () => {
+      const hooks = await createTrackedPlugin(tempDir, pluginInstances);
+
+      await hooks["tool.execute.before"]!(
+        { tool: "adv_task_evidence" } as any,
+        { args: { taskId: "tk-x", phase: "red" } } as any,
+      );
+
+      const { getStatus } = await import("./events");
+      expect(getStatus().currentStatus).toBe("TDD_RED");
+    });
+
+    test("adv_task_evidence green phase sets TDD_GREEN status", async () => {
+      const hooks = await createTrackedPlugin(tempDir, pluginInstances);
+
+      await hooks["tool.execute.before"]!(
+        { tool: "adv_task_evidence" } as any,
+        { args: { taskId: "tk-x", phase: "green" } } as any,
+      );
+
+      const { getStatus } = await import("./events");
+      expect(getStatus().currentStatus).toBe("TDD_GREEN");
+    });
+
+    test("task tool sets MOON and session.status busy does not overwrite it", async () => {
+      const hooks = await createTrackedPlugin(tempDir, pluginInstances);
+
+      // Sub-agent spawned → MOON
+      await hooks["tool.execute.before"]!(
+        { tool: "task" } as any,
+        { args: {} } as any,
+      );
+
+      // session.status busy fires while sub-agent is still running
+      await hooks.event!({
+        event: {
+          type: "session.status",
+          properties: { status: { type: "busy" } },
+        } as any,
+      });
+
+      const { getStatus } = await import("./events");
+      expect(getStatus().currentStatus).toBe("MOON");
+    });
+
+    test("task tool sets MOON and session.status idle does not prematurely set EARTH", async () => {
+      const hooks = await createTrackedPlugin(tempDir, pluginInstances);
+
+      // Sub-agent spawned → MOON
+      await hooks["tool.execute.before"]!(
+        { tool: "task" } as any,
+        { args: {} } as any,
+      );
+
+      // session.status idle fires while sub-agent still running (before task after hook)
+      await hooks.event!({
+        event: {
+          type: "session.status",
+          properties: { status: { type: "idle" } },
+        } as any,
+      });
+
+      const { getStatus } = await import("./events");
+      expect(getStatus().currentStatus).toBe("MOON");
+    });
+
+    test("permission.asked sets MIC status", async () => {
+      const hooks = await createTrackedPlugin(tempDir, pluginInstances);
+
+      await hooks.event!({
+        event: {
+          type: "permission.asked",
+          properties: {},
+        } as any,
+      });
+
+      const { getStatus } = await import("./events");
+      expect(getStatus().currentStatus).toBe("MIC");
+    });
+
+    test("permission.replied returns to ROCKET when no sub-agents", async () => {
+      const hooks = await createTrackedPlugin(tempDir, pluginInstances);
+
+      // Set MIC first
+      await hooks.event!({
+        event: { type: "permission.asked", properties: {} } as any,
+      });
+
+      // Reply
+      await hooks.event!({
+        event: { type: "permission.replied", properties: {} } as any,
+      });
+
+      const { getStatus } = await import("./events");
+      expect(getStatus().currentStatus).toBe("ROCKET");
+    });
+
+    test("TDD phase resets to ROCKET after session becomes idle with no sub-agents", async () => {
+      const hooks = await createTrackedPlugin(tempDir, pluginInstances);
+
+      // Start a TDD phase
+      await hooks["tool.execute.before"]!(
+        { tool: "adv_run_test" } as any,
+        { args: { taskId: "tk-x", phase: "red", command: "bun test" } } as any,
+      );
+
+      const { getStatus } = await import("./events");
+      expect(getStatus().currentStatus).toBe("TDD_RED");
+
+      // Tool completes
+      await hooks["tool.execute.after"]!(
+        { tool: "adv_run_test" } as any,
+        { args: {}, output: "{}" } as any,
+      );
+
+      // Session goes idle
+      await hooks.event!({
+        event: {
+          type: "session.status",
+          properties: { status: { type: "idle" } },
+        } as any,
+      });
+
+      expect(getStatus().currentStatus).toBe("EARTH");
+    });
+  });
 });
