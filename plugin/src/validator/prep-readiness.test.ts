@@ -337,6 +337,28 @@ describe("checkTaskGraphIntegrity", () => {
     expect(issues.some((i) => i.code === "TASK_TDD_INVERSION")).toBe(false);
   });
 
+  test("skips TDD inversion check when test task has tdd_evidence.skipped (regression: trivial test alignment flagged as inversion)", () => {
+    // Scenario: a test task with TDD explicitly skipped is blocked_by an impl task.
+    // The inversion check should not fire because TDD was skipped — the task is
+    // just aligning test assertions, not writing a new red-phase test.
+    const change = makeChange({
+      tasks: [
+        makeTask({ id: "tk-impl5001", title: "Implement feature Z" }),
+        makeTask({
+          id: "tk-test5001",
+          title: "Write tests for feature Z",
+          deps: [{ type: "blocked_by", target: "tk-impl5001" }],
+          tdd_evidence: {
+            skipped: true,
+            skip_reason: "trivial: updating test count and expected list",
+          },
+        }),
+      ],
+    });
+    const issues = checkTaskGraphIntegrity(change);
+    expect(issues.some((i) => i.code === "TASK_TDD_INVERSION")).toBe(false);
+  });
+
   test("ignores cancelled tasks when checking TDD inversion (regression: cancelled tasks blocked prep gate)", () => {
     // Scenario: a cancelled verification task had a blocked_by dep on an impl task.
     // The gate validator was flagging this as a TDD inversion even though the task

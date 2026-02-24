@@ -196,8 +196,8 @@ export function checkTaskGraphIntegrity(change: Change): ValidationIssue[] {
       (d) => d.type === "blocked_by",
     );
 
-    // TDD inversion check
-    if (isTestTask(task.title)) {
+    // TDD inversion check — skip when TDD was explicitly skipped for this task
+    if (isTestTask(task.title) && !task.tdd_evidence?.skipped) {
       for (const dep of blockedByDeps) {
         const depTask = taskById.get(dep.target);
         if (depTask && isImplTask(depTask.title)) {
