@@ -474,7 +474,6 @@ pnpm build
 | Command | Purpose |
 |---------|---------|
 | `/adv-status` | Project overview |
-| `/adv-brainstorm [topic]` | Interactive ideation session |
 | `/adv-clarify` | Socratic requirements discovery |
 | `/adv-proposal <summary>` | Create change proposal |
 | `/adv-prep <id>` | Gap analysis |

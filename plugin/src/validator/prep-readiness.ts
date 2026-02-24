@@ -168,7 +168,13 @@ function isImplTask(title: string): boolean {
  */
 export function checkTaskGraphIntegrity(change: Change): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
-  const tasks = change.tasks ?? [];
+  const allTasks = change.tasks ?? [];
+
+  if (allTasks.length === 0) return issues;
+
+  // Exclude cancelled tasks — they are no longer active and should not
+  // trigger TDD inversion or orphan warnings.
+  const tasks = allTasks.filter((t) => t.status !== "cancelled");
 
   if (tasks.length === 0) return issues;
 

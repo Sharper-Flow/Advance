@@ -58,7 +58,21 @@ done
 [ "$removed" -gt 0 ] && echo "    $removed stale command(s) removed" || true
 
 # ---------------------------------------------------------------------------
-# 4. Sync ADV_INSTRUCTIONS.md to global config dir
+# 4. Remove non-ADV commands that were previously synced but no longer live
+#    in this repo (e.g. openprompt.md which moved out of the plugin).
+# ---------------------------------------------------------------------------
+for stale in openprompt.md; do
+  for dir in "$HOME/.config/opencode/command" "$HOME/.config/opencode/commands"; do
+    target="$dir/$stale"
+    if [ -f "$target" ]; then
+      rm "$target"
+      echo "    removed legacy: $target"
+    fi
+  done
+done
+
+# ---------------------------------------------------------------------------
+# 5. Sync ADV_INSTRUCTIONS.md to global config dir
 #    (opencode.json points at ~/dev/oc-plugins/advance/ADV_INSTRUCTIONS.md
 #    which is already the repo file - no copy needed, already symlinked via path)
 # ---------------------------------------------------------------------------

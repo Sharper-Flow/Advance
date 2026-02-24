@@ -50,7 +50,6 @@ ADV (Advance) enables spec-driven development where **specs become laws**. Requi
 |---------|---------|
 | `/adv-refactor <change-id>` | Refresh stale proposals |
 | `/adv-coordinate` | Multi-change conflict detection |
-| `/adv-roadmap` | Progress dashboard |
 
 ## Status Markers
 

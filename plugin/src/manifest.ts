@@ -51,7 +51,7 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
     phase: "core",
     requiresChangeId: false,
     prerequisites: [],
-    successors: ["adv-proposal", "adv-apply", "adv-roadmap"],
+    successors: ["adv-proposal", "adv-apply"],
   },
   "adv-proposal": {
     name: "adv-proposal",
@@ -183,22 +183,6 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
   },
 
   // ---- Utility ----
-  "adv-roadmap": {
-    name: "adv-roadmap",
-    description: "Progress dashboard across all active changes",
-    phase: "utility",
-    requiresChangeId: false,
-    prerequisites: [],
-    successors: ["adv-status"],
-  },
-  "adv-brainstorm": {
-    name: "adv-brainstorm",
-    description: "Generate ideas and explore solution space",
-    phase: "utility",
-    requiresChangeId: false,
-    prerequisites: [],
-    successors: ["adv-proposal", "adv-clarify"],
-  },
   "adv-improve": {
     name: "adv-improve",
     description: "Suggest improvements to existing specs or implementation",

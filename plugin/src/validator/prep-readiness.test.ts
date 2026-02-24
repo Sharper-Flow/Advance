@@ -337,6 +337,47 @@ describe("checkTaskGraphIntegrity", () => {
     expect(issues.some((i) => i.code === "TASK_TDD_INVERSION")).toBe(false);
   });
 
+  test("ignores cancelled tasks when checking TDD inversion (regression: cancelled tasks blocked prep gate)", () => {
+    // Scenario: a cancelled verification task had a blocked_by dep on an impl task.
+    // The gate validator was flagging this as a TDD inversion even though the task
+    // was no longer active. Cancelled tasks must be excluded from graph checks.
+    const change = makeChange({
+      tasks: [
+        makeTask({ id: "tk-impl9001", title: "Add config rule" }),
+        makeTask({
+          id: "tk-verify9001",
+          title: "Verify the rule is active",
+          status: "cancelled",
+          deps: [{ type: "blocked_by", target: "tk-impl9001" }],
+        }),
+        makeTask({ id: "tk-verify9002", title: "Verify config output" }),
+      ],
+    });
+    const issues = checkTaskGraphIntegrity(change);
+    expect(issues.some((i) => i.code === "TASK_TDD_INVERSION")).toBe(false);
+  });
+
+  test("ignores cancelled tasks when checking orphan warning", () => {
+    // Cancelled tasks should not be counted as orphans or factor into orphan detection.
+    const change = makeChange({
+      tasks: [
+        makeTask({ id: "tk-impl9002", title: "Add feature" }),
+        makeTask({
+          id: "tk-old9001",
+          title: "Old superseded task",
+          status: "cancelled",
+        }),
+        makeTask({
+          id: "tk-verify9003",
+          title: "Verify feature works",
+          deps: [{ type: "blocked_by", target: "tk-impl9002" }],
+        }),
+      ],
+    });
+    const issues = checkTaskGraphIntegrity(change);
+    expect(issues.some((i) => i.code === "TASK_ORPHAN")).toBe(false);
+  });
+
   test("returns TASK_ORPHAN warning for task with no deps and not a dep of anything", () => {
     const change = makeChange({
       tasks: [

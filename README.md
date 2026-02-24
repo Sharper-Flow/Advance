@@ -144,7 +144,6 @@ See [INSTALL.md](INSTALL.md) for detailed setup instructions.
 |---------|-------------|
 | `/adv-refactor <id>` | Refresh stale proposals to match codebase |
 | `/adv-coordinate` | Multi-change conflict detection |
-| `/adv-roadmap` | Progress dashboard with tiered view |
 
 ## MCP Tools
 
