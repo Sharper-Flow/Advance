@@ -1,14 +1,14 @@
 ---
 name: adv-task
-description: Fast-track a pre-discussed change — synthesize a chat contract, confirm with the user, then autonomously research, prep, and implement.
-agent: build
+description: Fast-track a pre-discussed change — synthesize a chat contract, confirm with the user, then research and prep the change. Stops at prep and hands off to Build for implementation.
+agent: general
 ---
 
-# ADV Task - Fast-Track Contract Execution
+# ADV Task - Fast-Track Contract to Ready-for-Build
 
-Turn a pre-discussed change into a fully-executed ADV change **without the heavyweight proposal phase**.
+Turn a pre-discussed change into a fully-prepped ADV change **without the heavyweight proposal phase**.
 
-Use this when you and the user have already agreed on what needs to be done in conversation and just want to formalize, validate best practices, and execute autonomously.
+Use this when you and the user have already agreed on what needs to be done in conversation and just want to formalize, validate best practices, and generate a ready-to-execute task list.
 
 **Pipeline:**
 1. Synthesize a **Quick Contract** from the conversation
@@ -16,24 +16,11 @@ Use this when you and the user have already agreed on what needs to be done in c
 3. Create a standard ADV change (camelCase ID, `tk-` tasks)
 4. **Research** — validate LBP targets via Context7 (halt if major conflict found)
 5. **Prep** — generate `tk-` tasks automatically
-6. **Implement** — execute autonomously with TDD (full `/adv-apply` behavior)
+6. **Hand off** — stop and prompt user to switch to Build agent for `/adv-apply`
 
 <UserRequest>
   $ARGUMENTS
 </UserRequest>
-
----
-
-## ⛔ CRITICAL: NO SKIP / NO DEFER POLICY
-
-Same as `/adv-apply`. Once the contract is confirmed, every task MUST be completed.
-
-- ❌ Skip tasks "to revisit later"
-- ❌ Defer tasks "until more information is available"
-- ❌ Mark tasks as blocked without exhausting ALL retry attempts
-- ❌ Cancel tasks via `adv_task_update` (use `adv_task_cancel` with user approval)
-
-**Cross-repo tasks MUST be executed in the target repo.** "Different repo" is NOT a valid reason to cancel.
 
 ---
 
@@ -97,9 +84,9 @@ Use the `question` tool:
 {
   "questions": [{
     "header": "Quick Contract",
-    "question": "Does this Quick Contract accurately capture what we discussed? Confirming will kick off autonomous Research → Prep → Implement.",
+    "question": "Does this Quick Contract accurately capture what we discussed? Confirming will kick off Research → Prep → hand off to Build.",
     "options": [
-      { "label": "Confirmed — execute (Recommended)", "description": "Proceed with research and implementation" },
+      { "label": "Confirmed — execute (Recommended)", "description": "Proceed with research and prep" },
       { "label": "Modify contract", "description": "I want to adjust the intent, scope, or LBP targets" },
       { "label": "Abort", "description": "Cancel — do not create a change" }
     ]
@@ -125,14 +112,14 @@ adv_change_create summary: "{2-5 word summary}" capability: "{primary capability
 
 Capture the returned `changeId`.
 
-**Store the Quick Contract in the change:** The full contract text (intent, LBP targets, scope, success criteria) becomes the `title` field naturally via the summary, and is recorded in the agent's working context. No `proposal.md` is written — the contract lives in the conversation and the change's task descriptions will capture implementation detail.
+**Store the Quick Contract in the change:** The full contract text (intent, LBP targets, scope, success criteria) is recorded in the agent's working context. No `proposal.md` is written — the contract lives in the conversation and the change's task descriptions will capture implementation detail.
 
 Emit:
 
 ```
 [ADV:ROCKET]
 Quick Contract confirmed. Change created: {changeId}
-Pipeline: Research → Prep → Implement (autonomous)
+Pipeline: Research → Prep → hand off to Build
 ```
 
 ---
@@ -192,7 +179,7 @@ For each LBP target, record:
 
 - **Adopt recommended**: Update the LBP target in your working contract, continue pipeline
 - **Keep original**: Note the deviation in the first task's description, continue pipeline
-- **Abort**: Stop. Do not proceed with implementation.
+- **Abort**: Stop. Do not proceed.
 
 ### Step 2.4: Complete Research Gate
 
@@ -268,92 +255,15 @@ Generate at minimum:
 adv_gate_complete changeId: {changeId} gateId: prep completedBy: "adv-task auto-prep: {N} tasks generated"
 ```
 
-Emit:
-
-```
-[ADV:ROCKET]
-Prep complete for {changeId}: {N} tasks generated
-Tasks:
-{for each task}
-  - {task.id}: {task.title}
-{end}
-
-Proceeding to Implementation...
-```
-
 ---
 
-## Phase 4: Implement — Autonomous Execution
+## Phase 4: Build Handoff
 
-This phase is **identical to `/adv-apply`** Phase 0 (worktree assessment) through Phase 6 (completion).
-
-Emit:
-
-```
-[ADV:ROCKET]
-Entering autonomous implementation for {changeId}
-Retry protocol: ENABLED
-```
-
-### Worktree Assessment
-
-Apply the same worktree logic as `/adv-apply` Phase 0:
-
-| Signal | Risk Level |
-|--------|------------|
-| 3+ files affected | High — suggest worktree |
-| Breaking API changes | High — suggest worktree |
-| Risky refactor | High — suggest worktree |
-| 1-2 files, trivial changes only | Low — skip worktree |
-
-Check `worktree_create` availability. If unavailable, emit `[ADV:INFO]` and proceed in-place.
-
-If risk is High, ask via `question` tool (see `/adv-apply` Phase 0 for exact format).
-
-### TDD Work Loop
-
-Follow `/adv-apply` Phase 3 exactly:
-
-1. **Get ready tasks**: `adv_task_ready changeId: {changeId}`
-2. **For each task**:
-   a. Refresh context: `adv_change_show changeId: {changeId}`
-   b. Mark in progress: `adv_task_update taskId: {id} status: "in_progress"`
-   c. **Red phase**: Write failing test, record with `adv_task_evidence phase: "red"`
-   d. **Green phase**: Implement, run tests, record with `adv_task_evidence phase: "green"`
-   e. **Retry on failure**: Apply autonomous retry protocol (3 attempts, classified diagnosis)
-   f. Mark done: `adv_task_update taskId: {id} status: "done"`
-3. Repeat until `adv_task_ready` returns empty
-
-### Retry Protocol
-
-Same as `/adv-apply`:
-- **SEMANTIC** errors: 3 retries with distinct diagnosis each time
-- **TRANSIENT** errors: 1 retry after 5s delay
-- **ENVIRONMENTAL** errors: Immediate escalation to user
-
-### Global Final Loop
-
-After all tasks complete, run full verification:
-- Full build
-- All tests
-- No lint errors
-- No type errors
-
-If any fail, apply retry protocol before marking implementation gate.
-
-### Complete Implementation Gate
-
-```
-adv_gate_complete changeId: {changeId} gateId: implementation completedBy: "adv-task autonomous execution"
-```
-
----
-
-## Phase 5: Completion Banner
+Emit the completion summary and stop. Do NOT begin implementation.
 
 ```
 ============================================================
-           /adv-task CONTRACT FULFILLED
+         /adv-task READY FOR BUILD
 ============================================================
 
 CHANGE: {changeId}
@@ -362,33 +272,24 @@ INTENT: {contract intent}
 LBP VALIDATION:
 {table of targets and verdicts}
 
-TASKS COMPLETED: {done}/{total}
-  {for each task}
+TASKS READY: {total}
+{for each task}
   - [{task.id}] {task.title}
-  {end}
-
-COMPLETION MODE: {FULLY AUTONOMOUS | GUIDED | PARTIAL TAKEOVER}
+{end}
 
 GATES:
   research      ✓
   prep          ✓
-  implementation ✓
-  review        pending → run /adv-review {changeId}
-  harden        pending → run /adv-harden {changeId}
-  signoff       pending
+  implementation  pending
+  review          pending
+  harden          pending
+  signoff         pending
 
-NEXT STEPS:
-  /adv-review {changeId}    Code review (correctness, security, architecture)
-  /adv-harden {changeId}    AI-slop detection, test coverage, doc hygiene
-
+------------------------------------------------------------
+  ⚡ Switch to the Build agent and run:
+     /adv-apply {changeId}
 ============================================================
 ```
-
----
-
-## TodoWrite Rules
-
-Same as `/adv-apply`: use task IDs only in the todo list (e.g., `tk-abc123`), not descriptions. Forces context lookup via `adv_change_show` before each task.
 
 ---
 
@@ -399,11 +300,6 @@ Same as `/adv-apply`: use task IDs only in the todo list (e.g., `tk-abc123`), no
 | Create change | `adv_change_create` |
 | LBP research | `context7_resolve-library-id`, `context7_query-docs`, `kagi_search_fetch` |
 | Project context | `adv_project_context` |
+| Check conflicts | `adv_change_list` |
 | Add tasks | `adv_task_add` |
 | Complete gates | `adv_gate_complete` |
-| Get ready tasks | `adv_task_ready` |
-| Refresh context | `adv_change_show` |
-| Update task | `adv_task_update` |
-| Record TDD evidence | `adv_task_evidence` |
-| Cancel tasks | `adv_task_cancel` (user approval required) |
-| Validate | `adv_change_validate` |
