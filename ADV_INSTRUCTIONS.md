@@ -177,36 +177,9 @@ When spawning sub-agents via the Task tool, select based on the task type:
 | `explore` | Codebase navigation, find usages | Read, Glob, Grep |
 | `general` | Complex multi-step implementation | Full tool access |
 
-### When to Use Each Agent
-
-**librarian** - Documentation and examples:
-- "How do I use X in library Y?"
-- "Show examples of pattern Z"
-- "What are the params for function F?"
-
-**adv-researcher** - Architectural decisions:
-- "Does this follow best practices?"
-- "Could this be simpler?"
-- "Compare existing vs reference architecture"
-
-**explore** - Codebase questions:
-- "Where is feature X implemented?"
-- "Find all usages of function Y"
-
-**general** - Implementation tasks:
-- Complex multi-step work requiring TDD
-- Code modifications across multiple files
-
 ### Orchestrator Pattern
 
-For research tasks requiring both documentation and architectural validation, spawn agents in parallel:
-
-```
-Task(subagent_type: "librarian", prompt: "Find docs for {tech}")
-Task(subagent_type: "adv-researcher", prompt: "Validate architecture")
-```
-
-Then synthesize results. See `/adv-research` command for implementation.
+For parallel research: spawn `librarian` (docs) + `adv-researcher` (architecture validation) simultaneously, then synthesize.
 
 ## Worktree Integration
 
@@ -288,10 +261,4 @@ All other ADV functionality works identically.
 **Use for:** New features, breaking changes, architecture, compliance
 **Skip for:** Bug fixes, typos, deps, exploration
 
-## Reference
 
-- [Workflow Diagram](docs/adv-workflow.md)
-- [6-Gate Details](docs/adv-gates.md)
-- [Task Report Format](docs/adv-task-report.md)
-- [Question Tool Schema](docs/adv-question-tool.md)
-- Agent config: `.opencode/agents/adv-researcher.md`
