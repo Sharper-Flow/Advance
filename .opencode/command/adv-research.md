@@ -1,7 +1,7 @@
 ---
 name: adv-research
 description: Research and validate architectural decisions using sub-agents and Context7
-agent: build
+agent: general
 ---
 
 # ADV Research - Architectural Decision Validation
@@ -494,6 +494,9 @@ NEXT STEPS:
 Result: {N findings applied | All validated | Report only}
 Simplifications: {N opportunities identified}
 Research Gate: MARKED COMPLETE
+
+  ⚡ Switch to the Build agent and run:
+     /adv-prep {change-id}   (then /adv-apply {change-id})
 ============================================================
 ```
 
