@@ -157,6 +157,9 @@ SUGGESTED SEQUENCE
       /adv-coordinate COMPLETE
 ============================================================
 Result: {N changes analyzed | No coordination needed}
+
+  ⚡ Recommended next step (Plan agent):
+     /adv-proposal <summary>
 ============================================================
 ```
 

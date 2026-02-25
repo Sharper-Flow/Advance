@@ -496,5 +496,8 @@ Then add tasks for the remediation work:
 ============================================================
 Result: <N findings | Production ready>
 Changes suggested: <Y>
+
+  ⚡ Recommended next step (Build agent):
+     /adv-apply {change-id}
 ============================================================
 ```

@@ -118,5 +118,8 @@ Based on the status, suggest the most relevant next action:
 ```
 ============================================================
       /adv-status COMPLETE
+
+  ⚡ Recommended next step (Scout agent):
+     Use this status snapshot to choose the next command.
 ============================================================
 ```

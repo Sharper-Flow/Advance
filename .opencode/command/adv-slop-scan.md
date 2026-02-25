@@ -661,5 +661,8 @@ After the report is generated, emit:
       /adv-slop-scan COMPLETE
 ============================================================
 Result: <N findings | No slop detected>
+
+  ⚡ Recommended next step (Refine agent):
+     /adv-harden {change-id}
 ============================================================
 ```

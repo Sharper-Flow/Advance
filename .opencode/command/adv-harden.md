@@ -702,6 +702,9 @@ If accepting debt, document in proposal.md with:
 ============================================================
 Result: {READY | N fixed | Report only}
 {if READY}Harden Gate: MARKED COMPLETE{end}
+
+  ⚡ Recommended next step (Plan agent):
+     /adv-archive {change-id}
 ============================================================
 ```
 

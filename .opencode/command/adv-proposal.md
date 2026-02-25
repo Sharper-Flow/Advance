@@ -351,6 +351,9 @@ NEXT STEPS:
        /adv-proposal COMPLETE
 ============================================================
 Result: Change <change-id> created
+
+  ⚡ Recommended next step (Plan agent):
+     /adv-research <change-id>   (or /adv-prep <change-id>)
 ============================================================
 ```
 

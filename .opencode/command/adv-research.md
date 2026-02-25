@@ -495,7 +495,7 @@ Result: {N findings applied | All validated | Report only}
 Simplifications: {N opportunities identified}
 Research Gate: MARKED COMPLETE
 
-  ⚡ Switch to the Build agent and run:
+  ⚡ Recommended next step (Build agent):
      /adv-prep {change-id}   (then /adv-apply {change-id})
 ============================================================
 ```

@@ -576,6 +576,9 @@ adv_gate_complete changeId: {change-id} gateId: review completedBy: "agent — {
 ============================================================
 Result: {verdict} ({fix_count} fixes applied)
 {if APPROVED}Review Gate: MARKED COMPLETE{end}
+
+  ⚡ Recommended next step (Refine agent):
+     /adv-harden {change-id}
 ============================================================
 ```
 

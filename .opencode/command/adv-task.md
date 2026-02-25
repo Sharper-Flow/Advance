@@ -286,7 +286,7 @@ GATES:
   signoff         pending
 
 ------------------------------------------------------------
-  ⚡ Switch to the Build agent and run:
+  ⚡ Recommended next step (Build agent):
      /adv-apply {changeId}
 ============================================================
 ```

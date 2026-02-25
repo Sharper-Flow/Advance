@@ -747,6 +747,9 @@ Result: CONTRACT FULFILLED (autonomous retry enabled)
 Completion: {FULLY AUTONOMOUS | GUIDED | PARTIAL TAKEOVER}
 Tasks: {completed}/{total}
 Implementation Gate: MARKED COMPLETE
+
+  ⚡ Recommended next step (Refine agent):
+     /adv-review {change-id}
 ============================================================
 ```
 

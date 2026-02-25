@@ -394,6 +394,9 @@ STRICT MODE FAILURES:
 ============================================================
 Result: {ALIGNED | N drift issues | Report only}
 Quality Gate: {PASS | FAIL}
+
+  ⚡ Recommended next step (Plan agent):
+     /adv-proposal <summary>
 ============================================================
 ```
 

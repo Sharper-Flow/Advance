@@ -266,6 +266,9 @@ ARCHIVE LOCATION:
 ============================================================
 Result: Specs updated, change archived
 Proceeding to Phase 9: Git Finalization...
+
+  ⚡ Recommended next step (Scout agent):
+     /adv-status
 ============================================================
 ```
 

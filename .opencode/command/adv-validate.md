@@ -188,6 +188,9 @@ Add deltas to changes/{id}/change.json
       /adv-validate {change-id} COMPLETE
 ============================================================
 Result: {valid ? "PASSED" : "FAILED"} ({error_count} errors, {warning_count} warnings)
+
+  ⚡ Recommended next step (Plan agent):
+     /adv-prep {change-id}
 ============================================================
 ```
 

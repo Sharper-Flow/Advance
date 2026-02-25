@@ -476,7 +476,7 @@ GATE STATUS:
 Result: {gap_count} gaps fixed, ready for /adv-apply
 Prep Gate: MARKED COMPLETE
 
-  ⚡ Switch to the Build agent and run:
+  ⚡ Recommended next step (Build agent):
      /adv-apply {change-id}
 ============================================================
 ```
