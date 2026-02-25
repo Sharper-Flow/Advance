@@ -294,6 +294,11 @@ ROLLBACK:
       /adv-refactor {change-id} COMPLETE
 ============================================================
 Result: {Dry run | N changes applied | Failed}
+
+  ⚡ Recommended next step (Refine agent):
+     /adv-review {change-id}
+  If implementation work is now ready (Build agent):
+     /adv-apply {change-id}
 ============================================================
 ```
 

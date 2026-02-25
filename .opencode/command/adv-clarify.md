@@ -331,5 +331,10 @@ SUGGESTED NEXT STEPS:
        /adv-clarify COMPLETE
 ============================================================
 Result: {N} requirements clarified, {M} open questions
+
+  ⚡ Recommended next step (Plan agent):
+     /adv-task <contract-summary>
+  Alternative (Plan agent):
+     /adv-proposal <summary>
 ============================================================
 ```
