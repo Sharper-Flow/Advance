@@ -72,7 +72,7 @@ function listCommandFiles(): string[] {
 function parseDocTableDescriptions(content: string): Map<string, string> {
   const map = new Map<string, string>();
   // Match: | `/adv-<name>` or `/adv-<name> <args>` | <description> |
-  const re = /^\|\s*`\/(adv-[a-z-]+)(?:\s+[^`]*)?\`\s*\|\s*(.*?)\s*\|$/gm;
+  const re = /^\|\s*`\/(adv-[a-z-]+)(?:\s+[^`]*)?`\s*\|\s*(.*?)\s*\|$/gm;
   let match: RegExpExecArray | null;
   while ((match = re.exec(content)) !== null) {
     map.set(match[1], match[2]);
@@ -108,7 +108,8 @@ describe("Manifest ↔ Command Doc Drift", () => {
 
     for (const file of commandFiles) {
       const name = file.replace(".md", "");
-      const manifestDef = COMMAND_MANIFEST[name as keyof typeof COMMAND_MANIFEST];
+      const manifestDef =
+        COMMAND_MANIFEST[name as keyof typeof COMMAND_MANIFEST];
       if (!manifestDef) continue; // covered by previous test
 
       const content = readFileSync(join(COMMAND_DIR, file), "utf8");

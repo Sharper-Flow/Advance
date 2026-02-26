@@ -171,7 +171,10 @@ describe("loadProjectConfigWithDiagnostics", () => {
   test("returns schema_error for invalid features.tdd_enforcement value", async () => {
     await writeFile(
       join(tempDir, "project.json"),
-      JSON.stringify({ name: "test", features: { tdd_enforcement: "invalid" } }),
+      JSON.stringify({
+        name: "test",
+        features: { tdd_enforcement: "invalid" },
+      }),
     );
     const result = await loadProjectConfigWithDiagnostics(tempDir);
     expect(result.success).toBe(false);
@@ -441,6 +444,21 @@ describe("createChangeScaffold", () => {
     expect(content).toMatch(/TDD|test.*first|red.*green/i);
     // Success Criteria should have checklist items
     expect(content).toContain("- [ ]");
+  });
+
+  test("uses provided proposal content when supplied", async () => {
+    const changesDir = join(tempDir, "changes");
+    const customProposal =
+      "# Custom Contract\n\n## Intent\n\nTool-driven writes only.";
+    const result = await createChangeScaffold(
+      changesDir,
+      "customProposal",
+      "Ignored Title",
+      customProposal,
+    );
+
+    const content = await readFile(result.proposalPath, "utf-8");
+    expect(content).toBe(customProposal);
   });
 });
 

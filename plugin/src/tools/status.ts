@@ -53,7 +53,9 @@ export const statusTools = {
       const status = await store.status();
 
       // Load project config with diagnostics — surface errors instead of silently ignoring
-      const configResult = await loadProjectConfigWithDiagnostics(store.paths.root);
+      const configResult = await loadProjectConfigWithDiagnostics(
+        store.paths.root,
+      );
       let featureFlags: Record<string, unknown> | undefined;
 
       if (!configResult.success) {
@@ -62,9 +64,7 @@ export const statusTools = {
           configResult.type === "not_found"
             ? "⚠️  Config warning"
             : "❌ Config error";
-        status.recommendations.unshift(
-          `${prefix}: ${configResult.error}`,
-        );
+        status.recommendations.unshift(`${prefix}: ${configResult.error}`);
       } else {
         // Expose feature flags in status output for visibility
         featureFlags = configResult.data.features as Record<string, boolean>;

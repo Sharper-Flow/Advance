@@ -3,8 +3,8 @@
   "name": "advance",
   "title": "Advance",
   "purpose": "Capability: Advance",
-  "version": "1.0.0",
-  "updated_at": "2026-02-13T18:31:33.591Z",
+  "version": "1.1.0",
+  "updated_at": "2026-02-26T07:49:07.957Z",
   "requirements": [
     {
       "id": "rq-W1sD0mR1",
@@ -59,6 +59,132 @@
           "when": "Gate completion is attempted",
           "then": [
             "The gate remains open and requires explicit justification for the clean result"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-advcfg01",
+      "title": "Status Config Diagnostics and Feature Flags",
+      "body": "adv_status must surface project.json diagnostics and include parsed feature flag values so agents can see config health and runtime policy settings without opening files.",
+      "priority": "must",
+      "scenarios": [
+        {
+          "id": "rq-advcfg01.1",
+          "title": "Invalid project config is surfaced",
+          "given": [
+            "project.json is malformed or schema-invalid"
+          ],
+          "when": "adv_status is executed",
+          "then": [
+            "Output includes a config error or warning recommendation",
+            "The command does not fail hard due to config parse issues"
+          ]
+        },
+        {
+          "id": "rq-advcfg01.2",
+          "title": "Feature flags are visible in status output",
+          "given": [
+            "project.json parses successfully"
+          ],
+          "when": "adv_status is executed",
+          "then": [
+            "Output includes feature_flags values",
+            "Defaults are applied when flags are omitted"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-advmeta01",
+      "title": "Task Metadata Filter Semantics",
+      "body": "Tasks may include optional metadata key/value pairs. adv_task_list must support has_metadata_key:<key> and metadata:<key>=<value> filters with behavior aligned between JSON source-of-truth and SQLite cache indexes.",
+      "priority": "must",
+      "scenarios": [
+        {
+          "id": "rq-advmeta01.1",
+          "title": "Filter by metadata key",
+          "given": [
+            "A change with tasks containing metadata keys"
+          ],
+          "when": "adv_task_list is called with filter has_metadata_key:<key>",
+          "then": [
+            "Only tasks containing that metadata key are returned"
+          ]
+        },
+        {
+          "id": "rq-advmeta01.2",
+          "title": "Filter by metadata key/value",
+          "given": [
+            "A change with tasks containing metadata key/value pairs"
+          ],
+          "when": "adv_task_list is called with filter metadata:<key>=<value>",
+          "then": [
+            "Only tasks matching both key and value are returned"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-advshut1",
+      "title": "Bounded Signal Flush on Shutdown",
+      "body": "On SIGINT/SIGTERM, the plugin must run a bounded flush path before close, with idempotent/reentrant handling so duplicate signals cannot trigger multiple concurrent flush sequences.",
+      "priority": "must",
+      "scenarios": [
+        {
+          "id": "rq-advshut1.1",
+          "title": "Signal performs bounded flush",
+          "given": [
+            "The process receives SIGINT or SIGTERM"
+          ],
+          "when": "Shutdown handling begins",
+          "then": [
+            "store.flush is attempted before store.close",
+            "A hard timeout bounds flush duration"
+          ]
+        },
+        {
+          "id": "rq-advshut1.2",
+          "title": "Duplicate signals are idempotent",
+          "given": [
+            "A shutdown flush is already in progress"
+          ],
+          "when": "A second SIGINT/SIGTERM is received",
+          "then": [
+            "No second flush path starts",
+            "Shutdown remains deterministic"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-advprop01",
+      "title": "Durable Proposal Context for adv-task",
+      "body": "After Quick Contract confirmation, /adv-task must always persist contract context to proposal.md, and downstream workflows must tolerate missing/empty legacy proposal files via scaffold fallback warnings.",
+      "priority": "must",
+      "scenarios": [
+        {
+          "id": "rq-advprop01.1",
+          "title": "adv-task writes proposal by default",
+          "given": [
+            "A Quick Contract is confirmed in /adv-task"
+          ],
+          "when": "The change is created",
+          "then": [
+            "proposal.md is written in the change directory",
+            "The file includes intent, scope, and success criteria"
+          ]
+        },
+        {
+          "id": "rq-advprop01.2",
+          "title": "Legacy missing proposal is non-blocking",
+          "given": [
+            "A legacy change has missing or empty proposal.md"
+          ],
+          "when": "Proposal context is loaded",
+          "then": [
+            "A scaffold proposal is generated",
+            "A non-blocking warning is emitted"
           ]
         }
       ]

@@ -480,7 +480,10 @@ describe("ProjectConfigSchema", () => {
   });
 
   test("features block accepts partial overrides", () => {
-    const config = { name: "test-project", features: { tdd_enforcement: "advisory" } };
+    const config = {
+      name: "test-project",
+      features: { tdd_enforcement: "advisory" },
+    };
     const result = ProjectConfigSchema.parse(config);
     expect(result.features?.tdd_enforcement).toBe("advisory");
     // Other flags still default
@@ -489,18 +492,27 @@ describe("ProjectConfigSchema", () => {
   });
 
   test("features block accepts tdd_enforcement: off", () => {
-    const config = { name: "test-project", features: { tdd_enforcement: "off" } };
+    const config = {
+      name: "test-project",
+      features: { tdd_enforcement: "off" },
+    };
     const result = ProjectConfigSchema.parse(config);
     expect(result.features?.tdd_enforcement).toBe("off");
   });
 
   test("features block rejects invalid tdd_enforcement value", () => {
-    const config = { name: "test-project", features: { tdd_enforcement: "invalid" } };
+    const config = {
+      name: "test-project",
+      features: { tdd_enforcement: "invalid" },
+    };
     expect(() => ProjectConfigSchema.parse(config)).toThrow();
   });
 
   test("features block rejects invalid gate_enforcement value", () => {
-    const config = { name: "test-project", features: { gate_enforcement: "invalid" } };
+    const config = {
+      name: "test-project",
+      features: { gate_enforcement: "invalid" },
+    };
     expect(() => ProjectConfigSchema.parse(config)).toThrow();
   });
 });
@@ -515,18 +527,32 @@ describe("FeatureFlagsSchema", () => {
   });
 
   test("accepts all valid tdd_enforcement values", () => {
-    expect(FeatureFlagsSchema.parse({ tdd_enforcement: "strict" }).tdd_enforcement).toBe("strict");
-    expect(FeatureFlagsSchema.parse({ tdd_enforcement: "advisory" }).tdd_enforcement).toBe("advisory");
-    expect(FeatureFlagsSchema.parse({ tdd_enforcement: "off" }).tdd_enforcement).toBe("off");
+    expect(
+      FeatureFlagsSchema.parse({ tdd_enforcement: "strict" }).tdd_enforcement,
+    ).toBe("strict");
+    expect(
+      FeatureFlagsSchema.parse({ tdd_enforcement: "advisory" }).tdd_enforcement,
+    ).toBe("advisory");
+    expect(
+      FeatureFlagsSchema.parse({ tdd_enforcement: "off" }).tdd_enforcement,
+    ).toBe("off");
   });
 
   test("accepts all valid gate_enforcement values", () => {
-    expect(FeatureFlagsSchema.parse({ gate_enforcement: "strict" }).gate_enforcement).toBe("strict");
-    expect(FeatureFlagsSchema.parse({ gate_enforcement: "advisory" }).gate_enforcement).toBe("advisory");
+    expect(
+      FeatureFlagsSchema.parse({ gate_enforcement: "strict" }).gate_enforcement,
+    ).toBe("strict");
+    expect(
+      FeatureFlagsSchema.parse({ gate_enforcement: "advisory" })
+        .gate_enforcement,
+    ).toBe("advisory");
   });
 
   test("accepts boolean flags", () => {
-    const result = FeatureFlagsSchema.parse({ worktree_auto_create: false, wisdom_accumulation: false });
+    const result = FeatureFlagsSchema.parse({
+      worktree_auto_create: false,
+      wisdom_accumulation: false,
+    });
     expect(result.worktree_auto_create).toBe(false);
     expect(result.wisdom_accumulation).toBe(false);
   });

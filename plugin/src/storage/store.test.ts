@@ -6,7 +6,7 @@
 
 import { describe, test, expect, beforeEach, afterEach } from "vitest";
 import { join } from "path";
-import { access } from "fs/promises";
+import { access, readFile } from "fs/promises";
 import { createStore, type Store } from "./store";
 import {
   createTempDir,
@@ -156,6 +156,18 @@ describe("Store", () => {
       expect(loadedResult.success).toBe(true);
       expect(loadedResult.data).not.toBeNull();
       expect(loadedResult.data!.status).toBe("draft");
+    });
+
+    test("create writes provided proposal content", async () => {
+      const proposal = "# Contract\n\n## Intent\n\nUse tool-only persistence.";
+      const result = await store.changes.create(
+        "Create proposal with content",
+        undefined,
+        proposal,
+      );
+
+      const proposalContent = await readFile(result.path, "utf-8");
+      expect(proposalContent).toBe(proposal);
     });
   });
 

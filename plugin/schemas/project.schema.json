@@ -62,6 +62,38 @@
             ],
             "additionalProperties": false
           }
+        },
+        "features": {
+          "type": "object",
+          "properties": {
+            "tdd_enforcement": {
+              "type": "string",
+              "enum": [
+                "strict",
+                "advisory",
+                "off"
+              ],
+              "default": "strict"
+            },
+            "worktree_auto_create": {
+              "type": "boolean",
+              "default": true
+            },
+            "gate_enforcement": {
+              "type": "string",
+              "enum": [
+                "strict",
+                "advisory"
+              ],
+              "default": "strict"
+            },
+            "wisdom_accumulation": {
+              "type": "boolean",
+              "default": true
+            }
+          },
+          "additionalProperties": true,
+          "default": {}
         }
       },
       "required": [

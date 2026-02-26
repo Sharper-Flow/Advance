@@ -126,12 +126,22 @@ export const changeTools = {
             'Bad: "Implement comprehensive authentication system", "Full update".',
         ),
       capability: z.string().optional().describe("Primary capability affected"),
+      proposal: z
+        .string()
+        .optional()
+        .describe(
+          "Optional proposal.md content to persist during change creation",
+        ),
     },
     execute: async (
-      { summary, capability }: { summary: string; capability?: string },
+      {
+        summary,
+        capability,
+        proposal,
+      }: { summary: string; capability?: string; proposal?: string },
       store: Store,
     ) => {
-      const result = await store.changes.create(summary, capability);
+      const result = await store.changes.create(summary, capability, proposal);
       return wrapWithBanner(
         { command: "adv_change_create", target: result.changeId },
         formatToolOutput(result),

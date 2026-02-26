@@ -203,6 +203,47 @@
                   "approved_at"
                 ],
                 "additionalProperties": false
+              },
+              "metadata": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                }
+              },
+              "error_recovery": {
+                "type": "object",
+                "properties": {
+                  "last_error": {
+                    "type": "string"
+                  },
+                  "retry_count": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "max_retries": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "error_class": {
+                    "type": "string",
+                    "enum": [
+                      "TRANSIENT",
+                      "SEMANTIC",
+                      "ENVIRONMENTAL",
+                      "FATAL"
+                    ]
+                  },
+                  "next_strategy": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "last_error",
+                  "retry_count",
+                  "max_retries",
+                  "error_class"
+                ],
+                "additionalProperties": false
               }
             },
             "required": [

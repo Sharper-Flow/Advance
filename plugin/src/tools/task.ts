@@ -66,7 +66,13 @@ export const taskTools = {
         filter,
         limit,
         offset,
-      }: { changeId: string; status?: string; filter?: string; limit?: number; offset?: number },
+      }: {
+        changeId: string;
+        status?: string;
+        filter?: string;
+        limit?: number;
+        offset?: number;
+      },
       store: Store,
     ) => {
       const tasks = await store.tasks.list(changeId, status, filter);

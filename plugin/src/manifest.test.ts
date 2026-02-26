@@ -174,15 +174,24 @@ describe("Command Manifest", () => {
         const startsWithVerb = STRONG_VERBS.some((v) =>
           def.description.startsWith(v),
         );
-        expect(startsWithVerb, `${name}: description must start with a strong verb, got: "${def.description}"`).toBe(true);
+        expect(
+          startsWithVerb,
+          `${name}: description must start with a strong verb, got: "${def.description}"`,
+        ).toBe(true);
       }
     });
 
     test("every description is 5–14 words", () => {
       for (const [name, def] of Object.entries(COMMAND_MANIFEST)) {
         const wordCount = def.description.trim().split(/\s+/).length;
-        expect(wordCount, `${name}: description must be 5–14 words, got ${wordCount}: "${def.description}"`).toBeGreaterThanOrEqual(5);
-        expect(wordCount, `${name}: description must be 5–14 words, got ${wordCount}: "${def.description}"`).toBeLessThanOrEqual(14);
+        expect(
+          wordCount,
+          `${name}: description must be 5–14 words, got ${wordCount}: "${def.description}"`,
+        ).toBeGreaterThanOrEqual(5);
+        expect(
+          wordCount,
+          `${name}: description must be 5–14 words, got ${wordCount}: "${def.description}"`,
+        ).toBeLessThanOrEqual(14);
       }
     });
 

@@ -139,6 +139,8 @@ See [INSTALL.md](INSTALL.md) for detailed setup instructions.
 |---------|-------------|
 | `/adv-task` | Fast-track a discussed change: synthesize contract, validate best practices, prep, and hand off |
 
+`/adv-task` now persists Quick Contract context through `adv_change_create` so `proposal.md` is written via tool call, not direct filesystem edits.
+
 ### Advanced
 
 | Command | Description |
@@ -163,7 +165,7 @@ ADV exposes 37 MCP tools for programmatic access:
 |------|-------------|
 | `adv_change_list` | List changes by status |
 | `adv_change_show` | Get change details with tasks and deltas |
-| `adv_change_create` | Create new change scaffold |
+| `adv_change_create` | Create new change scaffold (optionally persist `proposal.md` content via `proposal`) |
 | `adv_change_validate` | Validate change against specs |
 | `adv_change_archive` | Archive change and update specs |
 

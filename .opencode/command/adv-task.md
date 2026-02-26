@@ -107,14 +107,12 @@ Use the `question` tool:
 Call `adv_change_create` with a 2-5 word action-verb summary derived from the contract intent.
 
 ```
-adv_change_create summary: "{2-5 word summary}" capability: "{primary capability if applicable}"
+adv_change_create summary: "{2-5 word summary}" capability: "{primary capability if applicable}" proposal: "{full proposal.md markdown from template below}"
 ```
 
 Capture the returned `changeId`.
 
-**Write `proposal.md` unconditionally** — after the change is created, write the Quick Contract to `proposal.md` in the change directory. This is durable context consumed by `/adv-apply`, `/adv-review`, `/adv-harden`, and `/adv-refactor`.
-
-Write the file at: `{changes_dir}/{changeId}/proposal.md`
+**Persist `proposal.md` via tool call only** — include the fully rendered proposal markdown in the `proposal` argument to `adv_change_create`. Do not use direct filesystem writes (`Write`, `Edit`, `bash`, `/tmp` staging, or manual JSON edits) for proposal/change artifacts.
 
 Use this template:
 
@@ -143,7 +141,7 @@ Emit:
 ```
 [ADV:ROCKET]
 Quick Contract confirmed. Change created: {changeId}
-proposal.md written to {changes_dir}/{changeId}/proposal.md
+proposal.md persisted by adv_change_create
 Pipeline: Research → Prep → hand off to Build
 ```
 

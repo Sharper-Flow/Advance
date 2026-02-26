@@ -47,7 +47,8 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
   // ---- Core Workflow ----
   "adv-status": {
     name: "adv-status",
-    description: "Show project overview: specs, active changes, and next-step recommendations",
+    description:
+      "Show project overview: specs, active changes, and next-step recommendations",
     phase: "core",
     requiresChangeId: false,
     prerequisites: [],
@@ -55,7 +56,8 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
   },
   "adv-proposal": {
     name: "adv-proposal",
-    description: "Propose a new change with intent, scope, and success criteria",
+    description:
+      "Propose a new change with intent, scope, and success criteria",
     phase: "core",
     requiresChangeId: false,
     prerequisites: [],
@@ -63,7 +65,8 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
   },
   "adv-validate": {
     name: "adv-validate",
-    description: "Validate change compliance against specs; block archive on failure",
+    description:
+      "Validate change compliance against specs; block archive on failure",
     phase: "core",
     requiresChangeId: true,
     prerequisites: ["adv-proposal"],
@@ -89,7 +92,8 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
   },
   "adv-research": {
     name: "adv-research",
-    description: "Validate architectural decisions via docs and web search; complete research gate",
+    description:
+      "Validate architectural decisions via docs and web search; complete research gate",
     phase: "pre-implementation",
     gate: "research",
     requiresChangeId: true,
@@ -98,7 +102,8 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
   },
   "adv-prep": {
     name: "adv-prep",
-    description: "Analyze gaps and add missing scenarios, tasks, and dependencies",
+    description:
+      "Analyze gaps and add missing scenarios, tasks, and dependencies",
     phase: "pre-implementation",
     gate: "prep",
     requiresChangeId: true,
@@ -109,7 +114,8 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
   // ---- Implementation ----
   "adv-apply": {
     name: "adv-apply",
-    description: "Implement change with TDD, retry on failure, and final verification",
+    description:
+      "Implement change with TDD, retry on failure, and final verification",
     phase: "implementation",
     gate: "implementation",
     requiresChangeId: true,
@@ -118,7 +124,8 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
   },
   "adv-task": {
     name: "adv-task",
-    description: "Fast-track a discussed change: synthesize contract, validate best practices, prep, and hand off",
+    description:
+      "Fast-track a discussed change: synthesize contract, validate best practices, prep, and hand off",
     phase: "implementation",
     gate: "implementation",
     requiresChangeId: false,
@@ -129,7 +136,8 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
   // ---- Post-Implementation ----
   "adv-review": {
     name: "adv-review",
-    description: "Review code for correctness, security, and architecture; emit REVIEW_FINDINGS",
+    description:
+      "Review code for correctness, security, and architecture; emit REVIEW_FINDINGS",
     phase: "post-implementation",
     gate: "review",
     requiresChangeId: true,
@@ -138,7 +146,8 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
   },
   "adv-harden": {
     name: "adv-harden",
-    description: "Detect low-quality code, verify test coverage, clean up; block archive on open findings",
+    description:
+      "Detect low-quality code, verify test coverage, clean up; block archive on open findings",
     phase: "post-implementation",
     gate: "harden",
     requiresChangeId: true,
@@ -155,7 +164,8 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
   },
   "adv-slop-scan": {
     name: "adv-slop-scan",
-    description: "Scan for low-quality AI-generated code patterns and surface findings",
+    description:
+      "Scan for low-quality AI-generated code patterns and surface findings",
     phase: "post-implementation",
     requiresChangeId: false,
     prerequisites: [],
@@ -183,7 +193,8 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
   // ---- Utility ----
   "adv-improve": {
     name: "adv-improve",
-    description: "Suggest targeted improvements to existing specs or implementation",
+    description:
+      "Suggest targeted improvements to existing specs or implementation",
     phase: "utility",
     requiresChangeId: false,
     prerequisites: [],

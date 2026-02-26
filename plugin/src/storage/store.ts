@@ -98,13 +98,18 @@ export interface Store {
     create: (
       summary: string,
       capability?: string,
+      proposalContent?: string,
     ) => Promise<{ changeId: string; path: string }>;
     save: (change: Change) => Promise<void>;
   };
 
   // Tasks
   tasks: {
-    list: (changeId: string, status?: string, filter?: string) => Promise<Task[]>;
+    list: (
+      changeId: string,
+      status?: string,
+      filter?: string,
+    ) => Promise<Task[]>;
     ready: (changeId: string) => Promise<TaskReadyResponse>;
     update: (
       taskId: string,
@@ -114,7 +119,11 @@ export interface Store {
     add: (
       changeId: string,
       content: string,
-      options?: { blockedBy?: string[]; section?: string; metadata?: Record<string, string> },
+      options?: {
+        blockedBy?: string[];
+        section?: string;
+        metadata?: Record<string, string>;
+      },
     ) => Promise<Task>;
     /** Get a single task by ID */
     get: (taskId: string) => Promise<Task | null>;
@@ -485,6 +494,12 @@ export async function createStore(
           docs_dir: "docs/specs",
           db_dir: ".adv/db",
           project_file: "project.md",
+          features: {
+            tdd_enforcement: "strict",
+            worktree_auto_create: true,
+            gate_enforcement: "strict",
+            wisdom_accumulation: true,
+          },
         };
         await saveProjectConfig(directory, defaultConfig);
       }
@@ -631,7 +646,7 @@ export async function createStore(
         return loadChange(paths.changes, resolvedId);
       },
 
-      create: async (summary, _capability) => {
+      create: async (summary, _capability, proposalContent) => {
         // Generate concise change ID from summary
         const baseId = generateChangeId(summary);
 
@@ -649,6 +664,7 @@ export async function createStore(
           paths.changes,
           changeId,
           summary,
+          proposalContent,
         );
 
         // Create change.json

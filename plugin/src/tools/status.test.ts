@@ -174,8 +174,8 @@ describe("Status Tools", () => {
       const parsed = parseToolOutput(result);
 
       // Config error should appear in recommendations
-      const configErrors = parsed.recommendations.filter((r: string) =>
-        r.includes("project.json") || r.includes("config"),
+      const configErrors = parsed.recommendations.filter(
+        (r: string) => r.includes("project.json") || r.includes("config"),
       );
       expect(configErrors.length).toBeGreaterThan(0);
       expect(configErrors[0]).toContain("project.json");
@@ -207,8 +207,8 @@ describe("Status Tools", () => {
       const parsed = parseToolOutput(result);
 
       // Should warn about missing config
-      const configWarnings = parsed.recommendations.filter((r: string) =>
-        r.includes("project.json") || r.includes("config"),
+      const configWarnings = parsed.recommendations.filter(
+        (r: string) => r.includes("project.json") || r.includes("config"),
       );
       expect(configWarnings.length).toBeGreaterThan(0);
 
@@ -226,8 +226,9 @@ describe("Status Tools", () => {
       const result = await statusTools.adv_status.execute({}, store);
       const parsed = parseToolOutput(result);
 
-      const doctorWarnings = parsed.recommendations.filter((r: string) =>
-        r.includes("[doctor]") && r.includes("JSON/SQLite inconsistency"),
+      const doctorWarnings = parsed.recommendations.filter(
+        (r: string) =>
+          r.includes("[doctor]") && r.includes("JSON/SQLite inconsistency"),
       );
       expect(doctorWarnings.length).toBeGreaterThan(0);
     });

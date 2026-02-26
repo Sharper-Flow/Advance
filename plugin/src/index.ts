@@ -212,13 +212,21 @@ export const AdvancePlugin: Plugin = async ({ directory, worktree }) => {
 
     // 3s hard timeout: if flush hangs, force close and exit
     const flushTimeout = setTimeout(() => {
-      try { store.close(); } catch { /* ignore */ }
+      try {
+        store.close();
+      } catch {
+        /* ignore */
+      }
       process.exit(0);
     }, 3000);
 
     store.flush().finally(() => {
       clearTimeout(flushTimeout);
-      try { store.close(); } catch { /* ignore */ }
+      try {
+        store.close();
+      } catch {
+        /* ignore */
+      }
       process.exit(0);
     });
   };
@@ -321,6 +329,12 @@ export const AdvancePlugin: Plugin = async ({ directory, worktree }) => {
             .string()
             .optional()
             .describe("Target capability"),
+          proposal: tool.schema
+            .string()
+            .optional()
+            .describe(
+              "Optional proposal.md content to persist during change creation",
+            ),
         },
         execute: safeExecute(
           async (args) => changeTools.adv_change_create.execute(args, store),

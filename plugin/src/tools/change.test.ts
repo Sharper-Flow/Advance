@@ -5,6 +5,7 @@
  */
 
 import { describe, test, expect, beforeEach, afterEach } from "vitest";
+import { readFile } from "fs/promises";
 import { changeTools } from "./change";
 import { createStore, type Store } from "../storage/store";
 import {
@@ -192,6 +193,21 @@ describe("Change Tools", () => {
 
       // ID should be truncated to 30 chars
       expect(parsed.changeId.length).toBeLessThanOrEqual(30);
+    });
+
+    test("persists optional proposal content on create", async () => {
+      const proposal = "# Quick Contract\n\n## Intent\n\nUse adv tools only.";
+      const result = await changeTools.adv_change_create.execute(
+        {
+          summary: "Create with proposal",
+          proposal,
+        },
+        store,
+      );
+      const parsed = parseToolOutput(result);
+
+      const content = await readFile(parsed.path, "utf-8");
+      expect(content).toBe(proposal);
     });
   });
 

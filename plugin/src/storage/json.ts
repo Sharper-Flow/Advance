@@ -159,7 +159,11 @@ export async function loadProjectConfigWithDiagnostics(
   try {
     await access(configPath);
   } catch {
-    return { success: false, error: `project.json not found at ${configPath}`, type: "not_found" };
+    return {
+      success: false,
+      error: `project.json not found at ${configPath}`,
+      type: "not_found",
+    };
   }
 
   let raw: string;
@@ -191,7 +195,11 @@ export async function loadProjectConfigWithDiagnostics(
     if (error instanceof ZodError) {
       return {
         success: false,
-        error: formatZodError(error, { type: "project config", id: "project.json", path: configPath }),
+        error: formatZodError(error, {
+          type: "project config",
+          id: "project.json",
+          path: configPath,
+        }),
         type: "schema_error",
       };
     }
@@ -443,6 +451,7 @@ export async function createChangeScaffold(
   changesDir: string,
   changeId: string,
   title: string,
+  proposalContent?: string,
 ): Promise<{ changePath: string; proposalPath: string }> {
   const changeDir = join(changesDir, changeId);
   const changePath = join(changeDir, "change.json");
@@ -451,7 +460,7 @@ export async function createChangeScaffold(
   await mkdir(changeDir, { recursive: true });
 
   // Create proposal.md template with structured sections
-  const proposalContent = `# ${title}
+  const defaultProposalContent = `# ${title}
 
 ## Why
 
@@ -497,7 +506,10 @@ export async function createChangeScaffold(
 - Run full test suite to verify no regressions
 `;
 
-  await atomicWriteFile(proposalPath, proposalContent);
+  await atomicWriteFile(
+    proposalPath,
+    proposalContent ?? defaultProposalContent,
+  );
 
   return { changePath, proposalPath };
 }
