@@ -238,7 +238,7 @@ adv_task_cancel taskIds: [...] reasons: {...} approvedByUser: true approvalEvide
 ### Step 1: Fetch Change Data
 
 ```
-adv_change_show change_id: <target>
+adv_change_show changeId: <target>
 ```
 
 Extract from response:
@@ -249,7 +249,7 @@ Extract from response:
 ### Step 2: Fetch Task State
 
 ```
-adv_task_list change_id: <target>
+adv_task_list changeId: <target>
 ```
 
 Extract:
@@ -260,7 +260,7 @@ Extract:
 ### Step 3: Get Ready Tasks
 
 ```
-adv_task_ready change_id: <target>
+adv_task_ready changeId: <target>
 ```
 
 Returns tasks that can be started (not blocked, not done).
@@ -495,7 +495,7 @@ When using the `TodoWrite` tool during `/adv-apply`:
 ### Task Flow
 
 ```
-adv_task_ready change_id: <id>
+adv_task_ready changeId: <id>
 ```
 
 For each ready task:
@@ -507,7 +507,7 @@ For each ready task:
 Before any implementation, re-read the change to get fresh context:
 
 ```
-adv_change_show change_id: <target>
+adv_change_show changeId: <target>
 ```
 
 Review:
@@ -528,7 +528,7 @@ Context refreshed from change {change-id}:
 
 Update task state:
 ```
-adv_task_update change_id: <target> task_id: {task.id} status: "in_progress"
+adv_task_update taskId: {task.id} status: "in_progress"
 ```
 
 ### 3b. Red Phase
@@ -558,7 +558,7 @@ Implementing: {task.title}
 
 Update task state:
 ```
-adv_task_update change_id: <target> task_id: {task.id} status: "done"
+adv_task_update taskId: {task.id} status: "done"
 ```
 
 ```
@@ -570,7 +570,7 @@ Evidence: {test output or commit hash}
 
 After each completion:
 ```
-adv_task_ready change_id: <target>
+adv_task_ready changeId: <target>
 ```
 
 Continue with next ready task.
@@ -687,7 +687,7 @@ SKIP/DEFER CHECK:
 ### Final Validation
 
 ```
-adv_change_validate change_id: <target>
+adv_change_validate changeId: <target>
 ```
 
 Must pass before declaring complete.
@@ -766,7 +766,7 @@ Task: {task.title} (trivial: {rationale})
 
 Skip Red/Green phases. Verify manually, then:
 ```
-adv_task_update change_id: <target> task_id: {task.id} status: "done"
+adv_task_update taskId: {task.id} status: "done"
 ```
 
 Include rationale in status:

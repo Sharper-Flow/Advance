@@ -36,7 +36,7 @@ Parse `$ARGUMENTS` for:
 ### Fetch Change Data
 
 ```
-adv_change_show change_id: <target>
+adv_change_show changeId: <target>
 ```
 
 Verify `status` is "active".
@@ -44,7 +44,7 @@ Verify `status` is "active".
 ### Verify Tasks Complete
 
 ```
-adv_task_list change_id: <target>
+adv_task_list changeId: <target>
 ```
 
 **If any task not "done":**
@@ -66,7 +66,7 @@ Stop execution.
 ### Run Validation
 
 ```
-adv_change_validate change_id: <target> strict: true
+adv_change_validate changeId: <target> strict: true
 ```
 
 **If validation fails:** Show errors, stop execution.
@@ -195,7 +195,7 @@ Use the `question` tool for explicit user signoff:
 ## Phase 6: Execute Archive
 
 ```
-adv_change_archive change_id: <target>
+adv_change_archive changeId: <target>
 ```
 
 The tool handles:
@@ -444,6 +444,6 @@ Change NOT archived. Fix and retry:
 
 | Purpose | Tool |
 |---------|------|
-| Archive change | `adv_change_archive change_id: <id>` |
+| Archive change | `adv_change_archive changeId: <id>` |
 
 This single tool does all the work. The command orchestrates pre-checks, confirmation, and verification.

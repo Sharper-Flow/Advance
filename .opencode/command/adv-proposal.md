@@ -245,8 +245,8 @@ When adding tasks in Step 8, tasks targeting other repos should include
 the `target_repo` or `target_path` in their description. Example:
 
 ```
-adv_task_add change_id: <id> title: "[backend] Add /api/users endpoint"
-adv_task_add change_id: <id> title: "[db] Add users migration"
+adv_task_add changeId: <id> content: "[backend] Add /api/users endpoint"
+adv_task_add changeId: <id> content: "[db] Add users migration"
 ```
 
 The `/adv-prep` gap analysis will later verify all cross-repo tasks have
@@ -260,24 +260,24 @@ Use `adv_task_add` to create initial tasks based on the change type:
 
 **For new features:**
 ```
-adv_task_add change_id: <id> title: "Define spec requirements"
-adv_task_add change_id: <id> title: "Write acceptance tests"
-adv_task_add change_id: <id> title: "Implement core functionality"
-adv_task_add change_id: <id> title: "Add documentation"
+adv_task_add changeId: <id> content: "Define spec requirements"
+adv_task_add changeId: <id> content: "Write acceptance tests"
+adv_task_add changeId: <id> content: "Implement core functionality"
+adv_task_add changeId: <id> content: "Add documentation"
 ```
 
 **For bug fixes:**
 ```
-adv_task_add change_id: <id> title: "Write failing test for bug"
-adv_task_add change_id: <id> title: "Implement fix"
-adv_task_add change_id: <id> title: "Verify fix with test"
+adv_task_add changeId: <id> content: "Write failing test for bug"
+adv_task_add changeId: <id> content: "Implement fix"
+adv_task_add changeId: <id> content: "Verify fix with test"
 ```
 
 **For refactors:**
 ```
-adv_task_add change_id: <id> title: "Add characterization tests"
-adv_task_add change_id: <id> title: "Perform refactoring"
-adv_task_add change_id: <id> title: "Verify behavior preserved"
+adv_task_add changeId: <id> content: "Add characterization tests"
+adv_task_add changeId: <id> content: "Perform refactoring"
+adv_task_add changeId: <id> content: "Verify behavior preserved"
 ```
 
 ---
@@ -366,4 +366,4 @@ Result: Change <change-id> created
 | Create change | `adv_change_create summary: "..."` |
 | List changes | `adv_change_list` |
 | List specs | `adv_spec_list` |
-| Add task | `adv_task_add change_id: <id> title: "..."` |
+| Add task | `adv_task_add changeId: <id> content: "..."` |

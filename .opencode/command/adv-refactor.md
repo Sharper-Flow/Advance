@@ -32,8 +32,8 @@ Extract from `$ARGUMENTS`:
 ### Fetch Change Context
 
 ```
-adv_change_show change_id: <target>
-adv_task_list change_id: <target>
+adv_change_show changeId: <target>
+adv_task_list changeId: <target>
 ```
 
 Read proposal.md for affected files and scope.
@@ -233,7 +233,7 @@ Use `adv_task_add` for new validation tasks.
 ## Phase 4: Validation
 
 ```
-adv_change_validate change_id: <target> strict: true
+adv_change_validate changeId: <target> strict: true
 ```
 
 If fails due to formatting, fix and retry once.

@@ -43,8 +43,8 @@ Extract from `$ARGUMENTS`:
 ### Fetch Change Context
 
 ```
-adv_change_show change_id: <target>
-adv_task_list change_id: <target>
+adv_change_show changeId: <target>
+adv_task_list changeId: <target>
 ```
 
 ### Gate Prerequisite Check

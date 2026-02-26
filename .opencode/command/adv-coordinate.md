@@ -55,7 +55,7 @@ Stop.
 
 For each active change, call:
 ```
-adv_change_show change_id: <id>
+adv_change_show changeId: <id>
 ```
 
 Extract:

@@ -36,8 +36,8 @@ Orchestrate a multi-dimensional code review using sub-agents. Emits a `REVIEW_FI
 ### Load Change Context
 
 ```
-adv_change_show change_id: <target>
-adv_task_list change_id: <target>
+adv_change_show changeId: <target>
+adv_task_list changeId: <target>
 ```
 
 ### Verify Implementation Exists

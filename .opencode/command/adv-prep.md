@@ -140,7 +140,7 @@ For each task, check whether it should be a **separate task** or **absorbed into
 - Task is blocked_by another task AND modifies the same code that task creates
 - Completing the blocking task without this task would leave obviously incomplete code
 
-**Action**: Cancel the absorbed task via `adv_task_update` and update the parent task's description to explicitly mention the absorbed behavior.
+**Action**: Cancel the absorbed task via `adv_task_cancel` (with user approval) and update the parent task's description to explicitly mention the absorbed behavior.
 
 #### B. TDD Ordering Validation
 
@@ -210,9 +210,9 @@ Search codebase for key terms. Compare with change's affected files.
 
 ### 3.6 Cross-Spec Consistency
 
-Use `adv_spec_search` to find conflicts:
+Use `adv_spec` search to find conflicts:
 ```
-adv_spec_search keyword: <key-term-from-change>
+adv_spec action: "search" query: <key-term-from-change>
 ```
 
 **Flag gaps**: Conflicts, terminology inconsistencies, overlapping scope.

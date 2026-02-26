@@ -37,7 +37,7 @@ Parse `$ARGUMENTS` for:
 ### Execute Validation Tool
 
 ```
-adv_change_validate change_id: <target> strict: {true if --strict else false}
+adv_change_validate changeId: <target> strict: {true if --strict else false}
 ```
 
 The tool returns:
@@ -166,7 +166,7 @@ Expected formats:
 Warning: No tasks defined for change
 
 Suggestion: Add tasks with /adv-prep or:
-  adv_task_add change_id: {id} title: "..."
+  adv_task_add changeId: {id} content: "..."
 ```
 
 ### NO_DELTAS (Warning)
@@ -212,6 +212,6 @@ Use strict mode before:
 
 | Purpose | Tool |
 |---------|------|
-| Validate | `adv_change_validate change_id: <id> strict: <bool>` |
+| Validate | `adv_change_validate changeId: <id> strict: <bool>` |
 
 All validation logic is in the tool. This command formats output and provides guidance.
