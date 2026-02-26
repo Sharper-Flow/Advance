@@ -1033,7 +1033,10 @@ export const AdvancePlugin: Plugin = async ({ directory, worktree }) => {
         if (input.tool === "task") {
           const newCount = Math.max(0, state.activeSubAgents - 1);
           debugLog(`Sub-agent completed: count=${newCount}`);
-          setFlags({ activeSubAgents: newCount });
+          // Always clear permissionPending when a task (sub-agent) completes.
+          // Any question the sub-agent asked is definitionally answered by the
+          // time the task tool returns — so MIC must not persist after this point.
+          setFlags({ activeSubAgents: newCount, permissionPending: false });
         }
 
         // Handle question tool completion

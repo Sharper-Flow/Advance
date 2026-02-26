@@ -653,6 +653,70 @@ describe("Advance Plugin SDK Integration", () => {
       expect(getStatus().currentStatus).toBe("ROCKET");
     });
 
+    test("task tool completion clears permissionPending even if question tool fired inside sub-agent", async () => {
+      // Regression: general sub-agent uses question tool internally → MIC gets stuck
+      // after sub-agent completes because task after-hook didn't reset permissionPending.
+      const hooks = await createTrackedPlugin(tempDir, pluginInstances);
+
+      // 1. Sub-agent spawned → MOON
+      await hooks["tool.execute.before"]!(
+        { tool: "task" } as any,
+        { args: {} } as any,
+      );
+
+      // 2. Sub-agent internally calls question tool → MIC (overrides MOON via precedence)
+      await hooks["tool.execute.before"]!(
+        { tool: "question" } as any,
+        { args: {} } as any,
+      );
+
+      const { getStatus } = await import("./events");
+      expect(getStatus().currentStatus).toBe("MIC");
+
+      // 3. Question tool completes → permissionPending cleared, back to MOON
+      await hooks["tool.execute.after"]!(
+        { tool: "question" } as any,
+        { args: {}, output: "" } as any,
+      );
+      expect(getStatus().currentStatus).toBe("MOON");
+
+      // 4. Sub-agent task completes → should return to ROCKET (not stuck on MIC)
+      await hooks["tool.execute.after"]!(
+        { tool: "task" } as any,
+        { args: {}, output: "" } as any,
+      );
+      expect(getStatus().currentStatus).toBe("ROCKET");
+    });
+
+    test("task tool completion clears permissionPending when question after-hook was missed", async () => {
+      // Regression: if question after-hook fires out of order or is missed,
+      // task completion must still clear permissionPending to avoid stuck MIC.
+      const hooks = await createTrackedPlugin(tempDir, pluginInstances);
+
+      // 1. Sub-agent spawned → MOON
+      await hooks["tool.execute.before"]!(
+        { tool: "task" } as any,
+        { args: {} } as any,
+      );
+
+      // 2. Sub-agent internally calls question tool → MIC
+      await hooks["tool.execute.before"]!(
+        { tool: "question" } as any,
+        { args: {} } as any,
+      );
+
+      const { getStatus } = await import("./events");
+      expect(getStatus().currentStatus).toBe("MIC");
+
+      // 3. question after-hook is NOT fired (missed/out-of-order)
+      // 4. Task completes — must still clear permissionPending
+      await hooks["tool.execute.after"]!(
+        { tool: "task" } as any,
+        { args: {}, output: "" } as any,
+      );
+      expect(getStatus().currentStatus).toBe("ROCKET");
+    });
+
     test("TDD phase resets to ROCKET after session becomes idle with no sub-agents", async () => {
       const hooks = await createTrackedPlugin(tempDir, pluginInstances);
 
