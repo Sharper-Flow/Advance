@@ -78,6 +78,32 @@ System-emitted: `[ADV:ACCUMULATED_WISDOM]`, `[ADV:TODO_CONTINUATION]`, `[ADV:REC
 
 ## Critical Protocols
 
+### ADV State Access Policy
+
+**NEVER** read ADV state files directly using `read`, `bash cat`, `ls`, or any filesystem tool. ADV state is external to the repo and must be accessed exclusively through ADV MCP tools.
+
+Forbidden paths (never read directly):
+- `~/.local/share/opencode/plugins/advance/**/change.json`
+- `~/.local/share/opencode/plugins/advance/**/proposal.md`
+- `~/.local/share/opencode/plugins/advance/**/agenda.jsonl`
+- `~/.local/share/opencode/plugins/advance/**/wisdom.jsonl`
+- `~/.local/share/opencode/plugins/advance/**/handoff.json`
+
+**ALWAYS** use the ADV MCP tools instead:
+
+| You want | Use this tool |
+|----------|---------------|
+| Change details + tasks | `adv_change_show` |
+| A specific task + its changeId | `adv_task_show` |
+| Tasks ready to work | `adv_task_ready` |
+| All tasks for a change | `adv_task_list` |
+| List all active changes | `adv_change_list` |
+| Validate a change | `adv_change_validate` |
+| Agenda items | `adv_agenda_list` |
+| Wisdom entries | `adv_wisdom_list` |
+
+**If a direct read attempt fails** (file not found, wrong path, permission error) — do NOT retry with a different path. Stop immediately and call `adv_change_show` or `adv_task_show` instead. Direct reads bypass schema validation, conflict detection, and workflow invariants.
+
 ### Context Freshness
 
 **Work one task at a time with fresh context.** Before EACH task:
