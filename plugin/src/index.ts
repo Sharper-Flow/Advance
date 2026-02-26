@@ -966,17 +966,28 @@ export const AdvancePlugin: Plugin = async ({ directory, worktree }) => {
       try {
         debugLog(`tool.execute.before: tool="${input.tool}"`);
 
-        // Enforce read-only bash policy for restricted sub-agents
+        // The SDK types output.args as `any`; extract once into a typed record
+        // to avoid repeated inline casts throughout this hook.
+        const args = output.args as Record<string, unknown>;
+
+        // Enforce read-only bash policy for restricted sub-agents.
+        // The SDK input type only declares { tool, sessionID, callID }, but
+        // OpenCode also passes `agent` at runtime — access via index signature.
         if (input.tool === "bash") {
-          const agent = (input as any).agent || "unknown";
-          const command = (output.args as any)?.command || "";
+          const extInput = input as Record<string, unknown>;
+          const agent =
+            typeof extInput["agent"] === "string"
+              ? extInput["agent"]
+              : "unknown";
+          const command =
+            typeof args["command"] === "string" ? args["command"] : "";
           enforceBashPolicy(agent, command);
         }
 
         // Track changeId from ADV tools for context injection
         // (args are only available in before hook, not after)
-        if (output.args?.changeId) {
-          state.activeChange.id = String(output.args.changeId);
+        if (args["changeId"]) {
+          state.activeChange.id = String(args["changeId"]);
           setActiveChange(state.activeChange.id);
         }
 
@@ -1005,7 +1016,7 @@ export const AdvancePlugin: Plugin = async ({ directory, worktree }) => {
           input.tool === "adv_run_test" ||
           input.tool === "adv_task_evidence"
         ) {
-          const phase = (output.args as any)?.phase;
+          const phase = args["phase"];
           if (phase === "red") {
             setFlags({ tddPhase: "TDD_RED", sessionIdle: false });
           } else if (phase === "green") {
