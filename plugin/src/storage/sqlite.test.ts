@@ -434,4 +434,137 @@ describe("SQLiteStore", () => {
       expect(store.syncFiles.needsSync("/some/path.json", attrs)).toBe(true);
     });
   });
+
+  describe("task_metadata", () => {
+    const changeWithMeta: Change = {
+      ...(SAMPLE_CHANGE as Change),
+      id: "metaChange",
+      tasks: [
+        {
+          ...(SAMPLE_CHANGE.tasks[0] as Change["tasks"][0]),
+          id: "tk-meta001",
+          metadata: { env: "production", team: "backend" },
+        },
+        {
+          ...(SAMPLE_CHANGE.tasks[1] as Change["tasks"][0]),
+          id: "tk-meta002",
+          metadata: { env: "staging" },
+        },
+        {
+          ...(SAMPLE_CHANGE.tasks[2] as Change["tasks"][0]),
+          id: "tk-meta003",
+          // no metadata
+        },
+      ],
+    };
+
+    test("task_metadata table exists after schema init", () => {
+      const result = store.db
+        .query(
+          "SELECT name FROM sqlite_master WHERE type='table' AND name='task_metadata'",
+        )
+        .get() as { name: string } | null;
+      expect(result).not.toBeNull();
+      expect(result?.name).toBe("task_metadata");
+    });
+
+    test("upsert syncs task metadata to task_metadata table", () => {
+      store.changes.upsert(changeWithMeta, "/path/to/change.json");
+
+      const rows = store.db
+        .query("SELECT * FROM task_metadata WHERE task_id = 'tk-meta001'")
+        .all() as Array<{ task_id: string; key: string; value: string }>;
+
+      expect(rows.length).toBe(2);
+      const envRow = rows.find((r) => r.key === "env");
+      expect(envRow?.value).toBe("production");
+    });
+
+    test("has_metadata_key query returns tasks with that key", () => {
+      store.changes.upsert(changeWithMeta, "/path/to/change.json");
+
+      const rows = store.db
+        .query(
+          "SELECT DISTINCT task_id FROM task_metadata WHERE key = ? AND change_id = ?",
+        )
+        .all("env", "metaChange") as Array<{ task_id: string }>;
+
+      // tk-meta001 and tk-meta002 both have env key
+      expect(rows.length).toBe(2);
+      const ids = rows.map((r) => r.task_id);
+      expect(ids).toContain("tk-meta001");
+      expect(ids).toContain("tk-meta002");
+    });
+
+    test("metadata:key=value query returns only matching tasks", () => {
+      store.changes.upsert(changeWithMeta, "/path/to/change.json");
+
+      const rows = store.db
+        .query(
+          "SELECT task_id FROM task_metadata WHERE key = ? AND value = ? AND change_id = ?",
+        )
+        .all("env", "production", "metaChange") as Array<{ task_id: string }>;
+
+      expect(rows.length).toBe(1);
+      expect(rows[0].task_id).toBe("tk-meta001");
+    });
+
+    test("metadata is deleted when change is deleted (CASCADE)", () => {
+      store.changes.upsert(changeWithMeta, "/path/to/change.json");
+      store.changes.delete("metaChange");
+
+      const rows = store.db
+        .query("SELECT * FROM task_metadata WHERE change_id = 'metaChange'")
+        .all();
+      expect(rows.length).toBe(0);
+    });
+
+    test("task with no metadata has no rows in task_metadata", () => {
+      store.changes.upsert(changeWithMeta, "/path/to/change.json");
+
+      const rows = store.db
+        .query("SELECT * FROM task_metadata WHERE task_id = 'tk-meta003'")
+        .all();
+      expect(rows.length).toBe(0);
+    });
+
+    test("EXPLAIN QUERY PLAN: has_metadata_key query uses index (no full-table scan)", () => {
+      // Verify idx_task_metadata_change_key is used for has_metadata_key queries
+      const plan = store.db
+        .query(
+          "EXPLAIN QUERY PLAN SELECT DISTINCT task_id FROM task_metadata WHERE key = ? AND change_id = ?",
+        )
+        .all("env", "metaChange") as Array<{
+        id: number;
+        parent: number;
+        notused: number;
+        detail: string;
+      }>;
+
+      // The plan should use an index, not a full-table scan (SCAN TABLE)
+      const details = plan.map((row) => row.detail).join(" ");
+      expect(details).not.toMatch(/SCAN task_metadata(?! USING)/);
+      // Should use the index
+      expect(details).toMatch(/USING INDEX idx_task_metadata_change_key/);
+    });
+
+    test("EXPLAIN QUERY PLAN: metadata:key=value query uses covering index (no full-table scan)", () => {
+      // Verify idx_task_metadata_change_key_value is used for key=value queries
+      const plan = store.db
+        .query(
+          "EXPLAIN QUERY PLAN SELECT task_id FROM task_metadata WHERE key = ? AND value = ? AND change_id = ?",
+        )
+        .all("env", "production", "metaChange") as Array<{
+        id: number;
+        parent: number;
+        notused: number;
+        detail: string;
+      }>;
+
+      const details = plan.map((row) => row.detail).join(" ");
+      expect(details).not.toMatch(/SCAN task_metadata(?! USING)/);
+      // Should use an index (either the covering index or the change_key_value index)
+      expect(details).toMatch(/USING INDEX idx_task_metadata/);
+    });
+  });
 });

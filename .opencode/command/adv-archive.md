@@ -71,6 +71,21 @@ adv_change_validate changeId: <target> strict: true
 
 **If validation fails:** Show errors, stop execution.
 
+### Doctor-Lite Integrity Check
+
+Run:
+
+```
+adv_status
+```
+
+Inspect `recommendations` for `[doctor]` entries and handle as follows:
+
+- `JSON/SQLite inconsistency` or `Broken task->change refs` → **block archive** until resolved
+- `Pending WAL checkpoint` → show as **non-blocking warning** and recommend flushing/checkpointing before archive
+
+This check is intentionally lightweight and meant to catch stale cache / index drift before mutating specs.
+
 ---
 
 ## Phase 2: Archive Preview

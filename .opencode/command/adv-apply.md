@@ -378,6 +378,25 @@ FIX: ...
 <verify>
 ```
 
+### Recording error_recovery on Tasks
+
+When a task enters retry, record structured recovery state using `adv_task_update` with notes, and update the task's `error_recovery` field via the store. This enables downstream commands (`/adv-review`, `/adv-harden`) to surface retry history.
+
+**After each failed attempt**, update the task metadata:
+
+```
+adv_task_update taskId: {task.id} status: "in_progress" notes: "RETRY {n}/3 - {error_class}: {last_error}"
+```
+
+The `error_recovery` field on the task JSON captures:
+- `last_error`: The specific error message from the last failure
+- `retry_count`: Current attempt number (1-indexed)
+- `max_retries`: 3 for SEMANTIC, 1 for TRANSIENT
+- `error_class`: TRANSIENT | SEMANTIC | ENVIRONMENTAL | FATAL
+- `next_strategy`: Planned fix approach for the next attempt
+
+**On task success**, the `error_recovery` field is left as-is (historical record). The task status transitions to `done` which supersedes it.
+
 ### Budget Exhaustion
 
 If 3 retries fail (4 total attempts), STOP:

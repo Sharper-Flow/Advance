@@ -11,6 +11,7 @@ import { wrapWithBanner } from "../utils/banner";
 import { formatToolOutput } from "../utils/tool-output";
 import { GATE_ORDER, isGateSatisfied, type GateId } from "../types";
 import { getCommandsByGate } from "../manifest";
+import { loadProjectConfigWithDiagnostics } from "../storage/json";
 
 // =============================================================================
 // Helpers
@@ -51,6 +52,24 @@ export const statusTools = {
     execute: async (_args: Record<string, never>, store: Store) => {
       const status = await store.status();
 
+      // Load project config with diagnostics — surface errors instead of silently ignoring
+      const configResult = await loadProjectConfigWithDiagnostics(store.paths.root);
+      let featureFlags: Record<string, unknown> | undefined;
+
+      if (!configResult.success) {
+        // Prepend config error/warning to recommendations so it's visible
+        const prefix =
+          configResult.type === "not_found"
+            ? "⚠️  Config warning"
+            : "❌ Config error";
+        status.recommendations.unshift(
+          `${prefix}: ${configResult.error}`,
+        );
+      } else {
+        // Expose feature flags in status output for visibility
+        featureFlags = configResult.data.features as Record<string, boolean>;
+      }
+
       // Add manifest-driven gate recommendations for active changes
       const changeList = await store.changes.list();
       for (const change of changeList.changes) {
@@ -70,9 +89,13 @@ export const statusTools = {
         }
       }
 
+      const output = featureFlags
+        ? { ...status, feature_flags: featureFlags }
+        : status;
+
       return wrapWithBanner(
         { command: "adv_status" },
-        formatToolOutput(status),
+        formatToolOutput(output),
       );
     },
   },

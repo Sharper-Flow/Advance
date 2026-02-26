@@ -138,6 +138,71 @@ export async function loadProjectConfig(
   }
 }
 
+/**
+ * Load and validate project.json with structured diagnostics.
+ *
+ * Unlike loadProjectConfig (which silently returns null), this function
+ * returns a LoadResult with actionable error messages for:
+ * - Missing file (not_found)
+ * - Invalid JSON syntax (read_error)
+ * - Schema validation failures with field-level detail (schema_error)
+ *
+ * Use this in adv-status and other commands that need to surface config
+ * problems to the agent/user rather than silently ignoring them.
+ */
+export async function loadProjectConfigWithDiagnostics(
+  root: string,
+): Promise<LoadResult<ProjectConfig>> {
+  const configPath = join(root, "project.json");
+
+  // Check file existence first for a clean not_found signal
+  try {
+    await access(configPath);
+  } catch {
+    return { success: false, error: `project.json not found at ${configPath}`, type: "not_found" };
+  }
+
+  let raw: string;
+  try {
+    raw = await readFile(configPath, "utf-8");
+  } catch (e) {
+    return {
+      success: false,
+      error: `Failed to read project.json: ${(e as Error).message}`,
+      type: "read_error",
+    };
+  }
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (e) {
+    return {
+      success: false,
+      error: `project.json contains invalid JSON: ${(e as Error).message}`,
+      type: "read_error",
+    };
+  }
+
+  try {
+    const config = ProjectConfigSchema.parse(parsed);
+    return { success: true, data: config };
+  } catch (error) {
+    if (error instanceof ZodError) {
+      return {
+        success: false,
+        error: formatZodError(error, { type: "project config", id: "project.json", path: configPath }),
+        type: "schema_error",
+      };
+    }
+    return {
+      success: false,
+      error: `Unexpected error parsing project.json: ${(error as Error).message}`,
+      type: "read_error",
+    };
+  }
+}
+
 export async function saveProjectConfig(
   root: string,
   config: ProjectConfig,
@@ -324,6 +389,54 @@ export async function saveChange(
   await atomicWriteFile(changePath, JSON.stringify(change, null, 2));
 
   return changePath;
+}
+
+/**
+ * Load proposal.md from a change directory with graceful fallback.
+ *
+ * Returns the proposal content and an optional warning if the file was
+ * missing or empty. Never throws — downstream commands can always proceed.
+ *
+ * @param changeDir - Absolute path to the change directory (e.g. .adv/changes/myChange)
+ * @param changeTitle - Used to generate the scaffold title if proposal.md is absent
+ */
+export async function loadProposalWithFallback(
+  changeDir: string,
+  changeTitle: string,
+): Promise<{ content: string; warning?: string }> {
+  const proposalPath = join(changeDir, "proposal.md");
+
+  try {
+    const raw = await readFile(proposalPath, "utf-8");
+    if (raw.trim().length > 0) {
+      return { content: raw };
+    }
+    // File exists but is empty — fall through to scaffold
+  } catch {
+    // File missing or unreadable — fall through to scaffold
+  }
+
+  const scaffold = `# ${changeTitle}
+
+## Intent
+
+<!-- Auto-generated scaffold: proposal.md was missing or empty. -->
+<!-- Update this file with the actual intent, scope, and success criteria. -->
+
+## Scope
+
+- (unknown — proposal.md not found)
+
+## Success Criteria
+
+- [ ] All tasks completed
+- [ ] All tests pass
+`;
+
+  return {
+    content: scaffold,
+    warning: `⚠️  proposal.md not found or empty at ${proposalPath}. Using auto-generated scaffold. Run /adv-proposal to create a proper proposal.`,
+  };
 }
 
 export async function createChangeScaffold(

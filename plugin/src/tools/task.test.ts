@@ -69,6 +69,62 @@ describe("Task Tools", () => {
 
       expect(parsed.tasks).toHaveLength(0);
     });
+
+    test("metadata field is preserved on tasks that have it", async () => {
+      // Add a task with metadata
+      const task = await store.tasks.add("addFeature", "Task with metadata", {
+        metadata: { env: "production", team: "backend" },
+      });
+
+      expect(task.metadata).toBeDefined();
+      expect(task.metadata?.env).toBe("production");
+      expect(task.metadata?.team).toBe("backend");
+
+      // Verify it round-trips through list
+      const tasks = await store.tasks.list("addFeature");
+      const found = tasks.find((t) => t.id === task.id);
+      expect(found?.metadata?.env).toBe("production");
+    });
+
+    test("filter: has_metadata_key returns only tasks with that key", async () => {
+      // Add tasks with and without metadata
+      await store.tasks.add("addFeature", "Task with target_repo", {
+        metadata: { target_repo: "backend" },
+      });
+      await store.tasks.add("addFeature", "Task without metadata");
+
+      const result = await taskTools.adv_task_list.execute(
+        { changeId: "addFeature", filter: "has_metadata_key:target_repo" },
+        store,
+      );
+      const parsed = JSON.parse(result);
+
+      // Only the task with target_repo metadata should be returned
+      expect(parsed.tasks.length).toBeGreaterThan(0);
+      for (const t of parsed.tasks) {
+        expect(t.metadata?.target_repo).toBeDefined();
+      }
+    });
+
+    test("filter: metadata:key=value returns only tasks matching that pair", async () => {
+      await store.tasks.add("addFeature", "Production task", {
+        metadata: { env: "production" },
+      });
+      await store.tasks.add("addFeature", "Staging task", {
+        metadata: { env: "staging" },
+      });
+
+      const result = await taskTools.adv_task_list.execute(
+        { changeId: "addFeature", filter: "metadata:env=production" },
+        store,
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed.tasks.length).toBeGreaterThan(0);
+      for (const t of parsed.tasks) {
+        expect(t.metadata?.env).toBe("production");
+      }
+    });
   });
 
   describe("adv_task_ready", () => {
