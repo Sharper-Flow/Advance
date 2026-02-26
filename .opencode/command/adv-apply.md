@@ -141,11 +141,27 @@ If **approved**, execute this exact sequence:
 
 2. **Capture worktree path** from tool output.
 
-3. **Switch to inline worktree execution** by setting `workdir` to the returned path for all subsequent tool calls.
+3. **Emit navigation hint** — immediately after worktree creation, tell the user how to reach the new tab if one opened:
 
-4. **Continue implementation in this same session**. Do not stop after worktree creation.
+   ```
+   ✅ Worktree created: {worktree-path}
+   Branch: change/{change-id}
 
-5. **Optional fallback**: If you are explicitly using multi-session workflow, you may use handoff and continue in a separate session.
+   A new tmux tab may have opened for this worktree.
+   To switch to it:
+     • Ctrl+b n          — next tmux window
+     • Ctrl+b l          — last (previously active) window
+     • Ctrl+b w          — interactive window chooser
+     • oc switch         — switch between openchad sessions
+
+   Continuing implementation inline in this session via workdir.
+   ```
+
+4. **Switch to inline worktree execution** by setting `workdir` to the returned path for all subsequent tool calls.
+
+5. **Continue implementation in this same session**. Do not stop after worktree creation.
+
+6. **Optional fallback**: If you are explicitly using multi-session workflow, you may use handoff and continue in a separate session.
 
 ---
 

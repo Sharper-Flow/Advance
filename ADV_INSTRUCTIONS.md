@@ -239,8 +239,22 @@ When a worktree is created during an active ADV change, continue in the same age
 
 1. **Create worktree** via `worktree_create`
 2. **Capture worktree path** from tool output
-3. **Switch execution context** by setting `workdir` to the worktree path for subsequent tool calls
-4. **Continue implementation inline** in the same conversation/session
+3. **Emit navigation hint** — immediately tell the user how to reach the new tab if one opened:
+   ```
+   ✅ Worktree created: {worktree-path}
+   Branch: change/{change-id}
+
+   A new tmux tab may have opened for this worktree.
+   To switch to it:
+     • Ctrl+b n          — next tmux window
+     • Ctrl+b l          — last (previously active) window
+     • Ctrl+b w          — interactive window chooser
+     • oc switch         — switch between openchad sessions
+
+   Continuing implementation inline in this session via workdir.
+   ```
+4. **Switch execution context** by setting `workdir` to the worktree path for subsequent tool calls
+5. **Continue implementation inline** in the same conversation/session
 
 No session handoff is required for the default flow.
 
