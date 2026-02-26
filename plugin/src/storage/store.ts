@@ -34,6 +34,7 @@ import type {
 import { createSQLiteStore, type SQLiteStore } from "./sqlite";
 import {
   checkpointWAL,
+  getWALSize,
   shouldCheckpoint,
   initDatabase,
   closeDatabase,
@@ -69,6 +70,12 @@ export interface Store {
   init: () => Promise<void>;
   sync: () => Promise<void>;
   close: () => void;
+  /**
+   * Flush pending writes and checkpoint the WAL.
+   * Safe to call multiple times (idempotent).
+   * Used by signal handlers before process exit.
+   */
+  flush: () => Promise<void>;
 
   // Specs
   specs: {
@@ -97,7 +104,7 @@ export interface Store {
 
   // Tasks
   tasks: {
-    list: (changeId: string, status?: string) => Promise<Task[]>;
+    list: (changeId: string, status?: string, filter?: string) => Promise<Task[]>;
     ready: (changeId: string) => Promise<TaskReadyResponse>;
     update: (
       taskId: string,
@@ -107,7 +114,7 @@ export interface Store {
     add: (
       changeId: string,
       content: string,
-      options?: { blockedBy?: string[]; section?: string },
+      options?: { blockedBy?: string[]; section?: string; metadata?: Record<string, string> },
     ) => Promise<Task>;
     /** Get a single task by ID */
     get: (taskId: string) => Promise<Task | null>;
@@ -501,6 +508,17 @@ export async function createStore(
       closeDatabase(sqlite.db);
     },
 
+    flush: async () => {
+      // Idempotent: safe to call multiple times
+      if (closed) return;
+      try {
+        // Force WAL checkpoint to sync pending writes to the main database file
+        checkpointWAL(sqlite.db);
+      } catch {
+        // Non-fatal: flush is best-effort before shutdown
+      }
+    },
+
     specs: {
       list: async (filter) => {
         // Lazy sync: list needs all specs for complete results
@@ -661,7 +679,7 @@ export async function createStore(
     },
 
     tasks: {
-      list: async (changeId, status) => {
+      list: async (changeId, status, filter) => {
         // Lazy sync: only sync this specific change
         await ensureChangeSynced(changeId);
 
@@ -672,6 +690,20 @@ export async function createStore(
         let tasks = result.data.tasks;
         if (status) {
           tasks = tasks.filter((t) => t.status === status);
+        }
+
+        // Apply metadata filter if provided
+        if (filter) {
+          const hasKeyMatch = filter.match(/^has_metadata_key:(.+)$/);
+          const kvMatch = filter.match(/^metadata:([^=]+)=(.+)$/);
+          if (hasKeyMatch) {
+            const key = hasKeyMatch[1];
+            tasks = tasks.filter((t) => t.metadata && key in t.metadata);
+          } else if (kvMatch) {
+            const key = kvMatch[1];
+            const value = kvMatch[2];
+            tasks = tasks.filter((t) => t.metadata?.[key] === value);
+          }
         }
 
         return tasks;
@@ -737,6 +769,7 @@ export async function createStore(
               target,
             })),
             tdd_phase: "none",
+            ...(options?.metadata ? { metadata: options.metadata } : {}),
           };
 
           change.tasks.push(task);
@@ -968,6 +1001,51 @@ export async function createStore(
       }
 
       const recommendations: string[] = [];
+
+      // Doctor-lite integrity checks
+      // 1) JSON/SQLite consistency for changes and tasks
+      for (const change of changeRows) {
+        const jsonResult = await loadChange(paths.changes, change.id);
+        if (!jsonResult.success || !jsonResult.data) {
+          recommendations.push(
+            `[doctor] JSON/SQLite inconsistency: change \`${change.id}\` exists in SQLite cache but change.json could not be loaded`,
+          );
+          continue;
+        }
+
+        const sqliteTasks = sqlite.tasks.list(change.id).map((t) => t.id);
+        const jsonTasks = jsonResult.data.tasks.map((t) => t.id);
+        const sqliteOnly = sqliteTasks.filter((id) => !jsonTasks.includes(id));
+        const jsonOnly = jsonTasks.filter((id) => !sqliteTasks.includes(id));
+        if (sqliteOnly.length > 0 || jsonOnly.length > 0) {
+          recommendations.push(
+            `[doctor] JSON/SQLite inconsistency: task index mismatch for change \`${change.id}\` (sqlite_only=${sqliteOnly.length}, json_only=${jsonOnly.length})`,
+          );
+        }
+      }
+
+      // 2) Broken task->change references in SQLite cache
+      const danglingTaskRefs = sqlite.db
+        .query(
+          `SELECT t.id as task_id, t.change_id
+           FROM tasks t
+           LEFT JOIN changes c ON c.id = t.change_id
+           WHERE c.id IS NULL`,
+        )
+        .all() as Array<{ task_id: string; change_id: string }>;
+      if (danglingTaskRefs.length > 0) {
+        recommendations.push(
+          `[doctor] Broken task->change refs: ${danglingTaskRefs.length} task(s) reference missing change rows in SQLite cache`,
+        );
+      }
+
+      // 3) Pending WAL check (archive reliability)
+      const walBytes = getWALSize(dbPath);
+      if (walBytes > 0) {
+        recommendations.push(
+          `[doctor] Pending WAL checkpoint: ${walBytes} bytes in WAL file (run flush/checkpoint before archive)`,
+        );
+      }
 
       // Check for ready-to-archive changes
       for (const change of changeRows) {

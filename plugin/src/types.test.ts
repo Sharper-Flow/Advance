@@ -13,6 +13,8 @@ import {
   DeltaSchema,
   ScenarioSchema,
   ProjectConfigSchema,
+  FeatureFlagsSchema,
+  ErrorRecoverySchema,
   PrioritySchema,
   TaskStatusSchema,
   DependencySchema,
@@ -465,6 +467,68 @@ describe("ProjectConfigSchema", () => {
     const result = ProjectConfigSchema.parse(config);
     expect(result.specs_dir).toBe("custom/specs");
     expect(result.db_dir).toBe(".custom-db");
+  });
+
+  test("features block defaults to all-on with current behavior", () => {
+    const config = { name: "test-project" };
+    const result = ProjectConfigSchema.parse(config);
+    expect(result.features).toBeDefined();
+    expect(result.features?.tdd_enforcement).toBe("strict");
+    expect(result.features?.worktree_auto_create).toBe(true);
+    expect(result.features?.gate_enforcement).toBe("strict");
+    expect(result.features?.wisdom_accumulation).toBe(true);
+  });
+
+  test("features block accepts partial overrides", () => {
+    const config = { name: "test-project", features: { tdd_enforcement: "advisory" } };
+    const result = ProjectConfigSchema.parse(config);
+    expect(result.features?.tdd_enforcement).toBe("advisory");
+    // Other flags still default
+    expect(result.features?.worktree_auto_create).toBe(true);
+    expect(result.features?.gate_enforcement).toBe("strict");
+  });
+
+  test("features block accepts tdd_enforcement: off", () => {
+    const config = { name: "test-project", features: { tdd_enforcement: "off" } };
+    const result = ProjectConfigSchema.parse(config);
+    expect(result.features?.tdd_enforcement).toBe("off");
+  });
+
+  test("features block rejects invalid tdd_enforcement value", () => {
+    const config = { name: "test-project", features: { tdd_enforcement: "invalid" } };
+    expect(() => ProjectConfigSchema.parse(config)).toThrow();
+  });
+
+  test("features block rejects invalid gate_enforcement value", () => {
+    const config = { name: "test-project", features: { gate_enforcement: "invalid" } };
+    expect(() => ProjectConfigSchema.parse(config)).toThrow();
+  });
+});
+
+describe("FeatureFlagsSchema", () => {
+  test("parses empty object with all defaults", () => {
+    const result = FeatureFlagsSchema.parse({});
+    expect(result.tdd_enforcement).toBe("strict");
+    expect(result.worktree_auto_create).toBe(true);
+    expect(result.gate_enforcement).toBe("strict");
+    expect(result.wisdom_accumulation).toBe(true);
+  });
+
+  test("accepts all valid tdd_enforcement values", () => {
+    expect(FeatureFlagsSchema.parse({ tdd_enforcement: "strict" }).tdd_enforcement).toBe("strict");
+    expect(FeatureFlagsSchema.parse({ tdd_enforcement: "advisory" }).tdd_enforcement).toBe("advisory");
+    expect(FeatureFlagsSchema.parse({ tdd_enforcement: "off" }).tdd_enforcement).toBe("off");
+  });
+
+  test("accepts all valid gate_enforcement values", () => {
+    expect(FeatureFlagsSchema.parse({ gate_enforcement: "strict" }).gate_enforcement).toBe("strict");
+    expect(FeatureFlagsSchema.parse({ gate_enforcement: "advisory" }).gate_enforcement).toBe("advisory");
+  });
+
+  test("accepts boolean flags", () => {
+    const result = FeatureFlagsSchema.parse({ worktree_auto_create: false, wisdom_accumulation: false });
+    expect(result.worktree_auto_create).toBe(false);
+    expect(result.wisdom_accumulation).toBe(false);
   });
 });
 
@@ -1043,5 +1107,99 @@ describe("Schema Backward Compatibility", () => {
       };
       expect(() => DeltaSchema.parse(removeDelta)).not.toThrow();
     });
+  });
+});
+
+describe("ErrorRecoverySchema", () => {
+  test("accepts valid TRANSIENT error recovery", () => {
+    const recovery = {
+      last_error: "Network timeout",
+      retry_count: 1,
+      max_retries: 1,
+      error_class: "TRANSIENT",
+      next_strategy: "wait 5s and retry",
+    };
+    expect(() => ErrorRecoverySchema.parse(recovery)).not.toThrow();
+    const parsed = ErrorRecoverySchema.parse(recovery);
+    expect(parsed.error_class).toBe("TRANSIENT");
+    expect(parsed.retry_count).toBe(1);
+  });
+
+  test("accepts all valid error_class values", () => {
+    for (const cls of ["TRANSIENT", "SEMANTIC", "ENVIRONMENTAL", "FATAL"]) {
+      const recovery = {
+        last_error: "some error",
+        retry_count: 0,
+        max_retries: 3,
+        error_class: cls,
+      };
+      expect(() => ErrorRecoverySchema.parse(recovery)).not.toThrow();
+    }
+  });
+
+  test("rejects invalid error_class", () => {
+    const recovery = {
+      last_error: "error",
+      retry_count: 0,
+      max_retries: 3,
+      error_class: "UNKNOWN",
+    };
+    expect(() => ErrorRecoverySchema.parse(recovery)).toThrow();
+  });
+
+  test("next_strategy is optional", () => {
+    const recovery = {
+      last_error: "error",
+      retry_count: 0,
+      max_retries: 3,
+      error_class: "SEMANTIC",
+    };
+    const parsed = ErrorRecoverySchema.parse(recovery);
+    expect(parsed.next_strategy).toBeUndefined();
+  });
+});
+
+describe("TaskSchema error_recovery field", () => {
+  const baseTask = {
+    id: "tk-test001",
+    title: "Test task",
+    status: "pending",
+    priority: 0,
+    created_at: "2026-01-01T00:00:00Z",
+    tdd_phase: "none",
+  };
+
+  test("task parses without error_recovery (optional)", () => {
+    const parsed = TaskSchema.parse(baseTask);
+    expect(parsed.error_recovery).toBeUndefined();
+  });
+
+  test("task parses with error_recovery field", () => {
+    const task = {
+      ...baseTask,
+      error_recovery: {
+        last_error: "Type error: string not assignable to number",
+        retry_count: 2,
+        max_retries: 3,
+        error_class: "SEMANTIC",
+        next_strategy: "Check type definitions in types.ts",
+      },
+    };
+    const parsed = TaskSchema.parse(task);
+    expect(parsed.error_recovery?.error_class).toBe("SEMANTIC");
+    expect(parsed.error_recovery?.retry_count).toBe(2);
+  });
+
+  test("existing tasks without error_recovery still parse (backward compat)", () => {
+    // Simulate a legacy task JSON with no error_recovery
+    const legacyTask = {
+      id: "tk-legacy01",
+      title: "Legacy task",
+      status: "done",
+      priority: 0,
+      created_at: "2025-01-01T00:00:00Z",
+      tdd_phase: "complete",
+    };
+    expect(() => TaskSchema.parse(legacyTask)).not.toThrow();
   });
 });

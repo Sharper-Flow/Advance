@@ -5,6 +5,8 @@
  */
 
 import { describe, test, expect, beforeEach, afterEach } from "vitest";
+import { rm } from "fs/promises";
+import { join } from "path";
 import { statusTools } from "./status";
 import { createStore, type Store } from "../storage/store";
 import {
@@ -69,8 +71,11 @@ describe("Status Tools", () => {
       const parsed = parseToolOutput(result);
 
       expect(parsed.recommendations.length).toBeGreaterThan(0);
-      expect(parsed.recommendations[0]).toContain("Ready to archive");
-      expect(parsed.recommendations[0]).toContain("addFeature");
+      const archiveRec = parsed.recommendations.find((r: string) =>
+        r.includes("Ready to archive"),
+      );
+      expect(archiveRec).toBeDefined();
+      expect(archiveRec).toContain("addFeature");
     });
 
     test("no archive recommendation when tasks incomplete", async () => {
@@ -154,6 +159,77 @@ describe("Status Tools", () => {
 
       emptyStore.close();
       await cleanupTempDir(emptyDir);
+    });
+
+    test("surfaces config schema error in recommendations when project.json is invalid", async () => {
+      // Write an invalid project.json (name is a number, not a string)
+      const { writeFile } = await import("fs/promises");
+      const { join } = await import("path");
+      await writeFile(
+        join(tempDir, "project.json"),
+        JSON.stringify({ name: 42, version: "0.1.0" }),
+      );
+
+      const result = await statusTools.adv_status.execute({}, store);
+      const parsed = parseToolOutput(result);
+
+      // Config error should appear in recommendations
+      const configErrors = parsed.recommendations.filter((r: string) =>
+        r.includes("project.json") || r.includes("config"),
+      );
+      expect(configErrors.length).toBeGreaterThan(0);
+      expect(configErrors[0]).toContain("project.json");
+    });
+
+    test("includes feature_flags section in status output when config is valid", async () => {
+      const result = await statusTools.adv_status.execute({}, store);
+      const parsed = parseToolOutput(result);
+
+      // feature_flags should be present with schema-defined defaults
+      expect(parsed.feature_flags).toBeDefined();
+      expect(parsed.feature_flags.tdd_enforcement).toBe("strict");
+      expect(parsed.feature_flags.worktree_auto_create).toBe(true);
+      expect(parsed.feature_flags.gate_enforcement).toBe("strict");
+      expect(parsed.feature_flags.wisdom_accumulation).toBe(true);
+    });
+
+    test("surfaces config not-found warning when project.json is missing", async () => {
+      // Create a project dir with no project.json
+      const noConfigDir = await createTempDir();
+      await createTestProject(noConfigDir, {
+        withSpecs: false,
+        withChanges: false,
+        withConfig: false,
+      });
+      const noConfigStore = await createStore(noConfigDir);
+
+      const result = await statusTools.adv_status.execute({}, noConfigStore);
+      const parsed = parseToolOutput(result);
+
+      // Should warn about missing config
+      const configWarnings = parsed.recommendations.filter((r: string) =>
+        r.includes("project.json") || r.includes("config"),
+      );
+      expect(configWarnings.length).toBeGreaterThan(0);
+
+      noConfigStore.close();
+      await cleanupTempDir(noConfigDir);
+    });
+
+    test("reports doctor-lite warning for stale SQLite change row", async () => {
+      // First call populates SQLite cache
+      await statusTools.adv_status.execute({}, store);
+
+      // Remove change.json to create SQLite-vs-JSON inconsistency
+      await rm(join(tempDir, ".adv/changes/addFeature/change.json"));
+
+      const result = await statusTools.adv_status.execute({}, store);
+      const parsed = parseToolOutput(result);
+
+      const doctorWarnings = parsed.recommendations.filter((r: string) =>
+        r.includes("[doctor]") && r.includes("JSON/SQLite inconsistency"),
+      );
+      expect(doctorWarnings.length).toBeGreaterThan(0);
     });
   });
 });

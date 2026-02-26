@@ -166,6 +166,21 @@ CREATE TABLE IF NOT EXISTS deltas (
   reason TEXT
 );
 
+-- Task Metadata (key-value pairs for agent-driven filtering)
+CREATE TABLE IF NOT EXISTS task_metadata (
+  task_id TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+  change_id TEXT NOT NULL REFERENCES changes(id) ON DELETE CASCADE,
+  key TEXT NOT NULL,
+  value TEXT NOT NULL,
+  PRIMARY KEY (task_id, key)
+);
+
+-- Index for has_metadata_key:<key> queries (by change + key)
+CREATE INDEX IF NOT EXISTS idx_task_metadata_change_key ON task_metadata (change_id, key);
+
+-- Index for metadata:<key>=<value> queries (by change + key + value)
+CREATE INDEX IF NOT EXISTS idx_task_metadata_change_key_value ON task_metadata (change_id, key, value);
+
 -- Sync metadata
 CREATE TABLE IF NOT EXISTS sync_meta (
   key TEXT PRIMARY KEY,
@@ -419,6 +434,12 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `),
     tasksDeleteByChange: db.query("DELETE FROM tasks WHERE change_id = ?"),
+    taskMetadataInsert: db.query(
+      "INSERT OR REPLACE INTO task_metadata (task_id, change_id, key, value) VALUES (?, ?, ?, ?)",
+    ),
+    taskMetadataDeleteByChange: db.query(
+      "DELETE FROM task_metadata WHERE change_id = ?",
+    ),
     tasksPending: db.query(
       "SELECT * FROM tasks WHERE change_id = ? AND status = 'pending' ORDER BY priority",
     ),
@@ -577,8 +598,9 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
               now,
             );
 
-            // Delete old tasks
+            // Delete old tasks (and their metadata via CASCADE)
             stmts.tasksDeleteByChange.run(change.id);
+            stmts.taskMetadataDeleteByChange.run(change.id);
 
             // Insert tasks
             for (const task of change.tasks) {
@@ -598,6 +620,13 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
               // Insert dependencies
               for (const dep of task.deps ?? []) {
                 stmts.depInsert.run(task.id, dep.target, dep.type);
+              }
+
+              // Insert metadata key-value pairs
+              if (task.metadata) {
+                for (const [key, value] of Object.entries(task.metadata)) {
+                  stmts.taskMetadataInsert.run(task.id, change.id, key, value);
+                }
               }
             }
 

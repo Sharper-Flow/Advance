@@ -9,6 +9,8 @@ import { join } from "path";
 import { readFile, writeFile } from "fs/promises";
 import {
   loadProjectConfig,
+  loadProjectConfigWithDiagnostics,
+  loadProposalWithFallback,
   saveProjectConfig,
   loadSpec,
   saveSpec,
@@ -118,6 +120,74 @@ describe("ProjectConfig", () => {
     const loaded = await loadProjectConfig(tempDir);
     expect(loaded).not.toBeNull();
     expect(loaded!.name).toBe("test");
+  });
+});
+
+describe("loadProjectConfigWithDiagnostics", () => {
+  let tempDir: string;
+
+  beforeEach(async () => {
+    tempDir = await createTempDir();
+  });
+
+  afterEach(async () => {
+    await cleanupTempDir(tempDir);
+  });
+
+  test("returns not_found when project.json is missing", async () => {
+    const result = await loadProjectConfigWithDiagnostics(tempDir);
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.type).toBe("not_found");
+    }
+  });
+
+  test("returns success with parsed config for valid project.json", async () => {
+    await writeFile(
+      join(tempDir, "project.json"),
+      JSON.stringify({ name: "my-project" }),
+    );
+    const result = await loadProjectConfigWithDiagnostics(tempDir);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.name).toBe("my-project");
+      expect(result.data.features.tdd_enforcement).toBe("strict");
+    }
+  });
+
+  test("returns schema_error with actionable message for invalid project.json", async () => {
+    await writeFile(
+      join(tempDir, "project.json"),
+      JSON.stringify({ name: 123 }), // name must be string
+    );
+    const result = await loadProjectConfigWithDiagnostics(tempDir);
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.type).toBe("schema_error");
+      expect(result.error).toContain("name");
+    }
+  });
+
+  test("returns schema_error for invalid features.tdd_enforcement value", async () => {
+    await writeFile(
+      join(tempDir, "project.json"),
+      JSON.stringify({ name: "test", features: { tdd_enforcement: "invalid" } }),
+    );
+    const result = await loadProjectConfigWithDiagnostics(tempDir);
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.type).toBe("schema_error");
+      expect(result.error).toContain("tdd_enforcement");
+    }
+  });
+
+  test("returns read_error for malformed JSON", async () => {
+    await writeFile(join(tempDir, "project.json"), "{ not valid json }");
+    const result = await loadProjectConfigWithDiagnostics(tempDir);
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.type).toBe("read_error");
+    }
   });
 });
 
@@ -394,5 +464,54 @@ describe("fileExists", () => {
   test("returns false for missing file", async () => {
     const path = join(tempDir, "missing.txt");
     expect(await fileExists(path)).toBe(false);
+  });
+});
+
+describe("loadProposalWithFallback", () => {
+  let tempDir: string;
+
+  beforeEach(async () => {
+    tempDir = await createTempDir();
+  });
+
+  afterEach(async () => {
+    await cleanupTempDir(tempDir);
+  });
+
+  test("returns content when proposal.md exists", async () => {
+    const proposalPath = join(tempDir, "proposal.md");
+    await writeFile(proposalPath, "# My Proposal\n\nSome content.");
+
+    const result = await loadProposalWithFallback(tempDir, "My Change");
+    expect(result.content).toContain("My Proposal");
+    expect(result.warning).toBeUndefined();
+  });
+
+  test("returns scaffold and warning when proposal.md is missing", async () => {
+    const result = await loadProposalWithFallback(tempDir, "My Change");
+    expect(result.content).toContain("My Change");
+    expect(result.warning).toBeDefined();
+    expect(result.warning).toContain("proposal.md");
+  });
+
+  test("returns scaffold and warning when proposal.md is empty", async () => {
+    const proposalPath = join(tempDir, "proposal.md");
+    await writeFile(proposalPath, "   \n  ");
+
+    const result = await loadProposalWithFallback(tempDir, "My Change");
+    expect(result.content).toContain("My Change");
+    expect(result.warning).toBeDefined();
+  });
+
+  test("scaffold content includes change title", async () => {
+    const result = await loadProposalWithFallback(tempDir, "Fix Login Bug");
+    expect(result.content).toContain("Fix Login Bug");
+  });
+
+  test("never throws — always returns a result", async () => {
+    // Even with a completely invalid path, should not throw
+    const result = await loadProposalWithFallback("/nonexistent/path", "Test");
+    expect(result.content).toBeDefined();
+    expect(result.warning).toBeDefined();
   });
 });

@@ -44,6 +44,12 @@ export const taskTools = {
         .enum(["pending", "in_progress", "done", "cancelled"])
         .optional()
         .describe("Filter by status"),
+      filter: z
+        .string()
+        .optional()
+        .describe(
+          'Metadata filter: "has_metadata_key:<key>" or "metadata:<key>=<value>"',
+        ),
       limit: z
         .number()
         .optional()
@@ -57,17 +63,18 @@ export const taskTools = {
       {
         changeId,
         status,
+        filter,
         limit,
         offset,
-      }: { changeId: string; status?: string; limit?: number; offset?: number },
+      }: { changeId: string; status?: string; filter?: string; limit?: number; offset?: number },
       store: Store,
     ) => {
-      const tasks = await store.tasks.list(changeId, status);
+      const tasks = await store.tasks.list(changeId, status, filter);
       const paged = paginate(tasks, {
         limit,
         offset,
         tool: "adv_task_list",
-        args: `changeId: "${changeId}"${status ? `, status: "${status}"` : ""}`,
+        args: `changeId: "${changeId}"${status ? `, status: "${status}"` : ""}${filter ? `, filter: "${filter}"` : ""}`,
       });
       return formatToolOutput({
         tasks: paged.items,

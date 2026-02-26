@@ -201,24 +201,29 @@ export const AdvancePlugin: Plugin = async ({ directory, worktree }) => {
       // Ignore errors during exit
     }
   };
-  const handleSigInt = () => {
+
+  // Single in-flight flush guard — prevents double-flush on rapid SIGINT/SIGTERM
+  let flushInFlight = false;
+  const shutdownWithFlush = () => {
     cleanupTerminal();
-    try {
-      store.close();
-    } catch {
-      // Ignore errors during signal handling
-    }
-    process.exit(0);
+    if (flushInFlight) return; // Already shutting down — ignore duplicate signal
+    flushInFlight = true;
+
+    // 3s hard timeout: if flush hangs, force close and exit
+    const flushTimeout = setTimeout(() => {
+      try { store.close(); } catch { /* ignore */ }
+      process.exit(0);
+    }, 3000);
+
+    store.flush().finally(() => {
+      clearTimeout(flushTimeout);
+      try { store.close(); } catch { /* ignore */ }
+      process.exit(0);
+    });
   };
-  const handleSigTerm = () => {
-    cleanupTerminal();
-    try {
-      store.close();
-    } catch {
-      // Ignore errors during signal handling
-    }
-    process.exit(0);
-  };
+
+  const handleSigInt = shutdownWithFlush;
+  const handleSigTerm = shutdownWithFlush;
   process.on("exit", handleExit);
   process.on("SIGINT", handleSigInt);
   process.on("SIGTERM", handleSigTerm);

@@ -194,6 +194,34 @@ export const TddEvidenceSchema = z.object({
 export type TddEvidence = z.infer<typeof TddEvidenceSchema>;
 
 // =============================================================================
+// Error Recovery
+// =============================================================================
+
+/**
+ * Structured error recovery state for autonomous retry tracking in /adv-apply.
+ *
+ * error_class values:
+ * - TRANSIENT: Network timeout, flaky test — retry once with 5s delay
+ * - SEMANTIC: Type error, logic bug, test failure — retry up to 3x with diagnosis
+ * - ENVIRONMENTAL: Missing dep, config not found — escalate immediately
+ * - FATAL: Unrecoverable error — escalate immediately, do not retry
+ */
+export const ErrorRecoverySchema = z.object({
+  /** Human-readable description of the last error encountered */
+  last_error: z.string(),
+  /** Number of retry attempts made so far */
+  retry_count: z.number().int().min(0),
+  /** Maximum retries allowed for this error class */
+  max_retries: z.number().int().min(0),
+  /** Classification of the error for retry strategy selection */
+  error_class: z.enum(["TRANSIENT", "SEMANTIC", "ENVIRONMENTAL", "FATAL"]),
+  /** Planned next action if retrying (optional) */
+  next_strategy: z.string().optional(),
+});
+
+export type ErrorRecovery = z.infer<typeof ErrorRecoverySchema>;
+
+// =============================================================================
 // Task
 // =============================================================================
 
@@ -219,6 +247,18 @@ export const TaskSchema = z
     target_path: z.string().optional(),
     /** Structured cancellation metadata — required when status is "cancelled" */
     cancellation: CancellationSchema.optional(),
+    /**
+     * Arbitrary key-value metadata for agent-driven filtering and routing.
+     * All values are strings. Examples: { env: "production", target_repo: "backend" }
+     * Queryable via adv_task_list filter: "has_metadata_key:<key>" or "metadata:<key>=<value>"
+     */
+    metadata: z.record(z.string(), z.string()).optional(),
+    /**
+     * Structured error recovery state for autonomous retry tracking.
+     * Populated by /adv-apply when a task fails and is being retried.
+     * Cleared when the task succeeds.
+     */
+    error_recovery: ErrorRecoverySchema.optional(),
   })
   .passthrough(); // Allow extra fields for forward/backward compatibility
 
@@ -579,6 +619,52 @@ export const RelatedRepoSchema = z.object({
 export type RelatedRepo = z.infer<typeof RelatedRepoSchema>;
 
 // =============================================================================
+// Feature Flags
+// =============================================================================
+
+/**
+ * Per-project feature flag overrides.
+ * All flags default to current ADV behavior — no behavior change without explicit opt-in.
+ *
+ * Add to project.json under the "features" key:
+ * {
+ *   "features": {
+ *     "tdd_enforcement": "advisory",
+ *     "worktree_auto_create": false
+ *   }
+ * }
+ */
+export const FeatureFlagsSchema = z
+  .object({
+    /**
+     * TDD enforcement mode.
+     * - "strict" (default): Red/green phases required; doom-loop escalation at 3 attempts
+     * - "advisory": TDD encouraged but not enforced; warnings emitted instead of blocks
+     * - "off": TDD skipped entirely; tasks complete without test evidence
+     */
+    tdd_enforcement: z.enum(["strict", "advisory", "off"]).default("strict"),
+    /**
+     * Whether /adv-apply automatically creates a git worktree for high-risk changes.
+     * Default: true (current behavior)
+     */
+    worktree_auto_create: z.boolean().default(true),
+    /**
+     * Gate enforcement mode.
+     * - "strict" (default): Gates must be completed in sequence; archive blocked until all pass
+     * - "advisory": Gate status shown but not enforced; archive allowed with warnings
+     */
+    gate_enforcement: z.enum(["strict", "advisory"]).default("strict"),
+    /**
+     * Whether wisdom entries are accumulated and promoted across changes.
+     * Default: true (current behavior)
+     */
+    wisdom_accumulation: z.boolean().default(true),
+  })
+  .passthrough(); // Allow future flags without breaking existing configs
+
+export type FeatureFlags = z.infer<typeof FeatureFlagsSchema>;
+
+// =============================================================================
 // Project Configuration
 // =============================================================================
 
@@ -595,6 +681,8 @@ export const ProjectConfigSchema = z
     project_file: z.string().default("project.md"),
     /** Related repositories for cross-repo task routing */
     related_repos: z.array(RelatedRepoSchema).optional(),
+    /** Per-project feature flag overrides. All flags default to current ADV behavior. */
+    features: FeatureFlagsSchema.default({}),
   })
   .passthrough(); // Allow extra fields for forward/backward compatibility
 

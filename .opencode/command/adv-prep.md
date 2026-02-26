@@ -30,6 +30,16 @@ adv_change_show changeId: <target>
 adv_task_list changeId: <target>
 ```
 
+### Doctor-Lite Check: Cross-Repo Routing Metadata
+
+Before gap analysis, run a lightweight integrity check over tasks for cross-repo routing completeness:
+
+- If `target_repo` is set and `target_path` is missing → emit a must-fix finding
+- If `target_path` is set and `target_repo` is missing → emit a must-fix finding
+- If task title suggests cross-repo work (backend/api/db/migrations/path hints) but both fields are missing → emit a warning
+
+These findings should be surfaced in prep output and converted into explicit follow-up tasks when appropriate.
+
 ### Fetch Related Specs
 
 ```

@@ -245,7 +245,10 @@ describe("Store", () => {
 
       const status = await store.status();
       expect(status.recommendations.length).toBeGreaterThan(0);
-      expect(status.recommendations[0]).toContain("Ready to archive");
+      const archiveRec = status.recommendations.find((r) =>
+        r.includes("Ready to archive"),
+      );
+      expect(archiveRec).toBeDefined();
     });
   });
 
@@ -288,6 +291,30 @@ describe("Store", () => {
       await expect(store.wisdom.list("nonexistent")).rejects.toThrow(
         /not found/,
       );
+    });
+  });
+
+  describe("flush", () => {
+    test("store has a flush() method", () => {
+      expect(typeof store.flush).toBe("function");
+    });
+
+    test("flush() resolves without error", async () => {
+      // Should complete without throwing
+      await expect(store.flush()).resolves.toBeUndefined();
+    });
+
+    test("flush() can be called multiple times safely (idempotent)", async () => {
+      await store.flush();
+      await store.flush();
+      // No error thrown
+    });
+
+    test("flush() completes within 3 seconds", async () => {
+      const start = Date.now();
+      await store.flush();
+      const elapsed = Date.now() - start;
+      expect(elapsed).toBeLessThan(3000);
     });
   });
 });

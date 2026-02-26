@@ -71,7 +71,7 @@ SUCCESS CRITERIA
   - [ ] All tasks completed with passing tests
 
 CONTRACT STORAGE
-  Summary stored in change.json (no proposal.md generated)
+  proposal.md written to change directory after confirmation
 
 ============================================================
 ```
@@ -112,13 +112,38 @@ adv_change_create summary: "{2-5 word summary}" capability: "{primary capability
 
 Capture the returned `changeId`.
 
-**Store the Quick Contract in the change:** The full contract text (intent, LBP targets, scope, success criteria) is recorded in the agent's working context. No `proposal.md` is written — the contract lives in the conversation and the change's task descriptions will capture implementation detail.
+**Write `proposal.md` unconditionally** — after the change is created, write the Quick Contract to `proposal.md` in the change directory. This is durable context consumed by `/adv-apply`, `/adv-review`, `/adv-harden`, and `/adv-refactor`.
+
+Write the file at: `{changes_dir}/{changeId}/proposal.md`
+
+Use this template:
+
+```markdown
+# {change title}
+
+## Intent
+
+{contract intent — 1-3 sentences}
+
+## LBP Targets
+
+{list of LBP targets from the contract}
+
+## Scope
+
+{list of files/modules expected to change}
+
+## Success Criteria
+
+{list of measurable criteria from the contract}
+```
 
 Emit:
 
 ```
 [ADV:ROCKET]
 Quick Contract confirmed. Change created: {changeId}
+proposal.md written to {changes_dir}/{changeId}/proposal.md
 Pipeline: Research → Prep → hand off to Build
 ```
 
