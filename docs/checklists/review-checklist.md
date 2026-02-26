@@ -104,3 +104,28 @@ Approve when the change "definitely improves overall code health," even if imper
 - Personal style preferences not in style guide
 - Minor optimizations that aren't critical
 - "Better" ways that are functionally equivalent
+
+---
+
+## Sub-Agent Failure Handling
+
+When sub-agents return empty or interrupted results, the review MUST NOT silently pass.
+
+### Verification Step
+
+Before emitting the final verdict, verify each sub-agent dimension produced real output:
+
+- [ ] **Requirement Traceability** — result contains `"dimension": "requirement_traceability"` and `coverage_percent`
+- [ ] **Logic & Edge Cases** — result contains `"dimension": "logic_review"` and `issues` array
+- [ ] **Security** — result contains `"dimension": "security_review"` and `issues` array
+- [ ] **Architecture & Quality** — result contains `"dimension": "architecture_conformance"` and `issues` array
+- [ ] **Cross-Repo Verification** — result contains `"dimension": "cross_repo_verification"` and `status`
+
+### If a dimension is missing
+
+Follow the resilience protocol in `adv-review.md`:
+1. Retry the sub-agent once
+2. If retry fails, perform inline analysis for that dimension
+3. Never emit a verdict with a dimension unanalyzed
+
+**A review with unanalyzed dimensions is invalid** — it cannot be used to mark the review gate complete.

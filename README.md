@@ -110,40 +110,42 @@ See [INSTALL.md](INSTALL.md) for detailed setup instructions.
 
 | Command | Description |
 |---------|-------------|
-| `/adv-status` | Project overview with specs, changes, and recommendations |
-| `/adv-proposal <summary>` | Create a new change proposal with scaffolding |
-| `/adv-validate <id>` | Validate change against specs before implementation |
-| `/adv-apply <id>` | Implement change with autonomous retry, TDD, and global final loop |
-| `/adv-archive <id>` | Archive completed change, update specs, and run mandatory git finalization (commit, merge, cleanup) |
+| `/adv-status` | Show project overview: specs, active changes, and next-step recommendations |
+| `/adv-proposal <summary>` | Propose a new change with intent, scope, and success criteria |
+| `/adv-validate <id>` | Validate change compliance against specs; block archive on failure |
+| `/adv-apply <id>` | Implement change with TDD, retry on failure, and final verification |
+| `/adv-archive <id>` | Archive completed change: apply spec deltas and finalize git |
 
 ### Pre-Implementation
 
 | Command | Description |
 |---------|-------------|
-| `/adv-clarify` | Socratic questions to uncover requirements |
-| `/adv-prep <id>` | Gap analysis for missing scenarios and tasks |
-| `/adv-research <target>` | Validate architectural decisions via Context7 |
+| `/adv-clarify` | Ask clarifying questions to resolve ambiguous requirements |
+| `/adv-prep <id>` | Analyze gaps and add missing scenarios, tasks, and dependencies |
+| `/adv-research <target>` | Validate architectural decisions via docs and web search; complete research gate |
 
 ### Post-Implementation
 
 | Command | Description |
 |---------|-------------|
-| `/adv-review <id>` | 4-agent code review (traceability, logic, security, architecture); emits `REVIEW_FINDINGS` block |
-| `/adv-harden <id>` | 5-agent hardening (tests, AI-slop, docs, cleanup, spec alignment); blocks if review findings unresolved |
-| `/adv-audit [capability]` | Project-wide spec/implementation drift detection |
+| `/adv-review <id>` | Review code for correctness, security, and architecture; emit REVIEW_FINDINGS |
+| `/adv-harden <id>` | Detect low-quality code, verify test coverage, clean up; block archive on open findings |
+| `/adv-audit [capability]` | Detect drift between specs and current implementation |
+| `/adv-slop-scan [path]` | Scan for low-quality AI-generated code patterns and surface findings |
 
 ### Fast-Track
 
 | Command | Description |
 |---------|-------------|
-| `/adv-task` | Chat contract → LBP research → prep → autonomous implement (no proposal phase) |
+| `/adv-task` | Fast-track a discussed change: synthesize contract, validate best practices, prep, and hand off |
 
 ### Advanced
 
 | Command | Description |
 |---------|-------------|
-| `/adv-refactor <id>` | Refresh stale proposals to match codebase |
-| `/adv-coordinate` | Multi-change conflict detection |
+| `/adv-refactor <id>` | Refresh a stale proposal to reflect current codebase state |
+| `/adv-coordinate` | Detect and resolve conflicts across multiple active changes |
+| `/adv-improve` | Suggest targeted improvements to existing specs or implementation |
 
 ## MCP Tools
 

@@ -1,12 +1,12 @@
 ---
 name: adv-research
-description: Research and validate architectural decisions using sub-agents and Context7
+description: Validate architectural decisions via docs and web search; complete research gate
 agent: general
 ---
 
-# ADV Research - Architectural Decision Validation
+# ADV Research — Architectural Decision Validation
 
-Spawn sub-agents to research and validate architectural decisions in specs/changes using Context7 and web search. Applies simplicity bias - prefer boring solutions over clever ones.
+Spawn sub-agents to validate architectural decisions using Context7 and web search. Applies simplicity bias — prefer boring solutions over clever ones.
 
 <UserRequest>
   $ARGUMENTS
@@ -27,6 +27,20 @@ Determine target (spec OR change):
 ---
 
 ## Phase 1: Analyze Target
+
+### Completed Tasks Are Proof-of-Concept, Not Finalized (CRITICAL)
+
+**MUST read before proceeding.** If the change already has tasks marked `done`, treat them as implementation evidence to validate — not as acceptance proof. Agents sometimes skip ahead to implementation before research runs; this is expected and recoverable.
+
+**You MUST:**
+1. Load ALL tasks via `adv_task_list` (including done tasks) and review what was already built
+2. Research the full change as if nothing were finalized — evaluate every architectural decision, even those already implemented
+3. Apply your findings regardless of task status — if research reveals a problem with completed work, add targeted follow-up tasks (e.g., "Refactor X to align with Y", "Add missing test for Z")
+4. Never skip a research question because "that part is already done"
+
+**You MUST NOT:**
+- Rubber-stamp completed tasks as validated without actually researching them
+- Reopen or revert completed tasks — instead, add new reconciliation tasks where gaps are found
 
 ### Load Context
 
@@ -53,7 +67,7 @@ adv_spec_show capability: <name>
 
 For changes:
 ```
-adv_change_show change_id: <id>
+adv_change_show changeId: <id>
 ```
 
 Also read `proposal.md` for design context.
@@ -121,6 +135,43 @@ For each decision, formulate questions across these dimensions:
 ### Security Considerations
 - "What OWASP risks apply to {approach}?"
 - "What are common vulnerabilities in {technology}?"
+
+---
+
+## Sub-Agent Resilience Protocol
+
+> **IMPORTANT**: Before spawning sub-agents, read and follow this protocol.
+
+### What Can Go Wrong
+
+Sub-agents may return empty results or be interrupted due to context size or recursion.
+An empty result is **not a success** — treat it as a transient failure.
+
+### Detection
+
+A sub-agent result is considered **empty/failed** if:
+- The result string is empty, whitespace-only, or `null`
+- The result does not contain the expected `VALIDATION:` or `FINDINGS:` section
+- The result contains only an error message with no research content
+
+### Retry Protocol
+
+**If ANY sub-agent returns an empty/failed result:**
+
+1. **Retry once** — re-spawn that specific sub-agent with the same prompt
+2. **If retry also fails** — fall back to **inline research** for that question:
+   - Use Context7 directly (`resolve-library-id` + `query-docs`) in this session
+   - Use `kagi_search_fetch` for broader context
+   - Emit findings in the same structured format the sub-agent would have returned
+3. **Never skip a research question** — every question must produce a finding or explicit "inconclusive" result
+
+### Inline Fallback Research
+
+When falling back inline:
+- Use `context7_resolve-library-id` + `context7_query-docs` for library/framework questions
+- Use `kagi_search_fetch` for community guidance and current best practices
+- Use `grep-app_searchCode` for real-world implementation patterns
+- Emit findings with the same `VALIDATION:` / `RECOMMENDATION:` structure
 
 ---
 
@@ -389,14 +440,14 @@ SOURCES:
 
 2. Add tasks for each finding:
    ```
-   adv_task_add change_id: <new-id> title: "{finding action}"
+   adv_task_add changeId: <new-id> content: "{finding action}"
    ```
 
 ### For Active Changes
 
 1. Add tasks:
    ```
-   adv_task_add change_id: <target> title: "Apply research: {finding}"
+   adv_task_add changeId: <target> content: "Apply research: {finding}"
    ```
 
 2. Update proposal.md with `## Research Validation` section

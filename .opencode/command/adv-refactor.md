@@ -1,10 +1,10 @@
 ---
 name: adv-refactor
-description: Refresh stale change proposals by aligning with current codebase via bidirectional reconciliation
+description: Refresh a stale proposal to reflect current codebase state
 agent: general
 ---
 
-# ADV Refactor - Refresh Stale Proposals
+# ADV Refactor — Refresh Stale Proposals
 
 Orchestrate bidirectional reconciliation to update stale change proposals to match current codebase reality.
 

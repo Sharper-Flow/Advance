@@ -46,7 +46,7 @@ function getRecommendationForGate(
 export const statusTools = {
   adv_status: {
     description:
-      "Get project status overview including specs, changes, and recommendations",
+      "Show project overview: specs, active changes, and next-step recommendations",
     args: {},
     execute: async (_args: Record<string, never>, store: Store) => {
       const status = await store.status();

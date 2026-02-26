@@ -1,6 +1,6 @@
 ---
 name: adv-improve
-description: Analyze codebase for architectural improvements with greenfield perspective
+description: Suggest targeted improvements to existing specs or implementation
 agent: general
 ---
 

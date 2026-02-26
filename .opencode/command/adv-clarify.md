@@ -1,10 +1,10 @@
 ---
 name: adv-clarify
-description: Socratic questioning to uncover hidden requirements, assumptions, and acceptance criteria
+description: Ask clarifying questions to resolve ambiguous requirements
 agent: build
 ---
 
-# ADV Clarify - Socratic Requirements Discovery
+# ADV Clarify — Requirements Discovery
 
 Use the Socratic method to uncover hidden assumptions, edge cases, and acceptance criteria through structured questioning. Based on the six types of Socratic questions.
 

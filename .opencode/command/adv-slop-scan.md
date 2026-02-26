@@ -1,6 +1,6 @@
 ---
 name: adv-slop-scan
-description: Scan the codebase for AI-generated code quality issues ("slop") defined in slop-smells.yaml
+description: Scan for low-quality AI-generated code patterns and surface findings
 agent: general
 ---
 

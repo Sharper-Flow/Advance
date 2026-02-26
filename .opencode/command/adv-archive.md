@@ -1,12 +1,20 @@
 ---
 name: adv-archive
-description: Archive completed change - apply deltas to specs, generate docs, move to archive
+description: Archive completed change: apply spec deltas and finalize git
 agent: build
 ---
 
-# ADV Archive - Finalize Completed Change
+# ADV Archive — Finalize Completed Change
 
-Archive a completed change by applying deltas to deployed specs. All state managed by `adv_change_archive` tool.
+Archive a completed change by applying deltas to deployed specs, then run mandatory Phase 9 Git Finalization (commit, merge to default branch, verify, clean up worktree).
+
+## Exits
+
+| Exit | Condition |
+|------|-----------|
+| ✅ Complete | All gates passed, specs updated, git finalized |
+| 🎤 Blocked | Incomplete gates, tasks, or merge conflicts — user resolves |
+| 🔁 Dry Run | Preview only; no changes made |
 
 <UserRequest>
   $ARGUMENTS

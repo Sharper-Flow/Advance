@@ -1,14 +1,14 @@
 ---
 name: adv-task
-description: Fast-track a pre-discussed change — synthesize a chat contract, confirm with the user, then research and prep the change. Stops at prep and hands off to Build for implementation.
+description: Fast-track a discussed change: synthesize contract, validate best practices, prep, and hand off
 agent: general
 ---
 
-# ADV Task - Fast-Track Contract to Ready-for-Build
+# ADV Task — Fast-Track a Discussed Change
 
-Turn a pre-discussed change into a fully-prepped ADV change **without the heavyweight proposal phase**.
+Synthesize a contract from the current conversation, validate best practices, prep tasks, and hand off to Build.
 
-Use this when you and the user have already agreed on what needs to be done in conversation and just want to formalize, validate best practices, and generate a ready-to-execute task list.
+Use this when you and the user have already agreed on what needs to be done and want to skip the heavyweight proposal phase.
 
 **Pipeline:**
 1. Synthesize a **Quick Contract** from the conversation

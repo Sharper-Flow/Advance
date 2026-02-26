@@ -1,12 +1,12 @@
 ---
 name: adv-proposal
-description: Create a new ADV change proposal with INVEST-quality requirements. Optionally pass a summary — if omitted, the agent derives a title from the recent conversation.
+description: Propose a new change with intent, scope, and success criteria
 agent: build
 ---
 
-# ADV Proposal - Create Change with Quality Requirements
+# ADV Proposal — Create Change with Quality Requirements
 
-Create a new change proposal for the ADV system. Uses INVEST criteria and requirements smell detection to ensure high-quality, implementable specifications.
+Create a new change proposal. Uses INVEST criteria and requirements smell detection to ensure high-quality, implementable specifications.
 
 <UserRequest>
   $ARGUMENTS

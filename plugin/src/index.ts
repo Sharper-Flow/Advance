@@ -37,6 +37,7 @@ import { getProjectId, getExternalRoot } from "./utils/project-id";
 import { migrateToExternalState } from "./storage/migrate";
 import { consumeHandoff } from "./storage/handoff";
 import { enforceBashPolicy } from "./guards/bash";
+import { enforceTaskPolicy } from "./guards/task";
 
 // =============================================================================
 // Types
@@ -963,6 +964,10 @@ export const AdvancePlugin: Plugin = async ({ directory, worktree }) => {
         // Detect sub-agent spawning (Task tool)
         // OpenCode uses lowercase "task" for the built-in Task tool
         if (input.tool === "task") {
+          // Block nested task calls — sub-agents spawning sub-agents causes
+          // recursive context that leads to empty results or interruptions.
+          enforceTaskPolicy(state.activeSubAgents);
+
           debugLog(`Sub-agent spawned: count=${state.activeSubAgents + 1}`);
           setFlags({
             activeSubAgents: state.activeSubAgents + 1,

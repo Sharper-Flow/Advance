@@ -1,10 +1,10 @@
 ---
 name: adv-coordinate
-description: Synchronize multiple active changes, detect conflicts, and align task lists
+description: Detect and resolve conflicts across multiple active changes
 agent: general
 ---
 
-# ADV Coordinate - Multi-Change Conflict Detection
+# ADV Coordinate — Multi-Change Conflict Detection
 
 Analyze all active changes to detect file overlaps, semantic conflicts, and dependency cycles.
 

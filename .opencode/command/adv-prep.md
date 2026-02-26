@@ -1,6 +1,6 @@
 ---
 name: adv-prep
-description: Pre-implementation gap analysis using structured frameworks and cross-cutting concern checklists
+description: Analyze gaps and add missing scenarios, tasks, and dependencies
 agent: general
 ---
 
@@ -22,6 +22,20 @@ Analyze a change for gaps (missing scenarios, tasks, cross-cutting concerns) and
 ---
 
 ## Phase 1: Load Context
+
+### Completed Tasks Are Draft Artifacts, Not Finalized (CRITICAL)
+
+**MUST read before proceeding.** If the change already has tasks marked `done`, treat them as draft implementation that still requires gap analysis. Agents sometimes skip ahead to implementation before prep runs; this is expected and recoverable.
+
+**You MUST:**
+1. Load ALL tasks via `adv_task_list` (including done tasks) and review what was already built
+2. Run the full gap analysis across the entire change — evaluate every task, requirement, and cross-cutting concern, even for completed work
+3. Add targeted reconciliation tasks where gaps are found in completed work (e.g., "Add missing error handling to X", "Write tests for Y", "Add scenario for Z")
+4. Never skip a gap check because "that part is already done"
+
+**You MUST NOT:**
+- Rubber-stamp completed tasks as gap-free without actually analyzing them
+- Reopen or revert completed tasks — instead, add new follow-up tasks where gaps are found
 
 ### Fetch Change Data
 
@@ -336,7 +350,7 @@ Add to change's spec deltas by editing `changes/<change-id>/change.json`:
 ### For Cross-Cutting Concerns
 
 Either:
-1. Add task: `adv_task_add ... title: "Add error handling for X"`
+1. Add task: `adv_task_add ... content: "Add error handling for X"`
 2. Or document N/A in proposal.md with rationale
 
 ### For Requirements Smells
@@ -420,8 +434,8 @@ Gate completes immediately. Proceed to Phase 9.
 ### Verify Final State
 
 ```
-adv_task_list change_id: <target>
-adv_change_validate change_id: <target>
+adv_task_list changeId: <target>
+adv_change_validate changeId: <target>
 ```
 
 ### Mark Prep Gate

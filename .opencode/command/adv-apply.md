@@ -1,36 +1,33 @@
 ---
 name: adv-apply
-description: Implement change with autonomous retry, TDD, and global final loop verification
+description: Implement change with TDD, retry on failure, and final verification
 agent: build
 ---
 
-# ADV Apply - Implement Change with Autonomous Retry
+# ADV Apply — Implement Change with TDD and Retry
 
-Implement an ADV change with **autonomous retry enabled**. Every task is pursued to completion using Test-Driven Development. Failures trigger automatic diagnosis and retry before escalating.
+Implement an ADV change using Test-Driven Development. Every task is pursued to completion. Failures trigger diagnosis and retry before escalating.
 
-## ⛔ CRITICAL: NO SKIP / NO DEFER POLICY
+## Task Completion Policy
 
-**This command enforces MANDATORY task completion.** Agents MUST NOT:
+Every task ends in exactly one of these states:
 
-- ❌ Skip tasks "to revisit later"
-- ❌ Defer tasks "until more information is available"
-- ❌ Mark tasks as blocked without exhausting ALL retry attempts
-- ❌ Suggest "manual completion" by the user
-- ❌ Propose partial implementation as acceptable
-- ❌ Ask the user if they want to skip a difficult task
-- ❌ Cancel tasks because they target a different repository
-- ❌ Cancel tasks via `adv_task_update` (use `adv_task_cancel` with user approval)
+| Exit | Condition |
+|------|-----------|
+| ✅ **Done** | Implementation verified, tests pass |
+| 🔁 **Doom Loop** | 3 genuine fix attempts failed with documented diagnosis |
+| 🌍 **Environmental** | Missing external dependency (API key, service down) — escalate immediately |
 
-**The ONLY acceptable exits from a task are:**
+**Cross-repo tasks:** Execute in the target repo. Switch `workdir` to the target path. "Different repo" is never a valid exit.
 
-1. ✅ **Task completed** - Implementation verified, tests pass
-2. ✅ **Retry budget exhausted** - 3 genuine fix attempts failed with documented diagnosis
-3. ✅ **Environmental blocker** - Missing external dependency (API key, service down, etc.)
+**Cancellation:** Use `adv_task_cancel` with user approval. `adv_task_update status: cancelled` is rejected.
 
-**Cross-repo tasks MUST be executed in the target repo.** "Different repo" or "out of scope" is
-NOT a valid cancellation reason. Switch `workdir` to the target path and execute there.
-
-**If you catch yourself wanting to skip or defer:** STOP. Your job is to solve the problem, not avoid it. Apply the retry protocol.
+| BAD | GOOD |
+|-----|------|
+| "Let's skip this for now" | Apply retry protocol |
+| "We can come back to this" | Complete now or exhaust retries |
+| "This targets another repo" | Switch `workdir` and execute |
+| `adv_task_update status: cancelled` | `adv_task_cancel` with user approval |
 
 <UserRequest>
   $ARGUMENTS
@@ -86,19 +83,22 @@ adv_gate_status changeId: {change-id}
 
 ## Phase 0: Worktree Assessment
 
-Before implementation, assess whether this change benefits from worktree isolation. `/adv-apply` defaults to worktree isolation because autonomous work has higher blast radius — only skip for trivially small changes.
+Before implementation, assess whether this change benefits from worktree isolation. `/adv-apply` defaults to worktree isolation for multi-file changes — only skip for trivially small changes.
 
 ### Step 1: Assess Risk
 
 Count files affected in the proposal and evaluate risk:
 
-| Signal | Risk Level |
-|--------|------------|
+| Signal | Risk |
+|--------|------|
 | 3+ files affected | High — suggest worktree |
 | Breaking API changes | High — suggest worktree |
-| Risky refactor (structural changes) | High — suggest worktree |
+| DB schema change | High — suggest worktree |
+| Auth logic change | High — suggest worktree |
+| Shared type changes | High — suggest worktree |
+| Structural refactor | High — suggest worktree |
 | Experimental / spike work | High — suggest worktree |
-| 1-2 files, trivial changes only | Low — skip worktree |
+| 1–2 files, trivial changes only | Low — skip worktree |
 | Docs-only or config changes | Low — skip worktree |
 
 If risk is **Low**, skip to Phase 1.
@@ -122,7 +122,7 @@ Use the `question` tool:
       "question": "This change affects {N} files and involves {reason}. I recommend creating a worktree to contain blast radius. Branch: change/{change-id}",
       "options": [
       { "label": "Create worktree (Recommended)", "description": "Isolate work and continue inline in this session" },
-      { "label": "Work in place", "description": "Implement directly in the current branch (higher risk for autonomous work)" }
+      { "label": "Work in place", "description": "Implement directly in the current branch (higher risk for multi-file changes)" }
       ]
   }]
 }
@@ -294,7 +294,7 @@ TASKS (from adv_task_list):
 
 Progress: {done_count}/{total_count} tasks
 
-AUTONOMOUS RETRY ENABLED:
+RETRY POLICY:
 - SEMANTIC errors (type/logic/test): 3 retries with diagnosis
 - TRANSIENT errors (network/flaky): 1 retry with 5s delay
 - ENVIRONMENTAL errors (missing deps): immediate escalation
@@ -318,9 +318,9 @@ Use the `question` tool. **If gates were auto-completed, include in question tex
 {
   "questions": [{
     "header": "Confirm",
-    "question": "Begin autonomous implementation of '{change.title}'?{if gates auto-completed}\n\nNote: The following gates were auto-completed:\n- {gateId}: {evidence}{end}",
+    "question": "Begin TDD implementation of '{change.title}'?{if gates auto-completed}\n\nNote: The following gates were auto-completed:\n- {gateId}: {evidence}{end}",
     "options": [
-      { "label": "Begin work (Recommended)", "description": "Start autonomous TDD implementation" },
+      { "label": "Begin work (Recommended)", "description": "Start TDD implementation with retry" },
       { "label": "Modify criteria", "description": "Adjust before starting" },
       { "label": "Cancel", "description": "Exit without changes" }
     ]
@@ -330,7 +330,7 @@ Use the `question` tool. **If gates were auto-completed, include in question tex
 
 ---
 
-## Autonomous Retry Protocol
+## Retry Protocol
 
 ### Error Classification
 
@@ -384,7 +384,7 @@ If 3 retries fail (4 total attempts), STOP:
 
 ```
 ============================================================
-        AUTONOMOUS RETRY BUDGET EXHAUSTED
+         RETRY BUDGET EXHAUSTED
 ============================================================
 
 TASK: {task.id}: {task.title}
@@ -551,7 +551,7 @@ Implementing: {task.title}
 
 1. Write minimal code to pass
 2. Run tests, capture success output
-3. If fails: Apply **Autonomous Retry Protocol**
+   3. If fails: Apply **Retry Protocol**
 4. Show evidence: `Test passes: <output snippet>`
 
 ### 3d. Complete Task
@@ -579,7 +579,7 @@ Continue with next ready task.
 
 After EACH task:
 1. Run verification (build, tests, lint)
-2. If fails: Apply Autonomous Retry Protocol
+   2. If fails: Apply Retry Protocol
 3. Only mark complete after pass
 
 ---
@@ -622,7 +622,7 @@ Running full verification suite...
 ```
 
 Execute ALL verification. If any fail:
-1. Apply Autonomous Retry Protocol
+1. Apply Retry Protocol
 2. Continue until all pass OR budget exhausted
 
 ---
@@ -722,7 +722,7 @@ CANCELLED TASKS (user approved):
 
 COMPLETION MODE:
 {one of}
-- FULLY AUTONOMOUS - All tasks completed without human intervention
+- UNASSISTED - All tasks completed without human intervention
 - GUIDED - {N} tasks required user hints
 - PARTIAL TAKEOVER - {N} tasks completed by user
 
@@ -733,7 +733,7 @@ GATE STATUS:
 ```
 
 **Completion mode definitions:**
-- **FULLY AUTONOMOUS**: All tasks done by agent, no hints needed
+- **UNASSISTED**: All tasks done by agent, no hints needed
 - **GUIDED**: Agent completed all tasks but needed user hints for some
 - **PARTIAL TAKEOVER**: User manually completed some tasks
 
@@ -743,8 +743,8 @@ GATE STATUS:
 ============================================================
       /adv-apply {change-id} COMPLETE
 ============================================================
-Result: CONTRACT FULFILLED (autonomous retry enabled)
-Completion: {FULLY AUTONOMOUS | GUIDED | PARTIAL TAKEOVER}
+Result: CONTRACT FULFILLED (retry-on-failure enabled)
+Completion: {UNASSISTED | GUIDED | PARTIAL TAKEOVER}
 Tasks: {completed}/{total}
 Implementation Gate: MARKED COMPLETE
 

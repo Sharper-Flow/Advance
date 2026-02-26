@@ -142,6 +142,62 @@ describe("Command Manifest", () => {
     });
   });
 
+  describe("Voice standard enforcement", () => {
+    // Banned phrases per docs/command-voice-standard.md
+    const BANNED_PHRASES = [
+      "high-risk signals",
+      "autonomous retry",
+      "AI-slop detection",
+      "Socratic clarifying questions",
+      "Gap analysis",
+    ];
+
+    // Strong verbs that descriptions must start with
+    const STRONG_VERBS = [
+      "Show",
+      "Propose",
+      "Validate",
+      "Implement",
+      "Archive",
+      "Ask",
+      "Analyze",
+      "Detect",
+      "Review",
+      "Scan",
+      "Refresh",
+      "Suggest",
+      "Fast-track",
+    ];
+
+    test("every description starts with a strong verb", () => {
+      for (const [name, def] of Object.entries(COMMAND_MANIFEST)) {
+        const startsWithVerb = STRONG_VERBS.some((v) =>
+          def.description.startsWith(v),
+        );
+        expect(startsWithVerb, `${name}: description must start with a strong verb, got: "${def.description}"`).toBe(true);
+      }
+    });
+
+    test("every description is 5–14 words", () => {
+      for (const [name, def] of Object.entries(COMMAND_MANIFEST)) {
+        const wordCount = def.description.trim().split(/\s+/).length;
+        expect(wordCount, `${name}: description must be 5–14 words, got ${wordCount}: "${def.description}"`).toBeGreaterThanOrEqual(5);
+        expect(wordCount, `${name}: description must be 5–14 words, got ${wordCount}: "${def.description}"`).toBeLessThanOrEqual(14);
+      }
+    });
+
+    test("no description contains banned phrases", () => {
+      for (const [name, def] of Object.entries(COMMAND_MANIFEST)) {
+        for (const phrase of BANNED_PHRASES) {
+          expect(
+            def.description.toLowerCase().includes(phrase.toLowerCase()),
+            `${name}: description contains banned phrase "${phrase}": "${def.description}"`,
+          ).toBe(false);
+        }
+      }
+    });
+  });
+
   describe("Workflow correctness", () => {
     test("adv-research affects research gate", () => {
       const def = getCommandDef("adv-research");

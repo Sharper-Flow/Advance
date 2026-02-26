@@ -1,12 +1,20 @@
 ---
 name: adv-review
-description: Post-implementation code review using structured dimensions and conventional comment labeling
+description: Review code for correctness, security, and architecture; emit REVIEW_FINDINGS
 agent: general
 ---
 
-# ADV Review - Post-Implementation Code Review
+# ADV Review — Post-Implementation Code Review
 
-Orchestrate a multi-dimensional code review using sub-agents. Uses the 12-dimension review framework and conventional comment labeling for actionable feedback.
+Orchestrate a multi-dimensional code review using sub-agents. Emits a `REVIEW_FINDINGS` block consumed by `/adv-harden`. Uses the 12-dimension review framework and conventional comment labeling.
+
+## Exits
+
+| Exit | Condition |
+|------|-----------|
+| ✅ APPROVED | No blockers or issues; review gate marked complete |
+| 🔁 CHANGES_REQUESTED | Issues found; agent fixes then re-verifies |
+| 🎤 BLOCKED | Blockers found; user decides how to proceed |
 
 > **SUB-AGENT CONTEXT**: Return findings as structured JSON. Skip status markers.
 >
@@ -179,6 +187,47 @@ blocker: [file:line] Input not validated before SQL query
   Why: Allows SQL injection attacks
   Fix: Use parameterized query or input sanitization
 ```
+
+---
+
+## Sub-Agent Resilience Protocol
+
+> **IMPORTANT**: Before spawning sub-agents, read and follow this protocol.
+
+### What Can Go Wrong
+
+Sub-agents may return empty results or be interrupted due to context size or recursion.
+An empty result is **not a success** — treat it as a transient failure.
+
+### Detection
+
+A sub-agent result is considered **empty/failed** if:
+- The result string is empty, whitespace-only, or `null`
+- The result does not contain the expected `"dimension"` JSON key
+- The result contains only an error message with no findings
+
+### Retry Protocol
+
+**If ANY sub-agent returns an empty/failed result:**
+
+1. **Retry once** — re-spawn that specific sub-agent with the same prompt
+2. **If retry also fails** — fall back to **inline analysis** for that dimension:
+   - Read the affected files directly using the `read` tool
+   - Perform the analysis yourself inline (no sub-agent)
+   - Emit findings in the same JSON structure the sub-agent would have returned
+3. **Never skip a dimension** — every dimension must produce findings or an explicit "no issues found" result
+
+### Inline Fallback Scanner
+
+When falling back inline, use this checklist per dimension:
+
+| Dimension | Inline Check |
+|-----------|-------------|
+| Requirement Traceability | Search files for scenario keywords; flag untraced ones |
+| Logic & Edge Cases | Read each function; check null handling, off-by-one, unreachable code |
+| Security | Scan for hardcoded secrets, unvalidated input, SQL/command injection patterns |
+| Architecture & Quality | Check function length > 50 lines, duplicated blocks, naming consistency |
+| Cross-Repo Verification | Check task list for target_repo tasks; verify status === "done" |
 
 ---
 

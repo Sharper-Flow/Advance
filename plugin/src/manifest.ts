@@ -47,7 +47,7 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
   // ---- Core Workflow ----
   "adv-status": {
     name: "adv-status",
-    description: "Project overview with specs, changes, and recommendations",
+    description: "Show project overview: specs, active changes, and next-step recommendations",
     phase: "core",
     requiresChangeId: false,
     prerequisites: [],
@@ -55,7 +55,7 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
   },
   "adv-proposal": {
     name: "adv-proposal",
-    description: "Create new change proposal",
+    description: "Propose a new change with intent, scope, and success criteria",
     phase: "core",
     requiresChangeId: false,
     prerequisites: [],
@@ -63,7 +63,7 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
   },
   "adv-validate": {
     name: "adv-validate",
-    description: "Validate change against specs (specs as laws)",
+    description: "Validate change compliance against specs; block archive on failure",
     phase: "core",
     requiresChangeId: true,
     prerequisites: ["adv-proposal"],
@@ -71,7 +71,7 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
   },
   "adv-archive": {
     name: "adv-archive",
-    description: "Archive completed change (applies deltas to specs)",
+    description: "Archive completed change: apply spec deltas and finalize git",
     phase: "core",
     requiresChangeId: true,
     prerequisites: ["adv-validate"],
@@ -81,7 +81,7 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
   // ---- Pre-Implementation ----
   "adv-clarify": {
     name: "adv-clarify",
-    description: "Socratic clarifying questions for ambiguous requirements",
+    description: "Ask clarifying questions to resolve ambiguous requirements",
     phase: "pre-implementation",
     requiresChangeId: false,
     prerequisites: ["adv-proposal"],
@@ -89,7 +89,7 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
   },
   "adv-research": {
     name: "adv-research",
-    description: "Validate architectural decisions via Context7 and web search",
+    description: "Validate architectural decisions via docs and web search; complete research gate",
     phase: "pre-implementation",
     gate: "research",
     requiresChangeId: true,
@@ -98,7 +98,7 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
   },
   "adv-prep": {
     name: "adv-prep",
-    description: "Gap analysis — add missing scenarios, tasks, dependencies",
+    description: "Analyze gaps and add missing scenarios, tasks, and dependencies",
     phase: "pre-implementation",
     gate: "prep",
     requiresChangeId: true,
@@ -109,8 +109,7 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
   // ---- Implementation ----
   "adv-apply": {
     name: "adv-apply",
-    description:
-      "Implement change with autonomous retry, TDD, and global final loop verification",
+    description: "Implement change with TDD, retry on failure, and final verification",
     phase: "implementation",
     gate: "implementation",
     requiresChangeId: true,
@@ -119,8 +118,7 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
   },
   "adv-task": {
     name: "adv-task",
-    description:
-      "Fast-track a pre-discussed change — synthesize chat contract, validate LBP, then autonomously research, prep, and implement",
+    description: "Fast-track a discussed change: synthesize contract, validate best practices, prep, and hand off",
     phase: "implementation",
     gate: "implementation",
     requiresChangeId: false,
@@ -131,7 +129,7 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
   // ---- Post-Implementation ----
   "adv-review": {
     name: "adv-review",
-    description: "Code review (correctness, security, architecture)",
+    description: "Review code for correctness, security, and architecture; emit REVIEW_FINDINGS",
     phase: "post-implementation",
     gate: "review",
     requiresChangeId: true,
@@ -140,7 +138,7 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
   },
   "adv-harden": {
     name: "adv-harden",
-    description: "AI-slop detection, test coverage, doc hygiene, cleanup",
+    description: "Detect low-quality code, verify test coverage, clean up; block archive on open findings",
     phase: "post-implementation",
     gate: "harden",
     requiresChangeId: true,
@@ -149,7 +147,7 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
   },
   "adv-audit": {
     name: "adv-audit",
-    description: "Spec/implementation drift detection",
+    description: "Detect drift between specs and current implementation",
     phase: "post-implementation",
     requiresChangeId: false,
     prerequisites: [],
@@ -157,7 +155,7 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
   },
   "adv-slop-scan": {
     name: "adv-slop-scan",
-    description: "Scan for AI-generated code quality issues (slop)",
+    description: "Scan for low-quality AI-generated code patterns and surface findings",
     phase: "post-implementation",
     requiresChangeId: false,
     prerequisites: [],
@@ -167,7 +165,7 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
   // ---- Advanced ----
   "adv-refactor": {
     name: "adv-refactor",
-    description: "Refresh stale proposals with current codebase state",
+    description: "Refresh a stale proposal to reflect current codebase state",
     phase: "advanced",
     requiresChangeId: true,
     prerequisites: ["adv-proposal"],
@@ -175,7 +173,7 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
   },
   "adv-coordinate": {
     name: "adv-coordinate",
-    description: "Multi-change conflict detection and resolution",
+    description: "Detect and resolve conflicts across multiple active changes",
     phase: "advanced",
     requiresChangeId: false,
     prerequisites: [],
@@ -185,7 +183,7 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
   // ---- Utility ----
   "adv-improve": {
     name: "adv-improve",
-    description: "Suggest improvements to existing specs or implementation",
+    description: "Suggest targeted improvements to existing specs or implementation",
     phase: "utility",
     requiresChangeId: false,
     prerequisites: [],

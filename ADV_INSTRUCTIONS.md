@@ -1,14 +1,18 @@
 # ADV - Spec-Driven Development Instructions
 
-ADV (Advance) enables spec-driven development where **specs become laws**. Requirements are formally defined, validated, and enforced during implementation.
+Enforce spec-driven development where **specs become laws**. Requirements are formally defined, validated, and enforced during implementation.
 
-## Core Concept
+## Core Decision Rules
 
-1. **Specs define the law**: Requirements in specs are authoritative
-2. **Changes are proposals**: All modifications go through a change workflow
-3. **Validation enforces laws**: Changes are validated against existing specs
-4. **TDD drives implementation**: Test-first development with evidence
-5. **Archive promotes changes**: Completed changes update specs permanently
+| When | Then |
+|------|------|
+| Spec conflicts with proposal | Spec wins |
+| Gate incomplete | Archive blocked |
+| 3 failed task attempts | Stop → emit `[ADV:DOOM_LOOP]` → escalate |
+| Cross-repo task | Execute in target repo (`workdir`) |
+| User requests cancellation | Require explicit approval via `adv_task_cancel` |
+| TDD required + trivial task | Mark trivial with reason, skip TDD |
+| User requests skip + gate required | Emit `[ADV:MIC]`, ask for sign-off |
 
 ## Commands
 
@@ -16,40 +20,42 @@ ADV (Advance) enables spec-driven development where **specs become laws**. Requi
 
 | Command | Purpose |
 |---------|---------|
-| `/adv-status` | Project overview (specs, changes, recommendations) |
-| `/adv-proposal <summary>` | Create new change proposal |
-| `/adv-validate <change-id>` | Validate change against specs |
-| `/adv-apply <change-id>` | Implement change with autonomous retry and TDD |
-| `/adv-archive <change-id>` | Archive completed change |
+| `/adv-status` | Show project overview: specs, active changes, and next-step recommendations |
+| `/adv-proposal <summary>` | Propose a new change with intent, scope, and success criteria |
+| `/adv-validate <change-id>` | Validate change compliance against specs; block archive on failure |
+| `/adv-apply <change-id>` | Implement change with TDD, retry on failure, and final verification |
+| `/adv-archive <change-id>` | Archive completed change: apply spec deltas and finalize git |
 
 ### Pre-Implementation
 
 | Command | Purpose |
 |---------|---------|
-| `/adv-clarify` | Socratic clarifying questions |
-| `/adv-prep <change-id>` | Gap analysis - add missing scenarios, tasks |
-| `/adv-research <target>` | Validate architectural decisions via Context7 |
+| `/adv-clarify` | Ask clarifying questions to resolve ambiguous requirements |
+| `/adv-prep <change-id>` | Analyze gaps and add missing scenarios, tasks, and dependencies |
+| `/adv-research <target>` | Validate architectural decisions via docs and web search; complete research gate |
 
 ### Post-Implementation
 
 | Command | Purpose |
 |---------|---------|
-| `/adv-review <change-id>` | Code review (correctness, security, architecture) |
-| `/adv-harden <change-id>` | AI-slop detection, test coverage, doc hygiene, cleanup |
-| `/adv-audit [capability]` | Spec/implementation drift detection |
+| `/adv-review <change-id>` | Review code for correctness, security, and architecture; emit REVIEW_FINDINGS |
+| `/adv-harden <change-id>` | Detect low-quality code, verify test coverage, clean up; block archive on open findings |
+| `/adv-audit [capability]` | Detect drift between specs and current implementation |
+| `/adv-slop-scan [path]` | Scan for low-quality AI-generated code patterns and surface findings |
 
 ### Fast-Track
 
 | Command | Purpose |
 |---------|---------|
-| `/adv-task` | Fast-track a pre-discussed change — chat contract → LBP research → prep → autonomous implement |
+| `/adv-task` | Fast-track a discussed change: synthesize contract, validate best practices, prep, and hand off |
 
 ### Advanced
 
 | Command | Purpose |
 |---------|---------|
-| `/adv-refactor <change-id>` | Refresh stale proposals |
-| `/adv-coordinate` | Multi-change conflict detection |
+| `/adv-refactor <change-id>` | Refresh a stale proposal to reflect current codebase state |
+| `/adv-coordinate` | Detect and resolve conflicts across multiple active changes |
+| `/adv-improve` | Suggest targeted improvements to existing specs or implementation |
 
 ## Status Markers
 
@@ -89,24 +95,37 @@ System-emitted: `[ADV:ACCUMULATED_WISDOM]`, `[ADV:TODO_CONTINUATION]`, `[ADV:REC
 
 ### Doom Loop Detection
 
-After 3 failed attempts on a task:
+Tasks end in exactly one state:
 
-1. **STOP** - Don't retry same approach
-2. **Emit** `[ADV:DOOM_LOOP]` marker
+| Exit | Condition |
+|------|-----------|
+| ✅ Done | All acceptance criteria met |
+| 🔁 Doom Loop | 3 failed attempts, user guidance needed |
+| 🌍 Environmental | Missing external dependency — escalate immediately |
+
+After 3 failed attempts:
+1. **STOP** — Don't retry same approach
+2. **Emit** `[ADV:DOOM_LOOP]`
 3. **Document** all 3 attempts with diagnosis
 4. **Ask** via `question` tool for guidance
 
-**No Skip/Defer:** Tasks must complete or doom loop. Prohibited:
-- Skipping "to revisit later"
-- Deferring "until more information"
-- Marking blocked without 3 genuine attempts
-- Cancelling tasks without explicit user approval (use `adv_task_cancel`)
-- Cancelling cross-repo tasks because they target a different repository
+| BAD | GOOD |
+|-----|------|
+| Retry same approach | Try a different strategy |
+| Silent retries | Document each attempt |
+| 4+ attempts same method | Escalate after 3 |
+| "Let me try again" | "Approach X failed because Y" |
 
 ### Cross-Repo Execution Protocol
 
 Changes often span multiple repositories (e.g., frontend + backend, app + database).
-Tasks targeting other repos MUST be executed there — not cancelled or skipped.
+
+| BAD (Invalid Cancellation) | GOOD |
+|----------------------------|------|
+| "Out of scope for this repo" | Switch `workdir` and execute |
+| "Different repository" | Switch `workdir` and execute |
+| "Cannot modify external code" | Use `workdir` parameter |
+| "Backend/API changes needed" | Switch `workdir` and execute |
 
 **Key rules:**
 1. Tasks with `target_repo`/`target_path` metadata must be executed in the target directory
@@ -130,11 +149,11 @@ Tasks targeting other repos MUST be executed there — not cancelled or skipped.
 
 **All task cancellations require explicit user approval.**
 
-- `adv_task_update` rejects `status: "cancelled"` — use `adv_task_cancel` instead
-- `adv_task_cancel` requires: per-task reasons, `approvedByUser: true`, approval evidence
-- Batch cancellation is allowed — agent presents all cancellations to user, user approves the batch
-- The agent MUST show each task with its reason before calling `adv_task_cancel`
-- Review and Harden gates BLOCK if any cancelled task lacks `cancellation.approved_by_user`
+| BAD | GOOD |
+|-----|------|
+| `adv_task_update status: "cancelled"` | `adv_task_cancel` with user approval |
+| Self-approve cancellation | Present reasons to user, get sign-off |
+| Cancel cross-repo task as "out of scope" | Execute in target repo |
 
 **Workflow:**
 1. Agent identifies tasks to cancel with per-task reasons
@@ -162,6 +181,7 @@ Gates are sequential. Archive blocks until all 6 satisfied.
 See: [docs/adv-gates.md](docs/adv-gates.md)
 
 **Gate behaviors:**
+- `/adv-research` and `/adv-prep` evaluate the **full change including completed tasks**. Completed work is proof-of-concept evidence to validate, not acceptance proof. Findings apply regardless of task status — add targeted follow-up tasks where gaps are found. (See: Phase 1 recovery sections in `.opencode/command/adv-research.md` and `.opencode/command/adv-prep.md`.)
 - `/adv-review` emits a `REVIEW_FINDINGS` block listing all actionable findings (`blocker`, `issue`, `suggestion`, `question`).
 - `/adv-harden` **blocks** if any actionable review findings are unresolved and not documented as accepted debt in `proposal.md`. `nit:` findings are not required.
 - `/adv-archive` **runs mandatory Phase 9 Git Finalization**: stage+commit all changes, detect default branch, merge (or open PR), verify merge is clean, clean up worktree, remove temp artifacts.
@@ -201,6 +221,18 @@ Mutable state lives at `$XDG_DATA_HOME/opencode/plugins/advance/{project-id}/`:
 
 **project-id** = root commit SHA (`git rev-list --max-parents=0 HEAD`), stable across all worktrees.
 
+### Worktree Decision
+
+```
+┌─ Risk Assessment ──────────────────────────────────┐
+│ 3+ files OR db schema, auth, shared types,         │
+│ breaking API, structural refactor, spike work      │──→ Ask user ──→ Create ──→ Continue inline
+│                                                    │
+│ 1–2 files AND trivial changes                      │
+│ OR docs-only / config                              │──→ Proceed in-place
+└────────────────────────────────────────────────────┘
+```
+
 ### Inline Worktree Protocol (Default)
 
 When a worktree is created during an active ADV change, continue in the same agent session:
@@ -219,20 +251,6 @@ Use handoff only when explicitly using multi-session workflows (for example, a s
 1. **Parent session** writes `handoff.json` with `{changeId, currentTaskId, gateStatus, objective}`
 2. **Child session** reads and clears `handoff.json` on startup, hydrating `PluginState.activeChange`
 3. **system.transform** injects `[ADV:WORKTREE_SESSION]` marker with full change context
-
-### When Worktrees Are Used
-
-Phase 0 of `/adv-apply` handles worktree assessment automatically:
-
-| Command | Threshold | Default |
-|---------|-----------|---------|
-| `/adv-apply` | 3+ files or high-risk signals | Suggest worktree |
-
-`/adv-apply` follows a deterministic 4-step sequence:
-1. **Assess risk** — count affected files, evaluate risk signals
-2. **Check tool availability** — verify `worktree_create` is available, skip with `[ADV:INFO]` if not
-3. **Ask user** — present choice via `question` tool
-4. **Create and switch inline** — create worktree, then continue in the same session with `workdir` set to the new path
 
 ### Worktree Cleanup Protocol
 
@@ -260,5 +278,3 @@ All other ADV functionality works identically.
 
 **Use for:** New features, breaking changes, architecture, compliance
 **Skip for:** Bug fixes, typos, deps, exploration
-
-

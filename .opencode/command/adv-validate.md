@@ -1,6 +1,6 @@
 ---
 name: adv-validate
-description: Validate an ADV change against specs - check for conflicts, missing requirements, and errors
+description: Validate change compliance against specs; block archive on failure
 agent: build
 args:
   - name: change_id
@@ -11,7 +11,7 @@ args:
     required: false
 ---
 
-# ADV Validate - Check Change Against Specs
+# ADV Validate — Check Change Against Specs
 
 Validate a change proposal against deployed specs. Uses `adv_change_validate` tool for all validation logic.
 

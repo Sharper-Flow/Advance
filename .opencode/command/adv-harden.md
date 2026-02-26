@@ -1,12 +1,20 @@
 ---
 name: adv-harden
-description: Post-implementation hardening - AI-slop detection, doc hygiene, tech debt scoring, quality gates
+description: Detect low-quality code, verify test coverage, clean up; block archive on open findings
 agent: general
 ---
 
-# ADV Harden - Post-Implementation Quality Analysis
+# ADV Harden — Post-Implementation Quality Analysis
 
-Orchestrate multi-dimensional hardening analysis using sub-agents for AI-slop detection, technical debt assessment, and production readiness verification.
+Orchestrate multi-dimensional hardening analysis using sub-agents. **Blocks archive if any actionable `REVIEW_FINDINGS` are unresolved and not documented as accepted debt.**
+
+## Exits
+
+| Exit | Condition |
+|------|-----------|
+| ✅ READY | No blockers or high findings; harden gate marked complete |
+| 🔁 NEEDS_WORK | High findings present; agent fixes then re-verifies |
+| 🎤 BLOCKED | Blocker findings or unresolved review findings; user decides |
 
 > **SUB-AGENT CONTEXT**: Return findings as JSON. Skip status markers.
 >
@@ -208,6 +216,47 @@ Classify any debt found using Fowler's quadrant:
 |---|---------|----------|
 | **Deliberate** | "Ship now, fix later" → Track | "No time for design" → Escalate |
 | **Inadvertent** | "Now we know better" → Refactor | "What's layering?" → Train |
+
+---
+
+## Sub-Agent Resilience Protocol
+
+> **IMPORTANT**: Before spawning sub-agents, read and follow this protocol.
+
+### What Can Go Wrong
+
+Sub-agents may return empty results or be interrupted due to context size or recursion.
+An empty result is **not a success** — treat it as a transient failure.
+
+### Detection
+
+A sub-agent result is considered **empty/failed** if:
+- The result string is empty, whitespace-only, or `null`
+- The result does not contain the expected `"dimension"` JSON key
+- The result contains only an error message with no findings
+
+### Retry Protocol
+
+**If ANY sub-agent returns an empty/failed result:**
+
+1. **Retry once** — re-spawn that specific sub-agent with the same prompt
+2. **If retry also fails** — fall back to **inline analysis** for that dimension:
+   - Read the affected files directly using the `read` tool
+   - Perform the analysis yourself inline (no sub-agent)
+   - Emit findings in the same JSON structure the sub-agent would have returned
+3. **Never skip a dimension** — every dimension must produce findings or an explicit "no issues found" result
+
+### Inline Fallback Scanner
+
+When falling back inline, use this checklist per dimension:
+
+| Dimension | Inline Check |
+|-----------|-------------|
+| Test Coverage | Check for test files alongside source files; verify TDD evidence in task notes |
+| AI Slop Detection | Scan for generic variable names, copy-paste blocks, placeholder comments |
+| Doc Hygiene | Check README/AGENTS.md for stale references to changed files or behaviors |
+| Tech Debt | Identify TODO/FIXME comments, functions > 50 lines, duplicated logic |
+| Cleanup | Find .bak/.orig/.tmp files, debug print statements, commented-out code |
 
 ---
 

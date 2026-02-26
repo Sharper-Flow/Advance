@@ -1,10 +1,10 @@
 ---
 name: adv-audit
-description: Project-wide audit with quality gates - detect spec/implementation drift, orphaned code, and conflicts
+description: Detect drift between specs and current implementation
 agent: general
 ---
 
-# ADV Audit - Spec/Implementation Alignment Check
+# ADV Audit — Spec/Implementation Alignment Check
 
 Orchestrate a multi-phase audit using sub-agents to detect drift between specs and implementation. Uses SonarQube-style quality gates for objective pass/fail criteria.
 
