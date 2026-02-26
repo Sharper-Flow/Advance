@@ -268,6 +268,46 @@ categories:
         detection: "Test failures, code review against requirements"
         example: "// Asked to find 'second largest' but returns second element"
 
+      - id: QUAL-011
+        name: defensive_overkill
+        severity: medium
+        description: "Overly defensive code with redundant guard chains, paranoid null checks, and unreachable fallback branches that add noise without reducing actual risk"
+        indicators:
+          - "Same variable checked for null, undefined, and falsy in consecutive separate conditions"
+          - "Redundant type checks on values already guaranteed by the type system or prior validation"
+          - "Unreachable else/default branches that can never execute given the preceding conditions"
+          - "Paranoid pre-condition checks on every call site for invariants that are guaranteed upstream"
+          - "Repetitive try/catch wrapping of operations that cannot throw in context"
+          - "Excessive optional chaining (?.) on values already confirmed non-null"
+          - "Guard clauses that duplicate checks already performed by the caller"
+        detection: "Phase 1: regex signal layer for repeated null/undefined guard patterns on same identifier within a function; Phase 2: semantic analysis of guard necessity given type context and call-site invariants"
+        thresholds:
+          defensive_guard_threshold: 3
+        confidence_rules:
+          high: "Same identifier checked >= 3 times in consecutive guards with no mutation between checks"
+          medium: "Redundant optional chaining or type checks where type system already guarantees safety"
+          low: "Single extra guard that may be intentional defensive programming at a public API boundary"
+        false_positive_guidance: |
+          Do NOT flag:
+          - Single null checks before use (legitimate defensive programming)
+          - Single try/catch around I/O operations
+          - Public API boundary validation (first entry point for untrusted input)
+          - Checks required by the type system (e.g., TypeScript strict null checks)
+        example: |
+          // BAD: AI-generated paranoid guard chain — same value checked 4 times
+          function processUser(user) {
+            if (!user) return null;
+            if (user === null) return null;
+            if (user === undefined) return null;
+            if (typeof user !== 'object') return null;
+            return user.name;
+          }
+          // GOOD: single guard, trust the type system
+          function processUser(user: User | null): string | null {
+            if (!user) return null;
+            return user.name;
+          }
+
   documentation_smells:
     description: "AI-characteristic documentation and comment anti-patterns"
     smells:
@@ -409,11 +449,35 @@ categories:
         severity: medium
         description: "Code structure that makes future changes difficult"
         indicators:
-          - "Deep nesting that's hard to extract"
+          - "Deep nesting (>= 4 levels) from cascading conditionals or guard-clause inversion failures — primary nesting smell"
+          - "Nested callbacks or promise chains that could be flattened with async/await"
           - "Tight coupling between unrelated modules"
           - "Global state mutations scattered throughout"
           - "Monolithic functions that do too many things"
-        detection: "Cyclomatic complexity, coupling metrics, change impact analysis"
+        detection: "AST-based nesting depth analysis (ESLint max-depth, radon cc, gocyclo); cyclomatic complexity metrics; coupling metrics"
+        thresholds:
+          nesting_depth: 4
+          cyclomatic_complexity: 10
+        ast_tools:
+          typescript: "eslint --rule '{max-depth: [error, {max: N}], complexity: [error, N]}'"
+          javascript: "eslint --rule '{max-depth: [error, {max: N}], complexity: [error, N]}'"
+          python: "radon cc -n C <file>"
+          go: "gocyclo -over N <file>"
+        fallback: "Brace/indent counter (annotated as detectionMethod: 'degraded')"
+        example: |
+          // 5 levels deep — AI-generated guard-clause inversion failure
+          function process(data) {
+            if (data) {
+              if (data.items) {
+                if (data.items.length > 0) {
+                  if (data.items[0].valid) {
+                    return data.items[0].value;
+                  }
+                }
+              }
+            }
+          }
+          // Better: early returns flatten nesting to 1 level
 
       - id: MAINT-005
         name: hardcoded_environment

@@ -1,6 +1,6 @@
 # Advance
 
-> **Version:** 1.1.0
+> **Version:** 1.2.0
 > **Updated:** 2026-02-26
 
 ## Purpose
@@ -192,5 +192,52 @@ After Quick Contract confirmation, /adv-task must always persist contract contex
 **Then:**
 - A scaffold proposal is generated
 - A non-blocking warning is emitted
+
+---
+
+### Defensive and Nesting Slop Detection
+
+**ID:** `rq-slopscan01` | **Priority:** **[MUST]**
+
+/adv-slop-scan must detect overly defensive code (redundant guard chains, paranoid null checks, unreachable fallback branches) and deeply nested code (nesting depth >= configured threshold) using AST-first analysis with deterministic degraded fallback when AST tools are unavailable. Findings must include structured diagnostic fields in all output formats.
+
+#### Scenarios
+
+**Deep nesting detected via AST** (`rq-slopscan01.1`)
+
+**Given:**
+- A source file containing a function with nesting depth >= nesting_depth_threshold (default 4)
+- An AST analysis tool (ESLint, radon, or gocyclo) is available
+
+**When:** /adv-slop-scan is run on the file
+
+**Then:**
+- A finding is emitted with smell ID MAINT-004
+- The finding includes nestingDepth, complexity, confidence, and detectionMethod fields
+- detectionMethod is 'ast'
+
+**Defensive overkill detected** (`rq-slopscan01.2`)
+
+**Given:**
+- A source file containing redundant guard patterns on the same value at or above threshold
+
+**When:** /adv-slop-scan is run on the file
+
+**Then:**
+- A finding is emitted with smell ID QUAL-011
+- The finding includes confidence and detectionMethod fields
+- Severity is at least medium
+
+**Degraded fallback annotated when AST unavailable** (`rq-slopscan01.3`)
+
+**Given:**
+- No AST analysis tool is installed for the detected language
+
+**When:** /adv-slop-scan is run
+
+**Then:**
+- Nesting detection falls back to brace/indent counter
+- Findings from fallback include detectionMethod: 'degraded'
+- Report annotates affected findings with [DEGRADED: AST tool unavailable]
 
 ---

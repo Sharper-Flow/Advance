@@ -1,0 +1,223 @@
+{
+  "$schema": "https://raw.githubusercontent.com/anomalyco/oc-plugins/main/advance/plugin/schemas/spec.schema.json",
+  "name": "slop-scan",
+  "title": "Slop Scan",
+  "purpose": "Capability: /adv-slop-scan command — detect AI-generated code quality issues including defensive overkill, deep nesting, and other slop patterns",
+  "version": "1.0.0",
+  "updated_at": "2026-02-26T17:11:00.000Z",
+  "requirements": [
+    {
+      "id": "rq-ss001",
+      "title": "AST-First Detection Strategy",
+      "body": "/adv-slop-scan must attempt AST-based analysis before falling back to regex or heuristic methods. One primary AST tool per language is used; fallback is a brace/indent counter annotated as degraded.",
+      "priority": "must",
+      "tags": ["detection", "ast", "phase1"],
+      "scenarios": [
+        {
+          "id": "rq-ss001.1",
+          "title": "TypeScript/JavaScript uses ESLint rules",
+          "given": [
+            "A TypeScript or JavaScript project",
+            "ESLint is available in the project"
+          ],
+          "when": "Phase 1 detection runs",
+          "then": [
+            "ESLint max-depth rule is used for nesting detection",
+            "ESLint complexity rule is used for cyclomatic complexity",
+            "Results are mapped to MAINT-004 smell ID"
+          ]
+        },
+        {
+          "id": "rq-ss001.2",
+          "title": "Python uses radon",
+          "given": [
+            "A Python project",
+            "radon is available"
+          ],
+          "when": "Phase 1 detection runs",
+          "then": [
+            "radon cc is used for cyclomatic complexity",
+            "Results above complexity_threshold are mapped to MAINT-004"
+          ]
+        },
+        {
+          "id": "rq-ss001.3",
+          "title": "Go uses gocyclo",
+          "given": [
+            "A Go project",
+            "gocyclo is available"
+          ],
+          "when": "Phase 1 detection runs",
+          "then": [
+            "gocyclo is used for cyclomatic complexity",
+            "Results above complexity_threshold are mapped to MAINT-004"
+          ]
+        },
+        {
+          "id": "rq-ss001.4",
+          "title": "Fallback when no AST tool available",
+          "given": [
+            "No AST tool is installed for the detected language"
+          ],
+          "when": "Phase 1 detection runs",
+          "then": [
+            "A brace/indent counter is used as fallback",
+            "All findings from fallback have detectionMethod: 'degraded'",
+            "Report includes [DEGRADED: AST tool unavailable] annotation"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-ss002",
+      "title": "Configurable Detection Thresholds",
+      "body": "Detection thresholds must have smart defaults and support per-project overrides via project.json features.slop_scan block. Defaults must not produce false positives for normal single-guard or single-catch patterns.",
+      "priority": "must",
+      "tags": ["config", "thresholds"],
+      "scenarios": [
+        {
+          "id": "rq-ss002.1",
+          "title": "Default thresholds applied when no config present",
+          "given": [
+            "project.json has no features.slop_scan block"
+          ],
+          "when": "/adv-slop-scan runs",
+          "then": [
+            "nesting_depth_threshold defaults to 4",
+            "defensive_guard_threshold defaults to 3",
+            "complexity_threshold defaults to 10",
+            "ast_timeout_ms defaults to 10000"
+          ]
+        },
+        {
+          "id": "rq-ss002.2",
+          "title": "Partial overrides respected",
+          "given": [
+            "project.json has features.slop_scan.nesting_depth_threshold: 6"
+          ],
+          "when": "/adv-slop-scan runs",
+          "then": [
+            "nesting_depth_threshold is 6",
+            "All other thresholds remain at defaults"
+          ]
+        },
+        {
+          "id": "rq-ss002.3",
+          "title": "AST tool timeout enforced",
+          "given": [
+            "An AST tool takes longer than ast_timeout_ms to complete on a file"
+          ],
+          "when": "Phase 1 detection runs on that file",
+          "then": [
+            "The tool invocation is terminated",
+            "The file falls back to degraded detection",
+            "Report annotates the file with [DEGRADED: AST timeout]"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-ss003",
+      "title": "Defensive Overkill Detection",
+      "body": "/adv-slop-scan must detect overly defensive code patterns: redundant null/undefined guard chains, paranoid pre-condition checks on the same value, and unreachable fallback branches. These are reported as QUAL-011.",
+      "priority": "must",
+      "tags": ["detection", "defensive", "qual-011"],
+      "scenarios": [
+        {
+          "id": "rq-ss003.1",
+          "title": "Redundant guard chain detected",
+          "given": [
+            "A function checks the same variable for null, undefined, and falsy in separate consecutive conditions"
+          ],
+          "when": "Phase 1 or Phase 2 detection runs",
+          "then": [
+            "A QUAL-011 finding is emitted",
+            "Severity is at least medium",
+            "confidence field reflects detection certainty"
+          ]
+        },
+        {
+          "id": "rq-ss003.2",
+          "title": "Single guard clause is not flagged",
+          "given": [
+            "A function has exactly one null check before using a value"
+          ],
+          "when": "/adv-slop-scan runs",
+          "then": [
+            "No QUAL-011 finding is emitted for that function"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-ss004",
+      "title": "Always-On Structured Output Fields",
+      "body": "Every finding in JSON output must include nestingDepth, complexity, confidence, and detectionMethod fields regardless of verbosity flags. Text output must surface these fields inline.",
+      "priority": "must",
+      "tags": ["output", "contract", "json"],
+      "scenarios": [
+        {
+          "id": "rq-ss004.1",
+          "title": "JSON findings always include diagnostic fields",
+          "given": [
+            "A finding is produced by any detection method"
+          ],
+          "when": "--json output is requested",
+          "then": [
+            "The finding object includes nestingDepth (number or null)",
+            "The finding object includes complexity (number or null)",
+            "The finding object includes confidence ('high' | 'medium' | 'low')",
+            "The finding object includes detectionMethod ('ast' | 'regex' | 'heuristic' | 'degraded')"
+          ]
+        },
+        {
+          "id": "rq-ss004.2",
+          "title": "Text output surfaces diagnostic fields inline",
+          "given": [
+            "A finding is produced"
+          ],
+          "when": "Text report is generated (no --json flag)",
+          "then": [
+            "The finding block includes detectionMethod and confidence",
+            "nestingDepth and complexity are shown when non-null"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-ss005",
+      "title": "Dead Code Tool Preference",
+      "body": "knip must be the primary dead code analyzer for TypeScript/JavaScript projects. ts-prune is treated as a legacy fallback only and must be documented as such.",
+      "priority": "should",
+      "tags": ["detection", "dead-code", "tooling"],
+      "scenarios": [
+        {
+          "id": "rq-ss005.1",
+          "title": "knip used as primary dead code tool",
+          "given": [
+            "A TypeScript or JavaScript project",
+            "knip is available"
+          ],
+          "when": "Dead code detection runs in Phase 1",
+          "then": [
+            "knip is invoked as the primary tool",
+            "ts-prune is not invoked unless knip fails"
+          ]
+        },
+        {
+          "id": "rq-ss005.2",
+          "title": "ts-prune used only as legacy fallback",
+          "given": [
+            "knip is not available",
+            "ts-prune is available"
+          ],
+          "when": "Dead code detection runs in Phase 1",
+          "then": [
+            "ts-prune is invoked as fallback",
+            "Report annotates findings with [LEGACY TOOL: ts-prune]"
+          ]
+        }
+      ]
+    }
+  ]
+}

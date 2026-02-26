@@ -1,6 +1,6 @@
 ---
 name: adv-slop-scan
-description: Scan for low-quality AI-generated code patterns and surface findings
+description: Scan for AI slop patterns including defensive and nested code
 agent: general
 ---
 
@@ -11,7 +11,7 @@ agent: general
 You are orchestrating a **codebase scan for AI-generated code quality issues ("slop")** using patterns defined in `slop-smells.yaml`.
 
 This command uses a **two-phase detection strategy**:
-1. **Phase 1**: Fast regex/grep-based detection of automatable patterns
+1. **Phase 1**: AST-first automatable detection + regex signal layer for deterministic patterns
 2. **Phase 2**: AI-assisted heuristic detection via parallel sub-agents
 
 ## Argument Parsing
@@ -124,9 +124,54 @@ OPTIONS: <flags enabled>
 
 ## Phase 1: Automatable Detection
 
-**Goal**: Fast regex-based detection of obvious slop patterns.
+**Goal**: Fast AST-first detection of structural slop, plus regex signal checks for obvious patterns.
 
-Run grep/ripgrep for each pattern category. Map findings to smell IDs from `slop-smells.yaml`.
+Run AST tools where available, then grep/ripgrep for pattern categories. Map findings to smell IDs from `slop-smells.yaml`.
+
+### Load Threshold Configuration (`project.json`)
+
+Before scanning, load `features.slop_scan` from `project.json` and apply defaults when omitted:
+
+```json
+{
+  "nesting_depth_threshold": 4,
+  "defensive_guard_threshold": 3,
+  "complexity_threshold": 10,
+  "ast_timeout_ms": 10000
+}
+```
+
+Use these values consistently for AST tools, regex signal escalation, and report metadata.
+
+### AST-First Structural Detection (MAINT-004, QUAL-011)
+
+Run one primary structural tool per language. If unavailable or timed out, fall back to brace/indent counting and annotate as degraded.
+
+| Language | Primary Tool | Check | Command | Maps To |
+|----------|--------------|-------|---------|---------|
+| TypeScript/JavaScript | ESLint | `npx eslint --version` | `npx eslint --rule '{max-depth:[error,{max:N}],complexity:[error,N]}' <path>` | `MAINT-004` |
+| Python | radon | `radon --help` | `radon cc -n C <path>` | `MAINT-004` |
+| Go | gocyclo | `gocyclo -over 1 .` | `gocyclo -over N <path>` | `MAINT-004` |
+
+**Fallback behavior (deterministic):**
+- Use brace/indent nesting counter for files where AST tool unavailable/timed out
+- Set `detectionMethod: degraded`
+- Add annotation: `[DEGRADED: AST tool unavailable]` or `[DEGRADED: AST timeout]`
+
+### Defensive Overkill Signal Layer (QUAL-011)
+
+Regex signals for repeated guard checks on the same identifier (signal only; semantic confirmation happens in Phase 2):
+
+```bash
+# repeated null/undefined checks on same symbol in close proximity
+rg -n "if\s*\([^)]*(===\s*null|===\s*undefined|==\s*null|!=\s*null|!==\s*undefined)[^)]*\)" --type ts --type js --type py
+
+# paranoid optional chaining and fallback chains
+rg -n "\?\.[^\n]*\?\.[^\n]*\?\." --type ts --type js
+rg -n "\|\|\s*null\s*\|\|\s*undefined" --type ts --type js
+```
+
+Escalate to `QUAL-011` when repeated guard signals on the same value are >= `defensive_guard_threshold`.
 
 ### Pattern Detection
 
@@ -214,8 +259,8 @@ Dead code detection uses **language-specific static analysis tools** rather than
 | Language | Tool | Install Check | Command |
 |----------|------|---------------|---------|
 | Python | `vulture` | `vulture --version` | `vulture <path> --min-confidence 80` |
-| TypeScript/JavaScript | `ts-prune` | `npx ts-prune --version` | `npx ts-prune` (for TS exports) |
-| TypeScript/JavaScript | `knip` | `npx knip --version` | `npx knip --no-exit-code` (comprehensive) |
+| TypeScript/JavaScript | `knip` (primary) | `npx knip --version` | `npx knip --no-exit-code` |
+| TypeScript/JavaScript | `ts-prune` (legacy fallback) | `npx ts-prune --version` | `npx ts-prune` |
 | Go | `deadcode` | `deadcode -help` | `deadcode ./...` |
 | Rust | `cargo-udeps` | `cargo udeps --version` | `cargo +nightly udeps` (unused deps) |
 | Java | `unused-code` | via build tool | Integrated with IDE/build |
@@ -242,8 +287,8 @@ Dead code detection uses **language-specific static analysis tools** rather than
    # Python example
    vulture <SCAN_PATH> --min-confidence 80 2>&1
    
-   # TypeScript/JavaScript example (prefer knip for comprehensive analysis)
-   npx knip --no-exit-code 2>&1 || npx ts-prune 2>&1
+   # TypeScript/JavaScript example (knip primary, ts-prune legacy fallback)
+   npx knip --no-exit-code 2>&1 || (echo "[LEGACY TOOL: ts-prune]" && npx ts-prune 2>&1)
    
    # Go example
    deadcode ./... 2>&1
@@ -251,8 +296,8 @@ Dead code detection uses **language-specific static analysis tools** rather than
 
 4. **Parse tool output** into standard finding format. Each tool has different output formats:
    - **vulture**: `path/file.py:42: unused function 'foo' (90% confidence)`
-   - **knip**: Lists unused files, exports, dependencies, etc.
-   - **ts-prune**: `path/file.ts:42 - unusedExport`
+    - **knip**: Primary analyzer; lists unused files, exports, dependencies, etc.
+    - **ts-prune**: Legacy fallback only; `path/file.ts:42 - unusedExport`
    - **deadcode**: `package.Function is unused`
 
 **If no tool available:**
@@ -281,9 +326,16 @@ For each match, create a finding:
   "line": <line-number>,
   "description": "<what was found>",
   "fix": "<remediation from yaml>",
+  "nestingDepth": <number|null>,
+  "complexity": <number|null>,
+  "confidence": "high|medium|low",
+  "detectionMethod": "ast|regex|heuristic|degraded",
   "phase": 1
 }
 ```
+
+Every finding in both phases MUST include `nestingDepth`, `complexity`, `confidence`, and `detectionMethod`.
+Use `null` for unknown numeric metrics.
 
 ### Phase 1 Summary
 
@@ -360,8 +412,10 @@ TASK:
    - File and line number
    - Brief description of the issue
    - Suggested fix
+   - Detection metadata (`nestingDepth`, `complexity`, `confidence`, `detectionMethod`)
 4. Focus on semantic issues, not syntax (Phase 1 handles syntax patterns)
-5. Return findings as JSON array
+5. For MAINT/STRUCT categories, explicitly evaluate deep nesting and defensive-overkill patterns.
+6. Return findings as JSON array
 
 TIMEOUT: <TIMEOUT> seconds
 
@@ -378,6 +432,10 @@ RETURN FORMAT:
       "line": <number>,
       "description": "<what was found>",
       "fix": "<suggestion>",
+      "nestingDepth": <number|null>,
+      "complexity": <number|null>,
+      "confidence": "high|medium|low",
+      "detectionMethod": "ast|regex|heuristic|degraded",
       "phase": 2
     }
   ]
@@ -498,6 +556,7 @@ HIGH FINDINGS
 [QUAL-007] error_suppression
   src/handlers/upload.ts:156
   Empty catch block silently swallows errors
+  METHOD: regex | CONFIDENCE: medium | NESTING: null | COMPLEXITY: null
   FIX: Log error and/or rethrow with context
 
 MEDIUM FINDINGS
@@ -576,6 +635,10 @@ PHASE 1: 0 findings | PHASE 2: 0 findings
       "line": 42,
       "description": "SQL query built with string concatenation",
       "fix": "Use parameterized queries or an ORM",
+      "nestingDepth": null,
+      "complexity": null,
+      "confidence": "high",
+      "detectionMethod": "regex",
       "phase": 1
     }
   ]

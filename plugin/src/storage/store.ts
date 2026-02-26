@@ -499,6 +499,12 @@ export async function createStore(
             worktree_auto_create: true,
             gate_enforcement: "strict",
             wisdom_accumulation: true,
+            slop_scan: {
+              nesting_depth_threshold: 4,
+              defensive_guard_threshold: 3,
+              complexity_threshold: 10,
+              ast_timeout_ms: 10000,
+            },
           },
         };
         await saveProjectConfig(directory, defaultConfig);

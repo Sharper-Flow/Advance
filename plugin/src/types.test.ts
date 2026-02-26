@@ -556,6 +556,109 @@ describe("FeatureFlagsSchema", () => {
     expect(result.worktree_auto_create).toBe(false);
     expect(result.wisdom_accumulation).toBe(false);
   });
+
+  describe("slop_scan config block", () => {
+    test("defaults to smart values when slop_scan block is absent", () => {
+      const result = FeatureFlagsSchema.parse({});
+      expect(result.slop_scan).toBeDefined();
+      expect(result.slop_scan?.nesting_depth_threshold).toBe(4);
+      expect(result.slop_scan?.defensive_guard_threshold).toBe(3);
+      expect(result.slop_scan?.complexity_threshold).toBe(10);
+      expect(result.slop_scan?.ast_timeout_ms).toBe(10000);
+    });
+
+    test("defaults to smart values when slop_scan block is empty object", () => {
+      const result = FeatureFlagsSchema.parse({ slop_scan: {} });
+      expect(result.slop_scan?.nesting_depth_threshold).toBe(4);
+      expect(result.slop_scan?.defensive_guard_threshold).toBe(3);
+      expect(result.slop_scan?.complexity_threshold).toBe(10);
+      expect(result.slop_scan?.ast_timeout_ms).toBe(10000);
+    });
+
+    test("accepts partial override — only nesting_depth_threshold", () => {
+      const result = FeatureFlagsSchema.parse({
+        slop_scan: { nesting_depth_threshold: 6 },
+      });
+      expect(result.slop_scan?.nesting_depth_threshold).toBe(6);
+      // Other thresholds remain at defaults
+      expect(result.slop_scan?.defensive_guard_threshold).toBe(3);
+      expect(result.slop_scan?.complexity_threshold).toBe(10);
+      expect(result.slop_scan?.ast_timeout_ms).toBe(10000);
+    });
+
+    test("accepts partial override — only complexity_threshold", () => {
+      const result = FeatureFlagsSchema.parse({
+        slop_scan: { complexity_threshold: 15 },
+      });
+      expect(result.slop_scan?.complexity_threshold).toBe(15);
+      expect(result.slop_scan?.nesting_depth_threshold).toBe(4);
+    });
+
+    test("accepts full override of all slop_scan fields", () => {
+      const result = FeatureFlagsSchema.parse({
+        slop_scan: {
+          nesting_depth_threshold: 6,
+          defensive_guard_threshold: 5,
+          complexity_threshold: 20,
+          ast_timeout_ms: 5000,
+        },
+      });
+      expect(result.slop_scan?.nesting_depth_threshold).toBe(6);
+      expect(result.slop_scan?.defensive_guard_threshold).toBe(5);
+      expect(result.slop_scan?.complexity_threshold).toBe(20);
+      expect(result.slop_scan?.ast_timeout_ms).toBe(5000);
+    });
+
+    test("rejects non-integer nesting_depth_threshold", () => {
+      expect(() =>
+        FeatureFlagsSchema.parse({
+          slop_scan: { nesting_depth_threshold: "four" },
+        }),
+      ).toThrow();
+    });
+
+    test("rejects negative nesting_depth_threshold", () => {
+      expect(() =>
+        FeatureFlagsSchema.parse({
+          slop_scan: { nesting_depth_threshold: -1 },
+        }),
+      ).toThrow();
+    });
+
+    test("rejects zero defensive_guard_threshold", () => {
+      expect(() =>
+        FeatureFlagsSchema.parse({
+          slop_scan: { defensive_guard_threshold: 0 },
+        }),
+      ).toThrow();
+    });
+
+    test("rejects negative ast_timeout_ms", () => {
+      expect(() =>
+        FeatureFlagsSchema.parse({
+          slop_scan: { ast_timeout_ms: -500 },
+        }),
+      ).toThrow();
+    });
+
+    test("slop_scan block does not affect other feature flags", () => {
+      const result = FeatureFlagsSchema.parse({
+        tdd_enforcement: "advisory",
+        slop_scan: { nesting_depth_threshold: 5 },
+      });
+      expect(result.tdd_enforcement).toBe("advisory");
+      expect(result.slop_scan?.nesting_depth_threshold).toBe(5);
+      expect(result.worktree_auto_create).toBe(true);
+    });
+
+    test("unknown slop_scan keys are passed through (forward compatibility)", () => {
+      const result = FeatureFlagsSchema.parse({
+        slop_scan: { nesting_depth_threshold: 4, future_flag: true },
+      });
+      // passthrough allows unknown keys
+      expect(result.slop_scan?.nesting_depth_threshold).toBe(4);
+    });
+  });
 });
 
 // =============================================================================

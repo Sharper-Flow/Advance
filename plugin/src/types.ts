@@ -622,6 +622,60 @@ export type RelatedRepo = z.infer<typeof RelatedRepoSchema>;
 // Feature Flags
 // =============================================================================
 
+// =============================================================================
+// Slop Scan Config
+// =============================================================================
+
+/**
+ * Per-project threshold overrides for /adv-slop-scan.
+ *
+ * Defaults are calibrated to avoid false positives on normal single-guard
+ * or single-catch patterns. Override in project.json under features.slop_scan.
+ *
+ * Example:
+ * {
+ *   "features": {
+ *     "slop_scan": {
+ *       "nesting_depth_threshold": 6,
+ *       "complexity_threshold": 15
+ *     }
+ *   }
+ * }
+ */
+export const SlopScanConfigSchema = z
+  .object({
+    /**
+     * Maximum nesting depth before flagging as MAINT-004.
+     * Default: 4 — functions with 4+ levels of nesting are flagged.
+     * Increase for domains (parsers, compilers) that legitimately need deeper nesting.
+     */
+    nesting_depth_threshold: z.number().int().min(1).default(4),
+    /**
+     * Minimum number of redundant guard patterns on the same value before
+     * flagging as QUAL-011 (defensive_overkill).
+     * Default: 3 — a single null check is legitimate; 3+ on the same value is slop.
+     */
+    defensive_guard_threshold: z.number().int().min(1).default(3),
+    /**
+     * Cyclomatic complexity ceiling before flagging as MAINT-004.
+     * Default: 10 — aligns with ESLint complexity rule default.
+     */
+    complexity_threshold: z.number().int().min(1).default(10),
+    /**
+     * Per-file timeout in milliseconds for AST tool invocations.
+     * If exceeded, the file falls back to degraded (brace/indent counter) detection.
+     * Default: 10000ms (10 seconds).
+     */
+    ast_timeout_ms: z.number().int().min(1).default(10000),
+  })
+  .passthrough(); // Forward compatibility: unknown keys pass through
+
+export type SlopScanConfig = z.infer<typeof SlopScanConfigSchema>;
+
+// =============================================================================
+// Feature Flags
+// =============================================================================
+
 /**
  * Per-project feature flag overrides.
  * All flags default to current ADV behavior — no behavior change without explicit opt-in.
@@ -630,7 +684,10 @@ export type RelatedRepo = z.infer<typeof RelatedRepoSchema>;
  * {
  *   "features": {
  *     "tdd_enforcement": "advisory",
- *     "worktree_auto_create": false
+ *     "worktree_auto_create": false,
+ *     "slop_scan": {
+ *       "nesting_depth_threshold": 6
+ *     }
  *   }
  * }
  */
@@ -659,6 +716,11 @@ export const FeatureFlagsSchema = z
      * Default: true (current behavior)
      */
     wisdom_accumulation: z.boolean().default(true),
+    /**
+     * Threshold overrides for /adv-slop-scan detection.
+     * All thresholds have smart defaults; override only what differs from project norms.
+     */
+    slop_scan: SlopScanConfigSchema.default({}),
   })
   .passthrough(); // Allow future flags without breaking existing configs
 

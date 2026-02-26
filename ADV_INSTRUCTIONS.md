@@ -41,7 +41,7 @@ Enforce spec-driven development where **specs become laws**. Requirements are fo
 | `/adv-review <change-id>` | Review code for correctness, security, and architecture; emit REVIEW_FINDINGS |
 | `/adv-harden <change-id>` | Detect low-quality code, verify test coverage, clean up; block archive on open findings |
 | `/adv-audit [capability]` | Detect drift between specs and current implementation |
-| `/adv-slop-scan [path]` | Scan for low-quality AI-generated code patterns and surface findings |
+| `/adv-slop-scan [path]` | Scan for AI slop patterns including defensive and nested code |
 
 ### Fast-Track
 

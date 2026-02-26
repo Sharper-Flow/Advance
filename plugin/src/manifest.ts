@@ -165,7 +165,7 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
   "adv-slop-scan": {
     name: "adv-slop-scan",
     description:
-      "Scan for low-quality AI-generated code patterns and surface findings",
+      "Scan for AI slop patterns including defensive and nested code",
     phase: "post-implementation",
     requiresChangeId: false,
     prerequisites: [],

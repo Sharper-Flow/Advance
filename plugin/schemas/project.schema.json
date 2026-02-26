@@ -90,6 +90,33 @@
             "wisdom_accumulation": {
               "type": "boolean",
               "default": true
+            },
+            "slop_scan": {
+              "type": "object",
+              "properties": {
+                "nesting_depth_threshold": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "default": 4
+                },
+                "defensive_guard_threshold": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "default": 3
+                },
+                "complexity_threshold": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "default": 10
+                },
+                "ast_timeout_ms": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "default": 10000
+                }
+              },
+              "additionalProperties": true,
+              "default": {}
             }
           },
           "additionalProperties": true,
