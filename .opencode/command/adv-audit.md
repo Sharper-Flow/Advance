@@ -293,7 +293,8 @@ Combine from all dimensions:
       { "label": "Fix all (Recommended)", "description": "Address all drift findings" },
       { "label": "Fix high severity only", "description": "Address MUST violations only" },
       { "label": "Report only", "description": "Review findings, fix manually" },
-      { "label": "Accept current", "description": "Document as known drift" }
+      { "label": "Accept current", "description": "Document as known drift" },
+      { "label": "Other", "description": "Use custom text area for a different remediation plan" }
     ]
   }]
 }

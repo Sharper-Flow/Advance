@@ -88,7 +88,8 @@ Use the `question` tool:
     "options": [
       { "label": "Confirmed — execute (Recommended)", "description": "Proceed with research and prep" },
       { "label": "Modify contract", "description": "I want to adjust the intent, scope, or LBP targets" },
-      { "label": "Abort", "description": "Cancel — do not create a change" }
+      { "label": "Abort", "description": "Cancel — do not create a change" },
+      { "label": "Other", "description": "Use custom text area for a different contract decision" }
     ]
   }]
 }
@@ -194,7 +195,8 @@ For each LBP target, record:
     "options": [
       { "label": "Adopt the recommended approach", "description": "Update the contract to use the LBP-recommended alternative, then continue" },
       { "label": "Keep original approach", "description": "Proceed with the originally proposed approach despite the conflict" },
-      { "label": "Abort contract", "description": "Cancel — rethink the design before executing" }
+      { "label": "Abort contract", "description": "Cancel — rethink the design before executing" },
+      { "label": "Other", "description": "Use custom text area for a different conflict resolution" }
     ]
   }]
 }

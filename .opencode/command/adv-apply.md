@@ -122,7 +122,8 @@ Use the `question` tool:
       "question": "This change affects {N} files and involves {reason}. I recommend creating a worktree to contain blast radius. Branch: change/{change-id}",
       "options": [
       { "label": "Create worktree (Recommended)", "description": "Isolate work and continue inline in this session" },
-      { "label": "Work in place", "description": "Implement directly in the current branch (higher risk for multi-file changes)" }
+      { "label": "Work in place", "description": "Implement directly in the current branch (higher risk for multi-file changes)" },
+      { "label": "Other", "description": "Use custom text area to propose a different setup" }
       ]
   }]
 }
@@ -235,7 +236,8 @@ Use `adv_task_cancel` instead.
     "options": [
       { "label": "Approve all (Recommended)", "description": "Cancel all listed tasks" },
       { "label": "Review individually", "description": "Decide each task separately" },
-      { "label": "Reject", "description": "Do not cancel any tasks" }
+      { "label": "Reject", "description": "Do not cancel any tasks" },
+      { "label": "Other", "description": "Use custom text area for a different cancellation plan" }
     ]
   }]
 }
@@ -338,7 +340,8 @@ Use the `question` tool. **If gates were auto-completed, include in question tex
     "options": [
       { "label": "Begin work (Recommended)", "description": "Start TDD implementation with retry" },
       { "label": "Modify criteria", "description": "Adjust before starting" },
-      { "label": "Cancel", "description": "Exit without changes" }
+      { "label": "Cancel", "description": "Exit without changes" },
+      { "label": "Other", "description": "Use custom text area for a different direction" }
     ]
   }]
 }
@@ -459,7 +462,8 @@ Then use the `question` tool:
     "options": [
       { "label": "Provide hint (Recommended)", "description": "Give me guidance to try a 4th approach" },
       { "label": "Take over task", "description": "User will complete this task manually" },
-      { "label": "Void contract", "description": "Cancel entire change - this is a fundamental blocker" }
+      { "label": "Void contract", "description": "Cancel entire change - this is a fundamental blocker" },
+      { "label": "Other", "description": "Use custom text area for a different recovery path" }
     ]
   }]
 }
@@ -709,7 +713,8 @@ SKIP/DEFER CHECK:
     "options": [
       { "label": "Approve cancellations (Recommended)", "description": "Accept that these tasks are legitimately cancelled" },
       { "label": "Review each task", "description": "I need to see the rationale for each cancellation" },
-      { "label": "Block completion", "description": "Do not mark implementation complete - need to address cancelled tasks" }
+      { "label": "Block completion", "description": "Do not mark implementation complete - need to address cancelled tasks" },
+      { "label": "Other", "description": "Use custom text area for a different completion decision" }
     ]
   }]
 }

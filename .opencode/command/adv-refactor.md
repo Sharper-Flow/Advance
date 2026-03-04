@@ -176,7 +176,8 @@ Emit `[ADV:MIC]` and use the `question` tool:
     "question": "Code does [X] but requirement says [Y]. Is code a new requirement or bug?",
     "options": [
       { "label": "New requirement", "description": "Update spec to match code" },
-      { "label": "Bug in code", "description": "Keep spec, flag code as incorrect" }
+      { "label": "Bug in code", "description": "Keep spec, flag code as incorrect" },
+      { "label": "Other", "description": "Use custom text area for a different interpretation" }
     ]
   }]
 }

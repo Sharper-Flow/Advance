@@ -11,6 +11,7 @@ Skip for: open-ended questions, debugging, free-form input.
     "header": string,      // Short label, max 30 chars (required)
     "question": string,    // Full question text (required)
     "multiple": boolean,   // Allow multiple selections (optional)
+    "custom": boolean,     // Allow custom text entry (optional, default true)
     "options": [{          // 2-5 choices (required)
       "label": string,     // Display text, 1-5 words (required)
       "description": string // Explanation of choice (required)
@@ -25,9 +26,11 @@ Skip for: open-ended questions, debugging, free-form input.
 |-------|-------|
 | `header` | max 30 chars |
 | `label` | 1-5 words |
-| `options` | 2-5 choices |
+| `options` | 2-5 choices (including write-in) |
 
-**Note:** Don't include "Other" - custom input is added automatically.
+**Note:** Include an explicit contextual write-in option (for example `Other`, `Different approach`, `Custom value`). The write-in option counts toward the 5-option cap. If adding it would exceed 5, remove the least-likely-chosen predefined option.
+
+Formatted text/WYSIWYG input is best effort and depends on the client UI. Always keep `custom` enabled so text entry remains available.
 
 ## Example
 
@@ -36,10 +39,12 @@ Skip for: open-ended questions, debugging, free-form input.
   "questions": [{
     "header": "Confirm",
     "question": "Apply changes to spec?",
+    "custom": true,
     "options": [
       { "label": "Apply (Recommended)", "description": "Merge deltas into spec" },
       { "label": "Review first", "description": "Show diff before applying" },
-      { "label": "Cancel", "description": "Abort operation" }
+      { "label": "Cancel", "description": "Abort operation" },
+      { "label": "Other", "description": "Use custom text to provide a different response" }
     ]
   }]
 }
@@ -48,6 +53,7 @@ Skip for: open-ended questions, debugging, free-form input.
 ## Best Practices
 
 1. Put recommended option first with "(Recommended)" suffix
-2. Custom input is automatic - don't add catch-all options
-3. Answers returned as arrays of labels
-4. Use `multiple: true` for multi-select
+2. Include an explicit contextual write-in option in every question block
+3. Keep `custom: true` (or omit it to use default true)
+4. Answers are returned as arrays of labels
+5. Use `multiple: true` for multi-select

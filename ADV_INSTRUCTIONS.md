@@ -104,6 +104,17 @@ Forbidden paths (never read directly):
 
 **If a direct read attempt fails** (file not found, wrong path, permission error) — do NOT retry with a different path. Stop immediately and call `adv_change_show` or `adv_task_show` instead. Direct reads bypass schema validation, conflict detection, and workflow invariants.
 
+### Question Tool UX Policy
+
+When using the `question` tool in ADV commands:
+
+1. Always include an explicit contextual write-in option label (for example `Other`, `Different approach`, `Custom value`).
+2. Keep question options within schema limits (2-5 total options including the write-in option, concise labels).
+3. Preserve custom text-entry behavior by leaving custom input enabled.
+4. Treat formatted/WYSIWYG input as best-effort UI behavior; do not assume rich-text controls are always available.
+
+If adding the explicit write-in option would exceed the 5-option cap, remove the lowest-priority predefined option first.
+
 ### Context Freshness
 
 **Work one task at a time with fresh context.** Before EACH task:

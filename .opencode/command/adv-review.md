@@ -485,7 +485,8 @@ Use the `question` tool:
       { "label": "Fix blockers+issues (Recommended)", "description": "Address all blocking items" },
       { "label": "Fix blockers only", "description": "Minimum to unblock" },
       { "label": "Show report only", "description": "Review findings, fix manually" },
-      { "label": "Accept current state", "description": "Proceed without fixes" }
+      { "label": "Accept current state", "description": "Proceed without fixes" },
+      { "label": "Other", "description": "Use custom text area for a different review outcome" }
     ]
   }]
 }

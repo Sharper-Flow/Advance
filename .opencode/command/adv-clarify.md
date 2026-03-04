@@ -208,7 +208,7 @@ mcp_question({
 |-------|-------|-------|
 | `header` | max 30 chars | Very short label |
 | `label` | 1-5 words | Concise display text |
-| `options` | 2-5 choices | Don't include "Other" - custom input is automatic |
+| `options` | 2-5 choices | Include explicit write-in option; remove lowest-priority predefined option if needed |
 
 #### Example: Clarifying a Requirement
 
@@ -221,7 +221,8 @@ mcp_question({
       { "label": "Under 100ms", "description": "Real-time user interactions" },
       { "label": "Under 1 second", "description": "Standard web response time" },
       { "label": "Under 5 seconds", "description": "Background processing acceptable" },
-      { "label": "No specific target", "description": "Just faster than current" }
+      { "label": "No specific target", "description": "Just faster than current" },
+      { "label": "Other", "description": "Use custom text area to provide a different target" }
     ]
   }]
 }
@@ -237,7 +238,8 @@ mcp_question({
     "options": [
       { "label": "Accounts required", "description": "All users must sign in" },
       { "label": "Optional accounts", "description": "Anonymous with limited features" },
-      { "label": "No accounts", "description": "Fully anonymous access" }
+      { "label": "No accounts", "description": "Fully anonymous access" },
+      { "label": "Other", "description": "Use custom text area for another access model" }
     ]
   }]
 }
@@ -255,7 +257,8 @@ mcp_question({
       { "label": "Network failures", "description": "Connection timeouts, DNS errors" },
       { "label": "Auth failures", "description": "Invalid tokens, expired sessions" },
       { "label": "Rate limiting", "description": "API quota exhausted" },
-      { "label": "Data validation", "description": "Invalid input formats" }
+      { "label": "Data validation", "description": "Invalid input formats" },
+      { "label": "Other", "description": "Use custom text area for additional error scenarios" }
     ]
   }]
 }

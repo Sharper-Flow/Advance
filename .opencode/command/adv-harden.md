@@ -597,7 +597,8 @@ Count non-nit findings (`BLOCKER`, `HIGH`, `MEDIUM`, or any actionable finding).
       { "label": "Fix all (Recommended)", "description": "Address all blocking and high items" },
       { "label": "Fix blockers only", "description": "Minimum to unblock" },
       { "label": "Report only", "description": "Review findings, fix manually" },
-      { "label": "Accept current", "description": "Document as known debt" }
+      { "label": "Accept current", "description": "Document as known debt" },
+      { "label": "Other", "description": "Use custom text area for a different hardening plan" }
     ]
   }]
 }

@@ -39,7 +39,8 @@ Call `adv_change_list` to check for active changes.
       "options": [
         { "label": "Create new (Recommended)", "description": "Create a separate change proposal" },
         { "label": "Show existing", "description": "View the existing change instead" },
-        { "label": "Cancel", "description": "Do not create" }
+        { "label": "Cancel", "description": "Do not create" },
+        { "label": "Other", "description": "Use custom text area for a different action" }
       ]
     }]
   }
@@ -80,7 +81,7 @@ Use the `question` tool to gather initial requirements:
       { "label": "Enhancement", "description": "Improving existing functionality" },
       { "label": "Bug fix", "description": "Fixing incorrect behavior" },
       { "label": "Refactor", "description": "Restructuring without behavior change" },
-      { "label": "Breaking change", "description": "Changes that affect existing behavior" }
+      { "label": "Other", "description": "Use custom text area for another change type" }
     ]
   }]
 }
@@ -100,7 +101,8 @@ Use the `question` tool:
     "options": [
       { "label": "<capability-1>", "description": "Existing capability" },
       { "label": "<capability-2>", "description": "Existing capability" },
-      { "label": "New capability", "description": "This creates a new capability spec" }
+      { "label": "New capability", "description": "This creates a new capability spec" },
+      { "label": "Other", "description": "Use custom text area to name another capability" }
     ]
   }]
 }
@@ -213,7 +215,8 @@ Use the `question` tool:
     "question": "Does this change require modifications to other repositories?",
     "options": [
       { "label": "No", "description": "All changes are in this repository" },
-      { "label": "Yes", "description": "Changes needed in other repos too" }
+      { "label": "Yes", "description": "Changes needed in other repos too" },
+      { "label": "Other", "description": "Use custom text area to clarify routing needs" }
     ]
   }]
 }
@@ -228,7 +231,8 @@ If **Yes**: Gather repo details:
     "options": [
       { "label": "Backend API", "description": "e.g., ~/dev/my-backend" },
       { "label": "Database/Migrations", "description": "e.g., ~/dev/my-db" },
-      { "label": "Infrastructure", "description": "e.g., ~/dev/my-infra" }
+      { "label": "Infrastructure", "description": "e.g., ~/dev/my-infra" },
+      { "label": "Other", "description": "Use custom text area to add another repository" }
     ],
     "multiple": true
   }]

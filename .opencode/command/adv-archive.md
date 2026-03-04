@@ -189,7 +189,8 @@ Use the `question` tool for explicit user signoff:
     "options": [
       { "label": "Sign off and archive (Recommended)", "description": "I confirm this change is ready - apply deltas and archive" },
       { "label": "Dry run first", "description": "Preview what will change without committing" },
-      { "label": "Cancel", "description": "Do not archive - need more work" }
+      { "label": "Cancel", "description": "Do not archive - need more work" },
+      { "label": "Other", "description": "Use custom text area for a different signoff path" }
     ]
   }]
 }
