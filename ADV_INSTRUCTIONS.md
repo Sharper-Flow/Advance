@@ -274,21 +274,23 @@ Mutable state lives at `$XDG_DATA_HOME/opencode/plugins/advance/{project-id}/`:
 
 When a worktree is created during an active ADV change, continue in the same agent session:
 
-1. **Create worktree** via `worktree_create`
-2. **Capture worktree path** from tool output
-3. **Emit navigation hint** — immediately tell the user how to reach the new tab if one opened:
+1. **Emit navigation hint BEFORE creating the worktree** — `worktree_create` may open a new tmux window and shift focus, so the user must see navigation keys in the current window first:
    ```
-   ✅ Worktree created: {worktree-path}
-   Branch: change/{change-id}
+   Creating worktree for change/{change-id}...
 
-   A new tmux tab may have opened for this worktree.
-   To switch to it:
-     • Ctrl+b n          — next tmux window
+   A new tmux tab may open. To navigate back here:
      • Ctrl+b l          — last (previously active) window
+     • Ctrl+b n / p      — next / previous window
      • Ctrl+b w          — interactive window chooser
      • oc switch         — switch between openchad sessions
 
-   Continuing implementation inline in this session via workdir.
+   Implementation continues inline in this session via workdir.
+   ```
+2. **Create worktree** via `worktree_create`
+3. **Capture worktree path** from tool output and confirm:
+   ```
+   ✅ Worktree ready: {worktree-path}
+   Branch: change/{change-id}
    ```
 4. **Switch execution context** by setting `workdir` to the worktree path for subsequent tool calls
 5. **Continue implementation inline** in the same conversation/session
