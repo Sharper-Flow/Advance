@@ -1035,8 +1035,50 @@ export const AdvancePlugin: Plugin = async ({ directory, worktree }) => {
       try {
         debugLog(`tool.execute.after: tool="${input.tool}"`);
 
-        // Note: changeId tracking moved to tool.execute.before since
-        // output.args is not available in the after hook
+        // Note: most changeId tracking uses tool.execute.before args.
+        // adv_change_create is the exception: it only returns changeId in output.
+
+        // When a new change is created, update the active change to the new ID
+        // so the terminal tab title reflects the change being worked on.
+        // (adv_change_create takes `summary`, not `changeId`, so the new ID
+        //  is only available in the tool output — not the before-hook args.)
+        if (input.tool === "adv_change_create" && output.output) {
+          try {
+            const rawOutput = output.output.trim();
+
+            // safeExecute keeps banner-wrapped outputs as plain strings.
+            // Try the post-banner payload first (split by "\n\n"), then
+            // fall back to parsing the full output for non-banner JSON responses.
+            const separatorIndex = rawOutput.lastIndexOf("\n\n");
+            const postBanner =
+              separatorIndex >= 0
+                ? rawOutput.slice(separatorIndex + 2).trim()
+                : null;
+
+            const parseCandidates = [postBanner, rawOutput].filter(
+              (candidate): candidate is string => !!candidate,
+            );
+
+            for (const candidate of parseCandidates) {
+              try {
+                const result = JSON.parse(candidate);
+                const newChangeId = result.changeId ?? result.data?.changeId;
+                if (newChangeId && typeof newChangeId === "string") {
+                  state.activeChange.id = newChangeId;
+                  setActiveChange(newChangeId);
+                  debugLog(
+                    `adv_change_create: set activeChange to ${newChangeId}`,
+                  );
+                  break;
+                }
+              } catch {
+                // try next candidate
+              }
+            }
+          } catch {
+            // ignore parse errors
+          }
+        }
 
         // Track task status changes for hooks
         if (input.tool === "adv_task_update" && output.output) {
