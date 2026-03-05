@@ -28,7 +28,7 @@ Skip for: open-ended questions, debugging, free-form input.
 | `label` | 1-5 words |
 | `options` | 2-5 choices (including write-in) |
 
-**Note:** Include an explicit contextual write-in option (for example `Other`, `Different approach`, `Custom value`). The write-in option counts toward the 5-option cap. If adding it would exceed 5, remove the least-likely-chosen predefined option.
+**Note:** Global rule **P26** (`rules.yaml`) requires a write-in option in every question block. Use a contextual label (for example `Other`, `Different approach`, `Custom value`). The write-in option counts toward the 5-option cap. If adding it would exceed 5, remove the lowest-priority predefined option.
 
 Formatted text/WYSIWYG input is best effort and depends on the client UI. Always keep `custom` enabled so text entry remains available.
 

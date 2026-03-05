@@ -106,14 +106,12 @@ Forbidden paths (never read directly):
 
 ### Question Tool UX Policy
 
-When using the `question` tool in ADV commands:
+The write-in option requirement is enforced globally by **P26** in `rules.yaml`. ADV-specific notes:
 
-1. Always include an explicit contextual write-in option label (for example `Other`, `Different approach`, `Custom value`).
+1. Use contextual write-in labels (e.g. `Other`, `Different approach`, `Custom value`) — not a generic "Other".
 2. Keep question options within schema limits (2-5 total options including the write-in option, concise labels).
 3. Preserve custom text-entry behavior by leaving custom input enabled.
 4. Treat formatted/WYSIWYG input as best-effort UI behavior; do not assume rich-text controls are always available.
-
-If adding the explicit write-in option would exceed the 5-option cap, remove the lowest-priority predefined option first.
 
 ### Context Freshness
 
