@@ -1,49 +1,40 @@
-# ADV Installation Guide
+# Advance Installation Guide
 
-This guide covers installing and configuring the ADV (Advance) plugin for OpenCode.
+This guide covers local setup for the ADV (Advance) OpenCode plugin and the minimum project structure ADV expects.
 
 ## Prerequisites
 
-- **Node.js** 20.x or higher
-- **pnpm** 9.x (recommended) or npm
-- **OpenCode** CLI installed
+- Node.js 20+
+- `pnpm`
+- OpenCode installed
 
-## Installation Methods
-
-### Method 1: Clone and Link (Development)
+## Plugin development setup
 
 ```bash
-# Clone the repository
 git clone https://github.com/Sharper-Flow/Advance.git
-cd Advance
-
-# Install plugin dependencies
-cd plugin
+cd Advance/plugin
 pnpm install
-
-# Link to OpenCode (when plugin system is ready)
-# opencode plugin link .
+pnpm test
+pnpm run check
 ```
 
-### Method 2: Direct Installation (Future)
+Useful development commands:
 
 ```bash
-# When published to npm
-opencode plugin install @goost/advance
+pnpm test
+pnpm run build
+pnpm run typecheck
+pnpm run lint
+pnpm run check
 ```
 
-## Project Setup
+## Project setup
 
-### Initialize a New ADV Project
+ADV expects a project-level config file plus directories for specs and change state.
 
-1. Create project configuration:
+### Minimal `project.json`
 
-```bash
-mkdir my-project
-cd my-project
-
-# Create project.json
-cat > project.json << 'EOF'
+```json
 {
   "name": "my-project",
   "version": "0.1.0",
@@ -51,94 +42,49 @@ cat > project.json << 'EOF'
   "changes_dir": "changes",
   "archive_dir": "archive",
   "docs_dir": "docs/specs",
-  "db_dir": ".specdb"
+  "db_dir": ".specdb",
+  "project_file": "project.md"
 }
-EOF
 ```
 
-2. Create directory structure:
+### Minimal directory layout
 
 ```bash
 mkdir -p specs changes archive docs/specs .specdb
 ```
 
-3. Add to `.gitignore`:
+### `.gitignore`
 
-```bash
-cat >> .gitignore << 'EOF'
-# ADV cache
+```gitignore
 .specdb/
-EOF
 ```
 
-### Add to Existing Project
+## First-use workflow
 
-1. Create `project.json` in project root (see above)
-2. Create the required directories
-3. Start using ADV commands
+Once ADV is wired into your OpenCode environment, the normal lifecycle is:
 
-## Configuration
-
-### project.json Options
-
-| Option | Default | Description |
-|--------|---------|-------------|
-| `name` | (required) | Project name |
-| `version` | `"0.1.0"` | Project version |
-| `specs_dir` | `"specs"` | Directory for spec files |
-| `changes_dir` | `"changes"` | Directory for change proposals |
-| `archive_dir` | `"archive"` | Directory for archived changes |
-| `docs_dir` | `"docs/specs"` | Directory for generated docs |
-| `db_dir` | `".specdb"` | Directory for SQLite cache |
-
-### OpenCode Configuration
-
-Add to your `.opencode/config.json` (when plugin system supports it):
-
-```json
-{
-  "plugins": {
-    "advance": {
-      "enabled": true
-    }
-  }
-}
-```
-
-## Verification
-
-### Check Installation
-
-```bash
-# Run tests to verify installation
-cd advance/plugin
-pnpm test
-
-# Expected output: 222 tests passing
-```
-
-### Test Commands
-
-Once integrated with OpenCode:
-
-```bash
-# Check project status
+```text
 /adv-status
-
-# Should show:
-# - Specs: 0 capabilities
-# - Changes: 0 active
+/adv-proposal "your change summary"
+/adv-validate <change-id>
+/adv-apply <change-id>
 ```
 
-## Creating Your First Spec
+Common follow-up commands:
 
-1. Create a capability directory:
+- `/adv-prep <change-id>`
+- `/adv-research <target>`
+- `/adv-review <change-id>`
+- `/adv-harden <change-id>`
+- `/adv-archive <change-id>`
+
+## Creating your first spec
 
 ```bash
 mkdir -p specs/user-auth
 ```
 
-2. Create `specs/user-auth/spec.json`:
+Example `specs/user-auth/spec.json`:
 
 ```json
 {
@@ -161,13 +107,6 @@ mkdir -p specs/user-auth
           "given": ["a user registration form"],
           "when": "user enters a password with 12+ characters",
           "then": ["the password is accepted", "no error is shown"]
-        },
-        {
-          "id": "rq-auth0001.2",
-          "title": "Reject short password",
-          "given": ["a user registration form"],
-          "when": "user enters a password with fewer than 12 characters",
-          "then": ["the password is rejected", "an error message is shown"]
         }
       ]
     }
@@ -175,48 +114,33 @@ mkdir -p specs/user-auth
 }
 ```
 
-3. Verify with `/adv-status`:
-
-```
-SPECS (1 capability):
-- user-auth: 1 requirement (v1.0.0)
-```
-
 ## Troubleshooting
 
-### SQLite Errors
-
-If you see SQLite-related errors:
+### Native SQLite issues
 
 ```bash
-# Rebuild native modules
-cd advance/plugin
+cd plugin
 pnpm rebuild better-sqlite3
 ```
 
-### Permission Issues
+### Cache issues
 
-Ensure write access to project directories:
+If local spec cache state gets stale, remove the DB and rebuild state on next run:
+
+```bash
+rm -f .specdb/spec.db
+```
+
+### Permission issues
+
+Make sure ADV can write to the project state directories:
 
 ```bash
 chmod -R u+w specs changes archive docs .specdb
 ```
 
-### Cache Issues
-
-Clear the SQLite cache to force re-sync:
-
-```bash
-rm -rf .specdb/spec.db
-```
-
-## Environment Variables
-
-| Variable | Description |
-|----------|-------------|
-| `ADV_DEBUG` | Set to `"1"` for debug logging |
-
 ## Support
 
-- **Issues**: https://github.com/Sharper-Flow/Advance/issues
-- **Documentation**: See README.md and ADV_INSTRUCTIONS.md
+- GitHub issues: `https://github.com/Sharper-Flow/Advance/issues`
+- Workflow docs: `ADV_INSTRUCTIONS.md`
+- Architecture and lifecycle docs: `docs/`
