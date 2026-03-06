@@ -146,7 +146,10 @@ describe("Active Change Title Update on adv_change_create", () => {
     // Fire the after hook as if adv_change_create just completed
     await hooks["tool.execute.after"]!(
       { tool: "adv_change_create" } as any,
-      { args: { summary: "Add new feature" }, output: bannerWrappedOutput } as any,
+      {
+        args: { summary: "Add new feature" },
+        output: bannerWrappedOutput,
+      } as any,
     );
 
     // The active change should now reflect the newly created change
@@ -198,7 +201,10 @@ describe("Active Change Title Update on adv_change_create", () => {
 
     await hooks["tool.execute.after"]!(
       { tool: "adv_change_create" } as any,
-      { args: { summary: "Update tab title" }, output: bannerWrappedOutput } as any,
+      {
+        args: { summary: "Update tab title" },
+        output: bannerWrappedOutput,
+      } as any,
     );
 
     expect(getStatus().activeChangeId).toBe(newChangeId);

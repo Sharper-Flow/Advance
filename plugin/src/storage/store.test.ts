@@ -7,13 +7,20 @@
 import { describe, test, expect, beforeEach, afterEach } from "vitest";
 import { join } from "path";
 import { access, readFile } from "fs/promises";
-import { createStore, type Store } from "./store";
+import {
+  createStore,
+  classifyRecency,
+  computeLastActivity,
+  buildChangeRecency,
+  type Store,
+} from "./store";
 import {
   createTempDir,
   cleanupTempDir,
   createTestProject,
   SAMPLE_SPEC,
 } from "../__tests__/setup";
+import type { Change } from "../types";
 
 describe("Store", () => {
   let tempDir: string;
@@ -328,5 +335,330 @@ describe("Store", () => {
       const elapsed = Date.now() - start;
       expect(elapsed).toBeLessThan(3000);
     });
+  });
+
+  describe("status recency", () => {
+    test("status includes changes.recent array sorted by activity", async () => {
+      const status = await store.status();
+
+      expect(status.changes.recent).toBeDefined();
+      expect(Array.isArray(status.changes.recent)).toBe(true);
+      // The test fixture has one active change "addFeature"
+      expect(status.changes.recent.length).toBe(1);
+      expect(status.changes.recent[0].id).toBe("addFeature");
+    });
+
+    test("recent changes include recency fields", async () => {
+      const status = await store.status();
+      const rc = status.changes.recent[0];
+
+      expect(rc.lastActivityAt).toBeDefined();
+      expect(typeof rc.minutesSinceActivity).toBe("number");
+      expect(rc.minutesSinceActivity).toBeGreaterThanOrEqual(0);
+      expect(["hot", "warm", "stale"]).toContain(rc.recency);
+      expect(rc.taskCount).toBe(3);
+      expect(rc.completedTasks).toBe(0);
+    });
+
+    test("recent changes reflect task completion counts", async () => {
+      await store.tasks.update("tk-task0001", "done");
+
+      const status = await store.status();
+      const rc = status.changes.recent[0];
+
+      expect(rc.completedTasks).toBe(1);
+      expect(rc.taskCount).toBe(3);
+    });
+
+    test("archived changes are excluded from recent", async () => {
+      // Create a second change, then archive it by changing status
+      await store.changes.create("Archived feature");
+      const listResult = await store.changes.list();
+      const newChange = listResult.changes.find((c) => c.id !== "addFeature");
+      expect(newChange).toBeDefined();
+
+      // Load, set to archived, save
+      const changeResult = await store.changes.get(newChange!.id);
+      expect(changeResult.success).toBe(true);
+      const change = changeResult.data!;
+      change.status = "archived";
+      await store.changes.save(change);
+
+      const status = await store.status();
+      const archivedInRecent = status.changes.recent.find(
+        (rc) => rc.id === newChange!.id,
+      );
+      expect(archivedInRecent).toBeUndefined();
+    });
+
+    test("recent changes sorted most-recent-first", async () => {
+      // Create a second change with a more recent task
+      const { changeId } = await store.changes.create("Newer feature");
+      await store.tasks.add(changeId, "A recent task");
+
+      // Update the new task to give it a recent started_at
+      const tasks = await store.tasks.list(changeId);
+      await store.tasks.update(tasks[0].id, "in_progress");
+
+      const status = await store.status();
+      expect(status.changes.recent.length).toBe(2);
+      // The newer change should be first (most recent activity)
+      expect(status.changes.recent[0].id).toBe(changeId);
+    });
+
+    test("existing status fields unchanged (backwards compatible)", async () => {
+      const status = await store.status();
+
+      // Original fields still present
+      expect(status.specs.count).toBe(1);
+      expect(status.changes.active).toBe(1);
+      expect(status.changes.byStatus.active).toBe(1);
+      expect(status.changes.byStatus.draft).toBe(0);
+      expect(Array.isArray(status.recommendations)).toBe(true);
+    });
+  });
+});
+
+// =============================================================================
+// Recency Helper Unit Tests (pure functions, no store needed)
+// =============================================================================
+
+describe("classifyRecency", () => {
+  test("0 minutes is hot", () => {
+    expect(classifyRecency(0)).toBe("hot");
+  });
+
+  test("30 minutes is hot", () => {
+    expect(classifyRecency(30)).toBe("hot");
+  });
+
+  test("60 minutes is hot (boundary)", () => {
+    expect(classifyRecency(60)).toBe("hot");
+  });
+
+  test("61 minutes is warm", () => {
+    expect(classifyRecency(61)).toBe("warm");
+  });
+
+  test("120 minutes is warm", () => {
+    expect(classifyRecency(120)).toBe("warm");
+  });
+
+  test("179 minutes is warm", () => {
+    expect(classifyRecency(179)).toBe("warm");
+  });
+
+  test("180 minutes is stale (boundary)", () => {
+    expect(classifyRecency(180)).toBe("stale");
+  });
+
+  test("300 minutes is stale", () => {
+    expect(classifyRecency(300)).toBe("stale");
+  });
+
+  test("1440 minutes (24h) is stale", () => {
+    expect(classifyRecency(1440)).toBe("stale");
+  });
+});
+
+describe("computeLastActivity", () => {
+  const baseChange: Change = {
+    id: "test",
+    title: "Test",
+    status: "draft",
+    created_at: "2026-01-01T00:00:00Z",
+    tasks: [],
+    deltas: {},
+  };
+
+  test("returns created_at when no other timestamps exist", () => {
+    expect(computeLastActivity(baseChange)).toBe("2026-01-01T00:00:00Z");
+  });
+
+  test("picks latest task started_at", () => {
+    const change: Change = {
+      ...baseChange,
+      tasks: [
+        {
+          id: "tk-1",
+          title: "Task 1",
+          status: "in_progress",
+          priority: 0,
+          created_at: "2026-01-01T00:00:00Z",
+          started_at: "2026-03-01T10:00:00Z",
+          tdd_phase: "none",
+        },
+      ],
+    };
+    expect(computeLastActivity(change)).toBe("2026-03-01T10:00:00Z");
+  });
+
+  test("picks latest task completed_at over started_at", () => {
+    const change: Change = {
+      ...baseChange,
+      tasks: [
+        {
+          id: "tk-1",
+          title: "Task 1",
+          status: "done",
+          priority: 0,
+          created_at: "2026-01-01T00:00:00Z",
+          started_at: "2026-03-01T10:00:00Z",
+          completed_at: "2026-03-01T12:00:00Z",
+          tdd_phase: "none",
+        },
+      ],
+    };
+    expect(computeLastActivity(change)).toBe("2026-03-01T12:00:00Z");
+  });
+
+  test("picks gate completed_at when later than tasks", () => {
+    const change: Change = {
+      ...baseChange,
+      tasks: [
+        {
+          id: "tk-1",
+          title: "Task 1",
+          status: "done",
+          priority: 0,
+          created_at: "2026-01-01T00:00:00Z",
+          completed_at: "2026-03-01T12:00:00Z",
+          tdd_phase: "none",
+        },
+      ],
+      gates: {
+        research: {
+          status: "done",
+          completed_at: "2026-03-02T08:00:00Z",
+          completed_by: "agent",
+        },
+        prep: { status: "pending" },
+        implementation: { status: "pending" },
+        review: { status: "pending" },
+        harden: { status: "pending" },
+        signoff: { status: "pending" },
+      },
+    };
+    expect(computeLastActivity(change)).toBe("2026-03-02T08:00:00Z");
+  });
+
+  test("picks validation timestamp when latest", () => {
+    const change: Change = {
+      ...baseChange,
+      validation: {
+        checked_against_specs: [],
+        conflicts: [],
+        warnings: [],
+        validated_at: "2026-03-05T00:00:00Z",
+      },
+    };
+    expect(computeLastActivity(change)).toBe("2026-03-05T00:00:00Z");
+  });
+
+  test("picks wisdom timestamp when latest", () => {
+    const change: Change = {
+      ...baseChange,
+      wisdom: [
+        {
+          id: "ws-1",
+          type: "pattern",
+          content: "test",
+          recorded_at: "2026-03-04T15:00:00Z",
+        },
+      ],
+    };
+    expect(computeLastActivity(change)).toBe("2026-03-04T15:00:00Z");
+  });
+
+  test("picks cancellation approved_at when latest", () => {
+    const change: Change = {
+      ...baseChange,
+      tasks: [
+        {
+          id: "tk-1",
+          title: "Cancelled task",
+          status: "cancelled",
+          priority: 0,
+          created_at: "2026-01-01T00:00:00Z",
+          completed_at: "2026-03-01T12:00:00Z",
+          tdd_phase: "none",
+          cancellation: {
+            reason: "test",
+            approved_by_user: true,
+            approval_evidence: "test",
+            approved_at: "2026-03-03T09:00:00Z",
+          },
+        },
+      ],
+    };
+    expect(computeLastActivity(change)).toBe("2026-03-03T09:00:00Z");
+  });
+
+  test("handles multiple tasks and picks the latest across all", () => {
+    const change: Change = {
+      ...baseChange,
+      tasks: [
+        {
+          id: "tk-1",
+          title: "Old task",
+          status: "done",
+          priority: 0,
+          created_at: "2026-01-01T00:00:00Z",
+          completed_at: "2026-02-01T00:00:00Z",
+          tdd_phase: "none",
+        },
+        {
+          id: "tk-2",
+          title: "Recent task",
+          status: "in_progress",
+          priority: 1,
+          created_at: "2026-03-01T00:00:00Z",
+          started_at: "2026-03-04T18:00:00Z",
+          tdd_phase: "none",
+        },
+      ],
+    };
+    expect(computeLastActivity(change)).toBe("2026-03-04T18:00:00Z");
+  });
+});
+
+describe("buildChangeRecency", () => {
+  const baseChange: Change = {
+    id: "testChange",
+    title: "Test Change",
+    status: "active",
+    created_at: "2026-03-05T10:00:00Z",
+    tasks: [],
+    deltas: {},
+  };
+
+  test("builds correct recency record", () => {
+    const now = new Date("2026-03-05T10:30:00Z");
+    const rc = buildChangeRecency(baseChange, { total: 5, done: 2 }, now);
+
+    expect(rc.id).toBe("testChange");
+    expect(rc.title).toBe("Test Change");
+    expect(rc.status).toBe("active");
+    expect(rc.taskCount).toBe(5);
+    expect(rc.completedTasks).toBe(2);
+    expect(rc.lastActivityAt).toBe("2026-03-05T10:00:00Z");
+    expect(rc.minutesSinceActivity).toBe(30);
+    expect(rc.recency).toBe("hot");
+  });
+
+  test("classifies stale correctly", () => {
+    const now = new Date("2026-03-05T14:00:00Z"); // 4 hours later
+    const rc = buildChangeRecency(baseChange, { total: 3, done: 0 }, now);
+
+    expect(rc.minutesSinceActivity).toBe(240);
+    expect(rc.recency).toBe("stale");
+  });
+
+  test("classifies warm correctly", () => {
+    const now = new Date("2026-03-05T12:00:00Z"); // 2 hours later
+    const rc = buildChangeRecency(baseChange, { total: 3, done: 0 }, now);
+
+    expect(rc.minutesSinceActivity).toBe(120);
+    expect(rc.recency).toBe("warm");
   });
 });

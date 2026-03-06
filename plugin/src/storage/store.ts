@@ -25,6 +25,8 @@ import type {
   TaskReadyResponse,
   ProjectStatus,
   ChangeStatus,
+  ChangeRecency,
+  RecencyBand,
   TddPhase,
   TddPhaseEvidence,
   WisdomEntry,
@@ -187,6 +189,101 @@ export interface SearchResult {
   requirement: string;
   title: string;
   match: string;
+}
+
+// =============================================================================
+// Recency Helpers
+// =============================================================================
+
+/** Recency band thresholds in minutes */
+const RECENCY_HOT_THRESHOLD_MIN = 60;
+const RECENCY_STALE_THRESHOLD_MIN = 180;
+
+/**
+ * Classify minutes-since-activity into a recency band.
+ */
+export function classifyRecency(minutesSince: number): RecencyBand {
+  if (minutesSince <= RECENCY_HOT_THRESHOLD_MIN) return "hot";
+  if (minutesSince >= RECENCY_STALE_THRESHOLD_MIN) return "stale";
+  return "warm";
+}
+
+/**
+ * Compute the most recent activity timestamp for a change.
+ *
+ * Scans (in priority order):
+ * 1. Task timestamps: started_at, completed_at
+ * 2. Gate completion timestamps
+ * 3. Validation timestamp
+ * 4. Wisdom entry timestamps
+ * 5. Fallback: change.created_at
+ *
+ * Returns the latest ISO8601 timestamp found.
+ */
+export function computeLastActivity(change: Change): string {
+  let latest = change.created_at;
+
+  const consider = (ts: string | null | undefined) => {
+    if (ts && ts > latest) {
+      latest = ts;
+    }
+  };
+
+  // Task timestamps
+  for (const task of change.tasks) {
+    consider(task.created_at);
+    consider(task.started_at);
+    consider(task.completed_at);
+    if (task.cancellation?.approved_at) {
+      consider(task.cancellation.approved_at);
+    }
+  }
+
+  // Gate timestamps
+  if (change.gates) {
+    for (const gateId of GATE_ORDER) {
+      consider(change.gates[gateId]?.completed_at);
+    }
+  }
+
+  // Validation timestamp
+  consider(change.validation?.validated_at);
+
+  // Wisdom timestamps
+  if (change.wisdom) {
+    for (const entry of change.wisdom) {
+      consider(entry.recorded_at);
+    }
+  }
+
+  return latest;
+}
+
+/**
+ * Build a ChangeRecency record for a change at a given reference time.
+ */
+export function buildChangeRecency(
+  change: Change,
+  tasks: { total: number; done: number },
+  now: Date,
+): ChangeRecency {
+  const lastActivityAt = computeLastActivity(change);
+  const activityDate = new Date(lastActivityAt);
+  const minutesSinceActivity = Math.max(
+    0,
+    Math.floor((now.getTime() - activityDate.getTime()) / 60000),
+  );
+
+  return {
+    id: change.id,
+    title: change.title,
+    status: change.status,
+    completedTasks: tasks.done,
+    taskCount: tasks.total,
+    lastActivityAt,
+    minutesSinceActivity,
+    recency: classifyRecency(minutesSinceActivity),
+  };
 }
 
 // =============================================================================
@@ -1024,6 +1121,10 @@ export async function createStore(
 
       const recommendations: string[] = [];
 
+      // Build recency-sorted list of active (non-archived) changes
+      const now = new Date();
+      const recentChanges: ChangeRecency[] = [];
+
       // Doctor-lite integrity checks
       // 1) JSON/SQLite consistency for changes and tasks
       for (const change of changeRows) {
@@ -1044,7 +1145,28 @@ export async function createStore(
             `[doctor] JSON/SQLite inconsistency: task index mismatch for change \`${change.id}\` (sqlite_only=${sqliteOnly.length}, json_only=${jsonOnly.length})`,
           );
         }
+
+        // Compute recency for non-archived changes
+        if (change.status !== "archived") {
+          const tasks = jsonResult.data.tasks;
+          recentChanges.push(
+            buildChangeRecency(
+              jsonResult.data,
+              {
+                total: tasks.length,
+                done: tasks.filter((t) => t.status === "done").length,
+              },
+              now,
+            ),
+          );
+        }
       }
+
+      // Sort by most recent activity first; tie-break by id for determinism
+      recentChanges.sort((a, b) => {
+        const cmp = b.lastActivityAt.localeCompare(a.lastActivityAt);
+        return cmp !== 0 ? cmp : a.id.localeCompare(b.id);
+      });
 
       // 2) Broken task->change references in SQLite cache
       const danglingTaskRefs = sqlite.db
@@ -1092,6 +1214,7 @@ export async function createStore(
         changes: {
           active: changeRows.filter((c) => c.status !== "archived").length,
           byStatus,
+          recent: recentChanges,
         },
         recommendations,
       };

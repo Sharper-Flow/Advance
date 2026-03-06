@@ -37,14 +37,21 @@ Suggestions:
 <end>
 
 <if changes exist>
-Total: <count> changes
+Total: <count> changes (sorted by most recent activity)
 
-<for each change>
-- <change-id>: <title>
-  Status: <status>
-  Tasks: <completed>/<total> complete
+<for each change in changes.recent>
+- <recency-emoji> <change-id>: <title>
+  Status: <status> | Tasks: <completed>/<total> | Last activity: <relative-time>
+  <if recency == "hot">🔥 Active <minutes>m ago — likely in-flight<end>
+  <if recency == "warm">⏳ Last active <hours>h ago<end>
+  <if recency == "stale">⏰ Stale (<hours>h ago) — needs pickup<end>
   <if has blockers>Blocked by: <blocker><end>
 <end>
+
+Recency bands:
+  🔥 hot  = activity within last 60 minutes (likely another agent working)
+  ⏳ warm = 1-3 hours since last activity
+  ⏰ stale = 3+ hours since last activity (resume candidate)
 <end>
 
 ARCHIVED CHANGES

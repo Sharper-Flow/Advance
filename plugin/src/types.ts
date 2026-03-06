@@ -788,6 +788,44 @@ export interface ArchiveResult {
   archivePath: string;
 }
 
+// =============================================================================
+// Recency Bands (for /adv-status)
+// =============================================================================
+
+/**
+ * Recency classification for active changes.
+ * Used by /adv-status to surface which changes are likely in-flight
+ * vs abandoned/stale and need pickup.
+ *
+ * Thresholds:
+ * - "hot":  <= 60 minutes since last activity (likely another agent working)
+ * - "warm": > 60 minutes and < 180 minutes (recently active, may need attention)
+ * - "stale": >= 180 minutes since last activity (needs pickup / was abandoned)
+ */
+export type RecencyBand = "hot" | "warm" | "stale";
+
+/**
+ * Per-change recency summary included in ProjectStatus.
+ * Computed from the most recent timestamp across tasks, gates, and change metadata.
+ */
+export interface ChangeRecency {
+  /** Change ID */
+  id: string;
+  /** Change title */
+  title: string;
+  /** Change status */
+  status: ChangeStatus;
+  /** Tasks completed / total */
+  completedTasks: number;
+  taskCount: number;
+  /** ISO8601 timestamp of the most recent activity on this change */
+  lastActivityAt: string;
+  /** Minutes elapsed since lastActivityAt (at time of status generation) */
+  minutesSinceActivity: number;
+  /** Recency classification */
+  recency: RecencyBand;
+}
+
 export interface ProjectStatus {
   specs: {
     count: number;
@@ -796,6 +834,8 @@ export interface ProjectStatus {
   changes: {
     active: number;
     byStatus: Record<ChangeStatus, number>;
+    /** Active (non-archived) changes sorted by most recent activity first */
+    recent: ChangeRecency[];
   };
   recommendations: string[];
 }

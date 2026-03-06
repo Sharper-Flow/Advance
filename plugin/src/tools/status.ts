@@ -70,10 +70,11 @@ export const statusTools = {
         featureFlags = configResult.data.features as Record<string, boolean>;
       }
 
-      // Add manifest-driven gate recommendations for active changes
-      const changeList = await store.changes.list();
-      for (const change of changeList.changes) {
-        const gates = await store.gates.get(change.id);
+      // Add manifest-driven gate recommendations for active changes,
+      // ordered by recency (most recently active first)
+      const recentChanges = status.changes.recent ?? [];
+      for (const rc of recentChanges) {
+        const gates = await store.gates.get(rc.id);
         if (!gates) continue;
 
         // Find first incomplete gate
@@ -82,10 +83,26 @@ export const statusTools = {
         );
 
         if (nextGate) {
-          const rec = getRecommendationForGate(nextGate as GateId, change.id);
+          const rec = getRecommendationForGate(nextGate as GateId, rc.id);
           if (rec) {
             status.recommendations.push(rec);
           }
+        }
+      }
+
+      // Add recency-aware recommendations for stale and hot changes
+      for (const rc of recentChanges) {
+        if (rc.recency === "stale") {
+          const hours = Math.floor(rc.minutesSinceActivity / 60);
+          const label =
+            hours >= 24 ? `${Math.floor(hours / 24)}d ago` : `${hours}h ago`;
+          status.recommendations.push(
+            `⏰ Stale change \`${rc.id}\` (last activity ${label}, ${rc.completedTasks}/${rc.taskCount} tasks done) — resume with \`/adv-apply ${rc.id}\``,
+          );
+        } else if (rc.recency === "hot") {
+          status.recommendations.push(
+            `🔥 Change \`${rc.id}\` is hot (active ${rc.minutesSinceActivity}m ago) — likely in-flight by another agent`,
+          );
         }
       }
 

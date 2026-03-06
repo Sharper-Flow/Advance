@@ -232,5 +232,38 @@ describe("Status Tools", () => {
       );
       expect(doctorWarnings.length).toBeGreaterThan(0);
     });
+
+    test("includes changes.recent in output", async () => {
+      const result = await statusTools.adv_status.execute({}, store);
+      const parsed = parseToolOutput(result);
+
+      expect(parsed.changes.recent).toBeDefined();
+      expect(Array.isArray(parsed.changes.recent)).toBe(true);
+      expect(parsed.changes.recent.length).toBe(1);
+      expect(parsed.changes.recent[0].id).toBe("addFeature");
+    });
+
+    test("recent entries have recency classification", async () => {
+      const result = await statusTools.adv_status.execute({}, store);
+      const parsed = parseToolOutput(result);
+
+      const rc = parsed.changes.recent[0];
+      expect(rc.lastActivityAt).toBeDefined();
+      expect(typeof rc.minutesSinceActivity).toBe("number");
+      expect(["hot", "warm", "stale"]).toContain(rc.recency);
+    });
+
+    test("stale changes get resume recommendation", async () => {
+      // The test fixture has created_at from 2026-01-21 — well in the past,
+      // so it should be classified as stale and get a recommendation
+      const result = await statusTools.adv_status.execute({}, store);
+      const parsed = parseToolOutput(result);
+
+      const staleRecs = parsed.recommendations.filter((r: string) =>
+        r.includes("Stale change"),
+      );
+      expect(staleRecs.length).toBeGreaterThan(0);
+      expect(staleRecs[0]).toContain("addFeature");
+    });
   });
 });
