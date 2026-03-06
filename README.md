@@ -49,7 +49,48 @@ Advance exists to make those failure modes harder.
 /adv-archive   -> apply deltas and finalize the change
 ```
 
-Supporting commands such as `/adv-status`, `/adv-prep`, `/adv-research`, `/adv-refactor`, `/adv-task`, and `/adv-audit` round out the workflow.
+## Commands
+
+### Core Workflow
+
+| Command | Purpose |
+|---------|---------|
+| `/adv-status` | Show project overview: specs, active changes, and next-step recommendations |
+| `/adv-proposal <summary>` | Propose a new change with intent, scope, and success criteria |
+| `/adv-validate <change-id>` | Validate change compliance against specs; block archive on failure |
+| `/adv-apply <change-id>` | Implement change with TDD, retry on failure, and final verification |
+| `/adv-archive <change-id>` | Archive completed change: apply spec deltas and finalize git |
+
+### Pre-Implementation
+
+| Command | Purpose |
+|---------|---------|
+| `/adv-clarify` | Ask clarifying questions to resolve ambiguous requirements |
+| `/adv-prep <change-id>` | Analyze gaps and add missing scenarios, tasks, and dependencies |
+| `/adv-research <target>` | Validate architectural decisions via docs and web search; complete research gate |
+
+### Implementation
+
+| Command | Purpose |
+|---------|---------|
+| `/adv-task` | Fast-track a discussed change: synthesize contract, validate best practices, prep, and hand off |
+
+### Post-Implementation
+
+| Command | Purpose |
+|---------|---------|
+| `/adv-review <change-id>` | Review code for correctness, security, and architecture; emit REVIEW_FINDINGS |
+| `/adv-harden <change-id>` | Detect low-quality code, verify test coverage, clean up; block archive on open findings |
+| `/adv-audit [capability]` | Detect drift between specs and current implementation |
+| `/adv-slop-scan [path]` | Scan for AI slop patterns including defensive and nested code |
+
+### Advanced
+
+| Command | Purpose |
+|---------|---------|
+| `/adv-refactor <change-id>` | Refresh a stale proposal to reflect current codebase state |
+| `/adv-coordinate` | Detect and resolve conflicts across multiple active changes |
+| `/adv-improve` | Suggest targeted improvements to existing specs or implementation |
 
 ## Key capabilities
 
