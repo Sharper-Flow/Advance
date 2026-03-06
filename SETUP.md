@@ -474,15 +474,21 @@ pnpm build
 | Command | Purpose |
 |---------|---------|
 | `/adv-status` | Project overview |
-| `/adv-clarify` | Socratic requirements discovery |
 | `/adv-proposal <summary>` | Create change proposal |
-| `/adv-prep <id>` | Gap analysis |
 | `/adv-validate <id>` | Validate change |
 | `/adv-apply <id>` | Implement with TDD |
+| `/adv-archive <id>` | Archive completed change |
+| `/adv-clarify` | Clarify ambiguous requirements |
+| `/adv-research <target>` | Validate architectural decisions |
+| `/adv-prep <id>` | Gap analysis and task shaping |
+| `/adv-task` | Fast-track a discussed change |
 | `/adv-review <id>` | Code review |
 | `/adv-harden <id>` | Quality hardening |
-| `/adv-archive <id>` | Archive completed change |
-| `/adv-audit` | Spec/implementation drift check |
+| `/adv-audit [capability]` | Spec/implementation drift check |
+| `/adv-slop-scan [path]` | Scan for AI slop patterns |
+| `/adv-refactor <id>` | Refresh a stale proposal |
+| `/adv-coordinate` | Detect cross-change conflicts |
+| `/adv-improve` | Suggest spec or implementation improvements |
 
 ### Available Tools
 
