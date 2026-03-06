@@ -475,45 +475,56 @@ Skip to completion.
 
 ### If CHANGES_REQUESTED or BLOCKED
 
-Use the `question` tool:
-```json
-{
-  "questions": [{
-    "header": "Fix Issues",
-    "question": "Found {count} issues. How to proceed?",
-    "options": [
-      { "label": "Fix blockers+issues (Recommended)", "description": "Address all blocking items" },
-      { "label": "Fix blockers only", "description": "Minimum to unblock" },
-      { "label": "Show report only", "description": "Review findings, fix manually" },
-      { "label": "Accept current state", "description": "Proceed without fixes" },
-      { "label": "Other", "description": "Use custom text area for a different review outcome" }
-    ]
-  }]
-}
-```
+Auto-remediation is mandatory. Do not prompt for fix scope. The review agent must spawn remediation sub-agents and resolve all actionable findings before finalizing verdict.
 
-### If Fixing
-
-Establish fix contract:
+Establish remediation contract:
 ```
 ============================================================
                     CONTRACT ACTIVE
 ============================================================
 
-OBJECTIVE: Fix code review issues in {change-id}
+OBJECTIVE: Fully remediate review findings in {change-id}
 
 SUCCESS CRITERIA:
-{for each blocker/issue to fix}
+{for each blocker/issue}
 - [ ] (F{n}) {label}: {what} - {file}:{line}
 {end}
-- [ ] All fixes verified
+{for each suggestion/question}
+- [ ] (I{n}) Investigate: {what} - {file}:{line}
+      Decision: {validated|rejected_with_evidence}
+      If validated: implemented and verified
+{end}
+- [ ] Cleanup completed (debug/temp/dead code removed)
+- [ ] All implemented fixes verified
 
 ============================================================
 ```
 
-Spawn fix sub-agents with `subagent_type: "general"` for each issue.
+Spawn remediation sub-agents with `subagent_type: "general"` for each finding cluster (group by file/domain).
 
-After fixes, verify and update status.
+Required remediation workflow:
+
+1. **Fix all blockers/issues**
+   - Implement fixes for every `blocker:` and `issue:` finding.
+   - No partial fix mode.
+
+2. **Investigate all suggestions/questions**
+   - For each `suggestion:` or `question:`, perform targeted validation against specs, tests, and local code context.
+   - If validated, implement the suggestion.
+   - If rejected, record explicit evidence in final report (`why_not_implemented`) and keep as unresolved recommendation only when evidence is concrete.
+
+3. **Cleanup pass (mandatory)**
+   - Run a cleanup-focused sub-agent pass after code fixes.
+   - Remove temporary artifacts, debug code, obvious dead code/imports, and stale comments introduced or exposed by remediation.
+
+4. **Verification pass**
+   - Re-run relevant tests/checks for touched areas.
+   - Re-evaluate affected review dimensions and update finding status (`fixed`, `unresolved`, `accepted_debt`).
+
+5. **Verdict recomputation**
+   - Recompute verdict after remediation.
+   - `APPROVED` is allowed only when no unresolved `blocker:` or `issue:` remain.
+   - Validated suggestions must be implemented before finalization.
 
 ---
 

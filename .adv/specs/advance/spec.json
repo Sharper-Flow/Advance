@@ -3,8 +3,8 @@
   "name": "advance",
   "title": "Advance",
   "purpose": "Capability: Advance",
-  "version": "1.2.0",
-  "updated_at": "2026-02-26T17:11:00.000Z",
+  "version": "1.2.1",
+  "updated_at": "2026-03-05T00:00:00.000Z",
   "requirements": [
     {
       "id": "rq-W1sD0mR1",
@@ -47,7 +47,7 @@
     {
       "id": "rq-R3v13wR1",
       "title": "Adversarial Review Enforcement",
-      "body": "/adv-review and /adv-harden must enforce a minimum findings threshold to prevent shallow 'LGTM' behavior.",
+      "body": "/adv-review and /adv-harden must enforce a minimum findings threshold to prevent shallow 'LGTM' behavior. /adv-review must run mandatory remediation that fixes all blocker/issue findings, investigates all suggestions/questions, implements validated suggestions, and runs cleanup before final verdict.",
       "priority": "must",
       "scenarios": [
         {
@@ -59,6 +59,20 @@
           "when": "Gate completion is attempted",
           "then": [
             "The gate remains open and requires explicit justification for the clean result"
+          ]
+        },
+        {
+          "id": "rq-R3v13wR1.2",
+          "title": "Review remediation is mandatory",
+          "given": [
+            "A review produces blocker, issue, suggestion, or question findings"
+          ],
+          "when": "/adv-review enters remediation",
+          "then": [
+            "All blocker and issue findings are fixed and verified",
+            "Each suggestion/question is investigated and marked validated or rejected with evidence",
+            "Validated suggestions are implemented",
+            "A cleanup pass runs before final verdict is emitted"
           ]
         }
       ]

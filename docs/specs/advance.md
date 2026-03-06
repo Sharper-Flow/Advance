@@ -1,7 +1,7 @@
 # Advance
 
-> **Version:** 1.2.0
-> **Updated:** 2026-02-26
+> **Version:** 1.2.1
+> **Updated:** 2026-03-05
 
 ## Purpose
 
@@ -53,7 +53,7 @@ Command recommendations in adv-status must be derived from a type-safe workflow 
 
 **ID:** `rq-R3v13wR1` | **Priority:** **[MUST]**
 
-/adv-review and /adv-harden must enforce a minimum findings threshold to prevent shallow 'LGTM' behavior.
+/adv-review and /adv-harden must enforce a minimum findings threshold to prevent shallow 'LGTM' behavior. /adv-review must run mandatory remediation that fixes all blocker/issue findings, investigates all suggestions/questions, implements validated suggestions, and runs cleanup before final verdict.
 
 #### Scenarios
 
@@ -66,6 +66,19 @@ Command recommendations in adv-status must be derived from a type-safe workflow 
 
 **Then:**
 - The gate remains open and requires explicit justification for the clean result
+
+**Review remediation is mandatory** (`rq-R3v13wR1.2`)
+
+**Given:**
+- A review produces blocker, issue, suggestion, or question findings
+
+**When:** /adv-review enters remediation
+
+**Then:**
+- All blocker and issue findings are fixed and verified
+- Each suggestion/question is investigated and marked validated or rejected with evidence
+- Validated suggestions are implemented
+- A cleanup pass runs before final verdict is emitted
 
 ---
 

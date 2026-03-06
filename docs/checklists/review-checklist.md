@@ -90,6 +90,18 @@ Why this is genuinely clean:
 | **CHANGES_REQUESTED** | Any `issue:` findings (no blockers) |
 | **APPROVED** | Only `suggestion:` / `nit:` / `praise:` / none |
 
+### Mandatory Remediation Before Final Verdict
+
+If any actionable findings exist (`blocker:`, `issue:`, `suggestion:`, `question:`), `/adv-review` must run remediation before finalizing:
+
+- [ ] **All blockers/issues fixed** — every blocking finding is implemented and verified
+- [ ] **All suggestions/questions investigated** — each has `validated` or `rejected_with_evidence` outcome
+- [ ] **Validated suggestions implemented** — no validated suggestion left unapplied
+- [ ] **Cleanup completed** — temp/debug/dead-code artifacts removed from remediation scope
+- [ ] **Verdict recomputed after fixes** — final verdict reflects post-remediation state, not initial scan
+
+`nit:` findings remain optional and do not block approval.
+
 ### Approval Threshold
 
 Approve when the change "definitely improves overall code health," even if imperfect.
