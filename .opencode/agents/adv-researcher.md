@@ -9,6 +9,19 @@ tools:
   read: true
   glob: true
   grep: true
+  lgrep_search_semantic: true
+  lgrep_index_semantic: true
+  lgrep_search_symbols: true
+  lgrep_index_folder: true
+  lgrep_index_repo: true
+  lgrep_get_symbol: true
+  lgrep_get_symbols: true
+  lgrep_get_file_tree: true
+  lgrep_get_file_outline: true
+  lgrep_get_repo_outline: true
+  lgrep_search_text: true
+  lgrep_list_repos: true
+  lgrep_invalidate_cache: true
   # Research tools - documentation & web
   context7_*: true
   kagi_*: true
@@ -59,8 +72,9 @@ Validate architectural decisions against canonical best practices. You have a **
 3. **Code Examples**: Use grep.app to find real-world implementation patterns
 4. **Web Research**: Use Kagi for broader context, blog posts, discussions
 5. **Academic Papers**: Use arxiv for cutting-edge research when relevant
-6. **Compare Against Reference**: Always find the *by-the-book* canonical architecture for the tech stack
-7. **Identify Simpler Alternatives**: Ask "could this be simpler?" for every decision
+6. **Local Code Discovery**: Use `lgrep_search_semantic` for concept discovery and `lgrep_search_symbols` for named code paths before falling back to `grep`/`read`
+7. **Compare Against Reference**: Always find the *by-the-book* canonical architecture for the tech stack
+8. **Identify Simpler Alternatives**: Ask "could this be simpler?" for every decision
 
 ## Constraints
 
