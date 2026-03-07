@@ -57,12 +57,12 @@ These findings should be surfaced in prep output and converted into explicit fol
 ### Fetch Related Specs
 
 ```
-adv_spec_list
+adv_spec action: "list"
 ```
 
 For each capability affected by the change:
 ```
-adv_spec_show capability: <name>
+adv_spec action: "show" capability: <name>
 ```
 
 ---
@@ -515,8 +515,8 @@ Prep Gate: MARKED COMPLETE
 | List tasks | `adv_task_list` |
 | Add task | `adv_task_add` |
 | Cancel tasks (requires user approval) | `adv_task_cancel` |
-| List specs | `adv_spec_list` |
-| Show spec | `adv_spec_show` |
-| Search specs | `adv_spec_search` |
+| List specs | `adv_spec action: "list"` |
+| Show spec | `adv_spec action: "show" capability: <name>` |
+| Search specs | `adv_spec action: "search" query: <term>` |
 | Validate | `adv_change_validate` |
 | Prep gate readiness | `adv_gate_complete gateId: prep` |

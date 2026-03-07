@@ -240,7 +240,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Project configuration management (project.json)
 
 #### Tools (13 total)
-- **Spec Tools**: `adv_spec_list`, `adv_spec_show`, `adv_spec_search`
+- **Spec Tools**: `adv_spec` (actions: list, show, search)
 - **Change Tools**: `adv_change_list`, `adv_change_show`, `adv_change_create`, `adv_change_validate`, `adv_change_archive`
 - **Task Tools**: `adv_task_list`, `adv_task_ready`, `adv_task_update`, `adv_task_add`
 - **Status Tool**: `adv_status`

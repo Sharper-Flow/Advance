@@ -35,16 +35,16 @@ Advance is a spec-driven development plugin where **specs become laws**. Require
 ### Spec Tools
 ```typescript
 // List all specs
-adv_spec_list({})
+adv_spec({ action: "list" })
 
 // Filter by tag
-adv_spec_list({ tag: "security" })
+adv_spec({ action: "list", tag: "security" })
 
 // Get full spec
-adv_spec_show({ capability: "contract-system" })
+adv_spec({ action: "show", capability: "contract-system" })
 
 // Search across specs
-adv_spec_search({ query: "authentication" })
+adv_spec({ action: "search", query: "authentication" })
 ```
 
 ### Change Tools

@@ -89,7 +89,7 @@ Use the `question` tool to gather initial requirements:
 
 ### Step 6: Identify Affected Specs
 
-Use `adv_spec_list` to show existing specs.
+Use `adv_spec action: "list"` to show existing specs.
 
 Use the `question` tool:
 ```json
@@ -369,5 +369,5 @@ Result: Change <change-id> created
 |---------|------|
 | Create change | `adv_change_create summary: "..."` |
 | List changes | `adv_change_list` |
-| List specs | `adv_spec_list` |
+| List specs | `adv_spec action: "list"` |
 | Add task | `adv_task_add changeId: <id> content: "..."` |

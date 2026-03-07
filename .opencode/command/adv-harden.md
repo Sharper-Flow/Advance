@@ -766,4 +766,4 @@ Result: {READY | N fixed | Report only}
 |---------|------|
 | Load change | `adv_change_show` |
 | List tasks | `adv_task_list` |
-| Show spec | `adv_spec_show` |
+| Show spec | `adv_spec action: "show" capability: <name>` |

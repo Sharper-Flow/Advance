@@ -123,23 +123,23 @@ describe("Advance Plugin SDK Integration", () => {
     const hooks = await AdvancePlugin(mockInput);
     const toolNames = Object.keys(hooks.tool!);
     expect(toolNames).toHaveLength(28);
-    expect(toolNames).toContain("adv_spec_list");
+    expect(toolNames).toContain("adv_spec");
     expect(toolNames).toContain("adv_agenda_compact");
   });
 
   // Test 5: Tool has correct structure
   test("tools have description, args, execute", async () => {
     const hooks = await AdvancePlugin(mockInput);
-    const specList = hooks.tool!.adv_spec_list;
-    expect(specList).toHaveProperty("description");
-    expect(specList).toHaveProperty("args");
-    expect(specList).toHaveProperty("execute");
+    const spec = hooks.tool!.adv_spec;
+    expect(spec).toHaveProperty("description");
+    expect(spec).toHaveProperty("args");
+    expect(spec).toHaveProperty("execute");
   });
 
   // Test 6: Tool execution works
-  test("adv_spec_list executes and returns JSON", async () => {
+  test("adv_spec executes and returns JSON", async () => {
     const hooks = await AdvancePlugin(mockInput);
-    const result = await hooks.tool!.adv_spec_list.execute({}, mockContext);
+    const result = await hooks.tool!.adv_spec.execute({ action: "list" }, mockContext);
     expect(typeof result).toBe("string");
     const parsed = JSON.parse(result);
     expect(parsed).toHaveProperty("specs");
@@ -204,13 +204,15 @@ export const AdvancePlugin: Plugin = async ({ directory }) => {
   return {
     // MCP Tools
     tool: {
-      adv_spec_list: tool({
-        description: specTools.adv_spec_list.description,
+      adv_spec: tool({
+        description: specTools.adv_spec.description,
         args: {
+          action: tool.schema.enum(["list", "show", "search"]).describe("Action to perform"),
           capability: tool.schema.string().optional().describe("Filter by capability"),
           tag: tool.schema.string().optional().describe("Filter by tag"),
+          query: tool.schema.string().optional().describe("Search query"),
         },
-        execute: async (args) => specTools.adv_spec_list.execute(args, store),
+        execute: async (args) => specTools.adv_spec.execute(args, store),
       }),
       // ... all 28 tools
     },
@@ -230,9 +232,7 @@ export default AdvancePlugin;
 
 | Tool | Args | Special Handling |
 |------|------|------------------|
-| adv_spec_list | capability?: string, tag?: string | None |
-| adv_spec_show | capability: string | None |
-| adv_spec_search | query: string, limit?: number | number type |
+| adv_spec | action: "list"\|"show"\|"search", capability?: string, tag?: string, query?: string | Action discriminator |
 | adv_change_list | status?: string, includeArchived?: boolean | boolean type |
 | adv_change_show | changeId: string | None |
 | adv_change_create | summary: string, capability?: string | None |

@@ -78,7 +78,7 @@ RECOMMENDATIONS
 <end>
 
 <if specs exist but no changes>
-1. Review existing specs: adv_spec_list
+1. Review existing specs: adv_spec action: "list"
 2. Create a change when ready: /adv-proposal "summary"
 <end>
 

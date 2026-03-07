@@ -229,7 +229,7 @@ The tool handles:
 
 For each affected capability:
 ```
-adv_spec_show capability: <name>
+adv_spec action: "show" capability: <name>
 ```
 
 Verify new requirements present.

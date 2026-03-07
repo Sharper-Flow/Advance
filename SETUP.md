@@ -495,9 +495,9 @@ pnpm build
 | Tool | Purpose |
 |------|---------|
 | `adv_status` | Get project overview |
-| `adv_spec_list` | List all specs |
-| `adv_spec_show` | Get spec details |
-| `adv_spec_search` | Search requirements |
+| `adv_spec action: "list"` | List all specs |
+| `adv_spec action: "show"` | Get spec details |
+| `adv_spec action: "search"` | Search requirements |
 | `adv_change_list` | List changes |
 | `adv_change_show` | Get change details |
 | `adv_change_create` | Create change |

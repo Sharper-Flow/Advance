@@ -76,7 +76,7 @@ Every scenario MUST be translatable to a test:
 - [ ] **Explicit exclusions** — What is OUT of scope is documented
 - [ ] **Affected files identified** — Codebase search performed for key terms
 - [ ] **No scope creep** — Tasks align with stated requirements (no extras)
-- [ ] **Cross-spec conflicts resolved** — `adv_spec_search` run, no contradictions
+- [ ] **Cross-spec conflicts resolved** — `adv_spec action: "search"` run, no contradictions
 
 ---
 
@@ -122,7 +122,7 @@ Analysis is complete when ALL of the following are true:
 - [ ] All requirements checked against INVEST criteria
 - [ ] Codebase searched for 3+ key terms from the change
 - [ ] 2+ libraries researched via Context7 (if applicable)
-- [ ] All deployed specs scanned for conflicts via `adv_spec_search`
+- [ ] All deployed specs scanned for conflicts via `adv_spec action: "search"`
 - [ ] Cross-cutting concerns checklist completed
 - [ ] Task sequencing validated (no inversions, no unnecessary splits)
 - [ ] `adv_change_validate` passes in strict mode

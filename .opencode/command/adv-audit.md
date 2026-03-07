@@ -30,7 +30,7 @@ Parse `$ARGUMENTS` for:
 ### Verify Specs Exist
 
 ```
-adv_spec_list
+adv_spec action: "list"
 ```
 
 **If no specs found:**
@@ -95,7 +95,7 @@ You are a SPECIFICATION PARSER for ADV audit.
 SCOPE: {scope}
 
 TASK:
-1. For each capability, call adv_spec_show to get requirements
+1. For each capability, call adv_spec action: "show" to get requirements
 2. Extract all requirements with:
    - ID, title, normative language (MUST/SHOULD/MAY)
    - Scenarios with Given/When/Then
@@ -407,7 +407,7 @@ Quality Gate: {PASS | FAIL}
 
 | Purpose | Tool |
 |---------|------|
-| List specs | `adv_spec_list` |
-| Show spec | `adv_spec_show` |
-| Search specs | `adv_spec_search` |
+| List specs | `adv_spec action: "list"` |
+| Show spec | `adv_spec action: "show" capability: <name>` |
+| Search specs | `adv_spec action: "search" query: <term>` |
 | List changes | `adv_change_list` |

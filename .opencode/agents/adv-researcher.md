@@ -34,9 +34,7 @@ tools:
   # Research tools - academic papers
   arxiv-mcp_*: true
   # ADV tools - read-only spec/change queries
-  adv_spec_list: true
-  adv_spec_show: true
-  adv_spec_search: true
+  adv_spec: true
   adv_change_list: true
   adv_change_show: true
   adv_project_context: true

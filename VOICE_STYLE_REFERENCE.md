@@ -238,5 +238,5 @@ Examples:
 - `adv_change_show`, `adv_change_list`, `adv_change_update`
 - `adv_task_show`, `adv_task_create`, `adv_task_cancel`
 - `adv_gate_status`, `adv_gate_complete`
-- `adv_spec_show`, `adv_spec_list`
+- `adv_spec` (with action: "list", "show", or "search")
 

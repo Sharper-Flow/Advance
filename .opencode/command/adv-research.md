@@ -17,11 +17,11 @@ Spawn sub-agents to validate architectural decisions using Context7 and web sear
 Determine target (spec OR change):
 
 1. **If $ARGUMENTS provided**:
-   - Matches spec capability? Use `adv_spec_show`
+   - Matches spec capability? Use `adv_spec action: "show"`
    - Matches change-id? Use `adv_change_show`
    - Ambiguous? Ask for clarification
 2. **If empty**: 
-   - Call `adv_change_list` and `adv_spec_list` in parallel
+   - Call `adv_change_list` and `adv_spec action: "list"` in parallel
    - Present selection via the `question` tool
 
 ---
@@ -62,7 +62,7 @@ This provides the complete tech stack including:
 
 For specs:
 ```
-adv_spec_show capability: <name>
+adv_spec action: "show" capability: <name>
 ```
 
 For changes:
@@ -572,7 +572,7 @@ Research Gate: MARKED COMPLETE
 
 | Purpose | Tool |
 |---------|------|
-| Load spec | `adv_spec_show` |
+| Load spec | `adv_spec action: "show" capability: <name>` |
 | Load change | `adv_change_show` |
 | Create change | `adv_change_create` |
 | Add task | `adv_task_add` |
