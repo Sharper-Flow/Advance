@@ -8,12 +8,14 @@
 import { z } from "zod";
 import type { Store } from "../storage/store";
 import {
-  getTddComplianceStatus,
-  isLogicTask,
   isTrivialTask,
   truncateOutput,
   type Cancellation,
 } from "../types";
+import {
+  getTaskTddCompliance,
+  requiresTddEvidence,
+} from "../validator/task-classifier";
 import { formatToolOutput, paginate } from "../utils/tool-output";
 
 // =============================================================================
@@ -140,6 +142,10 @@ export const taskTools = {
     args: {
       changeId: z.string().describe("Change ID"),
       content: z.string().describe("Task description"),
+      metadata: z
+        .record(z.string(), z.string())
+        .optional()
+        .describe("Optional task metadata (e.g., { tdd_intent: 'inline' })"),
       blockedBy: z
         .array(z.string())
         .optional()
@@ -150,21 +156,24 @@ export const taskTools = {
         .describe("Section header (e.g., 'Testing')"),
     },
     execute: async (
-      {
-        changeId,
-        content,
-        blockedBy,
-        section,
-      }: {
-        changeId: string;
-        content: string;
-        blockedBy?: string[];
-        section?: string;
-      },
-      store: Store,
+        {
+          changeId,
+          content,
+          metadata,
+          blockedBy,
+          section,
+        }: {
+          changeId: string;
+          content: string;
+          metadata?: Record<string, string>;
+          blockedBy?: string[];
+          section?: string;
+        },
+        store: Store,
     ) => {
       try {
         const task = await store.tasks.add(changeId, content, {
+          metadata,
           blockedBy,
           section,
         });
@@ -232,7 +241,7 @@ export const taskTools = {
       return formatToolOutput({
         success: true,
         task,
-        compliance: getTddComplianceStatus(task),
+        compliance: getTaskTddCompliance(task),
         message: `Recorded ${phase} phase evidence for task ${taskId}`,
       });
     },
@@ -293,7 +302,7 @@ export const taskTools = {
       return formatToolOutput({
         success: true,
         task,
-        compliance: getTddComplianceStatus(task),
+        compliance: getTaskTddCompliance(task),
         message: `TDD skipped for task ${taskId}: ${reason}`,
       });
     },
@@ -301,7 +310,7 @@ export const taskTools = {
 
   adv_task_tdd_status: {
     description:
-      "Get TDD compliance status for a task (analyzes task title to determine if TDD is required)",
+      "Get TDD compliance status for a task (uses metadata.tdd_intent first, then title heuristics)",
     args: {
       taskId: z.string().describe("Task ID"),
     },
@@ -311,8 +320,8 @@ export const taskTools = {
         return formatToolOutput({ error: `Task not found: ${taskId}` });
       }
 
-      const compliance = getTddComplianceStatus(task);
-      const requiresTdd = isLogicTask(task.title);
+      const compliance = getTaskTddCompliance(task);
+      const requiresTdd = requiresTddEvidence(task);
       const trivial = isTrivialTask(task.title);
 
       return formatToolOutput({

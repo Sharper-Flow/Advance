@@ -439,6 +439,93 @@ describe("checkTaskGraphIntegrity", () => {
       ),
     ).toBe(false);
   });
+
+  // --- Metadata-based TDD inversion detection (rq-TDD005inv) ---
+
+  test("separate_verification task blocked by impl task is NOT an inversion (rq-TDD005inv.2)", () => {
+    const change = makeChange({
+      tasks: [
+        makeTask({ id: "tk-impl6001", title: "Implement auth module" }),
+        makeTask({
+          id: "tk-e2e06001",
+          title: "Run E2E tests across services",
+          metadata: { tdd_intent: "separate_verification" },
+          deps: [{ type: "blocked_by", target: "tk-impl6001" }],
+        }),
+      ],
+    });
+    const issues = checkTaskGraphIntegrity(change);
+    expect(issues.some((i) => i.code === "TASK_TDD_INVERSION")).toBe(false);
+  });
+
+  test("inline metadata prevents false positive for test-like title (rq-TDD005inv.3)", () => {
+    const change = makeChange({
+      tasks: [
+        makeTask({ id: "tk-impl7001", title: "Create API endpoint" }),
+        makeTask({
+          id: "tk-cls07001",
+          title: "Create task classifier with test-first approach",
+          metadata: { tdd_intent: "inline" },
+          deps: [{ type: "blocked_by", target: "tk-impl7001" }],
+        }),
+      ],
+    });
+    const issues = checkTaskGraphIntegrity(change);
+    // "test-first approach" in title would trigger isTestTask, but metadata says inline
+    expect(issues.some((i) => i.code === "TASK_TDD_INVERSION")).toBe(false);
+  });
+
+  test("not_applicable metadata prevents false positive for test-like title", () => {
+    const change = makeChange({
+      tasks: [
+        makeTask({ id: "tk-impl8001", title: "Implement feature" }),
+        makeTask({
+          id: "tk-doc08001",
+          title: "Update test documentation and spec scenarios",
+          metadata: { tdd_intent: "not_applicable" },
+          deps: [{ type: "blocked_by", target: "tk-impl8001" }],
+        }),
+      ],
+    });
+    const issues = checkTaskGraphIntegrity(change);
+    expect(issues.some((i) => i.code === "TASK_TDD_INVERSION")).toBe(false);
+  });
+
+  test("test task without metadata blocked by impl task is still flagged (legacy fallback)", () => {
+    // Legacy behavior preserved: no metadata → title heuristics → inversion detected
+    const change = makeChange({
+      tasks: [
+        makeTask({ id: "tk-impl9101", title: "Implement feature Y" }),
+        makeTask({
+          id: "tk-test9101",
+          title: "Write tests for feature Y",
+          deps: [{ type: "blocked_by", target: "tk-impl9101" }],
+        }),
+      ],
+    });
+    const issues = checkTaskGraphIntegrity(change);
+    expect(issues.some((i) => i.code === "TASK_TDD_INVERSION")).toBe(true);
+  });
+
+  test("remediation suggests merge, not dependency reversal (rq-TDD006rem)", () => {
+    const change = makeChange({
+      tasks: [
+        makeTask({ id: "tk-impl9201", title: "Implement feature Z" }),
+        makeTask({
+          id: "tk-test9201",
+          title: "Write tests for feature Z",
+          deps: [{ type: "blocked_by", target: "tk-impl9201" }],
+        }),
+      ],
+    });
+    const issues = checkTaskGraphIntegrity(change);
+    const inversion = issues.find((i) => i.code === "TASK_TDD_INVERSION");
+    expect(inversion).toBeDefined();
+    // Should suggest merge, not "reverse the dependency"
+    const remediation = (inversion?.details?.remediation as string) ?? "";
+    expect(remediation.toLowerCase()).toContain("merge");
+    expect(remediation).not.toContain("Reverse the dependency");
+  });
 });
 
 // =============================================================================

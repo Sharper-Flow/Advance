@@ -639,4 +639,147 @@ describe("adv_gate_complete prep — readiness enforcement", () => {
     // Either success or a gate-already-done message — no readinessFailures
     expect(parsed.readinessFailures).toBeUndefined();
   });
+
+  // --- metadata.tdd_intent integration tests (rq-TDD005inv) ---
+
+  test("prep gate passes when separate_verification task is blocked by impl task (not an inversion)", async () => {
+    await createChangeFile("separateVerification", {
+      $schema: "https://advance.dev/schemas/change.v1.json",
+      id: "separateVerification",
+      title: "Separate Verification Change",
+      status: "draft",
+      created_at: "2026-01-01T00:00:00Z",
+      tasks: [
+        {
+          id: "tk-impl0010",
+          title: "Implement auth module",
+          status: "pending",
+          priority: 0,
+          created_at: "2026-01-01T00:00:00Z",
+          tdd_phase: "none",
+          deps: [],
+        },
+        {
+          id: "tk-e2e00010",
+          title: "Run E2E tests across services",
+          status: "pending",
+          priority: 1,
+          created_at: "2026-01-01T00:00:00Z",
+          tdd_phase: "none",
+          metadata: { tdd_intent: "separate_verification" },
+          deps: [{ type: "blocked_by", target: "tk-impl0010" }],
+        },
+      ],
+      deltas: {},
+    });
+
+    await gateTools.adv_gate_complete.execute(
+      { changeId: "separateVerification", gateId: "research" },
+      store,
+    );
+
+    const result = await gateTools.adv_gate_complete.execute(
+      { changeId: "separateVerification", gateId: "prep" },
+      store,
+    );
+    const parsed = extractJson(result) as Record<string, unknown>;
+
+    // Should pass — separate_verification is exempt from inversion detection
+    expect(parsed.success).toBe(true);
+  });
+
+  test("prep gate passes when inline metadata prevents false positive on test-like title", async () => {
+    await createChangeFile("inlineMetadata", {
+      $schema: "https://advance.dev/schemas/change.v1.json",
+      id: "inlineMetadata",
+      title: "Inline Metadata Change",
+      status: "draft",
+      created_at: "2026-01-01T00:00:00Z",
+      tasks: [
+        {
+          id: "tk-impl0020",
+          title: "Create API endpoint",
+          status: "pending",
+          priority: 0,
+          created_at: "2026-01-01T00:00:00Z",
+          tdd_phase: "none",
+          deps: [],
+        },
+        {
+          id: "tk-cls00020",
+          title: "Create task classifier with test-first approach",
+          status: "pending",
+          priority: 1,
+          created_at: "2026-01-01T00:00:00Z",
+          tdd_phase: "none",
+          metadata: { tdd_intent: "inline" },
+          deps: [{ type: "blocked_by", target: "tk-impl0020" }],
+        },
+      ],
+      deltas: {},
+    });
+
+    await gateTools.adv_gate_complete.execute(
+      { changeId: "inlineMetadata", gateId: "research" },
+      store,
+    );
+
+    const result = await gateTools.adv_gate_complete.execute(
+      { changeId: "inlineMetadata", gateId: "prep" },
+      store,
+    );
+    const parsed = extractJson(result) as Record<string, unknown>;
+
+    // Should pass — inline metadata prevents false positive
+    expect(parsed.success).toBe(true);
+  });
+
+  test("prep gate still blocks TDD inversion for legacy tasks without metadata", async () => {
+    // This is the existing behavior — legacy tasks use title heuristics
+    await createChangeFile("legacyInversion", {
+      $schema: "https://advance.dev/schemas/change.v1.json",
+      id: "legacyInversion",
+      title: "Legacy Inversion Change",
+      status: "draft",
+      created_at: "2026-01-01T00:00:00Z",
+      tasks: [
+        {
+          id: "tk-impl0030",
+          title: "Implement the feature",
+          status: "pending",
+          priority: 0,
+          created_at: "2026-01-01T00:00:00Z",
+          tdd_phase: "none",
+          deps: [],
+        },
+        {
+          id: "tk-test0030",
+          title: "Write tests for the feature",
+          status: "pending",
+          priority: 1,
+          created_at: "2026-01-01T00:00:00Z",
+          tdd_phase: "none",
+          // No metadata — falls back to title heuristics
+          deps: [{ type: "blocked_by", target: "tk-impl0030" }],
+        },
+      ],
+      deltas: {},
+    });
+
+    await gateTools.adv_gate_complete.execute(
+      { changeId: "legacyInversion", gateId: "research" },
+      store,
+    );
+
+    const result = await gateTools.adv_gate_complete.execute(
+      { changeId: "legacyInversion", gateId: "prep" },
+      store,
+    );
+    const parsed = extractJson(result) as Record<string, unknown>;
+
+    // Should block — legacy behavior preserved
+    expect(parsed.error).toBeDefined();
+    const failures = parsed.readinessFailures as Array<Record<string, unknown>>;
+    expect(failures.some((f) => f.code === "TASK_TDD_INVERSION")).toBe(true);
+  });
 });

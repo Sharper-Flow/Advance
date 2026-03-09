@@ -1,0 +1,239 @@
+{
+  "$schema": "https://raw.githubusercontent.com/anomalyco/oc-plugins/main/advance/plugin/schemas/spec.schema.json",
+  "name": "tdd-contract",
+  "title": "TDD Contract",
+  "purpose": "Canonical definition of how TDD phases integrate with the ADV task model. Inline TDD (red/green within each implementation task) is the default. Separate verification tasks are reserved for cross-cutting tests spanning multiple implementation tasks.",
+  "version": "1.0.0",
+  "updated_at": "2026-03-09T19:25:00.000Z",
+  "requirements": [
+    {
+      "id": "rq-TDD001inl",
+      "title": "Inline TDD as Default Model",
+      "body": "Implementation tasks MUST use inline TDD by default: the red phase (write failing test) and green phase (make it pass) happen within the same task. Proposal templates MUST NOT create separate test tasks for same-scope work. The task's tdd_phase field tracks progress through none -> red -> green -> refactor -> complete.",
+      "priority": "must",
+      "tags": ["tdd", "task-model", "inline"],
+      "scenarios": [
+        {
+          "id": "rq-TDD001inl.1",
+          "title": "Implementation task uses inline TDD phases",
+          "given": [
+            "An implementation task with metadata.tdd_intent='inline' or no metadata.tdd_intent set"
+          ],
+          "when": "TDD compliance is checked",
+          "then": [
+            "The task is expected to have tdd_evidence with both red and green phases",
+            "No separate test task is required for this scope"
+          ]
+        },
+        {
+          "id": "rq-TDD001inl.2",
+          "title": "Proposal templates do not create separate test tasks for same-scope work",
+          "given": [
+            "A proposal is generated via /adv-proposal"
+          ],
+          "when": "Step 8 task generation runs",
+          "then": [
+            "Implementation tasks include inline TDD instructions in their description",
+            "No standalone 'Write tests for X' tasks are created for the same scope as an implementation task"
+          ]
+        },
+        {
+          "id": "rq-TDD001inl.3",
+          "title": "Default tdd_intent is inline when metadata is absent",
+          "given": [
+            "A task with no metadata.tdd_intent field set"
+          ],
+          "when": "The task classifier determines TDD intent",
+          "then": [
+            "The task is treated as tdd_intent='inline' for TDD compliance purposes",
+            "Title-based heuristics are used as fallback to determine if the task is test-relevant or implementation-relevant"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-TDD002sep",
+      "title": "Separate Verification for Cross-Cutting Tests",
+      "body": "A task MAY use separate verification (metadata.tdd_intent='separate_verification') when it represents cross-cutting tests that span multiple implementation tasks, such as integration tests, E2E tests, or acceptance test suites. These tasks are legitimately blocked_by their implementation dependencies and MUST NOT be flagged as TDD inversions.",
+      "priority": "must",
+      "tags": ["tdd", "task-model", "cross-cutting"],
+      "scenarios": [
+        {
+          "id": "rq-TDD002sep.1",
+          "title": "Cross-cutting test task blocked by impl tasks is not an inversion",
+          "given": [
+            "A task with metadata.tdd_intent='separate_verification'",
+            "That task has blocked_by dependencies on implementation tasks"
+          ],
+          "when": "TDD inversion detection runs",
+          "then": [
+            "No TASK_TDD_INVERSION error is returned",
+            "The dependency ordering is accepted as correct"
+          ]
+        },
+        {
+          "id": "rq-TDD002sep.2",
+          "title": "Separate verification requires explicit metadata",
+          "given": [
+            "A task that appears to be a test task based on title heuristics",
+            "That task has blocked_by dependencies on implementation tasks",
+            "That task has no metadata.tdd_intent set"
+          ],
+          "when": "TDD inversion detection runs",
+          "then": [
+            "A TASK_TDD_INVERSION warning or error is returned (title heuristic fallback)",
+            "The remediation hint suggests either merging into the impl task or setting metadata.tdd_intent='separate_verification'"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-TDD003na",
+      "title": "Not-Applicable TDD Intent",
+      "body": "Tasks that are not logic-bearing (documentation, configuration, chores, releases) SHOULD set metadata.tdd_intent='not_applicable' to skip TDD evidence requirements. When metadata is absent, the existing title-based heuristics (isTrivialTask patterns) determine whether TDD is required.",
+      "priority": "should",
+      "tags": ["tdd", "task-model", "trivial"],
+      "scenarios": [
+        {
+          "id": "rq-TDD003na.1",
+          "title": "Not-applicable task skips TDD evidence requirement",
+          "given": [
+            "A task with metadata.tdd_intent='not_applicable'"
+          ],
+          "when": "TDD compliance is checked",
+          "then": [
+            "No tdd_evidence is required",
+            "The task is not flagged for missing TDD phases"
+          ]
+        },
+        {
+          "id": "rq-TDD003na.2",
+          "title": "Legacy task without metadata uses title heuristics",
+          "given": [
+            "A task with no metadata.tdd_intent field",
+            "The task title matches isTrivialTask patterns (docs, config, chore)"
+          ],
+          "when": "TDD compliance is checked",
+          "then": [
+            "The task is treated as not requiring TDD evidence (backward compatible)"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-TDD004cls",
+      "title": "Task Classifier with Metadata-First Detection",
+      "body": "A shared task classifier MUST check metadata.tdd_intent first, then fall back to title-based heuristics for legacy tasks without metadata. The classifier is the single source of truth for determining a task's TDD intent across all validators (prep-readiness, completeness, gate checks).",
+      "priority": "must",
+      "tags": ["tdd", "classifier", "metadata"],
+      "scenarios": [
+        {
+          "id": "rq-TDD004cls.1",
+          "title": "Metadata takes precedence over title heuristics",
+          "given": [
+            "A task with metadata.tdd_intent='not_applicable'",
+            "The task title contains 'test' (would match isTestTask heuristic)"
+          ],
+          "when": "The classifier determines TDD intent",
+          "then": [
+            "The metadata value 'not_applicable' is used",
+            "The title heuristic is not consulted"
+          ]
+        },
+        {
+          "id": "rq-TDD004cls.2",
+          "title": "Invalid metadata value falls back to title heuristics",
+          "given": [
+            "A task with metadata.tdd_intent='invalid_value'"
+          ],
+          "when": "The classifier determines TDD intent",
+          "then": [
+            "The invalid value is ignored with a warning log",
+            "Title-based heuristics are used as fallback"
+          ]
+        },
+        {
+          "id": "rq-TDD004cls.3",
+          "title": "Classifier is used by all validators",
+          "given": [
+            "The prep-readiness validator, completeness validator, and gate checks"
+          ],
+          "when": "Any of these validators need to determine a task's TDD intent",
+          "then": [
+            "They call the shared classifier rather than implementing their own detection logic",
+            "Detection behavior is consistent across all validators"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-TDD005inv",
+      "title": "TDD Inversion Detection with Metadata Awareness",
+      "body": "The prep-readiness TDD inversion check MUST use the task classifier to determine task roles. A test task (by classifier) blocked_by an implementation task (by classifier) of the same scope is a TDD inversion — UNLESS the test task has metadata.tdd_intent='separate_verification'. This replaces the previous title-only detection that produced false positives.",
+      "priority": "must",
+      "tags": ["tdd", "prep", "inversion", "task-graph"],
+      "scenarios": [
+        {
+          "id": "rq-TDD005inv.1",
+          "title": "Metadata-classified test task blocked by impl task is flagged",
+          "given": [
+            "A task classified as 'test' by title heuristics (no metadata.tdd_intent set)",
+            "That task has blocked_by dependency on a task classified as 'impl'"
+          ],
+          "when": "TDD inversion detection runs in prep-readiness",
+          "then": [
+            "A TASK_TDD_INVERSION error is returned",
+            "Remediation suggests merging the test task into the impl task or setting metadata.tdd_intent='separate_verification'"
+          ]
+        },
+        {
+          "id": "rq-TDD005inv.2",
+          "title": "Separate-verification task is exempt from inversion detection",
+          "given": [
+            "A task with metadata.tdd_intent='separate_verification'",
+            "That task has blocked_by dependency on implementation tasks"
+          ],
+          "when": "TDD inversion detection runs in prep-readiness",
+          "then": [
+            "No TASK_TDD_INVERSION error is returned"
+          ]
+        },
+        {
+          "id": "rq-TDD005inv.3",
+          "title": "False positive prevention for non-test tasks with test-like titles",
+          "given": [
+            "A task with metadata.tdd_intent='inline'",
+            "The task title contains 'test' (e.g., 'Create task classifier with test-first approach')"
+          ],
+          "when": "TDD inversion detection runs in prep-readiness",
+          "then": [
+            "The task is classified as 'inline' per metadata, not as a test task",
+            "No false-positive TASK_TDD_INVERSION error is returned"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-TDD006rem",
+      "title": "Unified TDD Remediation Path",
+      "body": "When a TDD inversion is detected, the remediation MUST be: merge the test task into the implementation task as inline TDD. The 'reverse the dependency' remediation MUST NOT be offered because it creates a separate-task TDD model that contradicts the inline-first contract.",
+      "priority": "must",
+      "tags": ["tdd", "prep", "remediation"],
+      "scenarios": [
+        {
+          "id": "rq-TDD006rem.1",
+          "title": "Remediation suggests merge, not dependency reversal",
+          "given": [
+            "A TASK_TDD_INVERSION error is detected"
+          ],
+          "when": "Remediation guidance is provided",
+          "then": [
+            "The primary remediation is: merge the test task into the implementation task",
+            "An alternative is: set metadata.tdd_intent='separate_verification' if the test is genuinely cross-cutting",
+            "'Reverse the dependency' is NOT offered as a remediation option"
+          ]
+        }
+      ]
+    }
+  ]
+}

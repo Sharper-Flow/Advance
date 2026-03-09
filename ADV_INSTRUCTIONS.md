@@ -124,9 +124,12 @@ The write-in option requirement is enforced globally by **P26** in `rules.yaml`.
 
 ### TDD Protocol (RSTC)
 
+**Inline TDD is the default.** Red/green phases happen WITHIN each implementation task — do NOT create separate "Write tests" tasks for the same scope.
+
 **RED Phase:** Write failing test → run → emit `[ADV:TDD_RED]` → show output
 **GREEN Phase:** Implement → run → emit `[ADV:TDD_GREEN]` → show output
 **Trivial Tasks:** Note `(trivial: docs change)` and skip TDD
+**Separate Verification:** Cross-cutting tests spanning multiple impl tasks are legitimate separate tasks — mark with `metadata.tdd_intent: "separate_verification"`
 
 ### Doom Loop Detection
 

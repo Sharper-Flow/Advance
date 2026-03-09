@@ -5,9 +5,9 @@
  */
 
 import type { Change } from "../types";
-import { getTddComplianceStatus, isLogicTask } from "../types";
 import type { ValidationIssue } from "./types";
 import { ValidationCodes } from "./types";
+import { getTaskTddCompliance } from "./task-classifier";
 
 /**
  * Check if change has tasks defined
@@ -169,7 +169,10 @@ export function checkIdFormats(change: Change): ValidationIssue[] {
 }
 
 /**
- * Check if completed logic tasks have TDD evidence
+ * Check if completed logic tasks have TDD evidence.
+ *
+ * Uses the shared task classifier helpers (rq-TDD004cls) for metadata-first
+ * detection and compliance evaluation.
  */
 export function checkTddCompliance(change: Change): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
@@ -178,11 +181,9 @@ export function checkTddCompliance(change: Change): ValidationIssue[] {
     // Only check completed tasks
     if (task.status !== "done") continue;
 
-    // Only check logic-heavy tasks
-    if (!isLogicTask(task.title)) continue;
+    const compliance = getTaskTddCompliance(task);
+    if (compliance === "not_required") continue;
 
-    // Check TDD compliance
-    const compliance = getTddComplianceStatus(task);
     if (compliance === "missing") {
       issues.push({
         code: ValidationCodes.MISSING_TDD_EVIDENCE,

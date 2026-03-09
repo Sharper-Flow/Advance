@@ -302,6 +302,29 @@ describe("Task Tools", () => {
       expect(parsed.task.deps[0].target).toBe("tk-task0003");
     });
 
+    test("adds task with metadata", async () => {
+      const result = await taskTools.adv_task_add.execute(
+        {
+          changeId: "addFeature",
+          content: "Run cross-cutting verification",
+          metadata: { tdd_intent: "separate_verification", env: "test" },
+        },
+        store,
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed.task.metadata).toEqual({
+        tdd_intent: "separate_verification",
+        env: "test",
+      });
+
+      const persisted = await store.tasks.get(parsed.taskId);
+      expect(persisted?.metadata).toEqual({
+        tdd_intent: "separate_verification",
+        env: "test",
+      });
+    });
+
     test("new task appears in blocked list when dependency exists", async () => {
       await taskTools.adv_task_add.execute(
         {
@@ -607,6 +630,26 @@ describe("Task Tools", () => {
       const parsed = JSON.parse(result);
 
       expect(parsed.analysis.compliance).toBe("compliant");
+    });
+
+    test("uses metadata.tdd_intent before title heuristics", async () => {
+      const task = await store.tasks.add(
+        "addFeature",
+        "Coordinate release notes",
+        {
+          metadata: { tdd_intent: "inline" },
+        },
+      );
+
+      const result = await taskTools.adv_task_tdd_status.execute(
+        { taskId: task.id },
+        store,
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed.analysis.requires_tdd).toBe(true);
+      expect(parsed.analysis.compliance).toBe("missing");
+      expect(parsed.recommendation).toContain("Record TDD evidence");
     });
 
     test("returns error for nonexistent task", async () => {

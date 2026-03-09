@@ -79,11 +79,11 @@ adv_task_show({ taskId: "tk-abc" })
 // Update task status
 adv_task_update({ taskId: "tk-abc", status: "done" })
 
-// Add new task
+// Add new task (TDD is inline — no separate "Write tests" tasks)
 adv_task_add({ 
   changeId: "add-feature", 
-  content: "Write tests",
-  section: "Testing"
+  content: "Implement feature X (TDD: write tests first, then implement)",
+  section: "Implementation"
 })
 ```
 

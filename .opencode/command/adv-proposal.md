@@ -265,24 +265,27 @@ Use `adv_task_add` to create initial tasks based on the change type:
 **For new features:**
 ```
 adv_task_add changeId: <id> content: "Define spec requirements"
-adv_task_add changeId: <id> content: "Write acceptance tests"
-adv_task_add changeId: <id> content: "Implement core functionality"
+adv_task_add changeId: <id> content: "Implement core functionality (TDD: write tests first, then implement)"
 adv_task_add changeId: <id> content: "Add documentation"
 ```
 
 **For bug fixes:**
 ```
-adv_task_add changeId: <id> content: "Write failing test for bug"
-adv_task_add changeId: <id> content: "Implement fix"
-adv_task_add changeId: <id> content: "Verify fix with test"
+adv_task_add changeId: <id> content: "Implement fix (TDD: write failing test reproducing the bug, then fix)"
+adv_task_add changeId: <id> content: "Add documentation"
 ```
 
 **For refactors:**
 ```
-adv_task_add changeId: <id> content: "Add characterization tests"
-adv_task_add changeId: <id> content: "Perform refactoring"
-adv_task_add changeId: <id> content: "Verify behavior preserved"
+adv_task_add changeId: <id> content: "Implement refactoring (TDD: add characterization tests first, then refactor, verify behavior preserved)"
+adv_task_add changeId: <id> content: "Add documentation"
 ```
+
+> **TDD note**: Each implementation task carries its own red/green TDD phases inline.
+> Do NOT create separate "Write tests" tasks for the same scope as an implementation task.
+> Separate test tasks are only appropriate for cross-cutting verification spanning multiple
+> implementation tasks (e.g., integration or E2E tests). Mark those with
+> `metadata.tdd_intent: "separate_verification"`.
 
 ---
 

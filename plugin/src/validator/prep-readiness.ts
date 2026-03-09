@@ -12,6 +12,10 @@
 
 import type { Change } from "../types";
 import type { ValidationIssue } from "./types";
+import {
+  isTestTask as classifierIsTestTask,
+  isImplTask as classifierIsImplTask,
+} from "./task-classifier";
 
 // =============================================================================
 // Check Codes
@@ -148,22 +152,20 @@ export function checkScenarioAdequacy(change: Change): ValidationIssue[] {
 // Check: Task Graph Integrity
 // =============================================================================
 
-/** Returns true if a task title indicates it is a test/spec task */
-function isTestTask(title: string): boolean {
-  return /\b(test|tests|spec|specs|failing test|red phase)\b/i.test(title);
-}
-
-/** Returns true if a task title indicates it is an implementation task */
-function isImplTask(title: string): boolean {
-  return /\b(implement|impl|create|build|add|develop|code|write\s+(?!test|spec))\b/i.test(
-    title,
-  );
-}
-
 /**
  * Check task graph for TDD inversions and orphan tasks.
  *
- * TDD inversion: a test task that is blocked_by an impl task → must-failure.
+ * TDD inversion detection uses the shared task classifier (rq-TDD004cls):
+ *   1. metadata.tdd_intent takes precedence (authoritative)
+ *   2. Title heuristics as fallback for legacy tasks without metadata
+ *
+ * Per rq-TDD005inv:
+ *   - separate_verification tasks are exempt from inversion detection
+ *   - inline/not_applicable metadata prevents false positives on test-like titles
+ *
+ * Per rq-TDD006rem:
+ *   - Remediation suggests merge (not dependency reversal)
+ *
  * Orphan: a task with no deps that is not a dep of any other task → warning.
  */
 export function checkTaskGraphIntegrity(change: Change): ValidationIssue[] {
@@ -196,11 +198,25 @@ export function checkTaskGraphIntegrity(change: Change): ValidationIssue[] {
       (d) => d.type === "blocked_by",
     );
 
-    // TDD inversion check — skip when TDD was explicitly skipped for this task
-    if (isTestTask(task.title) && !task.tdd_evidence?.skipped) {
+    // TDD inversion check — uses classifier for metadata-first detection
+    // When metadata.tdd_intent is explicitly set, it is authoritative.
+    // Only use title heuristics when no valid metadata is present.
+    const hasExplicitMetadata =
+      task.metadata?.tdd_intent !== undefined &&
+      ["inline", "separate_verification", "not_applicable"].includes(
+        task.metadata.tdd_intent,
+      );
+
+    // Skip inversion check for:
+    // - Tasks with explicit metadata (metadata is authoritative — prevents false positives)
+    // - Tasks with TDD explicitly skipped
+    const skipInversion =
+      hasExplicitMetadata || task.tdd_evidence?.skipped;
+
+    if (!skipInversion && classifierIsTestTask(task.title)) {
       for (const dep of blockedByDeps) {
         const depTask = taskById.get(dep.target);
-        if (depTask && isImplTask(depTask.title)) {
+        if (depTask && classifierIsImplTask(depTask.title)) {
           issues.push({
             code: PrepReadinessCodes.TASK_TDD_INVERSION,
             severity: "error",
@@ -212,7 +228,7 @@ export function checkTaskGraphIntegrity(change: Change): ValidationIssue[] {
               implTaskId: depTask.id,
               implTaskTitle: depTask.title,
               remediation:
-                "Reverse the dependency: the impl task should be blocked_by the test task, not the other way around.",
+                "Merge the test task into the implementation task as inline TDD (red/green phases within the same task). If this is a legitimate cross-cutting test, set metadata.tdd_intent='separate_verification' instead.",
             },
           });
         }

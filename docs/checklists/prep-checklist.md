@@ -84,7 +84,7 @@ Every scenario MUST be translatable to a test:
 
 ### Task Sequencing
 
-- [ ] **No TDD inversions** `TASK_TDD_INVERSION` *(machine-enforced must — gate blocked if present)* — Test tasks MUST NOT be blocked_by implementation tasks (tests go WITHIN tasks via red/green phases)
+- [ ] **No TDD inversions** `TASK_TDD_INVERSION` *(machine-enforced must — gate blocked if present)* — Same-scope test tasks MUST NOT be blocked_by implementation tasks. Inline TDD is the default (red/green phases within each impl task). Exception: cross-cutting verification tasks marked with `metadata.tdd_intent: "separate_verification"` are accepted.
 - [ ] **No unnecessary splits** — Tasks that modify the same code are merged
 - [ ] **No retrofit chains** — Task A creates code, Task B modifies same code => merge
 - [ ] **No orphan branches** `TASK_ORPHAN` *(machine-enforced warning)* — Every task should connect to others via dependencies or be a dependency of another task
@@ -139,7 +139,7 @@ The following check IDs are enforced by the prep gate validator. Use these IDs t
 | Check ID | Severity | Description |
 |---|---|---|
 | `SCENARIO_MISSING` | **must** | Added requirement has no scenarios |
-| `TASK_TDD_INVERSION` | **must** | Test task is blocked_by an impl task |
+| `TASK_TDD_INVERSION` | **must** | Same-scope test task is blocked_by an impl task (uses `metadata.tdd_intent` first, falls back to title heuristics) |
 | `CROSS_REPO_MISSING_METADATA` | **must** | Task has target_repo XOR target_path (not both) |
 | `TASK_ORPHAN` | warning | Task has no deps and is not a dep of anything |
 | `CROSS_REPO_HINT_UNROUTED` | warning | Title suggests cross-repo target but no routing metadata |

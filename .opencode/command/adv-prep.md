@@ -154,24 +154,32 @@ For each task, check whether it should be a **separate task** or **absorbed into
 
 #### B. TDD Ordering Validation
 
-Per the project's RSTC protocol (Requirement → Spec → Test → Code), test tasks MUST NOT be sequenced *after* implementation tasks as separate blocked dependencies.
+Per the canonical TDD contract (`.adv/specs/tdd-contract/spec.json`), **inline TDD is the default**: red/green phases happen WITHIN each implementation task, not as separate tasks.
 
-**Anti-pattern to detect**:
+**Classification**: Use `metadata.tdd_intent` to determine how a task relates to TDD:
+
+| `tdd_intent` value | Meaning | TDD evidence required? |
+|---|---|---|
+| `inline` (or unset on impl tasks) | Red/green phases within this task | Yes |
+| `separate_verification` | Cross-cutting test spanning multiple impl tasks | No (verification task) |
+| `not_applicable` | Non-code task (docs, config, research) | No |
+
+**How to check**: For tasks WITHOUT `metadata.tdd_intent`, fall back to title-based heuristics (regex patterns for test/impl keywords). But prefer setting `tdd_intent` explicitly — title heuristics are fragile and produce false positives on titles containing words like "test", "TDD", or "spec" in non-test contexts.
+
+**Anti-pattern to detect**: A same-scope test task blocked by its implementation task:
 ```
-tk-impl (implement feature) ──blocked_by──> tk-test (write tests)
+tk-impl (implement feature) ──blocked_by──> tk-test (write tests for feature)
 ```
-This is CODE-FIRST, not TEST-FIRST. The test task depends on the implementation being done, which violates TDD.
+This is CODE-FIRST, not TEST-FIRST.
 
-**Correct pattern**: TDD red/green phases happen WITHIN each task, not across tasks. When executing `tk-impl`, the agent writes the test first (red phase), then implements (green phase), then marks complete.
+**Remediation** (one path only):
+1. **Merge** the test task into the implementation task
+2. Update the implementation task description to state "TDD: write tests first, then implement"
+3. Cancel the test task via `adv_task_cancel` with rationale
 
-**How to check**: Scan the dependency graph for any task with "test" or "unit test" or "integration test" in its title that is `blocked_by` an implementation task that covers the same scope. If found:
-1. The test task should be MERGED into the implementation task
-2. The implementation task's description should be updated to explicitly state "TDD: write tests first, then implement"
-3. The test task should be cancelled with rationale
-
-**Exception**: Integration tests that span multiple tasks (e.g., end-to-end tests that require multiple components to exist) are legitimate separate tasks. The key distinction is:
-- **Merge**: "Unit tests for service X" blocked by "Implement service X" → merge
-- **Keep separate**: "Integration test for full API flow" blocked by "Implement endpoint" AND "Register router" → keep as separate task
+**Exception — separate verification tasks**: Cross-cutting tests that span multiple implementation tasks are legitimate separate tasks. Mark these with `metadata.tdd_intent: "separate_verification"`. The key distinction is:
+- **Merge**: "Unit tests for service X" blocked by "Implement service X" → same scope, merge
+- **Keep separate**: "Integration test for full API flow" blocked by "Implement endpoint" AND "Register router" → cross-cutting, mark as `separate_verification`
 
 #### C. Dependency Graph Coherence
 
@@ -424,7 +432,7 @@ For each must-failure, take the indicated remediation action before continuing:
 | Failure Code | Cause | Remediation |
 |---|---|---|
 | `SCENARIO_MISSING` | A delta requirement has no scenarios | Add at least one Given/When/Then scenario to the requirement |
-| `TASK_TDD_INVERSION` | Test task is blocked_by an impl task | Reverse the dependency (impl should block_by test, not vice versa) |
+| `TASK_TDD_INVERSION` | Same-scope test task is blocked_by an impl task | Merge the test task into the impl task (add TDD instructions to impl task description), then cancel the test task. If the test is cross-cutting, set `metadata.tdd_intent: "separate_verification"` instead. |
 | `CROSS_REPO_MISSING_METADATA` | Task has target_repo XOR target_path | Set both `target_repo` AND `target_path` on the task |
 
 After fixing, re-run `adv_gate_complete changeId: <target> gateId: prep` to confirm the gate passes.
