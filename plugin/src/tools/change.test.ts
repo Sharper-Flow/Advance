@@ -169,6 +169,10 @@ describe("Change Tools", () => {
       expect(parsed._contextSnapshot).toMatch(/Gates:/);
       // Should contain task counts
       expect(parsed._contextSnapshot).toMatch(/Tasks:/);
+      // Should contain success criteria count
+      expect(parsed._contextSnapshot).toMatch(/Success:/);
+      // Should contain workdir
+      expect(parsed._contextSnapshot).toMatch(/Workdir:/);
       // Should use box-drawing characters
       expect(parsed._contextSnapshot).toMatch(/[╔╗╚╝║═]/);
     });

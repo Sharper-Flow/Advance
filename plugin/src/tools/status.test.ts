@@ -253,6 +253,17 @@ describe("Status Tools", () => {
       expect(["hot", "warm", "stale"]).toContain(rc.recency);
     });
 
+    test("includes context snapshot for recent changes", async () => {
+      const result = await statusTools.adv_status.execute({}, store);
+      const parsed = parseToolOutput(result);
+
+      const rc = parsed.changes.recent[0];
+      expect(rc._contextSnapshot).toBeDefined();
+      expect(rc._contextSnapshot).toContain("addFeature");
+      expect(rc._contextSnapshot).toMatch(/Gates:/);
+      expect(rc._contextSnapshot).toMatch(/Success:/);
+    });
+
     test("includes clarify recommendation for change with ambiguity findings", async () => {
       // The sample change has a delta with add + no scenarios, and the sample
       // proposal has no Success Criteria or Scope section — should trigger findings

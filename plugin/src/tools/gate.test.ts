@@ -104,6 +104,21 @@ describe("Gate Tools", () => {
     });
   });
 
+  describe("adv_gate_complete context snapshot", () => {
+    test("includes updated context snapshot in gate completion output", async () => {
+      const result = await gateTools.adv_gate_complete.execute(
+        { changeId: "addFeature", gateId: "research" },
+        store,
+      );
+      const parsed = extractJson(result) as Record<string, unknown>;
+
+      expect(parsed._contextSnapshot).toBeDefined();
+      expect(parsed._contextSnapshot).toMatch(/\[✓ research\]/);
+      expect(parsed._contextSnapshot).toMatch(/Success:/);
+      expect(parsed._contextSnapshot).toMatch(/Workdir:/);
+    });
+  });
+
   describe("gate migration", () => {
     test("migrates change gates to legacy status except signoff", async () => {
       // Get initial gates (should be created as pending)

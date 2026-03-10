@@ -17,6 +17,7 @@ describe("formatContextSnapshot", () => {
   const baseInput: ContextSnapshotInput = {
     changeId: "improveContextAgreement",
     title: "Improve context agreement",
+    successCriteriaCount: 3,
     gates: {
       research: { status: "done" },
       prep: { status: "done" },
@@ -51,6 +52,11 @@ describe("formatContextSnapshot", () => {
     expect(output).toContain("2 done");
     expect(output).toContain("1 active");
     expect(output).toContain("5 pending");
+  });
+
+  test("includes success criteria count", () => {
+    const output = formatContextSnapshot(baseInput);
+    expect(output).toContain("Success: 3 criteria");
   });
 
   test("includes workdir path", () => {
@@ -103,6 +109,15 @@ describe("formatContextSnapshot", () => {
     };
     const output = formatContextSnapshot(input);
     expect(output).toContain("0 done");
+  });
+
+  test("handles missing success criteria count gracefully", () => {
+    const input: ContextSnapshotInput = {
+      ...baseInput,
+      successCriteriaCount: undefined,
+    };
+    const output = formatContextSnapshot(input);
+    expect(output).toContain("Success: ? criteria");
   });
 });
 
