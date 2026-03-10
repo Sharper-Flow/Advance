@@ -5,10 +5,12 @@
  */
 
 import { z } from "zod";
+import { join } from "path";
 import type { Store } from "../storage/store";
 import {
   type GateId,
   type Gates,
+  type FeatureFlags,
   GATE_ORDER,
   canCompleteGate,
   getIncompleteGates,
@@ -18,6 +20,8 @@ import {
 import { wrapWithBanner } from "../utils/banner";
 import { formatToolOutput } from "../utils/tool-output";
 import { runPrepReadinessChecks } from "../validator/prep-readiness";
+import { runClarifyReadinessChecks } from "../validator/clarify-readiness";
+import { loadProposalWithFallback } from "../storage/json";
 
 // =============================================================================
 // Tool Definitions
@@ -150,6 +154,46 @@ export const gateTools = {
               }
             : {};
 
+        // Clarify-readiness enforcement (runs after prep-readiness passes)
+        const features = store.config?.features as FeatureFlags | undefined;
+        const clarifyMode = features?.clarify_enforcement ?? "advisory";
+        let clarifyPayload: Record<string, unknown> = {};
+
+        if (clarifyMode !== "off") {
+          const changeDir = join(store.paths.changes, changeId);
+          const { content: proposalText } = await loadProposalWithFallback(
+            changeDir,
+            change.title,
+          );
+
+          const clarifyResult = runClarifyReadinessChecks(change, proposalText);
+
+          if (clarifyResult.findings.length > 0) {
+            if (clarifyMode === "strict") {
+              return formatToolOutput({
+                error: `Prep gate blocked: ${clarifyResult.findings.length} ambiguity finding(s) must be resolved via /adv-clarify`,
+                changeId,
+                gateId,
+                clarifyFindings: clarifyResult.findings.map((f) => ({
+                  code: f.code,
+                  severity: f.severity,
+                  message: f.message,
+                  questionCategory: f.details?.questionCategory,
+                })),
+                hint: `Run /adv-clarify ${changeId} to resolve ambiguity findings, then retry adv_gate_complete.`,
+              });
+            }
+            // advisory mode: include as warnings, don't block
+            clarifyPayload = {
+              clarifyWarnings: clarifyResult.findings.map((f) => ({
+                code: f.code,
+                message: f.message,
+                questionCategory: f.details?.questionCategory,
+              })),
+            };
+          }
+        }
+
         // Mark gate complete via store
         try {
           await store.gates.complete(changeId, gateId);
@@ -173,6 +217,7 @@ export const gateTools = {
             completed_at: now,
             completed_by: completedBy,
             ...warningsPayload,
+            ...clarifyPayload,
           }),
         );
       }

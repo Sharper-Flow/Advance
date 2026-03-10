@@ -200,6 +200,15 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
     prerequisites: [],
     successors: ["adv-proposal"],
   },
+  "adv-tron": {
+    name: "adv-tron",
+    description:
+      "Investigate codebase structure, hotspots, risks, and suggest follow-up agenda candidates",
+    phase: "utility",
+    requiresChangeId: false,
+    prerequisites: [],
+    successors: ["adv-proposal", "adv-task"],
+  },
 } as const satisfies Record<string, CommandDef>;
 
 // =============================================================================

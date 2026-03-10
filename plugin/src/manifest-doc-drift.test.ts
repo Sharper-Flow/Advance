@@ -21,6 +21,20 @@ const COMMAND_DIR = join(PLUGIN_ROOT, ".opencode/command");
 const README_PATH = join(PLUGIN_ROOT, "README.md");
 const ADV_INSTRUCTIONS_PATH = join(PLUGIN_ROOT, "ADV_INSTRUCTIONS.md");
 
+function assertContainsAllSnippets(
+  content: string,
+  snippets: string[],
+  fileName: string,
+) {
+  const missing = snippets.filter((snippet) => !content.includes(snippet));
+  expect(
+    missing,
+    `${fileName} is missing required prioritizer example snippets:\n${missing
+      .map((s) => `- ${s}`)
+      .join("\n")}`,
+  ).toHaveLength(0);
+}
+
 /**
  * Parse the `description:` field from a markdown frontmatter block.
  *
@@ -228,4 +242,27 @@ describe("Manifest ↔ Doc Table Drift", () => {
       });
     });
   }
+});
+
+describe("Prioritizer example docs", () => {
+  const canonicalSnippets = [
+    '"subagent_type": "prioritizer"',
+    '"description": "Draft tradeoff criteria for auth decision"',
+    "Decision: choose between Redis-backed sessions, JWT cookies, and Auth.js delegation for protected routes.",
+    "Draft context-specific criteria questions and a decision map following the prioritizer output format.",
+  ];
+
+  test("README includes canonical prioritizer task example", () => {
+    const content = readFileSync(README_PATH, "utf8");
+    assertContainsAllSnippets(content, canonicalSnippets, "README.md");
+  });
+
+  test("ADV instructions include canonical prioritizer task example", () => {
+    const content = readFileSync(ADV_INSTRUCTIONS_PATH, "utf8");
+    assertContainsAllSnippets(
+      content,
+      canonicalSnippets,
+      "ADV_INSTRUCTIONS.md",
+    );
+  });
 });

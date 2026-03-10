@@ -5,7 +5,8 @@
  */
 
 import { z } from "zod";
-import type { Spec } from "../types";
+import { join } from "path";
+import type { Spec, FeatureFlags } from "../types";
 import {
   createDefaultGates,
   getIncompleteGates,
@@ -13,9 +14,15 @@ import {
 } from "../types";
 import type { Store } from "../storage/store";
 import { validateChange } from "../validator";
+import { runClarifyReadinessChecks } from "../validator/clarify-readiness";
+import { loadProposalWithFallback } from "../storage/json";
 import { archiveChange } from "../archive";
 import { wrapWithBanner } from "../utils/banner";
 import { formatToolOutput, paginate } from "../utils/tool-output";
+import {
+  formatContextSnapshot,
+  type ContextSnapshotInput,
+} from "../utils/context-snapshot";
 
 // =============================================================================
 // Tool Definitions
@@ -105,11 +112,63 @@ export const changeTools = {
         tool: "adv_change_show",
         args: `changeId: "${changeId}"`,
       });
-      return formatToolOutput({
+
+      // Build context snapshot for context agreement
+      const gates = await store.gates.get(changeId);
+      const taskCounts = {
+        done: change.tasks.filter((t) => t.status === "done").length,
+        in_progress: change.tasks.filter((t) => t.status === "in_progress")
+          .length,
+        pending: change.tasks.filter((t) => t.status === "pending").length,
+        cancelled: change.tasks.filter((t) => t.status === "cancelled").length,
+      };
+      const inProgressTask = change.tasks.find(
+        (t) => t.status === "in_progress",
+      );
+      const snapshotInput: ContextSnapshotInput = {
+        changeId: change.id,
+        title: change.title,
+        gates: gates ?? undefined,
+        taskCounts,
+        currentTask: inProgressTask
+          ? { id: inProgressTask.id, title: inProgressTask.title }
+          : undefined,
+      };
+
+      const output: Record<string, unknown> = {
         ...change,
         tasks: paged.items,
         _taskPagination: paged.pagination,
-      });
+        _contextSnapshot: formatContextSnapshot(snapshotInput),
+      };
+
+      // Run clarify-readiness checks if feature flag is not "off"
+      const features = store.config?.features as FeatureFlags | undefined;
+      const clarifyMode = features?.clarify_enforcement ?? "advisory";
+
+      if (clarifyMode !== "off") {
+        const changeDir = join(store.paths.changes, changeId);
+        const { content: proposalText } = await loadProposalWithFallback(
+          changeDir,
+          change.title,
+        );
+
+        const clarifyResult = runClarifyReadinessChecks(change, proposalText);
+
+        if (clarifyResult.findings.length > 0) {
+          output.clarifyFindings = {
+            count: clarifyResult.findings.length,
+            findings: clarifyResult.findings.map((f) => ({
+              code: f.code,
+              severity: f.severity,
+              message: f.message,
+              questionCategory: f.details?.questionCategory,
+            })),
+          };
+        }
+      }
+
+      return formatToolOutput(output);
     },
   },
 
@@ -142,9 +201,45 @@ export const changeTools = {
       store: Store,
     ) => {
       const result = await store.changes.create(summary, capability, proposal);
+
+      // Run clarify-readiness checks if feature flag is not "off"
+      const features = store.config?.features as FeatureFlags | undefined;
+      const clarifyMode = features?.clarify_enforcement ?? "advisory";
+
+      const output: Record<string, unknown> = { ...result };
+
+      if (clarifyMode !== "off") {
+        // Load the newly created change and its proposal text
+        const changeResult = await store.changes.get(result.changeId);
+        if (changeResult.success && changeResult.data) {
+          const changeDir = join(store.paths.changes, result.changeId);
+          const { content: proposalText } = await loadProposalWithFallback(
+            changeDir,
+            changeResult.data.title,
+          );
+
+          const clarifyResult = runClarifyReadinessChecks(
+            changeResult.data,
+            proposalText,
+          );
+
+          if (clarifyResult.findings.length > 0) {
+            output.clarifyNeeded = {
+              count: clarifyResult.findings.length,
+              findings: clarifyResult.findings.map((f) => ({
+                code: f.code,
+                severity: f.severity,
+                message: f.message,
+                questionCategory: f.details?.questionCategory,
+              })),
+            };
+          }
+        }
+      }
+
       return wrapWithBanner(
         { command: "adv_change_create", target: result.changeId },
-        formatToolOutput(result),
+        formatToolOutput(output),
       );
     },
   },

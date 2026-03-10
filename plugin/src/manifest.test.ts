@@ -21,7 +21,7 @@ describe("Command Manifest", () => {
     expect(Object.keys(COMMAND_MANIFEST).length).toBeGreaterThan(0);
   });
 
-  test("contains all 16 ADV commands", () => {
+  test("contains all 17 ADV commands", () => {
     const expectedCommands = [
       "adv-status",
       "adv-proposal",
@@ -39,12 +39,13 @@ describe("Command Manifest", () => {
       "adv-improve",
       "adv-slop-scan",
       "adv-task",
+      "adv-tron",
     ];
 
     for (const cmd of expectedCommands) {
       expect(COMMAND_MANIFEST).toHaveProperty(cmd);
     }
-    expect(Object.keys(COMMAND_MANIFEST)).toHaveLength(16);
+    expect(Object.keys(COMMAND_MANIFEST)).toHaveLength(17);
   });
 
   test("every command has required fields", () => {
@@ -167,6 +168,7 @@ describe("Command Manifest", () => {
       "Refresh",
       "Suggest",
       "Fast-track",
+      "Investigate",
     ];
 
     test("every description starts with a strong verb", () => {

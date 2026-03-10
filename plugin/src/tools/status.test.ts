@@ -253,6 +253,52 @@ describe("Status Tools", () => {
       expect(["hot", "warm", "stale"]).toContain(rc.recency);
     });
 
+    test("includes clarify recommendation for change with ambiguity findings", async () => {
+      // The sample change has a delta with add + no scenarios, and the sample
+      // proposal has no Success Criteria or Scope section — should trigger findings
+      const result = await statusTools.adv_status.execute({}, store);
+      const parsed = parseToolOutput(result);
+
+      const clarifyRecs = parsed.recommendations.filter((r: string) =>
+        r.includes("ambiguity finding"),
+      );
+      expect(clarifyRecs.length).toBeGreaterThan(0);
+      expect(clarifyRecs[0]).toContain("addFeature");
+      expect(clarifyRecs[0]).toContain("/adv-clarify");
+    });
+
+    test("places clarify recommendations immediately after gate recommendations", async () => {
+      const result = await statusTools.adv_status.execute({}, store);
+      const parsed = parseToolOutput(result);
+
+      const gateIndex = parsed.recommendations.findIndex((r: string) =>
+        r.includes("next gate is"),
+      );
+      const clarifyIndex = parsed.recommendations.findIndex((r: string) =>
+        r.includes("ambiguity finding"),
+      );
+      const recencyIndex = parsed.recommendations.findIndex(
+        (r: string) => r.includes("Stale change") || r.includes("is hot"),
+      );
+
+      expect(gateIndex).toBeGreaterThanOrEqual(0);
+      expect(clarifyIndex).toBe(gateIndex + 1);
+      expect(recencyIndex).toBeGreaterThan(clarifyIndex);
+    });
+
+    test("omits clarify recommendation when clarify_enforcement is off", async () => {
+      const config = store.config!;
+      (config.features as Record<string, unknown>).clarify_enforcement = "off";
+
+      const result = await statusTools.adv_status.execute({}, store);
+      const parsed = parseToolOutput(result);
+
+      const clarifyRecs = parsed.recommendations.filter((r: string) =>
+        r.includes("ambiguity finding"),
+      );
+      expect(clarifyRecs).toHaveLength(0);
+    });
+
     test("stale changes get resume recommendation", async () => {
       // The test fixture has created_at from 2026-01-21 — well in the past,
       // so it should be classified as stale and get a recommendation

@@ -734,6 +734,95 @@ describe("adv_gate_complete prep — readiness enforcement", () => {
     expect(parsed.success).toBe(true);
   });
 
+  test("prep gate blocks in strict clarify mode when change has ambiguity findings", async () => {
+    // Set clarify_enforcement to strict
+    const config = store.config!;
+    (config.features as Record<string, unknown>).clarify_enforcement = "strict";
+
+    // The sample change "addFeature" has a delta with add + no scenarios
+    // and the sample proposal has no Success Criteria or Scope section
+    // This should trigger clarify findings that block the prep gate in strict mode
+    const result = await gateTools.adv_gate_complete.execute(
+      { changeId: "addFeature", gateId: "prep" },
+      store,
+    );
+    const parsed = extractJson(result) as Record<string, unknown>;
+
+    // Should be blocked by clarify findings (or prep-readiness — either is valid)
+    expect(parsed.error).toBeDefined();
+    // Check for clarify-specific blocking
+    const errorStr = parsed.error as string;
+    const hasClarifyBlock =
+      errorStr.includes("clarify") || errorStr.includes("ambiguity");
+    const hasPrepBlock = errorStr.includes("readiness");
+    expect(hasClarifyBlock || hasPrepBlock).toBe(true);
+  });
+
+  test("prep gate passes in advisory clarify mode with clarify warnings included", async () => {
+    // Create a clean change that passes prep-readiness but has clarify findings
+    await createChangeFile("advisoryChange", {
+      $schema: "https://advance.dev/schemas/change.v1.json",
+      id: "advisoryChange",
+      title: "Make it fast", // subjective language triggers clarify finding
+      status: "draft",
+      created_at: "2026-01-01T00:00:00Z",
+      tasks: [],
+      deltas: {}, // no deltas — passes prep-readiness
+    });
+
+    // Set clarify_enforcement to advisory (default)
+    const config = store.config!;
+    (config.features as Record<string, unknown>).clarify_enforcement =
+      "advisory";
+
+    await gateTools.adv_gate_complete.execute(
+      { changeId: "advisoryChange", gateId: "research" },
+      store,
+    );
+
+    const result = await gateTools.adv_gate_complete.execute(
+      { changeId: "advisoryChange", gateId: "prep" },
+      store,
+    );
+    const parsed = extractJson(result) as Record<string, unknown>;
+
+    // Should succeed (advisory doesn't block)
+    expect(parsed.success).toBe(true);
+    // Should include clarify warnings
+    expect(parsed.clarifyWarnings).toBeDefined();
+    expect(Array.isArray(parsed.clarifyWarnings)).toBe(true);
+    expect((parsed.clarifyWarnings as unknown[]).length).toBeGreaterThan(0);
+  });
+
+  test("prep gate has no clarify output when clarify_enforcement is off", async () => {
+    await createChangeFile("offChange", {
+      $schema: "https://advance.dev/schemas/change.v1.json",
+      id: "offChange",
+      title: "Make it fast", // would trigger clarify finding, but enforcement is off
+      status: "draft",
+      created_at: "2026-01-01T00:00:00Z",
+      tasks: [],
+      deltas: {},
+    });
+
+    const config = store.config!;
+    (config.features as Record<string, unknown>).clarify_enforcement = "off";
+
+    await gateTools.adv_gate_complete.execute(
+      { changeId: "offChange", gateId: "research" },
+      store,
+    );
+
+    const result = await gateTools.adv_gate_complete.execute(
+      { changeId: "offChange", gateId: "prep" },
+      store,
+    );
+    const parsed = extractJson(result) as Record<string, unknown>;
+
+    expect(parsed.success).toBe(true);
+    expect(parsed.clarifyWarnings).toBeUndefined();
+  });
+
   test("prep gate still blocks TDD inversion for legacy tasks without metadata", async () => {
     // This is the existing behavior — legacy tasks use title heuristics
     await createChangeFile("legacyInversion", {

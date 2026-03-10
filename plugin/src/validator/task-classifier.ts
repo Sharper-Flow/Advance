@@ -14,7 +14,11 @@
  * instead of implementing their own detection logic.
  */
 
-import { isLogicTask, TDD_TRIVIAL_PATTERNS, TDD_REQUIRED_PATTERNS } from "../types";
+import {
+  isLogicTask,
+  TDD_TRIVIAL_PATTERNS,
+  TDD_REQUIRED_PATTERNS,
+} from "../types";
 import type { Task } from "../types";
 
 // =============================================================================
@@ -60,7 +64,9 @@ export function isImplTask(title: string): boolean {
  *
  * @returns The resolved TDD intent for the task
  */
-export function classifyTddIntent(task: Pick<Task, "title" | "metadata" | "tdd_evidence">): TddIntent {
+export function classifyTddIntent(
+  task: Pick<Task, "title" | "metadata" | "tdd_evidence">,
+): TddIntent {
   // 1. Check metadata.tdd_intent first (authoritative when valid)
   const metadataIntent = task.metadata?.tdd_intent;
   if (metadataIntent !== undefined && VALID_TDD_INTENTS.has(metadataIntent)) {

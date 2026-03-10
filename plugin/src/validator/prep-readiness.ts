@@ -210,8 +210,7 @@ export function checkTaskGraphIntegrity(change: Change): ValidationIssue[] {
     // Skip inversion check for:
     // - Tasks with explicit metadata (metadata is authoritative — prevents false positives)
     // - Tasks with TDD explicitly skipped
-    const skipInversion =
-      hasExplicitMetadata || task.tdd_evidence?.skipped;
+    const skipInversion = hasExplicitMetadata || task.tdd_evidence?.skipped;
 
     if (!skipInversion && classifierIsTestTask(task.title)) {
       for (const dep of blockedByDeps) {

@@ -1,0 +1,125 @@
+# ADV Context Agreement
+
+Closes the gap between the agent's internal state and what the user can see. Two formatting patterns make agent state visible and verifiable.
+
+## Problem
+
+The agent holds rich structured state (gates, tasks, workdir, current task) that the user cannot inspect without explicit formatting. The agent proceeds with an implicit understanding that the user cannot verify or correct.
+
+## Solution
+
+Two formatted outputs, each with distinct triggers:
+
+| Pattern | Purpose | Trigger |
+|---------|---------|---------|
+| Context Snapshot | Compact state summary | `adv_change_show` output |
+| Cross-Repo Switch | Workdir change indicator | Agent switches `workdir` to a different repo |
+
+## Context Snapshot
+
+A compact box (max 10 lines) included as `_contextSnapshot` in `adv_change_show` JSON output.
+
+### Content
+
+| Line | Content | Example |
+|------|---------|---------|
+| 1 | Change ID | `CONTEXT: improveContextAgreement` |
+| 2 | Title | `Improve context agreement` |
+| 3 | (blank separator) | |
+| 4 | Gate progress | `Gates: [✓ research] [✓ prep] [○ impl] ...` |
+| 5 | Task counts | `Tasks: 7 done | 1 active | 2 pending` |
+| 6 | Current task (if any) | `Current: tk-abc123 (Implement feature X)` |
+| 7 | Workdir (if set) | `Workdir: /home/user/dev/my-project` |
+
+### Gate Symbols
+
+| Symbol | Meaning |
+|--------|---------|
+| `✓` | Done or legacy |
+| `⏭` | Skipped |
+| `○` | Pending |
+
+### Gate Labels
+
+Full gate IDs are abbreviated for compactness:
+
+| Gate ID | Label |
+|---------|-------|
+| `research` | `research` |
+| `prep` | `prep` |
+| `implementation` | `impl` |
+| `review` | `review` |
+| `harden` | `harden` |
+| `signoff` | `signoff` |
+
+### Rendered Example
+
+```
+╔═══════════════════════════════════════════════════════════╗
+║ CONTEXT: improveContextAgreement                         ║
+║ Improve context agreement                                ║
+║                                                          ║
+║ Gates: [✓ research] [✓ prep] [○ impl] [○ review] ...    ║
+║ Tasks: 7 done | 1 active | 2 pending                    ║
+║ Current: tk-abc123 (Implement feature X)                 ║
+║ Workdir: /home/user/dev/my-project                       ║
+╚═══════════════════════════════════════════════════════════╝
+```
+
+### Emission Triggers
+
+The snapshot is included automatically when `adv_change_show` is called. Per the Context Freshness Policy in `adv-apply.md`, agents re-read via `adv_change_show` before each task — so the snapshot is emitted at every task transition.
+
+| Trigger | Mechanism |
+|---------|-----------|
+| Change loaded for work | `adv_change_show` |
+| Gate transitions | Reflected in next `adv_change_show` call |
+| Task switches | Reflected in next `adv_change_show` call |
+
+### Graceful Degradation
+
+| Missing Data | Behavior |
+|--------------|----------|
+| No gates | All gates shown as pending (`○`) |
+| No tasks | Shows `0 done | 0 active | 0 pending` |
+| No current task | Line omitted |
+| No workdir | Line omitted |
+
+## Cross-Repo Switch Indicator
+
+A formatted block emitted by the agent when switching `workdir` to a different repository during cross-repo task execution.
+
+### Rendered Example
+
+```
+╔═══════════════════════════════════════════════════════════╗
+║ 🔀 SWITCHING REPOSITORY CONTEXT                          ║
+║ From: /home/user/dev/frontend                            ║
+║ To:   /home/user/dev/backend                             ║
+║ Task: tk-backend01 (Add /api/oauth/callback endpoint)    ║
+╚═══════════════════════════════════════════════════════════╝
+```
+
+### When to Emit
+
+Emit when the agent switches `workdir` to a different repository for a cross-repo task. Not emitted for workdir changes within the same repository.
+
+## Implementation
+
+| File | Exports |
+|------|---------|
+| `plugin/src/utils/context-snapshot.ts` | `formatContextSnapshot()`, `formatCrossRepoSwitch()` |
+| `plugin/src/utils/context-snapshot.ts` | Types: `ContextSnapshotInput`, `CrossRepoSwitchInput` |
+| `plugin/src/tools/change.ts` | Builds snapshot from change/gates/tasks, adds `_contextSnapshot` to output |
+
+## Spec
+
+Requirements defined in `.adv/specs/context-display/spec.json`:
+
+| Requirement | Summary |
+|-------------|---------|
+| `rq-ctxsnap1` | Snapshot content (change ID, title, gates, tasks, workdir) |
+| `rq-ctxsnap2` | Emission triggers (change load, gate transition, task switch) |
+| `rq-ctxswitch` | Cross-repo switch indicator format |
+| `rq-ctxformat` | Box-drawing format, max 10 lines, deterministic |
+| `rq-ctxfallback` | Graceful degradation for missing data |

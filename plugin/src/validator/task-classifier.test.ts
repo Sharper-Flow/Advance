@@ -15,7 +15,6 @@ import {
   isTestTask,
   isImplTask,
   requiresTddEvidence,
-  type TddIntent,
 } from "./task-classifier";
 
 // =============================================================================

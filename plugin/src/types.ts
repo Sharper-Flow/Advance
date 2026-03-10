@@ -717,6 +717,15 @@ export const FeatureFlagsSchema = z
      */
     wisdom_accumulation: z.boolean().default(true),
     /**
+     * Clarify enforcement mode.
+     * - "advisory" (default): Ambiguity findings surfaced as warnings in tool output; no blocking
+     * - "strict": Ambiguity findings block the prep gate until resolved via /adv-clarify
+     * - "off": Clarify checks skipped entirely; no findings emitted
+     */
+    clarify_enforcement: z
+      .enum(["off", "advisory", "strict"])
+      .default("advisory"),
+    /**
      * Threshold overrides for /adv-slop-scan detection.
      * All thresholds have smart defaults; override only what differs from project norms.
      */

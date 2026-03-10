@@ -151,6 +151,59 @@ describe("Change Tools", () => {
           Array.isArray(parsed.github_issues),
       ).toBe(true);
     });
+
+    test("includes context snapshot in output", async () => {
+      const result = await changeTools.adv_change_show.execute(
+        { changeId: "addFeature" },
+        store,
+      );
+      const parsed = JSON.parse(result);
+
+      // Should include a _contextSnapshot string field
+      expect(parsed._contextSnapshot).toBeDefined();
+      expect(typeof parsed._contextSnapshot).toBe("string");
+      // Snapshot should contain the change ID and title
+      expect(parsed._contextSnapshot).toContain("addFeature");
+      expect(parsed._contextSnapshot).toContain("Add New Feature");
+      // Should contain gate progress
+      expect(parsed._contextSnapshot).toMatch(/Gates:/);
+      // Should contain task counts
+      expect(parsed._contextSnapshot).toMatch(/Tasks:/);
+      // Should use box-drawing characters
+      expect(parsed._contextSnapshot).toMatch(/[╔╗╚╝║═]/);
+    });
+
+    test("context snapshot reflects actual task states and gate progress", async () => {
+      // Advance task states: mark first task done, second in_progress
+      await store.tasks.update("tk-task0001", "done", "Completed");
+      await store.tasks.update("tk-task0002", "in_progress");
+
+      // Complete research and prep gates
+      await store.gates.complete("addFeature", "research", "test-agent");
+      await store.gates.complete("addFeature", "prep", "test-agent");
+
+      const result = await changeTools.adv_change_show.execute(
+        { changeId: "addFeature" },
+        store,
+      );
+      const parsed = JSON.parse(result);
+      const snapshot = parsed._contextSnapshot as string;
+
+      // Task counts should reflect 1 done, 1 active, 1 pending
+      expect(snapshot).toContain("1 done");
+      expect(snapshot).toContain("1 active");
+      expect(snapshot).toContain("1 pending");
+
+      // Gate progress should show research and prep as done
+      expect(snapshot).toMatch(/\[✓ research\]/);
+      expect(snapshot).toMatch(/\[✓ prep\]/);
+      // Implementation should still be pending
+      expect(snapshot).toMatch(/\[○ impl\]/);
+
+      // Current task should show the in_progress task
+      expect(snapshot).toContain("tk-task0002");
+      expect(snapshot).toContain("Write tests");
+    });
   });
 
   describe("adv_change_create", () => {
@@ -208,6 +261,91 @@ describe("Change Tools", () => {
 
       const content = await readFile(parsed.path, "utf-8");
       expect(content).toBe(proposal);
+    });
+  });
+
+  describe("adv_change_show clarify integration", () => {
+    test("includes clarifyFindings for change with ambiguity signals", async () => {
+      // The sample change has a delta with add + no scenarios, and the sample
+      // proposal has no Success Criteria or Scope section — should trigger findings
+      const result = await changeTools.adv_change_show.execute(
+        { changeId: "addFeature" },
+        store,
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed.clarifyFindings).toBeDefined();
+      expect(parsed.clarifyFindings.count).toBeGreaterThan(0);
+      expect(parsed.clarifyFindings.findings).toBeInstanceOf(Array);
+      // Should include CLARIFY_MISSING_SCENARIOS at minimum
+      const codes = parsed.clarifyFindings.findings.map(
+        (f: { code: string }) => f.code,
+      );
+      expect(codes).toContain("CLARIFY_MISSING_SCENARIOS");
+    });
+
+    test("omits clarifyFindings when clarify_enforcement is off", async () => {
+      const config = store.config!;
+      (config.features as Record<string, unknown>).clarify_enforcement = "off";
+
+      const result = await changeTools.adv_change_show.execute(
+        { changeId: "addFeature" },
+        store,
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed.clarifyFindings).toBeUndefined();
+    });
+  });
+
+  describe("adv_change_create clarify integration", () => {
+    test("includes clarifyNeeded when summary has subjective language", async () => {
+      const result = await changeTools.adv_change_create.execute(
+        { summary: "Make it fast and simple" },
+        store,
+      );
+      const parsed = parseToolOutput(result);
+
+      expect(parsed.clarifyNeeded).toBeDefined();
+      expect(parsed.clarifyNeeded.count).toBeGreaterThan(0);
+      expect(parsed.clarifyNeeded.findings).toBeInstanceOf(Array);
+      expect(parsed.clarifyNeeded.findings.length).toBe(
+        parsed.clarifyNeeded.count,
+      );
+      // Each finding should have structured fields
+      const finding = parsed.clarifyNeeded.findings[0];
+      expect(finding.code).toBeDefined();
+      expect(finding.severity).toBe("warning");
+      expect(finding.message).toBeDefined();
+      expect(finding.questionCategory).toBeDefined();
+    });
+
+    test("omits clarifyNeeded when summary is clean and concrete", async () => {
+      const result = await changeTools.adv_change_create.execute(
+        {
+          summary: "Add rate limiting",
+          proposal:
+            "# Add Rate Limiting\n\n## Scope\n\n- src/middleware/rate-limit.ts\n\n## Success Criteria\n\n- [ ] Rate limiter rejects >100 req/min per IP\n- [ ] Returns 429 with retry-after header\n\n## Error Handling\n\nOn failure, fallback to permissive mode with error logged.",
+        },
+        store,
+      );
+      const parsed = parseToolOutput(result);
+
+      expect(parsed.clarifyNeeded).toBeUndefined();
+    });
+
+    test("respects clarify_enforcement off — omits findings", async () => {
+      // Override config to set clarify_enforcement to "off"
+      const config = store.config!;
+      (config.features as Record<string, unknown>).clarify_enforcement = "off";
+
+      const result = await changeTools.adv_change_create.execute(
+        { summary: "Make it fast" },
+        store,
+      );
+      const parsed = parseToolOutput(result);
+
+      expect(parsed.clarifyNeeded).toBeUndefined();
     });
   });
 

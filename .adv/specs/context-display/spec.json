@@ -1,0 +1,174 @@
+{
+  "$schema": "https://raw.githubusercontent.com/anomalyco/oc-plugins/main/advance/plugin/schemas/spec.schema.json",
+  "name": "context-display",
+  "title": "Context Display",
+  "purpose": "Structured formatting patterns that make agent internal state visible to the user, closing the context agreement gap between what the agent knows and what the user sees.",
+  "version": "1.0.0",
+  "updated_at": "2026-03-10T00:00:00.000Z",
+  "requirements": [
+    {
+      "id": "rq-ctxsnap1",
+      "title": "Context Snapshot Content",
+      "body": "The Context Snapshot MUST display: change ID and title, success criteria count, gate progress (inline visual), task counts by status, and current workdir. The snapshot MUST fit within 10 lines for quick scanning.",
+      "priority": "must",
+      "tags": ["context-display", "snapshot"],
+      "scenarios": [
+        {
+          "id": "rq-ctxsnap1.1",
+          "title": "Snapshot includes all required fields",
+          "given": [
+            "An active change with tasks, gates, and a proposal"
+          ],
+          "when": "A context snapshot is rendered",
+          "then": [
+            "The output includes the change ID and title",
+            "The output includes gate progress as an inline visual",
+            "The output includes task counts grouped by status",
+            "The output includes the current workdir path"
+          ]
+        },
+        {
+          "id": "rq-ctxsnap1.2",
+          "title": "Snapshot fits within 10 lines",
+          "given": [
+            "A change with 20 tasks across 4 sections and all 6 gates"
+          ],
+          "when": "A context snapshot is rendered",
+          "then": [
+            "The total output is 10 lines or fewer"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-ctxsnap2",
+      "title": "Context Snapshot Emission Triggers",
+      "body": "The Context Snapshot MUST be emitted at defined trigger points: when a change is first loaded for work, when a gate transitions, when the active task switches, and when a session resumes with an active change. Emission is automatic — not only on user request.",
+      "priority": "must",
+      "tags": ["context-display", "snapshot", "triggers"],
+      "scenarios": [
+        {
+          "id": "rq-ctxsnap2.1",
+          "title": "Snapshot emitted on change load",
+          "given": [
+            "An agent begins work on a change via adv_change_show or /adv-apply"
+          ],
+          "when": "The change data is loaded",
+          "then": [
+            "A context snapshot is included in the tool output"
+          ]
+        },
+        {
+          "id": "rq-ctxsnap2.2",
+          "title": "Snapshot emitted on gate transition",
+          "given": [
+            "A gate is marked complete via adv_gate_complete"
+          ],
+          "when": "The gate status changes",
+          "then": [
+            "The updated gate progress is visible in subsequent tool output"
+          ]
+        },
+        {
+          "id": "rq-ctxsnap2.3",
+          "title": "Snapshot emitted on task switch",
+          "given": [
+            "An agent completes one task and starts another"
+          ],
+          "when": "adv_task_update changes a task to in_progress",
+          "then": [
+            "The tool output reflects the new current task context"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-ctxswitch",
+      "title": "Cross-Repo Switch Indicator",
+      "body": "When the agent switches workdir to a different repository during a change, a formatted indicator MUST be emitted showing the from/to paths and the task that triggered the switch. This prevents the user from losing track of which repository context the agent is operating in.",
+      "priority": "must",
+      "tags": ["context-display", "cross-repo"],
+      "scenarios": [
+        {
+          "id": "rq-ctxswitch.1",
+          "title": "Switch indicator shows from/to paths",
+          "given": [
+            "A change with cross-repo tasks",
+            "The agent is switching workdir from repo A to repo B"
+          ],
+          "when": "The cross-repo switch indicator is rendered",
+          "then": [
+            "The output shows the source repository path",
+            "The output shows the target repository path",
+            "The output shows the task that triggered the switch"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-ctxformat",
+      "title": "Context Display Format Constraints",
+      "body": "All context display formatting MUST use box-drawing characters consistent with existing ADV patterns (banner.ts). The format MUST be deterministic — identical state produces identical output. The snapshot MUST NOT include interactive prompts or block execution.",
+      "priority": "must",
+      "tags": ["context-display", "format"],
+      "scenarios": [
+        {
+          "id": "rq-ctxformat.1",
+          "title": "Deterministic output",
+          "given": [
+            "A change with known state (fixed tasks, gates, workdir)"
+          ],
+          "when": "A context snapshot is rendered twice with the same input",
+          "then": [
+            "Both outputs are identical"
+          ]
+        },
+        {
+          "id": "rq-ctxformat.2",
+          "title": "Non-blocking display",
+          "given": [
+            "A context snapshot is being rendered"
+          ],
+          "when": "The formatter is called",
+          "then": [
+            "No interactive prompts are displayed",
+            "Execution is not blocked waiting for user input"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-ctxfallback",
+      "title": "Context Display Graceful Degradation",
+      "body": "The context snapshot formatter MUST gracefully handle missing or partial data: absent gate info, empty task lists, missing proposal, unavailable workdir. Partial snapshots are emitted with placeholder values rather than errors.",
+      "priority": "must",
+      "tags": ["context-display", "error-handling"],
+      "scenarios": [
+        {
+          "id": "rq-ctxfallback.1",
+          "title": "Missing gates handled gracefully",
+          "given": [
+            "A change with no gate data (legacy change)"
+          ],
+          "when": "A context snapshot is rendered",
+          "then": [
+            "Gate progress shows all gates as unknown/pending",
+            "No error is thrown"
+          ]
+        },
+        {
+          "id": "rq-ctxfallback.2",
+          "title": "Empty task list handled gracefully",
+          "given": [
+            "A change with zero tasks"
+          ],
+          "when": "A context snapshot is rendered",
+          "then": [
+            "Task counts show 0 for all statuses",
+            "No error is thrown"
+          ]
+        }
+      ]
+    }
+  ]
+}

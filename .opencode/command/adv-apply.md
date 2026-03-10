@@ -490,6 +490,8 @@ Before starting EACH task, you MUST:
 
 **Why this matters:** Context drift causes implementation errors. When agents batch multiple tasks with abbreviated summaries, they lose nuance and make incorrect assumptions about requirements.
 
+**Context Snapshot:** `adv_change_show` now includes a `_contextSnapshot` field — a compact visual summary of change state (gates, tasks, current task, workdir). This is emitted automatically on every re-read, keeping the user informed of where the agent is in the change lifecycle.
+
 ### TodoWrite Rules for ADV Tasks
 
 When using the `TodoWrite` tool during `/adv-apply`:

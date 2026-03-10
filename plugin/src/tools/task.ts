@@ -7,11 +7,7 @@
 
 import { z } from "zod";
 import type { Store } from "../storage/store";
-import {
-  isTrivialTask,
-  truncateOutput,
-  type Cancellation,
-} from "../types";
+import { isTrivialTask, truncateOutput, type Cancellation } from "../types";
 import {
   getTaskTddCompliance,
   requiresTddEvidence,
@@ -156,20 +152,20 @@ export const taskTools = {
         .describe("Section header (e.g., 'Testing')"),
     },
     execute: async (
-        {
-          changeId,
-          content,
-          metadata,
-          blockedBy,
-          section,
-        }: {
-          changeId: string;
-          content: string;
-          metadata?: Record<string, string>;
-          blockedBy?: string[];
-          section?: string;
-        },
-        store: Store,
+      {
+        changeId,
+        content,
+        metadata,
+        blockedBy,
+        section,
+      }: {
+        changeId: string;
+        content: string;
+        metadata?: Record<string, string>;
+        blockedBy?: string[];
+        section?: string;
+      },
+      store: Store,
     ) => {
       try {
         const task = await store.tasks.add(changeId, content, {

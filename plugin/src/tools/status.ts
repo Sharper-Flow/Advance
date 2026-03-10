@@ -6,12 +6,22 @@
  * gate status of active changes.
  */
 
+import { join } from "path";
 import type { Store } from "../storage/store";
 import { wrapWithBanner } from "../utils/banner";
 import { formatToolOutput } from "../utils/tool-output";
-import { GATE_ORDER, isGateSatisfied, type GateId } from "../types";
+import {
+  GATE_ORDER,
+  isGateSatisfied,
+  type GateId,
+  type FeatureFlags,
+} from "../types";
 import { getCommandsByGate } from "../manifest";
-import { loadProjectConfigWithDiagnostics } from "../storage/json";
+import {
+  loadProjectConfigWithDiagnostics,
+  loadProposalWithFallback,
+} from "../storage/json";
+import { runClarifyReadinessChecks } from "../validator/clarify-readiness";
 
 // =============================================================================
 // Helpers
@@ -86,6 +96,36 @@ export const statusTools = {
           const rec = getRecommendationForGate(nextGate as GateId, rc.id);
           if (rec) {
             status.recommendations.push(rec);
+          }
+        }
+      }
+
+      // Add clarify-readiness recommendations for active changes with ambiguity.
+      // Keep these immediately after gate recommendations so the workflow
+      // guidance stays grouped by change before recency notices.
+      const features = store.config?.features as FeatureFlags | undefined;
+      const clarifyMode = features?.clarify_enforcement ?? "advisory";
+
+      if (clarifyMode !== "off") {
+        for (const rc of recentChanges) {
+          const changeResult = await store.changes.get(rc.id);
+          if (!changeResult.success || !changeResult.data) continue;
+
+          const changeDir = join(store.paths.changes, rc.id);
+          const { content: proposalText } = await loadProposalWithFallback(
+            changeDir,
+            changeResult.data.title,
+          );
+
+          const clarifyResult = runClarifyReadinessChecks(
+            changeResult.data,
+            proposalText,
+          );
+
+          if (clarifyResult.findings.length > 0) {
+            status.recommendations.push(
+              `⚠️ Change \`${rc.id}\` has ${clarifyResult.findings.length} ambiguity finding(s) — run \`/adv-clarify ${rc.id}\` to resolve`,
+            );
           }
         }
       }

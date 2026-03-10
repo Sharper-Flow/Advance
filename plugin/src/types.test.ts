@@ -659,6 +659,59 @@ describe("FeatureFlagsSchema", () => {
       expect(result.slop_scan?.nesting_depth_threshold).toBe(4);
     });
   });
+
+  describe("clarify_enforcement flag", () => {
+    test("defaults to advisory when absent", () => {
+      const result = FeatureFlagsSchema.parse({});
+      expect(result.clarify_enforcement).toBe("advisory");
+    });
+
+    test("accepts all valid clarify_enforcement values", () => {
+      expect(
+        FeatureFlagsSchema.parse({ clarify_enforcement: "off" })
+          .clarify_enforcement,
+      ).toBe("off");
+      expect(
+        FeatureFlagsSchema.parse({ clarify_enforcement: "advisory" })
+          .clarify_enforcement,
+      ).toBe("advisory");
+      expect(
+        FeatureFlagsSchema.parse({ clarify_enforcement: "strict" })
+          .clarify_enforcement,
+      ).toBe("strict");
+    });
+
+    test("rejects invalid clarify_enforcement value", () => {
+      expect(() =>
+        FeatureFlagsSchema.parse({ clarify_enforcement: "invalid" }),
+      ).toThrow();
+    });
+
+    test("clarify_enforcement does not affect other feature flags", () => {
+      const result = FeatureFlagsSchema.parse({
+        clarify_enforcement: "strict",
+      });
+      expect(result.clarify_enforcement).toBe("strict");
+      expect(result.tdd_enforcement).toBe("strict");
+      expect(result.gate_enforcement).toBe("strict");
+      expect(result.worktree_auto_create).toBe(true);
+    });
+
+    test("ProjectConfigSchema includes clarify_enforcement default", () => {
+      const config = { name: "test-project" };
+      const result = ProjectConfigSchema.parse(config);
+      expect(result.features?.clarify_enforcement).toBe("advisory");
+    });
+
+    test("ProjectConfigSchema accepts clarify_enforcement override", () => {
+      const config = {
+        name: "test-project",
+        features: { clarify_enforcement: "strict" },
+      };
+      const result = ProjectConfigSchema.parse(config);
+      expect(result.features?.clarify_enforcement).toBe("strict");
+    });
+  });
 });
 
 // =============================================================================

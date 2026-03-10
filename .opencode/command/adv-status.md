@@ -12,6 +12,8 @@ Show the current state of the ADV project including specs, active changes, and r
 
 Call `adv_status` to get the project overview.
 
+**Context Snapshot:** For each active change, `adv_change_show` includes a `_contextSnapshot` field — a compact visual summary of gate progress, task counts, and current task. Use this to populate the gate progress line in the ACTIVE CHANGES section.
+
 Display the results in a formatted view:
 
 ```
@@ -42,6 +44,7 @@ Total: <count> changes (sorted by most recent activity)
 <for each change in changes.recent>
 - <recency-emoji> <change-id>: <title>
   Status: <status> | Tasks: <completed>/<total> | Last activity: <relative-time>
+  Gates: <gate-progress from _contextSnapshot>
   <if recency == "hot">🔥 Active <minutes>m ago — likely in-flight<end>
   <if recency == "warm">⏳ Last active <hours>h ago<end>
   <if recency == "stale">⏰ Stale (<hours>h ago) — needs pickup<end>
