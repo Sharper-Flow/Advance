@@ -106,6 +106,18 @@ Advance exists to make those failure modes harder.
 - **Validation and archive flow** - reduce drift between proposal, implementation, and specs
 - **Tradeoff prioritization** - route multi-approach decisions through a prioritizer sub-agent before asking users to weigh criteria
 
+### Prioritizer example
+
+For tradeoff-heavy decisions, ADV agents should call the hidden `prioritizer` sub-agent first, then pass its drafted questions to the `question` tool.
+
+```json
+{
+  "subagent_type": "prioritizer",
+  "description": "Draft tradeoff criteria for auth decision",
+  "prompt": "Decision: choose between Redis-backed sessions, JWT cookies, and Auth.js delegation for protected routes. Domain: authentication. Key files: src/hooks.server.ts, src/lib/auth/, src/routes/login/+page.server.ts. Real tradeoff: operational simplicity vs extensibility vs dependency surface. Draft context-specific criteria questions and a decision map following the prioritizer output format."
+}
+```
+
 ## Repository structure
 
 ```text

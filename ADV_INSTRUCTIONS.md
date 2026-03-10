@@ -154,6 +154,15 @@ Workflow:
 3. Pass the returned `questions` JSON to the `question` tool with minimal paraphrasing
 4. Restate the user's priorities before recommending the winning approach
 
+Canonical `task` payload:
+```json
+{
+  "subagent_type": "prioritizer",
+  "description": "Draft tradeoff criteria for auth decision",
+  "prompt": "Decision: choose between Redis-backed sessions, JWT cookies, and Auth.js delegation for protected routes. Domain: authentication. Key files: src/hooks.server.ts, src/lib/auth/, src/routes/login/+page.server.ts. Real tradeoff: operational simplicity vs extensibility vs dependency surface. Draft context-specific criteria questions and a decision map following the prioritizer output format."
+}
+```
+
 Skip the prioritizer for obvious bug fixes, mechanical work, or choices already constrained by security/API compatibility/established architecture.
 
 ### Context Freshness
