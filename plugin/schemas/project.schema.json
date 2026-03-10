@@ -91,6 +91,15 @@
               "type": "boolean",
               "default": true
             },
+            "clarify_enforcement": {
+              "type": "string",
+              "enum": [
+                "off",
+                "advisory",
+                "strict"
+              ],
+              "default": "advisory"
+            },
             "slop_scan": {
               "type": "object",
               "properties": {

@@ -474,7 +474,7 @@ pnpm build
 | Command | Purpose |
 |---------|---------|
 | `/adv-status` | Project overview |
-| `/adv-proposal <summary>` | Create change proposal |
+| `/adv-proposal <summary>` | Agree on problem statement, then define the change |
 | `/adv-validate <id>` | Validate change |
 | `/adv-apply <id>` | Implement with TDD |
 | `/adv-archive <id>` | Archive completed change |

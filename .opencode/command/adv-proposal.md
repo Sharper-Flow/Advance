@@ -102,7 +102,8 @@ Use the `question` tool:
     "options": [
       { "label": "Confirmed — proceed (Recommended)", "description": "Create the change and continue with the full proposal" },
       { "label": "Adjust statement", "description": "I want to refine the problem statement before proceeding" },
-      { "label": "Abort", "description": "Cancel — do not create a change" }
+      { "label": "Abort", "description": "Cancel — do not create a change" },
+      { "label": "Custom correction", "description": "Use custom text to rewrite the statement before proceeding" }
     ]
   }]
 }

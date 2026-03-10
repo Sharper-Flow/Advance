@@ -123,7 +123,7 @@ Tasks with `target_repo`/`target_path` MUST execute in target dir.
 ```markdown
 | Command | Purpose |
 |---------|---------|
-| `/adv-proposal` | Create change proposal |
+| `/adv-proposal` | Agree on problem statement, then define the change |
 ```
 
 ### 3-column: Validation
@@ -239,4 +239,3 @@ Examples:
 - `adv_task_show`, `adv_task_create`, `adv_task_cancel`
 - `adv_gate_status`, `adv_gate_complete`
 - `adv_spec` (with action: "list", "show", or "search")
-

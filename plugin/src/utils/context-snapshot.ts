@@ -33,7 +33,9 @@ export interface ContextSnapshotInput {
   currentTask?: { id: string; title: string };
 }
 
-export function countSuccessCriteria(proposalText?: string): number | undefined {
+export function countSuccessCriteria(
+  proposalText?: string,
+): number | undefined {
   if (proposalText === undefined) return undefined;
 
   const criteriaMatch =

@@ -259,8 +259,7 @@ export function checkUnclearScope(
   // Check if scope is empty or placeholder
   const scopeBody = scopeMatch[1].trim();
   const isPlaceholder =
-    scopeBody.length === 0 ||
-    /^\s*-?\s*\(unknown/i.test(scopeBody);
+    scopeBody.length === 0 || /^\s*-?\s*\(unknown/i.test(scopeBody);
 
   if (isPlaceholder) {
     issues.push({

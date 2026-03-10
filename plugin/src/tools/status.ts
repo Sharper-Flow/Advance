@@ -98,7 +98,8 @@ export const statusTools = {
           changeResult.data.title,
         );
         const taskCounts = {
-          done: changeResult.data.tasks.filter((t) => t.status === "done").length,
+          done: changeResult.data.tasks.filter((t) => t.status === "done")
+            .length,
           in_progress: changeResult.data.tasks.filter(
             (t) => t.status === "in_progress",
           ).length,

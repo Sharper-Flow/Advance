@@ -190,7 +190,10 @@ The important point is not the raw tool count. The value is that the workflow is
 - `docs/adv-workflow.md` - lifecycle overview
 - `docs/adv-gates.md` - gate model and sequencing
 - `docs/adv-task-report.md` - task handoff/status reporting
+- `docs/adv-context-agreement.md` - context snapshot and cross-repo switch formatting
+- `docs/adv-question-tool.md` - question tool UX policy
 - `docs/checklists/` - prep, review, and harden checklists
+- `docs/specs/` - generated spec documentation (advance, context-display, contract-system, prep-readiness, slop-scan, tdd-contract)
 
 ## Development
 

@@ -124,9 +124,12 @@ export const gateTools = {
           in_progress: change.tasks.filter((t) => t.status === "in_progress")
             .length,
           pending: change.tasks.filter((t) => t.status === "pending").length,
-          cancelled: change.tasks.filter((t) => t.status === "cancelled").length,
+          cancelled: change.tasks.filter((t) => t.status === "cancelled")
+            .length,
         };
-        const currentTask = change.tasks.find((t) => t.status === "in_progress");
+        const currentTask = change.tasks.find(
+          (t) => t.status === "in_progress",
+        );
 
         return formatContextSnapshot({
           changeId: change.id,
