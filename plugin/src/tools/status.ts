@@ -18,6 +18,10 @@ import {
 } from "../types";
 import { getCommandsByGate } from "../manifest";
 import {
+  countSuccessCriteria,
+  formatContextSnapshot,
+} from "../utils/context-snapshot";
+import {
   loadProjectConfigWithDiagnostics,
   loadProposalWithFallback,
 } from "../storage/json";
@@ -83,6 +87,46 @@ export const statusTools = {
       // Add manifest-driven gate recommendations for active changes,
       // ordered by recency (most recently active first)
       const recentChanges = status.changes.recent ?? [];
+      for (const rc of recentChanges) {
+        const changeResult = await store.changes.get(rc.id);
+        if (!changeResult.success || !changeResult.data) continue;
+
+        const gates = await store.gates.get(rc.id);
+        const changeDir = join(store.paths.changes, rc.id);
+        const { content: proposalText } = await loadProposalWithFallback(
+          changeDir,
+          changeResult.data.title,
+        );
+        const taskCounts = {
+          done: changeResult.data.tasks.filter((t) => t.status === "done").length,
+          in_progress: changeResult.data.tasks.filter(
+            (t) => t.status === "in_progress",
+          ).length,
+          pending: changeResult.data.tasks.filter((t) => t.status === "pending")
+            .length,
+          cancelled: changeResult.data.tasks.filter(
+            (t) => t.status === "cancelled",
+          ).length,
+        };
+        const currentTask = changeResult.data.tasks.find(
+          (t) => t.status === "in_progress",
+        );
+
+        Object.assign(rc, {
+          _contextSnapshot: formatContextSnapshot({
+            changeId: changeResult.data.id,
+            title: changeResult.data.title,
+            successCriteriaCount: countSuccessCriteria(proposalText),
+            gates: gates ?? undefined,
+            taskCounts,
+            workdir: store.paths.root,
+            currentTask: currentTask
+              ? { id: currentTask.id, title: currentTask.title }
+              : undefined,
+          }),
+        });
+      }
+
       for (const rc of recentChanges) {
         const gates = await store.gates.get(rc.id);
         if (!gates) continue;

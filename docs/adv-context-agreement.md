@@ -17,7 +17,7 @@ Two formatted outputs, each with distinct triggers:
 
 ## Context Snapshot
 
-A compact box (max 10 lines) included as `_contextSnapshot` in `adv_change_show` JSON output.
+A compact box (max 10 lines) included in `_contextSnapshot` output fields across ADV tools.
 
 ### Content
 
@@ -27,9 +27,10 @@ A compact box (max 10 lines) included as `_contextSnapshot` in `adv_change_show`
 | 2 | Title | `Improve context agreement` |
 | 3 | (blank separator) | |
 | 4 | Gate progress | `Gates: [✓ research] [✓ prep] [○ impl] ...` |
-| 5 | Task counts | `Tasks: 7 done | 1 active | 2 pending` |
-| 6 | Current task (if any) | `Current: tk-abc123 (Implement feature X)` |
-| 7 | Workdir (if set) | `Workdir: /home/user/dev/my-project` |
+| 5 | Success criteria count | `Success: 3 criteria` |
+| 6 | Task counts | `Tasks: 7 done | 1 active | 2 pending` |
+| 7 | Current task (if any) | `Current: tk-abc123 (Implement feature X)` |
+| 8 | Workdir | `Workdir: /home/user/dev/my-project` |
 
 ### Gate Symbols
 
@@ -60,6 +61,7 @@ Full gate IDs are abbreviated for compactness:
 ║ Improve context agreement                                ║
 ║                                                          ║
 ║ Gates: [✓ research] [✓ prep] [○ impl] [○ review] ...    ║
+║ Success: 3 criteria                                      ║
 ║ Tasks: 7 done | 1 active | 2 pending                    ║
 ║ Current: tk-abc123 (Implement feature X)                 ║
 ║ Workdir: /home/user/dev/my-project                       ║
@@ -68,13 +70,14 @@ Full gate IDs are abbreviated for compactness:
 
 ### Emission Triggers
 
-The snapshot is included automatically when `adv_change_show` is called. Per the Context Freshness Policy in `adv-apply.md`, agents re-read via `adv_change_show` before each task — so the snapshot is emitted at every task transition.
+The snapshot is included automatically when ADV tools expose current change state. Per the Context Freshness Policy in `adv-apply.md`, agents re-read via `adv_change_show` before each task — so the snapshot is emitted at every task transition.
 
 | Trigger | Mechanism |
 |---------|-----------|
 | Change loaded for work | `adv_change_show` |
-| Gate transitions | Reflected in next `adv_change_show` call |
+| Gate transitions | `adv_gate_complete` response and next `adv_change_show` call |
 | Task switches | Reflected in next `adv_change_show` call |
+| Project overview | Recent entries in `adv_status` |
 
 ### Graceful Degradation
 
@@ -83,7 +86,9 @@ The snapshot is included automatically when `adv_change_show` is called. Per the
 | No gates | All gates shown as pending (`○`) |
 | No tasks | Shows `0 done | 0 active | 0 pending` |
 | No current task | Line omitted |
-| No workdir | Line omitted |
+| No workdir | Shows `Workdir: (unavailable)` |
+| No success criteria section | Shows `Success: 0 criteria` |
+| No proposal text | Shows `Success: ? criteria` |
 
 ## Cross-Repo Switch Indicator
 
@@ -110,7 +115,9 @@ Emit when the agent switches `workdir` to a different repository for a cross-rep
 |------|---------|
 | `plugin/src/utils/context-snapshot.ts` | `formatContextSnapshot()`, `formatCrossRepoSwitch()` |
 | `plugin/src/utils/context-snapshot.ts` | Types: `ContextSnapshotInput`, `CrossRepoSwitchInput` |
-| `plugin/src/tools/change.ts` | Builds snapshot from change/gates/tasks, adds `_contextSnapshot` to output |
+| `plugin/src/tools/change.ts` | Builds snapshot from change/gates/tasks/proposal, adds `_contextSnapshot` to output |
+| `plugin/src/tools/status.ts` | Adds `_contextSnapshot` to each recent change in `adv_status` |
+| `plugin/src/tools/gate.ts` | Emits updated `_contextSnapshot` in `adv_gate_complete` responses |
 
 ## Spec
 
@@ -118,7 +125,7 @@ Requirements defined in `.adv/specs/context-display/spec.json`:
 
 | Requirement | Summary |
 |-------------|---------|
-| `rq-ctxsnap1` | Snapshot content (change ID, title, gates, tasks, workdir) |
+| `rq-ctxsnap1` | Snapshot content (change ID, title, success criteria, gates, tasks, workdir) |
 | `rq-ctxsnap2` | Emission triggers (change load, gate transition, task switch) |
 | `rq-ctxswitch` | Cross-repo switch indicator format |
 | `rq-ctxformat` | Box-drawing format, max 10 lines, deterministic |

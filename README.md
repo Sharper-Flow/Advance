@@ -43,7 +43,7 @@ Advance exists to make those failure modes harder.
 ## Core workflow
 
 ```text
-/adv-proposal  -> define the change
+/adv-proposal  -> agree on problem statement, then define the change
 /adv-validate  -> check it against specs
 /adv-apply     -> execute tasks with TDD and evidence
 /adv-review    -> adversarial review and remediation
@@ -58,7 +58,7 @@ Advance exists to make those failure modes harder.
 | Command | Purpose |
 |---------|---------|
 | `/adv-status` | Show project overview: specs, active changes, and next-step recommendations |
-| `/adv-proposal <summary>` | Propose a new change with intent, scope, and success criteria |
+| `/adv-proposal <summary>` | Propose a new change with problem statement agreement then full proposal |
 | `/adv-validate <change-id>` | Validate change compliance against specs; block archive on failure |
 | `/adv-apply <change-id>` | Implement change with TDD, retry on failure, and final verification |
 | `/adv-archive <change-id>` | Archive completed change: apply spec deltas and finalize git |

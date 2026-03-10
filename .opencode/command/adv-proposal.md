@@ -1,12 +1,12 @@
 ---
 name: adv-proposal
-description: Propose a new change with intent, scope, and success criteria
+description: Propose a new change with problem statement agreement then full proposal
 agent: build
 ---
 
 # ADV Proposal — Create Change with Quality Requirements
 
-Create a new change proposal. Uses INVEST criteria and requirements smell detection to ensure high-quality, implementable specifications.
+Create a new change proposal. Uses a two-phase workflow: first establish shared understanding of the problem (Phase 1), then build the full proposal with INVEST criteria and requirements smell detection (Phase 2).
 
 <UserRequest>
   $ARGUMENTS
@@ -23,7 +23,7 @@ Create a new change proposal. Uses INVEST criteria and requirements smell detect
 | `/adv-proposal` (no args) | Derive a concise 2-5 word summary from the recent conversation. Never ask the user "what do you want to build?" — synthesize from context and let the question tool confirm scope. |
 | `/adv-proposal <summary>` | Use the provided text as the change summary verbatim. |
 
-**Never stop execution or print a usage error when `$ARGUMENTS` is empty.** If the conversation contains no clear prior topic, pick a reasonable working title (e.g. "explore new feature") — the user will refine it via the scope question in Step 5.
+**Never stop execution or print a usage error when `$ARGUMENTS` is empty.** If the conversation contains no clear prior topic, pick a reasonable working title (e.g. "explore new feature") — the user will refine it via the Phase 1 confirmation.
 
 ### Step 2: Check for Existing Changes
 
@@ -57,15 +57,92 @@ Look for `./temp/brainstorm-*.md` files that might provide context.
 
 ---
 
-## Create Change
+## Phase 1: Problem Statement Agreement
+
+**Purpose:** Establish shared understanding of the problem before creating any change artifacts. This is the first context agreement between the user and the agent. No change scaffold is created until the user confirms.
+
+### Synthesize Problem Statement
+
+Read the recent conversation history and `$ARGUMENTS`. Synthesize a brief problem statement block covering:
+
+- **Problem:** What is broken, missing, or suboptimal? (1-3 sentences)
+- **Desired Outcome:** What does success look like? (1-2 sentences)
+- **Scope:** Which files, modules, or subsystems are affected? (bullet list)
+
+Emit this block in the chat:
+
+```
+============================================================
+              PROBLEM STATEMENT
+============================================================
+
+PROBLEM
+  {1-3 sentences describing what is broken, missing, or suboptimal}
+
+DESIRED OUTCOME
+  {1-2 sentences describing what success looks like}
+
+SCOPE
+  Files / modules expected to change:
+  - {file or module}
+  - {file or module}
+
+============================================================
+```
+
+### Problem Statement Confirmation
+
+Use the `question` tool:
+
+```json
+{
+  "questions": [{
+    "header": "Problem Statement",
+    "question": "Does this problem statement accurately capture what we're building?",
+    "options": [
+      { "label": "Confirmed — proceed (Recommended)", "description": "Create the change and continue with the full proposal" },
+      { "label": "Adjust statement", "description": "I want to refine the problem statement before proceeding" },
+      { "label": "Abort", "description": "Cancel — do not create a change" }
+    ]
+  }]
+}
+```
+
+**If "Adjust statement"**: Re-synthesize from user corrections, re-show the Problem Statement block, re-confirm. Repeat until confirmed or aborted.
+
+**If "Abort"**: Stop execution. Do NOT create any change artifacts.
+
+**If "Confirmed"**: Proceed to Phase 2. The confirmed problem statement text will be persisted as the `## Why` section of `proposal.md` via the `proposal` parameter in `adv_change_create`.
+
+---
+
+## Phase 2: Full Proposal
 
 ### Step 4: Create Change Scaffold
 
-Call `adv_change_create summary: "<resolved summary from Step 1>"`
+**Only reached after Phase 1 confirmation.** Build the initial proposal content from the confirmed problem statement:
+
+```markdown
+# <resolved summary>
+
+## Why
+
+<confirmed problem statement text from Phase 1>
+
+## What Changes
+
+<!-- To be filled in this phase -->
+
+## Success Criteria
+
+<!-- To be filled in this phase -->
+```
+
+Call `adv_change_create summary: "<resolved summary from Step 1>" proposal: "<initial proposal content above>"`
 
 This will create:
 - `changes/<change-id>/change.json` - Change metadata
-- `changes/<change-id>/proposal.md` - Human-readable proposal template
+- `changes/<change-id>/proposal.md` - Proposal with the confirmed problem statement already written
 
 ### Step 5: Gather Requirements
 
@@ -141,14 +218,14 @@ Avoid these patterns:
 
 ## Step 7: Fill Proposal Template
 
-Update `changes/<change-id>/proposal.md` with:
+Update `changes/<change-id>/proposal.md` — the `## Why` section is already populated from Phase 1. Fill in the remaining sections:
 
 ```markdown
 # Change: <summary>
 
 ## Why
 
-<Explain the motivation for this change - the problem being solved>
+<already populated from Phase 1 — do not overwrite>
 
 ## What Changes
 
@@ -370,7 +447,7 @@ Result: Change <change-id> created
 
 | Purpose | Tool |
 |---------|------|
-| Create change | `adv_change_create summary: "..."` |
+| Create change | `adv_change_create summary: "..." proposal: "..."` |
 | List changes | `adv_change_list` |
 | List specs | `adv_spec action: "list"` |
 | Add task | `adv_task_add changeId: <id> content: "..."` |

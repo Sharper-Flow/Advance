@@ -62,11 +62,19 @@ const AUTH_MODEL_SPECIFIED_PATTERN =
 const ERROR_HANDLING_PATTERN =
   /\b(error\s+handl|failure|rollback|retry|fallback|circuit[- ]?breaker|timeout|catch|exception|recover|graceful|degrad|compensat)\b/i;
 
-/** Terms indicating the proposal describes behavior that could fail */
+/**
+ * Terms indicating the proposal describes behavior that could fail.
+ * Includes "api" as a low-signal indicator — enough to trigger the check
+ * on its own, but not enough to override a trivial-change exemption.
+ */
 const BEHAVIOR_PATTERN =
   /\b(endpoint|api|process|send|receive|charge|payment|upload|download|connect|request|query|mutation|transaction|migrate|deploy|sync)\b/i;
 
-/** Higher-signal behaviors that imply operational failure modes */
+/**
+ * Subset of BEHAVIOR_PATTERN excluding low-signal terms ("api").
+ * Used to determine if a trivial change (docs/config) also introduces
+ * operational behavior that warrants error-handling questions.
+ */
 const RISKY_BEHAVIOR_PATTERN =
   /\b(endpoint|process|send|receive|charge|payment|upload|download|connect|request|query|mutation|transaction|migrate|deploy|sync)\b/i;
 

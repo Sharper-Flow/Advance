@@ -54,3 +54,17 @@ export {
   type PrepReadinessResult,
   type PrepReadinessCode,
 } from "./prep-readiness";
+
+// Clarify-readiness checks (for ambiguity detection)
+export {
+  runClarifyReadinessChecks,
+  checkSubjectiveLanguage,
+  checkMissingSuccessCriteria,
+  checkMissingScenarios,
+  checkUnclearScope,
+  checkAssumptionHeavy,
+  checkMissingErrorHandling,
+  ClarifyReadinessCodes,
+  type ClarifyReadinessResult,
+  type ClarifyReadinessCode,
+} from "./clarify-readiness";

@@ -21,6 +21,7 @@ export interface GateInfo {
 export interface ContextSnapshotInput {
   changeId: string;
   title: string;
+  successCriteriaCount?: number;
   gates?: Record<string, GateInfo>;
   taskCounts: {
     done: number;
@@ -30,6 +31,22 @@ export interface ContextSnapshotInput {
   };
   workdir?: string;
   currentTask?: { id: string; title: string };
+}
+
+export function countSuccessCriteria(proposalText?: string): number | undefined {
+  if (proposalText === undefined) return undefined;
+
+  const criteriaMatch =
+    proposalText.match(
+      /##\s*success\s+criteria\s*\n([\s\S]*?)(?=\n##\s|\n---)/i,
+    ) ?? proposalText.match(/##\s*success\s+criteria\s*\n([\s\S]*)/i);
+
+  if (!criteriaMatch) return 0;
+
+  return criteriaMatch[1]
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line.startsWith("- ")).length;
 }
 
 export interface CrossRepoSwitchInput {
@@ -101,14 +118,22 @@ function boxLine(content: string, width: number): string {
  * ║ Improve context agreement                                ║
  * ║                                                          ║
  * ║ Gates: [✓ research] [✓ prep] [○ impl] [○ review] ...    ║
+ * ║ Success: 3 criteria                                      ║
  * ║ Tasks: 2 done | 1 active | 5 pending                    ║
- * ║ Current: tk-abc123 (Implement feature X)                 ║
+ * ║ Current: tk-abc123 (Implement feature X)                ║
  * ║ Workdir: /home/user/dev/my-project                       ║
  * ╚═══════════════════════════════════════════════════════════╝
  * ```
  */
 export function formatContextSnapshot(input: ContextSnapshotInput): string {
-  const { changeId, title, taskCounts, workdir, currentTask } = input;
+  const {
+    changeId,
+    title,
+    successCriteriaCount,
+    taskCounts,
+    workdir,
+    currentTask,
+  } = input;
 
   const gateProgress = formatGateProgress(input.gates);
 
@@ -129,6 +154,7 @@ export function formatContextSnapshot(input: ContextSnapshotInput): string {
     title,
     "",
     `Gates: ${gateProgress}`,
+    `Success: ${successCriteriaCount ?? "?"} criteria`,
     taskLine,
   ];
 
@@ -140,9 +166,7 @@ export function formatContextSnapshot(input: ContextSnapshotInput): string {
     lines.push(`Current: ${currentTask.id} (${taskDesc})`);
   }
 
-  if (workdir) {
-    lines.push(`Workdir: ${workdir}`);
-  }
+  lines.push(`Workdir: ${workdir ?? "(unavailable)"}`);
 
   // Calculate box width
   const maxContent = Math.max(...lines.map((l) => l.length));

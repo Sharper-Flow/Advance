@@ -22,6 +22,10 @@ import { formatToolOutput } from "../utils/tool-output";
 import { runPrepReadinessChecks } from "../validator/prep-readiness";
 import { runClarifyReadinessChecks } from "../validator/clarify-readiness";
 import { loadProposalWithFallback } from "../storage/json";
+import {
+  countSuccessCriteria,
+  formatContextSnapshot,
+} from "../utils/context-snapshot";
 
 // =============================================================================
 // Tool Definitions
@@ -108,6 +112,34 @@ export const gateTools = {
 
       const change = result.data;
       const gates: Gates = change.gates ?? createDefaultGates();
+      const buildContextSnapshot = async () => {
+        const latestGates = await store.gates.get(changeId);
+        const changeDir = join(store.paths.changes, changeId);
+        const { content: proposalText } = await loadProposalWithFallback(
+          changeDir,
+          change.title,
+        );
+        const taskCounts = {
+          done: change.tasks.filter((t) => t.status === "done").length,
+          in_progress: change.tasks.filter((t) => t.status === "in_progress")
+            .length,
+          pending: change.tasks.filter((t) => t.status === "pending").length,
+          cancelled: change.tasks.filter((t) => t.status === "cancelled").length,
+        };
+        const currentTask = change.tasks.find((t) => t.status === "in_progress");
+
+        return formatContextSnapshot({
+          changeId: change.id,
+          title: change.title,
+          successCriteriaCount: countSuccessCriteria(proposalText),
+          gates: latestGates ?? undefined,
+          taskCounts,
+          workdir: store.paths.root,
+          currentTask: currentTask
+            ? { id: currentTask.id, title: currentTask.title }
+            : undefined,
+        });
+      };
 
       // Check sequence enforcement
       if (!canCompleteGate(gates, gateId)) {
@@ -216,6 +248,7 @@ export const gateTools = {
             status: "done",
             completed_at: now,
             completed_by: completedBy,
+            _contextSnapshot: await buildContextSnapshot(),
             ...warningsPayload,
             ...clarifyPayload,
           }),
@@ -244,6 +277,7 @@ export const gateTools = {
           status: "done",
           completed_at: now,
           completed_by: completedBy,
+          _contextSnapshot: await buildContextSnapshot(),
         }),
       );
     },

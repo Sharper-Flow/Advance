@@ -57,7 +57,7 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
   "adv-proposal": {
     name: "adv-proposal",
     description:
-      "Propose a new change with intent, scope, and success criteria",
+      "Propose a new change with problem statement agreement then full proposal",
     phase: "core",
     requiresChangeId: false,
     prerequisites: [],

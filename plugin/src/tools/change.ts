@@ -20,6 +20,7 @@ import { archiveChange } from "../archive";
 import { wrapWithBanner } from "../utils/banner";
 import { formatToolOutput, paginate } from "../utils/tool-output";
 import {
+  countSuccessCriteria,
   formatContextSnapshot,
   type ContextSnapshotInput,
 } from "../utils/context-snapshot";
@@ -106,6 +107,11 @@ export const changeTools = {
         return formatToolOutput({ error: `Change not found: ${changeId}` });
       }
       const change = result.data;
+      const changeDir = join(store.paths.changes, changeId);
+      const { content: proposalText } = await loadProposalWithFallback(
+        changeDir,
+        change.title,
+      );
       const paged = paginate(change.tasks, {
         limit,
         offset,
@@ -128,8 +134,10 @@ export const changeTools = {
       const snapshotInput: ContextSnapshotInput = {
         changeId: change.id,
         title: change.title,
+        successCriteriaCount: countSuccessCriteria(proposalText),
         gates: gates ?? undefined,
         taskCounts,
+        workdir: store.paths.root,
         currentTask: inProgressTask
           ? { id: inProgressTask.id, title: inProgressTask.title }
           : undefined,
@@ -147,12 +155,6 @@ export const changeTools = {
       const clarifyMode = features?.clarify_enforcement ?? "advisory";
 
       if (clarifyMode !== "off") {
-        const changeDir = join(store.paths.changes, changeId);
-        const { content: proposalText } = await loadProposalWithFallback(
-          changeDir,
-          change.title,
-        );
-
         const clarifyResult = runClarifyReadinessChecks(change, proposalText);
 
         if (clarifyResult.findings.length > 0) {
