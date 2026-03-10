@@ -7,7 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+#### `/adv-tron` — Codebase Reconnaissance
+
+- Added `/adv-tron [target]` as a read-only reconnaissance command for broad repo scans and target-scoped investigation
+- Added hidden `tron` sub-agent definition at `.opencode/agents/tron.md` for local codebase mapping, hotspot detection, and risk surfacing
+- Added bundled skill `skills/adv-tron/SKILL.md` and extended `scripts/sync-global.sh` to sync ADV agents and skills into `~/.config/opencode/`
+- Added focused regression coverage in `plugin/src/adv-tron-assets.test.ts` for command, agent, skill, and sync wiring
+
 ### Changed
+
+#### Tradeoff Questioning — Prioritizer Protocol
+
+- ADV instructions now route multi-approach, tradeoff-driven decisions through the `prioritizer` sub-agent before asking the user questions
+- The prioritizer drafts context-specific criteria questions plus a decision map so ADV agents can ask better tradeoff questions with less main-context overhead
 
 #### `/adv-ralph` Consolidated into `/adv-apply`
 

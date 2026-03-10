@@ -489,6 +489,9 @@ pnpm build
 | `/adv-refactor <id>` | Refresh a stale proposal |
 | `/adv-coordinate` | Detect cross-change conflicts |
 | `/adv-improve` | Suggest spec or implementation improvements |
+| `/adv-tron [target]` | Investigate codebase structure and suggest agenda candidates |
+
+Tradeoff-heavy decisions inside ADV flows should use the `prioritizer` sub-agent before asking the user questions. The sub-agent drafts context-specific criteria questions so agents ask about the real decision tradeoffs instead of generic priorities.
 
 ### Available Tools
 

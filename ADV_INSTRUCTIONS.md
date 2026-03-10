@@ -77,6 +77,36 @@ Tab title format: `<emoji> <normalized change code>` when active change is set (
 
 System-emitted: `[ADV:ACCUMULATED_WISDOM]`, `[ADV:TODO_CONTINUATION]`, `[ADV:RECORD_WISDOM]`
 
+### Context Snapshot Protocol
+
+`adv_change_show` includes a `_contextSnapshot` field — a compact, scannable summary of the agent's internal state for the active change. This closes the **context agreement gap** between what the agent knows and what the user sees.
+
+**Content** (max 10 lines):
+- Change ID and title
+- Gate progress as inline visual: `[✓ research] [✓ prep] [○ impl] ...`
+- Task counts by status: `2 done | 1 active | 5 pending`
+- Current in-progress task (if any)
+- Current workdir
+
+**Emission triggers** — the snapshot is included automatically when:
+
+| Trigger | Tool/Command |
+|---------|-------------|
+| Change loaded for work | `adv_change_show` |
+| Gate transitions | `adv_gate_complete` (reflected in next `adv_change_show`) |
+| Task switches | `adv_task_update` to `in_progress` (reflected in next `adv_change_show`) |
+
+**Cross-Repo Switch Indicator** — when switching `workdir` to a different repository during a change, emit a formatted block using `formatCrossRepoSwitch()` from `plugin/src/utils/context-snapshot.ts`:
+
+```
+╔═══════════════════════════════════════════════════════════╗
+║ 🔀 SWITCHING REPOSITORY CONTEXT                          ║
+║ From: ~/dev/frontend                                      ║
+║ To:   ~/dev/backend                                       ║
+║ Task: tk-backend01 (Add /api/oauth/callback endpoint)     ║
+╚═══════════════════════════════════════════════════════════╝
+```
+
 ## Critical Protocols
 
 ### ADV State Access Policy

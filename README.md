@@ -21,6 +21,8 @@ This repo contains:
 - `plugin/` - the TypeScript plugin implementation
 - `.adv/specs/` - the capability specs that define behavior
 - `.opencode/command/` - slash-command workflows like `/adv-proposal` and `/adv-review`
+- `.opencode/agents/` - hidden sub-agents used by higher-level ADV commands
+- `skills/` - bundled skills synced into the global OpenCode skill registry
 - `docs/` - workflow references, gates, checklists, and supporting docs
 - `scripts/` - maintenance and migration helpers
 
@@ -91,6 +93,7 @@ Advance exists to make those failure modes harder.
 | `/adv-refactor <change-id>` | Refresh a stale proposal to reflect current codebase state |
 | `/adv-coordinate` | Detect and resolve conflicts across multiple active changes |
 | `/adv-improve` | Suggest targeted improvements to existing specs or implementation |
+| `/adv-tron [target]` | Investigate codebase structure, hotspots, risks, and suggest follow-up agenda candidates |
 
 ## Key capabilities
 
@@ -101,12 +104,14 @@ Advance exists to make those failure modes harder.
 - **Accumulated wisdom** - persist patterns, gotchas, conventions, successes, and failures
 - **Worktree-aware state** - share mutable change state across worktrees and sessions
 - **Validation and archive flow** - reduce drift between proposal, implementation, and specs
+- **Tradeoff prioritization** - route multi-approach decisions through a prioritizer sub-agent before asking users to weigh criteria
 
 ## Repository structure
 
 ```text
 .
 ├── .adv/specs/             # Capability specs (the laws)
+├── .opencode/agents/       # Hidden sub-agents used by ADV commands
 ├── .opencode/command/      # Slash-command implementations and workflows
 ├── docs/                   # Workflow docs, references, and checklists
 ├── plugin/                 # TypeScript OpenCode plugin
@@ -114,6 +119,7 @@ Advance exists to make those failure modes harder.
 │   ├── schemas/
 │   └── package.json
 ├── scripts/                # Maintenance and migration utilities
+├── skills/                 # Bundled OpenCode skills synced globally
 ├── ADV_INSTRUCTIONS.md
 ├── INSTALL.md
 └── project.json
