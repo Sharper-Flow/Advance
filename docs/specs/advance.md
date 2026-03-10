@@ -1,7 +1,7 @@
 # Advance
 
-> **Version:** 1.2.1
-> **Updated:** 2026-03-05
+> **Version:** 1.3.0
+> **Updated:** 2026-03-10
 
 ## Purpose
 
@@ -118,7 +118,7 @@ adv_status must surface project.json diagnostics and include parsed feature flag
 
 **ID:** `rq-advmeta01` | **Priority:** **[MUST]**
 
-Tasks may include optional metadata key/value pairs. adv_task_list must support has_metadata_key:<key> and metadata:<key>=<value> filters with behavior aligned between JSON source-of-truth and SQLite cache indexes.
+Tasks may include optional metadata key/value pairs. adv_task_list must support has_metadata_key:\<key\> and metadata:\<key\>=\<value\> filters with behavior aligned between JSON source-of-truth and SQLite cache indexes.
 
 #### Scenarios
 
@@ -127,7 +127,7 @@ Tasks may include optional metadata key/value pairs. adv_task_list must support 
 **Given:**
 - A change with tasks containing metadata keys
 
-**When:** adv_task_list is called with filter has_metadata_key:<key>
+**When:** adv_task_list is called with filter has_metadata_key:\<key\>
 
 **Then:**
 - Only tasks containing that metadata key are returned
@@ -137,7 +137,7 @@ Tasks may include optional metadata key/value pairs. adv_task_list must support 
 **Given:**
 - A change with tasks containing metadata key/value pairs
 
-**When:** adv_task_list is called with filter metadata:<key>=<value>
+**When:** adv_task_list is called with filter metadata:\<key\>=\<value\>
 
 **Then:**
 - Only tasks matching both key and value are returned
@@ -208,9 +208,54 @@ After Quick Contract confirmation, /adv-task must always persist contract contex
 
 ---
 
+### Problem Statement Agreement for adv-proposal
+
+**ID:** `rq-advprop02` | **Priority:** **[MUST]** | **Tags:** `proposal`, `context-agreement`
+
+/adv-proposal must synthesize a brief problem statement from user context, confirm it via the question tool before creating any change artifacts, and persist the confirmed text as the opening section of proposal.md via the proposal parameter in adv_change_create.
+
+#### Scenarios
+
+**Problem statement confirmed before change creation** (`rq-advprop02.1`)
+
+**Given:**
+- A user invokes /adv-proposal
+
+**When:** Phase 1 completes
+
+**Then:**
+- A problem statement block is synthesized and shown to the user
+- The user confirms, adjusts, or aborts via the question tool
+- No change artifacts are created until the user confirms
+
+**Confirmed problem statement persisted in proposal.md** (`rq-advprop02.2`)
+
+**Given:**
+- The user confirms the problem statement in Phase 1
+
+**When:** The change is created in Phase 2
+
+**Then:**
+- adv_change_create is called with the proposal parameter containing the confirmed text
+- proposal.md includes the confirmed problem statement as the Why section
+
+**Abort path creates no artifacts** (`rq-advprop02.3`)
+
+**Given:**
+- The user selects Abort during Phase 1 confirmation
+
+**When:** The command exits
+
+**Then:**
+- No change.json is created
+- No proposal.md is created
+- No tasks are added
+
+---
+
 ### Defensive and Nesting Slop Detection
 
-**ID:** `rq-slopscan01` | **Priority:** **[MUST]**
+**ID:** `rq-slopscan01` | **Priority:** **[MUST]** | **Tags:** `slop-scan`, `quality`, `ast`
 
 /adv-slop-scan must detect overly defensive code (redundant guard chains, paranoid null checks, unreachable fallback branches) and deeply nested code (nesting depth >= configured threshold) using AST-first analysis with deterministic degraded fallback when AST tools are unavailable. Findings must include structured diagnostic fields in all output formats.
 
@@ -232,7 +277,7 @@ After Quick Contract confirmation, /adv-task must always persist contract contex
 **Defensive overkill detected** (`rq-slopscan01.2`)
 
 **Given:**
-- A source file containing redundant guard patterns on the same value at or above threshold
+- A source file containing a function with >= defensive_guard_threshold (default 3) redundant guard patterns on the same value
 
 **When:** /adv-slop-scan is run on the file
 
@@ -253,4 +298,23 @@ After Quick Contract confirmation, /adv-task must always persist contract contex
 - Findings from fallback include detectionMethod: 'degraded'
 - Report annotates affected findings with [DEGRADED: AST tool unavailable]
 
----
+**Project threshold overrides respected** (`rq-slopscan01.4`)
+
+**Given:**
+- project.json contains features.slop_scan.nesting_depth_threshold: 6
+
+**When:** /adv-slop-scan is run
+
+**Then:**
+- Functions with nesting depth 4 or 5 are NOT flagged
+- Functions with nesting depth >= 6 ARE flagged
+
+**Clean code produces no false positives** (`rq-slopscan01.5`)
+
+**Given:**
+- A source file with a single null check and a single try/catch block
+
+**When:** /adv-slop-scan is run
+
+**Then:**
+- No QUAL-011 or MAINT-004 findings are emitted for that file
