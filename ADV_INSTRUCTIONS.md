@@ -56,6 +56,7 @@ Enforce spec-driven development where **specs become laws**. Requirements are fo
 | `/adv-refactor <change-id>` | Refresh a stale proposal to reflect current codebase state |
 | `/adv-coordinate` | Detect and resolve conflicts across multiple active changes |
 | `/adv-improve` | Suggest targeted improvements to existing specs or implementation |
+| `/adv-tron [target]` | Investigate codebase structure, hotspots, risks, and suggest follow-up agenda candidates |
 
 ## Status Markers
 
@@ -112,6 +113,18 @@ The write-in option requirement is enforced globally by **P26** in `rules.yaml`.
 2. Keep question options within schema limits (2-5 total options including the write-in option, concise labels).
 3. Preserve custom text-entry behavior by leaving custom input enabled.
 4. Treat formatted/WYSIWYG input as best-effort UI behavior; do not assume rich-text controls are always available.
+
+### Tradeoff Prioritizer Protocol
+
+When ADV work reaches a decision with **2+ viable approaches** and the best choice depends on user values, use the `prioritizer` sub-agent before asking the user.
+
+Workflow:
+1. Spawn `prioritizer` with the decision, domain, and up to 5 high-signal files/symbols
+2. Let it draft context-specific criteria questions plus a decision map
+3. Pass the returned `questions` JSON to the `question` tool with minimal paraphrasing
+4. Restate the user's priorities before recommending the winning approach
+
+Skip the prioritizer for obvious bug fixes, mechanical work, or choices already constrained by security/API compatibility/established architecture.
 
 ### Context Freshness
 
