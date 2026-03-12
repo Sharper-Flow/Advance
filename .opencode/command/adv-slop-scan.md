@@ -120,6 +120,34 @@ OPTIONS: <flags enabled>
 ============================================================
 ```
 
+### Worktree Context Propagation
+
+Sub-agents inherit the default project root, NOT the current working directory. When running from a worktree, sub-agents will look for files in the wrong location unless explicitly told where to look.
+
+**Step 1: Detect current working directory**
+
+```bash
+pwd
+```
+
+Record the result as `{workdir}`.
+
+**Step 2: Include in every sub-agent prompt**
+
+Every sub-agent spawned in Phase 2 MUST include:
+
+```
+WORKING DIRECTORY: {workdir}
+All file paths are relative to this directory.
+Use this as the base path for all read/glob/grep/lgrep operations.
+```
+
+**Why this matters:** When running from a git worktree (e.g., `~/.local/share/opencode/worktree/.../change/featureX`), the worktree has different file contents than the main repo. Sub-agents that don't know the working directory will read stale files from the wrong branch, report false positives, or fail to find files that only exist on the worktree branch.
+
+**Step 3: Use `{workdir}` for Phase 1 commands**
+
+All Phase 1 `rg`, `eslint`, `vulture`, and other CLI commands MUST be run with `workdir` set to `{workdir}` so they operate on the correct file tree.
+
 ---
 
 ## Phase 1: Automatable Detection
@@ -396,6 +424,10 @@ Each sub-agent receives:
 
 ```
 You are a [CATEGORY] SCANNER for a slop scan.
+
+WORKING DIRECTORY: {workdir}
+All file paths are relative to this directory.
+Use this as the base path for all read/glob/grep/lgrep operations.
 
 SMELL DEFINITIONS:
 <paste relevant smells from slop-smells.yaml for this category>

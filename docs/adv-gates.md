@@ -30,6 +30,17 @@ All changes must complete 6 sequential quality gates before archival.
 4. **Legacy Support**: `legacy` status counts as "satisfied" for sequence enforcement
 5. **Migration**: Existing changes get `legacy` status (except `signoff` stays `pending`)
 
+## Gate-Specific Pre-Checks
+
+### Harden Gate
+
+Before running quality scanners, `/adv-harden` performs these pre-flight checks (in order):
+
+1. **Review gate prerequisite** — review gate must be complete
+2. **Cancellation & cross-repo audit** — all cancelled tasks need approval, cross-repo tasks must be done
+3. **Review findings audit** — actionable findings must be resolved or documented as accepted debt
+4. **Merge compatibility check** — non-destructive dry-run merge against the default branch (`git merge --no-commit --no-ff`); blocks on conflicts so they are caught before quality analysis, not at archive time
+
 ## Auto-Completion
 
 When a command is invoked with incomplete prerequisite gates:

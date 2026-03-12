@@ -38,6 +38,30 @@ adv_task_list changeId: <target>
 
 Read proposal.md for affected files and scope.
 
+### Worktree Context Propagation
+
+Sub-agents inherit the default project root, NOT the current working directory. When running from a worktree, sub-agents will look for files in the wrong location unless explicitly told where to look.
+
+**Step 1: Detect current working directory**
+
+```bash
+pwd
+```
+
+Record the result as `{workdir}`.
+
+**Step 2: Include in every sub-agent prompt**
+
+Every sub-agent spawned in Phase 1 MUST include:
+
+```
+WORKING DIRECTORY: {workdir}
+All file paths are relative to this directory.
+Use this as the base path for all read/glob/grep/lgrep operations.
+```
+
+**Why this matters:** When running from a git worktree (e.g., `~/.local/share/opencode/worktree/.../change/featureX`), the worktree has different file contents than the main repo. Sub-agents that don't know the working directory will read stale files from the wrong branch, report false positives, or fail to find files that only exist on the worktree branch.
+
 ---
 
 ## Phase 1: Staleness Analysis (Parallel Sub-Agents)
@@ -48,6 +72,10 @@ Spawn sub-agents in tiered order due to dependencies.
 
 ```
 Compare file references in change to actual codebase.
+
+WORKING DIRECTORY: {workdir}
+All file paths are relative to this directory.
+Use this as the base path for all read/glob/grep/lgrep operations.
 
 TASK (3-pass detection):
 1. EXACT: Map missing paths via SHA-256 content hash (100% confidence)
@@ -71,6 +99,10 @@ RETURN JSON:
 ```
 Detect stale library patterns.
 
+WORKING DIRECTORY: {workdir}
+All file paths are relative to this directory.
+Use this as the base path for all read/glob/grep/lgrep operations.
+
 TASK:
 1. Check for outdated dependencies
 2. Use Context7 to find breaking changes between versions
@@ -93,6 +125,10 @@ RETURN JSON:
 ```
 Find overlaps with archived changes.
 
+WORKING DIRECTORY: {workdir}
+All file paths are relative to this directory.
+Use this as the base path for all read/glob/grep/lgrep operations.
+
 TASK:
 1. Filter archives matching capabilities in proposal
 2. Focus on recent archives (last 20%)
@@ -114,6 +150,10 @@ RETURN JSON:
 ```
 Verify task references exist.
 
+WORKING DIRECTORY: {workdir}
+All file paths are relative to this directory.
+Use this as the base path for all read/glob/grep/lgrep operations.
+
 TASK:
 1. Check file/function paths in tasks
 2. Flag orphaned or invalid tasks
@@ -131,6 +171,10 @@ RETURN JSON:
 
 ```
 Detect requirements already implemented elsewhere.
+
+WORKING DIRECTORY: {workdir}
+All file paths are relative to this directory.
+Use this as the base path for all read/glob/grep/lgrep operations.
 
 TASK:
 1. Exclude tests, mocks, legacy paths

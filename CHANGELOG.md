@@ -16,6 +16,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added bundled skill `skills/adv-tron/SKILL.md` and extended `scripts/sync-global.sh` to sync ADV agents and skills into `~/.config/opencode/`
 - Added focused regression coverage in `plugin/src/adv-tron-assets.test.ts` for command, agent, skill, and sync wiring
 
+#### `/adv-harden` — Merge Compatibility Check
+
+- Added non-destructive merge compatibility check to `/adv-harden` pre-flight
+- Runs `git merge --no-commit --no-ff` against the default branch before quality scanners
+- Blocks harden with conflict file list if merge would fail, so conflicts are caught early (not at archive time)
+- Skips automatically when not in a worktree (already on default branch)
+
+#### Worktree Context Propagation
+
+- Added `{workdir}` propagation to sub-agent prompts in `/adv-audit`, `/adv-review`, `/adv-refactor`, and `/adv-slop-scan`
+- Sub-agents now receive explicit `WORKING DIRECTORY` instructions so they read files from the correct worktree branch instead of the main repo root
+
 ### Changed
 
 #### Tradeoff Questioning — Prioritizer Protocol

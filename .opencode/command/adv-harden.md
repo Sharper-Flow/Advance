@@ -197,7 +197,93 @@ nit: findings (not required): {nit_count}
 ============================================================
 ```
 
+Proceed to merge compatibility check.
+
+### Merge Compatibility Check
+
+Verify the change branch can merge cleanly into the default branch **before** running quality scanners. This is a non-destructive dry-run — nothing is committed.
+
+**Skip if:** Not in a worktree (i.e., already on the default branch).
+
+**Step 1: Detect default branch**
+
+```bash
+git rev-parse --verify main 2>/dev/null && echo main || \
+  git rev-parse --verify trunk 2>/dev/null && echo trunk || \
+  git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's|refs/remotes/origin/||' || \
+  echo "UNKNOWN"
+```
+
+If UNKNOWN, prompt the user via the `question` tool.
+
+**Step 2: Fetch latest default branch**
+
+```bash
+git fetch origin {default-branch} 2>/dev/null || true
+```
+
+Use `origin/{default-branch}` if fetch succeeds; fall back to local `{default-branch}` if no remote.
+
+**Step 3: Dry-run merge**
+
+```bash
+git merge --no-commit --no-ff origin/{default-branch}
+```
+
+**If merge succeeds (exit 0):**
+
+```bash
+git merge --abort
+```
+
+```
+============================================================
+         MERGE COMPATIBILITY CHECK: PASSED
+============================================================
+
+Branch: change/{change-id}
+Target: {default-branch}
+Result: Clean merge ✓
+
+============================================================
+```
+
 Proceed to Phase 1 scanners.
+
+**If merge has conflicts (exit non-zero):**
+
+Capture the conflict list before aborting:
+
+```bash
+git diff --name-only --diff-filter=U
+git merge --abort
+```
+
+```
+============================================================
+     HARDEN BLOCKED - MERGE CONFLICTS DETECTED
+============================================================
+
+Branch change/{change-id} cannot merge cleanly into {default-branch}.
+
+CONFLICTING FILES:
+{for each conflicting file}
+- {file}
+{end}
+
+REQUIRED ACTION:
+Rebase or merge {default-branch} into your change branch to resolve
+conflicts, then re-run /adv-harden {change-id}.
+
+  git merge --no-edit origin/{default-branch}
+  # resolve conflicts
+  git add .
+  git commit -m "merge: resolve conflicts with {default-branch}"
+
+============================================================
+```
+
+Stop execution.
 
 ### Extract Details
 
@@ -205,6 +291,30 @@ From change data:
 - Affected files (from proposal.md)
 - Task completion status
 - Spec deltas and scenarios
+
+### Worktree Context Propagation
+
+Sub-agents inherit the default project root, NOT the current working directory. When running from a worktree, sub-agents will look for files in the wrong location unless explicitly told where to look.
+
+**Step 1: Detect current working directory**
+
+```bash
+pwd
+```
+
+Record the result as `{workdir}`.
+
+**Step 2: Include in every sub-agent prompt**
+
+Every sub-agent spawned in Phase 1 MUST include:
+
+```
+WORKING DIRECTORY: {workdir}
+All file paths are relative to this directory.
+Use this as the base path for all read/glob/grep/lgrep operations.
+```
+
+**Why this matters:** When running from a git worktree (e.g., `~/.local/share/opencode/worktree/.../change/featureX`), the worktree has different file contents than the main repo. Sub-agents that don't know the working directory will read stale files from the wrong branch, report false positives, or fail to find files that only exist on the worktree branch.
 
 ---
 
@@ -269,6 +379,10 @@ Spawn **5 parallel sub-agents** with `subagent_type: "explore"`:
 ```
 Analyze TEST COVERAGE for change: {change-id}
 
+WORKING DIRECTORY: {workdir}
+All file paths are relative to this directory.
+Use this as the base path for all read/glob/grep/lgrep operations.
+
 Affected files: {files}
 
 TASK:
@@ -292,6 +406,10 @@ RETURN JSON:
 
 ```
 Analyze AI-SLOP PATTERNS for change: {change-id}
+
+WORKING DIRECTORY: {workdir}
+All file paths are relative to this directory.
+Use this as the base path for all read/glob/grep/lgrep operations.
 
 Affected files: {files}
 
@@ -370,6 +488,10 @@ RETURN JSON:
 
 ```
 Analyze DOCUMENTATION HYGIENE for change: {change-id}
+
+WORKING DIRECTORY: {workdir}
+All file paths are relative to this directory.
+Use this as the base path for all read/glob/grep/lgrep operations.
 
 Affected files: {files}
 
@@ -463,6 +585,10 @@ RETURN JSON:
 ```
 Analyze CLEANUP candidates for change: {change-id}
 
+WORKING DIRECTORY: {workdir}
+All file paths are relative to this directory.
+Use this as the base path for all read/glob/grep/lgrep operations.
+
 TASK:
 1. Find temp files: *.bak, *.tmp, *.orig, *~, *.swp
 2. Find marked files: ONETIME-*, DELETE-AFTER-*
@@ -489,6 +615,10 @@ RETURN JSON:
 
 ```
 Analyze PRODUCTION READINESS for change: {change-id}
+
+WORKING DIRECTORY: {workdir}
+All file paths are relative to this directory.
+Use this as the base path for all read/glob/grep/lgrep operations.
 
 Affected files: {files}
 

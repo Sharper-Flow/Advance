@@ -273,7 +273,7 @@ See: [docs/adv-gates.md](docs/adv-gates.md)
 **Gate behaviors:**
 - `/adv-research` and `/adv-prep` evaluate the **full change including completed tasks**. Completed work is proof-of-concept evidence to validate, not acceptance proof. Findings apply regardless of task status — add targeted follow-up tasks where gaps are found. (See: Phase 1 recovery sections in `.opencode/command/adv-research.md` and `.opencode/command/adv-prep.md`.)
 - `/adv-review` emits a `REVIEW_FINDINGS` block listing all actionable findings (`blocker`, `issue`, `suggestion`, `question`).
-- `/adv-harden` **blocks** if any actionable review findings are unresolved and not documented as accepted debt in `proposal.md`. `nit:` findings are not required.
+- `/adv-harden` **blocks** if any actionable review findings are unresolved and not documented as accepted debt in `proposal.md`. `nit:` findings are not required. Also runs a **non-destructive merge compatibility check** against the default branch before quality scanners — blocks on conflicts so they are caught early, not at archive time.
 - `/adv-archive` **runs mandatory Phase 9 Git Finalization**: stage+commit all changes, detect default branch, merge (or open PR), verify merge is clean, clean up worktree, remove temp artifacts.
 
 ## Sub-Agent Selection

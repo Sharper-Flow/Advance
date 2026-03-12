@@ -142,6 +142,30 @@ From change data, extract:
 - Spec scenarios (from deltas)
 - Task completion evidence
 
+### Worktree Context Propagation
+
+Sub-agents inherit the default project root, NOT the current working directory. When running from a worktree, sub-agents will look for files in the wrong location unless explicitly told where to look.
+
+**Step 1: Detect current working directory**
+
+```bash
+pwd
+```
+
+Record the result as `{workdir}`.
+
+**Step 2: Include in every sub-agent prompt**
+
+Every sub-agent spawned in Phase 2 MUST include:
+
+```
+WORKING DIRECTORY: {workdir}
+All file paths are relative to this directory.
+Use this as the base path for all read/glob/grep/lgrep operations.
+```
+
+**Why this matters:** When running from a git worktree (e.g., `~/.local/share/opencode/worktree/.../change/featureX`), the worktree has different file contents than the main repo. Sub-agents that don't know the working directory will read stale files from the wrong branch, report false positives, or fail to find files that only exist on the worktree branch.
+
 ---
 
 ## The 12-Dimension Review Framework
@@ -240,6 +264,10 @@ Spawn **4 parallel sub-agents** using Task tool with `subagent_type: "explore"`:
 ```
 Analyze REQUIREMENT TRACEABILITY for change: {change-id}
 
+WORKING DIRECTORY: {workdir}
+All file paths are relative to this directory.
+Use this as the base path for all read/glob/grep/lgrep operations.
+
 Context:
 - Affected files: {files}
 - Scenarios: {scenario_titles}
@@ -263,6 +291,10 @@ Return JSON:
 
 ```
 Analyze LOGIC for change: {change-id}
+
+WORKING DIRECTORY: {workdir}
+All file paths are relative to this directory.
+Use this as the base path for all read/glob/grep/lgrep operations.
 
 Context:
 - Affected files: {files}
@@ -295,6 +327,10 @@ Return JSON:
 
 ```
 Analyze SECURITY for change: {change-id}
+
+WORKING DIRECTORY: {workdir}
+All file paths are relative to this directory.
+Use this as the base path for all read/glob/grep/lgrep operations.
 
 Context:
 - Affected files: {files}
@@ -333,6 +369,10 @@ Return JSON:
 ```
 Analyze ARCHITECTURE and CODE QUALITY for change: {change-id}
 
+WORKING DIRECTORY: {workdir}
+All file paths are relative to this directory.
+Use this as the base path for all read/glob/grep/lgrep operations.
+
 Context:
 - Affected files: {files}
 - Project patterns: Check AGENTS.md if exists
@@ -366,6 +406,10 @@ Return JSON:
 
 ```
 Verify cross-repo tasks for change: {change-id}
+
+WORKING DIRECTORY: {workdir}
+All file paths are relative to this directory.
+Use this as the base path for all read/glob/grep/lgrep operations.
 
 Context:
 - Affected files: {files}
