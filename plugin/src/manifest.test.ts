@@ -169,6 +169,7 @@ describe("Command Manifest", () => {
       "Suggest",
       "Fast-track",
       "Investigate",
+      "Extract",
     ];
 
     test("every description starts with a strong verb", () => {

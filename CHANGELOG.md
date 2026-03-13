@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+#### `/adv-proposal` — Transcript Grounding
+
+- `/adv-proposal` now extracts prior discussion context (agreed facts, decisions, rejected approaches, open questions, constraints) from the conversation **before** synthesizing a problem statement
+- Problem Statement block now includes `PRIOR DECISIONS`, `REJECTED APPROACHES`, and `OPEN QUESTIONS` sections so the user can verify the agent faithfully carried forward what was discussed
+- Confirmation step explicitly asks the user to check for drift, with a dedicated "Drift detected" option
+- Phase 2 proposal template now includes a `## Constraints from Discussion` section that persists prior decisions and rejected approaches as binding constraints for downstream commands
+- Anti-fabrication rule: the agent is explicitly instructed not to invent decisions or constraints that were not discussed
+- Updated spec `rq-advprop02` from 3 to 5 scenarios covering extraction, grounding, drift detection, persistence, and abort
+
+#### `scripts/sync-global.sh` — Config Validation and Patching
+
+- `sync-global.sh` now validates `~/.config/opencode/opencode.json` for required ADV entries (plugin path, instruction path)
+- Added `--check` flag: report config issues without changing any files
+- Added `--fix` flag: sync assets + auto-patch `opencode.json` to add missing ADV entries
+- Default mode (no flags): sync assets + report config issues
+- Config patching uses `jq` for safe JSON manipulation, backs up before patching, and is idempotent
+- Handles tilde-expanded paths (`~/...`) and absolute paths when checking for existing entries
+- Creates minimal `opencode.json` with ADV entries when the file does not exist
+- Added 25 regression tests in `plugin/src/sync-global.test.ts`
+
 ### Added
 
 #### `/adv-tron` — Codebase Reconnaissance

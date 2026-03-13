@@ -21,7 +21,7 @@ Enforce spec-driven development where **specs become laws**. Requirements are fo
 | Command | Purpose |
 |---------|---------|
 | `/adv-status` | Show project overview: specs, active changes, and next-step recommendations |
-| `/adv-proposal <summary>` | Propose a new change with problem statement agreement then full proposal |
+| `/adv-proposal <summary>` | Extract prior discussion context, agree on problem statement, then build full proposal |
 | `/adv-validate <change-id>` | Validate change compliance against specs; block archive on failure |
 | `/adv-apply <change-id>` | Implement change with TDD, retry on failure, and final verification |
 | `/adv-archive <change-id>` | Archive completed change: apply spec deltas and finalize git |

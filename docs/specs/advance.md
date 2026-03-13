@@ -210,25 +210,50 @@ After Quick Contract confirmation, /adv-task must always persist contract contex
 
 ### Problem Statement Agreement for adv-proposal
 
-**ID:** `rq-advprop02` | **Priority:** **[MUST]** | **Tags:** `proposal`, `context-agreement`
+**ID:** `rq-advprop02` | **Priority:** **[MUST]** | **Tags:** `proposal`, `context-agreement`, `transcript-grounding`
 
-/adv-proposal must synthesize a brief problem statement from user context, confirm it via the question tool before creating any change artifacts, and persist the confirmed text as the opening section of proposal.md via the proposal parameter in adv_change_create.
+/adv-proposal must extract prior discussion context (decisions, rejected approaches, constraints, open questions) from the conversation before synthesizing a problem statement, confirm it via the question tool before creating any change artifacts, and persist the confirmed text (including prior decisions and rejected approaches) as the opening section of proposal.md via the proposal parameter in adv_change_create. The problem statement must not contradict, omit, or reinterpret any prior decision or constraint from the conversation.
 
 #### Scenarios
 
-**Problem statement confirmed before change creation** (`rq-advprop02.1`)
+**Prior discussion context extracted before synthesis** (`rq-advprop02.1`)
 
 **Given:**
-- A user invokes /adv-proposal
+- A user invokes /adv-proposal after a conversation containing decisions, constraints, or rejected approaches
 
-**When:** Phase 1 completes
+**When:** Phase 1 begins
 
 **Then:**
-- A problem statement block is synthesized and shown to the user
-- The user confirms, adjusts, or aborts via the question tool
-- No change artifacts are created until the user confirms
+- The agent extracts agreed facts, decisions made, rejected approaches, open questions, and constraints stated from the conversation
+- Empty categories are listed as "None identified" rather than omitted
+- No decisions or constraints are fabricated that were not explicitly discussed
 
-**Confirmed problem statement persisted in proposal.md** (`rq-advprop02.2`)
+**Problem statement grounded in prior discussion** (`rq-advprop02.2`)
+
+**Given:**
+- Prior discussion context has been extracted
+
+**When:** The problem statement is synthesized
+
+**Then:**
+- The problem statement includes Prior Decisions, Rejected Approaches, and Open Questions sections
+- The problem statement does not contradict any extracted agreed fact
+- The problem statement does not reintroduce any rejected approach as a proposed solution
+- The problem statement does not ignore any stated constraint
+
+**Drift detection in confirmation** (`rq-advprop02.3`)
+
+**Given:**
+- A problem statement block is shown to the user
+
+**When:** The user reviews it via the question tool
+
+**Then:**
+- The confirmation question explicitly asks the user to check Prior Decisions and Rejected Approaches for accuracy
+- A "Drift detected" option is available for the user to flag discrepancies
+- If drift is detected, the agent re-extracts and re-synthesizes before proceeding
+
+**Confirmed problem statement persisted in proposal.md** (`rq-advprop02.4`)
 
 **Given:**
 - The user confirms the problem statement in Phase 1
@@ -238,8 +263,9 @@ After Quick Contract confirmation, /adv-task must always persist contract contex
 **Then:**
 - adv_change_create is called with the proposal parameter containing the confirmed text
 - proposal.md includes the confirmed problem statement as the Why section
+- proposal.md includes a Constraints from Discussion section with prior decisions and rejected approaches
 
-**Abort path creates no artifacts** (`rq-advprop02.3`)
+**Abort path creates no artifacts** (`rq-advprop02.5`)
 
 **Given:**
 - The user selects Abort during Phase 1 confirmation

@@ -1,6 +1,6 @@
 ---
 name: adv-proposal
-description: Propose a new change with problem statement agreement then full proposal
+description: Extract prior discussion context, agree on problem statement, then build full proposal
 agent: build
 ---
 
@@ -61,12 +61,33 @@ Look for `./temp/brainstorm-*.md` files that might provide context.
 
 **Purpose:** Establish shared understanding of the problem before creating any change artifacts. This is the first context agreement between the user and the agent. No change scaffold is created until the user confirms.
 
+### Extract Prior Discussion Context
+
+**Before synthesizing anything**, scan the conversation history and extract concrete facts. This step prevents the agent from creatively reinterpreting what was already discussed and agreed upon.
+
+List each of the following. If a category is empty, write "None identified" — do NOT skip the category or fill it with invented content.
+
+| Category | What to extract |
+|----------|----------------|
+| **Agreed facts** | Statements the user confirmed or the agent and user converged on (e.g. "we agreed to use Zod for validation") |
+| **Decisions made** | Explicit choices — library picks, architecture patterns, API shapes, naming conventions |
+| **Rejected approaches** | Solutions the user or agent dismissed with reasons (e.g. "rejected Redux because the app is small") |
+| **Open questions** | Unresolved points that still need answers |
+| **Constraints stated** | Hard requirements the user specified (e.g. "must work offline", "no new dependencies") |
+
+**Critical rule:** Do NOT invent decisions or constraints that were not explicitly discussed. If the conversation was short or vague, most categories will say "None identified" — that is correct. Fabricating prior context is worse than having empty categories.
+
 ### Synthesize Problem Statement
+
+Using the extracted context above as the **ground truth**, synthesize a problem statement block. The problem statement MUST be consistent with every item extracted above — it must not contradict any agreed fact, reintroduce a rejected approach, or ignore a stated constraint.
 
 Read the recent conversation history and `$ARGUMENTS`. Synthesize a brief problem statement block covering:
 
 - **Problem:** What is broken, missing, or suboptimal? (1-3 sentences)
 - **Desired Outcome:** What does success look like? (1-2 sentences)
+- **Prior Decisions:** Decisions already made in the conversation (bullet list, or "None" if the conversation had no prior decisions)
+- **Rejected Approaches:** Approaches explicitly dismissed (bullet list, or "None")
+- **Open Questions:** Unresolved points (bullet list, or "None")
 - **Scope:** Which files, modules, or subsystems are affected? (bullet list)
 
 Emit this block in the chat:
@@ -81,6 +102,20 @@ PROBLEM
 
 DESIRED OUTCOME
   {1-2 sentences describing what success looks like}
+
+PRIOR DECISIONS (from our conversation)
+  - {decision 1 — e.g. "Use Zod for runtime validation"}
+  - {decision 2}
+  (or "None — no prior decisions identified")
+
+REJECTED APPROACHES (from our conversation)
+  - {rejected approach 1 — e.g. "Redux dismissed: app is too small"}
+  - {rejected approach 2}
+  (or "None — no approaches were rejected")
+
+OPEN QUESTIONS
+  - {question 1}
+  (or "None")
 
 SCOPE
   Files / modules expected to change:
@@ -98,22 +133,24 @@ Use the `question` tool:
 {
   "questions": [{
     "header": "Problem Statement",
-    "question": "Does this problem statement accurately capture what we're building?",
+    "question": "Does this problem statement match what we discussed? Check that Prior Decisions and Rejected Approaches are accurate — flag anything that was added, missed, or changed.",
     "options": [
-      { "label": "Confirmed — proceed (Recommended)", "description": "Create the change and continue with the full proposal" },
+      { "label": "Confirmed — proceed (Recommended)", "description": "Problem, decisions, and rejected approaches all match our discussion" },
+      { "label": "Drift detected", "description": "Something was added, missed, or changed from what we discussed" },
       { "label": "Adjust statement", "description": "I want to refine the problem statement before proceeding" },
-      { "label": "Abort", "description": "Cancel — do not create a change" },
-      { "label": "Custom correction", "description": "Use custom text to rewrite the statement before proceeding" }
+      { "label": "Abort", "description": "Cancel — do not create a change" }
     ]
   }]
 }
 ```
 
+**If "Drift detected"**: Ask the user to specify what drifted. Re-extract prior discussion context, correct the problem statement, re-show the block, and re-confirm. Do NOT proceed until drift is resolved.
+
 **If "Adjust statement"**: Re-synthesize from user corrections, re-show the Problem Statement block, re-confirm. Repeat until confirmed or aborted.
 
 **If "Abort"**: Stop execution. Do NOT create any change artifacts.
 
-**If "Confirmed"**: Proceed to Phase 2. The confirmed problem statement text will be persisted as the `## Why` section of `proposal.md` via the `proposal` parameter in `adv_change_create`.
+**If "Confirmed"**: Proceed to Phase 2. The confirmed problem statement text (including Prior Decisions and Rejected Approaches) will be persisted as the `## Why` section of `proposal.md` via the `proposal` parameter in `adv_change_create`.
 
 ---
 
@@ -121,14 +158,36 @@ Use the `question` tool:
 
 ### Step 4: Create Change Scaffold
 
-**Only reached after Phase 1 confirmation.** Build the initial proposal content from the confirmed problem statement:
+**Only reached after Phase 1 confirmation.** Build the initial proposal content from the confirmed problem statement.
+
+Carry forward the extracted prior discussion context into a concrete `## Constraints from Discussion` section using the actual items from Phase 1:
+
+- `### Decisions Made` - prior decisions the user already accepted
+- `### Rejected Approaches` - approaches explicitly dismissed in the conversation
+- `### Open Questions` - unresolved points still needing answers
+
+If any category is empty, write `None identified` rather than inventing content.
 
 ```markdown
 # <resolved summary>
 
 ## Why
 
-<confirmed problem statement text from Phase 1>
+<confirmed problem statement text from Phase 1, including Prior Decisions, Rejected Approaches, and Open Questions>
+
+## Constraints from Discussion
+
+Prior decisions and rejected approaches from the conversation are binding.
+Do not propose solutions that contradict these without explicit user approval.
+
+### Decisions Made
+- <decision from Phase 1>
+
+### Rejected Approaches
+- <rejected approach from Phase 1>
+
+### Open Questions
+- <open question from Phase 1>
 
 ## What Changes
 
@@ -227,6 +286,22 @@ Update `changes/<change-id>/proposal.md` — the `## Why` section is already pop
 ## Why
 
 <already populated from Phase 1 — do not overwrite>
+
+## Constraints from Discussion
+
+<already populated from Phase 1 — do not overwrite>
+
+Prior decisions and rejected approaches from the conversation are binding.
+Do not propose solutions that contradict these without explicit user approval.
+
+### Decisions Made
+- <decision from conversation — e.g. "Use Zod for runtime validation">
+
+### Rejected Approaches
+- <rejected approach — e.g. "Redux dismissed: app is too small">
+
+### Open Questions
+- <unresolved point — e.g. "Which auth provider to use?">
 
 ## What Changes
 

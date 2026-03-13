@@ -206,25 +206,52 @@
     {
       "id": "rq-advprop02",
       "title": "Problem Statement Agreement for adv-proposal",
-      "body": "/adv-proposal must synthesize a brief problem statement from user context, confirm it via the question tool before creating any change artifacts, and persist the confirmed text as the opening section of proposal.md via the proposal parameter in adv_change_create.",
+      "body": "/adv-proposal must extract prior discussion context (decisions, rejected approaches, constraints, open questions) from the conversation before synthesizing a problem statement, confirm it via the question tool before creating any change artifacts, and persist the confirmed text (including prior decisions and rejected approaches) as the opening section of proposal.md via the proposal parameter in adv_change_create. The problem statement must not contradict, omit, or reinterpret any prior decision or constraint from the conversation.",
       "priority": "must",
-      "tags": ["proposal", "context-agreement"],
+      "tags": ["proposal", "context-agreement", "transcript-grounding"],
       "scenarios": [
         {
           "id": "rq-advprop02.1",
-          "title": "Problem statement confirmed before change creation",
+          "title": "Prior discussion context extracted before synthesis",
           "given": [
-            "A user invokes /adv-proposal"
+            "A user invokes /adv-proposal after a conversation containing decisions, constraints, or rejected approaches"
           ],
-          "when": "Phase 1 completes",
+          "when": "Phase 1 begins",
           "then": [
-            "A problem statement block is synthesized and shown to the user",
-            "The user confirms, adjusts, or aborts via the question tool",
-            "No change artifacts are created until the user confirms"
+            "The agent extracts agreed facts, decisions made, rejected approaches, open questions, and constraints stated from the conversation",
+            "Empty categories are listed as 'None identified' rather than omitted",
+            "No decisions or constraints are fabricated that were not explicitly discussed"
           ]
         },
         {
           "id": "rq-advprop02.2",
+          "title": "Problem statement grounded in prior discussion",
+          "given": [
+            "Prior discussion context has been extracted"
+          ],
+          "when": "The problem statement is synthesized",
+          "then": [
+            "The problem statement includes Prior Decisions, Rejected Approaches, and Open Questions sections",
+            "The problem statement does not contradict any extracted agreed fact",
+            "The problem statement does not reintroduce any rejected approach as a proposed solution",
+            "The problem statement does not ignore any stated constraint"
+          ]
+        },
+        {
+          "id": "rq-advprop02.3",
+          "title": "Drift detection in confirmation",
+          "given": [
+            "A problem statement block is shown to the user"
+          ],
+          "when": "The user reviews it via the question tool",
+          "then": [
+            "The confirmation question explicitly asks the user to check Prior Decisions and Rejected Approaches for accuracy",
+            "A 'Drift detected' option is available for the user to flag discrepancies",
+            "If drift is detected, the agent re-extracts and re-synthesizes before proceeding"
+          ]
+        },
+        {
+          "id": "rq-advprop02.4",
           "title": "Confirmed problem statement persisted in proposal.md",
           "given": [
             "The user confirms the problem statement in Phase 1"
@@ -232,11 +259,12 @@
           "when": "The change is created in Phase 2",
           "then": [
             "adv_change_create is called with the proposal parameter containing the confirmed text",
-            "proposal.md includes the confirmed problem statement as the Why section"
+            "proposal.md includes the confirmed problem statement as the Why section",
+            "proposal.md includes a Constraints from Discussion section with prior decisions and rejected approaches"
           ]
         },
         {
-          "id": "rq-advprop02.3",
+          "id": "rq-advprop02.5",
           "title": "Abort path creates no artifacts",
           "given": [
             "The user selects Abort during Phase 1 confirmation"

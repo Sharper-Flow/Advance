@@ -85,21 +85,42 @@ Add ADV to your global OpenCode configuration at `~/.config/opencode/opencode.js
 
 **Important**: Replace `/path/to/Advance` with the actual path where you cloned the repository.
 
-### Step 2: Add ADV Instructions (Recommended)
+### Step 2: Run the Sync Script (Recommended)
 
-Copy the ADV instructions to your OpenCode config directory:
+The easiest way to set up and update ADV is the sync script. It copies commands,
+agents, and skills to the global config, and validates (or patches) `opencode.json`:
 
 ```bash
-cp /path/to/Advance/ADV_INSTRUCTIONS.md ~/.config/opencode/
+# Check what needs updating (no file changes)
+./scripts/sync-global.sh --check
+
+# Sync assets + auto-patch opencode.json if ADV entries are missing
+./scripts/sync-global.sh --fix
+
+# Sync assets only, report config issues without patching
+./scripts/sync-global.sh
 ```
 
-Then reference it in your `opencode.json`:
+The `--fix` flag will:
+- Copy all `adv-*.md` commands to `~/.config/opencode/command/`
+- Copy ADV agents to `~/.config/opencode/agents/`
+- Copy ADV skills to `~/.config/opencode/skills/`
+- Add the ADV plugin path to `opencode.json` `.plugin` array if missing
+- Add `ADV_INSTRUCTIONS.md` to `opencode.json` `.instructions` array if missing
+- Back up `opencode.json` before any patches
+- Preserve all non-ADV settings (mcp, provider, permissions, etc.)
+
+Requires `jq` for config patching (`sudo apt-get install -y jq` or `brew install jq`).
+
+### Step 2b: Manual Setup (Alternative)
+
+If you prefer manual setup, add ADV entries to your `opencode.json`:
 
 ```json
 {
   "instructions": [
     "~/.config/opencode/identity.md",
-    "~/.config/opencode/ADV_INSTRUCTIONS.md"
+    "/path/to/Advance/ADV_INSTRUCTIONS.md"
   ],
   "plugin": [
     "/path/to/Advance/plugin"
@@ -107,9 +128,7 @@ Then reference it in your `opencode.json`:
 }
 ```
 
-### Step 3: Copy Slash Commands
-
-Copy the ADV commands to your project or global OpenCode commands directory:
+Then copy slash commands manually:
 
 ```bash
 # For global availability (all projects)
@@ -432,9 +451,19 @@ rm -rf .specdb/spec.db
 # Cache rebuilds automatically on next ADV command
 ```
 
-### Commands Not Found
+### Commands Not Found or Config Out of Date
 
-Ensure commands are copied to the correct location:
+Run the sync script to check and fix everything at once:
+
+```bash
+# Check what's missing
+./scripts/sync-global.sh --check
+
+# Fix everything (sync assets + patch config)
+./scripts/sync-global.sh --fix
+```
+
+Or verify manually:
 
 ```bash
 # Check global commands

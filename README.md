@@ -24,7 +24,7 @@ This repo contains:
 - `.opencode/agents/` - hidden sub-agents used by higher-level ADV commands
 - `skills/` - bundled skills synced into the global OpenCode skill registry
 - `docs/` - workflow references, gates, checklists, and supporting docs
-- `scripts/` - maintenance and migration helpers
+- `scripts/` - maintenance, migration, and global config sync helpers
 
 If you want to understand how ADV works, this repository is both the code and the operating manual.
 
@@ -43,7 +43,7 @@ Advance exists to make those failure modes harder.
 ## Core workflow
 
 ```text
-/adv-proposal  -> agree on problem statement, then define the change
+/adv-proposal  -> extract prior discussion context, agree on problem statement, then define the change
 /adv-validate  -> check it against specs
 /adv-apply     -> execute tasks with TDD and evidence
 /adv-review    -> adversarial review and remediation
@@ -58,7 +58,7 @@ Advance exists to make those failure modes harder.
 | Command | Purpose |
 |---------|---------|
 | `/adv-status` | Show project overview: specs, active changes, and next-step recommendations |
-| `/adv-proposal <summary>` | Propose a new change with problem statement agreement then full proposal |
+| `/adv-proposal <summary>` | Extract prior discussion context, agree on problem statement, then build full proposal |
 | `/adv-validate <change-id>` | Validate change compliance against specs; block archive on failure |
 | `/adv-apply <change-id>` | Implement change with TDD, retry on failure, and final verification |
 | `/adv-archive <change-id>` | Archive completed change: apply spec deltas and finalize git |
@@ -130,7 +130,7 @@ For tradeoff-heavy decisions, ADV agents should call the hidden `prioritizer` su
 │   ├── src/
 │   ├── schemas/
 │   └── package.json
-├── scripts/                # Maintenance and migration utilities
+├── scripts/                # Maintenance, migration, and global config sync
 ├── skills/                 # Bundled OpenCode skills synced globally
 ├── ADV_INSTRUCTIONS.md
 ├── INSTALL.md
@@ -167,6 +167,9 @@ Example `project.json`:
   "project_file": "project.md"
 }
 ```
+
+After cloning, run `./scripts/sync-global.sh --fix` to sync commands, agents,
+skills, and patch `~/.config/opencode/opencode.json` with ADV entries.
 
 See `INSTALL.md` for setup details.
 
