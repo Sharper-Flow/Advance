@@ -492,6 +492,18 @@ Before starting EACH task, you MUST:
 
 **Context Snapshot:** `adv_change_show` now includes a `_contextSnapshot` field — a compact visual summary of change state (gates, tasks, current task, workdir). This is emitted automatically on every re-read, keeping the user informed of where the agent is in the change lifecycle.
 
+### Worktree Context for Sub-Agents
+
+When spawning sub-agents (e.g., for remediation or verification), always include the current working directory in the sub-agent prompt:
+
+```
+WORKING DIRECTORY: {workdir}
+All file paths are relative to this directory.
+Use this as the base path for all read/glob/grep/lgrep operations.
+```
+
+Detect `{workdir}` via `pwd`. This is critical when running from a worktree — sub-agents inherit the default project root, not the worktree path, and will read stale files from the wrong branch without this context.
+
 ### TodoWrite Rules for ADV Tasks
 
 When using the `TodoWrite` tool during `/adv-apply`:

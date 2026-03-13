@@ -49,6 +49,18 @@ RECOMMENDATION:
 ```
 Stop.
 
+### Worktree Context Propagation
+
+When running from a worktree, file overlap detection must use the correct working directory to verify file existence and read file contents.
+
+**Detect current working directory:**
+
+```bash
+pwd
+```
+
+Record the result as `{workdir}`. Use `{workdir}` as the base path for all file reads, glob patterns, and grep operations in Phase 2 analysis.
+
 ---
 
 ## Phase 1: State Collection
