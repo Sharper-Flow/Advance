@@ -66,56 +66,70 @@ Use this as the base path for all read/glob/grep/lgrep operations.
 
 ## Phase 1: Staleness Analysis (Parallel Sub-Agents)
 
-Spawn sub-agents in tiered order due to dependencies.
+Spawn **3 parallel sub-agents** with `subagent_type: "explore"`. These cover the three independent dimensions of staleness: file drift, requirement obsolescence, and archive conflicts.
 
-### Sub-Agent 1: Codebase Drift Scanner
+> **Design note:** The former "Task Validator" and "Dependency Scanner" sub-agents were absorbed. Task validation (checking file/function paths in tasks) is now part of the Drift Scanner since it uses the same file-existence checks. Dependency scanning required Context7 (unavailable to `explore` agents) and is now handled inline by the orchestrator after sub-agents return.
+
+### Sub-Agent 1: Drift Scanner (includes task validation)
 
 ```
-Compare file references in change to actual codebase.
+Compare file references in change AND tasks to actual codebase.
 
 WORKING DIRECTORY: {workdir}
 All file paths are relative to this directory.
 Use this as the base path for all read/glob/grep/lgrep operations.
 
+CHANGE FILES: {list of files referenced in proposal.md and deltas}
+TASK FILES: {list of files/functions referenced in task descriptions}
+
 TASK (3-pass detection):
 1. EXACT: Map missing paths via SHA-256 content hash (100% confidence)
 2. METADATA: Match by filename + size + first 1KB (70% confidence)
 3. FUZZY: Use similarity distance for renamed files (80-90%)
+4. TASK REFS: For each task, verify referenced files/functions exist.
+   Flag orphaned tasks (reference deleted code) and invalid paths.
 
 RETURN JSON:
 {
   "dimension": "drift",
   "items": [{
     "old": "path/old.ts",
-    "new": "path/new.ts", 
+    "new": "path/new.ts",
     "confidence": "HIGH",
     "evidence": "hash_match"
-  }]
+  }],
+  "task_validation": {
+    "valid": [...],
+    "invalid": [...],
+    "orphaned": [...]
+  }
 }
 ```
 
-### Sub-Agent 2: Dependency Scanner
+### Sub-Agent 2: Obsolescence Detector
 
 ```
-Detect stale library patterns.
+Detect requirements already implemented elsewhere.
 
 WORKING DIRECTORY: {workdir}
 All file paths are relative to this directory.
 Use this as the base path for all read/glob/grep/lgrep operations.
 
 TASK:
-1. Check for outdated dependencies
-2. Use Context7 to find breaking changes between versions
-3. Flag deprecated API patterns
+1. Exclude tests, mocks, legacy paths
+2. Prioritize passing tests as evidence
+3. Verify code satisfies ALL scenarios
+
+Confidence: HIGH (green) | MEDIUM (yellow) | LOW (red)
 
 RETURN JSON:
 {
-  "dimension": "deps",
-  "updates": [{
-    "library": "react",
-    "current": "17.0",
-    "latest": "18.0",
-    "breaking_changes": ["..."]
+  "dimension": "obsolescence",
+  "findings": [{
+    "requirement_id": "...",
+    "confidence": "HIGH",
+    "implemented_at": "file:line",
+    "evidence": "..."
   }]
 }
 ```
@@ -145,55 +159,16 @@ RETURN JSON:
 }
 ```
 
-### Sub-Agent 4: Task Validator
+### Inline: Dependency Check (Orchestrator)
+
+After sub-agents return, the orchestrator checks for stale dependencies inline using Context7:
 
 ```
-Verify task references exist.
-
-WORKING DIRECTORY: {workdir}
-All file paths are relative to this directory.
-Use this as the base path for all read/glob/grep/lgrep operations.
-
-TASK:
-1. Check file/function paths in tasks
-2. Flag orphaned or invalid tasks
-
-RETURN JSON:
-{
-  "dimension": "tasks",
-  "valid": [...],
-  "invalid": [...],
-  "orphaned": [...]
-}
+context7_resolve-library-id libraryName: "{library}"
+context7_query-docs libraryId: "{id}" query: "breaking changes between {current} and {latest}"
 ```
 
-### Sub-Agent 5: Obsolescence Detector
-
-```
-Detect requirements already implemented elsewhere.
-
-WORKING DIRECTORY: {workdir}
-All file paths are relative to this directory.
-Use this as the base path for all read/glob/grep/lgrep operations.
-
-TASK:
-1. Exclude tests, mocks, legacy paths
-2. Prioritize passing tests as evidence
-3. Verify code satisfies ALL scenarios
-
-Confidence: HIGH (green) | MEDIUM (yellow) | LOW (red)
-
-RETURN JSON:
-{
-  "dimension": "obsolescence",
-  "findings": [{
-    "requirement_id": "...",
-    "confidence": "HIGH",
-    "implemented_at": "file:line",
-    "evidence": "..."
-  }]
-}
-```
+This runs inline because `explore` agents lack Context7 access.
 
 ---
 
@@ -355,6 +330,7 @@ Result: {Dry run | N changes applied | Failed}
 |---------|------|
 | Load change | `adv_change_show` |
 | List tasks | `adv_task_list` |
+| Spawn analysis | Task tool (explore × 3) |
 | Add task | `adv_task_add` |
 | Validate | `adv_change_validate` |
-| Context7 | `resolve-library-id`, `query-docs` |
+| Inline dep check | `context7_resolve-library-id`, `context7_query-docs` |

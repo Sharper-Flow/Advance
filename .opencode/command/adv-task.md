@@ -148,31 +148,87 @@ Pipeline: Research → Prep → hand off to Build
 
 ---
 
-## Phase 2: Research — LBP Validation
+## Phase 2: Research — LBP Validation (Orchestrated)
 
 Emit `[ADV:ROCKET]` — Research phase starting.
 
-For **each LBP target** from the contract:
+LBP validation uses the same orchestrator pattern as `/adv-research`: spawn sub-agents for parallel documentation lookup and architecture validation, then synthesize results inline.
 
-### Step 2.1: Resolve Library / Pattern
-
-Use Context7 to validate the proposed approach:
+### Step 2.1: Load Project Context
 
 ```
-context7_resolve-library-id libraryName: "{library or framework name}"
+adv_project_context
 ```
 
-Then query for current best practice:
+### Step 2.2: Spawn Research Sub-Agents
+
+**Spawn 1-2 sub-agents in a SINGLE message for parallel execution.**
+
+Split LBP targets by agent specialty:
+
+| LBP Target Type | Agent | Examples |
+|-----------------|-------|----------|
+| Library/API usage | `librarian` | "Is Zod the right choice?", "fetch vs axios" |
+| Architecture/pattern | `adv-researcher` | "Is this the right pattern?", "Could this be simpler?" |
+| Both | Both | Librarian finds docs, Researcher validates |
+
+**Skip `adv-researcher`** if all LBP targets are purely library/API questions with no architectural dimension.
+
+#### Librarian Sub-Agent Template
 
 ```
-context7_query-docs libraryId: "{id}" query: "{specific question about the proposed usage}"
+Validate best practices for the following LBP targets:
+
+PROJECT CONTEXT:
+{full content from adv_project_context}
+
+LBP TARGETS TO VALIDATE:
+{for each library/API LBP target}
+- {target}: {what was proposed}
+{end}
+
+For each target, return:
+- What the official docs recommend (with source URL)
+- Whether the proposed approach aligns
+- Verdict: CONFIRMED / CAUTION / CONFLICT
+
+Return structured findings with sources.
 ```
 
-If Context7 has no result, fall back to `kagi_search_fetch` for current community guidance.
+#### adv-researcher Sub-Agent Template
 
-### Step 2.2: Evaluate Against LBP
+When using `adv-researcher` agent, the system prompt already contains behavioral instructions. Only pass task-specific context:
 
-For each LBP target, record:
+```
+RESEARCH QUESTION: Validate architectural decisions for this change
+
+PROJECT TECH STACK:
+{full content from adv_project_context}
+
+LBP TARGETS TO VALIDATE:
+{for each architecture/pattern LBP target}
+- {target}: {what was proposed}
+{end}
+
+CONTEXT:
+{contract intent and scope}
+
+Evaluate each target against canonical best practices for this tech stack.
+```
+
+#### Fallback
+
+If sub-agents fail or time out, fall back to inline Context7 lookups:
+```
+context7_resolve-library-id libraryName: "{library}"
+context7_query-docs libraryId: "{id}" query: "{question}"
+```
+
+If Context7 has no result, fall back to `kagi_search_fetch`.
+
+### Step 2.3: Synthesize Verdicts
+
+After sub-agents return, synthesize a verdict for each LBP target:
 
 | Target | Finding | Verdict |
 |--------|---------|---------|
@@ -183,7 +239,7 @@ For each LBP target, record:
 - ⚠️ **Caution**: Approach works but there is a preferred alternative; surface to user but continue
 - ❌ **Conflict**: Official docs or community consensus explicitly advises against this approach
 
-### Step 2.3: LBP Halt Condition
+### Step 2.4: LBP Halt Condition
 
 **If ANY LBP target has a ❌ Conflict verdict**, STOP the pipeline and use the `question` tool:
 
@@ -206,7 +262,7 @@ For each LBP target, record:
 - **Keep original**: Note the deviation in the first task's description, continue pipeline
 - **Abort**: Stop. Do not proceed.
 
-### Step 2.4: Complete Research Gate
+### Step 2.5: Complete Research Gate
 
 After all LBP targets are validated (or conflicts resolved):
 
@@ -323,7 +379,8 @@ GATES:
 | Purpose | Tool |
 |---------|------|
 | Create change | `adv_change_create` |
-| LBP research | `context7_resolve-library-id`, `context7_query-docs`, `kagi_search_fetch` |
+| Spawn LBP research | Task tool (librarian, adv-researcher) |
+| LBP fallback | `context7_resolve-library-id`, `context7_query-docs`, `kagi_search_fetch` |
 | Project context | `adv_project_context` |
 | Check conflicts | `adv_change_list` |
 | Add tasks | `adv_task_add` |

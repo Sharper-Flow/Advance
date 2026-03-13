@@ -6,7 +6,7 @@ agent: general
 
 # ADV Improve - Architectural Improvement Analysis
 
-> **SUB-AGENT CONTEXT**: Return findings directly. Status markers and CONTRACT STATUS blocks are for main sessions only—omit them to maximize your output buffer.
+Perform an **inline** architectural improvement analysis. This command does NOT spawn sub-agents — all analysis runs directly in the orchestrating agent session using Context7 for reference architecture lookups and direct file reads for codebase analysis.
 
 You are performing an **architectural improvement analysis** with a unique dual perspective:
 

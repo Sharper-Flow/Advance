@@ -257,7 +257,7 @@ When falling back inline, use this checklist per dimension:
 
 ## Phase 2: Spawn Analysis Sub-Agents
 
-Spawn **4 parallel sub-agents** using Task tool with `subagent_type: "explore"`:
+Spawn **5 parallel sub-agents** using Task tool with `subagent_type: "explore"`:
 
 ### Sub-Agent 1: Requirement Traceability
 

@@ -6,9 +6,7 @@ agent: general
 
 # ADV Coordinate — Multi-Change Conflict Detection
 
-Analyze all active changes to detect file overlaps, semantic conflicts, and dependency cycles.
-
-> **SUB-AGENT CONTEXT**: Return findings as JSON. Skip status markers.
+Analyze all active changes to detect file overlaps, semantic conflicts, and dependency cycles. This command runs **inline** — no sub-agents are spawned.
 
 ## Pre-flight Checks
 

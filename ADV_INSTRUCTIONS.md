@@ -276,6 +276,48 @@ See: [docs/adv-gates.md](docs/adv-gates.md)
 - `/adv-harden` **blocks** if any actionable review findings are unresolved and not documented as accepted debt in `proposal.md`. `nit:` findings are not required. Also runs a **non-destructive merge compatibility check** against the default branch before quality scanners — blocks on conflicts so they are caught early, not at archive time.
 - `/adv-archive` **runs mandatory Phase 9 Git Finalization**: stage+commit all changes, detect default branch, merge (or open PR), verify merge is clean, clean up worktree, remove temp artifacts.
 
+## Command Execution Model
+
+Every ADV command runs in exactly one of two modes:
+
+### Inline Commands
+
+Execute entirely within the orchestrating agent session. No sub-agents spawned.
+
+**Use inline when:**
+- The command requires user dialogue (questions, confirmations, Socratic questioning)
+- The command mutates ADV state (creates changes, adds tasks, updates status)
+- The command performs git operations (commit, merge, worktree management)
+- The work is sequential and context-dependent (TDD loops, gap analysis)
+
+**Inline commands:** `/adv-status`, `/adv-proposal`, `/adv-validate`, `/adv-apply`, `/adv-archive`, `/adv-clarify`, `/adv-prep`, `/adv-coordinate`
+
+### Orchestrator Commands
+
+The agent orchestrates by spawning read-only sub-agents for parallel analysis, then synthesizes results inline. Sub-agents never mutate ADV state or spawn their own sub-agents.
+
+**Use orchestration when:**
+- Multiple independent analysis dimensions can run in parallel
+- The work is read-heavy scanning/research across files or documentation
+- Parallelism provides material speedup (3+ independent scan dimensions)
+- Each sub-agent's scope is bounded and its output is structured JSON
+
+**Orchestrator commands and their sub-agents:**
+
+| Command | Sub-Agents | Agent Types | Why Delegated |
+|---------|-----------|-------------|---------------|
+| `/adv-research` | 2 | librarian + adv-researcher | Parallel docs lookup + architecture validation |
+| `/adv-review` | 5 | explore × 5 | 5 independent review dimensions |
+| `/adv-harden` | 5 | explore × 5 | 5 independent quality scanners |
+| `/adv-audit` | 4 | explore × 4 | Staged spec→code→drift→conflict pipeline |
+| `/adv-slop-scan` | up to 9 | explore × 9 | 9 independent smell category scanners |
+| `/adv-tron` | 1 | tron | Specialized reconnaissance agent |
+| `/adv-task` | 1-2 | librarian (+ adv-researcher if needed) | LBP validation via research orchestration |
+| `/adv-improve` | 0 (inline) | — | Inline analysis with Context7; no sub-agents |
+| `/adv-refactor` | 3 | explore × 3 | Drift + obsolescence + conflict scanning |
+
+**Anti-recursion rule:** Sub-agents NEVER spawn sub-agents. The `enforceTaskPolicy` guard blocks nested Task tool calls. If a sub-agent needs deeper analysis, it performs it inline or returns a finding for the orchestrator to investigate.
+
 ## Sub-Agent Selection
 
 When spawning sub-agents via the Task tool, select based on the task type:
@@ -286,6 +328,7 @@ When spawning sub-agents via the Task tool, select based on the task type:
 | `adv-researcher` | Architectural validation, simplicity analysis | Context7, Kagi, ADV read-only |
 | `explore` | Codebase navigation, find usages | Read, Glob, Grep |
 | `general` | Complex multi-step implementation | Full tool access |
+| `tron` | Codebase reconnaissance, hotspot detection | Read, Glob, Grep, lgrep |
 
 ### Orchestrator Pattern
 

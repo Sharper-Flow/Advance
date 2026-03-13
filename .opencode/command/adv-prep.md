@@ -6,9 +6,7 @@ agent: general
 
 # ADV Prep - Pre-Implementation Gap Analysis
 
-Analyze a change for gaps (missing scenarios, tasks, cross-cutting concerns) and add them using ADV tools. Uses the 4-Step Gap Analysis framework and IEEE-based completeness criteria.
-
-> **SUB-AGENT CONTEXT**: Return findings directly. Skip status markers and CONTRACT STATUS blocks.
+Analyze a change for gaps (missing scenarios, tasks, cross-cutting concerns) and add them using ADV tools. Uses the 4-Step Gap Analysis framework and IEEE-based completeness criteria. This command runs **inline** — no sub-agents are spawned.
 
 <UserRequest>
   $ARGUMENTS
