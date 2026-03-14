@@ -15,7 +15,7 @@ import {
 import type { Store } from "../storage/store";
 import { validateChange } from "../validator";
 import { runClarifyReadinessChecks } from "../validator/clarify-readiness";
-import { loadProposalWithFallback } from "../storage/json";
+import { loadProposalWithFallback, fileExists } from "../storage/json";
 import { archiveChange } from "../archive";
 import { wrapWithBanner } from "../utils/banner";
 import { formatToolOutput, paginate } from "../utils/tool-output";
@@ -150,6 +150,14 @@ export const changeTools = {
         _contextSnapshot: formatContextSnapshot(snapshotInput),
       };
 
+      // Check for problem-statement.md artifact
+      const problemStatementPath = join(changeDir, "problem-statement.md");
+      const problemStatementExists = await fileExists(problemStatementPath);
+      output.problemStatementExists = problemStatementExists;
+      if (problemStatementExists) {
+        output.problemStatementPath = problemStatementPath;
+      }
+
       // Run clarify-readiness checks if feature flag is not "off"
       const features = store.config?.features as FeatureFlags | undefined;
       const clarifyMode = features?.clarify_enforcement ?? "advisory";
@@ -206,10 +214,20 @@ export const changeTools = {
         capability,
         proposal,
         problemStatement,
-      }: { summary: string; capability?: string; proposal?: string; problemStatement?: string },
+      }: {
+        summary: string;
+        capability?: string;
+        proposal?: string;
+        problemStatement?: string;
+      },
       store: Store,
     ) => {
-      const result = await store.changes.create(summary, capability, proposal, problemStatement);
+      const result = await store.changes.create(
+        summary,
+        capability,
+        proposal,
+        problemStatement,
+      );
 
       // Run clarify-readiness checks if feature flag is not "off"
       const features = store.config?.features as FeatureFlags | undefined;

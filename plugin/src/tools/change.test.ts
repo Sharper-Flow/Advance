@@ -5,7 +5,8 @@
  */
 
 import { describe, test, expect, beforeEach, afterEach } from "vitest";
-import { readFile } from "fs/promises";
+import { readFile, writeFile } from "fs/promises";
+import { join } from "path";
 import { changeTools } from "./change";
 import { createStore, type Store } from "../storage/store";
 import {
@@ -207,6 +208,36 @@ describe("Change Tools", () => {
       // Current task should show the in_progress task
       expect(snapshot).toContain("tk-task0002");
       expect(snapshot).toContain("Write tests");
+    });
+
+    test("includes problemStatementPath when problem-statement.md exists", async () => {
+      // Write a problem-statement.md to the change directory
+      const changeDir = join(tempDir, ".adv/changes/addFeature");
+      await writeFile(
+        join(changeDir, "problem-statement.md"),
+        "PROBLEM\n  The widget is broken.",
+      );
+
+      const result = await changeTools.adv_change_show.execute(
+        { changeId: "addFeature" },
+        store,
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed.problemStatementExists).toBe(true);
+      expect(parsed.problemStatementPath).toBeDefined();
+      expect(parsed.problemStatementPath).toContain("problem-statement.md");
+    });
+
+    test("omits problemStatementPath when problem-statement.md does not exist", async () => {
+      const result = await changeTools.adv_change_show.execute(
+        { changeId: "addFeature" },
+        store,
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed.problemStatementExists).toBe(false);
+      expect(parsed.problemStatementPath).toBeUndefined();
     });
   });
 
@@ -489,6 +520,44 @@ describe("Change Tools", () => {
       expect(
         parsed.specsUpdated.map((s: { capability: string }) => s.capability),
       ).toContain("test-capability");
+    });
+
+    test("copies problem statement artifact through adv_change_archive", async () => {
+      await store.tasks.update("tk-task0001", "done");
+      await store.tasks.update("tk-task0002", "done");
+      await store.tasks.update("tk-task0003", "done");
+
+      const change = (await store.changes.get("addFeature")).data!;
+      change.gates = {
+        research: { status: "done", completed_at: new Date().toISOString() },
+        prep: { status: "done", completed_at: new Date().toISOString() },
+        implementation: {
+          status: "done",
+          completed_at: new Date().toISOString(),
+        },
+        review: { status: "done", completed_at: new Date().toISOString() },
+        harden: { status: "done", completed_at: new Date().toISOString() },
+        signoff: { status: "done", completed_at: new Date().toISOString() },
+      };
+      await store.changes.save(change);
+
+      const changeDir = join(tempDir, ".adv/changes/addFeature");
+      await writeFile(
+        join(changeDir, "problem-statement.md"),
+        "PROBLEM\n  The widget is broken.",
+      );
+
+      const result = await changeTools.adv_change_archive.execute(
+        { changeId: "addFeature" },
+        store,
+      );
+      const parsed = parseToolOutput(result);
+
+      const archivedProblemStatement = await readFile(
+        join(parsed.archivePath, "problem-statement.md"),
+        "utf-8",
+      );
+      expect(archivedProblemStatement).toBe("PROBLEM\n  The widget is broken.");
     });
 
     test("fails when tasks are incomplete", async () => {

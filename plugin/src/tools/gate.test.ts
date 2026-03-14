@@ -307,8 +307,12 @@ describe("Gate Tools", () => {
       const parsed = extractJson(result) as Record<string, unknown>;
 
       expect(parsed.success).toBe(true);
-      expect(parsed.boundaryWarning).toContain("owned by [adv-research, adv-task]");
-      expect(parsed.boundaryWarning).toContain("completed by 'adv-apply auto-complete'");
+      expect(parsed.boundaryWarning).toContain(
+        "owned by [adv-research, adv-task]",
+      );
+      expect(parsed.boundaryWarning).toContain(
+        "completed by 'adv-apply auto-complete'",
+      );
     });
 
     test("does not emit boundary warning for an authorized command", async () => {

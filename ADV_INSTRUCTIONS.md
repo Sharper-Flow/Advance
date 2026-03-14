@@ -351,6 +351,51 @@ When spawning sub-agents via the Task tool, select based on the task type:
 
 For parallel research: spawn `librarian` (docs) + `adv-researcher` (architecture validation) simultaneously, then synthesize.
 
+## Skill Discovery Protocol
+
+Commands that perform research or analysis can automatically discover and load relevant skills based on the project's tech stack and the change's domain. This improves research quality by providing domain-specific guidance without manual skill loading.
+
+### Currently Enabled In
+
+- `/adv-research` — Phase 1.5 (after loading project context, before generating research questions)
+
+Other commands may adopt this protocol in the future.
+
+### How It Works
+
+1. **Scan** — Use `glob` with pattern `*/SKILL.md` and an explicit absolute skills directory path (for example the resolved global skills dir), plus optionally `.opencode/skills/*/SKILL.md` for project-local skills
+2. **Extract** — Read YAML frontmatter from each SKILL.md. Look for the `keywords` array.
+3. **Match** — Compare each skill's `keywords` against:
+   - Tech stack terms from `adv_project_context` (framework names, library names)
+   - Domain terms from the change summary and proposal
+   - If `project.md` is missing, fall back to the change summary/proposal plus clearly detectable local stack terms from the repo
+4. **Load** — Call `skill("{name}")` for each matched skill
+5. **Apply** — Incorporate loaded skill guidance into subsequent phases
+
+### Skill Metadata Convention
+
+Skills that want to be discoverable should include a `keywords` array in their YAML frontmatter:
+
+```yaml
+---
+name: my-skill
+description: "What this skill provides"
+keywords: ["term1", "term2", "term3"]
+metadata:
+  priority: medium
+  replaces: none
+---
+```
+
+**Keywords** should be specific terms that indicate when the skill is relevant — framework names, domain concepts, tool names. Avoid generic terms that would match too broadly.
+
+### Graceful Degradation
+
+- Skills without YAML frontmatter are silently skipped
+- Skills without a `keywords` field are silently skipped
+- If no skills match, the command proceeds normally without additional skills
+- Skill discovery adds no API calls — it is a filesystem-only scan
+
 ## Worktree Integration
 
 ADV uses **external mutable state** so that all worktrees of the same repo share changes, archive, wisdom, agenda, and the SQLite cache. Specs remain in-repo (`.adv/specs/`).

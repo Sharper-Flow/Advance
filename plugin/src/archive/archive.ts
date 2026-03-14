@@ -6,6 +6,7 @@
  */
 
 import { join } from "path";
+import { readdir, readFile } from "fs/promises";
 import { atomicWriteFile } from "../utils/fs";
 import type { Spec, Change } from "../types";
 import { stripTddEvidence } from "../types";
@@ -89,8 +90,17 @@ export async function archiveChange(
     }
   }
 
-  // Create archive directory and copy change
-  const archivePath = await createArchive(change, paths.archive, dryRun);
+  // Create archive directory and copy change (+ sibling files if changes dir provided)
+  const sourceChangeDir = paths.changes
+    ? join(paths.changes, change.id)
+    : undefined;
+  const archivePath = await createArchive(
+    change,
+    paths.archive,
+    dryRun,
+    sourceChangeDir,
+    errors,
+  );
 
   return {
     success: errors.length === 0,
@@ -120,6 +130,8 @@ async function createArchive(
   change: Change,
   archiveDir: string,
   dryRun: boolean,
+  sourceChangeDir?: string,
+  errors?: string[],
 ): Promise<string> {
   const date = new Date().toISOString().split("T")[0];
   const archivePath = join(archiveDir, `${date}-${change.id}`);
@@ -147,6 +159,30 @@ async function createArchive(
     // Write archive summary
     const summary = generateArchiveSummary(change);
     await atomicWriteFile(join(archivePath, "ARCHIVE_SUMMARY.md"), summary);
+
+    // Copy sibling files from source change directory (proposal.md, problem-statement.md, etc.)
+    if (sourceChangeDir) {
+      try {
+        const entries = await readdir(sourceChangeDir, { withFileTypes: true });
+        for (const entry of entries) {
+          // Skip change.json (already written above with stripped evidence)
+          if (entry.name === "change.json" || !entry.isFile()) continue;
+          try {
+            const content = await readFile(
+              join(sourceChangeDir, entry.name),
+              "utf-8",
+            );
+            await atomicWriteFile(join(archivePath, entry.name), content);
+          } catch (err) {
+            errors?.push(
+              `Failed to copy change artifact ${entry.name}: ${err}`,
+            );
+          }
+        }
+      } catch {
+        // Source directory may not exist for legacy changes — not an error
+      }
+    }
   }
 
   return archivePath;

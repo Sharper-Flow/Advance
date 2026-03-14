@@ -125,6 +125,86 @@ Document findings in the research report under `## Architecture Health Assessmen
 
 ---
 
+## Phase 1.5: Skill Discovery
+
+After loading project context (Step 1) and before generating research questions, scan for skills that may improve research quality for this change's tech stack and domain.
+
+### Step 1: Scan Available Skills
+
+Use the glob tool to find all skill manifests. Because tool calls do not expand `~`, resolve the global skills directory to an absolute path first, then use pattern `*/SKILL.md`.
+
+```
+glob pattern: "*/SKILL.md" path: "<resolved global skills dir>"
+```
+
+Also check for project-local skills:
+
+```
+glob: .opencode/skills/*/SKILL.md
+```
+
+### Step 2: Extract Skill Metadata
+
+For each SKILL.md found, read the YAML frontmatter. Extract:
+- `name` — skill identifier
+- `description` — what the skill provides
+- `keywords` — array of tech stack and domain terms that indicate relevance
+
+**If a skill has no YAML frontmatter or no `keywords` field**, skip it silently — do not error.
+
+If `adv_project_context` returned no `project.md`, continue with the change summary/proposal plus any clearly detectable local stack terms from the repository. Emit a brief note that project context was unavailable.
+
+Example frontmatter with keywords:
+
+```yaml
+---
+name: adv-tron
+description: "Codebase reconnaissance skill"
+keywords: ["reconnaissance", "investigation", "hotspot", "codebase-analysis"]
+---
+```
+
+### Step 3: Match Against Project Context
+
+Compare each skill's `keywords` against:
+
+1. **Tech stack terms** from `adv_project_context` output (framework names, library names, language names)
+2. **Domain terms** from the change summary and proposal (e.g., "authentication", "database", "API")
+
+A skill matches if **any** of its keywords appear in the project context or change description (case-insensitive substring match).
+
+### Step 4: Load Matching Skills
+
+For each matched skill, load it:
+
+```
+skill("{skill-name}")
+```
+
+Emit a brief log of what was loaded and why:
+
+```
+Skill discovery: loaded {N} skills
+  - {skill-name}: matched on "{keyword}" (from {source: tech stack | change summary})
+```
+
+If no skills match, emit:
+
+```
+Skill discovery: no matching skills found — proceeding without additional skills.
+```
+
+### Step 5: Apply Skill Guidance
+
+Loaded skills may provide:
+- Tool selection preferences (e.g., which MCP tools to prefer)
+- Domain-specific research protocols
+- Framework-specific best practices
+
+Incorporate any relevant guidance into the research questions generated in Phase 2 and the sub-agent prompts in Phase 3.
+
+---
+
 ## Phase 2: Generate Research Questions
 
 For each decision, formulate questions across these dimensions:

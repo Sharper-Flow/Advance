@@ -279,6 +279,20 @@ After Quick Contract confirmation, /adv-task must always persist contract contex
 - No proposal.md is created
 - No tasks are added
 
+**Confirmed problem statement persisted as standalone artifact** (`rq-advprop02.6`)
+
+**Given:**
+- The user confirms the problem statement in Phase 1
+
+**When:** The change is created in Phase 2
+
+**Then:**
+- adv_change_create is called with the problemStatement parameter containing the confirmed problem statement text
+- A problem-statement.md file is written to the change directory as a sibling of proposal.md
+- The problem-statement.md content exactly matches the confirmed text (no template wrapping)
+- The tool output includes problemStatementPath pointing to the artifact
+- When the change is archived, problem-statement.md is preserved in the archive directory
+
 ---
 
 ### Defensive and Nesting Slop Detection

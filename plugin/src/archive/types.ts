@@ -97,6 +97,8 @@ export interface ArchiveContext {
     specs: string;
     archive: string;
     docs: string;
+    /** Source changes directory — when provided, sibling files (proposal.md, problem-statement.md) are copied to archive */
+    changes?: string;
   };
   /** Whether to perform a dry run (no writes) */
   dryRun?: boolean;

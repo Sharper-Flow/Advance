@@ -442,9 +442,9 @@ describe("Task Tools", () => {
       const parsed = JSON.parse(result);
 
       // 80 chars + "\n... [truncated]" suffix = max 96 chars
-      expect(parsed.task.tdd_evidence.red.output_snippet.length).toBeLessThanOrEqual(
-        96,
-      );
+      expect(
+        parsed.task.tdd_evidence.red.output_snippet.length,
+      ).toBeLessThanOrEqual(96);
       expect(parsed.task.tdd_evidence.red.output_snippet).toContain(
         "[truncated]",
       );

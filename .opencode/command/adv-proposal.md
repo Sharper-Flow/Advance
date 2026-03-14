@@ -170,7 +170,7 @@ Use the `question` tool:
 
 **If "Abort"**: Stop execution. Do NOT create any change artifacts.
 
-**If "Confirmed"**: Proceed to Phase 2. The confirmed problem statement text (including Prior Decisions and Rejected Approaches) will be persisted as the `## Why` section of `proposal.md` via the `proposal` parameter in `adv_change_create`.
+**If "Confirmed"**: Proceed to Phase 2. The confirmed problem statement text (including Prior Decisions and Rejected Approaches) will be persisted as the `## Why` section of `proposal.md` via the `proposal` parameter in `adv_change_create`. Additionally, the raw confirmed problem statement text will be persisted as a standalone `problem-statement.md` artifact via the `problemStatement` parameter.
 
 ---
 
@@ -218,11 +218,14 @@ Do not propose solutions that contradict these without explicit user approval.
 <!-- To be filled in this phase -->
 ```
 
-Call `adv_change_create summary: "<resolved summary from Step 1>" proposal: "<initial proposal content above>"`
+Call `adv_change_create summary: "<resolved summary from Step 1>" proposal: "<initial proposal content above>" problemStatement: "<raw confirmed problem statement text from Phase 1>"`
+
+The `problemStatement` parameter should contain the exact text shown in the Problem Statement block (the content between the `============` delimiters), preserving the PROBLEM, DESIRED OUTCOME, PRIOR DECISIONS, REJECTED APPROACHES, OPEN QUESTIONS, and SCOPE sections verbatim.
 
 This will create:
 - `changes/<change-id>/change.json` - Change metadata
 - `changes/<change-id>/proposal.md` - Proposal with the confirmed problem statement already written
+- `changes/<change-id>/problem-statement.md` - Standalone artifact preserving the exact confirmed problem statement
 
 ### Step 5: Gather Requirements
 
@@ -446,6 +449,7 @@ Status: draft
 FILES CREATED:
 - changes/<change-id>/change.json
 - changes/<change-id>/proposal.md
+- changes/<change-id>/problem-statement.md
 
 REQUIREMENTS QUALITY:
 - INVEST check: {pass|needs review}
@@ -491,6 +495,6 @@ Result: Change <change-id> created
 
 | Purpose | Tool |
 |---------|------|
-| Create change | `adv_change_create summary: "..." proposal: "..."` |
+| Create change | `adv_change_create summary: "..." proposal: "..." problemStatement: "..."` |
 | List changes | `adv_change_list` |
 | List specs | `adv_spec action: "list"` |

@@ -453,7 +453,11 @@ export async function createChangeScaffold(
   title: string,
   proposalContent?: string,
   problemStatementContent?: string,
-): Promise<{ changePath: string; proposalPath: string; problemStatementPath?: string }> {
+): Promise<{
+  changePath: string;
+  proposalPath: string;
+  problemStatementPath?: string;
+}> {
   const changeDir = join(changesDir, changeId);
   const changePath = join(changeDir, "change.json");
   const proposalPath = join(changeDir, "proposal.md");

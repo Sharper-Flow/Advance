@@ -463,7 +463,8 @@ describe("createChangeScaffold", () => {
 
   test("writes problem-statement.md when problemStatement is provided", async () => {
     const changesDir = join(tempDir, "changes");
-    const problemStatement = "PROBLEM\n  The widget is broken.\n\nDESIRED OUTCOME\n  The widget works.";
+    const problemStatement =
+      "PROBLEM\n  The widget is broken.\n\nDESIRED OUTCOME\n  The widget works.";
     const result = await createChangeScaffold(
       changesDir,
       "withProblemStatement",
@@ -488,7 +489,11 @@ describe("createChangeScaffold", () => {
     );
 
     expect(result.problemStatementPath).toBeUndefined();
-    const psPath = join(changesDir, "withoutProblemStatement", "problem-statement.md");
+    const psPath = join(
+      changesDir,
+      "withoutProblemStatement",
+      "problem-statement.md",
+    );
     expect(await fileExists(psPath)).toBe(false);
   });
 });

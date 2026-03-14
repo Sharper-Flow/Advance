@@ -6,7 +6,7 @@
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { join } from "path";
-import { readFile, access } from "fs/promises";
+import { readFile, writeFile, access, mkdir, chmod } from "fs/promises";
 import {
   createTempDir,
   cleanupTempDir,
@@ -620,7 +620,8 @@ describe("Archive Workflow", () => {
         red: {
           test_file: "src/foo.test.ts",
           command: "bun test src/foo.test.ts",
-          output_snippet: "FAIL: expected 1 to be 2 — long output that bloats the file",
+          output_snippet:
+            "FAIL: expected 1 to be 2 — long output that bloats the file",
           exit_code: 1,
           recorded_at: "2026-01-22T00:00:00Z",
         },
@@ -778,6 +779,89 @@ describe("Archive Workflow", () => {
       // Verify new spec file was created (access() throws if missing)
       const specPath = join(testDir, "specs/brand-new-capability/spec.json");
       await access(specPath);
+    });
+
+    it("copies sibling files (proposal.md, problem-statement.md) to archive", async () => {
+      const change = structuredClone(SAMPLE_CHANGE) as Change;
+      change.tasks.forEach((t) => (t.status = "done"));
+
+      // Create source change directory with sibling files
+      const changesDir = join(testDir, "changes");
+      const sourceChangeDir = join(changesDir, change.id);
+      await mkdir(sourceChangeDir, { recursive: true });
+      await writeFile(
+        join(sourceChangeDir, "proposal.md"),
+        "# My Proposal\n\n## Why\n\nBecause.",
+      );
+      await writeFile(
+        join(sourceChangeDir, "problem-statement.md"),
+        "PROBLEM\n  The widget is broken.",
+      );
+
+      const specs = new Map<string, Spec>();
+      specs.set("test-capability", structuredClone(SAMPLE_SPEC) as Spec);
+
+      const result = await archiveChange({
+        change,
+        specs,
+        paths: {
+          specs: join(testDir, "specs"),
+          archive: join(testDir, "archive"),
+          docs: join(testDir, "docs/specs"),
+          changes: changesDir,
+        },
+      });
+
+      expect(result.success).toBe(true);
+
+      // Verify sibling files were copied to archive
+      const archivedProposal = await readFile(
+        join(result.archivePath, "proposal.md"),
+        "utf-8",
+      );
+      expect(archivedProposal).toBe("# My Proposal\n\n## Why\n\nBecause.");
+
+      const archivedProblemStatement = await readFile(
+        join(result.archivePath, "problem-statement.md"),
+        "utf-8",
+      );
+      expect(archivedProblemStatement).toBe("PROBLEM\n  The widget is broken.");
+    });
+
+    it("reports errors when a sibling artifact cannot be copied", async () => {
+      const change = structuredClone(SAMPLE_CHANGE) as Change;
+      change.tasks.forEach((t) => (t.status = "done"));
+
+      const changesDir = join(testDir, "changes");
+      const sourceChangeDir = join(changesDir, change.id);
+      await mkdir(sourceChangeDir, { recursive: true });
+
+      const unreadablePath = join(sourceChangeDir, "problem-statement.md");
+      await writeFile(unreadablePath, "PROBLEM\n  The widget is broken.");
+      await chmod(unreadablePath, 0o000);
+
+      try {
+        const specs = new Map<string, Spec>();
+        specs.set("test-capability", structuredClone(SAMPLE_SPEC) as Spec);
+
+        const result = await archiveChange({
+          change,
+          specs,
+          paths: {
+            specs: join(testDir, "specs"),
+            archive: join(testDir, "archive"),
+            docs: join(testDir, "docs/specs"),
+            changes: changesDir,
+          },
+        });
+
+        expect(result.success).toBe(false);
+        expect(result.errors).toContainEqual(
+          expect.stringContaining("Failed to copy change artifact problem-statement.md"),
+        );
+      } finally {
+        await chmod(unreadablePath, 0o644);
+      }
     });
   });
 });
