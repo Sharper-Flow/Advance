@@ -857,7 +857,9 @@ describe("Archive Workflow", () => {
 
         expect(result.success).toBe(false);
         expect(result.errors).toContainEqual(
-          expect.stringContaining("Failed to copy change artifact problem-statement.md"),
+          expect.stringContaining(
+            "Failed to copy change artifact problem-statement.md",
+          ),
         );
       } finally {
         await chmod(unreadablePath, 0o644);
