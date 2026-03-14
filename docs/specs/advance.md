@@ -1,7 +1,7 @@
 # Advance
 
-> **Version:** 1.3.0
-> **Updated:** 2026-03-10
+> **Version:** 1.3.1
+> **Updated:** 2026-03-14
 
 ## Purpose
 

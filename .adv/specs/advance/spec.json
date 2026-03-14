@@ -3,8 +3,8 @@
   "name": "advance",
   "title": "Advance",
   "purpose": "Capability: Advance",
-  "version": "1.3.0",
-  "updated_at": "2026-03-10T00:00:00.000Z",
+  "version": "1.3.1",
+  "updated_at": "2026-03-14T08:32:36.244Z",
   "requirements": [
     {
       "id": "rq-W1sD0mR1",
@@ -208,7 +208,11 @@
       "title": "Problem Statement Agreement for adv-proposal",
       "body": "/adv-proposal must extract prior discussion context (decisions, rejected approaches, constraints, open questions) from the conversation before synthesizing a problem statement, confirm it via the question tool before creating any change artifacts, and persist the confirmed text (including prior decisions and rejected approaches) as the opening section of proposal.md via the proposal parameter in adv_change_create. The problem statement must not contradict, omit, or reinterpret any prior decision or constraint from the conversation.",
       "priority": "must",
-      "tags": ["proposal", "context-agreement", "transcript-grounding"],
+      "tags": [
+        "proposal",
+        "context-agreement",
+        "transcript-grounding"
+      ],
       "scenarios": [
         {
           "id": "rq-advprop02.1",
@@ -275,6 +279,21 @@
             "No proposal.md is created",
             "No tasks are added"
           ]
+        },
+        {
+          "id": "rq-advprop02.6",
+          "title": "Confirmed problem statement persisted as standalone artifact",
+          "given": [
+            "The user confirms the problem statement in Phase 1"
+          ],
+          "when": "The change is created in Phase 2",
+          "then": [
+            "adv_change_create is called with the problemStatement parameter containing the confirmed problem statement text",
+            "A problem-statement.md file is written to the change directory as a sibling of proposal.md",
+            "The problem-statement.md content exactly matches the confirmed text (no template wrapping)",
+            "The tool output includes problemStatementPath pointing to the artifact",
+            "When the change is archived, problem-statement.md is preserved in the archive directory"
+          ]
         }
       ]
     },
@@ -283,7 +302,11 @@
       "title": "Defensive and Nesting Slop Detection",
       "body": "/adv-slop-scan must detect overly defensive code (redundant guard chains, paranoid null checks, unreachable fallback branches) and deeply nested code (nesting depth >= configured threshold) using AST-first analysis with deterministic degraded fallback when AST tools are unavailable. Findings must include structured diagnostic fields in all output formats.",
       "priority": "must",
-      "tags": ["slop-scan", "quality", "ast"],
+      "tags": [
+        "slop-scan",
+        "quality",
+        "ast"
+      ],
       "scenarios": [
         {
           "id": "rq-slopscan01.1",
