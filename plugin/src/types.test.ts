@@ -27,6 +27,7 @@ import {
   hasCompleteTddEvidence,
   getTddComplianceStatus,
   truncateOutput,
+  stripTddEvidence,
   type Task,
 } from "./types";
 import { SAMPLE_SPEC, SAMPLE_CHANGE } from "./__tests__/setup";
@@ -925,16 +926,96 @@ describe("truncateOutput", () => {
     expect(truncateOutput("short")).toBe("short");
   });
 
-  test("truncates long output", () => {
+  test("truncates long output at 80 chars by default", () => {
     const long = "x".repeat(1000);
     const result = truncateOutput(long);
-    expect(result.length).toBeLessThan(600);
+    // 80 chars + "\n... [truncated]" suffix
+    expect(result.length).toBeLessThanOrEqual(80 + "\n... [truncated]".length);
     expect(result).toContain("[truncated]");
   });
 
   test("respects custom max length", () => {
     const result = truncateOutput("hello world", 5);
     expect(result).toBe("hello\n... [truncated]");
+  });
+});
+
+describe("stripTddEvidence", () => {
+  test("strips output_snippet and command from red/green phases, keeps exit_code + recorded_at + test_file", () => {
+    const evidence = {
+      red: {
+        test_file: "src/foo.test.ts",
+        command: "bun test src/foo.test.ts",
+        output_snippet: "FAIL: expected 1 to be 2",
+        exit_code: 1,
+        recorded_at: "2026-01-22T00:00:00Z",
+      },
+      green: {
+        test_file: "src/foo.test.ts",
+        command: "bun test src/foo.test.ts",
+        output_snippet: "PASS: all tests passed",
+        exit_code: 0,
+        recorded_at: "2026-01-22T01:00:00Z",
+      },
+    };
+    const stripped = stripTddEvidence(evidence);
+    expect(stripped.red).toEqual({
+      test_file: "src/foo.test.ts",
+      exit_code: 1,
+      recorded_at: "2026-01-22T00:00:00Z",
+    });
+    expect(stripped.green).toEqual({
+      test_file: "src/foo.test.ts",
+      exit_code: 0,
+      recorded_at: "2026-01-22T01:00:00Z",
+    });
+  });
+
+  test("preserves skipped + skip_reason unchanged", () => {
+    const evidence = {
+      skipped: true,
+      skip_reason: "trivial: docs change",
+    };
+    const stripped = stripTddEvidence(evidence);
+    expect(stripped).toEqual({
+      skipped: true,
+      skip_reason: "trivial: docs change",
+    });
+  });
+
+  test("handles empty evidence gracefully", () => {
+    const stripped = stripTddEvidence({});
+    expect(stripped).toEqual({});
+  });
+
+  test("handles evidence with only red phase", () => {
+    const evidence = {
+      red: {
+        command: "bun test",
+        output_snippet: "FAIL",
+        exit_code: 1,
+        recorded_at: "2026-01-22T00:00:00Z",
+      },
+    };
+    const stripped = stripTddEvidence(evidence);
+    expect(stripped.red).toEqual({
+      exit_code: 1,
+      recorded_at: "2026-01-22T00:00:00Z",
+    });
+    expect(stripped.green).toBeUndefined();
+  });
+
+  test("handles phase with no test_file (omits it)", () => {
+    const evidence = {
+      red: {
+        command: "bun test",
+        output_snippet: "FAIL",
+        exit_code: 1,
+        recorded_at: "2026-01-22T00:00:00Z",
+      },
+    };
+    const stripped = stripTddEvidence(evidence);
+    expect(stripped.red?.test_file).toBeUndefined();
   });
 });
 

@@ -612,6 +612,74 @@ describe("Archive Workflow", () => {
       await access(result.archivePath);
     });
 
+    it("strips TDD evidence to minimal proof in archived change", async () => {
+      const change = structuredClone(SAMPLE_CHANGE) as Change;
+      change.tasks.forEach((t) => (t.status = "done"));
+      // Add full TDD evidence to a task
+      change.tasks[0].tdd_evidence = {
+        red: {
+          test_file: "src/foo.test.ts",
+          command: "bun test src/foo.test.ts",
+          output_snippet: "FAIL: expected 1 to be 2 — long output that bloats the file",
+          exit_code: 1,
+          recorded_at: "2026-01-22T00:00:00Z",
+        },
+        green: {
+          test_file: "src/foo.test.ts",
+          command: "bun test src/foo.test.ts",
+          output_snippet: "PASS: all tests passed — more verbose output here",
+          exit_code: 0,
+          recorded_at: "2026-01-22T01:00:00Z",
+        },
+      };
+      // Add skipped evidence to another task
+      change.tasks[1].tdd_evidence = {
+        skipped: true,
+        skip_reason: "trivial: docs change",
+      };
+
+      const specs = new Map<string, Spec>();
+      specs.set("test-capability", structuredClone(SAMPLE_SPEC) as Spec);
+
+      const result = await archiveChange({
+        change,
+        specs,
+        paths: {
+          specs: join(testDir, "specs"),
+          archive: join(testDir, "archive"),
+          docs: join(testDir, "docs/specs"),
+        },
+      });
+
+      expect(result.success).toBe(true);
+
+      // Read the archived change.json and verify evidence is stripped
+      const archivedContent = await readFile(
+        join(result.archivePath, "change.json"),
+        "utf-8",
+      );
+      const archivedChange = JSON.parse(archivedContent);
+
+      // Red phase: command and output_snippet should be stripped
+      const task0Evidence = archivedChange.tasks[0].tdd_evidence;
+      expect(task0Evidence.red.exit_code).toBe(1);
+      expect(task0Evidence.red.recorded_at).toBe("2026-01-22T00:00:00Z");
+      expect(task0Evidence.red.test_file).toBe("src/foo.test.ts");
+      expect(task0Evidence.red.command).toBeUndefined();
+      expect(task0Evidence.red.output_snippet).toBeUndefined();
+
+      // Green phase: same stripping
+      expect(task0Evidence.green.exit_code).toBe(0);
+      expect(task0Evidence.green.test_file).toBe("src/foo.test.ts");
+      expect(task0Evidence.green.command).toBeUndefined();
+      expect(task0Evidence.green.output_snippet).toBeUndefined();
+
+      // Skipped evidence preserved unchanged
+      const task1Evidence = archivedChange.tasks[1].tdd_evidence;
+      expect(task1Evidence.skipped).toBe(true);
+      expect(task1Evidence.skip_reason).toBe("trivial: docs change");
+    });
+
     it("performs dry run without writing files", async () => {
       const change = structuredClone(SAMPLE_CHANGE) as Change;
       change.tasks.forEach((t) => (t.status = "done"));

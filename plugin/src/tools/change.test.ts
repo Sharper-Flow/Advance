@@ -266,6 +266,33 @@ describe("Change Tools", () => {
       const content = await readFile(parsed.path, "utf-8");
       expect(content).toBe(proposal);
     });
+
+    test("persists problem statement as separate artifact on create", async () => {
+      const problemStatement = "PROBLEM\n  Auth tokens expire silently.";
+      const result = await changeTools.adv_change_create.execute(
+        {
+          summary: "Create with problem statement",
+          problemStatement,
+        },
+        store,
+      );
+      const parsed = parseToolOutput(result);
+
+      expect(parsed.problemStatementPath).toBeDefined();
+      expect(parsed.problemStatementPath).toContain("problem-statement.md");
+      const content = await readFile(parsed.problemStatementPath, "utf-8");
+      expect(content).toBe(problemStatement);
+    });
+
+    test("omits problemStatementPath when not provided", async () => {
+      const result = await changeTools.adv_change_create.execute(
+        { summary: "No problem statement" },
+        store,
+      );
+      const parsed = parseToolOutput(result);
+
+      expect(parsed.problemStatementPath).toBeUndefined();
+    });
   });
 
   describe("adv_change_show clarify integration", () => {

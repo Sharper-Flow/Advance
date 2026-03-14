@@ -193,16 +193,23 @@ export const changeTools = {
         .describe(
           "Optional proposal.md content to persist during change creation",
         ),
+      problemStatement: z
+        .string()
+        .optional()
+        .describe(
+          "Optional confirmed problem statement text to persist as problem-statement.md artifact",
+        ),
     },
     execute: async (
       {
         summary,
         capability,
         proposal,
-      }: { summary: string; capability?: string; proposal?: string },
+        problemStatement,
+      }: { summary: string; capability?: string; proposal?: string; problemStatement?: string },
       store: Store,
     ) => {
-      const result = await store.changes.create(summary, capability, proposal);
+      const result = await store.changes.create(summary, capability, proposal, problemStatement);
 
       // Run clarify-readiness checks if feature flag is not "off"
       const features = store.config?.features as FeatureFlags | undefined;

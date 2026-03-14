@@ -452,7 +452,8 @@ export async function createChangeScaffold(
   changeId: string,
   title: string,
   proposalContent?: string,
-): Promise<{ changePath: string; proposalPath: string }> {
+  problemStatementContent?: string,
+): Promise<{ changePath: string; proposalPath: string; problemStatementPath?: string }> {
   const changeDir = join(changesDir, changeId);
   const changePath = join(changeDir, "change.json");
   const proposalPath = join(changeDir, "proposal.md");
@@ -511,7 +512,14 @@ export async function createChangeScaffold(
     proposalContent ?? defaultProposalContent,
   );
 
-  return { changePath, proposalPath };
+  // Write problem-statement.md artifact when provided
+  let problemStatementPath: string | undefined;
+  if (problemStatementContent) {
+    problemStatementPath = join(changeDir, "problem-statement.md");
+    await atomicWriteFile(problemStatementPath, problemStatementContent);
+  }
+
+  return { changePath, proposalPath, problemStatementPath };
 }
 
 // =============================================================================

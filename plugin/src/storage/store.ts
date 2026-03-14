@@ -101,7 +101,8 @@ export interface Store {
       summary: string,
       capability?: string,
       proposalContent?: string,
-    ) => Promise<{ changeId: string; path: string }>;
+      problemStatementContent?: string,
+    ) => Promise<{ changeId: string; path: string; problemStatementPath?: string }>;
     save: (change: Change) => Promise<void>;
   };
 
@@ -750,7 +751,7 @@ export async function createStore(
         return loadChange(paths.changes, resolvedId);
       },
 
-      create: async (summary, _capability, proposalContent) => {
+      create: async (summary, _capability, proposalContent, problemStatementContent) => {
         // Generate concise change ID from summary
         const baseId = generateChangeId(summary);
 
@@ -764,11 +765,12 @@ export async function createStore(
         }
 
         // Create scaffold
-        const { changePath, proposalPath } = await createChangeScaffold(
+        const { changePath, proposalPath, problemStatementPath } = await createChangeScaffold(
           paths.changes,
           changeId,
           summary,
           proposalContent,
+          problemStatementContent,
         );
 
         // Create change.json
@@ -786,7 +788,7 @@ export async function createStore(
         await saveChange(paths.changes, change);
         sqlite.changes.upsert(change, changePath);
 
-        return { changeId, path: proposalPath };
+        return { changeId, path: proposalPath, problemStatementPath };
       },
 
       save: async (change) => {

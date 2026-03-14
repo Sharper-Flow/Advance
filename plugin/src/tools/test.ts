@@ -2,6 +2,7 @@ import { z } from "zod";
 import { exec } from "child_process";
 import { promisify } from "util";
 import type { Store } from "../storage/store";
+import { truncateOutput } from "../types";
 import { formatToolOutput } from "../utils/tool-output";
 
 const execAsync = promisify(exec);
@@ -63,7 +64,7 @@ export const testTools = {
         test_file: args.command,
         command: args.command,
         exit_code: exitCode,
-        output_snippet: truncatedOutput.substring(0, 500),
+        output_snippet: truncateOutput(truncatedOutput),
       };
 
       const updatedTask = await store.tasks.recordEvidence(

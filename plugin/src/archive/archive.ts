@@ -8,6 +8,7 @@
 import { join } from "path";
 import { atomicWriteFile } from "../utils/fs";
 import type { Spec, Change } from "../types";
+import { stripTddEvidence } from "../types";
 import type {
   ArchiveContext,
   ArchiveOperationResult,
@@ -124,9 +125,18 @@ async function createArchive(
   const archivePath = join(archiveDir, `${date}-${change.id}`);
 
   if (!dryRun) {
+    // Strip TDD evidence to minimal proof before archiving
+    const strippedTasks = change.tasks.map((task) => ({
+      ...task,
+      tdd_evidence: task.tdd_evidence
+        ? stripTddEvidence(task.tdd_evidence)
+        : task.tdd_evidence,
+    }));
+
     // Write the change as archived
     const archivedChange: Change = {
       ...change,
+      tasks: strippedTasks,
       status: "archived",
     };
     await atomicWriteFile(

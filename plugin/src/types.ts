@@ -166,7 +166,7 @@ export const TddPhaseEvidenceSchema = z.object({
   test_file: z.string().optional(),
   /** Command used to run the test */
   command: z.string().optional(),
-  /** First 500 chars of test output (truncated for storage) */
+  /** First 80 chars of test output (truncated for storage) */
   output_snippet: z.string().optional(),
   /** Exit code from test runner (0 = pass, non-zero = fail) */
   exit_code: z.number().optional(),
@@ -989,9 +989,46 @@ export const getTddComplianceStatus = (
 };
 
 /**
+ * Strip TDD evidence to minimal proof for archive storage.
+ * Keeps exit_code, recorded_at, and test_file (audit value).
+ * Removes command and output_snippet (bulk of the bloat).
+ * Preserves skipped/skip_reason unchanged.
+ */
+export const stripTddEvidence = (evidence: TddEvidence): TddEvidence => {
+  const result: TddEvidence = {};
+
+  if (evidence.red) {
+    result.red = {
+      exit_code: evidence.red.exit_code,
+      recorded_at: evidence.red.recorded_at,
+      ...(evidence.red.test_file ? { test_file: evidence.red.test_file } : {}),
+    };
+  }
+
+  if (evidence.green) {
+    result.green = {
+      exit_code: evidence.green.exit_code,
+      recorded_at: evidence.green.recorded_at,
+      ...(evidence.green.test_file
+        ? { test_file: evidence.green.test_file }
+        : {}),
+    };
+  }
+
+  if (evidence.skipped !== undefined) {
+    result.skipped = evidence.skipped;
+  }
+  if (evidence.skip_reason !== undefined) {
+    result.skip_reason = evidence.skip_reason;
+  }
+
+  return result;
+};
+
+/**
  * Truncate output to max length for storage.
  */
-export const truncateOutput = (output: string, maxLength = 500): string => {
+export const truncateOutput = (output: string, maxLength = 80): string => {
   if (output.length <= maxLength) return output;
   return output.slice(0, maxLength) + "\n... [truncated]";
 };

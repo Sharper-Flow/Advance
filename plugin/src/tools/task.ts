@@ -198,7 +198,7 @@ export const taskTools = {
       output: z
         .string()
         .optional()
-        .describe("Test output (will be truncated to 500 chars)"),
+        .describe("Test output (will be truncated to 80 chars)"),
       exitCode: z
         .number()
         .optional()

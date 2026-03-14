@@ -335,6 +335,12 @@ export const AdvancePlugin: Plugin = async ({ directory, worktree }) => {
             .describe(
               "Optional proposal.md content to persist during change creation",
             ),
+          problemStatement: tool.schema
+            .string()
+            .optional()
+            .describe(
+              "Optional confirmed problem statement text to persist as problem-statement.md artifact",
+            ),
         },
         execute: safeExecute(
           async (args) => changeTools.adv_change_create.execute(args, store),

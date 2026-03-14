@@ -460,6 +460,37 @@ describe("createChangeScaffold", () => {
     const content = await readFile(result.proposalPath, "utf-8");
     expect(content).toBe(customProposal);
   });
+
+  test("writes problem-statement.md when problemStatement is provided", async () => {
+    const changesDir = join(tempDir, "changes");
+    const problemStatement = "PROBLEM\n  The widget is broken.\n\nDESIRED OUTCOME\n  The widget works.";
+    const result = await createChangeScaffold(
+      changesDir,
+      "withProblemStatement",
+      "Test Problem Statement",
+      undefined,
+      problemStatement,
+    );
+
+    expect(result.problemStatementPath).toContain("problem-statement.md");
+    expect(await fileExists(result.problemStatementPath)).toBe(true);
+
+    const content = await readFile(result.problemStatementPath, "utf-8");
+    expect(content).toBe(problemStatement);
+  });
+
+  test("does not write problem-statement.md when problemStatement is omitted", async () => {
+    const changesDir = join(tempDir, "changes");
+    const result = await createChangeScaffold(
+      changesDir,
+      "withoutProblemStatement",
+      "No Problem Statement",
+    );
+
+    expect(result.problemStatementPath).toBeUndefined();
+    const psPath = join(changesDir, "withoutProblemStatement", "problem-statement.md");
+    expect(await fileExists(psPath)).toBe(false);
+  });
 });
 
 describe("fileExists", () => {

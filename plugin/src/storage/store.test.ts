@@ -176,6 +176,27 @@ describe("Store", () => {
       const proposalContent = await readFile(result.path, "utf-8");
       expect(proposalContent).toBe(proposal);
     });
+
+    test("create writes problem-statement.md when problemStatement is provided", async () => {
+      const problemStatement = "PROBLEM\n  The widget is broken.";
+      const result = await store.changes.create(
+        "With problem statement",
+        undefined,
+        undefined,
+        problemStatement,
+      );
+
+      expect(result.problemStatementPath).toBeDefined();
+      expect(result.problemStatementPath).toContain("problem-statement.md");
+      const content = await readFile(result.problemStatementPath!, "utf-8");
+      expect(content).toBe(problemStatement);
+    });
+
+    test("create omits problemStatementPath when problemStatement is not provided", async () => {
+      const result = await store.changes.create("No problem statement");
+
+      expect(result.problemStatementPath).toBeUndefined();
+    });
   });
 
   describe("tasks", () => {
