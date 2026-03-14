@@ -5,7 +5,7 @@
 
 ## Purpose
 
-Capability: /adv-slop-scan command — detect AI-generated code quality issues including defensive overkill, deep nesting, and other slop patterns.
+Capability: /adv-slop-scan command — detect AI-generated code quality issues including defensive overkill, deep nesting, and other slop patterns
 
 ## Requirements
 
@@ -221,3 +221,5 @@ knip must be the primary dead code analyzer for TypeScript/JavaScript projects. 
 **Then:**
 - ts-prune is invoked as fallback
 - Report annotates findings with [LEGACY TOOL: ts-prune]
+
+---

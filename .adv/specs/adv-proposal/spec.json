@@ -1,0 +1,103 @@
+{
+  "$schema": "https://raw.githubusercontent.com/anomalyco/oc-plugins/main/advance/plugin/schemas/spec.schema.json",
+  "name": "adv-proposal",
+  "title": "ADV Proposal Command",
+  "purpose": "Defines the responsibilities and boundaries of /adv-proposal. The proposal command establishes WHAT and WHY — problem statement, objectives, success criteria, and constraints. It produces alignment artifacts, not implementation artifacts.",
+  "version": "1.0.0",
+  "updated_at": "2026-03-14T00:00:00.000Z",
+  "requirements": [
+    {
+      "id": "rq-prop-out1",
+      "title": "Proposal Produces Alignment Artifacts Only",
+      "body": "/adv-proposal must produce a confirmed problem statement, success criteria, constraints, and affected specs. It must NOT create tasks, complete gates, or make implementation decisions.",
+      "priority": "must",
+      "tags": ["proposal", "boundary", "alignment"],
+      "scenarios": [
+        {
+          "id": "rq-prop-out1.1",
+          "title": "Proposal creates change with proposal.md but zero tasks",
+          "given": ["A user invokes /adv-proposal with a summary"],
+          "when": "The command completes successfully",
+          "then": [
+            "A change is created via adv_change_create",
+            "proposal.md contains problem statement, success criteria, and constraints",
+            "Zero calls to adv_task_add are made",
+            "The change has an empty task list"
+          ]
+        },
+        {
+          "id": "rq-prop-out1.2",
+          "title": "Proposal does not complete any gates",
+          "given": ["A user invokes /adv-proposal"],
+          "when": "The command completes successfully",
+          "then": [
+            "No calls to adv_gate_complete are made",
+            "All gates remain in pending status"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-prop-scope1",
+      "title": "Proposal Focuses on Problem Agreement",
+      "body": "/adv-proposal must use a two-phase workflow: Phase 1 establishes shared understanding of the problem via the question tool, Phase 2 builds the full proposal with INVEST-quality success criteria. The command must not proceed to Phase 2 without user confirmation of the problem statement.",
+      "priority": "must",
+      "tags": ["proposal", "boundary", "context-agreement"],
+      "scenarios": [
+        {
+          "id": "rq-prop-scope1.1",
+          "title": "Problem statement confirmed before change creation",
+          "given": ["A user invokes /adv-proposal"],
+          "when": "Phase 1 synthesizes a problem statement",
+          "then": [
+            "The problem statement is shown to the user",
+            "The user is asked to confirm via the question tool",
+            "No change artifacts are created until confirmation"
+          ]
+        },
+        {
+          "id": "rq-prop-scope1.2",
+          "title": "Success criteria pass INVEST quality check",
+          "given": ["Phase 2 is reached after problem statement confirmation"],
+          "when": "Success criteria are defined",
+          "then": [
+            "Each criterion is testable and measurable",
+            "No subjective or ambiguous language remains",
+            "Requirements smell detection is applied"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-prop-neg1",
+      "title": "Proposal Prohibited Actions",
+      "body": "/adv-proposal MUST NOT create tasks (adv_task_add), complete gates (adv_gate_complete), research architectural decisions, or make implementation choices. These are the responsibilities of downstream commands (research, prep).",
+      "priority": "must",
+      "tags": ["proposal", "boundary", "negative"],
+      "scenarios": [
+        {
+          "id": "rq-prop-neg1.1",
+          "title": "No task creation during proposal",
+          "given": ["A user invokes /adv-proposal for any change type (feature, bug fix, refactor)"],
+          "when": "The command executes all phases",
+          "then": [
+            "adv_task_add is never called",
+            "The output does not list initial tasks",
+            "Next steps point to /adv-research then /adv-prep"
+          ]
+        },
+        {
+          "id": "rq-prop-neg1.2",
+          "title": "No implementation decisions during proposal",
+          "given": ["A user invokes /adv-proposal"],
+          "when": "The proposal is being built",
+          "then": [
+            "The proposal does not prescribe specific libraries or patterns",
+            "Implementation approach is deferred to /adv-research",
+            "Task decomposition is deferred to /adv-prep"
+          ]
+        }
+      ]
+    }
+  ]
+}

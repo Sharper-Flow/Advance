@@ -1,0 +1,129 @@
+{
+  "$schema": "https://raw.githubusercontent.com/anomalyco/oc-plugins/main/advance/plugin/schemas/spec.schema.json",
+  "name": "adv-prep",
+  "title": "ADV Prep Command",
+  "purpose": "Defines the responsibilities and boundaries of /adv-prep. The prep command is the sole creator and sequencer of tasks. It synthesizes tasks from research findings, runs gap analysis, validates task ordering, and ensures implementation readiness.",
+  "version": "1.0.0",
+  "updated_at": "2026-03-14T00:00:00.000Z",
+  "requirements": [
+    {
+      "id": "rq-prep-out1",
+      "title": "Prep Is the Sole Task Creator",
+      "body": "/adv-prep is the only pre-implementation command that creates tasks via adv_task_add. Neither /adv-proposal nor /adv-research may create tasks. /adv-task is exempt as a fast-track workflow that intentionally bundles proposal+research+prep.",
+      "priority": "must",
+      "tags": ["prep", "boundary", "task-creation"],
+      "scenarios": [
+        {
+          "id": "rq-prep-out1.1",
+          "title": "Prep creates tasks from research findings",
+          "given": ["A change with research gate complete and zero tasks"],
+          "when": "/adv-prep is invoked",
+          "then": [
+            "Research findings from proposal.md are consumed",
+            "Tasks are created via adv_task_add based on validated decisions",
+            "Tasks are sequenced with proper blocked_by dependencies",
+            "Architecture correction tasks block feature tasks"
+          ]
+        },
+        {
+          "id": "rq-prep-out1.2",
+          "title": "Prep handles changes that already have tasks",
+          "given": ["A change with existing tasks (e.g., from /adv-task fast-track)"],
+          "when": "/adv-prep is invoked",
+          "then": [
+            "Existing tasks are analyzed for gaps",
+            "Missing tasks are added",
+            "Task sequencing is validated and corrected",
+            "No existing tasks are deleted without user approval"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-prep-scope1",
+      "title": "Prep Runs Gap Analysis and Task Synthesis",
+      "body": "/adv-prep must run the 4-Step Gap Analysis framework: define desired state, benchmark current state, analyze gaps, and compile an action plan. It must check requirements quality (INVEST), task completeness, cross-cutting concerns, and cross-spec consistency.",
+      "priority": "must",
+      "tags": ["prep", "boundary", "gap-analysis"],
+      "scenarios": [
+        {
+          "id": "rq-prep-scope1.1",
+          "title": "Gap analysis covers all dimensions",
+          "given": ["A change ready for prep"],
+          "when": "/adv-prep runs gap analysis",
+          "then": [
+            "Requirements quality is checked against INVEST criteria",
+            "Requirements smell detection is applied",
+            "Task completeness is verified against requirements",
+            "Cross-cutting concerns checklist is completed",
+            "Cross-spec consistency is checked"
+          ]
+        },
+        {
+          "id": "rq-prep-scope1.2",
+          "title": "Prep completes the prep gate",
+          "given": ["All gaps are fixed and validation passes"],
+          "when": "/adv-prep finishes",
+          "then": [
+            "adv_gate_complete is called with gateId 'prep'",
+            "The prep gate is marked done"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-prep-synth1",
+      "title": "Task Synthesis from Research Output",
+      "body": "When a change has zero tasks and research gate is complete, /adv-prep must synthesize the full task graph from research findings in proposal.md. Tasks must be created in priority order: architecture corrections first, then core implementation, then cross-cutting concerns, then verification.",
+      "priority": "must",
+      "tags": ["prep", "boundary", "task-synthesis"],
+      "scenarios": [
+        {
+          "id": "rq-prep-synth1.1",
+          "title": "Empty task list triggers synthesis from research",
+          "given": [
+            "A change with research gate complete",
+            "Zero existing tasks"
+          ],
+          "when": "/adv-prep is invoked",
+          "then": [
+            "Research Validation section in proposal.md is read",
+            "Tasks are synthesized from action items and findings",
+            "Architecture correction tasks are created first with highest priority",
+            "Core implementation tasks follow with proper dependencies"
+          ]
+        },
+        {
+          "id": "rq-prep-synth1.2",
+          "title": "Task synthesis respects TDD ordering",
+          "given": ["Tasks are being synthesized from research findings"],
+          "when": "Implementation tasks are created",
+          "then": [
+            "Each implementation task includes inline TDD instructions",
+            "No separate test tasks are created for the same scope",
+            "Cross-cutting verification tasks are marked with tdd_intent separate_verification"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-prep-neg1",
+      "title": "Prep Prohibited Actions",
+      "body": "/adv-prep MUST NOT complete non-prep gates, make architectural decisions (that is research's job), or modify the problem statement or success criteria in proposal.md.",
+      "priority": "must",
+      "tags": ["prep", "boundary", "negative"],
+      "scenarios": [
+        {
+          "id": "rq-prep-neg1.1",
+          "title": "Prep only completes the prep gate",
+          "given": ["A user invokes /adv-prep"],
+          "when": "The command completes",
+          "then": [
+            "Only adv_gate_complete with gateId 'prep' is called",
+            "No other gates are completed"
+          ]
+        }
+      ]
+    }
+  ]
+}

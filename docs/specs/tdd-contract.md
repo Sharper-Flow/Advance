@@ -239,3 +239,5 @@ When a TDD inversion is detected, the remediation MUST be: merge the test task i
 - The primary remediation is: merge the test task into the implementation task
 - An alternative is: set metadata.tdd_intent='separate_verification' if the test is genuinely cross-cutting
 - 'Reverse the dependency' is NOT offered as a remediation option
+
+---

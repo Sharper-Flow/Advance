@@ -1,0 +1,122 @@
+{
+  "$schema": "https://raw.githubusercontent.com/anomalyco/oc-plugins/main/advance/plugin/schemas/spec.schema.json",
+  "name": "adv-research",
+  "title": "ADV Research Command",
+  "purpose": "Defines the responsibilities and boundaries of /adv-research. The research command validates HOW — architectural decisions, best practices, simplification opportunities. It produces validated decisions and findings, not tasks.",
+  "version": "1.0.0",
+  "updated_at": "2026-03-14T00:00:00.000Z",
+  "requirements": [
+    {
+      "id": "rq-res-out1",
+      "title": "Research Produces Validated Decisions Only",
+      "body": "/adv-research must produce a research report with validated decisions, architecture assessment, simplification opportunities, and concerns. Findings must be persisted in proposal.md under a Research Validation section. It must NOT create tasks.",
+      "priority": "must",
+      "tags": ["research", "boundary", "validation"],
+      "scenarios": [
+        {
+          "id": "rq-res-out1.1",
+          "title": "Research updates proposal.md with findings but creates zero tasks",
+          "given": ["A user invokes /adv-research on an active change"],
+          "when": "The command completes successfully",
+          "then": [
+            "proposal.md is updated with a Research Validation section",
+            "The section contains validated decisions, concerns, and action items",
+            "Zero calls to adv_task_add are made",
+            "Findings are structured for consumption by /adv-prep"
+          ]
+        },
+        {
+          "id": "rq-res-out1.2",
+          "title": "Research on deployed spec creates change but defers tasks to prep",
+          "given": ["A user invokes /adv-research on a deployed spec (not an active change)"],
+          "when": "Research finds issues requiring action",
+          "then": [
+            "A new change is created via adv_change_create",
+            "proposal.md contains research findings",
+            "Zero calls to adv_task_add are made",
+            "Next steps point to /adv-prep for task synthesis"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-res-scope1",
+      "title": "Research Validates Architecture and Best Practices",
+      "body": "/adv-research must audit the existing codebase architecture, validate proposed decisions against canonical patterns, identify simplification opportunities, and classify the architecture health (SOUND, DRIFTED, ANTI-PATTERN).",
+      "priority": "must",
+      "tags": ["research", "boundary", "architecture"],
+      "scenarios": [
+        {
+          "id": "rq-res-scope1.1",
+          "title": "Architecture health assessment included in report",
+          "given": ["A user invokes /adv-research on a change"],
+          "when": "The research report is generated",
+          "then": [
+            "The report includes an Architecture Health Assessment section",
+            "The existing architecture is classified as SOUND, DRIFTED, or ANTI-PATTERN",
+            "Each finding includes a source citation"
+          ]
+        },
+        {
+          "id": "rq-res-scope1.2",
+          "title": "Research completes the research gate",
+          "given": ["A user invokes /adv-research on an active change"],
+          "when": "The command completes successfully",
+          "then": [
+            "adv_gate_complete is called with gateId 'research'",
+            "The research gate is marked done"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-res-neg1",
+      "title": "Research Prohibited Actions",
+      "body": "/adv-research MUST NOT create tasks (adv_task_add), complete non-research gates, or modify the task graph. Task synthesis is the exclusive responsibility of /adv-prep.",
+      "priority": "must",
+      "tags": ["research", "boundary", "negative"],
+      "scenarios": [
+        {
+          "id": "rq-res-neg1.1",
+          "title": "No task creation during research",
+          "given": ["A user invokes /adv-research on any target (change or spec)"],
+          "when": "The command executes all phases including Apply Findings",
+          "then": [
+            "adv_task_add is never called",
+            "Findings are recorded in proposal.md, not as tasks",
+            "Next steps point to /adv-prep for task synthesis"
+          ]
+        },
+        {
+          "id": "rq-res-neg1.2",
+          "title": "Research only completes the research gate",
+          "given": ["A user invokes /adv-research"],
+          "when": "The command completes",
+          "then": [
+            "Only adv_gate_complete with gateId 'research' is called",
+            "No other gates are completed"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-res-contract1",
+      "title": "Research Output Contract for Prep Consumption",
+      "body": "/adv-research must produce a structured Research Validation section in proposal.md that /adv-prep can consume for task synthesis. The section must include: validated decisions, architecture corrections required, simplification opportunities, and action items.",
+      "priority": "should",
+      "tags": ["research", "boundary", "output-contract"],
+      "scenarios": [
+        {
+          "id": "rq-res-contract1.1",
+          "title": "Research output contains structured sections for prep",
+          "given": ["Research completes with findings"],
+          "when": "proposal.md is updated",
+          "then": [
+            "A Research Validation section exists with subsections: Validated Decisions, Architecture Corrections Required, Simplification Opportunities, Action Items",
+            "Each action item is specific enough for /adv-prep to create a task from it"
+          ]
+        }
+      ]
+    }
+  ]
+}

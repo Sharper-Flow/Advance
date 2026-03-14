@@ -1,12 +1,32 @@
 ---
 name: adv-proposal
-description: Extract prior discussion context, agree on problem statement, then build full proposal
+description: Propose a new change with problem statement agreement then full proposal
 agent: build
 ---
 
 # ADV Proposal — Create Change with Quality Requirements
 
 Create a new change proposal. Uses a two-phase workflow: first establish shared understanding of the problem (Phase 1), then build the full proposal with INVEST criteria and requirements smell detection (Phase 2).
+
+## Command Boundary
+
+**Responsibility:** Establish WHAT and WHY — problem statement, objectives, success criteria, constraints.
+
+**Produces:**
+- Confirmed problem statement (Phase 1)
+- Change scaffold with proposal.md (Phase 2)
+- INVEST-quality success criteria
+- Affected specs and constraints
+
+**MUST NOT:**
+- Create tasks (`adv_task_add` is never called)
+- Complete any gates (`adv_gate_complete` is never called)
+- Make implementation decisions (deferred to `/adv-research`)
+- Decompose work into tasks (deferred to `/adv-prep`)
+
+**Gate affinity:** None — proposal precedes all gates.
+
+**See also:** Spec `adv-proposal` for formal requirements.
 
 <UserRequest>
   $ARGUMENTS
@@ -396,53 +416,9 @@ If **Yes**: Gather repo details:
 
 Add each related repo to the "Related Repositories" table in `proposal.md`.
 
-### Tag Tasks with Target Repo
-
-When adding tasks in Step 8, tasks targeting other repos should include
-the `target_repo` or `target_path` in their description. Example:
-
-```
-adv_task_add changeId: <id> content: "[backend] Add /api/users endpoint"
-adv_task_add changeId: <id> content: "[db] Add users migration"
-```
-
-The `/adv-prep` gap analysis will later verify all cross-repo tasks have
-proper routing metadata.
-
 ---
 
-## Step 8: Add Initial Tasks
-
-Use `adv_task_add` to create initial tasks based on the change type:
-
-**For new features:**
-```
-adv_task_add changeId: <id> content: "Define spec requirements"
-adv_task_add changeId: <id> content: "Implement core functionality (TDD: write tests first, then implement)"
-adv_task_add changeId: <id> content: "Add documentation"
-```
-
-**For bug fixes:**
-```
-adv_task_add changeId: <id> content: "Implement fix (TDD: write failing test reproducing the bug, then fix)"
-adv_task_add changeId: <id> content: "Add documentation"
-```
-
-**For refactors:**
-```
-adv_task_add changeId: <id> content: "Implement refactoring (TDD: add characterization tests first, then refactor, verify behavior preserved)"
-adv_task_add changeId: <id> content: "Add documentation"
-```
-
-> **TDD note**: Each implementation task carries its own red/green TDD phases inline.
-> Do NOT create separate "Write tests" tasks for the same scope as an implementation task.
-> Separate test tasks are only appropriate for cross-cutting verification spanning multiple
-> implementation tasks (e.g., integration or E2E tests). Mark those with
-> `metadata.tdd_intent: "separate_verification"`.
-
----
-
-## Step 9: Quick Quality Check
+## Step 8: Quick Quality Check
 
 Before finishing, verify:
 
@@ -471,11 +447,6 @@ FILES CREATED:
 - changes/<change-id>/change.json
 - changes/<change-id>/proposal.md
 
-INITIAL TASKS:
-- [ ] <task-1>
-- [ ] <task-2>
-- [ ] <task-3>
-
 REQUIREMENTS QUALITY:
 - INVEST check: {pass|needs review}
 - Smell check: {clean|N items to address}
@@ -489,16 +460,13 @@ CONTEXT FROM:
 
 NEXT STEPS:
 
-1. Review and refine the proposal:
-   changes/<change-id>/proposal.md
+1. Validate approach and best practices:
+   /adv-research <change-id>
 
-2. Run gap analysis for completeness:
+2. Synthesize tasks from validated approach:
    /adv-prep <change-id>
 
-3. Validate before implementation:
-   /adv-validate <change-id>
-
-4. When ready, implement:
+3. When ready, implement:
    /adv-apply <change-id>
 
 ============================================================
@@ -512,8 +480,8 @@ NEXT STEPS:
 ============================================================
 Result: Change <change-id> created
 
-  ⚡ Recommended next step (Plan agent):
-     /adv-research <change-id>   (or /adv-prep <change-id>)
+  ⚡ Recommended next step:
+     /adv-research <change-id>
 ============================================================
 ```
 
@@ -526,4 +494,3 @@ Result: Change <change-id> created
 | Create change | `adv_change_create summary: "..." proposal: "..."` |
 | List changes | `adv_change_list` |
 | List specs | `adv_spec action: "list"` |
-| Add task | `adv_task_add changeId: <id> content: "..."` |

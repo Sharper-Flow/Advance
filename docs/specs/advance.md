@@ -118,7 +118,7 @@ adv_status must surface project.json diagnostics and include parsed feature flag
 
 **ID:** `rq-advmeta01` | **Priority:** **[MUST]**
 
-Tasks may include optional metadata key/value pairs. adv_task_list must support has_metadata_key:\<key\> and metadata:\<key\>=\<value\> filters with behavior aligned between JSON source-of-truth and SQLite cache indexes.
+Tasks may include optional metadata key/value pairs. adv_task_list must support has_metadata_key:<key> and metadata:<key>=<value> filters with behavior aligned between JSON source-of-truth and SQLite cache indexes.
 
 #### Scenarios
 
@@ -127,7 +127,7 @@ Tasks may include optional metadata key/value pairs. adv_task_list must support 
 **Given:**
 - A change with tasks containing metadata keys
 
-**When:** adv_task_list is called with filter has_metadata_key:\<key\>
+**When:** adv_task_list is called with filter has_metadata_key:<key>
 
 **Then:**
 - Only tasks containing that metadata key are returned
@@ -137,7 +137,7 @@ Tasks may include optional metadata key/value pairs. adv_task_list must support 
 **Given:**
 - A change with tasks containing metadata key/value pairs
 
-**When:** adv_task_list is called with filter metadata:\<key\>=\<value\>
+**When:** adv_task_list is called with filter metadata:<key>=<value>
 
 **Then:**
 - Only tasks matching both key and value are returned
@@ -210,9 +210,11 @@ After Quick Contract confirmation, /adv-task must always persist contract contex
 
 ### Problem Statement Agreement for adv-proposal
 
-**ID:** `rq-advprop02` | **Priority:** **[MUST]** | **Tags:** `proposal`, `context-agreement`, `transcript-grounding`
+**ID:** `rq-advprop02` | **Priority:** **[MUST]**
 
 /adv-proposal must extract prior discussion context (decisions, rejected approaches, constraints, open questions) from the conversation before synthesizing a problem statement, confirm it via the question tool before creating any change artifacts, and persist the confirmed text (including prior decisions and rejected approaches) as the opening section of proposal.md via the proposal parameter in adv_change_create. The problem statement must not contradict, omit, or reinterpret any prior decision or constraint from the conversation.
+
+**Tags:** `proposal`, `context-agreement`, `transcript-grounding`
 
 #### Scenarios
 
@@ -225,7 +227,7 @@ After Quick Contract confirmation, /adv-task must always persist contract contex
 
 **Then:**
 - The agent extracts agreed facts, decisions made, rejected approaches, open questions, and constraints stated from the conversation
-- Empty categories are listed as "None identified" rather than omitted
+- Empty categories are listed as 'None identified' rather than omitted
 - No decisions or constraints are fabricated that were not explicitly discussed
 
 **Problem statement grounded in prior discussion** (`rq-advprop02.2`)
@@ -250,7 +252,7 @@ After Quick Contract confirmation, /adv-task must always persist contract contex
 
 **Then:**
 - The confirmation question explicitly asks the user to check Prior Decisions and Rejected Approaches for accuracy
-- A "Drift detected" option is available for the user to flag discrepancies
+- A 'Drift detected' option is available for the user to flag discrepancies
 - If drift is detected, the agent re-extracts and re-synthesizes before proceeding
 
 **Confirmed problem statement persisted in proposal.md** (`rq-advprop02.4`)
@@ -281,9 +283,11 @@ After Quick Contract confirmation, /adv-task must always persist contract contex
 
 ### Defensive and Nesting Slop Detection
 
-**ID:** `rq-slopscan01` | **Priority:** **[MUST]** | **Tags:** `slop-scan`, `quality`, `ast`
+**ID:** `rq-slopscan01` | **Priority:** **[MUST]**
 
 /adv-slop-scan must detect overly defensive code (redundant guard chains, paranoid null checks, unreachable fallback branches) and deeply nested code (nesting depth >= configured threshold) using AST-first analysis with deterministic degraded fallback when AST tools are unavailable. Findings must include structured diagnostic fields in all output formats.
+
+**Tags:** `slop-scan`, `quality`, `ast`
 
 #### Scenarios
 
@@ -344,3 +348,5 @@ After Quick Contract confirmation, /adv-task must always persist contract contex
 
 **Then:**
 - No QUAL-011 or MAINT-004 findings are emitted for that file
+
+---

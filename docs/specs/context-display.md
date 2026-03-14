@@ -175,3 +175,5 @@ The context snapshot formatter MUST gracefully handle missing or partial data: a
 **Then:**
 - Task counts show 0 for all statuses
 - No error is thrown
+
+---

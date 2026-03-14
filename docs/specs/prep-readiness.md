@@ -149,17 +149,17 @@ Requirements added via deltas must have at least one scenario defined. This is a
 
 **ID:** `rq-PR003tdd` | **Priority:** **[MUST]**
 
-A task graph where a test task is blocked_by an implementation task of the same scope violates the TDD contract. This must be detected and flagged as a must-level failure to enforce red-before-green ordering.
+A task graph where a same-scope test task is blocked_by an implementation task violates the inline TDD contract. Detection uses metadata.tdd_intent first (values: inline, separate_verification, not_applicable), falling back to title-based heuristics for legacy tasks without metadata. Tasks with tdd_intent 'separate_verification' or 'not_applicable' are exempt from inversion checks.
 
-**Tags:** `prep`, `tdd`, `task-graph`
+**Tags:** `prep`, `tdd`, `task-graph`, `metadata`
 
 #### Scenarios
 
-**Test task blocked by impl task is a must-failure** (`rq-PR003tdd.1`)
+**Test task blocked by impl task is a must-failure (title heuristic)** (`rq-PR003tdd.1`)
 
 **Given:**
-- A task whose title contains 'test' or 'spec'
-- That task has a blocked_by dependency on another task whose title contains 'implement' or 'impl' or 'create'
+- A task without metadata.tdd_intent whose title matches test-task heuristics
+- That task has a blocked_by dependency on another task whose title matches impl-task heuristics
 
 **When:** runPrepReadinessChecks is called
 
@@ -167,27 +167,74 @@ A task graph where a test task is blocked_by an implementation task of the same 
 - A TASK_TDD_INVERSION issue with severity 'error' is returned
 - The prep gate is blocked
 
-**Impl task blocked by test task is correct TDD order** (`rq-PR003tdd.2`)
+**Task with tdd_intent 'inline' prevents false positives on test-like titles** (`rq-PR003tdd.2`)
 
 **Given:**
-- An implementation task blocked_by a test task
+- A task with metadata.tdd_intent set to 'inline'
+- The task title contains test-like language such as 'test-first' or 'spec'
+- That task has a blocked_by dependency on an implementation task
+
+**When:** runPrepReadinessChecks is called
+
+**Then:**
+- No TASK_TDD_INVERSION error is returned
+- The metadata classification takes precedence over title heuristics
+
+**Task with tdd_intent 'separate_verification' is accepted** (`rq-PR003tdd.3`)
+
+**Given:**
+- A task with metadata.tdd_intent set to 'separate_verification'
+- That task has a blocked_by dependency on an implementation task
 
 **When:** runPrepReadinessChecks is called
 
 **Then:**
 - No TASK_TDD_INVERSION error is returned
 
-**Tasks with no TDD-significant keywords are not flagged** (`rq-PR003tdd.3`)
+**Task with tdd_intent 'not_applicable' is exempt** (`rq-PR003tdd.4`)
 
 **Given:**
-- Tasks about docs, chores, or releases with no test/impl naming pattern
+- A task with metadata.tdd_intent set to 'not_applicable'
 
 **When:** runPrepReadinessChecks is called
 
 **Then:**
 - No TASK_TDD_INVERSION error is returned
 
-**Orphan task warning** (`rq-PR003tdd.4`)
+**Legacy tasks without metadata fall back to title heuristics** (`rq-PR003tdd.5`)
+
+**Given:**
+- A task without metadata.tdd_intent set
+- The task title contains TDD-significant keywords
+
+**When:** runPrepReadinessChecks classifies the task
+
+**Then:**
+- Title-based regex heuristics (isTestTask/isImplTask) are used for classification
+- The task is checked for TDD inversion using the heuristic result
+
+**Invalid tdd_intent values fall back to title heuristics** (`rq-PR003tdd.6`)
+
+**Given:**
+- A task with metadata.tdd_intent set to an unrecognized value (not inline, separate_verification, or not_applicable)
+
+**When:** runPrepReadinessChecks classifies the task
+
+**Then:**
+- The invalid value is ignored
+- Title-based regex heuristics are used as fallback
+
+**Tasks with no TDD-significant keywords are not flagged** (`rq-PR003tdd.7`)
+
+**Given:**
+- Tasks about docs, chores, or releases with no test/impl naming pattern and no metadata.tdd_intent
+
+**When:** runPrepReadinessChecks is called
+
+**Then:**
+- No TASK_TDD_INVERSION error is returned
+
+**Orphan task warning** (`rq-PR003tdd.8`)
 
 **Given:**
 - A task with no deps and which is not a dependency of any other task
