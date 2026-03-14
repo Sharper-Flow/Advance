@@ -106,6 +106,7 @@ export interface Store {
       changeId: string;
       path: string;
       problemStatementPath?: string;
+      duplicateWarning?: string;
     }>;
     save: (change: Change) => Promise<void>;
   };
@@ -764,13 +765,24 @@ export async function createStore(
         // Generate concise change ID from summary
         const baseId = generateChangeId(summary);
 
-        // Check for collisions and auto-increment
+        // Check for collisions and detect potential duplicates
         const existingDirs = await listChangeDirs(paths.changes);
         let changeId = baseId;
         let counter = 2;
+        let duplicateWarning: string | undefined;
         while (existingDirs.includes(changeId)) {
           changeId = `${baseId}${counter}`;
           counter++;
+        }
+
+        // If we had to increment, warn about potential duplicate
+        if (changeId !== baseId) {
+          duplicateWarning =
+            `WARNING: Change ID "${baseId}" already exists. ` +
+            `Created "${changeId}" instead. ` +
+            `This may indicate a duplicate change — verify that "${baseId}" ` +
+            `is not the same work before proceeding. ` +
+            `If this was unintentional, delete "${changeId}" and use the existing change.`;
         }
 
         // Create scaffold
@@ -798,7 +810,12 @@ export async function createStore(
         await saveChange(paths.changes, change);
         sqlite.changes.upsert(change, changePath);
 
-        return { changeId, path: proposalPath, problemStatementPath };
+        return {
+          changeId,
+          path: proposalPath,
+          problemStatementPath,
+          duplicateWarning,
+        };
       },
 
       save: async (change) => {

@@ -528,19 +528,43 @@ SOURCES:
 
 ### Determine Scope
 
-**If target is deployed spec**: Create change proposal (no tasks — defer to `/adv-prep`)
-**If target is active change**: Update proposal.md directly
+> **CRITICAL GUARD — Duplicate Change Prevention:**
+> If this research session was invoked with a `changeId` (i.e., `/adv-research <change-id>`),
+> you are operating on an **active change**. You MUST use the "For Active Changes" path below.
+> **NEVER call `adv_change_create` when a changeId was provided as input.**
+> Calling `adv_change_create` on an active change will create a duplicate (e.g., `changeX2`)
+> because the collision-handling code auto-increments the ID.
 
-### For Deployed Specs
+**If target is deployed spec AND no changeId was provided**: Create change proposal (no tasks — defer to `/adv-prep`). Requires explicit user confirmation before creating.
+**If target is active change (changeId was provided)**: Update proposal.md directly. **Never create a new change.**
 
-1. Create change:
+### For Deployed Specs (no changeId provided)
+
+> Only use this path when researching a standalone spec capability, NOT when researching an active change.
+
+1. **Confirm with user before creating** — use the `question` tool:
+   ```json
+   {
+     "questions": [{
+       "header": "Create Change?",
+       "question": "Research found issues with deployed spec '{capability}'. Create a new change to address them?",
+       "options": [
+         { "label": "Create change (Recommended)", "description": "Create a new change proposal for the findings" },
+         { "label": "Report only", "description": "Just document findings, don't create a change" },
+         { "label": "Other", "description": "Use custom text area for a different action" }
+       ]
+     }]
+   }
+   ```
+
+2. If confirmed, create change:
    ```
    adv_change_create summary: "Simplify/harden {capability} based on research"
    ```
 
-2. Update proposal.md with research findings (do NOT create tasks — `/adv-prep` will synthesize tasks from findings)
+3. Update proposal.md with research findings (do NOT create tasks — `/adv-prep` will synthesize tasks from findings)
 
-### For Active Changes
+### For Active Changes (changeId was provided)
 
 1. Update proposal.md with `## Research Validation` section containing:
    - Validated Decisions
@@ -552,6 +576,8 @@ SOURCES:
 
 > **Boundary rule:** Do NOT call `adv_task_add`. Findings are recorded in proposal.md.
 > `/adv-prep` reads these findings and synthesizes the task graph.
+>
+> **Duplicate prevention rule:** Do NOT call `adv_change_create` in this path. The change already exists.
 
 ---
 

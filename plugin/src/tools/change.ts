@@ -235,6 +235,11 @@ export const changeTools = {
 
       const output: Record<string, unknown> = { ...result };
 
+      // Surface duplicate warning prominently if present
+      if (result.duplicateWarning) {
+        output._duplicateWarning = result.duplicateWarning;
+      }
+
       if (clarifyMode !== "off") {
         // Load the newly created change and its proposal text
         const changeResult = await store.changes.get(result.changeId);

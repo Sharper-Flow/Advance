@@ -324,6 +324,44 @@ describe("Change Tools", () => {
 
       expect(parsed.problemStatementPath).toBeUndefined();
     });
+
+    test("emits duplicate warning when creating change with colliding ID", async () => {
+      // First create: should succeed without warning
+      const result1 = await changeTools.adv_change_create.execute(
+        { summary: "Fix login timeout" },
+        store,
+      );
+      const parsed1 = parseToolOutput(result1);
+      expect(parsed1.changeId).toBe("fixLoginTimeout");
+      expect(parsed1._duplicateWarning).toBeUndefined();
+
+      // Second create with same summary: should get incremented ID + warning
+      const result2 = await changeTools.adv_change_create.execute(
+        { summary: "Fix login timeout" },
+        store,
+      );
+      const parsed2 = parseToolOutput(result2);
+      expect(parsed2.changeId).toBe("fixLoginTimeout2");
+      expect(parsed2._duplicateWarning).toBeDefined();
+      expect(parsed2._duplicateWarning).toContain("fixLoginTimeout");
+      expect(parsed2._duplicateWarning).toContain("already exists");
+    });
+
+    test("no duplicate warning when IDs are different", async () => {
+      const result1 = await changeTools.adv_change_create.execute(
+        { summary: "Add user auth" },
+        store,
+      );
+      const parsed1 = parseToolOutput(result1);
+      expect(parsed1._duplicateWarning).toBeUndefined();
+
+      const result2 = await changeTools.adv_change_create.execute(
+        { summary: "Fix rate limiting" },
+        store,
+      );
+      const parsed2 = parseToolOutput(result2);
+      expect(parsed2._duplicateWarning).toBeUndefined();
+    });
   });
 
   describe("adv_change_show clarify integration", () => {
