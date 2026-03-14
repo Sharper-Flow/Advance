@@ -363,7 +363,7 @@ Other commands may adopt this protocol in the future.
 
 ### How It Works
 
-1. **Scan** — Use `glob` with pattern `*/SKILL.md` and an explicit absolute skills directory path (for example the resolved global skills dir), plus optionally `.opencode/skills/*/SKILL.md` for project-local skills
+1. **Scan** — Use `glob` with pattern `*/SKILL.md` and an explicit absolute skills directory path (for example the resolved global skills dir), plus optionally `skills/*/SKILL.md` for project-local skills
 2. **Extract** — Read YAML frontmatter from each SKILL.md. Look for the `keywords` array.
 3. **Match** — Compare each skill's `keywords` against:
    - Tech stack terms from `adv_project_context` (framework names, library names)

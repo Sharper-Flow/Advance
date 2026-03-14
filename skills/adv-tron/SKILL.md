@@ -1,3 +1,12 @@
+---
+name: adv-tron
+description: "Codebase reconnaissance skill for mapping structure, hotspots, and risks"
+keywords: ["reconnaissance", "investigation", "hotspot", "codebase-analysis", "architecture", "risk-assessment"]
+metadata:
+  priority: medium
+  replaces: none
+---
+
 # Tron — Codebase Reconnaissance Skill
 
 ## Purpose

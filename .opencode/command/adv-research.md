@@ -140,7 +140,7 @@ glob pattern: "*/SKILL.md" path: "<resolved global skills dir>"
 Also check for project-local skills:
 
 ```
-glob: .opencode/skills/*/SKILL.md
+glob: skills/*/SKILL.md
 ```
 
 ### Step 2: Extract Skill Metadata
