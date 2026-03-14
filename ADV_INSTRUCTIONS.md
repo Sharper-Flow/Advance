@@ -366,6 +366,40 @@ Mutable state lives at `$XDG_DATA_HOME/opencode/plugins/advance/{project-id}/`:
 └────────────────────────────────────────────────────┘
 ```
 
+### Worktree Reuse Protocol
+
+Before creating a new worktree, always check if one already exists for the target change:
+
+```bash
+git worktree list --porcelain
+```
+
+Parse for a worktree whose branch matches `change/{change-id}`. If found:
+
+1. **Verify the path exists** on disk (the directory may have been manually deleted while the git record remains).
+2. **If path exists (healthy)** — offer to reuse: switch `workdir` to the existing worktree path.
+3. **If path does NOT exist (stale)** — run `git worktree prune` to clean up the stale record, then proceed as if no worktree existed.
+
+This prevents duplicate worktrees for the same change and allows resuming work in an existing isolated workspace.
+
+### Spec Divergence Rule
+
+**Specs are branch-local; mutable ADV state is shared.**
+
+| Data | Location | Shared Across Worktrees? |
+|------|----------|--------------------------|
+| Specs (`.adv/specs/`) | In-repo, git-tracked | No — each worktree sees its own branch's version |
+| Changes, archive, wisdom, agenda | External (`~/.local/share/...`) | Yes — keyed by project-id |
+| Handoff | External | Yes |
+
+**Implication:** If a spec is modified in worktree A (e.g., via `/adv-archive` applying deltas), worktree B will NOT see the updated spec until the change branch is merged to the default branch and worktree B pulls or rebases.
+
+**When this matters:**
+- Running `/adv-validate` in worktree B may validate against stale specs if worktree A has already archived a change that modified those specs.
+- Running `/adv-audit` in worktree B may report false drift if specs were updated in worktree A but not yet merged.
+
+**Mitigation:** After archiving a change that modifies specs, merge the change branch to the default branch promptly. `/adv-archive` Phase 9 handles this automatically.
+
 ### Inline Worktree Protocol (Default)
 
 When a worktree is created during an active ADV change, continue in the same agent session:

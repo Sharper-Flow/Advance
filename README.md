@@ -102,7 +102,7 @@ Advance exists to make those failure modes harder.
 - **TDD evidence** - capture red/green proof as part of execution
 - **6-gate flow** - research, prep, implementation, review, harden, signoff
 - **Accumulated wisdom** - persist patterns, gotchas, conventions, successes, and failures
-- **Worktree-aware state** - share mutable change state across worktrees and sessions
+- **Worktree-aware state** - share mutable change state across worktrees and sessions; detect and reuse existing worktrees
 - **Validation and archive flow** - reduce drift between proposal, implementation, and specs
 - **Tradeoff prioritization** - route multi-approach decisions through a prioritizer sub-agent before asking users to weigh criteria
 
@@ -136,6 +136,30 @@ For tradeoff-heavy decisions, ADV agents should call the hidden `prioritizer` su
 ├── INSTALL.md
 └── project.json
 ```
+
+## Worktree integration
+
+ADV uses git worktrees as an **isolation layer on top of branches**, not as a replacement for them. The branch `change/{change-id}` carries the commit history; the worktree provides a separate working directory so changes don't interfere with other work.
+
+### How it works
+
+1. **Risk assessment** — `/adv-apply` Phase 0 evaluates whether the change is high-risk (3+ files, breaking API, auth, schema changes). Low-risk changes work in-place.
+2. **Reuse detection** — Before creating a new worktree, ADV checks `git worktree list --porcelain` for an existing `change/{change-id}` worktree. If found and healthy, it offers to switch to it. If stale (path deleted), it prunes the record.
+3. **Shared mutable state** — Changes, wisdom, agenda, and archive live in `~/.local/share/opencode/plugins/advance/{project-id}/`, keyed by root commit SHA. All worktrees of the same repo share this state.
+4. **Branch-local specs** — Specs (`.adv/specs/`) are git-tracked and branch-specific. A spec modified in worktree A is not visible in worktree B until the branch is merged.
+5. **Automatic cleanup** — `/adv-archive` Phase 9 commits, merges to the default branch, verifies the merge, and deletes the worktree.
+
+### What's shared vs. branch-local
+
+| Data | Location | Shared? |
+|------|----------|---------|
+| Changes, archive, wisdom, agenda | External (`~/.local/share/...`) | Yes |
+| Specs (`.adv/specs/`) | In-repo, git-tracked | No — branch-local |
+| Handoff state | External | Yes |
+
+### Spec divergence
+
+If a spec is modified in one worktree (e.g., via `/adv-archive` applying deltas), other worktrees won't see the update until the branch is merged. This means `/adv-validate` or `/adv-audit` in another worktree may operate on stale specs. Merge promptly after archiving spec-modifying changes.
 
 ## Quick start
 

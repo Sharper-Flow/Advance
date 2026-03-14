@@ -111,7 +111,57 @@ Before suggesting a worktree, verify `worktree_create` is available. If not, emi
 ```
 Then skip to Phase 1.
 
-### Step 3: Ask User
+### Step 3: Detect Existing Worktree
+
+Before creating a new worktree, check if one already exists for this change:
+
+```bash
+git worktree list --porcelain
+```
+
+Parse the output for a worktree whose branch matches `change/{change-id}`:
+
+```
+worktree /path/to/worktree
+HEAD abc123def456
+branch refs/heads/change/{change-id}
+```
+
+**If a matching worktree is found:**
+
+1. **Verify the path exists** — the worktree directory may have been manually deleted while the git record remains (stale entry).
+
+2. **If path exists (healthy worktree)** — offer to reuse it:
+
+```json
+{
+  "questions": [{
+    "header": "Existing Worktree",
+    "question": "A worktree for this change already exists:\n\n  Branch: change/{change-id}\n  Path: {worktree-path}\n\nReuse it or start fresh?",
+    "options": [
+      { "label": "Switch to existing (Recommended)", "description": "Continue work in the existing worktree" },
+      { "label": "Delete and recreate", "description": "Remove the old worktree and create a fresh one" },
+      { "label": "Work in place", "description": "Ignore the worktree and work in the current branch" }
+    ]
+  }]
+}
+```
+
+   - **If "Switch to existing"**: Set `workdir` to the existing worktree path. Skip to Phase 1.
+   - **If "Delete and recreate"**: Run `worktree_delete reason: "User requested fresh worktree for {change-id}"`, then proceed to Step 5 (Create).
+   - **If "Work in place"**: Skip to Phase 1.
+
+3. **If path does NOT exist (stale worktree record)** — clean up and proceed:
+
+```bash
+git worktree prune
+```
+
+Then continue to Step 4 (Ask User) as if no worktree existed.
+
+**If no matching worktree found:** Continue to Step 4.
+
+### Step 4: Ask User
 
 Use the `question` tool:
 
@@ -131,7 +181,7 @@ Use the `question` tool:
 
 If **declined**: skip to Phase 1.
 
-### Step 4: Create and Switch Inline
+### Step 5: Create and Switch Inline
 
 If **approved**, execute this exact sequence:
 
@@ -166,6 +216,45 @@ If **approved**, execute this exact sequence:
 5. **Continue implementation in this same session**. Do not stop after worktree creation.
 
 6. **Optional fallback**: If you are explicitly using multi-session workflow, you may use handoff and continue in a separate session.
+
+---
+
+## Phase 0.5: Overlap Warning (Advisory)
+
+After worktree setup (or decision to work in-place), check for file overlaps with other active changes. This is **advisory only** — it does not block work.
+
+### Step 1: List Active Changes
+
+```
+adv_change_list
+```
+
+If only one active change (the current one), skip this phase.
+
+### Step 2: Check File Overlaps
+
+For each other active change, call `adv_change_show` and extract affected files from the proposal/deltas. Compare against the current change's affected files.
+
+### Step 3: Emit Warning (If Overlaps Found)
+
+If any files are modified by both the current change and another active change:
+
+```
+⚠️  FILE OVERLAP DETECTED (advisory)
+────────────────────────────────────────────────────
+The following files are also modified by other active changes:
+
+  {file-path} — also in: {other-change-id}
+  {file-path} — also in: {other-change-id}
+
+This may cause merge conflicts later. Consider running:
+  /adv-coordinate
+
+Proceeding with implementation...
+────────────────────────────────────────────────────
+```
+
+**This warning does NOT block work.** It surfaces potential coordination needs early so the user can decide whether to serialize changes or proceed in parallel.
 
 ---
 

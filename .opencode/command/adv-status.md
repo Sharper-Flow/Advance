@@ -14,6 +14,8 @@ Call `adv_status` to get the project overview.
 
 **Context Snapshot:** For each active change, `adv_change_show` includes a `_contextSnapshot` field — a compact visual summary of gate progress, task counts, and current task. Use this to populate the gate progress line in the ACTIVE CHANGES section.
 
+**Worktree Detection:** After loading active changes, run `git worktree list --porcelain` and parse the output to identify worktrees on `change/{change-id}` branches. For each active change, check if a matching worktree exists and include its path in the status display. This helps users see which changes have isolated workspaces and which are working in-place.
+
 Display the results in a formatted view:
 
 ```
@@ -45,6 +47,7 @@ Total: <count> changes (sorted by most recent activity)
 - <recency-emoji> <change-id>: <title>
   Status: <status> | Tasks: <completed>/<total> | Last activity: <relative-time>
   Gates: <gate-progress from _contextSnapshot>
+  <if has worktree>Worktree: <worktree-path> (branch: change/<change-id>)<end>
   <if recency == "hot">🔥 Active <minutes>m ago — likely in-flight<end>
   <if recency == "warm">⏳ Last active <hours>h ago<end>
   <if recency == "stale">⏰ Stale (<hours>h ago) — needs pickup<end>

@@ -9,6 +9,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+#### `/adv-apply` — Restore Autonomous Task Loop
+
+- Phase 3 task flow now has an explicit `REPEAT/GOTO` loop construct with pseudocode, replacing the weak "continue with next ready task" language that was lost when `/adv-ralph` was consolidated
+- Added whitelist of valid loop exit conditions (no ready tasks, doom loop, environmental blocker, user cancel)
+- Added blacklist of invalid stop reasons ("completed one task", "made good progress", "context is getting long")
+- Step 3e renamed to "LOOP CONTINUATION — MANDATORY" with explicit branching: tasks remain → go back to 3a; no tasks → Phase 4/5; all blocked → report
+- Warning added that 3e is the most common point where agents incorrectly pause
+
+### Added
+
+#### `/adv-apply` — Worktree Reuse and Overlap Detection
+
+- Phase 0 Step 3 now detects existing worktrees for the target change via `git worktree list --porcelain`
+- Healthy worktrees are offered for reuse; stale records (path deleted) are pruned automatically
+- New Phase 0.5 checks for file overlaps with other active changes (advisory only, does not block)
+- Overlap warning surfaces potential merge conflicts early with a `/adv-coordinate` suggestion
+
+#### Worktree Documentation
+
+- `ADV_INSTRUCTIONS.md`: added Worktree Reuse Protocol and Spec Divergence Rule sections
+- `README.md`: added Worktree Integration section covering risk assessment, reuse detection, shared state, branch-local specs, and spec divergence
+- `/adv-status`: worktree detection now shows worktree path for active changes that have one
+
+### Fixed
+
 #### `/adv-proposal` — Transcript Grounding
 
 - `/adv-proposal` now extracts prior discussion context (agreed facts, decisions, rejected approaches, open questions, constraints) from the conversation **before** synthesizing a problem statement
