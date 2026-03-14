@@ -1,12 +1,32 @@
 ---
 name: adv-prep
-description: Analyze gaps and add missing scenarios, tasks, and dependencies
+description: Analyze gaps and synthesize tasks from validated research findings
 agent: general
 ---
 
 # ADV Prep - Pre-Implementation Gap Analysis
 
 Analyze a change for gaps (missing scenarios, tasks, cross-cutting concerns) and add them using ADV tools. Uses the 4-Step Gap Analysis framework and IEEE-based completeness criteria. This command runs **inline** — no sub-agents are spawned.
+
+## Command Boundary
+
+**Responsibility:** Synthesize and sequence tasks, run gap analysis, ensure implementation readiness.
+
+**Produces:**
+- Complete task graph via `adv_task_add` (the ONLY pre-implementation command that creates tasks)
+- Gap analysis results (requirements quality, cross-cutting concerns, cross-spec consistency)
+- Task sequencing with proper dependencies
+
+**MUST NOT:**
+- Complete non-prep gates
+- Make architectural decisions (that is research's job)
+- Modify the problem statement or success criteria in proposal.md
+
+**Gate affinity:** Completes `prep` gate only.
+
+**Note:** `/adv-task` is exempt from the "sole task creator" rule — it is a fast-track workflow that intentionally bundles proposal+research+prep.
+
+**See also:** Spec `adv-prep` for formal requirements.
 
 <UserRequest>
   $ARGUMENTS
@@ -62,6 +82,51 @@ For each capability affected by the change:
 ```
 adv_spec action: "show" capability: <name>
 ```
+
+---
+
+## Phase 1.5: Task Synthesis from Research (when task list is empty)
+
+If the change has **zero tasks** and the **research gate is complete**, synthesize the full task graph from research findings before running gap analysis.
+
+### Read Research Output
+
+Read the `## Research Validation` section from proposal.md. Extract:
+- **Architecture corrections required** → create correction tasks (highest priority, block feature tasks)
+- **Action items** → create implementation tasks
+- **Simplification opportunities** → incorporate into task descriptions
+
+### Create Tasks in Priority Order
+
+1. **Architecture correction tasks** (if research found DRIFTED or ANTI-PATTERN)
+   - Must be completed before feature tasks
+   - Block feature tasks via `blocked_by`
+
+2. **Core implementation tasks**
+   - Derived from validated approach in research findings
+   - Each task includes inline TDD instructions
+   - Sequenced with proper `blocked_by` dependencies
+
+3. **Cross-cutting concern tasks**
+   - Error handling, logging, validation, etc.
+   - Generated from cross-cutting checklist in Phase 3
+
+4. **Documentation tasks**
+   - Spec updates, ADV_INSTRUCTIONS.md, inline docs
+
+5. **Verification tasks** (if cross-cutting tests needed)
+   - Marked with `metadata.tdd_intent: "separate_verification"`
+   - Blocked by all relevant implementation tasks
+
+### If Research Gate Is NOT Complete
+
+If the task list is empty and research gate is also pending, emit a warning:
+```
+⚠️ No tasks and no research findings. Run /adv-research first to validate the approach,
+   then /adv-prep will synthesize tasks from the validated findings.
+```
+
+Proceed with gap analysis on the proposal itself (requirements quality, cross-cutting concerns) but note that task synthesis will be incomplete without research input.
 
 ---
 

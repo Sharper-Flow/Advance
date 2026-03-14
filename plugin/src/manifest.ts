@@ -22,6 +22,18 @@ export type Phase =
   | "advanced"
   | "utility";
 
+/** Defines what a command is allowed to create, read, modify, and which gate it owns. */
+export interface CommandScope {
+  /** ADV artifacts this command creates (e.g., 'change', 'tasks') */
+  creates: string[];
+  /** ADV artifacts this command reads */
+  reads: string[];
+  /** ADV artifacts this command modifies */
+  modifies: string[];
+  /** Gate(s) this command is authorized to complete */
+  gates: GateId[];
+}
+
 export interface CommandDef {
   /** Command name (without /) */
   name: string;
@@ -37,6 +49,8 @@ export interface CommandDef {
   prerequisites: string[];
   /** Commands to recommend after this one completes */
   successors: string[];
+  /** Boundary scope: what this command creates, reads, modifies, and which gates it owns */
+  scope?: CommandScope;
 }
 
 // =============================================================================
@@ -57,11 +71,17 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
   "adv-proposal": {
     name: "adv-proposal",
     description:
-      "Extract prior discussion context, agree on problem statement, then build full proposal",
+      "Extract problem statement, success criteria, and constraints without creating tasks",
     phase: "core",
     requiresChangeId: false,
     prerequisites: [],
     successors: ["adv-clarify", "adv-research", "adv-prep"],
+    scope: {
+      creates: ["change", "proposal"],
+      reads: ["specs"],
+      modifies: [],
+      gates: [],
+    },
   },
   "adv-validate": {
     name: "adv-validate",
@@ -93,22 +113,34 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
   "adv-research": {
     name: "adv-research",
     description:
-      "Validate architectural decisions via docs and web search; complete research gate",
+      "Validate architectural decisions and best practices without creating tasks",
     phase: "pre-implementation",
     gate: "research",
     requiresChangeId: true,
     prerequisites: ["adv-proposal"],
     successors: ["adv-prep"],
+    scope: {
+      creates: [],
+      reads: ["specs", "proposal", "codebase"],
+      modifies: ["proposal"],
+      gates: ["research"],
+    },
   },
   "adv-prep": {
     name: "adv-prep",
     description:
-      "Analyze gaps and add missing scenarios, tasks, and dependencies",
+      "Analyze gaps and synthesize tasks from validated research findings",
     phase: "pre-implementation",
     gate: "prep",
     requiresChangeId: true,
     prerequisites: ["adv-research"],
     successors: ["adv-apply"],
+    scope: {
+      creates: ["tasks"],
+      reads: ["specs", "proposal", "codebase"],
+      modifies: ["tasks", "proposal"],
+      gates: ["prep"],
+    },
   },
 
   // ---- Implementation ----
@@ -121,16 +153,27 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
     requiresChangeId: true,
     prerequisites: ["adv-prep"],
     successors: ["adv-review", "adv-harden"],
+    scope: {
+      creates: [],
+      reads: ["specs", "proposal", "tasks", "codebase"],
+      modifies: ["tasks", "codebase"],
+      gates: ["implementation"],
+    },
   },
   "adv-task": {
     name: "adv-task",
     description:
       "Fast-track a discussed change: synthesize contract, validate best practices, prep, and hand off",
     phase: "implementation",
-    gate: "implementation",
     requiresChangeId: false,
     prerequisites: [],
     successors: ["adv-review", "adv-harden"],
+    scope: {
+      creates: ["change", "proposal", "tasks"],
+      reads: ["specs", "codebase"],
+      modifies: [],
+      gates: ["research", "prep"],
+    },
   },
 
   // ---- Post-Implementation ----
@@ -143,6 +186,12 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
     requiresChangeId: true,
     prerequisites: ["adv-apply"],
     successors: ["adv-harden"],
+    scope: {
+      creates: [],
+      reads: ["specs", "proposal", "tasks", "codebase"],
+      modifies: ["proposal"],
+      gates: ["review"],
+    },
   },
   "adv-harden": {
     name: "adv-harden",
@@ -153,6 +202,12 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
     requiresChangeId: true,
     prerequisites: ["adv-review"],
     successors: ["adv-validate", "adv-archive"],
+    scope: {
+      creates: [],
+      reads: ["specs", "proposal", "tasks", "codebase"],
+      modifies: ["codebase"],
+      gates: ["harden"],
+    },
   },
   "adv-audit": {
     name: "adv-audit",

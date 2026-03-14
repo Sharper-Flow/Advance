@@ -123,7 +123,7 @@ Tasks with `target_repo`/`target_path` MUST execute in target dir.
 ```markdown
 | Command | Purpose |
 |---------|---------|
-| `/adv-proposal` | Extract prior discussion context, agree on problem statement, then build full proposal |
+| `/adv-proposal` | Extract problem statement, success criteria, and constraints without creating tasks |
 ```
 
 ### 3-column: Validation

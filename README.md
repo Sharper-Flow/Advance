@@ -43,11 +43,13 @@ Advance exists to make those failure modes harder.
 ## Core workflow
 
 ```text
-/adv-proposal  -> extract prior discussion context, agree on problem statement, then define the change
-/adv-validate  -> check it against specs
+/adv-proposal  -> extract problem statement, success criteria, and constraints (no tasks)
+/adv-research  -> validate architecture and best practices
+/adv-prep      -> synthesize tasks from validated findings
 /adv-apply     -> execute tasks with TDD and evidence
 /adv-review    -> adversarial review and remediation
 /adv-harden    -> final quality pass
+/adv-validate  -> check the completed change against specs
 /adv-archive   -> apply deltas and finalize the change
 ```
 
@@ -58,7 +60,7 @@ Advance exists to make those failure modes harder.
 | Command | Purpose |
 |---------|---------|
 | `/adv-status` | Show project overview: specs, active changes, and next-step recommendations |
-| `/adv-proposal <summary>` | Extract prior discussion context, agree on problem statement, then build full proposal |
+| `/adv-proposal <summary>` | Extract problem statement, success criteria, and constraints without creating tasks |
 | `/adv-validate <change-id>` | Validate change compliance against specs; block archive on failure |
 | `/adv-apply <change-id>` | Implement change with TDD, retry on failure, and final verification |
 | `/adv-archive <change-id>` | Archive completed change: apply spec deltas and finalize git |
@@ -68,8 +70,8 @@ Advance exists to make those failure modes harder.
 | Command | Purpose |
 |---------|---------|
 | `/adv-clarify` | Ask clarifying questions to resolve ambiguous requirements |
-| `/adv-prep <change-id>` | Analyze gaps and add missing scenarios, tasks, and dependencies |
-| `/adv-research <target>` | Validate architectural decisions via docs and web search; complete research gate |
+| `/adv-research <target>` | Validate architectural decisions and best practices without creating tasks |
+| `/adv-prep <change-id>` | Analyze gaps and synthesize tasks from validated research findings |
 
 ### Implementation
 

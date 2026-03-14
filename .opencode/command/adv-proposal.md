@@ -1,6 +1,6 @@
 ---
 name: adv-proposal
-description: Propose a new change with problem statement agreement then full proposal
+description: Extract problem statement, success criteria, and constraints without creating tasks
 agent: build
 ---
 

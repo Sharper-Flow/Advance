@@ -294,6 +294,37 @@ describe("Gate Tools", () => {
 
       expect(parsed.error).toContain("Invalid gate");
     });
+
+    test("emits boundary warning when an unauthorized command completes a gate", async () => {
+      const result = await gateTools.adv_gate_complete.execute(
+        {
+          changeId: "addFeature",
+          gateId: "research",
+          completedBy: "adv-apply auto-complete",
+        },
+        store,
+      );
+      const parsed = extractJson(result) as Record<string, unknown>;
+
+      expect(parsed.success).toBe(true);
+      expect(parsed.boundaryWarning).toContain("owned by [adv-research, adv-task]");
+      expect(parsed.boundaryWarning).toContain("completed by 'adv-apply auto-complete'");
+    });
+
+    test("does not emit boundary warning for an authorized command", async () => {
+      const result = await gateTools.adv_gate_complete.execute(
+        {
+          changeId: "addFeature",
+          gateId: "research",
+          completedBy: "adv-research validation pass",
+        },
+        store,
+      );
+      const parsed = extractJson(result) as Record<string, unknown>;
+
+      expect(parsed.success).toBe(true);
+      expect(parsed.boundaryWarning).toBeUndefined();
+    });
   });
 });
 

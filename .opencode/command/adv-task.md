@@ -10,6 +10,26 @@ Synthesize a contract from the current conversation, validate best practices, pr
 
 Use this when you and the user have already agreed on what needs to be done and want to skip the heavyweight proposal phase.
 
+## Command Boundary
+
+**Responsibility:** Fast-track a discussed change by bundling proposal+research+prep into one flow.
+
+**Produces:**
+- Change scaffold with proposal.md
+- Validated approach (lightweight research via Context7)
+- Complete task graph via `adv_task_add`
+
+**Crosses boundaries intentionally:**
+- Creates tasks (normally prep-only) — justified because this is a bundled fast-track
+- Completes research gate (normally research-only) — justified by inline LBP validation
+- Completes prep gate (normally prep-only) — justified by inline task generation
+
+**Gate affinity:** Completes `research` and `prep` gates.
+
+**Exemption:** `/adv-task` is explicitly exempt from the "sole task creator" rule in the `adv-prep` spec. It bundles all three pre-implementation phases into one command for speed when the user has already discussed and agreed on the change.
+
+**See also:** Specs `adv-proposal`, `adv-research`, `adv-prep` for the boundaries this command intentionally crosses.
+
 **Pipeline:**
 1. Synthesize a **Quick Contract** from the conversation
 2. Confirm with the user (chat-based, no file review required)

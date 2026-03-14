@@ -26,6 +26,7 @@ import {
   countSuccessCriteria,
   formatContextSnapshot,
 } from "../utils/context-snapshot";
+import { COMMAND_MANIFEST } from "../manifest";
 
 // =============================================================================
 // Tool Definitions
@@ -158,6 +159,9 @@ export const gateTools = {
         });
       }
 
+      // Boundary validation: check if the completing command owns this gate
+      const boundaryWarning = validateGateBoundary(gateId, completedBy);
+
       // Prep gate: run readiness checks before marking done
       if (gateId === "prep") {
         const readiness = runPrepReadinessChecks(change);
@@ -252,6 +256,7 @@ export const gateTools = {
             completed_at: now,
             completed_by: completedBy,
             _contextSnapshot: await buildContextSnapshot(),
+            ...(boundaryWarning ? { boundaryWarning } : {}),
             ...warningsPayload,
             ...clarifyPayload,
           }),
@@ -281,8 +286,53 @@ export const gateTools = {
           completed_at: now,
           completed_by: completedBy,
           _contextSnapshot: await buildContextSnapshot(),
+          ...(boundaryWarning ? { boundaryWarning } : {}),
         }),
       );
     },
   },
 };
+
+// =============================================================================
+// Boundary Validation
+// =============================================================================
+
+/**
+ * Check if the completing command is authorized to complete this gate.
+ * Returns a warning string if boundary violation detected, undefined otherwise.
+ *
+ * Uses the manifest scope.gates field to determine which commands own which gates.
+ * This is advisory (warning) not blocking — the gate still completes.
+ */
+function validateGateBoundary(
+  gateId: GateId,
+  completedBy: string,
+): string | undefined {
+  // Find all commands that claim this gate in their scope
+  const authorizedCommands: string[] = [];
+  for (const [name, def] of Object.entries(COMMAND_MANIFEST)) {
+    if (def.scope?.gates.includes(gateId)) {
+      authorizedCommands.push(name);
+    }
+  }
+
+  // If no commands claim this gate, skip validation
+  if (authorizedCommands.length === 0) return undefined;
+
+  // Extract command name from completedBy (may contain extra context like "adv-task LBP validation: ...")
+  const commandName = completedBy.split(/\s/)[0];
+
+  // Check if the completing command (or its prefix) matches an authorized command
+  const isAuthorized = authorizedCommands.some(
+    (cmd) => commandName === cmd || commandName.startsWith(`${cmd} `),
+  );
+
+  // "agent" is the default — no boundary check possible
+  if (commandName === "agent") return undefined;
+
+  if (!isAuthorized) {
+    return `Gate '${gateId}' is owned by [${authorizedCommands.join(", ")}] but was completed by '${completedBy}'. This may indicate a command boundary violation. See specs adv-proposal, adv-research, adv-prep for gate ownership rules.`;
+  }
+
+  return undefined;
+}

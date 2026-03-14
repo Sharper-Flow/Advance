@@ -246,4 +246,79 @@ describe("Command Manifest", () => {
       expect(def!.requiresChangeId).toBe(false);
     });
   });
+
+  describe("Scope boundary enforcement", () => {
+    test("every gate-affecting command has a scope definition", () => {
+      const missing: string[] = [];
+      for (const [name, def] of Object.entries(COMMAND_MANIFEST)) {
+        if (def.gate && !def.scope) {
+          missing.push(name);
+        }
+      }
+      expect(
+        missing,
+        `Gate-affecting commands without scope: ${missing.join(", ")}`,
+      ).toHaveLength(0);
+    });
+
+    test("scope.gates includes the command's own gate", () => {
+      const mismatches: string[] = [];
+      for (const [name, def] of Object.entries(COMMAND_MANIFEST)) {
+        if (def.gate && def.scope && !def.scope.gates.includes(def.gate)) {
+          mismatches.push(
+            `${name}: gate=${def.gate} but scope.gates=[${def.scope.gates.join(", ")}]`,
+          );
+        }
+      }
+      expect(
+        mismatches,
+        `Commands whose scope.gates doesn't include their own gate:\n${mismatches.join("\n")}`,
+      ).toHaveLength(0);
+    });
+
+    test("no two commands claim the same gate as sole primary owner", () => {
+      // Build a map of gate -> commands that own it (excluding adv-task which is exempt)
+      const gateOwners = new Map<string, string[]>();
+      for (const [name, def] of Object.entries(COMMAND_MANIFEST)) {
+        if (!def.scope) continue;
+        // adv-task is exempt — it intentionally crosses boundaries
+        if (name === "adv-task") continue;
+        for (const gate of def.scope.gates) {
+          const owners = gateOwners.get(gate) ?? [];
+          owners.push(name);
+          gateOwners.set(gate, owners);
+        }
+      }
+      const conflicts: string[] = [];
+      for (const [gate, owners] of gateOwners) {
+        if (owners.length > 1) {
+          conflicts.push(`${gate}: claimed by [${owners.join(", ")}]`);
+        }
+      }
+      expect(
+        conflicts,
+        `Multiple commands claim the same gate:\n${conflicts.join("\n")}`,
+      ).toHaveLength(0);
+    });
+
+    test("adv-proposal scope has empty gates (no gate ownership)", () => {
+      const def = getCommandDef("adv-proposal");
+      expect(def!.scope!.gates).toHaveLength(0);
+    });
+
+    test("adv-proposal scope does not create tasks", () => {
+      const def = getCommandDef("adv-proposal");
+      expect(def!.scope!.creates).not.toContain("tasks");
+    });
+
+    test("adv-research scope does not create tasks", () => {
+      const def = getCommandDef("adv-research");
+      expect(def!.scope!.creates).not.toContain("tasks");
+    });
+
+    test("adv-prep scope creates tasks", () => {
+      const def = getCommandDef("adv-prep");
+      expect(def!.scope!.creates).toContain("tasks");
+    });
+  });
 });

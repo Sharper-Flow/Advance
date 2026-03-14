@@ -21,7 +21,7 @@ Enforce spec-driven development where **specs become laws**. Requirements are fo
 | Command | Purpose |
 |---------|---------|
 | `/adv-status` | Show project overview: specs, active changes, and next-step recommendations |
-| `/adv-proposal <summary>` | Extract prior discussion context, agree on problem statement, then build full proposal |
+| `/adv-proposal <summary>` | Extract problem statement, success criteria, and constraints without creating tasks |
 | `/adv-validate <change-id>` | Validate change compliance against specs; block archive on failure |
 | `/adv-apply <change-id>` | Implement change with TDD, retry on failure, and final verification |
 | `/adv-archive <change-id>` | Archive completed change: apply spec deltas and finalize git |
@@ -31,8 +31,8 @@ Enforce spec-driven development where **specs become laws**. Requirements are fo
 | Command | Purpose |
 |---------|---------|
 | `/adv-clarify` | Ask clarifying questions to resolve ambiguous requirements |
-| `/adv-prep <change-id>` | Analyze gaps and add missing scenarios, tasks, and dependencies |
-| `/adv-research <target>` | Validate architectural decisions via docs and web search; complete research gate |
+| `/adv-research <target>` | Validate architectural decisions and best practices without creating tasks |
+| `/adv-prep <change-id>` | Analyze gaps and synthesize tasks from validated research findings |
 
 ### Post-Implementation
 
@@ -57,6 +57,23 @@ Enforce spec-driven development where **specs become laws**. Requirements are fo
 | `/adv-coordinate` | Detect and resolve conflicts across multiple active changes |
 | `/adv-improve` | Suggest targeted improvements to existing specs or implementation |
 | `/adv-tron [target]` | Investigate codebase structure, hotspots, risks, and suggest follow-up agenda candidates |
+
+## Command Boundaries
+
+Pre-implementation commands have strict boundaries enforced by per-command specs (`adv-proposal`, `adv-research`, `adv-prep`).
+
+| Command | Produces | MUST NOT | Gate |
+|---------|----------|----------|------|
+| proposal | Problem statement, success criteria, constraints | Create tasks, complete gates, make impl decisions | None |
+| research | Validated approach, architecture assessment, findings in proposal.md | Create tasks, complete non-research gates | research |
+| prep | Complete task graph, gap analysis, sequencing | Complete non-prep gates, make architecture decisions | prep |
+| task | Change + tasks + gates (fast-track exemption) | — (intentionally crosses boundaries) | research + prep |
+| apply | Implementation via TDD | Auto-complete research/prep gates | implementation |
+
+**Key rules:**
+- Only `/adv-prep` (and exempt `/adv-task`) may call `adv_task_add`
+- `/adv-apply` must stop if research or prep gates are pending — it cannot auto-complete them
+- Each command's `.md` file has a `## Command Boundary` section with full details
 
 ## Status Markers
 
@@ -306,15 +323,15 @@ The agent orchestrates by spawning read-only sub-agents for parallel analysis, t
 
 | Command | Sub-Agents | Agent Types | Why Delegated |
 |---------|-----------|-------------|---------------|
-| `/adv-research` | 2 | librarian + adv-researcher | Parallel docs lookup + architecture validation |
-| `/adv-review` | 5 | explore × 5 | 5 independent review dimensions |
-| `/adv-harden` | 5 | explore × 5 | 5 independent quality scanners |
-| `/adv-audit` | 4 | explore × 4 | Staged spec→code→drift→conflict pipeline |
-| `/adv-slop-scan` | up to 9 | explore × 9 | 9 independent smell category scanners |
-| `/adv-tron` | 1 | tron | Specialized reconnaissance agent |
-| `/adv-task` | 1-2 | librarian (+ adv-researcher if needed) | LBP validation via research orchestration |
-| `/adv-improve` | 0 (inline) | — | Inline analysis with Context7; no sub-agents |
-| `/adv-refactor` | 3 | explore × 3 | Drift + obsolescence + conflict scanning |
+| research | 2 | librarian + adv-researcher | Parallel docs lookup + architecture validation |
+| review | 5 | explore × 5 | 5 independent review dimensions |
+| harden | 5 | explore × 5 | 5 independent quality scanners |
+| audit | 4 | explore × 4 | Staged spec→code→drift→conflict pipeline |
+| slop-scan | up to 9 | explore × 9 | 9 independent smell category scanners |
+| tron | 1 | tron | Specialized reconnaissance agent |
+| task | 1-2 | librarian (+ adv-researcher if needed) | LBP validation via research orchestration |
+| improve | 0 (inline) | — | Inline analysis with Context7; no sub-agents |
+| refactor | 3 | explore × 3 | Drift + obsolescence + conflict scanning |
 
 **Anti-recursion rule:** Sub-agents NEVER spawn sub-agents. The `enforceTaskPolicy` guard blocks nested Task tool calls. If a sub-agent needs deeper analysis, it performs it inline or returns a finding for the orchestrator to investigate.
 

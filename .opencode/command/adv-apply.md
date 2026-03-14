@@ -43,41 +43,33 @@ Every task ends in exactly one of these states:
 
 ---
 
-## Gate Auto-Completion
+## Gate Prerequisite Check
 
-Before starting implementation, check prerequisite gates and auto-complete if missing:
-
-### Check Gate Status
+Before starting implementation, verify that prerequisite gates are complete:
 
 ```
 adv_gate_status changeId: {change-id}
 ```
 
-### Auto-Complete Missing Gates
-
 **If research gate is pending:**
-
-1. Quick Context7 lookup for libraries in affected files:
-   - Read proposal.md to identify technologies/frameworks
-   - For each library: `context7_resolve-library-id` → `context7_query-docs`
-   - Document findings briefly
-2. Mark gate complete:
-   ```
-   adv_gate_complete changeId: {change-id} gateId: research
-   ```
+```
+⚠️ Research gate is not complete. Run /adv-research {change-id} first to validate
+   the approach, then return to /adv-apply.
+```
+Stop execution. Do NOT auto-complete the research gate.
 
 **If prep gate is pending:**
+```
+⚠️ Prep gate is not complete. Run /adv-prep {change-id} first to synthesize tasks,
+   then return to /adv-apply.
+```
+Stop execution. Do NOT auto-complete the prep gate.
 
-1. Quick prep analysis:
-   - Scan affected files for conflicts with other active changes
-   - Check cross-cutting concerns (error handling, logging, validation)
-   - Identify any obvious gaps
-2. Mark gate complete:
-   ```
-   adv_gate_complete changeId: {change-id} gateId: prep
-   ```
+**If both gates are complete:** Proceed to Phase 0.
 
-**Note:** The user will be notified of auto-completed gates in the confirmation prompt (see Phase 1).
+> **Boundary rule:** `/adv-apply` MUST NOT complete research or prep gates.
+> Each gate has a designated command that performs the full workflow.
+> See specs `adv-research` and `adv-prep` for gate ownership.
 
 ---
 
@@ -410,25 +402,18 @@ RETRY POLICY:
 - ENVIRONMENTAL errors (missing deps): immediate escalation
 - Global Final Loop required before CONTRACT FULFILLED
 
-{if gates were auto-completed}
-GATES AUTO-COMPLETED:
-{for each auto-completed gate}
-- {gateId}: {brief evidence}
-{end}
-{end}
-
 ============================================================
 ```
 
 ### Confirmation
 
-Use the `question` tool. **If gates were auto-completed, include in question text:**
+Use the `question` tool:
 
 ```json
 {
   "questions": [{
     "header": "Confirm",
-    "question": "Begin TDD implementation of '{change.title}'?{if gates auto-completed}\n\nNote: The following gates were auto-completed:\n- {gateId}: {evidence}{end}",
+    "question": "Begin TDD implementation of '{change.title}'?",
     "options": [
       { "label": "Begin work (Recommended)", "description": "Start TDD implementation with retry" },
       { "label": "Modify criteria", "description": "Adjust before starting" },

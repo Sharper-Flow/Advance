@@ -1,12 +1,32 @@
 ---
 name: adv-research
-description: Validate architectural decisions via docs and web search; complete research gate
+description: Validate architectural decisions and best practices without creating tasks
 agent: general
 ---
 
 # ADV Research — Architectural Decision Validation
 
 Spawn sub-agents to validate architectural decisions using Context7 and web search. Applies simplicity bias — prefer boring solutions over clever ones.
+
+## Command Boundary
+
+**Responsibility:** Validate HOW — architectural decisions, best practices, simplification opportunities.
+
+**Produces:**
+- Research report with validated decisions
+- Architecture health assessment (SOUND / DRIFTED / ANTI-PATTERN)
+- Simplification opportunities
+- Research Validation section in proposal.md (structured for prep consumption)
+
+**MUST NOT:**
+- Create tasks (`adv_task_add` is never called)
+- Complete non-research gates
+- Modify the task graph
+- Make task decomposition decisions (deferred to `/adv-prep`)
+
+**Gate affinity:** Completes `research` gate only.
+
+**See also:** Spec `adv-research` for formal requirements.
 
 <UserRequest>
   $ARGUMENTS
@@ -428,8 +448,8 @@ SOURCES:
 
 ### Determine Scope
 
-**If target is deployed spec**: Create change proposal
-**If target is active change**: Update directly
+**If target is deployed spec**: Create change proposal (no tasks — defer to `/adv-prep`)
+**If target is active change**: Update proposal.md directly
 
 ### For Deployed Specs
 
@@ -438,21 +458,20 @@ SOURCES:
    adv_change_create summary: "Simplify/harden {capability} based on research"
    ```
 
-2. Add tasks for each finding:
-   ```
-   adv_task_add changeId: <new-id> content: "{finding action}"
-   ```
+2. Update proposal.md with research findings (do NOT create tasks — `/adv-prep` will synthesize tasks from findings)
 
 ### For Active Changes
 
-1. Add tasks:
-   ```
-   adv_task_add changeId: <target> content: "Apply research: {finding}"
-   ```
+1. Update proposal.md with `## Research Validation` section containing:
+   - Validated Decisions
+   - Architecture Corrections Required
+   - Simplification Opportunities
+   - Action Items (structured for `/adv-prep` to create tasks from)
 
-2. Update proposal.md with `## Research Validation` section
+2. Update deltas if requirements need revision
 
-3. Update deltas if requirements need revision
+> **Boundary rule:** Do NOT call `adv_task_add`. Findings are recorded in proposal.md.
+> `/adv-prep` reads these findings and synthesizes the task graph.
 
 ---
 
@@ -546,8 +565,8 @@ Result: {N findings applied | All validated | Report only}
 Simplifications: {N opportunities identified}
 Research Gate: MARKED COMPLETE
 
-  ⚡ Recommended next step (Build agent):
-     /adv-prep {change-id}   (then /adv-apply {change-id})
+  ⚡ Recommended next step:
+     /adv-prep {change-id}
 ============================================================
 ```
 
@@ -575,5 +594,4 @@ Research Gate: MARKED COMPLETE
 | Load spec | `adv_spec action: "show" capability: <name>` |
 | Load change | `adv_change_show` |
 | Create change | `adv_change_create` |
-| Add task | `adv_task_add` |
 | Context7 | `resolve-library-id`, `query-docs` |
