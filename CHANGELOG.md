@@ -19,6 +19,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+#### `/adv-research` — Skill Discovery Phase
+
+- Added Phase 1.5 (Skill Discovery) between Phase 1 (Analyze Target) and Phase 2 (Generate Research Questions)
+- Scans global and project-local skill directories for SKILL.md files with `keywords` in YAML frontmatter
+- Matches skill keywords against project tech stack and change domain terms
+- Loads matching skills via `skill()` calls to provide domain-specific research guidance
+- Graceful degradation: skills without frontmatter or keywords are silently skipped
+- Added Skill Discovery Protocol section to `ADV_INSTRUCTIONS.md` for cross-command adoption
+- Added reference `keywords` frontmatter to `skills/adv-tron/SKILL.md`
+
 #### `/adv-apply` — Worktree Reuse and Overlap Detection
 
 - Phase 0 Step 3 now detects existing worktrees for the target change via `git worktree list --porcelain`
