@@ -84,7 +84,7 @@ Emit at START of each response:
 | `[ADV:ROCKET]` | Active work | 🚀 |
 | `[ADV:TDD_RED]` | Writing tests (red phase) | 🔴 |
 | `[ADV:TDD_GREEN]` | Implementing (green phase) | 🟢 |
-| `[ADV:MOON]` | Sub-agents running | 📡 |
+| `[ADV:MOON]` | Sub-agents running (requires `task` tool) | 📡 |
 | `[ADV:EARTH]` | Complete / awaiting input | 🌍 |
 | `[ADV:DOOM_LOOP]` | Stuck in retry cycle | 💀 |
 | `[ADV:MIC]` | Needs user approval | 🎤 |
@@ -163,22 +163,16 @@ The write-in option requirement is enforced globally by **P26** in `rules.yaml`.
 
 ### Tradeoff Prioritizer Protocol
 
-When ADV work reaches a decision with **2+ viable approaches** and the best choice depends on user values, use the `prioritizer` sub-agent before asking the user.
+When ADV work reaches a decision with **2+ viable approaches** and the best choice depends on user values, run a prioritizer analysis before asking the user.
 
-Workflow:
-1. Spawn `prioritizer` with the decision, domain, and up to 5 high-signal files/symbols
-2. Let it draft context-specific criteria questions plus a decision map
-3. Pass the returned `questions` JSON to the `question` tool with minimal paraphrasing
-4. Restate the user's priorities before recommending the winning approach
+**Default (inline):** The orchestrating agent performs the analysis directly:
+1. Scan relevant code with `lgrep_search_semantic` / `read` to understand existing patterns
+2. Research tradeoffs via `context7_query-docs` / `kagi_search_fetch` if needed
+3. Draft context-specific criteria questions plus a decision map
+4. Pass the questions to the `question` tool with minimal paraphrasing
+5. Restate the user's priorities before recommending the winning approach
 
-Canonical `task` payload:
-```json
-{
-  "subagent_type": "prioritizer",
-  "description": "Draft tradeoff criteria for auth decision",
-  "prompt": "Decision: choose between Redis-backed sessions, JWT cookies, and Auth.js delegation for protected routes. Domain: authentication. Key files: src/hooks.server.ts, src/lib/auth/, src/routes/login/+page.server.ts. Real tradeoff: operational simplicity vs extensibility vs dependency surface. Draft context-specific criteria questions and a decision map following the prioritizer output format."
-}
-```
+**Optional (sub-agent):** If the `task` tool is available (e.g., `plan`, `scout`, or `refine` agents), spawn a `prioritizer` sub-agent for deeper analysis. The sub-agent returns structured criteria questions and a decision map.
 
 Skip the prioritizer for obvious bug fixes, mechanical work, or choices already constrained by security/API compatibility/established architecture.
 
@@ -295,61 +289,58 @@ See: [docs/adv-gates.md](docs/adv-gates.md)
 
 ## Command Execution Model
 
-Every ADV command runs in exactly one of two modes:
+**All ADV commands run inline by default.** The executing agent performs all analysis, research, and scanning directly within its own session using available tools (lgrep, grep, read, Context7, Kagi, etc.).
 
-### Inline Commands
+### Inline Execution (Default)
 
-Execute entirely within the orchestrating agent session. No sub-agents spawned.
+Every ADV command works inline. This is the only mode available to most agents (`build`, `general`, `explore`, etc.) since they do not have the `task` tool.
 
-**Use inline when:**
-- The command requires user dialogue (questions, confirmations, Socratic questioning)
-- The command mutates ADV state (creates changes, adds tasks, updates status)
-- The command performs git operations (commit, merge, worktree management)
-- The work is sequential and context-dependent (TDD loops, gap analysis)
+**Inline approach for analysis-heavy commands:**
+- Use parallel tool calls within a single response (e.g., multiple `grep` or `lgrep_search_semantic` calls)
+- Perform each analysis dimension sequentially or in parallel batches
+- Synthesize findings directly — no sub-agent coordination overhead
 
-**Inline commands:** `/adv-status`, `/adv-proposal`, `/adv-validate`, `/adv-apply`, `/adv-archive`, `/adv-clarify`, `/adv-prep`, `/adv-coordinate`
+### Sub-Agent Orchestration (Optional — requires `task` tool)
 
-### Orchestrator Commands
+When the `task` tool is available (`plan`, `scout`, and `refine` agents), commands MAY spawn read-only sub-agents for parallel analysis. This is an optimization, not a requirement. Most agents (`build`, `general`, `explore`, and all sub-agents) do NOT have the `task` tool — they must work inline.
 
-The agent orchestrates by spawning read-only sub-agents for parallel analysis, then synthesizes results inline. Sub-agents never mutate ADV state or spawn their own sub-agents.
-
-**Use orchestration when:**
+**When to use sub-agents (if available):**
 - Multiple independent analysis dimensions can run in parallel
-- The work is read-heavy scanning/research across files or documentation
+- The work is read-heavy scanning across many files
 - Parallelism provides material speedup (3+ independent scan dimensions)
-- Each sub-agent's scope is bounded and its output is structured JSON
 
-**Orchestrator commands and their sub-agents:**
+**Commands that benefit from sub-agents when available:**
 
-| Command | Sub-Agents | Agent Types | Why Delegated |
-|---------|-----------|-------------|---------------|
-| research | 2 | librarian + adv-researcher | Parallel docs lookup + architecture validation |
-| review | 5 | explore × 5 | 5 independent review dimensions |
-| harden | 5 | explore × 5 | 5 independent quality scanners |
-| audit | 4 | explore × 4 | Staged spec→code→drift→conflict pipeline |
-| slop-scan | up to 9 | explore × 9 | 9 independent smell category scanners |
-| tron | 1 | tron | Specialized reconnaissance agent |
-| task | 1-2 | librarian (+ adv-researcher if needed) | LBP validation via research orchestration |
-| improve | 0 (inline) | — | Inline analysis with Context7; no sub-agents |
-| refactor | 3 | explore × 3 | Drift + obsolescence + conflict scanning |
+| Command | Inline Approach | Sub-Agent Approach (plan/scout/refine only) |
+|---------|----------------|--------------------------------------|
+| research | Use Context7 + Kagi + lgrep directly | Spawn librarian + adv-researcher |
+| review | Sequential analysis per dimension | Spawn explore × 5 |
+| harden | Sequential quality scans | Spawn explore × 5 |
+| audit | Sequential spec→code→drift pipeline | Spawn explore × 4 |
+| slop-scan | Sequential smell category scans | Spawn explore × up to 9 |
+| tron | Use lgrep + read directly | Spawn tron agent |
+| task | Use Context7 + Kagi directly | Spawn librarian + adv-researcher |
+| refactor | Sequential drift analysis | Spawn explore × 3 |
 
-**Anti-recursion rule:** Sub-agents NEVER spawn sub-agents. The `enforceTaskPolicy` guard blocks nested Task tool calls. If a sub-agent needs deeper analysis, it performs it inline or returns a finding for the orchestrator to investigate.
+**Anti-recursion rule:** Sub-agents NEVER spawn sub-agents. The `enforceTaskPolicy` guard blocks nested task calls.
 
-## Sub-Agent Selection
+**Inline commands (never use sub-agents):** `/adv-status`, `/adv-proposal`, `/adv-validate`, `/adv-apply`, `/adv-archive`, `/adv-clarify`, `/adv-prep`, `/adv-coordinate`, `/adv-improve`
 
-When spawning sub-agents via the Task tool, select based on the task type:
+## Sub-Agent Selection (requires `task` tool)
+
+When the `task` tool is available and sub-agent orchestration is chosen, select based on the task type:
 
 | Agent | Use For | Tools |
 |-------|---------|-------|
 | `librarian` | Documentation, API references, code examples | Context7, grep.app, Kagi |
 | `adv-researcher` | Architectural validation, simplicity analysis | Context7, Kagi, ADV read-only |
-| `explore` | Codebase navigation, find usages | Read, Glob, Grep |
+| `explore` | Codebase navigation, find usages | Read, Glob, Grep, lgrep |
 | `general` | Complex multi-step implementation | Full tool access |
 | `tron` | Codebase reconnaissance, hotspot detection | Read, Glob, Grep, lgrep |
 
 ### Orchestrator Pattern
 
-For parallel research: spawn `librarian` (docs) + `adv-researcher` (architecture validation) simultaneously, then synthesize.
+For parallel research (when task tool available): spawn `librarian` (docs) + `adv-researcher` (architecture validation) simultaneously, then synthesize.
 
 ## Skill Discovery Protocol
 

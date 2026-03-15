@@ -257,11 +257,19 @@ describe("Prioritizer example docs", () => {
     assertContainsAllSnippets(content, canonicalSnippets, "README.md");
   });
 
-  test("ADV instructions include canonical prioritizer task example", () => {
+  test("ADV instructions include inline-first prioritizer protocol", () => {
     const content = readFileSync(ADV_INSTRUCTIONS_PATH, "utf8");
+    // ADV_INSTRUCTIONS.md uses inline-first approach (no task tool payload)
+    // but must still reference the prioritizer sub-agent as an optional path
+    const inlineSnippets = [
+      "Tradeoff Prioritizer Protocol",
+      "Default (inline):",
+      "Optional (sub-agent):",
+      "prioritizer",
+    ];
     assertContainsAllSnippets(
       content,
-      canonicalSnippets,
+      inlineSnippets,
       "ADV_INSTRUCTIONS.md",
     );
   });
