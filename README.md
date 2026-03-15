@@ -21,7 +21,7 @@ This repo contains:
 - `plugin/` - the TypeScript plugin implementation
 - `.adv/specs/` - the capability specs that define behavior
 - `.opencode/command/` - slash-command workflows like `/adv-proposal` and `/adv-review`
-- `.opencode/agents/` - hidden sub-agents used by higher-level ADV commands
+- `.opencode/agents/` - sub-agents used by ADV commands (adv-researcher, tron, etc.)
 - `skills/` - bundled skills synced into the global OpenCode skill registry
 - `docs/` - workflow references, gates, checklists, and supporting docs
 - `scripts/` - maintenance, migration, and global config sync helpers
@@ -106,26 +106,44 @@ Advance exists to make those failure modes harder.
 - **Accumulated wisdom** - persist patterns, gotchas, conventions, successes, and failures
 - **Worktree-aware state** - share mutable change state across worktrees and sessions; detect and reuse existing worktrees
 - **Validation and archive flow** - reduce drift between proposal, implementation, and specs
-- **Tradeoff prioritization** - route multi-approach decisions through a prioritizer sub-agent before asking users to weigh criteria
+- **Tradeoff prioritization** - route multi-approach decisions through inline analysis or a prioritizer sub-agent before asking users to weigh criteria
 
-### Prioritizer example
+### Prioritizer protocol
 
-For tradeoff-heavy decisions, ADV agents should call the hidden `prioritizer` sub-agent first, then pass its drafted questions to the `question` tool.
+For tradeoff-heavy decisions, ADV agents analyze the decision space inline by default — scanning relevant code with `lgrep`, researching via Context7/Kagi, then drafting criteria questions for the `question` tool.
 
-```json
-{
-  "subagent_type": "prioritizer",
-  "description": "Draft tradeoff criteria for auth decision",
-  "prompt": "Decision: choose between Redis-backed sessions, JWT cookies, and Auth.js delegation for protected routes. Domain: authentication. Key files: src/hooks.server.ts, src/lib/auth/, src/routes/login/+page.server.ts. Real tradeoff: operational simplicity vs extensibility vs dependency surface. Draft context-specific criteria questions and a decision map following the prioritizer output format."
-}
-```
+When the `task` tool is available (`orca`, `plan`, `scout`, `refine`, or `general` agents), agents may optionally spawn a `prioritizer` sub-agent for deeper analysis.
+
+### Agent architecture
+
+ADV commands are executed by OpenCode agents. Agents with the `task` tool can spawn sub-agents for parallel research and validation:
+
+| Agent | Role | Can Orchestrate? |
+|-------|------|-----------------|
+| `orca` | Orchestrator — drives multi-step workflows with research between steps | Yes |
+| `plan` | Planning — produces structured plans and task breakdowns | Yes |
+| `scout` | Reconnaissance — investigates codebases and brainstorms ideas | Yes |
+| `refine` | Refinement — surgical scope-locked editing and quality gates | Yes |
+| `build` | Build/CI — runs tests, linters, type checkers | No (inline only) |
+
+Sub-agents available for orchestration:
+
+| Sub-Agent | Purpose |
+|-----------|---------|
+| `librarian` | Documentation, API references, code examples |
+| `explore` | Codebase navigation, find usages |
+| `general` | Complex multi-step implementation |
+| `mechanic` | System/infra issues — MCP servers, config, toolchain |
+| `adv-researcher` | Architectural validation, simplicity analysis |
+| `prioritizer` | Tradeoff criteria drafting and decision maps |
+| `tron` | Codebase reconnaissance, hotspot detection |
 
 ## Repository structure
 
 ```text
 .
 ├── .adv/specs/             # Capability specs (the laws)
-├── .opencode/agents/       # Hidden sub-agents used by ADV commands
+├── .opencode/agents/       # Sub-agents used by ADV commands
 ├── .opencode/command/      # Slash-command implementations and workflows
 ├── docs/                   # Workflow docs, references, and checklists
 ├── plugin/                 # TypeScript OpenCode plugin

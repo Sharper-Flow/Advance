@@ -172,7 +172,7 @@ When ADV work reaches a decision with **2+ viable approaches** and the best choi
 4. Pass the questions to the `question` tool with minimal paraphrasing
 5. Restate the user's priorities before recommending the winning approach
 
-**Optional (sub-agent):** If the `task` tool is available (e.g., `plan`, `scout`, or `refine` agents), spawn a `prioritizer` sub-agent for deeper analysis. The sub-agent returns structured criteria questions and a decision map.
+**Optional (sub-agent):** If the `task` tool is available (e.g., `orca`, `plan`, `scout`, or `refine` agents), spawn a `prioritizer` sub-agent for deeper analysis. The sub-agent returns structured criteria questions and a decision map.
 
 Skip the prioritizer for obvious bug fixes, mechanical work, or choices already constrained by security/API compatibility/established architecture.
 
@@ -293,7 +293,7 @@ See: [docs/adv-gates.md](docs/adv-gates.md)
 
 ### Inline Execution (Default)
 
-Every ADV command works inline. This is the only mode available to most agents (`build`, `general`, `explore`, etc.) since they do not have the `task` tool.
+Every ADV command works inline. This is the only mode available to agents without the `task` tool (`build`, `explore`, and most sub-agents).
 
 **Inline approach for analysis-heavy commands:**
 - Use parallel tool calls within a single response (e.g., multiple `grep` or `lgrep_search_semantic` calls)
@@ -302,7 +302,7 @@ Every ADV command works inline. This is the only mode available to most agents (
 
 ### Sub-Agent Orchestration (Optional — requires `task` tool)
 
-When the `task` tool is available (`plan`, `scout`, and `refine` agents), commands MAY spawn read-only sub-agents for parallel analysis. This is an optimization, not a requirement. Most agents (`build`, `general`, `explore`, and all sub-agents) do NOT have the `task` tool — they must work inline.
+When the `task` tool is available (`orca`, `plan`, `scout`, `refine`, and `general` agents), commands MAY spawn read-only sub-agents for parallel analysis. This is an optimization, not a requirement. Agents without the `task` tool (`build`, `explore`, and most sub-agents) must work inline.
 
 **When to use sub-agents (if available):**
 - Multiple independent analysis dimensions can run in parallel
@@ -311,7 +311,7 @@ When the `task` tool is available (`plan`, `scout`, and `refine` agents), comman
 
 **Commands that benefit from sub-agents when available:**
 
-| Command | Inline Approach | Sub-Agent Approach (plan/scout/refine only) |
+| Command | Inline Approach | Sub-Agent Approach (orca/plan/scout/refine/general) |
 |---------|----------------|--------------------------------------|
 | research | Use Context7 + Kagi + lgrep directly | Spawn librarian + adv-researcher |
 | review | Sequential analysis per dimension | Spawn explore × 5 |
@@ -336,6 +336,7 @@ When the `task` tool is available and sub-agent orchestration is chosen, select 
 | `adv-researcher` | Architectural validation, simplicity analysis | Context7, Kagi, ADV read-only |
 | `explore` | Codebase navigation, find usages | Read, Glob, Grep, lgrep |
 | `general` | Complex multi-step implementation | Full tool access |
+| `mechanic` | System/infra issues — MCP servers, config, toolchain | Vision, bash, read/write |
 | `tron` | Codebase reconnaissance, hotspot detection | Read, Glob, Grep, lgrep |
 
 ### Orchestrator Pattern

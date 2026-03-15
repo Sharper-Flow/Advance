@@ -244,32 +244,31 @@ describe("Manifest ↔ Doc Table Drift", () => {
   }
 });
 
-describe("Prioritizer example docs", () => {
-  const canonicalSnippets = [
-    '"subagent_type": "prioritizer"',
-    '"description": "Draft tradeoff criteria for auth decision"',
-    "Decision: choose between Redis-backed sessions, JWT cookies, and Auth.js delegation for protected routes.",
-    "Draft context-specific criteria questions and a decision map following the prioritizer output format.",
+describe("Prioritizer protocol docs", () => {
+  const readmeSnippets = [
+    "Prioritizer protocol",
+    "inline by default",
+    "prioritizer",
+    "task",
   ];
 
-  test("README includes canonical prioritizer task example", () => {
+  const advSnippets = [
+    "Tradeoff Prioritizer Protocol",
+    "Default (inline):",
+    "Optional (sub-agent):",
+    "prioritizer",
+  ];
+
+  test("README includes prioritizer protocol section", () => {
     const content = readFileSync(README_PATH, "utf8");
-    assertContainsAllSnippets(content, canonicalSnippets, "README.md");
+    assertContainsAllSnippets(content, readmeSnippets, "README.md");
   });
 
   test("ADV instructions include inline-first prioritizer protocol", () => {
     const content = readFileSync(ADV_INSTRUCTIONS_PATH, "utf8");
-    // ADV_INSTRUCTIONS.md uses inline-first approach (no task tool payload)
-    // but must still reference the prioritizer sub-agent as an optional path
-    const inlineSnippets = [
-      "Tradeoff Prioritizer Protocol",
-      "Default (inline):",
-      "Optional (sub-agent):",
-      "prioritizer",
-    ];
     assertContainsAllSnippets(
       content,
-      inlineSnippets,
+      advSnippets,
       "ADV_INSTRUCTIONS.md",
     );
   });
