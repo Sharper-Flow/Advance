@@ -322,7 +322,13 @@ When the `task` tool is available (`orca`, `plan`, `scout`, `refine`, and `gener
 | task | Use Context7 + Kagi directly | Spawn librarian + adv-researcher |
 | refactor | Sequential drift analysis | Spawn explore × 3 |
 
-**Anti-recursion rule:** Sub-agents NEVER spawn sub-agents. The `enforceTaskPolicy` guard blocks nested task calls.
+**Anti-recursion rule:** Sub-agents NEVER spawn sub-agents. The `enforceTaskPolicy` guard blocks nested task calls. All orchestration flows through the parent agent (typically `orca`) — sub-agents execute and return results, they don't delegate further.
+
+**Spawning discipline:** Orchestrating agents (especially `orca`) must be deliberate about sub-agent count:
+- Cap parallel bursts at 3-4 sub-agents. More creates coordination overhead that outweighs parallelism.
+- Batch independent work into a single spawn message — don't serialize what can run in parallel.
+- Prefer fewer, well-scoped sub-agents over many narrow ones (1 agent with 3 questions > 3 agents with 1 question).
+- Don't spawn sub-agents for work achievable in a single tool call (reading a file, running a grep, checking a test).
 
 **Inline commands (never use sub-agents):** `/adv-status`, `/adv-proposal`, `/adv-validate`, `/adv-apply`, `/adv-archive`, `/adv-clarify`, `/adv-prep`, `/adv-coordinate`, `/adv-improve`
 

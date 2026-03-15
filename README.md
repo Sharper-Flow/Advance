@@ -116,7 +116,7 @@ When the `task` tool is available (`orca`, `plan`, `scout`, `refine`, or `genera
 
 ### Agent architecture
 
-ADV commands are executed by OpenCode agents. Agents with the `task` tool can spawn sub-agents for parallel research and validation:
+ADV commands are executed by OpenCode agents. Agents with the `task` tool can spawn sub-agents for parallel research and validation. Sub-agents cannot spawn further sub-agents — all orchestration flows through the parent agent. Orchestrators (especially `orca`) should cap parallel bursts at 3-4 sub-agents and avoid spawning for work achievable in a single tool call.
 
 | Agent | Role | Can Orchestrate? |
 |-------|------|-----------------|
