@@ -546,15 +546,46 @@ SUCCESS CRITERIA:
 
 Spawn remediation sub-agents with `subagent_type: "general"` for each finding cluster (group by file/domain).
 
+### Fix Validation Protocol (Research Before Remediation)
+
+Before applying fixes, the orchestrating agent MUST validate non-trivial fixes by spawning research sub-agents. This prevents remediation from introducing regressions, using deprecated APIs, or applying fixes that conflict with existing patterns.
+
+**Trivial fixes (skip research):**
+- Typos, naming corrections, comment updates
+- Adding missing null checks or guard clauses with obvious correct values
+- Removing dead code or unused imports
+- Fixing lint violations with a single canonical fix
+
+**Non-trivial fixes (require research validation):**
+- Changing control flow, error handling strategy, or retry logic
+- Modifying security-sensitive code (auth, validation, crypto, permissions)
+- Refactoring module boundaries or changing public interfaces
+- Replacing a library call or switching to a different API
+- Fixes that touch 3+ files or cross module boundaries
+- Any fix where the "correct" approach has multiple viable alternatives
+
+**Research validation workflow:**
+
+1. **Classify each finding** as trivial or non-trivial using the criteria above
+2. **For non-trivial findings**, spawn a research sub-agent (`subagent_type: "librarian"` or `"adv-researcher"`) BEFORE the remediation sub-agent:
+   - Provide the finding details (file, line, what, why)
+   - Ask for: best-practice fix approach, relevant API docs, existing codebase patterns to match
+   - The research sub-agent returns a validated fix strategy with evidence (doc links, pattern references, API signatures)
+3. **Include the validated fix strategy** in the remediation sub-agent's prompt so it applies the researched approach, not a guess
+4. **If research reveals the original finding was incorrect** (e.g., the flagged pattern is actually correct for this context), downgrade the finding to `nit:` or mark as `rejected_with_evidence`
+
+**When running inline** (no `task` tool available): perform the same validation using Context7, Kagi, or lgrep directly before implementing each non-trivial fix. The principle is the same — research first, then fix.
+
 Required remediation workflow:
 
 1. **Fix all blockers/issues**
    - Implement fixes for every `blocker:` and `issue:` finding.
    - No partial fix mode.
+   - For non-trivial fixes: use the validated fix strategy from the research sub-agent (see Fix Validation Protocol above).
 
 2. **Investigate all suggestions/questions**
    - For each `suggestion:` or `question:`, perform targeted validation against specs, tests, and local code context.
-   - If validated, implement the suggestion.
+   - If validated, implement the suggestion. For non-trivial suggestions, spawn a research sub-agent first (see Fix Validation Protocol above).
    - If rejected, record explicit evidence in final report (`why_not_implemented`) and keep as unresolved recommendation only when evidence is concrete.
 
 3. **Cleanup pass (mandatory)**
@@ -698,6 +729,7 @@ Result: {verdict} ({fix_count} fixes applied)
 | **Missing "why"** | Not actionable, not learnable | Always explain reasoning |
 | **Code vs person** | Creates defensiveness | Comment on code, not developer |
 | **No positive feedback** | Discouraging | Include `praise:` for good work |
+| **Unresearched fixes** | Introduces regressions, deprecated APIs, pattern conflicts | Research non-trivial fixes before applying (see Fix Validation Protocol) |
 
 ---
 
@@ -708,4 +740,5 @@ Result: {verdict} ({fix_count} fixes applied)
 | Load change | `adv_change_show` |
 | List tasks | `adv_task_list` |
 | Spawn analysis | Task tool (explore) |
+| Spawn fix research | Task tool (librarian / adv-researcher) |
 | Spawn fixes | Task tool (general) |
