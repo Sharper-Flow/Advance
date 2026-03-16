@@ -365,6 +365,7 @@ SUCCESS CRITERIA:
 - [ ] Cross-cutting concerns addressed
 - [ ] No cross-spec conflicts
 - [ ] adv_change_validate passes
+- [ ] Readiness check-in passed (user confirms ready for implementation)
 
 GAPS TO FIX: {gap_count}
 {for each gap, grouped by priority}
@@ -519,6 +520,37 @@ adv_task_list changeId: <target>
 adv_change_validate changeId: <target>
 ```
 
+### Readiness Check-In
+
+Before marking the prep gate complete, ask the user whether they need anything else before moving to implementation. Use the `question` tool:
+
+```
+question:
+  header: "Ready for implementation?"
+  question: "Prep is complete — all gaps are fixed and validation passes. Before we move to /adv-apply, could we use further research, clarification, or information?"
+  options:
+    - label: "Ready to implement"
+      description: "No further input needed — proceed to mark prep gate complete"
+    - label: "More research needed"
+      description: "There are open questions that /adv-research should investigate first"
+    - label: "Needs clarification"
+      description: "Requirements or scope need clarification before implementation"
+    - label: "Missing information"
+      description: "I have context or constraints to share before we proceed"
+```
+
+**On "Ready to implement":** Continue to mark the prep gate and emit the completion banner.
+
+**On "More research needed":** Do NOT mark the prep gate. Emit:
+```
+⚠️ Prep paused — user requested additional research.
+   Run /adv-research {change-id} to investigate open questions, then re-run /adv-prep.
+```
+
+**On "Needs clarification":** Do NOT mark the prep gate. Collect the clarification via a follow-up question, incorporate it into the proposal or task descriptions, then re-run validation and return to this check-in.
+
+**On custom input (write-in):** Incorporate the user's input — update tasks, proposal, or scope as needed — then re-run validation and return to this check-in.
+
 ### Mark Prep Gate
 
 Mark the prep gate as complete (if not already marked in Phase 8.5):
@@ -546,6 +578,7 @@ ALL CRITERIA MET:
 - [x] Cross-cutting concerns addressed
 - [x] No cross-spec conflicts
 - [x] adv_change_validate - PASSED
+- [x] Readiness check-in - User confirmed ready for implementation
 - [x] adv_gate_complete prep - PASSED (readiness checks cleared)
 
 CHANGES MADE:
