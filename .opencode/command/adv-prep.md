@@ -365,7 +365,7 @@ SUCCESS CRITERIA:
 - [ ] Cross-cutting concerns addressed
 - [ ] No cross-spec conflicts
 - [ ] adv_change_validate passes
-- [ ] Readiness check-in passed (user confirms ready for implementation)
+- [ ] Readiness self-assessment passed (agent resolved all gaps before marking gate)
 
 GAPS TO FIX: {gap_count}
 {for each gap, grouped by priority}
@@ -520,36 +520,50 @@ adv_task_list changeId: <target>
 adv_change_validate changeId: <target>
 ```
 
-### Readiness Check-In
+### Readiness Self-Assessment
 
-Before marking the prep gate complete, ask the user whether they need anything else before moving to implementation. Use the `question` tool:
+Before marking the prep gate complete, the agent performs a self-assessment to identify any remaining gaps in its own understanding. This is NOT a user prompt — the agent evaluates its own confidence and proactively fills gaps.
+
+**Step 1: Self-assess across these dimensions:**
+
+| Dimension | Question the agent asks itself |
+|-----------|-------------------------------|
+| **Requirements clarity** | Are all requirements unambiguous? Can I explain each task's acceptance criteria without guessing? |
+| **Technical approach** | Do I understand the implementation approach for every task? Are there any tasks where I'd be guessing at the right pattern or API? |
+| **Dependency knowledge** | Do I know the libraries, APIs, and frameworks involved? Would I need to look up docs mid-implementation? |
+| **Codebase context** | Have I read the relevant source files? Do I understand the existing patterns I need to follow or extend? |
+| **Edge cases** | Have I considered error handling, boundary conditions, and failure modes for each task? |
+| **Cross-cutting concerns** | Are there security, performance, migration, or deployment implications I haven't accounted for? |
+
+**Step 2: For each gap found, resolve it inline:**
+
+- **Missing codebase context** → Use `lgrep_search_semantic` / `read` to examine the relevant code now
+- **Unknown API/library usage** → Use `context7_query-docs` or `kagi_search_fetch` to look it up now
+- **Ambiguous requirement** → Check the proposal and research findings; if still unclear, ask the user a specific targeted question (not a generic "are you ready?" prompt)
+- **Missing edge case coverage** → Add scenarios to the relevant delta requirements or update task descriptions
+
+**Step 3: If gaps were found and resolved, re-run validation:**
+
+```
+adv_change_validate changeId: <target>
+```
+
+**Step 4: If gaps remain that the agent cannot resolve alone** (e.g., business logic decisions, access credentials, domain expertise), ask the user a **specific** question about the gap — not a generic readiness check:
 
 ```
 question:
-  header: "Ready for implementation?"
-  question: "Prep is complete — all gaps are fixed and validation passes. Before we move to /adv-apply, could we use further research, clarification, or information?"
+  header: "Clarification needed"
+  question: "{specific question about the specific gap}"
   options:
-    - label: "Ready to implement"
-      description: "No further input needed — proceed to mark prep gate complete"
-    - label: "More research needed"
-      description: "There are open questions that /adv-research should investigate first"
-    - label: "Needs clarification"
-      description: "Requirements or scope need clarification before implementation"
-    - label: "Missing information"
-      description: "I have context or constraints to share before we proceed"
+    - label: "{option relevant to the gap}"
+      description: "{description}"
+    - label: "{alternative}"
+      description: "{description}"
 ```
 
-**On "Ready to implement":** Continue to mark the prep gate and emit the completion banner.
+After incorporating the answer, re-run validation and repeat the self-assessment.
 
-**On "More research needed":** Do NOT mark the prep gate. Emit:
-```
-⚠️ Prep paused — user requested additional research.
-   Run /adv-research {change-id} to investigate open questions, then re-run /adv-prep.
-```
-
-**On "Needs clarification":** Do NOT mark the prep gate. Collect the clarification via a follow-up question, incorporate it into the proposal or task descriptions, then re-run validation and return to this check-in.
-
-**On custom input (write-in):** Incorporate the user's input — update tasks, proposal, or scope as needed — then re-run validation and return to this check-in.
+**Step 5: When no gaps remain**, proceed to mark the prep gate.
 
 ### Mark Prep Gate
 
@@ -578,7 +592,7 @@ ALL CRITERIA MET:
 - [x] Cross-cutting concerns addressed
 - [x] No cross-spec conflicts
 - [x] adv_change_validate - PASSED
-- [x] Readiness check-in - User confirmed ready for implementation
+- [x] Readiness self-assessment - All gaps resolved, agent confident in task graph
 - [x] adv_gate_complete prep - PASSED (readiness checks cleared)
 
 CHANGES MADE:

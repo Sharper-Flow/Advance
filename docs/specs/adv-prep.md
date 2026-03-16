@@ -82,7 +82,7 @@ Defines the responsibilities and boundaries of /adv-prep. The prep command is th
 - adv_gate_complete is called with gateId 'prep'
 - The prep gate is marked done
 
-**Prep asks readiness check-in before marking gate** (`rq-prep-scope1.3`)
+**Prep performs readiness self-assessment before marking gate** (`rq-prep-scope1.3`)
 
 **Given:**
 - All gaps are fixed and validation passes
@@ -90,10 +90,10 @@ Defines the responsibilities and boundaries of /adv-prep. The prep command is th
 **When:** /adv-prep is about to mark the prep gate complete
 
 **Then:**
-- The user is asked via the question tool whether they need further research, clarification, or information
-- If the user confirms readiness, the prep gate is marked complete
-- If the user requests more research, the prep gate is NOT marked and /adv-research is recommended
-- If the user needs clarification or provides additional input, the prep gate is NOT marked until the input is incorporated and validation re-passes
+- The agent self-assesses its confidence across requirements clarity, technical approach, dependency knowledge, codebase context, edge cases, and cross-cutting concerns
+- For each gap found, the agent resolves it inline (reading code, querying docs, adding scenarios)
+- If a gap requires user input (business logic, domain expertise), the agent asks a specific targeted question — not a generic readiness prompt
+- The prep gate is marked complete only when no unresolved gaps remain
 
 ---
 
