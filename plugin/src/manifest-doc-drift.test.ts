@@ -266,10 +266,6 @@ describe("Prioritizer protocol docs", () => {
 
   test("ADV instructions include inline-first prioritizer protocol", () => {
     const content = readFileSync(ADV_INSTRUCTIONS_PATH, "utf8");
-    assertContainsAllSnippets(
-      content,
-      advSnippets,
-      "ADV_INSTRUCTIONS.md",
-    );
+    assertContainsAllSnippets(content, advSnippets, "ADV_INSTRUCTIONS.md");
   });
 });
