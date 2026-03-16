@@ -1,10 +1,10 @@
-#!/usr/bin/env npx tsx
+#!/usr/bin/env pnpm dlx tsx
 /**
  * Migration script to add $schema references to existing change.json and spec.json files.
  * 
  * Usage: 
- *   npx tsx scripts/add-schema-refs.ts /path/to/project
- *   npx tsx scripts/add-schema-refs.ts  # uses current directory
+ *   pnpm dlx tsx scripts/add-schema-refs.ts /path/to/project
+ *   pnpm dlx tsx scripts/add-schema-refs.ts  # uses current directory
  * 
  * This is idempotent - running multiple times is safe.
  */

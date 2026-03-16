@@ -399,7 +399,7 @@ If you have an existing OpenSpec project, use the migration script:
 cd /path/to/Advance
 
 # Run migration
-npx tsx scripts/migrate-openspec.ts /path/to/your-project/openspec ./specs
+pnpm dlx tsx scripts/migrate-openspec.ts /path/to/your-project/openspec ./specs
 
 # This will:
 # 1. Read all specs from openspec/specs/

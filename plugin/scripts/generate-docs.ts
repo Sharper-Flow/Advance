@@ -1,8 +1,8 @@
-#!/usr/bin/env npx tsx
+#!/usr/bin/env pnpm dlx tsx
 /**
  * Generate markdown documentation from spec.json files.
  *
- * Usage: npx tsx scripts/generate-docs.ts
+ * Usage: pnpm dlx tsx scripts/generate-docs.ts
  * Output: docs/specs/*.md
  */
 

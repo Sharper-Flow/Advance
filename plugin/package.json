@@ -27,9 +27,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "generate:schemas": "npx tsx scripts/generate-schemas.ts",
-    "generate:docs": "npx tsx scripts/generate-docs.ts",
-    "migrate:add-schemas": "npx tsx scripts/add-schema-refs.ts"
+    "generate:schemas": "pnpm dlx tsx scripts/generate-schemas.ts",
+    "generate:docs": "pnpm dlx tsx scripts/generate-docs.ts",
+    "migrate:add-schemas": "pnpm dlx tsx scripts/add-schema-refs.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.52.0",

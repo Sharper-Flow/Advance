@@ -177,7 +177,7 @@ Run one primary structural tool per language. If unavailable or timed out, fall 
 
 | Language | Primary Tool | Check | Command | Maps To |
 |----------|--------------|-------|---------|---------|
-| TypeScript/JavaScript | ESLint | `npx eslint --version` | `npx eslint --rule '{max-depth:[error,{max:N}],complexity:[error,N]}' <path>` | `MAINT-004` |
+| TypeScript/JavaScript | ESLint | `pnpm dlx eslint --version` | `pnpm dlx eslint --rule '{max-depth:[error,{max:N}],complexity:[error,N]}' <path>` | `MAINT-004` |
 | Python | radon | `radon --help` | `radon cc -n C <path>` | `MAINT-004` |
 | Go | gocyclo | `gocyclo -over 1 .` | `gocyclo -over N <path>` | `MAINT-004` |
 
@@ -287,8 +287,8 @@ Dead code detection uses **language-specific static analysis tools** rather than
 | Language | Tool | Install Check | Command |
 |----------|------|---------------|---------|
 | Python | `vulture` | `vulture --version` | `vulture <path> --min-confidence 80` |
-| TypeScript/JavaScript | `knip` (primary) | `npx knip --version` | `npx knip --no-exit-code` |
-| TypeScript/JavaScript | `ts-prune` (legacy fallback) | `npx ts-prune --version` | `npx ts-prune` |
+| TypeScript/JavaScript | `knip` (primary) | `pnpm dlx knip --version` | `pnpm dlx knip --no-exit-code` |
+| TypeScript/JavaScript | `ts-prune` (legacy fallback) | `pnpm dlx ts-prune --version` | `pnpm dlx ts-prune` |
 | Go | `deadcode` | `deadcode -help` | `deadcode ./...` |
 | Rust | `cargo-udeps` | `cargo udeps --version` | `cargo +nightly udeps` (unused deps) |
 | Java | `unused-code` | via build tool | Integrated with IDE/build |
@@ -316,7 +316,7 @@ Dead code detection uses **language-specific static analysis tools** rather than
    vulture <SCAN_PATH> --min-confidence 80 2>&1
    
    # TypeScript/JavaScript example (knip primary, ts-prune legacy fallback)
-   npx knip --no-exit-code 2>&1 || (echo "[LEGACY TOOL: ts-prune]" && npx ts-prune 2>&1)
+    pnpm dlx knip --no-exit-code 2>&1 || (echo "[LEGACY TOOL: ts-prune]" && pnpm dlx ts-prune 2>&1)
    
    # Go example
    deadcode ./... 2>&1
@@ -334,7 +334,7 @@ Dead code detection uses **language-specific static analysis tools** rather than
 
 Suggested installations:
   Python:     pip install vulture
-  TypeScript: npm install -D knip
+  TypeScript: pnpm add -D knip
   Go:         go install golang.org/x/tools/cmd/deadcode@latest
 
 Skipping dead code detection for Phase 1. Phase 2 will attempt heuristic analysis.

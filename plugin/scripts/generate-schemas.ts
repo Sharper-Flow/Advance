@@ -1,4 +1,4 @@
-#!/usr/bin/env npx tsx
+#!/usr/bin/env pnpm dlx tsx
 /**
  * Generate JSON Schema files from Zod schemas.
  * 
@@ -7,7 +7,7 @@
  * - AI agents for validation before writing
  * - CI/CD for validation
  * 
- * Usage: npx tsx scripts/generate-schemas.ts
+ * Usage: pnpm dlx tsx scripts/generate-schemas.ts
  * Output: schemas/*.schema.json
  */
 
