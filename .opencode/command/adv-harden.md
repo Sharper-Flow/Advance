@@ -365,14 +365,15 @@ When falling back inline, use this checklist per dimension:
 | Test Coverage | Check for test files alongside source files; verify TDD evidence in task notes |
 | AI Slop Detection | Scan for generic variable names, copy-paste blocks, placeholder comments |
 | Doc Hygiene | Check README/AGENTS.md for stale references to changed files or behaviors |
-| Tech Debt | Identify TODO/FIXME comments, functions > 50 lines, duplicated logic |
+| Production Readiness | Identify TODO/FIXME comments, functions > 50 lines, security and reliability gaps |
 | Cleanup | Find .bak/.orig/.tmp files, debug print statements, commented-out code |
+| Deployment Readiness | Check for new env vars, migrations, config changes, external service dependencies, CI/CD updates |
 
 ---
 
 ## Phase 1: Spawn Analysis Sub-Agents
 
-Spawn **5 parallel sub-agents** with `subagent_type: "explore"`:
+Spawn **6 parallel sub-agents** with `subagent_type: "explore"`:
 
 ### Sub-Agent 1: Test Coverage Scanner
 
@@ -669,6 +670,117 @@ RETURN JSON:
 }
 ```
 
+### Sub-Agent 6: Deployment & Operational Readiness Scanner
+
+```
+Analyze DEPLOYMENT & OPERATIONAL READINESS for change: {change-id}
+
+WORKING DIRECTORY: {workdir}
+All file paths are relative to this directory.
+Use this as the base path for all read/glob/grep/lgrep operations.
+
+Affected files: {files}
+Change summary: {summary from proposal}
+
+PURPOSE: Identify every infrastructure, configuration, external service, and
+operational step required to fully deploy this change beyond just merging code.
+A change is not shippable if it requires manual steps that aren't documented.
+
+TASK:
+
+1. ENVIRONMENT VARIABLES & SECRETS:
+   - Scan for new process.env / Bun.env / os.environ references not present before this change
+   - Check for new config keys in .env.example, config files, or schema definitions
+   - Verify new secrets have placeholder entries in .env.example (not hardcoded values)
+   - Flag any env var referenced in code but missing from .env.example or config docs
+   - Check for removed env vars that may still be set in production
+
+2. DATABASE & SCHEMA MIGRATIONS:
+   - Detect new/modified schema files (Prisma, Drizzle, SQL migrations, etc.)
+   - Verify migration files exist for schema changes (not just model changes)
+   - Check migration ordering and naming conventions
+   - Flag destructive migrations (DROP TABLE, DROP COLUMN, type narrowing) as BLOCKER
+   - Verify rollback path exists for each migration
+
+3. EXTERNAL SERVICE DEPENDENCIES:
+   - Detect new API client instantiations, SDK imports, or service URLs
+   - Check for new webhook endpoints that need external registration
+   - Identify new queue/topic subscriptions or publishers
+   - Flag services that need API keys, tokens, or credentials not yet provisioned
+   - Check for new DNS/domain requirements
+
+4. CI/CD & BUILD PIPELINE:
+   - Check if new build steps, test commands, or scripts are needed
+   - Detect new Dockerfile changes, docker-compose services, or container configs
+   - Verify GitHub Actions / CI config covers new test files or build targets
+   - Check for new deployment targets or environments
+   - Flag if build matrix needs updating (new Node version, new platform, etc.)
+
+5. INFRASTRUCTURE & RUNTIME:
+   - Detect new cron jobs, scheduled tasks, or background workers
+   - Check for new ports, routes, or network configuration
+   - Identify new file storage, cache, or CDN requirements
+   - Flag new memory/CPU requirements (e.g., ML models, large data processing)
+   - Check for new monitoring, alerting, or observability requirements
+
+6. FEATURE FLAGS & ROLLOUT:
+   - Check if the change should be behind a feature flag
+   - Identify gradual rollout requirements (canary, percentage-based)
+   - Flag breaking API changes that need versioning or deprecation notices
+   - Check for client-side cache invalidation needs
+
+7. DOCUMENTATION & RUNBOOKS:
+   - Verify deployment steps are documented (or trivially obvious)
+   - Check for new operational runbooks needed (incident response, manual steps)
+   - Flag any "after deploy, manually do X" steps that aren't automated
+
+SEVERITY:
+- BLOCKER: Missing migration for schema change, hardcoded secret, destructive migration without rollback
+- HIGH: New env var not in .env.example, new service dependency without provisioning docs, missing CI config
+- MEDIUM: Feature flag recommended but not implemented, missing runbook for new operational concern
+- LOW: Minor config documentation gaps, optional monitoring improvements
+
+RETURN JSON:
+{
+  "dimension": "deployment_readiness",
+  "environment": {
+    "new_vars": [{"name": "...", "file": "...", "line": N, "in_example": bool, "is_secret": bool}],
+    "removed_vars": [{"name": "...", "still_in_production": "unknown|yes|no"}],
+    "issues": [...]
+  },
+  "migrations": {
+    "schema_changes": [{"file": "...", "type": "add_table|add_column|modify|drop|..."}],
+    "migration_files": [{"file": "...", "reversible": bool}],
+    "issues": [...]
+  },
+  "external_services": {
+    "new_dependencies": [{"service": "...", "file": "...", "credentials_needed": bool, "provisioned": "unknown|yes|no"}],
+    "issues": [...]
+  },
+  "ci_cd": {
+    "config_changes_needed": [{"file": "...", "what": "..."}],
+    "issues": [...]
+  },
+  "infrastructure": {
+    "new_requirements": [{"type": "cron|port|storage|cache|worker|...", "description": "..."}],
+    "issues": [...]
+  },
+  "feature_flags": {
+    "recommended": bool,
+    "breaking_changes": [{"what": "...", "mitigation": "..."}],
+    "issues": [...]
+  },
+  "deployment_steps": {
+    "pre_deploy": ["step 1", "step 2"],
+    "post_deploy": ["step 1", "step 2"],
+    "rollback_plan": "...",
+    "documented": bool
+  },
+  "overall_status": "READY|NEEDS_WORK|BLOCKED",
+  "issues": [...]
+}
+```
+
 ---
 
 ## Phase 2: Synthesis
@@ -837,6 +949,14 @@ DOCUMENTATION HYGIENE                      [{pass|warn|fail}]
 PRODUCTION READINESS                       [{pass|warn|fail}]
   Security: {pass|fail} | Reliability: {pass|fail}
   Performance: {pass|fail} | Maintainability: {pass|fail}
+
+DEPLOYMENT READINESS                       [{pass|warn|fail}]
+  Environment: {new_vars_count} new vars ({issues_count} issues)
+  Migrations: {migration_count} ({destructive_count} destructive)
+  External Services: {new_deps_count} new dependencies
+  CI/CD: {changes_needed_count} config changes needed
+  Infrastructure: {new_requirements_count} new requirements
+  Deployment Steps: {pre_deploy_count} pre / {post_deploy_count} post
 
 COMPLEXITY HOTSPOTS:
 {for top 3}

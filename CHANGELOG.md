@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+#### `/adv-harden` — Deployment & Operational Readiness Scanner
+
+- Added Sub-Agent 6: Deployment & Operational Readiness Scanner to the hardening pass
+- Covers 7 deployment dimensions: environment variables & secrets, database migrations, external service dependencies, CI/CD pipeline, infrastructure & runtime, feature flags & rollout, documentation & runbooks
+- Outputs structured deployment steps (pre-deploy, post-deploy, rollback plan)
+- Severity: destructive migrations without rollback and hardcoded secrets are BLOCKERs; missing env vars and unprovisioned services are HIGH
+- Updated harden checklist from 5-scanner to 6-scanner coverage
+- Updated final report template with Deployment Readiness dimension
+
 ## [0.5.0] - 2026-03-14
 
 ### Fixed
@@ -161,7 +172,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 #### BMAD-Inspired Quality Infrastructure
 - Adversarial review enforcement: minimum 3 non-nit findings or explicit genuinely-clean justification
 - `docs/checklists/review-checklist.md` — 12-dimension review coverage checklist
-- `docs/checklists/harden-checklist.md` — 5-scanner hardening checklist with severity scoring
+- `docs/checklists/harden-checklist.md` — 6-scanner hardening checklist with severity scoring
 - `docs/checklists/prep-checklist.md` — INVEST-based requirement specificity and scenario completeness criteria
 - Project-level wisdom JSONL store (`wisdom.jsonl`) with add, list, compact operations
 - `adv_wisdom_promote` tool to promote change-level entries to project wisdom with pruning criteria

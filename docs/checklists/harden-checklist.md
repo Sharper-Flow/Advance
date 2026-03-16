@@ -4,17 +4,18 @@ Referenced by `/adv-harden`. Enforces adversarial rigor to prevent shallow "all 
 
 ---
 
-## 5-Scanner Coverage
+## 6-Scanner Coverage
 
-Every hardening pass MUST run all 5 scanners. Mark `[x]` when analyzed (even if no findings):
+Every hardening pass MUST run all 6 scanners. Mark `[x]` when analyzed (even if no findings):
 
 - [ ] **Test Coverage** — File-level coverage ratio, TDD evidence audit
 - [ ] **AI-Slop Detection** — Placeholders, type erosion, naive patterns, structural issues
 - [ ] **Documentation Hygiene** — Conflict detection, staleness audit, deletion of superseded docs, succinct long-term updates
 - [ ] **Cleanup** — Temp files, debug code, dead imports, orphaned tests
 - [ ] **Production Readiness** — Security, reliability, performance, maintainability
+- [ ] **Deployment Readiness** — Env vars, migrations, external services, CI/CD, infrastructure, feature flags, deployment steps
 
-**Minimum**: All 5 must be executed. Skipping a scanner requires explicit justification (e.g., "Cleanup: N/A — no file artifacts in this change").
+**Minimum**: All 6 must be executed. Skipping a scanner requires explicit justification (e.g., "Cleanup: N/A — no file artifacts in this change").
 
 ---
 

@@ -315,7 +315,7 @@ When the `task` tool is available (`orca`, `plan`, `scout`, `refine`, and `gener
 |---------|----------------|--------------------------------------|
 | research | Use Context7 + Kagi + lgrep directly | Spawn librarian + adv-researcher |
 | review | Sequential analysis per dimension | Spawn explore × 5 (analysis) + librarian/adv-researcher (fix validation) + general (remediation) |
-| harden | Sequential quality scans | Spawn explore × 5 |
+| harden | Sequential quality scans | Spawn explore × 6 |
 | audit | Sequential spec→code→drift pipeline | Spawn explore × 4 |
 | slop-scan | Sequential smell category scans | Spawn explore × up to 9 |
 | tron | Use lgrep + read directly | Spawn tron agent |
