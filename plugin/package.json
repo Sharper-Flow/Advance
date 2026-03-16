@@ -79,7 +79,8 @@
   "overrides": {
     "minimatch": "^10.2.3",
     "ajv": "6.14.0",
-    "rollup": "^4.59.0"
+    "rollup": "^4.59.0",
+    "flatted": "^3.4.0"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
@@ -89,7 +90,8 @@
     "overrides": {
       "minimatch": "^10.2.3",
       "ajv": "6.14.0",
-      "rollup": "^4.59.0"
+      "rollup": "^4.59.0",
+      "flatted": "^3.4.0"
     }
   }
 }
