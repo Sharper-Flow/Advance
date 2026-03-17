@@ -67,6 +67,14 @@ describe("sync-global.sh", () => {
     test("removes legacy non-ADV commands", () => {
       expect(content).toContain("for stale in openprompt.md; do");
     });
+
+    test("removes stale global ADV_INSTRUCTIONS.md copy", () => {
+      expect(content).toContain("STALE_GLOBAL_INSTR=");
+      expect(content).toContain(
+        "instructions/ADV_INSTRUCTIONS.md",
+      );
+      expect(content).toContain("canonical is $ADV_INSTRUCTION_PATH");
+    });
   });
 
   // -----------------------------------------------------------------------
@@ -99,6 +107,11 @@ describe("sync-global.sh", () => {
       expect(content).toContain("instructions: ADV_INSTRUCTIONS.md missing");
     });
 
+    test("warns about stale duplicate ADV_INSTRUCTIONS.md in global instructions", () => {
+      expect(content).toContain("stale duplicate found");
+      expect(content).toContain("wastes ~7K tokens");
+    });
+
     test("handles tilde-expanded paths in json_array_contains", () => {
       // The function should check both exact and tilde-expanded forms
       expect(content).toContain("tilde_value=");
@@ -128,6 +141,11 @@ describe("sync-global.sh", () => {
     test("preserves existing entries via jq unique", () => {
       // jq unique ensures no duplicates
       expect(content).toContain("| unique)");
+    });
+
+    test("removes stale global ADV_INSTRUCTIONS.md from instructions array", () => {
+      expect(content).toContain("Removed stale instruction:");
+      expect(content).toContain("instructions/ADV_INSTRUCTIONS.md");
     });
 
     test("cleans up backup when no patches needed", () => {

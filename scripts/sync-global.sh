@@ -136,6 +136,14 @@ check_config() {
     ((config_issues++)) || true
   fi
 
+  # Warn about stale global copy (wastes ~7K tokens per prompt)
+  local stale_instr="~/.config/opencode/instructions/ADV_INSTRUCTIONS.md"
+  if jq -e ".instructions // [] | index(\"$stale_instr\")" "$GLOBAL_JSON" &>/dev/null; then
+    echo "    ⚠  instructions: stale duplicate found at $stale_instr"
+    echo "       This wastes ~7K tokens per prompt. Run with --fix to remove."
+    ((config_issues++)) || true
+  fi
+
   echo ""
   if [ "$config_issues" -eq 0 ]; then
     echo "    Config: all ADV entries present ✓"
@@ -207,6 +215,18 @@ fix_config() {
       '.instructions = ((.instructions // []) + [$instr] | unique)' \
       "$tmp_json" > "$tmp_json.new" && mv "$tmp_json.new" "$tmp_json"
     echo "    ✓  Added instruction: $ADV_INSTRUCTION_PATH"
+    ((patched++)) || true
+  fi
+
+  # Remove stale global ADV_INSTRUCTIONS.md from instructions array if present
+  # (the canonical path is $ADV_INSTRUCTION_PATH, not the global instructions dir copy)
+  local stale_instr="$HOME/.config/opencode/instructions/ADV_INSTRUCTIONS.md"
+  local stale_tilde="~/.config/opencode/instructions/ADV_INSTRUCTIONS.md"
+  if jq -e ".instructions // [] | index(\"$stale_instr\") // index(\"$stale_tilde\")" "$tmp_json" &>/dev/null; then
+    jq --arg stale "$stale_instr" --arg stale_t "$stale_tilde" \
+      '.instructions = [.instructions[] | select(. != $stale and . != $stale_t)]' \
+      "$tmp_json" > "$tmp_json.new" && mv "$tmp_json.new" "$tmp_json"
+    echo "    ✓  Removed stale instruction: $stale_tilde"
     ((patched++)) || true
   fi
 
@@ -283,6 +303,18 @@ for stale in openprompt.md; do
     fi
   done
 done
+
+# ---------------------------------------------------------------------------
+# 4b. Remove stale global ADV_INSTRUCTIONS.md copy if it exists.
+#     The canonical copy lives at $REPO_ROOT/ADV_INSTRUCTIONS.md and is
+#     registered in opencode.json by sync-global --fix. A duplicate in
+#     ~/.config/opencode/instructions/ wastes ~7K tokens per prompt.
+# ---------------------------------------------------------------------------
+STALE_GLOBAL_INSTR="$HOME/.config/opencode/instructions/ADV_INSTRUCTIONS.md"
+if [ -f "$STALE_GLOBAL_INSTR" ]; then
+  rm "$STALE_GLOBAL_INSTR"
+  echo "    removed stale: $STALE_GLOBAL_INSTR (canonical is $ADV_INSTRUCTION_PATH)"
+fi
 
 # ---------------------------------------------------------------------------
 # 5. Sync ADV agents from .opencode/agents/ to global

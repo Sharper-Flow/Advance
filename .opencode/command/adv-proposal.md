@@ -1,7 +1,7 @@
 ---
 name: adv-proposal
 description: Extract problem statement, success criteria, and constraints without creating tasks
-agent: build
+agent: general
 ---
 
 # ADV Proposal — Create Change with Quality Requirements
@@ -49,22 +49,7 @@ Create a new change proposal. Uses a two-phase workflow: first establish shared 
 
 Call `adv_change_list` to check for active changes.
 
-**If similar change exists:**
-- Use the `question` tool:
-  ```json
-  {
-    "questions": [{
-      "header": "Similar Change",
-      "question": "Found similar active change '<change-id>'. Continue anyway?",
-      "options": [
-        { "label": "Create new (Recommended)", "description": "Create a separate change proposal" },
-        { "label": "Show existing", "description": "View the existing change instead" },
-        { "label": "Cancel", "description": "Do not create" },
-        { "label": "Other", "description": "Use custom text area for a different action" }
-      ]
-    }]
-  }
-  ```
+**If similar change exists:** Ask via `question` tool — header: "Similar Change", options: Create new (Recommended), Show existing, Cancel.
 
 ### Step 3: Check for Brainstorm Context
 
@@ -147,22 +132,8 @@ SCOPE
 
 ### Problem Statement Confirmation
 
-Use the `question` tool:
-
-```json
-{
-  "questions": [{
-    "header": "Problem Statement",
-    "question": "Does this problem statement match what we discussed? Check that Prior Decisions and Rejected Approaches are accurate — flag anything that was added, missed, or changed.",
-    "options": [
-      { "label": "Confirmed — proceed (Recommended)", "description": "Problem, decisions, and rejected approaches all match our discussion" },
-      { "label": "Drift detected", "description": "Something was added, missed, or changed from what we discussed" },
-      { "label": "Adjust statement", "description": "I want to refine the problem statement before proceeding" },
-      { "label": "Abort", "description": "Cancel — do not create a change" }
-    ]
-  }]
-}
-```
+Ask via `question` tool — header: "Problem Statement", question: "Does this problem statement match what we discussed? Check that Prior Decisions and Rejected Approaches are accurate."
+Options: Confirmed — proceed (Recommended), Drift detected, Adjust statement, Abort.
 
 **If "Drift detected"**: Ask the user to specify what drifted. Re-extract prior discussion context, correct the problem statement, re-show the block, and re-confirm. Do NOT proceed until drift is resolved.
 
@@ -229,44 +200,15 @@ This will create:
 
 ### Step 5: Gather Requirements
 
-Use the `question` tool to gather initial requirements:
-
-```json
-{
-  "questions": [{
-    "header": "Change Scope",
-    "question": "What type of change is this?",
-    "options": [
-      { "label": "New feature", "description": "Adding new functionality" },
-      { "label": "Enhancement", "description": "Improving existing functionality" },
-      { "label": "Bug fix", "description": "Fixing incorrect behavior" },
-      { "label": "Refactor", "description": "Restructuring without behavior change" },
-      { "label": "Other", "description": "Use custom text area for another change type" }
-    ]
-  }]
-}
-```
+Ask via `question` tool — header: "Change Scope", question: "What type of change is this?"
+Options: New feature, Enhancement, Bug fix, Refactor.
 
 ### Step 6: Identify Affected Specs
 
 Use `adv_spec action: "list"` to show existing specs.
 
-Use the `question` tool:
-```json
-{
-  "questions": [{
-    "header": "Affected Specs",
-    "question": "Which capabilities does this change affect?",
-    "multiple": true,
-    "options": [
-      { "label": "<capability-1>", "description": "Existing capability" },
-      { "label": "<capability-2>", "description": "Existing capability" },
-      { "label": "New capability", "description": "This creates a new capability spec" },
-      { "label": "Other", "description": "Use custom text area to name another capability" }
-    ]
-  }]
-}
-```
+Ask via `question` tool — header: "Affected Specs", question: "Which capabilities does this change affect?" (multiple selection)
+Options: list each existing capability, plus "New capability".
 
 ---
 
@@ -396,37 +338,11 @@ If the change affects multiple repositories (e.g., frontend + backend, app + dat
 
 ### Identify Related Repos
 
-Use the `question` tool:
-```json
-{
-  "questions": [{
-    "header": "Cross-Repo Impact",
-    "question": "Does this change require modifications to other repositories?",
-    "options": [
-      { "label": "No", "description": "All changes are in this repository" },
-      { "label": "Yes", "description": "Changes needed in other repos too" },
-      { "label": "Other", "description": "Use custom text area to clarify routing needs" }
-    ]
-  }]
-}
-```
+Ask via `question` tool — header: "Cross-Repo Impact", question: "Does this change require modifications to other repositories?"
+Options: No, Yes.
 
-If **Yes**: Gather repo details:
-```json
-{
-  "questions": [{
-    "header": "Related Repos",
-    "question": "Which repositories need changes? Provide the absolute path for each.",
-    "options": [
-      { "label": "Backend API", "description": "e.g., ~/dev/my-backend" },
-      { "label": "Database/Migrations", "description": "e.g., ~/dev/my-db" },
-      { "label": "Infrastructure", "description": "e.g., ~/dev/my-infra" },
-      { "label": "Other", "description": "Use custom text area to add another repository" }
-    ],
-    "multiple": true
-  }]
-}
-```
+If **Yes**, ask follow-up — header: "Related Repos", question: "Which repositories need changes? Provide the absolute path for each." (multiple selection)
+Options: Backend API, Database/Migrations, Infrastructure.
 
 ### Document in Proposal
 
@@ -449,66 +365,9 @@ If any fail, use the `question` tool to refine.
 
 ## Output
 
-```
-============================================================
-                  CHANGE CREATED
-============================================================
+Emit a CHANGE CREATED block showing: Change ID, Title, Type, Status (draft), files created, INVEST check result, smell check result, and brainstorm context if used. Then show next steps: `/adv-research`, `/adv-prep`, `/adv-apply`.
 
-Change ID: <change-id>
-Title: <summary>
-Type: <feature|enhancement|bugfix|refactor|breaking>
-Status: draft
+End with a completion banner: `/adv-proposal COMPLETE` with recommended next step `/adv-research <change-id>`.
 
-FILES CREATED:
-- changes/<change-id>/change.json
-- changes/<change-id>/proposal.md
-- changes/<change-id>/problem-statement.md
 
-REQUIREMENTS QUALITY:
-- INVEST check: {pass|needs review}
-- Smell check: {clean|N items to address}
 
-{If brainstorm context used}
-CONTEXT FROM:
-- ./temp/<brainstorm-file>.md
-{end}
-
-============================================================
-
-NEXT STEPS:
-
-1. Validate approach and best practices:
-   /adv-research <change-id>
-
-2. Synthesize tasks from validated approach:
-   /adv-prep <change-id>
-
-3. When ready, implement:
-   /adv-apply <change-id>
-
-============================================================
-```
-
-### Completion Banner
-
-```
-============================================================
-       /adv-proposal COMPLETE
-============================================================
-Result: Change <change-id> created
-
-  ⚡ Recommended next step:
-     /adv-research <change-id>
-============================================================
-```
-
----
-
-## ADV Tools Reference
-
-| Purpose | Tool |
-|---------|------|
-| Create change | `adv_change_create summary: "..." proposal: "..." problemStatement: "..."` |
-| Update proposal | `adv_change_update changeId: "..." proposal: "..." [problemStatement: "..."]` |
-| List changes | `adv_change_list` |
-| List specs | `adv_spec action: "list"` |
