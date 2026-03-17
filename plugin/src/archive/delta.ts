@@ -225,7 +225,9 @@ function logDeltaResult(
     ).requirement.id;
   }
 
-  console.log("[adv:delta]", { ...base, ...details });
+  if (process.env.ADV_DEBUG) {
+    console.log("[adv:delta]", { ...base, ...details });
+  }
 }
 
 /**

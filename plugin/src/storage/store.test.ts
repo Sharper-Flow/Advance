@@ -197,6 +197,91 @@ describe("Store", () => {
 
       expect(result.problemStatementPath).toBeUndefined();
     });
+
+    test("updateArtifacts overwrites proposal.md and problem-statement.md for existing change", async () => {
+      // First create a change
+      const createResult = await store.changes.create(
+        "Update artifacts test",
+        undefined,
+        "# Original proposal",
+        "Original problem statement",
+      );
+
+      // Now update it
+      const updateResult = await store.changes.updateArtifacts(
+        createResult.changeId,
+        "# Updated proposal",
+        "Updated problem statement",
+      );
+
+      expect(updateResult.success).toBe(true);
+      expect(updateResult.proposalPath).toContain("proposal.md");
+      expect(updateResult.problemStatementPath).toContain("problem-statement.md");
+
+      const proposalContent = await readFile(updateResult.proposalPath!, "utf-8");
+      expect(proposalContent).toBe("# Updated proposal");
+
+      const psContent = await readFile(updateResult.problemStatementPath!, "utf-8");
+      expect(psContent).toBe("Updated problem statement");
+    });
+
+    test("updateArtifacts returns error for nonexistent change", async () => {
+      const result = await store.changes.updateArtifacts(
+        "nonExistentChange",
+        "proposal",
+        "problem statement",
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("nonExistentChange");
+    });
+
+    test("updateArtifacts preserves change.json metadata", async () => {
+      const createResult = await store.changes.create(
+        "Preserve metadata test",
+      );
+
+      // Load original change.json
+      const beforeResult = await store.changes.get(createResult.changeId);
+      expect(beforeResult.success).toBe(true);
+      const beforeChange = beforeResult.data!;
+
+      // Update artifacts
+      await store.changes.updateArtifacts(
+        createResult.changeId,
+        "# New proposal",
+        "New problem statement",
+      );
+
+      // Load change.json again — must be identical
+      const afterResult = await store.changes.get(createResult.changeId);
+      expect(afterResult.success).toBe(true);
+      const afterChange = afterResult.data!;
+
+      expect(afterChange.status).toBe(beforeChange.status);
+      expect(afterChange.tasks).toEqual(beforeChange.tasks);
+      expect(afterChange.deltas).toEqual(beforeChange.deltas);
+      expect(afterChange.created_at).toBe(beforeChange.created_at);
+    });
+
+    test("updateArtifacts does not create a duplicate change directory", async () => {
+      const createResult = await store.changes.create(
+        "No duplicate test",
+      );
+
+      await store.changes.updateArtifacts(
+        createResult.changeId,
+        "# Updated",
+        "Updated",
+      );
+
+      // List all changes — should only have the original plus any from test setup
+      const listResult = await store.changes.list();
+      const matchingChanges = listResult.changes.filter(
+        (c) => c.id.startsWith("noDuplicateTest"),
+      );
+      expect(matchingChanges).toHaveLength(1);
+    });
   });
 
   describe("tasks", () => {

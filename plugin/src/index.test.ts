@@ -170,11 +170,11 @@ describe("Advance Plugin SDK Integration", () => {
   // ===========================================================================
 
   describe("Tool Registration", () => {
-    test("registers all 36 tools", async () => {
+    test("registers all 37 tools", async () => {
       const hooks = await createTrackedPlugin(tempDir, pluginInstances);
 
       const toolNames = Object.keys(hooks.tool!);
-      expect(toolNames).toHaveLength(36);
+      expect(toolNames).toHaveLength(37);
     });
 
     test("registers spec tools", async () => {
@@ -191,6 +191,7 @@ describe("Advance Plugin SDK Integration", () => {
       expect(toolNames).toContain("adv_change_list");
       expect(toolNames).toContain("adv_change_show");
       expect(toolNames).toContain("adv_change_create");
+      expect(toolNames).toContain("adv_change_update");
       expect(toolNames).toContain("adv_change_validate");
       expect(toolNames).toContain("adv_change_archive");
       expect(toolNames).toContain("adv_change_add_issue");

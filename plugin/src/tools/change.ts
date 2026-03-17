@@ -276,6 +276,67 @@ export const changeTools = {
     },
   },
 
+  adv_change_update: {
+    description:
+      "Update proposal.md and/or problem-statement.md for an existing change. Does NOT create a new change or modify change.json metadata (status, tasks, deltas). Use this instead of calling adv_change_create again when refining a proposal. Only provided fields are written — omitted fields are left unchanged.",
+    args: {
+      changeId: z.string().describe("Change ID to update"),
+      proposal: z
+        .string()
+        .optional()
+        .describe("New proposal.md content (overwrites existing). Omit to leave unchanged."),
+      problemStatement: z
+        .string()
+        .optional()
+        .describe(
+          "New problem-statement.md content (overwrites existing). Omit to leave unchanged.",
+        ),
+    },
+    execute: async (
+      {
+        changeId,
+        proposal,
+        problemStatement,
+      }: {
+        changeId: string;
+        proposal?: string;
+        problemStatement?: string;
+      },
+      store: Store,
+    ) => {
+      if (proposal === undefined && problemStatement === undefined) {
+        return wrapWithBanner(
+          { command: "adv_change_update", target: changeId },
+          formatToolOutput({
+            error: "At least one of 'proposal' or 'problemStatement' must be provided.",
+          }),
+        );
+      }
+
+      const result = await store.changes.updateArtifacts(
+        changeId,
+        proposal,
+        problemStatement,
+      );
+
+      if (!result.success) {
+        return wrapWithBanner(
+          { command: "adv_change_update", target: changeId },
+          formatToolOutput({ error: result.error }),
+        );
+      }
+
+      return wrapWithBanner(
+        { command: "adv_change_update", target: changeId },
+        formatToolOutput({
+          changeId,
+          proposalPath: result.proposalPath,
+          problemStatementPath: result.problemStatementPath,
+        }),
+      );
+    },
+  },
+
   adv_change_validate: {
     description:
       "Validate change against existing specs (specs as laws) and check for conflicts with other active changes",

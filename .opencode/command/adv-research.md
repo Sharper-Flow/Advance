@@ -536,7 +536,7 @@ SOURCES:
 > because the collision-handling code auto-increments the ID.
 
 **If target is deployed spec AND no changeId was provided**: Create change proposal (no tasks — defer to `/adv-prep`). Requires explicit user confirmation before creating.
-**If target is active change (changeId was provided)**: Update proposal.md directly. **Never create a new change.**
+**If target is active change (changeId was provided)**: Update proposal.md using `adv_change_update`. **Never create a new change.**
 
 ### For Deployed Specs (no changeId provided)
 
@@ -566,13 +566,25 @@ SOURCES:
 
 ### For Active Changes (changeId was provided)
 
-1. Update proposal.md with `## Research Validation` section containing:
+1. Build the updated proposal content with a `## Research Validation` section containing:
    - Validated Decisions
    - Architecture Corrections Required
    - Simplification Opportunities
    - Action Items (structured for `/adv-prep` to create tasks from)
 
-2. Update deltas if requirements need revision
+2. Persist using `adv_change_update` (both `proposal` and `problemStatement` are optional — only provided fields are written):
+   ```
+   adv_change_update changeId: "<change-id>" proposal: "<full updated proposal content>"
+   ```
+
+   If the problem statement also changed:
+   ```
+   adv_change_update changeId: "<change-id>" proposal: "<full updated proposal content>" problemStatement: "<updated problem statement>"
+   ```
+
+   > **CRITICAL:** Do NOT call `adv_change_create` to update an active change. That creates a duplicate (e.g. `changeId2`). Always use `adv_change_update`.
+
+3. Update deltas if requirements need revision
 
 > **Boundary rule:** Do NOT call `adv_task_add`. Findings are recorded in proposal.md.
 > `/adv-prep` reads these findings and synthesizes the task graph.
@@ -700,4 +712,5 @@ Research Gate: MARKED COMPLETE
 | Load spec | `adv_spec action: "show" capability: <name>` |
 | Load change | `adv_change_show` |
 | Create change | `adv_change_create` |
+| Update proposal | `adv_change_update changeId: "..." proposal: "..." [problemStatement: "..."]` |
 | Context7 | `resolve-library-id`, `query-docs` |

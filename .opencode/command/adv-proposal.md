@@ -301,7 +301,7 @@ Avoid these patterns:
 
 ## Step 7: Fill Proposal Template
 
-Update `changes/<change-id>/proposal.md` — the `## Why` section is already populated from Phase 1. Fill in the remaining sections:
+Build the full proposal content in memory, then persist it using `adv_change_update`. The `## Why` section is already populated from Phase 1. Fill in the remaining sections:
 
 ```markdown
 # Change: <summary>
@@ -374,6 +374,19 @@ If this change requires modifications to other repositories:
   - <decision 2>
 {end}
 ```
+
+After filling in the template, persist the updated proposal using `adv_change_update`. Both `proposal` and `problemStatement` are optional — only provided fields are written:
+
+```
+adv_change_update changeId: "<change-id>" proposal: "<full proposal content>" problemStatement: "<confirmed problem statement text from Phase 1>"
+```
+
+To update only the proposal (leaving problem-statement.md unchanged):
+```
+adv_change_update changeId: "<change-id>" proposal: "<full proposal content>"
+```
+
+> **CRITICAL:** Do NOT call `adv_change_create` again to update the proposal. That creates a duplicate change with a numeric suffix (e.g. `changeId2`). Always use `adv_change_update` for refinement.
 
 ---
 
@@ -496,5 +509,6 @@ Result: Change <change-id> created
 | Purpose | Tool |
 |---------|------|
 | Create change | `adv_change_create summary: "..." proposal: "..." problemStatement: "..."` |
+| Update proposal | `adv_change_update changeId: "..." proposal: "..." [problemStatement: "..."]` |
 | List changes | `adv_change_list` |
 | List specs | `adv_spec action: "list"` |

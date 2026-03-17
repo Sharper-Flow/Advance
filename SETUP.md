@@ -533,6 +533,7 @@ Tradeoff-heavy decisions inside ADV flows should use the `prioritizer` sub-agent
 | `adv_change_list` | List changes |
 | `adv_change_show` | Get change details |
 | `adv_change_create` | Create change |
+| `adv_change_update` | Update proposal/problem-statement for existing change |
 | `adv_change_validate` | Validate change |
 | `adv_change_archive` | Archive change |
 | `adv_task_list` | List tasks |

@@ -51,6 +51,7 @@ import {
   loadChange,
   saveChange,
   createChangeScaffold,
+  updateChangeArtifacts,
   getProjectPaths,
   resolveChangeId,
   listChangeDirs,
@@ -109,6 +110,21 @@ export interface Store {
       duplicateWarning?: string;
     }>;
     save: (change: Change) => Promise<void>;
+    /**
+     * Update proposal.md and/or problem-statement.md for an existing change.
+     * Does NOT modify change.json — artifact-only update.
+     * Both content params are optional; only provided files are written.
+     */
+    updateArtifacts: (
+      changeId: string,
+      proposalContent?: string,
+      problemStatementContent?: string,
+    ) => Promise<{
+      success: boolean;
+      proposalPath?: string;
+      problemStatementPath?: string;
+      error?: string;
+    }>;
   };
 
   // Tasks
@@ -339,7 +355,9 @@ export async function createStore(
       const newStore = createSQLiteStore(dbPath);
       sqlite.db = newStore.db;
       initDatabase(sqlite.db);
-      console.log("✅ Database recovered and rebuilt from JSON");
+      if (process.env.ADV_DEBUG) {
+        console.log("✅ Database recovered and rebuilt from JSON");
+      }
     } else {
       throw e;
     }
@@ -824,6 +842,46 @@ export async function createStore(
         if (shouldCheckpoint(dbPath)) {
           checkpointWAL(sqlite.db);
         }
+      },
+
+      updateArtifacts: async (
+        changeId: string,
+        proposalContent?: string,
+        problemStatementContent?: string,
+      ) => {
+        // Resolve changeId against existing directories (consistent with changes.get)
+        const { id: resolvedId, candidates } = await resolveChangeId(
+          paths.changes,
+          changeId,
+        );
+
+        if (!resolvedId) {
+          const hint =
+            candidates.length > 0
+              ? ` Did you mean one of: ${candidates.join(", ")}?`
+              : "";
+          return {
+            success: false,
+            error: `Change not found: "${changeId}".${hint} Cannot update artifacts for a change that does not exist.`,
+          };
+        }
+
+        const result = await updateChangeArtifacts(
+          paths.changes,
+          resolvedId,
+          proposalContent,
+          problemStatementContent,
+        );
+
+        if (result.error) {
+          return { success: false, error: result.error };
+        }
+
+        return {
+          success: true,
+          proposalPath: result.proposalPath,
+          problemStatementPath: result.problemStatementPath,
+        };
       },
     },
 

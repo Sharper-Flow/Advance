@@ -348,6 +348,29 @@ export const AdvancePlugin: Plugin = async ({ directory, worktree }) => {
         ),
       }),
 
+      adv_change_update: tool({
+        description: changeTools.adv_change_update.description,
+        args: {
+          changeId: tool.schema.string().describe("Change ID to update"),
+          proposal: tool.schema
+            .string()
+            .optional()
+            .describe(
+              "New proposal.md content (overwrites existing). Omit to leave unchanged.",
+            ),
+          problemStatement: tool.schema
+            .string()
+            .optional()
+            .describe(
+              "New problem-statement.md content (overwrites existing). Omit to leave unchanged.",
+            ),
+        },
+        execute: safeExecute(
+          async (args) => changeTools.adv_change_update.execute(args, store),
+          "adv_change_update",
+        ),
+      }),
+
       adv_change_validate: tool({
         description: changeTools.adv_change_validate.description,
         args: {

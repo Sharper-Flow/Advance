@@ -364,6 +364,147 @@ describe("Change Tools", () => {
     });
   });
 
+  describe("adv_change_update", () => {
+    test("updates proposal.md and problem-statement.md for existing change", async () => {
+      // First create a change
+      const createResult = await changeTools.adv_change_create.execute(
+        {
+          summary: "Update test change",
+          proposal: "# Original proposal",
+          problemStatement: "Original problem statement",
+        },
+        store,
+      );
+      const created = parseToolOutput(createResult);
+
+      // Now update it
+      const updateResult = await changeTools.adv_change_update.execute(
+        {
+          changeId: created.changeId,
+          proposal: "# Updated proposal content",
+          problemStatement: "Updated problem statement content",
+        },
+        store,
+      );
+      const updated = parseToolOutput(updateResult);
+
+      expect(updated.proposalPath).toContain("proposal.md");
+      expect(updated.problemStatementPath).toContain("problem-statement.md");
+
+      const proposalContent = await readFile(updated.proposalPath, "utf-8");
+      expect(proposalContent).toBe("# Updated proposal content");
+
+      const psContent = await readFile(updated.problemStatementPath, "utf-8");
+      expect(psContent).toBe("Updated problem statement content");
+    });
+
+    test("returns error for nonexistent changeId", async () => {
+      const result = await changeTools.adv_change_update.execute(
+        {
+          changeId: "nonExistentChange",
+          proposal: "content",
+          problemStatement: "content",
+        },
+        store,
+      );
+      const parsed = parseToolOutput(result);
+
+      expect(parsed.error).toBeDefined();
+      expect(parsed.error).toContain("nonExistentChange");
+    });
+
+    test("does not create a duplicate change directory", async () => {
+      const createResult = await changeTools.adv_change_create.execute(
+        { summary: "No dup via update" },
+        store,
+      );
+      const created = parseToolOutput(createResult);
+
+      await changeTools.adv_change_update.execute(
+        {
+          changeId: created.changeId,
+          proposal: "# Refined proposal",
+          problemStatement: "Refined problem",
+        },
+        store,
+      );
+
+      // Create again with same summary — should still get *2 suffix
+      // (proving update didn't create a new dir)
+      const createResult2 = await changeTools.adv_change_create.execute(
+        { summary: "No dup via update" },
+        store,
+      );
+      const created2 = parseToolOutput(createResult2);
+      expect(created2.changeId).toBe(`${created.changeId}2`);
+    });
+
+    test("wraps output with banner", async () => {
+      const createResult = await changeTools.adv_change_create.execute(
+        { summary: "Banner test update" },
+        store,
+      );
+      const created = parseToolOutput(createResult);
+
+      const result = await changeTools.adv_change_update.execute(
+        {
+          changeId: created.changeId,
+          proposal: "# Updated",
+          problemStatement: "Updated",
+        },
+        store,
+      );
+
+      // Banner should contain the tool name and target
+      expect(result).toContain("adv_change_update");
+      expect(result).toContain(created.changeId);
+    });
+
+    test("updates only proposal when problemStatement is omitted", async () => {
+      const createResult = await changeTools.adv_change_create.execute(
+        {
+          summary: "Partial update test",
+          proposal: "# Original proposal",
+          problemStatement: "Original problem",
+        },
+        store,
+      );
+      const created = parseToolOutput(createResult);
+
+      const updateResult = await changeTools.adv_change_update.execute(
+        {
+          changeId: created.changeId,
+          proposal: "# Updated proposal only",
+        },
+        store,
+      );
+      const updated = parseToolOutput(updateResult);
+
+      expect(updated.proposalPath).toContain("proposal.md");
+      expect(updated.problemStatementPath).toBeUndefined();
+
+      const proposalContent = await readFile(updated.proposalPath, "utf-8");
+      expect(proposalContent).toBe("# Updated proposal only");
+    });
+
+    test("returns error when both proposal and problemStatement are omitted", async () => {
+      const createResult = await changeTools.adv_change_create.execute(
+        { summary: "No params test" },
+        store,
+      );
+      const created = parseToolOutput(createResult);
+
+      const result = await changeTools.adv_change_update.execute(
+        { changeId: created.changeId },
+        store,
+      );
+      const parsed = parseToolOutput(result);
+
+      expect(parsed.error).toBeDefined();
+      expect(parsed.error).toContain("At least one");
+    });
+  });
+
   describe("adv_change_show clarify integration", () => {
     test("includes clarifyFindings for change with ambiguity signals", async () => {
       // The sample change has a delta with add + no scenarios, and the sample

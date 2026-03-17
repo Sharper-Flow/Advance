@@ -142,6 +142,7 @@ Forbidden paths (never read directly):
 | You want | Use this tool |
 |----------|---------------|
 | Change details + tasks | `adv_change_show` |
+| Update proposal/problem-statement | `adv_change_update` (never re-call `adv_change_create`) |
 | A specific task + its changeId | `adv_task_show` |
 | Tasks ready to work | `adv_task_ready` |
 | All tasks for a change | `adv_task_list` |

@@ -58,6 +58,9 @@ adv_change_show({ changeId: "add-feature" })
 // Create new change
 adv_change_create({ summary: "Add feature X" })
 
+// Update proposal/problem-statement for existing change (never re-call create)
+adv_change_update({ changeId: "add-feature", proposal: "..." })
+
 // Validate change
 adv_change_validate({ changeId: "add-feature" })
 

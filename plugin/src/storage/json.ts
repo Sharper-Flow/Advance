@@ -526,6 +526,70 @@ export async function createChangeScaffold(
   return { changePath, proposalPath, problemStatementPath };
 }
 
+/**
+ * Update proposal.md and/or problem-statement.md for an existing change.
+ * Does NOT modify change.json — artifact-only update.
+ *
+ * Both content params are optional — only provided files are written.
+ * Returns file paths for written files on success, or an error message
+ * if the change directory does not exist or a write fails.
+ */
+export async function updateChangeArtifacts(
+  changesDir: string,
+  changeId: string,
+  proposalContent?: string,
+  problemStatementContent?: string,
+): Promise<{
+  proposalPath?: string;
+  problemStatementPath?: string;
+  error?: string;
+}> {
+  const changeDir = join(changesDir, changeId);
+
+  // Validate the change directory exists
+  try {
+    await access(changeDir);
+  } catch {
+    return {
+      error: `Change not found: "${changeId}". Cannot update artifacts for a change that does not exist.`,
+    };
+  }
+
+  const result: {
+    proposalPath?: string;
+    problemStatementPath?: string;
+    error?: string;
+  } = {};
+
+  if (proposalContent !== undefined) {
+    const proposalPath = join(changeDir, "proposal.md");
+    try {
+      await atomicWriteFile(proposalPath, proposalContent);
+      result.proposalPath = proposalPath;
+    } catch (err) {
+      return {
+        ...result,
+        error: `Failed to write proposal.md: ${err instanceof Error ? err.message : String(err)}`,
+      };
+    }
+  }
+
+  if (problemStatementContent !== undefined) {
+    const problemStatementPath = join(changeDir, "problem-statement.md");
+    try {
+      await atomicWriteFile(problemStatementPath, problemStatementContent);
+      result.problemStatementPath = problemStatementPath;
+    } catch (err) {
+      return {
+        ...result,
+        error: `Failed to write problem-statement.md: ${err instanceof Error ? err.message : String(err)}`,
+      };
+    }
+  }
+
+  return result;
+}
+
 // =============================================================================
 // File Utilities
 // =============================================================================

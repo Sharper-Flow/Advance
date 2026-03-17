@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+#### `adv_change_update` Tool — Prevent Duplicate Change Creation
+
+- Added `adv_change_update` tool to update `proposal.md` and/or `problem-statement.md` for existing changes without creating duplicates
+- Added `updateChangeArtifacts()` to storage layer with atomic writes
+- Added `store.changes.updateArtifacts()` to Store interface
+- Updated `/adv-proposal` (Step 7) and `/adv-research` (Phase 5) to use `adv_change_update` instead of re-calling `adv_change_create`
+- 19 new tests across 3 architectural layers (storage, store, tool)
+
 #### `/adv-harden` — Deployment & Operational Readiness Scanner
 
 - Added Sub-Agent 6: Deployment & Operational Readiness Scanner to the hardening pass
