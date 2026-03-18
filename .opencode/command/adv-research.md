@@ -209,4 +209,4 @@ Next: /adv-prep {change-id}
 | Load change | `adv_change_show` |
 | Create change | `adv_change_create` |
 | Update proposal | `adv_change_update` |
-| Context7 | `resolve-library-id`, `query-docs` |
+| Context7 | `context7_resolve-library-id`, `context7_query-docs` |

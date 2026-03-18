@@ -48,7 +48,7 @@ Analyze across **6 categories**:
 
 ### 2.1 Reference Architecture Lookup (CRITICAL)
 
-Use Context7 (`resolve-library-id` → `query-docs`) to find canonical architecture for detected stack. Document: layer boundaries, dependency direction, separation of concerns, error handling, observability, config management, module organization. Cite sources.
+Use Context7 (`context7_resolve-library-id` → `context7_query-docs`) to find canonical architecture for detected stack. Document: layer boundaries, dependency direction, separation of concerns, error handling, observability, config management, module organization. Cite sources.
 
 ### 2.2 Deviation Analysis
 

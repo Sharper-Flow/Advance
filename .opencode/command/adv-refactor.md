@@ -47,7 +47,7 @@ Find overlaps with archived changes. Filter by matching capabilities, focus on r
 
 ### Inline: Dependency Check
 
-After sub-agents return, orchestrator checks stale deps via Context7 (`resolve-library-id` → `query-docs` for breaking changes). Runs inline because `explore` lacks Context7.
+After sub-agents return, orchestrator checks stale deps via Context7 (`context7_resolve-library-id` → `context7_query-docs` for breaking changes). Runs inline because `explore` lacks Context7.
 
 ---
 

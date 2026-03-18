@@ -26,7 +26,6 @@ tools:
   context7_*: true
   kagi_*: true
   webfetch: true
-  fetch-mcp_*: true
   firecrawl_*: true
   # Research tools - code search
   grep-app_*: true
@@ -65,7 +64,7 @@ Validate architectural decisions against canonical best practices. You have a **
    - If the stack uses shadcn-svelte, look up shadcn-svelte docs for the component in question
    - If shadcn-svelte is built on Bits UI, also check Bits UI docs for underlying behavior
    - If using Tailwind, check Tailwind docs for styling questions
-2. **Context7 First**: For any library or framework question, use `resolve-library-id` then `query-docs`
+2. **Context7 First**: For any library or framework question, use `context7_resolve-library-id` then `context7_query-docs`
 3. **Code Examples**: Use grep.app to find real-world implementation patterns
 4. **Web Research**: Use Kagi for broader context, blog posts, discussions
 5. **Academic Papers**: Use arxiv for cutting-edge research when relevant

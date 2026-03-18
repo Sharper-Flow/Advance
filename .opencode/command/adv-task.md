@@ -124,7 +124,7 @@ Next: /adv-apply {changeId}
 |---------|------|
 | Create change | `adv_change_create` |
 | Research | Task tool (librarian, adv-researcher) |
-| Fallback | `context7_resolve-library-id`, `context7_query-docs`, `kagi_search_fetch` |
+| Fallback | `context7_resolve-library-id`, `context7_query-docs`, `kagi_kagi_search_fetch` |
 | Context | `adv_project_context` |
 | Conflicts | `adv_change_list` |
 | Add tasks | `adv_task_add` |
