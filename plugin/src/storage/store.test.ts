@@ -216,12 +216,20 @@ describe("Store", () => {
 
       expect(updateResult.success).toBe(true);
       expect(updateResult.proposalPath).toContain("proposal.md");
-      expect(updateResult.problemStatementPath).toContain("problem-statement.md");
+      expect(updateResult.problemStatementPath).toContain(
+        "problem-statement.md",
+      );
 
-      const proposalContent = await readFile(updateResult.proposalPath!, "utf-8");
+      const proposalContent = await readFile(
+        updateResult.proposalPath!,
+        "utf-8",
+      );
       expect(proposalContent).toBe("# Updated proposal");
 
-      const psContent = await readFile(updateResult.problemStatementPath!, "utf-8");
+      const psContent = await readFile(
+        updateResult.problemStatementPath!,
+        "utf-8",
+      );
       expect(psContent).toBe("Updated problem statement");
     });
 
@@ -237,9 +245,7 @@ describe("Store", () => {
     });
 
     test("updateArtifacts preserves change.json metadata", async () => {
-      const createResult = await store.changes.create(
-        "Preserve metadata test",
-      );
+      const createResult = await store.changes.create("Preserve metadata test");
 
       // Load original change.json
       const beforeResult = await store.changes.get(createResult.changeId);
@@ -265,9 +271,7 @@ describe("Store", () => {
     });
 
     test("updateArtifacts does not create a duplicate change directory", async () => {
-      const createResult = await store.changes.create(
-        "No duplicate test",
-      );
+      const createResult = await store.changes.create("No duplicate test");
 
       await store.changes.updateArtifacts(
         createResult.changeId,
@@ -277,8 +281,8 @@ describe("Store", () => {
 
       // List all changes — should only have the original plus any from test setup
       const listResult = await store.changes.list();
-      const matchingChanges = listResult.changes.filter(
-        (c) => c.id.startsWith("noDuplicateTest"),
+      const matchingChanges = listResult.changes.filter((c) =>
+        c.id.startsWith("noDuplicateTest"),
       );
       expect(matchingChanges).toHaveLength(1);
     });

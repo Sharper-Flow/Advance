@@ -79,4 +79,3 @@ jobs:
       - name: Build
         run: pnpm run build
         working-directory: plugin
-        continue-on-error: true  # Build script may not exist yet

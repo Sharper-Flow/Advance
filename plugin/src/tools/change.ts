@@ -284,7 +284,9 @@ export const changeTools = {
       proposal: z
         .string()
         .optional()
-        .describe("New proposal.md content (overwrites existing). Omit to leave unchanged."),
+        .describe(
+          "New proposal.md content (overwrites existing). Omit to leave unchanged.",
+        ),
       problemStatement: z
         .string()
         .optional()
@@ -308,7 +310,8 @@ export const changeTools = {
         return wrapWithBanner(
           { command: "adv_change_update", target: changeId },
           formatToolOutput({
-            error: "At least one of 'proposal' or 'problemStatement' must be provided.",
+            error:
+              "At least one of 'proposal' or 'problemStatement' must be provided.",
           }),
         );
       }

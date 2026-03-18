@@ -70,9 +70,7 @@ describe("sync-global.sh", () => {
 
     test("removes stale global ADV_INSTRUCTIONS.md copy", () => {
       expect(content).toContain("STALE_GLOBAL_INSTR=");
-      expect(content).toContain(
-        "instructions/ADV_INSTRUCTIONS.md",
-      );
+      expect(content).toContain("instructions/ADV_INSTRUCTIONS.md");
       expect(content).toContain("canonical is $ADV_INSTRUCTION_PATH");
     });
   });
@@ -144,8 +142,10 @@ describe("sync-global.sh", () => {
     });
 
     test("uses jq --arg bindings for dynamic values", () => {
-      expect(content).toContain('jq --arg exact "$value" --arg tilde "$tilde_value"');
-      expect(content).toContain('any(. == $s1 or . == $s2)');
+      expect(content).toContain(
+        'jq --arg exact "$value" --arg tilde "$tilde_value"',
+      );
+      expect(content).toContain("any(. == $s1 or . == $s2)");
     });
 
     test("normalizes malformed plugin and instruction arrays before patching", () => {
