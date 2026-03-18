@@ -6,24 +6,22 @@ agent: build
 
 # ADV Apply — Implement Change with TDD and Retry
 
-Implement an ADV change using Test-Driven Development. Every task is pursued to completion. Failures trigger diagnosis and retry before escalating.
+Implement an ADV change using TDD. Every task is pursued to completion. Failures trigger diagnosis and retry before escalating.
 
 ## Task Completion Policy
 
-Every task ends in exactly one of these states:
-
 | Exit | Condition |
 |------|-----------|
-| ✅ **Done** | Implementation verified, tests pass |
-| 🔁 **Doom Loop** | 3 genuine fix attempts failed with documented diagnosis |
-| 🌍 **Environmental** | Missing external dependency (API key, service down) — escalate immediately |
+| ✅ Done | Implementation verified, tests pass |
+| 🔁 Doom Loop | 3 genuine fix attempts failed with documented diagnosis |
+| 🌍 Environmental | Missing external dependency → escalate immediately |
 
-**Cross-repo tasks:** Execute in the target repo. Switch `workdir` to the target path. "Different repo" is never a valid exit.
+Cross-repo tasks: switch `workdir` to target path. "Different repo" is × never a valid exit.
 
-**Cancellation:** Use `adv_task_cancel` with user approval. `adv_task_update status: cancelled` is rejected.
+Cancellation: use `adv_task_cancel` with user approval. `adv_task_update status: cancelled` is rejected.
 
-| BAD | GOOD |
-|-----|------|
+| × Bad | ✓ Good |
+|-------|--------|
 | "Let's skip this for now" | Apply retry protocol |
 | "We can come back to this" | Complete now or exhaust retries |
 | "This targets another repo" | Switch `workdir` and execute |
@@ -35,394 +33,103 @@ Every task ends in exactly one of these states:
 
 ## Target Resolution
 
-1. **If $ARGUMENTS provided**: Use as change-id
-2. **If empty**: Call `adv_change_list`, then:
-   - If one active change: Confirm with the `question` tool
-   - If multiple: Present selection with the `question` tool
-   - If none: Suggest `/adv-proposal`
+1. If change-id provided → use directly
+2. If empty → `adv_change_list` → confirm/select via `question` tool
+3. If none → suggest `/adv-proposal`
 
 ---
 
 ## Gate Prerequisite Check
 
-Before starting implementation, verify that prerequisite gates are complete:
+`adv_gate_status changeId: {change-id}`
 
-```
-adv_gate_status changeId: {change-id}
-```
+- Research gate pending → stop, emit warning, require `/adv-research` first
+- Prep gate pending → stop, emit warning, require `/adv-prep` first
+- Both complete → proceed to Phase 0
 
-**If research gate is pending:**
-```
-⚠️ Research gate is not complete. Run /adv-research {change-id} first to validate
-   the approach, then return to /adv-apply.
-```
-Stop execution. Do NOT auto-complete the research gate.
-
-**If prep gate is pending:**
-```
-⚠️ Prep gate is not complete. Run /adv-prep {change-id} first to synthesize tasks,
-   then return to /adv-apply.
-```
-Stop execution. Do NOT auto-complete the prep gate.
-
-**If both gates are complete:** Proceed to Phase 0.
-
-> **Boundary rule:** `/adv-apply` MUST NOT complete research or prep gates.
-> Each gate has a designated command that performs the full workflow.
-> See specs `adv-research` and `adv-prep` for gate ownership.
+× `/adv-apply` MUST NOT complete research or prep gates.
 
 ---
 
 ## Phase 0: Worktree Assessment
 
-Before implementation, assess whether this change benefits from worktree isolation. `/adv-apply` defaults to worktree isolation for multi-file changes — only skip for trivially small changes.
+Assess whether change benefits from worktree isolation.
 
-### Step 1: Assess Risk
-
-Count files affected in the proposal and evaluate risk:
+### Risk Assessment
 
 | Signal | Risk |
 |--------|------|
-| 3+ files affected | High — suggest worktree |
-| Breaking API changes | High — suggest worktree |
-| DB schema change | High — suggest worktree |
-| Auth logic change | High — suggest worktree |
-| Shared type changes | High — suggest worktree |
-| Structural refactor | High — suggest worktree |
-| Experimental / spike work | High — suggest worktree |
-| 1–2 files, trivial changes only | Low — skip worktree |
-| Docs-only or config changes | Low — skip worktree |
+| 3+ files, breaking API, DB schema, auth, shared types, structural refactor, spike | High → suggest worktree |
+| 1-2 files trivial, docs/config only | Low → skip worktree |
 
-If risk is **Low**, skip to Phase 1.
+If low risk → skip to Phase 1.
 
-### Step 2: Check Tool Availability
+### Tool Check
 
-Before suggesting a worktree, verify `worktree_create` is available. If not, emit:
-```
-[ADV:INFO] Worktree tools not available — proceeding with in-place implementation.
-```
-Then skip to Phase 1.
+If `worktree_create` unavailable → `[ADV:INFO] Worktree tools not available — proceeding in-place.` → Phase 1.
 
-### Step 3: Detect Existing Worktree
+### Detect Existing Worktree
 
-Before creating a new worktree, check if one already exists for this change:
+`git worktree list --porcelain` → find `change/{change-id}` branch.
 
-```bash
-git worktree list --porcelain
-```
+- Path exists (healthy) → ask via `question`: Switch to existing (Recommended), Delete and recreate, Work in place
+- Path missing (stale) → `git worktree prune` → continue
+- No match → continue
 
-Parse the output for a worktree whose branch matches `change/{change-id}`:
+### Create Worktree
 
-```
-worktree /path/to/worktree
-HEAD abc123def456
-branch refs/heads/change/{change-id}
-```
-
-**If a matching worktree is found:**
-
-1. **Verify the path exists** — the worktree directory may have been manually deleted while the git record remains (stale entry).
-
-2. **If path exists (healthy worktree)** — offer to reuse it:
-
-```json
-{
-  "questions": [{
-    "header": "Existing Worktree",
-    "question": "A worktree for this change already exists:\n\n  Branch: change/{change-id}\n  Path: {worktree-path}\n\nReuse it or start fresh?",
-    "options": [
-      { "label": "Switch to existing (Recommended)", "description": "Continue work in the existing worktree" },
-      { "label": "Delete and recreate", "description": "Remove the old worktree and create a fresh one" },
-      { "label": "Work in place", "description": "Ignore the worktree and work in the current branch" }
-    ]
-  }]
-}
-```
-
-   - **If "Switch to existing"**: Set `workdir` to the existing worktree path. Skip to Phase 1.
-   - **If "Delete and recreate"**: Run `worktree_delete reason: "User requested fresh worktree for {change-id}"`, then proceed to Step 5 (Create).
-   - **If "Work in place"**: Skip to Phase 1.
-
-3. **If path does NOT exist (stale worktree record)** — clean up and proceed:
-
-```bash
-git worktree prune
-```
-
-Then continue to Step 4 (Ask User) as if no worktree existed.
-
-**If no matching worktree found:** Continue to Step 4.
-
-### Step 4: Ask User
-
-Use the `question` tool:
-
-```json
-{
-  "questions": [{
-      "header": "Worktree Isolation",
-      "question": "This change affects {N} files and involves {reason}. I recommend creating a worktree to contain blast radius. Branch: change/{change-id}",
-      "options": [
-      { "label": "Create worktree (Recommended)", "description": "Isolate work and continue inline in this session" },
-      { "label": "Work in place", "description": "Implement directly in the current branch (higher risk for multi-file changes)" },
-      { "label": "Other", "description": "Use custom text area to propose a different setup" }
-      ]
-  }]
-}
-```
-
-If **declined**: skip to Phase 1.
-
-### Step 5: Create and Switch Inline
-
-If **approved**, execute this exact sequence:
-
-1. **Emit navigation hint BEFORE creating the worktree** — `worktree_create` may open a new tmux window and shift focus, so the user must see navigation keys in the current window first:
-
-   ```
-   Creating worktree for change/{change-id}...
-
-   A new tmux tab may open. To navigate back here:
-     • Ctrl+b l          — last (previously active) window
-     • Ctrl+b n / p      — next / previous window
-     • Ctrl+b w          — interactive window chooser
-     • oc switch         — switch between openchad sessions
-
-   Implementation continues inline in this session via workdir.
-   ```
-
-2. **Create worktree**:
-   ```
-   worktree_create branch: "change/{change-id}"
-   ```
-
-3. **Capture worktree path** from tool output and confirm:
-
-   ```
-   ✅ Worktree ready: {worktree-path}
-   Branch: change/{change-id}
-   ```
-
-4. **Switch to inline worktree execution** by setting `workdir` to the returned path for all subsequent tool calls.
-
-5. **Continue implementation in this same session**. Do not stop after worktree creation.
-
-6. **Optional fallback**: If you are explicitly using multi-session workflow, you may use handoff and continue in a separate session.
+If user approves:
+1. `worktree_create branch: "change/{change-id}"`
+2. **Immediately** capture returned path and set `workdir` for ALL subsequent tool calls
+3. Continue inline — no handoff, no new terminal needed
+4. When deleting later, pass `branch: "change/{change-id}"` to `worktree_delete`
 
 ---
 
 ## Phase 0.5: Overlap Warning (Advisory)
 
-After worktree setup (or decision to work in-place), check for file overlaps with other active changes. This is **advisory only** — it does not block work.
-
-### Step 1: List Active Changes
-
-```
-adv_change_list
-```
-
-If only one active change (the current one), skip this phase.
-
-### Step 2: Check File Overlaps
-
-For each other active change, call `adv_change_show` and extract affected files from the proposal/deltas. Compare against the current change's affected files.
-
-### Step 3: Emit Warning (If Overlaps Found)
-
-If any files are modified by both the current change and another active change:
-
-```
-⚠️  FILE OVERLAP DETECTED (advisory)
-────────────────────────────────────────────────────
-The following files are also modified by other active changes:
-
-  {file-path} — also in: {other-change-id}
-  {file-path} — also in: {other-change-id}
-
-This may cause merge conflicts later. Consider running:
-  /adv-coordinate
-
-Proceeding with implementation...
-────────────────────────────────────────────────────
-```
-
-**This warning does NOT block work.** It surfaces potential coordination needs early so the user can decide whether to serialize changes or proceed in parallel.
+Check `adv_change_list` for other active changes. Compare affected files. If overlaps found → emit advisory warning listing files and overlapping change IDs. Suggest `/adv-coordinate`. Does NOT block work.
 
 ---
 
-## Cross-Repo Execution Protocol
+## Cross-Repo Execution
 
-Tasks may target repositories other than the current one. This is common in full-stack features
-where frontend changes require corresponding backend, database, or infrastructure changes.
+Tasks may target other repositories. See ADV_INSTRUCTIONS.md §Cross-Repo Execution for full protocol.
 
-### Step 1: Detect Cross-Repo Tasks
+1. Detect: check `target_repo`/`target_path` fields or path hints in title
+2. Resolve: use `related_repos` config or `target_path` directly; confirm with user if ambiguous
+3. Execute: switch `workdir` → run TDD workflow → switch back
 
-When loading tasks from `adv_task_list`, check each task for:
-- `target_repo` or `target_path` fields set in task metadata
-- Task title containing path hints (e.g., `~/dev/pokeedge`, `backend/`, `api/`, `db/`, `migrations/`)
-- Proposal.md mentioning changes to external repositories
-
-### Step 2: Resolve Target Repository
-
-For tasks with `target_repo` set:
-1. Load project config to get `related_repos` mapping
-2. Resolve `target_repo` ID to an absolute `path`
-3. If no `related_repos` config exists, use `target_path` directly
-
-For tasks with path hints in title but no explicit metadata:
-1. Use the `question` tool to confirm the target directory with the user
-2. Record the resolved path for subsequent tasks
-
-### Step 3: Execute in Target Repo
-
-For each cross-repo task:
-
-1. **Switch workdir**: Set `workdir` to the resolved target repo path for all tool calls related to this task
-2. **Execute normally**: Run the same TDD workflow (red/green) in the target repo
-3. **Return to source**: After completing the task, switch `workdir` back to the source repo
-
-```
-[ADV:ROCKET]
-Starting cross-repo task: {task.title}
-Target: {target_path} (repo: {target_repo})
-Switching workdir to {target_path}...
-```
-
-### Prohibited Cancellation Reasons
-
-The following are NOT valid reasons to cancel a task:
-
-| Prohibited Reason | Why It's Invalid | Correct Action |
-|-------------------|------------------|----------------|
-| "Out of scope for this repo" | Cross-repo tasks are in-scope by design | Switch workdir and execute |
-| "Different repository" | The task explicitly targets another repo | Switch workdir and execute |
-| "Cannot modify external code" | You have filesystem access | Use workdir parameter |
-| "Backend/API changes needed" | That's the task's purpose | Switch workdir and execute |
-| "Would need database changes" | That's the task's purpose | Switch workdir and execute |
+× Prohibited cancellation reasons: "out of scope", "different repository", "cannot modify external code", "backend/API changes needed", "would need database changes" — all require switching `workdir` and executing.
 
 ---
 
 ## Cancellation Policy
 
-**All cancellations require explicit user approval.** The `adv_task_update` tool rejects `status: "cancelled"`.
-Use `adv_task_cancel` instead.
+All cancellations require explicit user approval via `adv_task_cancel`.
 
-### To Cancel Tasks
-
-1. **Collect reasons**: Prepare a per-task reason for each task you want to cancel
-2. **Present to user**: Use the `question` tool to show all proposed cancellations:
-
-```json
-{
-  "questions": [{
-    "header": "Approve Cancellations",
-    "question": "The following tasks are proposed for cancellation:\n\n{for each task}\n- {task.id}: {task.title}\n  Reason: {reason}\n  {if superseded_by}Replaced by: {superseded_by}{end}\n{end}\n\nDo you approve these cancellations?",
-    "options": [
-      { "label": "Approve all (Recommended)", "description": "Cancel all listed tasks" },
-      { "label": "Review individually", "description": "Decide each task separately" },
-      { "label": "Reject", "description": "Do not cancel any tasks" },
-      { "label": "Other", "description": "Use custom text area for a different cancellation plan" }
-    ]
-  }]
-}
-```
-
-3. **Execute cancellation** (only after user approval):
-
-```
-adv_task_cancel taskIds: [...] reasons: {...} approvedByUser: true approvalEvidence: "User selected 'Approve all' via question tool"
-```
+Workflow: collect per-task reasons → present via `question` tool (Approve all, Review individually, Reject) → execute only after approval.
 
 ---
 
 ## Phase 1: Load Change Context
 
-### Step 1: Fetch Change Data
-
-```
-adv_change_show changeId: <target>
-```
-
-Extract from response:
-- `title`, `summary` for objective
-- `status` (must be "active" to proceed)
-- `deltas` for acceptance criteria
-
-### Step 2: Fetch Task State
-
-```
-adv_task_list changeId: <target>
-```
-
-Extract:
-- Total task count
-- Completed count
-- Task details (id, title, status, blocked_by)
-
-### Step 3: Get Ready Tasks
-
-```
-adv_task_ready changeId: <target>
-```
-
-Returns tasks that can be started (not blocked, not done).
+1. `adv_change_show changeId: <target>` → extract title, status, deltas
+2. `adv_task_list changeId: <target>` → total/completed counts, task details
+3. `adv_task_ready changeId: <target>` → unblocked tasks
 
 ---
 
 ## Phase 2: Display Contract
 
-Generate contract banner **from tool outputs** (not hardcoded):
+Generate CONTRACT ACTIVE banner from tool outputs:
+- OBJECTIVE from change title
+- SUCCESS CRITERIA from deltas (each as checkbox)
+- TASKS from task list (with status, blocked_by)
+- Progress: done/total
+- RETRY POLICY: SEMANTIC 3 retries, TRANSIENT 1 retry + 5s delay, ENVIRONMENTAL immediate escalation
 
-```
-============================================================
-                    CONTRACT ACTIVE
-============================================================
-
-OBJECTIVE: {change.title}
-
-SUCCESS CRITERIA (from change deltas):
-{for each delta with type "add" or "modify"}
-- [ ] (C{n}) {delta.title or requirement summary}
-{end}
-- [ ] (C{n+1}) All tasks completed
-- [ ] (C{n+2}) Build passes
-- [ ] (C{n+3}) Global Final Loop verification passed
-
-TASKS (from adv_task_list):
-{for each task}
-- [{task.status == "done" ? "x" : " "}] {task.id}: {task.title}
-  {if task.blocked_by} Blocked by: {blocked_by}{end}
-{end}
-
-Progress: {done_count}/{total_count} tasks
-
-RETRY POLICY:
-- SEMANTIC errors (type/logic/test): 3 retries with diagnosis
-- TRANSIENT errors (network/flaky): 1 retry with 5s delay
-- ENVIRONMENTAL errors (missing deps): immediate escalation
-- Global Final Loop required before CONTRACT FULFILLED
-
-============================================================
-```
-
-### Confirmation
-
-Use the `question` tool:
-
-```json
-{
-  "questions": [{
-    "header": "Confirm",
-    "question": "Begin TDD implementation of '{change.title}'?",
-    "options": [
-      { "label": "Begin work (Recommended)", "description": "Start TDD implementation with retry" },
-      { "label": "Modify criteria", "description": "Adjust before starting" },
-      { "label": "Cancel", "description": "Exit without changes" },
-      { "label": "Other", "description": "Use custom text area for a different direction" }
-    ]
-  }]
-}
-```
+Ask via `question` tool: Begin work (Recommended), Modify criteria, Cancel.
 
 ---
 
@@ -430,491 +137,152 @@ Use the `question` tool:
 
 ### Error Classification
 
-When verification fails, classify BEFORE acting:
-
 | Type | Examples | Action |
 |------|----------|--------|
-| **SEMANTIC** | Type errors, test failures, logic bugs | Diagnose → Fix → Retry (3x) |
-| **TRANSIENT** | Network timeout, flaky test | Wait 5s → Retry once |
-| **ENVIRONMENTAL** | Missing dep, config not found | Escalate immediately |
+| SEMANTIC | Type errors, test failures, logic bugs | Diagnose → Fix → Retry (3×) |
+| TRANSIENT | Network timeout, flaky test | Wait 5s → Retry once |
+| ENVIRONMENTAL | Missing dep, config not found | Escalate immediately |
 
 ### Diagnosis Requirement (Reflexion)
 
-Before ANY fix for SEMANTIC errors:
-
+Before ANY SEMANTIC fix, emit:
 ```
-[ADV:DOOM_LOOP] RETRY 1/3
-
-DIAGNOSIS: The test fails because calculateTotal() returns undefined when
-the cart is empty. The function lacks a guard clause.
-
-FIX: Add early return of 0 when items.length === 0.
-
-Applying fix...
+[ADV:DOOM_LOOP] RETRY {n}/3
+DIAGNOSIS: {root cause analysis}
+FIX: {planned approach}
 ```
 
-The diagnosis MUST appear before fix is applied. This ensures:
-1. You understand root cause
-2. User can see reasoning
-3. No repeated ineffective fixes
+Diagnosis MUST appear before fix. Each attempt must have different diagnosis and approach.
 
-### Retry Budget
+### Recording
 
-Track per verification failure. Budget **resets per task**.
+After each failed attempt: `adv_task_update taskId: {id} status: "in_progress" notes: "RETRY {n}/3 - {error_class}: {last_error}"`
 
-```
-[ADV:DOOM_LOOP] RETRY 1/3 - SEMANTIC
-DIAGNOSIS: ...
-FIX: ...
-<verify>
+The `error_recovery` field on task JSON captures: `last_error`, `retry_count`, `max_retries`, `error_class` (TRANSIENT|SEMANTIC|ENVIRONMENTAL|FATAL), `next_strategy`. Left as-is on success (historical record).
 
-[ADV:DOOM_LOOP] RETRY 2/3 - SEMANTIC
-DIAGNOSIS: Previous fix addressed symptom not cause...
-FIX: ...
-<verify>
-```
+### Budget Exhaustion (3 retries failed)
 
-### Recording error_recovery on Tasks
+Emit RETRY BUDGET EXHAUSTED banner showing all 3 attempts (diagnosis, fix, result for each). Classify blocking reason: SEMANTIC, KNOWLEDGE, or ENVIRONMENTAL.
 
-When a task enters retry, record structured recovery state using `adv_task_update` with notes, and update the task's `error_recovery` field via the store. This enables downstream commands (`/adv-review`, `/adv-harden`) to surface retry history.
-
-**After each failed attempt**, update the task metadata:
-
-```
-adv_task_update taskId: {task.id} status: "in_progress" notes: "RETRY {n}/3 - {error_class}: {last_error}"
-```
-
-The `error_recovery` field on the task JSON captures:
-- `last_error`: The specific error message from the last failure
-- `retry_count`: Current attempt number (1-indexed)
-- `max_retries`: 3 for SEMANTIC, 1 for TRANSIENT
-- `error_class`: TRANSIENT | SEMANTIC | ENVIRONMENTAL | FATAL
-- `next_strategy`: Planned fix approach for the next attempt
-
-**On task success**, the `error_recovery` field is left as-is (historical record). The task status transitions to `done` which supersedes it.
-
-### Budget Exhaustion
-
-If 3 retries fail (4 total attempts), STOP:
-
-```
-============================================================
-         RETRY BUDGET EXHAUSTED
-============================================================
-
-TASK: {task.id}: {task.title}
-
-ATTEMPTS (must show ALL 3):
-1. DIAGNOSIS: {root cause analysis}
-   FIX: {what was tried}
-   RESULT: {specific error}
-
-2. DIAGNOSIS: {why attempt 1 failed, new analysis}
-   FIX: {different approach}
-   RESULT: {specific error}
-
-3. DIAGNOSIS: {why attempt 2 failed, new analysis}
-   FIX: {third approach}
-   RESULT: {specific error}
-
-PERSISTENT ERROR:
-{final error message}
-
-BLOCKING REASON (select one):
-[ ] SEMANTIC - Logic/algorithm fundamentally flawed, need design change
-[ ] KNOWLEDGE - Missing domain knowledge or context
-[ ] ENVIRONMENTAL - External dependency unavailable
-
-============================================================
-```
-
-**IMPORTANT:** You CANNOT reach this state without showing 3 genuine, distinct fix attempts above. Each attempt must have a different diagnosis and approach. Repeating the same fix does not count.
-
-Then use the `question` tool:
-```json
-{
-  "questions": [{
-    "header": "Budget Exhausted",
-    "question": "3 retry attempts failed for '{task.title}'. All attempts documented above.",
-    "options": [
-      { "label": "Provide hint (Recommended)", "description": "Give me guidance to try a 4th approach" },
-      { "label": "Take over task", "description": "User will complete this task manually" },
-      { "label": "Void contract", "description": "Cancel entire change - this is a fundamental blocker" },
-      { "label": "Other", "description": "Use custom text area for a different recovery path" }
-    ]
-  }]
-}
-```
-
-**NOTE:** "Skip task" is NOT an option. The task must be completed, taken over by user, or the entire contract voided. The agent cannot cancel individual tasks without user approval via `adv_task_cancel`.
+Ask via `question` tool: Provide hint (Recommended), Take over task, Void contract. × "Skip task" is NOT an option.
 
 ---
 
 ## Phase 3: TDD Work Loop
 
-### ⚠️ Context Freshness Policy (MANDATORY)
+### Context Freshness (MANDATORY)
 
-**CRITICAL: Do NOT batch tasks into a local todo list with descriptive blurbs.**
+Before EACH task:
+1. `adv_change_show` → refresh context
+2. Check specific task details
+3. Read relevant proposal sections
 
-Before starting EACH task, you MUST:
-
-1. **Re-read the change context** via `adv_change_show` to refresh your understanding
-2. **Check the specific task details** in the change.json (not a cached summary)
-3. **Read any relevant proposal sections** that describe the task requirements
-
-**Why this matters:** Context drift causes implementation errors. When agents batch multiple tasks with abbreviated summaries, they lose nuance and make incorrect assumptions about requirements.
-
-**Context Snapshot:** `adv_change_show` now includes a `_contextSnapshot` field — a compact visual summary of change state (gates, tasks, current task, workdir). This is emitted automatically on every re-read, keeping the user informed of where the agent is in the change lifecycle.
+× Do NOT batch tasks into local todo list with descriptive blurbs.
 
 ### Worktree Context for Sub-Agents
 
-When spawning sub-agents (e.g., for remediation or verification), always include the current working directory in the sub-agent prompt:
+Include `WORKING DIRECTORY: {workdir}` in every sub-agent prompt. Detect via `pwd`. Critical in worktrees — sub-agents inherit default project root, not worktree path.
 
-```
-WORKING DIRECTORY: {workdir}
-All file paths are relative to this directory.
-Use this as the base path for all read/glob/grep/lgrep operations.
-```
+### TodoWrite Rules
 
-Detect `{workdir}` via `pwd`. This is critical when running from a worktree — sub-agents inherit the default project root, not the worktree path, and will read stale files from the wrong branch without this context.
+Use task IDs only (`tk-abc123`), not descriptions. Forces context lookup via `adv_task_show`.
 
-### TodoWrite Rules for ADV Tasks
+### Anti-Patterns (PROHIBITED)
 
-When using the `TodoWrite` tool during `/adv-apply`:
-
-**✅ CORRECT - IDs only (forces context lookup):**
-```json
-{
-  "todos": [
-    { "id": "1", "content": "tk-abc123", "status": "pending", "priority": "high" },
-    { "id": "2", "content": "tk-def456", "status": "pending", "priority": "high" },
-    { "id": "3", "content": "tk-ghi789", "status": "pending", "priority": "medium" }
-  ]
-}
-```
-
-**❌ WRONG - Descriptive blurbs (causes context drift):**
-```json
-{
-  "todos": [
-    { "id": "1", "content": "Add hero section with pricing", "status": "pending", "priority": "high" },
-    { "id": "2", "content": "Add price display component", "status": "pending", "priority": "high" },
-    { "id": "3", "content": "Add tab navigation", "status": "pending", "priority": "medium" }
-  ]
-}
-```
-
-**Why IDs only:** When you see `tk-abc123` in your todo list, you MUST call `adv_change_show` to understand what that task actually requires. This prevents working from stale/abbreviated mental models.
-
-### ⚠️ Anti-Patterns (PROHIBITED)
-
-| Anti-Pattern | Why It's Wrong | Correct Behavior |
-|--------------|----------------|------------------|
-| "Let's skip this for now" | Avoids the problem | Apply retry protocol |
-| "We can come back to this" | Defers without reason | Complete now or exhaust retries |
-| "This might need manual work" | Offloads to user prematurely | Try 3 times first |
-| "I'm not sure how to proceed" | Gives up too early | Research, diagnose, attempt fix |
-| "Would you like me to skip?" | Seeks permission to avoid | Never offer skip as option |
-| "This is complex, let's defer" | Complexity is not a blocker | Break down and implement |
-| "Tests are flaky, marking done" | False completion | Fix flaky tests or document as environmental |
-| Marking "blocked" after 1 try | Premature surrender | Must attempt 3 distinct fixes |
-| "This targets another repo" | Cross-repo is in-scope | Switch workdir and execute |
-| "Out of scope for this codebase" | Change defines scope, not repo | Switch workdir and execute |
-| Direct `adv_task_update status: cancelled` | Bypasses approval | Use `adv_task_cancel` with user signoff |
+| × Anti-Pattern | ✓ Correct |
+|----------------|-----------|
+| "Let's skip/defer this" | Apply retry protocol |
+| "This might need manual work" | Try 3 times first |
+| "I'm not sure how to proceed" | Research, diagnose, attempt |
+| "Would you like me to skip?" | Never offer skip |
+| "Tests are flaky, marking done" | Fix flaky tests or document as environmental |
+| Marking "blocked" after 1 try | Must attempt 3 distinct fixes |
+| "This targets another repo" | Switch workdir and execute |
 
 ### Task Flow
 
-```
-adv_task_ready changeId: <id>
-```
+`adv_task_ready changeId: <id>` → for each ready task:
 
-For each ready task:
+**3a. Start:** Refresh context (MANDATORY) → `adv_task_update status: "in_progress"`
 
-### 3a. Start Task
+**3b. Red Phase:** `[ADV:TDD_RED]` → write failing test → run → show failure evidence
 
-**Step 1: Refresh Context (MANDATORY)**
+**3c. Green Phase:** `[ADV:TDD_GREEN]` → implement → run → if fails: retry protocol → show pass evidence
 
-Before any implementation, re-read the change to get fresh context:
+**3d. Complete:** `adv_task_update status: "done"` → show evidence
 
-```
-adv_change_show changeId: <target>
-```
-
-Review:
-- The task's full description in the change.json
-- Related deltas that define acceptance criteria
-- Any relevant sections in proposal.md
-
-**Step 2: Announce and Update Status**
-
-```
-[ADV:ROCKET]
-Starting: {task.title}
-
-Context refreshed from change {change-id}:
-- Task requirement: {full task description from change.json}
-- Acceptance criteria: {relevant delta or requirement}
-```
-
-Update task state:
-```
-adv_task_update taskId: {task.id} status: "in_progress"
-```
-
-### 3b. Red Phase
-
-```
-[ADV:TDD_RED]
-Writing test for: {task.title}
-```
-
-1. Write failing test
-2. Run tests, capture failure output
-3. Show evidence: `Test fails as expected: <output snippet>`
-
-### 3c. Green Phase
-
-```
-[ADV:TDD_GREEN]
-Implementing: {task.title}
-```
-
-1. Write minimal code to pass
-2. Run tests, capture success output
-   3. If fails: Apply **Retry Protocol**
-4. Show evidence: `Test passes: <output snippet>`
-
-### 3d. Complete Task
-
-Update task state:
-```
-adv_task_update taskId: {task.id} status: "done"
-```
-
-```
-Task complete: {task.title}
-Evidence: {test output or commit hash}
-```
-
-### 3e. Refresh Ready Tasks
-
-After each completion:
-```
-adv_task_ready changeId: <target>
-```
-
-Continue with next ready task.
+**3e. Refresh:** `adv_task_ready` → next task
 
 ### Incremental Verification
 
-After EACH task:
-1. Run verification (build, tests, lint)
-   2. If fails: Apply Retry Protocol
-3. Only mark complete after pass
+After EACH task: run build/tests/lint → if fails: retry protocol → only mark complete after pass.
 
 ---
 
 ## Phase 4: Progress Tracking
 
-After EACH task, emit CONTRACT STATUS derived from current tool state:
-
-```
----
-CONTRACT STATUS (from adv_task_list):
-{for each task}
-- [{status == "done" ? "x" : " "}] {task.id}: {task.title}
-  {if done} (evidence: {evidence}){end}
-  {if in_progress} (status: in progress){end}
-  {if blocked} (blocked by: {blocked_by}){end}
-{end}
-Phase: TDD | Tasks: {done}/{total}
----
-```
+After EACH task, emit CONTRACT STATUS from `adv_task_list`: task checkboxes with status/evidence, phase indicator, done/total count.
 
 ---
 
 ## Phase 5: Global Final Loop
 
-Before CONTRACT FULFILLED:
-
-```
-============================================================
-              GLOBAL FINAL LOOP VERIFICATION
-============================================================
-
-Running full verification suite...
-- [ ] Full build
-- [ ] All tests
-- [ ] No lint errors
-- [ ] No type errors
-
-============================================================
-```
-
-Execute ALL verification. If any fail:
-1. Apply Retry Protocol
-2. Continue until all pass OR budget exhausted
+Before CONTRACT FULFILLED: run full build + all tests + lint + type check. If any fail → retry protocol → continue until pass or budget exhausted.
 
 ---
 
 ## Phase 6: Completion
 
-Only after Global Final Loop passes:
-
 ### Pre-Completion Checklist
 
-Before declaring CONTRACT FULFILLED, verify:
-
-```
-============================================================
-              PRE-COMPLETION VERIFICATION
-============================================================
-
-TASK AUDIT:
-{for each task}
-- {task.id}: {task.title}
-  Status: {status}
-  Evidence: {test output, commit, or "user takeover"}
-  {if status != "done" and status != "cancelled"} ⚠️ INCOMPLETE - CANNOT FULFILL CONTRACT
-{end}
-
-SKIP/DEFER CHECK:
-- [ ] No tasks were skipped
-- [ ] No tasks marked "blocked" without 3 retry attempts
-- [ ] No tasks deferred "for later"
-- [ ] All "trivial" task skips have documented rationale
-
-============================================================
-```
-
-**If ANY task is incomplete without proper documentation, you CANNOT proceed to CONTRACT FULFILLED.**
+Verify: all tasks done or properly cancelled, no tasks skipped/deferred, all "trivial" skips have rationale.
 
 ### Cancelled Task Verification
 
-**If ANY tasks are cancelled**, verify each has structured cancellation metadata:
-
-1. Check that every cancelled task has a `cancellation` field with `approved_by_user: true`
-2. If any cancelled task lacks approval metadata (e.g., legacy data), use the `question` tool to get retroactive approval:
-
-```json
-{
-  "questions": [{
-    "header": "Unapproved Cancellations",
-    "question": "The following cancelled tasks lack user approval records:\n\n{for each unapproved task}\n- {task.id}: {task.title}\n  Cancellation reason: {task.completed_by or 'unknown'}\n{end}\n\nApprove these cancellations?",
-    "options": [
-      { "label": "Approve cancellations (Recommended)", "description": "Accept that these tasks are legitimately cancelled" },
-      { "label": "Review each task", "description": "I need to see the rationale for each cancellation" },
-      { "label": "Block completion", "description": "Do not mark implementation complete - need to address cancelled tasks" },
-      { "label": "Other", "description": "Use custom text area for a different completion decision" }
-    ]
-  }]
-}
-```
-
-**If "Review each task"**: Display each cancelled task with its cancellation reason, then re-prompt.
-
-**If "Block completion"**: Stop without marking the implementation gate. User must decide how to proceed.
+If cancelled tasks exist → verify each has `cancellation.approved_by_user: true`. If any lack approval → ask via `question` tool for retroactive approval.
 
 ### Final Validation
 
-```
-adv_change_validate changeId: <target>
-```
+`adv_change_validate changeId: <target>` → must pass.
 
-Must pass before declaring complete.
+### Mark Gate
 
-### Mark Implementation Gate
-
-After pre-completion verification passes (and cancelled tasks are approved, if any):
-
-```
-adv_gate_complete changeId: {change-id} gateId: implementation
-```
+`adv_gate_complete changeId: {change-id} gateId: implementation`
 
 ### Contract Fulfilled Banner
 
-```
-============================================================
-                  CONTRACT FULFILLED
-============================================================
+Emit: objective, all criteria met, cancelled tasks (if any with reasons), completion mode (UNASSISTED / GUIDED / PARTIAL TAKEOVER), gate status.
 
-OBJECTIVE: {change.title}
-
-ALL CRITERIA MET:
-- [x] (C1) {criterion}
-- [x] Global Final Loop - PASSED
-
-{if cancelled tasks}
-CANCELLED TASKS (user approved):
-{for each cancelled task}
-- [~] {task.id}: {task.title} - {cancellation reason}
-{end}
-{end}
-
-COMPLETION MODE:
-{one of}
-- UNASSISTED - All tasks completed without human intervention
-- GUIDED - {N} tasks required user hints
-- PARTIAL TAKEOVER - {N} tasks completed by user
-
-GATE STATUS:
-- Implementation gate: COMPLETE ✓
-
-============================================================
-```
-
-**Completion mode definitions:**
-- **UNASSISTED**: All tasks done by agent, no hints needed
-- **GUIDED**: Agent completed all tasks but needed user hints for some
-- **PARTIAL TAKEOVER**: User manually completed some tasks
-
-### Completion Banner
+Completion modes:
+- UNASSISTED: all tasks done by agent, no hints
+- GUIDED: agent completed all but needed user hints for some
+- PARTIAL TAKEOVER: user manually completed some tasks
 
 ```
-============================================================
-      /adv-apply {change-id} COMPLETE
-============================================================
-Result: CONTRACT FULFILLED (retry-on-failure enabled)
-Completion: {UNASSISTED | GUIDED | PARTIAL TAKEOVER}
+/adv-apply {change-id} COMPLETE
+Result: CONTRACT FULFILLED
+Completion: {mode}
 Tasks: {completed}/{total}
 Implementation Gate: MARKED COMPLETE
-
-  ⚡ Recommended next step (Refine agent):
-     /adv-review {change-id}
-============================================================
+Next: /adv-review {change-id}
 ```
 
 ---
 
-## Doom Loop Protocol (Trivial Tasks)
+## Trivial Tasks
 
-For non-logic tasks (docs, config):
-
-```
-[ADV:ROCKET]
-Task: {task.title} (trivial: {rationale})
-```
-
-Skip Red/Green phases. Verify manually, then:
-```
-adv_task_update taskId: {task.id} status: "done"
-```
-
-Include rationale in status:
-```
-- [x] {task.id}: Update README (trivial: docs, manual review)
-```
+For non-logic tasks (docs, config): skip Red/Green phases, verify manually, include rationale in status.
 
 ---
 
 ## Key Principle
 
-**All state lives in ADV tools. Contract banners are views, not source of truth.**
+All state lives in ADV tools. Contract banners are views, not source of truth.
 
-| State | Tool | Display |
-|-------|------|---------|
-| Task status | `adv_task_update` | CONTRACT STATUS block |
-| Task list | `adv_task_list` | Task checkboxes |
-| Ready tasks | `adv_task_ready` | "Next task" selection |
-| Change data | `adv_change_show` | OBJECTIVE in banner |
-| Validation | `adv_change_validate` | Pass/fail line |
+| State | Tool |
+|-------|------|
+| Task status | `adv_task_update` |
+| Task list | `adv_task_list` |
+| Ready tasks | `adv_task_ready` |
+| Change data | `adv_change_show` |
+| Validation | `adv_change_validate` |

@@ -1,6 +1,17 @@
 # ADV - Spec-Driven Development Instructions
 
-Enforce spec-driven development where **specs become laws**. Requirements are formally defined, validated, and enforced during implementation.
+Specs are laws. Requirements are formally defined, validated, and enforced.
+
+## Notation
+
+| Symbol | Meaning |
+|--------|---------|
+| `→` | Sequence / leads to |
+| `←` | Blocked by / depends on |
+| `✓` | Complete / verified |
+| `○` | Pending / optional |
+| `×` | Forbidden / never |
+| `⚠` | Attention / warning |
 
 ## Core Decision Rules
 
@@ -8,11 +19,11 @@ Enforce spec-driven development where **specs become laws**. Requirements are fo
 |------|------|
 | Spec conflicts with proposal | Spec wins |
 | Gate incomplete | Archive blocked |
-| 3 failed task attempts | Stop → emit `[ADV:DOOM_LOOP]` → escalate |
-| Cross-repo task | Execute in target repo (`workdir`) |
-| User requests cancellation | Require explicit approval via `adv_task_cancel` |
+| 3 failed task attempts | Stop → `[ADV:DOOM_LOOP]` → escalate |
+| Cross-repo task | Execute in target repo via `workdir` |
+| User requests cancellation | Require approval via `adv_task_cancel` |
 | TDD required + trivial task | Mark trivial with reason, skip TDD |
-| User requests skip + gate required | Emit `[ADV:MIC]`, ask for sign-off |
+| User requests skip + gate required | `[ADV:MIC]` → ask for sign-off |
 
 ## Commands
 
@@ -43,16 +54,11 @@ Enforce spec-driven development where **specs become laws**. Requirements are fo
 | `/adv-audit [capability]` | Detect drift between specs and current implementation |
 | `/adv-slop-scan [path]` | Scan for AI slop patterns including defensive and nested code |
 
-### Fast-Track
+### Fast-Track / Advanced
 
 | Command | Purpose |
 |---------|---------|
 | `/adv-task` | Fast-track a discussed change: synthesize contract, validate best practices, prep, and hand off |
-
-### Advanced
-
-| Command | Purpose |
-|---------|---------|
 | `/adv-refactor <change-id>` | Refresh a stale proposal to reflect current codebase state |
 | `/adv-coordinate` | Detect and resolve conflicts across multiple active changes |
 | `/adv-improve` | Suggest targeted improvements to existing specs or implementation |
@@ -60,463 +66,280 @@ Enforce spec-driven development where **specs become laws**. Requirements are fo
 
 ## Command Boundaries
 
-Pre-implementation commands have strict boundaries enforced by per-command specs (`adv-proposal`, `adv-research`, `adv-prep`).
-
-| Command | Produces | MUST NOT | Gate |
-|---------|----------|----------|------|
-| proposal | Problem statement, success criteria, constraints | Create tasks, complete gates, make impl decisions | None |
-| research | Validated approach, architecture assessment, findings in proposal.md | Create tasks, complete non-research gates | research |
-| prep | Complete task graph, gap analysis, sequencing | Complete non-prep gates, make architecture decisions | prep |
-| task | Change + tasks + gates (fast-track exemption) | — (intentionally crosses boundaries) | research + prep |
+| Command | Produces | × MUST NOT | Gate |
+|---------|----------|------------|------|
+| proposal | Problem statement, criteria, constraints | Create tasks, complete gates, impl decisions | None |
+| research | Validated approach, findings in proposal.md | Create tasks, complete non-research gates | research |
+| prep | Task graph, gap analysis, sequencing | Complete non-prep gates, architecture decisions | prep |
+| task | Change + tasks + gates (fast-track exempt) | — | research + prep |
 | apply | Implementation via TDD | Auto-complete research/prep gates | implementation |
 
-**Key rules:**
 - Only `/adv-prep` (and exempt `/adv-task`) may call `adv_task_add`
-- `/adv-apply` must stop if research or prep gates are pending — it cannot auto-complete them
-- Each command's `.md` file has a `## Command Boundary` section with full details
+- `/adv-apply` stops if research or prep gates pending
+- Each command `.md` has `## Command Boundary` with details
 
 ## Status Markers
 
 Emit at START of each response:
 
-| Marker | When | Tab emoji |
-|--------|------|-----------|
+| Marker | When | Emoji |
+|--------|------|-------|
 | `[ADV:ROCKET]` | Active work | 🚀 |
-| `[ADV:TDD_RED]` | Writing tests (red phase) | 🔴 |
-| `[ADV:TDD_GREEN]` | Implementing (green phase) | 🟢 |
-| `[ADV:MOON]` | Sub-agents running (requires `task` tool) | 📡 |
+| `[ADV:TDD_RED]` | Writing tests | 🔴 |
+| `[ADV:TDD_GREEN]` | Implementing | 🟢 |
+| `[ADV:MOON]` | Sub-agents running | 📡 |
 | `[ADV:EARTH]` | Complete / awaiting input | 🌍 |
 | `[ADV:DOOM_LOOP]` | Stuck in retry cycle | 💀 |
 | `[ADV:MIC]` | Needs user approval | 🎤 |
-| `[ADV:TASK_STATUS_REPORT]` | Emitting task report | — |
+| `[ADV:TASK_STATUS_REPORT]` | Task report | — |
 
-Tab title format: `<emoji> <normalized change code>` when active change is set (e.g. `📡 Feature X`); bare `<emoji>` when no active change. camelCase/kebab/snake_case IDs are split to Title Case words; common verb prefixes (add/fix/update/improve/create/remove/refactor/change) are stripped.
+Tab title: `<emoji> <normalized change>` (strip verb prefixes, Title Case). System-emitted: `[ADV:ACCUMULATED_WISDOM]`, `[ADV:TODO_CONTINUATION]`, `[ADV:RECORD_WISDOM]`
 
-System-emitted: `[ADV:ACCUMULATED_WISDOM]`, `[ADV:TODO_CONTINUATION]`, `[ADV:RECORD_WISDOM]`
+### Context Snapshot
 
-### Context Snapshot Protocol
+`adv_change_show` includes `_contextSnapshot` — compact summary closing the context agreement gap:
+- Change ID/title, gate progress (`[✓ research] [○ impl] ...`), task counts, current task, workdir
 
-`adv_change_show` includes a `_contextSnapshot` field — a compact, scannable summary of the agent's internal state for the active change. This closes the **context agreement gap** between what the agent knows and what the user sees.
+Emitted on: `adv_change_show`, `adv_gate_complete`, `adv_task_update` to `in_progress`.
 
-**Content** (max 10 lines):
-- Change ID and title
-- Gate progress as inline visual: `[✓ research] [✓ prep] [○ impl] ...`
-- Task counts by status: `2 done | 1 active | 5 pending`
-- Current in-progress task (if any)
-- Current workdir
-
-**Emission triggers** — the snapshot is included automatically when:
-
-| Trigger | Tool/Command |
-|---------|-------------|
-| Change loaded for work | `adv_change_show` |
-| Gate transitions | `adv_gate_complete` (reflected in next `adv_change_show`) |
-| Task switches | `adv_task_update` to `in_progress` (reflected in next `adv_change_show`) |
-
-**Cross-Repo Switch Indicator** — when switching `workdir` to a different repository during a change, emit a formatted block using `formatCrossRepoSwitch()` from `plugin/src/utils/context-snapshot.ts`:
-
+**Cross-Repo Switch** — emit via `formatCrossRepoSwitch()`:
 ```
 ╔═══════════════════════════════════════════════════════════╗
 ║ 🔀 SWITCHING REPOSITORY CONTEXT                          ║
-║ From: ~/dev/frontend                                      ║
-║ To:   ~/dev/backend                                       ║
+║ From: ~/dev/frontend  →  To: ~/dev/backend                ║
 ║ Task: tk-backend01 (Add /api/oauth/callback endpoint)     ║
 ╚═══════════════════════════════════════════════════════════╝
 ```
 
 ## Critical Protocols
 
-### ADV State Access Policy
+### ADV State Access
 
-**NEVER** read ADV state files directly using `read`, `bash cat`, `ls`, or any filesystem tool. ADV state is external to the repo and must be accessed exclusively through ADV MCP tools.
+× NEVER read ADV state files directly (`read`, `cat`, `ls`). Use ADV MCP tools exclusively.
 
-Forbidden paths (never read directly):
-- `~/.local/share/opencode/plugins/advance/**/change.json`
-- `~/.local/share/opencode/plugins/advance/**/proposal.md`
-- `~/.local/share/opencode/plugins/advance/**/agenda.jsonl`
-- `~/.local/share/opencode/plugins/advance/**/wisdom.jsonl`
-- `~/.local/share/opencode/plugins/advance/**/handoff.json`
+Forbidden: `~/.local/share/opencode/plugins/advance/**/{change.json,proposal.md,agenda.jsonl,wisdom.jsonl,handoff.json}`
 
-**ALWAYS** use the ADV MCP tools instead:
+| Need | Tool |
+|------|------|
+| Change + tasks | `adv_change_show` |
+| Update proposal | `adv_change_update` (× never re-call `adv_change_create`) |
+| Specific task + changeId | `adv_task_show` |
+| Ready tasks | `adv_task_ready` |
+| All tasks | `adv_task_list` |
+| Active changes | `adv_change_list` |
+| Validate | `adv_change_validate` |
+| Agenda | `adv_agenda_list` |
+| Wisdom | `adv_wisdom_list` |
 
-| You want | Use this tool |
-|----------|---------------|
-| Change details + tasks | `adv_change_show` |
-| Update proposal/problem-statement | `adv_change_update` (never re-call `adv_change_create`) |
-| A specific task + its changeId | `adv_task_show` |
-| Tasks ready to work | `adv_task_ready` |
-| All tasks for a change | `adv_task_list` |
-| List all active changes | `adv_change_list` |
-| Validate a change | `adv_change_validate` |
-| Agenda items | `adv_agenda_list` |
-| Wisdom entries | `adv_wisdom_list` |
+On direct-read failure → stop, call `adv_change_show` or `adv_task_show`.
 
-**If a direct read attempt fails** (file not found, wrong path, permission error) — do NOT retry with a different path. Stop immediately and call `adv_change_show` or `adv_task_show` instead. Direct reads bypass schema validation, conflict detection, and workflow invariants.
+### Question Tool UX
 
-### Question Tool UX Policy
-
-The write-in option requirement is enforced globally by **P26** in `rules.yaml`. ADV-specific notes:
-
-1. Use contextual write-in labels (e.g. `Other`, `Different approach`, `Custom value`) — not a generic "Other".
-2. Keep question options within schema limits (2-5 total options including the write-in option, concise labels).
-3. Preserve custom text-entry behavior by leaving custom input enabled.
-4. Treat formatted/WYSIWYG input as best-effort UI behavior; do not assume rich-text controls are always available.
+Write-in option enforced by P26 (`rules.yaml`). ADV notes:
+- Contextual write-in labels (`Other`, `Different approach`) — not generic
+- 2-5 options including write-in, concise labels
+- Leave custom input enabled
 
 ### Tradeoff Prioritizer Protocol
 
-When ADV work reaches a decision with **2+ viable approaches** and the best choice depends on user values, run a prioritizer analysis before asking the user.
+When 2+ viable approaches depend on user values → run prioritizer before asking.
 
-**Default (inline):** The orchestrating agent performs the analysis directly:
-1. Scan relevant code with `lgrep_search_semantic` / `read` to understand existing patterns
-2. Research tradeoffs via `context7_query-docs` / `kagi_search_fetch` if needed
-3. Draft context-specific criteria questions plus a decision map
-4. Pass the questions to the `question` tool with minimal paraphrasing
-5. Restate the user's priorities before recommending the winning approach
+**Default (inline):** Scan code → research tradeoffs → draft criteria questions → pass to `question` tool → restate priorities → recommend.
 
-**Optional (sub-agent):** If the `task` tool is available (e.g., `orca`, `plan`, `scout`, or `refine` agents), spawn a `prioritizer` sub-agent for deeper analysis. The sub-agent returns structured criteria questions and a decision map.
+**Optional (sub-agent):** If `task` tool available, spawn `prioritizer` for deeper analysis.
 
-Skip the prioritizer for obvious bug fixes, mechanical work, or choices already constrained by security/API compatibility/established architecture.
+Skip for: bug fixes, mechanical work, choices constrained by security/API/architecture.
 
 ### Context Freshness
 
-**Work one task at a time with fresh context.** Before EACH task:
-1. Re-read change via `adv_change_show`
-2. Look up the specific task via `adv_task_show` (returns full task + parent changeId)
-3. Review relevant proposal sections
+Work one task at a time. Before EACH task:
+1. `adv_change_show` → 2. `adv_task_show` → 3. Review proposal
 
-**TodoWrite Rules:** Use task IDs only (`tk-abc123`), not descriptions. Forces context lookup via `adv_task_show`.
+TodoWrite: use task IDs only (`tk-abc123`), not descriptions.
 
 ### TDD Protocol (RSTC)
 
-**Inline TDD is the default.** Red/green phases happen WITHIN each implementation task — do NOT create separate "Write tests" tasks for the same scope.
+Inline TDD is default — red/green phases WITHIN each task. × Do NOT create separate test tasks for same scope.
 
-**RED Phase:** Write failing test → run → emit `[ADV:TDD_RED]` → show output
-**GREEN Phase:** Implement → run → emit `[ADV:TDD_GREEN]` → show output
-**Trivial Tasks:** Note `(trivial: docs change)` and skip TDD
-**Separate Verification:** Cross-cutting tests spanning multiple impl tasks are legitimate separate tasks — mark with `metadata.tdd_intent: "separate_verification"`
+- **RED:** Write failing test → run → `[ADV:TDD_RED]` → show output
+- **GREEN:** Implement → run → `[ADV:TDD_GREEN]` → show output
+- **Trivial:** Note `(trivial: docs change)`, skip TDD
+- **Cross-cutting:** Separate verification tasks OK → mark `metadata.tdd_intent: "separate_verification"`
 
 ### Doom Loop Detection
 
-Tasks end in exactly one state:
-
 | Exit | Condition |
 |------|-----------|
-| ✅ Done | All acceptance criteria met |
-| 🔁 Doom Loop | 3 failed attempts, user guidance needed |
-| 🌍 Environmental | Missing external dependency — escalate immediately |
+| ✓ Done | Acceptance criteria met |
+| 🔁 Doom Loop | 3 failed attempts |
+| 🌍 Environmental | Missing dependency → escalate |
 
-After 3 failed attempts:
-1. **STOP** — Don't retry same approach
-2. **Emit** `[ADV:DOOM_LOOP]`
-3. **Document** all 3 attempts with diagnosis
-4. **Ask** via `question` tool for guidance
+After 3 failures: STOP → `[ADV:DOOM_LOOP]` → document all 3 attempts → ask via `question`.
 
-| BAD | GOOD |
-|-----|------|
-| Retry same approach | Try a different strategy |
+| × Bad | ✓ Good |
+|-------|--------|
+| Retry same approach | Try different strategy |
 | Silent retries | Document each attempt |
-| 4+ attempts same method | Escalate after 3 |
-| "Let me try again" | "Approach X failed because Y" |
+| 4+ same method | Escalate after 3 |
 
-### Cross-Repo Execution Protocol
+### Cross-Repo Execution
 
-Changes often span multiple repositories (e.g., frontend + backend, app + database).
-
-| BAD (Invalid Cancellation) | GOOD |
-|----------------------------|------|
-| "Out of scope for this repo" | Switch `workdir` and execute |
-| "Different repository" | Switch `workdir` and execute |
+| × Invalid Cancellation | ✓ Correct |
+|------------------------|-----------|
+| "Out of scope for this repo" | Switch `workdir`, execute |
+| "Different repository" | Switch `workdir`, execute |
 | "Cannot modify external code" | Use `workdir` parameter |
-| "Backend/API changes needed" | Switch `workdir` and execute |
 
-**Key rules:**
-1. Tasks with `target_repo`/`target_path` metadata must be executed in the target directory
-2. Switch `workdir` to the target repo path for all tool calls on that task
-3. "Different repo" / "out of scope" is NEVER a valid cancellation reason
-4. If a task title hints at another repo but lacks metadata, confirm with the user via `question` tool
+Rules:
+1. Tasks with `target_repo`/`target_path` → execute in target directory
+2. Switch `workdir` for all tool calls on that task
+3. "Different repo" is × NEVER valid cancellation
+4. Task hints at another repo but lacks metadata → confirm via `question`
 
-**Project config supports generic repo routing:**
-```json
-{
-  "related_repos": [
-    { "id": "backend", "path": "/home/user/dev/my-backend", "role": "API server" },
-    { "id": "db", "path": "/home/user/dev/my-db", "role": "Database migrations" }
-  ]
-}
-```
+Config: `related_repos` in `project.json` maps repo IDs to paths.
 
-**Review and Harden gates block** if cross-repo tasks are incomplete or cancelled without approval.
+Review/Harden gates block if cross-repo tasks incomplete or cancelled without approval.
 
 ### Cancellation Policy
 
-**All task cancellations require explicit user approval.**
+All cancellations require explicit user approval via `adv_task_cancel`.
 
-| BAD | GOOD |
-|-----|------|
-| `adv_task_update status: "cancelled"` | `adv_task_cancel` with user approval |
-| Self-approve cancellation | Present reasons to user, get sign-off |
-| Cancel cross-repo task as "out of scope" | Execute in target repo |
-
-**Workflow:**
-1. Agent identifies tasks to cancel with per-task reasons
-2. Agent presents table to user via `question` tool
-3. User approves (or rejects/reviews individually)
-4. Agent calls `adv_task_cancel` with approval evidence
+Workflow: identify tasks + reasons → present to user via `question` → user approves → call `adv_task_cancel` with evidence.
 
 ### Task Status Report
 
-On loop stop or compaction: emit `[ADV:TASK_STATUS_REPORT]` with completed/cancelled/remaining tasks.
-See: [docs/adv-task-report.md](docs/adv-task-report.md)
+On loop stop or compaction: emit `[ADV:TASK_STATUS_REPORT]` with completed/cancelled/remaining. See [docs/adv-task-report.md](docs/adv-task-report.md).
 
 ## 6-Gate Quality Checklist
 
 | Gate | Triggered By |
 |------|--------------|
-| 1. `research` | `/adv-research` or Context7 |
+| 1. `research` | `/adv-research` |
 | 2. `prep` | `/adv-prep` |
 | 3. `implementation` | All tasks done |
 | 4. `review` | `/adv-review` |
 | 5. `harden` | `/adv-harden` |
 | 6. `signoff` | User confirmation |
 
-Gates are sequential. Archive blocks until all 6 satisfied.
-See: [docs/adv-gates.md](docs/adv-gates.md)
+Gates are sequential. Archive blocks until all 6 satisfied. See [docs/adv-gates.md](docs/adv-gates.md).
 
-**Gate behaviors:**
-- `/adv-research` and `/adv-prep` evaluate the **full change including completed tasks**. Completed work is proof-of-concept evidence to validate, not acceptance proof. Findings apply regardless of task status — add targeted follow-up tasks where gaps are found. (See: Phase 1 recovery sections in `.opencode/command/adv-research.md` and `.opencode/command/adv-prep.md`.)
-- `/adv-review` emits a `REVIEW_FINDINGS` block listing all actionable findings (`blocker`, `issue`, `suggestion`, `question`).
-- `/adv-harden` **blocks** if any actionable review findings are unresolved and not documented as accepted debt in `proposal.md`. `nit:` findings are not required. Also runs a **non-destructive merge compatibility check** against the default branch before quality scanners — blocks on conflicts so they are caught early, not at archive time.
-- `/adv-archive` **runs mandatory Phase 9 Git Finalization**: stage+commit all changes, detect default branch, merge (or open PR), verify merge is clean, clean up worktree, remove temp artifacts.
+Gate behaviors:
+- `research`/`prep` evaluate full change including completed tasks — completed work is evidence to validate, not acceptance proof. Add follow-up tasks where gaps found.
+- `review` emits `REVIEW_FINDINGS` block (blocker, issue, suggestion, question).
+- `harden` blocks on unresolved review findings (except `nit:`). Runs merge compatibility check first.
+- `archive` runs Phase 9 Git Finalization: stage → commit → detect default branch → merge/PR → verify → cleanup worktree → remove temp artifacts.
 
 ## Command Execution Model
 
-**All ADV commands run inline by default.** The executing agent performs all analysis, research, and scanning directly within its own session using available tools (lgrep, grep, read, Context7, Kagi, etc.).
+All commands run inline by default. Agents without `task` tool work inline exclusively.
 
-### Inline Execution (Default)
+### Sub-Agent Orchestration (optional, requires `task` tool)
 
-Every ADV command works inline. This is the only mode available to agents without the `task` tool (`build`, `explore`, and most sub-agents).
+Available to: `orca`, `plan`, `scout`, `refine`, `general`. Use when 3+ independent scan dimensions benefit from parallelism.
 
-**Inline approach for analysis-heavy commands:**
-- Use parallel tool calls within a single response (e.g., multiple `grep` or `lgrep_search_semantic` calls)
-- Perform each analysis dimension sequentially or in parallel batches
-- Synthesize findings directly — no sub-agent coordination overhead
+| Command | Inline | Sub-Agent |
+|---------|--------|-----------|
+| research | Context7 + Kagi + lgrep | librarian + adv-researcher |
+| review | Sequential per dimension | explore × 5 + librarian + general |
+| harden | Sequential scans | explore × 6 |
+| audit | Sequential pipeline | explore × 4 |
+| slop-scan | Sequential categories | explore × 9 |
+| tron | lgrep + read | tron agent |
+| task | Context7 + Kagi | librarian + adv-researcher |
+| refactor | Sequential drift | explore × 3 |
 
-### Sub-Agent Orchestration (Optional — requires `task` tool)
+Rules:
+- Sub-agents × NEVER spawn sub-agents (`enforceTaskPolicy` blocks nesting)
+- Cap parallel bursts at 3-4
+- Batch independent work into single spawn message
+- × Don't spawn for single-tool-call work
 
-When the `task` tool is available (`orca`, `plan`, `scout`, `refine`, and `general` agents), commands MAY spawn read-only sub-agents for parallel analysis. This is an optimization, not a requirement. Agents without the `task` tool (`build`, `explore`, and most sub-agents) must work inline.
+Inline-only: `/adv-status`, `/adv-proposal`, `/adv-validate`, `/adv-apply`, `/adv-archive`, `/adv-clarify`, `/adv-prep`, `/adv-coordinate`, `/adv-improve`
 
-**When to use sub-agents (if available):**
-- Multiple independent analysis dimensions can run in parallel
-- The work is read-heavy scanning across many files
-- Parallelism provides material speedup (3+ independent scan dimensions)
-
-**Commands that benefit from sub-agents when available:**
-
-| Command | Inline Approach | Sub-Agent Approach (orca/plan/scout/refine/general) |
-|---------|----------------|--------------------------------------|
-| research | Use Context7 + Kagi + lgrep directly | Spawn librarian + adv-researcher |
-| review | Sequential analysis per dimension | Spawn explore × 5 (analysis) + librarian/adv-researcher (fix validation) + general (remediation) |
-| harden | Sequential quality scans | Spawn explore × 6 |
-| audit | Sequential spec→code→drift pipeline | Spawn explore × 4 |
-| slop-scan | Sequential smell category scans | Spawn explore × up to 9 |
-| tron | Use lgrep + read directly | Spawn tron agent |
-| task | Use Context7 + Kagi directly | Spawn librarian + adv-researcher |
-| refactor | Sequential drift analysis | Spawn explore × 3 |
-
-**Anti-recursion rule:** Sub-agents NEVER spawn sub-agents. The `enforceTaskPolicy` guard blocks nested task calls. All orchestration flows through the parent agent (typically `orca`) — sub-agents execute and return results, they don't delegate further.
-
-**Spawning discipline:** Orchestrating agents (especially `orca`) must be deliberate about sub-agent count:
-- Cap parallel bursts at 3-4 sub-agents. More creates coordination overhead that outweighs parallelism.
-- Batch independent work into a single spawn message — don't serialize what can run in parallel.
-- Prefer fewer, well-scoped sub-agents over many narrow ones (1 agent with 3 questions > 3 agents with 1 question).
-- Don't spawn sub-agents for work achievable in a single tool call (reading a file, running a grep, checking a test).
-
-**Inline commands (never use sub-agents):** `/adv-status`, `/adv-proposal`, `/adv-validate`, `/adv-apply`, `/adv-archive`, `/adv-clarify`, `/adv-prep`, `/adv-coordinate`, `/adv-improve`
-
-## Sub-Agent Selection (requires `task` tool)
-
-When the `task` tool is available and sub-agent orchestration is chosen, select based on the task type:
+## Sub-Agent Selection
 
 | Agent | Use For | Tools |
 |-------|---------|-------|
-| `librarian` | Documentation, API references, code examples | Context7, grep.app, Kagi |
-| `adv-researcher` | Architectural validation, simplicity analysis | Context7, Kagi, ADV read-only |
+| `librarian` | Docs, API refs, code examples | Context7, grep.app, Kagi |
+| `adv-researcher` | Architecture validation, simplicity | Context7, Kagi, ADV read-only |
 | `explore` | Codebase navigation, find usages | Read, Glob, Grep, lgrep |
 | `general` | Complex multi-step implementation | Full tool access |
-| `mechanic` | System/infra issues — MCP servers, config, toolchain | Vision, bash, read/write |
-| `tron` | Codebase reconnaissance, hotspot detection | Read, Glob, Grep, lgrep |
+| `mechanic` | System/infra issues | Vision, bash, read/write |
+| `tron` | Reconnaissance, hotspot detection | Read, Glob, Grep, lgrep |
 
-### Orchestrator Pattern
-
-For parallel research (when task tool available): spawn `librarian` (docs) + `adv-researcher` (architecture validation) simultaneously, then synthesize.
+Orchestrator pattern: spawn `librarian` + `adv-researcher` in parallel → synthesize.
 
 ## Skill Discovery Protocol
 
-Commands that perform research or analysis can automatically discover and load relevant skills based on the project's tech stack and the change's domain. This improves research quality by providing domain-specific guidance without manual skill loading.
+Enabled in `/adv-research` Phase 1.5. Improves research quality via domain-specific skills.
 
-### Currently Enabled In
+Flow: `glob */SKILL.md` → read YAML frontmatter → match `keywords` against tech stack + change domain → `skill("{name}")` → apply guidance.
 
-- `/adv-research` — Phase 1.5 (after loading project context, before generating research questions)
-
-Other commands may adopt this protocol in the future.
-
-### How It Works
-
-1. **Scan** — Use `glob` with pattern `*/SKILL.md` and an explicit absolute skills directory path (for example the resolved global skills dir), plus optionally `skills/*/SKILL.md` for project-local skills
-2. **Extract** — Read YAML frontmatter from each SKILL.md. Look for the `keywords` array.
-3. **Match** — Compare each skill's `keywords` against:
-   - Tech stack terms from `adv_project_context` (framework names, library names)
-   - Domain terms from the change summary and proposal
-   - If `project.md` is missing, fall back to the change summary/proposal plus clearly detectable local stack terms from the repo
-4. **Load** — Call `skill("{name}")` for each matched skill
-5. **Apply** — Incorporate loaded skill guidance into subsequent phases
-
-### Skill Metadata Convention
-
-Skills that want to be discoverable should include a `keywords` array in their YAML frontmatter:
-
+Skill metadata:
 ```yaml
 ---
 name: my-skill
 description: "What this skill provides"
 keywords: ["term1", "term2", "term3"]
-metadata:
-  priority: medium
-  replaces: none
 ---
 ```
 
-**Keywords** should be specific terms that indicate when the skill is relevant — framework names, domain concepts, tool names. Avoid generic terms that would match too broadly.
-
-### Graceful Degradation
-
-- Skills without YAML frontmatter are silently skipped
-- Skills without a `keywords` field are silently skipped
-- If no skills match, the command proceeds normally without additional skills
-- Skill discovery adds no API calls — it is a filesystem-only scan
+Graceful degradation: skip skills without frontmatter or `keywords`. No matches → proceed normally. Filesystem-only, no API calls.
 
 ## Worktree Integration
 
-ADV uses **external mutable state** so that all worktrees of the same repo share changes, archive, wisdom, agenda, and the SQLite cache. Specs remain in-repo (`.adv/specs/`).
+ADV uses external mutable state — all worktrees share changes, archive, wisdom, agenda, SQLite cache. Specs remain in-repo (`.adv/specs/`).
 
-### External State Layout
+### External State
 
-Mutable state lives at `$XDG_DATA_HOME/opencode/plugins/advance/{project-id}/`:
+Location: `$XDG_DATA_HOME/opencode/plugins/advance/{project-id}/` (project-id = root commit SHA).
 
 ```
 {project-id}/
-├── changes/          # Active change proposals
-├── archive/          # Completed changes
-├── db/spec.db        # SQLite FTS cache
-├── wisdom.jsonl      # Project-level learnings
-├── agenda.jsonl      # Work queue
-└── handoff.json      # Session handoff (fallback, multi-session only)
+├── changes/     # Active proposals
+├── archive/     # Completed
+├── db/spec.db   # SQLite FTS cache
+├── wisdom.jsonl # Learnings
+├── agenda.jsonl # Work queue
+└── handoff.json # Session handoff (multi-session only)
 ```
-
-**project-id** = root commit SHA (`git rev-list --max-parents=0 HEAD`), stable across all worktrees.
 
 ### Worktree Decision
 
-```
-┌─ Risk Assessment ──────────────────────────────────┐
-│ 3+ files OR db schema, auth, shared types,         │
-│ breaking API, structural refactor, spike work      │──→ Ask user ──→ Create ──→ Continue inline
-│                                                    │
-│ 1–2 files AND trivial changes                      │
-│ OR docs-only / config                              │──→ Proceed in-place
-└────────────────────────────────────────────────────┘
-```
+- 3+ files OR db schema/auth/shared types/breaking API/structural refactor → ask user → create → continue inline
+- 1-2 files AND trivial, OR docs/config → proceed in-place
 
-### Worktree Reuse Protocol
+### Worktree Reuse
 
-Before creating a new worktree, always check if one already exists for the target change:
+Before creating: `git worktree list --porcelain` → find `change/{change-id}` branch.
+- Path exists → offer reuse (switch `workdir`)
+- Path missing → `git worktree prune` → proceed fresh
 
-```bash
-git worktree list --porcelain
-```
+### Spec Divergence
 
-Parse for a worktree whose branch matches `change/{change-id}`. If found:
+| Data | Location | Shared? |
+|------|----------|---------|
+| Specs (`.adv/specs/`) | In-repo, git-tracked | No (branch-local) |
+| Changes, archive, wisdom, agenda | External | Yes (keyed by project-id) |
 
-1. **Verify the path exists** on disk (the directory may have been manually deleted while the git record remains).
-2. **If path exists (healthy)** — offer to reuse: switch `workdir` to the existing worktree path.
-3. **If path does NOT exist (stale)** — run `git worktree prune` to clean up the stale record, then proceed as if no worktree existed.
+Implication: spec changes in worktree A invisible to B until merged. `/adv-validate` and `/adv-audit` in B may see stale specs. Mitigation: merge promptly after archive (Phase 9 handles this).
 
-This prevents duplicate worktrees for the same change and allows resuming work in an existing isolated workspace.
+### Inline Worktree Protocol
 
-### Spec Divergence Rule
+1. `worktree_create` → capture returned worktree path
+2. **Immediately** set `workdir` to the worktree path for ALL subsequent tool calls
+3. Continue inline — no handoff, no new terminal, no navigation hints needed
+4. When deleting, pass `branch` arg to `worktree_delete` (required in inline mode)
 
-**Specs are branch-local; mutable ADV state is shared.**
+### Session Handoff (Fallback)
 
-| Data | Location | Shared Across Worktrees? |
-|------|----------|--------------------------|
-| Specs (`.adv/specs/`) | In-repo, git-tracked | No — each worktree sees its own branch's version |
-| Changes, archive, wisdom, agenda | External (`~/.local/share/...`) | Yes — keyed by project-id |
-| Handoff | External | Yes |
+Multi-session only: parent writes `handoff.json` → child reads/clears on startup → `[ADV:WORKTREE_SESSION]` marker injected.
 
-**Implication:** If a spec is modified in worktree A (e.g., via `/adv-archive` applying deltas), worktree B will NOT see the updated spec until the change branch is merged to the default branch and worktree B pulls or rebases.
+### Worktree Cleanup
 
-**When this matters:**
-- Running `/adv-validate` in worktree B may validate against stale specs if worktree A has already archived a change that modified those specs.
-- Running `/adv-audit` in worktree B may report false drift if specs were updated in worktree A but not yet merged.
+`/adv-archive` Phase 9 handles: stage → commit → detect default branch → merge/PR → verify → `worktree_delete` → remove `.bak`/`.tmp`/`.orig`. × Never delete worktree with unmerged commits.
 
-**Mitigation:** After archiving a change that modifies specs, merge the change branch to the default branch promptly. `/adv-archive` Phase 9 handles this automatically.
-
-### Inline Worktree Protocol (Default)
-
-When a worktree is created during an active ADV change, continue in the same agent session:
-
-1. **Emit navigation hint BEFORE creating the worktree** — `worktree_create` may open a new tmux window and shift focus, so the user must see navigation keys in the current window first:
-   ```
-   Creating worktree for change/{change-id}...
-
-   A new tmux tab may open. To navigate back here:
-     • Ctrl+b l          — last (previously active) window
-     • Ctrl+b n / p      — next / previous window
-     • Ctrl+b w          — interactive window chooser
-     • oc switch         — switch between openchad sessions
-
-   Implementation continues inline in this session via workdir.
-   ```
-2. **Create worktree** via `worktree_create`
-3. **Capture worktree path** from tool output and confirm:
-   ```
-   ✅ Worktree ready: {worktree-path}
-   Branch: change/{change-id}
-   ```
-4. **Switch execution context** by setting `workdir` to the worktree path for subsequent tool calls
-5. **Continue implementation inline** in the same conversation/session
-
-No session handoff is required for the default flow.
-
-### Session Handoff Protocol (Fallback)
-
-Use handoff only when explicitly using multi-session workflows (for example, a separate OpenCode session):
-
-1. **Parent session** writes `handoff.json` with `{changeId, currentTaskId, gateStatus, objective}`
-2. **Child session** reads and clears `handoff.json` on startup, hydrating `PluginState.activeChange`
-3. **system.transform** injects `[ADV:WORKTREE_SESSION]` marker with full change context
-
-### Worktree Cleanup Protocol
-
-**`/adv-archive` handles git finalization automatically** via its mandatory Phase 9. This includes staging+committing all changes, merging to the default branch, verifying the merge is clean, and deleting the worktree.
-
-Phase 9 steps (run automatically after archive):
-1. Stage and commit all modified files
-2. Detect default branch (`main` / `trunk` / remote HEAD)
-3. Merge `change/{change-id}` to default branch (or push + open PR)
-4. Verify merge: `git log --oneline {default}..change/{change-id}` must return empty
-5. Delete worktree via `worktree_delete` (gracefully skipped if tool unavailable)
-6. Remove temp artifacts (`.bak`, `.tmp`, `.orig`)
-
-**Never delete a worktree with unmerged commits.** Phase 9 enforces this — it will not call `worktree_delete` until the merge is verified clean.
-
-### Graceful Degradation
-
-If `worktree_create`/`worktree_delete` tools are not installed, commands skip Phase 0 with:
-```
-[ADV:INFO] Worktree tools not available — proceeding with in-place implementation.
-```
-All other ADV functionality works identically.
+If `worktree_create`/`worktree_delete` unavailable: `[ADV:INFO] Worktree tools not available — proceeding in-place.`
 
 ## When to Use ADV
 
