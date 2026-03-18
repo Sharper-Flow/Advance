@@ -12,8 +12,8 @@ tools:
   lgrep_search_semantic: true
   lgrep_index_semantic: true
   lgrep_search_symbols: true
-  lgrep_index_folder: true
-  lgrep_index_repo: true
+  lgrep_index_symbols_folder: true
+  lgrep_index_symbols_repo: true
   lgrep_get_symbol: true
   lgrep_get_symbols: true
   lgrep_get_file_tree: true
