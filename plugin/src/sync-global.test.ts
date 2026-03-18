@@ -89,7 +89,8 @@ describe("sync-global.sh", () => {
     });
 
     test("validates JSON syntax before patching", () => {
-      expect(content).toContain('jq empty "$GLOBAL_JSON"');
+      expect(content).toContain("jsonc_to_json");
+      expect(content).toContain("jq empty");
       expect(content).toContain("is not valid JSON");
     });
 

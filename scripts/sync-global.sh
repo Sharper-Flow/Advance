@@ -57,9 +57,23 @@ GLOBAL_COMMANDS="$HOME/.config/opencode/command"
 GLOBAL_AGENTS="$HOME/.config/opencode/agents"
 GLOBAL_SKILLS="$HOME/.config/opencode/skills"
 GLOBAL_CONFIG="$HOME/.config/opencode"
-GLOBAL_JSON="$GLOBAL_CONFIG/opencode.json"
 
-# ADV entries that must exist in opencode.json
+# ---------------------------------------------------------------------------
+# Resolve config file: opencode.jsonc takes priority over opencode.json
+# (matches OpenCode's own resolution order)
+# ---------------------------------------------------------------------------
+GLOBAL_JSON_IS_JSONC=false
+if [ -f "$GLOBAL_CONFIG/opencode.jsonc" ]; then
+  GLOBAL_JSON="$GLOBAL_CONFIG/opencode.jsonc"
+  GLOBAL_JSON_IS_JSONC=true
+elif [ -f "$GLOBAL_CONFIG/opencode.json" ]; then
+  GLOBAL_JSON="$GLOBAL_CONFIG/opencode.json"
+else
+  # Neither exists yet — will be created as .json by --fix
+  GLOBAL_JSON="$GLOBAL_CONFIG/opencode.json"
+fi
+
+# ADV entries that must exist in opencode.json(c)
 ADV_PLUGIN_PATH="$REPO_ROOT/plugin"
 ADV_INSTRUCTION_PATH="$REPO_ROOT/ADV_INSTRUCTIONS.md"
 
@@ -79,14 +93,42 @@ check_jq() {
   return 0
 }
 
+# Strip JSONC comments (// and /* */) so jq can parse the content.
+# Handles both .json (no-op passthrough) and .jsonc files.
+# Usage: jsonc_to_json < file.jsonc | jq ...
+#    or: jsonc_to_json file.jsonc | jq ...
+jsonc_to_json() {
+  local input
+  if [ $# -gt 0 ] && [ -f "$1" ]; then
+    input="$(cat "$1")"
+  else
+    input="$(cat)"
+  fi
+  if [ "$GLOBAL_JSON_IS_JSONC" = true ]; then
+    # Strip JSONC comments:
+    #   1. Block comments: /* ... */
+    #   2. Full-line comments: lines starting with optional whitespace then //
+    #   3. Trailing comments: // at end of line (only when no " follows,
+    #      which preserves URLs like "https://..." inside strings)
+    # Uses '#' as sed delimiter to avoid conflicts with / in patterns.
+    echo "$input" | sed -E \
+      -e 's#/\*([^*]|\*[^/])*\*/##g' \
+      -e 's#^([[:space:]]*)//.*$#\1#' \
+      -e 's#[ \t]*//[^"]*$##'
+  else
+    printf '%s' "$input"
+  fi
+}
+
 # Check if a value exists in a JSON array at a given path.
 # Handles both exact match and tilde-expanded match.
+# Works with both .json and .jsonc config files.
 json_array_contains() {
   local file="$1" jq_path="$2" value="$3"
   local tilde_value="${value/#$HOME/\~}"
-  jq --arg exact "$value" --arg tilde "$tilde_value" \
+  jsonc_to_json "$file" | jq --arg exact "$value" --arg tilde "$tilde_value" \
     -e "($jq_path | if type == \"array\" then . else [.] end) | any(. == \$exact or . == \$tilde)" \
-    "$file" &>/dev/null
+    &>/dev/null
 }
 
 check_config() {
@@ -99,16 +141,20 @@ check_config() {
   fi
 
   if [ ! -f "$GLOBAL_JSON" ]; then
-    echo "    ✗  $GLOBAL_JSON does not exist"
+    echo "    ✗  No config file found (checked opencode.jsonc and opencode.json)"
     echo "       Run with --fix to create it, or see SETUP.md for manual setup"
     ((config_issues++)) || true
     return
   fi
 
-  # Validate JSON syntax
-  if ! jq empty "$GLOBAL_JSON" 2>/dev/null; then
-    echo "    ✗  $GLOBAL_JSON is not valid JSON"
-    echo "       Fix the JSON syntax manually before running --fix"
+  if [ "$GLOBAL_JSON_IS_JSONC" = true ]; then
+    echo "    ℹ  Config format: JSONC ($GLOBAL_JSON)"
+  fi
+
+  # Validate JSON(C) syntax
+  if ! jsonc_to_json "$GLOBAL_JSON" | jq empty 2>/dev/null; then
+    echo "    ✗  $GLOBAL_JSON is not valid JSON/JSONC"
+    echo "       Fix the syntax manually before running --fix"
     ((config_issues++)) || true
     return
   fi
@@ -134,9 +180,9 @@ check_config() {
   # Warn about stale global copy (wastes ~7K tokens per prompt)
   local stale_instr="~/.config/opencode/instructions/ADV_INSTRUCTIONS.md"
   local stale_instr_expanded="$HOME/.config/opencode/instructions/ADV_INSTRUCTIONS.md"
-  if jq -e --arg s1 "$stale_instr" --arg s2 "$stale_instr_expanded" \
+  if jsonc_to_json "$GLOBAL_JSON" | jq -e --arg s1 "$stale_instr" --arg s2 "$stale_instr_expanded" \
     '((.instructions // []) | if type == "array" then . else [.] end) | any(. == $s1 or . == $s2)' \
-    "$GLOBAL_JSON" &>/dev/null; then
+    &>/dev/null; then
     echo "    ⚠  instructions: stale duplicate found at $stale_instr"
     echo "       This wastes ~7K tokens per prompt. Run with --fix to remove."
     ((config_issues++)) || true
@@ -165,8 +211,9 @@ fix_config() {
   # Create config dir if needed
   mkdir -p "$GLOBAL_CONFIG"
 
-  # If no config file, create a minimal one
+  # If no config file, create a minimal one (always .json for new files)
   if [ ! -f "$GLOBAL_JSON" ]; then
+    GLOBAL_JSON="$GLOBAL_CONFIG/opencode.json"
     echo '{}' | jq \
       --arg plugin "$ADV_PLUGIN_PATH" \
       --arg instr "$ADV_INSTRUCTION_PATH" \
@@ -180,10 +227,16 @@ fix_config() {
     return 0
   fi
 
-  # Validate JSON before patching
-  if ! jq empty "$GLOBAL_JSON" 2>/dev/null; then
-    echo "    ✗  $GLOBAL_JSON is not valid JSON — fix syntax first"
+  # Validate JSON(C) before patching
+  if ! jsonc_to_json "$GLOBAL_JSON" | jq empty 2>/dev/null; then
+    echo "    ✗  $GLOBAL_JSON is not valid JSON/JSONC — fix syntax first"
     return 1
+  fi
+
+  # Warn about JSONC comment stripping
+  if [ "$GLOBAL_JSON_IS_JSONC" = true ]; then
+    echo "    ⚠  Config is JSONC — patching will strip comments from the file"
+    echo "       A backup will be created before any changes"
   fi
 
   # Back up before patching
@@ -195,8 +248,8 @@ fix_config() {
   local tmp_json
   tmp_json="$(mktemp)"
 
-  # Start with current config
-  cp "$GLOBAL_JSON" "$tmp_json"
+  # Convert to plain JSON for jq manipulation
+  jsonc_to_json "$GLOBAL_JSON" > "$tmp_json"
 
   # Patch plugin array if needed
   if ! json_array_contains "$tmp_json" ".plugin // []" "$ADV_PLUGIN_PATH"; then
@@ -231,9 +284,12 @@ fix_config() {
   fi
 
   if [ "$patched" -gt 0 ]; then
-    # Atomic write
+    # Atomic write — note: if source was JSONC, output is now plain JSON
     mv "$tmp_json" "$GLOBAL_JSON"
     echo "    Patched $patched entry/entries in $GLOBAL_JSON"
+    if [ "$GLOBAL_JSON_IS_JSONC" = true ]; then
+      echo "    ⚠  Comments were stripped during patching. Restore from backup if needed."
+    fi
   else
     rm -f "$tmp_json"
     echo "    No patches needed — config already correct"
