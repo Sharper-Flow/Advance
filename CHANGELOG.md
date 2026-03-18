@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-03-18
+
 ### Added
 
 #### `adv_change_update` Tool — Prevent Duplicate Change Creation
@@ -25,6 +27,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Severity: destructive migrations without rollback and hardcoded secrets are BLOCKERs; missing env vars and unprovisioned services are HIGH
 - Updated harden checklist from 5-scanner to 6-scanner coverage
 - Updated final report template with Deployment Readiness dimension
+
+#### Agent Tiering & Token Optimization
+
+- Introduced three-tier agent classification: Core (always loaded), Common (always loaded), Specialist (repo-scoped)
+- Core agents: `plan`, `build`, `refine`, `scout`, `orca` — available in all sessions
+- Common agents: `explore`, `librarian`, `general`, `mechanic` — available in all sessions
+- Specialist agents: `adv-researcher`, `tron` — repo-local, loaded only in ADV-enabled repos
+- Removed 11 phantom agent registrations from `opencode.json` that were never spawned (consumed ~4-5k tokens with zero functional purpose)
+- Measured agent payload with `tiktoken` (o200k_base): 11,862 tokens in ADV repos, 9,572 in non-ADV repos (down from 14,600)
+- Added Agent Tiers table to `ADV_INSTRUCTIONS.md` documenting loading strategy
+
+#### Prioritizer Skill Conversion
+
+- Converted `prioritizer` from a global agent to an on-demand skill at `~/.config/opencode/skills/prioritizer/SKILL.md`
+- Skill provides criteria question templates, decision map format, and research protocol — loaded only when needed via `skill("prioritizer")`
+- Updated `orca.md`, `criteria-prioritizer.md`, `ADV_INSTRUCTIONS.md`, `README.md`, and `SETUP.md` to reference the skill instead of the sub-agent
+
+#### `sync-global.sh` — JSONC Config Support
+
+- Config file resolution now matches OpenCode's own priority: `opencode.jsonc` > `opencode.json` > `config.json`
+- Added `jsonc_to_json` helper that strips `//` and `/* */` comments before passing to `jq`
+- Preserves URLs inside strings (e.g., `https://...`) during comment stripping
+- Warns when `--fix` will strip comments from a JSONC file (creates backup first)
+- New configs created by `--fix` use `.json` format for simplicity
+
+### Fixed
+
+#### `sync-global.sh` — Repo-Local Agent Leak
+
+- Fixed sync script unconditionally copying repo-local agents (`adv-researcher.md`, `tron.md`) to global config, undoing agent tiering
+- Added `REPO_LOCAL_ONLY` skip list to prevent repo-scoped agents from leaking into global
+- Stale-removal logic now actively cleans leaked repo-local agents from global
+
+#### `/adv-research` — Restored Sub-Agent Templates
+
+- Restored over-compressed operational instructions lost in the 60% token reduction
+- Restored librarian prompt template, adv-researcher prompt template, sub-agent failure detection criteria, inline fallback procedure, and explore agent fallback template
+
+#### Miscellaneous Fixes
+
+- Removed phantom tool names and fixed inconsistent MCP tool references across commands
+- Restored conversation context for `/adv-proposal` and `/adv-task`
+- Updated adv-researcher lgrep tool names
+- Fixed CI build failure masking
+- Synced pnpm lockfile overrides and pinned flatted to patched version
+- Replaced silent `catch {}` blocks with `debugLog` calls in `plugin/src/index.ts`
 
 ## [0.5.0] - 2026-03-14
 
