@@ -6,27 +6,15 @@ agent: general
 
 # ADV Research — Architectural Decision Validation
 
-Spawn sub-agents to validate architectural decisions using Context7 and web search. Applies simplicity bias — prefer boring solutions over clever ones.
+Validate architectural decisions via sub-agents using Context7 and web search. Simplicity bias — prefer boring solutions over clever ones.
 
 ## Command Boundary
 
-**Responsibility:** Validate HOW — architectural decisions, best practices, simplification opportunities.
+**Produces:** Research report, architecture health assessment (SOUND/DRIFTED/ANTI-PATTERN), simplification opportunities, `## Research Validation` in proposal.md.
 
-**Produces:**
-- Research report with validated decisions
-- Architecture health assessment (SOUND / DRIFTED / ANTI-PATTERN)
-- Simplification opportunities
-- Research Validation section in proposal.md (structured for prep consumption)
+**× MUST NOT:** Create tasks, complete non-research gates, modify task graph, make task decomposition decisions.
 
-**MUST NOT:**
-- Create tasks (`adv_task_add` is never called)
-- Complete non-research gates
-- Modify the task graph
-- Make task decomposition decisions (deferred to `/adv-prep`)
-
-**Gate affinity:** Completes `research` gate only.
-
-**See also:** Spec `adv-research` for formal requirements.
+**Gate:** Completes `research` only.
 
 <UserRequest>
   $ARGUMENTS
@@ -34,674 +22,182 @@ Spawn sub-agents to validate architectural decisions using Context7 and web sear
 
 ## Target Resolution
 
-Determine target (spec OR change):
-
-1. **If $ARGUMENTS provided**:
-   - Matches spec capability? Use `adv_spec action: "show"`
-   - Matches change-id? Use `adv_change_show`
-   - Ambiguous? Ask for clarification
-2. **If empty**: 
-   - Call `adv_change_list` and `adv_spec action: "list"` in parallel
-   - Present selection via the `question` tool
+1. If provided → matches spec capability? `adv_spec show`. Matches change-id? `adv_change_show`. Ambiguous? Ask.
+2. If empty → `adv_change_list` + `adv_spec list` in parallel → select via `question` tool.
 
 ---
 
 ## Phase 1: Analyze Target
 
-### Completed Tasks Are Proof-of-Concept, Not Finalized (CRITICAL)
+### Completed Tasks = Evidence to Validate (CRITICAL)
 
-**MUST read before proceeding.** If the change already has tasks marked `done`, treat them as implementation evidence to validate — not as acceptance proof. Agents sometimes skip ahead to implementation before research runs; this is expected and recoverable.
-
-**You MUST:**
-1. Load ALL tasks via `adv_task_list` (including done tasks) and review what was already built
-2. Research the full change as if nothing were finalized — evaluate every architectural decision, even those already implemented
-3. Apply your findings regardless of task status — if research reveals a problem with completed work, add targeted follow-up tasks (e.g., "Refactor X to align with Y", "Add missing test for Z")
-4. Never skip a research question because "that part is already done"
-
-**You MUST NOT:**
-- Rubber-stamp completed tasks as validated without actually researching them
-- Reopen or revert completed tasks — instead, add new reconciliation tasks where gaps are found
+If change has done tasks, treat as implementation evidence — not acceptance proof. Research the full change regardless of task status. If research reveals problems with completed work, note as follow-up items (× don't reopen tasks).
 
 ### Load Context
 
-**Step 1: Load Project Context (REQUIRED)**
+1. `adv_project_context` → full tech stack (framework, libraries, CSS, testing, etc.)
+2. For specs: `adv_spec show`. For changes: `adv_change_show` only — use the returned proposal/problem context, tasks, deltas, and gate snapshot. × Do not read `proposal.md` directly.
 
-Always load the full project context first:
-```
-adv_project_context
-```
+### Extract Decisions
 
-This provides the complete tech stack including:
-- Primary framework (e.g., SvelteKit, Next.js)
-- Component libraries (e.g., shadcn-svelte, Radix)
-- Underlying primitives (e.g., Bits UI, Headless UI)
-- CSS approach (e.g., Tailwind, CSS Modules)
-- State management, testing tools, etc.
+From requirements/deltas: technologies/libraries, design patterns, integration points, performance/security assumptions.
 
-**Step 2: Load Target**
+### Architecture Audit (CRITICAL)
 
-For specs:
-```
-adv_spec action: "show" capability: <name>
-```
+Before validating individual decisions, audit the existing codebase architecture:
 
-For changes:
-```
-adv_change_show changeId: <id>
-```
+1. Scan affected code area + neighbors
+2. Identify patterns: layer boundaries, dependency direction, separation of concerns, error handling, observability
+3. Compare against canonical best practices via Context7
+4. Classify: `SOUND` (safe to extend) | `DRIFTED` (accumulated inconsistencies) | `ANTI-PATTERN` (fundamentally wrong)
 
-Also read `proposal.md` for design context.
-
-### Extract Architectural Decisions
-
-Identify from requirements/deltas:
-1. **Technologies/libraries** referenced
-2. **Design patterns** described
-3. **Integration points** with external systems
-4. **Performance/security assumptions**
-
-### Existing Architecture Audit (CRITICAL)
-
-Before validating individual decisions, audit the **existing codebase architecture** that the change builds upon. The goal is to determine whether the change is **extending a bad pattern** or **moving toward best practices**.
-
-1. **Scan the affected code area** - Read the files the change touches and their neighbors
-2. **Identify existing architectural patterns** in use:
-   - Layer boundaries (controller → service → repository)
-   - Dependency direction (do dependencies point inward?)
-   - Separation of concerns (is business logic mixed with I/O?)
-   - Error handling strategy (consistent? ad-hoc?)
-   - Observability patterns (where do logs/traces/metrics live?)
-3. **Compare against by-the-book best practices** for the project's tech stack:
-   - Use Context7 to look up canonical architecture patterns for the framework
-   - Compare actual structure vs. recommended structure
-4. **Classify the existing architecture**:
-   - `SOUND` — Follows best practices, safe to extend
-   - `DRIFTED` — Was good, has accumulated inconsistencies
-   - `ANTI-PATTERN` — Fundamentally wrong, extending it makes things worse
-
-**If DRIFTED or ANTI-PATTERN**: The change MUST NOT simply add to the existing structure. Instead, the research output MUST recommend modifications to steer the change toward best-practice architecture. The change should leave the architecture *better* than it found it, not perpetuate existing problems.
-
-Document findings in the research report under `## Architecture Health Assessment`.
+If DRIFTED/ANTI-PATTERN → research output MUST recommend corrections. Change should leave architecture better, not perpetuate problems.
 
 ---
 
 ## Phase 1.5: Skill Discovery
 
-After loading project context (Step 1) and before generating research questions, scan for skills that may improve research quality for this change's tech stack and domain.
-
-### Step 1: Scan Available Skills
-
-Use the glob tool to find all skill manifests. Because tool calls do not expand `~`, resolve the global skills directory to an absolute path first, then use pattern `*/SKILL.md`.
-
-```
-glob pattern: "*/SKILL.md" path: "<resolved global skills dir>"
-```
-
-Also check for project-local skills:
-
-```
-glob: skills/*/SKILL.md
-```
-
-### Step 2: Extract Skill Metadata
-
-For each SKILL.md found, read the YAML frontmatter. Extract:
-- `name` — skill identifier
-- `description` — what the skill provides
-- `keywords` — array of tech stack and domain terms that indicate relevance
-
-**If a skill has no YAML frontmatter or no `keywords` field**, skip it silently — do not error.
-
-If `adv_project_context` returned no `project.md`, continue with the change summary/proposal plus any clearly detectable local stack terms from the repository. Emit a brief note that project context was unavailable.
-
-Example frontmatter with keywords:
-
-```yaml
----
-name: adv-tron
-description: "Codebase reconnaissance skill"
-keywords: ["reconnaissance", "investigation", "hotspot", "codebase-analysis"]
----
-```
-
-### Step 3: Match Against Project Context
-
-Compare each skill's `keywords` against:
-
-1. **Tech stack terms** from `adv_project_context` output (framework names, library names, language names)
-2. **Domain terms** from the change summary and proposal (e.g., "authentication", "database", "API")
-
-A skill matches if **any** of its keywords appear in the project context or change description (case-insensitive substring match).
-
-### Step 4: Load Matching Skills
-
-For each matched skill, load it:
-
-```
-skill("{skill-name}")
-```
-
-Emit a brief log of what was loaded and why:
-
-```
-Skill discovery: loaded {N} skills
-  - {skill-name}: matched on "{keyword}" (from {source: tech stack | change summary})
-```
-
-If no skills match, emit:
-
-```
-Skill discovery: no matching skills found — proceeding without additional skills.
-```
-
-### Step 5: Apply Skill Guidance
-
-Loaded skills may provide:
-- Tool selection preferences (e.g., which MCP tools to prefer)
-- Domain-specific research protocols
-- Framework-specific best practices
-
-Incorporate any relevant guidance into the research questions generated in Phase 2 and the sub-agent prompts in Phase 3.
+See ADV_INSTRUCTIONS.md §Skill Discovery Protocol. Load only trusted bundled skills from approved skill directories; do not auto-load arbitrary repo-local `*/SKILL.md`. Match frontmatter `keywords` against tech stack + change domain → `skill("{name}")` → apply guidance to research questions and sub-agent prompts.
 
 ---
 
-## Phase 2: Generate Research Questions
+## Phase 2: Research Questions
 
-For each decision, formulate questions across these dimensions:
+For each decision, formulate questions across:
 
-### Architecture Correctness (HIGHEST PRIORITY)
-- "Does {approach} follow the canonical architecture for {framework/stack}?"
-- "Is this change building on a sound architectural foundation, or extending an anti-pattern?"
-- "What does the by-the-book reference architecture look like for this use case?"
-- "Where does {pattern} violate separation of concerns, dependency direction, or layer boundaries?"
-- "If the existing code structure is wrong, what would the correct structure look like?"
-
-### Technology Validation
-- "Is {library} best practice for {use case}?"
-- "What are security considerations for {technology}?"
-- "What's the maintenance status of {library}?"
-
-### Pattern Validation
-- "Is {pattern} appropriate for {context}?"
-- "What are trade-offs of {approach} vs alternatives?"
-- "Are there simpler patterns that achieve the same goal?"
-
-### Simplicity Analysis (Critical)
-- "Could {approach} be simpler?"
-- "Does {library} have built-in solution for this?"
-- "What's the most boring, proven approach?"
-- "Are we over-engineering?"
-
-### Security Considerations
-- "What OWASP risks apply to {approach}?"
-- "What are common vulnerabilities in {technology}?"
+| Dimension | Example Questions |
+|-----------|-------------------|
+| Architecture (highest priority) | Canonical pattern for stack? Building on sound foundation? Reference architecture? Separation of concerns violations? |
+| Technology | Best practice for use case? Security considerations? Maintenance status? |
+| Patterns | Appropriate for context? Tradeoffs vs alternatives? Simpler patterns? |
+| Simplicity (critical) | Could be simpler? Built-in solution? Most boring approach? Over-engineering? |
+| Security | OWASP risks? Common vulnerabilities? |
 
 ---
 
-## Sub-Agent Resilience Protocol
+## Sub-Agent Resilience
 
-> **IMPORTANT**: Before spawning sub-agents, read and follow this protocol.
+Empty/failed result = transient failure (empty string, missing `VALIDATION:`/`FINDINGS:`, error-only).
 
-### What Can Go Wrong
-
-Sub-agents may return empty results or be interrupted due to context size or recursion.
-An empty result is **not a success** — treat it as a transient failure.
-
-### Detection
-
-A sub-agent result is considered **empty/failed** if:
-- The result string is empty, whitespace-only, or `null`
-- The result does not contain the expected `VALIDATION:` or `FINDINGS:` section
-- The result contains only an error message with no research content
-
-### Retry Protocol
-
-**If ANY sub-agent returns an empty/failed result:**
-
-1. **Retry once** — re-spawn that specific sub-agent with the same prompt
-2. **If retry also fails** — fall back to **inline research** for that question:
-   - Use Context7 directly (`resolve-library-id` + `query-docs`) in this session
-   - Use `kagi_search_fetch` for broader context
-   - Emit findings in the same structured format the sub-agent would have returned
-3. **Never skip a research question** — every question must produce a finding or explicit "inconclusive" result
-
-### Inline Fallback Research
-
-When falling back inline:
-- Use `context7_resolve-library-id` + `context7_query-docs` for library/framework questions
-- Use `kagi_search_fetch` for community guidance and current best practices
-- Use `grep-app_searchCode` for real-world implementation patterns
-- Emit findings with the same `VALIDATION:` / `RECOMMENDATION:` structure
+Protocol: retry once → if still fails → inline fallback (Context7 + Kagi + grep.app) → never skip a question.
 
 ---
 
 ## Phase 3: Spawn Research Sub-Agents
 
-Use SINGLE response with MULTIPLE Task calls (parallel execution).
+Spawn in SINGLE message for parallel execution.
 
-### Orchestrator Pattern (Recommended)
+### Orchestrator Pattern
 
-When researching, spawn TWO agents in parallel for best results:
+Two agents in parallel:
+1. **librarian** — docs, API refs, code examples
+2. **adv-researcher** — architecture validation, simplicity analysis
 
-1. **librarian** - Documentation lookups, API references, code examples
-2. **adv-researcher** - Architectural validation, simplicity analysis
+Skip librarian if research is purely architectural (no library/API lookups).
 
-This follows the industry-standard orchestrator-worker pattern where the command orchestrates and agents specialize.
+Check agent availability: `glob .opencode/agents/adv-researcher.md`. Librarian is always available.
 
-### Agent Detection
+### Librarian Prompt
 
-Check which agents are available:
+Pass: topic, project context (brief), specific documentation/example questions. Return: findings with sources, code examples, API references.
 
-```
-Use glob tool: .opencode/agents/adv-researcher.md
-```
+### adv-researcher Prompt
 
-The global `librarian` agent is always available (defined in `~/.config/opencode/agents/`).
-
-### Parallel Research Spawning
-
-**CRITICAL: Spawn BOTH agents in a SINGLE message for parallel execution.**
-
-Split research questions by agent specialty:
-
-| Question Type | Agent | Examples |
-|--------------|-------|----------|
-| Documentation lookup | `librarian` | "How to use X", "API params for Y", "Examples of Z" |
-| Architecture validation | `adv-researcher` | "Is this the right pattern?", "Could this be simpler?" |
-| Best practices | Both | Librarian finds docs, Researcher validates |
-
-### When to Skip Librarian
-
-**Skip librarian spawning if the research is purely architectural with no library/API lookups:**
-
-| Research Type | Spawn librarian? | Example |
-|---------------|------------------|---------|
-| "Is this design pattern correct?" | No | Internal architecture review |
-| "Could this be simpler?" | No | Complexity analysis |
-| "How to use library X?" | **Yes** | Documentation lookup needed |
-| "Best practices for pattern Y?" | **Yes** | Need external references |
-| "Compare our approach to industry standard" | **Yes** | Need reference implementations |
-
-**Decision heuristic**: If the research involves:
-- Specific libraries, frameworks, or APIs → Spawn librarian
-- Internal architecture or design patterns → adv-researcher only
-- Both external docs AND internal validation → Spawn both
-
-### Librarian Sub-Agent Template
-
-```
-Find documentation and examples for the following:
-
-TOPIC: {technology or pattern being researched}
-
-PROJECT CONTEXT:
-{brief description of what we're building}
-
-SPECIFIC QUESTIONS:
-{list of documentation/example questions}
-
-Return:
-- Key documentation findings with sources
-- Code examples from real projects
-- API reference information if relevant
-```
-
-### adv-researcher Sub-Agent Template
-
-When using `adv-researcher` agent, the system prompt already contains all behavioral instructions. Only pass task-specific context:
-
-```
-RESEARCH QUESTION: {question}
-
-PROJECT TECH STACK:
-{full content from adv_project_context - include ALL libraries, not just the primary framework}
-
-CONTEXT:
-{relevant spec/proposal excerpt}
-
-EXISTING CODEBASE PATTERNS:
-{summary of patterns found in Phase 1 audit}
-
-CODEBASE FILES:
-{list of relevant files the subagent should read}
-```
-
-**CRITICAL**: Include the FULL project context, not a summary. The sub-agent needs to know:
-- Component libraries (e.g., shadcn-svelte) to look up component-specific docs
-- Underlying primitives (e.g., Bits UI) that power those components
-- CSS frameworks, state management, testing tools, etc.
-
-Without this, the sub-agent cannot research the correct libraries for the project's actual stack.
-
-The agent's system prompt handles:
-- Research protocol (Context7 → grep.app → Kagi → arxiv)
-- Citation requirements
-- Simplicity bias
-- Response format
-- Anti-hallucination controls
+System prompt already contains behavioral instructions. Pass only: research question, minimally necessary tech stack/context from `adv_project_context`, relevant spec/proposal excerpt, existing codebase patterns from Phase 1 audit, relevant file list. Redact secrets/internal-only details before external research.
 
 ### Fallback Handling
 
-**If librarian agent fails or times out:**
-1. Log: "Librarian agent unavailable, continuing with adv-researcher only"
-2. Proceed with adv-researcher results
-3. Note in synthesis: "Documentation research incomplete - manual lookup may be needed"
+| Failure | Action |
+|---------|--------|
+| Librarian fails | Continue with adv-researcher only, note "docs research incomplete" |
+| adv-researcher fails | Fall back to `explore` agent with full research protocol instructions |
+| Both fail | Manual research via Context7 + grep.app + Kagi directly |
 
-**If adv-researcher fails:**
-1. Log: "adv-researcher agent unavailable, falling back to explore with research protocol"
-2. Use the Fallback Sub-Agent Template below
-3. Spawn librarian normally for documentation
+### Explore Fallback Template
 
-**If both fail:**
-1. Log: "All research agents unavailable"
-2. Emit warning in report: "Research incomplete - no sub-agents available"
-3. Do manual research using Context7, grep.app, Kagi directly
-
-### Fallback Sub-Agent Template
-
-When using `explore` agent as fallback (no adv-researcher.md), include full instructions:
-
-```
-Research architectural decision:
-
-QUESTION: {question}
-
-PROJECT TECH STACK:
-{full content from adv_project_context - include ALL libraries}
-
-CONTEXT: {spec excerpt}
-
-EXISTING CODEBASE PATTERNS: {summary of patterns found in Phase 1 audit}
-
-RESEARCH PROTOCOL:
-- You MUST cite sources for every factual claim
-- Use Context7 first for library/framework questions (resolve-library-id → query-docs)
-- Use grep.app to find real-world code examples
-- Prefer simple, boring solutions over complex ones
-- If unsure, say "I don't know" rather than guess
-- Every finding MUST include a source URL
-
-TASK:
-1. Use Context7: resolve-library-id, then query-docs
-2. Look up the CANONICAL/REFERENCE architecture for this tech stack
-3. Web search for best practices
-4. Compare the PROPOSED architecture against the REFERENCE architecture
-
-RETURN:
-RESEARCH QUESTION: {question}
-
-FINDINGS:
-- {finding with source URL}
-
-ARCHITECTURE ASSESSMENT:
-- Existing pattern: {what the codebase currently does}
-- Reference pattern: {what the by-the-book approach is}
-- Deviation: {NONE | MINOR | MAJOR}
-
-VALIDATION: VALIDATED | CONCERNS | ANTI-PATTERN | NEEDS_MORE_INFO
-
-RECOMMENDATION: {specific action}
-
-SOURCES:
-- {source with URL}
-```
+Include: question, full tech stack, context, codebase patterns, research protocol (cite sources, Context7 first, grep.app for examples, prefer simple/boring, say "I don't know" vs guess). Return: findings, architecture assessment (existing vs reference pattern, deviation level), validation status, recommendation, sources.
 
 ---
 
 ## Phase 4: Synthesis
 
-> **Anti-Loop Protocol**: After sub-agents return:
-> `>>> SYNTHESIS COMPLETE - GENERATING REPORT <<<`
-> Write report immediately. Skip prose summaries.
+> Anti-Loop: after sub-agents return → `>>> SYNTHESIS COMPLETE <<<` → write report immediately.
 
-### Research Report
+### Research Report Structure
 
 ```markdown
 # Architecture Research: {target}
 
 ## Summary
-{2-3 sentence overview}
-
 ## Architecture Health Assessment
-
-### Existing Architecture Classification: {SOUND | DRIFTED | ANTI-PATTERN}
-
-{Assessment of the existing code architecture the change builds upon}
-
-| Area | Existing Pattern | Reference Pattern | Deviation | Impact |
-|------|-----------------|-------------------|-----------|--------|
-| {area} | {what exists} | {what's correct} | {NONE/MINOR/MAJOR} | {risk if unchanged} |
-
-### Architecture Corrections Required
-{If DRIFTED or ANTI-PATTERN: specific changes needed to steer toward
- best practices. These take priority over feature work.}
-
-1. {correction with authoritative source citation}
-
+### Classification: {SOUND | DRIFTED | ANTI-PATTERN}
+| Area | Existing | Reference | Deviation | Impact |
+### Corrections Required (if DRIFTED/ANTI-PATTERN)
 ### Minimum Viable Correction
-{If full correction is too large: the minimum changes this proposal
- MUST make to avoid perpetuating the anti-pattern, plus follow-up
- tasks for complete correction.}
-
 ## Validated Decisions
-{confirmed best practices - keep these}
-
 ## Simplification Opportunities
-{simpler approaches that meet requirements - prioritize these}
-
 | Current | Simpler Alternative | Effort | Recommendation |
-|---------|---------------------|--------|----------------|
-| {approach} | {alternative} | {effort} | {action} |
-
 ## Concerns
-{trade-offs requiring attention}
-
 ## Anti-Patterns Detected
-{contradicts best practices - requires revision}
-
 ## Over-Engineering Flags
-{complexity without corresponding benefit}
-
-## Detailed Findings
-
-### {Decision Area}
-**Current:** {spec decision}
-**Reference (by-the-book):** {canonical approach with source}
-**Research:** {findings}
-**Simpler Option:** {if exists}
-**Recommendation:** {action}
-**Sources:** {list}
-
-## Action Items
-- [ ] {architecture corrections first}
-- [ ] {then simplifications}
-- [ ] {then feature-specific changes}
-
-## Confidence
-- High: {well-validated aspects}
-- Low: {needs more research}
+## Detailed Findings (per decision area)
+## Action Items (corrections → simplifications → features)
+## Confidence (high/low aspects)
 ```
 
 ---
 
 ## Phase 5: Apply Findings
 
-### Determine Scope
+### Duplicate Change Prevention (CRITICAL)
 
-> **CRITICAL GUARD — Duplicate Change Prevention:**
-> If this research session was invoked with a `changeId` (i.e., `/adv-research <change-id>`),
-> you are operating on an **active change**. You MUST use the "For Active Changes" path below.
-> **NEVER call `adv_change_create` when a changeId was provided as input.**
-> Calling `adv_change_create` on an active change will create a duplicate (e.g., `changeX2`)
-> because the collision-handling code auto-increments the ID.
+If invoked with changeId → × NEVER call `adv_change_create`. Use `adv_change_update` only.
 
-**If target is deployed spec AND no changeId was provided**: Create change proposal (no tasks — defer to `/adv-prep`). Requires explicit user confirmation before creating.
-**If target is active change (changeId was provided)**: Update proposal.md using `adv_change_update`. **Never create a new change.**
+### For Deployed Specs (no changeId)
 
-### For Deployed Specs (no changeId provided)
+Confirm with user via `question` → if approved: `adv_change_create` → update proposal with findings. × No tasks — `/adv-prep` synthesizes from findings.
 
-> Only use this path when researching a standalone spec capability, NOT when researching an active change.
+### For Active Changes (changeId provided)
 
-1. **Confirm with user before creating** — use the `question` tool:
-   ```json
-   {
-     "questions": [{
-       "header": "Create Change?",
-       "question": "Research found issues with deployed spec '{capability}'. Create a new change to address them?",
-       "options": [
-         { "label": "Create change (Recommended)", "description": "Create a new change proposal for the findings" },
-         { "label": "Report only", "description": "Just document findings, don't create a change" },
-         { "label": "Other", "description": "Use custom text area for a different action" }
-       ]
-     }]
-   }
-   ```
+Build `## Research Validation` section → `adv_change_update changeId: "<id>" proposal: "<updated>"`.
 
-2. If confirmed, create change:
-   ```
-   adv_change_create summary: "Simplify/harden {capability} based on research"
-   ```
-
-3. Update proposal.md with research findings (do NOT create tasks — `/adv-prep` will synthesize tasks from findings)
-
-### For Active Changes (changeId was provided)
-
-1. Build the updated proposal content with a `## Research Validation` section containing:
-   - Validated Decisions
-   - Architecture Corrections Required
-   - Simplification Opportunities
-   - Action Items (structured for `/adv-prep` to create tasks from)
-
-2. Persist using `adv_change_update` (both `proposal` and `problemStatement` are optional — only provided fields are written):
-   ```
-   adv_change_update changeId: "<change-id>" proposal: "<full updated proposal content>"
-   ```
-
-   If the problem statement also changed:
-   ```
-   adv_change_update changeId: "<change-id>" proposal: "<full updated proposal content>" problemStatement: "<updated problem statement>"
-   ```
-
-   > **CRITICAL:** Do NOT call `adv_change_create` to update an active change. That creates a duplicate (e.g. `changeId2`). Always use `adv_change_update`.
-
-3. Update deltas if requirements need revision
-
-> **Boundary rule:** Do NOT call `adv_task_add`. Findings are recorded in proposal.md.
-> `/adv-prep` reads these findings and synthesizes the task graph.
->
-> **Duplicate prevention rule:** Do NOT call `adv_change_create` in this path. The change already exists.
+× Do NOT call `adv_task_add` — findings go in proposal.md for `/adv-prep`.
+× Do NOT call `adv_change_create` — change already exists.
 
 ---
 
 ## Phase 6: Contract Tracking
 
-If findings require updates:
-
-```
-============================================================
-                    CONTRACT ACTIVE
-============================================================
-
-OBJECTIVE: Apply research findings to {target}
-
-SUCCESS CRITERIA:
-{for each finding requiring action}
-- [ ] (R{n}) {finding} - {action}
-{end}
-- [ ] All sources cited in proposal.md
-- [ ] Architecture corrections applied (if any deviations found)
-
-PRIORITIZED BY:
-1. Architecture corrections (DRIFTED/ANTI-PATTERN fixes)
-2. Security issues
-3. Simplification opportunities
-4. Anti-pattern fixes in proposed design
-5. General improvements
-
-============================================================
-```
-
-After applying updates:
-
-```
-============================================================
-                  CONTRACT FULFILLED
-============================================================
-
-OBJECTIVE: Apply research findings to {target}
-
-ALL CRITERIA MET:
-{for each finding}
-- [x] (R{n}) {finding} - {evidence}
-{end}
-
-============================================================
-```
+Emit CONTRACT ACTIVE with findings as criteria, prioritized: architecture corrections → security → simplifications → anti-patterns → improvements. After applying → CONTRACT FULFILLED with evidence.
 
 ---
 
 ## Phase 7: Completion
 
-### Mark Research Gate (for changes)
-
-If target is a change, mark the research gate as complete:
+Mark gate: `adv_gate_complete changeId: {change-id} gateId: research`
 
 ```
-adv_gate_complete changeId: {change-id} gateId: research
-```
-
-### Summary
-
-```
-## Research Complete
-
-FILES UPDATED:
-- {list}
-
-KEY CHANGES:
-1. {change with rationale}
-
-SIMPLIFICATIONS APPLIED:
-- {what was simplified and why}
-
-GATE STATUS:
-- Research gate: COMPLETE ✓
-
-NEXT STEPS:
-- [ ] Review updates
-- [ ] /adv-prep {change-id} (next gate)
-- [ ] /adv-validate {change-id}
-```
-
-### Completion Banner
-
-```
-============================================================
-       /adv-research {target} COMPLETE
-============================================================
+/adv-research {target} COMPLETE
 Result: {N findings applied | All validated | Report only}
-Simplifications: {N opportunities identified}
+Simplifications: {N opportunities}
 Research Gate: MARKED COMPLETE
-
-  ⚡ Recommended next step:
-     /adv-prep {change-id}
-============================================================
+Next: /adv-prep {change-id}
 ```
 
 ---
 
 ## Guiding Principles
 
-1. **Never extend a bad architecture** - If the existing structure is wrong, recommend corrections, don't rubber-stamp it
-2. **By-the-book first** - Always compare against the canonical/reference architecture for the tech stack
-3. **Context7 first** for library and framework research
-4. **Parallel sub-agents** for efficiency
-5. **Cite sources** for every claim, especially for what "correct architecture" means
-6. **Actionable recommendations** for every concern
-7. **Simplicity bias** - always ask "could this be simpler?"
-8. **Boring is better** - prefer proven over novel
-9. **Always update files** - research without action is incomplete
-10. **Correct, then extend** - Fix architectural deviations before adding new features on top of them
+1. × Never extend bad architecture — recommend corrections
+2. By-the-book first — compare against canonical reference
+3. Context7 first for library/framework research
+4. Parallel sub-agents for efficiency
+5. Cite sources for every claim
+6. Actionable recommendations for every concern
+7. Simplicity bias — "could this be simpler?"
+8. Boring > novel
+9. Research without action is incomplete
+10. Correct, then extend
 
 ---
 
@@ -709,8 +205,8 @@ Research Gate: MARKED COMPLETE
 
 | Purpose | Tool |
 |---------|------|
-| Load spec | `adv_spec action: "show" capability: <name>` |
+| Load spec | `adv_spec action: "show"` |
 | Load change | `adv_change_show` |
 | Create change | `adv_change_create` |
-| Update proposal | `adv_change_update changeId: "..." proposal: "..." [problemStatement: "..."]` |
+| Update proposal | `adv_change_update` |
 | Context7 | `resolve-library-id`, `query-docs` |

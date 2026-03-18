@@ -6,174 +6,48 @@ agent: general
 
 # ADV Coordinate — Multi-Change Conflict Detection
 
-Analyze all active changes to detect file overlaps, semantic conflicts, and dependency cycles. This command runs **inline** — no sub-agents are spawned.
+Analyze active changes for file overlaps, semantic conflicts, and dependency cycles. Runs **inline** — no sub-agents.
 
-## Pre-flight Checks
+## Pre-flight
 
-### Check for Active Changes
+`adv_change_list` → if no changes or only one → emit dashboard noting no coordination needed → stop.
 
-```
-adv_change_list
-```
-
-**If no changes:**
-```
-============================================================
-                COORDINATION DASHBOARD
-============================================================
-
-No active changes to coordinate.
-
-RECOMMENDATION:
-> Run /adv-proposal to create a new change
-============================================================
-```
-Stop.
-
-**If only one change:**
-```
-============================================================
-                COORDINATION DASHBOARD
-============================================================
-
-Only one active change - coordination not needed.
-
-ACTIVE: {change-id}
-Progress: {N/M tasks}
-
-RECOMMENDATION:
-> Check back when multiple changes are active
-============================================================
-```
-Stop.
-
-### Worktree Context Propagation
-
-When running from a worktree, file overlap detection must use the correct working directory to verify file existence and read file contents.
-
-**Detect current working directory:**
-
-```bash
-pwd
-```
-
-Record the result as `{workdir}`. Use `{workdir}` as the base path for all file reads, glob patterns, and grep operations in Phase 2 analysis.
+Worktree context: `pwd` → record `{workdir}` for file reads.
 
 ---
 
 ## Phase 1: State Collection
 
-For each active change, call:
-```
-adv_change_show changeId: <id>
-```
+For each active change: `adv_change_show` → extract affected files, requirements from deltas, task dependencies.
 
-Extract:
-- Affected files
-- Requirements from deltas
-- Task dependencies
-
-Build coordination state:
-- `changes`: Map of change-id -> affected files
-- `locks`: Map of file -> owning change-ids
-- `requirements`: Map of change-id -> requirements
+Build: changes → affected files map, file → owning change-ids map, change → requirements map.
 
 ---
 
 ## Phase 2: Analysis
 
-### Overlap Detection
-
-Identify files modified by 2+ changes (hot files).
-
-### Semantic Conflict Detection
-
-Compare requirements across changes for:
-- Same identifier targeted by different changes
-- Incompatible actions (Rename vs Update, Delete vs Modify)
-
-### Dependency Cycle Detection
-
-Check if changes form circular dependencies:
-- Change A blocks Change B
-- Change B blocks Change A (cycle)
+1. **Overlap detection** — files modified by 2+ changes (hot files)
+2. **Semantic conflicts** — same identifier targeted by different changes, incompatible actions (rename vs update, delete vs modify)
+3. **Dependency cycles** — circular blocking between changes
 
 ---
 
 ## Phase 3: Report
 
-```
-============================================================
-                COORDINATION DASHBOARD
-============================================================
-
-ACTIVE CHANGES: {N}
-------------------------------------------------------------
-{change-id-1}     {N/M tasks}    {file_count} files
-{change-id-2}     {N/M tasks}    {file_count} files
-
-HOT FILES (Overlaps)
-------------------------------------------------------------
-{if overlaps}
-! {file-path} : Modified by {id1}, {id2}
-{else}
-No file overlaps detected.
-{end}
-
-SEMANTIC CONFLICTS
-------------------------------------------------------------
-{if conflicts}
-? {identifier} :
-  - {id1} ({action}): {requirement}
-  - {id2} ({action}): {requirement}
-{else}
-No semantic conflicts detected.
-{end}
-
-DEPENDENCIES & CYCLES
-------------------------------------------------------------
-{if cycles}
-X CYCLE: {id-a} -> {id-b} -> {id-a} (BLOCKING)
-{else}
-No dependency cycles detected.
-{end}
-
-SUGGESTED SEQUENCE
-------------------------------------------------------------
-{based on findings}
-1. {highest priority action}
-2. {next action}
-
-============================================================
-```
-
----
-
-## Suggested Sequence Logic
+Emit COORDINATION DASHBOARD: active change count with task progress and file counts, hot files (overlaps), semantic conflicts, dependency cycles, suggested sequence.
 
 | Finding | Priority | Recommendation |
 |---------|----------|----------------|
-| Cycles | CRITICAL | "RESOLVE: Break dependency between {changes}" |
-| Hot files (3+) | HIGH | "SERIALIZE: Implement {change} first" |
-| Semantic conflicts | HIGH | "REVIEW: {id1} and {id2} both target {identifier}" |
-| Hot files (2) | MEDIUM | "COORDINATE: {id1} and {id2} modify {file}" |
-
----
-
-## Completion Banner
+| Cycles | CRITICAL | Break dependency |
+| Hot files (3+) | HIGH | Serialize — implement one first |
+| Semantic conflicts | HIGH | Review both changes |
+| Hot files (2) | MEDIUM | Coordinate modifications |
 
 ```
-============================================================
-      /adv-coordinate COMPLETE
-============================================================
+/adv-coordinate COMPLETE
 Result: {N changes analyzed | No coordination needed}
-
-  ⚡ Recommended next step (Plan agent):
-     /adv-proposal <summary>
-============================================================
+Next: /adv-proposal
 ```
-
----
 
 ## Key Tools
 

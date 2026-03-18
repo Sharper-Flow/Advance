@@ -6,19 +6,18 @@ agent: general
 
 # ADV Harden — Post-Implementation Quality Analysis
 
-Orchestrate multi-dimensional hardening analysis using sub-agents. **Blocks archive if any actionable `REVIEW_FINDINGS` are unresolved and not documented as accepted debt.**
+Orchestrate multi-dimensional hardening via sub-agents. **Blocks archive if actionable `REVIEW_FINDINGS` are unresolved and not documented as accepted debt.**
 
 ## Exits
 
 | Exit | Condition |
 |------|-----------|
-| ✅ READY | No blockers or high findings; harden gate marked complete |
-| 🔁 NEEDS_WORK | High findings present; agent fixes then re-verifies |
-| 🎤 BLOCKED | Blocker findings or unresolved review findings; user decides |
+| ✅ READY | No blockers/high findings; harden gate complete |
+| 🔁 NEEDS_WORK | High findings → agent fixes → re-verifies |
+| 🎤 BLOCKED | Blocker or unresolved review findings → user decides |
 
 > **SUB-AGENT CONTEXT**: Return findings as JSON. Skip status markers.
->
-> **CHECKLIST**: Follow [docs/checklists/harden-checklist.md](../../docs/checklists/harden-checklist.md) for minimum findings enforcement.
+> **CHECKLIST**: Follow [docs/checklists/harden-checklist.md](../../docs/checklists/harden-checklist.md).
 
 <UserRequest>
   $ARGUMENTS
@@ -27,300 +26,79 @@ Orchestrate multi-dimensional hardening analysis using sub-agents. **Blocks arch
 ## Parse Flags
 
 Extract from `$ARGUMENTS`:
-- `change-id`: Target change (optional - will prompt if missing)
+- `change-id`: Target change (prompt if missing)
 - `--no-cleanup`: Skip cleanup phase
-- `--execute`: Actually delete cleanup files (default: preview)
+- `--execute`: Delete cleanup files (default: preview)
 - `--interactive`: Select individual files to delete
 - `--force`: No prompts (requires --execute)
 
 ## Target Resolution
 
-1. **If change-id provided**: Use directly
-2. **If empty**: Call `adv_change_list`, select via the `question` tool
+1. If change-id provided → use directly
+2. If empty → `adv_change_list` → select via `question` tool
 
 ## Pre-flight
 
 ### Fetch Change Context
 
-```
-adv_change_show changeId: <target>
-adv_task_list changeId: <target>
-```
+`adv_change_show` + `adv_task_list` for target change.
 
 ### Gate Prerequisite Check
 
-```
-adv_gate_status changeId: {change-id}
-```
+`adv_gate_status changeId: {change-id}`
 
-**If review gate is NOT complete (status != 'done' and status != 'legacy'):**
-
-```
-============================================================
-            HARDEN BLOCKED - PREREQUISITE GATE INCOMPLETE
-============================================================
-
-The review gate must be completed before running harden.
-
-GATE STATUS:
-- [ ] Review: {status}
-
-REQUIRED ACTION:
-Run /adv-review {change-id} to complete code review and mark the gate.
-
-============================================================
-```
-Stop execution.
+If review gate NOT complete (status != 'done' and status != 'legacy') → emit HARDEN BLOCKED banner citing incomplete review gate → stop. Required action: `/adv-review {change-id}`.
 
 ### Cancellation & Cross-Repo Audit
 
-Before proceeding to hardening, audit all cancelled and cross-repo tasks:
+**Step 1: Unapproved cancellations** — From `adv_task_list`, find cancelled tasks. Verify each has `task.cancellation.approved_by_user === true`. If any lack approval → emit HARDEN BLOCKED banner listing unapproved tasks → stop.
 
-**Step 1: Check for unapproved cancellations**
-
-From `adv_task_list`, find all tasks with `status: "cancelled"`.
-For each, verify `task.cancellation.approved_by_user === true`.
-
-**If ANY cancelled task lacks approval metadata:**
-
-```
-============================================================
-        HARDEN BLOCKED - UNAPPROVED CANCELLATIONS
-============================================================
-
-The following cancelled tasks lack user approval records:
-
-{for each unapproved task}
-- {task.id}: {task.title}
-  Status: cancelled (NO APPROVAL RECORD)
-{end}
-
-REQUIRED ACTION:
-Re-open these tasks and complete them, or obtain user approval
-via adv_task_cancel before re-running /adv-harden.
-
-============================================================
-```
-Stop execution.
-
-**Step 2: Check cross-repo task completion**
-
-For tasks with `target_repo` or `target_path` set:
-1. Verify the task status is `done` (not just `in_progress` or `pending`)
-2. If a cross-repo task is cancelled, verify it has approval metadata (covered by Step 1)
-
-**If ANY cross-repo task is incomplete (not done or approved-cancelled):**
-
-```
-============================================================
-        HARDEN BLOCKED - INCOMPLETE CROSS-REPO TASKS
-============================================================
-
-The following cross-repo tasks are not completed:
-
-{for each incomplete cross-repo task}
-- {task.id}: {task.title}
-  Target: {target_repo} ({target_path})
-  Status: {status}
-{end}
-
-REQUIRED ACTION:
-Complete these tasks in their target repositories before hardening.
-Use workdir to switch to the target repo and execute.
-
-============================================================
-```
-Stop execution.
+**Step 2: Cross-repo completion** — For tasks with `target_repo`/`target_path`, verify status is `done` (or approved-cancelled). If incomplete → emit HARDEN BLOCKED banner listing incomplete cross-repo tasks → stop.
 
 ### Review Findings Audit
 
-Before running hardening scanners, verify all actionable review findings have been addressed.
+Verify all actionable review findings addressed before running scanners.
 
-**Step 1: Load stored review findings**
+**Step 1:** Load stored `REVIEW_FINDINGS` from task notes or proposal. If unavailable, warn but don't block.
 
-Check change notes and task completion evidence for a `REVIEW_FINDINGS` block emitted by `/adv-review`. If present in any task's `completed_by` notes or in the change proposal, extract the finding list.
+**Step 2:** Classify each finding:
+- Actionable: `blocker:`, `issue:`, `suggestion:`, `question:` (NOT `nit:`)
+- Resolved: fixed in subsequent task (evidence in `completed_by` notes) ✓
+- Accepted debt: documented in `proposal.md` with quadrant, interest rate, payoff date ✓
+- Unresolved: not fixed, not documented ✗
 
-If no stored findings are available, check the review gate completion timestamp and ask the agent to recall or re-read the review output. If truly unavailable, emit a warning but do not block.
+If unresolved actionable findings → emit HARDEN BLOCKED banner listing each with `[{label}] {file}:{line} — {what}` → stop. Required: fix or document as accepted debt.
 
-**Step 2: Identify unresolved actionable findings**
-
-Actionable findings are those labeled: `blocker:`, `issue:`, `suggestion:`, `question:`.
-`nit:` findings are excluded — they are optional and do not block harden.
-
-For each actionable finding, determine if it was:
-- **Resolved**: Fixed in a subsequent task (verifiable in task `completed_by` notes mentioning the finding) ✅
-- **Accepted as debt**: Documented in `proposal.md` with debt quadrant, interest rate, and payoff date ✅
-- **Unresolved**: Not fixed and not documented as debt ❌
-
-**If ANY unresolved actionable findings exist:**
-
-```
-============================================================
-        HARDEN BLOCKED - UNRESOLVED REVIEW FINDINGS
-============================================================
-
-The following review findings were not addressed:
-
-{for each unresolved finding}
-- [{label}] {file}:{line} — {what}
-  Why: {why}
-  Status: UNRESOLVED (not fixed, not documented as accepted debt)
-{end}
-
-REQUIRED ACTIONS (choose one per finding):
-a) Fix the issue and update task notes with evidence
-b) Document as accepted debt in proposal.md:
-   - Debt type and Fowler quadrant
-   - Interest rate (cost of not fixing)
-   - Planned payoff date
-
-Once resolved or documented, re-run /adv-harden {change-id}.
-
-============================================================
-```
-Stop execution.
-
-**If all actionable findings are resolved or accepted:**
-
-```
-============================================================
-           REVIEW FINDINGS AUDIT: PASSED
-============================================================
-
-Actionable findings from /adv-review: {total}
-  Resolved: {resolved_count}
-  Accepted as debt: {debt_count}
-  Unresolved: 0 ✓
-
-nit: findings (not required): {nit_count}
-
-============================================================
-```
-
-Proceed to merge compatibility check.
+If all resolved → emit REVIEW FINDINGS AUDIT: PASSED banner → proceed.
 
 ### Merge Compatibility Check
 
-Verify the change branch can merge cleanly into the default branch **before** running quality scanners. This is a non-destructive dry-run — nothing is committed.
+Dry-run merge of change branch into default branch. Non-destructive — nothing committed.
 
-**Skip if:** Not in a worktree (i.e., already on the default branch).
+Skip if not in a worktree.
 
-**Step 1: Detect default branch**
-
-```bash
-git rev-parse --verify main 2>/dev/null && echo main || \
-  git rev-parse --verify trunk 2>/dev/null && echo trunk || \
-  git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's|refs/remotes/origin/||' || \
-  echo "UNKNOWN"
-```
-
-If UNKNOWN, prompt the user via the `question` tool.
-
-**Step 2: Fetch latest default branch**
-
-```bash
-git fetch origin {default-branch} 2>/dev/null || true
-```
-
-Use `origin/{default-branch}` if fetch succeeds; fall back to local `{default-branch}` if no remote.
-
-**Step 3: Dry-run merge**
-
-```bash
-git merge --no-commit --no-ff origin/{default-branch}
-```
-
-**If merge succeeds (exit 0):**
-
-```bash
-git merge --abort
-```
-
-```
-============================================================
-         MERGE COMPATIBILITY CHECK: PASSED
-============================================================
-
-Branch: change/{change-id}
-Target: {default-branch}
-Result: Clean merge ✓
-
-============================================================
-```
-
-Proceed to Phase 1 scanners.
-
-**If merge has conflicts (exit non-zero):**
-
-Capture the conflict list before aborting:
-
-```bash
-git diff --name-only --diff-filter=U
-git merge --abort
-```
-
-```
-============================================================
-     HARDEN BLOCKED - MERGE CONFLICTS DETECTED
-============================================================
-
-Branch change/{change-id} cannot merge cleanly into {default-branch}.
-
-CONFLICTING FILES:
-{for each conflicting file}
-- {file}
-{end}
-
-REQUIRED ACTION:
-Rebase or merge {default-branch} into your change branch to resolve
-conflicts, then re-run /adv-harden {change-id}.
-
-  git merge --no-edit origin/{default-branch}
-  # resolve conflicts
-  git add .
-  git commit -m "merge: resolve conflicts with {default-branch}"
-
-============================================================
-```
-
-Stop execution.
+1. Detect default branch: `git rev-parse --verify main` || `trunk` || `git symbolic-ref refs/remotes/origin/HEAD`
+2. Fetch: `git fetch origin {default-branch} 2>/dev/null || true`
+3. Dry-run: `git merge --no-commit --no-ff origin/{default-branch}`
+4. If clean → `git merge --abort` → PASSED banner → proceed
+5. If conflicts → capture `git diff --name-only --diff-filter=U` → `git merge --abort` → HARDEN BLOCKED banner listing conflicting files → stop
 
 ### Extract Details
 
-From change data:
-- Affected files (from proposal.md)
-- Task completion status
-- Spec deltas and scenarios
+From change data: affected files, task completion status, spec deltas/scenarios.
 
 ### Worktree Context Propagation
 
-Sub-agents inherit the default project root, NOT the current working directory. When running from a worktree, sub-agents will look for files in the wrong location unless explicitly told where to look.
+Sub-agents inherit default project root, NOT current workdir. When in a worktree:
 
-**Step 1: Detect current working directory**
-
-```bash
-pwd
-```
-
-Record the result as `{workdir}`.
-
-**Step 2: Include in every sub-agent prompt**
-
-Every sub-agent spawned in Phase 1 MUST include:
-
-```
-WORKING DIRECTORY: {workdir}
-All file paths are relative to this directory.
-Use this as the base path for all read/glob/grep/lgrep operations.
-```
-
-**Why this matters:** When running from a git worktree (e.g., `~/.local/share/opencode/worktree/.../change/featureX`), the worktree has different file contents than the main repo. Sub-agents that don't know the working directory will read stale files from the wrong branch, report false positives, or fail to find files that only exist on the worktree branch.
+1. `pwd` → record as `{workdir}`
+2. Include in every sub-agent prompt: `WORKING DIRECTORY: {workdir}` — all file paths relative to this directory
 
 ---
 
 ## Technical Debt Quadrant
 
-Classify any debt found using Fowler's quadrant:
+Classify debt using Fowler's quadrant:
 
 | | Prudent | Reckless |
 |---|---------|----------|
@@ -329,683 +107,190 @@ Classify any debt found using Fowler's quadrant:
 
 ---
 
-## Sub-Agent Resilience Protocol
+## Sub-Agent Resilience
 
-> **IMPORTANT**: Before spawning sub-agents, read and follow this protocol.
+Sub-agents may return empty/failed results. Detection: empty string, missing `"dimension"` key, error-only output.
 
-### What Can Go Wrong
+Protocol: retry once → if still fails → inline fallback analysis → never skip a dimension.
 
-Sub-agents may return empty results or be interrupted due to context size or recursion.
-An empty result is **not a success** — treat it as a transient failure.
-
-### Detection
-
-A sub-agent result is considered **empty/failed** if:
-- The result string is empty, whitespace-only, or `null`
-- The result does not contain the expected `"dimension"` JSON key
-- The result contains only an error message with no findings
-
-### Retry Protocol
-
-**If ANY sub-agent returns an empty/failed result:**
-
-1. **Retry once** — re-spawn that specific sub-agent with the same prompt
-2. **If retry also fails** — fall back to **inline analysis** for that dimension:
-   - Read the affected files directly using the `read` tool
-   - Perform the analysis yourself inline (no sub-agent)
-   - Emit findings in the same JSON structure the sub-agent would have returned
-3. **Never skip a dimension** — every dimension must produce findings or an explicit "no issues found" result
-
-### Inline Fallback Scanner
-
-When falling back inline, use this checklist per dimension:
-
-| Dimension | Inline Check |
-|-----------|-------------|
-| Test Coverage | Check for test files alongside source files; verify TDD evidence in task notes |
-| AI Slop Detection | Scan for generic variable names, copy-paste blocks, placeholder comments |
-| Doc Hygiene | Check README/AGENTS.md for stale references to changed files or behaviors |
-| Production Readiness | Identify TODO/FIXME comments, functions > 50 lines, security and reliability gaps |
-| Cleanup | Find .bak/.orig/.tmp files, debug print statements, commented-out code |
-| Deployment Readiness | Check for new env vars, migrations, config changes, external service dependencies, CI/CD updates |
+| Dimension | Inline Fallback |
+|-----------|----------------|
+| Test Coverage | Check test files alongside source; verify TDD evidence in task notes |
+| AI Slop | Scan for generic names, copy-paste, placeholder comments |
+| Doc Hygiene | Cross-reference docs against changed files/behaviors |
+| Production Readiness | TODO/FIXME in critical paths, functions >50 lines, security gaps |
+| Cleanup | .bak/.orig/.tmp files, debug prints, commented-out code |
+| Deployment | New env vars, migrations, config changes, CI/CD updates |
 
 ---
 
 ## Phase 1: Spawn Analysis Sub-Agents
 
-Spawn **6 parallel sub-agents** with `subagent_type: "explore"`:
+Spawn **6 parallel sub-agents** (`subagent_type: "explore"`). Each receives: `WORKING DIRECTORY: {workdir}`, affected files, change-id.
 
 ### Sub-Agent 1: Test Coverage Scanner
 
-```
-Analyze TEST COVERAGE for change: {change-id}
+Analyze test coverage: for each source file check for test file, calculate coverage ratio, check TDD adherence (red/green evidence), report test runner availability.
 
-WORKING DIRECTORY: {workdir}
-All file paths are relative to this directory.
-Use this as the base path for all read/glob/grep/lgrep operations.
-
-Affected files: {files}
-
-TASK:
-1. For each source file, check for corresponding test file
-2. Calculate coverage: files_with_tests / total_files
-3. Check TDD adherence (Red/Green evidence)
-4. Report test runner availability
-
-RETURN JSON:
-{
-  "dimension": "test_coverage",
-  "files_with_tests": [...],
-  "files_without_tests": [...],
-  "coverage_percent": N,
-  "tdd_audit": {...},
-  "issues": [...]
-}
-```
+Return JSON with: `dimension: "test_coverage"`, `files_with_tests`, `files_without_tests`, `coverage_percent`, `tdd_audit`, `issues`.
 
 ### Sub-Agent 2: AI-Slop Detection Scanner
 
-```
-Analyze AI-SLOP PATTERNS for change: {change-id}
+Detect AI slop patterns in affected files:
 
-WORKING DIRECTORY: {workdir}
-All file paths are relative to this directory.
-Use this as the base path for all read/glob/grep/lgrep operations.
+| Category | Patterns |
+|----------|----------|
+| Placeholders | TODO/FIXME in impl, `throw new Error('not implemented')`, `pass # placeholder` |
+| Error handling | catch-log-ignore, useless re-throw, silent swallow, `except: pass` |
+| Type erosion | Excessive `: any` (>1/100 lines), `as any`, `@ts-ignore` without reason, `!` without justification |
+| Structural | God classes (>20 methods), god functions (>100 lines), deep nesting (>4 levels), magic numbers, copy-paste (>10 lines) |
+| Naive impl | Manual JSON parse vs schema, string concat SQL, sync I/O in async, polling vs events, global mutable state |
+| Comments | Ratio >0.3, explaining obvious code, stale comments |
 
-Affected files: {files}
+Severity: BLOCKER (security/data loss) > HIGH (silent failures) > MEDIUM (debt) > LOW (style).
 
-DETECTION PATTERNS:
-
-1. PLACEHOLDER INDICATORS:
-   - TODO/FIXME in implementation (not comments)
-   - "// ..." or "/* ... */" indicating skipped code
-   - "throw new Error('not implemented')"
-   - "pass # placeholder" (Python)
-   - NotImplementedError, undefined functions
-
-2. OVER-GENERIC ERROR HANDLING:
-   - catch (error) { console.log(error) } - log and ignore
-   - catch (e) { throw e } - useless re-throw
-   - catch (error: any) { } - silent swallow
-   - except: pass (Python)
-   - Overly broad catches without specific handling
-
-3. TYPE EROSION (TypeScript):
-   - Excessive ": any" usage (>1 per 100 lines)
-   - "as any" type assertions
-   - @ts-ignore without explanation
-   - Non-null assertions (!) without justification
-   - Record<string, any> patterns
-
-4. STRUCTURAL ISSUES:
-   - God classes (>20 methods)
-   - God functions (>100 lines, cyclomatic >20)
-   - Deep nesting (>4 levels)
-   - Magic numbers without constants
-   - Copy-paste duplication (>10 lines repeated)
-
-5. NAIVE IMPLEMENTATIONS:
-   - Manual JSON parsing instead of schema validation
-   - String concatenation for SQL (injection risk!)
-   - Synchronous file I/O in async contexts
-   - Polling instead of event-driven
-   - Global mutable state
-
-6. EXCESSIVE COMMENTS:
-   - Comment-to-code ratio > 0.3 in business logic
-   - Comments explaining obvious code
-   - Stale comments that don't match code
-
-SEVERITY:
-- BLOCKER: Security risk, data loss, crashes
-- HIGH: Silent failures, maintainability crisis
-- MEDIUM: Technical debt accumulation
-- LOW: Style issues, minor inefficiencies
-
-RETURN JSON:
-{
-  "dimension": "ai_slop",
-  "summary": {
-    "total": N,
-    "blockers": N,
-    "high": N,
-    "by_category": {...}
-  },
-  "issues": [{
-    "severity": "BLOCKER|HIGH|MEDIUM|LOW",
-    "category": "placeholder|error_handling|type_erosion|structural|naive|comments",
-    "file": "...",
-    "line": N,
-    "pattern": "...",
-    "code_snippet": "...",
-    "message": "...",
-    "fix_suggestion": "..."
-  }],
-  "debt_quadrant": "deliberate_prudent|deliberate_reckless|inadvertent_prudent|inadvertent_reckless"
-}
-```
+Return JSON with: `dimension: "ai_slop"`, `summary` (total, blockers, high, by_category), `issues` (severity, category, file, line, pattern, code_snippet, message, fix_suggestion), `debt_quadrant`.
 
 ### Sub-Agent 3: Documentation Hygiene Scanner
 
-```
-Analyze DOCUMENTATION HYGIENE for change: {change-id}
+Analyze doc quality for affected files:
 
-WORKING DIRECTORY: {workdir}
-All file paths are relative to this directory.
-Use this as the base path for all read/glob/grep/lgrep operations.
+1. **Conflicts** — docs describing behavior differently than code, referencing deleted/renamed items, duplicates across files, contradictions
+2. **Staleness** — references to removed features/APIs, non-compiling examples, outdated generated files
+3. **Verbosity** — prose that should be tables, info repeated from code, misplaced sections
+4. **Updates needed** — new behaviors agents need to know, succinct additions to canonical locations, inline docs for public APIs
+5. **Deletion candidates** — >80% stale or superseded docs, non-regenerated reports
 
-Affected files: {files}
+Severity: BLOCKER (contradicts impl) > HIGH (stale refs to deleted code) > MEDIUM (duplicates, verbose) > LOW (missing inline docs).
 
-PURPOSE: Documentation is agent infrastructure. Stale, conflicting, or verbose
-docs poison every future session. This scanner aggressively identifies docs that
-must be deleted, corrected, or consolidated.
-
-TASK:
-
-1. CONFLICT DETECTION (highest priority):
-   - Cross-reference ALL doc files (README.md, SETUP.md, CHANGELOG.md,
-     ADV_INSTRUCTIONS.md, docs/*.md, AGENTS.md) against actual implementation
-   - Flag any doc that describes behavior differently than the code implements it
-   - Flag any doc that references deleted/renamed files, functions, or commands
-   - Flag duplicate information across multiple files (pick one canonical source)
-   - Flag docs that contradict each other
-
-2. STALENESS DETECTION:
-   - Identify docs referencing features, APIs, or patterns removed by this change
-   - Identify docs whose code examples no longer compile or match current signatures
-   - Identify generated files (*.html reports, comparison docs) that are now outdated
-   - Check that command descriptions in manifests/READMEs match actual command behavior
-
-3. VERBOSITY AUDIT:
-   - Flag docs with excessive prose that could be a table or bullet list
-   - Flag docs that repeat information available in code (e.g., re-listing all
-     function params when JSDoc already covers them)
-   - Flag README sections that belong in dedicated docs (and vice versa)
-   - Ideal: an agent should get what it needs in <30 seconds of reading
-
-4. ACTIONABLE UPDATES:
-   - For each affected file, check if the change introduces behavior an agent
-     would need to know about long-term (new commands, changed defaults,
-     new constraints, new patterns)
-   - Propose succinct additions (1-3 lines) to the canonical doc location
-   - Inline docs (JSDoc/docstrings) MUST exist for public APIs; keep them
-     to purpose + params + return, no filler
-
-5. DELETION CANDIDATES:
-   - Any doc file that is >80% stale or superseded → recommend deletion
-   - Any generated report that's not auto-regenerated → recommend deletion
-   - Prefer fewer, accurate docs over many outdated ones
-
-SEVERITY:
-- BLOCKER: Doc actively contradicts implementation (will mislead agents)
-- HIGH: Stale doc references deleted code/features (will cause confusion)
-- MEDIUM: Duplicate info across files, verbose sections
-- LOW: Missing inline docs, minor formatting
-
-RETURN JSON:
-{
-  "dimension": "documentation_hygiene",
-  "conflicts": [{
-    "file": "...",
-    "line": N,
-    "claims": "what the doc says",
-    "reality": "what the code does",
-    "severity": "BLOCKER|HIGH"
-  }],
-  "stale": [{
-    "file": "...",
-    "reason": "references deleted X",
-    "action": "delete|update",
-    "severity": "HIGH|MEDIUM"
-  }],
-  "deletions": [{
-    "file": "...",
-    "reason": "superseded by X / >80% stale",
-    "severity": "MEDIUM"
-  }],
-  "updates_needed": [{
-    "file": "...",
-    "what": "new command /foo added",
-    "proposed_addition": "1-3 line succinct text",
-    "severity": "MEDIUM"
-  }],
-  "verbose": [{
-    "file": "...",
-    "section": "...",
-    "current_lines": N,
-    "suggested_lines": N,
-    "severity": "LOW"
-  }],
-  "inline_docs": {"documented": N, "undocumented": N, "coverage_percent": N},
-  "issues": [...]
-}
-```
+Return JSON with: `dimension: "documentation_hygiene"`, `conflicts`, `stale`, `deletions`, `updates_needed`, `verbose`, `inline_docs`, `issues`.
 
 ### Sub-Agent 4: Cleanup Scanner
 
-```
-Analyze CLEANUP candidates for change: {change-id}
+Find cleanup candidates: temp files (*.bak, *.tmp, *.orig, *~, *.swp), marked files (ONETIME-*, DELETE-AFTER-*), dev directories (poc/, scratch/, temp/), dead imports, orphaned tests, debug code (console.log, debugger, print()). Preserve: scripts/, tools/, migrations.
 
-WORKING DIRECTORY: {workdir}
-All file paths are relative to this directory.
-Use this as the base path for all read/glob/grep/lgrep operations.
-
-TASK:
-1. Find temp files: *.bak, *.tmp, *.orig, *~, *.swp
-2. Find marked files: ONETIME-*, DELETE-AFTER-*
-3. Find dev directories: poc/, scratch/, temp/
-4. Find dead imports
-5. Find orphaned tests (tests for deleted code)
-6. Find debug code: console.log, debugger, print()
-
-Preserve: scripts/, tools/, migrations
-
-RETURN JSON:
-{
-  "dimension": "cleanup",
-  "extension_based": [...],
-  "explicitly_marked": [...],
-  "dev_directories": [...],
-  "dead_imports": [...],
-  "debug_code": [...],
-  "total_candidates": N
-}
-```
+Return JSON with: `dimension: "cleanup"`, `extension_based`, `explicitly_marked`, `dev_directories`, `dead_imports`, `debug_code`, `total_candidates`.
 
 ### Sub-Agent 5: Production Readiness Scanner
 
-```
-Analyze PRODUCTION READINESS for change: {change-id}
+Check quality gates for affected files:
 
-WORKING DIRECTORY: {workdir}
-All file paths are relative to this directory.
-Use this as the base path for all read/glob/grep/lgrep operations.
+| Area | Checks |
+|------|--------|
+| Security | No critical CVEs, no hardcoded secrets, auth tested, input validation |
+| Reliability | Error handling covers failure modes, graceful degradation, health checks, logging |
+| Performance | No N+1 queries, no bottlenecks, bounded memory |
+| Maintainability | No TODO/FIXME in critical paths, test coverage on business logic, public API docs |
 
-Affected files: {files}
+Complexity thresholds: 1-10 low, 11-20 moderate, 21-50 high (refactor), 51+ very high (block).
 
-QUALITY GATE CHECKLIST:
-
-Security:
-- [ ] No critical/high CVEs in dependencies
-- [ ] No hardcoded secrets
-- [ ] Authentication/authorization tested
-- [ ] Input validation on all user inputs
-
-Reliability:
-- [ ] Error handling covers all failure modes
-- [ ] Graceful degradation for external dependencies
-- [ ] Health check endpoint exists (if applicable)
-- [ ] Logging sufficient for debugging
-
-Performance:
-- [ ] No N+1 queries
-- [ ] No obvious bottlenecks
-- [ ] Bounded memory usage
-
-Maintainability:
-- [ ] No TODO/FIXME in critical paths
-- [ ] Test coverage on business logic
-- [ ] Documentation for public APIs
-
-COMPLEXITY THRESHOLDS:
-- 1-10: Low risk (acceptable)
-- 11-20: Moderate (review)
-- 21-50: High (refactor required)
-- 51+: Very high (block, redesign)
-
-RETURN JSON:
-{
-  "dimension": "production_readiness",
-  "security": {"pass": bool, "issues": [...]},
-  "reliability": {"pass": bool, "issues": [...]},
-  "performance": {"pass": bool, "issues": [...]},
-  "maintainability": {"pass": bool, "issues": [...]},
-  "complexity_hotspots": [{
-    "file": "...",
-    "function": "...",
-    "complexity": N,
-    "risk": "low|moderate|high|very_high"
-  }],
-  "overall_status": "READY|NEEDS_WORK|BLOCKED"
-}
-```
+Return JSON with: `dimension: "production_readiness"`, `security`, `reliability`, `performance`, `maintainability` (each with pass/issues), `complexity_hotspots`, `overall_status`.
 
 ### Sub-Agent 6: Deployment & Operational Readiness Scanner
 
-```
-Analyze DEPLOYMENT & OPERATIONAL READINESS for change: {change-id}
+Check deployment readiness for affected files:
 
-WORKING DIRECTORY: {workdir}
-All file paths are relative to this directory.
-Use this as the base path for all read/glob/grep/lgrep operations.
+| Area | Checks |
+|------|--------|
+| Environment | New env vars, missing from .env.example, removed vars still in prod |
+| Migrations | Schema changes with migration files, destructive ops (BLOCKER), rollback paths |
+| External services | New API clients/SDKs, webhook endpoints, queue subscriptions, credentials needed |
+| CI/CD | New build steps, Dockerfile changes, CI config coverage, deployment targets |
+| Infrastructure | New cron jobs, ports, storage/cache/CDN, memory/CPU requirements, monitoring |
+| Feature flags | Should change be flagged, gradual rollout, breaking API changes, cache invalidation |
+| Documentation | Deployment steps documented, runbooks for new ops concerns, manual steps automated |
 
-Affected files: {files}
-Change summary: {summary from proposal}
+Severity: BLOCKER (missing migration, hardcoded secret, destructive without rollback) > HIGH (new env var not in .env.example, unprovisioned service) > MEDIUM (missing feature flag, missing runbook) > LOW (minor config docs).
 
-PURPOSE: Identify every infrastructure, configuration, external service, and
-operational step required to fully deploy this change beyond just merging code.
-A change is not shippable if it requires manual steps that aren't documented.
-
-TASK:
-
-1. ENVIRONMENT VARIABLES & SECRETS:
-   - Scan for new process.env / Bun.env / os.environ references not present before this change
-   - Check for new config keys in .env.example, config files, or schema definitions
-   - Verify new secrets have placeholder entries in .env.example (not hardcoded values)
-   - Flag any env var referenced in code but missing from .env.example or config docs
-   - Check for removed env vars that may still be set in production
-
-2. DATABASE & SCHEMA MIGRATIONS:
-   - Detect new/modified schema files (Prisma, Drizzle, SQL migrations, etc.)
-   - Verify migration files exist for schema changes (not just model changes)
-   - Check migration ordering and naming conventions
-   - Flag destructive migrations (DROP TABLE, DROP COLUMN, type narrowing) as BLOCKER
-   - Verify rollback path exists for each migration
-
-3. EXTERNAL SERVICE DEPENDENCIES:
-   - Detect new API client instantiations, SDK imports, or service URLs
-   - Check for new webhook endpoints that need external registration
-   - Identify new queue/topic subscriptions or publishers
-   - Flag services that need API keys, tokens, or credentials not yet provisioned
-   - Check for new DNS/domain requirements
-
-4. CI/CD & BUILD PIPELINE:
-   - Check if new build steps, test commands, or scripts are needed
-   - Detect new Dockerfile changes, docker-compose services, or container configs
-   - Verify GitHub Actions / CI config covers new test files or build targets
-   - Check for new deployment targets or environments
-   - Flag if build matrix needs updating (new Node version, new platform, etc.)
-
-5. INFRASTRUCTURE & RUNTIME:
-   - Detect new cron jobs, scheduled tasks, or background workers
-   - Check for new ports, routes, or network configuration
-   - Identify new file storage, cache, or CDN requirements
-   - Flag new memory/CPU requirements (e.g., ML models, large data processing)
-   - Check for new monitoring, alerting, or observability requirements
-
-6. FEATURE FLAGS & ROLLOUT:
-   - Check if the change should be behind a feature flag
-   - Identify gradual rollout requirements (canary, percentage-based)
-   - Flag breaking API changes that need versioning or deprecation notices
-   - Check for client-side cache invalidation needs
-
-7. DOCUMENTATION & RUNBOOKS:
-   - Verify deployment steps are documented (or trivially obvious)
-   - Check for new operational runbooks needed (incident response, manual steps)
-   - Flag any "after deploy, manually do X" steps that aren't automated
-
-SEVERITY:
-- BLOCKER: Missing migration for schema change, hardcoded secret, destructive migration without rollback
-- HIGH: New env var not in .env.example, new service dependency without provisioning docs, missing CI config
-- MEDIUM: Feature flag recommended but not implemented, missing runbook for new operational concern
-- LOW: Minor config documentation gaps, optional monitoring improvements
-
-RETURN JSON:
-{
-  "dimension": "deployment_readiness",
-  "environment": {
-    "new_vars": [{"name": "...", "file": "...", "line": N, "in_example": bool, "is_secret": bool}],
-    "removed_vars": [{"name": "...", "still_in_production": "unknown|yes|no"}],
-    "issues": [...]
-  },
-  "migrations": {
-    "schema_changes": [{"file": "...", "type": "add_table|add_column|modify|drop|..."}],
-    "migration_files": [{"file": "...", "reversible": bool}],
-    "issues": [...]
-  },
-  "external_services": {
-    "new_dependencies": [{"service": "...", "file": "...", "credentials_needed": bool, "provisioned": "unknown|yes|no"}],
-    "issues": [...]
-  },
-  "ci_cd": {
-    "config_changes_needed": [{"file": "...", "what": "..."}],
-    "issues": [...]
-  },
-  "infrastructure": {
-    "new_requirements": [{"type": "cron|port|storage|cache|worker|...", "description": "..."}],
-    "issues": [...]
-  },
-  "feature_flags": {
-    "recommended": bool,
-    "breaking_changes": [{"what": "...", "mitigation": "..."}],
-    "issues": [...]
-  },
-  "deployment_steps": {
-    "pre_deploy": ["step 1", "step 2"],
-    "post_deploy": ["step 1", "step 2"],
-    "rollback_plan": "...",
-    "documented": bool
-  },
-  "overall_status": "READY|NEEDS_WORK|BLOCKED",
-  "issues": [...]
-}
-```
+Return JSON with: `dimension: "deployment_readiness"`, `environment`, `migrations`, `external_services`, `ci_cd`, `infrastructure`, `feature_flags`, `deployment_steps`, `overall_status`, `issues`.
 
 ---
 
 ## Phase 2: Synthesis
 
-> **Anti-Loop Protocol**: After sub-agents return:
-> `>>> SYNTHESIS COMPLETE <<<`
-> Proceed to aggregation.
+> **Anti-Loop**: After sub-agents return → `>>> SYNTHESIS COMPLETE <<<` → proceed.
 
 ### Aggregate Issues
 
-Combine by severity: BLOCKER > HIGH > MEDIUM > LOW
+Combine by severity: BLOCKER > HIGH > MEDIUM > LOW.
 
-### Severity Scoring (Impact × Effort)
+### Severity Scoring
 
-For each issue:
 ```
 Impact (1-5): Security=5, Production=4, Friction=3, Debt=2, Style=1
 Effort (1-5): <1hr=5, <1day=4, <1week=3, <1sprint=2, >1sprint=1
 Priority = Impact × Effort
-  20-25: Critical (fix immediately)
-  12-19: High (this sprint)
-  6-11: Medium (next sprint)
-  1-5: Low (backlog)
+  20-25: Critical | 12-19: High | 6-11: Medium | 1-5: Low
 ```
 
 ### Minimum Findings Enforcement
 
-Count non-nit findings (`BLOCKER`, `HIGH`, `MEDIUM`, or any actionable finding).
+Count non-nit findings. If <3 → require genuinely-clean justification with scanner-level evidence per [harden-checklist.md](../../docs/checklists/harden-checklist.md).
 
-**If >= 3 non-nit findings**: Proceed to status determination.
-
-**If < 3 non-nit findings**: The hardening pass MUST include a genuinely-clean justification with scanner-level evidence per [harden-checklist.md](../../docs/checklists/harden-checklist.md). Without this justification, the harden gate cannot be marked complete.
-
-### Determine Status
+### Status Determination
 
 | Status | Criteria |
 |--------|----------|
-| **READY** | No BLOCKER, no HIGH, ≤3 MEDIUM (with justification if < 3 non-nit) |
-| **NEEDS_WORK** | No BLOCKER but HIGH or >3 MEDIUM |
-| **BLOCKED** | Any BLOCKER |
+| READY | No BLOCKER, no HIGH, ≤3 MEDIUM |
+| NEEDS_WORK | No BLOCKER but HIGH or >3 MEDIUM |
+| BLOCKED | Any BLOCKER |
 
 ---
 
 ## Phase 3: Remediation
 
-**If READY**: Skip to cleanup.
+If READY → skip to cleanup.
 
-**If NEEDS_WORK or BLOCKED**: Use the `question` tool:
+If NEEDS_WORK or BLOCKED → ask via `question` tool: Fix all (Recommended), Fix blockers only, Report only, Accept current (document as debt).
 
-```json
-{
-  "questions": [{
-    "header": "Fix Issues",
-    "question": "Found {count} issues. How to proceed?",
-    "options": [
-      { "label": "Fix all (Recommended)", "description": "Address all blocking and high items" },
-      { "label": "Fix blockers only", "description": "Minimum to unblock" },
-      { "label": "Report only", "description": "Review findings, fix manually" },
-      { "label": "Accept current", "description": "Document as known debt" },
-      { "label": "Other", "description": "Use custom text area for a different hardening plan" }
-    ]
-  }]
-}
-```
-
-If fixing, establish contract:
-
-```
-============================================================
-                    CONTRACT ACTIVE
-============================================================
-
-OBJECTIVE: Fix hardening issues in {change-id}
-
-SUCCESS CRITERIA:
-{for each issue, grouped by category}
-
-AI-SLOP:
-- [ ] (H{n}) {category}: {message} - {file}:{line}
-
-PRODUCTION READINESS:
-- [ ] (H{n}) {category}: {message}
-
-- [ ] All fixes verified
-- [ ] No new issues introduced
-
-============================================================
-```
-
-Spawn fix sub-agents, verify, update status.
+If fixing → establish CONTRACT ACTIVE banner listing issues grouped by category → spawn fix sub-agents → verify → update status.
 
 ---
 
 ## Phase 4: Cleanup
 
-**Skip if `--no-cleanup`**
+Skip if `--no-cleanup`.
 
-### Aggregate Cleanup Candidates
-
-From scanner + any session artifacts.
-
-### Display Preview
-
-```
-============================================================
-              CLEANUP CANDIDATES
-============================================================
-
-TEMP FILES:
-1. path/to/file.bak (1.2 KB)
-
-DEBUG CODE:
-2. src/utils.ts:45 - console.log(...)
-
-EXPLICITLY MARKED:
-3. ONETIME-fix.sh (0.5 KB)
-
-Total: N items
-
-============================================================
-```
-
-### Execute Based on Flags
+Aggregate cleanup candidates from scanner + session artifacts. Display preview listing temp files, debug code, marked files with sizes.
 
 | Flag | Behavior |
 |------|----------|
 | (none) | Preview only, suggest `--execute` |
 | `--execute` | Delete all candidates |
-| `--interactive` | Use the `question` tool to select |
+| `--interactive` | Select via `question` tool |
 | `--force` | Delete without prompts |
 
 ---
 
 ## Final Report
 
-### Mark Harden Gate (if READY)
+### Mark Harden Gate
 
-If status is READY, mark the harden gate as complete:
+If READY → `adv_gate_complete changeId: {change-id} gateId: harden`
 
-```
-adv_gate_complete changeId: {change-id} gateId: harden
-```
+### Report Display
 
-### Final Report Display
+Emit HARDENING REPORT banner with per-dimension results:
 
-```
-============================================================
-             HARDENING REPORT: {change-id}
-============================================================
+| Dimension | Metrics |
+|-----------|---------|
+| Test Coverage | files with tests / total, TDD evidence |
+| AI-Slop | issue count by severity, categories, debt quadrant |
+| Doc Hygiene | conflicts, stale, deletions, inline doc coverage |
+| Production Readiness | security/reliability/performance/maintainability pass/fail |
+| Deployment Readiness | new env vars, migrations, external services, CI/CD, infrastructure |
+| Complexity | Top 3 hotspots with file:function, complexity, risk |
+| Cleanup | candidates count, action taken |
 
-STATUS: {READY | NEEDS_WORK | BLOCKED}
-
-TEST COVERAGE                              [{pass|warn|fail}]
-  Files: {with_tests}/{total} ({percent}%)
-  TDD Evidence: {present|missing}
-
-AI-SLOP DETECTION                          [{pass|warn|fail}]
-  Issues: {total} ({blockers} blocker, {high} high)
-  Categories: {breakdown}
-  Debt Quadrant: {classification}
-
-DOCUMENTATION HYGIENE                      [{pass|warn|fail}]
-  Conflicts: {count} | Stale: {count} | Deletions: {count}
-  Inline Docs: {percent}% | Updates Needed: {count}
-
-PRODUCTION READINESS                       [{pass|warn|fail}]
-  Security: {pass|fail} | Reliability: {pass|fail}
-  Performance: {pass|fail} | Maintainability: {pass|fail}
-
-DEPLOYMENT READINESS                       [{pass|warn|fail}]
-  Environment: {new_vars_count} new vars ({issues_count} issues)
-  Migrations: {migration_count} ({destructive_count} destructive)
-  External Services: {new_deps_count} new dependencies
-  CI/CD: {changes_needed_count} config changes needed
-  Infrastructure: {new_requirements_count} new requirements
-  Deployment Steps: {pre_deploy_count} pre / {post_deploy_count} post
-
-COMPLEXITY HOTSPOTS:
-{for top 3}
-  - {file}:{function} - complexity {N} ({risk})
-{end}
-
-CLEANUP                                    [{status}]
-  Candidates: {count} ({action taken})
-
-------------------------------------------------------------
-{If fixes applied}
-FIXES APPLIED:
-{for each}
-- [x] {issue} - fixed in {file}
-{end}
-
-------------------------------------------------------------
-{If READY}
-GATE STATUS:
-- Harden gate: COMPLETE ✓
-
-NEXT STEPS: Ready to ship! Run /adv-archive {change-id}
-
-{If issues remain}
-REMAINING:
-1. {highest priority action}
-2. {next action}
-
-DEBT TRACKING:
-If accepting debt, document in proposal.md with:
-- Debt type and quadrant
-- Interest rate estimate (cost of not fixing)
-- Planned payoff date
-
-============================================================
-```
+Include: fixes applied, gate status, next steps (`/adv-archive`), remaining items, debt tracking guidance.
 
 ### Completion Banner
 
 ```
-============================================================
-       /adv-harden {change-id} COMPLETE
-============================================================
+/adv-harden {change-id} COMPLETE
 Result: {READY | N fixed | Report only}
-{if READY}Harden Gate: MARKED COMPLETE{end}
-
-  ⚡ Recommended next step (Plan agent):
-     /adv-archive {change-id}
-============================================================
+Harden Gate: {MARKED COMPLETE | pending}
+Next: /adv-archive {change-id}
 ```
 
 ---

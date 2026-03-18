@@ -18,7 +18,8 @@
 #   6. Validates opencode.json has ADV plugin + instruction entries
 #   7. (--fix only) Patches opencode.json to add missing ADV entries
 #
-# It does NOT touch non-ADV commands, agents, skills, or config entries.
+# It does NOT touch non-ADV commands, agents, skills, or config entries,
+# except removing legacy `openprompt.md` copies previously installed by this repo.
 
 set -euo pipefail
 
@@ -82,16 +83,10 @@ check_jq() {
 # Handles both exact match and tilde-expanded match.
 json_array_contains() {
   local file="$1" jq_path="$2" value="$3"
-  # Exact match
-  if jq -e "$jq_path | index(\"$value\")" "$file" &>/dev/null; then
-    return 0
-  fi
-  # Try with ~ expanded to $HOME
   local tilde_value="${value/#$HOME/\~}"
-  if jq -e "$jq_path | index(\"$tilde_value\")" "$file" &>/dev/null; then
-    return 0
-  fi
-  return 1
+  jq --arg exact "$value" --arg tilde "$tilde_value" \
+    -e "($jq_path | if type == \"array\" then . else [.] end) | any(. == \$exact or . == \$tilde)" \
+    "$file" &>/dev/null
 }
 
 check_config() {
@@ -138,7 +133,10 @@ check_config() {
 
   # Warn about stale global copy (wastes ~7K tokens per prompt)
   local stale_instr="~/.config/opencode/instructions/ADV_INSTRUCTIONS.md"
-  if jq -e ".instructions // [] | index(\"$stale_instr\")" "$GLOBAL_JSON" &>/dev/null; then
+  local stale_instr_expanded="$HOME/.config/opencode/instructions/ADV_INSTRUCTIONS.md"
+  if jq -e --arg s1 "$stale_instr" --arg s2 "$stale_instr_expanded" \
+    '((.instructions // []) | if type == "array" then . else [.] end) | any(. == $s1 or . == $s2)' \
+    "$GLOBAL_JSON" &>/dev/null; then
     echo "    ⚠  instructions: stale duplicate found at $stale_instr"
     echo "       This wastes ~7K tokens per prompt. Run with --fix to remove."
     ((config_issues++)) || true
@@ -203,7 +201,7 @@ fix_config() {
   # Patch plugin array if needed
   if ! json_array_contains "$tmp_json" ".plugin // []" "$ADV_PLUGIN_PATH"; then
     jq --arg plugin "$ADV_PLUGIN_PATH" \
-      '.plugin = ((.plugin // []) + [$plugin] | unique)' \
+      '.plugin = (((.plugin // []) | if type == "array" then . else [.] end) + [$plugin] | unique)' \
       "$tmp_json" > "$tmp_json.new" && mv "$tmp_json.new" "$tmp_json"
     echo "    ✓  Added plugin: $ADV_PLUGIN_PATH"
     ((patched++)) || true
@@ -212,7 +210,7 @@ fix_config() {
   # Patch instructions array if needed
   if ! json_array_contains "$tmp_json" ".instructions // []" "$ADV_INSTRUCTION_PATH"; then
     jq --arg instr "$ADV_INSTRUCTION_PATH" \
-      '.instructions = ((.instructions // []) + [$instr] | unique)' \
+      '.instructions = (((.instructions // []) | if type == "array" then . else [.] end) + [$instr] | unique)' \
       "$tmp_json" > "$tmp_json.new" && mv "$tmp_json.new" "$tmp_json"
     echo "    ✓  Added instruction: $ADV_INSTRUCTION_PATH"
     ((patched++)) || true
@@ -222,9 +220,11 @@ fix_config() {
   # (the canonical path is $ADV_INSTRUCTION_PATH, not the global instructions dir copy)
   local stale_instr="$HOME/.config/opencode/instructions/ADV_INSTRUCTIONS.md"
   local stale_tilde="~/.config/opencode/instructions/ADV_INSTRUCTIONS.md"
-  if jq -e ".instructions // [] | index(\"$stale_instr\") // index(\"$stale_tilde\")" "$tmp_json" &>/dev/null; then
+  if jq --arg stale "$stale_instr" --arg stale_t "$stale_tilde" \
+    -e '((.instructions // []) | if type == "array" then . else [.] end) | any(. == $stale or . == $stale_t)' \
+    "$tmp_json" &>/dev/null; then
     jq --arg stale "$stale_instr" --arg stale_t "$stale_tilde" \
-      '.instructions = [.instructions[] | select(. != $stale and . != $stale_t)]' \
+      '.instructions = (((.instructions // []) | if type == "array" then . else [.] end) | map(select(. != $stale and . != $stale_t)))' \
       "$tmp_json" > "$tmp_json.new" && mv "$tmp_json.new" "$tmp_json"
     echo "    ✓  Removed stale instruction: $stale_tilde"
     ((patched++)) || true

@@ -76,7 +76,7 @@ Specs are laws. Requirements are formally defined, validated, and enforced.
 
 - Only `/adv-prep` (and exempt `/adv-task`) may call `adv_task_add`
 - `/adv-apply` stops if research or prep gates pending
-- Each command `.md` has `## Command Boundary` with details
+- Commands that own boundary-sensitive workflow steps should include `## Command Boundary` details
 
 ## Status Markers
 
@@ -273,7 +273,7 @@ Orchestrator pattern: spawn `librarian` + `adv-researcher` in parallel → synth
 
 Enabled in `/adv-research` Phase 1.5. Improves research quality via domain-specific skills.
 
-Flow: `glob */SKILL.md` → read YAML frontmatter → match `keywords` against tech stack + change domain → `skill("{name}")` → apply guidance.
+Flow: search trusted skill directories only (`~/.config/opencode/skills/*/SKILL.md`, repo `skills/*/SKILL.md`) → read YAML frontmatter → match `keywords` against tech stack + change domain → `skill("{name}")` → apply guidance.
 
 Skill metadata:
 ```yaml
@@ -283,6 +283,8 @@ description: "What this skill provides"
 keywords: ["term1", "term2", "term3"]
 ---
 ```
+
+Trust boundary: repo-local skills are trusted only from the repository's `skills/` directory. × Never auto-load arbitrary `*/SKILL.md` elsewhere in the repo. Any other path requires explicit user approval.
 
 Graceful degradation: skip skills without frontmatter or `keywords`. No matches → proceed normally. Filesystem-only, no API calls.
 

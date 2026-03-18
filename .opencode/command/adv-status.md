@@ -6,133 +6,50 @@ agent: build
 
 # ADV Status
 
-Show the current state of the ADV project including specs, active changes, and recommendations.
+Show current ADV project state: specs, active changes, recommendations.
 
 ## Execution
 
-Call `adv_status` to get the project overview.
+Call `adv_status` for project overview.
 
-**Context Snapshot:** For each active change, `adv_change_show` includes a `_contextSnapshot` field — a compact visual summary of gate progress, task counts, and current task. Use this to populate the gate progress line in the ACTIVE CHANGES section.
+**Context Snapshot:** `adv_change_show` includes `_contextSnapshot` — use for gate progress in ACTIVE CHANGES section.
 
-**Worktree Detection:** After loading active changes, run `git worktree list --porcelain` and parse the output to identify worktrees on `change/{change-id}` branches. For each active change, check if a matching worktree exists and include its path in the status display. This helps users see which changes have isolated workspaces and which are working in-place.
+**Workdir display:** use `_contextSnapshot.workdir` when the status implementation provides it. Don't assume git worktree detection is available here.
 
-Display the results in a formatted view:
+### Display Format
 
-```
-============================================================
-                    ADV PROJECT STATUS
-============================================================
+Emit ADV PROJECT STATUS:
 
-SPECS (The Laws)
-----------------
-Total: <count> capabilities
+**SPECS** — total capabilities, each with requirement count.
 
-<for each capability>
-- <capability-name>: <requirement-count> requirements
-<end>
+**ACTIVE CHANGES** — sorted by recency. Each shows: change-id, title, status, tasks (done/total), last activity, gate progress, workdir (when available).
 
-ACTIVE CHANGES
---------------
-<if none>
-No active changes.
+Recency bands: 🔥 hot (<60min, likely in-flight), ⏳ warm (1-3h), ⏰ stale (3h+, resume candidate).
 
-Suggestions:
-- Create a new change: /adv-proposal "summary"
-<end>
+**ARCHIVED CHANGES** — total count, last 5 with date/id/title.
 
-<if changes exist>
-Total: <count> changes (sorted by most recent activity)
+**RECOMMENDATIONS** — gate-based from workflow manifest:
 
-<for each change in changes.recent>
-- <recency-emoji> <change-id>: <title>
-  Status: <status> | Tasks: <completed>/<total> | Last activity: <relative-time>
-  Gates: <gate-progress from _contextSnapshot>
-  <if has worktree>Worktree: <worktree-path> (branch: change/<change-id>)<end>
-  <if recency == "hot">🔥 Active <minutes>m ago — likely in-flight<end>
-  <if recency == "warm">⏳ Last active <hours>h ago<end>
-  <if recency == "stale">⏰ Stale (<hours>h ago) — needs pickup<end>
-  <if has blockers>Blocked by: <blocker><end>
-<end>
-
-Recency bands:
-  🔥 hot  = activity within last 60 minutes (likely another agent working)
-  ⏳ warm = 1-3 hours since last activity
-  ⏰ stale = 3+ hours since last activity (resume candidate)
-<end>
-
-ARCHIVED CHANGES
-----------------
-<if none>
-No archived changes.
-<end>
-
-<if archives exist>
-Total: <count> archived
-Recent:
-<for last 5>
-- <date>: <change-id> - <title>
-<end>
-<end>
-
-RECOMMENDATIONS
----------------
-<based on state — includes manifest-driven gate recommendations>
-
-<if no specs and no changes>
-1. Initialize your first spec: Create specs/<capability>/spec.json
-2. Or start with a change: /adv-proposal "add user authentication"
-<end>
-
-<if specs exist but no changes>
-1. Review existing specs: adv_spec action: "list"
-2. Create a change when ready: /adv-proposal "summary"
-<end>
-
-<if changes in draft>
-1. Complete draft change: Edit changes/<change-id>/
-2. Validate when ready: /adv-validate <change-id>
-<end>
-
-<if changes active with incomplete gates>
-Gate-based recommendations are derived from the workflow manifest
-(plugin/src/manifest.ts). For each active change, the tool identifies
-the first incomplete gate and recommends the command that triggers it:
-
-  research → /adv-research <change-id>
-  prep → /adv-prep <change-id>
-  implementation → /adv-apply <change-id>
-  review → /adv-review <change-id>
-  harden → /adv-harden <change-id>
-  signoff → (user confirmation required)
-<end>
-
-<if all tasks done>
-1. Archive completed change: /adv-archive <change-id>
-<end>
-
-============================================================
-```
+| Incomplete Gate | Recommendation |
+|----------------|----------------|
+| research | `/adv-research <change-id>` |
+| prep | `/adv-prep <change-id>` |
+| implementation | `/adv-apply <change-id>` |
+| review | `/adv-review <change-id>` |
+| harden | `/adv-harden <change-id>` |
+| signoff | User confirmation required |
 
 ## Quick Actions
 
-Based on the status, suggest the most relevant next action:
-
-| State | Suggested Action |
-|-------|------------------|
-| No specs, no changes | `/adv-proposal "initial feature"` |
-| Specs exist, no changes | `/adv-proposal "next feature"` |
-| Draft change exists | `/adv-validate <change-id>` |
-| Active change, tasks pending | `/adv-apply <change-id>` |
-| Active change, all tasks done | `/adv-archive <change-id>` |
-| Multiple active changes | Show selection for focus |
-
-## Completion Banner
+| State | Action |
+|-------|--------|
+| No specs/changes | `/adv-proposal "initial feature"` |
+| Specs, no changes | `/adv-proposal "next feature"` |
+| Draft change | `/adv-validate <change-id>` |
+| Active, tasks pending | `/adv-apply <change-id>` |
+| Active, all tasks done | Follow RECOMMENDATIONS table for next incomplete gate |
+| Multiple active | Show selection |
 
 ```
-============================================================
-      /adv-status COMPLETE
-
-  ⚡ Recommended next step (Scout agent):
-     Use this status snapshot to choose the next command.
-============================================================
+/adv-status COMPLETE
 ```

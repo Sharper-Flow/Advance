@@ -143,6 +143,15 @@ describe("sync-global.sh", () => {
       expect(content).toContain("| unique)");
     });
 
+    test("uses jq --arg bindings for dynamic values", () => {
+      expect(content).toContain('jq --arg exact "$value" --arg tilde "$tilde_value"');
+      expect(content).toContain('any(. == $s1 or . == $s2)');
+    });
+
+    test("normalizes malformed plugin and instruction arrays before patching", () => {
+      expect(content).toContain('if type == "array" then . else [.] end');
+    });
+
     test("removes stale global ADV_INSTRUCTIONS.md from instructions array", () => {
       expect(content).toContain("Removed stale instruction:");
       expect(content).toContain("instructions/ADV_INSTRUCTIONS.md");
