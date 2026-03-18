@@ -146,7 +146,7 @@ When 2+ viable approaches depend on user values → run prioritizer before askin
 
 **Default (inline):** Scan code → research tradeoffs → draft criteria questions → pass to `question` tool → restate priorities → recommend.
 
-**Optional (sub-agent):** If `task` tool available, spawn `prioritizer` for deeper analysis.
+**Optional (skill):** Load `skill("prioritizer")` for structured criteria question templates and decision map guidance.
 
 Skip for: bug fixes, mechanical work, choices constrained by security/API/architecture.
 
@@ -258,6 +258,16 @@ Inline-only: `/adv-status`, `/adv-proposal`, `/adv-validate`, `/adv-apply`, `/ad
 
 ## Sub-Agent Selection
 
+### Agent Tiers
+
+| Tier | Agents | Loading |
+|------|--------|---------|
+| **Core** (always loaded) | `plan`, `build`, `refine`, `scout`, `orca` | Global `~/.config/opencode/agents/` |
+| **Common** (always loaded) | `explore`, `librarian`, `general`, `mechanic` | Global `~/.config/opencode/agents/` |
+| **Specialist** (repo-scoped) | `adv-researcher`, `tron` | Repo-local `.opencode/agents/` |
+
+### Agent Roster
+
 | Agent | Use For | Tools |
 |-------|---------|-------|
 | `librarian` | Docs, API refs, code examples | Context7, grep.app, Kagi |
@@ -266,6 +276,8 @@ Inline-only: `/adv-status`, `/adv-proposal`, `/adv-validate`, `/adv-apply`, `/ad
 | `general` | Complex multi-step implementation | Full tool access |
 | `mechanic` | System/infra issues | Vision, bash, read/write |
 | `tron` | Reconnaissance, hotspot detection | Read, Glob, Grep, lgrep |
+
+> **Note:** `adv-researcher` and `tron` are repo-local agents — only available in ADV-enabled repos (repos with `.opencode/agents/` containing their definitions).
 
 Orchestrator pattern: spawn `librarian` + `adv-researcher` in parallel → synthesize.
 

@@ -255,7 +255,7 @@ describe("Prioritizer protocol docs", () => {
   const advSnippets = [
     "Tradeoff Prioritizer Protocol",
     "Default (inline):",
-    "Optional (sub-agent):",
+    "Optional (skill):",
     "prioritizer",
   ];
 

@@ -24,6 +24,7 @@ Validate architectural decisions via sub-agents using Context7 and web search. S
 
 1. If provided → matches spec capability? `adv_spec show`. Matches change-id? `adv_change_show`. Ambiguous? Ask.
 2. If empty → `adv_change_list` + `adv_spec list` in parallel → select via `question` tool.
+3. If both lists are empty → stop with: "No active changes or specs found." Suggest `/adv-proposal <summary>` to start a new change.
 
 ---
 
@@ -35,8 +36,10 @@ If change has done tasks, treat as implementation evidence — not acceptance pr
 
 ### Load Context
 
+0. If `research` gate already complete → `adv_gate_status` → ask whether to refresh research or keep existing findings.
 1. `adv_project_context` → full tech stack (framework, libraries, CSS, testing, etc.)
-2. For specs: `adv_spec show`. For changes: `adv_change_show` only — use the returned proposal/problem context, tasks, deltas, and gate snapshot. × Do not read `proposal.md` directly.
+2. If project context is empty/unavailable → continue, but explicitly note "project context unavailable" in sub-agent prompts and limit conclusions accordingly.
+3. For specs: `adv_spec show`. For changes: `adv_change_show` only — use the returned proposal/problem context, tasks, deltas, and gate snapshot. × Do not read `proposal.md` directly.
 
 ### Extract Decisions
 
@@ -50,6 +53,8 @@ Before validating individual decisions, audit the existing codebase architecture
 2. Identify patterns: layer boundaries, dependency direction, separation of concerns, error handling, observability
 3. Compare against canonical best practices via Context7
 4. Classify: `SOUND` (safe to extend) | `DRIFTED` (accumulated inconsistencies) | `ANTI-PATTERN` (fundamentally wrong)
+
+Phase dependency: Phase 3 MUST NOT execute until this audit is complete and `EXISTING CODEBASE PATTERNS` has been summarized for sub-agent prompts.
 
 If DRIFTED/ANTI-PATTERN → research output MUST recommend corrections. Change should leave architecture better, not perpetuate problems.
 
@@ -77,9 +82,28 @@ For each decision, formulate questions across:
 
 ## Sub-Agent Resilience
 
-Empty/failed result = transient failure (empty string, missing `VALIDATION:`/`FINDINGS:`, error-only).
+### Detection
 
-Protocol: retry once → if still fails → inline fallback (Context7 + Kagi + grep.app) → never skip a question.
+A sub-agent result is **empty/failed** if:
+- The result string is empty, whitespace-only, or `null`
+- The result does not contain the expected `VALIDATION:` or `FINDINGS:` section
+- The result contains only an error message with no research content
+- The result contains headers but no actionable content beneath them
+- The result is entirely inconclusive and provides no sourced findings
+
+Treat timeout/no-response the same as failure.
+
+### Retry Protocol
+
+1. **Retry once** — re-spawn that specific sub-agent with the same prompt
+2. **If retry also fails** — fall back to inline research for that question:
+   - Use `context7_resolve-library-id` + `context7_query-docs` for library/framework questions
+   - Use `kagi_kagi_search_fetch` for community guidance and current best practices
+   - Use `grep-app_searchCode` for real-world implementation patterns
+   - Emit findings with the same `VALIDATION:` / `RECOMMENDATION:` structure
+   - Apply the same redaction rules during manual research: strip secrets/internal-only details and keep external queries generic
+3. **If using `explore` as fallback and it fails** — retry `explore` once, then do manual inline research
+4. **Never skip a research question** — every question must produce a finding or explicit "inconclusive" result
 
 ---
 
@@ -93,35 +117,130 @@ Two agents in parallel:
 1. **librarian** — docs, API refs, code examples
 2. **adv-researcher** — architecture validation, simplicity analysis
 
-Skip librarian if research is purely architectural (no library/API lookups).
+Skip librarian if research is purely architectural (no library/API lookups, version-specific docs, or framework behavior questions).
 
-Check agent availability: `glob .opencode/agents/adv-researcher.md`. Librarian is always available.
+Check agent availability: `glob .opencode/agents/adv-researcher.md`. Librarian is always available. If `adv-researcher` is unavailable, use the Explore Fallback Template immediately; if it is available but returns an empty/failed result, apply the retry protocol first.
 
 ### Librarian Prompt
 
-Pass: topic, project context (brief), specific documentation/example questions. Return: findings with sources, code examples, API references.
+```
+Find documentation and examples for the following:
+
+TOPIC: {technology or pattern being researched}
+
+PROJECT CONTEXT:
+{brief description of what we're building}
+
+SPECIFIC QUESTIONS:
+{list of documentation/example questions}
+
+Before sending:
+- Redact secrets/internal-only details
+- Keep queries generic; do not include proprietary code, internal URLs, or customer data
+
+Return:
+- Key documentation findings with sources
+- Code examples from real projects
+- API reference information if relevant
+```
 
 ### adv-researcher Prompt
 
-System prompt already contains behavioral instructions. Pass only: research question, minimally necessary tech stack/context from `adv_project_context`, relevant spec/proposal excerpt, existing codebase patterns from Phase 1 audit, relevant file list. Redact secrets/internal-only details before external research.
+System prompt already contains behavioral instructions (research protocol, citation requirements, simplicity bias, response format, anti-hallucination controls). Do NOT duplicate these. Pass only task-specific context:
+
+```
+RESEARCH QUESTION: {question}
+
+PROJECT TECH STACK:
+{full technical context from `adv_project_context` after redacting secrets/internal-only details; include all relevant public libraries, not private credentials or internal identifiers}
+
+CONTEXT:
+{relevant spec/proposal excerpt}
+
+EXISTING CODEBASE PATTERNS:
+{summary of patterns found in Phase 1 audit}
+
+CODEBASE FILES:
+{list of relevant files the subagent should read; prefer proposal-mentioned files, affected modules, and direct neighbors; cap at ~15 files and summarize the rest, e.g. "+ 8 supporting utilities under auth/ and utils/"}
+```
+
+**CRITICAL**: Include the FULL project context, not a summary. The sub-agent needs to know:
+- Component libraries (e.g., shadcn-svelte) to look up component-specific docs
+- Underlying primitives (e.g., Bits UI) that power those components
+- CSS frameworks, state management, testing tools, etc.
+
+Without this, the sub-agent cannot research the correct libraries for the project's actual stack.
+
+Redact secrets/internal-only details before passing to external research tools.
+Redact at minimum: API keys, tokens, passwords, connection strings, private keys, internal hostnames/URLs, proprietary identifiers, customer data.
 
 ### Fallback Handling
+
+Retry Protocol governs execution failures. This table governs which fallback path to choose.
 
 | Failure | Action |
 |---------|--------|
 | Librarian fails | Continue with adv-researcher only, note "docs research incomplete" |
-| adv-researcher fails | Fall back to `explore` agent with full research protocol instructions |
-| Both fail | Manual research via Context7 + grep.app + Kagi directly |
+| adv-researcher unavailable | Use `explore` agent with full research protocol instructions |
+| adv-researcher fails | Retry once, then fall back to `explore` |
+| Both fallback paths fail | Manual research via Context7 + grep.app + Kagi directly |
 
 ### Explore Fallback Template
 
-Include: question, full tech stack, context, codebase patterns, research protocol (cite sources, Context7 first, grep.app for examples, prefer simple/boring, say "I don't know" vs guess). Return: findings, architecture assessment (existing vs reference pattern, deviation level), validation status, recommendation, sources.
+When using `explore` agent as fallback (no adv-researcher available), include full instructions — the explore agent has NO built-in research protocol:
+
+```
+Research architectural decision:
+
+QUESTION: {question}
+
+PROJECT TECH STACK:
+{full technical context from `adv_project_context` after redacting secrets/internal-only details; include all relevant public libraries}
+
+CONTEXT: {spec excerpt}
+
+EXISTING CODEBASE PATTERNS: {summary of patterns found in Phase 1 audit}
+
+RESEARCH PROTOCOL:
+- You MUST cite sources for every factual claim
+- Use Context7 first for library/framework questions (context7_resolve-library-id → context7_query-docs)
+- Use grep.app to find real-world code examples
+- Prefer simple, boring solutions over complex ones
+- If unsure, say "I don't know" rather than guess
+- Every finding MUST include a source URL
+- Redact secrets/internal-only details before external queries
+- Use generic search terms only; never paste proprietary code, internal URLs, or customer data into grep.app or web search queries
+
+TASK:
+1. Use Context7: context7_resolve-library-id, then context7_query-docs
+2. Look up the CANONICAL/REFERENCE architecture for this tech stack
+3. Web search for best practices
+4. Compare the PROPOSED architecture against the REFERENCE architecture
+
+RETURN:
+RESEARCH QUESTION: {question}
+
+FINDINGS:
+- {finding with source URL}
+
+ARCHITECTURE ASSESSMENT:
+- Existing pattern: {what the codebase currently does}
+- Reference pattern: {what the by-the-book approach is}
+- Deviation: {NONE | MINOR | MAJOR}
+
+VALIDATION: VALIDATED | CONCERNS | ANTI-PATTERN | NEEDS_MORE_INFO
+
+RECOMMENDATION: {specific action}
+
+SOURCES:
+- {source with URL}
+```
 
 ---
 
 ## Phase 4: Synthesis
 
-> Anti-Loop: after sub-agents return → `>>> SYNTHESIS COMPLETE <<<` → write report immediately.
+> Anti-Loop: after ALL sub-agents return → emit `>>> SYNTHESIS COMPLETE <<<` once → write report immediately.
 
 ### Research Report Structure
 
@@ -156,6 +275,7 @@ If invoked with changeId → × NEVER call `adv_change_create`. Use `adv_change_
 ### For Deployed Specs (no changeId)
 
 Confirm with user via `question` → if approved: `adv_change_create` → update proposal with findings. × No tasks — `/adv-prep` synthesizes from findings.
+If user declines, return the research report only and do not create/update change state.
 
 ### For Active Changes (changeId provided)
 
@@ -168,7 +288,18 @@ Build `## Research Validation` section → `adv_change_update changeId: "<id>" p
 
 ## Phase 6: Contract Tracking
 
-Emit CONTRACT ACTIVE with findings as criteria, prioritized: architecture corrections → security → simplifications → anti-patterns → improvements. After applying → CONTRACT FULFILLED with evidence.
+Emit these blocks in the response:
+
+```markdown
+CONTRACT ACTIVE
+- Criteria: {prioritized findings list}
+
+CONTRACT FULFILLED
+- Evidence: {what was validated or updated}
+- Status: COMPLETE | REPORT_ONLY
+```
+
+Prioritize findings as: architecture corrections → security → simplifications → anti-patterns → improvements.
 
 ---
 
@@ -207,6 +338,11 @@ Next: /adv-prep {change-id}
 |---------|------|
 | Load spec | `adv_spec action: "show"` |
 | Load change | `adv_change_show` |
+| Load project context | `adv_project_context` |
 | Create change | `adv_change_create` |
 | Update proposal | `adv_change_update` |
+| Ask user | `question` |
+| Mark gate | `adv_gate_complete` |
 | Context7 | `context7_resolve-library-id`, `context7_query-docs` |
+| Web search / best practices | `kagi_kagi_search_fetch` |
+| Real-world code examples | `grep-app_searchCode` |

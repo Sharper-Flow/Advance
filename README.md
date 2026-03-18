@@ -106,13 +106,13 @@ Advance exists to make those failure modes harder.
 - **Accumulated wisdom** - persist patterns, gotchas, conventions, successes, and failures
 - **Worktree-aware state** - share mutable change state across worktrees and sessions; detect and reuse existing worktrees
 - **Validation and archive flow** - reduce drift between proposal, implementation, and specs
-- **Tradeoff prioritization** - route multi-approach decisions through inline analysis or a prioritizer sub-agent before asking users to weigh criteria
+- **Tradeoff prioritization** - route multi-approach decisions through inline analysis or the prioritizer skill before asking users to weigh criteria
 
 ### Prioritizer protocol
 
 For tradeoff-heavy decisions, ADV agents analyze the decision space inline by default — scanning relevant code with `lgrep`, researching via Context7/Kagi, then drafting criteria questions for the `question` tool.
 
-When the `task` tool is available (`orca`, `plan`, `scout`, `refine`, or `general` agents), agents may optionally spawn a `prioritizer` sub-agent for deeper analysis.
+When deeper analysis is needed, agents can load the prioritizer skill via `skill("prioritizer")` for structured criteria question templates and decision map guidance.
 
 ### Agent architecture
 
@@ -135,7 +135,6 @@ Sub-agents available for orchestration:
 | `general` | Complex multi-step implementation |
 | `mechanic` | System/infra issues — MCP servers, config, toolchain |
 | `adv-researcher` | Architectural validation, simplicity analysis |
-| `prioritizer` | Tradeoff criteria drafting and decision maps |
 | `tron` | Codebase reconnaissance, hotspot detection |
 
 ## Repository structure

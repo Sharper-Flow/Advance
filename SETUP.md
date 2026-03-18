@@ -520,7 +520,7 @@ pnpm build
 | `/adv-improve` | Suggest spec or implementation improvements |
 | `/adv-tron [target]` | Investigate codebase structure and suggest agenda candidates |
 
-Tradeoff-heavy decisions inside ADV flows should use the `prioritizer` sub-agent before asking the user questions. The sub-agent drafts context-specific criteria questions so agents ask about the real decision tradeoffs instead of generic priorities.
+Tradeoff-heavy decisions inside ADV flows use inline analysis by default. For deeper analysis, agents can load the prioritizer skill via `skill("prioritizer")` which provides structured criteria question templates and decision map guidance.
 
 ### Available Tools
 

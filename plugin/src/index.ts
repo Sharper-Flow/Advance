@@ -198,8 +198,8 @@ export const AdvancePlugin: Plugin = async ({ directory, worktree }) => {
     cleanupTerminal();
     try {
       store.close();
-    } catch {
-      // Ignore errors during exit
+    } catch (e) {
+      debugLog(`Error closing store on exit: ${e}`);
     }
   };
 
@@ -214,8 +214,8 @@ export const AdvancePlugin: Plugin = async ({ directory, worktree }) => {
     const flushTimeout = setTimeout(() => {
       try {
         store.close();
-      } catch {
-        /* ignore */
+      } catch (e) {
+        debugLog(`Error closing store on shutdown timeout: ${e}`);
       }
       process.exit(0);
     }, 3000);
@@ -224,8 +224,8 @@ export const AdvancePlugin: Plugin = async ({ directory, worktree }) => {
       clearTimeout(flushTimeout);
       try {
         store.close();
-      } catch {
-        /* ignore */
+      } catch (e) {
+        debugLog(`Error closing store after flush: ${e}`);
       }
       process.exit(0);
     });
@@ -983,8 +983,8 @@ export const AdvancePlugin: Plugin = async ({ directory, worktree }) => {
         } else if (eventType === "permission.replied") {
           setFlags({ permissionPending: false });
         }
-      } catch {
-        // Silently handle event errors to not break OpenCode
+      } catch (e) {
+        debugLog(`Event hook error: ${e}`);
       }
     },
 
@@ -1238,11 +1238,11 @@ export const AdvancePlugin: Plugin = async ({ directory, worktree }) => {
 
             output.context.push(specsSummary);
           }
-        } catch {
-          // Ignore errors reading specs
+        } catch (e) {
+          debugLog(`Error loading specs for compaction: ${e}`);
         }
-      } catch {
-        // Silently handle errors
+      } catch (e) {
+        debugLog(`Session compacting hook error: ${e}`);
       }
     },
   };
