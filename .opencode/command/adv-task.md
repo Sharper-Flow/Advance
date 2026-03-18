@@ -1,7 +1,7 @@
 ---
 name: adv-task
 description: Fast-track a discussed change: synthesize contract, validate best practices, prep, and hand off
-agent: general
+agent: build
 ---
 
 # ADV Task — Fast-Track a Discussed Change

@@ -25,7 +25,6 @@ tools:
   # Research tools - documentation & web
   context7_*: true
   kagi_*: true
-  google_search: true
   webfetch: true
   fetch-mcp_*: true
   firecrawl_*: true

@@ -40,7 +40,6 @@ tools:
   # Disabled - Tron does not do external research
   context7_*: false
   kagi_*: false
-  google_search: false
   webfetch: false
   firecrawl_*: false
   grep-app_*: false

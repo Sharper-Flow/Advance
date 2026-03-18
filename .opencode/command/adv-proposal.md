@@ -1,7 +1,7 @@
 ---
 name: adv-proposal
 description: Extract problem statement, success criteria, and constraints without creating tasks
-agent: general
+agent: build
 ---
 
 # ADV Proposal — Create Change with Quality Requirements
