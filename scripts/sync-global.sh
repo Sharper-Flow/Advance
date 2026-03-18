@@ -318,26 +318,40 @@ fi
 
 # ---------------------------------------------------------------------------
 # 5. Sync ADV agents from .opencode/agents/ to global
+#
+# Agents listed in REPO_LOCAL_ONLY are repo-scoped — they should NOT be
+# copied to global.  They are loaded by OpenCode only when working inside
+# repos that contain them in .opencode/agents/.
 # ---------------------------------------------------------------------------
 mkdir -p "$GLOBAL_AGENTS"
 agents_copied=0
+# Agents that must stay repo-local (not synced to global)
+REPO_LOCAL_ONLY="adv-researcher.md tron.md"
 if [ -d "$REPO_AGENTS" ]; then
   for src in "$REPO_AGENTS"/*.md; do
     [ -f "$src" ] || continue
-    dest="$GLOBAL_AGENTS/$(basename "$src")"
+    name="$(basename "$src")"
+    # Skip repo-local-only agents
+    if echo " $REPO_LOCAL_ONLY " | grep -q " $name "; then
+      echo "    skipped (repo-local): $name"
+      continue
+    fi
+    dest="$GLOBAL_AGENTS/$name"
     cp "$src" "$dest"
-    echo "    copied agent: $(basename "$src")"
+    echo "    copied agent: $name"
     ((agents_copied++)) || true
   done
 fi
 echo "    $agents_copied agent(s) synced"
 
 # Remove stale ADV agents from global that no longer exist in repo
+# Also remove repo-local-only agents if they leaked into global
 agents_removed=0
 for global_agent in "$GLOBAL_AGENTS"/adv-*.md "$GLOBAL_AGENTS"/tron.md; do
   [ -f "$global_agent" ] || continue
   name="$(basename "$global_agent")"
-  if [ ! -f "$REPO_AGENTS/$name" ]; then
+  # Remove if no longer in repo OR if it's repo-local-only
+  if [ ! -f "$REPO_AGENTS/$name" ] || echo " $REPO_LOCAL_ONLY " | grep -q " $name "; then
     rm "$global_agent"
     echo "    removed stale agent: $name"
     ((agents_removed++)) || true
