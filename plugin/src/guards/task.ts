@@ -1,10 +1,12 @@
 /**
  * Anti-recursion guard for the built-in Task tool.
  *
- * Prevents nested sub-agent spawning: if a sub-agent is already running
- * (activeSubAgents > 0), spawning another via the Task tool creates
- * recursive context that causes empty results or interruptions.
+ * Prevents nested sub-agent spawning. ADV allows exactly one worker layer:
+ * the orchestrating agent may spawn first-level sub-agents, but those
+ * sub-agents may not spawn additional sub-agents.
  */
+
+export const MAX_SUBAGENT_NESTING_DEPTH = 1;
 
 /**
  * Enforces the anti-recursion policy for the Task tool.
@@ -12,9 +14,10 @@
  * @throws Error if a nested task call is attempted
  */
 export function enforceTaskPolicy(activeSubAgents: number): void {
-  if (activeSubAgents > 0) {
+  if (activeSubAgents >= MAX_SUBAGENT_NESTING_DEPTH) {
     throw new Error(
       `Error: Nested task call blocked.\n` +
+        `Maximum sub-agent nesting depth is ${MAX_SUBAGENT_NESTING_DEPTH} (top-level orchestrator only).\n` +
         `A sub-agent is already running (${activeSubAgents} active sub-agent(s)).\n\n` +
         `Spawning a Task tool call from within a sub-agent causes recursive context\n` +
         `that leads to empty results or interrupted responses.\n\n` +

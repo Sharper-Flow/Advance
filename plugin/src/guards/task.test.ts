@@ -1,7 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { enforceTaskPolicy } from "./task";
+import { enforceTaskPolicy, MAX_SUBAGENT_NESTING_DEPTH } from "./task";
 
 describe("Task Anti-Recursion Guard", () => {
+  it("sets max sub-agent nesting depth to one worker layer", () => {
+    expect(MAX_SUBAGENT_NESTING_DEPTH).toBe(1);
+  });
+
   describe("enforceTaskPolicy", () => {
     it("should allow task tool call when no sub-agents are active (first level)", () => {
       expect(() => enforceTaskPolicy(0)).not.toThrow();
@@ -27,6 +31,7 @@ describe("Task Anti-Recursion Guard", () => {
         errorMessage = (e as Error).message;
       }
       expect(errorMessage).toMatch(/sub-agent/i);
+      expect(errorMessage).toMatch(/maximum sub-agent nesting depth is 1/i);
     });
 
     it("should not throw for exactly 0 active sub-agents", () => {
