@@ -251,7 +251,7 @@ Available to: `orca`, `plan`, `scout`, `refine`, `general`. Use when 3+ independ
 | review | Sequential per dimension | explore × 5 + librarian + general |
 | harden | Sequential scans | explore × 6 |
 | audit | Sequential pipeline | explore × 4 |
-| slop-scan | Sequential categories | explore × 9 |
+| slop-scan | Sequential categories | explore × 9 (single-level only) |
 | tron | lgrep + read | tron agent |
 | task | Context7 + Kagi | librarian + adv-researcher |
 | refactor | Sequential drift | explore × 3 |
@@ -262,6 +262,7 @@ Rules:
 - Batch independent work into single spawn message
 - × Don't spawn for single-tool-call work
 - For `/adv-research`, `librarian`, `adv-researcher`, and `explore` fallback must do the research inline and must not delegate to additional research sub-agents
+- For `/adv-slop-scan`, all `explore` scanner workers must do the scan inline and must not delegate to additional sub-agents or invoke `/adv-*` slash commands
 
 Inline-only: `/adv-status`, `/adv-proposal`, `/adv-validate`, `/adv-apply`, `/adv-archive`, `/adv-clarify`, `/adv-prep`, `/adv-coordinate`, `/adv-improve`
 

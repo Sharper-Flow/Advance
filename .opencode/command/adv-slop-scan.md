@@ -94,6 +94,15 @@ If `--phase 1` only → skip to Report.
 
 AI-assisted detection via parallel sub-agents (`subagent_type: "explore"`).
 
+### No Nested Scanner Delegation (CRITICAL)
+
+`/adv-slop-scan` may fan out to first-level `explore` scanners only.
+
+- Scanner workers must perform all analysis inline with their own tools
+- Scanner workers must NOT spawn additional sub-agents, delegates, or worker agents
+- Scanner workers must NOT invoke any `/adv-*` slash commands; if ADV context is needed they must use ADV tools directly
+- If a scanner needs deeper analysis, it must return the gap to the orchestrator instead of delegating
+
 ### Work Distribution
 
 Divide files among up to 9 scanners by relevance. Cap each file at 3 scanners: `Hallucination`, `Structure`, `Quality` first; if a file also matches a specialized bucket, keep only the strongest specialized match and drop lower-priority extras.
@@ -113,6 +122,11 @@ Divide files among up to 9 scanners by relevance. Cap each file at 3 scanners: `
 ### Sub-Agent Prompt
 
 Each receives: `WORKING DIRECTORY: {workdir}`, smell definitions from yaml for their category, file list, instructions to focus on semantic issues (Phase 1 handles syntax), novelty check (skip if Phase 1 already found same issue unless adding semantic value), return JSON with findings array.
+
+Every scanner prompt must also include:
+- Do all work inline with your own tools
+- Do NOT spawn additional sub-agents or delegates
+- Do NOT invoke `/adv-*` slash commands
 
 ### Timeout/Failure Handling
 

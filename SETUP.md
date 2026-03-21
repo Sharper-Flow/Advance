@@ -528,6 +528,8 @@ pnpm build
 
 Tradeoff-heavy decisions inside ADV flows use inline analysis by default. For deeper analysis, agents can load the prioritizer skill via `skill("prioritizer")` which provides structured criteria question templates and decision map guidance.
 
+Parallel ADV scanners follow the same single-level delegation rule as other ADV orchestration: commands such as `/adv-slop-scan` may spawn first-level workers, but those workers must complete inline and must not spawn additional sub-agents or invoke `/adv-*` commands.
+
 ### Available Tools
 
 | Tool | Purpose |
