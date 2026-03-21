@@ -82,6 +82,30 @@ Defines the responsibilities and boundaries of /adv-research. The research comma
 
 ---
 
+### Research Delegation Stays Single-Level
+
+**ID:** `rq-res-orch1` | **Priority:** **[MUST]**
+
+/adv-research may orchestrate first-level research sub-agents, but those sub-agents must perform their work inline and must NOT spawn additional nested research sub-agents or delegates.
+
+**Tags:** `research`, `orchestration`, `anti-recursion`
+
+#### Scenarios
+
+**Research sub-agents do not recursively delegate** (`rq-res-orch1.1`)
+
+**Given:**
+- A user invokes /adv-research
+
+**When:** The command spawns librarian, adv-researcher, or explore as research workers
+
+**Then:**
+- Only the top-level /adv-research command performs delegation
+- Each spawned worker performs research inline with its own tools
+- No nested research sub-agent spawning occurs from within those workers
+
+---
+
 ### Research Prohibited Actions
 
 **ID:** `rq-res-neg1` | **Priority:** **[MUST]**

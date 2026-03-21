@@ -233,13 +233,21 @@ Gate behaviors:
 
 All commands run inline by default. Agents without `task` tool work inline exclusively.
 
+### Slash Command Boundary
+
+Slash commands are top-level entry points for the user/session, not an internal dispatch mechanism for agents.
+
+- Agents must NOT invoke `/adv-*` from inside another agent workflow or sub-agent prompt
+- OpenCode may re-dispatch slash commands through command frontmatter `agent:` routing, which can override the current agent context and compound orchestration
+- When an agent needs an ADV workflow, it must execute that workflow inline with tools (or read the command file as a contract) rather than calling the slash command itself
+
 ### Sub-Agent Orchestration (optional, requires `task` tool)
 
 Available to: `orca`, `plan`, `scout`, `refine`, `general`. Use when 3+ independent scan dimensions benefit from parallelism.
 
 | Command | Inline | Sub-Agent |
 |---------|--------|-----------|
-| research | Context7 + Kagi + lgrep | librarian + adv-researcher |
+| research | Context7 + Kagi + lgrep | librarian + adv-researcher (single-level only) |
 | review | Sequential per dimension | explore × 5 + librarian + general |
 | harden | Sequential scans | explore × 6 |
 | audit | Sequential pipeline | explore × 4 |
@@ -253,6 +261,7 @@ Rules:
 - Cap parallel bursts at 3-4
 - Batch independent work into single spawn message
 - × Don't spawn for single-tool-call work
+- For `/adv-research`, `librarian`, `adv-researcher`, and `explore` fallback must do the research inline and must not delegate to additional research sub-agents
 
 Inline-only: `/adv-status`, `/adv-proposal`, `/adv-validate`, `/adv-apply`, `/adv-archive`, `/adv-clarify`, `/adv-prep`, `/adv-coordinate`, `/adv-improve`
 

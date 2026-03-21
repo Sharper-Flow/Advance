@@ -111,6 +111,15 @@ Treat timeout/no-response the same as failure.
 
 Spawn in SINGLE message for parallel execution.
 
+### No Nested Research Delegation (CRITICAL)
+
+The `/adv-research` orchestrator may spawn the first-level research agents only.
+
+- `librarian` and `adv-researcher` must perform all analysis inline with their own tools
+- They must NOT spawn additional research sub-agents, delegates, or worker agents
+- They must NOT invoke any `/adv-*` slash commands; if they need ADV context they must use ADV tools directly
+- If deeper analysis is needed, return the gap to the orchestrator or use the inline fallback research flow in this command
+
 ### Orchestrator Pattern
 
 Two agents in parallel:
@@ -137,6 +146,8 @@ SPECIFIC QUESTIONS:
 Before sending:
 - Redact secrets/internal-only details
 - Keep queries generic; do not include proprietary code, internal URLs, or customer data
+- Do all research inline with your own tools; do not delegate to additional sub-agents
+- Do not invoke `/adv-*` slash commands; use ADV tools directly if ADV state is needed
 
 Return:
 - Key documentation findings with sources
@@ -162,6 +173,10 @@ EXISTING CODEBASE PATTERNS:
 
 CODEBASE FILES:
 {list of relevant files the subagent should read; prefer proposal-mentioned files, affected modules, and direct neighbors; cap at ~15 files and summarize the rest, e.g. "+ 8 supporting utilities under auth/ and utils/"}
+
+EXECUTION CONSTRAINT:
+Do all research inline with your own tools. Do NOT spawn additional research sub-agents or delegates.
+Do NOT invoke `/adv-*` slash commands from inside this worker.
 ```
 
 **CRITICAL**: Include the FULL project context, not a summary. The sub-agent needs to know:
@@ -184,6 +199,9 @@ Retry Protocol governs execution failures. This table governs which fallback pat
 | adv-researcher unavailable | Use `explore` agent with full research protocol instructions |
 | adv-researcher fails | Retry once, then fall back to `explore` |
 | Both fallback paths fail | Manual research via Context7 + grep.app + Kagi directly |
+
+Fallbacks must also remain single-level: `explore` performs the work inline and does not delegate further.
+Fallback workers must not invoke `/adv-*` slash commands either.
 
 ### Explore Fallback Template
 
