@@ -1,7 +1,6 @@
 ---
 name: adv-harden
 description: Detect low-quality code, verify test coverage, clean up; block archive on open findings
-agent: general
 ---
 
 # ADV Harden — Post-Implementation Quality Analysis

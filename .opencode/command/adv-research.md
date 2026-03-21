@@ -1,7 +1,6 @@
 ---
 name: adv-research
 description: Validate architectural decisions and best practices without creating tasks
-agent: general
 ---
 
 # ADV Research — Architectural Decision Validation

@@ -1,7 +1,6 @@
 ---
 name: adv-archive
 description: Archive completed change: apply spec deltas and finalize git
-agent: build
 ---
 
 # ADV Archive — Finalize Completed Change

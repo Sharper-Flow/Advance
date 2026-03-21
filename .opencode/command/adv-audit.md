@@ -1,7 +1,6 @@
 ---
 name: adv-audit
 description: Detect drift between specs and current implementation
-agent: general
 ---
 
 # ADV Audit — Spec/Implementation Alignment Check

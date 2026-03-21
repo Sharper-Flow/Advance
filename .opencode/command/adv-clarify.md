@@ -1,7 +1,6 @@
 ---
 name: adv-clarify
 description: Ask clarifying questions to resolve ambiguous requirements
-agent: build
 ---
 
 # ADV Clarify — Requirements Discovery

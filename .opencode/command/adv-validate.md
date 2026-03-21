@@ -1,7 +1,6 @@
 ---
 name: adv-validate
 description: Validate change compliance against specs; block archive on failure
-agent: build
 args:
   - name: change_id
     description: Change ID to validate

@@ -8,6 +8,8 @@
 #   ./scripts/sync-global.sh           # Sync assets + check config (report only)
 #   ./scripts/sync-global.sh --check   # Check config only, no file changes
 #   ./scripts/sync-global.sh --fix     # Sync assets + auto-patch opencode.json
+#   ./scripts/sync-global.sh --dry-run # Preview overlay/config changes without writing
+#   ./scripts/sync-global.sh --diff    # Show overlay diffs when managed blocks change
 #
 # What it does:
 #   1. Copies .opencode/command/*.md  -> ~/.config/opencode/command/
@@ -27,16 +29,22 @@ set -euo pipefail
 # Parse flags
 # ---------------------------------------------------------------------------
 MODE="sync"  # default: sync assets + check config
+DRY_RUN=false
+SHOW_DIFF=false
 for arg in "$@"; do
   case "$arg" in
     --check) MODE="check" ;;
     --fix)   MODE="fix" ;;
+    --dry-run) DRY_RUN=true ;;
+    --diff) SHOW_DIFF=true ;;
     --help|-h)
-      echo "Usage: $0 [--check | --fix]"
+      echo "Usage: $0 [--check | --fix] [--dry-run] [--diff]"
       echo ""
       echo "  (no flags)  Sync assets + check config (report issues)"
       echo "  --check     Check config only, no file changes at all"
       echo "  --fix       Sync assets + auto-patch opencode.json if needed"
+      echo "  --dry-run   Preview managed overlay/config changes without writing"
+      echo "  --diff      Show managed overlay diffs when blocks change"
       exit 0
       ;;
     *)
@@ -52,6 +60,7 @@ done
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 REPO_COMMANDS="$REPO_ROOT/.opencode/command"
 REPO_AGENTS="$REPO_ROOT/.opencode/agents"
+REPO_OVERLAYS="$REPO_ROOT/.opencode/overlays"
 REPO_SKILLS="$REPO_ROOT/skills"
 GLOBAL_COMMANDS="$HOME/.config/opencode/command"
 GLOBAL_AGENTS="$HOME/.config/opencode/agents"
@@ -78,6 +87,12 @@ ADV_PLUGIN_PATH="$REPO_ROOT/plugin"
 ADV_INSTRUCTION_PATH="$REPO_ROOT/ADV_INSTRUCTIONS.md"
 
 echo "==> ADV sync-global ($MODE): $REPO_ROOT -> $GLOBAL_CONFIG"
+if [ "$DRY_RUN" = true ]; then
+  echo "    preview mode: --dry-run enabled"
+fi
+if [ "$SHOW_DIFF" = true ]; then
+  echo "    preview mode: --diff enabled"
+fi
 
 # ---------------------------------------------------------------------------
 # Config check/fix functions
@@ -129,6 +144,104 @@ json_array_contains() {
   jsonc_to_json "$file" | jq --arg exact "$value" --arg tilde "$tilde_value" \
     -e "($jq_path | if type == \"array\" then . else [.] end) | any(. == \$exact or . == \$tilde)" \
     &>/dev/null
+}
+
+print_diff() {
+  local before_file="$1" after_file="$2"
+  if [ "$SHOW_DIFF" = true ]; then
+    diff -u "$before_file" "$after_file" || true
+  fi
+}
+
+write_or_preview() {
+  local target="$1" source_tmp="$2"
+  if [ "$DRY_RUN" = true ]; then
+    print_diff "$target" "$source_tmp"
+    return 0
+  fi
+
+  mv "$source_tmp" "$target"
+}
+
+apply_overlay_block() {
+  local overlay_name="$1"
+  local target_file="$2"
+  local overlay_file="$REPO_OVERLAYS/$overlay_name.overlay.md"
+  local start_marker="<!-- ADV_SYNC:START $overlay_name -->"
+  local end_marker="<!-- ADV_SYNC:END $overlay_name -->"
+
+  if [ ! -f "$target_file" ]; then
+    echo "    skipped missing shared agent: $(basename "$target_file")"
+    return 0
+  fi
+
+  if [ ! -f "$overlay_file" ]; then
+    echo "    missing overlay source: $(basename "$overlay_file")"
+    return 1
+  fi
+
+  local marker_count
+  marker_count="$(python - <<'PY' "$target_file" "$start_marker"
+from pathlib import Path
+import sys
+text = Path(sys.argv[1]).read_text()
+print(text.count(sys.argv[2]))
+PY
+)"
+  if [ "$marker_count" -gt 1 ]; then
+    echo "    duplicate overlay marker: $(basename "$target_file")"
+    return 1
+  fi
+
+  local current_tmp new_tmp
+  current_tmp="$(mktemp)"
+  new_tmp="$(mktemp)"
+  cp "$target_file" "$current_tmp"
+
+  python - <<'PY' "$target_file" "$overlay_file" "$start_marker" "$end_marker" "$new_tmp"
+from pathlib import Path
+import sys
+
+target_path, overlay_path, start_marker, end_marker, output_path = sys.argv[1:6]
+target = Path(target_path).read_text()
+overlay = Path(overlay_path).read_text().rstrip() + "\n"
+
+start = target.find(start_marker)
+end = target.find(end_marker)
+if start != -1 and end != -1:
+    end += len(end_marker)
+    while end < len(target) and target[end] == "\n":
+        end += 1
+    result = target[:start] + overlay + target[end:]
+else:
+    insert_at = 0
+    if target.startswith("---\n"):
+        second = target.find("\n---\n", 4)
+        if second != -1:
+            insert_at = second + len("\n---\n")
+            if insert_at < len(target) and target[insert_at] != "\n":
+                overlay = "\n" + overlay
+    result = target[:insert_at] + overlay + ("\n" if insert_at and not overlay.endswith("\n\n") else "") + target[insert_at:]
+
+Path(output_path).write_text(result)
+PY
+
+  if cmp -s "$current_tmp" "$new_tmp"; then
+    echo "    overlay already current: $overlay_name"
+    rm -f "$current_tmp" "$new_tmp"
+    return 0
+  fi
+
+  if [ "$DRY_RUN" = true ]; then
+    echo "    overlay preview: $overlay_name"
+    print_diff "$current_tmp" "$new_tmp"
+    rm -f "$current_tmp" "$new_tmp"
+    return 0
+  fi
+
+  mv "$new_tmp" "$target_file"
+  echo "    overlay synced: $overlay_name"
+  rm -f "$current_tmp"
 }
 
 check_config() {
@@ -213,6 +326,10 @@ fix_config() {
 
   # If no config file, create a minimal one (always .json for new files)
   if [ ! -f "$GLOBAL_JSON" ]; then
+    if [ "$DRY_RUN" = true ]; then
+      echo "    dry-run: would create $GLOBAL_CONFIG/opencode.json with ADV entries"
+      return 0
+    fi
     GLOBAL_JSON="$GLOBAL_CONFIG/opencode.json"
     echo '{}' | jq \
       --arg plugin "$ADV_PLUGIN_PATH" \
@@ -241,8 +358,12 @@ fix_config() {
 
   # Back up before patching
   local backup="$GLOBAL_JSON.bak.$(date +%Y%m%d%H%M%S)"
-  cp "$GLOBAL_JSON" "$backup"
-  echo "    Backup: $backup"
+  if [ "$DRY_RUN" = true ]; then
+    echo "    dry-run: would back up $GLOBAL_JSON to $backup"
+  else
+    cp "$GLOBAL_JSON" "$backup"
+    echo "    Backup: $backup"
+  fi
 
   local patched=0
   local tmp_json
@@ -284,17 +405,23 @@ fix_config() {
   fi
 
   if [ "$patched" -gt 0 ]; then
-    # Atomic write — note: if source was JSONC, output is now plain JSON
-    mv "$tmp_json" "$GLOBAL_JSON"
-    echo "    Patched $patched entry/entries in $GLOBAL_JSON"
-    if [ "$GLOBAL_JSON_IS_JSONC" = true ]; then
-      echo "    ⚠  Comments were stripped during patching. Restore from backup if needed."
+    if [ "$DRY_RUN" = true ]; then
+      echo "    dry-run: would patch $patched entry/entries in $GLOBAL_JSON"
+      print_diff "$GLOBAL_JSON" "$tmp_json"
+      rm -f "$tmp_json"
+    else
+      # Atomic write — note: if source was JSONC, output is now plain JSON
+      mv "$tmp_json" "$GLOBAL_JSON"
+      echo "    Patched $patched entry/entries in $GLOBAL_JSON"
+      if [ "$GLOBAL_JSON_IS_JSONC" = true ]; then
+        echo "    ⚠  Comments were stripped during patching. Restore from backup if needed."
+      fi
     fi
   else
     rm -f "$tmp_json"
     echo "    No patches needed — config already correct"
     # Clean up unnecessary backup
-    rm -f "$backup"
+    [ "$DRY_RUN" = true ] || rm -f "$backup"
   fi
 }
 
@@ -325,8 +452,12 @@ copied=0
 for src in "$REPO_COMMANDS"/adv-*.md; do
   [ -f "$src" ] || continue
   dest="$GLOBAL_COMMANDS/$(basename "$src")"
-  cp "$src" "$dest"
-  echo "    copied: $(basename "$src")"
+  if [ "$DRY_RUN" = true ]; then
+    echo "    dry-run copy: $(basename "$src")"
+  else
+    cp "$src" "$dest"
+    echo "    copied: $(basename "$src")"
+  fi
   ((copied++)) || true
 done
 echo "    $copied command(s) synced"
@@ -339,8 +470,12 @@ for global_cmd in "$GLOBAL_COMMANDS"/adv-*.md; do
   [ -f "$global_cmd" ] || continue
   name="$(basename "$global_cmd")"
   if [ ! -f "$REPO_COMMANDS/$name" ]; then
-    rm "$global_cmd"
-    echo "    removed stale: $name"
+    if [ "$DRY_RUN" = true ]; then
+      echo "    dry-run remove stale: $name"
+    else
+      rm "$global_cmd"
+      echo "    removed stale: $name"
+    fi
     ((removed++)) || true
   fi
 done
@@ -354,8 +489,12 @@ for stale in openprompt.md; do
   for dir in "$HOME/.config/opencode/command" "$HOME/.config/opencode/commands"; do
     target="$dir/$stale"
     if [ -f "$target" ]; then
-      rm "$target"
-      echo "    removed legacy: $target"
+      if [ "$DRY_RUN" = true ]; then
+        echo "    dry-run remove legacy: $target"
+      else
+        rm "$target"
+        echo "    removed legacy: $target"
+      fi
     fi
   done
 done
@@ -368,8 +507,12 @@ done
 # ---------------------------------------------------------------------------
 STALE_GLOBAL_INSTR="$HOME/.config/opencode/instructions/ADV_INSTRUCTIONS.md"
 if [ -f "$STALE_GLOBAL_INSTR" ]; then
-  rm "$STALE_GLOBAL_INSTR"
-  echo "    removed stale: $STALE_GLOBAL_INSTR (canonical is $ADV_INSTRUCTION_PATH)"
+  if [ "$DRY_RUN" = true ]; then
+    echo "    dry-run remove stale: $STALE_GLOBAL_INSTR (canonical is $ADV_INSTRUCTION_PATH)"
+  else
+    rm "$STALE_GLOBAL_INSTR"
+    echo "    removed stale: $STALE_GLOBAL_INSTR (canonical is $ADV_INSTRUCTION_PATH)"
+  fi
 fi
 
 # ---------------------------------------------------------------------------
@@ -393,12 +536,25 @@ if [ -d "$REPO_AGENTS" ]; then
       continue
     fi
     dest="$GLOBAL_AGENTS/$name"
-    cp "$src" "$dest"
-    echo "    copied agent: $name"
+    if [ "$DRY_RUN" = true ]; then
+      echo "    dry-run copy agent: $name"
+    else
+      cp "$src" "$dest"
+      echo "    copied agent: $name"
+    fi
     ((agents_copied++)) || true
   done
 fi
 echo "    $agents_copied agent(s) synced"
+
+# Apply repo-owned overlays to shared global agents without replacing the file
+if [ -d "$REPO_OVERLAYS" ]; then
+  echo "    syncing shared-agent overlays"
+  apply_overlay_block "orca" "$GLOBAL_AGENTS/orca.md"
+  apply_overlay_block "general" "$GLOBAL_AGENTS/general.md"
+  apply_overlay_block "plan" "$GLOBAL_AGENTS/plan.md"
+  apply_overlay_block "scout" "$GLOBAL_AGENTS/scout.md"
+fi
 
 # Remove stale ADV agents from global that no longer exist in repo
 # Also remove repo-local-only agents if they leaked into global
@@ -408,8 +564,12 @@ for global_agent in "$GLOBAL_AGENTS"/adv-*.md "$GLOBAL_AGENTS"/tron.md; do
   name="$(basename "$global_agent")"
   # Remove if no longer in repo OR if it's repo-local-only
   if [ ! -f "$REPO_AGENTS/$name" ] || echo " $REPO_LOCAL_ONLY " | grep -q " $name "; then
-    rm "$global_agent"
-    echo "    removed stale agent: $name"
+    if [ "$DRY_RUN" = true ]; then
+      echo "    dry-run remove stale agent: $name"
+    else
+      rm "$global_agent"
+      echo "    removed stale agent: $name"
+    fi
     ((agents_removed++)) || true
   fi
 done
@@ -426,9 +586,13 @@ if [ -d "$REPO_SKILLS" ]; then
     skill_file="$skill_dir/SKILL.md"
     [ -f "$skill_file" ] || continue
     dest_dir="$GLOBAL_SKILLS/$skill_name"
-    mkdir -p "$dest_dir"
-    cp "$skill_file" "$dest_dir/SKILL.md"
-    echo "    copied skill: $skill_name/SKILL.md"
+    if [ "$DRY_RUN" = true ]; then
+      echo "    dry-run copy skill: $skill_name/SKILL.md"
+    else
+      mkdir -p "$dest_dir"
+      cp "$skill_file" "$dest_dir/SKILL.md"
+      echo "    copied skill: $skill_name/SKILL.md"
+    fi
     ((skills_copied++)) || true
   done
 fi
@@ -440,8 +604,12 @@ for global_skill in "$GLOBAL_SKILLS"/adv-*/; do
   [ -d "$global_skill" ] || continue
   skill_name="$(basename "$global_skill")"
   if [ ! -d "$REPO_SKILLS/$skill_name" ]; then
-    rm -rf "$global_skill"
-    echo "    removed stale skill: $skill_name"
+    if [ "$DRY_RUN" = true ]; then
+      echo "    dry-run remove stale skill: $skill_name"
+    else
+      rm -rf "$global_skill"
+      echo "    removed stale skill: $skill_name"
+    fi
     ((skills_removed++)) || true
   fi
 done

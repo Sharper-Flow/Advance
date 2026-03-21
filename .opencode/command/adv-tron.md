@@ -1,7 +1,6 @@
 ---
 name: adv-tron
 description: Investigate codebase structure, hotspots, risks, and suggest follow-up agenda candidates
-agent: general
 ---
 
 # ADV Tron — Codebase Reconnaissance

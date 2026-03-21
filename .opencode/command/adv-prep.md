@@ -1,7 +1,6 @@
 ---
 name: adv-prep
 description: Analyze gaps and synthesize tasks from validated research findings
-agent: general
 ---
 
 # ADV Prep — Pre-Implementation Gap Analysis

@@ -1,7 +1,6 @@
 ---
 name: adv-refactor
 description: Refresh a stale proposal to reflect current codebase state
-agent: general
 ---
 
 # ADV Refactor — Refresh Stale Proposals

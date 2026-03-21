@@ -116,7 +116,11 @@ When deeper analysis is needed, agents can load the prioritizer skill via `skill
 
 ### Agent architecture
 
-ADV commands are executed by OpenCode agents. Agents with the `task` tool can spawn sub-agents for parallel research and validation. Sub-agents cannot spawn further sub-agents — all orchestration flows through the parent agent. Orchestrators (especially `orca`) should cap parallel bursts at 3-4 sub-agents and avoid spawning for work achievable in a single tool call.
+ADV slash commands are top-level entrypoint contracts; they do not carry command-level `agent:` routing. Agent behavior lives in agent prompts and ADV tools instead of command frontmatter, which keeps context overhead lower and avoids OpenCode re-dispatch surprises.
+
+Agents with the `task` tool can spawn sub-agents for parallel research and validation. Sub-agents cannot spawn further sub-agents — all orchestration flows through the parent agent, with a hard runtime nesting depth limit of `1`. Orchestrators (especially `orca`) should cap parallel bursts at 3-4 sub-agents and avoid spawning for work achievable in a single tool call.
+
+Shared global agents such as `orca`, `general`, `plan`, and `scout` are synced through small repo-owned managed overlay blocks rather than full-file replacement, so ADV can keep critical anti-recursion rules current without overwriting user customization.
 
 | Agent | Role | Can Orchestrate? |
 |-------|------|-----------------|

@@ -1,7 +1,6 @@
 ---
 name: adv-review
 description: Review code for correctness, security, and architecture; emit REVIEW_FINDINGS
-agent: general
 ---
 
 # ADV Review — Post-Implementation Code Review

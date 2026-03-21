@@ -1,7 +1,6 @@
 ---
 name: adv-status
 description: Show project overview: specs, active changes, and next-step recommendations
-agent: build
 ---
 
 # ADV Status

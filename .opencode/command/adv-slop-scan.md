@@ -1,7 +1,6 @@
 ---
 name: adv-slop-scan
 description: Scan for AI slop patterns including defensive and nested code
-agent: general
 ---
 
 # ADV Slop Scan

@@ -1,7 +1,6 @@
 ---
 name: adv-apply
 description: Implement change with TDD, retry on failure, and final verification
-agent: build
 ---
 
 # ADV Apply — Implement Change with TDD and Retry

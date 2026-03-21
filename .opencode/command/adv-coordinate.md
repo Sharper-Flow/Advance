@@ -1,7 +1,6 @@
 ---
 name: adv-coordinate
 description: Detect and resolve conflicts across multiple active changes
-agent: general
 ---
 
 # ADV Coordinate — Multi-Change Conflict Detection

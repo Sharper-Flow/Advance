@@ -91,7 +91,7 @@ The easiest way to set up and update ADV is the sync script. It copies commands,
 agents, and skills to the global config, and validates (or patches) `opencode.json`:
 
 ```bash
-# Check what needs updating (no file changes)
+# Check what needs updating (config only, no file changes)
 ./scripts/sync-global.sh --check
 
 # Sync assets + auto-patch opencode.json if ADV entries are missing
@@ -99,16 +99,22 @@ agents, and skills to the global config, and validates (or patches) `opencode.js
 
 # Sync assets only, report config issues without patching
 ./scripts/sync-global.sh
+
+# Preview managed overlay/config changes without writing
+./scripts/sync-global.sh --dry-run --diff
 ```
 
 The `--fix` flag will:
 - Copy all `adv-*.md` commands to `~/.config/opencode/command/`
 - Copy ADV agents to `~/.config/opencode/agents/`
+- Apply repo-owned managed overlay blocks to shared global agents like `orca`, `general`, `plan`, and `scout` without replacing the full file
 - Copy ADV skills to `~/.config/opencode/skills/`
 - Add the ADV plugin path to `opencode.json` `.plugin` array if missing
 - Add `ADV_INSTRUCTIONS.md` to `opencode.json` `.instructions` array if missing
 - Back up `opencode.json` before any patches
 - Preserve all non-ADV settings (mcp, provider, permissions, etc.)
+
+Top-level ADV slash commands are synced as entrypoint contracts only; they do not include command-level `agent:` routing. Shared-agent orchestration rules are maintained through the overlay blocks and the runtime nesting guard in the ADV plugin.
 
 Requires `jq` for config patching (`sudo apt-get install -y jq` or `brew install jq`).
 

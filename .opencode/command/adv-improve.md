@@ -1,7 +1,6 @@
 ---
 name: adv-improve
 description: Suggest targeted improvements to existing specs or implementation
-agent: general
 ---
 
 # ADV Improve — Architectural Improvement Analysis
