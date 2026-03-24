@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+#### Command + Skill Architecture for Review, Harden, and Slop Scan
+
+- Added a documented "Command vs Skill Boundaries" policy to `ADV_INSTRUCTIONS.md`
+- Added bundled skills:
+  - `skills/adv-review-methodology/SKILL.md`
+  - `skills/adv-harden-methodology/SKILL.md`
+  - `skills/adv-slop-detection/SKILL.md`
+- Updated `/adv-review`, `/adv-harden`, and `/adv-slop-scan` to load backing skills with inline fallback
+- Added asset tests covering bundled skills, command skill-loading, fallback text, and sync-global compatibility
+- Updated `README.md` to describe the command + skill architecture and kept `SETUP.md` aligned with the new bundled skills
+
 ## [0.5.1] - 2026-03-18
 
 ### Added
