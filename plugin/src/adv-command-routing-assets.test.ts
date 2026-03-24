@@ -17,9 +17,10 @@ describe("ADV command routing assets", () => {
     for (const file of commandFiles) {
       const content = readFileSync(join(COMMAND_DIR, file), "utf8");
       const frontmatter = content.split("---")[1] ?? "";
-      expect(frontmatter, `${file} should not route through agent frontmatter`).not.toMatch(
-        /^agent:\s+/m,
-      );
+      expect(
+        frontmatter,
+        `${file} should not route through agent frontmatter`,
+      ).not.toMatch(/^agent:\s+/m);
     }
   });
 
