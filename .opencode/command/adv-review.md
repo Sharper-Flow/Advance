@@ -29,6 +29,12 @@ Orchestrate multi-dimensional code review via sub-agents. Emits `REVIEW_FINDINGS
 
 ---
 
+## Phase 0: Load Skill
+
+`skill("adv-review-methodology")` → provides 12-dimension framework, conventional comment labels, verdict criteria, minimum findings threshold. If the skill is unavailable, continue with the embedded protocol in this command file.
+
+---
+
 ## Phase 1: Pre-flight
 
 ### Load Context

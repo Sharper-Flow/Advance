@@ -107,6 +107,7 @@ Advance exists to make those failure modes harder.
 - **Worktree-aware state** - share mutable change state across worktrees and sessions; detect and reuse existing worktrees
 - **Validation and archive flow** - reduce drift between proposal, implementation, and specs
 - **Tradeoff prioritization** - route multi-approach decisions through inline analysis or the prioritizer skill before asking users to weigh criteria
+- **Command + skill architecture** - slash commands own workflow/state/gates; reusable methodology (review, harden, slop detection) lives in loadable skills following the `adv-tron` pattern
 
 ### Prioritizer protocol
 

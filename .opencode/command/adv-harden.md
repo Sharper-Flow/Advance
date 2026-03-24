@@ -36,6 +36,12 @@ Extract from `$ARGUMENTS`:
 1. If change-id provided → use directly
 2. If empty → `adv_change_list` → select via `question` tool
 
+## Phase 0: Load Skill
+
+`skill("adv-harden-methodology")` → provides 6-scanner framework, severity scoring, debt quadrant, documentation hygiene standard. If the skill is unavailable, continue with the embedded protocol in this command file.
+
+---
+
 ## Pre-flight
 
 ### Fetch Change Context

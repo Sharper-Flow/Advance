@@ -310,6 +310,44 @@ Trust boundary: repo-local skills are trusted only from the repository's `skills
 
 Graceful degradation: skip skills without frontmatter or `keywords`. No matches → proceed normally. Filesystem-only, no API calls.
 
+## Command vs Skill Boundaries
+
+Commands and skills serve different roles. Use this table to decide where new functionality belongs:
+
+| Use a **command** when | Use a **skill** when |
+|------------------------|----------------------|
+| User-facing workflow entry point | Reusable methodology or analysis protocol |
+| Mutates ADV state (changes, tasks, gates) | Read-only guidance or checklist framework |
+| Owns a gate completion | Loaded by multiple commands or sub-agents |
+| Requires explicit user invocation | Domain knowledge independent of workflow state |
+
+### Reference Pattern
+
+`adv-tron` is the canonical example of a command backed by a skill:
+- **Command** (`.opencode/command/adv-tron.md`) — owns orchestration, sub-agent spawning, ADV state reads, user interaction
+- **Skill** (`skills/adv-tron/SKILL.md`) — holds investigation protocol, search priorities, evidence requirements, report schema
+- **Fallback** — command includes embedded protocol if skill is unavailable
+
+Commands that fan out to sub-agents with reusable methodology should follow this pattern: load the skill before spawning workers, pass condensed guidance, fall back to embedded protocol if the skill is missing.
+
+### Classification
+
+**Command-only** (no backing skill needed):
+`adv-proposal`, `adv-research`, `adv-prep`, `adv-task`, `adv-apply`, `adv-validate`, `adv-archive`, `adv-status`, `adv-coordinate`, `adv-clarify`, `adv-refactor`
+
+**Command + backing skill** (reusable methodology extracted):
+- `adv-tron` → `adv-tron` skill
+- `adv-review` → `adv-review-methodology` skill
+- `adv-harden` → `adv-harden-methodology` skill
+- `adv-slop-scan` → `adv-slop-detection` skill
+
+### Constraints
+
+- Skills × MUST NOT mutate ADV state (no `adv_change_create`, `adv_task_add`, `adv_gate_complete`).
+- Skills × MUST NOT own gate completion or workflow sequencing.
+- Commands MUST remain functional if a backing skill is unavailable — inline fallback is required.
+- Checklist docs (`docs/checklists/`) remain the canonical source; skills reference them, not duplicate them.
+
 ## Worktree Integration
 
 ADV uses external mutable state — all worktrees share changes, archive, wisdom, agenda, SQLite cache. Specs remain in-repo (`.adv/specs/`).

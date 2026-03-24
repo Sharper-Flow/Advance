@@ -28,6 +28,12 @@ Parse `$ARGUMENTS`:
 
 ---
 
+## Phase 0: Load Skill
+
+`skill("adv-slop-detection")` → provides two-phase detection strategy, smell categories, severity scoring, finding format. If the skill is unavailable, continue with the embedded protocol in this command file.
+
+---
+
 ## Pre-flight
 
 1. **Git check** — `git rev-parse --is-inside-work-tree` → stop if not git repo
