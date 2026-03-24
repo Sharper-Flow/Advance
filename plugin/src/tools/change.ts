@@ -34,13 +34,17 @@ export const changeTools = {
     description: "List active changes with optional filtering",
     args: {
       status: z
-        .enum(["draft", "pending", "active", "archived"])
+        .enum(["draft", "pending", "active", "archived", "closed"])
         .optional()
         .describe("Filter by status"),
       includeArchived: z
         .boolean()
         .optional()
         .describe("Include archived changes (default: false)"),
+      includeClosed: z
+        .boolean()
+        .optional()
+        .describe("Include closed changes (default: false)"),
       limit: z
         .number()
         .optional()
@@ -54,17 +58,23 @@ export const changeTools = {
       {
         status,
         includeArchived,
+        includeClosed,
         limit,
         offset,
       }: {
         status?: string;
         includeArchived?: boolean;
+        includeClosed?: boolean;
         limit?: number;
         offset?: number;
       },
       store: Store,
     ) => {
-      const result = await store.changes.list({ status, includeArchived });
+      const result = await store.changes.list({
+        status,
+        includeArchived,
+        includeClosed,
+      });
       const paged = paginate(result.changes, {
         limit,
         offset,
@@ -337,6 +347,99 @@ export const changeTools = {
           problemStatementPath: result.problemStatementPath,
         }),
       );
+    },
+  },
+
+  adv_change_close: {
+    description:
+      "Close an active change with required user approval and audit metadata",
+    args: {
+      changeId: z.string().describe("Change ID to close"),
+      reason: z
+        .enum(["cancelled", "superseded", "not_planned"])
+        .describe("Why the change is being closed"),
+      approvedByUser: z
+        .literal(true)
+        .describe("Must be true — confirms user explicitly approved"),
+      approvalEvidence: z
+        .string()
+        .describe("Evidence of user approval (e.g. question tool response)"),
+      supersededBy: z
+        .string()
+        .optional()
+        .describe("Surviving change ID when reason is superseded"),
+    },
+    execute: async (
+      {
+        changeId,
+        reason,
+        approvedByUser,
+        approvalEvidence,
+        supersededBy,
+      }: {
+        changeId: string;
+        reason: "cancelled" | "superseded" | "not_planned";
+        approvedByUser: true;
+        approvalEvidence: string;
+        supersededBy?: string;
+      },
+      store: Store,
+    ) => {
+      if (reason === "superseded" && !supersededBy) {
+        return wrapWithBanner(
+          { command: "adv_change_close", target: changeId },
+          formatToolOutput({
+            error: "supersededBy is required when reason is 'superseded'.",
+          }),
+        );
+      }
+
+      const result = await store.changes.get(changeId);
+      if (!result.success) {
+        return wrapWithBanner(
+          { command: "adv_change_close", target: changeId },
+          formatToolOutput({ error: result.error }),
+        );
+      }
+      if (!result.data) {
+        return wrapWithBanner(
+          { command: "adv_change_close", target: changeId },
+          formatToolOutput({ error: `Change not found: ${changeId}` }),
+        );
+      }
+
+      try {
+        const change = await store.changes.close(changeId, {
+          reason,
+          approved_by_user: approvedByUser,
+          approval_evidence: approvalEvidence,
+          superseded_by: supersededBy,
+          approved_at: new Date().toISOString(),
+        });
+
+        if (!change) {
+          return wrapWithBanner(
+            { command: "adv_change_close", target: changeId },
+            formatToolOutput({ error: `Change not found: ${changeId}` }),
+          );
+        }
+
+        return wrapWithBanner(
+          { command: "adv_change_close", target: changeId },
+          formatToolOutput({
+            success: true,
+            change,
+            message: `Closed change ${changeId} as ${reason}.`,
+          }),
+        );
+      } catch (error) {
+        return wrapWithBanner(
+          { command: "adv_change_close", target: changeId },
+          formatToolOutput({
+            error: error instanceof Error ? error.message : String(error),
+          }),
+        );
+      }
     },
   },
 

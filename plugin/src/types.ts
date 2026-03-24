@@ -409,9 +409,28 @@ export const ChangeStatusSchema = z.enum([
   "pending", // Awaiting approval
   "active", // In progress
   "archived", // Completed and promoted
+  "closed", // Retired without completion
 ]);
 
 export type ChangeStatus = z.infer<typeof ChangeStatusSchema>;
+
+export const ChangeClosureReasonSchema = z.enum([
+  "cancelled",
+  "superseded",
+  "not_planned",
+]);
+
+export type ChangeClosureReason = z.infer<typeof ChangeClosureReasonSchema>;
+
+export const ChangeClosureSchema = z.object({
+  reason: ChangeClosureReasonSchema,
+  approved_by_user: z.literal(true),
+  approval_evidence: z.string(),
+  superseded_by: z.string().optional(),
+  approved_at: z.string(),
+});
+
+export type ChangeClosure = z.infer<typeof ChangeClosureSchema>;
 
 // =============================================================================
 // Quality Gates (6-Gate Checklist)
@@ -594,6 +613,8 @@ export const ChangeSchema = z
     gates: GatesSchema.optional(),
     /** Linked GitHub issue URLs (optional, backwards compatible) */
     github_issues: z.array(z.string().url()).optional(),
+    /** Structured closure metadata for retired changes */
+    closure: ChangeClosureSchema.optional(),
   })
   .passthrough(); // Allow extra fields for forward/backward compatibility
 

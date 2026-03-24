@@ -23,7 +23,8 @@
             "draft",
             "pending",
             "active",
-            "archived"
+            "archived",
+            "closed"
           ]
         },
         "created_at": {
@@ -761,6 +762,39 @@
             "type": "string",
             "format": "uri"
           }
+        },
+        "closure": {
+          "type": "object",
+          "properties": {
+            "reason": {
+              "type": "string",
+              "enum": [
+                "cancelled",
+                "superseded",
+                "not_planned"
+              ]
+            },
+            "approved_by_user": {
+              "type": "boolean",
+              "const": true
+            },
+            "approval_evidence": {
+              "type": "string"
+            },
+            "superseded_by": {
+              "type": "string"
+            },
+            "approved_at": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "reason",
+            "approved_by_user",
+            "approval_evidence",
+            "approved_at"
+          ],
+          "additionalProperties": false
         }
       },
       "required": [

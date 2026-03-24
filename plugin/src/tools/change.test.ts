@@ -34,7 +34,7 @@ describe("Change Tools", () => {
   describe("adv_change_list", () => {
     test("returns active changes with task counts", async () => {
       const result = await changeTools.adv_change_list.execute({}, store);
-      const parsed = JSON.parse(result);
+      const parsed = parseToolOutput(result);
 
       expect(parsed.changes).toHaveLength(1);
       expect(parsed.changes[0]).toMatchObject({
@@ -51,7 +51,7 @@ describe("Change Tools", () => {
         { status: "draft" },
         store,
       );
-      const parsed = JSON.parse(result);
+      const parsed = parseToolOutput(result);
 
       // No draft changes in sample data
       expect(parsed.changes).toHaveLength(0);
@@ -65,7 +65,7 @@ describe("Change Tools", () => {
       await store.changes.save(changeResult.data!);
 
       const result = await changeTools.adv_change_list.execute({}, store);
-      const parsed = JSON.parse(result);
+      const parsed = parseToolOutput(result);
 
       expect(parsed.changes).toHaveLength(0);
     });
@@ -80,9 +80,95 @@ describe("Change Tools", () => {
         { includeArchived: true },
         store,
       );
-      const parsed = JSON.parse(result);
+      const parsed = parseToolOutput(result);
 
       expect(parsed.changes).toHaveLength(1);
+    });
+
+    test("excludes closed changes by default", async () => {
+      await store.changes.close("addFeature", {
+        reason: "cancelled",
+        approved_by_user: true,
+        approval_evidence: "User cancelled proposal",
+        approved_at: "2026-03-24T00:00:00Z",
+      });
+
+      const result = await changeTools.adv_change_list.execute({}, store);
+      const parsed = parseToolOutput(result);
+
+      expect(parsed.changes).toHaveLength(0);
+    });
+
+    test("includes closed changes when requested", async () => {
+      await store.changes.close("addFeature", {
+        reason: "cancelled",
+        approved_by_user: true,
+        approval_evidence: "User cancelled proposal",
+        approved_at: "2026-03-24T00:00:00Z",
+      });
+
+      const result = await changeTools.adv_change_list.execute(
+        { includeClosed: true },
+        store,
+      );
+      const parsed = parseToolOutput(result);
+
+      expect(parsed.changes).toHaveLength(1);
+      expect(parsed.changes[0].status).toBe("closed");
+    });
+  });
+
+  describe("adv_change_close", () => {
+    test("closes a change with approval evidence", async () => {
+      const result = await changeTools.adv_change_close.execute(
+        {
+          changeId: "addFeature",
+          reason: "cancelled",
+          approvedByUser: true,
+          approvalEvidence: "User approved cancellation in chat",
+        },
+        store,
+      );
+      const parsed = parseToolOutput(result);
+
+      expect(parsed.success).toBe(true);
+      expect(parsed.change.status).toBe("closed");
+      expect(parsed.change.closure.reason).toBe("cancelled");
+    });
+
+    test("requires supersededBy when reason is superseded", async () => {
+      const result = await changeTools.adv_change_close.execute(
+        {
+          changeId: "addFeature",
+          reason: "superseded",
+          approvedByUser: true,
+          approvalEvidence: "User selected survivor change",
+        },
+        store,
+      );
+      const parsed = parseToolOutput(result);
+
+      expect(parsed.error).toContain("supersededBy");
+    });
+
+    test("rejects closing archived changes", async () => {
+      const changeResult = await store.changes.get("addFeature");
+      expect(changeResult.success).toBe(true);
+      changeResult.data!.status = "archived";
+      await store.changes.save(changeResult.data!);
+
+      const result = await changeTools.adv_change_close.execute(
+        {
+          changeId: "addFeature",
+          reason: "not_planned",
+          approvedByUser: true,
+          approvalEvidence: "User retired proposal",
+        },
+        store,
+      );
+      const parsed = parseToolOutput(result);
+
+      expect(parsed.error).toContain("archived");
     });
   });
 

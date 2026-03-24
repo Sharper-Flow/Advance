@@ -8,6 +8,8 @@ import { describe, test, expect } from "vitest";
 import {
   SpecSchema,
   ChangeSchema,
+  ChangeStatusSchema,
+  ChangeClosureSchema,
   RequirementSchema,
   TaskSchema,
   DeltaSchema,
@@ -447,6 +449,43 @@ describe("ChangeSchema", () => {
       github_issues: ["not-a-valid-url"],
     };
     expect(() => ChangeSchema.parse(changeWithInvalidUrl)).toThrow();
+  });
+
+  test("accepts closed change status", () => {
+    expect(ChangeStatusSchema.parse("closed")).toBe("closed");
+  });
+
+  test("parses structured change closure metadata", () => {
+    const closure = {
+      reason: "superseded",
+      approved_by_user: true,
+      approval_evidence: "User approved duplicate cleanup",
+      superseded_by: "fooFeature2",
+      approved_at: "2026-03-24T00:00:00Z",
+    };
+
+    expect(ChangeClosureSchema.parse(closure)).toEqual(closure);
+  });
+
+  test("parses change with closure metadata", () => {
+    const closedChange = {
+      id: "closedChange",
+      title: "Closed Change",
+      status: "closed",
+      created_at: "2026-01-01T00:00:00Z",
+      tasks: [],
+      deltas: {},
+      closure: {
+        reason: "not_planned",
+        approved_by_user: true,
+        approval_evidence: "User declined proposal",
+        approved_at: "2026-03-24T00:00:00Z",
+      },
+    };
+
+    const result = ChangeSchema.parse(closedChange);
+    expect(result.status).toBe("closed");
+    expect(result.closure?.reason).toBe("not_planned");
   });
 });
 

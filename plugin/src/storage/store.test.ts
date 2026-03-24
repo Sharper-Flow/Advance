@@ -145,6 +145,31 @@ describe("Store", () => {
       expect(withArchived.changes).toHaveLength(1);
     });
 
+    test("list excludes closed changes by default", async () => {
+      await store.changes.close("addFeature", {
+        reason: "not_planned",
+        approved_by_user: true,
+        approval_evidence: "User retired draft",
+        approved_at: "2026-03-24T00:00:00Z",
+      });
+
+      const result = await store.changes.list();
+      expect(result.changes).toHaveLength(0);
+    });
+
+    test("list includes closed changes when requested", async () => {
+      await store.changes.close("addFeature", {
+        reason: "cancelled",
+        approved_by_user: true,
+        approval_evidence: "User cancelled proposal",
+        approved_at: "2026-03-24T00:00:00Z",
+      });
+
+      const result = await store.changes.list({ includeClosed: true });
+      expect(result.changes).toHaveLength(1);
+      expect(result.changes[0].status).toBe("closed");
+    });
+
     test("get returns full change", async () => {
       const result = await store.changes.get("addFeature");
       expect(result.success).toBe(true);
@@ -286,6 +311,42 @@ describe("Store", () => {
       );
       expect(matchingChanges).toHaveLength(1);
     });
+
+    test("close marks a change as closed and persists closure metadata", async () => {
+      const closed = await store.changes.close("addFeature", {
+        reason: "superseded",
+        approved_by_user: true,
+        approval_evidence: "User approved duplicate cleanup",
+        superseded_by: "addFeature2",
+        approved_at: "2026-03-24T00:00:00Z",
+      });
+
+      expect(closed).not.toBeNull();
+      expect(closed!.status).toBe("closed");
+      expect(closed!.closure?.reason).toBe("superseded");
+      expect(closed!.closure?.superseded_by).toBe("addFeature2");
+
+      const loaded = await store.changes.get("addFeature");
+      expect(loaded.success).toBe(true);
+      expect(loaded.data!.status).toBe("closed");
+      expect(loaded.data!.closure?.approval_evidence).toContain("duplicate");
+    });
+
+    test("close rejects archived changes", async () => {
+      const changeResult = await store.changes.get("addFeature");
+      expect(changeResult.success).toBe(true);
+      changeResult.data!.status = "archived";
+      await store.changes.save(changeResult.data!);
+
+      await expect(
+        store.changes.close("addFeature", {
+          reason: "not_planned",
+          approved_by_user: true,
+          approval_evidence: "User retired old proposal",
+          approved_at: "2026-03-24T00:00:00Z",
+        }),
+      ).rejects.toThrow(/archived/i);
+    });
   });
 
   describe("tasks", () => {
@@ -364,6 +425,19 @@ describe("Store", () => {
       expect(status.specs.capabilities).toContain("test-capability");
       expect(status.changes.active).toBe(1);
       expect(status.changes.byStatus.active).toBe(1);
+    });
+
+    test("status excludes closed changes from active count", async () => {
+      await store.changes.close("addFeature", {
+        reason: "not_planned",
+        approved_by_user: true,
+        approval_evidence: "User retired draft",
+        approved_at: "2026-03-24T00:00:00Z",
+      });
+
+      const status = await store.status();
+      expect(status.changes.active).toBe(0);
+      expect(status.changes.byStatus.closed).toBe(1);
     });
 
     test("generates recommendations", async () => {
@@ -499,6 +573,18 @@ describe("Store", () => {
         (rc) => rc.id === newChange!.id,
       );
       expect(archivedInRecent).toBeUndefined();
+    });
+
+    test("closed changes are excluded from recent", async () => {
+      await store.changes.close("addFeature", {
+        reason: "cancelled",
+        approved_by_user: true,
+        approval_evidence: "User cancelled proposal",
+        approved_at: "2026-03-24T00:00:00Z",
+      });
+
+      const status = await store.status();
+      expect(status.changes.recent).toHaveLength(0);
     });
 
     test("recent changes sorted most-recent-first", async () => {

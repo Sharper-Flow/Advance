@@ -322,5 +322,28 @@ describe("Status Tools", () => {
       expect(staleRecs.length).toBeGreaterThan(0);
       expect(staleRecs[0]).toContain("addFeature");
     });
+
+    test("closed changes are excluded from active status and recommendations", async () => {
+      await store.changes.close("addFeature", {
+        reason: "cancelled",
+        approved_by_user: true,
+        approval_evidence: "User cancelled proposal",
+        approved_at: "2026-03-24T00:00:00Z",
+      });
+
+      const result = await statusTools.adv_status.execute({}, store);
+      const parsed = parseToolOutput(result);
+
+      expect(parsed.changes.active).toBe(0);
+      expect(parsed.changes.byStatus.closed).toBe(1);
+      expect(parsed.changes.recent).toHaveLength(0);
+      expect(
+        parsed.recommendations.some(
+          (r: string) =>
+            r.includes("/adv-apply addFeature") ||
+            r.includes("Stale change `addFeature`"),
+        ),
+      ).toBe(false);
+    });
   });
 });

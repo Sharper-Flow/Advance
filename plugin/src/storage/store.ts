@@ -18,6 +18,7 @@ import {
 import type {
   Spec,
   Change,
+  ChangeClosure,
   Task,
   ProjectConfig,
   SpecListResponse,
@@ -96,6 +97,7 @@ export interface Store {
     list: (filter?: {
       status?: string;
       includeArchived?: boolean;
+      includeClosed?: boolean;
     }) => Promise<ChangeListResponse>;
     get: (changeId: string) => Promise<LoadResult<Change | null>>;
     create: (
@@ -125,6 +127,7 @@ export interface Store {
       problemStatementPath?: string;
       error?: string;
     }>;
+    close: (changeId: string, closure: ChangeClosure) => Promise<Change | null>;
   };
 
   // Tasks
@@ -730,9 +733,12 @@ export async function createStore(
 
         let rows = sqlite.changes.list({ status: filter?.status });
 
-        // Exclude archived unless requested
+        // Exclude archived/closed unless requested
         if (!filter?.includeArchived) {
           rows = rows.filter((r) => r.status !== "archived");
+        }
+        if (!filter?.includeClosed) {
+          rows = rows.filter((r) => r.status !== "closed");
         }
 
         return {
@@ -842,6 +848,26 @@ export async function createStore(
         if (shouldCheckpoint(dbPath)) {
           checkpointWAL(sqlite.db);
         }
+      },
+
+      close: async (changeId, closure) => {
+        const changeResult = await store.changes.get(changeId);
+        if (!changeResult.success || !changeResult.data) {
+          return null;
+        }
+
+        const change = changeResult.data;
+        if (change.status === "archived") {
+          throw new Error(
+            `Cannot close archived change: ${change.id}. Archived changes are already completed.`,
+          );
+        }
+
+        change.status = "closed";
+        change.closure = closure;
+
+        await store.changes.save(change);
+        return change;
       },
 
       updateArtifacts: async (
@@ -1201,6 +1227,7 @@ export async function createStore(
         pending: 0,
         active: 0,
         archived: 0,
+        closed: 0,
       };
 
       for (const change of changeRows) {
@@ -1234,8 +1261,8 @@ export async function createStore(
           );
         }
 
-        // Compute recency for non-archived changes
-        if (change.status !== "archived") {
+        // Compute recency for active (non-archived, non-closed) changes
+        if (change.status !== "archived" && change.status !== "closed") {
           const tasks = jsonResult.data.tasks;
           recentChanges.push(
             buildChangeRecency(
@@ -1300,7 +1327,9 @@ export async function createStore(
           capabilities: specRows.map((s) => s.name),
         },
         changes: {
-          active: changeRows.filter((c) => c.status !== "archived").length,
+          active: changeRows.filter(
+            (c) => c.status !== "archived" && c.status !== "closed",
+          ).length,
           byStatus,
           recent: recentChanges,
         },

@@ -298,11 +298,17 @@ export const AdvancePlugin: Plugin = async ({ directory, worktree }) => {
           status: tool.schema
             .string()
             .optional()
-            .describe("Filter by status (draft, pending, active, archived)"),
+            .describe(
+              "Filter by status (draft, pending, active, archived, closed)",
+            ),
           includeArchived: tool.schema
             .boolean()
             .optional()
             .describe("Include archived changes"),
+          includeClosed: tool.schema
+            .boolean()
+            .optional()
+            .describe("Include closed changes"),
         },
         execute: safeExecute(
           async (args) => changeTools.adv_change_list.execute(args, store),
@@ -368,6 +374,32 @@ export const AdvancePlugin: Plugin = async ({ directory, worktree }) => {
         execute: safeExecute(
           async (args) => changeTools.adv_change_update.execute(args, store),
           "adv_change_update",
+        ),
+      }),
+
+      adv_change_close: tool({
+        description: changeTools.adv_change_close.description,
+        args: {
+          changeId: tool.schema.string().describe("Change ID to close"),
+          reason: tool.schema
+            .enum(["cancelled", "superseded", "not_planned"])
+            .describe("Why the change is being closed"),
+          approvedByUser: tool.schema
+            .literal(true)
+            .describe("Must be true — confirms user explicitly approved"),
+          approvalEvidence: tool.schema
+            .string()
+            .describe(
+              "Evidence of user approval (e.g. question tool response)",
+            ),
+          supersededBy: tool.schema
+            .string()
+            .optional()
+            .describe("Surviving change ID when reason is superseded"),
+        },
+        execute: safeExecute(
+          async (args) => changeTools.adv_change_close.execute(args, store),
+          "adv_change_close",
         ),
       }),
 

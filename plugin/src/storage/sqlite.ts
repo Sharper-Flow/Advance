@@ -125,7 +125,7 @@ CREATE TABLE IF NOT EXISTS scenarios (
 CREATE TABLE IF NOT EXISTS changes (
   id TEXT PRIMARY KEY,
   title TEXT NOT NULL,
-  status TEXT NOT NULL CHECK (status IN ('draft', 'pending', 'active', 'archived')),
+  status TEXT NOT NULL CHECK (status IN ('draft', 'pending', 'active', 'archived', 'closed')),
   created_at TEXT NOT NULL,
   created_by TEXT,
   json_path TEXT NOT NULL,
@@ -357,6 +357,33 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
           requirement_json TEXT,
           changes_json TEXT,
           reason TEXT
+        )
+      `);
+    }
+  } catch {
+    // If migration fails, the DB will be rebuilt on next sync
+  }
+
+  // Migration: update changes CHECK constraint to include 'closed'.
+  // SQLite doesn't support altering CHECK constraints in place, so rebuild
+  // the derived cache table if the older constraint is still present.
+  try {
+    const tableInfo = db
+      .query(
+        "SELECT sql FROM sqlite_master WHERE type='table' AND name='changes'",
+      )
+      .get() as { sql: string } | null;
+    if (tableInfo?.sql && !tableInfo.sql.includes("'closed'")) {
+      db.exec("DROP TABLE IF EXISTS changes");
+      db.exec(`
+        CREATE TABLE changes (
+          id TEXT PRIMARY KEY,
+          title TEXT NOT NULL,
+          status TEXT NOT NULL CHECK (status IN ('draft', 'pending', 'active', 'archived', 'closed')),
+          created_at TEXT NOT NULL,
+          created_by TEXT,
+          json_path TEXT NOT NULL,
+          synced_at TEXT NOT NULL
         )
       `);
     }
