@@ -554,6 +554,7 @@ if [ -d "$REPO_OVERLAYS" ]; then
   apply_overlay_block "general" "$GLOBAL_AGENTS/general.md"
   apply_overlay_block "plan" "$GLOBAL_AGENTS/plan.md"
   apply_overlay_block "scout" "$GLOBAL_AGENTS/scout.md"
+  apply_overlay_block "refine" "$GLOBAL_AGENTS/refine.md"
 fi
 
 # Remove stale ADV agents from global that no longer exist in repo
