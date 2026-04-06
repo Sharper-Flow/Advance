@@ -32,6 +32,65 @@ Complete installation instructions for the ADV spec-driven development plugin.
 |------------|---------|
 | Git | Version control, change tracking |
 | SQLite | Comes bundled with better-sqlite3 |
+| jq | Required only for `sync-global.sh --fix` (config patching) |
+
+---
+
+## External Dependencies (MCP Servers and Sub-Agents)
+
+ADV ships the plugin, commands, overlays, and bundled ADV agents (`plan`, `scout`,
+`refine`, `adv-researcher`, `tron`). But several of those agents and commands
+reference **external MCP servers** and **shared sub-agents** that are NOT part
+of ADV itself. If any of these are missing, ADV still runs — commands have
+fallback paths — but the user experience is degraded.
+
+### Required sub-agents (shared with OpenCode global config)
+
+These agents are expected to exist in `~/.config/opencode/agents/` as part of
+your OpenCode setup. ADV does not ship them. If missing, commands will fall
+back to inline execution or generic `explore` agent invocation, which is
+slower and less specialized.
+
+| Agent       | Used by                                                         | What it does                                     |
+|-------------|-----------------------------------------------------------------|---------------------------------------------------|
+| `explore`     | `/adv-review`, `/adv-harden`, `/adv-audit`, `/adv-slop-scan`, `/adv-refactor` | Codebase navigation, finding usages               |
+| `librarian`   | `/adv-research`, `/adv-task`, `/adv-review`                             | Documentation and API lookup (Context7, grep.app) |
+| `mechanic`    | `/adv-tron` (optional), `scout` sub-agent spawns                    | System/infra diagnostics                          |
+| `general`     | `/adv-review` (cross-cutting), overlay-managed                      | Multi-step implementation                         |
+
+### Optional MCP servers (referenced by agent tool blocks)
+
+These MCP servers are granted to `plan`/`scout`/`refine`/`adv-researcher`
+via their `tools:` allowlists. OpenCode silently ignores tool grants for
+MCP servers that are not configured — the grants become no-ops. You can
+run ADV without any of these, but the following features degrade or become
+unavailable:
+
+| MCP server   | Tool prefix    | Used by                                 | Degradation if missing                                  |
+|--------------|----------------|-----------------------------------------|---------------------------------------------------------|
+| lgrep        | `lgrep_*`        | `plan`, `scout`, `refine`, `adv-researcher`, `tron` | Code exploration falls back to `glob`/`grep`/`read` (slower, less semantic) |
+| Firecrawl    | `firecrawl_*`    | `scout`, `refine`                           | Web scraping unavailable; use `webfetch` instead        |
+| Context7     | `context7_*`     | `adv-researcher`                            | Library documentation lookup unavailable                |
+| Kagi         | `kagi_*`         | `adv-researcher`                            | Web search unavailable                                  |
+| grep.app     | `grep-app_*`     | `adv-researcher`                            | Cross-repo code example search unavailable             |
+| arXiv MCP    | `arxiv-mcp_*`    | `adv-researcher`                            | Academic paper search unavailable                       |
+
+Configure these MCP servers in your `opencode.json` `mcp` section per each
+server's documentation. The ADV sync script does not install or validate
+MCP servers — that's your responsibility.
+
+### Minimum viable setup
+
+If you want to run ADV with the smallest possible footprint:
+
+1. OpenCode CLI
+2. Node.js 20+, pnpm 9+
+3. ADV plugin built (`plugin/dist/index.js` present)
+4. `~/.config/opencode/agents/` contains `explore` and `librarian` at minimum
+5. No external MCP servers required — agents fall back to built-in tools
+
+ADV itself will function. Research and review commands will be noticeably
+slower without lgrep and Context7, but they will not fail.
 
 ---
 

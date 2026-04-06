@@ -6,6 +6,12 @@ node_modules/
 dist/
 *.tsbuildinfo
 
+# Per-user OpenCode plugin dev artifacts (not tracked so users get their own)
+.opencode/package.json
+.opencode/package-lock.json
+.opencode/bun.lock
+.opencode/node_modules/
+
 # SQLite database (derived, not committed)
 .adv/db/
 *.db

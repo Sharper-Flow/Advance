@@ -95,6 +95,24 @@ if [ "$SHOW_DIFF" = true ]; then
 fi
 
 # ---------------------------------------------------------------------------
+# Pre-flight: plugin build check
+#
+# OpenCode loads the plugin from $ADV_PLUGIN_PATH, which expects built output
+# at plugin/dist/index.js. plugin/dist/ is gitignored, so a fresh clone will
+# not have it until the user runs `pnpm install && pnpm build` in plugin/.
+# Warn loudly but do not abort — sync can still copy assets even if the
+# plugin itself isn't built yet.
+# ---------------------------------------------------------------------------
+ADV_PLUGIN_DIST="$ADV_PLUGIN_PATH/dist/index.js"
+if [ ! -f "$ADV_PLUGIN_DIST" ]; then
+  echo ""
+  echo "    ⚠  Plugin not built: $ADV_PLUGIN_DIST is missing"
+  echo "       OpenCode will fail to load the ADV plugin without it."
+  echo "       Run:  (cd \"$ADV_PLUGIN_PATH\" && pnpm install && pnpm build)"
+  echo ""
+fi
+
+# ---------------------------------------------------------------------------
 # Config check/fix functions
 # ---------------------------------------------------------------------------
 config_issues=0
