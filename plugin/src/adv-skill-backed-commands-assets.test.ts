@@ -63,7 +63,9 @@ describe("skill-backed command assets", () => {
     test(`${command} command documents inline fallback if skill is unavailable`, () => {
       const content = readFileSync(commandPath, "utf8");
 
-      expect(content).toMatch(/skill is unavailable|fallback|embedded protocol/i);
+      expect(content).toMatch(
+        /skill is unavailable|fallback|embedded protocol/i,
+      );
     });
   }
 
