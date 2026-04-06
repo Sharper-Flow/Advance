@@ -31,12 +31,16 @@ tools:
   grep-app_*: true
   # Research tools - academic papers
   arxiv-mcp_*: true
-  # ADV tools - read-only spec/change queries
+  # ADV tools - spec/change queries + proposal updates
   adv_spec: true
+  adv_status: true
   adv_change_list: true
   adv_change_show: true
+  adv_change_update: true
   adv_project_context: true
-  # Disabled - research agents don't modify
+  # UX tools
+  question: true
+  # Disabled - research agents don't write code
   write: false
   edit: false
   bash: false
