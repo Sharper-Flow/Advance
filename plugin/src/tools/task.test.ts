@@ -257,6 +257,36 @@ describe("Task Tools", () => {
 
       expect(parsed.error).toContain("not found");
     });
+
+    test("preserves metadata.tdd_intent during status update (rq-TDD007req.5)", async () => {
+      // Set up a task with tdd_intent metadata
+      const changeResult = await store.changes.get("addFeature");
+      const change = changeResult.data!;
+      const taskInChange = change.tasks.find(
+        (t) => t.id === "tk-task0001",
+      );
+      taskInChange!.metadata = { tdd_intent: "inline" };
+      await store.changes.save(change);
+
+      // Update status — should NOT touch metadata
+      await taskTools.adv_task_update.execute(
+        { taskId: "tk-task0001", status: "in_progress" },
+        store,
+      );
+
+      // Verify metadata.tdd_intent is preserved
+      const updated = await store.tasks.get("tk-task0001");
+      expect(updated!.metadata?.tdd_intent).toBe("inline");
+
+      // Also verify after done transition
+      await taskTools.adv_task_update.execute(
+        { taskId: "tk-task0001", status: "done", notes: "Complete" },
+        store,
+      );
+
+      const final = await store.tasks.get("tk-task0001");
+      expect(final!.metadata?.tdd_intent).toBe("inline");
+    });
   });
 
   describe("adv_task_add", () => {
@@ -918,6 +948,39 @@ describe("Task Tools", () => {
       expect(parsed.error).toContain("already");
     });
 
+    test("rejects reclassification when task is cancelled", async () => {
+      // Set up a cancelled task with tdd_intent
+      const changeResult = await store.changes.get("addFeature");
+      const change = changeResult.data!;
+      const taskInChange = change.tasks.find(
+        (t) => t.id === "tk-task0001",
+      );
+      taskInChange!.metadata = { tdd_intent: "inline" };
+      taskInChange!.status = "cancelled";
+      taskInChange!.cancellation = {
+        reason: "No longer needed",
+        approved_by_user: true,
+        approval_evidence: "User approved",
+        approved_at: new Date().toISOString(),
+      };
+      await store.changes.save(change);
+
+      const result = await taskTools.adv_task_reclassify_tdd.execute(
+        {
+          taskId: "tk-task0001",
+          toIntent: "not_applicable",
+          reason: "Task cancelled anyway",
+          approvedByUser: true as const,
+          approvalEvidence: "User approved",
+        },
+        store,
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed.error).toBeDefined();
+      expect(parsed.error).toContain("cancelled");
+    });
+
     test("persists reclassification to store", async () => {
       // Set up metadata
       const changeResult = await store.changes.get("addFeature");
@@ -942,8 +1005,8 @@ describe("Task Tools", () => {
       // Verify persistence via fresh read
       const updated = await store.tasks.get("tk-task0001");
       expect(updated!.metadata!.tdd_intent).toBe("inline");
-      expect((updated as any).tdd_reclassification).toBeDefined();
-      expect((updated as any).tdd_reclassification.from_intent).toBe(
+      expect(updated!.tdd_reclassification).toBeDefined();
+      expect(updated!.tdd_reclassification!.from_intent).toBe(
         "separate_verification",
       );
     });

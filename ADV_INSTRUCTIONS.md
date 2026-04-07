@@ -164,7 +164,7 @@ Inline TDD is default — red/green phases WITHIN each task. × Do NOT create se
 
 - **RED:** Write failing test → run → `[ADV:TDD_RED]` → show output
 - **GREEN:** Implement → run → `[ADV:TDD_GREEN]` → show output
-- **Trivial:** Note `(trivial: docs change)`, skip TDD
+- **Trivial:** Set `metadata.tdd_intent: "not_applicable"` with reason
 - **Cross-cutting:** Separate verification tasks OK → mark `metadata.tdd_intent: "separate_verification"`
 
 **TDD Intent Immutability:** After prep gate completes, `metadata.tdd_intent` is frozen on all tasks. To reclassify, use `adv_task_reclassify_tdd` with user approval (mirrors `adv_task_cancel` audit trail). New tasks cannot be added after prep gate is complete.

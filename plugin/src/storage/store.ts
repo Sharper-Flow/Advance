@@ -1095,7 +1095,7 @@ export async function createStore(
           task.metadata.tdd_intent = reclassification.to_intent;
 
           // Record the audit trail
-          (task as any).tdd_reclassification = reclassification;
+          task.tdd_reclassification = reclassification;
 
           // Save change
           await store.changes.save(change);

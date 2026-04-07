@@ -1,7 +1,7 @@
 # Prep Readiness
 
-> **Version:** 1.1.0
-> **Updated:** 2026-02-26
+> **Version:** 1.2.0
+> **Updated:** 2026-04-07
 
 ## Purpose
 
@@ -395,5 +395,85 @@ Prep and archive flows must surface lightweight integrity findings: cross-repo r
 **Then:**
 - Cache inconsistency and broken refs are treated as blockers
 - Pending WAL checkpoint is surfaced as advisory warning
+
+---
+
+### TDD Intent Assignment at Prep Finalization
+
+**ID:** `rq-PR006tdi` | **Priority:** **[MUST]**
+
+During prep finalization, every non-cancelled task MUST have an explicit metadata.tdd_intent value assigned (inline | separate_verification | not_applicable). The prep gate MUST verify that all tasks have tdd_intent set and reject gate completion when any task lacks it. This ensures TDD classification decisions are made deliberately at planning time, not deferred to implementation where they may be skipped or forgotten.
+
+**Tags:** `prep`, `tdd`, `metadata`, `gate`
+
+#### Scenarios
+
+**Task without tdd_intent blocks prep gate** (`rq-PR006tdi.1`)
+
+**Given:**
+- A change with at least one non-cancelled task that has no metadata.tdd_intent set
+
+**When:** runPrepReadinessChecks is called
+
+**Then:**
+- A TASK_TDD_INTENT_MISSING issue with severity 'error' is returned
+- The prep gate is blocked
+
+**Task with valid tdd_intent passes check** (`rq-PR006tdi.2`)
+
+**Given:**
+- A change where all non-cancelled tasks have metadata.tdd_intent set to one of: inline, separate_verification, not_applicable
+
+**When:** runPrepReadinessChecks is called
+
+**Then:**
+- No TASK_TDD_INTENT_MISSING errors are returned
+
+**Cancelled tasks are excluded from the check** (`rq-PR006tdi.3`)
+
+**Given:**
+- A change with both cancelled and non-cancelled tasks
+- Only the cancelled tasks lack metadata.tdd_intent
+
+**When:** runPrepReadinessChecks is called
+
+**Then:**
+- No TASK_TDD_INTENT_MISSING errors are returned
+- Cancelled tasks are not considered
+
+**Feature flag advisory mode downgrades severity** (`rq-PR006tdi.4`)
+
+**Given:**
+- Project config has tdd_enforcement set to 'advisory'
+- A change with a task missing metadata.tdd_intent
+
+**When:** runPrepReadinessChecks is called
+
+**Then:**
+- A TASK_TDD_INTENT_MISSING issue with severity 'warning' is returned
+- The prep gate is NOT blocked
+
+**Feature flag off mode skips the check entirely** (`rq-PR006tdi.5`)
+
+**Given:**
+- Project config has tdd_enforcement set to 'off'
+- A change with tasks missing metadata.tdd_intent
+
+**When:** runPrepReadinessChecks is called
+
+**Then:**
+- No TASK_TDD_INTENT_MISSING issues are emitted
+- The check is skipped entirely
+
+**Invalid tdd_intent value is treated as missing** (`rq-PR006tdi.6`)
+
+**Given:**
+- A task with metadata.tdd_intent set to an unrecognized value (not inline, separate_verification, or not_applicable)
+
+**When:** runPrepReadinessChecks is called
+
+**Then:**
+- A TASK_TDD_INTENT_MISSING error is returned for that task
+- The error message indicates the invalid value
 
 ---

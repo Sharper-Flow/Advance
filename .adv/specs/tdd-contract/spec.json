@@ -3,15 +3,19 @@
   "name": "tdd-contract",
   "title": "TDD Contract",
   "purpose": "Canonical definition of how TDD phases integrate with the ADV task model. Inline TDD (red/green within each implementation task) is the default. Separate verification tasks are reserved for cross-cutting tests spanning multiple implementation tasks.",
-  "version": "1.0.0",
-  "updated_at": "2026-03-09T19:25:00.000Z",
+  "version": "1.1.0",
+  "updated_at": "2026-04-07T01:00:55.518Z",
   "requirements": [
     {
       "id": "rq-TDD001inl",
       "title": "Inline TDD as Default Model",
       "body": "Implementation tasks MUST use inline TDD by default: the red phase (write failing test) and green phase (make it pass) happen within the same task. Proposal templates MUST NOT create separate test tasks for same-scope work. The task's tdd_phase field tracks progress through none -> red -> green -> refactor -> complete.",
       "priority": "must",
-      "tags": ["tdd", "task-model", "inline"],
+      "tags": [
+        "tdd",
+        "task-model",
+        "inline"
+      ],
       "scenarios": [
         {
           "id": "rq-TDD001inl.1",
@@ -56,7 +60,11 @@
       "title": "Separate Verification for Cross-Cutting Tests",
       "body": "A task MAY use separate verification (metadata.tdd_intent='separate_verification') when it represents cross-cutting tests that span multiple implementation tasks, such as integration tests, E2E tests, or acceptance test suites. These tasks are legitimately blocked_by their implementation dependencies and MUST NOT be flagged as TDD inversions.",
       "priority": "must",
-      "tags": ["tdd", "task-model", "cross-cutting"],
+      "tags": [
+        "tdd",
+        "task-model",
+        "cross-cutting"
+      ],
       "scenarios": [
         {
           "id": "rq-TDD002sep.1",
@@ -92,7 +100,11 @@
       "title": "Not-Applicable TDD Intent",
       "body": "Tasks that are not logic-bearing (documentation, configuration, chores, releases) SHOULD set metadata.tdd_intent='not_applicable' to skip TDD evidence requirements. When metadata is absent, the existing title-based heuristics (isTrivialTask patterns) determine whether TDD is required.",
       "priority": "should",
-      "tags": ["tdd", "task-model", "trivial"],
+      "tags": [
+        "tdd",
+        "task-model",
+        "trivial"
+      ],
       "scenarios": [
         {
           "id": "rq-TDD003na.1",
@@ -125,7 +137,11 @@
       "title": "Task Classifier with Metadata-First Detection",
       "body": "A shared task classifier MUST check metadata.tdd_intent first, then fall back to title-based heuristics for legacy tasks without metadata. The classifier is the single source of truth for determining a task's TDD intent across all validators (prep-readiness, completeness, gate checks).",
       "priority": "must",
-      "tags": ["tdd", "classifier", "metadata"],
+      "tags": [
+        "tdd",
+        "classifier",
+        "metadata"
+      ],
       "scenarios": [
         {
           "id": "rq-TDD004cls.1",
@@ -171,7 +187,12 @@
       "title": "TDD Inversion Detection with Metadata Awareness",
       "body": "The prep-readiness TDD inversion check MUST use the task classifier to determine task roles. A test task (by classifier) blocked_by an implementation task (by classifier) of the same scope is a TDD inversion — UNLESS the test task has metadata.tdd_intent='separate_verification'. This replaces the previous title-only detection that produced false positives.",
       "priority": "must",
-      "tags": ["tdd", "prep", "inversion", "task-graph"],
+      "tags": [
+        "tdd",
+        "prep",
+        "inversion",
+        "task-graph"
+      ],
       "scenarios": [
         {
           "id": "rq-TDD005inv.1",
@@ -218,7 +239,11 @@
       "title": "Unified TDD Remediation Path",
       "body": "When a TDD inversion is detected, the remediation MUST be: merge the test task into the implementation task as inline TDD. The 'reverse the dependency' remediation MUST NOT be offered because it creates a separate-task TDD model that contradicts the inline-first contract.",
       "priority": "must",
-      "tags": ["tdd", "prep", "remediation"],
+      "tags": [
+        "tdd",
+        "prep",
+        "remediation"
+      ],
       "scenarios": [
         {
           "id": "rq-TDD006rem.1",
@@ -231,6 +256,97 @@
             "The primary remediation is: merge the test task into the implementation task",
             "An alternative is: set metadata.tdd_intent='separate_verification' if the test is genuinely cross-cutting",
             "'Reverse the dependency' is NOT offered as a remediation option"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-TDD007req",
+      "title": "TDD Intent Immutability After Prep Gate",
+      "body": "Once the prep gate is marked complete, task metadata.tdd_intent is frozen. New tasks cannot be added (adv_task_add rejects with an error). Existing tasks' tdd_intent can only be changed through adv_task_reclassify_tdd, which requires explicit user approval and records a full audit trail (from_intent, to_intent, reason, approval evidence, timestamp). This prevents agents from silently downgrading TDD requirements during implementation.",
+      "priority": "must",
+      "tags": [
+        "tdd",
+        "immutability",
+        "prep",
+        "gate",
+        "audit"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-TDD007req.1",
+          "title": "Task addition rejected after prep gate complete",
+          "given": [
+            "A change whose prep gate status is 'done'"
+          ],
+          "when": "adv_task_add is called for that change",
+          "then": [
+            "The operation is rejected with an error",
+            "The error message directs users to adv_task_reclassify_tdd for adjusting existing tasks"
+          ]
+        },
+        {
+          "id": "rq-TDD007req.2",
+          "title": "Task addition succeeds before prep gate complete",
+          "given": [
+            "A change whose prep gate status is 'pending'"
+          ],
+          "when": "adv_task_add is called for that change",
+          "then": [
+            "The task is added normally",
+            "No immutability check blocks the operation"
+          ]
+        },
+        {
+          "id": "rq-TDD007req.3",
+          "title": "TDD intent reclassification requires user approval",
+          "given": [
+            "A task with metadata.tdd_intent='inline'",
+            "The prep gate is complete"
+          ],
+          "when": "adv_task_reclassify_tdd is called with approvedByUser=true, approvalEvidence, reason, and toIntent='not_applicable'",
+          "then": [
+            "The task's metadata.tdd_intent is updated to 'not_applicable'",
+            "A tdd_reclassification record is stored on the task with from_intent, to_intent, reason, approval_evidence, and approved_at timestamp"
+          ]
+        },
+        {
+          "id": "rq-TDD007req.4",
+          "title": "Reclassification without approval is rejected",
+          "given": [
+            "A task with metadata.tdd_intent='inline'",
+            "The prep gate is complete"
+          ],
+          "when": "adv_task_reclassify_tdd is called without approvedByUser=true or without approvalEvidence",
+          "then": [
+            "The operation is rejected",
+            "The task's tdd_intent remains unchanged"
+          ]
+        },
+        {
+          "id": "rq-TDD007req.5",
+          "title": "adv_task_update does not affect tdd_intent",
+          "given": [
+            "A task with metadata.tdd_intent='inline'",
+            "The prep gate is complete"
+          ],
+          "when": "adv_task_update is called with any status change",
+          "then": [
+            "The task status is updated normally",
+            "metadata.tdd_intent remains unchanged",
+            "No immutability check is triggered (adv_task_update does not mutate metadata)"
+          ]
+        },
+        {
+          "id": "rq-TDD007req.6",
+          "title": "Reclassification audit trail is preserved",
+          "given": [
+            "A task that was reclassified via adv_task_reclassify_tdd"
+          ],
+          "when": "The task is retrieved via adv_task_show",
+          "then": [
+            "The tdd_reclassification field contains from_intent, to_intent, reason, approved_by_user (true), approval_evidence, and approved_at",
+            "The audit trail is included in change validation and archive"
           ]
         }
       ]

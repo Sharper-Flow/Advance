@@ -112,7 +112,7 @@ Every protocol section that can conflict with another MUST include a resolution 
 ```markdown
 | Conflict | Resolution |
 |----------|------------|
-| TDD required + trivial task | Mark trivial, skip TDD with reason |
+| TDD required + trivial task | Set `metadata.tdd_intent: "not_applicable"` with reason |
 | User requests skip + gate required | Emit `[ADV:MIC]`, ask for sign-off |
 | Cross-repo + tool unavailable | Proceed in-place, note in wisdom |
 ```

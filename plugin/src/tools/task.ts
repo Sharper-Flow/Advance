@@ -488,9 +488,16 @@ export const taskTools = {
       }
 
       const { task } = taskResult;
+
+      if (task.status === "cancelled") {
+        return formatToolOutput({
+          error: `Task ${taskId} is cancelled. Cannot reclassify TDD intent on a cancelled task.`,
+        });
+      }
+
       const currentIntent = task.metadata?.tdd_intent;
 
-      if (!currentIntent) {
+      if (currentIntent === undefined || currentIntent === null) {
         return formatToolOutput({
           error: `Task ${taskId} has no tdd_intent metadata set. Cannot reclassify — assign tdd_intent during prep first.`,
         });

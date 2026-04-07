@@ -232,7 +232,7 @@ Before EACH task:
 ### D. TDD Protocol (RSTC)
 - **RED Phase** — Write failing test → run → emit `[ADV:TDD_RED]` → show output
 - **GREEN Phase** — Implement → run → emit `[ADV:TDD_GREEN]` → show output
-- **Trivial Tasks** — Note `(trivial: docs change)` and skip TDD
+- **Trivial Tasks** — Set `metadata.tdd_intent: "not_applicable"` with reason during prep
 
 ---
 

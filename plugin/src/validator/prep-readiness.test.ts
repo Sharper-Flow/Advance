@@ -722,6 +722,17 @@ describe("checkTddIntentAssigned", () => {
     expect(missing).toHaveLength(2);
   });
 
+  test("returns no issues when all tasks are cancelled (rq-PR006tdi.3 edge)", () => {
+    const change = makeChange({
+      tasks: [
+        makeTask({ id: "tk-cancel1", title: "Cancelled A", status: "cancelled" }),
+        makeTask({ id: "tk-cancel2", title: "Cancelled B", status: "cancelled" }),
+      ],
+    });
+    const issues = checkTddIntentAssigned(change);
+    expect(issues).toHaveLength(0);
+  });
+
   test("returns no issues for an empty task list", () => {
     const change = makeChange({ tasks: [] });
     const issues = checkTddIntentAssigned(change);

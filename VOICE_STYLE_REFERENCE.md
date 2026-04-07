@@ -213,7 +213,7 @@ $XDG_DATA_HOME/opencode/plugins/advance/{project-id}/
 4. Show test output
 
 ### Skip Condition
-Trivial tasks can skip TDD with note: `(trivial: docs change)`
+Trivial tasks set `metadata.tdd_intent: "not_applicable"` with reason during prep
 
 ---
 

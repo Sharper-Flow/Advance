@@ -1,7 +1,7 @@
 # TDD Contract
 
-> **Version:** 1.0.0
-> **Updated:** 2026-03-09
+> **Version:** 1.1.0
+> **Updated:** 2026-04-07
 
 ## Purpose
 
@@ -239,5 +239,87 @@ When a TDD inversion is detected, the remediation MUST be: merge the test task i
 - The primary remediation is: merge the test task into the implementation task
 - An alternative is: set metadata.tdd_intent='separate_verification' if the test is genuinely cross-cutting
 - 'Reverse the dependency' is NOT offered as a remediation option
+
+---
+
+### TDD Intent Immutability After Prep Gate
+
+**ID:** `rq-TDD007req` | **Priority:** **[MUST]**
+
+Once the prep gate is marked complete, task metadata.tdd_intent is frozen. New tasks cannot be added (adv_task_add rejects with an error). Existing tasks' tdd_intent can only be changed through adv_task_reclassify_tdd, which requires explicit user approval and records a full audit trail (from_intent, to_intent, reason, approval evidence, timestamp). This prevents agents from silently downgrading TDD requirements during implementation.
+
+**Tags:** `tdd`, `immutability`, `prep`, `gate`, `audit`
+
+#### Scenarios
+
+**Task addition rejected after prep gate complete** (`rq-TDD007req.1`)
+
+**Given:**
+- A change whose prep gate status is 'done'
+
+**When:** adv_task_add is called for that change
+
+**Then:**
+- The operation is rejected with an error
+- The error message directs users to adv_task_reclassify_tdd for adjusting existing tasks
+
+**Task addition succeeds before prep gate complete** (`rq-TDD007req.2`)
+
+**Given:**
+- A change whose prep gate status is 'pending'
+
+**When:** adv_task_add is called for that change
+
+**Then:**
+- The task is added normally
+- No immutability check blocks the operation
+
+**TDD intent reclassification requires user approval** (`rq-TDD007req.3`)
+
+**Given:**
+- A task with metadata.tdd_intent='inline'
+- The prep gate is complete
+
+**When:** adv_task_reclassify_tdd is called with approvedByUser=true, approvalEvidence, reason, and toIntent='not_applicable'
+
+**Then:**
+- The task's metadata.tdd_intent is updated to 'not_applicable'
+- A tdd_reclassification record is stored on the task with from_intent, to_intent, reason, approval_evidence, and approved_at timestamp
+
+**Reclassification without approval is rejected** (`rq-TDD007req.4`)
+
+**Given:**
+- A task with metadata.tdd_intent='inline'
+- The prep gate is complete
+
+**When:** adv_task_reclassify_tdd is called without approvedByUser=true or without approvalEvidence
+
+**Then:**
+- The operation is rejected
+- The task's tdd_intent remains unchanged
+
+**adv_task_update does not affect tdd_intent** (`rq-TDD007req.5`)
+
+**Given:**
+- A task with metadata.tdd_intent='inline'
+- The prep gate is complete
+
+**When:** adv_task_update is called with any status change
+
+**Then:**
+- The task status is updated normally
+- metadata.tdd_intent remains unchanged
+- No immutability check is triggered (adv_task_update does not mutate metadata)
+
+**Reclassification audit trail is preserved** (`rq-TDD007req.6`)
+
+**Given:**
+- A task that was reclassified via adv_task_reclassify_tdd
+
+**When:** The task is retrieved via adv_task_show
+
+**Then:**
+- The tdd_reclassification field contains from_intent, to_intent, reason, approved_by_user (true), approval_evidence, and approved_at
+- The audit trail is included in change validation and archive
 
 ---
