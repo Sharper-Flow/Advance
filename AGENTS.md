@@ -88,6 +88,15 @@ adv_task_add({
   content: "Implement feature X (TDD: write tests first, then implement)",
   section: "Implementation"
 })
+
+// Reclassify TDD intent after prep gate (requires user approval)
+adv_task_reclassify_tdd({
+  taskId: "tk-abc",
+  toIntent: "not_applicable",
+  reason: "Task is docs-only, no testable logic",
+  approvedByUser: true,
+  approvalEvidence: "User confirmed in chat"
+})
 ```
 
 ## ID Formats

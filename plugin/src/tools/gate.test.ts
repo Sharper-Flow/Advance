@@ -569,6 +569,7 @@ describe("adv_gate_complete prep — readiness enforcement", () => {
           priority: 0,
           created_at: "2026-01-01T00:00:00Z",
           tdd_phase: "none",
+          metadata: { tdd_intent: "inline" },
           deps: [],
         },
         {
@@ -578,6 +579,7 @@ describe("adv_gate_complete prep — readiness enforcement", () => {
           priority: 1,
           created_at: "2026-01-01T00:00:00Z",
           tdd_phase: "none",
+          metadata: { tdd_intent: "inline" },
           deps: [{ type: "blocked_by", target: "tk-test0002" }],
         },
       ],
@@ -642,6 +644,7 @@ describe("adv_gate_complete prep — readiness enforcement", () => {
           priority: 0,
           created_at: "2026-01-01T00:00:00Z",
           tdd_phase: "none",
+          metadata: { tdd_intent: "inline" },
           deps: [],
         },
         {
@@ -651,6 +654,7 @@ describe("adv_gate_complete prep — readiness enforcement", () => {
           priority: 1,
           created_at: "2026-01-01T00:00:00Z",
           tdd_phase: "none",
+          metadata: { tdd_intent: "inline" },
           deps: [{ type: "blocked_by", target: "tk-test0003" }],
         },
       ],
@@ -707,6 +711,7 @@ describe("adv_gate_complete prep — readiness enforcement", () => {
           priority: 0,
           created_at: "2026-01-01T00:00:00Z",
           tdd_phase: "none",
+          metadata: { tdd_intent: "inline" },
           deps: [],
         },
         {
@@ -753,6 +758,7 @@ describe("adv_gate_complete prep — readiness enforcement", () => {
           priority: 0,
           created_at: "2026-01-01T00:00:00Z",
           tdd_phase: "none",
+          metadata: { tdd_intent: "inline" },
           deps: [],
         },
         {
@@ -920,5 +926,134 @@ describe("adv_gate_complete prep — readiness enforcement", () => {
     expect(parsed.error).toBeDefined();
     const failures = parsed.readinessFailures as Array<Record<string, unknown>>;
     expect(failures.some((f) => f.code === "TASK_TDD_INVERSION")).toBe(true);
+  });
+
+  // --- TDD intent assignment enforcement tests (rq-PR006tdi) ---
+
+  test("prep gate blocks when task is missing metadata.tdd_intent (TASK_TDD_INTENT_MISSING)", async () => {
+    await createChangeFile("missingTddIntent", {
+      $schema: "https://advance.dev/schemas/change.v1.json",
+      id: "missingTddIntent",
+      title: "Missing TDD Intent",
+      status: "draft",
+      created_at: "2026-01-01T00:00:00Z",
+      tasks: [
+        {
+          id: "tk-nointent1",
+          title: "Implement feature",
+          status: "pending",
+          priority: 0,
+          created_at: "2026-01-01T00:00:00Z",
+          tdd_phase: "none",
+          deps: [],
+          // No metadata.tdd_intent → should trigger TASK_TDD_INTENT_MISSING
+        },
+      ],
+      deltas: {},
+    });
+
+    await gateTools.adv_gate_complete.execute(
+      { changeId: "missingTddIntent", gateId: "research" },
+      store,
+    );
+
+    const result = await gateTools.adv_gate_complete.execute(
+      { changeId: "missingTddIntent", gateId: "prep" },
+      store,
+    );
+    const parsed = extractJson(result) as Record<string, unknown>;
+
+    expect(parsed.error).toBeDefined();
+    const failures = parsed.readinessFailures as Array<Record<string, unknown>>;
+    expect(failures.some((f) => f.code === "TASK_TDD_INTENT_MISSING")).toBe(true);
+  });
+
+  test("prep gate passes when tdd_enforcement is 'advisory' and tasks lack tdd_intent (downgraded to warning) (rq-PR006tdi.4)", async () => {
+    await createChangeFile("advisoryTddIntent", {
+      $schema: "https://advance.dev/schemas/change.v1.json",
+      id: "advisoryTddIntent",
+      title: "Advisory TDD Intent",
+      status: "draft",
+      created_at: "2026-01-01T00:00:00Z",
+      tasks: [
+        {
+          id: "tk-nointent2",
+          title: "Implement feature",
+          status: "pending",
+          priority: 0,
+          created_at: "2026-01-01T00:00:00Z",
+          tdd_phase: "none",
+          deps: [],
+          // No metadata.tdd_intent — would be error in strict, but warning in advisory
+        },
+      ],
+      deltas: {},
+    });
+
+    // Set tdd_enforcement to advisory
+    const config = store.config!;
+    (config.features as Record<string, unknown>).tdd_enforcement = "advisory";
+
+    await gateTools.adv_gate_complete.execute(
+      { changeId: "advisoryTddIntent", gateId: "research" },
+      store,
+    );
+
+    const result = await gateTools.adv_gate_complete.execute(
+      { changeId: "advisoryTddIntent", gateId: "prep" },
+      store,
+    );
+    const parsed = extractJson(result) as Record<string, unknown>;
+
+    // Should pass — advisory mode downgrades to warning
+    expect(parsed.success).toBe(true);
+    // Should include readiness warnings with the downgraded issue
+    expect(parsed.readinessWarnings).toBeDefined();
+    const warnings = parsed.readinessWarnings as Array<Record<string, unknown>>;
+    expect(warnings.some((w) => w.code === "TASK_TDD_INTENT_MISSING")).toBe(true);
+  });
+
+  test("prep gate skips TDD intent check entirely when tdd_enforcement is 'off' (rq-PR006tdi.5)", async () => {
+    await createChangeFile("offTddIntent", {
+      $schema: "https://advance.dev/schemas/change.v1.json",
+      id: "offTddIntent",
+      title: "Off TDD Intent",
+      status: "draft",
+      created_at: "2026-01-01T00:00:00Z",
+      tasks: [
+        {
+          id: "tk-nointent3",
+          title: "Implement feature",
+          status: "pending",
+          priority: 0,
+          created_at: "2026-01-01T00:00:00Z",
+          tdd_phase: "none",
+          deps: [],
+          // No metadata.tdd_intent — but enforcement is off, so no issue
+        },
+      ],
+      deltas: {},
+    });
+
+    // Set tdd_enforcement to off
+    const config = store.config!;
+    (config.features as Record<string, unknown>).tdd_enforcement = "off";
+
+    await gateTools.adv_gate_complete.execute(
+      { changeId: "offTddIntent", gateId: "research" },
+      store,
+    );
+
+    const result = await gateTools.adv_gate_complete.execute(
+      { changeId: "offTddIntent", gateId: "prep" },
+      store,
+    );
+    const parsed = extractJson(result) as Record<string, unknown>;
+
+    // Should pass — off mode skips entirely
+    expect(parsed.success).toBe(true);
+    // No TDD intent warnings should be present
+    const warnings = (parsed.readinessWarnings as Array<Record<string, unknown>> | undefined) ?? [];
+    expect(warnings.some((w) => w.code === "TASK_TDD_INTENT_MISSING")).toBe(false);
   });
 });

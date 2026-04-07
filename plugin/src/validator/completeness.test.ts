@@ -183,6 +183,46 @@ describe("checkTddCompliance", () => {
     expect(issues).toHaveLength(0);
   });
 
+  // --- Severity escalation: MISSING_TDD_EVIDENCE is an error, not a warning ---
+
+  test("MISSING_TDD_EVIDENCE has severity 'error' (blocks validation)", () => {
+    const change = makeChange({
+      tasks: [
+        makeTask({
+          id: "tk-impl0010",
+          title: "Implement user authentication",
+          status: "done",
+          metadata: { tdd_intent: "inline" },
+          // No tdd_evidence — should produce severity 'error'
+        }),
+      ],
+    });
+    const issues = checkTddCompliance(change);
+    expect(issues).toHaveLength(1);
+    expect(issues[0].code).toBe("MISSING_TDD_EVIDENCE");
+    expect(issues[0].severity).toBe("error");
+  });
+
+  test("MISSING_TDD_EVIDENCE recommendation references adv_task_reclassify_tdd", () => {
+    const change = makeChange({
+      tasks: [
+        makeTask({
+          id: "tk-impl0011",
+          title: "Implement feature X",
+          status: "done",
+        }),
+      ],
+    });
+    const issues = checkTddCompliance(change);
+    expect(issues).toHaveLength(1);
+    expect(issues[0].details?.recommendation).toContain(
+      "adv_task_reclassify_tdd"
+    );
+    expect(issues[0].details?.recommendation).not.toContain(
+      "adv_task_skip_tdd"
+    );
+  });
+
   test("does not flag pending tasks", () => {
     const change = makeChange({
       tasks: [

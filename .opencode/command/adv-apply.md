@@ -270,7 +270,7 @@ Next: /adv-review {change-id}
 
 ## Trivial Tasks
 
-For non-logic tasks (docs, config): skip Red/Green phases, verify manually, include rationale in status.
+For tasks with `metadata.tdd_intent: "not_applicable"` (docs, config, non-code): skip Red/Green phases, verify manually, include rationale in status.
 
 ---
 

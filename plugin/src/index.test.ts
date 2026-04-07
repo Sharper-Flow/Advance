@@ -209,9 +209,10 @@ describe("Advance Plugin SDK Integration", () => {
       expect(toolNames).toContain("adv_task_add");
       expect(toolNames).toContain("adv_task_evidence");
       expect(toolNames).toContain("adv_task_tdd_phase");
-      expect(toolNames).toContain("adv_task_skip_tdd");
+      expect(toolNames).not.toContain("adv_task_skip_tdd");
       expect(toolNames).toContain("adv_task_tdd_status");
       expect(toolNames).toContain("adv_task_cancel");
+      expect(toolNames).toContain("adv_task_reclassify_tdd");
     });
 
     test("registers wisdom tools", async () => {
@@ -262,6 +263,12 @@ describe("Advance Plugin SDK Integration", () => {
         expect(toolDef).toHaveProperty("execute");
         expect(typeof toolDef.execute).toBe("function");
       }
+    });
+
+    test("adv_task_add exposes metadata in its registered args", async () => {
+      const hooks = await createTrackedPlugin(tempDir, pluginInstances);
+
+      expect((hooks.tool!.adv_task_add as any).args).toHaveProperty("metadata");
     });
 
     test("tool descriptions are non-empty strings", async () => {

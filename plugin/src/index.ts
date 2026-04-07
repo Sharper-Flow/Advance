@@ -520,6 +520,12 @@ export const AdvancePlugin: Plugin = async ({ directory, worktree }) => {
         args: {
           changeId: tool.schema.string().describe("Change ID"),
           content: tool.schema.string().describe("Task description"),
+          metadata: tool.schema
+            .record(tool.schema.string(), tool.schema.string())
+            .optional()
+            .describe(
+              "Optional task metadata (e.g., { tdd_intent: 'inline' })",
+            ),
           blockedBy: tool.schema
             .array(tool.schema.string())
             .optional()
@@ -579,18 +585,6 @@ export const AdvancePlugin: Plugin = async ({ directory, worktree }) => {
         ),
       }),
 
-      adv_task_skip_tdd: tool({
-        description: taskTools.adv_task_skip_tdd.description,
-        args: {
-          taskId: tool.schema.string().describe("Task ID"),
-          reason: tool.schema.string().describe("Rationale for skipping TDD"),
-        },
-        execute: safeExecute(
-          async (args) => taskTools.adv_task_skip_tdd.execute(args, store),
-          "adv_task_skip_tdd",
-        ),
-      }),
-
       adv_task_tdd_status: tool({
         description: taskTools.adv_task_tdd_status.description,
         args: {
@@ -637,6 +631,40 @@ export const AdvancePlugin: Plugin = async ({ directory, worktree }) => {
               store,
             ),
           "adv_task_cancel",
+        ),
+      }),
+
+      adv_task_reclassify_tdd: tool({
+        description: taskTools.adv_task_reclassify_tdd.description,
+        args: {
+          taskId: tool.schema.string().describe("Task ID to reclassify"),
+          toIntent: tool.schema
+            .enum(["inline", "separate_verification", "not_applicable"])
+            .describe("New TDD intent value"),
+          reason: tool.schema
+            .string()
+            .describe("Why the TDD intent is being changed"),
+          approvedByUser: tool.schema
+            .literal(true)
+            .describe("Must be true — confirms user explicitly approved"),
+          approvalEvidence: tool.schema
+            .string()
+            .describe("Evidence of user approval"),
+        },
+        execute: safeExecute(
+          async (args) =>
+            taskTools.adv_task_reclassify_tdd.execute(
+              {
+                ...args,
+                toIntent: args.toIntent as
+                  | "inline"
+                  | "separate_verification"
+                  | "not_applicable",
+                approvedByUser: args.approvedByUser as true,
+              },
+              store,
+            ),
+          "adv_task_reclassify_tdd",
         ),
       }),
 

@@ -47,8 +47,8 @@ const COMMAND_EMOJIS: Record<string, string> = {
   adv_task_add: "➕",
   adv_task_evidence: "🧪",
   adv_task_tdd_phase: "🔬",
-  adv_task_skip_tdd: "⏭️",
   adv_task_tdd_status: "📈",
+  adv_task_reclassify_tdd: "🔄",
 
   // Test Operations
   adv_run_test: "🧪",

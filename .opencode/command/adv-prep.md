@@ -221,6 +221,25 @@ After EACH fix, emit CONTRACT STATUS: gap checkboxes with evidence, fixed/total 
 
 ---
 
+## Phase 7.5: TDD Intent Assignment
+
+Before validation, ensure every task has explicit `metadata.tdd_intent`:
+
+| Value | When to use | Evidence required? |
+|-------|------------|-------------------|
+| `inline` | Default for all logic-bearing tasks | Yes (red/green) |
+| `separate_verification` | Cross-cutting tests spanning multiple tasks | No (on this task) |
+| `not_applicable` | Docs, config, non-code changes | No |
+
+For each task missing `tdd_intent`:
+1. Classify using task title + content heuristics
+2. Set via `metadata` field on task creation, or update via `adv_task_reclassify_tdd` if already created
+3. After prep gate completes, `tdd_intent` is **frozen** — reclassification requires user approval
+
+⚠ The prep gate readiness check (`TASK_TDD_INTENT_MISSING`) will block if any task lacks `tdd_intent` when `tdd_enforcement` is "strict".
+
+---
+
 ## Phase 8: Validation
 
 `adv_change_validate changeId: <target> strict: true` → fix errors → re-validate.

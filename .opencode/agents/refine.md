@@ -60,7 +60,7 @@ tools:
   adv_task_update: true
   adv_task_evidence: true
   adv_task_tdd_phase: true
-  adv_task_skip_tdd: true
+  adv_task_reclassify_tdd: true
   adv_task_tdd_status: true
   adv_task_cancel: true
   # Wisdom

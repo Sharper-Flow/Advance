@@ -7,7 +7,7 @@
 
 import { z } from "zod";
 import type { Store } from "../storage/store";
-import { isTrivialTask, truncateOutput, type Cancellation } from "../types";
+import { isTrivialTask, truncateOutput, type Cancellation, type TddReclassification } from "../types";
 import {
   getTaskTddCompliance,
   requiresTddEvidence,
@@ -168,6 +168,14 @@ export const taskTools = {
       store: Store,
     ) => {
       try {
+        // Prep-gate lock: reject task creation after prep gate is complete
+        const gates = await store.gates.get(changeId);
+        if (gates && gates.prep.status === "done") {
+          return formatToolOutput({
+            error: `Cannot add tasks after prep gate is complete. Use adv_task_reclassify_tdd to modify existing task TDD intent, or re-open the prep gate if new tasks are genuinely needed.`,
+          });
+        }
+
         const task = await store.tasks.add(changeId, content, {
           metadata,
           blockedBy,
@@ -275,35 +283,6 @@ export const taskTools = {
     },
   },
 
-  adv_task_skip_tdd: {
-    description:
-      "Skip TDD for a task with a documented reason (e.g., 'trivial: docs change', 'legacy: existing code')",
-    args: {
-      taskId: z.string().describe("Task ID"),
-      reason: z
-        .string()
-        .describe(
-          "Rationale for skipping TDD (e.g., 'trivial: config change')",
-        ),
-    },
-    execute: async (
-      { taskId, reason }: { taskId: string; reason: string },
-      store: Store,
-    ) => {
-      const task = await store.tasks.skipTdd(taskId, reason);
-      if (!task) {
-        return formatToolOutput({ error: `Task not found: ${taskId}` });
-      }
-
-      return formatToolOutput({
-        success: true,
-        task,
-        compliance: getTaskTddCompliance(task),
-        message: `TDD skipped for task ${taskId}: ${reason}`,
-      });
-    },
-  },
-
   adv_task_tdd_status: {
     description:
       "Get TDD compliance status for a task (uses metadata.tdd_intent first, then title heuristics)",
@@ -332,7 +311,7 @@ export const taskTools = {
         },
         recommendation:
           compliance === "missing"
-            ? "Record TDD evidence with adv_task_evidence or skip with adv_task_skip_tdd"
+            ? "Record TDD evidence with adv_task_evidence or reclassify with adv_task_reclassify_tdd"
             : compliance === "compliant"
               ? "TDD requirements satisfied"
               : "TDD not required for this task type",
@@ -446,6 +425,107 @@ export const taskTools = {
         message: allSuccess
           ? `Cancelled ${cancelledTasks.length} task(s) with user approval.`
           : `Partial cancellation: ${results.filter((r) => r.success).length}/${taskIds.length} succeeded.`,
+      });
+    },
+  },
+
+  adv_task_reclassify_tdd: {
+    description:
+      "Reclassify a task's TDD intent (tdd_intent metadata) with required user approval. " +
+      "Use when a task's TDD classification needs to change after the prep gate is complete. " +
+      "Records a full audit trail (from_intent, to_intent, reason, approval evidence).",
+    args: {
+      taskId: z.string().describe("Task ID to reclassify"),
+      toIntent: z
+        .enum(["inline", "separate_verification", "not_applicable"])
+        .describe("New TDD intent value"),
+      reason: z.string().describe("Why the TDD intent is being changed"),
+      approvedByUser: z
+        .literal(true)
+        .describe("Must be true — confirms user explicitly approved"),
+      approvalEvidence: z
+        .string()
+        .describe(
+          "Evidence of user approval (e.g., 'User approved via question tool')",
+        ),
+    },
+    execute: async (
+      {
+        taskId,
+        toIntent,
+        reason,
+        approvedByUser,
+        approvalEvidence,
+      }: {
+        taskId: string;
+        toIntent: "inline" | "separate_verification" | "not_applicable";
+        reason: string;
+        approvedByUser: true;
+        approvalEvidence: string;
+      },
+      store: Store,
+    ) => {
+      if (!approvedByUser) {
+        return formatToolOutput({
+          error:
+            "approvedByUser must be true. You must present the reclassification to the user and obtain explicit approval before calling this tool.",
+        });
+      }
+
+      if (!approvalEvidence || approvalEvidence.trim().length === 0) {
+        return formatToolOutput({
+          error:
+            "approvalEvidence is required. Describe how the user approved (e.g., question tool response).",
+        });
+      }
+
+      // Resolve the task to check current tdd_intent
+      const taskResult = await store.tasks.show(taskId);
+      if (!taskResult) {
+        return formatToolOutput({
+          error: `Task not found: ${taskId}`,
+        });
+      }
+
+      const { task } = taskResult;
+      const currentIntent = task.metadata?.tdd_intent;
+
+      if (!currentIntent) {
+        return formatToolOutput({
+          error: `Task ${taskId} has no tdd_intent metadata set. Cannot reclassify — assign tdd_intent during prep first.`,
+        });
+      }
+
+      if (currentIntent === toIntent) {
+        return formatToolOutput({
+          error: `Task ${taskId} already has tdd_intent="${toIntent}". No reclassification needed.`,
+        });
+      }
+
+      const now = new Date().toISOString();
+      const reclassification: TddReclassification = {
+        from_intent: currentIntent,
+        to_intent: toIntent,
+        reason,
+        approved_by_user: true,
+        approval_evidence: approvalEvidence,
+        approved_at: now,
+      };
+
+      const updated = await store.tasks.reclassifyTdd(
+        taskId,
+        reclassification,
+      );
+      if (!updated) {
+        return formatToolOutput({
+          error: `Failed to reclassify task ${taskId}. Task may have been removed.`,
+        });
+      }
+
+      return formatToolOutput({
+        success: true,
+        task: updated,
+        message: `Reclassified tdd_intent from "${currentIntent}" to "${toIntent}" with user approval.`,
       });
     },
   },

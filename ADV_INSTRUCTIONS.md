@@ -22,7 +22,8 @@ Specs are laws. Requirements are formally defined, validated, and enforced.
 | 3 failed task attempts | Stop → `[ADV:DOOM_LOOP]` → escalate |
 | Cross-repo task | Execute in target repo via `workdir` |
 | User requests cancellation | Require approval via `adv_task_cancel` |
-| TDD required + trivial task | Mark trivial with reason, skip TDD |
+| TDD required + trivial task | Set `metadata.tdd_intent: "not_applicable"` with reason |
+| TDD intent change after prep | Use `adv_task_reclassify_tdd` with user approval |
 | User requests skip + gate required | `[ADV:MIC]` → ask for sign-off |
 
 ## Commands
@@ -165,6 +166,8 @@ Inline TDD is default — red/green phases WITHIN each task. × Do NOT create se
 - **GREEN:** Implement → run → `[ADV:TDD_GREEN]` → show output
 - **Trivial:** Note `(trivial: docs change)`, skip TDD
 - **Cross-cutting:** Separate verification tasks OK → mark `metadata.tdd_intent: "separate_verification"`
+
+**TDD Intent Immutability:** After prep gate completes, `metadata.tdd_intent` is frozen on all tasks. To reclassify, use `adv_task_reclassify_tdd` with user approval (mirrors `adv_task_cancel` audit trail). New tasks cannot be added after prep gate is complete.
 
 ### Doom Loop Detection
 

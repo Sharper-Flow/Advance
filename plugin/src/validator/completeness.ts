@@ -187,14 +187,14 @@ export function checkTddCompliance(change: Change): ValidationIssue[] {
     if (compliance === "missing") {
       issues.push({
         code: ValidationCodes.MISSING_TDD_EVIDENCE,
-        severity: "warning",
+        severity: "error",
         message: `Task "${task.title}" (${task.id}) is logic-heavy but lacks TDD evidence`,
         path: `tasks.${task.id}`,
         details: {
           taskId: task.id,
           tdd_phase: task.tdd_phase,
           recommendation:
-            "Record TDD evidence with adv_task_evidence or skip with adv_task_skip_tdd",
+            "Record TDD evidence with adv_task_evidence or reclassify with adv_task_reclassify_tdd",
         },
       });
     }

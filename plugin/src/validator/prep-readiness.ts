@@ -37,6 +37,9 @@ export const PrepReadinessCodes = {
   TASK_TDD_INVERSION: "TASK_TDD_INVERSION", // must (error)
   TASK_ORPHAN: "TASK_ORPHAN", // warning
 
+  // TDD intent assignment (rq-PR006tdi)
+  TASK_TDD_INTENT_MISSING: "TASK_TDD_INTENT_MISSING", // must (error), advisory-downgradable
+
   // Cross-repo routing
   CROSS_REPO_MISSING_METADATA: "CROSS_REPO_MISSING_METADATA", // must (error)
   CROSS_REPO_HINT_UNROUTED: "CROSS_REPO_HINT_UNROUTED", // warning
@@ -324,23 +327,112 @@ export function checkCrossRepoRouting(change: Change): ValidationIssue[] {
 }
 
 // =============================================================================
+// Check: TDD Intent Assignment (rq-PR006tdi)
+// =============================================================================
+
+/** Valid tdd_intent values that satisfy the check */
+const VALID_TDD_INTENTS = [
+  "inline",
+  "separate_verification",
+  "not_applicable",
+] as const;
+
+/**
+ * Verify that all non-cancelled tasks have an explicit metadata.tdd_intent
+ * value set to one of: inline, separate_verification, not_applicable.
+ *
+ * This check enforces rq-PR006tdi: TDD classification must happen during
+ * prep finalization, not be deferred to implementation.
+ *
+ * The severity can be configured via the tdd_enforcement feature flag:
+ * - "strict" (default): severity "error" → blocks prep gate
+ * - "advisory": severity "warning" → advisory only
+ * - "off": check is skipped entirely (caller handles this)
+ *
+ * @param change  The change to check
+ * @param severity  Override severity (default: "error"). Set to "warning" for advisory mode.
+ */
+export function checkTddIntentAssigned(
+  change: Change,
+  severity: "error" | "warning" = "error",
+): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+  const allTasks = change.tasks ?? [];
+
+  // Only check non-cancelled tasks
+  const tasks = allTasks.filter((t) => t.status !== "cancelled");
+
+  for (const task of tasks) {
+    const intent = task.metadata?.tdd_intent;
+
+    if (intent === undefined || intent === null) {
+      // No tdd_intent set at all
+      issues.push({
+        code: PrepReadinessCodes.TASK_TDD_INTENT_MISSING,
+        severity,
+        message: `Task "${task.id}" is missing metadata.tdd_intent. Every non-cancelled task must have an explicit TDD intent (inline, separate_verification, or not_applicable) assigned during prep finalization.`,
+        path: `tasks.${task.id}.metadata.tdd_intent`,
+        details: {
+          taskId: task.id,
+          taskTitle: task.title,
+          remediation:
+            "Set metadata.tdd_intent to 'inline' (default for logic tasks), 'separate_verification' (cross-cutting tests), or 'not_applicable' (docs, config).",
+        },
+      });
+    } else if (!VALID_TDD_INTENTS.includes(intent as (typeof VALID_TDD_INTENTS)[number])) {
+      // Invalid tdd_intent value
+      issues.push({
+        code: PrepReadinessCodes.TASK_TDD_INTENT_MISSING,
+        severity,
+        message: `Task "${task.id}" has invalid metadata.tdd_intent value "${intent}". Must be one of: inline, separate_verification, not_applicable.`,
+        path: `tasks.${task.id}.metadata.tdd_intent`,
+        details: {
+          taskId: task.id,
+          taskTitle: task.title,
+          invalidValue: intent,
+          remediation:
+            "Set metadata.tdd_intent to a valid value: 'inline', 'separate_verification', or 'not_applicable'.",
+        },
+      });
+    }
+  }
+
+  return issues;
+}
+
+// =============================================================================
 // runPrepReadinessChecks
 // =============================================================================
 
 /**
  * Run all prep-readiness checks against a change.
  *
+ * @param change  The change to validate
+ * @param tddEnforcement  Feature flag for TDD enforcement level:
+ *   - "strict" (default): TDD intent check produces errors (blocks gate)
+ *   - "advisory": TDD intent check produces warnings (advisory only)
+ *   - "off": TDD intent check is skipped entirely
+ *
  * Returns a PrepReadinessResult with:
  * - mustFailures: issues with severity "error" that block the prep gate
  * - warnings: advisory issues that do not block
  * - passed: true only when mustFailures is empty
  */
-export function runPrepReadinessChecks(change: Change): PrepReadinessResult {
+export function runPrepReadinessChecks(
+  change: Change,
+  tddEnforcement: "strict" | "advisory" | "off" = "strict",
+): PrepReadinessResult {
   const allIssues: ValidationIssue[] = [
     ...checkRequirementSmells(change),
     ...checkScenarioAdequacy(change),
     ...checkTaskGraphIntegrity(change),
     ...checkCrossRepoRouting(change),
+    ...(tddEnforcement !== "off"
+      ? checkTddIntentAssigned(
+          change,
+          tddEnforcement === "advisory" ? "warning" : "error",
+        )
+      : []),
   ];
 
   const mustFailures = allIssues.filter((i) => i.severity === "error");
@@ -355,6 +447,7 @@ export function runPrepReadinessChecks(change: Change): PrepReadinessResult {
       "checkScenarioAdequacy",
       "checkTaskGraphIntegrity",
       "checkCrossRepoRouting",
+      "checkTddIntentAssigned",
     ],
     checkedAt: new Date().toISOString(),
   };

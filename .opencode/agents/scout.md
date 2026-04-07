@@ -28,7 +28,6 @@ tools:
   adv_task_update: false
   adv_task_evidence: false
   adv_task_tdd_phase: false
-  adv_task_skip_tdd: false
   adv_task_cancel: false
   adv_wisdom_add: false
   adv_wisdom_promote: false

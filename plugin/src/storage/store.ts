@@ -33,6 +33,7 @@ import type {
   WisdomEntry,
   WisdomType,
   Cancellation,
+  TddReclassification,
 } from "../types";
 import { createSQLiteStore, type SQLiteStore } from "./sqlite";
 import {
@@ -164,12 +165,15 @@ export interface Store {
     ) => Promise<Task | null>;
     /** Update TDD phase for a task */
     setPhase: (taskId: string, phase: TddPhase) => Promise<Task | null>;
-    /** Skip TDD for a task with reason */
-    skipTdd: (taskId: string, reason: string) => Promise<Task | null>;
     /** Cancel a task with required user-approved cancellation metadata */
     cancel: (
       taskId: string,
       cancellation: Cancellation,
+    ) => Promise<Task | null>;
+    /** Reclassify a task's tdd_intent with required user-approved audit trail */
+    reclassifyTdd: (
+      taskId: string,
+      reclassification: TddReclassification,
     ) => Promise<Task | null>;
   };
 
@@ -1069,16 +1073,11 @@ export async function createStore(
         });
       },
 
-      skipTdd: async (taskId, reason) => {
+      cancel: async (taskId, cancellation) => {
         return withTaskLock(taskId, async (task, change) => {
-          // Initialize tdd_evidence if needed
-          if (!task.tdd_evidence) {
-            task.tdd_evidence = {};
-          }
-
-          task.tdd_evidence.skipped = true;
-          task.tdd_evidence.skip_reason = reason;
-          task.tdd_phase = "none";
+          task.status = "cancelled";
+          task.completed_at = new Date().toISOString();
+          task.cancellation = cancellation;
 
           // Save change
           await store.changes.save(change);
@@ -1087,11 +1086,16 @@ export async function createStore(
         });
       },
 
-      cancel: async (taskId, cancellation) => {
+      reclassifyTdd: async (taskId, reclassification) => {
         return withTaskLock(taskId, async (task, change) => {
-          task.status = "cancelled";
-          task.completed_at = new Date().toISOString();
-          task.cancellation = cancellation;
+          // Update the metadata tdd_intent
+          if (!task.metadata) {
+            task.metadata = {};
+          }
+          task.metadata.tdd_intent = reclassification.to_intent;
+
+          // Record the audit trail
+          (task as any).tdd_reclassification = reclassification;
 
           // Save change
           await store.changes.save(change);

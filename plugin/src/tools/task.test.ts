@@ -371,6 +371,47 @@ describe("Task Tools", () => {
 
       expect(parsed.error).toContain("not found");
     });
+
+    test("rejects task creation when prep gate is complete", async () => {
+      // Complete research and prep gates (prep requires research first)
+      await store.gates.complete("addFeature", "research");
+      await store.gates.complete("addFeature", "prep");
+
+      const result = await taskTools.adv_task_add.execute(
+        { changeId: "addFeature", content: "Should be rejected" },
+        store,
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed.error).toBeDefined();
+      expect(parsed.error).toContain("prep gate");
+    });
+
+    test("allows task creation when prep gate is pending", async () => {
+      // Default fixture has no gates (undefined) — should allow
+      const result = await taskTools.adv_task_add.execute(
+        { changeId: "addFeature", content: "Should succeed with no gates" },
+        store,
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed.error).toBeUndefined();
+      expect(parsed.taskId).toMatch(/^tk-/);
+    });
+
+    test("allows task creation when prep gate is legacy", async () => {
+      // Complete research gate first, then migrate gates to legacy
+      await store.gates.migrate("addFeature");
+
+      const result = await taskTools.adv_task_add.execute(
+        { changeId: "addFeature", content: "Should succeed with legacy gates" },
+        store,
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed.error).toBeUndefined();
+      expect(parsed.taskId).toMatch(/^tk-/);
+    });
   });
 
   describe("adv_task_evidence", () => {
@@ -502,46 +543,6 @@ describe("Task Tools", () => {
     });
   });
 
-  describe("adv_task_skip_tdd", () => {
-    test("skips TDD with reason", async () => {
-      const result = await taskTools.adv_task_skip_tdd.execute(
-        { taskId: "tk-task0001", reason: "trivial: config change" },
-        store,
-      );
-      const parsed = JSON.parse(result);
-
-      expect(parsed.success).toBe(true);
-      expect(parsed.task.tdd_evidence.skipped).toBe(true);
-      expect(parsed.task.tdd_evidence.skip_reason).toBe(
-        "trivial: config change",
-      );
-      expect(parsed.task.tdd_phase).toBe("none");
-      expect(parsed.compliance).toBe("compliant");
-    });
-
-    test("persists skip to JSON", async () => {
-      await taskTools.adv_task_skip_tdd.execute(
-        { taskId: "tk-task0001", reason: "legacy code" },
-        store,
-      );
-
-      const changeResult = await store.changes.get("addFeature");
-      expect(changeResult.success).toBe(true);
-      const task = changeResult.data!.tasks.find((t) => t.id === "tk-task0001");
-      expect(task!.tdd_evidence?.skipped).toBe(true);
-    });
-
-    test("returns error for nonexistent task", async () => {
-      const result = await taskTools.adv_task_skip_tdd.execute(
-        { taskId: "nonexistent", reason: "test" },
-        store,
-      );
-      const parsed = JSON.parse(result);
-
-      expect(parsed.error).toContain("not found");
-    });
-  });
-
   describe("adv_task_show", () => {
     test("returns full task with changeId for existing task", async () => {
       const result = await taskTools.adv_task_show.execute(
@@ -618,11 +619,14 @@ describe("Task Tools", () => {
       expect(parsed.recommendation).toContain("satisfied");
     });
 
-    test("returns compliant after skip", async () => {
-      await taskTools.adv_task_skip_tdd.execute(
-        { taskId: "tk-task0001", reason: "test" },
-        store,
+    test("returns compliant for task with skipped tdd_evidence (backward compat)", async () => {
+      // Simulate legacy skipped evidence without the removed tool
+      const changeResult = await store.changes.get("addFeature");
+      const task = changeResult.data!.tasks.find(
+        (t) => t.id === "tk-task0001",
       );
+      task!.tdd_evidence = { skipped: true, skip_reason: "test" };
+      await store.changes.save(changeResult.data!);
 
       const result = await taskTools.adv_task_tdd_status.execute(
         { taskId: "tk-task0001" },
@@ -785,6 +789,163 @@ describe("Task Tools", () => {
       expect(parsed.results[0].success).toBe(true);
       expect(parsed.results[1].success).toBe(false);
       expect(parsed.results[1].error).toContain("not found");
+    });
+  });
+
+  // ===========================================================================
+  // adv_task_reclassify_tdd
+  // ===========================================================================
+
+  describe("adv_task_reclassify_tdd", () => {
+    test("reclassifies tdd_intent with audit trail", async () => {
+      // Set up a task with existing tdd_intent metadata
+      await store.tasks.update("tk-task0001", "in_progress");
+      const changeResult = await store.changes.get("addFeature");
+      const change = changeResult.data!;
+      const taskInChange = change.tasks.find(
+        (t) => t.id === "tk-task0001",
+      );
+      taskInChange!.metadata = { tdd_intent: "inline" };
+      await store.changes.save(change);
+
+      const result = await taskTools.adv_task_reclassify_tdd.execute(
+        {
+          taskId: "tk-task0001",
+          toIntent: "not_applicable",
+          reason: "Task turned out to be config-only, no logic to test",
+          approvedByUser: true as const,
+          approvalEvidence: "User approved via question tool",
+        },
+        store,
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed.success).toBe(true);
+      expect(parsed.task.metadata.tdd_intent).toBe("not_applicable");
+      expect(parsed.task.tdd_reclassification).toBeDefined();
+      expect(parsed.task.tdd_reclassification.from_intent).toBe("inline");
+      expect(parsed.task.tdd_reclassification.to_intent).toBe(
+        "not_applicable",
+      );
+      expect(parsed.task.tdd_reclassification.reason).toBe(
+        "Task turned out to be config-only, no logic to test",
+      );
+      expect(parsed.task.tdd_reclassification.approved_by_user).toBe(true);
+      expect(parsed.task.tdd_reclassification.approval_evidence).toBe(
+        "User approved via question tool",
+      );
+      expect(parsed.task.tdd_reclassification.approved_at).toBeDefined();
+    });
+
+    test("rejects when task has no tdd_intent metadata", async () => {
+      // tk-task0001 has no metadata.tdd_intent by default
+      const result = await taskTools.adv_task_reclassify_tdd.execute(
+        {
+          taskId: "tk-task0001",
+          toIntent: "not_applicable",
+          reason: "Some reason",
+          approvedByUser: true as const,
+          approvalEvidence: "User approved",
+        },
+        store,
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed.error).toContain("tdd_intent");
+    });
+
+    test("rejects when approvalEvidence is empty", async () => {
+      const changeResult = await store.changes.get("addFeature");
+      const change = changeResult.data!;
+      const taskInChange = change.tasks.find(
+        (t) => t.id === "tk-task0001",
+      );
+      taskInChange!.metadata = { tdd_intent: "inline" };
+      await store.changes.save(change);
+
+      const result = await taskTools.adv_task_reclassify_tdd.execute(
+        {
+          taskId: "tk-task0001",
+          toIntent: "not_applicable",
+          reason: "Some reason",
+          approvedByUser: true as const,
+          approvalEvidence: "   ",
+        },
+        store,
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed.error).toContain("approvalEvidence");
+    });
+
+    test("rejects when task not found", async () => {
+      const result = await taskTools.adv_task_reclassify_tdd.execute(
+        {
+          taskId: "nonexistent",
+          toIntent: "not_applicable",
+          reason: "Some reason",
+          approvedByUser: true as const,
+          approvalEvidence: "User approved",
+        },
+        store,
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed.error).toContain("not found");
+    });
+
+    test("rejects when reclassifying to same intent", async () => {
+      const changeResult = await store.changes.get("addFeature");
+      const change = changeResult.data!;
+      const taskInChange = change.tasks.find(
+        (t) => t.id === "tk-task0001",
+      );
+      taskInChange!.metadata = { tdd_intent: "inline" };
+      await store.changes.save(change);
+
+      const result = await taskTools.adv_task_reclassify_tdd.execute(
+        {
+          taskId: "tk-task0001",
+          toIntent: "inline",
+          reason: "No change needed",
+          approvedByUser: true as const,
+          approvalEvidence: "User approved",
+        },
+        store,
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed.error).toContain("already");
+    });
+
+    test("persists reclassification to store", async () => {
+      // Set up metadata
+      const changeResult = await store.changes.get("addFeature");
+      const change = changeResult.data!;
+      const taskInChange = change.tasks.find(
+        (t) => t.id === "tk-task0001",
+      );
+      taskInChange!.metadata = { tdd_intent: "separate_verification" };
+      await store.changes.save(change);
+
+      await taskTools.adv_task_reclassify_tdd.execute(
+        {
+          taskId: "tk-task0001",
+          toIntent: "inline",
+          reason: "Discovered logic requires inline TDD",
+          approvedByUser: true as const,
+          approvalEvidence: "User approved",
+        },
+        store,
+      );
+
+      // Verify persistence via fresh read
+      const updated = await store.tasks.get("tk-task0001");
+      expect(updated!.metadata!.tdd_intent).toBe("inline");
+      expect((updated as any).tdd_reclassification).toBeDefined();
+      expect((updated as any).tdd_reclassification.from_intent).toBe(
+        "separate_verification",
+      );
     });
   });
 });

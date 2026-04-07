@@ -164,7 +164,11 @@ export const gateTools = {
 
       // Prep gate: run readiness checks before marking done
       if (gateId === "prep") {
-        const readiness = runPrepReadinessChecks(change);
+        const features = store.config?.features as FeatureFlags | undefined;
+        const tddEnforcement =
+          (features?.tdd_enforcement as "strict" | "advisory" | "off") ??
+          "strict";
+        const readiness = runPrepReadinessChecks(change, tddEnforcement);
         if (!readiness.passed) {
           return formatToolOutput({
             error: `Prep gate blocked: ${readiness.mustFailures.length} readiness failure(s) must be resolved`,
@@ -194,7 +198,6 @@ export const gateTools = {
             : {};
 
         // Clarify-readiness enforcement (runs after prep-readiness passes)
-        const features = store.config?.features as FeatureFlags | undefined;
         const clarifyMode = features?.clarify_enforcement ?? "advisory";
         let clarifyPayload: Record<string, unknown> = {};
 

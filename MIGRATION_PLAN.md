@@ -244,7 +244,7 @@ export default AdvancePlugin;
 | adv_task_add | changeId: string, content: string, blockedBy?: string[], section?: string | array type |
 | adv_task_evidence | taskId: string, phase: enum, testFile?: string, command?: string, output?: string, exitCode?: number | enum + number |
 | adv_task_tdd_phase | taskId: string, phase: enum | enum type |
-| adv_task_skip_tdd | taskId: string, reason: string | None |
+| adv_task_reclassify_tdd | taskId: string, toIntent: enum, reason: string, approvedByUser: true, approvalEvidence: string | enum + literal |
 | adv_task_tdd_status | taskId: string | None |
 | adv_status | (none) | None |
 | adv_agenda_list | status?: enum, includeCompleted?: boolean | enum + boolean |

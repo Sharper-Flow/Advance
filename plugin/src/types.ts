@@ -135,6 +135,28 @@ export const CancellationSchema = z.object({
 
 export type Cancellation = z.infer<typeof CancellationSchema>;
 
+/**
+ * Structured TDD reclassification record.
+ * Reclassifying tdd_intent after prep gate requires explicit user approval
+ * with a full audit trail — mirrors the CancellationSchema pattern.
+ */
+export const TddReclassificationSchema = z.object({
+  /** Original tdd_intent value before reclassification */
+  from_intent: z.string(),
+  /** New tdd_intent value (inline | separate_verification | not_applicable) */
+  to_intent: z.enum(["inline", "separate_verification", "not_applicable"]),
+  /** Reason for reclassification */
+  reason: z.string(),
+  /** Must be true — reclassifications require explicit user signoff */
+  approved_by_user: z.literal(true),
+  /** Evidence of approval (e.g., question tool response, user message) */
+  approval_evidence: z.string(),
+  /** ISO8601 timestamp when reclassification was approved */
+  approved_at: z.string(),
+});
+
+export type TddReclassification = z.infer<typeof TddReclassificationSchema>;
+
 // =============================================================================
 // TDD Phase & Evidence
 // =============================================================================
@@ -247,6 +269,8 @@ export const TaskSchema = z
     target_path: z.string().optional(),
     /** Structured cancellation metadata — required when status is "cancelled" */
     cancellation: CancellationSchema.optional(),
+    /** Structured TDD reclassification audit trail — populated when tdd_intent is changed after prep gate */
+    tdd_reclassification: TddReclassificationSchema.optional(),
     /**
      * Arbitrary key-value metadata for agent-driven filtering and routing.
      * All values are strings. Examples: { env: "production", target_repo: "backend" }
