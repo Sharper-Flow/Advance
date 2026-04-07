@@ -20,6 +20,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added asset tests covering bundled skills, command skill-loading, fallback text, and sync-global compatibility
 - Updated `README.md` to describe the command + skill architecture and kept `SETUP.md` aligned with the new bundled skills
 
+### Fixed
+
+#### SQLite Cache Self-Healing for Status / Doctor Checks
+
+- Reconciled the derived SQLite change/task cache against JSON source of truth during full change sync
+- Auto-prunes stale SQLite change rows whose JSON source files no longer exist
+- Auto-cleans dangling task and dependency references left behind by prior cache inconsistencies
+- Added status regressions to ensure recoverable cache drift no longer persists as doctor warnings
+- Documented that manual SQLite cache deletion is now a fallback, not the first-line recovery path
+
 ## [0.5.1] - 2026-03-18
 
 ### Added

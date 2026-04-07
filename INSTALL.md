@@ -125,10 +125,21 @@ pnpm rebuild better-sqlite3
 
 ### Cache issues
 
-If local spec cache state gets stale, remove the DB and rebuild state on next run:
+ADV now self-heals common SQLite cache drift during status/sync operations, including:
+
+- stale change rows that no longer have a JSON source file
+- dangling task-to-change references left behind by cache inconsistencies
+
+If the local cache is still corrupted or cannot recover automatically, remove the DB in your configured `db_dir` and rebuild state on next run (legacy examples below use `.specdb`):
 
 ```bash
 rm -f .specdb/spec.db
+```
+
+If a WAL file is left behind, remove the companion files in that same directory too:
+
+```bash
+rm -f .specdb/spec.db .specdb/spec.db-wal .specdb/spec.db-shm
 ```
 
 ### Permission issues
