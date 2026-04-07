@@ -392,6 +392,64 @@ export async function createStore(
   let allChangesSyncPromise: Promise<void> | null = null;
 
   /**
+   * Reconcile the derived SQLite change/task cache against JSON source of truth.
+   *
+   * This self-heals two classes of drift:
+   * 1) Missing SQLite change rows for JSON-backed active changes
+   * 2) Stale/dangling SQLite rows left behind by prior cache inconsistencies
+   */
+  const reconcileActiveChangeCache = async (
+    changes: Map<string, Change>,
+  ): Promise<{ resyncRequired: boolean }> => {
+    const changeRows = sqlite.changes.list();
+    const jsonIds = new Set(changes.keys());
+    const cachedIds = new Set(changeRows.map((row) => row.id));
+    let resyncRequired = false;
+
+    // If a JSON-backed active change is missing from SQLite, force a re-sync.
+    for (const id of jsonIds) {
+      if (!cachedIds.has(id)) {
+        syncedChanges.delete(id);
+        resyncRequired = true;
+      }
+    }
+
+    // Remove stale SQLite rows that still point at the active changes directory
+    // but no longer have a JSON source file there.
+    const activeChangePrefix = `${paths.changes}/`;
+    let repaired = false;
+    for (const row of changeRows) {
+      if (row.json_path.startsWith(activeChangePrefix) && !jsonIds.has(row.id)) {
+        sqlite.changes.delete(row.id);
+        syncedChanges.delete(row.id);
+        repaired = true;
+        resyncRequired = true;
+      }
+    }
+
+    // Defense in depth: sweep any dangling task/dependency refs that may have
+    // survived earlier cache bugs or runs with inconsistent foreign-key state.
+    const removedTasks = sqlite.db
+      .query("DELETE FROM tasks WHERE change_id NOT IN (SELECT id FROM changes)")
+      .run();
+    const removedDeps = sqlite.db
+      .query(
+        "DELETE FROM dependencies WHERE target_id NOT IN (SELECT id FROM tasks)",
+      )
+      .run();
+
+    if (
+      repaired ||
+      Number(removedTasks.changes ?? 0) > 0 ||
+      Number(removedDeps.changes ?? 0) > 0
+    ) {
+      checkpointWAL(sqlite.db);
+    }
+
+    return { resyncRequired };
+  };
+
+  /**
    * Ensure a single spec is synced to SQLite.
    * Used for targeted operations like specs.get()
    */
@@ -499,10 +557,17 @@ export async function createStore(
    */
   const ensureAllChangesSynced = async (): Promise<void> => {
     if (closed) return;
+
+    const changes = await loadAllChanges(paths.changes);
+    const { resyncRequired } = await reconcileActiveChangeCache(changes);
+
+    if (resyncRequired) {
+      allChangesSyncPromise = null;
+    }
+
     if (allChangesSyncPromise) return allChangesSyncPromise;
 
     allChangesSyncPromise = (async () => {
-      const changes = await loadAllChanges(paths.changes);
       for (const [id, change] of changes) {
         if (syncedChanges.has(id)) continue;
 

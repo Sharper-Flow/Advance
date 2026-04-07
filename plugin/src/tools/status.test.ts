@@ -5,6 +5,7 @@
  */
 
 import { describe, test, expect, beforeEach, afterEach } from "vitest";
+import { Database } from "bun:sqlite";
 import { rm } from "fs/promises";
 import { join } from "path";
 import { statusTools } from "./status";
@@ -216,7 +217,7 @@ describe("Status Tools", () => {
       await cleanupTempDir(noConfigDir);
     });
 
-    test("reports doctor-lite warning for stale SQLite change row", async () => {
+    test("self-heals stale SQLite change row from missing JSON source", async () => {
       // First call populates SQLite cache
       await statusTools.adv_status.execute({}, store);
 
@@ -230,7 +231,45 @@ describe("Status Tools", () => {
         (r: string) =>
           r.includes("[doctor]") && r.includes("JSON/SQLite inconsistency"),
       );
-      expect(doctorWarnings.length).toBeGreaterThan(0);
+      expect(doctorWarnings).toHaveLength(0);
+      expect(parsed.changes.active).toBe(0);
+    });
+
+    test("self-heals dangling task refs in SQLite cache", async () => {
+      // First call populates SQLite cache
+      await statusTools.adv_status.execute({}, store);
+
+      const dbPath = join(tempDir, ".adv/db/spec.db");
+      const db = new Database(dbPath);
+      try {
+        db.exec("PRAGMA foreign_keys = OFF");
+        db.query(
+          `INSERT INTO tasks (id, change_id, title, section, status, priority, created_at, started_at, completed_at, completed_by)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        ).run(
+          "tk-dangling01",
+          "missingChange",
+          "Dangling Task",
+          null,
+          "pending",
+          0,
+          "2026-01-01T00:00:00Z",
+          null,
+          null,
+          null,
+        );
+      } finally {
+        db.close();
+      }
+
+      const result = await statusTools.adv_status.execute({}, store);
+      const parsed = parseToolOutput(result);
+
+      const brokenRefWarnings = parsed.recommendations.filter((r: string) =>
+        r.includes("[doctor]") && r.includes("Broken task->change refs"),
+      );
+      expect(brokenRefWarnings).toHaveLength(0);
+      expect(parsed.changes.active).toBe(1);
     });
 
     test("includes changes.recent in output", async () => {
