@@ -3,9 +3,9 @@ name: adv-apply
 description: Implement change with TDD, retry on failure, and final verification
 ---
 
-# ADV Apply — Implement Change with TDD and Retry
+# ADV Apply — Produce Deliverables with TDD and Retry
 
-Implement an ADV change using TDD. Every task is pursued to completion. Failures trigger diagnosis and retry before escalating.
+Implement an ADV change using TDD. Produce the agreed deliverables — code, docs, ops changes, or verification artifacts — and pursue every task to completion.
 
 ## Task Completion Policy
 
@@ -42,11 +42,10 @@ Cancellation: use `adv_task_cancel` with user approval. `adv_task_update status:
 
 `adv_gate_status changeId: {change-id}`
 
-- Research gate pending → stop, emit warning, require `/adv-research` first
-- Prep gate pending → stop, emit warning, require `/adv-prep` first
-- Both complete → proceed to Phase 0
+- Discovery/design/planning incomplete → stop and require the pre-implementation workflow first
+- All pre-implementation stages complete → proceed to Phase 0
 
-× `/adv-apply` MUST NOT complete research or prep gates.
+× `/adv-apply` MUST NOT complete discovery, design, or planning gates.
 
 ---
 
@@ -246,7 +245,7 @@ If cancelled tasks exist → verify each has `cancellation.approved_by_user: tru
 
 ### Mark Gate
 
-`adv_gate_complete changeId: {change-id} gateId: implementation`
+`adv_gate_complete changeId: {change-id} gateId: execution`
 
 ### Contract Fulfilled Banner
 
@@ -262,7 +261,7 @@ Completion modes:
 Result: CONTRACT FULFILLED
 Completion: {mode}
 Tasks: {completed}/{total}
-Implementation Gate: MARKED COMPLETE
+Execution Gate: MARKED COMPLETE
 Next: /adv-review {change-id}
 ```
 

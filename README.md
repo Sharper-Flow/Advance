@@ -43,12 +43,16 @@ Advance exists to make those failure modes harder.
 ## Core workflow
 
 ```text
-/adv-proposal  -> extract problem statement, success criteria, and constraints (no tasks)
-/adv-research  -> validate architecture and best practices
-/adv-prep      -> synthesize tasks from validated findings
-/adv-apply     -> execute tasks with TDD and evidence
-/adv-review    -> adversarial review and remediation
-/adv-harden    -> final quality pass
+/adv-proposal  -> confirm the problem statement and create the change scaffold
+/adv-discover  -> gather current-state findings and objectives
+/adv-agree     -> confirm objectives, AC, constraints, and avoidances
+/adv-design    -> produce the design artifact and implementation strategy
+/adv-present   -> present the design before planning
+/adv-prep      -> synthesize tasks from validated design decisions
+/adv-apply     -> execute deliverables with TDD and evidence
+/adv-review    -> review delivered work before user acceptance
+/adv-accept    -> record user acceptance against the agreement
+/adv-harden    -> final release-stage quality pass
 /adv-validate  -> check the completed change against specs
 /adv-archive   -> apply deltas and finalize the change
 ```
@@ -60,7 +64,7 @@ Advance exists to make those failure modes harder.
 | Command | Purpose |
 |---------|---------|
 | `/adv-status` | Show project overview: specs, active changes, and next-step recommendations |
-| `/adv-proposal <summary>` | Extract problem statement, success criteria, and constraints without creating tasks |
+| `/adv-proposal <summary>` | Extract problem statement and confirm with user before proceeding |
 | `/adv-validate <change-id>` | Validate change compliance against specs; block archive on failure |
 | `/adv-apply <change-id>` | Implement change with TDD, retry on failure, and final verification |
 | `/adv-archive <change-id>` | Archive completed change: apply spec deltas and finalize git |
@@ -70,21 +74,26 @@ Advance exists to make those failure modes harder.
 | Command | Purpose |
 |---------|---------|
 | `/adv-clarify` | Ask clarifying questions to resolve ambiguous requirements |
-| `/adv-research <target>` | Validate architectural decisions and best practices without creating tasks |
-| `/adv-prep <change-id>` | Analyze gaps and synthesize tasks from validated research findings |
+| `/adv-discover <change-id>` | Gather context, analyze current state, and identify objectives |
+| `/adv-agree <change-id>` | Present objectives and constraints for user acceptance |
+| `/adv-design <change-id>` | Validate architecture decisions and produce implementation strategy |
+| `/adv-present <change-id>` | Present concise design overview for user review before planning |
+| `/adv-research <change-id>` | Retired: use /adv-discover and /adv-design instead |
+| `/adv-prep <change-id>` | Analyze gaps and synthesize tasks from validated design decisions |
 
 ### Implementation
 
 | Command | Purpose |
 |---------|---------|
-| `/adv-task` | Fast-track a discussed change: synthesize contract, validate best practices, prep, and hand off |
+| `/adv-task` | Fast-track a discussed change: synthesize contract, validate, prep, and hand off |
 
 ### Post-Implementation
 
 | Command | Purpose |
 |---------|---------|
-| `/adv-review <change-id>` | Review code for correctness, security, and architecture; emit REVIEW_FINDINGS |
-| `/adv-harden <change-id>` | Detect low-quality code, verify test coverage, clean up; block archive on open findings |
+| `/adv-review <change-id>` | Review deliverables for correctness, security, and architecture quality |
+| `/adv-accept <change-id>` | Present deliverable summary and acceptance criteria checklist to user |
+| `/adv-harden <change-id>` | Detect low-quality code, verify test coverage, clean up before release |
 | `/adv-audit [capability]` | Detect drift between specs and current implementation |
 | `/adv-slop-scan [path]` | Scan for AI slop patterns including defensive and nested code |
 
@@ -102,7 +111,7 @@ Advance exists to make those failure modes harder.
 - **Spec-driven changes** - define what must be true before implementation starts
 - **Task orchestration** - break changes into explicit, trackable work units
 - **TDD evidence** - capture red/green proof as part of execution
-- **6-gate flow** - research, prep, implementation, review, harden, signoff
+- **7-gate flow** - proposal, discovery, design, planning, execution, acceptance, release
 - **Accumulated wisdom** - persist patterns, gotchas, conventions, successes, and failures
 - **Worktree-aware state** - share mutable change state across worktrees and sessions; detect and reuse existing worktrees
 - **Validation and archive flow** - reduce drift between proposal, implementation, and specs
@@ -238,15 +247,16 @@ The important point is not the raw tool count. The value is that the workflow is
 
 ## Documentation map
 
-- `INSTALL.md` - installation and project setup
+- `INSTALL.md` / `SETUP.md` - installation, project setup, and upgrade notes
 - `ADV_INSTRUCTIONS.md` - agent operating rules and workflow protocol
-- `docs/adv-workflow.md` - lifecycle overview
-- `docs/adv-gates.md` - gate model and sequencing
+- `AGENTS.md` - agent-facing quickstart: concepts, tools, directory layout
+- `docs/adv-workflow.md` - visual 7-gate workflow diagram
+- `docs/adv-gates.md` - gate contracts and sequencing
 - `docs/adv-task-report.md` - task handoff/status reporting
 - `docs/adv-context-agreement.md` - context snapshot and cross-repo switch formatting
 - `docs/adv-question-tool.md` - question tool UX policy
 - `docs/checklists/` - prep, review, and harden checklists
-- `docs/specs/` - generated spec documentation (advance, context-display, contract-system, prep-readiness, slop-scan, tdd-contract)
+- `docs/specs/` - generated spec documentation (adv-prep, adv-proposal, adv-research, advance, context-display, contract-system, prep-readiness, slop-scan, tdd-contract)
 
 ## Development
 

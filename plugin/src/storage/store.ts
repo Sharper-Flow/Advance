@@ -14,12 +14,16 @@ import {
   createLegacyGates,
   createDefaultGates,
   type Gates,
+  type GateId,
 } from "../types";
+import { needsGateMigration, migrateGates } from "./gate-migration";
 import type {
   Spec,
   Change,
   ChangeClosure,
+  GateCompletion,
   Task,
+  TaskType,
   ProjectConfig,
   SpecListResponse,
   ChangeListResponse,
@@ -106,26 +110,34 @@ export interface Store {
       capability?: string,
       proposalContent?: string,
       problemStatementContent?: string,
+      agreementContent?: string,
+      designContent?: string,
     ) => Promise<{
       changeId: string;
       path: string;
       problemStatementPath?: string;
+      agreementPath?: string;
+      designPath?: string;
       duplicateWarning?: string;
     }>;
     save: (change: Change) => Promise<void>;
     /**
-     * Update proposal.md and/or problem-statement.md for an existing change.
+     * Update proposal.md, problem-statement.md, agreement.md, and/or design.md.
      * Does NOT modify change.json — artifact-only update.
-     * Both content params are optional; only provided files are written.
+     * All content params are optional; only provided files are written.
      */
     updateArtifacts: (
       changeId: string,
       proposalContent?: string,
       problemStatementContent?: string,
+      agreementContent?: string,
+      designContent?: string,
     ) => Promise<{
       success: boolean;
       proposalPath?: string;
       problemStatementPath?: string;
+      agreementPath?: string;
+      designPath?: string;
       error?: string;
     }>;
     close: (changeId: string, closure: ChangeClosure) => Promise<Change | null>;
@@ -150,6 +162,7 @@ export interface Store {
       options?: {
         blockedBy?: string[];
         section?: string;
+        type?: TaskType;
         metadata?: Record<string, string>;
       },
     ) => Promise<Task>;
@@ -190,22 +203,13 @@ export interface Store {
     list: (changeId: string) => Promise<WisdomEntry[]>;
   };
 
-  // Gates (6-gate quality checklist)
+  // Gates (7-gate quality checklist)
   gates: {
-    /** Get gates for a change or agenda item */
+    /** Get gates for a change or agenda item (auto-migrates old 6-gate format) */
     get: (changeId: string) => Promise<Gates | null>;
     /** Complete a gate with sequence enforcement */
-    complete: (
-      changeId: string,
-      gateId:
-        | "research"
-        | "prep"
-        | "implementation"
-        | "review"
-        | "harden"
-        | "signoff",
-    ) => Promise<void>;
-    /** Migrate gates to legacy status (except signoff) */
+    complete: (changeId: string, gateId: GateId) => Promise<void>;
+    /** Migrate gates to legacy status (except last gate) */
     migrate: (changeId: string) => Promise<void>;
   };
 
@@ -419,7 +423,10 @@ export async function createStore(
     const activeChangePrefix = `${paths.changes}/`;
     let repaired = false;
     for (const row of changeRows) {
-      if (row.json_path.startsWith(activeChangePrefix) && !jsonIds.has(row.id)) {
+      if (
+        row.json_path.startsWith(activeChangePrefix) &&
+        !jsonIds.has(row.id)
+      ) {
         sqlite.changes.delete(row.id);
         syncedChanges.delete(row.id);
         repaired = true;
@@ -430,7 +437,9 @@ export async function createStore(
     // Defense in depth: sweep any dangling task/dependency refs that may have
     // survived earlier cache bugs or runs with inconsistent foreign-key state.
     const removedTasks = sqlite.db
-      .query("DELETE FROM tasks WHERE change_id NOT IN (SELECT id FROM changes)")
+      .query(
+        "DELETE FROM tasks WHERE change_id NOT IN (SELECT id FROM changes)",
+      )
       .run();
     const removedDeps = sqlite.db
       .query(
@@ -662,6 +671,63 @@ export async function createStore(
     });
   };
 
+  /**
+   * Load a change from JSON, returning null if missing or on read failure.
+   * Used by read paths that want to degrade gracefully (e.g. list operations).
+   */
+  const loadChangeOrNull = async (changeId: string): Promise<Change | null> => {
+    const result = await loadChange(paths.changes, changeId);
+    if (!result.success || !result.data) return null;
+    return result.data;
+  };
+
+  /**
+   * Load a change from JSON, throwing on any failure.
+   * Used by write paths and callers that cannot proceed without the change.
+   */
+  const loadChangeOrThrow = async (changeId: string): Promise<Change> => {
+    const result = await loadChange(paths.changes, changeId);
+    if (!result.success) {
+      throw new Error(result.error);
+    }
+    if (!result.data) {
+      throw new Error(`Change not found: ${changeId}`);
+    }
+    return result.data;
+  };
+
+  type GateCompletionRecord = Partial<Record<string, GateCompletion>>;
+
+  /**
+   * Fill in any missing keys in a partial gates record with default pending
+   * entries. Ensures the returned object is structurally a valid Gates.
+   */
+  const normalizeGates = (gates: GateCompletionRecord): Gates => {
+    const defaults = createDefaultGates();
+    return { ...defaults, ...gates } as Gates;
+  };
+
+  const maybeMigrateLegacyGates = async (
+    changeId: string,
+    gates: GateCompletionRecord,
+  ): Promise<Gates> => {
+    if (!needsGateMigration(gates)) {
+      return normalizeGates(gates);
+    }
+
+    return withChangeLock(changeId, async (change) => {
+      const latestGates = change.gates ?? createDefaultGates();
+      if (!needsGateMigration(latestGates)) {
+        return normalizeGates(latestGates);
+      }
+
+      const migrated = migrateGates(latestGates);
+      change.gates = migrated;
+      await store.changes.save(change);
+      return migrated;
+    });
+  };
+
   // Legacy flag for backwards compatibility
   let synced = false;
 
@@ -729,8 +795,13 @@ export async function createStore(
       try {
         // Force WAL checkpoint to sync pending writes to the main database file
         checkpointWAL(sqlite.db);
-      } catch {
-        // Non-fatal: flush is best-effort before shutdown
+      } catch (error) {
+        // Non-fatal: flush is best-effort before shutdown, but log for diagnostics.
+        if (process.env.ADV_DEBUG) {
+          console.error(
+            `[ADV:store] flush checkpointWAL failed: ${String(error)}`,
+          );
+        }
       }
     },
 
@@ -854,6 +925,8 @@ export async function createStore(
         _capability,
         proposalContent,
         problemStatementContent,
+        agreementContent,
+        designContent,
       ) => {
         // Generate concise change ID from summary
         const baseId = generateChangeId(summary);
@@ -879,14 +952,21 @@ export async function createStore(
         }
 
         // Create scaffold
-        const { changePath, proposalPath, problemStatementPath } =
-          await createChangeScaffold(
-            paths.changes,
-            changeId,
-            summary,
-            proposalContent,
-            problemStatementContent,
-          );
+        const {
+          changePath,
+          proposalPath,
+          problemStatementPath,
+          agreementPath,
+          designPath,
+        } = await createChangeScaffold(
+          paths.changes,
+          changeId,
+          summary,
+          proposalContent,
+          problemStatementContent,
+          agreementContent,
+          designContent,
+        );
 
         // Create change.json
         const change: Change = {
@@ -907,6 +987,8 @@ export async function createStore(
           changeId,
           path: proposalPath,
           problemStatementPath,
+          agreementPath,
+          designPath,
           duplicateWarning,
         };
       },
@@ -943,6 +1025,8 @@ export async function createStore(
         changeId: string,
         proposalContent?: string,
         problemStatementContent?: string,
+        agreementContent?: string,
+        designContent?: string,
       ) => {
         // Resolve changeId against existing directories (consistent with changes.get)
         const { id: resolvedId, candidates } = await resolveChangeId(
@@ -966,6 +1050,8 @@ export async function createStore(
           resolvedId,
           proposalContent,
           problemStatementContent,
+          agreementContent,
+          designContent,
         );
 
         if (result.error) {
@@ -976,6 +1062,8 @@ export async function createStore(
           success: true,
           proposalPath: result.proposalPath,
           problemStatementPath: result.problemStatementPath,
+          agreementPath: result.agreementPath,
+          designPath: result.designPath,
         };
       },
     },
@@ -986,10 +1074,10 @@ export async function createStore(
         await ensureChangeSynced(changeId);
 
         // Load from JSON to get full task data including TDD fields
-        const result = await loadChange(paths.changes, changeId);
-        if (!result.success || !result.data) return [];
+        const change = await loadChangeOrNull(changeId);
+        if (!change) return [];
 
-        let tasks = result.data.tasks;
+        let tasks = change.tasks;
         if (status) {
           tasks = tasks.filter((t) => t.status === status);
         }
@@ -1016,10 +1104,8 @@ export async function createStore(
         await ensureChangeSynced(changeId);
 
         // Load from JSON to get full task data including TDD fields
-        const result = await loadChange(paths.changes, changeId);
-        if (!result.success || !result.data) return { ready: [], blocked: [] };
-
-        const change = result.data;
+        const change = await loadChangeOrNull(changeId);
+        if (!change) return { ready: [], blocked: [] };
 
         // Use SQLite for dependency resolution
         const { ready: readyIds, blocked: blockedInfo } =
@@ -1062,6 +1148,7 @@ export async function createStore(
           const task: Task = {
             id: `tk-${nanoid(8)}`,
             title: content,
+            type: options?.type ?? "code",
             section: options?.section,
             status: "pending",
             priority: change.tasks.length, // Append at end
@@ -1194,15 +1281,8 @@ export async function createStore(
       },
 
       list: async (changeId) => {
-        const result = await loadChange(paths.changes, changeId);
-        if (!result.success) {
-          throw new Error(result.error);
-        }
-        if (!result.data) {
-          throw new Error(`Change not found: ${changeId}`);
-        }
-
-        return result.data.wisdom ?? [];
+        const change = await loadChangeOrThrow(changeId);
+        return change.wisdom ?? [];
       },
     },
 
@@ -1211,10 +1291,14 @@ export async function createStore(
         // Lazy sync: only sync this specific change
         await ensureChangeSynced(changeId);
 
-        const result = await loadChange(paths.changes, changeId);
-        if (!result.success || !result.data) return null;
+        const change = await loadChangeOrNull(changeId);
+        if (!change) return null;
 
-        return result.data.gates ?? createDefaultGates();
+        const gates: GateCompletionRecord =
+          change.gates ?? createDefaultGates();
+
+        // Auto-migrate old 6-gate format to new 7-gate format
+        return maybeMigrateLegacyGates(changeId, gates);
       },
 
       complete: async (changeId, gateId) => {

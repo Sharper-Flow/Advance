@@ -10,6 +10,14 @@ import {
   ChangeSchema,
   ChangeStatusSchema,
   ChangeClosureSchema,
+  GATE_DEFS,
+  GateIdSchema,
+  GATE_ORDER,
+  GatesSchema,
+  createDefaultGates,
+  createLegacyGates,
+  GateCompletionSchema,
+  canCompleteGate,
   RequirementSchema,
   TaskSchema,
   DeltaSchema,
@@ -1503,5 +1511,246 @@ describe("TaskSchema error_recovery field", () => {
       tdd_phase: "complete",
     };
     expect(() => TaskSchema.parse(legacyTask)).not.toThrow();
+  });
+});
+
+// =============================================================================
+// GATE_DEFS — Single Source of Truth for Gate Definitions
+// =============================================================================
+
+describe("GATE_DEFS single source of truth", () => {
+  test("GATE_DEFS array exists and drives GateIdSchema values", () => {
+    const gateIds = GATE_DEFS.map((g: { id: string }) => g.id);
+    expect(GateIdSchema.options).toEqual(gateIds);
+  });
+
+  test("GATE_ORDER is derived from GATE_DEFS order", () => {
+    const gateIds = GATE_DEFS.map((g: { id: string }) => g.id);
+    expect(GATE_ORDER).toEqual(gateIds);
+  });
+
+  test("GatesSchema has one field per GATE_DEFS entry", () => {
+    const gateIds = GATE_DEFS.map((g: { id: string }) => g.id);
+    const schemaKeys = Object.keys(GatesSchema.shape);
+    expect(schemaKeys).toEqual(gateIds);
+  });
+
+  test("createDefaultGates returns one pending entry per GATE_DEFS entry", () => {
+    const defaults = createDefaultGates();
+    const gateIds = GATE_DEFS.map((g: { id: string }) => g.id);
+    expect(Object.keys(defaults)).toEqual(gateIds);
+    for (const id of gateIds) {
+      expect(defaults[id].status).toBe("pending");
+    }
+  });
+
+  test("createLegacyGates returns one entry per GATE_DEFS entry", () => {
+    const legacy = createLegacyGates();
+    const gateIds = GATE_DEFS.map((g: { id: string }) => g.id);
+    expect(Object.keys(legacy)).toEqual(gateIds);
+  });
+
+  test("createLegacyGates marks last gate as pending, rest as legacy", () => {
+    const legacy = createLegacyGates();
+    const gateIds = GATE_DEFS.map((g: { id: string }) => g.id);
+    const lastGateId = gateIds[gateIds.length - 1];
+    for (const id of gateIds) {
+      if (id === lastGateId) {
+        expect(legacy[id].status).toBe("pending");
+      } else {
+        expect(legacy[id].status).toBe("legacy");
+      }
+    }
+  });
+});
+
+// =============================================================================
+// Task.type field and GateCompletion.migrated_from
+// =============================================================================
+
+describe("TaskSchema.type field", () => {
+  test("accepts all valid task types", () => {
+    const types = [
+      "code",
+      "docs",
+      "ops",
+      "research",
+      "approval",
+      "verification",
+    ];
+    for (const t of types) {
+      const task = TaskSchema.parse({
+        id: "tk-test01",
+        title: "Test task",
+        status: "pending",
+        priority: 0,
+        created_at: "2026-01-01T00:00:00Z",
+        tdd_phase: "none",
+        type: t,
+      });
+      expect(task.type).toBe(t);
+    }
+  });
+
+  test("defaults to 'code' when type is omitted (backward compat)", () => {
+    const task = TaskSchema.parse({
+      id: "tk-test02",
+      title: "Legacy task without type",
+      status: "done",
+      priority: 0,
+      created_at: "2026-01-01T00:00:00Z",
+      tdd_phase: "complete",
+    });
+    expect(task.type).toBe("code");
+  });
+
+  test("rejects invalid task types", () => {
+    expect(() =>
+      TaskSchema.parse({
+        id: "tk-test03",
+        title: "Bad type",
+        status: "pending",
+        priority: 0,
+        created_at: "2026-01-01T00:00:00Z",
+        tdd_phase: "none",
+        type: "invalid",
+      }),
+    ).toThrow();
+  });
+});
+
+describe("GateCompletionSchema.migrated_from", () => {
+  test("accepts migrated_from field for migration audit trail", () => {
+    const gate = GateCompletionSchema.parse({
+      status: "done",
+      completed_at: "2026-01-01T00:00:00Z",
+      completed_by: "migration",
+      migrated_from: "research",
+    });
+    expect(gate.migrated_from).toBe("research");
+  });
+
+  test("migrated_from is optional (existing gates work without it)", () => {
+    const gate = GateCompletionSchema.parse({
+      status: "done",
+      completed_at: "2026-01-01T00:00:00Z",
+      completed_by: "agent",
+    });
+    expect(gate.migrated_from).toBeUndefined();
+  });
+
+  test("accepts absorbed_completions for merged migration audit trail", () => {
+    const gate = GateCompletionSchema.parse({
+      status: "done",
+      completed_at: "2026-01-01T00:00:00Z",
+      completed_by: "agent",
+      migrated_from: "review",
+      absorbed_completions: [
+        {
+          gate_id: "signoff",
+          status: "done",
+          completed_at: "2026-01-02T00:00:00Z",
+          completed_by: "user",
+        },
+      ],
+    });
+    expect(gate.absorbed_completions).toEqual([
+      {
+        gate_id: "signoff",
+        status: "done",
+        completed_at: "2026-01-02T00:00:00Z",
+        completed_by: "user",
+      },
+    ]);
+  });
+});
+
+// =============================================================================
+// 7-Gate Model — New gate IDs and schema shape
+// =============================================================================
+
+describe("7-gate collaborative model", () => {
+  test("GATE_DEFS contains exactly 7 gates in the correct order", () => {
+    expect(GATE_DEFS).toHaveLength(7);
+    const ids = GATE_DEFS.map((g: { id: string }) => g.id);
+    expect(ids).toEqual([
+      "proposal",
+      "discovery",
+      "design",
+      "planning",
+      "execution",
+      "acceptance",
+      "release",
+    ]);
+  });
+
+  test("GateIdSchema accepts new gate IDs and rejects old ones", () => {
+    // New IDs should parse
+    expect(GateIdSchema.parse("proposal")).toBe("proposal");
+    expect(GateIdSchema.parse("discovery")).toBe("discovery");
+    expect(GateIdSchema.parse("design")).toBe("design");
+    expect(GateIdSchema.parse("planning")).toBe("planning");
+    expect(GateIdSchema.parse("execution")).toBe("execution");
+    expect(GateIdSchema.parse("acceptance")).toBe("acceptance");
+    expect(GateIdSchema.parse("release")).toBe("release");
+    // Old IDs should be rejected
+    expect(() => GateIdSchema.parse("research")).toThrow();
+    expect(() => GateIdSchema.parse("prep")).toThrow();
+    expect(() => GateIdSchema.parse("implementation")).toThrow();
+    expect(() => GateIdSchema.parse("review")).toThrow();
+    expect(() => GateIdSchema.parse("harden")).toThrow();
+    expect(() => GateIdSchema.parse("signoff")).toThrow();
+  });
+
+  test("GatesSchema has 7 fields matching new gate IDs", () => {
+    const keys = Object.keys(GatesSchema.shape);
+    expect(keys).toEqual([
+      "proposal",
+      "discovery",
+      "design",
+      "planning",
+      "execution",
+      "acceptance",
+      "release",
+    ]);
+  });
+
+  test("createDefaultGates returns 7 pending gates with new IDs", () => {
+    const gates = createDefaultGates();
+    expect(Object.keys(gates)).toHaveLength(7);
+    expect(gates.proposal.status).toBe("pending");
+    expect(gates.discovery.status).toBe("pending");
+    expect(gates.design.status).toBe("pending");
+    expect(gates.planning.status).toBe("pending");
+    expect(gates.execution.status).toBe("pending");
+    expect(gates.acceptance.status).toBe("pending");
+    expect(gates.release.status).toBe("pending");
+  });
+
+  test("createLegacyGates marks release as pending, rest as legacy", () => {
+    const gates = createLegacyGates();
+    expect(Object.keys(gates)).toHaveLength(7);
+    // All gates except the last (release) should be legacy
+    expect(gates.proposal.status).toBe("legacy");
+    expect(gates.discovery.status).toBe("legacy");
+    expect(gates.design.status).toBe("legacy");
+    expect(gates.planning.status).toBe("legacy");
+    expect(gates.execution.status).toBe("legacy");
+    expect(gates.acceptance.status).toBe("legacy");
+    // Last gate stays pending (never auto-marked)
+    expect(gates.release.status).toBe("pending");
+  });
+
+  test("canCompleteGate enforces 7-gate sequence", () => {
+    const gates = createDefaultGates();
+    // First gate (proposal) can always be completed
+    expect(canCompleteGate(gates, "proposal")).toBe(true);
+    // Second gate (discovery) cannot be completed before proposal
+    expect(canCompleteGate(gates, "discovery")).toBe(false);
+    // Complete proposal, then discovery should be allowed
+    gates.proposal.status = "done";
+    expect(canCompleteGate(gates, "discovery")).toBe(true);
+    // Last gate (release) requires all prior gates
+    expect(canCompleteGate(gates, "release")).toBe(false);
   });
 });

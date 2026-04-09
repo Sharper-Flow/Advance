@@ -3,9 +3,9 @@ name: adv-clarify
 description: Ask clarifying questions to resolve ambiguous requirements
 ---
 
-# ADV Clarify — Requirements Discovery
+# ADV Clarify — Cross-Stage Requirements Clarification
 
-Socratic method to uncover hidden assumptions, edge cases, and acceptance criteria. Surface concrete, testable criteria through guided discovery.
+Use structured questions to uncover hidden assumptions, edge cases, acceptance criteria, and decision gaps across proposal, discovery, agreement, and design.
 
 ## Six Socratic Question Types
 
@@ -31,6 +31,15 @@ Socratic method to uncover hidden assumptions, edge cases, and acceptance criter
 | "Is performance important?" | "What performance expectations exist?" |
 
 Best stems: "Walk me through...", "Tell me about a time when...", "What happens when..."
+
+## Stage Coverage
+
+Use `/adv-clarify` whenever ambiguity blocks:
+
+- `proposal` — problem framing and scope
+- `discovery` — current-state assumptions and objectives
+- `agree` — constraints, avoidances, and acceptance criteria
+- `design` — architecture choices and operational implications
 
 ## Phase 1: Context Analysis
 
@@ -97,5 +106,5 @@ After sufficient questions, emit REQUIREMENTS DISCOVERY SUMMARY: confirmed requi
 ```
 /adv-clarify COMPLETE
 Result: {N} requirements clarified, {M} open questions
-Next: /adv-task or /adv-proposal
+Next: /adv-discover, /adv-agree, /adv-design, or /adv-task
 ```

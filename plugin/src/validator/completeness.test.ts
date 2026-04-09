@@ -216,10 +216,10 @@ describe("checkTddCompliance", () => {
     const issues = checkTddCompliance(change);
     expect(issues).toHaveLength(1);
     expect(issues[0].details?.recommendation).toContain(
-      "adv_task_reclassify_tdd"
+      "adv_task_reclassify_tdd",
     );
     expect(issues[0].details?.recommendation).not.toContain(
-      "adv_task_skip_tdd"
+      "adv_task_skip_tdd",
     );
   });
 

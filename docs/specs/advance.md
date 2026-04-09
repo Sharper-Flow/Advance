@@ -1,7 +1,7 @@
 # Advance
 
-> **Version:** 1.3.1
-> **Updated:** 2026-03-14
+> **Version:** 1.5.0
+> **Updated:** 2026-04-09
 
 ## Purpose
 
@@ -40,7 +40,7 @@ Command recommendations in adv-status must be derived from a type-safe workflow 
 **Context-aware recommendations** (`rq-M4n1f3s1.1`)
 
 **Given:**
-- A change at implementation gate
+- A change at execution gate
 
 **When:** adv-status is run
 
@@ -362,5 +362,52 @@ After Quick Contract confirmation, /adv-task must always persist contract contex
 
 **Then:**
 - No QUAL-011 or MAINT-004 findings are emitted for that file
+
+---
+
+### Seven-Gate Collaborative Workflow
+
+**ID:** `rq-gatemodel01` | **Priority:** **[MUST]**
+
+The canonical ADV workflow is seven sequential gates: proposal, discovery, design, planning, execution, acceptance, release. Gates must be completed in order. A change cannot be archived until all seven gates are satisfied (status 'done', 'legacy', or 'skipped'). Legacy changes created under the previous 6-gate model MUST be auto-migrated on first access.
+
+**Tags:** `workflow`, `gates`
+
+#### Scenarios
+
+**Sequential gate enforcement** (`rq-gatemodel01.1`)
+
+**Given:**
+- A change with the proposal gate pending
+
+**When:** adv_gate_complete is called for the discovery gate
+
+**Then:**
+- The call is rejected
+- The response identifies proposal as the blocking gate
+
+**Archive requires all seven gates satisfied** (`rq-gatemodel01.2`)
+
+**Given:**
+- A change with gates proposal through acceptance marked done
+- The release gate still pending
+
+**When:** adv_change_archive is called
+
+**Then:**
+- The archive is rejected with incomplete-gates error
+- release is listed as the remaining gate
+
+**Legacy 6-gate changes migrate transparently** (`rq-gatemodel01.3`)
+
+**Given:**
+- A change.json with old gate keys (research, prep, implementation, review, harden, signoff)
+
+**When:** adv_gate_status is called for that change
+
+**Then:**
+- Gates are returned using the new 7-gate names
+- Each migrated gate carries a migrated_from audit field
+- Any absorbed signoff completion is recorded in absorbed_completions on the acceptance gate
 
 ---

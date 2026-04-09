@@ -115,31 +115,32 @@ describe("Status Tools", () => {
 
     test("recommends next gate command for active changes", async () => {
       // The test fixture change "addFeature" starts with no gates completed
-      // The manifest should recommend the research gate command first
+      // The manifest should recommend the proposal gate command first
       const result = await statusTools.adv_status.execute({}, store);
       const parsed = parseToolOutput(result);
 
       // Should have a gate-based recommendation for the active change
       const gateRecs = parsed.recommendations.filter(
-        (r: string) => r.includes("/adv-research") || r.includes("next gate"),
+        (r: string) => r.includes("/adv-proposal") || r.includes("next gate"),
       );
       expect(gateRecs.length).toBeGreaterThan(0);
     });
 
-    test("recommends review after implementation gate is complete", async () => {
-      // Complete research, prep, implementation gates
-      await store.gates.complete("addFeature", "research");
-      await store.gates.complete("addFeature", "prep");
-      await store.gates.complete("addFeature", "implementation");
+    test("recommends acceptance after execution gate is complete", async () => {
+      await store.gates.complete("addFeature", "proposal");
+      await store.gates.complete("addFeature", "discovery");
+      await store.gates.complete("addFeature", "design");
+      await store.gates.complete("addFeature", "planning");
+      await store.gates.complete("addFeature", "execution");
 
       const result = await statusTools.adv_status.execute({}, store);
       const parsed = parseToolOutput(result);
 
-      // Should recommend review (next incomplete gate)
-      const reviewRecs = parsed.recommendations.filter((r: string) =>
-        r.includes("/adv-review"),
+      // Acceptance is the next incomplete gate, so status should point to adv-accept
+      const acceptanceRecs = parsed.recommendations.filter((r: string) =>
+        r.includes("/adv-accept"),
       );
-      expect(reviewRecs.length).toBeGreaterThan(0);
+      expect(acceptanceRecs.length).toBeGreaterThan(0);
     });
 
     test("handles empty project", async () => {
@@ -265,8 +266,9 @@ describe("Status Tools", () => {
       const result = await statusTools.adv_status.execute({}, store);
       const parsed = parseToolOutput(result);
 
-      const brokenRefWarnings = parsed.recommendations.filter((r: string) =>
-        r.includes("[doctor]") && r.includes("Broken task->change refs"),
+      const brokenRefWarnings = parsed.recommendations.filter(
+        (r: string) =>
+          r.includes("[doctor]") && r.includes("Broken task->change refs"),
       );
       expect(brokenRefWarnings).toHaveLength(0);
       expect(parsed.changes.active).toBe(1);

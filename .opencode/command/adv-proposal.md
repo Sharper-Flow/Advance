@@ -1,19 +1,19 @@
 ---
 name: adv-proposal
-description: Extract problem statement, success criteria, and constraints without creating tasks
+description: Extract problem statement and confirm with user before proceeding
 ---
 
-# ADV Proposal — Create Change with Quality Requirements
+# ADV Proposal — Establish the Problem Statement
 
-Two-phase workflow: Phase 1 (problem statement agreement) → Phase 2 (full proposal with INVEST criteria and smell detection).
+Lead with problem statement agreement, then create the initial change scaffold. This command owns the `proposal` gate and hands off to `/adv-discover`.
 
 ## Command Boundary
 
-**Produces:** Confirmed problem statement, change scaffold with proposal.md, INVEST-quality success criteria, affected specs/constraints.
+**Produces:** Confirmed problem statement, initial change scaffold, and the proposal artifact needed to begin discovery.
 
 **× MUST NOT:** Create tasks (`adv_task_add`), complete gates (`adv_gate_complete`), make impl decisions, decompose work into tasks.
 
-**Gate:** None — proposal precedes all gates.
+**Gate:** Completes `proposal`.
 
 <UserRequest>
   $ARGUMENTS
@@ -201,10 +201,10 @@ Verify: each criterion testable, no subjective language, requirements independen
 
 ## Output
 
-Emit CHANGE CREATED block: Change ID, Title, Type, Status (draft), files created, INVEST check, smell check, brainstorm context.
+Emit CHANGE CREATED block: Change ID, Title, Status (draft), files created, and confirmed problem framing.
 
 ```
 /adv-proposal COMPLETE
 Result: Change <change-id> created
-Next: /adv-research <change-id>
+Next: /adv-discover <change-id>
 ```

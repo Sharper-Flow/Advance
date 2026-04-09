@@ -7,7 +7,12 @@
 
 import { z } from "zod";
 import type { Store } from "../storage/store";
-import { isTrivialTask, truncateOutput, type Cancellation, type TddReclassification } from "../types";
+import {
+  isTrivialTask,
+  truncateOutput,
+  type Cancellation,
+  type TddReclassification,
+} from "../types";
 import {
   getTaskTddCompliance,
   requiresTddEvidence,
@@ -168,11 +173,11 @@ export const taskTools = {
       store: Store,
     ) => {
       try {
-        // Prep-gate lock: reject task creation after prep gate is complete
+        // Planning-gate lock: reject task creation after planning gate is complete
         const gates = await store.gates.get(changeId);
-        if (gates && gates.prep.status === "done") {
+        if (gates && gates.planning.status === "done") {
           return formatToolOutput({
-            error: `Cannot add tasks after prep gate is complete. Use adv_task_reclassify_tdd to modify existing task TDD intent, or re-open the prep gate if new tasks are genuinely needed.`,
+            error: `Cannot add tasks after planning gate is complete. Use adv_task_reclassify_tdd to modify existing task TDD intent, or re-open the planning gate if new tasks are genuinely needed.`,
           });
         }
 
@@ -519,10 +524,7 @@ export const taskTools = {
         approved_at: now,
       };
 
-      const updated = await store.tasks.reclassifyTdd(
-        taskId,
-        reclassification,
-      );
+      const updated = await store.tasks.reclassifyTdd(taskId, reclassification);
       if (!updated) {
         return formatToolOutput({
           error: `Failed to reclassify task ${taskId}. Task may have been removed.`,

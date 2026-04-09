@@ -2,24 +2,24 @@
   "$schema": "https://raw.githubusercontent.com/anomalyco/oc-plugins/main/advance/plugin/schemas/spec.schema.json",
   "name": "adv-prep",
   "title": "ADV Prep Command",
-  "purpose": "Defines the responsibilities and boundaries of /adv-prep. The prep command is the sole creator and sequencer of tasks. It synthesizes tasks from research findings, runs gap analysis, validates task ordering, and ensures implementation readiness.",
-  "version": "1.0.0",
+  "purpose": "Defines the responsibilities and boundaries of /adv-prep. The prep command is the sole creator and sequencer of tasks. It synthesizes tasks from validated design decisions, runs gap analysis, validates task ordering, and ensures implementation readiness.",
+  "version": "1.1.0",
   "updated_at": "2026-03-14T00:00:00.000Z",
   "requirements": [
     {
       "id": "rq-prep-out1",
       "title": "Prep Is the Sole Task Creator",
-      "body": "/adv-prep is the only pre-implementation command that creates tasks via adv_task_add. Neither /adv-proposal nor /adv-research may create tasks. /adv-task is exempt as a fast-track workflow that intentionally bundles proposal+research+prep.",
+      "body": "/adv-prep is the only pre-implementation command that creates tasks via adv_task_add. Neither /adv-proposal, /adv-discover, nor /adv-design may create tasks. /adv-task is exempt as a fast-track workflow that intentionally bundles proposal+discover+design+prep.",
       "priority": "must",
       "tags": ["prep", "boundary", "task-creation"],
       "scenarios": [
         {
           "id": "rq-prep-out1.1",
-          "title": "Prep creates tasks from research findings",
-          "given": ["A change with research gate complete and zero tasks"],
+          "title": "Prep creates tasks from design decisions",
+          "given": ["A change with design gate complete and zero tasks"],
           "when": "/adv-prep is invoked",
           "then": [
-            "Research findings from proposal.md are consumed",
+            "Design decisions from design.md are consumed",
             "Tasks are created via adv_task_add based on validated decisions",
             "Tasks are sequenced with proper blocked_by dependencies",
             "Architecture correction tasks block feature tasks"
@@ -61,12 +61,12 @@
         },
         {
           "id": "rq-prep-scope1.2",
-          "title": "Prep completes the prep gate",
+          "title": "Prep completes the planning gate",
           "given": ["All gaps are fixed and validation passes"],
           "when": "/adv-prep finishes",
           "then": [
-            "adv_gate_complete is called with gateId 'prep'",
-            "The prep gate is marked done"
+            "adv_gate_complete is called with gateId 'planning'",
+            "The planning gate is marked done"
           ]
         }
       ]
@@ -74,20 +74,20 @@
     {
       "id": "rq-prep-synth1",
       "title": "Task Synthesis from Research Output",
-      "body": "When a change has zero tasks and research gate is complete, /adv-prep must synthesize the full task graph from research findings in proposal.md. Tasks must be created in priority order: architecture corrections first, then core implementation, then cross-cutting concerns, then verification.",
+      "body": "When a change has zero tasks and design gate is complete, /adv-prep must synthesize the full task graph from design decisions in design.md. Tasks must be created in priority order: architecture corrections first, then core implementation, then cross-cutting concerns, then verification.",
       "priority": "must",
       "tags": ["prep", "boundary", "task-synthesis"],
       "scenarios": [
         {
           "id": "rq-prep-synth1.1",
-          "title": "Empty task list triggers synthesis from research",
+          "title": "Empty task list triggers synthesis from design decisions",
           "given": [
-            "A change with research gate complete",
+            "A change with design gate complete",
             "Zero existing tasks"
           ],
           "when": "/adv-prep is invoked",
           "then": [
-            "Research Validation section in proposal.md is read",
+            "Design decisions in design.md are read",
             "Tasks are synthesized from action items and findings",
             "Architecture correction tasks are created first with highest priority",
             "Core implementation tasks follow with proper dependencies"
@@ -96,7 +96,7 @@
         {
           "id": "rq-prep-synth1.2",
           "title": "Task synthesis respects TDD ordering",
-          "given": ["Tasks are being synthesized from research findings"],
+          "given": ["Tasks are being synthesized from design findings"],
           "when": "Implementation tasks are created",
           "then": [
             "Each implementation task includes inline TDD instructions",
@@ -109,17 +109,17 @@
     {
       "id": "rq-prep-neg1",
       "title": "Prep Prohibited Actions",
-      "body": "/adv-prep MUST NOT complete non-prep gates, make architectural decisions (that is research's job), or modify the problem statement or success criteria in proposal.md.",
+      "body": "/adv-prep MUST NOT complete non-planning gates, make architectural decisions (that is discover/design's job), or modify the problem statement or success criteria in proposal.md.",
       "priority": "must",
       "tags": ["prep", "boundary", "negative"],
       "scenarios": [
         {
           "id": "rq-prep-neg1.1",
-          "title": "Prep only completes the prep gate",
+          "title": "Prep only completes the planning gate",
           "given": ["A user invokes /adv-prep"],
           "when": "The command completes",
           "then": [
-            "Only adv_gate_complete with gateId 'prep' is called",
+            "Only adv_gate_complete with gateId 'planning' is called",
             "No other gates are completed"
           ]
         }

@@ -269,9 +269,8 @@ describe("Change Tools", () => {
       await store.tasks.update("tk-task0001", "done", "Completed");
       await store.tasks.update("tk-task0002", "in_progress");
 
-      // Complete research and prep gates
-      await store.gates.complete("addFeature", "research", "test-agent");
-      await store.gates.complete("addFeature", "prep", "test-agent");
+      await store.gates.complete("addFeature", "proposal", "test-agent");
+      await store.gates.complete("addFeature", "discovery", "test-agent");
 
       const result = await changeTools.adv_change_show.execute(
         { changeId: "addFeature" },
@@ -285,11 +284,9 @@ describe("Change Tools", () => {
       expect(snapshot).toContain("1 active");
       expect(snapshot).toContain("1 pending");
 
-      // Gate progress should show research and prep as done
-      expect(snapshot).toMatch(/\[✓ research\]/);
-      expect(snapshot).toMatch(/\[✓ prep\]/);
-      // Implementation should still be pending
-      expect(snapshot).toMatch(/\[○ impl\]/);
+      expect(snapshot).toMatch(/\[✓ proposal\]/);
+      expect(snapshot).toMatch(/\[✓ discovery\]/);
+      expect(snapshot).toMatch(/\[○ design\]/);
 
       // Current task should show the in_progress task
       expect(snapshot).toContain("tk-task0002");
@@ -763,15 +760,13 @@ describe("Change Tools", () => {
       // Complete all gates (required for archive)
       const change = (await store.changes.get("addFeature")).data!;
       change.gates = {
-        research: { status: "done", completed_at: new Date().toISOString() },
-        prep: { status: "done", completed_at: new Date().toISOString() },
-        implementation: {
-          status: "done",
-          completed_at: new Date().toISOString(),
-        },
-        review: { status: "done", completed_at: new Date().toISOString() },
-        harden: { status: "done", completed_at: new Date().toISOString() },
-        signoff: { status: "done", completed_at: new Date().toISOString() },
+        proposal: { status: "done", completed_at: new Date().toISOString() },
+        discovery: { status: "done", completed_at: new Date().toISOString() },
+        design: { status: "done", completed_at: new Date().toISOString() },
+        planning: { status: "done", completed_at: new Date().toISOString() },
+        execution: { status: "done", completed_at: new Date().toISOString() },
+        acceptance: { status: "done", completed_at: new Date().toISOString() },
+        release: { status: "done", completed_at: new Date().toISOString() },
       };
       await store.changes.save(change);
 
@@ -794,15 +789,13 @@ describe("Change Tools", () => {
 
       const change = (await store.changes.get("addFeature")).data!;
       change.gates = {
-        research: { status: "done", completed_at: new Date().toISOString() },
-        prep: { status: "done", completed_at: new Date().toISOString() },
-        implementation: {
-          status: "done",
-          completed_at: new Date().toISOString(),
-        },
-        review: { status: "done", completed_at: new Date().toISOString() },
-        harden: { status: "done", completed_at: new Date().toISOString() },
-        signoff: { status: "done", completed_at: new Date().toISOString() },
+        proposal: { status: "done", completed_at: new Date().toISOString() },
+        discovery: { status: "done", completed_at: new Date().toISOString() },
+        design: { status: "done", completed_at: new Date().toISOString() },
+        planning: { status: "done", completed_at: new Date().toISOString() },
+        execution: { status: "done", completed_at: new Date().toISOString() },
+        acceptance: { status: "done", completed_at: new Date().toISOString() },
+        release: { status: "done", completed_at: new Date().toISOString() },
       };
       await store.changes.save(change);
 

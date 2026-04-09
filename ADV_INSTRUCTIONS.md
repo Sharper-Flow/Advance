@@ -33,7 +33,7 @@ Specs are laws. Requirements are formally defined, validated, and enforced.
 | Command | Purpose |
 |---------|---------|
 | `/adv-status` | Show project overview: specs, active changes, and next-step recommendations |
-| `/adv-proposal <summary>` | Extract problem statement, success criteria, and constraints without creating tasks |
+| `/adv-proposal <summary>` | Extract problem statement and confirm with user before proceeding |
 | `/adv-validate <change-id>` | Validate change compliance against specs; block archive on failure |
 | `/adv-apply <change-id>` | Implement change with TDD, retry on failure, and final verification |
 | `/adv-archive <change-id>` | Archive completed change: apply spec deltas and finalize git |
@@ -43,15 +43,20 @@ Specs are laws. Requirements are formally defined, validated, and enforced.
 | Command | Purpose |
 |---------|---------|
 | `/adv-clarify` | Ask clarifying questions to resolve ambiguous requirements |
-| `/adv-research <target>` | Validate architectural decisions and best practices without creating tasks |
-| `/adv-prep <change-id>` | Analyze gaps and synthesize tasks from validated research findings |
+| `/adv-discover <change-id>` | Gather context, analyze current state, and identify objectives |
+| `/adv-agree <change-id>` | Present objectives and constraints for user acceptance |
+| `/adv-design <change-id>` | Validate architecture decisions and produce implementation strategy |
+| `/adv-present <change-id>` | Present concise design overview for user review before planning |
+| `/adv-research <change-id>` | Retired: use /adv-discover and /adv-design instead |
+| `/adv-prep <change-id>` | Analyze gaps and synthesize tasks from validated design decisions |
 
 ### Post-Implementation
 
 | Command | Purpose |
 |---------|---------|
-| `/adv-review <change-id>` | Review code for correctness, security, and architecture; emit REVIEW_FINDINGS |
-| `/adv-harden <change-id>` | Detect low-quality code, verify test coverage, clean up; block archive on open findings |
+| `/adv-review <change-id>` | Review deliverables for correctness, security, and architecture quality |
+| `/adv-accept <change-id>` | Present deliverable summary and acceptance criteria checklist to user |
+| `/adv-harden <change-id>` | Detect low-quality code, verify test coverage, clean up before release |
 | `/adv-audit [capability]` | Detect drift between specs and current implementation |
 | `/adv-slop-scan [path]` | Scan for AI slop patterns including defensive and nested code |
 
@@ -59,7 +64,7 @@ Specs are laws. Requirements are formally defined, validated, and enforced.
 
 | Command | Purpose |
 |---------|---------|
-| `/adv-task` | Fast-track a discussed change: synthesize contract, validate best practices, prep, and hand off |
+| `/adv-task` | Fast-track a discussed change: synthesize contract, validate, prep, and hand off |
 | `/adv-refactor <change-id>` | Refresh a stale proposal to reflect current codebase state |
 | `/adv-coordinate` | Detect and resolve conflicts across multiple active changes |
 | `/adv-improve` | Suggest targeted improvements to existing specs or implementation |
@@ -69,14 +74,17 @@ Specs are laws. Requirements are formally defined, validated, and enforced.
 
 | Command | Produces | × MUST NOT | Gate |
 |---------|----------|------------|------|
-| proposal | Problem statement, criteria, constraints | Create tasks, complete gates, impl decisions | None |
-| research | Validated approach, findings in proposal.md | Create tasks, complete non-research gates | research |
-| prep | Task graph, gap analysis, sequencing | Complete non-prep gates, architecture decisions | prep |
-| task | Change + tasks + gates (fast-track exempt) | — | research + prep |
-| apply | Implementation via TDD | Auto-complete research/prep gates | implementation |
+| proposal | Problem statement, criteria, constraints | Create tasks, complete gates, impl decisions | `proposal` |
+| discover | Context analysis, objectives, agreement.md | Create tasks, complete non-discovery gates | `discovery` |
+| design | Architecture decisions, design.md | Create tasks, complete non-design gates | `design` |
+| prep | Task graph, gap analysis, sequencing | Complete non-planning gates, architecture decisions | `planning` |
+| task | Change + tasks + gates (fast-track exempt) | — | `proposal` → `planning` |
+| apply | Implementation via TDD | Auto-complete pre-implementation gates | `execution` |
+| review + accept | Acceptance criteria verified | — | `acceptance` |
+| harden + archive | Quality pass, spec deltas applied | — | `release` |
 
 - Only `/adv-prep` (and exempt `/adv-task`) may call `adv_task_add`
-- `/adv-apply` stops if research or prep gates pending
+- `/adv-apply` stops if discovery, design, or planning gates are pending
 - Commands that own boundary-sensitive workflow steps should include `## Command Boundary` details
 
 ## Status Markers
@@ -99,7 +107,7 @@ Tab title: `<emoji> <normalized change>` (strip verb prefixes, Title Case). Syst
 ### Context Snapshot
 
 `adv_change_show` includes `_contextSnapshot` — compact summary closing the context agreement gap:
-- Change ID/title, gate progress (`[✓ research] [○ impl] ...`), task counts, current task, workdir
+- Change ID/title, gate progress (`[✓ proposal] [✓ discovery] [○ execution] ...`), task counts, current task, workdir
 
 Emitted on: `adv_change_show`, `adv_gate_complete`, `adv_task_update` to `in_progress`.
 
@@ -167,7 +175,7 @@ Inline TDD is default — red/green phases WITHIN each task. × Do NOT create se
 - **Trivial:** Set `metadata.tdd_intent: "not_applicable"` with reason
 - **Cross-cutting:** Separate verification tasks OK → mark `metadata.tdd_intent: "separate_verification"`
 
-**TDD Intent Immutability:** After prep gate completes, `metadata.tdd_intent` is frozen on all tasks. To reclassify, use `adv_task_reclassify_tdd` with user approval (mirrors `adv_task_cancel` audit trail). New tasks cannot be added after prep gate is complete.
+**TDD Intent Immutability:** After planning gate completes, `metadata.tdd_intent` is frozen on all tasks. To reclassify, use `adv_task_reclassify_tdd` with user approval (mirrors `adv_task_cancel` audit trail). New tasks cannot be added after planning gate is complete.
 
 ### Doom Loop Detection
 
@@ -213,24 +221,25 @@ Workflow: identify tasks + reasons → present to user via `question` → user a
 
 On loop stop or compaction: emit `[ADV:TASK_STATUS_REPORT]` with completed/cancelled/remaining. See [docs/adv-task-report.md](docs/adv-task-report.md).
 
-## 6-Gate Quality Checklist
+## 7-Gate Quality Checklist
 
-| Gate | Triggered By |
-|------|--------------|
-| 1. `research` | `/adv-research` |
-| 2. `prep` | `/adv-prep` |
-| 3. `implementation` | All tasks done |
-| 4. `review` | `/adv-review` |
-| 5. `harden` | `/adv-harden` |
-| 6. `signoff` | User confirmation |
+| # | Gate | Triggered By | Artifact |
+|---|------|--------------|----------|
+| 1 | `proposal` | `/adv-proposal` | `problem-statement.md` |
+| 2 | `discovery` | `/adv-discover` + `/adv-agree` | `agreement.md` |
+| 3 | `design` | `/adv-design` + `/adv-present` | `design.md` |
+| 4 | `planning` | `/adv-prep` | Task graph in `change.json` |
+| 5 | `execution` | `/adv-apply` (all tasks done) | Code, docs, ops deliverables |
+| 6 | `acceptance` | `/adv-review` + `/adv-accept` | User sign-off |
+| 7 | `release` | `/adv-harden` + `/adv-archive` | Spec deltas applied, git finalized |
 
-Gates are sequential. Archive blocks until all 6 satisfied. See [docs/adv-gates.md](docs/adv-gates.md).
+Gates are sequential. Archive blocks until all 7 are satisfied. See [docs/adv-gates.md](docs/adv-gates.md).
 
 Gate behaviors:
-- `research`/`prep` evaluate full change including completed tasks — completed work is evidence to validate, not acceptance proof. Add follow-up tasks where gaps found.
-- `review` emits `REVIEW_FINDINGS` block (blocker, issue, suggestion, question).
-- `harden` blocks on unresolved review findings (except `nit:`). Runs merge compatibility check first.
-- `archive` runs Phase 9 Git Finalization: stage → commit → detect default branch → merge/PR → verify → cleanup worktree → remove temp artifacts.
+- `discovery`/`planning` evaluate full change including completed tasks — completed work is evidence to validate, not acceptance proof. Add follow-up tasks where gaps found.
+- `acceptance` absorbs the old `review` + `signoff` gates. `/adv-review` emits `REVIEW_FINDINGS` block (blocker, issue, suggestion, question). `/adv-accept` presents criteria checklist for user confirmation.
+- `release` absorbs the old `harden` gate. `/adv-harden` blocks on unresolved review findings (except `nit:`). Runs merge compatibility check first.
+- `/adv-archive` runs Phase 9 Git Finalization: stage → commit → detect default branch → merge/PR → verify → cleanup worktree → remove temp artifacts.
 
 ## Command Execution Model
 
@@ -250,7 +259,8 @@ Available to: `orca`, `plan`, `scout`, `refine`, `general`. Use when 3+ independ
 
 | Command | Inline | Sub-Agent |
 |---------|--------|-----------|
-| research | Context7 + Kagi + lgrep | librarian + adv-researcher (single-level only) |
+| discover | Context7 + Kagi + lgrep | librarian + adv-researcher (single-level only) |
+| design | Context7 + Kagi + lgrep | librarian + adv-researcher (single-level only) |
 | review | Sequential per dimension | explore × 5 + librarian + general |
 | harden | Sequential scans | explore × 6 |
 | audit | Sequential pipeline | explore × 4 |
@@ -264,10 +274,10 @@ Rules:
 - Cap parallel bursts at 3-4
 - Batch independent work into single spawn message
 - × Don't spawn for single-tool-call work
-- For `/adv-research`, `librarian`, `adv-researcher`, and `explore` fallback must do the research inline and must not delegate to additional research sub-agents
+- For `/adv-discover` and `/adv-design`, `librarian`, `adv-researcher`, and `explore` fallback must do the research inline and must not delegate to additional research sub-agents
 - For `/adv-slop-scan`, all `explore` scanner workers must do the scan inline and must not delegate to additional sub-agents or invoke `/adv-*` slash commands
 
-Inline-only: `/adv-status`, `/adv-proposal`, `/adv-validate`, `/adv-apply`, `/adv-archive`, `/adv-clarify`, `/adv-prep`, `/adv-coordinate`, `/adv-improve`
+Inline-only: `/adv-status`, `/adv-proposal`, `/adv-validate`, `/adv-apply`, `/adv-archive`, `/adv-clarify`, `/adv-agree`, `/adv-present`, `/adv-accept`, `/adv-prep`, `/adv-coordinate`, `/adv-improve`
 
 ## Sub-Agent Selection
 
@@ -296,7 +306,7 @@ Orchestrator pattern: spawn `librarian` + `adv-researcher` in parallel → synth
 
 ## Skill Discovery Protocol
 
-Enabled in `/adv-research` Phase 1.5. Improves research quality via domain-specific skills.
+Enabled in `/adv-discover` Phase 1.5. Improves research quality via domain-specific skills.
 
 Flow: search trusted skill directories only (`~/.config/opencode/skills/*/SKILL.md`, repo `skills/*/SKILL.md`) → read YAML frontmatter → match `keywords` against tech stack + change domain → `skill("{name}")` → apply guidance.
 
@@ -336,7 +346,10 @@ Commands that fan out to sub-agents with reusable methodology should follow this
 ### Classification
 
 **Command-only** (no backing skill needed):
-`adv-proposal`, `adv-research`, `adv-prep`, `adv-task`, `adv-apply`, `adv-validate`, `adv-archive`, `adv-status`, `adv-coordinate`, `adv-clarify`, `adv-refactor`
+`adv-proposal`, `adv-discover`, `adv-agree`, `adv-design`, `adv-present`, `adv-prep`, `adv-task`, `adv-apply`, `adv-validate`, `adv-archive`, `adv-status`, `adv-accept`, `adv-coordinate`, `adv-clarify`, `adv-refactor`
+
+**Retired** (redirects to successor commands):
+- `adv-research` → use `/adv-discover` + `/adv-design`
 
 **Command + backing skill** (reusable methodology extracted):
 - `adv-tron` → `adv-tron` skill

@@ -3,7 +3,7 @@
   "name": "tdd-contract",
   "title": "TDD Contract",
   "purpose": "Canonical definition of how TDD phases integrate with the ADV task model. Inline TDD (red/green within each implementation task) is the default. Separate verification tasks are reserved for cross-cutting tests spanning multiple implementation tasks.",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "updated_at": "2026-04-07T01:00:55.518Z",
   "requirements": [
     {
@@ -262,8 +262,8 @@
     },
     {
       "id": "rq-TDD007req",
-      "title": "TDD Intent Immutability After Prep Gate",
-      "body": "Once the prep gate is marked complete, task metadata.tdd_intent is frozen. New tasks cannot be added (adv_task_add rejects with an error). Existing tasks' tdd_intent can only be changed through adv_task_reclassify_tdd, which requires explicit user approval and records a full audit trail (from_intent, to_intent, reason, approval evidence, timestamp). This prevents agents from silently downgrading TDD requirements during implementation.",
+      "title": "TDD Intent Immutability After Planning Gate",
+      "body": "Once the planning gate is marked complete, task metadata.tdd_intent is frozen. New tasks cannot be added (adv_task_add rejects with an error). Existing tasks' tdd_intent can only be changed through adv_task_reclassify_tdd, which requires explicit user approval and records a full audit trail (from_intent, to_intent, reason, approval evidence, timestamp). This prevents agents from silently downgrading TDD requirements during implementation.",
       "priority": "must",
       "tags": [
         "tdd",
@@ -275,9 +275,9 @@
       "scenarios": [
         {
           "id": "rq-TDD007req.1",
-          "title": "Task addition rejected after prep gate complete",
+           "title": "Task addition rejected after planning gate complete",
           "given": [
-            "A change whose prep gate status is 'done'"
+             "A change whose planning gate status is 'done'"
           ],
           "when": "adv_task_add is called for that change",
           "then": [
@@ -287,9 +287,9 @@
         },
         {
           "id": "rq-TDD007req.2",
-          "title": "Task addition succeeds before prep gate complete",
+           "title": "Task addition succeeds before planning gate complete",
           "given": [
-            "A change whose prep gate status is 'pending'"
+             "A change whose planning gate status is 'pending'"
           ],
           "when": "adv_task_add is called for that change",
           "then": [
@@ -302,7 +302,7 @@
           "title": "TDD intent reclassification requires user approval",
           "given": [
             "A task with metadata.tdd_intent='inline'",
-            "The prep gate is complete"
+            "The planning gate is complete"
           ],
           "when": "adv_task_reclassify_tdd is called with approvedByUser=true, approvalEvidence, reason, and toIntent='not_applicable'",
           "then": [
@@ -315,7 +315,7 @@
           "title": "Reclassification without approval is rejected",
           "given": [
             "A task with metadata.tdd_intent='inline'",
-            "The prep gate is complete"
+            "The planning gate is complete"
           ],
           "when": "adv_task_reclassify_tdd is called without approvedByUser=true or without approvalEvidence",
           "then": [
@@ -328,7 +328,7 @@
           "title": "adv_task_update does not affect tdd_intent",
           "given": [
             "A task with metadata.tdd_intent='inline'",
-            "The prep gate is complete"
+            "The planning gate is complete"
           ],
           "when": "adv_task_update is called with any status change",
           "then": [

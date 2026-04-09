@@ -3,8 +3,8 @@
   "name": "advance",
   "title": "Advance",
   "purpose": "Capability: Advance",
-  "version": "1.3.1",
-  "updated_at": "2026-03-14T08:32:36.244Z",
+  "version": "1.5.0",
+  "updated_at": "2026-04-09T03:10:28.259Z",
   "requirements": [
     {
       "id": "rq-W1sD0mR1",
@@ -35,7 +35,7 @@
           "id": "rq-M4n1f3s1.1",
           "title": "Context-aware recommendations",
           "given": [
-            "A change at implementation gate"
+            "A change at execution gate"
           ],
           "when": "adv-status is run",
           "then": [
@@ -369,6 +369,56 @@
           "when": "/adv-slop-scan is run",
           "then": [
             "No QUAL-011 or MAINT-004 findings are emitted for that file"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-gatemodel01",
+      "title": "Seven-Gate Collaborative Workflow",
+      "body": "The canonical ADV workflow is seven sequential gates: proposal, discovery, design, planning, execution, acceptance, release. Gates must be completed in order. A change cannot be archived until all seven gates are satisfied (status 'done', 'legacy', or 'skipped'). Legacy changes created under the previous 6-gate model MUST be auto-migrated on first access.",
+      "priority": "must",
+      "tags": [
+        "workflow",
+        "gates"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-gatemodel01.1",
+          "title": "Sequential gate enforcement",
+          "given": [
+            "A change with the proposal gate pending"
+          ],
+          "when": "adv_gate_complete is called for the discovery gate",
+          "then": [
+            "The call is rejected",
+            "The response identifies proposal as the blocking gate"
+          ]
+        },
+        {
+          "id": "rq-gatemodel01.2",
+          "title": "Archive requires all seven gates satisfied",
+          "given": [
+            "A change with gates proposal through acceptance marked done",
+            "The release gate still pending"
+          ],
+          "when": "adv_change_archive is called",
+          "then": [
+            "The archive is rejected with incomplete-gates error",
+            "release is listed as the remaining gate"
+          ]
+        },
+        {
+          "id": "rq-gatemodel01.3",
+          "title": "Legacy 6-gate changes migrate transparently",
+          "given": [
+            "A change.json with old gate keys (research, prep, implementation, review, harden, signoff)"
+          ],
+          "when": "adv_gate_status is called for that change",
+          "then": [
+            "Gates are returned using the new 7-gate names",
+            "Each migrated gate carries a migrated_from audit field",
+            "Any absorbed signoff completion is recorded in absorbed_completions on the acceptance gate"
           ]
         }
       ]

@@ -650,7 +650,11 @@ describe("checkTddIntentAssigned", () => {
   test("returns TASK_TDD_INTENT_MISSING error for task without metadata.tdd_intent (rq-PR006tdi.1)", () => {
     const change = makeChange({
       tasks: [
-        makeTask({ id: "tk-nointent", title: "Implement feature", metadata: {} }),
+        makeTask({
+          id: "tk-nointent",
+          title: "Implement feature",
+          metadata: {},
+        }),
       ],
     });
     const issues = checkTddIntentAssigned(change);
@@ -662,9 +666,7 @@ describe("checkTddIntentAssigned", () => {
 
   test("returns TASK_TDD_INTENT_MISSING error for task with no metadata at all (rq-PR006tdi.1)", () => {
     const change = makeChange({
-      tasks: [
-        makeTask({ id: "tk-nometa1", title: "Implement feature" }),
-      ],
+      tasks: [makeTask({ id: "tk-nometa1", title: "Implement feature" })],
     });
     const issues = checkTddIntentAssigned(change);
     expect(issues.some((i) => i.code === "TASK_TDD_INTENT_MISSING")).toBe(true);
@@ -673,9 +675,21 @@ describe("checkTddIntentAssigned", () => {
   test("returns no issues when all tasks have valid tdd_intent (rq-PR006tdi.2)", () => {
     const change = makeChange({
       tasks: [
-        makeTask({ id: "tk-ok0001", title: "Impl feature", metadata: { tdd_intent: "inline" } }),
-        makeTask({ id: "tk-ok0002", title: "E2E verification", metadata: { tdd_intent: "separate_verification" } }),
-        makeTask({ id: "tk-ok0003", title: "Update docs", metadata: { tdd_intent: "not_applicable" } }),
+        makeTask({
+          id: "tk-ok0001",
+          title: "Impl feature",
+          metadata: { tdd_intent: "inline" },
+        }),
+        makeTask({
+          id: "tk-ok0002",
+          title: "E2E verification",
+          metadata: { tdd_intent: "separate_verification" },
+        }),
+        makeTask({
+          id: "tk-ok0003",
+          title: "Update docs",
+          metadata: { tdd_intent: "not_applicable" },
+        }),
       ],
     });
     const issues = checkTddIntentAssigned(change);
@@ -685,12 +699,22 @@ describe("checkTddIntentAssigned", () => {
   test("excludes cancelled tasks from the check (rq-PR006tdi.3)", () => {
     const change = makeChange({
       tasks: [
-        makeTask({ id: "tk-active1", title: "Active task", metadata: { tdd_intent: "inline" } }),
-        makeTask({ id: "tk-cancel1", title: "Cancelled task without intent", status: "cancelled" }),
+        makeTask({
+          id: "tk-active1",
+          title: "Active task",
+          metadata: { tdd_intent: "inline" },
+        }),
+        makeTask({
+          id: "tk-cancel1",
+          title: "Cancelled task without intent",
+          status: "cancelled",
+        }),
       ],
     });
     const issues = checkTddIntentAssigned(change);
-    expect(issues.some((i) => i.code === "TASK_TDD_INTENT_MISSING")).toBe(false);
+    expect(issues.some((i) => i.code === "TASK_TDD_INTENT_MISSING")).toBe(
+      false,
+    );
   });
 
   test("returns TASK_TDD_INTENT_MISSING error for invalid tdd_intent value (rq-PR006tdi.6)", () => {
@@ -714,7 +738,11 @@ describe("checkTddIntentAssigned", () => {
       tasks: [
         makeTask({ id: "tk-miss001", title: "Task A" }),
         makeTask({ id: "tk-miss002", title: "Task B", metadata: {} }),
-        makeTask({ id: "tk-ok00001", title: "Task C", metadata: { tdd_intent: "inline" } }),
+        makeTask({
+          id: "tk-ok00001",
+          title: "Task C",
+          metadata: { tdd_intent: "inline" },
+        }),
       ],
     });
     const issues = checkTddIntentAssigned(change);
@@ -725,8 +753,16 @@ describe("checkTddIntentAssigned", () => {
   test("returns no issues when all tasks are cancelled (rq-PR006tdi.3 edge)", () => {
     const change = makeChange({
       tasks: [
-        makeTask({ id: "tk-cancel1", title: "Cancelled A", status: "cancelled" }),
-        makeTask({ id: "tk-cancel2", title: "Cancelled B", status: "cancelled" }),
+        makeTask({
+          id: "tk-cancel1",
+          title: "Cancelled A",
+          status: "cancelled",
+        }),
+        makeTask({
+          id: "tk-cancel2",
+          title: "Cancelled B",
+          status: "cancelled",
+        }),
       ],
     });
     const issues = checkTddIntentAssigned(change);
@@ -748,7 +784,12 @@ describe("runPrepReadinessChecks", () => {
   test("returns no must-failures for a minimal valid change with no deltas", () => {
     const change = makeChange({
       tasks: [
-        makeTask({ id: "tk-a000001", title: "Write failing tests", deps: [], metadata: { tdd_intent: "inline" } }),
+        makeTask({
+          id: "tk-a000001",
+          title: "Write failing tests",
+          deps: [],
+          metadata: { tdd_intent: "inline" },
+        }),
         makeTask({
           id: "tk-b000001",
           title: "Implement feature",
@@ -822,7 +863,12 @@ describe("runPrepReadinessChecks", () => {
         ],
       },
       tasks: [
-        makeTask({ id: "tk-warn0001", title: "Standalone task", deps: [], metadata: { tdd_intent: "inline" } }),
+        makeTask({
+          id: "tk-warn0001",
+          title: "Standalone task",
+          deps: [],
+          metadata: { tdd_intent: "inline" },
+        }),
       ],
     });
     const result = runPrepReadinessChecks(change);

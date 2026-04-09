@@ -3,7 +3,7 @@
   "name": "adv-proposal",
   "title": "ADV Proposal Command",
   "purpose": "Defines the responsibilities and boundaries of /adv-proposal. The proposal command establishes WHAT and WHY — problem statement, objectives, success criteria, and constraints. It produces alignment artifacts, not implementation artifacts.",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "updated_at": "2026-03-14T00:00:00.000Z",
   "requirements": [
     {
@@ -71,7 +71,7 @@
     {
       "id": "rq-prop-neg1",
       "title": "Proposal Prohibited Actions",
-      "body": "/adv-proposal MUST NOT create tasks (adv_task_add), complete gates (adv_gate_complete), research architectural decisions, or make implementation choices. These are the responsibilities of downstream commands (research, prep).",
+      "body": "/adv-proposal MUST NOT create tasks (adv_task_add), complete gates (adv_gate_complete), research architectural decisions, or make implementation choices. These are the responsibilities of downstream commands (discover, design, prep).",
       "priority": "must",
       "tags": ["proposal", "boundary", "negative"],
       "scenarios": [
@@ -83,7 +83,7 @@
           "then": [
             "adv_task_add is never called",
             "The output does not list initial tasks",
-            "Next steps point to /adv-research then /adv-prep"
+            "Next steps point to /adv-discover then /adv-prep"
           ]
         },
         {
@@ -93,7 +93,7 @@
           "when": "The proposal is being built",
           "then": [
             "The proposal does not prescribe specific libraries or patterns",
-            "Implementation approach is deferred to /adv-research",
+            "Implementation approach is deferred to /adv-discover and /adv-design",
             "Task decomposition is deferred to /adv-prep"
           ]
         }

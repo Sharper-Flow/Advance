@@ -379,7 +379,9 @@ export function checkTddIntentAssigned(
             "Set metadata.tdd_intent to 'inline' (default for logic tasks), 'separate_verification' (cross-cutting tests), or 'not_applicable' (docs, config).",
         },
       });
-    } else if (!VALID_TDD_INTENTS.includes(intent as (typeof VALID_TDD_INTENTS)[number])) {
+    } else if (
+      !VALID_TDD_INTENTS.includes(intent as (typeof VALID_TDD_INTENTS)[number])
+    ) {
       // Invalid tdd_intent value
       issues.push({
         code: PrepReadinessCodes.TASK_TDD_INTENT_MISSING,

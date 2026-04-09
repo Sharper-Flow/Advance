@@ -3,7 +3,7 @@
   "name": "context-display",
   "title": "Context Display",
   "purpose": "Structured formatting patterns that make agent internal state visible to the user, closing the context agreement gap between what the agent knows and what the user sees.",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "updated_at": "2026-03-10T00:00:00.000Z",
   "requirements": [
     {
@@ -31,7 +31,7 @@
           "id": "rq-ctxsnap1.2",
           "title": "Snapshot fits within 10 lines",
           "given": [
-            "A change with 20 tasks across 4 sections and all 6 gates"
+            "A change with 20 tasks across 4 sections and all 7 gates"
           ],
           "when": "A context snapshot is rendered",
           "then": [

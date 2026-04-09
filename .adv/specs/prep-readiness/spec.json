@@ -3,7 +3,7 @@
   "name": "prep-readiness",
   "title": "Prep Readiness",
   "purpose": "Machine-enforced readiness checks that gate the prep phase. Answers: 'Do we have everything we need ready to make the full change?'",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "updated_at": "2026-04-07T01:00:55.462Z",
   "requirements": [
     {
@@ -352,7 +352,7 @@
           "given": [
             "A change with at least one prep-readiness must-failure"
           ],
-          "when": "adv_gate_complete with gateId 'prep' is called",
+          "when": "adv_gate_complete with gateId 'planning' is called",
           "then": [
             "The gate is NOT marked done",
             "The response includes readinessFailures array with check IDs and remediation hints",
@@ -365,7 +365,7 @@
           "given": [
             "A change with no must-failures but one or more warnings"
           ],
-          "when": "adv_gate_complete with gateId 'prep' is called",
+          "when": "adv_gate_complete with gateId 'planning' is called",
           "then": [
             "The gate IS marked done",
             "The response includes readinessWarnings array (advisory)"
@@ -377,7 +377,7 @@
           "given": [
             "A change that passes all prep-readiness checks with no failures and no warnings"
           ],
-          "when": "adv_gate_complete with gateId 'prep' is called",
+          "when": "adv_gate_complete with gateId 'planning' is called",
           "then": [
             "The gate IS marked done",
             "No readinessFailures or readinessWarnings in response"
@@ -385,9 +385,9 @@
         },
         {
           "id": "rq-PR005gat.4",
-          "title": "Non-prep gates are not affected",
+          "title": "Non-planning gates are not affected",
           "given": [
-            "adv_gate_complete called for research, implementation, review, harden, or signoff"
+            "adv_gate_complete called for proposal, discovery, design, execution, acceptance, or release"
           ],
           "when": "The gate is completed",
           "then": [

@@ -1,17 +1,17 @@
 ---
 name: adv-review
-description: Review code for correctness, security, and architecture; emit REVIEW_FINDINGS
+description: Review deliverables for correctness, security, and architecture quality
 ---
 
-# ADV Review — Post-Implementation Code Review
+# ADV Review — Acceptance-Stage Deliverable Review
 
-Orchestrate multi-dimensional code review via sub-agents. Emits `REVIEW_FINDINGS` block consumed by `/adv-harden`. Uses 12-dimension framework and conventional comment labeling.
+Orchestrate multi-dimensional review of the delivered work. This command is part of the acceptance stage, emits `REVIEW_FINDINGS`, and prepares `/adv-accept`.
 
 ## Exits
 
 | Exit | Condition |
 |------|-----------|
-| ✅ APPROVED | No blockers/issues; review gate complete |
+| ✅ APPROVED | No blockers/issues; findings emitted and ready for acceptance |
 | 🔁 CHANGES_REQUESTED | Issues found → agent fixes → re-verifies |
 | 🎤 BLOCKED | Blockers found → user decides |
 
@@ -43,7 +43,7 @@ Orchestrate multi-dimensional code review via sub-agents. Emits `REVIEW_FINDINGS
 
 ### Gate Check
 
-`adv_gate_status` → if implementation gate NOT complete → emit REVIEW BLOCKED banner → stop.
+`adv_gate_status` → if execution gate NOT complete → emit REVIEW BLOCKED banner → stop.
 
 ### Cancellation & Cross-Repo Audit
 
@@ -193,7 +193,7 @@ If research reveals finding was incorrect → downgrade to `nit:` or reject with
 
 ### Mark Gate
 
-If APPROVED → `adv_gate_complete changeId: {change-id} gateId: review`
+If APPROVED → do **not** complete a gate here; `/adv-accept` owns the `acceptance` gate.
 
 ### Report
 
@@ -226,8 +226,8 @@ Store in gate completion: `adv_gate_complete ... completedBy: "agent — {verdic
 ```
 /adv-review {change-id} COMPLETE
 Result: {verdict} ({fix_count} fixes applied)
-Review Gate: {MARKED COMPLETE | pending}
-Next: /adv-harden {change-id}
+Acceptance Gate: pending
+Next: /adv-accept {change-id}
 ```
 
 ---

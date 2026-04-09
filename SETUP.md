@@ -54,7 +54,7 @@ slower and less specialized.
 | Agent       | Used by                                                         | What it does                                     |
 |-------------|-----------------------------------------------------------------|---------------------------------------------------|
 | `explore`     | `/adv-review`, `/adv-harden`, `/adv-audit`, `/adv-slop-scan`, `/adv-refactor` | Codebase navigation, finding usages               |
-| `librarian`   | `/adv-research`, `/adv-task`, `/adv-review`                             | Documentation and API lookup (Context7, grep.app) |
+| `librarian`   | `/adv-discover`, `/adv-design`, `/adv-task`, `/adv-review`              | Documentation and API lookup (Context7, grep.app) |
 | `mechanic`    | `/adv-tron` (optional), `scout` sub-agent spawns                    | System/infra diagnostics                          |
 | `general`     | `/adv-review` (cross-cutting), overlay-managed                      | Multi-step implementation                         |
 
@@ -218,26 +218,26 @@ mkdir my-project
 cd my-project
 git init
 
-# Create project.json configuration
+# Create project.json configuration (paths default to .adv/*)
 cat > project.json << 'EOF'
 {
   "name": "my-project",
   "version": "0.1.0",
-  "specs_dir": "specs",
-  "changes_dir": "changes",
-  "archive_dir": "archive",
+  "specs_dir": ".adv/specs",
+  "changes_dir": ".adv/changes",
+  "archive_dir": ".adv/archive",
   "docs_dir": "docs/specs",
-  "db_dir": ".specdb"
+  "db_dir": ".adv/db"
 }
 EOF
 
 # Create directory structure
-mkdir -p specs changes archive docs/specs .specdb
+mkdir -p .adv/specs .adv/changes .adv/archive docs/specs .adv/db
 
 # Add to .gitignore
 cat >> .gitignore << 'EOF'
-# ADV cache (derived, not committed)
-.specdb/
+# ADV SQLite cache (derived, not committed)
+.adv/db/
 *.db
 *.db-wal
 *.db-shm
@@ -259,19 +259,19 @@ cat > project.json << 'EOF'
 {
   "name": "your-project-name",
   "version": "0.1.0",
-  "specs_dir": "specs",
-  "changes_dir": "changes",
-  "archive_dir": "archive",
+  "specs_dir": ".adv/specs",
+  "changes_dir": ".adv/changes",
+  "archive_dir": ".adv/archive",
   "docs_dir": "docs/specs",
-  "db_dir": ".specdb"
+  "db_dir": ".adv/db"
 }
 EOF
 
 # Create required directories
-mkdir -p specs changes archive docs/specs .specdb
+mkdir -p .adv/specs .adv/changes .adv/archive docs/specs .adv/db
 
 # Update .gitignore
-echo -e "\n# ADV cache\n.specdb/\ntemp/" >> .gitignore
+echo -e "\n# ADV SQLite cache\n.adv/db/\ntemp/" >> .gitignore
 ```
 
 ---
@@ -292,7 +292,10 @@ your-project/
 │   ├── changes/              # Active change proposals
 │   │   └── {change-id}/
 │   │       ├── change.json
-│   │       └── proposal.md
+│   │       ├── problem-statement.md
+│   │       ├── proposal.md
+│   │       ├── agreement.md
+│   │       └── design.md
 │   ├── archive/              # Completed changes (historical record)
 │   │   └── {date}-{change-id}/
 │   │       ├── change.json
@@ -558,6 +561,30 @@ pnpm build
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `ADV_DEBUG` | `"0"` | Set to `"1"` for debug logging |
+| `OPEN_CHAD_CACHE_DIR` | `$TMPDIR` (fallback: `/tmp`) | Directory used for ADV debug log when `ADV_DEBUG=1` |
+
+---
+
+## Upgrading
+
+### From 6-gate to 7-gate workflow
+
+ADV automatically migrates old 6-gate changes (research, prep, implementation, review, harden, signoff) to the new 7-gate model (proposal, discovery, design, planning, execution, acceptance, release) the first time you open them. No action is required.
+
+Mapping:
+
+| Old gate        | New gate    | Notes                                                   |
+|-----------------|-------------|---------------------------------------------------------|
+| research        | discovery   | preserves status + audit trail (`migrated_from`)        |
+| prep            | planning    | preserves status + audit trail                          |
+| implementation  | execution   | preserves status + audit trail                          |
+| review          | acceptance  | preserves status + audit trail                          |
+| harden          | release     | preserves status + audit trail                          |
+| signoff         | acceptance  | absorbed; recorded in `absorbed_completions`              |
+| (new) proposal  | proposal    | inserted as `legacy` for in-flight changes              |
+| (new) design    | design      | inserted as `legacy` for in-flight changes              |
+
+New changes start directly in the 7-gate model. The `/adv-research` command is retired and replaced by `/adv-discover` + `/adv-design`; the old command file remains as a redirect stub.
 
 ---
 
@@ -565,25 +592,42 @@ pnpm build
 
 ### Available Commands
 
+**Core 7-gate workflow**
+
 | Command | Purpose |
 |---------|---------|
 | `/adv-status` | Project overview |
-| `/adv-proposal <summary>` | Agree on problem statement, then define the change |
-| `/adv-validate <id>` | Validate change |
+| `/adv-proposal <summary>` | Extract problem statement and confirm with user |
+| `/adv-discover <id>` | Gather context and identify objectives |
+| `/adv-agree <id>` | Present objectives for user acceptance |
+| `/adv-design <id>` | Validate architecture decisions and produce strategy |
+| `/adv-present <id>` | Present design overview for user review |
+| `/adv-prep <id>` | Gap analysis and task shaping (from validated design) |
 | `/adv-apply <id>` | Implement with TDD |
-| `/adv-archive <id>` | Archive completed change |
-| `/adv-clarify` | Clarify ambiguous requirements |
-| `/adv-research <target>` | Validate architectural decisions |
-| `/adv-prep <id>` | Gap analysis and task shaping |
-| `/adv-task` | Fast-track a discussed change |
 | `/adv-review <id>` | Code review |
-| `/adv-harden <id>` | Quality hardening |
+| `/adv-accept <id>` | Present deliverable summary for user sign-off |
+| `/adv-harden <id>` | Release-stage quality hardening |
+| `/adv-archive <id>` | Archive completed change and apply spec deltas |
+
+**Fast-track and auxiliary**
+
+| Command | Purpose |
+|---------|---------|
+| `/adv-task` | Fast-track a discussed change through proposal → planning |
+| `/adv-validate <id>` | Validate change against specs |
+| `/adv-clarify` | Clarify ambiguous requirements |
 | `/adv-audit [capability]` | Spec/implementation drift check |
 | `/adv-slop-scan [path]` | Scan for AI slop patterns |
 | `/adv-refactor <id>` | Refresh a stale proposal |
 | `/adv-coordinate` | Detect cross-change conflicts |
 | `/adv-improve` | Suggest spec or implementation improvements |
 | `/adv-tron [target]` | Investigate codebase structure and suggest agenda candidates |
+
+**Retired**
+
+| Command | Replacement |
+|---------|-------------|
+| `/adv-research <target>` | Use `/adv-discover` + `/adv-design` instead |
 
 Tradeoff-heavy decisions inside ADV flows use inline analysis by default. For deeper analysis, agents can load the prioritizer skill via `skill("prioritizer")` which provides structured criteria question templates and decision map guidance.
 
@@ -614,4 +658,3 @@ Parallel ADV scanners follow the same single-level delegation rule as other ADV 
 
 - **Issues**: https://github.com/Sharper-Flow/Advance/issues
 - **Documentation**: See README.md and ADV_INSTRUCTIONS.md
-- **Changelog**: See CHANGELOG.md

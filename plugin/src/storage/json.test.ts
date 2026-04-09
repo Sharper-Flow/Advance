@@ -743,3 +743,112 @@ describe("loadProposalWithFallback", () => {
     expect(result.warning).toBeDefined();
   });
 });
+
+// =============================================================================
+// Agreement.md and Design.md artifact support
+// =============================================================================
+
+describe("createChangeScaffold with agreement and design", () => {
+  let changesDir: string;
+
+  beforeEach(async () => {
+    changesDir = await createTempDir();
+  });
+
+  afterEach(async () => {
+    await cleanupTempDir(changesDir);
+  });
+
+  test("writes agreement.md when agreementContent is provided", async () => {
+    const result = await createChangeScaffold(
+      changesDir,
+      "testAgreement",
+      "Test Agreement",
+      undefined,
+      undefined,
+      "# Agreement\n\nObjectives here.",
+    );
+    expect(result.agreementPath).toContain("agreement.md");
+    const content = await readFile(result.agreementPath!, "utf-8");
+    expect(content).toContain("Agreement");
+    expect(content).toContain("Objectives here");
+  });
+
+  test("writes design.md when designContent is provided", async () => {
+    const result = await createChangeScaffold(
+      changesDir,
+      "testDesign",
+      "Test Design",
+      undefined,
+      undefined,
+      undefined,
+      "# Design\n\nArchitecture overview.",
+    );
+    expect(result.designPath).toContain("design.md");
+    const content = await readFile(result.designPath!, "utf-8");
+    expect(content).toContain("Design");
+    expect(content).toContain("Architecture overview");
+  });
+
+  test("does not write agreement.md or design.md when content is omitted", async () => {
+    const result = await createChangeScaffold(
+      changesDir,
+      "testNoArtifacts",
+      "No Artifacts",
+    );
+    expect(result.agreementPath).toBeUndefined();
+    expect(result.designPath).toBeUndefined();
+    // Verify files don't exist
+    const agreementPath = join(changesDir, "testNoArtifacts", "agreement.md");
+    const designPath = join(changesDir, "testNoArtifacts", "design.md");
+    expect(await fileExists(agreementPath)).toBe(false);
+    expect(await fileExists(designPath)).toBe(false);
+  });
+});
+
+describe("updateChangeArtifacts with agreement and design", () => {
+  let changesDir: string;
+
+  beforeEach(async () => {
+    changesDir = await createTempDir();
+  });
+
+  afterEach(async () => {
+    await cleanupTempDir(changesDir);
+  });
+
+  test("updates agreement.md and design.md for existing change", async () => {
+    await createChangeScaffold(changesDir, "updateTest", "Update Test");
+
+    const result = await updateChangeArtifacts(
+      changesDir,
+      "updateTest",
+      undefined,
+      undefined,
+      "# Updated Agreement",
+      "# Updated Design",
+    );
+    expect(result.agreementPath).toContain("agreement.md");
+    expect(result.designPath).toContain("design.md");
+
+    const agContent = await readFile(result.agreementPath!, "utf-8");
+    expect(agContent).toBe("# Updated Agreement");
+
+    const dsContent = await readFile(result.designPath!, "utf-8");
+    expect(dsContent).toBe("# Updated Design");
+  });
+
+  test("updates only agreement.md when design is omitted", async () => {
+    await createChangeScaffold(changesDir, "agOnly", "Agreement Only");
+
+    const result = await updateChangeArtifacts(
+      changesDir,
+      "agOnly",
+      undefined,
+      undefined,
+      "# Agreement Only Content",
+    );
+    expect(result.agreementPath).toContain("agreement.md");
+    expect(result.designPath).toBeUndefined();
+  });
+});

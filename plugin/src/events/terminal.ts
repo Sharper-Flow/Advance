@@ -8,25 +8,19 @@
 import * as fs from "fs";
 import { execSync } from "child_process";
 import type { StatusMarker } from "../types";
+import { ADV_DEBUG_ENABLED, appendDebugLog } from "../utils/debug-log";
 
 // =============================================================================
 // Debug Logging
 // =============================================================================
 
-const DEBUG = process.env.ADV_DEBUG === "1";
+const DEBUG = ADV_DEBUG_ENABLED;
 
 /**
  * Log debug message to file.
  */
 const logToFile = (msg: string): void => {
-  try {
-    fs.appendFileSync(
-      "/tmp/adv-debug.log",
-      `${new Date().toISOString()} ${msg}\n`,
-    );
-  } catch {
-    // ignore
-  }
+  appendDebugLog("terminal", msg);
 };
 
 /**
@@ -146,7 +140,8 @@ const writeToTty = (tty: string, sequence: string): boolean => {
   try {
     fs.writeFileSync(tty, sequence);
     return true;
-  } catch {
+  } catch (error) {
+    log(`writeToTty failed: tty=${tty} error=${String(error)}`);
     return false;
   }
 };
@@ -176,8 +171,8 @@ export const setTitle = (title: string): void => {
         stdio: "ignore",
         timeout: 1000,
       });
-    } catch {
-      // ignore
+    } catch (error) {
+      log(`tmux rename-window failed: ${String(error)}`);
     }
     return;
   }
@@ -186,11 +181,12 @@ export const setTitle = (title: string): void => {
   try {
     fs.accessSync("/dev/tty", fs.constants.W_OK);
     fs.writeFileSync("/dev/tty", sequence);
-  } catch {
+  } catch (ttyError) {
+    log(`setTitle /dev/tty write failed: ${String(ttyError)}`);
     try {
       process.stdout.write(sequence);
-    } catch {
-      // ignore
+    } catch (stdoutError) {
+      log(`setTitle stdout write failed: ${String(stdoutError)}`);
     }
   }
 };
@@ -214,7 +210,8 @@ export const getProjectName = (directory: string): string => {
   try {
     const parts = directory.split("/");
     return parts[parts.length - 1] || "Unknown";
-  } catch {
+  } catch (error) {
+    log(`getProjectName failed: ${String(error)}`);
     return "Unknown";
   }
 };

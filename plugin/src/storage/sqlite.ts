@@ -137,6 +137,7 @@ CREATE TABLE IF NOT EXISTS tasks (
   id TEXT PRIMARY KEY,
   change_id TEXT NOT NULL REFERENCES changes(id) ON DELETE CASCADE,
   title TEXT NOT NULL,
+  type TEXT NOT NULL DEFAULT 'code' CHECK (type IN ('code', 'docs', 'ops', 'research', 'approval', 'verification')),
   section TEXT,
   status TEXT NOT NULL CHECK (status IN ('pending', 'in_progress', 'done', 'cancelled')),
   priority INTEGER DEFAULT 0,
@@ -289,6 +290,7 @@ export interface TaskRow {
   id: string;
   change_id: string;
   title: string;
+  type: string;
   section: string | null;
   status: string;
   priority: number;
@@ -391,6 +393,37 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
     // If migration fails, the DB will be rebuilt on next sync
   }
 
+  // Migration: add 'type' column to tasks table (7-gate model introduces task typing).
+  // SQLite doesn't support ALTER TABLE ... ADD COLUMN with CHECK constraints reliably,
+  // so we DROP + CREATE. Safe because SQLite is a derived cache rebuilt from JSON.
+  try {
+    const tableInfo = db
+      .query(
+        "SELECT sql FROM sqlite_master WHERE type='table' AND name='tasks'",
+      )
+      .get() as { sql: string } | null;
+    if (tableInfo?.sql && !tableInfo.sql.includes("'verification'")) {
+      db.exec("DROP TABLE IF EXISTS tasks");
+      db.exec(`
+        CREATE TABLE tasks (
+          id TEXT PRIMARY KEY,
+          change_id TEXT NOT NULL REFERENCES changes(id) ON DELETE CASCADE,
+          title TEXT NOT NULL,
+          type TEXT NOT NULL DEFAULT 'code' CHECK (type IN ('code', 'docs', 'ops', 'research', 'approval', 'verification')),
+          section TEXT,
+          status TEXT NOT NULL CHECK (status IN ('pending', 'in_progress', 'done', 'cancelled')),
+          priority INTEGER DEFAULT 0,
+          created_at TEXT NOT NULL,
+          started_at TEXT,
+          completed_at TEXT,
+          completed_by TEXT
+        )
+      `);
+    }
+  } catch {
+    // If migration fails, the DB will be rebuilt on next sync
+  }
+
   // Prepare statements using db.query() for bun:sqlite
   const stmts = {
     specsList: db.query("SELECT * FROM specs"),
@@ -457,8 +490,8 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
     ),
     tasksGet: db.query("SELECT * FROM tasks WHERE id = ?"),
     tasksInsert: db.query(`
-      INSERT INTO tasks (id, change_id, title, section, status, priority, created_at, started_at, completed_at, completed_by)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO tasks (id, change_id, title, type, section, status, priority, created_at, started_at, completed_at, completed_by)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `),
     tasksDeleteByChange: db.query("DELETE FROM tasks WHERE change_id = ?"),
     taskMetadataInsert: db.query(
@@ -635,6 +668,7 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
                 task.id,
                 change.id,
                 task.title,
+                task.type ?? "code",
                 task.section ?? null,
                 task.status,
                 task.priority ?? 0,

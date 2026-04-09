@@ -13,6 +13,7 @@
 
 import { type Plugin, tool } from "@opencode-ai/plugin";
 import { createStore } from "./storage/store";
+import { GATE_ORDER } from "./types";
 import { specTools } from "./tools/spec";
 import { changeTools } from "./tools/change";
 import { taskTools } from "./tools/task";
@@ -86,21 +87,10 @@ const resolveStatus = (s: PluginState): StatusMarker => {
 // Debug Logging
 // =============================================================================
 
-import * as fs from "fs";
-
-const DEBUG = process.env.ADV_DEBUG === "1";
+import { appendDebugLog } from "./utils/debug-log";
 
 const debugLog = (msg: string): void => {
-  if (DEBUG) {
-    try {
-      fs.appendFileSync(
-        "/tmp/adv-debug.log",
-        `${new Date().toISOString()} [index] ${msg}\n`,
-      );
-    } catch {
-      // ignore
-    }
-  }
+  appendDebugLog("index", msg);
 };
 
 // =============================================================================
@@ -347,6 +337,18 @@ export const AdvancePlugin: Plugin = async ({ directory, worktree }) => {
             .describe(
               "Optional confirmed problem statement text to persist as problem-statement.md artifact",
             ),
+          agreement: tool.schema
+            .string()
+            .optional()
+            .describe(
+              "Optional agreement.md content (objectives, AC, constraints, avoidances)",
+            ),
+          design: tool.schema
+            .string()
+            .optional()
+            .describe(
+              "Optional design.md content (architecture, LBP decisions, implementation strategy)",
+            ),
         },
         execute: safeExecute(
           async (args) => changeTools.adv_change_create.execute(args, store),
@@ -369,6 +371,18 @@ export const AdvancePlugin: Plugin = async ({ directory, worktree }) => {
             .optional()
             .describe(
               "New problem-statement.md content (overwrites existing). Omit to leave unchanged.",
+            ),
+          agreement: tool.schema
+            .string()
+            .optional()
+            .describe(
+              "New agreement.md content (overwrites existing). Omit to leave unchanged.",
+            ),
+          design: tool.schema
+            .string()
+            .optional()
+            .describe(
+              "New design.md content (overwrites existing). Omit to leave unchanged.",
             ),
         },
         execute: safeExecute(
@@ -936,7 +950,7 @@ export const AdvancePlugin: Plugin = async ({ directory, worktree }) => {
       }),
 
       // ----------------------------------------------------------------------
-      // Gate Tools (6-gate quality checklist)
+      // Gate Tools (7-gate quality checklist)
       // ----------------------------------------------------------------------
       adv_gate_status: tool({
         description: gateTools.adv_gate_status.description,
@@ -980,14 +994,7 @@ export const AdvancePlugin: Plugin = async ({ directory, worktree }) => {
         args: {
           changeId: tool.schema.string().describe("Change ID"),
           gateId: tool.schema
-            .enum([
-              "research",
-              "prep",
-              "implementation",
-              "review",
-              "harden",
-              "signoff",
-            ])
+            .enum(GATE_ORDER as [string, ...string[]])
             .describe("Gate to mark complete"),
           completedBy: tool.schema
             .string()

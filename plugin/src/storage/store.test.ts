@@ -723,16 +723,17 @@ describe("computeLastActivity", () => {
         },
       ],
       gates: {
-        research: {
+        proposal: {
           status: "done",
           completed_at: "2026-03-02T08:00:00Z",
           completed_by: "agent",
         },
-        prep: { status: "pending" },
-        implementation: { status: "pending" },
-        review: { status: "pending" },
-        harden: { status: "pending" },
-        signoff: { status: "pending" },
+        discovery: { status: "pending" },
+        design: { status: "pending" },
+        planning: { status: "pending" },
+        execution: { status: "pending" },
+        acceptance: { status: "pending" },
+        release: { status: "pending" },
       },
     };
     expect(computeLastActivity(change)).toBe("2026-03-02T08:00:00Z");

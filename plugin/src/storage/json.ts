@@ -453,10 +453,14 @@ export async function createChangeScaffold(
   title: string,
   proposalContent?: string,
   problemStatementContent?: string,
+  agreementContent?: string,
+  designContent?: string,
 ): Promise<{
   changePath: string;
   proposalPath: string;
   problemStatementPath?: string;
+  agreementPath?: string;
+  designPath?: string;
 }> {
   const changeDir = join(changesDir, changeId);
   const changePath = join(changeDir, "change.json");
@@ -523,7 +527,27 @@ export async function createChangeScaffold(
     await atomicWriteFile(problemStatementPath, problemStatementContent);
   }
 
-  return { changePath, proposalPath, problemStatementPath };
+  // Write agreement.md artifact when provided
+  let agreementPath: string | undefined;
+  if (agreementContent) {
+    agreementPath = join(changeDir, "agreement.md");
+    await atomicWriteFile(agreementPath, agreementContent);
+  }
+
+  // Write design.md artifact when provided
+  let designPath: string | undefined;
+  if (designContent) {
+    designPath = join(changeDir, "design.md");
+    await atomicWriteFile(designPath, designContent);
+  }
+
+  return {
+    changePath,
+    proposalPath,
+    problemStatementPath,
+    agreementPath,
+    designPath,
+  };
 }
 
 /**
@@ -539,9 +563,13 @@ export async function updateChangeArtifacts(
   changeId: string,
   proposalContent?: string,
   problemStatementContent?: string,
+  agreementContent?: string,
+  designContent?: string,
 ): Promise<{
   proposalPath?: string;
   problemStatementPath?: string;
+  agreementPath?: string;
+  designPath?: string;
   error?: string;
 }> {
   const changeDir = join(changesDir, changeId);
@@ -558,6 +586,8 @@ export async function updateChangeArtifacts(
   const result: {
     proposalPath?: string;
     problemStatementPath?: string;
+    agreementPath?: string;
+    designPath?: string;
     error?: string;
   } = {};
 
@@ -583,6 +613,32 @@ export async function updateChangeArtifacts(
       return {
         ...result,
         error: `Failed to write problem-statement.md: ${err instanceof Error ? err.message : String(err)}`,
+      };
+    }
+  }
+
+  if (agreementContent !== undefined) {
+    const agreementPath = join(changeDir, "agreement.md");
+    try {
+      await atomicWriteFile(agreementPath, agreementContent);
+      result.agreementPath = agreementPath;
+    } catch (err) {
+      return {
+        ...result,
+        error: `Failed to write agreement.md: ${err instanceof Error ? err.message : String(err)}`,
+      };
+    }
+  }
+
+  if (designContent !== undefined) {
+    const designPath = join(changeDir, "design.md");
+    try {
+      await atomicWriteFile(designPath, designContent);
+      result.designPath = designPath;
+    } catch (err) {
+      return {
+        ...result,
+        error: `Failed to write design.md: ${err instanceof Error ? err.message : String(err)}`,
       };
     }
   }

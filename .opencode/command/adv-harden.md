@@ -1,17 +1,17 @@
 ---
 name: adv-harden
-description: Detect low-quality code, verify test coverage, clean up; block archive on open findings
+description: Detect low-quality code, verify test coverage, clean up before release
 ---
 
-# ADV Harden — Post-Implementation Quality Analysis
+# ADV Harden — Release-Stage Quality Analysis
 
-Orchestrate multi-dimensional hardening via sub-agents. **Blocks archive if actionable `REVIEW_FINDINGS` are unresolved and not documented as accepted debt.**
+Orchestrate multi-dimensional hardening via sub-agents. This command is part of the release stage and **blocks archive if actionable `REVIEW_FINDINGS` are unresolved and not documented as accepted debt.**
 
 ## Exits
 
 | Exit | Condition |
 |------|-----------|
-| ✅ READY | No blockers/high findings; harden gate complete |
+| ✅ READY | No blockers/high findings; release stage ready for archive |
 | 🔁 NEEDS_WORK | High findings → agent fixes → re-verifies |
 | 🎤 BLOCKED | Blocker or unresolved review findings → user decides |
 
@@ -52,7 +52,7 @@ Extract from `$ARGUMENTS`:
 
 `adv_gate_status changeId: {change-id}`
 
-If review gate NOT complete (status != 'done' and status != 'legacy') → emit HARDEN BLOCKED banner citing incomplete review gate → stop. Required action: `/adv-review {change-id}`.
+If acceptance gate NOT complete (status != 'done' and status != 'legacy') → emit HARDEN BLOCKED banner citing incomplete acceptance gate → stop. Required action: `/adv-accept {change-id}`.
 
 ### Cancellation & Cross-Repo Audit
 
@@ -271,7 +271,7 @@ Aggregate cleanup candidates from scanner + session artifacts. Display preview l
 
 ### Mark Harden Gate
 
-If READY → `adv_gate_complete changeId: {change-id} gateId: harden`
+If READY → do **not** complete a gate here; `/adv-archive` owns the `release` gate.
 
 ### Report Display
 
@@ -293,6 +293,8 @@ Include: fixes applied, gate status, next steps (`/adv-archive`), remaining item
 
 ```
 /adv-harden {change-id} COMPLETE
+Result: release stage ready for archive
+Next: /adv-archive {change-id}
 Result: {READY | N fixed | Report only}
 Harden Gate: {MARKED COMPLETE | pending}
 Next: /adv-archive {change-id}

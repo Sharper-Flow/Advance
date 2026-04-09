@@ -1,6 +1,6 @@
 ---
 name: adv-prep
-description: Analyze gaps and synthesize tasks from validated research findings
+description: Analyze gaps and synthesize tasks from validated design decisions
 ---
 
 # ADV Prep — Pre-Implementation Gap Analysis
@@ -11,9 +11,9 @@ Analyze change for gaps (missing scenarios, tasks, cross-cutting concerns) → a
 
 **Produces:** Complete task graph via `adv_task_add` (sole pre-impl task creator), gap analysis, task sequencing with dependencies.
 
-**× MUST NOT:** Complete non-prep gates, make architecture decisions, modify problem statement/success criteria.
+**× MUST NOT:** Complete non-planning gates, make new architecture decisions, modify problem statement/agreement/design intent.
 
-**Gate:** Completes `prep` only. `/adv-task` is exempt (fast-track bundles proposal+research+prep).
+**Gate:** Completes `planning` only. `/adv-task` is exempt (fast-track bundles proposal+discovery+design+planning).
 
 <UserRequest>
   $ARGUMENTS
@@ -51,17 +51,17 @@ Check tasks for routing completeness:
 
 ## Phase 1.5: Task Synthesis (when task list empty)
 
-If zero tasks AND research gate complete → synthesize task graph from the research findings, deltas, and proposal/problem context returned by `adv_change_show`. × Do not read `proposal.md` directly.
+If zero tasks AND design gate complete → synthesize task graph from the design findings, deltas, and proposal/problem context returned by `adv_change_show`. × Do not read `proposal.md` directly.
 
 ### Priority Order
 
 1. **Architecture corrections** (DRIFTED/ANTI-PATTERN) → block feature tasks via `blocked_by`
-2. **Core implementation** → derived from research, inline TDD, proper dependencies
+2. **Core implementation** → derived from the validated design, inline TDD, proper dependencies
 3. **Cross-cutting concerns** → error handling, logging, validation (from Phase 3 checklist)
 4. **Documentation** → spec updates, inline docs
 5. **Verification** → cross-cutting tests, mark `metadata.tdd_intent: "separate_verification"`
 
-If research gate also pending → warn: run `/adv-research` first. Proceed with proposal-level gap analysis only.
+If design gate is pending → warn: run `/adv-design` (and `/adv-present` if needed) first. Proceed with proposal-level gap analysis only.
 
 ---
 
@@ -234,9 +234,9 @@ Before validation, ensure every task has explicit `metadata.tdd_intent`:
 For each task missing `tdd_intent`:
 1. Classify using task title + content heuristics
 2. Set via `metadata` field on task creation, or update via `adv_task_reclassify_tdd` if already created
-3. After prep gate completes, `tdd_intent` is **frozen** — reclassification requires user approval
+3. After planning gate completes, `tdd_intent` is **frozen** — reclassification requires user approval
 
-⚠ The prep gate readiness check (`TASK_TDD_INTENT_MISSING`) will block if any task lacks `tdd_intent` when `tdd_enforcement` is "strict".
+⚠ The planning gate readiness check (`TASK_TDD_INTENT_MISSING`) will block if any task lacks `tdd_intent` when `tdd_enforcement` is "strict".
 
 ---
 
@@ -248,7 +248,7 @@ For each task missing `tdd_intent`:
 
 ## Phase 8.5: Readiness Report
 
-`adv_gate_complete changeId: <target> gateId: prep`
+`adv_gate_complete changeId: <target> gateId: planning`
 
 | Result | Action |
 |--------|--------|
@@ -274,7 +274,7 @@ For each gap: resolve inline (read code, query docs, ask specific question). Re-
 
 ### Mark Gate
 
-`adv_gate_complete changeId: {change-id} gateId: prep` (no-op if Phase 8.5 already passed).
+`adv_gate_complete changeId: {change-id} gateId: planning` (no-op if Phase 8.5 already passed).
 
 ### Completion
 
@@ -283,7 +283,7 @@ Emit CONTRACT FULFILLED banner: all criteria met, changes made (tasks added/abso
 ```
 /adv-prep {change-id} COMPLETE
 Result: {gap_count} gaps fixed, ready for /adv-apply
-Prep Gate: MARKED COMPLETE
+Planning Gate: MARKED COMPLETE
 Next: /adv-apply {change-id}
 ```
 
@@ -299,4 +299,4 @@ Next: /adv-apply {change-id}
 | Cancel tasks | `adv_task_cancel` (requires user approval) |
 | List/show/search specs | `adv_spec` |
 | Validate | `adv_change_validate` |
-| Prep gate | `adv_gate_complete gateId: prep` |
+| Planning gate | `adv_gate_complete gateId: planning` |

@@ -11,8 +11,8 @@ import {
   getCommandDef,
   getCommandsByGate,
   getSuccessors,
-  type GateId,
 } from "./manifest";
+import type { GateId } from "./types";
 
 describe("Command Manifest", () => {
   test("exports COMMAND_MANIFEST as a non-empty record", () => {
@@ -21,12 +21,17 @@ describe("Command Manifest", () => {
     expect(Object.keys(COMMAND_MANIFEST).length).toBeGreaterThan(0);
   });
 
-  test("contains all 17 ADV commands", () => {
+  test("contains all 22 ADV commands", () => {
     const expectedCommands = [
       "adv-status",
       "adv-proposal",
+      "adv-discover",
+      "adv-agree",
+      "adv-design",
+      "adv-present",
       "adv-validate",
       "adv-apply",
+      "adv-accept",
       "adv-archive",
       "adv-clarify",
       "adv-prep",
@@ -45,7 +50,7 @@ describe("Command Manifest", () => {
     for (const cmd of expectedCommands) {
       expect(COMMAND_MANIFEST).toHaveProperty(cmd);
     }
-    expect(Object.keys(COMMAND_MANIFEST)).toHaveLength(17);
+    expect(Object.keys(COMMAND_MANIFEST)).toHaveLength(22);
   });
 
   test("every command has required fields", () => {
@@ -62,12 +67,13 @@ describe("Command Manifest", () => {
 
   test("gate-affecting commands reference valid gate IDs", () => {
     const validGates: GateId[] = [
-      "research",
-      "prep",
-      "implementation",
-      "review",
-      "harden",
-      "signoff",
+      "proposal",
+      "discovery",
+      "design",
+      "planning",
+      "execution",
+      "acceptance",
+      "release",
     ];
 
     for (const def of Object.values(COMMAND_MANIFEST)) {
@@ -111,17 +117,15 @@ describe("Command Manifest", () => {
   });
 
   describe("getCommandsByGate", () => {
-    test("returns commands that affect the research gate", () => {
-      const cmds = getCommandsByGate("research");
+    test("returns commands that affect the proposal gate", () => {
+      const cmds = getCommandsByGate("proposal");
       expect(cmds.length).toBeGreaterThan(0);
-      expect(cmds.some((c) => c.name === "adv-research")).toBe(true);
+      expect(cmds.some((c) => c.name === "adv-proposal")).toBe(true);
     });
 
-    test("returns empty array for gate with no direct command", () => {
-      // signoff is user-triggered, no specific command
-      const cmds = getCommandsByGate("signoff");
-      // May or may not have commands — just shouldn't throw
-      expect(Array.isArray(cmds)).toBe(true);
+    test("returns commands that affect the release gate", () => {
+      const cmds = getCommandsByGate("release");
+      expect(cmds.some((c) => c.name === "adv-archive")).toBe(true);
     });
   });
 
@@ -129,12 +133,7 @@ describe("Command Manifest", () => {
     test("returns successor commands for a given command", () => {
       const successors = getSuccessors("adv-prep");
       expect(successors.length).toBeGreaterThan(0);
-      // After prep, you typically do apply or research
-      expect(
-        successors.some(
-          (s) => s.name === "adv-apply" || s.name === "adv-research",
-        ),
-      ).toBe(true);
+      expect(successors.some((s) => s.name === "adv-apply")).toBe(true);
     });
 
     test("returns empty array for unknown command", () => {
@@ -170,6 +169,9 @@ describe("Command Manifest", () => {
       "Fast-track",
       "Investigate",
       "Extract",
+      "Gather",
+      "Present",
+      "Retired:",
     ];
 
     test("every description starts with a strong verb", () => {
@@ -211,29 +213,45 @@ describe("Command Manifest", () => {
   });
 
   describe("Workflow correctness", () => {
-    test("adv-research affects research gate", () => {
-      const def = getCommandDef("adv-research");
-      expect(def!.gate).toBe("research");
+    test("adv-proposal affects proposal gate", () => {
+      const def = getCommandDef("adv-proposal");
+      expect(def!.gate).toBe("proposal");
     });
 
-    test("adv-prep affects prep gate", () => {
+    test("adv-discover affects discovery gate", () => {
+      const def = getCommandDef("adv-discover");
+      expect(def!.gate).toBe("discovery");
+    });
+
+    test("adv-design affects design gate", () => {
+      const def = getCommandDef("adv-design");
+      expect(def!.gate).toBe("design");
+    });
+
+    test("adv-prep affects planning gate", () => {
       const def = getCommandDef("adv-prep");
-      expect(def!.gate).toBe("prep");
+      expect(def!.gate).toBe("planning");
     });
 
-    test("adv-apply affects implementation gate", () => {
+    test("adv-apply affects execution gate", () => {
       const def = getCommandDef("adv-apply");
-      expect(def!.gate).toBe("implementation");
+      expect(def!.gate).toBe("execution");
     });
 
-    test("adv-review affects review gate", () => {
-      const def = getCommandDef("adv-review");
-      expect(def!.gate).toBe("review");
+    test("adv-accept affects acceptance gate", () => {
+      const def = getCommandDef("adv-accept");
+      expect(def!.gate).toBe("acceptance");
     });
 
-    test("adv-harden affects harden gate", () => {
-      const def = getCommandDef("adv-harden");
-      expect(def!.gate).toBe("harden");
+    test("adv-archive affects release gate", () => {
+      const def = getCommandDef("adv-archive");
+      expect(def!.gate).toBe("release");
+    });
+
+    test("adv-review and adv-harden are stage commands without direct gate ownership", () => {
+      expect(getCommandDef("adv-review")!.gate).toBeUndefined();
+      expect(getCommandDef("adv-harden")!.gate).toBeUndefined();
+      expect(getCommandDef("adv-research")!.gate).toBeUndefined();
     });
 
     test("adv-archive requires change ID", () => {
@@ -301,9 +319,9 @@ describe("Command Manifest", () => {
       ).toHaveLength(0);
     });
 
-    test("adv-proposal scope has empty gates (no gate ownership)", () => {
+    test("adv-proposal scope owns the proposal gate", () => {
       const def = getCommandDef("adv-proposal");
-      expect(def!.scope!.gates).toHaveLength(0);
+      expect(def!.scope!.gates).toEqual(["proposal"]);
     });
 
     test("adv-proposal scope does not create tasks", () => {
@@ -311,14 +329,102 @@ describe("Command Manifest", () => {
       expect(def!.scope!.creates).not.toContain("tasks");
     });
 
-    test("adv-research scope does not create tasks", () => {
+    test("adv-research is retired and has no scope definition", () => {
       const def = getCommandDef("adv-research");
-      expect(def!.scope!.creates).not.toContain("tasks");
+      expect(def!.scope).toBeUndefined();
     });
 
     test("adv-prep scope creates tasks", () => {
       const def = getCommandDef("adv-prep");
       expect(def!.scope!.creates).toContain("tasks");
+    });
+  });
+
+  // =============================================================================
+  // 7-gate model manifest tests
+  // =============================================================================
+
+  describe("7-gate collaborative model commands", () => {
+    test("manifest contains 5 new commands", () => {
+      const newCommands = [
+        "adv-discover",
+        "adv-agree",
+        "adv-design",
+        "adv-present",
+        "adv-accept",
+      ];
+      for (const cmd of newCommands) {
+        expect(COMMAND_MANIFEST, `Missing command: ${cmd}`).toHaveProperty(cmd);
+      }
+    });
+
+    test("adv-discover owns discovery gate", () => {
+      const def = getCommandDef("adv-discover");
+      expect(def).toBeDefined();
+      expect(def!.gate).toBe("discovery");
+    });
+
+    test("adv-design owns design gate", () => {
+      const def = getCommandDef("adv-design");
+      expect(def).toBeDefined();
+      expect(def!.gate).toBe("design");
+    });
+
+    test("adv-prep now owns planning gate (renamed from prep)", () => {
+      const def = getCommandDef("adv-prep");
+      expect(def!.gate).toBe("planning");
+    });
+
+    test("adv-apply now owns execution gate (renamed from implementation)", () => {
+      const def = getCommandDef("adv-apply");
+      expect(def!.gate).toBe("execution");
+    });
+
+    test("adv-accept owns acceptance gate", () => {
+      const def = getCommandDef("adv-accept");
+      expect(def).toBeDefined();
+      expect(def!.gate).toBe("acceptance");
+    });
+
+    test("adv-archive now owns release gate", () => {
+      const def = getCommandDef("adv-archive");
+      expect(def!.gate).toBe("release");
+    });
+
+    test("adv-proposal owns proposal gate", () => {
+      const def = getCommandDef("adv-proposal");
+      expect(def!.gate).toBe("proposal");
+    });
+
+    test("successor chain follows 7-gate workflow", () => {
+      // proposal → discover → agree → design → present → prep → apply → review → accept → harden → archive
+      expect(getCommandDef("adv-proposal")!.successors).toContain(
+        "adv-discover",
+      );
+      expect(getCommandDef("adv-discover")!.successors).toContain("adv-agree");
+      expect(getCommandDef("adv-agree")!.successors).toContain("adv-design");
+      expect(getCommandDef("adv-design")!.successors).toContain("adv-present");
+      expect(getCommandDef("adv-present")!.successors).toContain("adv-prep");
+      expect(getCommandDef("adv-prep")!.successors).toContain("adv-apply");
+      expect(getCommandDef("adv-apply")!.successors).toContain("adv-review");
+      expect(getCommandDef("adv-review")!.successors).toContain("adv-accept");
+      expect(getCommandDef("adv-accept")!.successors).toContain("adv-harden");
+      expect(getCommandDef("adv-harden")!.successors).toContain("adv-archive");
+    });
+
+    test("adv-task fast-track covers proposal through planning gates", () => {
+      const def = getCommandDef("adv-task");
+      expect(def!.scope!.gates).toEqual(
+        expect.arrayContaining(["proposal", "discovery", "design", "planning"]),
+      );
+    });
+
+    test("adv-research is retired (no gate ownership)", () => {
+      const def = getCommandDef("adv-research");
+      // It can remain in the manifest as a redirect, but should not own a gate
+      if (def) {
+        expect(def.gate).toBeUndefined();
+      }
     });
   });
 });

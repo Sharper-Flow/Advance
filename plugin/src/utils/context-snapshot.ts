@@ -62,32 +62,29 @@ export interface CrossRepoSwitchInput {
 // Gate Display
 // =============================================================================
 
-const GATE_LABELS: Record<string, string> = {
-  research: "research",
-  prep: "prep",
-  implementation: "impl",
-  review: "review",
-  harden: "harden",
-  signoff: "signoff",
+import { GATE_ORDER } from "../types";
+
+/**
+ * Gate display labels — derived from GATE_DEFS.
+ * Use short labels where the full ID is too long for the snapshot line.
+ */
+const GATE_SHORT_LABELS: Record<string, string> = {
+  // Short labels for gates whose full ID is too long for the snapshot line
+  // Currently all 7-gate IDs are short enough to use directly
 };
 
-const GATE_ORDER = [
-  "research",
-  "prep",
-  "implementation",
-  "review",
-  "harden",
-  "signoff",
-];
+/** Get display label for a gate ID (short label if available, otherwise the ID itself) */
+const getGateLabel = (gateId: string): string =>
+  GATE_SHORT_LABELS[gateId] ?? gateId;
 
 function formatGateProgress(gates?: Record<string, GateInfo>): string {
   if (!gates) {
-    return GATE_ORDER.map((g) => `[○ ${GATE_LABELS[g] ?? g}]`).join(" ");
+    return GATE_ORDER.map((g) => `[○ ${getGateLabel(g)}]`).join(" ");
   }
 
   return GATE_ORDER.map((gateId) => {
     const gate = gates[gateId];
-    const label = GATE_LABELS[gateId] ?? gateId;
+    const label = getGateLabel(gateId);
     if (!gate) return `[○ ${label}]`;
 
     const status = gate.status;

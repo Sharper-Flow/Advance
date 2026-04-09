@@ -247,10 +247,26 @@ export type ErrorRecovery = z.infer<typeof ErrorRecoverySchema>;
 // Task
 // =============================================================================
 
+/**
+ * Task type — classifies what kind of deliverable a task produces.
+ * Drives type-aware behavior in apply, review, harden, and accept.
+ */
+export const TaskTypeSchema = z.enum([
+  "code", // Source code (TDD applies)
+  "docs", // Documentation
+  "ops", // Configuration, deployment, infrastructure
+  "research", // Investigation, analysis
+  "approval", // User approval checkpoint
+  "verification", // Cross-cutting test / verification
+]);
+export type TaskType = z.infer<typeof TaskTypeSchema>;
+
 export const TaskSchema = z
   .object({
     id: z.string(), // tk-Hf7dK2mN
     title: z.string(),
+    /** Task type — defaults to "code" for backward compatibility */
+    type: TaskTypeSchema.default("code"),
     section: z.string().optional(), // Grouping label
     status: TaskStatusSchema,
     priority: z.number().default(0), // Lower = higher priority
@@ -457,36 +473,77 @@ export const ChangeClosureSchema = z.object({
 export type ChangeClosure = z.infer<typeof ChangeClosureSchema>;
 
 // =============================================================================
-// Quality Gates (6-Gate Checklist)
+// Quality Gates
 // =============================================================================
 
 /**
- * Gate IDs for the 6-gate quality checklist.
- * Gates must be completed in sequence before archival/completion.
+ * Gate definition — single source of truth for all gate metadata.
+ * Add/remove/reorder gates here; all derived artifacts follow automatically.
  */
-export const GateIdSchema = z.enum([
-  "research", // Research-Done: Context7 docs lookup or /adv-research
-  "prep", // Prep-Done: /adv-prep gap analysis
-  "implementation", // Implementation-Done: All tasks done (cancelled need approval)
-  "review", // Review-Done: /adv-review code review
-  "harden", // Harden-Done: /adv-harden hardening
-  "signoff", // User-Signoff: Explicit user confirmation
-]);
+export interface GateDef {
+  /** Unique gate identifier (used as JSON key, schema enum value, etc.) */
+  id: string;
+  /** Human-readable description */
+  description: string;
+}
+
+/**
+ * GATE_DEFS — the canonical, ordered list of gates.
+ * Everything else (GateIdSchema, GATE_ORDER, GatesSchema, createDefaultGates,
+ * createLegacyGates) is derived from this array.
+ *
+ * To change the gate model: edit this array only.
+ */
+export const GATE_DEFS: readonly GateDef[] = [
+  {
+    id: "proposal",
+    description: "Proposal: Problem statement confirmed via /adv-proposal",
+  },
+  {
+    id: "discovery",
+    description:
+      "Discovery: Context gathered, objectives agreed via /adv-discover + /adv-agree",
+  },
+  {
+    id: "design",
+    description:
+      "Design: Architecture decisions validated via /adv-design + /adv-present",
+  },
+  {
+    id: "planning",
+    description: "Planning: Task graph synthesized via /adv-prep",
+  },
+  {
+    id: "execution",
+    description: "Execution: Deliverables produced via /adv-apply",
+  },
+  {
+    id: "acceptance",
+    description:
+      "Acceptance: User accepts deliverables via /adv-review + /adv-accept",
+  },
+  {
+    id: "release",
+    description:
+      "Release: Final quality pass and archive via /adv-harden + /adv-archive",
+  },
+] as const;
+
+/** Gate IDs derived from GATE_DEFS */
+const GATE_IDS = GATE_DEFS.map((g) => g.id) as [string, ...string[]];
+
+/**
+ * Gate ID schema — Zod enum derived from GATE_DEFS.
+ */
+export const GateIdSchema = z.enum(GATE_IDS);
 
 export type GateId = z.infer<typeof GateIdSchema>;
 
 /**
  * Ordered list of gate IDs for sequence enforcement.
- * Gates must be completed in this order.
+ * Derived from GATE_DEFS order.
  */
-export const GATE_ORDER: GateId[] = [
-  "research",
-  "prep",
-  "implementation",
-  "review",
-  "harden",
-  "signoff",
-];
+export const GATE_ORDER: GateId[] = GATE_DEFS.map((g) => g.id) as GateId[];
 
 /**
  * Gate status values.
@@ -515,22 +572,35 @@ export const GateCompletionSchema = z.object({
   completed_at: z.string().optional(),
   /** Who completed the gate (user, agent, migration) */
   completed_by: z.string().optional(),
+  /** Original gate ID before migration (audit trail for gate renames) */
+  migrated_from: z.string().optional(),
+  /** Additional old gate completions absorbed into this gate during migration */
+  absorbed_completions: z
+    .array(
+      z.object({
+        gate_id: z.string(),
+        status: GateStatusSchema,
+        completed_at: z.string().optional(),
+        completed_by: z.string().optional(),
+      }),
+    )
+    .optional(),
 });
 
 export type GateCompletion = z.infer<typeof GateCompletionSchema>;
 
 /**
- * Full gates object containing all 6 gate completion records.
- * Each gate tracks its completion status independently.
+ * Full gates object — one field per GATE_DEFS entry.
+ * Derived from GATE_DEFS so adding/removing a gate propagates automatically.
  */
-export const GatesSchema = z.object({
-  research: GateCompletionSchema.default({ status: "pending" }),
-  prep: GateCompletionSchema.default({ status: "pending" }),
-  implementation: GateCompletionSchema.default({ status: "pending" }),
-  review: GateCompletionSchema.default({ status: "pending" }),
-  harden: GateCompletionSchema.default({ status: "pending" }),
-  signoff: GateCompletionSchema.default({ status: "pending" }),
-});
+export const GatesSchema = z.object(
+  Object.fromEntries(
+    GATE_DEFS.map((g) => [
+      g.id,
+      GateCompletionSchema.default({ status: "pending" }),
+    ]),
+  ) as Record<string, ReturnType<typeof GateCompletionSchema.default>>,
+);
 
 export type Gates = z.infer<typeof GatesSchema>;
 
@@ -582,38 +652,34 @@ export const allGatesSatisfied = (gates: Gates): boolean => {
 
 /**
  * Create default gates object with all gates pending.
+ * Derived from GATE_DEFS — adding a gate here is automatic.
  */
-export const createDefaultGates = (): Gates => ({
-  research: { status: "pending" },
-  prep: { status: "pending" },
-  implementation: { status: "pending" },
-  review: { status: "pending" },
-  harden: { status: "pending" },
-  signoff: { status: "pending" },
-});
+export const createDefaultGates = (): Gates =>
+  Object.fromEntries(
+    GATE_DEFS.map((g) => [g.id, { status: "pending" as const }]),
+  ) as Gates;
 
 /**
  * Create legacy gates object for migration.
- * All gates set to 'legacy' except signoff which stays 'pending'.
+ * All gates set to 'legacy' except the LAST gate which stays 'pending'.
+ * (Last gate = user signoff / final approval — never auto-marked.)
+ * Derived from GATE_DEFS — adding a gate here is automatic.
  */
 export const createLegacyGates = (): Gates => {
   const now = new Date().toISOString();
-  return {
-    research: {
-      status: "legacy",
-      completed_at: now,
-      completed_by: "migration",
-    },
-    prep: { status: "legacy", completed_at: now, completed_by: "migration" },
-    implementation: {
-      status: "legacy",
-      completed_at: now,
-      completed_by: "migration",
-    },
-    review: { status: "legacy", completed_at: now, completed_by: "migration" },
-    harden: { status: "legacy", completed_at: now, completed_by: "migration" },
-    signoff: { status: "pending" }, // NEVER auto-marked
-  };
+  const lastGateId = GATE_DEFS[GATE_DEFS.length - 1].id;
+  return Object.fromEntries(
+    GATE_DEFS.map((g) => [
+      g.id,
+      g.id === lastGateId
+        ? { status: "pending" as const }
+        : {
+            status: "legacy" as const,
+            completed_at: now,
+            completed_by: "migration",
+          },
+    ]),
+  ) as Gates;
 };
 
 // =============================================================================
@@ -633,7 +699,7 @@ export const ChangeSchema = z
     validation: ValidationResultSchema.optional(),
     /** Accumulated wisdom/learnings for this change (optional, backwards compatible) */
     wisdom: z.array(WisdomEntrySchema).optional(),
-    /** 6-gate quality checklist (optional, backwards compatible with migration) */
+    /** 7-gate quality checklist (optional, backwards compatible with migration) */
     gates: GatesSchema.optional(),
     /** Linked GitHub issue URLs (optional, backwards compatible) */
     github_issues: z.array(z.string().url()).optional(),
@@ -1141,7 +1207,7 @@ export const AgendaItemSchema = z
     tdd_phase: TddPhaseSchema.default("none"),
     /** TDD evidence if recorded */
     tdd_evidence: TddEvidenceSchema.optional(),
-    /** 6-gate quality checklist (optional, backwards compatible with migration) */
+    /** 7-gate quality checklist (optional, backwards compatible with migration) */
     gates: GatesSchema.optional(),
     /** Linked GitHub issue URLs (optional, backwards compatible) */
     github_issues: z.array(z.string().url()).optional(),

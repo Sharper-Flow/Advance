@@ -44,6 +44,18 @@
               "title": {
                 "type": "string"
               },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "code",
+                  "docs",
+                  "ops",
+                  "research",
+                  "approval",
+                  "verification"
+                ],
+                "default": "code"
+              },
               "section": {
                 "type": "string"
               },
@@ -198,6 +210,44 @@
                   }
                 },
                 "required": [
+                  "reason",
+                  "approved_by_user",
+                  "approval_evidence",
+                  "approved_at"
+                ],
+                "additionalProperties": false
+              },
+              "tdd_reclassification": {
+                "type": "object",
+                "properties": {
+                  "from_intent": {
+                    "type": "string"
+                  },
+                  "to_intent": {
+                    "type": "string",
+                    "enum": [
+                      "inline",
+                      "separate_verification",
+                      "not_applicable"
+                    ]
+                  },
+                  "reason": {
+                    "type": "string"
+                  },
+                  "approved_by_user": {
+                    "type": "boolean",
+                    "const": true
+                  },
+                  "approval_evidence": {
+                    "type": "string"
+                  },
+                  "approved_at": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "from_intent",
+                  "to_intent",
                   "reason",
                   "approved_by_user",
                   "approval_evidence",
@@ -603,7 +653,7 @@
         "gates": {
           "type": "object",
           "properties": {
-            "research": {
+            "proposal": {
               "type": "object",
               "properties": {
                 "status": {
@@ -621,6 +671,40 @@
                 },
                 "completed_by": {
                   "type": "string"
+                },
+                "migrated_from": {
+                  "type": "string"
+                },
+                "absorbed_completions": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "gate_id": {
+                        "type": "string"
+                      },
+                      "status": {
+                        "type": "string",
+                        "enum": [
+                          "pending",
+                          "done",
+                          "legacy",
+                          "skipped"
+                        ]
+                      },
+                      "completed_at": {
+                        "type": "string"
+                      },
+                      "completed_by": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "gate_id",
+                      "status"
+                    ],
+                    "additionalProperties": false
+                  }
                 }
               },
               "additionalProperties": false,
@@ -628,7 +712,7 @@
                 "status": "pending"
               }
             },
-            "prep": {
+            "discovery": {
               "type": "object",
               "properties": {
                 "status": {
@@ -646,6 +730,40 @@
                 },
                 "completed_by": {
                   "type": "string"
+                },
+                "migrated_from": {
+                  "type": "string"
+                },
+                "absorbed_completions": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "gate_id": {
+                        "type": "string"
+                      },
+                      "status": {
+                        "type": "string",
+                        "enum": [
+                          "pending",
+                          "done",
+                          "legacy",
+                          "skipped"
+                        ]
+                      },
+                      "completed_at": {
+                        "type": "string"
+                      },
+                      "completed_by": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "gate_id",
+                      "status"
+                    ],
+                    "additionalProperties": false
+                  }
                 }
               },
               "additionalProperties": false,
@@ -653,7 +771,7 @@
                 "status": "pending"
               }
             },
-            "implementation": {
+            "design": {
               "type": "object",
               "properties": {
                 "status": {
@@ -671,6 +789,40 @@
                 },
                 "completed_by": {
                   "type": "string"
+                },
+                "migrated_from": {
+                  "type": "string"
+                },
+                "absorbed_completions": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "gate_id": {
+                        "type": "string"
+                      },
+                      "status": {
+                        "type": "string",
+                        "enum": [
+                          "pending",
+                          "done",
+                          "legacy",
+                          "skipped"
+                        ]
+                      },
+                      "completed_at": {
+                        "type": "string"
+                      },
+                      "completed_by": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "gate_id",
+                      "status"
+                    ],
+                    "additionalProperties": false
+                  }
                 }
               },
               "additionalProperties": false,
@@ -678,7 +830,7 @@
                 "status": "pending"
               }
             },
-            "review": {
+            "planning": {
               "type": "object",
               "properties": {
                 "status": {
@@ -696,6 +848,40 @@
                 },
                 "completed_by": {
                   "type": "string"
+                },
+                "migrated_from": {
+                  "type": "string"
+                },
+                "absorbed_completions": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "gate_id": {
+                        "type": "string"
+                      },
+                      "status": {
+                        "type": "string",
+                        "enum": [
+                          "pending",
+                          "done",
+                          "legacy",
+                          "skipped"
+                        ]
+                      },
+                      "completed_at": {
+                        "type": "string"
+                      },
+                      "completed_by": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "gate_id",
+                      "status"
+                    ],
+                    "additionalProperties": false
+                  }
                 }
               },
               "additionalProperties": false,
@@ -703,7 +889,7 @@
                 "status": "pending"
               }
             },
-            "harden": {
+            "execution": {
               "type": "object",
               "properties": {
                 "status": {
@@ -721,6 +907,40 @@
                 },
                 "completed_by": {
                   "type": "string"
+                },
+                "migrated_from": {
+                  "type": "string"
+                },
+                "absorbed_completions": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "gate_id": {
+                        "type": "string"
+                      },
+                      "status": {
+                        "type": "string",
+                        "enum": [
+                          "pending",
+                          "done",
+                          "legacy",
+                          "skipped"
+                        ]
+                      },
+                      "completed_at": {
+                        "type": "string"
+                      },
+                      "completed_by": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "gate_id",
+                      "status"
+                    ],
+                    "additionalProperties": false
+                  }
                 }
               },
               "additionalProperties": false,
@@ -728,7 +948,7 @@
                 "status": "pending"
               }
             },
-            "signoff": {
+            "acceptance": {
               "type": "object",
               "properties": {
                 "status": {
@@ -746,6 +966,99 @@
                 },
                 "completed_by": {
                   "type": "string"
+                },
+                "migrated_from": {
+                  "type": "string"
+                },
+                "absorbed_completions": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "gate_id": {
+                        "type": "string"
+                      },
+                      "status": {
+                        "type": "string",
+                        "enum": [
+                          "pending",
+                          "done",
+                          "legacy",
+                          "skipped"
+                        ]
+                      },
+                      "completed_at": {
+                        "type": "string"
+                      },
+                      "completed_by": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "gate_id",
+                      "status"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "additionalProperties": false,
+              "default": {
+                "status": "pending"
+              }
+            },
+            "release": {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "pending",
+                    "done",
+                    "legacy",
+                    "skipped"
+                  ],
+                  "default": "pending"
+                },
+                "completed_at": {
+                  "type": "string"
+                },
+                "completed_by": {
+                  "type": "string"
+                },
+                "migrated_from": {
+                  "type": "string"
+                },
+                "absorbed_completions": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "gate_id": {
+                        "type": "string"
+                      },
+                      "status": {
+                        "type": "string",
+                        "enum": [
+                          "pending",
+                          "done",
+                          "legacy",
+                          "skipped"
+                        ]
+                      },
+                      "completed_at": {
+                        "type": "string"
+                      },
+                      "completed_by": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "gate_id",
+                      "status"
+                    ],
+                    "additionalProperties": false
+                  }
                 }
               },
               "additionalProperties": false,

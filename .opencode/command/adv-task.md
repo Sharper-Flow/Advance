@@ -1,19 +1,19 @@
 ---
 name: adv-task
-description: Fast-track a discussed change: synthesize contract, validate best practices, prep, and hand off
+description: Fast-track a discussed change: synthesize contract, validate, prep, and hand off
 ---
 
 # ADV Task — Fast-Track a Discussed Change
 
-Synthesize contract from conversation → validate best practices → prep tasks → hand off to Build. Use when user and agent already agree on what needs doing.
+Fast-track a discussed change through proposal, discovery, design, and planning, then hand off to Build. Use when user and agent already agree on what needs doing.
 
 ## Command Boundary
 
 **Produces:** Change scaffold, validated approach (Context7), complete task graph.
 
-**Crosses boundaries intentionally** (fast-track exemption): creates tasks (normally prep-only), completes research + prep gates.
+**Crosses boundaries intentionally** (fast-track exemption): creates tasks (normally prep-only), completes proposal + discovery + design + planning gates.
 
-**Pipeline:** Quick Contract → confirm → create change → research (LBP validation) → prep (task generation) → hand off
+**Pipeline:** Quick Contract → proposal → discovery → agreement → design → present → prep → hand off
 
 <UserRequest>
   $ARGUMENTS
@@ -50,7 +50,7 @@ Ask via `question`: Confirmed — execute (Recommended), Modify contract, Abort.
 
 ---
 
-## Phase 2: Research — LBP Validation
+## Phase 2: Discovery + Design Validation
 
 ### Load Context
 
@@ -82,7 +82,7 @@ If any ❌ → ask via `question`: Adopt recommended, Keep original, Abort.
 
 ### Complete Gate
 
-`adv_gate_complete changeId: {id} gateId: research`
+`adv_gate_complete changeId: {id} gateId: discovery`
 
 ---
 
@@ -102,7 +102,7 @@ Decompose contract into atomic `tk-` tasks via `adv_task_add`:
 
 ### Complete Gate
 
-`adv_gate_complete changeId: {id} gateId: prep`
+`adv_gate_complete changeId: {id} gateId: planning`
 
 ---
 

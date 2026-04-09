@@ -217,6 +217,18 @@ export const changeTools = {
         .describe(
           "Optional confirmed problem statement text to persist as problem-statement.md artifact",
         ),
+      agreement: z
+        .string()
+        .optional()
+        .describe(
+          "Optional agreement.md content (objectives, AC, constraints, avoidances)",
+        ),
+      design: z
+        .string()
+        .optional()
+        .describe(
+          "Optional design.md content (architecture, LBP decisions, implementation strategy)",
+        ),
     },
     execute: async (
       {
@@ -224,11 +236,15 @@ export const changeTools = {
         capability,
         proposal,
         problemStatement,
+        agreement,
+        design,
       }: {
         summary: string;
         capability?: string;
         proposal?: string;
         problemStatement?: string;
+        agreement?: string;
+        design?: string;
       },
       store: Store,
     ) => {
@@ -237,6 +253,8 @@ export const changeTools = {
         capability,
         proposal,
         problemStatement,
+        agreement,
+        design,
       );
 
       // Run clarify-readiness checks if feature flag is not "off"
@@ -303,25 +321,46 @@ export const changeTools = {
         .describe(
           "New problem-statement.md content (overwrites existing). Omit to leave unchanged.",
         ),
+      agreement: z
+        .string()
+        .optional()
+        .describe(
+          "New agreement.md content (overwrites existing). Omit to leave unchanged.",
+        ),
+      design: z
+        .string()
+        .optional()
+        .describe(
+          "New design.md content (overwrites existing). Omit to leave unchanged.",
+        ),
     },
     execute: async (
       {
         changeId,
         proposal,
         problemStatement,
+        agreement,
+        design,
       }: {
         changeId: string;
         proposal?: string;
         problemStatement?: string;
+        agreement?: string;
+        design?: string;
       },
       store: Store,
     ) => {
-      if (proposal === undefined && problemStatement === undefined) {
+      if (
+        proposal === undefined &&
+        problemStatement === undefined &&
+        agreement === undefined &&
+        design === undefined
+      ) {
         return wrapWithBanner(
           { command: "adv_change_update", target: changeId },
           formatToolOutput({
             error:
-              "At least one of 'proposal' or 'problemStatement' must be provided.",
+              "At least one of 'proposal', 'problemStatement', 'agreement', or 'design' must be provided.",
           }),
         );
       }
@@ -330,6 +369,8 @@ export const changeTools = {
         changeId,
         proposal,
         problemStatement,
+        agreement,
+        design,
       );
 
       if (!result.success) {
@@ -345,6 +386,8 @@ export const changeTools = {
           changeId,
           proposalPath: result.proposalPath,
           problemStatementPath: result.problemStatementPath,
+          agreementPath: result.agreementPath,
+          designPath: result.designPath,
         }),
       );
     },
@@ -569,7 +612,7 @@ export const changeTools = {
         );
       }
 
-      // Check all gates are complete (6-gate quality checklist)
+      // Check all gates are complete (7-gate quality checklist)
       const gates = change.gates ?? createDefaultGates();
       if (!allGatesSatisfied(gates)) {
         const incompleteGates = getIncompleteGates(gates);
@@ -577,7 +620,7 @@ export const changeTools = {
           { command: "adv_change_archive", target: changeId },
           formatToolOutput({
             error:
-              "Cannot archive: incomplete gates. Complete all 6 quality gates before archiving.",
+              "Cannot archive: incomplete gates. Complete all quality gates before archiving.",
             incompleteGates,
             hint: `Run /adv-gate-status ${changeId} to see gate details`,
           }),

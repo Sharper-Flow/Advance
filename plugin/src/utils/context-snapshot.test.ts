@@ -19,12 +19,13 @@ describe("formatContextSnapshot", () => {
     title: "Improve context agreement",
     successCriteriaCount: 3,
     gates: {
-      research: { status: "done" },
-      prep: { status: "done" },
-      implementation: { status: "pending" },
-      review: { status: "pending" },
-      harden: { status: "pending" },
-      signoff: { status: "pending" },
+      proposal: { status: "done" },
+      discovery: { status: "done" },
+      design: { status: "pending" },
+      planning: { status: "pending" },
+      execution: { status: "pending" },
+      acceptance: { status: "pending" },
+      release: { status: "pending" },
     },
     taskCounts: { done: 2, in_progress: 1, pending: 5, cancelled: 0 },
     workdir: "/home/user/dev/my-project",
@@ -39,12 +40,13 @@ describe("formatContextSnapshot", () => {
   test("includes gate progress as inline visual", () => {
     const output = formatContextSnapshot(baseInput);
     // Should show done gates with checkmark and pending with circle
-    expect(output).toMatch(/research/);
-    expect(output).toMatch(/prep/);
-    expect(output).toMatch(/impl/);
-    expect(output).toMatch(/review/);
-    expect(output).toMatch(/harden/);
-    expect(output).toMatch(/signoff/);
+    expect(output).toMatch(/proposal/);
+    expect(output).toMatch(/discovery/);
+    expect(output).toMatch(/design/);
+    expect(output).toMatch(/planning/);
+    expect(output).toMatch(/execution/);
+    expect(output).toMatch(/acceptance/);
+    expect(output).toMatch(/release/);
   });
 
   test("includes task counts by status", () => {

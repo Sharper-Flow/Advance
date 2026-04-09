@@ -49,7 +49,7 @@ If `--dry-run` → emit DRY RUN COMPLETE → stop.
 
 ## Phase 4: Gate Status
 
-`adv_gate_status` → display all 6 gates. If any incomplete (excluding signoff) → stop with guidance.
+`adv_gate_status` → display all 7 gates. If any incomplete before `release` → stop with guidance.
 
 ---
 
@@ -57,7 +57,7 @@ If `--dry-run` → emit DRY RUN COMPLETE → stop.
 
 Ask via `question`: "Archive '{change-id}' and apply to specs?" Options: Sign off and archive (Recommended), Dry run first, Cancel.
 
-If approved → `adv_gate_complete changeId: {id} gateId: signoff` → proceed.
+If approved → `adv_gate_complete changeId: {id} gateId: release` → proceed.
 
 ---
 
@@ -75,7 +75,7 @@ For each affected capability: `adv_spec action: "show"` → verify new requireme
 
 ## Phase 8: Archive Report
 
-Emit ARCHIVE COMPLETE banner: change ID/title, timestamp, all 6 gates checked, specs updated (added/modified/removed counts per capability), docs generated, archive location.
+Emit ARCHIVE COMPLETE banner: change ID/title, timestamp, all 7 stages checked, specs updated (added/modified/removed counts per capability), docs generated, archive location.
 
 ---
 

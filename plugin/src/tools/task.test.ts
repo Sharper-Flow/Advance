@@ -11,6 +11,7 @@ import {
   createTempDir,
   cleanupTempDir,
   createTestProject,
+  parseToolOutput,
 } from "../__tests__/setup";
 
 describe("Task Tools", () => {
@@ -262,9 +263,7 @@ describe("Task Tools", () => {
       // Set up a task with tdd_intent metadata
       const changeResult = await store.changes.get("addFeature");
       const change = changeResult.data!;
-      const taskInChange = change.tasks.find(
-        (t) => t.id === "tk-task0001",
-      );
+      const taskInChange = change.tasks.find((t) => t.id === "tk-task0001");
       taskInChange!.metadata = { tdd_intent: "inline" };
       await store.changes.save(change);
 
@@ -295,7 +294,7 @@ describe("Task Tools", () => {
         { changeId: "addFeature", content: "Write integration tests" },
         store,
       );
-      const parsed = JSON.parse(result);
+      const parsed = parseToolOutput(result);
 
       expect(parsed.taskId).toMatch(/^tk-/);
       expect(parsed.task.title).toBe("Write integration tests");
@@ -311,7 +310,7 @@ describe("Task Tools", () => {
         },
         store,
       );
-      const parsed = JSON.parse(result);
+      const parsed = parseToolOutput(result);
 
       expect(parsed.task.section).toBe("Error Handling");
     });
@@ -325,7 +324,7 @@ describe("Task Tools", () => {
         },
         store,
       );
-      const parsed = JSON.parse(result);
+      const parsed = parseToolOutput(result);
 
       expect(parsed.task.deps).toHaveLength(1);
       expect(parsed.task.deps[0].type).toBe("blocked_by");
@@ -341,7 +340,7 @@ describe("Task Tools", () => {
         },
         store,
       );
-      const parsed = JSON.parse(result);
+      const parsed = parseToolOutput(result);
 
       expect(parsed.task.metadata).toEqual({
         tdd_intent: "separate_verification",
@@ -369,7 +368,7 @@ describe("Task Tools", () => {
         { changeId: "addFeature" },
         store,
       );
-      const parsed = JSON.parse(result);
+      const parsed = parseToolOutput(result);
 
       const newTaskBlocked = parsed.blocked.find(
         (b: { task: { title: string } }) => b.task.title === "Blocked task",
@@ -383,7 +382,7 @@ describe("Task Tools", () => {
         { changeId: "addFeature", content: "Persisted task" },
         store,
       );
-      const parsed = JSON.parse(result);
+      const parsed = parseToolOutput(result);
 
       const changeResult = await store.changes.get("addFeature");
       expect(changeResult.success).toBe(true);
@@ -397,47 +396,47 @@ describe("Task Tools", () => {
         { changeId: "nonexistent", content: "Some task" },
         store,
       );
-      const parsed = JSON.parse(result);
+      const parsed = parseToolOutput(result);
 
       expect(parsed.error).toContain("not found");
     });
 
-    test("rejects task creation when prep gate is complete", async () => {
-      // Complete research and prep gates (prep requires research first)
-      await store.gates.complete("addFeature", "research");
-      await store.gates.complete("addFeature", "prep");
+    test("rejects task creation when planning gate is complete", async () => {
+      await store.gates.complete("addFeature", "proposal");
+      await store.gates.complete("addFeature", "discovery");
+      await store.gates.complete("addFeature", "design");
+      await store.gates.complete("addFeature", "planning");
 
       const result = await taskTools.adv_task_add.execute(
         { changeId: "addFeature", content: "Should be rejected" },
         store,
       );
-      const parsed = JSON.parse(result);
+      const parsed = parseToolOutput(result);
 
       expect(parsed.error).toBeDefined();
-      expect(parsed.error).toContain("prep gate");
+      expect(parsed.error).toContain("planning gate");
     });
 
-    test("allows task creation when prep gate is pending", async () => {
+    test("allows task creation when planning gate is pending", async () => {
       // Default fixture has no gates (undefined) — should allow
       const result = await taskTools.adv_task_add.execute(
         { changeId: "addFeature", content: "Should succeed with no gates" },
         store,
       );
-      const parsed = JSON.parse(result);
+      const parsed = parseToolOutput(result);
 
       expect(parsed.error).toBeUndefined();
       expect(parsed.taskId).toMatch(/^tk-/);
     });
 
-    test("allows task creation when prep gate is legacy", async () => {
-      // Complete research gate first, then migrate gates to legacy
+    test("allows task creation when planning gate is legacy", async () => {
       await store.gates.migrate("addFeature");
 
       const result = await taskTools.adv_task_add.execute(
         { changeId: "addFeature", content: "Should succeed with legacy gates" },
         store,
       );
-      const parsed = JSON.parse(result);
+      const parsed = parseToolOutput(result);
 
       expect(parsed.error).toBeUndefined();
       expect(parsed.taskId).toMatch(/^tk-/);
@@ -652,9 +651,7 @@ describe("Task Tools", () => {
     test("returns compliant for task with skipped tdd_evidence (backward compat)", async () => {
       // Simulate legacy skipped evidence without the removed tool
       const changeResult = await store.changes.get("addFeature");
-      const task = changeResult.data!.tasks.find(
-        (t) => t.id === "tk-task0001",
-      );
+      const task = changeResult.data!.tasks.find((t) => t.id === "tk-task0001");
       task!.tdd_evidence = { skipped: true, skip_reason: "test" };
       await store.changes.save(changeResult.data!);
 
@@ -832,9 +829,7 @@ describe("Task Tools", () => {
       await store.tasks.update("tk-task0001", "in_progress");
       const changeResult = await store.changes.get("addFeature");
       const change = changeResult.data!;
-      const taskInChange = change.tasks.find(
-        (t) => t.id === "tk-task0001",
-      );
+      const taskInChange = change.tasks.find((t) => t.id === "tk-task0001");
       taskInChange!.metadata = { tdd_intent: "inline" };
       await store.changes.save(change);
 
@@ -854,9 +849,7 @@ describe("Task Tools", () => {
       expect(parsed.task.metadata.tdd_intent).toBe("not_applicable");
       expect(parsed.task.tdd_reclassification).toBeDefined();
       expect(parsed.task.tdd_reclassification.from_intent).toBe("inline");
-      expect(parsed.task.tdd_reclassification.to_intent).toBe(
-        "not_applicable",
-      );
+      expect(parsed.task.tdd_reclassification.to_intent).toBe("not_applicable");
       expect(parsed.task.tdd_reclassification.reason).toBe(
         "Task turned out to be config-only, no logic to test",
       );
@@ -887,9 +880,7 @@ describe("Task Tools", () => {
     test("rejects when approvalEvidence is empty", async () => {
       const changeResult = await store.changes.get("addFeature");
       const change = changeResult.data!;
-      const taskInChange = change.tasks.find(
-        (t) => t.id === "tk-task0001",
-      );
+      const taskInChange = change.tasks.find((t) => t.id === "tk-task0001");
       taskInChange!.metadata = { tdd_intent: "inline" };
       await store.changes.save(change);
 
@@ -927,9 +918,7 @@ describe("Task Tools", () => {
     test("rejects when reclassifying to same intent", async () => {
       const changeResult = await store.changes.get("addFeature");
       const change = changeResult.data!;
-      const taskInChange = change.tasks.find(
-        (t) => t.id === "tk-task0001",
-      );
+      const taskInChange = change.tasks.find((t) => t.id === "tk-task0001");
       taskInChange!.metadata = { tdd_intent: "inline" };
       await store.changes.save(change);
 
@@ -952,9 +941,7 @@ describe("Task Tools", () => {
       // Set up a cancelled task with tdd_intent
       const changeResult = await store.changes.get("addFeature");
       const change = changeResult.data!;
-      const taskInChange = change.tasks.find(
-        (t) => t.id === "tk-task0001",
-      );
+      const taskInChange = change.tasks.find((t) => t.id === "tk-task0001");
       taskInChange!.metadata = { tdd_intent: "inline" };
       taskInChange!.status = "cancelled";
       taskInChange!.cancellation = {
@@ -985,9 +972,7 @@ describe("Task Tools", () => {
       // Set up metadata
       const changeResult = await store.changes.get("addFeature");
       const change = changeResult.data!;
-      const taskInChange = change.tasks.find(
-        (t) => t.id === "tk-task0001",
-      );
+      const taskInChange = change.tasks.find((t) => t.id === "tk-task0001");
       taskInChange!.metadata = { tdd_intent: "separate_verification" };
       await store.changes.save(change);
 

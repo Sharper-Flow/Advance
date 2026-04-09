@@ -179,14 +179,14 @@ export const agendaTools = {
         return formatToolOutput({ error: `Agenda item not found: ${itemId}` });
       }
 
-      // Check gates if present (agenda items can optionally use 6-gate quality checklist)
+      // Check gates if present (agenda items can optionally use 7-gate quality checklist)
       if (existing.gates) {
         const gates = existing.gates;
         if (!allGatesSatisfied(gates)) {
           const incompleteGates = getIncompleteGates(gates);
           return formatToolOutput({
             error:
-              "Cannot complete: incomplete gates. Complete all 6 quality gates before marking done.",
+              "Cannot complete: incomplete gates. Complete all required quality gates before marking done.",
             incompleteGates,
             hint: `Complete gates with adv_gate_complete for each: ${incompleteGates.join(", ")}`,
           });
@@ -197,6 +197,7 @@ export const agendaTools = {
         ...existing,
         id: existing.id,
         title: existing.title,
+        type: "code" as const,
         status: "done",
         priority: 0,
         created_at: existing.created_at,
