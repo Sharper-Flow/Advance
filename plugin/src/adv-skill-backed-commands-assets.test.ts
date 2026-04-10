@@ -1,9 +1,10 @@
 /**
  * Skill-Backed Command Assets Tests
  *
- * Verifies that commands with backing skills (adv-review, adv-harden,
- * adv-slop-scan) ship the expected skill files, load them in their
- * command prompts with inline fallback, and are covered by sync-global.sh.
+ * Verifies that commands with backing skills (adv-discover, adv-review,
+ * adv-harden, adv-slop-scan) ship the expected skill files, load them in
+ * their command prompts with inline fallback, and are covered by
+ * sync-global.sh.
  *
  * Modeled on adv-tron-assets.test.ts — the canonical command+skill pattern.
  */
@@ -17,6 +18,12 @@ const SYNC_SCRIPT_PATH = join(REPO_ROOT, "scripts/sync-global.sh");
 
 // Skill-backed commands and their expected skill directory names
 const SKILL_BACKED_COMMANDS = [
+  {
+    command: "adv-discover",
+    skillDir: "adv-discover-methodology",
+    commandPath: join(REPO_ROOT, ".opencode/command/adv-discover.md"),
+    skillPath: join(REPO_ROOT, "skills/adv-discover-methodology/SKILL.md"),
+  },
   {
     command: "adv-review",
     skillDir: "adv-review-methodology",

@@ -278,11 +278,16 @@ For each gap: resolve inline (read code, query docs, ask specific question). Re-
 
 ### Completion
 
-Emit CONTRACT FULFILLED banner: all criteria met, changes made (tasks added/absorbed/cancelled, scenarios, smells resolved), gate status.
+Emit PREP COMPLETE with:
+
+- target change
+- gaps fixed count
+- tasks created/absorbed/cancelled
+- gate status
 
 ```
 /adv-prep {change-id} COMPLETE
-Result: {gap_count} gaps fixed, ready for /adv-apply
+Result: {gap_count} gaps fixed, {task_count} tasks created, ready for /adv-apply
 Planning Gate: MARKED COMPLETE
 Next: /adv-apply {change-id}
 ```

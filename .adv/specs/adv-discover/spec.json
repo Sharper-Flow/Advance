@@ -1,0 +1,243 @@
+{
+  "$schema": "https://raw.githubusercontent.com/anomalyco/oc-plugins/main/advance/plugin/schemas/spec.schema.json",
+  "name": "adv-discover",
+  "title": "ADV Discover Command",
+  "purpose": "Defines the rigor requirements for /adv-discover. The discover command gathers current-state evidence, investigates edge cases, scans for conflicts and related patterns, and produces structured findings for /adv-agree. It must extend prior research rather than rehash it.",
+  "version": "1.0.0",
+  "updated_at": "2026-04-10T00:00:00.000Z",
+  "requirements": [
+    {
+      "id": "rq-disc01",
+      "title": "Discovery Checklist Enforcement",
+      "body": "/adv-discover output MUST contain a Discovery Checklist section listing each mandatory protocol step with PASS or SKIP and a reason. This ensures no protocol step is silently omitted.",
+      "priority": "must",
+      "tags": ["discover", "checklist", "protocol"],
+      "scenarios": [
+        {
+          "id": "rq-disc01.1",
+          "title": "Checklist present in discovery output",
+          "given": ["A /adv-discover invocation completes successfully"],
+          "when": "The discovery output is persisted via adv_change_update",
+          "then": [
+            "The output contains a 'Discovery Checklist' section",
+            "The checklist lists at least 7 mandatory protocol steps",
+            "Each step has a PASS or SKIP status with a reason"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-disc02",
+      "title": "Phase 1.5 Skill Discovery Enforcement",
+      "body": "/adv-discover MUST execute the skill discovery protocol from ADV_INSTRUCTIONS.md and emit a Skills Considered section. This prevents the agent from skipping domain-specific skill loading.",
+      "priority": "must",
+      "tags": ["discover", "skill-discovery", "protocol"],
+      "scenarios": [
+        {
+          "id": "rq-disc02.1",
+          "title": "Skill discovery executes and reports results",
+          "given": ["Trusted skill directories exist with SKILL.md files"],
+          "when": "/adv-discover runs Phase 1.5",
+          "then": [
+            "The output contains a 'Skills Considered' section",
+            "The section lists examined skills with match assessment and action taken"
+          ]
+        },
+        {
+          "id": "rq-disc02.2",
+          "title": "No skills available is reported explicitly",
+          "given": ["No SKILL.md files exist in trusted skill directories"],
+          "when": "/adv-discover runs Phase 1.5",
+          "then": [
+            "The output reports 'Skills considered: none available'",
+            "The Skills Considered section is not omitted"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-disc03",
+      "title": "Prior Research Extension",
+      "body": "When prior research artifacts exist (temp/*.md, docs/*-prep.md, related archived changes), /adv-discover MUST cite them in an Extends section AND add at least one new finding beyond what they contained. This prevents discovery from rehashing prior work.",
+      "priority": "must",
+      "tags": ["discover", "prior-research", "extension"],
+      "scenarios": [
+        {
+          "id": "rq-disc03.1",
+          "title": "Prior artifacts cited and extended",
+          "given": ["A prior research artifact exists in temp/, docs/, or a related archived change"],
+          "when": "/adv-discover runs the prior research check",
+          "then": [
+            "The output includes an 'Extends' section citing the artifact",
+            "The output adds at least one new finding not present in the cited artifact"
+          ]
+        },
+        {
+          "id": "rq-disc03.2",
+          "title": "No prior research is non-blocking",
+          "given": ["No prior research artifacts exist in any canonical location"],
+          "when": "/adv-discover runs the prior research check",
+          "then": [
+            "The output reports 'No prior research found'",
+            "Discovery does not block or fail"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-disc04",
+      "title": "Conflict and Related-Work Scan",
+      "body": "/adv-discover MUST run adv_change_list (with includeArchived), adv_change_validate, and adv_agenda_list, and report results in a Conflict Scan section. This prevents the agent from proposing work that conflicts with existing or archived changes.",
+      "priority": "must",
+      "tags": ["discover", "conflict-scan", "related-work"],
+      "scenarios": [
+        {
+          "id": "rq-disc04.1",
+          "title": "All three mandatory tools are called",
+          "given": ["A change in the discovery phase"],
+          "when": "/adv-discover runs the conflict scan",
+          "then": [
+            "adv_change_list with includeArchived is called",
+            "adv_change_validate is called",
+            "adv_agenda_list is called",
+            "Results are reported in a 'Conflict Scan' section with explicit findings or 'no conflicts'"
+          ]
+        },
+        {
+          "id": "rq-disc04.2",
+          "title": "Own-change validation warnings are excluded from conflict findings",
+          "given": ["adv_change_validate returns passed:false due to NO_TASKS or NO_DELTAS on the change being discovered"],
+          "when": "Conflict scan results are reported",
+          "then": [
+            "Own-change pre-prep warnings are not reported as external conflicts",
+            "The warnings are noted as expected pre-prep state"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-disc05",
+      "title": "Edge Case Investigation",
+      "body": "For each gap identified during discovery, /adv-discover MUST document at least 2 edge cases or failure modes, OR explicitly mark the gap as N/A: structural with rationale. This prevents shallow analysis that misses failure modes.",
+      "priority": "must",
+      "tags": ["discover", "edge-cases", "investigation"],
+      "scenarios": [
+        {
+          "id": "rq-disc05.1",
+          "title": "Each gap has at least 2 edge cases",
+          "given": ["A gap identified during discovery that involves logic or behavior"],
+          "when": "Discovery output is persisted",
+          "then": [
+            "The gap section contains at least 2 documented edge cases or failure modes"
+          ]
+        },
+        {
+          "id": "rq-disc05.2",
+          "title": "Structural gaps allow N/A with rationale",
+          "given": ["A gap that is purely structural with no logic to test"],
+          "when": "Discovery output is persisted",
+          "then": [
+            "The gap may be marked 'Edge cases: N/A — structural' with a rationale explaining why no edge cases apply"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-disc06",
+      "title": "Design Question Depth",
+      "body": "Each open design question in /adv-discover output MUST include trust model implications, blast radius, and alternatives considered. This prevents shallow one-liner questions that lack analysis depth.",
+      "priority": "must",
+      "tags": ["discover", "design-questions", "depth"],
+      "scenarios": [
+        {
+          "id": "rq-disc06.1",
+          "title": "Each question has three required annotations",
+          "given": ["A discovery output with open design questions"],
+          "when": "The output is persisted",
+          "then": [
+            "Each question lists trust model implications (agent-only, user-only, or joint)",
+            "Each question lists blast radius (what breaks or changes if chosen wrong)",
+            "Each question lists alternatives considered (or 'none viable, single direction')"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-disc07",
+      "title": "Draft Spec Delta Shapes",
+      "body": "/adv-discover MUST include draft spec deltas with concrete requirement IDs (rq-* format) and at least one Given/When/Then scenario per delta, OR explicitly state 'No spec deltas required' with rationale. This prevents vague 'spec deltas will be needed' placeholders.",
+      "priority": "must",
+      "tags": ["discover", "spec-deltas", "requirements"],
+      "scenarios": [
+        {
+          "id": "rq-disc07.1",
+          "title": "Drafted deltas include IDs and scenarios",
+          "given": ["A discovery that identifies spec changes are needed"],
+          "when": "Discovery output is persisted",
+          "then": [
+            "Each draft delta has a concrete rq-* requirement ID",
+            "Each draft delta has at least one Given/When/Then scenario"
+          ]
+        },
+        {
+          "id": "rq-disc07.2",
+          "title": "No-delta changes are declared explicitly",
+          "given": ["A discovery that determines no spec changes are required"],
+          "when": "Discovery output is persisted",
+          "then": [
+            "The output states 'No spec deltas required' with a rationale",
+            "The spec deltas section is not silently omitted"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-disc08",
+      "title": "P25 Related-Pattern Scan",
+      "body": "/adv-discover MUST execute a related-pattern scan per rule P25 to detect similar bugs or gaps elsewhere in the codebase, and report results in a Related Pattern Scan section. This prevents fixing one instance while identical issues remain elsewhere.",
+      "priority": "must",
+      "tags": ["discover", "p25", "related-scan"],
+      "scenarios": [
+        {
+          "id": "rq-disc08.1",
+          "title": "Related-pattern scan executes and reports",
+          "given": ["A change in the discovery phase"],
+          "when": "/adv-discover runs the P25 scan",
+          "then": [
+            "The output contains a 'Related Pattern Scan' section",
+            "The section lists similar patterns with file references or explicitly states 'no similar patterns found'"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-disc09",
+      "title": "Methodology Skill Loading",
+      "body": "/adv-discover SHOULD load an adv-discover-methodology skill using the Phase 0 pattern established by rationalizeCommandVsSkill, with inline fallback when the skill is unavailable. This aligns discovery with the command+skill LBP applied to review, harden, slop-scan, and tron.",
+      "priority": "should",
+      "tags": ["discover", "skill-loading", "lbp"],
+      "scenarios": [
+        {
+          "id": "rq-disc09.1",
+          "title": "Skill loaded when available",
+          "given": ["The adv-discover-methodology skill exists in a trusted directory"],
+          "when": "/adv-discover runs Phase 0",
+          "then": [
+            "skill('adv-discover-methodology') is invoked",
+            "Methodology guidance from the skill is applied during discovery"
+          ]
+        },
+        {
+          "id": "rq-disc09.2",
+          "title": "Inline fallback when skill is unavailable",
+          "given": ["The adv-discover-methodology skill does not exist"],
+          "when": "/adv-discover runs Phase 0",
+          "then": [
+            "A fallback notice is logged",
+            "The command continues with the embedded protocol from the command file"
+          ]
+        }
+      ]
+    }
+  ]
+}

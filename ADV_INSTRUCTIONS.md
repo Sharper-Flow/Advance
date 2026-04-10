@@ -306,7 +306,7 @@ Orchestrator pattern: spawn `librarian` + `adv-researcher` in parallel → synth
 
 ## Skill Discovery Protocol
 
-Enabled in `/adv-discover` Phase 1.5. Improves research quality via domain-specific skills.
+Implemented in `/adv-discover` Phase 1.5. Improves research quality via domain-specific skills. See also `skills/adv-discover-methodology/SKILL.md` and `docs/checklists/discover-checklist.md`.
 
 Flow: search trusted skill directories only (`~/.config/opencode/skills/*/SKILL.md`, repo `skills/*/SKILL.md`) → read YAML frontmatter → match `keywords` against tech stack + change domain → `skill("{name}")` → apply guidance.
 
@@ -346,12 +346,13 @@ Commands that fan out to sub-agents with reusable methodology should follow this
 ### Classification
 
 **Command-only** (no backing skill needed):
-`adv-proposal`, `adv-discover`, `adv-agree`, `adv-design`, `adv-present`, `adv-prep`, `adv-task`, `adv-apply`, `adv-validate`, `adv-archive`, `adv-status`, `adv-accept`, `adv-coordinate`, `adv-clarify`, `adv-refactor`
+`adv-proposal`, `adv-agree`, `adv-design`, `adv-present`, `adv-prep`, `adv-task`, `adv-apply`, `adv-validate`, `adv-archive`, `adv-status`, `adv-accept`, `adv-coordinate`, `adv-clarify`, `adv-refactor`
 
 **Retired** (redirects to successor commands):
 - `adv-research` → use `/adv-discover` + `/adv-design`
 
 **Command + backing skill** (reusable methodology extracted):
+- `adv-discover` → `adv-discover-methodology` skill
 - `adv-tron` → `adv-tron` skill
 - `adv-review` → `adv-review-methodology` skill
 - `adv-harden` → `adv-harden-methodology` skill

@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Improved
+
+#### Discovery Phase Rigor — Enforce 9 Mandatory Protocol Steps in /adv-discover
+
+- **Migrated orphaned Phase 1.5 (Skill Discovery)** from retired `/adv-research` reference into actual implementation in `/adv-discover`. The protocol was documented in `ADV_INSTRUCTIONS.md` but never implemented in the command file after the 7-gate workflow refactor.
+- **Enhanced `/adv-discover`** (89→165 lines) with Phase 0 (methodology skill loading), Phase 1.5 (skill discovery), Phase 1.6 (conflict & related-work scan), Phase 1.7 (P25 related-pattern scan), and 11 required output sections including edge case investigation, design question depth, and draft spec delta shapes.
+- **Created `skills/adv-discover-methodology/SKILL.md`** — reusable discovery protocol skill following the command+skill pattern from `rationalizeCommandVsSkill`.
+- **Created `docs/checklists/discover-checklist.md`** — canonical checklist with 8 protocol steps, 13 edge case handling rules, and output section schema.
+- **Created `.adv/specs/adv-discover/spec.json`** — new capability spec with 9 requirements (rq-disc01..09) encoding discovery rigor as enforceable law.
+- **Updated `ADV_INSTRUCTIONS.md`** — moved `adv-discover` from command-only to command+skill list, corrected Phase 1.5 "Enabled" → "Implemented" with cross-references.
+
 ### Fixed
 
 #### Gate Completion Instruction Audit — Ensure All Gate-Owning Commands Actually Complete Their Gates
