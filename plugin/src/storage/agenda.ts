@@ -231,7 +231,13 @@ export const addAgendaItem = async (
     tdd_phase: "none",
   };
 
-  await appendFile(path, JSON.stringify(item) + "\n", "utf-8");
+  // Acquire lock to prevent interleaved appends from concurrent worktrees
+  const releaseLock = await acquireFileLock(path);
+  try {
+    await appendFile(path, JSON.stringify(item) + "\n", "utf-8");
+  } finally {
+    await releaseLock();
+  }
   return item;
 };
 
@@ -245,21 +251,31 @@ export const updateAgendaItem = async (
   updates: Partial<Omit<AgendaItem, "id" | "created_at">>,
   options?: { agendaPath?: string },
 ): Promise<AgendaItem | null> => {
-  const { items } = await loadAgenda(projectDir, {
-    agendaPath: options?.agendaPath,
-  });
-  const existing = items.find((i) => i.id === itemId);
-
-  if (!existing) return null;
-
-  const updated: AgendaItem = {
-    ...existing,
-    ...updates,
-  };
-
   const path = getAgendaPath(projectDir, options?.agendaPath);
-  await appendFile(path, JSON.stringify(updated) + "\n", "utf-8");
-  return updated;
+
+  // If the agenda file doesn't exist, no items to update
+  if (!existsSync(path)) return null;
+
+  // Acquire lock to prevent interleaved read-modify-append from concurrent worktrees
+  const releaseLock = await acquireFileLock(path);
+  try {
+    const { items } = await loadAgenda(projectDir, {
+      agendaPath: options?.agendaPath,
+    });
+    const existing = items.find((i) => i.id === itemId);
+
+    if (!existing) return null;
+
+    const updated: AgendaItem = {
+      ...existing,
+      ...updates,
+    };
+
+    await appendFile(path, JSON.stringify(updated) + "\n", "utf-8");
+    return updated;
+  } finally {
+    await releaseLock();
+  }
 };
 
 /**

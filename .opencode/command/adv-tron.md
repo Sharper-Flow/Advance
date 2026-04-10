@@ -20,7 +20,7 @@ Investigate codebase to map structure, identify hotspots, surface risks, suggest
 | No args | Broad reconnaissance of entire repo |
 | With target | Scoped investigation of file/module/symbol/concept |
 
-Target resolution: file path → read directly, directory → outline all, symbol name → search, concept → semantic search, ambiguous → try semantic → symbol → text.
+Target resolution: file path → read directly, directory → outline all, symbol name → search, concept → semantic search, ambiguous → try semantic → symbol → text. Fall back to the closest resolvable target or broad mode before asking the user.
 
 ## Exits
 
@@ -42,7 +42,7 @@ Empty args → broad. Non-empty → scoped. Emit: `[ADV:ROCKET] Tron reconnaissa
 ## Phase 3: Gather Context
 
 1. `adv_project_context` + `adv_change_list` + `adv_agenda_list`
-2. Broad: `lgrep_get_file_tree` for structure. Scoped: resolve target to concrete files/symbols → if unresolvable, ask via `question`.
+2. Broad: `lgrep_get_file_tree` for structure. Scoped: resolve target to concrete files/symbols → if unresolved after semantic/symbol/text search, fall back to the closest concrete target or broad reconnaissance and state that choice. Ask via `question` only if multiple plausible interpretations would lead to materially different investigations.
 
 ## Phase 4: Spawn Tron Sub-Agent
 

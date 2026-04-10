@@ -15,16 +15,7 @@ Implement an ADV change using TDD. Produce the agreed deliverables — code, doc
 | 🔁 Doom Loop | 3 genuine fix attempts failed with documented diagnosis |
 | 🌍 Environmental | Missing external dependency → escalate immediately |
 
-Cross-repo tasks: switch `workdir` to target path. "Different repo" is × never a valid exit.
-
-Cancellation: use `adv_task_cancel` with user approval. `adv_task_update status: cancelled` is rejected.
-
-| × Bad | ✓ Good |
-|-------|--------|
-| "Let's skip this for now" | Apply retry protocol |
-| "We can come back to this" | Complete now or exhaust retries |
-| "This targets another repo" | Switch `workdir` and execute |
-| `adv_task_update status: cancelled` | `adv_task_cancel` with user approval |
+Cross-repo tasks: switch `workdir` to target path. "Different repo" is × never a valid exit. Cancellation: use `adv_task_cancel` with user approval only.
 
 <UserRequest>
   $ARGUMENTS
@@ -33,253 +24,70 @@ Cancellation: use `adv_task_cancel` with user approval. `adv_task_update status:
 ## Target Resolution
 
 1. If change-id provided → use directly
-2. If empty → `adv_change_list` → confirm/select via `question` tool
+2. If empty → `adv_change_list` → auto-select the only plausible change; ask via `question` only if multiple plausible targets remain
 3. If none → suggest `/adv-proposal`
 
 ---
 
-## Gate Prerequisite Check
+## Phase 0: Load Skill + Gate Check + Worktree
 
-`adv_gate_status changeId: {change-id}`
+`skill("adv-apply-methodology")` → provides TDD work loop, retry protocol (error classification, diagnosis requirement, budget exhaustion), context freshness rules, and task completion criteria. If the skill is unavailable, use ADV_INSTRUCTIONS.md §TDD Protocol, §Doom Loop Detection, §Context Freshness as inline fallback.
 
-- Discovery/design/planning incomplete → stop and require the pre-implementation workflow first
-- All pre-implementation stages complete → proceed to Phase 0
+**Gate check:** `adv_gate_status` → discovery/design/planning must be complete. × MUST NOT complete pre-implementation gates.
 
-× `/adv-apply` MUST NOT complete discovery, design, or planning gates.
+**Worktree assessment:** If 3+ files or high-risk change → suggest worktree isolation. Check for existing `change/{change-id}` worktree → reuse if healthy, prune if stale. If `worktree_create` unavailable → proceed in-place.
 
----
-
-## Phase 0: Worktree Assessment
-
-Assess whether change benefits from worktree isolation.
-
-### Risk Assessment
-
-| Signal | Risk |
-|--------|------|
-| 3+ files, breaking API, DB schema, auth, shared types, structural refactor, spike | High → suggest worktree |
-| 1-2 files trivial, docs/config only | Low → skip worktree |
-
-If low risk → skip to Phase 1.
-
-### Tool Check
-
-If `worktree_create` unavailable → `[ADV:INFO] Worktree tools not available — proceeding in-place.` → Phase 1.
-
-### Detect Existing Worktree
-
-`git worktree list --porcelain` → find `change/{change-id}` branch.
-
-- Path exists (healthy) → ask via `question`: Switch to existing (Recommended), Delete and recreate, Work in place
-- Path missing (stale) → `git worktree prune` → continue
-- No match → continue
-
-### Create Worktree
-
-If user approves:
-1. `worktree_create branch: "change/{change-id}"`
-2. **Immediately** capture returned path and set `workdir` for ALL subsequent tool calls
-3. Continue inline — no handoff, no new terminal needed
-4. When deleting later, pass `branch: "change/{change-id}"` to `worktree_delete`
-
----
-
-## Phase 0.5: Overlap Warning (Advisory)
-
-Check `adv_change_list` for other active changes. Compare affected files. If overlaps found → emit advisory warning listing files and overlapping change IDs. Suggest `/adv-coordinate`. Does NOT block work.
-
----
-
-## Cross-Repo Execution
-
-Tasks may target other repositories. See ADV_INSTRUCTIONS.md §Cross-Repo Execution for full protocol.
-
-1. Detect: check `target_repo`/`target_path` fields or path hints in title
-2. Resolve: use `related_repos` config or `target_path` directly; confirm with user if ambiguous
-3. Execute: switch `workdir` → run TDD workflow → switch back
-
-× Prohibited cancellation reasons: "out of scope", "different repository", "cannot modify external code", "backend/API changes needed", "would need database changes" — all require switching `workdir` and executing.
-
----
-
-## Cancellation Policy
-
-All cancellations require explicit user approval via `adv_task_cancel`.
-
-Workflow: collect per-task reasons → present via `question` tool (Approve all, Review individually, Reject) → execute only after approval.
+**Overlap warning:** Check `adv_change_list` for other active changes with overlapping affected files → emit advisory if found.
 
 ---
 
 ## Phase 1: Load Change Context
 
 1. `adv_change_show changeId: <target>` → extract title, status, deltas
-2. `adv_task_list changeId: <target>` → total/completed counts, task details
+2. `adv_task_list changeId: <target>` → total/completed counts
 3. `adv_task_ready changeId: <target>` → unblocked tasks
 
----
-
-## Phase 2: Display Contract
-
-Generate CONTRACT ACTIVE banner from tool outputs:
-- OBJECTIVE from change title
-- SUCCESS CRITERIA from deltas (each as checkbox)
-- TASKS from task list (with status, blocked_by)
-- Progress: done/total
-- RETRY POLICY: SEMANTIC 3 retries, TRANSIENT 1 retry + 5s delay, ENVIRONMENTAL immediate escalation
-
-Ask via `question` tool: Begin work (Recommended), Modify criteria, Cancel.
+Display CONTRACT ACTIVE banner: objective, success criteria from deltas, task list with status, retry policy summary. Begin work immediately — invocation plus completed pre-implementation gates is approval.
 
 ---
 
-## Retry Protocol
+## Phase 2: TDD Work Loop
 
-### Error Classification
+**Context freshness:** `adv_change_show` once at phase start. Per task: `adv_task_show` only — × do NOT call `adv_change_show` before every task. Use task IDs only in TodoWrite.
 
-| Type | Examples | Action |
-|------|----------|--------|
-| SEMANTIC | Type errors, test failures, logic bugs | Diagnose → Fix → Retry (3×) |
-| TRANSIENT | Network timeout, flaky test | Wait 5s → Retry once |
-| ENVIRONMENTAL | Missing dep, config not found | Escalate immediately |
+**Cross-repo execution:** Check `target_repo`/`target_path` → switch `workdir` → execute → switch back. See ADV_INSTRUCTIONS.md §Cross-Repo Execution.
 
-### Diagnosis Requirement (Reflexion)
+For each ready task (`adv_task_ready`):
 
-Before ANY SEMANTIC fix, emit:
-```
-[ADV:DOOM_LOOP] RETRY {n}/3
-DIAGNOSIS: {root cause analysis}
-FIX: {planned approach}
-```
+1. **Start:** `adv_task_show` → `adv_task_update status: "in_progress"`
+2. **Red:** `[ADV:TDD_RED]` → write failing test → run → show failure evidence
+3. **Green:** `[ADV:TDD_GREEN]` → implement → run → if fails: apply retry protocol from skill → show pass evidence
+4. **Verify:** Run build/tests/lint → retry protocol if failures
+5. **Complete:** `adv_task_update status: "done"` → emit CONTRACT STATUS
+6. **Next:** `adv_task_ready` → next task
 
-Diagnosis MUST appear before fix. Each attempt must have different diagnosis and approach.
-
-### Recording
-
-After each failed attempt: `adv_task_update taskId: {id} status: "in_progress" notes: "RETRY {n}/3 - {error_class}: {last_error}"`
-
-The `error_recovery` field on task JSON captures: `last_error`, `retry_count`, `max_retries`, `error_class` (TRANSIENT|SEMANTIC|ENVIRONMENTAL|FATAL), `next_strategy`. Left as-is on success (historical record).
-
-### Budget Exhaustion (3 retries failed)
-
-Emit RETRY BUDGET EXHAUSTED banner showing all 3 attempts (diagnosis, fix, result for each). Classify blocking reason: SEMANTIC, KNOWLEDGE, or ENVIRONMENTAL.
-
-Ask via `question` tool: Provide hint (Recommended), Take over task, Void contract. × "Skip task" is NOT an option.
+For `metadata.tdd_intent: "not_applicable"` tasks: skip Red/Green phases, verify manually, include rationale.
 
 ---
 
-## Phase 3: TDD Work Loop
+## Phase 3: Final Verification + Completion
 
-### Context Freshness (MANDATORY)
+**Global final loop:** Run full build + all tests + lint + type check. If any fail → retry protocol → continue until pass or budget exhausted.
 
-Before EACH task:
-1. `adv_change_show` → refresh context
-2. Check specific task details
-3. Read relevant proposal sections
+**Pre-completion checklist:** All tasks done or properly cancelled (each with `cancellation.approved_by_user: true`), no tasks skipped/deferred, all trivial skips have rationale.
 
-× Do NOT batch tasks into local todo list with descriptive blurbs.
+**Final validation:** `adv_change_validate` → must pass. `adv_gate_complete gateId: execution`.
 
-### Worktree Context for Sub-Agents
-
-Include `WORKING DIRECTORY: {workdir}` in every sub-agent prompt. Detect via `pwd`. Critical in worktrees — sub-agents inherit default project root, not worktree path.
-
-### TodoWrite Rules
-
-Use task IDs only (`tk-abc123`), not descriptions. Forces context lookup via `adv_task_show`.
-
-### Anti-Patterns (PROHIBITED)
-
-| × Anti-Pattern | ✓ Correct |
-|----------------|-----------|
-| "Let's skip/defer this" | Apply retry protocol |
-| "This might need manual work" | Try 3 times first |
-| "I'm not sure how to proceed" | Research, diagnose, attempt |
-| "Would you like me to skip?" | Never offer skip |
-| "Tests are flaky, marking done" | Fix flaky tests or document as environmental |
-| Marking "blocked" after 1 try | Must attempt 3 distinct fixes |
-| "This targets another repo" | Switch workdir and execute |
-
-### Task Flow
-
-`adv_task_ready changeId: <id>` → for each ready task:
-
-**3a. Start:** Refresh context (MANDATORY) → `adv_task_update status: "in_progress"`
-
-**3b. Red Phase:** `[ADV:TDD_RED]` → write failing test → run → show failure evidence
-
-**3c. Green Phase:** `[ADV:TDD_GREEN]` → implement → run → if fails: retry protocol → show pass evidence
-
-**3d. Complete:** `adv_task_update status: "done"` → show evidence
-
-**3e. Refresh:** `adv_task_ready` → next task
-
-### Incremental Verification
-
-After EACH task: run build/tests/lint → if fails: retry protocol → only mark complete after pass.
+Emit CONTRACT FULFILLED: objective, criteria met, cancelled tasks (if any), completion mode (UNASSISTED/GUIDED/PARTIAL TAKEOVER), gate status. Next: `/adv-review {change-id}`.
 
 ---
 
-## Phase 4: Progress Tracking
-
-After EACH task, emit CONTRACT STATUS from `adv_task_list`: task checkboxes with status/evidence, phase indicator, done/total count.
-
----
-
-## Phase 5: Global Final Loop
-
-Before CONTRACT FULFILLED: run full build + all tests + lint + type check. If any fail → retry protocol → continue until pass or budget exhausted.
-
----
-
-## Phase 6: Completion
-
-### Pre-Completion Checklist
-
-Verify: all tasks done or properly cancelled, no tasks skipped/deferred, all "trivial" skips have rationale.
-
-### Cancelled Task Verification
-
-If cancelled tasks exist → verify each has `cancellation.approved_by_user: true`. If any lack approval → ask via `question` tool for retroactive approval.
-
-### Final Validation
-
-`adv_change_validate changeId: <target>` → must pass.
-
-### Mark Gate
-
-`adv_gate_complete changeId: {change-id} gateId: execution`
-
-### Contract Fulfilled Banner
-
-Emit: objective, all criteria met, cancelled tasks (if any with reasons), completion mode (UNASSISTED / GUIDED / PARTIAL TAKEOVER), gate status.
-
-Completion modes:
-- UNASSISTED: all tasks done by agent, no hints
-- GUIDED: agent completed all but needed user hints for some
-- PARTIAL TAKEOVER: user manually completed some tasks
-
-```
-/adv-apply {change-id} COMPLETE
-Result: CONTRACT FULFILLED
-Completion: {mode}
-Tasks: {completed}/{total}
-Execution Gate: MARKED COMPLETE
-Next: /adv-review {change-id}
-```
-
----
-
-## Trivial Tasks
-
-For tasks with `metadata.tdd_intent: "not_applicable"` (docs, config, non-code): skip Red/Green phases, verify manually, include rationale in status.
-
----
-
-## Key Principle
-
-All state lives in ADV tools. Contract banners are views, not source of truth.
+## Key Tools
 
 | State | Tool |
 |-------|------|
 | Task status | `adv_task_update` |
+| Task details | `adv_task_show` |
 | Task list | `adv_task_list` |
 | Ready tasks | `adv_task_ready` |
 | Change data | `adv_change_show` |

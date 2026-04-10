@@ -358,6 +358,59 @@ describe("Advance Plugin SDK Integration", () => {
   });
 
   describe("Hooks", () => {
+    test("experimental.chat.system.transform injects provider hint for OpenAI models", async () => {
+      const hooks = await createTrackedPlugin(tempDir, pluginInstances);
+
+      const transformHook = hooks["experimental.chat.system.transform"]!;
+      const hookOutput = { system: [] as string[] };
+      await transformHook(
+        { sessionID: "test", model: { providerID: "openai" } } as any,
+        hookOutput as any,
+      );
+
+      expect(
+        hookOutput.system.some((s) => s.includes("[ADV:PROVIDER_HINT]")),
+      ).toBe(true);
+      expect(
+        hookOutput.system.some((s) => s.includes("explicit numbered steps")),
+      ).toBe(true);
+    });
+
+    test("experimental.chat.system.transform injects provider hint for ZAI models", async () => {
+      const hooks = await createTrackedPlugin(tempDir, pluginInstances);
+
+      const transformHook = hooks["experimental.chat.system.transform"]!;
+      const hookOutput = { system: [] as string[] };
+      await transformHook(
+        { sessionID: "test", model: { providerID: "zai-coding-plan" } } as any,
+        hookOutput as any,
+      );
+
+      expect(
+        hookOutput.system.some((s) => s.includes("[ADV:PROVIDER_HINT]")),
+      ).toBe(true);
+      expect(
+        hookOutput.system.some((s) =>
+          s.includes("restate the task before acting"),
+        ),
+      ).toBe(true);
+    });
+
+    test("experimental.chat.system.transform does not inject provider hint for baseline providers", async () => {
+      const hooks = await createTrackedPlugin(tempDir, pluginInstances);
+
+      const transformHook = hooks["experimental.chat.system.transform"]!;
+      const hookOutput = { system: [] as string[] };
+      await transformHook(
+        { sessionID: "test", model: { providerID: "anthropic" } } as any,
+        hookOutput as any,
+      );
+
+      expect(
+        hookOutput.system.some((s) => s.includes("[ADV:PROVIDER_HINT]")),
+      ).toBe(false);
+    });
+
     test("experimental.chat.system.transform does NOT inject dynamic wisdom or continuation", async () => {
       const hooks = await createTrackedPlugin(tempDir, pluginInstances);
 

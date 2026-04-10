@@ -84,7 +84,9 @@ Combine: drift findings (by severity), conflicts, unmapped specs, orphans, malfo
 
 ## Phase 4: Remediation (Optional)
 
-If ALIGNED → skip to report. If drift → ask via `question`: Fix all (Recommended), Fix high only, Report only, Accept current.
+If ALIGNED → skip to report.
+
+If drift → default to reporting findings. Ask via `question` only when the user explicitly wants remediation, partial-fix prioritization, or debt acceptance guidance.
 
 If fixing → establish contract → spawn fix sub-agents.
 

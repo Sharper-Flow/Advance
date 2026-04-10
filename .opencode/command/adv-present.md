@@ -22,7 +22,7 @@ Present the completed design back to the user in a concise, decision-oriented fo
 ## Target Resolution
 
 1. If change-id provided → use directly
-2. If empty → `adv_change_list` → select via `question` tool
+2. If empty → `adv_change_list` → auto-select the only plausible change; ask via `question` only if multiple plausible targets remain
 
 ---
 

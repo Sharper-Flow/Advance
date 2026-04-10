@@ -23,7 +23,7 @@ Validate change proposal against deployed specs via `adv_change_validate`.
 Parse `$ARGUMENTS`: `change-id`, `--strict`.
 
 1. If change-id provided → use directly
-2. If empty → `adv_change_list` → select via `question` tool
+2. If empty → `adv_change_list` → auto-select the only plausible change; ask via `question` only if multiple plausible targets remain
 
 ---
 

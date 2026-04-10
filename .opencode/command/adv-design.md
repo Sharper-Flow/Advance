@@ -22,7 +22,7 @@ Convert the confirmed agreement into a concrete technical design. This command c
 ## Target Resolution
 
 1. If change-id provided → use directly
-2. If empty → `adv_change_list` → select via `question` tool
+2. If empty → `adv_change_list` → auto-select the only plausible change; ask via `question` only if multiple plausible targets remain
 
 ---
 

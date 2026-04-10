@@ -219,10 +219,13 @@ Trivial tasks set `metadata.tdd_intent: "not_applicable"` with reason during pre
 
 ## Context Freshness Rules
 
-Before EACH task:
-1. Re-read change via `adv_change_show`
-2. Look up task via `adv_task_show` (returns full task + parent changeId)
-3. Review relevant proposal sections
+Load context in two tiers:
+
+**Phase start (once):** `adv_change_show` → full change context including proposal, design, gates, and task summary.
+
+**Per task:** `adv_task_show` → current task details and parent changeId only. Review proposal/design sections only when the task description references them.
+
+× Do NOT call `adv_change_show` before every task — it returns the entire change payload and wastes context on already-known information.
 
 **TodoWrite:** Use only task IDs (`tk-abc123`), not descriptions.
 This forces context lookup on every reference.

@@ -24,7 +24,7 @@ Gather the current-state evidence needed to move from proposal into a shared agr
 ## Target Resolution
 
 1. If change-id provided → use directly
-2. If empty → `adv_change_list` → select via `question` tool
+2. If empty → `adv_change_list` → auto-select the only plausible change; ask via `question` only if multiple plausible targets remain
 3. If none exist → stop and suggest `/adv-proposal`
 
 ---

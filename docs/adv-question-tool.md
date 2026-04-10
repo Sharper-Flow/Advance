@@ -1,7 +1,7 @@
 # ADV Question Tool Usage
 
-Use the `question` tool for predefined choices: confirmations, selections, doom loop recovery.
-Skip for: open-ended questions, debugging, free-form input.
+Use the `question` tool for predefined choices when the user must provide intent, approval, or preference: confirmations, subjective tradeoffs, acceptance, and doom loop recovery.
+Skip for: open-ended questions, debugging, free-form input, and deterministic classifications the agent can derive from code/specs/context.
 
 ## Schema
 
@@ -57,3 +57,4 @@ Formatted text/WYSIWYG input is best effort and depends on the client UI. Always
 3. Keep `custom: true` (or omit it to use default true)
 4. Answers are returned as arrays of labels
 5. Use `multiple: true` for multi-select
+6. Do not ask the user to classify things the agent can infer (change type, affected specs, obvious target selection, cross-repo scope)

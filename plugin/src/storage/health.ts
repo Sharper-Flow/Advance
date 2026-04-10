@@ -125,6 +125,7 @@ export function initDatabase(db: Database): void {
   // Optimize for concurrent workload
   db.exec("PRAGMA synchronous = NORMAL");
   db.exec("PRAGMA cache_size = -64000"); // 64MB cache
+  db.exec("PRAGMA temp_store = MEMORY"); // Keep temp tables in memory (avoids disk I/O for intermediate results)
 
   // Critical for concurrent access - wait up to 5 seconds for locks
   db.exec("PRAGMA busy_timeout = 5000");

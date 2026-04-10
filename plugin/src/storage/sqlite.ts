@@ -182,6 +182,15 @@ CREATE INDEX IF NOT EXISTS idx_task_metadata_change_key ON task_metadata (change
 -- Index for metadata:<key>=<value> queries (by change + key + value)
 CREATE INDEX IF NOT EXISTS idx_task_metadata_change_key_value ON task_metadata (change_id, key, value);
 
+-- Index for task queries filtered by change_id (list, ready, delete)
+CREATE INDEX IF NOT EXISTS idx_tasks_change_id ON tasks (change_id);
+
+-- Index for task queries filtered by change_id + status (list-by-status, pending)
+CREATE INDEX IF NOT EXISTS idx_tasks_change_status ON tasks (change_id, status);
+
+-- Index for dependency blocker resolution (join on target_id)
+CREATE INDEX IF NOT EXISTS idx_deps_target_id ON dependencies (target_id);
+
 -- Sync files with triple-attribute tracking (mtime_ms, size, inode)
 -- For reliable incremental sync: all three must match to skip re-sync
 CREATE TABLE IF NOT EXISTS sync_files (
@@ -687,9 +696,8 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
               now,
             );
 
-            // Delete old tasks (and their metadata via CASCADE)
+            // Delete old tasks (metadata cascades via ON DELETE CASCADE)
             stmts.tasksDeleteByChange.run(change.id);
-            stmts.taskMetadataDeleteByChange.run(change.id);
 
             // Insert tasks
             for (const task of change.tasks) {

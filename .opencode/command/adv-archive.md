@@ -22,7 +22,7 @@ Archive change → apply deltas to specs → mandatory Phase 9 Git Finalization 
 ## Target Resolution
 
 Parse `$ARGUMENTS`: `change-id` (required), `--dry-run` (optional).
-If empty → `adv_change_list` → select via `question` tool.
+If empty → `adv_change_list` → auto-select the only plausible change; ask via `question` only if multiple plausible targets remain.
 
 ---
 
