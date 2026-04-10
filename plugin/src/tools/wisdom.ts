@@ -75,17 +75,45 @@ export const wisdomTools = {
 
   adv_wisdom_list: {
     description:
-      "List all wisdom entries for a change. Returns accumulated learnings with summary by type.",
+      "List or search wisdom entries. Optionally filter by type or search via FTS. Omit changeId to aggregate across all active changes and project-level wisdom.",
     args: {
-      changeId: z.string().describe("Change ID to list wisdom for"),
+      changeId: z
+        .string()
+        .optional()
+        .describe("Change ID to list wisdom for (omit for cross-change aggregation)"),
+      type: WisdomTypeSchema.optional().describe(
+        "Filter by category: pattern | success | failure | gotcha | convention",
+      ),
+      query: z.string().optional().describe("FTS search term for relevance-ranked results"),
     },
-    execute: async ({ changeId }: { changeId: string }, store: Store) => {
+    execute: async (
+      { changeId, type, query }: { changeId?: string; type?: string; query?: string },
+      store: Store,
+    ) => {
       try {
-        const wisdom = await store.wisdom.list(changeId);
+        let wisdom: unknown[];
+        const wisdomType = type as
+          | "pattern" | "success" | "failure" | "gotcha" | "convention"
+          | undefined;
+
+        if (query) {
+          // FTS search path — route through store.wisdom.search
+          wisdom = await store.wisdom.search(query, { changeId, type: wisdomType });
+        } else if (!changeId) {
+          // Cross-change aggregation — route through store.wisdom.listAll
+          wisdom = await store.wisdom.listAll({ type: wisdomType });
+        } else {
+          // Change-specific path (existing behavior)
+          let entries = await store.wisdom.list(changeId);
+          if (wisdomType) {
+            entries = entries.filter((e) => e.type === wisdomType);
+          }
+          wisdom = entries;
+        }
 
         // Calculate summary by type
         const byType: Record<string, number> = {};
-        for (const entry of wisdom) {
+        for (const entry of wisdom as { type: string }[]) {
           byType[entry.type] = (byType[entry.type] || 0) + 1;
         }
 
@@ -146,7 +174,7 @@ export const wisdomTools = {
 
   adv_wisdom_promote: {
     description:
-      "Promote a change-level wisdom entry to project-level wisdom. Only durable, convention-level learnings should be promoted — not one-off fixes or session-specific notes.",
+      "Promote a change-level wisdom entry to project-level wisdom. Durable convention/pattern learnings are recommended, but any wisdom type may be promoted manually when needed.",
     args: {
       changeId: z.string().describe("Change ID containing the wisdom entry"),
       wisdomId: z

@@ -5,6 +5,7 @@
  */
 
 import { join } from "path";
+import { statSync } from "node:fs";
 import { mkdir } from "fs/promises";
 import { nanoid } from "nanoid";
 import {
@@ -203,6 +204,15 @@ export interface Store {
     ) => Promise<WisdomEntry>;
     /** List all wisdom entries for a change */
     list: (changeId: string) => Promise<WisdomEntry[]>;
+    /** FTS search across change-level and project-level wisdom */
+    search: (
+      query: string,
+      options?: { changeId?: string; type?: WisdomType },
+    ) => Promise<{ id: string; scope: string; change_id: string | null; type: string; content: string; match: string; rank: number }[]>;
+    /** Aggregate wisdom from all active changes + project-level, with dedup */
+    listAll: (
+      options?: { type?: WisdomType },
+    ) => Promise<Array<WisdomEntry & { scope: string; change_id?: string }>>;
   };
 
   // Gates (7-gate quality checklist)
@@ -400,6 +410,9 @@ export async function createStore(
   // Full sync promises (for list/search operations that need everything)
   let allSpecsSyncPromise: Promise<void> | null = null;
   let allChangesSyncPromise: Promise<void> | null = null;
+
+  // Project wisdom sync state
+  let projectWisdomSynced = false;
 
   /**
    * Reconcile the derived SQLite change/task cache against JSON source of truth.
@@ -602,6 +615,56 @@ export async function createStore(
   };
 
   /**
+   * Ensure project-level wisdom.jsonl is synced to SQLite.
+   * Lazy — synced once per session via projectWisdomSynced flag.
+   */
+  const ensureProjectWisdomSynced = async (): Promise<void> => {
+    if (closed) return;
+
+    const wisdomPath = paths.wisdom;
+    let attrs;
+    try {
+      const s = statSync(wisdomPath);
+      attrs = { mtime_ms: Math.floor(s.mtimeMs), size: s.size, inode: s.ino };
+    } catch {
+      attrs = undefined;
+    }
+
+    if (!attrs) {
+      sqlite.wisdom.deleteProjectScope();
+      sqlite.syncFiles.deleteFileRecord(wisdomPath);
+      projectWisdomSynced = true;
+      return;
+    }
+
+    if (projectWisdomSynced && !sqlite.syncFiles.needsSync(wisdomPath, attrs)) {
+      return;
+    }
+
+    try {
+      const { listProjectWisdom: listPW } = await import("./project-wisdom");
+      const entries = await listPW(paths.root, { wisdomPath });
+      sqlite.wisdom.deleteProjectScope();
+      if (entries.length > 0) {
+        sqlite.wisdom.upsertProject(
+          entries.map((e) => ({
+            id: e.id,
+            type: e.type,
+            content: e.content,
+            source_change: e.source_change,
+            source_task: e.source_task,
+            promoted_at: e.promoted_at,
+          })),
+        );
+      }
+      sqlite.syncFiles.markSynced(wisdomPath, attrs);
+      projectWisdomSynced = true;
+    } catch {
+      projectWisdomSynced = false; // allow retry on failure
+    }
+  };
+
+  /**
    * Resolve a taskId to its Task, parent Change, and changeId.
    * Extracted to DRY up the 6 methods that all need this lookup.
    * Not exposed on the Store interface — internal to the closure.
@@ -734,7 +797,7 @@ export async function createStore(
     });
   };
 
-  // Legacy flag for backwards compatibility
+  // Guards against redundant full-sync after the first successful full sync.
   let synced = false;
 
   const store: Store = {
@@ -999,6 +1062,9 @@ export async function createStore(
       save: async (change) => {
         const jsonPath = await saveChange(paths.changes, change);
         sqlite.changes.upsert(change, jsonPath);
+        // Sync wisdom entries to SQLite cache whenever a change is saved
+        sqlite.wisdom.deleteByChange(change.id);
+        sqlite.wisdom.upsertBatch(change.id, change.wisdom ?? []);
         if (shouldCheckpoint(dbPath)) {
           checkpointWAL(sqlite.db);
         }
@@ -1291,6 +1357,17 @@ export async function createStore(
             change.wisdom = [];
           }
 
+          // Dedup guard: reject exact-match (content.trim(), type) within same change
+          const trimmedContent = content.trim();
+          const duplicate = change.wisdom.some(
+            (e) => e.content.trim() === trimmedContent && e.type === type,
+          );
+          if (duplicate) {
+            throw new Error(
+              `Duplicate wisdom entry: identical content and type "${type}" already exists in this change`,
+            );
+          }
+
           const entry: WisdomEntry = WisdomEntrySchema.parse({
             id: `ws-${nanoid(6)}`,
             type,
@@ -1309,6 +1386,48 @@ export async function createStore(
       list: async (changeId) => {
         const change = await loadChangeOrThrow(changeId);
         return change.wisdom ?? [];
+      },
+
+      search: async (query, options) => {
+        // Sync change to SQLite if changeId is provided
+        if (options?.changeId) {
+          await ensureChangeSynced(options.changeId);
+        }
+        // Sync project wisdom lazily
+        await ensureProjectWisdomSynced();
+
+        return sqlite.wisdom.search(query, {
+          changeId: options?.changeId,
+          type: options?.type,
+        });
+      },
+
+      listAll: async (options) => {
+        // Sync all active changes + project wisdom
+        await ensureAllChangesSynced();
+        await ensureProjectWisdomSynced();
+
+        // Load from SQLite unified cache
+        const rows = sqlite.wisdom.listAll({ type: options?.type });
+
+        // Dedup by (content.trim(), type) — first occurrence wins
+        const seen = new Map<string, typeof rows[0]>();
+        for (const row of rows) {
+          const key = `${row.content.trim()}::${row.type}`;
+          if (!seen.has(key)) {
+            seen.set(key, row);
+          }
+        }
+
+        return Array.from(seen.values()).map((row) => ({
+          id: row.id,
+          type: row.type as WisdomEntry["type"],
+          content: row.content,
+          source_task: row.source_task ?? undefined,
+          recorded_at: row.recorded_at,
+          scope: row.scope,
+          change_id: row.change_id ?? undefined,
+        }));
       },
     },
 

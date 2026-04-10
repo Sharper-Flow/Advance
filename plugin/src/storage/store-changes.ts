@@ -162,6 +162,8 @@ export function createChangesOps(
       return withChangeLock(ctx, change.id, async () => {
         const jsonPath = await saveChange(paths.changes, change);
         ctx.sqlite.changes.upsert(change, jsonPath);
+        ctx.sqlite.wisdom.deleteByChange(change.id);
+        ctx.sqlite.wisdom.upsertBatch(change.id, change.wisdom ?? []);
         if (shouldCheckpoint(ctx.dbPath)) {
           checkpointWAL(ctx.sqlite.db);
         }

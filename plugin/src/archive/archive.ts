@@ -5,7 +5,7 @@
  * Coordinates delta application, spec updates, and doc generation.
  */
 
-import { join } from "path";
+import { join, dirname } from "path";
 import { readdir, readFile } from "fs/promises";
 import { atomicWriteFile } from "../utils/fs";
 import type { Spec, Change } from "../types";
@@ -17,6 +17,11 @@ import type {
 } from "./types";
 import { applyDeltasToSpec, createSpecFromDeltas } from "./delta";
 import { generateSpecDocFile } from "./docs";
+import {
+  addProjectWisdom,
+  listProjectWisdom,
+  compactProjectWisdom,
+} from "../storage/project-wisdom";
 
 /**
  * Archive a change - applies deltas to specs and generates documentation.
@@ -90,6 +95,49 @@ export async function archiveChange(
     }
   }
 
+  // Auto-promote convention/pattern wisdom to project level
+  let wisdomPromoted = 0;
+  if (!dryRun && paths.wisdom && change.wisdom && change.wisdom.length > 0) {
+    // Types eligible for promotion: convention and pattern only
+    const promotableTypes = new Set(["convention", "pattern"]);
+    const promotable = change.wisdom.filter((w) => promotableTypes.has(w.type));
+
+    if (promotable.length > 0) {
+      // Load existing project wisdom to avoid duplicates
+      const projectDir = dirname(dirname(paths.wisdom)); // project dir derived from wisdom path
+      const existing = await listProjectWisdom(projectDir, {
+        wisdomPath: paths.wisdom,
+      });
+      const existingContents = new Set(existing.map((e) => e.content));
+
+      for (const entry of promotable) {
+        if (!existingContents.has(entry.content)) {
+          try {
+            await addProjectWisdom(projectDir, {
+              type: entry.type,
+              content: entry.content,
+              sourceChange: change.id,
+              sourceTask: entry.source_task,
+              wisdomPath: paths.wisdom,
+            });
+            wisdomPromoted++;
+          } catch (err) {
+            errors.push(`Failed to promote wisdom "${entry.content}": ${err}`);
+          }
+        }
+      }
+
+      // Compact if we added entries (enforce cap)
+      if (wisdomPromoted > 0) {
+        try {
+          await compactProjectWisdom(projectDir, { wisdomPath: paths.wisdom });
+        } catch (err) {
+          errors.push(`Failed to compact project wisdom: ${err}`);
+        }
+      }
+    }
+  }
+
   // Create archive directory and copy change (+ sibling files if changes dir provided)
   const sourceChangeDir = paths.changes
     ? join(paths.changes, change.id)
@@ -110,6 +158,7 @@ export async function archiveChange(
     archivePath,
     errors,
     archivedAt: new Date().toISOString(),
+    ...(wisdomPromoted > 0 && { wisdomPromoted }),
   };
 }
 

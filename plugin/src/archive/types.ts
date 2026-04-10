@@ -57,6 +57,8 @@ export interface ArchiveOperationResult {
   errors: string[];
   /** Timestamp of archive operation */
   archivedAt: string;
+  /** Number of wisdom entries auto-promoted to project level */
+  wisdomPromoted?: number;
 }
 
 // =============================================================================
@@ -99,6 +101,8 @@ export interface ArchiveContext {
     docs: string;
     /** Source changes directory — when provided, sibling files (proposal.md, problem-statement.md) are copied to archive */
     changes?: string;
+    /** Project wisdom file path — when provided, convention/pattern wisdom is auto-promoted during archive */
+    wisdom?: string;
   };
   /** Whether to perform a dry run (no writes) */
   dryRun?: boolean;

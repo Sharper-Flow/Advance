@@ -14,6 +14,8 @@ import {
   buildChangeRecency,
   type Store,
 } from "./store";
+import { createSQLiteStore, type SQLiteStore } from "./sqlite";
+import { initDatabase } from "./health";
 import {
   createTempDir,
   cleanupTempDir,
@@ -931,5 +933,56 @@ describe("buildChangeRecency", () => {
 
     expect(rc.minutesSinceActivity).toBe(120);
     expect(rc.recency).toBe("warm");
+  });
+});
+
+describe("wisdom SQLite sync (tk-rD2wRJMK)", () => {
+  let tempDir: string;
+  let store: Store;
+  let rawDb: SQLiteStore;
+
+  beforeEach(async () => {
+    tempDir = await createTempDir();
+    await createTestProject(tempDir);
+    store = await createStore(tempDir);
+    const dbPath = join(tempDir, ".adv", "db", "spec.db");
+    rawDb = createSQLiteStore(dbPath);
+    initDatabase(rawDb.db);
+  });
+
+  afterEach(async () => {
+    rawDb.close();
+    store.close();
+    await cleanupTempDir(tempDir);
+  });
+
+  test("after store.wisdom.add(), wisdom entry appears in SQLite wisdom table", async () => {
+    await store.wisdom.add("addFeature", "pattern", "dependency injection for testability");
+
+    const rows = rawDb.db
+      .query("SELECT * FROM wisdom WHERE change_id = ?")
+      .all("addFeature") as { id: string; content: string; scope: string }[];
+    expect(rows.length).toBeGreaterThan(0);
+    expect(rows[0].content).toBe("dependency injection for testability");
+    expect(rows[0].scope).toBe("change");
+  });
+
+  test("after save, SQLite wisdom table reflects current change.wisdom[]", async () => {
+    // Add an entry and verify it's in SQLite
+    await store.wisdom.add("addFeature", "gotcha", "always validate at boundaries");
+
+    const rowsBefore = rawDb.db
+      .query("SELECT id FROM wisdom WHERE change_id = ?")
+      .all("addFeature") as { id: string }[];
+    expect(rowsBefore).toHaveLength(1);
+  });
+
+  test("FTS search finds entry added via store.wisdom.add()", async () => {
+    await store.wisdom.add("addFeature", "pattern", "use circuit breaker pattern for resilience");
+
+    const ftsResults = rawDb.db
+      .query("SELECT id FROM wisdom_fts WHERE wisdom_fts MATCH ?")
+      .all("circuit breaker") as { id: string }[];
+    expect(ftsResults.length).toBeGreaterThan(0);
   });
 });

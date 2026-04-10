@@ -121,6 +121,49 @@ describe("formatContextSnapshot", () => {
     const output = formatContextSnapshot(input);
     expect(output).toContain("Success: ? criteria");
   });
+
+  // Wisdom line tests (tk-VRoeOJTG)
+  test("shows wisdom line when wisdomCount > 0", () => {
+    const input: ContextSnapshotInput = {
+      ...baseInput,
+      wisdomCount: 5,
+      wisdomByType: { pattern: 2, gotcha: 1, convention: 1, success: 1 },
+    };
+    const output = formatContextSnapshot(input);
+    expect(output).toContain("Wisdom: 5 entries");
+    expect(output).toContain("2 pattern");
+    expect(output).toContain("1 gotcha");
+    expect(output).toContain("1 convention");
+  });
+
+  test("omits wisdom line when wisdomCount is 0", () => {
+    const input: ContextSnapshotInput = {
+      ...baseInput,
+      wisdomCount: 0,
+      wisdomByType: {},
+    };
+    const output = formatContextSnapshot(input);
+    expect(output).not.toContain("Wisdom:");
+  });
+
+  test("omits wisdom line when wisdomCount is undefined", () => {
+    const output = formatContextSnapshot(baseInput);
+    expect(output).not.toContain("Wisdom:");
+  });
+
+  test("fits within 10 lines with wisdom line and current task", () => {
+    const input: ContextSnapshotInput = {
+      ...baseInput,
+      currentTask: { id: "tk-abc123", title: "Implement feature X" },
+      wisdomCount: 3,
+      wisdomByType: { convention: 2, pattern: 1 },
+    };
+    const output = formatContextSnapshot(input);
+    const lines = output.split("\n");
+    expect(lines.length).toBeLessThanOrEqual(10);
+    expect(output).toContain("Wisdom: 3 entries");
+    expect(output).toContain("tk-abc123");
+  });
 });
 
 describe("formatCrossRepoSwitch", () => {

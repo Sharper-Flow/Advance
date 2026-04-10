@@ -4,8 +4,8 @@
  * JSONL-based storage for durable cross-change learnings.
  * Mirrors agenda.ts patterns: append-only, atomic writes, compaction.
  *
- * Only convention-level, durable learnings should be promoted here.
- * Cap at 50 entries. Convention entries are prioritized during pruning.
+ * Only durable learnings should be promoted here.
+ * Cap at 50 entries. Convention and pattern entries are prioritized during pruning.
  */
 
 import { readFile, appendFile, mkdir } from "fs/promises";
@@ -33,6 +33,10 @@ export interface ProjectWisdomEntry {
   source_task?: string;
   /** ISO8601 timestamp when promoted to project level */
   promoted_at: string;
+  /** Optional relevance tags for future filtering (e.g. ["sqlite", "auth"]) */
+  tags?: string[];
+  /** If set, identifies the change that superseded this wisdom (soft-delete marker) */
+  invalidated_by?: string;
 }
 
 /**
@@ -46,6 +50,9 @@ export const ProjectWisdomEntrySchema = z.object({
   source_change: z.string().optional(),
   source_task: z.string().optional(),
   promoted_at: z.string().datetime({ offset: true }),
+  // Optional staleness metadata — new fields, backwards compatible
+  tags: z.array(z.string()).optional(),
+  invalidated_by: z.string().optional(),
 });
 
 // =============================================================================
@@ -89,6 +96,10 @@ export async function addProjectWisdom(
     content: string;
     sourceChange?: string;
     sourceTask?: string;
+    /** Optional relevance tags for future filtering */
+    tags?: string[];
+    /** If set, marks this entry as superseding a prior wisdom entry */
+    invalidated_by?: string;
     /** Override path — pass ProjectPaths.wisdom for external state support */
     wisdomPath?: string;
   },
@@ -121,6 +132,8 @@ export async function addProjectWisdom(
     source_change: input.sourceChange,
     source_task: input.sourceTask,
     promoted_at: new Date().toISOString(),
+    ...(input.tags !== undefined && { tags: input.tags }),
+    ...(input.invalidated_by !== undefined && { invalidated_by: input.invalidated_by }),
   };
 
   const releaseLock = await acquireFileLock(path);
@@ -211,7 +224,7 @@ export async function listProjectWisdom(
 
 /**
  * Compact project wisdom: prune entries beyond cap.
- * Prioritizes convention entries — removes oldest non-convention entries first.
+ * Prioritizes convention and pattern entries — removes oldest non-priority entries first.
  * Uses atomic write to prevent corruption.
  */
 export async function compactProjectWisdom(

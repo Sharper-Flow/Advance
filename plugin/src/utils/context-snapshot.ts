@@ -31,6 +31,10 @@ export interface ContextSnapshotInput {
   };
   workdir?: string;
   currentTask?: { id: string; title: string };
+  /** Total wisdom entries for this change */
+  wisdomCount?: number;
+  /** Breakdown by type (e.g. { pattern: 2, gotcha: 1 }) */
+  wisdomByType?: Record<string, number>;
 }
 
 export function countSuccessCriteria(
@@ -132,6 +136,8 @@ export function formatContextSnapshot(input: ContextSnapshotInput): string {
     taskCounts,
     workdir,
     currentTask,
+    wisdomCount,
+    wisdomByType,
   } = input;
 
   const gateProgress = formatGateProgress(input.gates);
@@ -147,7 +153,22 @@ export function formatContextSnapshot(input: ContextSnapshotInput): string {
   if (taskParts.length === 0) taskParts.push("0 done | 0 active | 0 pending");
   const taskLine = `Tasks: ${taskParts.join(" | ")}`;
 
-  // Build content lines
+  // Build wisdom line (compact type breakdown)
+  const hasWisdom = wisdomCount !== undefined && wisdomCount > 0;
+  let wisdomLine: string | undefined;
+  if (hasWisdom) {
+    const typeParts = wisdomByType
+      ? Object.entries(wisdomByType)
+          .filter(([, count]) => count > 0)
+          .map(([type, count]) => `${count} ${type}`)
+          .join(", ")
+      : "";
+    wisdomLine = typeParts
+      ? `Wisdom: ${wisdomCount} entries (${typeParts})`
+      : `Wisdom: ${wisdomCount} entries`;
+  }
+
+  // Build content lines — budget management to stay within 10 lines
   const lines: string[] = [
     `CONTEXT: ${changeId}`,
     title,
@@ -156,6 +177,21 @@ export function formatContextSnapshot(input: ContextSnapshotInput): string {
     `Success: ${successCriteriaCount ?? "?"} criteria`,
     taskLine,
   ];
+
+  // Budget: we have 3 remaining line slots (10 total - 2 box borders - 5 fixed lines above)
+  // Priority: wisdom line > success criteria (already included) > current task
+  // When both currentTask AND wisdom are present, we still fit (9 content lines = 11 total with borders)
+  // which is close enough — but let's drop the Success line if we need to save space
+  const hasCurrentTask = !!currentTask;
+  const needBudgetTrim = hasCurrentTask && hasWisdom;
+  if (needBudgetTrim) {
+    // Remove Success line to make room for both Current and Wisdom
+    lines.splice(4, 1); // Remove "Success: ..." line
+  }
+
+  if (hasWisdom && wisdomLine) {
+    lines.push(wisdomLine);
+  }
 
   if (currentTask) {
     const taskDesc =

@@ -153,6 +153,13 @@ export const changeTools = {
         currentTask: inProgressTask
           ? { id: inProgressTask.id, title: inProgressTask.title }
           : undefined,
+        wisdomCount: change.wisdom?.length ?? 0,
+        wisdomByType: change.wisdom
+          ? change.wisdom.reduce<Record<string, number>>((acc, w) => {
+              acc[w.type] = (acc[w.type] || 0) + 1;
+              return acc;
+            }, {})
+          : undefined,
       };
 
       const output: Record<string, unknown> = {
@@ -721,10 +728,15 @@ export const changeTools = {
       }
 
       // Run the archive operation
+      const archivePaths =
+        store.config?.features?.wisdom_accumulation === false
+          ? { ...store.paths, wisdom: undefined }
+          : store.paths;
+
       const archiveResult = await archiveChange({
         change,
         specs,
-        paths: store.paths,
+        paths: archivePaths,
         dryRun,
       });
 
