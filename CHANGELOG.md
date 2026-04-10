@@ -9,9 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-#### Discover Skill Duplication — Trim Restated Checklist Content
+#### Skill Duplication — Trim Restated Checklist Content Across All Methodology Skills
 
-- **Trimmed `skills/adv-discover-methodology/SKILL.md`** from 113→43 lines by removing per-step detail sections that duplicated `docs/checklists/discover-checklist.md`. The skill now follows the canonical-source pattern used by `adv-harden-methodology` (85L) and `adv-review-methodology` (71L): protocol overview table + constraints only, with explicit deferral to the checklist for detailed rules.
+- **Trimmed `skills/adv-discover-methodology/SKILL.md`** from 113→43 lines by removing per-step detail sections that duplicated `docs/checklists/discover-checklist.md`.
+- **Trimmed `skills/adv-harden-methodology/SKILL.md`** from 85→37 lines by removing severity scoring, tech debt quadrant, status determination, minimum findings, and documentation hygiene sections that duplicated `docs/checklists/harden-checklist.md`.
+- **Trimmed `skills/adv-review-methodology/SKILL.md`** from 71→55 lines by removing minimum findings threshold and verdict criteria sections that duplicated `docs/checklists/review-checklist.md`.
+- All three skills now follow the canonical-source pattern: framework overview table + constraints only, with explicit deferral to their checklist for detailed rules.
 
 ### Improved
 

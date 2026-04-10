@@ -11,9 +11,9 @@ metadata:
 
 ## Purpose
 
-Reusable hardening methodology for ADV harden workflows. Provides the 6-scanner framework, severity scoring, technical debt quadrant, and status determination criteria.
+Reusable hardening methodology for ADV harden workflows. Provides the 6-scanner framework overview.
 
-**Canonical source:** `docs/checklists/harden-checklist.md` — this skill references that checklist; do not duplicate its content here.
+**Canonical source:** `docs/checklists/harden-checklist.md` — see that checklist for severity scoring, priority matrix, status determination, minimum findings threshold, documentation hygiene standard, and technical debt classification. Do not duplicate its content here.
 
 ## 6-Scanner Framework
 
@@ -30,52 +30,7 @@ Every hardening pass must run all 6 scanners:
 
 All 6 must be executed. Skipping requires explicit justification.
 
-## Severity Scoring
-
-| Severity | Criteria |
-|----------|----------|
-| BLOCKER | Security risk, data loss, crashes |
-| HIGH | Silent failures, maintainability crisis |
-| MEDIUM | Technical debt accumulation |
-| LOW | Style issues, minor inefficiencies |
-
-### Priority Matrix (Impact x Effort)
-
-```
-Impact (1-5): Security=5, Production=4, Friction=3, Debt=2, Style=1
-Effort (1-5): <1hr=5, <1day=4, <1week=3, <1sprint=2, >1sprint=1
-Priority = Impact x Effort
-  20-25: Critical | 12-19: High | 6-11: Medium | 1-5: Low
-```
-
-## Technical Debt Quadrant
-
-Classify debt using Fowler's quadrant:
-
-| | Prudent | Reckless |
-|---|---------|----------|
-| **Deliberate** | "Ship now, fix later" → Track | "No time for design" → Escalate |
-| **Inadvertent** | "Now we know better" → Refactor | "What's layering?" → Train |
-
-## Status Determination
-
-| Status | Criteria |
-|--------|----------|
-| READY | No BLOCKER, no HIGH, ≤3 MEDIUM |
-| NEEDS_WORK | No BLOCKER but HIGH or >3 MEDIUM |
-| BLOCKED | Any BLOCKER |
-
-## Minimum Findings Threshold
-
-At least 3 non-nit findings per hardening pass. If fewer, require genuinely-clean justification with scanner-level evidence per the canonical checklist.
-
-## Documentation Hygiene Standard
-
-1. **Delete > Update** — if >80% stale or superseded, delete it
-2. **No Conflicts** — docs contradicting implementation are BLOCKER
-3. **No Duplication** — information lives in ONE canonical location
-4. **Succinct** — scannable in <30 seconds; tables and bullets over prose
-5. **Long-term Value** — document what agents need across sessions
+See `docs/checklists/harden-checklist.md` for detailed per-scanner rules, severity scoring, status determination criteria, and genuinely-clean justification requirements.
 
 ## Constraints
 

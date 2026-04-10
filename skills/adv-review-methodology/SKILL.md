@@ -11,9 +11,9 @@ metadata:
 
 ## Purpose
 
-Reusable code review methodology for ADV review workflows. Provides the 12-dimension framework, conventional comment labels, minimum findings threshold, and verdict criteria.
+Reusable code review methodology for ADV review workflows. Provides the 12-dimension framework and conventional comment labels.
 
-**Canonical source:** `docs/checklists/review-checklist.md` — this skill references that checklist; do not duplicate its content here.
+**Canonical source:** `docs/checklists/review-checklist.md` — see that checklist for minimum findings threshold, verdict criteria, remediation protocol, and sub-agent failure handling. Do not duplicate its content here.
 
 ## 12-Dimension Framework
 
@@ -49,19 +49,7 @@ All 12 must be checked. Skipping requires explicit justification.
 
 Format: `{label}: [{file}:{line}] {what}` + `Why: {why}` + `Fix: {how}` (optional).
 
-## Minimum Findings Threshold
-
-At least 3 non-nit findings per review. If fewer, require genuinely-clean justification with file-level evidence per the canonical checklist.
-
-## Verdict Criteria
-
-| Verdict | Criteria |
-|---------|----------|
-| BLOCKED | Any `blocker:` |
-| CHANGES_REQUESTED | Any `issue:` (no blockers) |
-| APPROVED | Only suggestion/nit/none |
-
-Approve when change "definitely improves overall code health." Block only on: security vulns, correctness bugs, system health degradation, missing tests for risky changes.
+See `docs/checklists/review-checklist.md` for minimum findings threshold, verdict criteria, genuinely-clean justification requirements, and mandatory remediation protocol.
 
 ## Constraints
 
