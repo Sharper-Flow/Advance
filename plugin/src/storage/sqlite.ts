@@ -182,12 +182,6 @@ CREATE INDEX IF NOT EXISTS idx_task_metadata_change_key ON task_metadata (change
 -- Index for metadata:<key>=<value> queries (by change + key + value)
 CREATE INDEX IF NOT EXISTS idx_task_metadata_change_key_value ON task_metadata (change_id, key, value);
 
--- Sync metadata
-CREATE TABLE IF NOT EXISTS sync_meta (
-  key TEXT PRIMARY KEY,
-  value TEXT NOT NULL
-);
-
 -- Sync files with triple-attribute tracking (mtime_ms, size, inode)
 -- For reliable incremental sync: all three must match to skip re-sync
 CREATE TABLE IF NOT EXISTS sync_files (
@@ -219,6 +213,7 @@ export interface SQLiteStore {
     list: (specName: string) => RequirementRow[];
     get: (id: string) => RequirementRow | null;
     search: (query: string, limit?: number) => SearchResult[];
+    specsByTag: (tag: string) => string[];
   };
 
   // Changes
@@ -235,13 +230,13 @@ export interface SQLiteStore {
     get: (id: string) => TaskRow | null;
     ready: (changeId: string) => { ready: TaskRow[]; blocked: BlockedTask[] };
     update: (id: string, updates: Partial<Task>) => void;
+    countByChange: () => { change_id: string; total: number; done: number }[];
   };
 
   // Sync (legacy - key-value based)
   sync: {
     needsSync: (jsonPath: string) => boolean;
     markSynced: (jsonPath: string) => void;
-    getLastSync: () => string | null;
   };
 
   // Sync files with triple-attribute tracking (mtime_ms, size, inode)
@@ -424,6 +419,20 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
     // If migration fails, the DB will be rebuilt on next sync
   }
 
+  // Migration: remove legacy sync_meta table (replaced by sync_files triple-attribute tracking)
+  try {
+    const hasSyncMeta = db
+      .query(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='sync_meta'",
+      )
+      .get();
+    if (hasSyncMeta) {
+      db.exec("DROP TABLE sync_meta");
+    }
+  } catch {
+    // Non-fatal: table will be ignored if drop fails
+  }
+
   // Prepare statements using db.query() for bun:sqlite
   const stmts = {
     specsList: db.query("SELECT * FROM specs"),
@@ -503,15 +512,6 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
     tasksPending: db.query(
       "SELECT * FROM tasks WHERE change_id = ? AND status = 'pending' ORDER BY priority",
     ),
-    tasksBlockers: db.query(`
-      SELECT d.target_id 
-      FROM dependencies d
-      JOIN tasks t ON d.target_id = t.id
-      WHERE d.source_id = ? 
-        AND d.type = 'blocked_by'
-        AND t.status NOT IN ('done', 'cancelled')
-    `),
-
     depInsert: db.query(
       "INSERT OR IGNORE INTO dependencies (source_id, target_id, type) VALUES (?, ?, ?)",
     ),
@@ -521,12 +521,6 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `),
     deltasDeleteByChange: db.query("DELETE FROM deltas WHERE change_id = ?"),
-
-    syncMetaGet: db.query("SELECT value FROM sync_meta WHERE key = ?"),
-    syncMetaUpsert: db.query(`
-      INSERT INTO sync_meta (key, value) VALUES (?, ?)
-      ON CONFLICT(key) DO UPDATE SET value = excluded.value
-    `),
 
     // Sync files with triple-attribute tracking
     syncFilesGet: db.query(
@@ -542,6 +536,32 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
         synced_at = excluded.synced_at
     `),
     syncFilesDelete: db.query("DELETE FROM sync_files WHERE path = ?"),
+
+    // Aggregated task counts per change (replaces N+1 per-row tasks.list)
+    tasksCountByChange: db.query(`
+      SELECT change_id,
+             COUNT(*) AS total,
+             SUM(CASE WHEN status = 'done' THEN 1 ELSE 0 END) AS done
+      FROM tasks
+      GROUP BY change_id
+    `),
+
+    // Specs that have at least one requirement with a given tag
+    reqsSpecsByTag: db.query(`
+      SELECT DISTINCT spec_name FROM requirements WHERE tags LIKE ?
+    `),
+
+    // All active blockers for pending tasks in a change (replaces per-task blocker loop)
+    allBlockersForChange: db.query(`
+      SELECT d.source_id, d.target_id
+      FROM dependencies d
+      JOIN tasks blocker_task ON d.target_id = blocker_task.id
+      JOIN tasks pending_task ON d.source_id = pending_task.id
+      WHERE pending_task.change_id = ?
+        AND pending_task.status = 'pending'
+        AND d.type = 'blocked_by'
+        AND blocker_task.status NOT IN ('done', 'cancelled')
+    `),
   };
 
   return {
@@ -626,6 +646,15 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
 
       search: (query, limit = 20) => {
         return stmts.reqsSearch.all(query, limit) as SearchResult[];
+      },
+
+      specsByTag: (tag: string) => {
+        // Escape SQL LIKE wildcards (%, _) in the tag value before wrapping
+        const escaped = tag.replace(/%/g, "\\%").replace(/_/g, "\\_");
+        const pattern = `%"${escaped}"%`;
+        return (
+          stmts.reqsSpecsByTag.all(pattern) as { spec_name: string }[]
+        ).map((r) => r.spec_name);
       },
     },
 
@@ -743,23 +772,40 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
         return stmts.tasksGet.get(id) as TaskRow | null;
       },
 
+      countByChange: () => {
+        return stmts.tasksCountByChange.all() as {
+          change_id: string;
+          total: number;
+          done: number;
+        }[];
+      },
+
       ready: (changeId) => {
         const pending = stmts.tasksPending.all(changeId) as TaskRow[];
+
+        // Batch-fetch all active blockers for this change's pending tasks
+        const blockerRows = stmts.allBlockersForChange.all(changeId) as {
+          source_id: string;
+          target_id: string;
+        }[];
+        const blockerMap = new Map<string, string[]>();
+        for (const row of blockerRows) {
+          const existing = blockerMap.get(row.source_id) ?? [];
+          existing.push(row.target_id);
+          blockerMap.set(row.source_id, existing);
+        }
 
         const ready: TaskRow[] = [];
         const blocked: BlockedTask[] = [];
 
         for (const task of pending) {
-          const blockers = stmts.tasksBlockers.all(task.id) as {
-            target_id: string;
-          }[];
-
-          if (blockers.length === 0) {
+          const taskBlockers = blockerMap.get(task.id);
+          if (!taskBlockers || taskBlockers.length === 0) {
             ready.push(task);
           } else {
             blocked.push({
               task,
-              blockedBy: blockers.map((b) => b.target_id),
+              blockedBy: taskBlockers,
             });
           }
         }
@@ -837,13 +883,6 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
           attrs.inode,
           now,
         );
-      },
-
-      getLastSync: () => {
-        const result = stmts.syncMetaGet.get("last_sync") as
-          | { value: string }
-          | undefined;
-        return result?.value ?? null;
       },
     },
 

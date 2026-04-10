@@ -133,8 +133,13 @@ export async function loadProjectConfig(
   try {
     const content = await readFile(configPath, "utf-8");
     return ProjectConfigSchema.parse(JSON.parse(content));
-  } catch {
-    return null;
+  } catch (error) {
+    // File not found is normal — use defaults
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      return null;
+    }
+    // Malformed JSON, schema errors, permission errors — surface to caller
+    throw error;
   }
 }
 

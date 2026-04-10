@@ -333,7 +333,7 @@ export async function createStore(
     externalRoot: options?.externalRoot,
   });
 
-  // Ensure .specdb directory exists
+  // Ensure db directory exists
   await mkdir(paths.db, { recursive: true });
 
   // Initialize SQLite
@@ -812,20 +812,13 @@ export async function createStore(
 
         const rows = sqlite.specs.list({ name: filter?.capability });
 
-        // Filter by tag if needed (requires loading full specs)
+        // Filter by tag using SQL-backed lookup (replaces N per-row loadSpec)
         let specs = rows;
         if (filter?.tag) {
-          const filtered = [];
-          for (const row of rows) {
-            const specResult = await loadSpec(paths.specs, row.name);
-            if (specResult.success && specResult.data) {
-              const hasTags = specResult.data.requirements.some((r) =>
-                r.tags?.includes(filter.tag!),
-              );
-              if (hasTags) filtered.push(row);
-            }
-          }
-          specs = filtered;
+          const matchingSpecNames = new Set(
+            sqlite.requirements.specsByTag(filter.tag),
+          );
+          specs = rows.filter((row) => matchingSpecNames.has(row.name));
         }
 
         return {
@@ -881,15 +874,19 @@ export async function createStore(
           rows = rows.filter((r) => r.status !== "closed");
         }
 
+        // Aggregated task counts in one query (replaces N+1 per-row tasks.list)
+        const taskCounts = sqlite.tasks.countByChange();
+        const countMap = new Map(taskCounts.map((tc) => [tc.change_id, tc]));
+
         return {
           changes: rows.map((c) => {
-            const tasks = sqlite.tasks.list(c.id);
+            const counts = countMap.get(c.id);
             return {
               id: c.id,
               title: c.title,
               status: c.status as ChangeStatus,
-              taskCount: tasks.length,
-              completedTasks: tasks.filter((t) => t.status === "done").length,
+              taskCount: counts?.total ?? 0,
+              completedTasks: counts?.done ?? 0,
             };
           }),
         };
@@ -1393,8 +1390,7 @@ export async function createStore(
       const now = new Date();
       const recentChanges: ChangeRecency[] = [];
 
-      // Doctor-lite integrity checks
-      // 1) JSON/SQLite consistency for changes and tasks
+      // Doctor-lite integrity checks + recency + archive readiness (single pass)
       for (const change of changeRows) {
         const jsonResult = await loadChange(paths.changes, change.id);
         if (!jsonResult.success || !jsonResult.data) {
@@ -1404,10 +1400,13 @@ export async function createStore(
           continue;
         }
 
-        const sqliteTasks = sqlite.tasks.list(change.id).map((t) => t.id);
+        const sqliteTasks = sqlite.tasks.list(change.id);
+        const sqliteTaskIds = sqliteTasks.map((t) => t.id);
         const jsonTasks = jsonResult.data.tasks.map((t) => t.id);
-        const sqliteOnly = sqliteTasks.filter((id) => !jsonTasks.includes(id));
-        const jsonOnly = jsonTasks.filter((id) => !sqliteTasks.includes(id));
+        const sqliteOnly = sqliteTaskIds.filter(
+          (id) => !jsonTasks.includes(id),
+        );
+        const jsonOnly = jsonTasks.filter((id) => !sqliteTaskIds.includes(id));
         if (sqliteOnly.length > 0 || jsonOnly.length > 0) {
           recommendations.push(
             `[doctor] JSON/SQLite inconsistency: task index mismatch for change \`${change.id}\` (sqlite_only=${sqliteOnly.length}, json_only=${jsonOnly.length})`,
@@ -1427,6 +1426,18 @@ export async function createStore(
               now,
             ),
           );
+        }
+
+        // Archive readiness check (reuses sqliteTasks from above — no second query)
+        if (change.status === "active") {
+          const allDone = sqliteTasks.every(
+            (t) => t.status === "done" || t.status === "cancelled",
+          );
+          if (allDone && sqliteTasks.length > 0) {
+            recommendations.push(
+              `Ready to archive: \`/adv-archive ${change.id}\``,
+            );
+          }
         }
       }
 
@@ -1457,21 +1468,6 @@ export async function createStore(
         recommendations.push(
           `[doctor] Pending WAL checkpoint: ${walBytes} bytes in WAL file (run flush/checkpoint before archive)`,
         );
-      }
-
-      // Check for ready-to-archive changes
-      for (const change of changeRows) {
-        if (change.status === "active") {
-          const tasks = sqlite.tasks.list(change.id);
-          const allDone = tasks.every(
-            (t) => t.status === "done" || t.status === "cancelled",
-          );
-          if (allDone && tasks.length > 0) {
-            recommendations.push(
-              `Ready to archive: \`/adv-archive ${change.id}\``,
-            );
-          }
-        }
       }
 
       return {

@@ -133,13 +133,19 @@ ADV now self-heals common SQLite cache drift during status/sync operations, incl
 - stale change rows that no longer have a JSON source file
 - dangling task-to-change references left behind by cache inconsistencies
 
-If the local cache is still corrupted or cannot recover automatically, remove the DB in your configured `db_dir` and rebuild state on next run:
+If the local cache is still corrupted or cannot recover automatically, use the recovery script:
 
 ```bash
-rm -f .adv/db/spec.db
+node scripts/recover-db.js
 ```
 
-If a WAL file is left behind, remove the companion files in that same directory too:
+The script defaults to `.adv/db`. For a custom DB directory, pass `--db-dir`:
+
+```bash
+node scripts/recover-db.js --db-dir path/to/db
+```
+
+Or remove the DB files manually:
 
 ```bash
 rm -f .adv/db/spec.db .adv/db/spec.db-wal .adv/db/spec.db-shm

@@ -507,16 +507,22 @@ pnpm rebuild better-sqlite3
 Ensure write access to all ADV directories:
 
 ```bash
-chmod -R u+w specs changes archive docs .specdb temp
+chmod -R u+w specs changes archive docs .adv/db temp
 ```
 
 ### Cache Corruption
 
-Clear and rebuild the SQLite cache:
+Use the recovery script to clear and rebuild the SQLite cache:
 
 ```bash
-rm -rf .specdb/spec.db
+node scripts/recover-db.js
 # Cache rebuilds automatically on next ADV command
+```
+
+For a custom DB directory, pass `--db-dir`:
+
+```bash
+node scripts/recover-db.js --db-dir path/to/db
 ```
 
 ### Commands Not Found or Config Out of Date
@@ -635,22 +641,78 @@ Parallel ADV scanners follow the same single-level delegation rule as other ADV 
 
 ### Available Tools
 
+**Project & Specs**
+
 | Tool | Purpose |
 |------|---------|
-| `adv_status` | Get project overview |
-| `adv_spec action: "list"` | List all specs |
-| `adv_spec action: "show"` | Get spec details |
-| `adv_spec action: "search"` | Search requirements |
-| `adv_change_list` | List changes |
-| `adv_change_show` | Get change details |
-| `adv_change_create` | Create change |
-| `adv_change_update` | Update proposal/problem-statement for existing change |
-| `adv_change_validate` | Validate change |
-| `adv_change_archive` | Archive change |
-| `adv_task_list` | List tasks |
-| `adv_task_ready` | Get ready tasks |
-| `adv_task_update` | Update task |
-| `adv_task_add` | Add task |
+| `adv_status` | Project overview: specs, active changes, recommendations |
+| `adv_project_context` | Read project.md context file |
+| `adv_spec` | List, show, or search specs (`action: "list"/"show"/"search"`) |
+
+**Changes**
+
+| Tool | Purpose |
+|------|---------|
+| `adv_change_list` | List active changes (with `includeArchived`/`includeClosed` filters) |
+| `adv_change_show` | Get full change details including tasks and deltas |
+| `adv_change_create` | Create a new change proposal |
+| `adv_change_update` | Update proposal/problem-statement/agreement/design for existing change |
+| `adv_change_validate` | Validate change against specs and check for conflicts |
+| `adv_change_close` | Close an active change (cancelled/superseded/not_planned) |
+| `adv_change_archive` | Archive a completed change (applies spec deltas) |
+| `adv_change_add_issue` | Link a GitHub issue URL to a change |
+| `adv_change_remove_issue` | Unlink a GitHub issue URL from a change |
+
+**Tasks**
+
+| Tool | Purpose |
+|------|---------|
+| `adv_task_list` | List tasks for a change (with optional status filter) |
+| `adv_task_show` | Get full task details by ID (includes parent changeId) |
+| `adv_task_ready` | Get unblocked pending tasks ready for work |
+| `adv_task_add` | Add a new task to a change |
+| `adv_task_update` | Update task status (pending/in_progress/done) |
+| `adv_task_cancel` | Cancel tasks with required user approval |
+| `adv_task_evidence` | Record TDD evidence (red/green phase proof) |
+| `adv_task_tdd_phase` | Manually set TDD phase for a task |
+| `adv_task_tdd_status` | Get TDD compliance status for a task |
+| `adv_task_reclassify_tdd` | Reclassify TDD intent after planning gate (requires approval) |
+
+**Gates**
+
+| Tool | Purpose |
+|------|---------|
+| `adv_gate_status` | Get gate status for a change (all 7 gates) |
+| `adv_gate_complete` | Mark a gate as complete (enforces sequence) |
+
+**Testing**
+
+| Tool | Purpose |
+|------|---------|
+| `adv_run_test` | Run a test command and record result as TDD evidence |
+
+**Wisdom**
+
+| Tool | Purpose |
+|------|---------|
+| `adv_wisdom_add` | Add a learning entry to a change |
+| `adv_wisdom_list` | List all wisdom entries for a change |
+| `adv_wisdom_promote` | Promote a change-level learning to project-level |
+
+**Agenda**
+
+| Tool | Purpose |
+|------|---------|
+| `adv_agenda_list` | List agenda items (with status filter) |
+| `adv_agenda_add` | Add a quick work item to the agenda |
+| `adv_agenda_start` | Mark an agenda item as active |
+| `adv_agenda_complete` | Mark an agenda item as done |
+| `adv_agenda_cancel` | Cancel an agenda item |
+| `adv_agenda_prioritize` | Change priority of an agenda item |
+| `adv_agenda_next` | Get highest-priority unblocked agenda item |
+| `adv_agenda_stats` | Get agenda statistics |
+| `adv_agenda_evidence` | Record TDD evidence for an agenda item |
+| `adv_agenda_compact` | Compact the agenda file (remove superseded entries) |
 
 ---
 

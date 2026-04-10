@@ -42,10 +42,6 @@ function getRecommendationForGate(
 ): string | null {
   const cmds = getCommandsByGate(gateId);
   if (cmds.length === 0) {
-    // signoff has no direct command — it's user-triggered
-    if (gateId === "signoff") {
-      return `Change \`${changeId}\`: next gate is \`signoff\` (user confirmation required)`;
-    }
     return null;
   }
 
@@ -84,10 +80,14 @@ export const statusTools = {
         featureFlags = configResult.data.features as Record<string, boolean>;
       }
 
-      // Add manifest-driven gate recommendations for active changes,
-      // ordered by recency (most recently active first)
+      // Single-pass over recent changes: context snapshot, gate recommendation,
+      // clarify readiness, and recency labels — all built in one traversal.
       const recentChanges = status.changes.recent ?? [];
+      const features = store.config?.features as FeatureFlags | undefined;
+      const clarifyMode = features?.clarify_enforcement ?? "advisory";
+
       for (const rc of recentChanges) {
+        // Fetch change data, gates, and proposal ONCE per change
         const changeResult = await store.changes.get(rc.id);
         if (!changeResult.success || !changeResult.data) continue;
 
@@ -97,6 +97,8 @@ export const statusTools = {
           changeDir,
           changeResult.data.title,
         );
+
+        // 1) Context snapshot
         const taskCounts = {
           done: changeResult.data.tasks.filter((t) => t.status === "done")
             .length,
@@ -126,57 +128,34 @@ export const statusTools = {
               : undefined,
           }),
         });
-      }
 
-      for (const rc of recentChanges) {
-        const gates = await store.gates.get(rc.id);
-        if (!gates) continue;
-
-        // Find first incomplete gate
-        const nextGate = GATE_ORDER.find(
-          (gateId) => !isGateSatisfied(gates[gateId]),
-        );
-
-        if (nextGate) {
-          const rec = getRecommendationForGate(nextGate as GateId, rc.id);
-          if (rec) {
-            status.recommendations.push(rec);
+        // 2) Gate recommendation (reuses gates fetched above)
+        if (gates) {
+          const nextGate = GATE_ORDER.find(
+            (gateId) => !isGateSatisfied(gates[gateId]),
+          );
+          if (nextGate) {
+            const rec = getRecommendationForGate(nextGate as GateId, rc.id);
+            if (rec) {
+              status.recommendations.push(rec);
+            }
           }
         }
-      }
 
-      // Add clarify-readiness recommendations for active changes with ambiguity.
-      // Keep these immediately after gate recommendations so the workflow
-      // guidance stays grouped by change before recency notices.
-      const features = store.config?.features as FeatureFlags | undefined;
-      const clarifyMode = features?.clarify_enforcement ?? "advisory";
-
-      if (clarifyMode !== "off") {
-        for (const rc of recentChanges) {
-          const changeResult = await store.changes.get(rc.id);
-          if (!changeResult.success || !changeResult.data) continue;
-
-          const changeDir = join(store.paths.changes, rc.id);
-          const { content: proposalText } = await loadProposalWithFallback(
-            changeDir,
-            changeResult.data.title,
-          );
-
+        // 3) Clarify readiness (reuses changeResult and proposalText)
+        if (clarifyMode !== "off") {
           const clarifyResult = runClarifyReadinessChecks(
             changeResult.data,
             proposalText,
           );
-
           if (clarifyResult.findings.length > 0) {
             status.recommendations.push(
               `⚠️ Change \`${rc.id}\` has ${clarifyResult.findings.length} ambiguity finding(s) — run \`/adv-clarify ${rc.id}\` to resolve`,
             );
           }
         }
-      }
 
-      // Add recency-aware recommendations for stale and hot changes
-      for (const rc of recentChanges) {
+        // 4) Recency labels
         if (rc.recency === "stale") {
           const hours = Math.floor(rc.minutesSinceActivity / 60);
           const label =

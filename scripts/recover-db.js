@@ -5,17 +5,42 @@
  *
  * Fixes corrupted SQLite databases by deleting them and rebuilding from JSON.
  * Safe because JSON files are the source of truth.
+ *
+ * Usage:
+ *   node scripts/recover-db.js [--db-dir <path>]
+ *
+ * The default DB directory is ".adv/db", matching the runtime default in
+ * getProjectPaths(). Override with --db-dir for custom project configs.
  */
 
 import { rm } from "fs/promises";
 import { existsSync } from "fs";
 import path from "path";
 
-const DB_DIR = ".specdb";
+const DEFAULT_DB_DIR = ".adv/db";
 const DB_FILE = "spec.db";
 
+function parseArgs() {
+  const args = process.argv.slice(2);
+  let dbDir = DEFAULT_DB_DIR;
+
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === "--db-dir") {
+      if (!args[i + 1]) {
+        console.error("Error: --db-dir requires a value");
+        process.exit(1);
+      }
+      dbDir = args[i + 1];
+      i++; // skip next arg
+    }
+  }
+
+  return { dbDir };
+}
+
 async function main() {
-  const dbPath = path.join(process.cwd(), DB_DIR, DB_FILE);
+  const { dbDir } = parseArgs();
+  const dbPath = path.join(process.cwd(), dbDir, DB_FILE);
 
   console.log(`🔍 Checking database: ${dbPath}`);
 

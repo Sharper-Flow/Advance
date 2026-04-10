@@ -222,7 +222,7 @@ Example `project.json`:
   "changes_dir": "changes",
   "archive_dir": "archive",
   "docs_dir": "docs/specs",
-  "db_dir": ".specdb",
+  "db_dir": ".adv/db",
   "project_file": "project.md"
 }
 ```
@@ -256,7 +256,7 @@ The important point is not the raw tool count. The value is that the workflow is
 - `docs/adv-context-agreement.md` - context snapshot and cross-repo switch formatting
 - `docs/adv-question-tool.md` - question tool UX policy
 - `docs/checklists/` - prep, review, and harden checklists
-- `docs/specs/` - generated spec documentation (adv-prep, adv-proposal, adv-research, advance, context-display, contract-system, prep-readiness, slop-scan, tdd-contract)
+- `docs/specs/` - generated spec documentation (adv-discover, adv-prep, adv-proposal, advance, context-display, contract-system, prep-readiness, slop-scan, tdd-contract)
 
 ## Development
 

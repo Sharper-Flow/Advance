@@ -107,6 +107,22 @@ describe("ProjectConfig", () => {
     expect(config).toBeNull();
   });
 
+  test("loadProjectConfig throws on malformed JSON", async () => {
+    const configPath = join(tempDir, "project.json");
+    await writeFile(configPath, "{ not valid json !!!", "utf-8");
+    await expect(loadProjectConfig(tempDir)).rejects.toThrow();
+  });
+
+  test("loadProjectConfig throws on schema-invalid JSON", async () => {
+    const configPath = join(tempDir, "project.json");
+    await writeFile(
+      configPath,
+      JSON.stringify({ totally: "wrong", schema: true }),
+      "utf-8",
+    );
+    await expect(loadProjectConfig(tempDir)).rejects.toThrow();
+  });
+
   test("saveProjectConfig creates config file", async () => {
     const config: ProjectConfig = {
       name: "test",
