@@ -103,6 +103,47 @@ export const wisdomTools = {
     },
   },
 
+  adv_project_wisdom_list: {
+    description:
+      "List project-level wisdom entries (durable learnings promoted across changes). Returns entries with summary by type — mirrors adv_wisdom_list response shape. Use this to surface cross-change conventions and patterns before starting work.",
+    args: {
+      maxEntries: z
+        .number()
+        .int()
+        .min(1)
+        .max(200)
+        .optional()
+        .describe("Maximum entries to return (default: all)"),
+    },
+    execute: async ({ maxEntries }: { maxEntries?: number }, store: Store) => {
+      try {
+        const entries = await listProjectWisdom(store.paths.root, {
+          maxEntries,
+          wisdomPath: store.paths.wisdom,
+        });
+
+        // Build byType summary — mirrors adv_wisdom_list shape (KD1)
+        const byType: Record<string, number> = {};
+        for (const entry of entries) {
+          byType[entry.type] = (byType[entry.type] || 0) + 1;
+        }
+
+        return formatToolOutput({
+          entries,
+          count: entries.length,
+          byType,
+        });
+      } catch (error) {
+        return formatToolOutput({
+          error:
+            error instanceof Error
+              ? error.message
+              : "Failed to list project wisdom",
+        });
+      }
+    },
+  },
+
   adv_wisdom_promote: {
     description:
       "Promote a change-level wisdom entry to project-level wisdom. Only durable, convention-level learnings should be promoted — not one-off fixes or session-specific notes.",

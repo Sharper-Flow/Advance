@@ -6,11 +6,13 @@
 
 import { z } from "zod";
 import { join } from "path";
+import { readFile, stat } from "fs/promises";
 import type { Spec, FeatureFlags } from "../types";
 import {
   createDefaultGates,
   getIncompleteGates,
   allGatesSatisfied,
+  type ClarifyFindingSnapshot,
 } from "../types";
 import type { Store } from "../storage/store";
 import { validateChange } from "../validator";
@@ -185,6 +187,65 @@ export const changeTools = {
               questionCategory: f.details?.questionCategory,
             })),
           };
+
+          // Persist clarify findings as append-only snapshots
+          const now = new Date().toISOString();
+          const currentCodes = new Set(
+            clarifyResult.findings.map((f) => f.code),
+          );
+          const existing: ClarifyFindingSnapshot[] =
+            change.clarify_findings ?? [];
+
+          // Mark previously-persisted findings as resolved if no longer raised
+          const updated: ClarifyFindingSnapshot[] = existing.map((f) =>
+            !f.resolved && !currentCodes.has(f.code)
+              ? { ...f, resolved: true, resolved_at: now }
+              : f,
+          );
+
+          // Append new findings not yet in snapshots
+          const existingCodes = new Set(existing.map((f) => f.code));
+          for (const finding of clarifyResult.findings) {
+            if (!existingCodes.has(finding.code)) {
+              updated.push({
+                code: finding.code,
+                severity: finding.severity as "error" | "warning" | "info",
+                message: finding.message,
+                recorded_at: now,
+              });
+            }
+          }
+
+          if (updated.length > 0) {
+            // Persist back to the change (best-effort — don't fail if save fails)
+            try {
+              const freshResult = await store.changes.get(changeId);
+              if (freshResult.success && freshResult.data) {
+                freshResult.data.clarify_findings = updated;
+                await store.changes.save(freshResult.data);
+              }
+            } catch {
+              // Non-fatal: persistence failure doesn't affect the tool response
+            }
+          }
+        } else {
+          // No current findings — resolve any previously-persisted unresolved findings
+          if (change.clarify_findings?.some((f) => !f.resolved)) {
+            const now = new Date().toISOString();
+            try {
+              const freshResult = await store.changes.get(changeId);
+              if (freshResult.success && freshResult.data) {
+                freshResult.data.clarify_findings = (
+                  freshResult.data.clarify_findings ?? []
+                ).map((f: ClarifyFindingSnapshot) =>
+                  !f.resolved ? { ...f, resolved: true, resolved_at: now } : f,
+                );
+                await store.changes.save(freshResult.data);
+              }
+            } catch {
+              // Non-fatal
+            }
+          }
         }
       }
 
@@ -512,6 +573,7 @@ export const changeTools = {
       }
 
       const change = result.data;
+      const changeDir = join(store.paths.changes, changeId);
 
       // Load all specs for validation context
       const specList = await store.specs.list();
@@ -541,10 +603,31 @@ export const changeTools = {
         }
       }
 
+      // Load proposal text so validator can run proposal-task drift checks.
+      const { content: proposalText } = await loadProposalWithFallback(
+        changeDir,
+        change.title,
+      );
+
+      // Detect worktree by checking whether .git is a file pointing at a common dir.
+      let isWorktree = false;
+      try {
+        const gitPath = join(store.paths.root, ".git");
+        const gitStat = await stat(gitPath);
+        if (gitStat.isFile()) {
+          const gitFile = await readFile(gitPath, "utf-8");
+          isWorktree = gitFile.includes("gitdir:");
+        }
+      } catch {
+        // Best-effort only; default to non-worktree when detection fails.
+      }
+
       // Run full validation with active changes for conflict detection
       const validationResult = await validateChange(change, {
         specs,
         activeChanges,
+        proposalText,
+        isWorktree,
       });
 
       // In strict mode, treat warnings as errors

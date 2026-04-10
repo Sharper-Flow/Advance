@@ -173,9 +173,10 @@ async function persistGateCompletion(
   completedBy: string,
   extras: Record<string, unknown>,
   boundaryWarning: string | undefined,
+  notes?: string,
 ): Promise<string> {
   try {
-    await store.gates.complete(change.id, gateId);
+    await store.gates.complete(change.id, gateId, notes);
   } catch (saveError) {
     return formatToolOutput({
       error: `Failed to complete gate: ${(saveError as Error).message}`,
@@ -248,16 +249,24 @@ export const gateTools = {
         .string()
         .optional()
         .describe("Who completed the gate (default: agent)"),
+      notes: z
+        .string()
+        .optional()
+        .describe(
+          "Key decisions or context to persist alongside gate completion",
+        ),
     },
     execute: async (
       {
         changeId,
         gateId,
         completedBy = "agent",
+        notes,
       }: {
         changeId: string;
         gateId: GateId;
         completedBy?: string;
+        notes?: string;
       },
       store: Store,
     ) => {
@@ -334,6 +343,7 @@ export const gateTools = {
         completedBy,
         extras,
         boundaryWarning,
+        notes,
       );
     },
   },

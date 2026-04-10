@@ -170,11 +170,11 @@ describe("Advance Plugin SDK Integration", () => {
   // ===========================================================================
 
   describe("Tool Registration", () => {
-    test("registers all 38 tools", async () => {
+    test("registers all 39 tools", async () => {
       const hooks = await createTrackedPlugin(tempDir, pluginInstances);
 
       const toolNames = Object.keys(hooks.tool!);
-      expect(toolNames).toHaveLength(38);
+      expect(toolNames).toHaveLength(39);
     });
 
     test("registers spec tools", async () => {
@@ -847,5 +847,81 @@ describe("Advance Plugin SDK Integration", () => {
 
       expect(getStatus().currentStatus).toBe("EARTH");
     });
+  });
+});
+
+// =============================================================================
+// system.transform change ID injection (Leak #2)
+// =============================================================================
+
+describe("system.transform change ID injection (Leak #2)", () => {
+  let tempDir5: string;
+  const pluginInstances5: Array<ReturnType<typeof plugin>> = [];
+
+  beforeEach(async () => {
+    tempDir5 = await createTempDir();
+    await createTestProject(tempDir5);
+  });
+
+  afterEach(async () => {
+    for (const p of pluginInstances5) {
+      try {
+        await p.onClose?.();
+      } catch {
+        // Non-fatal
+      }
+    }
+    pluginInstances5.length = 0;
+    await cleanupTempDir(tempDir5);
+  });
+
+  test("system.transform injects minimal change ID context when active change exists (Leak #2)", async () => {
+    const hooks = await createTrackedPlugin(tempDir5, pluginInstances5);
+
+    // Set active change via tool call
+    await hooks["tool.execute.before"]!(
+      { tool: "adv_task_list" } as any,
+      { args: { changeId: "addFeature" } } as any,
+    );
+
+    const transformHook = hooks["experimental.chat.system.transform"]!;
+    const hookOutput = { system: [] as string[] };
+    await transformHook(
+      { sessionID: "test-session" } as any,
+      hookOutput as any,
+    );
+
+    // Should inject minimal change context (~20 tokens)
+    const hasChangeContext = hookOutput.system.some(
+      (s) => s.includes("[ADV]") && s.includes("addFeature"),
+    );
+    expect(hasChangeContext).toBe(true);
+
+    // Should NOT inject bulk data (wisdom, tasks, etc.)
+    expect(
+      hookOutput.system.some((s) => s.includes("[ADV:ACCUMULATED_WISDOM]")),
+    ).toBe(false);
+    expect(
+      hookOutput.system.some((s) => s.includes("[ADV:TODO_CONTINUATION]")),
+    ).toBe(false);
+  });
+
+  test("system.transform is no-op when no active change (Leak #2)", async () => {
+    const hooks = await createTrackedPlugin(tempDir5, pluginInstances5);
+
+    // No active change set
+    const transformHook = hooks["experimental.chat.system.transform"]!;
+    const hookOutput = { system: [] as string[] };
+    await transformHook(
+      { sessionID: "test-session" } as any,
+      hookOutput as any,
+    );
+
+    // No change context should be injected (worktree marker also absent since not in worktree)
+    expect(
+      hookOutput.system.some(
+        (s) => s.includes("[ADV]") && s.includes("Active change"),
+      ),
+    ).toBe(false);
   });
 });

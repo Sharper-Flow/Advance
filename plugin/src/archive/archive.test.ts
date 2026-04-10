@@ -865,5 +865,155 @@ describe("Archive Workflow", () => {
         await chmod(unreadablePath, 0o644);
       }
     });
+
+    describe("wisdom copy to archive (Leak #10)", () => {
+      it("copies wisdom entries to archive directory when wisdom exists", async () => {
+        const change = structuredClone(SAMPLE_CHANGE) as Change;
+        change.tasks.forEach((t) => (t.status = "done"));
+        // Add wisdom entries to the change
+        change.wisdom = [
+          {
+            id: "ws-test01",
+            type: "convention",
+            content: "Always use .passthrough() for schema backwards compat",
+            recorded_at: new Date().toISOString(),
+          },
+          {
+            id: "ws-test02",
+            type: "gotcha",
+            content: "node_modules must be symlinked in worktrees",
+            recorded_at: new Date().toISOString(),
+          },
+        ];
+
+        const specs = new Map<string, Spec>();
+        specs.set("test-capability", structuredClone(SAMPLE_SPEC) as Spec);
+
+        const result = await archiveChange({
+          change,
+          specs,
+          paths: {
+            specs: join(testDir, "specs"),
+            archive: join(testDir, "archive"),
+            docs: join(testDir, "docs/specs"),
+          },
+        });
+
+        expect(result.success).toBe(true);
+
+        // wisdom.json should be present in the archive directory
+        const archivePath = result.archivePath;
+        const wisdomContent = await readFile(
+          join(archivePath, "wisdom.json"),
+          "utf-8",
+        );
+        const wisdomData = JSON.parse(wisdomContent);
+        expect(wisdomData.entries).toHaveLength(2);
+        expect(wisdomData.entries[0].content).toBe(
+          "Always use .passthrough() for schema backwards compat",
+        );
+      });
+
+      it("skips wisdom file when change has no wisdom entries", async () => {
+        const change = structuredClone(SAMPLE_CHANGE) as Change;
+        change.tasks.forEach((t) => (t.status = "done"));
+        // No wisdom entries
+
+        const specs = new Map<string, Spec>();
+        specs.set("test-capability", structuredClone(SAMPLE_SPEC) as Spec);
+
+        const result = await archiveChange({
+          change,
+          specs,
+          paths: {
+            specs: join(testDir, "specs"),
+            archive: join(testDir, "archive"),
+            docs: join(testDir, "docs/specs"),
+          },
+        });
+
+        expect(result.success).toBe(true);
+
+        // wisdom.json should NOT be present
+        const archivePath = result.archivePath;
+        await expect(
+          access(join(archivePath, "wisdom.json")),
+        ).rejects.toThrow();
+      });
+    });
+
+    describe("enriched ARCHIVE_SUMMARY.md (Leak #10)", () => {
+      it("includes implementation summaries in archive summary when present", async () => {
+        const change = structuredClone(SAMPLE_CHANGE) as Change;
+        change.tasks.forEach((t) => {
+          t.status = "done";
+        });
+        // Add implementation_summary to first task
+        (
+          change.tasks[0] as Change["tasks"][number] & {
+            implementation_summary?: string;
+          }
+        ).implementation_summary =
+          "Implemented core logic using recursive descent parser";
+
+        const specs = new Map<string, Spec>();
+
+        const result = await archiveChange({
+          change,
+          specs,
+          paths: {
+            specs: join(testDir, "specs"),
+            archive: join(testDir, "archive"),
+            docs: join(testDir, "docs/specs"),
+          },
+        });
+
+        expect(result.success).toBe(true);
+
+        const summaryContent = await readFile(
+          join(result.archivePath, "ARCHIVE_SUMMARY.md"),
+          "utf-8",
+        );
+        expect(summaryContent).toContain(
+          "Implemented core logic using recursive descent parser",
+        );
+      });
+
+      it("includes wisdom summary section when wisdom exists", async () => {
+        const change = structuredClone(SAMPLE_CHANGE) as Change;
+        change.tasks.forEach((t) => (t.status = "done"));
+        change.wisdom = [
+          {
+            id: "ws-test01",
+            type: "convention",
+            content: "Use append-only snapshots for resolution tracking",
+            recorded_at: new Date().toISOString(),
+          },
+        ];
+
+        const specs = new Map<string, Spec>();
+
+        const result = await archiveChange({
+          change,
+          specs,
+          paths: {
+            specs: join(testDir, "specs"),
+            archive: join(testDir, "archive"),
+            docs: join(testDir, "docs/specs"),
+          },
+        });
+
+        expect(result.success).toBe(true);
+
+        const summaryContent = await readFile(
+          join(result.archivePath, "ARCHIVE_SUMMARY.md"),
+          "utf-8",
+        );
+        expect(summaryContent).toContain("Wisdom");
+        expect(summaryContent).toContain(
+          "Use append-only snapshots for resolution tracking",
+        );
+      });
+    });
   });
 });

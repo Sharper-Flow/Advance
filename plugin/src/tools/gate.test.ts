@@ -1191,3 +1191,62 @@ describe("gate enum derivation from GateIdSchema", () => {
     expect(argsSchema.options).toEqual(GateIdSchema.options);
   });
 });
+
+// =============================================================================
+// adv_gate_complete notes parameter (Leak #11)
+// =============================================================================
+
+describe("adv_gate_complete notes parameter (Leak #11)", () => {
+  let notesTempDir: string;
+  let notesStore: Store;
+
+  beforeEach(async () => {
+    notesTempDir = await createTempDir();
+    await createTestProject(notesTempDir);
+    notesStore = await createStore(notesTempDir);
+    await notesStore.init();
+    await notesStore.sync();
+  });
+
+  afterEach(async () => {
+    notesStore.close();
+    await cleanupTempDir(notesTempDir);
+  });
+
+  test("adv_gate_complete args schema has notes field", () => {
+    expect(gateTools.adv_gate_complete.args.notes).toBeDefined();
+  });
+
+  test("adv_gate_complete works without notes (backwards compat)", async () => {
+    const result = await gateTools.adv_gate_complete.execute(
+      { changeId: "addFeature", gateId: "proposal" },
+      notesStore,
+    );
+    const parsed = extractJson(result) as Record<string, unknown>;
+    expect(parsed.success).toBe(true);
+    expect(parsed.gateId).toBe("proposal");
+
+    // gates.proposal.notes should be absent
+    const gates = await notesStore.gates.get("addFeature");
+    expect(gates?.proposal?.notes).toBeUndefined();
+  });
+
+  test("adv_gate_complete stores notes when provided (Leak #11)", async () => {
+    const notesText =
+      "Drift detection scoped to advisory warnings. spec-sync warning limited to worktrees only.";
+    const result = await gateTools.adv_gate_complete.execute(
+      {
+        changeId: "addFeature",
+        gateId: "proposal",
+        notes: notesText,
+      },
+      notesStore,
+    );
+    const parsed = extractJson(result) as Record<string, unknown>;
+    expect(parsed.success).toBe(true);
+
+    // Verify notes persisted in the gate state
+    const gates = await notesStore.gates.get("addFeature");
+    expect(gates?.proposal?.notes).toBe(notesText);
+  });
+});

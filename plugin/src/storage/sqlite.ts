@@ -5,14 +5,56 @@
  * JSON files remain source of truth; SQLite is derived.
  *
  * Uses bun:sqlite for Bun runtime compatibility.
- *
- * Concurrency: write boundaries are documented in store-context.ts.
- * SQLite contention is handled by PRAGMA busy_timeout (set in health.ts).
- * No application-level retry loop is needed.
  */
 
 import { Database } from "bun:sqlite";
+import { statSync } from "node:fs";
 import type { Spec, Change, Task } from "../types";
+
+// =============================================================================
+// Retry Logic for Concurrent Access
+// =============================================================================
+
+const MAX_RETRIES = 3;
+const RETRY_DELAY_MS = 100;
+
+/**
+ * Execute a database operation with retry logic for busy/locked errors.
+ * SQLite can return SQLITE_BUSY when another process holds a lock.
+ */
+function withRetry<T>(operation: () => T, operationName: string): T {
+  let lastError: Error | null = null;
+
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      return operation();
+    } catch (e) {
+      const error = e as Error;
+      const isBusy =
+        error.message.includes("database is locked") ||
+        error.message.includes("SQLITE_BUSY") ||
+        error.message.includes("cannot start a transaction");
+
+      if (isBusy && attempt < MAX_RETRIES) {
+        lastError = error;
+        // Exponential backoff: 100ms, 200ms, 400ms...
+        const delay = RETRY_DELAY_MS * Math.pow(2, attempt - 1);
+        // Synchronous sleep - not ideal but necessary for synchronous API
+        const start = Date.now();
+        while (Date.now() - start < delay) {
+          // busy wait
+        }
+        continue;
+      }
+      throw error;
+    }
+  }
+
+  throw (
+    lastError ??
+    new Error(`${operationName} failed after ${MAX_RETRIES} retries`)
+  );
+}
 
 // =============================================================================
 // Database Schema
@@ -102,7 +144,8 @@ CREATE TABLE IF NOT EXISTS tasks (
   created_at TEXT NOT NULL,
   started_at TEXT,
   completed_at TEXT,
-  completed_by TEXT
+  completed_by TEXT,
+  cancellation_reason TEXT
 );
 
 -- Task Dependencies
@@ -186,9 +229,19 @@ export interface SQLiteStore {
   tasks: {
     list: (changeId: string, status?: string) => TaskRow[];
     get: (id: string) => TaskRow | null;
-    ready: (changeId: string) => { ready: TaskRow[]; blocked: BlockedTask[] };
+    ready: (changeId: string) => {
+      ready: TaskRow[];
+      blocked: BlockedTask[];
+      cancelledBlockerContext?: CancelledBlockerContext[];
+    };
     update: (id: string, updates: Partial<Task>) => void;
     countByChange: () => { change_id: string; total: number; done: number }[];
+  };
+
+  // Sync (legacy - key-value based)
+  sync: {
+    needsSync: (jsonPath: string) => boolean;
+    markSynced: (jsonPath: string) => void;
   };
 
   // Sync files with triple-attribute tracking (mtime_ms, size, inode)
@@ -258,6 +311,16 @@ export interface SearchResult {
 export interface BlockedTask {
   task: TaskRow;
   blockedBy: string[];
+}
+
+/** Context for a pending task that was unblocked by a cancelled blocker */
+export interface CancelledBlockerContext {
+  /** The pending task that was unblocked */
+  taskId: string;
+  /** The blocker task that was cancelled */
+  cancelledBlockerId: string;
+  /** The cancellation reason from the cancelled blocker */
+  cancellationReason: string;
 }
 
 /**
@@ -363,9 +426,25 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
           created_at TEXT NOT NULL,
           started_at TEXT,
           completed_at TEXT,
-          completed_by TEXT
+          completed_by TEXT,
+          cancellation_reason TEXT
         )
       `);
+    }
+  } catch {
+    // If migration fails, the DB will be rebuilt on next sync
+  }
+
+  // Migration: add cancellation_reason column to pre-existing tasks tables.
+  // Fresh installs and rebuilds above already create the column in CREATE TABLE.
+  // This ALTER TABLE path exists only for older databases that skipped the rebuild.
+  try {
+    const taskCols = db.query("PRAGMA table_info(tasks)").all() as Array<{
+      name: string;
+    }>;
+    const hasCol = taskCols.some((c) => c.name === "cancellation_reason");
+    if (!hasCol) {
+      db.exec("ALTER TABLE tasks ADD COLUMN cancellation_reason TEXT");
     }
   } catch {
     // If migration fails, the DB will be rebuilt on next sync
@@ -451,8 +530,8 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
     ),
     tasksGet: db.query("SELECT * FROM tasks WHERE id = ?"),
     tasksInsert: db.query(`
-      INSERT INTO tasks (id, change_id, title, type, section, status, priority, created_at, started_at, completed_at, completed_by)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO tasks (id, change_id, title, type, section, status, priority, created_at, started_at, completed_at, completed_by, cancellation_reason)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `),
     tasksDeleteByChange: db.query("DELETE FROM tasks WHERE change_id = ?"),
     taskMetadataInsert: db.query(
@@ -514,6 +593,19 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
         AND d.type = 'blocked_by'
         AND blocker_task.status NOT IN ('done', 'cancelled')
     `),
+
+    // Cancelled blockers that unblocked pending tasks — provides cancellation context
+    cancelledBlockersForChange: db.query(`
+      SELECT d.source_id AS task_id, d.target_id AS cancelled_blocker_id, blocker_task.cancellation_reason
+      FROM dependencies d
+      JOIN tasks blocker_task ON d.target_id = blocker_task.id
+      JOIN tasks pending_task ON d.source_id = pending_task.id
+      WHERE pending_task.change_id = ?
+        AND pending_task.status = 'pending'
+        AND d.type = 'blocked_by'
+        AND blocker_task.status = 'cancelled'
+        AND blocker_task.cancellation_reason IS NOT NULL
+    `),
   };
 
   return {
@@ -532,52 +624,54 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
       },
 
       upsert: (spec, jsonPath) => {
-        const now = new Date().toISOString();
+        withRetry(() => {
+          const now = new Date().toISOString();
 
-        // Use IMMEDIATE transaction to acquire write lock upfront
-        db.exec("BEGIN IMMEDIATE TRANSACTION");
-        try {
-          stmts.specsUpsert.run(
-            spec.name,
-            spec.title,
-            spec.purpose,
-            spec.version,
-            spec.updated_at,
-            jsonPath,
-            now,
-          );
-
-          // Delete old requirements
-          stmts.reqsDeleteBySpec.run(spec.name);
-
-          // Insert requirements
-          for (const req of spec.requirements) {
-            stmts.reqsInsert.run(
-              req.id,
+          // Use IMMEDIATE transaction to acquire write lock upfront
+          db.exec("BEGIN IMMEDIATE TRANSACTION");
+          try {
+            stmts.specsUpsert.run(
               spec.name,
-              req.title,
-              req.body,
-              req.priority,
-              req.tags ? JSON.stringify(req.tags) : null,
+              spec.title,
+              spec.purpose,
+              spec.version,
+              spec.updated_at,
+              jsonPath,
+              now,
             );
 
-            // Insert scenarios
-            for (const scenario of req.scenarios ?? []) {
-              stmts.scenarioInsert.run(
-                scenario.id,
+            // Delete old requirements
+            stmts.reqsDeleteBySpec.run(spec.name);
+
+            // Insert requirements
+            for (const req of spec.requirements) {
+              stmts.reqsInsert.run(
                 req.id,
-                scenario.title,
-                JSON.stringify(scenario.given),
-                scenario.when,
-                JSON.stringify(scenario.then),
+                spec.name,
+                req.title,
+                req.body,
+                req.priority,
+                req.tags ? JSON.stringify(req.tags) : null,
               );
+
+              // Insert scenarios
+              for (const scenario of req.scenarios ?? []) {
+                stmts.scenarioInsert.run(
+                  scenario.id,
+                  req.id,
+                  scenario.title,
+                  JSON.stringify(scenario.given),
+                  scenario.when,
+                  JSON.stringify(scenario.then),
+                );
+              }
             }
+            db.exec("COMMIT");
+          } catch (e) {
+            db.exec("ROLLBACK");
+            throw e;
           }
-          db.exec("COMMIT");
-        } catch (e) {
-          db.exec("ROLLBACK");
-          throw e;
-        }
+        }, "specs.upsert");
       },
 
       delete: (name) => {
@@ -621,86 +715,89 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
       },
 
       upsert: (change, jsonPath) => {
-        const now = new Date().toISOString();
+        withRetry(() => {
+          const now = new Date().toISOString();
 
-        // Use IMMEDIATE transaction to acquire write lock upfront
-        db.exec("BEGIN IMMEDIATE TRANSACTION");
-        try {
-          stmts.changesUpsert.run(
-            change.id,
-            change.title,
-            change.status,
-            change.created_at,
-            change.created_by ?? null,
-            jsonPath,
-            now,
-          );
-
-          // Delete old tasks (and their metadata via CASCADE)
-          stmts.tasksDeleteByChange.run(change.id);
-          stmts.taskMetadataDeleteByChange.run(change.id);
-
-          // Insert tasks
-          for (const task of change.tasks) {
-            stmts.tasksInsert.run(
-              task.id,
+          // Use IMMEDIATE transaction to acquire write lock upfront
+          db.exec("BEGIN IMMEDIATE TRANSACTION");
+          try {
+            stmts.changesUpsert.run(
               change.id,
-              task.title,
-              task.type ?? "code",
-              task.section ?? null,
-              task.status,
-              task.priority ?? 0,
-              task.created_at,
-              task.started_at ?? null,
-              task.completed_at ?? null,
-              task.completed_by ?? null,
+              change.title,
+              change.status,
+              change.created_at,
+              change.created_by ?? null,
+              jsonPath,
+              now,
             );
 
-            // Insert dependencies
-            for (const dep of task.deps ?? []) {
-              stmts.depInsert.run(task.id, dep.target, dep.type);
-            }
+            // Delete old tasks (and their metadata via CASCADE)
+            stmts.tasksDeleteByChange.run(change.id);
+            stmts.taskMetadataDeleteByChange.run(change.id);
 
-            // Insert metadata key-value pairs
-            if (task.metadata) {
-              for (const [key, value] of Object.entries(task.metadata)) {
-                stmts.taskMetadataInsert.run(task.id, change.id, key, value);
+            // Insert tasks
+            for (const task of change.tasks) {
+              stmts.tasksInsert.run(
+                task.id,
+                change.id,
+                task.title,
+                task.type ?? "code",
+                task.section ?? null,
+                task.status,
+                task.priority ?? 0,
+                task.created_at,
+                task.started_at ?? null,
+                task.completed_at ?? null,
+                task.completed_by ?? null,
+                task.cancellation?.reason ?? null,
+              );
+
+              // Insert dependencies
+              for (const dep of task.deps ?? []) {
+                stmts.depInsert.run(task.id, dep.target, dep.type);
+              }
+
+              // Insert metadata key-value pairs
+              if (task.metadata) {
+                for (const [key, value] of Object.entries(task.metadata)) {
+                  stmts.taskMetadataInsert.run(task.id, change.id, key, value);
+                }
               }
             }
-          }
 
-          // Delete old deltas
-          stmts.deltasDeleteByChange.run(change.id);
+            // Delete old deltas
+            stmts.deltasDeleteByChange.run(change.id);
 
-          // Insert deltas
-          for (const [capability, deltas] of Object.entries(change.deltas)) {
-            for (const delta of deltas) {
-              stmts.deltaInsert.run(
-                delta.id,
-                change.id,
-                capability,
-                delta.operation,
-                "target_id" in delta ? delta.target_id : null,
-                delta.operation === "add"
-                  ? JSON.stringify(delta.requirement)
-                  : null,
-                delta.operation === "modify"
-                  ? JSON.stringify(delta.changes)
-                  : delta.operation === "rename"
-                    ? JSON.stringify({
-                        new_title: delta.new_title,
-                        ...(delta.new_id ? { new_id: delta.new_id } : {}),
-                      })
+            // Insert deltas
+            for (const [capability, deltas] of Object.entries(change.deltas)) {
+              for (const delta of deltas) {
+                stmts.deltaInsert.run(
+                  delta.id,
+                  change.id,
+                  capability,
+                  delta.operation,
+                  "target_id" in delta ? delta.target_id : null,
+                  delta.operation === "add"
+                    ? JSON.stringify(delta.requirement)
                     : null,
-                delta.operation === "remove" ? delta.reason : null,
-              );
+                  delta.operation === "modify"
+                    ? JSON.stringify(delta.changes)
+                    : delta.operation === "rename"
+                      ? JSON.stringify({
+                          new_title: delta.new_title,
+                          ...(delta.new_id ? { new_id: delta.new_id } : {}),
+                        })
+                      : null,
+                  delta.operation === "remove" ? delta.reason : null,
+                );
+              }
             }
+            db.exec("COMMIT");
+          } catch (e) {
+            db.exec("ROLLBACK");
+            throw e;
           }
-          db.exec("COMMIT");
-        } catch (e) {
-          db.exec("ROLLBACK");
-          throw e;
-        }
+        }, "changes.upsert");
       },
 
       delete: (id) => {
@@ -743,6 +840,29 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
           blockerMap.set(row.source_id, existing);
         }
 
+        // Fetch cancelled blocker context for tasks unblocked by cancellation
+        const cancelledRows = stmts.cancelledBlockersForChange.all(
+          changeId,
+        ) as {
+          task_id: string;
+          cancelled_blocker_id: string;
+          cancellation_reason: string | null;
+        }[];
+        const cancelledContextMap = new Map<
+          string,
+          { cancelledBlockerId: string; cancellationReason: string }[]
+        >();
+        for (const row of cancelledRows) {
+          if (row.cancellation_reason) {
+            const existing = cancelledContextMap.get(row.task_id) ?? [];
+            existing.push({
+              cancelledBlockerId: row.cancelled_blocker_id,
+              cancellationReason: row.cancellation_reason,
+            });
+            cancelledContextMap.set(row.task_id, existing);
+          }
+        }
+
         const ready: TaskRow[] = [];
         const blocked: BlockedTask[] = [];
 
@@ -758,7 +878,25 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
           }
         }
 
-        return { ready, blocked };
+        // Build cancelled context for ready tasks that were unblocked by cancellation
+        const cancelledBlockerContext: CancelledBlockerContext[] = [];
+        for (const task of ready) {
+          const ctxList = cancelledContextMap.get(task.id);
+          if (ctxList) {
+            for (const ctx of ctxList) {
+              cancelledBlockerContext.push({ taskId: task.id, ...ctx });
+            }
+          }
+        }
+
+        return {
+          ready,
+          blocked,
+          cancelledBlockerContext:
+            cancelledBlockerContext.length > 0
+              ? cancelledBlockerContext
+              : undefined,
+        };
       },
 
       update: (id, updates) => {
@@ -791,8 +929,49 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
       },
     },
 
-    // Concurrency contract: see store-context.ts for the full write-boundary contract.
-    // sync (legacy) namespace removed — use syncFiles for all sync operations.
+    sync: {
+      needsSync: (path) => {
+        try {
+          const stats = statSync(path);
+          const currentAttrs: FileAttrs = {
+            mtime_ms: Math.floor(stats.mtimeMs),
+            size: stats.size,
+            inode: stats.ino,
+          };
+          const stored = stmts.syncFilesGet.get(path) as
+            | { mtime_ms: number; size: number; inode: number }
+            | undefined;
+
+          if (!stored) return true;
+
+          return (
+            stored.mtime_ms !== currentAttrs.mtime_ms ||
+            stored.size !== currentAttrs.size ||
+            stored.inode !== currentAttrs.inode
+          );
+        } catch {
+          return true;
+        }
+      },
+
+      markSynced: (path) => {
+        const stats = statSync(path);
+        const attrs: FileAttrs = {
+          mtime_ms: Math.floor(stats.mtimeMs),
+          size: stats.size,
+          inode: stats.ino,
+        };
+        const now = new Date().toISOString();
+        stmts.syncFilesUpsert.run(
+          path,
+          attrs.mtime_ms,
+          attrs.size,
+          attrs.inode,
+          now,
+        );
+      },
+    },
+
     syncFiles: {
       needsSync: (path, attrs) => {
         const stored = stmts.syncFilesGet.get(path) as

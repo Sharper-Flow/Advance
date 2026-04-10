@@ -311,6 +311,49 @@ describe("SQLiteStore", () => {
       expect(blocked[0].task.id).toBe("tk-task0003");
       expect(blocked[0].blockedBy).toContain("tk-task0002");
     });
+
+    test("ready includes cancelled blocker context (Leak #8)", () => {
+      // Upsert a change where tk-task0001 is cancelled with a reason
+      const changeWithCancelledBlocker = {
+        ...SAMPLE_CHANGE,
+        tasks: [
+          {
+            ...SAMPLE_CHANGE.tasks[0], // tk-task0001
+            status: "cancelled" as const,
+            completed_at: new Date().toISOString(),
+            cancellation: {
+              reason: "Absorbed into tk-task0002 (scope reduced)",
+              approved_by_user: true as const,
+              approval_evidence: "User approved in question tool",
+              approved_at: new Date().toISOString(),
+            },
+          },
+          SAMPLE_CHANGE.tasks[1], // tk-task0002 (blocked by tk-task0001)
+          SAMPLE_CHANGE.tasks[2], // tk-task0003 (blocked by tk-task0002)
+        ],
+      };
+      store.changes.upsert(
+        changeWithCancelledBlocker as Change,
+        "/path/to/change.json",
+      );
+
+      const { ready, cancelledBlockerContext } =
+        store.tasks.ready("addFeature");
+
+      // tk-task0002 is now ready (its blocker was cancelled)
+      expect(ready.some((t) => t.id === "tk-task0002")).toBe(true);
+
+      // cancelledBlockerContext should include why tk-task0002 was unblocked
+      expect(cancelledBlockerContext).toBeDefined();
+      const ctx = cancelledBlockerContext?.find(
+        (c) => c.taskId === "tk-task0002",
+      );
+      expect(ctx).toBeDefined();
+      expect(ctx?.cancelledBlockerId).toBe("tk-task0001");
+      expect(ctx?.cancellationReason).toBe(
+        "Absorbed into tk-task0002 (scope reduced)",
+      );
+    });
   });
 
   // Note: legacy `sync` namespace removed. All sync tests now use `syncFiles` — see below.

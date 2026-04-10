@@ -84,17 +84,32 @@ Before presenting questions to the user, classify each open question from discov
 
 Technical questions that were open during discovery should be resolved autonomously by the agent (via Context7, lgrep, Kagi, specs, codebase inspection) and recorded as agent-resolved decisions in the agreement. If a technical question has genuine LBP ambiguity with user-value tradeoffs, reframe it as the downstream outcome question instead of the technical choice (e.g., not "REST vs GraphQL?" but "Do you need clients to fetch partial data, or is full-resource fetching fine?").
 
+### Minimum Engagement Rule
+
+The agent **MUST** always conduct at least **1 round of 3 clarifying questions**, even if discovery surfaced zero open questions. There are always assumptions to validate, edge cases to probe, and acceptance boundaries to sharpen. If discovery was thorough, the first round focuses on confirming and tightening — not rehashing.
+
+The agent **MAY** conduct up to **5 rounds** total, with up to **5 questions per round**.
+
+| Constraint | Value |
+|------------|-------|
+| Minimum rounds | 1 |
+| Minimum questions in first round | 3 |
+| Maximum rounds | 5 |
+| Maximum questions per round | 5 |
+
+Stop the loop when: all user-facing questions are resolved, the user signals satisfaction, or the 5-round cap is reached.
+
 ### Protocol
 
 1. **Collect** all open questions from discovery findings (Phase 1 extraction)
 2. **Triage** each question per the table above
 3. **Resolve technical questions** autonomously — research LBP answers, record decisions
-4. **If zero user-facing questions remain** → present agent-resolved decisions for awareness, skip to Phase 3
-5. **For each user-facing question** (or batches of 2-3 related questions):
-   - Present the question framed around outcomes, behavior, or priorities — not technical internals
+4. **Round 1 (mandatory):** Present at least 3 user-facing questions. If discovery produced fewer than 3 user-facing questions, the agent must generate additional clarifying questions by probing assumptions, edge cases, or acceptance boundaries from the proposal and discovery findings.
+5. **Subsequent rounds (as needed):** For each remaining user-facing question, or new questions surfaced by prior answers, present up to 5 questions per round.
+   - Present questions framed around outcomes, behavior, or priorities — not technical internals
    - Use the `question` tool with concrete options where possible, always with write-in enabled
    - Record the user's answer
-6. **Loop** until all user-facing questions have a user-provided answer or an explicit user deferral
+6. **Loop** until all user-facing questions have a user-provided answer or an explicit user deferral, or the 5-round cap is reached
 7. **Summarize** all resolutions (both agent-resolved and user-resolved) back to the user before proceeding
 
 ### Deferral Rules
@@ -120,8 +135,8 @@ For each user-facing question, provide:
 ### Batch Guidance
 
 - Group related questions (e.g., two questions about the same user-facing behavior)
-- Max 2-3 questions per `question` tool invocation (cognitive load limit, per `/adv-clarify` protocol)
-- Unrelated questions should be separate prompts
+- Up to 5 questions per round via the `question` tool (multiple questions in a single invocation are fine)
+- Unrelated questions should be separate prompts within the same round
 
 ---
 

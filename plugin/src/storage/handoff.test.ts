@@ -110,4 +110,63 @@ describe("Handoff", () => {
       await clearHandoff(handoffPath);
     });
   });
+
+  describe("HandoffState enrichment (Leak #5)", () => {
+    const enrichedHandoff: HandoffState = {
+      ...sampleHandoff,
+      proposalSummary:
+        "Add context leak surface fixes across 13 identified gaps",
+      currentGate: "execution",
+      successCriteriaCount: 14,
+      wisdomEntries: [
+        {
+          id: "ws-abc1",
+          type: "convention",
+          content:
+            "Always use .passthrough() on schema extensions for backwards compat",
+          recorded_at: new Date().toISOString(),
+        },
+      ],
+    };
+
+    test("writeHandoff persists enriched fields", async () => {
+      await writeHandoff(handoffPath, enrichedHandoff);
+      const content = JSON.parse(await readFile(handoffPath, "utf-8"));
+      expect(content.proposalSummary).toBe(
+        "Add context leak surface fixes across 13 identified gaps",
+      );
+      expect(content.currentGate).toBe("execution");
+      expect(content.successCriteriaCount).toBe(14);
+      expect(content.wisdomEntries).toHaveLength(1);
+      expect(content.wisdomEntries[0].content).toBe(
+        "Always use .passthrough() on schema extensions for backwards compat",
+      );
+    });
+
+    test("readHandoff restores enriched fields", async () => {
+      await writeHandoff(handoffPath, enrichedHandoff);
+      const result = await readHandoff(handoffPath);
+
+      expect(result).not.toBeNull();
+      expect(result!.proposalSummary).toBe(
+        "Add context leak surface fixes across 13 identified gaps",
+      );
+      expect(result!.currentGate).toBe("execution");
+      expect(result!.successCriteriaCount).toBe(14);
+      expect(result!.wisdomEntries).toHaveLength(1);
+    });
+
+    test("readHandoff degrades gracefully when enriched fields missing (backwards compat)", async () => {
+      // Legacy handoff without enriched fields
+      await writeHandoff(handoffPath, sampleHandoff);
+      const result = await readHandoff(handoffPath);
+
+      expect(result).not.toBeNull();
+      expect(result!.changeId).toBe("testChange"); // core fields intact
+      expect(result!.proposalSummary).toBeUndefined();
+      expect(result!.currentGate).toBeUndefined();
+      expect(result!.successCriteriaCount).toBeUndefined();
+      expect(result!.wisdomEntries).toBeUndefined();
+    });
+  });
 });

@@ -44,9 +44,10 @@ Specs are laws. Requirements are formally defined, validated, and enforced.
 |---------|---------|
 | `/adv-clarify` | Ask clarifying questions to resolve ambiguous requirements |
 | `/adv-discover <change-id>` | Gather context, analyze current state, and identify objectives |
-| `/adv-agree <change-id>` | Resolve open questions via triage loop, confirm objectives and constraints |
+| `/adv-agree <change-id>` | Present objectives and constraints for user acceptance |
 | `/adv-design <change-id>` | Validate architecture decisions and produce implementation strategy |
 | `/adv-present <change-id>` | Present concise design overview for user review before planning |
+| `/adv-research <change-id>` | Retired: use /adv-discover and /adv-design instead |
 | `/adv-prep <change-id>` | Analyze gaps and synthesize tasks from validated design decisions |
 
 ### Post-Implementation
@@ -74,8 +75,7 @@ Specs are laws. Requirements are formally defined, validated, and enforced.
 | Command | Produces | × MUST NOT | Gate |
 |---------|----------|------------|------|
 | proposal | Problem statement, criteria, constraints | Create tasks, complete non-owned gates, impl decisions | `proposal` |
-| discover | Context analysis, objectives, open questions | Create tasks, complete non-discovery gates | `discovery` |
-| agree | agreement.md (triage open questions, resolve technical via LBP, ask user-facing) | Create tasks, complete gates, architecture decisions | None (`discovery` owned by discover) |
+| discover | Context analysis, objectives, agreement.md | Create tasks, complete non-discovery gates | `discovery` |
 | design | Architecture decisions, design.md | Create tasks, complete non-owned gates, skip research | `design` |
 | prep | Task graph, gap analysis, sequencing | Complete non-planning gates, architecture decisions | `planning` |
 | task | Change + tasks + gates (fast-track exempt) | — | `proposal` → `planning` |
@@ -149,41 +149,6 @@ Write-in option enforced by P26 (`rules.yaml`). ADV notes:
 - 2-5 options including write-in, concise labels
 - Leave custom input enabled
 
-### Autonomy vs User Intuition Protocol
-
-Default to agent autonomy whenever the answer can be derived from the conversation, specs, codebase, prior changes, or tool output.
-
-**Autonomous by default (do not ask just to classify or confirm mechanics):**
-- infer change type from the confirmed problem statement and current codebase
-- determine affected specs/capabilities and whether a new capability/spec is required
-- determine likely spec deltas needed to satisfy the change
-- detect cross-repo impact from code paths, interfaces, and related repo config
-- auto-select the only plausible target change when resolving `change-id`
-- reuse a healthy existing worktree for the same change automatically
-- begin execution once the contract/design/planning flow already established intent
-
-**Ask the user when intuition, vision, or approval is required:**
-- confirming the problem statement or quick contract matches the desired outcome
-- agreeing on objectives, constraints, avoidances, and acceptance criteria
-- validating design direction when multiple viable outcomes depend on taste, workflow, or product vision
-- resolving conflicts where long-term best practice differs from the user's stated direction
-- accepting delivered work against the agreement
-- doom-loop recovery after retry budget exhaustion
-- task cancellation, destructive actions, or policy-mandated approvals
-
-Rule of thumb: if the question is really "what outcome do you want?" or "are you approving this risk?" → ask. If the question is really "what does the repo/spec/code imply?" → decide.
-
-### Target Resolution Policy
-
-When a command needs a `change-id`:
-
-1. If the user provided one → use it.
-2. If there is exactly one plausible active change → auto-select it and state that choice.
-3. If multiple changes exist, use arguments + conversation + current workflow stage to choose the best match.
-4. Ask via `question` only if 2+ plausible targets remain after that analysis.
-
-× Do NOT ask the user to pick from a list when the agent can resolve the target confidently.
-
 ### Tradeoff Prioritizer Protocol
 
 When 2+ viable approaches depend on user values → run prioritizer before asking.
@@ -200,9 +165,9 @@ Work one task at a time. Load context in two tiers:
 
 **Phase start (once):** `adv_change_show` → load full change context including proposal, design, gates, and task summary.
 
-**Per task:** `adv_task_show` → load only the current task's details and parent changeId. Review relevant proposal/design sections only when the task description references them.
+**Per task:** `adv_task_show` → load current task details. Then `adv_wisdom_list` → load accumulated learnings for this change. Review relevant proposal/design sections only when the task description references them.
 
-× Do NOT call `adv_change_show` before every task — it returns the entire change payload and wastes context on already-known information. Reserve it for phase transitions and initial context load.
+× Do NOT call `adv_change_show` before every task — it returns the entire change payload and wastes context. Reserve it for phase transitions and initial context load.
 
 TodoWrite: use task IDs only (`tk-abc123`), not descriptions.
 
@@ -319,47 +284,6 @@ Rules:
 
 Inline-only: `/adv-status`, `/adv-proposal`, `/adv-validate`, `/adv-apply`, `/adv-archive`, `/adv-clarify`, `/adv-agree`, `/adv-present`, `/adv-accept`, `/adv-prep`, `/adv-coordinate`, `/adv-improve`
 
-### Structured Sub-Agent Prompt Protocol
-
-All ADV sub-agent spawns must use this compact prompt format to minimize token overhead:
-
-```
-ROLE: {dimension or scanner name}
-INPUT: {file list, change-id, workdir}
-OUTPUT_SCHEMA: {JSON keys the orchestrator expects back}
-BUDGET: {max files to read, max findings to return}
-STOP_WHEN: {exit condition — e.g., "all files scanned" or "5 findings reached"}
-```
-
-Rules:
-- Send only the research question or scan scope — not the full proposal, agreement, or design artifacts
-- Pre-filter with `lgrep` or file lists before spawning so workers receive targeted inputs
-- Include `WORKING DIRECTORY: {workdir}` (critical in worktrees — sub-agents inherit the default project root, not the worktree path)
-- Workers return structured JSON; orchestrator handles synthesis, formatting, and gate decisions
-
-### Orchestration Token-Budget Policy
-
-| Decision | Rule |
-|----------|------|
-| When to spawn | 3+ independent scan dimensions that benefit from parallelism |
-| When to stay inline | Single-tool-call work, sequential dependencies, or fewer than 3 dimensions |
-| Max parallel workers | 3-4 concurrent sub-agents per burst |
-| Batching | Batch independent spawns into a single message; do not spawn one-at-a-time |
-| Worker prompt size | Structured prompt protocol only — no prose narratives, no full proposal text |
-| What enters worker context | ROLE/INPUT/OUTPUT/BUDGET/STOP_WHEN + workdir + file paths. × Never full proposal, agreement, or design artifacts |
-| Result handling | Workers return JSON; orchestrator synthesizes in a single pass after all workers return |
-
-### Phase Summary Pattern
-
-Large multi-phase commands (discover, design, review, harden) must persist full phase output to artifacts and emit only compact summaries into active context:
-
-1. **Execute phase** — produce full analysis
-2. **Persist** — write full output via `adv_change_update` or task notes
-3. **Emit summary** — output a 2-5 line structured summary to context (e.g., "Discovery: 4 gaps found, 2 edge cases, 1 LBP concern")
-4. **Proceed** — orchestrator continues with the summary, not the full output
-
-This prevents discovery/design/review artifacts from accumulating in the active context window and triggering premature compaction.
-
 ## Sub-Agent Selection
 
 ### Agent Tiers
@@ -427,7 +351,10 @@ Commands that fan out to sub-agents with reusable methodology should follow this
 ### Classification
 
 **Command-only** (no backing skill needed):
-`adv-proposal`, `adv-agree`, `adv-design`, `adv-present`, `adv-task`, `adv-validate`, `adv-archive`, `adv-status`, `adv-accept`, `adv-coordinate`, `adv-clarify`, `adv-refactor`
+`adv-proposal`, `adv-agree`, `adv-design`, `adv-present`, `adv-prep`, `adv-task`, `adv-apply`, `adv-validate`, `adv-archive`, `adv-status`, `adv-accept`, `adv-coordinate`, `adv-clarify`, `adv-refactor`
+
+**Retired** (redirects to successor commands):
+- `adv-research` → use `/adv-discover` + `/adv-design`
 
 **Command + backing skill** (reusable methodology extracted):
 - `adv-discover` → `adv-discover-methodology` skill
@@ -435,8 +362,6 @@ Commands that fan out to sub-agents with reusable methodology should follow this
 - `adv-review` → `adv-review-methodology` skill
 - `adv-harden` → `adv-harden-methodology` skill
 - `adv-slop-scan` → `adv-slop-detection` skill
-- `adv-prep` → `adv-prep-methodology` skill
-- `adv-apply` → `adv-apply-methodology` skill
 
 ### Constraints
 

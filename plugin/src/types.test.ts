@@ -15,6 +15,8 @@ import {
   GATE_ORDER,
   GatesSchema,
   createDefaultGates,
+  createLegacyGates,
+  GateCompletionSchema,
   canCompleteGate,
   RequirementSchema,
   TaskSchema,
@@ -23,6 +25,7 @@ import {
   ProjectConfigSchema,
   FeatureFlagsSchema,
   ErrorRecoverySchema,
+  AttemptSchema,
   PrioritySchema,
   TaskStatusSchema,
   DependencySchema,
@@ -30,6 +33,7 @@ import {
   TddPhaseEvidenceSchema,
   TddEvidenceSchema,
   AgendaItemSchema,
+  ClarifyFindingSnapshotSchema,
   isLogicTask,
   isTrivialTask,
   hasCompleteTddEvidence,
@@ -1070,7 +1074,7 @@ describe("stripTddEvidence", () => {
 
 describe("Schema Backward Compatibility", () => {
   describe("TaskSchema", () => {
-    test("rejects task with unknown fields (strict — active write path)", () => {
+    test("parses task with extra/unknown fields (passthrough)", () => {
       const taskWithExtraFields = {
         id: "tk-test123",
         title: "Test task",
@@ -1078,29 +1082,20 @@ describe("Schema Backward Compatibility", () => {
         priority: 0,
         created_at: "2026-01-22T00:00:00Z",
         tdd_phase: "none",
-        // Unknown keys should now be rejected
+        // Extra fields that might exist in older/other projects
         custom_field: "some value",
         legacy_notes: "old data",
+        metadata: { foo: "bar" },
       };
 
-      // strict() rejects unknown keys
-      expect(() => TaskSchema.parse(taskWithExtraFields)).toThrow();
-    });
-
-    test("accepts task with only known fields", () => {
-      const validTask = {
-        id: "tk-test123",
-        title: "Test task",
-        status: "pending",
-        priority: 0,
-        created_at: "2026-01-22T00:00:00Z",
-        tdd_phase: "none",
-        metadata: { foo: "bar" }, // metadata is a known field
-      };
-
-      const result = TaskSchema.parse(validTask);
+      const result = TaskSchema.parse(taskWithExtraFields);
       expect(result.id).toBe("tk-test123");
       expect(result.title).toBe("Test task");
+      // Extra fields should be preserved
+      expect((result as Record<string, unknown>).custom_field).toBe(
+        "some value",
+      );
+      expect((result as Record<string, unknown>).legacy_notes).toBe("old data");
     });
 
     test("parses task without optional tdd fields (pre-TDD era)", () => {
@@ -1121,7 +1116,7 @@ describe("Schema Backward Compatibility", () => {
   });
 
   describe("ChangeSchema", () => {
-    test("rejects change with unknown fields (strict — active write path)", () => {
+    test("parses change with extra/unknown fields (passthrough)", () => {
       const changeWithExtraFields = {
         id: "old-change-123",
         title: "Old change",
@@ -1129,12 +1124,20 @@ describe("Schema Backward Compatibility", () => {
         created_at: "2025-06-01T00:00:00Z",
         tasks: [],
         deltas: {},
-        // Unknown keys should now be rejected
+        // Extra fields from other projects/versions
         custom_metadata: { version: "1.0" },
         legacy_field: true,
+        old_format_data: [1, 2, 3],
       };
 
-      expect(() => ChangeSchema.parse(changeWithExtraFields)).toThrow();
+      const result = ChangeSchema.parse(changeWithExtraFields);
+      expect(result.id).toBe("old-change-123");
+      expect(result.title).toBe("Old change");
+      // Extra fields should be preserved
+      expect((result as Record<string, unknown>).custom_metadata).toEqual({
+        version: "1.0",
+      });
+      expect((result as Record<string, unknown>).legacy_field).toBe(true);
     });
 
     test("parses change without wisdom field (pre-wisdom era)", () => {
@@ -1162,7 +1165,7 @@ describe("Schema Backward Compatibility", () => {
       expect(result.tasks).toHaveLength(1);
     });
 
-    test("rejects change with unknown task fields (strict propagates to tasks)", () => {
+    test("parses change with nested tasks containing extra fields", () => {
       const changeWithCustomTasks = {
         id: "custom-tasks-change",
         title: "Change with custom task fields",
@@ -1176,19 +1179,29 @@ describe("Schema Backward Compatibility", () => {
             priority: 0,
             created_at: "2026-01-01T00:00:00Z",
             tdd_phase: "none",
-            // Unknown task fields should be rejected
+            // Extra task fields
             assignee: "user@example.com",
+            estimate_hours: 4,
+            labels: ["bug", "urgent"],
           },
         ],
         deltas: {},
       };
 
-      expect(() => ChangeSchema.parse(changeWithCustomTasks)).toThrow();
+      const result = ChangeSchema.parse(changeWithCustomTasks);
+      expect(result.tasks[0].id).toBe("tk-custom1");
+      // Extra fields on tasks should be preserved
+      expect((result.tasks[0] as Record<string, unknown>).assignee).toBe(
+        "user@example.com",
+      );
+      expect((result.tasks[0] as Record<string, unknown>).estimate_hours).toBe(
+        4,
+      );
     });
   });
 
   describe("SpecSchema", () => {
-    test("rejects spec with unknown top-level fields (strict — active write path)", () => {
+    test("parses spec with extra/unknown fields (passthrough)", () => {
       const specWithExtraFields = {
         name: "test-spec",
         title: "Test Spec",
@@ -1196,14 +1209,19 @@ describe("Schema Backward Compatibility", () => {
         version: "1.0.0",
         updated_at: "2026-01-01T00:00:00Z",
         requirements: [],
-        // Unknown fields should be rejected
+        // Extra fields
         custom_metadata: { author: "test" },
+        legacy_field: "old value",
       };
 
-      expect(() => SpecSchema.parse(specWithExtraFields)).toThrow();
+      const result = SpecSchema.parse(specWithExtraFields);
+      expect(result.name).toBe("test-spec");
+      expect((result as Record<string, unknown>).custom_metadata).toEqual({
+        author: "test",
+      });
     });
 
-    test("rejects spec with unknown fields in requirements (strict propagates)", () => {
+    test("parses spec with requirements containing extra fields", () => {
       const specWithCustomReqs = {
         name: "custom-reqs-spec",
         title: "Spec with Custom Requirements",
@@ -1216,13 +1234,18 @@ describe("Schema Backward Compatibility", () => {
             title: "Test Requirement",
             body: "Test body",
             priority: "must",
-            // Unknown requirement fields should be rejected
+            // Extra fields on requirement
             author: "dev@example.com",
+            reviewed: true,
           },
         ],
       };
 
-      expect(() => SpecSchema.parse(specWithCustomReqs)).toThrow();
+      const result = SpecSchema.parse(specWithCustomReqs);
+      expect(result.requirements[0].id).toBe("rq-test123");
+      expect((result.requirements[0] as Record<string, unknown>).author).toBe(
+        "dev@example.com",
+      );
     });
   });
 
@@ -1324,30 +1347,23 @@ describe("Schema Backward Compatibility", () => {
   });
 
   describe("ScenarioSchema", () => {
-    test("rejects scenario with unknown fields (strict — active write path)", () => {
+    test("parses scenario with extra/unknown fields (passthrough)", () => {
       const scenarioWithExtraFields = {
         id: "rq-test.1",
         title: "Test Scenario",
         given: ["A user exists"],
         when: "User logs in",
         then: ["User sees dashboard"],
-        // Unknown fields should be rejected
+        // Extra fields
         notes: "Manual test required",
+        automation_status: "pending",
       };
 
-      expect(() => ScenarioSchema.parse(scenarioWithExtraFields)).toThrow();
-    });
-
-    test("accepts valid scenario with only known fields", () => {
-      const valid = {
-        id: "rq-test.1",
-        title: "Test Scenario",
-        given: ["A user exists"],
-        when: "User logs in",
-        then: ["User sees dashboard"],
-      };
-      const result = ScenarioSchema.parse(valid);
+      const result = ScenarioSchema.parse(scenarioWithExtraFields);
       expect(result.id).toBe("rq-test.1");
+      expect((result as Record<string, unknown>).notes).toBe(
+        "Manual test required",
+      );
     });
   });
 
@@ -1529,10 +1545,29 @@ describe("GATE_DEFS single source of truth", () => {
       expect(defaults[id].status).toBe("pending");
     }
   });
+
+  test("createLegacyGates returns one entry per GATE_DEFS entry", () => {
+    const legacy = createLegacyGates();
+    const gateIds = GATE_DEFS.map((g: { id: string }) => g.id);
+    expect(Object.keys(legacy)).toEqual(gateIds);
+  });
+
+  test("createLegacyGates marks last gate as pending, rest as legacy", () => {
+    const legacy = createLegacyGates();
+    const gateIds = GATE_DEFS.map((g: { id: string }) => g.id);
+    const lastGateId = gateIds[gateIds.length - 1];
+    for (const id of gateIds) {
+      if (id === lastGateId) {
+        expect(legacy[id].status).toBe("pending");
+      } else {
+        expect(legacy[id].status).toBe("legacy");
+      }
+    }
+  });
 });
 
 // =============================================================================
-// Task.type field
+// Task.type field and GateCompletion.migrated_from
 // =============================================================================
 
 describe("TaskSchema.type field", () => {
@@ -1583,6 +1618,52 @@ describe("TaskSchema.type field", () => {
         type: "invalid",
       }),
     ).toThrow();
+  });
+});
+
+describe("GateCompletionSchema.migrated_from", () => {
+  test("accepts migrated_from field for migration audit trail", () => {
+    const gate = GateCompletionSchema.parse({
+      status: "done",
+      completed_at: "2026-01-01T00:00:00Z",
+      completed_by: "migration",
+      migrated_from: "research",
+    });
+    expect(gate.migrated_from).toBe("research");
+  });
+
+  test("migrated_from is optional (existing gates work without it)", () => {
+    const gate = GateCompletionSchema.parse({
+      status: "done",
+      completed_at: "2026-01-01T00:00:00Z",
+      completed_by: "agent",
+    });
+    expect(gate.migrated_from).toBeUndefined();
+  });
+
+  test("accepts absorbed_completions for merged migration audit trail", () => {
+    const gate = GateCompletionSchema.parse({
+      status: "done",
+      completed_at: "2026-01-01T00:00:00Z",
+      completed_by: "agent",
+      migrated_from: "review",
+      absorbed_completions: [
+        {
+          gate_id: "signoff",
+          status: "done",
+          completed_at: "2026-01-02T00:00:00Z",
+          completed_by: "user",
+        },
+      ],
+    });
+    expect(gate.absorbed_completions).toEqual([
+      {
+        gate_id: "signoff",
+        status: "done",
+        completed_at: "2026-01-02T00:00:00Z",
+        completed_by: "user",
+      },
+    ]);
   });
 });
 
@@ -1648,6 +1729,20 @@ describe("7-gate collaborative model", () => {
     expect(gates.release.status).toBe("pending");
   });
 
+  test("createLegacyGates marks release as pending, rest as legacy", () => {
+    const gates = createLegacyGates();
+    expect(Object.keys(gates)).toHaveLength(7);
+    // All gates except the last (release) should be legacy
+    expect(gates.proposal.status).toBe("legacy");
+    expect(gates.discovery.status).toBe("legacy");
+    expect(gates.design.status).toBe("legacy");
+    expect(gates.planning.status).toBe("legacy");
+    expect(gates.execution.status).toBe("legacy");
+    expect(gates.acceptance.status).toBe("legacy");
+    // Last gate stays pending (never auto-marked)
+    expect(gates.release.status).toBe("pending");
+  });
+
   test("canCompleteGate enforces 7-gate sequence", () => {
     const gates = createDefaultGates();
     // First gate (proposal) can always be completed
@@ -1663,61 +1758,176 @@ describe("7-gate collaborative model", () => {
 });
 
 // =============================================================================
-// Schema Strictness Contract (tk-yJzZqzeP)
+// New schema additions — Leak #6, #9, #11, #12 (fixAdvContextLeakSurfaces)
 // =============================================================================
-describe("schema strictness — active write-path schemas reject unknown keys", () => {
-  const unknownKey = { _unknownField: "should-be-rejected" };
 
-  test("ChangeSchema rejects unknown keys", () => {
-    const valid = SAMPLE_CHANGE;
-    expect(() => ChangeSchema.parse({ ...valid, ...unknownKey })).toThrow();
+describe("TaskSchema.implementation_summary (Leak #6)", () => {
+  const baseTask = {
+    id: "tk-test01",
+    title: "Test task",
+    status: "pending",
+    created_at: new Date().toISOString(),
+  };
+
+  test("accepts task with implementation_summary", () => {
+    const task = TaskSchema.parse({
+      ...baseTask,
+      implementation_summary: "Used Zod .optional() pattern per KD4",
+    });
+    expect(task.implementation_summary).toBe(
+      "Used Zod .optional() pattern per KD4",
+    );
   });
 
-  test("TaskSchema rejects unknown keys", () => {
-    const valid = (SAMPLE_CHANGE.tasks as unknown[])[0];
-    expect(() =>
-      TaskSchema.parse({ ...(valid as object), ...unknownKey }),
-    ).toThrow();
+  test("accepts task without implementation_summary (backwards compat)", () => {
+    const task = TaskSchema.parse(baseTask);
+    expect(task.implementation_summary).toBeUndefined();
   });
 
-  test("ScenarioSchema rejects unknown keys", () => {
-    const valid = {
-      id: "rq-test.1",
-      title: "t",
-      given: ["g"],
-      when: "w",
-      then: ["t"],
-    };
-    expect(() => ScenarioSchema.parse({ ...valid, ...unknownKey })).toThrow();
+  test("persists implementation_summary through parse round-trip", () => {
+    const summary = "Extended GateCompletionSchema with notes field";
+    const parsed = TaskSchema.parse({
+      ...baseTask,
+      implementation_summary: summary,
+    });
+    expect(parsed.implementation_summary).toBe(summary);
+  });
+});
+
+describe("AttemptSchema + ErrorRecoverySchema.attempts (Leak #9)", () => {
+  test("AttemptSchema parses a valid attempt record", () => {
+    const attempt = AttemptSchema.parse({
+      attempt_number: 1,
+      error: "Type error: string not assignable to number",
+      diagnosis: "Wrong type passed to zod schema",
+      fix_tried: "Changed field type from string to z.number()",
+      outcome: "failed",
+      attempted_at: new Date().toISOString(),
+    });
+    expect(attempt.attempt_number).toBe(1);
+    expect(attempt.outcome).toBe("failed");
   });
 
-  test("RequirementSchema rejects unknown keys", () => {
-    const valid = {
-      id: "rq-abc",
-      title: "T",
-      body: "B",
-      priority: "must",
-      scenarios: [],
-    };
-    expect(() =>
-      RequirementSchema.parse({ ...valid, ...unknownKey }),
-    ).toThrow();
+  test("ErrorRecoverySchema accepts attempts array (Leak #9 fix)", () => {
+    const recovery = ErrorRecoverySchema.parse({
+      last_error: "Build failed",
+      retry_count: 2,
+      max_retries: 3,
+      error_class: "SEMANTIC",
+      attempts: [
+        {
+          attempt_number: 1,
+          error: "First failure",
+          diagnosis: "Wrong approach",
+          fix_tried: "Tried X",
+          outcome: "failed",
+          attempted_at: new Date().toISOString(),
+        },
+        {
+          attempt_number: 2,
+          error: "Second failure",
+          diagnosis: "Still wrong",
+          fix_tried: "Tried Y",
+          outcome: "failed",
+          attempted_at: new Date().toISOString(),
+        },
+      ],
+    });
+    expect(recovery.attempts).toHaveLength(2);
+    expect(recovery.attempts![0].attempt_number).toBe(1);
   });
 
-  test("SpecSchema rejects unknown keys", () => {
-    const valid = SAMPLE_SPEC;
-    expect(() => SpecSchema.parse({ ...valid, ...unknownKey })).toThrow();
+  test("ErrorRecoverySchema without attempts is backwards compatible", () => {
+    const recovery = ErrorRecoverySchema.parse({
+      last_error: "Some error",
+      retry_count: 0,
+      max_retries: 3,
+      error_class: "TRANSIENT",
+    });
+    expect(recovery.attempts).toBeUndefined();
+  });
+});
+
+describe("GateCompletionSchema.notes (Leak #11)", () => {
+  test("accepts gate completion with notes", () => {
+    const gate = GateCompletionSchema.parse({
+      status: "done",
+      completed_at: new Date().toISOString(),
+      completed_by: "agent",
+      notes:
+        "Drift detection added; spec divergence warning scoped to warning severity",
+    });
+    expect(gate.notes).toBe(
+      "Drift detection added; spec divergence warning scoped to warning severity",
+    );
   });
 
-  // These should still PASS (passthrough preserved intentionally)
-  test("ProjectConfigSchema still accepts unknown keys (forward compat)", () => {
-    const valid = { name: "test", features: {} };
-    expect(() =>
-      ProjectConfigSchema.parse({ ...valid, _futureKey: true }),
-    ).not.toThrow();
+  test("accepts gate completion without notes (backwards compat)", () => {
+    const gate = GateCompletionSchema.parse({
+      status: "done",
+      completed_at: new Date().toISOString(),
+      completed_by: "agent",
+    });
+    expect(gate.notes).toBeUndefined();
+  });
+});
+
+describe("ClarifyFindingSnapshotSchema + ChangeSchema.clarify_findings (Leak #12)", () => {
+  test("ClarifyFindingSnapshotSchema parses a valid snapshot", () => {
+    const snapshot = ClarifyFindingSnapshotSchema.parse({
+      code: "CLARIFY_MISSING_SUCCESS_CRITERIA",
+      severity: "warning",
+      message: "Success criteria are placeholder",
+      recorded_at: new Date().toISOString(),
+    });
+    expect(snapshot.code).toBe("CLARIFY_MISSING_SUCCESS_CRITERIA");
+    expect(snapshot.resolved).toBeUndefined();
   });
 
-  test("FeatureFlagsSchema still accepts unknown keys (future flags)", () => {
-    expect(() => FeatureFlagsSchema.parse({ _futureFlag: true })).not.toThrow();
+  test("ClarifyFindingSnapshotSchema accepts resolved findings", () => {
+    const snapshot = ClarifyFindingSnapshotSchema.parse({
+      code: "CLARIFY_MISSING_SUCCESS_CRITERIA",
+      severity: "warning",
+      message: "Success criteria are placeholder",
+      recorded_at: new Date().toISOString(),
+      resolved: true,
+      resolved_at: new Date().toISOString(),
+    });
+    expect(snapshot.resolved).toBe(true);
+  });
+
+  test("ChangeSchema accepts clarify_findings array (Leak #12 fix)", () => {
+    const change = ChangeSchema.parse({
+      id: "testChange",
+      title: "Test change",
+      status: "draft",
+      created_at: new Date().toISOString(),
+      tasks: [],
+      deltas: {},
+      clarify_findings: [
+        {
+          code: "CLARIFY_MISSING_SUCCESS_CRITERIA",
+          severity: "warning",
+          message: "Success criteria are placeholder",
+          recorded_at: new Date().toISOString(),
+        },
+      ],
+    });
+    expect(change.clarify_findings).toHaveLength(1);
+    expect(change.clarify_findings![0].code).toBe(
+      "CLARIFY_MISSING_SUCCESS_CRITERIA",
+    );
+  });
+
+  test("ChangeSchema without clarify_findings is backwards compatible", () => {
+    const change = ChangeSchema.parse({
+      id: "testChange",
+      title: "Test change",
+      status: "draft",
+      created_at: new Date().toISOString(),
+      tasks: [],
+      deltas: {},
+    });
+    expect(change.clarify_findings).toBeUndefined();
   });
 });

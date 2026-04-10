@@ -38,7 +38,7 @@ export const ScenarioSchema = z
     when: z.string(),
     then: z.array(z.string()),
   })
-  .strict(); // Active write path: reject unknown keys to catch drift
+  .passthrough(); // Allow extra fields for forward/backward compatibility
 
 export type Scenario = z.infer<typeof ScenarioSchema>;
 
@@ -55,7 +55,7 @@ export const RequirementSchema = z
     tags: z.array(z.string()).optional(),
     scenarios: z.array(ScenarioSchema).optional(),
   })
-  .strict(); // Active write path: reject unknown keys to catch drift
+  .passthrough(); // Allow extra fields for forward/backward compatibility
 
 export type Requirement = z.infer<typeof RequirementSchema>;
 
@@ -73,7 +73,7 @@ export const SpecSchema = z
     updated_at: z.string(), // ISO8601
     requirements: z.array(RequirementSchema),
   })
-  .strict(); // Active write path: reject unknown keys to catch drift
+  .passthrough(); // Allow extra fields for forward/backward compatibility
 
 export type Spec = z.infer<typeof SpecSchema>;
 
@@ -228,6 +228,27 @@ export type TddEvidence = z.infer<typeof TddEvidenceSchema>;
  * - ENVIRONMENTAL: Missing dep, config not found — escalate immediately
  * - FATAL: Unrecoverable error — escalate immediately, do not retry
  */
+
+/**
+ * A single retry attempt record — captures the diagnosis and outcome for doom-loop auditing.
+ */
+export const AttemptSchema = z.object({
+  /** Which retry attempt this is (1-indexed) */
+  attempt_number: z.number().int().min(1),
+  /** The error encountered in this attempt */
+  error: z.string(),
+  /** Root cause diagnosis before fix was tried */
+  diagnosis: z.string(),
+  /** What fix was attempted */
+  fix_tried: z.string(),
+  /** Result of this attempt */
+  outcome: z.enum(["failed", "succeeded"]),
+  /** ISO8601 timestamp when attempt was made */
+  attempted_at: z.string(),
+});
+
+export type Attempt = z.infer<typeof AttemptSchema>;
+
 export const ErrorRecoverySchema = z.object({
   /** Human-readable description of the last error encountered */
   last_error: z.string(),
@@ -239,6 +260,8 @@ export const ErrorRecoverySchema = z.object({
   error_class: z.enum(["TRANSIENT", "SEMANTIC", "ENVIRONMENTAL", "FATAL"]),
   /** Planned next action if retrying (optional) */
   next_strategy: z.string().optional(),
+  /** Full history of retry attempts for doom-loop auditing */
+  attempts: z.array(AttemptSchema).optional(),
 });
 
 export type ErrorRecovery = z.infer<typeof ErrorRecoverySchema>;
@@ -275,6 +298,8 @@ export const TaskSchema = z
     started_at: z.string().nullable().optional(),
     completed_at: z.string().nullable().optional(),
     completed_by: z.string().nullable().optional(),
+    /** Structured summary of what was done and how — persisted at task completion */
+    implementation_summary: z.string().optional(),
     /** Current TDD phase for this task */
     tdd_phase: TddPhaseSchema.default("none"),
     /** TDD evidence (red/green phase recordings) */
@@ -300,7 +325,7 @@ export const TaskSchema = z
      */
     error_recovery: ErrorRecoverySchema.optional(),
   })
-  .strict(); // Active write path: reject unknown keys to catch drift
+  .passthrough(); // Allow extra fields for forward/backward compatibility
 
 export type Task = z.infer<typeof TaskSchema>;
 
@@ -489,8 +514,8 @@ export interface GateDef {
 
 /**
  * GATE_DEFS — the canonical, ordered list of gates.
- * Everything else (GateIdSchema, GATE_ORDER, GatesSchema, createDefaultGates)
- * is derived from this array.
+ * Everything else (GateIdSchema, GATE_ORDER, GatesSchema, createDefaultGates,
+ * createLegacyGates) is derived from this array.
  *
  * To change the gate model: edit this array only.
  */
@@ -549,9 +574,15 @@ export const GATE_ORDER: GateId[] = GATE_DEFS.map((g) => g.id) as GateId[];
  * Gate status values.
  * - pending: Not yet completed
  * - done: Actually completed with timestamp + actor evidence
+ * - legacy: Predates gate system, counts as "satisfied" but wasn't performed
  * - skipped: Explicitly skipped with documented reason (future use)
  */
-export const GateStatusSchema = z.enum(["pending", "done", "skipped"]);
+export const GateStatusSchema = z.enum([
+  "pending",
+  "done",
+  "legacy",
+  "skipped",
+]);
 
 export type GateStatus = z.infer<typeof GateStatusSchema>;
 
@@ -566,6 +597,21 @@ export const GateCompletionSchema = z.object({
   completed_at: z.string().optional(),
   /** Who completed the gate (user, agent, migration) */
   completed_by: z.string().optional(),
+  /** Key decisions or context captured at gate completion */
+  notes: z.string().optional(),
+  /** Original gate ID before migration (audit trail for gate renames) */
+  migrated_from: z.string().optional(),
+  /** Additional old gate completions absorbed into this gate during migration */
+  absorbed_completions: z
+    .array(
+      z.object({
+        gate_id: z.string(),
+        status: GateStatusSchema,
+        completed_at: z.string().optional(),
+        completed_by: z.string().optional(),
+      }),
+    )
+    .optional(),
 });
 
 export type GateCompletion = z.infer<typeof GateCompletionSchema>;
@@ -578,7 +624,7 @@ export const GatesSchema = z.object(
   Object.fromEntries(
     GATE_DEFS.map((g) => [
       g.id,
-      GateCompletionSchema.default({ status: "pending" }),
+      GateCompletionSchema.default({ status: "pending" as const }),
     ]),
   ) as Record<string, ReturnType<typeof GateCompletionSchema.default>>,
 );
@@ -586,10 +632,15 @@ export const GatesSchema = z.object(
 export type Gates = z.infer<typeof GatesSchema>;
 
 /**
- * Check if a gate is satisfied for sequence enforcement.
+ * Check if a gate is "satisfied" (done or legacy).
+ * Legacy gates count as satisfied for sequence enforcement.
  */
 export const isGateSatisfied = (gate: GateCompletion): boolean => {
-  return gate.status === "done" || gate.status === "skipped";
+  return (
+    gate.status === "done" ||
+    gate.status === "legacy" ||
+    gate.status === "skipped"
+  );
 };
 
 /**
@@ -613,7 +664,7 @@ export const canCompleteGate = (gates: Gates, gateId: GateId): boolean => {
 };
 
 /**
- * Get list of incomplete gates.
+ * Get list of incomplete gates (not done or legacy).
  */
 export const getIncompleteGates = (gates: Gates): GateId[] => {
   return GATE_ORDER.filter((gateId) => !isGateSatisfied(gates[gateId]));
@@ -635,9 +686,55 @@ export const createDefaultGates = (): Gates =>
     GATE_DEFS.map((g) => [g.id, { status: "pending" as const }]),
   ) as Gates;
 
+/**
+ * Create legacy gates object for migration.
+ * All gates set to 'legacy' except the LAST gate which stays 'pending'.
+ * (Last gate = user signoff / final approval — never auto-marked.)
+ * Derived from GATE_DEFS — adding a gate here is automatic.
+ */
+export const createLegacyGates = (): Gates => {
+  const now = new Date().toISOString();
+  const lastGateId = GATE_DEFS[GATE_DEFS.length - 1].id;
+  return Object.fromEntries(
+    GATE_DEFS.map((g) => [
+      g.id,
+      g.id === lastGateId
+        ? { status: "pending" as const }
+        : {
+            status: "legacy" as const,
+            completed_at: now,
+            completed_by: "migration",
+          },
+    ]),
+  ) as Gates;
+};
+
 // =============================================================================
 // Change
 // =============================================================================
+
+/**
+ * A persisted snapshot of a clarify finding — enables resolution tracking.
+ * Findings are append-only; resolved status is set when the finding is addressed.
+ */
+export const ClarifyFindingSnapshotSchema = z.object({
+  /** Finding code (e.g., CLARIFY_MISSING_SUCCESS_CRITERIA) */
+  code: z.string(),
+  /** Severity of the finding */
+  severity: z.enum(["error", "warning", "info"]),
+  /** Human-readable finding message */
+  message: z.string(),
+  /** ISO8601 timestamp when this finding was first recorded */
+  recorded_at: z.string(),
+  /** Whether this finding has been resolved */
+  resolved: z.boolean().optional(),
+  /** ISO8601 timestamp when this finding was resolved */
+  resolved_at: z.string().optional(),
+});
+
+export type ClarifyFindingSnapshot = z.infer<
+  typeof ClarifyFindingSnapshotSchema
+>;
 
 export const ChangeSchema = z
   .object({
@@ -658,8 +755,10 @@ export const ChangeSchema = z
     github_issues: z.array(z.string().url()).optional(),
     /** Structured closure metadata for retired changes */
     closure: ChangeClosureSchema.optional(),
+    /** Persisted clarify finding snapshots for resolution tracking */
+    clarify_findings: z.array(ClarifyFindingSnapshotSchema).optional(),
   })
-  .strict(); // Active write path: reject unknown keys to catch drift
+  .passthrough(); // Allow extra fields for forward/backward compatibility
 
 export type Change = z.infer<typeof ChangeSchema>;
 
@@ -851,6 +950,12 @@ export interface TaskReadyResponse {
   blocked: Array<{
     task: Task;
     blockedBy: string[];
+  }>;
+  /** Context for tasks unblocked by cancelled blockers */
+  cancelledBlockerContext?: Array<{
+    taskId: string;
+    cancelledBlockerId: string;
+    cancellationReason: string;
   }>;
 }
 

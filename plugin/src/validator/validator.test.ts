@@ -1254,3 +1254,114 @@ describe("Validator", () => {
     });
   });
 });
+
+// =============================================================================
+// Spec-sync worktree divergence warning (Leak #7)
+// =============================================================================
+
+describe("worktree spec-sync warning (Leak #7)", () => {
+  it("emits WORKTREE_SPEC_DIVERGENCE warning when isWorktree=true", async () => {
+    const change = structuredClone(SAMPLE_CHANGE) as Change;
+    const result = await validateChange(change, {
+      specs: [],
+      isWorktree: true,
+    });
+
+    const hasDivergenceWarning = result.warnings.some(
+      (w) => w.code === "WORKTREE_SPEC_DIVERGENCE",
+    );
+    expect(hasDivergenceWarning).toBe(true);
+  });
+
+  it("does NOT emit WORKTREE_SPEC_DIVERGENCE when isWorktree=false (default)", async () => {
+    const change = structuredClone(SAMPLE_CHANGE) as Change;
+    const result = await validateChange(change, {
+      specs: [],
+    });
+
+    const hasDivergenceWarning = result.warnings.some(
+      (w) => w.code === "WORKTREE_SPEC_DIVERGENCE",
+    );
+    expect(hasDivergenceWarning).toBe(false);
+  });
+});
+
+// =============================================================================
+// Proposal-task drift detection (Leak #13, KD6)
+// =============================================================================
+
+describe("proposal-task drift detection (Leak #13)", () => {
+  it("emits PROPOSAL_TASK_DRIFT warning when proposal section has no matching tasks", async () => {
+    const change = structuredClone(SAMPLE_CHANGE) as Change;
+    // Proposal mentions "Authentication" but tasks mention "Core logic" and "Documentation"
+    const result = await validateChange(change, {
+      specs: [],
+      proposalText: `# My Change\n\n## Authentication\n\nNeed auth system.\n\n## Core Logic\n\nMain feature.\n`,
+    });
+
+    // "Authentication" section has no matching task — should warn
+    const hasDriftWarning = result.warnings.some(
+      (w) => w.code === "PROPOSAL_TASK_DRIFT",
+    );
+    expect(hasDriftWarning).toBe(true);
+  });
+
+  it("does NOT emit PROPOSAL_TASK_DRIFT when tasks align with proposal sections", async () => {
+    const change: Change = {
+      ...(structuredClone(SAMPLE_CHANGE) as Change),
+      tasks: [
+        {
+          id: "tk-drift01",
+          title: "Implement core logic",
+          type: "code" as const,
+          status: "pending" as const,
+          priority: 0,
+          created_at: new Date().toISOString(),
+          tdd_phase: "none" as const,
+        },
+        {
+          id: "tk-drift02",
+          title: "Write documentation",
+          type: "docs" as const,
+          status: "pending" as const,
+          priority: 1,
+          created_at: new Date().toISOString(),
+          tdd_phase: "none" as const,
+        },
+      ],
+    };
+    const result = await validateChange(change, {
+      specs: [],
+      proposalText: `# My Change\n\n## Core Logic\n\nMain feature.\n\n## Documentation\n\nDocs needed.\n`,
+    });
+
+    const hasDriftWarning = result.warnings.some(
+      (w) => w.code === "PROPOSAL_TASK_DRIFT",
+    );
+    expect(hasDriftWarning).toBe(false);
+  });
+
+  it("does NOT emit PROPOSAL_TASK_DRIFT when no proposalText provided", async () => {
+    const change = structuredClone(SAMPLE_CHANGE) as Change;
+    const result = await validateChange(change, { specs: [] });
+
+    const hasDriftWarning = result.warnings.some(
+      (w) => w.code === "PROPOSAL_TASK_DRIFT",
+    );
+    expect(hasDriftWarning).toBe(false);
+  });
+
+  it("allows proposal drift to be skipped independently", async () => {
+    const change = structuredClone(SAMPLE_CHANGE) as Change;
+    const result = await validateChange(change, {
+      specs: [],
+      proposalText: `# My Change\n\n## Authentication\n\nNeed auth system.\n`,
+      skipChecks: ["proposal-drift"],
+    });
+
+    const hasDriftWarning = result.warnings.some(
+      (w) => w.code === "PROPOSAL_TASK_DRIFT",
+    );
+    expect(hasDriftWarning).toBe(false);
+  });
+});
