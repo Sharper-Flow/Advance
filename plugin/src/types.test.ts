@@ -1070,7 +1070,7 @@ describe("stripTddEvidence", () => {
 
 describe("Schema Backward Compatibility", () => {
   describe("TaskSchema", () => {
-    test("parses task with extra/unknown fields (passthrough)", () => {
+    test("rejects task with unknown fields (strict — active write path)", () => {
       const taskWithExtraFields = {
         id: "tk-test123",
         title: "Test task",
@@ -1078,20 +1078,29 @@ describe("Schema Backward Compatibility", () => {
         priority: 0,
         created_at: "2026-01-22T00:00:00Z",
         tdd_phase: "none",
-        // Extra fields that might exist in older/other projects
+        // Unknown keys should now be rejected
         custom_field: "some value",
         legacy_notes: "old data",
-        metadata: { foo: "bar" },
       };
 
-      const result = TaskSchema.parse(taskWithExtraFields);
+      // strict() rejects unknown keys
+      expect(() => TaskSchema.parse(taskWithExtraFields)).toThrow();
+    });
+
+    test("accepts task with only known fields", () => {
+      const validTask = {
+        id: "tk-test123",
+        title: "Test task",
+        status: "pending",
+        priority: 0,
+        created_at: "2026-01-22T00:00:00Z",
+        tdd_phase: "none",
+        metadata: { foo: "bar" }, // metadata is a known field
+      };
+
+      const result = TaskSchema.parse(validTask);
       expect(result.id).toBe("tk-test123");
       expect(result.title).toBe("Test task");
-      // Extra fields should be preserved
-      expect((result as Record<string, unknown>).custom_field).toBe(
-        "some value",
-      );
-      expect((result as Record<string, unknown>).legacy_notes).toBe("old data");
     });
 
     test("parses task without optional tdd fields (pre-TDD era)", () => {
@@ -1112,7 +1121,7 @@ describe("Schema Backward Compatibility", () => {
   });
 
   describe("ChangeSchema", () => {
-    test("parses change with extra/unknown fields (passthrough)", () => {
+    test("rejects change with unknown fields (strict — active write path)", () => {
       const changeWithExtraFields = {
         id: "old-change-123",
         title: "Old change",
@@ -1120,20 +1129,12 @@ describe("Schema Backward Compatibility", () => {
         created_at: "2025-06-01T00:00:00Z",
         tasks: [],
         deltas: {},
-        // Extra fields from other projects/versions
+        // Unknown keys should now be rejected
         custom_metadata: { version: "1.0" },
         legacy_field: true,
-        old_format_data: [1, 2, 3],
       };
 
-      const result = ChangeSchema.parse(changeWithExtraFields);
-      expect(result.id).toBe("old-change-123");
-      expect(result.title).toBe("Old change");
-      // Extra fields should be preserved
-      expect((result as Record<string, unknown>).custom_metadata).toEqual({
-        version: "1.0",
-      });
-      expect((result as Record<string, unknown>).legacy_field).toBe(true);
+      expect(() => ChangeSchema.parse(changeWithExtraFields)).toThrow();
     });
 
     test("parses change without wisdom field (pre-wisdom era)", () => {
@@ -1161,7 +1162,7 @@ describe("Schema Backward Compatibility", () => {
       expect(result.tasks).toHaveLength(1);
     });
 
-    test("parses change with nested tasks containing extra fields", () => {
+    test("rejects change with unknown task fields (strict propagates to tasks)", () => {
       const changeWithCustomTasks = {
         id: "custom-tasks-change",
         title: "Change with custom task fields",
@@ -1175,29 +1176,19 @@ describe("Schema Backward Compatibility", () => {
             priority: 0,
             created_at: "2026-01-01T00:00:00Z",
             tdd_phase: "none",
-            // Extra task fields
+            // Unknown task fields should be rejected
             assignee: "user@example.com",
-            estimate_hours: 4,
-            labels: ["bug", "urgent"],
           },
         ],
         deltas: {},
       };
 
-      const result = ChangeSchema.parse(changeWithCustomTasks);
-      expect(result.tasks[0].id).toBe("tk-custom1");
-      // Extra fields on tasks should be preserved
-      expect((result.tasks[0] as Record<string, unknown>).assignee).toBe(
-        "user@example.com",
-      );
-      expect((result.tasks[0] as Record<string, unknown>).estimate_hours).toBe(
-        4,
-      );
+      expect(() => ChangeSchema.parse(changeWithCustomTasks)).toThrow();
     });
   });
 
   describe("SpecSchema", () => {
-    test("parses spec with extra/unknown fields (passthrough)", () => {
+    test("rejects spec with unknown top-level fields (strict — active write path)", () => {
       const specWithExtraFields = {
         name: "test-spec",
         title: "Test Spec",
@@ -1205,19 +1196,14 @@ describe("Schema Backward Compatibility", () => {
         version: "1.0.0",
         updated_at: "2026-01-01T00:00:00Z",
         requirements: [],
-        // Extra fields
+        // Unknown fields should be rejected
         custom_metadata: { author: "test" },
-        legacy_field: "old value",
       };
 
-      const result = SpecSchema.parse(specWithExtraFields);
-      expect(result.name).toBe("test-spec");
-      expect((result as Record<string, unknown>).custom_metadata).toEqual({
-        author: "test",
-      });
+      expect(() => SpecSchema.parse(specWithExtraFields)).toThrow();
     });
 
-    test("parses spec with requirements containing extra fields", () => {
+    test("rejects spec with unknown fields in requirements (strict propagates)", () => {
       const specWithCustomReqs = {
         name: "custom-reqs-spec",
         title: "Spec with Custom Requirements",
@@ -1230,18 +1216,13 @@ describe("Schema Backward Compatibility", () => {
             title: "Test Requirement",
             body: "Test body",
             priority: "must",
-            // Extra fields on requirement
+            // Unknown requirement fields should be rejected
             author: "dev@example.com",
-            reviewed: true,
           },
         ],
       };
 
-      const result = SpecSchema.parse(specWithCustomReqs);
-      expect(result.requirements[0].id).toBe("rq-test123");
-      expect((result.requirements[0] as Record<string, unknown>).author).toBe(
-        "dev@example.com",
-      );
+      expect(() => SpecSchema.parse(specWithCustomReqs)).toThrow();
     });
   });
 
@@ -1343,23 +1324,30 @@ describe("Schema Backward Compatibility", () => {
   });
 
   describe("ScenarioSchema", () => {
-    test("parses scenario with extra/unknown fields (passthrough)", () => {
+    test("rejects scenario with unknown fields (strict — active write path)", () => {
       const scenarioWithExtraFields = {
         id: "rq-test.1",
         title: "Test Scenario",
         given: ["A user exists"],
         when: "User logs in",
         then: ["User sees dashboard"],
-        // Extra fields
+        // Unknown fields should be rejected
         notes: "Manual test required",
-        automation_status: "pending",
       };
 
-      const result = ScenarioSchema.parse(scenarioWithExtraFields);
+      expect(() => ScenarioSchema.parse(scenarioWithExtraFields)).toThrow();
+    });
+
+    test("accepts valid scenario with only known fields", () => {
+      const valid = {
+        id: "rq-test.1",
+        title: "Test Scenario",
+        given: ["A user exists"],
+        when: "User logs in",
+        then: ["User sees dashboard"],
+      };
+      const result = ScenarioSchema.parse(valid);
       expect(result.id).toBe("rq-test.1");
-      expect((result as Record<string, unknown>).notes).toBe(
-        "Manual test required",
-      );
     });
   });
 
@@ -1671,5 +1659,65 @@ describe("7-gate collaborative model", () => {
     expect(canCompleteGate(gates, "discovery")).toBe(true);
     // Last gate (release) requires all prior gates
     expect(canCompleteGate(gates, "release")).toBe(false);
+  });
+});
+
+// =============================================================================
+// Schema Strictness Contract (tk-yJzZqzeP)
+// =============================================================================
+describe("schema strictness — active write-path schemas reject unknown keys", () => {
+  const unknownKey = { _unknownField: "should-be-rejected" };
+
+  test("ChangeSchema rejects unknown keys", () => {
+    const valid = SAMPLE_CHANGE;
+    expect(() => ChangeSchema.parse({ ...valid, ...unknownKey })).toThrow();
+  });
+
+  test("TaskSchema rejects unknown keys", () => {
+    const valid = (SAMPLE_CHANGE.tasks as unknown[])[0];
+    expect(() =>
+      TaskSchema.parse({ ...(valid as object), ...unknownKey }),
+    ).toThrow();
+  });
+
+  test("ScenarioSchema rejects unknown keys", () => {
+    const valid = {
+      id: "rq-test.1",
+      title: "t",
+      given: ["g"],
+      when: "w",
+      then: ["t"],
+    };
+    expect(() => ScenarioSchema.parse({ ...valid, ...unknownKey })).toThrow();
+  });
+
+  test("RequirementSchema rejects unknown keys", () => {
+    const valid = {
+      id: "rq-abc",
+      title: "T",
+      body: "B",
+      priority: "must",
+      scenarios: [],
+    };
+    expect(() =>
+      RequirementSchema.parse({ ...valid, ...unknownKey }),
+    ).toThrow();
+  });
+
+  test("SpecSchema rejects unknown keys", () => {
+    const valid = SAMPLE_SPEC;
+    expect(() => SpecSchema.parse({ ...valid, ...unknownKey })).toThrow();
+  });
+
+  // These should still PASS (passthrough preserved intentionally)
+  test("ProjectConfigSchema still accepts unknown keys (forward compat)", () => {
+    const valid = { name: "test", features: {} };
+    expect(() =>
+      ProjectConfigSchema.parse({ ...valid, _futureKey: true }),
+    ).not.toThrow();
+  });
+
+  test("FeatureFlagsSchema still accepts unknown keys (future flags)", () => {
+    expect(() => FeatureFlagsSchema.parse({ _futureFlag: true })).not.toThrow();
   });
 });

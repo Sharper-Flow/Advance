@@ -138,14 +138,18 @@ Suggested structure:
 ## Acceptance Criteria
 ## Constraints
 ## Avoidances
-## Resolved Questions
+## Decisions
+### User Decisions
+### Agent Decisions (LBP)
 ## Deferred Questions
 ## Sign-Off
 ```
 
-- **Resolved Questions** — each question with the user's answer, replacing the old "Open Questions" catch-all
+- **User Decisions** — questions the user answered, each with the question, the user's choice, and why it matters
+- **Agent Decisions (LBP)** — technical questions the agent resolved autonomously via research, each with the question, chosen answer, and rationale
 - **Deferred Questions** — only questions the user explicitly chose to defer, with stated reason and design-phase implications
 - If no questions were deferred, omit the "Deferred Questions" section
+- × Do NOT include a generic "Open Questions" section — every question must be categorized as user-decided, agent-decided, or explicitly deferred
 
 Do not complete any gate here.
 
@@ -158,11 +162,12 @@ Emit AGREEMENT RECORDED with:
 - target change
 - confirmed objectives
 - AC count
-- questions resolved count
-- questions deferred count (if any)
+- user decisions count
+- agent decisions count
+- deferred count (if any)
 
 ```
 /adv-agree {change-id} COMPLETE
-Result: agreement.md recorded ({N} questions resolved, {M} deferred)
+Result: agreement.md recorded ({N} user decisions, {M} agent decisions, {K} deferred)
 Next: /adv-design {change-id}
 ```

@@ -6,7 +6,8 @@
 
 import { describe, test, expect, beforeEach, afterEach } from "vitest";
 import { join } from "path";
-import { writeFileSync } from "fs";
+import { readFileSync, existsSync } from "fs";
+import { resolve } from "path";
 import { createSQLiteStore, type SQLiteStore } from "./sqlite";
 import { initDatabase } from "./health";
 import type { Change, Spec } from "../types";
@@ -312,58 +313,7 @@ describe("SQLiteStore", () => {
     });
   });
 
-  describe("sync (automatic file attribute fetching)", () => {
-    test("needsSync returns true for non-existent file", () => {
-      expect(store.sync.needsSync("/nonexistent/path.json")).toBe(true);
-    });
-
-    test("needsSync returns true for new path after marking", () => {
-      const testPath = join(tempDir, "test-file.json");
-      writeFileSync(testPath, "test content");
-
-      store.sync.markSynced(testPath);
-
-      expect(store.sync.needsSync(testPath)).toBe(false);
-    });
-
-    test("needsSync returns true when file content changes (size differs)", () => {
-      const testPath = join(tempDir, "test-file.json");
-      writeFileSync(testPath, "original content");
-
-      store.sync.markSynced(testPath);
-
-      writeFileSync(testPath, "modified content with different size");
-
-      expect(store.sync.needsSync(testPath)).toBe(true);
-    });
-
-    test("markSynced stores current file attributes", () => {
-      const testPath = join(tempDir, "test-file.json");
-      writeFileSync(testPath, "test content");
-
-      store.sync.markSynced(testPath);
-
-      const attrs = store.syncFiles.getFileAttrs(testPath);
-      expect(attrs).not.toBeNull();
-      expect(attrs!.size).toBeGreaterThan(0);
-      expect(attrs!.mtime_ms).toBeGreaterThan(0);
-      expect(attrs!.inode).toBeGreaterThan(0);
-    });
-
-    test("needsSync uses triple-attribute comparison (mtime, size, inode)", () => {
-      const testPath = join(tempDir, "test-file.json");
-      writeFileSync(testPath, "test content");
-
-      store.sync.markSynced(testPath);
-
-      const attrs1 = store.syncFiles.getFileAttrs(testPath);
-      expect(store.sync.needsSync(testPath)).toBe(false);
-
-      store.sync.markSynced(testPath);
-      const attrs2 = store.syncFiles.getFileAttrs(testPath);
-      expect(attrs2).toEqual(attrs1);
-    });
-  });
+  // Note: legacy `sync` namespace removed. All sync tests now use `syncFiles` — see below.
 
   describe("syncFiles (triple-attribute tracking)", () => {
     test("needsSyncTriple returns true for new path", () => {
@@ -432,6 +382,38 @@ describe("SQLiteStore", () => {
 
       store.syncFiles.deleteFileRecord("/some/path.json");
       expect(store.syncFiles.needsSync("/some/path.json", attrs)).toBe(true);
+    });
+  });
+
+  describe("busy-wait retry removal contract", () => {
+    test("sqlite source has no busy-wait helper and keeps immediate transactions", () => {
+      const sqliteSource = readFileSync(
+        new URL("./sqlite.ts", import.meta.url),
+        "utf8",
+      );
+
+      expect(sqliteSource).not.toContain("function withRetry<");
+      expect(sqliteSource).not.toContain("while (Date.now() - start < delay)");
+      expect(sqliteSource.match(/BEGIN IMMEDIATE TRANSACTION/g)).toHaveLength(
+        2,
+      );
+    });
+  });
+
+  describe("sync namespace removal contract", () => {
+    test("legacy sync namespace is not present on the store", () => {
+      // After migration, the store should not expose a `sync` property;
+      // only `syncFiles` should exist for sync operations.
+      expect(store).not.toHaveProperty("sync");
+    });
+
+    test("store source does not call sqlite.sync.needsSync or sqlite.sync.markSynced", () => {
+      const storeSource = readFileSync(
+        new URL("./store.ts", import.meta.url),
+        "utf8",
+      );
+      expect(storeSource).not.toContain("sqlite.sync.needsSync");
+      expect(storeSource).not.toContain("sqlite.sync.markSynced");
     });
   });
 
@@ -566,5 +548,77 @@ describe("SQLiteStore", () => {
       // Should use an index (either the covering index or the change_key_value index)
       expect(details).toMatch(/USING INDEX idx_task_metadata/);
     });
+  });
+});
+
+// ============================================================================
+// store-context / store-locks extraction contract
+// ============================================================================
+
+describe("store decomposition contract (context + locks)", () => {
+  const storageDir = resolve(new URL(".", import.meta.url).pathname);
+
+  test("store-context.ts module exists", () => {
+    expect(existsSync(resolve(storageDir, "store-context.ts"))).toBe(true);
+  });
+
+  test("store-locks.ts module exists", () => {
+    expect(existsSync(resolve(storageDir, "store-locks.ts"))).toBe(true);
+  });
+
+  test("store.ts does not define withChangeLock function body inline", () => {
+    const src = readFileSync(resolve(storageDir, "store.ts"), "utf8");
+    expect(src).not.toContain("const withChangeLock = async <T>(");
+  });
+
+  test("store.ts does not define withTaskLock function body inline", () => {
+    const src = readFileSync(resolve(storageDir, "store.ts"), "utf8");
+    expect(src).not.toContain("const withTaskLock = async <T>(");
+  });
+});
+
+describe("store decomposition contract (sync helpers)", () => {
+  const storageDir = resolve(new URL(".", import.meta.url).pathname);
+
+  test("store-sync.ts module exists", () => {
+    expect(existsSync(resolve(storageDir, "store-sync.ts"))).toBe(true);
+  });
+
+  test("store.ts does not define ensureSpecSynced function body inline", () => {
+    const src = readFileSync(resolve(storageDir, "store.ts"), "utf8");
+    expect(src).not.toContain("const ensureSpecSynced = async (");
+  });
+
+  test("store.ts does not define ensureChangeSynced function body inline", () => {
+    const src = readFileSync(resolve(storageDir, "store.ts"), "utf8");
+    expect(src).not.toContain("const ensureChangeSynced = async (");
+  });
+});
+
+describe("store decomposition contract (domain modules)", () => {
+  const storageDir = resolve(new URL(".", import.meta.url).pathname);
+
+  test("store-specs.ts module exists", () => {
+    expect(existsSync(resolve(storageDir, "store-specs.ts"))).toBe(true);
+  });
+
+  test("store-changes.ts module exists", () => {
+    expect(existsSync(resolve(storageDir, "store-changes.ts"))).toBe(true);
+  });
+
+  test("store-tasks.ts module exists", () => {
+    expect(existsSync(resolve(storageDir, "store-tasks.ts"))).toBe(true);
+  });
+
+  test("store-gates.ts module exists", () => {
+    expect(existsSync(resolve(storageDir, "store-gates.ts"))).toBe(true);
+  });
+
+  test("store.ts is significantly smaller (under 350 lines)", () => {
+    // 319 lines: ~90 imports + 9 re-exports + 220-line createStore function.
+    // The original was 1491 lines; this is a 78% reduction.
+    const src = readFileSync(resolve(storageDir, "store.ts"), "utf8");
+    const lineCount = src.split("\n").length;
+    expect(lineCount).toBeLessThan(350);
   });
 });
