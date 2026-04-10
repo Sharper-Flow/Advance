@@ -310,6 +310,23 @@ export const gateTools = {
         extras = planning.extras;
       }
 
+      // Execution gate: all non-cancelled tasks must be done.
+      if (gateId === "execution") {
+        const incompleteTasks = (change.tasks ?? []).filter(
+          (t) => t.status !== "done" && t.status !== "cancelled",
+        );
+        if (incompleteTasks.length > 0) {
+          return formatToolOutput({
+            error: `Cannot complete execution gate: ${incompleteTasks.length} task(s) not done`,
+            incompleteTasks: incompleteTasks.map((t) => ({
+              id: t.id,
+              title: t.title,
+              status: t.status,
+            })),
+          });
+        }
+      }
+
       return persistGateCompletion(
         store,
         change,

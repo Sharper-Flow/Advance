@@ -17,6 +17,7 @@ import {
   getTaskTddCompliance,
   requiresTddEvidence,
 } from "../validator/task-classifier";
+import { validateEvidenceSemantics } from "../validator/evidence";
 import { formatToolOutput, paginate } from "../utils/tool-output";
 
 // =============================================================================
@@ -235,6 +236,16 @@ export const taskTools = {
       },
       store: Store,
     ) => {
+      // Validate exit-code semantics before recording
+      const validation = validateEvidenceSemantics(phase, exitCode);
+      if (!validation.valid) {
+        return formatToolOutput({
+          error: `Evidence rejected: ${validation.reason}`,
+          phase,
+          exitCode,
+        });
+      }
+
       const evidence = {
         test_file: testFile,
         command,

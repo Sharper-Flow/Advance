@@ -3,6 +3,7 @@ import { exec } from "child_process";
 import { promisify } from "util";
 import type { Store } from "../storage/store";
 import { truncateOutput } from "../types";
+import { validateEvidenceSemantics } from "../validator/evidence";
 import { formatToolOutput } from "../utils/tool-output";
 
 const execAsync = promisify(exec);
@@ -57,6 +58,17 @@ export const testTools = {
       if (truncatedOutput.length > maxOutputLen) {
         truncatedOutput =
           truncatedOutput.substring(0, maxOutputLen) + "... (truncated)";
+      }
+
+      // Validate exit-code semantics before recording
+      const validation = validateEvidenceSemantics(args.phase, exitCode);
+      if (!validation.valid) {
+        return formatToolOutput({
+          error: `Evidence rejected: ${validation.reason}`,
+          phase: args.phase,
+          exitCode,
+          output: truncatedOutput,
+        });
       }
 
       const evidence = {

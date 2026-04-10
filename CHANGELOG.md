@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+#### Harden ADV Compliance — TDD Evidence Validation and Execution Gate Guard
+
+- **Added exit-code semantics validation for TDD evidence** — `adv_task_evidence` and `adv_run_test` now reject evidence where the exit code contradicts the declared phase (e.g., red phase with exitCode=0, green phase with exitCode≠0). `exitCode: undefined` remains allowed for backward compatibility.
+- **Added execution-gate task-completion guard** — `adv_gate_complete` for the `execution` gate now verifies all non-cancelled tasks are `done` before completing. Previously the execution gate had zero checks and could complete with pending/in-progress tasks.
+- New `plugin/src/validator/evidence.ts` — pure validation function `validateEvidenceSemantics()` shared by both evidence-recording tools.
+- 18 new tests across 3 test files: 7 evidence validation unit tests, 7 tool integration tests (rejection + acceptance paths), 4 execution gate guard tests.
+
 #### Skill Duplication — Trim Restated Checklist Content Across All Methodology Skills
 
 - **Trimmed `skills/adv-discover-methodology/SKILL.md`** from 113→43 lines by removing per-step detail sections that duplicated `docs/checklists/discover-checklist.md`.

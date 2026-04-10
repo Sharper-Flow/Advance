@@ -1039,6 +1039,208 @@ describe("adv_gate_complete planning — readiness enforcement", () => {
 });
 
 // =============================================================================
+// Execution gate — task completion guard
+// =============================================================================
+
+describe("Execution Gate Task Completion", () => {
+  let tempDir: string;
+  let store: Store;
+
+  beforeEach(async () => {
+    tempDir = await createTempDir();
+    await createTestProject(tempDir);
+    store = await createStore(tempDir);
+    await store.init();
+    await store.sync();
+  });
+
+  afterEach(async () => {
+    await cleanupTempDir(tempDir);
+  });
+
+  async function createChangeWithGates(
+    changeId: string,
+    changeData: unknown,
+  ): Promise<void> {
+    await mkdir(join(tempDir, `.adv/changes/${changeId}`), { recursive: true });
+    await writeFile(
+      join(tempDir, `.adv/changes/${changeId}/change.json`),
+      JSON.stringify(changeData, null, 2),
+    );
+    await writeFile(
+      join(tempDir, `.adv/changes/${changeId}/proposal.md`),
+      `# ${changeId}\n\nTest change.\n`,
+    );
+    await store.sync();
+  }
+
+  async function completePreExecGates(changeId: string): Promise<void> {
+    for (const gateId of [
+      "proposal",
+      "discovery",
+      "design",
+      "planning",
+    ] as const) {
+      await gateTools.adv_gate_complete.execute({ changeId, gateId }, store);
+    }
+  }
+
+  test("blocks execution gate when tasks are pending", async () => {
+    await createChangeWithGates("execPending", {
+      $schema: "https://advance.dev/schemas/change.v1.json",
+      id: "execPending",
+      title: "Exec Pending Change",
+      status: "draft",
+      created_at: "2026-01-01T00:00:00Z",
+      tasks: [
+        {
+          id: "tk-exec0001",
+          title: "Implement feature",
+          status: "pending",
+          priority: 0,
+          created_at: "2026-01-01T00:00:00Z",
+          tdd_phase: "none",
+          metadata: { tdd_intent: "inline" },
+          deps: [],
+        },
+      ],
+      deltas: {},
+    });
+    await completePreExecGates("execPending");
+
+    const result = await gateTools.adv_gate_complete.execute(
+      { changeId: "execPending", gateId: "execution" },
+      store,
+    );
+    const parsed = extractJson(result) as Record<string, unknown>;
+
+    expect(parsed.error).toContain("task(s) not done");
+    expect(parsed.incompleteTasks).toBeDefined();
+    const tasks = parsed.incompleteTasks as Array<{
+      id: string;
+      status: string;
+    }>;
+    expect(tasks).toHaveLength(1);
+    expect(tasks[0].id).toBe("tk-exec0001");
+    expect(tasks[0].status).toBe("pending");
+  });
+
+  test("blocks execution gate when tasks are in_progress", async () => {
+    await createChangeWithGates("execInProg", {
+      $schema: "https://advance.dev/schemas/change.v1.json",
+      id: "execInProg",
+      title: "Exec In Progress Change",
+      status: "draft",
+      created_at: "2026-01-01T00:00:00Z",
+      tasks: [
+        {
+          id: "tk-exec0002",
+          title: "Implement feature",
+          status: "in_progress",
+          priority: 0,
+          created_at: "2026-01-01T00:00:00Z",
+          tdd_phase: "red",
+          metadata: { tdd_intent: "inline" },
+          deps: [],
+        },
+      ],
+      deltas: {},
+    });
+    await completePreExecGates("execInProg");
+
+    const result = await gateTools.adv_gate_complete.execute(
+      { changeId: "execInProg", gateId: "execution" },
+      store,
+    );
+    const parsed = extractJson(result) as Record<string, unknown>;
+
+    expect(parsed.error).toContain("task(s) not done");
+  });
+
+  test("allows execution gate when all tasks are done", async () => {
+    await createChangeWithGates("execAllDone", {
+      $schema: "https://advance.dev/schemas/change.v1.json",
+      id: "execAllDone",
+      title: "Exec All Done Change",
+      status: "draft",
+      created_at: "2026-01-01T00:00:00Z",
+      tasks: [
+        {
+          id: "tk-exec0003",
+          title: "Implement feature",
+          status: "done",
+          priority: 0,
+          created_at: "2026-01-01T00:00:00Z",
+          tdd_phase: "complete",
+          metadata: { tdd_intent: "inline" },
+          deps: [],
+        },
+      ],
+      deltas: {},
+    });
+    await completePreExecGates("execAllDone");
+
+    const result = await gateTools.adv_gate_complete.execute(
+      { changeId: "execAllDone", gateId: "execution" },
+      store,
+    );
+    const parsed = extractJson(result) as Record<string, unknown>;
+
+    expect(parsed.success).toBe(true);
+    expect(parsed.gateId).toBe("execution");
+  });
+
+  test("cancelled tasks do not block execution gate", async () => {
+    await createChangeWithGates("execCancelled", {
+      $schema: "https://advance.dev/schemas/change.v1.json",
+      id: "execCancelled",
+      title: "Exec Cancelled Change",
+      status: "draft",
+      created_at: "2026-01-01T00:00:00Z",
+      tasks: [
+        {
+          id: "tk-exec0004",
+          title: "Implement feature A",
+          status: "done",
+          priority: 0,
+          created_at: "2026-01-01T00:00:00Z",
+          tdd_phase: "complete",
+          metadata: { tdd_intent: "inline" },
+          deps: [],
+        },
+        {
+          id: "tk-exec0005",
+          title: "Implement feature B",
+          status: "cancelled",
+          priority: 1,
+          created_at: "2026-01-01T00:00:00Z",
+          tdd_phase: "none",
+          metadata: { tdd_intent: "inline" },
+          deps: [],
+          cancellation: {
+            reason: "Absorbed into tk-exec0004",
+            approved_by_user: true,
+            approval_evidence: "User approved",
+            approved_at: "2026-01-01T01:00:00Z",
+          },
+        },
+      ],
+      deltas: {},
+    });
+    await completePreExecGates("execCancelled");
+
+    const result = await gateTools.adv_gate_complete.execute(
+      { changeId: "execCancelled", gateId: "execution" },
+      store,
+    );
+    const parsed = extractJson(result) as Record<string, unknown>;
+
+    expect(parsed.success).toBe(true);
+    expect(parsed.gateId).toBe("execution");
+  });
+});
+
+// =============================================================================
 // Gate enum single source of truth — no duplicate hard-coded enums
 // =============================================================================
 

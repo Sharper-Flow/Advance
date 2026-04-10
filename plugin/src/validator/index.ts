@@ -55,6 +55,9 @@ export {
   type PrepReadinessCode,
 } from "./prep-readiness";
 
+// Evidence semantics validation (for TDD phase/exit-code consistency)
+export { validateEvidenceSemantics, type EvidenceValidation } from "./evidence";
+
 // Clarify-readiness checks (for ambiguity detection)
 export {
   runClarifyReadinessChecks,

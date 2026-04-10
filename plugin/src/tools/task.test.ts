@@ -547,6 +547,57 @@ describe("Task Tools", () => {
 
       expect(parsed.error).toContain("not found");
     });
+
+    test("rejects red phase with exitCode=0 (test should be failing)", async () => {
+      const result = await taskTools.adv_task_evidence.execute(
+        {
+          taskId: "tk-task0001",
+          phase: "red",
+          command: "pnpm test",
+          exitCode: 0,
+        },
+        store,
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed.error).toContain("Evidence rejected");
+      expect(parsed.error).toContain("Red phase expects a failing test");
+      expect(parsed.phase).toBe("red");
+      expect(parsed.exitCode).toBe(0);
+    });
+
+    test("rejects green phase with exitCode=1 (test should be passing)", async () => {
+      const result = await taskTools.adv_task_evidence.execute(
+        {
+          taskId: "tk-task0001",
+          phase: "green",
+          command: "pnpm test",
+          exitCode: 1,
+        },
+        store,
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed.error).toContain("Evidence rejected");
+      expect(parsed.error).toContain("Green phase expects a passing test");
+      expect(parsed.phase).toBe("green");
+      expect(parsed.exitCode).toBe(1);
+    });
+
+    test("allows evidence without exitCode (backward compat)", async () => {
+      const result = await taskTools.adv_task_evidence.execute(
+        {
+          taskId: "tk-task0001",
+          phase: "red",
+          command: "pnpm test",
+        },
+        store,
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed.success).toBe(true);
+      expect(parsed.error).toBeUndefined();
+    });
   });
 
   describe("adv_task_tdd_phase", () => {
