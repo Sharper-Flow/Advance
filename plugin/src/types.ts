@@ -489,8 +489,8 @@ export interface GateDef {
 
 /**
  * GATE_DEFS — the canonical, ordered list of gates.
- * Everything else (GateIdSchema, GATE_ORDER, GatesSchema, createDefaultGates,
- * createLegacyGates) is derived from this array.
+ * Everything else (GateIdSchema, GATE_ORDER, GatesSchema, createDefaultGates)
+ * is derived from this array.
  *
  * To change the gate model: edit this array only.
  */
@@ -549,15 +549,9 @@ export const GATE_ORDER: GateId[] = GATE_DEFS.map((g) => g.id) as GateId[];
  * Gate status values.
  * - pending: Not yet completed
  * - done: Actually completed with timestamp + actor evidence
- * - legacy: Predates gate system, counts as "satisfied" but wasn't performed
  * - skipped: Explicitly skipped with documented reason (future use)
  */
-export const GateStatusSchema = z.enum([
-  "pending",
-  "done",
-  "legacy",
-  "skipped",
-]);
+export const GateStatusSchema = z.enum(["pending", "done", "skipped"]);
 
 export type GateStatus = z.infer<typeof GateStatusSchema>;
 
@@ -572,19 +566,6 @@ export const GateCompletionSchema = z.object({
   completed_at: z.string().optional(),
   /** Who completed the gate (user, agent, migration) */
   completed_by: z.string().optional(),
-  /** Original gate ID before migration (audit trail for gate renames) */
-  migrated_from: z.string().optional(),
-  /** Additional old gate completions absorbed into this gate during migration */
-  absorbed_completions: z
-    .array(
-      z.object({
-        gate_id: z.string(),
-        status: GateStatusSchema,
-        completed_at: z.string().optional(),
-        completed_by: z.string().optional(),
-      }),
-    )
-    .optional(),
 });
 
 export type GateCompletion = z.infer<typeof GateCompletionSchema>;
@@ -605,15 +586,10 @@ export const GatesSchema = z.object(
 export type Gates = z.infer<typeof GatesSchema>;
 
 /**
- * Check if a gate is "satisfied" (done or legacy).
- * Legacy gates count as satisfied for sequence enforcement.
+ * Check if a gate is satisfied for sequence enforcement.
  */
 export const isGateSatisfied = (gate: GateCompletion): boolean => {
-  return (
-    gate.status === "done" ||
-    gate.status === "legacy" ||
-    gate.status === "skipped"
-  );
+  return gate.status === "done" || gate.status === "skipped";
 };
 
 /**
@@ -637,7 +613,7 @@ export const canCompleteGate = (gates: Gates, gateId: GateId): boolean => {
 };
 
 /**
- * Get list of incomplete gates (not done or legacy).
+ * Get list of incomplete gates.
  */
 export const getIncompleteGates = (gates: Gates): GateId[] => {
   return GATE_ORDER.filter((gateId) => !isGateSatisfied(gates[gateId]));
@@ -658,29 +634,6 @@ export const createDefaultGates = (): Gates =>
   Object.fromEntries(
     GATE_DEFS.map((g) => [g.id, { status: "pending" as const }]),
   ) as Gates;
-
-/**
- * Create legacy gates object for migration.
- * All gates set to 'legacy' except the LAST gate which stays 'pending'.
- * (Last gate = user signoff / final approval — never auto-marked.)
- * Derived from GATE_DEFS — adding a gate here is automatic.
- */
-export const createLegacyGates = (): Gates => {
-  const now = new Date().toISOString();
-  const lastGateId = GATE_DEFS[GATE_DEFS.length - 1].id;
-  return Object.fromEntries(
-    GATE_DEFS.map((g) => [
-      g.id,
-      g.id === lastGateId
-        ? { status: "pending" as const }
-        : {
-            status: "legacy" as const,
-            completed_at: now,
-            completed_by: "migration",
-          },
-    ]),
-  ) as Gates;
-};
 
 // =============================================================================
 // Change

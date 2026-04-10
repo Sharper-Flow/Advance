@@ -26,7 +26,7 @@ A compact box (max 10 lines) included in `_contextSnapshot` output fields across
 | 1 | Change ID | `CONTEXT: improveContextAgreement` |
 | 2 | Title | `Improve context agreement` |
 | 3 | (blank separator) | |
-| 4 | Gate progress | `Gates: [✓ research] [✓ prep] [○ impl] ...` |
+| 4 | Gate progress | `Gates: [✓ proposal] [✓ discovery] [○ exec] ...` |
 | 5 | Success criteria count | `Success: 3 criteria` |
 | 6 | Task counts | `Tasks: 7 done | 1 active | 2 pending` |
 | 7 | Current task (if any) | `Current: tk-abc123 (Implement feature X)` |
@@ -36,7 +36,7 @@ A compact box (max 10 lines) included in `_contextSnapshot` output fields across
 
 | Symbol | Meaning |
 |--------|---------|
-| `✓` | Done or legacy |
+| `✓` | Done |
 | `⏭` | Skipped |
 | `○` | Pending |
 
@@ -46,12 +46,13 @@ Full gate IDs are abbreviated for compactness:
 
 | Gate ID | Label |
 |---------|-------|
-| `research` | `research` |
-| `prep` | `prep` |
-| `implementation` | `impl` |
-| `review` | `review` |
-| `harden` | `harden` |
-| `signoff` | `signoff` |
+| `proposal` | `proposal` |
+| `discovery` | `discovery` |
+| `design` | `design` |
+| `planning` | `planning` |
+| `execution` | `exec` |
+| `acceptance` | `accept` |
+| `release` | `release` |
 
 ### Rendered Example
 
@@ -60,7 +61,7 @@ Full gate IDs are abbreviated for compactness:
 ║ CONTEXT: improveContextAgreement                         ║
 ║ Improve context agreement                                ║
 ║                                                          ║
-║ Gates: [✓ research] [✓ prep] [○ impl] [○ review] ...    ║
+║ Gates: [✓ proposal] [✓ discovery] [○ design] [○ exec]...║
 ║ Success: 3 criteria                                      ║
 ║ Tasks: 7 done | 1 active | 2 pending                    ║
 ║ Current: tk-abc123 (Implement feature X)                 ║

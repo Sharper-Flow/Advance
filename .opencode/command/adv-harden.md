@@ -52,7 +52,7 @@ Extract from `$ARGUMENTS`:
 
 `adv_gate_status changeId: {change-id}`
 
-If acceptance gate NOT complete (status != 'done' and status != 'legacy') → emit HARDEN BLOCKED banner citing incomplete acceptance gate → stop. Required action: `/adv-accept {change-id}`.
+If acceptance gate is not `done` → emit HARDEN BLOCKED banner citing incomplete acceptance gate → stop. Required action: `/adv-accept {change-id}`.
 
 ### Cancellation & Cross-Repo Audit
 

@@ -5,7 +5,6 @@ import { join, resolve } from "path";
 const REPO_ROOT = resolve(__dirname, "../..");
 const COMMAND_PATH = join(REPO_ROOT, ".opencode/command/adv-slop-scan.md");
 const ADV_INSTRUCTIONS_PATH = join(REPO_ROOT, "ADV_INSTRUCTIONS.md");
-const SPEC_PATH = join(REPO_ROOT, "docs/specs/slop-scan.md");
 
 describe("adv-slop-scan anti-recursion assets", () => {
   test("documents single-level-only scanner delegation in command contract", () => {
@@ -28,18 +27,6 @@ describe("adv-slop-scan anti-recursion assets", () => {
     );
     expect(content).toContain(
       "For `/adv-slop-scan`, all `explore` scanner workers must do the scan inline and must not delegate to additional sub-agents or invoke `/adv-*` slash commands",
-    );
-  });
-
-  test("spec documents that slop-scan scanner workers stay single-level", () => {
-    const content = readFileSync(SPEC_PATH, "utf8");
-
-    expect(content).toContain("Scanner Delegation Stays Single-Level");
-    expect(content).toContain(
-      "No scanner worker spawns nested sub-agents or delegates",
-    );
-    expect(content).toContain(
-      "The worker does not invoke `/adv-*` slash commands",
     );
   });
 });

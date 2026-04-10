@@ -122,69 +122,9 @@ describe("Gate Tools", () => {
     });
   });
 
-  describe("gate migration", () => {
-    test("migrates change gates to legacy status except release", async () => {
-      // Get initial gates (should be created as pending)
-      const beforeResult = await gateTools.adv_gate_status.execute(
-        { changeId: "addFeature" },
-        store,
-      );
-      const beforeParsed = JSON.parse(beforeResult);
-      expect(beforeParsed.gates.proposal.status).toBe("pending");
-
-      // Migrate the change
-      await store.gates.migrate("addFeature");
-
-      // After migration, all gates should be 'legacy' except release
-      const afterResult = await gateTools.adv_gate_status.execute(
-        { changeId: "addFeature" },
-        store,
-      );
-      const afterParsed = JSON.parse(afterResult);
-
-      expect(afterParsed.gates.proposal.status).toBe("legacy");
-      expect(afterParsed.gates.discovery.status).toBe("legacy");
-      expect(afterParsed.gates.design.status).toBe("legacy");
-      expect(afterParsed.gates.planning.status).toBe("legacy");
-      expect(afterParsed.gates.execution.status).toBe("legacy");
-      expect(afterParsed.gates.acceptance.status).toBe("legacy");
-      expect(afterParsed.gates.release.status).toBe("pending");
-    });
-
-    test("legacy gates count as satisfied for sequence enforcement", async () => {
-      // Migrate gates to legacy
-      await store.gates.migrate("addFeature");
-
-      // Should be able to complete release directly (all others are legacy)
-      const result = await gateTools.adv_gate_complete.execute(
-        { changeId: "addFeature", gateId: "release" },
-        store,
-      );
-      const parsed = extractJson(result) as Record<string, unknown>;
-
-      expect(parsed.success).toBe(true);
-      expect(parsed.gateId).toBe("release");
-    });
-
-    test("canArchive is true when all gates satisfied (legacy or done)", async () => {
-      // Migrate gates to legacy
-      await store.gates.migrate("addFeature");
-
-      // Complete release
-      await gateTools.adv_gate_complete.execute(
-        { changeId: "addFeature", gateId: "release" },
-        store,
-      );
-
-      // Check canArchive
-      const result = await gateTools.adv_gate_status.execute(
-        { changeId: "addFeature" },
-        store,
-      );
-      const parsed = JSON.parse(result);
-
-      expect(parsed.canArchive).toBe(true);
-      expect(parsed.incomplete).toEqual([]);
+  describe("forward-only gate surface", () => {
+    test("store.gates does not expose migrate helper", () => {
+      expect("migrate" in store.gates).toBe(false);
     });
   });
 

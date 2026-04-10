@@ -16,7 +16,7 @@ Dual perspective:
 ## Phase 0: Project Understanding
 
 1. Read `README.md` / `AGENTS.md` (truncate to ~2000 chars if long)
-2. Extract purpose, stage (startup/growth/mature/legacy), constraints
+2. Extract purpose, stage (startup/growth/mature), constraints
 3. Emit PROJECT CONTEXT summary: purpose, source, stage, constraints
 
 ---

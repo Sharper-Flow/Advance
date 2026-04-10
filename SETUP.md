@@ -447,7 +447,7 @@ Suggestions:
 
 2. **Check the created files**:
    ```bash
-   ls changes/
+   ls .adv/changes/
    # Should show: addEmailValidation/
    ```
 
@@ -587,10 +587,10 @@ Mapping:
 | review          | acceptance  | preserves status + audit trail                          |
 | harden          | release     | preserves status + audit trail                          |
 | signoff         | acceptance  | absorbed; recorded in `absorbed_completions`              |
-| (new) proposal  | proposal    | inserted as `legacy` for in-flight changes              |
-| (new) design    | design      | inserted as `legacy` for in-flight changes              |
+| (new) proposal  | proposal    | inserted for in-flight changes                          |
+| (new) design    | design      | inserted for in-flight changes                          |
 
-New changes start directly in the 7-gate model. The `/adv-research` command is retired and replaced by `/adv-discover` + `/adv-design`; the old command file remains as a redirect stub.
+New changes start directly in the 7-gate model.
 
 ---
 
@@ -628,12 +628,6 @@ New changes start directly in the 7-gate model. The `/adv-research` command is r
 | `/adv-coordinate` | Detect cross-change conflicts |
 | `/adv-improve` | Suggest spec or implementation improvements |
 | `/adv-tron [target]` | Investigate codebase structure and suggest agenda candidates |
-
-**Retired**
-
-| Command | Replacement |
-|---------|-------------|
-| `/adv-research <target>` | Use `/adv-discover` + `/adv-design` instead |
 
 Tradeoff-heavy decisions inside ADV flows use inline analysis by default. For deeper analysis, agents can load the prioritizer skill via `skill("prioritizer")` which provides structured criteria question templates and decision map guidance.
 
