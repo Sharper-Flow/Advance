@@ -125,11 +125,11 @@ If truncated due to time → output partial findings with truncation notice.
 
 ## Creating Changes
 
-Significant findings → `adv_change_create summary: "<finding>"` → return new `changeId` → `/adv-research {change-id}` first, then `/adv-prep {change-id}` for task synthesis. × Do not call `adv_task_add` here.
+Significant findings → `adv_change_create summary: "<finding>"` → return new `changeId` → `/adv-discover {change-id}` then `/adv-design {change-id}`, then `/adv-prep {change-id}` for task synthesis. × Do not call `adv_task_add` here.
 
 ```
 /adv-improve COMPLETE
 Result: {N findings | Production ready}
 Changes suggested: {Y}
-Next: /adv-research {change-id}
+Next: /adv-discover {change-id} → /adv-design {change-id}
 ```

@@ -1,165 +1,133 @@
-# ADV Research Command
+# ADV Research Command (RETIRED)
 
-> **Version:** 1.0.0
-> **Updated:** 2026-03-14
+> **Version:** 1.1.0
+> **Updated:** 2026-04-08
 
 ## Purpose
 
-Defines the responsibilities and boundaries of /adv-research. The research command validates HOW — architectural decisions, best practices, simplification opportunities. It produces validated decisions and findings, not tasks.
+RETIRED: /adv-research has been replaced by /adv-discover (discovery gate) and /adv-design (design gate) in the 7-gate collaborative workflow. This spec is preserved for historical reference and legacy migration. New changes should use /adv-discover for context gathering and /adv-design for architecture validation.
 
 ## Requirements
 
-### Research Produces Validated Decisions Only
+### Research Produces Validated Decisions Only (RETIRED)
 
 **ID:** `rq-res-out1` | **Priority:** **[MUST]**
 
-/adv-research must produce a research report with validated decisions, architecture assessment, simplification opportunities, and concerns. Findings must be persisted in proposal.md under a Research Validation section. It must NOT create tasks.
+RETIRED: This requirement is superseded by /adv-discover (context gathering, agreement.md) and /adv-design (architecture validation, design.md). Legacy changes with a research gate are auto-migrated to the discovery+design gates.
 
-**Tags:** `research`, `boundary`, `validation`
+**Tags:** `research`, `boundary`, `validation`, `retired`
 
 #### Scenarios
 
-**Research updates proposal.md with findings but creates zero tasks** (`rq-res-out1.1`)
+**Research updates proposal.md with findings but creates zero tasks (RETIRED)** (`rq-res-out1.1`)
 
 **Given:**
 - A user invokes /adv-research on an active change
 
-**When:** The command completes successfully
+**When:** The command is invoked
 
 **Then:**
-- proposal.md is updated with a Research Validation section
-- The section contains validated decisions, concerns, and action items
-- Zero calls to adv_task_add are made
-- Findings are structured for consumption by /adv-prep
+- The command redirects to /adv-discover and /adv-design
+- No direct research execution occurs
 
-**Research on deployed spec creates change but defers tasks to prep** (`rq-res-out1.2`)
+**Research on deployed spec creates change but defers tasks to prep (RETIRED)** (`rq-res-out1.2`)
 
 **Given:**
-- A user invokes /adv-research on a deployed spec (not an active change)
+- A user invokes /adv-research on a deployed spec
 
-**When:** Research finds issues requiring action
+**When:** The command is invoked
 
 **Then:**
-- A new change is created via adv_change_create
-- proposal.md contains research findings
-- Zero calls to adv_task_add are made
-- Next steps point to /adv-prep for task synthesis
+- The command redirects to /adv-discover and /adv-design
+- Legacy behavior is no longer active
 
 ---
 
-### Research Validates Architecture and Best Practices
+### Research Validates Architecture and Best Practices (RETIRED)
 
 **ID:** `rq-res-scope1` | **Priority:** **[MUST]**
 
-/adv-research must audit the existing codebase architecture, validate proposed decisions against canonical patterns, identify simplification opportunities, and classify the architecture health (SOUND, DRIFTED, ANTI-PATTERN).
+RETIRED: Architecture validation is now handled by /adv-design (design gate). Context gathering is handled by /adv-discover (discovery gate).
 
-**Tags:** `research`, `boundary`, `architecture`
+**Tags:** `research`, `boundary`, `architecture`, `retired`
 
 #### Scenarios
 
-**Architecture health assessment included in report** (`rq-res-scope1.1`)
+**Architecture health assessment included in report (RETIRED)** (`rq-res-scope1.1`)
 
 **Given:**
 - A user invokes /adv-research on a change
 
-**When:** The research report is generated
+**When:** The command is invoked
 
 **Then:**
-- The report includes an Architecture Health Assessment section
-- The existing architecture is classified as SOUND, DRIFTED, or ANTI-PATTERN
-- Each finding includes a source citation
+- The command redirects to /adv-design for architecture validation
 
-**Research completes the research gate** (`rq-res-scope1.2`)
+**Research completes the research gate (RETIRED)** (`rq-res-scope1.2`)
 
 **Given:**
 - A user invokes /adv-research on an active change
 
-**When:** The command completes successfully
+**When:** The command is invoked
 
 **Then:**
-- adv_gate_complete is called with gateId 'research'
-- The research gate is marked done
+- The research gate no longer exists in the 7-gate model
+- Legacy changes with a research gate are auto-migrated to discovery+design
 
 ---
 
-### Research Delegation Stays Single-Level
-
-**ID:** `rq-res-orch1` | **Priority:** **[MUST]**
-
-/adv-research may orchestrate first-level research sub-agents, but those sub-agents must perform their work inline and must NOT spawn additional nested research sub-agents or delegates.
-
-**Tags:** `research`, `orchestration`, `anti-recursion`
-
-#### Scenarios
-
-**Research sub-agents do not recursively delegate** (`rq-res-orch1.1`)
-
-**Given:**
-- A user invokes /adv-research
-
-**When:** The command spawns librarian, adv-researcher, or explore as research workers
-
-**Then:**
-- Only the top-level /adv-research command performs delegation
-- Each spawned worker performs research inline with its own tools
-- No nested research sub-agent spawning occurs from within those workers
-
----
-
-### Research Prohibited Actions
+### Research Prohibited Actions (RETIRED)
 
 **ID:** `rq-res-neg1` | **Priority:** **[MUST]**
 
-/adv-research MUST NOT create tasks (adv_task_add), complete non-research gates, or modify the task graph. Task synthesis is the exclusive responsibility of /adv-prep.
+RETIRED: These constraints are now distributed across /adv-discover and /adv-design. Task synthesis remains the exclusive responsibility of /adv-prep.
 
-**Tags:** `research`, `boundary`, `negative`
+**Tags:** `research`, `boundary`, `negative`, `retired`
 
 #### Scenarios
 
-**No task creation during research** (`rq-res-neg1.1`)
-
-**Given:**
-- A user invokes /adv-research on any target (change or spec)
-
-**When:** The command executes all phases including Apply Findings
-
-**Then:**
-- adv_task_add is never called
-- Findings are recorded in proposal.md, not as tasks
-- Next steps point to /adv-prep for task synthesis
-
-**Research only completes the research gate** (`rq-res-neg1.2`)
+**No task creation during research (RETIRED)** (`rq-res-neg1.1`)
 
 **Given:**
 - A user invokes /adv-research
 
-**When:** The command completes
+**When:** The command is invoked
 
 **Then:**
-- Only adv_gate_complete with gateId 'research' is called
-- No other gates are completed
+- The command redirects to /adv-discover and /adv-design
+- Task creation remains exclusive to /adv-prep
+
+**Research only completes the research gate (RETIRED)** (`rq-res-neg1.2`)
+
+**Given:**
+- A user invokes /adv-research
+
+**When:** The command is invoked
+
+**Then:**
+- The research gate no longer exists; replaced by discovery and design gates
 
 ---
 
-### Research Output Contract for Prep Consumption
+### Research Output Contract for Prep Consumption (RETIRED)
 
 **ID:** `rq-res-contract1` | **Priority:** **[SHOULD]**
 
-/adv-research must produce a structured Research Validation section in proposal.md that /adv-prep can consume for task synthesis. The section must include: validated decisions, architecture corrections required, simplification opportunities, and action items.
+RETIRED: The research output contract is superseded by agreement.md (from /adv-discover + /adv-agree) and design.md (from /adv-design + /adv-present), which /adv-prep consumes for task synthesis.
 
-**Tags:** `research`, `boundary`, `output-contract`
+**Tags:** `research`, `boundary`, `output-contract`, `retired`
 
 #### Scenarios
 
-**Research output contains structured sections for prep** (`rq-res-contract1.1`)
+**Research output contains structured sections for prep (RETIRED)** (`rq-res-contract1.1`)
 
 **Given:**
 - Research completes with findings
 
-**When:** proposal.md is updated
+**When:** The command is invoked
 
 **Then:**
-- A Research Validation section exists with subsections: Validated Decisions, Architecture Corrections Required, Simplification Opportunities, Action Items
-- Each action item is specific enough for /adv-prep to create a task from it
+- The command redirects to /adv-discover and /adv-design
+- agreement.md and design.md replace the Research Validation section in proposal.md
 
 ---

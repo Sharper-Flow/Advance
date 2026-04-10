@@ -1,5 +1,5 @@
 ---
-description: Research agent for /adv-research - validates architectural decisions via Context7 and web search
+description: Research agent for /adv-discover and /adv-design - validates architectural decisions via Context7 and web search
 mode: subagent
 model: google/gemini-3-flash-preview
 temperature: 0.10
@@ -31,12 +31,12 @@ tools:
   grep-app_*: true
   # Research tools - academic papers
   arxiv-mcp_*: true
-  # ADV tools - spec/change queries + proposal updates
+  # ADV tools - spec/change queries only
   adv_spec: true
   adv_status: true
   adv_change_list: true
   adv_change_show: true
-  adv_change_update: true
+  adv_change_update: false
   adv_project_context: true
   # UX tools
   question: true

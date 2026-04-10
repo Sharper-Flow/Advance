@@ -1,6 +1,6 @@
 # TDD Contract
 
-> **Version:** 1.1.0
+> **Version:** 1.2.0
 > **Updated:** 2026-04-07
 
 ## Purpose
@@ -242,20 +242,20 @@ When a TDD inversion is detected, the remediation MUST be: merge the test task i
 
 ---
 
-### TDD Intent Immutability After Prep Gate
+### TDD Intent Immutability After Planning Gate
 
 **ID:** `rq-TDD007req` | **Priority:** **[MUST]**
 
-Once the prep gate is marked complete, task metadata.tdd_intent is frozen. New tasks cannot be added (adv_task_add rejects with an error). Existing tasks' tdd_intent can only be changed through adv_task_reclassify_tdd, which requires explicit user approval and records a full audit trail (from_intent, to_intent, reason, approval evidence, timestamp). This prevents agents from silently downgrading TDD requirements during implementation.
+Once the planning gate is marked complete, task metadata.tdd_intent is frozen. New tasks cannot be added (adv_task_add rejects with an error). Existing tasks' tdd_intent can only be changed through adv_task_reclassify_tdd, which requires explicit user approval and records a full audit trail (from_intent, to_intent, reason, approval evidence, timestamp). This prevents agents from silently downgrading TDD requirements during implementation.
 
 **Tags:** `tdd`, `immutability`, `prep`, `gate`, `audit`
 
 #### Scenarios
 
-**Task addition rejected after prep gate complete** (`rq-TDD007req.1`)
+**Task addition rejected after planning gate complete** (`rq-TDD007req.1`)
 
 **Given:**
-- A change whose prep gate status is 'done'
+- A change whose planning gate status is 'done'
 
 **When:** adv_task_add is called for that change
 
@@ -263,10 +263,10 @@ Once the prep gate is marked complete, task metadata.tdd_intent is frozen. New t
 - The operation is rejected with an error
 - The error message directs users to adv_task_reclassify_tdd for adjusting existing tasks
 
-**Task addition succeeds before prep gate complete** (`rq-TDD007req.2`)
+**Task addition succeeds before planning gate complete** (`rq-TDD007req.2`)
 
 **Given:**
-- A change whose prep gate status is 'pending'
+- A change whose planning gate status is 'pending'
 
 **When:** adv_task_add is called for that change
 
@@ -278,7 +278,7 @@ Once the prep gate is marked complete, task metadata.tdd_intent is frozen. New t
 
 **Given:**
 - A task with metadata.tdd_intent='inline'
-- The prep gate is complete
+- The planning gate is complete
 
 **When:** adv_task_reclassify_tdd is called with approvedByUser=true, approvalEvidence, reason, and toIntent='not_applicable'
 
@@ -290,7 +290,7 @@ Once the prep gate is marked complete, task metadata.tdd_intent is frozen. New t
 
 **Given:**
 - A task with metadata.tdd_intent='inline'
-- The prep gate is complete
+- The planning gate is complete
 
 **When:** adv_task_reclassify_tdd is called without approvedByUser=true or without approvalEvidence
 
@@ -302,7 +302,7 @@ Once the prep gate is marked complete, task metadata.tdd_intent is frozen. New t
 
 **Given:**
 - A task with metadata.tdd_intent='inline'
-- The prep gate is complete
+- The planning gate is complete
 
 **When:** adv_task_update is called with any status change
 

@@ -42,7 +42,7 @@ ADV expects a project-level config file plus directories for specs and change st
   "changes_dir": "changes",
   "archive_dir": "archive",
   "docs_dir": "docs/specs",
-  "db_dir": ".specdb",
+  "db_dir": ".adv/db",
   "project_file": "project.md"
 }
 ```
@@ -50,13 +50,13 @@ ADV expects a project-level config file plus directories for specs and change st
 ### Minimal directory layout
 
 ```bash
-mkdir -p specs changes archive docs/specs .specdb
+mkdir -p specs changes archive docs/specs .adv/db
 ```
 
 ### `.gitignore`
 
 ```gitignore
-.specdb/
+.adv/db/
 ```
 
 ## First-use workflow
@@ -73,10 +73,13 @@ Once ADV is wired into your OpenCode environment, the normal lifecycle is:
 Common follow-up commands:
 
 - `/adv-prep <change-id>`
-- `/adv-research <target>`
 - `/adv-review <change-id>`
 - `/adv-harden <change-id>`
 - `/adv-archive <change-id>`
+
+Retired commands:
+
+- `/adv-research <target>` → use `/adv-discover` + `/adv-design` instead
 
 ## Creating your first spec
 
@@ -130,16 +133,16 @@ ADV now self-heals common SQLite cache drift during status/sync operations, incl
 - stale change rows that no longer have a JSON source file
 - dangling task-to-change references left behind by cache inconsistencies
 
-If the local cache is still corrupted or cannot recover automatically, remove the DB in your configured `db_dir` and rebuild state on next run (legacy examples below use `.specdb`):
+If the local cache is still corrupted or cannot recover automatically, remove the DB in your configured `db_dir` and rebuild state on next run:
 
 ```bash
-rm -f .specdb/spec.db
+rm -f .adv/db/spec.db
 ```
 
 If a WAL file is left behind, remove the companion files in that same directory too:
 
 ```bash
-rm -f .specdb/spec.db .specdb/spec.db-wal .specdb/spec.db-shm
+rm -f .adv/db/spec.db .adv/db/spec.db-wal .adv/db/spec.db-shm
 ```
 
 ### Permission issues
@@ -147,7 +150,7 @@ rm -f .specdb/spec.db .specdb/spec.db-wal .specdb/spec.db-shm
 Make sure ADV can write to the project state directories:
 
 ```bash
-chmod -R u+w specs changes archive docs .specdb
+chmod -R u+w specs changes archive docs .adv/db
 ```
 
 ## Support

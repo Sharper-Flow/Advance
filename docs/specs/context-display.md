@@ -1,6 +1,6 @@
 # Context Display
 
-> **Version:** 1.0.0
+> **Version:** 1.1.0
 > **Updated:** 2026-03-10
 
 ## Purpose
@@ -35,7 +35,7 @@ The Context Snapshot MUST display: change ID and title, success criteria count, 
 **Snapshot fits within 10 lines** (`rq-ctxsnap1.2`)
 
 **Given:**
-- A change with 20 tasks across 4 sections and all 6 gates
+- A change with 20 tasks across 4 sections and all 7 gates
 
 **When:** A context snapshot is rendered
 

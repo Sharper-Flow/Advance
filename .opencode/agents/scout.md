@@ -18,9 +18,9 @@ tools:
   adv_change_list: true
   adv_change_show: true
   adv_task_list: true
-  # ADV write tools (most blocked; /adv-research needs 3 exceptions)
-  adv_change_create: true    # /adv-research Phase 5: create change for deployed spec research
-  adv_change_update: true    # /adv-research Phase 5: write Research Validation to proposal.md
+  # ADV write tools — Scout is read-only — no ADV write tools
+  adv_change_create: false
+  adv_change_update: false
   adv_change_archive: false
   adv_change_add_issue: false
   adv_change_remove_issue: false
@@ -31,7 +31,7 @@ tools:
   adv_task_cancel: false
   adv_wisdom_add: false
   adv_wisdom_promote: false
-  adv_gate_complete: true    # /adv-research Phase 7: mark research gate complete
+  adv_gate_complete: false
   adv_run_test: false
   adv_agenda_add: false
   adv_agenda_start: false

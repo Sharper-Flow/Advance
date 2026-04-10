@@ -1,6 +1,6 @@
 # ADV Proposal Command
 
-> **Version:** 1.0.0
+> **Version:** 1.1.0
 > **Updated:** 2026-03-14
 
 ## Purpose
@@ -85,7 +85,7 @@ Defines the responsibilities and boundaries of /adv-proposal. The proposal comma
 
 **ID:** `rq-prop-neg1` | **Priority:** **[MUST]**
 
-/adv-proposal MUST NOT create tasks (adv_task_add), complete gates (adv_gate_complete), research architectural decisions, or make implementation choices. These are the responsibilities of downstream commands (research, prep).
+/adv-proposal MUST NOT create tasks (adv_task_add), complete gates (adv_gate_complete), research architectural decisions, or make implementation choices. These are the responsibilities of downstream commands (discover, design, prep).
 
 **Tags:** `proposal`, `boundary`, `negative`
 
@@ -101,7 +101,7 @@ Defines the responsibilities and boundaries of /adv-proposal. The proposal comma
 **Then:**
 - adv_task_add is never called
 - The output does not list initial tasks
-- Next steps point to /adv-research then /adv-prep
+- Next steps point to /adv-discover then /adv-prep
 
 **No implementation decisions during proposal** (`rq-prop-neg1.2`)
 
@@ -112,7 +112,7 @@ Defines the responsibilities and boundaries of /adv-proposal. The proposal comma
 
 **Then:**
 - The proposal does not prescribe specific libraries or patterns
-- Implementation approach is deferred to /adv-research
+- Implementation approach is deferred to /adv-discover and /adv-design
 - Task decomposition is deferred to /adv-prep
 
 ---

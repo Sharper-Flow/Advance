@@ -31,12 +31,13 @@ Recency bands: 🔥 hot (<60min, likely in-flight), ⏳ warm (1-3h), ⏰ stale (
 
 | Incomplete Gate | Recommendation |
 |----------------|----------------|
-| research | `/adv-research <change-id>` |
-| prep | `/adv-prep <change-id>` |
-| implementation | `/adv-apply <change-id>` |
-| review | `/adv-review <change-id>` |
-| harden | `/adv-harden <change-id>` |
-| signoff | User confirmation required |
+| proposal | `/adv-proposal <change-id>` |
+| discovery | `/adv-discover <change-id>` |
+| design | `/adv-design <change-id>` |
+| planning | `/adv-prep <change-id>` |
+| execution | `/adv-apply <change-id>` |
+| acceptance | `/adv-review <change-id>` then `/adv-accept <change-id>` |
+| release | `/adv-harden <change-id>` then `/adv-archive <change-id>` |
 
 ## Quick Actions
 

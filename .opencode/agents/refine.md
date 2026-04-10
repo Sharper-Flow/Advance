@@ -167,7 +167,7 @@ You ARE responsible for:
 - Tightening vague task descriptions into specific, testable deliverables
 - Implementing small fixes discovered during investigation — don't defer trivial blockers
 - Scanning for related issues in the same subsystem and fixing them
-- Calling `adv_task_add`, `adv_gate_complete gateId:prep` when the task graph is genuinely clean
+- Calling `adv_task_add`, `adv_gate_complete gateId:planning` when the task graph is genuinely clean
 
 ### `/adv-harden` (quality pass + corrective implementation)
 Scope format: `changeId + harden gate`
@@ -179,7 +179,7 @@ You ARE responsible for:
 - Checking doc hygiene (AGENTS.md, README, inline comments) and updating them
 - Closing open review findings from `/adv-review` — implement the fixes, don't just acknowledge them
 - Scanning for related issues in the same subsystem and fixing them
-- Calling `adv_gate_complete gateId:harden` when the change is genuinely clean
+- Calling `adv_gate_complete gateId:release` when the change is genuinely clean
 
 ### Hard boundary — do not orchestrate gates
 

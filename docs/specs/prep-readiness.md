@@ -1,6 +1,6 @@
 # Prep Readiness
 
-> **Version:** 1.2.0
+> **Version:** 1.3.0
 > **Updated:** 2026-04-07
 
 ## Purpose
@@ -324,7 +324,7 @@ The adv_gate_complete tool for the prep gate must run all prep-readiness checks 
 **Given:**
 - A change with at least one prep-readiness must-failure
 
-**When:** adv_gate_complete with gateId 'prep' is called
+**When:** adv_gate_complete with gateId 'planning' is called
 
 **Then:**
 - The gate is NOT marked done
@@ -336,7 +336,7 @@ The adv_gate_complete tool for the prep gate must run all prep-readiness checks 
 **Given:**
 - A change with no must-failures but one or more warnings
 
-**When:** adv_gate_complete with gateId 'prep' is called
+**When:** adv_gate_complete with gateId 'planning' is called
 
 **Then:**
 - The gate IS marked done
@@ -347,16 +347,16 @@ The adv_gate_complete tool for the prep gate must run all prep-readiness checks 
 **Given:**
 - A change that passes all prep-readiness checks with no failures and no warnings
 
-**When:** adv_gate_complete with gateId 'prep' is called
+**When:** adv_gate_complete with gateId 'planning' is called
 
 **Then:**
 - The gate IS marked done
 - No readinessFailures or readinessWarnings in response
 
-**Non-prep gates are not affected** (`rq-PR005gat.4`)
+**Non-planning gates are not affected** (`rq-PR005gat.4`)
 
 **Given:**
-- adv_gate_complete called for research, implementation, review, harden, or signoff
+- adv_gate_complete called for proposal, discovery, design, execution, acceptance, or release
 
 **When:** The gate is completed
 
