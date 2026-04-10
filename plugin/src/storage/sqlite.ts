@@ -183,6 +183,51 @@ CREATE INDEX IF NOT EXISTS idx_task_metadata_change_key ON task_metadata (change
 -- Index for metadata:<key>=<value> queries (by change + key + value)
 CREATE INDEX IF NOT EXISTS idx_task_metadata_change_key_value ON task_metadata (change_id, key, value);
 
+-- Wisdom (derived cache from change.json.wisdom[] and wisdom.jsonl)
+CREATE TABLE IF NOT EXISTS wisdom (
+  id TEXT PRIMARY KEY,
+  scope TEXT NOT NULL CHECK (scope IN ('change', 'project')),
+  change_id TEXT,
+  type TEXT NOT NULL CHECK (type IN ('pattern', 'success', 'failure', 'gotcha', 'convention')),
+  content TEXT NOT NULL,
+  source_task TEXT,
+  source_change TEXT,
+  recorded_at TEXT NOT NULL
+);
+
+-- Wisdom FTS (Full-Text Search)
+CREATE VIRTUAL TABLE IF NOT EXISTS wisdom_fts USING fts5(
+  id,
+  content,
+  type,
+  content=wisdom,
+  content_rowid=rowid
+);
+
+-- Triggers for wisdom FTS sync
+CREATE TRIGGER IF NOT EXISTS wisdom_ai AFTER INSERT ON wisdom BEGIN
+  INSERT INTO wisdom_fts(rowid, id, content, type)
+  VALUES (NEW.rowid, NEW.id, NEW.content, NEW.type);
+END;
+
+CREATE TRIGGER IF NOT EXISTS wisdom_ad AFTER DELETE ON wisdom BEGIN
+  INSERT INTO wisdom_fts(wisdom_fts, rowid, id, content, type)
+  VALUES ('delete', OLD.rowid, OLD.id, OLD.content, OLD.type);
+END;
+
+CREATE TRIGGER IF NOT EXISTS wisdom_au AFTER UPDATE ON wisdom BEGIN
+  INSERT INTO wisdom_fts(wisdom_fts, rowid, id, content, type)
+  VALUES ('delete', OLD.rowid, OLD.id, OLD.content, OLD.type);
+  INSERT INTO wisdom_fts(rowid, id, content, type)
+  VALUES (NEW.rowid, NEW.id, NEW.content, NEW.type);
+END;
+
+-- Index for per-change wisdom queries
+CREATE INDEX IF NOT EXISTS idx_wisdom_change_id ON wisdom (change_id);
+
+-- Index for scope-based queries
+CREATE INDEX IF NOT EXISTS idx_wisdom_scope ON wisdom (scope);
+
 -- Sync files with triple-attribute tracking (mtime_ms, size, inode)
 -- For reliable incremental sync: all three must match to skip re-sync
 CREATE TABLE IF NOT EXISTS sync_files (
@@ -236,6 +281,16 @@ export interface SQLiteStore {
     };
     update: (id: string, updates: Partial<Task>) => void;
     countByChange: () => { change_id: string; total: number; done: number }[];
+  };
+
+  // Wisdom (derived cache from change.json.wisdom[] and wisdom.jsonl)
+  wisdom: {
+    upsertBatch: (changeId: string, entries: { id: string; type: string; content: string; source_task?: string; recorded_at: string }[]) => void;
+    upsertProject: (entries: { id: string; type: string; content: string; source_change?: string; source_task?: string; promoted_at: string }[]) => void;
+    deleteByChange: (changeId: string) => void;
+    deleteProjectScope: () => void;
+    search: (query: string, options?: { changeId?: string; scope?: string; type?: string; limit?: number }) => WisdomSearchResult[];
+    listAll: (options?: { scope?: string; type?: string }) => WisdomRow[];
   };
 
   // Sync (legacy - key-value based)
@@ -311,6 +366,41 @@ export interface SearchResult {
 export interface BlockedTask {
   task: TaskRow;
   blockedBy: string[];
+}
+
+export interface WisdomRow {
+  id: string;
+  scope: string;
+  change_id: string | null;
+  type: string;
+  content: string;
+  source_task: string | null;
+  source_change: string | null;
+  recorded_at: string;
+}
+
+export interface WisdomSearchResult {
+  id: string;
+  scope: string;
+  change_id: string | null;
+  type: string;
+  content: string;
+  match: string;
+  rank: number;
+}
+
+function sanitizeFtsQuery(query: string): string {
+  const tokens = query
+    .trim()
+    .split(/\s+/)
+    .map((token) => token.replace(/["'()*:]/g, ""))
+    .filter(
+      (token) =>
+        token.length > 0 &&
+        !["AND", "OR", "NOT", "NEAR"].includes(token.toUpperCase()),
+    );
+
+  return tokens.map((token) => `"${token}"`).join(" ");
 }
 
 /** Context for a pending task that was unblocked by a cancelled blocker */
@@ -606,6 +696,28 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
         AND blocker_task.status = 'cancelled'
         AND blocker_task.cancellation_reason IS NOT NULL
     `),
+
+    // Wisdom queries
+    wisdomUpsert: db.query(`
+      INSERT OR REPLACE INTO wisdom (id, scope, change_id, type, content, source_task, source_change, recorded_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `),
+    wisdomDeleteByChange: db.query("DELETE FROM wisdom WHERE change_id = ?"),
+    wisdomDeleteProjectScope: db.query("DELETE FROM wisdom WHERE scope = 'project'"),
+    wisdomSearch: db.query(`
+      SELECT w.id, w.scope, w.change_id, w.type, w.content,
+             snippet(wisdom_fts, 1, '<mark>', '</mark>', '...', 32) as match,
+             rank
+      FROM wisdom_fts
+      JOIN wisdom w ON wisdom_fts.id = w.id
+      WHERE wisdom_fts MATCH ?
+      ORDER BY rank
+      LIMIT ?
+    `),
+    wisdomListAll: db.query("SELECT * FROM wisdom ORDER BY recorded_at DESC"),
+    wisdomListByScope: db.query("SELECT * FROM wisdom WHERE scope = ? ORDER BY recorded_at DESC"),
+    wisdomListByType: db.query("SELECT * FROM wisdom WHERE type = ? ORDER BY recorded_at DESC"),
+    wisdomListByScopeAndType: db.query("SELECT * FROM wisdom WHERE scope = ? AND type = ? ORDER BY recorded_at DESC"),
   };
 
   return {
@@ -1012,6 +1124,84 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
 
       deleteFileRecord: (path) => {
         stmts.syncFilesDelete.run(path);
+      },
+    },
+
+    wisdom: {
+      upsertBatch: (changeId, entries) => {
+        for (const entry of entries) {
+          stmts.wisdomUpsert.run(
+            entry.id,
+            "change",
+            changeId,
+            entry.type,
+            entry.content,
+            entry.source_task ?? null,
+            null, // source_change is null for change-level entries
+            entry.recorded_at,
+          );
+        }
+      },
+
+      upsertProject: (entries) => {
+        for (const entry of entries) {
+          stmts.wisdomUpsert.run(
+            entry.id,
+            "project",
+            null, // change_id is null for project-level entries
+            entry.type,
+            entry.content,
+            entry.source_task ?? null,
+            entry.source_change ?? null,
+            entry.promoted_at,
+          );
+        }
+      },
+
+      deleteByChange: (changeId) => {
+        stmts.wisdomDeleteByChange.run(changeId);
+      },
+
+      deleteProjectScope: () => {
+        stmts.wisdomDeleteProjectScope.run();
+      },
+
+      search: (query, options) => {
+        const limit = options?.limit ?? 20;
+        const sanitizedQuery = sanitizeFtsQuery(query);
+        if (!sanitizedQuery) {
+          return [];
+        }
+
+        let results = stmts.wisdomSearch.all(sanitizedQuery, limit) as WisdomSearchResult[];
+
+        // Filter by changeId if provided
+        if (options?.changeId) {
+          results = results.filter((r) => r.change_id === options.changeId);
+        }
+        // Filter by scope if provided
+        if (options?.scope) {
+          results = results.filter((r) => r.scope === options.scope);
+        }
+        // Filter by type if provided
+        if (options?.type) {
+          results = results.filter((r) => r.type === options.type);
+        }
+
+        return results;
+      },
+
+      listAll: (options) => {
+        if (options?.scope && options?.type) {
+          return stmts.wisdomListByScopeAndType.all(options.scope, options.type) as WisdomRow[];
+        }
+        if (options?.scope) {
+          return stmts.wisdomListByScope.all(options.scope) as WisdomRow[];
+        }
+        if (options?.type) {
+          return stmts.wisdomListByType.all(options.type) as WisdomRow[];
+        }
+        return stmts.wisdomListAll.all() as WisdomRow[];
       },
     },
 

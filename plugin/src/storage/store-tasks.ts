@@ -17,7 +17,13 @@ import {
   loadChangeOrThrow,
 } from "./store-locks";
 import type { StoreContext } from "./store-context";
-import type { Store } from "./store";
+import type { Store } from "./store-types";
+import {
+  ensureProjectWisdomSynced,
+  ensureAllChangesSynced,
+  ensureChangeSynced,
+} from "./store-sync";
+import type { WisdomSearchResult } from "./sqlite";
 
 export function createTasksOps(
   ctx: StoreContext,
@@ -65,7 +71,11 @@ export function createTasksOps(
       if (!change) return { ready: [], blocked: [] };
 
       // Use SQLite for dependency resolution
-      const { ready: readyIds, blocked: blockedInfo } =
+      const {
+        ready: readyIds,
+        blocked: blockedInfo,
+        cancelledBlockerContext,
+      } =
         ctx.sqlite.tasks.ready(changeId);
       const readyIdSet = new Set(readyIds.map((r) => r.id));
 
@@ -78,7 +88,11 @@ export function createTasksOps(
         return [{ task, blockedBy: b.blockedBy }];
       });
 
-      return { ready, blocked };
+      return {
+        ready,
+        blocked,
+        ...(cancelledBlockerContext ? { cancelledBlockerContext } : {}),
+      };
     },
 
     update: async (taskId, status, notes) => {
@@ -259,6 +273,17 @@ export function createWisdomOps(
           change.wisdom = [];
         }
 
+        // Dedup guard: reject exact-match (content.trim(), type) within same change
+        const trimmedContent = content.trim();
+        const duplicate = change.wisdom.some(
+          (e) => e.content.trim() === trimmedContent && e.type === type,
+        );
+        if (duplicate) {
+          throw new Error(
+            `Duplicate wisdom entry: identical content and type "${type}" already exists in this change`,
+          );
+        }
+
         const entry: WisdomEntry = WisdomEntrySchema.parse({
           id: `ws-${nanoid(6)}`,
           type,
@@ -277,6 +302,49 @@ export function createWisdomOps(
     list: async (changeId) => {
       const change = await loadChangeOrThrow(ctx, changeId);
       return change.wisdom ?? [];
+    },
+
+    search: async (query, options) => {
+      // Sync change to SQLite if changeId is provided
+      if (options?.changeId) {
+        await ensureChangeSynced(ctx, options.changeId);
+      }
+      // Sync project wisdom
+      await ensureProjectWisdomSynced(ctx);
+
+      return ctx.sqlite.wisdom.search(query, {
+        changeId: options?.changeId,
+        type: options?.type,
+      }) as WisdomSearchResult[];
+    },
+
+    listAll: async (options) => {
+      // Sync all active changes to get fresh wisdom
+      await ensureAllChangesSynced(ctx);
+      // Sync project wisdom
+      await ensureProjectWisdomSynced(ctx);
+
+      // Load from SQLite (unified cache)
+      const rows = ctx.sqlite.wisdom.listAll({ type: options?.type });
+
+      // Dedup by (content.trim(), type) — first occurrence wins
+      const seen = new Map<string, typeof rows[0]>();
+      for (const row of rows) {
+        const key = `${row.content.trim()}::${row.type}`;
+        if (!seen.has(key)) {
+          seen.set(key, row);
+        }
+      }
+
+      return Array.from(seen.values()).map((row) => ({
+        id: row.id,
+        type: row.type as WisdomEntry["type"],
+        content: row.content,
+        source_task: row.source_task ?? undefined,
+        recorded_at: row.recorded_at,
+        scope: row.scope,
+        change_id: row.change_id ?? undefined,
+      }));
     },
   };
 }

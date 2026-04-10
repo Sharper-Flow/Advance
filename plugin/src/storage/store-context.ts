@@ -68,6 +68,9 @@ export interface StoreContext {
 
   /** Singleton promise for full change sync (list operations) */
   allChangesSyncPromise: Promise<void> | null;
+
+  /** True once project-level wisdom.jsonl has been synced to SQLite in this session */
+  projectWisdomSynced: boolean;
 }
 
 /**
@@ -92,5 +95,6 @@ export function createStoreContext(
     pendingChangeSyncs: new Map(),
     allSpecsSyncPromise: null,
     allChangesSyncPromise: null,
+    projectWisdomSynced: false,
   };
 }

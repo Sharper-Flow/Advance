@@ -9,6 +9,7 @@ import { readFile, writeFile } from "fs/promises";
 import { join } from "path";
 import { changeTools } from "./change";
 import { createStore, type Store } from "../storage/store";
+import { listProjectWisdom } from "../storage/project-wisdom";
 import {
   createTempDir,
   cleanupTempDir,
@@ -840,6 +841,45 @@ describe("Change Tools", () => {
         "utf-8",
       );
       expect(archivedProblemStatement).toBe("PROBLEM\n  The widget is broken.");
+    });
+
+    test("respects wisdom_accumulation feature flag during archive", async () => {
+      await store.tasks.update("tk-task0001", "done");
+      await store.tasks.update("tk-task0002", "done");
+      await store.tasks.update("tk-task0003", "done");
+
+      const change = (await store.changes.get("addFeature")).data!;
+      change.wisdom = [
+        {
+          id: "ws-archive01",
+          type: "convention",
+          content: "do not auto-promote when feature flag is off",
+          recorded_at: new Date().toISOString(),
+        },
+      ];
+      change.gates = {
+        proposal: { status: "done", completed_at: new Date().toISOString() },
+        discovery: { status: "done", completed_at: new Date().toISOString() },
+        design: { status: "done", completed_at: new Date().toISOString() },
+        planning: { status: "done", completed_at: new Date().toISOString() },
+        execution: { status: "done", completed_at: new Date().toISOString() },
+        acceptance: { status: "done", completed_at: new Date().toISOString() },
+        release: { status: "done", completed_at: new Date().toISOString() },
+      };
+      await store.changes.save(change);
+      if (store.config?.features) {
+        store.config.features.wisdom_accumulation = false;
+      }
+
+      const result = await changeTools.adv_change_archive.execute(
+        { changeId: "addFeature" },
+        store,
+      );
+      const parsed = parseToolOutput(result);
+
+      expect(parsed.success).toBe(true);
+      const projectWisdom = await listProjectWisdom(tempDir);
+      expect(projectWisdom).toHaveLength(0);
     });
 
     test("fails when tasks are incomplete", async () => {

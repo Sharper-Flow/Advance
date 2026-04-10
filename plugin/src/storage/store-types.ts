@@ -29,6 +29,7 @@ import type {
   GateId,
 } from "../types";
 import type { ProjectPaths, LoadResult } from "./json";
+import type { WisdomSearchResult } from "./sqlite";
 
 export interface Store {
   paths: ProjectPaths;
@@ -104,6 +105,8 @@ export interface Store {
       taskId: string,
       status: string,
       notes?: string,
+      implementationSummary?: string,
+      errorRecovery?: Task["error_recovery"],
     ) => Promise<Task | null>;
     add: (
       changeId: string,
@@ -142,6 +145,13 @@ export interface Store {
       sourceTask?: string,
     ) => Promise<WisdomEntry>;
     list: (changeId: string) => Promise<WisdomEntry[]>;
+    search: (
+      query: string,
+      options?: { changeId?: string; type?: WisdomType },
+    ) => Promise<WisdomSearchResult[]>;
+    listAll: (
+      options?: { type?: WisdomType },
+    ) => Promise<Array<WisdomEntry & { scope: string; change_id?: string }>>;
   };
 
   // Gates
@@ -156,6 +166,7 @@ export interface Store {
       scopeDelta?: string,
       reopenedBy?: string,
     ) => Promise<void>;
+    migrate: (changeId: string) => Promise<void>;
   };
 
   // Status

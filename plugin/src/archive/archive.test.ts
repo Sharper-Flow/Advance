@@ -18,6 +18,7 @@ import type { Change, Spec, Delta } from "../types";
 import { applyDelta, applyDeltasToSpec } from "./delta";
 import { generateSpecDoc } from "./docs";
 import { archiveChange } from "./archive";
+import { listProjectWisdom, addProjectWisdom } from "../storage/project-wisdom";
 
 describe("Delta Application", () => {
   describe("applyDelta", () => {
@@ -1015,5 +1016,169 @@ describe("Archive Workflow", () => {
         );
       });
     });
+  });
+});
+
+describe("wisdom auto-promotion during archive (tk-uv67_Wsk)", () => {
+  let testDir: string;
+
+  beforeEach(async () => {
+    testDir = await createTempDir();
+    await createTestProject(testDir, { withSpecs: true, withChanges: false });
+    await mkdir(join(testDir, "archive"), { recursive: true });
+    await mkdir(join(testDir, "docs/specs"), { recursive: true });
+  });
+
+  afterEach(async () => {
+    await cleanupTempDir(testDir);
+  });
+
+  const wisdomPath = () => join(testDir, ".adv", "wisdom.jsonl");
+
+  const makeChangeWithWisdom = () => {
+    const change = structuredClone(SAMPLE_CHANGE) as Change;
+    change.tasks.forEach((t) => (t.status = "done"));
+    change.wisdom = [
+      { id: "ws-conv1", type: "convention", content: "always use atomic writes for JSONL", recorded_at: new Date().toISOString() },
+      { id: "ws-patt1", type: "pattern", content: "use dependency injection for testability", recorded_at: new Date().toISOString() },
+      { id: "ws-gotcha1", type: "gotcha", content: "sqlite needs WAL mode for concurrent access", recorded_at: new Date().toISOString() },
+    ];
+    return change;
+  };
+
+  it("auto-promotes convention entries to project wisdom on archive", async () => {
+    const change = makeChangeWithWisdom();
+    const specs = new Map<string, Spec>();
+    specs.set("test-capability", structuredClone(SAMPLE_SPEC) as Spec);
+
+    const result = await archiveChange({
+      change,
+      specs,
+      paths: {
+        specs: join(testDir, ".adv/specs"),
+        archive: join(testDir, "archive"),
+        docs: join(testDir, "docs/specs"),
+        wisdom: wisdomPath(),
+      },
+    });
+
+    expect(result.success).toBe(true);
+
+    const projectEntries = await listProjectWisdom(testDir, { wisdomPath: wisdomPath() });
+    const contents = projectEntries.map((e) => e.content);
+    expect(contents).toContain("always use atomic writes for JSONL");
+    expect(contents).toContain("use dependency injection for testability");
+  });
+
+  it("auto-promotes pattern entries to project wisdom on archive", async () => {
+    const change = makeChangeWithWisdom();
+    const specs = new Map<string, Spec>();
+    specs.set("test-capability", structuredClone(SAMPLE_SPEC) as Spec);
+
+    await archiveChange({
+      change,
+      specs,
+      paths: {
+        specs: join(testDir, ".adv/specs"),
+        archive: join(testDir, "archive"),
+        docs: join(testDir, "docs/specs"),
+        wisdom: wisdomPath(),
+      },
+    });
+
+    const projectEntries = await listProjectWisdom(testDir, { wisdomPath: wisdomPath() });
+    expect(projectEntries.some((e) => e.type === "pattern")).toBe(true);
+  });
+
+  it("does NOT promote gotcha entries to project wisdom", async () => {
+    const change = makeChangeWithWisdom();
+    const specs = new Map<string, Spec>();
+    specs.set("test-capability", structuredClone(SAMPLE_SPEC) as Spec);
+
+    await archiveChange({
+      change,
+      specs,
+      paths: {
+        specs: join(testDir, ".adv/specs"),
+        archive: join(testDir, "archive"),
+        docs: join(testDir, "docs/specs"),
+        wisdom: wisdomPath(),
+      },
+    });
+
+    const projectEntries = await listProjectWisdom(testDir, { wisdomPath: wisdomPath() });
+    expect(projectEntries.every((e) => e.type !== "gotcha")).toBe(true);
+  });
+
+  it("does not create duplicate entries when same wisdom is already promoted", async () => {
+    // Pre-populate project wisdom with same convention entry
+    await addProjectWisdom(testDir, {
+      type: "convention",
+      content: "always use atomic writes for JSONL",
+      sourceChange: "priorChange",
+      wisdomPath: wisdomPath(),
+    });
+
+    const change = makeChangeWithWisdom();
+    const specs = new Map<string, Spec>();
+    specs.set("test-capability", structuredClone(SAMPLE_SPEC) as Spec);
+
+    await archiveChange({
+      change,
+      specs,
+      paths: {
+        specs: join(testDir, ".adv/specs"),
+        archive: join(testDir, "archive"),
+        docs: join(testDir, "docs/specs"),
+        wisdom: wisdomPath(),
+      },
+    });
+
+    const projectEntries = await listProjectWisdom(testDir, { wisdomPath: wisdomPath() });
+    const conventionEntries = projectEntries.filter(
+      (e) => e.content === "always use atomic writes for JSONL",
+    );
+    expect(conventionEntries).toHaveLength(1);
+  });
+
+  it("archive with 0 wisdom entries completes without errors", async () => {
+    const change = structuredClone(SAMPLE_CHANGE) as Change;
+    change.tasks.forEach((t) => (t.status = "done"));
+    // No wisdom entries
+    const specs = new Map<string, Spec>();
+    specs.set("test-capability", structuredClone(SAMPLE_SPEC) as Spec);
+
+    const result = await archiveChange({
+      change,
+      specs,
+      paths: {
+        specs: join(testDir, ".adv/specs"),
+        archive: join(testDir, "archive"),
+        docs: join(testDir, "docs/specs"),
+        wisdom: wisdomPath(),
+      },
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.errors).toHaveLength(0);
+  });
+
+  it("auto-promotion count is reported in result", async () => {
+    const change = makeChangeWithWisdom();
+    const specs = new Map<string, Spec>();
+    specs.set("test-capability", structuredClone(SAMPLE_SPEC) as Spec);
+
+    const result = await archiveChange({
+      change,
+      specs,
+      paths: {
+        specs: join(testDir, ".adv/specs"),
+        archive: join(testDir, "archive"),
+        docs: join(testDir, "docs/specs"),
+        wisdom: wisdomPath(),
+      },
+    });
+
+    expect(result.wisdomPromoted).toBe(2); // convention + pattern
   });
 });

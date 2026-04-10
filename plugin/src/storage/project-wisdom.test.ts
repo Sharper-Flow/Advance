@@ -410,3 +410,71 @@ describe("Project-Level Wisdom Store", () => {
     });
   });
 });
+
+describe("ProjectWisdomEntry staleness metadata (tk-EvmbCVyP)", () => {
+  let tempDir: string;
+
+  beforeEach(async () => {
+    tempDir = await createTempDir();
+    await mkdir(join(tempDir, ".adv"), { recursive: true });
+  });
+
+  afterEach(async () => {
+    await cleanupTempDir(tempDir);
+  });
+
+  test("entry with tags field persists and loads correctly", async () => {
+    const entry = await addProjectWisdom(tempDir, {
+      type: "convention",
+      content: "Use FTS5 for embedded text search",
+      sourceChange: "optimizeWisdomSubsystem",
+      tags: ["sqlite", "search", "fts"],
+    });
+
+    expect(entry.tags).toEqual(["sqlite", "search", "fts"]);
+
+    const entries = await listProjectWisdom(tempDir);
+    expect(entries[0].tags).toEqual(["sqlite", "search", "fts"]);
+  });
+
+  test("entry with invalidated_by field persists and loads correctly", async () => {
+    const entry = await addProjectWisdom(tempDir, {
+      type: "pattern",
+      content: "Old approach for X",
+      invalidated_by: "newerChange",
+    });
+
+    expect(entry.invalidated_by).toBe("newerChange");
+
+    const entries = await listProjectWisdom(tempDir);
+    expect(entries[0].invalidated_by).toBe("newerChange");
+  });
+
+  test("existing entries without new fields still parse (backwards compat)", async () => {
+    // Write a JSONL entry without tags or invalidated_by (simulates old data)
+    const path = getProjectWisdomPath(tempDir);
+    const legacyEntry = JSON.stringify({
+      id: "pw-legacy01",
+      type: "convention",
+      content: "Legacy wisdom entry",
+      promoted_at: new Date().toISOString(),
+    });
+    await writeFile(path, `${legacyEntry}\n`, "utf-8");
+
+    const entries = await listProjectWisdom(tempDir);
+    expect(entries).toHaveLength(1);
+    expect(entries[0].content).toBe("Legacy wisdom entry");
+    expect(entries[0].tags).toBeUndefined();
+    expect(entries[0].invalidated_by).toBeUndefined();
+  });
+
+  test("tags are optional — omitting them does not error", async () => {
+    const entry = await addProjectWisdom(tempDir, {
+      type: "gotcha",
+      content: "No tags on this entry",
+    });
+
+    expect(entry.tags).toBeUndefined();
+    expect(entry.id).toMatch(/^pw-/);
+  });
+});

@@ -19,6 +19,7 @@ import type { Change } from "../types";
 import { loadAllSpecs, loadSpec, loadAllChanges, loadChange } from "./json";
 import { checkpointWAL, shouldCheckpoint } from "./health";
 import type { StoreContext } from "./store-context";
+import { listProjectWisdom } from "./project-wisdom";
 
 // ---------------------------------------------------------------------------
 // Cache reconciliation
@@ -245,4 +246,57 @@ export async function ensureAllChangesSynced(ctx: StoreContext): Promise<void> {
   })();
 
   return ctx.allChangesSyncPromise;
+}
+
+/**
+ * Ensure project-level wisdom.jsonl is synced to SQLite.
+ * Lazy — synced once per session, tracked via ctx.projectWisdomSynced.
+ */
+export async function ensureProjectWisdomSynced(ctx: StoreContext): Promise<void> {
+  if (ctx.closed) return;
+
+  const wisdomPath = ctx.paths.wisdom;
+  let attrs;
+  try {
+    const s = statSync(wisdomPath);
+    attrs = { mtime_ms: Math.floor(s.mtimeMs), size: s.size, inode: s.ino };
+  } catch {
+    attrs = undefined;
+  }
+
+  if (!attrs) {
+    ctx.sqlite.wisdom.deleteProjectScope();
+    ctx.sqlite.syncFiles.deleteFileRecord(wisdomPath);
+    ctx.projectWisdomSynced = true;
+    return;
+  }
+
+  if (ctx.projectWisdomSynced && !ctx.sqlite.syncFiles.needsSync(wisdomPath, attrs)) {
+    return;
+  }
+
+  try {
+    const entries = await listProjectWisdom(ctx.paths.root, {
+      wisdomPath,
+    });
+
+    ctx.sqlite.wisdom.deleteProjectScope();
+    if (entries.length > 0) {
+      ctx.sqlite.wisdom.upsertProject(
+        entries.map((e) => ({
+          id: e.id,
+          type: e.type,
+          content: e.content,
+          source_change: e.source_change,
+          source_task: e.source_task,
+          promoted_at: e.promoted_at,
+        })),
+      );
+    }
+    ctx.sqlite.syncFiles.markSynced(wisdomPath, attrs);
+    ctx.projectWisdomSynced = true;
+  } catch {
+    // Project wisdom sync is best-effort — don't fail the operation
+    ctx.projectWisdomSynced = false; // allow retry on next call
+  }
 }
