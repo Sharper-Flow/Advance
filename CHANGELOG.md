@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+#### Forward-Only Cleanup and Distribution Readiness
+
+- Removed the retired `adv-research` command/spec/test surface from the repo and manifest.
+- Deleted the dead 6→7 gate migration runtime and its dedicated tests.
+- Removed stale investigation/exploration artifacts and consolidated setup guidance on `SETUP.md` by deleting `INSTALL.md`.
+- Trimmed legacy/retired wording from operational docs and prompt files to reduce context noise.
+
+#### Command Guidance Streamlining
+
+- Simplified ADV command prompt files to reduce duplicated workflow prose while preserving the required execution contract.
+- Strengthened core contracts for `plan`, `refine`, and `scout` agents to make roles and expectations more explicit.
+- Added bundled methodology assets for `adv-apply` and `adv-prep`, plus a dedicated proposal checklist.
+
+### Fixed
+
+#### Upgrade Safety After Legacy Cleanup
+
+- Added a one-time load migration in `plugin/src/storage/json.ts` that rewrites persisted gate entries with `status: "legacy"` to `status: "done"` before schema validation.
+- Strip obsolete `migrated_from` and `absorbed_completions` gate fields during change loading so existing user state upgrades cleanly.
+- Removed gate-level `legacy` status support from the active runtime/schema surface while preserving safe loading of older persisted data.
+
 ### Fixed
 
 #### Harden ADV Compliance — TDD Evidence Validation and Execution Gate Guard
