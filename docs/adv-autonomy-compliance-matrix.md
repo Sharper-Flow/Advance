@@ -44,7 +44,7 @@ Canonical sources:
 |---|---|---|
 | `/adv-proposal` | summary derivation, overlap detection, change type, impacted specs, new-spec need, cross-repo scope, proposal quality refinement | problem statement matches intended outcome |
 | `/adv-discover` | target auto-selection, discovery synthesis, open design questions from evidence | only when design tradeoffs depend on user values |
-| `/adv-agree` | target auto-selection, extraction of objectives/constraints/open questions from discovery | agreement contents and edits |
+| `/adv-agree` | target auto-selection, extraction of objectives/constraints from discovery, triage of open questions (technical questions resolved via LBP research), reframing tech questions as outcome questions | agreement contents and edits, user-facing open questions (priorities, behavior, downsides, AC boundaries), explicit deferral of any question |
 | `/adv-design` | target auto-selection, design synthesis from research and code | only when design choice depends on product vision or taste |
 | `/adv-present` | target auto-selection, concise design summary | design direction approval |
 | `/adv-prep` | target auto-selection, gap analysis, task graph synthesis | only when gaps are unresolvable without user intent |

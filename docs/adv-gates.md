@@ -44,7 +44,7 @@ Produces `problem-statement.md` — the confirmed problem statement with success
 
 Owner: `/adv-discover` + `/adv-agree`
 
-Produces `agreement.md` — context analysis, objectives, and constraints agreed with the user. The discovery and planning gates evaluate the full change including completed tasks — completed work is evidence to validate, not acceptance proof. Follow-up tasks are added where gaps are found.
+Produces `agreement.md` — context analysis, objectives, and constraints agreed with the user. `/adv-agree` includes a mandatory clarification loop (Phase 2.5) that triages all open questions from discovery: technical questions are resolved autonomously via LBP research, while user-facing questions (priorities, behavior, downsides, AC boundaries) are presented to the user. No question may be silently deferred. The discovery and planning gates evaluate the full change including completed tasks — completed work is evidence to validate, not acceptance proof. Follow-up tasks are added where gaps are found.
 
 ### Design Gate
 
