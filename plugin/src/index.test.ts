@@ -372,7 +372,7 @@ describe("Advance Plugin SDK Integration", () => {
         hookOutput.system.some((s) => s.includes("[ADV:PROVIDER_HINT]")),
       ).toBe(true);
       expect(
-        hookOutput.system.some((s) => s.includes("explicit numbered steps")),
+        hookOutput.system.some((s) => s.includes("structured formats")),
       ).toBe(true);
     });
 
@@ -408,6 +408,46 @@ describe("Advance Plugin SDK Integration", () => {
 
       expect(
         hookOutput.system.some((s) => s.includes("[ADV:PROVIDER_HINT]")),
+      ).toBe(false);
+    });
+
+    test("experimental.chat.system.transform does not inject provider hint for unknown providers", async () => {
+      const hooks = await createTrackedPlugin(tempDir, pluginInstances);
+
+      const transformHook = hooks["experimental.chat.system.transform"]!;
+      for (const providerID of ["google", "unknown-provider", "mistral"]) {
+        const hookOutput = { system: [] as string[] };
+        await transformHook(
+          { sessionID: "test", model: { providerID } } as any,
+          hookOutput as any,
+        );
+
+        expect(
+          hookOutput.system.some((s) => s.includes("[ADV:PROVIDER_HINT]")),
+        ).toBe(false);
+      }
+    });
+
+    test("experimental.chat.system.transform does not inject provider hint when providerID is missing", async () => {
+      const hooks = await createTrackedPlugin(tempDir, pluginInstances);
+
+      const transformHook = hooks["experimental.chat.system.transform"]!;
+
+      // undefined providerID
+      const hookOutput1 = { system: [] as string[] };
+      await transformHook(
+        { sessionID: "test", model: {} } as any,
+        hookOutput1 as any,
+      );
+      expect(
+        hookOutput1.system.some((s) => s.includes("[ADV:PROVIDER_HINT]")),
+      ).toBe(false);
+
+      // missing model entirely
+      const hookOutput2 = { system: [] as string[] };
+      await transformHook({ sessionID: "test" } as any, hookOutput2 as any);
+      expect(
+        hookOutput2.system.some((s) => s.includes("[ADV:PROVIDER_HINT]")),
       ).toBe(false);
     });
 

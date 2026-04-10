@@ -99,7 +99,7 @@ const debugLog = (msg: string): void => {
 
 const PROVIDER_BEHAVIOR_HINTS: Readonly<Record<string, string>> = {
   openai:
-    "[ADV:PROVIDER_HINT] Provider adaptation: prefer explicit numbered steps, strict output schemas, and batching independent tool calls in a single response.",
+    "[ADV:PROVIDER_HINT] Provider adaptation: prefer explicit numbered steps, use structured formats (tables, numbered lists) for multi-part output, and batch independent tool calls in a single response.",
   "zai-coding-plan":
     "[ADV:PROVIDER_HINT] Provider adaptation: prefer direct explicit instructions, briefly restate the task before acting, and treat absolute constraints like NEVER/ONLY/MUST as binding.",
 };

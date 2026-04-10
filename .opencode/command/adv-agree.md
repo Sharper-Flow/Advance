@@ -44,7 +44,7 @@ Present a concise agreement view:
 - **Acceptance Criteria**
 - **Constraints**
 - **Avoidances / rejected approaches**
-- **Open questions**
+- **Open questions** (listed explicitly — these will be resolved in Phase 2.5)
 
 Ask for explicit user confirmation or edits using the `question` tool.
 
@@ -55,9 +55,79 @@ Recommended options:
 
 ---
 
+## Phase 2.5: Open Question Resolution Loop
+
+**× MUST NOT skip this phase.** Open questions that require user input must be resolved before the agreement is finalized. Do not assume the user has no preference — ask.
+
+### Question Triage
+
+Before presenting questions to the user, classify each open question from discovery:
+
+| Category | Action | Example |
+|----------|--------|---------|
+| **Technical / implementation** | Agent resolves via LBP research | "Which hashing algorithm?", "SQL vs NoSQL?", "Middleware vs decorator pattern?" |
+| **User-facing outcome** | **Ask the user** | "What should happen when X fails?", "Which matters more: speed or completeness?", "Should this be opt-in or opt-out?" |
+
+**Ask the user about:**
+- Weighing competing priorities ("Fast iteration vs. comprehensive coverage?")
+- Choosing between acceptable downsides ("Slightly slower but safer, or faster with manual fallback?")
+- Clarifying expected behavior ("What should the user see when…?")
+- Defining acceptance boundaries ("How many is 'too many'? What latency is acceptable?")
+- Scoping intent ("Should this cover edge case X, or is that out of scope?")
+- Preference on UX/workflow ("Should this prompt for confirmation, or act immediately?")
+
+**× Do NOT ask the user about:**
+- Which technology, library, or pattern to use — research and decide via LBP
+- Implementation strategy (option A vs B) — choose the objectively better approach
+- Internal architecture — that's `/adv-design`'s job
+- Questions the agent can answer from specs, codebase, or documentation
+
+Technical questions that were open during discovery should be resolved autonomously by the agent (via Context7, lgrep, Kagi, specs, codebase inspection) and recorded as agent-resolved decisions in the agreement. If a technical question has genuine LBP ambiguity with user-value tradeoffs, reframe it as the downstream outcome question instead of the technical choice (e.g., not "REST vs GraphQL?" but "Do you need clients to fetch partial data, or is full-resource fetching fine?").
+
+### Protocol
+
+1. **Collect** all open questions from discovery findings (Phase 1 extraction)
+2. **Triage** each question per the table above
+3. **Resolve technical questions** autonomously — research LBP answers, record decisions
+4. **If zero user-facing questions remain** → present agent-resolved decisions for awareness, skip to Phase 3
+5. **For each user-facing question** (or batches of 2-3 related questions):
+   - Present the question framed around outcomes, behavior, or priorities — not technical internals
+   - Use the `question` tool with concrete options where possible, always with write-in enabled
+   - Record the user's answer
+6. **Loop** until all user-facing questions have a user-provided answer or an explicit user deferral
+7. **Summarize** all resolutions (both agent-resolved and user-resolved) back to the user before proceeding
+
+### Deferral Rules
+
+A user may explicitly defer a question — but deferral must be an active choice, never a default:
+
+- If the user chooses to defer → record it as "Deferred by user: {reason}" in the agreement
+- Deferred questions carry forward as constraints for `/adv-design` (the design phase must either resolve them or propose a design that works regardless of the answer)
+- × NEVER silently defer a question or assume "no preference" without asking
+
+### Question Presentation
+
+For each user-facing question, provide:
+
+| Element | Required |
+|---------|----------|
+| The question, framed as outcome/behavior/priority | Yes |
+| Why it matters (impact on what the user will experience) | Yes |
+| Agent's recommended answer, if one exists | When applicable |
+| Concrete options framed as tradeoffs, not tech choices | When the question has enumerable answers |
+| Write-in option | Always (per P26) |
+
+### Batch Guidance
+
+- Group related questions (e.g., two questions about the same user-facing behavior)
+- Max 2-3 questions per `question` tool invocation (cognitive load limit, per `/adv-clarify` protocol)
+- Unrelated questions should be separate prompts
+
+---
+
 ## Phase 3: Persist Agreement
 
-Once confirmed, write `agreement.md` through `adv_change_update`.
+Once confirmed and all open questions are resolved (or explicitly deferred), write `agreement.md` through `adv_change_update`.
 
 Suggested structure:
 
@@ -68,9 +138,14 @@ Suggested structure:
 ## Acceptance Criteria
 ## Constraints
 ## Avoidances
-## Open Questions
+## Resolved Questions
+## Deferred Questions
 ## Sign-Off
 ```
+
+- **Resolved Questions** — each question with the user's answer, replacing the old "Open Questions" catch-all
+- **Deferred Questions** — only questions the user explicitly chose to defer, with stated reason and design-phase implications
+- If no questions were deferred, omit the "Deferred Questions" section
 
 Do not complete any gate here.
 
@@ -83,10 +158,11 @@ Emit AGREEMENT RECORDED with:
 - target change
 - confirmed objectives
 - AC count
-- unresolved questions, if any
+- questions resolved count
+- questions deferred count (if any)
 
 ```
 /adv-agree {change-id} COMPLETE
-Result: agreement.md recorded
+Result: agreement.md recorded ({N} questions resolved, {M} deferred)
 Next: /adv-design {change-id}
 ```
