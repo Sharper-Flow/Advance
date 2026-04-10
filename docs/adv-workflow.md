@@ -2,7 +2,9 @@
 
 ADV is a **7-gate collaborative workflow**. Each gate is owned by a specific command and enforced in sequence — you cannot complete a gate until prior gates are satisfied.
 
-See also: [docs/adv-gates.md](adv-gates.md) for gate-by-gate behavior.
+See also:
+- [docs/adv-gates.md](adv-gates.md) for gate-by-gate behavior
+- [docs/adv-autonomy-compliance-matrix.md](adv-autonomy-compliance-matrix.md) for agent-decides vs user-confirms boundaries
 
 ## Gate Sequence
 

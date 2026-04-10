@@ -32,7 +32,7 @@
     "migrate:add-schemas": "pnpm dlx tsx scripts/add-schema-refs.ts"
   },
   "dependencies": {
-    "@opencode-ai/plugin": "^1.4.3",
+    "@opencode-ai/plugin": "latest",
     "nanoid": "^5.0.9",
     "zod": "^3.24.1"
   },

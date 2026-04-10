@@ -2,7 +2,7 @@
 description: Reconnaissance agent - investigates codebases, brainstorms ideas, and finds root causes through Socratic dialogue and targeted research
 mode: primary
 color: "#F07178"
-temperature: 0.7
+temperature: 0.5
 tools:
   # === BLOCKED: All write/modify tools ===
   edit: false

@@ -168,7 +168,13 @@ describe("thin-command shape enforcement", () => {
     {
       command: "adv-review",
       path: join(REPO_ROOT, ".opencode/command/adv-review.md"),
-      requiredPhases: ["Phase 0", "Phase 1", "Phase 2", "REVIEW_FINDINGS"],
+      requiredPhases: [
+        "Phase 0",
+        "Phase 1",
+        "Phase 2",
+        "Phase 3",
+        "REVIEW_FINDINGS",
+      ],
       skillRef: "adv-review-methodology",
       // methodology that should NOT be inlined (lives in skill/checklist)
       forbiddenInline: [
@@ -182,7 +188,7 @@ describe("thin-command shape enforcement", () => {
     {
       command: "adv-harden",
       path: join(REPO_ROOT, ".opencode/command/adv-harden.md"),
-      requiredPhases: ["Phase 0", "Phase 1", "Phase 2"],
+      requiredPhases: ["Phase 0", "Phase 1", "Phase 2", "Phase 3"],
       skillRef: "adv-harden-methodology",
       forbiddenInline: [
         "Sub-Agent 1:",
@@ -278,6 +284,42 @@ describe("thin-command shape enforcement", () => {
     );
 
     expect(existsSync(checklistPath)).toBe(true);
+  });
+
+  test("prep-checklist uses planning gate terminology", () => {
+    const content = readFileSync(
+      join(REPO_ROOT, "docs/checklists/prep-checklist.md"),
+      "utf8",
+    );
+
+    expect(content).toContain("adv_gate_complete gateId: planning");
+    expect(content).not.toContain("adv_gate_complete gateId: prep");
+  });
+
+  test("adv-prep checks gate prerequisites before planning work", () => {
+    const content = readFileSync(
+      join(REPO_ROOT, ".opencode/command/adv-prep.md"),
+      "utf8",
+    );
+
+    expect(content).toContain("adv_gate_status");
+    expect(content).toMatch(
+      /Stop if discovery or design gates are incomplete/i,
+    );
+  });
+
+  test("review and harden commands do not complete gates directly", () => {
+    const reviewContent = readFileSync(
+      join(REPO_ROOT, ".opencode/command/adv-review.md"),
+      "utf8",
+    );
+    const hardenContent = readFileSync(
+      join(REPO_ROOT, ".opencode/command/adv-harden.md"),
+      "utf8",
+    );
+
+    expect(reviewContent).not.toContain("adv_gate_complete");
+    expect(hardenContent).not.toContain("adv_gate_complete");
   });
 
   test("adv-apply uses two-tier context freshness (adv_task_show per task, not adv_change_show)", () => {

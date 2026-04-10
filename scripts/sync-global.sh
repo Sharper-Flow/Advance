@@ -570,6 +570,7 @@ if [ -d "$REPO_OVERLAYS" ]; then
   echo "    syncing shared-agent overlays"
   apply_overlay_block "orca" "$GLOBAL_AGENTS/orca.md"
   apply_overlay_block "general" "$GLOBAL_AGENTS/general.md"
+  apply_overlay_block "build" "$GLOBAL_AGENTS/build.md"
   apply_overlay_block "plan" "$GLOBAL_AGENTS/plan.md"
   apply_overlay_block "scout" "$GLOBAL_AGENTS/scout.md"
   apply_overlay_block "refine" "$GLOBAL_AGENTS/refine.md"

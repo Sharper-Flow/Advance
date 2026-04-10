@@ -32,7 +32,9 @@ Analyze change for gaps (missing scenarios, tasks, cross-cutting concerns) → a
 
 ## Phase 1: Load Context
 
-`adv_change_show` + `adv_task_list` for target. Then `adv_spec action: "list"` + `adv_spec action: "show"` for each affected capability.
+`adv_change_show` + `adv_task_list` + `adv_gate_status` for target. Then `adv_spec action: "list"` + `adv_spec action: "show"` for each affected capability.
+
+Stop if discovery or design gates are incomplete. `/adv-prep` analyzes validated design decisions — it must not backfill pre-implementation gates.
 
 If change has tasks marked `done`, treat as draft implementation — run full gap analysis, add reconciliation tasks where gaps found. × Do NOT rubber-stamp completed tasks.
 
@@ -71,12 +73,12 @@ Emit: `/adv-prep {change-id} COMPLETE` — gaps fixed, tasks created/absorbed/ca
 
 ## Key Tools
 
-| Purpose | Tool |
-|---------|------|
-| Load change | `adv_change_show` |
-| List tasks | `adv_task_list` |
-| Add task | `adv_task_add` |
-| Cancel tasks | `adv_task_cancel` (requires user approval) |
-| List/show/search specs | `adv_spec` |
-| Validate | `adv_change_validate` |
-| Planning gate | `adv_gate_complete gateId: planning` |
+| Purpose                | Tool                                       |
+| ---------------------- | ------------------------------------------ |
+| Load change            | `adv_change_show`                          |
+| List tasks             | `adv_task_list`                            |
+| Add task               | `adv_task_add`                             |
+| Cancel tasks           | `adv_task_cancel` (requires user approval) |
+| List/show/search specs | `adv_spec`                                 |
+| Validate               | `adv_change_validate`                      |
+| Planning gate          | `adv_gate_complete gateId: planning`       |

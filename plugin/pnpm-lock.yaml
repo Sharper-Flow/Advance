@@ -18,7 +18,7 @@ importers:
   .:
     dependencies:
       '@opencode-ai/plugin':
-        specifier: ^1.4.3
+        specifier: latest
         version: 1.4.3
       nanoid:
         specifier: ^5.0.9

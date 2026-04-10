@@ -1,5 +1,7 @@
 # ADV Question Tool Usage
 
+See also: [docs/adv-autonomy-compliance-matrix.md](adv-autonomy-compliance-matrix.md) for the command-by-command autonomy audit.
+
 Use the `question` tool for predefined choices when the user must provide intent, approval, or preference: confirmations, subjective tradeoffs, acceptance, and doom loop recovery.
 Skip for: open-ended questions, debugging, free-form input, and deterministic classifications the agent can derive from code/specs/context.
 
