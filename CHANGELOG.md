@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+#### Gate Completion Instruction Audit — Ensure All Gate-Owning Commands Actually Complete Their Gates
+
+- **`adv-proposal`**: Removed contradictory `× MUST NOT: complete gates` that prevented agents from calling `adv_gate_complete` for the command's own `proposal` gate. Changed to `complete non-owned gates`. Added explicit Step 9 with `adv_gate_complete changeId: ... gateId: proposal` call.
+- **`adv-design`**: Added `complete non-owned gates` to MUST NOT for consistency with the pattern established by `adv-discover` and `adv-prep`.
+- **`adv-accept`**: Added `complete non-owned gates` to MUST NOT for consistency.
+- **`adv-task`**: Added missing `adv_gate_complete` calls for `proposal` and `design` gates. The command claimed to complete all 4 pre-implementation gates but only had explicit calls for `discovery` and `planning`.
+- **`adv-review`**: Clarified ambiguous line 224 that could be misread as an instruction to call `adv_gate_complete`. Now explicitly states "× Do NOT call `adv_gate_complete` here" and marks the `completedBy` text as a hint for `/adv-accept`.
+- **`ADV_INSTRUCTIONS.md`**: Updated command boundary summary table to match the corrected MUST NOT patterns in each command file.
+
 ### Added
 
 #### Command + Skill Architecture for Review, Harden, and Slop Scan

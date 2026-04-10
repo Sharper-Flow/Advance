@@ -48,6 +48,10 @@ Ask via `question`: Confirmed — execute (Recommended), Modify contract, Abort.
 
 × Persist proposal via tool call only — no direct filesystem writes.
 
+### Complete Gate
+
+`adv_gate_complete changeId: {id} gateId: proposal`
+
 ---
 
 ## Phase 2: Discovery + Design Validation
@@ -80,9 +84,10 @@ Pass the minimum project context each agent needs. Redact secrets, internal URLs
 
 If any ❌ → ask via `question`: Adopt recommended, Keep original, Abort.
 
-### Complete Gate
+### Complete Gates
 
 `adv_gate_complete changeId: {id} gateId: discovery`
+`adv_gate_complete changeId: {id} gateId: design`
 
 ---
 

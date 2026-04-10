@@ -11,7 +11,7 @@ Present the delivered work against the confirmed agreement and gather explicit u
 
 **Produces:** Acceptance decision, acceptance checklist results, and any requested follow-up before release hardening.
 
-**× MUST NOT:** Skip verification evidence or bypass unresolved acceptance failures.
+**× MUST NOT:** Complete non-owned gates, skip verification evidence, or bypass unresolved acceptance failures.
 
 **Gate:** Completes `acceptance`.
 

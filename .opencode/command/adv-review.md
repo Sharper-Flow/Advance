@@ -221,7 +221,9 @@ END_REVIEW_FINDINGS
 
 Status rules: `unresolved` at emission time, `/adv-harden` checks task notes for fix evidence, `nit:` excluded from harden blocking.
 
-Store in gate completion: `adv_gate_complete ... completedBy: "agent — {verdict}; {count} findings; REVIEW_FINDINGS emitted"`
+× Do NOT call `adv_gate_complete` here — `/adv-accept` owns the `acceptance` gate. The `completedBy` hint below is for `/adv-accept` to reference when it completes the gate.
+
+Suggested `completedBy` text for `/adv-accept`: `"agent — {verdict}; {count} findings; REVIEW_FINDINGS emitted"`
 
 ```
 /adv-review {change-id} COMPLETE

@@ -11,7 +11,7 @@ Convert the confirmed agreement into a concrete technical design. This command c
 
 **Produces:** `design.md` covering architecture, key decisions, implementation strategy, and LBP analysis.
 
-**× MUST NOT:** Create tasks or skip research when design choices depend on framework/library guidance.
+**× MUST NOT:** Create tasks, complete non-owned gates, or skip research when design choices depend on framework/library guidance.
 
 **Gate:** Completes `design`.
 

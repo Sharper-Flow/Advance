@@ -11,7 +11,7 @@ Lead with problem statement agreement, then create the initial change scaffold. 
 
 **Produces:** Confirmed problem statement, initial change scaffold, and the proposal artifact needed to begin discovery.
 
-**× MUST NOT:** Create tasks (`adv_task_add`), complete gates (`adv_gate_complete`), make impl decisions, decompose work into tasks.
+**× MUST NOT:** Create tasks (`adv_task_add`), complete non-owned gates, make impl decisions, decompose work into tasks.
 
 **Gate:** Completes `proposal`.
 
@@ -199,6 +199,18 @@ Verify: each criterion testable, no subjective language, requirements independen
 
 ---
 
+## Step 9: Complete Proposal Gate
+
+After the quality check passes:
+
+```
+adv_gate_complete changeId: "<change-id>" gateId: "proposal"
+```
+
+This marks the proposal gate as done, unblocking `/adv-discover`.
+
+---
+
 ## Output
 
 Emit CHANGE CREATED block: Change ID, Title, Status (draft), files created, and confirmed problem framing.
@@ -206,5 +218,6 @@ Emit CHANGE CREATED block: Change ID, Title, Status (draft), files created, and 
 ```
 /adv-proposal COMPLETE
 Result: Change <change-id> created
+Gate: proposal ✓
 Next: /adv-discover <change-id>
 ```
