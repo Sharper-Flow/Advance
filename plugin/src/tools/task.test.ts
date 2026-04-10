@@ -415,6 +415,7 @@ describe("Task Tools", () => {
 
       expect(parsed.error).toBeDefined();
       expect(parsed.error).toContain("planning gate");
+      expect(parsed.error).toContain("adv_change_reenter");
     });
 
     test("allows task creation when planning gate is pending", async () => {

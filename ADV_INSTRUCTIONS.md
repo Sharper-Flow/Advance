@@ -132,6 +132,7 @@ Forbidden: `~/.local/share/opencode/plugins/advance/**/{change.json,proposal.md,
 |------|------|
 | Change + tasks | `adv_change_show` |
 | Update proposal | `adv_change_update` (× never re-call `adv_change_create`) |
+| Reopen gates for scope expansion | `adv_change_reenter` |
 | Specific task + changeId | `adv_task_show` |
 | Ready tasks | `adv_task_ready` |
 | All tasks | `adv_task_list` |
@@ -222,6 +223,34 @@ All cancellations require explicit user approval via `adv_task_cancel`.
 
 Workflow: identify tasks + reasons → present to user via `question` → user approves → call `adv_task_cancel` with evidence.
 
+### Re-Entry Protocol (Scope Expansion)
+
+When new objectives or acceptance criteria are introduced after a change has progressed through the gate workflow, the added scope must be routed back through the relevant gates — not silently folded into the current execution stream.
+
+**Tool:** `adv_change_reenter(changeId, fromGate, reason, scopeDelta?, approvedByUser, approvalEvidence)`
+
+**Cascade reset:** Reopening from gate X resets X and all downstream gates to `pending`. Upstream gates (before X) remain `done`. Existing tasks and completed work are preserved — only gate state is reset.
+
+**When to use re-entry:**
+- New acceptance criteria or objectives discovered during execution
+- Architecture assumptions invalidated by implementation findings
+- User requests scope expansion that affects already-completed gate artifacts
+
+**When NOT to use re-entry:**
+- Bug fixes within existing scope — use normal task workflow
+- Clarifications that don't change objectives — update proposal via `adv_change_update`
+- Minor wording adjustments to docs — edit directly
+
+**Re-entry flow:**
+1. Identify which gate's artifacts are invalidated by the new scope
+2. Present the re-entry rationale to the user and obtain explicit approval
+3. Call `adv_change_reenter` with the earliest affected gate, reason, scope delta, and approval evidence
+4. Walk the reopened gates normally (`/adv-discover` → `/adv-agree` → `/adv-design` → `/adv-prep`)
+5. After planning gate re-completes, new tasks can be added via `adv_task_add`
+6. Resume `/adv-apply` execution
+
+**Audit trail:** Each re-entry appends to `reentry_history[]` on the change, recording `from_gate`, `reason`, `scope_delta`, `reopened_by`, `reopened_at`, and `gates_reset`.
+
 ### Task Status Report
 
 On loop stop or compaction: emit `[ADV:TASK_STATUS_REPORT]` with completed/cancelled/remaining. See [docs/adv-task-report.md](docs/adv-task-report.md).
@@ -239,6 +268,8 @@ On loop stop or compaction: emit `[ADV:TASK_STATUS_REPORT]` with completed/cance
 | 7 | `release` | `/adv-harden` + `/adv-archive` | Spec deltas applied, git finalized |
 
 Gates are sequential. Archive blocks until all 7 are satisfied. See [docs/adv-gates.md](docs/adv-gates.md).
+
+Gates can be reopened via `adv_change_reenter` for scope expansion — this resets the target gate and all downstream gates to `pending`, preserving existing tasks and completed work.
 
 Gate behaviors:
 - `discovery`/`planning` evaluate full change including completed tasks — completed work is evidence to validate, not acceptance proof. Add follow-up tasks where gaps found.
@@ -260,7 +291,7 @@ Slash commands are top-level entry points for the user/session, not an internal 
 
 ### Sub-Agent Orchestration (optional, requires `task` tool)
 
-Available to: `orca`, `plan`, `scout`, `refine`, `general`. Use when 3+ independent scan dimensions benefit from parallelism.
+Available to: `adv`, `plan`, `scout`, `refine`, `general`. Use when 3+ independent scan dimensions benefit from parallelism.
 
 | Command | Inline | Sub-Agent |
 |---------|--------|-----------|
@@ -290,7 +321,7 @@ Inline-only: `/adv-status`, `/adv-proposal`, `/adv-validate`, `/adv-apply`, `/ad
 
 | Tier | Agents | Loading |
 |------|--------|---------|
-| **Core** (always loaded) | `plan`, `build`, `refine`, `scout`, `orca` | Global `~/.config/opencode/agents/` |
+| **Core** (always loaded) | `plan`, `build`, `refine`, `scout`, `adv` | Global `~/.config/opencode/agents/` |
 | **Common** (always loaded) | `explore`, `librarian`, `general`, `mechanic` | Global `~/.config/opencode/agents/` |
 | **Specialist** (repo-scoped) | `adv-researcher`, `tron` | Repo-local `.opencode/agents/` |
 

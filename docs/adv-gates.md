@@ -83,6 +83,50 @@ Absorbs the old `harden` gate. Before running quality scanners, `/adv-harden` pe
 
 `/adv-archive` runs Phase 9 Git Finalization: stage → commit → detect default branch → merge/PR → verify → cleanup worktree → remove temp artifacts.
 
+## Re-Entry (Scope Expansion)
+
+Gates are normally forward-only, but scope expansion during execution requires routing new objectives back through the workflow. The `adv_change_reenter` tool enables this by reopening a gate and cascading the reset downstream.
+
+### Cascade Reset Semantics
+
+When `adv_change_reenter(changeId, fromGate, reason, scopeDelta, approvedByUser, approvalEvidence)` is called:
+
+1. The target gate (`fromGate`) and all downstream gates are reset to `pending`
+2. All upstream gates (before `fromGate`) remain `done`
+3. Existing tasks and completed work are **preserved** — only gate state is reset
+4. After reset, the planning gate is `pending`, so `adv_task_add` is unblocked for new tasks
+5. The call requires explicit user approval and approval evidence
+
+Example: reopening from `discovery` resets discovery + design + planning + execution + acceptance + release to `pending`. The `proposal` gate remains `done`.
+
+### Audit Trail
+
+Each re-entry appends to `reentry_history[]` on the change, recording:
+- `from_gate` — which gate was reopened
+- `reason` — why re-entry was needed
+- `scope_delta` — what new scope is being added (optional)
+- `reopened_by` — actor who triggered re-entry
+- `reopened_at` — timestamp
+- `gates_reset` — list of gates that were reset to pending
+
+### When to Use Re-Entry
+
+| Situation | Action |
+|-----------|--------|
+| New acceptance criteria discovered during execution | `adv_change_reenter` from earliest affected gate |
+| Architecture assumptions invalidated by findings | `adv_change_reenter` from `design` |
+| User requests scope expansion affecting agreement | `adv_change_reenter` from `discovery` |
+| Bug fix within existing scope | Normal task workflow (no re-entry needed) |
+| Minor wording fix to docs | Edit directly (no re-entry needed) |
+| Clarification that doesn't change objectives | `adv_change_update` (no re-entry needed) |
+
+### Constraints
+
+- Cannot reopen a gate that is already `pending`
+- Cannot execute re-entry without explicit user approval evidence
+- After re-entry, walk the reopened gates normally before resuming execution
+- `/adv-apply` stops if any pre-implementation gate is pending (standard prerequisite check)
+
 ## Checking Gate Status
 
 ```bash

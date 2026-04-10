@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+#### ADV Orchestrator — Replace Orca with Dedicated ADV Agent
+
+- **Replaced `orca.md` with `adv.md`** as the primary orchestrator for spec-driven development workflows. ADV is a pure ADV orchestrator with no generic workflow section.
+- **Collaborative workflow**: ADV respects user judgment at decision points — clarifies via the question tool, stops at boundaries requiring user confirmation, and treats collaborative gates as the actual workflow rather than obstacles to automate past.
+- **Context-optimal execution**: ADV works inline when maintaining understanding of the problem and progress matters, and delegates to specialists when work is genuinely independent.
+- **7-gate model**: ADV uses the correct gate names (proposal, discovery, design, planning, execution, acceptance, release) instead of the legacy 6-gate names.
+- **Temperature 0.2**: Lowered from Orca's 0.3 for more precise orchestration and inline work.
+- **Full Orca removal**: All Orca references removed from the Advance repo (docs, tests, scripts, overlays, instructions). The user's global `orca.md` is unaffected — Advance simply stops managing it.
+- **Updated overlay and sync infrastructure**: `adv.overlay.md` replaces `orca.overlay.md`; `sync-global.sh` syncs `adv.md` instead of applying an Orca overlay.
+
 ### Added
 
 #### Context Leak Surface Fixes — Close 13 Identified Context Gaps

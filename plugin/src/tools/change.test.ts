@@ -1169,3 +1169,159 @@ describe("adv_change_show clarify finding persistence (Leak #12)", () => {
     ).toBe(true);
   });
 });
+
+describe("adv_change_reenter", () => {
+  let tempDir: string;
+  let store: Store;
+
+  beforeEach(async () => {
+    tempDir = await createTempDir();
+    await createTestProject(tempDir);
+    store = await createStore(tempDir);
+  });
+
+  afterEach(async () => {
+    store.close();
+    await cleanupTempDir(tempDir);
+  });
+
+  test("successfully reopens from a completed gate and returns updated gates", async () => {
+    // Complete gates through planning (proposal, discovery, design, planning)
+    await store.gates.complete("addFeature", "proposal");
+    await store.gates.complete("addFeature", "discovery");
+    await store.gates.complete("addFeature", "design");
+    await store.gates.complete("addFeature", "planning");
+
+    const result = await changeTools.adv_change_reenter.execute(
+      {
+        changeId: "addFeature",
+        fromGate: "discovery",
+        reason: "New authentication requirement added",
+        approvedByUser: true,
+        approvalEvidence: "User approved via question tool",
+      },
+      store,
+    );
+    const parsed = parseToolOutput(result);
+
+    expect(parsed.success).toBe(true);
+    // discovery and all downstream should be reset to pending
+    expect(parsed.gates.discovery.status).toBe("pending");
+    expect(parsed.gates.design.status).toBe("pending");
+    expect(parsed.gates.planning.status).toBe("pending");
+    // proposal should remain done
+    expect(parsed.gates.proposal.status).toBe("done");
+  });
+
+  test("returns reentry_history in the response", async () => {
+    await store.gates.complete("addFeature", "proposal");
+    await store.gates.complete("addFeature", "discovery");
+
+    const result = await changeTools.adv_change_reenter.execute(
+      {
+        changeId: "addFeature",
+        fromGate: "discovery",
+        reason: "Scope expanded to include OAuth",
+        scopeDelta: "Added OAuth2 provider integration",
+        approvedByUser: true,
+        approvalEvidence: "User approved via question tool",
+      },
+      store,
+    );
+    const parsed = parseToolOutput(result);
+
+    expect(parsed.success).toBe(true);
+    expect(parsed.reentry).toBeDefined();
+    expect(parsed.reentry.from_gate).toBe("discovery");
+    expect(parsed.reentry.reason).toBe("Scope expanded to include OAuth");
+    expect(parsed.reentry.scope_delta).toBe(
+      "Added OAuth2 provider integration",
+    );
+    expect(parsed.reentry.reopened_at).toBeDefined();
+    expect(parsed.reentry.gates_reset).toContain("discovery");
+  });
+
+  test("returns error for non-existent change", async () => {
+    const result = await changeTools.adv_change_reenter.execute(
+      {
+        changeId: "nonexistent",
+        fromGate: "discovery",
+        reason: "Expanding scope",
+        approvedByUser: true,
+        approvalEvidence: "User approved via question tool",
+      },
+      store,
+    );
+    const parsed = parseToolOutput(result);
+
+    expect(parsed.error).toBeDefined();
+    expect(parsed.error).toContain("nonexistent");
+  });
+
+  test("returns error when target gate is not completed", async () => {
+    // proposal is pending by default — cannot reopen a pending gate
+    const result = await changeTools.adv_change_reenter.execute(
+      {
+        changeId: "addFeature",
+        fromGate: "proposal",
+        reason: "Trying to reopen pending gate",
+        approvedByUser: true,
+        approvalEvidence: "User approved via question tool",
+      },
+      store,
+    );
+    const parsed = parseToolOutput(result);
+
+    expect(parsed.error).toBeDefined();
+    expect(parsed.error).toContain("not completed");
+  });
+
+  test("includes scopeDelta in history when provided", async () => {
+    await store.gates.complete("addFeature", "proposal");
+    await store.gates.complete("addFeature", "discovery");
+    await store.gates.complete("addFeature", "design");
+
+    const result = await changeTools.adv_change_reenter.execute(
+      {
+        changeId: "addFeature",
+        fromGate: "design",
+        reason: "Architecture needs revision",
+        scopeDelta: "Switching from REST to GraphQL",
+        approvedByUser: true,
+        approvalEvidence: "User approved via question tool",
+      },
+      store,
+    );
+    const parsed = parseToolOutput(result);
+
+    expect(parsed.success).toBe(true);
+    expect(parsed.reentry.scope_delta).toBe("Switching from REST to GraphQL");
+
+    // Verify the history is persisted on the change
+    const changeResult = await store.changes.get("addFeature");
+    const change = changeResult.data!;
+    expect(change.reentry_history).toBeDefined();
+    expect(change.reentry_history!.length).toBe(1);
+    expect(change.reentry_history![0].scope_delta).toBe(
+      "Switching from REST to GraphQL",
+    );
+  });
+
+  test("requires explicit user approval", async () => {
+    await store.gates.complete("addFeature", "proposal");
+    await store.gates.complete("addFeature", "discovery");
+
+    const result = await changeTools.adv_change_reenter.execute(
+      {
+        changeId: "addFeature",
+        fromGate: "discovery",
+        reason: "Scope expansion without approval evidence",
+      },
+      store,
+    );
+    const parsed = parseToolOutput(result);
+
+    expect(parsed.error).toBeDefined();
+    expect(parsed.error).toContain("approvedByUser");
+  });
+});

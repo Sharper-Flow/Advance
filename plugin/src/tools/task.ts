@@ -203,7 +203,7 @@ export const taskTools = {
         const gates = await store.gates.get(changeId);
         if (gates && gates.planning.status === "done") {
           return formatToolOutput({
-            error: `Cannot add tasks after planning gate is complete. Use adv_task_reclassify_tdd to modify existing task TDD intent, or re-open the planning gate if new tasks are genuinely needed.`,
+            error: `Cannot add tasks after planning gate is complete. Use adv_task_reclassify_tdd to modify existing task TDD intent, or use adv_change_reenter to reopen the planning gate for scope expansion.`,
           });
         }
 

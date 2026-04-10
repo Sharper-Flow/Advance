@@ -166,7 +166,7 @@ agents, and skills to the global config, and validates (or patches) `opencode.js
 The `--fix` flag will:
 - Copy all `adv-*.md` commands to `~/.config/opencode/command/`
 - Copy ADV agents to `~/.config/opencode/agents/`
-- Apply repo-owned managed overlay blocks to shared global agents like `orca`, `general`, `plan`, and `scout` without replacing the full file
+- Apply repo-owned managed overlay blocks to shared global agents like `adv`, `general`, `plan`, and `scout` without replacing the full file
 - Copy ADV skills to `~/.config/opencode/skills/` (including bundled methodology skills like `adv-review-methodology`, `adv-harden-methodology`, and `adv-slop-detection`)
 - Add the ADV plugin path to `opencode.json` `.plugin` array if missing
 - Add `ADV_INSTRUCTIONS.md` to `opencode.json` `.instructions` array if missing

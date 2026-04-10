@@ -568,7 +568,7 @@ echo "    $agents_copied agent(s) synced"
 # Apply repo-owned overlays to shared global agents without replacing the file
 if [ -d "$REPO_OVERLAYS" ]; then
   echo "    syncing shared-agent overlays"
-  apply_overlay_block "orca" "$GLOBAL_AGENTS/orca.md"
+  apply_overlay_block "adv" "$GLOBAL_AGENTS/adv.md"
   apply_overlay_block "general" "$GLOBAL_AGENTS/general.md"
   apply_overlay_block "build" "$GLOBAL_AGENTS/build.md"
   apply_overlay_block "plan" "$GLOBAL_AGENTS/plan.md"

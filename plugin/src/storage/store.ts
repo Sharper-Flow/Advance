@@ -66,6 +66,7 @@ import {
 } from "./json";
 import { acquireFileLock } from "../utils/fs";
 import { generateChangeId } from "../utils/change-id";
+import { reopenChangeFromGate } from "./gate-reentry";
 
 // =============================================================================
 // Store Interface
@@ -217,6 +218,14 @@ export interface Store {
     ) => Promise<void>;
     /** Migrate gates to legacy status (except last gate) */
     migrate: (changeId: string) => Promise<void>;
+    /** Reopen from a gate: reset it and all downstream gates to pending, record re-entry history */
+    reopenFrom: (
+      changeId: string,
+      fromGate: GateId,
+      reason: string,
+      scopeDelta?: string,
+      reopenedBy?: string,
+    ) => Promise<void>;
   };
 
   // Status
@@ -1388,6 +1397,40 @@ export async function createStore(
                 changeId,
                 status: "legacy",
                 timestamp: now,
+              }),
+            );
+          }
+
+          await store.changes.save(change);
+        });
+      },
+
+      reopenFrom: async (
+        changeId,
+        fromGate,
+        reason,
+        scopeDelta?,
+        reopenedBy?,
+      ) => {
+        return withChangeLock(changeId, async (change) => {
+          const { gatesReset, timestamp } = reopenChangeFromGate(
+            change,
+            fromGate,
+            reason,
+            scopeDelta,
+            reopenedBy,
+          );
+
+          // Structured log for gate re-entry
+          if (process.env.ADV_DEBUG) {
+            console.log(
+              JSON.stringify({
+                event: "gates_reopen_from",
+                changeId,
+                fromGate,
+                gatesReset,
+                reason,
+                timestamp,
               }),
             );
           }

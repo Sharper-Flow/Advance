@@ -34,6 +34,7 @@ import {
   TddEvidenceSchema,
   AgendaItemSchema,
   ClarifyFindingSnapshotSchema,
+  ReentryHistoryEntrySchema,
   isLogicTask,
   isTrivialTask,
   hasCompleteTddEvidence,
@@ -1929,5 +1930,155 @@ describe("ClarifyFindingSnapshotSchema + ChangeSchema.clarify_findings (Leak #12
       deltas: {},
     });
     expect(change.clarify_findings).toBeUndefined();
+  });
+});
+
+// =============================================================================
+// ReentryHistoryEntrySchema — Scope Expansion Re-Entry Audit Trail
+// =============================================================================
+
+describe("ReentryHistoryEntrySchema", () => {
+  const validEntry = {
+    from_gate: "discovery",
+    reason: "New OAuth scope requirement added after design was approved",
+    scope_delta: "Added OAuth PKCE flow requirement to AC #2",
+    reopened_by: "/adv-apply agent",
+    reopened_at: "2026-04-10T20:00:00.000Z",
+    gates_reset: ["discovery", "design", "planning", "execution"],
+  };
+
+  test("parses a valid re-entry history entry", () => {
+    const parsed = ReentryHistoryEntrySchema.parse(validEntry);
+    expect(parsed.from_gate).toBe("discovery");
+    expect(parsed.reason).toBe(
+      "New OAuth scope requirement added after design was approved",
+    );
+    expect(parsed.scope_delta).toBe(
+      "Added OAuth PKCE flow requirement to AC #2",
+    );
+    expect(parsed.reopened_by).toBe("/adv-apply agent");
+    expect(parsed.reopened_at).toBe("2026-04-10T20:00:00.000Z");
+    expect(parsed.gates_reset).toEqual([
+      "discovery",
+      "design",
+      "planning",
+      "execution",
+    ]);
+  });
+
+  test("scope_delta is optional", () => {
+    const { scope_delta: _, ...withoutDelta } = validEntry;
+    const parsed = ReentryHistoryEntrySchema.parse(withoutDelta);
+    expect(parsed.scope_delta).toBeUndefined();
+  });
+
+  test("rejects invalid gate IDs in from_gate", () => {
+    expect(() =>
+      ReentryHistoryEntrySchema.parse({
+        ...validEntry,
+        from_gate: "nonexistent_gate",
+      }),
+    ).toThrow();
+  });
+
+  test("rejects invalid gate IDs in gates_reset array", () => {
+    expect(() =>
+      ReentryHistoryEntrySchema.parse({
+        ...validEntry,
+        gates_reset: ["discovery", "bogus_gate"],
+      }),
+    ).toThrow();
+  });
+
+  test("rejects missing required fields", () => {
+    // Missing reason
+    expect(() =>
+      ReentryHistoryEntrySchema.parse({
+        from_gate: "discovery",
+        reopened_by: "agent",
+        reopened_at: "2026-04-10T20:00:00.000Z",
+        gates_reset: ["discovery"],
+      }),
+    ).toThrow();
+
+    // Missing from_gate
+    expect(() =>
+      ReentryHistoryEntrySchema.parse({
+        reason: "scope change",
+        reopened_by: "agent",
+        reopened_at: "2026-04-10T20:00:00.000Z",
+        gates_reset: ["discovery"],
+      }),
+    ).toThrow();
+  });
+
+  test("gates_reset must be a non-empty array", () => {
+    expect(() =>
+      ReentryHistoryEntrySchema.parse({
+        ...validEntry,
+        gates_reset: [],
+      }),
+    ).toThrow();
+  });
+});
+
+describe("ChangeSchema reentry_history field", () => {
+  const baseChange = {
+    id: "testChange",
+    title: "Test change",
+    status: "draft",
+    created_at: new Date().toISOString(),
+    tasks: [],
+    deltas: {},
+  };
+
+  test("ChangeSchema accepts reentry_history array", () => {
+    const change = ChangeSchema.parse({
+      ...baseChange,
+      reentry_history: [
+        {
+          from_gate: "discovery",
+          reason: "New requirement emerged during execution",
+          reopened_by: "user",
+          reopened_at: "2026-04-10T20:00:00.000Z",
+          gates_reset: ["discovery", "design", "planning", "execution"],
+        },
+      ],
+    });
+    expect(change.reentry_history).toHaveLength(1);
+    expect(change.reentry_history![0].from_gate).toBe("discovery");
+    expect(change.reentry_history![0].gates_reset).toHaveLength(4);
+  });
+
+  test("ChangeSchema without reentry_history is backwards compatible", () => {
+    const change = ChangeSchema.parse(baseChange);
+    expect(change.reentry_history).toBeUndefined();
+  });
+
+  test("ChangeSchema accepts multiple re-entry history entries", () => {
+    const change = ChangeSchema.parse({
+      ...baseChange,
+      reentry_history: [
+        {
+          from_gate: "discovery",
+          reason: "First re-entry",
+          reopened_by: "user",
+          reopened_at: "2026-04-10T18:00:00.000Z",
+          gates_reset: ["discovery", "design", "planning", "execution"],
+        },
+        {
+          from_gate: "planning",
+          reason: "Second re-entry — task graph needs rework",
+          scope_delta: "Added integration test phase",
+          reopened_by: "agent",
+          reopened_at: "2026-04-10T20:00:00.000Z",
+          gates_reset: ["planning", "execution"],
+        },
+      ],
+    });
+    expect(change.reentry_history).toHaveLength(2);
+    expect(change.reentry_history![1].scope_delta).toBe(
+      "Added integration test phase",
+    );
   });
 });

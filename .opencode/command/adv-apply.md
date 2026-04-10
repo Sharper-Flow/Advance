@@ -47,6 +47,17 @@ Cancellation: use `adv_task_cancel` with user approval. `adv_task_update status:
 
 × `/adv-apply` MUST NOT complete discovery, design, or planning gates.
 
+### Scope Expansion During Execution
+
+If new objectives or acceptance criteria are discovered during execution that were not part of the original agreement, do NOT silently fold them into the current task graph. Instead:
+
+1. Present the scope expansion to the user and obtain explicit approval
+2. Use `adv_change_reenter` to reopen from the earliest affected gate (typically `discovery`)
+3. Walk the reopened gates normally (`/adv-discover` → `/adv-agree` → `/adv-design` → `/adv-prep`)
+4. After the planning gate re-completes, resume `/adv-apply` — new tasks will be available alongside existing completed work
+
+Existing tasks and completed work are preserved across re-entry. Only gate state is reset.
+
 ---
 
 ## Phase 0: Worktree Assessment

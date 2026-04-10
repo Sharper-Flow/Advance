@@ -9,10 +9,16 @@
  */
 
 import type { Change, GateCompletion, Gates } from "../types";
-import { GATE_ORDER, canCompleteGate, createDefaultGates } from "../types";
+import {
+  GATE_ORDER,
+  canCompleteGate,
+  createDefaultGates,
+  createLegacyGates,
+} from "../types";
 import { withChangeLock, loadChangeOrNull } from "./store-locks";
 import type { StoreContext } from "./store-context";
 import type { Store } from "./store";
+import { reopenChangeFromGate } from "./gate-reentry";
 
 // ---------------------------------------------------------------------------
 // Local helpers (only used by gates domain)
@@ -86,6 +92,61 @@ export function createGatesOps(
               oldStatus,
               newStatus: "done",
               timestamp: now,
+            }),
+          );
+        }
+
+        await saveFn(change);
+      });
+    },
+
+    migrate: async (changeId) => {
+      return withChangeLock(ctx, changeId, async (change) => {
+        const now = new Date().toISOString();
+        change.gates = createLegacyGates();
+
+        // Structured log for gate migration
+        if (process.env.ADV_DEBUG) {
+          console.log(
+            JSON.stringify({
+              event: "gates_migrated",
+              changeId,
+              status: "legacy",
+              timestamp: now,
+            }),
+          );
+        }
+
+        await saveFn(change);
+      });
+    },
+
+    reopenFrom: async (
+      changeId,
+      fromGate,
+      reason,
+      scopeDelta?,
+      reopenedBy?,
+    ) => {
+      return withChangeLock(ctx, changeId, async (change) => {
+        const { gatesReset, timestamp } = reopenChangeFromGate(
+          change,
+          fromGate,
+          reason,
+          scopeDelta,
+          reopenedBy,
+        );
+
+        // Structured log for gate re-entry
+        if (process.env.ADV_DEBUG) {
+          console.log(
+            JSON.stringify({
+              event: "gates_reopen_from",
+              changeId,
+              fromGate,
+              gatesReset,
+              reason,
+              timestamp,
             }),
           );
         }

@@ -1,0 +1,60 @@
+import type { Change, GateId, ReentryHistoryEntry } from "../types";
+import { GATE_ORDER, createDefaultGates } from "../types";
+
+export interface ReopenChangeResult {
+  entry: ReentryHistoryEntry;
+  gatesReset: [GateId, ...GateId[]];
+  timestamp: string;
+}
+
+export function reopenChangeFromGate(
+  change: Change,
+  fromGate: GateId,
+  reason: string,
+  scopeDelta?: string,
+  reopenedBy = "agent",
+): ReopenChangeResult {
+  if (!change.gates) {
+    change.gates = createDefaultGates();
+  }
+
+  const gates = change.gates;
+
+  if (
+    gates[fromGate].status !== "done" &&
+    gates[fromGate].status !== "legacy"
+  ) {
+    throw new Error(
+      `Cannot reopen from ${fromGate}: gate is not completed (status: ${gates[fromGate].status})`,
+    );
+  }
+
+  const fromIdx = GATE_ORDER.indexOf(fromGate);
+  const gatesReset: GateId[] = [];
+  for (let i = fromIdx; i < GATE_ORDER.length; i++) {
+    const gateId = GATE_ORDER[i];
+    gatesReset.push(gateId);
+    gates[gateId] = { status: "pending" };
+  }
+
+  const timestamp = new Date().toISOString();
+  const entry: ReentryHistoryEntry = {
+    from_gate: fromGate,
+    reason,
+    ...(scopeDelta ? { scope_delta: scopeDelta } : {}),
+    reopened_by: reopenedBy,
+    reopened_at: timestamp,
+    gates_reset: gatesReset as [GateId, ...GateId[]],
+  };
+
+  if (!change.reentry_history) {
+    change.reentry_history = [];
+  }
+  change.reentry_history.push(entry);
+
+  return {
+    entry,
+    gatesReset: entry.gates_reset,
+    timestamp,
+  };
+}

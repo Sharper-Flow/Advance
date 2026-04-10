@@ -710,6 +710,33 @@ export const createLegacyGates = (): Gates => {
 };
 
 // =============================================================================
+// Re-Entry History (Scope Expansion Audit Trail)
+// =============================================================================
+
+/**
+ * A single re-entry event — recorded when mid-change scope expansion
+ * triggers a cascade reopen of gates back through discovery/design/planning.
+ *
+ * Append-only audit trail: each re-entry is a new entry, never modified.
+ */
+export const ReentryHistoryEntrySchema = z.object({
+  /** Gate to reopen FROM (this gate + all downstream reset to pending) */
+  from_gate: GateIdSchema,
+  /** Human-readable reason for the re-entry */
+  reason: z.string(),
+  /** Description of what scope was added/changed (optional) */
+  scope_delta: z.string().optional(),
+  /** Who triggered the re-entry (agent name, user, command) */
+  reopened_by: z.string(),
+  /** ISO8601 timestamp when the re-entry was triggered */
+  reopened_at: z.string(),
+  /** Gate IDs that were reset to pending (from_gate + all downstream) */
+  gates_reset: z.array(GateIdSchema).nonempty(),
+});
+
+export type ReentryHistoryEntry = z.infer<typeof ReentryHistoryEntrySchema>;
+
+// =============================================================================
 // Change
 // =============================================================================
 
@@ -757,6 +784,8 @@ export const ChangeSchema = z
     closure: ChangeClosureSchema.optional(),
     /** Persisted clarify finding snapshots for resolution tracking */
     clarify_findings: z.array(ClarifyFindingSnapshotSchema).optional(),
+    /** Append-only audit trail for scope-expansion re-entry events */
+    reentry_history: z.array(ReentryHistoryEntrySchema).optional(),
   })
   .passthrough(); // Allow extra fields for forward/backward compatibility
 

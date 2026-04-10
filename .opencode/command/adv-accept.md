@@ -56,9 +56,9 @@ Use the `question` tool to ask whether the delivered work satisfies the agreemen
 Recommended options:
 - Accept and continue (Recommended)
 - Needs fixes before acceptance
-- Re-open agreement/design
+- Re-open earlier gates via `adv_change_reenter` (scope expansion)
 
-If the user requests fixes, do not complete the gate; route back to the appropriate workflow.
+If the user requests fixes, do not complete the gate; route back to the appropriate workflow. If the user identifies new objectives or acceptance criteria that require scope expansion, obtain explicit approval and then use `adv_change_reenter` to reopen from the earliest affected gate before proceeding.
 
 ---
 

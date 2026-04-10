@@ -12,6 +12,8 @@ import {
   createDefaultGates,
   getIncompleteGates,
   allGatesSatisfied,
+  GateIdSchema,
+  type GateId,
   type ClarifyFindingSnapshot,
 } from "../types";
 import type { Store } from "../storage/store";
@@ -866,6 +868,111 @@ export const changeTools = {
           github_issues: change.github_issues,
         }),
       );
+    },
+  },
+
+  adv_change_reenter: {
+    description:
+      "Reopen gates from a specified point for scope expansion re-entry with required user approval. Resets the target gate and all downstream gates to pending, preserving existing tasks and completed work.",
+    args: {
+      changeId: z.string().describe("Change ID to reopen gates for"),
+      fromGate: GateIdSchema.describe("Gate to reopen from"),
+      reason: z.string().describe("Why re-entry is needed"),
+      scopeDelta: z
+        .string()
+        .optional()
+        .describe("Description of new or changed scope"),
+      approvedByUser: z
+        .literal(true)
+        .describe("Must be true — confirms user explicitly approved re-entry"),
+      approvalEvidence: z
+        .string()
+        .describe(
+          "Evidence of user approval (e.g., 'User approved via question tool')",
+        ),
+    },
+    execute: async (
+      {
+        changeId,
+        fromGate,
+        reason,
+        scopeDelta,
+        approvedByUser,
+        approvalEvidence,
+      }: {
+        changeId: string;
+        fromGate: GateId;
+        reason: string;
+        scopeDelta?: string;
+        approvedByUser: true;
+        approvalEvidence: string;
+      },
+      store: Store,
+    ) => {
+      if (!approvedByUser) {
+        return wrapWithBanner(
+          { command: "adv_change_reenter", target: changeId },
+          formatToolOutput({
+            error:
+              "approvedByUser must be true. You must present the scope re-entry to the user and obtain explicit approval before calling this tool.",
+          }),
+        );
+      }
+
+      if (!approvalEvidence || approvalEvidence.trim().length === 0) {
+        return wrapWithBanner(
+          { command: "adv_change_reenter", target: changeId },
+          formatToolOutput({
+            error:
+              "approvalEvidence is required. Describe how the user approved the scope re-entry (e.g., question tool response).",
+          }),
+        );
+      }
+
+      // Verify the change exists
+      const result = await store.changes.get(changeId);
+      if (!result.success) {
+        return wrapWithBanner(
+          { command: "adv_change_reenter", target: changeId },
+          formatToolOutput({ error: result.error }),
+        );
+      }
+      if (!result.data) {
+        return wrapWithBanner(
+          { command: "adv_change_reenter", target: changeId },
+          formatToolOutput({ error: `Change not found: ${changeId}` }),
+        );
+      }
+
+      try {
+        await store.gates.reopenFrom(changeId, fromGate, reason, scopeDelta);
+
+        // Fetch updated state
+        const gates = await store.gates.get(changeId);
+        const updatedChange = await store.changes.get(changeId);
+        const reentryHistory =
+          updatedChange.success && updatedChange.data
+            ? (updatedChange.data.reentry_history ?? [])
+            : [];
+        const latestEntry = reentryHistory[reentryHistory.length - 1];
+
+        return wrapWithBanner(
+          { command: "adv_change_reenter", target: changeId },
+          formatToolOutput({
+            success: true,
+            message: `Re-entry from ${fromGate}: gates reset to pending. ${latestEntry?.gates_reset?.length ?? 0} gate(s) reopened.`,
+            gates,
+            reentry: latestEntry,
+          }),
+        );
+      } catch (error) {
+        return wrapWithBanner(
+          { command: "adv_change_reenter", target: changeId },
+          formatToolOutput({
+            error: error instanceof Error ? error.message : String(error),
+          }),
+        );
+      }
     },
   },
 };

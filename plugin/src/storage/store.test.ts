@@ -687,6 +687,137 @@ describe("Store", () => {
       expect(Array.isArray(status.recommendations)).toBe(true);
     });
   });
+
+  describe("gates.reopenFrom", () => {
+    /**
+     * Helper: set up a change with gates where discovery through execution
+     * are done (simulating mid-execution state).
+     */
+    async function setupChangeWithGates(): Promise<void> {
+      // Complete gates through execution in order
+      await store.gates.complete("addFeature", "proposal");
+      await store.gates.complete("addFeature", "discovery");
+      await store.gates.complete("addFeature", "design");
+      await store.gates.complete("addFeature", "planning");
+      await store.gates.complete("addFeature", "execution");
+    }
+
+    test("reopens from a gate and resets it + downstream to pending", async () => {
+      await setupChangeWithGates();
+
+      await store.gates.reopenFrom(
+        "addFeature",
+        "discovery",
+        "New OAuth scope requirement added",
+      );
+
+      const gates = await store.gates.get("addFeature");
+      expect(gates).not.toBeNull();
+      // Proposal should remain done (upstream of discovery)
+      expect(gates!.proposal.status).toBe("done");
+      // Discovery and everything downstream should be reset
+      expect(gates!.discovery.status).toBe("pending");
+      expect(gates!.design.status).toBe("pending");
+      expect(gates!.planning.status).toBe("pending");
+      expect(gates!.execution.status).toBe("pending");
+      // Acceptance and release were already pending
+      expect(gates!.acceptance.status).toBe("pending");
+      expect(gates!.release.status).toBe("pending");
+    });
+
+    test("appends a reentry_history entry", async () => {
+      await setupChangeWithGates();
+
+      await store.gates.reopenFrom(
+        "addFeature",
+        "design",
+        "Architecture needs rework",
+        "Added event-driven approach",
+        "test-agent",
+      );
+
+      const changeResult = await store.changes.get("addFeature");
+      expect(changeResult.success).toBe(true);
+      const change = changeResult.data!;
+      expect(change.reentry_history).toBeDefined();
+      expect(change.reentry_history).toHaveLength(1);
+      const entry = change.reentry_history![0];
+      expect(entry.from_gate).toBe("design");
+      expect(entry.reason).toBe("Architecture needs rework");
+      expect(entry.scope_delta).toBe("Added event-driven approach");
+      expect(entry.reopened_by).toBe("test-agent");
+      expect(entry.reopened_at).toBeDefined();
+      expect(entry.gates_reset).toEqual([
+        "design",
+        "planning",
+        "execution",
+        "acceptance",
+        "release",
+      ]);
+    });
+
+    test("rejects if the target gate is not done", async () => {
+      // Only complete proposal — discovery is still pending
+      await store.gates.complete("addFeature", "proposal");
+
+      await expect(
+        store.gates.reopenFrom(
+          "addFeature",
+          "discovery",
+          "Trying to reopen a pending gate",
+        ),
+      ).rejects.toThrow(/not completed/i);
+    });
+
+    test("accumulates multiple reentry_history entries", async () => {
+      await setupChangeWithGates();
+
+      // First re-entry
+      await store.gates.reopenFrom(
+        "addFeature",
+        "design",
+        "First re-entry reason",
+      );
+
+      // Re-complete gates to allow second re-entry
+      await store.gates.complete("addFeature", "design");
+      await store.gates.complete("addFeature", "planning");
+
+      // Second re-entry
+      await store.gates.reopenFrom(
+        "addFeature",
+        "planning",
+        "Second re-entry reason",
+      );
+
+      const changeResult = await store.changes.get("addFeature");
+      expect(changeResult.data!.reentry_history).toHaveLength(2);
+      expect(changeResult.data!.reentry_history![0].from_gate).toBe("design");
+      expect(changeResult.data!.reentry_history![1].from_gate).toBe("planning");
+    });
+
+    test("preserves completed_at/by on upstream gates", async () => {
+      await setupChangeWithGates();
+
+      const gatesBefore = await store.gates.get("addFeature");
+      const proposalBefore = gatesBefore!.proposal;
+
+      await store.gates.reopenFrom(
+        "addFeature",
+        "discovery",
+        "Scope expansion",
+      );
+
+      const gatesAfter = await store.gates.get("addFeature");
+      // Proposal should be untouched
+      expect(gatesAfter!.proposal.completed_at).toBe(
+        proposalBefore.completed_at,
+      );
+      expect(gatesAfter!.proposal.completed_by).toBe(
+        proposalBefore.completed_by,
+      );
+    });
+  });
 });
 
 // =============================================================================

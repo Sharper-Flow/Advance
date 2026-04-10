@@ -72,6 +72,34 @@ See also:
 
 Gates are sequential — `/adv-harden` is blocked until `acceptance` is done, `/adv-archive` is blocked until all 7 are satisfied. See [docs/adv-gates.md](adv-gates.md) for the full gate contract.
 
+## Re-Entry Flow (Scope Expansion)
+
+Gates are normally forward-only, but mid-change scope expansion can route back through earlier gates via `adv_change_reenter`:
+
+```
+                          ┌──────────────────────────────────────────────┐
+                          │         RE-ENTRY (SCOPE EXPANSION)           │
+                          │                                              │
+                          │  During execution, new scope discovered:     │
+                          │                                              │
+                          │  adv_change_reenter(fromGate: "discovery")   │
+                          │       │                                      │
+                          │       ▼                                      │
+                          │  Cascade reset: discovery → design →         │
+                          │    planning → execution → acceptance →       │
+                          │    release all reset to PENDING              │
+                          │                                              │
+                          │  Upstream gates (proposal) stay DONE         │
+                          │  Existing tasks & completed work PRESERVED   │
+                          │                                              │
+                          │  Walk reopened gates normally:               │
+                          │  /adv-discover → /adv-agree → /adv-design   │
+                          │    → /adv-prep → /adv-apply (resume)        │
+                          └──────────────────────────────────────────────┘
+```
+
+Re-entry is recorded in `reentry_history[]` on the change for audit. See [docs/adv-gates.md](adv-gates.md) for cascade reset semantics and constraints.
+
 ## Fast-Track
 
 For small, well-scoped work, `/adv-task` fast-tracks a discussed change by synthesizing the proposal, discovery, design, and planning gates in one pass. Execution and acceptance still run through `/adv-apply` + `/adv-accept` as normal.

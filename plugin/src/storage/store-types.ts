@@ -148,6 +148,14 @@ export interface Store {
   gates: {
     get: (changeId: string) => Promise<Gates | null>;
     complete: (changeId: string, gateId: GateId) => Promise<void>;
+    /** Reopen from a gate: reset it and all downstream gates to pending, record re-entry history */
+    reopenFrom: (
+      changeId: string,
+      fromGate: GateId,
+      reason: string,
+      scopeDelta?: string,
+      reopenedBy?: string,
+    ) => Promise<void>;
   };
 
   // Status

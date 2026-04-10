@@ -137,7 +137,7 @@ The others vary widely in structure and emphasis.
 Files under `.opencode/overlays/`:
 
 - `general.overlay.md`
-- `orca.overlay.md`
+- `adv.overlay.md`
 - `plan.overlay.md`
 - `refine.overlay.md`
 - `scout.overlay.md`

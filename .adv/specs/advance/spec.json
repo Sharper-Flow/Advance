@@ -3,8 +3,8 @@
   "name": "advance",
   "title": "Advance",
   "purpose": "Capability: Advance",
-  "version": "1.5.0",
-  "updated_at": "2026-04-09T03:10:28.259Z",
+  "version": "1.6.0",
+  "updated_at": "2026-04-10T21:35:00.000Z",
   "requirements": [
     {
       "id": "rq-W1sD0mR1",
@@ -369,6 +369,121 @@
           "when": "/adv-slop-scan is run",
           "then": [
             "No QUAL-011 or MAINT-004 findings are emitted for that file"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-scopeReentry01",
+      "title": "Mid-Change Scope Expansion Re-Entry",
+      "body": "When new objectives or acceptance criteria are introduced after a change has already progressed through the gate workflow, the added scope must be routed back through the earliest invalidated pre-implementation gate via adv_change_reenter before execution continues. Re-entry requires explicit user approval. Unaffected approved scope may continue without re-entry, and non-invalidating clarifications do not require re-entry.",
+      "priority": "must",
+      "tags": [
+        "workflow",
+        "re-entry",
+        "scope-expansion",
+        "gates"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-scopeReentry01.1",
+          "title": "Scope expansion triggers re-entry",
+          "given": [
+            "A change is in execution or a later gate",
+            "New objectives or acceptance criteria are discovered that were not part of the approved agreement"
+          ],
+          "when": "adv_change_reenter is used from the earliest affected gate",
+          "then": [
+            "The newly added scope is routed back through discovery, agreement, design, and planning as needed before execution resumes",
+            "Execution does not silently absorb the new scope without re-entry"
+          ]
+        },
+        {
+          "id": "rq-scopeReentry01.2",
+          "title": "Unaffected approved scope continues without re-entry",
+          "given": [
+            "A change has approved scope already in execution",
+            "A newly discovered item does not invalidate the existing approved work"
+          ],
+          "when": "The unaffected scope is evaluated",
+          "then": [
+            "Previously approved scope may continue without reopening unrelated gates",
+            "Only the newly invalidated scope is routed back through re-entry"
+          ]
+        },
+        {
+          "id": "rq-scopeReentry01.3",
+          "title": "Non-invalidating clarification does not require re-entry",
+          "given": [
+            "A change is in progress",
+            "A clarification is discovered that does not alter objectives, acceptance criteria, or design intent"
+          ],
+          "when": "The clarification is applied",
+          "then": [
+            "adv_change_reenter is not required",
+            "Execution may continue within the existing scope"
+          ]
+        },
+        {
+          "id": "rq-scopeReentry01.4",
+          "title": "Re-entry requires explicit user approval",
+          "given": [
+            "A change needs scope-expansion re-entry"
+          ],
+          "when": "adv_change_reenter is executed",
+          "then": [
+            "The call requires explicit user approval evidence",
+            "Re-entry without approval is rejected"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-scopeReentry02",
+      "title": "Re-Entry Cascade Reset Preserves Work",
+      "body": "Reopening a change from gate X must reset gate X and all downstream gates to pending while preserving existing tasks and completed work. Each re-entry must append an audit entry describing the reopened gate, reason, optional scope delta, actor, timestamp, and gates reset.",
+      "priority": "must",
+      "tags": [
+        "workflow",
+        "re-entry",
+        "audit",
+        "gates"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-scopeReentry02.1",
+          "title": "Cascade from discovery resets downstream gates",
+          "given": [
+            "A change has completed proposal, discovery, design, planning, execution, acceptance, and release is still pending"
+          ],
+          "when": "adv_change_reenter reopens from discovery",
+          "then": [
+            "discovery, design, planning, execution, acceptance, and release are reset to pending",
+            "proposal remains satisfied"
+          ]
+        },
+        {
+          "id": "rq-scopeReentry02.2",
+          "title": "Tasks remain intact after cascade reset",
+          "given": [
+            "A change has existing tasks, including completed tasks"
+          ],
+          "when": "adv_change_reenter resets gates to pending",
+          "then": [
+            "All existing tasks remain on the change",
+            "Task status and task content are preserved"
+          ]
+        },
+        {
+          "id": "rq-scopeReentry02.3",
+          "title": "Re-entry appends audit history",
+          "given": [
+            "A change has been reopened via adv_change_reenter"
+          ],
+          "when": "The re-entry is persisted",
+          "then": [
+            "A reentry_history entry is appended with from_gate, reason, reopened_by, reopened_at, and gates_reset",
+            "scope_delta is included when provided"
           ]
         }
       ]
