@@ -6,7 +6,7 @@
 
 import { describe, test, expect, beforeEach, afterEach } from "vitest";
 import { join } from "path";
-import { access, readFile } from "fs/promises";
+import { access, readFile, writeFile } from "fs/promises";
 import {
   createStore,
   classifyRecency,
@@ -21,6 +21,7 @@ import {
   SAMPLE_SPEC,
 } from "../__tests__/setup";
 import type { Change } from "../types";
+import { acquireFileLock } from "../utils/fs";
 
 describe("Store", () => {
   let tempDir: string;
@@ -121,6 +122,28 @@ describe("Store", () => {
       const loadedResult = await store.specs.get("new-cap");
       expect(loadedResult.success).toBe(true);
       expect(loadedResult.data!.title).toBe("New");
+    });
+
+    test("save waits for spec file lock before persisting", async () => {
+      const specPath = join(tempDir, ".adv/specs/test-capability/spec.json");
+      const release = await acquireFileLock(specPath);
+
+      let resolved = false;
+      const savePromise = store.specs
+        .save({ ...SAMPLE_SPEC, title: "Locked Spec Title" })
+        .then(() => {
+          resolved = true;
+        });
+
+      await new Promise((r) => setTimeout(r, 100));
+      expect(resolved).toBe(false);
+
+      await release();
+      await savePromise;
+
+      const loaded = await store.specs.get("test-capability");
+      expect(loaded.success).toBe(true);
+      expect(loaded.data!.title).toBe("Locked Spec Title");
     });
   });
 
@@ -347,6 +370,31 @@ describe("Store", () => {
         }),
       ).rejects.toThrow(/archived/i);
     });
+
+    test("save waits for change file lock before persisting", async () => {
+      const changeResult = await store.changes.get("addFeature");
+      expect(changeResult.success).toBe(true);
+
+      const changePath = join(tempDir, ".adv/changes/addFeature/change.json");
+      const release = await acquireFileLock(changePath);
+
+      let resolved = false;
+      const savePromise = store.changes
+        .save({ ...changeResult.data!, title: "Locked Change Title" })
+        .then(() => {
+          resolved = true;
+        });
+
+      await new Promise((r) => setTimeout(r, 100));
+      expect(resolved).toBe(false);
+
+      await release();
+      await savePromise;
+
+      const loaded = await store.changes.get("addFeature");
+      expect(loaded.success).toBe(true);
+      expect(loaded.data!.title).toBe("Locked Change Title");
+    });
   });
 
   describe("tasks", () => {
@@ -414,6 +462,32 @@ describe("Store", () => {
       expect(task.deps).toHaveLength(1);
       expect(task.deps![0].type).toBe("blocked_by");
       expect(task.deps![0].target).toBe("tk-task0001");
+    });
+
+    test("add assigns next highest priority, not array length", async () => {
+      const changeResult = await store.changes.get("addFeature");
+      expect(changeResult.success).toBe(true);
+      changeResult.data!.tasks[1].priority = 10;
+      await store.changes.save(changeResult.data!);
+
+      const task = await store.tasks.add("addFeature", "Priority task");
+      expect(task.priority).toBe(11);
+    });
+
+    test("ready tolerates SQLite/JSON drift without crashing", async () => {
+      // Prime the SQLite cache for this change.
+      await store.tasks.ready("addFeature");
+
+      const changePath = join(tempDir, ".adv/changes/addFeature/change.json");
+      const raw = JSON.parse(await readFile(changePath, "utf-8")) as Change;
+      raw.tasks = raw.tasks.filter((t) => t.id !== "tk-task0002");
+      await writeFile(changePath, JSON.stringify(raw, null, 2));
+
+      const result = await store.tasks.ready("addFeature");
+      expect(result.ready).toHaveLength(1);
+      expect(result.blocked.every((b) => b.task.id !== "tk-task0002")).toBe(
+        true,
+      );
     });
   });
 

@@ -38,7 +38,7 @@ export const ScenarioSchema = z
     when: z.string(),
     then: z.array(z.string()),
   })
-  .passthrough(); // Allow extra fields for forward/backward compatibility
+  .strict(); // Active write path: reject unknown keys to catch drift
 
 export type Scenario = z.infer<typeof ScenarioSchema>;
 
@@ -55,7 +55,7 @@ export const RequirementSchema = z
     tags: z.array(z.string()).optional(),
     scenarios: z.array(ScenarioSchema).optional(),
   })
-  .passthrough(); // Allow extra fields for forward/backward compatibility
+  .strict(); // Active write path: reject unknown keys to catch drift
 
 export type Requirement = z.infer<typeof RequirementSchema>;
 
@@ -73,7 +73,7 @@ export const SpecSchema = z
     updated_at: z.string(), // ISO8601
     requirements: z.array(RequirementSchema),
   })
-  .passthrough(); // Allow extra fields for forward/backward compatibility
+  .strict(); // Active write path: reject unknown keys to catch drift
 
 export type Spec = z.infer<typeof SpecSchema>;
 
@@ -300,7 +300,7 @@ export const TaskSchema = z
      */
     error_recovery: ErrorRecoverySchema.optional(),
   })
-  .passthrough(); // Allow extra fields for forward/backward compatibility
+  .strict(); // Active write path: reject unknown keys to catch drift
 
 export type Task = z.infer<typeof TaskSchema>;
 
@@ -706,7 +706,7 @@ export const ChangeSchema = z
     /** Structured closure metadata for retired changes */
     closure: ChangeClosureSchema.optional(),
   })
-  .passthrough(); // Allow extra fields for forward/backward compatibility
+  .strict(); // Active write path: reject unknown keys to catch drift
 
 export type Change = z.infer<typeof ChangeSchema>;
 
