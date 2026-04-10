@@ -3,8 +3,8 @@
   "name": "tdd-contract",
   "title": "TDD Contract",
   "purpose": "Canonical definition of how TDD phases integrate with the ADV task model. Inline TDD (red/green within each implementation task) is the default. Separate verification tasks are reserved for cross-cutting tests spanning multiple implementation tasks.",
-  "version": "1.2.0",
-  "updated_at": "2026-04-07T01:00:55.518Z",
+  "version": "1.3.0",
+  "updated_at": "2026-04-10T21:00:00.000Z",
   "requirements": [
     {
       "id": "rq-TDD001inl",
@@ -282,7 +282,8 @@
           "when": "adv_task_add is called for that change",
           "then": [
             "The operation is rejected with an error",
-            "The error message directs users to adv_task_reclassify_tdd for adjusting existing tasks"
+            "The error message directs users to adv_task_reclassify_tdd for adjusting existing tasks",
+            "The error message directs users to adv_change_reenter for scope-expansion re-entry when new tasks are genuinely needed"
           ]
         },
         {

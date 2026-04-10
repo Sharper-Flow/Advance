@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+#### Context Leak Surface Fixes — Close 13 Identified Context Gaps
+
+Implemented all 13 identified context leak surfaces where ADV drops important context between workflow steps. All schema additions are backwards-compatible (`.optional()` + `.passthrough()`).
+
+- **New MCP tool `adv_project_wisdom_list`** — exposes project-level wisdom entries (previously write-only). Mirrors `adv_wisdom_list` response shape (`{ entries, count, byType }`).
+- **Compaction amnesia workaround** — `system.transform` hook now injects minimal active change context (~20 tokens: change ID + truncated objective) to survive session compaction. No bulk data, prompt-caching safe.
+- **Sub-agent context injection** — Added `CHANGE CONTEXT` block to sub-agent spawn prompts in `/adv-review`, `/adv-harden`, and `/adv-slop-scan`. Explore agents (which have no ADV tools) now receive change ID, objective, criteria count, and current gate.
+- **Wisdom in freshness protocol** — `adv_wisdom_list` added to the mandatory per-task context loading sequence in `ADV_INSTRUCTIONS.md` and `/adv-apply`.
+- **Enriched handoff state** — `HandoffState` now carries `proposalSummary`, `currentGate`, `successCriteriaCount`, and `wisdomEntries` for richer cross-session context.
+- **Task implementation summaries** — New `implementation_summary` field on `TaskSchema`, persisted via `adv_task_update`.
+- **Worktree spec divergence warning** — Validator emits `WORKTREE_SPEC_DIVERGENCE` warning when running inside a git worktree.
+- **Cancel-aware task readiness** — `adv_task_ready` now returns `cancelledBlockerContext` with cancellation reasons when blocked-by tasks were cancelled. SQL join extension in SQLite layer.
+- **Doom-loop attempt history** — New `AttemptSchema` and `attempts[]` on `ErrorRecoverySchema` for structured retry tracking. Wired through `adv_task_update` with `error_recovery` parameter.
+- **Archive wisdom preservation** — `createArchive()` now copies wisdom entries to archive directory as `wisdom.json`. `ARCHIVE_SUMMARY.md` includes implementation summaries per task and wisdom section.
+- **Gate notes** — `adv_gate_complete` accepts optional `notes` parameter for persisting key decisions at gate completion.
+- **Clarify finding persistence** — `adv_change_show` now persists clarify findings as append-only snapshots with resolution tracking via `ClarifyFindingSnapshotSchema`.
+- **Proposal-task drift detection** — Validator emits `PROPOSAL_TASK_DRIFT` warning when proposal section headers have no matching tasks. Keyword extraction, no embeddings.
+- **Validator wiring** — `adv_change_validate` now passes `proposalText` and `isWorktree` to `validateChange()` so drift and worktree warnings surface through the tool path.
+
+### Fixed
+
+- **Restored `gate-migration.ts`** — file was accidentally deleted in a prior archival commit while `store.ts` still imported it. Restored from git history and added `migrate` method to `store-gates.ts`.
+
 ### Improved
 
 #### Agreement Clarification Loop — Mandatory Open Question Resolution in /adv-agree
