@@ -373,4 +373,57 @@ describe("Wisdom Tools", () => {
       ).toBe(true);
     });
   });
+
+  describe("adv_project_wisdom_list (Leak #1)", () => {
+    test("tool exists and is callable", () => {
+      expect(wisdomTools.adv_project_wisdom_list).toBeDefined();
+      expect(typeof wisdomTools.adv_project_wisdom_list.execute).toBe(
+        "function",
+      );
+    });
+
+    test("returns empty list when no project wisdom exists", async () => {
+      const result = await wisdomTools.adv_project_wisdom_list.execute(
+        {},
+        store,
+      );
+      const parsed = JSON.parse(result);
+      expect(parsed.entries).toEqual([]);
+      expect(parsed.count).toBe(0);
+      expect(parsed.byType).toBeDefined();
+    });
+
+    test("returns project wisdom entries with correct shape (mirrors adv_wisdom_list)", async () => {
+      // Add project-level wisdom by promoting
+      await addProjectWisdom(tempDir, {
+        type: "convention",
+        content: "Always use .optional() for backwards-compat schema changes",
+        sourceChange: "addFeature",
+        wisdomPath: store.paths.wisdom,
+      });
+      await addProjectWisdom(tempDir, {
+        type: "gotcha",
+        content: "node_modules must be symlinked in worktrees",
+        sourceChange: "addFeature",
+        wisdomPath: store.paths.wisdom,
+      });
+
+      const result = await wisdomTools.adv_project_wisdom_list.execute(
+        {},
+        store,
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed.entries).toHaveLength(2);
+      expect(parsed.count).toBe(2);
+      expect(parsed.byType.convention).toBe(1);
+      expect(parsed.byType.gotcha).toBe(1);
+
+      // Verify entry shape mirrors adv_wisdom_list output
+      const entry = parsed.entries[0];
+      expect(entry.id).toBeDefined();
+      expect(entry.type).toBeDefined();
+      expect(entry.content).toBeDefined();
+    });
+  });
 });

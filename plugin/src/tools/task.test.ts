@@ -1048,3 +1048,153 @@ describe("Task Tools", () => {
     });
   });
 });
+
+// =============================================================================
+// Leak #6: implementation_summary on adv_task_update
+// Leak #8: cancelledBlockerContext in adv_task_ready
+// =============================================================================
+
+describe("implementation_summary on adv_task_update (Leak #6)", () => {
+  let tempDir2: string;
+  let store2: Store;
+
+  beforeEach(async () => {
+    tempDir2 = await createTempDir();
+    await createTestProject(tempDir2);
+    store2 = await createStore(tempDir2);
+    await store2.init();
+    await store2.sync();
+  });
+
+  afterEach(async () => {
+    store2.close();
+    await cleanupTempDir(tempDir2);
+  });
+
+  test("adv_task_update args has implementation_summary field", () => {
+    expect(taskTools.adv_task_update.args.implementation_summary).toBeDefined();
+  });
+
+  test("adv_task_update persists implementation_summary when provided", async () => {
+    const summary =
+      "Extended GateCompletionSchema with optional notes field per KD4";
+    const result = await taskTools.adv_task_update.execute(
+      {
+        taskId: "tk-task0001",
+        status: "done",
+        implementation_summary: summary,
+      },
+      store2,
+    );
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(true);
+
+    // Verify persisted
+    const task = await store2.tasks.get("tk-task0001");
+    expect(task!.implementation_summary).toBe(summary);
+  });
+
+  test("adv_task_update works without implementation_summary (backwards compat)", async () => {
+    const result = await taskTools.adv_task_update.execute(
+      { taskId: "tk-task0001", status: "done" },
+      store2,
+    );
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(true);
+    const task = await store2.tasks.get("tk-task0001");
+    expect(task!.implementation_summary).toBeUndefined();
+  });
+
+  test("adv_task_update persists error_recovery attempts history (Leak #9)", async () => {
+    const result = await taskTools.adv_task_update.execute(
+      {
+        taskId: "tk-task0001",
+        status: "in_progress",
+        notes: "RETRY 2/3 - SEMANTIC: type mismatch",
+        error_recovery: {
+          last_error: "Type 'string' is not assignable to type 'number'",
+          retry_count: 2,
+          max_retries: 3,
+          error_class: "SEMANTIC",
+          next_strategy: "Tighten the type narrowing in change.ts",
+          attempts: [
+            {
+              attempt_number: 1,
+              error: "Initial type mismatch",
+              diagnosis: "Union not narrowed",
+              fix_tried: "Added success guard",
+              outcome: "failed",
+              attempted_at: new Date().toISOString(),
+            },
+            {
+              attempt_number: 2,
+              error: "Second type mismatch",
+              diagnosis: "Interface return type stale",
+              fix_tried: "Updated sqlite ready return type",
+              outcome: "failed",
+              attempted_at: new Date().toISOString(),
+            },
+          ],
+        },
+      },
+      store2,
+    );
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(true);
+
+    const task = await store2.tasks.get("tk-task0001");
+    expect(task!.error_recovery?.retry_count).toBe(2);
+    expect(task!.error_recovery?.attempts).toHaveLength(2);
+    expect(task!.error_recovery?.attempts?.[1].diagnosis).toBe(
+      "Interface return type stale",
+    );
+  });
+});
+
+describe("cancelledBlockerContext in adv_task_ready (Leak #8)", () => {
+  let tempDir3: string;
+  let store3: Store;
+
+  beforeEach(async () => {
+    tempDir3 = await createTempDir();
+    await createTestProject(tempDir3);
+    store3 = await createStore(tempDir3);
+    await store3.init();
+    await store3.sync();
+  });
+
+  afterEach(async () => {
+    store3.close();
+    await cleanupTempDir(tempDir3);
+  });
+
+  test("adv_task_ready includes cancelledBlockerContext when blocker was cancelled", async () => {
+    // Cancel tk-task0001 via store (to populate cancellation_reason in SQLite)
+    await store3.tasks.cancel("tk-task0001", {
+      reason: "Scope reduced — logic absorbed into tk-task0002",
+      approved_by_user: true,
+      approval_evidence: "User approved cancellation",
+      approved_at: new Date().toISOString(),
+    });
+
+    const result = await taskTools.adv_task_ready.execute(
+      { changeId: "addFeature" },
+      store3,
+    );
+    const parsed = JSON.parse(result);
+
+    // tk-task0002 is now ready (blocker was cancelled)
+    const readyIds = parsed.ready.map((t: { id: string }) => t.id);
+    expect(readyIds).toContain("tk-task0002");
+
+    // cancelledBlockerContext should include the reason
+    expect(parsed.cancelledBlockerContext).toBeDefined();
+    const ctx = parsed.cancelledBlockerContext?.find(
+      (c: { taskId: string }) => c.taskId === "tk-task0002",
+    );
+    expect(ctx).toBeDefined();
+    expect(ctx?.cancellationReason).toBe(
+      "Scope reduced — logic absorbed into tk-task0002",
+    );
+  });
+});

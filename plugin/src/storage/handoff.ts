@@ -11,6 +11,7 @@
 import { readFile, unlink, rename, mkdir } from "fs/promises";
 import { dirname, join } from "path";
 import { atomicWriteFile } from "../utils/fs";
+import type { WisdomEntry } from "../types";
 
 // =============================================================================
 // Types
@@ -31,6 +32,15 @@ export interface HandoffState {
   sourceBranch: string;
   /** Branch name for the worktree */
   worktreeBranch: string;
+  // --- Enriched context fields ---
+  /** Brief summary of the proposal/objective for quick context in new session */
+  proposalSummary?: string;
+  /** Current gate identifier (e.g., "execution") */
+  currentGate?: string;
+  /** Number of success criteria defined in the proposal */
+  successCriteriaCount?: number;
+  /** Recent wisdom entries relevant to the change */
+  wisdomEntries?: WisdomEntry[];
 }
 
 // =============================================================================
@@ -150,6 +160,19 @@ function validateHandoff(content: string): HandoffState | null {
         typeof parsed.sourceBranch === "string" ? parsed.sourceBranch : "",
       worktreeBranch:
         typeof parsed.worktreeBranch === "string" ? parsed.worktreeBranch : "",
+      // Enriched context fields — optional, degrade gracefully when missing
+      ...(typeof parsed.proposalSummary === "string"
+        ? { proposalSummary: parsed.proposalSummary }
+        : {}),
+      ...(typeof parsed.currentGate === "string"
+        ? { currentGate: parsed.currentGate }
+        : {}),
+      ...(typeof parsed.successCriteriaCount === "number"
+        ? { successCriteriaCount: parsed.successCriteriaCount }
+        : {}),
+      ...(Array.isArray(parsed.wisdomEntries)
+        ? { wisdomEntries: parsed.wisdomEntries }
+        : {}),
     };
 
     return state;

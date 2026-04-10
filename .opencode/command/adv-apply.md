@@ -154,9 +154,9 @@ Diagnosis MUST appear before fix. Each attempt must have different diagnosis and
 
 ### Recording
 
-After each failed attempt: `adv_task_update taskId: {id} status: "in_progress" notes: "RETRY {n}/3 - {error_class}: {last_error}"`
+After each failed attempt: `adv_task_update taskId: {id} status: "in_progress" notes: "RETRY {n}/3 - {error_class}: {last_error}" error_recovery: { last_error, retry_count, max_retries, error_class, next_strategy, attempts[] }`
 
-The `error_recovery` field on task JSON captures: `last_error`, `retry_count`, `max_retries`, `error_class` (TRANSIENT|SEMANTIC|ENVIRONMENTAL|FATAL), `next_strategy`. Left as-is on success (historical record).
+The `error_recovery` field on task JSON captures: `last_error`, `retry_count`, `max_retries`, `error_class` (TRANSIENT|SEMANTIC|ENVIRONMENTAL|FATAL), `next_strategy`, and `attempts[]` (attempt_number, error, diagnosis, fix_tried, outcome, attempted_at). Left as-is on success (historical record).
 
 ### Budget Exhaustion (3 retries failed)
 
@@ -170,11 +170,16 @@ Ask via `question` tool: Provide hint (Recommended), Take over task, Void contra
 
 ### Context Freshness (MANDATORY)
 
-Before EACH task:
-1. `adv_change_show` → refresh context
-2. Check specific task details
-3. Read relevant proposal sections
+Load context in two tiers:
 
+**Phase start (once):** `adv_change_show` → load full change context including proposal, design, gates, and task summary.
+
+**Per task:**
+1. `adv_task_show` → load current task details
+2. `adv_wisdom_list` → load accumulated learnings for this change
+3. Read relevant proposal/design sections only when the task description references them
+
+× Do NOT call `adv_change_show` before every task — reserve for phase transitions.
 × Do NOT batch tasks into local todo list with descriptive blurbs.
 
 ### Worktree Context for Sub-Agents

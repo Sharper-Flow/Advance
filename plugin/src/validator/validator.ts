@@ -25,7 +25,11 @@ export interface ValidatorOptions {
   /** Other active changes (for conflict detection) */
   activeChanges?: ActiveChange[];
   /** Skip specific check types (for testing) */
-  skipChecks?: ("completeness" | "conflicts")[];
+  skipChecks?: ("completeness" | "conflicts" | "proposal-drift")[];
+  /** Whether running inside a git worktree (triggers spec-sync warning, Leak #7) */
+  isWorktree?: boolean;
+  /** Proposal markdown text for drift detection */
+  proposalText?: string;
 }
 
 // =============================================================================
@@ -100,7 +104,13 @@ export async function validateChange(
   change: Change,
   options: ValidatorOptions,
 ): Promise<ValidationResult> {
-  const { specs, activeChanges, skipChecks = [] } = options;
+  const {
+    specs,
+    activeChanges,
+    skipChecks = [],
+    isWorktree,
+    proposalText,
+  } = options;
   const context = buildValidationContext(specs, activeChanges);
 
   const errors: ValidationResult["errors"] = [];
@@ -135,6 +145,30 @@ export async function validateChange(
     }
   }
 
+  // Worktree spec-sync divergence warning
+  // Specs are branch-local while changes are external shared state.
+  // When running in a worktree, the active specs may differ from the default branch.
+  if (isWorktree) {
+    checksPerformed.push("worktree-spec-sync");
+    warnings.push({
+      code: "WORKTREE_SPEC_DIVERGENCE",
+      severity: "warning",
+      message:
+        "Running in a git worktree. Specs (.adv/specs/) are branch-local and may diverge from the default branch. " +
+        "Changes and wisdom are shared via external storage. Validate against the default branch before archiving.",
+      path: "worktree",
+    });
+  }
+
+  // Proposal-task drift detection
+  // Extract keywords from proposal section headers and compare against task titles.
+  // No embeddings — simple keyword matching.
+  if (proposalText && !skipChecks.includes("proposal-drift")) {
+    checksPerformed.push("proposal-drift");
+    const driftWarnings = runProposalDriftCheck(change, proposalText);
+    warnings.push(...driftWarnings);
+  }
+
   return {
     passed: errors.length === 0,
     errors,
@@ -142,6 +176,100 @@ export async function validateChange(
     checkedAt: new Date().toISOString(),
     checksPerformed,
   };
+}
+
+/**
+ * Detect drift between proposal section headers and task titles.
+ * Extracts keywords from proposal "## Section Name" headers and checks if any
+ * task title contains at least one keyword. Sections with no task matches are flagged.
+ */
+function runProposalDriftCheck(
+  change: Change,
+  proposalText: string,
+): Array<{
+  code: string;
+  severity: "warning";
+  message: string;
+  path?: string;
+}> {
+  const warnings: Array<{
+    code: string;
+    severity: "warning";
+    message: string;
+    path?: string;
+  }> = [];
+
+  // Extract section headers (## Title) from proposal
+  const sectionMatches = proposalText.match(/^#{2,3}\s+(.+)$/gm) ?? [];
+  const taskTitles = change.tasks
+    .filter((t) => t.status !== "cancelled")
+    .map((t) => t.title.toLowerCase());
+
+  // Skip generic headers that are boilerplate
+  const skipHeaders = new Set([
+    "summary",
+    "motivation",
+    "objective",
+    "overview",
+    "background",
+    "acceptance criteria",
+    "success criteria",
+    "constraints",
+    "risks",
+    "implementation",
+    "next steps",
+    "references",
+    "why",
+    "what",
+    "how",
+    "prior decisions",
+    "rejected approaches",
+    "open questions",
+  ]);
+
+  for (const match of sectionMatches) {
+    const headerText = match.replace(/^#{2,3}\s+/, "").trim();
+    const headerLower = headerText.toLowerCase();
+
+    // Skip boilerplate section names
+    if (skipHeaders.has(headerLower)) continue;
+
+    // Extract keywords: split on spaces/punctuation, filter short words
+    const keywords = headerLower
+      .split(/[\s\-_/,]+/)
+      .filter((w) => w.length >= 4)
+      .filter(
+        (w) =>
+          ![
+            "with",
+            "from",
+            "into",
+            "that",
+            "this",
+            "when",
+            "then",
+            "also",
+          ].includes(w),
+      );
+
+    if (keywords.length === 0) continue;
+
+    // Check if any task title mentions any keyword from this section header
+    const hasMatch = taskTitles.some((title) =>
+      keywords.some((kw) => title.includes(kw)),
+    );
+
+    if (!hasMatch) {
+      warnings.push({
+        code: "PROPOSAL_TASK_DRIFT",
+        severity: "warning",
+        message: `Proposal section "${headerText}" has no matching task. Consider adding a task or verifying coverage.`,
+        path: `proposal.sections.${headerText}`,
+      });
+    }
+  }
+
+  return warnings;
 }
 
 // =============================================================================

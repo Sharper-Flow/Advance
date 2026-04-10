@@ -160,6 +160,18 @@ async function createArchive(
     const summary = generateArchiveSummary(change);
     await atomicWriteFile(join(archivePath, "ARCHIVE_SUMMARY.md"), summary);
 
+    // Copy wisdom entries to archive if present
+    if (change.wisdom && change.wisdom.length > 0) {
+      await atomicWriteFile(
+        join(archivePath, "wisdom.json"),
+        JSON.stringify(
+          { entries: change.wisdom, count: change.wisdom.length },
+          null,
+          2,
+        ),
+      );
+    }
+
     // Copy sibling files from source change directory (proposal.md, problem-statement.md, etc.)
     if (sourceChangeDir) {
       try {
@@ -211,6 +223,10 @@ function generateArchiveSummary(change: Change): string {
     const status =
       task.status === "done" ? "✅" : task.status === "cancelled" ? "⏭️" : "❓";
     lines.push(`- ${status} ${task.title}`);
+    // Include implementation summary if present
+    if (task.implementation_summary) {
+      lines.push(`  > ${task.implementation_summary}`);
+    }
   }
   lines.push("");
 
@@ -222,6 +238,16 @@ function generateArchiveSummary(change: Change): string {
     lines.push(`- **${capability}**: ${deltaCount} delta(s)`);
   }
   lines.push("");
+
+  // Include wisdom summary if present
+  if (change.wisdom && change.wisdom.length > 0) {
+    lines.push("## Wisdom Accumulated");
+    lines.push("");
+    for (const entry of change.wisdom) {
+      lines.push(`- **[${entry.type}]** ${entry.content}`);
+    }
+    lines.push("");
+  }
 
   return lines.join("\n");
 }

@@ -735,6 +735,21 @@ export const AdvancePlugin: Plugin = async ({ directory, worktree }) => {
         ),
       }),
 
+      adv_project_wisdom_list: tool({
+        description: wisdomTools.adv_project_wisdom_list.description,
+        args: {
+          maxEntries: tool.schema
+            .number()
+            .optional()
+            .describe("Maximum entries to return (default: all)"),
+        },
+        execute: safeExecute(
+          async (args) =>
+            wisdomTools.adv_project_wisdom_list.execute(args, store),
+          "adv_project_wisdom_list",
+        ),
+      }),
+
       // ----------------------------------------------------------------------
       // Status Tool
       // ----------------------------------------------------------------------
@@ -1244,10 +1259,14 @@ export const AdvancePlugin: Plugin = async ({ directory, worktree }) => {
 
         if (!state.activeChange.id) return;
 
-        // Removed dynamic context injection (wisdom, tasks) to preserve prompt caching.
-        // Agents should rely on explicitly calling tools to fetch context when needed.
+        // Inject minimal change context (~20 tokens, static per session) for compaction amnesia.
+        // Change ID only — NOT full snapshot or dynamic data — to preserve prompt caching.
+        // This was reverted previously when it injected wisdom/tasks; only change ID is safe.
+        output.system.push(
+          `[ADV] Active change: ${state.activeChange.id}${state.activeChange.objective ? ` | Objective: ${state.activeChange.objective.slice(0, 60)}` : ""}`,
+        );
 
-        // 3. Wisdom Recording Prompt (if task just finished)
+        // Wisdom Recording Prompt (if task just finished)
         if (state.lastCompletedTask) {
           output.system.push(
             `[ADV:RECORD_WISDOM] You just completed task "${state.lastCompletedTask.title}" (${state.lastCompletedTask.id}). If you learned anything (gotchas, patterns, successes), please record it using 'adv_wisdom_add'.`,

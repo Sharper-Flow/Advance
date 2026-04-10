@@ -131,7 +131,13 @@ Protocol: retry once → if still fails → inline fallback analysis → never s
 
 ## Phase 1: Spawn Analysis Sub-Agents
 
-Spawn **6 parallel sub-agents** (`subagent_type: "explore"`). Each receives: `WORKING DIRECTORY: {workdir}`, affected files, change-id.
+**CHANGE CONTEXT (inject into every sub-agent spawn prompt):**
+```
+CHANGE CONTEXT: {change-id} | {objective-first-60-chars} | {n} criteria | gate: release
+```
+This closes context starvation for explore agents that have no ADV tools. Inject verbatim — do NOT give explore agents ADV tool access.
+
+Spawn **6 parallel sub-agents** (`subagent_type: "explore"`). Each receives: `WORKING DIRECTORY: {workdir}`, affected files, change-id, and the CHANGE CONTEXT block above.
 
 ### Sub-Agent 1: Test Coverage Scanner
 

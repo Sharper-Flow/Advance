@@ -161,8 +161,13 @@ Skip for: bug fixes, mechanical work, choices constrained by security/API/archit
 
 ### Context Freshness
 
-Work one task at a time. Before EACH task:
-1. `adv_change_show` → 2. `adv_task_show` → 3. Review proposal
+Work one task at a time. Load context in two tiers:
+
+**Phase start (once):** `adv_change_show` → load full change context including proposal, design, gates, and task summary.
+
+**Per task:** `adv_task_show` → load current task details. Then `adv_wisdom_list` → load accumulated learnings for this change. Review relevant proposal/design sections only when the task description references them.
+
+× Do NOT call `adv_change_show` before every task — it returns the entire change payload and wastes context. Reserve it for phase transitions and initial context load.
 
 TodoWrite: use task IDs only (`tk-abc123`), not descriptions.
 

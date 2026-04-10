@@ -25,6 +25,7 @@ import {
   ProjectConfigSchema,
   FeatureFlagsSchema,
   ErrorRecoverySchema,
+  AttemptSchema,
   PrioritySchema,
   TaskStatusSchema,
   DependencySchema,
@@ -32,6 +33,7 @@ import {
   TddPhaseEvidenceSchema,
   TddEvidenceSchema,
   AgendaItemSchema,
+  ClarifyFindingSnapshotSchema,
   isLogicTask,
   isTrivialTask,
   hasCompleteTddEvidence,
@@ -1752,5 +1754,180 @@ describe("7-gate collaborative model", () => {
     expect(canCompleteGate(gates, "discovery")).toBe(true);
     // Last gate (release) requires all prior gates
     expect(canCompleteGate(gates, "release")).toBe(false);
+  });
+});
+
+// =============================================================================
+// New schema additions — Leak #6, #9, #11, #12 (fixAdvContextLeakSurfaces)
+// =============================================================================
+
+describe("TaskSchema.implementation_summary (Leak #6)", () => {
+  const baseTask = {
+    id: "tk-test01",
+    title: "Test task",
+    status: "pending",
+    created_at: new Date().toISOString(),
+  };
+
+  test("accepts task with implementation_summary", () => {
+    const task = TaskSchema.parse({
+      ...baseTask,
+      implementation_summary: "Used Zod .optional() pattern per KD4",
+    });
+    expect(task.implementation_summary).toBe(
+      "Used Zod .optional() pattern per KD4",
+    );
+  });
+
+  test("accepts task without implementation_summary (backwards compat)", () => {
+    const task = TaskSchema.parse(baseTask);
+    expect(task.implementation_summary).toBeUndefined();
+  });
+
+  test("persists implementation_summary through parse round-trip", () => {
+    const summary = "Extended GateCompletionSchema with notes field";
+    const parsed = TaskSchema.parse({
+      ...baseTask,
+      implementation_summary: summary,
+    });
+    expect(parsed.implementation_summary).toBe(summary);
+  });
+});
+
+describe("AttemptSchema + ErrorRecoverySchema.attempts (Leak #9)", () => {
+  test("AttemptSchema parses a valid attempt record", () => {
+    const attempt = AttemptSchema.parse({
+      attempt_number: 1,
+      error: "Type error: string not assignable to number",
+      diagnosis: "Wrong type passed to zod schema",
+      fix_tried: "Changed field type from string to z.number()",
+      outcome: "failed",
+      attempted_at: new Date().toISOString(),
+    });
+    expect(attempt.attempt_number).toBe(1);
+    expect(attempt.outcome).toBe("failed");
+  });
+
+  test("ErrorRecoverySchema accepts attempts array (Leak #9 fix)", () => {
+    const recovery = ErrorRecoverySchema.parse({
+      last_error: "Build failed",
+      retry_count: 2,
+      max_retries: 3,
+      error_class: "SEMANTIC",
+      attempts: [
+        {
+          attempt_number: 1,
+          error: "First failure",
+          diagnosis: "Wrong approach",
+          fix_tried: "Tried X",
+          outcome: "failed",
+          attempted_at: new Date().toISOString(),
+        },
+        {
+          attempt_number: 2,
+          error: "Second failure",
+          diagnosis: "Still wrong",
+          fix_tried: "Tried Y",
+          outcome: "failed",
+          attempted_at: new Date().toISOString(),
+        },
+      ],
+    });
+    expect(recovery.attempts).toHaveLength(2);
+    expect(recovery.attempts![0].attempt_number).toBe(1);
+  });
+
+  test("ErrorRecoverySchema without attempts is backwards compatible", () => {
+    const recovery = ErrorRecoverySchema.parse({
+      last_error: "Some error",
+      retry_count: 0,
+      max_retries: 3,
+      error_class: "TRANSIENT",
+    });
+    expect(recovery.attempts).toBeUndefined();
+  });
+});
+
+describe("GateCompletionSchema.notes (Leak #11)", () => {
+  test("accepts gate completion with notes", () => {
+    const gate = GateCompletionSchema.parse({
+      status: "done",
+      completed_at: new Date().toISOString(),
+      completed_by: "agent",
+      notes:
+        "Drift detection added; spec divergence warning scoped to warning severity",
+    });
+    expect(gate.notes).toBe(
+      "Drift detection added; spec divergence warning scoped to warning severity",
+    );
+  });
+
+  test("accepts gate completion without notes (backwards compat)", () => {
+    const gate = GateCompletionSchema.parse({
+      status: "done",
+      completed_at: new Date().toISOString(),
+      completed_by: "agent",
+    });
+    expect(gate.notes).toBeUndefined();
+  });
+});
+
+describe("ClarifyFindingSnapshotSchema + ChangeSchema.clarify_findings (Leak #12)", () => {
+  test("ClarifyFindingSnapshotSchema parses a valid snapshot", () => {
+    const snapshot = ClarifyFindingSnapshotSchema.parse({
+      code: "CLARIFY_MISSING_SUCCESS_CRITERIA",
+      severity: "warning",
+      message: "Success criteria are placeholder",
+      recorded_at: new Date().toISOString(),
+    });
+    expect(snapshot.code).toBe("CLARIFY_MISSING_SUCCESS_CRITERIA");
+    expect(snapshot.resolved).toBeUndefined();
+  });
+
+  test("ClarifyFindingSnapshotSchema accepts resolved findings", () => {
+    const snapshot = ClarifyFindingSnapshotSchema.parse({
+      code: "CLARIFY_MISSING_SUCCESS_CRITERIA",
+      severity: "warning",
+      message: "Success criteria are placeholder",
+      recorded_at: new Date().toISOString(),
+      resolved: true,
+      resolved_at: new Date().toISOString(),
+    });
+    expect(snapshot.resolved).toBe(true);
+  });
+
+  test("ChangeSchema accepts clarify_findings array (Leak #12 fix)", () => {
+    const change = ChangeSchema.parse({
+      id: "testChange",
+      title: "Test change",
+      status: "draft",
+      created_at: new Date().toISOString(),
+      tasks: [],
+      deltas: {},
+      clarify_findings: [
+        {
+          code: "CLARIFY_MISSING_SUCCESS_CRITERIA",
+          severity: "warning",
+          message: "Success criteria are placeholder",
+          recorded_at: new Date().toISOString(),
+        },
+      ],
+    });
+    expect(change.clarify_findings).toHaveLength(1);
+    expect(change.clarify_findings![0].code).toBe(
+      "CLARIFY_MISSING_SUCCESS_CRITERIA",
+    );
+  });
+
+  test("ChangeSchema without clarify_findings is backwards compatible", () => {
+    const change = ChangeSchema.parse({
+      id: "testChange",
+      title: "Test change",
+      status: "draft",
+      created_at: new Date().toISOString(),
+      tasks: [],
+      deltas: {},
+    });
+    expect(change.clarify_findings).toBeUndefined();
   });
 });

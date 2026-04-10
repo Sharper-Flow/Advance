@@ -10,7 +10,9 @@ import type { Store } from "../storage/store";
 import {
   isTrivialTask,
   truncateOutput,
+  ErrorRecoverySchema,
   type Cancellation,
+  type ErrorRecovery,
   type TddReclassification,
 } from "../types";
 import {
@@ -113,13 +115,30 @@ export const taskTools = {
         .enum(["pending", "in_progress", "done", "cancelled"])
         .describe("New status"),
       notes: z.string().optional().describe("Completion notes"),
+      implementation_summary: z
+        .string()
+        .optional()
+        .describe(
+          "Structured summary of what was implemented and how — persisted at task completion for context continuity",
+        ),
+      error_recovery: ErrorRecoverySchema.optional().describe(
+        "Structured retry history for doom-loop tracking, including attempts[]",
+      ),
     },
     execute: async (
       {
         taskId,
         status,
         notes,
-      }: { taskId: string; status: string; notes?: string },
+        implementation_summary,
+        error_recovery,
+      }: {
+        taskId: string;
+        status: string;
+        notes?: string;
+        implementation_summary?: string;
+        error_recovery?: ErrorRecovery;
+      },
       store: Store,
     ) => {
       // Reject direct cancellation — must use adv_task_cancel with user approval
@@ -131,7 +150,13 @@ export const taskTools = {
         });
       }
 
-      const task = await store.tasks.update(taskId, status, notes);
+      const task = await store.tasks.update(
+        taskId,
+        status,
+        notes,
+        implementation_summary,
+        error_recovery,
+      );
       if (!task) {
         return formatToolOutput({ error: `Task not found: ${taskId}` });
       }

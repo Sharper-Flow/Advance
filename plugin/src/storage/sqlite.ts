@@ -144,7 +144,8 @@ CREATE TABLE IF NOT EXISTS tasks (
   created_at TEXT NOT NULL,
   started_at TEXT,
   completed_at TEXT,
-  completed_by TEXT
+  completed_by TEXT,
+  cancellation_reason TEXT
 );
 
 -- Task Dependencies
@@ -228,7 +229,11 @@ export interface SQLiteStore {
   tasks: {
     list: (changeId: string, status?: string) => TaskRow[];
     get: (id: string) => TaskRow | null;
-    ready: (changeId: string) => { ready: TaskRow[]; blocked: BlockedTask[] };
+    ready: (changeId: string) => {
+      ready: TaskRow[];
+      blocked: BlockedTask[];
+      cancelledBlockerContext?: CancelledBlockerContext[];
+    };
     update: (id: string, updates: Partial<Task>) => void;
     countByChange: () => { change_id: string; total: number; done: number }[];
   };
@@ -306,6 +311,16 @@ export interface SearchResult {
 export interface BlockedTask {
   task: TaskRow;
   blockedBy: string[];
+}
+
+/** Context for a pending task that was unblocked by a cancelled blocker */
+export interface CancelledBlockerContext {
+  /** The pending task that was unblocked */
+  taskId: string;
+  /** The blocker task that was cancelled */
+  cancelledBlockerId: string;
+  /** The cancellation reason from the cancelled blocker */
+  cancellationReason: string;
 }
 
 /**
@@ -411,9 +426,25 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
           created_at TEXT NOT NULL,
           started_at TEXT,
           completed_at TEXT,
-          completed_by TEXT
+          completed_by TEXT,
+          cancellation_reason TEXT
         )
       `);
+    }
+  } catch {
+    // If migration fails, the DB will be rebuilt on next sync
+  }
+
+  // Migration: add cancellation_reason column to pre-existing tasks tables.
+  // Fresh installs and rebuilds above already create the column in CREATE TABLE.
+  // This ALTER TABLE path exists only for older databases that skipped the rebuild.
+  try {
+    const taskCols = db.query("PRAGMA table_info(tasks)").all() as Array<{
+      name: string;
+    }>;
+    const hasCol = taskCols.some((c) => c.name === "cancellation_reason");
+    if (!hasCol) {
+      db.exec("ALTER TABLE tasks ADD COLUMN cancellation_reason TEXT");
     }
   } catch {
     // If migration fails, the DB will be rebuilt on next sync
@@ -499,8 +530,8 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
     ),
     tasksGet: db.query("SELECT * FROM tasks WHERE id = ?"),
     tasksInsert: db.query(`
-      INSERT INTO tasks (id, change_id, title, type, section, status, priority, created_at, started_at, completed_at, completed_by)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO tasks (id, change_id, title, type, section, status, priority, created_at, started_at, completed_at, completed_by, cancellation_reason)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `),
     tasksDeleteByChange: db.query("DELETE FROM tasks WHERE change_id = ?"),
     taskMetadataInsert: db.query(
@@ -561,6 +592,19 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
         AND pending_task.status = 'pending'
         AND d.type = 'blocked_by'
         AND blocker_task.status NOT IN ('done', 'cancelled')
+    `),
+
+    // Cancelled blockers that unblocked pending tasks — provides cancellation context
+    cancelledBlockersForChange: db.query(`
+      SELECT d.source_id AS task_id, d.target_id AS cancelled_blocker_id, blocker_task.cancellation_reason
+      FROM dependencies d
+      JOIN tasks blocker_task ON d.target_id = blocker_task.id
+      JOIN tasks pending_task ON d.source_id = pending_task.id
+      WHERE pending_task.change_id = ?
+        AND pending_task.status = 'pending'
+        AND d.type = 'blocked_by'
+        AND blocker_task.status = 'cancelled'
+        AND blocker_task.cancellation_reason IS NOT NULL
     `),
   };
 
@@ -705,6 +749,7 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
                 task.started_at ?? null,
                 task.completed_at ?? null,
                 task.completed_by ?? null,
+                task.cancellation?.reason ?? null,
               );
 
               // Insert dependencies
@@ -795,6 +840,29 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
           blockerMap.set(row.source_id, existing);
         }
 
+        // Fetch cancelled blocker context for tasks unblocked by cancellation
+        const cancelledRows = stmts.cancelledBlockersForChange.all(
+          changeId,
+        ) as {
+          task_id: string;
+          cancelled_blocker_id: string;
+          cancellation_reason: string | null;
+        }[];
+        const cancelledContextMap = new Map<
+          string,
+          { cancelledBlockerId: string; cancellationReason: string }[]
+        >();
+        for (const row of cancelledRows) {
+          if (row.cancellation_reason) {
+            const existing = cancelledContextMap.get(row.task_id) ?? [];
+            existing.push({
+              cancelledBlockerId: row.cancelled_blocker_id,
+              cancellationReason: row.cancellation_reason,
+            });
+            cancelledContextMap.set(row.task_id, existing);
+          }
+        }
+
         const ready: TaskRow[] = [];
         const blocked: BlockedTask[] = [];
 
@@ -810,7 +878,25 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
           }
         }
 
-        return { ready, blocked };
+        // Build cancelled context for ready tasks that were unblocked by cancellation
+        const cancelledBlockerContext: CancelledBlockerContext[] = [];
+        for (const task of ready) {
+          const ctxList = cancelledContextMap.get(task.id);
+          if (ctxList) {
+            for (const ctx of ctxList) {
+              cancelledBlockerContext.push({ taskId: task.id, ...ctx });
+            }
+          }
+        }
+
+        return {
+          ready,
+          blocked,
+          cancelledBlockerContext:
+            cancelledBlockerContext.length > 0
+              ? cancelledBlockerContext
+              : undefined,
+        };
       },
 
       update: (id, updates) => {

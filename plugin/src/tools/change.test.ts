@@ -723,6 +723,30 @@ describe("Change Tools", () => {
       ).toBe(true);
     });
 
+    test("surfaces proposal drift warnings through adv_change_validate", async () => {
+      const createResult = await changeTools.adv_change_create.execute(
+        {
+          summary: "Drift change",
+          proposal:
+            "# Drift Change\n\n## Authentication\n\nNeed auth system.\n",
+        },
+        store,
+      );
+      const { changeId } = parseToolOutput(createResult);
+
+      const result = await changeTools.adv_change_validate.execute(
+        { changeId },
+        store,
+      );
+      const parsed = parseToolOutput(result);
+
+      expect(
+        parsed.warnings.some(
+          (w: { code: string }) => w.code === "PROPOSAL_TASK_DRIFT",
+        ),
+      ).toBe(true);
+    });
+
     test("fails in strict mode with warnings", async () => {
       const createResult = await changeTools.adv_change_create.execute(
         { summary: "Empty change" },
@@ -1089,5 +1113,59 @@ describe("Change Tools", () => {
         "https://github.com/org/repo/issues/123",
       );
     });
+  });
+});
+
+// =============================================================================
+// Clarify finding persistence (Leak #12, KD7)
+// =============================================================================
+
+describe("adv_change_show clarify finding persistence (Leak #12)", () => {
+  let tempDir4: string;
+  let store4: Store;
+
+  beforeEach(async () => {
+    tempDir4 = await createTempDir();
+    await createTestProject(tempDir4);
+    store4 = await createStore(tempDir4);
+    await store4.init();
+    await store4.sync();
+  });
+
+  afterEach(async () => {
+    store4.close();
+    await cleanupTempDir(tempDir4);
+  });
+
+  test("adv_change_show persists clarify findings as snapshots on the change (Leak #12)", async () => {
+    // First call — findings are computed and should be persisted
+    await changeTools.adv_change_show.execute(
+      { changeId: "addFeature" },
+      store4,
+    );
+
+    // Reload the change to verify findings were persisted
+    const changeResult = await store4.changes.get("addFeature");
+    const change = changeResult.data!;
+    expect(change.clarify_findings).toBeDefined();
+    expect(Array.isArray(change.clarify_findings)).toBe(true);
+    expect(change.clarify_findings!.length).toBeGreaterThan(0);
+
+    // Each persisted finding has required snapshot fields
+    const finding = change.clarify_findings![0];
+    expect(finding.code).toBeDefined();
+    expect(finding.severity).toBeDefined();
+    expect(finding.message).toBeDefined();
+    expect(finding.recorded_at).toBeDefined();
+  });
+
+  test("clarify findings backwards compat — change without findings has no clarify_findings", async () => {
+    // Change without any ambiguity signals — check that existing data without findings is fine
+    const changeResult = await store4.changes.get("addFeature");
+    const change = changeResult.data!;
+    // Before first show call, clarify_findings should be absent (or empty)
+    expect(
+      change.clarify_findings == null || change.clarify_findings.length === 0,
+    ).toBe(true);
   });
 });

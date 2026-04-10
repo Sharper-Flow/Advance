@@ -155,6 +155,8 @@ export interface Store {
       taskId: string,
       status: string,
       notes?: string,
+      implementationSummary?: string,
+      errorRecovery?: Task["error_recovery"],
     ) => Promise<Task | null>;
     add: (
       changeId: string,
@@ -207,8 +209,12 @@ export interface Store {
   gates: {
     /** Get gates for a change or agenda item (auto-migrates old 6-gate format) */
     get: (changeId: string) => Promise<Gates | null>;
-    /** Complete a gate with sequence enforcement */
-    complete: (changeId: string, gateId: GateId) => Promise<void>;
+    /** Complete a gate with sequence enforcement. Optional notes persisted with completion */
+    complete: (
+      changeId: string,
+      gateId: GateId,
+      notes?: string,
+    ) => Promise<void>;
     /** Migrate gates to legacy status (except last gate) */
     migrate: (changeId: string) => Promise<void>;
   };
@@ -1105,8 +1111,11 @@ export async function createStore(
         if (!change) return { ready: [], blocked: [] };
 
         // Use SQLite for dependency resolution
-        const { ready: readyIds, blocked: blockedInfo } =
-          sqlite.tasks.ready(changeId);
+        const {
+          ready: readyIds,
+          blocked: blockedInfo,
+          cancelledBlockerContext,
+        } = sqlite.tasks.ready(changeId);
         const readyIdSet = new Set(readyIds.map((r) => r.id));
 
         const ready = change.tasks.filter((t) => readyIdSet.has(t.id));
@@ -1115,10 +1124,21 @@ export async function createStore(
           blockedBy: b.blockedBy,
         }));
 
-        return { ready, blocked };
+        return {
+          ready,
+          blocked,
+          // Pass through cancelled blocker context if present
+          ...(cancelledBlockerContext ? { cancelledBlockerContext } : {}),
+        };
       },
 
-      update: async (taskId, status, notes) => {
+      update: async (
+        taskId,
+        status,
+        notes,
+        implementationSummary?,
+        errorRecovery?,
+      ) => {
         return withTaskLock(taskId, async (task, change) => {
           task.status = status as Task["status"];
 
@@ -1131,6 +1151,15 @@ export async function createStore(
             if (notes) {
               task.completed_by = notes;
             }
+          }
+
+          // Persist implementation summary if provided
+          if (implementationSummary) {
+            task.implementation_summary = implementationSummary;
+          }
+
+          if (errorRecovery) {
+            task.error_recovery = errorRecovery;
           }
 
           // Save change
@@ -1298,7 +1327,7 @@ export async function createStore(
         return maybeMigrateLegacyGates(changeId, gates);
       },
 
-      complete: async (changeId, gateId) => {
+      complete: async (changeId, gateId, notes?) => {
         return withChangeLock(changeId, async (change) => {
           if (!change.gates) {
             change.gates = createDefaultGates();
@@ -1323,6 +1352,10 @@ export async function createStore(
           gates[gateId].status = "done";
           gates[gateId].completed_at = now;
           gates[gateId].completed_by = "agent";
+          // Persist notes if provided
+          if (notes) {
+            gates[gateId].notes = notes;
+          }
 
           // Structured log for gate transition
           if (process.env.ADV_DEBUG) {
