@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+#### Discover Skill Duplication — Trim Restated Checklist Content
+
+- **Trimmed `skills/adv-discover-methodology/SKILL.md`** from 113→43 lines by removing per-step detail sections that duplicated `docs/checklists/discover-checklist.md`. The skill now follows the canonical-source pattern used by `adv-harden-methodology` (85L) and `adv-review-methodology` (71L): protocol overview table + constraints only, with explicit deferral to the checklist for detailed rules.
+
 ### Improved
 
 #### Discovery Phase Rigor — Enforce 9 Mandatory Protocol Steps in /adv-discover
