@@ -148,7 +148,7 @@
           "id": "rq-ctxfallback.1",
           "title": "Missing gates handled gracefully",
           "given": [
-            "A change with no gate data (legacy change)"
+            "A change with no gate data"
           ],
           "when": "A context snapshot is rendered",
           "then": [

@@ -285,7 +285,7 @@ export const gateTools = {
           0,
           GATE_ORDER.indexOf(gateId),
         ).filter(
-          (g) => gates[g].status !== "done" && gates[g].status !== "legacy",
+          (g) => gates[g].status !== "done" && gates[g].status !== "skipped",
         );
         return formatToolOutput({
           error: `Cannot complete ${gateId}: prior gate(s) incomplete`,
@@ -377,7 +377,7 @@ function validateGateBoundary(
   if (commandName === "agent") return undefined;
 
   if (!isAuthorized) {
-    return `Gate '${gateId}' is owned by [${authorizedCommands.join(", ")}] but was completed by '${completedBy}'. This may indicate a command boundary violation. See specs adv-proposal, adv-research, adv-prep for gate ownership rules.`;
+    return `Gate '${gateId}' is owned by [${authorizedCommands.join(", ")}] but was completed by '${completedBy}'. This may indicate a command boundary violation. See specs adv-proposal and adv-prep for gate ownership rules.`;
   }
 
   return undefined;

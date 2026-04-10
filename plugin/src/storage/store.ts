@@ -11,12 +11,10 @@ import {
   WisdomEntrySchema,
   GATE_ORDER,
   canCompleteGate,
-  createLegacyGates,
   createDefaultGates,
   type Gates,
   type GateId,
 } from "../types";
-import { needsGateMigration, migrateGates } from "./gate-migration";
 import type {
   Spec,
   Change,
@@ -205,12 +203,10 @@ export interface Store {
 
   // Gates (7-gate quality checklist)
   gates: {
-    /** Get gates for a change or agenda item (auto-migrates old 6-gate format) */
+    /** Get gates for a change or agenda item */
     get: (changeId: string) => Promise<Gates | null>;
     /** Complete a gate with sequence enforcement */
     complete: (changeId: string, gateId: GateId) => Promise<void>;
-    /** Migrate gates to legacy status (except last gate) */
-    migrate: (changeId: string) => Promise<void>;
   };
 
   // Status
@@ -707,28 +703,7 @@ export async function createStore(
     return { ...defaults, ...gates } as Gates;
   };
 
-  const maybeMigrateLegacyGates = async (
-    changeId: string,
-    gates: GateCompletionRecord,
-  ): Promise<Gates> => {
-    if (!needsGateMigration(gates)) {
-      return normalizeGates(gates);
-    }
-
-    return withChangeLock(changeId, async (change) => {
-      const latestGates = change.gates ?? createDefaultGates();
-      if (!needsGateMigration(latestGates)) {
-        return normalizeGates(latestGates);
-      }
-
-      const migrated = migrateGates(latestGates);
-      change.gates = migrated;
-      await store.changes.save(change);
-      return migrated;
-    });
-  };
-
-  // Legacy flag for backwards compatibility
+  // Synchronization flag for cache lifecycle
   let synced = false;
 
   const store: Store = {
@@ -1294,8 +1269,7 @@ export async function createStore(
         const gates: GateCompletionRecord =
           change.gates ?? createDefaultGates();
 
-        // Auto-migrate old 6-gate format to new 7-gate format
-        return maybeMigrateLegacyGates(changeId, gates);
+        return normalizeGates(gates);
       },
 
       complete: async (changeId, gateId) => {
@@ -1333,27 +1307,6 @@ export async function createStore(
                 gateId,
                 oldStatus,
                 newStatus: "done",
-                timestamp: now,
-              }),
-            );
-          }
-
-          await store.changes.save(change);
-        });
-      },
-
-      migrate: async (changeId) => {
-        return withChangeLock(changeId, async (change) => {
-          const now = new Date().toISOString();
-          change.gates = createLegacyGates();
-
-          // Structured log for gate migration
-          if (process.env.ADV_DEBUG) {
-            console.log(
-              JSON.stringify({
-                event: "gates_migrated",
-                changeId,
-                status: "legacy",
                 timestamp: now,
               }),
             );

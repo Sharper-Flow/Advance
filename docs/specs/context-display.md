@@ -157,7 +157,7 @@ The context snapshot formatter MUST gracefully handle missing or partial data: a
 **Missing gates handled gracefully** (`rq-ctxfallback.1`)
 
 **Given:**
-- A change with no gate data (legacy change)
+- A change with no gate data
 
 **When:** A context snapshot is rendered
 

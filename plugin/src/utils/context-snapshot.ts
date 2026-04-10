@@ -88,7 +88,7 @@ function formatGateProgress(gates?: Record<string, GateInfo>): string {
     if (!gate) return `[○ ${label}]`;
 
     const status = gate.status;
-    if (status === "done" || status === "legacy") return `[✓ ${label}]`;
+    if (status === "done") return `[✓ ${label}]`;
     if (status === "skipped") return `[⏭ ${label}]`;
     return `[○ ${label}]`;
   }).join(" ");

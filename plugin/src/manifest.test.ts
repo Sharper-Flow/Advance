@@ -21,7 +21,7 @@ describe("Command Manifest", () => {
     expect(Object.keys(COMMAND_MANIFEST).length).toBeGreaterThan(0);
   });
 
-  test("contains all 22 ADV commands", () => {
+  test("contains all 21 ADV commands", () => {
     const expectedCommands = [
       "adv-status",
       "adv-proposal",
@@ -35,7 +35,6 @@ describe("Command Manifest", () => {
       "adv-archive",
       "adv-clarify",
       "adv-prep",
-      "adv-research",
       "adv-review",
       "adv-harden",
       "adv-audit",
@@ -50,7 +49,8 @@ describe("Command Manifest", () => {
     for (const cmd of expectedCommands) {
       expect(COMMAND_MANIFEST).toHaveProperty(cmd);
     }
-    expect(Object.keys(COMMAND_MANIFEST)).toHaveLength(22);
+    expect(Object.keys(COMMAND_MANIFEST)).toHaveLength(21);
+    expect(COMMAND_MANIFEST).not.toHaveProperty("adv-research");
   });
 
   test("every command has required fields", () => {
@@ -251,7 +251,6 @@ describe("Command Manifest", () => {
     test("adv-review and adv-harden are stage commands without direct gate ownership", () => {
       expect(getCommandDef("adv-review")!.gate).toBeUndefined();
       expect(getCommandDef("adv-harden")!.gate).toBeUndefined();
-      expect(getCommandDef("adv-research")!.gate).toBeUndefined();
     });
 
     test("adv-archive requires change ID", () => {
@@ -327,11 +326,6 @@ describe("Command Manifest", () => {
     test("adv-proposal scope does not create tasks", () => {
       const def = getCommandDef("adv-proposal");
       expect(def!.scope!.creates).not.toContain("tasks");
-    });
-
-    test("adv-research is retired and has no scope definition", () => {
-      const def = getCommandDef("adv-research");
-      expect(def!.scope).toBeUndefined();
     });
 
     test("adv-prep scope creates tasks", () => {
@@ -419,12 +413,8 @@ describe("Command Manifest", () => {
       );
     });
 
-    test("adv-research is retired (no gate ownership)", () => {
-      const def = getCommandDef("adv-research");
-      // It can remain in the manifest as a redirect, but should not own a gate
-      if (def) {
-        expect(def.gate).toBeUndefined();
-      }
+    test("adv-research is absent from the forward-only manifest", () => {
+      expect(getCommandDef("adv-research")).toBeUndefined();
     });
   });
 });

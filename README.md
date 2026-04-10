@@ -78,7 +78,6 @@ Advance exists to make those failure modes harder.
 | `/adv-agree <change-id>` | Present objectives and constraints for user acceptance |
 | `/adv-design <change-id>` | Validate architecture decisions and produce implementation strategy |
 | `/adv-present <change-id>` | Present concise design overview for user review before planning |
-| `/adv-research <change-id>` | Retired: use /adv-discover and /adv-design instead |
 | `/adv-prep <change-id>` | Analyze gaps and synthesize tasks from validated design decisions |
 
 ### Implementation
@@ -168,7 +167,7 @@ Sub-agents available for orchestration:
 ├── scripts/                # Maintenance, migration, and global config sync
 ├── skills/                 # Bundled OpenCode skills synced globally
 ├── ADV_INSTRUCTIONS.md
-├── INSTALL.md
+├── SETUP.md
 └── project.json
 ```
 
@@ -230,7 +229,7 @@ Example `project.json`:
 After cloning, run `./scripts/sync-global.sh --fix` to sync commands, agents,
 skills, and patch `~/.config/opencode/opencode.json` with ADV entries.
 
-See `INSTALL.md` for setup details.
+See `SETUP.md` for setup details.
 
 ## MCP surface
 
@@ -247,7 +246,7 @@ The important point is not the raw tool count. The value is that the workflow is
 
 ## Documentation map
 
-- `INSTALL.md` / `SETUP.md` - installation, project setup, and upgrade notes
+- `SETUP.md` - installation, project setup, and upgrade notes
 - `ADV_INSTRUCTIONS.md` - agent operating rules and workflow protocol
 - `AGENTS.md` - agent-facing quickstart: concepts, tools, directory layout
 - `docs/adv-workflow.md` - visual 7-gate workflow diagram

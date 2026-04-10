@@ -429,17 +429,8 @@ describe("Task Tools", () => {
       expect(parsed.taskId).toMatch(/^tk-/);
     });
 
-    test("allows task creation when planning gate is legacy", async () => {
-      await store.gates.migrate("addFeature");
-
-      const result = await taskTools.adv_task_add.execute(
-        { changeId: "addFeature", content: "Should succeed with legacy gates" },
-        store,
-      );
-      const parsed = parseToolOutput(result);
-
-      expect(parsed.error).toBeUndefined();
-      expect(parsed.taskId).toMatch(/^tk-/);
+    test("store.gates does not expose migrate helper", () => {
+      expect("migrate" in store.gates).toBe(false);
     });
   });
 

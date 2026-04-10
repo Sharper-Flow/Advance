@@ -47,7 +47,6 @@ Specs are laws. Requirements are formally defined, validated, and enforced.
 | `/adv-agree <change-id>` | Present objectives and constraints for user acceptance |
 | `/adv-design <change-id>` | Validate architecture decisions and produce implementation strategy |
 | `/adv-present <change-id>` | Present concise design overview for user review before planning |
-| `/adv-research <change-id>` | Retired: use /adv-discover and /adv-design instead |
 | `/adv-prep <change-id>` | Analyze gaps and synthesize tasks from validated design decisions |
 
 ### Post-Implementation
@@ -428,9 +427,6 @@ Commands that fan out to sub-agents with reusable methodology should follow this
 
 **Command-only** (no backing skill needed):
 `adv-proposal`, `adv-agree`, `adv-design`, `adv-present`, `adv-task`, `adv-validate`, `adv-archive`, `adv-status`, `adv-accept`, `adv-coordinate`, `adv-clarify`, `adv-refactor`
-
-**Retired** (redirects to successor commands):
-- `adv-research` → use `/adv-discover` + `/adv-design`
 
 **Command + backing skill** (reusable methodology extracted):
 - `adv-discover` → `adv-discover-methodology` skill

@@ -369,7 +369,7 @@ After Quick Contract confirmation, /adv-task must always persist contract contex
 
 **ID:** `rq-gatemodel01` | **Priority:** **[MUST]**
 
-The canonical ADV workflow is seven sequential gates: proposal, discovery, design, planning, execution, acceptance, release. Gates must be completed in order. A change cannot be archived until all seven gates are satisfied (status 'done', 'legacy', or 'skipped'). Legacy changes created under the previous 6-gate model MUST be auto-migrated on first access.
+The canonical ADV workflow is seven sequential gates: proposal, discovery, design, planning, execution, acceptance, release. Gates must be completed in order. A change cannot be archived until all seven gates are satisfied (status 'done' or 'skipped').
 
 **Tags:** `workflow`, `gates`
 
@@ -397,17 +397,5 @@ The canonical ADV workflow is seven sequential gates: proposal, discovery, desig
 **Then:**
 - The archive is rejected with incomplete-gates error
 - release is listed as the remaining gate
-
-**Legacy 6-gate changes migrate transparently** (`rq-gatemodel01.3`)
-
-**Given:**
-- A change.json with old gate keys (research, prep, implementation, review, harden, signoff)
-
-**When:** adv_gate_status is called for that change
-
-**Then:**
-- Gates are returned using the new 7-gate names
-- Each migrated gate carries a migrated_from audit field
-- Any absorbed signoff completion is recorded in absorbed_completions on the acceptance gate
 
 ---

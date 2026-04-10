@@ -661,7 +661,6 @@
                   "enum": [
                     "pending",
                     "done",
-                    "legacy",
                     "skipped"
                   ],
                   "default": "pending"
@@ -671,40 +670,6 @@
                 },
                 "completed_by": {
                   "type": "string"
-                },
-                "migrated_from": {
-                  "type": "string"
-                },
-                "absorbed_completions": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "gate_id": {
-                        "type": "string"
-                      },
-                      "status": {
-                        "type": "string",
-                        "enum": [
-                          "pending",
-                          "done",
-                          "legacy",
-                          "skipped"
-                        ]
-                      },
-                      "completed_at": {
-                        "type": "string"
-                      },
-                      "completed_by": {
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "gate_id",
-                      "status"
-                    ],
-                    "additionalProperties": false
-                  }
                 }
               },
               "additionalProperties": false,
@@ -720,7 +685,6 @@
                   "enum": [
                     "pending",
                     "done",
-                    "legacy",
                     "skipped"
                   ],
                   "default": "pending"
@@ -730,40 +694,6 @@
                 },
                 "completed_by": {
                   "type": "string"
-                },
-                "migrated_from": {
-                  "type": "string"
-                },
-                "absorbed_completions": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "gate_id": {
-                        "type": "string"
-                      },
-                      "status": {
-                        "type": "string",
-                        "enum": [
-                          "pending",
-                          "done",
-                          "legacy",
-                          "skipped"
-                        ]
-                      },
-                      "completed_at": {
-                        "type": "string"
-                      },
-                      "completed_by": {
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "gate_id",
-                      "status"
-                    ],
-                    "additionalProperties": false
-                  }
                 }
               },
               "additionalProperties": false,
@@ -779,7 +709,6 @@
                   "enum": [
                     "pending",
                     "done",
-                    "legacy",
                     "skipped"
                   ],
                   "default": "pending"
@@ -789,40 +718,6 @@
                 },
                 "completed_by": {
                   "type": "string"
-                },
-                "migrated_from": {
-                  "type": "string"
-                },
-                "absorbed_completions": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "gate_id": {
-                        "type": "string"
-                      },
-                      "status": {
-                        "type": "string",
-                        "enum": [
-                          "pending",
-                          "done",
-                          "legacy",
-                          "skipped"
-                        ]
-                      },
-                      "completed_at": {
-                        "type": "string"
-                      },
-                      "completed_by": {
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "gate_id",
-                      "status"
-                    ],
-                    "additionalProperties": false
-                  }
                 }
               },
               "additionalProperties": false,
@@ -838,7 +733,6 @@
                   "enum": [
                     "pending",
                     "done",
-                    "legacy",
                     "skipped"
                   ],
                   "default": "pending"
@@ -848,40 +742,6 @@
                 },
                 "completed_by": {
                   "type": "string"
-                },
-                "migrated_from": {
-                  "type": "string"
-                },
-                "absorbed_completions": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "gate_id": {
-                        "type": "string"
-                      },
-                      "status": {
-                        "type": "string",
-                        "enum": [
-                          "pending",
-                          "done",
-                          "legacy",
-                          "skipped"
-                        ]
-                      },
-                      "completed_at": {
-                        "type": "string"
-                      },
-                      "completed_by": {
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "gate_id",
-                      "status"
-                    ],
-                    "additionalProperties": false
-                  }
                 }
               },
               "additionalProperties": false,
@@ -897,7 +757,6 @@
                   "enum": [
                     "pending",
                     "done",
-                    "legacy",
                     "skipped"
                   ],
                   "default": "pending"
@@ -907,40 +766,6 @@
                 },
                 "completed_by": {
                   "type": "string"
-                },
-                "migrated_from": {
-                  "type": "string"
-                },
-                "absorbed_completions": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "gate_id": {
-                        "type": "string"
-                      },
-                      "status": {
-                        "type": "string",
-                        "enum": [
-                          "pending",
-                          "done",
-                          "legacy",
-                          "skipped"
-                        ]
-                      },
-                      "completed_at": {
-                        "type": "string"
-                      },
-                      "completed_by": {
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "gate_id",
-                      "status"
-                    ],
-                    "additionalProperties": false
-                  }
                 }
               },
               "additionalProperties": false,
@@ -956,7 +781,6 @@
                   "enum": [
                     "pending",
                     "done",
-                    "legacy",
                     "skipped"
                   ],
                   "default": "pending"
@@ -966,40 +790,6 @@
                 },
                 "completed_by": {
                   "type": "string"
-                },
-                "migrated_from": {
-                  "type": "string"
-                },
-                "absorbed_completions": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "gate_id": {
-                        "type": "string"
-                      },
-                      "status": {
-                        "type": "string",
-                        "enum": [
-                          "pending",
-                          "done",
-                          "legacy",
-                          "skipped"
-                        ]
-                      },
-                      "completed_at": {
-                        "type": "string"
-                      },
-                      "completed_by": {
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "gate_id",
-                      "status"
-                    ],
-                    "additionalProperties": false
-                  }
                 }
               },
               "additionalProperties": false,
@@ -1015,7 +805,6 @@
                   "enum": [
                     "pending",
                     "done",
-                    "legacy",
                     "skipped"
                   ],
                   "default": "pending"
@@ -1025,40 +814,6 @@
                 },
                 "completed_by": {
                   "type": "string"
-                },
-                "migrated_from": {
-                  "type": "string"
-                },
-                "absorbed_completions": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "gate_id": {
-                        "type": "string"
-                      },
-                      "status": {
-                        "type": "string",
-                        "enum": [
-                          "pending",
-                          "done",
-                          "legacy",
-                          "skipped"
-                        ]
-                      },
-                      "completed_at": {
-                        "type": "string"
-                      },
-                      "completed_by": {
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "gate_id",
-                      "status"
-                    ],
-                    "additionalProperties": false
-                  }
                 }
               },
               "additionalProperties": false,

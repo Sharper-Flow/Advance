@@ -70,39 +70,6 @@ Capability: /adv-slop-scan command — detect AI-generated code quality issues i
 
 ---
 
-### Scanner Delegation Stays Single-Level
-
-**ID:** `rq-ss006` | **Priority:** **[MUST]**
-
-/adv-slop-scan may orchestrate first-level scanner sub-agents, but those scanner workers must perform their work inline and must NOT spawn additional nested sub-agents or delegates.
-
-**Tags:** `orchestration`, `anti-recursion`, `phase2`
-
-#### Scenarios
-
-**Scanner workers do not recursively delegate** (`rq-ss006.1`)
-
-**Given:**
-- /adv-slop-scan runs Phase 2 heuristic detection
-
-**When:** The command spawns `explore` scanner workers for slop categories
-
-**Then:**
-- Only the top-level /adv-slop-scan command performs delegation
-- Each scanner worker performs analysis inline with its own tools
-- No scanner worker spawns nested sub-agents or delegates
-
-**Scanner workers do not invoke slash commands** (`rq-ss006.2`)
-
-**Given:**
-- A Phase 2 scanner worker needs more ADV context or coordination
-
-**When:** The worker continues its scan
-
-**Then:**
-- The worker does not invoke `/adv-*` slash commands
-- The worker either uses ADV tools directly or returns the gap to the orchestrator
-
 ### Configurable Detection Thresholds
 
 **ID:** `rq-ss002` | **Priority:** **[MUST]**

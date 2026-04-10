@@ -320,6 +320,54 @@ describe("Change Operations", () => {
     expect(result.type).toBe("read_error");
   });
 
+  test("loadChange rewrites legacy gate statuses and removes migration fields before validation", async () => {
+    const changesDir = join(tempDir, ".adv/changes");
+    const changePath = join(changesDir, "addFeature/change.json");
+    const raw = JSON.parse(await readFile(changePath, "utf-8"));
+
+    raw.gates = {
+      proposal: {
+        status: "legacy",
+        completed_at: "2026-01-01T00:00:00Z",
+        completed_by: "migration",
+        migrated_from: "research",
+        absorbed_completions: [
+          {
+            gate_id: "signoff",
+            status: "legacy",
+            completed_at: "2026-01-01T00:00:00Z",
+            completed_by: "migration",
+          },
+        ],
+      },
+      discovery: { status: "pending" },
+      design: { status: "pending" },
+      planning: { status: "pending" },
+      execution: { status: "pending" },
+      acceptance: { status: "pending" },
+      release: { status: "pending" },
+    };
+
+    await writeFile(changePath, JSON.stringify(raw, null, 2));
+
+    const result = await loadChange(changesDir, "addFeature");
+    expect(result.success).toBe(true);
+    expect(result.data).not.toBeNull();
+    expect(result.data!.gates.proposal.status).toBe("done");
+    expect(
+      (result.data!.gates.proposal as Record<string, unknown>).migrated_from,
+    ).toBeUndefined();
+    expect(
+      (result.data!.gates.proposal as Record<string, unknown>)
+        .absorbed_completions,
+    ).toBeUndefined();
+
+    const rewritten = JSON.parse(await readFile(changePath, "utf-8"));
+    expect(rewritten.gates.proposal.status).toBe("done");
+    expect(rewritten.gates.proposal.migrated_from).toBeUndefined();
+    expect(rewritten.gates.proposal.absorbed_completions).toBeUndefined();
+  });
+
   test("saveChange writes change to JSON", async () => {
     const changesDir = join(tempDir, ".adv/changes");
     const change = { ...SAMPLE_CHANGE, id: "newFeature" };

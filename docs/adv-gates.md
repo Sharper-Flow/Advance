@@ -24,7 +24,6 @@ proposal → discovery → design → planning → execution → acceptance → 
 |-------|---------|
 | `pending` | Not yet completed |
 | `done` | Completed with timestamp + actor evidence |
-| `legacy` | Predates current gate system, counts as "satisfied" |
 | `skipped` | Explicitly skipped with documented reason |
 
 ## Enforcement Rules
@@ -32,8 +31,6 @@ proposal → discovery → design → planning → execution → acceptance → 
 1. **Sequential**: Gates MUST be completed in order (cannot skip ahead)
 2. **Blocking**: Archive/Complete BLOCKS unless all 7 gates satisfied
 3. **Cancelled Tasks**: At `execution` gate, cancelled tasks need user approval
-4. **Legacy Support**: `legacy` status counts as "satisfied" for sequence enforcement
-5. **Migration**: Existing changes from the old 6-gate model get `legacy` status (except the last gate stays `pending`)
 
 ## Gate-Specific Behaviors
 
@@ -85,27 +82,6 @@ Absorbs the old `harden` gate. Before running quality scanners, `/adv-harden` pe
 4. **Merge compatibility check** — non-destructive dry-run merge against the default branch (`git merge --no-commit --no-ff`); blocks on conflicts
 
 `/adv-archive` runs Phase 9 Git Finalization: stage → commit → detect default branch → merge/PR → verify → cleanup worktree → remove temp artifacts.
-
-## Migration from 6-Gate Model
-
-The old 6-gate model used: `research`, `prep`, `implementation`, `review`, `harden`, `signoff`.
-
-Migration mapping:
-
-| Old Gate | New Gate(s) |
-|----------|-------------|
-| `research` | `proposal` + `discovery` + `design` |
-| `prep` | `planning` |
-| `implementation` | `execution` |
-| `review` | `acceptance` (absorbed) |
-| `harden` | `release` (absorbed) |
-| `signoff` | `acceptance` (absorbed) |
-
-Existing changes are auto-migrated on load:
-- All gates except the last get `legacy` status
-- The last gate (`release`) stays `pending`
-- New-only gates (`proposal`, `discovery`, `design`) are marked `legacy` if the old change already had completed work
-- The `migrated_from` field on gate completion records the original gate ID
 
 ## Checking Gate Status
 

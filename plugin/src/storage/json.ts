@@ -47,6 +47,44 @@ function formatZodError(
   );
 }
 
+function normalizeLegacyGateData(value: unknown): [unknown, boolean] {
+  let changed = false;
+
+  if (Array.isArray(value)) {
+    const next = value.map((item) => {
+      const [normalized, itemChanged] = normalizeLegacyGateData(item);
+      changed = changed || itemChanged;
+      return normalized;
+    });
+    return [next, changed];
+  }
+
+  if (value && typeof value === "object") {
+    const out: Record<string, unknown> = {};
+
+    for (const [key, raw] of Object.entries(value as Record<string, unknown>)) {
+      if (key === "migrated_from" || key === "absorbed_completions") {
+        changed = true;
+        continue;
+      }
+
+      if (key === "status" && raw === "legacy") {
+        out[key] = "done";
+        changed = true;
+        continue;
+      }
+
+      const [normalized, childChanged] = normalizeLegacyGateData(raw);
+      out[key] = normalized;
+      changed = changed || childChanged;
+    }
+
+    return [out, changed];
+  }
+
+  return [value, false];
+}
+
 // =============================================================================
 // File Paths
 // =============================================================================
@@ -351,7 +389,14 @@ export async function loadChange(
 
   try {
     const content = await readFile(changePath, "utf-8");
-    return { success: true, data: ChangeSchema.parse(JSON.parse(content)) };
+    const parsed = JSON.parse(content);
+    const [normalized, changed] = normalizeLegacyGateData(parsed);
+
+    if (changed) {
+      await atomicWriteFile(changePath, JSON.stringify(normalized, null, 2));
+    }
+
+    return { success: true, data: ChangeSchema.parse(normalized) };
   } catch (error) {
     if (error instanceof ZodError) {
       return {

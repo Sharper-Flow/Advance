@@ -73,7 +73,3 @@ Gates are sequential — `/adv-harden` is blocked until `acceptance` is done, `/
 ## Fast-Track
 
 For small, well-scoped work, `/adv-task` fast-tracks a discussed change by synthesizing the proposal, discovery, design, and planning gates in one pass. Execution and acceptance still run through `/adv-apply` + `/adv-accept` as normal.
-
-## Retired Commands
-
-- **`/adv-research`** — Retired. Use `/adv-discover` + `/adv-design` instead. The command file remains as a redirect stub.

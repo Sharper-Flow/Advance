@@ -179,14 +179,6 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
       gates: [],
     },
   },
-  "adv-research": {
-    name: "adv-research",
-    description: "Retired: use /adv-discover and /adv-design instead",
-    phase: "pre-implementation",
-    requiresChangeId: true,
-    prerequisites: ["adv-proposal"],
-    successors: ["adv-discover"],
-  },
   "adv-prep": {
     name: "adv-prep",
     description:
