@@ -47,12 +47,12 @@ See also:
 │         │ /adv-harden                                                 │
 │         ▼                                                             │
 │  ┌─────────────┐                                                      │
-│  │ 7. release  │  hardening pass → /adv-archive applies spec deltas   │
+│  │ 7. release  │  hardening pass → /adv-archive applies deltas + wisdom│
 │  └──────┬──────┘                                                      │
 │         │                                                             │
 │         ▼                                                             │
 │  ┌──────────┐                                                         │
-│  │ ARCHIVED │  ◄─── Specs updated, change moves to archive            │
+│  │ ARCHIVED │  ◄─── Specs updated, durable wisdom captured, archived  │
 │  └──────────┘                                                         │
 │                                                                       │
 └───────────────────────────────────────────────────────────────────────┘

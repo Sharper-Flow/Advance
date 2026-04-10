@@ -111,9 +111,9 @@ Advance exists to make those failure modes harder.
 - **Task orchestration** - break changes into explicit, trackable work units
 - **TDD evidence** - capture red/green proof as part of execution
 - **7-gate flow** - proposal, discovery, design, planning, execution, acceptance, release
-- **Accumulated wisdom** - persist patterns, gotchas, conventions, successes, and failures
+- **Accumulated wisdom** - persist patterns, gotchas, conventions, successes, and failures with SQLite-backed search, cross-change aggregation, and archive-time promotion of durable learnings
 - **Worktree-aware state** - share mutable change state across worktrees and sessions; detect and reuse existing worktrees
-- **Validation and archive flow** - reduce drift between proposal, implementation, and specs
+- **Validation and archive flow** - reduce drift between proposal, implementation, and specs while carrying forward durable wisdom during archive
 - **Tradeoff prioritization** - route multi-approach decisions through inline analysis or the prioritizer skill before asking users to weigh criteria
 - **Command + skill architecture** - slash commands own workflow/state/gates; reusable methodology (review, harden, slop detection) lives in loadable skills following the `adv-tron` pattern
 
