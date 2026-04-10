@@ -60,3 +60,4 @@ Formatted text/WYSIWYG input is best effort and depends on the client UI. Always
 4. Answers are returned as arrays of labels
 5. Use `multiple: true` for multi-select
 6. Do not ask the user to classify things the agent can infer (change type, affected specs, obvious target selection, cross-repo scope)
+7. In `/adv-agree`, triage open questions before asking: technical/implementation questions are resolved via LBP research; only user-facing questions (priorities, behavior, downsides, AC boundaries) go to the user. If a technical question has user-value tradeoffs, reframe it as the downstream outcome question.

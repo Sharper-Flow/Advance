@@ -44,7 +44,7 @@ Specs are laws. Requirements are formally defined, validated, and enforced.
 |---------|---------|
 | `/adv-clarify` | Ask clarifying questions to resolve ambiguous requirements |
 | `/adv-discover <change-id>` | Gather context, analyze current state, and identify objectives |
-| `/adv-agree <change-id>` | Present objectives and constraints for user acceptance |
+| `/adv-agree <change-id>` | Resolve open questions via triage loop, confirm objectives and constraints |
 | `/adv-design <change-id>` | Validate architecture decisions and produce implementation strategy |
 | `/adv-present <change-id>` | Present concise design overview for user review before planning |
 | `/adv-prep <change-id>` | Analyze gaps and synthesize tasks from validated design decisions |
@@ -74,7 +74,8 @@ Specs are laws. Requirements are formally defined, validated, and enforced.
 | Command | Produces | × MUST NOT | Gate |
 |---------|----------|------------|------|
 | proposal | Problem statement, criteria, constraints | Create tasks, complete non-owned gates, impl decisions | `proposal` |
-| discover | Context analysis, objectives, agreement.md | Create tasks, complete non-discovery gates | `discovery` |
+| discover | Context analysis, objectives, open questions | Create tasks, complete non-discovery gates | `discovery` |
+| agree | agreement.md (triage open questions, resolve technical via LBP, ask user-facing) | Create tasks, complete gates, architecture decisions | None (`discovery` owned by discover) |
 | design | Architecture decisions, design.md | Create tasks, complete non-owned gates, skip research | `design` |
 | prep | Task graph, gap analysis, sequencing | Complete non-planning gates, architecture decisions | `planning` |
 | task | Change + tasks + gates (fast-track exempt) | — | `proposal` → `planning` |

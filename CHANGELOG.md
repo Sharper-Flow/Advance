@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Improved
+
+#### Agreement Clarification Loop — Mandatory Open Question Resolution in /adv-agree
+
+- **Added Phase 2.5 (Open Question Resolution Loop)** to `/adv-agree` — all open questions from discovery must now be explicitly resolved before the agreement is finalized. No question is silently deferred or assumed "no preference."
+- **Added question triage** — open questions are classified before reaching the user: technical/implementation questions are resolved autonomously via LBP research; only user-facing questions (priorities, behavior, downsides, AC boundaries) are presented to the user.
+- **Reframing rule** — technical questions with genuine LBP ambiguity must be reframed as the downstream outcome question (e.g., not "REST vs GraphQL?" but "Do you need clients to fetch partial data?").
+- **Updated agreement.md template** — replaced the generic "Open Questions" section with three explicit categories: User Decisions, Agent Decisions (LBP), and Deferred Questions.
+- **Updated autonomy compliance matrix** — `/adv-agree` row now reflects question triage and clarification loop responsibilities.
+- **Updated gate docs** — discovery gate description documents the mandatory clarification loop.
+- **Added `agree` command boundary row** to `ADV_INSTRUCTIONS.md` — previously missing from the boundary table.
+
 ### Changed
 
 #### Forward-Only Cleanup and Distribution Readiness

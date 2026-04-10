@@ -605,7 +605,7 @@ New changes start directly in the 7-gate model.
 | `/adv-status` | Project overview |
 | `/adv-proposal <summary>` | Extract problem statement and confirm with user |
 | `/adv-discover <id>` | Gather context and identify objectives |
-| `/adv-agree <id>` | Present objectives for user acceptance |
+| `/adv-agree <id>` | Resolve open questions via triage, confirm objectives |
 | `/adv-design <id>` | Validate architecture decisions and produce strategy |
 | `/adv-present <id>` | Present design overview for user review |
 | `/adv-prep <id>` | Gap analysis and task shaping (from validated design) |

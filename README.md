@@ -45,7 +45,7 @@ Advance exists to make those failure modes harder.
 ```text
 /adv-proposal  -> confirm the problem statement and create the change scaffold
 /adv-discover  -> gather current-state findings and objectives
-/adv-agree     -> confirm objectives, AC, constraints, and avoidances
+/adv-agree     -> resolve open questions, confirm objectives, AC, constraints
 /adv-design    -> produce the design artifact and implementation strategy
 /adv-present   -> present the design before planning
 /adv-prep      -> synthesize tasks from validated design decisions
@@ -75,7 +75,7 @@ Advance exists to make those failure modes harder.
 |---------|---------|
 | `/adv-clarify` | Ask clarifying questions to resolve ambiguous requirements |
 | `/adv-discover <change-id>` | Gather context, analyze current state, and identify objectives |
-| `/adv-agree <change-id>` | Present objectives and constraints for user acceptance |
+| `/adv-agree <change-id>` | Resolve open questions via triage loop, confirm objectives and constraints |
 | `/adv-design <change-id>` | Validate architecture decisions and produce implementation strategy |
 | `/adv-present <change-id>` | Present concise design overview for user review before planning |
 | `/adv-prep <change-id>` | Analyze gaps and synthesize tasks from validated design decisions |
