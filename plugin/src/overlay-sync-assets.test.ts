@@ -64,4 +64,61 @@ describe("overlay sync script support", () => {
       rmSync(tempHome, { recursive: true, force: true });
     }
   });
+
+  test("bootstraps missing shared adv agent on --fix", () => {
+    const tempHome = mkdtempSync(join(tmpdir(), "adv-bootstrap-"));
+
+    try {
+      const configDir = join(tempHome, ".config/opencode");
+      mkdirSync(configDir, { recursive: true });
+      writeFileSync(
+        join(configDir, "opencode.json"),
+        JSON.stringify({ plugin: [], instructions: [] }),
+      );
+
+      const result = spawnSync("bash", [SYNC_SCRIPT_PATH, "--fix"], {
+        cwd: REPO_ROOT,
+        env: { ...process.env, HOME: tempHome, CI: "true" },
+        encoding: "utf8",
+      });
+
+      const advPath = join(configDir, "agents", "adv.md");
+      expect(result.status).toBe(0);
+      expect(readFileSync(advPath, "utf8")).toContain("ADV_SYNC:START adv");
+    } finally {
+      rmSync(tempHome, { recursive: true, force: true });
+    }
+  });
+
+  test("removes stale global orca agent on --fix", () => {
+    const tempHome = mkdtempSync(join(tmpdir(), "adv-orca-cleanup-"));
+
+    try {
+      const configDir = join(tempHome, ".config/opencode");
+      const globalAgents = join(configDir, "agents");
+      mkdirSync(globalAgents, { recursive: true });
+      writeFileSync(
+        join(configDir, "opencode.json"),
+        JSON.stringify({ plugin: [], instructions: [] }),
+      );
+      writeFileSync(
+        join(globalAgents, "adv.md"),
+        "---\ndescription: temp adv\n---\n",
+      );
+      writeFileSync(join(globalAgents, "orca.md"), "stale orca\n");
+
+      const result = spawnSync("bash", [SYNC_SCRIPT_PATH, "--fix"], {
+        cwd: REPO_ROOT,
+        env: { ...process.env, HOME: tempHome, CI: "true" },
+        encoding: "utf8",
+      });
+
+      expect(result.status).toBe(0);
+      expect(() =>
+        readFileSync(join(globalAgents, "orca.md"), "utf8"),
+      ).toThrow();
+    } finally {
+      rmSync(tempHome, { recursive: true, force: true });
+    }
+  });
 });

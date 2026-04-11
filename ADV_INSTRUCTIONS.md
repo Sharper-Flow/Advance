@@ -112,7 +112,13 @@ On direct-read failure → stop, call `adv_change_show` or `adv_task_show`.
 ### Question Tool UX
 Write-in option enforced by P26 (`rules.yaml`). Use contextual labels, 2-5 options, leave custom input enabled.
 ### Tradeoff Prioritizer Protocol
-When 2+ viable approaches depend on user values → run prioritizer before asking. Default: scan code → research → draft criteria → `question` tool → recommend. Optional: `skill("prioritizer")`. Skip for: bug fixes, mechanical work, constrained choices.
+When 2+ viable approaches depend on user values → run prioritizer before asking.
+
+**Default (inline):** scan code → research → draft criteria → `question` tool → recommend.
+
+**Optional (skill):** `skill("prioritizer")`.
+
+Skip for: bug fixes, mechanical work, constrained choices.
 ### Context Freshness
 Work one task at a time. Two tiers:
 - **Phase start (once):** `adv_change_show` → full change context
@@ -178,6 +184,7 @@ Available to: `adv`, `plan`, `scout`, `refine`, `general`.
 | task | Context7 + Kagi | librarian + adv-researcher |
 | refactor | Sequential drift | explore × 3 |
 Sub-agents × NEVER spawn sub-agents (`enforceTaskPolicy` blocks nesting). Cap parallel bursts at 3-4. Don't spawn for single-tool-call work. `/adv-discover` and `/adv-design` workers must research inline. `/adv-slop-scan` workers must scan inline.
+For `/adv-slop-scan`, all `explore` scanner workers must do the scan inline and must not delegate to additional sub-agents or invoke `/adv-*` slash commands.
 Inline-only: `/adv-status`, `/adv-proposal`, `/adv-validate`, `/adv-apply`, `/adv-archive`, `/adv-clarify`, `/adv-agree`, `/adv-present`, `/adv-accept`, `/adv-prep`, `/adv-coordinate`, `/adv-improve`
 ## Sub-Agent Selection
 ### Agent Tiers

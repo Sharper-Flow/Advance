@@ -72,6 +72,9 @@ adv_change_list({})
 // Get change details
 adv_change_show({ changeId: "add-feature" })
 
+// Get lightweight change context (no full task details)
+adv_change_summary({ changeId: "add-feature" })
+
 // Create new change
 adv_change_create({ summary: "Add feature X" })
 

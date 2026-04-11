@@ -1,0 +1,26 @@
+{
+  "advInstructionsLineBaseline": 261,
+  "commandLineBaselines": {
+    "adv-harden.md": 239,
+    "adv-apply.md": 222,
+    "adv-review.md": 194,
+    "adv-slop-scan.md": 142,
+    "adv-agree.md": 149,
+    "adv-discover.md": 140,
+    "adv-task.md": 96,
+    "adv-improve.md": 103,
+    "adv-archive.md": 87,
+    "adv-audit.md": 90,
+    "adv-clarify.md": 85,
+    "adv-refactor.md": 74,
+    "adv-design.md": 72,
+    "adv-prep.md": 68,
+    "adv-accept.md": 66,
+    "adv-tron.md": 60,
+    "adv-present.md": 59,
+    "adv-validate.md": 56,
+    "adv-proposal.md": 51,
+    "adv-coordinate.md": 42,
+    "adv-status.md": 45
+  }
+}

@@ -29,6 +29,20 @@ import {
   type ContextSnapshotInput,
 } from "../utils/context-snapshot";
 
+function summarizeTasks(
+  tasks: Array<{ status: string; id: string; title: string }>,
+) {
+  const taskCounts = {
+    done: tasks.filter((t) => t.status === "done").length,
+    in_progress: tasks.filter((t) => t.status === "in_progress").length,
+    pending: tasks.filter((t) => t.status === "pending").length,
+    cancelled: tasks.filter((t) => t.status === "cancelled").length,
+  };
+  const inProgressTask = tasks.find((t) => t.status === "in_progress");
+
+  return { taskCounts, inProgressTask };
+}
+
 // =============================================================================
 // Tool Definitions
 // =============================================================================
@@ -135,16 +149,7 @@ export const changeTools = {
 
       // Build context snapshot for context agreement
       const gates = await store.gates.get(changeId);
-      const taskCounts = {
-        done: change.tasks.filter((t) => t.status === "done").length,
-        in_progress: change.tasks.filter((t) => t.status === "in_progress")
-          .length,
-        pending: change.tasks.filter((t) => t.status === "pending").length,
-        cancelled: change.tasks.filter((t) => t.status === "cancelled").length,
-      };
-      const inProgressTask = change.tasks.find(
-        (t) => t.status === "in_progress",
-      );
+      const { taskCounts, inProgressTask } = summarizeTasks(change.tasks);
       const snapshotInput: ContextSnapshotInput = {
         changeId: change.id,
         title: change.title,
@@ -259,6 +264,58 @@ export const changeTools = {
       }
 
       return formatToolOutput(output);
+    },
+  },
+
+  adv_change_summary: {
+    description:
+      "Get lightweight change summary: ID, title, status, gate progress, task counts, current task, and context snapshot. Use instead of adv_change_show for per-task context refresh.",
+    args: {
+      changeId: z.string().describe("Change ID"),
+    },
+    execute: async ({ changeId }: { changeId: string }, store: Store) => {
+      const result = await store.changes.get(changeId);
+      if (!result.success) {
+        return formatToolOutput({ error: result.error });
+      }
+      if (!result.data) {
+        return formatToolOutput({ error: `Change not found: ${changeId}` });
+      }
+      const change = result.data;
+
+      const gates = await store.gates.get(changeId);
+      const { taskCounts, inProgressTask } = summarizeTasks(change.tasks);
+
+      const snapshotInput: ContextSnapshotInput = {
+        changeId: change.id,
+        title: change.title,
+        taskCounts,
+        gates: gates ?? undefined,
+        workdir: store.paths.root,
+        currentTask: inProgressTask
+          ? { id: inProgressTask.id, title: inProgressTask.title }
+          : undefined,
+      };
+
+      // Build compact gate progress object
+      const gateProgress: Record<string, string> = {};
+      if (gates) {
+        for (const [gateId, gateInfo] of Object.entries(gates)) {
+          gateProgress[gateId] = gateInfo.status;
+        }
+      }
+
+      return formatToolOutput({
+        id: change.id,
+        title: change.title,
+        status: change.status,
+        gates: gateProgress,
+        taskCounts,
+        currentTask: inProgressTask
+          ? { id: inProgressTask.id, title: inProgressTask.title }
+          : null,
+        _contextSnapshot: formatContextSnapshot(snapshotInput),
+      });
     },
   },
 

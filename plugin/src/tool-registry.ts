@@ -124,6 +124,11 @@ export function createToolMap(
       "adv_change_show",
       store,
     ),
+    adv_change_summary: bindTool(
+      changeTools.adv_change_summary,
+      "adv_change_summary",
+      store,
+    ),
     adv_change_create: bindTool(
       changeTools.adv_change_create,
       "adv_change_create",

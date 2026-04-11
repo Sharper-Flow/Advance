@@ -15,6 +15,7 @@ import { join, resolve } from "path";
 
 const REPO_ROOT = resolve(__dirname, "../..");
 const SYNC_SCRIPT_PATH = join(REPO_ROOT, "scripts/sync-global.sh");
+const TOKEN_BUDGETS_PATH = join(REPO_ROOT, ".opencode/token-budgets.json");
 
 // Skill-backed commands and their expected skill directory names
 const SKILL_BACKED_COMMANDS = [
@@ -311,5 +312,86 @@ describe("thin-command shape enforcement", () => {
     expect(content).not.toMatch(/Before EACH task[\s\S]*?adv_change_show/);
     // Should reference adv_task_show for per-task context refresh
     expect(content).toContain("adv_task_show");
+  });
+});
+
+describe("advisory line ceiling baselines", () => {
+  // Baselines reflect current state. Updated after compression passes.
+  // Advisory only: tests always pass but warn when files exceed baseline by >10%.
+  const tokenBudgets = JSON.parse(readFileSync(TOKEN_BUDGETS_PATH, "utf8")) as {
+    advInstructionsLineBaseline: number;
+    commandLineBaselines: Record<string, number>;
+  };
+  const COMMAND_BASELINES = tokenBudgets.commandLineBaselines;
+  const INSTRUCTIONS_BASELINE = tokenBudgets.advInstructionsLineBaseline;
+
+  test("advisory: command files within baseline tolerance (warn-only)", () => {
+    const commandDir = join(REPO_ROOT, ".opencode/command");
+    const warnings: string[] = [];
+
+    for (const [file, baseline] of Object.entries(COMMAND_BASELINES)) {
+      const filePath = join(commandDir, file);
+      if (!existsSync(filePath)) continue;
+      const content = readFileSync(filePath, "utf8");
+      const lines = content.split("\n").length;
+      const threshold = Math.ceil(baseline * 1.1);
+
+      if (lines > threshold) {
+        warnings.push(
+          `⚠ ${file}: ${lines} lines (baseline: ${baseline}, threshold: ${threshold})`,
+        );
+      }
+    }
+
+    if (warnings.length > 0) {
+      console.warn(
+        `\n[ADV:TOKEN_BUDGET] ${warnings.length} command file(s) exceed baseline by >10%:\n${warnings.join("\n")}`,
+      );
+    }
+
+    // Advisory: always passes
+    expect(true).toBe(true);
+  });
+
+  test("advisory: ADV_INSTRUCTIONS.md within baseline tolerance (warn-only)", () => {
+    const filePath = join(REPO_ROOT, "ADV_INSTRUCTIONS.md");
+    const content = readFileSync(filePath, "utf8");
+    const lines = content.split("\n").length;
+    const threshold = Math.ceil(INSTRUCTIONS_BASELINE * 1.1);
+
+    if (lines > threshold) {
+      console.warn(
+        `\n[ADV:TOKEN_BUDGET] ADV_INSTRUCTIONS.md: ${lines} lines (baseline: ${INSTRUCTIONS_BASELINE}, threshold: ${threshold})`,
+      );
+    }
+
+    // Advisory: always passes
+    expect(true).toBe(true);
+  });
+
+  test("advisory: total command file line count (warn-only)", () => {
+    const commandDir = join(REPO_ROOT, ".opencode/command");
+    let totalLines = 0;
+    const totalBaseline = Object.values(COMMAND_BASELINES).reduce(
+      (a, b) => a + b,
+      0,
+    );
+
+    for (const file of Object.keys(COMMAND_BASELINES)) {
+      const filePath = join(commandDir, file);
+      if (!existsSync(filePath)) continue;
+      const content = readFileSync(filePath, "utf8");
+      totalLines += content.split("\n").length;
+    }
+
+    const threshold = Math.ceil(totalBaseline * 1.1);
+    if (totalLines > threshold) {
+      console.warn(
+        `\n[ADV:TOKEN_BUDGET] Total command lines: ${totalLines} (baseline: ${totalBaseline}, threshold: ${threshold})`,
+      );
+    }
+
+    // Advisory: always passes
+    expect(true).toBe(true);
   });
 });

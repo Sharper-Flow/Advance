@@ -1391,3 +1391,94 @@ describe("adv_change_reenter", () => {
     expect(parsed.error).toContain("approvalEvidence");
   });
 });
+
+describe("adv_change_summary", () => {
+  let tempDir: string;
+  let store: Store;
+
+  beforeEach(async () => {
+    tempDir = await createTempDir();
+    await createTestProject(tempDir);
+    store = await createStore(tempDir);
+  });
+
+  afterEach(async () => {
+    store.close();
+    await cleanupTempDir(tempDir);
+  });
+
+  test("returns lightweight change summary with structured fields", async () => {
+    const result = await changeTools.adv_change_summary.execute(
+      { changeId: "addFeature" },
+      store,
+    );
+    const parsed = JSON.parse(result);
+
+    expect(parsed.id).toBe("addFeature");
+    expect(parsed.title).toBe("Add New Feature");
+    expect(parsed.status).toBe("active");
+    expect(parsed.gates).toBeDefined();
+    expect(parsed.taskCounts).toEqual({
+      done: 0,
+      in_progress: 0,
+      pending: 3,
+      cancelled: 0,
+    });
+    expect(parsed.currentTask).toBeNull();
+    expect(parsed._contextSnapshot).toBeDefined();
+    expect(parsed._contextSnapshot).toMatch(/[╔╗╚╝║═]/);
+  });
+
+  test("returns error for non-existent change", async () => {
+    const result = await changeTools.adv_change_summary.execute(
+      { changeId: "nonExistent" },
+      store,
+    );
+    const parsed = JSON.parse(result);
+
+    expect(parsed.error).toBeDefined();
+  });
+
+  test("reflects current task when one is in_progress", async () => {
+    await store.tasks.update("tk-task0002", "in_progress");
+
+    const result = await changeTools.adv_change_summary.execute(
+      { changeId: "addFeature" },
+      store,
+    );
+    const parsed = JSON.parse(result);
+
+    expect(parsed.currentTask).not.toBeNull();
+    expect(parsed.currentTask.id).toBe("tk-task0002");
+    expect(parsed.taskCounts.in_progress).toBe(1);
+  });
+
+  test("does NOT include proposal text, clarify findings, or full task array", async () => {
+    const result = await changeTools.adv_change_summary.execute(
+      { changeId: "addFeature" },
+      store,
+    );
+    const parsed = JSON.parse(result);
+
+    // Should NOT have heavy payload fields
+    expect(parsed.tasks).toBeUndefined();
+    expect(parsed.clarifyFindings).toBeUndefined();
+    expect(parsed.problemStatementExists).toBeUndefined();
+    expect(parsed._taskPagination).toBeUndefined();
+    // Should have at most 7 top-level keys
+    expect(Object.keys(parsed).length).toBeLessThanOrEqual(7);
+  });
+
+  test("includes box-drawn context snapshot", async () => {
+    const result = await changeTools.adv_change_summary.execute(
+      { changeId: "addFeature" },
+      store,
+    );
+    const parsed = JSON.parse(result);
+
+    expect(parsed._contextSnapshot).toContain("addFeature");
+    expect(parsed._contextSnapshot).toContain("Add New Feature");
+    expect(parsed._contextSnapshot).toMatch(/Gates:/);
+    expect(parsed._contextSnapshot).toMatch(/Tasks:/);
+  });
+});

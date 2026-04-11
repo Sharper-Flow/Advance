@@ -174,13 +174,25 @@ print_diff() {
 apply_overlay_block() {
   local overlay_name="$1"
   local target_file="$2"
+  local bootstrap_source="${3:-}"
   local overlay_file="$REPO_OVERLAYS/$overlay_name.overlay.md"
   local start_marker="<!-- ADV_SYNC:START $overlay_name -->"
   local end_marker="<!-- ADV_SYNC:END $overlay_name -->"
+  local source_file="$target_file"
 
   if [ ! -f "$target_file" ]; then
+    if [ -n "$bootstrap_source" ] && [ -f "$bootstrap_source" ]; then
+      if [ "$DRY_RUN" = true ]; then
+        echo "    dry-run bootstrap shared agent: $(basename "$target_file")"
+        source_file="$bootstrap_source"
+      else
+        cp "$bootstrap_source" "$target_file"
+        echo "    bootstrapped shared agent: $(basename "$target_file")"
+      fi
+    else
     echo "    skipped missing shared agent: $(basename "$target_file")"
     return 0
+    fi
   fi
 
   if [ ! -f "$overlay_file" ]; then
@@ -189,7 +201,7 @@ apply_overlay_block() {
   fi
 
   local start_count end_count
-  read -r start_count end_count <<< "$(python - <<'PY' "$target_file" "$start_marker" "$end_marker"
+  read -r start_count end_count <<< "$(python - <<'PY' "$source_file" "$start_marker" "$end_marker"
 from pathlib import Path
 import sys
 text = Path(sys.argv[1]).read_text()
@@ -208,9 +220,9 @@ PY
   local current_tmp new_tmp
   current_tmp="$(mktemp)"
   new_tmp="$(mktemp)"
-  cp "$target_file" "$current_tmp"
+  cp "$source_file" "$current_tmp"
 
-  python - <<'PY' "$target_file" "$overlay_file" "$start_marker" "$end_marker" "$new_tmp"
+  python - <<'PY' "$source_file" "$overlay_file" "$start_marker" "$end_marker" "$new_tmp"
 from pathlib import Path
 import sys
 
@@ -573,18 +585,18 @@ echo "    $agents_copied agent(s) synced"
 # Apply repo-owned overlays to shared global agents without replacing the file
 if [ -d "$REPO_OVERLAYS" ]; then
   echo "    syncing shared-agent overlays"
-  apply_overlay_block "adv" "$GLOBAL_AGENTS/adv.md"
+  apply_overlay_block "adv" "$GLOBAL_AGENTS/adv.md" "$REPO_AGENTS/adv.md"
   apply_overlay_block "general" "$GLOBAL_AGENTS/general.md"
-  apply_overlay_block "build" "$GLOBAL_AGENTS/build.md"
-  apply_overlay_block "plan" "$GLOBAL_AGENTS/plan.md"
-  apply_overlay_block "scout" "$GLOBAL_AGENTS/scout.md"
-  apply_overlay_block "refine" "$GLOBAL_AGENTS/refine.md"
+  apply_overlay_block "build" "$GLOBAL_AGENTS/build.md" "$REPO_AGENTS/build.md"
+  apply_overlay_block "plan" "$GLOBAL_AGENTS/plan.md" "$REPO_AGENTS/plan.md"
+  apply_overlay_block "scout" "$GLOBAL_AGENTS/scout.md" "$REPO_AGENTS/scout.md"
+  apply_overlay_block "refine" "$GLOBAL_AGENTS/refine.md" "$REPO_AGENTS/refine.md"
 fi
 
 # Remove stale ADV agents from global that no longer exist in repo
 # Also remove repo-local-only agents if they leaked into global
 agents_removed=0
-for global_agent in "$GLOBAL_AGENTS"/adv-*.md "$GLOBAL_AGENTS"/tron.md; do
+for global_agent in "$GLOBAL_AGENTS"/adv-*.md "$GLOBAL_AGENTS"/orca.md "$GLOBAL_AGENTS"/tron.md; do
   [ -f "$global_agent" ] || continue
   name="$(basename "$global_agent")"
   # Remove if no longer in repo OR if it's repo-local-only
