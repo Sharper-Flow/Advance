@@ -407,7 +407,7 @@ export const ValidationErrorSchema = z.object({
   code: z.string(),
   message: z.string(),
   path: z.string().optional(),
-  details: z.record(z.unknown()).optional(),
+  details: z.record(z.string(), z.unknown()).optional(),
 });
 
 export type ValidationError = z.infer<typeof ValidationErrorSchema>;
@@ -774,7 +774,7 @@ export const ChangeSchema = z
     created_at: z.string(), // ISO8601
     created_by: z.string().optional(),
     tasks: z.array(TaskSchema),
-    deltas: z.record(z.array(DeltaSchema)), // Keyed by capability
+    deltas: z.record(z.string(), z.array(DeltaSchema)), // Keyed by capability
     validation: ValidationResultSchema.optional(),
     /** Accumulated wisdom/learnings for this change (optional, backwards compatible) */
     wisdom: z.array(WisdomEntrySchema).optional(),
@@ -923,7 +923,12 @@ export const FeatureFlagsSchema = z
      * Threshold overrides for /adv-slop-scan detection.
      * All thresholds have smart defaults; override only what differs from project norms.
      */
-    slop_scan: SlopScanConfigSchema.default({}),
+    slop_scan: SlopScanConfigSchema.default({
+      nesting_depth_threshold: 8,
+      defensive_guard_threshold: 0.25,
+      complexity_threshold: 12,
+      ast_timeout_ms: 10000,
+    }),
   })
   .passthrough(); // Allow future flags without breaking existing configs
 
@@ -947,7 +952,19 @@ export const ProjectConfigSchema = z
     /** Related repositories for cross-repo task routing */
     related_repos: z.array(RelatedRepoSchema).optional(),
     /** Per-project feature flag overrides. All flags default to current ADV behavior. */
-    features: FeatureFlagsSchema.default({}),
+    features: FeatureFlagsSchema.default({
+      tdd_enforcement: "strict" as const,
+      worktree_auto_create: true,
+      gate_enforcement: "strict" as const,
+      wisdom_accumulation: true,
+      clarify_enforcement: "advisory" as const,
+      slop_scan: {
+        nesting_depth_threshold: 8,
+        defensive_guard_threshold: 0.25,
+        complexity_threshold: 12,
+        ast_timeout_ms: 10000,
+      },
+    }),
   })
   .passthrough(); // Allow extra fields for forward/backward compatibility
 

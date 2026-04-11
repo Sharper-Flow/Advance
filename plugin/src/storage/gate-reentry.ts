@@ -56,7 +56,7 @@ export function reopenChangeFromGate(
 
   return {
     entry,
-    gatesReset: entry.gates_reset,
+    gatesReset: entry.gates_reset as [GateId, ...GateId[]],
     timestamp,
   };
 }

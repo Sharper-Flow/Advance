@@ -371,7 +371,7 @@ export const taskTools = {
         .array(z.string())
         .describe("Task IDs to cancel (batch supported)"),
       reasons: z
-        .record(z.string())
+        .record(z.string(), z.string())
         .describe(
           "Per-task cancellation reasons keyed by task ID (e.g., { 'tk-abc': 'Absorbed into tk-xyz' })",
         ),
@@ -384,7 +384,7 @@ export const taskTools = {
           "Evidence of user approval (e.g., 'User approved via question tool: selected Approve cancellations')",
         ),
       supersededBy: z
-        .record(z.string())
+        .record(z.string(), z.string())
         .optional()
         .describe(
           "Optional per-task superseding task ID (e.g., { 'tk-abc': 'tk-xyz' })",

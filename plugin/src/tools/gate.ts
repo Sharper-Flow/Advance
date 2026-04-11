@@ -176,7 +176,7 @@ async function persistGateCompletion(
   notes?: string,
 ): Promise<string> {
   try {
-    await store.gates.complete(change.id, gateId, notes);
+    await store.gates.complete(change.id, gateId);
   } catch (saveError) {
     return formatToolOutput({
       error: `Failed to complete gate: ${(saveError as Error).message}`,

@@ -17,6 +17,7 @@
 import { tool } from "@opencode-ai/plugin";
 import { z } from "zod";
 import { safeExecute, safeExecuteSimple } from "./utils/safe-execute";
+import type { Store } from "./storage/store-types";
 
 import { specTools } from "./tools/spec";
 import { changeTools } from "./tools/change";
@@ -106,7 +107,7 @@ export function bindToolSimple<TArgs>(
  * Special cases (type coercion, extra args) use registerTool directly.
  */
 export function createToolMap(
-  store: Parameters<typeof bindTool>[2],
+  store: Store,
   directory: string,
   agendaPath: string | undefined,
 ) {
