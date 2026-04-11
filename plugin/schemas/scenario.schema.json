@@ -5,39 +5,6 @@
   "description": "ADV Scenario (Given/When/Then)",
   "$ref": "#/definitions/scenario",
   "definitions": {
-    "scenario": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "string"
-        },
-        "title": {
-          "type": "string"
-        },
-        "given": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "when": {
-          "type": "string"
-        },
-        "then": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        }
-      },
-      "required": [
-        "id",
-        "title",
-        "given",
-        "when",
-        "then"
-      ],
-      "additionalProperties": true
-    }
+    "scenario": {}
   }
 }
