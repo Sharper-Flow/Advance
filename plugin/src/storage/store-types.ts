@@ -149,9 +149,9 @@ export interface Store {
       query: string,
       options?: { changeId?: string; type?: WisdomType },
     ) => Promise<WisdomSearchResult[]>;
-    listAll: (
-      options?: { type?: WisdomType },
-    ) => Promise<Array<WisdomEntry & { scope: string; change_id?: string }>>;
+    listAll: (options?: {
+      type?: WisdomType;
+    }) => Promise<Array<WisdomEntry & { scope: string; change_id?: string }>>;
   };
 
   // Gates
@@ -165,6 +165,7 @@ export interface Store {
       reason: string,
       scopeDelta?: string,
       reopenedBy?: string,
+      approvalEvidence?: string,
     ) => Promise<void>;
     migrate: (changeId: string) => Promise<void>;
   };

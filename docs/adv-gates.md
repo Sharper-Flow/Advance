@@ -8,22 +8,22 @@ All changes must complete 7 sequential quality gates before archival.
 proposal → discovery → design → planning → execution → acceptance → release
 ```
 
-| # | Gate ID | Description | Triggered By | Artifact |
-|---|---------|-------------|--------------|----------|
-| 1 | `proposal` | Problem statement confirmed | `/adv-proposal` | `problem-statement.md` |
-| 2 | `discovery` | Context gathered, objectives agreed | `/adv-discover` + `/adv-agree` | `agreement.md` |
-| 3 | `design` | Architecture decisions validated | `/adv-design` + `/adv-present` | `design.md` |
-| 4 | `planning` | Task graph synthesized | `/adv-prep` | Task graph in `change.json` |
-| 5 | `execution` | Deliverables produced via TDD | `/adv-apply` (all tasks done) | Code, docs, ops deliverables |
-| 6 | `acceptance` | User accepts deliverables | `/adv-review` + `/adv-accept` | User sign-off |
-| 7 | `release` | Final quality pass and archive | `/adv-harden` + `/adv-archive` | Spec deltas applied, git finalized |
+| #   | Gate ID      | Description                         | Triggered By                   | Artifact                           |
+| --- | ------------ | ----------------------------------- | ------------------------------ | ---------------------------------- |
+| 1   | `proposal`   | Problem statement confirmed         | `/adv-proposal`                | `problem-statement.md`             |
+| 2   | `discovery`  | Context gathered, objectives agreed | `/adv-discover` + `/adv-agree` | `agreement.md`                     |
+| 3   | `design`     | Architecture decisions validated    | `/adv-design` + `/adv-present` | `design.md`                        |
+| 4   | `planning`   | Task graph synthesized              | `/adv-prep`                    | Task graph in `change.json`        |
+| 5   | `execution`  | Deliverables produced via TDD       | `/adv-apply` (all tasks done)  | Code, docs, ops deliverables       |
+| 6   | `acceptance` | User accepts deliverables           | `/adv-review` + `/adv-accept`  | User sign-off                      |
+| 7   | `release`    | Final quality pass and archive      | `/adv-harden` + `/adv-archive` | Spec deltas applied, git finalized |
 
 ## Gate Status Values
 
-| Value | Meaning |
-|-------|---------|
-| `pending` | Not yet completed |
-| `done` | Completed with timestamp + actor evidence |
+| Value     | Meaning                                   |
+| --------- | ----------------------------------------- |
+| `pending` | Not yet completed                         |
+| `done`    | Completed with timestamp + actor evidence |
 | `skipped` | Explicitly skipped with documented reason |
 
 ## Enforcement Rules
@@ -89,7 +89,7 @@ Gates are normally forward-only, but scope expansion during execution requires r
 
 ### Cascade Reset Semantics
 
-When `adv_change_reenter(changeId, fromGate, reason, scopeDelta, approvedByUser, approvalEvidence)` is called:
+When `adv_change_reenter(changeId, fromGate, reason, scopeDelta?, approvedByUser, approvalEvidence)` is called:
 
 1. The target gate (`fromGate`) and all downstream gates are reset to `pending`
 2. All upstream gates (before `fromGate`) remain `done`
@@ -102,23 +102,25 @@ Example: reopening from `discovery` resets discovery + design + planning + execu
 ### Audit Trail
 
 Each re-entry appends to `reentry_history[]` on the change, recording:
+
 - `from_gate` — which gate was reopened
 - `reason` — why re-entry was needed
 - `scope_delta` — what new scope is being added (optional)
 - `reopened_by` — actor who triggered re-entry
+- `approval_evidence` — evidence of explicit user approval
 - `reopened_at` — timestamp
 - `gates_reset` — list of gates that were reset to pending
 
 ### When to Use Re-Entry
 
-| Situation | Action |
-|-----------|--------|
+| Situation                                           | Action                                           |
+| --------------------------------------------------- | ------------------------------------------------ |
 | New acceptance criteria discovered during execution | `adv_change_reenter` from earliest affected gate |
-| Architecture assumptions invalidated by findings | `adv_change_reenter` from `design` |
-| User requests scope expansion affecting agreement | `adv_change_reenter` from `discovery` |
-| Bug fix within existing scope | Normal task workflow (no re-entry needed) |
-| Minor wording fix to docs | Edit directly (no re-entry needed) |
-| Clarification that doesn't change objectives | `adv_change_update` (no re-entry needed) |
+| Architecture assumptions invalidated by findings    | `adv_change_reenter` from `design`               |
+| User requests scope expansion affecting agreement   | `adv_change_reenter` from `discovery`            |
+| Bug fix within existing scope                       | Normal task workflow (no re-entry needed)        |
+| Minor wording fix to docs                           | Edit directly (no re-entry needed)               |
+| Clarification that doesn't change objectives        | `adv_change_update` (no re-entry needed)         |
 
 ### Constraints
 

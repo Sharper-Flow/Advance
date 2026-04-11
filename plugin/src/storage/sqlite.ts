@@ -293,12 +293,6 @@ export interface SQLiteStore {
     listAll: (options?: { scope?: string; type?: string }) => WisdomRow[];
   };
 
-  // Sync (legacy - key-value based)
-  sync: {
-    needsSync: (jsonPath: string) => boolean;
-    markSynced: (jsonPath: string) => void;
-  };
-
   // Sync files with triple-attribute tracking (mtime_ms, size, inode)
   syncFiles: {
     needsSync: (path: string, attrs?: FileAttrs) => boolean;
@@ -1038,49 +1032,6 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
             ...values,
           );
         }
-      },
-    },
-
-    sync: {
-      needsSync: (path) => {
-        try {
-          const stats = statSync(path);
-          const currentAttrs: FileAttrs = {
-            mtime_ms: Math.floor(stats.mtimeMs),
-            size: stats.size,
-            inode: stats.ino,
-          };
-          const stored = stmts.syncFilesGet.get(path) as
-            | { mtime_ms: number; size: number; inode: number }
-            | undefined;
-
-          if (!stored) return true;
-
-          return (
-            stored.mtime_ms !== currentAttrs.mtime_ms ||
-            stored.size !== currentAttrs.size ||
-            stored.inode !== currentAttrs.inode
-          );
-        } catch {
-          return true;
-        }
-      },
-
-      markSynced: (path) => {
-        const stats = statSync(path);
-        const attrs: FileAttrs = {
-          mtime_ms: Math.floor(stats.mtimeMs),
-          size: stats.size,
-          inode: stats.ino,
-        };
-        const now = new Date().toISOString();
-        stmts.syncFilesUpsert.run(
-          path,
-          attrs.mtime_ms,
-          attrs.size,
-          attrs.inode,
-          now,
-        );
       },
     },
 

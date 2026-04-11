@@ -482,7 +482,7 @@
           ],
           "when": "The re-entry is persisted",
           "then": [
-            "A reentry_history entry is appended with from_gate, reason, reopened_by, reopened_at, and gates_reset",
+            "A reentry_history entry is appended with from_gate, reason, reopened_by, approval_evidence, reopened_at, and gates_reset",
             "scope_delta is included when provided"
           ]
         }

@@ -4,84 +4,85 @@ Specs are laws. Requirements are formally defined, validated, and enforced.
 
 ## Notation
 
-| Symbol | Meaning |
-|--------|---------|
-| `→` | Sequence / leads to |
-| `←` | Blocked by / depends on |
-| `✓` | Complete / verified |
-| `○` | Pending / optional |
-| `×` | Forbidden / never |
-| `⚠` | Attention / warning |
+| Symbol | Meaning                 |
+| ------ | ----------------------- |
+| `→`    | Sequence / leads to     |
+| `←`    | Blocked by / depends on |
+| `✓`    | Complete / verified     |
+| `○`    | Pending / optional      |
+| `×`    | Forbidden / never       |
+| `⚠`    | Attention / warning     |
 
 ## Core Decision Rules
 
-| When | Then |
-|------|------|
-| Spec conflicts with proposal | Spec wins |
-| Gate incomplete | Archive blocked |
-| 3 failed task attempts | Stop → `[ADV:DOOM_LOOP]` → escalate |
-| Cross-repo task | Execute in target repo via `workdir` |
-| User requests cancellation | Require approval via `adv_task_cancel` |
-| TDD required + trivial task | Set `metadata.tdd_intent: "not_applicable"` with reason |
-| TDD intent change after prep | Use `adv_task_reclassify_tdd` with user approval |
-| User requests skip + gate required | `[ADV:MIC]` → ask for sign-off |
+| When                               | Then                                                    |
+| ---------------------------------- | ------------------------------------------------------- |
+| Spec conflicts with proposal       | Spec wins                                               |
+| Gate incomplete                    | Archive blocked                                         |
+| 3 failed task attempts             | Stop → `[ADV:DOOM_LOOP]` → escalate                     |
+| Cross-repo task                    | Execute in target repo via `workdir`                    |
+| User requests cancellation         | Require approval via `adv_task_cancel`                  |
+| Scope expansion during execution   | Route through `adv_change_reenter` with user approval   |
+| TDD required + trivial task        | Set `metadata.tdd_intent: "not_applicable"` with reason |
+| TDD intent change after prep       | Use `adv_task_reclassify_tdd` with user approval        |
+| User requests skip + gate required | `[ADV:MIC]` → ask for sign-off                          |
 
 ## Commands
 
 ### Core Workflow
 
-| Command | Purpose |
-|---------|---------|
-| `/adv-status` | Show project overview: specs, active changes, and next-step recommendations |
-| `/adv-proposal <summary>` | Extract problem statement and confirm with user before proceeding |
-| `/adv-validate <change-id>` | Validate change compliance against specs; block archive on failure |
-| `/adv-apply <change-id>` | Implement change with TDD, retry on failure, and final verification |
-| `/adv-archive <change-id>` | Archive completed change: apply spec deltas and finalize git |
+| Command                     | Purpose                                                                     |
+| --------------------------- | --------------------------------------------------------------------------- |
+| `/adv-status`               | Show project overview: specs, active changes, and next-step recommendations |
+| `/adv-proposal <summary>`   | Extract problem statement and confirm with user before proceeding           |
+| `/adv-validate <change-id>` | Validate change compliance against specs; block archive on failure          |
+| `/adv-apply <change-id>`    | Implement change with TDD, retry on failure, and final verification         |
+| `/adv-archive <change-id>`  | Archive completed change: apply spec deltas and finalize git                |
 
 ### Pre-Implementation
 
-| Command | Purpose |
-|---------|---------|
-| `/adv-clarify` | Ask clarifying questions to resolve ambiguous requirements |
-| `/adv-discover <change-id>` | Gather context, analyze current state, and identify objectives |
-| `/adv-agree <change-id>` | Present objectives and constraints for user acceptance |
-| `/adv-design <change-id>` | Validate architecture decisions and produce implementation strategy |
-| `/adv-present <change-id>` | Present concise design overview for user review before planning |
-| `/adv-research <change-id>` | Retired: use /adv-discover and /adv-design instead |
-| `/adv-prep <change-id>` | Analyze gaps and synthesize tasks from validated design decisions |
+| Command                     | Purpose                                                             |
+| --------------------------- | ------------------------------------------------------------------- |
+| `/adv-clarify`              | Ask clarifying questions to resolve ambiguous requirements          |
+| `/adv-discover <change-id>` | Gather context, analyze current state, and identify objectives      |
+| `/adv-agree <change-id>`    | Present objectives and constraints for user acceptance              |
+| `/adv-design <change-id>`   | Validate architecture decisions and produce implementation strategy |
+| `/adv-present <change-id>`  | Present concise design overview for user review before planning     |
+| `/adv-research <change-id>` | Retired: use /adv-discover and /adv-design instead                  |
+| `/adv-prep <change-id>`     | Analyze gaps and synthesize tasks from validated design decisions   |
 
 ### Post-Implementation
 
-| Command | Purpose |
-|---------|---------|
+| Command                   | Purpose                                                                 |
+| ------------------------- | ----------------------------------------------------------------------- |
 | `/adv-review <change-id>` | Review deliverables for correctness, security, and architecture quality |
-| `/adv-accept <change-id>` | Present deliverable summary and acceptance criteria checklist to user |
-| `/adv-harden <change-id>` | Detect low-quality code, verify test coverage, clean up before release |
-| `/adv-audit [capability]` | Detect drift between specs and current implementation |
-| `/adv-slop-scan [path]` | Scan for AI slop patterns including defensive and nested code |
+| `/adv-accept <change-id>` | Present deliverable summary and acceptance criteria checklist to user   |
+| `/adv-harden <change-id>` | Detect low-quality code, verify test coverage, clean up before release  |
+| `/adv-audit [capability]` | Detect drift between specs and current implementation                   |
+| `/adv-slop-scan [path]`   | Scan for AI slop patterns including defensive and nested code           |
 
 ### Fast-Track / Advanced
 
-| Command | Purpose |
-|---------|---------|
-| `/adv-task` | Fast-track a discussed change: synthesize contract, validate, prep, and hand off |
-| `/adv-refactor <change-id>` | Refresh a stale proposal to reflect current codebase state |
-| `/adv-coordinate` | Detect and resolve conflicts across multiple active changes |
-| `/adv-improve` | Suggest targeted improvements to existing specs or implementation |
-| `/adv-tron [target]` | Investigate codebase structure, hotspots, risks, and suggest follow-up agenda candidates |
+| Command                     | Purpose                                                                                  |
+| --------------------------- | ---------------------------------------------------------------------------------------- |
+| `/adv-task`                 | Fast-track a discussed change: synthesize contract, validate, prep, and hand off         |
+| `/adv-refactor <change-id>` | Refresh a stale proposal to reflect current codebase state                               |
+| `/adv-coordinate`           | Detect and resolve conflicts across multiple active changes                              |
+| `/adv-improve`              | Suggest targeted improvements to existing specs or implementation                        |
+| `/adv-tron [target]`        | Investigate codebase structure, hotspots, risks, and suggest follow-up agenda candidates |
 
 ## Command Boundaries
 
-| Command | Produces | × MUST NOT | Gate |
-|---------|----------|------------|------|
-| proposal | Problem statement, criteria, constraints | Create tasks, complete non-owned gates, impl decisions | `proposal` |
-| discover | Context analysis, objectives, agreement.md | Create tasks, complete non-discovery gates | `discovery` |
-| design | Architecture decisions, design.md | Create tasks, complete non-owned gates, skip research | `design` |
-| prep | Task graph, gap analysis, sequencing | Complete non-planning gates, architecture decisions | `planning` |
-| task | Change + tasks + gates (fast-track exempt) | — | `proposal` → `planning` |
-| apply | Implementation via TDD | Auto-complete pre-implementation gates | `execution` |
-| review + accept | Acceptance criteria verified | — | `acceptance` |
-| harden + archive | Quality pass, spec deltas applied | — | `release` |
+| Command          | Produces                                   | × MUST NOT                                             | Gate                    |
+| ---------------- | ------------------------------------------ | ------------------------------------------------------ | ----------------------- |
+| proposal         | Problem statement, criteria, constraints   | Create tasks, complete non-owned gates, impl decisions | `proposal`              |
+| discover         | Context analysis, objectives, agreement.md | Create tasks, complete non-discovery gates             | `discovery`             |
+| design           | Architecture decisions, design.md          | Create tasks, complete non-owned gates, skip research  | `design`                |
+| prep             | Task graph, gap analysis, sequencing       | Complete non-planning gates, architecture decisions    | `planning`              |
+| task             | Change + tasks + gates (fast-track exempt) | —                                                      | `proposal` → `planning` |
+| apply            | Implementation via TDD                     | Auto-complete pre-implementation gates                 | `execution`             |
+| review + accept  | Acceptance criteria verified               | —                                                      | `acceptance`            |
+| harden + archive | Quality pass, spec deltas applied          | —                                                      | `release`               |
 
 - Only `/adv-prep` (and exempt `/adv-task`) may call `adv_task_add`
 - `/adv-apply` stops if discovery, design, or planning gates are pending
@@ -91,27 +92,29 @@ Specs are laws. Requirements are formally defined, validated, and enforced.
 
 Emit at START of each response:
 
-| Marker | When | Emoji |
-|--------|------|-------|
-| `[ADV:ROCKET]` | Active work | 🚀 |
-| `[ADV:TDD_RED]` | Writing tests | 🔴 |
-| `[ADV:TDD_GREEN]` | Implementing | 🟢 |
-| `[ADV:MOON]` | Sub-agents running | 📡 |
-| `[ADV:EARTH]` | Complete / awaiting input | 🌍 |
-| `[ADV:DOOM_LOOP]` | Stuck in retry cycle | 💀 |
-| `[ADV:MIC]` | Needs user approval | 🎤 |
-| `[ADV:TASK_STATUS_REPORT]` | Task report | — |
+| Marker                     | When                      | Emoji |
+| -------------------------- | ------------------------- | ----- |
+| `[ADV:ROCKET]`             | Active work               | 🚀    |
+| `[ADV:TDD_RED]`            | Writing tests             | 🔴    |
+| `[ADV:TDD_GREEN]`          | Implementing              | 🟢    |
+| `[ADV:MOON]`               | Sub-agents running        | 📡    |
+| `[ADV:EARTH]`              | Complete / awaiting input | 🌍    |
+| `[ADV:DOOM_LOOP]`          | Stuck in retry cycle      | 💀    |
+| `[ADV:MIC]`                | Needs user approval       | 🎤    |
+| `[ADV:TASK_STATUS_REPORT]` | Task report               | —     |
 
 Tab title: `<emoji> <normalized change>` (strip verb prefixes, Title Case). System-emitted: `[ADV:ACCUMULATED_WISDOM]`, `[ADV:TODO_CONTINUATION]`, `[ADV:RECORD_WISDOM]`
 
 ### Context Snapshot
 
 `adv_change_show` includes `_contextSnapshot` — compact summary closing the context agreement gap:
+
 - Change ID/title, gate progress (`[✓ proposal] [✓ discovery] [○ execution] ...`), task counts, current task, workdir
 
 Emitted on: `adv_change_show`, `adv_gate_complete`, `adv_task_update` to `in_progress`.
 
 **Cross-Repo Switch** — emit via `formatCrossRepoSwitch()`:
+
 ```
 ╔═══════════════════════════════════════════════════════════╗
 ║ 🔀 SWITCHING REPOSITORY CONTEXT                          ║
@@ -128,24 +131,25 @@ Emitted on: `adv_change_show`, `adv_gate_complete`, `adv_task_update` to `in_pro
 
 Forbidden: `~/.local/share/opencode/plugins/advance/**/{change.json,proposal.md,agenda.jsonl,wisdom.jsonl,handoff.json}`
 
-| Need | Tool |
-|------|------|
-| Change + tasks | `adv_change_show` |
-| Update proposal | `adv_change_update` (× never re-call `adv_change_create`) |
-| Reopen gates for scope expansion | `adv_change_reenter` |
-| Specific task + changeId | `adv_task_show` |
-| Ready tasks | `adv_task_ready` |
-| All tasks | `adv_task_list` |
-| Active changes | `adv_change_list` |
-| Validate | `adv_change_validate` |
-| Agenda | `adv_agenda_list` |
-| Wisdom | `adv_wisdom_list` |
+| Need                             | Tool                                                      |
+| -------------------------------- | --------------------------------------------------------- |
+| Change + tasks                   | `adv_change_show`                                         |
+| Update proposal                  | `adv_change_update` (× never re-call `adv_change_create`) |
+| Reopen gates for scope expansion | `adv_change_reenter`                                      |
+| Specific task + changeId         | `adv_task_show`                                           |
+| Ready tasks                      | `adv_task_ready`                                          |
+| All tasks                        | `adv_task_list`                                           |
+| Active changes                   | `adv_change_list`                                         |
+| Validate                         | `adv_change_validate`                                     |
+| Agenda                           | `adv_agenda_list`                                         |
+| Wisdom                           | `adv_wisdom_list`                                         |
 
 On direct-read failure → stop, call `adv_change_show` or `adv_task_show`.
 
 ### Question Tool UX
 
 Write-in option enforced by P26 (`rules.yaml`). ADV notes:
+
 - Contextual write-in labels (`Other`, `Different approach`) — not generic
 - 2-5 options including write-in, concise labels
 - Leave custom input enabled
@@ -185,29 +189,30 @@ Inline TDD is default — red/green phases WITHIN each task. × Do NOT create se
 
 ### Doom Loop Detection
 
-| Exit | Condition |
-|------|-----------|
-| ✓ Done | Acceptance criteria met |
-| 🔁 Doom Loop | 3 failed attempts |
+| Exit             | Condition                     |
+| ---------------- | ----------------------------- |
+| ✓ Done           | Acceptance criteria met       |
+| 🔁 Doom Loop     | 3 failed attempts             |
 | 🌍 Environmental | Missing dependency → escalate |
 
 After 3 failures: STOP → `[ADV:DOOM_LOOP]` → document all 3 attempts → ask via `question`.
 
-| × Bad | ✓ Good |
-|-------|--------|
+| × Bad               | ✓ Good                 |
+| ------------------- | ---------------------- |
 | Retry same approach | Try different strategy |
-| Silent retries | Document each attempt |
-| 4+ same method | Escalate after 3 |
+| Silent retries      | Document each attempt  |
+| 4+ same method      | Escalate after 3       |
 
 ### Cross-Repo Execution
 
-| × Invalid Cancellation | ✓ Correct |
-|------------------------|-----------|
-| "Out of scope for this repo" | Switch `workdir`, execute |
-| "Different repository" | Switch `workdir`, execute |
-| "Cannot modify external code" | Use `workdir` parameter |
+| × Invalid Cancellation        | ✓ Correct                 |
+| ----------------------------- | ------------------------- |
+| "Out of scope for this repo"  | Switch `workdir`, execute |
+| "Different repository"        | Switch `workdir`, execute |
+| "Cannot modify external code" | Use `workdir` parameter   |
 
 Rules:
+
 1. Tasks with `target_repo`/`target_path` → execute in target directory
 2. Switch `workdir` for all tool calls on that task
 3. "Different repo" is × NEVER valid cancellation
@@ -232,16 +237,19 @@ When new objectives or acceptance criteria are introduced after a change has pro
 **Cascade reset:** Reopening from gate X resets X and all downstream gates to `pending`. Upstream gates (before X) remain `done`. Existing tasks and completed work are preserved — only gate state is reset.
 
 **When to use re-entry:**
+
 - New acceptance criteria or objectives discovered during execution
 - Architecture assumptions invalidated by implementation findings
 - User requests scope expansion that affects already-completed gate artifacts
 
 **When NOT to use re-entry:**
+
 - Bug fixes within existing scope — use normal task workflow
 - Clarifications that don't change objectives — update proposal via `adv_change_update`
 - Minor wording adjustments to docs — edit directly
 
 **Re-entry flow:**
+
 1. Identify which gate's artifacts are invalidated by the new scope
 2. Present the re-entry rationale to the user and obtain explicit approval
 3. Call `adv_change_reenter` with the earliest affected gate, reason, scope delta, and approval evidence
@@ -249,7 +257,7 @@ When new objectives or acceptance criteria are introduced after a change has pro
 5. After planning gate re-completes, new tasks can be added via `adv_task_add`
 6. Resume `/adv-apply` execution
 
-**Audit trail:** Each re-entry appends to `reentry_history[]` on the change, recording `from_gate`, `reason`, `scope_delta`, `reopened_by`, `reopened_at`, and `gates_reset`.
+**Audit trail:** Each re-entry appends to `reentry_history[]` on the change, recording `from_gate`, `reason`, `scope_delta`, `reopened_by`, `approval_evidence`, `reopened_at`, and `gates_reset`.
 
 ### Task Status Report
 
@@ -257,21 +265,22 @@ On loop stop or compaction: emit `[ADV:TASK_STATUS_REPORT]` with completed/cance
 
 ## 7-Gate Quality Checklist
 
-| # | Gate | Triggered By | Artifact |
-|---|------|--------------|----------|
-| 1 | `proposal` | `/adv-proposal` | `problem-statement.md` |
-| 2 | `discovery` | `/adv-discover` + `/adv-agree` | `agreement.md` |
-| 3 | `design` | `/adv-design` + `/adv-present` | `design.md` |
-| 4 | `planning` | `/adv-prep` | Task graph in `change.json` |
-| 5 | `execution` | `/adv-apply` (all tasks done) | Code, docs, ops deliverables |
-| 6 | `acceptance` | `/adv-review` + `/adv-accept` | User sign-off |
-| 7 | `release` | `/adv-harden` + `/adv-archive` | Spec deltas applied, git finalized |
+| #   | Gate         | Triggered By                   | Artifact                           |
+| --- | ------------ | ------------------------------ | ---------------------------------- |
+| 1   | `proposal`   | `/adv-proposal`                | `problem-statement.md`             |
+| 2   | `discovery`  | `/adv-discover` + `/adv-agree` | `agreement.md`                     |
+| 3   | `design`     | `/adv-design` + `/adv-present` | `design.md`                        |
+| 4   | `planning`   | `/adv-prep`                    | Task graph in `change.json`        |
+| 5   | `execution`  | `/adv-apply` (all tasks done)  | Code, docs, ops deliverables       |
+| 6   | `acceptance` | `/adv-review` + `/adv-accept`  | User sign-off                      |
+| 7   | `release`    | `/adv-harden` + `/adv-archive` | Spec deltas applied, git finalized |
 
 Gates are sequential. Archive blocks until all 7 are satisfied. See [docs/adv-gates.md](docs/adv-gates.md).
 
 Gates can be reopened via `adv_change_reenter` for scope expansion — this resets the target gate and all downstream gates to `pending`, preserving existing tasks and completed work.
 
 Gate behaviors:
+
 - `discovery`/`planning` evaluate full change including completed tasks — completed work is evidence to validate, not acceptance proof. Add follow-up tasks where gaps found.
 - `acceptance` absorbs the old `review` + `signoff` gates. `/adv-review` emits `REVIEW_FINDINGS` block (blocker, issue, suggestion, question). `/adv-accept` presents criteria checklist for user confirmation.
 - `release` absorbs the old `harden` gate. `/adv-harden` blocks on unresolved review findings (except `nit:`). Runs merge compatibility check first.
@@ -293,19 +302,20 @@ Slash commands are top-level entry points for the user/session, not an internal 
 
 Available to: `adv`, `plan`, `scout`, `refine`, `general`. Use when 3+ independent scan dimensions benefit from parallelism.
 
-| Command | Inline | Sub-Agent |
-|---------|--------|-----------|
-| discover | Context7 + Kagi + lgrep | librarian + adv-researcher (single-level only) |
-| design | Context7 + Kagi + lgrep | librarian + adv-researcher (single-level only) |
-| review | Sequential per dimension | explore × 5 + librarian + general |
-| harden | Sequential scans | explore × 6 |
-| audit | Sequential pipeline | explore × 4 |
-| slop-scan | Sequential categories | explore × 9 (single-level only) |
-| tron | lgrep + read | tron agent |
-| task | Context7 + Kagi | librarian + adv-researcher |
-| refactor | Sequential drift | explore × 3 |
+| Command   | Inline                   | Sub-Agent                                      |
+| --------- | ------------------------ | ---------------------------------------------- |
+| discover  | Context7 + Kagi + lgrep  | librarian + adv-researcher (single-level only) |
+| design    | Context7 + Kagi + lgrep  | librarian + adv-researcher (single-level only) |
+| review    | Sequential per dimension | explore × 5 + librarian + general              |
+| harden    | Sequential scans         | explore × 6                                    |
+| audit     | Sequential pipeline      | explore × 4                                    |
+| slop-scan | Sequential categories    | explore × 9 (single-level only)                |
+| tron      | lgrep + read             | tron agent                                     |
+| task      | Context7 + Kagi          | librarian + adv-researcher                     |
+| refactor  | Sequential drift         | explore × 3                                    |
 
 Rules:
+
 - Sub-agents × NEVER spawn sub-agents (`enforceTaskPolicy` blocks nesting)
 - Cap parallel bursts at 3-4
 - Batch independent work into single spawn message
@@ -319,22 +329,22 @@ Inline-only: `/adv-status`, `/adv-proposal`, `/adv-validate`, `/adv-apply`, `/ad
 
 ### Agent Tiers
 
-| Tier | Agents | Loading |
-|------|--------|---------|
-| **Core** (always loaded) | `plan`, `build`, `refine`, `scout`, `adv` | Global `~/.config/opencode/agents/` |
-| **Common** (always loaded) | `explore`, `librarian`, `general`, `mechanic` | Global `~/.config/opencode/agents/` |
-| **Specialist** (repo-scoped) | `adv-researcher`, `tron` | Repo-local `.opencode/agents/` |
+| Tier                         | Agents                                        | Loading                             |
+| ---------------------------- | --------------------------------------------- | ----------------------------------- |
+| **Core** (always loaded)     | `plan`, `build`, `refine`, `scout`, `adv`     | Global `~/.config/opencode/agents/` |
+| **Common** (always loaded)   | `explore`, `librarian`, `general`, `mechanic` | Global `~/.config/opencode/agents/` |
+| **Specialist** (repo-scoped) | `adv-researcher`, `tron`                      | Repo-local `.opencode/agents/`      |
 
 ### Agent Roster
 
-| Agent | Use For | Tools |
-|-------|---------|-------|
-| `librarian` | Docs, API refs, code examples | Context7, grep.app, Kagi |
+| Agent            | Use For                             | Tools                         |
+| ---------------- | ----------------------------------- | ----------------------------- |
+| `librarian`      | Docs, API refs, code examples       | Context7, grep.app, Kagi      |
 | `adv-researcher` | Architecture validation, simplicity | Context7, Kagi, ADV read-only |
-| `explore` | Codebase navigation, find usages | Read, Glob, Grep, lgrep |
-| `general` | Complex multi-step implementation | Full tool access |
-| `mechanic` | System/infra issues | Vision, bash, read/write |
-| `tron` | Reconnaissance, hotspot detection | Read, Glob, Grep, lgrep |
+| `explore`        | Codebase navigation, find usages    | Read, Glob, Grep, lgrep       |
+| `general`        | Complex multi-step implementation   | Full tool access              |
+| `mechanic`       | System/infra issues                 | Vision, bash, read/write      |
+| `tron`           | Reconnaissance, hotspot detection   | Read, Glob, Grep, lgrep       |
 
 > **Note:** `adv-researcher` and `tron` are repo-local agents — only available in ADV-enabled repos (repos with `.opencode/agents/` containing their definitions).
 
@@ -347,6 +357,7 @@ Implemented in `/adv-discover` Phase 1.5. Improves research quality via domain-s
 Flow: search trusted skill directories only (`~/.config/opencode/skills/*/SKILL.md`, repo `skills/*/SKILL.md`) → read YAML frontmatter → match `keywords` against tech stack + change domain → `skill("{name}")` → apply guidance.
 
 Skill metadata:
+
 ```yaml
 ---
 name: my-skill
@@ -363,16 +374,17 @@ Graceful degradation: skip skills without frontmatter or `keywords`. No matches 
 
 Commands and skills serve different roles. Use this table to decide where new functionality belongs:
 
-| Use a **command** when | Use a **skill** when |
-|------------------------|----------------------|
-| User-facing workflow entry point | Reusable methodology or analysis protocol |
-| Mutates ADV state (changes, tasks, gates) | Read-only guidance or checklist framework |
-| Owns a gate completion | Loaded by multiple commands or sub-agents |
-| Requires explicit user invocation | Domain knowledge independent of workflow state |
+| Use a **command** when                    | Use a **skill** when                           |
+| ----------------------------------------- | ---------------------------------------------- |
+| User-facing workflow entry point          | Reusable methodology or analysis protocol      |
+| Mutates ADV state (changes, tasks, gates) | Read-only guidance or checklist framework      |
+| Owns a gate completion                    | Loaded by multiple commands or sub-agents      |
+| Requires explicit user invocation         | Domain knowledge independent of workflow state |
 
 ### Reference Pattern
 
 `adv-tron` is the canonical example of a command backed by a skill:
+
 - **Command** (`.opencode/command/adv-tron.md`) — owns orchestration, sub-agent spawning, ADV state reads, user interaction
 - **Skill** (`skills/adv-tron/SKILL.md`) — holds investigation protocol, search priorities, evidence requirements, report schema
 - **Fallback** — command includes embedded protocol if skill is unavailable
@@ -385,9 +397,11 @@ Commands that fan out to sub-agents with reusable methodology should follow this
 `adv-proposal`, `adv-agree`, `adv-design`, `adv-present`, `adv-prep`, `adv-task`, `adv-apply`, `adv-validate`, `adv-archive`, `adv-status`, `adv-accept`, `adv-coordinate`, `adv-clarify`, `adv-refactor`
 
 **Retired** (redirects to successor commands):
+
 - `adv-research` → use `/adv-discover` + `/adv-design`
 
 **Command + backing skill** (reusable methodology extracted):
+
 - `adv-discover` → `adv-discover-methodology` skill
 - `adv-tron` → `adv-tron` skill
 - `adv-review` → `adv-review-methodology` skill
@@ -427,15 +441,16 @@ Location: `$XDG_DATA_HOME/opencode/plugins/advance/{project-id}/` (project-id = 
 ### Worktree Reuse
 
 Before creating: `git worktree list --porcelain` → find `change/{change-id}` branch.
+
 - Path exists → offer reuse (switch `workdir`)
 - Path missing → `git worktree prune` → proceed fresh
 
 ### Spec Divergence
 
-| Data | Location | Shared? |
-|------|----------|---------|
-| Specs (`.adv/specs/`) | In-repo, git-tracked | No (branch-local) |
-| Changes, archive, wisdom, agenda | External | Yes (keyed by project-id) |
+| Data                             | Location             | Shared?                   |
+| -------------------------------- | -------------------- | ------------------------- |
+| Specs (`.adv/specs/`)            | In-repo, git-tracked | No (branch-local)         |
+| Changes, archive, wisdom, agenda | External             | Yes (keyed by project-id) |
 
 Implication: spec changes in worktree A invisible to B until merged. `/adv-validate` and `/adv-audit` in B may see stale specs. Mitigation: merge promptly after archive (Phase 9 handles this).
 

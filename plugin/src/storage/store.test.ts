@@ -748,6 +748,7 @@ describe("Store", () => {
       expect(entry.reason).toBe("Architecture needs rework");
       expect(entry.scope_delta).toBe("Added event-driven approach");
       expect(entry.reopened_by).toBe("test-agent");
+      expect(entry.approval_evidence).toBeUndefined();
       expect(entry.reopened_at).toBeDefined();
       expect(entry.gates_reset).toEqual([
         "design",
@@ -1088,7 +1089,11 @@ describe("wisdom SQLite sync (tk-rD2wRJMK)", () => {
   });
 
   test("after store.wisdom.add(), wisdom entry appears in SQLite wisdom table", async () => {
-    await store.wisdom.add("addFeature", "pattern", "dependency injection for testability");
+    await store.wisdom.add(
+      "addFeature",
+      "pattern",
+      "dependency injection for testability",
+    );
 
     const rows = rawDb.db
       .query("SELECT * FROM wisdom WHERE change_id = ?")
@@ -1100,7 +1105,11 @@ describe("wisdom SQLite sync (tk-rD2wRJMK)", () => {
 
   test("after save, SQLite wisdom table reflects current change.wisdom[]", async () => {
     // Add an entry and verify it's in SQLite
-    await store.wisdom.add("addFeature", "gotcha", "always validate at boundaries");
+    await store.wisdom.add(
+      "addFeature",
+      "gotcha",
+      "always validate at boundaries",
+    );
 
     const rowsBefore = rawDb.db
       .query("SELECT id FROM wisdom WHERE change_id = ?")
@@ -1109,7 +1118,11 @@ describe("wisdom SQLite sync (tk-rD2wRJMK)", () => {
   });
 
   test("FTS search finds entry added via store.wisdom.add()", async () => {
-    await store.wisdom.add("addFeature", "pattern", "use circuit breaker pattern for resilience");
+    await store.wisdom.add(
+      "addFeature",
+      "pattern",
+      "use circuit breaker pattern for resilience",
+    );
 
     const ftsResults = rawDb.db
       .query("SELECT id FROM wisdom_fts WHERE wisdom_fts MATCH ?")

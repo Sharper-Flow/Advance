@@ -15,7 +15,7 @@
 #   1. Copies .opencode/command/*.md  -> ~/.config/opencode/command/
 #   2. Removes stale commands from global that no longer exist in repo
 #   3. Removes legacy non-ADV commands
-#   4. Copies .opencode/agents/*.md  -> ~/.config/opencode/agents/
+#   4. Copies repo-local agents and applies managed overlays for shared agents
 #   5. Copies skills/adv-*/SKILL.md  -> ~/.config/opencode/skills/adv-*/
 #   6. Validates opencode.json has ADV plugin + instruction entries
 #   7. (--fix only) Patches opencode.json to add missing ADV entries
@@ -537,13 +537,19 @@ fi
 # 5. Sync ADV agents from .opencode/agents/ to global
 #
 # Agents listed in REPO_LOCAL_ONLY are repo-scoped — they should NOT be
-# copied to global.  They are loaded by OpenCode only when working inside
+# copied to global. They are loaded by OpenCode only when working inside
 # repos that contain them in .opencode/agents/.
+#
+# Agents listed in SHARED_OVERLAY_ONLY are shared global agents managed via
+# repo-owned overlay blocks. They should NOT be fully copied from this repo,
+# or user/global customization would be overwritten.
 # ---------------------------------------------------------------------------
 mkdir -p "$GLOBAL_AGENTS"
 agents_copied=0
 # Agents that must stay repo-local (not synced to global)
 REPO_LOCAL_ONLY="adv-researcher.md tron.md"
+# Shared agents managed via overlay blocks instead of full-file replacement
+SHARED_OVERLAY_ONLY="adv.md build.md plan.md refine.md scout.md"
 if [ -d "$REPO_AGENTS" ]; then
   for src in "$REPO_AGENTS"/*.md; do
     [ -f "$src" ] || continue
@@ -551,6 +557,11 @@ if [ -d "$REPO_AGENTS" ]; then
     # Skip repo-local-only agents
     if echo " $REPO_LOCAL_ONLY " | grep -q " $name "; then
       echo "    skipped (repo-local): $name"
+      continue
+    fi
+    # Skip shared agents that are overlay-managed
+    if echo " $SHARED_OVERLAY_ONLY " | grep -q " $name "; then
+      echo "    skipped (overlay-managed): $name"
       continue
     fi
     dest="$GLOBAL_AGENTS/$name"

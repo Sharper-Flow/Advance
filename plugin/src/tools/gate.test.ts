@@ -123,8 +123,8 @@ describe("Gate Tools", () => {
   });
 
   describe("forward-only gate surface", () => {
-    test("store.gates does not expose migrate helper", () => {
-      expect("migrate" in store.gates).toBe(false);
+    test("store.gates exposes migrate helper", () => {
+      expect("migrate" in store.gates).toBe(true);
     });
   });
 

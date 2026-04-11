@@ -11,7 +11,7 @@ import type { Spec } from "../types";
 import { loadSpec, saveSpec } from "./json";
 import { shouldCheckpoint, checkpointWAL } from "./health";
 import type { StoreContext } from "./store-context";
-import type { Store } from "./store";
+import type { Store } from "./store-types";
 import { acquireFileLock } from "../utils/fs";
 
 export type SpecsSave = (spec: Spec) => Promise<void>;

@@ -59,6 +59,11 @@ describe("sync-global.sh", () => {
       expect(content).toContain("copied agent:");
     });
 
+    test("skips shared agents that are overlay-managed", () => {
+      expect(content).toContain('SHARED_OVERLAY_ONLY="adv.md build.md plan.md refine.md scout.md"');
+      expect(content).toContain("skipped (overlay-managed):");
+    });
+
     test("syncs skills to global", () => {
       expect(content).toContain('for skill_dir in "$REPO_SKILLS"/adv-*/; do');
       expect(content).toContain('cp "$skill_file" "$dest_dir/SKILL.md"');

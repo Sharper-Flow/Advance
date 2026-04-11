@@ -13,6 +13,7 @@ export function reopenChangeFromGate(
   reason: string,
   scopeDelta?: string,
   reopenedBy = "agent",
+  approvalEvidence?: string,
 ): ReopenChangeResult {
   if (!change.gates) {
     change.gates = createDefaultGates();
@@ -43,6 +44,7 @@ export function reopenChangeFromGate(
     reason,
     ...(scopeDelta ? { scope_delta: scopeDelta } : {}),
     reopened_by: reopenedBy,
+    ...(approvalEvidence ? { approval_evidence: approvalEvidence } : {}),
     reopened_at: timestamp,
     gates_reset: gatesReset as [GateId, ...GateId[]],
   };

@@ -16,7 +16,7 @@ import {
 } from "./json";
 import { shouldCheckpoint, checkpointWAL } from "./health";
 import type { StoreContext } from "./store-context";
-import type { Store } from "./store";
+import type { Store } from "./store-types";
 import { generateChangeId } from "../utils/change-id";
 import { withChangeLock } from "./store-locks";
 

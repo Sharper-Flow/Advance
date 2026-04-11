@@ -18,6 +18,17 @@ import { tool } from "@opencode-ai/plugin";
 import { z } from "zod";
 import { safeExecute, safeExecuteSimple } from "./utils/safe-execute";
 
+import { specTools } from "./tools/spec";
+import { changeTools } from "./tools/change";
+import { taskTools } from "./tools/task";
+import { wisdomTools } from "./tools/wisdom";
+import { statusTools } from "./tools/status";
+import { agendaTools } from "./tools/agenda";
+import { projectTools } from "./tools/project";
+import { gateTools } from "./tools/gate";
+import { testTools } from "./tools/test";
+import { GATE_ORDER } from "./types";
+
 type ToolArgsSchema = Record<string, z.ZodTypeAny>;
 type ToolExecute<TArgs> = (
   args: TArgs,
@@ -85,4 +96,124 @@ export function bindToolSimple<TArgs>(
       name,
     ),
   );
+}
+
+/**
+ * Build the complete tool map for the ADV plugin.
+ *
+ * Encapsulates all 36+ tool registrations so index.ts stays under 500 lines.
+ * Uses bindTool for store-based tools and bindToolSimple for agenda tools.
+ * Special cases (type coercion, extra args) use registerTool directly.
+ */
+export function createToolMap(
+  store: Parameters<typeof bindTool>[2],
+  directory: string,
+  agendaPath: string | undefined,
+) {
+  return {
+    // Spec Tools
+    adv_spec: bindTool(specTools.adv_spec, "adv_spec", store),
+
+    // Change Tools
+    adv_change_list: bindTool(changeTools.adv_change_list, "adv_change_list", store),
+    adv_change_show: bindTool(changeTools.adv_change_show, "adv_change_show", store),
+    adv_change_create: bindTool(changeTools.adv_change_create, "adv_change_create", store),
+    adv_change_update: bindTool(changeTools.adv_change_update, "adv_change_update", store),
+    adv_change_close: bindTool(changeTools.adv_change_close, "adv_change_close", store),
+    adv_change_validate: bindTool(changeTools.adv_change_validate, "adv_change_validate", store),
+    adv_change_archive: bindTool(changeTools.adv_change_archive, "adv_change_archive", store),
+    adv_change_add_issue: bindTool(changeTools.adv_change_add_issue, "adv_change_add_issue", store),
+    adv_change_remove_issue: bindTool(changeTools.adv_change_remove_issue, "adv_change_remove_issue", store),
+
+    // Task Tools
+    adv_task_show: bindTool(taskTools.adv_task_show, "adv_task_show", store),
+    adv_task_list: bindTool(taskTools.adv_task_list, "adv_task_list", store),
+    adv_task_ready: bindTool(taskTools.adv_task_ready, "adv_task_ready", store),
+    adv_task_update: bindTool(taskTools.adv_task_update, "adv_task_update", store),
+    adv_task_add: bindTool(taskTools.adv_task_add, "adv_task_add", store),
+    adv_task_evidence: bindTool(taskTools.adv_task_evidence, "adv_task_evidence", store),
+    adv_task_tdd_phase: bindTool(taskTools.adv_task_tdd_phase, "adv_task_tdd_phase", store),
+    adv_task_tdd_status: bindTool(taskTools.adv_task_tdd_status, "adv_task_tdd_status", store),
+
+    // Task cancel — needs Record<string,string> type coercion
+    adv_task_cancel: registerTool(
+      taskTools.adv_task_cancel.description,
+      taskTools.adv_task_cancel.args,
+      safeExecute(
+        async (args) =>
+          taskTools.adv_task_cancel.execute(
+            {
+              ...(args as Record<string, unknown>),
+              reasons: (args as Record<string, unknown>).reasons as Record<string, string>,
+              supersededBy: (args as Record<string, unknown>).supersededBy as Record<string, string> | undefined,
+            } as Parameters<typeof taskTools.adv_task_cancel.execute>[0],
+            store,
+          ),
+        "adv_task_cancel",
+      ),
+    ),
+
+    // Task reclassify TDD — needs literal/union type coercion
+    adv_task_reclassify_tdd: registerTool(
+      taskTools.adv_task_reclassify_tdd.description,
+      taskTools.adv_task_reclassify_tdd.args,
+      safeExecute(
+        async (args) =>
+          taskTools.adv_task_reclassify_tdd.execute(
+            {
+              ...(args as Record<string, unknown>),
+              toIntent: (args as Record<string, unknown>).toIntent as "inline" | "separate_verification" | "not_applicable",
+              approvedByUser: (args as Record<string, unknown>).approvedByUser as true,
+            } as Parameters<typeof taskTools.adv_task_reclassify_tdd.execute>[0],
+            store,
+          ),
+        "adv_task_reclassify_tdd",
+      ),
+    ),
+
+    // Wisdom Tools
+    adv_wisdom_add: bindTool(wisdomTools.adv_wisdom_add, "adv_wisdom_add", store),
+    adv_wisdom_list: bindTool(wisdomTools.adv_wisdom_list, "adv_wisdom_list", store),
+    adv_wisdom_promote: bindTool(wisdomTools.adv_wisdom_promote, "adv_wisdom_promote", store),
+    adv_project_wisdom_list: bindTool(wisdomTools.adv_project_wisdom_list, "adv_project_wisdom_list", store),
+
+    // Status Tool
+    adv_status: bindTool(statusTools.adv_status, "adv_status", store),
+
+    // Agenda Tools
+    adv_agenda_list: bindToolSimple(agendaTools.adv_agenda_list, "adv_agenda_list", directory, agendaPath),
+    adv_agenda_add: bindToolSimple(agendaTools.adv_agenda_add, "adv_agenda_add", directory, agendaPath),
+    adv_agenda_start: bindToolSimple(agendaTools.adv_agenda_start, "adv_agenda_start", directory, agendaPath),
+    adv_agenda_complete: bindToolSimple(agendaTools.adv_agenda_complete, "adv_agenda_complete", directory, agendaPath),
+    adv_agenda_cancel: bindToolSimple(agendaTools.adv_agenda_cancel, "adv_agenda_cancel", directory, agendaPath),
+    adv_agenda_prioritize: bindToolSimple(agendaTools.adv_agenda_prioritize, "adv_agenda_prioritize", directory, agendaPath),
+    adv_agenda_next: bindToolSimple(agendaTools.adv_agenda_next, "adv_agenda_next", directory, agendaPath),
+    adv_agenda_stats: bindToolSimple(agendaTools.adv_agenda_stats, "adv_agenda_stats", directory, agendaPath),
+    adv_agenda_evidence: bindToolSimple(agendaTools.adv_agenda_evidence, "adv_agenda_evidence", directory, agendaPath),
+    adv_agenda_compact: bindToolSimple(agendaTools.adv_agenda_compact, "adv_agenda_compact", directory, agendaPath),
+
+    // Project Tools
+    adv_project_context: bindTool(projectTools.adv_project_context, "adv_project_context", store),
+
+    // Gate Tools
+    adv_gate_status: bindTool(gateTools.adv_gate_status, "adv_gate_status", store),
+    adv_gate_complete: registerTool(
+      gateTools.adv_gate_complete.description,
+      gateTools.adv_gate_complete.args,
+      safeExecute(
+        async (args) => gateTools.adv_gate_complete.execute(args as Parameters<typeof gateTools.adv_gate_complete.execute>[0], store),
+        "adv_gate_complete",
+      ),
+    ),
+
+    // Test Tools — adv_run_test takes (args, store, directory)
+    adv_run_test: registerTool(
+      testTools.adv_run_test.description,
+      testTools.adv_run_test.args,
+      safeExecute(
+        async (args) => testTools.adv_run_test.execute(args as Parameters<typeof testTools.adv_run_test.execute>[0], store, directory),
+        "adv_run_test",
+      ),
+    ),
+  };
 }

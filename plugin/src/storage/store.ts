@@ -209,11 +209,21 @@ export interface Store {
     search: (
       query: string,
       options?: { changeId?: string; type?: WisdomType },
-    ) => Promise<{ id: string; scope: string; change_id: string | null; type: string; content: string; match: string; rank: number }[]>;
+    ) => Promise<
+      {
+        id: string;
+        scope: string;
+        change_id: string | null;
+        type: string;
+        content: string;
+        match: string;
+        rank: number;
+      }[]
+    >;
     /** Aggregate wisdom from all active changes + project-level, with dedup */
-    listAll: (
-      options?: { type?: WisdomType },
-    ) => Promise<Array<WisdomEntry & { scope: string; change_id?: string }>>;
+    listAll: (options?: {
+      type?: WisdomType;
+    }) => Promise<Array<WisdomEntry & { scope: string; change_id?: string }>>;
   };
 
   // Gates (7-gate quality checklist)
@@ -235,6 +245,7 @@ export interface Store {
       reason: string,
       scopeDelta?: string,
       reopenedBy?: string,
+      approvalEvidence?: string,
     ) => Promise<void>;
   };
 
@@ -1420,7 +1431,7 @@ export async function createStore(
         const rows = sqlite.wisdom.listAll({ type: options?.type });
 
         // Dedup by (content.trim(), type) — first occurrence wins
-        const seen = new Map<string, typeof rows[0]>();
+        const seen = new Map<string, (typeof rows)[0]>();
         for (const row of rows) {
           const key = `${row.content.trim()}::${row.type}`;
           if (!seen.has(key)) {
@@ -1530,6 +1541,7 @@ export async function createStore(
         reason,
         scopeDelta?,
         reopenedBy?,
+        approvalEvidence?,
       ) => {
         return withChangeLock(changeId, async (change) => {
           const { gatesReset, timestamp } = reopenChangeFromGate(
@@ -1538,6 +1550,7 @@ export async function createStore(
             reason,
             scopeDelta,
             reopenedBy,
+            approvalEvidence,
           );
 
           // Structured log for gate re-entry

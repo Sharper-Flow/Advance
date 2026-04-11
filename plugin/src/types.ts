@@ -728,6 +728,8 @@ export const ReentryHistoryEntrySchema = z.object({
   scope_delta: z.string().optional(),
   /** Who triggered the re-entry (agent name, user, command) */
   reopened_by: z.string(),
+  /** Evidence of explicit user approval for the re-entry (when required) */
+  approval_evidence: z.string().optional(),
   /** ISO8601 timestamp when the re-entry was triggered */
   reopened_at: z.string(),
   /** Gate IDs that were reset to pending (from_gate + all downstream) */

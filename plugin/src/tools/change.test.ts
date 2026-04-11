@@ -1277,6 +1277,9 @@ describe("adv_change_reenter", () => {
     expect(parsed.reentry.scope_delta).toBe(
       "Added OAuth2 provider integration",
     );
+    expect(parsed.reentry.approval_evidence).toBe(
+      "User approved via question tool",
+    );
     expect(parsed.reentry.reopened_at).toBeDefined();
     expect(parsed.reentry.gates_reset).toContain("discovery");
   });
@@ -1345,6 +1348,9 @@ describe("adv_change_reenter", () => {
     expect(change.reentry_history![0].scope_delta).toBe(
       "Switching from REST to GraphQL",
     );
+    expect(change.reentry_history![0].approval_evidence).toBe(
+      "User approved via question tool",
+    );
   });
 
   test("requires explicit user approval", async () => {
@@ -1363,5 +1369,25 @@ describe("adv_change_reenter", () => {
 
     expect(parsed.error).toBeDefined();
     expect(parsed.error).toContain("approvedByUser");
+  });
+
+  test("requires non-empty approval evidence", async () => {
+    await store.gates.complete("addFeature", "proposal");
+    await store.gates.complete("addFeature", "discovery");
+
+    const result = await changeTools.adv_change_reenter.execute(
+      {
+        changeId: "addFeature",
+        fromGate: "discovery",
+        reason: "Scope expansion with blank approval evidence",
+        approvedByUser: true,
+        approvalEvidence: "   ",
+      },
+      store,
+    );
+    const parsed = parseToolOutput(result);
+
+    expect(parsed.error).toBeDefined();
+    expect(parsed.error).toContain("approvalEvidence");
   });
 });

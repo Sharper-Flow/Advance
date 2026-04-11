@@ -17,7 +17,7 @@ import {
 } from "../types";
 import { withChangeLock, loadChangeOrNull } from "./store-locks";
 import type { StoreContext } from "./store-context";
-import type { Store } from "./store";
+import type { Store } from "./store-types";
 import { reopenChangeFromGate } from "./gate-reentry";
 
 // ---------------------------------------------------------------------------
@@ -127,6 +127,7 @@ export function createGatesOps(
       reason,
       scopeDelta?,
       reopenedBy?,
+      approvalEvidence?,
     ) => {
       return withChangeLock(ctx, changeId, async (change) => {
         const { gatesReset, timestamp } = reopenChangeFromGate(
@@ -135,6 +136,7 @@ export function createGatesOps(
           reason,
           scopeDelta,
           reopenedBy,
+          approvalEvidence,
         );
 
         // Structured log for gate re-entry

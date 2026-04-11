@@ -1972,6 +1972,19 @@ describe("ReentryHistoryEntrySchema", () => {
     expect(parsed.scope_delta).toBeUndefined();
   });
 
+  test("approval_evidence is accepted when present and optional for legacy entries", () => {
+    const parsedWithEvidence = ReentryHistoryEntrySchema.parse({
+      ...validEntry,
+      approval_evidence: "User approved via question tool",
+    });
+    expect(parsedWithEvidence.approval_evidence).toBe(
+      "User approved via question tool",
+    );
+
+    const parsedWithoutEvidence = ReentryHistoryEntrySchema.parse(validEntry);
+    expect(parsedWithoutEvidence.approval_evidence).toBeUndefined();
+  });
+
   test("rejects invalid gate IDs in from_gate", () => {
     expect(() =>
       ReentryHistoryEntrySchema.parse({

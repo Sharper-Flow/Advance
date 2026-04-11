@@ -957,7 +957,14 @@ export const changeTools = {
       }
 
       try {
-        await store.gates.reopenFrom(changeId, fromGate, reason, scopeDelta);
+        await store.gates.reopenFrom(
+          changeId,
+          fromGate,
+          reason,
+          scopeDelta,
+          undefined,
+          approvalEvidence,
+        );
 
         // Fetch updated state
         const gates = await store.gates.get(changeId);
