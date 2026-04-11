@@ -252,7 +252,9 @@ export async function ensureAllChangesSynced(ctx: StoreContext): Promise<void> {
  * Ensure project-level wisdom.jsonl is synced to SQLite.
  * Lazy — synced once per session, tracked via ctx.projectWisdomSynced.
  */
-export async function ensureProjectWisdomSynced(ctx: StoreContext): Promise<void> {
+export async function ensureProjectWisdomSynced(
+  ctx: StoreContext,
+): Promise<void> {
   if (ctx.closed) return;
 
   const wisdomPath = ctx.paths.wisdom;
@@ -271,7 +273,10 @@ export async function ensureProjectWisdomSynced(ctx: StoreContext): Promise<void
     return;
   }
 
-  if (ctx.projectWisdomSynced && !ctx.sqlite.syncFiles.needsSync(wisdomPath, attrs)) {
+  if (
+    ctx.projectWisdomSynced &&
+    !ctx.sqlite.syncFiles.needsSync(wisdomPath, attrs)
+  ) {
     return;
   }
 

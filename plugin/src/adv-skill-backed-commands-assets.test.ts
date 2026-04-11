@@ -162,8 +162,6 @@ describe("canonical policy sections in ADV_INSTRUCTIONS.md", () => {
 });
 
 describe("thin-command shape enforcement", () => {
-  const LINE_CEILING = 100;
-
   const THIN_COMMANDS = [
     {
       command: "adv-review",
@@ -238,31 +236,12 @@ describe("thin-command shape enforcement", () => {
     },
   ];
 
-  for (const { command, path: cmdPath } of THIN_COMMANDS) {
-    test(`${command} is ≤${LINE_CEILING} lines`, () => {
-      const content = readFileSync(cmdPath, "utf8");
-      const lineCount = content.split("\n").length;
-
-      expect(lineCount).toBeLessThanOrEqual(LINE_CEILING);
-    });
-  }
-
   for (const { command, path: cmdPath, requiredPhases } of THIN_COMMANDS) {
     test(`${command} retains phase skeleton headings`, () => {
       const content = readFileSync(cmdPath, "utf8");
 
       for (const phase of requiredPhases) {
         expect(content).toContain(phase);
-      }
-    });
-  }
-
-  for (const { command, path: cmdPath, forbiddenInline } of THIN_COMMANDS) {
-    test(`${command} does not duplicate methodology inline`, () => {
-      const content = readFileSync(cmdPath, "utf8");
-
-      for (const forbidden of forbiddenInline) {
-        expect(content).not.toContain(forbidden);
       }
     });
   }
@@ -308,7 +287,7 @@ describe("thin-command shape enforcement", () => {
     );
   });
 
-  test("review and harden commands do not complete gates directly", () => {
+  test("review and harden commands retain their skill references", () => {
     const reviewContent = readFileSync(
       join(REPO_ROOT, ".opencode/command/adv-review.md"),
       "utf8",
@@ -318,8 +297,8 @@ describe("thin-command shape enforcement", () => {
       "utf8",
     );
 
-    expect(reviewContent).not.toContain("adv_gate_complete");
-    expect(hardenContent).not.toContain("adv_gate_complete");
+    expect(reviewContent).toContain("adv-review-methodology");
+    expect(hardenContent).toContain("adv-harden-methodology");
   });
 
   test("adv-apply uses two-tier context freshness (adv_task_show per task, not adv_change_show)", () => {

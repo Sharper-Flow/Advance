@@ -52,14 +52,9 @@ describe("Store", () => {
       await newStore.init();
 
       // Check if project.json exists
-      let exists = false;
-      try {
-        await access(join(emptyDir, "project.json"));
-        exists = true;
-      } catch {
-        exists = false;
-      }
-      expect(exists).toBe(true);
+      await expect(
+        access(join(emptyDir, "project.json")),
+      ).resolves.toBeUndefined();
 
       newStore.close();
       await cleanupTempDir(emptyDir);

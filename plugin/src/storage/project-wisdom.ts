@@ -133,7 +133,9 @@ export async function addProjectWisdom(
     source_task: input.sourceTask,
     promoted_at: new Date().toISOString(),
     ...(input.tags !== undefined && { tags: input.tags }),
-    ...(input.invalidated_by !== undefined && { invalidated_by: input.invalidated_by }),
+    ...(input.invalidated_by !== undefined && {
+      invalidated_by: input.invalidated_by,
+    }),
   };
 
   const releaseLock = await acquireFileLock(path);

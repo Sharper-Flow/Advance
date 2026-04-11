@@ -41,12 +41,13 @@ export const testTools = {
       }
 
       const cwd = args.workdir || defaultWorkdir;
-      let output = "";
-      let exitCode = 0;
+      let output: string;
+      let exitCode: number;
 
       try {
         const { stdout, stderr } = await execAsync(args.command, { cwd });
         output = stdout + "\n" + stderr;
+        exitCode = 0;
       } catch (e: unknown) {
         const err = e as { stdout?: string; stderr?: string; code?: number };
         output = (err.stdout || "") + "\n" + (err.stderr || "");

@@ -157,7 +157,11 @@ export interface Store {
   // Gates
   gates: {
     get: (changeId: string) => Promise<Gates | null>;
-    complete: (changeId: string, gateId: GateId) => Promise<void>;
+    complete: (
+      changeId: string,
+      gateId: GateId,
+      notes?: string,
+    ) => Promise<void>;
     /** Reopen from a gate: reset it and all downstream gates to pending, record re-entry history */
     reopenFrom: (
       changeId: string,

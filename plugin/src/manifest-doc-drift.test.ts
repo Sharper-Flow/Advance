@@ -67,6 +67,7 @@ function listCommandFiles(): string[] {
       throw new Error(
         `Command directory not found: ${COMMAND_DIR}\n` +
           `Expected .opencode/command/ relative to plugin root: ${PLUGIN_ROOT}`,
+        { cause: err },
       );
     }
     throw err;

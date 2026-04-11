@@ -80,25 +80,41 @@ export const wisdomTools = {
       changeId: z
         .string()
         .optional()
-        .describe("Change ID to list wisdom for (omit for cross-change aggregation)"),
+        .describe(
+          "Change ID to list wisdom for (omit for cross-change aggregation)",
+        ),
       type: WisdomTypeSchema.optional().describe(
         "Filter by category: pattern | success | failure | gotcha | convention",
       ),
-      query: z.string().optional().describe("FTS search term for relevance-ranked results"),
+      query: z
+        .string()
+        .optional()
+        .describe("FTS search term for relevance-ranked results"),
     },
     execute: async (
-      { changeId, type, query }: { changeId?: string; type?: string; query?: string },
+      {
+        changeId,
+        type,
+        query,
+      }: { changeId?: string; type?: string; query?: string },
       store: Store,
     ) => {
       try {
         let wisdom: unknown[];
         const wisdomType = type as
-          | "pattern" | "success" | "failure" | "gotcha" | "convention"
+          | "pattern"
+          | "success"
+          | "failure"
+          | "gotcha"
+          | "convention"
           | undefined;
 
         if (query) {
           // FTS search path — route through store.wisdom.search
-          wisdom = await store.wisdom.search(query, { changeId, type: wisdomType });
+          wisdom = await store.wisdom.search(query, {
+            changeId,
+            type: wisdomType,
+          });
         } else if (!changeId) {
           // Cross-change aggregation — route through store.wisdom.listAll
           wisdom = await store.wisdom.listAll({ type: wisdomType });

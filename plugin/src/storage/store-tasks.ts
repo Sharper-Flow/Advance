@@ -75,8 +75,7 @@ export function createTasksOps(
         ready: readyIds,
         blocked: blockedInfo,
         cancelledBlockerContext,
-      } =
-        ctx.sqlite.tasks.ready(changeId);
+      } = ctx.sqlite.tasks.ready(changeId);
       const readyIdSet = new Set(readyIds.map((r) => r.id));
 
       const ready = change.tasks.filter((t) => readyIdSet.has(t.id));
@@ -95,7 +94,13 @@ export function createTasksOps(
       };
     },
 
-    update: async (taskId, status, notes) => {
+    update: async (
+      taskId,
+      status,
+      notes,
+      implementationSummary,
+      errorRecovery,
+    ) => {
       return withTaskLock(
         ctx,
         taskId,
@@ -112,6 +117,14 @@ export function createTasksOps(
             if (notes) {
               task.completed_by = notes;
             }
+          }
+
+          if (typeof implementationSummary !== "undefined") {
+            task.implementation_summary = implementationSummary;
+          }
+
+          if (typeof errorRecovery !== "undefined") {
+            task.error_recovery = errorRecovery;
           }
 
           // Save change
@@ -328,7 +341,7 @@ export function createWisdomOps(
       const rows = ctx.sqlite.wisdom.listAll({ type: options?.type });
 
       // Dedup by (content.trim(), type) — first occurrence wins
-      const seen = new Map<string, typeof rows[0]>();
+      const seen = new Map<string, (typeof rows)[0]>();
       for (const row of rows) {
         const key = `${row.content.trim()}::${row.type}`;
         if (!seen.has(key)) {

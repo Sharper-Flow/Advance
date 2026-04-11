@@ -1039,9 +1039,24 @@ describe("wisdom auto-promotion during archive (tk-uv67_Wsk)", () => {
     const change = structuredClone(SAMPLE_CHANGE) as Change;
     change.tasks.forEach((t) => (t.status = "done"));
     change.wisdom = [
-      { id: "ws-conv1", type: "convention", content: "always use atomic writes for JSONL", recorded_at: new Date().toISOString() },
-      { id: "ws-patt1", type: "pattern", content: "use dependency injection for testability", recorded_at: new Date().toISOString() },
-      { id: "ws-gotcha1", type: "gotcha", content: "sqlite needs WAL mode for concurrent access", recorded_at: new Date().toISOString() },
+      {
+        id: "ws-conv1",
+        type: "convention",
+        content: "always use atomic writes for JSONL",
+        recorded_at: new Date().toISOString(),
+      },
+      {
+        id: "ws-patt1",
+        type: "pattern",
+        content: "use dependency injection for testability",
+        recorded_at: new Date().toISOString(),
+      },
+      {
+        id: "ws-gotcha1",
+        type: "gotcha",
+        content: "sqlite needs WAL mode for concurrent access",
+        recorded_at: new Date().toISOString(),
+      },
     ];
     return change;
   };
@@ -1064,7 +1079,9 @@ describe("wisdom auto-promotion during archive (tk-uv67_Wsk)", () => {
 
     expect(result.success).toBe(true);
 
-    const projectEntries = await listProjectWisdom(testDir, { wisdomPath: wisdomPath() });
+    const projectEntries = await listProjectWisdom(testDir, {
+      wisdomPath: wisdomPath(),
+    });
     const contents = projectEntries.map((e) => e.content);
     expect(contents).toContain("always use atomic writes for JSONL");
     expect(contents).toContain("use dependency injection for testability");
@@ -1086,7 +1103,9 @@ describe("wisdom auto-promotion during archive (tk-uv67_Wsk)", () => {
       },
     });
 
-    const projectEntries = await listProjectWisdom(testDir, { wisdomPath: wisdomPath() });
+    const projectEntries = await listProjectWisdom(testDir, {
+      wisdomPath: wisdomPath(),
+    });
     expect(projectEntries.some((e) => e.type === "pattern")).toBe(true);
   });
 
@@ -1106,7 +1125,9 @@ describe("wisdom auto-promotion during archive (tk-uv67_Wsk)", () => {
       },
     });
 
-    const projectEntries = await listProjectWisdom(testDir, { wisdomPath: wisdomPath() });
+    const projectEntries = await listProjectWisdom(testDir, {
+      wisdomPath: wisdomPath(),
+    });
     expect(projectEntries.every((e) => e.type !== "gotcha")).toBe(true);
   });
 
@@ -1134,7 +1155,9 @@ describe("wisdom auto-promotion during archive (tk-uv67_Wsk)", () => {
       },
     });
 
-    const projectEntries = await listProjectWisdom(testDir, { wisdomPath: wisdomPath() });
+    const projectEntries = await listProjectWisdom(testDir, {
+      wisdomPath: wisdomPath(),
+    });
     const conventionEntries = projectEntries.filter(
       (e) => e.content === "always use atomic writes for JSONL",
     );

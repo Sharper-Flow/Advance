@@ -47,6 +47,10 @@ Cancellation: use `adv_task_cancel` with user approval. `adv_task_update status:
 
 × `/adv-apply` MUST NOT complete discovery, design, or planning gates.
 
+## Phase 0: Load Skill
+
+`skill("adv-apply-methodology")` → provides TDD work loop shape, retry protocol, context freshness rules, and task completion criteria. If the skill is unavailable, continue with the embedded protocol in this command file.
+
 ### Scope Expansion During Execution
 
 If new objectives or acceptance criteria are discovered during execution that were not part of the original agreement, do NOT silently fold them into the current task graph. Instead:

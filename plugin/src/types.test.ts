@@ -612,9 +612,9 @@ describe("FeatureFlagsSchema", () => {
     test("defaults to smart values when slop_scan block is absent", () => {
       const result = FeatureFlagsSchema.parse({});
       expect(result.slop_scan).toBeDefined();
-      expect(result.slop_scan?.nesting_depth_threshold).toBe(4);
-      expect(result.slop_scan?.defensive_guard_threshold).toBe(3);
-      expect(result.slop_scan?.complexity_threshold).toBe(10);
+      expect(result.slop_scan?.nesting_depth_threshold).toBe(8);
+      expect(result.slop_scan?.defensive_guard_threshold).toBe(0.25);
+      expect(result.slop_scan?.complexity_threshold).toBe(12);
       expect(result.slop_scan?.ast_timeout_ms).toBe(10000);
     });
 

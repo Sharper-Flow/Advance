@@ -30,6 +30,18 @@ import { enforceTaskPolicy } from "./guards/task";
 import { createToolMap } from "./tool-registry";
 import { appendDebugLog } from "./utils/debug-log";
 
+const PROVIDER_BEHAVIOR_HINTS: Readonly<Record<string, string>> = {
+  openai:
+    "[ADV:PROVIDER_HINT] Provider adaptation: prefer explicit numbered steps, use structured formats (tables, numbered lists) for multi-part output, and batch independent tool calls in a single response.",
+  "zai-coding-plan":
+    "[ADV:PROVIDER_HINT] Provider adaptation: prefer direct explicit instructions, briefly restate the task before acting, and treat absolute constraints like NEVER/ONLY/MUST as binding.",
+};
+
+const getProviderBehaviorHint = (providerID?: string): string | null => {
+  if (!providerID) return null;
+  return PROVIDER_BEHAVIOR_HINTS[providerID.toLowerCase()] ?? null;
+};
+
 /** Flags that drive the resolved StatusMarker (via resolveStatus). */
 interface StatusFlags {
   sessionIdle: boolean;
@@ -382,6 +394,11 @@ export const AdvancePlugin: Plugin = async ({ directory, worktree }) => {
       output,
     ): Promise<void> => {
       try {
+        const providerHint = getProviderBehaviorHint(input.model?.providerID);
+        if (providerHint) {
+          output.system.push(providerHint);
+        }
+
         // Inject worktree session marker if running in a worktree
         if (state.isWorktree && state.activeChange.id) {
           output.system.push(

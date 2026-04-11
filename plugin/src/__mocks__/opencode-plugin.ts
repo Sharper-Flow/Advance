@@ -72,7 +72,9 @@ tool.schema = {
   string: () => z.string(),
   number: () => z.number(),
   boolean: () => z.boolean(),
-  literal: <T extends string | number | bigint | boolean | null | undefined>(value: T) => z.literal(value),
+  literal: <T extends string | number | bigint | boolean | null | undefined>(
+    value: T,
+  ) => z.literal(value),
   array: <T extends z.ZodType>(schema: T) => z.array(schema),
   enum: <T extends [string, ...string[]]>(values: T) => z.enum(values),
   object: <T extends z.ZodRawShape>(shape: T) => z.object(shape),

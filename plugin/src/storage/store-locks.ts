@@ -29,7 +29,7 @@ export async function withChangeLock<T>(
   } catch (e) {
     const error = e as NodeJS.ErrnoException;
     if (error.code === "ENOENT") {
-      throw new Error(`Change not found: ${changeId}`);
+      throw new Error(`Change not found: ${changeId}`, { cause: e });
     }
     throw e;
   }

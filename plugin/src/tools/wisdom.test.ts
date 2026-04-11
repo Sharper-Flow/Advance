@@ -455,25 +455,49 @@ describe("Wisdom dedup + search + listAll (tk-Xxq9fNqw)", () => {
 
   describe("dedup guard", () => {
     test("rejects exact-match (content, type) duplicate within same change", async () => {
-      await store.wisdom.add("addFeature", "pattern", "use dependency injection for testability");
+      await store.wisdom.add(
+        "addFeature",
+        "pattern",
+        "use dependency injection for testability",
+      );
 
       await expect(
-        store.wisdom.add("addFeature", "pattern", "use dependency injection for testability")
+        store.wisdom.add(
+          "addFeature",
+          "pattern",
+          "use dependency injection for testability",
+        ),
       ).rejects.toThrow(/duplicate/i);
     });
 
     test("allows same content with different type", async () => {
-      await store.wisdom.add("addFeature", "pattern", "validate inputs at boundaries");
+      await store.wisdom.add(
+        "addFeature",
+        "pattern",
+        "validate inputs at boundaries",
+      );
       // Same content, different type — should succeed
-      const entry = await store.wisdom.add("addFeature", "gotcha", "validate inputs at boundaries");
+      const entry = await store.wisdom.add(
+        "addFeature",
+        "gotcha",
+        "validate inputs at boundaries",
+      );
       expect(entry.type).toBe("gotcha");
     });
 
     test("dedup check trims whitespace before comparing", async () => {
-      await store.wisdom.add("addFeature", "pattern", "  leading and trailing spaces  ");
+      await store.wisdom.add(
+        "addFeature",
+        "pattern",
+        "  leading and trailing spaces  ",
+      );
 
       await expect(
-        store.wisdom.add("addFeature", "pattern", "leading and trailing spaces")
+        store.wisdom.add(
+          "addFeature",
+          "pattern",
+          "leading and trailing spaces",
+        ),
       ).rejects.toThrow(/duplicate/i);
     });
   });
@@ -483,8 +507,18 @@ describe("Wisdom dedup + search + listAll (tk-Xxq9fNqw)", () => {
       // Seed SQLite directly to test routing logic independent of sync
       // (sync integration tested in tk-rD2wRJMK)
       rawSqlite.wisdom.upsertBatch("addFeature", [
-        { id: "ws-jwt01", type: "pattern", content: "always validate JWT tokens on server side", recorded_at: new Date().toISOString() },
-        { id: "ws-db01", type: "gotcha", content: "connection pooling improves database throughput", recorded_at: new Date().toISOString() },
+        {
+          id: "ws-jwt01",
+          type: "pattern",
+          content: "always validate JWT tokens on server side",
+          recorded_at: new Date().toISOString(),
+        },
+        {
+          id: "ws-db01",
+          type: "gotcha",
+          content: "connection pooling improves database throughput",
+          recorded_at: new Date().toISOString(),
+        },
       ]);
 
       const results = await store.wisdom.search("JWT tokens");
@@ -494,13 +528,25 @@ describe("Wisdom dedup + search + listAll (tk-Xxq9fNqw)", () => {
 
     test("search with changeId filters to that change only", async () => {
       rawSqlite.wisdom.upsertBatch("addFeature", [
-        { id: "ws-auth1", type: "pattern", content: "auth pattern for service A", recorded_at: new Date().toISOString() },
+        {
+          id: "ws-auth1",
+          type: "pattern",
+          content: "auth pattern for service A",
+          recorded_at: new Date().toISOString(),
+        },
       ]);
       rawSqlite.wisdom.upsertBatch("anotherChange", [
-        { id: "ws-auth2", type: "pattern", content: "auth pattern for service B", recorded_at: new Date().toISOString() },
+        {
+          id: "ws-auth2",
+          type: "pattern",
+          content: "auth pattern for service B",
+          recorded_at: new Date().toISOString(),
+        },
       ]);
 
-      const results = await store.wisdom.search("auth pattern", { changeId: "addFeature" });
+      const results = await store.wisdom.search("auth pattern", {
+        changeId: "addFeature",
+      });
       expect(results.every((r) => r.change_id === "addFeature")).toBe(true);
     });
   });
@@ -509,7 +555,12 @@ describe("Wisdom dedup + search + listAll (tk-Xxq9fNqw)", () => {
     test("aggregates change-level and project-level wisdom", async () => {
       // Seed SQLite directly — bypasses sync dependency (tested in tk-rD2wRJMK)
       rawSqlite.wisdom.upsertBatch("addFeature", [
-        { id: "ws-lf1", type: "pattern", content: "wisdom from feature change", recorded_at: new Date().toISOString() },
+        {
+          id: "ws-lf1",
+          type: "pattern",
+          content: "wisdom from feature change",
+          recorded_at: new Date().toISOString(),
+        },
       ]);
       await addProjectWisdom(tempDir, {
         type: "convention",
@@ -526,7 +577,12 @@ describe("Wisdom dedup + search + listAll (tk-Xxq9fNqw)", () => {
     test("listAll deduplicates entries with same content and type", async () => {
       // Add same content at both change and project level
       rawSqlite.wisdom.upsertBatch("addFeature", [
-        { id: "ws-dup1", type: "pattern", content: "shared wisdom across scopes", recorded_at: new Date().toISOString() },
+        {
+          id: "ws-dup1",
+          type: "pattern",
+          content: "shared wisdom across scopes",
+          recorded_at: new Date().toISOString(),
+        },
       ]);
       await addProjectWisdom(tempDir, {
         type: "pattern",
@@ -535,15 +591,27 @@ describe("Wisdom dedup + search + listAll (tk-Xxq9fNqw)", () => {
       });
 
       const all = await store.wisdom.listAll();
-      const matching = all.filter((e) => e.content === "shared wisdom across scopes");
+      const matching = all.filter(
+        (e) => e.content === "shared wisdom across scopes",
+      );
       // Should appear once due to dedup
       expect(matching).toHaveLength(1);
     });
 
     test("listAll with type filter returns only matching type", async () => {
       rawSqlite.wisdom.upsertBatch("addFeature", [
-        { id: "ws-pat1", type: "pattern", content: "a pattern entry", recorded_at: new Date().toISOString() },
-        { id: "ws-got1", type: "gotcha", content: "a gotcha entry", recorded_at: new Date().toISOString() },
+        {
+          id: "ws-pat1",
+          type: "pattern",
+          content: "a pattern entry",
+          recorded_at: new Date().toISOString(),
+        },
+        {
+          id: "ws-got1",
+          type: "gotcha",
+          content: "a gotcha entry",
+          recorded_at: new Date().toISOString(),
+        },
       ]);
 
       const patterns = await store.wisdom.listAll({ type: "pattern" });
@@ -610,7 +678,10 @@ describe("adv_wisdom_list tool expansion (tk-jmKscoDU)", () => {
 
   test("backwards-compatible: calling with only changeId still works identically", async () => {
     await store.wisdom.add("addFeature", "pattern", "existing pattern entry");
-    const result = await wisdomTools.adv_wisdom_list.execute({ changeId: "addFeature" }, store);
+    const result = await wisdomTools.adv_wisdom_list.execute(
+      { changeId: "addFeature" },
+      store,
+    );
     const parsed = JSON.parse(result);
     expect(parsed.count).toBe(1);
     expect(parsed.byType.pattern).toBe(1);
@@ -621,7 +692,10 @@ describe("adv_wisdom_list tool expansion (tk-jmKscoDU)", () => {
     await store.wisdom.add("addFeature", "gotcha", "a gotcha");
     await store.wisdom.add("addFeature", "convention", "a convention");
 
-    const result = await wisdomTools.adv_wisdom_list.execute({ changeId: "addFeature", type: "gotcha" }, store);
+    const result = await wisdomTools.adv_wisdom_list.execute(
+      { changeId: "addFeature", type: "gotcha" },
+      store,
+    );
     const parsed = JSON.parse(result);
     expect(parsed.count).toBe(1);
     expect(parsed.wisdom[0].type).toBe("gotcha");
@@ -630,11 +704,24 @@ describe("adv_wisdom_list tool expansion (tk-jmKscoDU)", () => {
   test("query param routes to FTS search and returns ranked results", async () => {
     // Seed directly into SQLite for FTS to find
     rawDb.wisdom.upsertBatch("addFeature", [
-      { id: "ws-q1", type: "pattern", content: "always validate authentication tokens", recorded_at: new Date().toISOString() },
-      { id: "ws-q2", type: "gotcha", content: "connection pooling for databases", recorded_at: new Date().toISOString() },
+      {
+        id: "ws-q1",
+        type: "pattern",
+        content: "always validate authentication tokens",
+        recorded_at: new Date().toISOString(),
+      },
+      {
+        id: "ws-q2",
+        type: "gotcha",
+        content: "connection pooling for databases",
+        recorded_at: new Date().toISOString(),
+      },
     ]);
 
-    const result = await wisdomTools.adv_wisdom_list.execute({ query: "authentication tokens" }, store);
+    const result = await wisdomTools.adv_wisdom_list.execute(
+      { query: "authentication tokens" },
+      store,
+    );
     const parsed = JSON.parse(result);
     expect(parsed.count).toBeGreaterThan(0);
     expect(parsed.wisdom[0].content).toContain("authentication");
@@ -651,23 +738,36 @@ describe("adv_wisdom_list tool expansion (tk-jmKscoDU)", () => {
     ]);
 
     const result = await wisdomTools.adv_wisdom_list.execute(
-      { query: 'sanitize OR tokens*' },
+      { query: "sanitize OR tokens*" },
       store,
     );
     const parsed = JSON.parse(result);
 
     expect(parsed.count).toBeGreaterThan(0);
-    expect(parsed.wisdom.some((w: { content: string }) => w.content.includes("sanitize"))).toBe(true);
+    expect(
+      parsed.wisdom.some((w: { content: string }) =>
+        w.content.includes("sanitize"),
+      ),
+    ).toBe(true);
   });
 
   test("no changeId and no query returns aggregated results via listAll", async () => {
     rawDb.wisdom.upsertBatch("addFeature", [
-      { id: "ws-la1", type: "pattern", content: "pattern from change level", recorded_at: new Date().toISOString() },
+      {
+        id: "ws-la1",
+        type: "pattern",
+        content: "pattern from change level",
+        recorded_at: new Date().toISOString(),
+      },
     ]);
 
     const result = await wisdomTools.adv_wisdom_list.execute({}, store);
     const parsed = JSON.parse(result);
     expect(parsed.wisdom.length).toBeGreaterThanOrEqual(1);
-    expect(parsed.wisdom.some((w: { content: string }) => w.content === "pattern from change level")).toBe(true);
+    expect(
+      parsed.wisdom.some(
+        (w: { content: string }) => w.content === "pattern from change level",
+      ),
+    ).toBe(true);
   });
 });

@@ -22,8 +22,8 @@ describe("adv-slop-scan anti-recursion assets", () => {
   test("documents single-level scanner orchestration in shared ADV instructions", () => {
     const content = readFileSync(ADV_INSTRUCTIONS_PATH, "utf8");
 
-    expect(content).toContain(
-      "slop-scan | Sequential categories | explore × 9 (single-level only)",
+    expect(content).toMatch(
+      /slop-scan\s*\|\s*Sequential categories\s*\|\s*explore × 9 \(single-level only\)/,
     );
     expect(content).toContain(
       "For `/adv-slop-scan`, all `explore` scanner workers must do the scan inline and must not delegate to additional sub-agents or invoke `/adv-*` slash commands",

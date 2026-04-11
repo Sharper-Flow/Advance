@@ -56,7 +56,7 @@ export function createGatesOps(
       return normalizeGates(gates);
     },
 
-    complete: async (changeId, gateId) => {
+    complete: async (changeId, gateId, notes) => {
       return withChangeLock(ctx, changeId, async (change) => {
         if (!change.gates) {
           change.gates = createDefaultGates();
@@ -81,6 +81,9 @@ export function createGatesOps(
         gates[gateId].status = "done";
         gates[gateId].completed_at = now;
         gates[gateId].completed_by = "agent";
+        if (notes) {
+          gates[gateId].notes = notes;
+        }
 
         // Structured log for gate transition
         if (process.env.ADV_DEBUG) {

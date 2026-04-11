@@ -302,17 +302,17 @@ Slash commands are top-level entry points for the user/session, not an internal 
 
 Available to: `adv`, `plan`, `scout`, `refine`, `general`. Use when 3+ independent scan dimensions benefit from parallelism.
 
-| Command   | Inline                   | Sub-Agent                                      |
-| --------- | ------------------------ | ---------------------------------------------- |
-| discover  | Context7 + Kagi + lgrep  | librarian + adv-researcher (single-level only) |
-| design    | Context7 + Kagi + lgrep  | librarian + adv-researcher (single-level only) |
-| review    | Sequential per dimension | explore × 5 + librarian + general              |
-| harden    | Sequential scans         | explore × 6                                    |
-| audit     | Sequential pipeline      | explore × 4                                    |
-| slop-scan | Sequential categories    | explore × 9 (single-level only)                |
-| tron      | lgrep + read             | tron agent                                     |
-| task      | Context7 + Kagi          | librarian + adv-researcher                     |
-| refactor  | Sequential drift         | explore × 3                                    |
+| Command | Inline | Sub-Agent |
+| --- | --- | --- |
+| discover | Context7 + Kagi + lgrep | librarian + adv-researcher (single-level only) |
+| design | Context7 + Kagi + lgrep | librarian + adv-researcher (single-level only) |
+| review | Sequential per dimension | explore × 5 + librarian + general |
+| harden | Sequential scans | explore × 6 |
+| audit | Sequential pipeline | explore × 4 |
+| slop-scan | Sequential categories | explore × 9 (single-level only) |
+| tron | lgrep + read | tron agent |
+| task | Context7 + Kagi | librarian + adv-researcher |
+| refactor | Sequential drift | explore × 3 |
 
 Rules:
 
@@ -394,7 +394,7 @@ Commands that fan out to sub-agents with reusable methodology should follow this
 ### Classification
 
 **Command-only** (no backing skill needed):
-`adv-proposal`, `adv-agree`, `adv-design`, `adv-present`, `adv-prep`, `adv-task`, `adv-apply`, `adv-validate`, `adv-archive`, `adv-status`, `adv-accept`, `adv-coordinate`, `adv-clarify`, `adv-refactor`
+`adv-proposal`, `adv-agree`, `adv-design`, `adv-present`, `adv-task`, `adv-validate`, `adv-archive`, `adv-status`, `adv-accept`, `adv-coordinate`, `adv-clarify`, `adv-refactor`
 
 **Retired** (redirects to successor commands):
 
@@ -403,6 +403,8 @@ Commands that fan out to sub-agents with reusable methodology should follow this
 **Command + backing skill** (reusable methodology extracted):
 
 - `adv-discover` → `adv-discover-methodology` skill
+- `adv-prep` → `adv-prep-methodology` skill
+- `adv-apply` → `adv-apply-methodology` skill
 - `adv-tron` → `adv-tron` skill
 - `adv-review` → `adv-review-methodology` skill
 - `adv-harden` → `adv-harden-methodology` skill
@@ -414,6 +416,26 @@ Commands that fan out to sub-agents with reusable methodology should follow this
 - Skills × MUST NOT own gate completion or workflow sequencing.
 - Commands MUST remain functional if a backing skill is unavailable — inline fallback is required.
 - Checklist docs (`docs/checklists/`) remain the canonical source; skills reference them, not duplicate them.
+
+### Structured Sub-Agent Prompt Protocol
+
+When a command spawns sub-agents, prompts should include:
+
+- `ROLE:` worker purpose
+- `WORKING DIRECTORY:` explicit workdir when relevant
+- `OUTPUT_SCHEMA:` exact expected response shape
+- `BUDGET:` token/time/tool constraints
+- `STOP_WHEN:` explicit completion boundary
+
+### Orchestration Token-Budget Policy
+
+- **When to spawn:** only when multiple independent dimensions benefit from parallelism
+- **Max parallel workers:** 3-4 at a time
+- Prefer inline work when a short linear pass or single tool call is sufficient
+
+### Phase Summary Pattern
+
+Commands that gather substantial context should periodically persist compact summaries via `adv_change_update` so later phases can build on concise, decision-oriented state instead of replaying the full discovery history.
 
 ## Worktree Integration
 

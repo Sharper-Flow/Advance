@@ -6,7 +6,7 @@
  * lifecycle (init, sync, close, flush) and status.
  */
 
-import { join } from "path";
+import { basename, join } from "path";
 import { mkdir } from "fs/promises";
 import type { Change, ChangeStatus } from "../types";
 import { createSQLiteStore, type SQLiteStore } from "./sqlite";
@@ -19,6 +19,7 @@ import {
 } from "./health";
 import {
   loadProjectConfig,
+  saveProjectConfig,
   loadChange,
   saveChange,
   getProjectPaths,
@@ -125,9 +126,18 @@ export async function createStore(
   // ---------------------------------------------------------------------------
   // Compose domain namespaces
   // ---------------------------------------------------------------------------
-  const specs = createSpecsOps(ctx, boundEnsureSpecSynced, boundEnsureAllSpecsSynced);
+  const specs = createSpecsOps(
+    ctx,
+    boundEnsureSpecSynced,
+    boundEnsureAllSpecsSynced,
+  );
   const changes = createChangesOps(ctx, boundEnsureAllChangesSynced, saveFn);
-  const tasks = createTasksOps(ctx, boundEnsureAllChangesSynced, boundEnsureChangeSynced, saveFn);
+  const tasks = createTasksOps(
+    ctx,
+    boundEnsureAllChangesSynced,
+    boundEnsureChangeSynced,
+    saveFn,
+  );
   const wisdom = createWisdomOps(ctx, saveFn);
   const gates = createGatesOps(ctx, boundEnsureChangeSynced, saveFn);
 
@@ -140,6 +150,30 @@ export async function createStore(
 
     // Lifecycle
     init: async () => {
+      if (!config) {
+        await saveProjectConfig(directory, {
+          name: basename(directory) || "project",
+          specs_dir: ".adv/specs",
+          changes_dir: ".adv/changes",
+          archive_dir: ".adv/archive",
+          docs_dir: "docs/specs",
+          db_dir: ".adv/db",
+          project_file: "project.md",
+          features: {
+            tdd_enforcement: "strict",
+            worktree_auto_create: true,
+            gate_enforcement: "strict",
+            wisdom_accumulation: true,
+            clarify_enforcement: "advisory",
+            slop_scan: {
+              nesting_depth_threshold: 8,
+              defensive_guard_threshold: 0.25,
+              complexity_threshold: 12,
+              ast_timeout_ms: 10000,
+            },
+          },
+        });
+      }
       await boundEnsureAllSpecsSynced();
       await boundEnsureAllChangesSynced();
     },

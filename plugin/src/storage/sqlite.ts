@@ -8,53 +8,7 @@
  */
 
 import { Database } from "bun:sqlite";
-import { statSync } from "node:fs";
 import type { Spec, Change, Task } from "../types";
-
-// =============================================================================
-// Retry Logic for Concurrent Access
-// =============================================================================
-
-const MAX_RETRIES = 3;
-const RETRY_DELAY_MS = 100;
-
-/**
- * Execute a database operation with retry logic for busy/locked errors.
- * SQLite can return SQLITE_BUSY when another process holds a lock.
- */
-function withRetry<T>(operation: () => T, operationName: string): T {
-  let lastError: Error | null = null;
-
-  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-    try {
-      return operation();
-    } catch (e) {
-      const error = e as Error;
-      const isBusy =
-        error.message.includes("database is locked") ||
-        error.message.includes("SQLITE_BUSY") ||
-        error.message.includes("cannot start a transaction");
-
-      if (isBusy && attempt < MAX_RETRIES) {
-        lastError = error;
-        // Exponential backoff: 100ms, 200ms, 400ms...
-        const delay = RETRY_DELAY_MS * Math.pow(2, attempt - 1);
-        // Synchronous sleep - not ideal but necessary for synchronous API
-        const start = Date.now();
-        while (Date.now() - start < delay) {
-          // busy wait
-        }
-        continue;
-      }
-      throw error;
-    }
-  }
-
-  throw (
-    lastError ??
-    new Error(`${operationName} failed after ${MAX_RETRIES} retries`)
-  );
-}
 
 // =============================================================================
 // Database Schema
@@ -285,11 +239,37 @@ export interface SQLiteStore {
 
   // Wisdom (derived cache from change.json.wisdom[] and wisdom.jsonl)
   wisdom: {
-    upsertBatch: (changeId: string, entries: { id: string; type: string; content: string; source_task?: string; recorded_at: string }[]) => void;
-    upsertProject: (entries: { id: string; type: string; content: string; source_change?: string; source_task?: string; promoted_at: string }[]) => void;
+    upsertBatch: (
+      changeId: string,
+      entries: {
+        id: string;
+        type: string;
+        content: string;
+        source_task?: string;
+        recorded_at: string;
+      }[],
+    ) => void;
+    upsertProject: (
+      entries: {
+        id: string;
+        type: string;
+        content: string;
+        source_change?: string;
+        source_task?: string;
+        promoted_at: string;
+      }[],
+    ) => void;
     deleteByChange: (changeId: string) => void;
     deleteProjectScope: () => void;
-    search: (query: string, options?: { changeId?: string; scope?: string; type?: string; limit?: number }) => WisdomSearchResult[];
+    search: (
+      query: string,
+      options?: {
+        changeId?: string;
+        scope?: string;
+        type?: string;
+        limit?: number;
+      },
+    ) => WisdomSearchResult[];
     listAll: (options?: { scope?: string; type?: string }) => WisdomRow[];
   };
 
@@ -697,7 +677,9 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `),
     wisdomDeleteByChange: db.query("DELETE FROM wisdom WHERE change_id = ?"),
-    wisdomDeleteProjectScope: db.query("DELETE FROM wisdom WHERE scope = 'project'"),
+    wisdomDeleteProjectScope: db.query(
+      "DELETE FROM wisdom WHERE scope = 'project'",
+    ),
     wisdomSearch: db.query(`
       SELECT w.id, w.scope, w.change_id, w.type, w.content,
              snippet(wisdom_fts, 1, '<mark>', '</mark>', '...', 32) as match,
@@ -709,9 +691,15 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
       LIMIT ?
     `),
     wisdomListAll: db.query("SELECT * FROM wisdom ORDER BY recorded_at DESC"),
-    wisdomListByScope: db.query("SELECT * FROM wisdom WHERE scope = ? ORDER BY recorded_at DESC"),
-    wisdomListByType: db.query("SELECT * FROM wisdom WHERE type = ? ORDER BY recorded_at DESC"),
-    wisdomListByScopeAndType: db.query("SELECT * FROM wisdom WHERE scope = ? AND type = ? ORDER BY recorded_at DESC"),
+    wisdomListByScope: db.query(
+      "SELECT * FROM wisdom WHERE scope = ? ORDER BY recorded_at DESC",
+    ),
+    wisdomListByType: db.query(
+      "SELECT * FROM wisdom WHERE type = ? ORDER BY recorded_at DESC",
+    ),
+    wisdomListByScopeAndType: db.query(
+      "SELECT * FROM wisdom WHERE scope = ? AND type = ? ORDER BY recorded_at DESC",
+    ),
   };
 
   return {
@@ -730,54 +718,52 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
       },
 
       upsert: (spec, jsonPath) => {
-        withRetry(() => {
-          const now = new Date().toISOString();
+        const now = new Date().toISOString();
 
-          // Use IMMEDIATE transaction to acquire write lock upfront
-          db.exec("BEGIN IMMEDIATE TRANSACTION");
-          try {
-            stmts.specsUpsert.run(
+        // Use IMMEDIATE transaction to acquire write lock upfront
+        db.exec("BEGIN IMMEDIATE TRANSACTION");
+        try {
+          stmts.specsUpsert.run(
+            spec.name,
+            spec.title,
+            spec.purpose,
+            spec.version,
+            spec.updated_at,
+            jsonPath,
+            now,
+          );
+
+          // Delete old requirements
+          stmts.reqsDeleteBySpec.run(spec.name);
+
+          // Insert requirements
+          for (const req of spec.requirements) {
+            stmts.reqsInsert.run(
+              req.id,
               spec.name,
-              spec.title,
-              spec.purpose,
-              spec.version,
-              spec.updated_at,
-              jsonPath,
-              now,
+              req.title,
+              req.body,
+              req.priority,
+              req.tags ? JSON.stringify(req.tags) : null,
             );
 
-            // Delete old requirements
-            stmts.reqsDeleteBySpec.run(spec.name);
-
-            // Insert requirements
-            for (const req of spec.requirements) {
-              stmts.reqsInsert.run(
+            // Insert scenarios
+            for (const scenario of req.scenarios ?? []) {
+              stmts.scenarioInsert.run(
+                scenario.id,
                 req.id,
-                spec.name,
-                req.title,
-                req.body,
-                req.priority,
-                req.tags ? JSON.stringify(req.tags) : null,
+                scenario.title,
+                JSON.stringify(scenario.given),
+                scenario.when,
+                JSON.stringify(scenario.then),
               );
-
-              // Insert scenarios
-              for (const scenario of req.scenarios ?? []) {
-                stmts.scenarioInsert.run(
-                  scenario.id,
-                  req.id,
-                  scenario.title,
-                  JSON.stringify(scenario.given),
-                  scenario.when,
-                  JSON.stringify(scenario.then),
-                );
-              }
             }
-            db.exec("COMMIT");
-          } catch (e) {
-            db.exec("ROLLBACK");
-            throw e;
           }
-        }, "specs.upsert");
+          db.exec("COMMIT");
+        } catch (e) {
+          db.exec("ROLLBACK");
+          throw e;
+        }
       },
 
       delete: (name) => {
@@ -821,89 +807,87 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
       },
 
       upsert: (change, jsonPath) => {
-        withRetry(() => {
-          const now = new Date().toISOString();
+        const now = new Date().toISOString();
 
-          // Use IMMEDIATE transaction to acquire write lock upfront
-          db.exec("BEGIN IMMEDIATE TRANSACTION");
-          try {
-            stmts.changesUpsert.run(
+        // Use IMMEDIATE transaction to acquire write lock upfront
+        db.exec("BEGIN IMMEDIATE TRANSACTION");
+        try {
+          stmts.changesUpsert.run(
+            change.id,
+            change.title,
+            change.status,
+            change.created_at,
+            change.created_by ?? null,
+            jsonPath,
+            now,
+          );
+
+          // Delete old tasks (and their metadata via CASCADE)
+          stmts.tasksDeleteByChange.run(change.id);
+          stmts.taskMetadataDeleteByChange.run(change.id);
+
+          // Insert tasks
+          for (const task of change.tasks) {
+            stmts.tasksInsert.run(
+              task.id,
               change.id,
-              change.title,
-              change.status,
-              change.created_at,
-              change.created_by ?? null,
-              jsonPath,
-              now,
+              task.title,
+              task.type ?? "code",
+              task.section ?? null,
+              task.status,
+              task.priority ?? 0,
+              task.created_at,
+              task.started_at ?? null,
+              task.completed_at ?? null,
+              task.completed_by ?? null,
+              task.cancellation?.reason ?? null,
             );
 
-            // Delete old tasks (and their metadata via CASCADE)
-            stmts.tasksDeleteByChange.run(change.id);
-            stmts.taskMetadataDeleteByChange.run(change.id);
-
-            // Insert tasks
-            for (const task of change.tasks) {
-              stmts.tasksInsert.run(
-                task.id,
-                change.id,
-                task.title,
-                task.type ?? "code",
-                task.section ?? null,
-                task.status,
-                task.priority ?? 0,
-                task.created_at,
-                task.started_at ?? null,
-                task.completed_at ?? null,
-                task.completed_by ?? null,
-                task.cancellation?.reason ?? null,
-              );
-
-              // Insert dependencies
-              for (const dep of task.deps ?? []) {
-                stmts.depInsert.run(task.id, dep.target, dep.type);
-              }
-
-              // Insert metadata key-value pairs
-              if (task.metadata) {
-                for (const [key, value] of Object.entries(task.metadata)) {
-                  stmts.taskMetadataInsert.run(task.id, change.id, key, value);
-                }
-              }
+            // Insert dependencies
+            for (const dep of task.deps ?? []) {
+              stmts.depInsert.run(task.id, dep.target, dep.type);
             }
 
-            // Delete old deltas
-            stmts.deltasDeleteByChange.run(change.id);
-
-            // Insert deltas
-            for (const [capability, deltas] of Object.entries(change.deltas)) {
-              for (const delta of deltas) {
-                stmts.deltaInsert.run(
-                  delta.id,
-                  change.id,
-                  capability,
-                  delta.operation,
-                  "target_id" in delta ? delta.target_id : null,
-                  delta.operation === "add"
-                    ? JSON.stringify(delta.requirement)
-                    : null,
-                  delta.operation === "modify"
-                    ? JSON.stringify(delta.changes)
-                    : delta.operation === "rename"
-                      ? JSON.stringify({
-                          new_title: delta.new_title,
-                          ...(delta.new_id ? { new_id: delta.new_id } : {}),
-                        })
-                      : null,
-                  delta.operation === "remove" ? delta.reason : null,
-                );
+            // Insert metadata key-value pairs
+            if (task.metadata) {
+              for (const [key, value] of Object.entries(task.metadata)) {
+                stmts.taskMetadataInsert.run(task.id, change.id, key, value);
               }
             }
-            db.exec("COMMIT");
-          } catch (e) {
-            db.exec("ROLLBACK");
-            throw e;
           }
-        }, "changes.upsert");
+
+          // Delete old deltas
+          stmts.deltasDeleteByChange.run(change.id);
+
+          // Insert deltas
+          for (const [capability, deltas] of Object.entries(change.deltas)) {
+            for (const delta of deltas) {
+              stmts.deltaInsert.run(
+                delta.id,
+                change.id,
+                capability,
+                delta.operation,
+                "target_id" in delta ? delta.target_id : null,
+                delta.operation === "add"
+                  ? JSON.stringify(delta.requirement)
+                  : null,
+                delta.operation === "modify"
+                  ? JSON.stringify(delta.changes)
+                  : delta.operation === "rename"
+                    ? JSON.stringify({
+                        new_title: delta.new_title,
+                        ...(delta.new_id ? { new_id: delta.new_id } : {}),
+                      })
+                    : null,
+                delta.operation === "remove" ? delta.reason : null,
+              );
+            }
+          }
+          db.exec("COMMIT");
+        } catch (e) {
+          db.exec("ROLLBACK");
+          throw e;
+        }
       },
 
       delete: (id) => {
@@ -1124,7 +1108,10 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
           return [];
         }
 
-        let results = stmts.wisdomSearch.all(sanitizedQuery, limit) as WisdomSearchResult[];
+        let results = stmts.wisdomSearch.all(
+          sanitizedQuery,
+          limit,
+        ) as WisdomSearchResult[];
 
         // Filter by changeId if provided
         if (options?.changeId) {
@@ -1144,7 +1131,10 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
 
       listAll: (options) => {
         if (options?.scope && options?.type) {
-          return stmts.wisdomListByScopeAndType.all(options.scope, options.type) as WisdomRow[];
+          return stmts.wisdomListByScopeAndType.all(
+            options.scope,
+            options.type,
+          ) as WisdomRow[];
         }
         if (options?.scope) {
           return stmts.wisdomListByScope.all(options.scope) as WisdomRow[];

@@ -638,22 +638,26 @@ describe("wisdom schema (tk-GPqLihyR)", () => {
 
   test("wisdom table is created on store init", () => {
     const result = wStore.db
-      .query("SELECT name FROM sqlite_master WHERE type='table' AND name='wisdom'")
+      .query(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='wisdom'",
+      )
       .get() as { name: string } | null;
     expect(result?.name).toBe("wisdom");
   });
 
   test("wisdom_fts virtual table exists", () => {
     const result = wStore.db
-      .query("SELECT name FROM sqlite_master WHERE type='table' AND name='wisdom_fts'")
+      .query(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='wisdom_fts'",
+      )
       .get() as { name: string } | null;
     expect(result?.name).toBe("wisdom_fts");
   });
 
   test("wisdom table has required columns", () => {
-    const cols = wStore.db
-      .query("PRAGMA table_info(wisdom)")
-      .all() as { name: string }[];
+    const cols = wStore.db.query("PRAGMA table_info(wisdom)").all() as {
+      name: string;
+    }[];
     const colNames = cols.map((c) => c.name);
     expect(colNames).toContain("id");
     expect(colNames).toContain("scope");
@@ -667,14 +671,18 @@ describe("wisdom schema (tk-GPqLihyR)", () => {
 
   test("idx_wisdom_change_id index exists", () => {
     const result = wStore.db
-      .query("SELECT name FROM sqlite_master WHERE type='index' AND name='idx_wisdom_change_id'")
+      .query(
+        "SELECT name FROM sqlite_master WHERE type='index' AND name='idx_wisdom_change_id'",
+      )
       .get() as { name: string } | null;
     expect(result?.name).toBe("idx_wisdom_change_id");
   });
 
   test("idx_wisdom_scope index exists", () => {
     const result = wStore.db
-      .query("SELECT name FROM sqlite_master WHERE type='index' AND name='idx_wisdom_scope'")
+      .query(
+        "SELECT name FROM sqlite_master WHERE type='index' AND name='idx_wisdom_scope'",
+      )
       .get() as { name: string } | null;
     expect(result?.name).toBe("idx_wisdom_scope");
   });
@@ -682,7 +690,14 @@ describe("wisdom schema (tk-GPqLihyR)", () => {
   test("FTS trigger fires on INSERT — entry is searchable", () => {
     wStore.db.run(
       "INSERT INTO wisdom (id, scope, change_id, type, content, recorded_at) VALUES (?, ?, ?, ?, ?, ?)",
-      ["ws-test01", "change", "ch1", "pattern", "use dependency injection for testability", new Date().toISOString()]
+      [
+        "ws-test01",
+        "change",
+        "ch1",
+        "pattern",
+        "use dependency injection for testability",
+        new Date().toISOString(),
+      ],
     );
     const result = wStore.db
       .query("SELECT id FROM wisdom_fts WHERE wisdom_fts MATCH ?")
@@ -693,7 +708,14 @@ describe("wisdom schema (tk-GPqLihyR)", () => {
   test("FTS trigger fires on DELETE — entry no longer searchable", () => {
     wStore.db.run(
       "INSERT INTO wisdom (id, scope, change_id, type, content, recorded_at) VALUES (?, ?, ?, ?, ?, ?)",
-      ["ws-del01", "change", "ch1", "gotcha", "always check for null before accessing properties", new Date().toISOString()]
+      [
+        "ws-del01",
+        "change",
+        "ch1",
+        "gotcha",
+        "always check for null before accessing properties",
+        new Date().toISOString(),
+      ],
     );
     wStore.db.run("DELETE FROM wisdom WHERE id = ?", ["ws-del01"]);
     const result = wStore.db
@@ -719,7 +741,11 @@ describe("SQLiteStore wisdom namespace (tk-MDmM9SAH)", () => {
     await cleanupTempDir(tempDir3);
   });
 
-  const makeEntry = (id: string, type = "pattern", content = "test content") => ({
+  const makeEntry = (
+    id: string,
+    type = "pattern",
+    content = "test content",
+  ) => ({
     id,
     type: type as "pattern",
     content,
@@ -733,7 +759,9 @@ describe("SQLiteStore wisdom namespace (tk-MDmM9SAH)", () => {
     ];
     wStore.wisdom.upsertBatch("ch-abc", entries);
 
-    const rows = wStore.db.query("SELECT * FROM wisdom WHERE change_id = ?").all("ch-abc") as { id: string }[];
+    const rows = wStore.db
+      .query("SELECT * FROM wisdom WHERE change_id = ?")
+      .all("ch-abc") as { id: string }[];
     expect(rows).toHaveLength(2);
     expect(rows.map((r) => r.id)).toContain("ws-001");
     expect(rows.map((r) => r.id)).toContain("ws-002");
@@ -741,51 +769,79 @@ describe("SQLiteStore wisdom namespace (tk-MDmM9SAH)", () => {
 
   test("upsertBatch sets scope to 'change' for all entries", () => {
     wStore.wisdom.upsertBatch("ch-abc", [makeEntry("ws-003")]);
-    const row = wStore.db.query("SELECT scope FROM wisdom WHERE id = ?").get("ws-003") as { scope: string };
+    const row = wStore.db
+      .query("SELECT scope FROM wisdom WHERE id = ?")
+      .get("ws-003") as { scope: string };
     expect(row.scope).toBe("change");
   });
 
   test("upsertProject inserts project-level entries with scope 'project'", () => {
-    wStore.wisdom.upsertProject([{
-      id: "pw-001",
-      type: "convention",
-      content: "always use atomic writes",
-      promoted_at: new Date().toISOString(),
-    }]);
-    const row = wStore.db.query("SELECT scope FROM wisdom WHERE id = ?").get("pw-001") as { scope: string } | null;
+    wStore.wisdom.upsertProject([
+      {
+        id: "pw-001",
+        type: "convention",
+        content: "always use atomic writes",
+        promoted_at: new Date().toISOString(),
+      },
+    ]);
+    const row = wStore.db
+      .query("SELECT scope FROM wisdom WHERE id = ?")
+      .get("pw-001") as { scope: string } | null;
     expect(row?.scope).toBe("project");
   });
 
   test("deleteByChange removes only that change's entries", () => {
-    wStore.wisdom.upsertBatch("ch-del", [makeEntry("ws-del1"), makeEntry("ws-del2")]);
+    wStore.wisdom.upsertBatch("ch-del", [
+      makeEntry("ws-del1"),
+      makeEntry("ws-del2"),
+    ]);
     wStore.wisdom.upsertBatch("ch-keep", [makeEntry("ws-keep1")]);
     wStore.wisdom.deleteByChange("ch-del");
 
-    const deleted = wStore.db.query("SELECT id FROM wisdom WHERE change_id = ?").all("ch-del");
+    const deleted = wStore.db
+      .query("SELECT id FROM wisdom WHERE change_id = ?")
+      .all("ch-del");
     expect(deleted).toHaveLength(0);
 
-    const kept = wStore.db.query("SELECT id FROM wisdom WHERE change_id = ?").all("ch-keep") as { id: string }[];
+    const kept = wStore.db
+      .query("SELECT id FROM wisdom WHERE change_id = ?")
+      .all("ch-keep") as { id: string }[];
     expect(kept).toHaveLength(1);
     expect(kept[0].id).toBe("ws-keep1");
   });
 
   test("deleteProjectScope removes only project-scoped entries", () => {
     wStore.wisdom.upsertBatch("ch-abc", [makeEntry("ws-change1")]);
-    wStore.wisdom.upsertProject([{ id: "pw-999", type: "pattern", content: "project entry", promoted_at: new Date().toISOString() }]);
+    wStore.wisdom.upsertProject([
+      {
+        id: "pw-999",
+        type: "pattern",
+        content: "project entry",
+        promoted_at: new Date().toISOString(),
+      },
+    ]);
 
     wStore.wisdom.deleteProjectScope();
 
-    const projectEntries = wStore.db.query("SELECT id FROM wisdom WHERE scope = 'project'").all();
+    const projectEntries = wStore.db
+      .query("SELECT id FROM wisdom WHERE scope = 'project'")
+      .all();
     expect(projectEntries).toHaveLength(0);
 
-    const changeEntries = wStore.db.query("SELECT id FROM wisdom WHERE scope = 'change'").all() as { id: string }[];
+    const changeEntries = wStore.db
+      .query("SELECT id FROM wisdom WHERE scope = 'change'")
+      .all() as { id: string }[];
     expect(changeEntries).toHaveLength(1);
     expect(changeEntries[0].id).toBe("ws-change1");
   });
 
   test("search returns FTS-ranked results matching query", () => {
     wStore.wisdom.upsertBatch("ch-s1", [
-      makeEntry("ws-auth1", "pattern", "always validate JWT tokens on the server"),
+      makeEntry(
+        "ws-auth1",
+        "pattern",
+        "always validate JWT tokens on the server",
+      ),
       makeEntry("ws-noauth", "gotcha", "use connection pooling for databases"),
     ]);
 
@@ -795,8 +851,12 @@ describe("SQLiteStore wisdom namespace (tk-MDmM9SAH)", () => {
   });
 
   test("search with changeId filters to that change only", () => {
-    wStore.wisdom.upsertBatch("ch-a", [makeEntry("ws-a1", "pattern", "auth pattern for service A")]);
-    wStore.wisdom.upsertBatch("ch-b", [makeEntry("ws-b1", "pattern", "auth pattern for service B")]);
+    wStore.wisdom.upsertBatch("ch-a", [
+      makeEntry("ws-a1", "pattern", "auth pattern for service A"),
+    ]);
+    wStore.wisdom.upsertBatch("ch-b", [
+      makeEntry("ws-b1", "pattern", "auth pattern for service B"),
+    ]);
 
     const results = wStore.wisdom.search("auth pattern", { changeId: "ch-a" });
     expect(results.every((r) => r.change_id === "ch-a")).toBe(true);
@@ -804,7 +864,14 @@ describe("SQLiteStore wisdom namespace (tk-MDmM9SAH)", () => {
 
   test("listAll returns all entries across scopes", () => {
     wStore.wisdom.upsertBatch("ch-x", [makeEntry("ws-x1"), makeEntry("ws-x2")]);
-    wStore.wisdom.upsertProject([{ id: "pw-x1", type: "convention", content: "project level", promoted_at: new Date().toISOString() }]);
+    wStore.wisdom.upsertProject([
+      {
+        id: "pw-x1",
+        type: "convention",
+        content: "project level",
+        promoted_at: new Date().toISOString(),
+      },
+    ]);
 
     const all = wStore.wisdom.listAll();
     expect(all.length).toBe(3);
