@@ -23,7 +23,7 @@ Complete installation instructions for the ADV spec-driven development plugin.
 | Dependency | Version | Check Command |
 |------------|---------|---------------|
 | Node.js | 20.x or higher | `node --version` |
-| pnpm | 9.x (recommended) | `pnpm --version` |
+| pnpm | 10.x (recommended) | `pnpm --version` |
 | OpenCode CLI | Latest | `opencode --version` |
 
 ### Optional
@@ -120,7 +120,7 @@ pnpm build
 
 ```bash
 pnpm test
-# Expected: 288+ tests passing
+# Expected: 1250+ tests passing
 ```
 
 ---
