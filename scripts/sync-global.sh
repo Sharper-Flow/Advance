@@ -171,16 +171,6 @@ print_diff() {
   fi
 }
 
-write_or_preview() {
-  local target="$1" source_tmp="$2"
-  if [ "$DRY_RUN" = true ]; then
-    print_diff "$target" "$source_tmp"
-    return 0
-  fi
-
-  mv "$source_tmp" "$target"
-}
-
 apply_overlay_block() {
   local overlay_name="$1"
   local target_file="$2"
@@ -198,16 +188,20 @@ apply_overlay_block() {
     return 1
   fi
 
-  local marker_count
-  marker_count="$(python - <<'PY' "$target_file" "$start_marker"
+  local start_count end_count
+  read -r start_count end_count <<< "$(python - <<'PY' "$target_file" "$start_marker" "$end_marker"
 from pathlib import Path
 import sys
 text = Path(sys.argv[1]).read_text()
-print(text.count(sys.argv[2]))
+print(text.count(sys.argv[2]), text.count(sys.argv[3]))
 PY
 )"
-  if [ "$marker_count" -gt 1 ]; then
+  if [ "$start_count" -gt 1 ] || [ "$end_count" -gt 1 ]; then
     echo "    duplicate overlay marker: $(basename "$target_file")"
+    return 1
+  fi
+  if [ "$start_count" -ne "$end_count" ]; then
+    echo "    orphaned overlay marker: $(basename "$target_file")"
     return 1
   fi
 
@@ -549,7 +543,7 @@ agents_copied=0
 # Agents that must stay repo-local (not synced to global)
 REPO_LOCAL_ONLY="adv-researcher.md tron.md"
 # Shared agents managed via overlay blocks instead of full-file replacement
-SHARED_OVERLAY_ONLY="adv.md build.md plan.md refine.md scout.md"
+SHARED_OVERLAY_ONLY="adv.md build.md general.md plan.md refine.md scout.md"
 if [ -d "$REPO_AGENTS" ]; then
   for src in "$REPO_AGENTS"/*.md; do
     [ -f "$src" ] || continue

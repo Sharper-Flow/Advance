@@ -84,7 +84,7 @@ MCP servers — that's your responsibility.
 If you want to run ADV with the smallest possible footprint:
 
 1. OpenCode CLI
-2. Node.js 20+, pnpm 9+
+2. Node.js 20+, pnpm 10+
 3. ADV plugin built (`plugin/dist/index.js` present)
 4. `~/.config/opencode/agents/` contains `explore` and `librarian` at minimum
 5. No external MCP servers required — agents fall back to built-in tools

@@ -51,6 +51,11 @@ describe("ADV orchestrator agent", () => {
     const files = readdirSync(AGENT_DIR);
     expect(files).not.toContain("orca.md");
   });
+
+  test("orca.overlay.md does not exist in repo overlays", () => {
+    const files = readdirSync(OVERLAY_DIR);
+    expect(files).not.toContain("orca.overlay.md");
+  });
 });
 
 describe("ADV command routing assets", () => {

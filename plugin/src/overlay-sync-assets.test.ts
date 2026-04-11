@@ -1,5 +1,13 @@
 import { describe, expect, test } from "vitest";
-import { readFileSync } from "fs";
+import {
+  mkdtempSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "fs";
+import { spawnSync } from "child_process";
+import { tmpdir } from "os";
 import { join, resolve } from "path";
 
 const REPO_ROOT = resolve(__dirname, "../..");
@@ -22,5 +30,38 @@ describe("overlay sync script support", () => {
   test("detects duplicate overlay markers and skips unsafe writes", () => {
     expect(content).toContain("duplicate overlay marker");
     expect(content).toContain("skipped missing shared agent");
+  });
+
+  test("fails fast on orphaned overlay markers", () => {
+    const tempHome = mkdtempSync(join(tmpdir(), "adv-sync-"));
+
+    try {
+      const globalAgents = join(tempHome, ".config/opencode/agents");
+      mkdirSync(globalAgents, { recursive: true });
+      writeFileSync(
+        join(globalAgents, "adv.md"),
+        [
+          "---",
+          'description: "temp adv agent"',
+          "---",
+          "",
+          "<!-- ADV_SYNC:START adv -->",
+          "stale overlay without end marker",
+          "",
+        ].join("\n"),
+      );
+
+      const result = spawnSync("bash", [SYNC_SCRIPT_PATH, "--dry-run"], {
+        cwd: REPO_ROOT,
+        env: { ...process.env, HOME: tempHome, CI: "true" },
+        encoding: "utf8",
+      });
+
+      const output = `${result.stdout}${result.stderr}`;
+      expect(result.status).toBe(1);
+      expect(output).toContain("orphaned overlay marker: adv.md");
+    } finally {
+      rmSync(tempHome, { recursive: true, force: true });
+    }
   });
 });

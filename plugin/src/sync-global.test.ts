@@ -61,7 +61,7 @@ describe("sync-global.sh", () => {
 
     test("skips shared agents that are overlay-managed", () => {
       expect(content).toContain(
-        'SHARED_OVERLAY_ONLY="adv.md build.md plan.md refine.md scout.md"',
+        'SHARED_OVERLAY_ONLY="adv.md build.md general.md plan.md refine.md scout.md"',
       );
       expect(content).toContain("skipped (overlay-managed):");
     });
