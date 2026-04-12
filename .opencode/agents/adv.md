@@ -4,6 +4,7 @@ mode: primary
 color: "#73D0FF"
 temperature: 0.2
 tools:
+  # === Core tools ===
   bash: true
   read: true
   glob: true
@@ -15,6 +16,7 @@ tools:
   task: true
   question: true
   todowrite: true
+  # Local code intelligence
   lgrep_search_semantic: true
   lgrep_index_semantic: true
   lgrep_search_symbols: true
@@ -28,6 +30,57 @@ tools:
   lgrep_search_text: true
   lgrep_list_repos: true
   lgrep_invalidate_cache: true
+  # === ADV tools — full suite for 7-gate orchestration ===
+  # Specs + project context
+  adv_spec: true
+  adv_status: true
+  adv_project_context: true
+  # Changes
+  adv_change_list: true
+  adv_change_show: true
+  adv_change_summary: true
+  adv_change_create: true
+  adv_change_update: true
+  adv_change_close: true
+  adv_change_validate: true
+  adv_change_archive: true
+  adv_change_add_issue: true
+  adv_change_remove_issue: true
+  # Tasks
+  adv_task_list: true
+  adv_task_show: true
+  adv_task_ready: true
+  adv_task_add: true
+  adv_task_update: true
+  adv_task_evidence: true
+  adv_task_tdd_phase: true
+  adv_task_reclassify_tdd: true
+  adv_task_tdd_status: true
+  adv_task_cancel: true
+  # Wisdom
+  adv_wisdom_list: true
+  adv_wisdom_add: true
+  adv_wisdom_promote: true
+  # Project wisdom
+  adv_project_wisdom_list: true
+  # Agenda
+  adv_agenda_list: true
+  adv_agenda_add: true
+  adv_agenda_start: true
+  adv_agenda_complete: true
+  adv_agenda_cancel: true
+  adv_agenda_prioritize: true
+  adv_agenda_next: true
+  adv_agenda_stats: true
+  adv_agenda_evidence: true
+  adv_agenda_compact: true
+  # Gates
+  adv_gate_status: true
+  adv_gate_complete: true
+  adv_run_test: true
+  # === Worktree — orchestrator owns lifecycle ===
+  worktree_create: true
+  worktree_delete: true
 ---
 <!-- ADV_SYNC:START adv -->
 ## ADV Overlay
@@ -193,3 +246,28 @@ After completing any workflow, emit:
 ### Next Step
 {What the user should do or approve next}
 ```
+
+## ADV State Access Policy
+
+**NEVER** read ADV state files directly using `read`, `bash cat`, `ls`, or any filesystem tool. This includes any path matching:
+- `~/.local/share/opencode/plugins/advance/**/change.json`
+- `~/.local/share/opencode/plugins/advance/**/proposal.md`
+- `~/.local/share/opencode/plugins/advance/**/agenda.jsonl`
+- `~/.local/share/opencode/plugins/advance/**/wisdom.jsonl`
+- `~/.local/share/opencode/plugins/advance/**/handoff.json`
+
+**ALWAYS** use the ADV MCP tools instead:
+
+| You want | Use this tool |
+|----------|---------------|
+| Change details + tasks | `adv_change_show` |
+| Lightweight change context | `adv_change_summary` |
+| A specific task + its changeId | `adv_task_show` |
+| Tasks ready to work | `adv_task_ready` |
+| All tasks for a change | `adv_task_list` |
+| List all active changes | `adv_change_list` |
+| Validate a change | `adv_change_validate` |
+| Wisdom / learnings | `adv_wisdom_list` |
+| Agenda items | `adv_agenda_list` |
+
+If a direct read attempt fails (file not found, wrong path), **do not retry with a different path**. Stop and call `adv_change_show` instead.

@@ -47,6 +47,32 @@ describe("ADV orchestrator agent", () => {
     expect(content).toMatch(/user.*approv|user.*confirm|user.*judgment/i);
   });
 
+  test("adv.md declares ADV MCP tools in frontmatter", () => {
+    const content = readFileSync(join(AGENT_DIR, "adv.md"), "utf8");
+    const frontmatter = content.split("---")[1] ?? "";
+    // One tool from each ADV category must be present
+    const requiredTools = [
+      "adv_change_show",
+      "adv_task_update",
+      "adv_gate_complete",
+      "adv_wisdom_add",
+      "adv_agenda_list",
+      "adv_spec",
+      "adv_run_test",
+      "worktree_create",
+    ];
+    for (const tool of requiredTools) {
+      expect(frontmatter, `missing tool: ${tool}`).toContain(tool);
+    }
+  });
+
+  test("adv.md includes ADV State Access Policy", () => {
+    const content = readFileSync(join(AGENT_DIR, "adv.md"), "utf8");
+    expect(content).toContain("ADV State Access Policy");
+    expect(content).toContain("adv_change_show");
+    expect(content).toContain("NEVER");
+  });
+
   test("orca.md does not exist in repo agents", () => {
     const files = readdirSync(AGENT_DIR);
     expect(files).not.toContain("orca.md");
