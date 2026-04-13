@@ -45,7 +45,7 @@ If new objectives or acceptance criteria are discovered during execution that we
 
 Existing tasks and completed work are preserved across re-entry. Only gate state is reset.
 
-## Phase 0: Worktree Assessment
+## Phase 0.1: Worktree Assessment
 Assess whether change benefits from worktree isolation.
 ### Risk Assessment
 | Signal | Risk |
@@ -68,7 +68,7 @@ If user approves:
 3. Continue inline — no handoff, no new terminal needed
 4. When deleting later, pass `branch: "change/{change-id}"` to `worktree_delete`
 
-## Phase 0.5: Overlap Warning (Advisory)
+## Phase 0.2: Overlap Warning (Advisory)
 Check `adv_change_list` for other active changes. Compare affected files. If overlaps found → emit advisory warning listing files and overlapping change IDs. Suggest `/adv-coordinate`. Does NOT block work.
 
 ---
@@ -167,7 +167,12 @@ Before TDD phases, evaluate each task for delegation eligibility:
 | 4 | Risk signals: multi-file, cross-repo, architectural keywords, failing-test diagnosis? | Any present → `inline_required` |
 | 5 | Default | `inline_required` |
 
-**If `delegate_allowed`:** Spawn `general` sub-agent with the Apply Context Packet below. If sub-agent succeeds → run incremental verification → if passes → mark done. If sub-agent fails OR verification fails → immediate inline fallback, continue with Red/Green phases.
+Hint semantics:
+- `inline_required` → never delegate
+- `delegate_allowed` → delegate when no risk signals force inline
+- `delegate_preferred` → delegate by default; only override if an execution precondition makes delegation impossible
+
+**If delegated (`delegate_allowed` or `delegate_preferred`):** Spawn `general` sub-agent with the Apply Context Packet below. If sub-agent succeeds → run incremental verification → if passes → mark done. If sub-agent fails OR verification fails → immediate inline fallback, continue with Red/Green phases.
 
 **If `inline_required`:** Proceed with standard TDD flow.
 

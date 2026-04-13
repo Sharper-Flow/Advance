@@ -146,12 +146,17 @@ describe("Design validation policy", () => {
     expect(content).toContain("CAUTION");
     expect(content).toContain("CONFLICT");
     expect(content).toContain("INCONCLUSIVE");
+    expect(content).toMatch(/adv_change_update/);
   });
 
   test("adv-present.md contains validator result display section", () => {
     const content = readAsset(join(COMMAND_DIR, "adv-present.md"));
     expect(content).toMatch(/[Vv]alidator/);
-    expect(content).toMatch(/VALIDATED|clean pass|CONFLICT/);
+    expect(content).toMatch(
+      /VALIDATED|clean pass|CAUTION|CONFLICT|INCONCLUSIVE/,
+    );
+    expect(content).toMatch(/No validation data.*omit section silently/);
+    expect(content).toMatch(/CONFLICT.*pause/i);
   });
 
   test("ADV_INSTRUCTIONS.md references design validation in sub-agent orchestration", () => {

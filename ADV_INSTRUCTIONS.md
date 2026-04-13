@@ -61,7 +61,7 @@ Specs are laws. Requirements are formally defined, validated, and enforced.
 | ---------------- | ------------------------------------------ | ------------------------------------------------------ | ----------------------- |
 | proposal         | Problem statement, criteria, constraints, discovery agenda (knowledge gaps) | Create tasks, complete non-owned gates, impl decisions, recommendations based on unverified assumptions | `proposal`              |
 | discover         | Context analysis, objectives, agreement.md | Create tasks, complete non-discovery gates             | `discovery`             |
-| design           | Architecture decisions, design.md          | Create tasks, complete non-owned gates, skip research  | `design`                |
+| design           | Architecture decisions, design.md, validator verdict | Create tasks, complete non-owned gates, skip research  | `design`                |
 | prep             | Task graph, gap analysis, sequencing       | Complete non-planning gates, architecture decisions    | `planning`              |
 | task             | Change + tasks + gates (fast-track exempt) | —                                                      | `proposal` → `planning` |
 | apply            | Implementation via TDD                     | Auto-complete pre-implementation gates                 | `execution`             |
@@ -196,11 +196,12 @@ Inline-only: `/adv-status`, `/adv-proposal`, `/adv-validate`, `/adv-archive`, `/
 | 3 | Title matches `isTrivialTask` patterns? | `delegate_allowed` |
 | 4 | Risk signals (multi-file, cross-repo, arch keywords)? | `inline_required` |
 | 5 | Default | `inline_required` |
-`delegation_hint` values: `inline_required`, `delegate_allowed`, `delegate_preferred`. Set during `/adv-prep` via task metadata. If delegated task fails → immediate inline fallback (no sub-agent retry).
+`delegation_hint` values: `inline_required` (never delegate), `delegate_allowed` (delegate when no risk signals force inline), `delegate_preferred` (delegate by default unless an execution precondition makes delegation impossible). Set during `/adv-prep` via task metadata. If delegated task fails → immediate inline fallback (no sub-agent retry).
 ### Context Packet Standards
-Two packet shapes for delegated work. Built from `adv_task_list` + `adv_change_show` at spawn time.
+Three packet shapes for delegated work. Built from `adv_task_list` + `adv_change_show` at spawn time.
 **Apply packet:** WORKING DIRECTORY, CHANGE (id + title), TASK (id + title + type + tdd_intent), AFFECTED FILES, DESIGN EXCERPT (if referenced), ACCEPTANCE CRITERIA (relevant to task), EXPECTED OUTPUT.
 **Review/Harden packet:** WORKING DIRECTORY, CHANGE (id + title + gate), AFFECTED FILES (with change summary), ACCEPTANCE CRITERIA (full list), TASK EVIDENCE SUMMARY (one line per task: id, title, status, tdd phase), EXPECTED OUTPUT (dimension-specific schema). See command contracts for full templates.
+**Slop-scan packet:** WORKING DIRECTORY, CHANGE (id + title + gate, when an active change exists), AFFECTED FILES (with change summary), TASK EVIDENCE SUMMARY, EXPECTED OUTPUT (JSON findings array). When no active change exists, omit CHANGE and TASK EVIDENCE SUMMARY. See command contract for standalone behavior.
 ### Post-Remediation Re-Verification
 After `/adv-review` or `/adv-harden` fixes findings, re-scan only affected dimensions:
 1. Spawn targeted scanner with PRIOR FINDINGS and scoped evaluation

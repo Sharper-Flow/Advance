@@ -34,14 +34,17 @@ Show a compact summary with:
 - key decisions
 - implementation strategy
 - major risks / tradeoffs
-- **Validator Result** — show verdict from Phase 3.5/3.6 of `/adv-design`:
+- **Validator Result** — always display validator outcome from Phase 3.5/3.6 of `/adv-design` when validation data exists:
   - `VALIDATED` → one-line note: "Validator: clean pass ✓"
   - `CAUTION` → list caution findings inline (brief, one sentence each)
-  - `CONFLICT` → show conflict details with unresolved items highlighted; always pause for user resolution before planning (see pause logic below)
-  - `INCONCLUSIVE` → show warning: "Validation attempted but inconclusive — validator sub-agent failed or returned empty"
-  - No validation data (legacy design) → omit section silently
+  - `CONFLICT` → show conflict details with unresolved items highlighted
+  - `INCONCLUSIVE` → show warning: "Validation attempted but inconclusive"
+  - No validation data (legacy design with no validator markers) → omit section silently
 
-If the design involves real user-value tradeoffs, OR the validator found a CONFLICT, ask the user whether the design is acceptable before moving into `/adv-prep`. If the design is straightforward with no user-value tradeoffs and validation returned VALIDATED or CAUTION or INCONCLUSIVE, proceed directly to `/adv-prep`.
+After displaying the validator result:
+- If the design involves real user-value tradeoffs, ask the user whether the design is acceptable before moving into `/adv-prep`
+- If the validator found an unresolved `CONFLICT`, always pause for user resolution before planning
+- If the design is straightforward with no user-value tradeoffs and validation returned `VALIDATED`, `CAUTION`, or `INCONCLUSIVE`, proceed directly to `/adv-prep`.
 
 Recommended options (when pausing):
 - Looks good — proceed to planning

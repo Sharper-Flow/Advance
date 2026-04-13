@@ -157,7 +157,7 @@ Drive the change through gates sequentially. Each gate has an owning workflow co
 ADV pauses ONLY at these checkpoints:
 - **Proposal confirmation** — user confirms problem statement
 - **Agreement sign-off** — user approves objectives and acceptance criteria
-- **Design approval** — ONLY when real tradeoffs depend on user values or product vision
+- **Design approval** — ONLY when real tradeoffs depend on user values or product vision, OR when the design validator returns `CONFLICT`
 - **Acceptance** — user confirms delivered work satisfies the agreement
 - **Archive sign-off** — user approves final release
 - **Cancellation / re-entry / doom-loop** — explicit user approval required

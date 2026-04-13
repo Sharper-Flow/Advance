@@ -55,7 +55,7 @@ Suggested structure:
 
 ---
 ## Phase 3.5: Validate Design
-Spawn `adv-researcher` with a validator-specific prompt. This step is mandatory — it must run before Phase 4. If the task tool is unavailable, skip gracefully and record INCONCLUSIVE.
+- Spawn `adv-researcher` with a validator-specific prompt. This step is mandatory — it must run before Phase 4. If the task tool is unavailable, skip gracefully and record `INCONCLUSIVE` via `adv_change_update` appended to `design.md` (see Phase 3.6).
 
 **Validator input:** design.md content + compact agreement summary (objectives, AC, constraints, avoidances).
 
@@ -101,7 +101,7 @@ Process the validator output and determine whether to proceed:
 |---------|--------|
 | `VALIDATED` | Record "Validator: clean pass" in design notes; proceed to Phase 4 |
 | `CAUTION` | Record caution findings in design notes; proceed to Phase 4 |
-| `CONFLICT` | Present conflict findings; attempt inline resolution if technical fix is obvious; if unresolved, flag in design notes for `/adv-present` to surface to user before planning |
+| `CONFLICT` | Present conflict findings; attempt inline resolution if technical fix is obvious; if unresolved, flag in design notes for `/adv-present` to surface to user before planning; if resolved inline, record the conflict as resolved and proceed |
 | `INCONCLUSIVE` (empty/failed/timeout) | Record "Validation attempted but inconclusive" warning; proceed to Phase 4 |
 
 Record the validation result via `adv_change_update` as a compact summary appended to `design.md`.

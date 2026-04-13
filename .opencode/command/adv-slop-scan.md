@@ -96,7 +96,7 @@ Divide files among up to 9 scanners by relevance. Cap each file at 3 scanners: `
 **Slop-Scan Context Packet (inject into every sub-agent spawn prompt):**
 ```
 WORKING DIRECTORY: {workdir}
-CHANGE: {change-id} | {title} | gate: release
+[if active change] CHANGE: {change-id} | {title} | gate: release
 AFFECTED FILES:
   - {file}: {one-line change summary}
   - ...
@@ -105,7 +105,7 @@ TASK EVIDENCE SUMMARY:
   - ...
 EXPECTED OUTPUT: JSON with findings array per dimension schema
 ```
-Build packet from `adv_task_list` and `adv_change_show` outputs at spawn time. Do NOT give explore agents ADV tool access.
+When an active ADV change exists, build packet from `adv_task_list` and `adv_change_show` outputs at spawn time. When running standalone, omit the CHANGE and TASK EVIDENCE SUMMARY lines. Do NOT give explore agents ADV tool access.
 
 Each also receives: smell definitions from yaml for their category, file list, instructions to focus on semantic issues (Phase 1 handles syntax), novelty check (skip if Phase 1 already found same issue unless adding semantic value).
 
