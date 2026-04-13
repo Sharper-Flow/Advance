@@ -4,7 +4,7 @@
  * Tests for status markers and terminal utilities.
  */
 
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { STATUS_MARKERS } from "../types";
 import {
   getStatusMarker,
@@ -20,6 +20,11 @@ import {
 } from "./status";
 import { getProjectName, isTmux } from "./terminal";
 import { normalizeChangeCode, buildTabTitle } from "./terminal";
+import {
+  updateTerminalStatus,
+  cleanupTerminal,
+  _setBellCallback,
+} from "./terminal";
 
 describe("Status Markers", () => {
   describe("getStatusMarker", () => {
@@ -401,5 +406,116 @@ describe("buildTabTitle", () => {
     const title = buildTabTitle("🌍", "advance", undefined);
     expect(title).not.toContain("advance");
     expect(title).toBe("🌍");
+  });
+});
+
+// =============================================================================
+// Bell Transition Logic (updateTerminalStatus)
+// =============================================================================
+
+describe("Bell Transition Logic", () => {
+  let bells: number;
+
+  const bellCount = (): number => bells;
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    bells = 0;
+    // Inject test callback — counts bell firings without real I/O
+    _setBellCallback(() => {
+      bells++;
+    });
+    // Reset terminal state (clears lastAlertedStatus to null + cancels pending bell)
+    cleanupTerminal();
+  });
+
+  afterEach(() => {
+    _setBellCallback(null);
+    vi.useRealTimers();
+  });
+
+  it("ROCKET→EARTH rings bell after debounce period", () => {
+    updateTerminalStatus("ROCKET", "test");
+    updateTerminalStatus("EARTH", "test");
+    // Bell should NOT have fired yet (debounce pending)
+    expect(bellCount()).toBe(0);
+    vi.advanceTimersByTime(2000);
+    // Now bell should fire
+    expect(bellCount()).toBe(1);
+  });
+
+  it("ROCKET→EARTH→ROCKET cancels pending bell (debounce)", () => {
+    updateTerminalStatus("ROCKET", "test");
+    updateTerminalStatus("EARTH", "test");
+    vi.advanceTimersByTime(500); // partial debounce
+    updateTerminalStatus("ROCKET", "test"); // agent resumes work
+    vi.advanceTimersByTime(2000); // timer would have fired
+    expect(bellCount()).toBe(0); // cancelled
+  });
+
+  it("MOON→ROCKET→EARTH (sub-agent teardown) rings exactly once after debounce", () => {
+    updateTerminalStatus("MOON", "test");
+    updateTerminalStatus("ROCKET", "test");
+    updateTerminalStatus("EARTH", "test");
+    vi.advanceTimersByTime(2000);
+    expect(bellCount()).toBe(1);
+  });
+
+  it("sequential sub-agent cycles do not ring multiple times within debounce window", () => {
+    // SA1: ROCKET → MOON → ROCKET → EARTH (briefly) → ROCKET → MOON → ROCKET → EARTH
+    updateTerminalStatus("ROCKET", "test");
+    updateTerminalStatus("MOON", "test"); // spawn SA1
+    updateTerminalStatus("ROCKET", "test"); // SA1 returns
+    updateTerminalStatus("EARTH", "test"); // briefly idle
+    vi.advanceTimersByTime(500); // not enough to fire
+    updateTerminalStatus("ROCKET", "test"); // agent resumes
+    updateTerminalStatus("MOON", "test"); // spawn SA2
+    updateTerminalStatus("ROCKET", "test"); // SA2 returns
+    updateTerminalStatus("EARTH", "test"); // genuinely idle
+    vi.advanceTimersByTime(2000);
+    expect(bellCount()).toBe(1); // only final EARTH rings
+  });
+
+  it("MIC rings immediately without debounce", () => {
+    updateTerminalStatus("ROCKET", "test");
+    updateTerminalStatus("MIC", "test");
+    // Should ring immediately, no timer needed
+    expect(bellCount()).toBe(1);
+  });
+
+  it("MIC cancels pending EARTH debounce and rings immediately", () => {
+    updateTerminalStatus("ROCKET", "test");
+    updateTerminalStatus("EARTH", "test"); // debounce starts
+    vi.advanceTimersByTime(500);
+    updateTerminalStatus("MIC", "test"); // MIC overrides
+    expect(bellCount()).toBe(1); // only MIC bell, EARTH cancelled
+    vi.advanceTimersByTime(2000);
+    expect(bellCount()).toBe(1); // no extra bell from EARTH timer
+  });
+
+  it("null→EARTH does not ring (new session)", () => {
+    // cleanupTerminal in beforeEach sets lastAlertedStatus = null
+    updateTerminalStatus("EARTH", "test");
+    vi.advanceTimersByTime(2000);
+    expect(bellCount()).toBe(0);
+  });
+
+  it("EARTH→EARTH does not ring (already idle)", () => {
+    updateTerminalStatus("ROCKET", "test");
+    updateTerminalStatus("EARTH", "test");
+    vi.advanceTimersByTime(2000); // first bell fires
+    const firstBellCount = bellCount();
+    updateTerminalStatus("EARTH", "test"); // redundant EARTH
+    vi.advanceTimersByTime(2000);
+    expect(bellCount()).toBe(firstBellCount); // no additional bell
+  });
+
+  it("cleanupTerminal clears pending bell timer", () => {
+    updateTerminalStatus("ROCKET", "test");
+    updateTerminalStatus("EARTH", "test");
+    // Timer is pending
+    cleanupTerminal(); // should cancel timer
+    vi.advanceTimersByTime(2000);
+    expect(bellCount()).toBe(0);
   });
 });

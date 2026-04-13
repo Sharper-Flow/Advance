@@ -309,12 +309,27 @@ export const buildTabTitle = (
   return emoji;
 };
 
+// Test seam: injectable callback replaces real bell I/O in tests.
+// Avoids fragile fs/stdout spying across tmux/non-tmux environments.
+let _onBell: (() => void) | null = null;
+
+/** Replace the real bell with a test callback. Pass null to restore. */
+export const _setBellCallback = (cb: (() => void) | null): void => {
+  _onBell = cb;
+};
+
 /**
  * Ring the terminal bell (audio alert).
  * Used to notify user when attention is needed (EARTH, MIC states).
  */
 export const ringBell = (): void => {
   log("ringBell");
+
+  if (_onBell) {
+    _onBell();
+    return;
+  }
+
   const bellSequence = "\x07"; // BEL character
 
   if (isTmux()) {
@@ -340,12 +355,34 @@ export const ringBell = (): void => {
 // StatusMarker = previous status for transition detection
 let lastAlertedStatus: StatusMarker | null = null;
 
+// Bell debounce — absorb transient EARTH states during sub-agent teardown.
+// MIC always rings immediately; EARTH waits BELL_DEBOUNCE_MS to confirm idle.
+const BELL_DEBOUNCE_MS = 2000;
+let bellDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+
+/**
+ * Cancel any pending debounced bell.
+ */
+const cancelPendingBell = (): void => {
+  if (bellDebounceTimer !== null) {
+    clearTimeout(bellDebounceTimer);
+    bellDebounceTimer = null;
+  }
+};
+
 /**
  * Update terminal based on status.
  * Title format:
  *   - Active change: "<emoji> <normalizedChangeCode>"
  *   - No active change: "<emoji>"
- * Rings bell for states needing user attention.
+ *
+ * Bell policy:
+ *   - MIC: ring immediately (user explicitly needed for question/approval)
+ *   - EARTH: debounce — schedule bell after BELL_DEBOUNCE_MS; cancel if status
+ *     changes before it fires (absorbs transient idle during sub-agent teardown)
+ *   - All other transitions: cancel any pending bell
+ *   - New session (null→anything): never ring
+ *   - EARTH→EARTH: not active work, no bell
  */
 export const updateTerminalStatus = (
   status: StatusMarker,
@@ -358,22 +395,37 @@ export const updateTerminalStatus = (
 
   setTitle(title);
 
-  // Ring bell when transitioning from active work (ROCKET) to:
-  // - EARTH (work complete, awaiting input)
-  // - MIC (user attention needed for question/approval)
-  // Do NOT ring on:
-  // - New session (lastAlertedStatus is null)
-  // - ROCKET -> MOON transitions (still working, just waiting for sub-agent)
-  // - MOON -> EARTH transitions (sub-agent completed, but work not necessarily done)
   const previousStatus = lastAlertedStatus;
   lastAlertedStatus = status;
 
-  const needsUserAttention = status === "EARTH" || status === "MIC";
-  const wasActiveWork = previousStatus === "ROCKET";
-
-  if (needsUserAttention && previousStatus !== null && wasActiveWork) {
+  // MIC = user explicitly needed → ring immediately from any non-null state.
+  // EARTH = agent idle → debounce from active-work states only.
+  if (status === "MIC" && previousStatus !== null) {
+    cancelPendingBell();
     ringBell();
+    return;
   }
+
+  // For EARTH: only schedule bell if transitioning from active work.
+  // Any non-null, non-EARTH previous state counts as active work.
+  // Covers: ROCKET, MOON, TDD_RED, TDD_GREEN, DOOM_LOOP.
+  if (
+    status === "EARTH" &&
+    previousStatus !== null &&
+    previousStatus !== "EARTH"
+  ) {
+    cancelPendingBell();
+    bellDebounceTimer = setTimeout(() => {
+      bellDebounceTimer = null;
+      if (lastAlertedStatus === "EARTH") {
+        ringBell();
+      }
+    }, BELL_DEBOUNCE_MS);
+    return;
+  }
+
+  // All other transitions: cancel any pending bell
+  cancelPendingBell();
 };
 
 /**
@@ -404,6 +456,7 @@ const getStatusEmoji = (status: StatusMarker): string => {
  * Full cleanup - reset title and all module-level state.
  */
 export const cleanupTerminal = (): void => {
+  cancelPendingBell();
   resetTitle();
   lastAlertedStatus = null;
   invalidateTtyCache();
