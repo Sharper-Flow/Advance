@@ -29,12 +29,27 @@ Before creating artifacts:
 4. If drift is reported → revise and re-confirm; if aborted → stop with no artifacts
 
 ---
+## Phase 1b: Knowledge Gap Analysis
+After the problem statement is confirmed, before building the proposal:
+1. Identify what you **don't know** — unknowns, missing context, assumptions being made, areas where your knowledge may be stale or incomplete
+2. Surface these as an explicit list organized by category:
+   - **Codebase unknowns** — relevant code paths, patterns, or conventions not yet inspected
+   - **Ecosystem unknowns** — current state of tools, libraries, or approaches that may be involved; maintenance health, sentiment, LBP alternatives (per P27)
+   - **Domain unknowns** — business logic, user expectations, or constraints the user hasn't stated
+   - **Integration unknowns** — how this change interacts with other systems, APIs, or active changes
+3. For each unknown, note whether it can be resolved now (quick check) or deferred to `/adv-discover`
+4. Resolve any quick-check items inline (e.g. `lgrep` for codebase questions, `adv_spec` for spec questions)
+5. Carry unresolved unknowns forward as **Discovery Agenda** items in the proposal — these become explicit inputs for `/adv-discover`
+
+> **Principle:** Never make recommendations based on assumed context. If you haven't verified it, flag it.
+
+---
 ## Phase 2: Full Proposal
 After confirmation:
 1. `adv_change_create` with the confirmed problem statement as `## Why`
 2. Infer change type autonomously from the problem statement + current codebase
 3. Use `adv_spec` list/show/search to determine affected capabilities and whether a new capability/spec is required
-4. Fill proposal sections: What Changes, Success Criteria, Affected Code, Related Repositories, Constraints, Impact, Context
+4. Fill proposal sections: What Changes, Success Criteria, Affected Code, Related Repositories, Constraints, Impact, Context, Discovery Agenda (unresolved unknowns from Phase 1b)
 5. Determine cross-repo scope autonomously from code paths/interfaces/config; ask only if boundary ambiguity changes the intended outcome
 6. Run the proposal checklist quality gate; refine autonomously unless refinement would change confirmed intent
 7. `adv_change_update` with the completed proposal

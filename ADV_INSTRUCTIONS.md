@@ -59,7 +59,7 @@ Specs are laws. Requirements are formally defined, validated, and enforced.
 ## Command Boundaries
 | Command          | Produces                                   | × MUST NOT                                             | Gate                    |
 | ---------------- | ------------------------------------------ | ------------------------------------------------------ | ----------------------- |
-| proposal         | Problem statement, criteria, constraints   | Create tasks, complete non-owned gates, impl decisions | `proposal`              |
+| proposal         | Problem statement, criteria, constraints, discovery agenda (knowledge gaps) | Create tasks, complete non-owned gates, impl decisions, recommendations based on unverified assumptions | `proposal`              |
 | discover         | Context analysis, objectives, agreement.md | Create tasks, complete non-discovery gates             | `discovery`             |
 | design           | Architecture decisions, design.md          | Create tasks, complete non-owned gates, skip research  | `design`                |
 | prep             | Task graph, gap analysis, sequencing       | Complete non-planning gates, architecture decisions    | `planning`              |

@@ -33,6 +33,20 @@ Flag and fix any of these patterns:
 
 ---
 
+## Knowledge Gap Analysis
+
+After problem statement confirmation, verify:
+
+- [ ] Codebase unknowns identified (unexamined code paths, patterns, conventions)
+- [ ] Ecosystem unknowns identified (tool/library state, LBP alternatives per P27)
+- [ ] Domain unknowns identified (unstated business logic, user expectations)
+- [ ] Integration unknowns identified (cross-system, API, active change interactions)
+- [ ] Quick-check items resolved inline (spec lookups, codebase searches)
+- [ ] Unresolved unknowns carried forward as Discovery Agenda items
+- [ ] No recommendations made based on unverified assumptions
+
+---
+
 ## Quality Gate
 
 Before completing the proposal gate, verify:
@@ -42,3 +56,4 @@ Before completing the proposal gate, verify:
 - [ ] Scope is achievable in one iteration
 - [ ] Prior discussion decisions are reflected as constraints
 - [ ] Rejected approaches are documented to prevent re-proposals
+- [ ] Discovery Agenda present with unresolved unknowns (or explicitly empty with justification)

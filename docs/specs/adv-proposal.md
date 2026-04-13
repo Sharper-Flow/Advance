@@ -81,6 +81,42 @@ Defines the responsibilities and boundaries of /adv-proposal. The proposal comma
 
 ---
 
+### Proposal Requires Knowledge Gap Analysis
+
+**ID:** `rq-prop-gaps1` | **Priority:** **[MUST]**
+
+After the problem statement is confirmed and before building the full proposal, /adv-proposal must explicitly identify unknowns across codebase, ecosystem, domain, and integration dimensions. Quick-check items must be resolved inline; unresolved unknowns must be carried forward as Discovery Agenda items in the proposal. No recommendations may be based on unverified assumptions.
+
+**Tags:** `proposal`, `due-diligence`, `knowledge-gaps`
+
+#### Scenarios
+
+**Knowledge gaps surfaced after problem confirmation** (`rq-prop-gaps1.1`)
+
+**Given:**
+- A user confirms the problem statement in Phase 1
+
+**When:** Phase 1b executes
+
+**Then:**
+- Unknowns are identified across at least: codebase, ecosystem, domain, integration
+- Each unknown is classified as quick-check (resolvable now) or deferred (discovery agenda)
+- Quick-check items are resolved inline before Phase 2
+
+**Unresolved unknowns appear in proposal** (`rq-prop-gaps1.2`)
+
+**Given:**
+- Phase 1b identifies unknowns that cannot be resolved inline
+
+**When:** Phase 2 builds the full proposal
+
+**Then:**
+- A Discovery Agenda section is present in proposal.md
+- Each deferred unknown is listed with its category and why it was deferred
+- /adv-discover is pointed at these items as explicit inputs
+
+---
+
 ### Proposal Prohibited Actions
 
 **ID:** `rq-prop-neg1` | **Priority:** **[MUST]**
