@@ -10,6 +10,8 @@ Present the discovery output back to the user and turn confirmed objectives, con
 **× MUST NOT:** Create tasks, complete gates, or introduce new architecture decisions that belong in `/adv-design`.
 
 **Gate:** None — `/adv-discover` owns `discovery`.
+
+**Human checkpoint:** This command pauses for user-facing outcome questions only (priorities, behavior, downsides, AC boundaries). Technical/implementation questions are resolved autonomously via LBP research. See § Phase 2.5 for triage rules.
 <UserRequest>
   $ARGUMENTS
 </UserRequest>

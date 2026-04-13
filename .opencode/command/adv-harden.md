@@ -3,7 +3,7 @@ name: adv-harden
 description: Detect low-quality code, verify test coverage, clean up before release
 ---
 # ADV Harden — Release-Stage Quality Analysis
-Orchestrate multi-dimensional hardening via sub-agents. This command is part of the release stage and **blocks archive if actionable `REVIEW_FINDINGS` are unresolved and not documented as accepted debt.**
+Orchestrate multi-dimensional hardening via sub-agents. This command is part of the release stage and **blocks archive if actionable `REVIEW_FINDINGS` are unresolved.**
 ## Exits
 | Exit | Condition |
 |------|-----------|
@@ -48,10 +48,10 @@ Verify all actionable review findings addressed before running scanners.
 **Step 2:** Classify each finding:
 - Actionable: `blocker:`, `issue:`, `suggestion:`, `question:` (NOT `nit:`)
 - Resolved: fixed in subsequent task (evidence in `completed_by` notes) ✓
-- Accepted debt: documented in `proposal.md` with quadrant, interest rate, payoff date ✓
-- Unresolved: not fixed, not documented ✗
+- Rejected with evidence: documented evidence shows the finding is invalid or out of scope ✓
+- Unresolved: not fixed and not rejected with evidence ✗
 
-If unresolved actionable findings → emit HARDEN BLOCKED banner listing each with `[{label}] {file}:{line} — {what}` → stop. Required: fix or document as accepted debt.
+If unresolved actionable findings → emit HARDEN BLOCKED banner listing each with `[{label}] {file}:{line} — {what}` → stop. Required: fix or reject with documented evidence showing the finding is invalid or out of scope.
 
 If all resolved → emit REVIEW FINDINGS AUDIT: PASSED banner → proceed.
 ### Merge Compatibility Check
@@ -187,7 +187,7 @@ Count non-nit findings. If <3 → require genuinely-clean justification with sca
 ## Phase 3: Remediation
 If READY → skip to cleanup.
 
-If NEEDS_WORK or BLOCKED → ask via `question` tool: Fix all (Recommended), Fix blockers only, Report only, Accept current (document as debt).
+If NEEDS_WORK or BLOCKED → fix all validated in-scope findings. × No report-only, future-work, or accepted-debt path for validated in-scope findings. Establish CONTRACT ACTIVE banner and proceed with fixes.
 
 If fixing → establish CONTRACT ACTIVE banner listing issues grouped by category → spawn fix sub-agents → verify → update status.
 
@@ -223,9 +223,7 @@ Include: fixes applied, gate status, next steps (`/adv-archive`), remaining item
 ### Completion Banner
 ```
 /adv-harden {change-id} COMPLETE
-Result: release stage ready for archive
-Next: /adv-archive {change-id}
-Result: {READY | N fixed | Report only}
+Result: {READY | N fixed}
 Harden Gate: {MARKED COMPLETE | pending}
 Next: /adv-archive {change-id}
 ```

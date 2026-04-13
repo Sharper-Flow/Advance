@@ -98,6 +98,7 @@ If any actionable findings exist (`blocker:`, `issue:`, `suggestion:`, `question
 - [ ] **All blockers/issues fixed** — every blocking finding is implemented and verified
 - [ ] **All suggestions/questions investigated** — each has `validated` or `rejected_with_evidence` outcome
 - [ ] **Validated suggestions implemented** — no validated suggestion left unapplied
+- [ ] **No future-work deferral** — validated in-scope findings are fixed or rejected with evidence; × no report-only, future-work, or accepted-debt path for validated in-scope findings
 - [ ] **Cleanup completed** — temp/debug/dead-code artifacts removed from remediation scope
 - [ ] **Verdict recomputed after fixes** — final verdict reflects post-remediation state, not initial scan
 

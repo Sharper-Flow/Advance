@@ -152,6 +152,18 @@ Drive the change through gates sequentially. Each gate has an owning workflow co
 - **Always re-check state between gates.** Run `adv_gate_status` after each workflow step.
 - **Stop at collaborative boundaries.** Present findings and ask for confirmation before proceeding past agreement, acceptance, and archive gates.
 
+### Human Checkpoints vs Auto-Continue
+
+ADV pauses ONLY at these checkpoints:
+- **Proposal confirmation** — user confirms problem statement
+- **Agreement sign-off** — user approves objectives and acceptance criteria
+- **Design approval** — ONLY when real tradeoffs depend on user values or product vision
+- **Acceptance** — user confirms delivered work satisfies the agreement
+- **Archive sign-off** — user approves final release
+- **Cancellation / re-entry / doom-loop** — explicit user approval required
+
+**Clean auto-continue:** discovery → deterministic design → prep → apply → review → harden all proceed without asking the user when no unresolved tradeoff or approval is needed. The orchestrator does NOT ask "shall I continue?" between clean agent-owned steps.
+
 ### Sign-Off Boundary
 
 After acceptance completes, ADV **must stop and present a report** before archive:
@@ -171,7 +183,7 @@ After acceptance completes, ADV **must stop and present a report** before archiv
 - Review: {verdict, finding count}
 
 ### Remaining Concerns
-{Open items, accepted debt, or "None"}
+{Open items, documented pre-existing debt, or "None"}
 ```
 
 Then ask via `question`: "Ready to sign off and archive?" Options include: Sign off and archive (Recommended), Review specific gate, Defer — not ready yet.

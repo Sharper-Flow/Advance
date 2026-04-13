@@ -10,6 +10,8 @@ Present the completed design back to the user in a concise, decision-oriented fo
 **× MUST NOT:** Create tasks or complete gates.
 
 **Gate:** None — `/adv-design` owns `design`.
+
+**Human checkpoint (conditional):** Pause for design approval only when real tradeoffs depend on user values or product vision. For straightforward deterministic designs with no user-value tradeoffs, proceed directly to `/adv-prep` without a design-approval pause.
 <UserRequest>
   $ARGUMENTS
 </UserRequest>
@@ -33,9 +35,9 @@ Show a compact summary with:
 - implementation strategy
 - major risks / tradeoffs
 
-Ask the user whether the design is acceptable before moving into `/adv-prep`.
+If the design involves real user-value tradeoffs, ask the user whether the design is acceptable before moving into `/adv-prep`. If the design is straightforward with no user-value tradeoffs, proceed directly to `/adv-prep`.
 
-Recommended options:
+Recommended options (when pausing):
 - Looks good — proceed to planning
 - Adjust design details
 - Revisit discovery/agreement

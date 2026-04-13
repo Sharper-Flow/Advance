@@ -14,7 +14,7 @@ ADV should **not** ask the user for deterministic classifications the agent can 
 ## Shared Policy
 
 Canonical sources:
-- `ADV_INSTRUCTIONS.md` → **Autonomy vs User Intuition Protocol**
+- `ADV_INSTRUCTIONS.md` → **Autonomy & Quality Ownership** + **Question Tool UX**
 - `docs/adv-question-tool.md` → question-tool usage constraints
 
 ### Agent decides by default
@@ -34,7 +34,7 @@ Canonical sources:
 - objectives, constraints, avoidances, acceptance criteria
 - design direction when multiple valid approaches reflect product vision or taste
 - acceptance of delivered work
-- debt acceptance or partial-remediation choices
+- pre-existing out-of-scope debt documentation only
 - cancellation, archive sign-off, destructive approval
 - doom-loop recovery
 
@@ -45,13 +45,13 @@ Canonical sources:
 | `/adv-proposal` | summary derivation, overlap detection, change type, impacted specs, new-spec need, cross-repo scope, proposal quality refinement | problem statement matches intended outcome |
 | `/adv-discover` | target auto-selection, discovery synthesis, open design questions from evidence | only when design tradeoffs depend on user values |
 | `/adv-agree` | target auto-selection, extraction of objectives/constraints from discovery, triage of open questions (technical questions resolved via LBP research), reframing tech questions as outcome questions | agreement contents and edits, user-facing open questions (priorities, behavior, downsides, AC boundaries), explicit deferral of any question |
-| `/adv-design` | target auto-selection, design synthesis from research and code | only when design choice depends on product vision or taste |
+| `/adv-design` | target auto-selection, design synthesis from research and code | only when design choice depends on product vision or user values |
 | `/adv-present` | target auto-selection, concise design summary | design direction approval |
 | `/adv-prep` | target auto-selection, gap analysis, task graph synthesis | only when gaps are unresolvable without user intent |
 | `/adv-apply` | target auto-selection, worktree reuse, execution start, task sequencing, TDD loop, cross-repo routing | doom-loop recovery, cancellations, scope changes not reflected in the stored contract |
 | `/adv-review` | target auto-selection, review execution, remediation of blockers/issues | none by default; review remains agent-led |
 | `/adv-accept` | target auto-selection, acceptance summary construction | whether delivered work satisfies the agreement |
-| `/adv-harden` | target auto-selection, hardening analysis, default in-scope remediation | debt acceptance, partial remediation, report-only choice |
+| `/adv-harden` | target auto-selection, hardening analysis, default in-scope remediation | none by default; validated in-scope findings must be fixed |
 | `/adv-archive` | target auto-selection, archive validation, spec application workflow | archive/sign-off approval |
 | `/adv-audit` | spec drift detection and reporting | only if user wants remediation prioritization or debt acceptance |
 | `/adv-task` | fast-track synthesis of contract + proposal/discovery/design/planning | quick-contract confirmation, conflicts with recommended direction |
@@ -60,9 +60,26 @@ Canonical sources:
 | `/adv-clarify` | question sequencing and synthesis | answers to ambiguity the agent cannot derive |
 | `/adv-validate` | target auto-selection, validation run | none |
 
+## Sequential Flow: Pause vs Auto-Continue
+
+ADV pauses for human input ONLY at these explicit checkpoints:
+
+| Checkpoint | Gate | Why |
+|---|---|---|
+| Proposal confirmation | `proposal` | User confirms problem framing |
+| Agreement sign-off | `discovery` | User approves objectives, AC, constraints |
+| Design approval (conditional) | `design` | Only when tradeoffs depend on user values; skip for straightforward deterministic designs |
+| Acceptance | `acceptance` | User confirms delivered work satisfies agreement |
+| Archive sign-off | `release` | User approves final release |
+| Cancellation approval | any | Explicit user approval for task/change cancellation |
+| Re-entry approval | any | Explicit user approval for scope expansion |
+| Doom-loop recovery | `execution` | 3 failed attempts, user guidance needed |
+
+**All other clean steps auto-continue:** discovery, deterministic design, prep, apply, review, and harden proceed without prompting the user when no unresolved user-value tradeoff or required approval exists.
+
 ## Audit Verdict
 
-**Status: compliant with the current intent.**
+**Status as of 2026-04-13: compliant with the current intent.**
 
 The current command contracts no longer instruct agents to ask the user for:
 - impacted specs

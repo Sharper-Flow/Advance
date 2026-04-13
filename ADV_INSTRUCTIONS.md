@@ -263,6 +263,31 @@ Spec changes in worktree A invisible to B until merged. Merge promptly after arc
 Multi-session only: parent writes `handoff.json` → child reads/clears on startup → `[ADV:WORKTREE_SESSION]` marker injected.
 ### Worktree Cleanup
 `/adv-archive` Phase 9 handles: stage → commit → detect default branch → merge/PR → verify → `worktree_delete` → remove `.bak`/`.tmp`/`.orig`. × Never delete worktree with unmerged commits. If `worktree_create`/`worktree_delete` unavailable: `[ADV:INFO] Worktree tools not available — proceeding in-place.`
+## Autonomy & Quality Ownership
+### Human Checkpoints (Pause Required)
+ADV pauses for human input ONLY at these explicit checkpoints:
+- **Proposal confirmation** — problem statement matches intended outcome
+- **Agreement sign-off** — objectives, constraints, acceptance criteria approved
+- **Design approval** — only when real tradeoffs depend on user values or product vision
+- **Acceptance** — delivered work satisfies the agreement
+- **Archive sign-off** — final release approval
+- **Cancellation approval** — task or change cancellation
+- **Re-entry approval** — scope expansion requiring gate reset
+- **Doom-loop recovery** — 3 failed attempts, user guidance needed
+### Clean Auto-Continue Rule
+All other workflow steps proceed sequentially without prompting the user when no unresolved user-value tradeoff or required approval exists. This includes: discovery, deterministic design, prep, apply, review, and harden. The orchestrator does not ask "shall I continue?" between clean agent-owned steps.
+### Validated In-Scope Remediation Policy
+When `/adv-review` or `/adv-harden` validates an actionable finding or suggestion as in-scope:
+- The current change MUST fix it before completion
+- × No report-only, future-work, or accepted-debt path for validated in-scope findings
+- Findings may only be left unresolved if rejected with documented evidence showing they are invalid or out of scope
+### Touched-Scope Quality Ownership
+A change owns quality and test coverage for:
+1. **Directly touched implementation files** — code changed or added by the change
+2. **Adjacent tests and docs** — test files and documentation needed for correctness and clarity of touched code
+3. **Same-pattern local subsystem issues** — identical defect/quality patterns in the local touched subsystem that are cheap and clearly the same class of issue
+
+Ownership boundary: local touched subsystem only. × Do NOT expand into implicit repo-wide refactors. `/adv-prep` synthesizes tasks covering these obligations. `/adv-apply` verifies them before execution completes. `/adv-review` and `/adv-harden` enforce them.
 ## When to Use ADV
 **Use for:** New features, breaking changes, architecture, compliance
 **Skip for:** Bug fixes, typos, deps, exploration

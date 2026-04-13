@@ -111,16 +111,40 @@ Docs are agent infrastructure — stale docs actively harm every future session.
 
 ---
 
+## Touched-Scope Coverage
+
+A change must own quality and test coverage for its touched scope:
+
+- [ ] **Directly touched implementation files** have adequate test coverage
+- [ ] **Adjacent tests** cover correctness of touched code
+- [ ] **Adjacent docs** are updated if touched code changes documented behavior
+- [ ] **Same-pattern local subsystem issues** are identified and fixed (identical defect/quality patterns in the local touched subsystem that are cheap and clearly the same class of issue)
+- [ ] **Ownership boundary is local** — × do NOT expand into implicit repo-wide refactors
+
+---
+
+## Validated In-Scope Remediation
+
+Validated in-scope findings from `/adv-review` and `/adv-harden` must be resolved before the release gate:
+
+- [ ] All validated in-scope findings are fixed and verified
+- [ ] × No report-only, future-work, or accepted-debt path for validated in-scope findings
+- [ ] Findings may only be left unresolved if rejected with documented evidence showing they are invalid or out of scope
+
+---
+
 ## Technical Debt Classification
 
-If accepting debt, classify using Fowler's quadrant:
+Technical debt classification applies only to pre-existing or explicitly out-of-scope concerns, NOT to validated in-scope findings from the current change's review/harden cycle.
+
+If documenting pre-existing debt, classify using Fowler's quadrant:
 
 | | Prudent | Reckless |
 |---|---------|----------|
 | **Deliberate** | "Ship now, fix later" — Track with payoff date | "No time for design" — Escalate |
 | **Inadvertent** | "Now we know better" — Refactor soon | "What's layering?" — Training needed |
 
-Accepted debt MUST be documented in `proposal.md` with:
+Pre-existing debt MUST be documented in change artifacts with:
 - Debt type and quadrant classification
 - Interest rate estimate (cost of not fixing)
 - Planned payoff date

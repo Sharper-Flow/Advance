@@ -126,10 +126,10 @@ If APPROVED → skip to completion.
 
 If CHANGES_REQUESTED/BLOCKED → auto-remediation is mandatory:
 1. **Fix all blockers/issues** — no partial fix mode. For non-trivial fixes: research first (Context7/librarian/adv-researcher) → then implement.
-2. **Investigate suggestions/questions** — validate against specs/tests/code → implement if validated, reject with evidence if not.
+2. **Investigate suggestions/questions** — validate against specs/tests/code → implement if validated, reject with evidence if not. × Validated in-scope findings must be fixed now — no future-work deferral permitted.
 3. **Cleanup pass** — remove temp artifacts, debug code, dead imports, stale comments.
-4. **Verification** — re-run tests for touched areas, update finding status (fixed/unresolved/accepted_debt).
-5. **Recompute verdict** — APPROVED only when no unresolved blocker/issue remains.
+4. **Verification** — re-run tests for touched areas, update finding status (fixed/unresolved).
+5. **Recompute verdict** — APPROVED only when no unresolved blocker/issue remains and all validated in-scope suggestions are implemented.
 ### Fix Validation Protocol
 | Fix Type | Research Required? |
 |----------|-------------------|
@@ -157,12 +157,12 @@ findings:
     file: {file}
     line: {N}
     what: {what}
-    status: {unresolved|fixed|accepted_debt}
+    status: {unresolved|fixed|rejected_with_evidence}
     fix_notes: {details}
 END_REVIEW_FINDINGS
 ```
 
-Status rules: `unresolved` at emission time, `/adv-harden` checks task notes for fix evidence, `nit:` excluded from harden blocking.
+Status rules: `unresolved` at emission time. Terminal states are `fixed` or `rejected_with_evidence`. `/adv-harden` checks task notes for fix evidence and rejection evidence. `nit:` excluded from harden blocking.
 
 × Do NOT call `adv_gate_complete` here — `/adv-accept` owns the `acceptance` gate. The `completedBy` hint below is for `/adv-accept` to reference when it completes the gate.
 

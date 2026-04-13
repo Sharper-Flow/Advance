@@ -47,6 +47,14 @@ Prioritize gaps via MoSCoW. Emit CONTRACT ACTIVE banner. Proceed immediately —
 
 Fix gaps: `adv_task_add` for missing tasks, `adv_task_cancel` (with approval) for absorption/merges, document N/A for non-applicable concerns. Assign `metadata.tdd_intent` to every task.
 
+### Touched-Scope Quality Ownership
+The task graph MUST include tasks covering touched-scope obligations:
+1. **Directly touched implementation files** — code changed or added by the change
+2. **Adjacent tests and docs** — test files and documentation needed for correctness and clarity of touched code
+3. **Same-pattern local subsystem issues** — identical defect/quality patterns in the local touched subsystem that are cheap and clearly the same class of issue
+
+× Do NOT expand ownership into implicit repo-wide refactors. Keep ownership bounded to the local touched subsystem.
+
 ---
 ## Phase 3: Validation + Completion
 `adv_change_validate strict: true` → fix errors → re-validate. `adv_gate_complete gateId: planning` → handle failure codes (`SCENARIO_MISSING`, `TASK_TDD_INVERSION`, `CROSS_REPO_MISSING_METADATA`).

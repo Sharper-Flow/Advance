@@ -36,49 +36,49 @@ proposal → discovery → design → planning → execution → acceptance → 
 
 ### Proposal Gate
 
-Owner: `/adv-proposal`
+Owner: `/adv-proposal` | **Pauses for:** proposal confirmation
 
 Produces `problem-statement.md` — the confirmed problem statement with success criteria and constraints. This is the entry point for all changes.
 
 ### Discovery Gate
 
-Owner: `/adv-discover` + `/adv-agree`
+Owner: `/adv-discover` + `/adv-agree` | **Pauses for:** agreement sign-off (user-facing outcome questions only)
 
 Produces `agreement.md` — context analysis, objectives, and constraints agreed with the user. `/adv-agree` includes a mandatory clarification loop (Phase 2.5) that triages all open questions from discovery: technical questions are resolved autonomously via LBP research, while user-facing questions (priorities, behavior, downsides, AC boundaries) are presented to the user. No question may be silently deferred. The discovery and planning gates evaluate the full change including completed tasks — completed work is evidence to validate, not acceptance proof. Follow-up tasks are added where gaps are found.
 
 ### Design Gate
 
-Owner: `/adv-design` + `/adv-present`
+Owner: `/adv-design` + `/adv-present` | **Pauses for:** design approval only when real tradeoffs depend on user values; auto-continues for straightforward deterministic designs
 
 Produces `design.md` — validated architecture decisions and implementation strategy. Design decisions are frozen after this gate completes.
 
 ### Planning Gate
 
-Owner: `/adv-prep`
+Owner: `/adv-prep` | **Auto-continues** when clean (no user approval needed)
 
 Produces the task graph in `change.json`. After this gate completes, `metadata.tdd_intent` is frozen on all tasks and no new tasks can be added (use `adv_task_reclassify_tdd` with user approval to change TDD intent).
 
 ### Execution Gate
 
-Owner: `/adv-apply`
+Owner: `/adv-apply` | **Auto-continues** when clean (pauses only for doom-loop recovery or cancellations)
 
 All tasks must be done (or properly cancelled with user approval). `/adv-apply` stops if discovery, design, or planning gates are pending — it MUST NOT complete pre-implementation gates.
 
 ### Acceptance Gate
 
-Owner: `/adv-review` + `/adv-accept`
+Owner: `/adv-review` + `/adv-accept` | **Pauses for:** user acceptance of delivered work
 
 Absorbs the old `review` + `signoff` gates. `/adv-review` emits a `REVIEW_FINDINGS` block (blocker, issue, suggestion, question). `/adv-accept` presents an acceptance criteria checklist for user confirmation.
 
 ### Release Gate
 
-Owner: `/adv-harden` + `/adv-archive`
+Owner: `/adv-harden` + `/adv-archive` | **Pauses for:** archive sign-off only
 
 Absorbs the old `harden` gate. Before running quality scanners, `/adv-harden` performs pre-flight checks:
 
 1. **Acceptance gate prerequisite** — acceptance gate must be complete
 2. **Cancellation & cross-repo audit** — all cancelled tasks need approval, cross-repo tasks must be done
-3. **Review findings audit** — actionable findings must be resolved or documented as accepted debt
+3. **Review findings audit** — validated in-scope findings must be resolved (no report-only, future-work, or accepted-debt path)
 4. **Merge compatibility check** — non-destructive dry-run merge against the default branch (`git merge --no-commit --no-ff`); blocks on conflicts
 
 `/adv-archive` runs Phase 9 Git Finalization: stage → commit → detect default branch → merge/PR → verify → cleanup worktree → remove temp artifacts. During archive, durable convention/pattern wisdom can also be promoted to project-level wisdom so lessons survive beyond a single change.

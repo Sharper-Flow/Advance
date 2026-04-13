@@ -3,8 +3,8 @@
   "name": "advance",
   "title": "Advance",
   "purpose": "Capability: Advance",
-  "version": "1.6.0",
-  "updated_at": "2026-04-10T21:35:00.000Z",
+  "version": "1.7.0",
+  "updated_at": "2026-04-13T21:00:00.000Z",
   "requirements": [
     {
       "id": "rq-W1sD0mR1",
@@ -521,6 +521,145 @@
           "then": [
             "The archive is rejected with incomplete-gates error",
             "release is listed as the remaining gate"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-autonomy01",
+      "title": "Human Checkpoint Contract",
+      "body": "ADV must pause for human input only at explicit approval/judgment checkpoints and auto-continue through clean agent-owned workflow steps. Human checkpoints are: proposal confirmation, agreement sign-off, design approval when real tradeoffs depend on user values, acceptance, archive sign-off, cancellation approval, re-entry approval, and doom-loop recovery. All other clean workflow steps (discovery, deterministic design, prep, apply, review, harden) proceed sequentially without prompting the user when no unresolved user-value tradeoff or required approval exists.",
+      "priority": "must",
+      "tags": ["workflow", "autonomy", "checkpoints"],
+      "scenarios": [
+        {
+          "id": "rq-autonomy01.1",
+          "title": "Clean agent-owned step auto-continues",
+          "given": [
+            "A change has completed the proposal gate",
+            "The next step is discovery with no unresolved user-value tradeoffs"
+          ],
+          "when": "The ADV orchestrator evaluates the next gate",
+          "then": [
+            "Discovery proceeds without prompting the user",
+            "No question tool call is made for the gate transition"
+          ]
+        },
+        {
+          "id": "rq-autonomy01.2",
+          "title": "Human checkpoint pauses for approval",
+          "given": [
+            "A change has completed the acceptance gate",
+            "Archive sign-off is the next step"
+          ],
+          "when": "The ADV orchestrator evaluates the next gate",
+          "then": [
+            "The orchestrator stops and presents a change report",
+            "The user is asked for explicit sign-off via the question tool"
+          ]
+        },
+        {
+          "id": "rq-autonomy01.3",
+          "title": "Design approval conditional on tradeoffs",
+          "given": [
+            "A change has a straightforward design with no user-value tradeoffs"
+          ],
+          "when": "The design gate completes",
+          "then": [
+            "The orchestrator proceeds to planning without a design-approval pause"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-remediation01",
+      "title": "Validated In-Scope Findings Resolved In-Change",
+      "body": "When /adv-review or /adv-harden validates an actionable finding or suggestion as in-scope, the current change must fix it before completion. No report-only, future-work, or accepted-debt path is permitted for validated in-scope findings. Findings may only be left unresolved if rejected with evidence showing they are invalid or out of scope.",
+      "priority": "must",
+      "tags": ["workflow", "review", "harden", "quality"],
+      "scenarios": [
+        {
+          "id": "rq-remediation01.1",
+          "title": "Validated suggestion implemented before completion",
+          "given": [
+            "/adv-review validates a suggestion as in-scope and correct"
+          ],
+          "when": "Remediation runs",
+          "then": [
+            "The validated suggestion is implemented and verified in the current change",
+            "The finding status is updated to fixed"
+          ]
+        },
+        {
+          "id": "rq-remediation01.2",
+          "title": "Report-only path rejected for in-scope findings",
+          "given": [
+            "/adv-harden identifies an actionable in-scope finding"
+          ],
+          "when": "Remediation options are presented",
+          "then": [
+            "No report-only or future-work option is offered",
+            "The finding must be fixed before the release gate can complete"
+          ]
+        },
+        {
+          "id": "rq-remediation01.3",
+          "title": "Rejection with evidence is permitted",
+          "given": [
+            "/adv-review flags a suggestion as potentially in-scope"
+          ],
+          "when": "Investigation determines the suggestion is invalid or out of scope",
+          "then": [
+            "The finding is rejected with documented evidence",
+            "The rejection does not block gate completion"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-touchedScope01",
+      "title": "Touched-Scope Quality Ownership",
+      "body": "A change owns quality and test coverage for: (1) directly touched implementation files, (2) adjacent tests and docs needed for correctness, and (3) same-pattern quality or test issues in the local touched subsystem. This ownership boundary must remain local enough to avoid implicit repo-wide refactors. /adv-prep must synthesize tasks covering touched-scope obligations, /adv-apply must verify them before execution completes, and /adv-review and /adv-harden must enforce them.",
+      "priority": "must",
+      "tags": ["workflow", "quality", "ownership", "testing"],
+      "scenarios": [
+        {
+          "id": "rq-touchedScope01.1",
+          "title": "Adjacent test gaps addressed",
+          "given": [
+            "A change modifies an implementation file",
+            "The corresponding test file has gaps in coverage for the touched code"
+          ],
+          "when": "Execution completes",
+          "then": [
+            "The test gaps are addressed as part of the change",
+            "The execution gate is not marked complete while known test gaps remain in touched files"
+          ]
+        },
+        {
+          "id": "rq-touchedScope01.2",
+          "title": "Same-pattern issues fixed in local subsystem",
+          "given": [
+            "A change fixes a defect pattern in one file",
+            "The same pattern exists in other files within the local touched subsystem"
+          ],
+          "when": "Review or harden identifies the related instances",
+          "then": [
+            "The same-pattern instances are fixed in the current change",
+            "The fixes are verified before gate completion"
+          ]
+        },
+        {
+          "id": "rq-touchedScope01.3",
+          "title": "Ownership boundary remains local",
+          "given": [
+            "A change touches files in one subsystem",
+            "A similar pattern exists in unrelated subsystems"
+          ],
+          "when": "Ownership scope is evaluated",
+          "then": [
+            "Only the local touched subsystem is in scope",
+            "Unrelated subsystems are not implicitly pulled into the change"
           ]
         }
       ]

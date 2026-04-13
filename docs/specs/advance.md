@@ -1,7 +1,7 @@
 # Advance
 
-> **Version:** 1.5.0
-> **Updated:** 2026-04-09
+> **Version:** 1.7.0
+> **Updated:** 2026-04-13
 
 ## Purpose
 
@@ -397,5 +397,144 @@ The canonical ADV workflow is seven sequential gates: proposal, discovery, desig
 **Then:**
 - The archive is rejected with incomplete-gates error
 - release is listed as the remaining gate
+
+---
+
+### Human Checkpoint Contract
+
+**ID:** `rq-autonomy01` | **Priority:** **[MUST]**
+
+ADV must pause for human input only at explicit approval/judgment checkpoints and auto-continue through clean agent-owned workflow steps. Human checkpoints are: proposal confirmation, agreement sign-off, design approval when real tradeoffs depend on user values, acceptance, archive sign-off, cancellation approval, re-entry approval, and doom-loop recovery. All other clean workflow steps (discovery, deterministic design, prep, apply, review, harden) proceed sequentially without prompting the user when no unresolved user-value tradeoff or required approval exists.
+
+**Tags:** `workflow`, `autonomy`, `checkpoints`
+
+#### Scenarios
+
+**Clean agent-owned step auto-continues** (`rq-autonomy01.1`)
+
+**Given:**
+- A change has completed the proposal gate
+- The next step is discovery with no unresolved user-value tradeoffs
+
+**When:** The ADV orchestrator evaluates the next gate
+
+**Then:**
+- Discovery proceeds without prompting the user
+- No question tool call is made for the gate transition
+
+**Human checkpoint pauses for approval** (`rq-autonomy01.2`)
+
+**Given:**
+- A change has completed the acceptance gate
+- Archive sign-off is the next step
+
+**When:** The ADV orchestrator evaluates the next gate
+
+**Then:**
+- The orchestrator stops and presents a change report
+- The user is asked for explicit sign-off via the question tool
+
+**Design approval conditional on tradeoffs** (`rq-autonomy01.3`)
+
+**Given:**
+- A change has a straightforward design with no user-value tradeoffs
+
+**When:** The design gate completes
+
+**Then:**
+- The orchestrator proceeds to planning without a design-approval pause
+
+---
+
+### Validated In-Scope Findings Resolved In-Change
+
+**ID:** `rq-remediation01` | **Priority:** **[MUST]**
+
+When /adv-review or /adv-harden validates an actionable finding or suggestion as in-scope, the current change must fix it before completion. No report-only, future-work, or accepted-debt path is permitted for validated in-scope findings. Findings may only be left unresolved if rejected with evidence showing they are invalid or out of scope.
+
+**Tags:** `workflow`, `review`, `harden`, `quality`
+
+#### Scenarios
+
+**Validated suggestion implemented before completion** (`rq-remediation01.1`)
+
+**Given:**
+- /adv-review validates a suggestion as in-scope and correct
+
+**When:** Remediation runs
+
+**Then:**
+- The validated suggestion is implemented and verified in the current change
+- The finding status is updated to fixed
+
+**Report-only path rejected for in-scope findings** (`rq-remediation01.2`)
+
+**Given:**
+- /adv-harden identifies an actionable in-scope finding
+
+**When:** Remediation options are presented
+
+**Then:**
+- No report-only, future-work, or accepted-debt option is offered
+- The finding must be fixed before the release gate can complete
+
+**Rejection with evidence is permitted** (`rq-remediation01.3`)
+
+**Given:**
+- /adv-review flags a suggestion as potentially in-scope
+
+**When:** Investigation determines the suggestion is invalid or out of scope
+
+**Then:**
+- The finding is rejected with documented evidence
+- The rejection does not block gate completion
+
+---
+
+### Touched-Scope Quality Ownership
+
+**ID:** `rq-touchedScope01` | **Priority:** **[MUST]**
+
+A change owns quality and test coverage for: (1) directly touched implementation files, (2) adjacent tests and docs needed for correctness, and (3) same-pattern quality or test issues in the local touched subsystem. This ownership boundary must remain local enough to avoid implicit repo-wide refactors. /adv-prep must synthesize tasks covering touched-scope obligations, /adv-apply must verify them before execution completes, and /adv-review and /adv-harden must enforce them.
+
+**Tags:** `workflow`, `quality`, `ownership`, `testing`
+
+#### Scenarios
+
+**Adjacent test gaps addressed** (`rq-touchedScope01.1`)
+
+**Given:**
+- A change modifies an implementation file
+- The corresponding test file has gaps in coverage for the touched code
+
+**When:** Execution completes
+
+**Then:**
+- The test gaps are addressed as part of the change
+- The execution gate is not marked complete while known test gaps remain in touched files
+
+**Same-pattern issues fixed in local subsystem** (`rq-touchedScope01.2`)
+
+**Given:**
+- A change fixes a defect pattern in one file
+- The same pattern exists in other files within the local touched subsystem
+
+**When:** Review or harden identifies the related instances
+
+**Then:**
+- The same-pattern instances are fixed in the current change
+- The fixes are verified before gate completion
+
+**Ownership boundary remains local** (`rq-touchedScope01.3`)
+
+**Given:**
+- A change touches files in one subsystem
+- A similar pattern exists in unrelated subsystems
+
+**When:** Ownership scope is evaluated
+
+**Then:**
+- Only the local touched subsystem is in scope
+- Unrelated subsystems are not implicitly pulled into the change
 
 ---

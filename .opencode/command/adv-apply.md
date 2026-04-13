@@ -183,7 +183,7 @@ Before CONTRACT FULFILLED: run full build + all tests + lint + type check. If an
 ---
 ## Phase 6: Completion
 ### Pre-Completion Checklist
-Verify: all tasks done or properly cancelled, no tasks skipped/deferred, all "trivial" skips have rationale.
+Verify: all tasks done or properly cancelled, no tasks skipped/deferred, all "trivial" skips have rationale, touched-scope quality/test obligations met (directly touched files, adjacent test/doc gaps addressed, same-pattern subsystem issues fixed).
 ### Cancelled Task Verification
 If cancelled tasks exist → verify each has `cancellation.approved_by_user: true`. If any lack approval → ask via `question` tool for retroactive approval.
 ### Final Validation
