@@ -94,13 +94,24 @@ Protocol: retry once → if still fails → inline fallback analysis → never s
 
 ---
 ## Phase 1: Spawn Analysis Sub-Agents
-**CHANGE CONTEXT (inject into every sub-agent spawn prompt):**
+**Harden Context Packet (inject into every sub-agent spawn prompt):**
 ```
-CHANGE CONTEXT: {change-id} | {objective-first-60-chars} | {n} criteria | gate: release
+WORKING DIRECTORY: {workdir}
+CHANGE: {change-id} | {title} | gate: release
+AFFECTED FILES:
+  - {file}: {one-line change summary}
+  - ...
+ACCEPTANCE CRITERIA:
+  - AC1: {text}
+  - ...
+TASK EVIDENCE SUMMARY:
+  - {task-id}: {title} | {status} | tdd: {phase}
+  - ...
+EXPECTED OUTPUT: {dimension-specific JSON schema}
 ```
-This closes context starvation for explore agents that have no ADV tools. Inject verbatim — do NOT give explore agents ADV tool access.
+Build packet from `adv_task_list` and `adv_change_show` outputs at spawn time. Inject verbatim — do NOT give explore agents ADV tool access.
 
-Spawn **6 parallel sub-agents** (`subagent_type: "explore"`). Each receives: `WORKING DIRECTORY: {workdir}`, affected files, change-id, and the CHANGE CONTEXT block above.
+Spawn **6 parallel sub-agents** (`subagent_type: "explore"`). Each receives the Harden Context Packet above plus dimension-specific instructions.
 ### Sub-Agent 1: Test Coverage Scanner
 Analyze test coverage: for each source file check for test file, calculate coverage ratio, check TDD adherence (red/green evidence), report test runner availability.
 
@@ -190,6 +201,19 @@ If READY → skip to cleanup.
 If NEEDS_WORK or BLOCKED → fix all validated in-scope findings. × No report-only, future-work, or accepted-debt path for validated in-scope findings. Establish CONTRACT ACTIVE banner and proceed with fixes.
 
 If fixing → establish CONTRACT ACTIVE banner listing issues grouped by category → spawn fix sub-agents → verify → update status.
+
+---
+## Phase 3.5: Post-Remediation Re-Verification
+After remediation fixes, re-verify affected dimensions before status determination:
+1. For each dimension with fixed findings, spawn a **targeted** `explore` scanner with the Harden Context Packet plus:
+   - `PRIOR FINDINGS: [{finding_id, original_issue, fix_applied}]`
+   - `SCOPE: evaluate only whether the listed findings are resolved`
+   - `EXPECTED OUTPUT: { finding_id, status: "resolved"|"unresolved", evidence }`
+2. If resolved → update finding status to `fixed`.
+3. If unresolved → retry fix or escalate.
+4. **New findings** during re-scan → queue for next harden cycle, NOT current verdict.
+
+× Only re-scan dimensions with fixed findings. Do NOT re-run all 6 scanners.
 
 ---
 ## Phase 4: Cleanup

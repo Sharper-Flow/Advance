@@ -71,7 +71,7 @@ Full gate IDs are abbreviated for compactness:
 
 ### Emission Triggers
 
-The snapshot is included automatically when ADV tools expose current change state. Per the Context Freshness Policy in `adv-apply.md`, agents re-read via `adv_change_show` before each task — so the snapshot is emitted at every task transition.
+The snapshot is included automatically when ADV tools expose current change state. Per the Context Freshness Policy in `ADV_INSTRUCTIONS.md`, agents load full change context once with `adv_change_show`, then refresh per-task context via `adv_task_show` — so the snapshot is emitted at phase boundaries and task transitions.
 
 | Trigger | Mechanism |
 |---------|-----------|

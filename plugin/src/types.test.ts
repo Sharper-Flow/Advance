@@ -1850,6 +1850,33 @@ describe("AttemptSchema + ErrorRecoverySchema.attempts (Leak #9)", () => {
   });
 });
 
+describe("AttemptSchema.strategy_label", () => {
+  test("accepts attempt with strategy_label", () => {
+    const attempt = AttemptSchema.parse({
+      attempt_number: 2,
+      error: "Test still failing after import fix",
+      diagnosis: "Wrong module path",
+      fix_tried: "Rewrote import to use relative path",
+      strategy_label: "rewrite-import-path",
+      outcome: "succeeded",
+      attempted_at: new Date().toISOString(),
+    });
+    expect(attempt.strategy_label).toBe("rewrite-import-path");
+  });
+
+  test("strategy_label is optional (backwards compatible)", () => {
+    const attempt = AttemptSchema.parse({
+      attempt_number: 1,
+      error: "Type error",
+      diagnosis: "Wrong type",
+      fix_tried: "Changed type",
+      outcome: "failed",
+      attempted_at: new Date().toISOString(),
+    });
+    expect(attempt.strategy_label).toBeUndefined();
+  });
+});
+
 describe("GateCompletionSchema.notes (Leak #11)", () => {
   test("accepts gate completion with notes", () => {
     const gate = GateCompletionSchema.parse({

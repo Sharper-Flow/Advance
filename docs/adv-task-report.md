@@ -1,13 +1,13 @@
 # ADV Task Status Report
 
-When the `/apply` or `/ralph` loop stops, or during `/compaction`, emit a task status report.
+When the `/adv-apply` loop stops, or during OpenCode session compaction, emit a task status report.
 
 ## Trigger Events
 
 | Event | Description |
 |-------|-------------|
-| **Loop Stop** | `/apply` or `/ralph` terminates (success, error, doom loop, or user cancel) |
-| **Compaction** | OpenCode runs `/compaction` to reduce context |
+| **Loop Stop** | `/adv-apply` terminates (success, error, doom loop, or user cancel) |
+| **Compaction** | OpenCode session compaction reduces context |
 
 ## Report Format
 

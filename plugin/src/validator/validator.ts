@@ -271,9 +271,3 @@ function runProposalDriftCheck(
 
   return warnings;
 }
-
-// =============================================================================
-// Re-export for convenience
-// =============================================================================
-
-export type { ValidationResult, ValidationContext } from "./types";

@@ -93,13 +93,21 @@ Divide files among up to 9 scanners by relevance. Cap each file at 3 scanners: `
 | Performance | PERF-* | N+1 queries, excessive renders | Large files (>100 lines) |
 | Test | TEST-* | Magic numbers, assertion roulette | `tests/`, `__tests__/` |
 ### Sub-Agent Prompt
-**CHANGE CONTEXT (inject into every sub-agent spawn prompt):**
+**Slop-Scan Context Packet (inject into every sub-agent spawn prompt):**
 ```
-CHANGE CONTEXT: {change-id} | {objective-first-60-chars} | {n} criteria | gate: release
+WORKING DIRECTORY: {workdir}
+CHANGE: {change-id} | {title} | gate: release
+AFFECTED FILES:
+  - {file}: {one-line change summary}
+  - ...
+TASK EVIDENCE SUMMARY:
+  - {task-id}: {title} | {status} | tdd: {phase}
+  - ...
+EXPECTED OUTPUT: JSON with findings array per dimension schema
 ```
-This closes context starvation for explore agents that have no ADV tools. Inject verbatim — do NOT give explore agents ADV tool access.
+Build packet from `adv_task_list` and `adv_change_show` outputs at spawn time. Do NOT give explore agents ADV tool access.
 
-Each receives: `WORKING DIRECTORY: {workdir}`, CHANGE CONTEXT block above, smell definitions from yaml for their category, file list, instructions to focus on semantic issues (Phase 1 handles syntax), novelty check (skip if Phase 1 already found same issue unless adding semantic value), return JSON with findings array.
+Each also receives: smell definitions from yaml for their category, file list, instructions to focus on semantic issues (Phase 1 handles syntax), novelty check (skip if Phase 1 already found same issue unless adding semantic value).
 
 Every scanner prompt must also include:
 - Do all work inline with your own tools

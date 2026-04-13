@@ -5,6 +5,7 @@
  */
 
 import type { Spec, Delta } from "../types";
+import { appendDebugLog } from "../utils/debug-log";
 import type { DeltaApplicationResult, SpecUpdateResult } from "./types";
 
 /**
@@ -225,9 +226,7 @@ function logDeltaResult(
     ).requirement.id;
   }
 
-  if (process.env.ADV_DEBUG) {
-    console.log("[adv:delta]", { ...base, ...details });
-  }
+  appendDebugLog("delta", JSON.stringify({ ...base, ...details }));
 }
 
 /**

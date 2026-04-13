@@ -48,14 +48,14 @@ export function registerTool(
 }
 
 /** Tool definition shape expected by bindTool / bindToolSimple. */
-export interface ToolDef<TArgs, TStore> {
+interface ToolDef<TArgs, TStore> {
   description: string;
   args: ToolArgsSchema;
   execute: (args: TArgs, store: TStore) => Promise<string>;
 }
 
 /** Tool definition shape for agenda-style tools (directory + optional path). */
-export interface ToolDefSimple<TArgs> {
+interface ToolDefSimple<TArgs> {
   description: string;
   args: ToolArgsSchema;
   execute: (args: TArgs, dir: string, path?: string) => Promise<string>;

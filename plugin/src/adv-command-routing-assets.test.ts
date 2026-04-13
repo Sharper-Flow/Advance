@@ -102,6 +102,67 @@ describe("ADV command routing assets", () => {
     }
   });
 
+  test("adv-apply.md contains Delegation Routing section", () => {
+    const content = readFileSync(join(COMMAND_DIR, "adv-apply.md"), "utf8");
+    expect(content).toContain("Delegation Routing");
+    expect(content).toContain("delegation_hint");
+    expect(content).toContain("Apply Context Packet");
+    expect(content).toContain("delegate_allowed");
+    expect(content).toContain("inline_required");
+  });
+
+  test("adv-review.md uses structured context packet (not one-liner)", () => {
+    const content = readFileSync(join(COMMAND_DIR, "adv-review.md"), "utf8");
+    expect(content).toContain("Review Context Packet");
+    expect(content).toContain("TASK EVIDENCE SUMMARY");
+    expect(content).toContain("ACCEPTANCE CRITERIA");
+    expect(content).not.toMatch(
+      /^CHANGE CONTEXT: \{change-id\} \| \{objective-first-60-chars\}/m,
+    );
+  });
+
+  test("adv-harden.md uses structured context packet (not one-liner)", () => {
+    const content = readFileSync(join(COMMAND_DIR, "adv-harden.md"), "utf8");
+    expect(content).toContain("Harden Context Packet");
+    expect(content).toContain("TASK EVIDENCE SUMMARY");
+    expect(content).toContain("ACCEPTANCE CRITERIA");
+    expect(content).not.toMatch(
+      /^CHANGE CONTEXT: \{change-id\} \| \{objective-first-60-chars\}/m,
+    );
+  });
+
+  test("adv-review.md and adv-harden.md contain re-verification phase", () => {
+    const review = readFileSync(join(COMMAND_DIR, "adv-review.md"), "utf8");
+    const harden = readFileSync(join(COMMAND_DIR, "adv-harden.md"), "utf8");
+    expect(review).toContain("Re-Verification");
+    expect(review).toContain("PRIOR FINDINGS");
+    expect(harden).toContain("Re-Verification");
+    expect(harden).toContain("PRIOR FINDINGS");
+  });
+
+  test("ADV_INSTRUCTIONS.md does not list adv-apply as Inline-only", () => {
+    const content = readFileSync(
+      join(REPO_ROOT, "ADV_INSTRUCTIONS.md"),
+      "utf8",
+    );
+    const inlineOnlyLine = content
+      .split("\n")
+      .find((line) => line.startsWith("Inline-only:"));
+    expect(inlineOnlyLine).toBeDefined();
+    expect(inlineOnlyLine).not.toContain("/adv-apply");
+  });
+
+  test("ADV_INSTRUCTIONS.md contains Delegation Routing and Context Packet Standards", () => {
+    const content = readFileSync(
+      join(REPO_ROOT, "ADV_INSTRUCTIONS.md"),
+      "utf8",
+    );
+    expect(content).toContain("### Delegation Routing");
+    expect(content).toContain("### Context Packet Standards");
+    expect(content).toContain("### Post-Remediation Re-Verification");
+    expect(content).toContain("strategy_label");
+  });
+
   test("shared-agent overlay source files exist for all managed global agents", () => {
     const expected = ["adv", "general", "build", "plan", "scout", "refine"];
 

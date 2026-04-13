@@ -15,6 +15,7 @@ import {
   createDefaultGates,
   createLegacyGates,
 } from "../types";
+import { appendDebugLog } from "../utils/debug-log";
 import { withChangeLock, loadChangeOrNull } from "./store-locks";
 import type { StoreContext } from "./store-context";
 import type { Store } from "./store-types";
@@ -86,18 +87,17 @@ export function createGatesOps(
         }
 
         // Structured log for gate transition
-        if (process.env.ADV_DEBUG) {
-          console.log(
-            JSON.stringify({
-              event: "gate_complete",
-              changeId,
-              gateId,
-              oldStatus,
-              newStatus: "done",
-              timestamp: now,
-            }),
-          );
-        }
+        appendDebugLog(
+          "gates",
+          JSON.stringify({
+            event: "gate_complete",
+            changeId,
+            gateId,
+            oldStatus,
+            newStatus: "done",
+            timestamp: now,
+          }),
+        );
 
         await saveFn(change);
       });
@@ -109,16 +109,15 @@ export function createGatesOps(
         change.gates = createLegacyGates();
 
         // Structured log for gate migration
-        if (process.env.ADV_DEBUG) {
-          console.log(
-            JSON.stringify({
-              event: "gates_migrated",
-              changeId,
-              status: "legacy",
-              timestamp: now,
-            }),
-          );
-        }
+        appendDebugLog(
+          "gates",
+          JSON.stringify({
+            event: "gates_migrated",
+            changeId,
+            status: "legacy",
+            timestamp: now,
+          }),
+        );
 
         await saveFn(change);
       });
@@ -143,18 +142,17 @@ export function createGatesOps(
         );
 
         // Structured log for gate re-entry
-        if (process.env.ADV_DEBUG) {
-          console.log(
-            JSON.stringify({
-              event: "gates_reopen_from",
-              changeId,
-              fromGate,
-              gatesReset,
-              reason,
-              timestamp,
-            }),
-          );
-        }
+        appendDebugLog(
+          "gates",
+          JSON.stringify({
+            event: "gates_reopen_from",
+            changeId,
+            fromGate,
+            gatesReset,
+            reason,
+            timestamp,
+          }),
+        );
 
         await saveFn(change);
       });

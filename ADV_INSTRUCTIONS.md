@@ -137,7 +137,7 @@ After planning gate, `metadata.tdd_intent` is frozen. To reclassify: `adv_task_r
 | ✓ Done           | Acceptance criteria met       |
 | 🔁 Doom Loop     | 3 failed attempts             |
 | 🌍 Environmental | Missing dependency → escalate |
-After 3 failures: STOP → `[ADV:DOOM_LOOP]` → document all 3 attempts → ask via `question`. Each retry must use a different strategy.
+After 3 failures: STOP → `[ADV:DOOM_LOOP]` → document all 3 attempts → ask via `question`. Each retry must use a different strategy. Record `strategy_label` in each `error_recovery.attempts[]` entry for deduplication.
 ### Cross-Repo Execution
 | × Invalid Cancellation        | ✓ Correct                 |
 | ----------------------------- | ------------------------- |
@@ -160,7 +160,7 @@ On loop stop or compaction: emit `[ADV:TASK_STATUS_REPORT]` with completed/cance
 | --- | ------------ | ------------------------------ | ---------------------------------- |
 | 1   | `proposal`   | `/adv-proposal`                | `problem-statement.md`             |
 | 2   | `discovery`  | `/adv-discover` + `/adv-agree` | `agreement.md`                     |
-| 3   | `design`     | `/adv-design` + `/adv-present` | `design.md`                        |
+| 3   | `design`     | `/adv-design` + `/adv-present` | `design.md` + validator verdict    |
 | 4   | `planning`   | `/adv-prep`                    | Task graph in `change.json`        |
 | 5   | `execution`  | `/adv-apply` (all tasks done)  | Code, docs, ops deliverables       |
 | 6   | `acceptance` | `/adv-review` + `/adv-accept`  | User sign-off                      |
@@ -175,17 +175,38 @@ Available to: `adv`, `plan`, `scout`, `refine`, `general`.
 | Command | Inline | Sub-Agent |
 | --- | --- | --- |
 | discover | Context7 + Kagi + lgrep | librarian + adv-researcher (single-level only) |
-| design | Context7 + Kagi + lgrep | librarian + adv-researcher (single-level only) |
+| design | Context7 + Kagi + lgrep + mandatory validator (adv-researcher) | librarian + adv-researcher (single-level only) |
 | review | Sequential per dimension | explore × 5 + librarian + general |
 | harden | Sequential scans | explore × 6 |
 | audit | Sequential pipeline | explore × 4 |
 | slop-scan | Sequential categories | explore × 9 (single-level only) |
 | tron | lgrep + read | tron agent |
 | task | Context7 + Kagi | librarian + adv-researcher |
+| apply | Inline default, selective delegation | general (for trivial tasks) |
 | refactor | Sequential drift | explore × 3 |
 Sub-agents × NEVER spawn sub-agents (`enforceTaskPolicy` blocks nesting). Cap parallel bursts at 3-4. Don't spawn for single-tool-call work. `/adv-discover` and `/adv-design` workers must research inline. `/adv-slop-scan` workers must scan inline.
 For `/adv-slop-scan`, all `explore` scanner workers must do the scan inline and must not delegate to additional sub-agents or invoke `/adv-*` slash commands.
-Inline-only: `/adv-status`, `/adv-proposal`, `/adv-validate`, `/adv-apply`, `/adv-archive`, `/adv-clarify`, `/adv-agree`, `/adv-present`, `/adv-accept`, `/adv-prep`, `/adv-coordinate`, `/adv-improve`
+Inline-only: `/adv-status`, `/adv-proposal`, `/adv-validate`, `/adv-archive`, `/adv-clarify`, `/adv-agree`, `/adv-present`, `/adv-accept`, `/adv-prep`, `/adv-coordinate`, `/adv-improve`
+### Delegation Routing
+`/adv-apply` evaluates each task for delegation eligibility before TDD phases:
+| Priority | Check | Result |
+| --- | --- | --- |
+| 1 | `metadata.delegation_hint` set? | Use hint value |
+| 2 | `tdd_intent == "not_applicable"`? | `delegate_allowed` |
+| 3 | Title matches `isTrivialTask` patterns? | `delegate_allowed` |
+| 4 | Risk signals (multi-file, cross-repo, arch keywords)? | `inline_required` |
+| 5 | Default | `inline_required` |
+`delegation_hint` values: `inline_required`, `delegate_allowed`, `delegate_preferred`. Set during `/adv-prep` via task metadata. If delegated task fails → immediate inline fallback (no sub-agent retry).
+### Context Packet Standards
+Two packet shapes for delegated work. Built from `adv_task_list` + `adv_change_show` at spawn time.
+**Apply packet:** WORKING DIRECTORY, CHANGE (id + title), TASK (id + title + type + tdd_intent), AFFECTED FILES, DESIGN EXCERPT (if referenced), ACCEPTANCE CRITERIA (relevant to task), EXPECTED OUTPUT.
+**Review/Harden packet:** WORKING DIRECTORY, CHANGE (id + title + gate), AFFECTED FILES (with change summary), ACCEPTANCE CRITERIA (full list), TASK EVIDENCE SUMMARY (one line per task: id, title, status, tdd phase), EXPECTED OUTPUT (dimension-specific schema). See command contracts for full templates.
+### Post-Remediation Re-Verification
+After `/adv-review` or `/adv-harden` fixes findings, re-scan only affected dimensions:
+1. Spawn targeted scanner with PRIOR FINDINGS and scoped evaluation
+2. Evaluate only whether listed findings are resolved
+3. New findings from re-scan → queue for next cycle, NOT current verdict
+× Do NOT re-run all scanners after fixes. Only re-verify touched dimensions.
 ## Sub-Agent Selection
 ### Agent Tiers
 | Tier                         | Agents                                        | Loading                             |
@@ -268,7 +289,7 @@ Multi-session only: parent writes `handoff.json` → child reads/clears on start
 ADV pauses for human input ONLY at these explicit checkpoints:
 - **Proposal confirmation** — problem statement matches intended outcome
 - **Agreement sign-off** — objectives, constraints, acceptance criteria approved
-- **Design approval** — only when real tradeoffs depend on user values or product vision
+- **Design approval** — only when real tradeoffs depend on user values or product vision; design validation by `adv-researcher` is agent-owned (auto-continues unless CONFLICT found)
 - **Acceptance** — delivered work satisfies the agreement
 - **Archive sign-off** — final release approval
 - **Cancellation approval** — task or change cancellation

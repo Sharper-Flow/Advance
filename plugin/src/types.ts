@@ -241,6 +241,8 @@ export const AttemptSchema = z.object({
   diagnosis: z.string(),
   /** What fix was attempted */
   fix_tried: z.string(),
+  /** Short label identifying the retry strategy (e.g., "rewrite-import-path"). Enables deduplication across attempts. */
+  strategy_label: z.string().optional(),
   /** Result of this attempt */
   outcome: z.enum(["failed", "succeeded"]),
   /** ISO8601 timestamp when attempt was made */

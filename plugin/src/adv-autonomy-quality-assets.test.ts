@@ -128,3 +128,40 @@ describe("Touched-scope quality ownership", () => {
     expect(content).toMatch(/Do NOT expand into implicit repo-wide refactors/);
   });
 });
+
+// =============================================================================
+// 4. Design Validation Policy
+// =============================================================================
+
+describe("Design validation policy", () => {
+  test("adv-design.md contains a validation phase referencing adv-researcher", () => {
+    const content = readAsset(join(COMMAND_DIR, "adv-design.md"));
+    expect(content).toMatch(/adv-researcher/i);
+    expect(content).toMatch(/[Vv]alid/);
+  });
+
+  test("adv-design.md contains verdict handling for VALIDATED, CAUTION, CONFLICT, INCONCLUSIVE", () => {
+    const content = readAsset(join(COMMAND_DIR, "adv-design.md"));
+    expect(content).toContain("VALIDATED");
+    expect(content).toContain("CAUTION");
+    expect(content).toContain("CONFLICT");
+    expect(content).toContain("INCONCLUSIVE");
+  });
+
+  test("adv-present.md contains validator result display section", () => {
+    const content = readAsset(join(COMMAND_DIR, "adv-present.md"));
+    expect(content).toMatch(/[Vv]alidator/);
+    expect(content).toMatch(/VALIDATED|clean pass|CONFLICT/);
+  });
+
+  test("ADV_INSTRUCTIONS.md references design validation in sub-agent orchestration", () => {
+    const content = readAsset(INSTRUCTIONS);
+    expect(content).toMatch(/design.*validator|validator.*design/i);
+  });
+
+  test("adv-design.md does NOT contain passive inform-user manual validation guidance", () => {
+    const content = readAsset(join(COMMAND_DIR, "adv-design.md"));
+    expect(content).not.toMatch(/inform the user.*additional frontier model/i);
+    expect(content).not.toMatch(/have an additional frontier model/i);
+  });
+});

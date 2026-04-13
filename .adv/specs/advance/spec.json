@@ -3,8 +3,8 @@
   "name": "advance",
   "title": "Advance",
   "purpose": "Capability: Advance",
-  "version": "1.7.0",
-  "updated_at": "2026-04-13T21:00:00.000Z",
+  "version": "1.8.0",
+  "updated_at": "2026-04-13T23:00:00.000Z",
   "requirements": [
     {
       "id": "rq-W1sD0mR1",
@@ -660,6 +660,93 @@
           "then": [
             "Only the local touched subsystem is in scope",
             "Unrelated subsystems are not implicitly pulled into the change"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-designval01",
+      "title": "Design Stage Requires Independent Validation",
+      "body": "Before the design gate can complete, /adv-design must run an independent validation pass via a different-model sub-agent (adv-researcher). The validator assesses correctness, simplicity, spec-law compliance, and key alternatives. Validator failure or timeout results in an INCONCLUSIVE warning and does not block gate completion.",
+      "priority": "must",
+      "tags": ["workflow", "design", "validation", "autonomy"],
+      "scenarios": [
+        {
+          "id": "rq-designval01.1",
+          "title": "Validator runs before design gate completion",
+          "given": ["A change has a confirmed agreement and completed design work"],
+          "when": "/adv-design is executed",
+          "then": [
+            "An independent validation sub-agent pass runs before adv_gate_complete is called for the design gate",
+            "The validator assesses at least: correctness, simplicity, spec-law compliance, and key alternatives"
+          ]
+        },
+        {
+          "id": "rq-designval01.2",
+          "title": "Validator failure results in INCONCLUSIVE, not a block",
+          "given": ["The validator sub-agent fails, returns empty, or times out"],
+          "when": "/adv-design handles the failed validator response",
+          "then": [
+            "The result is recorded as INCONCLUSIVE with a warning",
+            "The design gate is not blocked by the validator failure",
+            "The warning is surfaced in /adv-present output"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-designval02",
+      "title": "Validation Findings Included in Design Presentation",
+      "body": "When /adv-present summarizes the design, it must include the validator verdict and findings from the design validation step. VALIDATED shows a brief clean-pass note. CAUTION shows findings inline. CONFLICT shows conflict details. INCONCLUSIVE shows a warning. Legacy designs without validation data omit the section silently.",
+      "priority": "must",
+      "tags": ["workflow", "design", "presentation"],
+      "scenarios": [
+        {
+          "id": "rq-designval02.1",
+          "title": "Clean-pass note shown for VALIDATED verdict",
+          "given": ["The design validator returned VALIDATED"],
+          "when": "/adv-present presents the design summary",
+          "then": [
+            "The output includes a one-line clean-pass note (e.g. 'Validator: clean pass')",
+            "No detailed findings are shown"
+          ]
+        },
+        {
+          "id": "rq-designval02.2",
+          "title": "Conflict details shown for CONFLICT verdict",
+          "given": ["The design validator returned CONFLICT with findings"],
+          "when": "/adv-present presents the design summary",
+          "then": [
+            "The conflict details and unresolved findings are shown to the user",
+            "The presentation pauses for user resolution before proceeding to planning"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-designval03",
+      "title": "Critical Validator Disagreement Requires Explicit Handling",
+      "body": "When the design validator returns a CONFLICT verdict, the orchestrator must not silently auto-continue to planning. The conflict must be surfaced to the user or resolved inline before /adv-prep can proceed.",
+      "priority": "must",
+      "tags": ["workflow", "design", "autonomy", "checkpoints"],
+      "scenarios": [
+        {
+          "id": "rq-designval03.1",
+          "title": "CONFLICT verdict blocks silent auto-continue to planning",
+          "given": ["The design validator returned a CONFLICT verdict with unresolved findings"],
+          "when": "The orchestrator evaluates whether to proceed from design to planning",
+          "then": [
+            "The orchestrator does not silently proceed to /adv-prep",
+            "The conflict is surfaced to the user via /adv-present pause or inline resolution attempt"
+          ]
+        },
+        {
+          "id": "rq-designval03.2",
+          "title": "VALIDATED and CAUTION verdicts auto-continue",
+          "given": ["The design validator returned VALIDATED or CAUTION"],
+          "when": "The orchestrator evaluates whether to proceed from design to planning",
+          "then": [
+            "Planning proceeds without a new user-facing checkpoint (assuming no other user-value tradeoffs)"
           ]
         }
       ]

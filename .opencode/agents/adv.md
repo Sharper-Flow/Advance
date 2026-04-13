@@ -139,7 +139,7 @@ Drive the change through gates sequentially. Each gate has an owning workflow co
 |------|------------------------|--------|------------|
 | proposal | Proposal workflow inline | `adv_gate_status` shows ✓ | Clarify with user, re-synthesize |
 | discovery | Discovery workflow inline | `adv_gate_status` shows ✓ | Expand research, retry |
-| design | Design workflow inline | `adv_gate_status` shows ✓ | Revisit discovery findings |
+| design | Design workflow inline + mandatory validator (adv-researcher) before gate completion | `adv_gate_status` shows ✓ | Revisit discovery findings |
 | planning | Prep workflow inline | `adv_gate_status` shows ✓ + tasks exist | Review gaps, add missing tasks |
 | execution | Apply workflow inline | `adv_gate_status` shows ✓ + all tasks done | Diagnose failures, fix, re-run |
 | acceptance | Review + accept workflow inline | `adv_gate_status` shows ✓ | Fix findings, re-run review |

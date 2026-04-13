@@ -47,6 +47,14 @@ Prioritize gaps via MoSCoW. Emit CONTRACT ACTIVE banner. Proceed immediately —
 
 Fix gaps: `adv_task_add` for missing tasks, `adv_task_cancel` (with approval) for absorption/merges, document N/A for non-applicable concerns. Assign `metadata.tdd_intent` to every task.
 
+### Delegation Hints
+When creating tasks, `/adv-prep` may set `metadata.delegation_hint` to signal execution routing:
+- `inline_required` — task must execute inline (complex, multi-file, architectural)
+- `delegate_allowed` — task may be delegated to a sub-agent (trivial, narrow scope)
+- `delegate_preferred` — task should be delegated unless risk signals override
+
+If omitted, `/adv-apply` determines routing from `tdd_intent`, title heuristics, and risk signals. See `ADV_INSTRUCTIONS.md § Delegation Routing`.
+
 ### Touched-Scope Quality Ownership
 The task graph MUST include tasks covering touched-scope obligations:
 1. **Directly touched implementation files** — code changed or added by the change

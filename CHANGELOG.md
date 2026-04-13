@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Improved
+
+#### Automated Design Validation
+
+- **Mandatory validator pass in `/adv-design`**: Added Phase 3.5 (Validate Design) and Phase 3.6 (Handle Verdict) to the design command. Before the design gate can complete, `adv-researcher` (Gemini Flash) is spawned as an independent validator that assesses the design across 4 dimensions: correctness, simplicity, spec-law compliance, and key alternatives.
+- **Verdict-driven control flow**: VALIDATED/CAUTION → proceed with notes; CONFLICT → surface to user before planning; INCONCLUSIVE (failure/timeout) → warn and proceed without blocking.
+- **Validator result in `/adv-present`**: Design presentation now includes the validator verdict — "Validator: clean pass ✓" for VALIDATED, inline findings for CAUTION, conflict details with pause for CONFLICT, warning for INCONCLUSIVE.
+- **3 new spec requirements**: `rq-designval01` (mandatory validation before design gate), `rq-designval02` (findings in presentation), `rq-designval03` (CONFLICT blocks silent auto-continue). Spec bumped to v1.8.0.
+- **Asset tests**: New "Design validation policy" describe block in `adv-autonomy-quality-assets.test.ts` enforces the validation contract across command files and instructions.
+- **Removes passive guidance**: Replaces the old "inform the user to have an additional frontier model validate" instruction with enforced automated orchestration.
+
 ## [0.6.0] - 2026-04-10
 
 ### Changed

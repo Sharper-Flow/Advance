@@ -488,4 +488,5 @@ export const AdvancePlugin: Plugin = async ({ directory, worktree }) => {
 };
 
 // Default export for OpenCode
+/** @alias */
 export default AdvancePlugin;

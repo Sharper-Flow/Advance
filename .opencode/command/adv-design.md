@@ -54,6 +54,59 @@ Suggested structure:
 ```
 
 ---
+## Phase 3.5: Validate Design
+Spawn `adv-researcher` with a validator-specific prompt. This step is mandatory — it must run before Phase 4. If the task tool is unavailable, skip gracefully and record INCONCLUSIVE.
+
+**Validator input:** design.md content + compact agreement summary (objectives, AC, constraints, avoidances).
+
+**Validator prompt template:**
+```
+ROLE: Design validator for ADV change {change-id}.
+WORKING DIRECTORY: {workdir}
+
+DESIGN UNDER REVIEW:
+{design.md content}
+
+AGREEMENT CONTEXT:
+Objectives: {numbered objectives from agreement}
+Acceptance Criteria: {numbered AC}
+Constraints: {constraints}
+Avoidances: {avoidances}
+
+VALIDATION DIMENSIONS:
+1. CORRECTNESS — Does this design solve the stated objectives? Are there logical gaps?
+2. SIMPLICITY — Is there a materially simpler approach achieving the same objectives?
+3. SPEC-LAW COMPLIANCE — Does this design contradict any existing spec requirement? Use adv_spec to check.
+4. KEY ALTERNATIVES — Was a significant viable alternative overlooked?
+
+OUTPUT_SCHEMA:
+DESIGN_VALIDATION:
+  verdict: VALIDATED | CAUTION | CONFLICT
+  findings:
+    - dimension: {1-4}
+      level: info | caution | conflict
+      summary: {one sentence}
+      detail: {explanation}
+  recommendation: {one paragraph}
+
+BUDGET: Focus on the 4 dimensions only. Do not rewrite the design.
+STOP_WHEN: You have a verdict with evidence for each dimension.
+```
+
+---
+## Phase 3.6: Handle Verdict
+Process the validator output and determine whether to proceed:
+
+| Verdict | Action |
+|---------|--------|
+| `VALIDATED` | Record "Validator: clean pass" in design notes; proceed to Phase 4 |
+| `CAUTION` | Record caution findings in design notes; proceed to Phase 4 |
+| `CONFLICT` | Present conflict findings; attempt inline resolution if technical fix is obvious; if unresolved, flag in design notes for `/adv-present` to surface to user before planning |
+| `INCONCLUSIVE` (empty/failed/timeout) | Record "Validation attempted but inconclusive" warning; proceed to Phase 4 |
+
+Record the validation result via `adv_change_update` as a compact summary appended to `design.md`.
+
+---
 ## Phase 4: Complete Gate
 `adv_gate_complete changeId: {change-id} gateId: design`
 

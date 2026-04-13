@@ -14,6 +14,7 @@ import { join, dirname } from "path";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { WisdomTypeSchema, type WisdomType } from "../types";
+import { appendDebugLog } from "../utils/debug-log";
 import { atomicWriteFile, acquireFileLock } from "../utils/fs";
 
 // =============================================================================
@@ -164,17 +165,17 @@ function parseWisdomEntries(content: string): ProjectWisdomEntry[] {
       const result = ProjectWisdomEntrySchema.safeParse(raw);
       if (result.success) {
         entries.push(result.data as ProjectWisdomEntry);
-      } else if (process.env.ADV_DEBUG) {
-        console.warn(
-          `[adv:wisdom] Skipping invalid entry: ${result.error.message}`,
+      } else {
+        appendDebugLog(
+          "wisdom",
+          `Skipping invalid entry: ${result.error.message}`,
         );
       }
     } catch (e) {
-      if (process.env.ADV_DEBUG) {
-        console.warn(
-          `[adv:wisdom] Skipping malformed JSON line: ${(e as Error).message}`,
-        );
-      }
+      appendDebugLog(
+        "wisdom",
+        `Skipping malformed JSON line: ${(e as Error).message}`,
+      );
     }
   }
 

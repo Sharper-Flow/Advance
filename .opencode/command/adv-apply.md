@@ -157,10 +157,37 @@ Use task IDs only (`tk-abc123`), not descriptions. Forces context lookup via `ad
 | "Tests are flaky, marking done" | Fix flaky tests or document as environmental |
 | Marking "blocked" after 1 try | Must attempt 3 distinct fixes |
 | "This targets another repo" | Switch workdir and execute |
+### Delegation Routing
+Before TDD phases, evaluate each task for delegation eligibility:
+| Priority | Check | Result |
+|----------|-------|--------|
+| 1 | `metadata.delegation_hint` set? | Use the hint value directly |
+| 2 | `tdd_intent == "not_applicable"`? | `delegate_allowed` |
+| 3 | Title matches `isTrivialTask` patterns? | `delegate_allowed` |
+| 4 | Risk signals: multi-file, cross-repo, architectural keywords, failing-test diagnosis? | Any present → `inline_required` |
+| 5 | Default | `inline_required` |
+
+**If `delegate_allowed`:** Spawn `general` sub-agent with the Apply Context Packet below. If sub-agent succeeds → run incremental verification → if passes → mark done. If sub-agent fails OR verification fails → immediate inline fallback, continue with Red/Green phases.
+
+**If `inline_required`:** Proceed with standard TDD flow.
+
+Emit routing summary: `tk-{id} → {inline|general} ({reason})`
+#### Apply Context Packet
+```
+WORKING DIRECTORY: {workdir}
+CHANGE: {change-id} | {title}
+TASK: {task-id} | {task-title} | type: {type} | tdd_intent: {intent}
+AFFECTED FILES: {file list from task description}
+DESIGN EXCERPT: {relevant section if task references design}
+ACCEPTANCE CRITERIA: {criteria relevant to this task}
+EXPECTED OUTPUT: implement the task, run tests, report pass/fail result
+```
 ### Task Flow
 `adv_task_ready changeId: <id>` → for each ready task:
 
 **3a. Start:** Refresh context (MANDATORY) → `adv_task_update status: "in_progress"`
+
+**3a.5. Route:** Evaluate delegation routing (above). If delegated and verified → skip to 3d.
 
 **3b. Red Phase:** `[ADV:TDD_RED]` → write failing test → run → show failure evidence
 
@@ -208,7 +235,7 @@ Next: /adv-review {change-id}
 
 ---
 ## Trivial Tasks
-For tasks with `metadata.tdd_intent: "not_applicable"` (docs, config, non-code): skip Red/Green phases, verify manually, include rationale in status.
+For tasks with `metadata.tdd_intent: "not_applicable"` (docs, config, non-code): skip Red/Green phases, verify manually, include rationale in status. These tasks are also candidates for delegation routing — see § Delegation Routing above.
 
 ---
 ## Key Principle

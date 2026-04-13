@@ -82,13 +82,24 @@ Protocol: retry once → if still fails → inline analysis for that dimension �
 
 ---
 ## Phase 2: Spawn Analysis Sub-Agents
-**CHANGE CONTEXT (inject into every sub-agent spawn prompt):**
+**Review Context Packet (inject into every sub-agent spawn prompt):**
 ```
-CHANGE CONTEXT: {change-id} | {objective-first-60-chars} | {n} criteria | gate: review
+WORKING DIRECTORY: {workdir}
+CHANGE: {change-id} | {title} | gate: review
+AFFECTED FILES:
+  - {file}: {one-line change summary}
+  - ...
+ACCEPTANCE CRITERIA:
+  - AC1: {text}
+  - ...
+TASK EVIDENCE SUMMARY:
+  - {task-id}: {title} | {status} | tdd: {phase}
+  - ...
+EXPECTED OUTPUT: {dimension-specific JSON schema}
 ```
-This closes context starvation for explore agents that have no ADV tools. Inject verbatim — do NOT give explore agents ADV tool access.
+This replaces the minimal one-liner and gives explore agents grounded context without ADV tool access. Build the packet from `adv_task_list` and `adv_change_show` outputs at spawn time. Inject verbatim — do NOT give explore agents ADV tool access.
 
-Spawn **5 parallel sub-agents** (`subagent_type: "explore"`). Each receives: `WORKING DIRECTORY: {workdir}`, affected files, change-id, and the CHANGE CONTEXT block above.
+Spawn **5 parallel sub-agents** (`subagent_type: "explore"`). Each receives the Review Context Packet above plus dimension-specific instructions.
 ### Sub-Agent 1: Requirement Traceability
 For each scenario → search files for implementation evidence → calculate coverage → flag untraced. Return: `dimension`, `coverage_percent`, `traced`, `untraced`, `issues`.
 ### Sub-Agent 2: Logic & Edge Cases
@@ -137,6 +148,19 @@ If CHANGES_REQUESTED/BLOCKED → auto-remediation is mandatory:
 | Control flow, error handling, security code, module boundaries, 3+ files, multiple viable approaches | Yes — spawn librarian/adv-researcher first |
 
 If research reveals finding was incorrect → downgrade to `nit:` or reject with evidence.
+
+---
+## Phase 5.5: Post-Remediation Re-Verification
+After remediation fixes are applied, re-verify affected dimensions before recomputing verdict:
+1. For each dimension that had findings fixed, spawn a **targeted** `explore` scanner with the Review Context Packet plus:
+   - `PRIOR FINDINGS: [{finding_id, original_issue, fix_applied}]`
+   - `SCOPE: evaluate only whether the listed findings are resolved`
+   - `EXPECTED OUTPUT: { finding_id, status: "resolved"|"unresolved", evidence }`
+2. If resolved → update finding status to `fixed`.
+3. If unresolved → flag for orchestrator to retry fix or escalate.
+4. **New findings** discovered during re-scan → queue for next review cycle, NOT added to current verdict. This prevents scope creep in the re-verification loop.
+
+× Do NOT re-run all 5 dimensions. Only re-scan dimensions with fixed findings.
 
 ---
 ## Phase 6: Final Report
