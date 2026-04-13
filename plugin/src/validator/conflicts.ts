@@ -11,7 +11,7 @@ import { ValidationCodes } from "./types";
 /**
  * Check for duplicate requirement IDs across all deltas and existing specs
  */
-export function checkDuplicateRequirementIds(
+function checkDuplicateRequirementIds(
   change: Change,
   context: ValidationContext,
 ): ValidationIssue[] {
@@ -88,7 +88,7 @@ export function checkDuplicateRequirementIds(
 /**
  * Check that modify/remove/rename deltas target existing requirements
  */
-export function checkDeltaTargetsExist(
+function checkDeltaTargetsExist(
   change: Change,
   context: ValidationContext,
 ): ValidationIssue[] {
@@ -132,7 +132,7 @@ export function checkDeltaTargetsExist(
 /**
  * Check for priority downgrades (MUST -> SHOULD -> MAY)
  */
-export function checkPriorityDowngrades(
+function checkPriorityDowngrades(
   change: Change,
   context: ValidationContext,
 ): ValidationIssue[] {
@@ -186,7 +186,7 @@ export function checkPriorityDowngrades(
 /**
  * Check for removal of requirements that are referenced by others
  */
-export function checkRemovalReferences(
+function checkRemovalReferences(
   change: Change,
   context: ValidationContext,
 ): ValidationIssue[] {
@@ -222,7 +222,7 @@ export function checkRemovalReferences(
 /**
  * Check that referenced capabilities exist
  */
-export function checkSpecsExist(
+function checkSpecsExist(
   change: Change,
   context: ValidationContext,
 ): ValidationIssue[] {
@@ -254,7 +254,7 @@ export function checkSpecsExist(
  * When multiple changes touch the same capability, there's potential for
  * merge conflicts when archiving. This check warns about such overlaps.
  */
-export function checkChangeConflicts(
+function checkChangeConflicts(
   change: Change,
   context: ValidationContext,
 ): ValidationIssue[] {
@@ -302,7 +302,7 @@ export function checkChangeConflicts(
  * - Multiple operations targeting the same requirement (rename+remove, double rename)
  * - Rename new_id colliding with an add delta's requirement ID
  */
-export function checkIntraDeltaConflicts(change: Change): ValidationIssue[] {
+function checkIntraDeltaConflicts(change: Change): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
 
   for (const [capability, deltas] of Object.entries(change.deltas)) {

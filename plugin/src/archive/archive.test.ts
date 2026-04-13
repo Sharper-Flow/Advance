@@ -15,7 +15,7 @@ import {
   SAMPLE_CHANGE,
 } from "../__tests__/setup";
 import type { Change, Spec, Delta } from "../types";
-import { applyDelta, applyDeltasToSpec } from "./delta";
+import { applyDelta, applyDeltasToSpec, createSpecFromDeltas } from "./delta";
 import { generateSpecDoc } from "./docs";
 import { archiveChange } from "./archive";
 import { listProjectWisdom, addProjectWisdom } from "../storage/project-wisdom";
@@ -277,6 +277,8 @@ describe("Delta Application", () => {
 
       expect(result.deltaResults).toHaveLength(1); // Only first delta attempted
       expect(result.deltaResults[0].success).toBe(false);
+      expect(result.newVersion).toBe("1.0.0");
+      expect(spec.version).toBe("1.0.0");
     });
 
     it("bumps minor version for adds", () => {
@@ -1203,5 +1205,59 @@ describe("wisdom auto-promotion during archive (tk-uv67_Wsk)", () => {
     });
 
     expect(result.wisdomPromoted).toBe(2); // convention + pattern
+  });
+});
+
+// =============================================================================
+// Bug Fix: bumpVersion NaN guard (D10)
+// =============================================================================
+
+describe("bumpVersion NaN guard", () => {
+  it("returns version-updated when version contains NaN (e.g. '1.2.abc')", () => {
+    // createSpecFromDeltas calls bumpVersion internally; we test via a spec with invalid version
+    const deltas: Delta[] = [
+      {
+        id: "dl-nantest1",
+        capability: "test-cap",
+        operation: "add",
+        requirement: {
+          id: "rq-nantest1",
+          title: "New req",
+          body: "body",
+          priority: "must",
+          scenarios: [],
+        },
+        reason: "add new",
+      },
+    ];
+    // Should not throw or produce 'NaN' in version string
+    const { spec } = createSpecFromDeltas("test-cap", deltas);
+    expect(spec.version).not.toContain("NaN");
+    expect(spec.version).toBe("1.0.0");
+  });
+});
+
+// =============================================================================
+// Bug Fix: createSpecFromDeltas empty guard (D10)
+// =============================================================================
+
+describe("createSpecFromDeltas empty delta guard", () => {
+  it("does NOT set version to 1.0.0 when all deltas fail (target missing)", () => {
+    const deltas: Delta[] = [
+      {
+        id: "dl-failtest",
+        capability: "test-cap",
+        operation: "modify",
+        target_id: "rq-nonexistent",
+        changes: { title: "New title" },
+        reason: "modifying non-existent req",
+      },
+    ];
+    const { spec, result } = createSpecFromDeltas("test-cap", deltas);
+    // All deltas failed (target doesn't exist) — version should stay at 0.0.0
+    const applied = result.deltaResults.filter((r) => r.success).length;
+    expect(applied).toBe(0);
+    expect(spec.version).toBe("0.0.0");
+    expect(result.newVersion).toBe("0.0.0");
   });
 });

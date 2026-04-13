@@ -12,7 +12,7 @@ import { getTaskTddCompliance } from "./task-classifier";
 /**
  * Check if change has tasks defined
  */
-export function checkHasTasks(change: Change): ValidationIssue | null {
+function checkHasTasks(change: Change): ValidationIssue | null {
   if (change.tasks.length === 0) {
     return {
       code: ValidationCodes.NO_TASKS,
@@ -27,7 +27,7 @@ export function checkHasTasks(change: Change): ValidationIssue | null {
 /**
  * Check if change has deltas defined
  */
-export function checkHasDeltas(change: Change): ValidationIssue | null {
+function checkHasDeltas(change: Change): ValidationIssue | null {
   const deltaCount = Object.values(change.deltas).flat().length;
   if (deltaCount === 0) {
     return {
@@ -43,7 +43,7 @@ export function checkHasDeltas(change: Change): ValidationIssue | null {
 /**
  * Check if added requirements have at least one scenario
  */
-export function checkRequirementScenarios(change: Change): ValidationIssue[] {
+function checkRequirementScenarios(change: Change): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
 
   for (const [capability, deltas] of Object.entries(change.deltas)) {
@@ -69,7 +69,7 @@ export function checkRequirementScenarios(change: Change): ValidationIssue[] {
 /**
  * Check if scenarios have all required fields
  */
-export function checkScenarioCompleteness(change: Change): ValidationIssue[] {
+function checkScenarioCompleteness(change: Change): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
 
   for (const [capability, deltas] of Object.entries(change.deltas)) {
@@ -112,7 +112,7 @@ export function checkScenarioCompleteness(change: Change): ValidationIssue[] {
 /**
  * Check that requirement IDs follow the correct format
  */
-export function checkIdFormats(change: Change): ValidationIssue[] {
+function checkIdFormats(change: Change): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
   const reqIdPattern = /^rq-[a-zA-Z0-9]+$/;
   const scenarioIdPattern = /^rq-[a-zA-Z0-9]+\.\d+$/;

@@ -28,14 +28,14 @@ export const ClarifyReadinessCodes = {
   CLARIFY_MISSING_ERROR_HANDLING: "CLARIFY_MISSING_ERROR_HANDLING",
 } as const;
 
-export type ClarifyReadinessCode =
+type _ClarifyReadinessCode =
   (typeof ClarifyReadinessCodes)[keyof typeof ClarifyReadinessCodes];
 
 // =============================================================================
 // Result Type
 // =============================================================================
 
-export interface ClarifyReadinessResult {
+interface ClarifyReadinessResult {
   passed: boolean;
   findings: ValidationIssue[];
   checksPerformed: string[];

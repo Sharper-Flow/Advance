@@ -14,7 +14,7 @@ import type { StoreContext } from "./store-context";
 import type { Store } from "./store-types";
 import { acquireFileLock } from "../utils/fs";
 
-export type SpecsSave = (spec: Spec) => Promise<void>;
+type _SpecsSave = (spec: Spec) => Promise<void>;
 
 export function createSpecsOps(
   ctx: StoreContext,

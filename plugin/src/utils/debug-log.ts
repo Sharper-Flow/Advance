@@ -4,7 +4,7 @@ import { dirname, join } from "path";
 
 export const ADV_DEBUG_ENABLED = process.env.ADV_DEBUG === "1";
 
-export const getDebugLogPath = (): string => {
+const getDebugLogPath = (): string => {
   const debugDir =
     process.env.OPEN_CHAD_CACHE_DIR ?? process.env.TMPDIR ?? tmpdir();
   return join(debugDir, "adv-debug.log");

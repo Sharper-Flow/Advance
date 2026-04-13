@@ -862,6 +862,18 @@ describe("SQLiteStore wisdom namespace (tk-MDmM9SAH)", () => {
     expect(results.every((r) => r.change_id === "ch-a")).toBe(true);
   });
 
+  test("search with type filter returns only matching type (SQL-side filtering)", () => {
+    wStore.wisdom.upsertBatch("ch-typetest", [
+      makeEntry("ws-pat1", "pattern", "caching pattern for responses"),
+      makeEntry("ws-got1", "gotcha", "caching gotcha watch out"),
+    ]);
+
+    const patternResults = wStore.wisdom.search("caching", { type: "pattern" });
+    expect(patternResults.every((r) => r.type === "pattern")).toBe(true);
+    expect(patternResults.some((r) => r.id === "ws-pat1")).toBe(true);
+    expect(patternResults.some((r) => r.id === "ws-got1")).toBe(false);
+  });
+
   test("listAll returns all entries across scopes", () => {
     wStore.wisdom.upsertBatch("ch-x", [makeEntry("ws-x1"), makeEntry("ws-x2")]);
     wStore.wisdom.upsertProject([

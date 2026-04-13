@@ -19,7 +19,7 @@ import { runConflictChecks } from "./conflicts";
 // Validator Options
 // =============================================================================
 
-export interface ValidatorOptions {
+interface ValidatorOptions {
   /** Existing specs to validate against */
   specs: Spec[];
   /** Other active changes (for conflict detection) */
@@ -276,5 +276,4 @@ function runProposalDriftCheck(
 // Re-export for convenience
 // =============================================================================
 
-export { ValidationCodes } from "./types";
 export type { ValidationResult, ValidationContext } from "./types";

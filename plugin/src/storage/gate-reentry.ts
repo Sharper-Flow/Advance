@@ -1,7 +1,7 @@
 import type { Change, GateId, ReentryHistoryEntry } from "../types";
 import { GATE_ORDER, createDefaultGates } from "../types";
 
-export interface ReopenChangeResult {
+interface ReopenChangeResult {
   entry: ReentryHistoryEntry;
   gatesReset: [GateId, ...GateId[]];
   timestamp: string;

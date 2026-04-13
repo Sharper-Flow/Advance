@@ -123,7 +123,7 @@ const getClientTty = (): string | null => {
  * Invalidate the TTY cache, forcing re-detection on next use.
  * Useful after tmux detach/reattach or environment changes.
  */
-export const invalidateTtyCache = (): void => {
+const invalidateTtyCache = (): void => {
   cachedPaneTty = undefined;
   cachedClientTty = undefined;
   ttyCacheTimestamp = 0;
@@ -149,7 +149,7 @@ const writeToTty = (tty: string, sequence: string): boolean => {
 /**
  * Set terminal title via OSC sequence.
  */
-export const setTitle = (title: string): void => {
+const setTitle = (title: string): void => {
   log(`setTitle: "${title}"`);
   const sequence = `\x1b]0;${title}\x07`;
 
@@ -194,7 +194,7 @@ export const setTitle = (title: string): void => {
 /**
  * Reset terminal title.
  */
-export const resetTitle = (): void => {
+const resetTitle = (): void => {
   log("resetTitle");
   setTitle("");
 };
@@ -313,7 +313,7 @@ export const buildTabTitle = (
  * Ring the terminal bell (audio alert).
  * Used to notify user when attention is needed (EARTH, MIC states).
  */
-export const ringBell = (): void => {
+const ringBell = (): void => {
   log("ringBell");
   const bellSequence = "\x07"; // BEL character
 

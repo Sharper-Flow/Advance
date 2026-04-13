@@ -11,9 +11,7 @@
  *   - exitCode undefined → allow (backward compat, manual recording)
  */
 
-export type EvidenceValidation =
-  | { valid: true }
-  | { valid: false; reason: string };
+type EvidenceValidation = { valid: true } | { valid: false; reason: string };
 
 export function validateEvidenceSemantics(
   phase: "red" | "green",

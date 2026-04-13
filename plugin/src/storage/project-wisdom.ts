@@ -20,7 +20,7 @@ import { atomicWriteFile, acquireFileLock } from "../utils/fs";
 // Types
 // =============================================================================
 
-export interface ProjectWisdomEntry {
+interface ProjectWisdomEntry {
   /** Unique ID (pw-{nanoid(8)}) */
   id: string;
   /** Category of this learning */
@@ -43,7 +43,7 @@ export interface ProjectWisdomEntry {
  * Zod schema for project wisdom entry validation during loading.
  * Rejects entries with invalid types, missing fields, or bad timestamps.
  */
-export const ProjectWisdomEntrySchema = z.object({
+const ProjectWisdomEntrySchema = z.object({
   id: z.string().startsWith("pw-"),
   type: WisdomTypeSchema,
   content: z.string().min(1).max(2000),

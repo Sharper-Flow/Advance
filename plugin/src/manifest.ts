@@ -14,7 +14,7 @@ import type { GateId } from "./types";
 // Types
 // =============================================================================
 
-export type Phase =
+type Phase =
   | "core"
   | "pre-implementation"
   | "implementation"
@@ -23,7 +23,7 @@ export type Phase =
   | "utility";
 
 /** Defines what a command is allowed to create, read, modify, and which gate it owns. */
-export interface CommandScope {
+interface CommandScope {
   /** ADV artifacts this command creates (e.g., 'change', 'tasks') */
   creates: string[];
   /** ADV artifacts this command reads */
@@ -34,7 +34,7 @@ export interface CommandScope {
   gates: GateId[];
 }
 
-export interface CommandDef {
+interface CommandDef {
   /** Command name (without /) */
   name: string;
   /** Short description */

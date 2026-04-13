@@ -9,7 +9,7 @@
 // Types
 // =============================================================================
 
-export interface BannerOptions {
+interface BannerOptions {
   /** The command/tool name (e.g., "adv_status", "adv_change_validate") */
   command: string;
   /** Optional target/context (e.g., change ID, capability name) */
@@ -90,7 +90,7 @@ const DEFAULT_EMOJI = "🔧";
  * ╚══════════════════════════════════════════╝
  * ```
  */
-export function createBanner(options: BannerOptions): string {
+function createBanner(options: BannerOptions): string {
   const { command, target } = options;
   const emoji = options.emoji ?? COMMAND_EMOJIS[command] ?? DEFAULT_EMOJI;
 
@@ -138,7 +138,7 @@ export function wrapWithBanner(options: BannerOptions, output: string): string {
 /**
  * Helper to create banner options from common tool patterns.
  */
-export function bannerFor(
+function _bannerFor(
   command: string,
   args?: Record<string, unknown>,
 ): BannerOptions {

@@ -398,6 +398,23 @@ export interface FileAttrs {
 }
 
 // =============================================================================
+// FTS Snippet Constants
+// =============================================================================
+
+/** Column index for the `title` column in the requirements_fts virtual table. */
+const FTS_REQ_SNIPPET_COL = 2;
+/** Column index for the `content` column in the wisdom_fts virtual table. */
+const FTS_WISDOM_SNIPPET_COL = 1;
+/** Max tokens in FTS snippet output. */
+const FTS_SNIPPET_TOKENS = 32;
+/** Opening mark tag for FTS snippet highlights. */
+const FTS_MARK_START = "<mark>";
+/** Closing mark tag for FTS snippet highlights. */
+const FTS_MARK_END = "</mark>";
+/** Ellipsis shown at snippet boundaries. */
+const FTS_ELLIPSIS = "...";
+
+// =============================================================================
 // Create Store
 // =============================================================================
 
@@ -519,7 +536,7 @@ function runMigrations(db: Database): void {
 }
 
 /** Return type for prepareStatements — inferred from the factory. */
-type Statements = ReturnType<typeof prepareStatements>;
+type _Statements = ReturnType<typeof prepareStatements>;
 
 /**
  * Prepare all SQL statements for the lifetime of this store instance.
@@ -528,7 +545,6 @@ type Statements = ReturnType<typeof prepareStatements>;
 function prepareStatements(db: Database) {
   return {
     specsList: db.query("SELECT * FROM specs"),
-    specsListByName: db.query("SELECT * FROM specs WHERE name = ?"),
     specsGet: db.query("SELECT * FROM specs WHERE name = ?"),
     specsUpsert: db.query(`
       INSERT INTO specs (name, title, purpose, version, updated_at, json_path, synced_at)
@@ -552,7 +568,7 @@ function prepareStatements(db: Database) {
     reqsDeleteBySpec: db.query("DELETE FROM requirements WHERE spec_name = ?"),
     reqsSearch: db.query(`
       SELECT r.id, r.spec_name, r.title, 
-             snippet(requirements_fts, 2, '<mark>', '</mark>', '...', 32) as match,
+             snippet(requirements_fts, ${FTS_REQ_SNIPPET_COL}, '${FTS_MARK_START}', '${FTS_MARK_END}', '${FTS_ELLIPSIS}', ${FTS_SNIPPET_TOKENS}) as match,
              rank
       FROM requirements_fts
       JOIN requirements r ON requirements_fts.id = r.id
@@ -698,7 +714,7 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
     specs: {
       list: (filter) => {
         if (filter?.name) {
-          return stmts.specsListByName.all(filter.name) as SpecRow[];
+          return stmts.specsGet.all(filter.name) as SpecRow[];
         }
         return stmts.specsList.all() as SpecRow[];
       },
@@ -1117,7 +1133,7 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
 
         const sql = `
           SELECT w.id, w.scope, w.change_id, w.type, w.content,
-                 snippet(wisdom_fts, 1, '<mark>', '</mark>', '...', 32) as match,
+                 snippet(wisdom_fts, ${FTS_WISDOM_SNIPPET_COL}, '${FTS_MARK_START}', '${FTS_MARK_END}', '${FTS_ELLIPSIS}', ${FTS_SNIPPET_TOKENS}) as match,
                  rank
           FROM wisdom_fts
           JOIN wisdom w ON wisdom_fts.id = w.id

@@ -12,7 +12,7 @@ import { z } from "zod";
 // =============================================================================
 
 /** ID prefixes for different entity types */
-export const ID_PREFIXES = {
+const _ID_PREFIXES = {
   requirement: "rq-",
   task: "tk-",
   delta: "dl-",
@@ -24,7 +24,7 @@ export const ID_PREFIXES = {
 // =============================================================================
 
 export const PrioritySchema = z.enum(["must", "should", "may"]);
-export type Priority = z.infer<typeof PrioritySchema>;
+type _Priority = z.infer<typeof PrioritySchema>;
 
 // =============================================================================
 // Scenario (Given/When/Then)
@@ -81,21 +81,21 @@ export type Spec = z.infer<typeof SpecSchema>;
 // Dependency Types
 // =============================================================================
 
-export const DependencyTypeSchema = z.enum([
+const DependencyTypeSchema = z.enum([
   "blocked_by", // Cannot start until target completes
   "related", // Informational link, no blocking
   "discovered_from", // Found while working on target
   "parent", // Hierarchical containment
 ]);
 
-export type DependencyType = z.infer<typeof DependencyTypeSchema>;
+type _DependencyType = z.infer<typeof DependencyTypeSchema>;
 
 export const DependencySchema = z.object({
   type: DependencyTypeSchema,
   target: z.string(), // Target entity ID
 });
 
-export type Dependency = z.infer<typeof DependencySchema>;
+type _Dependency = z.infer<typeof DependencySchema>;
 
 // =============================================================================
 // Task Status
@@ -108,7 +108,7 @@ export const TaskStatusSchema = z.enum([
   "cancelled",
 ]);
 
-export type TaskStatus = z.infer<typeof TaskStatusSchema>;
+type _TaskStatus = z.infer<typeof TaskStatusSchema>;
 
 // =============================================================================
 // Cancellation Metadata (required for any task cancellation)
@@ -213,7 +213,7 @@ export const TddEvidenceSchema = z.object({
   skip_reason: z.string().optional(),
 });
 
-export type TddEvidence = z.infer<typeof TddEvidenceSchema>;
+type TddEvidence = z.infer<typeof TddEvidenceSchema>;
 
 // =============================================================================
 // Error Recovery
@@ -247,7 +247,7 @@ export const AttemptSchema = z.object({
   attempted_at: z.string(),
 });
 
-export type Attempt = z.infer<typeof AttemptSchema>;
+type _Attempt = z.infer<typeof AttemptSchema>;
 
 export const ErrorRecoverySchema = z.object({
   /** Human-readable description of the last error encountered */
@@ -333,15 +333,7 @@ export type Task = z.infer<typeof TaskSchema>;
 // Delta Operations
 // =============================================================================
 
-export const DeltaOperationSchema = z.enum([
-  "add",
-  "modify",
-  "remove",
-  "rename",
-]);
-export type DeltaOperation = z.infer<typeof DeltaOperationSchema>;
-
-export const DeltaAddSchema = z.object({
+const DeltaAddSchema = z.object({
   id: z.string(), // dl-Xt5zW3vB
   operation: z.literal("add"),
   requirement: RequirementSchema,
@@ -352,7 +344,7 @@ export const DeltaAddSchema = z.object({
  * Only allows known requirement fields with correct types.
  * Uses .strict() to reject unknown keys at parse time.
  */
-export const DeltaModifyChangesSchema = z
+const DeltaModifyChangesSchema = z
   .object({
     title: z.string().optional(),
     body: z.string().optional(),
@@ -362,16 +354,16 @@ export const DeltaModifyChangesSchema = z
   })
   .strict(); // Reject unknown keys
 
-export type DeltaModifyChanges = z.infer<typeof DeltaModifyChangesSchema>;
+type _DeltaModifyChanges = z.infer<typeof DeltaModifyChangesSchema>;
 
-export const DeltaModifySchema = z.object({
+const DeltaModifySchema = z.object({
   id: z.string(),
   operation: z.literal("modify"),
   target_id: z.string(), // Requirement ID to modify
   changes: DeltaModifyChangesSchema, // Typed fields to update
 });
 
-export const DeltaRemoveSchema = z.object({
+const DeltaRemoveSchema = z.object({
   id: z.string(),
   operation: z.literal("remove"),
   target_id: z.string(),
@@ -382,7 +374,7 @@ export const DeltaRemoveSchema = z.object({
  * Rename delta - changes a requirement's title and optionally its ID.
  * Applied before remove/modify/add to avoid target-not-found errors.
  */
-export const DeltaRenameSchema = z.object({
+const DeltaRenameSchema = z.object({
   id: z.string(), // dl-{nanoid}
   operation: z.literal("rename"),
   target_id: z.string(), // Existing requirement ID
@@ -403,31 +395,31 @@ export type Delta = z.infer<typeof DeltaSchema>;
 // Validation Result
 // =============================================================================
 
-export const ValidationErrorSchema = z.object({
+const ValidationErrorSchema = z.object({
   code: z.string(),
   message: z.string(),
   path: z.string().optional(),
   details: z.record(z.string(), z.unknown()).optional(),
 });
 
-export type ValidationError = z.infer<typeof ValidationErrorSchema>;
+type _ValidationError = z.infer<typeof ValidationErrorSchema>;
 
-export const ValidationWarningSchema = z.object({
+const ValidationWarningSchema = z.object({
   code: z.string(),
   message: z.string(),
   path: z.string().optional(),
 });
 
-export type ValidationWarning = z.infer<typeof ValidationWarningSchema>;
+type _ValidationWarning = z.infer<typeof ValidationWarningSchema>;
 
-export const ValidationResultSchema = z.object({
+const ValidationResultSchema = z.object({
   checked_against_specs: z.array(z.string()),
   conflicts: z.array(ValidationErrorSchema),
   warnings: z.array(ValidationWarningSchema),
   validated_at: z.string().optional(),
 });
 
-export type ValidationResult = z.infer<typeof ValidationResultSchema>;
+type _ValidationResult = z.infer<typeof ValidationResultSchema>;
 
 // =============================================================================
 // Wisdom (Cross-Task Learning)
@@ -479,13 +471,13 @@ export const ChangeStatusSchema = z.enum([
 
 export type ChangeStatus = z.infer<typeof ChangeStatusSchema>;
 
-export const ChangeClosureReasonSchema = z.enum([
+const ChangeClosureReasonSchema = z.enum([
   "cancelled",
   "superseded",
   "not_planned",
 ]);
 
-export type ChangeClosureReason = z.infer<typeof ChangeClosureReasonSchema>;
+type _ChangeClosureReason = z.infer<typeof ChangeClosureReasonSchema>;
 
 export const ChangeClosureSchema = z.object({
   reason: ChangeClosureReasonSchema,
@@ -505,7 +497,7 @@ export type ChangeClosure = z.infer<typeof ChangeClosureSchema>;
  * Gate definition — single source of truth for all gate metadata.
  * Add/remove/reorder gates here; all derived artifacts follow automatically.
  */
-export interface GateDef {
+interface GateDef {
   /** Unique gate identifier (used as JSON key, schema enum value, etc.) */
   id: string;
   /** Human-readable description */
@@ -577,14 +569,9 @@ export const GATE_ORDER: GateId[] = GATE_DEFS.map((g) => g.id) as GateId[];
  * - legacy: Predates gate system, counts as "satisfied" but wasn't performed
  * - skipped: Explicitly skipped with documented reason (future use)
  */
-export const GateStatusSchema = z.enum([
-  "pending",
-  "done",
-  "legacy",
-  "skipped",
-]);
+const GateStatusSchema = z.enum(["pending", "done", "legacy", "skipped"]);
 
-export type GateStatus = z.infer<typeof GateStatusSchema>;
+type _GateStatus = z.infer<typeof GateStatusSchema>;
 
 /**
  * Single gate completion record.
@@ -801,7 +788,7 @@ export type Change = z.infer<typeof ChangeSchema>;
  * A related repository that tasks in this project may target.
  * Generic model — any repo/path pair, not hardcoded to specific projects.
  */
-export const RelatedRepoSchema = z.object({
+const RelatedRepoSchema = z.object({
   /** Short identifier used in task metadata (e.g., "backend", "api", "db") */
   id: z.string(),
   /** Absolute path to the repository root */
@@ -810,11 +797,7 @@ export const RelatedRepoSchema = z.object({
   role: z.string().optional(),
 });
 
-export type RelatedRepo = z.infer<typeof RelatedRepoSchema>;
-
-// =============================================================================
-// Feature Flags
-// =============================================================================
+type _RelatedRepo = z.infer<typeof RelatedRepoSchema>;
 
 // =============================================================================
 // Slop Scan Config
@@ -836,7 +819,7 @@ export type RelatedRepo = z.infer<typeof RelatedRepoSchema>;
  *   }
  * }
  */
-export const SlopScanConfigSchema = z
+const SlopScanConfigSchema = z
   .object({
     /**
      * Maximum nesting depth before flagging as MAINT-004.
@@ -864,7 +847,7 @@ export const SlopScanConfigSchema = z
   })
   .passthrough(); // Forward compatibility: unknown keys pass through
 
-export type SlopScanConfig = z.infer<typeof SlopScanConfigSchema>;
+type _SlopScanConfig = z.infer<typeof SlopScanConfigSchema>;
 
 // =============================================================================
 // Feature Flags
@@ -923,12 +906,9 @@ export const FeatureFlagsSchema = z
      * Threshold overrides for /adv-slop-scan detection.
      * All thresholds have smart defaults; override only what differs from project norms.
      */
-    slop_scan: SlopScanConfigSchema.default({
-      nesting_depth_threshold: 8,
-      defensive_guard_threshold: 0.25,
-      complexity_threshold: 12,
-      ast_timeout_ms: 10000,
-    }),
+    slop_scan: SlopScanConfigSchema.default(() =>
+      SlopScanConfigSchema.parse({}),
+    ),
   })
   .passthrough(); // Allow future flags without breaking existing configs
 
@@ -952,19 +932,7 @@ export const ProjectConfigSchema = z
     /** Related repositories for cross-repo task routing */
     related_repos: z.array(RelatedRepoSchema).optional(),
     /** Per-project feature flag overrides. All flags default to current ADV behavior. */
-    features: FeatureFlagsSchema.default({
-      tdd_enforcement: "strict" as const,
-      worktree_auto_create: true,
-      gate_enforcement: "strict" as const,
-      wisdom_accumulation: true,
-      clarify_enforcement: "advisory" as const,
-      slop_scan: {
-        nesting_depth_threshold: 8,
-        defensive_guard_threshold: 0.25,
-        complexity_threshold: 12,
-        ast_timeout_ms: 10000,
-      },
-    }),
+    features: FeatureFlagsSchema.default(() => FeatureFlagsSchema.parse({})),
   })
   .passthrough(); // Allow extra fields for forward/backward compatibility
 
@@ -1007,7 +975,7 @@ export interface TaskReadyResponse {
   }>;
 }
 
-export interface ArchiveResult {
+interface _ArchiveResult {
   success: boolean;
   specsUpdated: string[];
   docsGenerated: string[];

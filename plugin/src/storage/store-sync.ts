@@ -32,7 +32,7 @@ import { listProjectWisdom } from "./project-wisdom";
  *  1. Missing SQLite change rows for JSON-backed active changes
  *  2. Stale/dangling SQLite rows for changes no longer in the active directory
  */
-export async function reconcileActiveChangeCache(
+async function reconcileActiveChangeCache(
   ctx: StoreContext,
   changes: Map<string, Change>,
 ): Promise<{ resyncRequired: boolean }> {
@@ -80,6 +80,43 @@ export async function reconcileActiveChangeCache(
 }
 
 // ---------------------------------------------------------------------------
+// Sync file helper
+// ---------------------------------------------------------------------------
+
+type SyncAttrs = { mtime_ms: number; size: number; inode: number };
+
+/**
+ * Stat a file, check if sync is needed, load, upsert, and mark synced.
+ * Returns true if the file was synced, false if up-to-date or missing.
+ */
+async function syncSingleFile<T>(
+  ctx: StoreContext,
+  jsonPath: string,
+  load: () => Promise<{ success: boolean; data?: T | null }>,
+  upsert: (data: T, path: string) => void,
+): Promise<boolean> {
+  let attrs: SyncAttrs | undefined;
+  try {
+    const s = statSync(jsonPath);
+    attrs = { mtime_ms: Math.floor(s.mtimeMs), size: s.size, inode: s.ino };
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code !== "ENOENT") {
+      console.warn("[adv:sync] Unexpected stat error:", (err as Error).message);
+    }
+    return false;
+  }
+  if (!ctx.sqlite.syncFiles.needsSync(jsonPath, attrs)) return false;
+  const result = await load();
+  if (result.success && result.data) {
+    upsert(result.data, jsonPath);
+    ctx.sqlite.syncFiles.markSynced(jsonPath, attrs);
+    if (shouldCheckpoint(ctx.dbPath)) checkpointWAL(ctx.sqlite.db);
+    return true;
+  }
+  return false;
+}
+
+// ---------------------------------------------------------------------------
 // Spec sync helpers
 // ---------------------------------------------------------------------------
 
@@ -100,22 +137,12 @@ export function ensureSpecSynced(
   pending = (async () => {
     try {
       const jsonPath = join(ctx.paths.specs, capability, "spec.json");
-      let attrs;
-      try {
-        const s = statSync(jsonPath);
-        attrs = { mtime_ms: Math.floor(s.mtimeMs), size: s.size, inode: s.ino };
-      } catch {
-        attrs = undefined;
-      }
-
-      if (!attrs || ctx.sqlite.syncFiles.needsSync(jsonPath, attrs)) {
-        const result = await loadSpec(ctx.paths.specs, capability);
-        if (result.success && result.data) {
-          ctx.sqlite.specs.upsert(result.data, jsonPath);
-          if (attrs) ctx.sqlite.syncFiles.markSynced(jsonPath, attrs);
-          if (shouldCheckpoint(ctx.dbPath)) checkpointWAL(ctx.sqlite.db);
-        }
-      }
+      await syncSingleFile(
+        ctx,
+        jsonPath,
+        () => loadSpec(ctx.paths.specs, capability),
+        (data, path) => ctx.sqlite.specs.upsert(data, path),
+      );
       ctx.syncedSpecs.add(capability);
     } finally {
       ctx.pendingSpecSyncs.delete(capability);
@@ -181,22 +208,12 @@ export function ensureChangeSynced(
   pending = (async () => {
     try {
       const jsonPath = join(ctx.paths.changes, changeId, "change.json");
-      let attrs;
-      try {
-        const s = statSync(jsonPath);
-        attrs = { mtime_ms: Math.floor(s.mtimeMs), size: s.size, inode: s.ino };
-      } catch {
-        attrs = undefined;
-      }
-
-      if (!attrs || ctx.sqlite.syncFiles.needsSync(jsonPath, attrs)) {
-        const result = await loadChange(ctx.paths.changes, changeId);
-        if (result.success && result.data) {
-          ctx.sqlite.changes.upsert(result.data, jsonPath);
-          if (attrs) ctx.sqlite.syncFiles.markSynced(jsonPath, attrs);
-          if (shouldCheckpoint(ctx.dbPath)) checkpointWAL(ctx.sqlite.db);
-        }
-      }
+      await syncSingleFile(
+        ctx,
+        jsonPath,
+        () => loadChange(ctx.paths.changes, changeId),
+        (data, path) => ctx.sqlite.changes.upsert(data, path),
+      );
       ctx.syncedChanges.add(changeId);
     } finally {
       ctx.pendingChangeSyncs.delete(changeId);
@@ -300,8 +317,12 @@ export async function ensureProjectWisdomSynced(
     }
     ctx.sqlite.syncFiles.markSynced(wisdomPath, attrs);
     ctx.projectWisdomSynced = true;
-  } catch {
+  } catch (err) {
     // Project wisdom sync is best-effort — don't fail the operation
+    console.warn(
+      "[adv:sync] Project wisdom sync failed:",
+      (err as Error).message,
+    );
     ctx.projectWisdomSynced = false; // allow retry on next call
   }
 }

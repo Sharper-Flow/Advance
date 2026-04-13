@@ -21,7 +21,7 @@ import {
 // Check Codes
 // =============================================================================
 
-export const PrepReadinessCodes = {
+const PrepReadinessCodes = {
   // Smell checks (advisory warnings only)
   SMELL_SUBJECTIVE: "SMELL_SUBJECTIVE",
   SMELL_AMBIGUOUS: "SMELL_AMBIGUOUS",
@@ -45,14 +45,14 @@ export const PrepReadinessCodes = {
   CROSS_REPO_HINT_UNROUTED: "CROSS_REPO_HINT_UNROUTED", // warning
 } as const;
 
-export type PrepReadinessCode =
+type _PrepReadinessCode =
   (typeof PrepReadinessCodes)[keyof typeof PrepReadinessCodes];
 
 // =============================================================================
 // Result Type
 // =============================================================================
 
-export interface PrepReadinessResult {
+interface PrepReadinessResult {
   passed: boolean;
   mustFailures: ValidationIssue[];
   warnings: ValidationIssue[];

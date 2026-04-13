@@ -65,7 +65,7 @@ export interface ToolDefSimple<TArgs> {
  * Bind a store-based tool definition to a store instance.
  * Usage: `adv_spec: bindTool(specTools.adv_spec, "adv_spec", store)`
  */
-export function bindTool<TArgs, TStore>(
+function bindTool<TArgs, TStore>(
   def: ToolDef<TArgs, TStore>,
   name: string,
   store: TStore,
@@ -81,7 +81,7 @@ export function bindTool<TArgs, TStore>(
  * Bind an agenda-style tool definition to a directory + optional path.
  * Usage: `adv_agenda_list: bindToolSimple(agendaTools.adv_agenda_list, "adv_agenda_list", directory, store.paths.agenda)`
  */
-export function bindToolSimple<TArgs>(
+function bindToolSimple<TArgs>(
   def: ToolDefSimple<TArgs>,
   name: string,
   dir: string,

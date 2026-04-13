@@ -217,6 +217,6 @@ export const pruneStaleRetries = (): number => {
 /**
  * Clear all retry trackers. Used during cleanup/reset.
  */
-export const clearAllRetries = (): void => {
+const _clearAllRetries = (): void => {
   retryTrackers.clear();
 };
