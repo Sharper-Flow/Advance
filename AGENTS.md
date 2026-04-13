@@ -1,191 +1,109 @@
 # Advance (ADV) - Agent Instructions
 
-## Overview
+## Repository Layout
 
-Advance is a spec-driven development plugin where **specs become laws**. Requirements in `spec.json` files are enforced during change validation.
-
-## Core Concepts
-
-### Specs (Laws)
-- `.adv/specs/{capability}/spec.json` contains enforced requirements
-- Each requirement has scenarios (Given/When/Then)
-- Tags enable cross-cutting queries
-
-### Changes (Proposals)
-- `.adv/changes/{id}/change.json` contains tasks and deltas
-- Proposals live alongside as `problem-statement.md`, `proposal.md`, `agreement.md`, `design.md`
-- Deltas describe modifications to specs
-- Must pass all 7 gates before archiving
-
-### Tasks
-- Tasks have dependencies (`blocked_by`, `related`, etc.)
-- Use `adv_task_ready` to get unblocked tasks
-- Update status as work progresses
-- New tasks cannot be added after the `planning` gate is complete
-
-## Workflow
-
-ADV is a **7-gate collaborative workflow**. Gates are sequential — you cannot complete a gate until prior gates are satisfied, and you cannot archive until all 7 are done.
-
-| # | Gate       | Owning command(s)                 | Artifact                       |
-|---|------------|-----------------------------------|--------------------------------|
-| 1 | proposal   | `/adv-proposal`                     | `problem-statement.md`           |
-| 2 | discovery  | `/adv-discover` + `/adv-agree`        | `agreement.md`                   |
-| 3 | design     | `/adv-design` + `/adv-present`        | `design.md`                      |
-| 4 | planning   | `/adv-prep`                         | Task graph in `change.json`      |
-| 5 | execution  | `/adv-apply`                        | Code / docs / ops deliverables   |
-| 6 | acceptance | `/adv-review` + `/adv-accept`         | User sign-off                    |
-| 7 | release    | `/adv-harden` + `/adv-archive`        | Spec deltas applied, git finalized |
-
-Programmatic flow:
-
-1. **Create Change**: `adv_change_create({ summary: "..." })`
-2. **Walk gates 1–4** via slash commands (or `/adv-task` fast-track)
-3. **Execute**: `/adv-apply` runs tasks with inline TDD (`adv_task_ready` → implement → `adv_task_update`)
-4. **Review + Accept**: `/adv-review` then `/adv-accept`
-5. **Harden + Archive**: `/adv-harden` then `/adv-archive`
-
-See [docs/adv-gates.md](docs/adv-gates.md) for gate contracts and [docs/adv-workflow.md](docs/adv-workflow.md) for the visual diagram.
-
-## Tool Usage
-
-### Spec Tools
-```typescript
-// List all specs
-adv_spec({ action: "list" })
-
-// Filter by tag
-adv_spec({ action: "list", tag: "security" })
-
-// Get full spec
-adv_spec({ action: "show", capability: "contract-system" })
-
-// Search across specs
-adv_spec({ action: "search", query: "authentication" })
-```
-
-### Change Tools
-```typescript
-// List active changes
-adv_change_list({})
-
-// Get change details
-adv_change_show({ changeId: "add-feature" })
-
-// Get lightweight change context (no full task details)
-adv_change_summary({ changeId: "add-feature" })
-
-// Create new change
-adv_change_create({ summary: "Add feature X" })
-
-// Update proposal/problem-statement for existing change (never re-call create)
-adv_change_update({ changeId: "add-feature", proposal: "..." })
-
-// Validate change
-adv_change_validate({ changeId: "add-feature" })
-
-// Archive completed change
-adv_change_archive({ changeId: "add-feature" })
-```
-
-### Task Tools
-```typescript
-// List all tasks
-adv_task_list({ changeId: "add-feature" })
-
-// Get unblocked tasks
-adv_task_ready({ changeId: "add-feature" })
-
-// Get full task details by ID (includes parent changeId)
-adv_task_show({ taskId: "tk-abc" })
-
-// Update task status
-adv_task_update({ taskId: "tk-abc", status: "done" })
-
-// Add new task (TDD intent is declared via metadata, NOT inline content)
-// Valid metadata.tdd_intent: "inline" | "separate_verification" | "not_applicable"
-adv_task_add({
-  changeId: "add-feature",
-  content: "Implement feature X",
-  section: "Implementation",
-  metadata: { tdd_intent: "inline" }
-})
-
-// Note: tasks can only be added BEFORE the planning gate is complete.
-// After planning is done, the task graph is frozen.
-
-// Reclassify TDD intent after planning gate (requires user approval)
-adv_task_reclassify_tdd({
-  taskId: "tk-abc",
-  toIntent: "not_applicable",
-  reason: "Task is docs-only, no testable logic",
-  approvedByUser: true,
-  approvalEvidence: "User confirmed in chat"
-})
-```
-
-## ID Formats
-
-| Entity | Format | Example |
-|--------|--------|---------|
-| Requirement | `rq-{nanoid(8)}` | `rq-V1StGXR8` |
-| Scenario | `rq-{parent}.{n}` | `rq-V1StGXR8.1` |
-| Task | `tk-{nanoid(8)}` | `tk-Hf7dK2mN` |
-| Delta | `dl-{nanoid(8)}` | `dl-Xt5zW3vB` |
-| Change | `{camelCaseTitle}` | `addUserAuth` |
-
-## Dependency Types
-
-| Type | Effect |
-|------|--------|
-| `blocked_by` | Cannot start until target completes |
-| `related` | Informational, no blocking |
-| `discovered_from` | Provenance tracking |
-| `parent` | Hierarchical containment |
-
-## Priority (RFC 2119)
-
-- `must`: Required functionality
-- `should`: Expected but not critical
-- `may`: Optional enhancement
-
-## Directory Structure
+This is an OpenCode plugin repo, not a monorepo. All buildable code lives in `plugin/`.
 
 ```
-project/
-├── project.json              # Config
-├── .adv/                     # ADV internals
-│   ├── specs/                # THE LAW (capability specifications)
-│   │   └── {cap}/spec.json
-│   ├── changes/              # Active proposals
-│   │   └── {id}/
-│   │       ├── change.json
-│   │       ├── problem-statement.md   # produced by /adv-proposal
-│   │       ├── proposal.md            # produced by /adv-proposal
-│   │       ├── agreement.md           # produced by /adv-agree
-│   │       └── design.md              # produced by /adv-design + /adv-present
-│   ├── archive/              # Completed changes
-│   └── db/spec.db            # SQLite cache (derived, gitignored)
-├── docs/
-│   ├── adv-gates.md          # Gate contracts
-│   ├── adv-workflow.md       # Visual workflow
-│   └── specs/                # Generated spec docs
+plugin/              # TypeScript plugin (the only buildable package)
+  src/
+    index.ts         # Plugin entrypoint — hooks, event handlers, tool registration
+    tool-registry.ts # Binds all tool definitions to the SDK
+    manifest.ts      # Command manifest (phases, gates, scopes)
+    tools/           # MCP tool implementations (spec, change, task, gate, wisdom, agenda, test, status, project)
+    storage/         # JSON + SQLite persistence, migrations, handoff, external state
+    guards/          # Runtime policy enforcement (bash sanitization, task nesting depth)
+    validator/       # Spec validation, prep-readiness, task classification
+    events/          # Terminal UI, status markers
+    utils/           # Helpers (debug-log, project-id, safe-execute)
+    __mocks__/       # Vitest aliases: @opencode-ai/plugin → mock, bun:sqlite → better-sqlite3
+    __tests__/setup.ts  # Shared fixtures and assertion helpers
+  schemas/           # Generated JSON schemas (from Zod types via generate:schemas)
+.adv/specs/          # Capability specs (the laws) — git-tracked, branch-local
+.opencode/
+  command/           # 21 slash-command workflow files (adv-*.md)
+  agents/            # Repo-local agents (adv-researcher, tron, plus overlay-managed: adv, build, plan, refine, scout)
+  overlays/          # Managed overlay blocks synced into global shared agents
+skills/              # Bundled methodology skills synced to ~/.config/opencode/skills/
+scripts/             # sync-global.sh (main), migrate-openspec.ts, recover-db.js, model-blind-test
+docs/                # Gate contracts, workflow diagram, checklists, spec docs
 ```
 
-## For Agents Modifying This Plugin
+## Development Commands
 
-### Adding New Tools
-1. Create tool in `src/tools/`
-2. Add to index.ts exports
-3. Register in plugin entry
+**All commands run from `plugin/`, not the repo root.**
 
-### Modifying Storage
-- JSON files are source of truth
-- SQLite is derived cache
-- Always sync both on write
-
-### Testing
 ```bash
-pnpm run check    # Full validation (typecheck + lint + format)
-pnpm test         # Run tests
+pnpm test                    # vitest run — 1290+ tests, ~55s
+pnpm run check               # typecheck → lint → format:check (no tests)
+pnpm run build               # tsup (ESM) + generate:schemas
+pnpm run typecheck            # tsc --noEmit
+pnpm run lint                 # eslint src/
+pnpm run lint:fix             # eslint --fix
+pnpm run format               # prettier --write
+pnpm run format:check         # prettier --check
+pnpm run generate:schemas     # Zod → JSON Schema (writes to schemas/)
+pnpm run generate:docs        # Spec → markdown docs (writes to docs/specs/)
 ```
+
+**Single test file:** `pnpm test -- src/tools/change.test.ts`
+
+**CI order** (`.github/workflows/ci.yml`): typecheck → lint → format:check → test → build. Node 20.x + 22.x.
+
+## Architecture Gotchas
+
+### Runtime is Bun, tests run on Node
+The plugin uses `bun:sqlite` at runtime. Tests mock it via vitest aliases in `vitest.config.ts`:
+- `bun:sqlite` → `src/__mocks__/bun-sqlite.ts` (wraps `better-sqlite3`)
+- `@opencode-ai/plugin` → `src/__mocks__/opencode-plugin.ts`
+
+If you add imports from the SDK or Bun APIs, ensure the mocks cover them or tests will fail with resolution errors.
+
+### Zod v4 with v3 compatibility
+Dependencies use Zod v4 (`^4.3.6`). Tool arg schemas use Zod and are cast via `as any` in tool-registry.ts for SDK compatibility. The cast is intentional — don't "fix" it.
+
+### External mutable state
+ADV state (changes, archive, wisdom, agenda, handoff) lives **outside the repo** at `~/.local/share/opencode/plugins/advance/{project-id}/`, keyed by root commit SHA. All worktrees of the same repo share this state. Specs (`.adv/specs/`) remain in-repo and branch-local.
+
+**Never read ADV state files directly** (`read`, `cat`, `ls`). Always use ADV MCP tools (`adv_change_show`, `adv_task_list`, etc.).
+
+### Overlay sync model
+Shared global agents (`adv`, `general`, `build`, `plan`, `refine`, `scout`) are NOT fully replaced by sync. Instead, `.opencode/overlays/*.overlay.md` contains managed blocks that `scripts/sync-global.sh` injects into the global agent files without overwriting user customization.
+
+### Guard system
+- `guards/bash.ts` — sanitizes bash commands at runtime (blocks destructive patterns)
+- `guards/task.ts` — enforces single-level sub-agent nesting (hard depth limit of 1)
+
+### Tool registration pattern
+Each tool file in `src/tools/` exports a `*Tools` object with description, args schema, and execute function. `tool-registry.ts` binds them all via `createToolMap()`. To add a new tool:
+1. Define it in the relevant `src/tools/*.ts` file
+2. Export from `src/tools/index.ts`
+3. `tool-registry.ts` picks it up via the `*Tools` import
+
+### Schema generation
+`pnpm run generate:schemas` converts Zod types → JSON Schema files in `schemas/`. These are committed. If you change Zod schemas in `src/types.ts` or storage types, regenerate.
+
+## Testing Conventions
+
+- Tests are co-located: `foo.ts` has `foo.test.ts` in the same directory
+- Asset-style test files (`*-assets.test.ts`) in `src/` test command/manifest consistency
+- Shared fixtures and helpers in `src/__tests__/setup.ts` (`createTestProject`, `parseToolOutput`, etc.)
+- Tests use temp directories for isolation (`createTempDir` / `cleanupTempDir`)
+- No external services required — all storage is mocked or uses temp dirs
+
+## Sync Script
+
+`scripts/sync-global.sh` is the primary maintenance tool:
+```bash
+./scripts/sync-global.sh --check      # Report what's out of date
+./scripts/sync-global.sh --fix        # Sync assets + patch opencode.json
+./scripts/sync-global.sh --dry-run --diff  # Preview changes
+```
+Requires `jq` for config patching.
+
+## Key References
+
+- `ADV_INSTRUCTIONS.md` — full agent operating protocol (gates, TDD, doom loop, cancellation, re-entry)
+- `SETUP.md` — installation, project init, troubleshooting
+- `docs/adv-gates.md` — gate contracts and sequencing rules
+- `docs/checklists/` — prep, review, and harden checklists
