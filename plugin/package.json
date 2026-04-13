@@ -15,7 +15,7 @@
   },
   "author": "Anomaly",
   "scripts": {
-    "build": "tsup src/index.ts --format esm --dts && pnpm run generate:schemas",
+    "build": "tsup src/index.ts --format esm --dts",
     "dev": "tsup src/index.ts --format esm --watch",
     "check": "pnpm run typecheck && pnpm run lint && pnpm run format:check",
     "prepublishOnly": "pnpm run build",
@@ -26,10 +26,7 @@
     "format:check": "prettier --check src/",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage",
-    "generate:schemas": "pnpm dlx tsx scripts/generate-schemas.ts",
-    "generate:docs": "pnpm dlx tsx scripts/generate-docs.ts",
-    "migrate:add-schemas": "pnpm dlx tsx scripts/add-schema-refs.ts"
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@opencode-ai/plugin": "latest",
@@ -48,9 +45,9 @@
     "tsup": "^8.5.1",
     "typescript": "^6.0.2",
     "typescript-eslint": "^8.58.1",
+    "@vitest/coverage-v8": "^4.1.4",
     "vite": "^8.0.8",
-    "vitest": "^4.1.4",
-    "zod-to-json-schema": "^3.25.2"
+    "vitest": "^4.1.4"
   },
   "peerDependencies": {
     "typescript": "^5.0.0 || ^6.0.0"

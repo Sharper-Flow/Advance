@@ -398,19 +398,31 @@ export interface FileAttrs {
 }
 
 // =============================================================================
+// FTS Snippet Constants
+// =============================================================================
+
+/** Column index for the `title` column in the requirements_fts virtual table. */
+const FTS_REQ_SNIPPET_COL = 2;
+/** Column index for the `content` column in the wisdom_fts virtual table. */
+const FTS_WISDOM_SNIPPET_COL = 1;
+/** Max tokens in FTS snippet output. */
+const FTS_SNIPPET_TOKENS = 32;
+/** Opening mark tag for FTS snippet highlights. */
+const FTS_MARK_START = "<mark>";
+/** Closing mark tag for FTS snippet highlights. */
+const FTS_MARK_END = "</mark>";
+/** Ellipsis shown at snippet boundaries. */
+const FTS_ELLIPSIS = "...";
+
+// =============================================================================
 // Create Store
 // =============================================================================
 
-export function createSQLiteStore(dbPath: string): SQLiteStore {
-  const db = new Database(dbPath, { create: true });
-
-  // Note: PRAGMA settings moved to initDatabase() in health.ts
-  // to enable health checks before initialization
-  // Health checks and auto-recovery are handled in store.ts
-
-  // Run schema
-  db.exec(SCHEMA);
-
+/**
+ * Run all schema migrations. Safe to call on every DB open.
+ * SQLite is a derived cache — all migrations are idempotent.
+ */
+function runMigrations(db: Database): void {
   // Migration: update deltas CHECK constraint to include 'rename'.
   // SQLite doesn't support ALTER TABLE ... ALTER COLUMN, so we recreate
   // the table if the old constraint is present. This is safe because
@@ -436,13 +448,11 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
         )
       `);
     }
-  } catch {
-    // If migration fails, the DB will be rebuilt on next sync
+  } catch (err) {
+    console.warn("[adv:sqlite] Migration failed:", (err as Error).message);
   }
 
   // Migration: update changes CHECK constraint to include 'closed'.
-  // SQLite doesn't support altering CHECK constraints in place, so rebuild
-  // the derived cache table if the older constraint is still present.
   try {
     const tableInfo = db
       .query(
@@ -463,13 +473,11 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
         )
       `);
     }
-  } catch {
-    // If migration fails, the DB will be rebuilt on next sync
+  } catch (err) {
+    console.warn("[adv:sqlite] Migration failed:", (err as Error).message);
   }
 
-  // Migration: add 'type' column to tasks table (7-gate model introduces task typing).
-  // SQLite doesn't support ALTER TABLE ... ADD COLUMN with CHECK constraints reliably,
-  // so we DROP + CREATE. Safe because SQLite is a derived cache rebuilt from JSON.
+  // Migration: add 'type' column to tasks table.
   try {
     const tableInfo = db
       .query(
@@ -495,13 +503,11 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
         )
       `);
     }
-  } catch {
-    // If migration fails, the DB will be rebuilt on next sync
+  } catch (err) {
+    console.warn("[adv:sqlite] Migration failed:", (err as Error).message);
   }
 
   // Migration: add cancellation_reason column to pre-existing tasks tables.
-  // Fresh installs and rebuilds above already create the column in CREATE TABLE.
-  // This ALTER TABLE path exists only for older databases that skipped the rebuild.
   try {
     const taskCols = db.query("PRAGMA table_info(tasks)").all() as Array<{
       name: string;
@@ -510,11 +516,11 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
     if (!hasCol) {
       db.exec("ALTER TABLE tasks ADD COLUMN cancellation_reason TEXT");
     }
-  } catch {
-    // If migration fails, the DB will be rebuilt on next sync
+  } catch (err) {
+    console.warn("[adv:sqlite] Migration failed:", (err as Error).message);
   }
 
-  // Migration: remove legacy sync_meta table (replaced by sync_files triple-attribute tracking)
+  // Migration: remove legacy sync_meta table.
   try {
     const hasSyncMeta = db
       .query(
@@ -524,14 +530,21 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
     if (hasSyncMeta) {
       db.exec("DROP TABLE sync_meta");
     }
-  } catch {
-    // Non-fatal: table will be ignored if drop fails
+  } catch (err) {
+    console.warn("[adv:sqlite] Migration failed:", (err as Error).message);
   }
+}
 
-  // Prepare statements using db.query() for bun:sqlite
-  const stmts = {
+/** Return type for prepareStatements — inferred from the factory. */
+type _Statements = ReturnType<typeof prepareStatements>;
+
+/**
+ * Prepare all SQL statements for the lifetime of this store instance.
+ * Called once after schema creation and migrations.
+ */
+function prepareStatements(db: Database) {
+  return {
     specsList: db.query("SELECT * FROM specs"),
-    specsListByName: db.query("SELECT * FROM specs WHERE name = ?"),
     specsGet: db.query("SELECT * FROM specs WHERE name = ?"),
     specsUpsert: db.query(`
       INSERT INTO specs (name, title, purpose, version, updated_at, json_path, synced_at)
@@ -555,7 +568,7 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
     reqsDeleteBySpec: db.query("DELETE FROM requirements WHERE spec_name = ?"),
     reqsSearch: db.query(`
       SELECT r.id, r.spec_name, r.title, 
-             snippet(requirements_fts, 2, '<mark>', '</mark>', '...', 32) as match,
+             snippet(requirements_fts, ${FTS_REQ_SNIPPET_COL}, '${FTS_MARK_START}', '${FTS_MARK_END}', '${FTS_ELLIPSIS}', ${FTS_SNIPPET_TOKENS}) as match,
              rank
       FROM requirements_fts
       JOIN requirements r ON requirements_fts.id = r.id
@@ -617,7 +630,6 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
     `),
     deltasDeleteByChange: db.query("DELETE FROM deltas WHERE change_id = ?"),
 
-    // Sync files with triple-attribute tracking
     syncFilesGet: db.query(
       "SELECT mtime_ms, size, inode FROM sync_files WHERE path = ?",
     ),
@@ -632,7 +644,6 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
     `),
     syncFilesDelete: db.query("DELETE FROM sync_files WHERE path = ?"),
 
-    // Aggregated task counts per change (replaces N+1 per-row tasks.list)
     tasksCountByChange: db.query(`
       SELECT change_id,
              COUNT(*) AS total,
@@ -641,12 +652,10 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
       GROUP BY change_id
     `),
 
-    // Specs that have at least one requirement with a given tag
     reqsSpecsByTag: db.query(`
       SELECT DISTINCT spec_name FROM requirements WHERE tags LIKE ?
     `),
 
-    // All active blockers for pending tasks in a change (replaces per-task blocker loop)
     allBlockersForChange: db.query(`
       SELECT d.source_id, d.target_id
       FROM dependencies d
@@ -658,7 +667,6 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
         AND blocker_task.status NOT IN ('done', 'cancelled')
     `),
 
-    // Cancelled blockers that unblocked pending tasks — provides cancellation context
     cancelledBlockersForChange: db.query(`
       SELECT d.source_id AS task_id, d.target_id AS cancelled_blocker_id, blocker_task.cancellation_reason
       FROM dependencies d
@@ -671,7 +679,6 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
         AND blocker_task.cancellation_reason IS NOT NULL
     `),
 
-    // Wisdom queries
     wisdomUpsert: db.query(`
       INSERT OR REPLACE INTO wisdom (id, scope, change_id, type, content, source_task, source_change, recorded_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -680,16 +687,6 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
     wisdomDeleteProjectScope: db.query(
       "DELETE FROM wisdom WHERE scope = 'project'",
     ),
-    wisdomSearch: db.query(`
-      SELECT w.id, w.scope, w.change_id, w.type, w.content,
-             snippet(wisdom_fts, 1, '<mark>', '</mark>', '...', 32) as match,
-             rank
-      FROM wisdom_fts
-      JOIN wisdom w ON wisdom_fts.id = w.id
-      WHERE wisdom_fts MATCH ?
-      ORDER BY rank
-      LIMIT ?
-    `),
     wisdomListAll: db.query("SELECT * FROM wisdom ORDER BY recorded_at DESC"),
     wisdomListByScope: db.query(
       "SELECT * FROM wisdom WHERE scope = ? ORDER BY recorded_at DESC",
@@ -701,6 +698,15 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
       "SELECT * FROM wisdom WHERE scope = ? AND type = ? ORDER BY recorded_at DESC",
     ),
   };
+}
+
+export function createSQLiteStore(dbPath: string): SQLiteStore {
+  const db = new Database(dbPath, { create: true });
+
+  // Note: PRAGMA settings moved to initDatabase() in health.ts
+  db.exec(SCHEMA);
+  runMigrations(db);
+  const stmts = prepareStatements(db);
 
   return {
     db,
@@ -708,7 +714,7 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
     specs: {
       list: (filter) => {
         if (filter?.name) {
-          return stmts.specsListByName.all(filter.name) as SpecRow[];
+          return stmts.specsGet.all(filter.name) as SpecRow[];
         }
         return stmts.specsList.all() as SpecRow[];
       },
@@ -1108,25 +1114,34 @@ export function createSQLiteStore(dbPath: string): SQLiteStore {
           return [];
         }
 
-        let results = stmts.wisdomSearch.all(
-          sanitizedQuery,
-          limit,
-        ) as WisdomSearchResult[];
+        const conditions: string[] = ["wisdom_fts MATCH ?"];
+        const params: (string | number)[] = [sanitizedQuery];
 
-        // Filter by changeId if provided
         if (options?.changeId) {
-          results = results.filter((r) => r.change_id === options.changeId);
+          conditions.push("w.change_id = ?");
+          params.push(options.changeId);
         }
-        // Filter by scope if provided
         if (options?.scope) {
-          results = results.filter((r) => r.scope === options.scope);
+          conditions.push("w.scope = ?");
+          params.push(options.scope);
         }
-        // Filter by type if provided
         if (options?.type) {
-          results = results.filter((r) => r.type === options.type);
+          conditions.push("w.type = ?");
+          params.push(options.type);
         }
+        params.push(limit);
 
-        return results;
+        const sql = `
+          SELECT w.id, w.scope, w.change_id, w.type, w.content,
+                 snippet(wisdom_fts, ${FTS_WISDOM_SNIPPET_COL}, '${FTS_MARK_START}', '${FTS_MARK_END}', '${FTS_ELLIPSIS}', ${FTS_SNIPPET_TOKENS}) as match,
+                 rank
+          FROM wisdom_fts
+          JOIN wisdom w ON wisdom_fts.id = w.id
+          WHERE ${conditions.join(" AND ")}
+          ORDER BY rank
+          LIMIT ?
+        `;
+        return db.query(sql).all(...params) as WisdomSearchResult[];
       },
 
       listAll: (options) => {

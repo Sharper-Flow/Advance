@@ -185,7 +185,7 @@ export const SAMPLE_CHANGE = {
   },
 };
 
-export const SAMPLE_PROPOSAL = `# Add New Feature
+const SAMPLE_PROPOSAL = `# Add New Feature
 
 ## Summary
 
@@ -211,7 +211,7 @@ import { access } from "fs/promises";
 /**
  * Assert that a file exists
  */
-export async function assertFileExists(path: string): Promise<void> {
+async function _assertFileExists(path: string): Promise<void> {
   try {
     await access(path);
   } catch {
@@ -222,7 +222,7 @@ export async function assertFileExists(path: string): Promise<void> {
 /**
  * Assert that a file contains specific content
  */
-export async function assertFileContains(
+async function _assertFileContains(
   path: string,
   content: string,
 ): Promise<void> {
@@ -235,7 +235,7 @@ export async function assertFileContains(
 /**
  * Assert that JSON file matches expected structure
  */
-export async function assertJsonFile<T>(
+async function _assertJsonFile<T>(
   path: string,
   validator: (data: T) => boolean,
   message?: string,

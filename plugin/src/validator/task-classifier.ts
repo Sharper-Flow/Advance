@@ -26,7 +26,7 @@ import type { Task } from "../types";
 // =============================================================================
 
 /** Valid values for metadata.tdd_intent */
-export type TddIntent = "inline" | "separate_verification" | "not_applicable";
+type TddIntent = "inline" | "separate_verification" | "not_applicable";
 
 const VALID_TDD_INTENTS = new Set<string>([
   "inline",

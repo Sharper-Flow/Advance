@@ -29,6 +29,40 @@ import {
   type ContextSnapshotInput,
 } from "../utils/context-snapshot";
 
+/**
+ * Pure function: merge current clarify findings with persisted snapshots.
+ * Resolves stale findings and appends new ones.
+ */
+function resolveClarifyFindings(
+  existing: ClarifyFindingSnapshot[],
+  current: Array<{ code: string; severity: string; message: string }>,
+  now: string,
+): ClarifyFindingSnapshot[] {
+  const currentCodes = new Set(current.map((f) => f.code));
+
+  // Mark previously-persisted findings as resolved if no longer raised
+  const updated: ClarifyFindingSnapshot[] = existing.map((f) =>
+    !f.resolved && !currentCodes.has(f.code)
+      ? { ...f, resolved: true, resolved_at: now }
+      : f,
+  );
+
+  // Append new findings not yet in snapshots
+  const existingCodes = new Set(existing.map((f) => f.code));
+  for (const finding of current) {
+    if (!existingCodes.has(finding.code)) {
+      updated.push({
+        code: finding.code,
+        severity: finding.severity as "error" | "warning" | "info",
+        message: finding.message,
+        recorded_at: now,
+      });
+    }
+  }
+
+  return updated;
+}
+
 function summarizeTasks(
   tasks: Array<{ status: string; id: string; title: string }>,
 ) {
@@ -204,31 +238,13 @@ export const changeTools = {
 
           // Persist clarify findings as append-only snapshots
           const now = new Date().toISOString();
-          const currentCodes = new Set(
-            clarifyResult.findings.map((f) => f.code),
-          );
           const existing: ClarifyFindingSnapshot[] =
             change.clarify_findings ?? [];
-
-          // Mark previously-persisted findings as resolved if no longer raised
-          const updated: ClarifyFindingSnapshot[] = existing.map((f) =>
-            !f.resolved && !currentCodes.has(f.code)
-              ? { ...f, resolved: true, resolved_at: now }
-              : f,
+          const updated = resolveClarifyFindings(
+            existing,
+            clarifyResult.findings,
+            now,
           );
-
-          // Append new findings not yet in snapshots
-          const existingCodes = new Set(existing.map((f) => f.code));
-          for (const finding of clarifyResult.findings) {
-            if (!existingCodes.has(finding.code)) {
-              updated.push({
-                code: finding.code,
-                severity: finding.severity as "error" | "warning" | "info",
-                message: finding.message,
-                recorded_at: now,
-              });
-            }
-          }
 
           if (updated.length > 0) {
             // Persist back to the change (best-effort — don't fail if save fails)
@@ -238,8 +254,12 @@ export const changeTools = {
                 freshResult.data.clarify_findings = updated;
                 await store.changes.save(freshResult.data);
               }
-            } catch {
+            } catch (err) {
               // Non-fatal: persistence failure doesn't affect the tool response
+              console.warn(
+                "[adv:change] Failed to persist clarify findings:",
+                (err as Error).message,
+              );
             }
           }
         } else {
@@ -249,15 +269,19 @@ export const changeTools = {
             try {
               const freshResult = await store.changes.get(changeId);
               if (freshResult.success && freshResult.data) {
-                freshResult.data.clarify_findings = (
-                  freshResult.data.clarify_findings ?? []
-                ).map((f: ClarifyFindingSnapshot) =>
-                  !f.resolved ? { ...f, resolved: true, resolved_at: now } : f,
+                freshResult.data.clarify_findings = resolveClarifyFindings(
+                  freshResult.data.clarify_findings ?? [],
+                  [],
+                  now,
                 );
                 await store.changes.save(freshResult.data);
               }
-            } catch {
+            } catch (err) {
               // Non-fatal
+              console.warn(
+                "[adv:change] Failed to resolve clarify findings:",
+                (err as Error).message,
+              );
             }
           }
         }
@@ -870,7 +894,16 @@ export const changeTools = {
       change.github_issues.push(issueUrl);
 
       // Save the change
-      await store.changes.save(change);
+      try {
+        await store.changes.save(change);
+      } catch (err) {
+        return wrapWithBanner(
+          { command: "adv_change_add_issue", target: changeId },
+          formatToolOutput({
+            error: `Failed to save change: ${err instanceof Error ? err.message : String(err)}`,
+          }),
+        );
+      }
 
       return wrapWithBanner(
         { command: "adv_change_add_issue", target: changeId },
@@ -927,7 +960,16 @@ export const changeTools = {
       );
 
       // Save the change
-      await store.changes.save(change);
+      try {
+        await store.changes.save(change);
+      } catch (err) {
+        return wrapWithBanner(
+          { command: "adv_change_remove_issue", target: changeId },
+          formatToolOutput({
+            error: `Failed to save change: ${err instanceof Error ? err.message : String(err)}`,
+          }),
+        );
+      }
 
       return wrapWithBanner(
         { command: "adv_change_remove_issue", target: changeId },

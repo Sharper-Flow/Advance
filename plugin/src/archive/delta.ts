@@ -287,23 +287,26 @@ export function applyDeltasToSpec(
       hasRenameOrRemove = true;
   }
 
-  // Calculate new version
-  const newVersion = bumpVersion(
-    currentVersion,
-    hasAdd,
-    hasModify || hasRenameOrRemove,
-  );
+  const allSucceeded = deltaResults.every((r) => r.success);
 
-  // Update spec metadata
-  spec.version = newVersion;
-  spec.updated_at = new Date().toISOString();
+  // Only update metadata when the batch fully succeeds.
+  // Failed batches may have partially mutated requirement content before the
+  // first error, but version metadata should not imply a successful update.
+  const newVersion = allSucceeded
+    ? bumpVersion(currentVersion, hasAdd, hasModify || hasRenameOrRemove)
+    : currentVersion;
+
+  if (allSucceeded) {
+    spec.version = newVersion;
+    spec.updated_at = new Date().toISOString();
+  }
 
   return {
     capability: spec.name,
     originalVersion: currentVersion,
     newVersion,
     deltaResults,
-    updatedSpec: deltaResults.every((r) => r.success) ? spec : undefined,
+    updatedSpec: allSucceeded ? spec : undefined,
   };
 }
 
@@ -318,8 +321,8 @@ function bumpVersion(
   hasPatchChange: boolean,
 ): string {
   const parts = version.split(".").map(Number);
-  if (parts.length !== 3) {
-    // Invalid version, return as-is with suffix
+  if (parts.length !== 3 || parts.some((p) => Number.isNaN(p))) {
+    // Invalid version (wrong part count or non-numeric segment), return as-is
     return `${version}-updated`;
   }
 
@@ -360,9 +363,17 @@ export function createSpecFromDeltas(
   // Apply deltas
   const result = applyDeltasToSpec(spec, deltas, "0.0.0");
 
-  // Set initial version
-  spec.version = "1.0.0";
-  result.newVersion = "1.0.0";
+  // Only set initial version if at least one delta succeeded.
+  // If all deltas fail (e.g. modify targeting non-existent req),
+  // reset to 0.0.0 — persisting a bumped-but-empty spec would be misleading.
+  const anyApplied = result.deltaResults.some((r) => r.success);
+  if (anyApplied) {
+    spec.version = "1.0.0";
+    result.newVersion = "1.0.0";
+  } else {
+    spec.version = "0.0.0";
+    result.newVersion = "0.0.0";
+  }
 
   return { spec, result };
 }

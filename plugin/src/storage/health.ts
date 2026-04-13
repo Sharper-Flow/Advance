@@ -5,26 +5,19 @@
  */
 
 import { Database } from "bun:sqlite";
-import { rm } from "fs/promises";
 import { statSync } from "fs";
-import type { SQLiteStore } from "./sqlite";
 
-export interface HealthCheckResult {
+interface HealthCheckResult {
   healthy: boolean;
   corruptionDetected: boolean;
   message?: string;
-}
-
-export interface RecoveryOptions {
-  dbPath: string;
-  onProgress?: (step: string) => void;
 }
 
 // =============================================================================
 // Health Checks
 // =============================================================================
 
-export function checkDatabaseHealth(db: Database): HealthCheckResult {
+function checkDatabaseHealth(db: Database): HealthCheckResult {
   try {
     // Check if database is readable
     const _result = db.query("SELECT count(*) as count FROM specs").get() as {
@@ -94,26 +87,6 @@ export function shouldCheckpoint(
 }
 
 // =============================================================================
-// Corruption Recovery
-// =============================================================================
-
-/**
- * Delete corrupted database files so they can be rebuilt from JSON.
- * Safe because JSON files are the source of truth.
- */
-export async function recoverFromCorruption(dbPath: string): Promise<void> {
-  const filesToDelete = [dbPath, `${dbPath}-wal`, `${dbPath}-shm`];
-
-  for (const file of filesToDelete) {
-    try {
-      await rm(file, { force: true });
-    } catch {
-      // Ignore if file doesn't exist
-    }
-  }
-}
-
-// =============================================================================
 // Database Lifecycle
 // =============================================================================
 
@@ -159,44 +132,4 @@ export function closeDatabase(db: Database): void {
     console.error("Error closing database:", (e as Error).message);
     db.close(); // Force close
   }
-}
-
-// =============================================================================
-// Auto-Checkpoint Wrapper
-// =============================================================================
-
-/**
- * Wrap SQLiteStore with automatic WAL checkpointing.
- * Call checkpoint after writes when WAL grows large.
- */
-export function createAutoCheckpointingStore(
-  store: SQLiteStore,
-  dbPath: string,
-): SQLiteStore {
-  const originalSpecsUpsert = store.specs.upsert;
-  const originalChangesUpsert = store.changes.upsert;
-
-  return {
-    ...store,
-
-    specs: {
-      ...store.specs,
-      upsert: (...args: Parameters<typeof store.specs.upsert>) => {
-        originalSpecsUpsert(...args);
-        if (shouldCheckpoint(dbPath)) {
-          checkpointWAL(store.db);
-        }
-      },
-    },
-
-    changes: {
-      ...store.changes,
-      upsert: (...args: Parameters<typeof store.changes.upsert>) => {
-        originalChangesUpsert(...args);
-        if (shouldCheckpoint(dbPath)) {
-          checkpointWAL(store.db);
-        }
-      },
-    },
-  };
 }

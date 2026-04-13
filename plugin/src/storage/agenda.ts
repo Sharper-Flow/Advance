@@ -342,7 +342,7 @@ export const cancelAgendaItem = async (
 /**
  * Block an agenda item.
  */
-export const blockAgendaItem = async (
+const _blockAgendaItem = async (
   projectDir: string,
   itemId: string,
   blockedBy: string,

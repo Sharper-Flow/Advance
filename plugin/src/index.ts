@@ -5,7 +5,7 @@
  * Primary interface for AI agents to manage specs, changes, and tasks.
  *
  * Implements the @opencode-ai/plugin SDK interface with:
- * - tool: 36 MCP tools for spec/change/task/wisdom/agenda/test management
+ * - tool: 42 MCP tools for spec/change/task/wisdom/agenda/test management
  * - event: Session status tracking, terminal UI updates
  * - tool.execute.before/after: Active change tracking, task completion detection
  * - experimental.session.compacting: Change preservation during compaction
@@ -29,6 +29,28 @@ import { enforceBashPolicy } from "./guards/bash";
 import { enforceTaskPolicy } from "./guards/task";
 import { createToolMap } from "./tool-registry";
 import { appendDebugLog } from "./utils/debug-log";
+
+/**
+ * Parse JSON from a (potentially banner-wrapped) tool output string.
+ * Tries the post-banner segment first, then falls back to the full string.
+ * Returns null if neither parses as valid JSON.
+ */
+function parseToolOutput<T>(rawOutput: string): T | null {
+  const trimmed = rawOutput.trim();
+  const separatorIndex = trimmed.lastIndexOf("\n\n");
+  const candidates = [
+    separatorIndex >= 0 ? trimmed.slice(separatorIndex + 2).trim() : null,
+    trimmed,
+  ].filter((c): c is string => !!c);
+  for (const candidate of candidates) {
+    try {
+      return JSON.parse(candidate) as T;
+    } catch {
+      // try next candidate
+    }
+  }
+  return null;
+}
 
 const PROVIDER_BEHAVIOR_HINTS: Readonly<Record<string, string>> = {
   openai:
@@ -317,35 +339,22 @@ export const AdvancePlugin: Plugin = async ({ directory, worktree }) => {
         // Track new change creation (changeId only in output, not input args)
         if (input.tool === "adv_change_create" && output.output) {
           try {
-            const rawOutput = output.output.trim();
-            const separatorIndex = rawOutput.lastIndexOf("\n\n");
-            const postBanner =
-              separatorIndex >= 0
-                ? rawOutput.slice(separatorIndex + 2).trim()
-                : null;
-
-            const parseCandidates = [postBanner, rawOutput].filter(
-              (candidate): candidate is string => !!candidate,
-            );
-
-            for (const candidate of parseCandidates) {
-              try {
-                const result = JSON.parse(candidate);
-                const newChangeId = result.changeId ?? result.data?.changeId;
-                if (newChangeId && typeof newChangeId === "string") {
-                  state.activeChange.id = newChangeId;
-                  setActiveChange(newChangeId);
-                  debugLog(
-                    `adv_change_create: set activeChange to ${newChangeId}`,
-                  );
-                  break;
-                }
-              } catch {
-                // try next candidate
-              }
+            const result = parseToolOutput<{
+              changeId?: string;
+              data?: { changeId?: string };
+            }>(output.output);
+            const newChangeId = result?.changeId ?? result?.data?.changeId;
+            if (newChangeId && typeof newChangeId === "string") {
+              state.activeChange.id = newChangeId;
+              setActiveChange(newChangeId);
+              debugLog(`adv_change_create: set activeChange to ${newChangeId}`);
             }
-          } catch {
-            // ignore parse errors
+          } catch (err) {
+            // Outer parse error — unexpected if banner format changes
+            console.warn(
+              "[adv:hooks] Failed to parse adv_change_create output:",
+              (err as Error).message,
+            );
           }
         }
 

@@ -18,7 +18,7 @@ import { existsSync } from "fs";
 // Types
 // =============================================================================
 
-export interface MigrationReport {
+interface MigrationReport {
   /** Items that were successfully migrated */
   migrated: string[];
   /** Items that were skipped (already exist externally or don't exist locally) */

@@ -6,7 +6,7 @@
  */
 
 import { join, basename } from "path";
-import { readdir, mkdir, readFile, access, stat } from "fs/promises";
+import { readdir, mkdir, readFile, access } from "fs/promises";
 import { SpecSchema, ChangeSchema, ProjectConfigSchema } from "../types";
 import type { Spec, Change, ProjectConfig } from "../types";
 import { ZodError } from "zod";
@@ -270,7 +270,13 @@ export async function listSpecDirs(specsDir: string): Promise<string[]> {
   try {
     const entries = await readdir(specsDir, { withFileTypes: true });
     return entries.filter((e) => e.isDirectory()).map((e) => e.name);
-  } catch {
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code !== "ENOENT") {
+      console.warn(
+        "[adv:json] Unexpected error reading specs directory:",
+        (err as Error).message,
+      );
+    }
     return [];
   }
 }
@@ -342,7 +348,13 @@ export async function listChangeDirs(changesDir: string): Promise<string[]> {
   try {
     const entries = await readdir(changesDir, { withFileTypes: true });
     return entries.filter((e) => e.isDirectory()).map((e) => e.name);
-  } catch {
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code !== "ENOENT") {
+      console.warn(
+        "[adv:json] Unexpected error reading changes directory:",
+        (err as Error).message,
+      );
+    }
     return [];
   }
 }
@@ -470,7 +482,13 @@ export async function loadProposalWithFallback(
       return { content: raw };
     }
     // File exists but is empty — fall through to scaffold
-  } catch {
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code !== "ENOENT") {
+      console.warn(
+        "[adv:json] Unexpected error reading proposal:",
+        (err as Error).message,
+      );
+    }
     // File missing or unreadable — fall through to scaffold
   }
 
@@ -633,6 +651,21 @@ export async function updateChangeArtifacts(
     };
   }
 
+  const artifacts = [
+    { key: "proposalPath", content: proposalContent, filename: "proposal.md" },
+    {
+      key: "problemStatementPath",
+      content: problemStatementContent,
+      filename: "problem-statement.md",
+    },
+    {
+      key: "agreementPath",
+      content: agreementContent,
+      filename: "agreement.md",
+    },
+    { key: "designPath", content: designContent, filename: "design.md" },
+  ] as const;
+
   const result: {
     proposalPath?: string;
     problemStatementPath?: string;
@@ -641,54 +674,16 @@ export async function updateChangeArtifacts(
     error?: string;
   } = {};
 
-  if (proposalContent !== undefined) {
-    const proposalPath = join(changeDir, "proposal.md");
+  for (const { key, content, filename } of artifacts) {
+    if (content === undefined) continue;
+    const filePath = join(changeDir, filename);
     try {
-      await atomicWriteFile(proposalPath, proposalContent);
-      result.proposalPath = proposalPath;
+      await atomicWriteFile(filePath, content);
+      (result as Record<string, string>)[key] = filePath;
     } catch (err) {
       return {
         ...result,
-        error: `Failed to write proposal.md: ${err instanceof Error ? err.message : String(err)}`,
-      };
-    }
-  }
-
-  if (problemStatementContent !== undefined) {
-    const problemStatementPath = join(changeDir, "problem-statement.md");
-    try {
-      await atomicWriteFile(problemStatementPath, problemStatementContent);
-      result.problemStatementPath = problemStatementPath;
-    } catch (err) {
-      return {
-        ...result,
-        error: `Failed to write problem-statement.md: ${err instanceof Error ? err.message : String(err)}`,
-      };
-    }
-  }
-
-  if (agreementContent !== undefined) {
-    const agreementPath = join(changeDir, "agreement.md");
-    try {
-      await atomicWriteFile(agreementPath, agreementContent);
-      result.agreementPath = agreementPath;
-    } catch (err) {
-      return {
-        ...result,
-        error: `Failed to write agreement.md: ${err instanceof Error ? err.message : String(err)}`,
-      };
-    }
-  }
-
-  if (designContent !== undefined) {
-    const designPath = join(changeDir, "design.md");
-    try {
-      await atomicWriteFile(designPath, designContent);
-      result.designPath = designPath;
-    } catch (err) {
-      return {
-        ...result,
-        error: `Failed to write design.md: ${err instanceof Error ? err.message : String(err)}`,
+        error: `Failed to write ${filename}: ${err instanceof Error ? err.message : String(err)}`,
       };
     }
   }
@@ -700,24 +695,11 @@ export async function updateChangeArtifacts(
 // File Utilities
 // =============================================================================
 
-export async function ensureDir(dir: string): Promise<void> {
-  await mkdir(dir, { recursive: true });
-}
-
 export async function fileExists(path: string): Promise<boolean> {
   try {
     await access(path);
     return true;
   } catch {
     return false;
-  }
-}
-
-export async function getFileMtime(path: string): Promise<Date | null> {
-  try {
-    const stats = await stat(path);
-    return stats.mtime;
-  } catch {
-    return null;
   }
 }

@@ -187,35 +187,6 @@ function slugify(text: string): string {
 }
 
 /**
- * Generate documentation for all provided specs.
- */
-export async function generateAllDocs(
-  specs: Map<string, Spec>,
-  options: Partial<DocGenerationOptions> = {},
-): Promise<GeneratedDoc[]> {
-  const opts = { ...DEFAULT_OPTIONS, ...options };
-  const docs: GeneratedDoc[] = [];
-
-  // Ensure output directory exists
-  await mkdir(opts.outputDir, { recursive: true });
-
-  for (const [capability, spec] of specs) {
-    const content = generateSpecDoc(spec, opts);
-    const filePath = join(opts.outputDir, `${capability}.md`);
-
-    await writeFile(filePath, content, "utf-8");
-
-    docs.push({
-      capability,
-      filePath,
-      content,
-    });
-  }
-
-  return docs;
-}
-
-/**
  * Generate a single spec's documentation file.
  */
 export async function generateSpecDocFile(

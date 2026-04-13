@@ -4,7 +4,15 @@
  * Test file operations for specs and changes
  */
 
-import { describe, test, expect, beforeEach, afterEach } from "vitest";
+import {
+  describe,
+  test,
+  expect,
+  beforeEach,
+  afterEach,
+  vi,
+  type MockInstance,
+} from "vitest";
 import { join } from "path";
 import { readFile, writeFile } from "fs/promises";
 import {
@@ -914,5 +922,35 @@ describe("updateChangeArtifacts with agreement and design", () => {
     );
     expect(result.agreementPath).toContain("agreement.md");
     expect(result.designPath).toBeUndefined();
+  });
+});
+
+// =============================================================================
+// Error observability: ENOENT vs unexpected errors (D2)
+// =============================================================================
+
+describe("listSpecDirs and listChangeDirs error observability", () => {
+  let warnSpy: MockInstance;
+  beforeEach(() => {
+    warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+  });
+  afterEach(() => {
+    warnSpy.mockRestore();
+  });
+
+  test("listSpecDirs returns [] and does NOT warn for missing directory (ENOENT)", async () => {
+    const dirs = await listSpecDirs(
+      "/nonexistent/path/that/definitely/does/not/exist",
+    );
+    expect(dirs).toEqual([]);
+    expect(warnSpy).not.toHaveBeenCalled();
+  });
+
+  test("listChangeDirs returns [] and does NOT warn for missing directory (ENOENT)", async () => {
+    const dirs = await listChangeDirs(
+      "/nonexistent/path/that/definitely/does/not/exist",
+    );
+    expect(dirs).toEqual([]);
+    expect(warnSpy).not.toHaveBeenCalled();
   });
 });

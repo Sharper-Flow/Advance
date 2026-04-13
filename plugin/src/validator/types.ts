@@ -68,8 +68,7 @@ export const ValidationCodes = {
   OVERLAPPING_CAPABILITY: "OVERLAPPING_CAPABILITY",
 } as const;
 
-export type ValidationCode =
-  (typeof ValidationCodes)[keyof typeof ValidationCodes];
+type _ValidationCode = (typeof ValidationCodes)[keyof typeof ValidationCodes];
 
 // =============================================================================
 // Validation Context

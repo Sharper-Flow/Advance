@@ -31,7 +31,7 @@ const MAX_CHARS =
 // Types
 // =============================================================================
 
-export interface ToolOutputOptions {
+interface ToolOutputOptions {
   /** Tool name for truncation envelope */
   tool?: string;
   /** Override max chars for this call */
@@ -40,7 +40,7 @@ export interface ToolOutputOptions {
   pretty?: boolean;
 }
 
-export interface PaginationMeta {
+interface PaginationMeta {
   /** Total items available */
   total: number;
   /** Number of items returned */
@@ -251,6 +251,6 @@ export function paginate<T>(
 // =============================================================================
 
 /** Compact JSON.stringify (no indentation) */
-export function compact(data: unknown): string {
+function _compact(data: unknown): string {
   return JSON.stringify(data);
 }
