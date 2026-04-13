@@ -431,7 +431,7 @@ Implemented all 13 identified context leak surfaces where ADV drops important co
 - Archive tests failing on Bun due to `access()` resolving to `null`
 - `change.json` corruption under concurrent writes — strict locking + fsync
 - SQLite corruption — WAL checkpointing and auto-recovery
-- Bell/chime fires only on `ROCKET`/`MOON` → `EARTH`/`MIC` transitions (was firing spuriously)
+- Bell/chime now debounces `EARTH` notifications, rings `MIC` immediately, and cancels transient idle alerts during sub-agent teardown (was firing spuriously)
 - SQLite store now closes cleanly on session exit (memory leak)
 - Schema errors returned to AI instead of silently logged to console
 - `MOON` status preserved correctly during `session.status` events
