@@ -1,5 +1,8 @@
 # Advance (ADV) - Agent Instructions
 
+> `project.md` is the canonical agent-facing context file read by `adv_project_context`.
+> `AGENTS.md` remains the developer-facing quick-reference with repo architecture, commands, and implementation gotchas.
+
 ## Repository Layout
 
 This is an OpenCode plugin repo, not a monorepo. All buildable code lives in `plugin/`.
