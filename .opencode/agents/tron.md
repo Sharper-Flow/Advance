@@ -1,7 +1,6 @@
 ---
 description: Reconnaissance agent for /adv-tron - investigates codebase structure, hotspots, risks, and follow-up candidates
 mode: subagent
-model: google/gemini-3-flash-preview
 temperature: 0.10
 hidden: true
 tools:
