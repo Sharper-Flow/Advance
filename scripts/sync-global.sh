@@ -553,7 +553,7 @@ fi
 mkdir -p "$GLOBAL_AGENTS"
 agents_copied=0
 # Agents that must stay repo-local (not synced to global)
-REPO_LOCAL_ONLY="adv-researcher.md tron.md"
+REPO_LOCAL_ONLY="tron.md"
 # Shared agents managed via overlay blocks instead of full-file replacement
 SHARED_OVERLAY_ONLY="adv.md build.md general.md plan.md refine.md scout.md"
 if [ -d "$REPO_AGENTS" ]; then

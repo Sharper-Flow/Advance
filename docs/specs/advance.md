@@ -647,7 +647,7 @@ A change owns quality and test coverage for: (1) directly touched implementation
 
 **ID:** `rq-designval01` | **Priority:** **[MUST]**
 
-Before the design gate can complete, /adv-design must run an independent validation pass via a different-model sub-agent (adv-researcher). The validator assesses correctness, simplicity, spec-law compliance, and key alternatives. Validator failure or timeout results in an INCONCLUSIVE warning and does not block gate completion.
+Before the design gate can complete, /adv-design must run an independent validation pass via an independent, read-only, externally informed validator sub-agent. The validator must be a distinct agent from the designer (different model or isolated context), have read-only access to ADV state, and possess external research capabilities (documentation lookup, web search). The validator assesses correctness, simplicity, spec-law compliance, and key alternatives. The current implementation of this capability is adv-researcher. Validator failure or timeout results in an INCONCLUSIVE warning and does not block gate completion.
 
 **Tags:** `workflow`, `design`, `validation`, `autonomy`
 
@@ -662,6 +662,7 @@ Before the design gate can complete, /adv-design must run an independent validat
 
 **Then:**
 - An independent validation sub-agent pass runs before adv_gate_complete is called for the design gate
+- The validator is a distinct agent from the designer with read-only state access and external research capabilities
 - The validator assesses at least: correctness, simplicity, spec-law compliance, and key alternatives
 
 **Validator failure results in INCONCLUSIVE, not a block** (`rq-designval01.2`)
