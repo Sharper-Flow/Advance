@@ -120,7 +120,7 @@ pnpm build
 
 ```bash
 pnpm test
-# Expected: 1250+ tests passing
+# Expected: 1356+ tests passing
 ```
 
 ---
@@ -515,15 +515,43 @@ chmod -R u+w specs changes archive docs .adv/db temp
 Use the recovery script to clear and rebuild the SQLite cache:
 
 ```bash
+# In-repo legacy state (.adv/db/)
 node scripts/recover-db.js
-# Cache rebuilds automatically on next ADV command
+
+# External state (default for git-backed projects) — auto-detects from project root commit
+node scripts/recover-db.js --external
+
+# Custom absolute or relative directory
+node scripts/recover-db.js --db-dir /path/to/db
 ```
 
-For a custom DB directory, pass `--db-dir`:
+After deleting the database, **restart OpenCode** — the cache rebuilds from `.adv/specs/` on next startup.
 
-```bash
-node scripts/recover-db.js --db-dir path/to/db
-```
+### Stale Spec Rows After Deletion
+
+If you delete a spec from `.adv/specs/` but `adv_spec list` still shows it, the SQLite
+cache contains a stale row. The sync only adds and updates rows — it does not prune
+entries for specs that no longer exist on disk.
+
+**Fix (two steps):**
+
+1. Delete the spec.db to force a full rebuild:
+
+   ```bash
+   # For git-backed projects using external state (recommended):
+   node scripts/recover-db.js --external
+
+   # For legacy in-repo state:
+   node scripts/recover-db.js
+   ```
+
+2. **Restart OpenCode** (or reload the MCP server). The database is rebuilt on next
+   plugin startup and will exclude the deleted spec.
+
+**Why restart is required:** The ADV plugin is a long-running server process. Even
+after the spec.db file is deleted from disk, the running process still holds the old
+database open in memory. Only a restart causes the plugin to open a fresh database
+at the original path, triggering a clean sync from `.adv/specs/`.
 
 ### Commands Not Found or Config Out of Date
 

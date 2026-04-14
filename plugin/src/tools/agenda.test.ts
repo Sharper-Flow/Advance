@@ -2,7 +2,7 @@
  * Agenda Tools Tests
  *
  * TDD tests for lightweight agenda management tools.
- * These tests cover all 9 agenda MCP tools:
+ * These tests cover all 10 agenda MCP tools:
  * adv_agenda_list, adv_agenda_add, adv_agenda_start, adv_agenda_complete,
  * adv_agenda_cancel, adv_agenda_prioritize, adv_agenda_next, adv_agenda_stats,
  * adv_agenda_evidence, adv_agenda_compact
@@ -16,8 +16,6 @@ import {
   createTestProject,
   parseToolOutput,
 } from "../__tests__/setup";
-import { join } from "path";
-
 describe("Agenda Tools", () => {
   let tempDir: string;
 
@@ -115,10 +113,7 @@ describe("Agenda Tools", () => {
       );
       const addParsed = parseToolOutput(addResult);
 
-      const listResult = await agendaTools.adv_agenda_list.execute(
-        {},
-        tempDir,
-      );
+      const listResult = await agendaTools.adv_agenda_list.execute({}, tempDir);
       const listParsed = parseToolOutput(listResult);
 
       const found = listParsed.items.find(
@@ -165,6 +160,7 @@ describe("Agenda Tools", () => {
       );
 
       const p1 = JSON.parse(addResult1);
+      expect(p1.item).toBeDefined();
       const p2 = JSON.parse(addResult2);
       expect(p2.item).toBeDefined();
 
@@ -194,6 +190,7 @@ describe("Agenda Tools", () => {
       );
 
       const p1 = JSON.parse(addResult1);
+      expect(p1.item).toBeDefined();
       const p2 = JSON.parse(addResult2);
       expect(p2.item).toBeDefined();
 
@@ -582,12 +579,50 @@ describe("Agenda Tools", () => {
       expect(completeParsed.compliance).toBe("not_required");
 
       // Verify it's gone from default list
-      const listResult = await agendaTools.adv_agenda_list.execute(
+      const listResult = await agendaTools.adv_agenda_list.execute({}, tempDir);
+      const listParsed = parseToolOutput(listResult);
+      expect(listParsed.count).toBe(0);
+    });
+
+    test("blocked item is skipped by adv_agenda_next until blocker completes", async () => {
+      // Add blocker item
+      const blockerResult = await agendaTools.adv_agenda_add.execute(
+        { title: "Blocker item", priority: "low" },
+        tempDir,
+      );
+      const blockerParsed = parseToolOutput(blockerResult);
+      expect(blockerParsed.item).toBeDefined();
+
+      // Add blocked item (depends on blocker)
+      const blockedResult = await agendaTools.adv_agenda_add.execute(
+        {
+          title: "Blocked item",
+          priority: "critical",
+          blocked_by: blockerParsed.item.id,
+        },
+        tempDir,
+      );
+      const blockedParsed = parseToolOutput(blockedResult);
+      expect(blockedParsed.item).toBeDefined();
+
+      // Next should return blocker (blocked item is skipped even at critical priority)
+      const nextResult = await agendaTools.adv_agenda_next.execute({}, tempDir);
+      const nextParsed = parseToolOutput(nextResult);
+      expect(nextParsed.next?.title).toBe("Blocker item");
+
+      // Complete the blocker
+      await agendaTools.adv_agenda_complete.execute(
+        { itemId: blockerParsed.item.id },
+        tempDir,
+      );
+
+      // Now next should return the previously blocked item
+      const nextResult2 = await agendaTools.adv_agenda_next.execute(
         {},
         tempDir,
       );
-      const listParsed = parseToolOutput(listResult);
-      expect(listParsed.count).toBe(0);
+      const nextParsed2 = parseToolOutput(nextResult2);
+      expect(nextParsed2.next?.title).toBe("Blocked item");
     });
   });
 });

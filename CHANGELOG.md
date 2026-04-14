@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+#### Maintenance: Agenda Test Coverage, Spec Doc Refresh, project.md, Cache Recovery
+
+- **`plugin/src/tools/agenda.test.ts`**: 29 integration tests covering all 10 agenda MCP tools (`adv_agenda_list`, `adv_agenda_add`, `adv_agenda_start`, `adv_agenda_complete`, `adv_agenda_cancel`, `adv_agenda_prioritize`, `adv_agenda_next`, `adv_agenda_stats`, `adv_agenda_evidence`, `adv_agenda_compact`) plus lifecycle and blocked-item tests. Uses temp-dir isolation pattern consistent with existing tool tests.
+- **`project.md`**: New project context file read by `adv_project_context`. Documents tech stack, key directories, dev commands, architecture conventions (specs-are-laws, external state, no-direct-reads, tool registration, schema gen, overlay sync), testing conventions, and maintenance scripts.
+- **`docs/specs/advance.md`**: Regenerated from spec v1.8.0 — includes all 18 requirements (`rq-designval01/02/03`, `rq-scopeReentry01/02`).
+- **`docs/adv-autonomy-compliance-matrix.md`**: Explicit spec ID references added — `/adv-design` cites `rq-designval01/03`, `/adv-present` cites `rq-designval02`, re-entry checkpoint cites `rq-scopeReentry01/02`.
+- **`scripts/recover-db.js`**: Added `--external` flag that auto-detects the external state dir from the project's root commit SHA, enabling one-command recovery for the default (external) storage layout. Fixed `--db-dir` to accept absolute paths correctly.
+- **`SETUP.md` troubleshooting**: Added "Stale Spec Rows After Deletion" section documenting the sync-only-adds behavior, 2-step fix (delete DB + restart), and why a server restart is required to clear in-memory SQLite state.
+
 ### Improved
 
 #### Automated Design Validation

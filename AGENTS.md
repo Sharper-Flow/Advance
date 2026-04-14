@@ -34,7 +34,7 @@ docs/                # Gate contracts, workflow diagram, checklists, spec docs
 **All commands run from `plugin/`, not the repo root.**
 
 ```bash
-pnpm test                    # vitest run — 1292+ tests, ~55s
+pnpm test                    # vitest run — 1356+ tests, ~55s
 pnpm run check               # typecheck → lint → format:check (no tests)
 pnpm run build               # tsup (ESM) + generate:schemas
 pnpm run typecheck            # tsc --noEmit
