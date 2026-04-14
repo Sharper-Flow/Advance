@@ -139,7 +139,7 @@ Drive the change through gates sequentially. Each gate has an owning workflow co
 |------|------------------------|--------|------------|
 | proposal | Proposal workflow inline | `adv_gate_status` shows ✓ | Clarify with user, re-synthesize |
 | discovery | Discovery workflow inline | `adv_gate_status` shows ✓ | Expand research, retry |
-| design | Design workflow inline + mandatory validator (adv-researcher) before gate completion | `adv_gate_status` shows ✓ | Revisit discovery findings |
+| design | Design workflow inline + mandatory independent validator (adv-researcher, bundled global) before gate completion | `adv_gate_status` shows ✓ | Revisit discovery findings |
 | planning | Prep workflow inline | `adv_gate_status` shows ✓ + tasks exist | Review gaps, add missing tasks |
 | execution | Apply workflow inline | `adv_gate_status` shows ✓ + all tasks done | Diagnose failures, fix, re-run |
 | acceptance | Review + accept workflow inline | `adv_gate_status` shows ✓ | Fix findings, re-run review |
@@ -212,7 +212,7 @@ Choose between inline work and delegation based on what produces the best **cont
 | `explore` | Need codebase structure, find patterns | File paths, snippets, analysis |
 | `general` | Need multi-file implementation | Completed changes with file:line refs |
 | `mechanic` | Tool/MCP/infra failure | Diagnosis and fix |
-| `adv-researcher` | Need architecture validation | Assessment with recommendations |
+| `adv-researcher` | Need architecture validation (ADV-managed bundled global specialist) | Assessment with recommendations |
 | `build` | Need verification, test runs | Build/test results |
 | `refine` | Need surgical, scoped editing | Targeted fixes |
 | `plan` | Need structured implementation plan | Ordered task breakdown |

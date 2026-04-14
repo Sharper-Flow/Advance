@@ -136,7 +136,7 @@ Emit CODE REVIEW banner: per-dimension status, severity breakdown, verdict.
 If APPROVED → skip to completion.
 
 If CHANGES_REQUESTED/BLOCKED → auto-remediation is mandatory:
-1. **Fix all blockers/issues** — no partial fix mode. For non-trivial fixes: research first (Context7/librarian/adv-researcher) → then implement.
+1. **Fix all blockers/issues** — no partial fix mode. For non-trivial fixes: research first (Context7/librarian/independent validator) → then implement.
 2. **Investigate suggestions/questions** — validate against specs/tests/code → implement if validated, reject with evidence if not. × Validated in-scope findings must be fixed now — no future-work deferral permitted.
 3. **Cleanup pass** — remove temp artifacts, debug code, dead imports, stale comments.
 4. **Verification** — re-run tests for touched areas, update finding status (fixed/unresolved).
@@ -145,7 +145,7 @@ If CHANGES_REQUESTED/BLOCKED → auto-remediation is mandatory:
 | Fix Type | Research Required? |
 |----------|-------------------|
 | Typos, naming, comments, dead code removal, lint fixes | No (trivial) |
-| Control flow, error handling, security code, module boundaries, 3+ files, multiple viable approaches | Yes — spawn librarian/adv-researcher first |
+| Control flow, error handling, security code, module boundaries, 3+ files, multiple viable approaches | Yes — spawn librarian/independent validator first |
 
 If research reveals finding was incorrect → downgrade to `nit:` or reject with evidence.
 

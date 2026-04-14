@@ -163,6 +163,17 @@ describe("ADV command routing assets", () => {
     expect(content).toContain("strategy_label");
   });
 
+  test("ADV_INSTRUCTIONS.md classifies adv-researcher as bundled global specialist", () => {
+    const content = readFileSync(
+      join(REPO_ROOT, "ADV_INSTRUCTIONS.md"),
+      "utf8",
+    );
+    // adv-researcher should be in a tier that says "bundled global" or "synced globally"
+    expect(content).toMatch(/ADV Specialist.*bundled global.*adv-researcher|adv-researcher.*ADV Specialist.*bundled global/si);
+    // tron should remain repo-local
+    expect(content).toMatch(/Repo-Local.*tron|tron.*Repo-Local/i);
+  });
+
   test("shared-agent overlay source files exist for all managed global agents", () => {
     const expected = ["adv", "general", "build", "plan", "scout", "refine"];
 

@@ -45,7 +45,7 @@ Canonical sources:
 | `/adv-proposal` | summary derivation, overlap detection, change type, impacted specs, new-spec need, cross-repo scope, proposal quality refinement | problem statement matches intended outcome |
 | `/adv-discover` | target auto-selection, discovery synthesis, open design questions from evidence | only when design tradeoffs depend on user values |
 | `/adv-agree` | target auto-selection, extraction of objectives/constraints from discovery, triage of open questions (technical questions resolved via LBP research), reframing tech questions as outcome questions | agreement contents and edits, user-facing open questions (priorities, behavior, downsides, AC boundaries), explicit deferral of any question |
-| `/adv-design` | target auto-selection, design synthesis from research and code; mandatory independent validation via `adv-researcher` (`rq-designval01`) | only when design validator returns CONFLICT (`rq-designval03`); otherwise auto-continue to planning |
+| `/adv-design` | target auto-selection, design synthesis from research and code; mandatory independent validation via independent read-only validator (`rq-designval01`) | only when design validator returns CONFLICT (`rq-designval03`); otherwise auto-continue to planning |
 | `/adv-present` | target auto-selection, concise design summary; validator verdict display (`rq-designval02`) | design direction approval |
 | `/adv-prep` | target auto-selection, gap analysis, task graph synthesis | only when gaps are unresolvable without user intent |
 | `/adv-apply` | target auto-selection, worktree reuse, execution start, task sequencing, TDD loop, cross-repo routing | doom-loop recovery, cancellations, scope changes not reflected in the stored contract |
@@ -92,7 +92,7 @@ Those decisions are now explicitly agent-owned. Remaining user-input touchpoints
 
 ### Recent Spec Additions Relevant to Autonomy
 
-- **`rq-designval01`** — Design gate requires independent validation pass before completion; validator failure yields INCONCLUSIVE warning, not a block.
+- **`rq-designval01`** — Design gate requires independent validation pass via a distinct read-only validator before completion; validator failure yields INCONCLUSIVE warning, not a block.
 - **`rq-designval02`** — Validator verdict (VALIDATED/CAUTION/CONFLICT/INCONCLUSIVE) must appear in `/adv-present` output.
 - **`rq-designval03`** — CONFLICT verdict blocks silent auto-continue from design to planning.
 - **`rq-scopeReentry01`** — Scope expansions after gate progress require explicit user approval via `adv_change_reenter`.

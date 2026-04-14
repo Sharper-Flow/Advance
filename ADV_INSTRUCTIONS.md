@@ -214,7 +214,8 @@ After `/adv-review` or `/adv-harden` fixes findings, re-scan only affected dimen
 | ---------------------------- | --------------------------------------------- | ----------------------------------- |
 | **Core** (always loaded)     | `plan`, `build`, `refine`, `scout`, `adv`     | Global `~/.config/opencode/agents/` |
 | **Common** (always loaded)   | `explore`, `librarian`, `general`, `mechanic` | Global `~/.config/opencode/agents/` |
-| **Specialist** (repo-scoped) | `adv-researcher`, `tron`                      | Repo-local `.opencode/agents/`      |
+| **ADV Specialist** (bundled global) | `adv-researcher`                      | Synced globally by `sync-global.sh` |
+| **Repo-Local Specialist**    | `tron`                                        | Repo-local `.opencode/agents/`      |
 ### Agent Roster
 | Agent            | Use For                             | Tools                         |
 | ---------------- | ----------------------------------- | ----------------------------- |

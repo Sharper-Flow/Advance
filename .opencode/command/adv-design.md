@@ -55,7 +55,7 @@ Suggested structure:
 
 ---
 ## Phase 3.5: Validate Design
-- Spawn `adv-researcher` with a validator-specific prompt. This step is mandatory — it must run before Phase 4. If the task tool is unavailable, skip gracefully and record `INCONCLUSIVE` via `adv_change_update` appended to `design.md` (see Phase 3.6).
+- Spawn the independent validator agent (`adv-researcher`) with a validator-specific prompt. This step is mandatory — it must run before Phase 4. If the task tool is unavailable, skip gracefully and record `INCONCLUSIVE` via `adv_change_update` appended to `design.md` (see Phase 3.6).
 
 **Validator input:** design.md content + compact agreement summary (objectives, AC, constraints, avoidances).
 

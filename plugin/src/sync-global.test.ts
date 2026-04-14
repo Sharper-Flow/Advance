@@ -59,6 +59,12 @@ describe("sync-global.sh", () => {
       expect(content).toContain("copied agent:");
     });
 
+    test("adv-researcher is synced globally (not repo-local)", () => {
+      // adv-researcher was promoted from repo-local to bundled global specialist
+      expect(content).toContain('REPO_LOCAL_ONLY="tron.md"');
+      expect(content).not.toMatch(/REPO_LOCAL_ONLY=.*adv-researcher/);
+    });
+
     test("skips shared agents that are overlay-managed", () => {
       expect(content).toContain(
         'SHARED_OVERLAY_ONLY="adv.md build.md general.md plan.md refine.md scout.md"',

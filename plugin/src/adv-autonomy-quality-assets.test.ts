@@ -134,10 +134,12 @@ describe("Touched-scope quality ownership", () => {
 // =============================================================================
 
 describe("Design validation policy", () => {
-  test("adv-design.md contains a validation phase referencing adv-researcher", () => {
+  test("adv-design.md contains a validation phase referencing adv-researcher with capability framing", () => {
     const content = readAsset(join(COMMAND_DIR, "adv-design.md"));
     expect(content).toMatch(/adv-researcher/i);
     expect(content).toMatch(/[Vv]alid/);
+    // Capability-based framing: references independent validator capability, not just name
+    expect(content).toMatch(/independent.*valid|valid.*independent/i);
   });
 
   test("adv-design.md contains verdict handling for VALIDATED, CAUTION, CONFLICT, INCONCLUSIVE", () => {

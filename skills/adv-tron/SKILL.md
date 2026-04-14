@@ -18,7 +18,7 @@ Tron complements existing ADV agents:
 | Agent | Role | Tron's boundary |
 |-------|------|-----------------|
 | `explore` | Navigate code, find usages | Tron synthesizes across findings, not just locates |
-| `adv-researcher` | Validate architecture against best practices | Tron maps what exists, not what should exist |
+| `adv-researcher` | Independent design validator (validates architecture against best practices) | Tron maps what exists, not what should exist |
 | `librarian` | Look up docs and examples | Tron reads the local codebase, not external docs |
 
 ## Investigation Modes

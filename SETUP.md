@@ -39,7 +39,9 @@ Complete installation instructions for the ADV spec-driven development plugin.
 ## External Dependencies (MCP Servers and Sub-Agents)
 
 ADV ships the plugin, commands, overlays, and bundled ADV agents (`plan`, `scout`,
-`refine`, `adv-researcher`, `tron`). But several of those agents and commands
+`refine`, `adv-researcher`). The `adv-researcher` agent is synced globally by
+`sync-global.sh` as a bundled global specialist. The `tron` agent remains
+repo-local in `.opencode/agents/`. Several agents and commands
 reference **external MCP servers** and **shared sub-agents** that are NOT part
 of ADV itself. If any of these are missing, ADV still runs — commands have
 fallback paths — but the user experience is degraded.

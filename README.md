@@ -1,44 +1,63 @@
-# Advance
+<h1 align="center">Advance</h1>
 
-**Spec-driven development for OpenCode.**
+<p align="center">
+  <strong>Sanity infrastructure for AI-assisted development.</strong><br>
+  <em>Vibe coding doesn't scale.</em>
+</p>
 
-Advance (ADV) gives OpenCode a durable workflow for serious engineering work: specs, changes, tasks, gates, evidence, and learnings all live in one system instead of being scattered across chat history.
+<p align="center">
+  <a href="https://sharperflow.com/projects/advance">
+    <img src="https://sharperflow.com/og/advance-preview.png" alt="Advance preview banner showing spec-driven development workflow for OpenCode" width="640" />
+  </a>
+</p>
 
-The idea is simple:
+<p align="center">
+  <a href="https://github.com/Sharper-Flow/Advance/actions"><img src="https://img.shields.io/github/actions/workflow/status/Sharper-Flow/Advance/ci.yml?label=CI" alt="CI"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License: MIT"></a>
+  <a href="https://github.com/Sharper-Flow/Advance"><img src="https://img.shields.io/github/stars/Sharper-Flow/Advance?style=social" alt="GitHub stars"></a>
+</p>
 
-- specs become laws
-- changes are proposed explicitly
-- tasks are tracked with evidence
-- review and hardening are first-class workflow stages
-- context survives worktrees, session switches, and compaction
+<p align="center">
+  <a href="https://sharperflow.com/projects/advance">Project Page</a>
+  &middot;
+  <a href="https://github.com/Sharper-Flow/Advance">GitHub</a>
+  &middot;
+  <a href="CHANGELOG.md">Changelog</a>
+</p>
 
-## What Advance is
+---
 
-Advance is an OpenCode plugin plus a repository of workflow definitions, specs, and command logic.
+## Why Advance exists
 
-This repo contains:
+AI coding agents are fast. They're also unreliable in ways that compound:
 
-- `plugin/` - the TypeScript plugin implementation
-- `.adv/specs/` - the capability specs that define behavior
-- `.opencode/command/` - slash-command workflows like `/adv-proposal` and `/adv-review`
-- `.opencode/agents/` - sub-agents used by ADV commands (adv-researcher, tron, etc.)
-- `skills/` - bundled skills synced into the global OpenCode skill registry
-- `docs/` - workflow references, gates, checklists, and supporting docs
-- `scripts/` - maintenance, migration, and global config sync helpers
+**They drift from requirements.** What started as "add OAuth" becomes a sprawling refactor nobody asked for. There's no contract tying the work back to what was agreed.
 
-If you want to understand how ADV works, this repository is both the code and the operating manual.
+**They lose context between sessions.** Compaction, session switches, worktree hops — each one sheds critical context. The agent forgets what it learned, what it tried, what failed.
 
-## What it solves
+**They skip verification under pressure.** "The tests pass" means "I didn't write any." Without enforced TDD evidence, you're trusting vibes.
 
-AI coding agents fail in predictable ways:
+**They do shallow review.** Ask for a code review and you get "looks good" with generic suggestions. Real review needs structure — security, architecture, error handling, test coverage — checked systematically.
 
-- they drift from requirements
-- they lose context across sessions
-- they skip verification under pressure
-- they do shallow review unless forced into rigor
-- they leave changes half-finished and poorly archived
+**They leave changes half-finished.** Work gets abandoned mid-implementation. No archive, no spec updates, no record of decisions. The next session starts from scratch.
 
-Advance exists to make those failure modes harder.
+These aren't edge cases. They're the default behavior of every AI coding tool at scale.
+
+## How Advance fixes it
+
+Advance is an [OpenCode](https://github.com/anomalyco/opencode) plugin that replaces ad-hoc AI coding with a structured engineering workflow.
+
+**Specs are laws, not suggestions.** Define what must be true. Every change is validated against specs before it can ship. Drift gets caught, not discovered in production.
+
+**Every change passes 7 gates.** Proposal → Discovery → Design → Planning → Execution → Acceptance → Release. No shortcuts. Each gate has explicit completion criteria.
+
+**TDD evidence is captured, not claimed.** Red phase, green phase — the actual test output is recorded. "It works" has proof attached.
+
+**Context survives everything.** Session switches, worktree hops, compaction — Advance persists change state, task progress, and accumulated wisdom outside the conversation. Nothing is lost when the context window resets.
+
+**Wisdom compounds.** Patterns, gotchas, failures, and conventions are recorded per-change and promoted to project-level learnings. The agent gets smarter across changes, not just within them.
+
+**Failure is bounded.** Three failed attempts on a task triggers doom loop detection — the agent stops, documents what it tried, and escalates. No infinite retry spirals.
 
 ## Core workflow
 
@@ -149,7 +168,7 @@ Sub-agents available for orchestration:
 | `explore` | Codebase navigation, find usages |
 | `general` | Complex multi-step implementation |
 | `mechanic` | System/infra issues — MCP servers, config, toolchain |
-| `adv-researcher` | Architectural validation, simplicity analysis |
+| `adv-researcher` | Architectural validation, simplicity analysis (ADV-managed bundled global) |
 | `tron` | Codebase reconnaissance, hotspot detection |
 
 ## Repository structure

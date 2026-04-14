@@ -46,7 +46,7 @@ Ask via `question`: Confirmed — execute (Recommended), Modify contract, Abort.
 | Target Type | Agent |
 |-------------|-------|
 | Library/API | `librarian` |
-| Architecture/pattern | `adv-researcher` |
+| Architecture/pattern | `adv-researcher` (independent validator) |
 | Both | Both |
 
 Pass the minimum project context each agent needs. Redact secrets, internal URLs, and unrelated operational details before external research. If sub-agents fail → inline Context7 fallback → if no result → Kagi.
