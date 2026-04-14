@@ -169,7 +169,9 @@ describe("ADV command routing assets", () => {
       "utf8",
     );
     // adv-researcher should be in a tier that says "bundled global" or "synced globally"
-    expect(content).toMatch(/ADV Specialist.*bundled global.*adv-researcher|adv-researcher.*ADV Specialist.*bundled global/si);
+    expect(content).toMatch(
+      /ADV Specialist.*bundled global.*adv-researcher|adv-researcher.*ADV Specialist.*bundled global/is,
+    );
     // tron should remain repo-local
     expect(content).toMatch(/Repo-Local.*tron|tron.*Repo-Local/i);
   });

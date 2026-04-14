@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+#### Standardized Agent Sync Taxonomy
+
+- **`adv-researcher` promoted from repo-local to bundled global specialist**: Reclassified from repo-scoped to ADV-managed bundled global agent synced via `sync-global.sh` direct copy. `tron` remains the only repo-local specialist.
+- **Spec law reframed to capability-based validator contract**: `rq-designval01/02/03` in `advance` spec now express the design-validation guarantee as an independent, read-only, externally informed validator capability rather than hard-coding the `adv-researcher` name. The agent is mentioned as the current implementation, not permanent identity.
+- **`sync-global.sh`**: Removed `adv-researcher.md` from `REPO_LOCAL_ONLY` list (now `"tron.md"` only). Stale-removal logic no longer cleans `adv-researcher` from global.
+- **ADV_INSTRUCTIONS.md**: Agent tiers table split into "ADV Specialist (bundled global)" for `adv-researcher` and "Repo-Local Specialist" for `tron`.
+- **Command contracts** (`adv-design.md`, `adv-review.md`, `adv-task.md`): References to `adv-researcher` now frame it as "the independent validator agent" or "(independent validator)" rather than bare name.
+- **Project docs** (`README.md`, `SETUP.md`, `AGENTS.md`): Updated agent taxonomy descriptions to reflect `adv-researcher` as ADV-managed bundled global.
+- **`skills/adv-tron/SKILL.md`**: Agent comparison table now describes `adv-researcher` as "Independent design validator".
+- **`.opencode/agents/adv.md`**: Orchestrator gate table and sub-agent selection table updated with bundled global classification.
+- **`docs/adv-autonomy-compliance-matrix.md`**: Updated validator reference to capability-based framing.
+- **Asset tests**: 3 new assertions lock the taxonomy — `sync-global.test.ts` verifies `REPO_LOCAL_ONLY` excludes `adv-researcher`; `adv-autonomy-quality-assets.test.ts` verifies capability-based framing in `adv-design.md`; `adv-command-routing-assets.test.ts` verifies tier table classification in `ADV_INSTRUCTIONS.md`.
+
 ### Added
 
 #### Maintenance: Agenda Test Coverage, Spec Doc Refresh, project.md, Cache Recovery
