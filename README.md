@@ -70,6 +70,17 @@ Advance gives OpenCode a real engineering workflow instead of a glorified chat l
 - **Bounded failure** — retry loops are detected and escalated instead of spinning forever
 - **Scriptable workflow** — MCP tools expose the system, not just the chat surface
 
+## Without Advance / With Advance
+
+| Without Advance | With Advance |
+|---|---|
+| Requirements live in chat history | Requirements live in specs and agreements |
+| Work expands silently | Changes stay tied to explicit scope |
+| "Tests passed" is often unverified | Red/green evidence is captured on tasks |
+| Review is ad hoc and shallow | Review and hardening are explicit workflow stages |
+| Context disappears across sessions | State, wisdom, and task history persist |
+| Failed attempts loop forever | Retry spirals stop and escalate |
+
 ## Core workflow
 
 ```text
