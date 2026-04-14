@@ -22,7 +22,7 @@ import { addProjectWisdom } from "./storage/project-wisdom";
 // Using inline types to avoid SDK import issues during testing
 interface MockPluginInput {
   client: unknown;
-  project: { name: string; path: string };
+  project: { id: string; worktree: string; vcsDir?: string; vcs?: "git"; time: { created: number } };
   directory: string;
   worktree: string;
   serverUrl: URL;
@@ -45,7 +45,7 @@ interface MockEvent {
 
 const createMockPluginInput = (directory: string): MockPluginInput => ({
   client: {},
-  project: { name: "test-project", path: directory },
+  project: { id: "test-project", worktree: directory, time: { created: Date.now() } },
   directory,
   worktree: directory,
   serverUrl: new URL("http://localhost:3000"),
@@ -311,6 +311,25 @@ describe("Advance Plugin SDK Integration", () => {
       const parsed = parseToolOutput(result);
       expect(parsed).toHaveProperty("specs");
       expect(parsed).toHaveProperty("changes");
+    });
+
+    test("adv_status warns when running without external state (legacy mode)", async () => {
+      // createTestProject does NOT run git init, so the temp dir has no
+      // project ID and the plugin falls back to legacy in-repo paths.
+      const hooks = await createTrackedPlugin(tempDir, pluginInstances);
+      const context = createMockToolContext();
+
+      const result = await hooks.tool!.adv_status.execute({}, context);
+
+      const parsed = parseToolOutput(result);
+      expect(parsed).toHaveProperty("recommendations");
+      expect(
+        (parsed as any).recommendations.some(
+          (r: string) =>
+            r.includes("Running without external state") &&
+            r.includes("Worktree sharing"),
+        ),
+      ).toBe(true);
     });
 
     test("adv_change_create creates a new change", async () => {
@@ -924,5 +943,136 @@ describe("system.transform change ID injection (Leak #2)", () => {
         (s) => s.includes("[ADV]") && s.includes("Active change"),
       ),
     ).toBe(false);
+  });
+});
+
+// =============================================================================
+// project.path fallback tests
+// =============================================================================
+
+describe("Plugin init: project.path fallback", () => {
+  let tempDir: string;
+  let gitDir: string;
+  const pluginInstances: any[] = [];
+
+  beforeEach(async () => {
+    tempDir = await createTempDir();
+    // Create a second temp dir with git init so it has a project ID
+    gitDir = await createTempDir();
+    await createTestProject(gitDir);
+    // Initialize git so getProjectId returns a real ID
+    const { execFile } = await import("child_process");
+    await new Promise<void>((resolve, reject) => {
+      execFile("git", ["init"], { cwd: gitDir }, (err) =>
+        err ? reject(err) : resolve(),
+      );
+    });
+    await new Promise<void>((resolve, reject) => {
+      execFile(
+        "git",
+        ["add", "-A"],
+        { cwd: gitDir },
+        (err) => (err ? reject(err) : resolve()),
+      );
+    });
+    await new Promise<void>((resolve, reject) => {
+      execFile(
+        "git",
+        ["commit", "-m", "init", "--author", "test <test@test.com>"],
+        { cwd: gitDir, env: { ...process.env, GIT_AUTHOR_DATE: "2026-01-01T00:00:00Z", GIT_COMMITTER_DATE: "2026-01-01T00:00:00Z" } },
+        (err) => (err ? reject(err) : resolve()),
+      );
+    });
+  });
+
+  afterEach(async () => {
+    for (const hooks of pluginInstances) {
+      if (hooks?.event) {
+        try {
+          await hooks.event({
+            event: { type: "session.deleted", properties: {} },
+          });
+        } catch {
+          // ignore cleanup errors
+        }
+      }
+    }
+    pluginInstances.length = 0;
+    await cleanupTempDir(tempDir);
+    await cleanupTempDir(gitDir);
+  });
+
+  test("falls back to project.vcsDir when directory is not a git repo", async () => {
+    // directory = tempDir (no git), project.vcsDir = gitDir (has git)
+    const input: MockPluginInput = {
+      client: {},
+      project: { id: "test-project", worktree: gitDir, vcsDir: gitDir, time: { created: Date.now() } },
+      directory: tempDir,
+      worktree: tempDir,
+      serverUrl: new URL("http://localhost:3000"),
+      $: {},
+    };
+
+    const hooks = await AdvancePlugin(input as any);
+    pluginInstances.push(hooks);
+
+    // Plugin should initialize without error and use gitDir's external state
+    expect(hooks).toHaveProperty("tool");
+    expect(hooks.tool).not.toBeNull();
+  });
+
+  test("initializes with legacy paths when neither directory nor project.vcsDir is a git repo", async () => {
+    // Both are non-git paths
+    const input: MockPluginInput = {
+      client: {},
+      project: { id: "test-project", worktree: tempDir, time: { created: Date.now() } },
+      directory: tempDir,
+      worktree: tempDir,
+      serverUrl: new URL("http://localhost:3000"),
+      $: {},
+    };
+
+    // Create minimal project structure so init doesn't fail
+    await createTestProject(tempDir);
+
+    const hooks = await AdvancePlugin(input as any);
+    pluginInstances.push(hooks);
+
+    expect(hooks).toHaveProperty("tool");
+    expect(hooks.tool).not.toBeNull();
+
+    // adv_status should show the legacy warning
+    const context = createMockToolContext();
+    const result = await hooks.tool!.adv_status.execute({}, context);
+    const parsed = parseToolOutput(result);
+    expect(
+      (parsed as any).recommendations.some(
+        (r: string) => r.includes("Running without external state"),
+      ),
+    ).toBe(true);
+  });
+
+  test("does not fall back when project.vcsDir equals directory", async () => {
+    // Same path for both — should behave identically to existing tests
+    await createTestProject(tempDir);
+
+    const input: MockPluginInput = {
+      client: {},
+      project: { id: "test-project", worktree: tempDir, vcsDir: tempDir, time: { created: Date.now() } },
+      directory: tempDir,
+      worktree: tempDir,
+      serverUrl: new URL("http://localhost:3000"),
+      $: {},
+    };
+
+    const hooks = await AdvancePlugin(input as any);
+    pluginInstances.push(hooks);
+
+    expect(hooks).toHaveProperty("tool");
+    // Still legacy mode (no git) but no crash
+    const context = createMockToolContext();
+    const result = await hooks.tool!.adv_status.execute({}, context);
+    const parsed = parseToolOutput(result);
+    expect(parsed).toHaveProperty("specs");
   });
 });

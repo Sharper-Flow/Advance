@@ -103,34 +103,42 @@ const resolveStatus = (s: PluginState): StatusMarker => {
   return "ROCKET";
 };
 
-const debugLog = (msg: string): void => {
-  appendDebugLog("index", msg);
-};
+const debugLog = (msg: string): void => appendDebugLog("index", msg);
 
-export const AdvancePlugin: Plugin = async ({ directory, worktree }) => {
+export const AdvancePlugin: Plugin = async ({
+  directory,
+  worktree,
+  project,
+}) => {
   const isWorktree = !!worktree && worktree !== directory;
-  debugLog(
-    `Plugin initializing: directory=${directory}, worktree=${worktree}, isWorktree=${isWorktree}`,
-  );
+  debugLog(`Plugin init: dir=${directory}, worktree=${worktree}, isWorktree=${isWorktree}`);
 
-  // Derive project identity and resolve external state directory
-  const projectId = await getProjectId(directory);
+  // Derive project identity and resolve external state directory.
+  // Try directory first; if not a git repo, fall back to project.path
+  // from the SDK (covers GUI clients that may start the server from $HOME).
+  let effectiveDir = directory;
+  let projectId = await getProjectId(effectiveDir);
+
+  if (!projectId && project?.vcsDir && project.vcsDir !== directory) {
+    debugLog(`directory not a git repo, trying project.vcsDir: ${project.vcsDir}`);
+    const altId = await getProjectId(project.vcsDir);
+    if (altId) {
+      effectiveDir = project.vcsDir;
+      projectId = altId;
+    }
+  }
+
   let externalRoot: string | undefined;
 
   if (projectId) {
     externalRoot = getExternalRoot(projectId);
-    debugLog(
-      `External state: projectId=${projectId}, externalRoot=${externalRoot}`,
-    );
+    debugLog(`External state: projectId=${projectId}, root=${externalRoot}`);
 
     // One-time migration: copy any existing .adv/ mutable state to external dir
     try {
-      const report = await migrateToExternalState(directory, externalRoot);
-      if (report.migrated.length > 0) {
-        debugLog(
-          `Migration completed: migrated=${report.migrated.join(",")}, skipped=${report.skipped.join(",")}`,
-        );
-      }
+      const report = await migrateToExternalState(effectiveDir, externalRoot);
+      if (report.migrated.length > 0)
+        debugLog(`Migration: ${report.migrated.join(",")} migrated, ${report.skipped.join(",")} skipped`);
     } catch (e) {
       debugLog(`Migration failed (non-fatal): ${(e as Error).message}`);
     }
@@ -139,7 +147,7 @@ export const AdvancePlugin: Plugin = async ({ directory, worktree }) => {
   }
 
   // Initialize store (lazy sync - don't call store.sync() here)
-  const store = await createStore(directory, { externalRoot });
+  const store = await createStore(effectiveDir, { externalRoot });
   await store.init();
 
   // Initialize terminal status
@@ -448,9 +456,7 @@ export const AdvancePlugin: Plugin = async ({ directory, worktree }) => {
               : "",
             "This change should be preserved across compaction.",
             "========================",
-          ]
-            .filter(Boolean)
-            .join("\n");
+          ].filter(Boolean).join("\n");
 
           output.context.push(changeContext);
         }

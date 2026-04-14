@@ -472,9 +472,10 @@ export const taskTools = {
 
   adv_task_reclassify_tdd: {
     description:
-      "Reclassify a task's TDD intent (tdd_intent metadata) with required user approval. " +
-      "Use when a task's TDD classification needs to change after the prep gate is complete. " +
-      "Records a full audit trail (from_intent, to_intent, reason, approval evidence).",
+      "Set or reclassify a task's TDD intent (tdd_intent metadata) with required user approval. " +
+      "Use to assign initial tdd_intent when missing, or change it after the prep gate is complete. " +
+      "Records a full audit trail (from_intent, to_intent, reason, approval evidence). " +
+      "from_intent is recorded as 'none' for initial assignment.",
     args: {
       taskId: z.string().describe("Task ID to reclassify"),
       toIntent: z
@@ -538,12 +539,6 @@ export const taskTools = {
 
       const currentIntent = task.metadata?.tdd_intent;
 
-      if (currentIntent === undefined || currentIntent === null) {
-        return formatToolOutput({
-          error: `Task ${taskId} has no tdd_intent metadata set. Cannot reclassify — assign tdd_intent during prep first.`,
-        });
-      }
-
       if (currentIntent === toIntent) {
         return formatToolOutput({
           error: `Task ${taskId} already has tdd_intent="${toIntent}". No reclassification needed.`,
@@ -552,7 +547,7 @@ export const taskTools = {
 
       const now = new Date().toISOString();
       const reclassification: TddReclassification = {
-        from_intent: currentIntent,
+        from_intent: currentIntent ?? "none",
         to_intent: toIntent,
         reason,
         approved_by_user: true,
