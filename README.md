@@ -57,231 +57,120 @@ Advance is an [OpenCode](https://github.com/anomalyco/opencode) plugin that repl
 
 **Wisdom compounds.** Patterns, gotchas, failures, and conventions are recorded per-change and promoted to project-level learnings. The agent gets smarter across changes, not just within them.
 
-**Failure is bounded.** Three failed attempts on a task triggers doom loop detection — the agent stops, documents what it tried, and escalates. No infinite retry spirals.
+**Failure is bounded.** Three failed attempts on a task trigger doom loop detection — the agent stops, documents what it tried, and escalates. No infinite retry spirals.
+
+## At a glance
+
+Advance gives OpenCode a real engineering workflow instead of a glorified chat log.
+
+- **Specs as laws** — requirements become executable constraints
+- **7 gated stages** — proposal, discovery, design, planning, execution, acceptance, release
+- **Task-level evidence** — red/green TDD proof lives with the work
+- **Durable state** — changes, wisdom, and task history survive compaction and worktrees
+- **Bounded failure** — retry loops are detected and escalated instead of spinning forever
+- **Scriptable workflow** — MCP tools expose the system, not just the chat surface
 
 ## Core workflow
 
 ```text
-/adv-proposal  -> confirm the problem statement and create the change scaffold
-/adv-discover  -> gather current-state findings and objectives
-/adv-agree     -> resolve open questions, confirm objectives, AC, constraints
-/adv-design    -> produce the design artifact and implementation strategy
-/adv-present   -> present the design before planning
-/adv-prep      -> synthesize tasks from validated design decisions
-/adv-apply     -> execute deliverables with TDD and evidence
-/adv-review    -> review delivered work before user acceptance
-/adv-accept    -> record user acceptance against the agreement
-/adv-harden    -> final release-stage quality pass
-/adv-validate  -> check the completed change against specs
-/adv-archive   -> apply deltas and finalize the change
+/adv-proposal -> define problem and scope
+/adv-discover -> gather evidence and objectives
+/adv-agree    -> confirm constraints and acceptance criteria
+/adv-design   -> produce and validate implementation strategy
+/adv-prep     -> synthesize task graph
+/adv-apply    -> execute with TDD evidence
+/adv-review   -> review delivered work
+/adv-accept   -> record user acceptance
+/adv-harden   -> final quality pass
+/adv-archive  -> finalize, preserve wisdom, close loop
 ```
 
-## Commands
+The point is not command count. The point is that work moves through explicit stages with artifacts, evidence, and validation at each step.
 
-### Core Workflow
+## Why it feels different
 
-| Command | Purpose |
-|---------|---------|
-| `/adv-status` | Show project overview: specs, active changes, and next-step recommendations |
-| `/adv-proposal <summary>` | Extract problem statement and confirm with user before proceeding |
-| `/adv-validate <change-id>` | Validate change compliance against specs; block archive on failure |
-| `/adv-apply <change-id>` | Implement change with TDD, retry on failure, and final verification |
-| `/adv-archive <change-id>` | Archive completed change: apply spec deltas and finalize git |
+Most AI coding workflows optimize for speed of output.
 
-### Pre-Implementation
+Advance optimizes for **quality of completion**:
 
-| Command | Purpose |
-|---------|---------|
-| `/adv-clarify` | Ask clarifying questions to resolve ambiguous requirements |
-| `/adv-discover <change-id>` | Gather context, analyze current state, and identify objectives |
-| `/adv-agree <change-id>` | Present objectives and constraints for user acceptance |
-| `/adv-design <change-id>` | Validate architecture decisions and produce implementation strategy |
-| `/adv-present <change-id>` | Present concise design overview for user review before planning |
-| `/adv-prep <change-id>` | Analyze gaps and synthesize tasks from validated design decisions |
+- work starts with a contract
+- tasks are explicit and inspectable
+- tests are evidence, not claims
+- review and hardening are mandatory stages
+- decisions and learnings survive the session that produced them
 
-### Implementation
-
-| Command | Purpose |
-|---------|---------|
-| `/adv-task` | Fast-track a discussed change: synthesize contract, validate, prep, and hand off |
-
-### Post-Implementation
-
-| Command | Purpose |
-|---------|---------|
-| `/adv-review <change-id>` | Review deliverables for correctness, security, and architecture quality |
-| `/adv-accept <change-id>` | Present deliverable summary and acceptance criteria checklist to user |
-| `/adv-harden <change-id>` | Detect low-quality code, verify test coverage, clean up before release |
-| `/adv-audit [capability]` | Detect drift between specs and current implementation |
-| `/adv-slop-scan [path]` | Scan for AI slop patterns including defensive and nested code |
-
-### Advanced
-
-| Command | Purpose |
-|---------|---------|
-| `/adv-refactor <change-id>` | Refresh a stale proposal to reflect current codebase state |
-| `/adv-coordinate` | Detect and resolve conflicts across multiple active changes |
-| `/adv-improve` | Suggest targeted improvements to existing specs or implementation |
-| `/adv-tron [target]` | Investigate codebase structure, hotspots, risks, and suggest follow-up agenda candidates |
-
-## Key capabilities
-
-- **Spec-driven changes** - define what must be true before implementation starts
-- **Task orchestration** - break changes into explicit, trackable work units
-- **TDD evidence** - capture red/green proof as part of execution
-- **7-gate flow** - proposal, discovery, design, planning, execution, acceptance, release
-- **Accumulated wisdom** - persist patterns, gotchas, conventions, successes, and failures with SQLite-backed search, cross-change aggregation, and archive-time promotion of durable learnings
-- **Worktree-aware state** - share mutable change state across worktrees and sessions; detect and reuse existing worktrees
-- **Validation and archive flow** - reduce drift between proposal, implementation, and specs while carrying forward durable wisdom during archive
-- **Tradeoff prioritization** - route multi-approach decisions through inline analysis or the prioritizer skill before asking users to weigh criteria
-- **Command + skill architecture** - slash commands own workflow/state/gates; reusable methodology (review, harden, slop detection) lives in loadable skills following the `adv-tron` pattern
-
-### Prioritizer protocol
-
-For tradeoff-heavy decisions, ADV agents analyze the decision space inline by default — scanning relevant code with `lgrep`, researching via Context7/Kagi, then drafting criteria questions for the `question` tool.
-
-When deeper analysis is needed, agents can load the prioritizer skill via `skill("prioritizer")` for structured criteria question templates and decision map guidance.
-
-### Agent architecture
-
-ADV slash commands are top-level entrypoint contracts; they do not carry command-level `agent:` routing. Agent behavior lives in agent prompts and ADV tools instead of command frontmatter, which keeps context overhead lower and avoids OpenCode re-dispatch surprises.
-
-Agents with the `task` tool can spawn sub-agents for parallel research and validation. Sub-agents cannot spawn further sub-agents — all orchestration flows through the parent agent, with a hard runtime nesting depth limit of `1`. The ADV orchestrator should cap parallel bursts at 3-4 sub-agents and avoid spawning for work achievable inline.
-
-That same single-level rule also applies to scan-style workflows such as `/adv-slop-scan`: first-level scanner workers may fan out, but those workers must complete inline and must not spawn further sub-agents or re-enter `/adv-*` commands.
-
-Shared global agents such as `adv`, `general`, `plan`, and `scout` are synced through small repo-owned managed overlay blocks rather than full-file replacement, so ADV can keep critical anti-recursion rules current without overwriting user customization.
-
-| Agent | Role | Can Orchestrate? |
-|-------|------|-----------------|
-| `adv` | ADV orchestrator — drives spec-driven development workflows through the 7-gate lifecycle | Yes |
-| `plan` | Planning — produces structured plans and task breakdowns | Yes |
-| `scout` | Reconnaissance — investigates codebases and brainstorms ideas | Yes |
-| `refine` | Refinement — surgical scope-locked editing and quality gates | Yes |
-| `build` | Build/CI — runs tests, linters, type checkers | No (inline only) |
-
-Sub-agents available for orchestration:
-
-| Sub-Agent | Purpose |
-|-----------|---------|
-| `librarian` | Documentation, API references, code examples |
-| `explore` | Codebase navigation, find usages |
-| `general` | Complex multi-step implementation |
-| `mechanic` | System/infra issues — MCP servers, config, toolchain |
-| `adv-researcher` | Architectural validation, simplicity analysis (ADV-managed bundled global) |
-| `tron` | Codebase reconnaissance, hotspot detection |
-
-## Repository structure
-
-```text
-.
-├── .adv/specs/             # Capability specs (the laws)
-├── .opencode/agents/       # Sub-agents used by ADV commands
-├── .opencode/command/      # Slash-command implementations and workflows
-├── docs/                   # Workflow docs, references, and checklists
-├── plugin/                 # TypeScript OpenCode plugin
-│   ├── src/
-│   ├── schemas/
-│   └── package.json
-├── scripts/                # Maintenance, migration, and global config sync
-├── skills/                 # Bundled OpenCode skills synced globally
-├── ADV_INSTRUCTIONS.md
-├── SETUP.md
-└── project.json
-```
-
-## Worktree integration
-
-ADV uses git worktrees as an **isolation layer on top of branches**, not as a replacement for them. The branch `change/{change-id}` carries the commit history; the worktree provides a separate working directory so changes don't interfere with other work.
-
-### How it works
-
-1. **Risk assessment** — `/adv-apply` Phase 0 evaluates whether the change is high-risk (3+ files, breaking API, auth, schema changes). Low-risk changes work in-place.
-2. **Reuse detection** — Before creating a new worktree, ADV checks `git worktree list --porcelain` for an existing `change/{change-id}` worktree. If found and healthy, it offers to switch to it. If stale (path deleted), it prunes the record.
-3. **Shared mutable state** — Changes, wisdom, agenda, and archive live in `~/.local/share/opencode/plugins/advance/{project-id}/`, keyed by root commit SHA. All worktrees of the same repo share this state.
-4. **Branch-local specs** — Specs (`.adv/specs/`) are git-tracked and branch-specific. A spec modified in worktree A is not visible in worktree B until the branch is merged.
-5. **Automatic cleanup** — `/adv-archive` Phase 9 commits, merges to the default branch, verifies the merge, and deletes the worktree.
-
-### What's shared vs. branch-local
-
-| Data | Location | Shared? |
-|------|----------|---------|
-| Changes, archive, wisdom, agenda | External (`~/.local/share/...`) | Yes |
-| Specs (`.adv/specs/`) | In-repo, git-tracked | No — branch-local |
-| Handoff state | External | Yes |
-
-### Spec divergence
-
-If a spec is modified in one worktree (e.g., via `/adv-archive` applying deltas), other worktrees won't see the update until the branch is merged. This means `/adv-validate` or `/adv-audit` in another worktree may operate on stale specs. Merge promptly after archiving spec-modifying changes.
+For serious projects, this is not prompt engineering. It is process infrastructure.
 
 ## Quick start
 
-### Develop the plugin
+### Use Advance in OpenCode
 
 ```bash
 git clone https://github.com/Sharper-Flow/Advance.git
-cd Advance/plugin
+cd Advance
+./scripts/sync-global.sh --fix
+```
+
+That syncs the plugin, commands, overlays, bundled agents, and skills into your local OpenCode setup.
+
+Then in an OpenCode project, start with:
+
+```text
+/adv-proposal add OAuth login without breaking existing session flows
+```
+
+From there, Advance walks the change through discovery, agreement, design, planning, execution, review, and archive.
+
+For setup details, troubleshooting, and project bootstrapping, see [`SETUP.md`](SETUP.md).
+
+### Develop the plugin
+
+All buildable code lives in [`plugin/`](plugin/).
+
+```bash
+cd plugin
 pnpm install
 pnpm test
 pnpm run check
+pnpm run build
 ```
 
-### Use ADV in an OpenCode project
+## What lives in this repo
 
-An ADV-enabled project needs a `project.json` plus spec/change/archive directories.
+This repository is both the implementation and the operating manual.
 
-Example `project.json`:
+- `plugin/` — TypeScript OpenCode plugin implementation
+- `.adv/specs/` — capability specs that define ADV behavior
+- `.opencode/command/` — slash-command workflow contracts
+- `.opencode/agents/` — repo-local agents and managed overlays
+- `skills/` — bundled skills synced into the OpenCode skill registry
+- `docs/` — workflow docs, gate contracts, and checklists
+- `scripts/` — sync, migration, and maintenance helpers
 
-```json
-{
-  "name": "my-project",
-  "version": "0.1.0",
-  "specs_dir": "specs",
-  "changes_dir": "changes",
-  "archive_dir": "archive",
-  "docs_dir": "docs/specs",
-  "db_dir": ".adv/db",
-  "project_file": "project.md"
-}
-```
+## Key capabilities
 
-After cloning, run `./scripts/sync-global.sh --fix` to sync commands, agents,
-skills, and patch `~/.config/opencode/opencode.json` with ADV entries.
-
-See `SETUP.md` for setup details.
-
-## MCP surface
-
-Advance exposes MCP tools for:
-
-- reading specs
-- creating and validating changes
-- managing tasks and TDD evidence
-- tracking gates and agenda state
-- recording and promoting wisdom
-- querying project context and status
-
-The important point is not the raw tool count. The value is that the workflow is scriptable, inspectable, and durable across sessions.
+- **Spec-driven changes** — define what must be true before implementation starts
+- **Task orchestration** — break changes into explicit, trackable work units
+- **TDD evidence** — capture red/green proof as part of execution
+- **Worktree-aware state** — share mutable change state across worktrees and sessions
+- **Accumulated wisdom** — persist patterns, gotchas, conventions, successes, and failures
+- **Validation and archive flow** — reduce drift between proposal, implementation, and specs
 
 ## Documentation map
 
-- `SETUP.md` - installation, project setup, and upgrade notes
-- `ADV_INSTRUCTIONS.md` - agent operating rules and workflow protocol
-- `AGENTS.md` - agent-facing quickstart: concepts, tools, directory layout
-- `docs/adv-workflow.md` - visual 7-gate workflow diagram
-- `docs/adv-gates.md` - gate contracts and sequencing
-- `docs/adv-task-report.md` - task handoff/status reporting
-- `docs/adv-context-agreement.md` - context snapshot and cross-repo switch formatting
-- `docs/adv-question-tool.md` - question tool UX policy
-- `docs/checklists/` - prep, review, and harden checklists
-- `docs/specs/` - generated spec documentation (adv-discover, adv-prep, adv-proposal, advance, context-display, contract-system, prep-readiness, slop-scan, tdd-contract)
+- [`SETUP.md`](SETUP.md) — installation, project setup, and troubleshooting
+- [`ADV_INSTRUCTIONS.md`](ADV_INSTRUCTIONS.md) — full workflow protocol and agent rules
+- [`AGENTS.md`](AGENTS.md) — contributor-facing repo architecture and commands
+- [`docs/adv-gates.md`](docs/adv-gates.md) — gate contracts and sequencing
+- [`docs/adv-task-report.md`](docs/adv-task-report.md) — task handoff and status reporting
+- [`docs/checklists/`](docs/checklists/) — prep, review, and harden checklists
+- [`docs/specs/`](docs/specs/) — generated spec documentation
 
 ## Development
 
 Useful commands from `plugin/`:
 
 ```bash
-pnpm install
 pnpm test
 pnpm run build
 pnpm run typecheck
