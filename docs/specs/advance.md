@@ -1,6 +1,6 @@
 # Advance
 
-> **Version:** 1.7.0
+> **Version:** 1.8.0
 > **Updated:** 2026-04-13
 
 ## Purpose
@@ -365,6 +365,110 @@ After Quick Contract confirmation, /adv-task must always persist contract contex
 
 ---
 
+### Mid-Change Scope Expansion Re-Entry
+
+**ID:** `rq-scopeReentry01` | **Priority:** **[MUST]**
+
+When new objectives or acceptance criteria are introduced after a change has already progressed through the gate workflow, the added scope must be routed back through the earliest invalidated pre-implementation gate via adv_change_reenter before execution continues. Re-entry requires explicit user approval. Unaffected approved scope may continue without re-entry, and non-invalidating clarifications do not require re-entry.
+
+**Tags:** `workflow`, `re-entry`, `scope-expansion`, `gates`
+
+#### Scenarios
+
+**Scope expansion triggers re-entry** (`rq-scopeReentry01.1`)
+
+**Given:**
+- A change is in execution or a later gate
+- New objectives or acceptance criteria are discovered that were not part of the approved agreement
+
+**When:** adv_change_reenter is used from the earliest affected gate
+
+**Then:**
+- The newly added scope is routed back through discovery, agreement, design, and planning as needed before execution resumes
+- Execution does not silently absorb the new scope without re-entry
+
+**Unaffected approved scope continues without re-entry** (`rq-scopeReentry01.2`)
+
+**Given:**
+- A change has approved scope already in execution
+- A newly discovered item does not invalidate the existing approved work
+
+**When:** The unaffected scope is evaluated
+
+**Then:**
+- Previously approved scope may continue without reopening unrelated gates
+- Only the newly invalidated scope is routed back through re-entry
+
+**Non-invalidating clarification does not require re-entry** (`rq-scopeReentry01.3`)
+
+**Given:**
+- A change is in progress
+- A clarification is discovered that does not alter objectives, acceptance criteria, or design intent
+
+**When:** The clarification is applied
+
+**Then:**
+- adv_change_reenter is not required
+- Execution may continue within the existing scope
+
+**Re-entry requires explicit user approval** (`rq-scopeReentry01.4`)
+
+**Given:**
+- A change needs scope-expansion re-entry
+
+**When:** adv_change_reenter is executed
+
+**Then:**
+- The call requires explicit user approval evidence
+- Re-entry without approval is rejected
+
+---
+
+### Re-Entry Cascade Reset Preserves Work
+
+**ID:** `rq-scopeReentry02` | **Priority:** **[MUST]**
+
+Reopening a change from gate X must reset gate X and all downstream gates to pending while preserving existing tasks and completed work. Each re-entry must append an audit entry describing the reopened gate, reason, optional scope delta, actor, timestamp, and gates reset.
+
+**Tags:** `workflow`, `re-entry`, `audit`, `gates`
+
+#### Scenarios
+
+**Cascade from discovery resets downstream gates** (`rq-scopeReentry02.1`)
+
+**Given:**
+- A change has completed proposal, discovery, design, planning, execution, acceptance, and release is still pending
+
+**When:** adv_change_reenter reopens from discovery
+
+**Then:**
+- discovery, design, planning, execution, acceptance, and release are reset to pending
+- proposal remains satisfied
+
+**Tasks remain intact after cascade reset** (`rq-scopeReentry02.2`)
+
+**Given:**
+- A change has existing tasks, including completed tasks
+
+**When:** adv_change_reenter resets gates to pending
+
+**Then:**
+- All existing tasks remain on the change
+- Task status and task content are preserved
+
+**Re-entry appends audit history** (`rq-scopeReentry02.3`)
+
+**Given:**
+- A change has been reopened via adv_change_reenter
+
+**When:** The re-entry is persisted
+
+**Then:**
+- A reentry_history entry is appended with from_gate, reason, reopened_by, approval_evidence, reopened_at, and gates_reset
+- scope_delta is included when provided
+
+---
+
 ### Seven-Gate Collaborative Workflow
 
 **ID:** `rq-gatemodel01` | **Priority:** **[MUST]**
@@ -475,7 +579,7 @@ When /adv-review or /adv-harden validates an actionable finding or suggestion as
 **When:** Remediation options are presented
 
 **Then:**
-- No report-only, future-work, or accepted-debt option is offered
+- No report-only or future-work option is offered
 - The finding must be fixed before the release gate can complete
 
 **Rejection with evidence is permitted** (`rq-remediation01.3`)
@@ -536,5 +640,107 @@ A change owns quality and test coverage for: (1) directly touched implementation
 **Then:**
 - Only the local touched subsystem is in scope
 - Unrelated subsystems are not implicitly pulled into the change
+
+---
+
+### Design Stage Requires Independent Validation
+
+**ID:** `rq-designval01` | **Priority:** **[MUST]**
+
+Before the design gate can complete, /adv-design must run an independent validation pass via a different-model sub-agent (adv-researcher). The validator assesses correctness, simplicity, spec-law compliance, and key alternatives. Validator failure or timeout results in an INCONCLUSIVE warning and does not block gate completion.
+
+**Tags:** `workflow`, `design`, `validation`, `autonomy`
+
+#### Scenarios
+
+**Validator runs before design gate completion** (`rq-designval01.1`)
+
+**Given:**
+- A change has a confirmed agreement and completed design work
+
+**When:** /adv-design is executed
+
+**Then:**
+- An independent validation sub-agent pass runs before adv_gate_complete is called for the design gate
+- The validator assesses at least: correctness, simplicity, spec-law compliance, and key alternatives
+
+**Validator failure results in INCONCLUSIVE, not a block** (`rq-designval01.2`)
+
+**Given:**
+- The validator sub-agent fails, returns empty, or times out
+
+**When:** /adv-design handles the failed validator response
+
+**Then:**
+- The result is recorded as INCONCLUSIVE with a warning
+- The design gate is not blocked by the validator failure
+- The warning is surfaced in /adv-present output
+
+---
+
+### Validation Findings Included in Design Presentation
+
+**ID:** `rq-designval02` | **Priority:** **[MUST]**
+
+When /adv-present summarizes the design, it must include the validator verdict and findings from the design validation step. VALIDATED shows a brief clean-pass note. CAUTION shows findings inline. CONFLICT shows conflict details. INCONCLUSIVE shows a warning. Legacy designs without validation data omit the section silently.
+
+**Tags:** `workflow`, `design`, `presentation`
+
+#### Scenarios
+
+**Clean-pass note shown for VALIDATED verdict** (`rq-designval02.1`)
+
+**Given:**
+- The design validator returned VALIDATED
+
+**When:** /adv-present presents the design summary
+
+**Then:**
+- The output includes a one-line clean-pass note (e.g. 'Validator: clean pass')
+- No detailed findings are shown
+
+**Conflict details shown for CONFLICT verdict** (`rq-designval02.2`)
+
+**Given:**
+- The design validator returned CONFLICT with findings
+
+**When:** /adv-present presents the design summary
+
+**Then:**
+- The conflict details and unresolved findings are shown to the user
+- The presentation pauses for user resolution before proceeding to planning
+
+---
+
+### Critical Validator Disagreement Requires Explicit Handling
+
+**ID:** `rq-designval03` | **Priority:** **[MUST]**
+
+When the design validator returns a CONFLICT verdict, the orchestrator must not silently auto-continue to planning. The conflict must be surfaced to the user or resolved inline before /adv-prep can proceed.
+
+**Tags:** `workflow`, `design`, `autonomy`, `checkpoints`
+
+#### Scenarios
+
+**CONFLICT verdict blocks silent auto-continue to planning** (`rq-designval03.1`)
+
+**Given:**
+- The design validator returned a CONFLICT verdict with unresolved findings
+
+**When:** The orchestrator evaluates whether to proceed from design to planning
+
+**Then:**
+- The orchestrator does not silently proceed to /adv-prep
+- The conflict is surfaced to the user via /adv-present pause or inline resolution attempt
+
+**VALIDATED and CAUTION verdicts auto-continue** (`rq-designval03.2`)
+
+**Given:**
+- The design validator returned VALIDATED or CAUTION
+
+**When:** The orchestrator evaluates whether to proceed from design to planning
+
+**Then:**
+- Planning proceeds without a new user-facing checkpoint (assuming no other user-value tradeoffs)
 
 ---

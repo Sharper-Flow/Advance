@@ -2,102 +2,125 @@
 name: adv-improve
 description: Suggest targeted improvements to existing specs or implementation
 ---
-# ADV Improve — Architectural Improvement Analysis
-Perform **inline** architectural improvement analysis (no sub-agents). Uses Context7 for reference architecture lookups and direct file reads for codebase analysis.
+# ADV Improve — Analyze Improvement Opportunities
+Produce evidence-backed improvement analysis across three dimensions: current-state gaps, LBP/reference architecture comparison, and external landscape (competitors, alternatives, emerging patterns). Read-only utility command — never mutates ADV state.
 
-Dual perspective:
-1. **Current State** — gaps in the codebase today
-2. **Greenfield** — what would be different rebuilding from scratch for pre-production launch
+## Command Boundary
+**Produces:** Improvement analysis report with findings, evidence, severity, and suggested next commands.
 
----
-## Phase 0: Project Understanding
-1. Read `README.md` / `AGENTS.md` (truncate to ~2000 chars if long)
-2. Extract purpose, stage (startup/growth/mature), constraints
-3. Emit PROJECT CONTEXT summary: purpose, source, stage, constraints
+**× MUST NOT:** Create changes, create tasks, complete any gates, or mutate any other ADV state.
 
----
-## Pre-flight
-1. Verify source files exist (`src/`, `lib/`, `app/`, `packages/`, or `*.ts/*.js/*.py/*.go`) → stop if none
-2. Detect tech stack from project files (`package.json`, `pyproject.toml`, `go.mod`, `Cargo.toml`, etc.)
+**Gate:** None. Read-only utility command.
 
----
-## Part 1: Current State Analysis
-Analyze across **6 categories**:
-| Category | Focus Areas |
-|----------|-------------|
-| Security | Input validation, auth/authz, secrets management, dependency vulns, injection/XSS/CSRF |
-| Reliability | Error handling/recovery, retry/circuit breakers, graceful degradation, fault isolation, timeouts |
-| Testing | Organization/coverage, reliability/isolation, speed/parallelization, depth (unit→E2E→property) |
-| Observability | Logging strategy, error tracking, metrics/monitoring, debugging, health checks |
-| Developer Experience | Onboarding docs, local dev setup, contribution guidelines, test convenience, debug tooling |
-| Code Quality | Consistent style, clear module boundaries, doc coverage, type safety, naming conventions |
+> **CHECKLIST**: Follow [docs/checklists/improve-checklist.md](../../docs/checklists/improve-checklist.md).
 
----
-## Part 2: Architecture Health Assessment
-### 2.1 Reference Architecture Lookup (CRITICAL)
-Use Context7 (`context7_resolve-library-id` → `context7_query-docs`) to find canonical architecture for detected stack. Document: layer boundaries, dependency direction, separation of concerns, error handling, observability, config management, module organization. Cite sources.
-### 2.2 Deviation Analysis
-| Area | Existing | Reference | Classification | Source |
-|------|----------|-----------|----------------|--------|
-| Layer boundaries | {pattern} | {correct} | SOUND/DRIFTED/ANTI-PATTERN | {cite} |
-| Dependency direction | ... | ... | ... | ... |
-| Separation of concerns | ... | ... | ... | ... |
-| Error handling | ... | ... | ... | ... |
-| Observability | ... | ... | ... | ... |
-| Module organization | ... | ... | ... | ... |
+<UserRequest>
+  $ARGUMENTS
+</UserRequest>
 
-Classifications: `SOUND` (safe to extend), `DRIFTED` (accumulated inconsistencies), `ANTI-PATTERN` (fundamentally wrong).
-### 2.3 Corrections
-For each DRIFTED/ANTI-PATTERN: what's wrong (with file paths), what's correct (with source), why it matters, scope (TARGETED/INCREMENTAL/REWRITE), minimum viable correction.
+## Target Resolution
+`$ARGUMENTS` is optional. Two modes:
+| Invocation | Mode |
+|------------|------|
+| No args | Broad repo-wide improvement scan |
+| With target | Scoped scan of file / directory / capability / symbol / concept |
 
-Architecture corrections are NOT optional. ANTI-PATTERN = CRITICAL, DRIFTED = HIGH.
-### 2.4 Greenfield Perspective
-Evaluate: data model, API design, state management, module boundaries, dependency choices. What would change rebuilding from scratch?
-### 2.5 Technical Debt
-Identify: evolutionary cruft, framework lock-in, legacy support, premature abstractions, missing abstractions.
-### 2.6 Launch Readiness
-Check: error handling recovery paths, performance bottlenecks, security (rate limiting, auth, validation), operations (deploy/rollback confidence), monitoring (break detection).
+Target resolution: file path → read directly, directory → outline, symbol name → `lgrep_search_symbols`, concept → `lgrep_search_semantic`. If ambiguous → fall back to closest concrete target or broad mode. Ask via `question` only if multiple interpretations would materially differ.
+
+## Exits
+| Exit | Condition |
+|------|-----------|
+| ✅ Report | Analysis completed; improvement report emitted |
+| 🎤 Clarify | Target too ambiguous to produce meaningful scan |
+| ⚠ Partial | External tool (Context7 or Kagi) unavailable; partial report emitted with annotation |
 
 ---
-## Evidence Requirements
-Every finding MUST include evidence. Findings without evidence are rejected.
-| Claim | Evidence |
-|-------|----------|
-| "X exists" | File path |
-| "X missing" | Directories/patterns searched |
-| "Pattern Y used" | 1-3 example file paths |
-| "Config Z present" | Config file + key |
+
+## Phase 0: Context Loading
+1. `adv_project_context` → extract purpose, stage, constraints
+2. `adv_change_list` → detect active/archived changes that overlap findings
+3. `adv_agenda_list` → detect already-planned improvements (do not re-surface)
+4. `adv_spec action: "list"` → identify relevant capability specs
+5. Detect worktree via `pwd`
+6. Detect tech stack from `package.json`, `pyproject.toml`, `go.mod`, `Cargo.toml`
+7. Verify source files exist (`src/`, `lib/`, `app/`, `packages/`, or `*.ts/*.js/*.py/*.go`) → exit cleanly if none
 
 ---
-## Severity
-| Level | Criteria |
-|-------|----------|
-| CRITICAL | Security vulns, data loss, instability |
-| HIGH | Significant reliability/maintainability/velocity gaps |
-| MEDIUM | Notable improvements |
-| LOW | Minor enhancements |
-| GREENFIELD | Would differ in rewrite (not necessarily a bug) |
+
+## Phase 1: Current-State Scan
+Analyze across 6 categories. Cap: **5 findings per category**. Every finding MUST have evidence (file path, searched path, or source citation). See [improve-checklist.md](../../docs/checklists/improve-checklist.md) for category focus areas and evidence rules.
+
+| Category | Cap |
+|----------|-----|
+| Security | 5 |
+| Reliability | 5 |
+| Testing | 5 |
+| Observability | 5 |
+| Developer Experience | 5 |
+| Code Quality | 5 |
 
 ---
-## Output Format
-Emit IMPROVEMENT ANALYSIS report:
 
-**Part 1:** Current state findings sorted by severity, each with: category, observation, evidence, impact, suggested research.
+## Phase 2: LBP / Reference Comparison
+1. Use `context7_resolve-library-id` → `context7_query-docs` for canonical architecture of detected stack
+2. Build deviation table: for each area, classify as `SOUND` / `DRIFTED` / `ANTI-PATTERN` with source citation
+3. Document corrections for DRIFTED/ANTI-PATTERN findings: what's wrong (file paths), what's correct (source), minimum viable fix
+4. Include greenfield perspective: what would change rebuilding from scratch?
 
-**Part 2:** Reference architecture (stack, source, key patterns) → deviation table → corrections (CRITICAL/HIGH, with existing/reference/evidence/impact/scope/minimum fix) → greenfield changes (current vs alternative, migration effort) → technical debt (type, location, origin, removal strategy, effort) → launch gaps (risk, current state, required, priority).
-
-**Summary:** Architecture health counts, issue counts by severity, correction count, greenfield changes, debt items, launch blockers, top 3 recommendations (architecture corrections first).
-
-If no significant issues → emit PRODUCTION READY assessment with positive findings per category.
-
-If truncated due to time → output partial findings with truncation notice.
+**Fallback:** If Context7 is unavailable → use local codebase conventions and annotate each finding with `[Reference: local conventions — Context7 unavailable]`. Do not fabricate canonical sources.
 
 ---
-## Creating Changes
-Significant findings → `adv_change_create summary: "<finding>"` → return new `changeId` → `/adv-discover {change-id}` then `/adv-design {change-id}`, then `/adv-prep {change-id}` for task synthesis. × Do not call `adv_task_add` here.
+
+## Phase 3: External Landscape
+Detect project domain from Phase 0 context. Run two targeted searches:
+1. `kagi_search_fetch queries: ["{domain} alternatives comparison {year}", "{domain} emerging tools trends {year}"]`
+2. Extract: **top-3 competitors** (name, what they do differently, relevance to this project) and **2 emerging patterns** (name, why noteworthy, maturity signal)
+3. Every entry MUST include: source URL, one-sentence summary, relevance
+
+Hard cap: 3 competitors + 2 emerging. Do not exceed.
+
+**Fallback:** If Kagi is unavailable or returns no relevant results → emit `External landscape analysis unavailable: {reason}` and skip. Do not fabricate entries.
+
+---
+
+## Phase 4: Synthesis
+1. Deduplicate against active changes and agenda items (from Phase 0)
+2. Sort all findings by severity: CRITICAL → HIGH → MEDIUM → LOW → GREENFIELD
+3. Emit **IMPROVEMENT ANALYSIS** report:
+   - **Current State:** findings by category with evidence, severity, impact
+   - **Architecture:** deviation table, corrections (CRITICAL/HIGH), greenfield changes
+   - **External Landscape:** competitors table, emerging patterns, or unavailability note
+   - **Summary:** counts by severity, top 3 recommendations, architecture health signal
+4. Suggest next commands: `/adv-proposal <summary>`, `/adv-task`, `/adv-audit`, `/adv-tron`
+
+If no significant issues → emit **PRODUCTION READY** assessment with positive findings per category.
+
+---
+
+## Constraints
+- Read-only — × never writes files or mutates ADV state
+- × No change creation — user decides follow-up
+- × No agenda creation — suggestions in human-readable form only
+- Bounded: 5 findings per category (Phase 1), 3+2 cap (Phase 3)
+- Evidence required for every finding; evidence-free findings are rejected
+- Fallback required for each external tool; never silently omit a phase
+
+---
+
+## Key Tools
+| Purpose | Tool |
+|---------|------|
+| Context | `adv_project_context`, `adv_change_list`, `adv_agenda_list`, `adv_spec` |
+| Code | `lgrep_search_semantic`, `lgrep_search_symbols`, `lgrep_get_file_tree`, `read` |
+| Reference | `context7_resolve-library-id`, `context7_query-docs` |
+| External | `kagi_search_fetch` |
+
+---
+
+## Output
 ```
-/adv-improve COMPLETE
+/adv-improve [target] COMPLETE
 Result: {N findings | Production ready}
-Changes suggested: {Y}
-Next: /adv-discover {change-id} → /adv-design {change-id}
+State Mutation: none
+Next: {suggested commands}
 ```
