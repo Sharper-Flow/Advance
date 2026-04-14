@@ -74,7 +74,7 @@ unavailable:
 | Firecrawl    | `firecrawl_*`    | `scout`, `refine`                           | Web scraping unavailable; use `webfetch` instead        |
 | Context7     | `context7_*`     | `adv-researcher`                            | Library documentation lookup unavailable                |
 | Kagi         | `kagi_*`         | `adv-researcher`                            | Web search unavailable                                  |
-| grep.app     | `grep-app_*`     | `adv-researcher`                            | Cross-repo code example search unavailable             |
+| Grep by Vercel | `gh_grep_*`     | `adv-researcher`                            | Cross-repo code example search unavailable             |
 | arXiv MCP    | `arxiv-mcp_*`    | `adv-researcher`                            | Academic paper search unavailable                       |
 
 Configure these MCP servers in your `opencode.json` `mcp` section per each

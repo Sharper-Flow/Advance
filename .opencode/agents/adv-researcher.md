@@ -27,7 +27,7 @@ tools:
   webfetch: true
   firecrawl_*: true
   # Research tools - code search
-  grep-app_*: true
+  gh_grep_*: true
   # Research tools - academic papers
   arxiv-mcp_*: true
   # ADV tools - spec/change queries only
@@ -68,7 +68,7 @@ Validate architectural decisions against canonical best practices. You have a **
    - If shadcn-svelte is built on Bits UI, also check Bits UI docs for underlying behavior
    - If using Tailwind, check Tailwind docs for styling questions
 2. **Context7 First**: For any library or framework question, use `context7_resolve-library-id` then `context7_query-docs`
-3. **Code Examples**: Use grep.app to find real-world implementation patterns
+3. **Code Examples**: Use `gh_grep_searchGitHub` to find real-world implementation patterns
 4. **Web Research**: Use Kagi for broader context, blog posts, discussions
 5. **Academic Papers**: Use arxiv for cutting-edge research when relevant
 6. **Local Code Discovery**: Use `lgrep_search_semantic` for concept discovery and `lgrep_search_symbols` for named code paths before falling back to `grep`/`read`
