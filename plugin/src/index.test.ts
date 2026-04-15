@@ -22,7 +22,13 @@ import { addProjectWisdom } from "./storage/project-wisdom";
 // Using inline types to avoid SDK import issues during testing
 interface MockPluginInput {
   client: unknown;
-  project: { id: string; worktree: string; vcsDir?: string; vcs?: "git"; time: { created: number } };
+  project: {
+    id: string;
+    worktree: string;
+    vcsDir?: string;
+    vcs?: "git";
+    time: { created: number };
+  };
   directory: string;
   worktree: string;
   serverUrl: URL;
@@ -45,7 +51,11 @@ interface MockEvent {
 
 const createMockPluginInput = (directory: string): MockPluginInput => ({
   client: {},
-  project: { id: "test-project", worktree: directory, time: { created: Date.now() } },
+  project: {
+    id: "test-project",
+    worktree: directory,
+    time: { created: Date.now() },
+  },
   directory,
   worktree: directory,
   serverUrl: new URL("http://localhost:3000"),
@@ -947,6 +957,140 @@ describe("system.transform change ID injection (Leak #2)", () => {
 });
 
 // =============================================================================
+// Plugin init resilience — degraded mode when init throws
+// =============================================================================
+
+describe("Plugin init resilience: degraded mode", () => {
+  let tempDir: string;
+  const pluginInstances: any[] = [];
+
+  beforeEach(async () => {
+    tempDir = await createTempDir();
+  });
+
+  afterEach(async () => {
+    for (const hooks of pluginInstances) {
+      if (hooks?.event) {
+        try {
+          await hooks.event({
+            event: { type: "session.deleted", properties: {} },
+          });
+        } catch {
+          // ignore cleanup errors
+        }
+      }
+    }
+    pluginInstances.length = 0;
+    await cleanupTempDir(tempDir);
+  });
+
+  test("malformed project.json: plugin still returns hooks with stub tools", async () => {
+    // Write project.json with invalid JSON syntax to force loadProjectConfig to throw.
+    // This is the exact failure mode that previously killed all adv_* tools silently.
+    const { writeFile } = await import("fs/promises");
+    await writeFile(`${tempDir}/project.json`, "{ not valid json {{");
+
+    const hooks = await createTrackedPlugin(tempDir, pluginInstances);
+
+    // Plugin must still register a tool map — never throw out of AdvancePlugin
+    expect(hooks).toHaveProperty("tool");
+    expect(hooks.tool).not.toBeNull();
+
+    // All standard ADV tool names must be registered as stubs so agents
+    // discover the failure through any tool call rather than seeing "tool missing"
+    const toolNames = Object.keys(hooks.tool!);
+    expect(toolNames).toContain("adv_status");
+    expect(toolNames).toContain("adv_change_list");
+    expect(toolNames).toContain("adv_change_create");
+    expect(toolNames).toContain("adv_task_list");
+    expect(toolNames).toContain("adv_gate_complete");
+  });
+
+  test("malformed project.json: stub tools return structured init-error payload", async () => {
+    const { writeFile } = await import("fs/promises");
+    await writeFile(`${tempDir}/project.json`, "{ not valid json {{");
+
+    const hooks = await createTrackedPlugin(tempDir, pluginInstances);
+    const context = createMockToolContext();
+
+    const result = await hooks.tool!.adv_change_list.execute({}, context);
+    const parsed = parseToolOutput(result) as Record<string, unknown>;
+
+    expect(parsed.status).toBe("ADV_PLUGIN_INIT_FAILED");
+    expect(typeof parsed.error).toBe("string");
+    expect((parsed.error as string).length).toBeGreaterThan(0);
+    expect(Array.isArray(parsed.remediation)).toBe(true);
+    expect((parsed.remediation as string[]).length).toBeGreaterThan(0);
+  });
+
+  test("malformed project.json: every stub tool reports the same failure", async () => {
+    const { writeFile } = await import("fs/promises");
+    await writeFile(`${tempDir}/project.json`, "{ not valid json {{");
+
+    const hooks = await createTrackedPlugin(tempDir, pluginInstances);
+    const context = createMockToolContext();
+
+    // adv_status is the canonical probe — it must never throw and must report failure
+    const statusResult = await hooks.tool!.adv_status.execute({}, context);
+    const statusParsed = parseToolOutput(statusResult) as Record<
+      string,
+      unknown
+    >;
+    expect(statusParsed.status).toBe("ADV_PLUGIN_INIT_FAILED");
+
+    // A second tool call returns the same diagnostic — proves all stubs are wired
+    const createResult = await hooks.tool!.adv_change_create.execute(
+      { summary: "test" },
+      context,
+    );
+    const createParsed = parseToolOutput(createResult) as Record<
+      string,
+      unknown
+    >;
+    expect(createParsed.status).toBe("ADV_PLUGIN_INIT_FAILED");
+  });
+
+  test("malformed project.json: hooks (event, before, after, transform) are no-op safe", async () => {
+    const { writeFile } = await import("fs/promises");
+    await writeFile(`${tempDir}/project.json`, "{ not valid json {{");
+
+    const hooks = await createTrackedPlugin(tempDir, pluginInstances);
+
+    // None of these may throw even though store is null
+    await expect(
+      hooks.event!({
+        event: {
+          type: "session.status",
+          properties: { status: { type: "idle" } },
+        },
+      } as any),
+    ).resolves.not.toThrow();
+
+    await expect(
+      hooks["tool.execute.before"]!(
+        { tool: "adv_change_list" } as any,
+        { args: { changeId: "addFeature" } } as any,
+      ),
+    ).resolves.not.toThrow();
+
+    await expect(
+      hooks["tool.execute.after"]!(
+        { tool: "adv_change_create" } as any,
+        { args: {}, output: "{}" } as any,
+      ),
+    ).resolves.not.toThrow();
+
+    const transformOut = { system: [] as string[] };
+    await expect(
+      hooks["experimental.chat.system.transform"]!(
+        { sessionID: "test" } as any,
+        transformOut as any,
+      ),
+    ).resolves.not.toThrow();
+  });
+});
+
+// =============================================================================
 // project.path fallback tests
 // =============================================================================
 
@@ -968,18 +1112,22 @@ describe("Plugin init: project.path fallback", () => {
       );
     });
     await new Promise<void>((resolve, reject) => {
-      execFile(
-        "git",
-        ["add", "-A"],
-        { cwd: gitDir },
-        (err) => (err ? reject(err) : resolve()),
+      execFile("git", ["add", "-A"], { cwd: gitDir }, (err) =>
+        err ? reject(err) : resolve(),
       );
     });
     await new Promise<void>((resolve, reject) => {
       execFile(
         "git",
         ["commit", "-m", "init", "--author", "test <test@test.com>"],
-        { cwd: gitDir, env: { ...process.env, GIT_AUTHOR_DATE: "2026-01-01T00:00:00Z", GIT_COMMITTER_DATE: "2026-01-01T00:00:00Z" } },
+        {
+          cwd: gitDir,
+          env: {
+            ...process.env,
+            GIT_AUTHOR_DATE: "2026-01-01T00:00:00Z",
+            GIT_COMMITTER_DATE: "2026-01-01T00:00:00Z",
+          },
+        },
         (err) => (err ? reject(err) : resolve()),
       );
     });
@@ -1006,7 +1154,12 @@ describe("Plugin init: project.path fallback", () => {
     // directory = tempDir (no git), project.vcsDir = gitDir (has git)
     const input: MockPluginInput = {
       client: {},
-      project: { id: "test-project", worktree: gitDir, vcsDir: gitDir, time: { created: Date.now() } },
+      project: {
+        id: "test-project",
+        worktree: gitDir,
+        vcsDir: gitDir,
+        time: { created: Date.now() },
+      },
       directory: tempDir,
       worktree: tempDir,
       serverUrl: new URL("http://localhost:3000"),
@@ -1025,7 +1178,11 @@ describe("Plugin init: project.path fallback", () => {
     // Both are non-git paths
     const input: MockPluginInput = {
       client: {},
-      project: { id: "test-project", worktree: tempDir, time: { created: Date.now() } },
+      project: {
+        id: "test-project",
+        worktree: tempDir,
+        time: { created: Date.now() },
+      },
       directory: tempDir,
       worktree: tempDir,
       serverUrl: new URL("http://localhost:3000"),
@@ -1046,8 +1203,8 @@ describe("Plugin init: project.path fallback", () => {
     const result = await hooks.tool!.adv_status.execute({}, context);
     const parsed = parseToolOutput(result);
     expect(
-      (parsed as any).recommendations.some(
-        (r: string) => r.includes("Running without external state"),
+      (parsed as any).recommendations.some((r: string) =>
+        r.includes("Running without external state"),
       ),
     ).toBe(true);
   });
@@ -1058,7 +1215,12 @@ describe("Plugin init: project.path fallback", () => {
 
     const input: MockPluginInput = {
       client: {},
-      project: { id: "test-project", worktree: tempDir, vcsDir: tempDir, time: { created: Date.now() } },
+      project: {
+        id: "test-project",
+        worktree: tempDir,
+        vcsDir: tempDir,
+        time: { created: Date.now() },
+      },
       directory: tempDir,
       worktree: tempDir,
       serverUrl: new URL("http://localhost:3000"),

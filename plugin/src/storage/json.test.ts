@@ -121,14 +121,28 @@ describe("ProjectConfig", () => {
     await expect(loadProjectConfig(tempDir)).rejects.toThrow();
   });
 
-  test("loadProjectConfig throws on schema-invalid JSON", async () => {
+  test("loadProjectConfig returns null on schema-invalid JSON (legacy fallback)", async () => {
+    // Schema failures must NOT abort plugin init. loadProjectConfig returns
+    // null so callers fall back to defaults; use loadProjectConfigWithDiagnostics
+    // for structured error reporting.
     const configPath = join(tempDir, "project.json");
     await writeFile(
       configPath,
       JSON.stringify({ totally: "wrong", schema: true }),
       "utf-8",
     );
-    await expect(loadProjectConfig(tempDir)).rejects.toThrow();
+    const warnSpy = vi
+      .spyOn(console, "warn")
+      .mockImplementation(() => undefined);
+    try {
+      const config = await loadProjectConfig(tempDir);
+      expect(config).toBeNull();
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining("schema validation"),
+      );
+    } finally {
+      warnSpy.mockRestore();
+    }
   });
 
   test("saveProjectConfig creates config file", async () => {
