@@ -5,6 +5,25 @@ All notable changes to ADV (Advance) will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+#### Tab Title — Project Shortname Reintroduced (Deterministic)
+
+- **Project shortname now appears in the terminal tab title.** Format is `<emoji> <shortname> · <change>` when a change is active, or `<emoji> <shortname>` when idle. Reverses the v0.6.x decision to drop the project name entirely — the project is now always visible as context.
+- **`generateProjectShortname(name)`** added to `plugin/src/events/terminal.ts` — pure deterministic function with a 6-char hard cap:
+  - Strips common prefixes: `oc-`, `lib-`, `node-`
+  - Strips common suffixes: `-plugin`, `-plugins`, `-app`, `-cli`, `-server`, `-client`, `-mcp`, `.js`, `.ts`
+  - Multi-word names with combined length > 6 → acronym (e.g. `my-cool-project` → `MCP`, `opencode-morph-fast-apply` → `OMFA`)
+  - Single words ≤ 6 chars → title-cased as-is (e.g. `plugin` → `Plugin`)
+  - Single words > 6 chars → truncate + title-case (e.g. `advance` → `Advanc`, `pokeedge` → `Pokeed`)
+  - Case-insensitive prefix/suffix matching, only first match stripped
+- **`buildTabTitle(emoji, projectName, changeId)`** updated to thread `projectName` through `generateProjectShortname` and use the `·` separator. Previously ignored the project name argument.
+- **Public exports** added from the events module: `generateProjectShortname`, `buildTabTitle`, `normalizeChangeCode`.
+- **Tests**: 26 new assertions covering shortname rules + 7 updated `buildTabTitle` assertions in `plugin/src/events/events.test.ts`.
+- **Note**: AI-generated shortnames with per-project caching are planned as a follow-up. The deterministic rules above are intentionally simple and may produce ugly truncations (`Advanc`) — the AI fallback will rescue these.
+
 ## [0.7.0] - 2026-04-13
 
 ### Changed

@@ -289,22 +289,144 @@ export const normalizeChangeCode = (changeId: string): string => {
 };
 
 /**
+ * Project name prefixes stripped before shortname generation.
+ * Match is case-insensitive and only the first matching prefix is removed.
+ */
+const SHORTNAME_PREFIXES = ["oc-", "lib-", "node-"];
+
+/**
+ * Project name suffixes stripped before shortname generation.
+ * Match is case-insensitive and only the first matching suffix is removed.
+ */
+const SHORTNAME_SUFFIXES = [
+  "-plugin",
+  "-plugins",
+  "-app",
+  "-cli",
+  "-server",
+  "-client",
+  "-mcp",
+  ".js",
+  ".ts",
+];
+
+/**
+ * Hard cap on shortname length. Keeps the tab title compact in tmux status
+ * bars and terminal tab strips. Acronyms and truncated single words both
+ * obey this limit.
+ */
+const SHORTNAME_MAX_LEN = 6;
+
+/**
+ * Generate a compact project shortname (≤ 6 chars) from a project/repo name.
+ *
+ * Algorithm (deterministic — no AI):
+ *   1. Trim and strip a single matching prefix (oc-, lib-, node-)
+ *   2. Strip a single matching suffix (-plugin, -app, -cli, -server, etc.)
+ *   3. Split into words on camelCase boundaries and `-`/`_` separators
+ *   4. Multi-word + total > 6 chars → acronym (first letter of each word, capped)
+ *   5. Otherwise join + truncate to 6 chars + title-case first letter
+ *
+ * Examples:
+ *   advance                   → "Advanc"
+ *   pokeedge                  → "Pokeed"
+ *   my-cool-project           → "MCP"
+ *   opencode-morph-fast-apply → "OMFA"
+ *   oc-plugins                → "Plugin"
+ *   morph-plugin              → "Morph"
+ *
+ * NOTE: This is the deterministic-only fallback. AI-generated shortnames
+ * (cached per project-id) are planned as a future enhancement.
+ */
+export const generateProjectShortname = (projectName: string): string => {
+  if (!projectName) return "";
+
+  const trimmed = projectName.trim();
+  if (!trimmed) return "";
+
+  // 1. Strip prefix (case-insensitive, first match only)
+  let working = trimmed;
+  const lowerTrimmed = trimmed.toLowerCase();
+  for (const prefix of SHORTNAME_PREFIXES) {
+    if (lowerTrimmed.startsWith(prefix)) {
+      working = trimmed.slice(prefix.length);
+      break;
+    }
+  }
+
+  // 2. Strip suffix (case-insensitive, first match only)
+  const lowerWorking = working.toLowerCase();
+  for (const suffix of SHORTNAME_SUFFIXES) {
+    if (lowerWorking.endsWith(suffix) && working.length > suffix.length) {
+      working = working.slice(0, -suffix.length);
+      break;
+    }
+  }
+
+  // Fallback if strip emptied the string
+  if (!working) working = trimmed;
+
+  // 3. Split into words (camelCase + separators)
+  const words = working
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/[-_]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .split(" ")
+    .filter(Boolean);
+
+  if (words.length === 0) return "";
+
+  const totalLen = words.reduce((sum, w) => sum + w.length, 0);
+
+  // 4. Multi-word + total over limit → acronym
+  if (words.length >= 2 && totalLen > SHORTNAME_MAX_LEN) {
+    return words
+      .map((w) => w.charAt(0).toUpperCase())
+      .join("")
+      .slice(0, SHORTNAME_MAX_LEN);
+  }
+
+  // 5. Single word OR short multi-word → join + truncate + title-case
+  const joined = words.join("").toLowerCase();
+  const truncated =
+    joined.length <= SHORTNAME_MAX_LEN
+      ? joined
+      : joined.slice(0, SHORTNAME_MAX_LEN);
+  return truncated.charAt(0).toUpperCase() + truncated.slice(1);
+};
+
+/**
  * Build the terminal tab title string.
  *
  * Format:
- *   - Active change: "<emoji> <normalizedChangeCode>"
- *   - No active change: "<emoji>"  (bare emoji only — project name dropped)
+ *   - Shortname + change: "<emoji> <shortname> · <normalizedChangeCode>"
+ *   - Shortname only:     "<emoji> <shortname>"
+ *   - Change only:        "<emoji> <normalizedChangeCode>"  (empty project name)
+ *   - Bare:               "<emoji>"
+ *
+ * The project shortname is generated deterministically by
+ * `generateProjectShortname`. AI-generated cached shortnames are planned
+ * as a future enhancement.
  *
  * No progress counter is ever included.
  */
 export const buildTabTitle = (
   emoji: string,
-  _projectName: string,
+  projectName: string,
   changeId: string | undefined,
 ): string => {
-  if (changeId) {
-    const label = normalizeChangeCode(changeId);
-    return label ? `${emoji} ${label}` : emoji;
+  const shortname = generateProjectShortname(projectName);
+  const changeLabel = changeId ? normalizeChangeCode(changeId) : "";
+
+  if (shortname && changeLabel) {
+    return `${emoji} ${shortname} · ${changeLabel}`;
+  }
+  if (shortname) {
+    return `${emoji} ${shortname}`;
+  }
+  if (changeLabel) {
+    return `${emoji} ${changeLabel}`;
   }
   return emoji;
 };

@@ -19,7 +19,11 @@ import {
   getDoomLoopInfo,
 } from "./status";
 import { getProjectName, isTmux } from "./terminal";
-import { normalizeChangeCode, buildTabTitle } from "./terminal";
+import {
+  normalizeChangeCode,
+  buildTabTitle,
+  generateProjectShortname,
+} from "./terminal";
 import {
   updateTerminalStatus,
   cleanupTerminal,
@@ -374,38 +378,163 @@ describe("normalizeChangeCode", () => {
 });
 
 // =============================================================================
+// generateProjectShortname
+// =============================================================================
+
+describe("generateProjectShortname", () => {
+  describe("single-word names within limit", () => {
+    it("title-cases a short single-word name", () => {
+      expect(generateProjectShortname("app")).toBe("App");
+    });
+
+    it("preserves a 6-char single word name", () => {
+      expect(generateProjectShortname("plugin")).toBe("Plugin");
+    });
+  });
+
+  describe("single-word names over limit", () => {
+    it("truncates a 7-char name to 6 chars", () => {
+      expect(generateProjectShortname("advance")).toBe("Advanc");
+    });
+
+    it("truncates a longer name to 6 chars", () => {
+      expect(generateProjectShortname("pokeedge")).toBe("Pokeed");
+    });
+  });
+
+  describe("multi-word names", () => {
+    it("acronymizes kebab-case multi-word names", () => {
+      expect(generateProjectShortname("my-cool-project")).toBe("MCP");
+    });
+
+    it("acronymizes snake_case multi-word names", () => {
+      expect(generateProjectShortname("my_cool_project")).toBe("MCP");
+    });
+
+    it("acronymizes camelCase multi-word names", () => {
+      expect(generateProjectShortname("myCoolProject")).toBe("MCP");
+    });
+
+    it("acronymizes long multi-word names", () => {
+      expect(generateProjectShortname("opencode-morph-fast-apply")).toBe(
+        "OMFA",
+      );
+    });
+
+    it("caps acronym at 6 chars", () => {
+      expect(
+        generateProjectShortname("alpha-beta-gamma-delta-epsilon-zeta-eta"),
+      ).toBe("ABGDEZ");
+    });
+
+    it("joins short multi-word names without acronymizing", () => {
+      // "a-b" → words ['a','b'] total=2, ≤ 6 → join+title-case
+      expect(generateProjectShortname("a-b")).toBe("Ab");
+    });
+  });
+
+  describe("prefix and suffix stripping", () => {
+    it("strips oc- prefix", () => {
+      expect(generateProjectShortname("oc-plugins")).toBe("Plugin");
+    });
+
+    it("strips lib- prefix", () => {
+      expect(generateProjectShortname("lib-utils")).toBe("Utils");
+    });
+
+    it("strips node- prefix", () => {
+      expect(generateProjectShortname("node-fetch")).toBe("Fetch");
+    });
+
+    it("strips -plugin suffix", () => {
+      expect(generateProjectShortname("morph-plugin")).toBe("Morph");
+    });
+
+    it("strips -app suffix", () => {
+      expect(generateProjectShortname("my-app")).toBe("My");
+    });
+
+    it("strips -cli suffix", () => {
+      expect(generateProjectShortname("foo-cli")).toBe("Foo");
+    });
+
+    it("strips -server suffix", () => {
+      expect(generateProjectShortname("api-server")).toBe("Api");
+    });
+
+    it("strips -mcp suffix", () => {
+      expect(generateProjectShortname("kagi-mcp")).toBe("Kagi");
+    });
+
+    it("only strips one prefix and one suffix", () => {
+      // "oc-foo-cli" → strip "oc-" → "foo-cli" → strip "-cli" → "foo"
+      expect(generateProjectShortname("oc-foo-cli")).toBe("Foo");
+    });
+
+    it("falls back to original name if strip leaves nothing", () => {
+      expect(generateProjectShortname("oc-")).toBe("Oc");
+    });
+
+    it("is case-insensitive when matching prefixes", () => {
+      expect(generateProjectShortname("OC-Plugins")).toBe("Plugin");
+    });
+  });
+
+  describe("edge cases", () => {
+    it("returns empty string for empty input", () => {
+      expect(generateProjectShortname("")).toBe("");
+    });
+
+    it("returns empty string for whitespace-only input", () => {
+      expect(generateProjectShortname("   ")).toBe("");
+    });
+
+    it("trims leading and trailing whitespace", () => {
+      expect(generateProjectShortname("  app  ")).toBe("App");
+    });
+
+    it("handles a single-letter name", () => {
+      expect(generateProjectShortname("x")).toBe("X");
+    });
+  });
+});
+
+// =============================================================================
 // buildTabTitle
 // =============================================================================
 
 describe("buildTabTitle", () => {
-  it("shows normalized change code only when change is active", () => {
-    expect(buildTabTitle("🚀", "advance", "addFeatureX")).toBe("🚀 Feature X");
+  it("shows shortname and change code when both present", () => {
+    expect(buildTabTitle("🚀", "advance", "addFeatureX")).toBe(
+      "🚀 Advanc · Feature X",
+    );
   });
 
-  it("shows emoji only when no active change", () => {
-    expect(buildTabTitle("🌍", "advance", undefined)).toBe("🌍");
+  it("shows shortname only when no active change", () => {
+    expect(buildTabTitle("🌍", "advance", undefined)).toBe("🌍 Advanc");
   });
 
-  it("shows emoji only when change ID is empty string", () => {
-    expect(buildTabTitle("🌍", "advance", "")).toBe("🌍");
+  it("shows shortname only when change ID is empty string", () => {
+    expect(buildTabTitle("🌍", "advance", "")).toBe("🌍 Advanc");
   });
 
-  it("never includes project name when change is active", () => {
-    const title = buildTabTitle("🚀", "my-project", "fixAuthTimeout");
-    expect(title).not.toContain("my-project");
-    expect(title).toBe("🚀 Auth Timeout");
+  it("uses acronym shortname for multi-word project names", () => {
+    expect(buildTabTitle("🚀", "my-cool-project", "fixAuthTimeout")).toBe(
+      "🚀 MCP · Auth Timeout",
+    );
+  });
+
+  it("shows emoji only when project name is empty and no change", () => {
+    expect(buildTabTitle("🌍", "", undefined)).toBe("🌍");
+  });
+
+  it("shows emoji and change only when project name is empty", () => {
+    expect(buildTabTitle("🚀", "", "addFeatureX")).toBe("🚀 Feature X");
   });
 
   it("never includes progress text", () => {
-    // buildTabTitle has no progress parameter — just verify shape
     const title = buildTabTitle("🚀", "advance", "addFeatureX");
     expect(title).not.toMatch(/\[\d+\/\d+\]/);
-  });
-
-  it("shows only emoji (no project name) when no change is active", () => {
-    const title = buildTabTitle("🌍", "advance", undefined);
-    expect(title).not.toContain("advance");
-    expect(title).toBe("🌍");
   });
 });
 
