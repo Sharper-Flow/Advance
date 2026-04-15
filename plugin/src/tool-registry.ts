@@ -458,8 +458,5 @@ export function createDegradedToolMap(
       stubExecute,
     );
   }
-  // Silence unused-parameter warning for `directory` while keeping it in the
-  // signature for future use (context-aware remediation, etc.)
-  void directory;
   return map;
 }
