@@ -72,14 +72,14 @@ Advance gives OpenCode a real engineering workflow instead of a glorified chat l
 
 ## Without Advance / With Advance
 
-| Without Advance | With Advance |
-|---|---|
-| Requirements live in chat history | Requirements live in specs and agreements |
-| Work expands silently | Changes stay tied to explicit scope |
-| "Tests passed" is often unverified | Red/green evidence is captured on tasks |
-| Review is ad hoc and shallow | Review and hardening are explicit workflow stages |
-| Context disappears across sessions | State, wisdom, and task history persist |
-| Failed attempts loop forever | Retry spirals stop and escalate |
+| Without Advance                    | With Advance                                      |
+| ---------------------------------- | ------------------------------------------------- |
+| Requirements live in chat history  | Requirements live in specs and agreements         |
+| Work expands silently              | Changes stay tied to explicit scope               |
+| "Tests passed" is often unverified | Red/green evidence is captured on tasks           |
+| Review is ad hoc and shallow       | Review and hardening are explicit workflow stages |
+| Context disappears across sessions | State, wisdom, and task history persist           |
+| Failed attempts loop forever       | Retry spirals stop and escalate                   |
 
 ## Core workflow
 
@@ -112,29 +112,29 @@ When a change has multiple viable directions with real user-value tradeoffs, pri
 
 ## Command reference
 
-| Command | Description |
-|---|---|
-| `/adv-status` | Show project overview: specs, active changes, and next-step recommendations |
-| `/adv-proposal` | Extract problem statement and confirm with user before proceeding |
-| `/adv-validate` | Validate change compliance against specs; block archive on failure |
-| `/adv-archive` | Archive completed change: apply spec deltas and finalize git |
-| `/adv-clarify` | Ask clarifying questions to resolve ambiguous requirements |
-| `/adv-discover` | Gather context, analyze current state, and identify objectives |
-| `/adv-agree` | Present objectives and constraints for user acceptance |
-| `/adv-design` | Validate architecture decisions and produce implementation strategy |
-| `/adv-present` | Present concise design overview for user review before planning |
-| `/adv-prep` | Analyze gaps and synthesize tasks from validated design decisions |
-| `/adv-apply` | Implement change with TDD, retry on failure, and final verification |
-| `/adv-task` | Fast-track a discussed change: synthesize contract, validate, prep, and hand off |
-| `/adv-review` | Review deliverables for correctness, security, and architecture quality |
-| `/adv-accept` | Present deliverable summary and acceptance criteria checklist to user |
-| `/adv-harden` | Detect low-quality code, verify test coverage, clean up before release |
-| `/adv-audit` | Detect drift between specs and current implementation |
-| `/adv-slop-scan` | Scan for AI slop patterns including defensive and nested code |
-| `/adv-refactor` | Refresh a stale proposal to reflect current codebase state |
-| `/adv-coordinate` | Detect and resolve conflicts across multiple active changes |
-| `/adv-improve` | Suggest targeted improvements to existing specs or implementation |
-| `/adv-tron` | Investigate codebase structure, hotspots, risks, and suggest follow-up agenda candidates |
+| Command           | Description                                                                              |
+| ----------------- | ---------------------------------------------------------------------------------------- |
+| `/adv-status`     | Show project overview: specs, active changes, and next-step recommendations              |
+| `/adv-proposal`   | Extract problem statement and confirm with user before proceeding                        |
+| `/adv-validate`   | Validate change compliance against specs; block archive on failure                       |
+| `/adv-archive`    | Archive completed change: apply spec deltas and finalize git                             |
+| `/adv-clarify`    | Ask clarifying questions to resolve ambiguous requirements                               |
+| `/adv-discover`   | Gather context, analyze current state, and identify objectives                           |
+| `/adv-agree`      | Present objectives and constraints for user acceptance                                   |
+| `/adv-design`     | Validate architecture decisions and produce implementation strategy                      |
+| `/adv-present`    | Present concise design overview for user review before planning                          |
+| `/adv-prep`       | Analyze gaps and synthesize tasks from validated design decisions                        |
+| `/adv-apply`      | Implement change with TDD, retry on failure, and final verification                      |
+| `/adv-task`       | Fast-track a discussed change: synthesize contract, validate, prep, and hand off         |
+| `/adv-review`     | Review deliverables for correctness, security, and architecture quality                  |
+| `/adv-accept`     | Present deliverable summary and acceptance criteria checklist to user                    |
+| `/adv-harden`     | Detect low-quality code, verify test coverage, clean up before release                   |
+| `/adv-audit`      | Detect drift between specs and current implementation                                    |
+| `/adv-slop-scan`  | Scan for AI slop patterns including defensive and nested code                            |
+| `/adv-refactor`   | Refresh a stale proposal to reflect current codebase state                               |
+| `/adv-coordinate` | Detect and resolve conflicts across multiple active changes                              |
+| `/adv-improve`    | Suggest improvements and persist a competitor research pack for /adv-discover reuse      |
+| `/adv-tron`       | Investigate codebase structure, hotspots, risks, and suggest follow-up agenda candidates |
 
 ## Why it feels different
 

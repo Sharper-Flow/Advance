@@ -22,11 +22,13 @@ Defines the rigor requirements for /adv-discover. The discover command gathers c
 **Checklist present in discovery output** (`rq-disc01.1`)
 
 **Given:**
+
 - A /adv-discover invocation completes successfully
 
 **When:** The discovery output is persisted via adv_change_update
 
 **Then:**
+
 - The output contains a 'Discovery Checklist' section
 - The checklist lists at least 7 mandatory protocol steps
 - Each step has a PASS or SKIP status with a reason
@@ -46,22 +48,26 @@ Defines the rigor requirements for /adv-discover. The discover command gathers c
 **Skill discovery executes and reports results** (`rq-disc02.1`)
 
 **Given:**
+
 - Trusted skill directories exist with SKILL.md files
 
 **When:** /adv-discover runs Phase 1.5
 
 **Then:**
+
 - The output contains a 'Skills Considered' section
 - The section lists examined skills with match assessment and action taken
 
 **No skills available is reported explicitly** (`rq-disc02.2`)
 
 **Given:**
+
 - No SKILL.md files exist in trusted skill directories
 
 **When:** /adv-discover runs Phase 1.5
 
 **Then:**
+
 - The output reports 'Skills considered: none available'
 - The Skills Considered section is not omitted
 
@@ -71,7 +77,7 @@ Defines the rigor requirements for /adv-discover. The discover command gathers c
 
 **ID:** `rq-disc03` | **Priority:** **[MUST]**
 
-When prior research artifacts exist (temp/*.md, docs/*-prep.md, related archived changes), /adv-discover MUST cite them in an Extends section AND add at least one new finding beyond what they contained. This prevents discovery from rehashing prior work.
+When prior research artifacts exist (temp/_.md, docs/_-prep.md including /adv-improve research packs, related archived changes), /adv-discover MUST cite them in an Extends section AND add at least one new finding beyond what they contained. This prevents discovery from rehashing prior work. When a cited pack contains Competitors & Alternatives or Emerging Patterns sections relevant to an open design question, /adv-discover MUST cite those sections in the LBP Check.
 
 **Tags:** `discover`, `prior-research`, `extension`
 
@@ -80,24 +86,97 @@ When prior research artifacts exist (temp/*.md, docs/*-prep.md, related archived
 **Prior artifacts cited and extended** (`rq-disc03.1`)
 
 **Given:**
+
 - A prior research artifact exists in temp/, docs/, or a related archived change
 
 **When:** /adv-discover runs the prior research check
 
 **Then:**
+
 - The output includes an 'Extends' section citing the artifact
 - The output adds at least one new finding not present in the cited artifact
 
 **No prior research is non-blocking** (`rq-disc03.2`)
 
 **Given:**
+
 - No prior research artifacts exist in any canonical location
 
 **When:** /adv-discover runs the prior research check
 
 **Then:**
+
 - The output reports 'No prior research found'
 - Discovery does not block or fail
+
+**Relevant /adv-improve research pack sections are cited in LBP Check** (`rq-disc03.3`)
+
+**Given:**
+
+- A docs/*-prep.md research pack is cited in the Extends section
+- The pack contains Competitors & Alternatives or Emerging Patterns sections
+- At least one open design question names external tools or libraries as a realistic alternative
+
+**When:** /adv-discover emits the LBP Check section
+
+**Then:**
+
+- The LBP Check cites the specific pack sections relevant to the open question
+- The LBP Check does not silently ignore the pack content
+
+---
+
+### Gated External-Solution Check
+
+**ID:** `rq-disc10` | **Priority:** **[MUST]**
+
+When the proposal's Discovery Agenda contains ecosystem unknowns, or an open design question lists external tools/libraries/services as a realistic option, /adv-discover MUST perform an External-Solution Check. It MUST first consult any cited docs/*-prep.md research pack; only when no relevant pack covers the question may it run fresh Kagi queries for competitors, alternatives, and emerging patterns. Purely internal changes (refactors, bug fixes, local doc/test fixes) may record 'No external alternatives apply' with rationale and skip the fresh search.
+
+**Tags:** `discover`, `external-solution`, `lbp`, `research-pack`
+
+#### Scenarios
+
+**Pack-covered ecosystem question cites pack instead of re-searching** (`rq-disc10.1`)
+
+**Given:**
+
+- The Discovery Agenda contains an ecosystem unknown
+- A docs/*-prep.md research pack already covers that ecosystem question
+
+**When:** /adv-discover performs the External-Solution Check
+
+**Then:**
+
+- The LBP Check summarises findings from the pack and cites it
+- Fresh Kagi queries are not run for the same question
+
+**Uncovered ecosystem question triggers fresh external search** (`rq-disc10.2`)
+
+**Given:**
+
+- The Discovery Agenda contains an ecosystem unknown
+- No cited docs/*-prep.md research pack covers that ecosystem question
+
+**When:** /adv-discover performs the External-Solution Check
+
+**Then:**
+
+- Kagi queries for competitors/alternatives and emerging patterns are run
+- Findings are recorded in the LBP Check with source URLs
+- /adv-improve is recommended as a follow-up to persist the findings
+
+**Purely internal change may skip with rationale** (`rq-disc10.3`)
+
+**Given:**
+
+- The change is a refactor, bug fix, or local doc/test update with no viable external alternative
+
+**When:** /adv-discover performs the External-Solution Check
+
+**Then:**
+
+- The LBP Check records 'No external alternatives apply' with rationale
+- No external search is required
 
 ---
 
@@ -114,11 +193,13 @@ When prior research artifacts exist (temp/*.md, docs/*-prep.md, related archived
 **All three mandatory tools are called** (`rq-disc04.1`)
 
 **Given:**
+
 - A change in the discovery phase
 
 **When:** /adv-discover runs the conflict scan
 
 **Then:**
+
 - adv_change_list with includeArchived is called
 - adv_change_validate is called
 - adv_agenda_list is called
@@ -127,11 +208,13 @@ When prior research artifacts exist (temp/*.md, docs/*-prep.md, related archived
 **Own-change validation warnings are excluded from conflict findings** (`rq-disc04.2`)
 
 **Given:**
+
 - adv_change_validate returns passed:false due to NO_TASKS or NO_DELTAS on the change being discovered
 
 **When:** Conflict scan results are reported
 
 **Then:**
+
 - Own-change pre-prep warnings are not reported as external conflicts
 - The warnings are noted as expected pre-prep state
 
@@ -150,21 +233,25 @@ For each gap identified during discovery, /adv-discover MUST document at least 2
 **Each gap has at least 2 edge cases** (`rq-disc05.1`)
 
 **Given:**
+
 - A gap identified during discovery that involves logic or behavior
 
 **When:** Discovery output is persisted
 
 **Then:**
+
 - The gap section contains at least 2 documented edge cases or failure modes
 
 **Structural gaps allow N/A with rationale** (`rq-disc05.2`)
 
 **Given:**
+
 - A gap that is purely structural with no logic to test
 
 **When:** Discovery output is persisted
 
 **Then:**
+
 - The gap may be marked 'Edge cases: N/A — structural' with a rationale explaining why no edge cases apply
 
 ---
@@ -182,11 +269,13 @@ Each open design question in /adv-discover output MUST include trust model impli
 **Each question has three required annotations** (`rq-disc06.1`)
 
 **Given:**
+
 - A discovery output with open design questions
 
 **When:** The output is persisted
 
 **Then:**
+
 - Each question lists trust model implications (agent-only, user-only, or joint)
 - Each question lists blast radius (what breaks or changes if chosen wrong)
 - Each question lists alternatives considered (or 'none viable, single direction')
@@ -206,22 +295,26 @@ Each open design question in /adv-discover output MUST include trust model impli
 **Drafted deltas include IDs and scenarios** (`rq-disc07.1`)
 
 **Given:**
+
 - A discovery that identifies spec changes are needed
 
 **When:** Discovery output is persisted
 
 **Then:**
+
 - Each draft delta has a concrete rq-* requirement ID
 - Each draft delta has at least one Given/When/Then scenario
 
 **No-delta changes are declared explicitly** (`rq-disc07.2`)
 
 **Given:**
+
 - A discovery that determines no spec changes are required
 
 **When:** Discovery output is persisted
 
 **Then:**
+
 - The output states 'No spec deltas required' with a rationale
 - The spec deltas section is not silently omitted
 
@@ -240,11 +333,13 @@ Each open design question in /adv-discover output MUST include trust model impli
 **Related-pattern scan executes and reports** (`rq-disc08.1`)
 
 **Given:**
+
 - A change in the discovery phase
 
 **When:** /adv-discover runs the P25 scan
 
 **Then:**
+
 - The output contains a 'Related Pattern Scan' section
 - The section lists similar patterns with file references or explicitly states 'no similar patterns found'
 
@@ -263,22 +358,26 @@ Each open design question in /adv-discover output MUST include trust model impli
 **Skill loaded when available** (`rq-disc09.1`)
 
 **Given:**
+
 - The adv-discover-methodology skill exists in a trusted directory
 
 **When:** /adv-discover runs Phase 0
 
 **Then:**
+
 - skill('adv-discover-methodology') is invoked
 - Methodology guidance from the skill is applied during discovery
 
 **Inline fallback when skill is unavailable** (`rq-disc09.2`)
 
 **Given:**
+
 - The adv-discover-methodology skill does not exist
 
 **When:** /adv-discover runs Phase 0
 
 **Then:**
+
 - A fallback notice is logged
 - The command continues with the embedded protocol from the command file
 

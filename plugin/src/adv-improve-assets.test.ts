@@ -1,17 +1,18 @@
 /**
  * ADV Improve Assets Tests
  *
- * Verifies that /adv-improve ships as an executable read-only utility command:
- * - Command Boundary (read-only, no gate, no state mutation)
- * - Exits section
- * - Target Resolution (broad + scoped)
- * - CHECKLIST reference to improve-checklist.md
- * - External landscape analysis phase (3 competitors + 2 emerging)
- * - Fallback wording for unavailable tools
- * - Read-only contract (no adv_change_create, adv_task_add, adv_gate_complete)
- * - Backing checklist exists with required sections
+ * Verifies that /adv-improve ships as an executable utility command that:
+ * - Declares a Command Boundary with no ADV state mutation and no gate ownership
+ * - Persists a reusable research pack under docs/*-prep.md so /adv-discover
+ *   and related research phases can cite it as prior research
+ * - Has an Exits section, Target Resolution (broad + scoped),
+ *   CHECKLIST reference to improve-checklist.md, external landscape analysis
+ *   (3 competitors + 2 emerging), and graceful-degradation wording
+ * - Never calls adv_change_create, adv_task_add, or adv_gate_complete
+ * - Ships a backing checklist with the research-pack schema
  *
- * Modeled on adv-tron-assets.test.ts — the canonical read-only utility command pattern.
+ * Modeled on adv-tron-assets.test.ts for the command-shape surface, extended
+ * with a persistence contract specific to /adv-improve.
  */
 
 import { describe, expect, test } from "vitest";
@@ -32,10 +33,19 @@ describe("adv-improve command shape", () => {
     expect(content).toContain("## Command Boundary");
   });
 
-  test("Command Boundary declares read-only utility (no gate)", () => {
+  test("Command Boundary declares no gate and no ADV state mutation", () => {
     const content = readFileSync(COMMAND_PATH, "utf8");
-    // Must explicitly state it's read-only or has no gate
-    expect(content).toMatch(/Gate:\s*None|read-only utility/i);
+    // Must explicitly state it has no gate (allow **bold** around Gate:)
+    expect(content).toMatch(/Gate:\*{0,2}\s*None/i);
+    // Must explicitly forbid ADV state mutation
+    expect(content).toMatch(/no ADV state mutation|MUST NOT[^\n]*ADV state/i);
+  });
+
+  test("Command Boundary permits persisting a research pack under docs/*-prep.md", () => {
+    const content = readFileSync(COMMAND_PATH, "utf8");
+    // Must whitelist docs/*-prep.md as the only permitted write surface
+    expect(content).toMatch(/docs\/\*?-?prep\.md|docs\/[^\s`]*-prep\.md/);
+    expect(content).toMatch(/research pack/i);
   });
 
   test("contains Exits section", () => {
@@ -89,7 +99,7 @@ describe("adv-improve command shape", () => {
   });
 });
 
-describe("adv-improve read-only contract", () => {
+describe("adv-improve ADV state mutation contract", () => {
   test("does NOT contain adv_change_create", () => {
     const content = readFileSync(COMMAND_PATH, "utf8");
     expect(content).not.toContain("adv_change_create");
@@ -105,11 +115,59 @@ describe("adv-improve read-only contract", () => {
     expect(content).not.toContain("adv_gate_complete");
   });
 
-  test("output block declares no state mutation", () => {
+  test("output block declares no ADV state mutation", () => {
     const content = readFileSync(COMMAND_PATH, "utf8");
     expect(content).toMatch(
-      /[Ss]tate [Mm]utation:\s*none|[Nn]o state mutation|read-only/i,
+      /ADV State Mutation:\s*none|[Ss]tate [Mm]utation:\s*none|[Nn]o (ADV )?state mutation/i,
     );
+  });
+});
+
+describe("adv-improve research pack persistence contract", () => {
+  test("command doc defines a persistence phase", () => {
+    const content = readFileSync(COMMAND_PATH, "utf8");
+    expect(content).toMatch(
+      /Persist[^\n]*Research Pack|Research Pack[^\n]*Persist/i,
+    );
+  });
+
+  test("command doc pins artifact path to docs/*-prep.md", () => {
+    const content = readFileSync(COMMAND_PATH, "utf8");
+    expect(content).toMatch(
+      /docs\/\{[^}]*-?prep[^}]*\}\.md|docs\/[a-z0-9-]+-prep\.md/,
+    );
+  });
+
+  test("command doc specifies broad vs scoped artifact naming", () => {
+    const content = readFileSync(COMMAND_PATH, "utf8");
+    expect(content).toMatch(/repo-improve-prep\.md/);
+    expect(content).toMatch(/\{target-slug\}-prep\.md/);
+  });
+
+  test("command doc forbids writes outside docs/*-prep.md", () => {
+    const content = readFileSync(COMMAND_PATH, "utf8");
+    expect(content).toMatch(
+      /(MUST NOT|never)[^\n]*(outside|beyond)[^\n]*docs\/\*?-?prep\.md/i,
+    );
+  });
+
+  test("command doc requires mandatory artifact sections", () => {
+    const content = readFileSync(COMMAND_PATH, "utf8");
+    expect(content).toMatch(/Competitors\s*&\s*Alternatives/i);
+    expect(content).toMatch(/Emerging Patterns/i);
+    expect(content).toMatch(/Applicability/i);
+    expect(content).toMatch(/Open Questions/i);
+    expect(content).toMatch(/Sources/i);
+  });
+
+  test("command doc requires update-in-place behavior on re-run", () => {
+    const content = readFileSync(COMMAND_PATH, "utf8");
+    expect(content).toMatch(/update in place|overwrites|refresh/i);
+  });
+
+  test("output block surfaces the research pack path", () => {
+    const content = readFileSync(COMMAND_PATH, "utf8");
+    expect(content).toMatch(/Research Pack:[^\n]*docs\/[^\n]*prep\.md/);
   });
 });
 
@@ -140,5 +198,20 @@ describe("adv-improve checklist assets", () => {
     expect(content).toMatch(
       /[Gg]raceful [Dd]egradation|[Ff]allback|[Uu]navailable/,
     );
+  });
+
+  test("checklist documents research pack persistence contract", () => {
+    const content = readFileSync(CHECKLIST_PATH, "utf8");
+    expect(content).toMatch(/[Rr]esearch [Pp]ack/);
+    expect(content).toMatch(/docs\/[^\s`]*-prep\.md|docs\/\*-prep\.md/);
+  });
+
+  test("checklist lists mandatory research pack sections", () => {
+    const content = readFileSync(CHECKLIST_PATH, "utf8");
+    expect(content).toMatch(/Competitors\s*&\s*Alternatives/);
+    expect(content).toMatch(/Emerging Patterns/);
+    expect(content).toMatch(/Applicability/);
+    expect(content).toMatch(/Open Questions/);
+    expect(content).toMatch(/Sources/);
   });
 });
