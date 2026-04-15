@@ -178,6 +178,23 @@ The `--fix` flag will:
 
 Top-level ADV slash commands are synced as entrypoint contracts only; they do not include command-level `agent:` routing. Shared-agent orchestration rules are maintained through the overlay blocks and the runtime nesting guard in the ADV plugin.
 
+### Step 2b: Install Git Hooks (Strongly Recommended for ADV Maintainers)
+
+If you are developing ADV itself (not just consuming it), install the tracked git hooks so commits that touch `.opencode/`, `ADV_INSTRUCTIONS.md`, or `skills/` automatically re-sync the global install:
+
+```bash
+./scripts/install-git-hooks.sh            # sets core.hooksPath=.githooks, chmod +x
+./scripts/install-git-hooks.sh --check    # verify it's installed
+./scripts/install-git-hooks.sh --uninstall # revert to default hooks dir
+```
+
+Hooks installed:
+
+- `post-commit` — runs `sync-global.sh --fix` when the commit touched a mirrored path (idempotent, ~1s, never blocks).
+- `pre-push` — safety-net sync before pushing, in case a commit bypassed the post-commit hook.
+
+Without these, a commit that updates a command contract will land in the repo but the global `~/.config/opencode/` keeps the old copy until `sync-global.sh --fix` is run manually — which causes agents invoking `/adv-*` from other repos to run against stale contracts.
+
 Requires `jq` for config patching (`sudo apt-get install -y jq` or `brew install jq`).
 
 ### Step 2b: Manual Setup (Alternative)
