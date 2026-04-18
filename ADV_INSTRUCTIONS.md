@@ -423,6 +423,18 @@ ADV pauses for human input ONLY at these explicit checkpoints:
 
 All other workflow steps proceed sequentially without prompting the user when no unresolved user-value tradeoff or required approval exists. This includes: discovery, deterministic design, prep, apply, review, and harden. The orchestrator does not ask "shall I continue?" between clean agent-owned steps.
 
+### Investment Check-In
+
+When `/adv-prep` identifies **judgment calls** (decisions that need user intuition, preference, or context rather than autonomous agent judgment), `/adv-apply` Phase 1.5 surfaces them in a single batched `question` tool call before the first task executes. **Cadence is single:** post-prep batch only. Doom-loop-clearance re-surface is the only secondary path.
+
+**In-scope categories (v1):** `non_functional_tradeoff` (latency vs consistency, simplicity vs extensibility), `extensibility` (plugin point vs hardcoded, config-driven vs const), `scope_boundary` (handle here or defer to follow-up). **Out of scope:** defaults, public API naming, error semantics — agent resolves autonomously.
+
+**Composition:** Doom-loop supersedes — active doom-loop scan across all tasks (via `getDoomLoopInfo`) defers batch surfacing to doom-loop recovery. Cancellation, re-entry, and TDD reclassification operate independently. **Hard-stop tier is advisory in v1** — does NOT trigger `adv_change_reenter`. Re-entry remains scope-expansion-driven per `rq-scopeReentry01`.
+
+**rq-autonomy01 escape-clause citation:** Phase 1.5 surfacing does **not** introduce a new enumerated human checkpoint. Unresolved entries in `change.judgment_calls[]` are, by construction, "unresolved user-value tradeoffs" — covered by the existing `rq-autonomy01` escape clause. The 8 enumerated checkpoints above remain the only enumerated pause points.
+
+**Tunable config:** `.opencode/instructions/cost-governance.md` (YAML frontmatter thresholds + scope + category enum). Rule: `rules.yaml` P28 (user-managed; see `SETUP.md`). **Methodology:** `skills/adv-cost-governance-methodology/SKILL.md` (canonical protocol, cadence, composition rules, worked examples). **Data layer:** `adv_investment_report` tool.
+
 ### Validated In-Scope Remediation Policy
 
 When `/adv-review` or `/adv-harden` validates an actionable finding or suggestion as in-scope:

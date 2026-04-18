@@ -35,6 +35,7 @@ Present a concise agreement view:
 - **Constraints**
 - **Avoidances / rejected approaches**
 - **Open questions** (listed explicitly — these will be resolved in Phase 2.5)
+- **Investment snapshot** (informational) — call `adv_investment_report changeId: {id}` and include a one-line summary: `Investment: N tasks / M retries / T min / tier: {auto|escalate|hardstop}`. Purely informational; does not gate agreement.
 
 Ask for explicit user confirmation or edits using the `question` tool.
 

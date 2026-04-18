@@ -28,6 +28,7 @@ import { agendaTools } from "./tools/agenda";
 import { projectTools } from "./tools/project";
 import { gateTools } from "./tools/gate";
 import { testTools } from "./tools/test";
+import { investmentTools } from "./tools/investment";
 type ToolArgsSchema = Record<string, z.ZodTypeAny>;
 type ToolExecute<TArgs> = (
   args: TArgs,
@@ -268,6 +269,13 @@ export function createToolMap(
     // Status Tool
     adv_status: bindTool(statusTools.adv_status, "adv_status", store),
 
+    // Investment Tools (addCostTimeInvestment)
+    adv_investment_report: bindTool(
+      investmentTools.adv_investment_report,
+      "adv_investment_report",
+      store,
+    ),
+
     // Agenda Tools
     adv_agenda_list: bindToolSimple(
       agendaTools.adv_agenda_list,
@@ -406,6 +414,7 @@ export const ADV_TOOL_NAMES: readonly string[] = [
   "adv_wisdom_promote",
   "adv_project_wisdom_list",
   "adv_status",
+  "adv_investment_report",
   "adv_agenda_list",
   "adv_agenda_add",
   "adv_agenda_start",
