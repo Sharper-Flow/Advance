@@ -581,7 +581,7 @@ type _GateStatus = z.infer<typeof GateStatusSchema>;
  */
 export const GateCompletionSchema = z.object({
   /** Current status of this gate */
-  status: GateStatusSchema.default("pending"),
+  status: GateStatusSchema.default("pending" as const),
   /** ISO8601 timestamp when gate was completed */
   completed_at: z.string().optional(),
   /** Who completed the gate (user, agent, migration) */
@@ -791,10 +791,10 @@ export const JudgmentCallCategorySchema = z.enum([
 export type JudgmentCallCategory = z.infer<typeof JudgmentCallCategorySchema>;
 
 /**
- * A single judgment call surfaced to the user during /adv-apply Phase 0.
+ * A single judgment call surfaced to the user during /adv-apply Phase 1.5.
  *
  * Identified during /adv-prep Phase J from the synthesized task graph.
- * Surfaced at /adv-apply Phase 0 via a single `question` tool call with
+ * Surfaced at /adv-apply Phase 1.5 via a single `question` tool call with
  * the provided options plus a P26 write-in.
  */
 export const JudgmentCallSchema = z
@@ -816,7 +816,7 @@ export const JudgmentCallSchema = z
         description: z.string(),
       }),
     ),
-    /** ISO8601 when surfaced to user (set by /adv-apply Phase 0) */
+    /** ISO8601 when surfaced to user (set by /adv-apply Phase 1.5) */
     surfaced_at: z.string().optional(),
     /** Who resolved it: user (explicit pick) or agent_default (no surface) */
     resolved_by: z.enum(["user", "agent_default"]).optional(),
@@ -886,14 +886,14 @@ export const ChangeSchema = z
     reentry_history: z.array(ReentryHistoryEntrySchema).optional(),
     /**
      * Investment check-in judgment calls (addCostTimeInvestment v1).
-     * Identified during /adv-prep Phase J; surfaced at /adv-apply Phase 0.
-     * Absence (undefined) marks a legacy pre-v1 change — /adv-apply Phase 0
+     * Identified during /adv-prep Phase J; surfaced at /adv-apply Phase 1.5.
+     * Absence (undefined) marks a legacy pre-v1 change — /adv-apply Phase 1.5
      * skips surfacing silently. Empty array marks a new-generation change
-     * with zero calls identified (Phase 0 still records batch_surfaced_at).
+     * with zero calls identified (Phase 1.5 still records batch_surfaced_at).
      */
     judgment_calls: z.array(JudgmentCallSchema).optional(),
     /**
-     * ISO8601 timestamp recorded by /adv-apply Phase 0 after the judgment
+     * ISO8601 timestamp recorded by /adv-apply Phase 1.5 after the judgment
      * batch is surfaced (including the N=0 silent case) for auditability.
      */
     batch_surfaced_at: z.string().optional(),
@@ -1017,9 +1017,9 @@ export const FeatureFlagsSchema = z
     wisdom_accumulation: z.boolean().default(true),
     /**
      * Clarify enforcement mode.
-     * - "advisory" (default): Ambiguity findings surfaced as warnings in tool output; no blocking
+     * - "off" (default): Clarify checks skipped entirely; no findings emitted
+     * - "advisory": Ambiguity findings surfaced as warnings in tool output; no blocking
      * - "strict": Ambiguity findings block the prep gate until resolved via /adv-clarify
-     * - "off": Clarify checks skipped entirely; no findings emitted
      */
     clarify_enforcement: z
       .enum(["off", "advisory", "strict"])

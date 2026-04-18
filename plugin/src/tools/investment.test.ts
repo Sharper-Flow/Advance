@@ -167,13 +167,15 @@ describe("Investment Tools", () => {
           thresholds: {
             auto: { tasks: 1, retries: 0, elapsed_minutes: 1 },
             escalate: { tasks: 2, retries: 1, elapsed_minutes: 5 },
-            hardstop: { tasks: 50, retries: 50, elapsed_minutes: 10000 },
+            // Keep hardstop bands well above the historical SAMPLE_CHANGE age so
+            // only the task-count signal decides this assertion.
+            hardstop: { tasks: 50, retries: 50, elapsed_minutes: 1_000_000 },
           },
         },
         store,
       );
       const parsed = parseToolOutput<{ threshold_tier: string }>(result);
-      expect(["escalate", "hardstop"]).toContain(parsed.threshold_tier);
+      expect(parsed.threshold_tier).toBe("escalate");
     });
 
     test("tier classification: hardstop tier when tasks exceed hardstop threshold", async () => {
@@ -222,6 +224,60 @@ describe("Investment Tools", () => {
       const parsed = parseToolOutput<{ elapsed_ms: number }>(result);
       expect(parsed.elapsed_ms).toBeGreaterThanOrEqual(0);
       expect(Number.isFinite(parsed.elapsed_ms)).toBe(true);
+    });
+
+    test("doom-loop fallback: persisted error_recovery attempts activate doom_loop_active after restart", async () => {
+      const change = await store.changes.get("addFeature");
+      if (!change.success || !change.data) return;
+
+      const target = change.data.tasks[0];
+      await store.tasks.update(target.id, "in_progress", undefined, undefined, {
+        last_error: "still failing",
+        retry_count: 3,
+        max_retries: 3,
+        error_class: "SEMANTIC",
+        next_strategy: "ask user",
+        attempts: [
+          {
+            attempt_number: 1,
+            error: "e1",
+            diagnosis: "d1",
+            fix_tried: "f1",
+            strategy_label: "s1",
+            outcome: "failed",
+            attempted_at: "2026-04-18T10:00:00.000Z",
+          },
+          {
+            attempt_number: 2,
+            error: "e2",
+            diagnosis: "d2",
+            fix_tried: "f2",
+            strategy_label: "s2",
+            outcome: "failed",
+            attempted_at: "2026-04-18T10:01:00.000Z",
+          },
+          {
+            attempt_number: 3,
+            error: "e3",
+            diagnosis: "d3",
+            fix_tried: "f3",
+            strategy_label: "s3",
+            outcome: "failed",
+            attempted_at: "2026-04-18T10:02:00.000Z",
+          },
+        ],
+      });
+
+      const result = await investmentTools.adv_investment_report.execute(
+        { changeId: "addFeature", thresholds: DEFAULT_THRESHOLDS },
+        store,
+      );
+      const parsed = parseToolOutput<{
+        doom_loop_active: boolean;
+        retry_total: number;
+      }>(result);
+      expect(parsed.retry_total).toBeGreaterThanOrEqual(3);
+      expect(parsed.doom_loop_active).toBe(true);
     });
   });
 });

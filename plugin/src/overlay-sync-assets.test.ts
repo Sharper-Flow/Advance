@@ -121,4 +121,62 @@ describe("overlay sync script support", () => {
       rmSync(tempHome, { recursive: true, force: true });
     }
   });
+
+  // ===========================================================================
+  // Cost Governance Instruction Management (addCostTimeInvestment)
+  // ===========================================================================
+
+  test("sync script defines ADV_COST_GOVERNANCE_PATH variable", () => {
+    expect(content).toContain("ADV_COST_GOVERNANCE_PATH");
+    expect(content).toContain(".opencode/instructions/cost-governance.md");
+  });
+
+  test("sync script checks for cost-governance.md registration in instructions[]", () => {
+    // check_config() block
+    expect(content).toMatch(
+      /cost-governance\.md registered|cost-governance\.md missing/,
+    );
+  });
+
+  test("sync script patches instructions[] to include cost-governance.md", () => {
+    // fix_config() block — jq patch for the new path
+    expect(content).toMatch(/Added instruction:\s*\$ADV_COST_GOVERNANCE_PATH/);
+  });
+
+  test("sync --fix patches instructions[] with cost-governance.md when file exists", () => {
+    const tempHome = mkdtempSync(join(tmpdir(), "adv-cost-gov-sync-"));
+
+    try {
+      const configDir = join(tempHome, ".config/opencode");
+      const globalAgents = join(configDir, "agents");
+      mkdirSync(globalAgents, { recursive: true });
+      writeFileSync(
+        join(configDir, "opencode.json"),
+        JSON.stringify({ plugin: [], instructions: [] }),
+      );
+      writeFileSync(
+        join(globalAgents, "adv.md"),
+        "---\ndescription: temp adv\n---\n",
+      );
+
+      const result = spawnSync("bash", [SYNC_SCRIPT_PATH, "--fix"], {
+        cwd: REPO_ROOT,
+        env: { ...process.env, HOME: tempHome, CI: "true" },
+        encoding: "utf8",
+      });
+
+      expect(result.status).toBe(0);
+      const patched = JSON.parse(
+        readFileSync(join(configDir, "opencode.json"), "utf8"),
+      );
+      // Instructions array should now include the cost-governance path
+      expect(
+        patched.instructions.some((p: string) =>
+          p.endsWith("cost-governance.md"),
+        ),
+      ).toBe(true);
+    } finally {
+      rmSync(tempHome, { recursive: true, force: true });
+    }
+  });
 });

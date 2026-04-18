@@ -60,6 +60,10 @@ const DEFAULT_THRESHOLDS: Thresholds = {
  * Rule: tier is the MAXIMUM across the three signal dimensions — any one
  * dimension crossing a tier boundary promotes the whole report to that tier.
  *
+ * `auto` values are retained in config for user-facing guidance and possible
+ * future expansion, but v1 classification is intentionally binary above that:
+ * anything below `escalate` resolves to `auto`.
+ *
  * hardstop: any signal >= hardstop band
  * escalate: any signal >= escalate band (but none at hardstop)
  * auto: all signals below escalate band
@@ -154,6 +158,17 @@ export const investmentTools = {
       for (const task of tasks) {
         const info = getDoomLoopInfo(task.id);
         if (info.inDoomLoop) {
+          doomLoopActive = true;
+          break;
+        }
+
+        // Fallback for session restarts: the in-memory retry tracker is lost on
+        // process restart, but persisted error_recovery attempts remain. Treat
+        // 3+ persisted attempts on any task as an active doom-loop signal for
+        // review/apply composition purposes.
+        const persistedAttempts = task.error_recovery?.attempts?.length ?? 0;
+        const persistedRetryCount = task.error_recovery?.retry_count ?? 0;
+        if (persistedAttempts >= 3 || persistedRetryCount >= 3) {
           doomLoopActive = true;
           break;
         }

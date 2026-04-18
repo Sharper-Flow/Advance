@@ -66,76 +66,22 @@ The task graph MUST include tasks covering touched-scope obligations:
 ---
 ## Phase J: Identify Judgment Calls (addCostTimeInvestment)
 
-After task synthesis is complete AND before Phase 3 validation, review the
-task graph + proposal scope and identify upcoming decisions that need
-**user intuition, preference, or context** rather than autonomous agent
-judgment. This is **gap surfacing** (consistent with `rq-prep-scope1.1`) —
-NOT task creation (`rq-prep-out1`) and NOT architectural reopening
-(`rq-prep-neg1`).
+After task synthesis is complete AND before Phase 3 validation, load
+`skill("adv-cost-governance-methodology")` and **apply the Identification
+Protocol**. Persist identified calls to `change.judgment_calls[]` (or `[]`
+if none) via `adv_change_update`.
 
-### In-Scope Categories (v1)
-
-Only surface judgment calls in these three categories:
+**Cheatsheet (3 in-scope categories):**
 
 | Category | Example |
 |----------|---------|
 | `non_functional_tradeoff` | "Favor latency or consistency for this new endpoint?" |
 | `extensibility` | "Hardcode this value or make it config-driven?" |
-| `scope_boundary` | "Handle edge case X here or defer to a follow-up?" |
+| `scope_boundary` | "Handle edge case X here or defer?" |
 
-Explicitly **out of scope** (agent resolves autonomously — surfacing them
-creates decision fatigue): defaults, public API naming, error semantics.
-See `cost-governance.md` for rationale.
+**Out of scope** (agent resolves autonomously — surfacing creates decision fatigue): `defaults`, `naming`, `error_semantics`.
 
-### Cap and Identification
-
-- **Cap at ≤5 judgment calls** per change. Research: developers experience
-  measurable cognitive decline after ~8-12 non-trivial decisions per session.
-- For each identified call, construct an entry matching `JudgmentCallSchema`:
-  - `id` — `jc-<6char>` (nanoid-style)
-  - `category` — one of the three in-scope values
-  - `question` — framed around outcome/behavior/priority, NOT tech choice
-  - `agent_recommendation` — the agent's best default, with rationale
-  - `rationale` — why user intuition matters here (what the agent can't see)
-  - `options` — array of 3-4 `{ label, description }` pairs, one flagged
-    `(Recommended)` matching `agent_recommendation`
-- **If no judgment calls identified**, initialize `judgment_calls: []`.
-  This distinguishes new-generation changes from legacy changes where
-  `judgment_calls === undefined`. `/adv-apply` Phase 0 silently proceeds
-  for both but records `batch_surfaced_at` on the empty-array case.
-
-### Persistence
-
-Persist the calls by writing them directly to `change.judgment_calls` via
-an extended `adv_change_update` (if the MCP signature supports it) OR via
-the proposal metadata section. For v1, the simplest path is to include the
-identified calls in the proposal metadata; the change state can be
-backfilled by `/adv-apply` Phase 0 on first surfacing.
-
-### Example
-
-For a change adding a new caching layer, typical calls might be:
-
-```
-jc-a7f2b1
-  category: non_functional_tradeoff
-  question: "Cache TTL for the new endpoint — favor freshness or hit rate?"
-  agent_recommendation: "5 minute TTL (balanced)"
-  rationale: "TTL choice depends on your tolerance for stale data vs p99
-             improvement. Typical web workloads accept 5min; realtime apps
-             need <1min; static content can cache 1h+."
-  options:
-    - label: "1 minute TTL (fresh, lower hit rate)"
-    - label: "5 minute TTL — balanced (Recommended)"
-    - label: "15 minute TTL (high hit rate, staler)"
-```
-
-### Composition with Autonomy Contract
-
-This phase does **not** introduce a new human checkpoint. Judgment
-surfacing is covered by the existing `rq-autonomy01` escape clause
-(unresolved user-value tradeoff). See `ADV_INSTRUCTIONS.md` §
-Investment Check-In for the full citation.
+**Scoping boundary:** gap surfacing (rq-prep-scope1.1), NOT task creation (rq-prep-out1), NOT architectural reopening (rq-prep-neg1). See skill for full protocol, cap rationale (≤5), worked example, and rq-autonomy01 escape-clause citation.
 
 ---
 ## Phase 3: Validation + Completion
