@@ -164,6 +164,11 @@ export function createToolMap(
       "adv_change_remove_issue",
       store,
     ),
+    adv_change_reenter: bindTool(
+      changeTools.adv_change_reenter,
+      "adv_change_reenter",
+      store,
+    ),
 
     // Task Tools
     adv_task_show: bindTool(taskTools.adv_task_show, "adv_task_show", store),
@@ -385,6 +390,7 @@ export const ADV_TOOL_NAMES: readonly string[] = [
   "adv_change_archive",
   "adv_change_add_issue",
   "adv_change_remove_issue",
+  "adv_change_reenter",
   "adv_task_show",
   "adv_task_list",
   "adv_task_ready",
