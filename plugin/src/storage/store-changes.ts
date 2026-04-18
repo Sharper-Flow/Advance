@@ -143,6 +143,12 @@ export function createChangesOps(
         created_at: new Date().toISOString(),
         tasks: [],
         deltas: {},
+        // Investment Check-In Governance (addCostTimeInvestment):
+        // initialize judgment_calls at creation so /adv-apply Phase 1.5 can
+        // reliably distinguish new-generation changes (empty array, zero
+        // calls identified yet) from legacy pre-v1 changes (undefined).
+        // /adv-prep Phase J populates this array during task synthesis.
+        judgment_calls: [],
       };
 
       await saveChange(paths.changes, change);

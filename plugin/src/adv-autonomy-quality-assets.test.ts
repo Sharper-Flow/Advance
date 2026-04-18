@@ -328,6 +328,27 @@ describe("Investment Check-In Policy (addCostTimeInvestment)", () => {
     expect(content).toMatch(/priority:\s*9/);
   });
 
+  test("SETUP.md P28 YAML snippet has all required schema fields under a P28 key", () => {
+    // Structural assertion preventing drift between the P28 example in SETUP.md
+    // and the canonical rule shape (name/rule/tags/hint/priority). Uses regex
+    // rather than a YAML parser to avoid adding a runtime dep for one snippet.
+    const content = readAsset(SETUP);
+    const fence = content.match(/```yaml\s+([\s\S]*?P28:[\s\S]*?)\s*```/);
+    expect(fence?.[1]).toBeTruthy();
+    const snippet = fence![1];
+
+    // Key scaffold
+    expect(snippet).toMatch(/^\s*P28:/m);
+    // Required fields with correct canonical values
+    expect(snippet).toMatch(/\bname:\s*cost-governance\b/);
+    expect(snippet).toMatch(/\brule:\s*["']/); // quoted string
+    expect(snippet).toMatch(/\btags:\s*\[[^\]]*cost[^\]]*\]/);
+    expect(snippet).toMatch(/\btags:\s*\[[^\]]*governance[^\]]*\]/);
+    expect(snippet).toMatch(/\btags:\s*\[[^\]]*approval[^\]]*\]/);
+    expect(snippet).toMatch(/\bhint:\s*cost_aware\b/);
+    expect(snippet).toMatch(/\bpriority:\s*9\b/);
+  });
+
   test("Negative AC #11: no dynamic INVESTMENT_CHECKIN marker injection in plugin/src/index.ts", () => {
     // AC #11: dynamic injection via experimental.chat.system.transform must be
     // append-only — specifically, no new INVESTMENT_CHECKIN or cost-governance
