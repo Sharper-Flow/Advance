@@ -5,6 +5,53 @@ All notable changes to ADV (Advance) will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+#### Investment Check-In Governance (v1 — behavioral-only)
+
+Judgment-surfacing governance layer that proactively surfaces upcoming
+decisions requiring user intuition, preference, or context — **not** a
+budget gate. When `/adv-prep` identifies judgment calls from the synthesized
+task graph, `/adv-apply` Phase 1.5 surfaces them in a single batched
+`question` tool call before the first task executes.
+
+- **`adv_investment_report` tool** (`plugin/src/tools/investment.ts`) — read-only, stateless report returning task counts, elapsed time, retry metrics, doom-loop state, per-gate durations, and threshold tier (`auto` / `escalate` / `hardstop`). Called by `/adv-prep`, `/adv-apply`, `/adv-agree`, `/adv-accept`, `/adv-archive`.
+- **Schema extension** — `ChangeSchema` gains two optional fields: `judgment_calls[]` (populated by `/adv-prep` Phase J) and `batch_surfaced_at` (audit stamp recorded by `/adv-apply` Phase 1.5). New types: `JudgmentCallSchema`, `JudgmentCallCategorySchema`, `InvestmentReportSchema`, `ThresholdTierSchema`. Zero changes to `TaskSchema`.
+- **Methodology skill** — `skills/adv-cost-governance-methodology/SKILL.md` is the single source of truth for identification and surfacing protocols, 3 in-scope categories (`non_functional_tradeoff`, `extensibility`, `scope_boundary`), out-of-scope list (`defaults`, `naming`, `error_semantics`), composition rules, hard-stop advisory semantics, and `rq-autonomy01` escape-clause citation.
+- **Policy layer** — `.opencode/instructions/cost-governance.md` ships YAML-frontmatter thresholds (conservative defaults: auto ≤3/0/15min, escalate ≥8/2/60min, hardstop ≥15/5/180min) + scope + category enum. Tunable without code changes. Synced via `scripts/sync-global.sh --fix` (new instruction block added alongside `ADV_INSTRUCTIONS.md`).
+- **Rule** — `P28: cost-governance` at priority 9 (parity with `P05`, `P24`, `P27`). User-managed in `~/.config/opencode/instructions/rules.yaml`; installation documented in `SETUP.md`.
+- **Command integration** — `/adv-prep` Phase J (identify judgment calls), `/adv-apply` Phase 1.5 (batch surfacing preamble), `/adv-agree`, `/adv-accept`, `/adv-archive` display a one-line investment summary.
+- **ADV_INSTRUCTIONS.md** — new Investment Check-In subsection under "Autonomy & Quality Ownership" with explicit `rq-autonomy01` escape-clause citation: judgment calls are "unresolved user-value tradeoffs" under the existing contract, NOT a new enumerated human checkpoint. The 8 enumerated checkpoints remain the only enumerated pause points.
+- **Hard-stop semantics** — advisory in v1. Does NOT trigger `adv_change_reenter` (re-entry remains scope-expansion-driven per `rq-scopeReentry01`). Does NOT block at the tool level. v2 upgrade path preserved for hard enforcement and real token/cost telemetry.
+- **Retroactive policy** — new changes only. Existing drafts detected via `judgment_calls === undefined` skip surfacing silently. Running `/adv-prep` on a legacy draft opts it in.
+
+Tool count: 40 → 42 (`adv_investment_report` + `adv_change_reenter` — the latter was a latent registration bug surfaced by this change and landed on trunk independently; see `fix(tool-registry): register adv_change_reenter`).
+
+### Fixed
+
+#### `adv_change_reenter` Registry Gap
+
+- `adv_change_reenter` was defined in `plugin/src/tools/change.ts` but never registered in `createToolMap` or `ADV_TOOL_NAMES` — silently hiding the scope-expansion re-entry mechanism (`rq-scopeReentry01`) from the MCP toolset. Fixed on trunk as a standalone commit, then the `addCostTimeInvestment` change also registers `adv_investment_report` in the same file.
+
+### Changed
+
+#### Tab Title — Project Shortname Reintroduced (Deterministic)
+
+- **Project shortname now appears in the terminal tab title.** Format is `<emoji> <shortname> · <change>` when a change is active, or `<emoji> <shortname>` when idle. Reverses the v0.6.x decision to drop the project name entirely — the project is now always visible as context.
+- **`generateProjectShortname(name)`** added to `plugin/src/events/terminal.ts` — pure deterministic function with a 6-char hard cap:
+  - Strips common prefixes: `oc-`, `lib-`, `node-`
+  - Strips common suffixes: `-plugin`, `-plugins`, `-app`, `-cli`, `-server`, `-client`, `-mcp`, `.js`, `.ts`
+  - Multi-word names with combined length > 6 → acronym (e.g. `my-cool-project` → `MCP`, `opencode-morph-fast-apply` → `OMFA`)
+  - Single words ≤ 6 chars → title-cased as-is (e.g. `plugin` → `Plugin`)
+  - Single words > 6 chars → truncate + title-case (e.g. `advance` → `Advanc`, `pokeedge` → `Pokeed`)
+  - Case-insensitive prefix/suffix matching, only first match stripped
+- **`buildTabTitle(emoji, projectName, changeId)`** updated to thread `projectName` through `generateProjectShortname` and use the `·` separator. Previously ignored the project name argument.
+- **Public exports** added from the events module: `generateProjectShortname`, `buildTabTitle`, `normalizeChangeCode`.
+- **Tests**: 26 new assertions covering shortname rules + 7 updated `buildTabTitle` assertions in `plugin/src/events/events.test.ts`.
+- **Note**: AI-generated shortnames with per-project caching are planned as a follow-up. The deterministic rules above are intentionally simple and may produce ugly truncations (`Advanc`) — the AI fallback will rescue these.
+
 ## [0.7.0] - 2026-04-13
 
 ### Changed

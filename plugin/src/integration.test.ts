@@ -37,7 +37,7 @@ describe("Wisdom Lifecycle Integration", () => {
 
   test("full wisdom lifecycle: tool calls and hook responses", async () => {
     hooks = await AdvancePlugin({
-      project: { name: "test", path: tempDir },
+      project: { id: "test", worktree: tempDir, time: { created: Date.now() } },
       directory: tempDir,
       worktree: tempDir,
       serverUrl: new URL("http://localhost"),
@@ -123,7 +123,7 @@ describe("Active Change Title Update on adv_change_create", () => {
 
   test("after adv_change_create, activeChangeId is set to the new change ID", async () => {
     hooks = await AdvancePlugin({
-      project: { name: "test", path: tempDir },
+      project: { id: "test", worktree: tempDir, time: { created: Date.now() } },
       directory: tempDir,
       worktree: tempDir,
       serverUrl: new URL("http://localhost"),
@@ -158,7 +158,7 @@ describe("Active Change Title Update on adv_change_create", () => {
 
   test("after adv_change_create with plain JSON output (no banner), activeChangeId is still set", async () => {
     hooks = await AdvancePlugin({
-      project: { name: "test", path: tempDir },
+      project: { id: "test", worktree: tempDir, time: { created: Date.now() } },
       directory: tempDir,
       worktree: tempDir,
       serverUrl: new URL("http://localhost"),
@@ -180,7 +180,7 @@ describe("Active Change Title Update on adv_change_create", () => {
 
   test("after adv_change_create with braces inside path string, activeChangeId is still set", async () => {
     hooks = await AdvancePlugin({
-      project: { name: "test", path: tempDir },
+      project: { id: "test", worktree: tempDir, time: { created: Date.now() } },
       directory: tempDir,
       worktree: tempDir,
       serverUrl: new URL("http://localhost"),
@@ -212,7 +212,7 @@ describe("Active Change Title Update on adv_change_create", () => {
 
   test("switching from one change to another via adv_change_create updates the title", async () => {
     hooks = await AdvancePlugin({
-      project: { name: "test", path: tempDir },
+      project: { id: "test", worktree: tempDir, time: { created: Date.now() } },
       directory: tempDir,
       worktree: tempDir,
       serverUrl: new URL("http://localhost"),
@@ -242,7 +242,7 @@ describe("Active Change Title Update on adv_change_create", () => {
 
   test("malformed adv_change_create output does not clear existing active change", async () => {
     hooks = await AdvancePlugin({
-      project: { name: "test", path: tempDir },
+      project: { id: "test", worktree: tempDir, time: { created: Date.now() } },
       directory: tempDir,
       worktree: tempDir,
       serverUrl: new URL("http://localhost"),

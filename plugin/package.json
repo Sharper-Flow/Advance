@@ -15,7 +15,8 @@
   },
   "author": "Anomaly",
   "scripts": {
-    "build": "tsup src/index.ts --format esm --dts",
+    "build": "tsup src/index.ts --format esm --dts && pnpm run build:worker",
+    "build:worker": "tsup src/temporal/worker.ts src/temporal/workflows.ts --format esm --out-dir dist/temporal",
     "dev": "tsup src/index.ts --format esm --watch",
     "check": "pnpm run typecheck && pnpm run lint && pnpm run format:check",
     "prepublishOnly": "pnpm run build",
@@ -30,11 +31,16 @@
   },
   "dependencies": {
     "@opencode-ai/plugin": "latest",
+    "@temporalio/activity": "^1.16.0",
+    "@temporalio/client": "^1.16.0",
+    "@temporalio/worker": "^1.16.0",
+    "@temporalio/workflow": "^1.16.0",
     "nanoid": "^5.0.9",
     "zod": "^4.3.6"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@temporalio/testing": "^1.16.0",
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^25.6.0",
     "@vitest/coverage-v8": "^4.1.4",

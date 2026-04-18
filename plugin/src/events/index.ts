@@ -5,7 +5,12 @@
  */
 
 // Terminal utilities
-export { getProjectName } from "./terminal";
+export {
+  getProjectName,
+  generateProjectShortname,
+  buildTabTitle,
+  normalizeChangeCode,
+} from "./terminal";
 
 // Status management
 export {

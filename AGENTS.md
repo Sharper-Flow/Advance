@@ -1,5 +1,8 @@
 # Advance (ADV) - Agent Instructions
 
+> `project.md` is the canonical agent-facing context file read by `adv_project_context`.
+> `AGENTS.md` remains the developer-facing quick-reference with repo architecture, commands, and implementation gotchas.
+
 ## Repository Layout
 
 This is an OpenCode plugin repo, not a monorepo. All buildable code lives in `plugin/`.
@@ -18,7 +21,7 @@ plugin/              # TypeScript plugin (the only buildable package)
     utils/           # Helpers (debug-log, project-id, safe-execute)
     __mocks__/       # Vitest aliases: @opencode-ai/plugin → mock, bun:sqlite → better-sqlite3
     __tests__/setup.ts  # Shared fixtures and assertion helpers
-  schemas/           # Generated JSON schemas (from Zod types via generate:schemas)
+  schemas/           # JSON schema stubs ($ref pointers; Zod types in src/types.ts are authoritative)
 .adv/specs/          # Capability specs (the laws) — git-tracked, branch-local
 .opencode/
   command/           # 21 slash-command workflow files (adv-*.md)
@@ -36,14 +39,16 @@ docs/                # Gate contracts, workflow diagram, checklists, spec docs
 ```bash
 pnpm test                    # vitest run — 1356+ tests, ~55s
 pnpm run check               # typecheck → lint → format:check (no tests)
-pnpm run build               # tsup (ESM) + generate:schemas
+pnpm run build               # tsup (ESM) — emits dist/index.js + dist/index.d.ts
 pnpm run typecheck            # tsc --noEmit
 pnpm run lint                 # eslint src/
 pnpm run lint:fix             # eslint --fix
 pnpm run format               # prettier --write
 pnpm run format:check         # prettier --check
-pnpm run generate:schemas     # Zod → JSON Schema (writes to schemas/)
-pnpm run generate:docs        # Spec → markdown docs (writes to docs/specs/)
+# Note: no `generate:schemas` or `generate:docs` scripts exist.
+# plugin/schemas/ contains $ref stub files only — Zod types in src/types.ts
+# are the authoritative source. When extending Zod schemas, no separate
+# JSON-schema regeneration step is needed.
 ```
 
 **Single test file:** `pnpm test -- src/tools/change.test.ts`
@@ -80,8 +85,8 @@ Each tool file in `src/tools/` exports a `*Tools` object with description, args 
 2. Export from `src/tools/index.ts`
 3. `tool-registry.ts` picks it up via the `*Tools` import
 
-### Schema generation
-`pnpm run generate:schemas` converts Zod types → JSON Schema files in `schemas/`. These are committed. If you change Zod schemas in `src/types.ts` or storage types, regenerate.
+### Schema source of truth
+Zod schemas in `plugin/src/types.ts` are the authoritative source. `plugin/schemas/*.json` contains `$ref`-only stub files that point at the Zod types; they are NOT auto-generated from Zod. When you extend a Zod schema (add a field, change a type), no separate schema-regeneration step is required — the Zod type is the contract, and the committed stubs are informational anchors only.
 
 ## Testing Conventions
 

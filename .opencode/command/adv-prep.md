@@ -64,6 +64,26 @@ The task graph MUST include tasks covering touched-scope obligations:
 × Do NOT expand ownership into implicit repo-wide refactors. Keep ownership bounded to the local touched subsystem.
 
 ---
+## Phase J: Identify Judgment Calls (addCostTimeInvestment)
+
+After task synthesis is complete AND before Phase 3 validation, load
+`skill("adv-cost-governance-methodology")` and **apply the Identification
+Protocol**. Persist identified calls to `change.judgment_calls[]` (or `[]`
+if none) via `adv_change_update`.
+
+**Cheatsheet (3 in-scope categories):**
+
+| Category | Example |
+|----------|---------|
+| `non_functional_tradeoff` | "Favor latency or consistency for this new endpoint?" |
+| `extensibility` | "Hardcode this value or make it config-driven?" |
+| `scope_boundary` | "Handle edge case X here or defer?" |
+
+**Out of scope** (agent resolves autonomously — surfacing creates decision fatigue): `defaults`, `naming`, `error_semantics`.
+
+**Scoping boundary:** gap surfacing (rq-prep-scope1.1), NOT task creation (rq-prep-out1), NOT architectural reopening (rq-prep-neg1). See skill for full protocol, cap rationale (≤5), worked example, and rq-autonomy01 escape-clause citation.
+
+---
 ## Phase 3: Validation + Completion
 `adv_change_validate strict: true` → fix errors → re-validate. `adv_gate_complete gateId: planning` → handle failure codes (`SCENARIO_MISSING`, `TASK_TDD_INVERSION`, `CROSS_REPO_MISSING_METADATA`).
 

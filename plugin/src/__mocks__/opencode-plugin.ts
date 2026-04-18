@@ -11,7 +11,13 @@ export type Plugin = (input: PluginInput) => Promise<Hooks>;
 
 export interface PluginInput {
   client: unknown;
-  project: { name: string; path: string };
+  project: {
+    id: string;
+    worktree: string;
+    vcsDir?: string;
+    vcs?: "git";
+    time: { created: number; initialized?: number };
+  };
   directory: string;
   worktree: string;
   serverUrl: URL;

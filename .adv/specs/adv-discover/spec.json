@@ -58,7 +58,7 @@
     {
       "id": "rq-disc03",
       "title": "Prior Research Extension",
-      "body": "When prior research artifacts exist (temp/*.md, docs/*-prep.md, related archived changes), /adv-discover MUST cite them in an Extends section AND add at least one new finding beyond what they contained. This prevents discovery from rehashing prior work.",
+      "body": "When prior research artifacts exist (temp/*.md, docs/*-prep.md including /adv-improve research packs, related archived changes), /adv-discover MUST cite them in an Extends section AND add at least one new finding beyond what they contained. This prevents discovery from rehashing prior work. When a cited pack contains Competitors & Alternatives or Emerging Patterns sections relevant to an open design question, /adv-discover MUST cite those sections in the LBP Check.",
       "priority": "must",
       "tags": ["discover", "prior-research", "extension"],
       "scenarios": [
@@ -80,6 +80,68 @@
           "then": [
             "The output reports 'No prior research found'",
             "Discovery does not block or fail"
+          ]
+        },
+        {
+          "id": "rq-disc03.3",
+          "title": "Relevant /adv-improve research pack sections are cited in LBP Check",
+          "given": [
+            "A docs/*-prep.md research pack is cited in the Extends section",
+            "The pack contains Competitors & Alternatives or Emerging Patterns sections",
+            "At least one open design question names external tools or libraries as a realistic alternative"
+          ],
+          "when": "/adv-discover emits the LBP Check section",
+          "then": [
+            "The LBP Check cites the specific pack sections relevant to the open question",
+            "The LBP Check does not silently ignore the pack content"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-disc10",
+      "title": "Gated External-Solution Check",
+      "body": "When the proposal's Discovery Agenda contains ecosystem unknowns, or an open design question lists external tools/libraries/services as a realistic option, /adv-discover MUST perform an External-Solution Check. It MUST first consult any cited docs/*-prep.md research pack; only when no relevant pack covers the question may it run fresh Kagi queries for competitors, alternatives, and emerging patterns. Purely internal changes (refactors, bug fixes, local doc/test fixes) may record 'No external alternatives apply' with rationale and skip the fresh search.",
+      "priority": "must",
+      "tags": ["discover", "external-solution", "lbp", "research-pack"],
+      "scenarios": [
+        {
+          "id": "rq-disc10.1",
+          "title": "Pack-covered ecosystem question cites pack instead of re-searching",
+          "given": [
+            "The Discovery Agenda contains an ecosystem unknown",
+            "A docs/*-prep.md research pack already covers that ecosystem question"
+          ],
+          "when": "/adv-discover performs the External-Solution Check",
+          "then": [
+            "The LBP Check summarises findings from the pack and cites it",
+            "Fresh Kagi queries are not run for the same question"
+          ]
+        },
+        {
+          "id": "rq-disc10.2",
+          "title": "Uncovered ecosystem question triggers fresh external search",
+          "given": [
+            "The Discovery Agenda contains an ecosystem unknown",
+            "No cited docs/*-prep.md research pack covers that ecosystem question"
+          ],
+          "when": "/adv-discover performs the External-Solution Check",
+          "then": [
+            "Kagi queries for competitors/alternatives and emerging patterns are run",
+            "Findings are recorded in the LBP Check with source URLs",
+            "/adv-improve is recommended as a follow-up to persist the findings"
+          ]
+        },
+        {
+          "id": "rq-disc10.3",
+          "title": "Purely internal change may skip with rationale",
+          "given": [
+            "The change is a refactor, bug fix, or local doc/test update with no viable external alternative"
+          ],
+          "when": "/adv-discover performs the External-Solution Check",
+          "then": [
+            "The LBP Check records 'No external alternatives apply' with rationale",
+            "No external search is required"
           ]
         }
       ]

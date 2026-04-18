@@ -157,7 +157,14 @@ describe("Status Tools", () => {
 
       expect(parsed.specs.count).toBe(0);
       expect(parsed.changes.active).toBe(0);
-      expect(parsed.recommendations).toHaveLength(0);
+      // Legacy mode warning is expected when no git repo is present
+      expect(
+        parsed.recommendations.some((r: string) =>
+          r.includes("Running without external state"),
+        ),
+      ).toBe(true);
+      // No other recommendations beyond the legacy warning
+      expect(parsed.recommendations).toHaveLength(1);
 
       emptyStore.close();
       await cleanupTempDir(emptyDir);

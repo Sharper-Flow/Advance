@@ -20,19 +20,19 @@ Complete installation instructions for the ADV spec-driven development plugin.
 
 ### Required
 
-| Dependency | Version | Check Command |
-|------------|---------|---------------|
-| Node.js | 20.x or higher | `node --version` |
-| pnpm | 10.x (recommended) | `pnpm --version` |
-| OpenCode CLI | Latest | `opencode --version` |
+| Dependency   | Version            | Check Command        |
+| ------------ | ------------------ | -------------------- |
+| Node.js      | 20.x or higher     | `node --version`     |
+| pnpm         | 10.x (recommended) | `pnpm --version`     |
+| OpenCode CLI | Latest             | `opencode --version` |
 
 ### Optional
 
-| Dependency | Purpose |
-|------------|---------|
-| Git | Version control, change tracking |
-| SQLite | Comes bundled with better-sqlite3 |
-| jq | Required only for `sync-global.sh --fix` (config patching) |
+| Dependency | Purpose                                                    |
+| ---------- | ---------------------------------------------------------- |
+| Git        | Version control, change tracking                           |
+| SQLite     | Comes bundled with better-sqlite3                          |
+| jq         | Required only for `sync-global.sh --fix` (config patching) |
 
 ---
 
@@ -53,12 +53,12 @@ your OpenCode setup. ADV does not ship them. If missing, commands will fall
 back to inline execution or generic `explore` agent invocation, which is
 slower and less specialized.
 
-| Agent       | Used by                                                         | What it does                                     |
-|-------------|-----------------------------------------------------------------|---------------------------------------------------|
-| `explore`     | `/adv-review`, `/adv-harden`, `/adv-audit`, `/adv-slop-scan`, `/adv-refactor` | Codebase navigation, finding usages               |
-| `librarian`   | `/adv-discover`, `/adv-design`, `/adv-task`, `/adv-review`              | Documentation and API lookup (Context7, grep.app) |
-| `mechanic`    | `/adv-tron` (optional), `scout` sub-agent spawns                    | System/infra diagnostics                          |
-| `general`     | `/adv-review` (cross-cutting), overlay-managed                      | Multi-step implementation                         |
+| Agent       | Used by                                                                       | What it does                                      |
+| ----------- | ----------------------------------------------------------------------------- | ------------------------------------------------- |
+| `explore`   | `/adv-review`, `/adv-harden`, `/adv-audit`, `/adv-slop-scan`, `/adv-refactor` | Codebase navigation, finding usages               |
+| `librarian` | `/adv-discover`, `/adv-design`, `/adv-task`, `/adv-review`                    | Documentation and API lookup (Context7, grep.app) |
+| `mechanic`  | `/adv-tron` (optional), `scout` sub-agent spawns                              | System/infra diagnostics                          |
+| `general`   | `/adv-review` (cross-cutting), overlay-managed                                | Multi-step implementation                         |
 
 ### Optional MCP servers (referenced by agent tool blocks)
 
@@ -68,14 +68,14 @@ MCP servers that are not configured — the grants become no-ops. You can
 run ADV without any of these, but the following features degrade or become
 unavailable:
 
-| MCP server   | Tool prefix    | Used by                                 | Degradation if missing                                  |
-|--------------|----------------|-----------------------------------------|---------------------------------------------------------|
-| lgrep        | `lgrep_*`        | `plan`, `scout`, `refine`, `adv-researcher`, `tron` | Code exploration falls back to `glob`/`grep`/`read` (slower, less semantic) |
-| Firecrawl    | `firecrawl_*`    | `scout`, `refine`                           | Web scraping unavailable; use `webfetch` instead        |
-| Context7     | `context7_*`     | `adv-researcher`                            | Library documentation lookup unavailable                |
-| Kagi         | `kagi_*`         | `adv-researcher`                            | Web search unavailable                                  |
-| grep.app     | `grep-app_*`     | `adv-researcher`                            | Cross-repo code example search unavailable             |
-| arXiv MCP    | `arxiv-mcp_*`    | `adv-researcher`                            | Academic paper search unavailable                       |
+| MCP server     | Tool prefix   | Used by                                             | Degradation if missing                                                      |
+| -------------- | ------------- | --------------------------------------------------- | --------------------------------------------------------------------------- |
+| lgrep          | `lgrep_*`     | `plan`, `scout`, `refine`, `adv-researcher`, `tron` | Code exploration falls back to `glob`/`grep`/`read` (slower, less semantic) |
+| Firecrawl      | `firecrawl_*` | `scout`, `refine`                                   | Web scraping unavailable; use `webfetch` instead                            |
+| Context7       | `context7_*`  | `adv-researcher`                                    | Library documentation lookup unavailable                                    |
+| Kagi           | `kagi_*`      | `adv-researcher`                                    | Web search unavailable                                                      |
+| Grep by Vercel | `gh_grep_*`   | `adv-researcher`                                    | Cross-repo code example search unavailable                                  |
+| arXiv MCP      | `arxiv-mcp_*` | `adv-researcher`                                    | Academic paper search unavailable                                           |
 
 Configure these MCP servers in your `opencode.json` `mcp` section per each
 server's documentation. The ADV sync script does not install or validate
@@ -166,6 +166,7 @@ agents, and skills to the global config, and validates (or patches) `opencode.js
 ```
 
 The `--fix` flag will:
+
 - Copy all `adv-*.md` commands to `~/.config/opencode/command/`
 - Copy only repo-local ADV agents where direct sync is appropriate
 - Apply repo-owned managed overlay blocks to shared global agents like `adv`, `general`, `build`, `plan`, `refine`, and `scout` without replacing the full file
@@ -176,6 +177,23 @@ The `--fix` flag will:
 - Preserve all non-ADV settings (mcp, provider, permissions, etc.)
 
 Top-level ADV slash commands are synced as entrypoint contracts only; they do not include command-level `agent:` routing. Shared-agent orchestration rules are maintained through the overlay blocks and the runtime nesting guard in the ADV plugin.
+
+### Step 2b: Install Git Hooks (Strongly Recommended for ADV Maintainers)
+
+If you are developing ADV itself (not just consuming it), install the tracked git hooks so commits that touch `.opencode/`, `ADV_INSTRUCTIONS.md`, or `skills/` automatically re-sync the global install:
+
+```bash
+./scripts/install-git-hooks.sh            # sets core.hooksPath=.githooks, chmod +x
+./scripts/install-git-hooks.sh --check    # verify it's installed
+./scripts/install-git-hooks.sh --uninstall # revert to default hooks dir
+```
+
+Hooks installed:
+
+- `post-commit` — runs `sync-global.sh --fix` when the commit touched a mirrored path (idempotent, ~1s, never blocks).
+- `pre-push` — safety-net sync before pushing, in case a commit bypassed the post-commit hook.
+
+Without these, a commit that updates a command contract will land in the repo but the global `~/.config/opencode/` keeps the old copy until `sync-global.sh --fix` is run manually — which causes agents invoking `/adv-*` from other repos to run against stale contracts.
 
 Requires `jq` for config patching (`sudo apt-get install -y jq` or `brew install jq`).
 
@@ -206,6 +224,63 @@ cp -r /path/to/Advance/.opencode/command/* ~/.config/opencode/command/
 mkdir -p .opencode/command
 cp -r /path/to/Advance/.opencode/command/* .opencode/command/
 ```
+
+---
+
+## Cost Governance Rule (P28)
+
+ADV ships a judgment-surfacing governance layer (the `addCostTimeInvestment`
+change). The instruction file `.opencode/instructions/cost-governance.md` is
+synced automatically by `scripts/sync-global.sh --fix` — no manual copy
+needed. However, `rules.yaml` is **user-managed** (not touched by the sync
+script) so you need to add rule P28 manually:
+
+1. Open `~/.config/opencode/instructions/rules.yaml`
+2. Add the following entry in the `rules:` map (pick any unused Pnn key — P28 recommended):
+
+```yaml
+rules:
+  # ... existing rules P01-P27 ...
+
+  P28:
+    name: cost-governance
+    rule: "When an ADV change reaches /adv-apply, surface pending judgment
+           calls from change.judgment_calls[] via the question tool before
+           executing tasks. Auto-proceed when the list is empty. Doom-loop
+           recovery supersedes investment check-in on simultaneous trigger."
+    tags: [cost, governance, approval]
+    hint: cost_aware
+    priority: 9
+```
+
+**Rationale for priority 9:** parity with `P05 ship-complete`, `P24 tdd-first`,
+`P27 due-diligence` — important user-consult rule, but not priority 10 (which
+is reserved for absolute constraints like security). Thresholds are tunable
+in `cost-governance.md` YAML frontmatter, so this rule stays guidance-level.
+
+### Opt-in for existing drafts
+
+Governance applies to changes **created after this feature ships** by default
+(detected via presence/absence of `change.judgment_calls[]` field). If you
+have in-flight draft changes and want them to participate in the governance,
+run `/adv-prep <change-id>` on each — this initializes `judgment_calls[]`
+(as an empty array if no calls identified) and opts the change in for future
+`/adv-apply` Phase 1.5 surfacing.
+
+### Tuning thresholds
+
+Edit the YAML frontmatter in `~/.config/opencode/instructions/cost-governance.md`:
+
+```yaml
+thresholds:
+  auto:       { tasks: 3,  retries: 0, elapsed_minutes: 15 }
+  escalate:   { tasks: 8,  retries: 2, elapsed_minutes: 60 }
+  hardstop:   { tasks: 15, retries: 5, elapsed_minutes: 180 }
+```
+
+Restart OpenCode after editing. See `cost-governance.md` body for the full
+tuning guide, or `skills/adv-cost-governance-methodology/SKILL.md` for the
+canonical methodology.
 
 ---
 
@@ -314,16 +389,16 @@ your-project/
 
 ### Configuration Options
 
-| Option | Default | Description |
-|--------|---------|-------------|
-| `name` | (required) | Project name |
-| `version` | `"0.1.0"` | Project version |
-| `specs_dir` | `".adv/specs"` | Directory for spec files |
-| `changes_dir` | `".adv/changes"` | Directory for change proposals |
-| `archive_dir` | `".adv/archive"` | Directory for archived changes |
-| `docs_dir` | `"docs/specs"` | Directory for generated docs |
-| `db_dir` | `".adv/db"` | Directory for SQLite cache |
-| `project_file` | `"project.md"` | Optional project context file |
+| Option         | Default          | Description                    |
+| -------------- | ---------------- | ------------------------------ |
+| `name`         | (required)       | Project name                   |
+| `version`      | `"0.1.0"`        | Project version                |
+| `specs_dir`    | `".adv/specs"`   | Directory for spec files       |
+| `changes_dir`  | `".adv/changes"` | Directory for change proposals |
+| `archive_dir`  | `".adv/archive"` | Directory for archived changes |
+| `docs_dir`     | `"docs/specs"`   | Directory for generated docs   |
+| `db_dir`       | `".adv/db"`      | Directory for SQLite cache     |
+| `project_file` | `"project.md"`   | Optional project context file  |
 
 ---
 
@@ -376,35 +451,35 @@ Create `specs/user-auth/spec.json`:
 
 ### Spec JSON Schema
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `name` | string | Yes | Capability identifier (kebab-case) |
-| `title` | string | Yes | Human-readable title |
-| `purpose` | string | Yes | Brief description of capability |
-| `version` | string | Yes | Semantic version |
-| `updated_at` | string | Yes | ISO 8601 timestamp |
-| `requirements` | array | Yes | List of requirements |
+| Field          | Type   | Required | Description                        |
+| -------------- | ------ | -------- | ---------------------------------- |
+| `name`         | string | Yes      | Capability identifier (kebab-case) |
+| `title`        | string | Yes      | Human-readable title               |
+| `purpose`      | string | Yes      | Brief description of capability    |
+| `version`      | string | Yes      | Semantic version                   |
+| `updated_at`   | string | Yes      | ISO 8601 timestamp                 |
+| `requirements` | array  | Yes      | List of requirements               |
 
 ### Requirement Schema
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `id` | string | Yes | Unique ID (format: `rq-{nanoid}`) |
-| `title` | string | Yes | Requirement title |
-| `body` | string | Yes | Full requirement text (use MUST/SHOULD/MAY) |
-| `priority` | string | Yes | `must`, `should`, or `may` |
-| `tags` | array | No | Categorization tags |
-| `scenarios` | array | Yes | Given/When/Then test scenarios |
+| Field       | Type   | Required | Description                                 |
+| ----------- | ------ | -------- | ------------------------------------------- |
+| `id`        | string | Yes      | Unique ID (format: `rq-{nanoid}`)           |
+| `title`     | string | Yes      | Requirement title                           |
+| `body`      | string | Yes      | Full requirement text (use MUST/SHOULD/MAY) |
+| `priority`  | string | Yes      | `must`, `should`, or `may`                  |
+| `tags`      | array  | No       | Categorization tags                         |
+| `scenarios` | array  | Yes      | Given/When/Then test scenarios              |
 
 ### Scenario Schema
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `id` | string | Yes | Unique ID (format: `rq-{parent}.{n}`) |
-| `title` | string | Yes | Scenario title |
-| `given` | array | Yes | Preconditions |
-| `when` | string | Yes | Action |
-| `then` | array | Yes | Expected outcomes |
+| Field   | Type   | Required | Description                           |
+| ------- | ------ | -------- | ------------------------------------- |
+| `id`    | string | Yes      | Unique ID (format: `rq-{parent}.{n}`) |
+| `title` | string | Yes      | Scenario title                        |
+| `given` | array  | Yes      | Preconditions                         |
+| `when`  | string | Yes      | Action                                |
+| `then`  | array  | Yes      | Expected outcomes                     |
 
 ---
 
@@ -419,6 +494,7 @@ Start OpenCode in your project directory and run:
 ```
 
 Expected output:
+
 ```
 ============================================================
                     ADV PROJECT STATUS
@@ -594,9 +670,9 @@ pnpm build
 
 ## Environment Variables
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `ADV_DEBUG` | `"0"` | Set to `"1"` for debug logging |
+| Variable              | Default                      | Description                                         |
+| --------------------- | ---------------------------- | --------------------------------------------------- |
+| `ADV_DEBUG`           | `"0"`                        | Set to `"1"` for debug logging                      |
 | `OPEN_CHAD_CACHE_DIR` | `$TMPDIR` (fallback: `/tmp`) | Directory used for ADV debug log when `ADV_DEBUG=1` |
 
 ---
@@ -609,16 +685,16 @@ ADV automatically migrates old 6-gate changes (research, prep, implementation, r
 
 Mapping:
 
-| Old gate        | New gate    | Notes                                                   |
-|-----------------|-------------|---------------------------------------------------------|
-| research        | discovery   | preserves status + audit trail (`migrated_from`)        |
-| prep            | planning    | preserves status + audit trail                          |
-| implementation  | execution   | preserves status + audit trail                          |
-| review          | acceptance  | preserves status + audit trail                          |
-| harden          | release     | preserves status + audit trail                          |
-| signoff         | acceptance  | absorbed; recorded in `absorbed_completions`              |
-| (new) proposal  | proposal    | inserted for in-flight changes                          |
-| (new) design    | design      | inserted for in-flight changes                          |
+| Old gate       | New gate   | Notes                                            |
+| -------------- | ---------- | ------------------------------------------------ |
+| research       | discovery  | preserves status + audit trail (`migrated_from`) |
+| prep           | planning   | preserves status + audit trail                   |
+| implementation | execution  | preserves status + audit trail                   |
+| review         | acceptance | preserves status + audit trail                   |
+| harden         | release    | preserves status + audit trail                   |
+| signoff        | acceptance | absorbed; recorded in `absorbed_completions`     |
+| (new) proposal | proposal   | inserted for in-flight changes                   |
+| (new) design   | design     | inserted for in-flight changes                   |
 
 New changes start directly in the 7-gate model.
 
@@ -630,34 +706,34 @@ New changes start directly in the 7-gate model.
 
 **Core 7-gate workflow**
 
-| Command | Purpose |
-|---------|---------|
-| `/adv-status` | Project overview |
-| `/adv-proposal <summary>` | Extract problem statement and confirm with user |
-| `/adv-discover <id>` | Gather context and identify objectives |
-| `/adv-agree <id>` | Resolve open questions via triage, confirm objectives |
-| `/adv-design <id>` | Validate architecture decisions and produce strategy |
-| `/adv-present <id>` | Present design overview for user review |
-| `/adv-prep <id>` | Gap analysis and task shaping (from validated design) |
-| `/adv-apply <id>` | Implement with TDD |
-| `/adv-review <id>` | Code review |
-| `/adv-accept <id>` | Present deliverable summary for user sign-off |
-| `/adv-harden <id>` | Release-stage quality hardening |
-| `/adv-archive <id>` | Archive completed change and apply spec deltas |
+| Command                   | Purpose                                               |
+| ------------------------- | ----------------------------------------------------- |
+| `/adv-status`             | Project overview                                      |
+| `/adv-proposal <summary>` | Extract problem statement and confirm with user       |
+| `/adv-discover <id>`      | Gather context and identify objectives                |
+| `/adv-agree <id>`         | Resolve open questions via triage, confirm objectives |
+| `/adv-design <id>`        | Validate architecture decisions and produce strategy  |
+| `/adv-present <id>`       | Present design overview for user review               |
+| `/adv-prep <id>`          | Gap analysis and task shaping (from validated design) |
+| `/adv-apply <id>`         | Implement with TDD                                    |
+| `/adv-review <id>`        | Code review                                           |
+| `/adv-accept <id>`        | Present deliverable summary for user sign-off         |
+| `/adv-harden <id>`        | Release-stage quality hardening                       |
+| `/adv-archive <id>`       | Archive completed change and apply spec deltas        |
 
 **Fast-track and auxiliary**
 
-| Command | Purpose |
-|---------|---------|
-| `/adv-task` | Fast-track a discussed change through proposal → planning |
-| `/adv-validate <id>` | Validate change against specs |
-| `/adv-clarify` | Clarify ambiguous requirements |
-| `/adv-audit [capability]` | Spec/implementation drift check |
-| `/adv-slop-scan [path]` | Scan for AI slop patterns |
-| `/adv-refactor <id>` | Refresh a stale proposal |
-| `/adv-coordinate` | Detect cross-change conflicts |
-| `/adv-improve` | Suggest spec or implementation improvements |
-| `/adv-tron [target]` | Investigate codebase structure and suggest agenda candidates |
+| Command                   | Purpose                                                                                                                            |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `/adv-task`               | Fast-track a discussed change through proposal → planning                                                                          |
+| `/adv-validate <id>`      | Validate change against specs                                                                                                      |
+| `/adv-clarify`            | Clarify ambiguous requirements                                                                                                     |
+| `/adv-audit [capability]` | Spec/implementation drift check                                                                                                    |
+| `/adv-slop-scan [path]`   | Scan for AI slop patterns                                                                                                          |
+| `/adv-refactor <id>`      | Refresh a stale proposal                                                                                                           |
+| `/adv-coordinate`         | Detect cross-change conflicts                                                                                                      |
+| `/adv-improve`            | Suggest spec/implementation improvements and persist a reusable research pack under `docs/*-prep.md` (consumed by `/adv-discover`) |
+| `/adv-tron [target]`      | Investigate codebase structure and suggest agenda candidates                                                                       |
 
 Tradeoff-heavy decisions inside ADV flows use inline analysis by default. For deeper analysis, agents can load the prioritizer skill via `skill("prioritizer")` which provides structured criteria question templates and decision map guidance.
 
@@ -667,76 +743,76 @@ Parallel ADV scanners follow the same single-level delegation rule as other ADV 
 
 **Project & Specs**
 
-| Tool | Purpose |
-|------|---------|
-| `adv_status` | Project overview: specs, active changes, recommendations |
-| `adv_project_context` | Read project.md context file |
-| `adv_spec` | List, show, or search specs (`action: "list"/"show"/"search"`) |
+| Tool                  | Purpose                                                        |
+| --------------------- | -------------------------------------------------------------- |
+| `adv_status`          | Project overview: specs, active changes, recommendations       |
+| `adv_project_context` | Read project.md context file                                   |
+| `adv_spec`            | List, show, or search specs (`action: "list"/"show"/"search"`) |
 
 **Changes**
 
-| Tool | Purpose |
-|------|---------|
-| `adv_change_list` | List active changes (with `includeArchived`/`includeClosed` filters) |
-| `adv_change_show` | Get full change details including tasks and deltas |
-| `adv_change_create` | Create a new change proposal |
-| `adv_change_update` | Update proposal/problem-statement/agreement/design for existing change |
-| `adv_change_validate` | Validate change against specs and check for conflicts |
-| `adv_change_close` | Close an active change (cancelled/superseded/not_planned) |
-| `adv_change_archive` | Archive a completed change (applies spec deltas) |
-| `adv_change_add_issue` | Link a GitHub issue URL to a change |
-| `adv_change_remove_issue` | Unlink a GitHub issue URL from a change |
+| Tool                      | Purpose                                                                |
+| ------------------------- | ---------------------------------------------------------------------- |
+| `adv_change_list`         | List active changes (with `includeArchived`/`includeClosed` filters)   |
+| `adv_change_show`         | Get full change details including tasks and deltas                     |
+| `adv_change_create`       | Create a new change proposal                                           |
+| `adv_change_update`       | Update proposal/problem-statement/agreement/design for existing change |
+| `adv_change_validate`     | Validate change against specs and check for conflicts                  |
+| `adv_change_close`        | Close an active change (cancelled/superseded/not_planned)              |
+| `adv_change_archive`      | Archive a completed change (applies spec deltas)                       |
+| `adv_change_add_issue`    | Link a GitHub issue URL to a change                                    |
+| `adv_change_remove_issue` | Unlink a GitHub issue URL from a change                                |
 
 **Tasks**
 
-| Tool | Purpose |
-|------|---------|
-| `adv_task_list` | List tasks for a change (with optional status filter) |
-| `adv_task_show` | Get full task details by ID (includes parent changeId) |
-| `adv_task_ready` | Get unblocked pending tasks ready for work |
-| `adv_task_add` | Add a new task to a change |
-| `adv_task_update` | Update task status (pending/in_progress/done) |
-| `adv_task_cancel` | Cancel tasks with required user approval |
-| `adv_task_evidence` | Record TDD evidence (red/green phase proof) |
-| `adv_task_tdd_phase` | Manually set TDD phase for a task |
-| `adv_task_tdd_status` | Get TDD compliance status for a task |
+| Tool                      | Purpose                                                       |
+| ------------------------- | ------------------------------------------------------------- |
+| `adv_task_list`           | List tasks for a change (with optional status filter)         |
+| `adv_task_show`           | Get full task details by ID (includes parent changeId)        |
+| `adv_task_ready`          | Get unblocked pending tasks ready for work                    |
+| `adv_task_add`            | Add a new task to a change                                    |
+| `adv_task_update`         | Update task status (pending/in_progress/done)                 |
+| `adv_task_cancel`         | Cancel tasks with required user approval                      |
+| `adv_task_evidence`       | Record TDD evidence (red/green phase proof)                   |
+| `adv_task_tdd_phase`      | Manually set TDD phase for a task                             |
+| `adv_task_tdd_status`     | Get TDD compliance status for a task                          |
 | `adv_task_reclassify_tdd` | Reclassify TDD intent after planning gate (requires approval) |
 
 **Gates**
 
-| Tool | Purpose |
-|------|---------|
-| `adv_gate_status` | Get gate status for a change (all 7 gates) |
+| Tool                | Purpose                                     |
+| ------------------- | ------------------------------------------- |
+| `adv_gate_status`   | Get gate status for a change (all 7 gates)  |
 | `adv_gate_complete` | Mark a gate as complete (enforces sequence) |
 
 **Testing**
 
-| Tool | Purpose |
-|------|---------|
+| Tool           | Purpose                                              |
+| -------------- | ---------------------------------------------------- |
 | `adv_run_test` | Run a test command and record result as TDD evidence |
 
 **Wisdom**
 
-| Tool | Purpose |
-|------|---------|
-| `adv_wisdom_add` | Add a learning entry to a change |
-| `adv_wisdom_list` | List all wisdom entries for a change |
+| Tool                 | Purpose                                          |
+| -------------------- | ------------------------------------------------ |
+| `adv_wisdom_add`     | Add a learning entry to a change                 |
+| `adv_wisdom_list`    | List all wisdom entries for a change             |
 | `adv_wisdom_promote` | Promote a change-level learning to project-level |
 
 **Agenda**
 
-| Tool | Purpose |
-|------|---------|
-| `adv_agenda_list` | List agenda items (with status filter) |
-| `adv_agenda_add` | Add a quick work item to the agenda |
-| `adv_agenda_start` | Mark an agenda item as active |
-| `adv_agenda_complete` | Mark an agenda item as done |
-| `adv_agenda_cancel` | Cancel an agenda item |
-| `adv_agenda_prioritize` | Change priority of an agenda item |
-| `adv_agenda_next` | Get highest-priority unblocked agenda item |
-| `adv_agenda_stats` | Get agenda statistics |
-| `adv_agenda_evidence` | Record TDD evidence for an agenda item |
-| `adv_agenda_compact` | Compact the agenda file (remove superseded entries) |
+| Tool                    | Purpose                                             |
+| ----------------------- | --------------------------------------------------- |
+| `adv_agenda_list`       | List agenda items (with status filter)              |
+| `adv_agenda_add`        | Add a quick work item to the agenda                 |
+| `adv_agenda_start`      | Mark an agenda item as active                       |
+| `adv_agenda_complete`   | Mark an agenda item as done                         |
+| `adv_agenda_cancel`     | Cancel an agenda item                               |
+| `adv_agenda_prioritize` | Change priority of an agenda item                   |
+| `adv_agenda_next`       | Get highest-priority unblocked agenda item          |
+| `adv_agenda_stats`      | Get agenda statistics                               |
+| `adv_agenda_evidence`   | Record TDD evidence for an agenda item              |
+| `adv_agenda_compact`    | Compact the agenda file (remove superseded entries) |
 
 ---
 

@@ -84,17 +84,21 @@ async function reconcileActiveChangeCache(
 // ---------------------------------------------------------------------------
 
 type SyncAttrs = { mtime_ms: number; size: number; inode: number };
+type SyncResult = "synced" | "up_to_date" | "unavailable";
 
 /**
  * Stat a file, check if sync is needed, load, upsert, and mark synced.
- * Returns true if the file was synced, false if up-to-date or missing.
+ * Returns:
+ * - "synced" when data was loaded and written to SQLite
+ * - "up_to_date" when current sync metadata already matches
+ * - "unavailable" when the file is missing or became unreadable during sync
  */
 async function syncSingleFile<T>(
   ctx: StoreContext,
   jsonPath: string,
   load: () => Promise<{ success: boolean; data?: T | null }>,
   upsert: (data: T, path: string) => void,
-): Promise<boolean> {
+): Promise<SyncResult> {
   let attrs: SyncAttrs | undefined;
   try {
     const s = statSync(jsonPath);
@@ -103,17 +107,17 @@ async function syncSingleFile<T>(
     if ((err as NodeJS.ErrnoException).code !== "ENOENT") {
       console.warn("[adv:sync] Unexpected stat error:", (err as Error).message);
     }
-    return false;
+    return "unavailable";
   }
-  if (!ctx.sqlite.syncFiles.needsSync(jsonPath, attrs)) return false;
+  if (!ctx.sqlite.syncFiles.needsSync(jsonPath, attrs)) return "up_to_date";
   const result = await load();
   if (result.success && result.data) {
     upsert(result.data, jsonPath);
     ctx.sqlite.syncFiles.markSynced(jsonPath, attrs);
     if (shouldCheckpoint(ctx.dbPath)) checkpointWAL(ctx.sqlite.db);
-    return true;
+    return "synced";
   }
-  return false;
+  return "unavailable";
 }
 
 // ---------------------------------------------------------------------------
@@ -137,13 +141,15 @@ export function ensureSpecSynced(
   pending = (async () => {
     try {
       const jsonPath = join(ctx.paths.specs, capability, "spec.json");
-      await syncSingleFile(
+      const syncResult = await syncSingleFile(
         ctx,
         jsonPath,
         () => loadSpec(ctx.paths.specs, capability),
         (data, path) => ctx.sqlite.specs.upsert(data, path),
       );
-      ctx.syncedSpecs.add(capability);
+      if (syncResult !== "unavailable") {
+        ctx.syncedSpecs.add(capability);
+      }
     } finally {
       ctx.pendingSpecSyncs.delete(capability);
     }
@@ -164,6 +170,7 @@ export function ensureAllSpecsSynced(ctx: StoreContext): Promise<void> {
 
   ctx.allSpecsSyncPromise = (async () => {
     const specs = await loadAllSpecs(ctx.paths.specs);
+    const specNames = new Set(specs.keys());
     for (const [name, spec] of specs) {
       if (ctx.syncedSpecs.has(name)) continue;
 
@@ -172,7 +179,10 @@ export function ensureAllSpecsSynced(ctx: StoreContext): Promise<void> {
       try {
         const s = statSync(jsonPath);
         attrs = { mtime_ms: Math.floor(s.mtimeMs), size: s.size, inode: s.ino };
-      } catch {
+      } catch (err) {
+        if ((err as NodeJS.ErrnoException).code !== "ENOENT") {
+          console.warn("[adv:sync] Spec stat failed:", jsonPath);
+        }
         attrs = undefined;
       }
 
@@ -182,6 +192,23 @@ export function ensureAllSpecsSynced(ctx: StoreContext): Promise<void> {
         if (shouldCheckpoint(ctx.dbPath)) checkpointWAL(ctx.sqlite.db);
       }
       ctx.syncedSpecs.add(name);
+    }
+
+    const activeSpecPrefix = `${ctx.paths.specs}/`;
+    const specRows = ctx.sqlite.specs.list();
+    let pruned = false;
+    for (const row of specRows) {
+      if (!row.json_path.startsWith(activeSpecPrefix)) continue;
+      if (specNames.has(row.name)) continue;
+
+      ctx.sqlite.specs.delete(row.name);
+      ctx.sqlite.syncFiles.deleteFileRecord(row.json_path);
+      ctx.syncedSpecs.delete(row.name);
+      pruned = true;
+    }
+
+    if (pruned && shouldCheckpoint(ctx.dbPath)) {
+      checkpointWAL(ctx.sqlite.db);
     }
   })();
 
@@ -208,13 +235,15 @@ export function ensureChangeSynced(
   pending = (async () => {
     try {
       const jsonPath = join(ctx.paths.changes, changeId, "change.json");
-      await syncSingleFile(
+      const syncResult = await syncSingleFile(
         ctx,
         jsonPath,
         () => loadChange(ctx.paths.changes, changeId),
         (data, path) => ctx.sqlite.changes.upsert(data, path),
       );
-      ctx.syncedChanges.add(changeId);
+      if (syncResult !== "unavailable") {
+        ctx.syncedChanges.add(changeId);
+      }
     } finally {
       ctx.pendingChangeSyncs.delete(changeId);
     }
@@ -249,7 +278,10 @@ export async function ensureAllChangesSynced(ctx: StoreContext): Promise<void> {
       try {
         const s = statSync(jsonPath);
         attrs = { mtime_ms: Math.floor(s.mtimeMs), size: s.size, inode: s.ino };
-      } catch {
+      } catch (err) {
+        if ((err as NodeJS.ErrnoException).code !== "ENOENT") {
+          console.warn("[adv:sync] Change stat failed:", jsonPath);
+        }
         attrs = undefined;
       }
 

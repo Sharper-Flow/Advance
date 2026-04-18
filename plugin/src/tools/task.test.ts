@@ -903,21 +903,25 @@ describe("Task Tools", () => {
       expect(parsed.task.tdd_reclassification.approved_at).toBeDefined();
     });
 
-    test("rejects when task has no tdd_intent metadata", async () => {
+    test("allows initial tdd_intent assignment when none is set", async () => {
       // tk-task0001 has no metadata.tdd_intent by default
       const result = await taskTools.adv_task_reclassify_tdd.execute(
         {
           taskId: "tk-task0001",
           toIntent: "not_applicable",
-          reason: "Some reason",
+          reason: "Initial TDD intent assignment during prep",
           approvedByUser: true as const,
-          approvalEvidence: "User approved",
+          approvalEvidence: "User approved via question tool",
         },
         store,
       );
       const parsed = JSON.parse(result);
 
-      expect(parsed.error).toContain("tdd_intent");
+      expect(parsed.success).toBe(true);
+      expect(parsed.task.metadata.tdd_intent).toBe("not_applicable");
+      expect(parsed.task.tdd_reclassification).toBeDefined();
+      expect(parsed.task.tdd_reclassification.from_intent).toBe("none");
+      expect(parsed.task.tdd_reclassification.to_intent).toBe("not_applicable");
     });
 
     test("rejects when approvalEvidence is empty", async () => {

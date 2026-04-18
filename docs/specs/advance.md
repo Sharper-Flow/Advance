@@ -1,7 +1,7 @@
 # Advance
 
-> **Version:** 1.8.0
-> **Updated:** 2026-04-13
+> **Version:** 1.8.1
+> **Updated:** 2026-04-14
 
 ## Purpose
 
@@ -118,7 +118,7 @@ adv_status must surface project.json diagnostics and include parsed feature flag
 
 **ID:** `rq-advmeta01` | **Priority:** **[MUST]**
 
-Tasks may include optional metadata key/value pairs. adv_task_list must support has_metadata_key:<key> and metadata:<key>=<value> filters with behavior aligned between JSON source-of-truth and SQLite cache indexes.
+Tasks may include optional metadata key/value pairs. adv_task_list must support has_metadata_key:<key> and metadata:<key>=<value> filters with behavior aligned between workflow-owned source-of-truth state and any derived query or index surface.
 
 #### Scenarios
 

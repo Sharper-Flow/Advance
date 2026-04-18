@@ -32,6 +32,7 @@ Using `agreement.md`, produce:
 2. **Acceptance Criteria checklist**
 3. **Constraints respected / avoidances honored**
 4. **Outstanding caveats**
+5. **Investment summary** (informational) — call `adv_investment_report changeId: {id}` and include a one-line summary: `Investment: N tasks / M retries / T min / tier: {auto|escalate|hardstop}`. Purely informational; does not gate acceptance.
 
 Keep the summary concise and user-facing.
 

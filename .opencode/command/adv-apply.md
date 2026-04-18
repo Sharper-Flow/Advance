@@ -93,6 +93,24 @@ Workflow: collect per-task reasons → present via `question` tool (Approve all,
 3. `adv_task_ready changeId: <target>` → unblocked tasks
 
 ---
+## Phase 1.5: Investment Check-In Preamble (addCostTimeInvestment)
+
+Load `skill("adv-cost-governance-methodology")` and **apply the Surfacing
+Protocol**. Single-cadence batch for judgment calls identified in `/adv-prep`
+Phase J. Doom-loop-clearance re-surface is the only secondary path in v1.
+
+**6-step summary:**
+
+1. **Inspect** `change.judgment_calls`: `undefined` → legacy, skip silently; `[]` → record `batch_surfaced_at`, proceed; populated → continue.
+2. **Change-level doom-loop scan** via `adv_investment_report` — if `doom_loop_active`, defer to doom-loop recovery (supersedes batch).
+3. **Surface** unresolved entries (`user_choice === undefined`) via single `question` tool call, multi-question, `(Recommended)` + P26 write-in.
+4. **Record resolutions** per call: `user_choice`, `resolved_by: "user"`, `surfaced_at`; persist via `adv_change_update`.
+5. **Record `batch_surfaced_at`** on change (audit anchor for AC #6, including N=0 case).
+6. **Hard-stop advisory** (if `threshold_tier === "hardstop"`): strongly-worded recommend-pause note. × Do NOT call `adv_change_reenter` — re-entry is scope-expansion-driven per `rq-scopeReentry01`.
+
+**Composition:** Phase 1.5 is covered by `rq-autonomy01`'s "unresolved user-value tradeoff" escape clause — NOT a new enumerated checkpoint. See skill for full protocol + detailed semantics.
+
+---
 ## Phase 2: Display Contract
 Generate CONTRACT ACTIVE banner from tool outputs:
 - OBJECTIVE from change title

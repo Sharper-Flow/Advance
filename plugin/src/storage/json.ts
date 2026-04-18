@@ -176,7 +176,18 @@ export async function loadProjectConfig(
     if ((error as NodeJS.ErrnoException).code === "ENOENT") {
       return null;
     }
-    // Malformed JSON, schema errors, permission errors — surface to caller
+    // Schema validation failure on a legacy/invalid project.json must NOT abort
+    // plugin initialization. Log a warning and fall back to defaults so the
+    // rest of the plugin (tools, events, status markers) remains available.
+    // Use loadProjectConfigWithDiagnostics for structured error reporting.
+    if (error instanceof ZodError) {
+      console.warn(
+        `[ADV] project.json failed schema validation at ${configPath}; ` +
+          `continuing with defaults. Run adv-status for details.`,
+      );
+      return null;
+    }
+    // Malformed JSON, permission errors — surface to caller
     throw error;
   }
 }

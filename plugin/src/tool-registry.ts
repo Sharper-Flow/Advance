@@ -28,6 +28,7 @@ import { agendaTools } from "./tools/agenda";
 import { projectTools } from "./tools/project";
 import { gateTools } from "./tools/gate";
 import { testTools } from "./tools/test";
+import { investmentTools } from "./tools/investment";
 type ToolArgsSchema = Record<string, z.ZodTypeAny>;
 type ToolExecute<TArgs> = (
   args: TArgs,
@@ -164,6 +165,11 @@ export function createToolMap(
       "adv_change_remove_issue",
       store,
     ),
+    adv_change_reenter: bindTool(
+      changeTools.adv_change_reenter,
+      "adv_change_reenter",
+      store,
+    ),
 
     // Task Tools
     adv_task_show: bindTool(taskTools.adv_task_show, "adv_task_show", store),
@@ -262,6 +268,13 @@ export function createToolMap(
 
     // Status Tool
     adv_status: bindTool(statusTools.adv_status, "adv_status", store),
+
+    // Investment Tools (addCostTimeInvestment)
+    adv_investment_report: bindTool(
+      investmentTools.adv_investment_report,
+      "adv_investment_report",
+      store,
+    ),
 
     // Agenda Tools
     adv_agenda_list: bindToolSimple(
@@ -366,4 +379,99 @@ export function createToolMap(
       ),
     ),
   };
+}
+
+/**
+ * Canonical list of all ADV tool names. Kept in sync with createToolMap so
+ * that createDegradedToolMap can register a stub for every tool when plugin
+ * init fails.
+ */
+export const ADV_TOOL_NAMES: readonly string[] = [
+  "adv_spec",
+  "adv_change_list",
+  "adv_change_show",
+  "adv_change_summary",
+  "adv_change_create",
+  "adv_change_update",
+  "adv_change_close",
+  "adv_change_validate",
+  "adv_change_archive",
+  "adv_change_add_issue",
+  "adv_change_remove_issue",
+  "adv_change_reenter",
+  "adv_task_show",
+  "adv_task_list",
+  "adv_task_ready",
+  "adv_task_update",
+  "adv_task_add",
+  "adv_task_evidence",
+  "adv_task_tdd_phase",
+  "adv_task_tdd_status",
+  "adv_task_cancel",
+  "adv_task_reclassify_tdd",
+  "adv_wisdom_add",
+  "adv_wisdom_list",
+  "adv_wisdom_promote",
+  "adv_project_wisdom_list",
+  "adv_status",
+  "adv_investment_report",
+  "adv_agenda_list",
+  "adv_agenda_add",
+  "adv_agenda_start",
+  "adv_agenda_complete",
+  "adv_agenda_cancel",
+  "adv_agenda_prioritize",
+  "adv_agenda_next",
+  "adv_agenda_stats",
+  "adv_agenda_evidence",
+  "adv_agenda_compact",
+  "adv_project_context",
+  "adv_gate_status",
+  "adv_gate_complete",
+  "adv_run_test",
+] as const;
+
+/**
+ * Build a degraded tool map for the case where plugin init fails
+ * (createStore/store.init throws). Every adv_* tool is registered as a stub
+ * that returns a structured ADV_PLUGIN_INIT_FAILED payload so agents
+ * discover the real cause through any tool call rather than seeing the
+ * tools silently disappear from the session.
+ *
+ * Keeps parity with createToolMap's tool names via ADV_TOOL_NAMES.
+ */
+export function createDegradedToolMap(
+  initError: Error,
+  directory: string,
+): Record<string, ReturnType<typeof registerTool>> {
+  const payload = JSON.stringify(
+    {
+      status: "ADV_PLUGIN_INIT_FAILED",
+      message:
+        "ADV plugin failed to initialize. Every adv_* tool is stubbed until the underlying issue is resolved. Restart the OpenCode session after applying a fix.",
+      error: initError.message,
+      directory,
+      remediation: [
+        "Run `pnpm --filter @goost/advance build` from the repo root (or `pnpm build` in plugin/) to ensure plugin/dist/ is current",
+        "Check ~/.config/opencode/opencode.json — the .plugin array must point to the built plugin directory",
+        "If project.json is present, verify it is valid JSON and matches the ADV ProjectConfig schema",
+        "Check the ADV external state dir (~/.local/share/opencode/plugins/advance/{project-id}/) for corrupted spec.db; delete it to let ADV rebuild from JSON",
+        "Set ADV_DEBUG=1 in your shell and restart OpenCode to capture init errors in $OPEN_CHAD_CACHE_DIR/adv-debug.log",
+      ],
+    },
+    null,
+    2,
+  );
+
+  const stubExecute = async (_args: unknown): Promise<string> => payload;
+
+  const map: Record<string, ReturnType<typeof registerTool>> = {};
+  for (const name of ADV_TOOL_NAMES) {
+    map[name] = registerTool(
+      `[ADV plugin init failed — ${name} stub] ${initError.message.slice(0, 160)}`,
+      {} as ToolArgsSchema,
+      stubExecute,
+    );
+  }
+  return map;
 }

@@ -316,11 +316,11 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
   "adv-improve": {
     name: "adv-improve",
     description:
-      "Suggest targeted improvements to existing specs or implementation",
+      "Suggest improvements and persist a competitor research pack for /adv-discover reuse",
     phase: "utility",
     requiresChangeId: false,
     prerequisites: [],
-    successors: ["adv-proposal"],
+    successors: ["adv-discover", "adv-proposal"],
   },
   "adv-tron": {
     name: "adv-tron",

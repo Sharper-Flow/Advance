@@ -35,6 +35,10 @@ import {
   AgendaItemSchema,
   ClarifyFindingSnapshotSchema,
   ReentryHistoryEntrySchema,
+  JudgmentCallSchema,
+  JudgmentCallCategorySchema,
+  InvestmentReportSchema,
+  ThresholdTierSchema,
   isLogicTask,
   isTrivialTask,
   hasCompleteTddEvidence,
@@ -2121,5 +2125,184 @@ describe("ChangeSchema reentry_history field", () => {
     expect(change.reentry_history![1].scope_delta).toBe(
       "Added integration test phase",
     );
+  });
+});
+
+// =============================================================================
+// Investment Check-In / Judgment-Surfacing Governance (addCostTimeInvestment)
+// =============================================================================
+
+describe("ThresholdTierSchema", () => {
+  test("accepts the three tier values", () => {
+    expect(ThresholdTierSchema.parse("auto")).toBe("auto");
+    expect(ThresholdTierSchema.parse("escalate")).toBe("escalate");
+    expect(ThresholdTierSchema.parse("hardstop")).toBe("hardstop");
+  });
+
+  test("rejects unknown tier values", () => {
+    expect(() => ThresholdTierSchema.parse("warn")).toThrow();
+    expect(() => ThresholdTierSchema.parse("")).toThrow();
+  });
+});
+
+describe("JudgmentCallCategorySchema", () => {
+  test("accepts the three in-scope categories", () => {
+    expect(JudgmentCallCategorySchema.parse("non_functional_tradeoff")).toBe(
+      "non_functional_tradeoff",
+    );
+    expect(JudgmentCallCategorySchema.parse("extensibility")).toBe(
+      "extensibility",
+    );
+    expect(JudgmentCallCategorySchema.parse("scope_boundary")).toBe(
+      "scope_boundary",
+    );
+  });
+
+  test("rejects out-of-scope categories (defaults, naming, error_semantics)", () => {
+    expect(() => JudgmentCallCategorySchema.parse("defaults")).toThrow();
+    expect(() => JudgmentCallCategorySchema.parse("naming")).toThrow();
+    expect(() => JudgmentCallCategorySchema.parse("error_semantics")).toThrow();
+  });
+});
+
+describe("JudgmentCallSchema", () => {
+  test("parses a complete judgment call entry", () => {
+    const result = JudgmentCallSchema.parse({
+      id: "jc-abc123",
+      category: "non_functional_tradeoff",
+      question: "Trade latency for consistency here?",
+      agent_recommendation: "Prefer consistency",
+      rationale: "Data-correctness matters more than p99",
+      options: [
+        { label: "Favor consistency (Recommended)", description: "Stronger" },
+        { label: "Favor latency", description: "Faster p99" },
+      ],
+    });
+    expect(result.id).toBe("jc-abc123");
+    expect(result.options).toHaveLength(2);
+    expect(result.surfaced_at).toBeUndefined();
+    expect(result.user_choice).toBeUndefined();
+  });
+
+  test("accepts optional resolution fields", () => {
+    const result = JudgmentCallSchema.parse({
+      id: "jc-xyz789",
+      category: "extensibility",
+      question: "Hardcode vs config-drive this?",
+      agent_recommendation: "Config-driven",
+      rationale: "Likely to change",
+      options: [{ label: "Config-driven", description: "More flexible" }],
+      surfaced_at: "2026-04-18T08:00:00.000Z",
+      resolved_by: "user",
+      user_choice: "Config-driven",
+    });
+    expect(result.resolved_by).toBe("user");
+    expect(result.user_choice).toBe("Config-driven");
+  });
+
+  test("rejects missing required fields", () => {
+    expect(() =>
+      JudgmentCallSchema.parse({
+        id: "jc-incomplete",
+        category: "scope_boundary",
+        // missing question, agent_recommendation, rationale, options
+      }),
+    ).toThrow();
+  });
+});
+
+describe("InvestmentReportSchema", () => {
+  test("parses a complete report", () => {
+    const result = InvestmentReportSchema.parse({
+      task_counts: {
+        total: 10,
+        done: 3,
+        cancelled: 1,
+        pending: 5,
+        in_progress: 1,
+      },
+      elapsed_ms: 3_600_000,
+      retry_total: 2,
+      retry_density: 0.5,
+      doom_loop_active: false,
+      per_gate_ms: { proposal: 120_000, discovery: 180_000 },
+      threshold_tier: "escalate",
+    });
+    expect(result.task_counts.total).toBe(10);
+    expect(result.threshold_tier).toBe("escalate");
+    expect(result.doom_loop_active).toBe(false);
+  });
+
+  test("rejects missing task_counts fields", () => {
+    expect(() =>
+      InvestmentReportSchema.parse({
+        task_counts: { total: 1 }, // missing done/cancelled/pending/in_progress
+        elapsed_ms: 0,
+        retry_total: 0,
+        retry_density: 0,
+        doom_loop_active: false,
+        per_gate_ms: {},
+        threshold_tier: "auto",
+      }),
+    ).toThrow();
+  });
+});
+
+describe("ChangeSchema — judgment_calls extension", () => {
+  test("accepts change without judgment_calls (legacy / pre-v1)", () => {
+    // AC #15 / D11: legacy changes have judgment_calls === undefined
+    const result = ChangeSchema.parse(SAMPLE_CHANGE);
+    expect(result.judgment_calls).toBeUndefined();
+    expect(result.batch_surfaced_at).toBeUndefined();
+  });
+
+  test("accepts change with empty judgment_calls array", () => {
+    // Phase J initializes judgment_calls: [] when no calls identified
+    const result = ChangeSchema.parse({
+      ...SAMPLE_CHANGE,
+      judgment_calls: [],
+      batch_surfaced_at: "2026-04-18T09:00:00.000Z",
+    });
+    expect(result.judgment_calls).toEqual([]);
+    expect(result.batch_surfaced_at).toBe("2026-04-18T09:00:00.000Z");
+  });
+
+  test("accepts change with populated judgment_calls", () => {
+    const result = ChangeSchema.parse({
+      ...SAMPLE_CHANGE,
+      judgment_calls: [
+        {
+          id: "jc-001",
+          category: "scope_boundary",
+          question: "Handle edge case X here or defer?",
+          agent_recommendation: "Defer to follow-up",
+          rationale: "Out of current scope",
+          options: [
+            { label: "Defer (Recommended)", description: "Follow-up ticket" },
+            { label: "Handle now", description: "+1 task in this change" },
+          ],
+        },
+      ],
+    });
+    expect(result.judgment_calls).toHaveLength(1);
+    expect(result.judgment_calls![0].category).toBe("scope_boundary");
+  });
+
+  test("rejects invalid judgment_call entry inside change", () => {
+    expect(() =>
+      ChangeSchema.parse({
+        ...SAMPLE_CHANGE,
+        judgment_calls: [
+          {
+            id: "jc-bad",
+            category: "defaults", // out-of-scope category
+            question: "?",
+            agent_recommendation: "?",
+            rationale: "?",
+            options: [],
+          },
+        ],
+      }),
+    ).toThrow();
   });
 });

@@ -68,6 +68,18 @@ export const statusTools = {
       );
       let featureFlags: Record<string, unknown> | undefined;
 
+      // Warn when external state is unavailable — worktree sharing and
+      // state isolation won't function.  This happens when the plugin
+      // directory is not inside a git repo and no project.path fallback
+      // was available (e.g. GUI clients starting from $HOME).
+      if (!store.paths.external) {
+        status.recommendations.unshift(
+          "⚠️  Running without external state — ADV state is stored in-repo (.adv/). " +
+            "Worktree sharing and state isolation are unavailable. " +
+            "Ensure OpenCode is started from a git repository.",
+        );
+      }
+
       if (!configResult.success) {
         // Prepend config error/warning to recommendations so it's visible
         const prefix =

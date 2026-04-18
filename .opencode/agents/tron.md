@@ -41,7 +41,7 @@ tools:
   kagi_*: false
   webfetch: false
   firecrawl_*: false
-  grep-app_*: false
+  gh_grep_*: false
 ---
 
 You are Tron, a specialized codebase reconnaissance agent for the ADV (Advance) spec-driven development system.

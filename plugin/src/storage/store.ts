@@ -167,7 +167,7 @@ export async function createStore(
             clarify_enforcement: "advisory",
             slop_scan: {
               nesting_depth_threshold: 8,
-              defensive_guard_threshold: 0.25,
+              defensive_guard_threshold: 3,
               complexity_threshold: 12,
               ast_timeout_ms: 10000,
             },

@@ -52,7 +52,7 @@ For each affected capability: `adv_spec action: "show"` → verify new requireme
 
 ---
 ## Phase 8: Archive Report
-Emit ARCHIVE COMPLETE banner: change ID/title, timestamp, all 7 stages checked, specs updated (added/modified/removed counts per capability), docs generated, archive location.
+Emit ARCHIVE COMPLETE banner: change ID/title, timestamp, all 7 stages checked, specs updated (added/modified/removed counts per capability), docs generated, archive location, and an **Investment summary** line from `adv_investment_report changeId: {id}` (`Investment: N tasks / M retries / T min / tier: {auto|escalate|hardstop}`) — informational only, does not gate archive.
 
 ---
 ## Phase 9: Git Finalization (Mandatory)

@@ -12,7 +12,6 @@
  */
 
 import { type Plugin } from "@opencode-ai/plugin";
-import { createStore } from "./storage/store";
 import {
   initializeStatus,
   cleanup as cleanupTerminal,
@@ -21,13 +20,14 @@ import {
   setActiveChange,
   pruneStaleRetries,
 } from "./events";
+import { tryInitStore, registerShutdownHandlers } from "./plugin-init";
 import type { StatusMarker } from "./types";
 import { getProjectId, getExternalRoot } from "./utils/project-id";
 import { migrateToExternalState } from "./storage/migrate";
 import { consumeHandoff } from "./storage/handoff";
 import { enforceBashPolicy } from "./guards/bash";
 import { enforceTaskPolicy } from "./guards/task";
-import { createToolMap } from "./tool-registry";
+import { createToolMap, createDegradedToolMap } from "./tool-registry";
 import { appendDebugLog } from "./utils/debug-log";
 
 /**
@@ -103,34 +103,48 @@ const resolveStatus = (s: PluginState): StatusMarker => {
   return "ROCKET";
 };
 
-const debugLog = (msg: string): void => {
-  appendDebugLog("index", msg);
-};
+const debugLog = (msg: string): void => appendDebugLog("index", msg);
 
-export const AdvancePlugin: Plugin = async ({ directory, worktree }) => {
+export const AdvancePlugin: Plugin = async ({
+  directory,
+  worktree,
+  project,
+}) => {
   const isWorktree = !!worktree && worktree !== directory;
   debugLog(
-    `Plugin initializing: directory=${directory}, worktree=${worktree}, isWorktree=${isWorktree}`,
+    `Plugin init: dir=${directory}, worktree=${worktree}, isWorktree=${isWorktree}`,
   );
 
-  // Derive project identity and resolve external state directory
-  const projectId = await getProjectId(directory);
+  // Derive project identity and resolve external state directory.
+  // Try directory first; if not a git repo, fall back to project.path
+  // from the SDK (covers GUI clients that may start the server from $HOME).
+  let effectiveDir = directory;
+  let projectId = await getProjectId(effectiveDir);
+
+  if (!projectId && project?.vcsDir && project.vcsDir !== directory) {
+    debugLog(
+      `directory not a git repo, trying project.vcsDir: ${project.vcsDir}`,
+    );
+    const altId = await getProjectId(project.vcsDir);
+    if (altId) {
+      effectiveDir = project.vcsDir;
+      projectId = altId;
+    }
+  }
+
   let externalRoot: string | undefined;
 
   if (projectId) {
     externalRoot = getExternalRoot(projectId);
-    debugLog(
-      `External state: projectId=${projectId}, externalRoot=${externalRoot}`,
-    );
+    debugLog(`External state: projectId=${projectId}, root=${externalRoot}`);
 
     // One-time migration: copy any existing .adv/ mutable state to external dir
     try {
-      const report = await migrateToExternalState(directory, externalRoot);
-      if (report.migrated.length > 0) {
+      const report = await migrateToExternalState(effectiveDir, externalRoot);
+      if (report.migrated.length > 0)
         debugLog(
-          `Migration completed: migrated=${report.migrated.join(",")}, skipped=${report.skipped.join(",")}`,
+          `Migration: ${report.migrated.join(",")} migrated, ${report.skipped.join(",")} skipped`,
         );
-      }
     } catch (e) {
       debugLog(`Migration failed (non-fatal): ${(e as Error).message}`);
     }
@@ -138,9 +152,10 @@ export const AdvancePlugin: Plugin = async ({ directory, worktree }) => {
     debugLog("No project ID (not a git repo?) — using legacy in-repo paths");
   }
 
-  // Initialize store (lazy sync - don't call store.sync() here)
-  const store = await createStore(directory, { externalRoot });
-  await store.init();
+  // Initialize store. tryInitStore() never throws — if createStore or
+  // store.init() fails, it returns { store: null, initError: Error } so we
+  // can register a degraded tool map rather than nuking every adv_* tool.
+  const { store, initError } = await tryInitStore(effectiveDir, externalRoot);
 
   // Initialize terminal status
   const projectName = getProjectName(directory);
@@ -159,7 +174,7 @@ export const AdvancePlugin: Plugin = async ({ directory, worktree }) => {
   };
 
   // Session hydration: atomically consume handoff.json and populate active change
-  if (store.paths.external) {
+  if (store && store.paths.external) {
     try {
       const handoff = await consumeHandoff(store.paths.handoff);
       if (handoff) {
@@ -183,58 +198,18 @@ export const AdvancePlugin: Plugin = async ({ directory, worktree }) => {
     setStatus(resolveStatus(state));
   };
 
-  // Register cleanup handlers
-  const handleExit = () => {
-    cleanupTerminal();
-    try {
-      store.close();
-    } catch (e) {
-      debugLog(`Error closing store on exit: ${e}`);
-    }
-  };
-
-  // Single in-flight flush guard — prevents double-flush on rapid SIGINT/SIGTERM
-  let flushInFlight = false;
-  const shutdownWithFlush = () => {
-    cleanupTerminal();
-    if (flushInFlight) return;
-    flushInFlight = true;
-
-    const flushTimeout = setTimeout(() => {
-      try {
-        store.close();
-      } catch (e) {
-        debugLog(`Error closing store on shutdown timeout: ${e}`);
-      }
-      process.exit(0);
-    }, 3000);
-
-    store.flush().finally(() => {
-      clearTimeout(flushTimeout);
-      try {
-        store.close();
-      } catch (e) {
-        debugLog(`Error closing store after flush: ${e}`);
-      }
-      process.exit(0);
-    });
-  };
-
-  const handleSigInt = shutdownWithFlush;
-  const handleSigTerm = shutdownWithFlush;
-  process.on("exit", handleExit);
-  process.on("SIGINT", handleSigInt);
-  process.on("SIGTERM", handleSigTerm);
-
-  const removeProcessListeners = () => {
-    process.removeListener("exit", handleExit);
-    process.removeListener("SIGINT", handleSigInt);
-    process.removeListener("SIGTERM", handleSigTerm);
-  };
+  // Register process-level shutdown handlers (tolerates init failure).
+  const { removeProcessListeners } = registerShutdownHandlers(store);
 
   return {
-    // MCP Tools — registrations live in tool-registry.ts
-    tool: createToolMap(store, directory, store.paths.agenda),
+    // MCP Tools — degraded map on init failure so agents see ADV_PLUGIN_INIT_FAILED
+    tool:
+      store && !initError
+        ? createToolMap(store, directory, store.paths.agenda)
+        : createDegradedToolMap(
+            initError ?? new Error("Plugin store unavailable"),
+            effectiveDir,
+          ),
 
     // Event Hook
     event: async ({ event }): Promise<void> => {
@@ -257,8 +232,7 @@ export const AdvancePlugin: Plugin = async ({ directory, worktree }) => {
           cleanupTerminal();
           removeProcessListeners();
           try {
-            store.close();
-            debugLog("Store closed on session.deleted");
+            store?.close();
           } catch (e) {
             debugLog(`Error closing store: ${e}`);
           }
@@ -453,6 +427,11 @@ export const AdvancePlugin: Plugin = async ({ directory, worktree }) => {
             .join("\n");
 
           output.context.push(changeContext);
+        }
+
+        if (!store) {
+          // Plugin init failed — no specs available, skip compaction context
+          return;
         }
 
         try {
