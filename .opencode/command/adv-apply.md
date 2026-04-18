@@ -93,6 +93,75 @@ Workflow: collect per-task reasons → present via `question` tool (Approve all,
 3. `adv_task_ready changeId: <target>` → unblocked tasks
 
 ---
+## Phase 1.5: Investment Check-In Preamble (addCostTimeInvestment)
+
+Post-prep mandatory batch surfacing of judgment calls identified during
+`/adv-prep` Phase J. Single cadence per change — this is the only point
+where unresolved judgment calls are surfaced, plus the doom-loop-clearance
+re-surface edge case. Agreement user decision #10; design D4.
+
+### Flow
+
+1. **Inspect `change.judgment_calls`** (from Phase 1 `adv_change_show`):
+   - `undefined` → **legacy change** (pre-v1). Log silently, do NOT
+     surface, do NOT record `batch_surfaced_at`. Proceed to Phase 2.
+   - `[]` (empty array) → new-generation change with zero calls
+     identified. Record `batch_surfaced_at` via `adv_change_update` for
+     audit. Proceed to Phase 2 with no interruption.
+   - populated → continue to step 2.
+
+2. **Change-level doom-loop scan.** Call `adv_investment_report changeId: <target>`
+   and inspect `doom_loop_active`. The report scans all tasks via
+   `getDoomLoopInfo(task.id)` — any active tracker flags true. When
+   active:
+   - **Defer** judgment-call surfacing. Record notes "Phase 1.5 deferred
+     — doom-loop active on task <id>". Proceed to doom-loop recovery path
+     per ADV_INSTRUCTIONS.md § Doom Loop Detection.
+   - Judgment calls **re-surface** automatically on the next Phase 1.5
+     invocation after doom-loop clears.
+
+3. **Surface unresolved calls.** Filter `judgment_calls[]` to entries
+   where `user_choice === undefined`. If zero remain (all resolved from
+   a prior session), record `batch_surfaced_at` and proceed.
+
+   Otherwise emit **one** `question` tool call with multiple sub-questions
+   — one per unresolved call. For each sub-question:
+   - Question text = `judgment_calls[i].question`
+   - Options = `judgment_calls[i].options[]`, with the option matching
+     `agent_recommendation` labeled `(Recommended)` inline in its label.
+   - Include the P26 write-in option automatically.
+   - Surface `rationale` in a brief header line before the options.
+
+4. **Record resolutions.** After the user responds, for each judgment
+   call update:
+   - `user_choice` = the selected option label (or `"(write-in: ...)"`)
+   - `resolved_by` = `"user"`
+   - `surfaced_at` = current ISO8601 timestamp
+   - Persist via `adv_change_update` with the updated `judgment_calls[]`.
+
+5. **Record change-level timestamp.** Set `change.batch_surfaced_at` to
+   the current ISO8601 timestamp via `adv_change_update`. This is the
+   audit anchor required by AC #6 (verifiable even for N=0 cases).
+
+6. **Report investment tier to user** (optional context). If
+   `threshold_tier === "hardstop"`, emit a strongly-worded note in the
+   banner prelude: "This change has crossed the hard-stop tier
+   (task/retry/elapsed thresholds). Consider pausing or scoping down if
+   the remaining work no longer matches priority." **Do NOT** call
+   `adv_change_reenter` — hard-stop is advisory in v1 per design D12.
+   Re-entry remains scope-expansion-driven per `rq-scopeReentry01`.
+
+### Composition with `rq-autonomy01`
+
+Phase 1.5 does **not** introduce a new enumerated human checkpoint.
+Judgment-call surfacing is covered by `rq-autonomy01`'s existing
+"unresolved user-value tradeoff" escape clause — unresolved entries in
+`judgment_calls[]` are, by construction, unresolved user-value tradeoffs
+(non-functional tradeoffs, extensibility decisions, scope boundaries are
+all inherently value-weighted). See `ADV_INSTRUCTIONS.md § Investment
+Check-In` for the full citation.
+
+---
 ## Phase 2: Display Contract
 Generate CONTRACT ACTIVE banner from tool outputs:
 - OBJECTIVE from change title
