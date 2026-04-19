@@ -51,9 +51,15 @@ describe("change workflow state", () => {
       { now: "2026-04-14T00:02:00.000Z", uuid: () => "task-2" },
     );
 
-    expect(listTasksFromChangeState(state, undefined, "has_metadata_key:env")).toHaveLength(2);
-    expect(listTasksFromChangeState(state, undefined, "metadata:env=prod")).toHaveLength(1);
-    expect(listTasksFromChangeState(state, undefined, "metadata:env=prod")[0]?.id).toBe("tk-task-1");
+    expect(
+      listTasksFromChangeState(state, undefined, "has_metadata_key:env"),
+    ).toHaveLength(2);
+    expect(
+      listTasksFromChangeState(state, undefined, "metadata:env=prod"),
+    ).toHaveLength(1);
+    expect(
+      listTasksFromChangeState(state, undefined, "metadata:env=prod")[0]?.id,
+    ).toBe("tk-task-1");
   });
 
   it("enforces gate sequencing", () => {

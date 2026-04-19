@@ -1,7 +1,7 @@
+import { dirname, join } from "path";
 import { mkdir } from "fs/promises";
 import { spawn, type ChildProcess } from "child_process";
 import * as net from "node:net";
-import { dirname, join } from "path";
 import { tmpdir } from "os";
 import { acquireFileLock } from "../utils/fs";
 import { getTemporalAddress, getTemporalNamespace } from "./client";
@@ -47,7 +47,8 @@ export function probeTemporalClientRuntime(
     return {
       supported: false,
       runtime: "bun",
-      reason: "Bun runtime does not expose Bun.spawn for local runtime/bootstrap management.",
+      reason:
+        "Bun runtime does not expose Bun.spawn for local runtime/bootstrap management.",
       remediation:
         "Run the plugin on Node or upgrade Bun before enabling Temporal-backed storage.",
     };
@@ -56,8 +57,7 @@ export function probeTemporalClientRuntime(
   return {
     supported: true,
     runtime: "bun",
-    reason:
-      `Bun ${input.bunVersion ?? "unknown"} detected. Temporal client use is allowed only behind runtime probing and fail-fast diagnostics.`,
+    reason: `Bun ${input.bunVersion ?? "unknown"} detected. Temporal client use is allowed only behind runtime probing and fail-fast diagnostics.`,
     remediation:
       "If runtime bootstrap or client connection fails, switch to Node or a supported Bun version.",
   };
@@ -67,21 +67,19 @@ export function getTemporalRuntimeLockPath(
   projectId: string,
   env: TemporalEnv = process.env,
 ): string {
-  const baseDir =
-    env.OPEN_CHAD_CACHE_DIR
-      ? join(env.OPEN_CHAD_CACHE_DIR, "advance-temporal")
-      :
-    (env.XDG_RUNTIME_DIR
+  const baseDir = env.OPEN_CHAD_CACHE_DIR
+    ? join(env.OPEN_CHAD_CACHE_DIR, "advance-temporal")
+    : env.XDG_RUNTIME_DIR
       ? join(env.XDG_RUNTIME_DIR, "advance-temporal")
-      : join(tmpdir(), "advance-temporal"));
+      : join(tmpdir(), "advance-temporal");
   return join(baseDir, `${projectId}.runtime.lock`);
 }
 
 export function buildTemporalServerCommand(
-  address: string,
-  namespace: string,
+  env: NodeJS.ProcessEnv = process.env,
 ): { command: string; args: string[] } {
-  const [host, port = "7233"] = address.split(":", 2);
+  const address = getTemporalAddress(env);
+  const [host, port] = splitAddress(address);
   return {
     command: "temporal",
     args: [
@@ -92,10 +90,36 @@ export function buildTemporalServerCommand(
       "--port",
       port,
       "--namespace",
-      namespace,
+      getTemporalNamespace(env),
       "--headless",
     ],
   };
+}
+
+function splitAddress(address: string): [string, string] {
+  const idx = address.lastIndexOf(":");
+  if (idx <= 0 || idx === address.length - 1) {
+    throw new Error(
+      `Invalid Temporal address "${address}" — expected host:port`,
+    );
+  }
+  const host = address.slice(0, idx);
+  const port = address.slice(idx + 1);
+  if (
+    !/^[A-Za-z0-9.:[\]-]+$/.test(host) ||
+    /^-/.test(host) ||
+    /\s/.test(host)
+  ) {
+    throw new Error(`Invalid Temporal host "${host}"`);
+  }
+  if (!/^\d{1,5}$/.test(port)) {
+    throw new Error(`Invalid Temporal port "${port}"`);
+  }
+  const portNum = Number(port);
+  if (portNum < 1 || portNum > 65535) {
+    throw new Error(`Temporal port out of range: ${port}`);
+  }
+  return [host, port];
 }
 
 export interface TemporalWorkerProcessSpec {
@@ -128,14 +152,9 @@ async function canReachAddress(
   address: string,
   timeoutMs = 500,
 ): Promise<boolean> {
-  const [host, rawPort = "7233"] = address.split(":", 2);
-  const port = Number(rawPort);
-
-  return new Promise((resolve) => {
-    const socket = net.createConnection({
-      host: host || "127.0.0.1",
-      port,
-    });
+  const [host, port] = splitAddress(address);
+  return await new Promise<boolean>((resolve) => {
+    const socket = net.createConnection({ host, port: Number(port) });
 
     const finish = (result: boolean) => {
       socket.removeAllListeners();
@@ -143,10 +162,15 @@ async function canReachAddress(
       resolve(result);
     };
 
+    socket.unref();
     socket.setTimeout(timeoutMs);
     socket.once("connect", () => finish(true));
     socket.once("timeout", () => finish(false));
     socket.once("error", () => finish(false));
+
+    setTimeout(() => {
+      finish(false);
+    }, timeoutMs).unref();
   });
 }
 
@@ -192,7 +216,7 @@ export async function ensureTemporalRuntime(
       return { address, namespace, startedRuntime: false };
     }
 
-    const { command, args } = buildTemporalServerCommand(address, namespace);
+    const { command, args } = buildTemporalServerCommand(env);
     const server = spawn(command, args, {
       detached: true,
       stdio: "ignore",

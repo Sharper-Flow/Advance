@@ -26,10 +26,19 @@ describe("temporal client helpers", () => {
 
   it("honors env overrides", () => {
     expect(
-      getTemporalAddress({ ADV_TEMPORAL_ADDRESS: "10.0.0.2:9333" }),
+      getTemporalAddress({
+        ADV_TEMPORAL_ADDRESS: "10.0.0.2:9333",
+        ADV_TEMPORAL_ALLOW_REMOTE: "true",
+      }),
     ).toBe("10.0.0.2:9333");
     expect(getTemporalNamespace({ ADV_TEMPORAL_NAMESPACE: "adv-dev" })).toBe(
       "adv-dev",
     );
+    expect(() =>
+      getTemporalAddress({ ADV_TEMPORAL_ADDRESS: "10.0.0.2:9333" }),
+    ).toThrow(/Refusing to use non-loopback/);
+    expect(() =>
+      getTemporalNamespace({ ADV_TEMPORAL_NAMESPACE: "../evil" }),
+    ).toThrow(/Invalid Temporal namespace/);
   });
 });

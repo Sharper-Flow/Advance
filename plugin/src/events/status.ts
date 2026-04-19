@@ -199,6 +199,35 @@ export const getDoomLoopInfo = (
 };
 
 /**
+ * Merge in-memory doom-loop tracking with persisted error_recovery state.
+ * Useful for Temporal-backed state or after session restart when retryTrackers
+ * are empty but task.error_recovery still records 3+ failed attempts.
+ */
+export const getEffectiveDoomLoopInfo = (
+  taskId: string,
+  persisted?: {
+    retry_count?: number;
+    attempts?: Array<unknown>;
+    last_error?: string | null;
+  },
+): { inDoomLoop: boolean; attempts: number; lastError: string | null } => {
+  const live = getDoomLoopInfo(taskId);
+  const persistedAttempts = persisted?.attempts?.length ?? 0;
+  const persistedRetryCount = persisted?.retry_count ?? 0;
+  const persistedCount = Math.max(persistedAttempts, persistedRetryCount);
+
+  if (persistedCount > live.attempts) {
+    return {
+      inDoomLoop: persistedCount >= DOOM_LOOP_THRESHOLD,
+      attempts: persistedCount,
+      lastError: persisted?.last_error ?? live.lastError,
+    };
+  }
+
+  return live;
+};
+
+/**
  * Prune stale retry trackers that have exceeded the retry window.
  * Prevents unbounded memory growth over long sessions.
  */

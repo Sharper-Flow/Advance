@@ -6,8 +6,12 @@ import {
   type ChangeWorkflowBootstrapState,
   type ChangeWorkflowInput,
   PROJECT_WORKFLOW_QUERY_NAMES,
+  PROJECT_WORKFLOW_UPDATE_NAMES,
+  type MigrationLedgerEntry,
   type ProjectWorkflowBootstrapState,
   type ProjectWorkflowInput,
+  type ProjectWorkflowState,
+  type ProjectWisdomEntry,
 } from "./contracts";
 import {
   addChangeWisdom,
@@ -26,6 +30,15 @@ import {
   updateArtifactMetadataInChangeState,
   updateTaskInChangeState,
 } from "./change-state";
+import {
+  addAgendaItemToProjectState,
+  addProjectWisdomToProjectState,
+  createProjectWorkflowState,
+  listAgendaItemsFromProjectState,
+  listProjectWisdomFromProjectState,
+  recordMigrationEntryInProjectState,
+  updateAgendaItemInProjectState,
+} from "./project-state";
 
 const changeBootstrapQuery = wf.defineQuery<ChangeWorkflowBootstrapState>(
   CHANGE_WORKFLOW_QUERY_NAMES.bootstrap,
@@ -35,7 +48,10 @@ const changeStateQuery = wf.defineQuery<ChangeWorkflowState>(
 );
 const changeTasksQuery = wf.defineQuery<
   ChangeWorkflowState["tasks"],
-  [ChangeWorkflowState["tasks"][number]["status"] | undefined, string | undefined]
+  [
+    ChangeWorkflowState["tasks"][number]["status"] | undefined,
+    string | undefined,
+  ]
 >(CHANGE_WORKFLOW_QUERY_NAMES.tasks);
 const changeReadyQuery = wf.defineQuery<
   ReturnType<typeof getReadyTasksFromChangeState>
@@ -99,10 +115,7 @@ const addWisdomUpdate = wf.defineUpdate<
 >(CHANGE_WORKFLOW_UPDATE_NAMES.addWisdom);
 const updateArtifactMetadataUpdate = wf.defineUpdate<
   void,
-  [
-    import("./contracts").ArtifactKind,
-    import("./contracts").ArtifactMetadata,
-  ]
+  [import("./contracts").ArtifactKind, import("./contracts").ArtifactMetadata]
 >(CHANGE_WORKFLOW_UPDATE_NAMES.updateArtifactMetadata);
 const closeChangeUpdate = wf.defineUpdate<
   void,
@@ -111,12 +124,73 @@ const closeChangeUpdate = wf.defineUpdate<
 const projectBootstrapQuery = wf.defineQuery<ProjectWorkflowBootstrapState>(
   PROJECT_WORKFLOW_QUERY_NAMES.bootstrap,
 );
+const projectStateQuery = wf.defineQuery<ProjectWorkflowState>(
+  PROJECT_WORKFLOW_QUERY_NAMES.state,
+);
+const projectAgendaQuery = wf.defineQuery<
+  ProjectWorkflowState["agenda"],
+  [ProjectWorkflowState["agenda"][number]["status"] | undefined]
+>(PROJECT_WORKFLOW_QUERY_NAMES.agenda);
+const projectWisdomQuery = wf.defineQuery<
+  ProjectWorkflowState["project_wisdom"],
+  [import("../types").WisdomType | undefined]
+>(PROJECT_WORKFLOW_QUERY_NAMES.wisdom);
+const projectMigrationLedgerQuery = wf.defineQuery<
+  ProjectWorkflowState["migration_ledger"]
+>(PROJECT_WORKFLOW_QUERY_NAMES.migrationLedger);
 
-const workflowNow = (): string => new Date().toISOString();
+const addAgendaItemUpdate = wf.defineUpdate<
+  ProjectWorkflowState["agenda"][number],
+  [
+    {
+      title: string;
+      description?: string;
+      priority?: ProjectWorkflowState["agenda"][number]["priority"];
+      category?: string;
+      blocked_by?: string;
+    },
+  ]
+>(PROJECT_WORKFLOW_UPDATE_NAMES.addAgendaItem);
+const updateAgendaItemUpdate = wf.defineUpdate<
+  ProjectWorkflowState["agenda"][number],
+  [
+    string,
+    {
+      status?: ProjectWorkflowState["agenda"][number]["status"];
+      description?: string;
+      priority?: ProjectWorkflowState["agenda"][number]["priority"];
+      category?: string;
+      blocked_by?: string;
+      completion_notes?: string;
+    },
+  ]
+>(PROJECT_WORKFLOW_UPDATE_NAMES.updateAgendaItem);
+const addProjectWisdomUpdate = wf.defineUpdate<
+  ProjectWisdomEntry,
+  [
+    {
+      type: import("../types").WisdomType;
+      content: string;
+      sourceChange?: string;
+      sourceTask?: string;
+      tags?: string[];
+      invalidatedBy?: string;
+    },
+  ]
+>(PROJECT_WORKFLOW_UPDATE_NAMES.addWisdom);
+const recordMigrationEntryUpdate = wf.defineUpdate<
+  MigrationLedgerEntry,
+  [MigrationLedgerEntry]
+>(PROJECT_WORKFLOW_UPDATE_NAMES.recordMigrationEntry);
 
 export async function changeWorkflow(
   input: ChangeWorkflowInput,
 ): Promise<void> {
+  const workflowEpoch = wf.workflowInfo().runStartTime.getTime();
+  let logicalTick = 0;
+  const workflowNow = (): string =>
+    new Date(workflowEpoch + logicalTick++).toISOString();
+
   const bootstrap: ChangeWorkflowBootstrapState = {
     projectId: input.projectId,
     changeId: input.changeId,
@@ -130,6 +204,16 @@ export async function changeWorkflow(
   });
   state.projectId = input.projectId;
   state.initializedAt = input.initializedAt;
+  if (input.seedState) {
+    if (input.seedState.status) state.status = input.seedState.status;
+    if (input.seedState.tasks) state.tasks = input.seedState.tasks;
+    if (input.seedState.wisdom) state.wisdom = input.seedState.wisdom;
+    if (input.seedState.gates) state.gates = input.seedState.gates;
+    if (input.seedState.reentry_history) {
+      state.reentry_history = input.seedState.reentry_history;
+    }
+    if (input.seedState.artifacts) state.artifacts = input.seedState.artifacts;
+  }
 
   wf.setHandler(changeBootstrapQuery, () => bootstrap);
   wf.setHandler(changeStateQuery, () => state);
@@ -137,7 +221,9 @@ export async function changeWorkflow(
     listTasksFromChangeState(state, status, filter),
   );
   wf.setHandler(changeReadyQuery, () => getReadyTasksFromChangeState(state));
-  wf.setHandler(changeTaskQuery, (taskId) => getTaskFromChangeState(state, taskId));
+  wf.setHandler(changeTaskQuery, (taskId) =>
+    getTaskFromChangeState(state, taskId),
+  );
   wf.setHandler(addTaskUpdate, (taskInput) =>
     addTaskToChangeState(state, taskInput, {
       now: workflowNow(),
@@ -172,14 +258,16 @@ export async function changeWorkflow(
       notes,
     }),
   );
-  wf.setHandler(reopenFromGateUpdate, (fromGate, reason, scopeDelta, approvalEvidence) =>
-    reopenFromGateInChangeState(state, fromGate, {
-      now: workflowNow(),
-      reason,
-      scopeDelta,
-      approvalEvidence,
-      reopenedBy: "agent",
-    }),
+  wf.setHandler(
+    reopenFromGateUpdate,
+    (fromGate, reason, scopeDelta, approvalEvidence) =>
+      reopenFromGateInChangeState(state, fromGate, {
+        now: workflowNow(),
+        reason,
+        scopeDelta,
+        approvalEvidence,
+        reopenedBy: "agent",
+      }),
   );
   wf.setHandler(addWisdomUpdate, (type, content, sourceTask) =>
     addChangeWisdom(
@@ -201,11 +289,55 @@ export async function changeWorkflow(
 export async function projectWorkflow(
   input: ProjectWorkflowInput,
 ): Promise<void> {
-  const state: ProjectWorkflowBootstrapState = {
+  const workflowEpoch = wf.workflowInfo().runStartTime.getTime();
+  let logicalTick = 0;
+  const workflowNow = (): string =>
+    new Date(workflowEpoch + logicalTick++).toISOString();
+
+  const bootstrap: ProjectWorkflowBootstrapState = {
     projectId: input.projectId,
     initializedAt: input.initializedAt,
   };
+  const state = createProjectWorkflowState(input);
+  if (input.agenda) state.agenda = input.agenda;
+  if (input.projectWisdom) state.project_wisdom = input.projectWisdom;
+  if (input.migrationLedger) state.migration_ledger = input.migrationLedger;
 
-  wf.setHandler(projectBootstrapQuery, () => state);
+  wf.setHandler(projectBootstrapQuery, () => bootstrap);
+  wf.setHandler(projectStateQuery, () => state);
+  wf.setHandler(projectAgendaQuery, (status) =>
+    listAgendaItemsFromProjectState(state, status),
+  );
+  wf.setHandler(projectWisdomQuery, (type) =>
+    listProjectWisdomFromProjectState(state, type),
+  );
+  wf.setHandler(projectMigrationLedgerQuery, () => state.migration_ledger);
+  wf.setHandler(addAgendaItemUpdate, (itemInput) =>
+    addAgendaItemToProjectState(state, itemInput, {
+      now: workflowNow(),
+      uuid: wf.uuid4,
+    }),
+  );
+  wf.setHandler(updateAgendaItemUpdate, (itemId, update) =>
+    updateAgendaItemInProjectState(state, itemId, {
+      now: workflowNow(),
+      status: update.status,
+      description: update.description,
+      priority: update.priority,
+      category: update.category,
+      blocked_by: update.blocked_by,
+      completion_notes: update.completion_notes,
+    }),
+  );
+  wf.setHandler(addProjectWisdomUpdate, (input) =>
+    addProjectWisdomToProjectState(state, input, {
+      now: workflowNow(),
+      uuid: wf.uuid4,
+    }),
+  );
+  wf.setHandler(recordMigrationEntryUpdate, (entry) =>
+    recordMigrationEntryInProjectState(state, entry),
+  );
+
   await wf.condition(() => false);
 }

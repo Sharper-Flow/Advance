@@ -9,6 +9,7 @@ import { join } from "path";
 import { access, readFile, writeFile } from "fs/promises";
 import {
   createStore,
+  createLegacyStore,
   classifyRecency,
   computeLastActivity,
   buildChangeRecency,
@@ -44,6 +45,58 @@ describe("Store", () => {
     test("createStore initializes with project paths", async () => {
       expect(store.paths.root).toBe(tempDir);
       expect(store.paths.specs).toBe(join(tempDir, ".adv/specs"));
+    });
+
+    test("createLegacyStore exposes the explicit JSON+SQLite fallback backend", async () => {
+      const legacyStore = await createLegacyStore(tempDir);
+      expect(legacyStore.paths.root).toBe(tempDir);
+      expect(legacyStore.paths.specs).toBe(join(tempDir, ".adv/specs"));
+      legacyStore.close();
+    });
+
+    test("createStore wraps the legacy store with a Temporal adapter when a temporal bundle is provided", async () => {
+      const fakeHandle = {
+        query: async () => ({
+          projectId: "proj1",
+          changeId: "addFeature",
+          title: "Temporal-backed title",
+          initializedAt: "2026-04-18T00:00:00.000Z",
+          id: "addFeature",
+          status: "draft",
+          createdAt: "2026-04-18T00:00:00.000Z",
+          tasks: [],
+          wisdom: [],
+          gates: {
+            proposal: { status: "pending" },
+            discovery: { status: "pending" },
+            design: { status: "pending" },
+            planning: { status: "pending" },
+            execution: { status: "pending" },
+            acceptance: { status: "pending" },
+            release: { status: "pending" },
+          },
+          reentry_history: [],
+          artifacts: {},
+        }),
+        executeUpdate: async () => null,
+      };
+
+      const temporalStore = await createStore(tempDir, {
+        temporalBundle: {
+          client: {
+            workflow: {
+              getHandle: () => fakeHandle,
+            },
+          },
+        } as any,
+        projectIdOverride: "proj1",
+      });
+
+      const result = await temporalStore.changes.get("addFeature");
+      expect(result.success).toBe(true);
+      expect(result.data?.title).toBe("Temporal-backed title");
+
+      temporalStore.close();
     });
 
     test("init creates directory structure", async () => {

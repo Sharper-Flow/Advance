@@ -198,3 +198,27 @@ describe("safe-execute", () => {
     });
   });
 });
+
+describe("Temporal-aware error hints", () => {
+  it("returns a determinism-specific hint for non-deterministic workflow errors", () => {
+    const raw = formatErrorResponse(
+      new Error(
+        "NonDeterministicWorkflowError: workflow code changed incompatibly",
+      ),
+      "adv_change_update",
+    );
+    const parsed = JSON.parse(raw);
+    expect(parsed.hint).toMatch(/determin|replay|patch|version/i);
+  });
+
+  it("returns a runtime/bootstrap hint for Temporal connectivity errors", () => {
+    const raw = formatErrorResponse(
+      new Error(
+        "Temporal runtime at 127.0.0.1:7233 did not become reachable within 5000ms",
+      ),
+      "adv_status",
+    );
+    const parsed = JSON.parse(raw);
+    expect(parsed.hint).toMatch(/runtime|worker|reach|start/i);
+  });
+});

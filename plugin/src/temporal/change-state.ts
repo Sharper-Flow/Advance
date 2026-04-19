@@ -265,7 +265,9 @@ export function completeGateInChangeState(
   input: { now: string; completedBy: string; notes?: string },
 ): Gates[GateId] {
   if (!canCompleteGate(state.gates, gateId)) {
-    throw new Error(`Cannot complete ${gateId}: previous gate is not satisfied`);
+    throw new Error(
+      `Cannot complete ${gateId}: previous gate is not satisfied`,
+    );
   }
 
   state.gates[gateId] = {
@@ -299,7 +301,8 @@ export function reopenFromGateInChangeState(
     input.approvalEvidence,
   );
 
-  const lastEntry = state.reentry_history[state.reentry_history.length - 1];
+  const history = state.reentry_history ?? [];
+  const lastEntry = history[history.length - 1];
   if (lastEntry) {
     lastEntry.reopened_at = input.now;
   }
@@ -332,7 +335,5 @@ export function closeChangeInChangeState(
   closure: ChangeClosure,
 ): void {
   state.status = "closed";
-  Object.assign(state as ChangeWorkflowState & { closure?: ChangeClosure }, {
-    closure,
-  });
+  state.closure = closure;
 }
