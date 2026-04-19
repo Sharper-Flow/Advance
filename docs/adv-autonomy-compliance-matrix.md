@@ -48,7 +48,7 @@ Canonical sources:
 | `/adv-design` | target auto-selection, design synthesis from research and code; mandatory independent validation via independent read-only validator (`rq-designval01`) | only when design validator returns CONFLICT (`rq-designval03`); otherwise auto-continue to planning |
 | `/adv-present` | target auto-selection, concise design summary; validator verdict display (`rq-designval02`) | design direction approval |
 | `/adv-prep` | target auto-selection, gap analysis, task graph synthesis | only when gaps are unresolvable without user intent |
-| `/adv-apply` | target auto-selection, worktree reuse, execution start, task sequencing, TDD loop, cross-repo routing | doom-loop recovery, cancellations, scope changes not reflected in the stored contract |
+| `/adv-apply` | target auto-selection, worktree reuse, execution start, task sequencing, TDD loop, cross-repo routing, **auto-continue across task boundaries without any "task complete / section complete / progress update / shall I continue?" pause** (`rq-autonomy01.4`), **no execution-start approval prompt once planning is complete** (`rq-autonomy01.5`) | only the enumerated `rq-autonomy01` checkpoints: doom-loop recovery, cancellations, re-entry for scope changes not reflected in the stored contract, environmental blocker, unresolved judgment-call surfacing (Phase 1.5) |
 | `/adv-review` | target auto-selection, review execution, remediation of blockers/issues | none by default; review remains agent-led |
 | `/adv-accept` | target auto-selection, acceptance summary construction | whether delivered work satisfies the agreement |
 | `/adv-harden` | target auto-selection, hardening analysis, default in-scope remediation | none by default; validated in-scope findings must be fixed |
@@ -75,7 +75,7 @@ ADV pauses for human input ONLY at these explicit checkpoints:
 | Re-entry approval | any | Explicit user approval for scope expansion (`rq-scopeReentry01`); cascade reset preserves existing tasks (`rq-scopeReentry02`) |
 | Doom-loop recovery | `execution` | 3 failed attempts, user guidance needed |
 
-**All other clean steps auto-continue:** discovery, deterministic design, prep, apply, review, and harden proceed without prompting the user when no unresolved user-value tradeoff or required approval exists.
+**All other clean steps auto-continue:** discovery, deterministic design, prep, apply, review, and harden proceed without prompting the user when no unresolved user-value tradeoff or required approval exists. In particular, `/adv-apply` runs a continuous ralph loop from execution-gate start through all ready tasks and final verification, pausing only at enumerated `rq-autonomy01` checkpoints — never at task/section boundaries, progress displays, or execution-phase start.
 
 ## Audit Verdict
 

@@ -548,6 +548,31 @@ ADV must pause for human input only at explicit approval/judgment checkpoints an
 **Then:**
 - The orchestrator proceeds to planning without a design-approval pause
 
+**Apply auto-continues across task boundaries** (`rq-autonomy01.4`)
+
+**Given:**
+- A change is in the execution gate with multiple pending ready tasks
+- No enumerated human checkpoint has triggered (no doom-loop, no environmental blocker, no cancellation, no re-entry, no unresolved judgment call)
+
+**When:** A task completes successfully and `adv_task_ready` returns another pending task
+
+**Then:**
+- `/adv-apply` proceeds immediately to the next task's TDD loop
+- No "task complete", "section complete", "progress update", or "shall I continue?" pause is emitted
+- No question tool call is made between tasks
+
+**Apply forbids execution-start approval pause** (`rq-autonomy01.5`)
+
+**Given:**
+- A change has completed planning and is entering the execution gate
+- Judgment-call surfacing (Phase 1.5) has already resolved any pending user input
+
+**When:** `/adv-apply` begins the TDD work loop
+
+**Then:**
+- No "Begin work / Modify criteria / Cancel" prompt or equivalent execution-start approval is emitted
+- The first ready task's TDD phase starts directly
+
 ---
 
 ### Validated In-Scope Findings Resolved In-Change

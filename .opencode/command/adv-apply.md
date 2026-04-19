@@ -119,7 +119,7 @@ Generate CONTRACT ACTIVE banner from tool outputs:
 - Progress: done/total
 - RETRY POLICY: SEMANTIC 3 retries, TRANSIENT 1 retry + 5s delay, ENVIRONMENTAL immediate escalation
 
-Ask via `question` tool: Begin work (Recommended), Modify criteria, Cancel.
+Proceed directly to Phase 3 — do NOT ask for approval to begin work. Execution-start approval is NOT a sanctioned human checkpoint under `rq-autonomy01`. Judgment calls have already been surfaced in Phase 1.5; scope and criteria were signed off at the Agreement gate.
 
 ---
 ## Retry Protocol
@@ -218,7 +218,25 @@ EXPECTED OUTPUT: implement the task, run tests, report pass/fail result
 
 **3d. Complete:** `adv_task_update status: "done"` → show evidence
 
-**3e. Refresh:** `adv_task_ready` → next task
+**3e. Loop:** `adv_task_ready` → if ready tasks remain, **GOTO 3a**. REPEAT until the ready queue is empty.
+
+You MUST continue to the next ready task without pausing. You MUST NOT pause between tasks, between sections, or after progress displays. Auto-continue is mandatory per `rq-autonomy01` / `rq-autonomy01.4`.
+
+#### Allowed exit conditions (ONLY these end the loop)
+1. `adv_task_ready` returns empty (all ready tasks done) → advance to Phase 5 verification.
+2. Doom-loop triggered (3 failed SEMANTIC retries on a task) → `[ADV:DOOM_LOOP]` + user `question`.
+3. ENVIRONMENTAL blocker (missing dep, config, credential) → escalate via `question`.
+4. User-requested cancellation → `adv_task_cancel` flow.
+5. Scope expansion requiring re-entry → `adv_change_reenter` flow.
+6. New judgment call surfaces mid-execution that was not captured in Phase 1.5 → resurface via `question`.
+
+#### Invalid stop reasons (MUST NOT pause for any of these)
+- "Task complete" / "Section complete" / "Phase complete"
+- "Progress update" / "Status report" / "Let me summarize"
+- Asking whether to continue, proceed, or move on between tasks
+- "Good stopping point" / "Natural checkpoint"
+- Any reason not enumerated in the Allowed exit conditions above
+
 ### Incremental Verification
 After EACH task: run build/tests/lint → if fails: retry protocol → only mark complete after pass.
 

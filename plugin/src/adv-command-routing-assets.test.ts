@@ -119,6 +119,34 @@ describe("ADV command routing assets", () => {
     expect(content).toContain("inline_required");
   });
 
+  test("adv-apply.md does NOT contain execution-start approval pause", () => {
+    // Ralph-loop restoration: Phase 2 must not prompt user before TDD loop begins.
+    // See rq-autonomy01.5 — execution-start approval pause is forbidden.
+    const content = readFileSync(join(COMMAND_DIR, "adv-apply.md"), "utf8");
+    expect(content).not.toMatch(
+      /Begin work[^\n]*Recommended[^\n]*Modify criteria[^\n]*Cancel/,
+    );
+  });
+
+  test("adv-apply.md Task Flow declares explicit loop directive", () => {
+    // Ralph-loop restoration: step 3e must use REPEAT/GOTO, not weak "next task" prose.
+    const content = readFileSync(join(COMMAND_DIR, "adv-apply.md"), "utf8");
+    expect(content).toMatch(/GOTO 3a|REPEAT until|REPEAT 3a/);
+  });
+
+  test("adv-apply.md declares Allowed exit conditions whitelist", () => {
+    // Ralph-loop restoration: only enumerated rq-autonomy01 checkpoints may exit loop.
+    const content = readFileSync(join(COMMAND_DIR, "adv-apply.md"), "utf8");
+    expect(content).toMatch(/Allowed exit conditions/i);
+  });
+
+  test("adv-apply.md declares Invalid stop reasons blacklist", () => {
+    // Ralph-loop restoration: "task complete", "section complete",
+    // "progress update", "shall I continue?" are NOT valid stop reasons.
+    const content = readFileSync(join(COMMAND_DIR, "adv-apply.md"), "utf8");
+    expect(content).toMatch(/Invalid stop reasons/i);
+  });
+
   test("adv-review.md uses structured context packet (not one-liner)", () => {
     const content = readFileSync(join(COMMAND_DIR, "adv-review.md"), "utf8");
     expect(content).toContain("Review Context Packet");

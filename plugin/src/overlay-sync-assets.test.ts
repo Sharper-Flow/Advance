@@ -228,7 +228,9 @@ describe("overlay sync script support", () => {
       expect(patched.plugin).toContain(join(REPO_ROOT, "plugin"));
       expect(patched.plugin).not.toContain(join(tempWorktree, "plugin"));
 
-      expect(patched.instructions).toContain(join(REPO_ROOT, "ADV_INSTRUCTIONS.md"));
+      expect(patched.instructions).toContain(
+        join(REPO_ROOT, "ADV_INSTRUCTIONS.md"),
+      );
       expect(patched.instructions).toContain(
         join(REPO_ROOT, ".opencode", "instructions", "cost-governance.md"),
       );
@@ -239,15 +241,11 @@ describe("overlay sync script support", () => {
         join(tempWorktree, ".opencode", "instructions", "cost-governance.md"),
       );
     } finally {
-      spawnSync(
-        "git",
-        ["worktree", "remove", "--force", tempWorktree],
-        {
-          cwd: REPO_ROOT,
-          env: { ...process.env, CI: "true" },
-          encoding: "utf8",
-        },
-      );
+      spawnSync("git", ["worktree", "remove", "--force", tempWorktree], {
+        cwd: REPO_ROOT,
+        env: { ...process.env, CI: "true" },
+        encoding: "utf8",
+      });
       rmSync(tempWorktreeRoot, { recursive: true, force: true });
       rmSync(tempHome, { recursive: true, force: true });
     }

@@ -123,6 +123,26 @@ describe("Touched-scope quality ownership", () => {
     expect(content).toMatch(/touched-scope/i);
   });
 
+  test("adv-apply.md forbids 'Shall I continue' prompt between tasks", () => {
+    // Ralph-loop restoration: agent must not pause to ask permission
+    // between task boundaries. See rq-autonomy01.4.
+    const content = readAsset(join(COMMAND_DIR, "adv-apply.md"));
+    expect(content).not.toMatch(/Shall I continue/i);
+  });
+
+  test("adv-apply.md forbids 'Task N of M complete, continue?' pattern", () => {
+    // Ralph-loop restoration: progress-display pauses are forbidden.
+    const content = readAsset(join(COMMAND_DIR, "adv-apply.md"));
+    expect(content).not.toMatch(/Task \d+ of \d+ complete[^\n]*continue/i);
+  });
+
+  test("adv-apply.md declares explicit MUST-continue directive", () => {
+    // Ralph-loop restoration: positive affirmation that loop auto-continues
+    // through task boundaries until allowed exit condition reached.
+    const content = readAsset(join(COMMAND_DIR, "adv-apply.md"));
+    expect(content).toMatch(/MUST continue|MUST NOT pause/);
+  });
+
   test("ownership boundary prevents repo-wide expansion", () => {
     const content = readAsset(INSTRUCTIONS);
     expect(content).toMatch(/Do NOT expand into implicit repo-wide refactors/);
