@@ -6,6 +6,9 @@
 
 import { Database } from "bun:sqlite";
 import { statSync } from "fs";
+import { createLogger } from "../utils/debug-log";
+
+const logger = createLogger("health");
 
 interface HealthCheckResult {
   healthy: boolean;
@@ -64,7 +67,7 @@ export function checkpointWAL(db: Database): void {
     db.exec("PRAGMA wal_checkpoint(PASSIVE)");
   } catch (e) {
     // Non-fatal if checkpoint fails
-    console.warn("WAL checkpoint failed:", (e as Error).message);
+    logger.warn(`WAL checkpoint failed: ${(e as Error).message}`);
   }
 }
 
@@ -129,7 +132,7 @@ export function closeDatabase(db: Database): void {
     checkpointWAL(db);
     db.close();
   } catch (e) {
-    console.error("Error closing database:", (e as Error).message);
+    logger.error(`Error closing database: ${(e as Error).message}`);
     db.close(); // Force close
   }
 }

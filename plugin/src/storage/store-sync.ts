@@ -18,6 +18,9 @@ import { statSync } from "node:fs";
 import type { Change } from "../types";
 import { loadAllSpecs, loadSpec, loadAllChanges, loadChange } from "./json";
 import { checkpointWAL, shouldCheckpoint } from "./health";
+import { createLogger } from "../utils/debug-log";
+
+const logger = createLogger("sync");
 import type { StoreContext } from "./store-context";
 import { listProjectWisdom } from "./project-wisdom";
 
@@ -105,7 +108,7 @@ async function syncSingleFile<T>(
     attrs = { mtime_ms: Math.floor(s.mtimeMs), size: s.size, inode: s.ino };
   } catch (err) {
     if ((err as NodeJS.ErrnoException).code !== "ENOENT") {
-      console.warn("[adv:sync] Unexpected stat error:", (err as Error).message);
+      logger.warn(`Unexpected stat error: ${(err as Error).message}`);
     }
     return "unavailable";
   }
@@ -181,7 +184,7 @@ export function ensureAllSpecsSynced(ctx: StoreContext): Promise<void> {
         attrs = { mtime_ms: Math.floor(s.mtimeMs), size: s.size, inode: s.ino };
       } catch (err) {
         if ((err as NodeJS.ErrnoException).code !== "ENOENT") {
-          console.warn("[adv:sync] Spec stat failed:", jsonPath);
+          logger.warn(`Spec stat failed: ${jsonPath}`);
         }
         attrs = undefined;
       }
@@ -280,7 +283,7 @@ export async function ensureAllChangesSynced(ctx: StoreContext): Promise<void> {
         attrs = { mtime_ms: Math.floor(s.mtimeMs), size: s.size, inode: s.ino };
       } catch (err) {
         if ((err as NodeJS.ErrnoException).code !== "ENOENT") {
-          console.warn("[adv:sync] Change stat failed:", jsonPath);
+          logger.warn(`Change stat failed: ${jsonPath}`);
         }
         attrs = undefined;
       }
@@ -351,9 +354,8 @@ export async function ensureProjectWisdomSynced(
     ctx.projectWisdomSynced = true;
   } catch (err) {
     // Project wisdom sync is best-effort — don't fail the operation
-    console.warn(
-      "[adv:sync] Project wisdom sync failed:",
-      (err as Error).message,
+    logger.warn(
+      `Project wisdom sync failed: ${(err as Error).message}`,
     );
     ctx.projectWisdomSynced = false; // allow retry on next call
   }

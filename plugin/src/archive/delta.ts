@@ -5,7 +5,9 @@
  */
 
 import type { Spec, Delta } from "../types";
-import { appendDebugLog } from "../utils/debug-log";
+import { appendDebugLog, createLogger } from "../utils/debug-log";
+
+const logger = createLogger("delta");
 import type { DeltaApplicationResult, SpecUpdateResult } from "./types";
 
 /**
@@ -201,7 +203,7 @@ function logDeltaResult(
   };
 
   if (!result.success) {
-    console.warn("[adv:delta]", { ...base, error: result.error });
+    logger.warn(`delta failed: ${JSON.stringify({ ...base, error: result.error })}`);
     return;
   }
 

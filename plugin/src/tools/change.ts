@@ -18,6 +18,9 @@ import {
 } from "../types";
 import type { Store } from "../storage/store";
 import { validateChange } from "../validator";
+import { createLogger } from "../utils/debug-log";
+
+const logger = createLogger("change");
 import { runClarifyReadinessChecks } from "../validator/clarify-readiness";
 import { loadProposalWithFallback, fileExists } from "../storage/json";
 import { archiveChange } from "../archive";
@@ -256,9 +259,8 @@ export const changeTools = {
               }
             } catch (err) {
               // Non-fatal: persistence failure doesn't affect the tool response
-              console.warn(
-                "[adv:change] Failed to persist clarify findings:",
-                (err as Error).message,
+              logger.warn(
+                `Failed to persist clarify findings: ${(err as Error).message}`,
               );
             }
           }
@@ -278,9 +280,8 @@ export const changeTools = {
               }
             } catch (err) {
               // Non-fatal
-              console.warn(
-                "[adv:change] Failed to resolve clarify findings:",
-                (err as Error).message,
+              logger.warn(
+                `Failed to resolve clarify findings: ${(err as Error).message}`,
               );
             }
           }

@@ -29,6 +29,13 @@ import {
   saveChange,
   getProjectPaths,
 } from "./json";
+import { createLogger } from "../utils/debug-log";
+import {
+  recoverCorruptedDatabase,
+  isCorruptionError,
+} from "./corruption-recovery";
+
+const logger = createLogger("store");
 
 // Re-export public types and helpers
 export {
@@ -76,32 +83,38 @@ export async function createLegacyStore(
   const dbPath = join(paths.db, "spec.db");
   let sqlite: SQLiteStore = createSQLiteStore(dbPath);
 
-  // Health check with corruption recovery
+  // Health check with bounded corruption recovery
   try {
     initDatabase(sqlite.db);
   } catch (e) {
-    const error = e as Error;
-    const isCorruption =
-      error.message.includes("corrupted") ||
-      error.message.includes("malformed") ||
-      error.message.includes("corrupt");
-
-    if (isCorruption) {
-      console.warn(
-        `⚠️  Database corrupted: ${error.message}\n` +
-          "   Deleting corrupted database and rebuilding from JSON...",
-      );
-
-      const { rm } = await import("fs/promises");
-      await rm(dbPath, { force: true });
-      await rm(`${dbPath}-wal`, { force: true });
-      await rm(`${dbPath}-shm`, { force: true });
-
-      sqlite = createSQLiteStore(dbPath);
-      initDatabase(sqlite.db);
-    } else {
+    const error = e instanceof Error ? e : new Error(String(e));
+    if (!isCorruptionError(error)) {
       throw e;
     }
+
+    logger.warn(
+      `Database corrupted (${error.message}); rebuilding from JSON with bounded retry`,
+    );
+
+    const { rm } = await import("fs/promises");
+    await recoverCorruptedDatabase({
+      maxAttempts: 2,
+      backoffMs: 100,
+      reset: async () => {
+        try {
+          sqlite.close();
+        } catch {
+          // best-effort — the old handle may already be broken
+        }
+        await rm(dbPath, { force: true });
+        await rm(`${dbPath}-wal`, { force: true });
+        await rm(`${dbPath}-shm`, { force: true });
+      },
+      attempt: async () => {
+        sqlite = createSQLiteStore(dbPath);
+        initDatabase(sqlite.db);
+      },
+    });
   }
 
   // Create shared context

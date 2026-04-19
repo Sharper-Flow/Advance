@@ -6,15 +6,20 @@
  */
 
 import * as fs from "fs";
-import { execSync } from "child_process";
+import { execSync, execFileSync } from "child_process";
 import type { StatusMarker } from "../types";
-import { ADV_DEBUG_ENABLED, appendDebugLog } from "../utils/debug-log";
+import {
+  ADV_DEBUG_ENABLED,
+  appendDebugLog,
+  createLogger,
+} from "../utils/debug-log";
 
 // =============================================================================
 // Debug Logging
 // =============================================================================
 
 const DEBUG = ADV_DEBUG_ENABLED;
+const logger = createLogger("terminal");
 
 /**
  * Log debug message to file.
@@ -24,12 +29,15 @@ const logToFile = (msg: string): void => {
 };
 
 /**
- * Log debug message.
+ * Log debug message to both file and stderr when ADV_DEBUG=1.
+ *
+ * Uses `logger.error` so the same structured logger carries terminal
+ * debug output; the DEBUG gate keeps output quiet in normal runs.
  */
 const log = (msg: string): void => {
   if (DEBUG) {
     logToFile(msg);
-    console.error(`[ADV:terminal] ${msg}`);
+    logger.error(msg);
   }
 };
 
@@ -164,10 +172,11 @@ const setTitle = (title: string): void => {
       writeToTty(paneTty, sequence);
     }
 
-    // Also update tmux window name
+    // Also update tmux window name — use argv-based execFileSync so the
+    // title bypasses shell parsing entirely. No escaping needed for
+    // backtick, `$`, backslash, newline, or quotes.
     try {
-      const safeTitle = title.replace(/"/g, '\\"').replace(/\$/g, "\\$");
-      execSync(`tmux rename-window "${safeTitle}"`, {
+      execFileSync("tmux", ["rename-window", title], {
         stdio: "ignore",
         timeout: 1000,
       });
@@ -190,6 +199,12 @@ const setTitle = (title: string): void => {
     }
   }
 };
+
+/**
+ * Test-only export of setTitle (underscore-prefixed to signal
+ * non-public API). See terminal.test.ts.
+ */
+export const _setTitle = setTitle;
 
 /**
  * Reset terminal title.

@@ -6,10 +6,26 @@
  * that bubble up to OpenCode's UI.
  *
  * This ensures the AI sees the error and can retry with corrected arguments.
+ *
+ * Enrichment: tool failures are additively tagged with an `errorClass` and
+ * optional `{ workdir, path, operation }` context derived from the call
+ * arguments or provided by the binder. Existing top-level keys (`error`,
+ * `tool`, `hint`, `received_args`) are preserved.
  */
 
 import { ZodError } from "zod";
 import { formatToolOutput } from "./tool-output";
+
+/**
+ * Optional enrichment context. All fields are additive — no existing
+ * consumer is expected to depend on their shape.
+ */
+export interface ErrorContext {
+  errorClass?: string;
+  workdir?: string;
+  path?: string;
+  operation?: string;
+}
 
 /**
  * Format a Zod validation error into a human-readable message
@@ -23,14 +39,85 @@ export function formatZodError(error: ZodError): string {
 }
 
 /**
+ * Classify a thrown value into a short, stable class name.
+ *
+ *   ZodError instances           → "ZodError"
+ *   Error subclasses             → the subclass name (TypeError, etc.)
+ *   Plain `Error`                → "Error"
+ *   Any non-Error thrown value   → "Unknown"
+ */
+export function deriveErrorClass(error: unknown): string {
+  if (error instanceof ZodError) return "ZodError";
+  if (error instanceof Error) {
+    return error.name || "Error";
+  }
+  return "Unknown";
+}
+
+/**
+ * Best-effort extraction of diagnostic context from call arguments.
+ *
+ * Recognised keys on `args`:
+ *   - `workdir`   → `workdir`
+ *   - `path`      → `path`
+ *   - `filePath`  → `path`   (alias)
+ *   - `directory` → `workdir` (only when workdir is absent)
+ *
+ * `extra` overrides derived values and may supply fields that args cannot
+ * (e.g. `operation`). Non-string values are ignored. `null` / `undefined`
+ * args produce an empty context.
+ */
+export function deriveContextFromArgs(
+  args: unknown,
+  extra?: ErrorContext,
+): ErrorContext {
+  const ctx: ErrorContext = {};
+
+  if (args !== null && typeof args === "object") {
+    const a = args as Record<string, unknown>;
+    if (typeof a.workdir === "string") {
+      ctx.workdir = a.workdir;
+    } else if (typeof a.directory === "string") {
+      ctx.workdir = a.directory;
+    }
+    if (typeof a.path === "string") {
+      ctx.path = a.path;
+    } else if (typeof a.filePath === "string") {
+      ctx.path = a.filePath;
+    }
+  }
+
+  if (extra) {
+    if (extra.errorClass !== undefined) ctx.errorClass = extra.errorClass;
+    if (extra.workdir !== undefined) ctx.workdir = extra.workdir;
+    if (extra.path !== undefined) ctx.path = extra.path;
+    if (extra.operation !== undefined) ctx.operation = extra.operation;
+  }
+
+  return ctx;
+}
+
+/**
  * Format any error into a JSON response suitable for AI agents.
  * This ensures errors are returned as content, not thrown as exceptions.
+ *
+ * `context` is merged additively on top of values derived from `args` so
+ * callers can inject static data (e.g. a default `workdir` or
+ * `operation`) without losing auto-derived fields.
  */
 export function formatErrorResponse(
   error: unknown,
   toolName: string,
   args?: unknown,
+  context?: ErrorContext,
 ): string {
+  const errorClass = deriveErrorClass(error);
+  const derived = deriveContextFromArgs(args, context);
+  const enrichment: Record<string, unknown> = { errorClass };
+  if (derived.workdir !== undefined) enrichment.workdir = derived.workdir;
+  if (derived.path !== undefined) enrichment.path = derived.path;
+  if (derived.operation !== undefined) enrichment.operation = derived.operation;
+
   // Handle Zod schema validation errors specially
   if (error instanceof ZodError) {
     return formatToolOutput({
@@ -38,6 +125,7 @@ export function formatErrorResponse(
       tool: toolName,
       hint: "Please check your arguments and try again.",
       received_args: args,
+      ...enrichment,
     });
   }
 
@@ -50,6 +138,7 @@ export function formatErrorResponse(
         formatTemporalErrorHint(error.message) ??
         "An unexpected error occurred. Please check your arguments.",
       ...(args !== undefined && { received_args: args }),
+      ...enrichment,
     });
   }
 
@@ -60,6 +149,7 @@ export function formatErrorResponse(
     tool: toolName,
     hint:
       formatTemporalErrorHint(unknownMessage) ?? "An unknown error occurred.",
+    ...enrichment,
   });
 }
 
@@ -122,23 +212,37 @@ function applyOutputBudget(output: string): string {
 }
 
 /**
+ * Optional context extractor for binder-time enrichment.
+ * Receives the raw args (and for simple tools the binder extras) and
+ * returns additional context to merge into the error envelope.
+ */
+export type ContextExtractor<TArgs> = (args: TArgs) => ErrorContext;
+export type ContextExtractorSimple<TArgs, TExtra> = (
+  args: TArgs,
+  extra: TExtra,
+) => ErrorContext;
+
+/**
  * Wraps an execute function to catch all errors and return them as JSON content.
  * Also enforces output budget via formatToolOutput (compact JSON + truncation envelope).
  *
  * @param fn - The original execute function
  * @param toolName - Name of the tool (for error context)
+ * @param contextExtractor - Optional hook providing static or derived enrichment context
  * @returns Wrapped function that never throws
  */
 export function safeExecute<TArgs, TContext>(
   fn: (args: TArgs, context: TContext) => Promise<string>,
   toolName: string,
+  contextExtractor?: ContextExtractor<TArgs>,
 ): (args: TArgs, context: TContext) => Promise<string> {
   return async (args: TArgs, context: TContext): Promise<string> => {
     try {
       const result = await fn(args, context);
       return applyOutputBudget(result);
     } catch (error) {
-      return formatErrorResponse(error, toolName, args);
+      const extra = contextExtractor ? contextExtractor(args) : undefined;
+      return formatErrorResponse(error, toolName, args, extra);
     }
   };
 }
@@ -146,17 +250,40 @@ export function safeExecute<TArgs, TContext>(
 /**
  * Creates a version of safeExecute that works with tools that don't have a context parameter
  * (like agenda tools that just take directory).
+ *
+ * For agenda-style tools, the binder's `dir` and optional `path` parameters
+ * are surfaced by default as `workdir` and `path` in error responses,
+ * since they carry diagnostic value that would otherwise be lost.
  */
 export function safeExecuteSimple<TArgs, TExtra>(
   fn: (args: TArgs, extra: TExtra) => Promise<string>,
   toolName: string,
-): (args: TArgs, extra: TExtra) => Promise<string> {
-  return async (args: TArgs, extra: TExtra): Promise<string> => {
+  contextExtractor?: ContextExtractorSimple<TArgs, TExtra>,
+): (args: TArgs, extra: TExtra, extraPath?: unknown) => Promise<string> {
+  return async (
+    args: TArgs,
+    extra: TExtra,
+    extraPath?: unknown,
+  ): Promise<string> => {
     try {
       const result = await fn(args, extra);
       return applyOutputBudget(result);
     } catch (error) {
-      return formatErrorResponse(error, toolName, args);
+      const derivedExtra: ErrorContext = {};
+      if (typeof extra === "string") {
+        derivedExtra.workdir = extra;
+      }
+      if (typeof extraPath === "string") {
+        derivedExtra.path = extraPath;
+      }
+      const provided = contextExtractor
+        ? contextExtractor(args, extra)
+        : undefined;
+      const merged: ErrorContext = {
+        ...derivedExtra,
+        ...(provided ?? {}),
+      };
+      return formatErrorResponse(error, toolName, args, merged);
     }
   };
 }

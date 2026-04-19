@@ -11,6 +11,9 @@ import { SpecSchema, ChangeSchema, ProjectConfigSchema } from "../types";
 import type { Spec, Change, ProjectConfig } from "../types";
 import { ZodError } from "zod";
 import { atomicWriteFile } from "../utils/fs";
+import { createLogger } from "../utils/debug-log";
+
+const logger = createLogger("json");
 
 // =============================================================================
 // Result Types
@@ -181,9 +184,8 @@ export async function loadProjectConfig(
     // rest of the plugin (tools, events, status markers) remains available.
     // Use loadProjectConfigWithDiagnostics for structured error reporting.
     if (error instanceof ZodError) {
-      console.warn(
-        `[ADV] project.json failed schema validation at ${configPath}; ` +
-          `continuing with defaults. Run adv-status for details.`,
+      logger.warn(
+        `project.json failed schema validation at ${configPath}; continuing with defaults. Run adv-status for details.`,
       );
       return null;
     }
@@ -283,9 +285,8 @@ export async function listSpecDirs(specsDir: string): Promise<string[]> {
     return entries.filter((e) => e.isDirectory()).map((e) => e.name);
   } catch (err) {
     if ((err as NodeJS.ErrnoException).code !== "ENOENT") {
-      console.warn(
-        "[adv:json] Unexpected error reading specs directory:",
-        (err as Error).message,
+      logger.warn(
+        `Unexpected error reading specs directory: ${(err as Error).message}`,
       );
     }
     return [];
@@ -361,9 +362,8 @@ export async function listChangeDirs(changesDir: string): Promise<string[]> {
     return entries.filter((e) => e.isDirectory()).map((e) => e.name);
   } catch (err) {
     if ((err as NodeJS.ErrnoException).code !== "ENOENT") {
-      console.warn(
-        "[adv:json] Unexpected error reading changes directory:",
-        (err as Error).message,
+      logger.warn(
+        `Unexpected error reading changes directory: ${(err as Error).message}`,
       );
     }
     return [];
@@ -495,9 +495,8 @@ export async function loadProposalWithFallback(
     // File exists but is empty — fall through to scaffold
   } catch (err) {
     if ((err as NodeJS.ErrnoException).code !== "ENOENT") {
-      console.warn(
-        "[adv:json] Unexpected error reading proposal:",
-        (err as Error).message,
+      logger.warn(
+        `Unexpected error reading proposal: ${(err as Error).message}`,
       );
     }
     // File missing or unreadable — fall through to scaffold

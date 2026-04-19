@@ -28,7 +28,7 @@ import { consumeHandoff } from "./storage/handoff";
 import { enforceBashPolicy } from "./guards/bash";
 import { enforceTaskPolicy } from "./guards/task";
 import { createToolMap, createDegradedToolMap } from "./tool-registry";
-import { appendDebugLog } from "./utils/debug-log";
+import { appendDebugLog, createLogger } from "./utils/debug-log";
 
 /**
  * Parse JSON from a (potentially banner-wrapped) tool output string.
@@ -104,6 +104,7 @@ const resolveStatus = (s: PluginState): StatusMarker => {
 };
 
 const debugLog = (msg: string): void => appendDebugLog("index", msg);
+const hooksLogger = createLogger("hooks");
 
 export const AdvancePlugin: Plugin = async ({
   directory,
@@ -325,9 +326,8 @@ export const AdvancePlugin: Plugin = async ({
             }
           } catch (err) {
             // Outer parse error — unexpected if banner format changes
-            console.warn(
-              "[adv:hooks] Failed to parse adv_change_create output:",
-              (err as Error).message,
+            hooksLogger.warn(
+              `Failed to parse adv_change_create output: ${(err as Error).message}`,
             );
           }
         }

@@ -8,6 +8,94 @@ import { formatToolOutput } from "../utils/tool-output";
 
 const execAsync = promisify(exec);
 
+/**
+ * Default bounded-execution limits for `adv_run_test`.
+ *
+ * These protect the agent session from runaway user test commands:
+ *  - `DEFAULT_TEST_TIMEOUT_MS` caps wall-clock runtime via SIGTERM.
+ *  - `DEFAULT_TEST_MAX_BUFFER` caps combined stdout/stderr bytes.
+ *
+ * Both are Node-compatible `child_process.exec` options. They are set
+ * internally (not via tool schema) to keep the public tool contract
+ * unchanged while still bounding execution.
+ */
+export const DEFAULT_TEST_TIMEOUT_MS = 30_000;
+export const DEFAULT_TEST_MAX_BUFFER = 10 * 1024 * 1024;
+
+interface ExecBounds {
+  timeoutMs?: number;
+  maxBuffer?: number;
+}
+
+interface ExecError {
+  stdout?: string;
+  stderr?: string;
+  /**
+   * `code` may be a numeric exit code (e.g. `1`) or a Node error code
+   * string (e.g. `ERR_CHILD_PROCESS_STDIO_MAXBUFFER`), depending on how
+   * the exec failed.
+   */
+  code?: number | string;
+  signal?: NodeJS.Signals | null;
+  killed?: boolean;
+  message?: string;
+}
+
+interface ExecResult {
+  stdout: string;
+  stderr: string;
+  exitCode: number;
+  timedOut: boolean;
+  maxBufferExceeded: boolean;
+}
+
+const runCommand = async (
+  command: string,
+  cwd: string,
+  bounds: Required<ExecBounds>,
+): Promise<ExecResult> => {
+  try {
+    const { stdout, stderr } = await execAsync(command, {
+      cwd,
+      timeout: bounds.timeoutMs,
+      maxBuffer: bounds.maxBuffer,
+    });
+    return {
+      stdout,
+      stderr,
+      exitCode: 0,
+      timedOut: false,
+      maxBufferExceeded: false,
+    };
+  } catch (e: unknown) {
+    const err = e as ExecError;
+    const msg = typeof err.message === "string" ? err.message : String(err);
+    const codeNum = typeof err.code === "number" ? err.code : 1;
+
+    // Timeout classification: exec sends SIGTERM (default killSignal) on
+    // timeout; `killed: true` or `signal: "SIGTERM"` both indicate it.
+    const timedOut =
+      err.killed === true ||
+      err.signal === "SIGTERM" ||
+      err.signal === "SIGKILL";
+
+    // maxBuffer classification: surfaced either via the dedicated error
+    // code `ERR_CHILD_PROCESS_STDIO_MAXBUFFER` or an explicit "maxBuffer"
+    // phrase in the message.
+    const maxBufferExceeded =
+      err.code === "ERR_CHILD_PROCESS_STDIO_MAXBUFFER" ||
+      /maxBuffer/i.test(msg);
+
+    return {
+      stdout: err.stdout ?? "",
+      stderr: err.stderr ?? "",
+      exitCode: codeNum,
+      timedOut,
+      maxBufferExceeded,
+    };
+  }
+};
+
 export const testTools = {
   adv_run_test: {
     description:
@@ -34,6 +122,7 @@ export const testTools = {
       },
       store: Store,
       defaultWorkdir: string,
+      bounds?: ExecBounds,
     ) => {
       const task = await store.tasks.get(args.taskId);
       if (!task) {
@@ -41,21 +130,33 @@ export const testTools = {
       }
 
       const cwd = args.workdir || defaultWorkdir;
-      let output: string;
-      let exitCode: number;
+      const effective: Required<ExecBounds> = {
+        timeoutMs: bounds?.timeoutMs ?? DEFAULT_TEST_TIMEOUT_MS,
+        maxBuffer: bounds?.maxBuffer ?? DEFAULT_TEST_MAX_BUFFER,
+      };
 
-      try {
-        const { stdout, stderr } = await execAsync(args.command, { cwd });
-        output = stdout + "\n" + stderr;
-        exitCode = 0;
-      } catch (e: unknown) {
-        const err = e as { stdout?: string; stderr?: string; code?: number };
-        output = (err.stdout || "") + "\n" + (err.stderr || "");
-        exitCode = err.code || 1;
+      const { stdout, stderr, exitCode, timedOut, maxBufferExceeded } =
+        await runCommand(args.command, cwd, effective);
+
+      let rawOutput = `${stdout}\n${stderr}`.trim();
+      if (timedOut) {
+        rawOutput = [
+          `[adv_run_test] Command timed out after ${effective.timeoutMs}ms: ${args.command}`,
+          rawOutput,
+        ]
+          .filter(Boolean)
+          .join("\n");
+      } else if (maxBufferExceeded) {
+        rawOutput = [
+          `[adv_run_test] Command exceeded maxBuffer (${effective.maxBuffer} bytes): ${args.command}`,
+          rawOutput,
+        ]
+          .filter(Boolean)
+          .join("\n");
       }
 
       const maxOutputLen = 2000;
-      let truncatedOutput = output.trim();
+      let truncatedOutput = rawOutput;
       if (truncatedOutput.length > maxOutputLen) {
         truncatedOutput =
           truncatedOutput.substring(0, maxOutputLen) + "... (truncated)";
@@ -69,6 +170,10 @@ export const testTools = {
           phase: args.phase,
           exitCode,
           output: truncatedOutput,
+          command: args.command,
+          timedOut,
+          maxBufferExceeded,
+          ...(timedOut && { timeoutMs: effective.timeoutMs }),
         });
       }
 
@@ -92,6 +197,10 @@ export const testTools = {
         phase: args.phase,
         recordedPhase: updatedTask?.tdd_phase,
         output: truncatedOutput,
+        command: args.command,
+        timedOut,
+        maxBufferExceeded,
+        ...(timedOut && { timeoutMs: effective.timeoutMs }),
       });
     },
   },

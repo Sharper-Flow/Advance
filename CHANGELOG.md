@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+#### Plugin Observability & Reliability Hardening (`bundle8ValidatedObservability`)
+
+Bundle of 8 validated quality gaps closed in one coherent hardening pass.
+
+- **Typed structured logger** (`plugin/src/utils/debug-log.ts`) — adds `LogLevel`, `LogMeta`, and `createLogger(scope)` returning `{ debug, info, warn, error }`. `debug` / `info` route to the `ADV_DEBUG=1` file sink only; `warn` / `error` emit to `console.warn` / `console.error` in normal runs and also land in the debug file sink. `appendDebugLog(scope, msg)` retained as a compatibility shim. ~15 `console.warn` / `console.error` call sites migrated across `plugin-init.ts`, `index.ts`, `storage/{json,store,store-sync,sqlite,health}.ts`, `archive/delta.ts`, `tools/change.ts`, `events/terminal.ts`.
+- **Bounded `adv_run_test` execution** (`plugin/src/tools/test.ts`) — new `DEFAULT_TEST_TIMEOUT_MS` (30 s) and `DEFAULT_TEST_MAX_BUFFER` (10 MB) constants with classification of `timedOut` / `maxBufferExceeded` / regular non-zero exit. Timeout responses include command + effective duration. Tool schema unchanged.
+- **Enriched tool error envelope** (`plugin/src/utils/safe-execute.ts`) — `formatErrorResponse` additively surfaces `errorClass` (via `deriveErrorClass`) and optional `workdir` / `path` / `operation` derived from call args (via `deriveContextFromArgs`). `safeExecute` / `safeExecuteSimple` accept optional context extractors; `tool-registry.ts::bindToolSimple` threads `dir` / `path` so agenda tools auto-enrich. Existing keys preserved.
+- **Per-step migration transactions** (`plugin/src/storage/sqlite.ts`) — new `runMigrationStep(db, name, fn)` helper wraps each migration body in `db.transaction(fn)()` for commit-on-success / rollback-on-failure. All 5 migrations (deltas-constraint, changes-constraint, tasks-type, tasks-cancellation-reason, drop-sync-meta) routed through the helper.
+- **Bounded corruption-recovery retry** (`plugin/src/storage/corruption-recovery.ts`) — new module; `recoverCorruptedDatabase({ maxAttempts, backoffMs, reset, attempt, log? })` runs up to 2 attempts with 100 ms backoff, logs every attempt, rethrows on exhaustion. `storage/store.ts::createStore` delegates to it; non-corruption errors still fail fast.
+
+### Security
+
+- **Argv-based tmux rename** (`plugin/src/events/terminal.ts`) — replaced `execSync(\`tmux rename-window "${title}"\`, …)` with `execFileSync("tmux", ["rename-window", title], { stdio: "ignore", timeout: 1000 })`. Backticks, `$`, backslashes, newlines, and quotes in change titles are now passed as data, not shell syntax. Dropped the inline escape regex.
+
+### Tests
+
+- **Direct `storage/health.ts` coverage** — new `plugin/src/storage/health.test.ts` exercises `initDatabase` (healthy + integrity-check corrupt + malformed-disk throw), `checkpointWAL` (success + swallow-and-log), `getWALSize` (missing / present), `shouldCheckpoint` (below / at / above threshold), and `closeDatabase` (clean + force-close branch).
+- **Deterministic lock-contention assertions** (`plugin/src/storage/store.test.ts`) — replaced fixed `setTimeout(r, 100)` polling at both spec- and change-lock tests with a microtask-drain + `Promise.race(savePromise, Promise.resolve("pending"))` probe.
+- **Logger / bounded exec / enrichment / migration / retry / tmux tests** — focused test surfaces added alongside each implementation. Targeted run across 7 touched surfaces: 239/239 green.
+
 ### Added
 
 #### Investment Check-In Governance (v1 — behavioral-only)

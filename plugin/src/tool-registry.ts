@@ -88,13 +88,17 @@ function bindToolSimple<TArgs>(
   dir: string,
   path?: string,
 ) {
+  // Wrap with safeExecuteSimple but pass `dir` as the inner `extra` and
+  // surface `path` via the third "extraPath" slot so enrichment can
+  // include it in error responses.
+  const wrapped = safeExecuteSimple(
+    async (args) => def.execute(args as TArgs, dir, path),
+    name,
+  );
   return registerTool(
     def.description,
     def.args,
-    safeExecuteSimple(
-      async (args) => def.execute(args as TArgs, dir, path),
-      name,
-    ),
+    async (args: unknown) => wrapped(args, dir, path),
   );
 }
 

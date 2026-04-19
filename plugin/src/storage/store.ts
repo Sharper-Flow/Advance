@@ -26,6 +26,10 @@ export {
   buildChangeRecency,
 } from "./store-types";
 
+// Re-export the bounded corruption-recovery helper for test back-compat.
+// Production wiring lives in `store-legacy.ts`; tests import via this name.
+export { recoverCorruptedDatabase as _recoverCorruptedDatabase } from "./corruption-recovery";
+
 import type { Store } from "./store-types";
 
 export async function createStore(

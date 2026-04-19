@@ -15,6 +15,7 @@ import {
   classifyRecency,
   computeLastActivity,
   buildChangeRecency,
+  _recoverCorruptedDatabase,
   type Store,
 } from "./store";
 import { createSQLiteStore, type SQLiteStore } from "./sqlite";
@@ -187,7 +188,19 @@ describe("Store", () => {
           resolved = true;
         });
 
-      await new Promise((r) => setTimeout(r, 100));
+      // Deterministic pending probe: race savePromise against an
+      // immediately-resolved "pending" marker; if the save has already
+      // settled, it would win the race. Flushing a handful of microtask
+      // ticks first gives the lock loop a chance to have attempted (and
+      // failed) at least once.
+      for (let i = 0; i < 5; i++) {
+        await Promise.resolve();
+      }
+      const probe = await Promise.race([
+        savePromise.then(() => "settled" as const),
+        Promise.resolve("pending" as const),
+      ]);
+      expect(probe).toBe("pending");
       expect(resolved).toBe(false);
 
       await release();
@@ -437,7 +450,18 @@ describe("Store", () => {
           resolved = true;
         });
 
-      await new Promise((r) => setTimeout(r, 100));
+      // Deterministic pending probe: race savePromise against an
+      // immediately-resolved "pending" marker after draining a handful
+      // of microtasks. If the save had already settled, the race would
+      // resolve to "settled" instead.
+      for (let i = 0; i < 5; i++) {
+        await Promise.resolve();
+      }
+      const probe = await Promise.race([
+        savePromise.then(() => "settled" as const),
+        Promise.resolve("pending" as const),
+      ]);
+      expect(probe).toBe("pending");
       expect(resolved).toBe(false);
 
       await release();
@@ -1178,5 +1202,91 @@ describe("wisdom SQLite sync (tk-rD2wRJMK)", () => {
       .query("SELECT id FROM wisdom_fts WHERE wisdom_fts MATCH ?")
       .all("circuit breaker") as { id: string }[];
     expect(ftsResults.length).toBeGreaterThan(0);
+  });
+});
+
+describe("_recoverCorruptedDatabase", () => {
+  test("succeeds on first retry when first attempt throws corruption then second succeeds", async () => {
+    let attempts = 0;
+    const attemptLog: string[] = [];
+    const reset = async () => {
+      attemptLog.push("reset");
+    };
+    const attempt = async () => {
+      attempts++;
+      if (attempts === 1) {
+        throw new Error("database disk image is malformed");
+      }
+      // Success on second
+    };
+
+    await _recoverCorruptedDatabase({
+      maxAttempts: 2,
+      backoffMs: 5, // keep test fast
+      reset,
+      attempt,
+    });
+
+    expect(attempts).toBe(2);
+    expect(attemptLog).toEqual(["reset", "reset"]);
+  });
+
+  test("rethrows after exhausting retries when corruption persists", async () => {
+    let attempts = 0;
+    const reset = async () => {};
+    const attempt = async () => {
+      attempts++;
+      throw new Error("database disk image is malformed");
+    };
+
+    await expect(
+      _recoverCorruptedDatabase({
+        maxAttempts: 2,
+        backoffMs: 5,
+        reset,
+        attempt,
+      }),
+    ).rejects.toThrow(/malformed/);
+
+    expect(attempts).toBe(2);
+  });
+
+  test("logs each attempt by number via provided logger", async () => {
+    const logs: string[] = [];
+    const reset = async () => {};
+    const attempt = async () => {
+      throw new Error("malformed");
+    };
+
+    await expect(
+      _recoverCorruptedDatabase({
+        maxAttempts: 2,
+        backoffMs: 1,
+        reset,
+        attempt,
+        log: (msg) => logs.push(msg),
+      }),
+    ).rejects.toThrow();
+
+    expect(logs.length).toBe(2);
+    expect(logs[0]).toMatch(/attempt 1/i);
+    expect(logs[1]).toMatch(/attempt 2/i);
+  });
+
+  test("does nothing when attempt succeeds first try", async () => {
+    let attempts = 0;
+    const reset = async () => {};
+    const attempt = async () => {
+      attempts++;
+    };
+
+    await _recoverCorruptedDatabase({
+      maxAttempts: 2,
+      backoffMs: 5,
+      reset,
+      attempt,
+    });
+
+    expect(attempts).toBe(1);
   });
 });

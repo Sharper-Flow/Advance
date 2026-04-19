@@ -10,6 +10,9 @@ import {
   formatZodError,
   formatErrorResponse,
   truncateOutput,
+  deriveErrorClass,
+  deriveContextFromArgs,
+  type ErrorContext,
 } from "./safe-execute";
 
 describe("safe-execute", () => {
@@ -178,6 +181,163 @@ describe("safe-execute", () => {
       const parsed = JSON.parse(result);
       expect(parsed.error).toBe("File not found");
       expect(parsed.tool).toBe("test_tool");
+    });
+  });
+
+  describe("deriveErrorClass", () => {
+    it("returns 'ZodError' for ZodError instances", () => {
+      const schema = z.object({ a: z.string() });
+      try {
+        schema.parse({ a: 1 });
+      } catch (e) {
+        expect(deriveErrorClass(e)).toBe("ZodError");
+      }
+    });
+
+    it("returns Error.name for standard Error subclasses", () => {
+      expect(deriveErrorClass(new TypeError("boom"))).toBe("TypeError");
+      expect(deriveErrorClass(new RangeError("oops"))).toBe("RangeError");
+      expect(deriveErrorClass(new Error("plain"))).toBe("Error");
+    });
+
+    it("returns 'Unknown' for non-Error thrown values", () => {
+      expect(deriveErrorClass("just a string")).toBe("Unknown");
+      expect(deriveErrorClass(42)).toBe("Unknown");
+      expect(deriveErrorClass(null)).toBe("Unknown");
+      expect(deriveErrorClass(undefined)).toBe("Unknown");
+    });
+  });
+
+  describe("deriveContextFromArgs", () => {
+    it("extracts workdir when present", () => {
+      expect(deriveContextFromArgs({ workdir: "/tmp/x" })).toEqual({
+        workdir: "/tmp/x",
+      });
+    });
+
+    it("extracts path when present", () => {
+      expect(deriveContextFromArgs({ path: "/tmp/p" })).toEqual({
+        path: "/tmp/p",
+      });
+    });
+
+    it("extracts filePath as path", () => {
+      expect(deriveContextFromArgs({ filePath: "/tmp/f" })).toEqual({
+        path: "/tmp/f",
+      });
+    });
+
+    it("extracts directory as workdir when workdir absent", () => {
+      expect(deriveContextFromArgs({ directory: "/tmp/d" })).toEqual({
+        workdir: "/tmp/d",
+      });
+    });
+
+    it("prefers explicit workdir over directory", () => {
+      expect(
+        deriveContextFromArgs({
+          workdir: "/explicit",
+          directory: "/fallback",
+        }),
+      ).toEqual({ workdir: "/explicit" });
+    });
+
+    it("merges extra context over derived context", () => {
+      expect(
+        deriveContextFromArgs(
+          { workdir: "/from-args" },
+          { operation: "createStore", workdir: "/override" },
+        ),
+      ).toEqual({ workdir: "/override", operation: "createStore" });
+    });
+
+    it("ignores non-string values", () => {
+      expect(deriveContextFromArgs({ workdir: 42 })).toEqual({});
+      expect(deriveContextFromArgs({ path: null })).toEqual({});
+    });
+
+    it("returns empty object for null/undefined args", () => {
+      expect(deriveContextFromArgs(null)).toEqual({});
+      expect(deriveContextFromArgs(undefined)).toEqual({});
+    });
+  });
+
+  describe("formatErrorResponse enrichment", () => {
+    it("includes errorClass for ZodError", () => {
+      const schema = z.object({ a: z.string() });
+      try {
+        schema.parse({ a: 1 });
+      } catch (e) {
+        const raw = formatErrorResponse(e, "test_tool", { a: 1 });
+        const parsed = JSON.parse(raw);
+        expect(parsed.errorClass).toBe("ZodError");
+      }
+    });
+
+    it("includes errorClass for standard Error", () => {
+      const raw = formatErrorResponse(
+        new TypeError("nope"),
+        "test_tool",
+      );
+      const parsed = JSON.parse(raw);
+      expect(parsed.errorClass).toBe("TypeError");
+    });
+
+    it("includes errorClass for unknown error", () => {
+      const raw = formatErrorResponse("oops", "test_tool");
+      const parsed = JSON.parse(raw);
+      expect(parsed.errorClass).toBe("Unknown");
+    });
+
+    it("surfaces workdir/path from args for Error", () => {
+      const raw = formatErrorResponse(
+        new Error("fs broke"),
+        "test_tool",
+        { workdir: "/tmp/wd", path: "/tmp/p" },
+      );
+      const parsed = JSON.parse(raw);
+      expect(parsed.workdir).toBe("/tmp/wd");
+      expect(parsed.path).toBe("/tmp/p");
+    });
+
+    it("surfaces explicit context merged with derived context", () => {
+      const raw = formatErrorResponse(
+        new Error("fs broke"),
+        "test_tool",
+        { workdir: "/from-args" },
+        { operation: "createStore" } satisfies ErrorContext,
+      );
+      const parsed = JSON.parse(raw);
+      expect(parsed.workdir).toBe("/from-args");
+      expect(parsed.operation).toBe("createStore");
+    });
+
+    it("preserves existing keys (error, tool, hint, received_args) on ZodError", () => {
+      const schema = z.object({ id: z.string() });
+      try {
+        schema.parse({ id: 123 });
+      } catch (e) {
+        const raw = formatErrorResponse(e, "test_tool", { id: 123 });
+        const parsed = JSON.parse(raw);
+        expect(parsed.error).toContain("Schema validation failed");
+        expect(parsed.tool).toBe("test_tool");
+        expect(parsed.hint).toBeDefined();
+        expect(parsed.received_args).toEqual({ id: 123 });
+      }
+    });
+  });
+
+  describe("safeExecuteSimple context extraction", () => {
+    it("surfaces directory in error response when execute throws", async () => {
+      const fn = async (): Promise<string> => {
+        throw new Error("boom");
+      };
+      const wrapped = safeExecuteSimple(fn, "test_tool");
+      const result = await wrapped({}, "/home/dir", "/opt/file");
+      const parsed = JSON.parse(result);
+      expect(parsed.errorClass).toBe("Error");
+      expect(parsed.workdir).toBe("/home/dir");
+      expect(parsed.path).toBe("/opt/file");
     });
   });
 

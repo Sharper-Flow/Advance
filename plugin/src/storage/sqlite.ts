@@ -9,6 +9,9 @@
 
 import { Database } from "bun:sqlite";
 import type { Spec, Change, Task } from "../types";
+import { createLogger } from "../utils/debug-log";
+
+const logger = createLogger("sqlite");
 
 // =============================================================================
 // Database Schema
@@ -419,6 +422,31 @@ const FTS_ELLIPSIS = "...";
 // =============================================================================
 
 /**
+ * Run a single migration step inside a driver-native transaction.
+ *
+ * The body is invoked via `db.transaction(fn)()`, which commits on
+ * success and rolls back on any thrown error. Failures are logged and
+ * swallowed — migrations are idempotent and the caller continues to the
+ * next step (SQLite is a derived cache; JSON remains the source of
+ * truth).
+ *
+ * Exported for focused test coverage; production callers reach it via
+ * `runMigrations`.
+ */
+export function runMigrationStep(
+  db: Database,
+  name: string,
+  fn: () => void,
+): void {
+  try {
+    const tx = db.transaction(fn);
+    tx();
+  } catch (err) {
+    logger.warn(`Migration ${name} failed: ${(err as Error).message}`);
+  }
+}
+
+/**
  * Run all schema migrations. Safe to call on every DB open.
  * SQLite is a derived cache — all migrations are idempotent.
  */
@@ -427,7 +455,7 @@ function runMigrations(db: Database): void {
   // SQLite doesn't support ALTER TABLE ... ALTER COLUMN, so we recreate
   // the table if the old constraint is present. This is safe because
   // SQLite is a derived cache — data will be re-synced from JSON.
-  try {
+  runMigrationStep(db, "deltas-constraint-rename", () => {
     const tableInfo = db
       .query(
         "SELECT sql FROM sqlite_master WHERE type='table' AND name='deltas'",
@@ -448,12 +476,10 @@ function runMigrations(db: Database): void {
         )
       `);
     }
-  } catch (err) {
-    console.warn("[adv:sqlite] Migration failed:", (err as Error).message);
-  }
+  });
 
   // Migration: update changes CHECK constraint to include 'closed'.
-  try {
+  runMigrationStep(db, "changes-constraint-closed", () => {
     const tableInfo = db
       .query(
         "SELECT sql FROM sqlite_master WHERE type='table' AND name='changes'",
@@ -473,12 +499,10 @@ function runMigrations(db: Database): void {
         )
       `);
     }
-  } catch (err) {
-    console.warn("[adv:sqlite] Migration failed:", (err as Error).message);
-  }
+  });
 
   // Migration: add 'type' column to tasks table.
-  try {
+  runMigrationStep(db, "tasks-type-column", () => {
     const tableInfo = db
       .query(
         "SELECT sql FROM sqlite_master WHERE type='table' AND name='tasks'",
@@ -503,12 +527,10 @@ function runMigrations(db: Database): void {
         )
       `);
     }
-  } catch (err) {
-    console.warn("[adv:sqlite] Migration failed:", (err as Error).message);
-  }
+  });
 
   // Migration: add cancellation_reason column to pre-existing tasks tables.
-  try {
+  runMigrationStep(db, "tasks-cancellation-reason-column", () => {
     const taskCols = db.query("PRAGMA table_info(tasks)").all() as Array<{
       name: string;
     }>;
@@ -516,12 +538,10 @@ function runMigrations(db: Database): void {
     if (!hasCol) {
       db.exec("ALTER TABLE tasks ADD COLUMN cancellation_reason TEXT");
     }
-  } catch (err) {
-    console.warn("[adv:sqlite] Migration failed:", (err as Error).message);
-  }
+  });
 
   // Migration: remove legacy sync_meta table.
-  try {
+  runMigrationStep(db, "drop-legacy-sync-meta", () => {
     const hasSyncMeta = db
       .query(
         "SELECT name FROM sqlite_master WHERE type='table' AND name='sync_meta'",
@@ -530,9 +550,7 @@ function runMigrations(db: Database): void {
     if (hasSyncMeta) {
       db.exec("DROP TABLE sync_meta");
     }
-  } catch (err) {
-    console.warn("[adv:sqlite] Migration failed:", (err as Error).message);
-  }
+  });
 }
 
 /** Return type for prepareStatements — inferred from the factory. */

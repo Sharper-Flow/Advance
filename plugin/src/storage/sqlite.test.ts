@@ -8,8 +8,9 @@ import { describe, test, expect, beforeEach, afterEach } from "vitest";
 import { join } from "path";
 import { readFileSync, existsSync } from "fs";
 import { resolve } from "path";
-import { createSQLiteStore, type SQLiteStore } from "./sqlite";
+import { createSQLiteStore, runMigrationStep, type SQLiteStore } from "./sqlite";
 import { initDatabase } from "./health";
+import { Database } from "bun:sqlite";
 import type { Change, Spec } from "../types";
 import {
   createTempDir,
@@ -944,5 +945,76 @@ describe("store decomposition contract (domain modules)", () => {
     const src = readFileSync(resolve(storageDir, "store.ts"), "utf8");
     const lineCount = src.split("\n").length;
     expect(lineCount).toBeLessThan(350);
+  });
+});
+
+describe("runMigrationStep", () => {
+  let tempDir: string;
+  let db: Database;
+
+  beforeEach(async () => {
+    tempDir = await createTempDir();
+    const dbPath = join(tempDir, "test.db");
+    db = new Database(dbPath);
+    db.exec(
+      "CREATE TABLE sentinel (id INTEGER PRIMARY KEY, name TEXT NOT NULL)",
+    );
+  });
+
+  afterEach(async () => {
+    db.close();
+    await cleanupTempDir(tempDir);
+  });
+
+  test("commits when migration succeeds", () => {
+    runMigrationStep(db, "insert-alpha", () => {
+      db.exec("INSERT INTO sentinel (id, name) VALUES (1, 'alpha')");
+    });
+    const row = db
+      .query("SELECT name FROM sentinel WHERE id = 1")
+      .get() as { name: string } | null;
+    expect(row?.name).toBe("alpha");
+  });
+
+  test("rolls back when migration throws", () => {
+    db.exec("INSERT INTO sentinel (id, name) VALUES (2, 'keep')");
+
+    runMigrationStep(db, "insert-then-throw", () => {
+      db.exec("INSERT INTO sentinel (id, name) VALUES (3, 'discarded')");
+      throw new Error("boom");
+    });
+
+    const kept = db
+      .query("SELECT name FROM sentinel WHERE id = 2")
+      .get() as { name: string } | null;
+    expect(kept?.name).toBe("keep");
+
+    const rolled = db
+      .query("SELECT name FROM sentinel WHERE id = 3")
+      .get() as { name: string } | null;
+    expect(rolled).toBeNull();
+  });
+
+  test("does not throw on failure (failures are logged, not propagated)", () => {
+    expect(() => {
+      runMigrationStep(db, "just-throw", () => {
+        throw new Error("intentional");
+      });
+    }).not.toThrow();
+  });
+
+  test("multiple successful steps commit independently", () => {
+    runMigrationStep(db, "first", () => {
+      db.exec("INSERT INTO sentinel (id, name) VALUES (10, 'first')");
+    });
+    runMigrationStep(db, "second", () => {
+      db.exec("INSERT INTO sentinel (id, name) VALUES (11, 'second')");
+    });
+    const rows = db
+      .query("SELECT id, name FROM sentinel WHERE id IN (10, 11) ORDER BY id")
+      .all() as { id: number; name: string }[];
+    expect(rows).toHaveLength(2);
+    expect(rows[0].name).toBe("first");
+    expect(rows[1].name).toBe("second");
   });
 });

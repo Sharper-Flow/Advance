@@ -14,9 +14,10 @@
 import { createStore } from "./storage/store";
 import type { Store } from "./storage/store-types";
 import { cleanup as cleanupTerminal } from "./events";
-import { appendDebugLog } from "./utils/debug-log";
+import { appendDebugLog, createLogger } from "./utils/debug-log";
 
 const debugLog = (msg: string): void => appendDebugLog("plugin-init", msg);
+const logger = createLogger("plugin-init");
 
 export interface StoreInitResult {
   store: Store | null;
@@ -38,9 +39,8 @@ export async function tryInitStore(
   } catch (e) {
     const initError = e instanceof Error ? e : new Error(String(e));
     debugLog(`Plugin init FAILED: ${initError.message}`);
-    console.warn(
-      `[ADV] Plugin init failed: ${initError.message}\n` +
-        `[ADV] adv_* tools are stubbed — they will report ADV_PLUGIN_INIT_FAILED until the cause is fixed.`,
+    logger.warn(
+      `Plugin init failed: ${initError.message} — adv_* tools are stubbed and will report ADV_PLUGIN_INIT_FAILED until the cause is fixed.`,
     );
     return { store: null, initError };
   }
