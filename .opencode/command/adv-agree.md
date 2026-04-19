@@ -105,11 +105,15 @@ For each user-facing question, provide:
 | Why it matters (impact on what the user will experience) | Yes |
 | Agent's recommended answer, if one exists | When applicable |
 | Concrete options framed as tradeoffs, not tech choices | When the question has enumerable answers |
+| Visual comparison block before `question` | When side-by-side context materially helps user judgment |
 | Write-in option | Always (per P26) |
+
+Visual comparison blocks are supplementary context, not a replacement for the `question` tool. Use text-first formats (tables, boxed comparisons, lightweight text wireframes), keep screenshots optional with text fallback, and keep the displayed option set aligned with the final `question` options.
 ### Batch Guidance
 - Group related questions (e.g., two questions about the same user-facing behavior)
 - Up to 5 questions per round via the `question` tool (multiple questions in a single invocation are fine)
 - Unrelated questions should be separate prompts within the same round
+- For layout / workflow / tradeoff questions that are hard to judge from prose alone, show a compact comparison block before asking the `question`
 
 ---
 ## Phase 3: Persist Agreement

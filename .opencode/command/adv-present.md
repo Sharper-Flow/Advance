@@ -34,6 +34,7 @@ Show a compact summary with:
 - key decisions
 - implementation strategy
 - major risks / tradeoffs
+- optional visual comparison block when side-by-side design alternatives are easier to judge than prose alone
 - **Validator Result** — always display validator outcome from Phase 3.5/3.6 of `/adv-design` when validation data exists:
   - `VALIDATED` → one-line note: "Validator: clean pass ✓"
   - `CAUTION` → list caution findings inline (brief, one sentence each)
@@ -42,6 +43,7 @@ Show a compact summary with:
   - No validation data (legacy design with no validator markers) → omit section silently
 
 After displaying the validator result:
+- If a visual comparison block is used, keep it text-readable and align it with any follow-up `question` options
 - If the design involves real user-value tradeoffs, ask the user whether the design is acceptable before moving into `/adv-prep`
 - If the validator found an unresolved `CONFLICT`, always pause for user resolution before planning
 - If the design is straightforward with no user-value tradeoffs and validation returned `VALIDATED`, `CAUTION`, or `INCONCLUSIVE`, proceed directly to `/adv-prep`.

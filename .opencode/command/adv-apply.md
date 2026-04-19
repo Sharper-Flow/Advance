@@ -104,6 +104,8 @@ Phase J. Doom-loop-clearance re-surface is the only secondary path in v1.
 1. **Inspect** `change.judgment_calls`: `undefined` → legacy, skip silently; `[]` → record `batch_surfaced_at`, proceed; populated → continue.
 2. **Change-level doom-loop scan** via `adv_investment_report` — if `doom_loop_active`, defer to doom-loop recovery (supersedes batch).
 3. **Surface** unresolved entries (`user_choice === undefined`) via single `question` tool call, multi-question, `(Recommended)` + P26 write-in.
+   - When a judgment call is easier to compare side-by-side than from prose alone, prepend a compact text-first comparison block before the `question` call.
+   - Keep screenshots optional, require text fallback, and align displayed options with final `question` options.
 4. **Record resolutions** per call: `user_choice`, `resolved_by: "user"`, `surfaced_at`; persist via `adv_change_update`.
 5. **Record `batch_surfaced_at`** on change (audit anchor for AC #6, including N=0 case).
 6. **Hard-stop advisory** (if `threshold_tier === "hardstop"`): strongly-worded recommend-pause note. × Do NOT call `adv_change_reenter` — re-entry is scope-expansion-driven per `rq-scopeReentry01`.

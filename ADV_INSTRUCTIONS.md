@@ -153,6 +153,8 @@ Forbidden: `~/.local/share/opencode/plugins/advance/**/{change.json,proposal.md,
 
 Write-in option enforced by P26 (`rules.yaml`). Use contextual labels, 2-5 options, leave custom input enabled.
 
+When subjective layout/UX/tradeoff choices benefit from side-by-side comparison, render a compact visual comparison block in normal assistant output **before** the `question` call. Use text-first deterministic formats, keep screenshots optional with text fallback, and do not add visual blocks for simple confirmations/cancellations. Keep displayed options aligned with final `question` options. See `docs/adv-question-tool.md`.
+
 ### Tradeoff Prioritizer Protocol
 
 When 2+ viable approaches depend on user values → run prioritizer before asking.

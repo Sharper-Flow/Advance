@@ -34,6 +34,55 @@ Skip for: open-ended questions, debugging, free-form input, and deterministic cl
 
 Formatted text/WYSIWYG input is best effort and depends on the client UI. Always keep `custom` enabled so text entry remains available.
 
+## Visual Comparison Before Questions
+
+Use a visual comparison block in normal assistant output **before** the `question` tool when side-by-side context materially helps the user judge options:
+
+- layout / aesthetic choices
+- UX workflow tradeoffs
+- multi-option comparisons where prose alone is hard to scan
+
+Skip visual comparison blocks for routine confirmations, cancellations, and other simple questions where a flat option list is already clear.
+
+### Rules
+
+1. Treat the visual block as context, not as a replacement for the `question` tool
+2. Use text-first formats that remain readable in terminal/plain-text clients
+3. Screenshots are optional; when used, include a text summary / fallback
+4. Keep the visualized option set aligned with the final `question` options
+5. Respect the 2-5 choice cap (including write-in) in the actual `question` call
+
+### Suggested Formats
+
+- markdown table
+- boxed side-by-side comparison
+- lightweight text wireframe/card
+
+### Example Pattern
+
+```md
+Comparison:
+
+| Option | Best for | Tradeoff |
+|---|---|---|
+| A | Dense dashboard view | Faster scanning, less breathing room |
+| B | Spacious dashboard view | Cleaner look, fewer items visible |
+
+Then call `question` with the same choice set:
+
+{
+  "questions": [{
+    "header": "Layout choice",
+    "question": "Which layout should ADV prefer for this flow?",
+    "options": [
+      { "label": "Option A (Recommended)", "description": "Dense dashboard view" },
+      { "label": "Option B", "description": "Spacious dashboard view" },
+      { "label": "Different approach", "description": "Use custom text to describe another layout" }
+    ]
+  }]
+}
+```
+
 ## Example
 
 ```json
