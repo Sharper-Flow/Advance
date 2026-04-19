@@ -57,7 +57,37 @@ done
 # ---------------------------------------------------------------------------
 # Paths
 # ---------------------------------------------------------------------------
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+resolve_canonical_repo_root() {
+  local candidate="$1"
+
+  # If we're not in a git repo, fall back to the script's repo root.
+  if ! git -C "$candidate" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    printf '%s\n' "$candidate"
+    return 0
+  fi
+
+  # When invoked from a git worktree copy of this repo, prefer the primary
+  # worktree path so opencode.json stores stable canonical plugin/instruction
+  # paths instead of ephemeral worktree-specific ones.
+  local first_worktree
+  first_worktree="$(git -C "$candidate" worktree list --porcelain 2>/dev/null | awk '
+    /^worktree / && !found {
+      print substr($0, 10)
+      found = 1
+    }
+  ')"
+  if [ -n "$first_worktree" ]; then
+    printf '%s\n' "$first_worktree"
+    return 0
+  fi
+
+  printf '%s\n' "$candidate"
+}
+
+REPO_ROOT="$(resolve_canonical_repo_root "$SCRIPT_REPO_ROOT")"
 REPO_COMMANDS="$REPO_ROOT/.opencode/command"
 REPO_AGENTS="$REPO_ROOT/.opencode/agents"
 REPO_OVERLAYS="$REPO_ROOT/.opencode/overlays"

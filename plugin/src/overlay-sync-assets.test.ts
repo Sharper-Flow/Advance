@@ -179,4 +179,77 @@ describe("overlay sync script support", () => {
       rmSync(tempHome, { recursive: true, force: true });
     }
   });
+
+  test("sync run from a worktree canonicalizes plugin/instruction paths back to the main repo root", () => {
+    const tempHome = mkdtempSync(join(tmpdir(), "adv-worktree-home-"));
+    const tempWorktreeRoot = mkdtempSync(join(tmpdir(), "adv-worktree-root-"));
+    const tempWorktree = join(tempWorktreeRoot, "repo-worktree");
+
+    try {
+      const configDir = join(tempHome, ".config/opencode");
+      const globalAgents = join(configDir, "agents");
+      mkdirSync(globalAgents, { recursive: true });
+      writeFileSync(
+        join(configDir, "opencode.json"),
+        JSON.stringify({ plugin: [], instructions: [] }),
+      );
+      writeFileSync(
+        join(globalAgents, "adv.md"),
+        "---\ndescription: temp adv\n---\n",
+      );
+
+      const addResult = spawnSync(
+        "git",
+        ["worktree", "add", "--detach", tempWorktree],
+        {
+          cwd: REPO_ROOT,
+          env: { ...process.env, CI: "true" },
+          encoding: "utf8",
+        },
+      );
+      expect(addResult.status).toBe(0);
+
+      // The temp worktree is created from HEAD, but this test needs to execute
+      // the *current* working-tree version of sync-global.sh under test.
+      writeFileSync(join(tempWorktree, "scripts", "sync-global.sh"), content);
+
+      const worktreeScript = join(tempWorktree, "scripts", "sync-global.sh");
+      const fixResult = spawnSync("bash", [worktreeScript, "--fix"], {
+        cwd: tempWorktree,
+        env: { ...process.env, HOME: tempHome, CI: "true" },
+        encoding: "utf8",
+      });
+      expect(fixResult.status).toBe(0);
+
+      const patched = JSON.parse(
+        readFileSync(join(configDir, "opencode.json"), "utf8"),
+      );
+
+      expect(patched.plugin).toContain(join(REPO_ROOT, "plugin"));
+      expect(patched.plugin).not.toContain(join(tempWorktree, "plugin"));
+
+      expect(patched.instructions).toContain(join(REPO_ROOT, "ADV_INSTRUCTIONS.md"));
+      expect(patched.instructions).toContain(
+        join(REPO_ROOT, ".opencode", "instructions", "cost-governance.md"),
+      );
+      expect(patched.instructions).not.toContain(
+        join(tempWorktree, "ADV_INSTRUCTIONS.md"),
+      );
+      expect(patched.instructions).not.toContain(
+        join(tempWorktree, ".opencode", "instructions", "cost-governance.md"),
+      );
+    } finally {
+      spawnSync(
+        "git",
+        ["worktree", "remove", "--force", tempWorktree],
+        {
+          cwd: REPO_ROOT,
+          env: { ...process.env, CI: "true" },
+          encoding: "utf8",
+        },
+      );
+      rmSync(tempWorktreeRoot, { recursive: true, force: true });
+      rmSync(tempHome, { recursive: true, force: true });
+    }
+  });
 });
