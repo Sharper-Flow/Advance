@@ -189,7 +189,14 @@ describe("sync-global.sh", () => {
   describe("path derivation", () => {
     test("derives repo root from script location", () => {
       expect(content).toContain(
-        'REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"',
+        'SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"',
+      );
+      expect(content).toContain(
+        'SCRIPT_REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"',
+      );
+      expect(content).toContain("resolve_canonical_repo_root() {");
+      expect(content).toContain(
+        'REPO_ROOT="$(resolve_canonical_repo_root "$SCRIPT_REPO_ROOT")"',
       );
     });
 

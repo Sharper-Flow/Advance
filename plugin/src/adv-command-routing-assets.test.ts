@@ -85,6 +85,14 @@ describe("ADV orchestrator agent", () => {
 });
 
 describe("ADV command routing assets", () => {
+  test("plan.md declares proposal workflow gate tool", () => {
+    const content = readFileSync(join(AGENT_DIR, "plan.md"), "utf8");
+    const frontmatter = content.split("---")[1] ?? "";
+    expect(frontmatter).toContain("adv_change_create");
+    expect(frontmatter).toContain("adv_change_update");
+    expect(frontmatter).toContain("adv_gate_complete");
+  });
+
   test("top-level ADV commands do not declare agent frontmatter routing", () => {
     const commandFiles = readdirSync(COMMAND_DIR).filter(
       (name) => name.startsWith("adv-") && name.endsWith(".md"),

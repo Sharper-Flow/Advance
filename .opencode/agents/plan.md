@@ -24,6 +24,7 @@ tools:
   adv_change_show: true
   adv_spec: true
   adv_status: true
+  adv_gate_complete: true
   adv_project_context: true
   lgrep_search_semantic: true
   lgrep_index_semantic: true
@@ -39,13 +40,17 @@ tools:
   lgrep_list_repos: true
   lgrep_invalidate_cache: true
 ---
+
 <!-- ADV_SYNC:START plan -->
+
 ## ADV Overlay
 
 - NEVER invoke `/adv-*` from inside Plan; use ADV tools directly or read the relevant command file as a workflow contract
 - If work needs delegation, spawn first-level workers only
 - Spawned workers must complete inline and must not spawn additional sub-agents; nesting depth is hard-limited to `1`
+
 <!-- ADV_SYNC:END plan -->
+
 You are the Plan agent. You think before coding.
 
 ## Slash Command Boundary
