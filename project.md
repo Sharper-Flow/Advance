@@ -35,7 +35,7 @@ plugin/src/
 .adv/specs/           # Capability specs — git-tracked, branch-local (the laws)
 .opencode/
   command/            # 21 slash-command workflow files (adv-*.md)
-  agents/             # Repo-local agents: adv-researcher, tron
+  agents/             # adv-researcher (ADV-managed bundled global), tron (repo-local); plus overlay-managed: adv, build, plan, refine, scout
   overlays/           # Managed overlay blocks for global shared agents
 skills/               # Bundled methodology skills → synced to ~/.config/opencode/skills/
 docs/                 # Gate contracts, workflow diagram, checklists, generated spec docs
@@ -47,17 +47,19 @@ scripts/              # sync-global.sh, migrate-openspec.ts, recover-db.js
 **All commands run from `plugin/`, not the repo root.**
 
 ```bash
-pnpm test                    # vitest — 1356+ tests (~55s)
+pnpm test                    # vitest — large test suite (~55s)
 pnpm run check               # typecheck → lint → format:check (no tests)
-pnpm run build               # tsup ESM build + generate:schemas
+pnpm run build               # tsup ESM build — emits dist/index.js + dist/index.d.ts
 pnpm run typecheck            # tsc --noEmit
 pnpm run lint                 # eslint src/
 pnpm run lint:fix             # eslint --fix
 pnpm run format               # prettier --write
 pnpm run format:check         # prettier --check
-pnpm run generate:schemas     # Zod → JSON Schema → schemas/
-pnpm run generate:docs        # Spec → markdown → docs/specs/
 ```
+
+> Note: no `generate:schemas` or `generate:docs` scripts exist.
+> `plugin/schemas/` contains `$ref` stub files only; Zod types in
+> `plugin/src/types.ts` are the authoritative source.
 
 Single test file: `pnpm test -- src/tools/change.test.ts`
 
@@ -81,8 +83,8 @@ Use ADV MCP tools (`adv_change_show`, `adv_task_list`, etc.). Direct reads via `
 ### Tool registration pattern
 Each `src/tools/*.ts` exports a `*Tools` object. `tool-registry.ts` collects all via `createToolMap()`. To add a tool: define in the relevant tools file → export from `src/tools/index.ts` → auto-picked up.
 
-### Schema generation is required
-After changing Zod schemas in `src/types.ts` or storage types, run `pnpm run generate:schemas` and commit the updated `schemas/` files.
+### Schema source of truth
+Zod schemas in `plugin/src/types.ts` are the authoritative source. `plugin/schemas/*.json` contains `$ref`-only stub files that point at the Zod types — they are NOT auto-generated. When you extend a Zod schema (add a field, change a type), no separate schema-regeneration step is required.
 
 ### Overlay sync model
 Global shared agents (`adv`, `general`, `build`, `plan`, `refine`, `scout`) are patched, not replaced, by `scripts/sync-global.sh`. Managed blocks in `.opencode/overlays/*.overlay.md` are injected into global agent files without overwriting user customizations.
