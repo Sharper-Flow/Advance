@@ -22,7 +22,7 @@ Specs are laws. Requirements are formally defined, validated, and enforced.
 | 3 failed task attempts             | Stop → `[ADV:DOOM_LOOP]` → escalate                     |
 | Cross-repo task                    | Execute in target repo via `workdir`                    |
 | User requests cancellation         | Require approval via `adv_task_cancel`                  |
-| Scope expansion during execution   | Route through `adv_change_reenter` with user approval   |
+| Scope expansion during execution   | Route through `adv_change_reenter` autonomously         |
 | TDD required + trivial task        | Set `metadata.tdd_intent: "not_applicable"` with reason |
 | TDD intent change after prep       | Use `adv_task_reclassify_tdd` with user approval        |
 | User requests skip + gate required | `[ADV:MIC]` → ask for sign-off                          |

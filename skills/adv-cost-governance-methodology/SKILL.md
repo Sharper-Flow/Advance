@@ -230,11 +230,11 @@ are, by construction, unresolved user-value tradeoffs (non-functional
 tradeoffs, extensibility decisions, scope boundaries are all inherently
 value-weighted).
 
-The 8 enumerated human checkpoints in `rq-autonomy01` (proposal confirmation,
+The 7 enumerated human checkpoints in `rq-autonomy01` (proposal confirmation,
 agreement sign-off, design approval, acceptance, archive sign-off, cancellation
-approval, re-entry approval, doom-loop recovery) remain the only enumerated
-pause points. Phase 1.5 is a dynamic instance of the "unresolved user-value
-tradeoff" escape clause, not a 9th enumerated checkpoint.
+approval, doom-loop recovery) remain the only enumerated pause points. Phase
+1.5 is a dynamic instance of the "unresolved user-value tradeoff" escape
+clause, not an extra enumerated checkpoint.
 
 ---
 

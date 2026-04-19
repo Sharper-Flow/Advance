@@ -376,7 +376,7 @@
     {
       "id": "rq-scopeReentry01",
       "title": "Mid-Change Scope Expansion Re-Entry",
-      "body": "When new objectives or acceptance criteria are introduced after a change has already progressed through the gate workflow, the added scope must be routed back through the earliest invalidated pre-implementation gate via adv_change_reenter before execution continues. Re-entry requires explicit user approval. Unaffected approved scope may continue without re-entry, and non-invalidating clarifications do not require re-entry.",
+      "body": "When new objectives or acceptance criteria are introduced after a change has already progressed through the gate workflow, the added scope must be routed back through the earliest invalidated pre-implementation gate via adv_change_reenter before execution continues. Agents may trigger this re-entry autonomously; explicit user approval is not required to circle back to an earlier gate. Unaffected approved scope may continue without re-entry, and non-invalidating clarifications do not require re-entry.",
       "priority": "must",
       "tags": [
         "workflow",
@@ -426,14 +426,14 @@
         },
         {
           "id": "rq-scopeReentry01.4",
-          "title": "Re-entry requires explicit user approval",
+          "title": "Re-entry may proceed without explicit user approval",
           "given": [
             "A change needs scope-expansion re-entry"
           ],
           "when": "adv_change_reenter is executed",
           "then": [
-            "The call requires explicit user approval evidence",
-            "Re-entry without approval is rejected"
+            "The call may succeed without approvedByUser or approvalEvidence",
+            "approvalEvidence is optional audit context when re-entry follows an explicit user instruction"
           ]
         }
       ]
@@ -528,7 +528,7 @@
     {
       "id": "rq-autonomy01",
       "title": "Human Checkpoint Contract",
-      "body": "ADV must pause for human input only at explicit approval/judgment checkpoints and auto-continue through clean agent-owned workflow steps. Human checkpoints are: proposal confirmation, agreement sign-off, design approval when real tradeoffs depend on user values, acceptance, archive sign-off, cancellation approval, re-entry approval, and doom-loop recovery. All other clean workflow steps (discovery, deterministic design, prep, apply, review, harden) proceed sequentially without prompting the user when no unresolved user-value tradeoff or required approval exists.",
+      "body": "ADV must pause for human input only at explicit approval/judgment checkpoints and auto-continue through clean agent-owned workflow steps. Human checkpoints are: proposal confirmation, agreement sign-off, design approval when real tradeoffs depend on user values, acceptance, archive sign-off, cancellation approval, and doom-loop recovery. All other clean workflow steps (discovery, deterministic design, prep, apply, review, harden, and scope-driven re-entry) proceed sequentially without prompting the user when no unresolved user-value tradeoff or required approval exists.",
       "priority": "must",
       "tags": ["workflow", "autonomy", "checkpoints"],
       "scenarios": [
