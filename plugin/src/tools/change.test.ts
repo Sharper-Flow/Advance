@@ -1237,8 +1237,6 @@ describe("adv_change_reenter", () => {
         changeId: "addFeature",
         fromGate: "discovery",
         reason: "New authentication requirement added",
-        approvedByUser: true,
-        approvalEvidence: "User approved via question tool",
       },
       store,
     );
@@ -1353,7 +1351,7 @@ describe("adv_change_reenter", () => {
     );
   });
 
-  test("requires explicit user approval", async () => {
+  test("allows autonomous re-entry without approval fields", async () => {
     await store.gates.complete("addFeature", "proposal");
     await store.gates.complete("addFeature", "discovery");
 
@@ -1361,17 +1359,17 @@ describe("adv_change_reenter", () => {
       {
         changeId: "addFeature",
         fromGate: "discovery",
-        reason: "Scope expansion without approval evidence",
+        reason: "Scope expansion detected during execution",
       },
       store,
     );
     const parsed = parseToolOutput(result);
 
-    expect(parsed.error).toBeDefined();
-    expect(parsed.error).toContain("approvedByUser");
+    expect(parsed.success).toBe(true);
+    expect(parsed.reentry.approval_evidence).toBeUndefined();
   });
 
-  test("requires non-empty approval evidence", async () => {
+  test("treats blank approval evidence as absent", async () => {
     await store.gates.complete("addFeature", "proposal");
     await store.gates.complete("addFeature", "discovery");
 
@@ -1379,16 +1377,15 @@ describe("adv_change_reenter", () => {
       {
         changeId: "addFeature",
         fromGate: "discovery",
-        reason: "Scope expansion with blank approval evidence",
-        approvedByUser: true,
+        reason: "Scope expansion with blank optional audit note",
         approvalEvidence: "   ",
       },
       store,
     );
     const parsed = parseToolOutput(result);
 
-    expect(parsed.error).toBeDefined();
-    expect(parsed.error).toContain("approvalEvidence");
+    expect(parsed.success).toBe(true);
+    expect(parsed.reentry.approval_evidence).toBeUndefined();
   });
 });
 

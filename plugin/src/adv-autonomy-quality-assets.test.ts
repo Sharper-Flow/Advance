@@ -29,7 +29,6 @@ describe("Human checkpoint and auto-continue policy", () => {
     expect(content).toMatch(/Acceptance/);
     expect(content).toMatch(/Archive sign-off/);
     expect(content).toMatch(/Cancellation approval/);
-    expect(content).toMatch(/Re-entry approval/);
     expect(content).toMatch(/Doom-loop recovery/);
   });
 
@@ -44,6 +43,8 @@ describe("Human checkpoint and auto-continue policy", () => {
     expect(content).toContain("Human Checkpoints vs Auto-Continue");
     expect(content).toMatch(/Proposal confirmation/);
     expect(content).toMatch(/Agreement sign-off/);
+    expect(content).toMatch(/Cancellation approval/);
+    expect(content).toMatch(/Doom-loop recovery/);
     expect(content).toMatch(/Clean auto-continue/);
   });
 });

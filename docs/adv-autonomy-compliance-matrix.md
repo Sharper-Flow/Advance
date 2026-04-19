@@ -72,7 +72,7 @@ ADV pauses for human input ONLY at these explicit checkpoints:
 | Acceptance | `acceptance` | User confirms delivered work satisfies agreement |
 | Archive sign-off | `release` | User approves final release |
 | Cancellation approval | any | Explicit user approval for task/change cancellation |
-| Re-entry approval | any | Explicit user approval for scope expansion (`rq-scopeReentry01`); cascade reset preserves existing tasks (`rq-scopeReentry02`) |
+| Re-entry / circle-back | any | Agent may reopen earliest invalidated gate autonomously (`rq-scopeReentry01`); cascade reset preserves existing tasks (`rq-scopeReentry02`) |
 | Doom-loop recovery | `execution` | 3 failed attempts, user guidance needed |
 
 **All other clean steps auto-continue:** discovery, deterministic design, prep, apply, review, and harden proceed without prompting the user when no unresolved user-value tradeoff or required approval exists. In particular, `/adv-apply` runs a continuous ralph loop from execution-gate start through all ready tasks and final verification, pausing only at enumerated `rq-autonomy01` checkpoints — never at task/section boundaries, progress displays, or execution-phase start.
@@ -95,5 +95,5 @@ Those decisions are now explicitly agent-owned. Remaining user-input touchpoints
 - **`rq-designval01`** — Design gate requires independent validation pass via a distinct read-only validator before completion; validator failure yields INCONCLUSIVE warning, not a block.
 - **`rq-designval02`** — Validator verdict (VALIDATED/CAUTION/CONFLICT/INCONCLUSIVE) must appear in `/adv-present` output.
 - **`rq-designval03`** — CONFLICT verdict blocks silent auto-continue from design to planning.
-- **`rq-scopeReentry01`** — Scope expansions after gate progress require explicit user approval via `adv_change_reenter`.
+- **`rq-scopeReentry01`** — Scope expansions after gate progress must route back through the earliest invalidated gate via `adv_change_reenter`; agents may do this autonomously.
 - **`rq-scopeReentry02`** — Re-entry cascade resets downstream gates while preserving existing tasks and appending audit history.

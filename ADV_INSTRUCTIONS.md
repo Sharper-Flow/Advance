@@ -207,11 +207,11 @@ All cancellations require explicit user approval via `adv_task_cancel`. Workflow
 
 ### Re-Entry Protocol (Scope Expansion)
 
-New scope after gate progress → `adv_change_reenter(changeId, fromGate, reason, scopeDelta?, approvedByUser, approvalEvidence)`. Reopening gate X resets X + all downstream to `pending`; upstream stays `done`; tasks preserved.
+New scope after gate progress → `adv_change_reenter(changeId, fromGate, reason, scopeDelta?, approvalEvidence?)`. Reopening gate X resets X + all downstream to `pending`; upstream stays `done`; tasks preserved.
 
 Use for: new acceptance criteria, invalidated architecture, scope expansion on completed gates. NOT for: bug fixes, clarifications (`adv_change_update`), minor doc edits.
 
-Flow: identify affected gate → user approval → `adv_change_reenter` → walk reopened gates → resume `/adv-apply`. Each re-entry appends to `reentry_history[]`.
+Flow: identify affected gate → `adv_change_reenter` → walk reopened gates → resume `/adv-apply`. Each re-entry appends to `reentry_history[]`.
 
 ### Task Status Report
 
@@ -418,7 +418,6 @@ ADV pauses for human input ONLY at these explicit checkpoints:
 - **Acceptance** — delivered work satisfies the agreement
 - **Archive sign-off** — final release approval
 - **Cancellation approval** — task or change cancellation
-- **Re-entry approval** — scope expansion requiring gate reset
 - **Doom-loop recovery** — 3 failed attempts, user guidance needed
 
 ### Clean Auto-Continue Rule

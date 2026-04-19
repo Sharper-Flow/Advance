@@ -160,7 +160,8 @@ ADV pauses ONLY at these checkpoints:
 - **Design approval** — ONLY when real tradeoffs depend on user values or product vision, OR when the design validator returns `CONFLICT`
 - **Acceptance** — user confirms delivered work satisfies the agreement
 - **Archive sign-off** — user approves final release
-- **Cancellation / re-entry / doom-loop** — explicit user approval required
+- **Cancellation approval** — explicit user approval required
+- **Doom-loop recovery** — user guidance required after 3 failed attempts
 
 **Clean auto-continue:** discovery → deterministic design → prep → apply → review → harden all proceed without asking the user when no unresolved tradeoff or approval is needed. The orchestrator does NOT ask "shall I continue?" between clean agent-owned steps.
 

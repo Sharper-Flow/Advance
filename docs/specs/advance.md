@@ -369,7 +369,7 @@ After Quick Contract confirmation, /adv-task must always persist contract contex
 
 **ID:** `rq-scopeReentry01` | **Priority:** **[MUST]**
 
-When new objectives or acceptance criteria are introduced after a change has already progressed through the gate workflow, the added scope must be routed back through the earliest invalidated pre-implementation gate via adv_change_reenter before execution continues. Re-entry requires explicit user approval. Unaffected approved scope may continue without re-entry, and non-invalidating clarifications do not require re-entry.
+When new objectives or acceptance criteria are introduced after a change has already progressed through the gate workflow, the added scope must be routed back through the earliest invalidated pre-implementation gate via adv_change_reenter before execution continues. Agents may trigger this re-entry autonomously; explicit user approval is not required to circle back to an earlier gate. Unaffected approved scope may continue without re-entry, and non-invalidating clarifications do not require re-entry.
 
 **Tags:** `workflow`, `re-entry`, `scope-expansion`, `gates`
 
@@ -411,7 +411,7 @@ When new objectives or acceptance criteria are introduced after a change has alr
 - adv_change_reenter is not required
 - Execution may continue within the existing scope
 
-**Re-entry requires explicit user approval** (`rq-scopeReentry01.4`)
+**Re-entry may proceed without explicit user approval** (`rq-scopeReentry01.4`)
 
 **Given:**
 - A change needs scope-expansion re-entry
@@ -419,8 +419,8 @@ When new objectives or acceptance criteria are introduced after a change has alr
 **When:** adv_change_reenter is executed
 
 **Then:**
-- The call requires explicit user approval evidence
-- Re-entry without approval is rejected
+- The call may succeed without approvedByUser or approvalEvidence
+- approvalEvidence is optional audit context when re-entry follows an explicit user instruction
 
 ---
 
@@ -508,7 +508,7 @@ The canonical ADV workflow is seven sequential gates: proposal, discovery, desig
 
 **ID:** `rq-autonomy01` | **Priority:** **[MUST]**
 
-ADV must pause for human input only at explicit approval/judgment checkpoints and auto-continue through clean agent-owned workflow steps. Human checkpoints are: proposal confirmation, agreement sign-off, design approval when real tradeoffs depend on user values, acceptance, archive sign-off, cancellation approval, re-entry approval, and doom-loop recovery. All other clean workflow steps (discovery, deterministic design, prep, apply, review, harden) proceed sequentially without prompting the user when no unresolved user-value tradeoff or required approval exists.
+ADV must pause for human input only at explicit approval/judgment checkpoints and auto-continue through clean agent-owned workflow steps. Human checkpoints are: proposal confirmation, agreement sign-off, design approval when real tradeoffs depend on user values, acceptance, archive sign-off, cancellation approval, and doom-loop recovery. All other clean workflow steps (discovery, deterministic design, prep, apply, review, harden, and scope-driven re-entry) proceed sequentially without prompting the user when no unresolved user-value tradeoff or required approval exists.
 
 **Tags:** `workflow`, `autonomy`, `checkpoints`
 

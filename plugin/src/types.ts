@@ -717,7 +717,7 @@ export const ReentryHistoryEntrySchema = z.object({
   scope_delta: z.string().optional(),
   /** Who triggered the re-entry (agent name, user, command) */
   reopened_by: z.string(),
-  /** Evidence of explicit user approval for the re-entry (when required) */
+  /** Optional audit evidence for the re-entry (for example, direct user instruction) */
   approval_evidence: z.string().optional(),
   /** ISO8601 timestamp when the re-entry was triggered */
   reopened_at: z.string(),

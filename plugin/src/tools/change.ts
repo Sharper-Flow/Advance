@@ -984,7 +984,7 @@ export const changeTools = {
 
   adv_change_reenter: {
     description:
-      "Reopen gates from a specified point for scope expansion re-entry with required user approval. Resets the target gate and all downstream gates to pending, preserving existing tasks and completed work.",
+      "Reopen gates from a specified point for scope expansion re-entry. Resets the target gate and all downstream gates to pending, preserving existing tasks and completed work.",
     args: {
       changeId: z.string().describe("Change ID to reopen gates for"),
       fromGate: GateIdSchema.describe("Gate to reopen from"),
@@ -994,12 +994,16 @@ export const changeTools = {
         .optional()
         .describe("Description of new or changed scope"),
       approvedByUser: z
-        .literal(true)
-        .describe("Must be true — confirms user explicitly approved re-entry"),
+        .boolean()
+        .optional()
+        .describe(
+          "Deprecated compatibility field. Re-entry no longer requires explicit user approval.",
+        ),
       approvalEvidence: z
         .string()
+        .optional()
         .describe(
-          "Evidence of user approval (e.g., 'User approved via question tool')",
+          "Optional audit evidence when re-entry follows an explicit user instruction.",
         ),
     },
     execute: async (
@@ -1008,37 +1012,18 @@ export const changeTools = {
         fromGate,
         reason,
         scopeDelta,
-        approvedByUser,
         approvalEvidence,
       }: {
         changeId: string;
         fromGate: GateId;
         reason: string;
         scopeDelta?: string;
-        approvedByUser: true;
-        approvalEvidence: string;
+        approvedByUser?: boolean;
+        approvalEvidence?: string;
       },
       store: Store,
     ) => {
-      if (!approvedByUser) {
-        return wrapWithBanner(
-          { command: "adv_change_reenter", target: changeId },
-          formatToolOutput({
-            error:
-              "approvedByUser must be true. You must present the scope re-entry to the user and obtain explicit approval before calling this tool.",
-          }),
-        );
-      }
-
-      if (!approvalEvidence || approvalEvidence.trim().length === 0) {
-        return wrapWithBanner(
-          { command: "adv_change_reenter", target: changeId },
-          formatToolOutput({
-            error:
-              "approvalEvidence is required. Describe how the user approved the scope re-entry (e.g., question tool response).",
-          }),
-        );
-      }
+      const normalizedApprovalEvidence = approvalEvidence?.trim() || undefined;
 
       // Verify the change exists
       const result = await store.changes.get(changeId);
@@ -1062,7 +1047,7 @@ export const changeTools = {
           reason,
           scopeDelta,
           undefined,
-          approvalEvidence,
+          normalizedApprovalEvidence,
         );
 
         // Fetch updated state

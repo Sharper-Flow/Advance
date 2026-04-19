@@ -89,13 +89,13 @@ Gates are normally forward-only, but scope expansion during execution requires r
 
 ### Cascade Reset Semantics
 
-When `adv_change_reenter(changeId, fromGate, reason, scopeDelta?, approvedByUser, approvalEvidence)` is called:
+When `adv_change_reenter(changeId, fromGate, reason, scopeDelta?, approvalEvidence?)` is called:
 
 1. The target gate (`fromGate`) and all downstream gates are reset to `pending`
 2. All upstream gates (before `fromGate`) remain `done`
 3. Existing tasks and completed work are **preserved** — only gate state is reset
 4. After reset, the planning gate is `pending`, so `adv_task_add` is unblocked for new tasks
-5. The call requires explicit user approval and approval evidence
+5. Optional audit evidence may be recorded when re-entry follows an explicit user instruction
 
 Example: reopening from `discovery` resets discovery + design + planning + execution + acceptance + release to `pending`. The `proposal` gate remains `done`.
 
@@ -107,7 +107,7 @@ Each re-entry appends to `reentry_history[]` on the change, recording:
 - `reason` — why re-entry was needed
 - `scope_delta` — what new scope is being added (optional)
 - `reopened_by` — actor who triggered re-entry
-- `approval_evidence` — evidence of explicit user approval
+- `approval_evidence` — optional audit evidence when re-entry follows an explicit user instruction
 - `reopened_at` — timestamp
 - `gates_reset` — list of gates that were reset to pending
 
@@ -125,7 +125,6 @@ Each re-entry appends to `reentry_history[]` on the change, recording:
 ### Constraints
 
 - Cannot reopen a gate that is already `pending`
-- Cannot execute re-entry without explicit user approval evidence
 - After re-entry, walk the reopened gates normally before resuming execution
 - `/adv-apply` stops if any pre-implementation gate is pending (standard prerequisite check)
 
