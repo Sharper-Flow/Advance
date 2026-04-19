@@ -3,8 +3,8 @@
   "name": "advance",
   "title": "Advance",
   "purpose": "Capability: Advance",
-  "version": "1.8.0",
-  "updated_at": "2026-04-13T23:00:00.000Z",
+  "version": "1.8.1",
+  "updated_at": "2026-04-14T02:45:00.000Z",
   "requirements": [
     {
       "id": "rq-W1sD0mR1",
@@ -112,7 +112,7 @@
     {
       "id": "rq-advmeta01",
       "title": "Task Metadata Filter Semantics",
-      "body": "Tasks may include optional metadata key/value pairs. adv_task_list must support has_metadata_key:<key> and metadata:<key>=<value> filters with behavior aligned between JSON source-of-truth and SQLite cache indexes.",
+      "body": "Tasks may include optional metadata key/value pairs. adv_task_list must support has_metadata_key:<key> and metadata:<key>=<value> filters with behavior aligned between workflow-owned source-of-truth state and any derived query or index surface.",
       "priority": "must",
       "scenarios": [
         {

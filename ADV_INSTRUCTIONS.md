@@ -406,6 +406,35 @@ Multi-session only: parent writes `handoff.json` → child reads/clears on start
 
 `/adv-archive` Phase 9 handles: stage → commit → detect default branch → merge/PR → verify → `worktree_delete` → remove `.bak`/`.tmp`/`.orig`. × Never delete worktree with unmerged commits. If `worktree_create`/`worktree_delete` unavailable: `[ADV:INFO] Worktree tools not available — proceeding in-place.`
 
+## Temporal Durable Storage (optional)
+
+ADV can optionally back change/task/gate/wisdom state with Temporal
+durable execution. The feature is **opt-in** and does not run by default.
+
+Agent-facing expectations:
+
+- **Default backend.** `createStore()` without a `temporalBundle` returns
+  the legacy JSON+SQLite backend. Existing tools keep working unchanged.
+- **Activation.** When the hosting integration supplies a
+  `temporalBundle` + `projectId`, `createStore` wraps the legacy backend
+  with a Temporal overlay at the store layer. No agent-visible tool surface
+  changes.
+- **Runtime requirements.** Node-only worker. The Bun client surface is
+  probe-gated — if Bun runtime support is unsafe, the plugin fails fast with
+  a remediation message instead of silently misbehaving.
+- **Env vars.** `ADV_TEMPORAL_ADDRESS`, `ADV_TEMPORAL_NAMESPACE`,
+  `ADV_TEMPORAL_ALLOW_REMOTE`, `ADV_TEMPORAL_TASK_QUEUE`,
+  `ADV_TEMPORAL_PROJECT_ID`. Defaults are loopback-only and fail fast on
+  remote addresses or invalid namespaces.
+- **Fallback policy.** The Temporal overlay falls back to the legacy
+  backend **only** for expected missing-workflow / unregistered-handler
+  errors. Other errors (determinism, connectivity, update validation) are
+  surfaced intentionally.
+
+See `SETUP.md` §Optional: Temporal-backed storage and
+`plugin/.env.example` for configuration details. Agents should not assume
+Temporal is enabled in any given session.
+
 ## Autonomy & Quality Ownership
 
 ### Human Checkpoints (Pause Required)

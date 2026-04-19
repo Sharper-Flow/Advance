@@ -17,6 +17,7 @@ import {
   trackRetry,
   clearRetry,
   getDoomLoopInfo,
+  getEffectiveDoomLoopInfo,
 } from "./status";
 import { getProjectName, isTmux } from "./terminal";
 import {
@@ -646,5 +647,38 @@ describe("Bell Transition Logic", () => {
     cleanupTerminal(); // should cancel timer
     vi.advanceTimersByTime(2000);
     expect(bellCount()).toBe(0);
+  });
+});
+
+describe("Effective Doom Loop Detection", () => {
+  beforeEach(() => {
+    clearRetry("persisted-task");
+    clearRetry("memory-task");
+  });
+
+  it("treats persisted retry_count >= 3 as doom loop even after restart", () => {
+    const info = getEffectiveDoomLoopInfo("persisted-task", {
+      retry_count: 3,
+      attempts: [
+        { attempt_number: 1 },
+        { attempt_number: 2 },
+        { attempt_number: 3 },
+      ] as any,
+    } as any);
+    expect(info.inDoomLoop).toBe(true);
+    expect(info.attempts).toBe(3);
+  });
+
+  it("prefers in-memory tracker when it has higher attempt count", () => {
+    trackRetry("memory-task", "e1");
+    trackRetry("memory-task", "e2");
+    trackRetry("memory-task", "e3");
+
+    const info = getEffectiveDoomLoopInfo("memory-task", {
+      retry_count: 1,
+      attempts: [{ attempt_number: 1 }] as any,
+    } as any);
+    expect(info.inDoomLoop).toBe(true);
+    expect(info.attempts).toBe(3);
   });
 });
