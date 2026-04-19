@@ -34,6 +34,44 @@ Complete installation instructions for the ADV spec-driven development plugin.
 | SQLite     | Comes bundled with better-sqlite3                          |
 | jq         | Required only for `sync-global.sh --fix` (config patching) |
 
+### Optional: Temporal-backed storage
+
+ADV ships an **optional** Temporal durable-execution backend. It is disabled
+by default — the plugin runs on the legacy JSON+SQLite backend unless a
+Temporal client bundle is explicitly supplied. Enable it only if you need
+durable workflows for change/task/gate state.
+
+Install the Temporal CLI (for a local dev server):
+
+```bash
+brew install temporal     # macOS
+# or
+curl -sSf https://temporal.download/cli.sh | sh   # Linux
+```
+
+Start a local dev server (default loopback address and namespace):
+
+```bash
+temporal server start-dev
+```
+
+Configure via environment variables (see `plugin/.env.example`):
+
+| Variable | Default | Purpose |
+| -------- | ------- | ------- |
+| `ADV_TEMPORAL_ADDRESS` | `127.0.0.1:7233` | Temporal frontend address. Non-loopback requires opt-in. |
+| `ADV_TEMPORAL_NAMESPACE` | `default` | Temporal namespace (regex-validated). |
+| `ADV_TEMPORAL_ALLOW_REMOTE` | *(unset)* | Set to `true` to permit non-loopback addresses. |
+| `ADV_TEMPORAL_TASK_QUEUE` | *(worker-only)* | Task queue the worker subscribes to. |
+| `ADV_TEMPORAL_PROJECT_ID` | *(worker-only)* | Set internally by the runtime manager. |
+
+Activation happens in code by passing a Temporal client bundle into
+`createStore({ temporalBundle })`. Without a bundle the selector returns the
+legacy backend — so the Temporal feature is a pure overlay, not a
+destructive migration. Run the plugin on **Node** (not Bun) for full worker
+support; a Bun client probe gates the client surface with fail-fast
+diagnostics if it cannot operate safely.
+
 ---
 
 ## External Dependencies (MCP Servers and Sub-Agents)

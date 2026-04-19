@@ -292,14 +292,34 @@ export function reopenFromGateInChangeState(
     approvalEvidence?: string;
   },
 ): void {
+  // Project the workflow state into the minimum Change view that
+  // reopenChangeFromGate actually touches. Avoids an unsafe
+  // `as unknown as Change` cast and keeps field drift a compile-time error.
+  const adapter: import("../types").Change = {
+    id: state.changeId,
+    title: state.title,
+    status: state.status,
+    created_at: state.createdAt,
+    tasks: state.tasks,
+    deltas: {},
+    wisdom: state.wisdom,
+    gates: state.gates,
+    reentry_history: state.reentry_history ?? [],
+  };
+
   reopenChangeFromGate(
-    state as unknown as import("../types").Change,
+    adapter,
     fromGate,
     input.reason,
     input.scopeDelta,
     input.reopenedBy,
     input.approvalEvidence,
   );
+
+  // Copy any mutations made by the helper back onto the workflow state so
+  // the workflow stays authoritative for gates + reentry history.
+  state.gates = adapter.gates ?? state.gates;
+  state.reentry_history = adapter.reentry_history ?? state.reentry_history;
 
   const history = state.reentry_history ?? [];
   const lastEntry = history[history.length - 1];

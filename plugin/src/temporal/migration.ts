@@ -1,3 +1,26 @@
+/**
+ * Temporal Migration / Recovery Helpers
+ *
+ * Bootstrap and recovery surface for Temporal-backed ADV storage.
+ *
+ * Key semantics:
+ *   - `ensureProjectWorkflowStarted` / `ensureChangeWorkflowStarted` are
+ *     idempotent: if the target workflow is already running, the existing
+ *     handle is returned instead of attempting a duplicate start.
+ *   - `migrateProjectState` writes only **terminal** ledger entries
+ *     (`status: "done"` on success, `status: "failed"` on error). It does
+ *     not emit an intermediate `pending` entry so there is no stale window
+ *     to reconcile.
+ *   - `reImportChangeState` seeds a ChangeWorkflow from an existing
+ *     `Change` payload (typically the legacy JSON backend's view) so a
+ *     workflow can resume from historical state.
+ *   - `rebuildProjectWorkflowState` is an explicit re-seed path for
+ *     recovery.
+ *
+ * All functions here are **non-destructive** — they neither delete legacy
+ * files nor overwrite existing workflow state; they only attempt to start
+ * or re-seed workflows safely.
+ */
 import type { Change } from "../types";
 import {
   buildChangeWorkflowId,

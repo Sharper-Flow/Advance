@@ -1,9 +1,15 @@
 /**
- * Unified Store — Composition Root
+ * Store — Backend Selector / Composition Root
  *
- * Thin selector that chooses the legacy JSON+SQLite backend by default and
- * optionally wraps it with the Temporal compatibility adapter when a temporal
- * client bundle is supplied. This keeps the workflow/store boundary explicit.
+ * Thin selector that decides which store backend to use:
+ *   1. Always builds the legacy JSON+SQLite backend via `createLegacyStore`.
+ *   2. If a `temporalBundle` (and a resolvable `projectId`) is supplied,
+ *      wraps the legacy backend with the Temporal compatibility adapter
+ *      from `store-temporal.ts`.
+ *   3. Otherwise returns the legacy backend as-is.
+ *
+ * The Temporal overlay is intentionally opt-in so existing tool callers
+ * keep working without any Temporal runtime dependency.
  */
 
 import { getProjectId } from "../utils/project-id";

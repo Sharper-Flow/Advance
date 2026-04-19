@@ -49,15 +49,13 @@ interface WorkflowHandleLike {
   ) => Promise<unknown>;
 }
 
+interface TemporalHandleClient {
+  workflow: { getHandle: (workflowId: string) => WorkflowHandleLike };
+}
+
 interface TemporalStoreBackendInput {
   legacy: Store;
-  temporal:
-    | TemporalClientBundle
-    | {
-        client: {
-          workflow: { getHandle: (workflowId: string) => WorkflowHandleLike };
-        };
-      };
+  temporal: { client: TemporalHandleClient } | TemporalClientBundle;
   projectId: string;
 }
 
@@ -80,9 +78,12 @@ function getChangeHandle(
   changeId: string,
 ): WorkflowHandleLike {
   const workflowId = buildChangeWorkflowId(input.projectId, changeId);
-  return input.temporal.client.workflow.getHandle(
-    workflowId,
-  ) as unknown as WorkflowHandleLike;
+  // Normalize both bundle shapes to the narrow WorkflowHandleLike surface
+  // used by this adapter. The Temporal SDK's full WorkflowHandle is
+  // structurally compatible — narrowing here keeps tests + fake handles
+  // drop-in swappable without a double cast.
+  const bundle = input.temporal as { client: TemporalHandleClient };
+  return bundle.client.workflow.getHandle(workflowId);
 }
 
 export function createTemporalStoreBackend(

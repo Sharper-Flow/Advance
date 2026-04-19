@@ -1,7 +1,9 @@
 /**
- * Unified Store Tests
+ * Store — Backend Selector Tests
  *
- * Integration tests for the complete storage layer
+ * Exercises createStore selection logic (legacy default, Temporal overlay
+ * when temporalBundle is supplied) and the wider legacy lifecycle surface
+ * via the composed backend.
  */
 
 import { describe, test, expect, beforeEach, afterEach } from "vitest";
