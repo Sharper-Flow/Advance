@@ -13,7 +13,7 @@
 
 import { createLogger } from "../utils/debug-log";
 
-const logger = createLogger("store");
+const logger = createLogger("store/recovery");
 
 /**
  * Injected recovery policy. Pure, side-effect-free signature so the
@@ -51,6 +51,11 @@ export interface RecoverOptions {
 export async function recoverCorruptedDatabase(
   opts: RecoverOptions,
 ): Promise<void> {
+  if (opts.maxAttempts < 1) {
+    throw new Error(
+      `recoverCorruptedDatabase: maxAttempts must be >= 1 (got ${opts.maxAttempts})`,
+    );
+  }
   const log = opts.log ?? ((m: string) => logger.warn(m));
   let lastError: Error | undefined;
   for (let i = 1; i <= opts.maxAttempts; i++) {

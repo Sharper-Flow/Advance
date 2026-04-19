@@ -7,6 +7,7 @@
 import { Database } from "bun:sqlite";
 import { statSync } from "fs";
 import { createLogger } from "../utils/debug-log";
+import { isCorruptionError } from "./corruption-recovery";
 
 const logger = createLogger("health");
 
@@ -45,14 +46,9 @@ function checkDatabaseHealth(db: Database): HealthCheckResult {
     return { healthy: true, corruptionDetected: false };
   } catch (e) {
     const error = e as Error;
-    const isCorruption =
-      error.message.includes("malformed") ||
-      error.message.includes("corrupt") ||
-      error.message.includes("database disk image is malformed");
-
     return {
       healthy: false,
-      corruptionDetected: isCorruption,
+      corruptionDetected: isCorruptionError(error),
       message: error.message,
     };
   }

@@ -1289,4 +1289,15 @@ describe("_recoverCorruptedDatabase", () => {
 
     expect(attempts).toBe(1);
   });
+
+  test("throws a defensive Error when maxAttempts is < 1", async () => {
+    await expect(
+      _recoverCorruptedDatabase({
+        maxAttempts: 0,
+        backoffMs: 1,
+        reset: async () => {},
+        attempt: async () => {},
+      }),
+    ).rejects.toThrow(/maxAttempts must be >= 1/);
+  });
 });
