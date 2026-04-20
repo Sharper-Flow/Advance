@@ -4,13 +4,13 @@ Defines the enforceable voice rules for all `/adv-*` command descriptions, proto
 
 ## Core Rules
 
-| Dimension | Rule | Example |
-|-----------|------|---------|
-| **Mood** | Imperative ("Do X"), not declarative ("You should X") | "Validate change compliance" not "Validates change compliance" |
-| **Tense** | Present, not future | "Enforce" not "Will enforce" |
-| **Specificity** | Concrete triggers, not abstract values | "3+ files OR db schema change" not "high-risk signals" |
-| **Negation** | Minimize; frame positively | "Allowed exits: done, doom-loop" not "Don't skip, don't defer" |
-| **Length** | Manifest descriptions: 5–14 words | "Validate change against specs and block archive on failure" |
+| Dimension       | Rule                                                  | Example                                                        |
+| --------------- | ----------------------------------------------------- | -------------------------------------------------------------- |
+| **Mood**        | Imperative ("Do X"), not declarative ("You should X") | "Validate change compliance" not "Validates change compliance" |
+| **Tense**       | Present, not future                                   | "Enforce" not "Will enforce"                                   |
+| **Specificity** | Concrete triggers, not abstract values                | "3+ files OR db schema change" not "high-risk signals"         |
+| **Negation**    | Minimize; frame positively                            | "Allowed exits: done, doom-loop" not "Don't skip, don't defer" |
+| **Length**      | Manifest descriptions: 5–14 words                     | "Validate change against specs and block archive on failure"   |
 
 ## Manifest Description Rules
 
@@ -25,13 +25,13 @@ Every `CommandDef.description` in `manifest.ts` MUST:
 
 ### Banned Phrases in Manifest Descriptions
 
-| Banned | Replace With |
-|--------|-------------|
-| "high-risk signals" | list the signals explicitly |
-| "autonomous retry" | "with retry on failure" |
-| "AI-slop detection" | "detect low-quality AI-generated code" |
-| "Socratic clarifying questions" | "Ask clarifying questions" |
-| "Gap analysis" | "Analyze gaps" |
+| Banned                          | Replace With                           |
+| ------------------------------- | -------------------------------------- |
+| "high-risk signals"             | list the signals explicitly            |
+| "autonomous retry"              | "with retry on failure"                |
+| "AI-slop detection"             | "detect low-quality AI-generated code" |
+| "Socratic clarifying questions" | "Ask clarifying questions"             |
+| "Gap analysis"                  | "Analyze gaps"                         |
 
 ## Protocol Section Rules
 
@@ -40,6 +40,7 @@ Protocol sections (Doom Loop, Cancellation, Cross-Repo, TDD) MUST use:
 ### 1. Allowed-States Framing (not Prohibited Lists)
 
 **BAD — negation-heavy:**
+
 ```
 Prohibited:
 - Skipping "to revisit later"
@@ -48,6 +49,7 @@ Prohibited:
 ```
 
 **GOOD — allowed states:**
+
 ```
 Tasks end in exactly one state:
 - **Done** — all acceptance criteria met
@@ -59,26 +61,30 @@ Escalate via `adv_task_cancel` after 3 genuine attempts with documented diagnosi
 ### 2. BAD/GOOD Tables for Failure-Prone Protocols
 
 Use a two-column table wherever agents commonly fail. Required for:
+
 - Doom Loop / retry protocol
 - Cancellation policy
 - Cross-repo execution
 - TodoWrite usage
 
 **Template:**
+
 ```markdown
-| BAD | GOOD |
-|-----|------|
+| BAD            | GOOD               |
+| -------------- | ------------------ |
 | {anti-pattern} | {correct behavior} |
 ```
 
 ### 3. Concrete Triggers for Risk Thresholds
 
 **BAD:**
+
 ```
 3+ files or high-risk signals → suggest worktree
 ```
 
 **GOOD:**
+
 ```
 | Signal | Risk |
 |--------|------|
@@ -96,13 +102,13 @@ Use a two-column table wherever agents commonly fail. Required for:
 Replace multi-paragraph decision prose with a scannable table:
 
 ```markdown
-| When | Then |
-|------|------|
-| Spec conflicts with proposal | Spec wins |
-| Gate incomplete | Archive blocked |
-| 3 failed task attempts | Stop → escalate |
-| Cross-repo task | Execute in target repo |
-| User requests cancellation | Require explicit approval |
+| When                         | Then                      |
+| ---------------------------- | ------------------------- |
+| Spec conflicts with proposal | Spec wins                 |
+| Gate incomplete              | Archive blocked           |
+| 3 failed task attempts       | Stop → escalate           |
+| Cross-repo task              | Execute in target repo    |
+| User requests cancellation   | Require explicit approval |
 ```
 
 ### 5. Conflict Resolution Hints
@@ -110,11 +116,11 @@ Replace multi-paragraph decision prose with a scannable table:
 Every protocol section that can conflict with another MUST include a resolution note:
 
 ```markdown
-| Conflict | Resolution |
-|----------|------------|
-| TDD required + trivial task | Set `metadata.tdd_intent: "not_applicable"` with reason |
-| User requests skip + gate required | Emit `[ADV:MIC]`, ask for sign-off |
-| Cross-repo + tool unavailable | Proceed in-place, note in wisdom |
+| Conflict                           | Resolution                                              |
+| ---------------------------------- | ------------------------------------------------------- |
+| TDD required + trivial task        | Set `metadata.tdd_intent: "not_applicable"` with reason |
+| User requests skip + gate required | Emit `[ADV:MIC]`, ask for sign-off                      |
+| Cross-repo + tool unavailable      | Proceed in-place, note in wisdom                        |
 ```
 
 ## Command Doc (`.opencode/command/adv-*.md`) Template
@@ -124,8 +130,8 @@ Every command doc MUST follow this structure:
 ```markdown
 ---
 name: adv-{name}
-description: {5-14 word imperative description}
-agent: {agent}
+description: { 5-14 word imperative description }
+agent: { agent }
 ---
 
 # ADV {Name} — {one-line purpose}
@@ -136,11 +142,11 @@ agent: {agent}
 
 Tasks / phases end in exactly one of these states:
 
-| Exit | Condition |
-|------|-----------|
-| ✅ Complete | {success condition} |
-| 🔁 Retry | {retry condition, if applicable} |
-| 🎤 Escalate | {escalation condition} |
+| Exit        | Condition                        |
+| ----------- | -------------------------------- |
+| ✅ Complete | {success condition}              |
+| 🔁 Retry    | {retry condition, if applicable} |
+| 🎤 Escalate | {escalation condition}           |
 
 ## {Phase N}: {Phase Name}
 
@@ -150,6 +156,55 @@ Tasks / phases end in exactly one of these states:
 ## Frontmatter Contract
 
 Command doc frontmatter `description` MUST be a **single-line YAML scalar** — no multiline `|` or `>` blocks, no folded strings. The drift test parser relies on this constraint. If multiline descriptions are ever needed, migrate the parser to a YAML-aware library (e.g., `gray-matter`).
+
+## Voice Contract (runtime prose)
+
+Manifest descriptions and command doc text cover **what** and **when**. This section covers **how to speak** when emitting runtime user-facing prose.
+
+### Style target — terse/caveman-lite
+
+- Short sentences. Fragments OK.
+- Bullets and tables over prose.
+- Concrete verbs. Drop fluff, filler, pleasantries, hedging.
+- Technical terms exact. Quoted errors exact.
+- Recommend, do not over-explain.
+
+### Applies to
+
+- Phase summaries and banners' prose portion
+- Findings, verdicts, recommendations
+- User-facing questions (question tool `question` field + option `description`)
+- Progress reports and gate summaries
+
+### Does not apply to (keep normal)
+
+- JSON schemas and structured sub-agent outputs
+- Code, commits, PR descriptions
+- Status markers and banner **structure** (keep required fields/labels exactly)
+- Command doc frontmatter descriptions (governed by manifest rules above)
+- Safety warnings, destructive-action confirmations, cancellation approval prose
+- Multi-step sequences where fragment order risks misread
+
+### Bad / good
+
+| BAD                                                                                           | GOOD                         |
+| --------------------------------------------------------------------------------------------- | ---------------------------- |
+| "I'll go ahead and take a look at the situation and see if I can figure out what's going on." | "Investigating."             |
+| "It seems like there might potentially be an issue with..."                                   | "Bug in X."                  |
+| "Sure! Happy to help. First, let's..."                                                        | "First:"                     |
+| "Would you like me to proceed?" (at clean auto-continue step)                                 | (do not ask — auto-continue) |
+| "The implementation was successfully completed and all tests are passing."                    | "Done. Tests pass."          |
+
+### Scope
+
+- ADV primary agent + shared agents that run ADV work (`build`, `plan`, `refine`, `scout`)
+- Provider-hint wording in `plugin/src/index.ts` should not contradict terse voice
+
+### Drift control
+
+- Lightweight: voice block referenced in `.opencode/agents/adv.md` and shared-agent overlays
+- No spec delta — convention under existing `rq-presentationSurface01`
+- Global `~/.config/opencode/instructions/caveman.md` remains user-config; not synced by repo
 
 ## Enforcement
 

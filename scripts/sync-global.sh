@@ -299,6 +299,88 @@ PY
   rm -f "$current_tmp"
 }
 
+# ---------------------------------------------------------------------------
+# Agent Tool Allowlist Drift Check
+#
+# Cross-references the `adv` agent's `tools:` allowlist in
+# .opencode/agents/adv.md against the plugin's canonical ADV_TOOL_NAMES
+# in plugin/src/tool-registry.ts. Reports tools registered but not allowed
+# (= will be invisible to the agent) and tools allowed but not registered
+# (= stale allowlist entries). Both are build-time-detectable drift causes.
+# ---------------------------------------------------------------------------
+check_tool_drift() {
+  local agent_file="$REPO_AGENTS/adv.md"
+  local registry_file="$REPO_ROOT/plugin/src/tool-registry.ts"
+
+  if [ ! -f "$agent_file" ] || [ ! -f "$registry_file" ]; then
+    echo "    ⚠  tool drift: skipped (missing $agent_file or $registry_file)"
+    return
+  fi
+
+  python - "$agent_file" "$registry_file" <<'PY' || ((config_issues++)) || true
+import re
+import sys
+from pathlib import Path
+
+agent_path, registry_path = sys.argv[1], sys.argv[2]
+
+# Extract adv_* keys from YAML frontmatter `tools:` block
+agent_text = Path(agent_path).read_text()
+if not agent_text.startswith("---\n"):
+    print("    ✗  tool drift: agent file missing YAML frontmatter")
+    sys.exit(1)
+end = agent_text.find("\n---\n", 4)
+if end == -1:
+    print("    ✗  tool drift: agent file frontmatter not terminated")
+    sys.exit(1)
+fm = agent_text[4:end]
+allowed = set()
+in_tools = False
+for line in fm.splitlines():
+    stripped = line.lstrip()
+    if stripped.startswith("tools:"):
+        in_tools = True
+        continue
+    if in_tools:
+        # end of tools block: next top-level key (no leading spaces)
+        if line and not line.startswith(" ") and not line.startswith("\t"):
+            break
+        m = re.match(r"^\s+(adv_[a-z_]+)\s*:", line)
+        if m:
+            allowed.add(m.group(1))
+
+# Extract ADV_TOOL_NAMES from registry
+reg_text = Path(registry_path).read_text()
+m = re.search(r"ADV_TOOL_NAMES[^=]*=\s*\[(.*?)\]\s*as const", reg_text, re.S)
+if not m:
+    print("    ✗  tool drift: could not locate ADV_TOOL_NAMES in registry")
+    sys.exit(1)
+registered = set(re.findall(r'"(adv_[a-z_]+)"', m.group(1)))
+
+missing = sorted(registered - allowed)   # registered but not allowed
+extras = sorted(allowed - registered)    # allowed but not registered
+
+issues = 0
+if missing:
+    issues += 1
+    print(f"    ✗  tool drift: {len(missing)} tool(s) registered but NOT in adv agent allowlist")
+    print(f"       (the agent cannot call these — they will be invisible in sessions)")
+    for t in missing:
+        print(f"         - {t}")
+if extras:
+    issues += 1
+    print(f"    ✗  tool drift: {len(extras)} tool(s) allowed but NOT registered")
+    print(f"       (allowlist references renamed/removed tools — will be silently dropped)")
+    for t in extras:
+        print(f"         - {t}")
+
+if issues == 0:
+    print(f"    ✓  tool drift: agent allowlist matches plugin registry ({len(registered)} tools)")
+
+sys.exit(1 if issues > 0 else 0)
+PY
+}
+
 check_config() {
   echo ""
   echo "--- Config Validation ---"
@@ -355,6 +437,9 @@ check_config() {
       ((config_issues++)) || true
     fi
   fi
+
+  # Cross-check agent tool allowlist against plugin registry
+  check_tool_drift
 
   # Warn about stale global copy (wastes ~7K tokens per prompt)
   local stale_instr="~/.config/opencode/instructions/ADV_INSTRUCTIONS.md"
@@ -607,8 +692,14 @@ mkdir -p "$GLOBAL_AGENTS"
 agents_copied=0
 # Agents that must stay repo-local (not synced to global)
 REPO_LOCAL_ONLY="tron.md"
-# Shared agents managed via overlay blocks instead of full-file replacement
-SHARED_OVERLAY_ONLY="adv.md build.md general.md plan.md refine.md scout.md"
+# Shared agents managed via overlay blocks instead of full-file replacement.
+#
+# NOTE: `adv.md` is deliberately NOT in this list. The ADV orchestrator agent's
+# `tools:` allowlist must stay in lockstep with the plugin's tool names; if it
+# is overlay-only, user customization + plugin tool renames silently desync and
+# ADV tools get filtered out of the agent's callable set. `adv.md` is therefore
+# treated as repo-owned and fully replaced on each sync.
+SHARED_OVERLAY_ONLY="build.md general.md plan.md refine.md scout.md"
 if [ -d "$REPO_AGENTS" ]; then
   for src in "$REPO_AGENTS"/*.md; do
     [ -f "$src" ] || continue
@@ -635,10 +726,10 @@ if [ -d "$REPO_AGENTS" ]; then
 fi
 echo "    $agents_copied agent(s) synced"
 
-# Apply repo-owned overlays to shared global agents without replacing the file
+# Apply repo-owned overlays to shared global agents without replacing the file.
+# `adv` is intentionally NOT in this list — see SHARED_OVERLAY_ONLY note above.
 if [ -d "$REPO_OVERLAYS" ]; then
   echo "    syncing shared-agent overlays"
-  apply_overlay_block "adv" "$GLOBAL_AGENTS/adv.md" "$REPO_AGENTS/adv.md"
   apply_overlay_block "general" "$GLOBAL_AGENTS/general.md"
   apply_overlay_block "build" "$GLOBAL_AGENTS/build.md" "$REPO_AGENTS/build.md"
   apply_overlay_block "plan" "$GLOBAL_AGENTS/plan.md" "$REPO_AGENTS/plan.md"
