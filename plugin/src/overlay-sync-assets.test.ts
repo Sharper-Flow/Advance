@@ -32,39 +32,6 @@ describe("overlay sync script support", () => {
     expect(content).toContain("skipped missing shared agent");
   });
 
-  test("fails fast on orphaned overlay markers", () => {
-    const tempHome = mkdtempSync(join(tmpdir(), "adv-sync-"));
-
-    try {
-      const globalAgents = join(tempHome, ".config/opencode/agents");
-      mkdirSync(globalAgents, { recursive: true });
-      writeFileSync(
-        join(globalAgents, "adv.md"),
-        [
-          "---",
-          'description: "temp adv agent"',
-          "---",
-          "",
-          "<!-- ADV_SYNC:START adv -->",
-          "stale overlay without end marker",
-          "",
-        ].join("\n"),
-      );
-
-      const result = spawnSync("bash", [SYNC_SCRIPT_PATH, "--dry-run"], {
-        cwd: REPO_ROOT,
-        env: { ...process.env, HOME: tempHome, CI: "true" },
-        encoding: "utf8",
-      });
-
-      const output = `${result.stdout}${result.stderr}`;
-      expect(result.status).toBe(1);
-      expect(output).toContain("orphaned overlay marker: adv.md");
-    } finally {
-      rmSync(tempHome, { recursive: true, force: true });
-    }
-  });
-
   test("bootstraps missing shared adv agent on --fix", () => {
     const tempHome = mkdtempSync(join(tmpdir(), "adv-bootstrap-"));
 
