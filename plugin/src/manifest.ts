@@ -14,7 +14,7 @@ import type { GateId } from "./types";
 // Types
 // =============================================================================
 
-type Phase =
+export type Phase =
   | "core"
   | "pre-implementation"
   | "implementation"
@@ -23,7 +23,7 @@ type Phase =
   | "utility";
 
 /** Defines what a command is allowed to create, read, modify, and which gate it owns. */
-interface CommandScope {
+export interface CommandScope {
   /** ADV artifacts this command creates (e.g., 'change', 'tasks') */
   creates: string[];
   /** ADV artifacts this command reads */
@@ -34,7 +34,7 @@ interface CommandScope {
   gates: GateId[];
 }
 
-interface CommandDef {
+export interface CommandDef {
   /** Command name (without /) */
   name: string;
   /** Short description */
@@ -51,6 +51,11 @@ interface CommandDef {
   successors: string[];
   /** Boundary scope: what this command creates, reads, modifies, and which gates it owns */
   scope?: CommandScope;
+  /**
+   * HITL phase goal — canonical description of this command's objective (workflow commands only).
+   * Agents should self-check: "Am I still working toward this phase's goal?"
+   */
+  phaseGoal?: string;
 }
 
 // =============================================================================
@@ -71,18 +76,19 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
   "adv-proposal": {
     name: "adv-proposal",
     description:
-      "Extract problem statement and confirm with user before proceeding",
+      "Extract problem statement, success criteria, and constraints without creating tasks",
     phase: "core",
-    gate: "proposal",
     requiresChangeId: false,
     prerequisites: [],
-    successors: ["adv-clarify", "adv-discover"],
+    successors: ["adv-clarify", "adv-research", "adv-prep"],
     scope: {
-      creates: ["change", "proposal", "problem-statement"],
+      creates: ["change", "proposal"],
       reads: ["specs"],
       modifies: [],
-      gates: ["proposal"],
+      gates: [],
     },
+    phaseGoal:
+      "Clarify the problem, user needs, and acceptance criteria scope. Establish what and why \u2014 no how.",
   },
   "adv-validate": {
     name: "adv-validate",
@@ -97,74 +103,57 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
     name: "adv-archive",
     description: "Archive completed change: apply spec deltas and finalize git",
     phase: "core",
-    gate: "release",
     requiresChangeId: true,
-    prerequisites: ["adv-harden"],
+    prerequisites: ["adv-validate"],
     successors: [],
-    scope: {
-      creates: ["archive"],
-      reads: ["specs", "proposal", "tasks", "codebase"],
-      modifies: ["specs"],
-      gates: ["release"],
-    },
+    phaseGoal:
+      "Promote the change from contract to law: apply spec deltas, capture wisdom, clean up.",
   },
 
-  // ---- Pre-Implementation (Discovery + Design) ----
+  // ---- Pre-Implementation ----
   "adv-clarify": {
     name: "adv-clarify",
     description: "Ask clarifying questions to resolve ambiguous requirements",
     phase: "pre-implementation",
     requiresChangeId: false,
     prerequisites: ["adv-proposal"],
-    successors: ["adv-discover", "adv-design"],
+    successors: ["adv-research", "adv-prep"],
   },
-  "adv-discover": {
-    name: "adv-discover",
+  "adv-research": {
+    name: "adv-research",
     description:
-      "Gather context, analyze current state, identify objectives, and obtain user agreement",
+      "Validate architectural decisions and best practices without creating tasks",
     phase: "pre-implementation",
-    gate: "discovery",
+    gate: "research",
     requiresChangeId: true,
     prerequisites: ["adv-proposal"],
-    successors: ["adv-design"],
+    successors: ["adv-prep"],
     scope: {
       creates: [],
       reads: ["specs", "proposal", "codebase"],
       modifies: ["proposal"],
-      gates: ["discovery"],
+      gates: ["research"],
     },
-  },
-  "adv-design": {
-    name: "adv-design",
-    description:
-      "Validate architecture decisions, produce implementation strategy, and present design for user review",
-    phase: "pre-implementation",
-    gate: "design",
-    requiresChangeId: true,
-    prerequisites: ["adv-discover"],
-    successors: ["adv-prep"],
-    scope: {
-      creates: ["design"],
-      reads: ["specs", "proposal", "agreement", "codebase"],
-      modifies: ["proposal"],
-      gates: ["design"],
-    },
+    phaseGoal:
+      "Produce a defined, fully-researched proposed plan ready for user approval. Validate the how.",
   },
   "adv-prep": {
     name: "adv-prep",
     description:
-      "Analyze gaps and synthesize tasks from validated design decisions",
+      "Analyze gaps and synthesize tasks from validated research findings",
     phase: "pre-implementation",
-    gate: "planning",
+    gate: "prep",
     requiresChangeId: true,
-    prerequisites: ["adv-design"],
+    prerequisites: ["adv-research"],
     successors: ["adv-apply"],
     scope: {
       creates: ["tasks"],
-      reads: ["specs", "proposal", "agreement", "design", "codebase"],
+      reads: ["specs", "proposal", "codebase"],
       modifies: ["tasks", "proposal"],
-      gates: ["planning"],
+      gates: ["prep"],
     },
+    phaseGoal:
+      "Complete the flight-check: every gap closed, every dependency mapped, every task ready \u2014 ready for autonomous implementation.",
   },
 
   // ---- Implementation ----
@@ -173,40 +162,42 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
     description:
       "Implement change with TDD, retry on failure, and final verification",
     phase: "implementation",
-    gate: "execution",
+    gate: "implementation",
     requiresChangeId: true,
     prerequisites: ["adv-prep"],
-    successors: ["adv-review"],
+    successors: ["adv-review", "adv-harden"],
     scope: {
       creates: [],
       reads: ["specs", "proposal", "tasks", "codebase"],
       modifies: ["tasks", "codebase"],
-      gates: ["execution"],
+      gates: ["implementation"],
     },
+    phaseGoal:
+      "Execute the approved plan autonomously. Add discovered tasks within scope. Escalate only on failure.",
   },
   "adv-task": {
     name: "adv-task",
     description:
-      "Fast-track a discussed change: synthesize contract, validate, prep, and hand off",
+      "Fast-track a discussed change: synthesize contract, validate best practices, prep, and hand off",
     phase: "implementation",
     requiresChangeId: false,
     prerequisites: [],
-    successors: ["adv-apply"],
+    successors: ["adv-review", "adv-harden"],
     scope: {
-      creates: ["change", "proposal", "agreement", "design", "tasks"],
+      creates: ["change", "proposal", "tasks"],
       reads: ["specs", "codebase"],
       modifies: [],
-      gates: ["proposal", "discovery", "design", "planning"],
+      gates: ["research", "prep"],
     },
   },
 
-  // ---- Post-Implementation (Acceptance + Release) ----
+  // ---- Post-Implementation ----
   "adv-review": {
     name: "adv-review",
     description:
-      "Review deliverables for correctness, security, and architecture quality",
+      "Review code for correctness, security, and architecture; emit REVIEW_FINDINGS",
     phase: "post-implementation",
-    gate: "acceptance",
+    gate: "review",
     requiresChangeId: true,
     prerequisites: ["adv-apply"],
     successors: ["adv-harden"],
@@ -214,14 +205,17 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
       creates: [],
       reads: ["specs", "proposal", "tasks", "codebase"],
       modifies: ["proposal"],
-      gates: ["acceptance"],
+      gates: ["review"],
     },
+    phaseGoal:
+      "Verify implementation matches the approved plan. Auto-fix within scope. Stop on drift.",
   },
   "adv-harden": {
     name: "adv-harden",
     description:
-      "Detect low-quality code, verify test coverage, clean up before release",
+      "Detect low-quality code, verify test coverage, clean up; block archive on open findings",
     phase: "post-implementation",
+    gate: "harden",
     requiresChangeId: true,
     prerequisites: ["adv-review"],
     successors: ["adv-validate", "adv-archive"],
@@ -229,8 +223,10 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
       creates: [],
       reads: ["specs", "proposal", "tasks", "codebase"],
       modifies: ["codebase"],
-      gates: [],
+      gates: ["harden"],
     },
+    phaseGoal:
+      "Verify production-readiness. Auto-fix scoped issues. Stop on drift.",
   },
   "adv-audit": {
     name: "adv-audit",
@@ -272,11 +268,11 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
   "adv-improve": {
     name: "adv-improve",
     description:
-      "Suggest improvements and persist a competitor research pack for /adv-discover reuse",
+      "Suggest targeted improvements to existing specs or implementation",
     phase: "utility",
     requiresChangeId: false,
     prerequisites: [],
-    successors: ["adv-discover", "adv-proposal"],
+    successors: ["adv-proposal"],
   },
   "adv-tron": {
     name: "adv-tron",

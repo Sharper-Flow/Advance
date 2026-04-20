@@ -1,11 +1,12 @@
 ---
 name: adv-proposal
-description: Extract problem statement and confirm with user before proceeding
+description: "Extract problem statement, success criteria, and constraints without creating tasks"
+phaseGoal: "Clarify the problem, user needs, and acceptance criteria scope. Establish what and why — no how."
 ---
 
 # ADV Proposal — Establish the Problem Statement
 
-Lead with problem statement agreement, then create the initial change scaffold. This command owns the `proposal` gate and hands off to `/adv-discover`.
+Two-phase workflow: Phase 1 (problem statement agreement) → Phase 2 (full proposal with INVEST criteria and smell detection). **Fully collaborative** — the user shapes every decision.
 
 ## Command Boundary
 
@@ -78,6 +79,20 @@ When creating a change in a **different project** (e.g. pokeedge backend creatin
 5. The target project's agent picks it up via `/adv-discover` and validates the origin before proceeding
 
 **Minimum required:** `target_path`. Strongly recommended: `source_change_id` for full traceability.
+---
+
+## Step 9: Proposal Approval
+
+Present the completed proposal summary to the user for final approval via `question` tool:
+
+- **Approve proposal (Recommended)** — proposal is finalized, proceed to `/adv-research`
+- **Request changes** — user wants to adjust criteria, scope, or constraints (loop back to relevant step)
+- **Cancel** — abandon the proposal
+
+If **Request changes**: collect specific feedback → apply changes via `adv_change_update` → re-present → re-ask.
+
+× MUST NOT mark the proposal complete without explicit user approval.
+
 ---
 
 ## Output

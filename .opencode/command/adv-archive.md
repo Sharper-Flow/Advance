@@ -1,6 +1,7 @@
 ---
 name: adv-archive
 description: Archive completed change: apply spec deltas and finalize git
+phaseGoal: "Promote the change from contract to law: apply spec deltas, capture wisdom, clean up."
 ---
 # ADV Archive — Finalize Completed Change
 Archive change → apply deltas to specs → mandatory Phase 9 Git Finalization (commit, merge, verify, cleanup).

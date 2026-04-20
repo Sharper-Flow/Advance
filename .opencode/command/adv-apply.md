@@ -1,6 +1,7 @@
 ---
 name: adv-apply
-description: Implement change with TDD, retry on failure, and final verification
+description: "Implement change with TDD, retry on failure, and final verification"
+phaseGoal: "Execute the approved plan autonomously. Add discovered tasks within scope. Escalate only on failure."
 ---
 # ADV Apply — Produce Deliverables with TDD and Retry
 Implement an ADV change using TDD. Produce the agreed deliverables — code, docs, ops changes, or verification artifacts — and pursue every task to completion.
@@ -154,6 +155,24 @@ Phase J. Doom-loop-clearance re-surface is the only secondary path in v1.
 6. **Hard-stop advisory** (if `threshold_tier === "hardstop"`): strongly-worded recommend-pause note. × Do NOT call `adv_change_reenter` — re-entry is scope-expansion-driven per `rq-scopeReentry01`.
 
 **Composition:** Phase 1.5 is covered by `rq-autonomy01`'s "unresolved user-value tradeoff" escape clause — NOT a new enumerated checkpoint. See skill for full protocol + detailed semantics.
+
+## Phase 2: Prep Gate Approval Verification
+
+### Prep Gate Approval Check
+
+Verify that the prep gate was completed with user approval. The prep gate is the last human checkpoint — `/adv-apply` runs autonomously after it.
+
+- **Prep gate complete with `userApproved`**: Proceed immediately. No confirmation needed.
+- **Prep gate complete without `userApproved` (legacy change)**: Emit soft advisory:
+  ```
+  ⚠ ADVISORY: Prep gate was completed before HITL enforcement.
+  This change was approved under the previous workflow.
+  Proceeding with implementation.
+  ```
+  Ask via `question` tool: Proceed with implementation (Recommended), Re-run prep for explicit approval, Cancel.
+- **Prep gate not complete**: Stop — require `/adv-prep` first (handled by Gate Prerequisite Check above).
+
+× MUST NOT ask "Begin work?" when prep gate has `userApproved` — that approval already happened during `/adv-prep`.
 
 ---
 ## Phase 2: Display Contract

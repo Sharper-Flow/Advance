@@ -212,7 +212,7 @@ mechanisms introduced.
     expect(clarifyRecs).toHaveLength(0);
   });
 
-  test("adv_gate_complete planning passes without clarify warnings for well-specified change", async () => {
+  test("adv_gate_complete prep passes without clarify warnings for well-specified change", async () => {
     // Create a well-specified change
     const createResult = await changeTools.adv_change_create.execute(
       {
@@ -223,23 +223,15 @@ mechanisms introduced.
     );
     const { changeId } = parseToolOutput(createResult);
 
-    // Complete prerequisite gates first
+    // Complete research gate first
     await gateTools.adv_gate_complete.execute(
-      { changeId, gateId: "proposal" },
-      store,
-    );
-    await gateTools.adv_gate_complete.execute(
-      { changeId, gateId: "discovery" },
-      store,
-    );
-    await gateTools.adv_gate_complete.execute(
-      { changeId, gateId: "design" },
+      { changeId, gateId: "research" },
       store,
     );
 
-    // Complete planning gate — should pass cleanly
+    // Complete prep gate — should pass cleanly
     const prepResult = await gateTools.adv_gate_complete.execute(
-      { changeId, gateId: "planning" },
+      { changeId, gateId: "prep", userApproved: true },
       store,
     );
     const parsed = extractJson(prepResult);

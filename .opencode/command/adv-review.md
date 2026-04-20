@@ -1,6 +1,7 @@
 ---
 name: adv-review
-description: Review deliverables for correctness, security, and architecture quality
+description: "Review code for correctness, security, and architecture; emit REVIEW_FINDINGS"
+phaseGoal: "Verify implementation matches the approved plan. Auto-fix within scope. Stop on drift."
 ---
 # ADV Review — Acceptance-Stage Deliverable Review
 Orchestrate multi-dimensional review of the delivered work. This command is part of the acceptance stage, emits `REVIEW_FINDINGS`, and now carries the post-execution acceptance/sign-off flow directly.
@@ -184,8 +185,20 @@ Emit CODE REVIEW banner: per-dimension status, severity breakdown, verdict.
 If APPROVED → skip to completion.
 
 If CHANGES_REQUESTED/BLOCKED → auto-remediation is mandatory:
-1. **Fix all blockers/issues** — no partial fix mode. For non-trivial fixes: research first (Context7/librarian/independent validator) → then implement.
-2. **Investigate suggestions/questions** — validate against specs/tests/code → implement if validated, reject with evidence if not. × Validated in-scope findings must be fixed now — no future-work deferral permitted.
+1. **Fix all blockers/issues** — no partial fix mode. For non-trivial fixes: research first (Context7/librarian/adv-researcher) → then implement.
+2. **Investigate suggestions/questions** — validate against specs/tests/code → implement if validated, reject with evidence if not.
+
+### Drift Detection Rule (CRITICAL)
+
+Before applying ANY fix, evaluate: **"If I apply this fix, will proposal.md's Success Criteria, Acceptance Criteria, or Out-of-Scope sections need to change?"**
+
+- **NO** → auto-remediate (proceed with fix)
+- **YES** → **STOP** — present the finding and proposed fix to the user via `question` tool:
+  - **Approve fix and update scope** — user agrees the scope should expand
+  - **Skip fix, document as accepted debt** — finding is valid but out of scope
+  - **Cancel review** — user wants to reconsider
+
+This is the single declarative drift detection rule. It applies to every finding, every fix, every auto-remediation action.
 3. **Cleanup pass** — remove temp artifacts, debug code, dead imports, stale comments.
 4. **Verification** — re-run tests for touched areas, update finding status (fixed/unresolved).
 5. **Recompute verdict** — APPROVED only when no unresolved blocker/issue remains and all validated in-scope suggestions are implemented.
