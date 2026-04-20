@@ -7,27 +7,17 @@
 import type { Store } from "../storage/store";
 import type { SpecScenario } from "./parity-harness";
 
-function scenarioChangeTitle(
-  base: string,
-  backend: "legacy" | "temporal",
-): string {
-  return `[parity:${backend}] ${base}`;
-}
-
 export const STORAGE_LAYER_SCENARIO_GROUPS = {
   changes: [
     {
       id: "changes-create-get-roundtrip",
       title: "change create/get roundtrip preserves title and draft status",
       requirementIds: ["rq-advprop01", "rq-advprop02"],
-      run: async ({ store, backend, projectDir }) => {
-        const created = await store.changes.create(
-          scenarioChangeTitle("change roundtrip", backend),
-        );
+      run: async ({ store, projectDir }) => {
+        const created = await store.changes.create("change roundtrip");
         const loaded = await store.changes.get(created.changeId);
         return {
           projectDir,
-          changeId: created.changeId,
           title: loaded.data?.title,
           status: loaded.data?.status,
         };
@@ -39,17 +29,15 @@ export const STORAGE_LAYER_SCENARIO_GROUPS = {
       id: "tasks-add-list-ready-roundtrip",
       title: "task add/list/ready preserves metadata and readiness",
       requirementIds: ["rq-advmeta01"],
-      run: async ({ store, backend }) => {
-        const created = await store.changes.create(
-          scenarioChangeTitle("task parity", backend),
-        );
+      run: async ({ store }) => {
+        const created = await store.changes.create("task parity");
         const task = await store.tasks.add(created.changeId, "parity task", {
-          metadata: { owner: backend, bucket: "parity" },
+          metadata: { owner: "parity", bucket: "parity" },
         });
         const listed = await store.tasks.list(created.changeId);
         const ready = await store.tasks.ready(created.changeId);
         return {
-          taskId: task.id,
+          taskTitle: task.title,
           listedCount: listed.length,
           readyCount: ready.ready.length,
           metadata: listed[0]?.metadata,
@@ -62,10 +50,8 @@ export const STORAGE_LAYER_SCENARIO_GROUPS = {
       id: "gates-complete-proposal-roundtrip",
       title: "gate completion persists proposal completion",
       requirementIds: ["rq-gatemodel01"],
-      run: async ({ store, backend }) => {
-        const created = await store.changes.create(
-          scenarioChangeTitle("gate parity", backend),
-        );
+      run: async ({ store }) => {
+        const created = await store.changes.create("gate parity");
         await store.gates.complete(created.changeId, "proposal", "parity note");
         const gates = await store.gates.get(created.changeId);
         return {
@@ -80,15 +66,9 @@ export const STORAGE_LAYER_SCENARIO_GROUPS = {
       id: "wisdom-add-list-roundtrip",
       title: "wisdom add/list roundtrip preserves content and type",
       requirementIds: ["rq-W1sD0mR1"],
-      run: async ({ store, backend }) => {
-        const created = await store.changes.create(
-          scenarioChangeTitle("wisdom parity", backend),
-        );
-        await store.wisdom.add(
-          created.changeId,
-          "pattern",
-          `wisdom-${backend}`,
-        );
+      run: async ({ store }) => {
+        const created = await store.changes.create("wisdom parity");
+        await store.wisdom.add(created.changeId, "pattern", "wisdom-entry");
         const wisdom = await store.wisdom.list(created.changeId);
         return {
           count: wisdom.length,
@@ -103,10 +83,8 @@ export const STORAGE_LAYER_SCENARIO_GROUPS = {
       id: "reentry-resets-downstream-gates",
       title: "re-entry resets downstream gates and records history",
       requirementIds: ["rq-scopeReentry01", "rq-scopeReentry02"],
-      run: async ({ store, backend }) => {
-        const created = await store.changes.create(
-          scenarioChangeTitle("reentry parity", backend),
-        );
+      run: async ({ store }) => {
+        const created = await store.changes.create("reentry parity");
         await store.gates.complete(created.changeId, "proposal", "done");
         await store.gates.reopenFrom(
           created.changeId,

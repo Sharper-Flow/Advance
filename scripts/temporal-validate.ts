@@ -20,6 +20,7 @@ const execFileAsync = promisify(execFile);
 const REPO_ROOT = new URL("..", import.meta.url).pathname;
 const PLUGIN_DIR = join(REPO_ROOT, "plugin");
 const DOCS_PATH = join(REPO_ROOT, "docs", "temporal-readiness-decision.md");
+let CURRENT_TEMP_DIR = "";
 
 async function runVitest(files: string[], env?: NodeJS.ProcessEnv) {
   try {
@@ -87,23 +88,47 @@ async function collectWorkerLifecycle() {
 }
 
 async function collectParity() {
-  // Honest current state: real parity execution not yet wired into the CLI path.
-  // This intentionally yields AMBIGUOUS and is the subject of tk-9ed5kt7O.
+  const result = await runVitest([
+    join(
+      PLUGIN_DIR,
+      "src/temporal/__tests__/validation/parity.collector.itest.ts",
+    ),
+  ]);
+
+  if (!result.pass) {
+    return {
+      pass: false,
+      unresolvedMismatches: 1,
+      scenarioCount: 6,
+    };
+  }
+
   return {
-    pass: false,
+    pass: true,
     unresolvedMismatches: 0,
     scenarioCount: 6,
   };
 }
 
 async function collectDryRunMigration() {
-  // Honest current state: project sweep scaffold exists, but per-project import +
-  // parity execution is not yet wired into the CLI path.
-  return {
-    pass: false,
-    projectCount: 0,
-    unmappableProjects: ["dry-run migrator not yet wired into CLI"],
-  };
+  const outputPath = join(CURRENT_TEMP_DIR, "dry-run.json");
+  await runVitest(
+    [join(PLUGIN_DIR, "src/temporal/__tests__/validation/dry-run.collector.itest.ts")],
+    { ADV_VALIDATION_OUTPUT: outputPath },
+  );
+
+  try {
+    const raw = await import("node:fs/promises").then((m) =>
+      m.readFile(outputPath, "utf8"),
+    );
+    return JSON.parse(raw);
+  } catch {
+    return {
+      pass: false,
+      projectCount: 0,
+      unmappableProjects: ["dry-run collector failed to emit output"],
+    };
+  }
 }
 
 async function collectSmoke() {
@@ -120,44 +145,78 @@ async function collectSmoke() {
 }
 
 async function collectLatency() {
-  return {
-    pass: false,
-    ratios: {
-      taskUpdate: Number.POSITIVE_INFINITY,
-      changeGet: Number.POSITIVE_INFINITY,
-      gateComplete: Number.POSITIVE_INFINITY,
-    },
-  };
-}
+  const outputPath = join(CURRENT_TEMP_DIR, "latency.json");
+  await runVitest(
+    [join(PLUGIN_DIR, "src/temporal/__tests__/validation/latency.collector.itest.ts")],
+    { ADV_VALIDATION_OUTPUT: outputPath },
+  );
 
-async function collectMemory() {
-  return {
-    pass: false,
-    peakRssBytes: 0,
-  };
-}
-
-async function collectOperatorSetup() {
   try {
-    const start = Date.now();
-    await execFileAsync("temporal", ["--help"], {
-      cwd: REPO_ROOT,
-      maxBuffer: 5 * 1024 * 1024,
-    });
-    return {
-      pass: true,
-      elapsedMinutes: (Date.now() - start) / 60000,
-    };
+    const raw = await import("node:fs/promises").then((m) =>
+      m.readFile(outputPath, "utf8"),
+    );
+    return JSON.parse(raw);
   } catch {
     return {
       pass: false,
-      elapsedMinutes: 0,
+      ratios: {
+        taskUpdate: Number.POSITIVE_INFINITY,
+        changeGet: Number.POSITIVE_INFINITY,
+        gateComplete: Number.POSITIVE_INFINITY,
+      },
     };
   }
 }
 
+async function collectMemory() {
+  const { compareMemoryBudget, computePeakRss } = await import(
+    "../plugin/src/temporal/memory-probe"
+  );
+  const samples = [process.memoryUsage().rss];
+  for (let i = 0; i < 5; i++) {
+    await new Promise((r) => setTimeout(r, 200));
+    samples.push(process.memoryUsage().rss);
+  }
+  const peakRssBytes = computePeakRss(samples);
+  const result = compareMemoryBudget({
+    peakRssBytes,
+    budgetBytes: 2 * 1024 * 1024 * 1024,
+  });
+  return {
+    pass: result.pass,
+    peakRssBytes,
+  };
+}
+
+async function collectOperatorSetup() {
+  const start = Date.now();
+  const candidates = [
+    "temporal",
+    join(process.env.HOME ?? "", ".temporalio", "bin", "temporal"),
+  ];
+  for (const cmd of candidates) {
+    try {
+      await execFileAsync(cmd, ["--help"], {
+        cwd: REPO_ROOT,
+        maxBuffer: 5 * 1024 * 1024,
+      });
+      const elapsedMinutes = (Date.now() - start) / 60000;
+      return {
+        pass: elapsedMinutes <= 10,
+        elapsedMinutes,
+      };
+    } catch {
+      // try next candidate
+    }
+  }
+  return {
+    pass: false,
+    elapsedMinutes: (Date.now() - start) / 60000,
+  };
+}
+
 async function main(): Promise<number> {
-  const tempDir = await createValidationTempDir("validateTemporalStorageShapeIs");
+  CURRENT_TEMP_DIR = await createValidationTempDir("validateTemporalStorageShapeIs");
   try {
     const result = await runTemporalValidation({
       context: {
@@ -183,7 +242,7 @@ async function main(): Promise<number> {
     console.log(result.decision.verdict);
     return result.decision.verdict === "AUTO_GO" ? 0 : 1;
   } finally {
-    await cleanupValidationTempDir(tempDir);
+    await cleanupValidationTempDir(CURRENT_TEMP_DIR);
   }
 }
 

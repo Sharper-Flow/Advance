@@ -147,4 +147,62 @@ describe("Temporal store backend adapter", () => {
     await adapted.status();
     expect(legacy.status).toHaveBeenCalled();
   });
+
+  it("caches repeated changes.get calls until a mutation invalidates the cache", async () => {
+    const changeHandle = {
+      query: vi.fn(async () => ({
+        projectId: "proj1",
+        changeId: "chg-cache",
+        title: "Cached Change",
+        initializedAt: "2026-04-18T00:00:00.000Z",
+        id: "chg-cache",
+        status: "draft",
+        createdAt: "2026-04-18T00:00:00.000Z",
+        tasks: [],
+        wisdom: [],
+        gates: {
+          proposal: { status: "pending" },
+          discovery: { status: "pending" },
+          design: { status: "pending" },
+          planning: { status: "pending" },
+          execution: { status: "pending" },
+          acceptance: { status: "pending" },
+          release: { status: "pending" },
+        },
+        reentry_history: [],
+        artifacts: {},
+      })),
+      executeUpdate: vi.fn(async () => null),
+    };
+
+    const bundle = {
+      client: {
+        workflow: {
+          getHandle: vi.fn(() => changeHandle),
+        },
+      },
+    };
+
+    const legacy = makeLegacyStore();
+    const adapted = createTemporalStoreBackend({
+      legacy,
+      temporal: bundle as any,
+      projectId: "proj1",
+    });
+
+    await adapted.changes.get("chg-cache");
+    await adapted.changes.get("chg-cache");
+
+    expect(changeHandle.query).toHaveBeenCalledTimes(1);
+
+    await adapted.changes.close("chg-cache", {
+      reason: "superseded",
+      approved_by_user: true,
+      approved_at: "2026-04-18T00:01:00.000Z",
+      approval_evidence: "ok",
+    });
+    await adapted.changes.get("chg-cache");
+
+    expect(changeHandle.query).toHaveBeenCalledTimes(2);
+  });
 });

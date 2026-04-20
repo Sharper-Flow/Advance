@@ -10,8 +10,9 @@ import { isDeepStrictEqual } from "node:util";
 import { TestWorkflowEnvironment } from "@temporalio/testing";
 import { Worker } from "@temporalio/worker";
 import type { Store } from "../storage/store";
-import { createStore } from "../storage/store";
+import { createLegacyStore, createStore } from "../storage/store";
 import { buildProjectTaskQueue } from "./client";
+import { ensureChangeWorkflowStarted } from "./migration";
 
 export type BackendKind = "legacy" | "temporal";
 
@@ -127,11 +128,13 @@ export async function runParityScenarios<TOutput = unknown>(input: {
 export async function runStorageLayerParity<TOutput = unknown>(input: {
   projectDir: string;
   projectId: string;
+  externalRoot?: string;
   scenarios: SpecScenario<TOutput>[];
 }): Promise<ParityRunResult> {
   const taskQueue = buildProjectTaskQueue(input.projectId);
   let worker: Worker | undefined;
   let runPromise: Promise<void> | undefined;
+  let bootstrapLegacy: Store | undefined;
 
   return runParityScenarios({
     projectDir: input.projectDir,
@@ -151,14 +154,17 @@ export async function runStorageLayerParity<TOutput = unknown>(input: {
         teardown: async () => {
           worker?.shutdown();
           await runPromise?.catch(() => undefined);
+          bootstrapLegacy?.close?.();
           await env.teardown();
         },
       } satisfies TestWorkflowEnvironmentLike;
     },
-    createLegacyStore: async ({ projectDir }) => createStore(projectDir),
+    createLegacyStore: async ({ projectDir }) =>
+      createStore(projectDir, { externalRoot: input.externalRoot }),
     createTemporalStore: async ({ projectDir, environment }) => {
       const env = environment as TestWorkflowEnvironment;
-      return createStore(projectDir, {
+      const baseTemporal = await createStore(projectDir, {
+        externalRoot: input.externalRoot,
         temporalBundle: {
           address: String(env.address),
           namespace: String(env.namespace),
@@ -167,6 +173,46 @@ export async function runStorageLayerParity<TOutput = unknown>(input: {
         },
         projectIdOverride: input.projectId,
       });
+
+      bootstrapLegacy = await createLegacyStore(projectDir, {
+        externalRoot: input.externalRoot,
+      });
+
+      return {
+        ...baseTemporal,
+        changes: {
+          ...baseTemporal.changes,
+          create: async (
+            summary: string,
+            capability?: string,
+            proposalContent?: string,
+            problemStatementContent?: string,
+            agreementContent?: string,
+            designContent?: string,
+          ) => {
+            const created = await bootstrapLegacy!.changes.create(
+              summary,
+              capability,
+              proposalContent,
+              problemStatementContent,
+              agreementContent,
+              designContent,
+            );
+
+            await ensureChangeWorkflowStarted(
+              { workflow: env.client.workflow as any },
+              {
+                projectId: input.projectId,
+                changeId: created.changeId,
+                title: summary,
+                initializedAt: new Date().toISOString(),
+              },
+            );
+
+            return created;
+          },
+        },
+      } satisfies Store;
     },
   });
 }
