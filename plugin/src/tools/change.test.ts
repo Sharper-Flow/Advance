@@ -5,7 +5,7 @@
  */
 
 import { describe, test, expect, beforeEach, afterEach } from "vitest";
-import { readFile, writeFile, mkdir } from "fs/promises";
+import { readFile, writeFile } from "fs/promises";
 import { join } from "path";
 import { changeTools } from "./change";
 import { createStore, type Store } from "../storage/store";
