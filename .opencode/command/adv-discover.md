@@ -72,6 +72,19 @@ After all 8 steps, emit a **Discovery Checklist** table listing each step with P
 
 If the proposal gate is still pending → stop and direct the user to `/adv-proposal` first.
 
+### Phase 1.0: Cross-Project Origin Validation
+
+If `adv_change_show` reveals a `cross_project_origin` field on the change:
+
+1. **Confirm the origin is valid** — verify that `source_path` points to a real project and `source_project` matches a known project
+2. **Trace the source change** — if `source_change_id` is set, report it to the user so they can confirm the originating context is relevant
+3. **Present origin summary** — surface the origin details to the user for confirmation:
+   - "This change was created as a follow-up from **{source_project}** (change: {source_change_id}). Does this context match your expectations?"
+4. **If origin is invalid or unexpected** → flag as a blocking finding; the agent should not proceed with agreement until the user confirms
+5. **If no origin** → skip this phase (local change, normal flow)
+
+> **Gate requirement:** Cross-project origin MUST be validated and confirmed by the user before proceeding to agreement. This prevents stale or misdirected follow-up changes from being adopted blindly.
+
 ---
 ## Phase 1.5: Skill Discovery
 Execute the skill discovery protocol from `ADV_INSTRUCTIONS.md § Skill Discovery Protocol`:
@@ -303,16 +316,23 @@ If the gate cannot be completed, surface the blocking reason and stop.
 
 ## Output
 
-Emit DISCOVERY COMPLETE with:
-- target change
-- current-state summary
-- objectives
-- constraints
-- open blockers/questions for `/adv-design`
+Use the Gate Handoff Voice spine (see `docs/command-voice-standard.md § Gate Handoff Voice`):
 
 ```
-/adv-discover {change-id} COMPLETE
-Result: discovery findings recorded and agreement.md captured
-Discovery Gate: MARKED COMPLETE
-Next: /adv-design {change-id}
+## Problem
+{One-line restatement of the problem this change addresses.}
+
+## Chosen direction
+Agreed objectives + constraints + user decisions.
+
+## Delivered
+- Discovery findings recorded
+- agreement.md captured
+- Open design questions for /adv-design
+
+## Next stage
+Design.
+
+## Next
+`/adv-design {change-id}`
 ```

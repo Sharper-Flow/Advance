@@ -222,10 +222,8 @@ Choose between inline work and delegation based on what produces the best **cont
 | `general`        | Need multi-file implementation                                       | Completed changes with file:line refs |
 | `mechanic`       | Tool/MCP/infra failure                                               | Diagnosis and fix                     |
 | `adv-researcher` | Need architecture validation (ADV-managed bundled global specialist) | Assessment with recommendations       |
-| `build`          | Need verification, test runs                                         | Build/test results                    |
-| `refine`         | Need surgical, scoped editing                                        | Targeted fixes                        |
-| `plan`           | Need structured implementation plan                                  | Ordered task breakdown                |
-| `scout`          | Need investigation or ideation                                       | Findings, tradeoffs, requirements     |
+| `build`          | Need scoped execution, fixes, verification, tests                   | Build/test results, targeted fixes     |
+| `plan`           | Need investigation, research, or ideation                           | Findings, tradeoffs, ordered plans     |
 
 > **Tradeoff analysis**: For multi-approach decisions, load `skill("prioritizer")` instead of spawning a sub-agent.
 
@@ -246,27 +244,26 @@ Choose between inline work and delegation based on what produces the best **cont
 
 ## Output Contract
 
-After completing any workflow, emit:
+After completing any workflow that emits a user-facing gate-transition message, use the **Gate Handoff Voice spine** defined in `docs/command-voice-standard.md § Gate Handoff Voice`:
 
 ```
-## Orchestration Summary
+## Problem
+{One-line restatement.}
 
-### Steps Completed
-1. [{gate}] {what happened}
+## Chosen direction
+{Per-stage anchor from voice standard doc.}
 
-### Gates
-[✓/○ proposal] [✓/○ discovery] [✓/○ design] [✓/○ planning]
-[✓/○ execution] [✓/○ acceptance] [✓/○ release]
+## Delivered
+{Concrete artifacts, not process. Bullet list.}
 
-### Sub-Agents Spawned
-- {agent} × {count} ({purpose})
+## Next stage
+{Next gate name.}
 
-### Result
-{What was accomplished and current state}
-
-### Next Step
-{What the user should do or approve next}
+## Next
+`/adv-{command} {change-id}`
 ```
+
+Internal state (task lists, gate checkboxes, sub-agent counts, step logs) lives in ADV tools (`adv_change_show`, `adv_task_list`, `_contextSnapshot`), not in chat. Do not emit Orchestration Summary, Steps Completed, Sub-Agents Spawned, or gate checkbox banners as handoff content.
 
 ## ADV State Access Policy
 

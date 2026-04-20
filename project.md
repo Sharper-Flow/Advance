@@ -35,7 +35,7 @@ plugin/src/
 .adv/specs/           # Capability specs — git-tracked, branch-local (the laws)
 .opencode/
   command/            # 21 slash-command workflow files (adv-*.md)
-  agents/             # adv-researcher (ADV-managed bundled global), tron (repo-local); plus overlay-managed: adv, build, plan, refine, scout
+  agents/             # adv-researcher (ADV-managed bundled global), tron (repo-local); overlay-managed: adv, plan (absorbed scout), build (absorbed refine)
   overlays/           # Managed overlay blocks for global shared agents
 skills/               # Bundled methodology skills → synced to ~/.config/opencode/skills/
 docs/                 # Gate contracts, workflow diagram, checklists, generated spec docs
@@ -87,7 +87,7 @@ Each `src/tools/*.ts` exports a `*Tools` object. `tool-registry.ts` collects all
 Zod schemas in `plugin/src/types.ts` are the authoritative source. `plugin/schemas/*.json` contains `$ref`-only stub files that point at the Zod types — they are NOT auto-generated. When you extend a Zod schema (add a field, change a type), no separate schema-regeneration step is required.
 
 ### Overlay sync model
-Global shared agents (`adv`, `general`, `build`, `plan`, `refine`, `scout`) are patched, not replaced, by `scripts/sync-global.sh`. Managed blocks in `.opencode/overlays/*.overlay.md` are injected into global agent files without overwriting user customizations.
+Global shared agents (`adv`, `general`, `build`, `plan`) are patched, not replaced, by `scripts/sync-global.sh`. Managed blocks in `.opencode/overlays/*.overlay.md` are injected into global agent files without overwriting user customizations.
 
 ### Zod cast is intentional
 Tool arg schemas use `as any` in `tool-registry.ts` for SDK compatibility. Do not remove it.

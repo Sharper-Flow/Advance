@@ -9,12 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-#### Clean TDD Execution Paths (`cleanTddExecutionPaths`)
+#### Consolidate Shared Agents (`consolidateSharedAgentsPlan`)
 
-- **Canonical inline-TDD path in `/adv-apply`** — Red/Green guidance now names editing tools (`edit`, `write`, `morph_edit`) for test-file changes and `adv_run_test` as the primary red/green execution path. `adv_task_evidence` is now framed as fallback for externally captured evidence, not the primary inline-TDD path.
-- **New spec requirements** — `rq-TDD008path` added to `tdd-contract`; `rq-ADVEXEC01`, `rq-ADVEXEC02`, and `rq-ADVEXEC03` added to `advance` to codify canonical tool routing, regression anchors, and runtime guard behavior.
-- **Runtime bash enforcement for inline TDD** (`plugin/src/guards/bash.ts`) — new `enforceTddBashPolicy` extends the existing bash guard. Firm default behavior: shell-authored test-file content (`heredoc`, `python -c`, `echo >`, `tee`, `cat >`) targeting test-glob paths during active inline-TDD is blocked; direct test-runner bash during active inline-TDD without matching recent `adv_run_test` emits an advisory and does not block. No feature flags, env vars, or escape hatches.
-- **Completeness remediation text** (`plugin/src/validator/completeness.ts`) — missing TDD evidence guidance now prefers `adv_run_test`, while retaining `adv_task_evidence` as fallback and `adv_task_reclassify_tdd` for non-applicable cases.
+Reduced ADV's shared overlay-managed agents from six to four by merging `scout` into `plan` and `refine` into `build`. `plan` now handles research, ideation, investigation, and planning with web research tools (webfetch, Firecrawl). `build` is now a scoped executor with task-level ADV write access, subtraction-first heuristic, and related-issue scanning. `scout` and `refine` files are hard-removed; the sync script cleans up stale global copies.
+
+**Migration note:** If you customized your global `plan.md` or `build.md`, you must manually add the new tools (`webfetch`, `firecrawl_*`, and for build the ADV write tools) to your `tools:` frontmatter. The sync script only patches the overlay block, not the frontmatter.
 
 ### Changed
 

@@ -29,7 +29,7 @@ in_scope_categories:
   - extensibility
   - scope_boundary
 
-# Applies to ADV workflows only. Non-ADV agents (scout, build, general,
+# Applies to ADV workflows only. Non-ADV agents (build, general,
 # librarian, etc.) read this file but the governance does not apply to
 # their work. ADV owns the plugin tool backing that makes judgment-call
 # surfacing possible.
@@ -44,7 +44,7 @@ need user intuition/preference/context (not ones the agent can resolve
 autonomously). Established scope is assumed yes; this is about *how* to
 proceed on decisions the agent would otherwise make silently.
 
-**Scope:** ADV workflows only. Non-ADV agents (scout, build, general, etc.)
+**Scope:** ADV workflows only. Non-ADV agents (build, general, etc.)
 read this file but do not apply the governance.
 
 ## Methodology

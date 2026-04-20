@@ -791,3 +791,51 @@ ADV presentation-layer surfaces (instructions, commands, tools, and skills) SHOU
 - Planning proceeds without a new user-facing checkpoint (assuming no other user-value tradeoffs)
 
 ---
+
+### Gate Handoff Voice Spine
+
+**ID:** `rq-handoffVoice01` | **Priority:** **[MUST]**
+
+Every /adv-* command that emits a user-facing gate-transition message MUST use the Gate Handoff Voice spine: Problem / Chosen direction / Delivered / Next stage / Next. Canonical source: docs/command-voice-standard.md § Gate Handoff Voice.
+
+#### Scenarios
+
+**Handoff follows spine** (`rq-handoffVoice01.1`)
+
+**Given:**
+- An /adv-* command completes a gate and emits a user-facing gate-transition message
+
+**When:** The handoff message is rendered
+
+**Then:**
+- All five spine headings are present: Problem, Chosen direction, Delivered, Next stage, Next
+- The archive terminal variant uses Shipped. instead of Next stage and Next
+
+**No mechanics leakage** (`rq-handoffVoice01.2`)
+
+**Given:**
+- An /adv-* command completes a gate and emits a user-facing gate-transition message
+
+**When:** The handoff message is rendered
+
+**Then:**
+- No todo checklists appear as primary handoff content
+- No step-completed logs appear as primary handoff content
+- No orchestration summaries appear as primary handoff content
+- No sub-agent bookkeeping appears as primary handoff content
+- No gate checkbox banners appear as primary handoff content
+
+**Auto-continue transitions unaffected** (`rq-handoffVoice01.3`)
+
+**Given:**
+- rq-autonomy01 permits auto-continue between stages
+- No unresolved user-value tradeoff exists
+- No required approval is pending
+
+**When:** The agent proceeds without emitting a user-facing message
+
+**Then:**
+- No handoff message is emitted
+- No handoff validation is required for the silent transition
+
+---

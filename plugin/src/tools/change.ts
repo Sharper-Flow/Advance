@@ -5,9 +5,9 @@
  */
 
 import { z } from "zod";
-import { join } from "path";
-import { readFile, stat } from "fs/promises";
-import type { Spec, FeatureFlags } from "../types";
+import { basename, join } from "path";
+import { readFile, stat, access } from "fs/promises";
+import type { Spec, FeatureFlags, CrossProjectOrigin } from "../types";
 import {
   createDefaultGates,
   getIncompleteGates,
@@ -17,6 +17,7 @@ import {
   type ClarifyFindingSnapshot,
 } from "../types";
 import type { Store } from "../storage/store";
+import { createStore } from "../storage/store";
 import { validateChange } from "../validator";
 import { createLogger } from "../utils/debug-log";
 
@@ -121,6 +122,26 @@ function applyIssueUpdates(
   }
 
   return { github_issues: githubIssues, result };
+}
+
+/**
+ * Build a markdown section documenting cross-project origin for a proposal.
+ */
+function buildOriginSection(origin: {
+  source_project: string;
+  source_path: string;
+  source_change_id?: string;
+}): string {
+  let section = `## Cross-Project Origin\n\n`;
+  section += `This change was created as a follow-up from **${origin.source_project}**.\n\n`;
+  section += `| Field | Value |\n|-------|-------|\n`;
+  section += `| Source project | ${origin.source_project} |\n`;
+  section += `| Source path | \`${origin.source_path}\` |\n`;
+  if (origin.source_change_id) {
+    section += `| Source change | ${origin.source_change_id} |\n`;
+  }
+  section += `\n> **Note:** The originating project should be consulted for context on why this change is needed.\n`;
+  return section;
 }
 
 // =============================================================================
@@ -331,6 +352,14 @@ export const changeTools = {
         }
       }
 
+      // Surface cross-project origin prominently when present
+      if (change.cross_project_origin) {
+        output._crossProjectOrigin = {
+          note: `⚠️ Cross-project follow-up from ${change.cross_project_origin.source_project}`,
+          ...change.cross_project_origin,
+        };
+      }
+
       return formatToolOutput(output);
     },
   },
@@ -372,6 +401,26 @@ export const changeTools = {
         .describe(
           "Optional design.md content (architecture, LBP decisions, implementation strategy)",
         ),
+      target_path: z
+        .string()
+        .optional()
+        .describe(
+          "Absolute path to the target project directory for cross-project change creation. " +
+            "When provided, creates the change in that project instead of the current one.",
+        ),
+      source_project: z
+        .string()
+        .optional()
+        .describe(
+          "Name of the source project creating this follow-up. " +
+            "Auto-detected from current store config when target_path is provided.",
+        ),
+      source_change_id: z
+        .string()
+        .optional()
+        .describe(
+          "Change ID in the source project that triggered this follow-up.",
+        ),
     },
     execute: async (
       {
@@ -381,6 +430,9 @@ export const changeTools = {
         problemStatement,
         agreement,
         design,
+        target_path,
+        source_project,
+        source_change_id,
       }: {
         summary: string;
         capability?: string;
@@ -388,9 +440,91 @@ export const changeTools = {
         problemStatement?: string;
         agreement?: string;
         design?: string;
+        target_path?: string;
+        source_project?: string;
+        source_change_id?: string;
       },
       store: Store,
     ) => {
+      // ----- Cross-project creation path -----
+      if (target_path) {
+        // Validate target directory exists
+        try {
+          await access(target_path);
+        } catch {
+          return formatToolOutput({
+            error: `Target project directory does not exist: ${target_path}`,
+          });
+        }
+
+        // Resolve source project identity
+        const resolvedSourceProject =
+          source_project ?? store.config?.name ?? basename(store.paths.root);
+
+        // Build origin metadata
+        const origin: CrossProjectOrigin = {
+          source_project: resolvedSourceProject,
+          source_path: store.paths.root,
+          source_change_id,
+          linked_at: new Date().toISOString(),
+        };
+
+        // Prepend origin section to proposal content
+        const originSection = buildOriginSection(origin);
+        const enrichedProposal = proposal
+          ? `${originSection}\n\n${proposal}`
+          : undefined;
+
+        // Open a temporary store for the target project
+        let targetStore: Store;
+        try {
+          targetStore = await createStore(target_path);
+          await targetStore.init();
+        } catch (err) {
+          return formatToolOutput({
+            error: `Failed to initialize target project at ${target_path}: ${err instanceof Error ? err.message : String(err)}`,
+          });
+        }
+
+        try {
+          // Create the change in the target store
+          const result = await targetStore.changes.create(
+            summary,
+            capability,
+            enrichedProposal,
+            problemStatement,
+            agreement,
+            design,
+          );
+
+          // Load the created change and persist cross_project_origin
+          const changeResult = await targetStore.changes.get(result.changeId);
+          if (changeResult.success && changeResult.data) {
+            changeResult.data.cross_project_origin = origin;
+            await targetStore.changes.save(changeResult.data);
+          }
+
+          const output: Record<string, unknown> = { ...result };
+          output.cross_project_origin = origin;
+          output.target_path = target_path;
+
+          if (result.duplicateWarning) {
+            output._duplicateWarning = result.duplicateWarning;
+          }
+
+          return wrapWithBanner(
+            {
+              command: "adv_change_create",
+              target: result.changeId,
+            },
+            formatToolOutput(output),
+          );
+        } finally {
+          targetStore.close();
+        }
+      }
+
+      // ----- Local creation path (unchanged) -----
       const result = await store.changes.create(
         summary,
         capability,

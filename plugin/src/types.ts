@@ -859,6 +859,28 @@ export const InvestmentReportSchema = z
 
 export type InvestmentReport = z.infer<typeof InvestmentReportSchema>;
 
+// =============================================================================
+// Cross-Project Origin (Follow-up Change Provenance)
+// =============================================================================
+
+/**
+ * Provenance metadata for changes created from another project.
+ * Set when project A creates a follow-up change in project B (e.g. pokeedge
+ * backend creating a follow-up in pokeedge-web).
+ */
+export const CrossProjectOriginSchema = z.object({
+  /** Name of the source project that created this follow-up change */
+  source_project: z.string(),
+  /** Absolute path to the source project repository */
+  source_path: z.string(),
+  /** Change ID in the source project that triggered this follow-up */
+  source_change_id: z.string().optional(),
+  /** ISO8601 timestamp when the cross-project link was established */
+  linked_at: z.string(),
+});
+
+export type CrossProjectOrigin = z.infer<typeof CrossProjectOriginSchema>;
+
 export const ChangeSchema = z
   .object({
     $schema: z.string().optional(),
@@ -895,6 +917,12 @@ export const ChangeSchema = z
      * batch is surfaced (including the N=0 silent case) for auditability.
      */
     batch_surfaced_at: z.string().optional(),
+    /**
+     * Cross-project origin provenance — set when this change was created
+     * as a follow-up from another project. Presence signals to /adv-discover
+     * that origin validation is required before agreement.
+     */
+    cross_project_origin: CrossProjectOriginSchema.optional(),
   })
   .passthrough(); // Allow extra fields for forward/backward compatibility
 

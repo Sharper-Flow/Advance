@@ -5,7 +5,7 @@
  */
 
 import { describe, test, expect, beforeEach, afterEach } from "vitest";
-import { readFile, writeFile } from "fs/promises";
+import { readFile, writeFile, mkdir } from "fs/promises";
 import { join } from "path";
 import { changeTools } from "./change";
 import { createStore, type Store } from "../storage/store";
@@ -323,6 +323,45 @@ describe("Change Tools", () => {
       expect(parsed.problemStatementExists).toBe(false);
       expect(parsed.problemStatementPath).toBeUndefined();
     });
+
+    test("surfaces cross_project_origin prominently in output", async () => {
+      // Add cross_project_origin to the change
+      const changeResult = await store.changes.get("addFeature");
+      expect(changeResult.success).toBe(true);
+      changeResult.data!.cross_project_origin = {
+        source_project: "pokeedge",
+        source_path: "/home/user/dev/pokeedge",
+        source_change_id: "addApiEndpoint",
+        linked_at: "2026-01-01T01:00:00Z",
+      };
+      await store.changes.save(changeResult.data!);
+
+      const result = await changeTools.adv_change_show.execute(
+        { changeId: "addFeature" },
+        store,
+      );
+      const parsed = JSON.parse(result);
+
+      // Should surface the origin with a warning note
+      expect(parsed._crossProjectOrigin).toBeDefined();
+      expect(parsed._crossProjectOrigin.note).toContain(
+        "Cross-project follow-up",
+      );
+      expect(parsed._crossProjectOrigin.source_project).toBe("pokeedge");
+      expect(parsed._crossProjectOrigin.source_change_id).toBe(
+        "addApiEndpoint",
+      );
+    });
+
+    test("omits _crossProjectOrigin when no origin set", async () => {
+      const result = await changeTools.adv_change_show.execute(
+        { changeId: "addFeature" },
+        store,
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed._crossProjectOrigin).toBeUndefined();
+    });
   });
 
   describe("adv_change_create", () => {
@@ -445,6 +484,153 @@ describe("Change Tools", () => {
       );
       const parsed2 = parseToolOutput(result2);
       expect(parsed2._duplicateWarning).toBeUndefined();
+    });
+  });
+
+  describe("adv_change_create — cross-project", () => {
+    test("creates change in target project with origin metadata", async () => {
+      // Set up a target project directory
+      const targetDir = await createTempDir();
+      await createTestProject(targetDir);
+      try {
+        const result = await changeTools.adv_change_create.execute(
+          {
+            summary: "Add webhook handler",
+            target_path: targetDir,
+            source_project: "pokeedge",
+            source_change_id: "addApiEndpoint",
+          },
+          store,
+        );
+        const parsed = parseToolOutput(result);
+
+        // Change ID created in target
+        expect(parsed.changeId).toBe("addWebhookHandler");
+        expect(parsed.target_path).toBe(targetDir);
+
+        // Origin metadata returned
+        expect(parsed.cross_project_origin).toBeDefined();
+        expect(parsed.cross_project_origin.source_project).toBe("pokeedge");
+        expect(parsed.cross_project_origin.source_change_id).toBe(
+          "addApiEndpoint",
+        );
+        expect(parsed.cross_project_origin.source_path).toBe(
+          store.paths.root,
+        );
+        expect(parsed.cross_project_origin.linked_at).toBeDefined();
+
+        // Verify the change was persisted in the target project with origin
+        const targetStore = await createStore(targetDir);
+        try {
+          const changeResult = await targetStore.changes.get(
+            parsed.changeId,
+          );
+          expect(changeResult.success).toBe(true);
+          expect(changeResult.data?.cross_project_origin).toBeDefined();
+          expect(
+            changeResult.data?.cross_project_origin?.source_project,
+          ).toBe("pokeedge");
+        } finally {
+          targetStore.close();
+        }
+      } finally {
+        await cleanupTempDir(targetDir);
+      }
+    });
+
+    test("auto-detects source project name from store config", async () => {
+      const targetDir = await createTempDir();
+      await createTestProject(targetDir);
+      try {
+        const result = await changeTools.adv_change_create.execute(
+          {
+            summary: "Fix frontend bug",
+            target_path: targetDir,
+          },
+          store,
+        );
+        const parsed = parseToolOutput(result);
+
+        // Source project should be auto-detected from store config
+        expect(parsed.cross_project_origin).toBeDefined();
+        // The test project name comes from createTestProject
+        expect(parsed.cross_project_origin.source_project).toBeDefined();
+        expect(parsed.cross_project_origin.source_change_id).toBeUndefined();
+      } finally {
+        await cleanupTempDir(targetDir);
+      }
+    });
+
+    test("includes origin section in proposal.md", async () => {
+      const targetDir = await createTempDir();
+      await createTestProject(targetDir);
+      try {
+        const result = await changeTools.adv_change_create.execute(
+          {
+            summary: "Add integration tests",
+            proposal: "# My Proposal\n\n## Why\n\nNeed tests.",
+            target_path: targetDir,
+            source_project: "pokeedge",
+            source_change_id: "refactorAuth",
+          },
+          store,
+        );
+        const parsed = parseToolOutput(result);
+
+        // Read the proposal from the target project
+        const targetStore = await createStore(targetDir);
+        try {
+          const changeDir = join(
+            targetStore.paths.changes,
+            parsed.changeId,
+          );
+          const proposalContent = await readFile(
+            join(changeDir, "proposal.md"),
+            "utf-8",
+          );
+
+          // Should contain the cross-project origin section
+          expect(proposalContent).toContain("## Cross-Project Origin");
+          expect(proposalContent).toContain("pokeedge");
+          expect(proposalContent).toContain("refactorAuth");
+          // Original proposal content should also be present
+          expect(proposalContent).toContain("# My Proposal");
+        } finally {
+          targetStore.close();
+        }
+      } finally {
+        await cleanupTempDir(targetDir);
+      }
+    });
+
+    test("returns error for nonexistent target path", async () => {
+      const result = await changeTools.adv_change_create.execute(
+        {
+          summary: "Broken target",
+          target_path: "/nonexistent/path/that/does/not/exist",
+        },
+        store,
+      );
+      const parsed = parseToolOutput(result);
+
+      expect(parsed.error).toContain("does not exist");
+    });
+
+    test("local create unchanged when target_path omitted", async () => {
+      const result = await changeTools.adv_change_create.execute(
+        { summary: "Local only change" },
+        store,
+      );
+      const parsed = parseToolOutput(result);
+
+      expect(parsed.changeId).toBe("localOnlyChange");
+      expect(parsed.cross_project_origin).toBeUndefined();
+      expect(parsed.target_path).toBeUndefined();
+
+      // Verify change exists in local store
+      const changeResult = await store.changes.get(parsed.changeId);
+      expect(changeResult.success).toBe(true);
+      expect(changeResult.data?.cross_project_origin).toBeUndefined();
     });
   });
 

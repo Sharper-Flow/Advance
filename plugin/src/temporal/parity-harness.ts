@@ -5,6 +5,9 @@
  * observable behavior during the validation phase.
  */
 
+import { cp, mkdir, mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { isDeepStrictEqual } from "node:util";
 import { TestWorkflowEnvironment } from "@temporalio/testing";
@@ -141,103 +144,115 @@ export async function runStorageLayerParity<TOutput = unknown>(input: {
   externalRoot?: string;
   scenarios: SpecScenario<TOutput>[];
 }): Promise<ParityRunResult> {
+  const tempRoot = await mkdtemp(join(tmpdir(), `${input.projectId}-parity-`));
+  const isolatedExternalRoot = join(tempRoot, "state");
+  if (input.externalRoot) {
+    await cp(input.externalRoot, isolatedExternalRoot, { recursive: true });
+  } else {
+    await mkdir(isolatedExternalRoot, { recursive: true });
+  }
+
   const taskQueue = buildProjectTaskQueue(input.projectId);
   let worker: Worker | undefined;
   let runPromise: Promise<void> | undefined;
   let bootstrapLegacy: Store | undefined;
 
-  return runParityScenarios({
-    projectDir: input.projectDir,
-    scenarios: input.scenarios,
-    createTestWorkflowEnvironment: async () => {
-      const env = await TestWorkflowEnvironment.createTimeSkipping();
-      worker = await Worker.create({
-        connection: env.nativeConnection,
-        taskQueue,
-        workflowsPath: fileURLToPath(
-          new URL("./workflows.ts", import.meta.url),
-        ),
-        activities: {},
-      });
-      runPromise = worker.run();
+  try {
+    return await runParityScenarios({
+      projectDir: input.projectDir,
+      scenarios: input.scenarios,
+      createTestWorkflowEnvironment: async () => {
+        const env = await TestWorkflowEnvironment.createTimeSkipping();
+        worker = await Worker.create({
+          connection: env.nativeConnection,
+          taskQueue,
+          workflowsPath: fileURLToPath(
+            new URL("./workflows.ts", import.meta.url),
+          ),
+          activities: {},
+        });
+        runPromise = worker.run();
 
-      return {
-        ...env,
-        teardown: async () => {
-          // Initiate worker shutdown, then await both the shutdown signal and
-          // the run promise so the worker is fully drained before the
-          // TestWorkflowEnvironment is torn down.
-          await worker?.shutdown();
-          await runPromise?.catch(() => undefined);
-          try {
-            bootstrapLegacy?.close?.();
-          } catch {
-            // best-effort; env teardown must still run
-          }
-          await env.teardown();
-        },
-      } satisfies TestWorkflowEnvironmentLike;
-    },
-    createLegacyStore: async ({ projectDir }) =>
-      createStore(projectDir, { externalRoot: input.externalRoot }),
-    createTemporalStore: async ({ projectDir, environment }) => {
-      const env = environment as TestWorkflowEnvironment;
-      const baseTemporal = await createStore(projectDir, {
-        externalRoot: input.externalRoot,
-        temporalBundle: {
-          address: String(env.address),
-          namespace: String(env.namespace),
-          connection: env.connection,
-          client: env.client,
-        },
-        projectIdOverride: input.projectId,
-      });
-
-      bootstrapLegacy = await createLegacyStore(projectDir, {
-        externalRoot: input.externalRoot,
-      });
-
-      return {
-        ...baseTemporal,
-        changes: {
-          ...baseTemporal.changes,
-          create: async (
-            summary: string,
-            capability?: string,
-            proposalContent?: string,
-            problemStatementContent?: string,
-            agreementContent?: string,
-            designContent?: string,
-          ) => {
-            const created = await bootstrapLegacy!.changes.create(
-              summary,
-              capability,
-              proposalContent,
-              problemStatementContent,
-              agreementContent,
-              designContent,
-            );
-
-            await ensureChangeWorkflowStarted(
-              {
-                workflow: env.client.workflow as unknown as Parameters<
-                  typeof ensureChangeWorkflowStarted
-                >[0]["workflow"],
-              },
-              {
-                projectId: input.projectId,
-                changeId: created.changeId,
-                title: summary,
-                initializedAt: new Date().toISOString(),
-              },
-            );
-
-            return created;
+        return {
+          ...env,
+          teardown: async () => {
+            // Initiate worker shutdown, then await both the shutdown signal and
+            // the run promise so the worker is fully drained before the
+            // TestWorkflowEnvironment is torn down.
+            await worker?.shutdown();
+            await runPromise?.catch(() => undefined);
+            try {
+              bootstrapLegacy?.close?.();
+            } catch {
+              // best-effort; env teardown must still run
+            }
+            await env.teardown();
           },
-        },
-      } satisfies Store;
-    },
-  });
+        } satisfies TestWorkflowEnvironmentLike;
+      },
+      createLegacyStore: async ({ projectDir }) =>
+        createStore(projectDir, { externalRoot: isolatedExternalRoot }),
+      createTemporalStore: async ({ projectDir, environment }) => {
+        const env = environment as TestWorkflowEnvironment;
+        const baseTemporal = await createStore(projectDir, {
+          externalRoot: isolatedExternalRoot,
+          temporalBundle: {
+            address: String(env.address),
+            namespace: String(env.namespace),
+            connection: env.connection,
+            client: env.client,
+          },
+          projectIdOverride: input.projectId,
+        });
+
+        bootstrapLegacy = await createLegacyStore(projectDir, {
+          externalRoot: isolatedExternalRoot,
+        });
+
+        return {
+          ...baseTemporal,
+          changes: {
+            ...baseTemporal.changes,
+            create: async (
+              summary: string,
+              capability?: string,
+              proposalContent?: string,
+              problemStatementContent?: string,
+              agreementContent?: string,
+              designContent?: string,
+            ) => {
+              const created = await bootstrapLegacy!.changes.create(
+                summary,
+                capability,
+                proposalContent,
+                problemStatementContent,
+                agreementContent,
+                designContent,
+              );
+
+              await ensureChangeWorkflowStarted(
+                {
+                  workflow: env.client.workflow as unknown as Parameters<
+                    typeof ensureChangeWorkflowStarted
+                  >[0]["workflow"],
+                },
+                {
+                  projectId: input.projectId,
+                  changeId: created.changeId,
+                  title: summary,
+                  initializedAt: new Date().toISOString(),
+                },
+              );
+
+              return created;
+            },
+          },
+        } satisfies Store;
+      },
+    });
+  } finally {
+    await rm(tempRoot, { recursive: true, force: true });
+  }
 }
 
 function diffValues(

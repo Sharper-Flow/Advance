@@ -699,7 +699,7 @@ REPO_LOCAL_ONLY="tron.md"
 # is overlay-only, user customization + plugin tool renames silently desync and
 # ADV tools get filtered out of the agent's callable set. `adv.md` is therefore
 # treated as repo-owned and fully replaced on each sync.
-SHARED_OVERLAY_ONLY="build.md general.md plan.md refine.md scout.md"
+SHARED_OVERLAY_ONLY="build.md general.md plan.md"
 if [ -d "$REPO_AGENTS" ]; then
   for src in "$REPO_AGENTS"/*.md; do
     [ -f "$src" ] || continue
@@ -733,14 +733,12 @@ if [ -d "$REPO_OVERLAYS" ]; then
   apply_overlay_block "general" "$GLOBAL_AGENTS/general.md"
   apply_overlay_block "build" "$GLOBAL_AGENTS/build.md" "$REPO_AGENTS/build.md"
   apply_overlay_block "plan" "$GLOBAL_AGENTS/plan.md" "$REPO_AGENTS/plan.md"
-  apply_overlay_block "scout" "$GLOBAL_AGENTS/scout.md" "$REPO_AGENTS/scout.md"
-  apply_overlay_block "refine" "$GLOBAL_AGENTS/refine.md" "$REPO_AGENTS/refine.md"
 fi
 
 # Remove stale ADV agents from global that no longer exist in repo
 # Also remove repo-local-only agents if they leaked into global
 agents_removed=0
-for global_agent in "$GLOBAL_AGENTS"/adv-*.md "$GLOBAL_AGENTS"/orca.md "$GLOBAL_AGENTS"/tron.md; do
+for global_agent in "$GLOBAL_AGENTS"/adv-*.md "$GLOBAL_AGENTS"/orca.md "$GLOBAL_AGENTS"/tron.md "$GLOBAL_AGENTS"/scout.md "$GLOBAL_AGENTS"/refine.md; do
   [ -f "$global_agent" ] || continue
   name="$(basename "$global_agent")"
   # Remove if no longer in repo OR if it's repo-local-only

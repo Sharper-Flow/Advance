@@ -269,16 +269,27 @@ On acceptance:
 
 ---
 ## Output
-Emit CODE REVIEW + ACCEPTANCE COMPLETE with:
-- target change
-- verdict
-- accepted AC count
-- remaining caveats, if any
+
+Use the Gate Handoff Voice spine (see `docs/command-voice-standard.md § Gate Handoff Voice`):
+
 ```
-/adv-review {change-id} COMPLETE
-Result: {verdict} ({fix_count} fixes applied) + user acceptance recorded
-Acceptance Gate: MARKED COMPLETE
-Next: /adv-harden {change-id}
+## Problem
+{One-line restatement of the problem this change addresses.}
+
+## Chosen direction
+What was reviewed and user-accepted.
+
+## Delivered
+- Verdict: {APPROVED|CHANGES_REQUESTED|BLOCKED}
+- {fix_count} fixes applied
+- User acceptance recorded
+- {Remaining caveats, if any}
+
+## Next stage
+Release.
+
+## Next
+`/adv-harden {change-id}`
 ```
 ---
 ## Anti-Patterns

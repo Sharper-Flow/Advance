@@ -52,7 +52,26 @@ For each affected capability: `adv_spec action: "show"` → verify new requireme
 
 ---
 ## Phase 8: Archive Report
-Emit ARCHIVE COMPLETE banner: change ID/title, timestamp, all 7 stages checked, specs updated (added/modified/removed counts per capability), docs generated, archive location, and an **Investment summary** line from `adv_investment_report changeId: {id}` (`Investment: N tasks / M retries / T min / tier: {auto|escalate|hardstop}`) — informational only, does not gate archive.
+
+Use the archive terminal variant of the Gate Handoff Voice spine (see `docs/command-voice-standard.md § Gate Handoff Voice`):
+
+```
+## Shipped.
+
+## Problem
+{One-line restatement of the problem this change addressed.}
+
+## Chosen direction
+What shipped, what spec deltas applied.
+
+## Delivered
+- Spec deltas applied: {added/modified/removed counts per capability}
+- Docs generated
+- Archive location: {path}
+- Git merge: {default-branch}
+- Cleanup: worktree + temp artifacts
+- Investment: N tasks / M retries / T min / tier: {auto|escalate|hardstop}
+```
 
 ---
 ## Phase 9: Git Finalization (Mandatory)
@@ -72,9 +91,6 @@ Only if in worktree AND merge verified: `worktree_delete branch: "change/{change
 Remove `*.bak`, `*.tmp`, `*.orig` (excluding node_modules).
 ### Completion
 Emit GIT FINALIZATION COMPLETE: commit SHA, merge target, verification status, worktree cleanup status, artifacts removed.
-```
-/adv-archive {change-id} FULLY COMPLETE
-```
 
 ---
 ## Error Handling

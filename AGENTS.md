@@ -25,7 +25,7 @@ plugin/              # TypeScript plugin (the only buildable package)
 .adv/specs/          # Capability specs (the laws) — git-tracked, branch-local
 .opencode/
   command/           # 21 slash-command workflow files (adv-*.md)
-  agents/            # adv-researcher (ADV-managed bundled global), tron (repo-local), plus overlay-managed: adv, build, plan, refine, scout
+  agents/            # adv-researcher (ADV-managed bundled global), tron (repo-local); overlay-managed: adv, plan (absorbed scout), build (absorbed refine)
   overlays/          # Managed overlay blocks synced into global shared agents
 skills/              # Bundled methodology skills synced to ~/.config/opencode/skills/
 scripts/             # sync-global.sh (main), migrate-openspec.ts, recover-db.js, model-blind-test
@@ -76,7 +76,7 @@ ADV state (changes, archive, wisdom, agenda, handoff) lives **outside the repo**
 **Never read ADV state files directly** (`read`, `cat`, `ls`). Always use ADV MCP tools (`adv_change_show`, `adv_task_list`, etc.).
 
 ### Overlay sync model
-Shared global agents (`adv`, `general`, `build`, `plan`, `refine`, `scout`) are NOT fully replaced by sync. Instead, `.opencode/overlays/*.overlay.md` contains managed blocks that `scripts/sync-global.sh` injects into the global agent files without overwriting user customization.
+Shared global agents (`adv`, `general`, `build`, `plan`) are NOT fully replaced by sync. Instead, `.opencode/overlays/*.overlay.md` contains managed blocks that `scripts/sync-global.sh` injects into the global agent files without overwriting user customization.
 
 ### Guard system
 - `guards/bash.ts` — sanitizes bash commands at runtime (blocks destructive patterns)

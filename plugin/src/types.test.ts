@@ -10,6 +10,7 @@ import {
   ChangeSchema,
   ChangeStatusSchema,
   ChangeClosureSchema,
+  CrossProjectOriginSchema,
   GATE_DEFS,
   GateIdSchema,
   GATE_ORDER,
@@ -501,6 +502,75 @@ describe("ChangeSchema", () => {
     const result = ChangeSchema.parse(closedChange);
     expect(result.status).toBe("closed");
     expect(result.closure?.reason).toBe("not_planned");
+  });
+
+  test("parses change with cross_project_origin", () => {
+    const crossProjectChange = {
+      id: "addWebhookHandler",
+      title: "Add webhook handler",
+      status: "draft",
+      created_at: "2026-01-01T00:00:00Z",
+      tasks: [],
+      deltas: {},
+      cross_project_origin: {
+        source_project: "pokeedge",
+        source_path: "/home/user/dev/pokeedge",
+        source_change_id: "addApiEndpoint",
+        linked_at: "2026-01-01T01:00:00Z",
+      },
+    };
+
+    const result = ChangeSchema.parse(crossProjectChange);
+    expect(result.cross_project_origin).toBeDefined();
+    expect(result.cross_project_origin?.source_project).toBe("pokeedge");
+    expect(result.cross_project_origin?.source_path).toBe(
+      "/home/user/dev/pokeedge",
+    );
+    expect(result.cross_project_origin?.source_change_id).toBe(
+      "addApiEndpoint",
+    );
+    expect(result.cross_project_origin?.linked_at).toBe(
+      "2026-01-01T01:00:00Z",
+    );
+  });
+
+  test("accepts change without cross_project_origin (backwards compatible)", () => {
+    const localChange = {
+      id: "testChange",
+      title: "Test Change",
+      status: "draft",
+      created_at: "2026-01-01T00:00:00Z",
+      tasks: [],
+      deltas: {},
+    };
+    const result = ChangeSchema.parse(localChange);
+    expect(result.cross_project_origin).toBeUndefined();
+  });
+
+  test("cross_project_origin source_change_id is optional", () => {
+    const origin = {
+      source_project: "pokeedge",
+      source_path: "/home/user/dev/pokeedge",
+      linked_at: "2026-01-01T01:00:00Z",
+    };
+    const result = CrossProjectOriginSchema.parse(origin);
+    expect(result.source_change_id).toBeUndefined();
+  });
+
+  test("cross_project_origin requires source_project and source_path", () => {
+    expect(() =>
+      CrossProjectOriginSchema.parse({
+        source_path: "/some/path",
+        linked_at: "2026-01-01T01:00:00Z",
+      }),
+    ).toThrow();
+
+    expect(() =>
+      CrossProjectOriginSchema.parse({
+        source_project: "test",
+        linked_at: "2026-01-01T01:00:00Z",
+      }),
+    ).toThrow();
   });
 });
 

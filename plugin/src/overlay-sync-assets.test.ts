@@ -89,6 +89,42 @@ describe("overlay sync script support", () => {
     }
   });
 
+  test("removes stale global scout and refine agents on --fix", () => {
+    const tempHome = mkdtempSync(join(tmpdir(), "adv-scout-refine-cleanup-"));
+
+    try {
+      const configDir = join(tempHome, ".config/opencode");
+      const globalAgents = join(configDir, "agents");
+      mkdirSync(globalAgents, { recursive: true });
+      writeFileSync(
+        join(configDir, "opencode.json"),
+        JSON.stringify({ plugin: [], instructions: [] }),
+      );
+      writeFileSync(
+        join(globalAgents, "adv.md"),
+        "---\ndescription: temp adv\n---\n",
+      );
+      writeFileSync(join(globalAgents, "scout.md"), "stale scout\n");
+      writeFileSync(join(globalAgents, "refine.md"), "stale refine\n");
+
+      const result = spawnSync("bash", [SYNC_SCRIPT_PATH, "--fix"], {
+        cwd: REPO_ROOT,
+        env: { ...process.env, HOME: tempHome, CI: "true" },
+        encoding: "utf8",
+      });
+
+      expect(result.status).toBe(0);
+      expect(() =>
+        readFileSync(join(globalAgents, "scout.md"), "utf8"),
+      ).toThrow();
+      expect(() =>
+        readFileSync(join(globalAgents, "refine.md"), "utf8"),
+      ).toThrow();
+    } finally {
+      rmSync(tempHome, { recursive: true, force: true });
+    }
+  });
+
   // ===========================================================================
   // Cost Governance Instruction Management (addCostTimeInvestment)
   // ===========================================================================

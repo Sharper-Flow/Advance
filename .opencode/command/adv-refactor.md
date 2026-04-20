@@ -41,7 +41,7 @@ Combine drift, deps, conflicts, tasks, obsolescence findings.
 ## Phase 3: Refactoring (Under Contract)
 Skip if dry-run (no `--execute`).
 
-Establish CONTRACT ACTIVE → apply updates:
+Proceed with updates:
 1. **Path alignment** — update all occurrences of moved files in proposal, deltas, tasks
 2. **Intent guard** — add comment when requirement updated: `> Refactored: aligned with implementation in {file}`
 3. **Obsolescence** — mark `[OBSOLETE]` with implementation location (don't delete)

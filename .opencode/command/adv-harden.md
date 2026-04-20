@@ -218,9 +218,9 @@ Count non-nit findings. If <3 → require genuinely-clean justification with sca
 ## Phase 3: Remediation
 If READY → skip to cleanup.
 
-If NEEDS_WORK or BLOCKED → fix all validated in-scope findings. × No report-only, future-work, or accepted-debt path for validated in-scope findings. Establish CONTRACT ACTIVE banner and proceed with fixes.
+If NEEDS_WORK or BLOCKED → fix all validated in-scope findings. × No report-only, future-work, or accepted-debt path for validated in-scope findings. Proceed with fixes.
 
-If fixing → establish CONTRACT ACTIVE banner listing issues grouped by category → spawn fix sub-agents → verify → update status.
+If fixing → list issues grouped by category → spawn fix sub-agents → verify → update status.
 
 ---
 ## Phase 3.5: Post-Remediation Re-Verification
@@ -264,12 +264,27 @@ Emit HARDENING REPORT banner with per-dimension results:
 | Cleanup | candidates count, action taken |
 
 Include: fixes applied, gate status, next steps (`/adv-archive`), remaining items, debt tracking guidance.
-### Completion Banner
+### Completion
+
+Use the Gate Handoff Voice spine (see `docs/command-voice-standard.md § Gate Handoff Voice`):
+
 ```
-/adv-harden {change-id} COMPLETE
-Result: {READY | N fixed}
-Harden Gate: {MARKED COMPLETE | pending}
-Next: /adv-archive {change-id}
+## Problem
+{One-line restatement of the problem this change addresses.}
+
+## Chosen direction
+What was cleaned, hardened, and verified for release.
+
+## Delivered
+- Status: {READY | N fixed}
+- Per-dimension results summarized
+- Cleanup actions taken
+
+## Next stage
+Archive.
+
+## Next
+`/adv-archive {change-id}`
 ```
 
 ---

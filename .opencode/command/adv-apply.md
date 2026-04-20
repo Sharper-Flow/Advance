@@ -157,12 +157,10 @@ Phase J. Doom-loop-clearance re-surface is the only secondary path in v1.
 
 ---
 ## Phase 2: Display Contract
-Generate CONTRACT ACTIVE banner from tool outputs:
-- OBJECTIVE from change title
-- SUCCESS CRITERIA from deltas (each as checkbox)
-- TASKS from task list (with status, blocked_by)
-- Progress: done/total
-- RETRY POLICY: SEMANTIC 3 retries, TRANSIENT 1 retry + 5s delay, ENVIRONMENTAL immediate escalation
+
+Emit a purpose line: `Working on: {change-id}`. State is visible via `_contextSnapshot` and `adv_change_show` — do not duplicate it in a banner.
+
+Retry policy (advisory): SEMANTIC 3 retries, TRANSIENT 1 retry + 5s delay, ENVIRONMENTAL immediate escalation.
 
 Proceed directly to Phase 3 — do NOT ask for approval to begin work. Execution-start approval is NOT a sanctioned human checkpoint under `rq-autonomy01`. Judgment calls have already been surfaced in Phase 1.5; scope and criteria were signed off at the Agreement gate.
 
@@ -290,11 +288,12 @@ After EACH task: run build/tests/lint → if fails: retry protocol → only mark
 
 ---
 ## Phase 4: Progress Tracking
-After EACH task, emit CONTRACT STATUS from `adv_task_list`: task checkboxes with status/evidence, phase indicator, done/total count.
+
+Task state is visible via `_contextSnapshot` and `adv_task_list` — do not emit a per-task status block. Keep status markers (`[ADV:TDD_RED]`/`[ADV:TDD_GREEN]`) — those are semantic signals, not banners.
 
 ---
 ## Phase 5: Global Final Loop
-Before CONTRACT FULFILLED: run full build + all tests + lint + type check. If any fail → retry protocol → continue until pass or budget exhausted.
+Before emitting the execution-gate handoff: run full build + all tests + lint + type check. If any fail → retry protocol → continue until pass or budget exhausted.
 
 ---
 ## Phase 6: Completion
@@ -306,20 +305,28 @@ If cancelled tasks exist → verify each has `cancellation.approved_by_user: tru
 `adv_change_validate changeId: <target>` → must pass.
 ### Mark Gate
 `adv_gate_complete changeId: {change-id} gateId: execution`
-### Contract Fulfilled Banner
-Emit: objective, all criteria met, cancelled tasks (if any with reasons), completion mode (UNASSISTED / GUIDED / PARTIAL TAKEOVER), gate status.
+### Handoff
 
-Completion modes:
-- UNASSISTED: all tasks done by agent, no hints
-- GUIDED: agent completed all but needed user hints for some
-- PARTIAL TAKEOVER: user manually completed some tasks
+Use the Gate Handoff Voice spine (see `docs/command-voice-standard.md § Gate Handoff Voice`):
+
 ```
-/adv-apply {change-id} COMPLETE
-Result: CONTRACT FULFILLED
-Completion: {mode}
-Tasks: {completed}/{total}
-Execution Gate: MARKED COMPLETE
-Next: /adv-review {change-id}
+## Problem
+{One-line restatement of the problem this change addresses.}
+
+## Chosen direction
+What was built and how it was verified.
+
+## Delivered
+- {completed}/{total} tasks done
+- Build, tests, lint pass
+- {Completion mode: UNASSISTED/GUIDED/PARTIAL TAKEOVER, if relevant}
+- {Cancelled tasks with reasons, if any}
+
+## Next stage
+Acceptance.
+
+## Next
+`/adv-review {change-id}`
 ```
 
 ---

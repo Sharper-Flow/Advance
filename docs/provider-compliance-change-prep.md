@@ -126,6 +126,11 @@ So the sharper issue is not “orphan cleanup” in the prompt stack. It is:
 
 ### 3. Agent docs are inconsistent
 
+> **Migration note (consolidateSharedAgentsPlan):** `scout` and `refine` agents
+> were consolidated into `plan` and `build` respectively. The historical analysis
+> below references agent names that no longer exist as separate agents. The
+> findings about structural inconsistency remain valid for the surviving agents.
+
 The 9 shared agent files in `~/.config/opencode/agents/` total **44,875 bytes**.
 
 Only `scout.md` has an explicit `## Anti-patterns` section (`~/.config/opencode/agents/scout.md:185-190`).
@@ -134,13 +139,14 @@ The others vary widely in structure and emphasis.
 
 ### 4. ADV overlays are small and mostly generic
 
-Files under `.opencode/overlays/`:
+Files under `.opencode/overlays/` (post-consolidation):
 
 - `general.overlay.md`
 - `adv.overlay.md`
 - `plan.overlay.md`
-- `refine.overlay.md`
-- `scout.overlay.md`
+- `build.overlay.md`
+
+Historical note: `refine.overlay.md` and `scout.overlay.md` existed before `consolidateSharedAgentsPlan` consolidated those agents into `plan` and `build`.
 
 They are all short and structurally similar. They encode ADV orchestration rules, not provider behavior. Example:
 
@@ -592,6 +598,10 @@ and avoid:
 - large change summaries every turn
 
 ### C4. Current model routing likely needs cleanup, but the exact bug is not fully proven
+
+> **Migration note (consolidateSharedAgentsPlan):** `scout` and `refine` no
+> longer exist as separate agents. The routing lines below are historical.
+> Update routing to use `plan` (absorbed scout) and `build` (absorbed refine).
 
 Known config:
 

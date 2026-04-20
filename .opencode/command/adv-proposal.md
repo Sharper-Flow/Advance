@@ -63,15 +63,42 @@ After confirmation:
 6. Run the proposal checklist quality gate; refine autonomously unless refinement would change confirmed intent
 7. `adv_change_update` with the completed proposal
 8. `adv_gate_complete gateId: proposal`
+
+### Cross-Project Follow-up Proposals
+
+When creating a change in a **different project** (e.g. pokeedge backend creating a follow-up in pokeedge-web):
+
+1. Pass `target_path` to `adv_change_create` with the absolute path to the target project directory
+2. Optionally pass `source_project` (auto-detected from current store if omitted) and `source_change_id` to link back to the originating change
+3. The tool automatically:
+   - Opens a temporary store for the target project
+   - Creates the change there with a `## Cross-Project Origin` section in proposal.md
+   - Persists `cross_project_origin` metadata on the change for traceability
+4. The change is created in the target project's ADV state — not the current project's
+5. The target project's agent picks it up via `/adv-discover` and validates the origin before proceeding
+
+**Minimum required:** `target_path`. Strongly recommended: `source_change_id` for full traceability.
 ---
 
 ## Output
 
-Emit CHANGE CREATED with change ID, title, draft status, created artifacts, and the confirmed problem framing.
+Use the Gate Handoff Voice spine (see `docs/command-voice-standard.md § Gate Handoff Voice`):
 
-```text
-/adv-proposal COMPLETE
-Result: Change <change-id> created
-Gate: proposal ✓
-Next: /adv-discover <change-id>
+```
+## Problem
+{One-line restatement of the problem this change addresses.}
+
+## Chosen direction
+Agreed problem framing + scope boundary.
+
+## Delivered
+- Change {change-id} created
+- Problem statement confirmed
+- Discovery agenda captured
+
+## Next stage
+Discovery.
+
+## Next
+`/adv-discover {change-id}`
 ```

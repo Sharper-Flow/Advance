@@ -74,7 +74,7 @@ Run 4-Step Gap Analysis (desired state → current state → gap → action plan
 5. **Cross-spec consistency** — `adv_spec search` for conflicts, terminology inconsistencies
 6. **Cross-repo routing** — verify `related_repos` config, routing metadata, coverage
 
-Prioritize gaps via MoSCoW. Emit CONTRACT ACTIVE banner. Proceed immediately — invocation is implicit approval.
+Prioritize gaps via MoSCoW. Proceed immediately — invocation is implicit approval.
 
 Fix gaps: `adv_task_add` for missing tasks, `adv_task_cancel` (with approval) for absorption/merges, document N/A for non-applicable concerns. Assign `metadata.tdd_intent` to every task.
 
@@ -120,7 +120,26 @@ if none) via `adv_change_update`.
 
 Agent self-assesses readiness (requirements clarity, technical approach, edge cases). Resolve gaps inline or ask user.
 
-Emit: `/adv-prep {change-id} COMPLETE` — gaps fixed, tasks created/absorbed/cancelled, gate status, next: `/adv-apply`.
+Use the Gate Handoff Voice spine (see `docs/command-voice-standard.md § Gate Handoff Voice`):
+
+```
+## Problem
+{One-line restatement of the problem this change addresses.}
+
+## Chosen direction
+Firm plan shape (task structure, approach, not task list).
+
+## Delivered
+- Gaps fixed, tasks created/absorbed/cancelled
+- Task graph with dependencies
+- TDD intent assigned per task
+
+## Next stage
+Execution.
+
+## Next
+`/adv-apply {change-id}`
+```
 
 ---
 ## Key Tools

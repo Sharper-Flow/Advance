@@ -22,7 +22,12 @@ Fast-track a discussed change through proposal, discovery, design, and planning,
 
 ---
 ## Phase 0: Quick Contract
-Extract agreed change from conversation. Emit QUICK CONTRACT block: INTENT (1-3 sentences), LBP TARGETS (decisions requiring validation), SCOPE (files/modules), SUCCESS CRITERIA (measurable).
+Extract agreed change from conversation. Emit QUICK CONTRACT block:
+
+- **INTENT:** {1-3 sentences}
+- **LBP TARGETS:** {decisions requiring validation}
+- **SCOPE:** {files/modules}
+- **SUCCESS CRITERIA:** {measurable}
 
 Ask via `question`: Confirmed — execute (Recommended), Modify contract, Abort.
 - Modify → re-synthesize → re-confirm
@@ -77,11 +82,30 @@ Decompose contract into atomic `tk-` tasks via `adv_task_add`:
 
 ---
 ## Phase 4: Build Handoff
-Emit READY FOR BUILD banner: change ID, intent, LBP validation table, task list, gate status. × Do NOT begin implementation.
+
+Use the fast-track variant of the Gate Handoff Voice spine (see `docs/command-voice-standard.md § Gate Handoff Voice`):
+
 ```
-/adv-task READY FOR BUILD
-Next: /adv-apply {changeId}
+## Problem
+{One-line restatement of the problem this change addresses.}
+
+## Chosen direction
+{Summarize combined decisions from proposal+discovery+design+planning.}
+
+## Delivered
+- Change scaffold created
+- LBP validation: {Confirmed|Caution|Conflict}
+- Task graph synthesized
+- Proposal + agreement + design artifacts produced
+
+## Next stage
+Apply.
+
+## Next
+`/adv-apply {changeId}`
 ```
+
+× Do NOT begin implementation.
 
 ---
 ## Key Tools

@@ -143,14 +143,25 @@ Do not complete any gate here.
 
 ---
 ## Output
-Emit DESIGN COMPLETE with:
-- target change
-- primary decisions
-- implementation strategy summary
-- main risks/mitigations
+
+Use the Gate Handoff Voice spine (see `docs/command-voice-standard.md § Gate Handoff Voice`):
+
 ```
-/adv-design {change-id} COMPLETE
-Result: design.md recorded
-Design Gate: MARKED COMPLETE
-Next: /adv-prep {change-id}
+## Problem
+{One-line restatement of the problem this change addresses.}
+
+## Chosen direction
+Chosen architecture + key tradeoff outcomes.
+
+## Delivered
+- design.md recorded
+- Primary decisions documented
+- Implementation strategy defined
+- Validator result: {VALIDATED|CAUTION|CONFLICT|INCONCLUSIVE}
+
+## Next stage
+Planning.
+
+## Next
+`/adv-prep {change-id}`
 ```

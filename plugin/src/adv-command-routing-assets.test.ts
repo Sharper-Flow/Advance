@@ -243,7 +243,7 @@ describe("ADV command routing assets", () => {
   });
 
   test("shared-agent overlay source files exist for all managed global agents", () => {
-    const expected = ["adv", "general", "build", "plan", "scout", "refine"];
+    const expected = ["adv", "general", "build", "plan"];
 
     for (const name of expected) {
       const file = join(OVERLAY_DIR, `${name}.overlay.md`);

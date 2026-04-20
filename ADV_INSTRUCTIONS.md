@@ -135,7 +135,7 @@ Apply packet includes: WORKING DIRECTORY, CHANGE, TASK, AFFECTED FILES, DESIGN E
 ## Sub-Agent Selection
 | Tier | Agents | Loading |
 | --- | --- | --- |
-| **Core** | `plan`, `build`, `refine`, `scout`, `adv` | Global |
+| **Core** | `plan`, `build`, `adv` | Global |
 | **Common** | `explore`, `librarian`, `general`, `mechanic` | Global |
 | **ADV Specialist** | `adv-researcher` | bundled global |
 | **Repo-Local** | `tron` | repo-local |

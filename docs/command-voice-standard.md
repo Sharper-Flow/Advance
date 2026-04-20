@@ -197,14 +197,219 @@ Manifest descriptions and command doc text cover **what** and **when**. This sec
 
 ### Scope
 
-- ADV primary agent + shared agents that run ADV work (`build`, `plan`, `refine`, `scout`)
+- ADV primary agent + shared agents that run ADV work (`build`, `plan`)
 - Provider-hint wording in `plugin/src/index.ts` should not contradict terse voice
 
 ### Drift control
 
 - Lightweight: voice block referenced in `.opencode/agents/adv.md` and shared-agent overlays
-- No spec delta — convention under existing `rq-presentationSurface01`
+- Governed by `rq-presentationSurface01` (surface discipline) and `rq-handoffVoice01` (handoff voice spine)
 - Global `~/.config/opencode/instructions/caveman.md` remains user-config; not synced by repo
+
+## Gate Handoff Voice
+
+Every `/adv-*` command that emits a user-facing gate-transition message MUST use the Gate Handoff Voice spine. This replaces all prior handoff templates (Orchestration Summary, CONTRACT FULFILLED, ARCHIVE COMPLETE, READY FOR BUILD, etc.).
+
+**Spec requirement:** `rq-handoffVoice01` (MUST priority). Violations are spec violations.
+
+### Canonical spine
+
+Every gate handoff uses exactly five sections, in this order:
+
+```
+## Problem
+{One-line restatement of the problem this change addresses.}
+
+## Chosen direction
+{Per-stage anchor — see table below. One to three sentences max.}
+
+## Delivered
+{What was produced in this stage. Bullet list. Concrete artifacts, not process.}
+
+## Next stage
+{Name of the next gate. One word or short phrase.}
+
+## Next
+{Command to run next, e.g. `/adv-discover {change-id}`.}
+```
+
+No other sections, headings, or structural elements in the handoff. Internal state (task lists, gate checkboxes, sub-agent counts, step logs) lives in ADV tools (`adv_change_show`, `adv_task_list`, `_contextSnapshot`), not in chat.
+
+### Per-stage anchors (Chosen direction)
+
+The `Chosen direction` section content differs per stage. Use the anchor from this table:
+
+| Stage | Chosen direction anchor |
+|-------|------------------------|
+| proposal | Agreed problem framing + scope boundary |
+| discover | Agreed objectives + constraints + user decisions |
+| design | Chosen architecture + key tradeoff outcomes |
+| prep | Firm plan shape (task structure, approach, not task list) |
+| apply | What was built and how it was verified |
+| review | What was reviewed and user-accepted |
+| harden | What was cleaned, hardened, and verified for release |
+| archive | What shipped, what spec deltas applied |
+
+### Archive terminal variant
+
+The `/adv-archive` handoff is the terminal message. Use this variant:
+
+```
+## Shipped.
+{No heading — just the word.}
+
+## Problem
+{One-line restatement.}
+
+## Chosen direction
+What shipped, what spec deltas applied.
+
+## Delivered
+{Spec deltas applied + git merge + cleanup + investment summary. Bullet list.}
+```
+
+No `Next stage` or `Next` section — the change is complete.
+
+### Fast-track variant (`/adv-task`)
+
+`/adv-task` collapses proposal → discovery → design → planning into one step. Use this variant at the handoff point:
+
+```
+## Problem
+{One-line restatement.}
+
+## Chosen direction
+{Summarize combined decisions from proposal+discovery+design+planning. Two to four sentences max.}
+
+## Delivered
+{All artifacts produced: proposal, agreement, design, task graph. Bullet list.}
+
+## Next stage
+Apply.
+
+## Next
+`/adv-apply {change-id}`
+```
+
+### Action banner cleanup
+
+Mid-command banners (CONTRACT ACTIVE, CONTRACT STATUS, CONTRACT FULFILLED, QUICK CONTRACT, READY FOR BUILD, ARCHIVE COMPLETE) are replaced or trimmed per this taxonomy:
+
+| Banner | Action | Replacement |
+|--------|--------|-------------|
+| CONTRACT ACTIVE | Trim to purpose line | `Working on: {change-id}` + reference to `_contextSnapshot` for state |
+| CONTRACT STATUS | Drop entirely | No per-task status block. State visible via `adv_task_list` and `_contextSnapshot`. Keep `[ADV:TDD_RED]`/`[ADV:TDD_GREEN]` markers — those are semantic signals, not banners |
+| CONTRACT FULFILLED | Replace with spine | Use the canonical five-section spine (apply → review handoff) |
+| QUICK CONTRACT | Keep, apply caveman-lite | Retain contract-confirmation shape (INTENT / SCOPE / SUCCESS CRITERIA). Tighten labels, drop filler. Not a handoff — mid-command confirmation block |
+| READY FOR BUILD | Replace with fast-track spine | Use the fast-track variant above |
+| ARCHIVE COMPLETE | Replace with archive terminal spine | Use the archive terminal variant above |
+
+### Safety-warning surface
+
+Block banners remain for safety-critical confirmations (destructive actions, cancellation approval, doom-loop recovery). These are NOT gate handoffs — they are interaction prompts governed by `rq-autonomy01` human checkpoints. The spine does not apply to them.
+
+### Auto-continue transitions
+
+When `rq-autonomy01` permits auto-continue (no unresolved user-value tradeoff, no required approval), the agent proceeds without emitting a handoff message between stages. No message = no handoff to validate. The spine applies only when the agent emits a user-facing gate-transition message.
+
+### BAD / GOOD transcript examples
+
+#### Pair 1: /adv-apply handoff (verbose → spine)
+
+**BAD — mechanics dump:**
+
+```
+## Orchestration Summary
+
+### Steps Completed
+1. [execution] Implemented Phase A.1 — extended voice standard doc
+2. [execution] Implemented Phase A.2 — added BAD/GOOD examples
+3. [execution] Implemented Phase B — replaced orchestrator overlay
+
+### Gates
+[✓ proposal] [✓ discovery] [✓ design] [✓ planning] [✓ execution] [○ acceptance] [○ release]
+
+### Sub-Agents Spawned
+- librarian × 2 (API docs)
+- adv-researcher × 1 (architecture validation)
+
+### Result
+All 21 tasks completed. Build passes. Tests pass. Lint clean.
+
+### Next Step
+Run /adv-review gateHandoffVoiceStandard
+```
+
+**GOOD — spine:**
+
+```
+## Problem
+Gate handoff messages dump internal mechanics (todo lists, step logs, gate checkboxes, sub-agent counts) instead of user-relevant content.
+
+## Chosen direction
+What was built and how it was verified. Five-section spine replaces all prior handoff templates.
+
+## Delivered
+- Voice standard doc extended with Gate Handoff Voice section
+- All 9 command doc Output sections rewritten to spine
+- Orchestration Summary in adv.md replaced with spine reference
+- Action banners trimmed/dropped per taxonomy
+- rq-handoffVoice01 added to spec (MUST priority)
+- Build, tests, lint pass
+
+## Next stage
+Acceptance.
+
+## Next
+`/adv-review gateHandoffVoiceStandard`
+```
+
+#### Pair 2: /adv-discover handoff (artifact-recall → spine)
+
+**BAD — artifact recall headings:**
+
+```
+## Discoveries
+
+- The Orchestration Summary template in `.opencode/agents/adv.md` (lines ~247-269) is the primary source of verbose handoffs.
+- `ADV_INSTRUCTIONS.md` has zero handoff/Orchestration Summary references.
+- `adv-refactor.md` has 1 CONTRACT ACTIVE reference to trim.
+- Overlays do NOT define handoff prose.
+
+## Accomplished
+
+Completed gates: proposal ✓, discovery ✓
+In progress: Ready for design via /adv-design
+
+Task graph: 21 pending tasks, 1 cancelled.
+
+First ready task: tk-QLAlusEM (Phase A.1)
+
+Remaining gates: design ○, planning ○, execution ○, acceptance ○, release ○
+```
+
+**GOOD — spine:**
+
+```
+## Problem
+Gate handoff messages dump internal mechanics instead of user-relevant content.
+
+## Chosen direction
+Agreed objectives + constraints + user decisions. Spine = Problem / Chosen direction / Delivered / Next stage / Next. Banner cleanup included. Caveman-lite matches global config. Extend existing voice standard doc. Replace Orchestration Summary entirely.
+
+## Delivered
+- Agreement confirmed: five-section spine for all gate handoffs
+- Scope: all /adv-* commands, not just /adv-apply
+- Constraint: extend existing voice standard doc, no sibling doc
+- Constraint: replace Orchestration Summary entirely, not supplement
+- 21-task graph synthesized across Phases A–G
+
+## Next stage
+Design.
+
+## Next
+`/adv-design gateHandoffVoiceStandard`
+```
 
 ## Enforcement
 

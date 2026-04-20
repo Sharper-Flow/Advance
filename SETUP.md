@@ -76,8 +76,8 @@ retirement after migration completes.
 
 ## External Dependencies (MCP Servers and Sub-Agents)
 
-ADV ships the plugin, commands, overlays, and bundled ADV agents (`plan`, `scout`,
-`refine`, `adv-researcher`). The `adv-researcher` agent is synced globally by
+ADV ships the plugin, commands, overlays, and bundled ADV agents (`plan`,
+`build`, `adv-researcher`). The `adv-researcher` agent is synced globally by
 `sync-global.sh` as a bundled global specialist. The `tron` agent remains
 repo-local in `.opencode/agents/`. Several agents and commands
 reference **external MCP servers** and **shared sub-agents** that are NOT part
@@ -95,12 +95,12 @@ slower and less specialized.
 | ----------- | ----------------------------------------------------------------------------- | ------------------------------------------------- |
 | `explore`   | `/adv-review`, `/adv-harden`, `/adv-audit`, `/adv-slop-scan`, `/adv-refactor` | Codebase navigation, finding usages               |
 | `librarian` | `/adv-discover`, `/adv-design`, `/adv-task`, `/adv-review`                    | Documentation and API lookup (Context7, grep.app) |
-| `mechanic`  | `/adv-tron` (optional), `scout` sub-agent spawns                              | System/infra diagnostics                          |
+| `mechanic`  | `/adv-tron` (optional), `plan` sub-agent spawns                               | System/infra diagnostics                          |
 | `general`   | `/adv-review` (cross-cutting), overlay-managed                                | Multi-step implementation                         |
 
 ### Optional MCP servers (referenced by agent tool blocks)
 
-These MCP servers are granted to `plan`/`scout`/`refine`/`adv-researcher`
+These MCP servers are granted to `plan`/`build`/`adv-researcher`
 via their `tools:` allowlists. OpenCode silently ignores tool grants for
 MCP servers that are not configured — the grants become no-ops. You can
 run ADV without any of these, but the following features degrade or become
@@ -108,8 +108,8 @@ unavailable:
 
 | MCP server     | Tool prefix   | Used by                                             | Degradation if missing                                                      |
 | -------------- | ------------- | --------------------------------------------------- | --------------------------------------------------------------------------- |
-| lgrep          | `lgrep_*`     | `plan`, `scout`, `refine`, `adv-researcher`, `tron` | Code exploration falls back to `glob`/`grep`/`read` (slower, less semantic) |
-| Firecrawl      | `firecrawl_*` | `scout`, `refine`                                   | Web scraping unavailable; use `webfetch` instead                            |
+| lgrep          | `lgrep_*`     | `plan`, `build`, `adv-researcher`, `tron`           | Code exploration falls back to `glob`/`grep`/`read` (slower, less semantic) |
+| Firecrawl      | `firecrawl_*` | `plan`, `build`                                      | Web scraping unavailable; use `webfetch` instead                            |
 | Context7       | `context7_*`  | `adv-researcher`                                    | Library documentation lookup unavailable                                    |
 | Kagi           | `kagi_*`      | `adv-researcher`                                    | Web search unavailable                                                      |
 | Grep by Vercel | `gh_grep_*`   | `adv-researcher`                                    | Cross-repo code example search unavailable                                  |
@@ -207,7 +207,7 @@ The `--fix` flag will:
 
 - Copy all `adv-*.md` commands to `~/.config/opencode/command/`
 - Copy only repo-local ADV agents where direct sync is appropriate
-- Apply repo-owned managed overlay blocks to shared global agents like `adv`, `general`, `build`, `plan`, `refine`, and `scout` without replacing the full file
+- Apply repo-owned managed overlay blocks to shared global agents like `adv`, `general`, `build`, and `plan` without replacing the full file
 - Copy ADV skills to `~/.config/opencode/skills/` (the retained cross-cutting skills: `adv-cost-governance-methodology`, `adv-slop-detection`, and `adv-tron`)
 - Add the ADV plugin path to `opencode.json` `.plugin` array if missing
 - Add `ADV_INSTRUCTIONS.md` to `opencode.json` `.instructions` array if missing
@@ -608,6 +608,19 @@ pnpm dlx tsx scripts/migrate-openspec.ts /path/to/your-project/openspec ./specs
 ---
 
 ## Troubleshooting
+
+### Consolidated Agents (scout → plan, refine → build)
+
+ADV consolidated `scout` into `plan` and `refine` into `build`. If your global `~/.config/opencode/agents/` still has `scout.md` or `refine.md`, run the sync script to clean them up:
+
+```bash
+./scripts/sync-global.sh --fix
+```
+
+If you customized your global `plan.md` or `build.md`, the sync script only patches the overlay block — it does not edit the `tools:` frontmatter. To restore the new capabilities manually, add these to your customized files:
+
+- `plan.md` `tools:` — `webfetch: true`, `firecrawl_firecrawl_scrape: true`, `firecrawl_firecrawl_crawl: true`, `firecrawl_firecrawl_check_crawl_status: true`
+- `build.md` `tools:` — `adv_task_update: true`, `adv_task_evidence: true`, `adv_task_tdd: true`, `adv_run_test: true`, `adv_wisdom_add: true`, plus `webfetch: true` and `firecrawl_*: true`
 
 ### SQLite Errors
 
