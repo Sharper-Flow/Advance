@@ -11,10 +11,20 @@
  * createDegradedToolMap) when initError is non-null.
  */
 
+import { readdir } from "node:fs/promises";
+import { dirname } from "node:path";
 import { createStore } from "./storage/store";
 import type { Store } from "./storage/store-types";
+import { buildProjectTaskQueue, createTemporalClientBundle } from "./temporal/client";
+import {
+  createInProcessWorker,
+  type InProcessWorker,
+} from "./temporal/in-process-worker";
+import { runMigrationSweep, type WorkflowClientLike } from "./temporal/migrate-runner";
+import { ensureTemporalRuntime } from "./temporal/runtime-manager";
 import { cleanup as cleanupTerminal } from "./events";
 import { appendDebugLog, createLogger } from "./utils/debug-log";
+import { getProjectId } from "./utils/project-id";
 
 const debugLog = (msg: string): void => appendDebugLog("plugin-init", msg);
 const logger = createLogger("plugin-init");
@@ -22,6 +32,86 @@ const logger = createLogger("plugin-init");
 export interface StoreInitResult {
   store: Store | null;
   initError: Error | null;
+}
+
+export interface BootstrapMigrationStatus {
+  status: "skipped" | "done" | "in_progress";
+  totalProjects: number;
+  runId?: string;
+}
+
+export async function discoverBootstrapProjectPaths(roots: string[]): Promise<string[]> {
+  const projectPaths: string[] = [];
+  for (const root of roots) {
+    const entries = await readdir(root, { withFileTypes: true });
+    for (const entry of entries) {
+      if (!entry.isDirectory()) continue;
+      if (["archive", "db", "changes"].includes(entry.name)) continue;
+      projectPaths.push(`${root}/${entry.name}`);
+    }
+  }
+  return projectPaths;
+}
+
+export async function runBootstrapMigrationSweep(input: {
+  projectId: string;
+  externalRoot: string;
+  client: { workflow: WorkflowClientLike };
+  timeoutMs?: number;
+  now?: () => number;
+  discoverProjectPaths?: (roots: string[]) => Promise<string[]>;
+  runSweep?: typeof runMigrationSweep;
+  /**
+   * Optional: worker whose `registerQueue` should be called for every
+   * discovered per-project task queue BEFORE the migration workflow
+   * starts. Without this, the activity inside migrateAllProjectsWorkflow
+   * will start projectWorkflows on `advance-{projectId}` queues that
+   * nothing is polling and the sweep will hang. See ws-lRl054.
+   */
+  worker?: InProcessWorker;
+}): Promise<BootstrapMigrationStatus> {
+  const discoverProjectPaths = input.discoverProjectPaths ?? discoverBootstrapProjectPaths;
+  const runSweep = input.runSweep ?? runMigrationSweep;
+  const timeoutMs = input.timeoutMs ?? 20000;
+  const now = input.now ?? Date.now;
+  const roots = [dirname(input.externalRoot)];
+  const projectPaths = await discoverProjectPaths(roots);
+
+  if (projectPaths.length === 0) {
+    return { status: "skipped", totalProjects: 0 };
+  }
+
+  if (input.worker) {
+    for (const projectPath of projectPaths) {
+      const basename = projectPath.split("/").pop();
+      if (!basename) continue;
+      await input.worker.registerQueue(buildProjectTaskQueue(basename));
+    }
+  }
+
+  const runId = `bootstrap-${now()}`;
+  const sweepPromise = runSweep(input.client as unknown as { workflow: WorkflowClientLike }, {
+    controlProjectId: input.projectId,
+    runId,
+    projectPaths,
+  });
+
+  const outcome = await Promise.race([
+    sweepPromise.then(() => "done" as const),
+    new Promise<"in_progress">((resolve) => setTimeout(() => resolve("in_progress"), timeoutMs)),
+  ]);
+
+  if (outcome === "in_progress") {
+    sweepPromise.catch((error) => {
+      debugLog(`Bootstrap migration sweep failed after async fallback: ${error instanceof Error ? error.message : String(error)}`);
+    });
+    logger.warn(
+      `Bootstrap migration sweep still running after ${timeoutMs}ms; continuing in degraded in-progress mode for ${projectPaths.length} project(s).`,
+    );
+    return { status: "in_progress", totalProjects: projectPaths.length, runId };
+  }
+
+  return { status: "done", totalProjects: projectPaths.length, runId };
 }
 
 /**
@@ -33,8 +123,41 @@ export async function tryInitStore(
   externalRoot: string | undefined,
 ): Promise<StoreInitResult> {
   try {
-    const store = await createStore(effectiveDir, { externalRoot });
+    const projectId = await getProjectId(effectiveDir);
+
+    let temporalBundle: Awaited<ReturnType<typeof createTemporalClientBundle>> | undefined;
+    let worker: InProcessWorker | undefined;
+    if (projectId) {
+      const runtime = await ensureTemporalRuntime(projectId);
+      worker = await createInProcessWorker({
+        address: runtime.address,
+        namespace: runtime.namespace,
+        queues: [buildProjectTaskQueue(projectId)],
+      });
+      registerInProcessTemporalWorker(worker);
+      temporalBundle = await createTemporalClientBundle({
+        ...process.env,
+        ADV_TEMPORAL_ADDRESS: runtime.address,
+        ADV_TEMPORAL_NAMESPACE: runtime.namespace,
+      });
+    }
+
+    const store = await createStore(effectiveDir, {
+      externalRoot,
+      projectIdOverride: projectId ?? undefined,
+      temporalBundle,
+    });
     await store.init();
+
+    if (projectId && externalRoot && temporalBundle?.client) {
+      await runBootstrapMigrationSweep({
+        projectId,
+        externalRoot,
+        client: temporalBundle.client as unknown as { workflow: WorkflowClientLike },
+        worker,
+      });
+    }
+
     return { store, initError: null };
   } catch (e) {
     const initError = e instanceof Error ? e : new Error(String(e));
@@ -44,6 +167,32 @@ export async function tryInitStore(
     );
     return { store: null, initError };
   }
+}
+
+const inProcessTemporalWorkers = new Set<InProcessWorker>();
+
+/**
+ * Register an in-process Temporal worker so registerShutdownHandlers can
+ * drain it during plugin teardown. The worker lives inside this Node
+ * process — shutdown is cooperative (`worker.shutdown()` signals drain,
+ * `connection.close()` tears down the gRPC channel).
+ */
+export function registerInProcessTemporalWorker(worker: InProcessWorker): void {
+  inProcessTemporalWorkers.add(worker);
+}
+
+async function drainInProcessTemporalWorkers(): Promise<void> {
+  const workers = [...inProcessTemporalWorkers];
+  inProcessTemporalWorkers.clear();
+  await Promise.all(
+    workers.map(async (worker) => {
+      try {
+        await worker.shutdown();
+      } catch (e) {
+        debugLog(`Error shutting down in-process Temporal worker: ${e}`);
+      }
+    }),
+  );
 }
 
 export interface ShutdownHandlers {
@@ -65,6 +214,10 @@ export function registerShutdownHandlers(
 ): ShutdownHandlers {
   const handleExit = () => {
     cleanupTerminal();
+    // Fire-and-forget: process.on("exit") handlers MUST be synchronous.
+    // The in-process worker's shutdown is best-effort at this stage; real
+    // graceful drain happens via shutdownWithFlush on SIGINT/SIGTERM.
+    void drainInProcessTemporalWorkers();
     if (!store) return;
     try {
       store.close();
@@ -78,6 +231,10 @@ export function registerShutdownHandlers(
     cleanupTerminal();
     if (flushInFlight) return;
     flushInFlight = true;
+    // Drain the in-process worker concurrently with the store flush so
+    // shutdown wall-clock time stays bounded. The flushTimeout below
+    // enforces the ceiling.
+    void drainInProcessTemporalWorkers();
     if (!store) return void process.exit(0);
     const activeStore = store;
     const safeClose = (phase: string) => {

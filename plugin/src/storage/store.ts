@@ -2,14 +2,13 @@
  * Store — Backend Selector / Composition Root
  *
  * Thin selector that decides which store backend to use:
- *   1. Always builds the legacy JSON+SQLite backend via `createLegacyStore`.
- *   2. If a `temporalBundle` (and a resolvable `projectId`) is supplied,
- *      wraps the legacy backend with the Temporal compatibility adapter
- *      from `store-temporal.ts`.
- *   3. Otherwise returns the legacy backend as-is.
- *
- * The Temporal overlay is intentionally opt-in so existing tool callers
- * keep working without any Temporal runtime dependency.
+ *   1. Builds the legacy JSON+SQLite backend via `createLegacyStore` as the
+ *      Phase-A compatibility substrate.
+ *   2. When a `temporalBundle` is supplied and a `projectId` can be resolved,
+ *      returns the Temporal compatibility adapter from `store-temporal.ts`.
+ *      After A1 bootstrap wiring, this is the default production path.
+ *   3. If no Temporal bundle is available, returns the legacy backend as-is
+ *      (temporary fallback until Phase D deletes the legacy backend).
  */
 
 import { getProjectId } from "../utils/project-id";
