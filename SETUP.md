@@ -34,12 +34,12 @@ Complete installation instructions for the ADV spec-driven development plugin.
 | SQLite     | Comes bundled with better-sqlite3                          |
 | jq         | Required only for `sync-global.sh --fix` (config patching) |
 
-### Optional: Temporal-backed storage
+### Temporal-backed storage
 
-ADV ships an **optional** Temporal durable-execution backend. It is disabled
-by default — the plugin runs on the legacy JSON+SQLite backend unless a
-Temporal client bundle is explicitly supplied. Enable it only if you need
-durable workflows for change/task/gate state.
+ADV is moving to a Temporal-backed durable-execution architecture for
+change/task/gate state. Production bootstrap is expected to wire a Temporal
+client bundle; the legacy JSON+SQLite backend remains only as temporary
+compatibility substrate during cutover.
 
 Install the Temporal CLI (for a local dev server):
 
@@ -66,11 +66,11 @@ Configure via environment variables (see `plugin/.env.example`):
 | `ADV_TEMPORAL_PROJECT_ID` | *(worker-only)* | Set internally by the runtime manager. |
 
 Activation happens in code by passing a Temporal client bundle into
-`createStore({ temporalBundle })`. Without a bundle the selector returns the
-legacy backend — so the Temporal feature is a pure overlay, not a
-destructive migration. Run the plugin on **Node** (not Bun) for full worker
-support; a Bun client probe gates the client surface with fail-fast
-diagnostics if it cannot operate safely.
+`createStore({ temporalBundle })`; production bootstrap now owns that wiring.
+Run the plugin on **Node** (not Bun) for full worker support; a Bun client
+probe gates the client surface with fail-fast diagnostics if it cannot
+operate safely. The legacy backend is transitional and scheduled for
+retirement after migration completes.
 
 ---
 

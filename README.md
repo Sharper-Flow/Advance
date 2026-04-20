@@ -181,9 +181,9 @@ pnpm run build
 
 ### Temporal runtime expectations
 
-The Temporal-backed storage migration uses a **Node worker runtime** and a
-probe-gated client path for Bun. Current defaults (used in tests and local
-bootstrap helpers) are:
+ADV storage now targets a **Node worker runtime** plus a probe-gated client
+path for Bun. Current defaults (used in tests and local bootstrap helpers)
+are:
 
 - address: `127.0.0.1:7233`
 - namespace: `default`
@@ -215,13 +215,14 @@ Activation path:
 
 ```ts
 import { createStore } from "./plugin/src/storage/store";
-// Pass a Temporal client bundle to activate the durable-execution overlay.
+// Production bootstrap wires a Temporal client bundle before calling createStore().
 const store = await createStore(projectDir, { temporalBundle, projectIdOverride });
 ```
 
-Without `temporalBundle`, `createStore()` returns the legacy JSON+SQLite
-backend. Temporal is therefore a pure overlay — it never runs unless the
-host explicitly wires it in.
+`createStore()` remains parameterized for tests and explicit callers, but the
+intended production path is Temporal-backed state. The legacy JSON+SQLite
+backend is transitional compatibility substrate during cutover and is being
+retired.
 
 ## What lives in this repo
 

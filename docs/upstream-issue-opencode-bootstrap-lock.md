@@ -66,7 +66,7 @@ Both are operator workarounds.
 
 **One piece of contrast evidence**
 
-The `advance` opencode plugin (`https://github.com/anomalyco/advance`) runs in the same opencode process and uses SQLite, but does **not** exhibit this failure mode. Its DB layout assigns each project its own `spec.db` file keyed by root commit SHA (`plugin/src/storage/store-legacy.ts:83`), so concurrent opencode instances target N different DB files rather than racing a single shared file. Mentioning it only as a contrast case demonstrating that this stack can host SQLite under concurrent multi-process load without the bootstrap-lock symptom; it does not prescribe an implementation choice for opencode itself.
+The `advance` opencode plugin (`https://github.com/Sharper-Flow/Advance`) ran in the same opencode process and used SQLite at the time of this report, but did **not** exhibit this failure mode. Its DB layout assigned each project its own `spec.db` file keyed by root commit SHA ([`plugin/src/storage/store-legacy.ts:83` @ `05649d7b`](https://github.com/Sharper-Flow/Advance/blob/05649d7be119de1e178621c24e05222c9511618c/plugin/src/storage/store-legacy.ts#L83)), so concurrent opencode instances targeted N different DB files rather than racing a single shared file. Mentioning it only as a contrast case demonstrating that this stack could host SQLite under concurrent multi-process load without the bootstrap-lock symptom; it does not prescribe an implementation choice for opencode itself. (The plugin has since migrated its storage layer to Temporal and the legacy SQLite backend cited here is historical — the pinned commit preserves the evidence.)
 
 Happy to provide additional traces or test against a candidate fix if useful.
 
@@ -131,7 +131,7 @@ The crash is transient (subsequent launches succeed). Root cause is a race in th
 | Foreign-key fault | `foreign_keys=ON` is correct; failure mode is lock, not constraint. |
 | Disk full / I/O error | Disk has space; errno is `SQLITE_BUSY`. |
 | Stale lock file from prior crash | WAL recovery is automatic; no `.lock` files observed. |
-| Plugin-induced contention | The `advance` opencode plugin places each project's data in a separate DB file (`plugin/src/storage/store-legacy.ts:83`), so it does not contend on `opencode.db`. Failure reproduces independent of plugin activity. |
+| Plugin-induced contention | The `advance` opencode plugin placed each project's data in a separate DB file ([`plugin/src/storage/store-legacy.ts:83` @ `05649d7b`](https://github.com/Sharper-Flow/Advance/blob/05649d7be119de1e178621c24e05222c9511618c/plugin/src/storage/store-legacy.ts#L83)), so it did not contend on `opencode.db`. Failure reproduces independent of plugin activity. (Plugin has since migrated to Temporal; cited commit preserves the historical SQLite layout.) |
 
 **Existing escape hatches in the fork**
 

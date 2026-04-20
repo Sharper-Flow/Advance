@@ -2,7 +2,7 @@
 
 **Status:** Root cause identified, evidence captured. Long-term fix recommendation in [Solution Space](#solution-space) section.
 
-**Scope:** This document covers the host application (`anomalyco/opencode`, fork of archived `opencode-ai/opencode`). The `advance` plugin shipped from this repository is *exonerated* (see [Plugin exoneration](#plugin-exoneration)).
+**Scope:** This document covers the host application (`anomalyco/opencode`, fork of archived `opencode-ai/opencode`). The `advance` plugin shipped from this repository was *exonerated* at the time of investigation (see [Plugin exoneration](#plugin-exoneration)); the plugin has since migrated its storage layer to Temporal and no longer uses SQLite.
 
 **Evidence pin:** All source citations are against `anomalyco/opencode` branch `dev` at commit `93e633fb7d57f5fcc11a00c76286aeed274d5cca` (2026-04-20T04:51:34Z). Re-verify against current `main` before filing upstream.
 
@@ -83,18 +83,20 @@ Both are operator workarounds, not structural fixes.
 
 ## Plugin exoneration
 
-The `advance` plugin shipped from this repository is **not** the cause of the host crash, despite running in the same opencode process and using SQLite.
+The `advance` plugin shipped from this repository was **not** the cause of the host crash at the time of this investigation, despite running in the same opencode process and using SQLite. (As of April 2026 the plugin has retired its SQLite backend; see the historical note at the end of this section.)
 
-Evidence — `advance` uses a strict per-project DB pattern that *avoids* the entire contention class:
+Evidence — at the time of this investigation, `advance` used a strict per-project DB pattern that *avoided* the entire contention class. All file:line citations below are pinned to commit [`05649d7b`](https://github.com/Sharper-Flow/Advance/tree/05649d7be119de1e178621c24e05222c9511618c) — the last commit on `main` containing the legacy SQLite backend before the plugin's cutover to Temporal-backed storage.
 
-| Layer | File:line | Mechanism |
-|-------|-----------|-----------|
-| DB path | `plugin/src/storage/store-legacy.ts:83` | Per-project `spec.db` keyed by root commit SHA → no cross-project sharing |
-| Concurrency control | `plugin/src/storage/health.ts` | File-lock health probe before opening |
-| Transactions | `plugin/src/storage/store-context.ts` | `BEGIN IMMEDIATE` around mutating ops |
-| Pragmas | `plugin/src/storage/store-legacy.ts` | WAL + `busy_timeout=5000` |
+| Layer | File:line (pinned @ `05649d7b`) | Mechanism |
+|-------|---------------------------------|-----------|
+| DB path | [`plugin/src/storage/store-legacy.ts:83`](https://github.com/Sharper-Flow/Advance/blob/05649d7be119de1e178621c24e05222c9511618c/plugin/src/storage/store-legacy.ts#L83) | Per-project `spec.db` keyed by root commit SHA → no cross-project sharing |
+| Concurrency control | [`plugin/src/storage/health.ts`](https://github.com/Sharper-Flow/Advance/blob/05649d7be119de1e178621c24e05222c9511618c/plugin/src/storage/health.ts) | File-lock health probe before opening |
+| Transactions | [`plugin/src/storage/store-context.ts`](https://github.com/Sharper-Flow/Advance/blob/05649d7be119de1e178621c24e05222c9511618c/plugin/src/storage/store-context.ts) | `BEGIN IMMEDIATE` around mutating ops |
+| Pragmas | [`plugin/src/storage/store-legacy.ts`](https://github.com/Sharper-Flow/Advance/blob/05649d7be119de1e178621c24e05222c9511618c/plugin/src/storage/store-legacy.ts) | WAL + `busy_timeout=5000` |
 
-The plugin's per-project sharding means even when N opencode instances are running, the plugin's writes target N different DB files — there is no shared lock contention point. The host's single shared `opencode.db` is the only resource being raced. The plugin is a contrast case demonstrating that the SQLite community LBP for multi-process workloads (sharding + advisory locks + `BEGIN IMMEDIATE` + WAL + `busy_timeout`) is implementable in this stack.
+The plugin's per-project sharding meant even when N opencode instances were running, the plugin's writes targeted N different DB files — there was no shared lock contention point. The host's single shared `opencode.db` was the only resource being raced. The plugin was a contrast case demonstrating that the SQLite community LBP for multi-process workloads (sharding + advisory locks + `BEGIN IMMEDIATE` + WAL + `busy_timeout`) was implementable in this stack.
+
+**Historical note.** The plugin has since migrated its storage layer to a Temporal-backed implementation and retired the legacy JSON+SQLite backend. The pinned commit above preserves the exoneration evidence; it does not reflect current plugin internals. The LBP conclusions about multi-process SQLite (sharding + `BEGIN IMMEDIATE` + advisory locks) remain valid for upstream opencode regardless of the plugin's internal direction.
 
 ## Existing upstream issues
 
