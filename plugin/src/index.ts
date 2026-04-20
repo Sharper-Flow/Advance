@@ -965,6 +965,12 @@ export const AdvancePlugin: Plugin = async ({ directory, worktree }) => {
             .string()
             .optional()
             .describe("Who completed the gate (default: agent)"),
+          userApproved: tool.schema
+            .boolean()
+            .optional()
+            .describe(
+              "Required for prep gate. Must be true — prep is the only machine-enforced HITL gate and the last human checkpoint before autonomous execution. Confirms the user explicitly approved the prep contract. Ignored for other gates.",
+            ),
         },
         execute: safeExecute(
           async (args) => gateTools.adv_gate_complete.execute(args, store),

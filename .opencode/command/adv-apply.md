@@ -1,6 +1,7 @@
 ---
 name: adv-apply
-description: Implement change with TDD, retry on failure, and final verification
+description: "Implement change with TDD, retry on failure, and final verification"
+phaseGoal: "Execute the approved plan autonomously. Add discovered tasks within scope. Escalate only on failure."
 ---
 
 # ADV Apply — Implement Change with TDD and Retry
@@ -119,7 +120,7 @@ Workflow: collect per-task reasons → present via `question` tool (Approve all,
 
 ---
 
-## Phase 2: Display Contract
+## Phase 2: Prep Gate Approval Verification
 
 Generate CONTRACT ACTIVE banner from tool outputs:
 - OBJECTIVE from change title
@@ -128,7 +129,21 @@ Generate CONTRACT ACTIVE banner from tool outputs:
 - Progress: done/total
 - RETRY POLICY: SEMANTIC 3 retries, TRANSIENT 1 retry + 5s delay, ENVIRONMENTAL immediate escalation
 
-Ask via `question` tool: Begin work (Recommended), Modify criteria, Cancel.
+### Prep Gate Approval Check
+
+Verify that the prep gate was completed with user approval. The prep gate is the last human checkpoint — `/adv-apply` runs autonomously after it.
+
+- **Prep gate complete with `userApproved`**: Proceed immediately. No confirmation needed.
+- **Prep gate complete without `userApproved` (legacy change)**: Emit soft advisory:
+  ```
+  ⚠ ADVISORY: Prep gate was completed before HITL enforcement.
+  This change was approved under the previous workflow.
+  Proceeding with implementation.
+  ```
+  Ask via `question` tool: Proceed with implementation (Recommended), Re-run prep for explicit approval, Cancel.
+- **Prep gate not complete**: Stop — require `/adv-prep` first (handled by Gate Prerequisite Check above).
+
+× MUST NOT ask "Begin work?" when prep gate has `userApproved` — that approval already happened during `/adv-prep`.
 
 ---
 

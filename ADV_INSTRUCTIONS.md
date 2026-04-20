@@ -25,6 +25,51 @@ Specs are laws. Requirements are formally defined, validated, and enforced.
 | TDD required + trivial task | Mark trivial with reason, skip TDD |
 | User requests skip + gate required | `[ADV:MIC]` → ask for sign-off |
 
+## HITL Boundary Model
+
+Each workflow phase has a defined collaboration mode. Agents self-enforce these boundaries.
+
+| Phase | Mode | Detail |
+|-------|------|--------|
+| `/adv-proposal` | Collaborative | Fully collaborative; approve at end |
+| `/adv-research` | Collaborative | Fully collaborative; approve at end |
+| `/adv-prep` | HITL hard gate | Vision document → explicit user approval → `userApproved: true` on prep gate |
+| `/adv-apply` | Autonomous | No "Begin work" prompt; proceeds after prep approval. Escalate only on failure |
+| `/adv-review` | Autonomous + drift detection | Auto-fix within scope; stop on drift |
+| `/adv-harden` | Autonomous + drift detection | Auto-fix scoped issues; stop on drift |
+| `/adv-archive` | Autonomous | Apply spec deltas, capture wisdom, finalize git |
+
+### Drift Detection Rule
+
+For autonomous phases (`/adv-review`, `/adv-harden`), before auto-remediating any finding, the agent must evaluate:
+
+> "If I apply this fix, will `proposal.md`'s **Success Criteria**, **Acceptance Criteria**, or **Out-of-Scope** sections need to change?"
+
+- **YES** → STOP. Present finding to user via `question` tool (`[ADV:MIC]`).
+- **NO** → Auto-remediate within scope.
+
+### Prep Gate Machine Enforcement
+
+The prep gate requires `userApproved: true` in `adv_gate_complete`. Without it, the gate returns an error prompting the agent to obtain user approval first. This is the only machine-enforced HITL gate; other collaborative phases rely on command instructions.
+
+### Backward Compatibility
+
+For changes created before HITL enforcement, `/adv-apply` emits a soft advisory suggesting retroactive approval. This is informational, not a hard block.
+
+## Phase Goals
+
+Each workflow command has a defined phase goal. These are canonical in `manifest.ts` (`phaseGoal` field on `CommandDef`). Agents should self-check: "Am I still working toward this phase's goal?"
+
+| Phase | Goal |
+|-------|------|
+| `/adv-proposal` | Clarify the problem, user needs, and acceptance criteria scope. Establish *what* and *why* — no *how*. |
+| `/adv-research` | Produce a defined, fully-researched proposed plan ready for user approval. Validate the *how*. |
+| `/adv-prep` | Complete the flight-check: every gap closed, every dependency mapped, every task ready — ready for autonomous implementation. |
+| `/adv-apply` | Execute the approved plan autonomously. Add discovered tasks within scope. Escalate only on failure. |
+| `/adv-review` | Verify implementation matches the approved plan. Auto-fix within scope. Stop on drift. |
+| `/adv-harden` | Verify production-readiness. Auto-fix scoped issues. Stop on drift. |
+| `/adv-archive` | Promote the change from contract to law: apply spec deltas, capture wisdom, clean up. |
+
 ## Commands
 
 ### Core Workflow

@@ -321,4 +321,85 @@ describe("Command Manifest", () => {
       expect(def!.scope!.creates).toContain("tasks");
     });
   });
+
+  describe("Phase goal metadata", () => {
+    // The 7 workflow commands that define the HITL boundary model
+    const WORKFLOW_COMMANDS = [
+      "adv-proposal",
+      "adv-research",
+      "adv-prep",
+      "adv-apply",
+      "adv-review",
+      "adv-harden",
+      "adv-archive",
+    ] as const;
+
+    // Non-workflow commands should NOT have phaseGoal
+    const NON_WORKFLOW_COMMANDS = Object.keys(COMMAND_MANIFEST).filter(
+      (name) => !WORKFLOW_COMMANDS.includes(name as (typeof WORKFLOW_COMMANDS)[number]),
+    );
+
+    test("all 7 workflow commands have phaseGoal populated", () => {
+      const missing: string[] = [];
+      for (const name of WORKFLOW_COMMANDS) {
+        const def = getCommandDef(name);
+        if (!def?.phaseGoal) {
+          missing.push(name);
+        }
+      }
+      expect(
+        missing,
+        `Workflow commands missing phaseGoal: ${missing.join(", ")}`,
+      ).toHaveLength(0);
+    });
+
+    test("non-workflow commands do not have phaseGoal", () => {
+      const unexpected: string[] = [];
+      for (const name of NON_WORKFLOW_COMMANDS) {
+        const def = getCommandDef(name);
+        if (def?.phaseGoal) {
+          unexpected.push(name);
+        }
+      }
+      expect(
+        unexpected,
+        `Non-workflow commands with unexpected phaseGoal: ${unexpected.join(", ")}`,
+      ).toHaveLength(0);
+    });
+
+    test("every phaseGoal is a non-empty string", () => {
+      for (const name of WORKFLOW_COMMANDS) {
+        const def = getCommandDef(name);
+        expect(typeof def!.phaseGoal).toBe("string");
+        expect(
+          def!.phaseGoal!.length,
+          `${name}: phaseGoal is empty`,
+        ).toBeGreaterThan(10);
+      }
+    });
+
+    test("phaseGoal values match the user-approved phase goals", () => {
+      const expectedGoals: Record<string, string> = {
+        "adv-proposal":
+          "Clarify the problem, user needs, and acceptance criteria scope. Establish what and why — no how.",
+        "adv-research":
+          "Produce a defined, fully-researched proposed plan ready for user approval. Validate the how.",
+        "adv-prep":
+          "Complete the flight-check: every gap closed, every dependency mapped, every task ready — ready for autonomous implementation.",
+        "adv-apply":
+          "Execute the approved plan autonomously. Add discovered tasks within scope. Escalate only on failure.",
+        "adv-review":
+          "Verify implementation matches the approved plan. Auto-fix within scope. Stop on drift.",
+        "adv-harden":
+          "Verify production-readiness. Auto-fix scoped issues. Stop on drift.",
+        "adv-archive":
+          "Promote the change from contract to law: apply spec deltas, capture wisdom, clean up.",
+      };
+
+      for (const [name, goal] of Object.entries(expectedGoals)) {
+        const def = getCommandDef(name);
+        expect(def!.phaseGoal).toBe(goal);
+      }
+    });
+  });
 });

@@ -1,11 +1,12 @@
 ---
 name: adv-research
-description: Validate architectural decisions and best practices without creating tasks
+description: "Validate architectural decisions and best practices without creating tasks"
+phaseGoal: "Produce a defined, fully-researched proposed plan ready for user approval. Validate the how."
 ---
 
 # ADV Research — Architectural Decision Validation
 
-Validate architectural decisions via sub-agents using Context7 and web search. Simplicity bias — prefer boring solutions over clever ones.
+Validate architectural decisions via sub-agents using Context7 and web search. Simplicity bias — prefer boring solutions over clever ones. **Fully collaborative** — findings are presented to the user for approval before the gate completes.
 
 ## Command Boundary
 
@@ -320,7 +321,21 @@ Prioritize findings as: architecture corrections → security → simplification
 
 ---
 
-## Phase 7: Completion
+## Phase 7: Research Approval
+
+Present the research findings summary to the user for approval via `question` tool:
+
+- **Approve findings (Recommended)** — research is complete, proceed to `/adv-prep`
+- **Request additional research** — user wants deeper investigation on specific areas (loop back to relevant phase)
+- **Cancel** — abandon research without completing gate
+
+If **Request additional research**: collect specific areas → re-run relevant phases → re-present → re-ask.
+
+× MUST NOT complete the research gate without explicit user approval of findings.
+
+---
+
+## Phase 8: Completion
 
 Mark gate: `adv_gate_complete changeId: {change-id} gateId: research`
 

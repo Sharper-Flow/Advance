@@ -83,16 +83,24 @@ export const gateTools = {
         .string()
         .optional()
         .describe("Who completed the gate (default: agent)"),
+      userApproved: z
+        .boolean()
+        .optional()
+        .describe(
+          "Required for prep gate. Must be true — prep is the only machine-enforced HITL gate and the last human checkpoint before autonomous execution. Confirms the user explicitly approved the prep contract. Ignored for other gates.",
+        ),
     },
     execute: async (
       {
         changeId,
         gateId,
         completedBy = "agent",
+        userApproved,
       }: {
         changeId: string;
         gateId: GateId;
         completedBy?: string;
+        userApproved?: boolean;
       },
       store: Store,
     ) => {
@@ -164,6 +172,17 @@ export const gateTools = {
 
       // Prep gate: run readiness checks before marking done
       if (gateId === "prep") {
+        // HITL Boundary: prep gate requires explicit user approval
+        if (!userApproved) {
+          return formatToolOutput({
+            error:
+              "Prep gate requires userApproved: true. The user must explicitly approve the prep contract (via question tool) before this gate can be completed.",
+            changeId,
+            gateId,
+            hint: "Present the vision document to the user, obtain approval via question tool, then call adv_gate_complete with userApproved: true.",
+          });
+        }
+
         const readiness = runPrepReadinessChecks(change);
         if (!readiness.passed) {
           return formatToolOutput({

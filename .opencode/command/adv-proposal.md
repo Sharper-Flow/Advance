@@ -1,11 +1,12 @@
 ---
 name: adv-proposal
-description: Extract problem statement, success criteria, and constraints without creating tasks
+description: "Extract problem statement, success criteria, and constraints without creating tasks"
+phaseGoal: "Clarify the problem, user needs, and acceptance criteria scope. Establish what and why — no how."
 ---
 
 # ADV Proposal — Create Change with Quality Requirements
 
-Two-phase workflow: Phase 1 (problem statement agreement) → Phase 2 (full proposal with INVEST criteria and smell detection).
+Two-phase workflow: Phase 1 (problem statement agreement) → Phase 2 (full proposal with INVEST criteria and smell detection). **Fully collaborative** — the user shapes every decision.
 
 ## Command Boundary
 
@@ -196,6 +197,20 @@ Ask via `question`: "Does this change require modifications to other repositorie
 ## Step 8: Quality Check
 
 Verify: each criterion testable, no subjective language, requirements independent, scope achievable. If any fail → refine via `question`.
+
+---
+
+## Step 9: Proposal Approval
+
+Present the completed proposal summary to the user for final approval via `question` tool:
+
+- **Approve proposal (Recommended)** — proposal is finalized, proceed to `/adv-research`
+- **Request changes** — user wants to adjust criteria, scope, or constraints (loop back to relevant step)
+- **Cancel** — abandon the proposal
+
+If **Request changes**: collect specific feedback → apply changes via `adv_change_update` → re-present → re-ask.
+
+× MUST NOT mark the proposal complete without explicit user approval.
 
 ---
 

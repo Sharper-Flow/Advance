@@ -51,6 +51,11 @@ export interface CommandDef {
   successors: string[];
   /** Boundary scope: what this command creates, reads, modifies, and which gates it owns */
   scope?: CommandScope;
+  /**
+   * HITL phase goal — canonical description of this command's objective (workflow commands only).
+   * Agents should self-check: "Am I still working toward this phase's goal?"
+   */
+  phaseGoal?: string;
 }
 
 // =============================================================================
@@ -82,6 +87,8 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
       modifies: [],
       gates: [],
     },
+    phaseGoal:
+      "Clarify the problem, user needs, and acceptance criteria scope. Establish what and why \u2014 no how.",
   },
   "adv-validate": {
     name: "adv-validate",
@@ -99,6 +106,8 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
     requiresChangeId: true,
     prerequisites: ["adv-validate"],
     successors: [],
+    phaseGoal:
+      "Promote the change from contract to law: apply spec deltas, capture wisdom, clean up.",
   },
 
   // ---- Pre-Implementation ----
@@ -125,6 +134,8 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
       modifies: ["proposal"],
       gates: ["research"],
     },
+    phaseGoal:
+      "Produce a defined, fully-researched proposed plan ready for user approval. Validate the how.",
   },
   "adv-prep": {
     name: "adv-prep",
@@ -141,6 +152,8 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
       modifies: ["tasks", "proposal"],
       gates: ["prep"],
     },
+    phaseGoal:
+      "Complete the flight-check: every gap closed, every dependency mapped, every task ready \u2014 ready for autonomous implementation.",
   },
 
   // ---- Implementation ----
@@ -159,6 +172,8 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
       modifies: ["tasks", "codebase"],
       gates: ["implementation"],
     },
+    phaseGoal:
+      "Execute the approved plan autonomously. Add discovered tasks within scope. Escalate only on failure.",
   },
   "adv-task": {
     name: "adv-task",
@@ -192,6 +207,8 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
       modifies: ["proposal"],
       gates: ["review"],
     },
+    phaseGoal:
+      "Verify implementation matches the approved plan. Auto-fix within scope. Stop on drift.",
   },
   "adv-harden": {
     name: "adv-harden",
@@ -208,6 +225,8 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
       modifies: ["codebase"],
       gates: ["harden"],
     },
+    phaseGoal:
+      "Verify production-readiness. Auto-fix scoped issues. Stop on drift.",
   },
   "adv-audit": {
     name: "adv-audit",

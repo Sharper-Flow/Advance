@@ -1,6 +1,7 @@
 ---
 name: adv-review
-description: Review code for correctness, security, and architecture; emit REVIEW_FINDINGS
+description: "Review code for correctness, security, and architecture; emit REVIEW_FINDINGS"
+phaseGoal: "Verify implementation matches the approved plan. Auto-fix within scope. Stop on drift."
 ---
 
 # ADV Review — Post-Implementation Code Review
@@ -171,6 +172,20 @@ Emit CODE REVIEW banner: per-dimension status, severity breakdown, verdict.
 If APPROVED → skip to completion.
 
 If CHANGES_REQUESTED/BLOCKED → auto-remediation is mandatory:
+
+### Drift Detection Rule (CRITICAL)
+
+Before applying ANY fix, evaluate: **"If I apply this fix, will proposal.md's Success Criteria, Acceptance Criteria, or Out-of-Scope sections need to change?"**
+
+- **NO** → auto-remediate (proceed with fix)
+- **YES** → **STOP** — present the finding and proposed fix to the user via `question` tool:
+  - **Approve fix and update scope** — user agrees the scope should expand
+  - **Skip fix, document as accepted debt** — finding is valid but out of scope
+  - **Cancel review** — user wants to reconsider
+
+This is the single declarative drift detection rule. It applies to every finding, every fix, every auto-remediation action.
+
+### Remediation Steps
 
 1. **Fix all blockers/issues** — no partial fix mode. For non-trivial fixes: research first (Context7/librarian/adv-researcher) → then implement.
 2. **Investigate suggestions/questions** — validate against specs/tests/code → implement if validated, reject with evidence if not.

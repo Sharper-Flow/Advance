@@ -1,6 +1,7 @@
 ---
 name: adv-prep
-description: Analyze gaps and synthesize tasks from validated research findings
+description: "Analyze gaps and synthesize tasks from validated research findings"
+phaseGoal: "Complete the flight-check: every gap closed, every dependency mapped, every task ready — ready for autonomous implementation."
 ---
 
 # ADV Prep — Pre-Implementation Gap Analysis
@@ -195,9 +196,51 @@ Search codebase for key terms → compare with affected files. Flag missing file
 
 ---
 
-## Phase 5: Contract
+## Phase 5: Contract & User Approval
 
-Emit CONTRACT ACTIVE banner: objective, success criteria (INVEST, smells, coverage, sequencing, cross-cutting, cross-spec, validation, readiness), gaps grouped by MoSCoW priority. Proceed immediately — invocation is implicit approval.
+### 5.1 Vision Document
+
+Generate a compact vision banner (<30 lines) and present it **in chat only** (not stored as a file). Include:
+
+```
+╔══════════════════════════════════════════════════════════════════╗
+║  PREP VISION — {change title}                                    ║
+╠══════════════════════════════════════════════════════════════════╣
+║                                                                  ║
+║  Objective: {1-line summary from problem statement}              ║
+║                                                                  ║
+║  Success Criteria:                                               ║
+║    • {criterion 1}                                               ║
+║    • {criterion 2}                                               ║
+║    • ...                                                         ║
+║                                                                  ║
+║  Task Summary: {N} tasks ({M} ready, {K} blocked)                ║
+║    • {highest priority task summary}                             ║
+║    • {next priority task summary}                                ║
+║    • ...                                                         ║
+║                                                                  ║
+║  Gaps Fixed: {count} (Must: {n}, Should: {n}, Could: {n})        ║
+║                                                                  ║
+║  HITL Boundary:                                                  ║
+║    ✓ Proposal approved | ✓ Research approved | → PREP APPROVAL   ║
+║    After this: autonomous implementation via /adv-apply          ║
+║                                                                  ║
+╚══════════════════════════════════════════════════════════════════╝
+```
+
+### 5.2 User Approval Gate
+
+Present the vision document and ask for explicit approval via `question` tool:
+
+- **Approve and continue** — user confirms the plan is ready for autonomous implementation
+- **Request changes** — user wants modifications before approving (loop back to gap analysis)
+- **Cancel** — user wants to abandon prep
+
+If **Request changes**: collect feedback → loop back to Phase 4 (re-analyze gaps) → regenerate vision → re-ask.
+
+If **Cancel**: stop immediately, do not complete prep gate.
+
+**× MUST NOT proceed past Phase 5 without explicit user approval.** Invocation is NOT implicit approval — the prep gate is the last human checkpoint before autonomous execution.
 
 ---
 
@@ -229,7 +272,7 @@ After EACH fix, emit CONTRACT STATUS: gap checkboxes with evidence, fixed/total 
 
 ## Phase 8.5: Readiness Report
 
-`adv_gate_complete changeId: <target> gateId: prep`
+`adv_gate_complete changeId: <target> gateId: prep userApproved: true`
 
 | Result | Action |
 |--------|--------|
@@ -255,7 +298,7 @@ For each gap: resolve inline (read code, query docs, ask specific question). Re-
 
 ### Mark Gate
 
-`adv_gate_complete changeId: {change-id} gateId: prep` (no-op if Phase 8.5 already passed).
+`adv_gate_complete changeId: {change-id} gateId: prep userApproved: true` (no-op if Phase 8.5 already passed).
 
 ### Completion
 
@@ -280,4 +323,4 @@ Next: /adv-apply {change-id}
 | Cancel tasks | `adv_task_cancel` (requires user approval) |
 | List/show/search specs | `adv_spec` |
 | Validate | `adv_change_validate` |
-| Prep gate | `adv_gate_complete gateId: prep` |
+| Prep gate | `adv_gate_complete gateId: prep userApproved: true` |

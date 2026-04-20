@@ -1,6 +1,7 @@
 ---
 name: adv-harden
-description: Detect low-quality code, verify test coverage, clean up; block archive on open findings
+description: "Detect low-quality code, verify test coverage, clean up; block archive on open findings"
+phaseGoal: "Verify production-readiness. Auto-fix scoped issues. Stop on drift."
 ---
 
 # ADV Harden — Post-Implementation Quality Analysis
@@ -247,6 +248,18 @@ Count non-nit findings. If <3 → require genuinely-clean justification with sca
 If READY → skip to cleanup.
 
 If NEEDS_WORK or BLOCKED → ask via `question` tool: Fix all (Recommended), Fix blockers only, Report only, Accept current (document as debt).
+
+### Drift Detection Rule (CRITICAL)
+
+Before applying ANY fix, evaluate: **"If I apply this fix, will proposal.md's Success Criteria, Acceptance Criteria, or Out-of-Scope sections need to change?"**
+
+- **NO** → auto-remediate (proceed with fix)
+- **YES** → **STOP** — present the finding and proposed fix to the user via `question` tool:
+  - **Approve fix and update scope** — user agrees the scope should expand
+  - **Skip fix, document as accepted debt** — finding is valid but out of scope
+  - **Cancel hardening** — user wants to reconsider
+
+This is the single declarative drift detection rule. It applies to every finding, every fix, every auto-remediation action.
 
 If fixing → establish CONTRACT ACTIVE banner listing issues grouped by category → spawn fix sub-agents → verify → update status.
 
