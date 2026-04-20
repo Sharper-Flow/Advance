@@ -254,7 +254,7 @@ export const gateTools = {
 
         // Mark gate complete via store
         try {
-          await store.gates.complete(changeId, gateId);
+          await store.gates.complete(changeId, gateId, notes);
         } catch (saveError) {
           return formatToolOutput({
             error: `Failed to complete gate: ${(saveError as Error).message}`,
@@ -284,7 +284,7 @@ export const gateTools = {
 
       // Mark gate complete via store (handles locking and sequence enforcement)
       try {
-        await store.gates.complete(changeId, gateId);
+        await store.gates.complete(changeId, gateId, notes);
       } catch (saveError) {
         return formatToolOutput({
           error: `Failed to complete gate: ${(saveError as Error).message}`,

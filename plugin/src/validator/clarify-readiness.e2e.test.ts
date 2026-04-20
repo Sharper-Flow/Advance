@@ -231,7 +231,7 @@ mechanisms introduced.
 
     // Complete prep gate — should pass cleanly
     const prepResult = await gateTools.adv_gate_complete.execute(
-      { changeId, gateId: "prep", userApproved: true },
+      { changeId, gateId: "planning", userApproved: true },
       store,
     );
     const parsed = extractJson(prepResult);

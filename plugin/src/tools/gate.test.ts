@@ -74,7 +74,7 @@ describe("Gate Tools", () => {
 
       expect(parsed.incomplete).toEqual([
         "research",
-        "prep",
+        "planning",
         "implementation",
         "review",
         "harden",
@@ -201,7 +201,7 @@ describe("Gate Tools", () => {
     test("blocks completing gate if prior gate incomplete", async () => {
       // Try to complete prep without completing research first
       const result = await gateTools.adv_gate_complete.execute(
-        { changeId: "addFeature", gateId: "prep" },
+        { changeId: "addFeature", gateId: "planning" },
         store,
       );
       const parsed = extractJson(result) as Record<string, unknown>;
@@ -246,13 +246,13 @@ describe("Gate Tools", () => {
 
       // Now prep should work (clean change passes readiness checks)
       const result = await gateTools.adv_gate_complete.execute(
-        { changeId: "cleanSeqChange", gateId: "prep", userApproved: true },
+        { changeId: "cleanSeqChange", gateId: "planning", userApproved: true },
         store,
       );
       const parsed = extractJson(result) as Record<string, unknown>;
 
       expect(parsed.success).toBe(true);
-      expect(parsed.gateId).toBe("prep");
+      expect(parsed.gateId).toBe("planning");
     });
 
     test("persists gate completion to JSON file", async () => {
@@ -412,7 +412,7 @@ describe("adv_gate_complete prep — readiness enforcement", () => {
 
     // Attempt to complete prep — should be blocked
     const result = await gateTools.adv_gate_complete.execute(
-      { changeId: "badScenarios", gateId: "prep", userApproved: true },
+      { changeId: "badScenarios", gateId: "planning", userApproved: true },
       store,
     );
     const parsed = extractJson(result) as Record<string, unknown>;
@@ -459,7 +459,7 @@ describe("adv_gate_complete prep — readiness enforcement", () => {
     );
 
     const result = await gateTools.adv_gate_complete.execute(
-      { changeId: "tddInversion", gateId: "prep", userApproved: true },
+      { changeId: "tddInversion", gateId: "planning", userApproved: true },
       store,
     );
     const parsed = extractJson(result) as Record<string, unknown>;
@@ -497,7 +497,7 @@ describe("adv_gate_complete prep — readiness enforcement", () => {
     );
 
     const result = await gateTools.adv_gate_complete.execute(
-      { changeId: "badRouting", gateId: "prep", userApproved: true },
+      { changeId: "badRouting", gateId: "planning", userApproved: true },
       store,
     );
     const parsed = extractJson(result) as Record<string, unknown>;
@@ -540,7 +540,7 @@ describe("adv_gate_complete prep — readiness enforcement", () => {
     );
 
     const result = await gateTools.adv_gate_complete.execute(
-      { changeId: "checkShape", gateId: "prep", userApproved: true },
+      { changeId: "checkShape", gateId: "planning", userApproved: true },
       store,
     );
     const parsed = extractJson(result) as Record<string, unknown>;
@@ -612,14 +612,14 @@ describe("adv_gate_complete prep — readiness enforcement", () => {
     );
 
     const result = await gateTools.adv_gate_complete.execute(
-      { changeId: "warningsOnly", gateId: "prep", userApproved: true },
+      { changeId: "warningsOnly", gateId: "planning", userApproved: true },
       store,
     );
     const parsed = extractJson(result) as Record<string, unknown>;
 
     // Should succeed (no must-failures)
     expect(parsed.success).toBe(true);
-    expect(parsed.gateId).toBe("prep");
+    expect(parsed.gateId).toBe("planning");
     // Should include advisory warnings
     expect(parsed.readinessWarnings).toBeDefined();
     expect(Array.isArray(parsed.readinessWarnings)).toBe(true);
@@ -663,13 +663,13 @@ describe("adv_gate_complete prep — readiness enforcement", () => {
     );
 
     const result = await gateTools.adv_gate_complete.execute(
-      { changeId: "cleanChange", gateId: "prep", userApproved: true },
+      { changeId: "cleanChange", gateId: "planning", userApproved: true },
       store,
     );
     const parsed = extractJson(result) as Record<string, unknown>;
 
     expect(parsed.success).toBe(true);
-    expect(parsed.gateId).toBe("prep");
+    expect(parsed.gateId).toBe("planning");
     // No readinessFailures or empty
     expect(
       !parsed.readinessFailures ||
@@ -729,7 +729,7 @@ describe("adv_gate_complete prep — readiness enforcement", () => {
     );
 
     const result = await gateTools.adv_gate_complete.execute(
-      { changeId: "separateVerification", gateId: "prep", userApproved: true },
+      { changeId: "separateVerification", gateId: "planning", userApproved: true },
       store,
     );
     const parsed = extractJson(result) as Record<string, unknown>;
@@ -775,7 +775,7 @@ describe("adv_gate_complete prep — readiness enforcement", () => {
     );
 
     const result = await gateTools.adv_gate_complete.execute(
-      { changeId: "inlineMetadata", gateId: "prep", userApproved: true },
+      { changeId: "inlineMetadata", gateId: "planning", userApproved: true },
       store,
     );
     const parsed = extractJson(result) as Record<string, unknown>;
@@ -793,7 +793,7 @@ describe("adv_gate_complete prep — readiness enforcement", () => {
     // and the sample proposal has no Success Criteria or Scope section
     // This should trigger clarify findings that block the prep gate in strict mode
     const result = await gateTools.adv_gate_complete.execute(
-      { changeId: "addFeature", gateId: "prep", userApproved: true },
+      { changeId: "addFeature", gateId: "planning", userApproved: true },
       store,
     );
     const parsed = extractJson(result) as Record<string, unknown>;
@@ -831,7 +831,7 @@ describe("adv_gate_complete prep — readiness enforcement", () => {
     );
 
     const result = await gateTools.adv_gate_complete.execute(
-      { changeId: "advisoryChange", gateId: "prep", userApproved: true },
+      { changeId: "advisoryChange", gateId: "planning", userApproved: true },
       store,
     );
     const parsed = extractJson(result) as Record<string, unknown>;
@@ -864,7 +864,7 @@ describe("adv_gate_complete prep — readiness enforcement", () => {
     );
 
     const result = await gateTools.adv_gate_complete.execute(
-      { changeId: "offChange", gateId: "prep", userApproved: true },
+      { changeId: "offChange", gateId: "planning", userApproved: true },
       store,
     );
     const parsed = extractJson(result) as Record<string, unknown>;
@@ -875,7 +875,7 @@ describe("adv_gate_complete prep — readiness enforcement", () => {
 
   // --- userApproved enforcement tests (HITL Boundary Model) ---
 
-  test("prep gate requires userApproved param to complete", async () => {
+  test("planning gate requires userApproved param to complete", async () => {
     // Create a clean change that would pass readiness
     await createChangeFile("prepApproval", {
       $schema: "https://advance.dev/schemas/change.v1.json",
@@ -887,14 +887,11 @@ describe("adv_gate_complete prep — readiness enforcement", () => {
       deltas: {},
     });
 
-    await gateTools.adv_gate_complete.execute(
-      { changeId: "prepApproval", gateId: "research" },
-      store,
-    );
+    await completePlanningPrereqs("prepApproval");
 
-    // Attempt to complete prep WITHOUT userApproved — should fail
+    // Attempt to complete planning WITHOUT userApproved — should fail
     const result = await gateTools.adv_gate_complete.execute(
-      { changeId: "prepApproval", gateId: "prep" },
+      { changeId: "prepApproval", gateId: "planning" },
       store,
     );
     const parsed = extractJson(result) as Record<string, unknown>;
@@ -903,7 +900,7 @@ describe("adv_gate_complete prep — readiness enforcement", () => {
     expect(parsed.error).toContain("userApproved");
   });
 
-  test("prep gate rejects explicit userApproved false", async () => {
+  test("planning gate rejects explicit userApproved false", async () => {
     await createChangeFile("prepRejected", {
       $schema: "https://advance.dev/schemas/change.v1.json",
       id: "prepRejected",
@@ -914,13 +911,10 @@ describe("adv_gate_complete prep — readiness enforcement", () => {
       deltas: {},
     });
 
-    await gateTools.adv_gate_complete.execute(
-      { changeId: "prepRejected", gateId: "research" },
-      store,
-    );
+    await completePlanningPrereqs("prepRejected");
 
     const result = await gateTools.adv_gate_complete.execute(
-      { changeId: "prepRejected", gateId: "prep", userApproved: false },
+      { changeId: "prepRejected", gateId: "planning", userApproved: false },
       store,
     );
     const parsed = extractJson(result) as Record<string, unknown>;
@@ -929,7 +923,7 @@ describe("adv_gate_complete prep — readiness enforcement", () => {
     expect(parsed.error).toContain("userApproved: true");
   });
 
-  test("prep gate succeeds when userApproved is true", async () => {
+  test("planning gate succeeds when userApproved is true", async () => {
     await createChangeFile("prepApproved", {
       $schema: "https://advance.dev/schemas/change.v1.json",
       id: "prepApproved",
@@ -940,24 +934,21 @@ describe("adv_gate_complete prep — readiness enforcement", () => {
       deltas: {},
     });
 
-    await gateTools.adv_gate_complete.execute(
-      { changeId: "prepApproved", gateId: "research" },
-      store,
-    );
+    await completePlanningPrereqs("prepApproved");
 
-    // Complete prep WITH userApproved: true — should succeed
+    // Complete planning WITH userApproved: true — should succeed
     const result = await gateTools.adv_gate_complete.execute(
-      { changeId: "prepApproved", gateId: "prep", userApproved: true },
+      { changeId: "prepApproved", gateId: "planning", userApproved: true },
       store,
     );
     const parsed = extractJson(result) as Record<string, unknown>;
 
     expect(parsed.success).toBe(true);
-    expect(parsed.gateId).toBe("prep");
+    expect(parsed.gateId).toBe("planning");
   });
 
-  test("non-prep gates ignore userApproved param", async () => {
-    // research gate should work regardless of userApproved
+  test("non-planning gates ignore userApproved param", async () => {
+    // proposal gate should work regardless of userApproved
     await createChangeFile("nonPrepApproval", {
       $schema: "https://advance.dev/schemas/change.v1.json",
       id: "nonPrepApproval",
@@ -968,9 +959,9 @@ describe("adv_gate_complete prep — readiness enforcement", () => {
       deltas: {},
     });
 
-    // Complete research without userApproved — should work fine
+    // Complete proposal without userApproved — should work fine
     const result = await gateTools.adv_gate_complete.execute(
-      { changeId: "nonPrepApproval", gateId: "research" },
+      { changeId: "nonPrepApproval", gateId: "proposal" },
       store,
     );
     const parsed = extractJson(result) as Record<string, unknown>;
@@ -979,7 +970,7 @@ describe("adv_gate_complete prep — readiness enforcement", () => {
     expect(parsed.error).toBeUndefined();
   });
 
-  test("prep gate still blocks TDD inversion for legacy tasks without metadata", async () => {
+  test("planning gate still blocks TDD inversion for legacy tasks without metadata", async () => {
     // This is the existing behavior — legacy tasks use title heuristics
     await createChangeFile("legacyInversion", {
       $schema: "https://advance.dev/schemas/change.v1.json",
@@ -1017,7 +1008,7 @@ describe("adv_gate_complete prep — readiness enforcement", () => {
     );
 
     const result = await gateTools.adv_gate_complete.execute(
-      { changeId: "legacyInversion", gateId: "prep", userApproved: true },
+      { changeId: "legacyInversion", gateId: "planning", userApproved: true },
       store,
     );
     const parsed = extractJson(result) as Record<string, unknown>;

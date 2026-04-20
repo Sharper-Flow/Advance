@@ -103,41 +103,30 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
     name: "adv-archive",
     description: "Archive completed change: apply spec deltas and finalize git",
     phase: "core",
+    gate: "release",
     requiresChangeId: true,
-    prerequisites: ["adv-validate"],
+    prerequisites: ["adv-harden"],
     successors: [],
+    scope: {
+      creates: ["archive"],
+      reads: ["specs", "proposal", "tasks", "codebase"],
+      modifies: ["specs"],
+      gates: ["release"],
+    },
     phaseGoal:
       "Promote the change from contract to law: apply spec deltas, capture wisdom, clean up.",
   },
 
-  // ---- Pre-Implementation ----
+  // ---- Pre-Implementation (Discovery + Design) ----
   "adv-clarify": {
     name: "adv-clarify",
     description: "Ask clarifying questions to resolve ambiguous requirements",
     phase: "pre-implementation",
     requiresChangeId: false,
     prerequisites: ["adv-proposal"],
-    successors: ["adv-research", "adv-prep"],
+    successors: ["adv-discover", "adv-prep"],
   },
-  "adv-research": {
-    name: "adv-research",
-    description:
-      "Validate architectural decisions and best practices without creating tasks",
-    phase: "pre-implementation",
-    gate: "research",
-    requiresChangeId: true,
-    prerequisites: ["adv-proposal"],
-    successors: ["adv-prep"],
-    scope: {
-      creates: [],
-      reads: ["specs", "proposal", "codebase"],
-      modifies: ["proposal"],
-      gates: ["research"],
-    },
-    phaseGoal:
-      "Produce a defined, fully-researched proposed plan ready for user approval. Validate the how.",
-  },
-  "adv-prep": {
+  "adv-discover": {
     name: "adv-prep",
     description:
       "Analyze gaps and synthesize tasks from validated research findings",
