@@ -275,10 +275,7 @@ describe("safe-execute", () => {
     });
 
     it("includes errorClass for standard Error", () => {
-      const raw = formatErrorResponse(
-        new TypeError("nope"),
-        "test_tool",
-      );
+      const raw = formatErrorResponse(new TypeError("nope"), "test_tool");
       const parsed = JSON.parse(raw);
       expect(parsed.errorClass).toBe("TypeError");
     });
@@ -290,11 +287,10 @@ describe("safe-execute", () => {
     });
 
     it("surfaces workdir/path from args for Error", () => {
-      const raw = formatErrorResponse(
-        new Error("fs broke"),
-        "test_tool",
-        { workdir: "/tmp/wd", path: "/tmp/p" },
-      );
+      const raw = formatErrorResponse(new Error("fs broke"), "test_tool", {
+        workdir: "/tmp/wd",
+        path: "/tmp/p",
+      });
       const parsed = JSON.parse(raw);
       expect(parsed.workdir).toBe("/tmp/wd");
       expect(parsed.path).toBe("/tmp/p");

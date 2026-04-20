@@ -9,21 +9,11 @@
  *   - closeDatabase success + force-close branch
  */
 
-import {
-  describe,
-  test,
-  expect,
-  beforeEach,
-  afterEach,
-  vi,
-} from "vitest";
+import { describe, test, expect, beforeEach, afterEach, vi } from "vitest";
 import { join } from "path";
 import { writeFileSync } from "fs";
 import { Database } from "bun:sqlite";
-import {
-  createTempDir,
-  cleanupTempDir,
-} from "../__tests__/setup";
+import { createTempDir, cleanupTempDir } from "../__tests__/setup";
 import {
   checkpointWAL,
   closeDatabase,

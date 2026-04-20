@@ -22,7 +22,9 @@ describe("parity collector", () => {
     worker = await Worker.create({
       connection: env.nativeConnection,
       taskQueue: "advance-validate-parity",
-      workflowsPath: fileURLToPath(new URL("../../workflows.ts", import.meta.url)),
+      workflowsPath: fileURLToPath(
+        new URL("../../workflows.ts", import.meta.url),
+      ),
       activities: {},
     });
     runPromise = worker.run();

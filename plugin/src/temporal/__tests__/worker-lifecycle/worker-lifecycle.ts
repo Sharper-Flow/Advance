@@ -5,8 +5,8 @@
  */
 
 import { registerShutdownHandlers } from "../../../plugin-init";
+import type { Store } from "../../../storage/store";
 import { Worker } from "@temporalio/worker";
-import type { WorkflowHistory } from "@temporalio/common";
 
 export async function sigtermTriggersBoundedFlush(input: {
   flushTimeoutMs: number;
@@ -28,16 +28,27 @@ export async function sigtermTriggersBoundedFlush(input: {
     },
   };
 
-  const handlers = registerShutdownHandlers(store as any);
+  const handlers = registerShutdownHandlers(store as unknown as Store);
   const realSetTimeout = global.setTimeout;
   const realExit = process.exit;
   const realClearTimeout = global.clearTimeout;
 
   try {
-    global.setTimeout = ((fn: (...args: any[]) => void, _ms?: number) =>
+    global.setTimeout = ((
+      fn: Parameters<typeof setTimeout>[0],
+      _ms?: number,
+      ...args: Parameters<typeof setTimeout> extends [
+        Parameters<typeof setTimeout>[0],
+        number?,
+        ...infer Rest,
+      ]
+        ? Rest
+        : never
+    ) =>
       realSetTimeout(
         fn,
         Math.min(input.flushTimeoutMs, 1),
+        ...args,
       )) as typeof setTimeout;
     process.exit = ((_code?: number) =>
       undefined) as unknown as typeof process.exit;
@@ -78,7 +89,7 @@ export async function duplicateSignalIsIdempotent(): Promise<{
     },
   };
 
-  const handlers = registerShutdownHandlers(store as any);
+  const handlers = registerShutdownHandlers(store as unknown as Store);
   const realExit = process.exit;
   try {
     process.exit = ((_code?: number) =>
@@ -101,7 +112,7 @@ export async function duplicateSignalIsIdempotent(): Promise<{
 }
 
 export async function restartDoesNotRedoCompletedActivities(input: {
-  history: WorkflowHistory;
+  history: unknown;
   workflowsPath: string;
 }): Promise<{ pass: boolean }> {
   await Worker.runReplayHistory(

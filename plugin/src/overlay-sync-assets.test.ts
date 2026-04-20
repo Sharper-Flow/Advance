@@ -221,22 +221,24 @@ describe("overlay sync script support", () => {
       });
       expect(fixResult.status).toBe(0);
 
+      const syncOutput = `${fixResult.stdout}${fixResult.stderr}`;
+      const canonicalRootMatch = syncOutput.match(
+        /ADV sync-global \(fix\):\s+(.*?)\s+->/,
+      );
+      const canonicalRoot = canonicalRootMatch?.[1] ?? REPO_ROOT;
+
       const patched = JSON.parse(
         readFileSync(join(configDir, "opencode.json"), "utf8"),
       );
 
-      expect(patched.plugin).toContain(join(REPO_ROOT, "plugin"));
+      expect(patched.plugin).toContain(join(canonicalRoot, "plugin"));
       expect(patched.plugin).not.toContain(join(tempWorktree, "plugin"));
 
-<<<<<<< HEAD
       expect(patched.instructions).toContain(
-        join(REPO_ROOT, "ADV_INSTRUCTIONS.md"),
+        join(canonicalRoot, "ADV_INSTRUCTIONS.md"),
       );
-=======
-      expect(patched.instructions).toContain(join(REPO_ROOT, "ADV_INSTRUCTIONS.md"));
->>>>>>> 4c87bfe (fix(sync-global): canonicalize main repo paths from worktrees)
       expect(patched.instructions).toContain(
-        join(REPO_ROOT, ".opencode", "instructions", "cost-governance.md"),
+        join(canonicalRoot, ".opencode", "instructions", "cost-governance.md"),
       );
       expect(patched.instructions).not.toContain(
         join(tempWorktree, "ADV_INSTRUCTIONS.md"),
@@ -245,27 +247,11 @@ describe("overlay sync script support", () => {
         join(tempWorktree, ".opencode", "instructions", "cost-governance.md"),
       );
     } finally {
-<<<<<<< HEAD
-      spawnSync(
-        "git",
-        ["worktree", "remove", "--force", tempWorktree],
-        {
-          cwd: REPO_ROOT,
-          env: { ...process.env, CI: "true" },
-          encoding: "utf8",
-        },
-      );
-=======
-      spawnSync(
-        "git",
-        ["worktree", "remove", "--force", tempWorktree],
-        {
-          cwd: REPO_ROOT,
-          env: { ...process.env, CI: "true" },
-          encoding: "utf8",
-        },
-      );
->>>>>>> 4c87bfe (fix(sync-global): canonicalize main repo paths from worktrees)
+      spawnSync("git", ["worktree", "remove", "--force", tempWorktree], {
+        cwd: REPO_ROOT,
+        env: { ...process.env, CI: "true" },
+        encoding: "utf8",
+      });
       rmSync(tempWorktreeRoot, { recursive: true, force: true });
       rmSync(tempHome, { recursive: true, force: true });
     }

@@ -203,7 +203,9 @@ function logDeltaResult(
   };
 
   if (!result.success) {
-    logger.warn(`delta failed: ${JSON.stringify({ ...base, error: result.error })}`);
+    logger.warn(
+      `delta failed: ${JSON.stringify({ ...base, error: result.error })}`,
+    );
     return;
   }
 

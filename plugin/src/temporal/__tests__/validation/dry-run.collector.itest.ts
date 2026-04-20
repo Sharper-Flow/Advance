@@ -6,7 +6,10 @@ import { fileURLToPath } from "node:url";
 import { writeFile, readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { discoverAdvanceProjectIds, runDryRunMigrationSweep } from "../../dry-run-migrator";
+import {
+  discoverAdvanceProjectIds,
+  runDryRunMigrationSweep,
+} from "../../dry-run-migrator";
 import { runStorageLayerParity } from "../../parity-harness";
 import { STORAGE_LAYER_SCENARIOS } from "../../parity-scenarios";
 
@@ -15,7 +18,14 @@ const REPO_ROOT = fileURLToPath(new URL("../../../../..", import.meta.url));
 const ADV_STATE_ROOT =
   process.env.XDG_DATA_HOME && process.env.XDG_DATA_HOME.length > 0
     ? join(process.env.XDG_DATA_HOME, "opencode", "plugins", "advance")
-    : join(process.env.HOME ?? "", ".local", "share", "opencode", "plugins", "advance");
+    : join(
+        process.env.HOME ?? "",
+        ".local",
+        "share",
+        "opencode",
+        "plugins",
+        "advance",
+      );
 
 function countJsonChangeFiles(projectPath: string): Promise<number> {
   return readdir(join(projectPath, "changes"))
@@ -34,7 +44,9 @@ async function countJsonlLines(file: string): Promise<number> {
 
 describe("dry-run migration collector", () => {
   it("runs a real per-project dry-run parity sweep and emits JSON evidence", async () => {
-    const projectPaths = await discoverAdvanceProjectIds({ roots: [ADV_STATE_ROOT] });
+    const projectPaths = await discoverAdvanceProjectIds({
+      roots: [ADV_STATE_ROOT],
+    });
     expect(projectPaths.length).toBeGreaterThan(0);
 
     const result = await runDryRunMigrationSweep({
@@ -42,8 +54,12 @@ describe("dry-run migration collector", () => {
       runProject: async (projectPath) => {
         const projectId = projectPath.split("/").pop() ?? projectPath;
         const importedChanges = await countJsonChangeFiles(projectPath);
-        const importedAgendaItems = await countJsonlLines(join(projectPath, "agenda.jsonl"));
-        const importedProjectWisdomEntries = await countJsonlLines(join(projectPath, "wisdom.jsonl"));
+        const importedAgendaItems = await countJsonlLines(
+          join(projectPath, "agenda.jsonl"),
+        );
+        const importedProjectWisdomEntries = await countJsonlLines(
+          join(projectPath, "wisdom.jsonl"),
+        );
 
         try {
           const parity = await runStorageLayerParity({
@@ -52,7 +68,10 @@ describe("dry-run migration collector", () => {
             externalRoot: projectPath,
             scenarios: STORAGE_LAYER_SCENARIOS,
           });
-          const unresolved = parity.results.reduce((n, r) => n + r.mismatches.length, 0);
+          const unresolved = parity.results.reduce(
+            (n, r) => n + r.mismatches.length,
+            0,
+          );
           const firstFailure = parity.results.find((r) => r.status === "FAIL");
           return {
             projectPath,
@@ -81,7 +100,9 @@ describe("dry-run migration collector", () => {
             importedProjectWisdomEntries,
             firstParityFailure: undefined,
             unmappableReason:
-              error instanceof Error ? error.message : String(error ?? "parity failed"),
+              error instanceof Error
+                ? error.message
+                : String(error ?? "parity failed"),
           };
         }
       },
@@ -94,7 +115,9 @@ describe("dry-run migration collector", () => {
           {
             pass: result.failedProjects === 0,
             projectCount: result.totalProjects,
-            unmappableProjects: result.results.filter((r) => !r.pass).map((r) => r.projectId),
+            unmappableProjects: result.results
+              .filter((r) => !r.pass)
+              .map((r) => r.projectId),
             results: result.results,
           },
           null,

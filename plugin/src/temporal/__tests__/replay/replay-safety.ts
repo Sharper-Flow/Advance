@@ -11,6 +11,7 @@ import { Worker } from "@temporalio/worker";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const PLUGIN_ROOT = resolve(HERE, "../../../..");
+type ReplayHistory = Parameters<typeof Worker.runReplayHistory>[1];
 
 export const REPLAY_HISTORY_FILES = {
   syntheticChangeLifecycle: resolve(
@@ -27,9 +28,12 @@ export const REPLAY_HISTORY_FILES = {
 async function loadTemporalProtoPackage() {
   const pnpmRoot = join(PLUGIN_ROOT, "node_modules", ".pnpm");
   const entries = await readdir(pnpmRoot);
-  const protoDir = entries.find((name) =>
-    name.startsWith("@temporalio+proto@"),
-  );
+  // Sort descending so multiple installed @temporalio/proto versions resolve
+  // to the latest one (lexicographic on `name@x.y.z` works for semver-ish).
+  const protoDir = entries
+    .filter((name) => name.startsWith("@temporalio+proto@"))
+    .sort()
+    .reverse()[0];
   if (!protoDir) {
     throw new Error("Unable to locate @temporalio/proto in pnpm virtual store");
   }
@@ -57,8 +61,9 @@ export async function replayWorkflowHistories(input: {
   for (const file of input.histories) {
     const raw = await readFile(file, "utf8");
     const parsed = JSON.parse(raw);
-    const history = temporal.api.history.v1.History.fromObject(parsed);
-    await Worker.runReplayHistory({ workflowsPath }, history as any);
+    const history: ReplayHistory =
+      temporal.api.history.v1.History.fromObject(parsed);
+    await Worker.runReplayHistory({ workflowsPath }, history);
   }
 
   return { pass: true, replayed: input.histories.length };

@@ -144,7 +144,9 @@ export async function runStorageLayerParity<TOutput = unknown>(input: {
       worker = await Worker.create({
         connection: env.nativeConnection,
         taskQueue,
-        workflowsPath: fileURLToPath(new URL("./workflows.ts", import.meta.url)),
+        workflowsPath: fileURLToPath(
+          new URL("./workflows.ts", import.meta.url),
+        ),
         activities: {},
       });
       runPromise = worker.run();
@@ -200,7 +202,11 @@ export async function runStorageLayerParity<TOutput = unknown>(input: {
             );
 
             await ensureChangeWorkflowStarted(
-              { workflow: env.client.workflow as any },
+              {
+                workflow: env.client.workflow as unknown as Parameters<
+                  typeof ensureChangeWorkflowStarted
+                >[0]["workflow"],
+              },
               {
                 projectId: input.projectId,
                 changeId: created.changeId,

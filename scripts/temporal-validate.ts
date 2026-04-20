@@ -5,6 +5,7 @@
  * made. Thin CLI wrapper over `plugin/src/temporal/validate-runner.ts`.
  */
 import { join } from "node:path";
+import { homedir } from "node:os";
 import { stat } from "node:fs/promises";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
@@ -44,13 +45,24 @@ async function runVitest(files: string[], env?: NodeJS.ProcessEnv) {
 
 async function collectIntegration() {
   const result = await runVitest([
-    join(PLUGIN_DIR, "src/temporal/__tests__/integration/change-workflow.itest.ts"),
-    join(PLUGIN_DIR, "src/temporal/__tests__/integration/project-workflow.itest.ts"),
-    join(PLUGIN_DIR, "src/temporal/__tests__/integration/messages-coverage.itest.ts"),
+    join(
+      PLUGIN_DIR,
+      "src/temporal/__tests__/integration/change-workflow.itest.ts",
+    ),
+    join(
+      PLUGIN_DIR,
+      "src/temporal/__tests__/integration/project-workflow.itest.ts",
+    ),
+    join(
+      PLUGIN_DIR,
+      "src/temporal/__tests__/integration/messages-coverage.itest.ts",
+    ),
   ]);
   return {
     pass: result.pass,
-    details: result.pass ? "real TestWorkflowEnvironment integration suites green" : "integration suite failing",
+    details: result.pass
+      ? "real TestWorkflowEnvironment integration suites green"
+      : "integration suite failing",
   };
 }
 
@@ -73,9 +85,18 @@ async function collectReplay() {
 
 async function collectWorkerLifecycle() {
   const result = await runVitest([
-    join(PLUGIN_DIR, "src/temporal/__tests__/worker-lifecycle/sigterm-shutdown-flush.itest.ts"),
-    join(PLUGIN_DIR, "src/temporal/__tests__/worker-lifecycle/sigterm-duplicate-idempotent.itest.ts"),
-    join(PLUGIN_DIR, "src/temporal/__tests__/worker-lifecycle/worker-restart-no-redo.itest.ts"),
+    join(
+      PLUGIN_DIR,
+      "src/temporal/__tests__/worker-lifecycle/sigterm-shutdown-flush.itest.ts",
+    ),
+    join(
+      PLUGIN_DIR,
+      "src/temporal/__tests__/worker-lifecycle/sigterm-duplicate-idempotent.itest.ts",
+    ),
+    join(
+      PLUGIN_DIR,
+      "src/temporal/__tests__/worker-lifecycle/worker-restart-no-redo.itest.ts",
+    ),
   ]);
   return {
     pass: result.pass,
@@ -113,7 +134,12 @@ async function collectParity() {
 async function collectDryRunMigration() {
   const outputPath = join(CURRENT_TEMP_DIR, "dry-run.json");
   await runVitest(
-    [join(PLUGIN_DIR, "src/temporal/__tests__/validation/dry-run.collector.itest.ts")],
+    [
+      join(
+        PLUGIN_DIR,
+        "src/temporal/__tests__/validation/dry-run.collector.itest.ts",
+      ),
+    ],
     { ADV_VALIDATION_OUTPUT: outputPath },
   );
 
@@ -133,7 +159,12 @@ async function collectDryRunMigration() {
 
 async function collectSmoke() {
   const result = await runVitest(
-    [join(PLUGIN_DIR, "src/temporal/__tests__/smoke/single-session-smoke.itest.ts")],
+    [
+      join(
+        PLUGIN_DIR,
+        "src/temporal/__tests__/smoke/single-session-smoke.itest.ts",
+      ),
+    ],
     { ADV_TEMPORAL_PILOT: "true" },
   );
   let historyCaptured = false;
@@ -147,7 +178,12 @@ async function collectSmoke() {
 async function collectLatency() {
   const outputPath = join(CURRENT_TEMP_DIR, "latency.json");
   await runVitest(
-    [join(PLUGIN_DIR, "src/temporal/__tests__/validation/latency.collector.itest.ts")],
+    [
+      join(
+        PLUGIN_DIR,
+        "src/temporal/__tests__/validation/latency.collector.itest.ts",
+      ),
+    ],
     { ADV_VALIDATION_OUTPUT: outputPath },
   );
 
@@ -169,9 +205,8 @@ async function collectLatency() {
 }
 
 async function collectMemory() {
-  const { compareMemoryBudget, computePeakRss } = await import(
-    "../plugin/src/temporal/memory-probe"
-  );
+  const { compareMemoryBudget, computePeakRss } =
+    await import("../plugin/src/temporal/memory-probe");
   const samples = [process.memoryUsage().rss];
   for (let i = 0; i < 5; i++) {
     await new Promise((r) => setTimeout(r, 200));
@@ -192,7 +227,7 @@ async function collectOperatorSetup() {
   const start = Date.now();
   const candidates = [
     "temporal",
-    join(process.env.HOME ?? "", ".temporalio", "bin", "temporal"),
+    join(homedir(), ".temporalio", "bin", "temporal"),
   ];
   for (const cmd of candidates) {
     try {
@@ -216,7 +251,9 @@ async function collectOperatorSetup() {
 }
 
 async function main(): Promise<number> {
-  CURRENT_TEMP_DIR = await createValidationTempDir("validateTemporalStorageShapeIs");
+  CURRENT_TEMP_DIR = await createValidationTempDir(
+    "validateTemporalStorageShapeIs",
+  );
   try {
     const result = await runTemporalValidation({
       context: {
@@ -235,7 +272,8 @@ async function main(): Promise<number> {
         memory: collectMemory,
         operatorSetup: collectOperatorSetup,
       },
-      writeDecision: async (markdown) => writeDecisionMarkdown(DOCS_PATH, markdown),
+      writeDecision: async (markdown) =>
+        writeDecisionMarkdown(DOCS_PATH, markdown),
       reviewedAt: new Date().toISOString(),
     });
 

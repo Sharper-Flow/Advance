@@ -95,10 +95,8 @@ function bindToolSimple<TArgs>(
     async (args) => def.execute(args as TArgs, dir, path),
     name,
   );
-  return registerTool(
-    def.description,
-    def.args,
-    async (args: unknown) => wrapped(args, dir, path),
+  return registerTool(def.description, def.args, async (args: unknown) =>
+    wrapped(args, dir, path),
   );
 }
 

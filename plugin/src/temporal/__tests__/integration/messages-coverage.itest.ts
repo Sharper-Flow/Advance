@@ -50,11 +50,8 @@ describe("messages coverage", () => {
 
   it("exports every expected message binding", () => {
     const exportedNames = Object.values(messages)
-      .filter(
-        (value): value is { name?: string } =>
-          typeof value === "object" && value !== null,
-      )
-      .map((value) => value.name)
+      .filter((value) => typeof value === "object" && value !== null)
+      .map((value) => (value as { name?: unknown }).name)
       .filter((name): name is string => typeof name === "string");
 
     for (const name of EXPECTED_MESSAGE_NAMES) {

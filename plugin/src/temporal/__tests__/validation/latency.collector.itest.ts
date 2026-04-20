@@ -8,9 +8,18 @@ import { Worker } from "@temporalio/worker";
 import { TestWorkflowEnvironment } from "@temporalio/testing";
 import { createStore } from "../../../storage/store";
 import { buildChangeWorkflowId, buildProjectTaskQueue } from "../../client";
+import type { TemporalClientBundle } from "../../client";
 import { changeWorkflow } from "../../workflows";
-import { addTaskUpdate, completeGateUpdate, updateTaskUpdate } from "../../messages";
-import { compareLatencyBudgets, computePercentiles, discardWarmup } from "../../latency-bench";
+import {
+  addTaskUpdate,
+  completeGateUpdate,
+  updateTaskUpdate,
+} from "../../messages";
+import {
+  compareLatencyBudgets,
+  computePercentiles,
+  discardWarmup,
+} from "../../latency-bench";
 import { describe, expect, it } from "vitest";
 
 const OUTPUT = process.env.ADV_VALIDATION_OUTPUT;
@@ -23,33 +32,52 @@ describe("latency collector", () => {
     const worker = await Worker.create({
       connection: env.nativeConnection,
       taskQueue,
-      workflowsPath: fileURLToPath(new URL("../../workflows.ts", import.meta.url)),
+      workflowsPath: fileURLToPath(
+        new URL("../../workflows.ts", import.meta.url),
+      ),
       activities: {},
     });
     let runPromise: Promise<void> | undefined;
 
     try {
       runPromise = worker.run();
-      const temporalBundle = {
+      const temporalBundle: TemporalClientBundle = {
         address: String(env.address),
         namespace: String(env.namespace),
         connection: env.connection,
         client: env.client,
-      } as any;
-      const legacyStore = await createStore(fileURLToPath(new URL("../../../../..", import.meta.url)));
-      const temporalStore = await createStore(fileURLToPath(new URL("../../../../..", import.meta.url)), {
-        temporalBundle,
-        projectIdOverride: projectId,
-      });
+      };
+      const legacyStore = await createStore(
+        fileURLToPath(new URL("../../../../..", import.meta.url)),
+      );
+      const temporalStore = await createStore(
+        fileURLToPath(new URL("../../../../..", import.meta.url)),
+        {
+          temporalBundle,
+          projectIdOverride: projectId,
+        },
+      );
 
       const createdLegacy = await legacyStore.changes.create("latency-legacy");
       const temporalHandle = await env.client.workflow.start(changeWorkflow, {
         workflowId: buildChangeWorkflowId(projectId, "latency-temporal"),
         taskQueue,
-        args: [{ projectId, changeId: "latency-temporal", title: "latency-temporal", initializedAt: new Date().toISOString() }],
+        args: [
+          {
+            projectId,
+            changeId: "latency-temporal",
+            title: "latency-temporal",
+            initializedAt: new Date().toISOString(),
+          },
+        ],
       });
-      const temporalTask = await temporalHandle.executeUpdate(addTaskUpdate, { args: [{ title: "bench-task" }] });
-      const legacyTask = await legacyStore.tasks.add(createdLegacy.changeId, "bench-task");
+      const temporalTask = await temporalHandle.executeUpdate(addTaskUpdate, {
+        args: [{ title: "bench-task" }],
+      });
+      const legacyTask = await legacyStore.tasks.add(
+        createdLegacy.changeId,
+        "bench-task",
+      );
 
       const sample = async (fn: () => Promise<void>, count = 40) => {
         const values: number[] = [];
@@ -61,17 +89,48 @@ describe("latency collector", () => {
         return discardWarmup(values, 10);
       };
 
-      const legacyTaskUpdate = await sample(() => legacyStore.tasks.update(legacyTask.id, "pending").then(() => {}));
-      const temporalTaskUpdate = await sample(() => temporalHandle.executeUpdate(updateTaskUpdate, { args: [temporalTask.id, { status: "pending" }] }).then(() => {}));
-      const legacyChangeGet = await sample(() => legacyStore.changes.get(createdLegacy.changeId).then(() => {}));
-      const temporalChangeGet = await sample(() => temporalStore.changes.get("latency-temporal").then(() => {}));
-      const legacyGateComplete = await sample(() => legacyStore.gates.complete(createdLegacy.changeId, "proposal", "bench").then(() => {}));
-      const temporalGateComplete = await sample(() => temporalHandle.executeUpdate(completeGateUpdate, { args: ["proposal", "bench", "agent"] }).then(() => {}));
+      const legacyTaskUpdate = await sample(() =>
+        legacyStore.tasks.update(legacyTask.id, "pending").then(() => {}),
+      );
+      const temporalTaskUpdate = await sample(() =>
+        temporalHandle
+          .executeUpdate(updateTaskUpdate, {
+            args: [temporalTask.id, { status: "pending" }],
+          })
+          .then(() => {}),
+      );
+      const legacyChangeGet = await sample(() =>
+        legacyStore.changes.get(createdLegacy.changeId).then(() => {}),
+      );
+      const temporalChangeGet = await sample(() =>
+        temporalStore.changes.get("latency-temporal").then(() => {}),
+      );
+      const legacyGateComplete = await sample(() =>
+        legacyStore.gates
+          .complete(createdLegacy.changeId, "proposal", "bench")
+          .then(() => {}),
+      );
+      const temporalGateComplete = await sample(() =>
+        temporalHandle
+          .executeUpdate(completeGateUpdate, {
+            args: ["proposal", "bench", "agent"],
+          })
+          .then(() => {}),
+      );
 
       const result = compareLatencyBudgets({
-        taskUpdate: { legacyP95: computePercentiles(legacyTaskUpdate).p95, temporalP95: computePercentiles(temporalTaskUpdate).p95 },
-        changeGet: { legacyP95: computePercentiles(legacyChangeGet).p95, temporalP95: computePercentiles(temporalChangeGet).p95 },
-        gateComplete: { legacyP95: computePercentiles(legacyGateComplete).p95, temporalP95: computePercentiles(temporalGateComplete).p95 },
+        taskUpdate: {
+          legacyP95: computePercentiles(legacyTaskUpdate).p95,
+          temporalP95: computePercentiles(temporalTaskUpdate).p95,
+        },
+        changeGet: {
+          legacyP95: computePercentiles(legacyChangeGet).p95,
+          temporalP95: computePercentiles(temporalChangeGet).p95,
+        },
+        gateComplete: {
+          legacyP95: computePercentiles(legacyGateComplete).p95,
+          temporalP95: computePercentiles(temporalGateComplete).p95,
+        },
       });
 
       const p95 = {

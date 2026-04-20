@@ -140,7 +140,7 @@ describe("changeWorkflow integration", () => {
           from_intent: "inline",
           to_intent: "separate_verification",
           reason: "test",
-          approved_by: "user",
+          approved_by_user: true,
           approved_at: "2026-04-20T00:02:00.000Z",
           approval_evidence: "ok",
         },

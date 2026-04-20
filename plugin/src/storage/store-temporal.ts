@@ -341,10 +341,14 @@ export function createTemporalStoreBackend(
           await handle.executeUpdate(addChangeWisdomUpdate, {
             args: [type, content, sourceTask],
           });
-          const state = (await handle.query(changeStateQuery)) as ChangeWorkflowState;
+          const state = (await handle.query(
+            changeStateQuery,
+          )) as ChangeWorkflowState;
           setCachedChange(state);
           return (
-            (state.wisdom[state.wisdom.length - 1] as WisdomEntry | undefined) ??
+            (state.wisdom[state.wisdom.length - 1] as
+              | WisdomEntry
+              | undefined) ??
             (await legacy.wisdom.add(changeId, type, content, sourceTask))
           );
         } catch (err) {

@@ -16,6 +16,13 @@ export const STORAGE_LAYER_SCENARIO_GROUPS = {
       run: async ({ store, projectDir }) => {
         const created = await store.changes.create("change roundtrip");
         const loaded = await store.changes.get(created.changeId);
+        if (!loaded.success) {
+          return {
+            projectDir,
+            title: undefined,
+            status: undefined,
+          };
+        }
         return {
           projectDir,
           title: loaded.data?.title,
@@ -95,6 +102,13 @@ export const STORAGE_LAYER_SCENARIO_GROUPS = {
           "validation parity run",
         );
         const loaded = await store.changes.get(created.changeId);
+        if (!loaded.success) {
+          return {
+            proposalStatus: undefined,
+            discoveryStatus: undefined,
+            reentryCount: 0,
+          };
+        }
         return {
           proposalStatus: loaded.data?.gates?.proposal.status,
           discoveryStatus: loaded.data?.gates?.discovery.status,

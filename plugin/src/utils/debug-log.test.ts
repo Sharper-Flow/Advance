@@ -5,14 +5,7 @@
  * backward-compatibility of the appendDebugLog shim.
  */
 
-import {
-  describe,
-  test,
-  expect,
-  beforeEach,
-  afterEach,
-  vi,
-} from "vitest";
+import { describe, test, expect, beforeEach, afterEach, vi } from "vitest";
 import * as fs from "fs";
 import { tmpdir } from "os";
 import { join } from "path";

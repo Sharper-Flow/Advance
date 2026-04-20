@@ -5,6 +5,7 @@ They exist only to support the replay-safety suite during validation and must be
 removed by `migrateAdvStateTemporalRetire` once the cutover decision is made.
 
 Files:
+
 - `synthetic-change-lifecycle.json`
 - `synthetic-reentry-and-closure.json`
 - `smoke-captured.json`

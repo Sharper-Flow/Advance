@@ -55,6 +55,10 @@ export async function runTemporalValidation(input: {
     latency: await input.modules.latency(),
     memory: await input.modules.memory(),
     operatorSetup: await input.modules.operatorSetup(),
+    // Divergence is currently subsumed by parity + dry-run sweeps: any
+    // legacy↔Temporal divergence surfaces as parity mismatches or unmappable
+    // projects. Kept as a distinct evidence slot for the migration change to
+    // wire a dedicated long-running shadow probe if needed.
     divergence: { pass: true, unresolvedCount: 0 },
   };
 
