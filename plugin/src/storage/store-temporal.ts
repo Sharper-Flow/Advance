@@ -90,11 +90,22 @@ export function createTemporalStoreBackend(
   input: TemporalStoreBackendInput,
 ): Store {
   const { legacy } = input;
+  const changeCache = new Map<string, Change>();
 
   // Reverse-lookup cache populated from any Temporal-observed tasks so
   // taskId-only methods can resolve the owning change without requiring the
   // legacy backend to have ever seen the task.
   const taskChangeIndex = new Map<string, string>();
+
+  const setCachedChange = (state: ChangeWorkflowState): Change => {
+    const mapped = mapTemporalChangeStateToChange(state);
+    changeCache.set(state.changeId, mapped);
+    return mapped;
+  };
+
+  const invalidateChange = (changeId: string): void => {
+    changeCache.delete(changeId);
+  };
 
   const indexTasksFromState = (state: ChangeWorkflowState): void => {
     for (const task of state.tasks ?? []) {
@@ -118,13 +129,17 @@ export function createTemporalStoreBackend(
     changes: {
       ...legacy.changes,
       get: async (changeId: string) => {
+        const cached = changeCache.get(changeId);
+        if (cached) {
+          return { success: true, data: cached };
+        }
         try {
           const handle = getChangeHandle(input, changeId);
           const state = (await handle.query(
             changeStateQuery,
           )) as ChangeWorkflowState;
           indexTasksFromState(state);
-          return { success: true, data: mapTemporalChangeStateToChange(state) };
+          return { success: true, data: setCachedChange(state) };
         } catch (err) {
           if (!isExpectedFallbackError(err)) throw err;
           return legacy.changes.get(changeId);
@@ -132,11 +147,12 @@ export function createTemporalStoreBackend(
       },
       close: async (changeId: string, closure: ChangeClosure) => {
         try {
+          invalidateChange(changeId);
           const handle = getChangeHandle(input, changeId);
           await handle.executeUpdate(closeChangeUpdate, { args: [closure] });
           const result = await handle.query(changeStateQuery);
           indexTasksFromState(result as ChangeWorkflowState);
-          return mapTemporalChangeStateToChange(result as ChangeWorkflowState);
+          return setCachedChange(result as ChangeWorkflowState);
         } catch (err) {
           if (!isExpectedFallbackError(err)) throw err;
           return legacy.changes.close(changeId, closure);
@@ -185,6 +201,7 @@ export function createTemporalStoreBackend(
         try {
           const changeId = await resolveChangeId(taskId);
           if (!changeId) return null;
+          invalidateChange(changeId);
           const handle = getChangeHandle(input, changeId);
           return (await handle.executeUpdate(updateTaskUpdate, {
             args: [
@@ -210,6 +227,7 @@ export function createTemporalStoreBackend(
       },
       add: async (changeId, content, options) => {
         try {
+          invalidateChange(changeId);
           const handle = getChangeHandle(input, changeId);
           const created = (await handle.executeUpdate(addTaskUpdate, {
             args: [
@@ -261,6 +279,7 @@ export function createTemporalStoreBackend(
         try {
           const changeId = await resolveChangeId(taskId);
           if (!changeId) return null;
+          invalidateChange(changeId);
           const handle = getChangeHandle(input, changeId);
           return (await handle.executeUpdate(recordTaskEvidenceUpdate, {
             args: [taskId, phase, evidence],
@@ -274,6 +293,7 @@ export function createTemporalStoreBackend(
         try {
           const changeId = await resolveChangeId(taskId);
           if (!changeId) return null;
+          invalidateChange(changeId);
           const handle = getChangeHandle(input, changeId);
           return (await handle.executeUpdate(setTaskPhaseUpdate, {
             args: [taskId, phase],
@@ -287,6 +307,7 @@ export function createTemporalStoreBackend(
         try {
           const changeId = await resolveChangeId(taskId);
           if (!changeId) return null;
+          invalidateChange(changeId);
           const handle = getChangeHandle(input, changeId);
           return (await handle.executeUpdate(cancelTaskUpdate, {
             args: [taskId, cancellation],
@@ -300,6 +321,7 @@ export function createTemporalStoreBackend(
         try {
           const changeId = await resolveChangeId(taskId);
           if (!changeId) return null;
+          invalidateChange(changeId);
           const handle = getChangeHandle(input, changeId);
           return (await handle.executeUpdate(reclassifyTaskTddUpdate, {
             args: [taskId, reclassification],
@@ -314,6 +336,7 @@ export function createTemporalStoreBackend(
       ...legacy.wisdom,
       add: async (changeId, type: WisdomType, content, sourceTask) => {
         try {
+          invalidateChange(changeId);
           const handle = getChangeHandle(input, changeId);
           await handle.executeUpdate(addChangeWisdomUpdate, {
             args: [type, content, sourceTask],
@@ -321,6 +344,7 @@ export function createTemporalStoreBackend(
           const state = (await handle.query(
             changeStateQuery,
           )) as ChangeWorkflowState;
+          setCachedChange(state);
           return (
             (state.wisdom[state.wisdom.length - 1] as
               | WisdomEntry
@@ -361,6 +385,7 @@ export function createTemporalStoreBackend(
       },
       complete: async (changeId: string, gateId: GateId, notes?: string) => {
         try {
+          invalidateChange(changeId);
           const handle = getChangeHandle(input, changeId);
           await handle.executeUpdate(completeGateUpdate, {
             args: [gateId, notes, "agent"],
@@ -379,6 +404,7 @@ export function createTemporalStoreBackend(
         approvalEvidence,
       ) => {
         try {
+          invalidateChange(changeId);
           const handle = getChangeHandle(input, changeId);
           await handle.executeUpdate(reopenFromGateUpdate, {
             args: [

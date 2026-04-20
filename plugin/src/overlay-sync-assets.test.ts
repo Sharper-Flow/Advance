@@ -226,6 +226,12 @@ describe("overlay sync script support", () => {
       );
       const canonicalRoot = canonicalRootMatch?.[1] ?? REPO_ROOT;
 
+      const syncOutput = `${fixResult.stdout}${fixResult.stderr}`;
+      const canonicalRootMatch = syncOutput.match(
+        /ADV sync-global \(fix\):\s+(.*?)\s+->/,
+      );
+      const canonicalRoot = canonicalRootMatch?.[1] ?? REPO_ROOT;
+
       const patched = JSON.parse(
         readFileSync(join(configDir, "opencode.json"), "utf8"),
       );
