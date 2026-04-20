@@ -26,6 +26,7 @@ import { atomicWriteFile, acquireFileLock } from "../utils/fs";
 
 const AGENDA_DIR = ".adv";
 const AGENDA_FILE = "agenda.jsonl";
+export const AGENDA_AUTO_COMPACT_MAX_LINES = 100;
 
 // =============================================================================
 // File Safety Utilities
@@ -121,6 +122,24 @@ const parseLine = (line: string): AgendaItem | AgendaMeta | null => {
     return AgendaItemSchema.parse(parsed);
   } catch {
     return null;
+  }
+};
+
+const maybeAutoCompactAgenda = async (
+  projectDir: string,
+  agendaPath?: string,
+): Promise<void> => {
+  const path = getAgendaPath(projectDir, agendaPath);
+  if (!existsSync(path)) return;
+
+  const content = await readFile(path, "utf-8");
+  const lineCount = content
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean).length;
+
+  if (lineCount > AGENDA_AUTO_COMPACT_MAX_LINES) {
+    await compactAgenda(projectDir, { agendaPath });
   }
 };
 
@@ -238,6 +257,7 @@ export const addAgendaItem = async (
   } finally {
     await releaseLock();
   }
+  await maybeAutoCompactAgenda(projectDir, options?.agendaPath);
   return item;
 };
 
@@ -258,6 +278,7 @@ export const updateAgendaItem = async (
 
   // Acquire lock to prevent interleaved read-modify-append from concurrent worktrees
   const releaseLock = await acquireFileLock(path);
+  let updated: AgendaItem | undefined;
   try {
     const { items } = await loadAgenda(projectDir, {
       agendaPath: options?.agendaPath,
@@ -266,16 +287,21 @@ export const updateAgendaItem = async (
 
     if (!existing) return null;
 
-    const updated: AgendaItem = {
+    updated = {
       ...existing,
       ...updates,
     };
 
     await appendFile(path, JSON.stringify(updated) + "\n", "utf-8");
-    return updated;
   } finally {
     await releaseLock();
   }
+
+  if (updated) {
+    await maybeAutoCompactAgenda(projectDir, options?.agendaPath);
+  }
+
+  return updated;
 };
 
 /**

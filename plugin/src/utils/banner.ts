@@ -37,8 +37,7 @@ const COMMAND_EMOJIS: Record<string, string> = {
   adv_change_close: "🛑",
   adv_change_validate: "✅",
   adv_change_archive: "📦",
-  adv_change_add_issue: "🔗",
-  adv_change_remove_issue: "🔓",
+  adv_change_update_issues: "🔗",
 
   // Task Operations
   adv_task_list: "📝",
@@ -46,8 +45,7 @@ const COMMAND_EMOJIS: Record<string, string> = {
   adv_task_update: "🔄",
   adv_task_add: "➕",
   adv_task_evidence: "🧪",
-  adv_task_tdd_phase: "🔬",
-  adv_task_tdd_status: "📈",
+  adv_task_tdd: "🔬",
   adv_task_reclassify_tdd: "🔄",
 
   // Test Operations
@@ -60,10 +58,7 @@ const COMMAND_EMOJIS: Record<string, string> = {
   adv_agenda_complete: "✅",
   adv_agenda_cancel: "❌",
   adv_agenda_prioritize: "⬆️",
-  adv_agenda_next: "⏭️",
-  adv_agenda_stats: "📊",
   adv_agenda_evidence: "🧪",
-  adv_agenda_compact: "🗜️",
 };
 
 const DEFAULT_EMOJI = "🔧";

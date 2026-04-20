@@ -80,6 +80,49 @@ function summarizeTasks(
   return { taskCounts, inProgressTask };
 }
 
+type ChangeIssueUpdate = {
+  added: string[];
+  removed: string[];
+  alreadyLinked: string[];
+  notLinked: string[];
+};
+
+function applyIssueUpdates(
+  existing: string[] | undefined,
+  add: string[] = [],
+  remove: string[] = [],
+): { github_issues: string[]; result: ChangeIssueUpdate } {
+  const githubIssues = [...(existing ?? [])];
+  const result: ChangeIssueUpdate = {
+    added: [],
+    removed: [],
+    alreadyLinked: [],
+    notLinked: [],
+  };
+
+  for (const issueUrl of add) {
+    if (githubIssues.includes(issueUrl)) {
+      result.alreadyLinked.push(issueUrl);
+      continue;
+    }
+    githubIssues.push(issueUrl);
+    result.added.push(issueUrl);
+  }
+
+  for (const issueUrl of remove) {
+    const before = githubIssues.length;
+    const next = githubIssues.filter((url) => url !== issueUrl);
+    if (next.length === before) {
+      result.notLinked.push(issueUrl);
+      continue;
+    }
+    githubIssues.splice(0, githubIssues.length, ...next);
+    result.removed.push(issueUrl);
+  }
+
+  return { github_issues: githubIssues, result };
+}
+
 // =============================================================================
 // Tool Definitions
 // =============================================================================
@@ -289,58 +332,6 @@ export const changeTools = {
       }
 
       return formatToolOutput(output);
-    },
-  },
-
-  adv_change_summary: {
-    description:
-      "Get lightweight change summary: ID, title, status, gate progress, task counts, current task, and context snapshot. Use instead of adv_change_show for per-task context refresh.",
-    args: {
-      changeId: z.string().describe("Change ID"),
-    },
-    execute: async ({ changeId }: { changeId: string }, store: Store) => {
-      const result = await store.changes.get(changeId);
-      if (!result.success) {
-        return formatToolOutput({ error: result.error });
-      }
-      if (!result.data) {
-        return formatToolOutput({ error: `Change not found: ${changeId}` });
-      }
-      const change = result.data;
-
-      const gates = await store.gates.get(changeId);
-      const { taskCounts, inProgressTask } = summarizeTasks(change.tasks);
-
-      const snapshotInput: ContextSnapshotInput = {
-        changeId: change.id,
-        title: change.title,
-        taskCounts,
-        gates: gates ?? undefined,
-        workdir: store.paths.root,
-        currentTask: inProgressTask
-          ? { id: inProgressTask.id, title: inProgressTask.title }
-          : undefined,
-      };
-
-      // Build compact gate progress object
-      const gateProgress: Record<string, string> = {};
-      if (gates) {
-        for (const [gateId, gateInfo] of Object.entries(gates)) {
-          gateProgress[gateId] = gateInfo.status;
-        }
-      }
-
-      return formatToolOutput({
-        id: change.id,
-        title: change.title,
-        status: change.status,
-        gates: gateProgress,
-        taskCounts,
-        currentTask: inProgressTask
-          ? { id: inProgressTask.id, title: inProgressTask.title }
-          : null,
-        _contextSnapshot: formatContextSnapshot(snapshotInput),
-      });
     },
   },
 
@@ -848,58 +839,65 @@ export const changeTools = {
     },
   },
 
-  adv_change_add_issue: {
-    description: "Add a GitHub issue URL to a change",
+  adv_change_update_issues: {
+    description: "Update GitHub issue URLs linked to a change",
     args: {
       changeId: z.string().describe("Change ID"),
-      issueUrl: z.string().url().describe("GitHub issue URL to add"),
+      add: z
+        .array(z.string().url())
+        .optional()
+        .describe("GitHub issue URLs to add"),
+      remove: z
+        .array(z.string().url())
+        .optional()
+        .describe("GitHub issue URLs to remove"),
     },
     execute: async (
-      { changeId, issueUrl }: { changeId: string; issueUrl: string },
+      {
+        changeId,
+        add,
+        remove,
+      }: { changeId: string; add?: string[]; remove?: string[] },
       store: Store,
     ) => {
+      const addList = (add ?? []).filter(Boolean);
+      const removeList = (remove ?? []).filter(Boolean);
+      if (addList.length === 0 && removeList.length === 0) {
+        return wrapWithBanner(
+          { command: "adv_change_update_issues", target: changeId },
+          formatToolOutput({
+            error: "At least one non-empty add/remove issue list is required",
+          }),
+        );
+      }
+
       const result = await store.changes.get(changeId);
       if (!result.success) {
         return wrapWithBanner(
-          { command: "adv_change_add_issue", target: changeId },
+          { command: "adv_change_update_issues", target: changeId },
           formatToolOutput({ error: result.error }),
         );
       }
       if (!result.data) {
         return wrapWithBanner(
-          { command: "adv_change_add_issue", target: changeId },
+          { command: "adv_change_update_issues", target: changeId },
           formatToolOutput({ error: `Change not found: ${changeId}` }),
         );
       }
 
       const change = result.data;
+      const { github_issues, result: update } = applyIssueUpdates(
+        change.github_issues,
+        addList,
+        removeList,
+      );
+      change.github_issues = github_issues;
 
-      // Initialize github_issues array if not present
-      if (!change.github_issues) {
-        change.github_issues = [];
-      }
-
-      // Check for duplicate
-      if (change.github_issues.includes(issueUrl)) {
-        return wrapWithBanner(
-          { command: "adv_change_add_issue", target: changeId },
-          formatToolOutput({
-            success: true,
-            message: `Issue already linked: ${issueUrl}`,
-            github_issues: change.github_issues,
-          }),
-        );
-      }
-
-      // Add the issue URL
-      change.github_issues.push(issueUrl);
-
-      // Save the change
       try {
         await store.changes.save(change);
       } catch (err) {
         return wrapWithBanner(
-          { command: "adv_change_add_issue", target: changeId },
+          { command: "adv_change_update_issues", target: changeId },
           formatToolOutput({
             error: `Failed to save change: ${err instanceof Error ? err.message : String(err)}`,
           }),
@@ -907,77 +905,15 @@ export const changeTools = {
       }
 
       return wrapWithBanner(
-        { command: "adv_change_add_issue", target: changeId },
+        { command: "adv_change_update_issues", target: changeId },
         formatToolOutput({
           success: true,
-          message: `Added issue: ${issueUrl}`,
+          message: `Issues updated: +${update.added.length} -${update.removed.length}`,
           github_issues: change.github_issues,
-        }),
-      );
-    },
-  },
-
-  adv_change_remove_issue: {
-    description: "Remove a GitHub issue URL from a change",
-    args: {
-      changeId: z.string().describe("Change ID"),
-      issueUrl: z.string().url().describe("GitHub issue URL to remove"),
-    },
-    execute: async (
-      { changeId, issueUrl }: { changeId: string; issueUrl: string },
-      store: Store,
-    ) => {
-      const result = await store.changes.get(changeId);
-      if (!result.success) {
-        return wrapWithBanner(
-          { command: "adv_change_remove_issue", target: changeId },
-          formatToolOutput({ error: result.error }),
-        );
-      }
-      if (!result.data) {
-        return wrapWithBanner(
-          { command: "adv_change_remove_issue", target: changeId },
-          formatToolOutput({ error: `Change not found: ${changeId}` }),
-        );
-      }
-
-      const change = result.data;
-
-      // Check if github_issues exists and contains the URL
-      if (!change.github_issues || !change.github_issues.includes(issueUrl)) {
-        return wrapWithBanner(
-          { command: "adv_change_remove_issue", target: changeId },
-          formatToolOutput({
-            success: true,
-            message: `Issue not linked: ${issueUrl}`,
-            github_issues: change.github_issues || [],
-          }),
-        );
-      }
-
-      // Remove the issue URL
-      change.github_issues = change.github_issues.filter(
-        (url) => url !== issueUrl,
-      );
-
-      // Save the change
-      try {
-        await store.changes.save(change);
-      } catch (err) {
-        return wrapWithBanner(
-          { command: "adv_change_remove_issue", target: changeId },
-          formatToolOutput({
-            error: `Failed to save change: ${err instanceof Error ? err.message : String(err)}`,
-          }),
-        );
-      }
-
-      return wrapWithBanner(
-        { command: "adv_change_remove_issue", target: changeId },
-        formatToolOutput({
-          success: true,
-          message: `Removed issue: ${issueUrl}`,
-          github_issues: change.github_issues,
+          added: update.added,
+          removed: update.removed,
+          alreadyLinked: update.alreadyLinked,
+          notLinked: update.notLinked,
         }),
       );
     },

@@ -121,12 +121,12 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
   "adv-discover": {
     name: "adv-discover",
     description:
-      "Gather context, analyze current state, and identify objectives",
+      "Gather context, analyze current state, identify objectives, and obtain user agreement",
     phase: "pre-implementation",
     gate: "discovery",
     requiresChangeId: true,
     prerequisites: ["adv-proposal"],
-    successors: ["adv-agree"],
+    successors: ["adv-design"],
     scope: {
       creates: [],
       reads: ["specs", "proposal", "codebase"],
@@ -134,49 +134,20 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
       gates: ["discovery"],
     },
   },
-  "adv-agree": {
-    name: "adv-agree",
-    description: "Present objectives and constraints for user acceptance",
-    phase: "pre-implementation",
-    requiresChangeId: true,
-    prerequisites: ["adv-discover"],
-    successors: ["adv-design"],
-    scope: {
-      creates: ["agreement"],
-      reads: ["proposal"],
-      modifies: [],
-      gates: [],
-    },
-  },
   "adv-design": {
     name: "adv-design",
     description:
-      "Validate architecture decisions and produce implementation strategy",
+      "Validate architecture decisions, produce implementation strategy, and present design for user review",
     phase: "pre-implementation",
     gate: "design",
     requiresChangeId: true,
-    prerequisites: ["adv-agree"],
-    successors: ["adv-present"],
+    prerequisites: ["adv-discover"],
+    successors: ["adv-prep"],
     scope: {
       creates: ["design"],
       reads: ["specs", "proposal", "agreement", "codebase"],
       modifies: ["proposal"],
       gates: ["design"],
-    },
-  },
-  "adv-present": {
-    name: "adv-present",
-    description:
-      "Present concise design overview for user review before planning",
-    phase: "pre-implementation",
-    requiresChangeId: true,
-    prerequisites: ["adv-design"],
-    successors: ["adv-prep"],
-    scope: {
-      creates: [],
-      reads: ["design", "proposal"],
-      modifies: [],
-      gates: [],
     },
   },
   "adv-prep": {
@@ -186,7 +157,7 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
     phase: "pre-implementation",
     gate: "planning",
     requiresChangeId: true,
-    prerequisites: ["adv-present"],
+    prerequisites: ["adv-design"],
     successors: ["adv-apply"],
     scope: {
       creates: ["tasks"],
@@ -235,29 +206,14 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
     description:
       "Review deliverables for correctness, security, and architecture quality",
     phase: "post-implementation",
+    gate: "acceptance",
     requiresChangeId: true,
     prerequisites: ["adv-apply"],
-    successors: ["adv-accept"],
+    successors: ["adv-harden"],
     scope: {
       creates: [],
       reads: ["specs", "proposal", "tasks", "codebase"],
       modifies: ["proposal"],
-      gates: [],
-    },
-  },
-  "adv-accept": {
-    name: "adv-accept",
-    description:
-      "Present deliverable summary and acceptance criteria checklist to user",
-    phase: "post-implementation",
-    gate: "acceptance",
-    requiresChangeId: true,
-    prerequisites: ["adv-review"],
-    successors: ["adv-harden"],
-    scope: {
-      creates: [],
-      reads: ["agreement", "proposal", "tasks"],
-      modifies: [],
       gates: ["acceptance"],
     },
   },
@@ -267,7 +223,7 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
       "Detect low-quality code, verify test coverage, clean up before release",
     phase: "post-implementation",
     requiresChangeId: true,
-    prerequisites: ["adv-accept"],
+    prerequisites: ["adv-review"],
     successors: ["adv-validate", "adv-archive"],
     scope: {
       creates: [],

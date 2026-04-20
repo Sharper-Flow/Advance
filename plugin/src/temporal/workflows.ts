@@ -222,8 +222,7 @@ export async function changeWorkflow(
     (
       status: ChangeWorkflowState["tasks"][number]["status"] | undefined,
       filter: string | undefined,
-    ) =>
-    listTasksFromChangeState(state, status, filter),
+    ) => listTasksFromChangeState(state, status, filter),
   );
   wf.setHandler(changeReadyQuery, () => getReadyTasksFromChangeState(state));
   wf.setHandler(changeTaskQuery, (taskId: string) =>
@@ -238,10 +237,10 @@ export async function changeWorkflow(
       blockedBy?: string[];
       metadata?: Record<string, string>;
     }) =>
-    addTaskToChangeState(state, taskInput, {
-      now: workflowNow(),
-      uuid: wf.uuid4,
-    }),
+      addTaskToChangeState(state, taskInput, {
+        now: workflowNow(),
+        uuid: wf.uuid4,
+      }),
   );
   wf.setHandler(
     updateTaskUpdate,
@@ -254,13 +253,13 @@ export async function changeWorkflow(
         errorRecovery?: ChangeWorkflowState["tasks"][number]["error_recovery"];
       },
     ) =>
-    updateTaskInChangeState(state, taskId, {
-      status: update.status,
-      now: workflowNow(),
-      notes: update.notes,
-      implementationSummary: update.implementationSummary,
-      errorRecovery: update.errorRecovery,
-    }),
+      updateTaskInChangeState(state, taskId, {
+        status: update.status,
+        now: workflowNow(),
+        notes: update.notes,
+        implementationSummary: update.implementationSummary,
+        errorRecovery: update.errorRecovery,
+      }),
   );
   wf.setHandler(
     recordTaskEvidenceUpdate,
@@ -268,23 +267,24 @@ export async function changeWorkflow(
       taskId: string,
       phase: "red" | "green",
       evidence: import("../types").TddPhaseEvidence,
-    ) =>
-    recordTaskEvidenceInChangeState(state, taskId, phase, evidence),
+    ) => recordTaskEvidenceInChangeState(state, taskId, phase, evidence),
   );
   wf.setHandler(
     setTaskPhaseUpdate,
     (taskId: string, phase: import("../types").TddPhase) =>
-    setTaskPhaseInChangeState(state, taskId, phase),
+      setTaskPhaseInChangeState(state, taskId, phase),
   );
   wf.setHandler(
     cancelTaskUpdate,
     (taskId: string, cancellation: import("../types").Cancellation) =>
-    cancelTaskInChangeState(state, taskId, cancellation, workflowNow()),
+      cancelTaskInChangeState(state, taskId, cancellation, workflowNow()),
   );
   wf.setHandler(
     reclassifyTaskTddUpdate,
-    (taskId: string, reclassification: import("../types").TddReclassification) =>
-    reclassifyTaskTddInChangeState(state, taskId, reclassification),
+    (
+      taskId: string,
+      reclassification: import("../types").TddReclassification,
+    ) => reclassifyTaskTddInChangeState(state, taskId, reclassification),
   );
   wf.setHandler(
     completeGateUpdate,
@@ -293,11 +293,11 @@ export async function changeWorkflow(
       notes: string | undefined,
       completedBy: string | undefined,
     ) =>
-    completeGateInChangeState(state, gateId, {
-      now: workflowNow(),
-      completedBy: completedBy ?? "agent",
-      notes,
-    }),
+      completeGateInChangeState(state, gateId, {
+        now: workflowNow(),
+        completedBy: completedBy ?? "agent",
+        notes,
+      }),
   );
   wf.setHandler(
     reopenFromGateUpdate,
@@ -322,24 +322,23 @@ export async function changeWorkflow(
       content: string,
       sourceTask: string | undefined,
     ) =>
-    addChangeWisdom(
-      state,
-      { type, content, sourceTask },
-      { now: workflowNow(), uuid: wf.uuid4 },
-    ),
+      addChangeWisdom(
+        state,
+        { type, content, sourceTask },
+        { now: workflowNow(), uuid: wf.uuid4 },
+      ),
   );
   wf.setHandler(
     updateArtifactMetadataUpdate,
     (
       kind: import("./contracts").ArtifactKind,
       metadata: import("./contracts").ArtifactMetadata,
-    ) =>
-    updateArtifactMetadataInChangeState(state, kind, metadata),
+    ) => updateArtifactMetadataInChangeState(state, kind, metadata),
   );
   wf.setHandler(
     closeChangeUpdate,
     (closure: import("../types").ChangeClosure) =>
-    closeChangeInChangeState(state, closure),
+      closeChangeInChangeState(state, closure),
   );
 
   await wf.condition(() => false);
@@ -367,12 +366,12 @@ export async function projectWorkflow(
   wf.setHandler(
     projectAgendaQuery,
     (status: ProjectWorkflowState["agenda"][number]["status"] | undefined) =>
-    listAgendaItemsFromProjectState(state, status),
+      listAgendaItemsFromProjectState(state, status),
   );
   wf.setHandler(
     projectWisdomQuery,
     (type: import("../types").WisdomType | undefined) =>
-    listProjectWisdomFromProjectState(state, type),
+      listProjectWisdomFromProjectState(state, type),
   );
   wf.setHandler(projectMigrationLedgerQuery, () => state.migration_ledger);
   wf.setHandler(
@@ -384,10 +383,10 @@ export async function projectWorkflow(
       category?: string;
       blocked_by?: string;
     }) =>
-    addAgendaItemToProjectState(state, itemInput, {
-      now: workflowNow(),
-      uuid: wf.uuid4,
-    }),
+      addAgendaItemToProjectState(state, itemInput, {
+        now: workflowNow(),
+        uuid: wf.uuid4,
+      }),
   );
   wf.setHandler(
     updateAgendaItemUpdate,
@@ -402,15 +401,15 @@ export async function projectWorkflow(
         completion_notes?: string;
       },
     ) =>
-    updateAgendaItemInProjectState(state, itemId, {
-      now: workflowNow(),
-      status: update.status,
-      description: update.description,
-      priority: update.priority,
-      category: update.category,
-      blocked_by: update.blocked_by,
-      completion_notes: update.completion_notes,
-    }),
+      updateAgendaItemInProjectState(state, itemId, {
+        now: workflowNow(),
+        status: update.status,
+        description: update.description,
+        priority: update.priority,
+        category: update.category,
+        blocked_by: update.blocked_by,
+        completion_notes: update.completion_notes,
+      }),
   );
   wf.setHandler(
     addProjectWisdomUpdate,
@@ -422,14 +421,12 @@ export async function projectWorkflow(
       tags?: string[];
       invalidatedBy?: string;
     }) =>
-    addProjectWisdomToProjectState(state, input, {
-      now: workflowNow(),
-      uuid: wf.uuid4,
-    }),
+      addProjectWisdomToProjectState(state, input, {
+        now: workflowNow(),
+        uuid: wf.uuid4,
+      }),
   );
-  wf.setHandler(
-    recordMigrationEntryUpdate,
-    (entry: MigrationLedgerEntry) =>
+  wf.setHandler(recordMigrationEntryUpdate, (entry: MigrationLedgerEntry) =>
     recordMigrationEntryInProjectState(state, entry),
   );
 

@@ -1,17 +1,17 @@
 ---
 name: adv-discover
-description: Gather context, analyze current state, and identify objectives
+description: Gather context, analyze current state, identify objectives, and obtain user agreement
 ---
 
 # ADV Discover — Establish Discovery Findings
 
-Gather the current-state evidence needed to move from proposal into a shared agreement. This command completes the `discovery` gate and prepares `/adv-agree`.
+Gather the current-state evidence needed to move from proposal into a shared agreement. This command completes the `discovery` gate and now carries the user-facing sign-off flow that used to live in `/adv-agree`.
 
 > **CHECKLIST**: Follow [docs/checklists/discover-checklist.md](../../docs/checklists/discover-checklist.md).
 
 ## Command Boundary
 
-**Produces:** Discovery findings, current-state analysis, blocker/options summary, recommended objectives for agreement.
+**Produces:** Discovery findings, current-state analysis, blocker/options summary, recommended objectives for agreement, and `agreement.md`.
 
 **× MUST NOT:** Create tasks, complete non-discovery gates, skip LBP validation when multiple viable directions exist.
 
@@ -27,8 +27,40 @@ $ARGUMENTS
 3. If none exist → stop and suggest `/adv-proposal`
 
 ---
-## Phase 0: Load Skill
-`skill("adv-discover-methodology")` → provides 9-step analysis protocol, output schema, edge case handling, and graceful degradation rules. If the skill is unavailable, continue with the embedded protocol in this command file.
+## Phase 0: Embedded Methodology
+
+### Discover Methodology
+
+#### Purpose
+
+Reusable discovery methodology for ADV discover workflows. Provides the protocol step overview and constraints.
+
+**Canonical source:** `docs/checklists/discover-checklist.md` — see that checklist for detailed rules per step, edge case handling, and output section schema. Do not duplicate its content here.
+
+#### Discovery Protocol (8 Steps)
+
+Every `/adv-discover` invocation must execute these 8 protocol steps and emit a Discovery Checklist section summarizing their results:
+
+| # | Step | Output section | Required content |
+| - | ---- | -------------- | ---------------- |
+| 1 | **Skill Discovery** (Phase 1.5) | Skills Considered | Examined skills + match results (or "none available") |
+| 2 | **Prior Research Extension** | Extends | Cited artifacts (including `/adv-improve` research packs under `docs/*-prep.md`) + ≥1 new finding (or "No prior research found") |
+| 3 | **Conflict & Related-Work Scan** (Phase 1.6) | Conflict Scan | Results from `adv_change_list` (includeArchived), `adv_change_validate`, `adv_agenda_list` |
+| 4 | **Edge Case Investigation** | Edge Cases | ≥2 edge cases per gap (or "N/A: structural" with rationale) |
+| 5 | **Design Question Depth** | Open Design Questions | Each question annotated with trust model, blast radius, alternatives |
+| 6 | **Draft Spec Delta Shapes** | Draft Spec Deltas | `rq-*` IDs + ≥1 G/W/T per delta (or "No spec deltas required") |
+| 7 | **P25 Related-Pattern Scan** (Phase 1.7) | Related Pattern Scan | Similar patterns or "no similar patterns found" |
+| 8 | **LBP Check (with gated External-Solution Check)** | LBP Check | Whether likely direction matches long-term best practice |
+
+After all 8 steps, emit a **Discovery Checklist** table listing each step with PASS/SKIP + reason.
+
+#### Constraints
+
+- **Read-only guidance** — this methodology block does not mutate ADV state
+- **No gate completion** — the command owns the discovery gate
+- **Canonical source** — defer to `docs/checklists/discover-checklist.md` for detailed rules
+- **No workflow sequencing** — the command owns phase ordering
+- **No architecture decisions** — those belong in `/adv-design`
 ---
 
 ## Phase 1: Load Context
@@ -96,7 +128,7 @@ Build a compact discovery report. The output MUST contain these sections (order 
 | **Draft Spec Deltas**      | `rq-*` IDs + ≥1 Given/When/Then per delta (or "No spec deltas required" with rationale)     |
 | **Related Pattern Scan**   | Results from Phase 1.7                                                                      |
 | **LBP Check**              | Whether likely direction matches long-term best practice                                    |
-| **Recommended Objectives** | Numbered list for `/adv-agree`                                                              |
+| **Recommended Objectives** | Numbered list for the agreement phase                                                       |
 
 ### Prior Research Extension
 
@@ -151,13 +183,117 @@ Skip this step for purely internal changes (refactors, bug fixes, local doc/test
 
 ---
 ## Phase 3: Persist Discovery Findings
-Update the proposal artifact with the discovery findings so `/adv-agree` can present them cleanly.
+Update the proposal artifact with the discovery findings so the sign-off flow can present them cleanly.
 - Use `adv_change_update` to refine proposal content
 - Keep findings concise and decision-oriented
 - Do not create `agreement.md` here
 ---
 
-## Phase 4: Complete Gate
+## Phase 4: Present Agreement Draft + Resolve Questions
+- Load the refreshed discovery context from the proposal findings
+- Extract objectives, constraints, avoidances, open questions, and draft acceptance criteria
+- Present a concise agreement view:
+  - **Objectives**
+  - **Acceptance Criteria**
+  - **Constraints**
+  - **Avoidances / rejected approaches**
+  - **Open questions**
+  - **Investment snapshot** — call `adv_investment_report changeId: {id}` and include a one-line summary: `Investment: N tasks / M retries / T min / tier: {auto|escalate|hardstop}`. Purely informational; does not gate agreement.
+- Ask for explicit user confirmation or edits using the `question` tool.
+
+### Phase 4.5: Open Question Resolution Loop
+**× MUST NOT skip this phase.** Open questions that require user input must be resolved before `agreement.md` is finalized.
+
+#### Question Triage
+Before presenting questions to the user, classify each open question from discovery:
+| Category | Action | Example |
+|----------|--------|---------|
+| **Technical / implementation** | Agent resolves via LBP research | "Which hashing algorithm?", "SQL vs NoSQL?", "Middleware vs decorator pattern?" |
+| **User-facing outcome** | **Ask the user** | "What should happen when X fails?", "Which matters more: speed or completeness?", "Should this be opt-in or opt-out?" |
+
+**Ask the user about:**
+- Weighing competing priorities
+- Choosing between acceptable downsides
+- Clarifying expected behavior
+- Defining acceptance boundaries
+- Scoping intent
+- Preference on UX/workflow
+
+**× Do NOT ask the user about:**
+- Which technology, library, or pattern to use
+- Implementation strategy (option A vs B)
+- Internal architecture
+- Questions the agent can answer from specs, codebase, or documentation
+
+Technical questions that were open during discovery should be resolved autonomously and recorded as agent-resolved decisions in the agreement.
+
+#### Minimum Engagement Rule
+The agent **MUST** always conduct at least **1 round of 3 clarifying questions**, even if discovery surfaced zero open questions. The agent **MAY** conduct up to **5 rounds** total, with up to **5 questions per round**.
+
+| Constraint | Value |
+|------------|-------|
+| Minimum rounds | 1 |
+| Minimum questions in first round | 3 |
+| Maximum rounds | 5 |
+| Maximum questions per round | 5 |
+
+Stop the loop when: all user-facing questions are resolved, the user signals satisfaction, or the 5-round cap is reached.
+
+#### Protocol
+1. **Collect** all open questions from discovery findings
+2. **Triage** each question per the table above
+3. **Resolve technical questions** autonomously and record decisions
+4. **Round 1 (mandatory):** Present at least 3 user-facing questions
+5. **Subsequent rounds (as needed):** present up to 5 questions per round
+6. **Loop** until all user-facing questions have a user-provided answer or an explicit user deferral, or the 5-round cap is reached
+7. **Summarize** all resolutions (user-resolved and agent-resolved) before proceeding
+
+#### Deferral Rules
+- If the user chooses to defer → record it as `Deferred by user: {reason}` in the agreement
+- Deferred questions carry forward as constraints for `/adv-design`
+- × NEVER silently defer a question or assume "no preference"
+
+#### Question Presentation
+For each user-facing question, provide:
+| Element | Required |
+|---------|----------|
+| The question, framed as outcome/behavior/priority | Yes |
+| Why it matters | Yes |
+| Agent's recommended answer, if one exists | When applicable |
+| Concrete options framed as tradeoffs, not tech choices | When enumerable |
+| Visual comparison block before `question` | When side-by-side context materially helps |
+| Write-in option | Always |
+
+Visual comparison blocks are supplementary context, not a replacement for the `question` tool.
+
+#### Batch Guidance
+- Group related questions
+- Up to 5 questions per round via the `question` tool
+- Unrelated questions should be separate prompts within the same round
+
+### Phase 4.6: Persist Agreement
+Once confirmed and all open questions are resolved (or explicitly deferred), write `agreement.md` through `adv_change_update`.
+
+Suggested structure:
+```md
+# Agreement
+## Objectives
+## Acceptance Criteria
+## Constraints
+## Avoidances
+## Decisions
+### User Decisions
+### Agent Decisions (LBP)
+## Deferred Questions
+## Sign-Off
+```
+- **User Decisions** — questions the user answered, each with the question, the user's choice, and why it matters
+- **Agent Decisions (LBP)** — technical questions resolved autonomously
+- **Deferred Questions** — only questions the user explicitly chose to defer
+- × Do NOT include a generic "Open Questions" section
+
+---
+## Phase 5: Complete Gate
 
 `adv_gate_complete changeId: {change-id} gateId: discovery`
 
@@ -168,16 +304,15 @@ If the gate cannot be completed, surface the blocking reason and stop.
 ## Output
 
 Emit DISCOVERY COMPLETE with:
-
 - target change
 - current-state summary
 - objectives
 - constraints
-- open blockers/questions for `/adv-agree`
+- open blockers/questions for `/adv-design`
 
 ```
 /adv-discover {change-id} COMPLETE
-Result: discovery findings recorded
+Result: discovery findings recorded and agreement.md captured
 Discovery Gate: MARKED COMPLETE
-Next: /adv-agree {change-id}
+Next: /adv-design {change-id}
 ```

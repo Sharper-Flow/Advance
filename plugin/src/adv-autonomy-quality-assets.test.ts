@@ -172,8 +172,8 @@ describe("Design validation policy", () => {
     expect(content).toMatch(/adv_change_update/);
   });
 
-  test("adv-present.md contains validator result display section", () => {
-    const content = readAsset(join(COMMAND_DIR, "adv-present.md"));
+  test("adv-design.md contains validator result display section after absorb", () => {
+    const content = readAsset(join(COMMAND_DIR, "adv-design.md"));
     expect(content).toMatch(/[Vv]alidator/);
     expect(content).toMatch(
       /VALIDATED|clean pass|CAUTION|CONFLICT|INCONCLUSIVE/,
@@ -333,8 +333,8 @@ describe("Investment Check-In Policy (addCostTimeInvestment)", () => {
     expect(content).toMatch(/[Hh]ard.stop/);
   });
 
-  test("adv-agree.md, adv-accept.md, adv-archive.md reference adv_investment_report for display", () => {
-    for (const file of ["adv-agree.md", "adv-accept.md", "adv-archive.md"]) {
+  test("adv-discover.md, adv-review.md, adv-archive.md reference adv_investment_report for display", () => {
+    for (const file of ["adv-discover.md", "adv-review.md", "adv-archive.md"]) {
       const content = readAsset(join(COMMAND_DIR, file));
       expect(content).toMatch(/adv_investment_report/);
     }

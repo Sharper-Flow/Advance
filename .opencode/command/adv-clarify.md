@@ -81,5 +81,5 @@ After sufficient questions, emit REQUIREMENTS DISCOVERY SUMMARY: confirmed requi
 ```
 /adv-clarify COMPLETE
 Result: {N} requirements clarified, {M} open questions
-Next: /adv-discover, /adv-agree, /adv-design, or /adv-task
+Next: /adv-discover, /adv-design, or /adv-task
 ```

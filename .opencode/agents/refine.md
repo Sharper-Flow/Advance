@@ -50,8 +50,7 @@ tools:
   adv_change_update: true
   adv_change_validate: true
   adv_change_archive: true
-  adv_change_add_issue: true
-  adv_change_remove_issue: true
+  adv_change_update_issues: true
   # Tasks
   adv_task_list: true
   adv_task_show: true
@@ -59,14 +58,12 @@ tools:
   adv_task_add: true
   adv_task_update: true
   adv_task_evidence: true
-  adv_task_tdd_phase: true
+  adv_task_tdd: true
   adv_task_reclassify_tdd: true
-  adv_task_tdd_status: true
   adv_task_cancel: true
   # Wisdom
   adv_wisdom_list: true
   adv_wisdom_add: true
-  adv_wisdom_promote: true
   # Agenda
   adv_agenda_list: true
   adv_agenda_add: true
@@ -74,10 +71,7 @@ tools:
   adv_agenda_complete: true
   adv_agenda_cancel: true
   adv_agenda_prioritize: true
-  adv_agenda_next: true
-  adv_agenda_stats: true
   adv_agenda_evidence: true
-  adv_agenda_compact: true
   # Gates
   adv_gate_status: true
   adv_gate_complete: true

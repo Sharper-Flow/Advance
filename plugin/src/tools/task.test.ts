@@ -592,78 +592,86 @@ describe("Task Tools", () => {
     });
   });
 
-  describe("adv_task_tdd_phase", () => {
-    test("sets TDD phase", async () => {
-      const result = await taskTools.adv_task_tdd_phase.execute(
-        { taskId: "tk-task0001", phase: "refactor" },
+  describe("adv_task_tdd", () => {
+    test("sets TDD phase when action=set", async () => {
+      const result = await taskTools.adv_task_tdd.execute(
+        { taskId: "tk-task0001", action: "set", phase: "refactor" },
         store,
       );
       const parsed = JSON.parse(result);
 
       expect(parsed.success).toBe(true);
+      expect(parsed.action).toBe("set");
       expect(parsed.task.tdd_phase).toBe("refactor");
     });
 
-    test("returns error for nonexistent task", async () => {
-      const result = await taskTools.adv_task_tdd_phase.execute(
-        { taskId: "nonexistent", phase: "red" },
+    test("returns error when action=set without phase", async () => {
+      const result = await taskTools.adv_task_tdd.execute(
+        { taskId: "tk-task0001", action: "set" },
         store,
       );
       const parsed = JSON.parse(result);
+      expect(parsed.error).toContain("phase is required");
+    });
 
+    test("returns error for nonexistent task on action=set", async () => {
+      const result = await taskTools.adv_task_tdd.execute(
+        { taskId: "nonexistent", action: "set", phase: "red" },
+        store,
+      );
+      const parsed = JSON.parse(result);
       expect(parsed.error).toContain("not found");
     });
-  });
 
-  describe("adv_task_show", () => {
-    test("returns full task with changeId for existing task", async () => {
-      const result = await taskTools.adv_task_show.execute(
-        { taskId: "tk-task0001" },
-        store,
-      );
-      const parsed = JSON.parse(result);
+    describe("adv_task_show", () => {
+      test("returns full task with changeId for existing task", async () => {
+        const result = await taskTools.adv_task_show.execute(
+          { taskId: "tk-task0001" },
+          store,
+        );
+        const parsed = JSON.parse(result);
 
-      expect(parsed.task).toBeDefined();
-      expect(parsed.changeId).toBe("addFeature");
-      expect(parsed.task.id).toBe("tk-task0001");
-      expect(parsed.task.title).toBe("Implement core logic");
-      expect(parsed.task.status).toBe("pending");
-      expect(parsed.task.tdd_phase).toBeDefined();
+        expect(parsed.task).toBeDefined();
+        expect(parsed.changeId).toBe("addFeature");
+        expect(parsed.task.id).toBe("tk-task0001");
+        expect(parsed.task.title).toBe("Implement core logic");
+        expect(parsed.task.status).toBe("pending");
+        expect(parsed.task.tdd_phase).toBeDefined();
+      });
+
+      test("returns all task fields", async () => {
+        const result = await taskTools.adv_task_show.execute(
+          { taskId: "tk-task0002" },
+          store,
+        );
+        const parsed = JSON.parse(result);
+
+        expect(parsed.task.id).toBe("tk-task0002");
+        expect(parsed.task.deps).toBeDefined();
+        expect(parsed.task.created_at).toBeDefined();
+      });
+
+      test("returns error for nonexistent task", async () => {
+        const result = await taskTools.adv_task_show.execute(
+          { taskId: "tk-nonexistent" },
+          store,
+        );
+        const parsed = JSON.parse(result);
+
+        expect(parsed.error).toContain("Task not found");
+        expect(parsed.error).toContain("tk-nonexistent");
+      });
     });
 
-    test("returns all task fields", async () => {
-      const result = await taskTools.adv_task_show.execute(
-        { taskId: "tk-task0002" },
-        store,
-      );
-      const parsed = JSON.parse(result);
-
-      expect(parsed.task.id).toBe("tk-task0002");
-      expect(parsed.task.deps).toBeDefined();
-      expect(parsed.task.created_at).toBeDefined();
-    });
-
-    test("returns error for nonexistent task", async () => {
-      const result = await taskTools.adv_task_show.execute(
-        { taskId: "tk-nonexistent" },
-        store,
-      );
-      const parsed = JSON.parse(result);
-
-      expect(parsed.error).toContain("Task not found");
-      expect(parsed.error).toContain("tk-nonexistent");
-    });
-  });
-
-  describe("adv_task_tdd_status", () => {
     test("returns TDD status for logic task", async () => {
       // Task title is "Implement the feature" - should require TDD
-      const result = await taskTools.adv_task_tdd_status.execute(
-        { taskId: "tk-task0001" },
+      const result = await taskTools.adv_task_tdd.execute(
+        { taskId: "tk-task0001", action: "status" },
         store,
       );
       const parsed = JSON.parse(result);
 
+      expect(parsed.action).toBe("status");
       expect(parsed.analysis.requires_tdd).toBe(true);
       expect(parsed.analysis.is_trivial).toBe(false);
       expect(parsed.analysis.compliance).toBe("missing");
@@ -681,8 +689,8 @@ describe("Task Tools", () => {
         store,
       );
 
-      const result = await taskTools.adv_task_tdd_status.execute(
-        { taskId: "tk-task0001" },
+      const result = await taskTools.adv_task_tdd.execute(
+        { taskId: "tk-task0001", action: "status" },
         store,
       );
       const parsed = JSON.parse(result);
@@ -698,8 +706,8 @@ describe("Task Tools", () => {
       task!.tdd_evidence = { skipped: true, skip_reason: "test" };
       await store.changes.save(changeResult.data!);
 
-      const result = await taskTools.adv_task_tdd_status.execute(
-        { taskId: "tk-task0001" },
+      const result = await taskTools.adv_task_tdd.execute(
+        { taskId: "tk-task0001", action: "status" },
         store,
       );
       const parsed = JSON.parse(result);
@@ -716,8 +724,8 @@ describe("Task Tools", () => {
         },
       );
 
-      const result = await taskTools.adv_task_tdd_status.execute(
-        { taskId: task.id },
+      const result = await taskTools.adv_task_tdd.execute(
+        { taskId: task.id, action: "status" },
         store,
       );
       const parsed = JSON.parse(result);
@@ -727,9 +735,9 @@ describe("Task Tools", () => {
       expect(parsed.recommendation).toContain("Record TDD evidence");
     });
 
-    test("returns error for nonexistent task", async () => {
-      const result = await taskTools.adv_task_tdd_status.execute(
-        { taskId: "nonexistent" },
+    test("returns error for nonexistent task on action=status", async () => {
+      const result = await taskTools.adv_task_tdd.execute(
+        { taskId: "nonexistent", action: "status" },
         store,
       );
       const parsed = JSON.parse(result);

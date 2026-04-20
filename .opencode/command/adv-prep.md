@@ -16,8 +16,39 @@ Analyze change for gaps (missing scenarios, tasks, cross-cutting concerns) → a
 2. If empty → `adv_change_list` → auto-select the only plausible change; ask via `question` only if multiple plausible targets remain
 
 ---
-## Phase 0: Load Skill
-`skill("adv-prep-methodology")` → provides INVEST criteria, requirements smell detection, task sequencing (absorption, TDD ordering, dependency graph coherence), cross-cutting concerns checklist, and MoSCoW prioritization. If the skill is unavailable, use `docs/checklists/prep-checklist.md` as inline fallback.
+## Phase 0: Embedded Methodology
+
+### Prep Methodology
+
+#### Purpose
+
+Reusable gap analysis and task synthesis methodology for ADV prep workflows. Provides the INVEST criteria, requirements smell detection, task sequencing rules, and cross-cutting concern checklist.
+
+**Canonical source:** `docs/checklists/prep-checklist.md` — see that checklist for detailed INVEST checks, sequencing rules, absorption analysis, TDD ordering, dependency coherence, and cross-cutting concern templates. Do not duplicate its content here.
+
+#### Gap Analysis Protocol
+
+Every `/adv-prep` invocation must execute these steps:
+
+| # | Step | Focus |
+|---|------|-------|
+| 1 | Requirements quality | INVEST criteria + smell detection |
+| 2 | Task completeness | Atomic tasks, coverage, verification steps |
+| 3 | Task sequencing | Absorption, TDD ordering, dependency coherence |
+| 4 | Cross-cutting concerns | Error handling, logging, validation, security, performance, config, monitoring |
+| 5 | Codebase impact | Key term search, missing files, undiscovered dependencies |
+| 6 | Cross-spec consistency | Terminology, overlapping scope, conflicts |
+| 7 | Cross-repo routing | Target metadata, related repos config, routing completeness |
+
+All steps must be executed. Skipping requires explicit justification.
+
+#### Constraints
+
+- **Read-only guidance** — this methodology block does not mutate ADV state
+- **No gate completion** — the command owns the planning gate
+- **Canonical source** — defer to `docs/checklists/prep-checklist.md` for detailed rules
+- **No architecture decisions** — those belong in `/adv-design`
+- **No workflow sequencing** — the command owns phase ordering
 
 ---
 ## Phase 1: Load Context

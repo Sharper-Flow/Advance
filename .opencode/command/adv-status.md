@@ -29,7 +29,7 @@ Recency bands: 🔥 hot (<60min, likely in-flight), ⏳ warm (1-3h), ⏰ stale (
 | design | `/adv-design <change-id>` |
 | planning | `/adv-prep <change-id>` |
 | execution | `/adv-apply <change-id>` |
-| acceptance | `/adv-review <change-id>` then `/adv-accept <change-id>` |
+| acceptance | `/adv-review <change-id>` |
 | release | `/adv-harden <change-id>` then `/adv-archive <change-id>` |
 ## Quick Actions
 | State | Action |

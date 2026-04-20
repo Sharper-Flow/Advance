@@ -18,7 +18,7 @@
           "given": [
             "A convention-level learning discovered in a change"
           ],
-          "when": "adv_wisdom_promote is executed",
+          "when": "adv_wisdom_add is executed with promote: true",
           "then": [
             "The entry is appended to project-level wisdom.jsonl"
           ]
@@ -528,7 +528,7 @@
     {
       "id": "rq-autonomy01",
       "title": "Human Checkpoint Contract",
-      "body": "ADV must pause for human input only at explicit approval/judgment checkpoints and auto-continue through clean agent-owned workflow steps. Human checkpoints are: proposal confirmation, agreement sign-off, design approval when real tradeoffs depend on user values, acceptance, archive sign-off, cancellation approval, and doom-loop recovery. All other clean workflow steps (discovery, deterministic design, prep, apply, review, harden, and scope-driven re-entry) proceed sequentially without prompting the user when no unresolved user-value tradeoff or required approval exists.",
+      "body": "ADV must pause for human input only at explicit approval/judgment checkpoints and auto-continue through clean agent-owned workflow steps. Human checkpoints are: proposal confirmation, agreement sign-off, design approval when real tradeoffs depend on user values, acceptance (now surfaced within /adv-review after deliverable review), archive sign-off, cancellation approval, and doom-loop recovery. All other clean workflow steps (discovery, deterministic design, prep, apply, harden, and scope-driven re-entry) proceed sequentially without prompting the user when no unresolved user-value tradeoff or required approval exists.",
       "priority": "must",
       "tags": ["workflow", "autonomy", "checkpoints"],
       "scenarios": [
@@ -549,7 +549,7 @@
           "id": "rq-autonomy01.2",
           "title": "Human checkpoint pauses for approval",
           "given": [
-            "A change has completed the acceptance gate",
+            "A change has completed the acceptance gate via /adv-review",
             "Archive sign-off is the next step"
           ],
           "when": "The ADV orchestrator evaluates the next gate",
@@ -690,7 +690,7 @@
           "then": [
             "The result is recorded as INCONCLUSIVE with a warning",
             "The design gate is not blocked by the validator failure",
-            "The warning is surfaced in /adv-present output"
+            "The warning is surfaced in the /adv-design presentation output"
           ]
         }
       ]
@@ -698,7 +698,7 @@
     {
       "id": "rq-designval02",
       "title": "Validation Findings Included in Design Presentation",
-      "body": "When /adv-present summarizes the design, it must include the validator verdict and findings from the design validation step. VALIDATED shows a brief clean-pass note. CAUTION shows findings inline. CONFLICT shows conflict details. INCONCLUSIVE shows a warning. Legacy designs without validation data omit the section silently.",
+      "body": "When /adv-design summarizes the design, it must include the validator verdict and findings from the design validation step. VALIDATED shows a brief clean-pass note. CAUTION shows findings inline. CONFLICT shows conflict details. INCONCLUSIVE shows a warning. Legacy designs without validation data omit the section silently.",
       "priority": "must",
       "tags": ["workflow", "design", "presentation"],
       "scenarios": [
@@ -706,7 +706,7 @@
           "id": "rq-designval02.1",
           "title": "Clean-pass note shown for VALIDATED verdict",
           "given": ["The design validator returned VALIDATED"],
-          "when": "/adv-present presents the design summary",
+          "when": "/adv-design presents the design summary",
           "then": [
             "The output includes a one-line clean-pass note (e.g. 'Validator: clean pass')",
             "No detailed findings are shown"
@@ -716,7 +716,7 @@
           "id": "rq-designval02.2",
           "title": "Conflict details shown for CONFLICT verdict",
           "given": ["The design validator returned CONFLICT with findings"],
-          "when": "/adv-present presents the design summary",
+          "when": "/adv-design presents the design summary",
           "then": [
             "The conflict details and unresolved findings are shown to the user",
             "The presentation pauses for user resolution before proceeding to planning"
@@ -738,7 +738,7 @@
           "when": "The orchestrator evaluates whether to proceed from design to planning",
           "then": [
             "The orchestrator does not silently proceed to /adv-prep",
-            "The conflict is surfaced to the user via /adv-present pause or inline resolution attempt"
+            "The conflict is surfaced to the user via /adv-design presentation pause or inline resolution attempt"
           ]
         },
         {
@@ -748,6 +748,27 @@
           "when": "The orchestrator evaluates whether to proceed from design to planning",
           "then": [
             "Planning proceeds without a new user-facing checkpoint (assuming no other user-value tradeoffs)"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-presentationSurface01",
+      "title": "Presentation Surface Discipline",
+      "body": "ADV presentation-layer surfaces (instructions, commands, tools, and skills) SHOULD stay within documented limits. When a change adds a new command, tool, or skill, it must justify why the addition does not replicate an existing pair/merge opportunity, or it must update the documented limits and related verification assets in the same change.",
+      "priority": "should",
+      "tags": ["workflow", "surface-area", "maintainability"],
+      "scenarios": [
+        {
+          "id": "rq-presentationSurface01.1",
+          "title": "New surface addition requires justification or limit update",
+          "given": [
+            "An ADV change proposes a new command, tool, or skill"
+          ],
+          "when": "The change updates the workflow surface",
+          "then": [
+            "The change explains why the new surface does not duplicate an existing merge opportunity, or updates the documented limits in the same change",
+            "Related verification assets are updated so future drift is detectable"
           ]
         }
       ]

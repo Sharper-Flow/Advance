@@ -136,9 +136,9 @@ describe("Status Tools", () => {
       const result = await statusTools.adv_status.execute({}, store);
       const parsed = parseToolOutput(result);
 
-      // Acceptance is the next incomplete gate, so status should point to adv-accept
+      // Acceptance is the next incomplete gate, so status should point to adv-review
       const acceptanceRecs = parsed.recommendations.filter((r: string) =>
-        r.includes("/adv-accept"),
+        r.includes("/adv-review"),
       );
       expect(acceptanceRecs.length).toBeGreaterThan(0);
     });

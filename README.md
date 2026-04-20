@@ -85,13 +85,11 @@ Advance gives OpenCode a real engineering workflow instead of a glorified chat l
 
 ```text
 /adv-proposal -> define problem and scope
-/adv-discover -> gather evidence and objectives
-/adv-agree    -> confirm constraints and acceptance criteria
-/adv-design   -> produce and validate implementation strategy
+/adv-discover -> gather evidence, agree on objectives and acceptance criteria
+/adv-design   -> produce, validate, and present implementation strategy
 /adv-prep     -> synthesize task graph
 /adv-apply    -> execute with TDD evidence
-/adv-review   -> review delivered work
-/adv-accept   -> record user acceptance
+/adv-review   -> review delivered work and record user acceptance
 /adv-harden   -> final quality pass
 /adv-archive  -> finalize, preserve wisdom, close loop
 ```
@@ -119,15 +117,12 @@ When a change has multiple viable directions with real user-value tradeoffs, pri
 | `/adv-validate`   | Validate change compliance against specs; block archive on failure                       |
 | `/adv-archive`    | Archive completed change: apply spec deltas and finalize git                             |
 | `/adv-clarify`    | Ask clarifying questions to resolve ambiguous requirements                               |
-| `/adv-discover`   | Gather context, analyze current state, and identify objectives                           |
-| `/adv-agree`      | Present objectives and constraints for user acceptance                                   |
-| `/adv-design`     | Validate architecture decisions and produce implementation strategy                      |
-| `/adv-present`    | Present concise design overview for user review before planning                          |
+| `/adv-discover`   | Gather context, analyze current state, identify objectives, and obtain user agreement        |
+| `/adv-design`     | Validate architecture decisions, produce implementation strategy, and present design for user review |
 | `/adv-prep`       | Analyze gaps and synthesize tasks from validated design decisions                        |
 | `/adv-apply`      | Implement change with TDD, retry on failure, and final verification                      |
 | `/adv-task`       | Fast-track a discussed change: synthesize contract, validate, prep, and hand off         |
 | `/adv-review`     | Review deliverables for correctness, security, and architecture quality                  |
-| `/adv-accept`     | Present deliverable summary and acceptance criteria checklist to user                    |
 | `/adv-harden`     | Detect low-quality code, verify test coverage, clean up before release                   |
 | `/adv-audit`      | Detect drift between specs and current implementation                                    |
 | `/adv-slop-scan`  | Scan for AI slop patterns including defensive and nested code                            |

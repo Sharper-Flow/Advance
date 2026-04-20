@@ -7,14 +7,7 @@
  * cannot be interpreted as shell syntax.
  */
 
-import {
-  describe,
-  test,
-  expect,
-  vi,
-  beforeEach,
-  afterEach,
-} from "vitest";
+import { describe, test, expect, vi, beforeEach, afterEach } from "vitest";
 
 // Mock child_process BEFORE importing the terminal module so the
 // module picks up the mocked exports.
@@ -77,7 +70,8 @@ describe("tmux rename-window safety", () => {
     const renameCall = vi
       .mocked(execFileSync)
       .mock.calls.find(
-        (c) => c[0] === "tmux" && Array.isArray(c[1]) && c[1][0] === "rename-window",
+        (c) =>
+          c[0] === "tmux" && Array.isArray(c[1]) && c[1][0] === "rename-window",
       );
     expect(renameCall).toBeDefined();
     expect(renameCall![1]).toEqual(["rename-window", "boring-title"]);

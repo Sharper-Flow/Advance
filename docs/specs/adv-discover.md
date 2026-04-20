@@ -5,7 +5,7 @@
 
 ## Purpose
 
-Defines the rigor requirements for /adv-discover. The discover command gathers current-state evidence, investigates edge cases, scans for conflicts and related patterns, and produces structured findings for /adv-agree. It must extend prior research rather than rehash it.
+Defines the rigor requirements for /adv-discover. The discover command gathers current-state evidence, investigates edge cases, scans for conflicts and related patterns, and produces structured findings for the agreement phase. It must extend prior research rather than rehash it.
 
 ## Requirements
 
@@ -345,40 +345,40 @@ Each open design question in /adv-discover output MUST include trust model impli
 
 ---
 
-### Methodology Skill Loading
+### Embedded Discovery Methodology
 
 **ID:** `rq-disc09` | **Priority:** **[SHOULD]**
 
-/adv-discover SHOULD load an adv-discover-methodology skill using the Phase 0 pattern established by rationalizeCommandVsSkill, with inline fallback when the skill is unavailable. This aligns discovery with the command+skill LBP applied to review, harden, slop-scan, and tron.
+/adv-discover MUST carry the discovery methodology inline in the command file so the workflow remains self-contained even when no external skill is present. The embedded methodology must preserve the 8-step discovery protocol and remain aligned with docs/checklists/discover-checklist.md.
 
-**Tags:** `discover`, `skill-loading`, `lbp`
+**Tags:** `discover`, `embedded-methodology`, `lbp`
 
 #### Scenarios
 
-**Skill loaded when available** (`rq-disc09.1`)
+**Embedded methodology is present in the command** (`rq-disc09.1`)
 
 **Given:**
 
-- The adv-discover-methodology skill exists in a trusted directory
+- The /adv-discover command is present in the repo
 
 **When:** /adv-discover runs Phase 0
 
 **Then:**
 
-- skill('adv-discover-methodology') is invoked
-- Methodology guidance from the skill is applied during discovery
+- The command contains an embedded discovery methodology block
+- The 8-step discovery protocol is available without loading an external skill
 
-**Inline fallback when skill is unavailable** (`rq-disc09.2`)
+**Embedded methodology stays aligned with checklist** (`rq-disc09.2`)
 
 **Given:**
 
-- The adv-discover-methodology skill does not exist
+- The command embeds discovery methodology
 
 **When:** /adv-discover runs Phase 0
 
 **Then:**
 
-- A fallback notice is logged
-- The command continues with the embedded protocol from the command file
+- The methodology remains aligned with docs/checklists/discover-checklist.md
+- The command continues without any external skill dependency
 
 ---

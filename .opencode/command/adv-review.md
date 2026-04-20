@@ -3,7 +3,7 @@ name: adv-review
 description: Review deliverables for correctness, security, and architecture quality
 ---
 # ADV Review — Acceptance-Stage Deliverable Review
-Orchestrate multi-dimensional review of the delivered work. This command is part of the acceptance stage, emits `REVIEW_FINDINGS`, and prepares `/adv-accept`.
+Orchestrate multi-dimensional review of the delivered work. This command is part of the acceptance stage, emits `REVIEW_FINDINGS`, and now carries the post-execution acceptance/sign-off flow directly.
 ## Exits
 | Exit | Condition |
 |------|-----------|
@@ -20,8 +20,56 @@ Orchestrate multi-dimensional review of the delivered work. This command is part
 1. If change-id provided → use directly
 2. If empty → `adv_change_list` → auto-select or `question` tool
 
-## Phase 0: Load Skill
-`skill("adv-review-methodology")` → provides 12-dimension framework, conventional comment labels, verdict criteria, minimum findings threshold. If the skill is unavailable, continue with the embedded protocol in this command file.
+## Phase 0: Embedded Methodology
+
+### Review Methodology
+
+#### Purpose
+
+Reusable code review methodology for ADV review workflows. Provides the 12-dimension framework and conventional comment labels.
+
+**Canonical source:** `docs/checklists/review-checklist.md` — see that checklist for minimum findings threshold, verdict criteria, remediation protocol, and sub-agent failure handling. Do not duplicate its content here.
+
+#### 12-Dimension Framework
+
+Every review must assess each dimension:
+
+| # | Dimension | Focus |
+|---|-----------|-------|
+| 1 | Design | Architecture, system integration, timing |
+| 2 | Functionality | Correctness, edge cases, concurrency |
+| 3 | Complexity | Understandable quickly? Over-engineered? |
+| 4 | Tests | Coverage adequate? Tests fail when code breaks? |
+| 5 | Naming | Clear, communicative, appropriate length |
+| 6 | Comments | Explain "why" not "what" |
+| 7 | Style | Style guide conformance |
+| 8 | Documentation | READMEs, API docs updated |
+| 9 | Security | Auth, validation, secrets, OWASP top 10 |
+| 10 | Performance | Degradation risks, optimization |
+| 11 | Error Handling | Correct, user-friendly, debuggable |
+| 12 | Consistency | Matches existing patterns |
+
+All 12 must be checked. Skipping requires explicit justification.
+
+#### Conventional Comment Labels
+
+| Label | Meaning | Blocking? |
+|-------|---------|-----------|
+| `blocker:` | Must fix before merge | YES |
+| `issue:` | Should fix, real problem | YES |
+| `suggestion:` | Would improve code | NO |
+| `nit:` | Minor style/preference | NO |
+| `question:` | Need clarification | MAYBE |
+| `praise:` | Good work worth noting | NO |
+
+Format: `{label}: [{file}:{line}] {what}` + `Why: {why}` + `Fix: {how}` (optional).
+
+#### Constraints
+
+- **Read-only guidance** — this methodology block does not mutate ADV state
+- **No gate completion** — the command owns the review gate
+- **Canonical source** — defer to `docs/checklists/review-checklist.md` for detailed rules
+- **No workflow sequencing** — the command owns phase ordering and sub-agent orchestration
 
 ## Phase 1: Pre-flight
 ### Load Context
@@ -164,8 +212,6 @@ After remediation fixes are applied, re-verify affected dimensions before recomp
 
 ---
 ## Phase 6: Final Report
-### Mark Gate
-If APPROVED → do **not** complete a gate here; `/adv-accept` owns the `acceptance` gate.
 ### Report
 Emit final CODE REVIEW banner: verdict, per-dimension summaries, numbered review comments (label, file:line, what, why, fix), positive notes, fixes applied with verification status.
 ### Emit REVIEW_FINDINGS Block
@@ -188,16 +234,52 @@ END_REVIEW_FINDINGS
 
 Status rules: `unresolved` at emission time. Terminal states are `fixed` or `rejected_with_evidence`. `/adv-harden` checks task notes for fix evidence and rejection evidence. `nit:` excluded from harden blocking.
 
-× Do NOT call `adv_gate_complete` here — `/adv-accept` owns the `acceptance` gate. The `completedBy` hint below is for `/adv-accept` to reference when it completes the gate.
+---
+## Phase 7: Acceptance Sign-Off
+### Pre-Acceptance Checks
+- `adv_change_show`
+- `adv_task_list`
+- `adv_gate_status`
 
-Suggested `completedBy` text for `/adv-accept`: `"agent — {verdict}; {count} findings; REVIEW_FINDINGS emitted"`
+Verify execution work is complete enough to review. If implementation/execution work is still incomplete, stop and direct the user to `/adv-apply` first.
+
+### Build Acceptance Summary
+Using `agreement.md`, produce:
+1. **Delivered work summary**
+2. **Acceptance Criteria checklist**
+3. **Constraints respected / avoidances honored**
+4. **Outstanding caveats**
+5. **Investment summary** (informational) — call `adv_investment_report changeId: {id}` and include a one-line summary: `Investment: N tasks / M retries / T min / tier: {auto|escalate|hardstop}`. Purely informational; does not gate acceptance.
+
+Keep the summary concise and user-facing.
+
+### Ask for Acceptance
+Use the `question` tool to ask whether the delivered work satisfies the agreement.
+
+Recommended options:
+- Accept and continue (Recommended)
+- Needs fixes before acceptance
+- Re-open earlier gates via `adv_change_reenter` (scope expansion)
+
+If the user requests fixes, do not complete the gate; route back to the appropriate workflow. If the user identifies new objectives or acceptance criteria that require scope expansion, use `adv_change_reenter` to reopen from the earliest affected gate before proceeding.
+
+### Complete Gate
+On acceptance:
+`adv_gate_complete changeId: {change-id} gateId: acceptance`
+
+---
+## Output
+Emit CODE REVIEW + ACCEPTANCE COMPLETE with:
+- target change
+- verdict
+- accepted AC count
+- remaining caveats, if any
 ```
 /adv-review {change-id} COMPLETE
-Result: {verdict} ({fix_count} fixes applied)
-Acceptance Gate: pending
-Next: /adv-accept {change-id}
+Result: {verdict} ({fix_count} fixes applied) + user acceptance recorded
+Acceptance Gate: MARKED COMPLETE
+Next: /adv-harden {change-id}
 ```
-
 ---
 ## Anti-Patterns
 | × Anti-Pattern | ✓ Fix |

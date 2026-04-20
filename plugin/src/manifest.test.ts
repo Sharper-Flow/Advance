@@ -21,17 +21,14 @@ describe("Command Manifest", () => {
     expect(Object.keys(COMMAND_MANIFEST).length).toBeGreaterThan(0);
   });
 
-  test("contains all 21 ADV commands", () => {
+  test("contains all 18 ADV commands", () => {
     const expectedCommands = [
       "adv-status",
       "adv-proposal",
       "adv-discover",
-      "adv-agree",
       "adv-design",
-      "adv-present",
       "adv-validate",
       "adv-apply",
-      "adv-accept",
       "adv-archive",
       "adv-clarify",
       "adv-prep",
@@ -49,8 +46,12 @@ describe("Command Manifest", () => {
     for (const cmd of expectedCommands) {
       expect(COMMAND_MANIFEST).toHaveProperty(cmd);
     }
-    expect(Object.keys(COMMAND_MANIFEST)).toHaveLength(21);
+    expect(Object.keys(COMMAND_MANIFEST)).toHaveLength(18);
+    // Removed commands must not be present (collapsed into other commands)
     expect(COMMAND_MANIFEST).not.toHaveProperty("adv-research");
+    expect(COMMAND_MANIFEST).not.toHaveProperty("adv-agree");
+    expect(COMMAND_MANIFEST).not.toHaveProperty("adv-present");
+    expect(COMMAND_MANIFEST).not.toHaveProperty("adv-accept");
   });
 
   test("every command has required fields", () => {
@@ -238,9 +239,20 @@ describe("Command Manifest", () => {
       expect(def!.gate).toBe("execution");
     });
 
-    test("adv-accept affects acceptance gate", () => {
-      const def = getCommandDef("adv-accept");
+    test("adv-review affects acceptance gate", () => {
+      const def = getCommandDef("adv-review");
       expect(def!.gate).toBe("acceptance");
+    });
+
+    test("adv-review is the sole owner of acceptance gate", () => {
+      const def = getCommandDef("adv-review");
+      expect(def!.gate).toBe("acceptance");
+      // No other command should own the acceptance gate after merge
+      const acceptanceOwners = Object.entries(COMMAND_MANIFEST).filter(
+        ([, d]) => d.gate === "acceptance",
+      );
+      expect(acceptanceOwners).toHaveLength(1);
+      expect(acceptanceOwners[0][0]).toBe("adv-review");
     });
 
     test("adv-archive affects release gate", () => {
@@ -248,8 +260,7 @@ describe("Command Manifest", () => {
       expect(def!.gate).toBe("release");
     });
 
-    test("adv-review and adv-harden are stage commands without direct gate ownership", () => {
-      expect(getCommandDef("adv-review")!.gate).toBeUndefined();
+    test("adv-harden remains a stage command without direct gate ownership", () => {
       expect(getCommandDef("adv-harden")!.gate).toBeUndefined();
     });
 
@@ -339,14 +350,8 @@ describe("Command Manifest", () => {
   // =============================================================================
 
   describe("7-gate collaborative model commands", () => {
-    test("manifest contains 5 new commands", () => {
-      const newCommands = [
-        "adv-discover",
-        "adv-agree",
-        "adv-design",
-        "adv-present",
-        "adv-accept",
-      ];
+    test("manifest contains the remaining discovery/design expansion commands", () => {
+      const newCommands = ["adv-discover", "adv-design", "adv-review"];
       for (const cmd of newCommands) {
         expect(COMMAND_MANIFEST, `Missing command: ${cmd}`).toHaveProperty(cmd);
       }
@@ -374,8 +379,8 @@ describe("Command Manifest", () => {
       expect(def!.gate).toBe("execution");
     });
 
-    test("adv-accept owns acceptance gate", () => {
-      const def = getCommandDef("adv-accept");
+    test("adv-review owns acceptance gate", () => {
+      const def = getCommandDef("adv-review");
       expect(def).toBeDefined();
       expect(def!.gate).toBe("acceptance");
     });
@@ -391,18 +396,15 @@ describe("Command Manifest", () => {
     });
 
     test("successor chain follows 7-gate workflow", () => {
-      // proposal → discover → agree → design → present → prep → apply → review → accept → harden → archive
+      // proposal → discover → design → prep → apply → review → harden → archive
       expect(getCommandDef("adv-proposal")!.successors).toContain(
         "adv-discover",
       );
-      expect(getCommandDef("adv-discover")!.successors).toContain("adv-agree");
-      expect(getCommandDef("adv-agree")!.successors).toContain("adv-design");
-      expect(getCommandDef("adv-design")!.successors).toContain("adv-present");
-      expect(getCommandDef("adv-present")!.successors).toContain("adv-prep");
+      expect(getCommandDef("adv-discover")!.successors).toContain("adv-design");
+      expect(getCommandDef("adv-design")!.successors).toContain("adv-prep");
       expect(getCommandDef("adv-prep")!.successors).toContain("adv-apply");
       expect(getCommandDef("adv-apply")!.successors).toContain("adv-review");
-      expect(getCommandDef("adv-review")!.successors).toContain("adv-accept");
-      expect(getCommandDef("adv-accept")!.successors).toContain("adv-harden");
+      expect(getCommandDef("adv-review")!.successors).toContain("adv-harden");
       expect(getCommandDef("adv-harden")!.successors).toContain("adv-archive");
     });
 

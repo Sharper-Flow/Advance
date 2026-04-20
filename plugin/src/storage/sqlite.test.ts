@@ -8,7 +8,11 @@ import { describe, test, expect, beforeEach, afterEach } from "vitest";
 import { join } from "path";
 import { readFileSync, existsSync } from "fs";
 import { resolve } from "path";
-import { createSQLiteStore, runMigrationStep, type SQLiteStore } from "./sqlite";
+import {
+  createSQLiteStore,
+  runMigrationStep,
+  type SQLiteStore,
+} from "./sqlite";
 import { initDatabase } from "./health";
 import { Database } from "bun:sqlite";
 import type { Change, Spec } from "../types";
@@ -970,9 +974,9 @@ describe("runMigrationStep", () => {
     runMigrationStep(db, "insert-alpha", () => {
       db.exec("INSERT INTO sentinel (id, name) VALUES (1, 'alpha')");
     });
-    const row = db
-      .query("SELECT name FROM sentinel WHERE id = 1")
-      .get() as { name: string } | null;
+    const row = db.query("SELECT name FROM sentinel WHERE id = 1").get() as {
+      name: string;
+    } | null;
     expect(row?.name).toBe("alpha");
   });
 
@@ -984,14 +988,14 @@ describe("runMigrationStep", () => {
       throw new Error("boom");
     });
 
-    const kept = db
-      .query("SELECT name FROM sentinel WHERE id = 2")
-      .get() as { name: string } | null;
+    const kept = db.query("SELECT name FROM sentinel WHERE id = 2").get() as {
+      name: string;
+    } | null;
     expect(kept?.name).toBe("keep");
 
-    const rolled = db
-      .query("SELECT name FROM sentinel WHERE id = 3")
-      .get() as { name: string } | null;
+    const rolled = db.query("SELECT name FROM sentinel WHERE id = 3").get() as {
+      name: string;
+    } | null;
     expect(rolled).toBeNull();
   });
 

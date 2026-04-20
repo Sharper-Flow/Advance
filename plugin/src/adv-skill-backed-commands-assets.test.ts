@@ -1,10 +1,10 @@
 /**
  * Skill-Backed Command Assets Tests
  *
- * Verifies that commands with backing skills (adv-discover, adv-review,
- * adv-harden, adv-slop-scan, adv-prep, adv-apply) ship the expected skill
- * files, load them in their command prompts with inline fallback, and are
- * covered by sync-global.sh.
+ * Verifies that shared-skill commands (adv-harden, adv-slop-scan) ship the
+ * expected skill files, and folded commands (adv-discover, adv-prep,
+ * adv-apply, adv-review) embed their methodology inline after the Cut 4
+ * presentation-layer simplification.
  *
  * Modeled on adv-tron-assets.test.ts — the canonical command+skill pattern.
  */
@@ -17,25 +17,12 @@ const REPO_ROOT = resolve(__dirname, "../..");
 const SYNC_SCRIPT_PATH = join(REPO_ROOT, "scripts/sync-global.sh");
 const TOKEN_BUDGETS_PATH = join(REPO_ROOT, ".opencode/token-budgets.json");
 
-// Skill-backed commands and their expected skill directory names
-const SKILL_BACKED_COMMANDS = [
-  {
-    command: "adv-discover",
-    skillDir: "adv-discover-methodology",
-    commandPath: join(REPO_ROOT, ".opencode/command/adv-discover.md"),
-    skillPath: join(REPO_ROOT, "skills/adv-discover-methodology/SKILL.md"),
-  },
-  {
-    command: "adv-review",
-    skillDir: "adv-review-methodology",
-    commandPath: join(REPO_ROOT, ".opencode/command/adv-review.md"),
-    skillPath: join(REPO_ROOT, "skills/adv-review-methodology/SKILL.md"),
-  },
+const SHARED_SKILL_COMMANDS = [
   {
     command: "adv-harden",
-    skillDir: "adv-harden-methodology",
+    skillDir: "adv-slop-detection",
     commandPath: join(REPO_ROOT, ".opencode/command/adv-harden.md"),
-    skillPath: join(REPO_ROOT, "skills/adv-harden-methodology/SKILL.md"),
+    skillPath: join(REPO_ROOT, "skills/adv-slop-detection/SKILL.md"),
   },
   {
     command: "adv-slop-scan",
@@ -43,22 +30,33 @@ const SKILL_BACKED_COMMANDS = [
     commandPath: join(REPO_ROOT, ".opencode/command/adv-slop-scan.md"),
     skillPath: join(REPO_ROOT, "skills/adv-slop-detection/SKILL.md"),
   },
+];
+
+const EMBEDDED_METHODOLOGY_COMMANDS = [
+  {
+    command: "adv-discover",
+    commandPath: join(REPO_ROOT, ".opencode/command/adv-discover.md"),
+    marker: "### Discover Methodology",
+  },
   {
     command: "adv-prep",
-    skillDir: "adv-prep-methodology",
     commandPath: join(REPO_ROOT, ".opencode/command/adv-prep.md"),
-    skillPath: join(REPO_ROOT, "skills/adv-prep-methodology/SKILL.md"),
+    marker: "### Prep Methodology",
   },
   {
     command: "adv-apply",
-    skillDir: "adv-apply-methodology",
     commandPath: join(REPO_ROOT, ".opencode/command/adv-apply.md"),
-    skillPath: join(REPO_ROOT, "skills/adv-apply-methodology/SKILL.md"),
+    marker: "### Apply Methodology",
+  },
+  {
+    command: "adv-review",
+    commandPath: join(REPO_ROOT, ".opencode/command/adv-review.md"),
+    marker: "### Review Methodology",
   },
 ];
 
 describe("skill-backed command assets", () => {
-  for (const { command, skillDir, skillPath } of SKILL_BACKED_COMMANDS) {
+  for (const { command, skillDir, skillPath } of SHARED_SKILL_COMMANDS) {
     test(`${command} has a bundled skill at skills/${skillDir}/SKILL.md`, () => {
       expect(existsSync(skillPath)).toBe(true);
     });
@@ -73,7 +71,7 @@ describe("skill-backed command assets", () => {
     });
   }
 
-  for (const { command, commandPath } of SKILL_BACKED_COMMANDS) {
+  for (const { command, commandPath } of SHARED_SKILL_COMMANDS) {
     test(`${command} command loads its backing skill`, () => {
       const content = readFileSync(commandPath, "utf8");
 
@@ -85,6 +83,27 @@ describe("skill-backed command assets", () => {
 
       expect(content).toMatch(
         /skill is unavailable|fallback|embedded protocol/i,
+      );
+    });
+  }
+
+  for (const {
+    command,
+    commandPath,
+    marker,
+  } of EMBEDDED_METHODOLOGY_COMMANDS) {
+    test(`${command} embeds its methodology inline`, () => {
+      const content = readFileSync(commandPath, "utf8");
+
+      expect(content).toContain(marker);
+      expect(content).toMatch(/Canonical source[s]?:/);
+    });
+
+    test(`${command} no longer loads a removed paired methodology skill`, () => {
+      const content = readFileSync(commandPath, "utf8");
+
+      expect(content).not.toMatch(
+        /skill\("adv-(discover|prep|apply|review)-methodology"\)/,
       );
     });
   }
@@ -109,11 +128,21 @@ describe("command-vs-skill policy docs", () => {
     expect(content).toContain("inline fallback is required");
   });
 
-  test("ADV_INSTRUCTIONS.md lists adv-prep and adv-apply as skill-backed commands", () => {
-    const content = readFileSync(ADV_INSTRUCTIONS_PATH, "utf8");
+  test("cross-cutting skill-backed commands remain documented in command/docs surface", () => {
+    const instructions = readFileSync(ADV_INSTRUCTIONS_PATH, "utf8");
+    const prepContent = readFileSync(
+      join(REPO_ROOT, ".opencode/command/adv-prep.md"),
+      "utf8",
+    );
+    const applyContent = readFileSync(
+      join(REPO_ROOT, ".opencode/command/adv-apply.md"),
+      "utf8",
+    );
 
-    expect(content).toContain("adv-prep-methodology");
-    expect(content).toContain("adv-apply-methodology");
+    expect(instructions).toContain("adv-slop-detection");
+    expect(instructions).toContain("adv-tron");
+    expect(prepContent).toContain("adv-cost-governance-methodology");
+    expect(applyContent).toContain("adv-cost-governance-methodology");
   });
 
   test("README.md mentions command + skill architecture", () => {
@@ -174,7 +203,7 @@ describe("thin-command shape enforcement", () => {
         "Phase 3",
         "REVIEW_FINDINGS",
       ],
-      skillRef: "adv-review-methodology",
+      skillRef: null,
       // methodology that should NOT be inlined (lives in skill/checklist)
       forbiddenInline: [
         "Sub-Agent 1:",
@@ -188,7 +217,7 @@ describe("thin-command shape enforcement", () => {
       command: "adv-harden",
       path: join(REPO_ROOT, ".opencode/command/adv-harden.md"),
       requiredPhases: ["Phase 0", "Phase 1", "Phase 2", "Phase 3"],
-      skillRef: "adv-harden-methodology",
+      skillRef: "adv-slop-detection",
       forbiddenInline: [
         "Sub-Agent 1:",
         "Sub-Agent 2:",
@@ -216,7 +245,7 @@ describe("thin-command shape enforcement", () => {
       command: "adv-prep",
       path: join(REPO_ROOT, ".opencode/command/adv-prep.md"),
       requiredPhases: ["Phase 0", "Phase 1", "Phase 2", "Command Boundary"],
-      skillRef: "adv-prep-methodology",
+      skillRef: null,
       forbiddenInline: [
         "| **I**ndependent |",
         "| Subjective |",
@@ -228,7 +257,7 @@ describe("thin-command shape enforcement", () => {
       command: "adv-apply",
       path: join(REPO_ROOT, ".opencode/command/adv-apply.md"),
       requiredPhases: ["Phase 0", "Phase 1", "Phase 2", "Phase 3"],
-      skillRef: "adv-apply-methodology",
+      skillRef: null,
       forbiddenInline: [
         '| "Let\'s skip/defer this" |',
         '| "This might need manual work" |',
@@ -288,18 +317,18 @@ describe("thin-command shape enforcement", () => {
     );
   });
 
-  test("review and harden commands retain their skill references", () => {
-    const reviewContent = readFileSync(
-      join(REPO_ROOT, ".opencode/command/adv-review.md"),
-      "utf8",
-    );
+  test("harden and slop-scan retain shared adv-slop-detection skill reference", () => {
     const hardenContent = readFileSync(
       join(REPO_ROOT, ".opencode/command/adv-harden.md"),
       "utf8",
     );
+    const slopScanContent = readFileSync(
+      join(REPO_ROOT, ".opencode/command/adv-slop-scan.md"),
+      "utf8",
+    );
 
-    expect(reviewContent).toContain("adv-review-methodology");
-    expect(hardenContent).toContain("adv-harden-methodology");
+    expect(hardenContent).toContain("adv-slop-detection");
+    expect(slopScanContent).toContain("adv-slop-detection");
   });
 
   test("adv-apply uses two-tier context freshness (adv_task_show per task, not adv_change_show)", () => {
@@ -353,20 +382,20 @@ describe("advisory line ceiling baselines", () => {
     expect(true).toBe(true);
   });
 
-  test("advisory: ADV_INSTRUCTIONS.md within baseline tolerance (warn-only)", () => {
+  test("ADV_INSTRUCTIONS.md uses ratcheting line guard", () => {
     const filePath = join(REPO_ROOT, "ADV_INSTRUCTIONS.md");
     const content = readFileSync(filePath, "utf8");
     const lines = content.split("\n").length;
-    const threshold = Math.ceil(INSTRUCTIONS_BASELINE * 1.1);
+    const warnThreshold = 200;
+    const failThreshold = 250;
 
-    if (lines > threshold) {
+    if (lines > warnThreshold) {
       console.warn(
-        `\n[ADV:TOKEN_BUDGET] ADV_INSTRUCTIONS.md: ${lines} lines (baseline: ${INSTRUCTIONS_BASELINE}, threshold: ${threshold})`,
+        `\n[ADV:TOKEN_BUDGET] ADV_INSTRUCTIONS.md: ${lines} lines (warn: ${warnThreshold}, fail: ${failThreshold}, baseline: ${INSTRUCTIONS_BASELINE})`,
       );
     }
 
-    // Advisory: always passes
-    expect(true).toBe(true);
+    expect(lines).toBeLessThanOrEqual(failThreshold);
   });
 
   test("advisory: total command file line count (warn-only)", () => {

@@ -4,7 +4,7 @@
  * Read-only, stateless tool returning a structured investment report
  * for a change. Used by:
  * - /adv-apply Phase 1.5 (investment check-in preamble) — tier + doom-loop
- * - /adv-agree, /adv-accept, /adv-archive — one-line summary display
+ * - /adv-discover, /adv-review, /adv-archive — one-line summary display
  *
  * All metrics are proxies derived from existing change state (timestamps,
  * retry counts, gate completions). No schema changes to Task required.

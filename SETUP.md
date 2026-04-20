@@ -208,7 +208,7 @@ The `--fix` flag will:
 - Copy all `adv-*.md` commands to `~/.config/opencode/command/`
 - Copy only repo-local ADV agents where direct sync is appropriate
 - Apply repo-owned managed overlay blocks to shared global agents like `adv`, `general`, `build`, `plan`, `refine`, and `scout` without replacing the full file
-- Copy ADV skills to `~/.config/opencode/skills/` (including bundled methodology skills like `adv-review-methodology`, `adv-harden-methodology`, and `adv-slop-detection`)
+- Copy ADV skills to `~/.config/opencode/skills/` (the retained cross-cutting skills: `adv-cost-governance-methodology`, `adv-slop-detection`, and `adv-tron`)
 - Add the ADV plugin path to `opencode.json` `.plugin` array if missing
 - Add `ADV_INSTRUCTIONS.md` to `opencode.json` `.instructions` array if missing
 - Back up `opencode.json` before any patches
@@ -748,14 +748,11 @@ New changes start directly in the 7-gate model.
 | ------------------------- | ----------------------------------------------------- |
 | `/adv-status`             | Project overview                                      |
 | `/adv-proposal <summary>` | Extract problem statement and confirm with user       |
-| `/adv-discover <id>`      | Gather context and identify objectives                |
-| `/adv-agree <id>`         | Resolve open questions via triage, confirm objectives |
-| `/adv-design <id>`        | Validate architecture decisions and produce strategy  |
-| `/adv-present <id>`       | Present design overview for user review               |
+| `/adv-discover <id>`      | Gather context, identify objectives, and confirm agreement |
+| `/adv-design <id>`        | Validate architecture decisions, produce strategy, and present for review |
 | `/adv-prep <id>`          | Gap analysis and task shaping (from validated design) |
 | `/adv-apply <id>`         | Implement with TDD                                    |
-| `/adv-review <id>`        | Code review                                           |
-| `/adv-accept <id>`        | Present deliverable summary for user sign-off         |
+| `/adv-review <id>`        | Review deliverables and record user sign-off          |
 | `/adv-harden <id>`        | Release-stage quality hardening                       |
 | `/adv-archive <id>`       | Archive completed change and apply spec deltas        |
 
@@ -798,8 +795,7 @@ Parallel ADV scanners follow the same single-level delegation rule as other ADV 
 | `adv_change_validate`     | Validate change against specs and check for conflicts                  |
 | `adv_change_close`        | Close an active change (cancelled/superseded/not_planned)              |
 | `adv_change_archive`      | Archive a completed change (applies spec deltas)                       |
-| `adv_change_add_issue`    | Link a GitHub issue URL to a change                                    |
-| `adv_change_remove_issue` | Unlink a GitHub issue URL from a change                                |
+| `adv_change_update_issues` | Add/remove GitHub issue URLs linked to a change                        |
 
 **Tasks**
 
@@ -812,8 +808,7 @@ Parallel ADV scanners follow the same single-level delegation rule as other ADV 
 | `adv_task_update`         | Update task status (pending/in_progress/done)                 |
 | `adv_task_cancel`         | Cancel tasks with required user approval                      |
 | `adv_task_evidence`       | Record TDD evidence (red/green phase proof)                   |
-| `adv_task_tdd_phase`      | Manually set TDD phase for a task                             |
-| `adv_task_tdd_status`     | Get TDD compliance status for a task                          |
+| `adv_task_tdd`            | Set or inspect TDD state for a task (`action=set|status`)     |
 | `adv_task_reclassify_tdd` | Reclassify TDD intent after planning gate (requires approval) |
 
 **Gates**
@@ -833,9 +828,9 @@ Parallel ADV scanners follow the same single-level delegation rule as other ADV 
 
 | Tool                 | Purpose                                          |
 | -------------------- | ------------------------------------------------ |
-| `adv_wisdom_add`     | Add a learning entry to a change                 |
-| `adv_wisdom_list`    | List all wisdom entries for a change             |
-| `adv_wisdom_promote` | Promote a change-level learning to project-level |
+| `adv_wisdom_add`          | Add a learning entry to a change (optionally promote) |
+| `adv_wisdom_list`         | List all wisdom entries for a change                  |
+| `adv_project_wisdom_list` | List project-level promoted wisdom entries            |
 
 **Agenda**
 
@@ -847,10 +842,7 @@ Parallel ADV scanners follow the same single-level delegation rule as other ADV 
 | `adv_agenda_complete`   | Mark an agenda item as done                         |
 | `adv_agenda_cancel`     | Cancel an agenda item                               |
 | `adv_agenda_prioritize` | Change priority of an agenda item                   |
-| `adv_agenda_next`       | Get highest-priority unblocked agenda item          |
-| `adv_agenda_stats`      | Get agenda statistics                               |
 | `adv_agenda_evidence`   | Record TDD evidence for an agenda item              |
-| `adv_agenda_compact`    | Compact the agenda file (remove superseded entries) |
 
 ---
 

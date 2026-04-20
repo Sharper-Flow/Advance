@@ -22,7 +22,7 @@ Durable cross-change learnings must be persisted in a project-level JSONL store 
 **Given:**
 - A convention-level learning discovered in a change
 
-**When:** adv_wisdom_promote is executed
+**When:** adv_wisdom_add is executed with promote: true
 
 **Then:**
 - The entry is appended to project-level wisdom.jsonl
@@ -700,7 +700,7 @@ Before the design gate can complete, /adv-design must run an independent validat
 **Then:**
 - The result is recorded as INCONCLUSIVE with a warning
 - The design gate is not blocked by the validator failure
-- The warning is surfaced in /adv-present output
+- The warning is surfaced in the /adv-design presentation output
 
 ---
 
@@ -708,7 +708,7 @@ Before the design gate can complete, /adv-design must run an independent validat
 
 **ID:** `rq-designval02` | **Priority:** **[MUST]**
 
-When /adv-present summarizes the design, it must include the validator verdict and findings from the design validation step. VALIDATED shows a brief clean-pass note. CAUTION shows findings inline. CONFLICT shows conflict details. INCONCLUSIVE shows a warning. Legacy designs without validation data omit the section silently.
+When /adv-design summarizes the design, it must include the validator verdict and findings from the design validation step. VALIDATED shows a brief clean-pass note. CAUTION shows findings inline. CONFLICT shows conflict details. INCONCLUSIVE shows a warning. Legacy designs without validation data omit the section silently.
 
 **Tags:** `workflow`, `design`, `presentation`
 
@@ -719,7 +719,7 @@ When /adv-present summarizes the design, it must include the validator verdict a
 **Given:**
 - The design validator returned VALIDATED
 
-**When:** /adv-present presents the design summary
+**When:** /adv-design presents the design summary
 
 **Then:**
 - The output includes a one-line clean-pass note (e.g. 'Validator: clean pass')
@@ -730,7 +730,7 @@ When /adv-present summarizes the design, it must include the validator verdict a
 **Given:**
 - The design validator returned CONFLICT with findings
 
-**When:** /adv-present presents the design summary
+**When:** /adv-design presents the design summary
 
 **Then:**
 - The conflict details and unresolved findings are shown to the user
@@ -757,7 +757,28 @@ When the design validator returns a CONFLICT verdict, the orchestrator must not 
 
 **Then:**
 - The orchestrator does not silently proceed to /adv-prep
-- The conflict is surfaced to the user via /adv-present pause or inline resolution attempt
+- The conflict is surfaced to the user via /adv-design presentation pause or inline resolution attempt
+
+---
+
+### Presentation Surface Discipline
+
+**ID:** `rq-presentationSurface01` | **Priority:** **[SHOULD]**
+
+ADV presentation-layer surfaces (instructions, commands, tools, and skills) SHOULD stay within documented limits. When a change adds a new command, tool, or skill, it must justify why the addition does not replicate an existing pair/merge opportunity, or it must update the documented limits and related verification assets in the same change.
+
+#### Scenarios
+
+**New surface addition requires justification or limit update** (`rq-presentationSurface01.1`)
+
+**Given:**
+- An ADV change proposes a new command, tool, or skill
+
+**When:** The change updates the workflow surface
+
+**Then:**
+- The change explains why the new surface does not duplicate an existing merge opportunity, or updates the documented limits in the same change
+- Related verification assets are updated so future drift is detectable
 
 **VALIDATED and CAUTION verdicts auto-continue** (`rq-designval03.2`)
 

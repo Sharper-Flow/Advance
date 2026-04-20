@@ -43,14 +43,11 @@ Canonical sources:
 | Command | Agent decides | User confirms |
 |---|---|---|
 | `/adv-proposal` | summary derivation, overlap detection, change type, impacted specs, new-spec need, cross-repo scope, proposal quality refinement | problem statement matches intended outcome |
-| `/adv-discover` | target auto-selection, discovery synthesis, open design questions from evidence | only when design tradeoffs depend on user values |
-| `/adv-agree` | target auto-selection, extraction of objectives/constraints from discovery, triage of open questions (technical questions resolved via LBP research), reframing tech questions as outcome questions | agreement contents and edits, user-facing open questions (priorities, behavior, downsides, AC boundaries), explicit deferral of any question |
-| `/adv-design` | target auto-selection, design synthesis from research and code; mandatory independent validation via independent read-only validator (`rq-designval01`) | only when design validator returns CONFLICT (`rq-designval03`); otherwise auto-continue to planning |
-| `/adv-present` | target auto-selection, concise design summary; validator verdict display (`rq-designval02`) | design direction approval |
+| `/adv-discover` | target auto-selection, discovery synthesis, open design questions from evidence, extraction of objectives/constraints, triage of open questions (technical questions resolved via LBP research), reframing tech questions as outcome questions | agreement contents and edits, user-facing open questions (priorities, behavior, downsides, AC boundaries), explicit deferral of any question |
+| `/adv-design` | target auto-selection, design synthesis from research and code; mandatory independent validation via independent read-only validator (`rq-designval01`); concise design summary and validator verdict display (`rq-designval02`) | only when design validator returns CONFLICT (`rq-designval03`); otherwise auto-continue to planning |
 | `/adv-prep` | target auto-selection, gap analysis, task graph synthesis | only when gaps are unresolvable without user intent |
 | `/adv-apply` | target auto-selection, worktree reuse, execution start, task sequencing, TDD loop, cross-repo routing, **auto-continue across task boundaries without any "task complete / section complete / progress update / shall I continue?" pause** (`rq-autonomy01.4`), **no execution-start approval prompt once planning is complete** (`rq-autonomy01.5`) | only the enumerated `rq-autonomy01` checkpoints: doom-loop recovery, cancellations, re-entry for scope changes not reflected in the stored contract, environmental blocker, unresolved judgment-call surfacing (Phase 1.5) |
-| `/adv-review` | target auto-selection, review execution, remediation of blockers/issues | none by default; review remains agent-led |
-| `/adv-accept` | target auto-selection, acceptance summary construction | whether delivered work satisfies the agreement |
+| `/adv-review` | target auto-selection, review execution, remediation of blockers/issues, review synthesis, acceptance summary construction | whether delivered work satisfies the agreement |
 | `/adv-harden` | target auto-selection, hardening analysis, default in-scope remediation | none by default; validated in-scope findings must be fixed |
 | `/adv-archive` | target auto-selection, archive validation, spec application workflow | archive/sign-off approval |
 | `/adv-audit` | spec drift detection and reporting | only if user wants remediation prioritization or debt acceptance |
@@ -93,7 +90,7 @@ Those decisions are now explicitly agent-owned. Remaining user-input touchpoints
 ### Recent Spec Additions Relevant to Autonomy
 
 - **`rq-designval01`** — Design gate requires independent validation pass via a distinct read-only validator before completion; validator failure yields INCONCLUSIVE warning, not a block.
-- **`rq-designval02`** — Validator verdict (VALIDATED/CAUTION/CONFLICT/INCONCLUSIVE) must appear in `/adv-present` output.
+- **`rq-designval02`** — Validator verdict (VALIDATED/CAUTION/CONFLICT/INCONCLUSIVE) must appear in `/adv-design` output.
 - **`rq-designval03`** — CONFLICT verdict blocks silent auto-continue from design to planning.
 - **`rq-scopeReentry01`** — Scope expansions after gate progress must route back through the earliest invalidated gate via `adv_change_reenter`; agents may do this autonomously.
 - **`rq-scopeReentry02`** — Re-entry cascade resets downstream gates while preserving existing tasks and appending audit history.

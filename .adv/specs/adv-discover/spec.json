@@ -274,29 +274,51 @@
     },
     {
       "id": "rq-disc09",
-      "title": "Methodology Skill Loading",
-      "body": "/adv-discover SHOULD load an adv-discover-methodology skill using the Phase 0 pattern established by rationalizeCommandVsSkill, with inline fallback when the skill is unavailable. This aligns discovery with the command+skill LBP applied to review, harden, slop-scan, and tron.",
+      "title": "Embedded Discovery Methodology",
+      "body": "/adv-discover MUST carry the discovery methodology inline in the command file so the workflow remains self-contained even when no external skill is present. The embedded methodology must preserve the 8-step discovery protocol and remain aligned with docs/checklists/discover-checklist.md.",
       "priority": "should",
-      "tags": ["discover", "skill-loading", "lbp"],
+      "tags": ["discover", "embedded-methodology", "lbp"],
       "scenarios": [
         {
           "id": "rq-disc09.1",
-          "title": "Skill loaded when available",
-          "given": ["The adv-discover-methodology skill exists in a trusted directory"],
+          "title": "Embedded methodology is present in the command",
+          "given": ["The /adv-discover command is present in the repo"],
           "when": "/adv-discover runs Phase 0",
           "then": [
-            "skill('adv-discover-methodology') is invoked",
-            "Methodology guidance from the skill is applied during discovery"
+            "The command contains an embedded discovery methodology block",
+            "The 8-step discovery protocol is available without loading an external skill"
           ]
         },
         {
           "id": "rq-disc09.2",
-          "title": "Inline fallback when skill is unavailable",
-          "given": ["The adv-discover-methodology skill does not exist"],
+          "title": "Embedded methodology stays aligned with checklist",
+          "given": ["The command embeds discovery methodology"],
           "when": "/adv-discover runs Phase 0",
           "then": [
-            "A fallback notice is logged",
-            "The command continues with the embedded protocol from the command file"
+            "The methodology remains aligned with docs/checklists/discover-checklist.md",
+            "The command continues without any external skill dependency"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-disc11",
+      "title": "Discovery-Owned Agreement Sign-Off",
+      "body": "When /adv-discover absorbs the user-facing agreement flow, the command MUST present objectives and constraints for user sign-off before completing the discovery gate, and MUST persist agreement.md as part of the same command contract. This prevents discovery findings from being marked complete before the user-facing sign-off step occurs.",
+      "priority": "must",
+      "tags": ["discover", "agreement", "sign-off", "gate-ownership"],
+      "scenarios": [
+        {
+          "id": "rq-disc11.1",
+          "title": "User sign-off occurs before discovery gate completion",
+          "given": [
+            "A /adv-discover invocation has produced objectives, constraints, avoidances, and acceptance-criteria candidates"
+          ],
+          "when": "/adv-discover reaches the end of its agreement presentation flow",
+          "then": [
+            "The command presents objectives and constraints for user sign-off via the question tool",
+            "agreement.md is persisted via adv_change_update",
+            "adv_gate_complete gateId: discovery occurs only after the sign-off flow completes"
           ]
         }
       ]

@@ -1,11 +1,11 @@
 ---
 name: adv-design
-description: Validate architecture decisions and produce implementation strategy
+description: Validate architecture decisions, produce implementation strategy, and present design for user review
 ---
 # ADV Design — Produce the Design Artifact
-Convert the confirmed agreement into a concrete technical design. This command completes the `design` gate and prepares `/adv-present` and `/adv-prep`.
+Convert the confirmed agreement into a concrete technical design. This command completes the `design` gate and now prepares planning directly.
 ## Command Boundary
-**Produces:** `design.md` covering architecture, key decisions, implementation strategy, and LBP analysis.
+**Produces:** `design.md` covering architecture, key decisions, implementation strategy, LBP analysis, and the user-visible design summary needed before planning.
 
 **× MUST NOT:** Create tasks, complete non-owned gates, or skip research when design choices depend on framework/library guidance.
 
@@ -24,7 +24,7 @@ Convert the confirmed agreement into a concrete technical design. This command c
 - inspect affected code with `lgrep`/`read`
 - use Context7 when framework/library best practice matters
 
-If agreement is missing or not approved, stop and run `/adv-agree` first.
+If agreement is missing or not approved, stop and complete `/adv-discover` first.
 
 ---
 ## Phase 2: Design Work
@@ -101,13 +101,44 @@ Process the validator output and determine whether to proceed:
 |---------|--------|
 | `VALIDATED` | Record "Validator: clean pass" in design notes; proceed to Phase 4 |
 | `CAUTION` | Record caution findings in design notes; proceed to Phase 4 |
-| `CONFLICT` | Present conflict findings; attempt inline resolution if technical fix is obvious; if unresolved, flag in design notes for `/adv-present` to surface to user before planning; if resolved inline, record the conflict as resolved and proceed |
+| `CONFLICT` | Present conflict findings; attempt inline resolution if technical fix is obvious; if unresolved, flag in design notes for the design summary to surface to the user before planning; if resolved inline, record the conflict as resolved and proceed |
 | `INCONCLUSIVE` (empty/failed/timeout) | Record "Validation attempted but inconclusive" warning; proceed to Phase 4 |
 
 Record the validation result via `adv_change_update` as a compact summary appended to `design.md`.
 
 ---
-## Phase 4: Complete Gate
+## Phase 4: Present Design Summary
+Show a compact summary with:
+- architecture overview
+- key decisions
+- implementation strategy
+- major risks / tradeoffs
+- optional visual comparison block when side-by-side design alternatives are easier to judge than prose alone
+- **Validator Result** — always display validator outcome from Phase 3.5/3.6 when validation data exists:
+  - `VALIDATED` → one-line note: "Validator: clean pass ✓"
+  - `CAUTION` → list caution findings inline (brief, one sentence each)
+  - `CONFLICT` → show conflict details with unresolved items highlighted
+  - `INCONCLUSIVE` → show warning: "Validation attempted but inconclusive"
+  - No validation data (legacy design with no validator markers) → omit section silently
+
+After displaying the validator result:
+- If a visual comparison block is used, keep it text-readable and align it with any follow-up `question` options
+- If the design involves real user-value tradeoffs, ask the user whether the design is acceptable before moving into `/adv-prep`
+- If the validator found an unresolved `CONFLICT`, always pause for user resolution before planning
+- If the design is straightforward with no user-value tradeoffs and validation returned `VALIDATED`, `CAUTION`, or `INCONCLUSIVE`, proceed directly to `/adv-prep`
+
+Recommended options (when pausing):
+- Looks good — proceed to planning
+- Adjust design details
+- Revisit discovery/agreement
+
+### Phase 4.5: Persist Revisions
+If the user requests adjustments, update the design/proposal artifacts via `adv_change_update`.
+
+Do not complete any gate here.
+
+---
+## Phase 5: Complete Gate
 `adv_gate_complete changeId: {change-id} gateId: design`
 
 ---
@@ -121,5 +152,5 @@ Emit DESIGN COMPLETE with:
 /adv-design {change-id} COMPLETE
 Result: design.md recorded
 Design Gate: MARKED COMPLETE
-Next: /adv-present {change-id}
+Next: /adv-prep {change-id}
 ```

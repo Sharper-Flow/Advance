@@ -2,7 +2,7 @@
  * Agenda Tools
  *
  * MCP tools for lightweight task management without full spec ceremony.
- * Most are data tools (pure JSON), except adv_agenda_next and adv_agenda_stats which are user-facing.
+ * Agenda MCP surface is intentionally small: list/add/start/complete/cancel/prioritize/evidence.
  */
 
 import { z } from "zod";
@@ -14,10 +14,6 @@ import {
   completeAgendaItem,
   cancelAgendaItem,
   reprioritizeAgendaItem,
-  getActiveAgenda,
-  getNextAgendaItem,
-  getAgendaStats,
-  compactAgenda,
 } from "../storage/agenda";
 import {
   AgendaPrioritySchema,
@@ -28,7 +24,6 @@ import {
   getIncompleteGates,
   allGatesSatisfied,
 } from "../types";
-import { wrapWithBanner } from "../utils/banner";
 import { formatToolOutput } from "../utils/tool-output";
 
 // =============================================================================
@@ -272,68 +267,6 @@ export const agendaTools = {
     },
   },
 
-  adv_agenda_next: {
-    description:
-      "Get the next agenda item to work on (highest priority unblocked item).",
-    args: {},
-    execute: async (
-      _args: Record<string, never>,
-      projectDir: string,
-      agendaPath?: string,
-    ) => {
-      const item = await getNextAgendaItem(projectDir, { agendaPath });
-      if (!item) {
-        return wrapWithBanner(
-          { command: "adv_agenda_next" },
-          formatToolOutput({
-            message: "No pending items in agenda",
-            suggestion: "Add items with adv_agenda_add",
-          }),
-        );
-      }
-
-      const requiresTdd = isLogicTask(item.title);
-
-      return wrapWithBanner(
-        { command: "adv_agenda_next", target: item.id },
-        formatToolOutput({
-          next: item,
-          analysis: {
-            requires_tdd: requiresTdd,
-            recommendation: requiresTdd
-              ? "Start with a failing test (Red phase)"
-              : "Ready to implement",
-          },
-        }),
-      );
-    },
-  },
-
-  adv_agenda_stats: {
-    description: "Get statistics about the current agenda.",
-    args: {},
-    execute: async (
-      _args: Record<string, never>,
-      projectDir: string,
-      agendaPath?: string,
-    ) => {
-      const stats = await getAgendaStats(projectDir, { agendaPath });
-      const active = await getActiveAgenda(projectDir, { agendaPath });
-
-      return wrapWithBanner(
-        { command: "adv_agenda_stats" },
-        formatToolOutput({
-          ...stats,
-          activeQueue: active.length,
-          nextUp:
-            active.length > 0
-              ? { id: active[0].id, title: active[0].title }
-              : null,
-        }),
-      );
-    },
-  },
-
   adv_agenda_evidence: {
     description:
       "Record TDD evidence for an agenda item (red/green phase proof).",
@@ -410,26 +343,6 @@ export const agendaTools = {
         success: true,
         item: updated,
         message: `Recorded ${phase} phase evidence`,
-      });
-    },
-  },
-
-  adv_agenda_compact: {
-    description:
-      "Compact the agenda file by removing superseded entries. Run periodically to keep file size manageable.",
-    args: {},
-    execute: async (
-      _args: Record<string, never>,
-      projectDir: string,
-      agendaPath?: string,
-    ) => {
-      await compactAgenda(projectDir, { agendaPath });
-      const stats = await getAgendaStats(projectDir, { agendaPath });
-
-      return formatToolOutput({
-        success: true,
-        message: "Agenda compacted",
-        items: stats.total,
       });
     },
   },

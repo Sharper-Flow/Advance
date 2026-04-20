@@ -521,12 +521,11 @@ export const GATE_DEFS: readonly GateDef[] = [
   {
     id: "discovery",
     description:
-      "Discovery: Context gathered, objectives agreed via /adv-discover + /adv-agree",
+      "Discovery: Context gathered, objectives agreed via /adv-discover",
   },
   {
     id: "design",
-    description:
-      "Design: Architecture decisions validated via /adv-design + /adv-present",
+    description: "Design: Architecture decisions validated via /adv-design",
   },
   {
     id: "planning",
@@ -538,8 +537,7 @@ export const GATE_DEFS: readonly GateDef[] = [
   },
   {
     id: "acceptance",
-    description:
-      "Acceptance: User accepts deliverables via /adv-review + /adv-accept",
+    description: "Acceptance: User accepts deliverables via /adv-review",
   },
   {
     id: "release",

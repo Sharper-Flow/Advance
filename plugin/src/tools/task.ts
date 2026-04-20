@@ -292,45 +292,49 @@ export const taskTools = {
     },
   },
 
-  adv_task_tdd_phase: {
-    description:
-      "Manually set the TDD phase for a task (use adv_task_evidence to record with proof)",
+  adv_task_tdd: {
+    description: "Set or inspect TDD state for a task (action=set|status)",
     args: {
       taskId: z.string().describe("Task ID"),
+      action: z
+        .enum(["set", "status"])
+        .describe("Whether to set the phase or inspect TDD status"),
       phase: z
         .enum(["none", "red", "green", "refactor", "complete"])
-        .describe("TDD phase to set"),
+        .optional()
+        .describe("Required when action=set; ignored for action=status"),
     },
     execute: async (
       {
         taskId,
+        action,
         phase,
       }: {
         taskId: string;
-        phase: "none" | "red" | "green" | "refactor" | "complete";
+        action: "set" | "status";
+        phase?: "none" | "red" | "green" | "refactor" | "complete";
       },
       store: Store,
     ) => {
-      const task = await store.tasks.setPhase(taskId, phase);
-      if (!task) {
-        return formatToolOutput({ error: `Task not found: ${taskId}` });
+      if (action === "set") {
+        if (!phase) {
+          return formatToolOutput({
+            error: "phase is required when action='set'",
+          });
+        }
+        const updated = await store.tasks.setPhase(taskId, phase);
+        if (!updated) {
+          return formatToolOutput({ error: `Task not found: ${taskId}` });
+        }
+
+        return formatToolOutput({
+          success: true,
+          action,
+          task: updated,
+          message: `Set TDD phase to '${phase}' for task ${taskId}`,
+        });
       }
 
-      return formatToolOutput({
-        success: true,
-        task,
-        message: `Set TDD phase to '${phase}' for task ${taskId}`,
-      });
-    },
-  },
-
-  adv_task_tdd_status: {
-    description:
-      "Get TDD compliance status for a task (uses metadata.tdd_intent first, then title heuristics)",
-    args: {
-      taskId: z.string().describe("Task ID"),
-    },
-    execute: async ({ taskId }: { taskId: string }, store: Store) => {
       const task = await store.tasks.get(taskId);
       if (!task) {
         return formatToolOutput({ error: `Task not found: ${taskId}` });
@@ -341,6 +345,7 @@ export const taskTools = {
       const trivial = isTrivialTask(task.title);
 
       return formatToolOutput({
+        action,
         taskId: task.id,
         title: task.title,
         tdd_phase: task.tdd_phase,

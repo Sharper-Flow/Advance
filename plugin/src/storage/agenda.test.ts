@@ -22,6 +22,7 @@ import {
   getAgendaStats,
   compactAgenda,
   getAgendaPath,
+  AGENDA_AUTO_COMPACT_MAX_LINES,
 } from "./agenda";
 import { createTempDir, cleanupTempDir } from "../__tests__/setup";
 
@@ -310,6 +311,28 @@ describe("Agenda Storage", () => {
       const { items } = await loadAgenda(tempDir);
       expect(items).toHaveLength(1);
       expect(items[0].title).toBe("Final");
+    });
+
+    test("auto-compacts after append count exceeds threshold", async () => {
+      const item = await addAgendaItem(tempDir, "Original");
+
+      for (let i = 1; i <= AGENDA_AUTO_COMPACT_MAX_LINES + 2; i++) {
+        await updateAgendaItem(tempDir, item.id, { title: `Update ${i}` });
+      }
+
+      const content = await readFile(getAgendaPath(tempDir), "utf-8");
+      const lines = content
+        .trim()
+        .split("\n")
+        .filter((line) => line.trim().length > 0);
+
+      expect(lines.length).toBeLessThan(AGENDA_AUTO_COMPACT_MAX_LINES);
+
+      const { items } = await loadAgenda(tempDir);
+      expect(items).toHaveLength(1);
+      expect(items[0].title).toBe(
+        `Update ${AGENDA_AUTO_COMPACT_MAX_LINES + 2}`,
+      );
     });
   });
 });

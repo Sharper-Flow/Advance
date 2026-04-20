@@ -27,7 +27,37 @@ Extract from `$ARGUMENTS`:
 1. If change-id provided → use directly
 2. If empty → `adv_change_list` → select via `question` tool
 ## Phase 0: Load Skill
-`skill("adv-harden-methodology")` → provides 6-scanner framework, severity scoring, debt quadrant, documentation hygiene standard. If the skill is unavailable, continue with the embedded protocol in this command file.
+`skill("adv-slop-detection")` → provides shared slop-detection methodology used by both `/adv-slop-scan` and this command's AI-slop scanner. If the skill is unavailable, continue with the embedded scanner contract below.
+
+### Harden Methodology
+
+#### Purpose
+
+Reusable hardening methodology for ADV harden workflows. Provides the 6-scanner framework overview.
+
+**Canonical source:** `docs/checklists/harden-checklist.md` — see that checklist for severity scoring, priority matrix, status determination, minimum findings threshold, documentation hygiene standard, and technical debt classification. Do not duplicate its content here.
+
+#### 6-Scanner Framework
+
+Every hardening pass must run all 6 scanners:
+
+| Scanner | Focus |
+|---------|-------|
+| Test Coverage | File-level coverage ratio, TDD evidence audit |
+| AI-Slop Detection | Placeholders, type erosion, naive patterns, structural issues |
+| Documentation Hygiene | Conflict detection, staleness audit, deletion of superseded docs |
+| Cleanup | Temp files, debug code, dead imports, orphaned tests |
+| Production Readiness | Security, reliability, performance, maintainability |
+| Deployment Readiness | Env vars, migrations, external services, CI/CD, infrastructure |
+
+All 6 must be executed. Skipping requires explicit justification.
+
+#### Constraints
+
+- **Read-only guidance** — this methodology block does not mutate ADV state
+- **No gate completion** — the command owns the harden gate
+- **Canonical source** — defer to `docs/checklists/harden-checklist.md` for detailed rules
+- **No workflow sequencing** — the command owns phase ordering and sub-agent orchestration
 
 ## Pre-flight
 ### Fetch Change Context
@@ -35,7 +65,7 @@ Extract from `$ARGUMENTS`:
 ### Gate Prerequisite Check
 `adv_gate_status changeId: {change-id}`
 
-If acceptance gate NOT complete (status != 'done' and status != 'legacy') → emit HARDEN BLOCKED banner citing incomplete acceptance gate → stop. Required action: `/adv-accept {change-id}`.
+If acceptance gate NOT complete (status != 'done' and status != 'legacy') → emit HARDEN BLOCKED banner citing incomplete acceptance gate → stop. Required action: `/adv-review {change-id}`.
 ### Cancellation & Cross-Repo Audit
 **Step 1: Unapproved cancellations** — From `adv_task_list`, find cancelled tasks. Verify each has `task.cancellation.approved_by_user === true`. If any lack approval → emit HARDEN BLOCKED banner listing unapproved tasks → stop.
 
@@ -117,17 +147,7 @@ Analyze test coverage: for each source file check for test file, calculate cover
 
 Return JSON with: `dimension: "test_coverage"`, `files_with_tests`, `files_without_tests`, `coverage_percent`, `tdd_audit`, `issues`.
 ### Sub-Agent 2: AI-Slop Detection Scanner
-Detect AI slop patterns in affected files:
-| Category | Patterns |
-|----------|----------|
-| Placeholders | TODO/FIXME in impl, `throw new Error('not implemented')`, `pass # placeholder` |
-| Error handling | catch-log-ignore, useless re-throw, silent swallow, `except: pass` |
-| Type erosion | Excessive `: any` (>1/100 lines), `as any`, `@ts-ignore` without reason, `!` without justification |
-| Structural | God classes (>20 methods), god functions (>100 lines), deep nesting (>4 levels), magic numbers, copy-paste (>10 lines) |
-| Naive impl | Manual JSON parse vs schema, string concat SQL, sync I/O in async, polling vs events, global mutable state |
-| Comments | Ratio >0.3, explaining obvious code, stale comments |
-
-Severity: BLOCKER (security/data loss) > HIGH (silent failures) > MEDIUM (debt) > LOW (style).
+Use the methodology from `adv-slop-detection` loaded in Phase 0 for this scanner dimension. Preserve the same severity ladder as the dedicated slop-scan workflow: BLOCKER (security/data loss) > HIGH (silent failures) > MEDIUM (debt) > LOW (style).
 
 Return JSON with: `dimension: "ai_slop"`, `summary` (total, blockers, high, by_category), `issues` (severity, category, file, line, pattern, code_snippet, message, fix_suggestion), `debt_quadrant`.
 ### Sub-Agent 3: Documentation Hygiene Scanner

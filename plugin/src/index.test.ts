@@ -180,11 +180,11 @@ describe("Advance Plugin SDK Integration", () => {
   // ===========================================================================
 
   describe("Tool Registration", () => {
-    test("registers all 42 tools", async () => {
+    test("registers all 35 tools", async () => {
       const hooks = await createTrackedPlugin(tempDir, pluginInstances);
 
       const toolNames = Object.keys(hooks.tool!);
-      expect(toolNames).toHaveLength(42);
+      expect(toolNames).toHaveLength(35);
     });
 
     test("registers spec tools", async () => {
@@ -200,14 +200,15 @@ describe("Advance Plugin SDK Integration", () => {
       const toolNames = Object.keys(hooks.tool!);
       expect(toolNames).toContain("adv_change_list");
       expect(toolNames).toContain("adv_change_show");
-      expect(toolNames).toContain("adv_change_summary");
+      expect(toolNames).not.toContain("adv_change_summary");
       expect(toolNames).toContain("adv_change_create");
       expect(toolNames).toContain("adv_change_update");
       expect(toolNames).toContain("adv_change_close");
       expect(toolNames).toContain("adv_change_validate");
       expect(toolNames).toContain("adv_change_archive");
-      expect(toolNames).toContain("adv_change_add_issue");
-      expect(toolNames).toContain("adv_change_remove_issue");
+      expect(toolNames).toContain("adv_change_update_issues");
+      expect(toolNames).not.toContain("adv_change_add_issue");
+      expect(toolNames).not.toContain("adv_change_remove_issue");
     });
 
     test("registers task tools", async () => {
@@ -219,9 +220,10 @@ describe("Advance Plugin SDK Integration", () => {
       expect(toolNames).toContain("adv_task_update");
       expect(toolNames).toContain("adv_task_add");
       expect(toolNames).toContain("adv_task_evidence");
-      expect(toolNames).toContain("adv_task_tdd_phase");
+      expect(toolNames).toContain("adv_task_tdd");
+      expect(toolNames).not.toContain("adv_task_tdd_phase");
       expect(toolNames).not.toContain("adv_task_skip_tdd");
-      expect(toolNames).toContain("adv_task_tdd_status");
+      expect(toolNames).not.toContain("adv_task_tdd_status");
       expect(toolNames).toContain("adv_task_cancel");
       expect(toolNames).toContain("adv_task_reclassify_tdd");
     });
@@ -232,7 +234,7 @@ describe("Advance Plugin SDK Integration", () => {
       const toolNames = Object.keys(hooks.tool!);
       expect(toolNames).toContain("adv_wisdom_add");
       expect(toolNames).toContain("adv_wisdom_list");
-      expect(toolNames).toContain("adv_wisdom_promote");
+      expect(toolNames).not.toContain("adv_wisdom_promote");
     });
 
     test("registers agenda tools", async () => {
@@ -245,10 +247,10 @@ describe("Advance Plugin SDK Integration", () => {
       expect(toolNames).toContain("adv_agenda_complete");
       expect(toolNames).toContain("adv_agenda_cancel");
       expect(toolNames).toContain("adv_agenda_prioritize");
-      expect(toolNames).toContain("adv_agenda_next");
-      expect(toolNames).toContain("adv_agenda_stats");
+      expect(toolNames).not.toContain("adv_agenda_next");
+      expect(toolNames).not.toContain("adv_agenda_stats");
       expect(toolNames).toContain("adv_agenda_evidence");
-      expect(toolNames).toContain("adv_agenda_compact");
+      expect(toolNames).not.toContain("adv_agenda_compact");
     });
 
     test("registers status and project tools", async () => {

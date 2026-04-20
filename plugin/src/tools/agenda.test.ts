@@ -4,8 +4,8 @@
  * TDD tests for lightweight agenda management tools.
  * These tests cover all 10 agenda MCP tools:
  * adv_agenda_list, adv_agenda_add, adv_agenda_start, adv_agenda_complete,
- * adv_agenda_cancel, adv_agenda_prioritize, adv_agenda_next, adv_agenda_stats,
- * adv_agenda_evidence, adv_agenda_compact
+ * adv_agenda_cancel, adv_agenda_prioritize,
+ * adv_agenda_evidence
  */
 
 import { describe, test, expect, beforeEach, afterEach } from "vitest";
@@ -346,90 +346,6 @@ describe("Agenda Tools", () => {
   });
 
   // =============================================================================
-  // adv_agenda_next
-  // =============================================================================
-
-  describe("adv_agenda_next", () => {
-    test("returns highest priority pending item", async () => {
-      await agendaTools.adv_agenda_add.execute(
-        { title: "Low priority", priority: "low" },
-        tempDir,
-      );
-      await agendaTools.adv_agenda_add.execute(
-        { title: "High priority", priority: "high" },
-        tempDir,
-      );
-
-      const result = await agendaTools.adv_agenda_next.execute({}, tempDir);
-      const parsed = parseToolOutput(result);
-
-      expect(parsed.next).toBeDefined();
-      expect(parsed.next.title).toBe("High priority");
-    });
-
-    test("returns active item if one exists", async () => {
-      const addResult = await agendaTools.adv_agenda_add.execute(
-        { title: "I will be active" },
-        tempDir,
-      );
-      const addParsed = parseToolOutput(addResult);
-      await agendaTools.adv_agenda_start.execute(
-        { itemId: addParsed.item.id },
-        tempDir,
-      );
-
-      const result = await agendaTools.adv_agenda_next.execute({}, tempDir);
-      const parsed = parseToolOutput(result);
-
-      expect(parsed.next.id).toBe(addParsed.item.id);
-      expect(parsed.next.title).toBe("I will be active");
-    });
-
-    test("returns message when agenda is empty", async () => {
-      const result = await agendaTools.adv_agenda_next.execute({}, tempDir);
-      const parsed = parseToolOutput(result);
-
-      expect(parsed.message).toBeDefined();
-      expect(parsed.suggestion).toContain("adv_agenda_add");
-    });
-  });
-
-  // =============================================================================
-  // adv_agenda_stats
-  // =============================================================================
-
-  describe("adv_agenda_stats", () => {
-    test("returns zero counts for empty agenda", async () => {
-      const result = await agendaTools.adv_agenda_stats.execute({}, tempDir);
-      const parsed = parseToolOutput(result);
-
-      expect(parsed.total).toBe(0);
-      expect(parsed.byStatus.pending).toBe(0);
-      expect(parsed.byPriority).toBeDefined();
-    });
-
-    test("returns correct counts after adding items", async () => {
-      await agendaTools.adv_agenda_add.execute(
-        { title: "Task 1", priority: "high" },
-        tempDir,
-      );
-      await agendaTools.adv_agenda_add.execute(
-        { title: "Task 2", priority: "critical", category: "bugfix" },
-        tempDir,
-      );
-
-      const result = await agendaTools.adv_agenda_stats.execute({}, tempDir);
-      const parsed = parseToolOutput(result);
-
-      expect(parsed.total).toBe(2);
-      expect(parsed.byStatus.pending).toBe(2);
-      expect(parsed.byPriority.critical).toBe(1);
-      expect(parsed.byPriority.high).toBe(1);
-      expect(parsed.byCategory.bugfix).toBe(1);
-    });
-  });
-
-  // =============================================================================
   // adv_agenda_evidence
   // =============================================================================
 
@@ -510,24 +426,6 @@ describe("Agenda Tools", () => {
   });
 
   // =============================================================================
-  // adv_agenda_compact
-  // =============================================================================
-
-  describe("adv_agenda_compact", () => {
-    test("compacts agenda file and returns total item count", async () => {
-      await agendaTools.adv_agenda_add.execute({ title: "Task 1" }, tempDir);
-      await agendaTools.adv_agenda_add.execute({ title: "Task 2" }, tempDir);
-
-      const result = await agendaTools.adv_agenda_compact.execute({}, tempDir);
-      const parsed = parseToolOutput(result);
-
-      expect(parsed.success).toBe(true);
-      expect(parsed.message).toBe("Agenda compacted");
-      expect(parsed.items).toBe(2);
-    });
-  });
-
-  // =============================================================================
   // Integration: full agenda lifecycle
   // =============================================================================
 
@@ -584,7 +482,7 @@ describe("Agenda Tools", () => {
       expect(listParsed.count).toBe(0);
     });
 
-    test("blocked item is skipped by adv_agenda_next until blocker completes", async () => {
+    test("client-side next selection via adv_agenda_list skips blocked items until blocker completes", async () => {
       // Add blocker item
       const blockerResult = await agendaTools.adv_agenda_add.execute(
         { title: "Blocker item", priority: "low" },
@@ -605,10 +503,45 @@ describe("Agenda Tools", () => {
       const blockedParsed = parseToolOutput(blockedResult);
       expect(blockedParsed.item).toBeDefined();
 
-      // Next should return blocker (blocked item is skipped even at critical priority)
-      const nextResult = await agendaTools.adv_agenda_next.execute({}, tempDir);
+      const pickNext = (
+        items: Array<{
+          id: string;
+          title: string;
+          priority: string;
+          status: string;
+          blocked_by?: string;
+        }>,
+      ) => {
+        const priorityRank: Record<string, number> = {
+          critical: 0,
+          high: 1,
+          medium: 2,
+          low: 3,
+          backlog: 4,
+        };
+        const byId = new Map(items.map((item) => [item.id, item]));
+        return [...items]
+          .filter(
+            (item) => item.status !== "done" && item.status !== "cancelled",
+          )
+          .filter((item) => {
+            if (!item.blocked_by) return true;
+            const blocker = byId.get(item.blocked_by);
+            return (
+              !blocker ||
+              blocker.status === "done" ||
+              blocker.status === "cancelled"
+            );
+          })
+          .sort(
+            (a, b) => priorityRank[a.priority] - priorityRank[b.priority],
+          )[0];
+      };
+
+      // Client-side selection via agenda_list should choose blocker (blocked item skipped)
+      const nextResult = await agendaTools.adv_agenda_list.execute({}, tempDir);
       const nextParsed = parseToolOutput(nextResult);
-      expect(nextParsed.next?.title).toBe("Blocker item");
+      expect(pickNext(nextParsed.items)?.title).toBe("Blocker item");
 
       // Complete the blocker
       await agendaTools.adv_agenda_complete.execute(
@@ -616,13 +549,13 @@ describe("Agenda Tools", () => {
         tempDir,
       );
 
-      // Now next should return the previously blocked item
-      const nextResult2 = await agendaTools.adv_agenda_next.execute(
+      // Now client-side selection should expose the previously blocked item
+      const nextResult2 = await agendaTools.adv_agenda_list.execute(
         {},
         tempDir,
       );
       const nextParsed2 = parseToolOutput(nextResult2);
-      expect(nextParsed2.next?.title).toBe("Blocked item");
+      expect(pickNext(nextParsed2.items)?.title).toBe("Blocked item");
     });
   });
 });

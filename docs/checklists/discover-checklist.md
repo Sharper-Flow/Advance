@@ -64,7 +64,7 @@ Discovery output persisted via `adv_change_update` must contain these sections:
 | Draft Spec Deltas      | `rq-*` IDs + ≥1 G/W/T per delta            | Structured list           |
 | Related Pattern Scan   | Matches or "no similar patterns found"     | Prose                     |
 | LBP Check              | Direction + evidence                       | Prose                     |
-| Recommended Objectives | Numbered list for `/adv-agree`             | List                      |
+| Recommended Objectives | Numbered list for the agreement phase      | List                      |
 
 ---
 
@@ -80,4 +80,4 @@ Discovery analysis is complete when ALL of the following are true:
 - [ ] Conflict scan executed with all 3 mandatory tool calls
 - [ ] Each identified gap has edge case coverage
 
-**Gate requirement**: Discovery gate can be marked complete when all heuristics are satisfied and `/adv-agree` can proceed with well-formed findings.
+**Gate requirement**: Discovery gate can be marked complete when all heuristics are satisfied and the agreement phase can proceed with well-formed findings.

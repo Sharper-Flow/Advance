@@ -75,11 +75,7 @@ const writeFileSink = (scope: string, level: LogLevel, line: string): void => {
 export const createLogger = (scope: string): Logger => {
   const consolePrefix = `[adv:${scope}]`;
 
-  const emit = (
-    level: LogLevel,
-    msg: string,
-    meta?: LogMeta,
-  ): void => {
+  const emit = (level: LogLevel, msg: string, meta?: LogMeta): void => {
     const metaStr = formatMeta(meta);
     const fileLine = `${msg}${metaStr}`;
     const consoleLine = `${consolePrefix} ${msg}${metaStr}`;

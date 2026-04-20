@@ -11,11 +11,11 @@ proposal → discovery → design → planning → execution → acceptance → 
 | #   | Gate ID      | Description                         | Triggered By                   | Artifact                           |
 | --- | ------------ | ----------------------------------- | ------------------------------ | ---------------------------------- |
 | 1   | `proposal`   | Problem statement confirmed         | `/adv-proposal`                | `problem-statement.md`             |
-| 2   | `discovery`  | Context gathered, objectives agreed | `/adv-discover` + `/adv-agree` | `agreement.md`                     |
-| 3   | `design`     | Architecture decisions validated    | `/adv-design` + `/adv-present` | `design.md`                        |
+| 2   | `discovery`  | Context gathered, objectives agreed | `/adv-discover`                | `agreement.md`                     |
+| 3   | `design`     | Architecture decisions validated    | `/adv-design`                  | `design.md`                        |
 | 4   | `planning`   | Task graph synthesized              | `/adv-prep`                    | Task graph in `change.json`        |
 | 5   | `execution`  | Deliverables produced via TDD       | `/adv-apply` (all tasks done)  | Code, docs, ops deliverables       |
-| 6   | `acceptance` | User accepts deliverables           | `/adv-review` + `/adv-accept`  | User sign-off                      |
+| 6   | `acceptance` | User accepts deliverables           | `/adv-review`                  | User sign-off                      |
 | 7   | `release`    | Final quality pass and archive      | `/adv-harden` + `/adv-archive` | Spec deltas applied, git finalized |
 
 ## Gate Status Values
@@ -42,13 +42,13 @@ Produces `problem-statement.md` — the confirmed problem statement with success
 
 ### Discovery Gate
 
-Owner: `/adv-discover` + `/adv-agree` | **Pauses for:** agreement sign-off (user-facing outcome questions only)
+Owner: `/adv-discover` | **Pauses for:** agreement sign-off (user-facing outcome questions only)
 
-Produces `agreement.md` — context analysis, objectives, and constraints agreed with the user. `/adv-agree` includes a mandatory clarification loop (Phase 2.5) that triages all open questions from discovery: technical questions are resolved autonomously via LBP research, while user-facing questions (priorities, behavior, downsides, AC boundaries) are presented to the user. No question may be silently deferred. The discovery and planning gates evaluate the full change including completed tasks — completed work is evidence to validate, not acceptance proof. Follow-up tasks are added where gaps are found.
+Produces `agreement.md` — context analysis, objectives, and constraints agreed with the user. `/adv-discover` Phase 4 (the agreement phase) includes a mandatory clarification loop that triages all open questions from discovery: technical questions are resolved autonomously via LBP research, while user-facing questions (priorities, behavior, downsides, AC boundaries) are presented to the user. No question may be silently deferred. The discovery and planning gates evaluate the full change including completed tasks — completed work is evidence to validate, not acceptance proof. Follow-up tasks are added where gaps are found.
 
 ### Design Gate
 
-Owner: `/adv-design` + `/adv-present` | **Pauses for:** design approval only when real tradeoffs depend on user values; auto-continues for straightforward deterministic designs
+Owner: `/adv-design` | **Pauses for:** design approval only when real tradeoffs depend on user values; auto-continues for straightforward deterministic designs
 
 Produces `design.md` — validated architecture decisions and implementation strategy. Design decisions are frozen after this gate completes.
 
@@ -66,9 +66,9 @@ All tasks must be done (or properly cancelled with user approval). `/adv-apply` 
 
 ### Acceptance Gate
 
-Owner: `/adv-review` + `/adv-accept` | **Pauses for:** user acceptance of delivered work
+Owner: `/adv-review` | **Pauses for:** user acceptance of delivered work
 
-Absorbs the old `review` + `signoff` gates. `/adv-review` emits a `REVIEW_FINDINGS` block (blocker, issue, suggestion, question). `/adv-accept` presents an acceptance criteria checklist for user confirmation.
+Absorbs the old `review` + `signoff` gates. `/adv-review` emits a `REVIEW_FINDINGS` block (blocker, issue, suggestion, question), presents the acceptance criteria checklist, and completes the acceptance gate after user confirmation.
 
 ### Release Gate
 

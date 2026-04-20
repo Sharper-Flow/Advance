@@ -95,10 +95,8 @@ function bindToolSimple<TArgs>(
     async (args) => def.execute(args as TArgs, dir, path),
     name,
   );
-  return registerTool(
-    def.description,
-    def.args,
-    async (args: unknown) => wrapped(args, dir, path),
+  return registerTool(def.description, def.args, async (args: unknown) =>
+    wrapped(args, dir, path),
   );
 }
 
@@ -129,11 +127,6 @@ export function createToolMap(
       "adv_change_show",
       store,
     ),
-    adv_change_summary: bindTool(
-      changeTools.adv_change_summary,
-      "adv_change_summary",
-      store,
-    ),
     adv_change_create: bindTool(
       changeTools.adv_change_create,
       "adv_change_create",
@@ -159,14 +152,9 @@ export function createToolMap(
       "adv_change_archive",
       store,
     ),
-    adv_change_add_issue: bindTool(
-      changeTools.adv_change_add_issue,
-      "adv_change_add_issue",
-      store,
-    ),
-    adv_change_remove_issue: bindTool(
-      changeTools.adv_change_remove_issue,
-      "adv_change_remove_issue",
+    adv_change_update_issues: bindTool(
+      changeTools.adv_change_update_issues,
+      "adv_change_update_issues",
       store,
     ),
     adv_change_reenter: bindTool(
@@ -190,16 +178,7 @@ export function createToolMap(
       "adv_task_evidence",
       store,
     ),
-    adv_task_tdd_phase: bindTool(
-      taskTools.adv_task_tdd_phase,
-      "adv_task_tdd_phase",
-      store,
-    ),
-    adv_task_tdd_status: bindTool(
-      taskTools.adv_task_tdd_status,
-      "adv_task_tdd_status",
-      store,
-    ),
+    adv_task_tdd: bindTool(taskTools.adv_task_tdd, "adv_task_tdd", store),
 
     // Task cancel — needs Record<string,string> type coercion
     adv_task_cancel: registerTool(
@@ -259,11 +238,6 @@ export function createToolMap(
       "adv_wisdom_list",
       store,
     ),
-    adv_wisdom_promote: bindTool(
-      wisdomTools.adv_wisdom_promote,
-      "adv_wisdom_promote",
-      store,
-    ),
     adv_project_wisdom_list: bindTool(
       wisdomTools.adv_project_wisdom_list,
       "adv_project_wisdom_list",
@@ -317,27 +291,9 @@ export function createToolMap(
       directory,
       agendaPath,
     ),
-    adv_agenda_next: bindToolSimple(
-      agendaTools.adv_agenda_next,
-      "adv_agenda_next",
-      directory,
-      agendaPath,
-    ),
-    adv_agenda_stats: bindToolSimple(
-      agendaTools.adv_agenda_stats,
-      "adv_agenda_stats",
-      directory,
-      agendaPath,
-    ),
     adv_agenda_evidence: bindToolSimple(
       agendaTools.adv_agenda_evidence,
       "adv_agenda_evidence",
-      directory,
-      agendaPath,
-    ),
-    adv_agenda_compact: bindToolSimple(
-      agendaTools.adv_agenda_compact,
-      "adv_agenda_compact",
       directory,
       agendaPath,
     ),
@@ -394,14 +350,12 @@ export const ADV_TOOL_NAMES: readonly string[] = [
   "adv_spec",
   "adv_change_list",
   "adv_change_show",
-  "adv_change_summary",
   "adv_change_create",
   "adv_change_update",
   "adv_change_close",
   "adv_change_validate",
   "adv_change_archive",
-  "adv_change_add_issue",
-  "adv_change_remove_issue",
+  "adv_change_update_issues",
   "adv_change_reenter",
   "adv_task_show",
   "adv_task_list",
@@ -409,13 +363,11 @@ export const ADV_TOOL_NAMES: readonly string[] = [
   "adv_task_update",
   "adv_task_add",
   "adv_task_evidence",
-  "adv_task_tdd_phase",
-  "adv_task_tdd_status",
+  "adv_task_tdd",
   "adv_task_cancel",
   "adv_task_reclassify_tdd",
   "adv_wisdom_add",
   "adv_wisdom_list",
-  "adv_wisdom_promote",
   "adv_project_wisdom_list",
   "adv_status",
   "adv_investment_report",
@@ -425,10 +377,7 @@ export const ADV_TOOL_NAMES: readonly string[] = [
   "adv_agenda_complete",
   "adv_agenda_cancel",
   "adv_agenda_prioritize",
-  "adv_agenda_next",
-  "adv_agenda_stats",
   "adv_agenda_evidence",
-  "adv_agenda_compact",
   "adv_project_context",
   "adv_gate_status",
   "adv_gate_complete",

@@ -22,15 +22,13 @@ tools:
   adv_change_create: false
   adv_change_update: false
   adv_change_archive: false
-  adv_change_add_issue: false
-  adv_change_remove_issue: false
+  adv_change_update_issues: false
   adv_task_add: false
   adv_task_update: false
   adv_task_evidence: false
-  adv_task_tdd_phase: false
+  adv_task_tdd: false
   adv_task_cancel: false
   adv_wisdom_add: false
-  adv_wisdom_promote: false
   adv_gate_complete: false
   adv_run_test: false
   adv_agenda_add: false
@@ -39,7 +37,6 @@ tools:
   adv_agenda_cancel: false
   adv_agenda_prioritize: false
   adv_agenda_evidence: false
-  adv_agenda_compact: false
   # MCP write tools
   sentry_create_team: false
   sentry_create_project: false

@@ -38,14 +38,12 @@ tools:
   # Changes
   adv_change_list: true
   adv_change_show: true
-  adv_change_summary: true
   adv_change_create: true
   adv_change_update: true
   adv_change_close: true
   adv_change_validate: true
   adv_change_archive: true
-  adv_change_add_issue: true
-  adv_change_remove_issue: true
+  adv_change_update_issues: true
   # Tasks
   adv_task_list: true
   adv_task_show: true
@@ -53,14 +51,12 @@ tools:
   adv_task_add: true
   adv_task_update: true
   adv_task_evidence: true
-  adv_task_tdd_phase: true
+  adv_task_tdd: true
   adv_task_reclassify_tdd: true
-  adv_task_tdd_status: true
   adv_task_cancel: true
   # Wisdom
   adv_wisdom_list: true
   adv_wisdom_add: true
-  adv_wisdom_promote: true
   # Project wisdom
   adv_project_wisdom_list: true
   # Agenda
@@ -70,10 +66,7 @@ tools:
   adv_agenda_complete: true
   adv_agenda_cancel: true
   adv_agenda_prioritize: true
-  adv_agenda_next: true
-  adv_agenda_stats: true
   adv_agenda_evidence: true
-  adv_agenda_compact: true
   # Gates
   adv_gate_status: true
   adv_gate_complete: true
@@ -274,7 +267,7 @@ After completing any workflow, emit:
 | You want | Use this tool |
 |----------|---------------|
 | Change details + tasks | `adv_change_show` |
-| Lightweight change context | `adv_change_summary` |
+| Lightweight change context | `adv_change_show` |
 | A specific task + its changeId | `adv_task_show` |
 | Tasks ready to work | `adv_task_ready` |
 | All tasks for a change | `adv_task_list` |

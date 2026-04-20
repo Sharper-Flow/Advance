@@ -220,19 +220,24 @@ describe("overlay sync script support", () => {
         encoding: "utf8",
       });
       expect(fixResult.status).toBe(0);
+      const syncOutput = `${fixResult.stdout}${fixResult.stderr}`;
+      const canonicalRootMatch = syncOutput.match(
+        /ADV sync-global \(fix\):\s+(.*?)\s+->/,
+      );
+      const canonicalRoot = canonicalRootMatch?.[1] ?? REPO_ROOT;
 
       const patched = JSON.parse(
         readFileSync(join(configDir, "opencode.json"), "utf8"),
       );
 
-      expect(patched.plugin).toContain(join(REPO_ROOT, "plugin"));
+      expect(patched.plugin).toContain(join(canonicalRoot, "plugin"));
       expect(patched.plugin).not.toContain(join(tempWorktree, "plugin"));
 
       expect(patched.instructions).toContain(
-        join(REPO_ROOT, "ADV_INSTRUCTIONS.md"),
+        join(canonicalRoot, "ADV_INSTRUCTIONS.md"),
       );
       expect(patched.instructions).toContain(
-        join(REPO_ROOT, ".opencode", "instructions", "cost-governance.md"),
+        join(canonicalRoot, ".opencode", "instructions", "cost-governance.md"),
       );
       expect(patched.instructions).not.toContain(
         join(tempWorktree, "ADV_INSTRUCTIONS.md"),

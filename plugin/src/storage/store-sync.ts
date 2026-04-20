@@ -354,9 +354,7 @@ export async function ensureProjectWisdomSynced(
     ctx.projectWisdomSynced = true;
   } catch (err) {
     // Project wisdom sync is best-effort — don't fail the operation
-    logger.warn(
-      `Project wisdom sync failed: ${(err as Error).message}`,
-    );
+    logger.warn(`Project wisdom sync failed: ${(err as Error).message}`);
     ctx.projectWisdomSynced = false; // allow retry on next call
   }
 }
