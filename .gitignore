@@ -51,3 +51,6 @@ temp/
 # ADV working state (local project data - in .adv directory)
 .adv/changes/
 .adv/archive/
+
+# Validation-only generated Temporal history fixture (committed only once populated intentionally)
+plugin/src/temporal/__tests__/replay/histories/smoke-captured.json
