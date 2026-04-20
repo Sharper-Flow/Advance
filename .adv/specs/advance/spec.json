@@ -3,8 +3,8 @@
   "name": "advance",
   "title": "Advance",
   "purpose": "Capability: Advance",
-  "version": "1.8.1",
-  "updated_at": "2026-04-14T02:45:00.000Z",
+  "version": "1.9.0",
+  "updated_at": "2026-04-20T19:11:00.000Z",
   "requirements": [
     {
       "id": "rq-W1sD0mR1",
@@ -769,6 +769,119 @@
           "then": [
             "The change explains why the new surface does not duplicate an existing merge opportunity, or updates the documented limits in the same change",
             "Related verification assets are updated so future drift is detectable"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-ADVEXEC01",
+      "title": "Canonical Apply Tool Path for Inline TDD",
+      "body": "For ordinary inline TDD work, /adv-apply MUST explicitly name editing tools (edit, write, morph_edit where appropriate) as the correct path for creating or modifying test files, and MUST explicitly name adv_run_test as the primary red/green test execution path.",
+      "priority": "must",
+      "tags": ["workflow", "execution", "tdd", "tool-routing"],
+      "scenarios": [
+        {
+          "id": "rq-ADVEXEC01.1",
+          "title": "Red and green contract lines name adv_run_test",
+          "given": [
+            "The /adv-apply command contract is present"
+          ],
+          "when": "Its Red and Green phase guidance is inspected",
+          "then": [
+            "The Red phase line names adv_run_test with phase 'red'",
+            "The Green phase line names adv_run_test with phase 'green'"
+          ]
+        },
+        {
+          "id": "rq-ADVEXEC01.2",
+          "title": "Apply contract names editing tools for test-file changes",
+          "given": [
+            "The /adv-apply command contract is present"
+          ],
+          "when": "Its ordinary inline-TDD file-editing guidance is inspected",
+          "then": [
+            "At least one supported editing tool is named for test-file creation or modification",
+            "Raw shell file-writing is not presented as the normal path"
+          ]
+        },
+        {
+          "id": "rq-ADVEXEC01.3",
+          "title": "Fallback framing keeps adv_task_evidence secondary",
+          "given": [
+            "The /adv-apply command or adjacent remediation guidance references adv_task_evidence"
+          ],
+          "when": "The evidence workflow is described",
+          "then": [
+            "adv_task_evidence is described as fallback or externally captured evidence path",
+            "It is not described as the primary inline-TDD execution path"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-ADVEXEC02",
+      "title": "Apply Contract Regression Anchors",
+      "body": "The repository MUST maintain asset or regression tests that fail when canonical inline-TDD path wording is removed from /adv-apply or when shell-authored test-file content is reintroduced as normal-path guidance.",
+      "priority": "must",
+      "tags": ["workflow", "execution", "regression", "tool-routing"],
+      "scenarios": [
+        {
+          "id": "rq-ADVEXEC02.1",
+          "title": "Asset tests guard canonical path wording",
+          "given": [
+            "The /adv-apply contract is covered by asset tests"
+          ],
+          "when": "Canonical Red/Green adv_run_test wording is removed",
+          "then": [
+            "The asset or regression suite fails"
+          ]
+        },
+        {
+          "id": "rq-ADVEXEC02.2",
+          "title": "Asset tests guard anti-pattern row",
+          "given": [
+            "The /adv-apply contract is covered by asset tests"
+          ],
+          "when": "The shell-authored test-file anti-pattern row is removed or weakened",
+          "then": [
+            "The asset or regression suite fails"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-ADVEXEC03",
+      "title": "Runtime Enforcement for Inline-TDD Bash Workarounds",
+      "body": "During active inline-TDD work, runtime enforcement MUST treat shell-authored test-file content and direct test-runner bash differently. Shell-authored test-file content targeting test-glob paths is prohibited and MUST be blocked. Direct test-runner bash without a matching recent adv_run_test signal MUST emit an advisory but MUST NOT be blocked. These are firm defaults, not feature-flagged rollout modes.",
+      "priority": "must",
+      "tags": ["workflow", "execution", "runtime", "guard", "tdd"],
+      "scenarios": [
+        {
+          "id": "rq-ADVEXEC03.1",
+          "title": "Shell-authored test-file content is blocked",
+          "given": [
+            "A change is active",
+            "An inline-TDD task is in progress",
+            "A bash command writes file content to a test-glob path"
+          ],
+          "when": "The bash command is checked by runtime enforcement",
+          "then": [
+            "The command is blocked",
+            "The error tells the agent to use editing tools and adv_run_test instead"
+          ]
+        },
+        {
+          "id": "rq-ADVEXEC03.2",
+          "title": "Direct test-runner bash is advisory only",
+          "given": [
+            "A change is active",
+            "An inline-TDD task is in progress",
+            "A bash command runs a test runner without a matching recent adv_run_test signal"
+          ],
+          "when": "The bash command is checked by runtime enforcement",
+          "then": [
+            "The command is not blocked",
+            "An advisory is emitted directing the agent to prefer adv_run_test"
           ]
         }
       ]

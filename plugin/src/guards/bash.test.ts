@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { isMutating, enforceBashPolicy } from "./bash";
+import { isMutating, enforceBashPolicy, enforceTddBashPolicy } from "./bash";
 
 describe("Bash Policy Guard", () => {
   describe("isMutating", () => {
@@ -56,6 +56,88 @@ describe("Bash Policy Guard", () => {
       expect(() => enforceBashPolicy("general", "rm -rf /")).not.toThrow();
       expect(() => enforceBashPolicy("build", "npm install")).not.toThrow();
       expect(() => enforceBashPolicy("unknown", "rm -rf /")).not.toThrow();
+    });
+  });
+
+  describe("enforceTddBashPolicy", () => {
+    const activeContext = {
+      activeChangeId: "cleanTddExecutionPaths",
+      activeInlineTddTaskId: "tk-guard",
+    };
+
+    it("blocks heredoc write to test file during active inline TDD", () => {
+      expect(
+        enforceTddBashPolicy("cat <<'EOF' > src/foo.test.ts", activeContext),
+      ).toMatchObject({ action: "block" });
+    });
+
+    it("blocks python write_text to test file during active inline TDD", () => {
+      expect(
+        enforceTddBashPolicy(
+          'python -c "from pathlib import Path; Path("src/foo.test.py").write_text("x")"',
+          activeContext,
+        ),
+      ).toMatchObject({ action: "block" });
+    });
+
+    it("blocks echo redirect to test file during active inline TDD", () => {
+      expect(
+        enforceTddBashPolicy("echo 'x' > src/foo.test.ts", activeContext),
+      ).toMatchObject({ action: "block" });
+    });
+
+    it("blocks tee to spec file during active inline TDD", () => {
+      expect(
+        enforceTddBashPolicy("printf 'x' | tee src/foo.spec.ts", activeContext),
+      ).toMatchObject({ action: "block" });
+    });
+
+    it("blocks cat redirect to go test file during active inline TDD", () => {
+      expect(
+        enforceTddBashPolicy("cat > src/foo_test.go", activeContext),
+      ).toMatchObject({ action: "block" });
+    });
+
+    it("advises on direct vitest bash without recent adv_run_test", () => {
+      expect(
+        enforceTddBashPolicy(
+          "pnpm exec vitest run src/foo.test.ts",
+          activeContext,
+        ),
+      ).toMatchObject({ action: "advisory" });
+    });
+
+    it("allows direct pytest bash with matching recent adv_run_test", () => {
+      expect(
+        enforceTddBashPolicy("pytest tests/test_foo.py", {
+          ...activeContext,
+          lastAdvRunTest: {
+            taskId: "tk-guard",
+            phase: "red",
+            atMs: Date.now(),
+          },
+        }),
+      ).toMatchObject({ action: "allow" });
+    });
+
+    it("allows heredoc to non-test file", () => {
+      expect(
+        enforceTddBashPolicy("cat <<'EOF' > src/foo.ts", activeContext),
+      ).toMatchObject({ action: "allow" });
+    });
+
+    it("allows commands when no active inline-TDD task", () => {
+      expect(
+        enforceTddBashPolicy("pnpm exec vitest run src/foo.test.ts", {
+          activeChangeId: "cleanTddExecutionPaths",
+        }),
+      ).toMatchObject({ action: "allow" });
+    });
+
+    it("allows commands when no active change", () => {
+      expect(
+        enforceTddBashPolicy("pnpm exec vitest run src/foo.test.ts", {}),
+      ).toMatchObject({ action: "allow" });
     });
   });
 });

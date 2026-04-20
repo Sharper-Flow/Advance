@@ -38,6 +38,75 @@ const SAFE_WHITELIST = [
   /^git\s+log(\s|$)/,
 ];
 
+export interface TddBashContext {
+  activeChangeId?: string | null;
+  activeInlineTddTaskId?: string | null;
+  lastAdvRunTest?: {
+    taskId: string;
+    phase: "red" | "green";
+    atMs: number;
+  } | null;
+}
+
+export interface TddBashResult {
+  action: "allow" | "advisory" | "block";
+  message?: string;
+}
+
+const TEST_FILE_WRITE_PATTERNS = [
+  /<<'?EOF'?.*>\s*[^\s]+(?:\.test\.|\.spec\.|_test\.)/i,
+  /python(?:3)?\s+-c\s+.*(?:\.test\.|\.spec\.|_test\.).*write_text|python(?:3)?\s+-c\s+.*write_text.*(?:\.test\.|\.spec\.|_test\.)/i,
+  /echo\b.*>\s*[^\s]+(?:\.test\.|\.spec\.|_test\.)/i,
+  /tee\s+[^\s]+(?:\.test\.|\.spec\.|_test\.)/i,
+  /cat\s*>\s*[^\s]+(?:\.test\.|\.spec\.|_test\.)/i,
+];
+
+const TEST_RUNNER_PATTERN =
+  /\b(vitest|pytest|jest|npm\s+test|pnpm\s+(?:exec\s+vitest|test)|bun\s+test|go\s+test|cargo\s+test)\b/i;
+
+const RECENT_ADV_RUN_TEST_WINDOW_MS = 60_000;
+
+function matchesAny(command: string, patterns: RegExp[]): boolean {
+  return patterns.some((pattern) => pattern.test(command));
+}
+
+export function enforceTddBashPolicy(
+  command: string,
+  context: TddBashContext,
+): TddBashResult {
+  if (!context.activeChangeId || !context.activeInlineTddTaskId) {
+    return { action: "allow" };
+  }
+
+  if (matchesAny(command, TEST_FILE_WRITE_PATTERNS)) {
+    return {
+      action: "block",
+      message:
+        "Shell-authored test-file content is prohibited during inline TDD. " +
+        "Use edit/write/morph_edit for file changes, then run the test via adv_run_test.",
+    };
+  }
+
+  if (!TEST_RUNNER_PATTERN.test(command)) {
+    return { action: "allow" };
+  }
+
+  const recentMatch =
+    context.lastAdvRunTest &&
+    context.lastAdvRunTest.taskId === context.activeInlineTddTaskId &&
+    Date.now() - context.lastAdvRunTest.atMs <= RECENT_ADV_RUN_TEST_WINDOW_MS;
+
+  if (recentMatch) {
+    return { action: "allow" };
+  }
+
+  return {
+    action: "advisory",
+    message:
+      "Direct test-runner bash detected during inline TDD. Prefer adv_run_test for red/green evidence recording.",
+  };
+}
+
 /**
  * Validates if a command is potentially mutating.
  * @param command The bash command string

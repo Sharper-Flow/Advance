@@ -84,8 +84,9 @@ Work one task at a time. Two tiers:
 × Do NOT call `adv_change_show` before every task — use `adv_task_show` unless you need full change context.
 ### TDD Protocol (RSTC)
 Inline TDD is default — red/green phases WITHIN each task.
-- **RED:** Write failing test → run → `[ADV:TDD_RED]` → show output
-- **GREEN:** Implement → run → `[ADV:TDD_GREEN]` → show output
+- **RED:** Write failing test with editing tools (`edit` / `write` / `morph_edit`) → run via `adv_run_test` → `[ADV:TDD_RED]` → show output
+- **GREEN:** Implement with editing tools → run via `adv_run_test` → `[ADV:TDD_GREEN]` → show output
+- **Fallback evidence:** `adv_task_evidence` remains available for externally captured evidence; it is not the primary inline-TDD path
 - **Trivial:** Set `metadata.tdd_intent: "not_applicable"` with reason
 - **Cross-cutting:** Separate verification tasks OK → `metadata.tdd_intent: "separate_verification"`
 ### Doom Loop Detection

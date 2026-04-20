@@ -203,7 +203,7 @@ describe("checkTddCompliance", () => {
     expect(issues[0].severity).toBe("error");
   });
 
-  test("MISSING_TDD_EVIDENCE recommendation references adv_task_reclassify_tdd", () => {
+  test("MISSING_TDD_EVIDENCE recommendation prefers adv_run_test and still references adv_task_reclassify_tdd", () => {
     const change = makeChange({
       tasks: [
         makeTask({
@@ -215,6 +215,10 @@ describe("checkTddCompliance", () => {
     });
     const issues = checkTddCompliance(change);
     expect(issues).toHaveLength(1);
+    expect(issues[0].details?.recommendation).toMatch(
+      /adv_run_test.*preferred|preferred.*adv_run_test/i,
+    );
+    expect(issues[0].details?.recommendation).toContain("adv_task_evidence");
     expect(issues[0].details?.recommendation).toContain(
       "adv_task_reclassify_tdd",
     );

@@ -25,7 +25,7 @@ import type { StatusMarker } from "./types";
 import { getProjectId, getExternalRoot } from "./utils/project-id";
 import { migrateToExternalState } from "./storage/migrate";
 import { consumeHandoff } from "./storage/handoff";
-import { enforceBashPolicy } from "./guards/bash";
+import { enforceBashPolicy, enforceTddBashPolicy } from "./guards/bash";
 import { enforceTaskPolicy } from "./guards/task";
 import { createToolMap, createDegradedToolMap } from "./tool-registry";
 import { appendDebugLog, createLogger } from "./utils/debug-log";
@@ -81,6 +81,12 @@ interface PluginState extends StatusFlags {
   lastCompletedTask: {
     id: string;
     title: string;
+  } | null;
+  activeInlineTddTaskId: string | null;
+  lastAdvRunTest: {
+    taskId: string;
+    phase: "red" | "green";
+    atMs: number;
   } | null;
   /** True when running inside a git worktree (directory !== main repo root) */
   isWorktree: boolean;
@@ -171,6 +177,8 @@ export const AdvancePlugin: Plugin = async ({
     tddPhase: null,
     activeChange: { id: null, objective: null },
     lastCompletedTask: null,
+    activeInlineTddTaskId: null,
+    lastAdvRunTest: null,
     isWorktree,
   };
 
@@ -266,6 +274,17 @@ export const AdvancePlugin: Plugin = async ({
           const command =
             typeof args["command"] === "string" ? args["command"] : "";
           enforceBashPolicy(agent, command);
+          const tddBashResult = enforceTddBashPolicy(command, {
+            activeChangeId: state.activeChange.id,
+            activeInlineTddTaskId: state.activeInlineTddTaskId,
+            lastAdvRunTest: state.lastAdvRunTest,
+          });
+          if (tddBashResult.action === "block") {
+            throw new Error(tddBashResult.message);
+          }
+          if (tddBashResult.action === "advisory" && tddBashResult.message) {
+            hooksLogger.warn(tddBashResult.message);
+          }
         }
 
         // Track changeId from ADV tools for context injection
@@ -342,6 +361,13 @@ export const AdvancePlugin: Plugin = async ({
                 title: result.task.title,
               };
             }
+            if (result.success && result.task?.status === "in_progress") {
+              const intent = result.task?.metadata?.tdd_intent;
+              state.activeInlineTddTaskId =
+                intent === "inline"
+                  ? result.task.id
+                  : state.activeInlineTddTaskId;
+            }
           } catch {
             // ignore parse errors
           }
@@ -364,6 +390,19 @@ export const AdvancePlugin: Plugin = async ({
           input.tool === "adv_run_test" ||
           input.tool === "adv_task_evidence"
         ) {
+          const phase = input.args?.phase;
+          const taskId = input.args?.taskId;
+          if (
+            input.tool === "adv_run_test" &&
+            typeof taskId === "string" &&
+            (phase === "red" || phase === "green")
+          ) {
+            state.lastAdvRunTest = {
+              taskId,
+              phase,
+              atMs: Date.now(),
+            };
+          }
           setFlags({ tddPhase: null });
         }
       } catch (e) {

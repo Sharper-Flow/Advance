@@ -147,6 +147,36 @@ describe("ADV command routing assets", () => {
     expect(content).toMatch(/Invalid stop reasons/i);
   });
 
+  test("adv-apply.md Red phase names adv_run_test with red phase", () => {
+    const content = readFileSync(join(COMMAND_DIR, "adv-apply.md"), "utf8");
+    expect(content).toMatch(/adv_run_test[^\n]*phase:?\s*['"]red['"]/i);
+  });
+
+  test("adv-apply.md Green phase names adv_run_test with green phase", () => {
+    const content = readFileSync(join(COMMAND_DIR, "adv-apply.md"), "utf8");
+    expect(content).toMatch(/adv_run_test[^\n]*phase:?\s*['"]green['"]/i);
+  });
+
+  test("adv-apply.md names editing tools for test-file creation", () => {
+    const content = readFileSync(join(COMMAND_DIR, "adv-apply.md"), "utf8");
+    expect(content).toMatch(/edit|write|morph_edit/);
+  });
+
+  test("adv-apply.md anti-patterns prohibit shell-authored test-file content", () => {
+    const content = readFileSync(join(COMMAND_DIR, "adv-apply.md"), "utf8");
+    expect(content).toMatch(/heredoc|python -c|echo >|tee|cat >/i);
+    expect(content).toMatch(
+      /prohibited.*ordinary TDD|ordinary TDD.*prohibited/i,
+    );
+  });
+
+  test("adv-apply.md frames adv_task_evidence as fallback", () => {
+    const content = readFileSync(join(COMMAND_DIR, "adv-apply.md"), "utf8");
+    expect(content).toMatch(
+      /adv_task_evidence.*fallback|fallback.*adv_task_evidence/i,
+    );
+  });
+
   test("adv-review.md uses structured context packet (not one-liner)", () => {
     const content = readFileSync(join(COMMAND_DIR, "adv-review.md"), "utf8");
     expect(content).toContain("Review Context Packet");

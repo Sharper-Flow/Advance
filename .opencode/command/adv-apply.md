@@ -220,6 +220,9 @@ Use task IDs only (`tk-abc123`), not descriptions. Forces context lookup via `ad
 | "Tests are flaky, marking done" | Fix flaky tests or document as environmental |
 | Marking "blocked" after 1 try | Must attempt 3 distinct fixes |
 | "This targets another repo" | Switch workdir and execute |
+| Shell-authored test-file content (heredoc / `python -c` / `echo > *.test.*` / `tee` / `cat >`) | Prohibited for ordinary TDD. Use `edit` / `write` / `morph_edit` for file changes, then run `adv_run_test` |
+
+`adv_task_evidence` is fallback for externally captured evidence. It is not the primary inline-TDD path when the test command can run via `adv_run_test`.
 ### Delegation Routing
 Before TDD phases, evaluate each task for delegation eligibility:
 | Priority | Check | Result |
@@ -257,9 +260,9 @@ EXPECTED OUTPUT: implement the task, run tests, report pass/fail result
 
 **3a.5. Route:** Evaluate delegation routing (above). If delegated and verified → skip to 3d.
 
-**3b. Red Phase:** `[ADV:TDD_RED]` → write failing test → run → show failure evidence
+**3b. Red Phase:** `[ADV:TDD_RED]` → write failing test using `edit` / `write` / `morph_edit` → run with `adv_run_test phase:'red'` → show failure evidence
 
-**3c. Green Phase:** `[ADV:TDD_GREEN]` → implement → run → if fails: retry protocol → show pass evidence
+**3c. Green Phase:** `[ADV:TDD_GREEN]` → implement using `edit` / `write` / `morph_edit` → run with `adv_run_test phase:'green'` → if fails: retry protocol → show pass evidence
 
 **3d. Complete:** `adv_task_update status: "done"` → show evidence
 

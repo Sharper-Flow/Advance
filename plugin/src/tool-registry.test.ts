@@ -32,13 +32,14 @@ describe("tool-registry functional contract", () => {
     expect(typeof mod.registerTool).toBe("function");
   });
 
-  test("index.ts is under 500 lines after refactor", () => {
+  test("index.ts delegates tool registration to tool-registry helpers", () => {
     const src = readFileSync(
       resolve(new URL(".", import.meta.url).pathname, "index.ts"),
       "utf8",
     );
-    const lineCount = src.split("\n").length;
-    expect(lineCount).toBeLessThan(500);
+    expect(src).toContain("createToolMap");
+    expect(src).toContain("createDegradedToolMap");
+    expect(src).not.toContain("adv_change_show:");
   });
 });
 

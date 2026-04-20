@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+#### Clean TDD Execution Paths (`cleanTddExecutionPaths`)
+
+- **Canonical inline-TDD path in `/adv-apply`** — Red/Green guidance now names editing tools (`edit`, `write`, `morph_edit`) for test-file changes and `adv_run_test` as the primary red/green execution path. `adv_task_evidence` is now framed as fallback for externally captured evidence, not the primary inline-TDD path.
+- **New spec requirements** — `rq-TDD008path` added to `tdd-contract`; `rq-ADVEXEC01`, `rq-ADVEXEC02`, and `rq-ADVEXEC03` added to `advance` to codify canonical tool routing, regression anchors, and runtime guard behavior.
+- **Runtime bash enforcement for inline TDD** (`plugin/src/guards/bash.ts`) — new `enforceTddBashPolicy` extends the existing bash guard. Firm default behavior: shell-authored test-file content (`heredoc`, `python -c`, `echo >`, `tee`, `cat >`) targeting test-glob paths during active inline-TDD is blocked; direct test-runner bash during active inline-TDD without matching recent `adv_run_test` emits an advisory and does not block. No feature flags, env vars, or escape hatches.
+- **Completeness remediation text** (`plugin/src/validator/completeness.ts`) — missing TDD evidence guidance now prefers `adv_run_test`, while retaining `adv_task_evidence` as fallback and `adv_task_reclassify_tdd` for non-applicable cases.
+
+### Changed
+
 #### Plugin Observability & Reliability Hardening (`bundle8ValidatedObservability`)
 
 Bundle of 8 validated quality gaps closed in one coherent hardening pass.
