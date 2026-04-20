@@ -103,6 +103,12 @@ export function renderTemporalReadinessDecision(input: {
   lines.push(`- Reviewed at: ${reviewedAt}`);
   lines.push(`- Verdict: **${decision.verdict}**`);
   lines.push("");
+  lines.push(
+    decision.verdict === "AUTO_GO"
+      ? `Temporal storage validation passed all ${decision.summary.totalChecks} checks. See table below for detailed results.`
+      : `Temporal storage validation has ${decision.failedChecks.length} failing check(s) of ${decision.summary.totalChecks}. See table and "Failed Checks" section for details.`,
+  );
+  lines.push("");
 
   lines.push("## Check Summary");
   lines.push("");

@@ -119,8 +119,18 @@ export async function runParityScenarios<TOutput = unknown>(input: {
       results,
     };
   } finally {
-    legacyStore.close?.();
-    temporalStore.close?.();
+    // Run all teardown steps even if earlier steps throw, so the
+    // TestWorkflowEnvironment is never leaked when one store close fails.
+    try {
+      legacyStore.close?.();
+    } catch {
+      // best-effort; teardown must still run
+    }
+    try {
+      temporalStore.close?.();
+    } catch {
+      // best-effort; teardown must still run
+    }
     await environment.teardown?.();
   }
 }
@@ -154,9 +164,16 @@ export async function runStorageLayerParity<TOutput = unknown>(input: {
       return {
         ...env,
         teardown: async () => {
-          worker?.shutdown();
+          // Initiate worker shutdown, then await both the shutdown signal and
+          // the run promise so the worker is fully drained before the
+          // TestWorkflowEnvironment is torn down.
+          await worker?.shutdown();
           await runPromise?.catch(() => undefined);
-          bootstrapLegacy?.close?.();
+          try {
+            bootstrapLegacy?.close?.();
+          } catch {
+            // best-effort; env teardown must still run
+          }
           await env.teardown();
         },
       } satisfies TestWorkflowEnvironmentLike;
