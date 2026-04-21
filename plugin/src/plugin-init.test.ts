@@ -221,6 +221,63 @@ describe("plugin-init tryInitStore", () => {
       startedRuntime: true,
     }));
   });
+
+  it("falls back to file-backed store when ADV_ALLOW_DEGRADED_FALLBACK=1 and Temporal init fails", async () => {
+    mocks.getProjectId.mockResolvedValue("proj-sha");
+    mocks.ensureTemporalRuntime.mockImplementation(async () => {
+      throw new Error("Bun cannot run @temporalio/worker in-process");
+    });
+    vi.stubEnv("ADV_ALLOW_DEGRADED_FALLBACK", "1");
+
+    const { tryInitStore } = await import("./plugin-init");
+
+    const result = await tryInitStore("/tmp/repo", "/tmp/external");
+
+    // Fallback succeeded: store returned, no initError
+    expect(result.store).toBe(mocks.store);
+    expect(result.initError).toBeNull();
+    // createStore called WITHOUT temporalBundle (file-backed path)
+    expect(mocks.createStore).toHaveBeenCalledWith(
+      "/tmp/repo",
+      expect.objectContaining({
+        externalRoot: "/tmp/external",
+        projectIdOverride: "proj-sha",
+      }),
+    );
+    const call = mocks.createStore.mock.calls.at(-1)?.[1];
+    expect(call?.temporalBundle).toBeUndefined();
+
+    // Restore for subsequent tests
+    mocks.ensureTemporalRuntime.mockImplementation(async () => ({
+      address: "127.0.0.1:7233",
+      namespace: "default",
+      startedRuntime: true,
+    }));
+  });
+
+  it("returns initError when ADV_ALLOW_DEGRADED_FALLBACK is not set and Temporal init fails (existing behavior)", async () => {
+    mocks.getProjectId.mockResolvedValue("proj-sha");
+    mocks.ensureTemporalRuntime.mockImplementation(async () => {
+      throw new Error("Bun cannot run @temporalio/worker in-process");
+    });
+    // Flag explicitly empty — beforeEach already stubs this but assert the
+    // expectation explicitly to make the contract clear.
+    vi.stubEnv("ADV_ALLOW_DEGRADED_FALLBACK", "");
+
+    const { tryInitStore } = await import("./plugin-init");
+
+    const result = await tryInitStore("/tmp/repo", "/tmp/external");
+
+    expect(result.store).toBeNull();
+    expect(result.initError).toBeInstanceOf(Error);
+    expect(mocks.createStore).not.toHaveBeenCalled();
+
+    mocks.ensureTemporalRuntime.mockImplementation(async () => ({
+      address: "127.0.0.1:7233",
+      namespace: "default",
+      startedRuntime: true,
+    }));
+  });
 });
 
 describe("runBootstrapMigrationSweep", () => {

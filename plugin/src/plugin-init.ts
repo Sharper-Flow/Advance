@@ -147,13 +147,27 @@ export async function runBootstrapMigrationSweep(input: {
  * Attempt to create and initialize the ADV store. Never throws — any failure
  * is captured in the returned initError and logged.
  */
+async function initStoreWithoutTemporal(
+  effectiveDir: string,
+  externalRoot: string | undefined,
+  projectId: string | null,
+): Promise<StoreInitResult> {
+  const store = await createStore(effectiveDir, {
+    externalRoot,
+    projectIdOverride: projectId ?? undefined,
+    // No temporalBundle — file-backed harness path.
+  });
+  await store.init();
+  return { store, initError: null };
+}
+
 export async function tryInitStore(
   effectiveDir: string,
   externalRoot: string | undefined,
 ): Promise<StoreInitResult> {
-  try {
-    const projectId = await getProjectId(effectiveDir);
+  const projectId = await getProjectId(effectiveDir);
 
+  try {
     let temporalBundle:
       | Awaited<ReturnType<typeof createTemporalClientBundle>>
       | undefined;
@@ -206,6 +220,31 @@ export async function tryInitStore(
     logger.info(
       `Plugin init failed: ${initError.message} — adv_* tools are stubbed and will report ADV_PLUGIN_INIT_FAILED until the cause is fixed.`,
     );
+
+    // Opt-in graceful degradation: if the user has set
+    // ADV_ALLOW_DEGRADED_FALLBACK=1 they prefer a working file-backed store
+    // over the degraded-tool-map stubs. Deprecated-by-design: removed once
+    // out-of-process Node worker ships (Phase 2).
+    if (process.env.ADV_ALLOW_DEGRADED_FALLBACK === "1") {
+      try {
+        debugLog(
+          `ADV_ALLOW_DEGRADED_FALLBACK=1 — falling back to file-backed store`,
+        );
+        return await initStoreWithoutTemporal(
+          effectiveDir,
+          externalRoot,
+          projectId,
+        );
+      } catch (fallbackError) {
+        const fbError =
+          fallbackError instanceof Error
+            ? fallbackError
+            : new Error(String(fallbackError));
+        debugLog(`Fallback to file-backed store also failed: ${fbError.message}`);
+        return { store: null, initError: fbError };
+      }
+    }
+
     return { store: null, initError };
   }
 }
