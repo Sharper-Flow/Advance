@@ -232,7 +232,7 @@ Only `mode: subagent` agents are spawnable via the Task tool. Current spawnable 
 | `tron`           | Codebase reconnaissance, hotspots, risk mapping                      | Structure + risk report               |
 | `prioritizer`    | Multi-approach tradeoff analysis needing criteria questions          | Draft criteria questions for the user |
 
-> `engineer` is the preferred target for ADV code-writing delegation; `general` remains for verify-only and non-ADV multi-step work; Build stays primary-only.
+> `engineer` is the preferred target for ADV code-writing delegation; `general` remains for verify-only and generic multi-step work; Build stays primary-only.
 >
 > **Primary agents (not spawnable):** `build` and `plan` are `mode: primary` — the user switches to them directly; they cannot be invoked via the Task tool. Delegate execution/verify work to `engineer` or `general`; delegate planning research to `librarian` + `adv-researcher` or work inline.
 

@@ -83,7 +83,8 @@ describe("adv-engineer assets", () => {
 
   test("ENGINEER_REPORT schema lists all required fields", () => {
     const content = readFileSync(AGENT_PATH, "utf8");
-    const reportSection = content.split("ENGINEER_REPORT")[1] ?? "";
+    // Split on the heading, then look at everything after it
+    const reportSection = content.split("## ENGINEER_REPORT Payload")[1] ?? "";
     const requiredFields = [
       "schema_version",
       "change_id",

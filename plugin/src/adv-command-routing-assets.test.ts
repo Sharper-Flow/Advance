@@ -280,7 +280,8 @@ describe("ADV command routing assets", () => {
 
   test("adv-apply.md delegation routing points to engineer (not general)", () => {
     const content = readFileSync(join(COMMAND_DIR, "adv-apply.md"), "utf8");
-    const delegationSection = content.split("### Delegation Routing")[1]?.split("###")[0] ?? "";
+    const delegationSection =
+      content.split("### Delegation Routing")[1]?.split("###")[0] ?? "";
     expect(delegationSection).toContain("`engineer`");
     expect(delegationSection).not.toMatch(/Spawn `general` sub-agent/);
   });

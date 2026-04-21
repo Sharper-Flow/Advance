@@ -1,10 +1,6 @@
 import { dirname, join } from "path";
 import { mkdir } from "fs/promises";
-import {
-  spawn,
-  spawnSync,
-  type ChildProcess,
-} from "child_process";
+import { spawn, spawnSync, type ChildProcess } from "child_process";
 import { statSync, accessSync, constants as fsConstants } from "node:fs";
 import * as net from "node:net";
 import { tmpdir } from "os";

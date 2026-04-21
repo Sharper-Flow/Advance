@@ -244,7 +244,9 @@ describe("plugin-init tryInitStore", () => {
   it("does not emit console.warn or console.error when Temporal init fails (narrow scope per validator)", async () => {
     mocks.getProjectId.mockResolvedValue("proj-sha");
     mocks.ensureTemporalRuntime.mockImplementation(async () => {
-      throw new Error("Bun runtime does not expose Bun.spawn for local runtime");
+      throw new Error(
+        "Bun runtime does not expose Bun.spawn for local runtime",
+      );
     });
 
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
