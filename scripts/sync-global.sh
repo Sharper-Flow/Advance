@@ -738,7 +738,7 @@ fi
 # Remove stale ADV agents from global that no longer exist in repo
 # Also remove repo-local-only agents if they leaked into global
 agents_removed=0
-for global_agent in "$GLOBAL_AGENTS"/adv-*.md "$GLOBAL_AGENTS"/orca.md "$GLOBAL_AGENTS"/tron.md "$GLOBAL_AGENTS"/scout.md "$GLOBAL_AGENTS"/refine.md; do
+for global_agent in "$GLOBAL_AGENTS"/adv-*.md "$GLOBAL_AGENTS"/orca.md "$GLOBAL_AGENTS"/tron.md "$GLOBAL_AGENTS"/scout.md "$GLOBAL_AGENTS"/refine.md "$GLOBAL_AGENTS"/engineer.md; do
   [ -f "$global_agent" ] || continue
   name="$(basename "$global_agent")"
   # Remove if no longer in repo OR if it's repo-local-only
