@@ -87,7 +87,9 @@ Each workflow command has a defined phase goal. These are canonical in `manifest
 | Command | Purpose |
 |---------|---------|
 | `/adv-clarify` | Ask clarifying questions to resolve ambiguous requirements |
-| `/adv-research <target>` | Validate architectural decisions and best practices without creating tasks |
+| `/adv-research <target>` | Produce a defined, fully-researched proposed plan ready for user approval |
+| `/adv-discover <change-id>` | Gather context, analyze current state, identify objectives, and obtain user agreement |
+| `/adv-design <change-id>` | Validate architecture decisions, produce implementation strategy, and present design for user review |
 | `/adv-prep <change-id>` | Analyze gaps and synthesize tasks from validated research findings |
 
 ### Post-Implementation
@@ -380,11 +382,15 @@ Commands that fan out to sub-agents with reusable methodology should follow this
 **Command-only** (no backing skill needed):
 `adv-proposal`, `adv-research`, `adv-prep`, `adv-task`, `adv-apply`, `adv-validate`, `adv-archive`, `adv-status`, `adv-coordinate`, `adv-clarify`, `adv-refactor`
 
-**Command + backing skill** (reusable methodology extracted):
+**Command + backing skill** (skill file at `skills/{name}/SKILL.md`, loadable via `skill("{name}")`):
 - `adv-tron` → `adv-tron` skill
-- `adv-review` → `adv-review-methodology` skill
-- `adv-harden` → `adv-harden-methodology` skill
 - `adv-slop-scan` → `adv-slop-detection` skill
+
+**Command with embedded methodology** (methodology inlined under `## Phase 0: Embedded Methodology` in the command file — do NOT attempt `skill("…-methodology")`, the file does not exist):
+- `adv-review` — methodology inlined in `.opencode/command/adv-review.md` Phase 0
+- `adv-harden` — methodology inlined in `.opencode/command/adv-harden.md` Phase 0
+
+> Stale-reference note: earlier iterations shipped `adv-review-methodology` and `adv-harden-methodology` skill files. These were inlined into the commands and the skill files deleted. If you see an agent call `skill("adv-review-methodology")` or `skill("adv-apply-methodology")`, it is a stale/hallucinated reference — read the command file's Phase 0 section instead.
 
 ### Constraints
 

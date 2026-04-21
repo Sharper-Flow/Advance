@@ -215,17 +215,21 @@ Choose between inline work and delegation based on what produces the best **cont
 
 ## Sub-Agent Policy
 
+Only `mode: subagent` agents are spawnable via the Task tool. Current spawnable roster:
+
 | Agent            | Spawn When                                                           | Returns                               |
 | ---------------- | -------------------------------------------------------------------- | ------------------------------------- |
 | `librarian`      | Need docs, API refs, best practices                                  | Sourced findings with examples        |
 | `explore`        | Need codebase structure, find patterns                               | File paths, snippets, analysis        |
-| `general`        | Need multi-file implementation                                       | Completed changes with file:line refs |
+| `general`        | Need multi-file implementation or heavy verify bursts (lint/typecheck/test suites) | Completed changes or verify results (file:line refs) |
 | `mechanic`       | Tool/MCP/infra failure                                               | Diagnosis and fix                     |
 | `adv-researcher` | Need architecture validation (ADV-managed bundled global specialist) | Assessment with recommendations       |
-| `build`          | Need scoped execution, fixes, verification, tests                   | Build/test results, targeted fixes     |
-| `plan`           | Need investigation, research, or ideation                           | Findings, tradeoffs, ordered plans     |
+| `tron`           | Codebase reconnaissance, hotspots, risk mapping                      | Structure + risk report               |
+| `prioritizer`    | Multi-approach tradeoff analysis needing criteria questions          | Draft criteria questions for the user |
 
-> **Tradeoff analysis**: For multi-approach decisions, load `skill("prioritizer")` instead of spawning a sub-agent.
+> **Primary agents (not spawnable):** `build` and `plan` are `mode: primary` — the user switches to them directly; they cannot be invoked via the Task tool. Delegate execution/verify work to `general`; delegate planning research to `librarian` + `adv-researcher` or work inline.
+
+> **Tradeoff analysis shortcut:** For simple multi-approach decisions, you can also load `skill("prioritizer")` inline instead of spawning the `prioritizer` subagent.
 
 ### Dispatch Rules
 

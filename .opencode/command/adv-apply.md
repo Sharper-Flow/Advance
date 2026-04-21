@@ -260,6 +260,46 @@ Hint semantics:
 **If `inline_required`:** Proceed with standard TDD flow.
 
 Emit routing summary: `tk-{id} → {inline|general} ({reason})`
+
+#### Verify-Burst Delegation
+
+Task-level delegation (above) covers *implementation* of a single task. Separately, heavy *verification* bursts — full lint, project-wide typecheck, broad test suites — are good candidates for isolation in a `general` subagent even during inline task work. Purpose: keep the main agent's context clean of long, noisy verify output, and isolate timeout risk from hangs.
+
+**When to delegate a verify burst:**
+- Output expected to exceed ~200 lines (heavy warnings, stack traces, coverage reports)
+- Single command runtime expected to exceed ~30s
+- Running lint + typecheck + broader tests together — parallelism pays off
+- Need timeout isolation so a hang in one check doesn't block the session
+
+**When to keep inline:**
+- Focused TDD red/green on the test file being driven (`adv_run_test` stays inline)
+- Quick lint or test on a single file
+- Verify step where output is already expected to be short
+
+**Spawn contract** (`subagent_type: "general"`):
+
+```
+WORKING DIRECTORY: {workdir}
+SCOPE: verify-only — do not edit, write, patch, or modify files
+COMMANDS:
+  - {cmd 1, e.g., pnpm lint src/components/Foo}
+  - {cmd 2, e.g., pnpm typecheck}
+  - {cmd 3, e.g., pnpm test -- src/components/Foo}
+EXPECTED OUTPUT:
+  Per-command:
+    - status: PASS | FAIL
+    - exit code
+    - errors: [{file, line, message}] (first 20)
+  Summary: PASS if all commands passed, else FAIL
+```
+
+**Post-spawn handling:**
+- Worker PASS → continue task
+- Worker FAIL with errors → main agent classifies and fixes inline
+- Worker times out or empty result → retry once with narrower scope (single command) → if still fails, run inline with output truncation
+
+Heuristic, not a hard rule. Prefer delegation when heavy; inline is fine otherwise. Focused TDD `adv_run_test` stays inline regardless.
+
 #### Apply Context Packet
 ```
 WORKING DIRECTORY: {workdir}
