@@ -286,5 +286,4 @@ describe("Temporal store backend adapter", () => {
     expect(changeHandle.query).toHaveBeenCalledTimes(1);
     expect(legacy.changes.get).toHaveBeenCalledTimes(1);
   });
-
 });

@@ -10,7 +10,10 @@ export interface TemporalHealth {
   last_error: string | null;
 }
 
-let overrideTelemetry: { lastOpAt: string | null; lastError: string | null } | null = null;
+let overrideTelemetry: {
+  lastOpAt: string | null;
+  lastError: string | null;
+} | null = null;
 
 export function setTemporalHealthProbeState(input: {
   lastOpAt: string | null;

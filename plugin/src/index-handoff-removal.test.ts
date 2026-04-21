@@ -9,7 +9,9 @@ describe("index startup no longer depends on handoff.json (B3)", () => {
   );
 
   it("does not import consumeHandoff from storage/handoff", () => {
-    expect(source).not.toMatch(/import \{ consumeHandoff \} from "\.\/storage\/handoff";/);
+    expect(source).not.toMatch(
+      /import \{ consumeHandoff \} from "\.\/storage\/handoff";/,
+    );
   });
 
   it("does not call consumeHandoff during plugin startup", () => {

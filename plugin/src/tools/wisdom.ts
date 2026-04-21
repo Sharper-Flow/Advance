@@ -152,16 +152,19 @@ export const wisdomTools = {
             }
 
             temporalBundleClose = () => temporal.bundle.connection.close();
-            promoted = await temporal.handle.executeUpdate(addProjectWisdomUpdate, {
-              args: [
-                {
-                  type: entry.type,
-                  content: entry.content,
-                  sourceChange: changeId,
-                  sourceTask: entry.source_task,
-                },
-              ],
-            });
+            promoted = await temporal.handle.executeUpdate(
+              addProjectWisdomUpdate,
+              {
+                args: [
+                  {
+                    type: entry.type,
+                    content: entry.content,
+                    sourceChange: changeId,
+                    sourceTask: entry.source_task,
+                  },
+                ],
+              },
+            );
             temporalMutationCommitted = true;
 
             const latest = (await temporal.handle.query(

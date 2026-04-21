@@ -746,7 +746,11 @@ describe("adv_gate_complete planning — readiness enforcement", () => {
     await completePlanningPrereqs("separateVerification");
 
     const result = await gateTools.adv_gate_complete.execute(
-      { changeId: "separateVerification", gateId: "planning", userApproved: true },
+      {
+        changeId: "separateVerification",
+        gateId: "planning",
+        userApproved: true,
+      },
       store,
     );
     const parsed = extractJson(result) as Record<string, unknown>;

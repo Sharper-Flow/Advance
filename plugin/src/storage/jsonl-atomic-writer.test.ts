@@ -7,7 +7,10 @@ import { writeJsonlAtomic } from "./jsonl-atomic-writer";
 let tmpRoot: string;
 
 beforeEach(async () => {
-  tmpRoot = join(tmpdir(), `jsonl-atomic-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
+  tmpRoot = join(
+    tmpdir(),
+    `jsonl-atomic-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+  );
   await mkdir(tmpRoot, { recursive: true });
 });
 

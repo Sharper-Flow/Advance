@@ -15,12 +15,18 @@ import { readdir } from "node:fs/promises";
 import { dirname } from "node:path";
 import { createStore } from "./storage/store";
 import type { Store } from "./storage/store-types";
-import { buildProjectTaskQueue, createTemporalClientBundle } from "./temporal/client";
+import {
+  buildProjectTaskQueue,
+  createTemporalClientBundle,
+} from "./temporal/client";
 import {
   createInProcessWorker,
   type InProcessWorker,
 } from "./temporal/in-process-worker";
-import { runMigrationSweep, type WorkflowClientLike } from "./temporal/migrate-runner";
+import {
+  runMigrationSweep,
+  type WorkflowClientLike,
+} from "./temporal/migrate-runner";
 import { ensureTemporalRuntime } from "./temporal/runtime-manager";
 import { cleanup as cleanupTerminal } from "./events";
 import { appendDebugLog, createLogger } from "./utils/debug-log";
@@ -40,7 +46,9 @@ export interface BootstrapMigrationStatus {
   runId?: string;
 }
 
-export async function discoverBootstrapProjectPaths(roots: string[]): Promise<string[]> {
+export async function discoverBootstrapProjectPaths(
+  roots: string[],
+): Promise<string[]> {
   const projectPaths: string[] = [];
   for (const root of roots) {
     const entries = await readdir(root, { withFileTypes: true });
@@ -70,7 +78,8 @@ export async function runBootstrapMigrationSweep(input: {
    */
   worker?: InProcessWorker;
 }): Promise<BootstrapMigrationStatus> {
-  const discoverProjectPaths = input.discoverProjectPaths ?? discoverBootstrapProjectPaths;
+  const discoverProjectPaths =
+    input.discoverProjectPaths ?? discoverBootstrapProjectPaths;
   const runSweep = input.runSweep ?? runMigrationSweep;
   const timeoutMs = input.timeoutMs ?? 20000;
   const now = input.now ?? Date.now;
@@ -90,20 +99,27 @@ export async function runBootstrapMigrationSweep(input: {
   }
 
   const runId = `bootstrap-${now()}`;
-  const sweepPromise = runSweep(input.client as unknown as { workflow: WorkflowClientLike }, {
-    controlProjectId: input.projectId,
-    runId,
-    projectPaths,
-  });
+  const sweepPromise = runSweep(
+    input.client as unknown as { workflow: WorkflowClientLike },
+    {
+      controlProjectId: input.projectId,
+      runId,
+      projectPaths,
+    },
+  );
 
   const outcome = await Promise.race([
     sweepPromise.then(() => "done" as const),
-    new Promise<"in_progress">((resolve) => setTimeout(() => resolve("in_progress"), timeoutMs)),
+    new Promise<"in_progress">((resolve) =>
+      setTimeout(() => resolve("in_progress"), timeoutMs),
+    ),
   ]);
 
   if (outcome === "in_progress") {
     sweepPromise.catch((error) => {
-      debugLog(`Bootstrap migration sweep failed after async fallback: ${error instanceof Error ? error.message : String(error)}`);
+      debugLog(
+        `Bootstrap migration sweep failed after async fallback: ${error instanceof Error ? error.message : String(error)}`,
+      );
     });
     logger.warn(
       `Bootstrap migration sweep still running after ${timeoutMs}ms; continuing in degraded in-progress mode for ${projectPaths.length} project(s).`,
@@ -125,7 +141,9 @@ export async function tryInitStore(
   try {
     const projectId = await getProjectId(effectiveDir);
 
-    let temporalBundle: Awaited<ReturnType<typeof createTemporalClientBundle>> | undefined;
+    let temporalBundle:
+      | Awaited<ReturnType<typeof createTemporalClientBundle>>
+      | undefined;
     let worker: InProcessWorker | undefined;
     if (projectId) {
       const runtime = await ensureTemporalRuntime(projectId);
@@ -153,7 +171,9 @@ export async function tryInitStore(
       await runBootstrapMigrationSweep({
         projectId,
         externalRoot,
-        client: temporalBundle.client as unknown as { workflow: WorkflowClientLike },
+        client: temporalBundle.client as unknown as {
+          workflow: WorkflowClientLike;
+        },
         worker,
       });
     }
@@ -180,8 +200,6 @@ const inProcessTemporalWorkers = new Set<InProcessWorker>();
 export function registerInProcessTemporalWorker(worker: InProcessWorker): void {
   inProcessTemporalWorkers.add(worker);
 }
-
-
 
 export function getRegisteredTemporalWorkerQueues(): string[] {
   const queues = new Set<string>();
@@ -212,7 +230,9 @@ export async function restartCurrentProjectTemporalWorker(
 ): Promise<{ projectId: string; queues: string[] }> {
   const projectId = await getProjectId(projectDir);
   if (!projectId) {
-    throw new Error("Cannot restart Temporal worker: no projectId for current directory");
+    throw new Error(
+      "Cannot restart Temporal worker: no projectId for current directory",
+    );
   }
 
   await drainInProcessTemporalWorkers();

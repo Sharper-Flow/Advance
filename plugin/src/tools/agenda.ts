@@ -20,10 +20,7 @@ import {
   buildProjectWorkflowId,
   createTemporalClientBundle,
 } from "../temporal/client";
-import {
-  addAgendaItemUpdate,
-  projectAgendaQuery,
-} from "../temporal/messages";
+import { addAgendaItemUpdate, projectAgendaQuery } from "../temporal/messages";
 import { writeJsonlAtomic } from "../storage/jsonl-atomic-writer";
 import {
   AgendaPrioritySchema,
@@ -174,7 +171,10 @@ export const agendaTools = {
         temporalMutationCommitted = true;
 
         try {
-          const agenda = await temporal.handle.query(projectAgendaQuery, undefined);
+          const agenda = await temporal.handle.query(
+            projectAgendaQuery,
+            undefined,
+          );
           await writeJsonlAtomic(agendaPath, agenda as readonly unknown[]);
         } catch (error) {
           if (temporalMutationCommitted) {

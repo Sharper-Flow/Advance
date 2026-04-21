@@ -47,6 +47,8 @@ describe("source-mode worker path resolver (A4a)", () => {
     expect(inProcessWorkerSource).toMatch(
       /const workflowsPath = input\.workflowsPath \?\? resolveWorkflowsPath\(\);/,
     );
-    expect(inProcessWorkerSource).toMatch(/Worker\.create\(\{[\s\S]*?workflowsPath[\s\S]*?\}\)/);
+    expect(inProcessWorkerSource).toMatch(
+      /Worker\.create\(\{[\s\S]*?workflowsPath[\s\S]*?\}\)/,
+    );
   });
 });

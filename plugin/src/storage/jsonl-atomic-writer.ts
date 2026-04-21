@@ -30,9 +30,10 @@ export async function writeJsonlAtomic(
   path: string,
   entries: readonly unknown[],
 ): Promise<void> {
-  const payload = entries.length === 0
-    ? ""
-    : entries.map((entry) => JSON.stringify(entry)).join("\n") + "\n";
+  const payload =
+    entries.length === 0
+      ? ""
+      : entries.map((entry) => JSON.stringify(entry)).join("\n") + "\n";
 
   const tmp = join(dirname(path), `${Date.now()}-${randomUUID()}.tmp`);
   try {

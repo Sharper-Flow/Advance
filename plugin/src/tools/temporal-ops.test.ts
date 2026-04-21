@@ -42,15 +42,18 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("../plugin-init", async () => {
-  const actual = await vi.importActual<typeof import("../plugin-init")>("../plugin-init");
+  const actual =
+    await vi.importActual<typeof import("../plugin-init")>("../plugin-init");
   return {
     ...actual,
-    restartCurrentProjectTemporalWorker: mocks.restartCurrentProjectTemporalWorker,
+    restartCurrentProjectTemporalWorker:
+      mocks.restartCurrentProjectTemporalWorker,
   };
 });
 
 vi.mock("../storage/json", async () => {
-  const actual = await vi.importActual<typeof import("../storage/json")>("../storage/json");
+  const actual =
+    await vi.importActual<typeof import("../storage/json")>("../storage/json");
   return {
     ...actual,
     loadChange: mocks.loadChange,
@@ -58,12 +61,17 @@ vi.mock("../storage/json", async () => {
 });
 
 vi.mock("../storage/agenda", async () => {
-  const actual = await vi.importActual<typeof import("../storage/agenda")>("../storage/agenda");
+  const actual =
+    await vi.importActual<typeof import("../storage/agenda")>(
+      "../storage/agenda",
+    );
   return { ...actual, loadAgenda: mocks.loadAgenda };
 });
 
 vi.mock("../storage/project-wisdom", async () => {
-  const actual = await vi.importActual<typeof import("../storage/project-wisdom")>("../storage/project-wisdom");
+  const actual = await vi.importActual<
+    typeof import("../storage/project-wisdom")
+  >("../storage/project-wisdom");
   return { ...actual, listProjectWisdom: mocks.listProjectWisdom };
 });
 
@@ -72,12 +80,20 @@ vi.mock("../storage/jsonl-atomic-writer", () => ({
 }));
 
 vi.mock("../temporal/client", async () => {
-  const actual = await vi.importActual<typeof import("../temporal/client")>("../temporal/client");
-  return { ...actual, createTemporalClientBundle: mocks.createTemporalClientBundle };
+  const actual =
+    await vi.importActual<typeof import("../temporal/client")>(
+      "../temporal/client",
+    );
+  return {
+    ...actual,
+    createTemporalClientBundle: mocks.createTemporalClientBundle,
+  };
 });
 
 vi.mock("../temporal/migration", async () => {
-  const actual = await vi.importActual<typeof import("../temporal/migration")>("../temporal/migration");
+  const actual = await vi.importActual<typeof import("../temporal/migration")>(
+    "../temporal/migration",
+  );
   return {
     ...actual,
     rebuildProjectWorkflowState: mocks.rebuildProjectWorkflowState,
@@ -94,10 +110,15 @@ describe("temporal operator tools", () => {
 
   it("adv_temporal_worker_restart invokes restartCurrentProjectTemporalWorker and returns queues", async () => {
     const store = { paths: { root: "/repo" } } as any;
-    const result = await temporalOpsTools.adv_temporal_worker_restart.execute({}, store);
+    const result = await temporalOpsTools.adv_temporal_worker_restart.execute(
+      {},
+      store,
+    );
     const parsed = JSON.parse(result);
 
-    expect(mocks.restartCurrentProjectTemporalWorker).toHaveBeenCalledWith("/repo");
+    expect(mocks.restartCurrentProjectTemporalWorker).toHaveBeenCalledWith(
+      "/repo",
+    );
     expect(parsed.success).toBe(true);
     expect(parsed.projectId).toBe("proj123");
     expect(parsed.queues).toEqual(["advance-proj123"]);
@@ -109,8 +130,10 @@ describe("temporal operator tools", () => {
         root: "/repo",
         external: "/home/jrede/.local/share/opencode/plugins/advance/proj123",
         changes: "/repo/.adv/changes",
-        agenda: "/home/jrede/.local/share/opencode/plugins/advance/proj123/agenda.jsonl",
-        wisdom: "/home/jrede/.local/share/opencode/plugins/advance/proj123/wisdom.jsonl",
+        agenda:
+          "/home/jrede/.local/share/opencode/plugins/advance/proj123/agenda.jsonl",
+        wisdom:
+          "/home/jrede/.local/share/opencode/plugins/advance/proj123/wisdom.jsonl",
       },
     } as any;
 
@@ -121,11 +144,17 @@ describe("temporal operator tools", () => {
     const parsed = JSON.parse(result);
 
     expect(parsed.success).toBe(true);
-    expect(mocks.loadChange).toHaveBeenCalledWith("/repo/.adv/changes", "chg123");
+    expect(mocks.loadChange).toHaveBeenCalledWith(
+      "/repo/.adv/changes",
+      "chg123",
+    );
     expect(mocks.rebuildProjectWorkflowState).toHaveBeenCalledTimes(1);
     expect(mocks.reImportChangeState).toHaveBeenCalledWith(
       expect.any(Object),
-      expect.objectContaining({ projectId: "proj123", change: expect.objectContaining({ id: "chg123" }) }),
+      expect.objectContaining({
+        projectId: "proj123",
+        change: expect.objectContaining({ id: "chg123" }),
+      }),
     );
     expect(mocks.writeJsonlAtomic).toHaveBeenCalledTimes(2);
   });

@@ -14,8 +14,12 @@ describe("migration-workflow module (workflow-safe invariant)", () => {
       .filter((line) => /^\s*import\b/.test(line));
 
     expect(importLines).toHaveLength(2);
-    expect(importLines[0]).toMatch(/^import \* as wf from "@temporalio\/workflow";$/);
-    expect(importLines[1]).toMatch(/^import type \{[^}]+\} from "\.\/migrate-runner";$/);
+    expect(importLines[0]).toMatch(
+      /^import \* as wf from "@temporalio\/workflow";$/,
+    );
+    expect(importLines[1]).toMatch(
+      /^import type \{[^}]+\} from "\.\/migrate-runner";$/,
+    );
   });
 
   it("does not import node:* or storage/ modules", () => {
@@ -25,6 +29,8 @@ describe("migration-workflow module (workflow-safe invariant)", () => {
   });
 
   it("exports migrateAllProjectsWorkflow", () => {
-    expect(source).toMatch(/export async function migrateAllProjectsWorkflow\(/);
+    expect(source).toMatch(
+      /export async function migrateAllProjectsWorkflow\(/,
+    );
   });
 });

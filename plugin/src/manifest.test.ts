@@ -133,11 +133,7 @@ describe("Command Manifest", () => {
       const successors = getSuccessors("adv-prep");
       expect(successors.length).toBeGreaterThan(0);
       // After prep, you typically do apply
-      expect(
-        successors.some(
-          (s) => s.name === "adv-apply",
-        ),
-      ).toBe(true);
+      expect(successors.some((s) => s.name === "adv-apply")).toBe(true);
     });
 
     test("returns empty array for unknown command", () => {
@@ -346,7 +342,8 @@ describe("Command Manifest", () => {
 
     // Non-workflow commands should NOT have phaseGoal
     const NON_WORKFLOW_COMMANDS = Object.keys(COMMAND_MANIFEST).filter(
-      (name) => !WORKFLOW_COMMANDS.includes(name as (typeof WORKFLOW_COMMANDS)[number]),
+      (name) =>
+        !WORKFLOW_COMMANDS.includes(name as (typeof WORKFLOW_COMMANDS)[number]),
     );
 
     test("all 7 workflow commands have phaseGoal populated", () => {

@@ -26,7 +26,9 @@ export const temporalOpsTools = {
       "Force-restart the in-process Temporal worker for the current project when the respawn loop is exhausted or the worker is wedged.",
     args: {},
     execute: async (_args: Record<string, never>, store: Store) => {
-      const result = await restartCurrentProjectTemporalWorker(store.paths.root);
+      const result = await restartCurrentProjectTemporalWorker(
+        store.paths.root,
+      );
       return formatToolOutput({
         success: true,
         ...result,
@@ -39,12 +41,11 @@ export const temporalOpsTools = {
     description:
       "Repair the current project's workflow state for a single change by rebuilding the project workflow from legacy snapshots, re-importing the specified change, and re-emitting derived agenda/wisdom exports.",
     args: {
-      changeId: z.string().describe("Change ID to re-import into the repaired project workflow"),
+      changeId: z
+        .string()
+        .describe("Change ID to re-import into the repaired project workflow"),
     },
-    execute: async (
-      args: { changeId: string },
-      store: Store,
-    ) => {
+    execute: async (args: { changeId: string }, store: Store) => {
       if (!store.paths.external) {
         return formatToolOutput({
           error:
@@ -80,30 +81,38 @@ export const temporalOpsTools = {
         };
 
         await projectHandle
-          .terminate("adv_workflow_repair: rebuild project workflow from legacy snapshot")
+          .terminate(
+            "adv_workflow_repair: rebuild project workflow from legacy snapshot",
+          )
           .catch(() => undefined);
 
-        await rebuildProjectWorkflowState(bundle.client as unknown as WorkflowClientSurface, {
-          projectId,
-          initializedAt: new Date().toISOString(),
-          agenda: agendaResult.items,
-          projectWisdom: projectWisdom.map((entry) => ({
-            id: entry.id,
-            type: entry.type,
-            content: entry.content,
-            sourceChange: entry.source_change,
-            sourceTask: entry.source_task,
-            promotedAt: entry.promoted_at,
-            tags: entry.tags,
-            invalidatedBy: entry.invalidated_by,
-          })),
-          migrationLedger: [],
-        });
+        await rebuildProjectWorkflowState(
+          bundle.client as unknown as WorkflowClientSurface,
+          {
+            projectId,
+            initializedAt: new Date().toISOString(),
+            agenda: agendaResult.items,
+            projectWisdom: projectWisdom.map((entry) => ({
+              id: entry.id,
+              type: entry.type,
+              content: entry.content,
+              sourceChange: entry.source_change,
+              sourceTask: entry.source_task,
+              promotedAt: entry.promoted_at,
+              tags: entry.tags,
+              invalidatedBy: entry.invalidated_by,
+            })),
+            migrationLedger: [],
+          },
+        );
 
-        await reImportChangeState(bundle.client as unknown as WorkflowClientSurface, {
-          projectId,
-          change: changeResult.data,
-        });
+        await reImportChangeState(
+          bundle.client as unknown as WorkflowClientSurface,
+          {
+            projectId,
+            change: changeResult.data,
+          },
+        );
 
         const repairedHandle = bundle.client.workflow.getHandle(
           buildProjectWorkflowId(projectId),

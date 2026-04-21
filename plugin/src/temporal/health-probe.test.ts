@@ -1,14 +1,18 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
-  getRegisteredTemporalWorkerQueues: vi.fn(() => ["advance-proj-a", "advance-proj-b"]),
+  getRegisteredTemporalWorkerQueues: vi.fn(() => [
+    "advance-proj-a",
+    "advance-proj-b",
+  ]),
   createTemporalClientBundle: vi.fn(async () => ({
     connection: { close: vi.fn(async () => {}) },
   })),
 }));
 
 vi.mock("../plugin-init", async () => {
-  const actual = await vi.importActual<typeof import("../plugin-init")>("../plugin-init");
+  const actual =
+    await vi.importActual<typeof import("../plugin-init")>("../plugin-init");
   return {
     ...actual,
     getRegisteredTemporalWorkerQueues: mocks.getRegisteredTemporalWorkerQueues,

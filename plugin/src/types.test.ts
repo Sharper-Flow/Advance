@@ -529,9 +529,7 @@ describe("ChangeSchema", () => {
     expect(result.cross_project_origin?.source_change_id).toBe(
       "addApiEndpoint",
     );
-    expect(result.cross_project_origin?.linked_at).toBe(
-      "2026-01-01T01:00:00Z",
-    );
+    expect(result.cross_project_origin?.linked_at).toBe("2026-01-01T01:00:00Z");
   });
 
   test("accepts change without cross_project_origin (backwards compatible)", () => {

@@ -39,17 +39,14 @@ describe("migration workflow-start payload size guard", () => {
         `/home/jrede/.local/share/opencode/plugins/advance/project-${i.toString(16).padStart(40, "0")}`,
     );
 
-    await runMigrationSweep(
-      { workflow: { start, getHandle } } as any,
-      {
-        controlProjectId: projectPaths[0]
-          .split("/")
-          .pop()!
-          .replace("project-", ""),
-        runId: "size-guard",
-        projectPaths,
-      },
-    );
+    await runMigrationSweep({ workflow: { start, getHandle } } as any, {
+      controlProjectId: projectPaths[0]
+        .split("/")
+        .pop()!
+        .replace("project-", ""),
+      runId: "size-guard",
+      projectPaths,
+    });
 
     const call = start.mock.calls.at(-1);
     expect(call).toBeDefined();

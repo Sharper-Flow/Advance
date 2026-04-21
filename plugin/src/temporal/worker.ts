@@ -4,7 +4,6 @@ import { NativeConnection, Worker } from "@temporalio/worker";
 import * as activities from "./activities";
 import { getTemporalAddress, getTemporalNamespace } from "./client";
 
-
 function resolveWorkflowsPath(): string {
   const jsPath = fileURLToPath(new URL("./workflows.js", import.meta.url));
   if (existsSync(jsPath)) return jsPath;

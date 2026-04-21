@@ -68,7 +68,9 @@ async function loadMigrationStatus(store: Store) {
       const handle = bundle.client.workflow.getHandle(
         buildProjectWorkflowId(projectId),
       );
-      const ledger = (await handle.query(projectMigrationLedgerQuery)) as Array<{
+      const ledger = (await handle.query(
+        projectMigrationLedgerQuery,
+      )) as Array<{
         key?: string;
         source?: string;
         status?: string;

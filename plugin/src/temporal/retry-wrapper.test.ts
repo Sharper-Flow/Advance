@@ -1,8 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import {
-  classifyTemporalError,
-  withTemporalRetry,
-} from "./retry-wrapper";
+import { classifyTemporalError, withTemporalRetry } from "./retry-wrapper";
 
 describe("retry-wrapper (C2)", () => {
   it("classifies connection-refused as transient", () => {
@@ -14,7 +11,9 @@ describe("retry-wrapper (C2)", () => {
   it("classifies missing task queue handler as transient", () => {
     expect(
       classifyTemporalError(
-        new Error("no task queue handler is subscribed to task queue advance-x"),
+        new Error(
+          "no task queue handler is subscribed to task queue advance-x",
+        ),
       ),
     ).toBe("transient");
   });
@@ -74,5 +73,4 @@ describe("retry-wrapper (C2)", () => {
       "NonDeterministicWorkflowError",
     );
   });
-
 });

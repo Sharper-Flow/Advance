@@ -41,7 +41,10 @@ vi.mock("../temporal/health-probe", () => ({
 }));
 
 vi.mock("../temporal/client", async () => {
-  const actual = await vi.importActual<typeof import("../temporal/client")>("../temporal/client");
+  const actual =
+    await vi.importActual<typeof import("../temporal/client")>(
+      "../temporal/client",
+    );
   return {
     ...actual,
     createTemporalClientBundle: mocks.createTemporalClientBundle,
@@ -94,7 +97,9 @@ describe("adv_status temporal health/migration status (C4)", () => {
 
   test("degrades gracefully when health probe and migration query fail", async () => {
     mocks.getTemporalHealth.mockRejectedValueOnce(new Error("boom"));
-    mocks.createTemporalClientBundle.mockRejectedValueOnce(new Error("no temporal"));
+    mocks.createTemporalClientBundle.mockRejectedValueOnce(
+      new Error("no temporal"),
+    );
 
     const result = await statusTools.adv_status.execute({}, store);
     const parsed = parseToolOutput(result);

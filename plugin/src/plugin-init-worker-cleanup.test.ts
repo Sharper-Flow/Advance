@@ -48,13 +48,16 @@ const mocks = vi.hoisted(() => {
       order.push("worker.shutdown");
     });
 
-    const exitSpy = vi.spyOn(process, "exit").mockImplementation(
-      ((() => undefined) as unknown) as (code?: string | number | null | undefined) => never,
-    );
+    const exitSpy = vi
+      .spyOn(process, "exit")
+      .mockImplementation(
+        (() => undefined) as unknown as (
+          code?: string | number | null | undefined,
+        ) => never,
+      );
 
-    const { tryInitStore, registerShutdownHandlers } = await import(
-      "./plugin-init"
-    );
+    const { tryInitStore, registerShutdownHandlers } =
+      await import("./plugin-init");
 
     const init = await tryInitStore("/tmp/repo", "/tmp/external/proj-cleanup");
     const handlers = registerShutdownHandlers(init.store);
@@ -78,7 +81,6 @@ const mocks = vi.hoisted(() => {
       "store.close",
     ]);
   });
-
 });
 
 vi.mock("./storage/store", () => ({ createStore: mocks.createStore }));
@@ -108,13 +110,16 @@ vi.mock("./temporal/runtime-manager", async () => {
       order.push("worker.shutdown");
     });
 
-    const exitSpy = vi.spyOn(process, "exit").mockImplementation(
-      ((() => undefined) as unknown) as (code?: string | number | null | undefined) => never,
-    );
+    const exitSpy = vi
+      .spyOn(process, "exit")
+      .mockImplementation(
+        (() => undefined) as unknown as (
+          code?: string | number | null | undefined,
+        ) => never,
+      );
 
-    const { tryInitStore, registerShutdownHandlers } = await import(
-      "./plugin-init"
-    );
+    const { tryInitStore, registerShutdownHandlers } =
+      await import("./plugin-init");
 
     const init = await tryInitStore("/tmp/repo", "/tmp/external/proj-cleanup");
     const handlers = registerShutdownHandlers(init.store);
@@ -138,13 +143,13 @@ vi.mock("./temporal/runtime-manager", async () => {
       "store.close",
     ]);
   });
-
 });
 
 vi.mock("./temporal/client", async () => {
-  const actual = await vi.importActual<typeof import("./temporal/client")>(
-    "./temporal/client",
-  );
+  const actual =
+    await vi.importActual<typeof import("./temporal/client")>(
+      "./temporal/client",
+    );
   return {
     ...actual,
     createTemporalClientBundle: mocks.createTemporalClientBundle,
@@ -164,13 +169,16 @@ vi.mock("./temporal/client", async () => {
       order.push("worker.shutdown");
     });
 
-    const exitSpy = vi.spyOn(process, "exit").mockImplementation(
-      ((() => undefined) as unknown) as (code?: string | number | null | undefined) => never,
-    );
+    const exitSpy = vi
+      .spyOn(process, "exit")
+      .mockImplementation(
+        (() => undefined) as unknown as (
+          code?: string | number | null | undefined,
+        ) => never,
+      );
 
-    const { tryInitStore, registerShutdownHandlers } = await import(
-      "./plugin-init"
-    );
+    const { tryInitStore, registerShutdownHandlers } =
+      await import("./plugin-init");
 
     const init = await tryInitStore("/tmp/repo", "/tmp/external/proj-cleanup");
     const handlers = registerShutdownHandlers(init.store);
@@ -194,7 +202,6 @@ vi.mock("./temporal/client", async () => {
       "store.close",
     ]);
   });
-
 });
 
 vi.mock("./temporal/in-process-worker", () => ({
@@ -222,13 +229,16 @@ vi.mock("node:fs/promises", async () => {
       order.push("worker.shutdown");
     });
 
-    const exitSpy = vi.spyOn(process, "exit").mockImplementation(
-      ((() => undefined) as unknown) as (code?: string | number | null | undefined) => never,
-    );
+    const exitSpy = vi
+      .spyOn(process, "exit")
+      .mockImplementation(
+        (() => undefined) as unknown as (
+          code?: string | number | null | undefined,
+        ) => never,
+      );
 
-    const { tryInitStore, registerShutdownHandlers } = await import(
-      "./plugin-init"
-    );
+    const { tryInitStore, registerShutdownHandlers } =
+      await import("./plugin-init");
 
     const init = await tryInitStore("/tmp/repo", "/tmp/external/proj-cleanup");
     const handlers = registerShutdownHandlers(init.store);
@@ -252,7 +262,6 @@ vi.mock("node:fs/promises", async () => {
       "store.close",
     ]);
   });
-
 });
 
 describe("plugin-init in-process worker shutdown (A4b')", () => {
@@ -261,9 +270,8 @@ describe("plugin-init in-process worker shutdown (A4b')", () => {
   });
 
   it("registerShutdownHandlers drains the in-process Temporal worker on handleExit", async () => {
-    const { tryInitStore, registerShutdownHandlers } = await import(
-      "./plugin-init"
-    );
+    const { tryInitStore, registerShutdownHandlers } =
+      await import("./plugin-init");
 
     const init = await tryInitStore("/tmp/repo", "/tmp/external/proj-cleanup");
     expect(mocks.createInProcessWorker).toHaveBeenCalledTimes(1);
@@ -283,9 +291,8 @@ describe("plugin-init in-process worker shutdown (A4b')", () => {
 
   it("registerShutdownHandlers is safe when no worker was created (no projectId)", async () => {
     mocks.getProjectId.mockResolvedValueOnce(null);
-    const { tryInitStore, registerShutdownHandlers } = await import(
-      "./plugin-init"
-    );
+    const { tryInitStore, registerShutdownHandlers } =
+      await import("./plugin-init");
 
     const init = await tryInitStore("/tmp/repo", undefined);
     expect(mocks.createInProcessWorker).not.toHaveBeenCalled();
@@ -314,13 +321,16 @@ describe("plugin-init in-process worker shutdown (A4b')", () => {
       order.push("worker.shutdown");
     });
 
-    const exitSpy = vi.spyOn(process, "exit").mockImplementation(
-      ((() => undefined) as unknown) as (code?: string | number | null | undefined) => never,
-    );
+    const exitSpy = vi
+      .spyOn(process, "exit")
+      .mockImplementation(
+        (() => undefined) as unknown as (
+          code?: string | number | null | undefined,
+        ) => never,
+      );
 
-    const { tryInitStore, registerShutdownHandlers } = await import(
-      "./plugin-init"
-    );
+    const { tryInitStore, registerShutdownHandlers } =
+      await import("./plugin-init");
 
     const init = await tryInitStore("/tmp/repo", "/tmp/external/proj-cleanup");
     const handlers = registerShutdownHandlers(init.store);
@@ -344,5 +354,4 @@ describe("plugin-init in-process worker shutdown (A4b')", () => {
       "store.close",
     ]);
   });
-
 });

@@ -78,7 +78,9 @@ describe("temporal worker helpers", () => {
     expect(workerMocks.create).toHaveBeenCalledWith(
       expect.objectContaining({
         taskQueue: "advance-proj-source",
-        workflowsPath: expect.stringMatching(/src\/temporal\/workflows\.(js|ts)$/),
+        workflowsPath: expect.stringMatching(
+          /src\/temporal\/workflows\.(js|ts)$/,
+        ),
       }),
     );
   });

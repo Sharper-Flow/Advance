@@ -514,22 +514,18 @@ describe("Change Tools", () => {
         expect(parsed.cross_project_origin.source_change_id).toBe(
           "addApiEndpoint",
         );
-        expect(parsed.cross_project_origin.source_path).toBe(
-          store.paths.root,
-        );
+        expect(parsed.cross_project_origin.source_path).toBe(store.paths.root);
         expect(parsed.cross_project_origin.linked_at).toBeDefined();
 
         // Verify the change was persisted in the target project with origin
         const targetStore = await createStore(targetDir);
         try {
-          const changeResult = await targetStore.changes.get(
-            parsed.changeId,
-          );
+          const changeResult = await targetStore.changes.get(parsed.changeId);
           expect(changeResult.success).toBe(true);
           expect(changeResult.data?.cross_project_origin).toBeDefined();
-          expect(
-            changeResult.data?.cross_project_origin?.source_project,
-          ).toBe("pokeedge");
+          expect(changeResult.data?.cross_project_origin?.source_project).toBe(
+            "pokeedge",
+          );
         } finally {
           targetStore.close();
         }
@@ -580,10 +576,7 @@ describe("Change Tools", () => {
         // Read the proposal from the target project
         const targetStore = await createStore(targetDir);
         try {
-          const changeDir = join(
-            targetStore.paths.changes,
-            parsed.changeId,
-          );
+          const changeDir = join(targetStore.paths.changes, parsed.changeId);
           const proposalContent = await readFile(
             join(changeDir, "proposal.md"),
             "utf-8",

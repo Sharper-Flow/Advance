@@ -18,7 +18,9 @@ import { createInProcessWorker } from "./in-process-worker";
 import { migrateAllProjectsWorkflow } from "./migration-workflow";
 import type { MigrationSweepResult } from "./migrate-runner";
 
-const WORKFLOWS_PATH = fileURLToPath(new URL("./workflows.ts", import.meta.url));
+const WORKFLOWS_PATH = fileURLToPath(
+  new URL("./workflows.ts", import.meta.url),
+);
 
 describe("createInProcessWorker integration (A4b')", () => {
   let env: TestWorkflowEnvironment;

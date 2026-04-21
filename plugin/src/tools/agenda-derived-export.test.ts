@@ -26,7 +26,9 @@ const mocks = vi.hoisted(() => {
     close,
     createTemporalClientBundle: vi.fn(async () => ({
       connection: { close },
-      client: { workflow: { getHandle: vi.fn(() => ({ executeUpdate, query })) } },
+      client: {
+        workflow: { getHandle: vi.fn(() => ({ executeUpdate, query })) },
+      },
     })),
     writeJsonlAtomic: vi.fn(async () => {}),
     addAgendaItem: vi.fn(async () => ({
@@ -41,7 +43,10 @@ const mocks = vi.hoisted(() => {
 });
 
 vi.mock("../temporal/client", async () => {
-  const actual = await vi.importActual<typeof import("../temporal/client")>("../temporal/client");
+  const actual =
+    await vi.importActual<typeof import("../temporal/client")>(
+      "../temporal/client",
+    );
   return {
     ...actual,
     createTemporalClientBundle: mocks.createTemporalClientBundle,
@@ -53,7 +58,10 @@ vi.mock("../storage/jsonl-atomic-writer", () => ({
 }));
 
 vi.mock("../storage/agenda", async () => {
-  const actual = await vi.importActual<typeof import("../storage/agenda")>("../storage/agenda");
+  const actual =
+    await vi.importActual<typeof import("../storage/agenda")>(
+      "../storage/agenda",
+    );
   return {
     ...actual,
     addAgendaItem: mocks.addAgendaItem,

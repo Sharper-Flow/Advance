@@ -39,14 +39,19 @@ const mocks = vi.hoisted(() => {
     listProjectWisdom,
     createTemporalClientBundle: vi.fn(async () => ({
       connection: { close },
-      client: { workflow: { getHandle: vi.fn(() => ({ executeUpdate, query })) } },
+      client: {
+        workflow: { getHandle: vi.fn(() => ({ executeUpdate, query })) },
+      },
     })),
     writeJsonlAtomic: vi.fn(async () => {}),
   };
 });
 
 vi.mock("../temporal/client", async () => {
-  const actual = await vi.importActual<typeof import("../temporal/client")>("../temporal/client");
+  const actual =
+    await vi.importActual<typeof import("../temporal/client")>(
+      "../temporal/client",
+    );
   return {
     ...actual,
     createTemporalClientBundle: mocks.createTemporalClientBundle,
@@ -79,7 +84,8 @@ describe("adv_wisdom_add derived-export path", () => {
     const store = {
       paths: {
         root: "/repo",
-        wisdom: "/home/jrede/.local/share/opencode/plugins/advance/proj123/wisdom.jsonl",
+        wisdom:
+          "/home/jrede/.local/share/opencode/plugins/advance/proj123/wisdom.jsonl",
       },
       wisdom: {
         add: vi.fn(async () => ({
@@ -132,7 +138,8 @@ describe("adv_wisdom_add derived-export path", () => {
     const store = {
       paths: {
         root: "/repo",
-        wisdom: "/home/jrede/.local/share/opencode/plugins/advance/proj123/wisdom.jsonl",
+        wisdom:
+          "/home/jrede/.local/share/opencode/plugins/advance/proj123/wisdom.jsonl",
       },
       wisdom: {
         add: vi.fn(async () => ({

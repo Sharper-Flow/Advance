@@ -1,14 +1,21 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
-  legacyStore: { close: vi.fn(), paths: { root: "/tmp/repo", specs: "/tmp/repo/.adv/specs" } },
+  legacyStore: {
+    close: vi.fn(),
+    paths: { root: "/tmp/repo", specs: "/tmp/repo/.adv/specs" },
+  },
   createLegacyStore: vi.fn(async () => mocks.legacyStore as any),
-  createTemporalStoreBackend: vi.fn(() => ({ kind: "temporal-store" } as any)),
+  createTemporalStoreBackend: vi.fn(() => ({ kind: "temporal-store" }) as any),
   getProjectId: vi.fn(async () => "resolved-project-id"),
 }));
 
-vi.mock("./store-legacy", () => ({ createLegacyStore: mocks.createLegacyStore }));
-vi.mock("./store-temporal", () => ({ createTemporalStoreBackend: mocks.createTemporalStoreBackend }));
+vi.mock("./store-legacy", () => ({
+  createLegacyStore: mocks.createLegacyStore,
+}));
+vi.mock("./store-temporal", () => ({
+  createTemporalStoreBackend: mocks.createTemporalStoreBackend,
+}));
 vi.mock("../utils/project-id", () => ({ getProjectId: mocks.getProjectId }));
 
 describe("createStore selector", () => {
@@ -24,7 +31,9 @@ describe("createStore selector", () => {
       externalRoot: "/tmp/external/proj",
     });
 
-    expect(mocks.createLegacyStore).toHaveBeenCalledWith("/tmp/repo", { externalRoot: "/tmp/external/proj" });
+    expect(mocks.createLegacyStore).toHaveBeenCalledWith("/tmp/repo", {
+      externalRoot: "/tmp/external/proj",
+    });
     expect(mocks.getProjectId).toHaveBeenCalledWith("/tmp/repo");
     expect(mocks.createTemporalStoreBackend).toHaveBeenCalledWith({
       legacy: mocks.legacyStore,
