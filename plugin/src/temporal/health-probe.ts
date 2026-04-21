@@ -1,9 +1,10 @@
-import { createTemporalClientBundle } from "./client";
+import { createTemporalClientBundle, getTemporalAddress } from "./client";
 import { getTemporalRetryTelemetry } from "./retry-wrapper";
 import {
   getRegisteredTemporalWorkerQueues,
   getTemporalWorkerAliveness,
 } from "../plugin-init";
+import { canReachTemporalAddress } from "./runtime-manager";
 
 export interface TemporalHealth {
   server_alive: boolean;
@@ -44,6 +45,9 @@ export async function getTemporalHealth(): Promise<TemporalHealth> {
   let close: (() => Promise<void>) | undefined;
   const server_alive = await (async () => {
     try {
+      const address = getTemporalAddress(process.env);
+      const reachable = await canReachTemporalAddress(address, 250);
+      if (!reachable) return false;
       const bundle = await createTemporalClientBundle(process.env);
       close = () => bundle.connection.close();
       return true;

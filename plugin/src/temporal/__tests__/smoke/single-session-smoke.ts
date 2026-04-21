@@ -103,7 +103,7 @@ export async function runSingleSessionSmoke(input: {
         );
         await writeFile(
           REPLAY_HISTORY_FILES.smokeCaptured,
-          JSON.stringify(history, null, 2),
+          `${JSON.stringify(history, null, 2)}\n`,
         );
         await handle.terminate("smoke complete");
 

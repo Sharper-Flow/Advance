@@ -11,7 +11,9 @@ import type { Store } from "../storage/store";
 import {
   buildProjectWorkflowId,
   createTemporalClientBundle,
+  getTemporalAddress,
 } from "../temporal/client";
+import { canReachTemporalAddress } from "../temporal/runtime-manager";
 import { projectMigrationLedgerQuery } from "../temporal/messages";
 import { getTemporalHealth } from "../temporal/health-probe";
 import { wrapWithBanner } from "../utils/banner";
@@ -63,6 +65,9 @@ async function loadMigrationStatus(store: Store) {
   if (!projectId) return null;
 
   try {
+    const address = getTemporalAddress(process.env);
+    const reachable = await canReachTemporalAddress(address, 250);
+    if (!reachable) return null;
     const bundle = await createTemporalClientBundle(process.env);
     try {
       const handle = bundle.client.workflow.getHandle(

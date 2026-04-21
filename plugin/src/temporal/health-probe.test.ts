@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
     "advance-proj-b",
   ]),
   getTemporalWorkerAliveness: vi.fn(() => true),
+  canReachTemporalAddress: vi.fn(async () => true),
   createTemporalClientBundle: vi.fn(async () => ({
     connection: { close: vi.fn(async () => {}) },
   })),
@@ -26,6 +27,17 @@ vi.mock("./client", async () => {
   return {
     ...actual,
     createTemporalClientBundle: mocks.createTemporalClientBundle,
+  };
+});
+
+vi.mock("./runtime-manager", async () => {
+  const actual =
+    await vi.importActual<typeof import("./runtime-manager")>(
+      "./runtime-manager",
+    );
+  return {
+    ...actual,
+    canReachTemporalAddress: mocks.canReachTemporalAddress,
   };
 });
 

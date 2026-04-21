@@ -55,15 +55,17 @@ Start a local dev server (default loopback address and namespace):
 temporal server start-dev
 ```
 
-Configure via environment variables (see `plugin/.env.example`):
+Configure via environment variables (see `plugin/.env.example` — Bun hosts
+should review the **Bun out-of-process Temporal worker** section for
+`ADV_NODE_PATH` and the `ADV_ALLOW_DEGRADED_FALLBACK` escape hatch):
 
-| Variable | Default | Purpose |
-| -------- | ------- | ------- |
-| `ADV_TEMPORAL_ADDRESS` | `127.0.0.1:7233` | Temporal frontend address. Non-loopback requires opt-in. |
-| `ADV_TEMPORAL_NAMESPACE` | `default` | Temporal namespace (regex-validated). |
-| `ADV_TEMPORAL_ALLOW_REMOTE` | *(unset)* | Set to `true` to permit non-loopback addresses. |
-| `ADV_TEMPORAL_TASK_QUEUE` | *(worker-only)* | Task queue the worker subscribes to. |
-| `ADV_TEMPORAL_PROJECT_ID` | *(worker-only)* | Set internally by the runtime manager. |
+| Variable                    | Default          | Purpose                                                  |
+| --------------------------- | ---------------- | -------------------------------------------------------- |
+| `ADV_TEMPORAL_ADDRESS`      | `127.0.0.1:7233` | Temporal frontend address. Non-loopback requires opt-in. |
+| `ADV_TEMPORAL_NAMESPACE`    | `default`        | Temporal namespace (regex-validated).                    |
+| `ADV_TEMPORAL_ALLOW_REMOTE` | _(unset)_        | Set to `true` to permit non-loopback addresses.          |
+| `ADV_TEMPORAL_TASK_QUEUE`   | _(worker-only)_  | Task queue the worker subscribes to.                     |
+| `ADV_TEMPORAL_PROJECT_ID`   | _(worker-only)_  | Set internally by the runtime manager.                   |
 
 Activation happens in code by passing a Temporal client bundle into
 `createStore({ temporalBundle })`; production bootstrap now owns that wiring.
@@ -90,6 +92,7 @@ or set ADV_NODE_PATH."
 
 1. Install Node.js v20 or later. Any install that puts a `node` binary on
    your shell `PATH` works (nvm, system package, asdf, etc.).
+
    ```bash
    # via nvm (recommended for dev machines)
    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
@@ -98,6 +101,7 @@ or set ADV_NODE_PATH."
    # or macOS via Homebrew
    brew install node
    ```
+
 2. Verify opencode sees Node on `PATH`:
    ```bash
    which node && node --version
@@ -115,11 +119,30 @@ set `ADV_ALLOW_DEGRADED_FALLBACK=1` to run on the file-backed store. This is
 a dev-only escape hatch — Temporal workflows, migrations, and cross-session
 workflow state are unavailable in this mode.
 
-> **Health check**: `adv_status` now reports `worker_process_alive` — `true`
-> means at least one worker (in-process OR out-of-process child) is running.
-> `false` means the worker's children have all exited (e.g. Temporal server
-> unreachable for 3 restarts). The OOP worker uses exponential backoff
-> (1s / 3s / 10s, max 3 attempts) before marking the queue dead.
+#### Health metric: `worker_process_alive`
+
+`adv_status` exposes a `worker_process_alive` boolean alongside
+`worker_alive` and `server_alive`. The two fields separate registration state
+from runtime state:
+
+| Field                  | Meaning                                                                                                                                            |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `worker_alive`         | A worker object is registered (at least one task queue).                                                                                           |
+| `worker_process_alive` | The worker is actually running. For the OOP worker this reflects the Node child process liveness; for the in-process worker it tracks queue count. |
+
+Typical outcomes:
+
+- **`true` / `true`** — worker registered and running. Healthy.
+- **`true` / `false`** — worker registered but the child process exited and
+  cannot be restarted (exponential-backoff exhausted). Follow the Node-install
+  steps above and restart opencode. Check the debug log at
+  `$OPEN_CHAD_CACHE_DIR/adv-debug.log` for the crash reason.
+- **`false` / `false`** — no worker registered (file-backed degraded mode or
+  `ADV_DISABLE_TEMPORAL=1`). Temporal workflows are not running; this is
+  expected only in dev/test environments.
+
+> The OOP worker uses exponential backoff (1s / 3s / 10s, max 3 attempts)
+> before marking the queue dead.
 
 ---
 
@@ -140,12 +163,12 @@ your OpenCode setup. ADV does not ship them. If missing, commands will fall
 back to inline execution or generic `explore` agent invocation, which is
 slower and less specialized.
 
-| Agent       | Used by                                                                       | What it does                                      |
-| ----------- | ----------------------------------------------------------------------------- | ------------------------------------------------- |
-| `explore`   | `/adv-review`, `/adv-harden`, `/adv-audit`, `/adv-slop-scan`, `/adv-refactor` | Codebase navigation, finding usages               |
-| `librarian` | `/adv-discover`, `/adv-design`, `/adv-task`, `/adv-review`                    | Documentation and API lookup (Context7, grep.app) |
-| `mechanic`  | `/adv-tron` (optional), `plan` sub-agent spawns                               | System/infra diagnostics                          |
-| `general`   | `/adv-review` (cross-cutting), overlay-managed                                | Multi-step implementation                         |
+| Agent       | Used by                                                                       | What it does                                                  |
+| ----------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| `explore`   | `/adv-review`, `/adv-harden`, `/adv-audit`, `/adv-slop-scan`, `/adv-refactor` | Codebase navigation, finding usages                           |
+| `librarian` | `/adv-discover`, `/adv-design`, `/adv-task`, `/adv-review`                    | Documentation and API lookup (Context7, grep.app)             |
+| `mechanic`  | `/adv-tron` (optional), `plan` sub-agent spawns                               | System/infra diagnostics                                      |
+| `general`   | `/adv-review` (cross-cutting), overlay-managed                                | Multi-step implementation                                     |
 | `engineer`  | `/adv-apply` code-writing delegation, `/adv-review` remediation fixes         | Produces structured ENGINEER_REPORT payload for ADV ingestion |
 
 ### Optional MCP servers (referenced by agent tool blocks)
@@ -156,14 +179,14 @@ MCP servers that are not configured — the grants become no-ops. You can
 run ADV without any of these, but the following features degrade or become
 unavailable:
 
-| MCP server     | Tool prefix   | Used by                                             | Degradation if missing                                                      |
-| -------------- | ------------- | --------------------------------------------------- | --------------------------------------------------------------------------- |
-| lgrep          | `lgrep_*`     | `plan`, `build`, `adv-researcher`, `tron`           | Code exploration falls back to `glob`/`grep`/`read` (slower, less semantic) |
-| Firecrawl      | `firecrawl_*` | `plan`, `build`                                      | Web scraping unavailable; use `webfetch` instead                            |
-| Context7       | `context7_*`  | `adv-researcher`                                    | Library documentation lookup unavailable                                    |
-| Kagi           | `kagi_*`      | `adv-researcher`                                    | Web search unavailable                                                      |
-| Grep by Vercel | `gh_grep_*`   | `adv-researcher`                                    | Cross-repo code example search unavailable                                  |
-| arXiv MCP      | `arxiv-mcp_*` | `adv-researcher`                                    | Academic paper search unavailable                                           |
+| MCP server     | Tool prefix   | Used by                                   | Degradation if missing                                                      |
+| -------------- | ------------- | ----------------------------------------- | --------------------------------------------------------------------------- |
+| lgrep          | `lgrep_*`     | `plan`, `build`, `adv-researcher`, `tron` | Code exploration falls back to `glob`/`grep`/`read` (slower, less semantic) |
+| Firecrawl      | `firecrawl_*` | `plan`, `build`                           | Web scraping unavailable; use `webfetch` instead                            |
+| Context7       | `context7_*`  | `adv-researcher`                          | Library documentation lookup unavailable                                    |
+| Kagi           | `kagi_*`      | `adv-researcher`                          | Web search unavailable                                                      |
+| Grep by Vercel | `gh_grep_*`   | `adv-researcher`                          | Cross-repo code example search unavailable                                  |
+| arXiv MCP      | `arxiv-mcp_*` | `adv-researcher`                          | Academic paper search unavailable                                           |
 
 Configure these MCP servers in your `opencode.json` `mcp` section per each
 server's documentation. The ADV sync script does not install or validate
@@ -223,12 +246,8 @@ Add ADV to your global OpenCode configuration at `~/.config/opencode/opencode.js
 
 ```json
 {
-  "instructions": [
-    "~/.config/opencode/identity.md"
-  ],
-  "plugin": [
-    "/path/to/Advance/plugin"
-  ]
+  "instructions": ["~/.config/opencode/identity.md"],
+  "plugin": ["/path/to/Advance/plugin"]
 }
 ```
 
@@ -295,9 +314,7 @@ If you prefer manual setup, add ADV entries to your `opencode.json`:
     "~/.config/opencode/identity.md",
     "/path/to/Advance/ADV_INSTRUCTIONS.md"
   ],
-  "plugin": [
-    "/path/to/Advance/plugin"
-  ]
+  "plugin": ["/path/to/Advance/plugin"]
 }
 ```
 
@@ -333,9 +350,9 @@ rules:
   P28:
     name: cost-governance
     rule: "When an ADV change reaches /adv-apply, surface pending judgment
-           calls from change.judgment_calls[] via the question tool before
-           executing tasks. Auto-proceed when the list is empty. Doom-loop
-           recovery supersedes investment check-in on simultaneous trigger."
+      calls from change.judgment_calls[] via the question tool before
+      executing tasks. Auto-proceed when the list is empty. Doom-loop
+      recovery supersedes investment check-in on simultaneous trigger."
     tags: [cost, governance, approval]
     hint: cost_aware
     priority: 9
@@ -361,9 +378,9 @@ Edit the YAML frontmatter in `~/.config/opencode/instructions/cost-governance.md
 
 ```yaml
 thresholds:
-  auto:       { tasks: 3,  retries: 0, elapsed_minutes: 15 }
-  escalate:   { tasks: 8,  retries: 2, elapsed_minutes: 60 }
-  hardstop:   { tasks: 15, retries: 5, elapsed_minutes: 180 }
+  auto: { tasks: 3, retries: 0, elapsed_minutes: 15 }
+  escalate: { tasks: 8, retries: 2, elapsed_minutes: 60 }
+  hardstop: { tasks: 15, retries: 5, elapsed_minutes: 180 }
 ```
 
 Restart OpenCode after editing. See `cost-governance.md` body for the full
@@ -607,11 +624,13 @@ Suggestions:
 ### Test Core Workflow
 
 1. **Create a proposal**:
+
    ```
    /adv-proposal "Add email validation"
    ```
 
 2. **Check the created files**:
+
    ```bash
    ls .adv/changes/
    # Should show: addEmailValidation/
@@ -645,6 +664,7 @@ pnpm dlx tsx scripts/migrate-openspec.ts /path/to/your-project/openspec ./specs
 ### Post-Migration Steps
 
 1. Verify migrated specs:
+
    ```
    /adv-status
    ```
@@ -809,17 +829,17 @@ New changes start directly in the 7-gate model.
 
 **Core 7-gate workflow**
 
-| Command                   | Purpose                                               |
-| ------------------------- | ----------------------------------------------------- |
-| `/adv-status`             | Project overview                                      |
-| `/adv-proposal <summary>` | Extract problem statement and confirm with user       |
-| `/adv-discover <id>`      | Gather context, identify objectives, and confirm agreement |
+| Command                   | Purpose                                                                   |
+| ------------------------- | ------------------------------------------------------------------------- |
+| `/adv-status`             | Project overview                                                          |
+| `/adv-proposal <summary>` | Extract problem statement and confirm with user                           |
+| `/adv-discover <id>`      | Gather context, identify objectives, and confirm agreement                |
 | `/adv-design <id>`        | Validate architecture decisions, produce strategy, and present for review |
-| `/adv-prep <id>`          | Gap analysis and task shaping (from validated design) |
-| `/adv-apply <id>`         | Implement with TDD                                    |
-| `/adv-review <id>`        | Review deliverables and record user sign-off          |
-| `/adv-harden <id>`        | Release-stage quality hardening                       |
-| `/adv-archive <id>`       | Archive completed change and apply spec deltas        |
+| `/adv-prep <id>`          | Gap analysis and task shaping (from validated design)                     |
+| `/adv-apply <id>`         | Implement with TDD                                                        |
+| `/adv-review <id>`        | Review deliverables and record user sign-off                              |
+| `/adv-harden <id>`        | Release-stage quality hardening                                           |
+| `/adv-archive <id>`       | Archive completed change and apply spec deltas                            |
 
 **Fast-track and auxiliary**
 
@@ -851,21 +871,21 @@ Parallel ADV scanners follow the same single-level delegation rule as other ADV 
 
 **Changes**
 
-| Tool                      | Purpose                                                                |
-| ------------------------- | ---------------------------------------------------------------------- |
-| `adv_change_list`         | List active changes (with `includeArchived`/`includeClosed` filters)   |
-| `adv_change_show`         | Get full change details including tasks and deltas                     |
-| `adv_change_create`       | Create a new change proposal                                           |
-| `adv_change_update`       | Update proposal/problem-statement/agreement/design for existing change |
-| `adv_change_validate`     | Validate change against specs and check for conflicts                  |
-| `adv_change_close`        | Close an active change (cancelled/superseded/not_planned)              |
-| `adv_change_archive`      | Archive a completed change (applies spec deltas)                       |
+| Tool                       | Purpose                                                                |
+| -------------------------- | ---------------------------------------------------------------------- |
+| `adv_change_list`          | List active changes (with `includeArchived`/`includeClosed` filters)   |
+| `adv_change_show`          | Get full change details including tasks and deltas                     |
+| `adv_change_create`        | Create a new change proposal                                           |
+| `adv_change_update`        | Update proposal/problem-statement/agreement/design for existing change |
+| `adv_change_validate`      | Validate change against specs and check for conflicts                  |
+| `adv_change_close`         | Close an active change (cancelled/superseded/not_planned)              |
+| `adv_change_archive`       | Archive a completed change (applies spec deltas)                       |
 | `adv_change_update_issues` | Add/remove GitHub issue URLs linked to a change                        |
 
 **Tasks**
 
 | Tool                      | Purpose                                                       |
-| ------------------------- | ------------------------------------------------------------- |
+| ------------------------- | ------------------------------------------------------------- | -------- |
 | `adv_task_list`           | List tasks for a change (with optional status filter)         |
 | `adv_task_show`           | Get full task details by ID (includes parent changeId)        |
 | `adv_task_ready`          | Get unblocked pending tasks ready for work                    |
@@ -873,7 +893,7 @@ Parallel ADV scanners follow the same single-level delegation rule as other ADV 
 | `adv_task_update`         | Update task status (pending/in_progress/done)                 |
 | `adv_task_cancel`         | Cancel tasks with required user approval                      |
 | `adv_task_evidence`       | Record TDD evidence (red/green phase proof)                   |
-| `adv_task_tdd`            | Set or inspect TDD state for a task (`action=set|status`)     |
+| `adv_task_tdd`            | Set or inspect TDD state for a task (`action=set              | status`) |
 | `adv_task_reclassify_tdd` | Reclassify TDD intent after planning gate (requires approval) |
 
 **Gates**
@@ -891,23 +911,23 @@ Parallel ADV scanners follow the same single-level delegation rule as other ADV 
 
 **Wisdom**
 
-| Tool                 | Purpose                                          |
-| -------------------- | ------------------------------------------------ |
+| Tool                      | Purpose                                               |
+| ------------------------- | ----------------------------------------------------- |
 | `adv_wisdom_add`          | Add a learning entry to a change (optionally promote) |
 | `adv_wisdom_list`         | List all wisdom entries for a change                  |
 | `adv_project_wisdom_list` | List project-level promoted wisdom entries            |
 
 **Agenda**
 
-| Tool                    | Purpose                                             |
-| ----------------------- | --------------------------------------------------- |
-| `adv_agenda_list`       | List agenda items (with status filter)              |
-| `adv_agenda_add`        | Add a quick work item to the agenda                 |
-| `adv_agenda_start`      | Mark an agenda item as active                       |
-| `adv_agenda_complete`   | Mark an agenda item as done                         |
-| `adv_agenda_cancel`     | Cancel an agenda item                               |
-| `adv_agenda_prioritize` | Change priority of an agenda item                   |
-| `adv_agenda_evidence`   | Record TDD evidence for an agenda item              |
+| Tool                    | Purpose                                |
+| ----------------------- | -------------------------------------- |
+| `adv_agenda_list`       | List agenda items (with status filter) |
+| `adv_agenda_add`        | Add a quick work item to the agenda    |
+| `adv_agenda_start`      | Mark an agenda item as active          |
+| `adv_agenda_complete`   | Mark an agenda item as done            |
+| `adv_agenda_cancel`     | Cancel an agenda item                  |
+| `adv_agenda_prioritize` | Change priority of an agenda item      |
+| `adv_agenda_evidence`   | Record TDD evidence for an agenda item |
 
 ---
 

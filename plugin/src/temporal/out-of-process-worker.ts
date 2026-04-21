@@ -209,6 +209,9 @@ export async function createOutOfProcessWorker(
         try {
           child.kill("SIGTERM");
         } catch (e) {
+          state.child = null;
+          state.dead = true;
+          state.resolveExit();
           debugLog(
             `SIGTERM to OOP worker queue=${state.queue} threw: ${(e as Error).message}`,
           );
@@ -221,6 +224,9 @@ export async function createOutOfProcessWorker(
 
     isAlive(): boolean {
       for (const state of states.values()) {
+        // `dead` means restart budget exhausted or the queue exited gracefully
+        // with no respawn pending. `child.exitCode === null` is the actual
+        // process-level liveness signal for still-running children.
         if (state.dead) continue;
         if (state.child && state.child.exitCode === null) return true;
       }

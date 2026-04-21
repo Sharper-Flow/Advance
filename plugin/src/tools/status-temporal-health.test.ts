@@ -35,6 +35,7 @@ const mocks = vi.hoisted(() => ({
       },
     },
   })),
+  canReachTemporalAddress: vi.fn(async () => true),
 }));
 
 vi.mock("../temporal/health-probe", () => ({
@@ -49,6 +50,16 @@ vi.mock("../temporal/client", async () => {
   return {
     ...actual,
     createTemporalClientBundle: mocks.createTemporalClientBundle,
+  };
+});
+
+vi.mock("../temporal/runtime-manager", async () => {
+  const actual = await vi.importActual<
+    typeof import("../temporal/runtime-manager")
+  >("../temporal/runtime-manager");
+  return {
+    ...actual,
+    canReachTemporalAddress: mocks.canReachTemporalAddress,
   };
 });
 
