@@ -23,11 +23,17 @@ import {
   createInProcessWorker,
   type InProcessWorker,
 } from "./temporal/in-process-worker";
+import { createOutOfProcessWorker } from "./temporal/out-of-process-worker";
 import {
   runMigrationSweep,
   type WorkflowClientLike,
 } from "./temporal/migrate-runner";
-import { ensureTemporalRuntime } from "./temporal/runtime-manager";
+import {
+  ensureTemporalRuntime,
+  probeTemporalWorkerRuntime,
+  resolveNodeExecutable,
+} from "./temporal/runtime-manager";
+import { fileURLToPath } from "node:url";
 import { cleanup as cleanupTerminal } from "./events";
 import { appendDebugLog, createLogger } from "./utils/debug-log";
 import { getProjectId } from "./utils/project-id";
@@ -161,6 +167,23 @@ async function initStoreWithoutTemporal(
   return { store, initError: null };
 }
 
+/**
+ * Resolve the worker script path used by the OOP Node child process.
+ *
+ * Prefers the built bundle (`dist/temporal/worker.js`) next to the plugin
+ * distribution — that path is guaranteed to be resolvable from a Node child
+ * regardless of the plugin host runtime. Falls back to the source file when
+ * running from source (dev) where the built bundle doesn't exist.
+ */
+function resolveWorkerScriptPath(): string {
+  // Use import.meta.url so the calculation works whether the plugin is loaded
+  // as src (Bun/tsx) or dist (Node bundle).
+  const distPath = fileURLToPath(
+    new URL("./temporal/worker.js", import.meta.url),
+  );
+  return distPath;
+}
+
 export async function tryInitStore(
   effectiveDir: string,
   externalRoot: string | undefined,
@@ -175,11 +198,32 @@ export async function tryInitStore(
     const temporalDisabled = process.env.ADV_DISABLE_TEMPORAL === "1";
     if (projectId && !temporalDisabled) {
       const runtime = await ensureTemporalRuntime(projectId);
-      worker = await createInProcessWorker({
-        address: runtime.address,
-        namespace: runtime.namespace,
-        queues: [buildProjectTaskQueue(projectId)],
-      });
+      const workerProbe = probeTemporalWorkerRuntime();
+
+      if (workerProbe.supported) {
+        // Node host — worker runs in-process (existing behavior).
+        worker = await createInProcessWorker({
+          address: runtime.address,
+          namespace: runtime.namespace,
+          queues: [buildProjectTaskQueue(projectId)],
+        });
+      } else {
+        // Bun (or other unsupported worker host) — spawn a Node child.
+        const nodeResolution = resolveNodeExecutable();
+        if (!nodeResolution.found) {
+          throw new Error(
+            `Temporal worker cannot run under ${workerProbe.runtime}. ${nodeResolution.remediation ?? "Install Node on PATH or set ADV_NODE_PATH."}`,
+          );
+        }
+        worker = await createOutOfProcessWorker({
+          address: runtime.address,
+          namespace: runtime.namespace,
+          queues: [buildProjectTaskQueue(projectId)],
+          workerScript: resolveWorkerScriptPath(),
+          projectId,
+        });
+      }
+
       registerInProcessTemporalWorker(worker);
       temporalBundle = await createTemporalClientBundle(
         buildTemporalClientEnv({
