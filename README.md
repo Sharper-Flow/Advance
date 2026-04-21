@@ -110,27 +110,27 @@ When a change has multiple viable directions with real user-value tradeoffs, pri
 
 ## Command reference
 
-| Command           | Description                                                                              |
-| ----------------- | ---------------------------------------------------------------------------------------- |
-| `/adv-status`     | Show project overview: specs, active changes, and next-step recommendations              |
-| `/adv-proposal`   | Extract problem statement, success criteria, and constraints without creating tasks      |
-| `/adv-validate`   | Validate change compliance against specs; block archive on failure                       |
-| `/adv-archive`    | Archive completed change: apply spec deltas and finalize git                             |
-| `/adv-clarify`    | Ask clarifying questions to resolve ambiguous requirements                               |
-| `/adv-research`   | Produce a defined, fully-researched proposed plan ready for user approval                |
-| `/adv-discover`   | Gather context, analyze current state, identify objectives, and obtain user agreement    |
+| Command           | Description                                                                                          |
+| ----------------- | ---------------------------------------------------------------------------------------------------- |
+| `/adv-status`     | Show project overview: specs, active changes, and next-step recommendations                          |
+| `/adv-proposal`   | Extract problem statement, success criteria, and constraints without creating tasks                  |
+| `/adv-validate`   | Validate change compliance against specs; block archive on failure                                   |
+| `/adv-archive`    | Archive completed change: apply spec deltas and finalize git                                         |
+| `/adv-clarify`    | Ask clarifying questions to resolve ambiguous requirements                                           |
+| `/adv-research`   | Produce a defined, fully-researched proposed plan ready for user approval                            |
+| `/adv-discover`   | Gather context, analyze current state, identify objectives, and obtain user agreement                |
 | `/adv-design`     | Validate architecture decisions, produce implementation strategy, and present design for user review |
-| `/adv-prep`       | Analyze gaps and synthesize tasks from validated research findings                       |
-| `/adv-apply`      | Implement change with TDD, retry on failure, and final verification                      |
-| `/adv-task`       | Fast-track a discussed change: synthesize contract, validate best practices, prep, and hand off |
-| `/adv-review`     | Review code for correctness, security, and architecture; emit REVIEW_FINDINGS           |
-| `/adv-harden`     | Detect low-quality code, verify test coverage, clean up; block archive on open findings  |
-| `/adv-audit`      | Detect drift between specs and current implementation                                    |
-| `/adv-slop-scan`  | Scan for AI slop patterns including defensive and nested code                            |
-| `/adv-refactor`   | Refresh a stale proposal to reflect current codebase state                               |
-| `/adv-coordinate` | Detect and resolve conflicts across multiple active changes                              |
-| `/adv-improve`    | Suggest targeted improvements to existing specs or implementation                        |
-| `/adv-tron`       | Investigate codebase structure, hotspots, risks, and suggest follow-up agenda candidates |
+| `/adv-prep`       | Analyze gaps and synthesize tasks from validated research findings                                   |
+| `/adv-apply`      | Implement change with TDD, retry on failure, and final verification                                  |
+| `/adv-task`       | Fast-track a discussed change: synthesize contract, validate best practices, prep, and hand off      |
+| `/adv-review`     | Review code for correctness, security, and architecture; emit REVIEW_FINDINGS                        |
+| `/adv-harden`     | Detect low-quality code, verify test coverage, clean up; block archive on open findings              |
+| `/adv-audit`      | Detect drift between specs and current implementation                                                |
+| `/adv-slop-scan`  | Scan for AI slop patterns including defensive and nested code                                        |
+| `/adv-refactor`   | Refresh a stale proposal to reflect current codebase state                                           |
+| `/adv-coordinate` | Detect and resolve conflicts across multiple active changes                                          |
+| `/adv-improve`    | Suggest targeted improvements to existing specs or implementation                                    |
+| `/adv-tron`       | Investigate codebase structure, hotspots, risks, and suggest follow-up agenda candidates             |
 
 ## Why it feels different
 
@@ -205,31 +205,40 @@ out-of-process (when the plugin host is Bun — opencode's shipping binary).
   is loaded by `@temporalio/worker` at startup from `workflows.ts`.
 - **Out-of-process** (`plugin/src/temporal/out-of-process-worker.ts`) — selected
   automatically when the probe reports Bun. A Node child process is spawned
-  per task queue. Plugin (Bun) keeps only the Temporal client; the child runs
-  the worker with Node-native module resolution. Exponential-backoff restart
-  policy on child crash (1s, 3s, 10s; max 3 attempts). Requires a Node binary
-  on `PATH` (or set `ADV_NODE_PATH`).
+  per task queue, loading the worker bundle from `dist/temporal/worker.js`
+  (produced by `pnpm run build:worker`). Plugin (Bun) keeps only the Temporal
+  client; the child runs the worker with Node-native module resolution.
+  Exponential-backoff restart policy on child crash (1s, 3s, 10s; max 3
+  attempts). Requires a Node binary on `PATH` (or set `ADV_NODE_PATH`).
 
 See [docs/temporal-recovery.md](docs/temporal-recovery.md) for the worker-model
 decision record.
 
 Environment variables (see `plugin/.env.example`):
 
-| Variable | Default | Purpose |
-| -------- | ------- | ------- |
-| `ADV_TEMPORAL_ADDRESS` | `127.0.0.1:7233` | Temporal frontend address. Non-loopback requires opt-in. |
-| `ADV_TEMPORAL_NAMESPACE` | `default` | Temporal namespace (regex-validated). |
-| `ADV_TEMPORAL_ALLOW_REMOTE` | unset | Set to `true` to permit non-loopback addresses. |
-| `ADV_DISABLE_TEMPORAL` | unset | Set to `1` to skip the Temporal bootstrap entirely and run on the file-backed test harness path. Intended for local dev/tests; users with broken Temporal deployments typically want `ADV_ALLOW_DEGRADED_FALLBACK=1` instead. |
-| `ADV_ALLOW_DEGRADED_FALLBACK` | unset | *(Deprecated-by-design, Phase 2.)* Set to `1` to silently fall back to the file-backed store when Temporal init fails (e.g., Bun host + no Node available). Without the flag, init failures produce `ADV_PLUGIN_INIT_FAILED` stubs. Removed once every supported deployment has a working OOP worker path. |
-| `ADV_NODE_PATH` | unset | Absolute path to a Node executable. Used only by the out-of-process worker when spawning the Node child. If unset, the plugin looks up `node` via `which` / `where` on `PATH`. |
+| Variable                                  | Default          | Purpose                                                                                                                                                                                                                              |
+| ----------------------------------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `ADV_TEMPORAL_ADDRESS`                    | `127.0.0.1:7233` | Temporal frontend address. Non-loopback requires opt-in.                                                                                                                                                                             |
+| `ADV_TEMPORAL_NAMESPACE`                  | `default`        | Temporal namespace (regex-validated).                                                                                                                                                                                                |
+| `ADV_TEMPORAL_ALLOW_REMOTE`               | unset            | Set to `true` to permit non-loopback addresses.                                                                                                                                                                                      |
+| `ADV_DISABLE_TEMPORAL`                    | unset            | Set to `1` to skip the Temporal bootstrap entirely and run on the file-backed test harness path. Intended for local dev/tests; users with broken Temporal deployments typically want `ADV_ALLOW_DEGRADED_FALLBACK=1` instead.        |
+| `ADV_ALLOW_DEGRADED_FALLBACK`<sup>†</sup> | unset            | Set to `1` to silently fall back to the file-backed store when Temporal init fails (e.g., Bun host + no Node available). Without the flag, init failures produce `ADV_PLUGIN_INIT_FAILED` stubs.                                     |
+| `ADV_NODE_PATH`                           | unset            | **REQUIRED on Bun hosts when Node is not on `PATH`.** Absolute path to a Node v20+ executable. Used by the out-of-process worker when spawning the Node child. On Node hosts, this variable is optional (defaults to `PATH` lookup). |
+
+<sup>†</sup> `ADV_ALLOW_DEGRADED_FALLBACK` is deprecated-by-design: the flag is a
+temporary escape hatch for deployments where the out-of-process worker cannot
+run, and will be removed once every supported deployment has a working OOP
+worker path.
 
 Activation path:
 
 ```ts
 import { createStore } from "./plugin/src/storage/store";
 // Production bootstrap wires a Temporal client bundle before calling createStore().
-const store = await createStore(projectDir, { temporalBundle, projectIdOverride });
+const store = await createStore(projectDir, {
+  temporalBundle,
+  projectIdOverride,
+});
 ```
 
 `createStore()` remains parameterized for tests and explicit callers. The

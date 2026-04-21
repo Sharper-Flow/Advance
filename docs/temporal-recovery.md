@@ -8,9 +8,9 @@
 
 **The worker model is runtime-dependent**, selected automatically at plugin init:
 
-| Plugin host | Worker model | Module |
-| --- | --- | --- |
-| Node | In-process multi-queue Temporal worker | `plugin/src/temporal/in-process-worker.ts` |
+| Plugin host                      | Worker model                                | Module                                         |
+| -------------------------------- | ------------------------------------------- | ---------------------------------------------- |
+| Node                             | In-process multi-queue Temporal worker      | `plugin/src/temporal/in-process-worker.ts`     |
 | Bun (opencode's shipping binary) | Out-of-process Node child process per queue | `plugin/src/temporal/out-of-process-worker.ts` |
 
 The hybrid was activated by `fixTemporalWorkerBundleFailure` after reproduction confirmed `@temporalio/worker.Worker.create()` cannot run in-process under Bun: the SDK spawns a Node worker thread whose `require('@temporalio/common')` fails from Bun's install-cache path ([upstream issue #1334](https://github.com/temporalio/sdk-typescript/issues/1334)). Alternative direction #1 below is now the active model for the Bun path.
