@@ -21,7 +21,7 @@ describe("Command Manifest", () => {
     expect(Object.keys(COMMAND_MANIFEST).length).toBeGreaterThan(0);
   });
 
-  test("contains all 17 ADV commands", () => {
+  test("contains all 19 ADV commands", () => {
     const expectedCommands = [
       "adv-status",
       "adv-proposal",
@@ -29,8 +29,10 @@ describe("Command Manifest", () => {
       "adv-apply",
       "adv-archive",
       "adv-clarify",
-      "adv-prep",
       "adv-research",
+      "adv-discover",
+      "adv-design",
+      "adv-prep",
       "adv-review",
       "adv-harden",
       "adv-audit",
@@ -45,7 +47,7 @@ describe("Command Manifest", () => {
     for (const cmd of expectedCommands) {
       expect(COMMAND_MANIFEST).toHaveProperty(cmd);
     }
-    expect(Object.keys(COMMAND_MANIFEST)).toHaveLength(17);
+    expect(Object.keys(COMMAND_MANIFEST)).toHaveLength(19);
   });
 
   test("every command has required fields", () => {
@@ -62,12 +64,13 @@ describe("Command Manifest", () => {
 
   test("gate-affecting commands reference valid gate IDs", () => {
     const validGates: GateId[] = [
-      "research",
-      "prep",
-      "implementation",
-      "review",
-      "harden",
-      "signoff",
+      "proposal",
+      "discovery",
+      "design",
+      "planning",
+      "execution",
+      "acceptance",
+      "release",
     ];
 
     for (const def of Object.values(COMMAND_MANIFEST)) {
@@ -111,15 +114,15 @@ describe("Command Manifest", () => {
   });
 
   describe("getCommandsByGate", () => {
-    test("returns commands that affect the research gate", () => {
-      const cmds = getCommandsByGate("research");
+    test("returns commands that affect the discovery gate", () => {
+      const cmds = getCommandsByGate("discovery");
       expect(cmds.length).toBeGreaterThan(0);
-      expect(cmds.some((c) => c.name === "adv-research")).toBe(true);
+      expect(cmds.some((c) => c.name === "adv-discover")).toBe(true);
     });
 
     test("returns empty array for gate with no direct command", () => {
-      // signoff is user-triggered, no specific command
-      const cmds = getCommandsByGate("signoff");
+      // proposal gate has no specific command
+      const cmds = getCommandsByGate("proposal");
       // May or may not have commands — just shouldn't throw
       expect(Array.isArray(cmds)).toBe(true);
     });
@@ -129,10 +132,10 @@ describe("Command Manifest", () => {
     test("returns successor commands for a given command", () => {
       const successors = getSuccessors("adv-prep");
       expect(successors.length).toBeGreaterThan(0);
-      // After prep, you typically do apply or research
+      // After prep, you typically do apply
       expect(
         successors.some(
-          (s) => s.name === "adv-apply" || s.name === "adv-research",
+          (s) => s.name === "adv-apply",
         ),
       ).toBe(true);
     });
@@ -170,6 +173,8 @@ describe("Command Manifest", () => {
       "Fast-track",
       "Investigate",
       "Extract",
+      "Gather",
+      "Produce",
     ];
 
     test("every description starts with a strong verb", () => {
@@ -211,29 +216,34 @@ describe("Command Manifest", () => {
   });
 
   describe("Workflow correctness", () => {
-    test("adv-research affects research gate", () => {
-      const def = getCommandDef("adv-research");
-      expect(def!.gate).toBe("research");
+    test("adv-discover affects discovery gate", () => {
+      const def = getCommandDef("adv-discover");
+      expect(def!.gate).toBe("discovery");
     });
 
-    test("adv-prep affects prep gate", () => {
+    test("adv-design affects design gate", () => {
+      const def = getCommandDef("adv-design");
+      expect(def!.gate).toBe("design");
+    });
+
+    test("adv-prep affects planning gate", () => {
       const def = getCommandDef("adv-prep");
-      expect(def!.gate).toBe("prep");
+      expect(def!.gate).toBe("planning");
     });
 
-    test("adv-apply affects implementation gate", () => {
+    test("adv-apply affects execution gate", () => {
       const def = getCommandDef("adv-apply");
-      expect(def!.gate).toBe("implementation");
+      expect(def!.gate).toBe("execution");
     });
 
-    test("adv-review affects review gate", () => {
+    test("adv-review affects acceptance gate", () => {
       const def = getCommandDef("adv-review");
-      expect(def!.gate).toBe("review");
+      expect(def!.gate).toBe("acceptance");
     });
 
-    test("adv-harden affects harden gate", () => {
-      const def = getCommandDef("adv-harden");
-      expect(def!.gate).toBe("harden");
+    test("adv-archive affects release gate", () => {
+      const def = getCommandDef("adv-archive");
+      expect(def!.gate).toBe("release");
     });
 
     test("adv-archive requires change ID", () => {
@@ -381,11 +391,11 @@ describe("Command Manifest", () => {
     test("phaseGoal values match the user-approved phase goals", () => {
       const expectedGoals: Record<string, string> = {
         "adv-proposal":
-          "Clarify the problem, user needs, and acceptance criteria scope. Establish what and why — no how.",
+          "Clarify the problem, user needs, and acceptance criteria scope. Establish what and why \u2014 no how.",
         "adv-research":
           "Produce a defined, fully-researched proposed plan ready for user approval. Validate the how.",
         "adv-prep":
-          "Complete the flight-check: every gap closed, every dependency mapped, every task ready — ready for autonomous implementation.",
+          "Complete the flight-check: every gap closed, every dependency mapped, every task ready \u2014 ready for autonomous implementation.",
         "adv-apply":
           "Execute the approved plan autonomously. Add discovered tasks within scope. Escalate only on failure.",
         "adv-review":

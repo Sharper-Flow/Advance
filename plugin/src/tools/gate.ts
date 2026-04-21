@@ -1,7 +1,7 @@
 /**
  * Gate Tools
  *
- * Tools for 6-gate quality checklist management.
+ * Tools for 7-gate quality checklist management.
  */
 
 import { z } from "zod";
@@ -35,7 +35,7 @@ import { COMMAND_MANIFEST } from "../manifest";
 export const gateTools = {
   adv_gate_status: {
     description:
-      "Get gate status for a change. Returns all 6 gates with completion status, timestamps, and next gate to complete.",
+      "Get gate status for a change. Returns all 7 gates with completion status, timestamps, and next gate to complete.",
     args: {
       changeId: z.string().describe("Change ID"),
     },
@@ -71,12 +71,13 @@ export const gateTools = {
       changeId: z.string().describe("Change ID"),
       gateId: z
         .enum([
-          "research",
-          "prep",
-          "implementation",
-          "review",
-          "harden",
-          "signoff",
+          "proposal",
+          "discovery",
+          "design",
+          "planning",
+          "execution",
+          "acceptance",
+          "release",
         ])
         .describe("Gate to mark complete"),
       completedBy: z
@@ -87,8 +88,12 @@ export const gateTools = {
         .boolean()
         .optional()
         .describe(
-          "Required for prep gate. Must be true — prep is the only machine-enforced HITL gate and the last human checkpoint before autonomous execution. Confirms the user explicitly approved the prep contract. Ignored for other gates.",
+          "Required for planning gate. Must be true — planning is the only machine-enforced HITL gate and the last human checkpoint before autonomous execution. Confirms the user explicitly approved the prep contract. Ignored for other gates.",
         ),
+      notes: z
+        .string()
+        .optional()
+        .describe("Optional notes about the gate completion"),
     },
     execute: async (
       {
@@ -96,11 +101,13 @@ export const gateTools = {
         gateId,
         completedBy = "agent",
         userApproved,
+        notes,
       }: {
         changeId: string;
         gateId: GateId;
         completedBy?: string;
         userApproved?: boolean;
+        notes?: string;
       },
       store: Store,
     ) => {
@@ -170,13 +177,13 @@ export const gateTools = {
       // Boundary validation: check if the completing command owns this gate
       const boundaryWarning = validateGateBoundary(gateId, completedBy);
 
-      // Prep gate: run readiness checks before marking done
-      if (gateId === "prep") {
-        // HITL Boundary: prep gate requires explicit user approval
+      // Planning gate: run readiness checks before marking done
+      if (gateId === "planning") {
+        // HITL Boundary: planning gate requires explicit user approval
         if (!userApproved) {
           return formatToolOutput({
             error:
-              "Prep gate requires userApproved: true. The user must explicitly approve the prep contract (via question tool) before this gate can be completed.",
+              "Planning gate requires userApproved: true. The user must explicitly approve the prep contract (via question tool) before this gate can be completed.",
             changeId,
             gateId,
             hint: "Present the vision document to the user, obtain approval via question tool, then call adv_gate_complete with userApproved: true.",
@@ -350,7 +357,7 @@ function validateGateBoundary(
   if (commandName === "agent") return undefined;
 
   if (!isAuthorized) {
-    return `Gate '${gateId}' is owned by [${authorizedCommands.join(", ")}] but was completed by '${completedBy}'. This may indicate a command boundary violation. See specs adv-proposal, adv-research, adv-prep for gate ownership rules.`;
+    return `Gate '${gateId}' is owned by [${authorizedCommands.join(", ")}] but was completed by '${completedBy}'. This may indicate a command boundary violation. See specs adv-proposal, adv-discover, adv-prep for gate ownership rules.`;
   }
 
   return undefined;

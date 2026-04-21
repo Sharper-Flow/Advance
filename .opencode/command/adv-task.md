@@ -1,6 +1,6 @@
 ---
 name: adv-task
-description: Fast-track a discussed change: synthesize contract, validate, prep, and hand off
+description: Fast-track a discussed change: synthesize contract, validate best practices, prep, and hand off
 ---
 # ADV Task — Fast-Track a Discussed Change
 Fast-track a discussed change through proposal, discovery, design, and planning, then hand off to Build. Use when user and agent already agree on what needs doing.

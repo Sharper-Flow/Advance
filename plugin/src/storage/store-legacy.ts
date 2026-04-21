@@ -136,6 +136,8 @@ export async function createLegacyStore(
     ctx.sqlite.changes.upsert(change, jsonPath);
     ctx.sqlite.wisdom.deleteByChange(change.id);
     ctx.sqlite.wisdom.upsertBatch(change.id, change.wisdom ?? []);
+    // Invalidate sync cache so subsequent reads pick up the change from disk
+    ctx.syncedChanges.add(change.id);
     if (shouldCheckpoint(ctx.dbPath)) {
       checkpointWAL(ctx.sqlite.db);
     }

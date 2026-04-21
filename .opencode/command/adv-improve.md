@@ -1,6 +1,6 @@
 ---
 name: adv-improve
-description: Suggest improvements and persist a competitor research pack for /adv-discover reuse
+description: Suggest targeted improvements to existing specs or implementation
 ---
 
 # ADV Improve — Analyze Improvement Opportunities

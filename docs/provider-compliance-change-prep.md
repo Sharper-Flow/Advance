@@ -185,7 +185,7 @@ This is a critical design constraint. Any new `system.transform` behavior should
 
 What exists now:
 
-- `adv_task_evidence` records evidence but does **not** validate exit semantics (`plugin/src/tools/task.ts:198-255`)
+- `adv_task_evidence` records evidence but does **not** validate exit semantics (`plugin/src/tools/task.ts:198-255`). `adv_run_test` is the primary red/green evidence path (captures exit code + output); `adv_task_evidence` is fallback for externally captured evidence.
 - `store.tasks.recordEvidence` updates `tdd_phase` based on phase presence, not pass/fail semantics (`plugin/src/storage/store.ts:1182-1214`)
 - completeness validation flags missing TDD evidence on `done` tasks (`plugin/src/validator/completeness.ts:177-204`)
 - `adv_task_update` / `store.tasks.update` allows `status: "done"` without checking TDD evidence (`plugin/src/tools/task.ts:106-139`, `plugin/src/storage/store.ts:1124-1143`)

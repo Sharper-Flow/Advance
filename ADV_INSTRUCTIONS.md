@@ -208,10 +208,12 @@ TodoWrite: use task IDs only (`tk-abc123`), not descriptions.
 
 Inline TDD is default — red/green phases WITHIN each task. × Do NOT create separate test tasks for same scope.
 
-- **RED:** Write failing test → run → `[ADV:TDD_RED]` → show output
-- **GREEN:** Implement → run → `[ADV:TDD_GREEN]` → show output
+- **RED:** `[ADV:TDD_RED]` → write failing test using editing tool (`edit` / `write` / `morph_edit`) → run with `adv_run_test phase:'red'` → show failure evidence
+- **GREEN:** `[ADV:TDD_GREEN]` → implement using editing tool → run with `adv_run_test phase:'green'` → if fails: retry protocol → show pass evidence
 - **Trivial:** Note `(trivial: docs change)`, skip TDD
 - **Cross-cutting:** Separate verification tasks OK → mark `metadata.tdd_intent: "separate_verification"`
+
+`adv_task_evidence` is fallback for externally captured evidence, not the primary inline-TDD path.
 
 ### Doom Loop Detection
 
@@ -221,7 +223,7 @@ Inline TDD is default — red/green phases WITHIN each task. × Do NOT create se
 | 🔁 Doom Loop | 3 failed attempts |
 | 🌍 Environmental | Missing dependency → escalate |
 
-After 3 failures: STOP → `[ADV:DOOM_LOOP]` → document all 3 attempts → ask via `question`.
+After 3 failures: STOP → `[ADV:DOOM_LOOP]` → document all 3 attempts → ask via `question`. Record `strategy_label` in `error_recovery.attempts[]`.
 
 | × Bad | ✓ Good |
 |-------|--------|
@@ -257,6 +259,10 @@ Workflow: identify tasks + reasons → present to user via `question` → user a
 
 On loop stop or compaction: emit `[ADV:TASK_STATUS_REPORT]` with completed/cancelled/remaining. See [docs/adv-task-report.md](docs/adv-task-report.md).
 
+### Post-Remediation Re-Verification
+
+After `/adv-review` or `/adv-harden` fixes findings, re-scan only affected dimensions. Do NOT re-run all scanners after fixes.
+
 ## 6-Gate Quality Checklist
 
 | Gate | Triggered By |
@@ -290,7 +296,7 @@ Slash commands are top-level entry points for the user/session, not an internal 
 
 ### Sub-Agent Orchestration (optional, requires `task` tool)
 
-Available to: `orca`, `plan`, `scout`, `refine`, `general`. Use when 3+ independent scan dimensions benefit from parallelism.
+Available to: `orca`, `plan`, `general`. Use when 3+ independent scan dimensions benefit from parallelism.
 
 | Command | Inline | Sub-Agent |
 |---------|--------|-----------|
@@ -311,7 +317,21 @@ Rules:
 - For `/adv-research`, `librarian`, `adv-researcher`, and `explore` fallback must do the research inline and must not delegate to additional research sub-agents
 - For `/adv-slop-scan`, all `explore` scanner workers must do the scan inline and must not delegate to additional sub-agents or invoke `/adv-*` slash commands
 
-Inline-only: `/adv-status`, `/adv-proposal`, `/adv-validate`, `/adv-apply`, `/adv-archive`, `/adv-clarify`, `/adv-prep`, `/adv-coordinate`, `/adv-improve`
+Inline-only: `/adv-status`, `/adv-proposal`, `/adv-validate`, `/adv-archive`, `/adv-clarify`, `/adv-prep`, `/adv-coordinate`, `/adv-improve`
+
+### Delegation Routing
+
+| Priority | Check | Result |
+| --- | --- | --- |
+| 1 | `metadata.delegation_hint` set? | Use hint value |
+| 2 | `tdd_intent == "not_applicable"`? | `delegate_allowed` |
+| 3 | Title matches `isTrivialTask` patterns? | `delegate_allowed` |
+| 4 | Risk signals (multi-file, cross-repo, architectural keywords)? | `inline_required` |
+| 5 | Default | `inline_required` |
+
+### Context Packet Standards
+
+Apply packet includes: WORKING DIRECTORY, CHANGE, TASK, AFFECTED FILES, DESIGN EXCERPT, ACCEPTANCE CRITERIA, EXPECTED OUTPUT.
 
 ## Sub-Agent Selection
 
@@ -319,9 +339,10 @@ Inline-only: `/adv-status`, `/adv-proposal`, `/adv-validate`, `/adv-apply`, `/ad
 
 | Tier | Agents | Loading |
 |------|--------|---------|
-| **Core** (always loaded) | `plan`, `build`, `refine`, `scout`, `orca` | Global `~/.config/opencode/agents/` |
+| **Core** (always loaded) | `plan`, `build`, `orca` | Global `~/.config/opencode/agents/` |
 | **Common** (always loaded) | `explore`, `librarian`, `general`, `mechanic` | Global `~/.config/opencode/agents/` |
-| **Specialist** (repo-scoped) | `adv-researcher`, `tron` | Repo-local `.opencode/agents/` |
+| **ADV Specialist** | `adv-researcher` | bundled global |
+| **Repo-Local** | `tron` | Repo-local `.opencode/agents/` |
 
 ### Agent Roster
 

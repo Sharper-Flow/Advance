@@ -223,13 +223,21 @@ mechanisms introduced.
     );
     const { changeId } = parseToolOutput(createResult);
 
-    // Complete research gate first
+    // Complete prerequisite gates first
     await gateTools.adv_gate_complete.execute(
-      { changeId, gateId: "research" },
+      { changeId, gateId: "proposal" },
+      store,
+    );
+    await gateTools.adv_gate_complete.execute(
+      { changeId, gateId: "discovery" },
+      store,
+    );
+    await gateTools.adv_gate_complete.execute(
+      { changeId, gateId: "design" },
       store,
     );
 
-    // Complete prep gate — should pass cleanly
+    // Complete planning gate — should pass cleanly
     const prepResult = await gateTools.adv_gate_complete.execute(
       { changeId, gateId: "planning", userApproved: true },
       store,

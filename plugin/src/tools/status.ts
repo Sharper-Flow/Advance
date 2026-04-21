@@ -6,8 +6,14 @@
  * gate status of active changes.
  */
 
-import { join } from "path";
+import { basename, join } from "path";
 import type { Store } from "../storage/store";
+import {
+  buildProjectWorkflowId,
+  createTemporalClientBundle,
+} from "../temporal/client";
+import { projectMigrationLedgerQuery } from "../temporal/messages";
+import { getTemporalHealth } from "../temporal/health-probe";
 import { wrapWithBanner } from "../utils/banner";
 import { formatToolOutput } from "../utils/tool-output";
 import {
@@ -50,6 +56,55 @@ function getRecommendationForGate(
   return `Change \`${changeId}\`: next gate is \`${gateId}\` → run \`/${cmd.name} ${changeId}\``;
 }
 
+async function loadMigrationStatus(store: Store) {
+  if (!store.paths.external) return null;
+
+  const projectId = basename(store.paths.external);
+  if (!projectId) return null;
+
+  try {
+    const bundle = await createTemporalClientBundle(process.env);
+    try {
+      const handle = bundle.client.workflow.getHandle(
+        buildProjectWorkflowId(projectId),
+      );
+      const ledger = (await handle.query(projectMigrationLedgerQuery)) as Array<{
+        key?: string;
+        source?: string;
+        status?: string;
+        detail?: string;
+        recordedAt?: string;
+      }>;
+      const latest =
+        [...ledger].reverse().find((entry) => entry.key === "project-import") ??
+        ledger.at(-1) ??
+        null;
+
+      if (!latest) {
+        return {
+          project_id: projectId,
+          status: "empty",
+          source: null,
+          detail: null,
+          recorded_at: null,
+        };
+      }
+
+      return {
+        project_id: projectId,
+        status: latest.status ?? "unknown",
+        source: latest.source ?? null,
+        detail: latest.detail ?? null,
+        recorded_at: latest.recordedAt ?? null,
+      };
+    } finally {
+      await bundle.connection.close().catch(() => undefined);
+    }
+  } catch {
+    return null;
+  }
+}
+
 // =============================================================================
 // Tool Definitions
 // =============================================================================
@@ -61,6 +116,20 @@ export const statusTools = {
     args: {},
     execute: async (_args: Record<string, never>, store: Store) => {
       const status = await store.status();
+      const migrationStatus = await loadMigrationStatus(store);
+
+      let temporalHealth;
+      try {
+        temporalHealth = await getTemporalHealth();
+      } catch (err) {
+        temporalHealth = {
+          server_alive: false,
+          worker_alive: false,
+          registered_queues: [],
+          last_op_at: null,
+          last_error: err instanceof Error ? err.message : String(err),
+        };
+      }
 
       // Load project config with diagnostics — surface errors instead of silently ignoring
       const configResult = await loadProjectConfigWithDiagnostics(
@@ -182,9 +251,12 @@ export const statusTools = {
         }
       }
 
-      const output = featureFlags
-        ? { ...status, feature_flags: featureFlags }
-        : status;
+      const output = {
+        ...status,
+        ...(featureFlags ? { feature_flags: featureFlags } : {}),
+        temporal_health: temporalHealth,
+        migration_status: migrationStatus,
+      };
 
       return wrapWithBanner(
         { command: "adv_status" },

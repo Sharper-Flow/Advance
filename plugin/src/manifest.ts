@@ -80,7 +80,7 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
     phase: "core",
     requiresChangeId: false,
     prerequisites: [],
-    successors: ["adv-clarify", "adv-research", "adv-prep"],
+    successors: ["adv-clarify", "adv-research"],
     scope: {
       creates: ["change", "proposal"],
       reads: ["specs"],
@@ -117,29 +117,78 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
       "Promote the change from contract to law: apply spec deltas, capture wisdom, clean up.",
   },
 
-  // ---- Pre-Implementation (Discovery + Design) ----
+  // ---- Pre-Implementation (Discovery + Design + Planning) ----
   "adv-clarify": {
     name: "adv-clarify",
     description: "Ask clarifying questions to resolve ambiguous requirements",
     phase: "pre-implementation",
     requiresChangeId: false,
     prerequisites: ["adv-proposal"],
+    successors: ["adv-research", "adv-discover"],
+  },
+  "adv-research": {
+    name: "adv-research",
+    description:
+      "Produce a defined, fully-researched proposed plan ready for user approval",
+    phase: "pre-implementation",
+    requiresChangeId: false,
+    prerequisites: ["adv-proposal"],
     successors: ["adv-discover", "adv-prep"],
+    scope: {
+      creates: [],
+      reads: ["specs", "proposal", "codebase"],
+      modifies: ["proposal"],
+      gates: [],
+    },
+    phaseGoal:
+      "Produce a defined, fully-researched proposed plan ready for user approval. Validate the how.",
   },
   "adv-discover": {
+    name: "adv-discover",
+    description:
+      "Gather context, analyze current state, identify objectives, and obtain user agreement",
+    phase: "pre-implementation",
+    gate: "discovery",
+    requiresChangeId: true,
+    prerequisites: ["adv-proposal"],
+    successors: ["adv-design"],
+    scope: {
+      creates: [],
+      reads: ["specs", "proposal", "codebase"],
+      modifies: ["proposal"],
+      gates: ["discovery"],
+    },
+  },
+  "adv-design": {
+    name: "adv-design",
+    description:
+      "Validate architecture decisions, produce implementation strategy, and present design for user review",
+    phase: "pre-implementation",
+    gate: "design",
+    requiresChangeId: true,
+    prerequisites: ["adv-discover"],
+    successors: ["adv-prep"],
+    scope: {
+      creates: [],
+      reads: ["specs", "proposal", "codebase"],
+      modifies: ["proposal"],
+      gates: ["design"],
+    },
+  },
+  "adv-prep": {
     name: "adv-prep",
     description:
       "Analyze gaps and synthesize tasks from validated research findings",
     phase: "pre-implementation",
-    gate: "prep",
+    gate: "planning",
     requiresChangeId: true,
-    prerequisites: ["adv-research"],
+    prerequisites: ["adv-design"],
     successors: ["adv-apply"],
     scope: {
       creates: ["tasks"],
       reads: ["specs", "proposal", "codebase"],
       modifies: ["tasks", "proposal"],
-      gates: ["prep"],
+      gates: ["planning"],
     },
     phaseGoal:
       "Complete the flight-check: every gap closed, every dependency mapped, every task ready \u2014 ready for autonomous implementation.",
@@ -151,7 +200,7 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
     description:
       "Implement change with TDD, retry on failure, and final verification",
     phase: "implementation",
-    gate: "implementation",
+    gate: "execution",
     requiresChangeId: true,
     prerequisites: ["adv-prep"],
     successors: ["adv-review", "adv-harden"],
@@ -159,7 +208,7 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
       creates: [],
       reads: ["specs", "proposal", "tasks", "codebase"],
       modifies: ["tasks", "codebase"],
-      gates: ["implementation"],
+      gates: ["execution"],
     },
     phaseGoal:
       "Execute the approved plan autonomously. Add discovered tasks within scope. Escalate only on failure.",
@@ -176,7 +225,7 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
       creates: ["change", "proposal", "tasks"],
       reads: ["specs", "codebase"],
       modifies: [],
-      gates: ["research", "prep"],
+      gates: ["discovery", "planning"],
     },
   },
 
@@ -186,7 +235,7 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
     description:
       "Review code for correctness, security, and architecture; emit REVIEW_FINDINGS",
     phase: "post-implementation",
-    gate: "review",
+    gate: "acceptance",
     requiresChangeId: true,
     prerequisites: ["adv-apply"],
     successors: ["adv-harden"],
@@ -194,7 +243,7 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
       creates: [],
       reads: ["specs", "proposal", "tasks", "codebase"],
       modifies: ["proposal"],
-      gates: ["review"],
+      gates: ["acceptance"],
     },
     phaseGoal:
       "Verify implementation matches the approved plan. Auto-fix within scope. Stop on drift.",
@@ -204,7 +253,6 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
     description:
       "Detect low-quality code, verify test coverage, clean up; block archive on open findings",
     phase: "post-implementation",
-    gate: "harden",
     requiresChangeId: true,
     prerequisites: ["adv-review"],
     successors: ["adv-validate", "adv-archive"],
@@ -212,7 +260,7 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
       creates: [],
       reads: ["specs", "proposal", "tasks", "codebase"],
       modifies: ["codebase"],
-      gates: ["harden"],
+      gates: [],
     },
     phaseGoal:
       "Verify production-readiness. Auto-fix scoped issues. Stop on drift.",

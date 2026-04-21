@@ -113,22 +113,22 @@ When a change has multiple viable directions with real user-value tradeoffs, pri
 | Command           | Description                                                                              |
 | ----------------- | ---------------------------------------------------------------------------------------- |
 | `/adv-status`     | Show project overview: specs, active changes, and next-step recommendations              |
-| `/adv-proposal`   | Extract problem statement and confirm with user before proceeding                        |
+| `/adv-proposal`   | Extract problem statement, success criteria, and constraints without creating tasks      |
 | `/adv-validate`   | Validate change compliance against specs; block archive on failure                       |
 | `/adv-archive`    | Archive completed change: apply spec deltas and finalize git                             |
 | `/adv-clarify`    | Ask clarifying questions to resolve ambiguous requirements                               |
-| `/adv-discover`   | Gather context, analyze current state, identify objectives, and obtain user agreement        |
+| `/adv-discover`   | Gather context, analyze current state, identify objectives, and obtain user agreement    |
 | `/adv-design`     | Validate architecture decisions, produce implementation strategy, and present design for user review |
-| `/adv-prep`       | Analyze gaps and synthesize tasks from validated design decisions                        |
+| `/adv-prep`       | Analyze gaps and synthesize tasks from validated research findings                       |
 | `/adv-apply`      | Implement change with TDD, retry on failure, and final verification                      |
-| `/adv-task`       | Fast-track a discussed change: synthesize contract, validate, prep, and hand off         |
-| `/adv-review`     | Review deliverables for correctness, security, and architecture quality                  |
-| `/adv-harden`     | Detect low-quality code, verify test coverage, clean up before release                   |
+| `/adv-task`       | Fast-track a discussed change: synthesize contract, validate best practices, prep, and hand off |
+| `/adv-review`     | Review code for correctness, security, and architecture; emit REVIEW_FINDINGS           |
+| `/adv-harden`     | Detect low-quality code, verify test coverage, clean up; block archive on open findings  |
 | `/adv-audit`      | Detect drift between specs and current implementation                                    |
 | `/adv-slop-scan`  | Scan for AI slop patterns including defensive and nested code                            |
 | `/adv-refactor`   | Refresh a stale proposal to reflect current codebase state                               |
 | `/adv-coordinate` | Detect and resolve conflicts across multiple active changes                              |
-| `/adv-improve`    | Suggest improvements and persist a competitor research pack for /adv-discover reuse      |
+| `/adv-improve`    | Suggest targeted improvements to existing specs or implementation                        |
 | `/adv-tron`       | Investigate codebase structure, hotspots, risks, and suggest follow-up agenda candidates |
 
 ## Why it feels different

@@ -144,7 +144,7 @@ Build packet from `adv_task_list` and `adv_change_show` outputs at spawn time. I
 
 Spawn **6 parallel sub-agents** (`subagent_type: "explore"`). Each receives the Harden Context Packet above plus dimension-specific instructions.
 ### Sub-Agent 1: Test Coverage Scanner
-Analyze test coverage: for each source file check for test file, calculate coverage ratio, check TDD adherence (red/green evidence), report test runner availability.
+Analyze test coverage: for each source file check for test file, calculate coverage ratio, check TDD adherence (red/green evidence via `adv_run_test`; `adv_task_evidence` is fallback only), report test runner availability.
 
 Return JSON with: `dimension: "test_coverage"`, `files_with_tests`, `files_without_tests`, `coverage_percent`, `tdd_audit`, `issues`.
 ### Sub-Agent 2: AI-Slop Detection Scanner
