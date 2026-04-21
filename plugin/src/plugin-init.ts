@@ -189,6 +189,7 @@ export async function tryInitStore(
         client: temporalBundle.client as unknown as {
           workflow: WorkflowClientLike;
         },
+        discoverProjectPaths: async () => [externalRoot],
         worker,
       });
     }
