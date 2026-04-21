@@ -162,8 +162,6 @@ describe("resolveNodeExecutable", () => {
 
     expect(result.found).toBe(false);
     expect(result.source).toBe("none");
-    expect(result.remediation).toMatch(
-      /install Node|ADV_NODE_PATH|PATH/i,
-    );
+    expect(result.remediation).toMatch(/install Node|ADV_NODE_PATH|PATH/i);
   });
 });

@@ -13,9 +13,10 @@ const mocks = vi.hoisted(() => {
 });
 
 vi.mock("./runtime-manager", async () => {
-  const actual = await vi.importActual<typeof import("./runtime-manager")>(
-    "./runtime-manager",
-  );
+  const actual =
+    await vi.importActual<typeof import("./runtime-manager")>(
+      "./runtime-manager",
+    );
   return {
     ...actual,
     resolveNodeExecutable: mocks.resolveNodeExecutable,
@@ -75,9 +76,8 @@ describe("createOutOfProcessWorker", () => {
     const child = makeFakeChild();
     mocks.spawn.mockReturnValue(child);
 
-    const { createOutOfProcessWorker } = await import(
-      "./out-of-process-worker"
-    );
+    const { createOutOfProcessWorker } =
+      await import("./out-of-process-worker");
 
     const worker = await createOutOfProcessWorker({
       address: "127.0.0.1:7233",
@@ -109,9 +109,8 @@ describe("createOutOfProcessWorker", () => {
     const child2 = makeFakeChild();
     mocks.spawn.mockReturnValueOnce(child1).mockReturnValueOnce(child2);
 
-    const { createOutOfProcessWorker } = await import(
-      "./out-of-process-worker"
-    );
+    const { createOutOfProcessWorker } =
+      await import("./out-of-process-worker");
 
     const worker = await createOutOfProcessWorker({
       address: "127.0.0.1:7233",
@@ -137,9 +136,8 @@ describe("createOutOfProcessWorker", () => {
     const child = makeFakeChild();
     mocks.spawn.mockReturnValue(child);
 
-    const { createOutOfProcessWorker } = await import(
-      "./out-of-process-worker"
-    );
+    const { createOutOfProcessWorker } =
+      await import("./out-of-process-worker");
 
     const worker = await createOutOfProcessWorker({
       address: "127.0.0.1:7233",
@@ -159,9 +157,8 @@ describe("createOutOfProcessWorker", () => {
     const child = makeFakeChild();
     mocks.spawn.mockReturnValue(child);
 
-    const { createOutOfProcessWorker } = await import(
-      "./out-of-process-worker"
-    );
+    const { createOutOfProcessWorker } =
+      await import("./out-of-process-worker");
 
     const worker = await createOutOfProcessWorker({
       address: "127.0.0.1:7233",
@@ -185,9 +182,8 @@ describe("createOutOfProcessWorker", () => {
       remediation: "Install Node",
     });
 
-    const { createOutOfProcessWorker } = await import(
-      "./out-of-process-worker"
-    );
+    const { createOutOfProcessWorker } =
+      await import("./out-of-process-worker");
 
     await expect(
       createOutOfProcessWorker({
@@ -244,9 +240,8 @@ describe("createOutOfProcessWorker restart policy", () => {
       return c;
     });
 
-    const { createOutOfProcessWorker } = await import(
-      "./out-of-process-worker"
-    );
+    const { createOutOfProcessWorker } =
+      await import("./out-of-process-worker");
 
     const worker = await createOutOfProcessWorker({
       address: "127.0.0.1:7233",
@@ -292,9 +287,8 @@ describe("createOutOfProcessWorker restart policy", () => {
     const child = makeCrashingChild();
     mocks.spawn.mockReturnValue(child);
 
-    const { createOutOfProcessWorker } = await import(
-      "./out-of-process-worker"
-    );
+    const { createOutOfProcessWorker } =
+      await import("./out-of-process-worker");
 
     const worker = await createOutOfProcessWorker({
       address: "127.0.0.1:7233",
@@ -319,9 +313,8 @@ describe("createOutOfProcessWorker restart policy", () => {
     const child = makeCrashingChild();
     mocks.spawn.mockReturnValue(child);
 
-    const { createOutOfProcessWorker } = await import(
-      "./out-of-process-worker"
-    );
+    const { createOutOfProcessWorker } =
+      await import("./out-of-process-worker");
 
     const worker = await createOutOfProcessWorker({
       address: "127.0.0.1:7233",

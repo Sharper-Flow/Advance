@@ -18,9 +18,7 @@ import { describe, expect, it } from "vitest";
  * `fixTemporalWorkerBundleFailure` Phase 2 for the follow-up.
  */
 describe("workflows module (workflow-safe invariant)", () => {
-  const modulePath = fileURLToPath(
-    new URL("./workflows.ts", import.meta.url),
-  );
+  const modulePath = fileURLToPath(new URL("./workflows.ts", import.meta.url));
   const source = readFileSync(modulePath, "utf8");
 
   it("direct imports are restricted to workflow-safe modules", () => {
@@ -29,9 +27,7 @@ describe("workflows module (workflow-safe invariant)", () => {
     const flat = source.replace(/\n/g, " ").replace(/\s+/g, " ");
 
     // Allowed: one `import * as wf from "@temporalio/workflow"` star import.
-    expect(flat).toMatch(
-      /import \* as wf from "@temporalio\/workflow";/,
-    );
+    expect(flat).toMatch(/import \* as wf from "@temporalio\/workflow";/);
 
     // Allowed: named/type imports from the three sibling workflow-safe
     // modules. Each appears exactly once as an import source.

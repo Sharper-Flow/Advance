@@ -51,85 +51,74 @@ function workerScriptAvailable(): { path: string } | null {
 
 const canRun = nodeAvailable() && workerScriptAvailable() !== null;
 
-describe.skipIf(!canRun)(
-  "createOutOfProcessWorker integration",
-  () => {
-    it(
-      "spawns a Node child that connects to Temporal and handles shutdown cleanly",
-      async () => {
-        const script = workerScriptAvailable();
-        expect(script).not.toBeNull();
+describe.skipIf(!canRun)("createOutOfProcessWorker integration", () => {
+  it("spawns a Node child that connects to Temporal and handles shutdown cleanly", async () => {
+    const script = workerScriptAvailable();
+    expect(script).not.toBeNull();
 
-        await withTestWorkflowEnvironment(
-          () => TestWorkflowEnvironment.createTimeSkipping(),
-          async (env) => {
-            // TestWorkflowEnvironment exposes a random-port Temporal server.
-            // The OOP worker spawns a Node child that needs to connect by
-            // address — pull it from the env's native connection.
-            const address = String(env.address ?? "127.0.0.1:7233");
+    await withTestWorkflowEnvironment(
+      () => TestWorkflowEnvironment.createTimeSkipping(),
+      async (env) => {
+        // TestWorkflowEnvironment exposes a random-port Temporal server.
+        // The OOP worker spawns a Node child that needs to connect by
+        // address — pull it from the env's native connection.
+        const address = String(env.address ?? "127.0.0.1:7233");
 
-            const worker = await createOutOfProcessWorker({
-              address,
-              namespace: "default",
-              queues: ["advance-oop-itest"],
-              workerScript: script!.path,
-              projectId: "oop-itest",
-            });
+        const worker = await createOutOfProcessWorker({
+          address,
+          namespace: "default",
+          queues: ["advance-oop-itest"],
+          workerScript: script!.path,
+          projectId: "oop-itest",
+        });
 
-            try {
-              // Give the child a moment to connect + register the queue.
-              // We don't have a synchronous "registered" handshake from the
-              // child; we probe via `isAlive()` which reflects exit state.
-              await new Promise((resolve) => setTimeout(resolve, 500));
+        try {
+          // Give the child a moment to connect + register the queue.
+          // We don't have a synchronous "registered" handshake from the
+          // child; we probe via `isAlive()` which reflects exit state.
+          await new Promise((resolve) => setTimeout(resolve, 500));
 
-              expect(worker.queues).toEqual(["advance-oop-itest"]);
-              // If the child exited prematurely (missing dep, bad env),
-              // isAlive returns false — this is the primary signal that the
-              // spawn succeeded.
-              expect((worker as { isAlive?: () => boolean }).isAlive?.()).toBe(
-                true,
-              );
-            } finally {
-              await worker.shutdown();
-              // After shutdown, isAlive must report false — else the child
-              // outlives the worker handle and we'd leak procs across tests.
-              expect((worker as { isAlive?: () => boolean }).isAlive?.()).toBe(
-                false,
-              );
-            }
-          },
-        );
+          expect(worker.queues).toEqual(["advance-oop-itest"]);
+          // If the child exited prematurely (missing dep, bad env),
+          // isAlive returns false — this is the primary signal that the
+          // spawn succeeded.
+          expect((worker as { isAlive?: () => boolean }).isAlive?.()).toBe(
+            true,
+          );
+        } finally {
+          await worker.shutdown();
+          // After shutdown, isAlive must report false — else the child
+          // outlives the worker handle and we'd leak procs across tests.
+          expect((worker as { isAlive?: () => boolean }).isAlive?.()).toBe(
+            false,
+          );
+        }
       },
-      120_000,
+    );
+  }, 120_000);
+
+  it("leaves no dangling temporal-test-server child processes after teardown", async () => {
+    // Count procs before (the test harness may have left some from earlier
+    // runs; we measure the delta).
+    const before = countTestServerProcs();
+
+    await withTestWorkflowEnvironment(
+      () => TestWorkflowEnvironment.createTimeSkipping(),
+      async () => {
+        // Intentionally empty — we just want to observe that the
+        // TestWorkflowEnvironment teardown (via withTestWorkflowEnvironment)
+        // reaps its child.
+      },
     );
 
-    it(
-      "leaves no dangling temporal-test-server child processes after teardown",
-      async () => {
-        // Count procs before (the test harness may have left some from earlier
-        // runs; we measure the delta).
-        const before = countTestServerProcs();
+    // Give the OS a moment to reap the exited child.
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    const after = countTestServerProcs();
 
-        await withTestWorkflowEnvironment(
-          () => TestWorkflowEnvironment.createTimeSkipping(),
-          async () => {
-            // Intentionally empty — we just want to observe that the
-            // TestWorkflowEnvironment teardown (via withTestWorkflowEnvironment)
-            // reaps its child.
-          },
-        );
-
-        // Give the OS a moment to reap the exited child.
-        await new Promise((resolve) => setTimeout(resolve, 500));
-        const after = countTestServerProcs();
-
-        // Delta must be zero or negative (never positive — that would mean a leak).
-        expect(after).toBeLessThanOrEqual(before);
-      },
-      30_000,
-    );
-  },
-);
+    // Delta must be zero or negative (never positive — that would mean a leak).
+    expect(after).toBeLessThanOrEqual(before);
+  }, 30_000);
+});
 
 function countTestServerProcs(): number {
   // Cross-platform: skip on Windows (process enumeration differs).

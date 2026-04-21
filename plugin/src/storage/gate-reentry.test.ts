@@ -74,7 +74,11 @@ describe("reopenChangeFromGate — workflow-safe timestamp injection", () => {
   it("falls back to `new Date().toISOString()` when caller omits `now`", () => {
     const change = makeChange();
 
-    const result = reopenChangeFromGate(change, "planning", "storage-side call");
+    const result = reopenChangeFromGate(
+      change,
+      "planning",
+      "storage-side call",
+    );
 
     expect(result.entry.reopened_at).toMatch(
       /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/,

@@ -284,7 +284,9 @@ export async function tryInitStore(
           fallbackError instanceof Error
             ? fallbackError
             : new Error(String(fallbackError));
-        debugLog(`Fallback to file-backed store also failed: ${fbError.message}`);
+        debugLog(
+          `Fallback to file-backed store also failed: ${fbError.message}`,
+        );
         return { store: null, initError: fbError };
       }
     }
