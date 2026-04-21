@@ -128,7 +128,7 @@ Tasks may target other repositories. See ADV_INSTRUCTIONS.md §Cross-Repo Execut
 ## Cancellation Policy
 All cancellations require explicit user approval via `adv_task_cancel`.
 
-Workflow: collect per-task reasons → present via `question` tool (Approve all, Review individually, Reject) → execute only after approval.
+Workflow: collect per-task reasons → present via `question` tool (Approve all, Review individually, Reject) → user approves → **checkpoint before cancel**: call `adv_task_checkpoint` with `mode: 'cancel'`, `reason: <reason>` → then call `adv_task_cancel`.
 
 ---
 ## Phase 1: Load Change Context
@@ -321,6 +321,12 @@ EXPECTED OUTPUT: implement the task, run tests, report pass/fail result
 
 **3c. Green Phase:** `[ADV:TDD_GREEN]` → implement using `edit` / `write` / `morph_edit` → run with `adv_run_test phase:'green'` → if fails: retry protocol → show pass evidence
 
+**3c.5. Checkpoint:** Call `adv_task_checkpoint` with `taskId: <id>`, `workdir: <effective workdir>`.
+- `{status: 'clean' | 'committed'}` → proceed to 3d.
+- `{status: 'failed', classification: 'SEMANTIC'}` → diagnose, re-run checkpoint (retry budget applies).
+- `{classification: 'ENVIRONMENTAL'}` → escalate via `question` tool; keep task `in_progress`.
+- `{classification: 'TRANSIENT'}` → tool already retried internally; surface remaining failure as SEMANTIC or ENVIRONMENTAL per its follow-up classification.
+
 **3d. Complete:** `adv_task_update status: "done"` → show evidence
 
 **3e. Loop:** `adv_task_ready` → if ready tasks remain, **GOTO 3a**. REPEAT until the ready queue is empty.
@@ -334,6 +340,7 @@ You MUST continue to the next ready task without pausing. You MUST NOT pause bet
 4. User-requested cancellation → `adv_task_cancel` flow.
 5. Scope expansion requiring re-entry → `adv_change_reenter` flow.
 6. New judgment call surfaces mid-execution that was not captured in Phase 1.5 → resurface via `question`.
+7. Checkpoint failure with ENVIRONMENTAL or unresolved SEMANTIC classification → escalate via `question`.
 
 #### Invalid stop reasons (MUST NOT pause for any of these)
 - "Task complete" / "Section complete" / "Phase complete"
@@ -343,7 +350,7 @@ You MUST continue to the next ready task without pausing. You MUST NOT pause bet
 - Any reason not enumerated in the Allowed exit conditions above
 
 ### Incremental Verification
-After EACH task: run build/tests/lint → if fails: retry protocol → only mark complete after pass.
+After EACH task: run build/tests/lint → if fails: retry protocol → only mark complete after pass. Note: incremental verification runs AFTER the checkpoint (step 3c.5). Post-checkpoint fix-ups produce additional commits on top of the checkpoint commit by design.
 
 ---
 ## Phase 4: Progress Tracking

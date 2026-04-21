@@ -87,6 +87,24 @@ describe("createInProcessWorker (A4b')", () => {
     await worker.shutdown();
   });
 
+  it("registerQueue coalesces concurrent duplicate registrations", async () => {
+    const worker = await createInProcessWorker({
+      address: "127.0.0.1:7233",
+      namespace: "default",
+      queues: ["advance-proj-a"],
+    });
+
+    await Promise.all([
+      worker.registerQueue("advance-proj-b"),
+      worker.registerQueue("advance-proj-b"),
+    ]);
+
+    expect(mocks.createWorker).toHaveBeenCalledTimes(2);
+    expect(worker.queues).toEqual(["advance-proj-a", "advance-proj-b"]);
+
+    await worker.shutdown();
+  });
+
   it("shutdown() calls shutdown on every worker and closes the connection once", async () => {
     const worker = await createInProcessWorker({
       address: "127.0.0.1:7233",

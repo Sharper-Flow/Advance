@@ -46,6 +46,19 @@ export interface BootstrapMigrationStatus {
   runId?: string;
 }
 
+function buildTemporalClientEnv(input: {
+  address: string;
+  namespace: string;
+}): NodeJS.ProcessEnv {
+  return {
+    ADV_TEMPORAL_ADDRESS: input.address,
+    ADV_TEMPORAL_NAMESPACE: input.namespace,
+    ...(process.env.ADV_TEMPORAL_ALLOW_REMOTE
+      ? { ADV_TEMPORAL_ALLOW_REMOTE: process.env.ADV_TEMPORAL_ALLOW_REMOTE }
+      : {}),
+  };
+}
+
 export async function discoverBootstrapProjectPaths(
   roots: string[],
 ): Promise<string[]> {
@@ -154,11 +167,12 @@ export async function tryInitStore(
         queues: [buildProjectTaskQueue(projectId)],
       });
       registerInProcessTemporalWorker(worker);
-      temporalBundle = await createTemporalClientBundle({
-        ...process.env,
-        ADV_TEMPORAL_ADDRESS: runtime.address,
-        ADV_TEMPORAL_NAMESPACE: runtime.namespace,
-      });
+      temporalBundle = await createTemporalClientBundle(
+        buildTemporalClientEnv({
+          address: runtime.address,
+          namespace: runtime.namespace,
+        }),
+      );
     }
 
     const store = await createStore(effectiveDir, {

@@ -12,7 +12,7 @@ import type {
 import { migrateProjectState, reImportChangeState } from "./migration";
 import { migrateAllProjectsWorkflow } from "./migration-workflow";
 
-/** @deprecated Delete after first production migration succeeds. */
+/** @deprecated Transitional import shape; retire with remaining migration cleanup. */
 export interface MigrationProjectInput {
   projectId: string;
   initializedAt: string;

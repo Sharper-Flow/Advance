@@ -55,6 +55,7 @@ tools:
   adv_task_tdd: true
   adv_task_reclassify_tdd: true
   adv_task_cancel: true
+  adv_task_checkpoint: true
   # Wisdom
   adv_wisdom_list: true
   adv_wisdom_add: true

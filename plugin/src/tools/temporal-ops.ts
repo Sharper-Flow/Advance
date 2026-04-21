@@ -4,6 +4,7 @@ import type { Store } from "../storage/store";
 import { restartCurrentProjectTemporalWorker } from "../plugin-init";
 import { loadAgenda } from "../storage/agenda";
 import { loadChange } from "../storage/json";
+import { AgendaItemSchema, WisdomTypeSchema } from "../types";
 import { writeJsonlAtomic } from "../storage/jsonl-atomic-writer";
 import { listProjectWisdom } from "../storage/project-wisdom";
 import {
@@ -19,6 +20,17 @@ import type { WorkflowClientLike } from "../temporal/migrate-runner";
 import { formatToolOutput } from "../utils/tool-output";
 
 type WorkflowClientSurface = { workflow: WorkflowClientLike };
+
+const RepairedProjectWisdomEntrySchema = z.object({
+  id: z.string(),
+  type: WisdomTypeSchema,
+  content: z.string().min(1).max(2000),
+  sourceChange: z.string().optional(),
+  sourceTask: z.string().optional(),
+  promotedAt: z.string(),
+  tags: z.array(z.string()).optional(),
+  invalidatedBy: z.string().optional(),
+});
 
 export const temporalOpsTools = {
   adv_temporal_worker_restart: {
@@ -44,8 +56,23 @@ export const temporalOpsTools = {
       changeId: z
         .string()
         .describe("Change ID to re-import into the repaired project workflow"),
+      approvalEvidence: z
+        .string()
+        .describe(
+          "How the user explicitly approved running workflow repair",
+        ),
     },
-    execute: async (args: { changeId: string }, store: Store) => {
+    execute: async (
+      args: { changeId: string; approvalEvidence: string },
+      store: Store,
+    ) => {
+      if (!args.approvalEvidence || args.approvalEvidence.trim().length === 0) {
+        return formatToolOutput({
+          error:
+            "approvalEvidence is required. Describe how the user explicitly approved workflow repair.",
+        });
+      }
+
       if (!store.paths.external) {
         return formatToolOutput({
           error:
@@ -82,7 +109,7 @@ export const temporalOpsTools = {
 
         await projectHandle
           .terminate(
-            "adv_workflow_repair: rebuild project workflow from legacy snapshot",
+            `adv_workflow_repair: rebuild project workflow from legacy snapshot (${args.approvalEvidence.trim()})`,
           )
           .catch(() => undefined);
 
@@ -119,29 +146,26 @@ export const temporalOpsTools = {
         ) as unknown as {
           query: (queryDef: unknown, ...args: unknown[]) => Promise<unknown>;
         };
-        const agenda = (await repairedHandle.query(
-          projectAgendaQuery,
-          undefined,
-        )) as readonly unknown[];
-        const wisdom = (await repairedHandle.query(
-          projectWisdomQuery,
-          undefined,
-        )) as readonly unknown[];
+        const agenda = z.array(AgendaItemSchema).parse(
+          await repairedHandle.query(projectAgendaQuery, undefined),
+        );
+        const wisdom = z.array(RepairedProjectWisdomEntrySchema).parse(
+          await repairedHandle.query(projectWisdomQuery, undefined),
+        );
 
         await writeJsonlAtomic(store.paths.agenda, agenda);
         await writeJsonlAtomic(
           store.paths.wisdom,
           wisdom.map((entry) => {
-            const e = entry as Record<string, unknown>;
             return {
-              id: e.id,
-              type: e.type,
-              content: e.content,
-              source_change: e.sourceChange,
-              source_task: e.sourceTask,
-              promoted_at: e.promotedAt,
-              tags: e.tags,
-              invalidated_by: e.invalidatedBy,
+              id: entry.id,
+              type: entry.type,
+              content: entry.content,
+              source_change: entry.sourceChange,
+              source_task: entry.sourceTask,
+              promoted_at: entry.promotedAt,
+              tags: entry.tags,
+              invalidated_by: entry.invalidatedBy,
             };
           }),
         );

@@ -138,7 +138,10 @@ describe("temporal operator tools", () => {
     } as any;
 
     const result = await temporalOpsTools.adv_workflow_repair.execute(
-      { changeId: "chg123" },
+      {
+        changeId: "chg123",
+        approvalEvidence: "User approved via question tool",
+      },
       store,
     );
     const parsed = JSON.parse(result);
@@ -157,5 +160,28 @@ describe("temporal operator tools", () => {
       }),
     );
     expect(mocks.writeJsonlAtomic).toHaveBeenCalledTimes(2);
+  });
+
+  it("adv_workflow_repair rejects when approvalEvidence is empty", async () => {
+    const store = {
+      paths: {
+        root: "/repo",
+        external: "/home/jrede/.local/share/opencode/plugins/advance/proj123",
+        changes: "/repo/.adv/changes",
+        agenda:
+          "/home/jrede/.local/share/opencode/plugins/advance/proj123/agenda.jsonl",
+        wisdom:
+          "/home/jrede/.local/share/opencode/plugins/advance/proj123/wisdom.jsonl",
+      },
+    } as any;
+
+    const result = await temporalOpsTools.adv_workflow_repair.execute(
+      { changeId: "chg123", approvalEvidence: "   " },
+      store,
+    );
+    const parsed = JSON.parse(result);
+
+    expect(parsed.error).toContain("approvalEvidence is required");
+    expect(mocks.rebuildProjectWorkflowState).not.toHaveBeenCalled();
   });
 });

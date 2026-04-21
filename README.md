@@ -242,6 +242,7 @@ This repository is both the implementation and the operating manual.
 - **Spec-driven changes** — define what must be true before implementation starts
 - **Task orchestration** — break changes into explicit, trackable work units
 - **TDD evidence** — capture red/green proof as part of execution
+- **Per-task checkpoints** — every `/adv-apply` task with file changes produces a git commit via `adv_task_checkpoint` before being marked done; clean trees return `{status:'clean'}` without committing (see `ADV_INSTRUCTIONS.md § Task Checkpoint Commits`)
 - **Worktree-aware state** — share mutable change state across worktrees and sessions
 - **Accumulated wisdom** — persist patterns, gotchas, conventions, successes, and failures
 - **Validation and archive flow** — reduce drift between proposal, implementation, and specs

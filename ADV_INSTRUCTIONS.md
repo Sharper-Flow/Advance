@@ -230,6 +230,41 @@ Inline TDD is default — red/green phases WITHIN each task. × Do NOT create se
 
 `adv_task_evidence` is fallback for externally captured evidence, not the primary inline-TDD path.
 
+### Task Checkpoint Commits
+
+Every `/adv-apply` task with file changes in its workdir MUST produce a git commit via `adv_task_checkpoint` before transitioning to `status:'done'`. Cancellations MUST checkpoint before `status:'cancelled'`. Enforcement is at the `/adv-apply` command seam (step 3c.5), not in `adv_task_update` itself.
+
+**Apply-loop ordering:**
+
+| Step | Action |
+|------|--------|
+| 3a | Start — `adv_task_update status: "in_progress"` |
+| 3b | Red Phase — write failing test |
+| 3c | Green Phase — implement, tests pass |
+| 3c.5 | **Checkpoint** — `adv_task_checkpoint` |
+| 3d | Complete — `adv_task_update status: "done"` |
+
+**Failure classification:**
+
+| Classification | Action |
+|----------------|--------|
+| `SEMANTIC` (hook rejection, merge conflict) | Diagnose, re-run (retry budget) |
+| `ENVIRONMENTAL` (not a git repo, detached HEAD) | Escalate via `question` |
+| `TRANSIENT` (index.lock contention) | Tool retries internally; remaining failure → SEMANTIC |
+
+**Commit message format:**
+- Complete: `task(tk-xxxx): completed`
+- Cancel: `task(tk-xxxx): cancel — <reason>`
+
+**Staging:** `git add -A` — `.gitignore` is the safety net.
+
+**Anti-patterns:**
+- × Do NOT run git from inside a Temporal workflow or activity
+- × Do NOT create `--allow-empty` commits
+- × Do NOT bypass checkpoint for "small" tasks — clean-tree returns `{status:'clean'}` without committing
+
+Cross-link: `/adv-apply` command (`.opencode/command/adv-apply.md`) step 3c.5. `/adv-task` fast-track parity is tracked as a follow-up.
+
 ### Doom Loop Detection
 
 | Exit | Condition |

@@ -55,6 +55,7 @@ tools:
   adv_task_evidence: true
   adv_task_tdd: true
   adv_run_test: true
+  adv_task_checkpoint: true
   adv_wisdom_add: true
   # === BLOCKED: Orchestration and gate management ===
   adv_change_create: false

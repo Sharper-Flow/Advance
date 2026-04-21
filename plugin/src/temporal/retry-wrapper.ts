@@ -41,7 +41,7 @@ export function classifyTemporalError(error: unknown): TemporalErrorClass {
   }
 
   if (
-    /WorkflowExecutionNotFound|Workflow execution not found|not_found|NOT_FOUND|QueryNotRegistered|UpdateNotRegistered|not registered/i.test(
+    /WorkflowExecutionNotFound|Workflow execution not found|workflow not found|not[_ ]found|NOT_FOUND|QueryNotRegistered|UpdateNotRegistered|not registered/i.test(
       message,
     )
   ) {

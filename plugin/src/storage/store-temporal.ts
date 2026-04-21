@@ -35,8 +35,18 @@ import { withTemporalRetry } from "../temporal/retry-wrapper";
 // errors, etc.) is a real problem and should propagate.
 function isExpectedFallbackError(err: unknown): boolean {
   const message = err instanceof Error ? err.message : String(err ?? "");
+  // Check error class name directly (covers WorkflowNotFoundError,
+  // WorkflowExecutionNotFoundError, etc.) — the Temporal SDK throws
+  // typed errors whose .name / constructor.name is the canonical signal.
+  const className =
+    err instanceof Error
+      ? err.constructor.name ?? err.name ?? ""
+      : "";
+  if (/WorkflowNotFound|WorkflowExecutionNotFound/i.test(className)) {
+    return true;
+  }
   return (
-    /WorkflowExecutionNotFound|Workflow execution not found|not_found|NOT_FOUND/i.test(
+    /WorkflowExecutionNotFound|Workflow execution not found|workflow not found|not[_ ]found|NOT_FOUND/i.test(
       message,
     ) || /QueryNotRegistered|UpdateNotRegistered|not registered/i.test(message)
   );

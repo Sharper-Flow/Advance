@@ -91,18 +91,34 @@ export async function createInProcessWorker(
 
   const registered = new Map<string, Worker>();
   const runners = new Map<string, Promise<void>>();
+  const starting = new Map<string, Promise<void>>();
 
   async function startOne(taskQueue: string): Promise<void> {
     if (registered.has(taskQueue)) return;
-    const worker = await Worker.create({
-      connection,
-      namespace: input.namespace,
-      taskQueue,
-      workflowsPath,
-      activities: effectiveActivities,
-    });
-    registered.set(taskQueue, worker);
-    runners.set(taskQueue, worker.run());
+    const pending = starting.get(taskQueue);
+    if (pending) {
+      await pending;
+      return;
+    }
+
+    const boot = (async () => {
+      const worker = await Worker.create({
+        connection,
+        namespace: input.namespace,
+        taskQueue,
+        workflowsPath,
+        activities: effectiveActivities,
+      });
+      registered.set(taskQueue, worker);
+      runners.set(taskQueue, worker.run());
+    })();
+
+    starting.set(taskQueue, boot);
+    try {
+      await boot;
+    } finally {
+      starting.delete(taskQueue);
+    }
   }
 
   for (const queue of input.queues) {

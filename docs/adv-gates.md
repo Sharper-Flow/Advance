@@ -62,7 +62,7 @@ Produces the task graph in `change.json`. After this gate completes, `metadata.t
 
 Owner: `/adv-apply` | **Auto-continues** when clean (pauses only for doom-loop recovery or cancellations)
 
-All tasks must be done (or properly cancelled with user approval). `/adv-apply` stops if discovery, design, or planning gates are pending — it MUST NOT complete pre-implementation gates.
+All tasks must be done (or properly cancelled with user approval). `/adv-apply` stops if discovery, design, or planning gates are pending — it MUST NOT complete pre-implementation gates. The execution gate implies every non-cancelled task is checkpointed via `adv_task_checkpoint`.
 
 ### Acceptance Gate
 

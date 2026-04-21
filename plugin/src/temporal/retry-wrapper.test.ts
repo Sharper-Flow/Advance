@@ -27,6 +27,19 @@ describe("retry-wrapper (C2)", () => {
     );
   });
 
+  it("classifies 'workflow not found for ID' (Temporal server gRPC detail) as fallback", () => {
+    expect(
+      classifyTemporalError(
+        new Error(
+          "workflow not found for ID: adv/change/proj1/cleanupParityHarnessLeak",
+        ),
+      ),
+    ).toBe("fallback");
+    expect(
+      classifyTemporalError(new Error("Workflow not found")),
+    ).toBe("fallback");
+  });
+
   it("classifies deterministic errors as fatal", () => {
     expect(
       classifyTemporalError(new Error("NonDeterministicWorkflowError")),

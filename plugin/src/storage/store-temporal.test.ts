@@ -286,4 +286,37 @@ describe("Temporal store backend adapter", () => {
     expect(changeHandle.query).toHaveBeenCalledTimes(1);
     expect(legacy.changes.get).toHaveBeenCalledTimes(1);
   });
+
+  it.each([
+    "workflow not found for ID: adv/change/proj1/chg-xyz",
+    "Workflow not found",
+    "NOT_FOUND",
+    "some grpc not_found detail",
+  ])("falls back to legacy on Temporal message variant: %s", async (msg) => {
+    const changeHandle = {
+      query: vi.fn(async () => {
+        throw new Error(msg);
+      }),
+      executeUpdate: vi.fn(async () => null),
+    };
+
+    const bundle = {
+      client: {
+        workflow: {
+          getHandle: vi.fn(() => changeHandle),
+        },
+      },
+    };
+
+    const legacy = makeLegacyStore();
+    const adapted = createTemporalStoreBackend({
+      legacy,
+      temporal: bundle as any,
+      projectId: "proj1",
+    });
+
+    await adapted.changes.get("chg-variant");
+
+    expect(legacy.changes.get).toHaveBeenCalledTimes(1);
+  });
 });
