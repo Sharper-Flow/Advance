@@ -127,6 +127,7 @@ export const statusTools = {
         temporalHealth = {
           server_alive: false,
           worker_alive: false,
+          worker_process_alive: false,
           registered_queues: [],
           last_op_at: null,
           last_error: err instanceof Error ? err.message : String(err),

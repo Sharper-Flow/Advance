@@ -315,6 +315,34 @@ export function getRegisteredTemporalWorkerQueues(): string[] {
   return [...queues].sort();
 }
 
+/**
+ * Aggregate liveness probe for registered Temporal workers.
+ *
+ * - OOP worker: delegates to the worker's `isAlive()` which returns true iff
+ *   at least one child process is still running (exitCode === null) and not
+ *   marked dead by the restart policy.
+ * - In-process worker: alive iff it has at least one registered queue. The
+ *   SDK's own Worker class does not expose a direct liveness flag, so queue
+ *   count is our best proxy; worker.shutdown() clears the queue list, which
+ *   gives the same result.
+ *
+ * Returns `false` when no workers are registered (typical of file-backed
+ * degraded mode).
+ */
+export function getTemporalWorkerAliveness(): boolean {
+  if (inProcessTemporalWorkers.size === 0) return false;
+  for (const worker of inProcessTemporalWorkers) {
+    // OOP worker exposes isAlive(); in-process does not.
+    const candidate = worker as InProcessWorker & { isAlive?: () => boolean };
+    if (typeof candidate.isAlive === "function") {
+      if (candidate.isAlive()) return true;
+    } else if (worker.queues.length > 0) {
+      return true;
+    }
+  }
+  return false;
+}
+
 async function drainInProcessTemporalWorkers(): Promise<void> {
   const workers = [...inProcessTemporalWorkers];
   inProcessTemporalWorkers.clear();
