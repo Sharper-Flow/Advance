@@ -56,6 +56,21 @@ The prep gate requires `userApproved: true` in `adv_gate_complete`. Without it, 
 
 For changes created before HITL enforcement, `/adv-apply` emits a soft advisory suggesting retroactive approval. This is informational, not a hard block.
 
+### Human Checkpoints (Pause Required)
+
+ADV pauses ONLY at these checkpoints:
+- Proposal confirmation — user confirms problem statement
+- Agreement sign-off — user approves objectives and acceptance criteria
+- Design approval — ONLY when real tradeoffs depend on user values or product vision, OR when design validator returns CONFLICT
+- Acceptance — user confirms delivered work satisfies the agreement
+- Archive sign-off — user approves final release
+- Cancellation approval — explicit user approval required
+- Doom-loop recovery — user guidance required after 3 failed attempts
+
+### Clean Auto-Continue Rule
+
+Between the checkpoints above, all phases proceed sequentially without prompting the user. Discovery → deterministic design → prep → apply → review → harden all proceed without asking when no unresolved tradeoff or approval is needed.
+
 ## Phase Goals
 
 Each workflow command has a defined phase goal. These are canonical in `manifest.ts` (`phaseGoal` field on `CommandDef`). Agents should self-check: "Am I still working toward this phase's goal?"
@@ -199,8 +214,8 @@ Skip for: bug fixes, mechanical work, choices constrained by security/API/archit
 
 ### Context Freshness
 
-Work one task at a time. Before EACH task:
-1. `adv_change_show` → 2. `adv_task_show` → 3. Review proposal
+Phase start (once): `adv_change_show` → load full context snapshot.
+Per task: `adv_task_show` → refresh only the current task. Do NOT call adv_change_show before every task — use the lighter per-task refresh.
 
 TodoWrite: use task IDs only (`tk-abc123`), not descriptions.
 
@@ -230,6 +245,10 @@ After 3 failures: STOP → `[ADV:DOOM_LOOP]` → document all 3 attempts → ask
 | Retry same approach | Try different strategy |
 | Silent retries | Document each attempt |
 | 4+ same method | Escalate after 3 |
+
+### Investment Check-In
+
+When an ADV change reaches /adv-apply, pending judgment calls are surfaced before execution. The `adv_investment_report` tool produces tier classification (auto/escalate/hardstop). Hard-stop is advisory in v1 — does NOT trigger adv_change_reenter. Doom-loop supersede: doom-loop recovery supersedes investment check-in on simultaneous trigger. Unresolved user-value tradeoff triggers escape-clause citation (rq-autonomy01). See `.opencode/instructions/cost-governance.md` and `skills/adv-cost-governance-methodology/SKILL.md` for methodology and thresholds.
 
 ### Cross-Repo Execution
 
@@ -262,6 +281,19 @@ On loop stop or compaction: emit `[ADV:TASK_STATUS_REPORT]` with completed/cance
 ### Post-Remediation Re-Verification
 
 After `/adv-review` or `/adv-harden` fixes findings, re-scan only affected dimensions. Do NOT re-run all scanners after fixes.
+
+### Validated In-Scope Remediation Policy
+
+Validated in-scope findings from review/harden MUST be fixed before archive. No report-only, future-work, or accepted-debt path for findings within the change's touched scope. Out-of-scope findings are documented separately and do not block archive.
+
+### Touched-Scope Quality Ownership
+
+Quality obligations extend to:
+- Directly touched implementation files
+- Adjacent tests and docs
+- Same-pattern local subsystem issues (P25 related-scan)
+
+Do NOT expand into implicit repo-wide refactors or untouched subsystems. Campsite-rule fixes (P23) are opportunistic and must be small, safe, and local.
 
 ## 6-Gate Quality Checklist
 
@@ -317,6 +349,8 @@ Rules:
 - For `/adv-research`, `librarian`, `adv-researcher`, and `explore` fallback must do the research inline and must not delegate to additional research sub-agents
 - For `/adv-slop-scan`, all `explore` scanner workers must do the scan inline and must not delegate to additional sub-agents or invoke `/adv-*` slash commands
 
+Design gate requires mandatory independent validator (adv-researcher) before gate completion. See /adv-design command for verdict handling (VALIDATED, CAUTION, CONFLICT, INCONCLUSIVE).
+
 Inline-only: `/adv-status`, `/adv-proposal`, `/adv-validate`, `/adv-archive`, `/adv-clarify`, `/adv-prep`, `/adv-coordinate`, `/adv-improve`
 
 ### Delegation Routing
@@ -332,6 +366,18 @@ Inline-only: `/adv-status`, `/adv-proposal`, `/adv-validate`, `/adv-archive`, `/
 ### Context Packet Standards
 
 Apply packet includes: WORKING DIRECTORY, CHANGE, TASK, AFFECTED FILES, DESIGN EXCERPT, ACCEPTANCE CRITERIA, EXPECTED OUTPUT.
+
+### Structured Sub-Agent Prompt Protocol
+
+Every sub-agent spawn must include: ROLE:, OUTPUT_SCHEMA:, BUDGET:, STOP_WHEN:. See individual command files for dimension-specific packets.
+
+### Orchestration Token-Budget Policy
+
+When to spawn: 3+ independent scan dimensions. Max parallel workers: 3-4. Cap total sub-agents per command at 6. Use inline work for sequential or context-dependent tasks.
+
+### Phase Summary Pattern
+
+After each phase, use `adv_change_update` to record compact summaries. Do not duplicate full context — reference change state via `adv_change_show` for detailed inspection.
 
 ## Sub-Agent Selection
 

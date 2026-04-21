@@ -307,6 +307,12 @@ describe("Gate Tools", () => {
     });
 
     test("emits boundary warning when an unauthorized command completes a gate", async () => {
+      // Complete proposal first (sequence prerequisite)
+      await gateTools.adv_gate_complete.execute(
+        { changeId: "addFeature", gateId: "proposal" },
+        store,
+      );
+
       const result = await gateTools.adv_gate_complete.execute(
         {
           changeId: "addFeature",
@@ -327,6 +333,12 @@ describe("Gate Tools", () => {
     });
 
     test("does not emit boundary warning for an authorized command", async () => {
+      // Complete proposal first (sequence prerequisite)
+      await gateTools.adv_gate_complete.execute(
+        { changeId: "addFeature", gateId: "proposal" },
+        store,
+      );
+
       const result = await gateTools.adv_gate_complete.execute(
         {
           changeId: "addFeature",
@@ -595,6 +607,7 @@ describe("adv_gate_complete planning — readiness enforcement", () => {
           priority: 0,
           created_at: "2026-01-01T00:00:00Z",
           tdd_phase: "none",
+          metadata: { tdd_intent: "inline" },
           deps: [],
         },
         {
@@ -604,6 +617,7 @@ describe("adv_gate_complete planning — readiness enforcement", () => {
           priority: 1,
           created_at: "2026-01-01T00:00:00Z",
           tdd_phase: "none",
+          metadata: { tdd_intent: "inline" },
           deps: [{ type: "blocked_by", target: "tk-test0002" }],
         },
       ],
@@ -665,6 +679,7 @@ describe("adv_gate_complete planning — readiness enforcement", () => {
           priority: 0,
           created_at: "2026-01-01T00:00:00Z",
           tdd_phase: "none",
+          metadata: { tdd_intent: "inline" },
           deps: [],
         },
         {
@@ -674,6 +689,7 @@ describe("adv_gate_complete planning — readiness enforcement", () => {
           priority: 1,
           created_at: "2026-01-01T00:00:00Z",
           tdd_phase: "none",
+          metadata: { tdd_intent: "inline" },
           deps: [{ type: "blocked_by", target: "tk-test0003" }],
         },
       ],
@@ -727,6 +743,7 @@ describe("adv_gate_complete planning — readiness enforcement", () => {
           priority: 0,
           created_at: "2026-01-01T00:00:00Z",
           tdd_phase: "none",
+          metadata: { tdd_intent: "inline" },
           deps: [],
         },
         {
@@ -774,6 +791,7 @@ describe("adv_gate_complete planning — readiness enforcement", () => {
           priority: 0,
           created_at: "2026-01-01T00:00:00Z",
           tdd_phase: "none",
+          metadata: { tdd_intent: "inline" },
           deps: [],
         },
         {

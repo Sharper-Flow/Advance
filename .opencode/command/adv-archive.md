@@ -24,6 +24,7 @@ If empty → `adv_change_list` → auto-select the only plausible change; ask vi
 2. `adv_task_list` → all tasks must be "done". If incomplete → ARCHIVE BLOCKED banner → stop
 3. `adv_change_validate strict: true` → if fails → show errors → stop
 4. `adv_status` → check for `[doctor]` entries: JSON/SQLite inconsistency or broken refs → block; pending WAL → warn only
+5. `adv_investment_report changeId: {id}` → include investment summary in archive report (informational)
 
 ---
 ## Phase 2: Archive Preview

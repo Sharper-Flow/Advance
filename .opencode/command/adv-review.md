@@ -201,7 +201,7 @@ Before applying ANY fix, evaluate: **"If I apply this fix, will proposal.md's Su
 This is the single declarative drift detection rule. It applies to every finding, every fix, every auto-remediation action.
 3. **Cleanup pass** — remove temp artifacts, debug code, dead imports, stale comments.
 4. **Verification** — re-run tests for touched areas, update finding status (fixed/unresolved).
-5. **Recompute verdict** — APPROVED only when no unresolved blocker/issue remains and all validated in-scope suggestions are implemented.
+5. **Recompute verdict** — APPROVED only when no unresolved blocker/issue remains and all validated in-scope suggestions are implemented. No future-work deferral for validated in-scope findings.
 ### Fix Validation Protocol
 | Fix Type | Research Required? |
 |----------|-------------------|
