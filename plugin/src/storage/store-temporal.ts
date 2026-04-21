@@ -39,9 +39,7 @@ function isExpectedFallbackError(err: unknown): boolean {
   // WorkflowExecutionNotFoundError, etc.) — the Temporal SDK throws
   // typed errors whose .name / constructor.name is the canonical signal.
   const className =
-    err instanceof Error
-      ? err.constructor.name ?? err.name ?? ""
-      : "";
+    err instanceof Error ? (err.constructor.name ?? err.name ?? "") : "";
   if (/WorkflowNotFound|WorkflowExecutionNotFound/i.test(className)) {
     return true;
   }

@@ -190,13 +190,19 @@ are:
 - namespace: `default`
 - project-scoped task queue: `advance-<projectId>`
 
-Useful commands while developing the migration:
+Useful commands while developing against Temporal-backed storage:
 
 ```bash
 cd plugin
-pnpm run build:worker     # compile temporal/worker.ts + temporal/workflows.ts
 pnpm exec vitest run src/temporal/*.test.ts
 ```
+
+The in-process Temporal worker (`plugin/src/temporal/in-process-worker.ts`)
+lives inside the plugin's Node process — there is no separate worker bundle to
+compile. Workflow code is loaded by `@temporalio/worker` at startup from
+`plugin/src/temporal/workflows.ts`. See
+[docs/temporal-recovery.md](docs/temporal-recovery.md) for the worker-model
+decision and alternative directions.
 
 If `probeTemporalClientRuntime()` reports unsupported Bun runtime/bootstrap
 capabilities, run the plugin on Node or use the local Temporal dev server via
@@ -209,8 +215,7 @@ Environment variables (see `plugin/.env.example`):
 | `ADV_TEMPORAL_ADDRESS` | `127.0.0.1:7233` | Temporal frontend address. Non-loopback requires opt-in. |
 | `ADV_TEMPORAL_NAMESPACE` | `default` | Temporal namespace (regex-validated). |
 | `ADV_TEMPORAL_ALLOW_REMOTE` | unset | Set to `true` to permit non-loopback addresses. |
-| `ADV_TEMPORAL_TASK_QUEUE` | worker-only | Task queue the worker subscribes to. |
-| `ADV_TEMPORAL_PROJECT_ID` | worker-only | Set by the runtime manager when spawning a worker. |
+| `ADV_DISABLE_TEMPORAL` | unset | Set to `1` to skip the Temporal bootstrap and run on the file-backed test harness path (intended for local dev/tests only). |
 
 Activation path:
 
@@ -220,10 +225,11 @@ import { createStore } from "./plugin/src/storage/store";
 const store = await createStore(projectDir, { temporalBundle, projectIdOverride });
 ```
 
-`createStore()` remains parameterized for tests and explicit callers, but the
-intended production path is Temporal-backed state. The legacy JSON+SQLite
-backend is transitional compatibility substrate during cutover and is being
-retired.
+`createStore()` remains parameterized for tests and explicit callers. The
+production path is Temporal-backed state; the file-backed JSON+SQLite backend
+is retained as a **dedicated test/dev harness** (selected when no Temporal
+bundle is provided, or when `ADV_DISABLE_TEMPORAL=1` is set). It is not a
+production runtime option.
 
 ## What lives in this repo
 

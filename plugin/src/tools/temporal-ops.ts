@@ -58,9 +58,7 @@ export const temporalOpsTools = {
         .describe("Change ID to re-import into the repaired project workflow"),
       approvalEvidence: z
         .string()
-        .describe(
-          "How the user explicitly approved running workflow repair",
-        ),
+        .describe("How the user explicitly approved running workflow repair"),
     },
     execute: async (
       args: { changeId: string; approvalEvidence: string },
@@ -146,12 +144,12 @@ export const temporalOpsTools = {
         ) as unknown as {
           query: (queryDef: unknown, ...args: unknown[]) => Promise<unknown>;
         };
-        const agenda = z.array(AgendaItemSchema).parse(
-          await repairedHandle.query(projectAgendaQuery, undefined),
-        );
-        const wisdom = z.array(RepairedProjectWisdomEntrySchema).parse(
-          await repairedHandle.query(projectWisdomQuery, undefined),
-        );
+        const agenda = z
+          .array(AgendaItemSchema)
+          .parse(await repairedHandle.query(projectAgendaQuery, undefined));
+        const wisdom = z
+          .array(RepairedProjectWisdomEntrySchema)
+          .parse(await repairedHandle.query(projectWisdomQuery, undefined));
 
         await writeJsonlAtomic(store.paths.agenda, agenda);
         await writeJsonlAtomic(

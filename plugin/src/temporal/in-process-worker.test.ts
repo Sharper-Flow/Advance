@@ -146,4 +146,51 @@ describe("createInProcessWorker (A4b')", () => {
       /shutting down/,
     );
   });
+
+  it("registerQueue started before shutdown aborts instead of attaching a stranded worker", async () => {
+    const worker = await createInProcessWorker({
+      address: "127.0.0.1:7233",
+      namespace: "default",
+      queues: ["advance-proj-a"],
+    });
+
+    let releaseBoot!: () => void;
+    const bootGate = new Promise<void>((r) => {
+      releaseBoot = r;
+    });
+
+    // Make the NEXT Worker.create() call (registerQueue for advance-proj-b)
+    // block until we release it, simulating a shutdown racing an in-flight
+    // registerQueue call.
+    mocks.createWorker.mockImplementationOnce(
+      async (options: { taskQueue: string }) => {
+        await bootGate;
+        let resolveRun!: () => void;
+        const runPromise = new Promise<void>((r) => {
+          resolveRun = r;
+        });
+        mocks.runDeferreds.push({ resolve: resolveRun, promise: runPromise });
+        const run = vi.fn(async () => runPromise);
+        const shutdown = vi.fn(() => {
+          resolveRun();
+        });
+        const w = { taskQueue: options.taskQueue, shutdown, run };
+        mocks.workers.push(w);
+        return w;
+      },
+    );
+
+    const pending = worker.registerQueue("advance-proj-b");
+    await Promise.resolve();
+    const shutdownPromise = worker.shutdown();
+    await Promise.resolve();
+    releaseBoot();
+
+    await expect(pending).rejects.toThrow(/shut down mid-start/);
+    await shutdownPromise;
+
+    // The racing worker was created but must not have been attached to
+    // the registered set (its run() loop is not among the drained runners).
+    expect(worker.queues).toEqual(["advance-proj-a"]);
+  });
 });

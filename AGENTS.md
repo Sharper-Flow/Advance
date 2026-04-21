@@ -45,9 +45,9 @@ pnpm run lint                 # eslint src/
 pnpm run lint:fix             # eslint --fix
 pnpm run format               # prettier --write
 pnpm run format:check         # prettier --check
-pnpm run validate:temporal    # transitional Temporal validation harness (see scripts/temporal-validate.ts)
-                              # Produces docs/temporal-readiness-decision.md.
-                              # Runs in CI between test and build steps until cutover retirement lands.
+# Note: `pnpm run validate:temporal` and its harness were retired by the
+# `migrateAdvStateTemporalRetire` change (D3). The Temporal cutover has shipped;
+# `docs/temporal-readiness-decision.md` is preserved as the historical record.
 # Note: no `generate:schemas` or `generate:docs` scripts exist.
 # plugin/schemas/ contains $ref stub files only — Zod types in src/types.ts
 # are the authoritative source. When extending Zod schemas, no separate

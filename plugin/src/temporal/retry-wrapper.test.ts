@@ -35,9 +35,9 @@ describe("retry-wrapper (C2)", () => {
         ),
       ),
     ).toBe("fallback");
-    expect(
-      classifyTemporalError(new Error("Workflow not found")),
-    ).toBe("fallback");
+    expect(classifyTemporalError(new Error("Workflow not found"))).toBe(
+      "fallback",
+    );
   });
 
   it("classifies deterministic errors as fatal", () => {

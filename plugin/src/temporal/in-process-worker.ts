@@ -92,8 +92,14 @@ export async function createInProcessWorker(
   const registered = new Map<string, Worker>();
   const runners = new Map<string, Promise<void>>();
   const starting = new Map<string, Promise<void>>();
+  let shuttingDown = false;
 
   async function startOne(taskQueue: string): Promise<void> {
+    if (shuttingDown) {
+      throw new Error(
+        `Cannot register queue "${taskQueue}" — worker is shutting down`,
+      );
+    }
     if (registered.has(taskQueue)) return;
     const pending = starting.get(taskQueue);
     if (pending) {
@@ -109,6 +115,20 @@ export async function createInProcessWorker(
         workflowsPath,
         activities: effectiveActivities,
       });
+      // Re-check: shutdown may have been initiated while Worker.create was
+      // in flight. If so, tear this worker down immediately and refuse to
+      // register it rather than attaching it to a worker that won't be
+      // drained.
+      if (shuttingDown) {
+        try {
+          worker.shutdown();
+        } catch {
+          // best-effort: the worker never started polling
+        }
+        throw new Error(
+          `registerQueue("${taskQueue}") aborted — worker shut down mid-start`,
+        );
+      }
       registered.set(taskQueue, worker);
       runners.set(taskQueue, worker.run());
     })();
@@ -125,19 +145,12 @@ export async function createInProcessWorker(
     await startOne(queue);
   }
 
-  let shuttingDown = false;
-
   return {
     get queues() {
       return [...registered.keys()];
     },
 
     async registerQueue(taskQueue: string): Promise<void> {
-      if (shuttingDown) {
-        throw new Error(
-          `Cannot register queue "${taskQueue}" — worker is shutting down`,
-        );
-      }
       await startOne(taskQueue);
     },
 
