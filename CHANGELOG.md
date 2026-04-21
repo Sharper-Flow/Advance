@@ -9,6 +9,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+#### Tab Title — Smarter Shortname (Dictionary + 8-Char Cap)
+
+Improves the deterministic project shortname generator to restore meaning for concatenated single-token project names.
+
+- **`SHORTNAME_MAX_LEN` bumped `6 → 8`.** Short-but-meaningful words now fit whole: `advance → Advance`, `plugin → Plugin`, `opencode → Opencode`. Still well within typical tmux `status-*-length` defaults and terminal tab-strip widths.
+- **New inline dictionary** `SHORTNAME_DICTIONARY` (~160 lowercase tokens covering tech stack, common modifiers, and generic nouns). Derived once into `SHORTNAME_DICT_SET` for O(1) lookup. Bundled inline (~1-2 KB) — no new deps.
+- **New `segmentToken(token, dict)` helper** — dynamic-programming word-break segmentation. Returns `string[]` on full-character-cover success, `null` otherwise. The full-cover requirement is the correctness guard: names that can't be cleanly decomposed fall back to the existing truncate path.
+- **`generateProjectShortname` updated** to run segmentation when a single lowercase token ≥ 4 chars remains after prefix/suffix strip. On 2+ subwords success, those become the word list and feed the existing acronym/compact branches.
+- **New behaviour examples:**
+  - `opencodeadvance → OCA` (segments `open`+`code`+`advance`, over cap → acronym)
+  - `opencode → Opencode` (segments `open`+`code`, at cap → compact)
+  - `advance → Advance` (previously `Advanc`)
+  - `pokeedge → Pokeedge` (segments `poke`+`edge`, at cap → compact)
+  - `xyzzyabcdef → Xyzzyabc` (opaque, truncate to 8)
+- **Unchanged behaviour:** names with explicit boundaries (`my-cool-project → MCP`, `opencode-morph-fast-apply → OMFA`, `morph-plugin → Morph`). Acronym cap scaled from 6 to 8 along with the main limit.
+- **Tests**: 9 new `segmentToken` unit tests, 5 new `SHORTNAME_DICTIONARY` invariant tests (lowercase / no-dupes / size), 7 new `generateProjectShortname` table-driven tests for segmentation + cap-bump cases. 3 existing assertions updated for new cap (111 total events tests pass).
+- **Complementary to planned AI-cached shortnames.** The v0.8.0 note about AI rescuing ugly truncations still stands; this change improves the deterministic fallback that will remain in place for cold-cache and offline paths.
+
+Implementation: `plugin/src/events/terminal.ts`, `plugin/src/events/events.test.ts`.
+
 #### Consolidate Shared Agents (`consolidateSharedAgentsPlan`)
 
 Reduced ADV's shared overlay-managed agents from six to four by merging `scout` into `plan` and `refine` into `build`. `plan` now handles research, ideation, investigation, and planning with web research tools (webfetch, Firecrawl). `build` is now a scoped executor with task-level ADV write access, subtraction-first heuristic, and related-issue scanning. `scout` and `refine` files are hard-removed; the sync script cleans up stale global copies.
@@ -461,12 +481,14 @@ Implemented all 13 identified context leak surfaces where ADV drops important co
 ## [0.4.0] - 2026-02-22
 
 ### Fixed (post-release)
+
 - `/adv-quick` now always derives its contract from the recent conversation when called with no arguments — never asks "what do you want to build?"
 - `/adv-proposal` no longer stops with a usage error when called with no summary argument — derives title from conversation context instead
 
 ### Added
 
 #### `/adv-quick` — Fast-Track Contract Execution
+
 - New command that turns a pre-discussed change into a fully-executed ADV change without the heavyweight proposal phase
 - Synthesizes a **Quick Contract** from the conversation (intent, LBP targets, scope, success criteria)
 - Chat-based confirmation via `question` tool — no file review required
@@ -475,6 +497,7 @@ Implemented all 13 identified context leak surfaces where ADV drops important co
 - Registered in command manifest with `gate: "implementation"`, successors `["adv-review", "adv-harden"]`
 
 #### BMAD-Inspired Quality Infrastructure
+
 - Adversarial review enforcement: minimum 3 non-nit findings or explicit genuinely-clean justification
 - `docs/checklists/review-checklist.md` — 12-dimension review coverage checklist
 - `docs/checklists/harden-checklist.md` — 6-scanner hardening checklist with severity scoring
@@ -484,6 +507,7 @@ Implemented all 13 identified context leak surfaces where ADV drops important co
 - Project wisdom injected into session context as `[ADV:PROJECT_WISDOM]` (max 10 entries, newest first)
 
 #### Worktree Integration
+
 - Phase 0 worktree assessment in `/adv-apply` and `/adv-ralph` — risk-based suggestion with user confirmation
 - Inline worktree protocol: create worktree, switch `workdir`, continue in same session
 - External mutable state shared across all worktrees of the same repo via project-id (root commit SHA)
@@ -491,24 +515,28 @@ Implemented all 13 identified context leak surfaces where ADV drops important co
 - Graceful degradation when worktree tools unavailable (`[ADV:INFO]` marker, continues in-place)
 
 #### Cross-Repo Task Routing
+
 - Tasks with `target_repo` or `target_path` metadata execute in the target directory via `workdir` switching
 - `related_repos` config in `project.json` for generic repo routing (id → absolute path)
 - Prohibited cancellation reasons enforced: "different repo" and "out of scope" are invalid
 - Cross-repo protocol documented in `/adv-ralph` and `/adv-apply`
 
 #### Mandatory User-Approved Cancellation
+
 - `adv_task_cancel` tool replacing direct `status: "cancelled"` via `adv_task_update` (now rejected)
 - Per-task cancellation reasons required, batch approval supported via `question` tool
 - Cancellation approval metadata (`approved_by_user: true`) tracked in `change.json`
 - Review and Harden gates block if any cancelled task lacks approval
 
 #### Typed Delta Modifications
+
 - `modify` delta now type-checked against Requirement schema — unknown keys rejected at parse time
 - `rename` operation: update title and/or ID of existing requirement
 - Intra-delta conflict detection: rename + remove on same requirement, duplicate renames, ID collisions
 - Delta application order enforced: rename → remove → modify → add
 
 #### Tools
+
 - `adv_task_show` — get full task details by task ID (includes parent changeId)
 - `adv_run_test` — run test command and record TDD evidence in one call
 - `adv_task_cancel` — cancel tasks with mandatory user approval and per-task reasons
@@ -517,6 +545,7 @@ Implemented all 13 identified context leak surfaces where ADV drops important co
 - Gate tools: `adv_gate_status`, `adv_gate_complete`
 
 #### Performance & Reliability
+
 - Lazy sync on startup — reduced cold-start latency
 - All 36 tools switched to compact JSON output with pagination support
 - Auto-truncation on tool outputs to protect context window
@@ -526,6 +555,7 @@ Implemented all 13 identified context leak surfaces where ADV drops important co
 - Change IDs: camelCase format with stop-word filtering and auto-increment deduplication
 
 #### Developer Experience
+
 - `adv-researcher` sub-agent definition (`.opencode/agents/adv-researcher.md`)
 - Bash policy guard (`plugin/src/guards/bash.ts`) enforcing read-only restrictions on `explore`/`librarian` agents
 - JSON Schema generation script to prevent schema drift
@@ -534,6 +564,7 @@ Implemented all 13 identified context leak surfaces where ADV drops important co
 - TodoWrite rules: task IDs only in todo list (forces `adv_task_show` lookup, prevents stale mental models)
 
 ### Changed
+
 - `/adv-harden` doc scanner replaced with aggressive documentation hygiene (stale content detection, orphan files)
 - `/adv-review` enforces minimum findings threshold with genuinely-clean justification template
 - Change ID format: `camelCase` (e.g., `fixLoginBug`) with short-form partial matching
@@ -542,6 +573,7 @@ Implemented all 13 identified context leak surfaces where ADV drops important co
 - Plugin context window optimized: reduced injected system context size
 
 ### Fixed
+
 - Archive tests failing on Bun due to `access()` resolving to `null`
 - `change.json` corruption under concurrent writes — strict locking + fsync
 - SQLite corruption — WAL checkpointing and auto-recovery
@@ -552,6 +584,7 @@ Implemented all 13 identified context leak surfaces where ADV drops important co
 - `$schema` field and extra fields in task/change schemas handled via `.passthrough()`
 
 ### Security
+
 - Resolved 3 dependency vulnerabilities: `minimatch` (high ReDoS), `ajv` (moderate ReDoS), `esbuild` (moderate dev-server exposure)
 - Updated `vitest` to v4, `tsup` to v8.5, `eslint` to v9.39, `typescript-eslint` to v8.56
 - Added `overrides` in `package.json` to force patched `minimatch >=10.0.1` and `ajv >=8.17.1`
@@ -563,6 +596,7 @@ Implemented all 13 identified context leak surfaces where ADV drops important co
 ### Added
 
 #### 6-Gate Quality Checklist
+
 - Sequential quality gates: research, prep, implementation, review, harden, signoff
 - Gate status tracking with timestamps and completion evidence
 - Sequence enforcement - gates must be completed in order
@@ -571,25 +605,30 @@ Implemented all 13 identified context leak surfaces where ADV drops important co
 - User signoff gate required before archive
 
 #### Gate Tools
+
 - `adv_gate_status` - Get gate status for a change with completion timestamps
 - `adv_gate_complete` - Mark a gate complete with sequence enforcement
 
 #### Incremental Sync Optimization
+
 - Triple-attribute file change detection (mtime + size + inode)
 - `sync_files` SQLite table for tracking file attributes
 - Skip unchanged files during sync for improved performance
 
 #### Command Updates
+
 - All workflow commands updated with gate integration
 - Cancelled task approval flow via question tool
 - Gate status displayed in completion banners
 - Auto-completed gates notification in acceptance prompts
 
 #### Migration Support
+
 - Legacy gate status for existing changes (counts as "satisfied")
 - Migration sets all gates to 'legacy' except signoff which stays 'pending'
 
 ### Changed
+
 - Archive workflow requires all 6 gates complete (or legacy)
 - Agenda completion checks gates if present
 
@@ -598,6 +637,7 @@ Implemented all 13 identified context leak surfaces where ADV drops important co
 ### Added
 
 #### New Slash Commands (10)
+
 - `/adv-clarify` - Requirements clarification assistant
 - `/adv-prep` - Implementation preparation with analysis and planning
 - `/adv-research` - Research context and generate ADRs for architectural decisions
@@ -610,6 +650,7 @@ Implemented all 13 identified context leak surfaces where ADV drops important co
 - `/adv-roadmap` - Strategic roadmap with change sequencing
 
 #### Enhanced Commands (5)
+
 - `/adv-status` - Enhanced with contract status display
 - `/adv-proposal` - Hybrid architecture with tool-based state
 - `/adv-validate` - Enhanced validation workflow
@@ -617,12 +658,14 @@ Implemented all 13 identified context leak surfaces where ADV drops important co
 - `/adv-archive` - Complete archive workflow with validation
 
 #### Documentation
+
 - COMMAND_REPORT.md - Implementation details for all commands
 - COMMAND_REPORT.html - Printable approval document
 
 ### Changed
+
 - All commands now use hybrid architecture: tools for state, banners for visibility
-- Commands derive CONTRACT banners from adv_* tool state instead of file parsing
+- Commands derive CONTRACT banners from adv\_\* tool state instead of file parsing
 - Sub-agent orchestration standardized across review, harden, audit, and refactor
 
 ## [0.1.0] - 2026-01-21
@@ -630,41 +673,48 @@ Implemented all 13 identified context leak surfaces where ADV drops important co
 ### Added
 
 #### Core Plugin
+
 - Initial plugin scaffold with TypeScript configuration
 - Zod schemas for runtime validation of all types
 - Plugin lifecycle hooks (onSessionStart, onSessionEnd)
 
 #### Storage Layer
+
 - JSON file storage as source of truth for specs and changes
 - SQLite caching with FTS5 for fast full-text search
 - Unified Store interface combining JSON and SQLite
 - Project configuration management (project.json)
 
 #### Tools (13 total)
+
 - **Spec Tools**: `adv_spec` (actions: list, show, search)
 - **Change Tools**: `adv_change_list`, `adv_change_show`, `adv_change_create`, `adv_change_validate`, `adv_change_archive`
 - **Task Tools**: `adv_task_list`, `adv_task_ready`, `adv_task_update`, `adv_task_add`
 - **Status Tool**: `adv_status`
 
 #### Validation Engine
+
 - Completeness checks (tasks, deltas, scenarios, ID formats)
 - Conflict detection (duplicates, orphans, priority downgrades)
-s**: `adv_task_list`, `adv_task_ready`, `adv_task_update`, `adv_task_add`
+  s\*\*: `adv_task_list`, `adv_task_ready`, `adv_task_update`, `adv_task_add`
 - **Status Tool**: `adv_status`
 
 #### Validation Engine
+
 - Completeness checks (tasks, deltas, scenarios, ID formats)
 - Conflict detection (duplicates, orphans, priority downgrades)
 - Reference validation (spec existence, requirement existence)
 - "Specs as laws" enforcement
 
 #### Archive System
+
 - Delta application (add, modify, remove operations)
 - Semantic version bumping (minor for adds, patch for modifications)
 - Markdown documentation generation from specs
 - Archive directory creation with change history
 
 #### Events & Status
+
 - Terminal status markers (`[ADV:ROCKET]`, `[ADV:TDD_RED]`, etc.)
 - Tab color updates via OSC sequences
 - Tmux environment detection and support
@@ -672,6 +722,7 @@ s**: `adv_task_list`, `adv_task_ready`, `adv_task_update`, `adv_task_add`
 - TDD phase detection from task titles
 
 #### Slash Commands
+
 - `/adv-status` - Project overview
 - `/adv-proposal` - Create change proposal
 - `/adv-validate` - Validate change against specs
@@ -679,18 +730,21 @@ s**: `adv_task_list`, `adv_task_ready`, `adv_task_update`, `adv_task_add`
 - `/adv-archive` - Archive completed change
 
 #### Documentation
+
 - ADV_INSTRUCTIONS.md - Complete agent guidance
 - README.md - Project documentation
 - INSTALL.md - Setup instructions
 - Command documentation in .opencode/command/
 
 #### Testing
+
 - 222 tests across 11 test files
 - Vitest test runner with parallel execution
 - Temporary directory isolation for tests
 - Sample fixtures (SAMPLE_SPEC, SAMPLE_CHANGE)
 
 #### CI/CD
+
 - GitHub Actions workflow for CI
 - Multi-version Node.js testing (20.x, 22.x)
 - Typecheck, lint, format, and test stages

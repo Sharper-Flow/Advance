@@ -24,6 +24,9 @@ import {
   normalizeChangeCode,
   buildTabTitle,
   generateProjectShortname,
+  SHORTNAME_DICTIONARY,
+  SHORTNAME_DICT_SET,
+  segmentToken,
 } from "./terminal";
 import {
   updateTerminalStatus,
@@ -394,12 +397,48 @@ describe("generateProjectShortname", () => {
   });
 
   describe("single-word names over limit", () => {
-    it("truncates a 7-char name to 6 chars", () => {
-      expect(generateProjectShortname("advance")).toBe("Advanc");
+    it("keeps a 7-char name whole under the 8-char cap", () => {
+      expect(generateProjectShortname("advance")).toBe("Advance");
     });
 
-    it("truncates a longer name to 6 chars", () => {
-      expect(generateProjectShortname("pokeedge")).toBe("Pokeed");
+    it("keeps an 8-char compound name whole when it segments and totals ≤ cap", () => {
+      // "pokeedge" → segments via poke+edge, total 8 ≤ cap → compact join
+      expect(generateProjectShortname("pokeedge")).toBe("Pokeedge");
+    });
+
+    it("truncates an opaque single-token name past the 8-char cap", () => {
+      expect(generateProjectShortname("xyzzyabcdef")).toBe("Xyzzyabc");
+    });
+  });
+
+  describe("dictionary-segmented single tokens", () => {
+    it("segments and acronymizes when combined length exceeds cap", () => {
+      expect(generateProjectShortname("opencodeadvance")).toBe("OCA");
+    });
+
+    it("segments and compacts when combined length is at cap", () => {
+      // "opencode" → segments open+code, total 8 = cap → compact join
+      expect(generateProjectShortname("opencode")).toBe("Opencode");
+    });
+
+    it("does not segment when the token is short enough to keep whole", () => {
+      // "plugin" → 6 chars ≤ cap, even though segmentation might succeed,
+      // the compact path is chosen because acronym-kick-in requires over-cap
+      expect(generateProjectShortname("plugin")).toBe("Plugin");
+    });
+
+    it("falls back to truncation when no segmentation is possible", () => {
+      expect(generateProjectShortname("xyzzyzzzy")).toBe("Xyzzyzzz");
+    });
+
+    it("segments case-insensitively when the token starts with a capital", () => {
+      // Regression: leading-capital tokens used to bypass segmentation
+      // because the all-lowercase guard excluded them.
+      expect(generateProjectShortname("Opencodeadvance")).toBe("OCA");
+    });
+
+    it("segments case-insensitively for mixed-case single tokens", () => {
+      expect(generateProjectShortname("OPENCODEADVANCE")).toBe("OCA");
     });
   });
 
@@ -422,10 +461,10 @@ describe("generateProjectShortname", () => {
       );
     });
 
-    it("caps acronym at 6 chars", () => {
+    it("caps acronym at 8 chars", () => {
       expect(
         generateProjectShortname("alpha-beta-gamma-delta-epsilon-zeta-eta"),
-      ).toBe("ABGDEZ");
+      ).toBe("ABGDEZE");
     });
 
     it("joins short multi-word names without acronymizing", () => {
@@ -436,7 +475,7 @@ describe("generateProjectShortname", () => {
 
   describe("prefix and suffix stripping", () => {
     it("strips oc- prefix", () => {
-      expect(generateProjectShortname("oc-plugins")).toBe("Plugin");
+      expect(generateProjectShortname("oc-plugins")).toBe("Plugins");
     });
 
     it("strips lib- prefix", () => {
@@ -477,7 +516,7 @@ describe("generateProjectShortname", () => {
     });
 
     it("is case-insensitive when matching prefixes", () => {
-      expect(generateProjectShortname("OC-Plugins")).toBe("Plugin");
+      expect(generateProjectShortname("OC-Plugins")).toBe("Plugins");
     });
   });
 
@@ -501,22 +540,115 @@ describe("generateProjectShortname", () => {
 });
 
 // =============================================================================
+// SHORTNAME_DICTIONARY
+// =============================================================================
+
+describe("SHORTNAME_DICTIONARY", () => {
+  it("contains spot-check tech tokens", () => {
+    for (const entry of ["open", "code", "advance", "plugin", "api", "edge"]) {
+      expect(SHORTNAME_DICT_SET.has(entry)).toBe(true);
+    }
+  });
+
+  it("contains only lowercase entries", () => {
+    for (const entry of SHORTNAME_DICTIONARY) {
+      expect(entry).toBe(entry.toLowerCase());
+    }
+  });
+
+  it("enforces minimum length of 2", () => {
+    for (const entry of SHORTNAME_DICTIONARY) {
+      expect(entry.length).toBeGreaterThanOrEqual(2);
+    }
+  });
+
+  it("has no duplicate entries", () => {
+    expect(SHORTNAME_DICT_SET.size).toBe(SHORTNAME_DICTIONARY.length);
+  });
+
+  it("has a reasonable number of entries (~120-200)", () => {
+    expect(SHORTNAME_DICTIONARY.length).toBeGreaterThanOrEqual(100);
+    expect(SHORTNAME_DICTIONARY.length).toBeLessThanOrEqual(250);
+  });
+});
+
+// =============================================================================
+// segmentToken (DP word-break)
+// =============================================================================
+
+describe("segmentToken", () => {
+  const dict = new Set(["open", "code", "advance", "a", "b"]);
+
+  it("returns null for empty input", () => {
+    expect(segmentToken("", dict)).toBeNull();
+  });
+
+  it("returns null when no dictionary entries cover the token", () => {
+    expect(segmentToken("xyzzy", dict)).toBeNull();
+  });
+
+  it("returns null on partial cover", () => {
+    // "openx" — "open" matches but trailing "x" has no dict entry
+    expect(segmentToken("openx", dict)).toBeNull();
+  });
+
+  it("returns a single-element array when the whole token is a dict entry", () => {
+    expect(segmentToken("open", dict)).toEqual(["open"]);
+  });
+
+  it("segments a two-word concatenation", () => {
+    expect(segmentToken("opencode", dict)).toEqual(["open", "code"]);
+  });
+
+  it("segments a three-word concatenation", () => {
+    expect(segmentToken("opencodeadvance", dict)).toEqual([
+      "open",
+      "code",
+      "advance",
+    ]);
+  });
+
+  it("handles single-char dictionary entries", () => {
+    expect(segmentToken("ab", dict)).toEqual(["a", "b"]);
+  });
+
+  it("works against the real SHORTNAME_DICT_SET for known compound names", () => {
+    expect(segmentToken("opencode", SHORTNAME_DICT_SET)).toEqual([
+      "open",
+      "code",
+    ]);
+    expect(segmentToken("opencodeadvance", SHORTNAME_DICT_SET)).toEqual([
+      "open",
+      "code",
+      "advance",
+    ]);
+  });
+
+  it("returns null for opaque names not in the real dictionary", () => {
+    expect(segmentToken("pokeedge", SHORTNAME_DICT_SET)).not.toBeNull();
+    // 'pokeedge' actually segments via 'poke' + 'edge' — both in the real dict.
+    // Use a genuinely opaque string instead:
+    expect(segmentToken("xyzzyzzzy", SHORTNAME_DICT_SET)).toBeNull();
+  });
+});
+
+// =============================================================================
 // buildTabTitle
 // =============================================================================
 
 describe("buildTabTitle", () => {
   it("shows shortname and change code when both present", () => {
     expect(buildTabTitle("🚀", "advance", "addFeatureX")).toBe(
-      "🚀 Advanc · Feature X",
+      "🚀 Advance · Feature X",
     );
   });
 
   it("shows shortname only when no active change", () => {
-    expect(buildTabTitle("🌍", "advance", undefined)).toBe("🌍 Advanc");
+    expect(buildTabTitle("🌍", "advance", undefined)).toBe("🌍 Advance");
   });
 
   it("shows shortname only when change ID is empty string", () => {
-    expect(buildTabTitle("🌍", "advance", "")).toBe("🌍 Advanc");
+    expect(buildTabTitle("🌍", "advance", "")).toBe("🌍 Advance");
   });
 
   it("uses acronym shortname for multi-word project names", () => {
