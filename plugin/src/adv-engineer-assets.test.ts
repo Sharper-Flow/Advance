@@ -44,6 +44,7 @@ describe("adv-engineer assets", () => {
       "adv_task_add: false",
       "adv_task_cancel: false",
       "adv_task_checkpoint: false",
+      "adv_change_validate: false",
       "worktree_create: false",
       "worktree_delete: false",
     ];

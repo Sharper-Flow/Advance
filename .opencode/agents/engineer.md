@@ -1,5 +1,5 @@
 ---
-description: Delegated ADV code-writing executor — implements tasks, runs tests, emits structured ENGINEER_REPORT payload. Spawned by ADV orchestrator; does not invoke /adv-* or auto-complete gates.
+description: Implement scoped ADV tasks and emit ENGINEER_REPORT.
 mode: subagent
 temperature: 0.1
 hidden: true
@@ -42,7 +42,7 @@ tools:
   adv_status: true
   adv_project_context: true
   adv_change_show: true
-  adv_change_validate: true
+  adv_change_validate: false
   adv_task_show: true
   adv_task_list: true
   adv_task_ready: true

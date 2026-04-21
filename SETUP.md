@@ -149,8 +149,8 @@ Typical outcomes:
 ## External Dependencies (MCP Servers and Sub-Agents)
 
 ADV ships the plugin, commands, overlays, and bundled ADV agents (`plan`,
-`build`, `adv-researcher`). The `adv-researcher` agent is synced globally by
-`sync-global.sh` as a bundled global specialist. The `tron` agent remains
+`build`, `adv-researcher`, `engineer`). The `adv-researcher` and `engineer`
+agents are synced globally by `sync-global.sh` as bundled global specialists. The `tron` agent remains
 repo-local in `.opencode/agents/`. Several agents and commands
 reference **external MCP servers** and **shared sub-agents** that are NOT part
 of ADV itself. If any of these are missing, ADV still runs — commands have
@@ -159,9 +159,10 @@ fallback paths — but the user experience is degraded.
 ### Required sub-agents (shared with OpenCode global config)
 
 These agents are expected to exist in `~/.config/opencode/agents/` as part of
-your OpenCode setup. ADV does not ship them. If missing, commands will fall
-back to inline execution or generic `explore` agent invocation, which is
-slower and less specialized.
+your OpenCode setup. Some are ADV-shipped bundled globals (`engineer`); others
+are external shared agents supplied by your broader OpenCode install. If any
+are missing, commands fall back to inline execution or generic `explore`
+invocation, which is slower and less specialized.
 
 | Agent       | Used by                                                                       | What it does                                                  |
 | ----------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------- |
