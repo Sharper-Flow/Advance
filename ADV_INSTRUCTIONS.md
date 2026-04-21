@@ -328,7 +328,7 @@ Slash commands are top-level entry points for the user/session, not an internal 
 
 ### Sub-Agent Orchestration (optional, requires `task` tool)
 
-Available to: `orca`, `plan`, `general`. Use when 3+ independent scan dimensions benefit from parallelism.
+Available to agents with `task: true` in their frontmatter: `adv`, `build`, `plan`. Use when 3+ independent scan dimensions benefit from parallelism.
 
 | Command | Inline | Sub-Agent |
 |---------|--------|-----------|
@@ -385,10 +385,12 @@ After each phase, use `adv_change_update` to record compact summaries. Do not du
 
 | Tier | Agents | Loading |
 |------|--------|---------|
-| **Core** (always loaded) | `plan`, `build`, `orca` | Global `~/.config/opencode/agents/` |
-| **Common** (always loaded) | `explore`, `librarian`, `general`, `mechanic` | Global `~/.config/opencode/agents/` |
-| **ADV Specialist** | `adv-researcher` | bundled global |
-| **Repo-Local** | `tron` | Repo-local `.opencode/agents/` |
+| **Primary** (user-selectable top-level) | `adv`, `plan`, `build` | Global `~/.config/opencode/agents/` |
+| **Common subagents** (spawnable via Task tool) | `explore`, `general`, `librarian`, `mechanic`, `prioritizer` | Global `~/.config/opencode/agents/` |
+| **ADV Specialist** (spawnable, bundled global) | `adv-researcher` | Global `~/.config/opencode/agents/` |
+| **Repo-Local** (spawnable, repo-scoped) | `tron` | Repo-local `.opencode/agents/` |
+
+> **Primary vs subagent:** Only `mode: subagent` agents are spawnable via the Task tool. `adv`, `plan`, and `build` are primary agents — users switch to them directly; they cannot be invoked through sub-agent spawning.
 
 ### Agent Roster
 
@@ -401,7 +403,7 @@ After each phase, use `adv_change_update` to record compact summaries. Do not du
 | `mechanic` | System/infra issues | Vision, bash, read/write |
 | `tron` | Reconnaissance, hotspot detection | Read, Glob, Grep, lgrep |
 
-> **Note:** `adv-researcher` and `tron` are repo-local agents — only available in ADV-enabled repos (repos with `.opencode/agents/` containing their definitions).
+> **Note:** `tron` is a repo-local agent — only available in ADV-enabled repos (repos with `.opencode/agents/tron.md`). `adv-researcher` is bundled and synced to `~/.config/opencode/agents/` by this repo's sync script; it is available in any session where the global install has been synced from an ADV-enabled repo.
 
 Orchestrator pattern: spawn `librarian` + `adv-researcher` in parallel → synthesize.
 
