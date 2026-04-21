@@ -25,7 +25,7 @@ plugin/              # TypeScript plugin (the only buildable package)
 .adv/specs/          # Capability specs (the laws) — git-tracked, branch-local
 .opencode/
   command/           # 21 slash-command workflow files (adv-*.md)
-  agents/            # adv-researcher (ADV-managed bundled global), tron (repo-local); overlay-managed: adv, plan (absorbed scout), build (absorbed refine)
+  agents/            # adv-researcher (bundled global), engineer (bundled global), tron (repo-local); overlay-managed: adv, plan (absorbed scout), build (absorbed refine)
   overlays/          # Managed overlay blocks synced into global shared agents
 skills/              # Bundled methodology skills synced to ~/.config/opencode/skills/
 scripts/             # sync-global.sh (main), migrate-openspec.ts, recover-db.js, model-blind-test
