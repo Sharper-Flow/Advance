@@ -67,10 +67,59 @@ Configure via environment variables (see `plugin/.env.example`):
 
 Activation happens in code by passing a Temporal client bundle into
 `createStore({ temporalBundle })`; production bootstrap now owns that wiring.
-Run the plugin on **Node** (not Bun) for full worker support; a Bun client
-probe gates the client surface with fail-fast diagnostics if it cannot
-operate safely. The legacy backend is transitional and scheduled for
+On a Node plugin host the worker runs in-process. On a Bun plugin host
+(opencode's shipping binary) the plugin spawns a Node child process per task
+queue via `createOutOfProcessWorker`; see the troubleshooting section below
+for details. The legacy file-backed backend is transitional and scheduled for
 retirement after migration completes.
+
+### Bun runtime troubleshooting
+
+Opencode ships as a compiled Bun executable. `@temporalio/worker` cannot run
+in-process inside Bun: the SDK spawns a Node worker thread whose
+`require('@temporalio/common')` fails from Bun's install-cache path. The
+plugin works around this by spawning a Node child process instead — but that
+requires a Node binary reachable from the plugin host.
+
+**Symptom**: after plugin load, `adv_status` reports
+`worker_process_alive: false` OR the session emits (to the debug log, not
+stdout) "Temporal worker cannot run under bun. Install Node (v20+) on PATH
+or set ADV_NODE_PATH."
+
+**Remediation**:
+
+1. Install Node.js v20 or later. Any install that puts a `node` binary on
+   your shell `PATH` works (nvm, system package, asdf, etc.).
+   ```bash
+   # via nvm (recommended for dev machines)
+   curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
+   nvm install --lts
+
+   # or macOS via Homebrew
+   brew install node
+   ```
+2. Verify opencode sees Node on `PATH`:
+   ```bash
+   which node && node --version
+   ```
+3. If Node lives at a non-standard path (e.g. a nvm-managed version that
+   isn't on the login shell's default `PATH`), set `ADV_NODE_PATH`:
+   ```bash
+   # in ~/.zshenv or ~/.bashrc
+   export ADV_NODE_PATH="$HOME/.nvm/versions/node/v22.21.0/bin/node"
+   ```
+4. Restart opencode.
+
+If Node is genuinely unavailable and you need a working session immediately,
+set `ADV_ALLOW_DEGRADED_FALLBACK=1` to run on the file-backed store. This is
+a dev-only escape hatch — Temporal workflows, migrations, and cross-session
+workflow state are unavailable in this mode.
+
+> **Health check**: `adv_status` now reports `worker_process_alive` — `true`
+> means at least one worker (in-process OR out-of-process child) is running.
+> `false` means the worker's children have all exited (e.g. Temporal server
+> unreachable for 3 restarts). The OOP worker uses exponential backoff
+> (1s / 3s / 10s, max 3 attempts) before marking the queue dead.
 
 ---
 
