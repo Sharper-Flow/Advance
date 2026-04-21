@@ -210,7 +210,9 @@ export function createTemporalStoreBackend(
     }
 
     const recent = changes
-      .filter((change) => change.status !== "archived" && change.status !== "closed")
+      .filter(
+        (change) => change.status !== "archived" && change.status !== "closed",
+      )
       .map((change) =>
         buildChangeRecency(
           change,
@@ -248,7 +250,9 @@ export function createTemporalStoreBackend(
         let filtered = changes;
 
         if (filter?.status) {
-          filtered = filtered.filter((change) => change.status === filter.status);
+          filtered = filtered.filter(
+            (change) => change.status === filter.status,
+          );
         }
         if (!filter?.includeArchived) {
           filtered = filtered.filter((change) => change.status !== "archived");
@@ -268,8 +272,9 @@ export function createTemporalStoreBackend(
             title: change.title,
             status: change.status,
             taskCount: change.tasks.length,
-            completedTasks: change.tasks.filter((task) => task.status === "done")
-              .length,
+            completedTasks: change.tasks.filter(
+              (task) => task.status === "done",
+            ).length,
           })),
         };
       },

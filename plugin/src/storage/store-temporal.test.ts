@@ -164,8 +164,8 @@ describe("Temporal store backend adapter", () => {
                 status: "pending",
                 priority: 0,
                 created_at: "2026-04-18T00:00:00.000Z",
-                tdd_phase: "none"
-              }
+                tdd_phase: "none",
+              },
             ],
             wisdom: [],
             gates: {
@@ -175,30 +175,41 @@ describe("Temporal store backend adapter", () => {
               planning: { status: "pending" },
               execution: { status: "pending" },
               acceptance: { status: "pending" },
-              release: { status: "pending" }
+              release: { status: "pending" },
             },
             reentry_history: [],
-            artifacts: {}
+            artifacts: {},
           };
         }
         return null;
       }),
-      executeUpdate: vi.fn(async () => null)
+      executeUpdate: vi.fn(async () => null),
     };
 
     const bundle = {
       client: {
         workflow: {
-          getHandle: vi.fn(() => changeHandle)
-        }
-      }
+          getHandle: vi.fn(() => changeHandle),
+        },
+      },
     };
 
     const legacy = makeLegacyStore();
     legacy.paths.changes = "/tmp/changes" as any;
-    legacy.changes.list = vi.fn(async () => ({
-      changes: [{ id: "chg1", title: "Change 1", status: "draft", taskCount: 1, completedTasks: 0 }]
-    }) as any);
+    legacy.changes.list = vi.fn(
+      async () =>
+        ({
+          changes: [
+            {
+              id: "chg1",
+              title: "Change 1",
+              status: "draft",
+              taskCount: 1,
+              completedTasks: 0,
+            },
+          ],
+        }) as any,
+    );
     legacy.changes.get = vi.fn(async () => ({
       success: true,
       data: {
@@ -216,42 +227,53 @@ describe("Temporal store backend adapter", () => {
           planning: { status: "pending" },
           execution: { status: "pending" },
           acceptance: { status: "pending" },
-          release: { status: "pending" }
-        }
-      }
-    }));
-    legacy.status = vi.fn(async () => ({
-      specs: { count: 1, capabilities: ["legacy"] },
-      changes: {
-        active: 1,
-        byStatus: { draft: 1, pending: 0, active: 0, archived: 0, closed: 0 },
-        recent: [
-          {
-            id: "chg1",
-            title: "Change 1",
-            status: "draft",
-            completedTasks: 0,
-            taskCount: 1,
-            lastActivityAt: "2026-04-18T00:00:00.000Z",
-            minutesSinceActivity: 5,
-            recency: "hot"
-          }
-        ]
+          release: { status: "pending" },
+        },
       },
-      recommendations: [
-        "[doctor] Pending WAL checkpoint: 1 bytes in WAL file (run flush/checkpoint before archive)",
-        "Change `chg1`: next gate is `proposal` → run `/adv-proposal chg1`"
-      ]
-    }) as any);
+    }));
+    legacy.status = vi.fn(
+      async () =>
+        ({
+          specs: { count: 1, capabilities: ["legacy"] },
+          changes: {
+            active: 1,
+            byStatus: {
+              draft: 1,
+              pending: 0,
+              active: 0,
+              archived: 0,
+              closed: 0,
+            },
+            recent: [
+              {
+                id: "chg1",
+                title: "Change 1",
+                status: "draft",
+                completedTasks: 0,
+                taskCount: 1,
+                lastActivityAt: "2026-04-18T00:00:00.000Z",
+                minutesSinceActivity: 5,
+                recency: "hot",
+              },
+            ],
+          },
+          recommendations: [
+            "[doctor] Pending WAL checkpoint: 1 bytes in WAL file (run flush/checkpoint before archive)",
+            "Change `chg1`: next gate is `proposal` → run `/adv-proposal chg1`",
+          ],
+        }) as any,
+    );
 
     const adapted = createTemporalStoreBackend({
       legacy,
       temporal: bundle as any,
-      projectId: "proj1"
+      projectId: "proj1",
     });
 
     const { listChangeDirs } = await import("./json");
-    const listSpy = vi.spyOn(await import("./json"), "listChangeDirs").mockResolvedValue(["chg1"]);
+    const listSpy = vi
+      .spyOn(await import("./json"), "listChangeDirs")
+      .mockResolvedValue(["chg1"]);
 
     const listed = await adapted.changes.list({ includeClosed: true });
     expect(listed.changes).toEqual([
@@ -260,8 +282,8 @@ describe("Temporal store backend adapter", () => {
         title: "Change 1",
         status: "closed",
         taskCount: 1,
-        completedTasks: 0
-      }
+        completedTasks: 0,
+      },
     ]);
 
     const status = await adapted.status();
@@ -269,7 +291,7 @@ describe("Temporal store backend adapter", () => {
     expect(status.changes.byStatus.draft).toBe(0);
     expect(status.changes.active).toBe(0);
     expect(status.recommendations).toEqual([
-      "[doctor] Pending WAL checkpoint: 1 bytes in WAL file (run flush/checkpoint before archive)"
+      "[doctor] Pending WAL checkpoint: 1 bytes in WAL file (run flush/checkpoint before archive)",
     ]);
 
     listSpy.mockRestore();
