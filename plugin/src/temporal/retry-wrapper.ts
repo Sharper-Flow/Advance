@@ -29,12 +29,38 @@ function recordTemporalFailure(error: unknown): void {
     error instanceof Error ? error.message : String(error ?? "");
 }
 
+/**
+ * Walk the error cause chain and collect all messages (including
+ * constructor.name / .name) into a single string for regex matching.
+ * The Temporal SDK sometimes wraps the real error (e.g.
+ * WorkflowNotFoundError) inside a generic ServiceError whose own
+ * message is something like "Failed to query Workflow". The underlying
+ * not-found signal lives in `.cause`.
+ */
+function collectErrorText(error: unknown): string {
+  const parts: string[] = [];
+  let current: unknown = error;
+  const seen = new Set<unknown>();
+  while (current && !seen.has(current)) {
+    seen.add(current);
+    if (current instanceof Error) {
+      parts.push(current.message ?? "");
+      parts.push(current.constructor.name ?? current.name ?? "");
+      current = (current as Error & { cause?: unknown }).cause;
+    } else {
+      parts.push(String(current ?? ""));
+      break;
+    }
+  }
+  return parts.join(" | ");
+}
+
 export function classifyTemporalError(error: unknown): TemporalErrorClass {
-  const message = error instanceof Error ? error.message : String(error ?? "");
+  const combined = collectErrorText(error);
 
   if (
     /ECONNREFUSED|connection refused|no task queue handler|task queue handler is subscribed|Unavailable/i.test(
-      message,
+      combined,
     )
   ) {
     return "transient";
@@ -42,7 +68,7 @@ export function classifyTemporalError(error: unknown): TemporalErrorClass {
 
   if (
     /WorkflowExecutionNotFound|Workflow execution not found|workflow not found|not[_ ]found|NOT_FOUND|QueryNotRegistered|UpdateNotRegistered|not registered/i.test(
-      message,
+      combined,
     )
   ) {
     return "fallback";

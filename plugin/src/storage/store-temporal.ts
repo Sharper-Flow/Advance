@@ -33,23 +33,38 @@ import { listChangeDirs } from "./json";
 import { buildChangeRecency } from "./store-types";
 import type { ChangeStatus, ProjectStatus } from "../types";
 
+// Collect the error message and every cause-chain message so we can match
+// against the *underlying* gRPC / Temporal error even when it is wrapped
+// inside a generic ServiceError by the SDK.
+function collectErrorMessages(err: unknown): string[] {
+  const messages: string[] = [];
+  let current: unknown = err;
+  const seen = new Set<unknown>();
+  while (current && !seen.has(current)) {
+    seen.add(current);
+    if (current instanceof Error) {
+      messages.push(current.message ?? "");
+      // Also collect constructor.name / .name for class-based matching
+      messages.push(current.constructor.name ?? current.name ?? "");
+      current = (current as Error & { cause?: unknown }).cause;
+    } else {
+      messages.push(String(current ?? ""));
+      break;
+    }
+  }
+  return messages;
+}
+
 // Errors that should legitimately fall back to the legacy backend. Anything
 // else (NonDeterministicWorkflowError, update validation failure, connection
 // errors, etc.) is a real problem and should propagate.
 function isExpectedFallbackError(err: unknown): boolean {
-  const message = err instanceof Error ? err.message : String(err ?? "");
-  // Check error class name directly (covers WorkflowNotFoundError,
-  // WorkflowExecutionNotFoundError, etc.) — the Temporal SDK throws
-  // typed errors whose .name / constructor.name is the canonical signal.
-  const className =
-    err instanceof Error ? (err.constructor.name ?? err.name ?? "") : "";
-  if (/WorkflowNotFound|WorkflowExecutionNotFound/i.test(className)) {
-    return true;
-  }
+  const messages = collectErrorMessages(err);
+  const combined = messages.join(" | ");
   return (
-    /WorkflowExecutionNotFound|Workflow execution not found|workflow not found|not[_ ]found|NOT_FOUND/i.test(
-      message,
-    ) || /QueryNotRegistered|UpdateNotRegistered|not registered/i.test(message)
+    /WorkflowNotFound|WorkflowExecutionNotFound|Workflow execution not found|workflow not found|not[_ ]found|NOT_FOUND/i.test(
+      combined,
+    ) || /QueryNotRegistered|UpdateNotRegistered|not registered/i.test(combined)
   );
 }
 
