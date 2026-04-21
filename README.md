@@ -117,6 +117,7 @@ When a change has multiple viable directions with real user-value tradeoffs, pri
 | `/adv-validate`   | Validate change compliance against specs; block archive on failure                       |
 | `/adv-archive`    | Archive completed change: apply spec deltas and finalize git                             |
 | `/adv-clarify`    | Ask clarifying questions to resolve ambiguous requirements                               |
+| `/adv-research`   | Produce a defined, fully-researched proposed plan ready for user approval                |
 | `/adv-discover`   | Gather context, analyze current state, identify objectives, and obtain user agreement    |
 | `/adv-design`     | Validate architecture decisions, produce implementation strategy, and present design for user review |
 | `/adv-prep`       | Analyze gaps and synthesize tasks from validated research findings                       |

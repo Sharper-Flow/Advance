@@ -1,6 +1,6 @@
 ---
 name: adv-research
-description: "Validate architectural decisions and best practices without creating tasks"
+description: "Produce a defined, fully-researched proposed plan ready for user approval"
 phaseGoal: "Produce a defined, fully-researched proposed plan ready for user approval. Validate the how."
 ---
 

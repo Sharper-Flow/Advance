@@ -307,9 +307,9 @@ describe("Command Manifest", () => {
       ).toHaveLength(0);
     });
 
-    test("adv-proposal scope has empty gates (no gate ownership)", () => {
+    test("adv-proposal scope owns the proposal gate", () => {
       const def = getCommandDef("adv-proposal");
-      expect(def!.scope!.gates).toHaveLength(0);
+      expect(def!.scope!.gates).toEqual(["proposal"]);
     });
 
     test("adv-proposal scope does not create tasks", () => {

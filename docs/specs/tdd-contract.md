@@ -1,11 +1,13 @@
 # TDD Contract
 
-> **Version:** 1.2.0
-> **Updated:** 2026-04-07
+> **Version:** 1.4.0
+> **Updated:** 2026-04-21
 
 ## Purpose
 
 Canonical definition of how TDD phases integrate with the ADV task model. Inline TDD (red/green within each implementation task) is the default. Separate verification tasks are reserved for cross-cutting tests spanning multiple implementation tasks.
+
+The primary red/green evidence path is `adv_run_test` (captures exit code + output). `adv_task_evidence` is fallback for externally captured evidence. Test-file creation MUST use editing tools (`edit`, `write`, `morph_edit`), not shell redirects.
 
 ## Requirements
 

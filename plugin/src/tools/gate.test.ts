@@ -122,7 +122,7 @@ describe("Gate Tools", () => {
   });
 
   describe("gate migration", () => {
-    test("migrates change gates to legacy status except release", async () => {
+    test("migrates change gates to satisfied status except release", async () => {
       // Get initial gates (should be created as pending)
       const beforeResult = await gateTools.adv_gate_status.execute(
         { changeId: "addFeature" },
@@ -134,19 +134,28 @@ describe("Gate Tools", () => {
       // Migrate the change
       await store.gates.migrate("addFeature");
 
-      // After migration, all gates should be 'legacy' except release
+      // After migration, all gates should be satisfied (either 'legacy' or 'done'
+      // — the loader normalizes legacy→done for 6-gate compat) except the final
+      // gate which stays pending (never auto-marked).
+      //
+      // See: plugin/src/storage/json.ts normalizeLegacyGateData — legacy status
+      // values are rewritten to "done" on load for backward compatibility with
+      // pre-7-gate migration data. This means `migrate()` persists "legacy" to
+      // disk but reads return "done". Status "done" and "legacy" both satisfy
+      // gate sequence checks, so the semantic is preserved.
       const afterResult = await gateTools.adv_gate_status.execute(
         { changeId: "addFeature" },
         store,
       );
       const afterParsed = JSON.parse(afterResult);
 
-      expect(afterParsed.gates.proposal.status).toBe("legacy");
-      expect(afterParsed.gates.discovery.status).toBe("legacy");
-      expect(afterParsed.gates.design.status).toBe("legacy");
-      expect(afterParsed.gates.planning.status).toBe("legacy");
-      expect(afterParsed.gates.execution.status).toBe("legacy");
-      expect(afterParsed.gates.acceptance.status).toBe("legacy");
+      const satisfied = (s: string) => s === "legacy" || s === "done";
+      expect(satisfied(afterParsed.gates.proposal.status)).toBe(true);
+      expect(satisfied(afterParsed.gates.discovery.status)).toBe(true);
+      expect(satisfied(afterParsed.gates.design.status)).toBe(true);
+      expect(satisfied(afterParsed.gates.planning.status)).toBe(true);
+      expect(satisfied(afterParsed.gates.execution.status)).toBe(true);
+      expect(satisfied(afterParsed.gates.acceptance.status)).toBe(true);
       expect(afterParsed.gates.release.status).toBe("pending"); // NEVER auto-marked
     });
 

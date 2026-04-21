@@ -68,7 +68,7 @@ Scanners run:
 Why this is genuinely clean:
 - Change is small and well-scoped ({N} files, {M} lines changed)
 - All code follows established patterns (no novel architecture)
-- Full TDD cycle completed with red/green evidence
+- Full TDD cycle completed with red/green evidence via `adv_run_test` (primary) or `adv_task_evidence` (fallback)
 - No external dependencies added
 - No security surface changes
 ```

@@ -53,8 +53,8 @@ Reusable implementation methodology for ADV apply workflows. Provides the TDD wo
 
 | Phase | Action | Evidence |
 |-------|--------|----------|
-| Red | Write failing test → run → show failure | Test output with exit code ≠ 0 |
-| Green | Implement → run → show pass | Test output with exit code 0 |
+| Red | Write failing test using editing tool → `adv_run_test phase:'red'` → show failure | Test output with exit code ≠ 0 |
+| Green | Implement using editing tool → `adv_run_test phase:'green'` → show pass | Test output with exit code 0 |
 | Trivial | Set `tdd_intent: "not_applicable"` | Rationale in task notes |
 
 #### Retry Protocol

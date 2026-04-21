@@ -78,6 +78,7 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
     description:
       "Extract problem statement, success criteria, and constraints without creating tasks",
     phase: "core",
+    gate: "proposal",
     requiresChangeId: false,
     prerequisites: [],
     successors: ["adv-clarify", "adv-research"],
@@ -85,7 +86,7 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
       creates: ["change", "proposal"],
       reads: ["specs"],
       modifies: [],
-      gates: [],
+      gates: ["proposal"],
     },
     phaseGoal:
       "Clarify the problem, user needs, and acceptance criteria scope. Establish what and why \u2014 no how.",

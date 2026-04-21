@@ -395,6 +395,8 @@ export const ADV_TOOL_NAMES: readonly string[] = [
   "adv_gate_status",
   "adv_gate_complete",
   "adv_run_test",
+  "adv_temporal_worker_restart",
+  "adv_workflow_repair",
 ] as const;
 
 /**

@@ -357,7 +357,7 @@ export const taskTools = {
         },
         recommendation:
           compliance === "missing"
-            ? "Record TDD evidence with adv_task_evidence or reclassify with adv_task_reclassify_tdd"
+            ? "Record TDD evidence with adv_run_test (preferred) or adv_task_evidence for externally obtained evidence; reclassify with adv_task_reclassify_tdd when TDD is not applicable"
             : compliance === "compliant"
               ? "TDD requirements satisfied"
               : "TDD not required for this task type",
