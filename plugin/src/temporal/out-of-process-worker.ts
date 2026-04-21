@@ -20,18 +20,23 @@ import type { InProcessWorker } from "./in-process-worker";
  * by giving the worker Node-native module resolution with the plugin's own
  * `node_modules` on its search path.
  *
- * Design choices:
+ * Lifecycle:
  *  - One child per queue (matches `worker.ts` env-driven single-queue shape).
- *    Rejected for now: extending `worker.ts` to register multiple queues —
- *    deferrable to a follow-up change once the OOP path is proven in prod.
- *  - Logging goes through `logger.debug` → file sink only (no console spam).
- *  - `shutdown()` SIGTERMs every child, awaits their `exit` events, resolves.
- *    SIGKILL fallback after a hard timeout is implemented in Phase 2.5.
+ *  - Stdout/stderr → `logger.debug` → file sink only (never console).
+ *  - Non-zero exit → exponential backoff respawn (1s, 3s, 10s). Max 3 attempts
+ *    per queue. After the 3rd restart crashes, that queue stays dead; a
+ *    dedicated health probe can surface the state to operators.
+ *  - Graceful exit (code 0) is NOT a crash — no respawn.
+ *  - `shutdown()` SIGTERMs all children; the shutting-down flag disables
+ *    respawn scheduling so post-shutdown exits don't revive the worker.
  */
 
 const logger = createLogger("temporal-oop-worker");
 const debugLog = (msg: string): void =>
   appendDebugLog("temporal-oop-worker", msg);
+
+const RESTART_BACKOFF_MS: readonly number[] = [1_000, 3_000, 10_000];
+const MAX_RESTARTS = RESTART_BACKOFF_MS.length;
 
 export interface OutOfProcessWorkerInput {
   address: string;
@@ -50,15 +55,27 @@ export interface OutOfProcessWorkerInput {
   nodeEnv?: NodeJS.ProcessEnv;
 }
 
-interface ChildEntry {
-  child: ChildProcess;
+/**
+ * Public surface: superset of InProcessWorker with an additional `isAlive()`
+ * probe that reflects the aggregate liveness of all child processes. A worker
+ * is alive if at least one child exists and is running (exitCode === null).
+ */
+export interface OutOfProcessWorker extends InProcessWorker {
+  isAlive(): boolean;
+}
+
+interface QueueState {
   queue: string;
+  child: ChildProcess | null;
+  restartCount: number;
+  dead: boolean;
   exitPromise: Promise<void>;
+  resolveExit: () => void;
 }
 
 export async function createOutOfProcessWorker(
   input: OutOfProcessWorkerInput,
-): Promise<InProcessWorker> {
+): Promise<OutOfProcessWorker> {
   const nodeResolution = resolveNodeExecutable(input.nodeEnv ?? process.env);
   if (!nodeResolution.found || !nodeResolution.path) {
     const reason =
@@ -68,61 +85,108 @@ export async function createOutOfProcessWorker(
   }
   const nodePath = nodeResolution.path;
 
-  const entries = new Map<string, ChildEntry>();
+  const states = new Map<string, QueueState>();
   let shuttingDown = false;
 
-  function startOne(queue: string): ChildEntry {
+  function spawnChildFor(state: QueueState): void {
     const spec = buildTemporalWorkerProcessSpec({
       workerScript: input.workerScript,
-      taskQueue: queue,
+      taskQueue: state.queue,
       address: input.address,
       namespace: input.namespace,
       projectId: input.projectId,
     });
 
-    debugLog(`spawning OOP worker for queue=${queue} node=${nodePath}`);
+    debugLog(
+      `spawning OOP worker queue=${state.queue} attempt=${state.restartCount} node=${nodePath}`,
+    );
 
     const child = spawn(nodePath, spec.args, {
       env: spec.env,
       stdio: ["ignore", "pipe", "pipe"],
-      detached: false, // Keep child tied to parent for reliable shutdown.
+      detached: false,
     });
 
-    // Forward child output to the file-sink logger only — never the console.
-    // Worker logs are verbose; dumping them to opencode sessions would undo
-    // the spam-silencing work in Phase 1.
+    state.child = child;
+
     child.stdout?.on("data", (chunk: Buffer) => {
-      logger.debug(`[worker:${queue}:stdout] ${chunk.toString().trimEnd()}`);
+      logger.debug(
+        `[worker:${state.queue}:stdout] ${chunk.toString().trimEnd()}`,
+      );
     });
     child.stderr?.on("data", (chunk: Buffer) => {
-      logger.debug(`[worker:${queue}:stderr] ${chunk.toString().trimEnd()}`);
+      logger.debug(
+        `[worker:${state.queue}:stderr] ${chunk.toString().trimEnd()}`,
+      );
     });
 
-    const exitPromise = new Promise<void>((resolve) => {
-      const handleExit = (
-        code: number | null,
-        signal: NodeJS.Signals | null,
-      ): void => {
+    child.once(
+      "exit",
+      (code: number | null, signal: NodeJS.Signals | null): void => {
         debugLog(
-          `OOP worker exited queue=${queue} code=${code} signal=${signal ?? "none"}`,
+          `OOP worker exited queue=${state.queue} code=${code} signal=${signal ?? "none"} restartCount=${state.restartCount}`,
         );
-        resolve();
-      };
-      child.once("exit", handleExit);
-    });
 
-    return { child, queue, exitPromise };
+        // If shutting down OR graceful exit, do not respawn.
+        if (shuttingDown || code === 0) {
+          state.child = null;
+          state.dead = true;
+          state.resolveExit();
+          return;
+        }
+
+        // Crashed. Schedule respawn if budget remains.
+        if (state.restartCount >= MAX_RESTARTS) {
+          logger.info(
+            `OOP Temporal worker queue="${state.queue}" exhausted ${MAX_RESTARTS} restart attempts — marking dead. Last exit code=${code}, signal=${signal ?? "none"}.`,
+          );
+          state.child = null;
+          state.dead = true;
+          state.resolveExit();
+          return;
+        }
+
+        const backoff = RESTART_BACKOFF_MS[state.restartCount] ?? 10_000;
+        state.restartCount += 1;
+        debugLog(
+          `scheduling respawn queue=${state.queue} in ${backoff}ms (attempt ${state.restartCount}/${MAX_RESTARTS})`,
+        );
+        setTimeout(() => {
+          if (shuttingDown) return;
+          spawnChildFor(state);
+        }, backoff).unref();
+      },
+    );
   }
 
-  // Bring up all initial queues before returning the handle.
+  function ensureQueueStarted(queue: string): QueueState {
+    const existing = states.get(queue);
+    if (existing) return existing;
+
+    let resolveExit: () => void = () => {};
+    const exitPromise = new Promise<void>((resolve) => {
+      resolveExit = resolve;
+    });
+    const state: QueueState = {
+      queue,
+      child: null,
+      restartCount: 0,
+      dead: false,
+      exitPromise,
+      resolveExit,
+    };
+    states.set(queue, state);
+    spawnChildFor(state);
+    return state;
+  }
+
   for (const queue of input.queues) {
-    if (entries.has(queue)) continue;
-    entries.set(queue, startOne(queue));
+    ensureQueueStarted(queue);
   }
 
   return {
     get queues() {
-      return [...entries.keys()];
+      return [...states.keys()];
     },
 
     async registerQueue(queue: string): Promise<void> {
@@ -131,29 +195,36 @@ export async function createOutOfProcessWorker(
           `Cannot register queue "${queue}" — worker is shutting down`,
         );
       }
-      if (entries.has(queue)) return;
-      entries.set(queue, startOne(queue));
+      ensureQueueStarted(queue);
     },
 
     async shutdown(): Promise<void> {
       if (shuttingDown) return;
       shuttingDown = true;
 
-      const current = [...entries.values()];
-      for (const entry of current) {
+      const current = [...states.values()];
+      for (const state of current) {
+        const child = state.child;
+        if (!child) continue;
         try {
-          entry.child.kill("SIGTERM");
+          child.kill("SIGTERM");
         } catch (e) {
           debugLog(
-            `SIGTERM to OOP worker queue=${entry.queue} threw: ${(e as Error).message}`,
+            `SIGTERM to OOP worker queue=${state.queue} threw: ${(e as Error).message}`,
           );
         }
       }
 
-      // Wait for every child to exit before resolving. Phase 2.5 adds the
-      // hard-deadline SIGKILL fallback.
-      await Promise.allSettled(current.map((e) => e.exitPromise));
-      entries.clear();
+      await Promise.allSettled(current.map((s) => s.exitPromise));
+      states.clear();
+    },
+
+    isAlive(): boolean {
+      for (const state of states.values()) {
+        if (state.dead) continue;
+        if (state.child && state.child.exitCode === null) return true;
+      }
+      return false;
     },
   };
 }
