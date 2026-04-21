@@ -18,6 +18,7 @@ import {
 } from "../../messages";
 import { buildChangeWorkflowId, buildProjectTaskQueue } from "../../client";
 import { REPLAY_HISTORY_FILES } from "../replay/replay-safety";
+import { withTestWorkflowEnvironment } from "../with-test-env";
 
 export async function runSingleSessionSmoke(input: {
   env?: NodeJS.ProcessEnv;
@@ -39,85 +40,88 @@ export async function runSingleSessionSmoke(input: {
     );
   }
 
-  const testEnv = await TestWorkflowEnvironment.createTimeSkipping();
-  const projectId = "validate-temporal-smoke";
-  const changeId = "chg-smoke";
-  const taskQueue = buildProjectTaskQueue(projectId);
-  const worker = await Worker.create({
-    connection: testEnv.nativeConnection,
-    taskQueue,
-    workflowsPath: fileURLToPath(
-      new URL("../../workflows.ts", import.meta.url),
-    ),
-    activities: {},
-  });
+  return withTestWorkflowEnvironment(
+    () => TestWorkflowEnvironment.createTimeSkipping(),
+    async (testEnv) => {
+      const projectId = "validate-temporal-smoke";
+      const changeId = "chg-smoke";
+      const taskQueue = buildProjectTaskQueue(projectId);
+      const worker = await Worker.create({
+        connection: testEnv.nativeConnection,
+        taskQueue,
+        workflowsPath: fileURLToPath(
+          new URL("../../workflows.ts", import.meta.url),
+        ),
+        activities: {},
+      });
 
-  let runPromise: Promise<void> | undefined;
-  try {
-    runPromise = worker.run();
-    const handle = await testEnv.client.workflow.start(changeWorkflow, {
-      workflowId: buildChangeWorkflowId(projectId, changeId),
-      taskQueue,
-      args: [
-        {
-          projectId,
-          changeId,
-          title: "Smoke Change",
-          initializedAt: "2026-04-20T00:00:00.000Z",
-        },
-      ],
-    });
+      let runPromise: Promise<void> | undefined;
+      try {
+        runPromise = worker.run();
+        const handle = await testEnv.client.workflow.start(changeWorkflow, {
+          workflowId: buildChangeWorkflowId(projectId, changeId),
+          taskQueue,
+          args: [
+            {
+              projectId,
+              changeId,
+              title: "Smoke Change",
+              initializedAt: "2026-04-20T00:00:00.000Z",
+            },
+          ],
+        });
 
-    const task = await handle.executeUpdate(addTaskUpdate, {
-      args: [{ title: "smoke-task" }],
-    });
-    await handle.executeUpdate(completeGateUpdate, {
-      args: ["proposal", "smoke", "agent"],
-    });
-    await handle.executeUpdate(addChangeWisdomUpdate, {
-      args: ["pattern", "smoke-wisdom", task.id],
-    });
-    await handle.executeUpdate(reopenFromGateUpdate, {
-      args: ["proposal", "smoke reentry", "delta", "evidence"],
-    });
-    await handle.executeUpdate(closeChangeUpdate, {
-      args: [
-        {
-          reason: "superseded",
-          approved_by_user: true,
-          approved_at: "2026-04-20T00:10:00.000Z",
-          approval_evidence: "approved",
-        },
-      ],
-    });
+        const task = await handle.executeUpdate(addTaskUpdate, {
+          args: [{ title: "smoke-task" }],
+        });
+        await handle.executeUpdate(completeGateUpdate, {
+          args: ["proposal", "smoke", "agent"],
+        });
+        await handle.executeUpdate(addChangeWisdomUpdate, {
+          args: ["pattern", "smoke-wisdom", task.id],
+        });
+        await handle.executeUpdate(reopenFromGateUpdate, {
+          args: ["proposal", "smoke reentry", "delta", "evidence"],
+        });
+        await handle.executeUpdate(closeChangeUpdate, {
+          args: [
+            {
+              reason: "superseded",
+              approved_by_user: true,
+              approved_at: "2026-04-20T00:10:00.000Z",
+              approval_evidence: "approved",
+            },
+          ],
+        });
 
-    const history = await handle.fetchHistory();
-    await mkdir(
-      fileURLToPath(new URL("../replay/histories/", import.meta.url)),
-      {
-        recursive: true,
-      },
-    );
-    await writeFile(
-      REPLAY_HISTORY_FILES.smokeCaptured,
-      JSON.stringify(history, null, 2),
-    );
-    await handle.terminate("smoke complete");
+        const history = await handle.fetchHistory();
+        await mkdir(
+          fileURLToPath(new URL("../replay/histories/", import.meta.url)),
+          {
+            recursive: true,
+          },
+        );
+        await writeFile(
+          REPLAY_HISTORY_FILES.smokeCaptured,
+          JSON.stringify(history, null, 2),
+        );
+        await handle.terminate("smoke complete");
 
-    return {
-      pass: true,
-      historyPath: REPLAY_HISTORY_FILES.smokeCaptured,
-      counters: {
-        changesCreated: 1,
-        tasksAdded: 1,
-        gatesCompleted: 1,
-        wisdomAdded: 1,
-        reentries: 1,
-      },
-    };
-  } finally {
-    worker.shutdown();
-    await runPromise?.catch(() => undefined);
-    await testEnv.teardown();
-  }
+        return {
+          pass: true,
+          historyPath: REPLAY_HISTORY_FILES.smokeCaptured,
+          counters: {
+            changesCreated: 1,
+            tasksAdded: 1,
+            gatesCompleted: 1,
+            wisdomAdded: 1,
+            reentries: 1,
+          },
+        };
+      } finally {
+        worker.shutdown();
+        await runPromise?.catch(() => undefined);
+      }
+    },
+  );
 }

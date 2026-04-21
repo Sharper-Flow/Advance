@@ -5,6 +5,7 @@ const mocks = vi.hoisted(() => ({
     "advance-proj-a",
     "advance-proj-b",
   ]),
+  getTemporalWorkerAliveness: vi.fn(() => true),
   createTemporalClientBundle: vi.fn(async () => ({
     connection: { close: vi.fn(async () => {}) },
   })),
@@ -16,6 +17,7 @@ vi.mock("../plugin-init", async () => {
   return {
     ...actual,
     getRegisteredTemporalWorkerQueues: mocks.getRegisteredTemporalWorkerQueues,
+    getTemporalWorkerAliveness: mocks.getTemporalWorkerAliveness,
   };
 });
 
@@ -74,5 +76,29 @@ describe("getTemporalHealth (C3)", () => {
     expect(health.registered_queues).toEqual([]);
     expect(health.last_op_at).toBeNull();
     expect(health.last_error).toContain("ECONNREFUSED");
+  });
+
+  it("reports worker_process_alive=true when the registered worker is alive (OOP or in-process)", async () => {
+    mocks.getTemporalWorkerAliveness.mockReturnValueOnce(true);
+    setTemporalHealthProbeState({
+      lastOpAt: "2026-04-21T00:00:00.000Z",
+      lastError: null,
+    });
+
+    const health = await getTemporalHealth();
+
+    expect(health.worker_process_alive).toBe(true);
+  });
+
+  it("reports worker_process_alive=false when the OOP worker's child processes are dead", async () => {
+    mocks.getTemporalWorkerAliveness.mockReturnValueOnce(false);
+    setTemporalHealthProbeState({
+      lastOpAt: "2026-04-21T00:00:00.000Z",
+      lastError: null,
+    });
+
+    const health = await getTemporalHealth();
+
+    expect(health.worker_process_alive).toBe(false);
   });
 });

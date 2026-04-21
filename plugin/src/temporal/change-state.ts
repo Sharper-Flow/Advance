@@ -307,6 +307,10 @@ export function reopenFromGateInChangeState(
     reentry_history: state.reentry_history ?? [],
   };
 
+  // Pass the workflow-supplied `now` directly so the helper records a
+  // deterministic timestamp. Previously the workflow patched `reopened_at`
+  // after the call, but the `new Date()` side-effect still ran during replay
+  // and broke workflow determinism guarantees.
   reopenChangeFromGate(
     adapter,
     fromGate,
@@ -314,18 +318,16 @@ export function reopenFromGateInChangeState(
     input.scopeDelta,
     input.reopenedBy,
     input.approvalEvidence,
+    // Pass input.now so the helper stays deterministic inside the Temporal
+    // workflow sandbox — replay would otherwise see new Date() produce a
+    // fresh timestamp on every re-execution.
+    input.now,
   );
 
   // Copy any mutations made by the helper back onto the workflow state so
   // the workflow stays authoritative for gates + reentry history.
   state.gates = adapter.gates ?? state.gates;
   state.reentry_history = adapter.reentry_history ?? state.reentry_history;
-
-  const history = state.reentry_history ?? [];
-  const lastEntry = history[history.length - 1];
-  if (lastEntry) {
-    lastEntry.reopened_at = input.now;
-  }
 }
 
 export function addChangeWisdom(

@@ -1,10 +1,24 @@
 import { createTemporalClientBundle } from "./client";
 import { getTemporalRetryTelemetry } from "./retry-wrapper";
-import { getRegisteredTemporalWorkerQueues } from "../plugin-init";
+import {
+  getRegisteredTemporalWorkerQueues,
+  getTemporalWorkerAliveness,
+} from "../plugin-init";
 
 export interface TemporalHealth {
   server_alive: boolean;
   worker_alive: boolean;
+  /**
+   * Whether at least one registered worker child process / in-process worker
+   * is currently running. Distinguishes "worker registered but dead after
+   * restart exhaustion" from "worker registered and handling work".
+   *
+   * - OOP workers (Bun plugin host): reflects child process exit state.
+   * - In-process workers (Node plugin host): true when the worker has at
+   *   least one registered queue (shutdown clears the queue list).
+   * - No worker registered (file-backed degraded mode): false.
+   */
+  worker_process_alive: boolean;
   registered_queues: string[];
   last_op_at: string | null;
   last_error: string | null;
@@ -42,10 +56,12 @@ export async function getTemporalHealth(): Promise<TemporalHealth> {
 
   const registered_queues = getRegisteredTemporalWorkerQueues();
   const telemetry = overrideTelemetry ?? getTemporalRetryTelemetry();
+  const worker_process_alive = getTemporalWorkerAliveness();
 
   return {
     server_alive,
     worker_alive: registered_queues.length > 0,
+    worker_process_alive,
     registered_queues,
     last_op_at: telemetry.lastOpAt,
     last_error: telemetry.lastError,

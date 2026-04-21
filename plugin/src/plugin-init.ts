@@ -23,11 +23,17 @@ import {
   createInProcessWorker,
   type InProcessWorker,
 } from "./temporal/in-process-worker";
+import { createOutOfProcessWorker } from "./temporal/out-of-process-worker";
 import {
   runMigrationSweep,
   type WorkflowClientLike,
 } from "./temporal/migrate-runner";
-import { ensureTemporalRuntime } from "./temporal/runtime-manager";
+import {
+  ensureTemporalRuntime,
+  probeTemporalWorkerRuntime,
+  resolveNodeExecutable,
+} from "./temporal/runtime-manager";
+import { fileURLToPath } from "node:url";
 import { cleanup as cleanupTerminal } from "./events";
 import { appendDebugLog, createLogger } from "./utils/debug-log";
 import { getProjectId } from "./utils/project-id";
@@ -147,13 +153,44 @@ export async function runBootstrapMigrationSweep(input: {
  * Attempt to create and initialize the ADV store. Never throws — any failure
  * is captured in the returned initError and logged.
  */
+async function initStoreWithoutTemporal(
+  effectiveDir: string,
+  externalRoot: string | undefined,
+  projectId: string | null,
+): Promise<StoreInitResult> {
+  const store = await createStore(effectiveDir, {
+    externalRoot,
+    projectIdOverride: projectId ?? undefined,
+    // No temporalBundle — file-backed harness path.
+  });
+  await store.init();
+  return { store, initError: null };
+}
+
+/**
+ * Resolve the worker script path used by the OOP Node child process.
+ *
+ * Prefers the built bundle (`dist/temporal/worker.js`) next to the plugin
+ * distribution — that path is guaranteed to be resolvable from a Node child
+ * regardless of the plugin host runtime. Falls back to the source file when
+ * running from source (dev) where the built bundle doesn't exist.
+ */
+function resolveWorkerScriptPath(): string {
+  // Use import.meta.url so the calculation works whether the plugin is loaded
+  // as src (Bun/tsx) or dist (Node bundle).
+  const distPath = fileURLToPath(
+    new URL("./temporal/worker.js", import.meta.url),
+  );
+  return distPath;
+}
+
 export async function tryInitStore(
   effectiveDir: string,
   externalRoot: string | undefined,
 ): Promise<StoreInitResult> {
-  try {
-    const projectId = await getProjectId(effectiveDir);
+  const projectId = await getProjectId(effectiveDir);
 
+  try {
     let temporalBundle:
       | Awaited<ReturnType<typeof createTemporalClientBundle>>
       | undefined;
@@ -161,11 +198,32 @@ export async function tryInitStore(
     const temporalDisabled = process.env.ADV_DISABLE_TEMPORAL === "1";
     if (projectId && !temporalDisabled) {
       const runtime = await ensureTemporalRuntime(projectId);
-      worker = await createInProcessWorker({
-        address: runtime.address,
-        namespace: runtime.namespace,
-        queues: [buildProjectTaskQueue(projectId)],
-      });
+      const workerProbe = probeTemporalWorkerRuntime();
+
+      if (workerProbe.supported) {
+        // Node host — worker runs in-process (existing behavior).
+        worker = await createInProcessWorker({
+          address: runtime.address,
+          namespace: runtime.namespace,
+          queues: [buildProjectTaskQueue(projectId)],
+        });
+      } else {
+        // Bun (or other unsupported worker host) — spawn a Node child.
+        const nodeResolution = resolveNodeExecutable();
+        if (!nodeResolution.found) {
+          throw new Error(
+            `Temporal worker cannot run under ${workerProbe.runtime}. ${nodeResolution.remediation ?? "Install Node on PATH or set ADV_NODE_PATH."}`,
+          );
+        }
+        worker = await createOutOfProcessWorker({
+          address: runtime.address,
+          namespace: runtime.namespace,
+          queues: [buildProjectTaskQueue(projectId)],
+          workerScript: resolveWorkerScriptPath(),
+          projectId,
+        });
+      }
+
       registerInProcessTemporalWorker(worker);
       temporalBundle = await createTemporalClientBundle(
         buildTemporalClientEnv({
@@ -198,9 +256,40 @@ export async function tryInitStore(
   } catch (e) {
     const initError = e instanceof Error ? e : new Error(String(e));
     debugLog(`Plugin init FAILED: ${initError.message}`);
-    logger.warn(
+    // Narrow scope per validator (fixTemporalWorkerBundleFailure design):
+    // init failure is captured in initError + downstream ADV_PLUGIN_INIT_FAILED
+    // tool stubs. Log at info level (file sink only, no console) to avoid
+    // spamming every opencode session on Bun where Worker.create fails. Other
+    // logger.warn/logger.error call sites (sqlite, storage, etc.) keep their
+    // console output so real operational issues remain visible.
+    logger.info(
       `Plugin init failed: ${initError.message} — adv_* tools are stubbed and will report ADV_PLUGIN_INIT_FAILED until the cause is fixed.`,
     );
+
+    // Opt-in graceful degradation: if the user has set
+    // ADV_ALLOW_DEGRADED_FALLBACK=1 they prefer a working file-backed store
+    // over the degraded-tool-map stubs. Deprecated-by-design: removed once
+    // out-of-process Node worker ships (Phase 2).
+    if (process.env.ADV_ALLOW_DEGRADED_FALLBACK === "1") {
+      try {
+        debugLog(
+          `ADV_ALLOW_DEGRADED_FALLBACK=1 — falling back to file-backed store`,
+        );
+        return await initStoreWithoutTemporal(
+          effectiveDir,
+          externalRoot,
+          projectId,
+        );
+      } catch (fallbackError) {
+        const fbError =
+          fallbackError instanceof Error
+            ? fallbackError
+            : new Error(String(fallbackError));
+        debugLog(`Fallback to file-backed store also failed: ${fbError.message}`);
+        return { store: null, initError: fbError };
+      }
+    }
+
     return { store: null, initError };
   }
 }
@@ -225,6 +314,34 @@ export function getRegisteredTemporalWorkerQueues(): string[] {
     }
   }
   return [...queues].sort();
+}
+
+/**
+ * Aggregate liveness probe for registered Temporal workers.
+ *
+ * - OOP worker: delegates to the worker's `isAlive()` which returns true iff
+ *   at least one child process is still running (exitCode === null) and not
+ *   marked dead by the restart policy.
+ * - In-process worker: alive iff it has at least one registered queue. The
+ *   SDK's own Worker class does not expose a direct liveness flag, so queue
+ *   count is our best proxy; worker.shutdown() clears the queue list, which
+ *   gives the same result.
+ *
+ * Returns `false` when no workers are registered (typical of file-backed
+ * degraded mode).
+ */
+export function getTemporalWorkerAliveness(): boolean {
+  if (inProcessTemporalWorkers.size === 0) return false;
+  for (const worker of inProcessTemporalWorkers) {
+    // OOP worker exposes isAlive(); in-process does not.
+    const candidate = worker as InProcessWorker & { isAlive?: () => boolean };
+    if (typeof candidate.isAlive === "function") {
+      if (candidate.isAlive()) return true;
+    } else if (worker.queues.length > 0) {
+      return true;
+    }
+  }
+  return false;
 }
 
 async function drainInProcessTemporalWorkers(): Promise<void> {
