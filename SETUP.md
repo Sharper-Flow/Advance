@@ -163,12 +163,12 @@ your OpenCode setup. ADV does not ship them. If missing, commands will fall
 back to inline execution or generic `explore` agent invocation, which is
 slower and less specialized.
 
-| Agent       | Used by                                                                       | What it does                                      |
-| ----------- | ----------------------------------------------------------------------------- | ------------------------------------------------- |
-| `explore`   | `/adv-review`, `/adv-harden`, `/adv-audit`, `/adv-slop-scan`, `/adv-refactor` | Codebase navigation, finding usages               |
-| `librarian` | `/adv-discover`, `/adv-design`, `/adv-task`, `/adv-review`                    | Documentation and API lookup (Context7, grep.app) |
-| `mechanic`  | `/adv-tron` (optional), `plan` sub-agent spawns                               | System/infra diagnostics                          |
-| `general`   | `/adv-review` (cross-cutting), overlay-managed                                | Multi-step implementation                         |
+| Agent       | Used by                                                                       | What it does                                                  |
+| ----------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| `explore`   | `/adv-review`, `/adv-harden`, `/adv-audit`, `/adv-slop-scan`, `/adv-refactor` | Codebase navigation, finding usages                           |
+| `librarian` | `/adv-discover`, `/adv-design`, `/adv-task`, `/adv-review`                    | Documentation and API lookup (Context7, grep.app)             |
+| `mechanic`  | `/adv-tron` (optional), `plan` sub-agent spawns                               | System/infra diagnostics                                      |
+| `general`   | `/adv-review` (cross-cutting), overlay-managed                                | Multi-step implementation                                     |
 | `engineer`  | `/adv-apply` code-writing delegation, `/adv-review` remediation fixes         | Produces structured ENGINEER_REPORT payload for ADV ingestion |
 
 ### Optional MCP servers (referenced by agent tool blocks)
