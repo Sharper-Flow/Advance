@@ -74,6 +74,9 @@ tools:
   adv_gate_status: true
   adv_gate_complete: true
   adv_run_test: true
+  # Temporal / workflow ops
+  adv_temporal_worker_restart: true
+  adv_workflow_repair: true
   # === Worktree — orchestrator owns lifecycle ===
   worktree_create: true
   worktree_delete: true
