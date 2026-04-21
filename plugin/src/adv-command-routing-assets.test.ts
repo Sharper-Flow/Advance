@@ -255,4 +255,38 @@ describe("ADV command routing assets", () => {
       expect(content).toContain("must not spawn additional sub-agents");
     }
   });
+
+  // NEW: engineer assertions for addSpawnableEngineeringSub
+  test("adv.md Sub-Agent Policy table lists engineer", () => {
+    const content = readFileSync(join(AGENT_DIR, "adv.md"), "utf8");
+    expect(content).toContain("`engineer`");
+  });
+
+  test("ADV_INSTRUCTIONS.md Agent Roster table lists engineer", () => {
+    const content = readFileSync(
+      join(REPO_ROOT, "ADV_INSTRUCTIONS.md"),
+      "utf8",
+    );
+    expect(content).toContain("`engineer`");
+  });
+
+  test("ADV_INSTRUCTIONS.md Agent Tiers table lists engineer", () => {
+    const content = readFileSync(
+      join(REPO_ROOT, "ADV_INSTRUCTIONS.md"),
+      "utf8",
+    );
+    expect(content).toContain("`engineer`");
+  });
+
+  test("adv-apply.md delegation routing points to engineer (not general)", () => {
+    const content = readFileSync(join(COMMAND_DIR, "adv-apply.md"), "utf8");
+    const delegationSection = content.split("### Delegation Routing")[1]?.split("###")[0] ?? "";
+    expect(delegationSection).toContain("`engineer`");
+    expect(delegationSection).not.toMatch(/Spawn `general` sub-agent/);
+  });
+
+  test("adv-review.md Spawn fixes row names engineer", () => {
+    const content = readFileSync(join(COMMAND_DIR, "adv-review.md"), "utf8");
+    expect(content).toMatch(/Spawn fixes.*engineer/);
+  });
 });
