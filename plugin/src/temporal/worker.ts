@@ -1,7 +1,15 @@
 import { fileURLToPath } from "url";
+import { existsSync } from "fs";
 import { NativeConnection, Worker } from "@temporalio/worker";
 import * as activities from "./activities";
 import { getTemporalAddress, getTemporalNamespace } from "./client";
+
+
+function resolveWorkflowsPath(): string {
+  const jsPath = fileURLToPath(new URL("./workflows.js", import.meta.url));
+  if (existsSync(jsPath)) return jsPath;
+  return fileURLToPath(new URL("./workflows.ts", import.meta.url));
+}
 
 export interface TemporalWorkerOptions {
   address?: string;
@@ -22,9 +30,7 @@ export async function runTemporalWorker(
       connection,
       namespace: options.namespace ?? getTemporalNamespace(),
       taskQueue: options.taskQueue,
-      workflowsPath:
-        options.workflowsPath ??
-        fileURLToPath(new URL("./workflows.js", import.meta.url)),
+      workflowsPath: options.workflowsPath ?? resolveWorkflowsPath(),
       activities,
     });
 

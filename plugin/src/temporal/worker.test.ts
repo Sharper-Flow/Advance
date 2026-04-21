@@ -67,4 +67,19 @@ describe("temporal worker helpers", () => {
       }),
     );
   });
+
+  it("runTemporalWorker falls back to workflows.ts when workflows.js is absent in source mode", async () => {
+    await runTemporalWorker({
+      taskQueue: "advance-proj-source",
+      address: "127.0.0.1:7233",
+      namespace: "default",
+    });
+
+    expect(workerMocks.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        taskQueue: "advance-proj-source",
+        workflowsPath: expect.stringMatching(/src\/temporal\/workflows\.(js|ts)$/),
+      }),
+    );
+  });
 });
