@@ -65,6 +65,18 @@ describe("sync-global.sh", () => {
       expect(content).not.toMatch(/REPO_LOCAL_ONLY=.*adv-researcher/);
     });
 
+    test("engineer.md is NOT in SHARED_OVERLAY_ONLY", () => {
+      expect(content).not.toMatch(/SHARED_OVERLAY_ONLY=.*engineer/);
+    });
+
+    test("engineer.md is NOT in REPO_LOCAL_ONLY", () => {
+      expect(content).not.toMatch(/REPO_LOCAL_ONLY=.*engineer/);
+    });
+
+    test("engineer.md is explicitly named in stale-agent cleanup glob", () => {
+      expect(content).toContain('"$GLOBAL_AGENTS"/engineer.md');
+    });
+
     test("skips shared agents that are overlay-managed", () => {
       expect(content).toContain(
         'SHARED_OVERLAY_ONLY="build.md general.md plan.md"',

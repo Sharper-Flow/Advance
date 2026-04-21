@@ -255,11 +255,11 @@ Hint semantics:
 - `delegate_allowed` → delegate when no risk signals force inline
 - `delegate_preferred` → delegate by default; only override if an execution precondition makes delegation impossible
 
-**If delegated (`delegate_allowed` or `delegate_preferred`):** Spawn `general` sub-agent with the Apply Context Packet below. If sub-agent succeeds → run incremental verification → if passes → mark done. If sub-agent fails OR verification fails → immediate inline fallback, continue with Red/Green phases.
+**If delegated (`delegate_allowed` or `delegate_preferred`):** Spawn `engineer` sub-agent with the Apply Context Packet below. If sub-agent succeeds → run incremental verification → if passes → mark done. If sub-agent fails OR verification fails → immediate inline fallback, continue with Red/Green phases.
 
 **If `inline_required`:** Proceed with standard TDD flow.
 
-Emit routing summary: `tk-{id} → {inline|general} ({reason})`
+Emit routing summary: `tk-{id} → {inline|engineer|general-verify} ({reason})`
 
 #### Verify-Burst Delegation
 
@@ -308,7 +308,7 @@ TASK: {task-id} | {task-title} | type: {type} | tdd_intent: {intent}
 AFFECTED FILES: {file list from task description}
 DESIGN EXCERPT: {relevant section if task references design}
 ACCEPTANCE CRITERIA: {criteria relevant to this task}
-EXPECTED OUTPUT: implement the task, run tests, report pass/fail result
+EXPECTED OUTPUT: implement the task, run tests, emit a fenced ENGINEER_REPORT JSON block per .opencode/agents/engineer.md
 ```
 ### Task Flow
 `adv_task_ready changeId: <id>` → for each ready task:

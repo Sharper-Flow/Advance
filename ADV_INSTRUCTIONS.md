@@ -398,9 +398,19 @@ Inline-only: `/adv-status`, `/adv-proposal`, `/adv-validate`, `/adv-archive`, `/
 | 4 | Risk signals (multi-file, cross-repo, architectural keywords)? | `inline_required` |
 | 5 | Default | `inline_required` |
 
+ADV code-writing delegation targets `engineer` (not `general`). Verify-burst and non-ADV multi-step work remain on `general`.
+
 ### Context Packet Standards
 
 Apply packet includes: WORKING DIRECTORY, CHANGE, TASK, AFFECTED FILES, DESIGN EXCERPT, ACCEPTANCE CRITERIA, EXPECTED OUTPUT.
+
+EXPECTED OUTPUT for delegated implementation: implement the task, run tests, emit a fenced `ENGINEER_REPORT` JSON block per `.opencode/agents/engineer.md`.
+
+#### ENGINEER_REPORT Payload
+
+Required top-level keys: `schema_version`, `change_id`, `task_id`, `agent`, `scope`, `status`, `files_touched`, `verification`, `decisions`, `blockers`, `follow_ups`, `related_scan`, `context_update_for_adv` (with `what_ads_needs_to_know`, `suggested_next_action`).
+
+Full schema and example: `.opencode/agents/engineer.md` § ENGINEER_REPORT Payload.
 
 ### Structured Sub-Agent Prompt Protocol
 
@@ -422,7 +432,7 @@ After each phase, use `adv_change_update` to record compact summaries. Do not du
 |------|--------|---------|
 | **Primary** (user-selectable top-level) | `adv`, `plan`, `build` | Global `~/.config/opencode/agents/` |
 | **Common subagents** (spawnable via Task tool) | `explore`, `general`, `librarian`, `mechanic`, `prioritizer` | Global `~/.config/opencode/agents/` |
-| **ADV Specialist** (spawnable, bundled global) | `adv-researcher` | Global `~/.config/opencode/agents/` |
+| **ADV Specialist** (spawnable, bundled global) | `adv-researcher`, `engineer` | Global `~/.config/opencode/agents/` |
 | **Repo-Local** (spawnable, repo-scoped) | `tron` | Repo-local `.opencode/agents/` |
 
 > **Primary vs subagent:** Only `mode: subagent` agents are spawnable via the Task tool. `adv`, `plan`, and `build` are primary agents — users switch to them directly; they cannot be invoked through sub-agent spawning.
@@ -434,7 +444,8 @@ After each phase, use `adv_change_update` to record compact summaries. Do not du
 | `librarian` | Docs, API refs, code examples | Context7, grep.app, Kagi |
 | `adv-researcher` | Architecture validation, simplicity | Context7, Kagi, ADV read-only |
 | `explore` | Codebase navigation, find usages | Read, Glob, Grep, lgrep |
-| `general` | Complex multi-step implementation | Full tool access |
+| `engineer` | Delegated ADV code-writing executor | Full write (read/write/edit/bash) + narrow ADV reads + evidence |
+| `general` | Verify-only bursts + generic multi-step non-ADV work | Full tool access |
 | `mechanic` | System/infra issues | Vision, bash, read/write |
 | `tron` | Reconnaissance, hotspot detection | Read, Glob, Grep, lgrep |
 
@@ -483,16 +494,27 @@ Commands that fan out to sub-agents with reusable methodology should follow this
 
 ### Classification
 
-**Command-only** (no backing skill needed):
-`adv-proposal`, `adv-research`, `adv-prep`, `adv-task`, `adv-apply`, `adv-validate`, `adv-archive`, `adv-status`, `adv-coordinate`, `adv-clarify`, `adv-refactor`
+**Command-only** (no fixed skill load; may reference skill-discovery protocol):
+`adv-proposal`, `adv-research`, `adv-task`, `adv-validate`, `adv-archive`, `adv-status`, `adv-coordinate`, `adv-clarify`, `adv-refactor`, `adv-improve`, `adv-design`, `adv-audit`
 
-**Command + backing skill** (skill file at `skills/{name}/SKILL.md`, loadable via `skill("{name}")`):
+**Command + dedicated backing skill** (loads a single-purpose skill with inline fallback):
 - `adv-tron` → `adv-tron` skill
-- `adv-slop-scan` → `adv-slop-detection` skill
 
-**Command with embedded methodology** (methodology inlined under `## Phase 0: Embedded Methodology` in the command file — do NOT attempt `skill("…-methodology")`, the file does not exist):
+**Command + shared/cross-cutting skill** (loads a reusable methodology skill also used by other commands):
+- `adv-prep` → `adv-cost-governance-methodology` (Phase J: judgment-call identification)
+- `adv-apply` → `adv-cost-governance-methodology` (Phase 1.5: investment check-in)
+- `adv-harden` → `adv-slop-detection` (Phase 0: AI-slop scanner methodology)
+- `adv-slop-scan` → `adv-slop-detection` (Phase 0: two-phase detection strategy)
+
+**Command with embedded methodology** (inlined `## Phase 0: Embedded Methodology` block; may also load a cross-cutting skill):
+- `adv-discover` — dynamic skill discovery (Phase 1.5) + embedded methodology
+- `adv-prep` — embedded prep methodology + `adv-cost-governance-methodology`
+- `adv-apply` — embedded apply methodology + `adv-cost-governance-methodology`
 - `adv-review` — methodology inlined in `.opencode/command/adv-review.md` Phase 0
-- `adv-harden` — methodology inlined in `.opencode/command/adv-harden.md` Phase 0
+
+**Dynamic skill discovery** (no fixed backing skill; scans and loads matching skills at runtime):
+- `adv-discover` — loads skills matching change domain via `skill("{name}")` (Phase 1.5)
+- `adv-research` — references skill discovery protocol; may load matching skills
 
 > Stale-reference note: earlier iterations shipped `adv-review-methodology` and `adv-harden-methodology` skill files. These were inlined into the commands and the skill files deleted. If you see an agent call `skill("adv-review-methodology")` or `skill("adv-apply-methodology")`, it is a stale/hallucinated reference — read the command file's Phase 0 section instead.
 

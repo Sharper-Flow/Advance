@@ -197,6 +197,30 @@ describe("plugin-init tryInitStore", () => {
     });
   });
 
+  it("limits bootstrap sweep to current external project instead of sibling projects", async () => {
+    mocks.getProjectId.mockResolvedValueOnce("proj-sha");
+    const { readdir } = await import("node:fs/promises");
+    vi.mocked(readdir).mockResolvedValueOnce([
+      { name: "proj-sha", isDirectory: () => true },
+      { name: "other-proj", isDirectory: () => true },
+    ] as any);
+
+    const { tryInitStore } = await import("./plugin-init");
+
+    await tryInitStore("/tmp/repo", "/tmp/external/proj-sha");
+
+    expect(mocks.workflowStart).toHaveBeenCalledTimes(1);
+    const call = mocks.workflowStart.mock.calls[0][1];
+    expect(call.args[0]).toMatchObject({
+      controlProjectId: "proj-sha",
+      projectPaths: ["/tmp/external/proj-sha"],
+    });
+    expect(mocks.inProcessWorker.registerQueue).toHaveBeenCalledTimes(1);
+    expect(mocks.inProcessWorker.registerQueue).toHaveBeenCalledWith(
+      "advance-proj-sha",
+    );
+  });
+
   it("returns initError and never calls createStore when runtime probe blocks Bun", async () => {
     mocks.getProjectId.mockResolvedValueOnce("proj-sha");
     mocks.ensureTemporalRuntime.mockRejectedValueOnce(
