@@ -145,7 +145,8 @@ export async function tryInitStore(
       | Awaited<ReturnType<typeof createTemporalClientBundle>>
       | undefined;
     let worker: InProcessWorker | undefined;
-    if (projectId) {
+    const temporalDisabled = process.env.ADV_DISABLE_TEMPORAL === "1";
+    if (projectId && !temporalDisabled) {
       const runtime = await ensureTemporalRuntime(projectId);
       worker = await createInProcessWorker({
         address: runtime.address,

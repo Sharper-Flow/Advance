@@ -1153,27 +1153,41 @@ describe("Plugin init: project.path fallback", () => {
   });
 
   test("falls back to project.vcsDir when directory is not a git repo", async () => {
-    // directory = tempDir (no git), project.vcsDir = gitDir (has git)
-    const input: MockPluginInput = {
-      client: {},
-      project: {
-        id: "test-project",
-        worktree: gitDir,
-        vcsDir: gitDir,
-        time: { created: Date.now() },
-      },
-      directory: tempDir,
-      worktree: tempDir,
-      serverUrl: new URL("http://localhost:3000"),
-      $: {},
-    };
+    // directory = tempDir (no git), project.vcsDir = gitDir (has git).
+    // This test asserts path resolution; disable Temporal bootstrap to keep
+    // runtime under the 5s default timeout — gitDir is a real git repo so
+    // getProjectId returns an ID, which would otherwise trigger
+    // ensureTemporalRuntime (worker bundle compile adds several seconds).
+    const prevDisable = process.env.ADV_DISABLE_TEMPORAL;
+    process.env.ADV_DISABLE_TEMPORAL = "1";
+    try {
+      const input: MockPluginInput = {
+        client: {},
+        project: {
+          id: "test-project",
+          worktree: gitDir,
+          vcsDir: gitDir,
+          time: { created: Date.now() },
+        },
+        directory: tempDir,
+        worktree: tempDir,
+        serverUrl: new URL("http://localhost:3000"),
+        $: {},
+      };
 
-    const hooks = await AdvancePlugin(input as any);
-    pluginInstances.push(hooks);
+      const hooks = await AdvancePlugin(input as any);
+      pluginInstances.push(hooks);
 
-    // Plugin should initialize without error and use gitDir's external state
-    expect(hooks).toHaveProperty("tool");
-    expect(hooks.tool).not.toBeNull();
+      // Plugin should initialize without error and use gitDir's external state
+      expect(hooks).toHaveProperty("tool");
+      expect(hooks.tool).not.toBeNull();
+    } finally {
+      if (prevDisable === undefined) {
+        delete process.env.ADV_DISABLE_TEMPORAL;
+      } else {
+        process.env.ADV_DISABLE_TEMPORAL = prevDisable;
+      }
+    }
   });
 
   test("initializes with legacy paths when neither directory nor project.vcsDir is a git repo", async () => {
