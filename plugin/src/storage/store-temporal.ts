@@ -29,6 +29,9 @@ import {
 import type { ChangeWorkflowState } from "../temporal/contracts";
 import { getReadyTasksFromChangeState } from "../temporal/change-state";
 import { withTemporalRetry } from "../temporal/retry-wrapper";
+import { listChangeDirs } from "./json";
+import { buildChangeRecency } from "./store-types";
+import type { ChangeStatus, ProjectStatus } from "../types";
 
 // Errors that should legitimately fall back to the legacy backend. Anything
 // else (NonDeterministicWorkflowError, update validation failure, connection
@@ -137,26 +140,126 @@ export function createTemporalStoreBackend(
     return null;
   };
 
+  const getTemporalOrLegacyChange = async (
+    changeId: string,
+  ): Promise<ReturnType<Store["changes"]["get"]>> => {
+    const cached = changeCache.get(changeId);
+    if (cached) {
+      return { success: true, data: cached };
+    }
+    try {
+      const handle = getChangeHandle(input, changeId);
+      const state = (await runTemporal(() =>
+        handle.query(changeStateQuery),
+      )) as ChangeWorkflowState;
+      indexTasksFromState(state);
+      return { success: true, data: setCachedChange(state) };
+    } catch (err) {
+      if (!isExpectedFallbackError(err)) throw err;
+      return legacy.changes.get(changeId);
+    }
+  };
+
+  const listResolvedChanges = async (): Promise<Change[]> => {
+    const changeIds = await listChangeDirs(legacy.paths.changes);
+    const loaded = await Promise.all(
+      changeIds.map(async (changeId) => ({
+        changeId,
+        result: await getTemporalOrLegacyChange(changeId),
+      })),
+    );
+
+    const changes: Change[] = [];
+    for (const entry of loaded) {
+      if (entry.result.success && entry.result.data) {
+        changes.push(entry.result.data);
+      }
+    }
+    return changes;
+  };
+
+  const buildTemporalStatus = async (): Promise<ProjectStatus> => {
+    const legacyStatus = await legacy.status();
+    const changes = await listResolvedChanges();
+    const now = new Date();
+    const byStatus: Record<ChangeStatus, number> = {
+      draft: 0,
+      pending: 0,
+      active: 0,
+      archived: 0,
+      closed: 0,
+    };
+
+    for (const change of changes) {
+      byStatus[change.status]++;
+    }
+
+    const recent = changes
+      .filter((change) => change.status !== "archived" && change.status !== "closed")
+      .map((change) =>
+        buildChangeRecency(
+          change,
+          {
+            total: change.tasks.length,
+            done: change.tasks.filter((task) => task.status === "done").length,
+          },
+          now,
+        ),
+      )
+      .sort((a, b) => {
+        const cmp = b.lastActivityAt.localeCompare(a.lastActivityAt);
+        return cmp !== 0 ? cmp : a.id.localeCompare(b.id);
+      });
+
+    return {
+      ...legacyStatus,
+      changes: {
+        active: recent.length,
+        byStatus,
+        recent,
+      },
+      recommendations: legacyStatus.recommendations.filter((rec) =>
+        rec.startsWith("[doctor]"),
+      ),
+    };
+  };
+
   return {
     ...legacy,
     changes: {
       ...legacy.changes,
+      list: async (filter) => {
+        const changes = await listResolvedChanges();
+        let filtered = changes;
+
+        if (filter?.status) {
+          filtered = filtered.filter((change) => change.status === filter.status);
+        }
+        if (!filter?.includeArchived) {
+          filtered = filtered.filter((change) => change.status !== "archived");
+        }
+        if (!filter?.includeClosed) {
+          filtered = filtered.filter((change) => change.status !== "closed");
+        }
+
+        filtered.sort((a, b) => {
+          const cmp = b.created_at.localeCompare(a.created_at);
+          return cmp !== 0 ? cmp : a.id.localeCompare(b.id);
+        });
+
+        return {
+          changes: filtered.map((change) => ({
+            id: change.id,
+            title: change.title,
+            status: change.status,
+            taskCount: change.tasks.length,
+            completedTasks: change.tasks.filter((task) => task.status === "done")
+              .length,
+          })),
+        };
+      },
       get: async (changeId: string) => {
-        const cached = changeCache.get(changeId);
-        if (cached) {
-          return { success: true, data: cached };
-        }
-        try {
-          const handle = getChangeHandle(input, changeId);
-          const state = (await runTemporal(() =>
-            handle.query(changeStateQuery),
-          )) as ChangeWorkflowState;
-          indexTasksFromState(state);
-          return { success: true, data: setCachedChange(state) };
-        } catch (err) {
-          if (!isExpectedFallbackError(err)) throw err;
-          return legacy.changes.get(changeId);
-        }
+        return getTemporalOrLegacyChange(changeId);
       },
       close: async (changeId: string, closure: ChangeClosure) => {
         try {
@@ -463,11 +566,7 @@ export function createTemporalStoreBackend(
       },
     },
     status: async () => {
-      // Phase C deliberately preserves legacy doctor-lite/status until a
-      // ProjectWorkflow-backed aggregate status exists (tk-H2THNOzJ follow-on,
-      // tk-IOyBMYMZ migration/recovery). Temporal mutation paths are already
-      // routed above; status remains legacy-safe for now.
-      return legacy.status();
+      return buildTemporalStatus();
     },
   };
 }
