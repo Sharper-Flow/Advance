@@ -1,9 +1,13 @@
-import { describe, expect, it } from "vitest";
+import { mkdtempSync, rmSync, chmodSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   buildTemporalServerCommand,
   getTemporalRuntimeLockPath,
   probeTemporalClientRuntime,
   probeTemporalWorkerRuntime,
+  resolveNodeExecutable,
 } from "./runtime-manager";
 
 describe("temporal runtime manager helpers", () => {
@@ -90,5 +94,76 @@ describe("probeTemporalWorkerRuntime", () => {
       hasBunSpawn: true,
     });
     expect(workerProbe.supported).toBe(false);
+  });
+});
+
+describe("resolveNodeExecutable", () => {
+  let tmpDir: string;
+
+  beforeEach(() => {
+    tmpDir = mkdtempSync(join(tmpdir(), "adv-node-probe-"));
+  });
+
+  afterEach(() => {
+    rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  function makeFakeNode(name = "node"): string {
+    const path = join(tmpDir, name);
+    writeFileSync(path, "#!/bin/sh\nexit 0\n");
+    chmodSync(path, 0o755);
+    return path;
+  }
+
+  it("honors ADV_NODE_PATH when the value points at an executable file", () => {
+    const nodePath = makeFakeNode("custom-node");
+    const result = resolveNodeExecutable({
+      ADV_NODE_PATH: nodePath,
+      PATH: "",
+    });
+
+    expect(result).toMatchObject({
+      found: true,
+      path: nodePath,
+      source: "env",
+    });
+  });
+
+  it("ignores ADV_NODE_PATH when the value is not an executable file", () => {
+    const missingPath = join(tmpDir, "does-not-exist");
+    // No PATH either → should fall through to `none`
+    const result = resolveNodeExecutable({
+      ADV_NODE_PATH: missingPath,
+      PATH: "",
+    });
+
+    expect(result.found).toBe(false);
+    expect(result.source).toBe("none");
+    expect(result.remediation).toMatch(/PATH|ADV_NODE_PATH/i);
+  });
+
+  it("falls back to `which node` on PATH when ADV_NODE_PATH is unset", () => {
+    const nodePath = makeFakeNode("node");
+    const result = resolveNodeExecutable({
+      PATH: tmpDir,
+    });
+
+    expect(result).toMatchObject({
+      found: true,
+      path: nodePath,
+      source: "path",
+    });
+  });
+
+  it("returns found:false with actionable remediation when no Node is available", () => {
+    const result = resolveNodeExecutable({
+      PATH: tmpDir, // empty dir, no node inside
+    });
+
+    expect(result.found).toBe(false);
+    expect(result.source).toBe("none");
+    expect(result.remediation).toMatch(
+      /install Node|ADV_NODE_PATH|PATH/i,
+    );
   });
 });
