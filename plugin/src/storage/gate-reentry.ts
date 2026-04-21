@@ -14,6 +14,13 @@ export function reopenChangeFromGate(
   scopeDelta?: string,
   reopenedBy = "agent",
   approvalEvidence?: string,
+  /**
+   * ISO timestamp for this reopen event. Provide an explicit value when
+   * calling from inside a Temporal workflow handler — `new Date()` is
+   * non-deterministic under workflow replay. Storage callers (outside
+   * workflows) can omit this and the helper will fall back to `new Date()`.
+   */
+  now?: string,
 ): ReopenChangeResult {
   if (!change.gates) {
     change.gates = createDefaultGates();
@@ -38,7 +45,7 @@ export function reopenChangeFromGate(
     gates[gateId] = { status: "pending" };
   }
 
-  const timestamp = new Date().toISOString();
+  const timestamp = now ?? new Date().toISOString();
   const entry: ReentryHistoryEntry = {
     from_gate: fromGate,
     reason,
