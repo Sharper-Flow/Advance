@@ -197,7 +197,13 @@ export async function tryInitStore(
   } catch (e) {
     const initError = e instanceof Error ? e : new Error(String(e));
     debugLog(`Plugin init FAILED: ${initError.message}`);
-    logger.warn(
+    // Narrow scope per validator (fixTemporalWorkerBundleFailure design):
+    // init failure is captured in initError + downstream ADV_PLUGIN_INIT_FAILED
+    // tool stubs. Log at info level (file sink only, no console) to avoid
+    // spamming every opencode session on Bun where Worker.create fails. Other
+    // logger.warn/logger.error call sites (sqlite, storage, etc.) keep their
+    // console output so real operational issues remain visible.
+    logger.info(
       `Plugin init failed: ${initError.message} — adv_* tools are stubbed and will report ADV_PLUGIN_INIT_FAILED until the cause is fixed.`,
     );
     return { store: null, initError };

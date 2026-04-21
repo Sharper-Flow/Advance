@@ -107,6 +107,12 @@ vi.mock("./storage/json", () => ({
 describe("plugin-init tryInitStore", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Strip ambient ADV env so tests are deterministic regardless of the
+    // developer's shell. ADV_DISABLE_TEMPORAL=1 (a common workaround for
+    // the Bun-worker issue) otherwise bypasses the Temporal bootstrap path
+    // these tests intend to exercise.
+    vi.stubEnv("ADV_DISABLE_TEMPORAL", "");
+    vi.stubEnv("ADV_ALLOW_DEGRADED_FALLBACK", "");
   });
 
   it("wires Temporal runtime + bundle into createStore when projectId resolves", async () => {
@@ -183,6 +189,37 @@ describe("plugin-init tryInitStore", () => {
     expect(result.initError?.message).toMatch(
       /Bun runtime does not expose Bun\.spawn/,
     );
+  });
+
+  it("does not emit console.warn or console.error when Temporal init fails (narrow scope per validator)", async () => {
+    mocks.getProjectId.mockResolvedValue("proj-sha");
+    mocks.ensureTemporalRuntime.mockImplementation(async () => {
+      throw new Error("Bun runtime does not expose Bun.spawn for local runtime");
+    });
+
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const { tryInitStore } = await import("./plugin-init");
+
+    const result = await tryInitStore("/tmp/repo", "/tmp/external");
+
+    // Assert init failed so we know we hit the catch branch
+    expect(result.store).toBeNull();
+    expect(result.initError).toBeInstanceOf(Error);
+
+    expect(warnSpy).not.toHaveBeenCalled();
+    expect(errorSpy).not.toHaveBeenCalled();
+
+    warnSpy.mockRestore();
+    errorSpy.mockRestore();
+
+    // Restore the default mock so it doesn't affect other tests
+    mocks.ensureTemporalRuntime.mockImplementation(async () => ({
+      address: "127.0.0.1:7233",
+      namespace: "default",
+      startedRuntime: true,
+    }));
   });
 });
 
