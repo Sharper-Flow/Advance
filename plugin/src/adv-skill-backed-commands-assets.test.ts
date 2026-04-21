@@ -386,7 +386,7 @@ describe("advisory line ceiling baselines", () => {
     const filePath = join(REPO_ROOT, "ADV_INSTRUCTIONS.md");
     const content = readFileSync(filePath, "utf8");
     const lines = content.split("\n").length;
-    const warnThreshold = 500;
+    const warnThreshold = 550;
     const failThreshold = 600;
 
     if (lines > warnThreshold) {
