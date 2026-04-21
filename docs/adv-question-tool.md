@@ -44,6 +44,8 @@ Use a visual comparison block in normal assistant output **before** the `questio
 
 Skip visual comparison blocks for routine confirmations, cancellations, and other simple questions where a flat option list is already clear.
 
+**For structured pairwise or multi-candidate comparisons**, see [docs/user-intuit-protocol.md](user-intuit-protocol.md) and load `skill("adv-user-intuit")` for a reusable presentation workflow (prepare candidates → format comparison → present via question tool → parse response).
+
 ### Rules
 
 1. Treat the visual block as context, not as a replacement for the `question` tool

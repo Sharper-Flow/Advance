@@ -235,6 +235,8 @@ Only `mode: subagent` agents are spawnable via the Task tool. Current spawnable 
 
 > **Tradeoff analysis shortcut:** For simple multi-approach decisions, you can also load `skill("prioritizer")` inline instead of spawning the `prioritizer` subagent.
 
+> **Comparison protocol routing:** When facing a decision with 2+ concrete candidates (layouts, search results, design alternatives), load `skill("adv-user-intuit")` for structured pairwise/best-of-N presentation via the question tool. Use `prioritizer` for criteria-based tradeoff analysis; use `adv-user-intuit` for presenting concrete candidates. They're complementary: prioritizer researches, user-intuit presents. See `docs/user-intuit-protocol.md` for the full spec.
+
 ### Dispatch Rules
 
 1. **Don't delegate what benefits from your context.** If you've been building understanding of a problem across steps, keep working inline.
