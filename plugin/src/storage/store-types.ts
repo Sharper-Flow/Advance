@@ -171,7 +171,6 @@ export interface Store {
       reopenedBy?: string,
       approvalEvidence?: string,
     ) => Promise<void>;
-    migrate: (changeId: string) => Promise<void>;
   };
 
   // Status

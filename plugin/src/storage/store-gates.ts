@@ -9,12 +9,7 @@
  */
 
 import type { Change, GateCompletion, Gates } from "../types";
-import {
-  GATE_ORDER,
-  canCompleteGate,
-  createDefaultGates,
-  createLegacyGates,
-} from "../types";
+import { GATE_ORDER, canCompleteGate, createDefaultGates } from "../types";
 import { appendDebugLog } from "../utils/debug-log";
 import { withChangeLock, loadChangeOrNull } from "./store-locks";
 import type { StoreContext } from "./store-context";
@@ -95,26 +90,6 @@ export function createGatesOps(
             gateId,
             oldStatus,
             newStatus: "done",
-            timestamp: now,
-          }),
-        );
-
-        await saveFn(change);
-      });
-    },
-
-    migrate: async (changeId) => {
-      return withChangeLock(ctx, changeId, async (change) => {
-        const now = new Date().toISOString();
-        change.gates = createLegacyGates();
-
-        // Structured log for gate migration
-        appendDebugLog(
-          "gates",
-          JSON.stringify({
-            event: "gates_migrated",
-            changeId,
-            status: "legacy",
             timestamp: now,
           }),
         );

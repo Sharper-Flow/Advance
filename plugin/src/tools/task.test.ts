@@ -429,10 +429,6 @@ describe("Task Tools", () => {
       expect(parsed.error).toBeUndefined();
       expect(parsed.taskId).toMatch(/^tk-/);
     });
-
-    test("store.gates exposes migrate helper", () => {
-      expect("migrate" in store.gates).toBe(true);
-    });
   });
 
   describe("adv_task_evidence", () => {

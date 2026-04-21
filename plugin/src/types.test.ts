@@ -16,7 +16,6 @@ import {
   GATE_ORDER,
   GatesSchema,
   createDefaultGates,
-  createLegacyGates,
   GateCompletionSchema,
   canCompleteGate,
   RequirementSchema,
@@ -1619,25 +1618,6 @@ describe("GATE_DEFS single source of truth", () => {
       expect(defaults[id].status).toBe("pending");
     }
   });
-
-  test("createLegacyGates returns one entry per GATE_DEFS entry", () => {
-    const legacy = createLegacyGates();
-    const gateIds = GATE_DEFS.map((g: { id: string }) => g.id);
-    expect(Object.keys(legacy)).toEqual(gateIds);
-  });
-
-  test("createLegacyGates marks last gate as pending, rest as legacy", () => {
-    const legacy = createLegacyGates();
-    const gateIds = GATE_DEFS.map((g: { id: string }) => g.id);
-    const lastGateId = gateIds[gateIds.length - 1];
-    for (const id of gateIds) {
-      if (id === lastGateId) {
-        expect(legacy[id].status).toBe("pending");
-      } else {
-        expect(legacy[id].status).toBe("legacy");
-      }
-    }
-  });
 });
 
 // =============================================================================
@@ -1800,20 +1780,6 @@ describe("7-gate collaborative model", () => {
     expect(gates.planning.status).toBe("pending");
     expect(gates.execution.status).toBe("pending");
     expect(gates.acceptance.status).toBe("pending");
-    expect(gates.release.status).toBe("pending");
-  });
-
-  test("createLegacyGates marks release as pending, rest as legacy", () => {
-    const gates = createLegacyGates();
-    expect(Object.keys(gates)).toHaveLength(7);
-    // All gates except the last (release) should be legacy
-    expect(gates.proposal.status).toBe("legacy");
-    expect(gates.discovery.status).toBe("legacy");
-    expect(gates.design.status).toBe("legacy");
-    expect(gates.planning.status).toBe("legacy");
-    expect(gates.execution.status).toBe("legacy");
-    expect(gates.acceptance.status).toBe("legacy");
-    // Last gate stays pending (never auto-marked)
     expect(gates.release.status).toBe("pending");
   });
 

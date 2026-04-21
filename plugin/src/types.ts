@@ -508,8 +508,8 @@ interface GateDef {
 
 /**
  * GATE_DEFS — the canonical, ordered list of gates.
- * Everything else (GateIdSchema, GATE_ORDER, GatesSchema, createDefaultGates,
- * createLegacyGates) is derived from this array.
+ * Everything else (GateIdSchema, GATE_ORDER, GatesSchema, createDefaultGates)
+ * is derived from this array.
  *
  * To change the gate model: edit this array only.
  */
@@ -672,29 +672,6 @@ export const createDefaultGates = (): Gates =>
   Object.fromEntries(
     GATE_DEFS.map((g) => [g.id, { status: "pending" as const }]),
   ) as Gates;
-
-/**
- * Create legacy gates object for migration.
- * All gates set to 'legacy' except the LAST gate which stays 'pending'.
- * (Last gate = user signoff / final approval — never auto-marked.)
- * Derived from GATE_DEFS — adding a gate here is automatic.
- */
-export const createLegacyGates = (): Gates => {
-  const now = new Date().toISOString();
-  const lastGateId = GATE_DEFS[GATE_DEFS.length - 1].id;
-  return Object.fromEntries(
-    GATE_DEFS.map((g) => [
-      g.id,
-      g.id === lastGateId
-        ? { status: "pending" as const }
-        : {
-            status: "legacy" as const,
-            completed_at: now,
-            completed_by: "migration",
-          },
-    ]),
-  ) as Gates;
-};
 
 // =============================================================================
 // Re-Entry History (Scope Expansion Audit Trail)

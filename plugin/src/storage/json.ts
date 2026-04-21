@@ -50,6 +50,30 @@ function formatZodError(
   );
 }
 
+/**
+ * Rewrite historical 6-gate migration artifacts into the current 7-gate shape.
+ *
+ * Context: during the 6→7 gate migration, older change.json files could
+ * contain:
+ *   - gate records with `status: "legacy"` (meaning "this gate was retired,
+ *     treat it as satisfied")
+ *   - auxiliary fields `migrated_from` / `absorbed_completions` recording
+ *     the 6-gate origin
+ *
+ * The current schema (`GateStatusSchema` in types.ts) still accepts "legacy"
+ * as a valid value, but production code no longer writes it — changes start
+ * with `createDefaultGates()` (all pending) and progress via
+ * `store.gates.complete()` (sets "done"). The old `createLegacyGates()` helper
+ * and `store.gates.migrate()` scaffold were removed in April 2026.
+ *
+ * This normalizer stays in place to handle any residual on-disk data from
+ * projects that predate the 6→7 migration. It rewrites `status: "legacy"`
+ * to `status: "done"` and strips the `migrated_from` / `absorbed_completions`
+ * fields so the record validates against the current schema.
+ *
+ * When the normalizer touches a file, `loadChange` writes the normalized
+ * form back to disk atomically so subsequent loads are no-ops.
+ */
 function normalizeLegacyGateData(value: unknown): [unknown, boolean] {
   let changed = false;
 
