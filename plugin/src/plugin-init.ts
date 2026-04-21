@@ -34,6 +34,7 @@ import {
   resolveNodeExecutable,
 } from "./temporal/runtime-manager";
 import { fileURLToPath } from "node:url";
+import { existsSync } from "node:fs";
 import { cleanup as cleanupTerminal } from "./events";
 import { appendDebugLog, createLogger } from "./utils/debug-log";
 import { getProjectId } from "./utils/project-id";
@@ -177,10 +178,19 @@ async function initStoreWithoutTemporal(
  */
 function resolveWorkerScriptPath(): string {
   // Use import.meta.url so the calculation works whether the plugin is loaded
-  // as src (Bun/tsx) or dist (Node bundle).
+  // from src/plugin-init.ts (dev / Bun source-mode) or dist/index.js (built
+  // bundle). `../dist/temporal/worker.js` resolves to the same final path from
+  // both locations:
+  //   - src/plugin-init.ts  -> plugin/dist/temporal/worker.js
+  //   - dist/index.js       -> plugin/dist/temporal/worker.js
   const distPath = fileURLToPath(
-    new URL("./temporal/worker.js", import.meta.url),
+    new URL("../dist/temporal/worker.js", import.meta.url),
   );
+  if (!existsSync(distPath)) {
+    throw new Error(
+      `Temporal worker bundle not found at ${distPath}. Run \`pnpm run build:worker\` in plugin/ before starting the out-of-process worker, or install a built plugin bundle.`,
+    );
+  }
   return distPath;
 }
 
@@ -189,12 +199,12 @@ export async function tryInitStore(
   externalRoot: string | undefined,
 ): Promise<StoreInitResult> {
   const projectId = await getProjectId(effectiveDir);
+  let worker: InProcessWorker | undefined;
 
   try {
     let temporalBundle:
       | Awaited<ReturnType<typeof createTemporalClientBundle>>
       | undefined;
-    let worker: InProcessWorker | undefined;
     const temporalDisabled = process.env.ADV_DISABLE_TEMPORAL === "1";
     if (projectId && !temporalDisabled) {
       const runtime = await ensureTemporalRuntime(projectId);
@@ -224,13 +234,13 @@ export async function tryInitStore(
         });
       }
 
-      registerInProcessTemporalWorker(worker);
       temporalBundle = await createTemporalClientBundle(
         buildTemporalClientEnv({
           address: runtime.address,
           namespace: runtime.namespace,
         }),
       );
+      registerInProcessTemporalWorker(worker);
     }
 
     const store = await createStore(effectiveDir, {
@@ -255,6 +265,20 @@ export async function tryInitStore(
   } catch (e) {
     const initError = e instanceof Error ? e : new Error(String(e));
     debugLog(`Plugin init FAILED: ${initError.message}`);
+
+    // If a worker was already created before createStore()/store.init() or the
+    // client-bundle step failed, drain it now so we don't leave a polling
+    // worker (or OOP child) running behind a failed plugin init.
+    if (worker) {
+      try {
+        await worker.shutdown();
+      } catch (shutdownError) {
+        debugLog(
+          `Error shutting down worker after init failure: ${shutdownError instanceof Error ? shutdownError.message : String(shutdownError)}`,
+        );
+      }
+    }
+
     // Narrow scope per validator (fixTemporalWorkerBundleFailure design):
     // init failure is captured in initError + downstream ADV_PLUGIN_INIT_FAILED
     // tool stubs. Log at info level (file sink only, no console) to avoid
@@ -371,11 +395,20 @@ export async function restartCurrentProjectTemporalWorker(
 
   await drainInProcessTemporalWorkers();
   const runtime = await ensureTemporalRuntime(projectId);
-  const worker = await createInProcessWorker({
-    address: runtime.address,
-    namespace: runtime.namespace,
-    queues: [buildProjectTaskQueue(projectId)],
-  });
+  const workerProbe = probeTemporalWorkerRuntime();
+  const worker = workerProbe.supported
+    ? await createInProcessWorker({
+        address: runtime.address,
+        namespace: runtime.namespace,
+        queues: [buildProjectTaskQueue(projectId)],
+      })
+    : await createOutOfProcessWorker({
+        address: runtime.address,
+        namespace: runtime.namespace,
+        queues: [buildProjectTaskQueue(projectId)],
+        workerScript: resolveWorkerScriptPath(),
+        projectId,
+      });
   registerInProcessTemporalWorker(worker);
   return { projectId, queues: [...worker.queues] };
 }

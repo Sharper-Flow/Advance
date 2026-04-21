@@ -253,6 +253,48 @@ export interface TemporalWorkerProcessSpec {
   env: NodeJS.ProcessEnv;
 }
 
+function buildSafeSpawnEnv(
+  env: NodeJS.ProcessEnv = process.env,
+): NodeJS.ProcessEnv {
+  const safeEnv: NodeJS.ProcessEnv = {
+    PATH: env.PATH,
+    NODE_ENV: env.NODE_ENV,
+    LANG: env.LANG,
+    LC_ALL: env.LC_ALL,
+    LC_CTYPE: env.LC_CTYPE,
+    LC_NUMERIC: env.LC_NUMERIC,
+    LC_TIME: env.LC_TIME,
+    LC_COLLATE: env.LC_COLLATE,
+    LC_MONETARY: env.LC_MONETARY,
+    LC_MESSAGES: env.LC_MESSAGES,
+    LC_PAPER: env.LC_PAPER,
+    LC_NAME: env.LC_NAME,
+    LC_ADDRESS: env.LC_ADDRESS,
+    LC_TELEPHONE: env.LC_TELEPHONE,
+    LC_MEASUREMENT: env.LC_MEASUREMENT,
+    LC_IDENTIFICATION: env.LC_IDENTIFICATION,
+    OPEN_CHAD_CACHE_DIR: env.OPEN_CHAD_CACHE_DIR,
+    XDG_RUNTIME_DIR: env.XDG_RUNTIME_DIR,
+    TMPDIR: env.TMPDIR,
+    TMP: env.TMP,
+    TEMP: env.TEMP,
+    ADV_NODE_PATH: env.ADV_NODE_PATH,
+    ADV_ALLOW_DEGRADED_FALLBACK: env.ADV_ALLOW_DEGRADED_FALLBACK,
+    ADV_DISABLE_TEMPORAL: env.ADV_DISABLE_TEMPORAL,
+  };
+
+  if (process.platform === "win32") {
+    safeEnv.PATHEXT = env.PATHEXT;
+    safeEnv.USERPROFILE = env.USERPROFILE;
+  } else {
+    safeEnv.HOME = env.HOME;
+  }
+
+  return Object.fromEntries(
+    Object.entries(safeEnv).filter(([, value]) => typeof value !== "undefined"),
+  ) as NodeJS.ProcessEnv;
+}
+
 export function buildTemporalWorkerProcessSpec(input: {
   workerScript: string;
   taskQueue: string;
@@ -264,7 +306,7 @@ export function buildTemporalWorkerProcessSpec(input: {
     command: process.execPath,
     args: [input.workerScript],
     env: {
-      ...process.env,
+      ...buildSafeSpawnEnv(process.env),
       ADV_TEMPORAL_ADDRESS: input.address,
       ADV_TEMPORAL_NAMESPACE: input.namespace,
       ADV_TEMPORAL_TASK_QUEUE: input.taskQueue,
@@ -297,6 +339,13 @@ async function canReachAddress(
       finish(false);
     }, timeoutMs).unref();
   });
+}
+
+export async function canReachTemporalAddress(
+  address: string,
+  timeoutMs = 250,
+): Promise<boolean> {
+  return canReachAddress(address, timeoutMs);
 }
 
 export async function waitForTemporalRuntime(
@@ -345,7 +394,12 @@ export async function ensureTemporalRuntime(
     const server = spawn(command, args, {
       detached: true,
       stdio: "ignore",
-      env: { ...process.env, ...env },
+      env: {
+        ...buildSafeSpawnEnv(process.env),
+        ADV_TEMPORAL_ADDRESS: env.ADV_TEMPORAL_ADDRESS,
+        ADV_TEMPORAL_NAMESPACE: env.ADV_TEMPORAL_NAMESPACE,
+        ADV_TEMPORAL_ALLOW_REMOTE: env.ADV_TEMPORAL_ALLOW_REMOTE,
+      },
     });
     server.unref();
     await waitForTemporalRuntime(address);

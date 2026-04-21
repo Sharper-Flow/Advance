@@ -33,54 +33,6 @@ const mocks = vi.hoisted(() => {
       client: { workflow: { start: vi.fn(), getHandle: vi.fn() } } as any,
     })),
   };
-
-  it("shutdownWithFlush preserves flushInFlight idempotency and orders flush -> worker.shutdown -> close", async () => {
-    const order: string[] = [];
-    mocks.store.flush.mockImplementationOnce(async () => {
-      order.push("flush:start");
-      await Promise.resolve();
-      order.push("flush:end");
-    });
-    mocks.store.close.mockImplementationOnce(() => {
-      order.push("store.close");
-    });
-    mocks.inProcessWorker.shutdown.mockImplementationOnce(async () => {
-      order.push("worker.shutdown");
-    });
-
-    const exitSpy = vi
-      .spyOn(process, "exit")
-      .mockImplementation(
-        (() => undefined) as unknown as (
-          code?: string | number | null | undefined,
-        ) => never,
-      );
-
-    const { tryInitStore, registerShutdownHandlers } =
-      await import("./plugin-init");
-
-    const init = await tryInitStore("/tmp/repo", "/tmp/external/proj-cleanup");
-    const handlers = registerShutdownHandlers(init.store);
-    try {
-      handlers.shutdownWithFlush();
-      handlers.shutdownWithFlush();
-      await new Promise((r) => setImmediate(r));
-      await new Promise((r) => setImmediate(r));
-    } finally {
-      handlers.removeProcessListeners();
-      exitSpy.mockRestore();
-    }
-
-    expect(mocks.store.flush).toHaveBeenCalledTimes(1);
-    expect(mocks.inProcessWorker.shutdown).toHaveBeenCalledTimes(1);
-    expect(mocks.store.close).toHaveBeenCalledTimes(1);
-    expect(order).toEqual([
-      "flush:start",
-      "flush:end",
-      "worker.shutdown",
-      "store.close",
-    ]);
-  });
 });
 
 vi.mock("./storage/store", () => ({ createStore: mocks.createStore }));
@@ -95,54 +47,6 @@ vi.mock("./temporal/runtime-manager", async () => {
     ...actual,
     ensureTemporalRuntime: mocks.ensureTemporalRuntime,
   };
-
-  it("shutdownWithFlush preserves flushInFlight idempotency and orders flush -> worker.shutdown -> close", async () => {
-    const order: string[] = [];
-    mocks.store.flush.mockImplementationOnce(async () => {
-      order.push("flush:start");
-      await Promise.resolve();
-      order.push("flush:end");
-    });
-    mocks.store.close.mockImplementationOnce(() => {
-      order.push("store.close");
-    });
-    mocks.inProcessWorker.shutdown.mockImplementationOnce(async () => {
-      order.push("worker.shutdown");
-    });
-
-    const exitSpy = vi
-      .spyOn(process, "exit")
-      .mockImplementation(
-        (() => undefined) as unknown as (
-          code?: string | number | null | undefined,
-        ) => never,
-      );
-
-    const { tryInitStore, registerShutdownHandlers } =
-      await import("./plugin-init");
-
-    const init = await tryInitStore("/tmp/repo", "/tmp/external/proj-cleanup");
-    const handlers = registerShutdownHandlers(init.store);
-    try {
-      handlers.shutdownWithFlush();
-      handlers.shutdownWithFlush();
-      await new Promise((r) => setImmediate(r));
-      await new Promise((r) => setImmediate(r));
-    } finally {
-      handlers.removeProcessListeners();
-      exitSpy.mockRestore();
-    }
-
-    expect(mocks.store.flush).toHaveBeenCalledTimes(1);
-    expect(mocks.inProcessWorker.shutdown).toHaveBeenCalledTimes(1);
-    expect(mocks.store.close).toHaveBeenCalledTimes(1);
-    expect(order).toEqual([
-      "flush:start",
-      "flush:end",
-      "worker.shutdown",
-      "store.close",
-    ]);
-  });
 });
 
 vi.mock("./temporal/client", async () => {
@@ -154,54 +58,6 @@ vi.mock("./temporal/client", async () => {
     ...actual,
     createTemporalClientBundle: mocks.createTemporalClientBundle,
   };
-
-  it("shutdownWithFlush preserves flushInFlight idempotency and orders flush -> worker.shutdown -> close", async () => {
-    const order: string[] = [];
-    mocks.store.flush.mockImplementationOnce(async () => {
-      order.push("flush:start");
-      await Promise.resolve();
-      order.push("flush:end");
-    });
-    mocks.store.close.mockImplementationOnce(() => {
-      order.push("store.close");
-    });
-    mocks.inProcessWorker.shutdown.mockImplementationOnce(async () => {
-      order.push("worker.shutdown");
-    });
-
-    const exitSpy = vi
-      .spyOn(process, "exit")
-      .mockImplementation(
-        (() => undefined) as unknown as (
-          code?: string | number | null | undefined,
-        ) => never,
-      );
-
-    const { tryInitStore, registerShutdownHandlers } =
-      await import("./plugin-init");
-
-    const init = await tryInitStore("/tmp/repo", "/tmp/external/proj-cleanup");
-    const handlers = registerShutdownHandlers(init.store);
-    try {
-      handlers.shutdownWithFlush();
-      handlers.shutdownWithFlush();
-      await new Promise((r) => setImmediate(r));
-      await new Promise((r) => setImmediate(r));
-    } finally {
-      handlers.removeProcessListeners();
-      exitSpy.mockRestore();
-    }
-
-    expect(mocks.store.flush).toHaveBeenCalledTimes(1);
-    expect(mocks.inProcessWorker.shutdown).toHaveBeenCalledTimes(1);
-    expect(mocks.store.close).toHaveBeenCalledTimes(1);
-    expect(order).toEqual([
-      "flush:start",
-      "flush:end",
-      "worker.shutdown",
-      "store.close",
-    ]);
-  });
 });
 
 vi.mock("./temporal/in-process-worker", () => ({
@@ -214,54 +70,6 @@ vi.mock("node:fs/promises", async () => {
       "node:fs/promises",
     );
   return { ...actual, readdir: vi.fn(async () => []) };
-
-  it("shutdownWithFlush preserves flushInFlight idempotency and orders flush -> worker.shutdown -> close", async () => {
-    const order: string[] = [];
-    mocks.store.flush.mockImplementationOnce(async () => {
-      order.push("flush:start");
-      await Promise.resolve();
-      order.push("flush:end");
-    });
-    mocks.store.close.mockImplementationOnce(() => {
-      order.push("store.close");
-    });
-    mocks.inProcessWorker.shutdown.mockImplementationOnce(async () => {
-      order.push("worker.shutdown");
-    });
-
-    const exitSpy = vi
-      .spyOn(process, "exit")
-      .mockImplementation(
-        (() => undefined) as unknown as (
-          code?: string | number | null | undefined,
-        ) => never,
-      );
-
-    const { tryInitStore, registerShutdownHandlers } =
-      await import("./plugin-init");
-
-    const init = await tryInitStore("/tmp/repo", "/tmp/external/proj-cleanup");
-    const handlers = registerShutdownHandlers(init.store);
-    try {
-      handlers.shutdownWithFlush();
-      handlers.shutdownWithFlush();
-      await new Promise((r) => setImmediate(r));
-      await new Promise((r) => setImmediate(r));
-    } finally {
-      handlers.removeProcessListeners();
-      exitSpy.mockRestore();
-    }
-
-    expect(mocks.store.flush).toHaveBeenCalledTimes(1);
-    expect(mocks.inProcessWorker.shutdown).toHaveBeenCalledTimes(1);
-    expect(mocks.store.close).toHaveBeenCalledTimes(1);
-    expect(order).toEqual([
-      "flush:start",
-      "flush:end",
-      "worker.shutdown",
-      "store.close",
-    ]);
-  });
 });
 
 describe("plugin-init in-process worker shutdown (A4b')", () => {

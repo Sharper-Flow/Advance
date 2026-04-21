@@ -306,6 +306,26 @@ describe("plugin-init tryInitStore", () => {
       startedRuntime: true,
     }));
   });
+
+  it("shuts down a created worker if later plugin init steps fail", async () => {
+    mocks.getProjectId.mockResolvedValue("proj-sha");
+    mocks.probeTemporalWorkerRuntime.mockReturnValue({
+      supported: true,
+      runtime: "node",
+      reason: "node",
+    });
+    mocks.createStore.mockImplementationOnce(async () => {
+      throw new Error("store create exploded");
+    });
+
+    const { tryInitStore } = await import("./plugin-init");
+    const result = await tryInitStore("/tmp/repo", "/tmp/external");
+
+    expect(result.store).toBeNull();
+    expect(result.initError?.message).toMatch(/store create exploded/);
+    expect(mocks.createInProcessWorker).toHaveBeenCalledTimes(1);
+    expect(mocks.inProcessWorker.shutdown).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe("tryInitStore worker routing (Phase 2.3)", () => {
