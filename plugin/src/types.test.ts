@@ -45,6 +45,8 @@ import {
   getTddComplianceStatus,
   truncateOutput,
   stripTddEvidence,
+  BulkCloseSelectorSchema,
+  BulkCloseResultSchema,
   type Task,
 } from "./types";
 import { SAMPLE_SPEC, SAMPLE_CHANGE } from "./__tests__/setup";
@@ -566,6 +568,193 @@ describe("ChangeSchema", () => {
       CrossProjectOriginSchema.parse({
         source_project: "test",
         linked_at: "2026-01-01T01:00:00Z",
+      }),
+    ).toThrow();
+  });
+});
+
+describe("BulkCloseSelectorSchema", () => {
+  test("accepts explicit selector with changeIds", () => {
+    const selector = { kind: "explicit", changeIds: ["chg-a", "chg-b"] };
+    const result = BulkCloseSelectorSchema.parse(selector);
+    expect(result.kind).toBe("explicit");
+    if (result.kind === "explicit") {
+      expect(result.changeIds).toEqual(["chg-a", "chg-b"]);
+    }
+  });
+
+  test("rejects explicit selector with empty changeIds", () => {
+    expect(() =>
+      BulkCloseSelectorSchema.parse({ kind: "explicit", changeIds: [] }),
+    ).toThrow();
+  });
+
+  test("accepts filter selector with status", () => {
+    const selector = { kind: "filter", filter: { status: "draft" } };
+    const result = BulkCloseSelectorSchema.parse(selector);
+    expect(result.kind).toBe("filter");
+    if (result.kind === "filter") {
+      expect(result.filter.status).toBe("draft");
+    }
+  });
+
+  test("accepts filter selector with titleContains", () => {
+    const selector = {
+      kind: "filter",
+      filter: { titleContains: "parity" },
+    };
+    const result = BulkCloseSelectorSchema.parse(selector);
+    if (result.kind === "filter") {
+      expect(result.filter.titleContains).toBe("parity");
+    }
+  });
+
+  test("accepts filter selector with prefix", () => {
+    const selector = { kind: "filter", filter: { prefix: "test" } };
+    const result = BulkCloseSelectorSchema.parse(selector);
+    if (result.kind === "filter") {
+      expect(result.filter.prefix).toBe("test");
+    }
+  });
+
+  test("accepts filter selector with createdBefore", () => {
+    const selector = {
+      kind: "filter",
+      filter: { createdBefore: "2026-01-01T00:00:00Z" },
+    };
+    const result = BulkCloseSelectorSchema.parse(selector);
+    if (result.kind === "filter") {
+      expect(result.filter.createdBefore).toBe("2026-01-01T00:00:00Z");
+    }
+  });
+
+  test("accepts filter selector with lastActivityBefore", () => {
+    const selector = {
+      kind: "filter",
+      filter: { lastActivityBefore: "2026-01-01T00:00:00Z" },
+    };
+    const result = BulkCloseSelectorSchema.parse(selector);
+    if (result.kind === "filter") {
+      expect(result.filter.lastActivityBefore).toBe("2026-01-01T00:00:00Z");
+    }
+  });
+
+  test("accepts filter selector with multiple fields", () => {
+    const selector = {
+      kind: "filter",
+      filter: {
+        status: "draft",
+        titleContains: "parity",
+        createdBefore: "2026-01-01T00:00:00Z",
+      },
+    };
+    const result = BulkCloseSelectorSchema.parse(selector);
+    expect(result.kind).toBe("filter");
+  });
+
+  test("rejects selector without kind", () => {
+    expect(() =>
+      BulkCloseSelectorSchema.parse({ changeIds: ["chg-a"] }),
+    ).toThrow();
+  });
+
+  test("rejects selector with unknown kind", () => {
+    expect(() =>
+      BulkCloseSelectorSchema.parse({ kind: "unknown", changeIds: ["chg-a"] }),
+    ).toThrow();
+  });
+});
+
+describe("BulkCloseResultSchema", () => {
+  test("accepts result with all successes", () => {
+    const result = {
+      success: true,
+      closed: 2,
+      results: [
+        { changeId: "chg-a", success: true },
+        { changeId: "chg-b", success: true },
+      ],
+      message: "Closed 2 change(s).",
+    };
+    const parsed = BulkCloseResultSchema.parse(result);
+    expect(parsed.success).toBe(true);
+    expect(parsed.closed).toBe(2);
+    expect(parsed.results).toHaveLength(2);
+  });
+
+  test("accepts result with CLOSE_FAILED entries", () => {
+    const result = {
+      success: false,
+      closed: 1,
+      results: [
+        { changeId: "chg-a", success: true },
+        { changeId: "chg-b", success: false, error: "Already closed" },
+      ],
+      message: "Partial close: 1/2 succeeded.",
+    };
+    const parsed = BulkCloseResultSchema.parse(result);
+    expect(parsed.success).toBe(false);
+    expect(parsed.results[1].error).toBe("Already closed");
+  });
+
+  test("rejects result missing success", () => {
+    expect(() =>
+      BulkCloseResultSchema.parse({
+        closed: 1,
+        results: [{ changeId: "chg-a", success: true }],
+        message: "Closed 1 change(s).",
+      }),
+    ).toThrow();
+  });
+
+  test("rejects result missing closed", () => {
+    expect(() =>
+      BulkCloseResultSchema.parse({
+        success: true,
+        results: [{ changeId: "chg-a", success: true }],
+        message: "Closed 1 change(s).",
+      }),
+    ).toThrow();
+  });
+
+  test("rejects result missing results", () => {
+    expect(() =>
+      BulkCloseResultSchema.parse({
+        success: true,
+        closed: 0,
+        message: "No changes closed.",
+      }),
+    ).toThrow();
+  });
+
+  test("rejects result missing message", () => {
+    expect(() =>
+      BulkCloseResultSchema.parse({
+        success: true,
+        closed: 1,
+        results: [{ changeId: "chg-a", success: true }],
+      }),
+    ).toThrow();
+  });
+
+  test("rejects result entry missing changeId", () => {
+    expect(() =>
+      BulkCloseResultSchema.parse({
+        success: true,
+        closed: 1,
+        results: [{ success: true }],
+        message: "Closed 1 change(s).",
+      }),
+    ).toThrow();
+  });
+
+  test("rejects result entry missing success", () => {
+    expect(() =>
+      BulkCloseResultSchema.parse({
+        success: true,
+        closed: 1,
+        results: [{ changeId: "chg-a" }],
+        message: "Closed 1 change(s).",
       }),
     ).toThrow();
   });

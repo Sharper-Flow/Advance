@@ -492,6 +492,48 @@ export const ChangeClosureSchema = z.object({
 export type ChangeClosure = z.infer<typeof ChangeClosureSchema>;
 
 // =============================================================================
+// Bulk Close
+// =============================================================================
+
+export const BulkCloseExplicitSelectorSchema = z.object({
+  kind: z.literal("explicit"),
+  changeIds: z.array(z.string()).min(1),
+});
+
+export const BulkCloseFilterSelectorSchema = z.object({
+  kind: z.literal("filter"),
+  filter: z.object({
+    status: z.string().optional(),
+    titleContains: z.string().optional(),
+    prefix: z.string().optional(),
+    createdBefore: z.string().optional(),
+    lastActivityBefore: z.string().optional(),
+  }),
+});
+
+export const BulkCloseSelectorSchema = z.discriminatedUnion("kind", [
+  BulkCloseExplicitSelectorSchema,
+  BulkCloseFilterSelectorSchema,
+]);
+
+export type BulkCloseSelector = z.infer<typeof BulkCloseSelectorSchema>;
+
+export const BulkCloseResultSchema = z.object({
+  success: z.boolean(),
+  closed: z.number(),
+  results: z.array(
+    z.object({
+      changeId: z.string(),
+      success: z.boolean(),
+      error: z.string().optional(),
+    }),
+  ),
+  message: z.string(),
+});
+
+export type BulkCloseResult = z.infer<typeof BulkCloseResultSchema>;
+
+// =============================================================================
 // Quality Gates
 // =============================================================================
 
