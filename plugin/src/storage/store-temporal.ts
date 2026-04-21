@@ -28,6 +28,7 @@ import {
 } from "../temporal/messages";
 import type { ChangeWorkflowState } from "../temporal/contracts";
 import { getReadyTasksFromChangeState } from "../temporal/change-state";
+import { withTemporalRetry } from "../temporal/retry-wrapper";
 
 // Errors that should legitimately fall back to the legacy backend. Anything
 // else (NonDeterministicWorkflowError, update validation failure, connection
@@ -86,6 +87,10 @@ function getChangeHandle(
   return bundle.client.workflow.getHandle(workflowId);
 }
 
+async function runTemporal<T>(op: () => Promise<T>): Promise<T> {
+  return withTemporalRetry(op);
+}
+
 export function createTemporalStoreBackend(
   input: TemporalStoreBackendInput,
 ): Store {
@@ -135,9 +140,9 @@ export function createTemporalStoreBackend(
         }
         try {
           const handle = getChangeHandle(input, changeId);
-          const state = (await handle.query(
+          const state = (await runTemporal(() => handle.query(
             changeStateQuery,
-          )) as ChangeWorkflowState;
+          ))) as ChangeWorkflowState;
           indexTasksFromState(state);
           return { success: true, data: setCachedChange(state) };
         } catch (err) {
@@ -149,8 +154,8 @@ export function createTemporalStoreBackend(
         try {
           invalidateChange(changeId);
           const handle = getChangeHandle(input, changeId);
-          await handle.executeUpdate(closeChangeUpdate, { args: [closure] });
-          const result = await handle.query(changeStateQuery);
+          await runTemporal(() => handle.executeUpdate(closeChangeUpdate, { args: [closure] }));
+          const result = await runTemporal(() => handle.query(changeStateQuery));
           indexTasksFromState(result as ChangeWorkflowState);
           return setCachedChange(result as ChangeWorkflowState);
         } catch (err) {
@@ -164,11 +169,11 @@ export function createTemporalStoreBackend(
       list: async (changeId: string, status?: string, filter?: string) => {
         try {
           const handle = getChangeHandle(input, changeId);
-          const tasks = (await handle.query(
+          const tasks = (await runTemporal(() => handle.query(
             changeTasksQuery,
             status,
             filter,
-          )) as Awaited<ReturnType<Store["tasks"]["list"]>>;
+          ))) as Awaited<ReturnType<Store["tasks"]["list"]>>;
           for (const task of tasks ?? []) {
             taskChangeIndex.set(task.id, changeId);
           }
@@ -181,9 +186,9 @@ export function createTemporalStoreBackend(
       ready: async (changeId: string) => {
         try {
           const handle = getChangeHandle(input, changeId);
-          const state = (await handle.query(
+          const state = (await runTemporal(() => handle.query(
             changeStateQuery,
-          )) as ChangeWorkflowState;
+          ))) as ChangeWorkflowState;
           indexTasksFromState(state);
           return getReadyTasksFromChangeState(state);
         } catch (err) {
@@ -203,7 +208,7 @@ export function createTemporalStoreBackend(
           if (!changeId) return null;
           invalidateChange(changeId);
           const handle = getChangeHandle(input, changeId);
-          return (await handle.executeUpdate(updateTaskUpdate, {
+          return (await runTemporal(() => handle.executeUpdate(updateTaskUpdate, {
             args: [
               taskId,
               {
@@ -213,7 +218,7 @@ export function createTemporalStoreBackend(
                 errorRecovery,
               },
             ],
-          })) as Awaited<ReturnType<Store["tasks"]["update"]>>;
+          }))) as Awaited<ReturnType<Store["tasks"]["update"]>>;
         } catch (err) {
           if (!isExpectedFallbackError(err)) throw err;
           return legacy.tasks.update(
@@ -229,7 +234,7 @@ export function createTemporalStoreBackend(
         try {
           invalidateChange(changeId);
           const handle = getChangeHandle(input, changeId);
-          const created = (await handle.executeUpdate(addTaskUpdate, {
+          const created = (await runTemporal(() => handle.executeUpdate(addTaskUpdate, {
             args: [
               {
                 title: content,
@@ -239,7 +244,7 @@ export function createTemporalStoreBackend(
                 metadata: options?.metadata,
               },
             ],
-          })) as Awaited<ReturnType<Store["tasks"]["add"]>>;
+          }))) as Awaited<ReturnType<Store["tasks"]["add"]>>;
           if (created && typeof created === "object" && "id" in created) {
             taskChangeIndex.set((created as { id: string }).id, changeId);
           }
@@ -254,7 +259,7 @@ export function createTemporalStoreBackend(
           const changeId = await resolveChangeId(taskId);
           if (!changeId) return null;
           const handle = getChangeHandle(input, changeId);
-          return (await handle.query(changeTaskQuery, taskId)) as Awaited<
+          return (await runTemporal(() => handle.query(changeTaskQuery, taskId))) as Awaited<
             ReturnType<Store["tasks"]["get"]>
           >;
         } catch (err) {
@@ -267,7 +272,7 @@ export function createTemporalStoreBackend(
           const changeId = await resolveChangeId(taskId);
           if (!changeId) return null;
           const handle = getChangeHandle(input, changeId);
-          const task = await handle.query(changeTaskQuery, taskId);
+          const task = await runTemporal(() => handle.query(changeTaskQuery, taskId));
           if (!task) return null;
           return { task: task as Task, changeId };
         } catch (err) {
@@ -281,9 +286,9 @@ export function createTemporalStoreBackend(
           if (!changeId) return null;
           invalidateChange(changeId);
           const handle = getChangeHandle(input, changeId);
-          return (await handle.executeUpdate(recordTaskEvidenceUpdate, {
+          return (await runTemporal(() => handle.executeUpdate(recordTaskEvidenceUpdate, {
             args: [taskId, phase, evidence],
-          })) as Awaited<ReturnType<Store["tasks"]["recordEvidence"]>>;
+          }))) as Awaited<ReturnType<Store["tasks"]["recordEvidence"]>>;
         } catch (err) {
           if (!isExpectedFallbackError(err)) throw err;
           return legacy.tasks.recordEvidence(taskId, phase, evidence);
@@ -295,9 +300,9 @@ export function createTemporalStoreBackend(
           if (!changeId) return null;
           invalidateChange(changeId);
           const handle = getChangeHandle(input, changeId);
-          return (await handle.executeUpdate(setTaskPhaseUpdate, {
+          return (await runTemporal(() => handle.executeUpdate(setTaskPhaseUpdate, {
             args: [taskId, phase],
-          })) as Awaited<ReturnType<Store["tasks"]["setPhase"]>>;
+          }))) as Awaited<ReturnType<Store["tasks"]["setPhase"]>>;
         } catch (err) {
           if (!isExpectedFallbackError(err)) throw err;
           return legacy.tasks.setPhase(taskId, phase);
@@ -309,9 +314,9 @@ export function createTemporalStoreBackend(
           if (!changeId) return null;
           invalidateChange(changeId);
           const handle = getChangeHandle(input, changeId);
-          return (await handle.executeUpdate(cancelTaskUpdate, {
+          return (await runTemporal(() => handle.executeUpdate(cancelTaskUpdate, {
             args: [taskId, cancellation],
-          })) as Awaited<ReturnType<Store["tasks"]["cancel"]>>;
+          }))) as Awaited<ReturnType<Store["tasks"]["cancel"]>>;
         } catch (err) {
           if (!isExpectedFallbackError(err)) throw err;
           return legacy.tasks.cancel(taskId, cancellation);
@@ -323,9 +328,9 @@ export function createTemporalStoreBackend(
           if (!changeId) return null;
           invalidateChange(changeId);
           const handle = getChangeHandle(input, changeId);
-          return (await handle.executeUpdate(reclassifyTaskTddUpdate, {
+          return (await runTemporal(() => handle.executeUpdate(reclassifyTaskTddUpdate, {
             args: [taskId, reclassification],
-          })) as Awaited<ReturnType<Store["tasks"]["reclassifyTdd"]>>;
+          }))) as Awaited<ReturnType<Store["tasks"]["reclassifyTdd"]>>;
         } catch (err) {
           if (!isExpectedFallbackError(err)) throw err;
           return legacy.tasks.reclassifyTdd(taskId, reclassification);
@@ -338,12 +343,12 @@ export function createTemporalStoreBackend(
         try {
           invalidateChange(changeId);
           const handle = getChangeHandle(input, changeId);
-          await handle.executeUpdate(addChangeWisdomUpdate, {
+          await runTemporal(() => handle.executeUpdate(addChangeWisdomUpdate, {
             args: [type, content, sourceTask],
-          });
-          const state = (await handle.query(
+          }));
+          const state = (await runTemporal(() => handle.query(
             changeStateQuery,
-          )) as ChangeWorkflowState;
+          ))) as ChangeWorkflowState;
           setCachedChange(state);
           return (
             (state.wisdom[state.wisdom.length - 1] as
@@ -359,9 +364,9 @@ export function createTemporalStoreBackend(
       list: async (changeId: string) => {
         try {
           const handle = getChangeHandle(input, changeId);
-          const state = (await handle.query(
+          const state = (await runTemporal(() => handle.query(
             changeStateQuery,
-          )) as ChangeWorkflowState;
+          ))) as ChangeWorkflowState;
           return state.wisdom;
         } catch (err) {
           if (!isExpectedFallbackError(err)) throw err;
@@ -374,9 +379,9 @@ export function createTemporalStoreBackend(
       get: async (changeId: string) => {
         try {
           const handle = getChangeHandle(input, changeId);
-          const state = (await handle.query(
+          const state = (await runTemporal(() => handle.query(
             changeStateQuery,
-          )) as ChangeWorkflowState;
+          ))) as ChangeWorkflowState;
           return state.gates;
         } catch (err) {
           if (!isExpectedFallbackError(err)) throw err;
@@ -387,9 +392,9 @@ export function createTemporalStoreBackend(
         try {
           invalidateChange(changeId);
           const handle = getChangeHandle(input, changeId);
-          await handle.executeUpdate(completeGateUpdate, {
+          await runTemporal(() => handle.executeUpdate(completeGateUpdate, {
             args: [gateId, notes, "agent"],
-          });
+          }));
         } catch (err) {
           if (!isExpectedFallbackError(err)) throw err;
           await legacy.gates.complete(changeId, gateId, notes);
@@ -406,14 +411,14 @@ export function createTemporalStoreBackend(
         try {
           invalidateChange(changeId);
           const handle = getChangeHandle(input, changeId);
-          await handle.executeUpdate(reopenFromGateUpdate, {
+          await runTemporal(() => handle.executeUpdate(reopenFromGateUpdate, {
             args: [
               fromGate,
               reason,
               scopeDelta,
               approvalEvidence ?? reopenedBy,
             ],
-          });
+          }));
         } catch (err) {
           if (!isExpectedFallbackError(err)) throw err;
           await legacy.gates.reopenFrom(

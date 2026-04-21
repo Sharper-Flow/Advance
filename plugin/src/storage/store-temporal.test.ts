@@ -205,4 +205,86 @@ describe("Temporal store backend adapter", () => {
 
     expect(changeHandle.query).toHaveBeenCalledTimes(2);
   });
+
+  it("retries transient query failures before succeeding", async () => {
+    const changeHandle = {
+      query: vi
+        .fn()
+        .mockRejectedValueOnce(new Error("connect ECONNREFUSED 127.0.0.1:7233"))
+        .mockResolvedValueOnce({
+          projectId: "proj1",
+          changeId: "chg-retry",
+          title: "Retry Change",
+          initializedAt: "2026-04-18T00:00:00.000Z",
+          id: "chg-retry",
+          status: "draft",
+          createdAt: "2026-04-18T00:00:00.000Z",
+          tasks: [],
+          wisdom: [],
+          gates: {
+            proposal: { status: "pending" },
+            discovery: { status: "pending" },
+            design: { status: "pending" },
+            planning: { status: "pending" },
+            execution: { status: "pending" },
+            acceptance: { status: "pending" },
+            release: { status: "pending" },
+          },
+          reentry_history: [],
+          artifacts: {},
+        }),
+      executeUpdate: vi.fn(async () => null),
+    };
+
+    const bundle = {
+      client: {
+        workflow: {
+          getHandle: vi.fn(() => changeHandle),
+        },
+      },
+    };
+
+    const legacy = makeLegacyStore();
+    const adapted = createTemporalStoreBackend({
+      legacy,
+      temporal: bundle as any,
+      projectId: "proj1",
+    });
+
+    const result = await adapted.changes.get("chg-retry");
+
+    expect(result.success).toBe(true);
+    expect(changeHandle.query).toHaveBeenCalledTimes(2);
+    expect(legacy.changes.get).not.toHaveBeenCalled();
+  });
+
+  it("does not retry fallback-safe errors; falls back directly to legacy", async () => {
+    const changeHandle = {
+      query: vi.fn(async () => {
+        throw new Error("Workflow execution not found");
+      }),
+      executeUpdate: vi.fn(async () => null),
+    };
+
+    const bundle = {
+      client: {
+        workflow: {
+          getHandle: vi.fn(() => changeHandle),
+        },
+      },
+    };
+
+    const legacy = makeLegacyStore();
+    const adapted = createTemporalStoreBackend({
+      legacy,
+      temporal: bundle as any,
+      projectId: "proj1",
+    });
+
+    await adapted.changes.get("chg-fallback");
+
+    expect(changeHandle.query).toHaveBeenCalledTimes(1);
+    expect(legacy.changes.get).toHaveBeenCalledTimes(1);
+  });
+
 });

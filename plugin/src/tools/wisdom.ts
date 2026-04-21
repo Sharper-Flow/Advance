@@ -6,6 +6,7 @@
  * discovered during task execution for injection into subsequent task context.
  */
 
+import { basename, dirname } from "path";
 import { z } from "zod";
 import type { Store } from "../storage/store";
 import { WisdomTypeSchema } from "../types";
@@ -14,7 +15,60 @@ import {
   compactProjectWisdom,
   listProjectWisdom,
 } from "../storage/project-wisdom";
+import {
+  buildProjectWorkflowId,
+  createTemporalClientBundle,
+} from "../temporal/client";
+import {
+  addProjectWisdomUpdate,
+  projectWisdomQuery,
+} from "../temporal/messages";
+import { writeJsonlAtomic } from "../storage/jsonl-atomic-writer";
 import { formatToolOutput } from "../utils/tool-output";
+import { getProjectId } from "../utils/project-id";
+
+function isExternalMutablePath(path?: string): boolean {
+  return Boolean(path && !path.includes("/.adv/"));
+}
+
+async function getProjectWorkflowHandle(input: {
+  projectDir: string;
+  wisdomPath?: string;
+}) {
+  const projectId = isExternalMutablePath(input.wisdomPath)
+    ? basename(dirname(input.wisdomPath!))
+    : await getProjectId(input.projectDir);
+  if (!projectId) return null;
+
+  const bundle = await createTemporalClientBundle(process.env);
+  return {
+    projectId,
+    bundle,
+    handle: bundle.client.workflow.getHandle(buildProjectWorkflowId(projectId)),
+  };
+}
+
+function toJsonlProjectWisdomEntry(entry: {
+  id: string;
+  type: string;
+  content: string;
+  sourceChange?: string;
+  sourceTask?: string;
+  promotedAt: string;
+  tags?: string[];
+  invalidatedBy?: string;
+}) {
+  return {
+    id: entry.id,
+    type: entry.type,
+    content: entry.content,
+    source_change: entry.sourceChange,
+    source_task: entry.sourceTask,
+    promoted_at: entry.promotedAt,
+    tags: entry.tags,
+    invalidated_by: entry.invalidatedBy,
+  };
+}
 
 // =============================================================================
 // Tool Definitions
@@ -67,6 +121,7 @@ export const wisdomTools = {
         );
 
         let promoted: unknown | undefined;
+        let promoteWarning: string | undefined;
         if (promote) {
           const existing = await listProjectWisdom(store.paths.root, {
             wisdomPath: store.paths.wisdom,
@@ -84,20 +139,66 @@ export const wisdomTools = {
             });
           }
 
-          promoted = await addProjectWisdom(store.paths.root, {
-            type: entry.type,
-            content: entry.content,
-            sourceChange: changeId,
-            sourceTask: entry.source_task,
-            wisdomPath: store.paths.wisdom,
-          });
-
+          let temporalMutationCommitted = false;
+          let temporalBundleClose: (() => Promise<void>) | undefined;
           try {
-            await compactProjectWisdom(store.paths.root, {
+            const temporal = await getProjectWorkflowHandle({
+              projectDir: store.paths.root,
               wisdomPath: store.paths.wisdom,
             });
-          } catch {
-            // Compaction failure is non-fatal; add/promote already succeeded
+
+            if (!temporal) {
+              throw new Error("Project workflow unavailable");
+            }
+
+            temporalBundleClose = () => temporal.bundle.connection.close();
+            promoted = await temporal.handle.executeUpdate(addProjectWisdomUpdate, {
+              args: [
+                {
+                  type: entry.type,
+                  content: entry.content,
+                  sourceChange: changeId,
+                  sourceTask: entry.source_task,
+                },
+              ],
+            });
+            temporalMutationCommitted = true;
+
+            const latest = (await temporal.handle.query(
+              projectWisdomQuery,
+              undefined,
+            )) as Array<Parameters<typeof toJsonlProjectWisdomEntry>[0]>;
+            await writeJsonlAtomic(
+              store.paths.wisdom,
+              latest.map(toJsonlProjectWisdomEntry),
+            );
+            await temporal.bundle.connection.close();
+          } catch (error) {
+            if (temporalBundleClose) {
+              await temporalBundleClose().catch(() => undefined);
+            }
+            if (temporalMutationCommitted) {
+              promoteWarning =
+                error instanceof Error
+                  ? `Workflow state updated but derived wisdom.jsonl write failed: ${error.message}`
+                  : "Workflow state updated but derived wisdom.jsonl write failed";
+            } else {
+              promoted = await addProjectWisdom(store.paths.root, {
+                type: entry.type,
+                content: entry.content,
+                sourceChange: changeId,
+                sourceTask: entry.source_task,
+                wisdomPath: store.paths.wisdom,
+              });
+
+              try {
+                await compactProjectWisdom(store.paths.root, {
+                  wisdomPath: store.paths.wisdom,
+                });
+              } catch {
+                // Compaction failure is non-fatal; add/promote already succeeded
+              }
+            }
           }
         }
 
@@ -105,6 +206,7 @@ export const wisdomTools = {
           success: true,
           entry,
           promoted,
+          ...(promoteWarning ? { warning: promoteWarning } : {}),
           message: promote
             ? `Added and promoted ${type} wisdom for change ${changeId}`
             : `Added ${type} wisdom to change ${changeId}`,

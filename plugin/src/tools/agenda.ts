@@ -5,6 +5,7 @@
  * Agenda MCP surface is intentionally small: list/add/start/complete/cancel/prioritize/evidence.
  */
 
+import { basename, dirname } from "path";
 import { z } from "zod";
 import {
   loadAgenda,
@@ -16,6 +17,15 @@ import {
   reprioritizeAgendaItem,
 } from "../storage/agenda";
 import {
+  buildProjectWorkflowId,
+  createTemporalClientBundle,
+} from "../temporal/client";
+import {
+  addAgendaItemUpdate,
+  projectAgendaQuery,
+} from "../temporal/messages";
+import { writeJsonlAtomic } from "../storage/jsonl-atomic-writer";
+import {
   AgendaPrioritySchema,
   AgendaStatusSchema,
   getTddComplianceStatus,
@@ -25,6 +35,28 @@ import {
   allGatesSatisfied,
 } from "../types";
 import { formatToolOutput } from "../utils/tool-output";
+import { getProjectId } from "../utils/project-id";
+
+function isExternalMutablePath(path?: string): boolean {
+  return Boolean(path && !path.includes("/.adv/"));
+}
+
+async function getProjectWorkflowHandle(input: {
+  projectDir: string;
+  agendaPath?: string;
+}) {
+  const projectId = isExternalMutablePath(input.agendaPath)
+    ? basename(dirname(input.agendaPath!))
+    : await getProjectId(input.projectDir);
+  if (!projectId) return null;
+
+  const bundle = await createTemporalClientBundle(process.env);
+  return {
+    projectId,
+    bundle,
+    handle: bundle.client.workflow.getHandle(buildProjectWorkflowId(projectId)),
+  };
+}
 
 // =============================================================================
 // Tool Definitions
@@ -115,19 +147,63 @@ export const agendaTools = {
       projectDir: string,
       agendaPath?: string,
     ) => {
-      const item = await addAgendaItem(projectDir, title, {
-        description,
-        priority,
-        category,
-        blocked_by,
-        agendaPath,
-      });
+      let item;
+      let derivedExportWarning: string | undefined;
+      try {
+        const temporal = await getProjectWorkflowHandle({
+          projectDir,
+          agendaPath,
+        });
+
+        if (!temporal || !agendaPath) {
+          throw new Error("Project workflow unavailable");
+        }
+
+        let temporalMutationCommitted = false;
+        item = await temporal.handle.executeUpdate(addAgendaItemUpdate, {
+          args: [
+            {
+              title,
+              description,
+              priority,
+              category,
+              blocked_by,
+            },
+          ],
+        });
+        temporalMutationCommitted = true;
+
+        try {
+          const agenda = await temporal.handle.query(projectAgendaQuery, undefined);
+          await writeJsonlAtomic(agendaPath, agenda as readonly unknown[]);
+        } catch (error) {
+          if (temporalMutationCommitted) {
+            derivedExportWarning =
+              error instanceof Error
+                ? `Workflow state updated but derived agenda.jsonl write failed: ${error.message}`
+                : "Workflow state updated but derived agenda.jsonl write failed";
+          } else {
+            throw error;
+          }
+        } finally {
+          await temporal.bundle.connection.close().catch(() => undefined);
+        }
+      } catch {
+        item = await addAgendaItem(projectDir, title, {
+          description,
+          priority,
+          category,
+          blocked_by,
+          agendaPath,
+        });
+      }
 
       const requiresTdd = isLogicTask(title);
 
       return formatToolOutput({
         success: true,
         item,
+        ...(derivedExportWarning ? { warning: derivedExportWarning } : {}),
         analysis: {
           requires_tdd: requiresTdd,
           recommendation: requiresTdd

@@ -24,8 +24,7 @@ import { tryInitStore, registerShutdownHandlers } from "./plugin-init";
 import type { StatusMarker } from "./types";
 import { getProjectId, getExternalRoot } from "./utils/project-id";
 import { migrateToExternalState } from "./storage/migrate";
-import { consumeHandoff } from "./storage/handoff";
-import { enforceBashPolicy, enforceTddBashPolicy } from "./guards/bash";
+import { enforceBashPolicy } from "./guards/bash";
 import { enforceTaskPolicy } from "./guards/task";
 import { createToolMap, createDegradedToolMap } from "./tool-registry";
 import { appendDebugLog, createLogger } from "./utils/debug-log";
@@ -81,12 +80,6 @@ interface PluginState extends StatusFlags {
   lastCompletedTask: {
     id: string;
     title: string;
-  } | null;
-  activeInlineTddTaskId: string | null;
-  lastAdvRunTest: {
-    taskId: string;
-    phase: "red" | "green";
-    atMs: number;
   } | null;
   /** True when running inside a git worktree (directory !== main repo root) */
   isWorktree: boolean;
@@ -177,29 +170,13 @@ export const AdvancePlugin: Plugin = async ({
     tddPhase: null,
     activeChange: { id: null, objective: null },
     lastCompletedTask: null,
-    activeInlineTddTaskId: null,
-    lastAdvRunTest: null,
     isWorktree,
   };
 
-  // Session hydration: atomically consume handoff.json and populate active change
-  if (store && store.paths.external) {
-    try {
-      const handoff = await consumeHandoff(store.paths.handoff);
-      if (handoff) {
-        state.activeChange = {
-          id: handoff.changeId,
-          objective: handoff.objective,
-        };
-        setActiveChange(handoff.changeId);
-        debugLog(
-          `Hydrated from handoff: changeId=${handoff.changeId}, objective=${handoff.objective}`,
-        );
-      }
-    } catch (e) {
-      debugLog(`Handoff hydration failed (non-fatal): ${(e as Error).message}`);
-    }
-  }
+  // No handoff.json hydration: session startup is now workflow-backed.
+  // The old external handoff file is transitional legacy state and will be
+  // deleted in Phase D. Fresh sessions derive active context from explicit
+  // tool calls / status queries rather than consuming a sidecar JSON file.
 
   // Helper to update status flags and push the resolved status to the terminal
   const setFlags = (updates: Partial<StatusFlags>) => {
@@ -274,17 +251,6 @@ export const AdvancePlugin: Plugin = async ({
           const command =
             typeof args["command"] === "string" ? args["command"] : "";
           enforceBashPolicy(agent, command);
-          const tddBashResult = enforceTddBashPolicy(command, {
-            activeChangeId: state.activeChange.id,
-            activeInlineTddTaskId: state.activeInlineTddTaskId,
-            lastAdvRunTest: state.lastAdvRunTest,
-          });
-          if (tddBashResult.action === "block") {
-            throw new Error(tddBashResult.message);
-          }
-          if (tddBashResult.action === "advisory" && tddBashResult.message) {
-            hooksLogger.warn(tddBashResult.message);
-          }
         }
 
         // Track changeId from ADV tools for context injection
@@ -361,13 +327,6 @@ export const AdvancePlugin: Plugin = async ({
                 title: result.task.title,
               };
             }
-            if (result.success && result.task?.status === "in_progress") {
-              const intent = result.task?.metadata?.tdd_intent;
-              state.activeInlineTddTaskId =
-                intent === "inline"
-                  ? result.task.id
-                  : state.activeInlineTddTaskId;
-            }
           } catch {
             // ignore parse errors
           }
@@ -390,19 +349,6 @@ export const AdvancePlugin: Plugin = async ({
           input.tool === "adv_run_test" ||
           input.tool === "adv_task_evidence"
         ) {
-          const phase = input.args?.phase;
-          const taskId = input.args?.taskId;
-          if (
-            input.tool === "adv_run_test" &&
-            typeof taskId === "string" &&
-            (phase === "red" || phase === "green")
-          ) {
-            state.lastAdvRunTest = {
-              taskId,
-              phase,
-              atMs: Date.now(),
-            };
-          }
           setFlags({ tddPhase: null });
         }
       } catch (e) {

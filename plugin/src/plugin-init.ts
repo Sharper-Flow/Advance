@@ -181,6 +181,18 @@ export function registerInProcessTemporalWorker(worker: InProcessWorker): void {
   inProcessTemporalWorkers.add(worker);
 }
 
+
+
+export function getRegisteredTemporalWorkerQueues(): string[] {
+  const queues = new Set<string>();
+  for (const worker of inProcessTemporalWorkers) {
+    for (const queue of worker.queues) {
+      queues.add(queue);
+    }
+  }
+  return [...queues].sort();
+}
+
 async function drainInProcessTemporalWorkers(): Promise<void> {
   const workers = [...inProcessTemporalWorkers];
   inProcessTemporalWorkers.clear();
@@ -193,6 +205,25 @@ async function drainInProcessTemporalWorkers(): Promise<void> {
       }
     }),
   );
+}
+
+export async function restartCurrentProjectTemporalWorker(
+  projectDir: string,
+): Promise<{ projectId: string; queues: string[] }> {
+  const projectId = await getProjectId(projectDir);
+  if (!projectId) {
+    throw new Error("Cannot restart Temporal worker: no projectId for current directory");
+  }
+
+  await drainInProcessTemporalWorkers();
+  const runtime = await ensureTemporalRuntime(projectId);
+  const worker = await createInProcessWorker({
+    address: runtime.address,
+    namespace: runtime.namespace,
+    queues: [buildProjectTaskQueue(projectId)],
+  });
+  registerInProcessTemporalWorker(worker);
+  return { projectId, queues: [...worker.queues] };
 }
 
 export interface ShutdownHandlers {
@@ -231,10 +262,6 @@ export function registerShutdownHandlers(
     cleanupTerminal();
     if (flushInFlight) return;
     flushInFlight = true;
-    // Drain the in-process worker concurrently with the store flush so
-    // shutdown wall-clock time stays bounded. The flushTimeout below
-    // enforces the ceiling.
-    void drainInProcessTemporalWorkers();
     if (!store) return void process.exit(0);
     const activeStore = store;
     const safeClose = (phase: string) => {
@@ -248,11 +275,18 @@ export function registerShutdownHandlers(
       safeClose("timeout");
       process.exit(0);
     }, 3000);
-    activeStore.flush().finally(() => {
-      clearTimeout(flushTimeout);
-      safeClose("flush");
-      process.exit(0);
-    });
+    void (async () => {
+      try {
+        await activeStore.flush();
+        await drainInProcessTemporalWorkers();
+      } catch (e) {
+        debugLog(`Error during shutdownWithFlush: ${e}`);
+      } finally {
+        clearTimeout(flushTimeout);
+        safeClose("flush");
+        process.exit(0);
+      }
+    })();
   };
 
   process.on("exit", handleExit);

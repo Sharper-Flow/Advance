@@ -29,6 +29,14 @@ const mocks = vi.hoisted(() => {
       client: { workflow: { getHandle: vi.fn(() => ({ executeUpdate, query })) } },
     })),
     writeJsonlAtomic: vi.fn(async () => {}),
+    addAgendaItem: vi.fn(async () => ({
+      id: "ag-legacy",
+      title: "legacy",
+      priority: "medium",
+      status: "pending",
+      created_at: "2026-04-20T00:00:00.000Z",
+      tdd_phase: "none",
+    })),
   };
 });
 
@@ -43,6 +51,14 @@ vi.mock("../temporal/client", async () => {
 vi.mock("../storage/jsonl-atomic-writer", () => ({
   writeJsonlAtomic: mocks.writeJsonlAtomic,
 }));
+
+vi.mock("../storage/agenda", async () => {
+  const actual = await vi.importActual<typeof import("../storage/agenda")>("../storage/agenda");
+  return {
+    ...actual,
+    addAgendaItem: mocks.addAgendaItem,
+  };
+});
 
 import { agendaTools } from "./agenda";
 
@@ -77,5 +93,21 @@ describe("adv_agenda_add derived-export path", () => {
       ],
     );
     expect(mocks.close).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns success+warning and does NOT fall back to addAgendaItem when derived agenda.jsonl write fails after workflow update", async () => {
+    mocks.writeJsonlAtomic.mockRejectedValueOnce(new Error("disk full"));
+
+    const result = await agendaTools.adv_agenda_add.execute(
+      { title: "Write docs" },
+      "/repo",
+      "/home/jrede/.local/share/opencode/plugins/advance/proj123/agenda.jsonl",
+    );
+    const parsed = JSON.parse(result);
+
+    expect(parsed.success).toBe(true);
+    expect(parsed.warning).toContain("derived agenda.jsonl write failed");
+    expect(mocks.executeUpdate).toHaveBeenCalledTimes(1);
+    expect(mocks.addAgendaItem).not.toHaveBeenCalled();
   });
 });

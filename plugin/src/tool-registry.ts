@@ -29,6 +29,7 @@ import { projectTools } from "./tools/project";
 import { gateTools } from "./tools/gate";
 import { testTools } from "./tools/test";
 import { investmentTools } from "./tools/investment";
+import { temporalOpsTools } from "./tools/temporal-ops";
 type ToolArgsSchema = Record<string, z.ZodTypeAny>;
 type ToolExecute<TArgs> = (
   args: TArgs,
@@ -302,6 +303,18 @@ export function createToolMap(
     adv_project_context: bindTool(
       projectTools.adv_project_context,
       "adv_project_context",
+      store,
+    ),
+
+    // Temporal operator tools
+    adv_temporal_worker_restart: bindTool(
+      temporalOpsTools.adv_temporal_worker_restart,
+      "adv_temporal_worker_restart",
+      store,
+    ),
+    adv_workflow_repair: bindTool(
+      temporalOpsTools.adv_workflow_repair,
+      "adv_workflow_repair",
       store,
     ),
 
