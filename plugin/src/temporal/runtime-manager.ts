@@ -63,6 +63,41 @@ export function probeTemporalClientRuntime(
   };
 }
 
+/**
+ * Probe whether the current runtime can host the Temporal **worker** (not just
+ * the client). The worker is stricter than the client because
+ * `@temporalio/worker.Worker.create()` internally spawns a Workflow Worker
+ * Thread whose top-level `require('@temporalio/common')` fails under Bun's
+ * compiled-executable module resolution (verified empirically — see
+ * `docs/temporal-recovery.md` and the design for
+ * `fixTemporalWorkerBundleFailure`).
+ *
+ * Returns `supported: false` under Bun regardless of whether `Bun.spawn` is
+ * present — the worker cannot run in-process inside Bun today. The remediation
+ * points callers at the out-of-process Node child-process worker model.
+ */
+export function probeTemporalWorkerRuntime(
+  input: TemporalRuntimeProbeInput = detectRuntime(),
+): TemporalRuntimeProbeResult {
+  if (input.runtime === "node") {
+    return {
+      supported: true,
+      runtime: "node",
+      reason:
+        "Node runtime supports @temporalio/worker in-process (Worker.create + worker_threads).",
+    };
+  }
+
+  return {
+    supported: false,
+    runtime: "bun",
+    reason:
+      "Bun cannot run @temporalio/worker in-process: Worker.create spawns a Node worker thread whose require('@temporalio/common') fails from Bun's install-cache path.",
+    remediation:
+      "Use the out-of-process Node child-process worker (default when Node is on PATH), set ADV_NODE_PATH to a Node binary, or set ADV_ALLOW_DEGRADED_FALLBACK=1 to run on file-backed storage. See SETUP.md → Bun runtime troubleshooting.",
+  };
+}
+
 export function getTemporalRuntimeLockPath(
   projectId: string,
   env: TemporalEnv = process.env,
