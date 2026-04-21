@@ -1,0 +1,202 @@
+import { EventEmitter } from "node:events";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+const mocks = vi.hoisted(() => {
+  return {
+    resolveNodeExecutable: vi.fn(() => ({
+      found: true,
+      path: "/usr/bin/node",
+      source: "path" as const,
+    })),
+    spawn: vi.fn(),
+  };
+});
+
+vi.mock("./runtime-manager", async () => {
+  const actual = await vi.importActual<typeof import("./runtime-manager")>(
+    "./runtime-manager",
+  );
+  return {
+    ...actual,
+    resolveNodeExecutable: mocks.resolveNodeExecutable,
+  };
+});
+
+vi.mock("node:child_process", () => ({
+  spawn: mocks.spawn,
+}));
+
+interface FakeChild extends EventEmitter {
+  pid: number;
+  exitCode: number | null;
+  killed: boolean;
+  stdout: EventEmitter;
+  stderr: EventEmitter;
+  kill: (signal?: NodeJS.Signals | number) => boolean;
+  unref: () => FakeChild;
+}
+
+function makeFakeChild(): FakeChild {
+  const ee = new EventEmitter() as FakeChild;
+  ee.pid = 12345 + Math.floor(Math.random() * 1000);
+  ee.exitCode = null;
+  ee.killed = false;
+  ee.stdout = new EventEmitter();
+  ee.stderr = new EventEmitter();
+  const killSpy = vi.fn((signal?: NodeJS.Signals | number) => {
+    ee.killed = true;
+    // Emit exit asynchronously so callers can attach handlers first
+    queueMicrotask(() => {
+      ee.exitCode = 0;
+      ee.emit("exit", 0, signal ?? null);
+    });
+    return true;
+  });
+  ee.kill = killSpy;
+  ee.unref = () => ee;
+  return ee;
+}
+
+describe("createOutOfProcessWorker", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.resolveNodeExecutable.mockReturnValue({
+      found: true,
+      path: "/usr/bin/node",
+      source: "path",
+    });
+  });
+
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("spawns a Node child for each queue with the correct env", async () => {
+    const child = makeFakeChild();
+    mocks.spawn.mockReturnValue(child);
+
+    const { createOutOfProcessWorker } = await import(
+      "./out-of-process-worker"
+    );
+
+    const worker = await createOutOfProcessWorker({
+      address: "127.0.0.1:7233",
+      namespace: "default",
+      queues: ["advance-proj-a"],
+      workerScript: "/plugin/dist/temporal/worker.js",
+      projectId: "proj-a",
+    });
+
+    expect(mocks.spawn).toHaveBeenCalledTimes(1);
+    const [cmd, args, opts] = mocks.spawn.mock.calls[0];
+    expect(cmd).toBe("/usr/bin/node");
+    expect(args).toEqual(["/plugin/dist/temporal/worker.js"]);
+    expect(opts.env).toMatchObject({
+      ADV_TEMPORAL_ADDRESS: "127.0.0.1:7233",
+      ADV_TEMPORAL_NAMESPACE: "default",
+      ADV_TEMPORAL_TASK_QUEUE: "advance-proj-a",
+      ADV_TEMPORAL_PROJECT_ID: "proj-a",
+    });
+    expect(worker.queues).toEqual(["advance-proj-a"]);
+
+    // Let the worker shutdown cleanly before the test exits to avoid leaking
+    // the EventEmitter-backed fake child between tests.
+    await worker.shutdown();
+  });
+
+  it("registerQueue spawns an additional child for the new queue", async () => {
+    const child1 = makeFakeChild();
+    const child2 = makeFakeChild();
+    mocks.spawn.mockReturnValueOnce(child1).mockReturnValueOnce(child2);
+
+    const { createOutOfProcessWorker } = await import(
+      "./out-of-process-worker"
+    );
+
+    const worker = await createOutOfProcessWorker({
+      address: "127.0.0.1:7233",
+      namespace: "default",
+      queues: ["advance-a"],
+      workerScript: "/plugin/dist/temporal/worker.js",
+      projectId: "a",
+    });
+
+    expect(worker.queues).toEqual(["advance-a"]);
+    await worker.registerQueue("advance-b");
+
+    expect(mocks.spawn).toHaveBeenCalledTimes(2);
+    expect(mocks.spawn.mock.calls[1][2].env.ADV_TEMPORAL_TASK_QUEUE).toBe(
+      "advance-b",
+    );
+    expect(worker.queues).toEqual(["advance-a", "advance-b"]);
+
+    await worker.shutdown();
+  });
+
+  it("registerQueue is idempotent for already-registered queues", async () => {
+    const child = makeFakeChild();
+    mocks.spawn.mockReturnValue(child);
+
+    const { createOutOfProcessWorker } = await import(
+      "./out-of-process-worker"
+    );
+
+    const worker = await createOutOfProcessWorker({
+      address: "127.0.0.1:7233",
+      namespace: "default",
+      queues: ["advance-dup"],
+      workerScript: "/plugin/dist/temporal/worker.js",
+      projectId: "dup",
+    });
+
+    await worker.registerQueue("advance-dup");
+    expect(mocks.spawn).toHaveBeenCalledTimes(1);
+
+    await worker.shutdown();
+  });
+
+  it("shutdown sends SIGTERM and awaits child exit", async () => {
+    const child = makeFakeChild();
+    mocks.spawn.mockReturnValue(child);
+
+    const { createOutOfProcessWorker } = await import(
+      "./out-of-process-worker"
+    );
+
+    const worker = await createOutOfProcessWorker({
+      address: "127.0.0.1:7233",
+      namespace: "default",
+      queues: ["advance-q"],
+      workerScript: "/plugin/dist/temporal/worker.js",
+      projectId: "q",
+    });
+
+    await worker.shutdown();
+
+    expect(child.kill).toHaveBeenCalledWith("SIGTERM");
+    // Second shutdown is a no-op (doesn't throw)
+    await expect(worker.shutdown()).resolves.toBeUndefined();
+  });
+
+  it("throws when resolveNodeExecutable returns found:false", async () => {
+    mocks.resolveNodeExecutable.mockReturnValueOnce({
+      found: false,
+      source: "none",
+      remediation: "Install Node",
+    });
+
+    const { createOutOfProcessWorker } = await import(
+      "./out-of-process-worker"
+    );
+
+    await expect(
+      createOutOfProcessWorker({
+        address: "127.0.0.1:7233",
+        namespace: "default",
+        queues: ["advance-q"],
+        workerScript: "/plugin/dist/temporal/worker.js",
+        projectId: "q",
+      }),
+    ).rejects.toThrow(/Install Node|Node executable/);
+  });
+});
