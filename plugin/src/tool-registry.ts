@@ -30,6 +30,7 @@ import { gateTools } from "./tools/gate";
 import { testTools } from "./tools/test";
 import { investmentTools } from "./tools/investment";
 import { temporalOpsTools } from "./tools/temporal-ops";
+import { checkpointTools } from "./tools/checkpoint";
 type ToolArgsSchema = Record<string, z.ZodTypeAny>;
 type ToolExecute<TArgs> = (
   args: TArgs,
@@ -351,6 +352,23 @@ export function createToolMap(
         "adv_run_test",
       ),
     ),
+
+    // Checkpoint Tool — adv_task_checkpoint takes (args, store, directory)
+    adv_task_checkpoint: registerTool(
+      checkpointTools.adv_task_checkpoint.description,
+      checkpointTools.adv_task_checkpoint.args,
+      safeExecute(
+        async (args) =>
+          checkpointTools.adv_task_checkpoint.execute(
+            args as Parameters<
+              typeof checkpointTools.adv_task_checkpoint.execute
+            >[0],
+            store,
+            directory,
+          ),
+        "adv_task_checkpoint",
+      ),
+    ),
   };
 }
 
@@ -397,6 +415,7 @@ export const ADV_TOOL_NAMES: readonly string[] = [
   "adv_run_test",
   "adv_temporal_worker_restart",
   "adv_workflow_repair",
+  "adv_task_checkpoint",
 ] as const;
 
 /**
