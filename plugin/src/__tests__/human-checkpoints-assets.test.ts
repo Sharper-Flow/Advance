@@ -27,6 +27,8 @@ describe("rq-autonomy01 human checkpoint assets", () => {
     expect(content).toMatch(/real user-value tradeoffs/i);
     expect(content).toMatch(/ask the user whether the design is acceptable/i);
     expect(content).toMatch(/CONFLICT.*pause/i);
+    expect(content).toMatch(/contract-compromise|compromise.*risk/i);
+    expect(content).toMatch(/acceptance criteria.*constraint|constraint.*avoidance/i);
   });
 
   test("acceptance checkpoint exists and preserves question-before-gate ordering", () => {
