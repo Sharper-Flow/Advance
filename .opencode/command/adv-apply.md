@@ -388,11 +388,8 @@ What was built and how it was verified.
 - {Completion mode: UNASSISTED/GUIDED/PARTIAL TAKEOVER, if relevant}
 - {Cancelled tasks with reasons, if any}
 
-## Next stage
-Acceptance.
-
-## Next
-`/adv-review {change-id}`
+---
+**{change-id}** · execution ✓ → acceptance · `/adv-review {change-id}`
 ```
 
 ---

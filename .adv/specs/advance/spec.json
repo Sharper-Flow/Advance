@@ -936,7 +936,7 @@
     {
       "id": "rq-handoffVoice01",
       "title": "Gate Handoff Voice Spine",
-      "body": "Every /adv-* command that emits a user-facing gate-transition message MUST use the Gate Handoff Voice spine: Problem / Chosen direction / Delivered / Next stage / Next. Canonical source: docs/command-voice-standard.md § Gate Handoff Voice.",
+      "body": "Every /adv-* command that emits a user-facing gate-transition message MUST use the Gate Handoff Voice spine: Problem / Chosen direction / Delivered, followed by a footer line containing the change id, gate transition, and next command. Canonical source: docs/command-voice-standard.md § Gate Handoff Voice.",
       "priority": "must",
       "tags": ["voice", "handoff", "presentation"],
       "scenarios": [
@@ -948,8 +948,8 @@
           ],
           "when": "The handoff message is rendered",
           "then": [
-            "All five spine headings are present: Problem, Chosen direction, Delivered, Next stage, Next",
-            "The archive terminal variant uses Shipped. instead of Next stage and Next"
+            "All three narrative spine headings are present: Problem, Chosen direction, Delivered, plus a footer line below a --- separator",
+            "The archive terminal variant uses **{change-id}** · release ✓ · Shipped. instead of the standard arrow+command footer"
           ]
         },
         {

@@ -354,11 +354,8 @@ Firm plan shape (task structure, approach, not task list).
 - Task graph with dependencies
 - TDD intent assigned per task
 
-## Next stage
-Execution.
-
-## Next
-`/adv-apply {change-id}`
+---
+**{change-id}** · planning ✓ → execution · `/adv-apply {change-id}`
 ```
 
 ---

@@ -350,9 +350,6 @@ Agreed objectives + constraints + user decisions.
 - agreement.md captured
 - Open design questions for /adv-design
 
-## Next stage
-Design.
-
-## Next
-`/adv-design {change-id}`
+---
+**{change-id}** · discovery ✓ → design · `/adv-design {change-id}`
 ```

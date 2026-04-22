@@ -111,9 +111,6 @@ Agreed problem framing + scope boundary.
 - Problem statement confirmed
 - Discovery agenda captured
 
-## Next stage
-Discovery.
-
-## Next
-`/adv-discover {change-id}`
+---
+**{change-id}** · proposal ✓ → discovery · `/adv-discover {change-id}`
 ```

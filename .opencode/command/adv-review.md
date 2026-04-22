@@ -298,11 +298,8 @@ What was reviewed and user-accepted.
 - User acceptance recorded
 - {Remaining caveats, if any}
 
-## Next stage
-Release.
-
-## Next
-`/adv-harden {change-id}`
+---
+**{change-id}** · acceptance ✓ → release · `/adv-harden {change-id}`
 ```
 ---
 ## Anti-Patterns

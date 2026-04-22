@@ -73,6 +73,9 @@ What shipped, what spec deltas applied.
 - Git merge: {default-branch}
 - Cleanup: worktree + temp artifacts
 - Investment: N tasks / M retries / T min / tier: {auto|escalate|hardstop}
+
+---
+**{change-id}** · release ✓ · Shipped.
 ```
 
 ---

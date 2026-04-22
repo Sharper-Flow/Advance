@@ -293,11 +293,8 @@ What was cleaned, hardened, and verified for release.
 - Per-dimension results summarized
 - Cleanup actions taken
 
-## Next stage
-Archive.
-
-## Next
-`/adv-archive {change-id}`
+---
+**{change-id}** · release ✓ → archive · `/adv-archive {change-id}`
 ```
 
 ---
