@@ -179,7 +179,7 @@ Each open design question MUST include:
 
 ### LBP and Tradeoffs
 
-If there are 2+ viable approaches with user-value tradeoffs, use the prioritizer workflow before asking questions.
+If there are 2+ viable approaches with user-value tradeoffs, load `skill("prioritizer")` and apply the criteria-based tradeoff analysis workflow. If the skill is unavailable, continue with the existing inline prioritizer workflow before asking questions.
 
 ### External-Solution Check (gated)
 
