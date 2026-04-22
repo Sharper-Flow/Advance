@@ -28,7 +28,9 @@ describe("rq-autonomy01 human checkpoint assets", () => {
     expect(content).toMatch(/ask the user whether the design is acceptable/i);
     expect(content).toMatch(/CONFLICT.*pause/i);
     expect(content).toMatch(/contract-compromise|compromise.*risk/i);
-    expect(content).toMatch(/acceptance criteria.*constraint|constraint.*avoidance/i);
+    expect(content).toMatch(
+      /acceptance criteria.*constraint|constraint.*avoidance/i,
+    );
   });
 
   test("acceptance checkpoint exists and preserves question-before-gate ordering", () => {
@@ -42,7 +44,9 @@ describe("rq-autonomy01 human checkpoint assets", () => {
 
   test("acceptance criteria checkpoint exists in adv-discover.md before agreement persistence", () => {
     const content = readCommand("adv-discover.md");
-    expect(content).toMatch(/Phase\s+4\.5\.1:\s+Acceptance Criteria Checkpoint/i);
+    expect(content).toMatch(
+      /Phase\s+4\.5\.1:\s+Acceptance Criteria Checkpoint/i,
+    );
     expect(content).toMatch(/Approve acceptance criteria/i);
     expect(content).toMatch(/Start \/adv-clarify/i);
     expect(content).toMatch(/Add or clarify acceptance criteria/i);

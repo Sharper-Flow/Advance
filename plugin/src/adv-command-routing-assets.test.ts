@@ -286,7 +286,9 @@ describe("ADV command routing assets", () => {
 
   test("adv-discover.md Phase 4.5.1 encodes distinct AC checkpoint outcomes", () => {
     const content = readFileSync(join(COMMAND_DIR, "adv-discover.md"), "utf8");
-    expect(content).toMatch(/Phase\s+4\.5\.1:\s+Acceptance Criteria Checkpoint/i);
+    expect(content).toMatch(
+      /Phase\s+4\.5\.1:\s+Acceptance Criteria Checkpoint/i,
+    );
     expect(content).toContain("/adv-clarify");
     expect(content).toMatch(/Approve acceptance criteria/i);
     expect(content).toMatch(/proceed to Phase 4\.6/i);

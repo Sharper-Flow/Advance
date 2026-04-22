@@ -244,8 +244,9 @@ export const AdvancePlugin: Plugin = async ({
         } else if (eventType === "message.updated") {
           // Main-agent completion detector: arm bell-gate when the main agent
           // finishes a non-tool-turn response.
-          const info = (event.properties as Record<string, unknown>)
-            ?.info as Record<string, unknown> | undefined;
+          const info = (event.properties as Record<string, unknown>)?.info as
+            | Record<string, unknown>
+            | undefined;
           if (!info) return;
 
           // Fail-closed: skip if mainSessionId not yet captured
@@ -262,11 +263,13 @@ export const AdvancePlugin: Plugin = async ({
 
           // Only final responses (not tool turns or unknown finish reasons)
           const finish = info.finish as string | undefined;
-          if (!finish || finish === "tool-calls" || finish === "unknown") return;
+          if (!finish || finish === "tool-calls" || finish === "unknown")
+            return;
 
           // Dedup: skip if we already processed this message
           const messageId = info.id as string | undefined;
-          if (!messageId || messageId === lastObservedCompletedMessageId) return;
+          if (!messageId || messageId === lastObservedCompletedMessageId)
+            return;
 
           lastObservedCompletedMessageId = messageId;
           debugLog(

@@ -181,13 +181,17 @@ describe("Design validation policy", () => {
     expect(content).toMatch(/No validation data.*omit section silently/);
     expect(content).toMatch(/CONFLICT.*pause/i);
     expect(content).toMatch(/compromise.*risk|contract-compromise/i);
-    expect(content).toMatch(/keep.*compromise|revise.*design|revisit.*agreement|defer/i);
+    expect(content).toMatch(
+      /keep.*compromise|revise.*design|revisit.*agreement|defer/i,
+    );
   });
 
   test("adv-design.md contains contract-compromise risk assessment with trigger scope", () => {
     const content = readAsset(join(COMMAND_DIR, "adv-design.md"));
     expect(content).toMatch(/Phase 4\.1|contract-compromise risk assessment/i);
-    expect(content).toMatch(/acceptance criteria.*explicit constraints.*stated avoidances|written agreement/i);
+    expect(content).toMatch(
+      /acceptance criteria.*explicit constraints.*stated avoidances|written agreement/i,
+    );
     expect(content).toMatch(/agreement\.md.*amend|amend.*agreement/i);
   });
 
