@@ -25,7 +25,7 @@ Target resolution: file path → read directly, directory → outline all, symbo
 ## Phase 1: Load Skill
 `skill("adv-tron")` → provides investigation protocol, search priorities, evidence requirements, report schema. If the skill is unavailable, continue with the embedded protocol in this command file.
 ## Phase 2: Determine Mode
-Empty args → broad. Non-empty → scoped. Emit: `[ADV:ROCKET] Tron reconnaissance: {mode}`.
+Empty args → broad. Non-empty → scoped. Emit: `[ADV:WORK] Tron reconnaissance: {mode}`.
 ## Phase 3: Gather Context
 1. `adv_project_context` + `adv_change_list` + `adv_agenda_list`
 2. Broad: `lgrep_get_file_tree` for structure. Scoped: resolve target to concrete files/symbols → if unresolved after semantic/symbol/text search, fall back to the closest concrete target or broad reconnaissance and state that choice. Ask via `question` only if multiple plausible interpretations would lead to materially different investigations.

@@ -119,7 +119,7 @@ Every protocol section that can conflict with another MUST include a resolution 
 | Conflict                           | Resolution                                              |
 | ---------------------------------- | ------------------------------------------------------- |
 | TDD required + trivial task        | Set `metadata.tdd_intent: "not_applicable"` with reason |
-| User requests skip + gate required | Emit `[ADV:MIC]`, ask for sign-off                      |
+| User requests skip + gate required | Emit `[ADV:ATTN]`, ask for sign-off                      |
 | Cross-repo + tool unavailable      | Proceed in-place, note in wisdom                        |
 ```
 
@@ -295,7 +295,7 @@ Mid-command banners (CONTRACT ACTIVE, CONTRACT STATUS, CONTRACT FULFILLED, QUICK
 | Banner | Action | Replacement |
 |--------|--------|-------------|
 | CONTRACT ACTIVE | Trim to purpose line | `Working on: {change-id}` + reference to `_contextSnapshot` for state |
-| CONTRACT STATUS | Drop entirely | No per-task status block. State visible via `adv_task_list` and `_contextSnapshot`. Keep `[ADV:TDD_RED]`/`[ADV:TDD_GREEN]` markers — those are semantic signals, not banners |
+| CONTRACT STATUS | Drop entirely | No per-task status block. State visible via `adv_task_list` and `_contextSnapshot`. TDD phase markers (`TDD_RED`/`TDD_GREEN`) were retired — TDD evidence lives in `adv_run_test`/`adv_task_evidence` tool calls |
 | CONTRACT FULFILLED | Replace with spine | Use the canonical three-section spine + footer (apply → review handoff) |
 | QUICK CONTRACT | Keep, apply caveman-lite | Retain contract-confirmation shape (INTENT / SCOPE / SUCCESS CRITERIA). Tighten labels, drop filler. Not a handoff — mid-command confirmation block |
 | READY FOR BUILD | Replace with fast-track spine | Use the fast-track variant above |

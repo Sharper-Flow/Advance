@@ -277,7 +277,7 @@ Only `mode: subagent` agents are spawnable via the Task tool. Current spawnable 
 
 - **Sub-agent returns empty/incomplete:** Retry once with a narrower prompt.
 - **Still failing:** Do the work inline yourself or switch to a different agent type.
-- **3 failures on same task:** Stop → `[ADV:DOOM_LOOP]` → document attempts → ask user via `question`.
+- **3 failures on same task:** Stop → `[ADV:BLOCKED]` → document attempts → ask user via `question`.
 - **MCP/tool failure:** Spawn `mechanic` with the error message and context.
 
 ## Output Contract

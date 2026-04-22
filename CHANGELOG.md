@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+#### Status Marker Redesign: Color-Coded Squares
+
+Terminal status markers redesigned from 7 metaphor emojis to 3-color square system for instant visual scanning.
+
+**Breaking change:** All `[ADV:*]` chat tokens renamed. No compatibility shim provided.
+
+- **New marker set:**
+  - `🟩 [ADV:WORK]` — agent actively working (replaces `🚀 [ADV:ROCKET]`)
+  - `🟨 [ADV:TOOLING]` — tool run or sub-agent in flight (replaces `📡 [ADV:MOON]`)
+  - `🟥 [ADV:ATTN]` — user needed: approval, question, or agent finished (replaces `🎤 [ADV:MIC]` and `🌍 [ADV:EARTH]`)
+  - `🟥💀 [ADV:BLOCKED]` — doom-loop / stuck / crash (replaces `💀 [ADV:DOOM_LOOP]`)
+- **Removed:** `[ADV:TDD_RED]` and `[ADV:TDD_GREEN]` — TDD evidence remains in `adv_run_test`/`adv_task_evidence` tool calls
+- **IDLE semantics:** Agent finished = `🟥` (user must look). Green is reserved for active work only
+- **Bell policy preserved:** ATTN (permission pending) rings immediately; ATTN (armed idle) debounces; BLOCKED→ATTN debounces for recovery
+- **Long-tool yellow:** `adv_run_test` and `adv_task_evidence` opt into `🟨 TOOLING` status while running
+
 ## [0.8.0] - 2026-04-22
 
 ### Added

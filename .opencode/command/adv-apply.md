@@ -194,7 +194,7 @@ Proceed directly to Phase 3 — do NOT ask for approval to begin work. Execution
 ### Diagnosis Requirement (Reflexion)
 Before ANY SEMANTIC fix, emit:
 ```
-[ADV:DOOM_LOOP] RETRY {n}/3
+[ADV:BLOCKED] RETRY {n}/3
 DIAGNOSIS: {root cause analysis}
 FIX: {planned approach}
 ```
@@ -317,9 +317,9 @@ EXPECTED OUTPUT: implement the task, run tests, emit a fenced ENGINEER_REPORT JS
 
 **3a.5. Route:** Evaluate delegation routing (above). If delegated and verified → skip to 3d.
 
-**3b. Red Phase:** `[ADV:TDD_RED]` → write failing test using `edit` / `write` / `morph_edit` → run with `adv_run_test phase:'red'` → show failure evidence
+**3b. Red Phase:** Write failing test using `edit` / `write` / `morph_edit` → run with `adv_run_test phase:'red'` → show failure evidence
 
-**3c. Green Phase:** `[ADV:TDD_GREEN]` → implement using `edit` / `write` / `morph_edit` → run with `adv_run_test phase:'green'` → if fails: retry protocol → show pass evidence
+**3c. Green Phase:** Implement using `edit` / `write` / `morph_edit` → run with `adv_run_test phase:'green'` → if fails: retry protocol → show pass evidence
 
 **3c.5. Checkpoint:** Call `adv_task_checkpoint` with `taskId: <id>`, `workdir: <effective workdir>`.
 - `{status: 'clean' | 'committed'}` → proceed to 3d.
@@ -335,7 +335,7 @@ You MUST continue to the next ready task without pausing. You MUST NOT pause bet
 
 #### Allowed exit conditions (ONLY these end the loop)
 1. `adv_task_ready` returns empty (all ready tasks done) → advance to Phase 5 verification.
-2. Doom-loop triggered (3 failed SEMANTIC retries on a task) → `[ADV:DOOM_LOOP]` + user `question`.
+2. Doom-loop triggered (3 failed SEMANTIC retries on a task) → `[ADV:BLOCKED]` + user `question`.
 3. ENVIRONMENTAL blocker (missing dep, config, credential) → escalate via `question`.
 4. User-requested cancellation → `adv_task_cancel` flow.
 5. Scope expansion requiring re-entry → `adv_change_reenter` flow.
@@ -355,7 +355,7 @@ After EACH task: run build/tests/lint → if fails: retry protocol → only mark
 ---
 ## Phase 4: Progress Tracking
 
-Task state is visible via `_contextSnapshot` and `adv_task_list` — do not emit a per-task status block. Keep status markers (`[ADV:TDD_RED]`/`[ADV:TDD_GREEN]`) — those are semantic signals, not banners.
+Task state is visible via `_contextSnapshot` and `adv_task_list` — do not emit a per-task status block.
 
 ---
 ## Phase 5: Global Final Loop

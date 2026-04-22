@@ -35,7 +35,7 @@ After sub-agents return, orchestrator checks stale deps via Context7 (`context7_
 
 Combine drift, deps, conflicts, tasks, obsolescence findings.
 
-**Intent verification:** If code contradicts requirement → `[ADV:MIC]` → ask via `question`: "New requirement" (update spec) or "Bug in code" (keep spec, flag code).
+**Intent verification:** If code contradicts requirement → `[ADV:ATTN]` → ask via `question`: "New requirement" (update spec) or "Bug in code" (keep spec, flag code).
 
 ---
 ## Phase 3: Refactoring (Under Contract)
