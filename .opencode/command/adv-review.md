@@ -185,7 +185,7 @@ Emit CODE REVIEW banner: per-dimension status, severity breakdown, verdict.
 If APPROVED → skip to completion.
 
 If CHANGES_REQUESTED/BLOCKED → auto-remediation is mandatory:
-1. **Fix all blockers/issues** — no partial fix mode. Spawn `engineer` sub-agent for each fix; expect a fenced `ENGINEER_REPORT` JSON payload per `.opencode/agents/engineer.md`. For non-trivial fixes: research first (Context7/librarian/adv-researcher) → then implement.
+1. **Fix all blockers/issues** — no partial fix mode. Spawn `adv-engineer` sub-agent for each fix; expect a fenced `ENGINEER_REPORT` JSON payload per `.opencode/agents/adv-engineer.md`. For non-trivial fixes: research first (Context7/librarian/adv-researcher) → then implement.
 2. **Investigate suggestions/questions** — validate against specs/tests/code → implement if validated, reject with evidence if not.
 
 ### Drift Detection Rule (CRITICAL)
@@ -321,4 +321,4 @@ Release.
 | List tasks | `adv_task_list` |
 | Spawn analysis | Task tool (explore) |
 | Spawn research | Task tool (librarian / adv-researcher) |
-| Spawn fixes | Task tool (engineer) |
+| Spawn fixes | Task tool (adv-engineer) |
