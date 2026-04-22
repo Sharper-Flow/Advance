@@ -3,6 +3,7 @@ name: adv-proposal
 description: "Extract problem statement, success criteria, and constraints without creating tasks"
 phaseGoal: "Clarify the problem, user needs, and acceptance criteria scope. Establish what and why — no how."
 ---
+<!-- manifest: adv-proposal · gate: proposal · requiresChangeId: false · scope: reads[specs] -->
 
 # ADV Proposal — Establish the Problem Statement
 

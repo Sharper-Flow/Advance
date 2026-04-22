@@ -3,6 +3,7 @@ name: adv-prep
 description: "Analyze gaps and synthesize tasks from validated research findings"
 phaseGoal: "Complete the flight-check: every gap closed, every dependency mapped, every task ready — ready for autonomous implementation."
 ---
+<!-- manifest: adv-prep · gate: planning · requiresChangeId: true · prereqs: [adv-design] · scope: reads[specs, proposal, codebase] · modifies[tasks, proposal] -->
 ---
 # ADV Prep — Pre-Implementation Gap Analysis
 Analyze change for gaps (missing scenarios, tasks, cross-cutting concerns) → add them via ADV tools. Uses 4-Step Gap Analysis and IEEE completeness criteria. Runs **inline** — no sub-agents.

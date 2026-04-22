@@ -2,6 +2,7 @@
 name: adv-design
 description: Validate architecture decisions, produce implementation strategy, and present design for user review
 ---
+<!-- manifest: adv-design · gate: design · requiresChangeId: true · prereqs: [adv-discover] · scope: reads[specs, proposal, codebase] · modifies[proposal] -->
 # ADV Design — Produce the Design Artifact
 Convert the confirmed agreement into a concrete technical design. This command completes the `design` gate and now prepares planning directly.
 ## Command Boundary

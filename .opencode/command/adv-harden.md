@@ -3,6 +3,7 @@ name: adv-harden
 description: "Detect low-quality code, verify test coverage, clean up; block archive on open findings"
 phaseGoal: "Verify production-readiness. Auto-fix scoped issues. Stop on drift."
 ---
+<!-- manifest: adv-harden · requiresChangeId: true · prereqs: [adv-review] · scope: reads[specs, proposal, tasks, codebase] · modifies[codebase] -->
 # ADV Harden — Release-Stage Quality Analysis
 Orchestrate multi-dimensional hardening via sub-agents. This command is part of the release stage and **blocks archive if actionable `REVIEW_FINDINGS` are unresolved.**
 ## Exits

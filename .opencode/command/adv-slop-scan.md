@@ -2,6 +2,7 @@
 name: adv-slop-scan
 description: Scan for AI slop patterns including defensive and nested code
 ---
+<!-- manifest: adv-slop-scan · requiresChangeId: false -->
 # ADV Slop Scan
 > **SUB-AGENT CONTEXT**: Return findings directly. Skip status markers.
 

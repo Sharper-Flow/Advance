@@ -2,6 +2,7 @@
 name: adv-status
 description: Show project overview: specs, active changes, and next-step recommendations
 ---
+<!-- manifest: adv-status · requiresChangeId: false -->
 # ADV Status
 Show current ADV project state: specs, active changes, recommendations.
 ## Execution

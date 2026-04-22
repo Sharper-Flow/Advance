@@ -2,6 +2,7 @@
 name: adv-discover
 description: Gather context, analyze current state, identify objectives, and obtain user agreement
 ---
+<!-- manifest: adv-discover · gate: discovery · requiresChangeId: true · prereqs: [adv-proposal] · scope: reads[specs, proposal, codebase] · modifies[proposal] -->
 
 # ADV Discover — Establish Discovery Findings
 

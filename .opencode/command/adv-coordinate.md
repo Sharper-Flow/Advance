@@ -2,6 +2,7 @@
 name: adv-coordinate
 description: Detect and resolve conflicts across multiple active changes
 ---
+<!-- manifest: adv-coordinate · requiresChangeId: false -->
 # ADV Coordinate — Multi-Change Conflict Detection
 Analyze active changes for file overlaps, semantic conflicts, and dependency cycles. Runs **inline** — no sub-agents.
 ## Pre-flight

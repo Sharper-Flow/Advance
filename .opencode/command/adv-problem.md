@@ -2,6 +2,7 @@
 name: adv-problem
 description: "Triage issues before fixing or drafting a proposal"
 ---
+<!-- manifest: adv-problem · requiresChangeId: false · scope: reads[specs, codebase] -->
 
 # ADV Problem — Collaborative Issue Triage Before Fix
 

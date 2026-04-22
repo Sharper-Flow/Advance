@@ -3,6 +3,7 @@ name: adv-review
 description: "Review code for correctness, security, and architecture; emit REVIEW_FINDINGS"
 phaseGoal: "Verify implementation matches the approved plan. Auto-fix within scope. Stop on drift."
 ---
+<!-- manifest: adv-review · gate: acceptance · requiresChangeId: true · prereqs: [adv-apply] · scope: reads[specs, proposal, tasks, codebase] · modifies[proposal] -->
 # ADV Review — Acceptance-Stage Deliverable Review
 Orchestrate multi-dimensional review of the delivered work. This command is part of the acceptance stage, emits `REVIEW_FINDINGS`, and now carries the post-execution acceptance/sign-off flow directly.
 ## Exits

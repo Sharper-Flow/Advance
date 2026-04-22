@@ -2,6 +2,7 @@
 name: adv-audit
 description: Detect drift between specs and current implementation
 ---
+<!-- manifest: adv-audit · requiresChangeId: false -->
 # ADV Audit — Spec/Implementation Alignment Check
 Multi-phase audit via sub-agents to detect drift between specs and implementation. SonarQube-style quality gates for objective pass/fail.
 

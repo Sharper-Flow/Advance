@@ -3,6 +3,7 @@ name: adv-apply
 description: "Implement change with TDD, retry on failure, and final verification"
 phaseGoal: "Execute the approved plan autonomously. Add discovered tasks within scope. Escalate only on failure."
 ---
+<!-- manifest: adv-apply · gate: execution · requiresChangeId: true · prereqs: [adv-prep] · scope: reads[specs, proposal, tasks, codebase] · modifies[tasks, codebase] -->
 # ADV Apply — Produce Deliverables with TDD and Retry
 Implement an ADV change using TDD. Produce the agreed deliverables — code, docs, ops changes, or verification artifacts — and pursue every task to completion.
 ## Task Completion Policy

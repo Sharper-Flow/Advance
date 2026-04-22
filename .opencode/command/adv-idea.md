@@ -2,6 +2,7 @@
 name: adv-idea
 description: "Explore rough ideas before drafting a proposal"
 ---
+<!-- manifest: adv-idea · requiresChangeId: false · scope: reads[specs, codebase] -->
 
 # ADV Idea — Collaborative Ideation Before Proposal
 

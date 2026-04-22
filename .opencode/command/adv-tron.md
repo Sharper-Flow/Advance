@@ -2,6 +2,7 @@
 name: adv-tron
 description: Investigate codebase structure, hotspots, risks, and suggest follow-up agenda candidates
 ---
+<!-- manifest: adv-tron · requiresChangeId: false -->
 # ADV Tron — Codebase Reconnaissance
 Investigate codebase to map structure, identify hotspots, surface risks, suggest follow-up work. Read-only — × never modifies files or ADV state.
 <UserRequest>

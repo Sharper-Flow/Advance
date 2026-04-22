@@ -3,6 +3,7 @@ name: adv-research
 description: "Produce a defined, fully-researched proposed plan ready for user approval"
 phaseGoal: "Produce a defined, fully-researched proposed plan ready for user approval. Validate the how."
 ---
+<!-- manifest: adv-research · requiresChangeId: false · prereqs: [adv-proposal] · scope: reads[specs, proposal, codebase] · modifies[proposal] -->
 
 # ADV Research — Architectural Decision Validation
 

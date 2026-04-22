@@ -2,6 +2,7 @@
 name: adv-validate
 description: Validate change compliance against specs; block archive on failure
 ---
+<!-- manifest: adv-validate · requiresChangeId: true · prereqs: [adv-proposal] -->
 # ADV Validate — Check Change Against Specs
 Validate change proposal against deployed specs via `adv_change_validate`.
 <UserRequest>
