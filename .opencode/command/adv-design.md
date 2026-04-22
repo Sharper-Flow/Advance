@@ -113,7 +113,7 @@ Show a compact summary with:
 - key decisions
 - implementation strategy
 - major risks / tradeoffs
-- optional visual comparison block when side-by-side design alternatives are easier to judge than prose alone
+- optional visual comparison block when side-by-side design alternatives are easier to judge than prose alone. Load `skill("adv-user-intuit")` for the structured comparison presentation protocol if the skill is available; otherwise continue with the existing inline comparison workflow
 - **Validator Result** — always display validator outcome from Phase 3.5/3.6 when validation data exists:
   - `VALIDATED` → one-line note: "Validator: clean pass ✓"
   - `CAUTION` → list caution findings inline (brief, one sentence each)
