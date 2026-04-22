@@ -300,6 +300,82 @@ PY
 }
 
 # ---------------------------------------------------------------------------
+# Provider ADV Variant Generation
+#
+# Generates adv-{provider}.md variants from the canonical adv.md by copying
+# + patching frontmatter name + injecting a small provider hint block.
+# The canonical adv.md remains the single source of truth.
+# ---------------------------------------------------------------------------
+PROVIDER_HINT_DIR="$REPO_AGENTS/parts/providers"
+PROVIDERS=(claude gpt glm kimi)
+
+generate_provider_variants() {
+  local canonical="$GLOBAL_AGENTS/adv.md"
+  if [ ! -f "$canonical" ]; then
+    echo "    ⚠  canonical adv.md missing — skipping provider variant generation"
+    return
+  fi
+
+  for provider in "${PROVIDERS[@]}"; do
+    local hint_file="$PROVIDER_HINT_DIR/${provider}.md"
+    local variant="$GLOBAL_AGENTS/adv-${provider}.md"
+
+    if [ ! -f "$hint_file" ]; then
+      echo "    ⚠  provider hint missing: $hint_file"
+      continue
+    fi
+
+    if [ "$DRY_RUN" = true ]; then
+      echo "    dry-run generate variant: adv-${provider}.md"
+      continue
+    fi
+
+    # Copy canonical and patch frontmatter name
+    local tmp_variant
+    tmp_variant="$(mktemp)"
+    sed -E "s/^(name:[[:space:]]*).*/\1adv-${provider}/" "$canonical" > "$tmp_variant"
+
+    # inject provider hint after ADV overlay block
+    local hint_block
+    hint_block="$(cat "$hint_file")"
+    local end_marker="<!-- ADV_SYNC:END adv -->"
+    python - <<'PY' "$tmp_variant" "$end_marker" "$hint_block" "$variant"
+from pathlib import Path
+import sys
+
+target_path, end_marker, hint_block, output_path = sys.argv[1:5]
+target = Path(target_path).read_text()
+end = target.find(end_marker)
+if end != -1:
+    end += len(end_marker)
+    while end < len(target) and target[end] == "\n":
+        end += 1
+    result = target[:end] + "\n" + hint_block + "\n" + target[end:]
+else:
+    result = target + "\n" + hint_block + "\n"
+
+Path(output_path).write_text(result)
+PY
+
+    rm -f "$tmp_variant"
+    echo "    generated variant: adv-${provider}.md"
+  done
+}
+
+# Check whether global opencode.json has any agent.adv-* keys configured.
+# Used to gate legacy adv.md removal so we don't break existing setups
+# until the user has explicitly opted into provider variants.
+provider_adv_configured_in_json() {
+  if [ ! -f "$GLOBAL_JSON" ]; then
+    return 1
+  fi
+  if ! check_jq; then
+    return 1
+  fi
+  jsonc_to_json "$GLOBAL_JSON" | jq -e '.agent // {} | keys[] | select(startswith("adv-"))' &>/dev/null
+}
+
+# ---------------------------------------------------------------------------
 # Agent Tool Allowlist Drift Check
 #
 # Cross-references the `adv` agent's `tools:` allowlist in
@@ -309,7 +385,7 @@ PY
 # (= stale allowlist entries). Both are build-time-detectable drift causes.
 # ---------------------------------------------------------------------------
 check_tool_drift() {
-  local agent_file="$REPO_AGENTS/adv.md"
+  local agent_file="${1:-$REPO_AGENTS/adv.md}"
   local registry_file="$REPO_ROOT/plugin/src/tool-registry.ts"
 
   if [ ! -f "$agent_file" ] || [ ! -f "$registry_file" ]; then
@@ -361,24 +437,35 @@ missing = sorted(registered - allowed)   # registered but not allowed
 extras = sorted(allowed - registered)    # allowed but not registered
 
 issues = 0
+agent_name = Path(agent_path).name
 if missing:
     issues += 1
-    print(f"    ✗  tool drift: {len(missing)} tool(s) registered but NOT in adv agent allowlist")
+    print(f"    ✗  tool drift: {len(missing)} tool(s) registered but NOT in {agent_name} allowlist")
     print(f"       (the agent cannot call these — they will be invisible in sessions)")
     for t in missing:
         print(f"         - {t}")
 if extras:
     issues += 1
-    print(f"    ✗  tool drift: {len(extras)} tool(s) allowed but NOT registered")
+    print(f"    ✗  tool drift: {len(extras)} tool(s) allowed but NOT registered in {agent_name}")
     print(f"       (allowlist references renamed/removed tools — will be silently dropped)")
     for t in extras:
         print(f"         - {t}")
 
 if issues == 0:
-    print(f"    ✓  tool drift: agent allowlist matches plugin registry ({len(registered)} tools)")
+    print(f"    ✓  tool drift: {agent_name} allowlist matches plugin registry ({len(registered)} tools)")
 
 sys.exit(1 if issues > 0 else 0)
 PY
+}
+
+# Check tool drift for all provider variants
+check_provider_variant_drifts() {
+  for provider in "${PROVIDERS[@]}"; do
+    local variant_file="$REPO_AGENTS/adv-${provider}.md"
+    if [ -f "$variant_file" ]; then
+      check_tool_drift "$variant_file"
+    fi
+  done
 }
 
 check_config() {
@@ -440,6 +527,7 @@ check_config() {
 
   # Cross-check agent tool allowlist against plugin registry
   check_tool_drift
+  check_provider_variant_drifts
 
   # Warn about stale global copy (wastes ~7K tokens per prompt)
   local stale_instr="~/.config/opencode/instructions/ADV_INSTRUCTIONS.md"
@@ -736,6 +824,10 @@ if [ -d "$REPO_AGENTS" ]; then
 fi
 echo "    $agents_copied agent(s) synced"
 
+# Generate provider ADV variants from canonical adv.md
+# (copy + patch frontmatter name + inject provider hint)
+generate_provider_variants
+
 # Apply repo-owned overlays to shared global agents without replacing the file.
 # `adv` is intentionally NOT in this list — see SHARED_OVERLAY_ONLY note above.
 if [ -d "$REPO_OVERLAYS" ]; then
@@ -753,6 +845,12 @@ remove_stale_agent_if_needed() {
   [ -f "$global_agent" ] || return 0
   local name
   name="$(basename "$global_agent")"
+  # Skip generated provider variants — they are not in repo but are managed
+  for provider in "${PROVIDERS[@]}"; do
+    if [ "$name" = "adv-${provider}.md" ]; then
+      return 0
+    fi
+  done
   # Remove if no longer in repo OR if it's repo-local-only
   if [ ! -f "$REPO_AGENTS/$name" ] || echo " $REPO_LOCAL_ONLY " | grep -q " $name "; then
     if [ "$DRY_RUN" = true ]; then
@@ -771,6 +869,27 @@ for legacy_name in "${LEGACY_STALE_AGENT_FILES[@]}"; do
   remove_stale_agent_if_needed "$GLOBAL_AGENTS/$legacy_name"
 done
 [ "$agents_removed" -gt 0 ] && echo "    $agents_removed stale agent(s) removed" || true
+
+# ---------------------------------------------------------------------------
+# Legacy adv.md removal (gated)
+#
+# Only remove the legacy adv.md from global agents when the user has
+# explicitly configured provider variants in opencode.json via agent.adv-*
+# keys. This prevents breaking existing setups that rely on the canonical
+# adv.md before they opt into provider-ADV mode.
+# ---------------------------------------------------------------------------
+if [ -f "$GLOBAL_AGENTS/adv.md" ]; then
+  if provider_adv_configured_in_json; then
+    if [ "$DRY_RUN" = true ]; then
+      echo "    dry-run remove legacy adv.md (gated: agent.adv-* keys found in opencode.json)"
+    else
+      rm "$GLOBAL_AGENTS/adv.md"
+      echo "    removed legacy adv.md (gated: agent.adv-* keys found in opencode.json)"
+    fi
+  else
+    echo "    kept legacy adv.md (no agent.adv-* keys in opencode.json — migration not triggered)"
+  fi
+fi
 
 # ---------------------------------------------------------------------------
 # 6. Sync ADV skills from skills/ to global
