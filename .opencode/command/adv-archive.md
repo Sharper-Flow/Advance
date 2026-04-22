@@ -88,6 +88,15 @@ Stage `.adv/specs/`, `docs/specs/`, `.adv/archive/`, `.opencode/`, `plugin/`, `A
 `git branch --show-current` → if on `change/{change-id}` → merge required. If on default branch → skip merge.
 ### Step 4: Merge
 `git checkout {default-branch}` → `git merge --no-edit change/{change-id}`. If conflicts → stop, user resolves. Alternative (PR workflow): push + `gh pr create`.
+
+### Step 4.5: Publish Safety (when pushing a default branch)
+If archive finalization needs a remote push from the default branch:
+- `git fetch origin`
+- `git log --oneline origin/{default-branch}..HEAD` → inspect the commits that will publish
+- If `origin/{default-branch}..HEAD` is a clean fast-forward → `git push origin {default-branch}`
+- × Do NOT force-push by default
+- Use `--force-with-lease` only after explicit review confirms a non-fast-forward publish is intended
+- If remote divergence is detected and intent is unclear → stop and ask the user
 ### Step 5: Verify
 `git log --oneline {default-branch}..change/{change-id}` → MUST return empty. If non-empty → stop, × do NOT delete worktree.
 ### Step 6: Cleanup Worktree
