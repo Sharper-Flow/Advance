@@ -225,16 +225,16 @@ Only `mode: subagent` agents are spawnable via the Task tool. Current spawnable 
 | ---------------- | -------------------------------------------------------------------- | ------------------------------------- |
 | `librarian`      | Need docs, API refs, best practices                                  | Sourced findings with examples        |
 | `explore`        | Need codebase structure, find patterns                               | File paths, snippets, analysis        |
-| `engineer`       | Delegate ADV code-writing execution (implementation, remediation fixes) | Completed changes + fenced ENGINEER_REPORT JSON payload |
+| `adv-engineer`   | Delegate ADV code-writing execution (implementation, remediation fixes) | Completed changes + fenced ENGINEER_REPORT JSON payload |
 | `general`        | Need verify-only / generic multi-step bursts (lint/typecheck/test suites) | Completed changes or verify results (file:line refs) |
 | `mechanic`       | Tool/MCP/infra failure                                               | Diagnosis and fix                     |
 | `adv-researcher` | Need architecture validation (ADV-managed bundled global specialist) | Assessment with recommendations       |
-| `tron`           | Codebase reconnaissance, hotspots, risk mapping                      | Structure + risk report               |
+| `adv-tron`       | Codebase reconnaissance, hotspots, risk mapping                      | Structure + risk report               |
 | `prioritizer`    | Multi-approach tradeoff analysis needing criteria questions          | Draft criteria questions for the user |
 
-> `engineer` is the preferred target for ADV code-writing delegation; `general` remains for verify-only and generic multi-step work; Build stays primary-only.
+> `adv-engineer` is the preferred target for ADV code-writing delegation; `general` remains for verify-only and generic multi-step work; Build stays primary-only.
 >
-> **Primary agents (not spawnable):** `build` and `plan` are `mode: primary` — the user switches to them directly; they cannot be invoked via the Task tool. Delegate execution/verify work to `engineer` or `general`; delegate planning research to `librarian` + `adv-researcher` or work inline.
+> **Primary agents (not spawnable):** `build` and `plan` are `mode: primary` — the user switches to them directly; they cannot be invoked via the Task tool. Delegate execution/verify work to `adv-engineer` or `general`; delegate planning research to `librarian` + `adv-researcher` or work inline.
 
 > **Tradeoff analysis shortcut:** For simple multi-approach decisions, you can also load `skill("prioritizer")` inline instead of spawning the `prioritizer` subagent.
 
