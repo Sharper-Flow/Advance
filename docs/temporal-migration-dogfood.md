@@ -2,11 +2,11 @@
 
 > @deprecated Transitional artifact. Deleted by D3b at Phase D cutover.
 
-Generated: 2026-04-20T23:17:24.658Z
+Generated: 2026-04-22T19:53:33.656Z
 
-- Sweep outcome: **done** (runId `bootstrap-1776727041781`)
-- Projects: 18
-- Done: 18
+- Sweep outcome: **done** (runId `bootstrap-1776887562499`)
+- Projects: 22
+- Done: 22
 - Failed: 0
 - Pending (deadline hit): 0
 
@@ -14,13 +14,13 @@ Generated: 2026-04-20T23:17:24.658Z
 
 ```json
 {
-  "startedAt": "2026-04-20T23:16:48.881Z",
-  "completedAt": "2026-04-20T23:17:24.658Z",
+  "startedAt": "2026-04-22T19:52:27.374Z",
+  "completedAt": "2026-04-22T19:53:33.656Z",
   "deadlineMs": 300000,
   "sweepOutcome": "done",
-  "sweepRunId": "bootstrap-1776727041781",
-  "projectCount": 18,
-  "doneCount": 18,
+  "sweepRunId": "bootstrap-1776887562499",
+  "projectCount": 22,
+  "doneCount": 22,
   "failedCount": 0,
   "pendingCount": 0,
   "perProject": [
@@ -32,8 +32,8 @@ Generated: 2026-04-20T23:17:24.658Z
           "key": "project-import",
           "source": "external_state",
           "status": "done",
-          "recordedAt": "2026-04-20T23:12:11.505Z",
-          "detail": "imported 289 changes"
+          "recordedAt": "2026-04-22T19:52:42.678Z",
+          "detail": "imported 299 changes"
         }
       ],
       "status": "done"
@@ -46,8 +46,8 @@ Generated: 2026-04-20T23:17:24.658Z
           "key": "project-import",
           "source": "external_state",
           "status": "done",
-          "recordedAt": "2026-04-20T23:12:17.349Z",
-          "detail": "imported 251 changes"
+          "recordedAt": "2026-04-22T19:52:44.772Z",
+          "detail": "imported 261 changes"
         }
       ],
       "status": "done"
@@ -60,8 +60,8 @@ Generated: 2026-04-20T23:17:24.658Z
           "key": "project-import",
           "source": "external_state",
           "status": "done",
-          "recordedAt": "2026-04-20T23:12:22.743Z",
-          "detail": "imported 281 changes"
+          "recordedAt": "2026-04-22T19:52:47.411Z",
+          "detail": "imported 291 changes"
         }
       ],
       "status": "done"
@@ -74,8 +74,8 @@ Generated: 2026-04-20T23:17:24.658Z
           "key": "project-import",
           "source": "external_state",
           "status": "done",
-          "recordedAt": "2026-04-20T23:17:01.517Z",
-          "detail": "imported 256 changes"
+          "recordedAt": "2026-04-22T19:52:50.133Z",
+          "detail": "imported 269 changes"
         }
       ],
       "status": "done"
@@ -88,8 +88,8 @@ Generated: 2026-04-20T23:17:24.658Z
           "key": "project-import",
           "source": "external_state",
           "status": "done",
-          "recordedAt": "2026-04-20T23:17:06.632Z",
-          "detail": "imported 313 changes"
+          "recordedAt": "2026-04-22T19:52:52.792Z",
+          "detail": "imported 325 changes"
         }
       ],
       "status": "done"
@@ -102,8 +102,8 @@ Generated: 2026-04-20T23:17:24.658Z
           "key": "project-import",
           "source": "external_state",
           "status": "done",
-          "recordedAt": "2026-04-20T23:17:11.059Z",
-          "detail": "imported 292 changes"
+          "recordedAt": "2026-04-22T19:52:55.376Z",
+          "detail": "imported 304 changes"
         }
       ],
       "status": "done"
@@ -116,8 +116,22 @@ Generated: 2026-04-20T23:17:24.658Z
           "key": "project-import",
           "source": "external_state",
           "status": "done",
-          "recordedAt": "2026-04-20T23:17:18.271Z",
-          "detail": "imported 295 changes"
+          "recordedAt": "2026-04-22T19:52:57.970Z",
+          "detail": "imported 2 changes"
+        }
+      ],
+      "status": "done"
+    },
+    {
+      "projectId": "7b8eec0e051042b0e25fd43a8ebb8f73ea7a1f95",
+      "workflowStarted": true,
+      "ledger": [
+        {
+          "key": "project-import",
+          "source": "external_state",
+          "status": "done",
+          "recordedAt": "2026-04-22T19:52:58.210Z",
+          "detail": "imported 1 changes"
         }
       ],
       "status": "done"
@@ -130,8 +144,8 @@ Generated: 2026-04-20T23:17:24.658Z
           "key": "project-import",
           "source": "external_state",
           "status": "done",
-          "recordedAt": "2026-04-20T23:12:13.068Z",
-          "detail": "imported 297 changes"
+          "recordedAt": "2026-04-22T19:52:58.544Z",
+          "detail": "imported 307 changes"
         }
       ],
       "status": "done"
@@ -144,8 +158,22 @@ Generated: 2026-04-20T23:17:24.658Z
           "key": "project-import",
           "source": "external_state",
           "status": "done",
-          "recordedAt": "2026-04-20T23:12:18.990Z",
-          "detail": "imported 538 changes"
+          "recordedAt": "2026-04-22T19:53:01.669Z",
+          "detail": "imported 550 changes"
+        }
+      ],
+      "status": "done"
+    },
+    {
+      "projectId": "proj123",
+      "workflowStarted": true,
+      "ledger": [
+        {
+          "key": "project-import",
+          "source": "external_state",
+          "status": "done",
+          "recordedAt": "2026-04-22T19:53:06.762Z",
+          "detail": "imported 10 changes"
         }
       ],
       "status": "done"
@@ -158,8 +186,8 @@ Generated: 2026-04-20T23:17:24.658Z
           "key": "project-import",
           "source": "external_state",
           "status": "done",
-          "recordedAt": "2026-04-20T23:16:52.850Z",
-          "detail": "imported 309 changes"
+          "recordedAt": "2026-04-22T19:53:07.121Z",
+          "detail": "imported 323 changes"
         }
       ],
       "status": "done"
@@ -172,8 +200,8 @@ Generated: 2026-04-20T23:17:24.658Z
           "key": "project-import",
           "source": "external_state",
           "status": "done",
-          "recordedAt": "2026-04-20T23:17:15.430Z",
-          "detail": "imported 293 changes"
+          "recordedAt": "2026-04-22T19:53:09.944Z",
+          "detail": "imported 303 changes"
         }
       ],
       "status": "done"
@@ -186,8 +214,8 @@ Generated: 2026-04-20T23:17:24.658Z
           "key": "project-import",
           "source": "external_state",
           "status": "done",
-          "recordedAt": "2026-04-20T23:17:22.443Z",
-          "detail": "imported 281 changes"
+          "recordedAt": "2026-04-22T19:53:12.796Z",
+          "detail": "imported 291 changes"
         }
       ],
       "status": "done"
@@ -200,8 +228,22 @@ Generated: 2026-04-20T23:17:24.658Z
           "key": "project-import",
           "source": "external_state",
           "status": "done",
-          "recordedAt": "2026-04-20T23:16:52.997Z",
-          "detail": "imported 338 changes"
+          "recordedAt": "2026-04-22T19:53:15.896Z",
+          "detail": "imported 467 changes"
+        }
+      ],
+      "status": "done"
+    },
+    {
+      "projectId": "2662dcd647f54b5f9befe941c516e21a1dbc51b8",
+      "workflowStarted": true,
+      "ledger": [
+        {
+          "key": "project-import",
+          "source": "external_state",
+          "status": "done",
+          "recordedAt": "2026-04-22T19:53:20.595Z",
+          "detail": "imported 1 changes"
         }
       ],
       "status": "done"
@@ -214,8 +256,8 @@ Generated: 2026-04-20T23:17:24.658Z
           "key": "project-import",
           "source": "external_state",
           "status": "done",
-          "recordedAt": "2026-04-20T23:17:00.612Z",
-          "detail": "imported 252 changes"
+          "recordedAt": "2026-04-22T19:53:20.986Z",
+          "detail": "imported 264 changes"
         }
       ],
       "status": "done"
@@ -228,8 +270,8 @@ Generated: 2026-04-20T23:17:24.658Z
           "key": "project-import",
           "source": "external_state",
           "status": "done",
-          "recordedAt": "2026-04-20T23:17:18.701Z",
-          "detail": "imported 250 changes"
+          "recordedAt": "2026-04-22T19:53:23.627Z",
+          "detail": "imported 260 changes"
         }
       ],
       "status": "done"
@@ -242,8 +284,8 @@ Generated: 2026-04-20T23:17:24.658Z
           "key": "project-import",
           "source": "external_state",
           "status": "done",
-          "recordedAt": "2026-04-20T23:16:52.809Z",
-          "detail": "imported 286 changes"
+          "recordedAt": "2026-04-22T19:53:26.210Z",
+          "detail": "imported 296 changes"
         }
       ],
       "status": "done"
@@ -256,8 +298,22 @@ Generated: 2026-04-20T23:17:24.658Z
           "key": "project-import",
           "source": "external_state",
           "status": "done",
-          "recordedAt": "2026-04-20T23:12:13.938Z",
-          "detail": "imported 288 changes"
+          "recordedAt": "2026-04-22T19:53:29.443Z",
+          "detail": "imported 299 changes"
+        }
+      ],
+      "status": "done"
+    },
+    {
+      "projectId": "3ce4989605909e1bec314aef40c3dac5f029fbb7",
+      "workflowStarted": true,
+      "ledger": [
+        {
+          "key": "project-import",
+          "source": "external_state",
+          "status": "done",
+          "recordedAt": "2026-04-22T19:53:32.286Z",
+          "detail": "imported 1 changes"
         }
       ],
       "status": "done"
@@ -270,8 +326,8 @@ Generated: 2026-04-20T23:17:24.658Z
           "key": "project-import",
           "source": "external_state",
           "status": "done",
-          "recordedAt": "2026-04-20T23:12:20.574Z",
-          "detail": "imported 290 changes"
+          "recordedAt": "2026-04-22T19:53:32.549Z",
+          "detail": "imported 300 changes"
         }
       ],
       "status": "done"
