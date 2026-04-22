@@ -19,11 +19,11 @@ Specs are laws. Requirements are formally defined, validated, and enforced.
 |------|------|
 | Spec conflicts with proposal | Spec wins |
 | Gate incomplete | Archive blocked |
-| 3 failed task attempts | Stop → `[ADV:DOOM_LOOP]` → escalate |
+| 3 failed task attempts | Stop → `[ADV:BLOCKED]` → escalate |
 | Cross-repo task | Execute in target repo via `workdir` |
 | User requests cancellation | Require approval via `adv_task_cancel` |
 | TDD required + trivial task | Mark trivial with reason, skip TDD |
-| User requests skip + gate required | `[ADV:MIC]` → ask for sign-off |
+| User requests skip + gate required | `[ADV:ATTN]` → ask for sign-off |
 
 ## HITL Boundary Model
 
@@ -47,7 +47,7 @@ For autonomous phases (`/adv-review`, `/adv-harden`), before auto-remediating an
 
 > "If I apply this fix, will `proposal.md`'s **Success Criteria**, **Acceptance Criteria**, or **Out-of-Scope** sections need to change?"
 
-- **YES** → STOP. Present finding to user via `question` tool (`[ADV:MIC]`).
+- **YES** → STOP. Present finding to user via `question` tool (`[ADV:ATTN]`).
 - **NO** → Auto-remediate within scope.
 
 ### Prep Gate Machine Enforcement
@@ -156,13 +156,10 @@ Emit at START of each response:
 
 | Marker | When | Emoji |
 |--------|------|-------|
-| `[ADV:ROCKET]` | Active work | 🚀 |
-| `[ADV:TDD_RED]` | Writing tests | 🔴 |
-| `[ADV:TDD_GREEN]` | Implementing | 🟢 |
-| `[ADV:MOON]` | Sub-agents running | 📡 |
-| `[ADV:EARTH]` | Complete / awaiting input | 🌍 |
-| `[ADV:DOOM_LOOP]` | Stuck in retry cycle | 💀 |
-| `[ADV:MIC]` | Needs user approval | 🎤 |
+| `[ADV:WORK]` | Agent actively working | 🟩 |
+| `[ADV:TOOLING]` | Tool run or sub-agent in flight | 🟨 |
+| `[ADV:ATTN]` | User needed (approval, question, or agent finished) | 🟥 |
+| `[ADV:BLOCKED]` | Doom-loop / stuck / crash | 🟥💀 |
 | `[ADV:TASK_STATUS_REPORT]` | Task report | — |
 
 Tab title: `<emoji> <normalized change>` (strip verb prefixes, Title Case). System-emitted: `[ADV:ACCUMULATED_WISDOM]`, `[ADV:TODO_CONTINUATION]`, `[ADV:RECORD_WISDOM]`
@@ -233,8 +230,8 @@ TodoWrite: use task IDs only (`tk-abc123`), not descriptions.
 
 Inline TDD is default — red/green phases WITHIN each task. × Do NOT create separate test tasks for same scope.
 
-- **RED:** `[ADV:TDD_RED]` → write failing test using editing tool (`edit` / `write` / `morph_edit`) → run with `adv_run_test phase:'red'` → show failure evidence
-- **GREEN:** `[ADV:TDD_GREEN]` → implement using editing tool → run with `adv_run_test phase:'green'` → if fails: retry protocol → show pass evidence
+- **RED:** Write failing test using editing tool (`edit` / `write` / `morph_edit`) → run with `adv_run_test phase:'red'` → show failure evidence
+- **GREEN:** Implement using editing tool → run with `adv_run_test phase:'green'` → if fails: retry protocol → show pass evidence
 - **Trivial:** Note `(trivial: docs change)`, skip TDD
 - **Cross-cutting:** Separate verification tasks OK → mark `metadata.tdd_intent: "separate_verification"`
 
@@ -283,7 +280,7 @@ Cross-link: `/adv-apply` command (`.opencode/command/adv-apply.md`) step 3c.5. `
 | 🔁 Doom Loop | 3 failed attempts |
 | 🌍 Environmental | Missing dependency → escalate |
 
-After 3 failures: STOP → `[ADV:DOOM_LOOP]` → document all 3 attempts → ask via `question`. Record `strategy_label` in `error_recovery.attempts[]`.
+After 3 failures: STOP → `[ADV:BLOCKED]` → document all 3 attempts → ask via `question`. Record `strategy_label` in `error_recovery.attempts[]`.
 
 | × Bad | ✓ Good |
 |-------|--------|

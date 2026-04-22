@@ -322,7 +322,12 @@ export const AdvancePlugin: Plugin = async ({
         // Long-running tools opt into TOOLING status (yellow tab)
         const LONG_TOOLS = new Set(["adv_run_test", "adv_task_evidence"]);
         if (LONG_TOOLS.has(input.tool)) {
-          setStatus(resolveStatus({ ...state, activeSubAgents: state.activeSubAgents + 1 }));
+          setStatus(
+            resolveStatus({
+              ...state,
+              activeSubAgents: state.activeSubAgents + 1,
+            }),
+          );
         }
       } catch (e) {
         debugLog(`tool.execute.before error: ${e}`);
