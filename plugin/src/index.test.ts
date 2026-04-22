@@ -180,11 +180,11 @@ describe("Advance Plugin SDK Integration", () => {
   // ===========================================================================
 
   describe("Tool Registration", () => {
-    test("registers all 38 tools", async () => {
+    test("registers all 39 tools", async () => {
       const hooks = await createTrackedPlugin(tempDir, pluginInstances);
 
       const toolNames = Object.keys(hooks.tool!);
-      expect(toolNames).toHaveLength(38);
+      expect(toolNames).toHaveLength(39);
     });
 
     test("registers spec tools", async () => {

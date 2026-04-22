@@ -284,6 +284,25 @@ Visual comparison blocks are supplementary context, not a replacement for the `q
 - Up to 5 questions per round via the `question` tool
 - Unrelated questions should be separate prompts within the same round
 
+### Phase 4.5.1: Acceptance Criteria Checkpoint
+
+**Purpose:** Dedicated checkpoint for acceptance-criteria agreement before `agreement.md` persistence and before the `discovery` gate completes. This separates AC approval from the broader agreement sign-off that follows in Phase 4.6.
+
+**Requirement:** `rq-disc12` — Explicit Acceptance Criteria Checkpoint.
+
+**When:** After Phase 4.5 (Open Question Resolution Loop) and before Phase 4.6 (Persist Agreement).
+
+**Protocol:**
+1. Present the **draft acceptance criteria** as a focused, numbered list. Separate this from the broader agreement view (objectives, constraints, avoidances).
+2. Use the `question` tool with these three outcomes:
+   - **Approve acceptance criteria (Recommended)** — proceed to Phase 4.6
+   - **Start /adv-clarify** — stop `/adv-discover` immediately; do not persist `agreement.md`; do not call `adv_gate_complete`; instruct the user to run `/adv-clarify {change-id}` and then rerun `/adv-discover {change-id}`
+   - **Add or clarify acceptance criteria** — capture user input, normalize into revised AC bullets, and re-run this checkpoint
+3. If AC are empty or weak, keep the approve option but remove the "(Recommended)" suffix.
+4. Do not proceed to Phase 4.6 until AC are approved.
+
+**× MUST NOT:** Complete `discovery` gate without AC approval. Do not invoke `/adv-clarify` directly — pause and hand off to the user.
+
 ### Phase 4.6: Persist Agreement
 Once confirmed and all open questions are resolved (or explicitly deferred), write `agreement.md` through `adv_change_update`.
 

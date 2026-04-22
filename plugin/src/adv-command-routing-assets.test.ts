@@ -284,6 +284,13 @@ describe("ADV command routing assets", () => {
     );
   });
 
+  test("adv-discover.md Phase 4.5.1 references /adv-clarify branch and Acceptance Criteria Checkpoint heading", () => {
+    const content = readFileSync(join(COMMAND_DIR, "adv-discover.md"), "utf8");
+    expect(content).toContain("Acceptance Criteria Checkpoint");
+    expect(content).toContain("/adv-clarify");
+    expect(content).toMatch(/Approve acceptance criteria/i);
+  });
+
   test("adv-apply.md delegation routing points to adv-engineer (not general or bare engineer)", () => {
     const content = readFileSync(join(COMMAND_DIR, "adv-apply.md"), "utf8");
     const delegationSection =

@@ -38,6 +38,22 @@ describe("rq-autonomy01 human checkpoint assets", () => {
     expect(review).toMatch(/acceptance|accept.*(sign.?off|approve)/i);
   });
 
+  test("acceptance criteria checkpoint exists in adv-discover.md before agreement persistence", () => {
+    const content = readCommand("adv-discover.md");
+    expect(content).toContain("Phase 4.5.1: Acceptance Criteria Checkpoint");
+    expect(content).toMatch(/Approve acceptance criteria/i);
+    expect(content).toMatch(/Start \/adv-clarify/i);
+    expect(content).toMatch(/Add or clarify acceptance criteria/i);
+    const checkpointIdx = content.indexOf("Phase 4.5.1: Acceptance Criteria Checkpoint");
+    const persistIdx = content.indexOf("Phase 4.6: Persist Agreement");
+    expect(checkpointIdx).toBeGreaterThanOrEqual(0);
+    expect(persistIdx).toBeGreaterThanOrEqual(0);
+    expect(checkpointIdx).toBeLessThan(persistIdx);
+    // Existing agreement sign-off assertions must still hold
+    expect(content).toMatch(/Ask for explicit user confirmation or edits/i);
+    expect(content).toMatch(/agreement\.md/);
+  });
+
   test("archive sign-off remains in adv-archive.md", () => {
     const content = readCommand("adv-archive.md");
     expect(content).toMatch(/Ask via `question`/i);
