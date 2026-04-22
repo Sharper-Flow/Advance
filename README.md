@@ -113,6 +113,8 @@ When a change has multiple viable directions with real user-value tradeoffs, pri
 | Command           | Description                                                                                          |
 | ----------------- | ---------------------------------------------------------------------------------------------------- |
 | `/adv-status`     | Show project overview: specs, active changes, and next-step recommendations                          |
+| `/adv-idea`       | Explore rough ideas before drafting a proposal                                                       |
+| `/adv-problem`    | Triage issues before fixing or drafting a proposal                                                   |
 | `/adv-proposal`   | Extract problem statement, success criteria, and constraints without creating tasks                  |
 | `/adv-validate`   | Validate change compliance against specs; block archive on failure                                   |
 | `/adv-archive`    | Archive completed change: apply spec deltas and finalize git                                         |

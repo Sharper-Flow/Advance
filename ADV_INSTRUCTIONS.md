@@ -31,6 +31,8 @@ Each workflow phase has a defined collaboration mode. Agents self-enforce these 
 
 | Phase | Mode | Detail |
 |-------|------|--------|
+| `/adv-idea` | Collaborative | Fully collaborative; ideation loop before a proposal exists |
+| `/adv-problem` | Collaborative | Fully collaborative; issue triage before deciding fix path |
 | `/adv-proposal` | Collaborative | Fully collaborative; approve at end |
 | `/adv-research` | Collaborative | Fully collaborative; approve at end |
 | `/adv-prep` | HITL hard gate | Vision document → explicit user approval → `userApproved: true` on prep gate |
@@ -100,19 +102,17 @@ Each workflow command has a defined phase goal. These are canonical in `manifest
 | `/adv-archive` | Promote the change from contract to law: apply spec deltas, capture wisdom, clean up. |
 
 ## Commands
-
 ### Core Workflow
-
 | Command | Purpose |
 |---------|---------|
+| `/adv-idea` | Explore rough ideas before drafting a proposal |
+| `/adv-problem` | Triage issues before fixing or drafting a proposal |
 | `/adv-status` | Show project overview: specs, active changes, and next-step recommendations |
 | `/adv-proposal <summary>` | Extract problem statement, success criteria, and constraints without creating tasks |
 | `/adv-validate <change-id>` | Validate change compliance against specs; block archive on failure |
 | `/adv-apply <change-id>` | Implement change with TDD, retry on failure, and final verification |
 | `/adv-archive <change-id>` | Archive completed change: apply spec deltas and finalize git |
-
 ### Pre-Implementation
-
 | Command | Purpose |
 |---------|---------|
 | `/adv-clarify` | Ask clarifying questions to resolve ambiguous requirements |
@@ -120,18 +120,14 @@ Each workflow command has a defined phase goal. These are canonical in `manifest
 | `/adv-discover <change-id>` | Gather context, analyze current state, identify objectives, and obtain user agreement |
 | `/adv-design <change-id>` | Validate architecture decisions, produce implementation strategy, and present design for user review |
 | `/adv-prep <change-id>` | Analyze gaps and synthesize tasks from validated research findings |
-
 ### Post-Implementation
-
 | Command | Purpose |
 |---------|---------|
 | `/adv-review <change-id>` | Review code for correctness, security, and architecture; emit REVIEW_FINDINGS |
 | `/adv-harden <change-id>` | Detect low-quality code, verify test coverage, clean up; block archive on open findings |
 | `/adv-audit [capability]` | Detect drift between specs and current implementation |
 | `/adv-slop-scan [path]` | Scan for AI slop patterns including defensive and nested code |
-
 ### Fast-Track / Advanced
-
 | Command | Purpose |
 |---------|---------|
 | `/adv-task` | Fast-track a discussed change: synthesize contract, validate best practices, prep, and hand off |
@@ -400,7 +396,7 @@ Rules:
 
 Design gate requires mandatory independent validator (adv-researcher) before gate completion. See /adv-design command for verdict handling (VALIDATED, CAUTION, CONFLICT, INCONCLUSIVE).
 
-Inline-only: `/adv-status`, `/adv-proposal`, `/adv-validate`, `/adv-archive`, `/adv-clarify`, `/adv-prep`, `/adv-coordinate`, `/adv-improve`
+Inline-only: `/adv-status`, `/adv-idea`, `/adv-problem`, `/adv-proposal`, `/adv-validate`, `/adv-archive`, `/adv-clarify`, `/adv-prep`, `/adv-coordinate`, `/adv-improve`
 
 ### Delegation Routing
 
@@ -511,7 +507,7 @@ Commands that fan out to sub-agents with reusable methodology should follow this
 ### Classification
 
 **Command-only** (no fixed skill load; may reference skill-discovery protocol):
-`adv-proposal`, `adv-research`, `adv-task`, `adv-validate`, `adv-archive`, `adv-status`, `adv-coordinate`, `adv-clarify`, `adv-refactor`, `adv-improve`, `adv-design`, `adv-audit`
+`adv-idea`, `adv-problem`, `adv-proposal`, `adv-research`, `adv-task`, `adv-validate`, `adv-archive`, `adv-status`, `adv-coordinate`, `adv-clarify`, `adv-refactor`, `adv-improve`, `adv-design`, `adv-audit`
 
 **Command + dedicated backing skill** (loads a single-purpose skill with inline fallback):
 - `adv-tron` → `adv-tron` skill
@@ -598,5 +594,5 @@ If `worktree_create`/`worktree_delete` unavailable: `[ADV:INFO] Worktree tools n
 
 ## When to Use ADV
 
-**Use for:** New features, breaking changes, architecture, compliance
-**Skip for:** Bug fixes, typos, deps, exploration
+**Use for:** New features, breaking changes, architecture, compliance, unclear bug fixes via `/adv-problem`
+**Skip for:** Typos, deps, exploration
