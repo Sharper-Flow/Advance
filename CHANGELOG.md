@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+#### Provider-ADV Agent Assembly System with OMP Integration
+
+Introduces provider-specific ADV variants (`adv-claude`, `adv-gpt`, `adv-glm`, `adv-kimi`) generated from the canonical `adv.md`, with runtime visibility controlled by OpenCode's native `agent.<name>.disable` field.
+
+- **`scripts/sync-global.sh`**: New `generate_provider_variants()` function copies canonical `adv.md`, patches frontmatter `name: adv-{provider}`, and injects a small behavioral hint block from `.opencode/agents/parts/providers/{provider}.md` after the `ADV_SYNC:END adv` marker.
+- **Provider hint files**: `.opencode/agents/parts/providers/{claude,gpt,glm,kimi}.md` — each ≤20 lines, behavioral-only, no vendor API terms.
+- **Drift check extension**: `check_tool_drift()` now accepts an agent file parameter; `check_provider_variant_drifts()` loops over all four variants. Tool allowlist mismatches are reported per-variant.
+- **Legacy `adv.md` gating**: Canonical `adv.md` is only removed from global agents when `opencode.json` contains `agent.adv-*` keys (`provider_adv_configured_in_json`). Prevents breaking existing setups before users opt into provider-ADV mode.
+- **Stale agent exclusion**: Generated variants are skipped by the stale-agent removal loop so they are not deleted on the next sync.
+- **`project.json`**: Added `related_repos.opencode-model-preferences` for cross-repo routing completeness.
+- **Asset tests**: 10 new assertions across `sync-global.test.ts`, `overlay-sync-assets.test.ts`, and `adv-command-routing-assets.test.ts` verify generation, hint injection, frontmatter patching, and legacy gating.
+
 ### Changed
 
 #### Tab Title — Smarter Shortname (Dictionary + 8-Char Cap)

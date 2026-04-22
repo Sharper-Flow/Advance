@@ -5,6 +5,7 @@ import {
   readFileSync,
   rmSync,
   writeFileSync,
+  existsSync,
 } from "fs";
 import { spawnSync } from "child_process";
 import { tmpdir } from "os";
@@ -255,6 +256,118 @@ describe("overlay sync script support", () => {
         encoding: "utf8",
       });
       rmSync(tempWorktreeRoot, { recursive: true, force: true });
+      rmSync(tempHome, { recursive: true, force: true });
+    }
+  });
+
+  // ===========================================================================
+  // Provider ADV variant generation (providerAdvAgentAssemblySystem)
+  // ===========================================================================
+
+  test("sync --fix generates provider ADV variants in global agents dir", () => {
+    const tempHome = mkdtempSync(join(tmpdir(), "adv-provider-variants-"));
+
+    try {
+      const configDir = join(tempHome, ".config/opencode");
+      const globalAgents = join(configDir, "agents");
+      mkdirSync(globalAgents, { recursive: true });
+      writeFileSync(
+        join(configDir, "opencode.json"),
+        JSON.stringify({ plugin: [], instructions: [] }),
+      );
+      writeFileSync(
+        join(globalAgents, "adv.md"),
+        "---\ndescription: temp adv\n---\n",
+      );
+
+      const result = spawnSync("bash", [SYNC_SCRIPT_PATH, "--fix"], {
+        cwd: REPO_ROOT,
+        env: { ...process.env, HOME: tempHome, CI: "true" },
+        encoding: "utf8",
+      });
+
+      expect(result.status).toBe(0);
+      for (const p of ["claude", "gpt", "glm", "kimi"]) {
+        const variantPath = join(globalAgents, `adv-${p}.md`);
+        expect(existsSync(variantPath), `missing variant: adv-${p}.md`).toBe(
+          true,
+        );
+      }
+    } finally {
+      rmSync(tempHome, { recursive: true, force: true });
+    }
+  });
+
+  test("generated provider variants contain provider hint block", () => {
+    const tempHome = mkdtempSync(join(tmpdir(), "adv-provider-hints-"));
+
+    try {
+      const configDir = join(tempHome, ".config/opencode");
+      const globalAgents = join(configDir, "agents");
+      mkdirSync(globalAgents, { recursive: true });
+      writeFileSync(
+        join(configDir, "opencode.json"),
+        JSON.stringify({ plugin: [], instructions: [] }),
+      );
+      writeFileSync(
+        join(globalAgents, "adv.md"),
+        "---\ndescription: temp adv\n---\n",
+      );
+
+      const result = spawnSync("bash", [SYNC_SCRIPT_PATH, "--fix"], {
+        cwd: REPO_ROOT,
+        env: { ...process.env, HOME: tempHome, CI: "true" },
+        encoding: "utf8",
+      });
+
+      expect(result.status).toBe(0);
+      for (const p of ["claude", "gpt", "glm", "kimi"]) {
+        const variantContent = readFileSync(
+          join(globalAgents, `adv-${p}.md`),
+          "utf8",
+        );
+        expect(variantContent, `adv-${p}.md missing provider hint`).toContain(
+          `<!-- PROVIDER_HINT:${p} -->`,
+        );
+      }
+    } finally {
+      rmSync(tempHome, { recursive: true, force: true });
+    }
+  });
+
+  test("generated provider variants patch frontmatter name", () => {
+    const tempHome = mkdtempSync(join(tmpdir(), "adv-provider-names-"));
+
+    try {
+      const configDir = join(tempHome, ".config/opencode");
+      const globalAgents = join(configDir, "agents");
+      mkdirSync(globalAgents, { recursive: true });
+      writeFileSync(
+        join(configDir, "opencode.json"),
+        JSON.stringify({ plugin: [], instructions: [] }),
+      );
+      writeFileSync(
+        join(globalAgents, "adv.md"),
+        "---\ndescription: temp adv\n---\n",
+      );
+
+      const result = spawnSync("bash", [SYNC_SCRIPT_PATH, "--fix"], {
+        cwd: REPO_ROOT,
+        env: { ...process.env, HOME: tempHome, CI: "true" },
+        encoding: "utf8",
+      });
+
+      expect(result.status).toBe(0);
+      for (const p of ["claude", "gpt", "glm", "kimi"]) {
+        const variantContent = readFileSync(
+          join(globalAgents, `adv-${p}.md`),
+          "utf8",
+        );
+        expect(variantContent, `adv-${p}.md missing name frontmatter`).toMatch(
+          new RegExp(`name:\\s*adv-${p}`),
+        );
+      }
+    } finally {
       rmSync(tempHome, { recursive: true, force: true });
     }
   });

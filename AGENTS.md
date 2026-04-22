@@ -78,6 +78,17 @@ ADV state (changes, archive, wisdom, agenda, handoff) lives **outside the repo**
 ### Overlay sync model
 Shared global agents (`adv`, `general`, `build`, `plan`) are NOT fully replaced by sync. Instead, `.opencode/overlays/*.overlay.md` contains managed blocks that `scripts/sync-global.sh` injects into the global agent files without overwriting user customization.
 
+### Provider ADV agent assembly
+`scripts/sync-global.sh` generates provider-specific ADV variants (`adv-claude`, `adv-gpt`, `adv-glm`, `adv-kimi`) from the canonical `.opencode/agents/adv.md`:
+
+1. **Copy canonical** — `adv.md` is the single source of truth for ADV behavior
+2. **Patch frontmatter** — `name: adv-{provider}` is injected per variant
+3. **Inject provider hint** — a small ≤20-line behavioral hint from `.opencode/agents/parts/providers/{provider}.md` is appended after the `ADV_SYNC:END adv` marker
+4. **Drift checks** — `check_tool_drift` runs for all variants plus the canonical agent
+5. **Legacy gating** — the canonical `adv.md` is only removed from global when `opencode.json` contains `agent.adv-*` keys, preventing breakage of existing setups
+
+Runtime visibility is controlled by OpenCode's native `agent.<name>.disable` field in `opencode.json` — no hidden routing, no fallback chains. The `opencode-model-preferences` (OMP) tool writes these config entries; ADV only generates the files.
+
 ### Guard system
 - `guards/bash.ts` — sanitizes bash commands at runtime (blocks destructive patterns)
 - `guards/task.ts` — enforces single-level sub-agent nesting (hard depth limit of 1)

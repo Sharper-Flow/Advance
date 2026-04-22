@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { readdirSync, readFileSync } from "fs";
+import { readdirSync, readFileSync, existsSync } from "fs";
 import { join, resolve } from "path";
 
 const REPO_ROOT = resolve(__dirname, "../..");
@@ -353,5 +353,26 @@ describe("ADV command routing assets", () => {
     // build.md should NOT contain the new burst-default language
     expect(content).not.toMatch(/Default to burst for unknowns/);
     expect(content).not.toMatch(/Pre-change research default/);
+  });
+
+  // Provider ADV agent assembly (providerAdvAgentAssemblySystem)
+  test("provider hint files exist in repo agents/parts/providers/", () => {
+    const providers = ["claude", "gpt", "glm", "kimi"];
+    for (const p of providers) {
+      const path = join(AGENT_DIR, "parts", "providers", `${p}.md`);
+      expect(existsSync(path), `missing provider hint: ${p}.md`).toBe(true);
+    }
+  });
+
+  test("provider hint files are small (<=20 lines)", () => {
+    const providers = ["claude", "gpt", "glm", "kimi"];
+    for (const p of providers) {
+      const content = readFileSync(
+        join(AGENT_DIR, "parts", "providers", `${p}.md`),
+        "utf8",
+      );
+      const lines = content.split("\n").length;
+      expect(lines, `${p}.md exceeds 20 lines`).toBeLessThanOrEqual(20);
+    }
   });
 });
