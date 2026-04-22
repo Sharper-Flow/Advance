@@ -700,6 +700,16 @@ REPO_LOCAL_ONLY="adv-tron.md"
 # ADV tools get filtered out of the agent's callable set. `adv.md` is therefore
 # treated as repo-owned and fully replaced on each sync.
 SHARED_OVERLAY_ONLY="build.md general.md plan.md"
+# Legacy global agent filenames retained for upgrade cleanup. Current adv-*
+# names are handled by the adv-*.md glob below; keep only pre-rename bare names
+# here so the list stays single-source and low-churn.
+LEGACY_STALE_AGENT_FILES=(
+  orca.md
+  tron.md
+  scout.md
+  refine.md
+  engineer.md
+)
 if [ -d "$REPO_AGENTS" ]; then
   for src in "$REPO_AGENTS"/*.md; do
     [ -f "$src" ] || continue
@@ -738,8 +748,10 @@ fi
 # Remove stale ADV agents from global that no longer exist in repo
 # Also remove repo-local-only agents if they leaked into global
 agents_removed=0
-for global_agent in "$GLOBAL_AGENTS"/adv-*.md "$GLOBAL_AGENTS"/orca.md "$GLOBAL_AGENTS"/tron.md "$GLOBAL_AGENTS"/scout.md "$GLOBAL_AGENTS"/refine.md "$GLOBAL_AGENTS"/engineer.md "$GLOBAL_AGENTS"/adv-engineer.md "$GLOBAL_AGENTS"/adv-tron.md; do
-  [ -f "$global_agent" ] || continue
+remove_stale_agent_if_needed() {
+  local global_agent="$1"
+  [ -f "$global_agent" ] || return 0
+  local name
   name="$(basename "$global_agent")"
   # Remove if no longer in repo OR if it's repo-local-only
   if [ ! -f "$REPO_AGENTS/$name" ] || echo " $REPO_LOCAL_ONLY " | grep -q " $name "; then
@@ -751,6 +763,12 @@ for global_agent in "$GLOBAL_AGENTS"/adv-*.md "$GLOBAL_AGENTS"/orca.md "$GLOBAL_
     fi
     ((agents_removed++)) || true
   fi
+}
+for global_agent in "$GLOBAL_AGENTS"/adv-*.md; do
+  remove_stale_agent_if_needed "$global_agent"
+done
+for legacy_name in "${LEGACY_STALE_AGENT_FILES[@]}"; do
+  remove_stale_agent_if_needed "$GLOBAL_AGENTS/$legacy_name"
 done
 [ "$agents_removed" -gt 0 ] && echo "    $agents_removed stale agent(s) removed" || true
 

@@ -113,7 +113,9 @@ describe("adv-engineer assets", () => {
 
   test("sync script installs adv-engineer.md globally", () => {
     const content = readFileSync(SYNC_SCRIPT_PATH, "utf8");
-    expect(content).toContain('"$GLOBAL_AGENTS"/adv-engineer.md');
+    expect(content).toContain('for src in "$REPO_AGENTS"/*.md; do');
+    expect(content).not.toMatch(/REPO_LOCAL_ONLY=.*adv-engineer/);
+    expect(content).not.toMatch(/SHARED_OVERLAY_ONLY=.*adv-engineer/);
   });
 
   test("ENGINEER_REPORT schema specifies adv-engineer as the literal agent field value", () => {

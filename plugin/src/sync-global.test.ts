@@ -75,19 +75,27 @@ describe("sync-global.sh", () => {
       expect(content).not.toMatch(/REPO_LOCAL_ONLY=.*engineer/);
     });
 
-    test("adv-engineer.md is explicitly named in stale-agent cleanup glob", () => {
-      expect(content).toContain('"$GLOBAL_AGENTS"/adv-engineer.md');
+    test("stale cleanup keeps a single legacy filename list", () => {
+      expect(content).toContain("LEGACY_STALE_AGENT_FILES=(");
+      expect(content).toContain("orca.md");
+      expect(content).toContain("tron.md");
+      expect(content).toContain("scout.md");
+      expect(content).toContain("refine.md");
+      expect(content).toContain("engineer.md");
     });
 
-    test("adv-tron.md is explicitly named in stale-agent cleanup glob", () => {
-      expect(content).toContain('"$GLOBAL_AGENTS"/adv-tron.md');
+    test("stale cleanup uses adv-* glob for current names", () => {
+      expect(content).toContain(
+        'for global_agent in "$GLOBAL_AGENTS"/adv-*.md; do',
+      );
+      expect(content).toContain("remove_stale_agent_if_needed");
     });
 
-    test("legacy bare engineer.md / tron.md remain in stale-cleanup glob for upgrade path", () => {
-      // Retained so users with pre-rename globals get them removed on sync --fix,
-      // matching the same pattern as orca.md / scout.md / refine.md legacy cleanup.
-      expect(content).toContain('"$GLOBAL_AGENTS"/engineer.md');
-      expect(content).toContain('"$GLOBAL_AGENTS"/tron.md');
+    test("legacy bare names remain for upgrade cleanup while adv-* names are handled by glob", () => {
+      expect(content).toContain(
+        'for legacy_name in "${LEGACY_STALE_AGENT_FILES[@]}"; do',
+      );
+      expect(content).toContain("pre-rename bare names");
     });
 
     test("skips shared agents that are overlay-managed", () => {

@@ -97,44 +97,79 @@ describe.skipIf(!canRun)("createOutOfProcessWorker integration", () => {
     );
   }, 120_000);
 
-  it("leaves no dangling temporal-test-server child processes after teardown", async () => {
-    // Count procs before (the test harness may have left some from earlier
-    // runs; we measure the delta).
-    const before = countTestServerProcs();
+  it("reaps the specific temporal-test-server process opened for its port", async () => {
+    const env = await TestWorkflowEnvironment.createTimeSkipping();
+    const port = extractPort(String(env.address ?? ""));
+    expect(port).not.toBeNull();
 
-    await withTestWorkflowEnvironment(
-      () => TestWorkflowEnvironment.createTimeSkipping(),
-      async () => {
-        // Intentionally empty — we just want to observe that the
-        // TestWorkflowEnvironment teardown (via withTestWorkflowEnvironment)
-        // reaps its child.
-      },
-    );
+    try {
+      const pid = await waitForListeningPid(port!);
+      expect(pid).not.toBeNull();
 
-    // Poll with backoff: process reaping is asynchronous at the OS level
-    // and can take longer when the host is under load from concurrent tests.
-    let after = countTestServerProcs();
-    for (let i = 0; i < 10 && after > before; i++) {
-      await new Promise((resolve) => setTimeout(resolve, 300));
-      after = countTestServerProcs();
+      await env.teardown();
+      const exited = await waitForProcessExit(pid!);
+      expect(exited).toBe(true);
+    } finally {
+      await env.teardown().catch(() => undefined);
     }
-
-    // Delta must be zero or negative (never positive — that would mean a leak).
-    expect(after).toBeLessThanOrEqual(before);
   }, 30_000);
 });
 
-function countTestServerProcs(): number {
+function extractPort(address: string): number | null {
+  const match = address.match(/:(\d+)$/);
+  return match ? Number(match[1]) : null;
+}
+
+function findListeningPid(port: number): number | null {
   // Cross-platform: skip on Windows (process enumeration differs).
-  if (process.platform === "win32") return 0;
-  const result = spawnSync("pgrep", ["-f", "temporal-test-server"], {
+  if (process.platform === "win32") return null;
+  const result = spawnSync("lsof", ["-tiTCP:" + String(port), "-sTCP:LISTEN"], {
     encoding: "utf8",
   });
-  if (result.status !== 0) return 0;
-  return result.stdout
+  if (result.status !== 0) return null;
+  const pid = result.stdout
     .split("\n")
     .map((line) => line.trim())
-    .filter((line) => line.length > 0).length;
+    .find((line) => line.length > 0);
+  return pid ? Number(pid) : null;
+}
+
+function isProcessStillRunning(pid: number): boolean {
+  const result = spawnSync("ps", ["-o", "stat=", "-p", String(pid)], {
+    encoding: "utf8",
+  });
+  if (result.status !== 0) return false;
+  const status = result.stdout.trim();
+  return status.length > 0 && !status.startsWith("Z");
+}
+
+async function waitForListeningPid(
+  port: number,
+  timeoutMs = 5_000,
+): Promise<number | null> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const pid = findListeningPid(port);
+    if (pid !== null) return pid;
+    await sleep(100);
+  }
+  return null;
+}
+
+async function waitForProcessExit(
+  pid: number,
+  timeoutMs = 5_000,
+): Promise<boolean> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (!isProcessStillRunning(pid)) return true;
+    await sleep(100);
+  }
+  return !isProcessStillRunning(pid);
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 // Emit a helpful diagnostic when the suite is skipped so the reader knows why.

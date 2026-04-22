@@ -14,6 +14,7 @@ import {
   parseToolOutput,
 } from "./__tests__/setup";
 import { addProjectWisdom } from "./storage/project-wisdom";
+import { ADV_TOOL_NAMES } from "./tool-registry";
 
 // =============================================================================
 // Mock Plugin Input
@@ -180,11 +181,11 @@ describe("Advance Plugin SDK Integration", () => {
   // ===========================================================================
 
   describe("Tool Registration", () => {
-    test("registers all 39 tools", async () => {
+    test("registers every tool in ADV_TOOL_NAMES", async () => {
       const hooks = await createTrackedPlugin(tempDir, pluginInstances);
 
       const toolNames = Object.keys(hooks.tool!);
-      expect(toolNames).toHaveLength(39);
+      expect(toolNames).toHaveLength(ADV_TOOL_NAMES.length);
     });
 
     test("registers spec tools", async () => {
