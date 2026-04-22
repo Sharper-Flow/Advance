@@ -8,18 +8,19 @@ ADV ships a single canonical orchestrator agent (`.opencode/agents/adv.md`). Dur
 
 | Variant | Provider | Hint file |
 |---------|----------|-----------|
-| `adv-claude` | Anthropic Claude | `.opencode/agents/parts/providers/claude.md` |
-| `adv-gpt` | OpenAI GPT | `.opencode/agents/parts/providers/gpt.md` |
-| `adv-glm` | Zhipu GLM | `.opencode/agents/parts/providers/glm.md` |
-| `adv-kimi` | Moonshot Kimi | `.opencode/agents/parts/providers/kimi.md` |
+| `adv-claude` | Anthropic Claude | `.opencode/agent-parts/providers/claude.md` |
+| `adv-gpt` | OpenAI GPT | `.opencode/agent-parts/providers/gpt.md` |
+| `adv-glm` | Zhipu GLM | `.opencode/agent-parts/providers/glm.md` |
+| `adv-kimi` | Moonshot Kimi | `.opencode/agent-parts/providers/kimi.md` |
 
 ## Design Principles
 
 1. **Single source of truth** — `adv.md` remains the canonical behavioral source. No template decomposition.
 2. **Minimal hidden routing** — OpenCode's native `agent.<name>.disable` controls visibility. No fallback chains or auto-swap.
 3. **Small provider hints** — ≤20 lines, behavioral-only. No vendor API terms or pricing details.
-4. **Global-only** — Provider-ADV state lives in global `opencode.json` only. No per-project overrides.
-5. **Legacy-safe migration** — Canonical `adv.md` is preserved until `opencode.json` contains `agent.adv-*` keys.
+4. **Not discoverable as agents** — provider hint fragments live outside `.opencode/agents/` so OpenCode does not surface them as selectable repo-local agents.
+5. **Global-only** — Provider-ADV state lives in global `opencode.json` only. No per-project overrides.
+6. **Legacy-safe migration** — Canonical `adv.md` is preserved until `opencode.json` contains `agent.adv-*` keys.
 
 ## Sync Behavior
 
@@ -27,7 +28,7 @@ ADV ships a single canonical orchestrator agent (`.opencode/agents/adv.md`). Dur
 
 `scripts/sync-global.sh` runs `generate_provider_variants()` after copying the canonical agent:
 
-1. Reads `.opencode/agents/parts/providers/{provider}.md`
+1. Reads `.opencode/agent-parts/providers/{provider}.md`
 2. Copies `$GLOBAL_AGENTS/adv.md` to `$GLOBAL_AGENTS/adv-{provider}.md`
 3. Patches `name:` in YAML frontmatter to `adv-{provider}`
 4. Inserts the provider hint block after `<!-- ADV_SYNC:END adv -->`
@@ -65,6 +66,6 @@ OMP does **not** trigger ADV sync. It only writes `agent.adv-{provider}.disable`
 
 | Symptom | Cause | Fix |
 |---------|-------|-----|
-| Provider variants missing after sync | Hint files deleted or `parts/providers/` dir missing | Restore hint files from git |
+| Provider variants missing after sync | Hint files deleted or `agent-parts/providers/` dir missing | Restore hint files from git |
 | `adv.md` unexpectedly removed | `agent.adv-*` keys present in `opencode.json` | Remove keys or re-run sync to regenerate |
 | Variants deleted on next sync | Stale removal logic not excluding variants | Update `sync-global.sh` to latest |

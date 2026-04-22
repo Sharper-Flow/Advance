@@ -126,6 +126,50 @@ describe("overlay sync script support", () => {
     }
   });
 
+  test("removes stale scout and refine agent config keys on --fix", () => {
+    const tempHome = mkdtempSync(join(tmpdir(), "adv-scout-refine-config-cleanup-"));
+
+    try {
+      const configDir = join(tempHome, ".config/opencode");
+      const globalAgents = join(configDir, "agents");
+      mkdirSync(globalAgents, { recursive: true });
+      writeFileSync(
+        join(configDir, "opencode.json"),
+        JSON.stringify({
+          plugin: [],
+          instructions: [],
+          agent: {
+            scout: { model: "zai-coding-plan/glm-5.1" },
+            refine: { model: "anthropic/claude-opus-4-7" },
+            plan: {},
+            build: {},
+          },
+        }),
+      );
+      writeFileSync(
+        join(globalAgents, "adv.md"),
+        "---\ndescription: temp adv\n---\n",
+      );
+
+      const result = spawnSync("bash", [SYNC_SCRIPT_PATH, "--fix"], {
+        cwd: REPO_ROOT,
+        env: { ...process.env, HOME: tempHome, CI: "true" },
+        encoding: "utf8",
+      });
+
+      expect(result.status).toBe(0);
+      const patched = JSON.parse(
+        readFileSync(join(configDir, "opencode.json"), "utf8"),
+      );
+      expect(patched.agent.scout).toBeUndefined();
+      expect(patched.agent.refine).toBeUndefined();
+      expect(patched.agent.plan).toEqual({});
+      expect(patched.agent.build).toEqual({});
+    } finally {
+      rmSync(tempHome, { recursive: true, force: true });
+    }
+  });
+
   // ===========================================================================
   // Cost Governance Instruction Management (addCostTimeInvestment)
   // ===========================================================================

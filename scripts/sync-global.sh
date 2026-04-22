@@ -21,7 +21,9 @@
 #   7. (--fix only) Patches opencode.json to add missing ADV entries
 #
 # It does NOT touch non-ADV commands, agents, skills, or config entries,
-# except removing legacy `openprompt.md` copies previously installed by this repo.
+# except removing legacy assets/config previously installed by this repo
+# (`openprompt.md`, stale `scout`/`refine` agent files, and stale
+# `agent.scout`/`agent.refine` config keys).
 
 set -euo pipefail
 
@@ -304,9 +306,11 @@ PY
 #
 # Generates adv-{provider}.md variants from the canonical adv.md by copying
 # + patching frontmatter name + injecting a small provider hint block.
+# Provider hint fragments live outside .opencode/agents/ so OpenCode does not
+# surface them as selectable repo-local agents.
 # The canonical adv.md remains the single source of truth.
 # ---------------------------------------------------------------------------
-PROVIDER_HINT_DIR="$REPO_AGENTS/parts/providers"
+PROVIDER_HINT_DIR="$REPO_ROOT/.opencode/agent-parts/providers"
 PROVIDERS=(claude gpt glm kimi)
 
 generate_provider_variants() {
@@ -525,6 +529,20 @@ check_config() {
     fi
   fi
 
+  # Warn about stale legacy consolidated-agent config keys
+  for legacy_key in scout refine; do
+    if jsonc_to_json "$GLOBAL_JSON" | jq -e --arg k "$legacy_key" '(.agent // {}) | if type == "object" then has($k) else false end' \
+      &>/dev/null; then
+      local replacement="plan"
+      if [ "$legacy_key" = "refine" ]; then
+        replacement="build"
+      fi
+      echo "    ⚠  agent: stale legacy '$legacy_key' config key present in .agent"
+      echo "       '$legacy_key' was consolidated into '$replacement'. Run with --fix to remove it."
+      ((config_issues++)) || true
+    fi
+  done
+
   # Cross-check agent tool allowlist against plugin registry
   check_tool_drift
   check_provider_variant_drifts
@@ -653,6 +671,23 @@ fix_config() {
     echo "    ✓  Removed stale instruction: $stale_tilde"
     ((patched++)) || true
   fi
+
+  # Remove stale legacy consolidated-agent config keys if present.
+  # These names were retired when scout -> plan and refine -> build.
+  for legacy_key in scout refine; do
+    if jq --arg k "$legacy_key" -e '(.agent // {}) | if type == "object" then has($k) else false end' \
+      "$tmp_json" &>/dev/null; then
+      jq --arg k "$legacy_key" '
+        if ((.agent // {}) | type) == "object" then
+          .agent = ((.agent // {}) | with_entries(select(.key != $k)))
+        else
+          .
+        end
+      ' "$tmp_json" > "$tmp_json.new" && mv "$tmp_json.new" "$tmp_json"
+      echo "    ✓  Removed stale legacy agent config: agent.$legacy_key"
+      ((patched++)) || true
+    fi
+  done
 
   if [ "$patched" -gt 0 ]; then
     if [ "$DRY_RUN" = true ]; then

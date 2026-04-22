@@ -83,7 +83,7 @@ Shared global agents (`adv`, `general`, `build`, `plan`) are NOT fully replaced 
 
 1. **Copy canonical** — `adv.md` is the single source of truth for ADV behavior
 2. **Patch frontmatter** — `name: adv-{provider}` is injected per variant
-3. **Inject provider hint** — a small ≤20-line behavioral hint from `.opencode/agents/parts/providers/{provider}.md` is appended after the `ADV_SYNC:END adv` marker
+3. **Inject provider hint** — a small ≤20-line behavioral hint from `.opencode/agent-parts/providers/{provider}.md` is appended after the `ADV_SYNC:END adv` marker
 4. **Drift checks** — `check_tool_drift` runs for all variants plus the canonical agent
 5. **Legacy gating** — the canonical `adv.md` is only removed from global when `opencode.json` contains `agent.adv-*` keys, preventing breakage of existing setups
 

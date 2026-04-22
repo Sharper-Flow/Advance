@@ -388,10 +388,10 @@ describe("ADV command routing assets", () => {
   });
 
   // Provider ADV agent assembly (providerAdvAgentAssemblySystem)
-  test("provider hint files exist in repo agents/parts/providers/", () => {
+  test("provider hint files exist outside repo agent discovery path", () => {
     const providers = ["claude", "gpt", "glm", "kimi"];
     for (const p of providers) {
-      const path = join(AGENT_DIR, "parts", "providers", `${p}.md`);
+      const path = join(REPO_ROOT, ".opencode", "agent-parts", "providers", `${p}.md`);
       expect(existsSync(path), `missing provider hint: ${p}.md`).toBe(true);
     }
   });
@@ -400,7 +400,7 @@ describe("ADV command routing assets", () => {
     const providers = ["claude", "gpt", "glm", "kimi"];
     for (const p of providers) {
       const content = readFileSync(
-        join(AGENT_DIR, "parts", "providers", `${p}.md`),
+        join(REPO_ROOT, ".opencode", "agent-parts", "providers", `${p}.md`),
         "utf8",
       );
       const lines = content.split("\n").length;

@@ -251,7 +251,7 @@ describe("sync-global.sh", () => {
       for (const p of providers) {
         const path = join(
           REPO_ROOT,
-          `.opencode/agents/parts/providers/${p}.md`,
+          `.opencode/agent-parts/providers/${p}.md`,
         );
         expect(existsSync(path), `missing provider hint: ${p}.md`).toBe(true);
       }
@@ -268,7 +268,7 @@ describe("sync-global.sh", () => {
 
     test("sync script injects provider hint after ADV overlay block", () => {
       expect(content).toContain("inject provider hint");
-      expect(content).toContain("parts/providers");
+      expect(content).toContain("agent-parts/providers");
     });
 
     test("sync script extends drift checks to all provider variants", () => {
