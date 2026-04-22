@@ -323,10 +323,15 @@ generate_provider_variants() {
   for provider in "${PROVIDERS[@]}"; do
     local hint_file="$PROVIDER_HINT_DIR/${provider}.md"
     local variant="$GLOBAL_AGENTS/adv-${provider}.md"
+    local provider_color=""
 
     if [ ! -f "$hint_file" ]; then
       echo "    ⚠  provider hint missing: $hint_file"
       continue
+    fi
+
+    if [ -f "$GLOBAL_JSON" ] && command -v jq >/dev/null 2>&1; then
+      provider_color="$({ jsonc_to_json "$GLOBAL_JSON" | jq -r --arg agent "adv-${provider}" '.agent[$agent].color // empty'; } 2>/dev/null || true)"
     fi
 
     if [ "$DRY_RUN" = true ]; then
@@ -338,6 +343,9 @@ generate_provider_variants() {
     local tmp_variant
     tmp_variant="$(mktemp)"
     sed -E "s/^(name:[[:space:]]*).*/\1adv-${provider}/" "$canonical" > "$tmp_variant"
+    if [ -n "$provider_color" ]; then
+      sed -Ei "s/^(color:[[:space:]]*).*/\1\"$provider_color\"/" "$tmp_variant"
+    fi
 
     # inject provider hint after ADV overlay block
     local hint_block
