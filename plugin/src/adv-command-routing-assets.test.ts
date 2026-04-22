@@ -8,6 +8,9 @@ const OVERLAY_DIR = join(REPO_ROOT, ".opencode/overlays");
 
 const AGENT_DIR = join(REPO_ROOT, ".opencode/agents");
 
+const squish = (content: string) => content.replace(/\s+/g, " ").trim();
+const squishLower = (content: string) => squish(content).toLowerCase();
+
 describe("ADV orchestrator agent", () => {
   test("adv.md exists with required frontmatter", () => {
     const content = readFileSync(join(AGENT_DIR, "adv.md"), "utf8");
@@ -319,33 +322,62 @@ describe("ADV command routing assets", () => {
   // NEW: autoResearchUnknownArchQuestions drift guards
   test("adv.md contains pre-change investigation intent", () => {
     const content = readFileSync(join(AGENT_DIR, "adv.md"), "utf8");
-    // Must contain trigger language for pre-change investigation near the intent table
-    expect(content).toMatch(/Pre-change investigation/);
-    expect(content).toMatch(/unknown platform.*architecture.*capability/i);
-    // Must contain the carve-out language
-    expect(content).toMatch(/single known file.*exact symbol/i);
+    const text = squish(content);
+    const lower = squishLower(content);
+
+    expect(text).toContain("Pre-change investigation");
+    expect(text).toMatch(
+      /unknown .*platform.*architecture.*capability|unknown .*architecture.*platform.*capability/i,
+    );
+    expect(lower).toContain("check carve-outs first:");
+    expect(text).toContain("single known file / exact symbol");
+    expect(text).toContain(
+      "local-only question answerable with one `lgrep`/`read`",
+    );
+    expect(text).toContain(
+      '"quick answer" / "from your knowledge" / "don\'t research"',
+    );
+    expect(lower).toContain("scope-locked execution context");
+    expect(text).toContain("If none apply, spawn `explore` + `librarian`");
   });
 
   test("plan.md investigation mode defaults to burst for unknowns", () => {
     const content = readFileSync(join(AGENT_DIR, "plan.md"), "utf8");
-    // Must contain burst-first language
-    expect(content).toMatch(/Default to burst for unknowns/);
-    expect(content).toMatch(/spawn `explore` \+ `librarian`/i);
-    // Must contain carve-out language
-    expect(content).toMatch(/local and obvious/i);
-    expect(content).toMatch(/single known file.*exact symbol/i);
+    const text = squish(content);
+    const lower = squishLower(content);
+
+    expect(text).toContain("Default to burst for unknowns");
+    expect(lower).toContain("check carve-outs first:");
+    expect(text).toContain("single known file / exact symbol");
+    expect(text).toContain(
+      "local-only question answerable with one `lgrep`/`read`",
+    );
+    expect(lower).toContain("scope-locked execution context");
+    expect(text).toContain(
+      "If none apply, spawn `explore` + `librarian` in parallel first.",
+    );
   });
 
   test("adv.overlay.md carries synced research-delegation rule", () => {
     const content = readFileSync(join(OVERLAY_DIR, "adv.overlay.md"), "utf8");
-    expect(content).toMatch(/Pre-change research default/);
-    expect(content).toMatch(/parallel research burst.*explore.*librarian/s);
+    const text = squish(content);
+    const lower = squishLower(content);
+
+    expect(text).toContain("Pre-change research default");
+    expect(lower).toContain("check carve-outs first:");
+    expect(lower).toContain("scope-locked execution context");
+    expect(text).toContain("parallel research burst (`explore` + `librarian`)");
   });
 
   test("plan.overlay.md carries synced research-delegation rule", () => {
     const content = readFileSync(join(OVERLAY_DIR, "plan.overlay.md"), "utf8");
-    expect(content).toMatch(/Pre-change research default/);
-    expect(content).toMatch(/parallel research burst.*explore.*librarian/s);
+    const text = squish(content);
+    const lower = squishLower(content);
+
+    expect(text).toContain("Pre-change research default");
+    expect(lower).toContain("check carve-outs first:");
+    expect(lower).toContain("scope-locked execution context");
+    expect(text).toContain("parallel research burst (`explore` + `librarian`)");
   });
 
   test("build.md is not required to carry pre-change research rule", () => {

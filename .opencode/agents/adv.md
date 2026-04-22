@@ -130,7 +130,7 @@ Before doing anything, classify what the user is asking for:
 | **Resume work**       | "resume {id}", "continue {id}"   | Load state → resume from first incomplete gate |
 | **Check status**      | "status {id}", "where are we"    | `adv_change_show` + `adv_gate_status` → report |
 | **Archive**           | "archive {id}", "ship {id}"      | Load state → verify all gates → sign-off flow  |
-| **Pre-change investigation** | Unknown platform/architecture/capability question (e.g., "can OpenCode/OMP do X?", "is this design feasible?", "does opencode.json support Y?") | Spawn `explore` + `librarian` in parallel before answering, unless carve-out applies (single known file, exact symbol, local-only question, user says "quick answer", or scope-locked) |
+| **Pre-change investigation** | Unknown platform/architecture/capability question (e.g., "can OpenCode/OMP do X?", "is this design feasible?", "does opencode.json support Y?") | Check carve-outs first: single known file / exact symbol, local-only question answerable with one `lgrep`/`read`, user explicitly asks for "quick answer" / "from your knowledge" / "don't research", or agent is already in scope-locked execution context (mid-task, mid-TDD, or review/remediation). If none apply, spawn `explore` + `librarian` in parallel before answering. |
 
 If the user's intent is ambiguous or no change-id is provided, check `adv_change_list` for active changes. If exactly one exists, confirm it. If multiple, ask via `question`.
 
@@ -216,8 +216,9 @@ Choose between inline work and delegation based on what produces the best **cont
 
 **Pre-change bias toward delegation:**
 
-- Unknown architecture / platform / capability questions (pre-change, no active ADV change) default to parallel research burst (`explore` + `librarian`) before answering inline
-- Carve-outs where inline is preferred: single known file / exact symbol, local-only question answerable by one `lgrep`/`read`, user explicitly says "quick answer" / "from your knowledge", or agent is in a scope-locked execution context
+- Unknown architecture / platform / capability questions (pre-change, no active ADV change) follow carve-out-first routing
+- Check carve-outs first: single known file / exact symbol, local-only question answerable with one `lgrep`/`read`, user explicitly asks for "quick answer" / "from your knowledge" / "don't research", or agent is already in scope-locked execution context (mid-task, mid-TDD, or review/remediation)
+- If no carve-out applies, use parallel research burst (`explore` + `librarian`) before answering inline
 
 **Delegate when:**
 
