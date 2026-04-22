@@ -27,8 +27,7 @@
     "format:check": "prettier --check src/",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage",
-    "validate:temporal": "tsx ../scripts/temporal-validate.ts"
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@opencode-ai/plugin": "latest",

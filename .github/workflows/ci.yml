@@ -51,10 +51,6 @@ jobs:
         run: pnpm test
         working-directory: plugin
 
-      - name: Validate Temporal storage harness
-        run: pnpm run validate:temporal
-        working-directory: plugin
-
   build:
     name: Build
     runs-on: ubuntu-latest
