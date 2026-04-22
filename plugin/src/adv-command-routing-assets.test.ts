@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { readdirSync, readFileSync } from "fs";
+import { readdirSync, readFileSync, existsSync } from "fs";
 import { join, resolve } from "path";
 
 const REPO_ROOT = resolve(__dirname, "../..");
@@ -286,7 +286,9 @@ describe("ADV command routing assets", () => {
 
   test("adv-discover.md Phase 4.5.1 encodes distinct AC checkpoint outcomes", () => {
     const content = readFileSync(join(COMMAND_DIR, "adv-discover.md"), "utf8");
-    expect(content).toMatch(/Phase\s+4\.5\.1:\s+Acceptance Criteria Checkpoint/i);
+    expect(content).toMatch(
+      /Phase\s+4\.5\.1:\s+Acceptance Criteria Checkpoint/i,
+    );
     expect(content).toContain("/adv-clarify");
     expect(content).toMatch(/Approve acceptance criteria/i);
     expect(content).toMatch(/proceed to Phase 4\.6/i);
@@ -312,5 +314,26 @@ describe("ADV command routing assets", () => {
     // Old bare `engineer` (without adv- prefix) must be gone from the Spawn-fixes row.
     // Negative lookbehind (?<!adv-) ensures we don't match the new "adv-engineer" identifier.
     expect(content).not.toMatch(/Spawn fixes.*(?<!adv-)\bengineer\b/);
+  });
+
+  // Provider ADV agent assembly (providerAdvAgentAssemblySystem)
+  test("provider hint files exist in repo agents/parts/providers/", () => {
+    const providers = ["claude", "gpt", "glm", "kimi"];
+    for (const p of providers) {
+      const path = join(AGENT_DIR, "parts", "providers", `${p}.md`);
+      expect(existsSync(path), `missing provider hint: ${p}.md`).toBe(true);
+    }
+  });
+
+  test("provider hint files are small (<=20 lines)", () => {
+    const providers = ["claude", "gpt", "glm", "kimi"];
+    for (const p of providers) {
+      const content = readFileSync(
+        join(AGENT_DIR, "parts", "providers", `${p}.md`),
+        "utf8",
+      );
+      const lines = content.split("\n").length;
+      expect(lines, `${p}.md exceeds 20 lines`).toBeLessThanOrEqual(20);
+    }
   });
 });

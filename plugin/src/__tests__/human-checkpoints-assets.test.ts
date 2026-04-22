@@ -40,7 +40,9 @@ describe("rq-autonomy01 human checkpoint assets", () => {
 
   test("acceptance criteria checkpoint exists in adv-discover.md before agreement persistence", () => {
     const content = readCommand("adv-discover.md");
-    expect(content).toMatch(/Phase\s+4\.5\.1:\s+Acceptance Criteria Checkpoint/i);
+    expect(content).toMatch(
+      /Phase\s+4\.5\.1:\s+Acceptance Criteria Checkpoint/i,
+    );
     expect(content).toMatch(/Approve acceptance criteria/i);
     expect(content).toMatch(/Start \/adv-clarify/i);
     expect(content).toMatch(/Add or clarify acceptance criteria/i);
