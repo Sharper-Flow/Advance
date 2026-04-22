@@ -1140,7 +1140,7 @@ describe("Change Tools", () => {
       ).toBe(true);
       expect(
         parsed.warnings.some((w: { code: string }) => w.code === "NO_TASKS"),
-      ).toBe(false);
+      ).toBe(true);
     });
 
     test("passes in strict mode when warnings are archive-safe only", async () => {

@@ -122,7 +122,7 @@ Something is broken, confusing, or unknown. Gather evidence, narrow causes, expl
    - Use `read` for known-file inspection.
    - Use `webfetch` / `firecrawl` for external documentation and reference pages.
    - **Due diligence first for unknowns:** Unknown platform, architecture, or capability questions must gather source-appropriate evidence before an answer or recommendation. Evidence sources include `lgrep`/`read` on local code, repo history / repo examples, GitHub examples, official docs, and web research — choose the mix that actually answers the question. Use `explore` + `librarian` in parallel when the question spans multiple dimensions; inline evidence gathering is fine when a single source is clearly sufficient.
-   - **Quick-answer and scope-locked context:** "Quick answer", "from your knowledge", "don't research", and mid-task or review/remediation contexts — **quick-answer requests change brevity only**, not the evidence bar. Compressed output is fine; under-researched recommendations are not. If required diligence cannot be completed, **stop and surface** the blockage rather than present an unverified directional answer.
+    - **Quick-answer requests:** "Quick answer", "from your knowledge", "don't research" — **quick-answer requests change brevity only**, not the evidence bar. Compressed output is fine; under-researched recommendations are not. If required diligence cannot be completed, **stop and surface** the blockage rather than present an unverified directional answer.
 3. **Verify**
    - Check whether the evidence actually supports the current conclusion.
    - If not, keep digging — don't stop at the first plausible answer.

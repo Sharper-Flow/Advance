@@ -32,10 +32,10 @@ describe("Human checkpoint and auto-continue policy", () => {
     expect(content).toMatch(/Doom-loop recovery/);
   });
 
-  test("ADV_INSTRUCTIONS.md contains Clean Auto-Continue Rule", () => {
+  test("ADV_INSTRUCTIONS.md contains Post-Approval Auto-Continue Rule", () => {
     const content = readAsset(INSTRUCTIONS);
-    expect(content).toContain("### Clean Auto-Continue Rule");
-    expect(content).toMatch(/proceed sequentially without prompting the user/);
+    expect(content).toContain("### Post-Approval Auto-Continue");
+    expect(content).toMatch(/No "shall I proceed\?"/);
   });
 
   test("adv.md orchestrator names pause vs auto-continue", () => {
@@ -45,7 +45,7 @@ describe("Human checkpoint and auto-continue policy", () => {
     expect(content).toMatch(/Agreement sign-off/);
     expect(content).toMatch(/Cancellation approval/);
     expect(content).toMatch(/Doom-loop recovery/);
-    expect(content).toMatch(/Clean auto-continue/);
+    expect(content).toMatch(/Post-approval auto-continue/);
   });
 });
 
