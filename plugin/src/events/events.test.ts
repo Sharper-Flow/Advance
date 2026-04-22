@@ -778,13 +778,128 @@ describe("Bell Transition Logic", () => {
     expect(bellCount()).toBe(firstBellCount); // no additional bell
   });
 
-  it("cleanupTerminal clears pending bell timer", () => {
+  it("cleanupTerminal clears pending bell timer (armed)", () => {
+    armPendingFinalAlert("msg-1");
     updateTerminalStatus("ROCKET", "test");
     updateTerminalStatus("EARTH", "test");
     // Timer is pending
     cleanupTerminal(); // should cancel timer
     vi.advanceTimersByTime(2000);
     expect(bellCount()).toBe(0);
+  });
+});
+
+// =============================================================================
+// Bell-Gate Policy
+// =============================================================================
+
+describe("Bell-Gate Policy", () => {
+  let bells: number;
+
+  const bellCount = (): number => bells;
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    bells = 0;
+    _setBellCallback(() => {
+      bells++;
+    });
+    cleanupTerminal(); // resets lastAlertedStatus + cancels pending bell
+    _clearPendingFinalAlert(); // explicit reset of bell-gate state
+  });
+
+  afterEach(() => {
+    _setBellCallback(null);
+    vi.useRealTimers();
+  });
+
+  it("armPendingFinalAlert sets flag and allows bell on EARTH", () => {
+    armPendingFinalAlert("msg-test-1");
+    updateTerminalStatus("ROCKET", "test");
+    updateTerminalStatus("EARTH", "test");
+    expect(bellCount()).toBe(0); // debounce pending
+    vi.advanceTimersByTime(2000);
+    expect(bellCount()).toBe(1); // armed → rings after debounce
+  });
+
+  it("armPendingFinalAlert dedup: same messageId does not re-arm", () => {
+    armPendingFinalAlert("msg-test-1");
+    armPendingFinalAlert("msg-test-1"); // duplicate — no-op
+    updateTerminalStatus("ROCKET", "test");
+    updateTerminalStatus("EARTH", "test");
+    vi.advanceTimersByTime(2000);
+    expect(bellCount()).toBe(1); // still only one ring
+  });
+
+  it("EARTH without armed flag does NOT ring", () => {
+    updateTerminalStatus("ROCKET", "test");
+    updateTerminalStatus("EARTH", "test");
+    vi.advanceTimersByTime(2000);
+    expect(bellCount()).toBe(0);
+  });
+
+  it("EARTH with armed flag rings after debounce", () => {
+    armPendingFinalAlert("msg-test-2");
+    updateTerminalStatus("ROCKET", "test");
+    updateTerminalStatus("EARTH", "test");
+    expect(bellCount()).toBe(0); // debounce not elapsed
+    vi.advanceTimersByTime(1999);
+    expect(bellCount()).toBe(0); // still within debounce
+    vi.advanceTimersByTime(1);
+    expect(bellCount()).toBe(1); // debounce elapsed
+  });
+
+  it("EARTH after DOOM_LOOP rings even without armed flag", () => {
+    updateTerminalStatus("DOOM_LOOP", "test");
+    updateTerminalStatus("EARTH", "test");
+    expect(bellCount()).toBe(0); // debounce pending
+    vi.advanceTimersByTime(2000);
+    expect(bellCount()).toBe(1); // doom exception — always rings
+  });
+
+  it("MIC clears armed flag and rings immediately", () => {
+    armPendingFinalAlert("msg-test-3");
+    updateTerminalStatus("ROCKET", "test");
+    updateTerminalStatus("MIC", "test");
+    expect(bellCount()).toBe(1); // MIC rings immediately
+    // After MIC, armed flag is cleared — subsequent EARTH should not ring
+    updateTerminalStatus("EARTH", "test");
+    vi.advanceTimersByTime(2000);
+    expect(bellCount()).toBe(1); // no additional ring
+  });
+
+  it("MIC pre-empts pending armed EARTH debounce", () => {
+    armPendingFinalAlert("msg-test-4");
+    updateTerminalStatus("ROCKET", "test");
+    updateTerminalStatus("EARTH", "test"); // debounce starts
+    vi.advanceTimersByTime(500);
+    updateTerminalStatus("MIC", "test"); // pre-empts
+    expect(bellCount()).toBe(1); // MIC rings immediately
+    vi.advanceTimersByTime(2000);
+    expect(bellCount()).toBe(1); // EARTH timer was cancelled
+  });
+
+  it("_clearPendingFinalAlert resets all bell-gate state", () => {
+    armPendingFinalAlert("msg-test-5");
+    _clearPendingFinalAlert();
+    updateTerminalStatus("ROCKET", "test");
+    updateTerminalStatus("EARTH", "test");
+    vi.advanceTimersByTime(2000);
+    expect(bellCount()).toBe(0); // cleared → no bell
+  });
+
+  it("dedup: same messageId does not ring twice", () => {
+    armPendingFinalAlert("msg-dedup");
+    updateTerminalStatus("ROCKET", "test");
+    updateTerminalStatus("EARTH", "test");
+    vi.advanceTimersByTime(2000);
+    expect(bellCount()).toBe(1); // first ring
+    // Re-arm with same messageId — should be deduped
+    armPendingFinalAlert("msg-dedup");
+    updateTerminalStatus("ROCKET", "test");
+    updateTerminalStatus("EARTH", "test");
+    vi.advanceTimersByTime(2000);
+    expect(bellCount()).toBe(1); // no second ring (dedup)
   });
 });
 

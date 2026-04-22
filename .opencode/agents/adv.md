@@ -1,4 +1,5 @@
 ---
+name: adv
 description: ADV orchestrator — drives spec-driven development workflows through the 7-gate lifecycle. Use as the primary agent for ADV changes, proposals, discovery, design, planning, execution, review, and release.
 mode: primary
 color: "#73D0FF"
