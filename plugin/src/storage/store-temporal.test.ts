@@ -264,7 +264,7 @@ describe("Temporal store backend adapter", () => {
             ],
           },
           recommendations: [
-            "[doctor] Pending WAL checkpoint: 1 bytes in WAL file (run flush/checkpoint before archive)",
+            "[doctor] Pending WAL checkpoint: 1 bytes in WAL file (advisory — close other ADV sessions, rerun /adv-status, and restart OpenCode before archive only if it persists)",
             "Change `chg1`: next gate is `proposal` → run `/adv-proposal chg1`",
           ],
         }) as any,
@@ -297,7 +297,7 @@ describe("Temporal store backend adapter", () => {
     expect(status.changes.byStatus.draft).toBe(0);
     expect(status.changes.active).toBe(0);
     expect(status.recommendations).toEqual([
-      "[doctor] Pending WAL checkpoint: 1 bytes in WAL file (run flush/checkpoint before archive)",
+      "[doctor] Pending WAL checkpoint: 1 bytes in WAL file (advisory — close other ADV sessions, rerun /adv-status, and restart OpenCode before archive only if it persists)",
     ]);
 
     listSpy.mockRestore();

@@ -1138,14 +1138,80 @@ describe("Change Tools", () => {
           (w: { code: string }) => w.code === "PROPOSAL_TASK_DRIFT",
         ),
       ).toBe(true);
+      expect(
+        parsed.warnings.some((w: { code: string }) => w.code === "NO_TASKS"),
+      ).toBe(false);
     });
 
-    test("fails in strict mode with warnings", async () => {
+    test("passes in strict mode when warnings are archive-safe only", async () => {
+      const createResult = await changeTools.adv_change_create.execute(
+        {
+          summary: "Archive-safe warnings",
+          proposal:
+            "# Drift Change\n\n## Authentication\n\nNeed auth system.\n",
+        },
+        store,
+      );
+      const { changeId } = parseToolOutput(createResult);
+
+      const change = (await store.changes.get(changeId)).data!;
+      change.tasks = [
+        {
+          id: "tk-archivesafe01",
+          title: "Write release notes",
+          type: "docs",
+          status: "pending",
+          priority: 0,
+          created_at: new Date().toISOString(),
+          tdd_phase: "none",
+        },
+      ];
+      await store.changes.save(change);
+
+      const result = await changeTools.adv_change_validate.execute(
+        { changeId, strict: true },
+        store,
+      );
+      const parsed = parseToolOutput(result);
+
+      expect(parsed.passed).toBe(true);
+      expect(
+        parsed.warnings.some((w: { code: string }) => w.code === "NO_DELTAS"),
+      ).toBe(true);
+      expect(
+        parsed.warnings.some(
+          (w: { code: string }) => w.code === "PROPOSAL_TASK_DRIFT",
+        ),
+      ).toBe(true);
+      expect(
+        parsed.warnings.some((w: { code: string }) => w.code === "NO_TASKS"),
+      ).toBe(false);
+    });
+
+    test("fails in strict mode with non-archive-safe warnings", async () => {
       const createResult = await changeTools.adv_change_create.execute(
         { summary: "Empty change" },
         store,
       );
       const { changeId } = parseToolOutput(createResult);
+
+      const change = (await store.changes.get(changeId)).data!;
+      change.deltas = {
+        "test-capability": [
+          {
+            id: "dl-addwarn01",
+            operation: "add",
+            requirement: {
+              id: "rq-addwarn01",
+              title: "Archive warning test requirement",
+              body: "Requirement with missing scenarios warning.",
+              priority: "must",
+              scenarios: [],
+            },
+          },
+        ],
+      };
+      await store.changes.save(change);
 
       const result = await changeTools.adv_change_validate.execute(
         { changeId, strict: true },
@@ -1154,6 +1220,11 @@ describe("Change Tools", () => {
       const parsed = parseToolOutput(result);
 
       expect(parsed.passed).toBe(false);
+      expect(
+        parsed.warnings.some(
+          (w: { code: string }) => w.code === "MISSING_SCENARIO",
+        ),
+      ).toBe(true);
     });
 
     test("returns error for nonexistent change", async () => {

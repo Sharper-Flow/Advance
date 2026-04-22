@@ -17,6 +17,7 @@ import { createTempDir, cleanupTempDir } from "../__tests__/setup";
 import {
   checkpointWAL,
   closeDatabase,
+  formatPendingWALCheckpointRecommendation,
   getWALSize,
   initDatabase,
   shouldCheckpoint,
@@ -145,6 +146,14 @@ describe("health", () => {
       const dbPath = join(tempDir, "big-wal.db");
       writeFileSync(`${dbPath}-wal`, "a".repeat(200));
       expect(shouldCheckpoint(dbPath, 100)).toBe(true);
+    });
+
+    test("formats actionable doctor guidance for pending WAL checkpoints", () => {
+      const message = formatPendingWALCheckpointRecommendation(1024);
+      expect(message).toContain("Pending WAL checkpoint: 1024 bytes");
+      expect(message).toContain("advisory");
+      expect(message).toContain("rerun /adv-status");
+      expect(message).toContain("restart OpenCode before archive");
     });
   });
 

@@ -17,6 +17,7 @@ import type { Change, ChangeStatus } from "../types";
 import { createSQLiteStore, type SQLiteStore } from "./sqlite";
 import {
   checkpointWAL,
+  formatPendingWALCheckpointRecommendation,
   getWALSize,
   shouldCheckpoint,
   initDatabase,
@@ -93,7 +94,7 @@ export async function createLegacyStore(
     }
 
     logger.warn(
-      `Database corrupted (${error.message}); rebuilding from JSON with bounded retry`,
+      `Database corrupted (${error.message}); auto-recovery will retry up to 2 times with 100ms backoff before failing, resetting the db file and resyncing from JSON source of truth`,
     );
 
     const { rm } = await import("fs/promises");
@@ -322,7 +323,7 @@ export async function createLegacyStore(
       const walBytes = getWALSize(dbPath);
       if (walBytes > 0) {
         recommendations.push(
-          `[doctor] Pending WAL checkpoint: ${walBytes} bytes in WAL file (run flush/checkpoint before archive)`,
+          formatPendingWALCheckpointRecommendation(walBytes),
         );
       }
 

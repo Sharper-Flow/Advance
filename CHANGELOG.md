@@ -25,12 +25,12 @@ Introduces provider-specific ADV variants (`adv-claude`, `adv-gpt`, `adv-glm`, `
 
 ### Changed
 
-#### Gate Handoff Voice Footer Spine
+#### Gate Handoff Voice: Footer-Based Format
 
 Replaces the trailing `## Next stage` + `## Next` handoff sections with a single footer line so gate transitions scan faster without dropping the narrative sections.
 
 - **Canonical spine updated** — `docs/command-voice-standard.md` now defines a three-section handoff (`Problem` / `Chosen direction` / `Delivered`) followed by a footer line containing `{change-id} · {gate} ✓ → {next-gate} · /adv-{command}`.
-- **Archive + fast-track variants added** — archive now ends with `**{change-id}** · release ✓ · Shipped.` and `/adv-task` uses the fast-track footer `task ✓ → apply`.
+- **Archive + fast-track variants added** — archive output now uses the three-part structure (`Problem` / `Chosen direction` / `Delivered`) followed by the footer line `**{change-id}** · release ✓ · Shipped.`, and `/adv-task` uses the fast-track footer `task ✓ → apply`.
 - **All handoff-emitting command docs updated** — `adv-proposal`, `adv-discover`, `adv-design`, `adv-prep`, `adv-apply`, `adv-review`, `adv-harden`, `adv-archive`, and `adv-task` now use the footer-based shape.
 - **ADV overlay updated** — `.opencode/agents/adv.md` now mirrors the canonical footer-based output contract.
 - **Spec law updated** — `rq-handoffVoice01` now describes the footer-based spine and adds `rq-handoffVoice01.4` to require that the footer replaces `Next` sections.
@@ -102,12 +102,12 @@ budget gate. When `/adv-prep` identifies judgment calls from the synthesized
 task graph, `/adv-apply` Phase 1.5 surfaces them in a single batched
 `question` tool call before the first task executes.
 
-- **`adv_investment_report` tool** (`plugin/src/tools/investment.ts`) — read-only, stateless report returning task counts, elapsed time, retry metrics, doom-loop state, per-gate durations, and threshold tier (`auto` / `escalate` / `hardstop`). Called by `/adv-prep`, `/adv-apply`, `/adv-agree`, `/adv-accept`, `/adv-archive`.
+- **`adv_investment_report` tool** (`plugin/src/tools/investment.ts`) — read-only, stateless report returning task counts, elapsed time, retry metrics, doom-loop state, per-gate durations, and threshold tier (`auto` / `escalate` / `hardstop`). Called by `/adv-prep`, `/adv-apply`, `/adv-discover`, `/adv-review`, `/adv-archive`.
 - **Schema extension** — `ChangeSchema` gains two optional fields: `judgment_calls[]` (populated by `/adv-prep` Phase J) and `batch_surfaced_at` (audit stamp recorded by `/adv-apply` Phase 1.5). New types: `JudgmentCallSchema`, `JudgmentCallCategorySchema`, `InvestmentReportSchema`, `ThresholdTierSchema`. Zero changes to `TaskSchema`.
 - **Methodology skill** — `skills/adv-cost-governance-methodology/SKILL.md` is the single source of truth for identification and surfacing protocols, 3 in-scope categories (`non_functional_tradeoff`, `extensibility`, `scope_boundary`), out-of-scope list (`defaults`, `naming`, `error_semantics`), composition rules, hard-stop advisory semantics, and `rq-autonomy01` escape-clause citation.
 - **Policy layer** — `.opencode/instructions/cost-governance.md` ships YAML-frontmatter thresholds (conservative defaults: auto ≤3/0/15min, escalate ≥8/2/60min, hardstop ≥15/5/180min) + scope + category enum. Tunable without code changes. Synced via `scripts/sync-global.sh --fix` (new instruction block added alongside `ADV_INSTRUCTIONS.md`).
 - **Rule** — `P28: cost-governance` at priority 9 (parity with `P05`, `P24`, `P27`). User-managed in `~/.config/opencode/instructions/rules.yaml`; installation documented in `SETUP.md`.
-- **Command integration** — `/adv-prep` Phase J (identify judgment calls), `/adv-apply` Phase 1.5 (batch surfacing preamble), `/adv-agree`, `/adv-accept`, `/adv-archive` display a one-line investment summary.
+- **Command integration** — `/adv-prep` Phase J (identify judgment calls), `/adv-apply` Phase 1.5 (batch surfacing preamble), `/adv-discover`, `/adv-review`, `/adv-archive` display a one-line investment summary.
 - **ADV_INSTRUCTIONS.md** — new Investment Check-In subsection under "Autonomy & Quality Ownership" with explicit `rq-autonomy01` escape-clause citation: judgment calls are "unresolved user-value tradeoffs" under the existing contract, NOT a new enumerated human checkpoint. The 8 enumerated checkpoints remain the only enumerated pause points.
 - **Hard-stop semantics** — advisory in v1. Does NOT trigger `adv_change_reenter` (re-entry remains scope-expansion-driven per `rq-scopeReentry01`). Does NOT block at the tool level. v2 upgrade path preserved for hard enforcement and real token/cost telemetry.
 - **Retroactive policy** — new changes only. Existing drafts detected via `judgment_calls === undefined` skip surfacing silently. Running `/adv-prep` on a legacy draft opts it in.
@@ -217,13 +217,13 @@ Implemented all 13 identified context leak surfaces where ADV drops important co
 
 ### Improved
 
-#### Agreement Clarification Loop — Mandatory Open Question Resolution in /adv-agree
+#### Agreement Clarification Loop — Mandatory Open Question Resolution in /adv-discover
 
-- **Added Phase 2.5 (Open Question Resolution Loop)** to `/adv-agree` — all open questions from discovery must now be explicitly resolved before the agreement is finalized. No question is silently deferred or assumed "no preference."
+- **Added Phase 4.5 (Open Question Resolution Loop)** to `/adv-discover` — all open questions from discovery must now be explicitly resolved before the agreement is finalized. No question is silently deferred or assumed "no preference."
 - **Added question triage** — open questions are classified before reaching the user: technical/implementation questions are resolved autonomously via LBP research; only user-facing questions (priorities, behavior, downsides, AC boundaries) are presented to the user.
 - **Reframing rule** — technical questions with genuine LBP ambiguity must be reframed as the downstream outcome question (e.g., not "REST vs GraphQL?" but "Do you need clients to fetch partial data?").
 - **Updated agreement.md template** — replaced the generic "Open Questions" section with three explicit categories: User Decisions, Agent Decisions (LBP), and Deferred Questions.
-- **Updated autonomy compliance matrix** — `/adv-agree` row now reflects question triage and clarification loop responsibilities.
+- **Updated autonomy compliance matrix** — `/adv-discover` row now reflects question triage and clarification loop responsibilities.
 - **Updated gate docs** — discovery gate description documents the mandatory clarification loop.
 - **Added `agree` command boundary row** to `ADV_INSTRUCTIONS.md` — previously missing from the boundary table.
 
@@ -285,7 +285,7 @@ Implemented all 13 identified context leak surfaces where ADV drops important co
 - **`adv-design`**: Added `complete non-owned gates` to MUST NOT for consistency with the pattern established by `adv-discover` and `adv-prep`.
 - **`adv-accept`**: Added `complete non-owned gates` to MUST NOT for consistency.
 - **`adv-task`**: Added missing `adv_gate_complete` calls for `proposal` and `design` gates. The command claimed to complete all 4 pre-implementation gates but only had explicit calls for `discovery` and `planning`.
-- **`adv-review`**: Clarified ambiguous line 224 that could be misread as an instruction to call `adv_gate_complete`. Now explicitly states "× Do NOT call `adv_gate_complete` here" and marks the `completedBy` text as a hint for `/adv-accept`.
+- **`adv-review`**: Clarified ambiguous line 224 that could be misread as an instruction to call `adv_gate_complete`. Now explicitly states "× Do NOT call `adv_gate_complete` here" and marks the `completedBy` text as a hint for the acceptance flow owned by `/adv-review`.
 - **`ADV_INSTRUCTIONS.md`**: Updated command boundary summary table to match the corrected MUST NOT patterns in each command file.
 
 ### Added
