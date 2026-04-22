@@ -315,4 +315,49 @@ describe("ADV command routing assets", () => {
     // Negative lookbehind (?<!adv-) ensures we don't match the new "adv-engineer" identifier.
     expect(content).not.toMatch(/Spawn fixes.*(?<!adv-)\bengineer\b/);
   });
+
+  // NEW: autoResearchUnknownArchQuestions drift guards
+  test("adv.md contains pre-change investigation intent", () => {
+    const content = readFileSync(join(AGENT_DIR, "adv.md"), "utf8");
+    // Must contain trigger language for pre-change investigation near the intent table
+    expect(content).toMatch(/Pre-change investigation/);
+    expect(content).toMatch(/unknown platform.*architecture.*capability/i);
+    // Must contain the carve-out language
+    expect(content).toMatch(/single known file.*exact symbol/i);
+  });
+
+  test("plan.md investigation mode defaults to burst for unknowns", () => {
+    const content = readFileSync(join(AGENT_DIR, "plan.md"), "utf8");
+    // Must contain burst-first language
+    expect(content).toMatch(/Default to burst for unknowns/);
+    expect(content).toMatch(/spawn `explore` \+ `librarian`/i);
+    // Must contain carve-out language
+    expect(content).toMatch(/local and obvious/i);
+    expect(content).toMatch(/single known file.*exact symbol/i);
+  });
+
+  test("adv.overlay.md carries synced research-delegation rule", () => {
+    const content = readFileSync(
+      join(OVERLAY_DIR, "adv.overlay.md"),
+      "utf8",
+    );
+    expect(content).toMatch(/Pre-change research default/);
+    expect(content).toMatch(/parallel research burst.*explore.*librarian/s);
+  });
+
+  test("plan.overlay.md carries synced research-delegation rule", () => {
+    const content = readFileSync(
+      join(OVERLAY_DIR, "plan.overlay.md"),
+      "utf8",
+    );
+    expect(content).toMatch(/Pre-change research default/);
+    expect(content).toMatch(/parallel research burst.*explore.*librarian/s);
+  });
+
+  test("build.md is not required to carry pre-change research rule", () => {
+    const content = readFileSync(join(AGENT_DIR, "build.md"), "utf8");
+    // build.md should NOT contain the new burst-default language
+    expect(content).not.toMatch(/Default to burst for unknowns/);
+    expect(content).not.toMatch(/Pre-change research default/);
+  });
 });
