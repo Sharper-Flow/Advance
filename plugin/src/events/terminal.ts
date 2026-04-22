@@ -680,38 +680,29 @@ export const generateProjectShortname = (projectName: string): string => {
 };
 
 /**
- * Build the terminal tab title string.
- *
- * Format:
- *   - Shortname + change: "<emoji> <shortname> · <normalizedChangeCode>"
- *   - Shortname only:     "<emoji> <shortname>"
- *   - Change only:        "<emoji> <normalizedChangeCode>"  (empty project name)
- *   - Bare:               "<emoji>"
- *
- * The project shortname is generated deterministically by
- * `generateProjectShortname`. AI-generated cached shortnames are planned
- * as a future enhancement.
- *
- * No progress counter is ever included.
+ * Build tab title from emoji, project name, change code, and optional suffix.
  */
 export const buildTabTitle = (
   emoji: string,
   projectName: string,
   changeId: string | undefined,
+  suffix?: string,
 ): string => {
   const shortname = generateProjectShortname(projectName);
   const changeLabel = changeId ? normalizeChangeCode(changeId) : "";
 
+  const suffixStr = suffix ? ` ${suffix}` : "";
+
   if (shortname && changeLabel) {
-    return `${emoji} ${shortname} · ${changeLabel}`;
+    return `${emoji} ${shortname} · ${changeLabel}${suffixStr}`;
   }
   if (shortname) {
-    return `${emoji} ${shortname}`;
+    return `${emoji} ${shortname}${suffixStr}`;
   }
   if (changeLabel) {
-    return `${emoji} ${changeLabel}`;
+    return `${emoji} ${changeLabel}${suffixStr}`;
   }
-  return emoji;
+  return `${emoji}${suffixStr}`;
 };
 
 // Test seam: injectable callback replaces real bell I/O in tests.
@@ -807,16 +798,16 @@ const cancelPendingBell = (): void => {
  * Title format:
  *   - Active change: "<emoji> <normalizedChangeCode>"
  *   - No active change: "<emoji>"
+ *   - BLOCKED: appends "💀" suffix
  *
  * Bell policy:
- *   - MIC: ring immediately (user explicitly needed for question/approval),
- *     clear any pending final alert
- *   - EARTH with pendingFinalAlert: debounce ring (main agent finished)
- *   - EARTH after DOOM_LOOP: debounce ring (exception — user needs to see doom)
- *   - EARTH without armed flag: no bell (sub-agent teardown, transient idle)
+ *   - ATTN (permission pending): ring immediately, clear any pending final alert
+ *   - ATTN (armed idle): debounce ring (main agent finished)
+ *   - BLOCKED → ATTN: debounce ring (user needs to see recovery)
+ *   - ATTN without armed flag: no bell (sub-agent teardown, transient idle)
  *   - All other transitions: cancel any pending bell
  *   - New session (null→anything): never ring
- *   - EARTH→EARTH: not active work, no bell
+ *   - ATTN→ATTN: not active work, no bell
  */
 export const updateTerminalStatus = (
   status: StatusMarker,
@@ -825,34 +816,35 @@ export const updateTerminalStatus = (
   _progress?: string,
 ): void => {
   const emoji = getStatusEmoji(status);
-  const title = buildTabTitle(emoji, projectName, changeId);
+  const suffix = status === "BLOCKED" ? "💀" : undefined;
+  const title = buildTabTitle(emoji, projectName, changeId, suffix);
 
   setTitle(title);
 
   const previousStatus = lastAlertedStatus;
   lastAlertedStatus = status;
 
-  // MIC = user explicitly needed → ring immediately from any non-null state.
-  // Also clears any pending final alert — MIC pre-empts deferred bell.
-  if (status === "MIC" && previousStatus !== null) {
+  // ATTN (permission pending) = user explicitly needed → ring immediately.
+  // Also clears any pending final alert — ATTN pre-empts deferred bell.
+  if (status === "ATTN" && previousStatus !== null && previousStatus !== "ATTN") {
     cancelPendingBell();
     pendingFinalAlert = false;
     ringBell();
     return;
   }
 
-  // EARTH transitions from active work:
+  // ATTN transitions from active work (armed idle):
   if (
-    status === "EARTH" &&
+    status === "ATTN" &&
     previousStatus !== null &&
-    previousStatus !== "EARTH"
+    previousStatus !== "ATTN"
   ) {
-    // DOOM_LOOP exception: always ring on doom→idle (user must see recovery prompt).
-    if (previousStatus === "DOOM_LOOP") {
+    // BLOCKED exception: always ring on blocked→attn (user must see recovery prompt).
+    if (previousStatus === "BLOCKED") {
       cancelPendingBell();
       bellDebounceTimer = setTimeout(() => {
         bellDebounceTimer = null;
-        if (lastAlertedStatus === "EARTH") {
+        if (lastAlertedStatus === "ATTN") {
           ringBell();
         }
       }, BELL_DEBOUNCE_MS);
@@ -870,7 +862,7 @@ export const updateTerminalStatus = (
       const messageId = lastArmedMessageId;
       bellDebounceTimer = setTimeout(() => {
         bellDebounceTimer = null;
-        if (lastAlertedStatus === "EARTH") {
+        if (lastAlertedStatus === "ATTN") {
           lastRungMessageId = messageId;
           pendingFinalAlert = false;
           ringBell();
@@ -879,7 +871,7 @@ export const updateTerminalStatus = (
       return;
     }
 
-    // Non-armed EARTH: no bell. Sub-agent teardown, transient idle, etc.
+    // Non-armed ATTN: no bell. Sub-agent teardown, transient idle, etc.
     cancelPendingBell();
     return;
   }
@@ -893,20 +885,14 @@ export const updateTerminalStatus = (
  */
 const getStatusEmoji = (status: StatusMarker): string => {
   switch (status) {
-    case "ROCKET":
-      return "🚀";
-    case "TDD_RED":
-      return "🔴";
-    case "TDD_GREEN":
-      return "🟢";
-    case "MOON":
-      return "📡";
-    case "EARTH":
-      return "🌍";
-    case "DOOM_LOOP":
-      return "💀";
-    case "MIC":
-      return "🎤";
+    case "WORK":
+      return "🟩";
+    case "TOOLING":
+      return "🟨";
+    case "ATTN":
+      return "🟥";
+    case "BLOCKED":
+      return "🟥";
     default:
       return "📦";
   }
