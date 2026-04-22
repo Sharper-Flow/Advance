@@ -87,7 +87,8 @@ export function formatPendingWALCheckpointRecommendation(
   );
 }
 
-// Should checkpoint when WAL grows beyond 1MB
+// Callers such as store-legacy save/flush paths should checkpoint when WAL
+// grows beyond 1MB to reduce write-lock contention during concurrent ADV work.
 export function shouldCheckpoint(
   dbPath: string,
   thresholdBytes = 1024 * 1024,

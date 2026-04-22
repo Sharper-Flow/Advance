@@ -485,7 +485,8 @@ export const changeTools = {
           ? `${originSection}\n\n${proposal}`
           : undefined;
 
-        // Open a temporary store for the target project
+        // Create an isolated Store instance for the target project so follow-up
+        // creation stays independent of the origin project's ADV state.
         let targetStore: Store;
         try {
           targetStore = await createStore(target_path);

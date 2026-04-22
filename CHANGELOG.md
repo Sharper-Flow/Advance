@@ -25,12 +25,12 @@ Introduces provider-specific ADV variants (`adv-claude`, `adv-gpt`, `adv-glm`, `
 
 ### Changed
 
-#### Gate Handoff Voice Footer Spine
+#### Gate Handoff Voice: Footer-Based Format
 
 Replaces the trailing `## Next stage` + `## Next` handoff sections with a single footer line so gate transitions scan faster without dropping the narrative sections.
 
 - **Canonical spine updated** — `docs/command-voice-standard.md` now defines a three-section handoff (`Problem` / `Chosen direction` / `Delivered`) followed by a footer line containing `{change-id} · {gate} ✓ → {next-gate} · /adv-{command}`.
-- **Archive + fast-track variants added** — archive now ends with `**{change-id}** · release ✓ · Shipped.` and `/adv-task` uses the fast-track footer `task ✓ → apply`.
+- **Archive + fast-track variants added** — archive output now uses the three-part structure (`Problem` / `Chosen direction` / `Delivered`) followed by the footer line `**{change-id}** · release ✓ · Shipped.`, and `/adv-task` uses the fast-track footer `task ✓ → apply`.
 - **All handoff-emitting command docs updated** — `adv-proposal`, `adv-discover`, `adv-design`, `adv-prep`, `adv-apply`, `adv-review`, `adv-harden`, `adv-archive`, and `adv-task` now use the footer-based shape.
 - **ADV overlay updated** — `.opencode/agents/adv.md` now mirrors the canonical footer-based output contract.
 - **Spec law updated** — `rq-handoffVoice01` now describes the footer-based spine and adds `rq-handoffVoice01.4` to require that the footer replaces `Next` sections.

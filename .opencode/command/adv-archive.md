@@ -55,7 +55,7 @@ For each affected capability: `adv_spec action: "show"` → verify new requireme
 ---
 ## Phase 8: Archive Report
 
-Use the archive terminal variant of the Gate Handoff Voice spine (see `docs/command-voice-standard.md § Gate Handoff Voice`):
+Use the archive terminal variant of the Gate Handoff Voice spine (see `docs/command-voice-standard.md § Gate Handoff Voice` — archive variant: `Problem` / `Chosen direction` / `Delivered` + shipped footer):
 
 ```
 ## Shipped.
@@ -81,9 +81,9 @@ What shipped, what spec deltas applied.
 ---
 ## Phase 9: Git Finalization (Mandatory)
 ### Step 1: Stage and Commit
-Stage `.adv/specs/`, `docs/specs/`, `.adv/archive/`, `.opencode/`, `plugin/`, `ADV_INSTRUCTIONS.md`, `README.md`, `docs/`. Commit: `chore: archive {change-id}`. If commit fails → stop.
+Stage `.adv/specs/`, `docs/specs/`, `.adv/archive/`, `.opencode/`, `plugin/src/`, `ADV_INSTRUCTIONS.md`, `README.md`, and any touched docs in `docs/`. Do NOT stage generated build artifacts. Commit: `chore: archive {change-id}`. If commit fails → stop.
 ### Step 2: Detect Default Branch
-`git rev-parse --verify main` || `trunk` || `git symbolic-ref refs/remotes/origin/HEAD`. If UNKNOWN → ask user.
+`git rev-parse --verify main` || `trunk` || `git symbolic-ref refs/remotes/origin/HEAD` || `git config --get init.defaultBranch`. If UNKNOWN or remote HEAD looks stale → ask user.
 ### Step 3: Check Context
 `git branch --show-current` → if on `change/{change-id}` → merge required. If on default branch → skip merge.
 ### Step 4: Merge
@@ -91,10 +91,11 @@ Stage `.adv/specs/`, `docs/specs/`, `.adv/archive/`, `.opencode/`, `plugin/`, `A
 
 ### Step 4.5: Publish Safety (when pushing a default branch)
 If archive finalization needs a remote push from the default branch:
-- `git fetch origin`
+- `git fetch origin` (if fetch fails or auth is unclear → stop and ask the user before proceeding)
 - `git log --oneline origin/{default-branch}..HEAD` → inspect the commits that will publish
 - If `origin/{default-branch}..HEAD` is a clean fast-forward → `git push origin {default-branch}`
 - × Do NOT force-push by default
+- Before any `--force-with-lease` prompt, show both `origin/{default-branch}..HEAD` and `HEAD..origin/{default-branch}` so the user sees local-only and remote-only commits
 - Use `--force-with-lease` only after explicit user approval via the `question` tool confirms a non-fast-forward publish is intended
 - If remote divergence is detected and intent is unclear → stop and ask the user
 ### Step 5: Verify

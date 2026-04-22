@@ -94,7 +94,7 @@ export async function createLegacyStore(
     }
 
     logger.warn(
-      `Database corrupted (${error.message}); rebuilding from JSON with bounded retry`,
+      `Database corrupted (${error.message}); auto-recovery will retry up to 2 times with 100ms backoff before failing, resetting the db file and resyncing from JSON source of truth`,
     );
 
     const { rm } = await import("fs/promises");
