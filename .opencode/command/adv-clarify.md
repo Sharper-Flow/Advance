@@ -30,6 +30,15 @@ Use `/adv-clarify` whenever ambiguity blocks:
 - `discovery` — current-state assumptions and objectives
 - `agree` — constraints, avoidances, and acceptance criteria
 - `design` — architecture choices and operational implications
+
+## Return Path — From /adv-discover AC Checkpoint
+
+When `/adv-clarify` is invoked from `/adv-discover`'s **Acceptance Criteria Checkpoint** (Phase 4.5.1):
+
+- `/adv-clarify` outputs a **REQUIREMENTS DISCOVERY SUMMARY** that includes the revised acceptance-criteria list
+- `/adv-clarify` **MUST NOT** write `agreement.md`
+- `/adv-clarify` **MUST NOT** call `adv_gate_complete`
+- The final line of `/adv-clarify` output instructs the user to rerun `/adv-discover {change-id}` to resume discovery and complete the AC checkpoint
 ## Phase 1: Context Analysis
 Silently analyze: stated assumptions, unstated assumptions, contradictions, knowledge gaps. Review conversation for specs, proposals, code, constraints.
 ## Phase 2: Question Categories
