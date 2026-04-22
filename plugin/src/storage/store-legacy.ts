@@ -17,6 +17,7 @@ import type { Change, ChangeStatus } from "../types";
 import { createSQLiteStore, type SQLiteStore } from "./sqlite";
 import {
   checkpointWAL,
+  formatPendingWALCheckpointRecommendation,
   getWALSize,
   shouldCheckpoint,
   initDatabase,
@@ -321,9 +322,7 @@ export async function createLegacyStore(
 
       const walBytes = getWALSize(dbPath);
       if (walBytes > 0) {
-        recommendations.push(
-          `[doctor] Pending WAL checkpoint: ${walBytes} bytes in WAL file (run flush/checkpoint before archive)`,
-        );
+        recommendations.push(formatPendingWALCheckpointRecommendation(walBytes));
       }
 
       return {

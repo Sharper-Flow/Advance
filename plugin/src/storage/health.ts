@@ -77,6 +77,16 @@ export function getWALSize(dbPath: string): number {
   }
 }
 
+export function formatPendingWALCheckpointRecommendation(
+  walBytes: number,
+): string {
+  return (
+    `[doctor] Pending WAL checkpoint: ${walBytes} bytes in WAL file ` +
+    `(advisory — close other ADV sessions, rerun /adv-status, ` +
+    `and restart OpenCode before archive only if it persists)`
+  );
+}
+
 // Should checkpoint when WAL grows beyond 1MB
 export function shouldCheckpoint(
   dbPath: string,
