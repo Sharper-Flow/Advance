@@ -88,12 +88,7 @@ If `adv_change_show` reveals a `cross_project_origin` field on the change:
 
 ---
 ## Phase 1.5: Skill Discovery
-Execute the skill discovery protocol from `ADV_INSTRUCTIONS.md § Skill Discovery Protocol`:
-1. Search trusted skill directories: `~/.config/opencode/skills/*/SKILL.md`, repo `skills/*/SKILL.md`
-2. Read YAML frontmatter from each `SKILL.md`
-3. Match `keywords` against the change's tech stack and domain
-4. Load matching skills via `skill("{name}")`
-5. Apply guidance from loaded skills
+Execute the skill discovery protocol from `ADV_INSTRUCTIONS.md § Skill Discovery Protocol`. Search trusted skill directories → match `keywords` against tech stack/domain → load via `skill("{name}")` → apply guidance.
 
 **Output:** "Skills Considered" section listing each examined skill, match assessment, and action taken.
 
