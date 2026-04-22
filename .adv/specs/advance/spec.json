@@ -3,8 +3,8 @@
   "name": "advance",
   "title": "Advance",
   "purpose": "Capability: Advance",
-  "version": "1.10.0",
-  "updated_at": "2026-04-22T00:00:00.000Z",
+  "version": "1.11.0",
+  "updated_at": "2026-04-22T22:45:00.000Z",
   "requirements": [
     {
       "id": "rq-W1sD0mR1",
@@ -1072,6 +1072,67 @@
           "when": "Inspected after this change ships",
           "then": [
             "Its signature and behavior remain identical to before adv_change_bulk_close was added"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-dueDiligence01",
+      "title": "Source-Appropriate Due Diligence for Unknown Capability Questions",
+      "body": "ADV-managed guidance (orchestrator agent text, synced overlays, and accompanying drift tests) must require source-appropriate due diligence before answering, recommending, or deciding on unknown platform, architecture, or capability questions. Diligence may use any appropriate mix of evidence sources (local code via lgrep/read, repo history or repo examples, GitHub examples, official docs, web research, or similar); the evidence bar is not a fixed source stack. Requests like \"quick answer\", \"from your knowledge\", or \"don't research\" may change response brevity only and must not lower the evidence bar. If required diligence cannot be completed, the response must stop and surface the blockage instead of presenting an unverified recommendation as settled.",
+      "priority": "must",
+      "tags": ["research", "due-diligence", "routing", "guidance"],
+      "scenarios": [
+        {
+          "id": "rq-dueDiligence01.1",
+          "title": "Unknown capability question triggers source-appropriate diligence",
+          "given": [
+            "An unknown platform, architecture, or capability question is posed to an ADV-managed agent"
+          ],
+          "when": "The agent prepares an answer, recommendation, or decision",
+          "then": [
+            "The agent gathers source-appropriate evidence before answering",
+            "Evidence may come from local code inspection, repo history or repo examples, GitHub examples, official docs, web research, or other relevant sources chosen to fit the question",
+            "No carve-out permits skipping diligence on the basis that the question is local, short, or familiar"
+          ]
+        },
+        {
+          "id": "rq-dueDiligence01.2",
+          "title": "Quick-answer requests change brevity only",
+          "given": [
+            "The user requests a \"quick answer\", asks \"from your knowledge\", or says \"don't research\"",
+            "The question still requires due diligence under rq-dueDiligence01.1"
+          ],
+          "when": "The agent responds",
+          "then": [
+            "The response may be shortened or compressed",
+            "The evidence bar is not lowered; diligence is still performed before recommending or deciding"
+          ]
+        },
+        {
+          "id": "rq-dueDiligence01.3",
+          "title": "Blocked diligence stops and surfaces the blockage",
+          "given": [
+            "Required diligence cannot be completed (for example: docs, research tools, or evidence sources are unavailable)"
+          ],
+          "when": "The agent would otherwise present a directional answer or recommendation",
+          "then": [
+            "The agent stops instead of presenting an unverified direction as settled",
+            "The response surfaces the specific blockage or missing evidence",
+            "No carve-out permits proceeding with an unverified recommendation"
+          ]
+        },
+        {
+          "id": "rq-dueDiligence01.4",
+          "title": "Guidance surfaces and drift tests encode the rule",
+          "given": [
+            "The repo contains ADV orchestrator agent text, synced overlays, and routing asset tests"
+          ],
+          "when": "Those surfaces are inspected",
+          "then": [
+            "The ADV agent and plan agent sources describe due-diligence-first routing for unknown capability questions",
+            "The synced overlays (adv.overlay.md, plan.overlay.md) carry the same rule",
+            "Regression tests fail if the legacy carve-out-first wording returns"
           ]
         }
       ]
