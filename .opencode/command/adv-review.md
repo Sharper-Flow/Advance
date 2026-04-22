@@ -270,7 +270,7 @@ Keep the summary concise and user-facing.
 Use the `question` tool to ask whether the delivered work satisfies the agreement.
 
 Recommended options:
-- Accept and continue (Recommended)
+- Accept and continue (Recommended) — agent immediately proceeds inline to `/adv-harden`
 - Needs fixes before acceptance
 - Re-open earlier gates via `adv_change_reenter` (scope expansion)
 
@@ -301,6 +301,8 @@ What was reviewed and user-accepted.
 ---
 **{change-id}** · acceptance ✓ → release · `/adv-harden {change-id}`
 ```
+
+**Auto-continue:** After user acceptance, immediately begin `/adv-harden` inline. Do not stop or ask "shall I proceed?" — the user's acceptance is the go-ahead.
 ---
 ## Anti-Patterns
 | × Anti-Pattern | ✓ Fix |

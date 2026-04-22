@@ -270,7 +270,7 @@ Generate a compact vision banner (<30 lines) and present it **in chat only** (no
 
 Present the vision document and ask for explicit approval via `question` tool:
 
-- **Approve and continue** — user confirms the plan is ready for autonomous implementation
+- **Approve and continue** — user confirms the plan is ready for autonomous implementation; agent immediately proceeds inline to `/adv-apply` without asking for a second confirmation
 - **Request changes** — user wants modifications before approving (loop back to gap analysis)
 - **Cancel** — user wants to abandon prep
 
@@ -357,6 +357,8 @@ Firm plan shape (task structure, approach, not task list).
 ---
 **{change-id}** · planning ✓ → execution · `/adv-apply {change-id}`
 ```
+
+**Auto-continue:** After user approval, immediately begin `/adv-apply` inline. This is the last human checkpoint before autonomous execution — the user's "approve and continue" is the go-ahead to start implementation without any further confirmation.
 
 ---
 ## Key Tools
