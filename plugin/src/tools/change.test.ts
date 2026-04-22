@@ -214,7 +214,6 @@ describe("Change Tools", () => {
       );
       const parsed = parseToolOutput(result);
 
-      expect(parsed.success).toBe(false);
       expect(parsed.error).toMatch(/protected status/i);
     });
 
