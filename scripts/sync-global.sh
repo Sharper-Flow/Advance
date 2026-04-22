@@ -691,7 +691,7 @@ fi
 mkdir -p "$GLOBAL_AGENTS"
 agents_copied=0
 # Agents that must stay repo-local (not synced to global)
-REPO_LOCAL_ONLY="tron.md"
+REPO_LOCAL_ONLY="adv-tron.md"
 # Shared agents managed via overlay blocks instead of full-file replacement.
 #
 # NOTE: `adv.md` is deliberately NOT in this list. The ADV orchestrator agent's
@@ -738,7 +738,7 @@ fi
 # Remove stale ADV agents from global that no longer exist in repo
 # Also remove repo-local-only agents if they leaked into global
 agents_removed=0
-for global_agent in "$GLOBAL_AGENTS"/adv-*.md "$GLOBAL_AGENTS"/orca.md "$GLOBAL_AGENTS"/tron.md "$GLOBAL_AGENTS"/scout.md "$GLOBAL_AGENTS"/refine.md "$GLOBAL_AGENTS"/engineer.md; do
+for global_agent in "$GLOBAL_AGENTS"/adv-*.md "$GLOBAL_AGENTS"/orca.md "$GLOBAL_AGENTS"/tron.md "$GLOBAL_AGENTS"/scout.md "$GLOBAL_AGENTS"/refine.md "$GLOBAL_AGENTS"/engineer.md "$GLOBAL_AGENTS"/adv-engineer.md "$GLOBAL_AGENTS"/adv-tron.md; do
   [ -f "$global_agent" ] || continue
   name="$(basename "$global_agent")"
   # Remove if no longer in repo OR if it's repo-local-only
