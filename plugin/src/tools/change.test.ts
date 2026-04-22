@@ -5,7 +5,7 @@
  */
 
 import { describe, test, expect, beforeEach, afterEach } from "vitest";
-import { readFile, writeFile, realpath, symlink } from "fs/promises";
+import { readFile, writeFile, symlink } from "fs/promises";
 import { join } from "path";
 import { getProjectId, getExternalRoot } from "../utils/project-id";
 import { changeTools } from "./change";
