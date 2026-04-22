@@ -69,7 +69,6 @@ interface StatusFlags {
   sessionIdle: boolean;
   activeSubAgents: number;
   permissionPending: boolean;
-  tddPhase: "TDD_RED" | "TDD_GREEN" | null;
 }
 
 /** Plugin state for tracking active work */
@@ -90,17 +89,17 @@ interface PluginState extends StatusFlags {
  * Resolve the current StatusMarker from plugin state flags.
  *
  * Precedence (highest → lowest):
- *   MIC > MOON > TDD_RED > TDD_GREEN > ROCKET > EARTH
+ *   ATTN (permission pending) > TOOLING (sub-agents) > ATTN (idle) > WORK
  *
- * EARTH is only shown when the session is idle AND no other flag is set.
- * DOOM_LOOP is set directly by trackRetry() in status.ts, bypassing the resolver.
+ * ATTN is shown both when user explicitly needs to act (permission pending)
+ * and when the session is idle (agent finished, user should look).
+ * BLOCKED is set directly by trackRetry() in status.ts, bypassing the resolver.
  */
 const resolveStatus = (s: PluginState): StatusMarker => {
-  if (s.permissionPending) return "MIC";
-  if (s.activeSubAgents > 0) return "MOON";
-  if (s.tddPhase) return s.tddPhase;
-  if (s.sessionIdle) return "EARTH";
-  return "ROCKET";
+  if (s.permissionPending) return "ATTN";
+  if (s.activeSubAgents > 0) return "TOOLING";
+  if (s.sessionIdle) return "ATTN";
+  return "WORK";
 };
 
 const debugLog = (msg: string): void => appendDebugLog("index", msg);
@@ -168,7 +167,6 @@ export const AdvancePlugin: Plugin = async ({
     sessionIdle: true,
     activeSubAgents: 0,
     permissionPending: false,
-    tddPhase: null,
     activeChange: { id: null, objective: null },
     lastCompletedTask: null,
     isWorktree,
@@ -218,7 +216,7 @@ export const AdvancePlugin: Plugin = async ({
           const statusType = props.status?.type;
           if (statusType === "idle") {
             if (state.activeSubAgents === 0) {
-              setFlags({ sessionIdle: true, tddPhase: null });
+              setFlags({ sessionIdle: true });
             }
             pruneStaleRetries();
           } else if (statusType === "busy") {
@@ -321,17 +319,10 @@ export const AdvancePlugin: Plugin = async ({
           setFlags({ permissionPending: true, sessionIdle: false });
         }
 
-        // Detect TDD phase from adv_run_test and adv_task_evidence
-        if (
-          input.tool === "adv_run_test" ||
-          input.tool === "adv_task_evidence"
-        ) {
-          const phase = args["phase"];
-          if (phase === "red") {
-            setFlags({ tddPhase: "TDD_RED", sessionIdle: false });
-          } else if (phase === "green") {
-            setFlags({ tddPhase: "TDD_GREEN", sessionIdle: false });
-          }
+        // Long-running tools opt into TOOLING status (yellow tab)
+        const LONG_TOOLS = new Set(["adv_run_test", "adv_task_evidence"]);
+        if (LONG_TOOLS.has(input.tool)) {
+          setStatus(resolveStatus({ ...state, activeSubAgents: state.activeSubAgents + 1 }));
         }
       } catch (e) {
         debugLog(`tool.execute.before error: ${e}`);
@@ -391,12 +382,10 @@ export const AdvancePlugin: Plugin = async ({
           setFlags({ permissionPending: false });
         }
 
-        // Clear TDD phase after test tool completes
-        if (
-          input.tool === "adv_run_test" ||
-          input.tool === "adv_task_evidence"
-        ) {
-          setFlags({ tddPhase: null });
+        // Long-running tools: restore status after completion
+        const LONG_TOOLS = new Set(["adv_run_test", "adv_task_evidence"]);
+        if (LONG_TOOLS.has(input.tool)) {
+          setStatus(resolveStatus(state));
         }
       } catch (e) {
         debugLog(`tool.execute.after error: ${e}`);
