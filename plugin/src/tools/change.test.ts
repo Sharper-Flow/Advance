@@ -1127,6 +1127,20 @@ describe("Change Tools", () => {
       );
       const { changeId } = parseToolOutput(createResult);
 
+      const change = (await store.changes.get(changeId)).data!;
+      change.tasks = [
+        {
+          id: "tk-drift01",
+          title: "Capture agreed implementation task",
+          type: "code",
+          status: "pending",
+          priority: 0,
+          created_at: new Date().toISOString(),
+          tdd_phase: "none",
+        },
+      ];
+      await store.changes.save(change);
+
       const result = await changeTools.adv_change_validate.execute(
         { changeId },
         store,

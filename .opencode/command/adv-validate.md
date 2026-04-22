@@ -1,13 +1,6 @@
 ---
 name: adv-validate
 description: Validate change compliance against specs; block archive on failure
-args:
-  - name: change_id
-    description: Change ID to validate
-    required: false
-  - name: strict
-    description: Enable strict validation (warnings become errors)
-    required: false
 ---
 # ADV Validate — Check Change Against Specs
 Validate change proposal against deployed specs via `adv_change_validate`.

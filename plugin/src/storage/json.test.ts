@@ -53,6 +53,7 @@ describe("getProjectPaths", () => {
     expect(paths.db).toBe("/project/.adv/db");
     expect(paths.wisdom).toBe("/project/.adv/wisdom.jsonl");
     expect(paths.agenda).toBe("/project/.adv/agenda.jsonl");
+    expect("handoff" in paths).toBe(false);
     expect(paths.external).toBeNull();
   });
 
@@ -80,6 +81,7 @@ describe("getProjectPaths", () => {
     expect(paths.db).toBe("/ext/data/abc123/db");
     expect(paths.wisdom).toBe("/ext/data/abc123/wisdom.jsonl");
     expect(paths.agenda).toBe("/ext/data/abc123/agenda.jsonl");
+    expect("handoff" in paths).toBe(false);
     expect(paths.external).toBe("/ext/data/abc123");
   });
 
