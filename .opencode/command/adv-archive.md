@@ -22,8 +22,8 @@ If empty → `adv_change_list` → auto-select the only plausible change; ask vi
 ## Phase 1: Pre-Archive Checks
 1. `adv_change_show` → verify status "active"
 2. `adv_task_list` → all tasks must be "done". If incomplete → ARCHIVE BLOCKED banner → stop
-3. `adv_change_validate strict: true` → if fails → show errors → stop
-4. `adv_status` → check for `[doctor]` entries: JSON/SQLite inconsistency or broken refs → block; pending WAL → warn only
+3. `adv_change_validate strict: true` → if fails → show errors/warnings → stop and review the validation output before retrying
+4. `adv_status` → check for `[doctor]` entries: JSON/SQLite inconsistency or broken refs → block; pending WAL → warn only (advisory — benign when transient, escalate only if it persists after rerunning `/adv-status` or restarting OpenCode)
 5. `adv_investment_report changeId: {id}` → include investment summary in archive report (informational)
 
 ---
@@ -95,7 +95,7 @@ If archive finalization needs a remote push from the default branch:
 - `git log --oneline origin/{default-branch}..HEAD` → inspect the commits that will publish
 - If `origin/{default-branch}..HEAD` is a clean fast-forward → `git push origin {default-branch}`
 - × Do NOT force-push by default
-- Use `--force-with-lease` only after explicit review confirms a non-fast-forward publish is intended
+- Use `--force-with-lease` only after explicit user approval via the `question` tool confirms a non-fast-forward publish is intended
 - If remote divergence is detected and intent is unclear → stop and ask the user
 ### Step 5: Verify
 `git log --oneline {default-branch}..change/{change-id}` → MUST return empty. If non-empty → stop, × do NOT delete worktree.

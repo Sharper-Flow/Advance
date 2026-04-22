@@ -22,6 +22,10 @@ import { validateChange } from "../validator";
 import { createLogger } from "../utils/debug-log";
 
 const logger = createLogger("change");
+// Warning codes that may still surface during archive-time validation but do
+// not, by themselves, indicate broken or unsafe release state. Keep this set
+// intentionally narrow: errors and all other warnings continue to block strict
+// validation until explicitly reviewed and reclassified.
 const ARCHIVE_SAFE_STRICT_WARNING_CODES = new Set([
   "NO_DELTAS",
   "PROPOSAL_TASK_DRIFT",

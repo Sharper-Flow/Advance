@@ -1027,6 +1027,9 @@ describe("Change Tools", () => {
           (w: { code: string }) => w.code === "PROPOSAL_TASK_DRIFT",
         ),
       ).toBe(true);
+      expect(
+        parsed.warnings.some((w: { code: string }) => w.code === "NO_TASKS"),
+      ).toBe(false);
     });
 
     test("passes in strict mode when warnings are archive-safe only", async () => {
@@ -1069,6 +1072,9 @@ describe("Change Tools", () => {
           (w: { code: string }) => w.code === "PROPOSAL_TASK_DRIFT",
         ),
       ).toBe(true);
+      expect(
+        parsed.warnings.some((w: { code: string }) => w.code === "NO_TASKS"),
+      ).toBe(false);
     });
 
     test("fails in strict mode with non-archive-safe warnings", async () => {
