@@ -760,6 +760,33 @@ const ringBell = (): void => {
 // StatusMarker = previous status for transition detection
 let lastAlertedStatus: StatusMarker | null = null;
 
+// Bell-gate state: only ring when main agent finishes a response.
+// Armed by armPendingFinalAlert() after a qualifying message.updated event.
+let pendingFinalAlert = false;
+let lastArmedMessageId: string | null = null;
+let lastRungMessageId: string | null = null;
+
+/**
+ * Arm the pending final alert for a completed main-agent message.
+ * Called from index.ts message.updated handler when the main agent
+ * finishes a response (not a tool turn).
+ * Dedup: no-op if messageId matches lastArmedMessageId.
+ */
+export const armPendingFinalAlert = (messageId: string): void => {
+  if (messageId === lastArmedMessageId) return;
+  lastArmedMessageId = messageId;
+  pendingFinalAlert = true;
+};
+
+/**
+ * Test seam: reset bell-gate state. Also called from cleanupTerminal().
+ */
+export const _clearPendingFinalAlert = (): void => {
+  pendingFinalAlert = false;
+  lastArmedMessageId = null;
+  lastRungMessageId = null;
+};
+
 // Bell debounce — absorb transient EARTH states during sub-agent teardown.
 // MIC always rings immediately; EARTH waits BELL_DEBOUNCE_MS to confirm idle.
 const BELL_DEBOUNCE_MS = 2000;
@@ -864,5 +891,6 @@ export const cleanupTerminal = (): void => {
   cancelPendingBell();
   resetTitle();
   lastAlertedStatus = null;
+  _clearPendingFinalAlert();
   invalidateTtyCache();
 };
