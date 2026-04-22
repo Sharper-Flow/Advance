@@ -398,19 +398,21 @@ Inline-only: `/adv-status`, `/adv-proposal`, `/adv-validate`, `/adv-archive`, `/
 | 4 | Risk signals (multi-file, cross-repo, architectural keywords)? | `inline_required` |
 | 5 | Default | `inline_required` |
 
-ADV code-writing delegation targets `engineer` (not `general`). Verify-burst and non-ADV multi-step work remain on `general`.
+ADV code-writing delegation targets `adv-engineer` (not `general`). Verify-burst and non-ADV multi-step work remain on `general`.
 
 ### Context Packet Standards
 
 Apply packet includes: WORKING DIRECTORY, CHANGE, TASK, AFFECTED FILES, DESIGN EXCERPT, ACCEPTANCE CRITERIA, EXPECTED OUTPUT.
 
-EXPECTED OUTPUT for delegated implementation: implement the task, run tests, emit a fenced `ENGINEER_REPORT` JSON block per `.opencode/agents/engineer.md`.
+EXPECTED OUTPUT for delegated implementation: implement the task, run tests, emit a fenced `ENGINEER_REPORT` JSON block per `.opencode/agents/adv-engineer.md`.
 
 #### ENGINEER_REPORT Payload
 
 Required top-level keys: `schema_version`, `change_id`, `task_id`, `agent`, `scope`, `status`, `files_touched`, `verification`, `decisions`, `blockers`, `follow_ups`, `related_scan`, `context_update_for_adv` (with `what_ads_needs_to_know`, `suggested_next_action`).
 
-Full schema and example: `.opencode/agents/engineer.md` § ENGINEER_REPORT Payload.
+The `agent` field MUST be the literal string `"adv-engineer"` — matching the subagent filename in `.opencode/agents/adv-engineer.md`.
+
+Full schema and example: `.opencode/agents/adv-engineer.md` § ENGINEER_REPORT Payload.
 
 ### Structured Sub-Agent Prompt Protocol
 
@@ -432,8 +434,8 @@ After each phase, use `adv_change_update` to record compact summaries. Do not du
 |------|--------|---------|
 | **Primary** (user-selectable top-level) | `adv`, `plan`, `build` | Global `~/.config/opencode/agents/` |
 | **Common subagents** (spawnable via Task tool) | `explore`, `general`, `librarian`, `mechanic`, `prioritizer` | Global `~/.config/opencode/agents/` |
-| **ADV Specialist** (spawnable, bundled global) | `adv-researcher`, `engineer` | Global `~/.config/opencode/agents/` |
-| **Repo-Local** (spawnable, repo-scoped) | `tron` | Repo-local `.opencode/agents/` |
+| **ADV Specialist** (spawnable, bundled global) | `adv-researcher`, `adv-engineer` | Global `~/.config/opencode/agents/` |
+| **Repo-Local** (spawnable, repo-scoped) | `adv-tron` | Repo-local `.opencode/agents/` |
 
 > **Primary vs subagent:** Only `mode: subagent` agents are spawnable via the Task tool. `adv`, `plan`, and `build` are primary agents — users switch to them directly; they cannot be invoked through sub-agent spawning.
 
@@ -444,12 +446,12 @@ After each phase, use `adv_change_update` to record compact summaries. Do not du
 | `librarian` | Docs, API refs, code examples | Context7, grep.app, Kagi |
 | `adv-researcher` | Architecture validation, simplicity | Context7, Kagi, ADV read-only |
 | `explore` | Codebase navigation, find usages | Read, Glob, Grep, lgrep |
-| `engineer` | Delegated ADV code-writing executor | Full write (read/write/edit/bash) + narrow ADV reads + evidence |
+| `adv-engineer` | Delegated ADV code-writing executor | Full write (read/write/edit/bash) + narrow ADV reads + evidence |
 | `general` | Verify-only bursts + generic multi-step non-ADV work | Full tool access |
 | `mechanic` | System/infra issues | Vision, bash, read/write |
-| `tron` | Reconnaissance, hotspot detection | Read, Glob, Grep, lgrep |
+| `adv-tron` | Reconnaissance, hotspot detection | Read, Glob, Grep, lgrep |
 
-> **Note:** `tron` is a repo-local agent — only available in ADV-enabled repos (repos with `.opencode/agents/tron.md`). `adv-researcher` is bundled and synced to `~/.config/opencode/agents/` by this repo's sync script; it is available in any session where the global install has been synced from an ADV-enabled repo.
+> **Note:** `adv-tron` is a repo-local agent — only available in ADV-enabled repos (repos with `.opencode/agents/adv-tron.md`). `adv-researcher` and `adv-engineer` are bundled global specialists — synced to `~/.config/opencode/agents/` by this repo's sync script; they are available in any session where the global install has been synced from an ADV-enabled repo. All ADV-shipped sub-agents follow the `adv-<name>` naming convention.
 
 Orchestrator pattern: spawn `librarian` + `adv-researcher` in parallel → synthesize.
 
