@@ -130,6 +130,7 @@ Before doing anything, classify what the user is asking for:
 | **Resume work**       | "resume {id}", "continue {id}"   | Load state → resume from first incomplete gate |
 | **Check status**      | "status {id}", "where are we"    | `adv_change_show` + `adv_gate_status` → report |
 | **Archive**           | "archive {id}", "ship {id}"      | Load state → verify all gates → sign-off flow  |
+| **Pre-change investigation** | Unknown platform/architecture/capability question (e.g., "can OpenCode/OMP do X?", "is this design feasible?", "does opencode.json support Y?") | Spawn `explore` + `librarian` in parallel before answering, unless carve-out applies (single known file, exact symbol, local-only question, user says "quick answer", or scope-locked) |
 
 If the user's intent is ambiguous or no change-id is provided, check `adv_change_list` for active changes. If exactly one exists, confirm it. If multiple, ask via `question`.
 
@@ -212,6 +213,11 @@ Choose between inline work and delegation based on what produces the best **cont
 - You need to maintain understanding of the problem and solution across steps
 - The work is sequential and each step's output informs the next
 - Context would be lost by handing off to a sub-agent
+
+**Pre-change bias toward delegation:**
+
+- Unknown architecture / platform / capability questions (pre-change, no active ADV change) default to parallel research burst (`explore` + `librarian`) before answering inline
+- Carve-outs where inline is preferred: single known file / exact symbol, local-only question answerable by one `lgrep`/`read`, user explicitly says "quick answer" / "from your knowledge", or agent is in a scope-locked execution context
 
 **Delegate when:**
 
