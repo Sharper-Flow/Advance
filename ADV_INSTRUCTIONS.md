@@ -61,7 +61,7 @@ For changes created before HITL enforcement, `/adv-apply` emits a soft advisory 
 ADV pauses ONLY at these checkpoints:
 - Proposal confirmation — user confirms problem statement
 - Agreement sign-off — user approves objectives and acceptance criteria
-- Design approval — ONLY when real tradeoffs depend on user values or product vision, OR when design validator returns CONFLICT
+- Design approval — ONLY when real tradeoffs depend on user values or product vision, OR when the design validator returns CONFLICT, OR when the agent identifies contract-compromise risk (rq-designval04)
 - Acceptance — user confirms delivered work satisfies the agreement
 - Archive sign-off — user approves final release
 - Cancellation approval — explicit user approval required

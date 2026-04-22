@@ -48,7 +48,7 @@ Produces `agreement.md` — context analysis, objectives, and constraints agreed
 
 ### Design Gate
 
-Owner: `/adv-design` | **Pauses for:** design approval only when real tradeoffs depend on user values; auto-continues for straightforward deterministic designs
+Owner: `/adv-design` | **Pauses for:** design approval when real tradeoffs depend on user values, when the design validator returns CONFLICT, or when the agent identifies contract-compromise risk (rq-designval04); auto-continues for straightforward deterministic designs with no compromise risk
 
 Produces `design.md` — validated architecture decisions and implementation strategy. Design decisions are frozen after this gate completes.
 

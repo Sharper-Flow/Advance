@@ -44,7 +44,7 @@ Canonical sources:
 |---|---|---|
 | `/adv-proposal` | summary derivation, overlap detection, change type, impacted specs, new-spec need, cross-repo scope, proposal quality refinement | problem statement matches intended outcome |
 | `/adv-discover` | target auto-selection, discovery synthesis, open design questions from evidence, extraction of objectives/constraints, triage of open questions (technical questions resolved via LBP research), reframing tech questions as outcome questions | agreement contents and edits, user-facing open questions (priorities, behavior, downsides, AC boundaries), explicit deferral of any question |
-| `/adv-design` | target auto-selection, design synthesis from research and code; mandatory independent validation via independent read-only validator (`rq-designval01`); concise design summary and validator verdict display (`rq-designval02`) | only when design validator returns CONFLICT (`rq-designval03`); otherwise auto-continue to planning |
+| `/adv-design` | target auto-selection, design synthesis from research and code; mandatory independent validation via independent read-only validator (`rq-designval01`); concise design summary and validator verdict display (`rq-designval02`) | when design validator returns CONFLICT (`rq-designval03`) or when agent identifies contract-compromise risk (`rq-designval04`); otherwise auto-continue to planning |
 | `/adv-prep` | target auto-selection, gap analysis, task graph synthesis | only when gaps are unresolvable without user intent |
 | `/adv-apply` | target auto-selection, worktree reuse, execution start, task sequencing, TDD loop, cross-repo routing, **auto-continue across task boundaries without any "task complete / section complete / progress update / shall I continue?" pause** (`rq-autonomy01.4`), **no execution-start approval prompt once planning is complete** (`rq-autonomy01.5`) | only the enumerated `rq-autonomy01` checkpoints: doom-loop recovery, cancellations, re-entry for scope changes not reflected in the stored contract, environmental blocker, unresolved judgment-call surfacing (Phase 1.5) |
 | `/adv-review` | target auto-selection, review execution, remediation of blockers/issues, review synthesis, acceptance summary construction | whether delivered work satisfies the agreement |
@@ -65,7 +65,7 @@ ADV pauses for human input ONLY at these explicit checkpoints:
 |---|---|---|
 | Proposal confirmation | `proposal` | User confirms problem framing |
 | Agreement sign-off | `discovery` | User approves objectives, AC, constraints |
-| Design approval (conditional) | `design` | Only when tradeoffs depend on user values; skip for straightforward deterministic designs |
+| Design approval (conditional) | `design` | When tradeoffs depend on user values, validator returns CONFLICT, or agent identifies contract-compromise risk; skip for straightforward deterministic designs with no compromise risk |
 | Acceptance | `acceptance` | User confirms delivered work satisfies agreement |
 | Archive sign-off | `release` | User approves final release |
 | Cancellation approval | any | Explicit user approval for task/change cancellation |
