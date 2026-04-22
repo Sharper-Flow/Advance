@@ -296,37 +296,8 @@ describe("ADV command routing assets", () => {
   test("adv-review.md Spawn fixes row names adv-engineer", () => {
     const content = readFileSync(join(COMMAND_DIR, "adv-review.md"), "utf8");
     expect(content).toMatch(/Spawn fixes.*adv-engineer/);
-    // Old bare engineer reference must be gone
-    expect(content).not.toMatch(/Spawn fixes.*\bengineer\b(?!-)/);
-  });
-});
-
-  test("ADV_INSTRUCTIONS.md Agent Roster table lists engineer", () => {
-    const content = readFileSync(
-      join(REPO_ROOT, "ADV_INSTRUCTIONS.md"),
-      "utf8",
-    );
-    expect(content).toContain("`engineer`");
-  });
-
-  test("ADV_INSTRUCTIONS.md Agent Tiers table lists engineer", () => {
-    const content = readFileSync(
-      join(REPO_ROOT, "ADV_INSTRUCTIONS.md"),
-      "utf8",
-    );
-    expect(content).toContain("`engineer`");
-  });
-
-  test("adv-apply.md delegation routing points to engineer (not general)", () => {
-    const content = readFileSync(join(COMMAND_DIR, "adv-apply.md"), "utf8");
-    const delegationSection =
-      content.split("### Delegation Routing")[1]?.split("###")[0] ?? "";
-    expect(delegationSection).toContain("`engineer`");
-    expect(delegationSection).not.toMatch(/Spawn `general` sub-agent/);
-  });
-
-  test("adv-review.md Spawn fixes row names engineer", () => {
-    const content = readFileSync(join(COMMAND_DIR, "adv-review.md"), "utf8");
-    expect(content).toMatch(/Spawn fixes.*engineer/);
+    // Old bare `engineer` (without adv- prefix) must be gone from the Spawn-fixes row.
+    // Negative lookbehind (?<!adv-) ensures we don't match the new "adv-engineer" identifier.
+    expect(content).not.toMatch(/Spawn fixes.*(?<!adv-)\bengineer\b/);
   });
 });

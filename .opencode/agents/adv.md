@@ -41,6 +41,7 @@ tools:
   adv_change_create: true
   adv_change_update: true
   adv_change_close: true
+  adv_change_bulk_close: true
   adv_change_validate: true
   adv_change_archive: true
   adv_change_update_issues: true

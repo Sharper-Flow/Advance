@@ -3,8 +3,8 @@
   "name": "advance",
   "title": "Advance",
   "purpose": "Capability: Advance",
-  "version": "1.9.0",
-  "updated_at": "2026-04-20T19:11:00.000Z",
+  "version": "1.10.0",
+  "updated_at": "2026-04-22T00:00:00.000Z",
   "requirements": [
     {
       "id": "rq-W1sD0mR1",
@@ -932,6 +932,86 @@
           "then": [
             "No handoff message is emitted",
             "No handoff validation is required for the silent transition"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-bulkClose01",
+      "title": "Filter-Aware Bulk Close",
+      "body": "adv_change_bulk_close must support closing multiple changes in a single approved tool call, using either an explicit ID list or filter-based selection, with fail-all semantics on invalid targets and a structured result envelope.",
+      "priority": "must",
+      "tags": ["workflow", "changes", "bulk-operations"],
+      "scenarios": [
+        {
+          "id": "rq-bulkClose01.1",
+          "title": "Explicit ID list close",
+          "given": ["A list of valid active change IDs"],
+          "when": "adv_change_bulk_close is called with kind: 'explicit' and those IDs",
+          "then": [
+            "All specified changes are closed with the provided reason",
+            "The result envelope lists each change with success or error status",
+            "If reason: 'superseded', at most one survivor change ID may be provided"
+          ]
+        },
+        {
+          "id": "rq-bulkClose01.2",
+          "title": "Filter-based close requires explicit filter",
+          "given": ["A repository with changes in various states"],
+          "when": "adv_change_bulk_close is called with kind: 'filter'",
+          "then": [
+            "The call must supply either a status filter (draft or pending) OR a staleness filter (createdBefore or lastActivityBefore)",
+            "No implicit default status is applied"
+          ]
+        },
+        {
+          "id": "rq-bulkClose01.3",
+          "title": "Fail-all on protected targets",
+          "given": ["A bulk close request targeting a mix of valid and invalid changes"],
+          "when": "Any resolved target is active, archived, closed, nonexistent, ambiguous, or duplicated",
+          "then": [
+            "The entire request fails before any mutation",
+            "The error identifies every invalid target and its specific failure reason"
+          ]
+        },
+        {
+          "id": "rq-bulkClose01.4",
+          "title": "Empty match is a structured error",
+          "given": ["A filter-based bulk close that matches zero changes"],
+          "when": "The selection resolves",
+          "then": [
+            "A structured error is returned with success: false",
+            "The message clearly states that no changes matched the filter",
+            "No silent no-op occurs"
+          ]
+        },
+        {
+          "id": "rq-bulkClose01.5",
+          "title": "Result envelope mirrors task-cancel pattern",
+          "given": ["A bulk close request that partially or fully succeeds"],
+          "when": "The result is returned",
+          "then": [
+            "The envelope contains success, closed (count), results (array of per-change entries), and message",
+            "Each per-change entry includes changeId, success, and optional error"
+          ]
+        },
+        {
+          "id": "rq-bulkClose01.6",
+          "title": "No hard delete",
+          "given": ["Any bulk close call"],
+          "when": "The operation completes",
+          "then": [
+            "Changes are closed (status moved to closed) but never purged or hard-deleted",
+            "Audit metadata is preserved for every closed change"
+          ]
+        },
+        {
+          "id": "rq-bulkClose01.7",
+          "title": "Existing close signature unchanged",
+          "given": ["The existing adv_change_close tool"],
+          "when": "Inspected after this change ships",
+          "then": [
+            "Its signature and behavior remain identical to before adv_change_bulk_close was added"
           ]
         }
       ]

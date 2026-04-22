@@ -880,6 +880,7 @@ Parallel ADV scanners follow the same single-level delegation rule as other ADV 
 | `adv_change_update`        | Update proposal/problem-statement/agreement/design for existing change |
 | `adv_change_validate`      | Validate change against specs and check for conflicts                  |
 | `adv_change_close`         | Close an active change (cancelled/superseded/not_planned)              |
+| `adv_change_bulk_close`    | Bulk close changes with filter-aware selection (explicit IDs or filter)|
 | `adv_change_archive`       | Archive a completed change (applies spec deltas)                       |
 | `adv_change_update_issues` | Add/remove GitHub issue URLs linked to a change                        |
 

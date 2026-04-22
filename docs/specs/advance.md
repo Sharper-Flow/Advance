@@ -1,7 +1,7 @@
 # Advance
 
-> **Version:** 1.8.1
-> **Updated:** 2026-04-14
+> **Version:** 1.10.0
+> **Updated:** 2026-04-22
 
 ## Purpose
 
@@ -839,3 +839,89 @@ Every /adv-* command that emits a user-facing gate-transition message MUST use t
 - No handoff validation is required for the silent transition
 
 ---
+
+### Filter-Aware Bulk Close
+
+**ID:** `rq-bulkClose01` | **Priority:** **[MUST]**
+
+`adv_change_bulk_close` must support closing multiple changes in a single approved tool call, using either an explicit ID list or filter-based selection, with fail-all semantics on invalid targets and a structured result envelope.
+
+#### Scenarios
+
+**Explicit ID list close** (`rq-bulkClose01.1`)
+
+**Given:**
+- A list of valid active change IDs
+
+**When:** `adv_change_bulk_close` is called with `kind: "explicit"` and those IDs
+
+**Then:**
+- All specified changes are closed with the provided reason
+- The result envelope lists each change with success or error status
+- If `reason: "superseded"`, at most one survivor change ID may be provided
+
+**Filter-based close requires explicit filter** (`rq-bulkClose01.2`)
+
+**Given:**
+- A repository with changes in various states
+
+**When:** `adv_change_bulk_close` is called with `kind: "filter"`
+
+**Then:**
+- The call must supply either a `status` filter (`draft` or `pending`) OR a staleness filter (`createdBefore` or `lastActivityBefore`)
+- No implicit default status is applied
+
+**Fail-all on protected targets** (`rq-bulkClose01.3`)
+
+**Given:**
+- A bulk close request targeting a mix of valid and invalid changes
+
+**When:** Any resolved target is `active`, `archived`, `closed`, nonexistent, ambiguous, or duplicated
+
+**Then:**
+- The entire request fails before any mutation
+- The error identifies every invalid target and its specific failure reason
+
+**Empty match is a structured error** (`rq-bulkClose01.4`)
+
+**Given:**
+- A filter-based bulk close that matches zero changes
+
+**When:** The selection resolves
+
+**Then:**
+- A structured error is returned with `success: false`
+- The message clearly states that no changes matched the filter
+- No silent no-op occurs
+
+**Result envelope mirrors task-cancel pattern** (`rq-bulkClose01.5`)
+
+**Given:**
+- A bulk close request that partially or fully succeeds
+
+**When:** The result is returned
+
+**Then:**
+- The envelope contains `success`, `closed` (count), `results` (array of per-change entries), and `message`
+- Each per-change entry includes `changeId`, `success`, and optional `error`
+
+**No hard delete** (`rq-bulkClose01.6`)
+
+**Given:**
+- Any bulk close call
+
+**When:** The operation completes
+
+**Then:**
+- Changes are closed (status moved to `closed`) but never purged or hard-deleted
+- Audit metadata is preserved for every closed change
+
+**Existing close signature unchanged** (`rq-bulkClose01.7`)
+
+**Given:**
+- The existing `adv_change_close` tool
+
+**When:** Inspected after this change ships
+
+**Then:**
+- Its signature and behavior remain identical to before `adv_change_bulk_close` was added
