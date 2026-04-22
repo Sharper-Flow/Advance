@@ -32,6 +32,8 @@ import {
   updateTerminalStatus,
   cleanupTerminal,
   _setBellCallback,
+  armPendingFinalAlert,
+  _clearPendingFinalAlert,
 } from "./terminal";
 
 describe("Status Markers", () => {
@@ -696,7 +698,8 @@ describe("Bell Transition Logic", () => {
     vi.useRealTimers();
   });
 
-  it("ROCKET→EARTH rings bell after debounce period", () => {
+  it("ROCKET→EARTH rings bell after debounce period (armed)", () => {
+    armPendingFinalAlert("msg-1");
     updateTerminalStatus("ROCKET", "test");
     updateTerminalStatus("EARTH", "test");
     // Bell should NOT have fired yet (debounce pending)
@@ -706,7 +709,8 @@ describe("Bell Transition Logic", () => {
     expect(bellCount()).toBe(1);
   });
 
-  it("ROCKET→EARTH→ROCKET cancels pending bell (debounce)", () => {
+  it("ROCKET→EARTH→ROCKET cancels pending bell (debounce, armed)", () => {
+    armPendingFinalAlert("msg-1");
     updateTerminalStatus("ROCKET", "test");
     updateTerminalStatus("EARTH", "test");
     vi.advanceTimersByTime(500); // partial debounce
@@ -715,15 +719,15 @@ describe("Bell Transition Logic", () => {
     expect(bellCount()).toBe(0); // cancelled
   });
 
-  it("MOON→ROCKET→EARTH (sub-agent teardown) rings exactly once after debounce", () => {
+  it("MOON→ROCKET→EARTH (sub-agent teardown, no arm) does NOT ring", () => {
     updateTerminalStatus("MOON", "test");
     updateTerminalStatus("ROCKET", "test");
     updateTerminalStatus("EARTH", "test");
     vi.advanceTimersByTime(2000);
-    expect(bellCount()).toBe(1);
+    expect(bellCount()).toBe(0);
   });
 
-  it("sequential sub-agent cycles do not ring multiple times within debounce window", () => {
+  it("sequential sub-agent cycles without arm do not ring", () => {
     // SA1: ROCKET → MOON → ROCKET → EARTH (briefly) → ROCKET → MOON → ROCKET → EARTH
     updateTerminalStatus("ROCKET", "test");
     updateTerminalStatus("MOON", "test"); // spawn SA1
@@ -735,7 +739,7 @@ describe("Bell Transition Logic", () => {
     updateTerminalStatus("ROCKET", "test"); // SA2 returns
     updateTerminalStatus("EARTH", "test"); // genuinely idle
     vi.advanceTimersByTime(2000);
-    expect(bellCount()).toBe(1); // only final EARTH rings
+    expect(bellCount()).toBe(0); // no arm → no bell
   });
 
   it("MIC rings immediately without debounce", () => {
@@ -746,6 +750,7 @@ describe("Bell Transition Logic", () => {
   });
 
   it("MIC cancels pending EARTH debounce and rings immediately", () => {
+    armPendingFinalAlert("msg-1");
     updateTerminalStatus("ROCKET", "test");
     updateTerminalStatus("EARTH", "test"); // debounce starts
     vi.advanceTimersByTime(500);
@@ -762,7 +767,8 @@ describe("Bell Transition Logic", () => {
     expect(bellCount()).toBe(0);
   });
 
-  it("EARTH→EARTH does not ring (already idle)", () => {
+  it("EARTH→EARTH does not ring (already idle, armed)", () => {
+    armPendingFinalAlert("msg-1");
     updateTerminalStatus("ROCKET", "test");
     updateTerminalStatus("EARTH", "test");
     vi.advanceTimersByTime(2000); // first bell fires
