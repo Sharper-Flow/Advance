@@ -650,7 +650,7 @@ describe("Advance Plugin SDK Integration", () => {
   // ===========================================================================
 
   describe("Status Transition Consistency", () => {
-    test("adv_run_test red phase sets TDD_RED status", async () => {
+    test("adv_run_test red phase sets TOOLING status", async () => {
       const hooks = await createTrackedPlugin(tempDir, pluginInstances);
       const changeId = "addFeature";
       const taskId = "tk-task0001";
@@ -667,12 +667,12 @@ describe("Advance Plugin SDK Integration", () => {
         { args: { taskId, phase: "red", command: "bun test" } } as any,
       );
 
-      // Should be TDD_RED now — not ROCKET
+      // Should be TOOLING now — not ROCKET
       const { getStatus } = await import("./events");
-      expect(getStatus().currentStatus).toBe("TDD_RED");
+      expect(getStatus().currentStatus).toBe("TOOLING");
     });
 
-    test("adv_run_test green phase sets TDD_GREEN status", async () => {
+    test("adv_run_test green phase sets TOOLING status", async () => {
       const hooks = await createTrackedPlugin(tempDir, pluginInstances);
       const changeId = "addFeature";
       const taskId = "tk-task0001";
@@ -688,10 +688,10 @@ describe("Advance Plugin SDK Integration", () => {
       );
 
       const { getStatus } = await import("./events");
-      expect(getStatus().currentStatus).toBe("TDD_GREEN");
+      expect(getStatus().currentStatus).toBe("TOOLING");
     });
 
-    test("adv_task_evidence red phase sets TDD_RED status", async () => {
+    test("adv_task_evidence red phase sets TOOLING status", async () => {
       const hooks = await createTrackedPlugin(tempDir, pluginInstances);
 
       await hooks["tool.execute.before"]!(
@@ -700,10 +700,10 @@ describe("Advance Plugin SDK Integration", () => {
       );
 
       const { getStatus } = await import("./events");
-      expect(getStatus().currentStatus).toBe("TDD_RED");
+      expect(getStatus().currentStatus).toBe("TOOLING");
     });
 
-    test("adv_task_evidence green phase sets TDD_GREEN status", async () => {
+    test("adv_task_evidence green phase sets TOOLING status", async () => {
       const hooks = await createTrackedPlugin(tempDir, pluginInstances);
 
       await hooks["tool.execute.before"]!(
@@ -712,13 +712,13 @@ describe("Advance Plugin SDK Integration", () => {
       );
 
       const { getStatus } = await import("./events");
-      expect(getStatus().currentStatus).toBe("TDD_GREEN");
+      expect(getStatus().currentStatus).toBe("TOOLING");
     });
 
-    test("task tool sets MOON and session.status busy does not overwrite it", async () => {
+    test("task tool sets TOOLING and session.status busy does not overwrite it", async () => {
       const hooks = await createTrackedPlugin(tempDir, pluginInstances);
 
-      // Sub-agent spawned → MOON
+      // Sub-agent spawned → TOOLING
       await hooks["tool.execute.before"]!(
         { tool: "task" } as any,
         { args: {} } as any,
@@ -733,13 +733,13 @@ describe("Advance Plugin SDK Integration", () => {
       });
 
       const { getStatus } = await import("./events");
-      expect(getStatus().currentStatus).toBe("MOON");
+      expect(getStatus().currentStatus).toBe("TOOLING");
     });
 
-    test("task tool sets MOON and session.status idle does not prematurely set EARTH", async () => {
+    test("task tool sets TOOLING and session.status idle does not prematurely set ATTN", async () => {
       const hooks = await createTrackedPlugin(tempDir, pluginInstances);
 
-      // Sub-agent spawned → MOON
+      // Sub-agent spawned → TOOLING
       await hooks["tool.execute.before"]!(
         { tool: "task" } as any,
         { args: {} } as any,
@@ -754,10 +754,10 @@ describe("Advance Plugin SDK Integration", () => {
       });
 
       const { getStatus } = await import("./events");
-      expect(getStatus().currentStatus).toBe("MOON");
+      expect(getStatus().currentStatus).toBe("TOOLING");
     });
 
-    test("permission.asked sets MIC status", async () => {
+    test("permission.asked sets ATTN status", async () => {
       const hooks = await createTrackedPlugin(tempDir, pluginInstances);
 
       await hooks.event!({
@@ -768,13 +768,13 @@ describe("Advance Plugin SDK Integration", () => {
       });
 
       const { getStatus } = await import("./events");
-      expect(getStatus().currentStatus).toBe("MIC");
+      expect(getStatus().currentStatus).toBe("ATTN");
     });
 
-    test("permission.replied returns to ROCKET when no sub-agents", async () => {
+    test("permission.replied returns to WORK when no sub-agents", async () => {
       const hooks = await createTrackedPlugin(tempDir, pluginInstances);
 
-      // Set MIC first
+      // Set ATTN first
       await hooks.event!({
         event: { type: "permission.asked", properties: {} } as any,
       });
@@ -785,63 +785,63 @@ describe("Advance Plugin SDK Integration", () => {
       });
 
       const { getStatus } = await import("./events");
-      expect(getStatus().currentStatus).toBe("ROCKET");
+      expect(getStatus().currentStatus).toBe("WORK");
     });
 
     test("task tool completion clears permissionPending even if question tool fired inside sub-agent", async () => {
-      // Regression: general sub-agent uses question tool internally → MIC gets stuck
+      // Regression: general sub-agent uses question tool internally → ATTN gets stuck
       // after sub-agent completes because task after-hook didn't reset permissionPending.
       const hooks = await createTrackedPlugin(tempDir, pluginInstances);
 
-      // 1. Sub-agent spawned → MOON
+      // 1. Sub-agent spawned → TOOLING
       await hooks["tool.execute.before"]!(
         { tool: "task" } as any,
         { args: {} } as any,
       );
 
-      // 2. Sub-agent internally calls question tool → MIC (overrides MOON via precedence)
+      // 2. Sub-agent internally calls question tool → ATTN (overrides TOOLING via precedence)
       await hooks["tool.execute.before"]!(
         { tool: "question" } as any,
         { args: {} } as any,
       );
 
       const { getStatus } = await import("./events");
-      expect(getStatus().currentStatus).toBe("MIC");
+      expect(getStatus().currentStatus).toBe("ATTN");
 
-      // 3. Question tool completes → permissionPending cleared, back to MOON
+      // 3. Question tool completes → permissionPending cleared, back to TOOLING
       await hooks["tool.execute.after"]!(
         { tool: "question" } as any,
         { args: {}, output: "" } as any,
       );
-      expect(getStatus().currentStatus).toBe("MOON");
+      expect(getStatus().currentStatus).toBe("TOOLING");
 
-      // 4. Sub-agent task completes → should return to ROCKET (not stuck on MIC)
+      // 4. Sub-agent task completes → should return to WORK (not stuck on ATTN)
       await hooks["tool.execute.after"]!(
         { tool: "task" } as any,
         { args: {}, output: "" } as any,
       );
-      expect(getStatus().currentStatus).toBe("ROCKET");
+      expect(getStatus().currentStatus).toBe("WORK");
     });
 
     test("task tool completion clears permissionPending when question after-hook was missed", async () => {
       // Regression: if question after-hook fires out of order or is missed,
-      // task completion must still clear permissionPending to avoid stuck MIC.
+      // task completion must still clear permissionPending to avoid stuck ATTN.
       const hooks = await createTrackedPlugin(tempDir, pluginInstances);
 
-      // 1. Sub-agent spawned → MOON
+      // 1. Sub-agent spawned → TOOLING
       await hooks["tool.execute.before"]!(
         { tool: "task" } as any,
         { args: {} } as any,
       );
 
-      // 2. Sub-agent internally calls question tool → MIC
+      // 2. Sub-agent internally calls question tool → ATTN
       await hooks["tool.execute.before"]!(
         { tool: "question" } as any,
         { args: {} } as any,
       );
 
       const { getStatus } = await import("./events");
-      expect(getStatus().currentStatus).toBe("MIC");
+      expect(getStatus().currentStatus).toBe("ATTN");
 
       // 3. question after-hook is NOT fired (missed/out-of-order)
       // 4. Task completes — must still clear permissionPending
@@ -849,20 +849,20 @@ describe("Advance Plugin SDK Integration", () => {
         { tool: "task" } as any,
         { args: {}, output: "" } as any,
       );
-      expect(getStatus().currentStatus).toBe("ROCKET");
+      expect(getStatus().currentStatus).toBe("WORK");
     });
 
-    test("TDD phase resets to ROCKET after session becomes idle with no sub-agents", async () => {
+    test("long tool (adv_run_test) resets status after session becomes idle with no sub-agents", async () => {
       const hooks = await createTrackedPlugin(tempDir, pluginInstances);
 
-      // Start a TDD phase
+      // Start a long tool run → TOOLING
       await hooks["tool.execute.before"]!(
         { tool: "adv_run_test" } as any,
         { args: { taskId: "tk-x", phase: "red", command: "bun test" } } as any,
       );
 
       const { getStatus } = await import("./events");
-      expect(getStatus().currentStatus).toBe("TDD_RED");
+      expect(getStatus().currentStatus).toBe("TOOLING");
 
       // Tool completes
       await hooks["tool.execute.after"]!(
@@ -878,7 +878,7 @@ describe("Advance Plugin SDK Integration", () => {
         } as any,
       });
 
-      expect(getStatus().currentStatus).toBe("EARTH");
+      expect(getStatus().currentStatus).toBe("ATTN");
     });
   });
 });
