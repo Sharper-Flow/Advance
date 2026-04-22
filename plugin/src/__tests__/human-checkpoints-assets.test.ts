@@ -44,7 +44,9 @@ describe("rq-autonomy01 human checkpoint assets", () => {
     expect(content).toMatch(/Approve acceptance criteria/i);
     expect(content).toMatch(/Start \/adv-clarify/i);
     expect(content).toMatch(/Add or clarify acceptance criteria/i);
-    const checkpointIdx = content.indexOf("Phase 4.5.1: Acceptance Criteria Checkpoint");
+    const checkpointIdx = content.indexOf(
+      "Phase 4.5.1: Acceptance Criteria Checkpoint",
+    );
     const persistIdx = content.indexOf("Phase 4.6: Persist Agreement");
     expect(checkpointIdx).toBeGreaterThanOrEqual(0);
     expect(persistIdx).toBeGreaterThanOrEqual(0);
