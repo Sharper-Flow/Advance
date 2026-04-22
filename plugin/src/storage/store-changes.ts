@@ -245,9 +245,7 @@ export function createChangesOps(
         try {
           await withChangeLock(ctx, id, async (change) => {
             if (change.status === "archived") {
-              throw new Error(
-                `Cannot close archived change: ${change.id}`,
-              );
+              throw new Error(`Cannot close archived change: ${change.id}`);
             }
             change.status = "closed";
             change.closure = closure;

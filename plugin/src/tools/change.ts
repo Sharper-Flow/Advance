@@ -816,8 +816,7 @@ export const changeTools = {
           return wrapWithBanner(
             { command: "adv_change_bulk_close" },
             formatToolOutput({
-              error:
-                "supersededBy is required when reason is 'superseded'.",
+              error: "supersededBy is required when reason is 'superseded'.",
             }),
           );
         }
@@ -839,8 +838,7 @@ export const changeTools = {
         return wrapWithBanner(
           { command: "adv_change_bulk_close" },
           formatToolOutput({
-            error:
-              "SELECTION_ERROR: No changes matched the provided criteria.",
+            error: "SELECTION_ERROR: No changes matched the provided criteria.",
           }),
         );
       }

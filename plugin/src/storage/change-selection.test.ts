@@ -8,10 +8,7 @@
  */
 
 import { describe, test, expect } from "vitest";
-import {
-  resolveChangeSelection,
-  type SelectionDeps,
-} from "./change-selection";
+import { resolveChangeSelection, type SelectionDeps } from "./change-selection";
 import type { Change, ChangeListResponse } from "../types";
 import type { LoadResult } from "./json";
 
@@ -205,8 +202,20 @@ describe("resolveChangeSelection — filter", () => {
     const deps = makeDeps(
       {
         changes: [
-          { id: "chg-a", title: "A", status: "draft", taskCount: 0, completedTasks: 0 },
-          { id: "chg-b", title: "B", status: "draft", taskCount: 0, completedTasks: 0 },
+          {
+            id: "chg-a",
+            title: "A",
+            status: "draft",
+            taskCount: 0,
+            completedTasks: 0,
+          },
+          {
+            id: "chg-b",
+            title: "B",
+            status: "draft",
+            taskCount: 0,
+            completedTasks: 0,
+          },
         ],
       },
       {
@@ -225,8 +234,20 @@ describe("resolveChangeSelection — filter", () => {
     const deps = makeDeps(
       {
         changes: [
-          { id: "test-a", title: "A", status: "draft", taskCount: 0, completedTasks: 0 },
-          { id: "other-b", title: "B", status: "draft", taskCount: 0, completedTasks: 0 },
+          {
+            id: "test-a",
+            title: "A",
+            status: "draft",
+            taskCount: 0,
+            completedTasks: 0,
+          },
+          {
+            id: "other-b",
+            title: "B",
+            status: "draft",
+            taskCount: 0,
+            completedTasks: 0,
+          },
         ],
       },
       {
@@ -244,12 +265,27 @@ describe("resolveChangeSelection — filter", () => {
     const deps = makeDeps(
       {
         changes: [
-          { id: "chg-a", title: "Parity test", status: "draft", taskCount: 0, completedTasks: 0 },
-          { id: "chg-b", title: "Other feature", status: "draft", taskCount: 0, completedTasks: 0 },
+          {
+            id: "chg-a",
+            title: "Parity test",
+            status: "draft",
+            taskCount: 0,
+            completedTasks: 0,
+          },
+          {
+            id: "chg-b",
+            title: "Other feature",
+            status: "draft",
+            taskCount: 0,
+            completedTasks: 0,
+          },
         ],
       },
       {
-        "chg-a": { success: true, data: mockChange({ id: "chg-a", title: "Parity test" }) },
+        "chg-a": {
+          success: true,
+          data: mockChange({ id: "chg-a", title: "Parity test" }),
+        },
       },
     );
     const result = await resolveChangeSelection(
@@ -263,18 +299,36 @@ describe("resolveChangeSelection — filter", () => {
     const deps = makeDeps(
       {
         changes: [
-          { id: "old-chg", title: "Old", status: "draft", taskCount: 0, completedTasks: 0 },
-          { id: "new-chg", title: "New", status: "draft", taskCount: 0, completedTasks: 0 },
+          {
+            id: "old-chg",
+            title: "Old",
+            status: "draft",
+            taskCount: 0,
+            completedTasks: 0,
+          },
+          {
+            id: "new-chg",
+            title: "New",
+            status: "draft",
+            taskCount: 0,
+            completedTasks: 0,
+          },
         ],
       },
       {
         "old-chg": {
           success: true,
-          data: mockChange({ id: "old-chg", created_at: "2025-01-01T00:00:00Z" }),
+          data: mockChange({
+            id: "old-chg",
+            created_at: "2025-01-01T00:00:00Z",
+          }),
         },
         "new-chg": {
           success: true,
-          data: mockChange({ id: "new-chg", created_at: "2026-06-01T00:00:00Z" }),
+          data: mockChange({
+            id: "new-chg",
+            created_at: "2026-06-01T00:00:00Z",
+          }),
         },
       },
     );
@@ -289,8 +343,20 @@ describe("resolveChangeSelection — filter", () => {
     const deps = makeDeps(
       {
         changes: [
-          { id: "stale-chg", title: "Stale", status: "draft", taskCount: 0, completedTasks: 0 },
-          { id: "fresh-chg", title: "Fresh", status: "draft", taskCount: 0, completedTasks: 0 },
+          {
+            id: "stale-chg",
+            title: "Stale",
+            status: "draft",
+            taskCount: 0,
+            completedTasks: 0,
+          },
+          {
+            id: "fresh-chg",
+            title: "Fresh",
+            status: "draft",
+            taskCount: 0,
+            completedTasks: 0,
+          },
         ],
       },
       {
@@ -331,7 +397,10 @@ describe("resolveChangeSelection — filter", () => {
       },
     );
     const result = await resolveChangeSelection(
-      { kind: "filter", filter: { lastActivityBefore: "2026-01-01T00:00:00Z" } },
+      {
+        kind: "filter",
+        filter: { lastActivityBefore: "2026-01-01T00:00:00Z" },
+      },
       deps,
     );
     expect(result).toEqual({ ok: true, changeIds: ["stale-chg"] });
@@ -341,9 +410,27 @@ describe("resolveChangeSelection — filter", () => {
     const deps = makeDeps(
       {
         changes: [
-          { id: "test-parity", title: "Parity feature", status: "draft", taskCount: 0, completedTasks: 0 },
-          { id: "test-other", title: "Other feature", status: "draft", taskCount: 0, completedTasks: 0 },
-          { id: "nomatch", title: "Parity feature", status: "draft", taskCount: 0, completedTasks: 0 },
+          {
+            id: "test-parity",
+            title: "Parity feature",
+            status: "draft",
+            taskCount: 0,
+            completedTasks: 0,
+          },
+          {
+            id: "test-other",
+            title: "Other feature",
+            status: "draft",
+            taskCount: 0,
+            completedTasks: 0,
+          },
+          {
+            id: "nomatch",
+            title: "Parity feature",
+            status: "draft",
+            taskCount: 0,
+            completedTasks: 0,
+          },
         ],
       },
       {
@@ -393,7 +480,13 @@ describe("resolveChangeSelection — filter", () => {
     const deps = makeDeps(
       {
         changes: [
-          { id: "chg-a", title: "A", status: "draft", taskCount: 0, completedTasks: 0 },
+          {
+            id: "chg-a",
+            title: "A",
+            status: "draft",
+            taskCount: 0,
+            completedTasks: 0,
+          },
         ],
       },
       {

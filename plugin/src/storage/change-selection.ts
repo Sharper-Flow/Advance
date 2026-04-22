@@ -79,7 +79,8 @@ async function resolveFilter(
   if (!filter.status && !hasStaleness) {
     return {
       ok: false,
-      error: "SELECTION_ERROR: Filter-based bulk close requires either a status filter or a staleness filter (createdBefore / lastActivityBefore).",
+      error:
+        "SELECTION_ERROR: Filter-based bulk close requires either a status filter or a staleness filter (createdBefore / lastActivityBefore).",
     };
   }
 
@@ -145,7 +146,8 @@ async function resolveFilter(
   if (changeIds.length === 0) {
     return {
       ok: false,
-      error: "SELECTION_ERROR: Empty result set — no changes matched the provided filter.",
+      error:
+        "SELECTION_ERROR: Empty result set — no changes matched the provided filter.",
     };
   }
 
