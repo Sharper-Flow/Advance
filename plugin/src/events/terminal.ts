@@ -809,9 +809,11 @@ const cancelPendingBell = (): void => {
  *   - No active change: "<emoji>"
  *
  * Bell policy:
- *   - MIC: ring immediately (user explicitly needed for question/approval)
- *   - EARTH: debounce — schedule bell after BELL_DEBOUNCE_MS; cancel if status
- *     changes before it fires (absorbs transient idle during sub-agent teardown)
+ *   - MIC: ring immediately (user explicitly needed for question/approval),
+ *     clear any pending final alert
+ *   - EARTH with pendingFinalAlert: debounce ring (main agent finished)
+ *   - EARTH after DOOM_LOOP: debounce ring (exception — user needs to see doom)
+ *   - EARTH without armed flag: no bell (sub-agent teardown, transient idle)
  *   - All other transitions: cancel any pending bell
  *   - New session (null→anything): never ring
  *   - EARTH→EARTH: not active work, no bell
@@ -831,28 +833,54 @@ export const updateTerminalStatus = (
   lastAlertedStatus = status;
 
   // MIC = user explicitly needed → ring immediately from any non-null state.
-  // EARTH = agent idle → debounce from active-work states only.
+  // Also clears any pending final alert — MIC pre-empts deferred bell.
   if (status === "MIC" && previousStatus !== null) {
     cancelPendingBell();
+    pendingFinalAlert = false;
     ringBell();
     return;
   }
 
-  // For EARTH: only schedule bell if transitioning from active work.
-  // Any non-null, non-EARTH previous state counts as active work.
-  // Covers: ROCKET, MOON, TDD_RED, TDD_GREEN, DOOM_LOOP.
+  // EARTH transitions from active work:
   if (
     status === "EARTH" &&
     previousStatus !== null &&
     previousStatus !== "EARTH"
   ) {
-    cancelPendingBell();
-    bellDebounceTimer = setTimeout(() => {
-      bellDebounceTimer = null;
-      if (lastAlertedStatus === "EARTH") {
-        ringBell();
+    // DOOM_LOOP exception: always ring on doom→idle (user must see recovery prompt).
+    if (previousStatus === "DOOM_LOOP") {
+      cancelPendingBell();
+      bellDebounceTimer = setTimeout(() => {
+        bellDebounceTimer = null;
+        if (lastAlertedStatus === "EARTH") {
+          ringBell();
+        }
+      }, BELL_DEBOUNCE_MS);
+      return;
+    }
+
+    // Armed gate: ring only if main agent completed a qualifying response.
+    if (pendingFinalAlert) {
+      // Dedup: skip if this message was already rung.
+      if (lastArmedMessageId === lastRungMessageId) {
+        pendingFinalAlert = false;
+        return;
       }
-    }, BELL_DEBOUNCE_MS);
+      cancelPendingBell();
+      const messageId = lastArmedMessageId;
+      bellDebounceTimer = setTimeout(() => {
+        bellDebounceTimer = null;
+        if (lastAlertedStatus === "EARTH") {
+          lastRungMessageId = messageId;
+          pendingFinalAlert = false;
+          ringBell();
+        }
+      }, BELL_DEBOUNCE_MS);
+      return;
+    }
+
+    // Non-armed EARTH: no bell. Sub-agent teardown, transient idle, etc.
+    cancelPendingBell();
     return;
   }
 
