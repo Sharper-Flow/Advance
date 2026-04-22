@@ -57,3 +57,27 @@ These alternatives were evaluated and deliberately deferred. Revisit if the link
 - **Trigger for alt #3 (external fleet):** plugin-restart-driven downtime on long-running workflows becomes user-visible.
 
 Until one of those triggers fires, keep the single in-process worker. Adding processes, shards, or services before they're needed pays the operational cost without the benefit.
+
+## Background and references
+
+### 2026-04-21 Bun crash-loop incident
+
+The hybrid worker model exists because earlier wiring of the Temporal swap into the plugin bootstrap caused every opencode session to crash-loop with a wall of warn/error spam. Captured here so the cause + fix are discoverable from the doc tree, not only from ADV-state wisdom.
+
+- **Symptom:** every opencode session emitted `[plugin-init] (warn) Plugin init failed: Webpack finished with errors ...` plus continuous `temporalio_client` retry errors. Sessions became unusable; `adv_*` tools returned `ADV_PLUGIN_INIT_FAILED` stubs.
+- **Root cause:** opencode ships as a compiled Bun 1.3.8 binary. `@temporalio/worker.Worker.create()` internally spawns a Workflow Worker Thread whose `require('@temporalio/common')` fails from Bun's install-cache path. The "Webpack finished with errors" message is misleading boilerplate — webpack itself succeeds. Upstream: [temporalio/sdk-typescript#1334](https://github.com/temporalio/sdk-typescript/issues/1334), [oven-sh/bun#27058](https://github.com/oven-sh/bun/issues/27058), [oven-sh/bun#27464](https://github.com/oven-sh/bun/issues/27464).
+- **Triggered by:** `replaceAdvStorageLayerTemporal` scaffold landing + `migrateAdvStateTemporalRetire` Phase A wiring Temporal into plugin bootstrap.
+- **Immediate workaround (still in place on some hosts):** `export ADV_DISABLE_TEMPORAL=1` in `~/.zshenv`. Routes the plugin through the file-backed harness. Must be unset before resuming the Temporal cutover (see `migrateAdvStateTemporalRetire` resume preconditions).
+- **Permanent fix:** shipped in `fixTemporalWorkerBundleFailure` (archived 2026-04-21). The hybrid worker model documented above (Node host → in-process; Bun host → out-of-process Node child via `createOutOfProcessWorker`) is the structural answer. Phase 1 also narrowed the `logger.warn` → `logger.info` for the Temporal-init failure path so it stops reaching the console, added `ADV_ALLOW_DEGRADED_FALLBACK=1` opt-in, and added a fast `canReachTemporalAddress()` short-circuit so `adv_status` no longer hangs ~5s when the server is offline. Phase 3 hardened workflow determinism (`gate-reentry.ts` accepts an explicit `now`) and added the `withTestWorkflowEnvironment` helper to prevent `/tmp/temporal-test-server-*` zombie-proc leaks.
+
+### Cross-references
+
+| Where                                                                           | Pointer                                                                                                  |
+| ------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| Public bug                                                                      | [Sharper-Flow/Advance#5](https://github.com/Sharper-Flow/Advance/issues/5)                               |
+| Trunk merge commit                                                              | `e8e332c` (`Merge branch 'change/fixTemporalWorkerBundleFailure' into trunk`)                            |
+| Archive                                                                         | `~/.local/share/opencode/plugins/advance/<projectId>/archive/2026-04-21-fixTemporalWorkerBundleFailure/` |
+| Project-level wisdom — root cause                                               | `pw-MfGaoxPY` (gotcha)                                                                                   |
+| Project-level wisdom — fix record                                               | `pw-jcccyH8a` (success)                                                                                  |
+| Project-level wisdom — resume preconditions for `migrateAdvStateTemporalRetire` | `pw-FPJlvon7` (pattern)                                                                                  |
+| Related earlier wisdom (worker-thread per-project queue routing)                | `ws-lRl054` on `migrateAdvStateTemporalRetire` (now structurally resolved)                               |
