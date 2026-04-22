@@ -271,14 +271,11 @@ After completing any workflow that emits a user-facing gate-transition message, 
 ## Delivered
 {Concrete artifacts, not process. Bullet list.}
 
-## Next stage
-{Next gate name.}
-
-## Next
-`/adv-{command} {change-id}`
+---
+**{change-id}** · {gate} ✓ → {next-gate} · `/adv-{command} {change-id}`
 ```
 
-Internal state (task lists, gate checkboxes, sub-agent counts, step logs) lives in ADV tools (`adv_change_show`, `adv_task_list`, `_contextSnapshot`), not in chat. Do not emit Orchestration Summary, Steps Completed, Sub-Agents Spawned, or gate checkbox banners as handoff content.
+Internal state (task lists, gate checkboxes, sub-agent counts, step logs) lives in ADV tools (`adv_change_show`, `adv_task_list`, `_contextSnapshot`), not in chat. The footer line is the only content after `## Delivered`. Do not emit Orchestration Summary, Steps Completed, Sub-Agents Spawned, or gate checkbox banners as handoff content.
 
 ## ADV State Access Policy
 
