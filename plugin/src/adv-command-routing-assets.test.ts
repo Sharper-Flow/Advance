@@ -50,6 +50,14 @@ describe("ADV orchestrator agent", () => {
     expect(content).toMatch(/user.*approv|user.*confirm|user.*judgment/i);
   });
 
+  test("adv.md routes idea shaping and problem triage intents", () => {
+    const content = readFileSync(join(AGENT_DIR, "adv.md"), "utf8");
+    expect(content).toContain("**Idea shaping**");
+    expect(content).toContain("/adv-idea");
+    expect(content).toContain("**Problem triage**");
+    expect(content).toContain("/adv-problem");
+  });
+
   test("adv.md declares ADV MCP tools in frontmatter", () => {
     const content = readFileSync(join(AGENT_DIR, "adv.md"), "utf8");
     const frontmatter = content.split("---")[1] ?? "";

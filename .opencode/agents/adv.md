@@ -125,6 +125,8 @@ Before doing anything, classify what the user is asking for:
 
 | Intent                | Trigger                          | First Action                                   |
 | --------------------- | -------------------------------- | ---------------------------------------------- |
+| **Idea shaping**      | rough idea, fuzzy goal           | Start collaborative `/adv-idea` loop           |
+| **Problem triage**    | bug details, issue symptoms      | Start collaborative `/adv-problem` loop        |
 | **Start a change**    | "let's build X", idea discussion | Clarify scope → `/adv-proposal` workflow       |
 | **Complete a change** | "complete {id}", "finish {id}"   | Load state → resume from first incomplete gate |
 | **Resume work**       | "resume {id}", "continue {id}"   | Load state → resume from first incomplete gate |

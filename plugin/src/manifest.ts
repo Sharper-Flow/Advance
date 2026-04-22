@@ -118,7 +118,35 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
       "Promote the change from contract to law: apply spec deltas, capture wisdom, clean up.",
   },
 
-  // ---- Pre-Implementation (Discovery + Design + Planning) ----
+  // ---- Pre-Implementation (Ideation + Discovery + Design + Planning) ----
+  "adv-idea": {
+    name: "adv-idea",
+    description: "Explore rough ideas before drafting a proposal",
+    phase: "pre-implementation",
+    requiresChangeId: false,
+    prerequisites: [],
+    successors: ["adv-proposal"],
+    scope: {
+      creates: [],
+      reads: ["specs", "codebase"],
+      modifies: [],
+      gates: [],
+    },
+  },
+  "adv-problem": {
+    name: "adv-problem",
+    description: "Triage issues before fixing or drafting a proposal",
+    phase: "pre-implementation",
+    requiresChangeId: false,
+    prerequisites: [],
+    successors: ["adv-proposal"],
+    scope: {
+      creates: [],
+      reads: ["specs", "codebase"],
+      modifies: [],
+      gates: [],
+    },
+  },
   "adv-clarify": {
     name: "adv-clarify",
     description: "Ask clarifying questions to resolve ambiguous requirements",
