@@ -322,7 +322,9 @@ export async function createLegacyStore(
 
       const walBytes = getWALSize(dbPath);
       if (walBytes > 0) {
-        recommendations.push(formatPendingWALCheckpointRecommendation(walBytes));
+        recommendations.push(
+          formatPendingWALCheckpointRecommendation(walBytes),
+        );
       }
 
       return {
