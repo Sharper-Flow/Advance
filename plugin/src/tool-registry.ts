@@ -389,6 +389,7 @@ export const ADV_TOOL_NAMES: readonly string[] = [
   "adv_change_create",
   "adv_change_update",
   "adv_change_close",
+  "adv_change_bulk_close",
   "adv_change_validate",
   "adv_change_archive",
   "adv_change_update_issues",
