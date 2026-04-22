@@ -5,8 +5,9 @@
  */
 
 import { describe, test, expect, beforeEach, afterEach } from "vitest";
-import { readFile, writeFile } from "fs/promises";
+import { readFile, writeFile, realpath, symlink } from "fs/promises";
 import { join } from "path";
+import { getProjectId, getExternalRoot } from "../utils/project-id";
 import { changeTools } from "./change";
 import { createStore, type Store } from "../storage/store";
 import { listProjectWisdom } from "../storage/project-wisdom";
@@ -726,6 +727,116 @@ describe("Change Tools", () => {
       const changeResult = await store.changes.get(parsed.changeId);
       expect(changeResult.success).toBe(true);
       expect(changeResult.data?.cross_project_origin).toBeUndefined();
+    });
+
+    test("rejects self-target with clear error when target_path equals current project root", async () => {
+      const result = await changeTools.adv_change_create.execute(
+        {
+          summary: "Self target change",
+          target_path: tempDir,
+        },
+        store,
+      );
+      const parsed = parseToolOutput(result);
+
+      expect(parsed.error).toBeDefined();
+      expect(parsed.error).toContain("Omit target_path");
+      expect(parsed.changeId).toBeUndefined();
+
+      // Verify no change was created in the local store
+      const localChanges = await store.changes.list();
+      const selfTargetChange = localChanges.changes.find(
+        (c) => c.id === "selfTargetChange",
+      );
+      expect(selfTargetChange).toBeUndefined();
+    });
+
+    test("rejects self-target when target_path is symlink to current project root", async () => {
+      const symlinkDir = join(tempDir, "symlink-to-self");
+      await symlink(tempDir, symlinkDir);
+
+      try {
+        const result = await changeTools.adv_change_create.execute(
+          {
+            summary: "Symlink self target",
+            target_path: symlinkDir,
+          },
+          store,
+        );
+        const parsed = parseToolOutput(result);
+
+        expect(parsed.error).toBeDefined();
+        expect(parsed.error).toContain("Omit target_path");
+        expect(parsed.changeId).toBeUndefined();
+      } finally {
+        // Cleanup symlink
+        await cleanupTempDir(symlinkDir);
+      }
+    });
+
+    test("cross-project create resolves externalRoot when target has git repo", async () => {
+      const targetGitDir = await createTempDir();
+      await createTestProject(targetGitDir);
+
+      // Initialize git repo so getProjectId can resolve a project ID
+      const { execFile } = await import("child_process");
+      await new Promise<void>((resolve, reject) => {
+        execFile("git", ["init"], { cwd: targetGitDir }, (err) => {
+          if (err) reject(err);
+          else resolve();
+        });
+      });
+      await new Promise<void>((resolve, reject) => {
+        execFile(
+          "git",
+          ["commit", "--allow-empty", "-m", "initial"],
+          { cwd: targetGitDir },
+          (err) => {
+            if (err) reject(err);
+            else resolve();
+          },
+        );
+      });
+
+      try {
+        const result = await changeTools.adv_change_create.execute(
+          {
+            summary: "Cross project with git",
+            target_path: targetGitDir,
+          },
+          store,
+        );
+        const parsed = parseToolOutput(result);
+
+        expect(parsed.changeId).toBe("crossProjectGit");
+        expect(parsed.error).toBeUndefined();
+
+        // Verify the change was written to external state, not .adv/changes/
+        const targetProjectId = await getProjectId(targetGitDir);
+        expect(targetProjectId).not.toBeNull();
+        const externalRoot = getExternalRoot(targetProjectId!);
+        const externalChangePath = join(
+          externalRoot,
+          "changes",
+          parsed.changeId,
+          "change.json",
+        );
+        const externalContent = await readFile(externalChangePath, "utf-8");
+        const externalChange = JSON.parse(externalContent);
+        expect(externalChange.id).toBe(parsed.changeId);
+
+        // Verify it was NOT written to legacy in-repo path
+        const legacyChangePath = join(
+          targetGitDir,
+          ".adv",
+          "changes",
+          parsed.changeId,
+          "change.json",
+        );
+        await expect(readFile(legacyChangePath, "utf-8")).rejects.toThrow();
+      } finally {
+        await cleanupTempDir(targetGitDir);
+      }
     });
   });
 

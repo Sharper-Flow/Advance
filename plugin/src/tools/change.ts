@@ -6,7 +6,7 @@
 
 import { z } from "zod";
 import { basename, join } from "path";
-import { readFile, stat, access } from "fs/promises";
+import { readFile, stat, access, realpath } from "fs/promises";
 import type { Spec, FeatureFlags, CrossProjectOrigin } from "../types";
 import {
   createDefaultGates,
@@ -18,6 +18,7 @@ import {
 } from "../types";
 import type { Store } from "../storage/store";
 import { createStore } from "../storage/store";
+import { getProjectId, getExternalRoot } from "../utils/project-id";
 import { validateChange } from "../validator";
 import { createLogger } from "../utils/debug-log";
 
@@ -459,6 +460,23 @@ export const changeTools = {
           });
         }
 
+        // Self-target guard: reject if target_path resolves to current project
+        try {
+          const [realTarget, realRoot] = await Promise.all([
+            realpath(target_path),
+            realpath(store.paths.root),
+          ]);
+          if (realTarget === realRoot) {
+            return formatToolOutput({
+              error:
+                "Target path resolves to current project. Omit target_path to create a change in the current project.",
+            });
+          }
+        } catch {
+          // realpath failed — proceed with store creation, which will fail
+          // with its own error if the path is truly invalid
+        }
+
         // Resolve source project identity
         const resolvedSourceProject =
           source_project ?? store.config?.name ?? basename(store.paths.root);
@@ -477,10 +495,18 @@ export const changeTools = {
           ? `${originSection}\n\n${proposal}`
           : undefined;
 
+        // Resolve externalRoot for genuine cross-project targets
+        const targetProjectId = await getProjectId(target_path);
+        const targetExternalRoot = targetProjectId
+          ? getExternalRoot(targetProjectId)
+          : undefined;
+
         // Open a temporary store for the target project
         let targetStore: Store;
         try {
-          targetStore = await createStore(target_path);
+          targetStore = await createStore(target_path, {
+            externalRoot: targetExternalRoot,
+          });
           await targetStore.init();
         } catch (err) {
           return formatToolOutput({
