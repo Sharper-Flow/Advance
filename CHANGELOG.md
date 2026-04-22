@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+#### Source-Appropriate Due Diligence for Unknown Capability Questions
+
+New `advance` spec requirement codifies how ADV-managed agents must gather evidence when answering unknown platform, architecture, or capability questions.
+
+- **Spec** — `rq-dueDiligence01` added to `.adv/specs/advance/spec.json` (advance spec bumped `1.10.0 → 1.11.0`). Four scenarios:
+  1. unknown capability question must gather source-appropriate evidence before answering, recommending, or deciding
+  2. `"quick answer"`, `"from your knowledge"`, or `"don't research"` requests change brevity only, not the evidence bar
+  3. blocked diligence must stop and surface the blockage instead of presenting an unverified direction
+  4. guidance surfaces and drift tests must encode the rule
+- **Agents** — `.opencode/agents/adv.md` (Pre-change investigation row + Context-Optimal Execution) and `.opencode/agents/plan.md` (Investigation Mode + Workflow research) rewritten with due-diligence-first, source-appropriate evidence guidance.
+- **Overlays** — `.opencode/overlays/adv.overlay.md` and `.opencode/overlays/plan.overlay.md` synced-overlay blocks carry the same rule so provider-specific ADV variants pick it up via `scripts/sync-global.sh --fix`.
+- **Drift tests** — `plugin/src/adv-command-routing-assets.test.ts` adds `LEGACY_CARVEOUT_FRAGMENTS` and `HIDDEN_CARVEOUT_PATTERNS` guards that fail if the prior carve-out-first wording or hidden context exemptions return.
+
 ### Changed
 
 #### Status Marker Redesign: Color-Coded Squares
