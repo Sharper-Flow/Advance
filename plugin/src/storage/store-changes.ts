@@ -192,6 +192,86 @@ export function createChangesOps(
       });
     },
 
+    closeBatch: async (changeIds, closure) => {
+      // Pre-validate: fail-all if any target is invalid or protected
+      for (const id of changeIds) {
+        const result = await loadChange(paths.changes, id);
+        if (!result.success || !result.data) {
+          return {
+            success: false,
+            closed: 0,
+            results: changeIds.map((cid) => ({
+              changeId: cid,
+              success: false,
+              error:
+                cid === id
+                  ? result.success === false
+                    ? result.error
+                    : "Change not found"
+                  : "Aborted due to sibling failure",
+            })),
+            message: `Bulk close aborted: Change "${id}" not found.`,
+          };
+        }
+        if (
+          result.data.status !== "draft" &&
+          result.data.status !== "pending"
+        ) {
+          return {
+            success: false,
+            closed: 0,
+            results: changeIds.map((cid) => ({
+              changeId: cid,
+              success: false,
+              error:
+                cid === id
+                  ? `Protected status "${result.data!.status}"`
+                  : "Aborted due to sibling failure",
+            })),
+            message: `Bulk close aborted: Change "${id}" has protected status "${result.data.status}". Only draft or pending changes can be bulk-closed.`,
+          };
+        }
+      }
+
+      // All valid — proceed with mutation
+      const results: {
+        changeId: string;
+        success: boolean;
+        error?: string;
+      }[] = [];
+      let closed = 0;
+
+      for (const id of changeIds) {
+        try {
+          await withChangeLock(ctx, id, async (change) => {
+            if (change.status === "archived") {
+              throw new Error(
+                `Cannot close archived change: ${change.id}`,
+              );
+            }
+            change.status = "closed";
+            change.closure = closure;
+            await saveFn(change);
+          });
+          results.push({ changeId: id, success: true });
+          closed++;
+        } catch (e) {
+          const error = e instanceof Error ? e.message : String(e);
+          results.push({ changeId: id, success: false, error });
+        }
+      }
+
+      const allSuccess = closed === changeIds.length;
+      return {
+        success: allSuccess,
+        closed,
+        results,
+        message: allSuccess
+          ? `Successfully closed ${closed} change(s).`
+          : `Closed ${closed} of ${changeIds.length} change(s). See results for details.`,
+      };
+    },
+
     updateArtifacts: async (
       changeId: string,
       proposalContent?: string,

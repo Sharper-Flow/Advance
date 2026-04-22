@@ -473,6 +473,91 @@ describe("Store", () => {
     });
   });
 
+  describe("closeBatch", () => {
+    test("closes multiple draft changes", async () => {
+      const c1 = await store.changes.create("Draft one");
+      const c2 = await store.changes.create("Draft two");
+
+      const result = await store.changes.closeBatch(
+        [c1.changeId, c2.changeId],
+        {
+          reason: "not_planned",
+          approved_by_user: true,
+          approval_evidence: "Bulk close test",
+          approved_at: "2026-04-21T00:00:00Z",
+        },
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.closed).toBe(2);
+      expect(result.results).toHaveLength(2);
+      expect(result.results.every((r) => r.success)).toBe(true);
+
+      const r1 = await store.changes.get(c1.changeId);
+      expect(r1.data!.status).toBe("closed");
+      const r2 = await store.changes.get(c2.changeId);
+      expect(r2.data!.status).toBe("closed");
+    });
+
+    test("fail-all when any target is protected", async () => {
+      const draft = await store.changes.create("Draft three");
+
+      // addFeature is active (protected)
+      const result = await store.changes.closeBatch(
+        [draft.changeId, "addFeature"],
+        {
+          reason: "not_planned",
+          approved_by_user: true,
+          approval_evidence: "Test",
+          approved_at: "2026-04-21T00:00:00Z",
+        },
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.closed).toBe(0);
+      expect(result.results).toHaveLength(2);
+      const addFeatureResult = result.results.find(
+        (r) => r.changeId === "addFeature",
+      );
+      expect(addFeatureResult!.success).toBe(false);
+      expect(addFeatureResult!.error).toMatch(/protected status/i);
+
+      // Draft should remain unchanged
+      const draftCheck = await store.changes.get(draft.changeId);
+      expect(draftCheck.data!.status).toBe("draft");
+    });
+
+    test("fail-all when any target does not exist", async () => {
+      const draft = await store.changes.create("Draft four");
+
+      const result = await store.changes.closeBatch(
+        [draft.changeId, "nonexistent"],
+        {
+          reason: "not_planned",
+          approved_by_user: true,
+          approval_evidence: "Test",
+          approved_at: "2026-04-21T00:00:00Z",
+        },
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.closed).toBe(0);
+    });
+
+    test("returns success for empty input with zero closed", async () => {
+      const result = await store.changes.closeBatch([], {
+        reason: "not_planned",
+        approved_by_user: true,
+        approval_evidence: "Test",
+        approved_at: "2026-04-21T00:00:00Z",
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.closed).toBe(0);
+      expect(result.results).toHaveLength(0);
+    });
+  });
+
   describe("tasks", () => {
     test("list returns tasks for change", async () => {
       const tasks = await store.tasks.list("addFeature");

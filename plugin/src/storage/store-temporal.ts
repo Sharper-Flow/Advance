@@ -7,6 +7,7 @@ import type {
   TddPhase,
   TddReclassification,
   WisdomType,
+  BulkCloseResult,
 } from "../types";
 import type { Store } from "./store-types";
 import type { TemporalClientBundle } from "../temporal/client";
@@ -297,6 +298,105 @@ export function createTemporalStoreBackend(
           if (!isExpectedFallbackError(err)) throw err;
           return legacy.changes.close(changeId, closure);
         }
+      },
+
+      closeBatch: async (
+        changeIds: string[],
+        closure: ChangeClosure,
+      ): Promise<BulkCloseResult> => {
+        // Pre-validate: fail-all if any target is invalid or protected
+        for (const id of changeIds) {
+          const change = await getTemporalOrLegacyChange(id);
+          if (!change.success || !change.data) {
+            return {
+              success: false,
+              closed: 0,
+              results: changeIds.map((cid) => ({
+                changeId: cid,
+                success: false,
+                error:
+                  cid === id
+                    ? change.success === false
+                      ? change.error
+                      : "Change not found"
+                    : "Aborted due to sibling failure",
+              })),
+              message: `Bulk close aborted: Change "${id}" not found.`,
+            };
+          }
+          if (
+            change.data.status !== "draft" &&
+            change.data.status !== "pending"
+          ) {
+            return {
+              success: false,
+              closed: 0,
+              results: changeIds.map((cid) => ({
+                changeId: cid,
+                success: false,
+                error:
+                  cid === id
+                    ? `Protected status "${change.data!.status}"`
+                    : "Aborted due to sibling failure",
+              })),
+              message: `Bulk close aborted: Change "${id}" has protected status "${change.data.status}". Only draft or pending changes can be bulk-closed.`,
+            };
+          }
+        }
+
+        const results: {
+          changeId: string;
+          success: boolean;
+          error?: string;
+        }[] = [];
+        let closed = 0;
+
+        for (const id of changeIds) {
+          try {
+            invalidateChange(id);
+            const handle = getChangeHandle(input, id);
+            await runTemporal(() =>
+              handle.executeUpdate(closeChangeUpdate, { args: [closure] }),
+            );
+            const result = await runTemporal(() =>
+              handle.query(changeStateQuery),
+            );
+            indexTasksFromState(result as ChangeWorkflowState);
+            setCachedChange(result as ChangeWorkflowState);
+            results.push({ changeId: id, success: true });
+            closed++;
+          } catch (err) {
+            if (!isExpectedFallbackError(err)) {
+              results.push({
+                changeId: id,
+                success: false,
+                error: String(err),
+              });
+              continue;
+            }
+            try {
+              await legacy.changes.close(id, closure);
+              results.push({ changeId: id, success: true });
+              closed++;
+            } catch (e) {
+              results.push({
+                changeId: id,
+                success: false,
+                error: String(e),
+              });
+            }
+          }
+        }
+
+        const allSuccess = closed === changeIds.length;
+        return {
+          success: allSuccess,
+          closed,
+          results,
+          message: allSuccess
+            ? `Successfully closed ${closed} change(s).`
+            : `Closed ${closed} of ${changeIds.length} change(s). See results for details.`,
+        };
       },
     },
     tasks: {

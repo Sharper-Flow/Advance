@@ -238,8 +238,8 @@ describe("ADV command routing assets", () => {
     expect(content).toMatch(
       /ADV Specialist.*bundled global.*adv-researcher|adv-researcher.*ADV Specialist.*bundled global/is,
     );
-    // tron should remain repo-local
-    expect(content).toMatch(/Repo-Local.*tron|tron.*Repo-Local/i);
+    // adv-tron should remain repo-local
+    expect(content).toMatch(/Repo-Local.*adv-tron|adv-tron.*Repo-Local/i);
   });
 
   test("shared-agent overlay source files exist for all managed global agents", () => {
@@ -256,11 +256,50 @@ describe("ADV command routing assets", () => {
     }
   });
 
-  // NEW: engineer assertions for addSpawnableEngineeringSub
-  test("adv.md Sub-Agent Policy table lists engineer", () => {
+  // KD16 rename: addSpawnableEngineeringSub + adv-<name> convention
+  test("adv.md Sub-Agent Policy table lists adv-engineer (not bare engineer)", () => {
     const content = readFileSync(join(AGENT_DIR, "adv.md"), "utf8");
-    expect(content).toContain("`engineer`");
+    expect(content).toContain("`adv-engineer`");
+    // Legacy bare `engineer` (with backticks) must no longer appear as an agent identifier
+    expect(content).not.toMatch(/`engineer`/);
   });
+
+  test("ADV_INSTRUCTIONS.md Agent Roster table lists adv-engineer", () => {
+    const content = readFileSync(
+      join(REPO_ROOT, "ADV_INSTRUCTIONS.md"),
+      "utf8",
+    );
+    expect(content).toContain("`adv-engineer`");
+    expect(content).not.toMatch(/`engineer`/);
+  });
+
+  test("ADV_INSTRUCTIONS.md Agent Tiers table lists adv-engineer", () => {
+    const content = readFileSync(
+      join(REPO_ROOT, "ADV_INSTRUCTIONS.md"),
+      "utf8",
+    );
+    // ADV Specialist tier must mention both adv-researcher and adv-engineer
+    expect(content).toMatch(
+      /ADV Specialist.*bundled global.*adv-researcher.*adv-engineer|ADV Specialist.*bundled global.*adv-engineer.*adv-researcher/s,
+    );
+  });
+
+  test("adv-apply.md delegation routing points to adv-engineer (not general or bare engineer)", () => {
+    const content = readFileSync(join(COMMAND_DIR, "adv-apply.md"), "utf8");
+    const delegationSection =
+      content.split("### Delegation Routing")[1]?.split("###")[0] ?? "";
+    expect(delegationSection).toContain("`adv-engineer`");
+    expect(delegationSection).not.toMatch(/Spawn `general` sub-agent/);
+    expect(delegationSection).not.toMatch(/Spawn `engineer` sub-agent/);
+  });
+
+  test("adv-review.md Spawn fixes row names adv-engineer", () => {
+    const content = readFileSync(join(COMMAND_DIR, "adv-review.md"), "utf8");
+    expect(content).toMatch(/Spawn fixes.*adv-engineer/);
+    // Old bare engineer reference must be gone
+    expect(content).not.toMatch(/Spawn fixes.*\bengineer\b(?!-)/);
+  });
+});
 
   test("ADV_INSTRUCTIONS.md Agent Roster table lists engineer", () => {
     const content = readFileSync(

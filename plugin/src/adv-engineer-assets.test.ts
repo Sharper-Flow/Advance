@@ -3,11 +3,11 @@ import { existsSync, readFileSync } from "fs";
 import { join, resolve } from "path";
 
 const REPO_ROOT = resolve(__dirname, "../..");
-const AGENT_PATH = join(REPO_ROOT, ".opencode/agents/engineer.md");
+const AGENT_PATH = join(REPO_ROOT, ".opencode/agents/adv-engineer.md");
 const SYNC_SCRIPT_PATH = join(REPO_ROOT, "scripts/sync-global.sh");
 
 describe("adv-engineer assets", () => {
-  test("ships engineer.md agent definition", () => {
+  test("ships adv-engineer.md agent definition", () => {
     expect(existsSync(AGENT_PATH)).toBe(true);
   });
 
@@ -111,8 +111,17 @@ describe("adv-engineer assets", () => {
     }
   });
 
-  test("sync script installs engineer.md globally", () => {
+  test("sync script installs adv-engineer.md globally", () => {
     const content = readFileSync(SYNC_SCRIPT_PATH, "utf8");
-    expect(content).toContain('"$GLOBAL_AGENTS"/engineer.md');
+    expect(content).toContain('"$GLOBAL_AGENTS"/adv-engineer.md');
+  });
+
+  test("ENGINEER_REPORT schema specifies adv-engineer as the literal agent field value", () => {
+    const content = readFileSync(AGENT_PATH, "utf8");
+    const reportSection = content.split("## ENGINEER_REPORT Payload")[1] ?? "";
+    // Literal payload value must be "adv-engineer" (post-rename convention KD16)
+    expect(reportSection).toMatch(/"agent":\s*"adv-engineer"/);
+    // Legacy bare-"engineer" payload value must no longer appear
+    expect(reportSection).not.toMatch(/"agent":\s*"engineer"/);
   });
 });

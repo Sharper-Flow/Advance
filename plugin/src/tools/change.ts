@@ -32,6 +32,8 @@ import {
   formatContextSnapshot,
   type ContextSnapshotInput,
 } from "../utils/context-snapshot";
+import { resolveChangeSelection } from "../storage/change-selection";
+import { BulkCloseSelectorSchema } from "../types";
 
 /**
  * Pure function: merge current clarify findings with persisted snapshots.
@@ -755,6 +757,115 @@ export const changeTools = {
       } catch (error) {
         return wrapWithBanner(
           { command: "adv_change_close", target: changeId },
+          formatToolOutput({
+            error: error instanceof Error ? error.message : String(error),
+          }),
+        );
+      }
+    },
+  },
+
+  adv_change_bulk_close: {
+    description:
+      "Close multiple changes in a single approved operation. Supports explicit IDs or filter-based selection. Requires either a status filter or a staleness filter. Fail-all if any target is protected or invalid.",
+    args: {
+      selector: BulkCloseSelectorSchema.describe(
+        "Explicit IDs or filter criteria",
+      ),
+      reason: z
+        .enum(["cancelled", "superseded", "not_planned"])
+        .describe("Why changes are being closed"),
+      approvedByUser: z
+        .literal(true)
+        .describe("Must be true — confirms user explicitly approved"),
+      approvalEvidence: z
+        .string()
+        .describe("Evidence of user approval (e.g. question tool response)"),
+      supersededBy: z
+        .string()
+        .optional()
+        .describe("Surviving change ID when reason is superseded (max 1)"),
+    },
+    execute: async (
+      {
+        selector,
+        reason,
+        approvedByUser,
+        approvalEvidence,
+        supersededBy,
+      }: {
+        selector: import("../types").BulkCloseSelector;
+        reason: "cancelled" | "superseded" | "not_planned";
+        approvedByUser: true;
+        approvalEvidence: string;
+        supersededBy?: string;
+      },
+      store: Store,
+    ) => {
+      if (reason === "superseded") {
+        if (selector.kind === "filter") {
+          return wrapWithBanner(
+            { command: "adv_change_bulk_close" },
+            formatToolOutput({
+              error:
+                "Filter-based bulk close with reason 'superseded' is not supported. Use explicit IDs.",
+            }),
+          );
+        }
+        if (!supersededBy) {
+          return wrapWithBanner(
+            { command: "adv_change_bulk_close" },
+            formatToolOutput({
+              error:
+                "supersededBy is required when reason is 'superseded'.",
+            }),
+          );
+        }
+      }
+
+      const selection = await resolveChangeSelection(selector, {
+        list: store.changes.list.bind(store.changes),
+        get: store.changes.get.bind(store.changes),
+      });
+
+      if (!selection.ok) {
+        return wrapWithBanner(
+          { command: "adv_change_bulk_close" },
+          formatToolOutput({ error: selection.error }),
+        );
+      }
+
+      if (selection.changeIds.length === 0) {
+        return wrapWithBanner(
+          { command: "adv_change_bulk_close" },
+          formatToolOutput({
+            error:
+              "SELECTION_ERROR: No changes matched the provided criteria.",
+          }),
+        );
+      }
+
+      try {
+        const result = await store.changes.closeBatch(selection.changeIds, {
+          reason,
+          approved_by_user: approvedByUser,
+          approval_evidence: approvalEvidence,
+          superseded_by: supersededBy,
+          approved_at: new Date().toISOString(),
+        });
+
+        return wrapWithBanner(
+          { command: "adv_change_bulk_close" },
+          formatToolOutput({
+            success: result.success,
+            closed: result.closed,
+            results: result.results,
+            message: result.message,
+          }),
+        );
+      } catch (error) {
+        return wrapWithBanner(
+          { command: "adv_change_bulk_close" },
           formatToolOutput({
             error: error instanceof Error ? error.message : String(error),
           }),

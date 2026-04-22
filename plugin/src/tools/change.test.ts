@@ -173,6 +173,109 @@ describe("Change Tools", () => {
     });
   });
 
+  describe("adv_change_bulk_close", () => {
+    test("closes multiple explicit changes", async () => {
+      const c1 = await store.changes.create("Draft A");
+      const c2 = await store.changes.create("Draft B");
+
+      const result = await changeTools.adv_change_bulk_close.execute(
+        {
+          selector: {
+            kind: "explicit",
+            changeIds: [c1.changeId, c2.changeId],
+          },
+          reason: "not_planned",
+          approvedByUser: true,
+          approvalEvidence: "User approved bulk close",
+        },
+        store,
+      );
+      const parsed = parseToolOutput(result);
+
+      expect(parsed.success).toBe(true);
+      expect(parsed.closed).toBe(2);
+      expect(parsed.results).toHaveLength(2);
+    });
+
+    test("fail-all when any explicit target is protected", async () => {
+      const draft = await store.changes.create("Draft C");
+
+      const result = await changeTools.adv_change_bulk_close.execute(
+        {
+          selector: {
+            kind: "explicit",
+            changeIds: [draft.changeId, "addFeature"], // addFeature is active
+          },
+          reason: "not_planned",
+          approvedByUser: true,
+          approvalEvidence: "Test",
+        },
+        store,
+      );
+      const parsed = parseToolOutput(result);
+
+      expect(parsed.success).toBe(false);
+      expect(parsed.error).toMatch(/protected status/i);
+    });
+
+    test("rejects filter-based superseded", async () => {
+      const result = await changeTools.adv_change_bulk_close.execute(
+        {
+          selector: {
+            kind: "filter",
+            filter: { status: "draft" },
+          },
+          reason: "superseded",
+          approvedByUser: true,
+          approvalEvidence: "Test",
+        },
+        store,
+      );
+      const parsed = parseToolOutput(result);
+
+      expect(parsed.error).toContain("superseded");
+    });
+
+    test("rejects filter without status or staleness", async () => {
+      const result = await changeTools.adv_change_bulk_close.execute(
+        {
+          selector: {
+            kind: "filter",
+            filter: { prefix: "draft" },
+          },
+          reason: "not_planned",
+          approvedByUser: true,
+          approvalEvidence: "Test",
+        },
+        store,
+      );
+      const parsed = parseToolOutput(result);
+
+      expect(parsed.error).toMatch(/status filter or a staleness filter/i);
+    });
+
+    test("closes by filter with status", async () => {
+      await store.changes.create("FilterDraft");
+
+      const result = await changeTools.adv_change_bulk_close.execute(
+        {
+          selector: {
+            kind: "filter",
+            filter: { status: "draft" },
+          },
+          reason: "not_planned",
+          approvedByUser: true,
+          approvalEvidence: "Test",
+        },
+        store,
+      );
+      const parsed = parseToolOutput(result);
+
+      expect(parsed.success).toBe(true);
+      expect(parsed.closed).toBeGreaterThanOrEqual(1);
+    });
+  });
+
   describe("adv_change_show", () => {
     test("returns full change with tasks and deltas", async () => {
       const result = await changeTools.adv_change_show.execute(

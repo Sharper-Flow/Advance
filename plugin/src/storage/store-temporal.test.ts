@@ -23,6 +23,12 @@ function makeLegacyStore(): Store {
       save: vi.fn(async () => {}),
       updateArtifacts: vi.fn(async () => ({ success: true }) as any),
       close: vi.fn(async () => null),
+      closeBatch: vi.fn(async () => ({
+        success: true,
+        closed: 0,
+        results: [],
+        message: "",
+      })),
     },
     tasks: {
       list: vi.fn(async () => []),
@@ -468,5 +474,114 @@ describe("Temporal store backend adapter", () => {
     await adapted.changes.get("chg-variant");
 
     expect(legacy.changes.get).toHaveBeenCalledTimes(1);
+  });
+
+  describe("closeBatch", () => {
+    it("falls back to legacy close per-item when Temporal workflows are not found", async () => {
+      const changeHandle = {
+        query: vi.fn(async () => {
+          throw new Error("Workflow execution not found");
+        }),
+        executeUpdate: vi.fn(async () => {
+          throw new Error("Workflow execution not found");
+        }),
+      };
+
+      const bundle = {
+        client: {
+          workflow: {
+            getHandle: vi.fn(() => changeHandle),
+          },
+        },
+      };
+
+      const legacy = makeLegacyStore();
+      vi.spyOn(legacy.changes, "get").mockImplementation(async (id) => ({
+        success: true,
+        data: {
+          id,
+          title: "Draft",
+          status: "draft",
+          created_at: "2026-04-18T00:00:00.000Z",
+          tasks: [],
+        } as any,
+      }));
+      vi.spyOn(legacy.changes, "close").mockResolvedValue({
+        id: "x",
+        status: "closed",
+      } as any);
+
+      const adapted = createTemporalStoreBackend({
+        legacy,
+        temporal: bundle as any,
+        projectId: "proj1",
+      });
+
+      const result = await adapted.changes.closeBatch(["chg-a", "chg-b"], {
+        reason: "not_planned",
+        approved_by_user: true,
+        approved_at: "2026-04-21T00:00:00Z",
+        approval_evidence: "ok",
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.closed).toBe(2);
+      expect(legacy.changes.close).toHaveBeenCalledTimes(2);
+    });
+
+    it("pre-validates and fail-alls via Temporal query when workflows exist", async () => {
+      const changeHandle = {
+        query: vi.fn(async () => ({
+          projectId: "proj1",
+          changeId: "chg-draft",
+          title: "Draft",
+          initializedAt: "2026-04-18T00:00:00.000Z",
+          id: "chg-draft",
+          status: "draft",
+          createdAt: "2026-04-18T00:00:00.000Z",
+          tasks: [],
+          wisdom: [],
+          gates: {
+            proposal: { status: "pending" },
+            discovery: { status: "pending" },
+            design: { status: "pending" },
+            planning: { status: "pending" },
+            execution: { status: "pending" },
+            acceptance: { status: "pending" },
+            release: { status: "pending" },
+          },
+          reentry_history: [],
+          artifacts: {},
+        })),
+        executeUpdate: vi.fn(async () => null),
+      };
+
+      const bundle = {
+        client: {
+          workflow: {
+            getHandle: vi.fn(() => changeHandle),
+          },
+        },
+      };
+
+      const legacy = makeLegacyStore();
+      const adapted = createTemporalStoreBackend({
+        legacy,
+        temporal: bundle as any,
+        projectId: "proj1",
+      });
+
+      // Only one change provided, and it is draft — should succeed via Temporal
+      const result = await adapted.changes.closeBatch(["chg-draft"], {
+        reason: "not_planned",
+        approved_by_user: true,
+        approved_at: "2026-04-21T00:00:00Z",
+        approval_evidence: "ok",
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.closed).toBe(1);
+      expect(changeHandle.executeUpdate).toHaveBeenCalledTimes(1);
+    });
   });
 });

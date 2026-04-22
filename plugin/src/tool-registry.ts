@@ -144,6 +144,11 @@ export function createToolMap(
       "adv_change_close",
       store,
     ),
+    adv_change_bulk_close: bindTool(
+      changeTools.adv_change_bulk_close,
+      "adv_change_bulk_close",
+      store,
+    ),
     adv_change_validate: bindTool(
       changeTools.adv_change_validate,
       "adv_change_validate",

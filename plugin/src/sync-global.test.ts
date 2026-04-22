@@ -61,20 +61,30 @@ describe("sync-global.sh", () => {
 
     test("adv-researcher is synced globally (not repo-local)", () => {
       // adv-researcher was promoted from repo-local to bundled global specialist
-      expect(content).toContain('REPO_LOCAL_ONLY="tron.md"');
+      expect(content).toContain('REPO_LOCAL_ONLY="adv-tron.md"');
       expect(content).not.toMatch(/REPO_LOCAL_ONLY=.*adv-researcher/);
+      // After KD16 rename, the bare "tron.md" must not appear as the REPO_LOCAL_ONLY value
+      expect(content).not.toMatch(/REPO_LOCAL_ONLY="tron\.md"/);
     });
 
-    test("engineer.md is NOT in SHARED_OVERLAY_ONLY", () => {
+    test("adv-engineer.md is NOT in SHARED_OVERLAY_ONLY", () => {
       expect(content).not.toMatch(/SHARED_OVERLAY_ONLY=.*engineer/);
     });
 
-    test("engineer.md is NOT in REPO_LOCAL_ONLY", () => {
+    test("adv-engineer.md is NOT in REPO_LOCAL_ONLY", () => {
       expect(content).not.toMatch(/REPO_LOCAL_ONLY=.*engineer/);
     });
 
-    test("engineer.md is explicitly named in stale-agent cleanup glob", () => {
-      expect(content).toContain('"$GLOBAL_AGENTS"/engineer.md');
+    test("adv-engineer.md is explicitly named in stale-agent cleanup glob", () => {
+      expect(content).toContain('"$GLOBAL_AGENTS"/adv-engineer.md');
+      // Legacy bare "engineer.md" path must no longer appear in the cleanup glob
+      expect(content).not.toMatch(/"\$GLOBAL_AGENTS"\/engineer\.md/);
+    });
+
+    test("adv-tron.md is explicitly named in stale-agent cleanup glob", () => {
+      expect(content).toContain('"$GLOBAL_AGENTS"/adv-tron.md');
+      // Legacy bare "tron.md" path must no longer appear in the cleanup glob
+      expect(content).not.toMatch(/"\$GLOBAL_AGENTS"\/tron\.md/);
     });
 
     test("skips shared agents that are overlay-managed", () => {

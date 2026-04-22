@@ -27,6 +27,7 @@ import type {
   TddReclassification,
   Gates,
   GateId,
+  BulkCloseResult,
 } from "../types";
 import type { ProjectPaths, LoadResult } from "./json";
 import type { WisdomSearchResult } from "./sqlite";
@@ -58,6 +59,10 @@ export interface Store {
       status?: string;
       includeArchived?: boolean;
       includeClosed?: boolean;
+      prefix?: string;
+      titleContains?: string;
+      createdBefore?: string;
+      lastActivityBefore?: string;
     }) => Promise<ChangeListResponse>;
     get: (changeId: string) => Promise<LoadResult<Change | null>>;
     create: (
@@ -91,6 +96,10 @@ export interface Store {
       error?: string;
     }>;
     close: (changeId: string, closure: ChangeClosure) => Promise<Change | null>;
+    closeBatch: (
+      changeIds: string[],
+      closure: ChangeClosure,
+    ) => Promise<BulkCloseResult>;
   };
 
   // Tasks

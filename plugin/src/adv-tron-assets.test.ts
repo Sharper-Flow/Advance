@@ -4,7 +4,7 @@ import { join, resolve } from "path";
 
 const REPO_ROOT = resolve(__dirname, "../..");
 const COMMAND_PATH = join(REPO_ROOT, ".opencode/command/adv-tron.md");
-const AGENT_PATH = join(REPO_ROOT, ".opencode/agents/tron.md");
+const AGENT_PATH = join(REPO_ROOT, ".opencode/agents/adv-tron.md");
 const SKILL_PATH = join(REPO_ROOT, "skills/adv-tron/SKILL.md");
 const SYNC_SCRIPT_PATH = join(REPO_ROOT, "scripts/sync-global.sh");
 
@@ -15,7 +15,7 @@ describe("adv-tron assets", () => {
     expect(existsSync(SKILL_PATH)).toBe(true);
   });
 
-  test("uses current lgrep index tool names in the tron agent", () => {
+  test("uses current lgrep index tool names in the adv-tron agent", () => {
     const content = readFileSync(AGENT_PATH, "utf8");
 
     expect(content).toContain("lgrep_index_symbols_folder: true");
