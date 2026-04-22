@@ -127,7 +127,9 @@ describe("overlay sync script support", () => {
   });
 
   test("removes stale scout and refine agent config keys on --fix", () => {
-    const tempHome = mkdtempSync(join(tmpdir(), "adv-scout-refine-config-cleanup-"));
+    const tempHome = mkdtempSync(
+      join(tmpdir(), "adv-scout-refine-config-cleanup-"),
+    );
 
     try {
       const configDir = join(tempHome, ".config/opencode");

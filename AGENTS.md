@@ -61,24 +61,30 @@ pnpm run format:check         # prettier --check
 ## Architecture Gotchas
 
 ### Runtime is Bun, tests run on Node
+
 The plugin uses `bun:sqlite` at runtime. Tests mock it via vitest aliases in `vitest.config.ts`:
+
 - `bun:sqlite` → `src/__mocks__/bun-sqlite.ts` (wraps `better-sqlite3`)
 - `@opencode-ai/plugin` → `src/__mocks__/opencode-plugin.ts`
 
 If you add imports from the SDK or Bun APIs, ensure the mocks cover them or tests will fail with resolution errors.
 
 ### Zod v4 with v3 compatibility
+
 Dependencies use Zod v4 (`^4.3.6`). Tool arg schemas use Zod and are cast via `as any` in tool-registry.ts for SDK compatibility. The cast is intentional — don't "fix" it.
 
 ### External mutable state
+
 ADV state (changes, archive, wisdom, agenda, handoff) lives **outside the repo** at `~/.local/share/opencode/plugins/advance/{project-id}/`, keyed by root commit SHA. All worktrees of the same repo share this state. Specs (`.adv/specs/`) remain in-repo and branch-local.
 
 **Never read ADV state files directly** (`read`, `cat`, `ls`). Always use ADV MCP tools (`adv_change_show`, `adv_task_list`, etc.).
 
 ### Overlay sync model
+
 Shared global agents (`adv`, `general`, `build`, `plan`) are NOT fully replaced by sync. Instead, `.opencode/overlays/*.overlay.md` contains managed blocks that `scripts/sync-global.sh` injects into the global agent files without overwriting user customization.
 
 ### Provider ADV agent assembly
+
 `scripts/sync-global.sh` generates provider-specific ADV variants (`adv-claude`, `adv-gpt`, `adv-glm`, `adv-kimi`) from the canonical `.opencode/agents/adv.md`:
 
 1. **Copy canonical** — `adv.md` is the single source of truth for ADV behavior
@@ -90,16 +96,20 @@ Shared global agents (`adv`, `general`, `build`, `plan`) are NOT fully replaced 
 Runtime visibility is controlled by OpenCode's native `agent.<name>.disable` field in `opencode.json` — no hidden routing, no fallback chains. The `opencode-model-preferences` (OMP) tool writes these config entries; ADV only generates the files.
 
 ### Guard system
+
 - `guards/bash.ts` — sanitizes bash commands at runtime (blocks destructive patterns)
 - `guards/task.ts` — enforces single-level sub-agent nesting (hard depth limit of 1)
 
 ### Tool registration pattern
+
 Each tool file in `src/tools/` exports a `*Tools` object with description, args schema, and execute function. `tool-registry.ts` binds them all via `createToolMap()`. To add a new tool:
+
 1. Define it in the relevant `src/tools/*.ts` file
 2. Export from `src/tools/index.ts`
 3. `tool-registry.ts` picks it up via the `*Tools` import
 
 ### Schema source of truth
+
 Zod schemas in `plugin/src/types.ts` are the authoritative source. `plugin/schemas/*.json` contains `$ref`-only stub files that point at the Zod types; they are NOT auto-generated from Zod. When you extend a Zod schema (add a field, change a type), no separate schema-regeneration step is required — the Zod type is the contract, and the committed stubs are informational anchors only.
 
 ## Testing Conventions
@@ -113,11 +123,13 @@ Zod schemas in `plugin/src/types.ts` are the authoritative source. `plugin/schem
 ## Sync Script
 
 `scripts/sync-global.sh` is the primary maintenance tool:
+
 ```bash
 ./scripts/sync-global.sh --check      # Report what's out of date
 ./scripts/sync-global.sh --fix        # Sync assets + patch opencode.json
 ./scripts/sync-global.sh --dry-run --diff  # Preview changes
 ```
+
 Requires `jq` for config patching.
 
 ## Key References

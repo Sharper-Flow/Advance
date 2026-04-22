@@ -249,10 +249,7 @@ describe("sync-global.sh", () => {
     test("provider hint files exist in repo", () => {
       const providers = ["claude", "gpt", "glm", "kimi"];
       for (const p of providers) {
-        const path = join(
-          REPO_ROOT,
-          `.opencode/agent-parts/providers/${p}.md`,
-        );
+        const path = join(REPO_ROOT, `.opencode/agent-parts/providers/${p}.md`);
         expect(existsSync(path), `missing provider hint: ${p}.md`).toBe(true);
       }
     });
