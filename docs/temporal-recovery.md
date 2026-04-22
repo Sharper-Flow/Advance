@@ -58,6 +58,98 @@ These alternatives were evaluated and deliberately deferred. Revisit if the link
 
 Until one of those triggers fires, keep the single in-process worker. Adding processes, shards, or services before they're needed pays the operational cost without the benefit.
 
+## Failed migration recovery
+
+Use this when a project's import ledger is not `done`.
+
+1. Run `adv_status` and inspect:
+   - `migration_status.status`
+   - `migration_status.detail`
+   - `temporal_health.server_alive`
+   - `temporal_health.worker_process_alive`
+2. Classify the failure:
+   - `server_alive: false` → Temporal runtime/server problem first
+   - `worker_process_alive: false` with `server_alive: true` → worker crash / restart exhaustion
+   - `migration_status.status: failed` with detail → workflow reached a terminal failure state
+   - `migration_status.status: empty|unknown|null` → no usable import ledger yet; treat as incomplete bootstrap / recovery state
+3. Recover in order:
+   - Restart the worker with `adv_temporal_worker_restart`
+   - Re-check `adv_status`
+   - If the worker is healthy but the project workflow state is still wrong, run `adv_workflow_repair` with explicit user approval evidence
+4. Re-verify with `adv_status` until `migration_status.status` returns to `done`.
+
+### Expected ledger meanings
+
+| Ledger state | Meaning | Operator action |
+| --- | --- | --- |
+| `done` | Project import succeeded | No action |
+| `failed` + detail | Workflow/import hit a terminal error | Fix root cause, then `adv_workflow_repair` |
+| `empty` | Project workflow exists but has no import ledger entry | Restart worker, then re-check |
+| `null` / missing | No reachable workflow state yet | Check server + worker health first |
+
+## Worker auto-respawn troubleshooting
+
+The Bun-host path uses one Node child per queue with restart backoff `1s -> 3s -> 10s` and a hard cap of 3 restart attempts.
+
+### Signals to inspect
+
+- `adv_status.temporal_health.server_alive`
+- `adv_status.temporal_health.worker_alive`
+- `adv_status.temporal_health.worker_process_alive`
+- `adv_status.temporal_health.registered_queues`
+- `adv_status.temporal_health.last_error`
+
+### Common cases
+
+| Health shape | Likely cause | Fix |
+| --- | --- | --- |
+| `server_alive=false` | Temporal dev server unreachable | Start / restore Temporal runtime first |
+| `server_alive=true`, `worker_alive=true`, `worker_process_alive=false` | OOP child crashed and exhausted restart budget | Run `adv_temporal_worker_restart`; inspect `last_error` |
+| `worker_alive=false` | No worker registered (degraded file-backed mode or init failure) | Check `ADV_DISABLE_TEMPORAL`, `ADV_ALLOW_DEGRADED_FALLBACK`, init logs |
+| Bun host + init error about Node | Node binary not found | Install Node or set `ADV_NODE_PATH` |
+| Error about worker bundle not found | Dist worker missing for OOP path | Run `pnpm run build:worker` in `plugin/` |
+
+## `NonDeterministicWorkflowError` recovery
+
+Treat this as a workflow-state corruption / code-history mismatch problem, not a transient retry.
+
+1. Confirm the error in logs or `last_error`.
+2. Do **not** keep restarting the same worker hoping it clears.
+3. Get explicit user approval.
+4. Run `adv_workflow_repair` for the affected change.
+5. Re-run `adv_status` and confirm the project/change workflow is healthy again.
+
+`adv_workflow_repair` is the supported operator path because it:
+- terminates the broken project workflow,
+- rebuilds workflow state from the legacy snapshot,
+- re-imports the requested change,
+- re-emits derived agenda/wisdom exports.
+
+## Disk-full / OOM surfaces
+
+These usually appear as secondary symptoms:
+- worker exits with restart loops,
+- `worker_process_alive=false`,
+- Temporal connection/write failures,
+- missing or stale derived exports after an otherwise healthy command path.
+
+### Disk-full checklist
+
+- Confirm free space on the host
+- Check the plugin's external state directory and runtime/cache locations
+- Re-run the blocked command only after space is restored
+- If workflow state and derived exports diverged, use `adv_workflow_repair`
+
+### OOM checklist
+
+- Look for repeated worker child exits or abrupt process termination
+- Prefer restarting the worker before re-running larger operations
+- If the same queue repeatedly dies under load, revisit the worker-model alternatives above (shard or external fleet)
+
+## Cutover cleanup status
+
+The temporary bootstrap migration harness used during cutover has already been retired after dogfood completion. The historical worker-model discussion remains here, but the transitional artifacts (`migrate-runner`, `migration-workflow`, dogfood scripts, and the generated dogfood report) are no longer part of the shipping codebase.
+
 ## Background and references
 
 ### 2026-04-21 Bun crash-loop incident
