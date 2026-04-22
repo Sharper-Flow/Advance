@@ -56,6 +56,11 @@ export interface CommandDef {
    * Agents should self-check: "Am I still working toward this phase's goal?"
    */
   phaseGoal?: string;
+  /**
+   * Hint for $ARGUMENTS parsing — describes expected arguments.
+   * Required when requiresChangeId is true.
+   */
+  args_hint?: string;
 }
 
 // =============================================================================
@@ -99,6 +104,7 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
     requiresChangeId: true,
     prerequisites: ["adv-proposal"],
     successors: ["adv-archive"],
+    args_hint: "<change-id> [--strict]",
   },
   "adv-archive": {
     name: "adv-archive",
@@ -116,6 +122,7 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
     },
     phaseGoal:
       "Promote the change from contract to law: apply spec deltas, capture wisdom, clean up.",
+    args_hint: "<change-id>",
   },
 
   // ---- Pre-Implementation (Ideation + Discovery + Design + Planning) ----
@@ -187,6 +194,7 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
       modifies: ["proposal"],
       gates: ["discovery"],
     },
+    args_hint: "<change-id>",
   },
   "adv-design": {
     name: "adv-design",
@@ -203,6 +211,7 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
       modifies: ["proposal"],
       gates: ["design"],
     },
+    args_hint: "<change-id>",
   },
   "adv-prep": {
     name: "adv-prep",
@@ -221,6 +230,7 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
     },
     phaseGoal:
       "Complete the flight-check: every gap closed, every dependency mapped, every task ready \u2014 ready for autonomous implementation.",
+    args_hint: "<change-id>",
   },
 
   // ---- Implementation ----
@@ -241,6 +251,7 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
     },
     phaseGoal:
       "Execute the approved plan autonomously. Add discovered tasks within scope. Escalate only on failure.",
+    args_hint: "<change-id>",
   },
   "adv-task": {
     name: "adv-task",
@@ -276,6 +287,7 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
     },
     phaseGoal:
       "Verify implementation matches the approved plan. Auto-fix within scope. Stop on drift.",
+    args_hint: "<change-id>",
   },
   "adv-harden": {
     name: "adv-harden",
@@ -293,6 +305,7 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
     },
     phaseGoal:
       "Verify production-readiness. Auto-fix scoped issues. Stop on drift.",
+    args_hint: "<change-id>",
   },
   "adv-audit": {
     name: "adv-audit",
@@ -320,6 +333,7 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
     requiresChangeId: true,
     prerequisites: ["adv-proposal"],
     successors: ["adv-prep"],
+    args_hint: "<change-id>",
   },
   "adv-coordinate": {
     name: "adv-coordinate",

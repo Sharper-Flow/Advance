@@ -389,6 +389,30 @@ describe("Command Manifest", () => {
       }
     });
 
+    test("requiresChangeId commands have args_hint populated", () => {
+      const missing: string[] = [];
+      for (const [name, def] of Object.entries(COMMAND_MANIFEST)) {
+        if (def.requiresChangeId && !def.args_hint) {
+          missing.push(name);
+        }
+      }
+      expect(
+        missing,
+        `Commands with requiresChangeId but no args_hint: ${missing.join(", ")}`,
+      ).toHaveLength(0);
+    });
+
+    test("args_hint is a non-empty string when present", () => {
+      for (const [name, def] of Object.entries(COMMAND_MANIFEST)) {
+        if (def.args_hint) {
+          expect(
+            def.args_hint.length,
+            `${name}: args_hint must be non-empty`,
+          ).toBeGreaterThan(3);
+        }
+      }
+    });
+
     test("phaseGoal values match the user-approved phase goals", () => {
       const expectedGoals: Record<string, string> = {
         "adv-proposal":
