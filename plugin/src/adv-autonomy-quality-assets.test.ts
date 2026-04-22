@@ -180,7 +180,7 @@ describe("Design validation policy", () => {
     );
     expect(content).toMatch(/No validation data.*omit section silently/);
     expect(content).toMatch(/CONFLICT.*pause/i);
-    expect(content).toMatch(/compromise.*risk|contract-compromise/i);
+    expect(content).toMatch(/contract[- ]compromise risk|compromise risk/i);
     expect(content).toMatch(
       /keep.*compromise|revise.*design|revisit.*agreement|defer/i,
     );

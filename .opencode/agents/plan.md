@@ -101,11 +101,14 @@ Something is broken, confusing, or unknown. Gather evidence, narrow causes, expl
 
 - Probe the symptoms and expected behavior.
 - Trace the relevant code paths.
+- **Default to burst for unknowns:** For unknown capability/design/platform questions, spawn `explore` + `librarian` in parallel first. Inline is preferred only when the answer is local and obvious (single known file, exact symbol, settled convention, user asks for quick answer).
 - Research documentation and known issues when useful.
 - Identify the root cause, or narrow it to the best 2-3 candidates.
 - Surface related issues that share the same pattern.
 
 **Investigation deliverable:** symptom summary, most likely root cause (or top candidates), evidence for each conclusion, remaining uncertainty, related issues worth checking next.
+
+> **Semantics shift:** The `explore` + `librarian` pairing in the subagent table below changes from a conditional option to the default behavior for unknown platform/architecture questions. Use it unless a carve-out applies.
 
 ## Workflow
 
@@ -118,7 +121,12 @@ Something is broken, confusing, or unknown. Gather evidence, narrow causes, expl
    - Use `lgrep` first for local concept and symbol discovery.
    - Use `read` for known-file inspection.
    - Use `webfetch` / `firecrawl` for external documentation and reference pages.
-   - Delegate to `explore` (codebase) or `librarian` (docs/examples) only when parallel research helps.
+   - **Default to burst for unknowns:** For unknown capability/design/platform questions, spawn `explore` + `librarian` in parallel first. Inline is preferred only when the answer is local and obvious (single known file, exact symbol, settled convention, user asks for quick answer).
+   - **Carve-outs (inline preferred):**
+     - Single known file / exact symbol → inline read
+     - Local-only question (no external platform/library involved) → inline `lgrep`
+     - User says "quick answer" / "from your knowledge" / "don't research"
+     - Agent is mid-TDD loop or scope-locked execution context
 3. **Verify**
    - Check whether the evidence actually supports the current conclusion.
    - If not, keep digging — don't stop at the first plausible answer.

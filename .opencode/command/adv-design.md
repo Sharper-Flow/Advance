@@ -126,18 +126,20 @@ After displaying the validator result:
 - If the design involves real user-value tradeoffs, ask the user whether the design is acceptable before moving into `/adv-prep`
 - If the validator found an unresolved `CONFLICT`, always pause for user resolution before planning
 - If the agent identifies a contract-compromise risk — the design can only be delivered by compromising agreed acceptance criteria, explicit constraints, or stated avoidances (as written in agreement.md) — always pause and surface a discussion of possible routes to the user before planning, regardless of validator verdict
-- If the design is straightforward with no user-value tradeoffs, no unresolved `CONFLICT`, and no contract-compromise risk, and validation returned `VALIDATED`, `CAUTION`, or `INCONCLUSIVE`, proceed directly to `/adv-prep`
+- If the design is straightforward with no user-value tradeoffs, no unresolved `CONFLICT` (resolved Phase 3.6 conflicts do not count), and no contract-compromise risk, and validation returned `VALIDATED`, `CAUTION`, or `INCONCLUSIVE`, proceed directly to `/adv-prep`
 
 Recommended options (when pausing):
 - Looks good — proceed to planning
 - Adjust design details
 - Revisit discovery/agreement
-- Keep with compromise — amend agreement to reflect the necessary concession, then proceed
+- Keep design with documented compromise — amend agreement to reflect the necessary concession, then proceed
 - Cancel this change
 
 ### Phase 4.1: Contract-Compromise Risk Assessment
 
-When the agent recognizes that the chosen design path requires violating an explicit acceptance criterion, constraint, or avoidance stated in agreement.md, it must surface the conflict rather than silently proceed.
+When the agent recognizes that the chosen design path requires violating an explicit acceptance criterion, constraint, or avoidance stated in agreement.md, it must surface the compromise risk rather than silently proceed.
+
+If both an unresolved `CONFLICT` and a contract-compromise risk are present, surface them in one combined user discussion, not two separate pauses.
 
 **Trigger:** The design's only viable path breaks a rule the user explicitly set.
 
@@ -150,11 +152,11 @@ When the agent recognizes that the chosen design path requires violating an expl
 1. **Keep design with documented compromise** — accept the compromise and amend agreement.md via `adv_change_update` to document the change, then proceed
 2. **Revise design** — find an alternative path that preserves all constraints
 3. **Revisit agreement/discovery** — return to `/adv-discover` to renegotiate scope or objectives
-4. **Defer the change** — halt the change and capture the reason in the change notes
+4. **Defer the change** — halt the change and capture the reason in the change notes; this check must surface again when the change resumes
 
 **Amendment procedure for "keep with compromise":**
 - Use `adv_change_update` to append a "Design Compromise" section to agreement.md
-- Document: which criterion/constraint/avoidance is compromised, why it was unavoidable, and the user's explicit approval
+- Document: which criterion/constraint/avoidance is compromised, why it was unavoidable, and approval evidence including timestamp and explicit user approval
 - Only proceed to `/adv-prep` after the amendment is persisted
 
 ### Phase 4.5: Persist Revisions
