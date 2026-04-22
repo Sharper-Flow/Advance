@@ -322,6 +322,42 @@
           ]
         }
       ]
+    },
+    {
+      "id": "rq-disc12",
+      "title": "Explicit Acceptance Criteria Checkpoint",
+      "body": "/adv-discover MUST present draft acceptance criteria as a dedicated checkpoint before agreement.md persistence and before adv_gate_complete gateId: discovery. The checkpoint MUST offer explicit user outcomes for approval, /adv-clarify handoff, or write-in edits, and MUST NOT complete discovery until acceptance criteria are approved.",
+      "priority": "must",
+      "tags": ["discover", "acceptance-criteria", "checkpoint", "agreement"],
+      "scenarios": [
+        {
+          "id": "rq-disc12.1",
+          "title": "Acceptance criteria checkpoint precedes agreement persistence and gate completion",
+          "given": [
+            "/adv-discover has resolved all user-facing open questions and produced draft acceptance criteria"
+          ],
+          "when": "The command reaches the agreement sign-off flow",
+          "then": [
+            "The command presents Acceptance Criteria as a focused checkpoint",
+            "The question tool offers approve, start /adv-clarify, and add/clarify outcomes",
+            "agreement.md is persisted only after acceptance criteria are approved",
+            "adv_gate_complete gateId: discovery occurs only after approval"
+          ]
+        },
+        {
+          "id": "rq-disc12.2",
+          "title": "/adv-clarify branch stops discovery cleanly",
+          "given": [
+            "The user selects the /adv-clarify option at the acceptance criteria checkpoint"
+          ],
+          "when": "/adv-discover processes the selection",
+          "then": [
+            "/adv-discover stops immediately without persisting agreement.md",
+            "/adv-discover does not call adv_gate_complete",
+            "The command instructs the user to run /adv-clarify {change-id} and rerun /adv-discover {change-id} afterward"
+          ]
+        }
+      ]
     }
   ]
 }

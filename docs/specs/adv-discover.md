@@ -345,6 +345,73 @@ Each open design question in /adv-discover output MUST include trust model impli
 
 ---
 
+### Discovery-Owned Agreement Sign-Off
+
+**ID:** `rq-disc11` | **Priority:** **[MUST]**
+
+When /adv-discover absorbs the user-facing agreement flow, the command MUST present objectives and constraints for user sign-off before completing the discovery gate, and MUST persist agreement.md as part of the same command contract. This prevents discovery findings from being marked complete before the user-facing sign-off step occurs.
+
+**Tags:** `discover`, `agreement`, `sign-off`, `gate-ownership`
+
+#### Scenarios
+
+**User sign-off occurs before discovery gate completion** (`rq-disc11.1`)
+
+**Given:**
+
+- A /adv-discover invocation has produced objectives, constraints, avoidances, and acceptance-criteria candidates
+
+**When:** /adv-discover reaches the end of its agreement presentation flow
+
+**Then:**
+
+- The command presents objectives and constraints for user sign-off via the question tool
+- agreement.md is persisted via adv_change_update
+- adv_gate_complete gateId: discovery occurs only after the sign-off flow completes
+
+---
+
+### Explicit Acceptance Criteria Checkpoint
+
+**ID:** `rq-disc12` | **Priority:** **[MUST]**
+
+/adv-discover MUST present draft acceptance criteria as a dedicated checkpoint before agreement.md persistence and before adv_gate_complete gateId: discovery. The checkpoint MUST offer explicit user outcomes for approval, /adv-clarify handoff, or write-in edits, and MUST NOT complete discovery until acceptance criteria are approved.
+
+**Tags:** `discover`, `acceptance-criteria`, `checkpoint`, `agreement`
+
+#### Scenarios
+
+**Acceptance criteria checkpoint precedes agreement persistence and gate completion** (`rq-disc12.1`)
+
+**Given:**
+
+- /adv-discover has resolved all user-facing open questions and produced draft acceptance criteria
+
+**When:** The command reaches the agreement sign-off flow
+
+**Then:**
+
+- The command presents Acceptance Criteria as a focused checkpoint
+- The question tool offers approve, start /adv-clarify, and add/clarify outcomes
+- agreement.md is persisted only after acceptance criteria are approved
+- adv_gate_complete gateId: discovery occurs only after approval
+
+**/adv-clarify branch stops discovery cleanly** (`rq-disc12.2`)
+
+**Given:**
+
+- The user selects the /adv-clarify option at the acceptance criteria checkpoint
+
+**When:** /adv-discover processes the selection
+
+**Then:**
+
+- /adv-discover stops immediately without persisting agreement.md
+- /adv-discover does not call adv_gate_complete
+- The command instructs the user to run /adv-clarify {change-id} and rerun /adv-discover {change-id} afterward
+
+---
+
 ### Embedded Discovery Methodology
 
 **ID:** `rq-disc09` | **Priority:** **[SHOULD]**
