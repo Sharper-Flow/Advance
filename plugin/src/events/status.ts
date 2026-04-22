@@ -21,7 +21,7 @@ interface StatusState {
 }
 
 let state: StatusState = {
-  currentStatus: "EARTH",
+  currentStatus: "ATTN",
   projectName: "Unknown",
   activeChangeId: null,
   taskProgress: null,
@@ -48,7 +48,7 @@ export const getStatusMarker = (status: StatusMarker): string => {
  */
 export const initializeStatus = (projectName: string): void => {
   state = {
-    currentStatus: "EARTH",
+    currentStatus: "ATTN",
     projectName,
     activeChangeId: null,
     taskProgress: null,
@@ -109,7 +109,7 @@ export const getStatus = (): Readonly<StatusState> => {
 export const resetStatus = (): void => {
   state = {
     ...state,
-    currentStatus: "EARTH",
+    currentStatus: "ATTN",
     activeChangeId: null,
     taskProgress: null,
     lastUpdated: Date.now(),
@@ -167,7 +167,7 @@ export const trackRetry = (taskId: string, error?: string): boolean => {
 
   // Check for doom loop
   if (tracker.attempts >= DOOM_LOOP_THRESHOLD) {
-    setStatus("DOOM_LOOP");
+    setStatus("BLOCKED");
     return true;
   }
 
