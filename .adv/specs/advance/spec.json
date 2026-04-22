@@ -980,6 +980,19 @@
             "No handoff message is emitted",
             "No handoff validation is required for the silent transition"
           ]
+        },
+        {
+          "id": "rq-handoffVoice01.4",
+          "title": "Footer replaces Next sections",
+          "given": [
+            "An /adv-* command completes a gate and emits a user-facing gate-transition message"
+          ],
+          "when": "The handoff message is rendered",
+          "then": [
+            "## Next stage and ## Next headings are absent from the handoff",
+            "A footer line appears after ## Delivered with the change id, gate transition, and next command",
+            "The archive terminal variant ends the footer with Shipped. and no arrow or command"
+          ]
         }
       ]
     },
