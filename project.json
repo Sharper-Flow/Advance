@@ -6,5 +6,8 @@
   "archive_dir": ".adv/archive",
   "docs_dir": "docs/specs",
   "db_dir": ".adv/db",
-  "project_file": "project.md"
+  "project_file": "project.md",
+  "related_repos": {
+    "opencode-model-preferences": "/home/jrede/dev/oc-plugins/opencode-model-preferences"
+  }
 }
