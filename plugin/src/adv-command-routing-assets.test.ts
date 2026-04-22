@@ -337,19 +337,13 @@ describe("ADV command routing assets", () => {
   });
 
   test("adv.overlay.md carries synced research-delegation rule", () => {
-    const content = readFileSync(
-      join(OVERLAY_DIR, "adv.overlay.md"),
-      "utf8",
-    );
+    const content = readFileSync(join(OVERLAY_DIR, "adv.overlay.md"), "utf8");
     expect(content).toMatch(/Pre-change research default/);
     expect(content).toMatch(/parallel research burst.*explore.*librarian/s);
   });
 
   test("plan.overlay.md carries synced research-delegation rule", () => {
-    const content = readFileSync(
-      join(OVERLAY_DIR, "plan.overlay.md"),
-      "utf8",
-    );
+    const content = readFileSync(join(OVERLAY_DIR, "plan.overlay.md"), "utf8");
     expect(content).toMatch(/Pre-change research default/);
     expect(content).toMatch(/parallel research burst.*explore.*librarian/s);
   });

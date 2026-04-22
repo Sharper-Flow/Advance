@@ -508,7 +508,7 @@ The canonical ADV workflow is seven sequential gates: proposal, discovery, desig
 
 **ID:** `rq-autonomy01` | **Priority:** **[MUST]**
 
-ADV must pause for human input only at explicit approval/judgment checkpoints and auto-continue through clean agent-owned workflow steps. Human checkpoints are: proposal confirmation, agreement sign-off, design approval when real tradeoffs depend on user values or contract-compromise risk is present, acceptance, archive sign-off, cancellation approval, and doom-loop recovery. All other clean workflow steps (discovery, deterministic design, prep, apply, review, harden, and scope-driven re-entry) proceed sequentially without prompting the user when no unresolved user-value tradeoff, contract-compromise risk, or required approval exists.
+ADV must pause for human input only at explicit approval/judgment checkpoints and auto-continue through clean agent-owned workflow steps. Human checkpoints are: proposal confirmation, agreement sign-off, design approval when real tradeoffs depend on user values, when the design validator returns CONFLICT, or when contract-compromise risk is present, acceptance, archive sign-off, cancellation approval, and doom-loop recovery. All other clean workflow steps (discovery, deterministic design, prep, apply, review, harden, and scope-driven re-entry) proceed sequentially without prompting the user when no unresolved user-value tradeoff, contract-compromise risk, or required approval exists.
 
 **Tags:** `workflow`, `autonomy`, `checkpoints`
 
@@ -843,7 +843,7 @@ When an agent identifies that a proposed design can only be delivered by comprom
 
 **ID:** `rq-handoffVoice01` | **Priority:** **[MUST]**
 
-Every /adv-* command that emits a user-facing gate-transition message MUST use the Gate Handoff Voice spine: Problem / Chosen direction / Delivered / Next stage / Next. Canonical source: docs/command-voice-standard.md § Gate Handoff Voice.
+Every /adv-* command that emits a user-facing gate-transition message MUST use the Gate Handoff Voice spine: Problem / Chosen direction / Delivered, followed by a footer line containing the change id, gate transition, and next command. Canonical source: docs/command-voice-standard.md § Gate Handoff Voice.
 
 #### Scenarios
 
@@ -855,8 +855,8 @@ Every /adv-* command that emits a user-facing gate-transition message MUST use t
 **When:** The handoff message is rendered
 
 **Then:**
-- All five spine headings are present: Problem, Chosen direction, Delivered, Next stage, Next
-- The archive terminal variant uses Shipped. instead of Next stage and Next
+- All three narrative spine headings are present: Problem, Chosen direction, Delivered, plus a footer line below a --- separator
+- The archive terminal variant uses **{change-id}** · release ✓ · Shipped. instead of the standard arrow+command footer
 
 **No mechanics leakage** (`rq-handoffVoice01.2`)
 
@@ -884,6 +884,18 @@ Every /adv-* command that emits a user-facing gate-transition message MUST use t
 **Then:**
 - No handoff message is emitted
 - No handoff validation is required for the silent transition
+
+**Footer replaces Next sections** (`rq-handoffVoice01.4`)
+
+**Given:**
+- An /adv-* command completes a gate and emits a user-facing gate-transition message
+
+**When:** The handoff message is rendered
+
+**Then:**
+- ## Next stage and ## Next headings are absent from the handoff
+- A footer line appears after ## Delivered with the change id, gate transition, and next command
+- The archive terminal variant ends the footer with Shipped. and no arrow or command
 
 ---
 
