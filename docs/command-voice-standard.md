@@ -214,7 +214,7 @@ Every `/adv-*` command that emits a user-facing gate-transition message MUST use
 
 ### Canonical spine
 
-Every gate handoff uses exactly five sections, in this order:
+Every gate handoff uses exactly three narrative sections, in this order:
 
 ```
 ## Problem
@@ -226,14 +226,11 @@ Every gate handoff uses exactly five sections, in this order:
 ## Delivered
 {What was produced in this stage. Bullet list. Concrete artifacts, not process.}
 
-## Next stage
-{Name of the next gate. One word or short phrase.}
-
-## Next
-{Command to run next, e.g. `/adv-discover {change-id}`.}
+---
+**{change-id}** · {gate} ✓ → {next-gate} · `/adv-{next-command} {change-id}`
 ```
 
-No other sections, headings, or structural elements in the handoff. Internal state (task lists, gate checkboxes, sub-agent counts, step logs) lives in ADV tools (`adv_change_show`, `adv_task_list`, `_contextSnapshot`), not in chat.
+No other sections, headings, or structural elements in the handoff. The footer line is the only content after `## Delivered`. Internal state (task lists, gate checkboxes, sub-agent counts, step logs) lives in ADV tools (`adv_change_show`, `adv_task_list`, `_contextSnapshot`), not in chat.
 
 ### Per-stage anchors (Chosen direction)
 
@@ -266,9 +263,12 @@ What shipped, what spec deltas applied.
 
 ## Delivered
 {Spec deltas applied + git merge + cleanup + investment summary. Bullet list.}
+
+---
+**{change-id}** · release ✓ · Shipped.
 ```
 
-No `Next stage` or `Next` section — the change is complete.
+No footer arrow or command — the change is complete.
 
 ### Fast-track variant (`/adv-task`)
 
@@ -284,11 +284,8 @@ No `Next stage` or `Next` section — the change is complete.
 ## Delivered
 {All artifacts produced: proposal, agreement, design, task graph. Bullet list.}
 
-## Next stage
-Apply.
-
-## Next
-`/adv-apply {change-id}`
+---
+**{change-id}** · task ✓ → apply · `/adv-apply {change-id}`
 ```
 
 ### Action banner cleanup
@@ -299,7 +296,7 @@ Mid-command banners (CONTRACT ACTIVE, CONTRACT STATUS, CONTRACT FULFILLED, QUICK
 |--------|--------|-------------|
 | CONTRACT ACTIVE | Trim to purpose line | `Working on: {change-id}` + reference to `_contextSnapshot` for state |
 | CONTRACT STATUS | Drop entirely | No per-task status block. State visible via `adv_task_list` and `_contextSnapshot`. Keep `[ADV:TDD_RED]`/`[ADV:TDD_GREEN]` markers — those are semantic signals, not banners |
-| CONTRACT FULFILLED | Replace with spine | Use the canonical five-section spine (apply → review handoff) |
+| CONTRACT FULFILLED | Replace with spine | Use the canonical three-section spine + footer (apply → review handoff) |
 | QUICK CONTRACT | Keep, apply caveman-lite | Retain contract-confirmation shape (INTENT / SCOPE / SUCCESS CRITERIA). Tighten labels, drop filler. Not a handoff — mid-command confirmation block |
 | READY FOR BUILD | Replace with fast-track spine | Use the fast-track variant above |
 | ARCHIVE COMPLETE | Replace with archive terminal spine | Use the archive terminal variant above |
@@ -347,7 +344,7 @@ Run /adv-review gateHandoffVoiceStandard
 Gate handoff messages dump internal mechanics (todo lists, step logs, gate checkboxes, sub-agent counts) instead of user-relevant content.
 
 ## Chosen direction
-What was built and how it was verified. Five-section spine replaces all prior handoff templates.
+What was built and how it was verified. Three-section spine + footer replaces all prior handoff templates.
 
 ## Delivered
 - Voice standard doc extended with Gate Handoff Voice section
@@ -357,11 +354,8 @@ What was built and how it was verified. Five-section spine replaces all prior ha
 - rq-handoffVoice01 added to spec (MUST priority)
 - Build, tests, lint pass
 
-## Next stage
-Acceptance.
-
-## Next
-`/adv-review gateHandoffVoiceStandard`
+---
+**gateHandoffVoiceStandard** · execution ✓ → acceptance · `/adv-review gateHandoffVoiceStandard`
 ```
 
 #### Pair 2: /adv-discover handoff (artifact-recall → spine)
@@ -395,20 +389,17 @@ Remaining gates: design ○, planning ○, execution ○, acceptance ○, releas
 Gate handoff messages dump internal mechanics instead of user-relevant content.
 
 ## Chosen direction
-Agreed objectives + constraints + user decisions. Spine = Problem / Chosen direction / Delivered / Next stage / Next. Banner cleanup included. Caveman-lite matches global config. Extend existing voice standard doc. Replace Orchestration Summary entirely.
+Agreed objectives + constraints + user decisions. Spine = Problem / Chosen direction / Delivered + footer. Banner cleanup included. Caveman-lite matches global config. Extend existing voice standard doc. Replace Orchestration Summary entirely.
 
 ## Delivered
-- Agreement confirmed: five-section spine for all gate handoffs
+- Agreement confirmed: three-section spine + footer for all gate handoffs
 - Scope: all /adv-* commands, not just /adv-apply
 - Constraint: extend existing voice standard doc, no sibling doc
 - Constraint: replace Orchestration Summary entirely, not supplement
 - 21-task graph synthesized across Phases A–G
 
-## Next stage
-Design.
-
-## Next
-`/adv-design gateHandoffVoiceStandard`
+---
+**gateHandoffVoiceStandard** · discovery ✓ → design · `/adv-design gateHandoffVoiceStandard`
 ```
 
 ## Enforcement

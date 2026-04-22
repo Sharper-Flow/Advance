@@ -528,7 +528,7 @@
     {
       "id": "rq-autonomy01",
       "title": "Human Checkpoint Contract",
-      "body": "ADV must pause for human input only at explicit approval/judgment checkpoints and auto-continue through clean agent-owned workflow steps. Human checkpoints are: proposal confirmation, agreement sign-off, design approval when real tradeoffs depend on user values, acceptance (now surfaced within /adv-review after deliverable review), archive sign-off, cancellation approval, and doom-loop recovery. All other clean workflow steps (discovery, deterministic design, prep, apply, harden, and scope-driven re-entry) proceed sequentially without prompting the user when no unresolved user-value tradeoff or required approval exists.",
+      "body": "ADV must pause for human input only at explicit approval/judgment checkpoints and auto-continue through clean agent-owned workflow steps. Human checkpoints are: proposal confirmation, agreement sign-off, design approval when real tradeoffs depend on user values or contract-compromise risk is present, acceptance (now surfaced within /adv-review after deliverable review), archive sign-off, cancellation approval, and doom-loop recovery. All other clean workflow steps (discovery, deterministic design, prep, apply, harden, and scope-driven re-entry) proceed sequentially without prompting the user when no unresolved user-value tradeoff, contract-compromise risk, or required approval exists.",
       "priority": "must",
       "tags": ["workflow", "autonomy", "checkpoints"],
       "scenarios": [
@@ -567,6 +567,19 @@
           "when": "The design gate completes",
           "then": [
             "The orchestrator proceeds to planning without a design-approval pause"
+          ]
+        },
+        {
+          "id": "rq-autonomy01.6",
+          "title": "Contract-compromise risk triggers design pause",
+          "given": [
+            "A change is at the design gate",
+            "The agent identifies that delivering the design would require compromising agreed acceptance criteria, explicit constraints, or stated avoidances"
+          ],
+          "when": "The orchestrator evaluates whether to proceed from design to planning",
+          "then": [
+            "The orchestrator pauses for human input before proceeding",
+            "The design approval checkpoint is triggered regardless of whether user-value tradeoffs exist"
           ]
         }
       ]
@@ -748,6 +761,40 @@
           "when": "The orchestrator evaluates whether to proceed from design to planning",
           "then": [
             "Planning proceeds without a new user-facing checkpoint (assuming no other user-value tradeoffs)"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-designval04",
+      "title": "Contract-Compromise Risk Requires Design Pause",
+      "body": "When an agent identifies that a proposed design can only be delivered by compromising agreed acceptance criteria, explicit constraints, or stated avoidances, the orchestrator must pause for human input before proceeding to planning. This check is independent of the design validator verdict and must trigger even when the validator returns VALIDATED or CAUTION.",
+      "priority": "must",
+      "tags": ["workflow", "design", "autonomy", "checkpoints"],
+      "scenarios": [
+        {
+          "id": "rq-designval04.1",
+          "title": "Contract-compromise risk triggers design pause",
+          "given": [
+            "A design is being evaluated",
+            "The agent determines that implementing the design would violate an agreed acceptance criterion or explicit constraint"
+          ],
+          "when": "The orchestrator evaluates whether to proceed from design to planning",
+          "then": [
+            "The orchestrator pauses for human input",
+            "No silent auto-continue to planning occurs"
+          ]
+        },
+        {
+          "id": "rq-designval04.2",
+          "title": "No compromise risk auto-continues",
+          "given": [
+            "A design is being evaluated",
+            "The agent confirms the design can be delivered without compromising any acceptance criteria, constraints, or stated avoidances"
+          ],
+          "when": "The orchestrator evaluates whether to proceed from design to planning",
+          "then": [
+            "Planning proceeds without a new design-approval checkpoint (assuming no other user-value tradeoffs)"
           ]
         }
       ]

@@ -508,7 +508,7 @@ The canonical ADV workflow is seven sequential gates: proposal, discovery, desig
 
 **ID:** `rq-autonomy01` | **Priority:** **[MUST]**
 
-ADV must pause for human input only at explicit approval/judgment checkpoints and auto-continue through clean agent-owned workflow steps. Human checkpoints are: proposal confirmation, agreement sign-off, design approval when real tradeoffs depend on user values, acceptance, archive sign-off, cancellation approval, and doom-loop recovery. All other clean workflow steps (discovery, deterministic design, prep, apply, review, harden, and scope-driven re-entry) proceed sequentially without prompting the user when no unresolved user-value tradeoff or required approval exists.
+ADV must pause for human input only at explicit approval/judgment checkpoints and auto-continue through clean agent-owned workflow steps. Human checkpoints are: proposal confirmation, agreement sign-off, design approval when real tradeoffs depend on user values or contract-compromise risk is present, acceptance, archive sign-off, cancellation approval, and doom-loop recovery. All other clean workflow steps (discovery, deterministic design, prep, apply, review, harden, and scope-driven re-entry) proceed sequentially without prompting the user when no unresolved user-value tradeoff, contract-compromise risk, or required approval exists.
 
 **Tags:** `workflow`, `autonomy`, `checkpoints`
 
@@ -572,6 +572,18 @@ ADV must pause for human input only at explicit approval/judgment checkpoints an
 **Then:**
 - No "Begin work / Modify criteria / Cancel" prompt or equivalent execution-start approval is emitted
 - The first ready task's TDD phase starts directly
+
+**Contract-compromise risk triggers design pause** (`rq-autonomy01.6`)
+
+**Given:**
+- A change is at the design gate
+- The agent identifies that delivering the design would require compromising agreed acceptance criteria, explicit constraints, or stated avoidances
+
+**When:** The orchestrator evaluates whether to proceed from design to planning
+
+**Then:**
+- The orchestrator pauses for human input before proceeding
+- The design approval checkpoint is triggered regardless of whether user-value tradeoffs exist
 
 ---
 
@@ -789,6 +801,41 @@ ADV presentation-layer surfaces (instructions, commands, tools, and skills) SHOU
 
 **Then:**
 - Planning proceeds without a new user-facing checkpoint (assuming no other user-value tradeoffs)
+
+---
+
+### Contract-Compromise Risk Requires Design Pause
+
+**ID:** `rq-designval04` | **Priority:** **[MUST]**
+
+When an agent identifies that a proposed design can only be delivered by compromising agreed acceptance criteria, explicit constraints, or stated avoidances, the orchestrator must pause for human input before proceeding to planning. This check is independent of the design validator verdict and must trigger even when the validator returns VALIDATED or CAUTION.
+
+**Tags:** `workflow`, `design`, `autonomy`, `checkpoints`
+
+#### Scenarios
+
+**Contract-compromise risk triggers design pause** (`rq-designval04.1`)
+
+**Given:**
+- A design is being evaluated
+- The agent determines that implementing the design would violate an agreed acceptance criterion or explicit constraint
+
+**When:** The orchestrator evaluates whether to proceed from design to planning
+
+**Then:**
+- The orchestrator pauses for human input
+- No silent auto-continue to planning occurs
+
+**No compromise risk auto-continues** (`rq-designval04.2`)
+
+**Given:**
+- A design is being evaluated
+- The agent confirms the design can be delivered without compromising any acceptance criteria, constraints, or stated avoidances
+
+**When:** The orchestrator evaluates whether to proceed from design to planning
+
+**Then:**
+- Planning proceeds without a new design-approval checkpoint (assuming no other user-value tradeoffs)
 
 ---
 
