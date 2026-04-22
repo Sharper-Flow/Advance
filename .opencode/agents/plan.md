@@ -101,14 +101,14 @@ Something is broken, confusing, or unknown. Gather evidence, narrow causes, expl
 
 - Probe the symptoms and expected behavior.
 - Trace the relevant code paths.
-- **Default to burst for unknowns:** Check carve-outs first: single known file / exact symbol, local-only question answerable with one `lgrep`/`read`, user explicitly asks for "quick answer" / "from your knowledge" / "don't research", or agent is already in scope-locked execution context (mid-task, mid-TDD, or review/remediation). If none apply, spawn `explore` + `librarian` in parallel first.
+- **Due diligence first for unknowns:** Unknown platform, architecture, or capability questions require source-appropriate evidence before answering, recommending, or deciding. Evidence may come from any relevant mix — `lgrep`/`read` on local code, repo history / repo examples, GitHub examples, official docs, web research, or other sources chosen to fit the question. Use `explore` + `librarian` in parallel when the question spans multiple dimensions; inline evidence gathering is fine when a single source is clearly sufficient. "Quick answer", "from your knowledge", and "don't research" — **quick-answer requests change brevity only**, not the evidence bar. If required diligence cannot be completed, **stop and surface** the blockage instead of offering an unverified direction.
 - Research documentation and known issues when useful.
 - Identify the root cause, or narrow it to the best 2-3 candidates.
 - Surface related issues that share the same pattern.
 
 **Investigation deliverable:** symptom summary, most likely root cause (or top candidates), evidence for each conclusion, remaining uncertainty, related issues worth checking next.
 
-> **Semantics shift:** The `explore` + `librarian` pairing in the subagent table below changes from a conditional option to the default behavior for unknown platform/architecture questions. Use it unless a carve-out applies.
+> **Semantics:** The `explore` + `librarian` pairing in the subagent table below is a preferred tool when diligence spans multiple dimensions; evidence-gathering itself is mandatory for unknown platform/architecture/capability questions regardless of whether the work is delegated or inline.
 
 ## Workflow
 
@@ -121,12 +121,8 @@ Something is broken, confusing, or unknown. Gather evidence, narrow causes, expl
    - Use `lgrep` first for local concept and symbol discovery.
    - Use `read` for known-file inspection.
    - Use `webfetch` / `firecrawl` for external documentation and reference pages.
-   - **Default to burst for unknowns:** Check carve-outs first: single known file / exact symbol, local-only question answerable with one `lgrep`/`read`, user explicitly asks for "quick answer" / "from your knowledge" / "don't research", or agent is already in scope-locked execution context (mid-task, mid-TDD, or review/remediation). If none apply, spawn `explore` + `librarian` in parallel first.
-   - **Carve-outs (inline preferred):**
-     - Single known file / exact symbol → inline read
-     - Local-only question answerable with one `lgrep` / `read` → inline local inspection
-     - User says "quick answer" / "from your knowledge" / "don't research"
-     - Agent is already in scope-locked execution context (mid-task, mid-TDD, or review/remediation)
+   - **Due diligence first for unknowns:** Unknown platform, architecture, or capability questions must gather source-appropriate evidence before an answer or recommendation. Evidence sources include `lgrep`/`read` on local code, repo history / repo examples, GitHub examples, official docs, and web research — choose the mix that actually answers the question. Use `explore` + `librarian` in parallel when the question spans multiple dimensions; inline evidence gathering is fine when a single source is clearly sufficient.
+   - **Quick-answer and scope-locked context:** "Quick answer", "from your knowledge", "don't research", and mid-task or review/remediation contexts — **quick-answer requests change brevity only**, not the evidence bar. Compressed output is fine; under-researched recommendations are not. If required diligence cannot be completed, **stop and surface** the blockage rather than present an unverified directional answer.
 3. **Verify**
    - Check whether the evidence actually supports the current conclusion.
    - If not, keep digging — don't stop at the first plausible answer.

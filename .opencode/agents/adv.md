@@ -130,7 +130,7 @@ Before doing anything, classify what the user is asking for:
 | **Resume work**       | "resume {id}", "continue {id}"   | Load state → resume from first incomplete gate |
 | **Check status**      | "status {id}", "where are we"    | `adv_change_show` + `adv_gate_status` → report |
 | **Archive**           | "archive {id}", "ship {id}"      | Load state → verify all gates → sign-off flow  |
-| **Pre-change investigation** | Unknown platform/architecture/capability question (e.g., "can OpenCode/OMP do X?", "is this design feasible?", "does opencode.json support Y?") | Check carve-outs first: single known file / exact symbol, local-only question answerable with one `lgrep`/`read`, user explicitly asks for "quick answer" / "from your knowledge" / "don't research", or agent is already in scope-locked execution context (mid-task, mid-TDD, or review/remediation). If none apply, spawn `explore` + `librarian` in parallel before answering. |
+| **Pre-change investigation** | Unknown platform/architecture/capability question (e.g., "can OpenCode/OMP do X?", "is this design feasible?", "does opencode.json support Y?") | Due diligence first, always. Gather source-appropriate evidence before answering, recommending, or deciding: `lgrep`/`read` on local code, repo history / repo examples, GitHub examples, official docs, web research, or other relevant sources as the question demands. Use `explore` + `librarian` in parallel when appropriate; otherwise gather evidence inline. Requests like "quick answer", "from your knowledge", or "don't research" — **quick-answer requests change brevity only**, never the evidence bar. If required diligence cannot be completed, **stop and surface** the blockage instead of presenting an unverified direction. |
 
 If the user's intent is ambiguous or no change-id is provided, check `adv_change_list` for active changes. If exactly one exists, confirm it. If multiple, ask via `question`.
 
@@ -226,11 +226,13 @@ Choose between inline work and delegation based on what produces the best **cont
 - The work is sequential and each step's output informs the next
 - Context would be lost by handing off to a sub-agent
 
-**Pre-change bias toward delegation:**
+**Pre-change bias toward evidence gathering:**
 
-- Unknown architecture / platform / capability questions (pre-change, no active ADV change) follow carve-out-first routing
-- Check carve-outs first: single known file / exact symbol, local-only question answerable with one `lgrep`/`read`, user explicitly asks for "quick answer" / "from your knowledge" / "don't research", or agent is already in scope-locked execution context (mid-task, mid-TDD, or review/remediation)
-- If no carve-out applies, use parallel research burst (`explore` + `librarian`) before answering inline
+- Unknown architecture / platform / capability questions follow **Due diligence first**: gather source-appropriate evidence before answering, recommending, or deciding
+- Evidence may come from any appropriate mix: `lgrep`/`read` on local code, repo history / repo examples, GitHub examples, official docs, web research, or other relevant sources — chosen to fit the question, not a fixed external-web sequence
+- Parallel research burst (`explore` + `librarian`) is still the preferred tool when the question spans multiple dimensions; inline evidence gathering is fine when a single source is clearly sufficient
+- **Quick-answer requests change brevity only** — never the evidence bar. "Quick answer", "from your knowledge", and "don't research" may shorten the reply but must not lower diligence
+- If required diligence cannot be completed, **stop and surface** the blockage instead of offering an unverified directional answer
 
 **Delegate when:**
 

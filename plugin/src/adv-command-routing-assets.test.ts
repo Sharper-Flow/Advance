@@ -319,72 +319,117 @@ describe("ADV command routing assets", () => {
     expect(content).not.toMatch(/Spawn fixes.*(?<!adv-)\bengineer\b/);
   });
 
-  // NEW: autoResearchUnknownArchQuestions drift guards
-  test("adv.md contains pre-change investigation intent", () => {
+  // alignDueDiligence: source-appropriate due-diligence-first drift guards.
+  // These tests intentionally reject the legacy "carve-out first" wording so
+  // the weaker policy cannot silently return via overlays, tests, or prose.
+  const LEGACY_CARVEOUT_FRAGMENTS = [
+    "Check carve-outs first:",
+    "local-only question answerable with one `lgrep`/`read`",
+    '"quick answer" / "from your knowledge" / "don\'t research"',
+    "Default to burst for unknowns",
+    "Pre-change research default",
+  ] as const;
+
+  const DUE_DILIGENCE_REQUIRED_PHRASES = [
+    "Due diligence first",
+    "source-appropriate",
+    "quick-answer requests change brevity only",
+    "stop and surface",
+  ] as const;
+
+  test("adv.md requires source-appropriate due diligence for unknown capability questions", () => {
     const content = readFileSync(join(AGENT_DIR, "adv.md"), "utf8");
     const text = squish(content);
-    const lower = squishLower(content);
 
+    // Legacy carve-out wording must be absent
+    for (const fragment of LEGACY_CARVEOUT_FRAGMENTS) {
+      expect(
+        text,
+        `adv.md must not contain legacy carve-out fragment: ${fragment}`,
+      ).not.toContain(fragment);
+    }
+
+    // Due-diligence-first wording must be present
+    for (const phrase of DUE_DILIGENCE_REQUIRED_PHRASES) {
+      expect(
+        text,
+        `adv.md must contain due-diligence-first phrase: ${phrase}`,
+      ).toContain(phrase);
+    }
+
+    // Core intent markers
     expect(text).toContain("Pre-change investigation");
     expect(text).toMatch(
       /unknown .*platform.*architecture.*capability|unknown .*architecture.*platform.*capability/i,
     );
-    expect(lower).toContain("check carve-outs first:");
-    expect(text).toContain("single known file / exact symbol");
-    expect(text).toContain(
-      "local-only question answerable with one `lgrep`/`read`",
-    );
-    expect(text).toContain(
-      '"quick answer" / "from your knowledge" / "don\'t research"',
-    );
-    expect(lower).toContain("scope-locked execution context");
-    expect(text).toContain("If none apply, spawn `explore` + `librarian`");
+    // Source-appropriate evidence must name multiple source types
+    expect(text).toContain("`lgrep`");
+    expect(text).toMatch(/GitHub examples|repo examples/);
+    expect(text).toMatch(/docs|documentation/i);
   });
 
-  test("plan.md investigation mode defaults to burst for unknowns", () => {
+  test("plan.md requires source-appropriate due diligence", () => {
     const content = readFileSync(join(AGENT_DIR, "plan.md"), "utf8");
     const text = squish(content);
-    const lower = squishLower(content);
 
-    expect(text).toContain("Default to burst for unknowns");
-    expect(lower).toContain("check carve-outs first:");
-    expect(text).toContain("single known file / exact symbol");
-    expect(text).toContain(
-      "local-only question answerable with one `lgrep`/`read`",
-    );
-    expect(lower).toContain("scope-locked execution context");
-    expect(text).toContain(
-      "If none apply, spawn `explore` + `librarian` in parallel first.",
-    );
+    for (const fragment of LEGACY_CARVEOUT_FRAGMENTS) {
+      expect(
+        text,
+        `plan.md must not contain legacy carve-out fragment: ${fragment}`,
+      ).not.toContain(fragment);
+    }
+
+    for (const phrase of DUE_DILIGENCE_REQUIRED_PHRASES) {
+      expect(
+        text,
+        `plan.md must contain due-diligence-first phrase: ${phrase}`,
+      ).toContain(phrase);
+    }
+
+    // Must mention source-appropriate evidence sources by name
+    expect(text).toContain("`lgrep`");
+    expect(text).toMatch(/GitHub examples|repo examples/);
   });
 
-  test("adv.overlay.md carries synced research-delegation rule", () => {
+  test("adv.overlay.md carries source-appropriate due-diligence rule", () => {
     const content = readFileSync(join(OVERLAY_DIR, "adv.overlay.md"), "utf8");
     const text = squish(content);
-    const lower = squishLower(content);
 
-    expect(text).toContain("Pre-change research default");
-    expect(lower).toContain("check carve-outs first:");
-    expect(lower).toContain("scope-locked execution context");
-    expect(text).toContain("parallel research burst (`explore` + `librarian`)");
+    for (const fragment of LEGACY_CARVEOUT_FRAGMENTS) {
+      expect(
+        text,
+        `adv.overlay.md must not contain legacy carve-out fragment: ${fragment}`,
+      ).not.toContain(fragment);
+    }
+
+    expect(text).toContain("Due diligence first");
+    expect(text).toContain("source-appropriate");
+    expect(text).toContain("stop and surface");
+    expect(text).toContain("quick-answer requests change brevity only");
   });
 
-  test("plan.overlay.md carries synced research-delegation rule", () => {
+  test("plan.overlay.md carries source-appropriate due-diligence rule", () => {
     const content = readFileSync(join(OVERLAY_DIR, "plan.overlay.md"), "utf8");
     const text = squish(content);
-    const lower = squishLower(content);
 
-    expect(text).toContain("Pre-change research default");
-    expect(lower).toContain("check carve-outs first:");
-    expect(lower).toContain("scope-locked execution context");
-    expect(text).toContain("parallel research burst (`explore` + `librarian`)");
+    for (const fragment of LEGACY_CARVEOUT_FRAGMENTS) {
+      expect(
+        text,
+        `plan.overlay.md must not contain legacy carve-out fragment: ${fragment}`,
+      ).not.toContain(fragment);
+    }
+
+    expect(text).toContain("Due diligence first");
+    expect(text).toContain("source-appropriate");
+    expect(text).toContain("stop and surface");
+    expect(text).toContain("quick-answer requests change brevity only");
   });
 
-  test("build.md is not required to carry pre-change research rule", () => {
+  test("build.md does not carry pre-change research rule", () => {
     const content = readFileSync(join(AGENT_DIR, "build.md"), "utf8");
-    // build.md should NOT contain the new burst-default language
     expect(content).not.toMatch(/Default to burst for unknowns/);
     expect(content).not.toMatch(/Pre-change research default/);
+    expect(content).not.toMatch(/Due diligence first/);
   });
 
   // Provider ADV agent assembly (providerAdvAgentAssemblySystem)
