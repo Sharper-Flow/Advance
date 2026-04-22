@@ -372,7 +372,7 @@ Available to agents with `task: true` in their frontmatter: `adv`, `build`, `pla
 | harden | Sequential scans | explore × 6 |
 | audit | Sequential pipeline | explore × 4 |
 | slop-scan | Sequential categories | explore × 9 (single-level only) |
-| tron | lgrep + read | tron agent |
+| tron | lgrep + read | adv-tron agent |
 | task | Context7 + Kagi | librarian + adv-researcher |
 | refactor | Sequential drift | explore × 3 |
 

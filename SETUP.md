@@ -149,9 +149,9 @@ Typical outcomes:
 ## External Dependencies (MCP Servers and Sub-Agents)
 
 ADV ships the plugin, commands, overlays, and bundled ADV agents (`plan`,
-`build`, `adv-researcher`, `engineer`). The `adv-researcher` and `engineer`
-agents are synced globally by `sync-global.sh` as bundled global specialists. The `tron` agent remains
-repo-local in `.opencode/agents/`. Several agents and commands
+`build`, `adv-researcher`, `adv-engineer`). The `adv-researcher` and `adv-engineer`
+agents are synced globally by `sync-global.sh` as bundled global specialists. The `adv-tron` agent remains
+repo-local in `.opencode/agents/`. All ADV-shipped sub-agents use the `adv-<name>` naming convention. Several agents and commands
 reference **external MCP servers** and **shared sub-agents** that are NOT part
 of ADV itself. If any of these are missing, ADV still runs — commands have
 fallback paths — but the user experience is degraded.
@@ -159,7 +159,7 @@ fallback paths — but the user experience is degraded.
 ### Required sub-agents (shared with OpenCode global config)
 
 These agents are expected to exist in `~/.config/opencode/agents/` as part of
-your OpenCode setup. Some are ADV-shipped bundled globals (`engineer`); others
+your OpenCode setup. Some are ADV-shipped bundled globals (`adv-engineer`); others
 are external shared agents supplied by your broader OpenCode install. If any
 are missing, commands fall back to inline execution or generic `explore`
 invocation, which is slower and less specialized.
@@ -170,7 +170,7 @@ invocation, which is slower and less specialized.
 | `librarian` | `/adv-discover`, `/adv-design`, `/adv-task`, `/adv-review`                    | Documentation and API lookup (Context7, grep.app)             |
 | `mechanic`  | `/adv-tron` (optional), `plan` sub-agent spawns                               | System/infra diagnostics                                      |
 | `general`   | `/adv-review` (cross-cutting), overlay-managed                                | Multi-step implementation                                     |
-| `engineer`  | `/adv-apply` code-writing delegation, `/adv-review` remediation fixes         | Produces structured ENGINEER_REPORT payload for ADV ingestion |
+| `adv-engineer` | `/adv-apply` code-writing delegation, `/adv-review` remediation fixes      | Produces structured ENGINEER_REPORT payload for ADV ingestion |
 
 ### Optional MCP servers (referenced by agent tool blocks)
 
@@ -182,7 +182,7 @@ unavailable:
 
 | MCP server     | Tool prefix   | Used by                                   | Degradation if missing                                                      |
 | -------------- | ------------- | ----------------------------------------- | --------------------------------------------------------------------------- |
-| lgrep          | `lgrep_*`     | `plan`, `build`, `adv-researcher`, `tron` | Code exploration falls back to `glob`/`grep`/`read` (slower, less semantic) |
+| lgrep          | `lgrep_*`     | `plan`, `build`, `adv-researcher`, `adv-tron` | Code exploration falls back to `glob`/`grep`/`read` (slower, less semantic) |
 | Firecrawl      | `firecrawl_*` | `plan`, `build`                           | Web scraping unavailable; use `webfetch` instead                            |
 | Context7       | `context7_*`  | `adv-researcher`                          | Library documentation lookup unavailable                                    |
 | Kagi           | `kagi_*`      | `adv-researcher`                          | Web search unavailable                                                      |
@@ -690,7 +690,7 @@ ADV consolidated `scout` into `plan` and `refine` into `build`. If your global `
 
 If you customized your global `plan.md` or `build.md`, the sync script only patches the overlay block — it does not edit the `tools:` frontmatter. To restore the new capabilities manually, add these to your customized files:
 
-**Note:** `engineer.md` is synced by this repo as a repo-owned full-file global agent (not overlay-managed). Any local customization in `~/.config/opencode/agents/engineer.md` will be overwritten on each sync. If you need custom behavior, extend via your own agent or overlay instead.
+**Note:** `adv-engineer.md` is synced by this repo as a repo-owned full-file global agent (not overlay-managed). Any local customization in `~/.config/opencode/agents/adv-engineer.md` will be overwritten on each sync. If you need custom behavior, extend via your own agent or overlay instead.
 
 - `plan.md` `tools:` — `webfetch: true`, `firecrawl_firecrawl_scrape: true`, `firecrawl_firecrawl_crawl: true`, `firecrawl_firecrawl_check_crawl_status: true`
 - `build.md` `tools:` — `adv_task_update: true`, `adv_task_evidence: true`, `adv_task_tdd: true`, `adv_run_test: true`, `adv_wisdom_add: true`, plus `webfetch: true` and `firecrawl_*: true`
