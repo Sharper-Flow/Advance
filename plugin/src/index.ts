@@ -19,6 +19,7 @@ import {
   setStatus,
   setActiveChange,
   pruneStaleRetries,
+  armPendingFinalAlert,
 } from "./events";
 import { tryInitStore, registerShutdownHandlers } from "./plugin-init";
 import type { StatusMarker } from "./types";
@@ -189,6 +190,10 @@ export const AdvancePlugin: Plugin = async ({
   // turn with sessionID). Fail-closed: null means no bell arming.
   let mainSessionId: string | null = null;
 
+  // Dedup for message.updated handler — tracks last completed assistant
+  // message ID we've seen to avoid re-arming on duplicate events.
+  let lastObservedCompletedMessageId: string | null = null;
+
   // Register process-level shutdown handlers (tolerates init failure).
   const { removeProcessListeners } = registerShutdownHandlers(store);
 
@@ -221,6 +226,7 @@ export const AdvancePlugin: Plugin = async ({
           }
         } else if (eventType === "session.deleted") {
           mainSessionId = null;
+          lastObservedCompletedMessageId = null;
           cleanupTerminal();
           removeProcessListeners();
           try {
@@ -235,6 +241,38 @@ export const AdvancePlugin: Plugin = async ({
           setFlags({ permissionPending: true, sessionIdle: false });
         } else if (eventType === "permission.replied") {
           setFlags({ permissionPending: false });
+        } else if (eventType === "message.updated") {
+          // Main-agent completion detector: arm bell-gate when the main agent
+          // finishes a non-tool-turn response.
+          const info = (event.properties as Record<string, unknown>)
+            ?.info as Record<string, unknown> | undefined;
+          if (!info) return;
+
+          // Fail-closed: skip if mainSessionId not yet captured
+          if (!mainSessionId) return;
+
+          // Only main-agent messages (skip sub-agents)
+          if (info.sessionID !== mainSessionId) return;
+
+          // Only completed assistant messages
+          if (info.role !== "assistant") return;
+
+          const time = info.time as Record<string, unknown> | undefined;
+          if (!time?.completed) return;
+
+          // Only final responses (not tool turns or unknown finish reasons)
+          const finish = info.finish as string | undefined;
+          if (!finish || finish === "tool-calls" || finish === "unknown") return;
+
+          // Dedup: skip if we already processed this message
+          const messageId = info.id as string | undefined;
+          if (!messageId || messageId === lastObservedCompletedMessageId) return;
+
+          lastObservedCompletedMessageId = messageId;
+          debugLog(
+            `message.updated: arming bell for main agent message ${messageId}`,
+          );
+          armPendingFinalAlert(messageId);
         }
       } catch (e) {
         debugLog(`Event hook error: ${e}`);

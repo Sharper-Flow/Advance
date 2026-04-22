@@ -10,6 +10,8 @@ export {
   generateProjectShortname,
   buildTabTitle,
   normalizeChangeCode,
+  armPendingFinalAlert,
+  _clearPendingFinalAlert,
 } from "./terminal";
 
 // Status management
