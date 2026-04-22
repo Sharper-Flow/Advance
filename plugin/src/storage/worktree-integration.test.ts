@@ -16,12 +16,6 @@ import { mkdir, writeFile, readFile } from "fs/promises";
 import { existsSync } from "fs";
 import { createTempDir, cleanupTempDir } from "../__tests__/setup";
 import { getProjectPaths, type ProjectPaths } from "./json";
-import {
-  writeHandoff,
-  readHandoff,
-  clearHandoff,
-  type HandoffState,
-} from "./handoff";
 import { migrateToExternalState } from "./migrate";
 
 describe("Worktree State Sharing", () => {
@@ -62,7 +56,6 @@ describe("Worktree State Sharing", () => {
       expect(mainPaths.db).toBe(worktreePaths.db);
       expect(mainPaths.wisdom).toBe(worktreePaths.wisdom);
       expect(mainPaths.agenda).toBe(worktreePaths.agenda);
-      expect(mainPaths.handoff).toBe(worktreePaths.handoff);
       expect(mainPaths.external).toBe(worktreePaths.external);
     });
 
@@ -158,54 +151,6 @@ describe("Worktree State Sharing", () => {
       // Worktree session reads agenda
       const content = await readFile(worktreePaths.agenda, "utf-8");
       expect(content).toContain("Do something");
-    });
-  });
-
-  // ===========================================================================
-  // Handoff Protocol (End-to-End)
-  // ===========================================================================
-
-  describe("handoff protocol", () => {
-    const sampleHandoff: HandoffState = {
-      changeId: "addFeatureX",
-      currentTaskId: "tk-abc123",
-      gateStatus: { research: "done", prep: "done", implementation: "pending" },
-      objective: "Add feature X with full TDD",
-      createdAt: new Date().toISOString(),
-      sourceBranch: "main",
-      worktreeBranch: "change/addFeatureX",
-    };
-
-    test("main session writes handoff, worktree session reads and clears it", async () => {
-      // Main session writes handoff
-      await writeHandoff(mainPaths.handoff, sampleHandoff);
-      expect(existsSync(mainPaths.handoff)).toBe(true);
-
-      // Worktree session reads handoff (same path via shared external dir)
-      const hydrated = await readHandoff(worktreePaths.handoff);
-      expect(hydrated).not.toBeNull();
-      expect(hydrated!.changeId).toBe("addFeatureX");
-      expect(hydrated!.currentTaskId).toBe("tk-abc123");
-      expect(hydrated!.gateStatus.research).toBe("done");
-      expect(hydrated!.objective).toBe("Add feature X with full TDD");
-
-      // Worktree session clears handoff after hydration
-      await clearHandoff(worktreePaths.handoff);
-      expect(existsSync(worktreePaths.handoff)).toBe(false);
-
-      // Main session confirms handoff is gone
-      const afterClear = await readHandoff(mainPaths.handoff);
-      expect(afterClear).toBeNull();
-    });
-
-    test("reading handoff when none exists returns null (no crash)", async () => {
-      const result = await readHandoff(worktreePaths.handoff);
-      expect(result).toBeNull();
-    });
-
-    test("clearing handoff when none exists is a no-op", async () => {
-      // Should not throw
-      await clearHandoff(worktreePaths.handoff);
     });
   });
 
