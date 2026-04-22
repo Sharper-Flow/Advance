@@ -1,6 +1,6 @@
 # Temporal Recovery Runbook
 
-> **Status:** stub. This runbook is started by task A4e (`migrateAdvStateTemporalRetire`) to capture the worker-model decision while it is still fresh. Task C8 will expand the file into a full operator runbook covering failed-migration recovery, worker auto-respawn troubleshooting, `NonDeterministicWorkflowError` recovery, disk-full / OOM surfaces, and the eventual `migrateAllProjectsWorkflow` cleanup.
+> **Status:** worker-model and recovery baseline. This runbook now outlives the retired cutover harness and remains the operator reference for worker-model decisions, failed-migration recovery, worker auto-respawn troubleshooting, `NonDeterministicWorkflowError` recovery, and disk-full / OOM surfaces.
 
 ## Worker model
 

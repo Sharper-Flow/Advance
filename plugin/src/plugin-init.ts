@@ -11,8 +11,6 @@
  * createDegradedToolMap) when initError is non-null.
  */
 
-import { readdir } from "node:fs/promises";
-import { dirname } from "node:path";
 import { createStore } from "./storage/store";
 import type { Store } from "./storage/store-types";
 import {
@@ -24,10 +22,6 @@ import {
   type InProcessWorker,
 } from "./temporal/in-process-worker";
 import { createOutOfProcessWorker } from "./temporal/out-of-process-worker";
-import {
-  runMigrationSweep,
-  type WorkflowClientLike,
-} from "./temporal/migrate-runner";
 import {
   ensureTemporalRuntime,
   probeTemporalWorkerRuntime,
@@ -47,12 +41,6 @@ export interface StoreInitResult {
   initError: Error | null;
 }
 
-export interface BootstrapMigrationStatus {
-  status: "skipped" | "done" | "in_progress";
-  totalProjects: number;
-  runId?: string;
-}
-
 function buildTemporalClientEnv(input: {
   address: string;
   namespace: string;
@@ -64,90 +52,6 @@ function buildTemporalClientEnv(input: {
       ? { ADV_TEMPORAL_ALLOW_REMOTE: process.env.ADV_TEMPORAL_ALLOW_REMOTE }
       : {}),
   };
-}
-
-export async function discoverBootstrapProjectPaths(
-  roots: string[],
-): Promise<string[]> {
-  const projectPaths: string[] = [];
-  for (const root of roots) {
-    const entries = await readdir(root, { withFileTypes: true });
-    for (const entry of entries) {
-      if (!entry.isDirectory()) continue;
-      if (["archive", "db", "changes"].includes(entry.name)) continue;
-      projectPaths.push(`${root}/${entry.name}`);
-    }
-  }
-  return projectPaths;
-}
-
-export async function runBootstrapMigrationSweep(input: {
-  projectId: string;
-  externalRoot: string;
-  client: { workflow: WorkflowClientLike };
-  timeoutMs?: number;
-  now?: () => number;
-  discoverProjectPaths?: (roots: string[]) => Promise<string[]>;
-  runSweep?: typeof runMigrationSweep;
-  /**
-   * Optional: worker whose `registerQueue` should be called for every
-   * discovered per-project task queue BEFORE the migration workflow
-   * starts. Without this, the activity inside migrateAllProjectsWorkflow
-   * will start projectWorkflows on `advance-{projectId}` queues that
-   * nothing is polling and the sweep will hang. See ws-lRl054.
-   */
-  worker?: InProcessWorker;
-}): Promise<BootstrapMigrationStatus> {
-  const discoverProjectPaths =
-    input.discoverProjectPaths ?? discoverBootstrapProjectPaths;
-  const runSweep = input.runSweep ?? runMigrationSweep;
-  const timeoutMs = input.timeoutMs ?? 20000;
-  const now = input.now ?? Date.now;
-  const roots = [dirname(input.externalRoot)];
-  const projectPaths = await discoverProjectPaths(roots);
-
-  if (projectPaths.length === 0) {
-    return { status: "skipped", totalProjects: 0 };
-  }
-
-  if (input.worker) {
-    for (const projectPath of projectPaths) {
-      const basename = projectPath.split("/").pop();
-      if (!basename) continue;
-      await input.worker.registerQueue(buildProjectTaskQueue(basename));
-    }
-  }
-
-  const runId = `bootstrap-${now()}`;
-  const sweepPromise = runSweep(
-    input.client as unknown as { workflow: WorkflowClientLike },
-    {
-      controlProjectId: input.projectId,
-      runId,
-      projectPaths,
-    },
-  );
-
-  const outcome = await Promise.race([
-    sweepPromise.then(() => "done" as const),
-    new Promise<"in_progress">((resolve) =>
-      setTimeout(() => resolve("in_progress"), timeoutMs),
-    ),
-  ]);
-
-  if (outcome === "in_progress") {
-    sweepPromise.catch((error) => {
-      debugLog(
-        `Bootstrap migration sweep failed after async fallback: ${error instanceof Error ? error.message : String(error)}`,
-      );
-    });
-    logger.warn(
-      `Bootstrap migration sweep still running after ${timeoutMs}ms; continuing in degraded in-progress mode for ${projectPaths.length} project(s).`,
-    );
-    return { status: "in_progress", totalProjects: projectPaths.length, runId };
-  }
-
-  return { status: "done", totalProjects: projectPaths.length, runId };
 }
 
 /**
@@ -249,18 +153,6 @@ export async function tryInitStore(
       temporalBundle,
     });
     await store.init();
-
-    if (projectId && externalRoot && temporalBundle?.client) {
-      await runBootstrapMigrationSweep({
-        projectId,
-        externalRoot,
-        client: temporalBundle.client as unknown as {
-          workflow: WorkflowClientLike;
-        },
-        discoverProjectPaths: async () => [externalRoot],
-        worker,
-      });
-    }
 
     return { store, initError: null };
   } catch (e) {

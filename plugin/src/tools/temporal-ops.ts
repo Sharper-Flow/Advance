@@ -16,8 +16,23 @@ import {
   rebuildProjectWorkflowState,
   reImportChangeState,
 } from "../temporal/migration";
-import type { WorkflowClientLike } from "../temporal/migrate-runner";
 import { formatToolOutput } from "../utils/tool-output";
+
+interface WorkflowHandleLike {
+  query: (definition: unknown, ...args: unknown[]) => Promise<unknown>;
+  executeUpdate: (
+    definition: unknown,
+    options: { args?: unknown[] },
+  ) => Promise<unknown>;
+}
+
+interface WorkflowClientLike {
+  start: (
+    workflow: unknown,
+    options: { workflowId: string; taskQueue: string; args: [unknown] },
+  ) => Promise<WorkflowHandleLike>;
+  getHandle: (workflowId: string) => WorkflowHandleLike;
+}
 
 type WorkflowClientSurface = { workflow: WorkflowClientLike };
 

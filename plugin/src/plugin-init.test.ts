@@ -118,6 +118,14 @@ vi.mock("node:fs/promises", async () => {
   };
 });
 
+vi.mock("node:fs", async () => {
+  const actual = await vi.importActual<typeof import("node:fs")>("node:fs");
+  return {
+    ...actual,
+    existsSync: vi.fn(() => true),
+  };
+});
+
 vi.mock("./storage/agenda", () => ({
   loadAgenda: vi.fn(async () => ({ items: [] })),
 }));
@@ -172,53 +180,6 @@ describe("plugin-init tryInitStore", () => {
     });
     expect(mocks.store.init).toHaveBeenCalled();
     expect(result).toEqual({ store: mocks.store, initError: null });
-  });
-
-  it("runs bootstrap migration sweep when projectId and externalRoot are available", async () => {
-    mocks.getProjectId.mockResolvedValueOnce("proj-sha");
-    const { readdir } = await import("node:fs/promises");
-    vi.mocked(readdir).mockResolvedValueOnce([
-      { name: "proj-sha", isDirectory: () => true },
-    ] as any);
-
-    const { tryInitStore } = await import("./plugin-init");
-
-    await tryInitStore("/tmp/repo", "/tmp/external/proj-sha");
-
-    expect(mocks.workflowStart).toHaveBeenCalledTimes(1);
-    const call = mocks.workflowStart.mock.calls[0][1];
-    expect(call.workflowId).toMatch(
-      /^adv\/migration\/proj-sha\/bootstrap-\d+$/,
-    );
-    expect(call.taskQueue).toBe("advance-proj-sha");
-    expect(call.args[0]).toMatchObject({
-      controlProjectId: "proj-sha",
-      projectPaths: ["/tmp/external/proj-sha"],
-    });
-  });
-
-  it("limits bootstrap sweep to current external project instead of sibling projects", async () => {
-    mocks.getProjectId.mockResolvedValueOnce("proj-sha");
-    const { readdir } = await import("node:fs/promises");
-    vi.mocked(readdir).mockResolvedValueOnce([
-      { name: "proj-sha", isDirectory: () => true },
-      { name: "other-proj", isDirectory: () => true },
-    ] as any);
-
-    const { tryInitStore } = await import("./plugin-init");
-
-    await tryInitStore("/tmp/repo", "/tmp/external/proj-sha");
-
-    expect(mocks.workflowStart).toHaveBeenCalledTimes(1);
-    const call = mocks.workflowStart.mock.calls[0][1];
-    expect(call.args[0]).toMatchObject({
-      controlProjectId: "proj-sha",
-      projectPaths: ["/tmp/external/proj-sha"],
-    });
-    expect(mocks.inProcessWorker.registerQueue).toHaveBeenCalledTimes(1);
-    expect(mocks.inProcessWorker.registerQueue).toHaveBeenCalledWith(
-      "advance-proj-sha",
-    );
   });
 
   it("returns initError and never calls createStore when runtime probe blocks Bun", async () => {
@@ -451,63 +412,5 @@ describe("tryInitStore worker routing (Phase 2.3)", () => {
     expect(call?.temporalBundle).toBeUndefined();
     expect(mocks.createInProcessWorker).not.toHaveBeenCalled();
     expect(mocks.createOutOfProcessWorker).not.toHaveBeenCalled();
-  });
-});
-
-describe("runBootstrapMigrationSweep", () => {
-  beforeEach(() => {
-    vi.useRealTimers();
-    vi.clearAllMocks();
-  });
-
-  it("returns done when sweep finishes before timeout", async () => {
-    const { runBootstrapMigrationSweep } = await import("./plugin-init");
-
-    const result = await runBootstrapMigrationSweep({
-      projectId: "proj-sha",
-      externalRoot: "/tmp/external/proj-sha",
-      client: { workflow: {} } as any,
-      timeoutMs: 50,
-      now: () => 123,
-      discoverProjectPaths: async () => ["/tmp/external/proj-sha"],
-      runSweep: mocks.runMigrationSweep,
-    });
-
-    expect(mocks.runMigrationSweep).toHaveBeenCalledWith(
-      expect.any(Object),
-      expect.objectContaining({
-        controlProjectId: "proj-sha",
-        runId: "bootstrap-123",
-        projectPaths: ["/tmp/external/proj-sha"],
-      }),
-    );
-    expect(result).toEqual({
-      status: "done",
-      totalProjects: 1,
-      runId: "bootstrap-123",
-    });
-  });
-
-  it("returns in_progress when sweep exceeds timeout budget", async () => {
-    vi.useFakeTimers();
-    const { runBootstrapMigrationSweep } = await import("./plugin-init");
-    const never = new Promise(() => {});
-
-    const promise = runBootstrapMigrationSweep({
-      projectId: "proj-sha",
-      externalRoot: "/tmp/external/proj-sha",
-      client: { workflow: {} } as any,
-      timeoutMs: 20,
-      now: () => 456,
-      discoverProjectPaths: async () => ["/tmp/external/proj-sha"],
-      runSweep: vi.fn(async () => await never),
-    });
-
-    await vi.advanceTimersByTimeAsync(25);
-    await expect(promise).resolves.toEqual({
-      status: "in_progress",
-      totalProjects: 1,
-      runId: "bootstrap-456",
-    });
   });
 });
