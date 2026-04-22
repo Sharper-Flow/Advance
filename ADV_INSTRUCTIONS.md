@@ -62,14 +62,28 @@ ADV pauses ONLY at these checkpoints:
 - Proposal confirmation — user confirms problem statement
 - Agreement sign-off — user approves objectives and acceptance criteria
 - Design approval — ONLY when real tradeoffs depend on user values or product vision, OR when the design validator returns CONFLICT, OR when the agent identifies contract-compromise risk (rq-designval04)
+- Prep approval — user approves vision doc and task graph (machine-enforced: `userApproved: true` required)
 - Acceptance — user confirms delivered work satisfies the agreement
 - Archive sign-off — user approves final release
 - Cancellation approval — explicit user approval required
 - Doom-loop recovery — user guidance required after 3 failed attempts
 
-### Clean Auto-Continue Rule
+### Post-Approval Auto-Continue
 
-Between the checkpoints above, all phases proceed sequentially without prompting the user. Discovery → deterministic design → prep → apply → review → harden all proceed without asking when no unresolved tradeoff or approval is needed.
+When the user selects an "approve" or "approve and continue" option at any checkpoint above, the next phase begins inline immediately. No "shall I proceed?", no "ready to start /adv-X?", no second confirmation.
+
+### Between-Checkpoint Flow
+
+Between checkpoints, only system-level interrupts cause pauses:
+- Doom-loop detection (3 failed task attempts)
+- Cost governance / investment check-in (judgment calls to surface)
+- Drift detection (auto-fix boundary exceeded in review/harden)
+- Contract-compromise risk identified during design
+- Design validator `CONFLICT` verdict
+- Prep gate machine enforcement (`userApproved` required)
+- Worktree decision (3+ files, ask user)
+
+No other pauses or "shall I continue?" prompts are permitted.
 
 ## Phase Goals
 

@@ -31,7 +31,8 @@ ADV ships a single canonical orchestrator agent (`.opencode/agents/adv.md`). Dur
 1. Reads `.opencode/agent-parts/providers/{provider}.md`
 2. Copies `$GLOBAL_AGENTS/adv.md` to `$GLOBAL_AGENTS/adv-{provider}.md`
 3. Patches `name:` in YAML frontmatter to `adv-{provider}`
-4. Inserts the provider hint block after `<!-- ADV_SYNC:END adv -->`
+4. If global `opencode.json` has `agent.adv-{provider}.color`, patches frontmatter `color:` to that value
+5. Inserts the provider hint block after `<!-- ADV_SYNC:END adv -->`
 
 ### Drift Detection
 

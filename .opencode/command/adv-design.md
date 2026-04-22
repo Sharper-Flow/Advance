@@ -129,7 +129,7 @@ After displaying the validator result:
 - If the design is straightforward with no user-value tradeoffs, no unresolved `CONFLICT` (resolved Phase 3.6 conflicts do not count), and no contract-compromise risk, and validation returned `VALIDATED`, `CAUTION`, or `INCONCLUSIVE`, proceed directly to `/adv-prep`
 
 Recommended options (when pausing):
-- Looks good — proceed to planning
+- Looks good — proceed to planning (agent begins `/adv-prep` inline immediately)
 - Adjust design details
 - Revisit discovery/agreement
 - Keep design with documented compromise — amend agreement to reflect the necessary concession, then proceed
@@ -189,3 +189,5 @@ Chosen architecture + key tradeoff outcomes.
 ---
 **{change-id}** · design ✓ → planning · `/adv-prep {change-id}`
 ```
+
+**Auto-continue:** After gate completion (whether user approved with "proceed" or design was straightforward enough to skip user pause), immediately begin `/adv-prep` inline. Do not stop or ask "shall I proceed?" — approval or clean auto-pass is the go-ahead.

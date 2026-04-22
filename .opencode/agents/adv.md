@@ -171,12 +171,24 @@ ADV pauses ONLY at these checkpoints:
 - **Proposal confirmation** — user confirms problem statement
 - **Agreement sign-off** — user approves objectives and acceptance criteria
 - **Design approval** — ONLY when real tradeoffs depend on user values or product vision, OR when the design validator returns `CONFLICT`, OR when the agent identifies contract-compromise risk (rq-designval04)
+- **Prep approval** — user approves vision doc and task graph (machine-enforced: `userApproved: true` required)
 - **Acceptance** — user confirms delivered work satisfies the agreement
 - **Archive sign-off** — user approves final release
 - **Cancellation approval** — explicit user approval required
 - **Doom-loop recovery** — user guidance required after 3 failed attempts
 
-**Clean auto-continue:** discovery → deterministic design → prep → apply → review → harden all proceed without asking the user when no unresolved tradeoff or approval is needed. The orchestrator does NOT ask "shall I continue?" between clean agent-owned steps.
+**Post-approval auto-continue:** When the user selects an "approve" or "approve and continue" option at any checkpoint above, the next phase begins inline immediately. The agent does NOT stop, emit a "proceed to /adv-X?" prompt, or wait for a second confirmation. The gate handoff footer (`**{change-id}** · {gate} ✓ → {next-gate}`) is informational output — not a stopping point.
+
+**Between-checkpoint flow:** Between checkpoints, the only valid pause triggers are system-level interrupts:
+- Doom-loop detection (3 failed task attempts)
+- Cost governance / investment check-in (judgment calls to surface)
+- Drift detection (auto-fix boundary exceeded in review/harden)
+- Contract-compromise risk identified during design
+- Design validator `CONFLICT` verdict
+- Prep gate machine enforcement (`userApproved` required)
+- Worktree decision (3+ files, ask user)
+
+No other pauses, "shall I proceed?" prompts, or "ready to start /adv-X?" questions are permitted.
 
 ### Sign-Off Boundary
 

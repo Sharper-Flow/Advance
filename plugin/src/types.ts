@@ -1206,13 +1206,10 @@ export interface ProjectStatus {
 // =============================================================================
 
 export const STATUS_MARKERS = {
-  ROCKET: "[ADV:ROCKET]", // Active work
-  TDD_RED: "[ADV:TDD_RED]", // Red phase
-  TDD_GREEN: "[ADV:TDD_GREEN]", // Green phase
-  MOON: "[ADV:MOON]", // Sub-agents running (📡)
-  EARTH: "[ADV:EARTH]", // Complete / awaiting input
-  DOOM_LOOP: "[ADV:DOOM_LOOP]", // Stuck
-  MIC: "[ADV:MIC]", // Needs approval
+  WORK: "[ADV:WORK]", // 🟩 Agent actively working
+  TOOLING: "[ADV:TOOLING]", // 🟨 Tool run or sub-agent in flight
+  ATTN: "[ADV:ATTN]", // 🟥 User needed (question, approval, or agent finished)
+  BLOCKED: "[ADV:BLOCKED]", // 🟥💀 Doom-loop / stuck / crash
 } as const;
 
 export type StatusMarker = keyof typeof STATUS_MARKERS;

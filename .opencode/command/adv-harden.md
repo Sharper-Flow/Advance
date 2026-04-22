@@ -297,6 +297,8 @@ What was cleaned, hardened, and verified for release.
 **{change-id}** · release ✓ → archive · `/adv-archive {change-id}`
 ```
 
+**Auto-continue:** If status is READY, immediately begin `/adv-archive` inline. The archive command itself will stop at the sign-off boundary for user approval of the final release. Do not add an extra "shall I proceed?" before starting archive.
+
 ---
 ## Key Tools
 | Purpose | Tool |

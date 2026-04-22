@@ -325,7 +325,7 @@ Prioritize findings as: architecture corrections → security → simplification
 
 Present the research findings summary to the user for approval via `question` tool:
 
-- **Approve findings (Recommended)** — research is complete, proceed to `/adv-prep`
+- **Approve findings (Recommended)** — research is complete; agent immediately proceeds inline to `/adv-prep` (or `/adv-design` if design gate is not yet complete) without asking for a second confirmation
 - **Request additional research** — user wants deeper investigation on specific areas (loop back to relevant phase)
 - **Cancel** — abandon research without completing gate
 
@@ -346,6 +346,8 @@ Simplifications: {N opportunities}
 Research Gate: MARKED COMPLETE
 Next: /adv-prep {change-id}
 ```
+
+**Auto-continue:** After user approval, immediately begin `/adv-prep` (or `/adv-design` if design gate is incomplete) inline. Do not stop or ask "shall I proceed?" — the user's approval is the go-ahead.
 
 ---
 

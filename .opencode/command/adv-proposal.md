@@ -85,7 +85,7 @@ When creating a change in a **different project** (e.g. pokeedge backend creatin
 
 Present the completed proposal summary to the user for final approval via `question` tool:
 
-- **Approve proposal (Recommended)** — proposal is finalized, proceed to `/adv-research`
+- **Approve proposal (Recommended)** — proposal is finalized; agent immediately proceeds inline to `/adv-research` (or `/adv-discover` if research was already completed) without asking for a second confirmation
 - **Request changes** — user wants to adjust criteria, scope, or constraints (loop back to relevant step)
 - **Cancel** — abandon the proposal
 
@@ -114,3 +114,5 @@ Agreed problem framing + scope boundary.
 ---
 **{change-id}** · proposal ✓ → discovery · `/adv-discover {change-id}`
 ```
+
+**Auto-continue:** After user approval, immediately begin `/adv-research` (or `/adv-discover`) inline. Do not stop, do not ask "shall I proceed?" — the user's approval is the go-ahead.
