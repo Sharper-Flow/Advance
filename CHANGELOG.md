@@ -7,7 +7,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-04-22
+
+### Added
+
+#### Provider-ADV Agent Assembly System with OMP Integration
+
+Introduces provider-specific ADV variants (`adv-claude`, `adv-gpt`, `adv-glm`, `adv-kimi`) generated from the canonical `adv.md`, with runtime visibility controlled by OpenCode's native `agent.<name>.disable` field.
+
+- **`scripts/sync-global.sh`**: New `generate_provider_variants()` function copies canonical `adv.md`, patches frontmatter `name: adv-{provider}`, and injects a small behavioral hint block from `.opencode/agents/parts/providers/{provider}.md` after the `ADV_SYNC:END adv` marker.
+- **Provider hint files**: `.opencode/agents/parts/providers/{claude,gpt,glm,kimi}.md` — each ≤20 lines, behavioral-only, no vendor API terms.
+- **Drift check extension**: `check_tool_drift()` now accepts an agent file parameter; `check_provider_variant_drifts()` loops over all four variants. Tool allowlist mismatches are reported per-variant.
+- **Legacy `adv.md` gating**: Canonical `adv.md` is only removed from global agents when `opencode.json` contains `agent.adv-*` keys (`provider_adv_configured_in_json`). Prevents breaking existing setups before users opt into provider-ADV mode.
+- **Stale agent exclusion**: Generated variants are skipped by the stale-agent removal loop so they are not deleted on the next sync.
+- **`project.json`**: Refreshed repo defaults to use a `features` block for local ADV policy (`tdd_enforcement`, `worktree_auto_create`, `gate_enforcement`, `wisdom_accumulation`, `clarify_enforcement`, and tuned `slop_scan` thresholds).
+- **Asset tests**: 10 new assertions across `sync-global.test.ts`, `overlay-sync-assets.test.ts`, and `adv-command-routing-assets.test.ts` verify generation, hint injection, frontmatter patching, and legacy gating.
+
 ### Changed
+
+#### Gate Handoff Voice Footer Spine
+
+Replaces the trailing `## Next stage` + `## Next` handoff sections with a single footer line so gate transitions scan faster without dropping the narrative sections.
+
+- **Canonical spine updated** — `docs/command-voice-standard.md` now defines a three-section handoff (`Problem` / `Chosen direction` / `Delivered`) followed by a footer line containing `{change-id} · {gate} ✓ → {next-gate} · /adv-{command}`.
+- **Archive + fast-track variants added** — archive now ends with `**{change-id}** · release ✓ · Shipped.` and `/adv-task` uses the fast-track footer `task ✓ → apply`.
+- **All handoff-emitting command docs updated** — `adv-proposal`, `adv-discover`, `adv-design`, `adv-prep`, `adv-apply`, `adv-review`, `adv-harden`, `adv-archive`, and `adv-task` now use the footer-based shape.
+- **ADV overlay updated** — `.opencode/agents/adv.md` now mirrors the canonical footer-based output contract.
+- **Spec law updated** — `rq-handoffVoice01` now describes the footer-based spine and adds `rq-handoffVoice01.4` to require that the footer replaces `Next` sections.
+- **Human-readable spec page synced** — `docs/specs/advance.md` now matches `spec.json` for the footer-based handoff requirement.
+
+#### Pre-Change Research Burst Defaults for Unknowns
+
+Unknown architecture/platform/capability questions now default to a scoped research burst before inline answers unless a carve-out applies.
+
+- **`plan.md` Investigation Mode** now says to check carve-outs first, then spawn `explore` + `librarian` in parallel for unknowns.
+- **ADV + Plan overlays** now carry the same synced rule so top-level agents and shared overlays stay aligned.
+- **Asset coverage expanded** — `adv-command-routing-assets.test.ts` now verifies the carve-outs, burst-default wording, and synced overlay guidance.
 
 #### Tab Title — Smarter Shortname (Dictionary + 8-Char Cap)
 
@@ -759,6 +794,9 @@ Implemented all 13 identified context leak surfaces where ADV drops important co
 - **Linting**: ESLint 9 with TypeScript support
 - **Formatting**: Prettier
 
+[Unreleased]: https://github.com/Sharper-Flow/Advance/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/Sharper-Flow/Advance/compare/v0.7.0...v0.8.0
+[0.7.0]: https://github.com/Sharper-Flow/Advance/releases/tag/v0.7.0
 [0.4.0]: https://github.com/Sharper-Flow/Advance/releases/tag/v0.4.0
 [0.2.0]: https://github.com/Sharper-Flow/Advance/releases/tag/v0.2.0
 [0.1.0]: https://github.com/Sharper-Flow/Advance/releases/tag/v0.1.0

@@ -76,7 +76,7 @@ ADV pauses for human input ONLY at these explicit checkpoints:
 
 ## Audit Verdict
 
-**Status as of 2026-04-13: compliant with the current intent.**
+**Status: compliant with the current intent.**
 
 The current command contracts no longer instruct agents to ask the user for:
 - impacted specs

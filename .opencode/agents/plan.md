@@ -101,7 +101,7 @@ Something is broken, confusing, or unknown. Gather evidence, narrow causes, expl
 
 - Probe the symptoms and expected behavior.
 - Trace the relevant code paths.
-- **Default to burst for unknowns:** For unknown capability/design/platform questions, spawn `explore` + `librarian` in parallel first. Inline is preferred only when the answer is local and obvious (single known file, exact symbol, settled convention, user asks for quick answer).
+- **Default to burst for unknowns:** Check carve-outs first: single known file / exact symbol, local-only question answerable with one `lgrep`/`read`, user explicitly asks for "quick answer" / "from your knowledge" / "don't research", or agent is already in scope-locked execution context (mid-task, mid-TDD, or review/remediation). If none apply, spawn `explore` + `librarian` in parallel first.
 - Research documentation and known issues when useful.
 - Identify the root cause, or narrow it to the best 2-3 candidates.
 - Surface related issues that share the same pattern.
@@ -121,12 +121,12 @@ Something is broken, confusing, or unknown. Gather evidence, narrow causes, expl
    - Use `lgrep` first for local concept and symbol discovery.
    - Use `read` for known-file inspection.
    - Use `webfetch` / `firecrawl` for external documentation and reference pages.
-   - **Default to burst for unknowns:** For unknown capability/design/platform questions, spawn `explore` + `librarian` in parallel first. Inline is preferred only when the answer is local and obvious (single known file, exact symbol, settled convention, user asks for quick answer).
+   - **Default to burst for unknowns:** Check carve-outs first: single known file / exact symbol, local-only question answerable with one `lgrep`/`read`, user explicitly asks for "quick answer" / "from your knowledge" / "don't research", or agent is already in scope-locked execution context (mid-task, mid-TDD, or review/remediation). If none apply, spawn `explore` + `librarian` in parallel first.
    - **Carve-outs (inline preferred):**
      - Single known file / exact symbol → inline read
-     - Local-only question (no external platform/library involved) → inline `lgrep`
+     - Local-only question answerable with one `lgrep` / `read` → inline local inspection
      - User says "quick answer" / "from your knowledge" / "don't research"
-     - Agent is mid-TDD loop or scope-locked execution context
+     - Agent is already in scope-locked execution context (mid-task, mid-TDD, or review/remediation)
 3. **Verify**
    - Check whether the evidence actually supports the current conclusion.
    - If not, keep digging — don't stop at the first plausible answer.

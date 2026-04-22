@@ -241,4 +241,46 @@ describe("sync-global.sh", () => {
       );
     });
   });
+
+  // -----------------------------------------------------------------------
+  // Provider ADV variant generation (providerAdvAgentAssemblySystem)
+  // -----------------------------------------------------------------------
+  describe("provider variant generation", () => {
+    test("provider hint files exist in repo", () => {
+      const providers = ["claude", "gpt", "glm", "kimi"];
+      for (const p of providers) {
+        const path = join(
+          REPO_ROOT,
+          `.opencode/agents/parts/providers/${p}.md`,
+        );
+        expect(existsSync(path), `missing provider hint: ${p}.md`).toBe(true);
+      }
+    });
+
+    test("sync script references provider variant generation", () => {
+      expect(content).toContain("adv-${provider}.md");
+      expect(content).toContain("PROVIDERS=(claude gpt glm kimi)");
+    });
+
+    test("sync script patches frontmatter name for each variant", () => {
+      expect(content).toMatch(/sed.*name:.*adv-\$\{provider\}/);
+    });
+
+    test("sync script injects provider hint after ADV overlay block", () => {
+      expect(content).toContain("inject provider hint");
+      expect(content).toContain("parts/providers");
+    });
+
+    test("sync script extends drift checks to all provider variants", () => {
+      expect(content).toContain("check_tool_drift");
+      expect(content).toContain("check_provider_variant_drifts");
+      expect(content).toMatch(/adv-\$\{provider\}\.md/);
+    });
+
+    test("legacy adv.md removal is gated off global opencode.json agent keys", () => {
+      expect(content).toContain("agent.adv-");
+      expect(content).toContain("opencode.json");
+      expect(content).toMatch(/legacy.*adv\.md.*gated|gated.*legacy.*adv\.md/i);
+    });
+  });
 });

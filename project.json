@@ -1,10 +1,22 @@
 {
   "name": "advance",
-  "version": "0.1.0",
   "specs_dir": ".adv/specs",
   "changes_dir": ".adv/changes",
   "archive_dir": ".adv/archive",
   "docs_dir": "docs/specs",
   "db_dir": ".adv/db",
-  "project_file": "project.md"
+  "project_file": "project.md",
+  "features": {
+    "tdd_enforcement": "strict",
+    "worktree_auto_create": true,
+    "gate_enforcement": "strict",
+    "wisdom_accumulation": true,
+    "clarify_enforcement": "advisory",
+    "slop_scan": {
+      "nesting_depth_threshold": 8,
+      "defensive_guard_threshold": 3,
+      "complexity_threshold": 12,
+      "ast_timeout_ms": 10000
+    }
+  }
 }
