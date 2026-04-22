@@ -22,6 +22,10 @@ import { validateChange } from "../validator";
 import { createLogger } from "../utils/debug-log";
 
 const logger = createLogger("change");
+const ARCHIVE_SAFE_STRICT_WARNING_CODES = new Set([
+  "NO_DELTAS",
+  "PROPOSAL_TASK_DRIFT",
+]);
 import { runClarifyReadinessChecks } from "../validator/clarify-readiness";
 import { loadProposalWithFallback, fileExists } from "../storage/json";
 import { archiveChange } from "../archive";
@@ -955,10 +959,14 @@ export const changeTools = {
         isWorktree,
       });
 
-      // In strict mode, treat warnings as errors
+      // In strict mode, fail on errors and on warnings that are not explicitly
+      // safe for archive-time validation. Archive-safe warnings still surface in
+      // tool output but do not block strict validation by themselves.
       const passed = strict
         ? validationResult.errors.length === 0 &&
-          validationResult.warnings.length === 0
+          validationResult.warnings.every((warning) =>
+            ARCHIVE_SAFE_STRICT_WARNING_CODES.has(warning.code),
+          )
         : validationResult.passed;
 
       return wrapWithBanner(
