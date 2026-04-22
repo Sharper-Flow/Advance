@@ -9,7 +9,6 @@ const OVERLAY_DIR = join(REPO_ROOT, ".opencode/overlays");
 const AGENT_DIR = join(REPO_ROOT, ".opencode/agents");
 
 const squish = (content: string) => content.replace(/\s+/g, " ").trim();
-const squishLower = (content: string) => squish(content).toLowerCase();
 
 describe("ADV orchestrator agent", () => {
   test("adv.md exists with required frontmatter", () => {

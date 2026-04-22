@@ -759,12 +759,14 @@ describe("Bell Transition Logic", () => {
   it("ATTN (permission pending) cancels pending ATTN debounce and rings immediately", () => {
     armPendingFinalAlert("msg-test-4");
     updateTerminalStatus("WORK", "test");
-    updateTerminalStatus("ATTN", "test"); // debounce starts
+    updateTerminalStatus("ATTN", "test"); // armed → debounce starts
+    expect(bellCount()).toBe(0); // not yet
     vi.advanceTimersByTime(500);
-    updateTerminalStatus("ATTN", "test"); // permission pending overrides
-    expect(bellCount()).toBe(1); // ATTN rings immediately
+    // ATTN→ATTN: no bell (same status, no transition)
+    updateTerminalStatus("ATTN", "test");
+    expect(bellCount()).toBe(0); // ATTN→ATTN never rings
     vi.advanceTimersByTime(2000);
-    expect(bellCount()).toBe(1); // ATTN timer was cancelled
+    expect(bellCount()).toBe(0); // debounce was for the first ATTN, already expired or cancelled
   });
 
   it("null→ATTN does not ring (new session)", () => {
@@ -808,17 +810,19 @@ describe("Bell-Gate Policy", () => {
     vi.useRealTimers();
   });
 
-  // NOTE: The current implementation rings ATTN immediately on ANY transition
-  // from a non-null, non-ATTN previous status. The armed-idle / debounce block
-  // in terminal.ts is unreachable dead code. These tests reflect ACTUAL behavior.
-  // TODO: Fix terminal.ts so permission-ATTN and idle-ATTN are distinguishable.
+  // Bell policy for ATTN:
+  //   - ATTN with pendingFinalAlert (armed idle): debounce ring
+  //   - BLOCKED → ATTN: debounce ring (recovery prompt)
+  //   - ATTN without armed flag: immediate ring (permission pending)
+  //   - ATTN → ATTN: no bell
 
-  it("armPendingFinalAlert does not affect ATTN — rings immediately", () => {
+  it("armPendingFinalAlert sets flag and debounces bell on ATTN", () => {
     armPendingFinalAlert("msg-test-1");
     updateTerminalStatus("WORK", "test");
     updateTerminalStatus("ATTN", "test");
-    // ATTN rings immediately regardless of armed flag
-    expect(bellCount()).toBe(1);
+    expect(bellCount()).toBe(0); // debounce — no immediate ring
+    vi.advanceTimersByTime(2000);
+    expect(bellCount()).toBe(1); // rings after debounce
   });
 
   it("armPendingFinalAlert dedup: same messageId does not re-arm", () => {
@@ -826,72 +830,85 @@ describe("Bell-Gate Policy", () => {
     armPendingFinalAlert("msg-test-1"); // duplicate — no-op
     updateTerminalStatus("WORK", "test");
     updateTerminalStatus("ATTN", "test");
-    expect(bellCount()).toBe(1); // rings immediately
-    // Second transition: WORK→ATTN again (previous was ATTN, now WORK, then ATTN)
+    expect(bellCount()).toBe(0);
+    vi.advanceTimersByTime(2000);
+    expect(bellCount()).toBe(1);
+    // Second cycle: new messageId
+    armPendingFinalAlert("msg-test-2");
     updateTerminalStatus("WORK", "test");
     updateTerminalStatus("ATTN", "test");
-    expect(bellCount()).toBe(2); // rings again — dedup is in unreachable block
+    vi.advanceTimersByTime(2000);
+    expect(bellCount()).toBe(2); // rings with new messageId
   });
 
-  it("ATTN without armed flag still rings (transition from WORK)", () => {
+  it("ATTN without armed flag rings immediately", () => {
     updateTerminalStatus("WORK", "test");
     updateTerminalStatus("ATTN", "test");
     expect(bellCount()).toBe(1);
   });
 
-  it("ATTN with armed flag rings immediately (not debounced)", () => {
+  it("ATTN with armed flag debounces (not immediate)", () => {
     armPendingFinalAlert("msg-test-2");
     updateTerminalStatus("WORK", "test");
     updateTerminalStatus("ATTN", "test");
-    expect(bellCount()).toBe(1); // immediate, not after 2000ms
+    expect(bellCount()).toBe(0); // not yet — debounce
+    vi.advanceTimersByTime(2000);
+    expect(bellCount()).toBe(1);
   });
 
-  it("ATTN after BLOCKED rings immediately", () => {
+  it("ATTN after BLOCKED debounces", () => {
     updateTerminalStatus("BLOCKED", "test");
     updateTerminalStatus("ATTN", "test");
-    expect(bellCount()).toBe(1); // immediate, not debounced
+    expect(bellCount()).toBe(0); // debounce
+    vi.advanceTimersByTime(2000);
+    expect(bellCount()).toBe(1);
   });
 
   it("ATTN (permission pending) clears armed flag and rings immediately", () => {
-    armPendingFinalAlert("msg-test-3");
     updateTerminalStatus("WORK", "test");
-    updateTerminalStatus("ATTN", "test");
-    expect(bellCount()).toBe(1); // ATTN rings immediately
+    updateTerminalStatus("ATTN", "test"); // no armed flag → immediate
+    expect(bellCount()).toBe(1);
     // Subsequent ATTN from ATTN → no bell
     updateTerminalStatus("ATTN", "test");
     vi.advanceTimersByTime(2000);
     expect(bellCount()).toBe(1); // no additional ring
   });
 
-  it("ATTN (permission pending) pre-empts any pending state", () => {
-    armPendingFinalAlert("msg-test-4");
+  it("ATTN immediate rings when no armed flag, armed debounce when flag set", () => {
+    // Armed case: debounce
+    armPendingFinalAlert("msg-test-4a");
     updateTerminalStatus("WORK", "test");
-    updateTerminalStatus("ATTN", "test"); // rings immediately
-    expect(bellCount()).toBe(1);
-    // Another ATTN while already ATTN — no bell
     updateTerminalStatus("ATTN", "test");
+    expect(bellCount()).toBe(0); // debounce started
     vi.advanceTimersByTime(2000);
-    expect(bellCount()).toBe(1);
+    expect(bellCount()).toBe(1); // rings after debounce
+    // Non-armed case: immediate
+    updateTerminalStatus("WORK", "test");
+    updateTerminalStatus("ATTN", "test");
+    expect(bellCount()).toBe(2); // immediate ring (no armed flag)
   });
 
-  it("_clearPendingFinalAlert resets all bell-gate state", () => {
+  it("_clearPendingFinalAlert prevents armed debounce", () => {
     armPendingFinalAlert("msg-test-5");
     _clearPendingFinalAlert();
     updateTerminalStatus("WORK", "test");
     updateTerminalStatus("ATTN", "test");
-    expect(bellCount()).toBe(1); // ATTN still rings immediately
+    expect(bellCount()).toBe(1); // no armed flag → immediate ring
   });
 
-  it("dedup: same messageId does not prevent second ring (unreachable code)", () => {
+  it("dedup: same messageId arm is no-op, second ATTN is non-armed (immediate)", () => {
     armPendingFinalAlert("msg-dedup");
     updateTerminalStatus("WORK", "test");
     updateTerminalStatus("ATTN", "test");
-    expect(bellCount()).toBe(1); // first ring
-    // Re-arm with same messageId — dedup logic is in unreachable block
+    expect(bellCount()).toBe(0);
+    vi.advanceTimersByTime(2000);
+    expect(bellCount()).toBe(1); // first ring via debounce
+    // Re-arm with same messageId — dedup in armPendingFinalAlert makes this a no-op
     armPendingFinalAlert("msg-dedup");
     updateTerminalStatus("WORK", "test");
     updateTerminalStatus("ATTN", "test");
-    expect(bellCount()).toBe(2); // rings again
+    // No armed flag (dedup prevented re-arm) → immediate ring
+    expect(bellCount()).toBe(2);
   });
 });
 

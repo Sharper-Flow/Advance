@@ -824,22 +824,13 @@ export const updateTerminalStatus = (
   const previousStatus = lastAlertedStatus;
   lastAlertedStatus = status;
 
-  // ATTN (permission pending) = user explicitly needed → ring immediately.
-  // Also clears any pending final alert — ATTN pre-empts deferred bell.
-  if (status === "ATTN" && previousStatus !== null && previousStatus !== "ATTN") {
-    cancelPendingBell();
-    pendingFinalAlert = false;
-    ringBell();
-    return;
-  }
-
-  // ATTN transitions from active work (armed idle):
+  // ATTN transitions from active work (armed idle or permission pending):
   if (
     status === "ATTN" &&
     previousStatus !== null &&
     previousStatus !== "ATTN"
   ) {
-    // BLOCKED exception: always ring on blocked→attn (user must see recovery prompt).
+    // BLOCKED exception: always debounce-ring on blocked→attn (user must see recovery prompt).
     if (previousStatus === "BLOCKED") {
       cancelPendingBell();
       bellDebounceTimer = setTimeout(() => {
@@ -851,7 +842,7 @@ export const updateTerminalStatus = (
       return;
     }
 
-    // Armed gate: ring only if main agent completed a qualifying response.
+    // Armed gate: debounce-ring only if main agent completed a qualifying response.
     if (pendingFinalAlert) {
       // Dedup: skip if this message was already rung.
       if (lastArmedMessageId === lastRungMessageId) {
@@ -871,8 +862,10 @@ export const updateTerminalStatus = (
       return;
     }
 
-    // Non-armed ATTN: no bell. Sub-agent teardown, transient idle, etc.
+    // Non-armed ATTN: ring immediately (permission pending or other transitions).
     cancelPendingBell();
+    pendingFinalAlert = false;
+    ringBell();
     return;
   }
 
