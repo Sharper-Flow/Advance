@@ -111,9 +111,13 @@ describe.skipIf(!canRun)("createOutOfProcessWorker integration", () => {
       },
     );
 
-    // Give the OS a moment to reap the exited child.
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    const after = countTestServerProcs();
+    // Poll with backoff: process reaping is asynchronous at the OS level
+    // and can take longer when the host is under load from concurrent tests.
+    let after = countTestServerProcs();
+    for (let i = 0; i < 10 && after > before; i++) {
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      after = countTestServerProcs();
+    }
 
     // Delta must be zero or negative (never positive — that would mean a leak).
     expect(after).toBeLessThanOrEqual(before);
