@@ -38,7 +38,7 @@ When `/adv-clarify` is invoked from `/adv-discover`'s **Acceptance Criteria Chec
 - `/adv-clarify` outputs a **REQUIREMENTS DISCOVERY SUMMARY** that includes the revised acceptance-criteria list
 - `/adv-clarify` **MUST NOT** write `agreement.md`
 - `/adv-clarify` **MUST NOT** call `adv_gate_complete`
-- The final line of `/adv-clarify` output instructs the user to rerun `/adv-discover {change-id}` to resume discovery and complete the AC checkpoint
+- The final line of `/adv-clarify` output confirms the user must rerun `/adv-discover {change-id}` to resume discovery at the AC checkpoint
 ## Phase 1: Context Analysis
 Silently analyze: stated assumptions, unstated assumptions, contradictions, knowledge gaps. Review conversation for specs, proposals, code, constraints.
 ## Phase 2: Question Categories
@@ -79,6 +79,8 @@ Broad open → summarize → clarify (1-2 specific) → challenge assumption →
 Flow: analyze → summarize understanding → ask via `question` (1-2 questions) → process response → repeat.
 
 After sufficient questions, emit REQUIREMENTS DISCOVERY SUMMARY: confirmed requirements with acceptance criteria, assumptions to validate, edge cases identified, remaining questions, suggested next steps.
+
+If `/adv-clarify` was invoked from `/adv-discover` Phase 4.5.1, end the summary with: `Next: rerun /adv-discover {change-id}`.
 ## Anti-Patterns
 | × Anti-Pattern | ✓ Fix |
 |----------------|-------|
@@ -90,5 +92,5 @@ After sufficient questions, emit REQUIREMENTS DISCOVERY SUMMARY: confirmed requi
 ```
 /adv-clarify COMPLETE
 Result: {N} requirements clarified, {M} open questions
-Next: /adv-discover, /adv-design, or /adv-task
+Next: /adv-discover, /adv-design, or /adv-task (or `rerun /adv-discover {change-id}` when returning to the AC checkpoint)
 ```

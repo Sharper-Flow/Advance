@@ -294,14 +294,15 @@ Visual comparison blocks are supplementary context, not a replacement for the `q
 
 **Protocol:**
 1. Present the **draft acceptance criteria** as a focused, numbered list. Separate this from the broader agreement view (objectives, constraints, avoidances).
-2. Use the `question` tool with these three outcomes:
+2. Use the `question` tool with these outcomes. Keep custom input enabled so the third outcome remains the contextual write-in required by P26:
    - **Approve acceptance criteria (Recommended)** — proceed to Phase 4.6
    - **Start /adv-clarify** — stop `/adv-discover` immediately; do not persist `agreement.md`; do not call `adv_gate_complete`; instruct the user to run `/adv-clarify {change-id}` and then rerun `/adv-discover {change-id}`
    - **Add or clarify acceptance criteria** — capture user input, normalize into revised AC bullets, and re-run this checkpoint
-3. If AC are empty or weak, keep the approve option but remove the "(Recommended)" suffix.
-4. Do not proceed to Phase 4.6 until AC are approved.
+3. If revised AC still need substantial clarification after a re-run, recommend the `/adv-clarify` branch instead of continuing to loop inside Phase 4.5.1.
+4. If AC are empty or weak, keep the approve option but remove the "(Recommended)" suffix and make `/adv-clarify` the recommended path.
+5. Do not proceed to Phase 4.6 until AC are approved.
 
-**× MUST NOT:** Complete `discovery` gate without AC approval. Do not invoke `/adv-clarify` directly — pause and hand off to the user.
+**× MUST NOT:** Complete `discovery` gate without AC approval. Do not invoke `/adv-clarify` directly outside this checkpoint outcome — pause and hand off to the user.
 
 ### Phase 4.6: Persist Agreement
 Once confirmed and all open questions are resolved (or explicitly deferred), write `agreement.md` through `adv_change_update`.
