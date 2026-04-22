@@ -184,6 +184,11 @@ export const AdvancePlugin: Plugin = async ({
     setStatus(resolveStatus(state));
   };
 
+  // Main session ID — used to distinguish main-agent message.updated events
+  // from sub-agent events. Captured from system.transform input (fires every
+  // turn with sessionID). Fail-closed: null means no bell arming.
+  let mainSessionId: string | null = null;
+
   // Register process-level shutdown handlers (tolerates init failure).
   const { removeProcessListeners } = registerShutdownHandlers(store);
 
@@ -215,6 +220,7 @@ export const AdvancePlugin: Plugin = async ({
             setFlags({ sessionIdle: false });
           }
         } else if (eventType === "session.deleted") {
+          mainSessionId = null;
           cleanupTerminal();
           removeProcessListeners();
           try {
@@ -362,6 +368,12 @@ export const AdvancePlugin: Plugin = async ({
       output,
     ): Promise<void> => {
       try {
+        // Capture main session ID on first transform call.
+        if (!mainSessionId && input.sessionID) {
+          mainSessionId = input.sessionID;
+          debugLog(`Captured mainSessionId: ${mainSessionId}`);
+        }
+
         const providerHint = getProviderBehaviorHint(input.model?.providerID);
         if (providerHint) {
           output.system.push(providerHint);
