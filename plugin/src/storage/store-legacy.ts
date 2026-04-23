@@ -1,14 +1,18 @@
 /**
- * Legacy Store — JSON+SQLite Backend
+ * Legacy Store — JSON+SQLite Backend (Non-Runtime)
  *
  * Provides the full Store interface backed by JSON files and a SQLite derived
- * cache. Extracted from the original unified store to allow optional Temporal
- * wrapping via `store-temporal.ts` without the composition root itself
- * touching workflow concerns.
+ * cache. Used as the file-backed persistence layer for the Temporal adapter
+ * (store-temporal.ts) and for non-runtime utilities: tests, cross-repo tools,
+ * migration, and repair operations.
  *
- * This file is the fallback / default backend — it must always be runnable on
- * its own. `store.ts` is the thin selector that chooses between this backend
- * and the Temporal adapter overlay.
+ * Runtime contract: ADV is Temporal-only. This backend is NOT a runtime
+ * fallback. Production runtime always goes through store.ts → store-temporal.ts.
+ * Direct use of createLegacyStore is reserved for:
+ *   - Test fixtures and test harnesses
+ *   - Cross-repo change creation (one-off filesystem operations)
+ *   - Migration and repair utilities
+ *   - Temporal adapter internal persistence layer
  */
 
 import { basename, join } from "path";

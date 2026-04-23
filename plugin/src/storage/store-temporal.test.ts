@@ -477,7 +477,7 @@ describe("Temporal store backend adapter", () => {
     expect(legacy.changes.get).not.toHaveBeenCalled();
   });
 
-  it("does not retry fallback-safe errors; falls back directly to legacy", async () => {
+  it("does not retry fallback-safe errors; throws instead of falling back", async () => {
     const changeHandle = {
       query: vi.fn(async () => {
         throw new Error("Workflow execution not found");
@@ -501,10 +501,12 @@ describe("Temporal store backend adapter", () => {
       projectId: "proj1",
     });
 
-    await adapted.changes.get("chg-fallback");
+    await expect(adapted.changes.get("chg-fallback")).rejects.toThrow(
+      "Workflow execution not found",
+    );
 
     expect(changeHandle.query).toHaveBeenCalledTimes(1);
-    expect(legacy.changes.get).toHaveBeenCalledTimes(1);
+    expect(legacy.changes.get).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -512,34 +514,36 @@ describe("Temporal store backend adapter", () => {
     "Workflow not found",
     "NOT_FOUND",
     "some grpc not_found detail",
-  ])("falls back to legacy on Temporal message variant: %s", async (msg) => {
-    const changeHandle = {
-      query: vi.fn(async () => {
-        throw new Error(msg);
-      }),
-      executeUpdate: vi.fn(async () => null),
-      signal: vi.fn(async () => {}),
-    };
+  ])(
+    "throws on Temporal not-found error instead of falling back: %s",
+    async (msg) => {
+      const changeHandle = {
+        query: vi.fn(async () => {
+          throw new Error(msg);
+        }),
+        executeUpdate: vi.fn(async () => null),
+        signal: vi.fn(async () => {}),
+      };
 
-    const bundle = {
-      client: {
-        workflow: {
-          getHandle: routeHandle(changeHandle),
+      const bundle = {
+        client: {
+          workflow: {
+            getHandle: routeHandle(changeHandle),
+          },
         },
-      },
-    };
+      };
 
-    const legacy = makeLegacyStore();
-    const adapted = createTemporalStoreBackend({
-      legacy,
-      temporal: bundle as any,
-      projectId: "proj1",
-    });
+      const legacy = makeLegacyStore();
+      const adapted = createTemporalStoreBackend({
+        legacy,
+        temporal: bundle as any,
+        projectId: "proj1",
+      });
 
-    await adapted.changes.get("chg-variant");
-
-    expect(legacy.changes.get).toHaveBeenCalledTimes(1);
-  });
+      await expect(adapted.changes.get("chg-variant")).rejects.toThrow(msg);
+      expect(legacy.changes.get).not.toHaveBeenCalled();
+    },
+  );
 
   describe("closeBatch", () => {
     it("falls back to legacy close per-item when Temporal workflows are not found", async () => {
