@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.1] - 2026-04-23
+
+### Added
+
+#### Multi-Queue Temporal Worker Groundwork
+
+- Added `plugin/src/temporal/worker-multi.ts` and `plugin/src/temporal/worker-multi.test.ts` as the next-step multi-queue worker host foundation. The host models a single child process serving multiple queues with JSON-line IPC, restart backoff, diagnostics, and shutdown escalation semantics.
+
+### Fixed
+
+#### Temporal Child Process CWD Leaks Blocking Worktree Cleanup
+
+Fixes a release-blocking lifecycle bug where Temporal child processes inherited an ephemeral git worktree cwd, preventing `git worktree remove` after tests or worker startup.
+
+- **Stable test-environment cwd** — `plugin/src/temporal/__tests__/with-test-env.ts` now creates `TestWorkflowEnvironment` instances from `/tmp/advance-temporal-test-cwd` via new `createTestWorkflowEnvironment()`, then restores the caller cwd immediately after env creation.
+- **Harness adoption** — `withTestWorkflowEnvironment()` now uses the stable-cwd creator by default, and `plugin/src/temporal/out-of-process-worker.itest.ts` no longer calls `TestWorkflowEnvironment.createTimeSkipping()` directly from the current worktree cwd.
+- **Stable out-of-process worker cwd** — `plugin/src/temporal/out-of-process-worker.ts` now spawns Node children with explicit cwd `/tmp/advance-temporal-worker-cwd` instead of inheriting the OpenCode/plugin process cwd.
+- **Regression coverage** — new tests verify stable cwd creation/restoration and assert the out-of-process worker spawn options include the stable worker cwd.
+- **Operational effect** — leaked `temporal-test-server-sdk-typescript-*` processes from interrupted tests no longer pin deleted worktree plugin directories going forward; existing leaked processes still require manual kill/reap.
+
 ### Added
 
 #### Source-Appropriate Due Diligence for Unknown Capability Questions

@@ -755,6 +755,47 @@ after the spec.db file is deleted from disk, the running process still holds the
 database open in memory. Only a restart causes the plugin to open a fresh database
 at the original path, triggering a clean sync from `.adv/specs/`.
 
+### Temporal Test Servers Blocking Worktree Cleanup
+
+If an interrupted Temporal integration test leaves behind a
+`/tmp/temporal-test-server-sdk-typescript-*` process, `git worktree remove`
+may fail because the child inherited the worktree plugin directory as its cwd.
+
+Current releases run Temporal test environments from a stable temp cwd
+(`/tmp/advance-temporal-test-cwd`) and spawn out-of-process Temporal workers
+from `/tmp/advance-temporal-worker-cwd` to avoid pinning worktrees going
+forward. Older leaked processes may still need manual cleanup.
+
+Detect lingering test servers:
+
+```bash
+python3 - <<'PY'
+import os, json
+needle='/tmp/temporal-test-server-sdk-typescript-'
+rows=[]
+for pid in filter(str.isdigit, os.listdir('/proc')):
+    try:
+        cmd=open(f'/proc/{pid}/cmdline','rb').read().replace(b'\x00',b' ').decode().strip()
+    except Exception:
+        continue
+    if needle in cmd:
+        try:
+            cwd=os.readlink(f'/proc/{pid}/cwd')
+        except Exception:
+            cwd=''
+        rows.append({'pid': int(pid), 'cwd': cwd, 'cmd': cmd})
+print(json.dumps(rows, indent=2))
+PY
+```
+
+Kill leaked processes if needed:
+
+```bash
+kill <pid1> <pid2> ...
+```
+
+Then retry worktree cleanup.
+
 ### Commands Not Found or Config Out of Date
 
 Run the sync script to check and fix everything at once:

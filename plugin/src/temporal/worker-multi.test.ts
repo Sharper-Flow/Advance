@@ -106,6 +106,11 @@ describe("Multi-queue worker host", () => {
     mockChildren.length = 0;
   });
 
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.clearAllMocks();
+  });
+
   it("spawns a single child process for multiple queues", async () => {
     const worker = await createMultiWorker(baseInput);
 
@@ -199,9 +204,9 @@ describe("Multi-queue worker host", () => {
       child.killed = true;
       if (signal === "SIGKILL") {
         sigkillReceived = true;
-        child.exitCode = null;
+        child.exitCode = 137;
         // Emit exit after SIGKILL
-        setImmediate(() => child.emit("exit", null, "SIGKILL"));
+        queueMicrotask(() => child.emit("exit", 137, "SIGKILL"));
       }
       // SIGTERM does NOT emit exit — child is stuck
     });
@@ -213,7 +218,6 @@ describe("Multi-queue worker host", () => {
     await shutdownPromise;
 
     expect(sigkillReceived).toBe(true);
-    vi.useRealTimers();
   });
 
   it("does not respawn on graceful exit (code 0)", async () => {
@@ -241,17 +245,16 @@ describe("Multi-queue worker host", () => {
     child.emit("exit", 1, null);
 
     // Advance past backoff (1000ms for first retry)
-    await vi.advanceTimersByTimeAsync(1500);
+    await vi.advanceTimersByTimeAsync(1050);
 
     // A second child should have been spawned
-    expect(mockChildren.length).toBeGreaterThanOrEqual(2);
+    expect(mockChildren.length).toBe(2);
 
     const diag = worker.getDiagnostics();
     expect(diag.restartCount).toBe(1);
 
     // Cleanup: exit the respawned child
     mockChildren[mockChildren.length - 1].emit("exit", 0, null);
-    vi.useRealTimers();
     await worker.shutdown();
   });
 

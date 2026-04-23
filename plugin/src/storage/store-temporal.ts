@@ -135,6 +135,7 @@ export function createTemporalStoreBackend(
   const { legacy } = input;
   const changeCache = new Map<string, Change>();
   const memo = new ChangeSummaryMemo();
+  const sourceVersions = new Map<string, number>();
 
   // Reverse-lookup cache populated from any Temporal-observed tasks so
   // taskId-only methods can resolve the owning change without requiring the
@@ -180,6 +181,58 @@ export function createTemporalStoreBackend(
   const invalidateChange = (changeId: string): void => {
     changeCache.delete(changeId);
     memo.invalidate(changeId);
+  };
+
+  /**
+   * Fire-and-forget signal to projectWorkflow with updated ChangeSummary.
+   * Best-effort: logs errors but never throws. Skipped if no projectWorkflow
+   * handle is available (e.g., STSL not initialized, PSW not started).
+   */
+  const emitChangeSummarySignal = (
+    changeId: string,
+    state: ChangeWorkflowState,
+  ): void => {
+    try {
+      const version = (sourceVersions.get(changeId) ?? 0) + 1;
+      sourceVersions.set(changeId, version);
+      const summary = buildSummary(state);
+      summary.sourceVersion = version;
+      const projectHandle = getProjectHandle();
+      if (!projectHandle) return;
+      void projectHandle.signal(applyChangeSummarySignal, {
+        changeId,
+        summary,
+        sourceVersion: version,
+      });
+    } catch {
+      // Best-effort: signal failure must not block mutations
+    }
+  };
+
+  const getProjectHandle = (): WorkflowHandleLike | null => {
+    try {
+      const workflowId = buildProjectWorkflowId(input.projectId);
+      const bundle = input.temporal as { client: TemporalHandleClient };
+      return bundle.client.workflow.getHandle(workflowId);
+    } catch {
+      return null;
+    }
+  };
+
+  /**
+   * Extract projection from update result, falling back to a direct query
+   * if the workflow returned void/null (older workflow versions).
+   */
+  const resolveStateOrQuery = async (
+    handle: WorkflowHandleLike,
+    result: unknown,
+  ): Promise<ChangeWorkflowState> => {
+    if (result && typeof result === "object" && "changeId" in result) {
+      return result as ChangeWorkflowState;
+    }
+    return (await runTemporal(() =>
+      handle.query(changeStateQuery),
+    )) as ChangeWorkflowState;
   };
 
   const indexTasksFromState = (state: ChangeWorkflowState): void => {
@@ -358,9 +411,10 @@ export function createTemporalStoreBackend(
         try {
           invalidateChange(changeId);
           const handle = getChangeHandle(input, changeId);
-          const result = (await runTemporal(() =>
+          const raw = await runTemporal(() =>
             handle.executeUpdate(closeChangeUpdate, { args: [closure] }),
-          )) as ChangeWorkflowState;
+          );
+          const result = await resolveStateOrQuery(handle, raw);
           indexTasksFromState(result);
           const change = setCachedChange(result);
           emitChangeSummarySignal(changeId, result);
@@ -426,9 +480,10 @@ export function createTemporalStoreBackend(
           try {
             invalidateChange(id);
             const handle = getChangeHandle(input, id);
-            const result = (await runTemporal(() =>
+            const raw = await runTemporal(() =>
               handle.executeUpdate(closeChangeUpdate, { args: [closure] }),
-            )) as ChangeWorkflowState;
+            );
+            const result = await resolveStateOrQuery(handle, raw);
             indexTasksFromState(result);
             setCachedChange(result);
             emitChangeSummarySignal(id, result);
@@ -659,11 +714,12 @@ export function createTemporalStoreBackend(
         try {
           invalidateChange(changeId);
           const handle = getChangeHandle(input, changeId);
-          const state = (await runTemporal(() =>
+          const raw = await runTemporal(() =>
             handle.executeUpdate(addChangeWisdomUpdate, {
               args: [type, content, sourceTask],
             }),
-          )) as ChangeWorkflowState;
+          );
+          const state = await resolveStateOrQuery(handle, raw);
           setCachedChange(state);
           emitChangeSummarySignal(changeId, state);
           return (
@@ -708,11 +764,12 @@ export function createTemporalStoreBackend(
         try {
           invalidateChange(changeId);
           const handle = getChangeHandle(input, changeId);
-          const state = (await runTemporal(() =>
+          const raw = await runTemporal(() =>
             handle.executeUpdate(completeGateUpdate, {
               args: [gateId, notes, "agent"],
             }),
-          )) as ChangeWorkflowState;
+          );
+          const state = await resolveStateOrQuery(handle, raw);
           setCachedChange(state);
           emitChangeSummarySignal(changeId, state);
         } catch (err) {
@@ -731,7 +788,7 @@ export function createTemporalStoreBackend(
         try {
           invalidateChange(changeId);
           const handle = getChangeHandle(input, changeId);
-          const state = (await runTemporal(() =>
+          const raw = await runTemporal(() =>
             handle.executeUpdate(reopenFromGateUpdate, {
               args: [
                 fromGate,
@@ -740,7 +797,8 @@ export function createTemporalStoreBackend(
                 approvalEvidence ?? reopenedBy,
               ],
             }),
-          )) as ChangeWorkflowState;
+          );
+          const state = await resolveStateOrQuery(handle, raw);
           setCachedChange(state);
           emitChangeSummarySignal(changeId, state);
         } catch (err) {
