@@ -13,8 +13,11 @@ Run after `scripts/sync-global.sh --fix` and OMP apply.
 
 ## Legacy Migration
 
-- [ ] When `opencode.json` has NO `agent.adv-*` keys: canonical `adv.md` is preserved
+- [ ] When `opencode.json` has NO `agent.adv-*` keys: canonical `adv.md` is preserved (global + repo-local)
 - [ ] When `opencode.json` HAS `agent.adv-*` keys: canonical `adv.md` is removed from global agents
+- [ ] When `opencode.json` HAS `agent.adv-*` keys: repo-local `.opencode/agents/adv.md` is also removed
+- [ ] When `opencode.json` HAS `agent.adv-*` keys: `agent.adv.disable: true` is set in `opencode.json`
+- [ ] When `opencode.json` has NO `agent.adv-*` keys: `agent.adv.disable` is removed (if present)
 
 ## OMP Schema/Apply
 

@@ -697,6 +697,27 @@ fix_config() {
     fi
   done
 
+  # Disable generic adv agent when provider variants are configured.
+  # When agent.adv-* keys exist in opencode.json, the user has opted into
+  # provider-specific ADV variants. The generic adv.md may still be visible
+  # via repo-local .opencode/agents/adv.md even after global removal, so we
+  # set agent.adv.disable: true to hide it via OpenCode's native mechanism.
+  if provider_adv_configured_in_json; then
+    if ! jq -e '(.agent.adv // {}).disable == true' "$tmp_json" &>/dev/null; then
+      jq '.agent.adv.disable = true' "$tmp_json" > "$tmp_json.new" && mv "$tmp_json.new" "$tmp_json"
+      echo "    ✓  Set agent.adv.disable: true (provider variants active)"
+      ((patched++)) || true
+    fi
+  else
+    # No provider variants configured — ensure generic adv is not disabled.
+    if jq -e '(.agent.adv // {}).disable == true' "$tmp_json" &>/dev/null; then
+      jq 'if ((.agent.adv // {}) | type) == "object" then .agent.adv = ((.agent.adv // {}) | with_entries(select(.key != "disable"))) else . end' \
+        "$tmp_json" > "$tmp_json.new" && mv "$tmp_json.new" "$tmp_json"
+      echo "    ✓  Removed agent.adv.disable (no provider variants active)"
+      ((patched++)) || true
+    fi
+  fi
+
   if [ "$patched" -gt 0 ]; then
     if [ "$DRY_RUN" = true ]; then
       echo "    dry-run: would patch $patched entry/entries in $GLOBAL_JSON"
@@ -931,6 +952,28 @@ if [ -f "$GLOBAL_AGENTS/adv.md" ]; then
     fi
   else
     echo "    kept legacy adv.md (no agent.adv-* keys in opencode.json — migration not triggered)"
+  fi
+fi
+
+# ---------------------------------------------------------------------------
+# Repo-local adv.md removal (gated, same condition as global removal)
+#
+# When provider variants are configured, the repo-local .opencode/agents/adv.md
+# still surfaces the generic adv agent in OpenCode. Remove it so only provider
+# variants are selectable. Combined with agent.adv.disable: true in config,
+# this ensures the generic adv is fully hidden.
+# ---------------------------------------------------------------------------
+REPO_LOCAL_ADV="$REPO_AGENTS/adv.md"
+if [ -f "$REPO_LOCAL_ADV" ]; then
+  if provider_adv_configured_in_json; then
+    if [ "$DRY_RUN" = true ]; then
+      echo "    dry-run remove repo-local adv.md (gated: agent.adv-* keys found in opencode.json)"
+    else
+      rm "$REPO_LOCAL_ADV"
+      echo "    removed repo-local adv.md (gated: agent.adv-* keys found in opencode.json)"
+    fi
+  else
+    echo "    kept repo-local adv.md (no agent.adv-* keys in opencode.json — migration not triggered)"
   fi
 fi
 

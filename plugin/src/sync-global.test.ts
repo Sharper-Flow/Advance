@@ -279,5 +279,20 @@ describe("sync-global.sh", () => {
       expect(content).toContain("opencode.json");
       expect(content).toMatch(/legacy.*adv\.md.*gated|gated.*legacy.*adv\.md/i);
     });
+
+    test("sets agent.adv.disable: true when provider variants are configured", () => {
+      expect(content).toContain("agent.adv.disable = true");
+      expect(content).toContain("provider variants active");
+    });
+
+    test("removes agent.adv.disable when no provider variants are configured", () => {
+      expect(content).toContain("Removed agent.adv.disable");
+      expect(content).toContain("no provider variants active");
+    });
+
+    test("removes repo-local adv.md when provider variants are configured", () => {
+      expect(content).toContain('REPO_LOCAL_ADV=');
+      expect(content).toContain("repo-local adv.md");
+    });
   });
 });

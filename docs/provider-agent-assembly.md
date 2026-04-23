@@ -60,6 +60,14 @@ provider_adv_configured_in_json() {
 }
 ```
 
+When triggered, three actions are taken to fully hide the generic `adv` agent:
+
+1. **Global `adv.md` removed** — deleted from `~/.config/opencode/agents/`
+2. **Repo-local `adv.md` removed** — deleted from `.opencode/agents/` in the repo
+3. **Config disable set** — `agent.adv.disable: true` written to `opencode.json`
+
+When no provider variants are configured, the disable flag is removed and both `adv.md` files are preserved.
+
 ### OMP Role
 
 OMP does **not** trigger ADV sync. It only writes `agent.adv-{provider}.disable` and `agent.adv-{provider}.model` entries to `opencode.json`. The generated files are expected to already exist from a prior `sync-global.sh --fix` run.
@@ -70,4 +78,5 @@ OMP does **not** trigger ADV sync. It only writes `agent.adv-{provider}.disable`
 | ------------------------------------ | ---------------------------------------------------------- | ---------------------------------------- |
 | Provider variants missing after sync | Hint files deleted or `agent-parts/providers/` dir missing | Restore hint files from git              |
 | `adv.md` unexpectedly removed        | `agent.adv-*` keys present in `opencode.json`              | Remove keys or re-run sync to regenerate |
+| Generic `adv` still visible           | Repo-local `adv.md` not deleted or `agent.adv.disable` not set | Run `sync-global.sh --fix`               |
 | Variants deleted on next sync        | Stale removal logic not excluding variants                 | Update `sync-global.sh` to latest        |

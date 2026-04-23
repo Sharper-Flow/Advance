@@ -91,7 +91,7 @@ Shared global agents (`adv`, `general`, `build`, `plan`) are NOT fully replaced 
 2. **Patch frontmatter** — `name: adv-{provider}` is injected per variant
 3. **Inject provider hint** — a small ≤20-line behavioral hint from `.opencode/agent-parts/providers/{provider}.md` is appended after the `ADV_SYNC:END adv` marker
 4. **Drift checks** — `check_tool_drift` runs for all variants plus the canonical agent
-5. **Legacy gating** — the canonical `adv.md` is only removed from global when `opencode.json` contains `agent.adv-*` keys, preventing breakage of existing setups
+5. **Legacy gating** — the canonical `adv.md` is only removed from global (and repo-local) when `opencode.json` contains `agent.adv-*` keys; `agent.adv.disable: true` is also set to hide the generic agent via OpenCode's native disable mechanism
 
 Runtime visibility is controlled by OpenCode's native `agent.<name>.disable` field in `opencode.json` — no hidden routing, no fallback chains. The `opencode-model-preferences` (OMP) tool writes these config entries; ADV only generates the files.
 
