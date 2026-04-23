@@ -133,8 +133,8 @@ const PROVIDERS: Record<string, ProviderConfig> = {
     prompt_files: ["shared.yaml", "claude.yaml"],
   },
   gpt: {
-    model_id: "openai/gpt-4.1",
-    name: "GPT-4.1",
+    model_id: "openai/gpt-5.4",
+    name: "GPT-5.4",
     hint_file: join(REPO_ROOT, ".opencode/agent-parts/providers/gpt.md"),
     prompt_files: ["shared.yaml", "gpt.yaml"],
   },
