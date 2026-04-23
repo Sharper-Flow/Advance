@@ -3,8 +3,8 @@
   "name": "advance",
   "title": "Advance",
   "purpose": "Capability: Advance",
-  "version": "1.11.0",
-  "updated_at": "2026-04-22T22:45:00.000Z",
+  "version": "1.12.0",
+  "updated_at": "2026-04-23T16:20:00.000Z",
   "requirements": [
     {
       "id": "rq-W1sD0mR1",
@@ -15,12 +15,50 @@
         {
           "id": "rq-W1sD0mR1.1",
           "title": "Durable learning promotion",
-          "given": [
-            "A convention-level learning discovered in a change"
-          ],
+          "given": ["A convention-level learning discovered in a change"],
           "when": "adv_wisdom_add is executed with promote: true",
+          "then": ["The entry is appended to project-level wisdom.jsonl"]
+        }
+      ]
+    },
+    {
+      "id": "rq-synthstate01",
+      "title": "Synthetic Validation Draft Isolation",
+      "body": "Supported internal validation or parity flows must not leave synthetic draft changes in live ADV project state. Protection must preserve legitimate user-created drafts and keep draft/status surfaces focused on real changes.",
+      "priority": "must",
+      "scenarios": [
+        {
+          "id": "rq-synthstate01.1",
+          "title": "Synthetic validation families blocked on supported create path",
+          "given": [
+            "A supported internal validation or parity flow attempts to create a synthetic draft change matching a reserved parity-validation family on live ADV state"
+          ],
+          "when": "The create path executes",
           "then": [
-            "The entry is appended to project-level wisdom.jsonl"
+            "The synthetic draft is not persisted to the live project state",
+            "The caller receives a clear error or bounded degraded outcome directing synthetic activity to isolated temp/test storage"
+          ]
+        },
+        {
+          "id": "rq-synthstate01.2",
+          "title": "Legitimate parity wording remains allowed",
+          "given": [
+            "A normal user-driven change proposal uses benign wording that mentions parity but does not match a reserved synthetic family"
+          ],
+          "when": "The change is created",
+          "then": [
+            "The draft change is persisted normally",
+            "The protection does not block or rename the legitimate draft"
+          ]
+        },
+        {
+          "id": "rq-synthstate01.3",
+          "title": "Draft and status surfaces stay clear after validation activity",
+          "given": ["Supported internal validation activity has run"],
+          "when": "adv_change_list with status draft or adv_status is executed on the live project",
+          "then": [
+            "Stale synthetic parity-validation drafts are absent from live draft results",
+            "Real user-authored drafts remain visible"
           ]
         }
       ]
@@ -34,9 +72,7 @@
         {
           "id": "rq-M4n1f3s1.1",
           "title": "Context-aware recommendations",
-          "given": [
-            "A change at execution gate"
-          ],
+          "given": ["A change at execution gate"],
           "when": "adv-status is run",
           "then": [
             "It recommends adv-review or adv-harden based on manifest successors"
@@ -53,9 +89,7 @@
         {
           "id": "rq-R3v13wR1.1",
           "title": "Minimum findings validation",
-          "given": [
-            "A review with fewer than 3 non-nit findings"
-          ],
+          "given": ["A review with fewer than 3 non-nit findings"],
           "when": "Gate completion is attempted",
           "then": [
             "The gate remains open and requires explicit justification for the clean result"
@@ -86,9 +120,7 @@
         {
           "id": "rq-advcfg01.1",
           "title": "Invalid project config is surfaced",
-          "given": [
-            "project.json is malformed or schema-invalid"
-          ],
+          "given": ["project.json is malformed or schema-invalid"],
           "when": "adv_status is executed",
           "then": [
             "Output includes a config error or warning recommendation",
@@ -98,9 +130,7 @@
         {
           "id": "rq-advcfg01.2",
           "title": "Feature flags are visible in status output",
-          "given": [
-            "project.json parses successfully"
-          ],
+          "given": ["project.json parses successfully"],
           "when": "adv_status is executed",
           "then": [
             "Output includes feature_flags values",
@@ -118,24 +148,16 @@
         {
           "id": "rq-advmeta01.1",
           "title": "Filter by metadata key",
-          "given": [
-            "A change with tasks containing metadata keys"
-          ],
+          "given": ["A change with tasks containing metadata keys"],
           "when": "adv_task_list is called with filter has_metadata_key:<key>",
-          "then": [
-            "Only tasks containing that metadata key are returned"
-          ]
+          "then": ["Only tasks containing that metadata key are returned"]
         },
         {
           "id": "rq-advmeta01.2",
           "title": "Filter by metadata key/value",
-          "given": [
-            "A change with tasks containing metadata key/value pairs"
-          ],
+          "given": ["A change with tasks containing metadata key/value pairs"],
           "when": "adv_task_list is called with filter metadata:<key>=<value>",
-          "then": [
-            "Only tasks matching both key and value are returned"
-          ]
+          "then": ["Only tasks matching both key and value are returned"]
         }
       ]
     },
@@ -148,9 +170,7 @@
         {
           "id": "rq-advshut1.1",
           "title": "Signal performs bounded flush",
-          "given": [
-            "The process receives SIGINT or SIGTERM"
-          ],
+          "given": ["The process receives SIGINT or SIGTERM"],
           "when": "Shutdown handling begins",
           "then": [
             "store.flush is attempted before store.close",
@@ -160,9 +180,7 @@
         {
           "id": "rq-advshut1.2",
           "title": "Duplicate signals are idempotent",
-          "given": [
-            "A shutdown flush is already in progress"
-          ],
+          "given": ["A shutdown flush is already in progress"],
           "when": "A second SIGINT/SIGTERM is received",
           "then": [
             "No second flush path starts",
@@ -180,9 +198,7 @@
         {
           "id": "rq-advprop01.1",
           "title": "adv-task writes proposal by default",
-          "given": [
-            "A Quick Contract is confirmed in /adv-task"
-          ],
+          "given": ["A Quick Contract is confirmed in /adv-task"],
           "when": "The change is created",
           "then": [
             "proposal.md is written in the change directory",
@@ -192,9 +208,7 @@
         {
           "id": "rq-advprop01.2",
           "title": "Legacy missing proposal is non-blocking",
-          "given": [
-            "A legacy change has missing or empty proposal.md"
-          ],
+          "given": ["A legacy change has missing or empty proposal.md"],
           "when": "Proposal context is loaded",
           "then": [
             "A scaffold proposal is generated",
@@ -208,11 +222,7 @@
       "title": "Problem Statement Agreement for adv-proposal",
       "body": "/adv-proposal must extract prior discussion context (decisions, rejected approaches, constraints, open questions) from the conversation before synthesizing a problem statement, confirm it via the question tool before creating any change artifacts, and persist the confirmed text (including prior decisions and rejected approaches) as the opening section of proposal.md via the proposal parameter in adv_change_create. The problem statement must not contradict, omit, or reinterpret any prior decision or constraint from the conversation.",
       "priority": "must",
-      "tags": [
-        "proposal",
-        "context-agreement",
-        "transcript-grounding"
-      ],
+      "tags": ["proposal", "context-agreement", "transcript-grounding"],
       "scenarios": [
         {
           "id": "rq-advprop02.1",
@@ -230,9 +240,7 @@
         {
           "id": "rq-advprop02.2",
           "title": "Problem statement grounded in prior discussion",
-          "given": [
-            "Prior discussion context has been extracted"
-          ],
+          "given": ["Prior discussion context has been extracted"],
           "when": "The problem statement is synthesized",
           "then": [
             "The problem statement includes Prior Decisions, Rejected Approaches, and Open Questions sections",
@@ -244,9 +252,7 @@
         {
           "id": "rq-advprop02.3",
           "title": "Drift detection in confirmation",
-          "given": [
-            "A problem statement block is shown to the user"
-          ],
+          "given": ["A problem statement block is shown to the user"],
           "when": "The user reviews it via the question tool",
           "then": [
             "The confirmation question explicitly asks the user to check Prior Decisions and Rejected Approaches for accuracy",
@@ -257,9 +263,7 @@
         {
           "id": "rq-advprop02.4",
           "title": "Confirmed problem statement persisted in proposal.md",
-          "given": [
-            "The user confirms the problem statement in Phase 1"
-          ],
+          "given": ["The user confirms the problem statement in Phase 1"],
           "when": "The change is created in Phase 2",
           "then": [
             "adv_change_create is called with the proposal parameter containing the confirmed text",
@@ -270,9 +274,7 @@
         {
           "id": "rq-advprop02.5",
           "title": "Abort path creates no artifacts",
-          "given": [
-            "The user selects Abort during Phase 1 confirmation"
-          ],
+          "given": ["The user selects Abort during Phase 1 confirmation"],
           "when": "The command exits",
           "then": [
             "No change.json is created",
@@ -283,9 +285,7 @@
         {
           "id": "rq-advprop02.6",
           "title": "Confirmed problem statement persisted as standalone artifact",
-          "given": [
-            "The user confirms the problem statement in Phase 1"
-          ],
+          "given": ["The user confirms the problem statement in Phase 1"],
           "when": "The change is created in Phase 2",
           "then": [
             "adv_change_create is called with the problemStatement parameter containing the confirmed problem statement text",
@@ -302,11 +302,7 @@
       "title": "Defensive and Nesting Slop Detection",
       "body": "/adv-slop-scan must detect overly defensive code (redundant guard chains, paranoid null checks, unreachable fallback branches) and deeply nested code (nesting depth >= configured threshold) using AST-first analysis with deterministic degraded fallback when AST tools are unavailable. Findings must include structured diagnostic fields in all output formats.",
       "priority": "must",
-      "tags": [
-        "slop-scan",
-        "quality",
-        "ast"
-      ],
+      "tags": ["slop-scan", "quality", "ast"],
       "scenarios": [
         {
           "id": "rq-slopscan01.1",
@@ -378,12 +374,7 @@
       "title": "Mid-Change Scope Expansion Re-Entry",
       "body": "When new objectives or acceptance criteria are introduced after a change has already progressed through the gate workflow, the added scope must be routed back through the earliest invalidated pre-implementation gate via adv_change_reenter before execution continues. Agents may trigger this re-entry autonomously; explicit user approval is not required to circle back to an earlier gate. Unaffected approved scope may continue without re-entry, and non-invalidating clarifications do not require re-entry.",
       "priority": "must",
-      "tags": [
-        "workflow",
-        "re-entry",
-        "scope-expansion",
-        "gates"
-      ],
+      "tags": ["workflow", "re-entry", "scope-expansion", "gates"],
       "scenarios": [
         {
           "id": "rq-scopeReentry01.1",
@@ -427,9 +418,7 @@
         {
           "id": "rq-scopeReentry01.4",
           "title": "Re-entry may proceed without explicit user approval",
-          "given": [
-            "A change needs scope-expansion re-entry"
-          ],
+          "given": ["A change needs scope-expansion re-entry"],
           "when": "adv_change_reenter is executed",
           "then": [
             "The call may succeed without approvedByUser or approvalEvidence",
@@ -443,12 +432,7 @@
       "title": "Re-Entry Cascade Reset Preserves Work",
       "body": "Reopening a change from gate X must reset gate X and all downstream gates to pending while preserving existing tasks and completed work. Each re-entry must append an audit entry describing the reopened gate, reason, optional scope delta, actor, timestamp, and gates reset.",
       "priority": "must",
-      "tags": [
-        "workflow",
-        "re-entry",
-        "audit",
-        "gates"
-      ],
+      "tags": ["workflow", "re-entry", "audit", "gates"],
       "scenarios": [
         {
           "id": "rq-scopeReentry02.1",
@@ -465,9 +449,7 @@
         {
           "id": "rq-scopeReentry02.2",
           "title": "Tasks remain intact after cascade reset",
-          "given": [
-            "A change has existing tasks, including completed tasks"
-          ],
+          "given": ["A change has existing tasks, including completed tasks"],
           "when": "adv_change_reenter resets gates to pending",
           "then": [
             "All existing tasks remain on the change",
@@ -477,9 +459,7 @@
         {
           "id": "rq-scopeReentry02.3",
           "title": "Re-entry appends audit history",
-          "given": [
-            "A change has been reopened via adv_change_reenter"
-          ],
+          "given": ["A change has been reopened via adv_change_reenter"],
           "when": "The re-entry is persisted",
           "then": [
             "A reentry_history entry is appended with from_gate, reason, reopened_by, approval_evidence, reopened_at, and gates_reset",
@@ -493,17 +473,12 @@
       "title": "Seven-Gate Collaborative Workflow",
       "body": "The canonical ADV workflow is seven sequential gates: proposal, discovery, design, planning, execution, acceptance, release. Gates must be completed in order. A change cannot be archived until all seven gates are satisfied (status 'done' or 'skipped').",
       "priority": "must",
-      "tags": [
-        "workflow",
-        "gates"
-      ],
+      "tags": ["workflow", "gates"],
       "scenarios": [
         {
           "id": "rq-gatemodel01.1",
           "title": "Sequential gate enforcement",
-          "given": [
-            "A change with the proposal gate pending"
-          ],
+          "given": ["A change with the proposal gate pending"],
           "when": "adv_gate_complete is called for the discovery gate",
           "then": [
             "The call is rejected",
@@ -606,9 +581,7 @@
         {
           "id": "rq-remediation01.2",
           "title": "Report-only path rejected for in-scope findings",
-          "given": [
-            "/adv-harden identifies an actionable in-scope finding"
-          ],
+          "given": ["/adv-harden identifies an actionable in-scope finding"],
           "when": "Remediation options are presented",
           "then": [
             "No report-only or future-work option is offered",
@@ -618,9 +591,7 @@
         {
           "id": "rq-remediation01.3",
           "title": "Rejection with evidence is permitted",
-          "given": [
-            "/adv-review flags a suggestion as potentially in-scope"
-          ],
+          "given": ["/adv-review flags a suggestion as potentially in-scope"],
           "when": "Investigation determines the suggestion is invalid or out of scope",
           "then": [
             "The finding is rejected with documented evidence",
@@ -687,7 +658,9 @@
         {
           "id": "rq-designval01.1",
           "title": "Validator runs before design gate completion",
-          "given": ["A change has a confirmed agreement and completed design work"],
+          "given": [
+            "A change has a confirmed agreement and completed design work"
+          ],
           "when": "/adv-design is executed",
           "then": [
             "An independent validation sub-agent pass runs before adv_gate_complete is called for the design gate",
@@ -698,7 +671,9 @@
         {
           "id": "rq-designval01.2",
           "title": "Validator failure results in INCONCLUSIVE, not a block",
-          "given": ["The validator sub-agent fails, returns empty, or times out"],
+          "given": [
+            "The validator sub-agent fails, returns empty, or times out"
+          ],
           "when": "/adv-design handles the failed validator response",
           "then": [
             "The result is recorded as INCONCLUSIVE with a warning",
@@ -747,7 +722,9 @@
         {
           "id": "rq-designval03.1",
           "title": "CONFLICT verdict blocks silent auto-continue to planning",
-          "given": ["The design validator returned a CONFLICT verdict with unresolved findings"],
+          "given": [
+            "The design validator returned a CONFLICT verdict with unresolved findings"
+          ],
           "when": "The orchestrator evaluates whether to proceed from design to planning",
           "then": [
             "The orchestrator does not silently proceed to /adv-prep",
@@ -809,9 +786,7 @@
         {
           "id": "rq-presentationSurface01.1",
           "title": "New surface addition requires justification or limit update",
-          "given": [
-            "An ADV change proposes a new command, tool, or skill"
-          ],
+          "given": ["An ADV change proposes a new command, tool, or skill"],
           "when": "The change updates the workflow surface",
           "then": [
             "The change explains why the new surface does not duplicate an existing merge opportunity, or updates the documented limits in the same change",
@@ -830,9 +805,7 @@
         {
           "id": "rq-ADVEXEC01.1",
           "title": "Red and green contract lines name adv_run_test",
-          "given": [
-            "The /adv-apply command contract is present"
-          ],
+          "given": ["The /adv-apply command contract is present"],
           "when": "Its Red and Green phase guidance is inspected",
           "then": [
             "The Red phase line names adv_run_test with phase 'red'",
@@ -842,9 +815,7 @@
         {
           "id": "rq-ADVEXEC01.2",
           "title": "Apply contract names editing tools for test-file changes",
-          "given": [
-            "The /adv-apply command contract is present"
-          ],
+          "given": ["The /adv-apply command contract is present"],
           "when": "Its ordinary inline-TDD file-editing guidance is inspected",
           "then": [
             "At least one supported editing tool is named for test-file creation or modification",
@@ -875,24 +846,16 @@
         {
           "id": "rq-ADVEXEC02.1",
           "title": "Asset tests guard canonical path wording",
-          "given": [
-            "The /adv-apply contract is covered by asset tests"
-          ],
+          "given": ["The /adv-apply contract is covered by asset tests"],
           "when": "Canonical Red/Green adv_run_test wording is removed",
-          "then": [
-            "The asset or regression suite fails"
-          ]
+          "then": ["The asset or regression suite fails"]
         },
         {
           "id": "rq-ADVEXEC02.2",
           "title": "Asset tests guard anti-pattern row",
-          "given": [
-            "The /adv-apply contract is covered by asset tests"
-          ],
+          "given": ["The /adv-apply contract is covered by asset tests"],
           "when": "The shell-authored test-file anti-pattern row is removed or weakened",
-          "then": [
-            "The asset or regression suite fails"
-          ]
+          "then": ["The asset or regression suite fails"]
         }
       ]
     },
@@ -1027,7 +990,9 @@
         {
           "id": "rq-bulkClose01.3",
           "title": "Fail-all on protected targets",
-          "given": ["A bulk close request targeting a mix of valid and invalid changes"],
+          "given": [
+            "A bulk close request targeting a mix of valid and invalid changes"
+          ],
           "when": "Any resolved target is active, archived, closed, nonexistent, ambiguous, or duplicated",
           "then": [
             "The entire request fails before any mutation",
