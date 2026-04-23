@@ -136,3 +136,64 @@ describe("tmux rename-window safety", () => {
     expect(() => term._setTitle("whatever")).not.toThrow();
   });
 });
+
+describe("terminal title status contract", () => {
+  const originalTmux = process.env.TMUX;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    delete process.env.TMUX;
+    vi.resetModules();
+  });
+
+  afterEach(() => {
+    if (originalTmux === undefined) {
+      delete process.env.TMUX;
+    } else {
+      process.env.TMUX = originalTmux;
+    }
+    vi.clearAllMocks();
+  });
+
+  test("ATTN without active change writes emoji + shortname title", async () => {
+    const stdoutSpy = vi
+      .spyOn(process.stdout, "write")
+      .mockImplementation(() => true as never);
+    const term = await import("./terminal");
+
+    term.updateTerminalStatus("ATTN", "advance");
+
+    expect(stdoutSpy).toHaveBeenCalled();
+    expect(String(stdoutSpy.mock.calls.at(-1)?.[0])).toContain(
+      "\x1b]0;🟥 Advance\x07",
+    );
+  });
+
+  test("WORK with active change writes emoji + shortname + change title", async () => {
+    const stdoutSpy = vi
+      .spyOn(process.stdout, "write")
+      .mockImplementation(() => true as never);
+    const term = await import("./terminal");
+
+    term.updateTerminalStatus("WORK", "advance", "addFeatureX");
+
+    expect(stdoutSpy).toHaveBeenCalled();
+    expect(String(stdoutSpy.mock.calls.at(-1)?.[0])).toContain(
+      "\x1b]0;🟩 Advance · Feature X\x07",
+    );
+  });
+
+  test("BLOCKED without active change keeps skull suffix", async () => {
+    const stdoutSpy = vi
+      .spyOn(process.stdout, "write")
+      .mockImplementation(() => true as never);
+    const term = await import("./terminal");
+
+    term.updateTerminalStatus("BLOCKED", "advance");
+
+    expect(stdoutSpy).toHaveBeenCalled();
+    expect(String(stdoutSpy.mock.calls.at(-1)?.[0])).toContain(
+      "\x1b]0;🟥 Advance 💀\x07",
+    );
+  });
+});
