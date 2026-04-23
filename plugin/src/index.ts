@@ -68,6 +68,7 @@ const getProviderBehaviorHint = (providerID?: string): string | null => {
 interface StatusFlags {
   sessionIdle: boolean;
   activeSubAgents: number;
+  activeLongTools: number;
   permissionPending: boolean;
 }
 
@@ -89,7 +90,7 @@ interface PluginState extends StatusFlags {
  * Resolve the current StatusMarker from plugin state flags.
  *
  * Precedence (highest → lowest):
- *   ATTN (permission pending) > TOOLING (sub-agents) > ATTN (idle) > WORK
+ *   ATTN (permission pending) > TOOLING (sub-agents/long tools) > ATTN (idle) > WORK
  *
  * ATTN is shown both when user explicitly needs to act (permission pending)
  * and when the session is idle (agent finished, user should look).
@@ -97,10 +98,12 @@ interface PluginState extends StatusFlags {
  */
 const resolveStatus = (s: PluginState): StatusMarker => {
   if (s.permissionPending) return "ATTN";
-  if (s.activeSubAgents > 0) return "TOOLING";
+  if (s.activeSubAgents > 0 || s.activeLongTools > 0) return "TOOLING";
   if (s.sessionIdle) return "ATTN";
   return "WORK";
 };
+
+const LONG_TOOLS = new Set(["adv_run_test", "adv_task_evidence"]);
 
 const debugLog = (msg: string): void => appendDebugLog("index", msg);
 const hooksLogger = createLogger("hooks");
@@ -166,6 +169,7 @@ export const AdvancePlugin: Plugin = async ({
   const state: PluginState = {
     sessionIdle: true,
     activeSubAgents: 0,
+    activeLongTools: 0,
     permissionPending: false,
     activeChange: { id: null, objective: null },
     lastCompletedTask: null,
@@ -320,14 +324,11 @@ export const AdvancePlugin: Plugin = async ({
         }
 
         // Long-running tools opt into TOOLING status (yellow tab)
-        const LONG_TOOLS = new Set(["adv_run_test", "adv_task_evidence"]);
         if (LONG_TOOLS.has(input.tool)) {
-          setStatus(
-            resolveStatus({
-              ...state,
-              activeSubAgents: state.activeSubAgents + 1,
-            }),
-          );
+          setFlags({
+            activeLongTools: state.activeLongTools + 1,
+            sessionIdle: false,
+          });
         }
       } catch (e) {
         debugLog(`tool.execute.before error: ${e}`);
@@ -388,9 +389,10 @@ export const AdvancePlugin: Plugin = async ({
         }
 
         // Long-running tools: restore status after completion
-        const LONG_TOOLS = new Set(["adv_run_test", "adv_task_evidence"]);
         if (LONG_TOOLS.has(input.tool)) {
-          setStatus(resolveStatus(state));
+          setFlags({
+            activeLongTools: Math.max(0, state.activeLongTools - 1),
+          });
         }
       } catch (e) {
         debugLog(`tool.execute.after error: ${e}`);

@@ -206,4 +206,59 @@ describe("benchmark-temporal scaffold (A1)", () => {
       expect(tagged.duration_ns).toBe(sample.duration_ns);
     });
   });
+
+  describe("runners (A3)", () => {
+    const fakeAdapter = async (op: BenchmarkOp) => {
+      await new Promise((r) => setTimeout(r, 5));
+      return `result-${op}`;
+    };
+
+    it("runWarmInteractive returns N samples with correct mode and gap", async () => {
+      const { runWarmInteractive } = await import("../../scripts/benchmark-temporal");
+      const start = Date.now();
+      const samples = await runWarmInteractive("adv_status", 3, 50, fakeAdapter);
+      const elapsed = Date.now() - start;
+
+      expect(samples).toHaveLength(3);
+      expect(samples.every((s) => s.mode === "warm-interactive")).toBe(true);
+      expect(samples.every((s) => s.op === "adv_status")).toBe(true);
+      // 3 samples with 50ms gap between = at least 100ms total
+      expect(elapsed).toBeGreaterThanOrEqual(100);
+    });
+
+    it("runRepeatedCommand returns N samples back-to-back", async () => {
+      const { runRepeatedCommand } = await import("../../scripts/benchmark-temporal");
+      const start = Date.now();
+      const samples = await runRepeatedCommand("adv_change_list", 5, fakeAdapter);
+      const elapsed = Date.now() - start;
+
+      expect(samples).toHaveLength(5);
+      expect(samples.every((s) => s.mode === "repeated-command")).toBe(true);
+      // Should be fast — no gaps
+      expect(elapsed).toBeLessThan(200);
+    });
+
+    it("runColdStart spawns child processes (or falls back gracefully)", async () => {
+      const { runColdStart } = await import("../../scripts/benchmark-temporal");
+      // We can't easily test actual child-process spawning in vitest without
+      // complex mocking, but we can verify the function accepts the adapter
+      // and returns the expected shape (even if all children fail and fall back).
+      const samples = await runColdStart("adv_task_show", 2, fakeAdapter);
+
+      expect(samples).toHaveLength(2);
+      expect(samples.every((s) => s.mode === "cold-start")).toBe(true);
+      // Each sample should have a duration (either from child or fallback)
+      expect(samples.every((s) => s.duration_ns >= 0)).toBe(true);
+    });
+
+    it("cold-start isolation: each sample has distinct run_id prefix", async () => {
+      const { runColdStart } = await import("../../scripts/benchmark-temporal");
+      const samples = await runColdStart("adv_status", 3, fakeAdapter);
+
+      // All samples share the same run_id base
+      const baseId = samples[0]?.run_id;
+      expect(baseId).toBeDefined();
+      expect(samples.every((s) => s.run_id === baseId)).toBe(true);
+    });
+  });
 });

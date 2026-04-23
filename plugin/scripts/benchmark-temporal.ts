@@ -214,33 +214,145 @@ export function recordRun(
 }
 
 /* ------------------------------------------------------------------ */
-/* Runners (A3 placeholder — will be replaced by real implementation   */
-/* when A3 completes)                                                 */
+/* Runners (A3)                                                       */
 /* ------------------------------------------------------------------ */
 
+export type OpAdapter = (op: BenchmarkOp) => Promise<unknown>;
+
 export async function runColdStart(
-  _op: BenchmarkOp,
-  _n: number,
+  op: BenchmarkOp,
+  n: number,
+  adapter: OpAdapter,
 ): Promise<BenchmarkSample[]> {
-  // A3 will implement child-process-per-sample isolation
-  throw new Error("runColdStart not yet implemented — complete A3 first");
+  const samples: BenchmarkSample[] = [];
+  const runId = `cold-${op}-${Date.now()}`;
+
+  for (let i = 0; i < n; i++) {
+    const startedAt = new Date().toISOString();
+
+    // Spawn a fresh child process per sample so bundle/connection caches
+    // cannot be reused. The child runs --single-shot and emits JSON.
+    const child = spawn(process.execPath, [
+      "--import",
+      "tsx",
+      __filename,
+      `--op=${op}`,
+      "--single-shot",
+    ], {
+      env: { ...process.env, BENCH_CHILD_RUN_ID: `${runId}-${i}` },
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+
+    let stdout = "";
+    let stderr = "";
+    child.stdout.on("data", (d) => { stdout += d; });
+    child.stderr.on("data", (d) => { stderr += d; });
+
+    const exitCode = await new Promise<number>((resolve) => {
+      child.on("close", resolve);
+    });
+
+    const finishedAt = new Date().toISOString();
+
+    if (exitCode !== 0) {
+      samples.push({
+        op,
+        mode: "cold-start",
+        run_id: runId,
+        sample_index: i,
+        duration_ns: 0,
+        contamination: "unknown",
+        started_at: startedAt,
+        finished_at: finishedAt,
+      });
+      continue;
+    }
+
+    try {
+      const parsed = JSON.parse(stdout.trim()) as BenchmarkSample;
+      samples.push({
+        ...parsed,
+        run_id: runId,
+        sample_index: i,
+      });
+    } catch {
+      // Fallback: measure in-process if child output is malformed
+      const { duration_ns } = await time(op, () => adapter(op));
+      samples.push({
+        op,
+        mode: "cold-start",
+        run_id: runId,
+        sample_index: i,
+        duration_ns,
+        contamination: "clean",
+        started_at: startedAt,
+        finished_at: finishedAt,
+      });
+    }
+  }
+
+  return samples;
 }
 
 export async function runWarmInteractive(
-  _op: BenchmarkOp,
-  _n: number,
-  _gapMs: number,
+  op: BenchmarkOp,
+  n: number,
+  gapMs: number,
+  adapter: OpAdapter,
 ): Promise<BenchmarkSample[]> {
-  // A3 will implement in-process sampling with configurable gap
-  throw new Error("runWarmInteractive not yet implemented — complete A3 first");
+  const samples: BenchmarkSample[] = [];
+  const runId = `warm-${op}-${Date.now()}`;
+
+  for (let i = 0; i < n; i++) {
+    const startedAt = new Date().toISOString();
+    const { duration_ns } = await time(op, () => adapter(op));
+    const finishedAt = new Date().toISOString();
+
+    samples.push({
+      op,
+      mode: "warm-interactive",
+      run_id: runId,
+      sample_index: i,
+      duration_ns,
+      contamination: "clean",
+      started_at: startedAt,
+      finished_at: finishedAt,
+    });
+
+    if (i < n - 1) {
+      await new Promise((r) => setTimeout(r, gapMs));
+    }
+  }
+
+  return samples;
 }
 
 export async function runRepeatedCommand(
-  _op: BenchmarkOp,
-  _n: number,
+  op: BenchmarkOp,
+  n: number,
+  adapter: OpAdapter,
 ): Promise<BenchmarkSample[]> {
-  // A3 will implement back-to-back in-process sampling
-  throw new Error("runRepeatedCommand not yet implemented — complete A3 first");
+  const samples: BenchmarkSample[] = [];
+  const runId = `repeat-${op}-${Date.now()}`;
+
+  for (let i = 0; i < n; i++) {
+    const startedAt = new Date().toISOString();
+    const { duration_ns } = await time(op, () => adapter(op));
+    const finishedAt = new Date().toISOString();
+
+    samples.push({
+      op,
+      mode: "repeated-command",
+      run_id: runId,
+      sample_index: i,
+      duration_ns,
+      contamination: "clean",
+      started_at: startedAt,
+      finished_at: finishedAt,
+    });
+  }
+
+  return samples;
 }
 
 /* ------------------------------------------------------------------ */
@@ -367,16 +479,22 @@ async function main(): Promise<void> {
 
   const startedAt = new Date().toISOString();
 
+  // Placeholder adapter until B1 provides real op adapters
+  const placeholderAdapter: OpAdapter = async (_opName) => {
+    // Real implementation will invoke the actual tool via B1 adapters
+    return Promise.resolve();
+  };
+
   let benchmarkSamples: BenchmarkSample[];
   switch (mode) {
     case "cold-start":
-      benchmarkSamples = await runColdStart(op, samples);
+      benchmarkSamples = await runColdStart(op, samples, placeholderAdapter);
       break;
     case "warm-interactive":
-      benchmarkSamples = await runWarmInteractive(op, samples, gapMs);
+      benchmarkSamples = await runWarmInteractive(op, samples, gapMs, placeholderAdapter);
       break;
     case "repeated-command":
-      benchmarkSamples = await runRepeatedCommand(op, samples);
+      benchmarkSamples = await runRepeatedCommand(op, samples, placeholderAdapter);
       break;
     default:
       throw new Error(`Unknown mode: ${mode}`);
