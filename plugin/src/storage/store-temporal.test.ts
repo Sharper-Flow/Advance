@@ -2,6 +2,43 @@ import { describe, expect, it, vi } from "vitest";
 import { createTemporalStoreBackend } from "./store-temporal";
 import type { Store } from "./store-types";
 
+/**
+ * Creates a minimal project workflow handle mock for tests.
+ * Returns empty PSW state with no change_summaries.
+ */
+function makeProjectHandle() {
+  return {
+    query: vi.fn(async (queryDef: any, ..._args: any[]) => {
+      const name = queryDef?.name ?? queryDef;
+      if (name === "adv.project.state") {
+        return {
+          projectId: "proj1",
+          initializedAt: "2026-04-18T00:00:00.000Z",
+          agenda: [],
+          project_wisdom: [],
+          migration_ledger: [],
+          change_summaries: {},
+          source_versions: {},
+        };
+      }
+      return null;
+    }),
+    executeUpdate: vi.fn(async () => null),
+    signal: vi.fn(async () => {}),
+  };
+}
+
+/**
+ * Route helper: returns projectHandle for project workflow IDs,
+ * changeHandle otherwise.
+ */
+function routeHandle(changeHandle: any, projectHandle = makeProjectHandle()) {
+  return vi.fn((workflowId: string) => {
+    if (workflowId.startsWith("adv/project/")) return projectHandle;
+    return changeHandle;
+  });
+}
+
 function makeLegacyStore(): Store {
   return {
     paths: {} as any,
@@ -110,15 +147,13 @@ describe("Temporal store backend adapter", () => {
         return null;
       }),
       executeUpdate: vi.fn(async () => null),
+      signal: vi.fn(async () => {}),
     };
 
     const bundle = {
       client: {
         workflow: {
-          getHandle: vi.fn((workflowId: string) => {
-            expect(workflowId).toContain("adv/");
-            return changeHandle;
-          }),
+          getHandle: routeHandle(changeHandle),
         },
       },
       address: "127.0.0.1:7233",
@@ -190,12 +225,13 @@ describe("Temporal store backend adapter", () => {
         return null;
       }),
       executeUpdate: vi.fn(async () => null),
+      signal: vi.fn(async () => {}),
     };
 
     const bundle = {
       client: {
         workflow: {
-          getHandle: vi.fn(() => changeHandle),
+          getHandle: routeHandle(changeHandle),
         },
       },
     };
@@ -329,12 +365,13 @@ describe("Temporal store backend adapter", () => {
         artifacts: {},
       })),
       executeUpdate: vi.fn(async () => null),
+      signal: vi.fn(async () => {}),
     };
 
     const bundle = {
       client: {
         workflow: {
-          getHandle: vi.fn(() => changeHandle),
+          getHandle: routeHandle(changeHandle),
         },
       },
     };
@@ -390,12 +427,13 @@ describe("Temporal store backend adapter", () => {
           artifacts: {},
         }),
       executeUpdate: vi.fn(async () => null),
+      signal: vi.fn(async () => {}),
     };
 
     const bundle = {
       client: {
         workflow: {
-          getHandle: vi.fn(() => changeHandle),
+          getHandle: routeHandle(changeHandle),
         },
       },
     };
@@ -420,12 +458,13 @@ describe("Temporal store backend adapter", () => {
         throw new Error("Workflow execution not found");
       }),
       executeUpdate: vi.fn(async () => null),
+      signal: vi.fn(async () => {}),
     };
 
     const bundle = {
       client: {
         workflow: {
-          getHandle: vi.fn(() => changeHandle),
+          getHandle: routeHandle(changeHandle),
         },
       },
     };
@@ -454,12 +493,13 @@ describe("Temporal store backend adapter", () => {
         throw new Error(msg);
       }),
       executeUpdate: vi.fn(async () => null),
+      signal: vi.fn(async () => {}),
     };
 
     const bundle = {
       client: {
         workflow: {
-          getHandle: vi.fn(() => changeHandle),
+          getHandle: routeHandle(changeHandle),
         },
       },
     };
@@ -490,7 +530,7 @@ describe("Temporal store backend adapter", () => {
       const bundle = {
         client: {
           workflow: {
-            getHandle: vi.fn(() => changeHandle),
+            getHandle: routeHandle(changeHandle),
           },
         },
       };
@@ -554,12 +594,13 @@ describe("Temporal store backend adapter", () => {
           artifacts: {},
         })),
         executeUpdate: vi.fn(async () => null),
+      signal: vi.fn(async () => {}),
       };
 
       const bundle = {
         client: {
           workflow: {
-            getHandle: vi.fn(() => changeHandle),
+            getHandle: routeHandle(changeHandle),
           },
         },
       };

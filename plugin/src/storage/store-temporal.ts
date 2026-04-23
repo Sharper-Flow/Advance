@@ -11,23 +11,28 @@ import type {
 } from "../types";
 import type { Store } from "./store-types";
 import type { TemporalClientBundle } from "../temporal/client";
-import { buildChangeWorkflowId } from "../temporal/client";
+import {
+  buildChangeWorkflowId,
+  buildProjectWorkflowId,
+} from "../temporal/client";
 import {
   addChangeWisdomUpdate,
   addTaskUpdate,
+  applyChangeSummarySignal,
   cancelTaskUpdate,
   changeStateQuery,
   changeTaskQuery,
   changeTasksQuery,
   closeChangeUpdate,
   completeGateUpdate,
+  projectStateQuery,
   recordTaskEvidenceUpdate,
   reclassifyTaskTddUpdate,
   reopenFromGateUpdate,
   setTaskPhaseUpdate,
   updateTaskUpdate,
 } from "../temporal/messages";
-import type { ChangeWorkflowState } from "../temporal/contracts";
+import type { ChangeWorkflowState, ProjectWorkflowState } from "../temporal/contracts";
 import { getReadyTasksFromChangeState } from "../temporal/change-state";
 import { withTemporalRetry } from "../temporal/retry-wrapper";
 import { listChangeDirs } from "./json";
@@ -309,7 +314,7 @@ export function createTemporalStoreBackend(
     };
   };
 
-  return {
+  const store: Store = {
     ...legacy,
     changes: {
       ...legacy.changes,
@@ -756,4 +761,56 @@ export function createTemporalStoreBackend(
       return buildTemporalStatus();
     },
   };
+
+  // Fire-and-forget PSW hydration: warm-start the Memo from projectWorkflow
+  // state so first status/list calls hit Memo instead of O(N) fan-out.
+  hydrateMemoFromPSW(input, memo);
+
+  return store;
+}
+
+/**
+ * Background hydration: query projectWorkflow.state and bulk-load
+ * change_summaries into the Memo. Best-effort — failures are logged but
+ * never block store creation.
+ */
+function hydrateMemoFromPSW(
+  input: TemporalStoreBackendInput,
+  memo: ChangeSummaryMemo,
+): void {
+  void (async () => {
+    try {
+      const handle = getProjectHandleForInput(input);
+      if (!handle) return;
+      const pswState = (await runTemporal(() =>
+        handle.query(projectStateQuery),
+      )) as ProjectWorkflowState | null;
+      if (!pswState?.change_summaries) return;
+      const entries: Array<[string, ChangeSummary]> = [];
+      for (const [changeId, summary] of Object.entries(
+        pswState.change_summaries,
+      )) {
+        if (summary && typeof summary === "object" && "id" in summary) {
+          entries.push([changeId, summary as ChangeSummary]);
+        }
+      }
+      if (entries.length > 0) {
+        memo.bulkSet(entries);
+      }
+    } catch {
+      // PSW may not be running; hydration is best-effort
+    }
+  })();
+}
+
+function getProjectHandleForInput(
+  input: TemporalStoreBackendInput,
+): WorkflowHandleLike | null {
+  try {
+    const workflowId = buildProjectWorkflowId(input.projectId);
+    const bundle = input.temporal as { client: TemporalHandleClient };
+    return bundle.client.workflow.getHandle(workflowId);
+  } catch {
+    return null;
+  }
 }
