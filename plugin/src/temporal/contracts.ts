@@ -158,3 +158,29 @@ export interface ProjectWorkflowState extends ProjectWorkflowInput {
   /** Monotonic version tracking per change for dedupe */
   source_versions: Record<string, number>;
 }
+
+/**
+ * Continue-as-new history thresholds.
+ * Tunable via env vars ADV_TEMPORAL_PROJECT_HISTORY_THRESHOLD and
+ * ADV_TEMPORAL_CHANGE_HISTORY_THRESHOLD.
+ */
+export const DEFAULT_PROJECT_HISTORY_THRESHOLD = 10_000;
+export const DEFAULT_CHANGE_HISTORY_THRESHOLD = 2_000;
+
+export interface ContinueAsNewThresholds {
+  projectHistoryThreshold: number;
+  changeHistoryThreshold: number;
+}
+
+export function resolveHistoryThresholds(
+  env: Record<string, string | undefined> = process.env,
+): ContinueAsNewThresholds {
+  return {
+    projectHistoryThreshold: env.ADV_TEMPORAL_PROJECT_HISTORY_THRESHOLD
+      ? parseInt(env.ADV_TEMPORAL_PROJECT_HISTORY_THRESHOLD, 10)
+      : DEFAULT_PROJECT_HISTORY_THRESHOLD,
+    changeHistoryThreshold: env.ADV_TEMPORAL_CHANGE_HISTORY_THRESHOLD
+      ? parseInt(env.ADV_TEMPORAL_CHANGE_HISTORY_THRESHOLD, 10)
+      : DEFAULT_CHANGE_HISTORY_THRESHOLD,
+  };
+}

@@ -14,6 +14,7 @@ import {
   type ProjectWisdomEntry,
 } from "./contracts";
 import { ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES } from "./observability";
+import { resolveHistoryThresholds } from "./contracts";
 import {
   addChangeWisdom,
   addTaskToChangeState,
@@ -306,8 +307,13 @@ export async function changeWorkflow(
       });
       // Update search attributes with the next active gate
       const gateOrder: import("../types").GateId[] = [
-        "proposal", "discovery", "design", "planning",
-        "execution", "acceptance", "release",
+        "proposal",
+        "discovery",
+        "design",
+        "planning",
+        "execution",
+        "acceptance",
+        "release",
       ];
       const currentIdx = gateOrder.indexOf(gateId);
       const nextGate = gateOrder[currentIdx + 1];
@@ -364,7 +370,40 @@ export async function changeWorkflow(
     },
   );
 
-  await wf.condition(() => false);
+  const thresholds = resolveHistoryThresholds();
+  // Check history length on each wakeup; continue-as-new when threshold hit
+  await wf.condition(() => {
+    if (shouldContinueAsNew(thresholds.changeHistoryThreshold)) return true;
+    return false;
+  });
+
+  // Continue-as-new: pass current state as seed
+  const { changeId, projectId, initializedAt, title } = input;
+  const seed: ChangeWorkflowInput = {
+    changeId,
+    projectId,
+    initializedAt,
+    title,
+    seedState: {
+      status: state.status,
+      tasks: state.tasks,
+      wisdom: state.wisdom,
+      gates: state.gates,
+      reentry_history: state.reentry_history,
+      artifacts: state.artifacts,
+    },
+  };
+  await wf.continueAsNew<typeof changeWorkflow>(seed);
+}
+
+/**
+ * History-length check helper. Returns true if the workflow should
+ * continue-as-new to keep history size bounded.
+ */
+function shouldContinueAsNew(threshold: number): boolean {
+  const info = wf.workflowInfo();
+  const historyLength = (info as any).historyLength as number | undefined;
+  return historyLength !== undefined && historyLength >= threshold;
 }
 
 export async function projectWorkflow(
@@ -458,5 +497,19 @@ export async function projectWorkflow(
       applyChangeSummaryToProjectState(state, payload),
   );
 
-  await wf.condition(() => false);
+  const thresholds = resolveHistoryThresholds();
+  await wf.condition(() => {
+    if (shouldContinueAsNew(thresholds.projectHistoryThreshold)) return true;
+    return false;
+  });
+
+  // Continue-as-new: pass current state as seed
+  const seed: ProjectWorkflowInput = {
+    projectId: input.projectId,
+    initializedAt: input.initializedAt,
+    agenda: state.agenda,
+    projectWisdom: state.project_wisdom,
+    migrationLedger: state.migration_ledger,
+  };
+  await wf.continueAsNew<typeof projectWorkflow>(seed);
 }
