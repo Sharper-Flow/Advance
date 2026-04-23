@@ -18,6 +18,7 @@ import { projectMigrationLedgerQuery } from "../temporal/messages";
 import { getTemporalHealth } from "../temporal/health-probe";
 import { wrapWithBanner } from "../utils/banner";
 import { formatToolOutput } from "../utils/tool-output";
+import { formatStatusOutput } from "../utils/tool-formatters";
 import {
   createDefaultGates,
   GATE_ORDER,
@@ -276,11 +277,32 @@ export const statusTools = {
         await enrichRecentChangeStatus(rc, status, store, clarifyMode);
       }
 
+      const specsList = await store.specs.list();
+      const requirementCount = specsList.specs.reduce(
+        (sum, s) => sum + (s.requirementCount ?? 0),
+        0,
+      );
+
+      const formatted = formatStatusOutput({
+        specCount: status.specs.count,
+        requirementCount,
+        activeChanges: status.changes.recent.map((c) => ({
+          id: c.id,
+          title: c.title,
+          minutesSinceActivity: c.minutesSinceActivity,
+          recency: c.recency,
+        })),
+        archivedCount: status.changes.byStatus.archived ?? 0,
+        recommendations: status.recommendations,
+        temporalAlive: !!temporalHealth?.server_alive,
+      });
+
       const output = {
         ...status,
         ...(featureFlags ? { feature_flags: featureFlags } : {}),
         temporal_health: temporalHealth,
         migration_status: migrationStatus,
+        formatted,
       };
 
       return wrapWithBanner(

@@ -198,6 +198,22 @@ describe("Task Tools", () => {
       expect(parsed._contextSnapshot).toContain("addFeature");
       expect(parsed._contextSnapshot).toMatch(/[╔╗╚╝║═]/);
     });
+
+    test("includes formatted output with readyList and blockedList", async () => {
+      const result = await taskTools.adv_task_ready.execute(
+        { changeId: "addFeature" },
+        store,
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed.formatted).toBeDefined();
+      expect(typeof parsed.formatted.readyList).toBe("string");
+      expect(typeof parsed.formatted.blockedList).toBe("string");
+      expect(parsed.formatted.readyList).toContain("tk-task0001");
+      expect(parsed.formatted.blockedList).toContain("tk-task0002");
+      expect(parsed.formatted.nextSuggested).toBeDefined();
+      expect(parsed.formatted.todoFormat).toBeDefined();
+    });
   });
 
   describe("adv_task_update", () => {

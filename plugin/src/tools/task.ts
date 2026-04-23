@@ -22,6 +22,7 @@ import {
 import { validateEvidenceSemantics } from "../validator/evidence";
 import { formatToolOutput, paginate } from "../utils/tool-output";
 import { fetchChangeContextSnapshot } from "../utils/context-snapshot";
+import { formatTaskReadyOutput } from "../utils/tool-formatters";
 
 // =============================================================================
 // Tool Definitions
@@ -104,8 +105,24 @@ export const taskTools = {
     execute: async ({ changeId }: { changeId: string }, store: Store) => {
       const result = await store.tasks.ready(changeId);
       const snapshot = await fetchChangeContextSnapshot(store, changeId);
+      const formatted = formatTaskReadyOutput({
+        ready: result.ready.map((t) => ({
+          id: t.id,
+          content: t.title,
+          status: t.status,
+        })),
+        blocked: result.blocked.map((b) => ({
+          task: {
+            id: b.task.id,
+            content: b.task.title,
+            status: b.task.status,
+          },
+          blockedBy: b.blockedBy,
+        })),
+      });
       return formatToolOutput({
         ...result,
+        formatted,
         ...(snapshot ? { _contextSnapshot: snapshot } : {}),
       });
     },

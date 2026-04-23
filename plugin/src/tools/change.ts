@@ -37,6 +37,7 @@ import { loadProposalWithFallback, fileExists } from "../storage/json";
 import { archiveChange } from "../archive";
 import { wrapWithBanner } from "../utils/banner";
 import { formatToolOutput, paginate } from "../utils/tool-output";
+import { formatValidationOutput } from "../utils/tool-formatters";
 import { buildChangeContextSnapshot } from "../utils/context-snapshot";
 import { resolveChangeSelection } from "../storage/change-selection";
 import { BulkCloseSelectorSchema } from "../types";
@@ -1174,6 +1175,11 @@ export const changeTools = {
           warnings: validationResult.warnings,
           checksPerformed: validationResult.checksPerformed,
           checkedAt: validationResult.checkedAt,
+          formatted: formatValidationOutput({
+            passed,
+            errors: validationResult.errors,
+            warnings: validationResult.warnings,
+          }),
         }),
       );
     },
