@@ -141,12 +141,18 @@ const hooksLogger = createLogger("hooks");
 async function resolveProjectContext(
   directory: string,
   project?: { vcsDir?: string },
-): Promise<{ effectiveDir: string; projectId: string | null; externalRoot?: string }> {
+): Promise<{
+  effectiveDir: string;
+  projectId: string | null;
+  externalRoot?: string;
+}> {
   let effectiveDir = directory;
   let projectId = await getProjectId(effectiveDir);
 
   if (!projectId && project?.vcsDir && project.vcsDir !== directory) {
-    debugLog(`directory not a git repo, trying project.vcsDir: ${project.vcsDir}`);
+    debugLog(
+      `directory not a git repo, trying project.vcsDir: ${project.vcsDir}`,
+    );
     const altId = await getProjectId(project.vcsDir);
     if (altId) {
       effectiveDir = project.vcsDir;
@@ -320,9 +326,9 @@ export const AdvancePlugin: Plugin = async ({
     }
   };
 
-  const getCompletedMainMessageId = (
-    event: { properties: Record<string, unknown> },
-  ): string | null => {
+  const getCompletedMainMessageId = (event: {
+    properties: Record<string, unknown>;
+  }): string | null => {
     const info = event.properties?.info as Record<string, unknown> | undefined;
     if (!info || !mainSessionId) return null;
     if (info.sessionID !== mainSessionId) return null;
@@ -343,17 +349,23 @@ export const AdvancePlugin: Plugin = async ({
     return messageId;
   };
 
-  const isTerminalAssistantMessage = (info: Record<string, unknown>): boolean => {
+  const isTerminalAssistantMessage = (
+    info: Record<string, unknown>,
+  ): boolean => {
     const finish = info.finish as string | undefined;
     return !!finish && finish !== "tool-calls" && finish !== "unknown";
   };
 
-  const handleMessageUpdatedEvent = (event: { properties: Record<string, unknown> }) => {
+  const handleMessageUpdatedEvent = (event: {
+    properties: Record<string, unknown>;
+  }) => {
     const messageId = getCompletedMainMessageId(event);
     if (!messageId) return;
 
     lastObservedCompletedMessageId = messageId;
-    debugLog(`message.updated: arming bell for main agent message ${messageId}`);
+    debugLog(
+      `message.updated: arming bell for main agent message ${messageId}`,
+    );
     armPendingFinalAlert(messageId);
   };
 
@@ -397,7 +409,9 @@ export const AdvancePlugin: Plugin = async ({
         } else if (eventType === "permission.replied") {
           setFlags({ permissionPending: false });
         } else if (eventType === "message.updated") {
-          handleMessageUpdatedEvent(event as { properties: Record<string, unknown> });
+          handleMessageUpdatedEvent(
+            event as { properties: Record<string, unknown> },
+          );
         }
       } catch (e) {
         debugLog(`Event hook error: ${e}`);

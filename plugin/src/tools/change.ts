@@ -342,7 +342,9 @@ async function createCrossProjectFollowUp({
     linked_at: new Date().toISOString(),
   };
   const originSection = buildOriginSection(origin);
-  const enrichedProposal = proposal ? `${originSection}\n\n${proposal}` : undefined;
+  const enrichedProposal = proposal
+    ? `${originSection}\n\n${proposal}`
+    : undefined;
   const targetProjectId = await getProjectId(target_path);
   const targetExternalRoot = targetProjectId
     ? getExternalRoot(targetProjectId)

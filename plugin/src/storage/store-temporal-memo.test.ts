@@ -1,8 +1,5 @@
 import { describe, expect, it, beforeEach } from "vitest";
-import {
-  ChangeSummaryMemo,
-  type ChangeSummary,
-} from "./store-temporal-memo";
+import { ChangeSummaryMemo, type ChangeSummary } from "./store-temporal-memo";
 
 describe("ChangeSummaryMemo", () => {
   let memo: ChangeSummaryMemo;
@@ -40,7 +37,11 @@ describe("ChangeSummaryMemo", () => {
 
   it("overwrites existing summary on set", () => {
     memo.set("chg-001", sampleSummary);
-    const updated = { ...sampleSummary, status: "active" as const, sourceVersion: 2 };
+    const updated = {
+      ...sampleSummary,
+      status: "active" as const,
+      sourceVersion: 2,
+    };
     memo.set("chg-001", updated);
     expect(memo.get("chg-001")).toEqual(updated);
   });

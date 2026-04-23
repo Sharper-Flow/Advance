@@ -33,6 +33,7 @@ import { withTemporalRetry } from "../temporal/retry-wrapper";
 import { listChangeDirs } from "./json";
 import { buildChangeRecency } from "./store-types";
 import type { ChangeStatus, ProjectStatus } from "../types";
+import { ChangeSummaryMemo, type ChangeSummary } from "./store-temporal-memo";
 
 // Collect the error message and every cause-chain message so we can match
 // against the *underlying* gRPC / Temporal error even when it is wrapped
@@ -123,20 +124,52 @@ export function createTemporalStoreBackend(
 ): Store {
   const { legacy } = input;
   const changeCache = new Map<string, Change>();
+  const memo = new ChangeSummaryMemo();
 
   // Reverse-lookup cache populated from any Temporal-observed tasks so
   // taskId-only methods can resolve the owning change without requiring the
   // legacy backend to have ever seen the task.
   const taskChangeIndex = new Map<string, string>();
 
+  /**
+   * Build a ChangeSummary from a full ChangeWorkflowState.
+   * Used to populate the Memo whenever we do a direct query.
+   */
+  const buildSummary = (state: ChangeWorkflowState): ChangeSummary => {
+    const tasks = state.tasks ?? [];
+    return {
+      id: state.changeId,
+      title: state.title,
+      status: state.status,
+      gateProgress: {
+        proposal: state.gates?.proposal?.status ?? "pending",
+        discovery: state.gates?.discovery?.status ?? "pending",
+        design: state.gates?.design?.status ?? "pending",
+        planning: state.gates?.planning?.status ?? "pending",
+        execution: state.gates?.execution?.status ?? "pending",
+        acceptance: state.gates?.acceptance?.status ?? "pending",
+        release: state.gates?.release?.status ?? "pending",
+      },
+      taskCounts: {
+        total: tasks.length,
+        done: tasks.filter((t) => t.status === "done").length,
+        pending: tasks.filter((t) => t.status === "pending").length,
+      },
+      lastActivityAt: state.createdAt,
+      sourceVersion: 0, // Updated by PSW signals; 0 = direct-query sourced
+    };
+  };
+
   const setCachedChange = (state: ChangeWorkflowState): Change => {
     const mapped = mapTemporalChangeStateToChange(state);
     changeCache.set(state.changeId, mapped);
+    memo.set(state.changeId, buildSummary(state));
     return mapped;
   };
 
   const invalidateChange = (changeId: string): void => {
     changeCache.delete(changeId);
+    memo.invalidate(changeId);
   };
 
   const indexTasksFromState = (state: ChangeWorkflowState): void => {

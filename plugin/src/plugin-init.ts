@@ -13,9 +13,7 @@
 
 import { createStore } from "./storage/store";
 import type { Store } from "./storage/store-types";
-import {
-  buildProjectTaskQueue,
-} from "./temporal/client";
+import { buildProjectTaskQueue } from "./temporal/client";
 import { initStsl, closeStsl } from "./temporal/service";
 import {
   createInProcessWorker,
@@ -129,9 +127,7 @@ export async function tryInitStore(
   let worker: InProcessWorker | undefined;
 
   try {
-    let temporalBundle:
-      | Awaited<ReturnType<typeof initStsl>>
-      | undefined;
+    let temporalBundle: Awaited<ReturnType<typeof initStsl>> | undefined;
     const temporalDisabled = process.env.ADV_DISABLE_TEMPORAL === "1";
     profilePluginInit("backend_mode_detected", {
       temporal_disabled: temporalDisabled,

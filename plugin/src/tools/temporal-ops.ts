@@ -7,9 +7,7 @@ import { loadChange } from "../storage/json";
 import { AgendaItemSchema, WisdomTypeSchema } from "../types";
 import { writeJsonlAtomic } from "../storage/jsonl-atomic-writer";
 import { listProjectWisdom } from "../storage/project-wisdom";
-import {
-  buildProjectWorkflowId,
-} from "../temporal/client";
+import { buildProjectWorkflowId } from "../temporal/client";
 import { getService } from "../temporal/service";
 import { projectAgendaQuery, projectWisdomQuery } from "../temporal/messages";
 import {
@@ -132,7 +130,8 @@ export const temporalOpsTools = {
       if (!bundle) {
         return formatToolOutput({
           success: false,
-          error: "Temporal service layer not initialized — cannot repair workflow state",
+          error:
+            "Temporal service layer not initialized — cannot repair workflow state",
         });
       }
       try {

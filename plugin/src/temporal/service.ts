@@ -41,7 +41,10 @@ export async function initStsl(
   const namespace = getTemporalNamespace(env);
 
   if (cachedBundle) {
-    if (cachedBundle.address === address && cachedBundle.namespace === namespace) {
+    if (
+      cachedBundle.address === address &&
+      cachedBundle.namespace === namespace
+    ) {
       debugLog(`initStsl: returning existing bundle (${address}/${namespace})`);
       return cachedBundle;
     }

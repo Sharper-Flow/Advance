@@ -109,10 +109,9 @@ vi.mock("../temporal/client", async () => {
 });
 
 vi.mock("../temporal/service", async () => {
-  const actual =
-    await vi.importActual<typeof import("../temporal/service")>(
-      "../temporal/service",
-    );
+  const actual = await vi.importActual<typeof import("../temporal/service")>(
+    "../temporal/service",
+  );
   return {
     ...actual,
     getService: mocks.getService,
