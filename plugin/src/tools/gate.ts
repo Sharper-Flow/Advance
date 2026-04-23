@@ -22,9 +22,7 @@ import { formatToolOutput } from "../utils/tool-output";
 import { runPrepReadinessChecks } from "../validator/prep-readiness";
 import { runClarifyReadinessChecks } from "../validator/clarify-readiness";
 import { loadProposalWithFallback } from "../storage/json";
-import {
-  buildChangeContextSnapshot,
-} from "../utils/context-snapshot";
+import { buildChangeContextSnapshot } from "../utils/context-snapshot";
 import { COMMAND_MANIFEST } from "../manifest";
 
 async function completeGateAndBuildResponse({
@@ -38,7 +36,12 @@ async function completeGateAndBuildResponse({
   extraPayload = {},
 }: {
   store: Store;
-  change: { id: string; title: string; tasks: { id: string; title: string; status: string }[]; wisdom?: { type: string }[] };
+  change: {
+    id: string;
+    title: string;
+    tasks: { id: string; title: string; status: string }[];
+    wisdom?: { type: string }[];
+  };
   changeId: string;
   gateId: GateId;
   notes?: string;
@@ -83,6 +86,121 @@ async function completeGateAndBuildResponse({
       ...extraPayload,
     }),
   );
+}
+
+async function handlePlanningGateCompletion({
+  store,
+  change,
+  changeId,
+  gateId,
+  userApproved,
+  notes,
+  completedBy,
+  boundaryWarning,
+}: {
+  store: Store;
+  change: {
+    id: string;
+    title: string;
+    tasks: { id: string; title: string; status: string }[];
+    wisdom?: { type: string }[];
+  } & Record<string, unknown>;
+  changeId: string;
+  gateId: GateId;
+  userApproved?: boolean;
+  notes?: string;
+  completedBy: string;
+  boundaryWarning?: string;
+}): Promise<string | null> {
+  if (!userApproved) {
+    return formatToolOutput({
+      error:
+        "Planning gate requires userApproved: true. The user must explicitly approve the prep contract (via question tool) before this gate can be completed.",
+      changeId,
+      gateId,
+      hint: "Present the vision document to the user, obtain approval via question tool, then call adv_gate_complete with userApproved: true.",
+    });
+  }
+
+  const readiness = runPrepReadinessChecks(change);
+  if (!readiness.passed) {
+    return formatToolOutput({
+      error: `Prep gate blocked: ${readiness.mustFailures.length} readiness failure(s) must be resolved`,
+      changeId,
+      gateId,
+      readinessFailures: readiness.mustFailures.map((f) => ({
+        code: f.code,
+        severity: f.severity,
+        message: f.message,
+        path: f.path,
+        remediation: (f.details as Record<string, unknown> | undefined)?.remediation,
+      })),
+      hint: "Fix all readiness failures listed above, then retry adv_gate_complete.",
+    });
+  }
+
+  const warningsPayload =
+    readiness.warnings.length > 0
+      ? {
+          readinessWarnings: readiness.warnings.map((w) => ({
+            code: w.code,
+            message: w.message,
+            path: w.path,
+          })),
+        }
+      : {};
+
+  const features = store.config?.features as FeatureFlags | undefined;
+  const clarifyMode = features?.clarify_enforcement ?? "advisory";
+  let clarifyPayload: Record<string, unknown> = {};
+
+  if (clarifyMode !== "off") {
+    const changeDir = join(store.paths.changes, changeId);
+    const { content: proposalText } = await loadProposalWithFallback(
+      changeDir,
+      change.title,
+    );
+    const clarifyResult = runClarifyReadinessChecks(change, proposalText);
+
+    if (clarifyResult.findings.length > 0) {
+      if (clarifyMode === "strict") {
+        return formatToolOutput({
+          error: `Prep gate blocked: ${clarifyResult.findings.length} ambiguity finding(s) must be resolved via /adv-clarify`,
+          changeId,
+          gateId,
+          clarifyFindings: clarifyResult.findings.map((f) => ({
+            code: f.code,
+            severity: f.severity,
+            message: f.message,
+            questionCategory: f.details?.questionCategory,
+          })),
+          hint: `Run /adv-clarify ${changeId} to resolve ambiguity findings, then retry adv_gate_complete.`,
+        });
+      }
+
+      clarifyPayload = {
+        clarifyWarnings: clarifyResult.findings.map((f) => ({
+          code: f.code,
+          message: f.message,
+          questionCategory: f.details?.questionCategory,
+        })),
+      };
+    }
+  }
+
+  return completeGateAndBuildResponse({
+    store,
+    change,
+    changeId,
+    gateId,
+    notes,
+    completedBy,
+    boundaryWarning,
+    extraPayload: {
+      ...warningsPayload,
+      ...clarifyPayload,
+    },
+  });
 }
 
 // =============================================================================
@@ -203,100 +321,16 @@ export const gateTools = {
       // Boundary validation: check if the completing command owns this gate
       const boundaryWarning = validateGateBoundary(gateId, completedBy);
 
-      // Planning gate: run readiness checks before marking done
       if (gateId === "planning") {
-        // HITL Boundary: planning gate requires explicit user approval
-        if (!userApproved) {
-          return formatToolOutput({
-            error:
-              "Planning gate requires userApproved: true. The user must explicitly approve the prep contract (via question tool) before this gate can be completed.",
-            changeId,
-            gateId,
-            hint: "Present the vision document to the user, obtain approval via question tool, then call adv_gate_complete with userApproved: true.",
-          });
-        }
-
-        const readiness = runPrepReadinessChecks(change);
-        if (!readiness.passed) {
-          return formatToolOutput({
-            error: `Prep gate blocked: ${readiness.mustFailures.length} readiness failure(s) must be resolved`,
-            changeId,
-            gateId,
-            readinessFailures: readiness.mustFailures.map((f) => ({
-              code: f.code,
-              severity: f.severity,
-              message: f.message,
-              path: f.path,
-              remediation: (f.details as Record<string, unknown> | undefined)
-                ?.remediation,
-            })),
-            hint: "Fix all readiness failures listed above, then retry adv_gate_complete.",
-          });
-        }
-        // Warnings-only: gate proceeds but advisory warnings included in response
-        const warningsPayload =
-          readiness.warnings.length > 0
-            ? {
-                readinessWarnings: readiness.warnings.map((w) => ({
-                  code: w.code,
-                  message: w.message,
-                  path: w.path,
-                })),
-              }
-            : {};
-
-        // Clarify-readiness enforcement (runs after prep-readiness passes)
-        const features = store.config?.features as FeatureFlags | undefined;
-        const clarifyMode = features?.clarify_enforcement ?? "advisory";
-        let clarifyPayload: Record<string, unknown> = {};
-
-        if (clarifyMode !== "off") {
-          const changeDir = join(store.paths.changes, changeId);
-          const { content: proposalText } = await loadProposalWithFallback(
-            changeDir,
-            change.title,
-          );
-
-          const clarifyResult = runClarifyReadinessChecks(change, proposalText);
-
-          if (clarifyResult.findings.length > 0) {
-            if (clarifyMode === "strict") {
-              return formatToolOutput({
-                error: `Prep gate blocked: ${clarifyResult.findings.length} ambiguity finding(s) must be resolved via /adv-clarify`,
-                changeId,
-                gateId,
-                clarifyFindings: clarifyResult.findings.map((f) => ({
-                  code: f.code,
-                  severity: f.severity,
-                  message: f.message,
-                  questionCategory: f.details?.questionCategory,
-                })),
-                hint: `Run /adv-clarify ${changeId} to resolve ambiguity findings, then retry adv_gate_complete.`,
-              });
-            }
-            // advisory mode: include as warnings, don't block
-            clarifyPayload = {
-              clarifyWarnings: clarifyResult.findings.map((f) => ({
-                code: f.code,
-                message: f.message,
-                questionCategory: f.details?.questionCategory,
-              })),
-            };
-          }
-        }
-
-        return completeGateAndBuildResponse({
+        return handlePlanningGateCompletion({
           store,
           change,
           changeId,
           gateId,
+          userApproved,
           notes,
           completedBy,
           boundaryWarning,
-          extraPayload: {
-            ...warningsPayload,
-            ...clarifyPayload,
-          },
         });
       }
 

@@ -25,9 +25,7 @@ import {
   type FeatureFlags,
 } from "../types";
 import { getCommandsByGate } from "../manifest";
-import {
-  buildChangeContextSnapshot,
-} from "../utils/context-snapshot";
+import { buildChangeContextSnapshot } from "../utils/context-snapshot";
 import {
   loadProjectConfigWithDiagnostics,
   loadProposalWithFallback,
@@ -55,6 +53,67 @@ function getRecommendationForGate(
   // Pick the first (primary) command for this gate
   const cmd = cmds[0];
   return `Change \`${changeId}\`: next gate is \`${gateId}\` → run \`/${cmd.name} ${changeId}\``;
+}
+
+async function enrichRecentChangeStatus(
+  rc: Record<string, unknown>,
+  status: { recommendations: string[] },
+  store: Store,
+  clarifyMode: string,
+): Promise<void> {
+  const changeId = String(rc.id);
+  const changeResult = await store.changes.get(changeId);
+  if (!changeResult.success || !changeResult.data) return;
+
+  const gates = await store.gates.get(changeId);
+  const changeDir = join(store.paths.changes, changeId);
+  const { content: proposalText } = await loadProposalWithFallback(
+    changeDir,
+    changeResult.data.title,
+  );
+
+  Object.assign(rc, {
+    _contextSnapshot: buildChangeContextSnapshot({
+      change: changeResult.data,
+      proposalText,
+      gates: gates ?? undefined,
+      workdir: store.paths.root,
+    }),
+  });
+
+  if (gates) {
+    const nextGate = GATE_ORDER.find((gateId) => !isGateSatisfied(gates[gateId]));
+    if (nextGate) {
+      const rec = getRecommendationForGate(nextGate as GateId, changeId);
+      if (rec) status.recommendations.push(rec);
+    }
+  }
+
+  if (clarifyMode !== "off") {
+    const clarifyResult = runClarifyReadinessChecks(changeResult.data, proposalText);
+    if (clarifyResult.findings.length > 0) {
+      status.recommendations.push(
+        `⚠️ Change \`${changeId}\` has ${clarifyResult.findings.length} ambiguity finding(s) — run \`/adv-clarify ${changeId}\` to resolve`,
+      );
+    }
+  }
+
+  const recency = rc.recency;
+  const minutesSinceActivity = Number(rc.minutesSinceActivity ?? 0);
+  if (recency === "stale") {
+    const hours = Math.floor(minutesSinceActivity / 60);
+    const label = hours >= 24 ? `${Math.floor(hours / 24)}d ago` : `${hours}h ago`;
+    status.recommendations.push(
+      `⏰ Stale change \`${changeId}\` (last activity ${label}, ${rc.completedTasks}/${rc.taskCount} tasks done) — resume with \`/adv-apply ${changeId}\``,
+    );
+    return;
+  }
+
+  if (recency === "hot") {
+    status.recommendations.push(
+      `🔥 Change \`${changeId}\` is hot (active ${minutesSinceActivity}m ago) — likely in-flight by another agent`,
+    );
+  }
 }
 
 async function loadMigrationStatus(store: Store) {
@@ -175,65 +234,7 @@ export const statusTools = {
       const clarifyMode = features?.clarify_enforcement ?? "advisory";
 
       for (const rc of recentChanges) {
-        // Fetch change data, gates, and proposal ONCE per change
-        const changeResult = await store.changes.get(rc.id);
-        if (!changeResult.success || !changeResult.data) continue;
-
-        const gates = await store.gates.get(rc.id);
-        const changeDir = join(store.paths.changes, rc.id);
-        const { content: proposalText } = await loadProposalWithFallback(
-          changeDir,
-          changeResult.data.title,
-        );
-
-        Object.assign(rc, {
-          _contextSnapshot: buildChangeContextSnapshot({
-            change: changeResult.data,
-            proposalText,
-            gates: gates ?? undefined,
-            workdir: store.paths.root,
-          }),
-        });
-
-        // 2) Gate recommendation (reuses gates fetched above)
-        if (gates) {
-          const nextGate = GATE_ORDER.find(
-            (gateId) => !isGateSatisfied(gates[gateId]),
-          );
-          if (nextGate) {
-            const rec = getRecommendationForGate(nextGate as GateId, rc.id);
-            if (rec) {
-              status.recommendations.push(rec);
-            }
-          }
-        }
-
-        // 3) Clarify readiness (reuses changeResult and proposalText)
-        if (clarifyMode !== "off") {
-          const clarifyResult = runClarifyReadinessChecks(
-            changeResult.data,
-            proposalText,
-          );
-          if (clarifyResult.findings.length > 0) {
-            status.recommendations.push(
-              `⚠️ Change \`${rc.id}\` has ${clarifyResult.findings.length} ambiguity finding(s) — run \`/adv-clarify ${rc.id}\` to resolve`,
-            );
-          }
-        }
-
-        // 4) Recency labels
-        if (rc.recency === "stale") {
-          const hours = Math.floor(rc.minutesSinceActivity / 60);
-          const label =
-            hours >= 24 ? `${Math.floor(hours / 24)}d ago` : `${hours}h ago`;
-          status.recommendations.push(
-            `⏰ Stale change \`${rc.id}\` (last activity ${label}, ${rc.completedTasks}/${rc.taskCount} tasks done) — resume with \`/adv-apply ${rc.id}\``,
-          );
-        } else if (rc.recency === "hot") {
-          status.recommendations.push(
-            `🔥 Change \`${rc.id}\` is hot (active ${rc.minutesSinceActivity}m ago) — likely in-flight by another agent`,
-          );
-        }
+        await enrichRecentChangeStatus(rc, status, store, clarifyMode);
       }
 
       const output = {

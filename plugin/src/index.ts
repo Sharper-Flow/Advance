@@ -67,6 +67,20 @@ export function extractCreatedChangeId(rawOutput: string): string | null {
   return typeof changeId === "string" ? changeId : null;
 }
 
+export function extractCompletedTask(
+  rawOutput: string,
+): { id: string; title: string } | null {
+  const result = parseToolOutput<{
+    success?: boolean;
+    task?: { id?: string; title?: string; status?: string };
+  }>(rawOutput);
+  if (!result?.success || result.task?.status !== "done") return null;
+  if (typeof result.task.id !== "string" || typeof result.task.title !== "string") {
+    return null;
+  }
+  return { id: result.task.id, title: result.task.title };
+}
+
 const PROVIDER_BEHAVIOR_HINTS: Readonly<Record<string, string>> = {
   openai:
     "[ADV:PROVIDER_HINT] Provider adaptation: prefer explicit numbered steps, use structured formats (tables, numbered lists) for multi-part output, and batch independent tool calls in a single response. Keep user-facing prose terse and direct — drop fluff and pleasantries while preserving structured outputs, safety text, and quoted errors verbatim.",
@@ -211,6 +225,20 @@ export const AdvancePlugin: Plugin = async ({
   const handleLongRunningToolEnd = (toolName: string) => {
     if (!isLongRunningTool(toolName)) return;
     setStatus(resolveStatus(state));
+  };
+
+  const recordCreatedChange = (rawOutput: string) => {
+    const newChangeId = extractCreatedChangeId(rawOutput);
+    if (!newChangeId) return;
+    state.activeChange.id = newChangeId;
+    setActiveChange(newChangeId);
+    debugLog(`adv_change_create: set activeChange to ${newChangeId}`);
+  };
+
+  const recordCompletedTask = (rawOutput: string) => {
+    const completedTask = extractCompletedTask(rawOutput);
+    if (!completedTask) return;
+    state.lastCompletedTask = completedTask;
   };
 
   // Main session ID — used to distinguish main-agent message.updated events
@@ -363,12 +391,7 @@ export const AdvancePlugin: Plugin = async ({
         // Track new change creation (changeId only in output, not input args)
         if (input.tool === "adv_change_create" && output.output) {
           try {
-            const newChangeId = extractCreatedChangeId(output.output);
-            if (newChangeId) {
-              state.activeChange.id = newChangeId;
-              setActiveChange(newChangeId);
-              debugLog(`adv_change_create: set activeChange to ${newChangeId}`);
-            }
+            recordCreatedChange(output.output);
           } catch (err) {
             // Outer parse error — unexpected if banner format changes
             hooksLogger.warn(
@@ -380,13 +403,7 @@ export const AdvancePlugin: Plugin = async ({
         // Track task status changes for wisdom prompt
         if (input.tool === "adv_task_update" && output.output) {
           try {
-            const result = JSON.parse(output.output);
-            if (result.success && result.task?.status === "done") {
-              state.lastCompletedTask = {
-                id: result.task.id,
-                title: result.task.title,
-              };
-            }
+            recordCompletedTask(output.output);
           } catch {
             // ignore parse errors
           }

@@ -160,13 +160,10 @@ export const temporalOpsTools = {
           },
         );
 
-        await reImportChangeState(
-          asWorkflowClientSurface(bundle.client),
-          {
-            projectId,
-            change: changeResult.data,
-          },
-        );
+        await reImportChangeState(asWorkflowClientSurface(bundle.client), {
+          projectId,
+          change: changeResult.data,
+        });
 
         const repairedHandle = asProjectWorkflowHandle(
           bundle.client.workflow.getHandle(buildProjectWorkflowId(projectId)),

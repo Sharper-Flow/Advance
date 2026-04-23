@@ -8,6 +8,7 @@
 import { describe, test, expect, beforeEach, afterEach } from "vitest";
 import {
   AdvancePlugin,
+  extractCompletedTask,
   extractCreatedChangeId,
   isLongRunningTool,
 } from "./index";
@@ -156,6 +157,26 @@ describe("Advance Plugin SDK Integration", () => {
       expect(isLongRunningTool("adv_run_test")).toBe(true);
       expect(isLongRunningTool("adv_task_evidence")).toBe(true);
       expect(isLongRunningTool("adv_change_show")).toBe(false);
+    });
+
+    test("extractCompletedTask returns completed task payload only for done status", () => {
+      expect(
+        extractCompletedTask(
+          JSON.stringify({
+            success: true,
+            task: { id: "tk-1", title: "Ship fix", status: "done" },
+          }),
+        ),
+      ).toEqual({ id: "tk-1", title: "Ship fix" });
+
+      expect(
+        extractCompletedTask(
+          JSON.stringify({
+            success: true,
+            task: { id: "tk-2", title: "In progress", status: "in_progress" },
+          }),
+        ),
+      ).toBeNull();
     });
   });
 
