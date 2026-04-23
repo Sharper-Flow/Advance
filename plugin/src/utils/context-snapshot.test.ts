@@ -5,14 +5,21 @@
  * internal state visible to the user.
  */
 
-import { describe, test, expect } from "vitest";
+import { describe, test, expect, beforeEach, afterEach } from "vitest";
 import {
   buildChangeContextSnapshot,
+  fetchChangeContextSnapshot,
   formatContextSnapshot,
   formatCrossRepoSwitch,
   type ContextSnapshotInput,
   type CrossRepoSwitchInput,
 } from "./context-snapshot";
+import { createStore, type Store } from "../storage/store";
+import {
+  createTempDir,
+  cleanupTempDir,
+  createTestProject,
+} from "../__tests__/setup";
 
 describe("formatContextSnapshot", () => {
   const baseInput: ContextSnapshotInput = {
@@ -239,5 +246,60 @@ describe("buildChangeContextSnapshot", () => {
 
     expect(output).toContain("Wisdom: 3 entries");
     expect(output).toContain("2 pattern");
+  });
+});
+
+describe("fetchChangeContextSnapshot", () => {
+  let tempDir: string;
+  let store: Store;
+
+  beforeEach(async () => {
+    tempDir = await createTempDir();
+    await createTestProject(tempDir);
+    store = await createStore(tempDir);
+  });
+
+  afterEach(async () => {
+    store.close();
+    await cleanupTempDir(tempDir);
+  });
+
+  test("returns a formatted snapshot for an existing change", async () => {
+    const snapshot = await fetchChangeContextSnapshot(store, "addFeature");
+
+    expect(snapshot).toBeDefined();
+    expect(snapshot).toContain("addFeature");
+    expect(snapshot).toContain("Add New Feature");
+    expect(snapshot).toContain("Gates:");
+    expect(snapshot).toContain("Tasks:");
+    expect(snapshot).toMatch(/[╔╗╚╝║═]/);
+  });
+
+  test("returns undefined for non-existent change", async () => {
+    const snapshot = await fetchChangeContextSnapshot(store, "nonExistent");
+
+    expect(snapshot).toBeUndefined();
+  });
+
+  test("uses provided gates override", async () => {
+    const overrideGates = {
+      proposal: { status: "done" as const },
+      discovery: { status: "done" as const },
+      design: { status: "done" as const },
+      planning: { status: "done" as const },
+      execution: { status: "done" as const },
+      acceptance: { status: "done" as const },
+      release: { status: "done" as const },
+    };
+
+    const snapshot = await fetchChangeContextSnapshot(
+      store,
+      "addFeature",
+      overrideGates,
+    );
+
+    expect(snapshot).toBeDefined();
+    expect(snapshot).toContain("[✓ proposal]");
+    expect(snapshot).toContain("[✓ release]");
   });
 });
