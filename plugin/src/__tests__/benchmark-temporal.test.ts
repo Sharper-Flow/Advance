@@ -332,4 +332,66 @@ describe("benchmark-temporal scaffold (A1)", () => {
       expect(result).toHaveProperty("warning");
     });
   });
+
+  describe("fixture generator (B3)", () => {
+    it("creates the expected directory structure", async () => {
+      const { createBenchmarkFixture } = await import("../../scripts/benchmark-temporal");
+      const fs = await import("node:fs/promises");
+      const path = await import("node:path");
+      const os = await import("node:os");
+
+      const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "adv-bench-"));
+
+      try {
+        const fixture = await createBenchmarkFixture({
+          externalRoot: tmpDir,
+          activeChanges: 3,
+          tasksPerChange: 2,
+          wisdomPerChange: 1,
+        });
+
+        expect(fixture.changeIds).toHaveLength(3);
+        expect(fixture.taskCounts.get("bench-change-000")).toBe(2);
+        expect(fixture.wisdomCounts.get("bench-change-000")).toBe(1);
+
+        // Verify directory shape
+        for (const changeId of fixture.changeIds) {
+          const changeDir = path.join(tmpDir, "changes", changeId);
+          const stat = await fs.stat(changeDir);
+          expect(stat.isDirectory()).toBe(true);
+
+          const changeJson = await fs.readFile(path.join(changeDir, "change.json"), "utf-8");
+          const parsed = JSON.parse(changeJson);
+          expect(parsed.tasks).toHaveLength(2);
+          expect(parsed.wisdom).toHaveLength(1);
+
+          const proposalMd = await fs.readFile(path.join(changeDir, "proposal.md"), "utf-8");
+          expect(proposalMd).toContain("Benchmark Proposal");
+        }
+      } finally {
+        await fs.rm(tmpDir, { recursive: true, force: true });
+      }
+    });
+
+    it("defaults to stress shape (50 changes × 30 tasks)", async () => {
+      const { createBenchmarkFixture } = await import("../../scripts/benchmark-temporal");
+      const fs = await import("node:fs/promises");
+      const path = await import("node:path");
+      const os = await import("node:os");
+
+      const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "adv-bench-"));
+
+      try {
+        const fixture = await createBenchmarkFixture({
+          externalRoot: tmpDir,
+        });
+
+        expect(fixture.changeIds).toHaveLength(50);
+        expect(fixture.taskCounts.get("bench-change-000")).toBe(30);
+        expect(fixture.wisdomCounts.get("bench-change-000")).toBe(5);
+      } finally {
+        await fs.rm(tmpDir, { recursive: true, force: true });
+      }
+    });
+  });
 });

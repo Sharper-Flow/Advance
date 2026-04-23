@@ -390,6 +390,135 @@ async function runSingleShot(op: BenchmarkOp): Promise<BenchmarkSample> {
 }
 
 /* ------------------------------------------------------------------ */
+/* Fixture generator (B3)                                             */
+/* ------------------------------------------------------------------ */
+
+export interface BenchmarkFixtureOptions {
+  externalRoot: string;
+  activeChanges?: number;
+  tasksPerChange?: number;
+  wisdomPerChange?: number;
+}
+
+export interface BenchmarkFixture {
+  externalRoot: string;
+  changeIds: string[];
+  taskCounts: Map<string, number>;
+  wisdomCounts: Map<string, number>;
+}
+
+/**
+ * Seed scratch external state with N active changes, each with M tasks
+ * and W wisdom entries. Used for O(N) fan-out stress testing.
+ */
+export async function createBenchmarkFixture(
+  options: BenchmarkFixtureOptions,
+): Promise<BenchmarkFixture> {
+  const {
+    externalRoot,
+    activeChanges = 50,
+    tasksPerChange = 30,
+    wisdomPerChange = 5,
+  } = options;
+
+  const fs = await import("node:fs/promises");
+  const path = await import("node:path");
+
+  // Ensure external root exists
+  await fs.mkdir(externalRoot, { recursive: true });
+
+  const changeIds: string[] = [];
+  const taskCounts = new Map<string, number>();
+  const wisdomCounts = new Map<string, number>();
+
+  for (let i = 0; i < activeChanges; i++) {
+    const changeId = `bench-change-${i.toString().padStart(3, "0")}`;
+    changeIds.push(changeId);
+
+    const changeDir = path.join(externalRoot, "changes", changeId);
+    await fs.mkdir(changeDir, { recursive: true });
+
+    // Write minimal change.json
+    const changeData = {
+      id: changeId,
+      title: `Benchmark change ${i}`,
+      status: "active",
+      created_at: new Date().toISOString(),
+      tasks: [] as Array<{
+        id: string;
+        title: string;
+        status: string;
+        type: string;
+        section: string;
+        priority: number;
+        created_at: string;
+      }>,
+      wisdom: [] as Array<{
+        id: string;
+        type: string;
+        content: string;
+        created_at: string;
+      }>,
+      deltas: {},
+      gates: {
+        proposal: { status: "done" },
+        discovery: { status: "done" },
+        design: { status: "done" },
+        planning: { status: "done" },
+        execution: { status: "pending" },
+        acceptance: { status: "pending" },
+        release: { status: "pending" },
+      },
+    };
+
+    // Add tasks
+    for (let t = 0; t < tasksPerChange; t++) {
+      changeData.tasks.push({
+        id: `tk-bench-${i}-${t}`,
+        title: `Task ${t} for change ${i}`,
+        status: t % 3 === 0 ? "done" : "pending",
+        type: "code",
+        section: "Phase B",
+        priority: t,
+        created_at: new Date().toISOString(),
+      });
+    }
+    taskCounts.set(changeId, tasksPerChange);
+
+    // Add wisdom entries
+    for (let w = 0; w < wisdomPerChange; w++) {
+      changeData.wisdom.push({
+        id: `wisdom-${i}-${w}`,
+        type: ["pattern", "success", "failure", "gotcha", "convention"][w % 5],
+        content: `Wisdom entry ${w} for change ${i}`,
+        created_at: new Date().toISOString(),
+      });
+    }
+    wisdomCounts.set(changeId, wisdomPerChange);
+
+    await fs.writeFile(
+      path.join(changeDir, "change.json"),
+      JSON.stringify(changeData, null, 2),
+      "utf-8",
+    );
+
+    // Write minimal proposal.md
+    await fs.writeFile(
+      path.join(changeDir, "proposal.md"),
+      `# Benchmark Proposal ${i}\n\nStress-test fixture.\n`,
+      "utf-8",
+    );
+  }
+
+  return {
+    externalRoot,
+    changeIds,
+    taskCounts,
+    wisdomCounts,
+  };
+}
+
+/* ------------------------------------------------------------------ */
 /* Promote-pipeline segmented adapter (B2)                            */
 /* ------------------------------------------------------------------ */
 

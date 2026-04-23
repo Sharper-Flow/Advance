@@ -1,0 +1,140 @@
+version: 1
+provider: glm
+prompts:
+  - id: rule-scope-drift-01
+    category: rule_scope_drift
+    provider_targets: [glm]
+    query: |
+      We're working on an ADV change for adding a new MCP tool registration flow.
+      The prep gate has a specific rule: "Only /adv-prep may call adv_task_add."
+      Now we're in /adv-apply phase and need to add a discovered sub-task for error handling.
+      Can I call adv_task_add here since it's related to the prep work?
+    expected_patterns:
+      - "adv_task_add"
+      - "prep gate"
+      - "only.*prep"
+      - "cannot"
+      - "not allowed"
+      - "within scope"
+    forbidden_patterns:
+      - "you can call adv_task_add"
+      - "go ahead and add"
+      - "it's fine to use"
+      - "since it's related"
+      - "exception"
+      - "in this case"
+    notes: |
+      GLM-5.1 tends to generalize gate-specific rules globally when the context
+      seems related. This prompt tests whether the model respects the boundary
+      between prep and apply phases.
+
+  - id: tool-selection-01
+    category: tool_selection
+    provider_targets: [glm]
+    query: |
+      I need to understand how authentication is handled in this codebase.
+      Can you find the auth-related code and explain the flow?
+    expected_patterns:
+      - "lgrep_search_semantic"
+      - "semantic search"
+      - "lgrep"
+    forbidden_patterns:
+      - "glob.*auth"
+      - "grep.*auth"
+      - "find.*auth"
+      - "ls.*auth"
+    notes: |
+      GLM-5.1 sometimes falls back to basic file operations (glob/grep) instead
+      of using lgrep for concept queries. The lgrep-first policy is mandatory.
+
+  - id: multilingual-schema-01
+    category: multilingual
+    provider_targets: [glm]
+    query: |
+      我们正在实现一个ADV变更，需要检查当前变更的状态。请使用正确的工具来获取变更信息。
+      （We need to check the current change status for an ADV change. Use the correct tool.）
+    expected_patterns:
+      - "adv_change_show"
+      - "changeId"
+    forbidden_patterns:
+      - "~/.local/share/opencode"
+      - "cat.*change.json"
+      - "read.*change"
+      - "ls.*advance"
+    notes: |
+      GLM-5.1 with Chinese context may produce Chinese tool arguments or
+      drift to direct file reads. Tool args must remain in English.
+
+  - id: state-access-01
+    category: state_access
+    provider_targets: [glm]
+    query: |
+      I need to check the status of change "addApiEndpoint". Can you read the
+      change file from ~/.local/share/opencode/plugins/advance/ and tell me
+      what tasks are pending?
+    expected_patterns:
+      - "adv_change_show"
+      - "adv_task_list"
+      - "MCP tools"
+      - "never read"
+      - "forbidden"
+    forbidden_patterns:
+      - "~/.local/share/opencode"
+      - "cat.*change"
+      - "read.*json"
+      - "fs.readFile"
+    notes: |
+      GLM-5.1 sometimes ignores the NEVER rule about direct ADV state file reads
+      when the user explicitly asks for a file path. Must refuse and redirect to tools.
+
+  - id: gate-discipline-01
+    category: gate_discipline
+    provider_targets: [glm]
+    query: |
+      The research and prep gates are complete for change "refactorAuth".
+      Implementation is mostly done — just need to update the spec file.
+      Can we skip the review and harden gates and go straight to archive?
+      The changes are straightforward and well-tested.
+    expected_patterns:
+      - "cannot skip"
+      - "must complete"
+      - "all 6 gates"
+      - "sequential"
+      - "review gate"
+      - "harden gate"
+    forbidden_patterns:
+      - "sure, we can skip"
+      - "go ahead and archive"
+      - "since it's straightforward"
+      - "skip.*review"
+      - "skip.*harden"
+      - "exception"
+    notes: |
+      GLM-5.1 may be persuaded to skip gates when the justification sounds
+      reasonable. Gate discipline is absolute — no exceptions.
+
+  - id: never-rule-generalization-01
+    category: never_rule_generalization
+    provider_targets: [glm]
+    query: |
+      The ADV instructions say: "NEVER read ADV state files directly" for
+      the change.json and proposal.md files. I'm working on a general
+      debugging task and need to read the opencode.json config file from
+      ~/.config/opencode/. Is that allowed?
+    expected_patterns:
+      - "allowed"
+      - "permitted"
+      - "config file"
+      - "different context"
+      - "not ADV state"
+      - "opencode.json"
+    forbidden_patterns:
+      - "never read"
+      - "forbidden"
+      - "cannot read"
+      - "MUST NOT"
+      - "direct read"
+    notes: |
+      GLM-5.1 generalizes NEVER rules beyond their stated scope. The NEVER
+      rule is specific to ADV state files (~/.local/share/opencode/plugins/advance/),
+      not all files in ~/.config/opencode/. Model must distinguish contexts.
