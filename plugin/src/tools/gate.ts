@@ -23,8 +23,7 @@ import { runPrepReadinessChecks } from "../validator/prep-readiness";
 import { runClarifyReadinessChecks } from "../validator/clarify-readiness";
 import { loadProposalWithFallback } from "../storage/json";
 import {
-  countSuccessCriteria,
-  formatContextSnapshot,
+  buildChangeContextSnapshot,
 } from "../utils/context-snapshot";
 import { COMMAND_MANIFEST } from "../manifest";
 
@@ -135,28 +134,12 @@ export const gateTools = {
           changeDir,
           change.title,
         );
-        const taskCounts = {
-          done: change.tasks.filter((t) => t.status === "done").length,
-          in_progress: change.tasks.filter((t) => t.status === "in_progress")
-            .length,
-          pending: change.tasks.filter((t) => t.status === "pending").length,
-          cancelled: change.tasks.filter((t) => t.status === "cancelled")
-            .length,
-        };
-        const currentTask = change.tasks.find(
-          (t) => t.status === "in_progress",
-        );
 
-        return formatContextSnapshot({
-          changeId: change.id,
-          title: change.title,
-          successCriteriaCount: countSuccessCriteria(proposalText),
+        return buildChangeContextSnapshot({
+          change,
+          proposalText,
           gates: latestGates ?? undefined,
-          taskCounts,
           workdir: store.paths.root,
-          currentTask: currentTask
-            ? { id: currentTask.id, title: currentTask.title }
-            : undefined,
         });
       };
 

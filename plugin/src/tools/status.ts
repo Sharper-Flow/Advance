@@ -26,8 +26,7 @@ import {
 } from "../types";
 import { getCommandsByGate } from "../manifest";
 import {
-  countSuccessCriteria,
-  formatContextSnapshot,
+  buildChangeContextSnapshot,
 } from "../utils/context-snapshot";
 import {
   loadProjectConfigWithDiagnostics,
@@ -187,34 +186,12 @@ export const statusTools = {
           changeResult.data.title,
         );
 
-        // 1) Context snapshot
-        const taskCounts = {
-          done: changeResult.data.tasks.filter((t) => t.status === "done")
-            .length,
-          in_progress: changeResult.data.tasks.filter(
-            (t) => t.status === "in_progress",
-          ).length,
-          pending: changeResult.data.tasks.filter((t) => t.status === "pending")
-            .length,
-          cancelled: changeResult.data.tasks.filter(
-            (t) => t.status === "cancelled",
-          ).length,
-        };
-        const currentTask = changeResult.data.tasks.find(
-          (t) => t.status === "in_progress",
-        );
-
         Object.assign(rc, {
-          _contextSnapshot: formatContextSnapshot({
-            changeId: changeResult.data.id,
-            title: changeResult.data.title,
-            successCriteriaCount: countSuccessCriteria(proposalText),
+          _contextSnapshot: buildChangeContextSnapshot({
+            change: changeResult.data,
+            proposalText,
             gates: gates ?? undefined,
-            taskCounts,
             workdir: store.paths.root,
-            currentTask: currentTask
-              ? { id: currentTask.id, title: currentTask.title }
-              : undefined,
           }),
         });
 
