@@ -429,25 +429,28 @@ export function createTemporalStoreBackend(
         };
       },
       get: async (changeId: string) => {
-        return getTemporalOrLegacyChange(changeId);
+        const cached = changeCache.get(changeId);
+        if (cached) {
+          return { success: true, data: cached };
+        }
+        const handle = getChangeHandle(input, changeId);
+        const state = (await runTemporal(() =>
+          handle.query(changeStateQuery),
+        )) as ChangeWorkflowState;
+        indexTasksFromState(state);
+        return { success: true, data: setCachedChange(state) };
       },
       close: async (changeId: string, closure: ChangeClosure) => {
-        try {
-          invalidateChange(changeId);
-          const handle = getChangeHandle(input, changeId);
-          const raw = await runTemporal(() =>
-            handle.executeUpdate(closeChangeUpdate, { args: [closure] }),
-          );
-          const result = await resolveStateOrQuery(handle, raw);
-          indexTasksFromState(result);
-          const change = setCachedChange(result);
-          emitChangeSummarySignal(changeId, result);
-          return change;
-        } catch (err) {
-          if (!isExpectedFallbackError(err)) throw err;
-          logFallback("changes", "close", changeId, err);
-          return legacy.changes.close(changeId, closure);
-        }
+        invalidateChange(changeId);
+        const handle = getChangeHandle(input, changeId);
+        const raw = await runTemporal(() =>
+          handle.executeUpdate(closeChangeUpdate, { args: [closure] }),
+        );
+        const result = await resolveStateOrQuery(handle, raw);
+        indexTasksFromState(result);
+        const change = setCachedChange(result);
+        emitChangeSummarySignal(changeId, result);
+        return change;
       },
 
       closeBatch: async (
