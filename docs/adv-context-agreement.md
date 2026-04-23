@@ -42,7 +42,7 @@ A compact box (max 10 lines) included in `_contextSnapshot` output fields across
 
 ### Gate Labels
 
-Full gate IDs are abbreviated for compactness:
+Gate IDs are rendered directly (no abbreviation map is currently defined):
 
 | Gate ID | Label |
 |---------|-------|
@@ -50,8 +50,8 @@ Full gate IDs are abbreviated for compactness:
 | `discovery` | `discovery` |
 | `design` | `design` |
 | `planning` | `planning` |
-| `execution` | `exec` |
-| `acceptance` | `accept` |
+| `execution` | `execution` |
+| `acceptance` | `acceptance` |
 | `release` | `release` |
 
 ### Rendered Example
@@ -61,7 +61,7 @@ Full gate IDs are abbreviated for compactness:
 ║ CONTEXT: improveContextAgreement                         ║
 ║ Improve context agreement                                ║
 ║                                                          ║
-║ Gates: [✓ proposal] [✓ discovery] [○ design] [○ exec]...║
+║ Gates: [✓ proposal] [✓ discovery] [○ design] [○ execution]...
 ║ Success: 3 criteria                                      ║
 ║ Tasks: 7 done | 1 active | 2 pending                    ║
 ║ Current: tk-abc123 (Implement feature X)                 ║
@@ -123,6 +123,7 @@ Emit when the agent switches `workdir` to a different repository for a cross-rep
 | `plugin/src/tools/change.ts` | Builds snapshot from change/gates/tasks/proposal, adds `_contextSnapshot` to output |
 | `plugin/src/tools/status.ts` | Adds `_contextSnapshot` to each recent change in `adv_status` |
 | `plugin/src/tools/gate.ts` | Emits updated `_contextSnapshot` in `adv_gate_complete` responses |
+| `plugin/src/tools/task.ts` | Emits `_contextSnapshot` on `adv_task_update` (→ `in_progress` / → `done`) and `adv_task_ready` |
 
 ## Spec
 
