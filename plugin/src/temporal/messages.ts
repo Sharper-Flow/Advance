@@ -97,24 +97,25 @@ export const reclassifyTaskTddUpdate = wf.defineUpdate<
   [string, TddReclassification]
 >("adv.change.reclassifyTaskTdd");
 export const completeGateUpdate = wf.defineUpdate<
-  ChangeWorkflowState["gates"][GateId],
+  ChangeWorkflowState,
   [GateId, string | undefined, string | undefined]
 >("adv.change.completeGate");
 export const reopenFromGateUpdate = wf.defineUpdate<
-  void,
+  ChangeWorkflowState,
   [GateId, string, string | undefined, string | undefined]
 >("adv.change.reopenFromGate");
 export const addChangeWisdomUpdate = wf.defineUpdate<
-  void,
+  ChangeWorkflowState,
   [WisdomType, string, string | undefined]
 >("adv.change.addWisdom");
 export const updateArtifactMetadataUpdate = wf.defineUpdate<
   void,
   [ArtifactKind, ArtifactMetadata]
 >("adv.change.updateArtifactMetadata");
-export const closeChangeUpdate = wf.defineUpdate<void, [ChangeClosure]>(
-  "adv.change.closeChange",
-);
+export const closeChangeUpdate = wf.defineUpdate<
+  ChangeWorkflowState,
+  [ChangeClosure]
+>("adv.change.closeChange");
 
 export const projectBootstrapQuery =
   wf.defineQuery<ProjectWorkflowBootstrapState>("adv.project.bootstrap");

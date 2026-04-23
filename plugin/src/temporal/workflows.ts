@@ -103,15 +103,15 @@ const reclassifyTaskTddUpdate = wf.defineUpdate<
   [string, import("../types").TddReclassification]
 >(CHANGE_WORKFLOW_UPDATE_NAMES.reclassifyTaskTdd);
 const completeGateUpdate = wf.defineUpdate<
-  ChangeWorkflowState["gates"][import("../types").GateId],
+  ChangeWorkflowState,
   [import("../types").GateId, string | undefined, string | undefined]
 >(CHANGE_WORKFLOW_UPDATE_NAMES.completeGate);
 const reopenFromGateUpdate = wf.defineUpdate<
-  void,
+  ChangeWorkflowState,
   [import("../types").GateId, string, string | undefined, string | undefined]
 >(CHANGE_WORKFLOW_UPDATE_NAMES.reopenFromGate);
 const addWisdomUpdate = wf.defineUpdate<
-  void,
+  ChangeWorkflowState,
   [import("../types").WisdomType, string, string | undefined]
 >(CHANGE_WORKFLOW_UPDATE_NAMES.addWisdom);
 const updateArtifactMetadataUpdate = wf.defineUpdate<
@@ -119,7 +119,7 @@ const updateArtifactMetadataUpdate = wf.defineUpdate<
   [import("./contracts").ArtifactKind, import("./contracts").ArtifactMetadata]
 >(CHANGE_WORKFLOW_UPDATE_NAMES.updateArtifactMetadata);
 const closeChangeUpdate = wf.defineUpdate<
-  void,
+  ChangeWorkflowState,
   [import("../types").ChangeClosure]
 >(CHANGE_WORKFLOW_UPDATE_NAMES.closeChange);
 const projectBootstrapQuery = wf.defineQuery<ProjectWorkflowBootstrapState>(

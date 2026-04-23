@@ -263,7 +263,7 @@ export function completeGateInChangeState(
   state: ChangeWorkflowState,
   gateId: GateId,
   input: { now: string; completedBy: string; notes?: string },
-): Gates[GateId] {
+): ChangeWorkflowState {
   if (!canCompleteGate(state.gates, gateId)) {
     throw new Error(
       `Cannot complete ${gateId}: previous gate is not satisfied`,
@@ -278,7 +278,7 @@ export function completeGateInChangeState(
     ...(input.notes ? { notes: input.notes } : {}),
   };
 
-  return state.gates[gateId];
+  return state;
 }
 
 export function reopenFromGateInChangeState(
@@ -291,7 +291,7 @@ export function reopenFromGateInChangeState(
     reopenedBy?: string;
     approvalEvidence?: string;
   },
-): void {
+): ChangeWorkflowState {
   // Project the workflow state into the minimum Change view that
   // reopenChangeFromGate actually touches. Avoids an unsafe
   // `as unknown as Change` cast and keeps field drift a compile-time error.
@@ -328,13 +328,15 @@ export function reopenFromGateInChangeState(
   // the workflow stays authoritative for gates + reentry history.
   state.gates = adapter.gates ?? state.gates;
   state.reentry_history = adapter.reentry_history ?? state.reentry_history;
+
+  return state;
 }
 
 export function addChangeWisdom(
   state: ChangeWorkflowState,
   input: { type: WisdomType; content: string; sourceTask?: string },
   ctx: StateMutationContext,
-): void {
+): ChangeWorkflowState {
   state.wisdom.push({
     id: `ws-${ctx.uuid()}`,
     type: input.type,
@@ -342,6 +344,7 @@ export function addChangeWisdom(
     source_task: input.sourceTask,
     recorded_at: ctx.now,
   });
+  return state;
 }
 
 export function updateArtifactMetadataInChangeState(
@@ -355,7 +358,8 @@ export function updateArtifactMetadataInChangeState(
 export function closeChangeInChangeState(
   state: ChangeWorkflowState,
   closure: ChangeClosure,
-): void {
+): ChangeWorkflowState {
   state.status = "closed";
   state.closure = closure;
+  return state;
 }

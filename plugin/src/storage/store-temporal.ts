@@ -358,14 +358,13 @@ export function createTemporalStoreBackend(
         try {
           invalidateChange(changeId);
           const handle = getChangeHandle(input, changeId);
-          await runTemporal(() =>
+          const result = (await runTemporal(() =>
             handle.executeUpdate(closeChangeUpdate, { args: [closure] }),
-          );
-          const result = await runTemporal(() =>
-            handle.query(changeStateQuery),
-          );
-          indexTasksFromState(result as ChangeWorkflowState);
-          return setCachedChange(result as ChangeWorkflowState);
+          )) as ChangeWorkflowState;
+          indexTasksFromState(result);
+          const change = setCachedChange(result);
+          emitChangeSummarySignal(changeId, result);
+          return change;
         } catch (err) {
           if (!isExpectedFallbackError(err)) throw err;
           return legacy.changes.close(changeId, closure);
@@ -427,14 +426,12 @@ export function createTemporalStoreBackend(
           try {
             invalidateChange(id);
             const handle = getChangeHandle(input, id);
-            await runTemporal(() =>
+            const result = (await runTemporal(() =>
               handle.executeUpdate(closeChangeUpdate, { args: [closure] }),
-            );
-            const result = await runTemporal(() =>
-              handle.query(changeStateQuery),
-            );
-            indexTasksFromState(result as ChangeWorkflowState);
-            setCachedChange(result as ChangeWorkflowState);
+            )) as ChangeWorkflowState;
+            indexTasksFromState(result);
+            setCachedChange(result);
+            emitChangeSummarySignal(id, result);
             results.push({ changeId: id, success: true });
             closed++;
           } catch (err) {
@@ -662,15 +659,13 @@ export function createTemporalStoreBackend(
         try {
           invalidateChange(changeId);
           const handle = getChangeHandle(input, changeId);
-          await runTemporal(() =>
+          const state = (await runTemporal(() =>
             handle.executeUpdate(addChangeWisdomUpdate, {
               args: [type, content, sourceTask],
             }),
-          );
-          const state = (await runTemporal(() =>
-            handle.query(changeStateQuery),
           )) as ChangeWorkflowState;
           setCachedChange(state);
+          emitChangeSummarySignal(changeId, state);
           return (
             (state.wisdom[state.wisdom.length - 1] as
               | WisdomEntry
@@ -713,11 +708,13 @@ export function createTemporalStoreBackend(
         try {
           invalidateChange(changeId);
           const handle = getChangeHandle(input, changeId);
-          await runTemporal(() =>
+          const state = (await runTemporal(() =>
             handle.executeUpdate(completeGateUpdate, {
               args: [gateId, notes, "agent"],
             }),
-          );
+          )) as ChangeWorkflowState;
+          setCachedChange(state);
+          emitChangeSummarySignal(changeId, state);
         } catch (err) {
           if (!isExpectedFallbackError(err)) throw err;
           await legacy.gates.complete(changeId, gateId, notes);
@@ -734,7 +731,7 @@ export function createTemporalStoreBackend(
         try {
           invalidateChange(changeId);
           const handle = getChangeHandle(input, changeId);
-          await runTemporal(() =>
+          const state = (await runTemporal(() =>
             handle.executeUpdate(reopenFromGateUpdate, {
               args: [
                 fromGate,
@@ -743,7 +740,9 @@ export function createTemporalStoreBackend(
                 approvalEvidence ?? reopenedBy,
               ],
             }),
-          );
+          )) as ChangeWorkflowState;
+          setCachedChange(state);
+          emitChangeSummarySignal(changeId, state);
         } catch (err) {
           if (!isExpectedFallbackError(err)) throw err;
           await legacy.gates.reopenFrom(
