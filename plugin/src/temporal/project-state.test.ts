@@ -192,8 +192,12 @@ describe("applyChangeSummaryToProjectState", () => {
       title: "Test",
       status: "draft",
       gateProgress: {
-        proposal: "done", discovery: "pending", design: "pending",
-        planning: "pending", execution: "pending", acceptance: "pending",
+        proposal: "done",
+        discovery: "pending",
+        design: "pending",
+        planning: "pending",
+        execution: "pending",
+        acceptance: "pending",
         release: "pending",
       },
       taskCounts: { total: 3, done: 1, pending: 2 },
@@ -206,8 +210,12 @@ describe("applyChangeSummaryToProjectState", () => {
       title: "Test",
       status: "active",
       gateProgress: {
-        proposal: "done", discovery: "done", design: "pending",
-        planning: "pending", execution: "pending", acceptance: "pending",
+        proposal: "done",
+        discovery: "done",
+        design: "pending",
+        planning: "pending",
+        execution: "pending",
+        acceptance: "pending",
         release: "pending",
       },
       taskCounts: { total: 5, done: 3, pending: 2 },
@@ -230,8 +238,12 @@ describe("applyChangeSummaryToProjectState", () => {
       title: "First",
       status: "draft",
       gateProgress: {
-        proposal: "done", discovery: "pending", design: "pending",
-        planning: "pending", execution: "pending", acceptance: "pending",
+        proposal: "done",
+        discovery: "pending",
+        design: "pending",
+        planning: "pending",
+        execution: "pending",
+        acceptance: "pending",
         release: "pending",
       },
       taskCounts: { total: 1, done: 0, pending: 1 },
@@ -244,8 +256,12 @@ describe("applyChangeSummaryToProjectState", () => {
       title: "Duplicate",
       status: "active",
       gateProgress: {
-        proposal: "done", discovery: "done", design: "pending",
-        planning: "pending", execution: "pending", acceptance: "pending",
+        proposal: "done",
+        discovery: "done",
+        design: "pending",
+        planning: "pending",
+        execution: "pending",
+        acceptance: "pending",
         release: "pending",
       },
       taskCounts: { total: 2, done: 1, pending: 1 },
@@ -269,8 +285,12 @@ describe("applyChangeSummaryToProjectState", () => {
       title: "Newer",
       status: "active",
       gateProgress: {
-        proposal: "done", discovery: "done", design: "pending",
-        planning: "pending", execution: "pending", acceptance: "pending",
+        proposal: "done",
+        discovery: "done",
+        design: "pending",
+        planning: "pending",
+        execution: "pending",
+        acceptance: "pending",
         release: "pending",
       },
       taskCounts: { total: 5, done: 3, pending: 2 },
@@ -283,8 +303,12 @@ describe("applyChangeSummaryToProjectState", () => {
       title: "Stale",
       status: "draft",
       gateProgress: {
-        proposal: "done", discovery: "pending", design: "pending",
-        planning: "pending", execution: "pending", acceptance: "pending",
+        proposal: "done",
+        discovery: "pending",
+        design: "pending",
+        planning: "pending",
+        execution: "pending",
+        acceptance: "pending",
         release: "pending",
       },
       taskCounts: { total: 1, done: 0, pending: 1 },
@@ -305,8 +329,12 @@ describe("applyChangeSummaryToProjectState", () => {
     const baseSummary = {
       title: "Test",
       gateProgress: {
-        proposal: "pending", discovery: "pending", design: "pending",
-        planning: "pending", execution: "pending", acceptance: "pending",
+        proposal: "pending",
+        discovery: "pending",
+        design: "pending",
+        planning: "pending",
+        execution: "pending",
+        acceptance: "pending",
         release: "pending",
       },
       taskCounts: { total: 0, done: 0, pending: 0 },
@@ -314,10 +342,16 @@ describe("applyChangeSummaryToProjectState", () => {
     };
 
     applyChangeSummaryToProjectState(state, {
-      ...baseSummary, changeId: "chg-a", status: "draft", sourceVersion: 1,
+      ...baseSummary,
+      changeId: "chg-a",
+      status: "draft",
+      sourceVersion: 1,
     });
     applyChangeSummaryToProjectState(state, {
-      ...baseSummary, changeId: "chg-b", status: "active", sourceVersion: 1,
+      ...baseSummary,
+      changeId: "chg-b",
+      status: "active",
+      sourceVersion: 1,
     });
 
     expect(Object.keys(state.change_summaries)).toHaveLength(2);

@@ -177,6 +177,6 @@ export const recordMigrationEntryUpdate = wf.defineUpdate<
 >("adv.project.recordMigrationEntry");
 
 // Signal: fire-and-forget change summary propagation from changeWorkflow
-export const applyChangeSummarySignal = wf.defineSignal<
-  [ChangeSummaryPayload]
->("adv.change.applyChangeSummary");
+export const applyChangeSummarySignal = wf.defineSignal<[ChangeSummaryPayload]>(
+  "adv.change.applyChangeSummary",
+);
