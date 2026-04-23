@@ -177,9 +177,9 @@ describe("retry-wrapper (C2)", () => {
 
       vi.spyOn(Math, "random").mockReturnValue(0.0);
 
-      await expect(
-        withTemporalRetry(op, { maxAttempts: 3 }),
-      ).rejects.toThrow(/ECONNREFUSED/);
+      await expect(withTemporalRetry(op, { maxAttempts: 3 })).rejects.toThrow(
+        /ECONNREFUSED/,
+      );
 
       expect(getTemporalRetryTelemetry().lastError).toContain("ECONNREFUSED");
       expect(getTemporalRetryTelemetry().lastAttempts).toBe(3);

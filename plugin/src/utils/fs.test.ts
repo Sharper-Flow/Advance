@@ -76,47 +76,53 @@ describe("acquireFileLock", () => {
     );
   });
 
-  it("caps delay at maxWaitMs (500ms) with jitter", { timeout: 10_000 }, async () => {
-    const dir = await makeTestDir();
-    const target = join(dir, "cap-test.json");
-    const lockPath = `${target}.lock`;
+  it(
+    "caps delay at maxWaitMs (500ms) with jitter",
+    { timeout: 10_000 },
+    async () => {
+      const dir = await makeTestDir();
+      const target = join(dir, "cap-test.json");
+      const lockPath = `${target}.lock`;
 
-    // Fix random at high value to stress the cap
-    vi.spyOn(Math, "random").mockReturnValue(0.99);
+      // Fix random at high value to stress the cap
+      vi.spyOn(Math, "random").mockReturnValue(0.99);
 
-    const delays: number[] = [];
-    vi.spyOn(globalThis, "setTimeout").mockImplementation(((
-      cb: () => void,
-      ms?: number,
-    ) => {
-      if (ms !== undefined && ms > 0) {
-        delays.push(ms);
+      const delays: number[] = [];
+      vi.spyOn(globalThis, "setTimeout").mockImplementation(((
+        cb: () => void,
+        ms?: number,
+      ) => {
+        if (ms !== undefined && ms > 0) {
+          delays.push(ms);
+        }
+        cb();
+        return {} as ReturnType<typeof setTimeout>;
+      }) as typeof setTimeout);
+
+      await writeFile(lockPath, `${process.pid}\n${Date.now()}`, {
+        flag: "wx",
+      });
+
+      // Give enough budget for exponential to grow past 500
+      await expect(acquireFileLock(target, 5000)).rejects.toThrow(
+        /Failed to acquire lock/,
+      );
+
+      // Every delay must be <= 500 (maxWaitMs)
+      for (const d of delays) {
+        expect(d).toBeLessThanOrEqual(500);
       }
-      cb();
-      return {} as ReturnType<typeof setTimeout>;
-    }) as typeof setTimeout);
 
-    await writeFile(lockPath, `${process.pid}\n${Date.now()}`, { flag: "wx" });
+      // And we should see growth: later delays > earlier delays (before cap)
+      // With initial 25, coefficient 2: 25, 50, 100, 200, 400, 500 (cap), 500, ...
+      // At random=0.99: 24.75, 49.5, 99, 198, 396, 495, 495, ...
+      expect(delays.length).toBeGreaterThan(4);
 
-    // Give enough budget for exponential to grow past 500
-    await expect(acquireFileLock(target, 5000)).rejects.toThrow(
-      /Failed to acquire lock/,
-    );
-
-    // Every delay must be <= 500 (maxWaitMs)
-    for (const d of delays) {
-      expect(d).toBeLessThanOrEqual(500);
-    }
-
-    // And we should see growth: later delays > earlier delays (before cap)
-    // With initial 25, coefficient 2: 25, 50, 100, 200, 400, 500 (cap), 500, ...
-    // At random=0.99: 24.75, 49.5, 99, 198, 396, 495, 495, ...
-    expect(delays.length).toBeGreaterThan(4);
-
-    await import("fs/promises").then((fs) =>
-      fs.unlink(lockPath).catch(() => {}),
-    );
-  });
+      await import("fs/promises").then((fs) =>
+        fs.unlink(lockPath).catch(() => {}),
+      );
+    },
+  );
 
   it("clears stale lock from dead process and acquires", async () => {
     const dir = await makeTestDir();
