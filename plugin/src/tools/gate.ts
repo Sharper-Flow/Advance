@@ -128,8 +128,7 @@ export const gateTools = {
 
       const change = result.data;
       const gates: Gates = change.gates ?? createDefaultGates();
-      const buildContextSnapshot = async () => {
-        const latestGates = await store.gates.get(changeId);
+      const buildContextSnapshot = async (gatesSnapshot: Gates) => {
         const changeDir = join(store.paths.changes, changeId);
         const { content: proposalText } = await loadProposalWithFallback(
           changeDir,
@@ -151,13 +150,24 @@ export const gateTools = {
           changeId: change.id,
           title: change.title,
           successCriteriaCount: countSuccessCriteria(proposalText),
-          gates: latestGates ?? undefined,
+          gates: gatesSnapshot,
           taskCounts,
           workdir: store.paths.root,
           currentTask: currentTask
             ? { id: currentTask.id, title: currentTask.title }
             : undefined,
         });
+      };
+
+      const completedGates: Gates = {
+        ...gates,
+        [gateId]: {
+          ...gates[gateId],
+          status: "done",
+          completed_at: new Date().toISOString(),
+          completed_by: completedBy,
+          ...(notes ? { notes } : {}),
+        },
       };
 
       // Check sequence enforcement
@@ -281,7 +291,7 @@ export const gateTools = {
             status: "done",
             completed_at: now,
             completed_by: completedBy,
-            _contextSnapshot: await buildContextSnapshot(),
+            _contextSnapshot: await buildContextSnapshot(completedGates),
             ...(boundaryWarning ? { boundaryWarning } : {}),
             ...warningsPayload,
             ...clarifyPayload,
@@ -311,7 +321,7 @@ export const gateTools = {
           status: "done",
           completed_at: now,
           completed_by: completedBy,
-          _contextSnapshot: await buildContextSnapshot(),
+          _contextSnapshot: await buildContextSnapshot(completedGates),
           ...(boundaryWarning ? { boundaryWarning } : {}),
         }),
       );

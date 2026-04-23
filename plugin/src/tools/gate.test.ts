@@ -4,7 +4,7 @@
  * Tests for 7-gate quality checklist tools.
  */
 
-import { describe, test, expect, beforeEach, afterEach } from "vitest";
+import { describe, test, expect, beforeEach, afterEach, vi } from "vitest";
 import { gateTools } from "./gate";
 import { createStore, type Store } from "../storage/store";
 import {
@@ -118,6 +118,19 @@ describe("Gate Tools", () => {
       expect(parsed._contextSnapshot).toMatch(/\[✓ proposal\]/);
       expect(parsed._contextSnapshot).toMatch(/Success:/);
       expect(parsed._contextSnapshot).toMatch(/Workdir:/);
+    });
+
+    test("builds gate completion snapshot without refetching store.gates.get", async () => {
+      const gatesSpy = vi.spyOn(store.gates, "get");
+
+      const result = await gateTools.adv_gate_complete.execute(
+        { changeId: "addFeature", gateId: "proposal" },
+        store,
+      );
+      const parsed = extractJson(result) as Record<string, unknown>;
+
+      expect(parsed._contextSnapshot).toBeDefined();
+      expect(gatesSpy).not.toHaveBeenCalled();
     });
   });
 

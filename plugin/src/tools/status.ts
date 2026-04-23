@@ -19,6 +19,7 @@ import { getTemporalHealth } from "../temporal/health-probe";
 import { wrapWithBanner } from "../utils/banner";
 import { formatToolOutput } from "../utils/tool-output";
 import {
+  createDefaultGates,
   GATE_ORDER,
   isGateSatisfied,
   type GateId,
@@ -194,7 +195,7 @@ export const statusTools = {
         const changeResult = await store.changes.get(rc.id);
         if (!changeResult.success || !changeResult.data) continue;
 
-        const gates = await store.gates.get(rc.id);
+        const gates = changeResult.data.gates ?? createDefaultGates();
         const changeDir = join(store.paths.changes, rc.id);
         const { content: proposalText } = await loadProposalWithFallback(
           changeDir,

@@ -368,6 +368,19 @@ describe("Change Tools", () => {
       expect(parsed._contextSnapshot).toMatch(/[╔╗╚╝║═]/);
     });
 
+    test("reuses gates from the loaded change without refetching store.gates.get", async () => {
+      const gatesSpy = vi.spyOn(store.gates, "get");
+
+      const result = await changeTools.adv_change_show.execute(
+        { changeId: "addFeature" },
+        store,
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed._contextSnapshot).toBeDefined();
+      expect(gatesSpy).not.toHaveBeenCalled();
+    });
+
     test("context snapshot reflects actual task states and gate progress", async () => {
       // Advance task states: mark first task done, second in_progress
       await store.tasks.update("tk-task0001", "done", "Completed");

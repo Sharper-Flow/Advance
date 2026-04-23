@@ -331,6 +331,16 @@ describe("Status Tools", () => {
       expect(rc._contextSnapshot).toMatch(/Success:/);
     });
 
+    test("reuses gates from loaded changes without calling store.gates.get in adv_status", async () => {
+      const gatesSpy = vi.spyOn(store.gates, "get");
+
+      const result = await statusTools.adv_status.execute({}, store);
+      const parsed = parseToolOutput(result);
+
+      expect(parsed.changes.recent[0]._contextSnapshot).toBeDefined();
+      expect(gatesSpy).not.toHaveBeenCalled();
+    });
+
     test("includes clarify recommendation for change with ambiguity findings", async () => {
       // The sample change has a delta with add + no scenarios, and the sample
       // proposal has no Success Criteria or Scope section — should trigger findings
