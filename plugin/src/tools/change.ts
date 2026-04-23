@@ -78,13 +78,21 @@ function resolveClarifyFindings(
 function isSyntheticValidationDraftSummary(summary: string): boolean {
   const trimmed = summary.trim();
 
+  // Bracket-prefix parity markers: [parity:legacy] ..., [parity:temporal] ...
   if (/^\[parity:(legacy|temporal)\]\s+/i.test(trimmed)) {
     return true;
   }
 
+  // Explicit parity-prefix markers: parityLegacy*, parityTemporal*
+  if (/^parity(Legacy|Temporal)\w*\d*$/i.test(trimmed)) {
+    return true;
+  }
+
   return [
+    // Roundtrip validation
     /^change\s+roundtrip\d*$/i,
     /^changeRoundtrip\d*$/i,
+    // Per-subsystem parity runs
     /^task\s+parity\d*$/i,
     /^taskParity\d*$/i,
     /^gate\s+parity\d*$/i,
@@ -93,6 +101,13 @@ function isSyntheticValidationDraftSummary(summary: string): boolean {
     /^wisdomParity\d*$/i,
     /^reentry\s+parity\d*$/i,
     /^reentryParity\d*$/i,
+    // Latency benchmark runs
+    /^latency\s*legacy\d*$/i,
+    /^latencyLegacy\d*$/i,
+    // Harness cleanup artifacts
+    /^cleanupParityHarnessLeak\d*$/i,
+    // Comparison protocol iterations
+    /^userIntuitComparisonProtocol\d*$/i,
   ].some((pattern) => pattern.test(trimmed));
 }
 

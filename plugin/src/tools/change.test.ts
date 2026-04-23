@@ -770,6 +770,27 @@ describe("Change Tools", () => {
       }
     });
 
+    test.each([
+      "latencyLegacy1",
+      "latencyLegacy96",
+      "latency legacy7",
+      "parityLegacyReentryParity",
+      "parityTemporalTaskParity3",
+      "cleanupParityHarnessLeak",
+      "cleanupParityHarnessLeak2",
+      "userIntuitComparisonProtocol2",
+      "userIntuitComparisonProtocol",
+    ] as const)("rejects synthetic summary '%s'", async (summary) => {
+      const result = await changeTools.adv_change_create.execute(
+        { summary },
+        store,
+      );
+      const parsed = parseToolOutput(result);
+
+      expect(parsed.error).toContain("Synthetic validation draft summary");
+      expect(parsed.changeId).toBeUndefined();
+    });
+
     test("local create unchanged when target_path omitted", async () => {
       const result = await changeTools.adv_change_create.execute(
         { summary: "Local only change" },

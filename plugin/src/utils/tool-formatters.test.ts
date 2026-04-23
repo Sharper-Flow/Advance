@@ -1,0 +1,229 @@
+import { describe, expect, it } from "vitest";
+import {
+  truncate,
+  formatTaskReadyOutput,
+  formatStatusOutput,
+  formatValidationOutput,
+  formatDoomLoopDiagnostics,
+  formatSmellReport,
+  type FormattedTaskReady,
+  type FormattedStatus,
+  type FormattedValidation,
+  type FormattedDoomLoop,
+  type FormattedSmellReport,
+} from "./tool-formatters";
+
+describe("tool-formatters", () => {
+  describe("truncate", () => {
+    it("returns string unchanged when within limit", () => {
+      expect(truncate("hello", 10)).toBe("hello");
+    });
+
+    it("truncates with ellipsis when over limit", () => {
+      expect(truncate("hello world", 8)).toBe("hello...");
+    });
+
+    it("handles edge case: string exactly at limit", () => {
+      expect(truncate("hello", 5)).toBe("hello");
+    });
+
+    it("handles empty string", () => {
+      expect(truncate("", 10)).toBe("");
+    });
+  });
+
+  describe("formatTaskReadyOutput", () => {
+    it("returns formatted output with readyList and blockedList", () => {
+      const result = formatTaskReadyOutput({
+        ready: [
+          { id: "tk-abc", content: "Implement auth", status: "pending" },
+        ],
+        blocked: [],
+      });
+      expect(result.readyList).toContain("tk-abc");
+      expect(result.readyList).toContain("Implement auth");
+      expect(result.blockedList).toBe("(no blocked tasks)");
+      expect(result.nextSuggested).toEqual({
+        id: "tk-abc",
+        title: "Implement auth",
+      });
+      expect(result.todoFormat).toBe("tk-abc › Implement auth");
+    });
+
+    it("handles empty ready and blocked lists", () => {
+      const result = formatTaskReadyOutput({ ready: [], blocked: [] });
+      expect(result.readyList).toBe("(no tasks ready)");
+      expect(result.blockedList).toBe("(no blocked tasks)");
+      expect(result.nextSuggested).toBeUndefined();
+      expect(result.todoFormat).toBeUndefined();
+    });
+
+    it("formats blocked tasks with blocker IDs", () => {
+      const result = formatTaskReadyOutput({
+        ready: [],
+        blocked: [
+          {
+            task: { id: "tk-def", content: "Deploy", status: "pending" },
+            blockedBy: ["tk-abc"],
+          },
+        ],
+      });
+      expect(result.blockedList).toContain("tk-def");
+      expect(result.blockedList).toContain("blocked by: tk-abc");
+    });
+
+    it("truncates long task content", () => {
+      const longContent = "A".repeat(100);
+      const result = formatTaskReadyOutput({
+        ready: [{ id: "tk-abc", content: longContent, status: "pending" }],
+        blocked: [],
+      });
+      expect(result.readyList).toContain("...");
+      // Should be truncated to ~60 chars
+      const line = result.readyList.split("\n")[0];
+      expect(line.length).toBeLessThan(80);
+    });
+  });
+
+  describe("formatStatusOutput", () => {
+    it("returns formatted sections", () => {
+      const result = formatStatusOutput({
+        specCount: 9,
+        requirementCount: 67,
+        activeChanges: [],
+        archivedCount: 105,
+        recommendations: ["Run /adv-apply foo"],
+        temporalAlive: true,
+      });
+      expect(result.specsSection).toContain("9");
+      expect(result.specsSection).toContain("67");
+      expect(result.archivedSection).toContain("105");
+      expect(result.recommendationsList).toHaveLength(1);
+      expect(result.healthSection).toBeDefined();
+    });
+
+    it("handles empty state", () => {
+      const result = formatStatusOutput({
+        specCount: 0,
+        requirementCount: 0,
+        activeChanges: [],
+        archivedCount: 0,
+        recommendations: [],
+        temporalAlive: false,
+      });
+      expect(result.specsSection).toContain("0");
+      expect(result.recommendationsList).toHaveLength(0);
+    });
+
+    it("includes recency emojis in active section", () => {
+      const result = formatStatusOutput({
+        specCount: 1,
+        requirementCount: 5,
+        activeChanges: [
+          {
+            id: "testChange",
+            title: "Test Change",
+            minutesSinceActivity: 2,
+            recency: "hot",
+          },
+        ],
+        archivedCount: 0,
+        recommendations: [],
+        temporalAlive: true,
+      });
+      expect(result.activeSection).toContain("🔥");
+      expect(result.activeSection).toContain("testChange");
+    });
+  });
+
+  describe("formatValidationOutput", () => {
+    it("formats passed state", () => {
+      const result = formatValidationOutput({
+        passed: true,
+        errors: [],
+        warnings: [],
+      });
+      expect(result.summary).toContain("✓");
+      expect(result.nextAction).toContain("proceed");
+    });
+
+    it("formats errors and warnings", () => {
+      const result = formatValidationOutput({
+        passed: false,
+        errors: [{ code: "SPEC_NOT_FOUND", message: "Missing spec", path: "specs/foo" }],
+        warnings: [{ code: "NO_TASKS", message: "No tasks", path: "tasks" }],
+      });
+      expect(result.summary).toContain("1");
+      expect(result.errorTable).toContain("SPEC_NOT_FOUND");
+      expect(result.checklist).toBeDefined();
+      expect(result.nextAction).toBeDefined();
+    });
+
+    it("handles warnings-only state", () => {
+      const result = formatValidationOutput({
+        passed: true,
+        errors: [],
+        warnings: [{ code: "NO_TASKS", message: "No tasks", path: "tasks" }],
+      });
+      expect(result.summary).toContain("0");
+      expect(result.summary).toContain("1");
+    });
+  });
+
+  describe("formatDoomLoopDiagnostics", () => {
+    it("detects doom loop when retries exhausted", () => {
+      const result = formatDoomLoopDiagnostics({
+        retry_count: 3,
+        max_retries: 3,
+        last_error: "type error",
+        error_class: "SEMANTIC",
+        attempts: [
+          { attempt_number: 1, error: "type error", strategy_label: "fix types", outcome: "failed", attempted_at: "2026-01-01T00:00:00Z", diagnosis: "", fix_tried: "" },
+          { attempt_number: 2, error: "type error", strategy_label: "refactor", outcome: "failed", attempted_at: "2026-01-01T00:01:00Z", diagnosis: "", fix_tried: "" },
+          { attempt_number: 3, error: "timeout", strategy_label: "retry", outcome: "failed", attempted_at: "2026-01-01T00:02:00Z", diagnosis: "", fix_tried: "" },
+        ],
+      });
+      expect(result.inDoomLoop).toBe(true);
+      expect(result.banner).toContain("[ADV:BLOCKED]");
+      expect(result.attemptSummary).toContain("3 attempts");
+      expect(result.suggestedAction).toBeDefined();
+    });
+
+    it("returns non-doom-loop when retries remain", () => {
+      const result = formatDoomLoopDiagnostics({
+        retry_count: 1,
+        max_retries: 3,
+        last_error: "type error",
+        error_class: "SEMANTIC",
+        attempts: [],
+      });
+      expect(result.inDoomLoop).toBe(false);
+      expect(result.banner).toBe("");
+    });
+
+    it("handles null/undefined error_recovery gracefully", () => {
+      const result = formatDoomLoopDiagnostics(null);
+      expect(result.inDoomLoop).toBe(false);
+      expect(result.attemptSummary).toBe("");
+    });
+  });
+
+  describe("formatSmellReport", () => {
+    it("formats requirement smells", () => {
+      const result = formatSmellReport([
+        { type: "subjective", text: "easy integration", suggestion: "Specify measurable SLA" },
+        { type: "totality", text: "handles all errors", suggestion: "List specific error types" },
+      ]);
+      expect(result.smellReport).toContain("subjective");
+      expect(result.smellReport).toContain("easy integration");
+      expect(result.gapChecklist).toContain("2");
+      expect(result.nextAction).toBeDefined();
+    });
+
+    it("handles empty smells", () => {
+      const result = formatSmellReport([]);
+      expect(result.smellReport).toContain("No requirement smells");
+      expect(result.gapChecklist).toContain("0");
+    });
+  });
+});
