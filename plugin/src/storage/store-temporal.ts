@@ -32,7 +32,10 @@ import {
   setTaskPhaseUpdate,
   updateTaskUpdate,
 } from "../temporal/messages";
-import type { ChangeWorkflowState, ProjectWorkflowState } from "../temporal/contracts";
+import type {
+  ChangeWorkflowState,
+  ProjectWorkflowState,
+} from "../temporal/contracts";
 import { getReadyTasksFromChangeState } from "../temporal/change-state";
 import { withTemporalRetry } from "../temporal/retry-wrapper";
 import { listChangeDirs } from "./json";

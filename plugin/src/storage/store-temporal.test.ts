@@ -594,7 +594,7 @@ describe("Temporal store backend adapter", () => {
           artifacts: {},
         })),
         executeUpdate: vi.fn(async () => null),
-      signal: vi.fn(async () => {}),
+        signal: vi.fn(async () => {}),
       };
 
       const bundle = {

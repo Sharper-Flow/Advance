@@ -3,7 +3,6 @@ import type {
   ChangeClosure,
   ErrorRecovery,
   GateId,
-  Gates,
   Task,
   TddPhase,
   TddPhaseEvidence,

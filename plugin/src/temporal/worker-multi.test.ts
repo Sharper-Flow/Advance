@@ -1,6 +1,5 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { createMultiWorker, MULTI_SHUTDOWN_GRACE_MS } from "./worker-multi";
-import type { MultiWorker } from "./worker-multi";
 import type { ChildProcess } from "node:child_process";
 import EventEmitter from "node:events";
 
@@ -69,26 +68,33 @@ vi.mock("./runtime-manager", () => ({
     found: true,
     path: "/usr/bin/node",
   })),
-  buildTemporalWorkerProcessSpec: vi.fn((input: {
-    workerScript: string;
-    taskQueue: string;
-    address: string;
-    namespace: string;
-    projectId: string;
-  }) => ({
-    command: "/usr/bin/node",
-    args: [input.workerScript],
-    env: {
-      ADV_TEMPORAL_ADDRESS: input.address,
-      ADV_TEMPORAL_NAMESPACE: input.namespace,
-      ADV_TEMPORAL_TASK_QUEUE: input.taskQueue,
-      ADV_TEMPORAL_PROJECT_ID: input.projectId,
-    },
-  })),
+  buildTemporalWorkerProcessSpec: vi.fn(
+    (input: {
+      workerScript: string;
+      taskQueue: string;
+      address: string;
+      namespace: string;
+      projectId: string;
+    }) => ({
+      command: "/usr/bin/node",
+      args: [input.workerScript],
+      env: {
+        ADV_TEMPORAL_ADDRESS: input.address,
+        ADV_TEMPORAL_NAMESPACE: input.namespace,
+        ADV_TEMPORAL_TASK_QUEUE: input.taskQueue,
+        ADV_TEMPORAL_PROJECT_ID: input.projectId,
+      },
+    }),
+  ),
 }));
 
 vi.mock("../utils/debug-log", () => ({
-  createLogger: () => ({ debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() }),
+  createLogger: () => ({
+    debug: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+  }),
   appendDebugLog: vi.fn(),
 }));
 
@@ -145,7 +151,8 @@ describe("Multi-queue worker host", () => {
 
     expect(lastMockChild?.stdin.write).toHaveBeenCalled();
     const writeCall = lastMockChild!.stdin.write.mock.calls.find(
-      (call: unknown[]) => typeof call[0] === "string" && call[0].includes("register"),
+      (call: unknown[]) =>
+        typeof call[0] === "string" && call[0].includes("register"),
     );
     expect(writeCall).toBeTruthy();
     const msg = JSON.parse((writeCall![0] as string).trim());
@@ -200,16 +207,18 @@ describe("Multi-queue worker host", () => {
 
     // Override kill to NOT auto-emit exit on SIGTERM (simulates stuck child)
     let sigkillReceived = false;
-    (child.kill as ReturnType<typeof vi.fn>).mockImplementation((signal?: string) => {
-      child.killed = true;
-      if (signal === "SIGKILL") {
-        sigkillReceived = true;
-        child.exitCode = 137;
-        // Emit exit after SIGKILL
-        queueMicrotask(() => child.emit("exit", 137, "SIGKILL"));
-      }
-      // SIGTERM does NOT emit exit — child is stuck
-    });
+    (child.kill as ReturnType<typeof vi.fn>).mockImplementation(
+      (signal?: string) => {
+        child.killed = true;
+        if (signal === "SIGKILL") {
+          sigkillReceived = true;
+          child.exitCode = 137;
+          // Emit exit after SIGKILL
+          queueMicrotask(() => child.emit("exit", 137, "SIGKILL"));
+        }
+        // SIGTERM does NOT emit exit — child is stuck
+      },
+    );
 
     const shutdownPromise = worker.shutdown();
 
@@ -277,9 +286,9 @@ describe("Multi-queue worker host", () => {
       remediation: "Install Node",
     });
 
-    await expect(
-      createMultiWorker(baseInput),
-    ).rejects.toThrow("Cannot spawn multi-queue");
+    await expect(createMultiWorker(baseInput)).rejects.toThrow(
+      "Cannot spawn multi-queue",
+    );
   });
 
   it("throws if worker script not found", async () => {

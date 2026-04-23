@@ -40,7 +40,7 @@ const mocks = vi.hoisted(() => {
     addProjectWisdom,
     compactProjectWisdom,
     listProjectWisdom,
-    createTemporalClientBundle: vi.fn(async () => ({
+    getService: vi.fn(() => ({
       connection: { close },
       client: {
         workflow: { getHandle: vi.fn(() => ({ executeUpdate, query })) },
@@ -50,14 +50,13 @@ const mocks = vi.hoisted(() => {
   };
 });
 
-vi.mock("../temporal/client", async () => {
-  const actual =
-    await vi.importActual<typeof import("../temporal/client")>(
-      "../temporal/client",
-    );
+vi.mock("../temporal/service", async () => {
+  const actual = await vi.importActual<typeof import("../temporal/service")>(
+    "../temporal/service",
+  );
   return {
     ...actual,
-    createTemporalClientBundle: mocks.createTemporalClientBundle,
+    getService: mocks.getService,
   };
 });
 
@@ -139,7 +138,6 @@ describe("adv_wisdom_add derived-export path", () => {
     const parsed = JSON.parse(result);
 
     expect(parsed.success).toBe(true);
-    expect(mocks.createTemporalClientBundle).toHaveBeenCalledTimes(1);
     expect(mocks.executeUpdate).toHaveBeenCalledTimes(1);
     expect(mocks.query).toHaveBeenCalledTimes(1);
     expect(mocks.writeJsonlAtomic).toHaveBeenCalledWith(
@@ -229,7 +227,6 @@ describe("adv_wisdom_add derived-export path", () => {
     const parsed = JSON.parse(result);
 
     expect(parsed.success).toBe(true);
-    expect(mocks.createTemporalClientBundle).not.toHaveBeenCalled();
     expect(mocks.addProjectWisdom).toHaveBeenCalledTimes(1);
   });
 });

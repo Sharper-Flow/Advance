@@ -26,7 +26,7 @@ const mocks = vi.hoisted(() => {
     })),
     inProcessWorker,
     createInProcessWorker: vi.fn(async () => inProcessWorker),
-    createTemporalClientBundle: vi.fn(async () => ({
+    initStsl: vi.fn(async () => ({
       address: "127.0.0.1:7233",
       namespace: "default",
       connection: { close: vi.fn(async () => {}) } as any,
@@ -49,14 +49,15 @@ vi.mock("./temporal/runtime-manager", async () => {
   };
 });
 
-vi.mock("./temporal/client", async () => {
+vi.mock("./temporal/service", async () => {
   const actual =
-    await vi.importActual<typeof import("./temporal/client")>(
-      "./temporal/client",
+    await vi.importActual<typeof import("./temporal/service")>(
+      "./temporal/service",
     );
   return {
     ...actual,
-    createTemporalClientBundle: mocks.createTemporalClientBundle,
+    initStsl: mocks.initStsl,
+    closeStsl: vi.fn(async () => {}),
   };
 });
 

@@ -55,7 +55,7 @@ const mocks = vi.hoisted(() => {
       query: vi.fn(),
       executeUpdate: vi.fn(),
     })),
-    createTemporalClientBundle: vi.fn(async () => ({
+    initStsl: vi.fn(async () => ({
       address: "127.0.0.1:7233",
       namespace: "default",
       connection: {} as any,
@@ -99,14 +99,15 @@ vi.mock("./temporal/out-of-process-worker", () => ({
   createOutOfProcessWorker: mocks.createOutOfProcessWorker,
 }));
 
-vi.mock("./temporal/client", async () => {
+vi.mock("./temporal/service", async () => {
   const actual =
-    await vi.importActual<typeof import("./temporal/client")>(
-      "./temporal/client",
+    await vi.importActual<typeof import("./temporal/service")>(
+      "./temporal/service",
     );
   return {
     ...actual,
-    createTemporalClientBundle: mocks.createTemporalClientBundle,
+    initStsl: mocks.initStsl,
+    closeStsl: vi.fn(async () => {}),
   };
 });
 
@@ -191,7 +192,7 @@ describe("plugin-init tryInitStore", () => {
         queues: ["advance-proj-sha"],
       }),
     );
-    expect(mocks.createTemporalClientBundle).toHaveBeenCalledWith(
+    expect(mocks.initStsl).toHaveBeenCalledWith(
       expect.objectContaining({
         ADV_TEMPORAL_ADDRESS: "127.0.0.1:7233",
         ADV_TEMPORAL_NAMESPACE: "default",

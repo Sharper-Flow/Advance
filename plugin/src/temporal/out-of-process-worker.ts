@@ -13,7 +13,7 @@
  */
 
 import type { InProcessWorker } from "./in-process-worker";
-import { createMultiWorker, type MultiWorker } from "./worker-multi";
+import { createMultiWorker } from "./worker-multi";
 
 export const OOP_SHUTDOWN_GRACE_MS = 5_000;
 

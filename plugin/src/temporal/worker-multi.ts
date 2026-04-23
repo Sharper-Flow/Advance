@@ -110,9 +110,7 @@ export async function createMultiWorker(
     const reason =
       nodeResolution.remediation ??
       "No Node executable found. Install Node (v20+) on PATH or set ADV_NODE_PATH.";
-    throw new Error(
-      `Cannot spawn multi-queue Temporal worker: ${reason}`,
-    );
+    throw new Error(`Cannot spawn multi-queue Temporal worker: ${reason}`);
   }
   const nodePath = nodeResolution.path;
 
@@ -174,34 +172,39 @@ export async function createMultiWorker(
       logger.debug(`[multi-worker:stderr] ${text}`);
     });
 
-    newChild.once("exit", (code: number | null, signal: NodeJS.Signals | null) => {
-      debugLog(
-        `multi-queue worker exited code=${code} signal=${signal ?? "none"} restartCount=${restartCount}`,
-      );
-
-      if (shuttingDown || code === 0) {
-        child = null;
-        resolveExit();
-        return;
-      }
-
-      if (restartCount >= MAX_RESTARTS) {
-        logger.info(
-          `Multi-queue Temporal worker exhausted ${MAX_RESTARTS} restart attempts. Last exit code=${code}, signal=${signal ?? "none"}.`,
+    newChild.once(
+      "exit",
+      (code: number | null, signal: NodeJS.Signals | null) => {
+        debugLog(
+          `multi-queue worker exited code=${code} signal=${signal ?? "none"} restartCount=${restartCount}`,
         );
-        child = null;
-        resolveExit();
-        return;
-      }
 
-      const backoff = RESTART_BACKOFF_MS[restartCount] ?? 10_000;
-      restartCount += 1;
-      debugLog(`scheduling respawn in ${backoff}ms (attempt ${restartCount}/${MAX_RESTARTS})`);
-      setTimeout(() => {
-        if (shuttingDown) return;
-        spawnChild();
-      }, backoff).unref();
-    });
+        if (shuttingDown || code === 0) {
+          child = null;
+          resolveExit();
+          return;
+        }
+
+        if (restartCount >= MAX_RESTARTS) {
+          logger.info(
+            `Multi-queue Temporal worker exhausted ${MAX_RESTARTS} restart attempts. Last exit code=${code}, signal=${signal ?? "none"}.`,
+          );
+          child = null;
+          resolveExit();
+          return;
+        }
+
+        const backoff = RESTART_BACKOFF_MS[restartCount] ?? 10_000;
+        restartCount += 1;
+        debugLog(
+          `scheduling respawn in ${backoff}ms (attempt ${restartCount}/${MAX_RESTARTS})`,
+        );
+        setTimeout(() => {
+          if (shuttingDown) return;
+          spawnChild();
+        }, backoff).unref();
+      },
+    );
   }
 
   function sendToChild(msg: ParentToChildMessage): void {
