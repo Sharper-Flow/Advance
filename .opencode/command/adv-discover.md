@@ -87,16 +87,46 @@ If `adv_change_show` reveals a `cross_project_origin` field on the change:
 > **Gate requirement:** Cross-project origin MUST be validated and confirmed by the user before proceeding to agreement. This prevents stale or misdirected follow-up changes from being adopted blindly.
 
 ---
-## Phase 1.5: Skill Discovery
-Execute the skill discovery protocol from `ADV_INSTRUCTIONS.md § Skill Discovery Protocol`. Search trusted skill directories → match `keywords` against tech stack/domain → load via `skill("{name}")` → apply guidance.
+## Phase 1.5: Skill Discovery + Gap-Triggered Creation
 
-**Output:** "Skills Considered" section listing each examined skill, match assessment, and action taken.
+Execute the skill discovery protocol from `ADV_INSTRUCTIONS.md § Skill Discovery Protocol`, then check for skill gaps and pending reviews.
+
+### Step 1: Pending-Review Scan
+
+Before keyword matching, scan the global skills dir (`~/.config/opencode/skills/*/SKILL.md`) for skills with `metadata.review_status: "pending"`:
+
+1. Read each SKILL.md frontmatter in the global dir
+2. If any skill has `review_status: "pending"` → surface to user via `question` tool:
+   - Present skill name, domain, and description
+   - Options: **Confirm** (update `review_status` to `"reviewed"`), **Reject** (delete skill file), **Skip** (leave pending)
+3. Process user response before continuing
+
+### Step 2: Skill Search (existing behavior)
+
+Search trusted skill directories → match `keywords` against tech stack/domain → load via `skill("{name}")` → apply guidance.
+
+### Step 3: Gap Detection + Creation
+
+If no matching skill was found for a domain clearly relevant to the change's **core problem** (not tangential), the agent MAY create a skill on demand. See `ADV_INSTRUCTIONS.md § Skill Creation Protocol` for the full trigger conditions, naming convention, assembly template, and creation flow.
+
+**Creation sub-flow (only if gap detected):**
+1. Research domain using Context7, Kagi, grep.app
+2. Assemble SKILL.md using the template from `ADV_INSTRUCTIONS.md § Skill Creation Protocol`
+3. Write atomically to `~/.config/opencode/skills/agent-{domain}/SKILL.md`
+4. Skip if file already exists → report "skill already exists: agent-{domain}"
+5. Load via `skill("agent-{domain}")` and apply guidance in current workflow
+6. Emit `[ADV:SKILL_CREATED]` with skill name, domain, and brief description
+
+**Output:** "Skills Considered" section listing each examined skill, match assessment, action taken, and any gap detection/creation results.
 
 **Graceful degradation:**
 - No skills in trusted directories → report "Skills considered: none available" (non-blocking)
 - Malformed YAML frontmatter → skip silently
 - Multiple matches → load all matching skills
-- No matches → proceed normally, report "no skills matched"
+- No matches for tangential domain → proceed normally, report "no skills matched"
+- No matches for core domain → gap detected, proceed to creation sub-flow
+
+**Protocol extension note:** This extends the Skill Discovery Protocol's "No matches → proceed normally" behavior. When all trigger conditions are met (core domain, no partial match), "no matches" becomes a conditional trigger for skill creation. Agents that don't implement creation still conform by reporting the gap and proceeding.
 ---
 
 ## Phase 1.6: Conflict & Related-Work Scan
