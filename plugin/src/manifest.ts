@@ -232,6 +232,22 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
       "Complete the flight-check: every gap closed, every dependency mapped, every task ready \u2014 ready for autonomous implementation.",
     args_hint: "<change-id>",
   },
+  "adv-reflect": {
+    name: "adv-reflect",
+    description:
+      "Produce a structured two-plane reflection report for an archived change",
+    phase: "post-implementation",
+    requiresChangeId: true,
+    prerequisites: ["adv-archive"],
+    successors: [],
+    scope: {
+      reads: ["specs", "proposal", "tasks"],
+      creates: ["reflection"],
+      modifies: [],
+      gates: [],
+    },
+    args_hint: "<change-id>",
+  },
 
   // ---- Implementation ----
   "adv-apply": {

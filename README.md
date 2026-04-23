@@ -133,6 +133,7 @@ When a change has multiple viable directions with real user-value tradeoffs, pri
 | `/adv-coordinate` | Detect and resolve conflicts across multiple active changes                                          |
 | `/adv-improve`    | Suggest targeted improvements to existing specs or implementation                                    |
 | `/adv-tron`       | Investigate codebase structure, hotspots, risks, and suggest follow-up agenda candidates             |
+| `/adv-reflect`    | Produce a structured two-plane reflection report for an archived change                              |
 
 ## Why it feels different
 

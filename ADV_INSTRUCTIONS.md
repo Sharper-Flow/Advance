@@ -101,6 +101,7 @@ Each workflow command has a defined phase goal. These are canonical in `manifest
 | `/adv-review`   | Verify implementation matches the approved plan. Auto-fix within scope. Stop on drift.                                        |
 | `/adv-harden`   | Verify production-readiness. Auto-fix scoped issues. Stop on drift.                                                           |
 | `/adv-archive`  | Promote the change from contract to law: apply spec deltas, capture wisdom, clean up.                                         |
+| `/adv-reflect`  | Synthesize post-completion learnings into a durable reflection artifact for process improvement.                               |
 
 ## Commands
 
@@ -115,6 +116,7 @@ Each workflow command has a defined phase goal. These are canonical in `manifest
 | `/adv-validate <change-id>` | Validate change compliance against specs; block archive on failure                  |
 | `/adv-apply <change-id>`    | Implement change with TDD, retry on failure, and final verification                 |
 | `/adv-archive <change-id>`  | Archive completed change: apply spec deltas and finalize git                        |
+| `/adv-reflect <change-id>`  | Produce a structured two-plane reflection report for an archived change             |
 
 ### Pre-Implementation
 

@@ -31,6 +31,7 @@ import { testTools } from "./tools/test";
 import { investmentTools } from "./tools/investment";
 import { temporalOpsTools } from "./tools/temporal-ops";
 import { checkpointTools } from "./tools/checkpoint";
+import { reflectionTools } from "./tools/reflection";
 type ToolArgsSchema = Record<string, z.ZodTypeAny>;
 type ToolExecute<TArgs> = (
   args: TArgs,
@@ -374,6 +375,13 @@ export function createToolMap(
         "adv_task_checkpoint",
       ),
     ),
+
+    // Reflection Tool
+    adv_reflect: bindTool(
+      reflectionTools.adv_reflect,
+      "adv_reflect",
+      store,
+    ),
   };
 }
 
@@ -422,6 +430,7 @@ export const ADV_TOOL_NAMES: readonly string[] = [
   "adv_temporal_worker_restart",
   "adv_workflow_repair",
   "adv_task_checkpoint",
+  "adv_reflect",
 ] as const;
 
 /**

@@ -141,7 +141,7 @@ export const reflectionTools = {
       // Wisdom metrics
       const wisdomEntries = change.wisdom ?? [];
       const wisdomPromoted = wisdomEntries.filter((w) =>
-        w.scope === "project" || w.id?.startsWith("pw-"),
+        w.id?.startsWith("pw-"),
       ).length;
 
       // =====================================================================
