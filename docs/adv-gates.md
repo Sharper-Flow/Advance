@@ -81,7 +81,7 @@ Absorbs the old `harden` gate. Before running quality scanners, `/adv-harden` pe
 3. **Review findings audit** — validated in-scope findings must be resolved (no report-only, future-work, or accepted-debt path)
 4. **Merge compatibility check** — non-destructive dry-run merge against the default branch (`git merge --no-commit --no-ff`); blocks on conflicts
 
-`/adv-archive` runs Phase 9 Git Finalization: stage → commit → detect default branch → merge/PR → verify → cleanup worktree → remove temp artifacts. During archive, durable convention/pattern wisdom can also be promoted to project-level wisdom so lessons survive beyond a single change.
+`/adv-archive` runs Phase 9 Git Finalization: stage → commit → detect default branch → refresh basis → choose `--ff-only` / reconcile / PR path → verify → cleanup worktree → remove temp artifacts. During archive, durable convention/pattern wisdom can also be promoted to project-level wisdom so lessons survive beyond a single change.
 
 ## Re-Entry (Scope Expansion)
 
