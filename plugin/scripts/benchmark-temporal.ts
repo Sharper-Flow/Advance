@@ -395,7 +395,7 @@ export async function runRepeatedCommand(
 /* Single-shot execution (used by cold-start child processes)         */
 /* ------------------------------------------------------------------ */
 
-async function runSingleShot(op: BenchmarkOp, adapter: OpAdapter): Promise<BenchmarkSample> {
+export async function runSingleShot(op: BenchmarkOp, adapter: OpAdapter): Promise<BenchmarkSample> {
   const runId = `single-${Date.now()}`;
   const startedAt = new Date().toISOString();
 
@@ -806,7 +806,6 @@ export function validateOutputDir(input?: string): { ok: true; path: string } | 
     return { ok: true, path: join(process.cwd(), "temp", "bench") };
   }
 
-  const { resolve } = await import("node:path");
   const resolved = resolve(process.cwd(), input);
   const cwd = process.cwd();
   const tempRoot = join(cwd, "temp");
