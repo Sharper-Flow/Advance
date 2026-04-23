@@ -170,8 +170,9 @@ Emit at START of each response:
 | `[ADV:ATTN]`               | User needed (approval, question, or agent finished) | 🟥    |
 | `[ADV:BLOCKED]`            | Doom-loop / stuck / crash                           | 🟥💀  |
 | `[ADV:TASK_STATUS_REPORT]` | Task report                                         | —     |
+| `[ADV:SKILL_CREATED]`      | Auto-created skill persisted (skill name, domain)   | 🟦    |
 
-Tab title: `<emoji> <shortname> · <normalized change>` when a change is active, or `<emoji> <shortname>` when idle. System-emitted: `[ADV:ACCUMULATED_WISDOM]`, `[ADV:TODO_CONTINUATION]`, `[ADV:RECORD_WISDOM]`
+Tab title: `<emoji> <shortname> · <normalized change>` when a change is active, or `<emoji> <shortname>` when idle. System-emitted: `[ADV:ACCUMULATED_WISDOM]`, `[ADV:TODO_CONTINUATION]`, `[ADV:RECORD_WISDOM]`, `[ADV:SKILL_CREATED]`
 
 ### Context Snapshot
 
@@ -499,6 +500,73 @@ keywords: ["term1", "term2", "term3"]
 Trust boundary: repo-local skills are trusted only from the repository's `skills/` directory. × Never auto-load arbitrary `*/SKILL.md` elsewhere in the repo. Any other path requires explicit user approval.
 
 Graceful degradation: skip skills without frontmatter or `keywords`. No matches → proceed normally. Filesystem-only, no API calls.
+
+## Skill Creation Protocol
+
+**Enabled in:** `/adv-discover` Phase 1.5, `/adv-research` Phase 1.5.
+
+When skill discovery finds no matching skill for a domain clearly relevant to the change's **core problem**, the agent MAY create a skill on demand. This is a conservative extension — tangential domains do not trigger creation.
+
+### Trigger Conditions
+
+Agent creates a skill ONLY when ALL of these are true:
+1. Phase 1.5 finds no matching skill for a domain
+2. The domain is clearly relevant to the change's **core problem** (not tangential)
+3. No partial-skill match covers the domain
+
+### Naming Convention
+
+Auto-created skills use `agent-{domain-slug}` naming. The slug is lowercased, hyphenated. **× MUST NOT use `adv-` prefix** — the sync script (`sync-global.sh`) removes stale `adv-*` skills from the global dir.
+
+### Assembly Template
+
+```yaml
+---
+name: agent-{domain}
+description: "Auto-assembled guidance for {domain}"
+keywords: ["{domain}", "auto-generated"]
+metadata:
+  source: "agent-created"
+  review_status: "pending"
+  created_at: "{ISO-8601 timestamp}"
+  trigger_change: "{change-id that triggered creation}"
+---
+
+# {Domain} Guidance
+
+## Purpose
+{Why this domain matters for the current change}
+
+## Key Patterns
+{2-5 domain-specific patterns or best practices from research}
+
+## Common Pitfalls
+{2-3 gotchas to avoid}
+
+## Sources
+{Citations from Context7, Kagi, grep.app research}
+```
+
+### Creation Flow
+
+1. **Research domain** — Context7, Kagi, grep.app → gather domain-specific guidance
+2. **Assemble** — populate template with research findings, include source citations
+3. **Persist** — write atomically to `~/.config/opencode/skills/agent-{domain}/SKILL.md`
+4. **Skip if exists** — if file already exists, report "skill already exists" and skip
+5. **Load** — call `skill("agent-{domain}")` and apply guidance in current workflow
+6. **Notify** — emit `[ADV:SKILL_CREATED]` with skill name, domain, and brief description
+
+### Pending Review
+
+Auto-created skills include `metadata.review_status: "pending"`. On the next `/adv-discover` Phase 1.5:
+- Scan for skills with `metadata.review_status: "pending"` BEFORE keyword matching
+- Surface pending skills to the user for confirmation
+- User confirms → update `metadata.review_status` to `"reviewed"`
+- User rejects → delete the skill file
+
+### Protocol Extension Note
+
+This protocol extends the Skill Discovery Protocol's "No matches → proceed normally" behavior. When all trigger conditions are met, "no matches" becomes a conditional trigger for skill creation rather than a terminal state. Agents that don't implement creation still conform by reporting the gap and proceeding.
 
 ## Command vs Skill Boundaries
 
