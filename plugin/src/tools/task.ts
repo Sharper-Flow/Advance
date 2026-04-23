@@ -172,10 +172,7 @@ export const taskTools = {
 
       // Emit snapshot on meaningful transitions (in_progress, done)
       const output: Record<string, unknown> = { success: true, task };
-      if (
-        changeId &&
-        (status === "in_progress" || status === "done")
-      ) {
+      if (changeId && (status === "in_progress" || status === "done")) {
         const snapshot = await fetchChangeContextSnapshot(store, changeId);
         if (snapshot) {
           output._contextSnapshot = snapshot;

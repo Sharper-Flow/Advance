@@ -33,7 +33,9 @@ function checkSpine(content: string, fileName: string): SpineCheck {
   const lines = content.split("\n");
 
   const problemIndex = lines.findIndex((l) => l.trim() === "## Problem");
-  const chosenIndex = lines.findIndex((l) => l.trim() === "## Chosen direction");
+  const chosenIndex = lines.findIndex(
+    (l) => l.trim() === "## Chosen direction",
+  );
   const deliveredIndex = lines.findIndex((l) => l.trim() === "## Delivered");
 
   const hasProblem = problemIndex !== -1;
@@ -84,16 +86,14 @@ function checkSpine(content: string, fileName: string): SpineCheck {
   return { file: fileName, hasSpine: true, errors };
 }
 
-function checkRetiredHeadings(content: string, fileName: string): string[] {
+function checkRetiredHeadings(content: string, _fileName: string): string[] {
   const errors: string[] = [];
   const lines = content.split("\n");
 
   for (let i = 0; i < lines.length; i++) {
     const trimmed = lines[i].trim();
     if (trimmed === "## Next stage") {
-      errors.push(
-        `Line ${i + 1}: retired heading \`## Next stage\` found`,
-      );
+      errors.push(`Line ${i + 1}: retired heading \`## Next stage\` found`);
     }
     if (trimmed === "## Next") {
       errors.push(`Line ${i + 1}: retired heading \`## Next\` found`);
