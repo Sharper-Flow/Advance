@@ -1,7 +1,10 @@
 import { getTemporalAddress } from "./client";
 import { getService } from "./service";
 import { getTemporalRetryTelemetry } from "./retry-wrapper";
-import { getTemporalFallbackTelemetry } from "./fallback-telemetry";
+import {
+  type FallbackCounts,
+  getTemporalFallbackTelemetry,
+} from "./fallback-telemetry";
 import {
   getRegisteredTemporalWorkerQueues,
   getTemporalWorkerAliveness,
@@ -25,6 +28,8 @@ export interface TemporalHealth {
   registered_queues: string[];
   last_op_at: string | null;
   last_error: string | null;
+  /** Per-domain counters for Temporal→legacy store fallback events. */
+  fallback_counts: FallbackCounts;
 }
 
 let overrideTelemetry: {
@@ -71,5 +76,5 @@ export async function getTemporalHealth(): Promise<TemporalHealth> {
     last_op_at: telemetry.lastOpAt,
     last_error: telemetry.lastError,
     fallback_counts: getTemporalFallbackTelemetry(),
-  } as TemporalHealth;
+  };
 }
