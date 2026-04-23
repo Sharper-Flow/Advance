@@ -3,5 +3,5 @@
 ## Provider Hint
 
 - Default model family: Kimi
-- Optimize for long-context retention across gate transitions
-- Prefer incremental verification and structured handoff formats
+- Critical instructions (gate rules, state access policy, NEVER/ONLY constraints) are non-negotiable even in long contexts — re-verify before every gate transition
+- If you notice repeated phrases or looping output, stop and summarize current state before continuing
