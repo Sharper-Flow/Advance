@@ -810,15 +810,14 @@ export function validateOutputDir(input?: string): { ok: true; path: string } | 
   const cwd = process.cwd();
   const tempRoot = join(cwd, "temp");
 
-  // Reject paths that escape cwd or temp root
+  // Reject paths that escape cwd or temp root (catches traversal after normalization)
   if (!resolved.startsWith(cwd) && !resolved.startsWith(tempRoot)) {
-    return { ok: false, reason: `outputDir must be under cwd or temp/ root. Got: ${input}` };
+    return { ok: false, reason: `outputDir escapes cwd/temp root (possible traversal). Got: ${input}` };
   }
 
-  // Reject obvious traversal
-  const normalized = resolved.replace(/\\/g, "/");
-  if (normalized.includes("/../") || normalized.endsWith("/..")) {
-    return { ok: false, reason: `outputDir contains path traversal. Got: ${input}` };
+  // Reject obvious unresolved traversal patterns in raw input
+  if (input.includes("..") || input.startsWith("/") || /^[a-zA-Z]:/.test(input)) {
+    return { ok: false, reason: `outputDir contains unsafe path pattern. Got: ${input}` };
   }
 
   return { ok: true, path: resolved };

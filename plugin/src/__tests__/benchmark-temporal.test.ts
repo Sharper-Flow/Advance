@@ -476,7 +476,7 @@ describe("benchmark-temporal scaffold (A1)", () => {
       const result = validateOutputDir("../escape");
       expect(result.ok).toBe(false);
       if (!result.ok) {
-        expect(result.reason).toContain("traversal");
+        expect(result.reason).toContain("escapes");
       }
     });
 
@@ -484,16 +484,15 @@ describe("benchmark-temporal scaffold (A1)", () => {
       const result = validateOutputDir("/etc/passwd");
       expect(result.ok).toBe(false);
       if (!result.ok) {
-        expect(result.reason).toContain("cwd");
+        expect(result.reason).toContain("escapes");
       }
     });
   });
 
   describe("runSingleShot (B1 fix)", () => {
     it("measures actual adapter, not noop", async () => {
-      const { runSingleShot } = await import(
-        "../../scripts/benchmark-temporal"
-      );
+      const { runSingleShot } =
+        await import("../../scripts/benchmark-temporal");
       let called = false;
       const adapter = async (op: BenchmarkOp) => {
         called = true;
@@ -508,9 +507,8 @@ describe("benchmark-temporal scaffold (A1)", () => {
     });
 
     it("classifies contamination when adapter throws", async () => {
-      const { runSingleShot } = await import(
-        "../../scripts/benchmark-temporal"
-      );
+      const { runSingleShot } =
+        await import("../../scripts/benchmark-temporal");
       const adapter = async () => {
         throw new Error("boom");
       };
@@ -523,9 +521,8 @@ describe("benchmark-temporal scaffold (A1)", () => {
 
   describe("runners error capture (A3 fix)", () => {
     it("runWarmInteractive tags unknown when adapter throws", async () => {
-      const { runWarmInteractive } = await import(
-        "../../scripts/benchmark-temporal"
-      );
+      const { runWarmInteractive } =
+        await import("../../scripts/benchmark-temporal");
       const adapter = async () => {
         throw new Error("warm fail");
       };
@@ -537,9 +534,8 @@ describe("benchmark-temporal scaffold (A1)", () => {
     });
 
     it("runRepeatedCommand tags unknown when adapter throws", async () => {
-      const { runRepeatedCommand } = await import(
-        "../../scripts/benchmark-temporal"
-      );
+      const { runRepeatedCommand } =
+        await import("../../scripts/benchmark-temporal");
       const adapter = async () => {
         throw new Error("repeat fail");
       };
@@ -551,9 +547,7 @@ describe("benchmark-temporal scaffold (A1)", () => {
     });
 
     it("runColdStart fallback tags contamination, not clean", async () => {
-      const { runColdStart } = await import(
-        "../../scripts/benchmark-temporal"
-      );
+      const { runColdStart } = await import("../../scripts/benchmark-temporal");
       // Use an op that will cause child process to fail (no real store)
       // so it falls back to in-process measurement
       const adapter = async () => {
