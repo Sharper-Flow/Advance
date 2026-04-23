@@ -12,9 +12,7 @@ const fallbackCounts: FallbackCounts = {
   gates: 0,
 };
 
-export function incrementFallbackCount(
-  domain: keyof FallbackCounts,
-): void {
+export function incrementFallbackCount(domain: keyof FallbackCounts): void {
   fallbackCounts[domain] += 1;
 }
 

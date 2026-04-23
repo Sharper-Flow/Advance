@@ -46,6 +46,10 @@ import {
   asGateStatus,
   type ChangeSummary,
 } from "./store-temporal-memo";
+import { createLogger } from "../utils/debug-log";
+import { incrementFallbackCount } from "../temporal/fallback-telemetry";
+
+const logger = createLogger("store-temporal");
 
 // Collect the error message and every cause-chain message so we can match
 // against the *underlying* gRPC / Temporal error even when it is wrapped
@@ -144,6 +148,22 @@ export function createTemporalStoreBackend(
   // taskId-only methods can resolve the owning change without requiring the
   // legacy backend to have ever seen the task.
   const taskChangeIndex = new Map<string, string>();
+
+  const logFallback = (
+    domain: "changes" | "tasks" | "gates" | "wisdom",
+    operation: string,
+    contextId: string | undefined,
+    err: unknown,
+  ): void => {
+    incrementFallbackCount(domain);
+    logger.info("temporal fallback", {
+      domain,
+      operation,
+      changeId: contextId,
+      error: err instanceof Error ? err.message : String(err),
+      fallback: true,
+    });
+  };
 
   /**
    * Build a ChangeSummary from a full ChangeWorkflowState.
@@ -271,6 +291,7 @@ export function createTemporalStoreBackend(
       return { success: true, data: setCachedChange(state) };
     } catch (err) {
       if (!isExpectedFallbackError(err)) throw err;
+      logFallback("changes", "get", changeId, err);
       return legacy.changes.get(changeId);
     }
   };
@@ -424,6 +445,7 @@ export function createTemporalStoreBackend(
           return change;
         } catch (err) {
           if (!isExpectedFallbackError(err)) throw err;
+          logFallback("changes", "close", changeId, err);
           return legacy.changes.close(changeId, closure);
         }
       },
@@ -501,6 +523,7 @@ export function createTemporalStoreBackend(
               });
               continue;
             }
+            logFallback("changes", "closeBatch", id, err);
             try {
               await legacy.changes.close(id, closure);
               results.push({ changeId: id, success: true });
@@ -540,6 +563,7 @@ export function createTemporalStoreBackend(
           return tasks;
         } catch (err) {
           if (!isExpectedFallbackError(err)) throw err;
+          logFallback("tasks", "list", changeId, err);
           return legacy.tasks.list(changeId, status, filter);
         }
       },
@@ -553,6 +577,7 @@ export function createTemporalStoreBackend(
           return getReadyTasksFromChangeState(state);
         } catch (err) {
           if (!isExpectedFallbackError(err)) throw err;
+          logFallback("tasks", "ready", changeId, err);
           return legacy.tasks.ready(changeId);
         }
       },
@@ -583,6 +608,7 @@ export function createTemporalStoreBackend(
           )) as Awaited<ReturnType<Store["tasks"]["update"]>>;
         } catch (err) {
           if (!isExpectedFallbackError(err)) throw err;
+          logFallback("tasks", "update", taskId, err);
           return legacy.tasks.update(
             taskId,
             status,
@@ -615,6 +641,7 @@ export function createTemporalStoreBackend(
           return created;
         } catch (err) {
           if (!isExpectedFallbackError(err)) throw err;
+          logFallback("tasks", "add", changeId, err);
           return legacy.tasks.add(changeId, content, options);
         }
       },
@@ -628,6 +655,7 @@ export function createTemporalStoreBackend(
           )) as Awaited<ReturnType<Store["tasks"]["get"]>>;
         } catch (err) {
           if (!isExpectedFallbackError(err)) throw err;
+          logFallback("tasks", "get", taskId, err);
           return legacy.tasks.get(taskId);
         }
       },
@@ -643,6 +671,7 @@ export function createTemporalStoreBackend(
           return { task: task as Task, changeId };
         } catch (err) {
           if (!isExpectedFallbackError(err)) throw err;
+          logFallback("tasks", "show", taskId, err);
           return legacy.tasks.show(taskId);
         }
       },
@@ -659,6 +688,7 @@ export function createTemporalStoreBackend(
           )) as Awaited<ReturnType<Store["tasks"]["recordEvidence"]>>;
         } catch (err) {
           if (!isExpectedFallbackError(err)) throw err;
+          logFallback("tasks", "recordEvidence", taskId, err);
           return legacy.tasks.recordEvidence(taskId, phase, evidence);
         }
       },
@@ -675,6 +705,7 @@ export function createTemporalStoreBackend(
           )) as Awaited<ReturnType<Store["tasks"]["setPhase"]>>;
         } catch (err) {
           if (!isExpectedFallbackError(err)) throw err;
+          logFallback("tasks", "setPhase", taskId, err);
           return legacy.tasks.setPhase(taskId, phase);
         }
       },
@@ -691,6 +722,7 @@ export function createTemporalStoreBackend(
           )) as Awaited<ReturnType<Store["tasks"]["cancel"]>>;
         } catch (err) {
           if (!isExpectedFallbackError(err)) throw err;
+          logFallback("tasks", "cancel", taskId, err);
           return legacy.tasks.cancel(taskId, cancellation);
         }
       },
@@ -707,6 +739,7 @@ export function createTemporalStoreBackend(
           )) as Awaited<ReturnType<Store["tasks"]["reclassifyTdd"]>>;
         } catch (err) {
           if (!isExpectedFallbackError(err)) throw err;
+          logFallback("tasks", "reclassifyTdd", taskId, err);
           return legacy.tasks.reclassifyTdd(taskId, reclassification);
         }
       },
@@ -733,6 +766,7 @@ export function createTemporalStoreBackend(
           );
         } catch (err) {
           if (!isExpectedFallbackError(err)) throw err;
+          logFallback("wisdom", "add", changeId, err);
           return legacy.wisdom.add(changeId, type, content, sourceTask);
         }
       },
@@ -745,6 +779,7 @@ export function createTemporalStoreBackend(
           return state.wisdom;
         } catch (err) {
           if (!isExpectedFallbackError(err)) throw err;
+          logFallback("wisdom", "list", changeId, err);
           return legacy.wisdom.list(changeId);
         }
       },
@@ -760,6 +795,7 @@ export function createTemporalStoreBackend(
           return state.gates;
         } catch (err) {
           if (!isExpectedFallbackError(err)) throw err;
+          logFallback("gates", "get", changeId, err);
           return legacy.gates.get(changeId);
         }
       },
@@ -777,6 +813,7 @@ export function createTemporalStoreBackend(
           emitChangeSummarySignal(changeId, state);
         } catch (err) {
           if (!isExpectedFallbackError(err)) throw err;
+          logFallback("gates", "complete", changeId, err);
           await legacy.gates.complete(changeId, gateId, notes);
         }
       },
@@ -806,6 +843,7 @@ export function createTemporalStoreBackend(
           emitChangeSummarySignal(changeId, state);
         } catch (err) {
           if (!isExpectedFallbackError(err)) throw err;
+          logFallback("gates", "reopenFrom", changeId, err);
           await legacy.gates.reopenFrom(
             changeId,
             fromGate,
