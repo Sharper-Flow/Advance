@@ -1,4 +1,5 @@
-import { createTemporalClientBundle, getTemporalAddress } from "./client";
+import { getTemporalAddress } from "./client";
+import { getService } from "./service";
 import { getTemporalRetryTelemetry } from "./retry-wrapper";
 import {
   getRegisteredTemporalWorkerQueues,
@@ -42,19 +43,15 @@ export function resetTemporalHealthProbeState(): void {
 }
 
 export async function getTemporalHealth(): Promise<TemporalHealth> {
-  let close: (() => Promise<void>) | undefined;
   const server_alive = await (async () => {
     try {
       const address = getTemporalAddress(process.env);
       const reachable = await canReachTemporalAddress(address, 250);
       if (!reachable) return false;
-      const bundle = await createTemporalClientBundle(process.env);
-      close = () => bundle.connection.close();
-      return true;
+      // STSL owns the connection lifecycle; probe just checks if service is available
+      return getService() !== null;
     } catch {
       return false;
-    } finally {
-      await close?.().catch(() => undefined);
     }
   })();
 

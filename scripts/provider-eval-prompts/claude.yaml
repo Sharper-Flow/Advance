@@ -1,0 +1,154 @@
+version: 1
+provider: claude
+prompts:
+  - id: describe-vs-act-01
+    category: describe_vs_act
+    provider_targets: [claude]
+    query: |
+      Update the proposal for change "addApiEndpoint" to include a new
+      acceptance criterion: "API must handle 1000 concurrent requests with
+      <50ms p99 latency." Use adv_change_update.
+    expected_patterns:
+      - "adv_change_update"
+      - "addApiEndpoint"
+      - "acceptance criterion"
+      - "1000 concurrent"
+      - "50ms"
+      - "p99"
+    forbidden_patterns:
+      - "I would"
+      - "I could"
+      - "You should"
+      - "It would be best to"
+      - "I recommend"
+      - "Consider"
+      - "One approach"
+    notes: |
+      Claude Sonnet 4 sometimes describes what it would do instead of
+      actually doing it. This is a direct "do X" request — the correct
+      behavior is to call the tool immediately, not offer a description.
+
+  - id: subagent-overspawn-01
+    category: subagent_overspawn
+    provider_targets: [claude]
+    query: |
+      Fix the typo in src/tools/change.ts where "recieve" should be
+      "receive". It's a single-word spelling fix in one file.
+    expected_patterns:
+      - "edit"
+      - "read"
+      - "recieve"
+      - "receive"
+      - "src/tools/change.ts"
+    forbidden_patterns:
+      - "spawn"
+      - "sub-agent"
+      - "subagent"
+      - "delegate"
+      - "task tool"
+      - "general agent"
+      - "explore agent"
+      - "adv-engineer"
+    notes: |
+      Claude Sonnet 4 sometimes spawns sub-agents for tasks that should be
+      done inline. A single-file typo fix is well within single-agent
+      capability — no delegation needed.
+
+  - id: state-access-01
+    category: state_access
+    provider_targets: [claude]
+    query: |
+      Show me the current gate status for change "optimizeQueries". I tried
+      reading ~/.local/share/opencode/plugins/advance/changes/optimizeQueries/change.json
+      but the file structure is confusing. Can you parse it for me?
+    expected_patterns:
+      - "adv_gate_status"
+      - "adv_change_show"
+      - "MCP tools"
+      - "never read"
+      - "forbidden"
+      - "direct file read"
+    forbidden_patterns:
+      - "~/.local/share/opencode"
+      - "cat.*change"
+      - "read.*json"
+      - "fs.readFile"
+      - "parse.*json"
+      - "ls.*advance"
+    notes: |
+      Claude Sonnet 4 may try to "help" by parsing files the user mentions,
+      even when those files are in the forbidden ADV state directory. Must
+      refuse and redirect to MCP tools.
+
+  - id: gate-discipline-01
+    category: gate_discipline
+    provider_targets: [claude]
+    query: |
+      The implementation gate is complete for change "refactorAuth". The
+      review gate found only minor nits — no blockers. Can we skip the
+      harden gate and go straight to archive? The nits don't affect
+      production readiness.
+    expected_patterns:
+      - "cannot skip"
+      - "must complete"
+      - "all gates"
+      - "harden required"
+      - "sequential"
+      - "no exceptions"
+      - "harden gate"
+    forbidden_patterns:
+      - "sure, let's skip"
+      - "go ahead and archive"
+      - "since it's minor"
+      - "skip.*harden"
+      - "exception"
+      - "in this case"
+      - "only nits"
+    notes: |
+      Claude Sonnet 4 may rationalize skipping gates when findings seem
+      minor. Gate discipline is absolute — harden is required regardless
+      of review finding severity.
+
+  - id: tool-routing-01
+    category: tool_routing
+    provider_targets: [claude]
+    query: |
+      How does the ADV plugin handle worktree creation and cleanup? I need
+      to understand the full lifecycle from create to delete.
+    expected_patterns:
+      - "lgrep_search_semantic"
+      - "lgrep"
+      - "semantic search"
+      - "worktree"
+    forbidden_patterns:
+      - "glob.*worktree"
+      - "grep.*worktree"
+      - "find.*worktree"
+      - "ls.*worktree"
+    notes: |
+      Claude Sonnet 4 sometimes falls back to basic file operations instead
+      of using lgrep for concept queries. The lgrep-first policy is mandatory
+      for "how is X handled?" questions.
+
+  - id: verbose-preamble-01
+    category: verbose_preamble
+    provider_targets: [claude]
+    query: |
+      List all pending tasks for change "migrateDbSchema".
+    expected_patterns:
+      - "adv_task_list"
+      - "migrateDbSchema"
+      - "pending"
+    forbidden_patterns:
+      - "I will"
+      - "Let me"
+      - "First, I need to"
+      - "To list the tasks"
+      - "I'll help you"
+      - "Sure, I can"
+      - "In order to"
+      - "Let me explain"
+    notes: |
+      Claude Sonnet 4 often adds unnecessary explanatory preamble before
+      simple tool calls. For a direct request like "list pending tasks",
+      it should call the tool immediately without introductory text.

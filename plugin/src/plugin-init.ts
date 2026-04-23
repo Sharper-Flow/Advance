@@ -15,8 +15,8 @@ import { createStore } from "./storage/store";
 import type { Store } from "./storage/store-types";
 import {
   buildProjectTaskQueue,
-  createTemporalClientBundle,
 } from "./temporal/client";
+import { initStsl, closeStsl } from "./temporal/service";
 import {
   createInProcessWorker,
   type InProcessWorker,
@@ -193,7 +193,7 @@ export async function tryInitStore(
       }
 
       const bundleStartedAt = performance.now();
-      temporalBundle = await createTemporalClientBundle(
+      temporalBundle = await initStsl(
         buildTemporalClientEnv({
           address: runtime.address,
           namespace: runtime.namespace,
@@ -451,6 +451,7 @@ export function registerShutdownHandlers(
       try {
         await activeStore.flush();
         await drainInProcessTemporalWorkers();
+        await closeStsl();
       } catch (e) {
         debugLog(`Error during shutdownWithFlush: ${e}`);
       } finally {

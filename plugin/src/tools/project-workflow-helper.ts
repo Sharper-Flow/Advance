@@ -2,10 +2,10 @@ import { basename, dirname } from "path";
 import {
   buildProjectTaskQueue,
   buildProjectWorkflowId,
-  createTemporalClientBundle,
   getTemporalAddress,
   type TemporalClientBundle,
 } from "../temporal/client";
+import { getService } from "../temporal/service";
 import { canReachTemporalAddress } from "../temporal/runtime-manager";
 import {
   getRegisteredTemporalWorkerQueues,

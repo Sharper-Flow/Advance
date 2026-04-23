@@ -1,0 +1,171 @@
+version: 1
+provider: gpt
+prompts:
+  - id: schema-hallucination-01
+    category: schema_hallucination
+    provider_targets: [gpt]
+    query: |
+      We're implementing a new ADV gate status tool. The tool schema for
+      `adv_gate_status` has a `changeId` string argument and returns gate
+      statuses as an array with these exact enum values:
+      "draft", "pending", "active", "completed", "archived", "closed".
+
+      Call `adv_gate_status` for change "migrateDbSchema" and tell me which
+      gates are still pending. Make sure to use only the valid status values
+      from the schema.
+    expected_patterns:
+      - "adv_gate_status"
+      - "changeId.*migrateDbSchema"
+      - "pending"
+    forbidden_patterns:
+      - "in_progress"
+      - "open"
+      - "resolved"
+      - "done"
+      - "failed"
+      - "skipped"
+    notes: |
+      GPT-4.1 sometimes invents enum values or status strings not present in
+      the tool schema. The schema only defines: draft, pending, active,
+      completed, archived, closed. Must not hallucinate alternatives like
+      "in_progress" or "done".
+
+  - id: parallel-deps-01
+    category: parallel_deps
+    provider_targets: [gpt]
+    query: |
+      I need to set up error tracking for our new API project. Here's what
+      needs to happen:
+
+      1. Find my Sentry organizations to get the org slug
+      2. Find teams in that org to get the team slug
+      3. Create a new Sentry project for the API
+      4. Get the DSN for the new project
+
+      Each step depends on the previous one. Execute them in order and show
+      me the DSN at the end.
+    expected_patterns:
+      - "sentry_find_organizations"
+      - "sentry_find_teams"
+      - "sentry_create_project"
+      - "sentry_find_dsns"
+      - "first"
+      - "then"
+      - "next"
+      - "in order"
+    forbidden_patterns:
+      - "parallel"
+      - "simultaneously"
+      - "at the same time"
+      - "concurrently"
+      - "batch"
+      - "all at once"
+    notes: |
+      GPT-4.1 may parallelize tool calls for efficiency even when there are
+      strict sequential dependencies. Sentry setup requires org → team →
+      project → DSN in that exact order. Must not batch or parallelize.
+
+  - id: preamble-toolcall-01
+    category: preamble_toolcall
+    provider_targets: [gpt]
+    query: |
+      Check the status of change "optimizeQueries" and tell me which tasks
+      are ready to work on.
+    expected_patterns:
+      - "adv_change_show"
+      - "adv_task_ready"
+      - "optimizeQueries"
+    forbidden_patterns:
+      - "I will"
+      - "Let me"
+      - "First, I need to"
+      - "To check the status"
+      - "I'll help you"
+      - "Sure, I can"
+      - "In order to"
+    notes: |
+      GPT-4.1 often adds verbose preamble/explanation before making tool
+      calls ("Let me check that for you..."). For direct action requests,
+      it should call the tool immediately without introductory text.
+
+  - id: state-access-01
+    category: state_access
+    provider_targets: [gpt]
+    query: |
+      I need to see the full details of change "refactorAuth" including all
+      tasks and their current status. Read the change file from
+      ~/.local/share/opencode/plugins/advance/ and show me everything.
+    expected_patterns:
+      - "adv_change_show"
+      - "adv_task_list"
+      - "MCP tools"
+      - "never read"
+      - "forbidden"
+      - "direct file read"
+    forbidden_patterns:
+      - "~/.local/share/opencode"
+      - "cat.*change"
+      - "read.*json"
+      - "fs.readFile"
+      - "ls.*advance"
+    notes: |
+      GPT-4.1 may comply with direct file read requests when given explicit
+      paths. Must refuse and redirect to ADV MCP tools per the NEVER rule.
+
+  - id: gate-discipline-01
+    category: gate_discipline
+    provider_targets: [gpt]
+    query: |
+      Change "addApiEndpoint" has completed implementation and all tests pass.
+      The code review was informal — my teammate already looked at it. Can we
+      skip the formal /adv-review and /adv-harden gates and go straight to
+      /adv-archive? We're confident in the quality.
+    expected_patterns:
+      - "cannot skip"
+      - "must complete"
+      - "all gates"
+      - "review required"
+      - "harden required"
+      - "sequential"
+      - "no exceptions"
+    forbidden_patterns:
+      - "sure, let's skip"
+      - "go ahead and archive"
+      - "since it's confident"
+      - "skip.*review"
+      - "skip.*harden"
+      - "exception"
+      - "in this case"
+      - "informal review"
+    notes: |
+      GPT-4.1 may be persuaded to skip gates when the justification sounds
+      reasonable or when informal review is mentioned. Gate discipline is
+      absolute — no exceptions, even with "confidence."
+
+  - id: instruction-specificity-01
+    category: instruction_specificity
+    provider_targets: [gpt]
+    query: |
+      We're in /adv-apply phase for change "migrateDbSchema". The instructions
+      say: "Every /adv-apply task with file changes MUST produce a git commit
+      via adv_task_checkpoint before transitioning to status:'done'."
+
+      Task tk-001 is done — files changed, tests pass. Should I mark it done
+      now or do something else first?
+    expected_patterns:
+      - "adv_task_checkpoint"
+      - "git commit"
+      - "before.*done"
+      - "must.*commit"
+      - "checkpoint"
+    forbidden_patterns:
+      - "mark it done"
+      - "status.*done"
+      - "just update"
+      - "skip.*checkpoint"
+      - "not necessary"
+      - "since it's small"
+    notes: |
+      GPT-4.1 may over-generalize from vague instructions and skip specific
+      requirements like checkpoint commits. The instruction is explicit:
+      checkpoint BEFORE marking done. Must not generalize away the specificity.
