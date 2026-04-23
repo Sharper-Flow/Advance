@@ -119,7 +119,7 @@ function appendClarifyRecommendation(
 
 function appendRecencyRecommendation(
   recommendations: string[],
-  rc: Record<string, unknown>,
+  rc: ChangeRecency,
   changeId: string,
 ): void {
   const recency = rc.recency;

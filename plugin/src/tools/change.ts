@@ -14,6 +14,7 @@ import {
   allGatesSatisfied,
   GateIdSchema,
   type GateId,
+  type Change,
   type ClarifyFindingSnapshot,
 } from "../types";
 import type { Store } from "../storage/store";
@@ -193,9 +194,7 @@ async function applyClarifyReadinessToChangeOutput({
   store,
 }: {
   output: Record<string, unknown>;
-  change: {
-    clarify_findings?: ClarifyFindingSnapshot[];
-  } & Record<string, unknown>;
+  change: Change;
   proposalText: string;
   changeId: string;
   store: Store;
