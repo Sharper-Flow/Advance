@@ -89,32 +89,53 @@ async function enrichRecentChangeStatus(
     if (rec) status.recommendations.push(rec);
   }
 
-  if (clarifyMode !== "off") {
-    const clarifyResult = runClarifyReadinessChecks(
-      changeResult.data,
-      proposalText,
-    );
-    if (clarifyResult.findings.length > 0) {
-      status.recommendations.push(
-        `⚠️ Change \`${changeId}\` has ${clarifyResult.findings.length} ambiguity finding(s) — run \`/adv-clarify ${changeId}\` to resolve`,
-      );
-    }
-  }
+  appendClarifyRecommendation(
+    status.recommendations,
+    clarifyMode,
+    changeResult.data,
+    proposalText,
+    changeId,
+  );
+  appendRecencyRecommendation(status.recommendations, rc, changeId);
+}
 
+function appendClarifyRecommendation(
+  recommendations: string[],
+  clarifyMode: string,
+  change: Parameters<typeof runClarifyReadinessChecks>[0],
+  proposalText: string,
+  changeId?: string,
+): void {
+  const resolvedChangeId = changeId ?? change.id;
+  if (clarifyMode === "off") return;
+
+  const clarifyResult = runClarifyReadinessChecks(change, proposalText);
+  if (clarifyResult.findings.length === 0) return;
+
+  recommendations.push(
+    `⚠️ Change \`${resolvedChangeId}\` has ${clarifyResult.findings.length} ambiguity finding(s) — run \`/adv-clarify ${resolvedChangeId}\` to resolve`,
+  );
+}
+
+function appendRecencyRecommendation(
+  recommendations: string[],
+  rc: ChangeRecency,
+  changeId: string,
+): void {
   const recency = rc.recency;
   const minutesSinceActivity = Number(rc.minutesSinceActivity ?? 0);
   if (recency === "stale") {
     const hours = Math.floor(minutesSinceActivity / 60);
     const label =
       hours >= 24 ? `${Math.floor(hours / 24)}d ago` : `${hours}h ago`;
-    status.recommendations.push(
+    recommendations.push(
       `⏰ Stale change \`${changeId}\` (last activity ${label}, ${rc.completedTasks}/${rc.taskCount} tasks done) — resume with \`/adv-apply ${changeId}\``,
     );
     return;
   }
 
   if (recency === "hot") {
-    status.recommendations.push(
+    recommendations.push(
       `🔥 Change \`${changeId}\` is hot (active ${minutesSinceActivity}m ago) — likely in-flight by another agent`,
     );
   }

@@ -88,14 +88,26 @@ export function deriveContextFromArgs(
     }
   }
 
-  if (extra) {
-    if (extra.errorClass !== undefined) ctx.errorClass = extra.errorClass;
-    if (extra.workdir !== undefined) ctx.workdir = extra.workdir;
-    if (extra.path !== undefined) ctx.path = extra.path;
-    if (extra.operation !== undefined) ctx.operation = extra.operation;
-  }
+  mergeDefinedContext(ctx, extra);
 
   return ctx;
+}
+
+export function mergeDefinedContext(
+  target: ErrorContext,
+  extra?: ErrorContext,
+): ErrorContext {
+  if (!extra) return target;
+
+  for (const [key, value] of Object.entries(extra) as Array<
+    [keyof ErrorContext, string | undefined]
+  >) {
+    if (value !== undefined) {
+      target[key] = value;
+    }
+  }
+
+  return target;
 }
 
 /**
@@ -115,9 +127,7 @@ export function formatErrorResponse(
   const errorClass = deriveErrorClass(error);
   const derived = deriveContextFromArgs(args, context);
   const enrichment: Record<string, unknown> = { errorClass };
-  if (derived.workdir !== undefined) enrichment.workdir = derived.workdir;
-  if (derived.path !== undefined) enrichment.path = derived.path;
-  if (derived.operation !== undefined) enrichment.operation = derived.operation;
+  mergeDefinedContext(enrichment as ErrorContext, derived);
 
   // Handle Zod schema validation errors specially
   if (error instanceof ZodError) {
