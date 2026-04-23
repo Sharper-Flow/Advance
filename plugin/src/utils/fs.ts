@@ -12,8 +12,10 @@ import { dirname } from "path";
 // Constants
 // =============================================================================
 
-const DEFAULT_LOCK_TIMEOUT_MS = 5000;
-const LOCK_RETRY_MS = 50;
+const DEFAULT_LOCK_TIMEOUT_MS = 15000;
+const LOCK_INITIAL_WAIT_MS = 25;
+const LOCK_MAX_WAIT_MS = 500;
+const LOCK_COEFFICIENT = 2;
 const STALE_LOCK_MS = 30000;
 
 // =============================================================================
@@ -74,6 +76,7 @@ export async function acquireFileLock(
 ): Promise<() => Promise<void>> {
   const lockPath = `${filePath}.lock`;
   const startTime = Date.now();
+  let attempt = 0;
 
   while (Date.now() - startTime < timeoutMs) {
     try {
@@ -127,8 +130,14 @@ export async function acquireFileLock(
           // Can't read lock, try again
         }
 
-        // Wait and retry
-        await new Promise((resolve) => setTimeout(resolve, LOCK_RETRY_MS));
+        // Wait and retry with jittered exponential backoff
+        attempt += 1;
+        const base = Math.min(
+          LOCK_MAX_WAIT_MS,
+          LOCK_INITIAL_WAIT_MS * LOCK_COEFFICIENT ** (attempt - 1),
+        );
+        const delay = Math.random() * base;
+        await new Promise((resolve) => setTimeout(resolve, delay));
         continue;
       }
       throw error;
