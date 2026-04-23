@@ -86,10 +86,10 @@ export type DoomLoopInput = {
   max_retries: number;
   last_error: string;
   error_class: string;
-  attempts: Array<{
+  attempts?: Array<{
     attempt_number: number;
     error: string;
-    strategy_label: string;
+    strategy_label?: string;
     outcome: string;
     attempted_at: string;
     diagnosis: string;
@@ -263,7 +263,7 @@ export function formatDoomLoopDiagnostics(input: DoomLoopInput): FormattedDoomLo
   const inDoomLoop = input.retry_count >= input.max_retries;
 
   const attemptSummary =
-    input.attempts.length > 0
+    input.attempts && input.attempts.length > 0
       ? `${input.attempts.length} attempts: ${input.attempts.map((a) => a.strategy_label || a.error).join(" → ")}`
       : `${input.retry_count}/${input.max_retries} retries used`;
 

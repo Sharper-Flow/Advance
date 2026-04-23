@@ -37,7 +37,8 @@ import { loadProposalWithFallback, fileExists } from "../storage/json";
 import { archiveChange } from "../archive";
 import { wrapWithBanner } from "../utils/banner";
 import { formatToolOutput, paginate } from "../utils/tool-output";
-import { formatValidationOutput } from "../utils/tool-formatters";
+import { formatValidationOutput, formatSmellReport } from "../utils/tool-formatters";
+import { checkRequirementSmells } from "../validator/prep-readiness";
 import { buildChangeContextSnapshot } from "../utils/context-snapshot";
 import { resolveChangeSelection } from "../storage/change-selection";
 import { BulkCloseSelectorSchema } from "../types";
@@ -1157,6 +1158,10 @@ export const changeTools = {
         isWorktree,
       });
 
+      // Check for requirement smells in spec deltas
+      const smellIssues = checkRequirementSmells(change);
+      const hasSmells = smellIssues.length > 0;
+
       // In strict mode, fail on errors and on warnings that are not explicitly
       // safe for archive-time validation. Archive-safe warnings still surface in
       // tool output but do not block strict validation by themselves.
@@ -1167,6 +1172,27 @@ export const changeTools = {
           )
         : validationResult.passed;
 
+      const formatted = formatValidationOutput({
+        passed,
+        errors: validationResult.errors,
+        warnings: validationResult.warnings,
+      });
+
+      // If smells found, format and attach smell report
+      if (hasSmells) {
+        const smellInputs = smellIssues.map((issue) => ({
+          type: issue.code,
+          text:
+            (issue.details?.requirementId as string) ??
+            issue.message,
+          suggestion:
+            (issue.details?.remediation as string) ??
+            "Review and rewrite requirement",
+        }));
+        const smellReport = formatSmellReport(smellInputs);
+        Object.assign(formatted, smellReport);
+      }
+
       return wrapWithBanner(
         { command: "adv_change_validate", target: changeId },
         formatToolOutput({
@@ -1175,11 +1201,7 @@ export const changeTools = {
           warnings: validationResult.warnings,
           checksPerformed: validationResult.checksPerformed,
           checkedAt: validationResult.checkedAt,
-          formatted: formatValidationOutput({
-            passed,
-            errors: validationResult.errors,
-            warnings: validationResult.warnings,
-          }),
+          formatted,
         }),
       );
     },

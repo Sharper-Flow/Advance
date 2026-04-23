@@ -1351,3 +1351,157 @@ describe("cancelledBlockerContext in adv_task_ready (Leak #8)", () => {
     );
   });
 });
+
+// =============================================================================
+// Doom-loop formatting (tk-0u29AZ-v)
+// =============================================================================
+
+describe("formatted_doom_loop on adv_task_show and adv_task_update", () => {
+  let tempDir4: string;
+  let store4: Store;
+
+  beforeEach(async () => {
+    tempDir4 = await createTempDir();
+    await createTestProject(tempDir4);
+    store4 = await createStore(tempDir4);
+    await store4.init();
+    await store4.sync();
+  });
+
+  afterEach(async () => {
+    store4.close();
+    await cleanupTempDir(tempDir4);
+  });
+
+  test("adv_task_show includes formatted_doom_loop when task has error_recovery", async () => {
+    // Set up error_recovery on a task
+    const changeResult = await store4.changes.get("addFeature");
+    const change = changeResult.data!;
+    const task = change.tasks.find((t) => t.id === "tk-task0001")!;
+    task.error_recovery = {
+      last_error: "Type mismatch",
+      retry_count: 2,
+      max_retries: 3,
+      error_class: "SEMANTIC",
+      attempts: [
+        {
+          attempt_number: 1,
+          error: "Initial error",
+          diagnosis: "Wrong type",
+          fix_tried: "Fixed type",
+          strategy_label: "fix-type",
+          outcome: "failed",
+          attempted_at: new Date().toISOString(),
+        },
+      ],
+    };
+    await store4.changes.save(change);
+
+    const result = await taskTools.adv_task_show.execute(
+      { taskId: "tk-task0001" },
+      store4,
+    );
+    const parsed = JSON.parse(result);
+
+    expect(parsed.formatted_doom_loop).toBeDefined();
+    expect(parsed.formatted_doom_loop.inDoomLoop).toBe(false);
+    expect(parsed.formatted_doom_loop.attemptSummary).toContain("1 attempts");
+    expect(parsed.formatted_doom_loop.suggestedAction).toContain("Retry 2/3");
+  });
+
+  test("adv_task_show omits formatted_doom_loop when task has no error_recovery", async () => {
+    const result = await taskTools.adv_task_show.execute(
+      { taskId: "tk-task0001" },
+      store4,
+    );
+    const parsed = JSON.parse(result);
+
+    expect(parsed.task.error_recovery).toBeUndefined();
+    expect(parsed.formatted_doom_loop).toBeUndefined();
+  });
+
+  test("adv_task_update includes formatted_doom_loop when error_recovery is provided", async () => {
+    const result = await taskTools.adv_task_update.execute(
+      {
+        taskId: "tk-task0001",
+        status: "in_progress",
+        error_recovery: {
+          last_error: "Network timeout",
+          retry_count: 3,
+          max_retries: 3,
+          error_class: "TRANSIENT",
+          attempts: [
+            {
+              attempt_number: 1,
+              error: "Timeout 1",
+              diagnosis: "Network slow",
+              fix_tried: "Retry immediately",
+              strategy_label: "immediate-retry",
+              outcome: "failed",
+              attempted_at: new Date().toISOString(),
+            },
+            {
+              attempt_number: 2,
+              error: "Timeout 2",
+              diagnosis: "Still slow",
+              fix_tried: "Wait 5s then retry",
+              strategy_label: "delayed-retry",
+              outcome: "failed",
+              attempted_at: new Date().toISOString(),
+            },
+            {
+              attempt_number: 3,
+              error: "Timeout 3",
+              diagnosis: "Server down",
+              fix_tried: "Wait 10s then retry",
+              strategy_label: "long-delay-retry",
+              outcome: "failed",
+              attempted_at: new Date().toISOString(),
+            },
+          ],
+        },
+      },
+      store4,
+    );
+    const parsed = JSON.parse(result);
+
+    expect(parsed.success).toBe(true);
+    expect(parsed.formatted_doom_loop).toBeDefined();
+    expect(parsed.formatted_doom_loop.inDoomLoop).toBe(true);
+    expect(parsed.formatted_doom_loop.banner).toContain("[ADV:BLOCKED]");
+    expect(parsed.formatted_doom_loop.suggestedAction).toContain("Escalate");
+  });
+
+  test("adv_task_update omits formatted_doom_loop when no error_recovery", async () => {
+    const result = await taskTools.adv_task_update.execute(
+      { taskId: "tk-task0001", status: "in_progress" },
+      store4,
+    );
+    const parsed = JSON.parse(result);
+
+    expect(parsed.success).toBe(true);
+    expect(parsed.formatted_doom_loop).toBeUndefined();
+  });
+
+  test("formatted_doom_loop is a sibling field, not inside error_recovery", async () => {
+    const result = await taskTools.adv_task_update.execute(
+      {
+        taskId: "tk-task0001",
+        status: "in_progress",
+        error_recovery: {
+          last_error: "Bug",
+          retry_count: 1,
+          max_retries: 3,
+          error_class: "SEMANTIC",
+        },
+      },
+      store4,
+    );
+    const parsed = JSON.parse(result);
+
+    expect(parsed.formatted_doom_loop).toBeDefined();
+    expect(parsed.task.error_recovery).toBeDefined();
+    // They should be separate keys at the response level
+    expect(parsed.formatted_doom_loop.inDoomLoop).toBe(false);
+  });
+});

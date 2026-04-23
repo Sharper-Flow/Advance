@@ -22,7 +22,10 @@ import {
 import { validateEvidenceSemantics } from "../validator/evidence";
 import { formatToolOutput, paginate } from "../utils/tool-output";
 import { fetchChangeContextSnapshot } from "../utils/context-snapshot";
-import { formatTaskReadyOutput } from "../utils/tool-formatters";
+import {
+  formatTaskReadyOutput,
+  formatDoomLoopDiagnostics,
+} from "../utils/tool-formatters";
 
 // =============================================================================
 // Tool Definitions
@@ -40,7 +43,16 @@ export const taskTools = {
       if (!result) {
         return formatToolOutput({ error: `Task not found: ${taskId}` });
       }
-      return formatToolOutput({ task: result.task, changeId: result.changeId });
+      const output: Record<string, unknown> = {
+        task: result.task,
+        changeId: result.changeId,
+      };
+      if (result.task.error_recovery) {
+        output.formatted_doom_loop = formatDoomLoopDiagnostics(
+          result.task.error_recovery,
+        );
+      }
+      return formatToolOutput(output);
     },
   },
 
@@ -189,6 +201,11 @@ export const taskTools = {
 
       // Emit snapshot on meaningful transitions (in_progress, done)
       const output: Record<string, unknown> = { success: true, task };
+      if (task.error_recovery) {
+        output.formatted_doom_loop = formatDoomLoopDiagnostics(
+          task.error_recovery,
+        );
+      }
       if (changeId && (status === "in_progress" || status === "done")) {
         const snapshot = await fetchChangeContextSnapshot(store, changeId);
         if (snapshot) {
