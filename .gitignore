@@ -48,6 +48,9 @@ tmp/
 temp/
 *.tmp
 
+# Provider eval output (regenerated per run)
+scripts/provider-eval-results/
+
 # ADV working state (local project data - in .adv directory)
 .adv/changes/
 .adv/archive/
