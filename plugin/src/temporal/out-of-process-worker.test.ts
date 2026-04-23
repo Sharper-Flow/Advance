@@ -100,7 +100,7 @@ describe("createOutOfProcessWorker", () => {
     vi.clearAllMocks();
   });
 
-  it("spawns a Node child for each queue with the correct env", async () => {
+  it("spawns a single shared child with multi-queue env", async () => {
     const child = makeFakeChild();
     mocks.spawn.mockReturnValue(child);
 
@@ -110,33 +110,32 @@ describe("createOutOfProcessWorker", () => {
     const worker = await createOutOfProcessWorker({
       address: "127.0.0.1:7233",
       namespace: "default",
-      queues: ["advance-proj-a"],
+      queues: ["advance-proj-a", "advance-proj-b"],
       workerScript: "/plugin/dist/temporal/worker.js",
       projectId: "proj-a",
     });
 
+    // Shared worker: only ONE spawn for all queues
     expect(mocks.spawn).toHaveBeenCalledTimes(1);
     const [cmd, args, opts] = mocks.spawn.mock.calls[0];
     expect(cmd).toBe("/usr/bin/node");
     expect(args).toEqual(["/plugin/dist/temporal/worker.js"]);
-    expect(opts.cwd).toContain("advance-temporal-worker-cwd");
     expect(opts.env).toMatchObject({
       ADV_TEMPORAL_ADDRESS: "127.0.0.1:7233",
       ADV_TEMPORAL_NAMESPACE: "default",
-      ADV_TEMPORAL_TASK_QUEUE: "advance-proj-a",
+      ADV_TEMPORAL_MULTI_QUEUE: "1",
       ADV_TEMPORAL_PROJECT_ID: "proj-a",
     });
-    expect(worker.queues).toEqual(["advance-proj-a"]);
+    expect(opts.env.ADV_TEMPORAL_TASK_QUEUES).toContain("advance-proj-a");
+    expect(opts.env.ADV_TEMPORAL_TASK_QUEUES).toContain("advance-proj-b");
+    expect(worker.queues).toEqual(["advance-proj-a", "advance-proj-b"]);
 
-    // Let the worker shutdown cleanly before the test exits to avoid leaking
-    // the EventEmitter-backed fake child between tests.
     await worker.shutdown();
   });
 
-  it("registerQueue spawns an additional child for the new queue", async () => {
-    const child1 = makeFakeChild();
-    const child2 = makeFakeChild();
-    mocks.spawn.mockReturnValueOnce(child1).mockReturnValueOnce(child2);
+  it("registerQueue sends IPC message instead of spawning new child", async () => {
+    const child = makeFakeChild();
+    mocks.spawn.mockReturnValue(child);
 
     const { createOutOfProcessWorker } =
       await import("./out-of-process-worker");
@@ -152,10 +151,8 @@ describe("createOutOfProcessWorker", () => {
     expect(worker.queues).toEqual(["advance-a"]);
     await worker.registerQueue("advance-b");
 
-    expect(mocks.spawn).toHaveBeenCalledTimes(2);
-    expect(mocks.spawn.mock.calls[1][2].env.ADV_TEMPORAL_TASK_QUEUE).toBe(
-      "advance-b",
-    );
+    // Shared worker: NO additional spawn, queue added via IPC
+    expect(mocks.spawn).toHaveBeenCalledTimes(1);
     expect(worker.queues).toEqual(["advance-a", "advance-b"]);
 
     await worker.shutdown();
