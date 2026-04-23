@@ -6,7 +6,11 @@
  */
 
 import { describe, test, expect, beforeEach, afterEach } from "vitest";
-import { AdvancePlugin } from "./index";
+import {
+  AdvancePlugin,
+  extractCreatedChangeId,
+  isLongRunningTool,
+} from "./index";
 import {
   createTempDir,
   cleanupTempDir,
@@ -131,6 +135,25 @@ describe("Advance Plugin SDK Integration", () => {
 
     test("AdvancePlugin is async function", () => {
       expect(AdvancePlugin.constructor.name).toBe("AsyncFunction");
+    });
+
+    test("extractCreatedChangeId reads banner-wrapped tool output", () => {
+      const output = [
+        "╔══════════════════════════════════╗",
+        "║ ✨ adv_change_create              ║",
+        "║    Target: addFeature            ║",
+        "╚══════════════════════════════════╝",
+        "",
+        '{"changeId":"addFeature"}',
+      ].join("\n");
+
+      expect(extractCreatedChangeId(output)).toBe("addFeature");
+    });
+
+    test("isLongRunningTool matches tracked tools only", () => {
+      expect(isLongRunningTool("adv_run_test")).toBe(true);
+      expect(isLongRunningTool("adv_task_evidence")).toBe(true);
+      expect(isLongRunningTool("adv_change_show")).toBe(false);
     });
   });
 

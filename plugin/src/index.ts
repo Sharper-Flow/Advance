@@ -52,6 +52,21 @@ function parseToolOutput<T>(rawOutput: string): T | null {
   return null;
 }
 
+const LONG_RUNNING_TOOLS = new Set(["adv_run_test", "adv_task_evidence"]);
+
+export function isLongRunningTool(toolName: string): boolean {
+  return LONG_RUNNING_TOOLS.has(toolName);
+}
+
+export function extractCreatedChangeId(rawOutput: string): string | null {
+  const result = parseToolOutput<{
+    changeId?: string;
+    data?: { changeId?: string };
+  }>(rawOutput);
+  const changeId = result?.changeId ?? result?.data?.changeId;
+  return typeof changeId === "string" ? changeId : null;
+}
+
 const PROVIDER_BEHAVIOR_HINTS: Readonly<Record<string, string>> = {
   openai:
     "[ADV:PROVIDER_HINT] Provider adaptation: prefer explicit numbered steps, use structured formats (tables, numbered lists) for multi-part output, and batch independent tool calls in a single response. Keep user-facing prose terse and direct — drop fluff and pleasantries while preserving structured outputs, safety text, and quoted errors verbatim.",
@@ -180,6 +195,21 @@ export const AdvancePlugin: Plugin = async ({
   // Helper to update status flags and push the resolved status to the terminal
   const setFlags = (updates: Partial<StatusFlags>) => {
     Object.assign(state, updates);
+    setStatus(resolveStatus(state));
+  };
+
+  const handleLongRunningToolStart = (toolName: string) => {
+    if (!isLongRunningTool(toolName)) return;
+    setStatus(
+      resolveStatus({
+        ...state,
+        activeSubAgents: state.activeSubAgents + 1,
+      }),
+    );
+  };
+
+  const handleLongRunningToolEnd = (toolName: string) => {
+    if (!isLongRunningTool(toolName)) return;
     setStatus(resolveStatus(state));
   };
 
@@ -319,16 +349,7 @@ export const AdvancePlugin: Plugin = async ({
           setFlags({ permissionPending: true, sessionIdle: false });
         }
 
-        // Long-running tools opt into TOOLING status (yellow tab)
-        const LONG_TOOLS = new Set(["adv_run_test", "adv_task_evidence"]);
-        if (LONG_TOOLS.has(input.tool)) {
-          setStatus(
-            resolveStatus({
-              ...state,
-              activeSubAgents: state.activeSubAgents + 1,
-            }),
-          );
-        }
+        handleLongRunningToolStart(input.tool);
       } catch (e) {
         debugLog(`tool.execute.before error: ${e}`);
       }
@@ -342,12 +363,8 @@ export const AdvancePlugin: Plugin = async ({
         // Track new change creation (changeId only in output, not input args)
         if (input.tool === "adv_change_create" && output.output) {
           try {
-            const result = parseToolOutput<{
-              changeId?: string;
-              data?: { changeId?: string };
-            }>(output.output);
-            const newChangeId = result?.changeId ?? result?.data?.changeId;
-            if (newChangeId && typeof newChangeId === "string") {
+            const newChangeId = extractCreatedChangeId(output.output);
+            if (newChangeId) {
               state.activeChange.id = newChangeId;
               setActiveChange(newChangeId);
               debugLog(`adv_change_create: set activeChange to ${newChangeId}`);
@@ -387,11 +404,7 @@ export const AdvancePlugin: Plugin = async ({
           setFlags({ permissionPending: false });
         }
 
-        // Long-running tools: restore status after completion
-        const LONG_TOOLS = new Set(["adv_run_test", "adv_task_evidence"]);
-        if (LONG_TOOLS.has(input.tool)) {
-          setStatus(resolveStatus(state));
-        }
+        handleLongRunningToolEnd(input.tool);
       } catch (e) {
         debugLog(`tool.execute.after error: ${e}`);
       }

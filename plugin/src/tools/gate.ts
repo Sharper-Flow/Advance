@@ -27,6 +27,64 @@ import {
 } from "../utils/context-snapshot";
 import { COMMAND_MANIFEST } from "../manifest";
 
+async function completeGateAndBuildResponse({
+  store,
+  change,
+  changeId,
+  gateId,
+  notes,
+  completedBy,
+  boundaryWarning,
+  extraPayload = {},
+}: {
+  store: Store;
+  change: { id: string; title: string; tasks: { id: string; title: string; status: string }[]; wisdom?: { type: string }[] };
+  changeId: string;
+  gateId: GateId;
+  notes?: string;
+  completedBy: string;
+  boundaryWarning?: string;
+  extraPayload?: Record<string, unknown>;
+}): Promise<string> {
+  try {
+    await store.gates.complete(changeId, gateId, notes);
+  } catch (saveError) {
+    return formatToolOutput({
+      error: `Failed to complete gate: ${(saveError as Error).message}`,
+      changeId,
+      gateId,
+      hint: "Gate state was not persisted. Retry the operation.",
+    });
+  }
+
+  const latestGates = await store.gates.get(changeId);
+  const changeDir = join(store.paths.changes, changeId);
+  const { content: proposalText } = await loadProposalWithFallback(
+    changeDir,
+    change.title,
+  );
+
+  return wrapWithBanner(
+    { command: "adv_gate_complete", target: `${changeId}:${gateId}` },
+    formatToolOutput({
+      success: true,
+      changeId,
+      gateId,
+      status: "done",
+      completed_at: new Date().toISOString(),
+      completed_by: completedBy,
+      _contextSnapshot: buildChangeContextSnapshot({
+        change,
+        proposalText,
+        gates: latestGates ?? undefined,
+        workdir: store.paths.root,
+      }),
+      ...(boundaryWarning ? { boundaryWarning } : {}),
+      ...extraPayload,
+    }),
+  );
+}
+
 // =============================================================================
 // Tool Definitions
 // =============================================================================
@@ -127,21 +185,6 @@ export const gateTools = {
 
       const change = result.data;
       const gates: Gates = change.gates ?? createDefaultGates();
-      const buildContextSnapshot = async () => {
-        const latestGates = await store.gates.get(changeId);
-        const changeDir = join(store.paths.changes, changeId);
-        const { content: proposalText } = await loadProposalWithFallback(
-          changeDir,
-          change.title,
-        );
-
-        return buildChangeContextSnapshot({
-          change,
-          proposalText,
-          gates: latestGates ?? undefined,
-          workdir: store.paths.root,
-        });
-      };
 
       // Check sequence enforcement
       if (!canCompleteGate(gates, gateId)) {
@@ -242,62 +285,30 @@ export const gateTools = {
           }
         }
 
-        // Mark gate complete via store
-        try {
-          await store.gates.complete(changeId, gateId, notes);
-        } catch (saveError) {
-          return formatToolOutput({
-            error: `Failed to complete gate: ${(saveError as Error).message}`,
-            changeId,
-            gateId,
-            hint: "Gate state was not persisted. Retry the operation.",
-          });
-        }
-
-        const now = new Date().toISOString();
-        return wrapWithBanner(
-          { command: "adv_gate_complete", target: `${changeId}:${gateId}` },
-          formatToolOutput({
-            success: true,
-            changeId,
-            gateId,
-            status: "done",
-            completed_at: now,
-            completed_by: completedBy,
-            _contextSnapshot: await buildContextSnapshot(),
-            ...(boundaryWarning ? { boundaryWarning } : {}),
-            ...warningsPayload,
-            ...clarifyPayload,
-          }),
-        );
-      }
-
-      // Mark gate complete via store (handles locking and sequence enforcement)
-      try {
-        await store.gates.complete(changeId, gateId, notes);
-      } catch (saveError) {
-        return formatToolOutput({
-          error: `Failed to complete gate: ${(saveError as Error).message}`,
+        return completeGateAndBuildResponse({
+          store,
+          change,
           changeId,
           gateId,
-          hint: "Gate state was not persisted. Retry the operation.",
+          notes,
+          completedBy,
+          boundaryWarning,
+          extraPayload: {
+            ...warningsPayload,
+            ...clarifyPayload,
+          },
         });
       }
 
-      const now = new Date().toISOString();
-      return wrapWithBanner(
-        { command: "adv_gate_complete", target: `${changeId}:${gateId}` },
-        formatToolOutput({
-          success: true,
-          changeId,
-          gateId,
-          status: "done",
-          completed_at: now,
-          completed_by: completedBy,
-          _contextSnapshot: await buildContextSnapshot(),
-          ...(boundaryWarning ? { boundaryWarning } : {}),
-        }),
-      );
+      return completeGateAndBuildResponse({
+        store,
+        change,
+        changeId,
+        gateId,
+        notes,
+        completedBy,
+        boundaryWarning,
+      });
     },
   },
 };
