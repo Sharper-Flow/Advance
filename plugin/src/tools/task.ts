@@ -231,7 +231,12 @@ export const taskTools = {
           blockedBy,
           section,
         });
-        return formatToolOutput({ taskId: task.id, task });
+        const snapshot = await fetchChangeContextSnapshot(store, changeId);
+        return formatToolOutput({
+          taskId: task.id,
+          task,
+          ...(snapshot ? { _contextSnapshot: snapshot } : {}),
+        });
       } catch (error) {
         return formatToolOutput({
           error: error instanceof Error ? error.message : "Failed to add task",
@@ -483,14 +488,31 @@ export const taskTools = {
       }
 
       const allSuccess = results.every((r) => r.success);
-      return formatToolOutput({
+
+      // Emit snapshot only when at least one task was cancelled successfully
+      const output: Record<string, unknown> = {
         success: allSuccess,
         cancelled: cancelledTasks,
         results,
         message: allSuccess
           ? `Cancelled ${cancelledTasks.length} task(s) with user approval.`
           : `Partial cancellation: ${results.filter((r) => r.success).length}/${taskIds.length} succeeded.`,
-      });
+      };
+
+      if (cancelledTasks.length > 0) {
+        // Resolve changeId from the first successfully cancelled task
+        const firstTask = await store.tasks.show(cancelledTasks[0].id);
+        const changeId = firstTask?.changeId;
+        if (changeId) {
+          const snapshot =
+            await fetchChangeContextSnapshot(store, changeId);
+          if (snapshot) {
+            output._contextSnapshot = snapshot;
+          }
+        }
+      }
+
+      return formatToolOutput(output);
     },
   },
 

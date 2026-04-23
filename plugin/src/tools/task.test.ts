@@ -497,6 +497,19 @@ describe("Task Tools", () => {
       expect(parsed.error).toBeUndefined();
       expect(parsed.taskId).toMatch(/^tk-/);
     });
+
+    test("emits _contextSnapshot after successful task creation", async () => {
+      const result = await taskTools.adv_task_add.execute(
+        { changeId: "addFeature", content: "New task for snapshot test" },
+        store,
+      );
+      const parsed = parseToolOutput(result);
+
+      expect(parsed._contextSnapshot).toBeDefined();
+      expect(typeof parsed._contextSnapshot).toBe("string");
+      expect(parsed._contextSnapshot).toContain("addFeature");
+      expect(parsed._contextSnapshot).toMatch(/[╔╗╚╝║═]/);
+    });
   });
 
   describe("adv_task_evidence", () => {
@@ -931,6 +944,62 @@ describe("Task Tools", () => {
       expect(parsed.results[0].success).toBe(true);
       expect(parsed.results[1].success).toBe(false);
       expect(parsed.results[1].error).toContain("not found");
+    });
+
+    test("emits _contextSnapshot after successful cancellation", async () => {
+      const result = await taskTools.adv_task_cancel.execute(
+        {
+          taskIds: ["tk-task0001"],
+          reasons: { "tk-task0001": "Superseded by new approach" },
+          approvedByUser: true,
+          approvalEvidence: "User approved via question tool",
+        },
+        store,
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed._contextSnapshot).toBeDefined();
+      expect(typeof parsed._contextSnapshot).toBe("string");
+      expect(parsed._contextSnapshot).toContain("addFeature");
+      expect(parsed._contextSnapshot).toMatch(/[╔╗╚╝║═]/);
+    });
+
+    test("emits _contextSnapshot after batch cancellation", async () => {
+      const result = await taskTools.adv_task_cancel.execute(
+        {
+          taskIds: ["tk-task0001", "tk-task0002"],
+          reasons: {
+            "tk-task0001": "Out of scope",
+            "tk-task0002": "Superseded",
+          },
+          approvedByUser: true,
+          approvalEvidence: "User approved batch cancel",
+        },
+        store,
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed._contextSnapshot).toBeDefined();
+      expect(parsed._contextSnapshot).toContain("addFeature");
+    });
+
+    test("does NOT emit _contextSnapshot when all tasks fail", async () => {
+      const result = await taskTools.adv_task_cancel.execute(
+        {
+          taskIds: ["nonexistent1", "nonexistent2"],
+          reasons: {
+            nonexistent1: "Not found",
+            nonexistent2: "Not found",
+          },
+          approvedByUser: true,
+          approvalEvidence: "User approved",
+        },
+        store,
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed.success).toBe(false);
+      expect(parsed._contextSnapshot).toBeUndefined();
     });
   });
 
