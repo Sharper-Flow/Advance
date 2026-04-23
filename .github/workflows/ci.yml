@@ -47,6 +47,11 @@ jobs:
         run: pnpm run format:check
         working-directory: plugin
 
+      - name: Configure git identity for tests
+        run: |
+          git config --global user.name "CI"
+          git config --global user.email "ci@test.local"
+
       - name: Test
         run: pnpm test
         working-directory: plugin
