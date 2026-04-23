@@ -282,4 +282,54 @@ describe("benchmark-temporal scaffold (A1)", () => {
       // the integration test for invocation belongs in B4.
     });
   });
+
+  describe("promote-pipeline segmented adapter (B2)", () => {
+    it("runPromotePipeline returns both segment timings", async () => {
+      const { runPromotePipeline } = await import("../../scripts/benchmark-temporal");
+
+      // Fake store with minimal wisdom.add implementation
+      const fakeStore = {
+        paths: { root: "/tmp", wisdom: "/tmp/wisdom.jsonl" },
+        wisdom: {
+          add: async (_changeId: string, type: string, content: string, _sourceTask?: string) => ({
+            id: "w1",
+            type,
+            content,
+            source_task: undefined,
+          }),
+        },
+        close: () => {},
+      } as unknown as import("../../src/storage/store-types").Store;
+
+      const result = await runPromotePipeline(fakeStore, "test-change", "pattern", "test content");
+
+      expect(result).toHaveProperty("entry");
+      expect(result).toHaveProperty("timings");
+      expect(result.timings.seg1_change_level_ns).toBeGreaterThan(0);
+      expect(result.timings.seg2_project_level_ns).toBeGreaterThanOrEqual(0);
+      expect(result.timings.end_to_end_ns).toBeGreaterThan(0);
+      // end_to_end should be >= sum of segments (it IS the sum)
+      expect(result.timings.end_to_end_ns).toBe(
+        result.timings.seg1_change_level_ns + result.timings.seg2_project_level_ns
+      );
+    });
+
+    it("runPromotePipeline handles missing Temporal gracefully", async () => {
+      const { runPromotePipeline } = await import("../../scripts/benchmark-temporal");
+
+      const fakeStore = {
+        paths: { root: "/tmp", wisdom: "/tmp/wisdom.jsonl" },
+        wisdom: {
+          add: async () => ({ id: "w1", type: "pattern", content: "test" }),
+        },
+        close: () => {},
+      } as unknown as import("../../src/storage/store-types").Store;
+
+      const result = await runPromotePipeline(fakeStore, "test-change", "pattern", "test");
+
+      // Should still return timings even if project-level pipeline fails
+      expect(result.timings.seg1_change_level_ns).toBeGreaterThan(0);
+      expect(result).toHaveProperty("warning");
+    });
+  });
 });

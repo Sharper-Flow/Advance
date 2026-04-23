@@ -390,6 +390,89 @@ async function runSingleShot(op: BenchmarkOp): Promise<BenchmarkSample> {
 }
 
 /* ------------------------------------------------------------------ */
+/* Promote-pipeline segmented adapter (B2)                            */
+/* ------------------------------------------------------------------ */
+
+export interface PromoteSegmentTiming {
+  seg1_change_level_ns: number;   // store.wisdom.add
+  seg2_project_level_ns: number;  // getProjectWorkflowHandle + update + query + writeJsonlAtomic
+  end_to_end_ns: number;
+}
+
+export interface PromotePipelineResult {
+  entry: unknown;
+  promoted: unknown | undefined;
+  timings: PromoteSegmentTiming;
+  warning: string | undefined;
+}
+
+/**
+ * Dedicated adapter for `adv_wisdom_add { promote: true }` that records
+ * TWO segment timings per sample, isolating the dual Temporal connections.
+ */
+export async function runPromotePipeline(
+  store: Store,
+  changeId: string,
+  type: "pattern" | "success" | "failure" | "gotcha" | "convention",
+  content: string,
+  sourceTask?: string,
+): Promise<PromotePipelineResult> {
+  // Segment 1: change-level Temporal update+query via store
+  const seg1Start = process.hrtime.bigint();
+  const entry = await store.wisdom.add(changeId, type, content, sourceTask);
+  const seg1End = process.hrtime.bigint();
+  const seg1_ns = Number(seg1End - seg1Start);
+
+  // Segment 2: project-level pipeline
+  const seg2Start = process.hrtime.bigint();
+  let promoted: unknown | undefined;
+  let warning: string | undefined;
+
+  try {
+    const { getProjectWorkflowHandle } = await import("../src/tools/wisdom.ts");
+    const { addProjectWisdomUpdate, projectWisdomQuery } = await import("../src/temporal/messages.ts");
+    const { writeJsonlAtomic } = await import("../src/storage/jsonl-atomic-writer.ts");
+    const { toJsonlProjectWisdomEntry } = await import("../src/tools/wisdom.ts");
+
+    const temporal = await getProjectWorkflowHandle({
+      projectDir: store.paths.root,
+      wisdomPath: store.paths.wisdom,
+    });
+
+    if (temporal) {
+      promoted = await temporal.handle.executeUpdate(addProjectWisdomUpdate, {
+        args: [{
+          type: (entry as { type: string }).type,
+          content: (entry as { content: string }).content,
+          sourceChange: changeId,
+          sourceTask: (entry as { source_task?: string }).source_task,
+        }],
+      });
+
+      const latest = await temporal.handle.query(projectWisdomQuery, undefined) as Array<Parameters<typeof toJsonlProjectWisdomEntry>[0]>;
+      await writeJsonlAtomic(store.paths.wisdom, latest.map(toJsonlProjectWisdomEntry));
+      await temporal.bundle.connection.close();
+    }
+  } catch (err) {
+    warning = err instanceof Error ? err.message : String(err);
+  }
+
+  const seg2End = process.hrtime.bigint();
+  const seg2_ns = Number(seg2End - seg2Start);
+
+  return {
+    entry,
+    promoted,
+    timings: {
+      seg1_change_level_ns: seg1_ns,
+      seg2_project_level_ns: seg2_ns,
+      end_to_end_ns: seg1_ns + seg2_ns,
+    },
+    warning,
+  };
+}
+
+/* ------------------------------------------------------------------ */
 /* Op Adapters (B1)                                                   */
 /* ------------------------------------------------------------------ */
 
