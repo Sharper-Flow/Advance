@@ -29,12 +29,24 @@ import {
 } from "./temporal/runtime-manager";
 import { fileURLToPath } from "node:url";
 import { existsSync } from "node:fs";
+import { performance } from "node:perf_hooks";
 import { cleanup as cleanupTerminal } from "./events";
-import { appendDebugLog, createLogger } from "./utils/debug-log";
+import {
+  appendDebugLog,
+  appendProfileLog,
+  createLogger,
+} from "./utils/debug-log";
 import { getProjectId } from "./utils/project-id";
 
 const debugLog = (msg: string): void => appendDebugLog("plugin-init", msg);
 const logger = createLogger("plugin-init");
+
+function profilePluginInit(
+  event: string,
+  meta: Record<string, unknown> = {},
+): void {
+  appendProfileLog("plugin-init", { event, ...meta });
+}
 
 export interface StoreInitResult {
   store: Store | null;
@@ -63,12 +75,17 @@ async function initStoreWithoutTemporal(
   externalRoot: string | undefined,
   projectId: string | null,
 ): Promise<StoreInitResult> {
+  const startedAt = performance.now();
   const store = await createStore(effectiveDir, {
     externalRoot,
     projectIdOverride: projectId ?? undefined,
     // No temporalBundle — file-backed harness path.
   });
   await store.init();
+  profilePluginInit("legacy_fallback_ready", {
+    duration_ms: Number((performance.now() - startedAt).toFixed(3)),
+    backend_mode: "legacy",
+  });
   return { store, initError: null };
 }
 
@@ -102,7 +119,13 @@ export async function tryInitStore(
   effectiveDir: string,
   externalRoot: string | undefined,
 ): Promise<StoreInitResult> {
+  const initStartedAt = performance.now();
+  const projectIdStartedAt = performance.now();
   const projectId = await getProjectId(effectiveDir);
+  profilePluginInit("project_id_resolved", {
+    duration_ms: Number((performance.now() - projectIdStartedAt).toFixed(3)),
+    hasProjectId: Boolean(projectId),
+  });
   let worker: InProcessWorker | undefined;
 
   try {
@@ -110,25 +133,52 @@ export async function tryInitStore(
       | Awaited<ReturnType<typeof createTemporalClientBundle>>
       | undefined;
     const temporalDisabled = process.env.ADV_DISABLE_TEMPORAL === "1";
+    profilePluginInit("backend_mode_detected", {
+      temporal_disabled: temporalDisabled,
+      backend_mode: temporalDisabled ? "legacy" : "temporal_candidate",
+    });
     if (projectId && !temporalDisabled) {
+      const runtimeStartedAt = performance.now();
       const runtime = await ensureTemporalRuntime(projectId);
+      profilePluginInit("temporal_runtime_ready", {
+        duration_ms: Number((performance.now() - runtimeStartedAt).toFixed(3)),
+        startedRuntime: runtime.startedRuntime,
+      });
+
       const workerProbe = probeTemporalWorkerRuntime();
+      profilePluginInit("worker_runtime_probed", {
+        runtime: workerProbe.runtime,
+        supported: workerProbe.supported,
+      });
 
       if (workerProbe.supported) {
+        const workerStartedAt = performance.now();
         // Node host — worker runs in-process (existing behavior).
         worker = await createInProcessWorker({
           address: runtime.address,
           namespace: runtime.namespace,
           queues: [buildProjectTaskQueue(projectId)],
         });
+        profilePluginInit("worker_started", {
+          duration_ms: Number((performance.now() - workerStartedAt).toFixed(3)),
+          worker_model: "in_process",
+        });
       } else {
         // Bun (or other unsupported worker host) — spawn a Node child.
         const nodeResolution = resolveNodeExecutable();
+        profilePluginInit("worker_node_resolution", {
+          found: nodeResolution.found,
+          source: nodeResolution.source,
+        });
         if (!nodeResolution.found) {
+          profilePluginInit("worker_node_missing", {
+            worker_runtime: workerProbe.runtime,
+          });
           throw new Error(
             `Temporal worker cannot run under ${workerProbe.runtime}. ${nodeResolution.remediation ?? "Install Node on PATH or set ADV_NODE_PATH."}`,
           );
         }
+        const workerStartedAt = performance.now();
         worker = await createOutOfProcessWorker({
           address: runtime.address,
           namespace: runtime.namespace,
@@ -136,28 +186,60 @@ export async function tryInitStore(
           workerScript: resolveWorkerScriptPath(),
           projectId,
         });
+        profilePluginInit("worker_started", {
+          duration_ms: Number((performance.now() - workerStartedAt).toFixed(3)),
+          worker_model: "out_of_process",
+        });
       }
 
+      const bundleStartedAt = performance.now();
       temporalBundle = await createTemporalClientBundle(
         buildTemporalClientEnv({
           address: runtime.address,
           namespace: runtime.namespace,
         }),
       );
+      profilePluginInit("temporal_client_ready", {
+        duration_ms: Number((performance.now() - bundleStartedAt).toFixed(3)),
+      });
       registerInProcessTemporalWorker(worker);
     }
 
+    const storeCreateStartedAt = performance.now();
     const store = await createStore(effectiveDir, {
       externalRoot,
       projectIdOverride: projectId ?? undefined,
       temporalBundle,
     });
+    profilePluginInit("store_created", {
+      duration_ms: Number(
+        (performance.now() - storeCreateStartedAt).toFixed(3),
+      ),
+      backend_mode: temporalBundle ? "temporal" : "legacy",
+    });
+
+    const storeInitStartedAt = performance.now();
     await store.init();
+    profilePluginInit("store_initialized", {
+      duration_ms: Number((performance.now() - storeInitStartedAt).toFixed(3)),
+    });
+    profilePluginInit("try_init_store_complete", {
+      duration_ms: Number((performance.now() - initStartedAt).toFixed(3)),
+      backend_mode: temporalBundle ? "temporal" : "legacy",
+      outcome: "success",
+    });
 
     return { store, initError: null };
   } catch (e) {
     const initError = e instanceof Error ? e : new Error(String(e));
     debugLog(`Plugin init FAILED: ${initError.message}`);
+    profilePluginInit("try_init_store_failed", {
+      duration_ms: Number((performance.now() - initStartedAt).toFixed(3)),
+      outcome: "error",
+      errorClass: initError.name || "Error",
+      message: initError.message,
+      degraded_fallback: process.env.ADV_ALLOW_DEGRADED_FALLBACK === "1",
+    });
 
     // If a worker was already created before createStore()/store.init() or the
     // client-bundle step failed, drain it now so we don't leave a polling
@@ -191,11 +273,21 @@ export async function tryInitStore(
         debugLog(
           `ADV_ALLOW_DEGRADED_FALLBACK=1 — falling back to file-backed store`,
         );
-        return await initStoreWithoutTemporal(
+        profilePluginInit("degraded_fallback_started", {
+          backend_mode: "legacy",
+        });
+        const fallbackResult = await initStoreWithoutTemporal(
           effectiveDir,
           externalRoot,
           projectId,
         );
+        profilePluginInit("try_init_store_complete", {
+          duration_ms: Number((performance.now() - initStartedAt).toFixed(3)),
+          backend_mode: "legacy",
+          outcome: "success",
+          degraded_fallback: true,
+        });
+        return fallbackResult;
       } catch (fallbackError) {
         const fbError =
           fallbackError instanceof Error
