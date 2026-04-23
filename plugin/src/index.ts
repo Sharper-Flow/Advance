@@ -320,20 +320,37 @@ export const AdvancePlugin: Plugin = async ({
     }
   };
 
-  const handleMessageUpdatedEvent = (event: { properties: Record<string, unknown> }) => {
+  const getCompletedMainMessageId = (
+    event: { properties: Record<string, unknown> },
+  ): string | null => {
     const info = event.properties?.info as Record<string, unknown> | undefined;
-    if (!info || !mainSessionId) return;
-    if (info.sessionID !== mainSessionId) return;
-    if (info.role !== "assistant") return;
+    if (!info || !mainSessionId) return null;
+    if (info.sessionID !== mainSessionId) return null;
+    if (info.role !== "assistant") return null;
 
     const time = info.time as Record<string, unknown> | undefined;
-    if (!time?.completed) return;
+    if (!time?.completed) return null;
 
-    const finish = info.finish as string | undefined;
-    if (!finish || finish === "tool-calls" || finish === "unknown") return;
+    if (!isTerminalAssistantMessage(info)) {
+      return null;
+    }
 
     const messageId = info.id as string | undefined;
-    if (!messageId || messageId === lastObservedCompletedMessageId) return;
+    if (!messageId || messageId === lastObservedCompletedMessageId) {
+      return null;
+    }
+
+    return messageId;
+  };
+
+  const isTerminalAssistantMessage = (info: Record<string, unknown>): boolean => {
+    const finish = info.finish as string | undefined;
+    return !!finish && finish !== "tool-calls" && finish !== "unknown";
+  };
+
+  const handleMessageUpdatedEvent = (event: { properties: Record<string, unknown> }) => {
+    const messageId = getCompletedMainMessageId(event);
+    if (!messageId) return;
 
     lastObservedCompletedMessageId = messageId;
     debugLog(`message.updated: arming bell for main agent message ${messageId}`);

@@ -394,6 +394,133 @@ async function createCrossProjectFollowUp({
   }
 }
 
+async function loadValidationContext(
+  store: Store,
+  changeId: string,
+  changeTitle: string,
+): Promise<{
+  specs: Spec[];
+  activeChanges: { id: string; title: string; capabilities: string[] }[];
+  proposalText: string;
+  isWorktree: boolean;
+}> {
+  const changeDir = join(store.paths.changes, changeId);
+  const specList = await store.specs.list();
+  const specs: Spec[] = [];
+  for (const specInfo of specList.specs) {
+    const specResult = await store.specs.get(specInfo.name);
+    if (specResult.success && specResult.data) {
+      specs.push(specResult.data);
+    }
+  }
+
+  const changeList = await store.changes.list({ includeArchived: false });
+  const activeChanges = changeList.changes
+    .filter((c) => c.id !== changeId)
+    .map((c) => ({ id: c.id, title: c.title, capabilities: [] as string[] }));
+
+  for (const activeChange of activeChanges) {
+    const fullChangeResult = await store.changes.get(activeChange.id);
+    if (fullChangeResult.success && fullChangeResult.data) {
+      activeChange.capabilities = Object.keys(fullChangeResult.data.deltas);
+    }
+  }
+
+  const { content: proposalText } = await loadProposalWithFallback(
+    changeDir,
+    changeTitle,
+  );
+
+  let isWorktree = false;
+  try {
+    const gitPath = join(store.paths.root, ".git");
+    const gitStat = await stat(gitPath);
+    if (gitStat.isFile()) {
+      const gitFile = await readFile(gitPath, "utf-8");
+      isWorktree = gitFile.includes("gitdir:");
+    }
+  } catch {
+    // best-effort only
+  }
+
+  return { specs, activeChanges, proposalText, isWorktree };
+}
+
+function getArchivePreflightError(
+  changeId: string,
+  change: {
+    tasks: { id: string; title: string; status: string }[];
+    gates?: ReturnType<typeof createDefaultGates>;
+  },
+): string | null {
+  const incompleteTasks = change.tasks.filter(
+    (t) => t.status !== "done" && t.status !== "cancelled",
+  );
+  if (incompleteTasks.length > 0) {
+    return wrapWithBanner(
+      { command: "adv_change_archive", target: changeId },
+      formatToolOutput({
+        error: "Cannot archive: incomplete tasks",
+        incompleteTasks: incompleteTasks.map((t) => ({
+          id: t.id,
+          title: t.title,
+        })),
+      }),
+    );
+  }
+
+  const gates = change.gates ?? createDefaultGates();
+  if (!allGatesSatisfied(gates)) {
+    return wrapWithBanner(
+      { command: "adv_change_archive", target: changeId },
+      formatToolOutput({
+        error:
+          "Cannot archive: incomplete gates. Complete all quality gates before archiving.",
+        incompleteGates: getIncompleteGates(gates),
+        hint: `Run /adv-gate-status ${changeId} to see gate details`,
+      }),
+    );
+  }
+
+  return null;
+}
+
+async function loadSpecsMap(store: Store): Promise<Map<string, Spec>> {
+  const specList = await store.specs.list();
+  const specs = new Map<string, Spec>();
+  for (const specInfo of specList.specs) {
+    const specResult = await store.specs.get(specInfo.name);
+    if (specResult.success && specResult.data) {
+      specs.set(specInfo.name, specResult.data);
+    }
+  }
+  return specs;
+}
+
+async function buildReentryResult(
+  store: Store,
+  changeId: string,
+  fromGate: GateId,
+): Promise<string> {
+  const gates = await store.gates.get(changeId);
+  const updatedChange = await store.changes.get(changeId);
+  const reentryHistory =
+    updatedChange.success && updatedChange.data
+      ? (updatedChange.data.reentry_history ?? [])
+      : [];
+  const latestEntry = reentryHistory[reentryHistory.length - 1];
+
+  return wrapWithBanner(
+    { command: "adv_change_reenter", target: changeId },
+    formatToolOutput({
+      success: true,
+      message: `Re-entry from ${fromGate}: gates reset to pending. ${latestEntry?.gates_reset?.length ?? 0} gate(s) reopened.`,
+      gates,
+      reentry: latestEntry,
+    }),
+  );
+}
+
 // =============================================================================
 // Tool Definitions
 // =============================================================================
@@ -981,54 +1108,8 @@ export const changeTools = {
       }
 
       const change = result.data;
-      const changeDir = join(store.paths.changes, changeId);
-
-      // Load all specs for validation context
-      const specList = await store.specs.list();
-      const specs: Spec[] = [];
-      for (const specInfo of specList.specs) {
-        const specResult = await store.specs.get(specInfo.name);
-        if (specResult.success && specResult.data) {
-          specs.push(specResult.data);
-        }
-      }
-
-      // Load other active changes for conflict detection
-      const changeList = await store.changes.list({ includeArchived: false });
-      const activeChanges = changeList.changes
-        .filter((c) => c.id !== changeId) // Exclude self
-        .map((c) => ({
-          id: c.id,
-          title: c.title,
-          capabilities: [] as string[], // Will be populated below
-        }));
-
-      // Load full change data to get capabilities
-      for (const activeChange of activeChanges) {
-        const fullChangeResult = await store.changes.get(activeChange.id);
-        if (fullChangeResult.success && fullChangeResult.data) {
-          activeChange.capabilities = Object.keys(fullChangeResult.data.deltas);
-        }
-      }
-
-      // Load proposal text so validator can run proposal-task drift checks.
-      const { content: proposalText } = await loadProposalWithFallback(
-        changeDir,
-        change.title,
-      );
-
-      // Detect worktree by checking whether .git is a file pointing at a common dir.
-      let isWorktree = false;
-      try {
-        const gitPath = join(store.paths.root, ".git");
-        const gitStat = await stat(gitPath);
-        if (gitStat.isFile()) {
-          const gitFile = await readFile(gitPath, "utf-8");
-          isWorktree = gitFile.includes("gitdir:");
-        }
-      } catch {
-        // Best-effort only; default to non-worktree when detection fails.
-      }
+      const { specs, activeChanges, proposalText, isWorktree } =
+        await loadValidationContext(store, changeId, change.title);
 
       // Run full validation with active changes for conflict detection
       const validationResult = await validateChange(change, {
@@ -1089,48 +1170,12 @@ export const changeTools = {
       }
 
       const change = result.data;
-
-      // Check all tasks complete
-      const incompleteTasks = change.tasks.filter(
-        (t) => t.status !== "done" && t.status !== "cancelled",
-      );
-      if (incompleteTasks.length > 0) {
-        return wrapWithBanner(
-          { command: "adv_change_archive", target: changeId },
-          formatToolOutput({
-            error: "Cannot archive: incomplete tasks",
-            incompleteTasks: incompleteTasks.map((t) => ({
-              id: t.id,
-              title: t.title,
-            })),
-          }),
-        );
+      const preflightError = getArchivePreflightError(changeId, change);
+      if (preflightError) {
+        return preflightError;
       }
 
-      // Check all gates are complete (7-gate quality checklist)
-      const gates = change.gates ?? createDefaultGates();
-      if (!allGatesSatisfied(gates)) {
-        const incompleteGates = getIncompleteGates(gates);
-        return wrapWithBanner(
-          { command: "adv_change_archive", target: changeId },
-          formatToolOutput({
-            error:
-              "Cannot archive: incomplete gates. Complete all quality gates before archiving.",
-            incompleteGates,
-            hint: `Run /adv-gate-status ${changeId} to see gate details`,
-          }),
-        );
-      }
-
-      // Load all specs for delta application
-      const specList = await store.specs.list();
-      const specs = new Map<string, Spec>();
-      for (const specInfo of specList.specs) {
-        const specResult = await store.specs.get(specInfo.name);
-        if (specResult.success && specResult.data) {
-          specs.set(specInfo.name, specResult.data);
-        }
-      }
+      const specs = await loadSpecsMap(store);
 
       // Run the archive operation
       const archivePaths =
@@ -1291,8 +1336,6 @@ export const changeTools = {
       store: Store,
     ) => {
       const normalizedApprovalEvidence = approvalEvidence?.trim() || undefined;
-
-      // Verify the change exists
       const result = await store.changes.get(changeId);
       if (!result.success) {
         return wrapWithBanner(
@@ -1316,25 +1359,7 @@ export const changeTools = {
           undefined,
           normalizedApprovalEvidence,
         );
-
-        // Fetch updated state
-        const gates = await store.gates.get(changeId);
-        const updatedChange = await store.changes.get(changeId);
-        const reentryHistory =
-          updatedChange.success && updatedChange.data
-            ? (updatedChange.data.reentry_history ?? [])
-            : [];
-        const latestEntry = reentryHistory[reentryHistory.length - 1];
-
-        return wrapWithBanner(
-          { command: "adv_change_reenter", target: changeId },
-          formatToolOutput({
-            success: true,
-            message: `Re-entry from ${fromGate}: gates reset to pending. ${latestEntry?.gates_reset?.length ?? 0} gate(s) reopened.`,
-            gates,
-            reentry: latestEntry,
-          }),
-        );
+        return buildReentryResult(store, changeId, fromGate);
       } catch (error) {
         return wrapWithBanner(
           { command: "adv_change_reenter", target: changeId },
