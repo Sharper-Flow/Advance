@@ -19,7 +19,7 @@
 
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -806,11 +806,12 @@ export function validateOutputDir(input?: string): { ok: true; path: string } | 
     return { ok: true, path: join(process.cwd(), "temp", "bench") };
   }
 
-  const resolved = join(process.cwd(), input);
+  const { resolve } = await import("node:path");
+  const resolved = resolve(process.cwd(), input);
   const cwd = process.cwd();
   const tempRoot = join(cwd, "temp");
 
-  // Reject absolute paths that escape cwd or temp root
+  // Reject paths that escape cwd or temp root
   if (!resolved.startsWith(cwd) && !resolved.startsWith(tempRoot)) {
     return { ok: false, reason: `outputDir must be under cwd or temp/ root. Got: ${input}` };
   }

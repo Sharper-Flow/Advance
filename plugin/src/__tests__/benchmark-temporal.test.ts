@@ -454,4 +454,116 @@ describe("benchmark-temporal scaffold (A1)", () => {
       }
     });
   });
+
+  describe("validateOutputDir", () => {
+    it("accepts undefined and returns default under temp/bench", () => {
+      const result = validateOutputDir();
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.path).toContain("temp/bench");
+      }
+    });
+
+    it("accepts relative path under cwd", () => {
+      const result = validateOutputDir("temp/my-run");
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.path).toContain("temp/my-run");
+      }
+    });
+
+    it("rejects path traversal", () => {
+      const result = validateOutputDir("../escape");
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.reason).toContain("traversal");
+      }
+    });
+
+    it("rejects absolute path outside cwd", () => {
+      const result = validateOutputDir("/etc/passwd");
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.reason).toContain("cwd");
+      }
+    });
+  });
+
+  describe("runSingleShot (B1 fix)", () => {
+    it("measures actual adapter, not noop", async () => {
+      const { runSingleShot } = await import(
+        "../../scripts/benchmark-temporal"
+      );
+      let called = false;
+      const adapter = async (op: BenchmarkOp) => {
+        called = true;
+        await new Promise((r) => setTimeout(r, 5));
+        return `result-${op}`;
+      };
+
+      const sample = await runSingleShot("adv_status", adapter);
+      expect(called).toBe(true);
+      expect(sample.duration_ns).toBeGreaterThan(0);
+      expect(sample.contamination).toBe("clean");
+    });
+
+    it("classifies contamination when adapter throws", async () => {
+      const { runSingleShot } = await import(
+        "../../scripts/benchmark-temporal"
+      );
+      const adapter = async () => {
+        throw new Error("boom");
+      };
+
+      const sample = await runSingleShot("adv_status", adapter);
+      expect(sample.duration_ns).toBe(0);
+      expect(sample.contamination).toBe("unknown");
+    });
+  });
+
+  describe("runners error capture (A3 fix)", () => {
+    it("runWarmInteractive tags unknown when adapter throws", async () => {
+      const { runWarmInteractive } = await import(
+        "../../scripts/benchmark-temporal"
+      );
+      const adapter = async () => {
+        throw new Error("warm fail");
+      };
+
+      const samples = await runWarmInteractive("adv_status", 2, 10, adapter);
+      expect(samples).toHaveLength(2);
+      expect(samples.every((s) => s.contamination === "unknown")).toBe(true);
+      expect(samples.every((s) => s.duration_ns === 0)).toBe(true);
+    });
+
+    it("runRepeatedCommand tags unknown when adapter throws", async () => {
+      const { runRepeatedCommand } = await import(
+        "../../scripts/benchmark-temporal"
+      );
+      const adapter = async () => {
+        throw new Error("repeat fail");
+      };
+
+      const samples = await runRepeatedCommand("adv_status", 3, adapter);
+      expect(samples).toHaveLength(3);
+      expect(samples.every((s) => s.contamination === "unknown")).toBe(true);
+      expect(samples.every((s) => s.duration_ns === 0)).toBe(true);
+    });
+
+    it("runColdStart fallback tags contamination, not clean", async () => {
+      const { runColdStart } = await import(
+        "../../scripts/benchmark-temporal"
+      );
+      // Use an op that will cause child process to fail (no real store)
+      // so it falls back to in-process measurement
+      const adapter = async () => {
+        throw new Error("fallback fail");
+      };
+
+      const samples = await runColdStart("adv_status", 1, adapter);
+      expect(samples).toHaveLength(1);
+      // Child will likely fail; fallback measures in-process and classifies
+      expect(samples[0].contamination).not.toBe("clean");
+    });
+  });
 });
