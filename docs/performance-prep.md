@@ -21,18 +21,19 @@ This pack covers a broad repo-wide performance analysis of the Advance (ADV) plu
 
 ### Reliability
 
-1. **Temporal retry wrapper lacks jitter and circuit breaker** (`src/temporal/retry-wrapper.ts:86-114`)
-   - Fixed backoff sequence `[250, 1000, 2000]` with no jitter. Under load, synchronized retries from multiple workers can cause thundering-herb against the Temporal server.
-   - No circuit breaker — transient failures retry blindly even when the server is clearly down.
-   - **Severity:** HIGH
+1. **Resolved by `runtimeResilienceHardening`: Temporal retry wrapper now uses bounded full-jitter backoff** (`src/temporal/retry-wrapper.ts:99-154`)
+   - Previous fixed backoff sequence `[250, 1000, 2000]` was replaced with bounded exponential backoff plus full jitter via `computeDelay()`.
+   - Current behavior still intentionally stops short of a shared circuit-breaker state machine; this remains a separate follow-up decision, not an open defect in current scope.
+   - **Status:** FIXED
 
 2. **Out-of-process worker restart budget is too low for production** (`src/temporal/out-of-process-worker.ts:38-39`)
    - Max 3 restarts with backoff `[1s, 3s, 10s]`. A flaky network or brief Temporal server restart can exhaust the budget permanently, leaving queues dead until manual intervention.
    - **Severity:** HIGH
 
-3. **File locking in `fs.ts` uses polling with fixed 50ms retry** (`src/utils/fs.ts:76-131`)
-   - `LOCK_RETRY_MS = 50`, `STALE_LOCK_MS = 30000`. Under contention, this spins tightly. No exponential backoff or jitter.
-   - **Severity:** MEDIUM
+3. **Resolved by `runtimeResilienceHardening`: `fs.ts` now uses bounded full-jitter lock backoff** (`src/utils/fs.ts:73-148`)
+   - Fixed 50ms polling was replaced with bounded exponential backoff plus full jitter (`LOCK_INITIAL_WAIT_MS = 25`, `LOCK_COEFFICIENT = 2`, `LOCK_MAX_WAIT_MS = 500`).
+   - Default lock timeout was also raised from 5s to 15s so contention prefers eventual success more often than immediate timeout.
+   - **Status:** FIXED
 
 4. **SQLite WAL checkpointing is passive** (`src/storage/health.ts:60-68`)
    - `checkpointWAL()` is called only during health checks / shutdown. No proactive checkpoint strategy means WAL files can grow unbounded during long-running sessions.
@@ -115,22 +116,23 @@ This pack covers a broad repo-wide performance analysis of the Advance (ADV) plu
 
 ### Deviation Table
 
-| Practice | Current State | LBP / Canonical | Deviation | Correction |
-|----------|---------------|-----------------|-----------|------------|
-| Temporal worker backoff | Fixed `[250, 1000, 2000]` | Exponential backoff with jitter (Temporal docs recommend randomized backoff) | DRIFTED | Add `jitterMs` option; use `Math.random() * jitterMs` added to each delay |
-| Temporal health probe | New connection per call | Reuse connection or use lightweight gRPC health check | DRIFTED | Cache connection in probe; use `connection.healthCheck()` if available |
-| SQLite PRAGMAs | `initDatabase` sets cache_size, synchronous, etc. | PRAGMAs are per-connection; every new `Database()` must call init | CORRECT | Already handled in `health.ts:initDatabase()` |
-| SQLite WAL checkpoint | Passive (on health check / shutdown) | Proactive checkpoint every N writes or time interval | DRIFTED | Add periodic checkpoint in write-heavy paths or use `wal_autocheckpoint` |
-| File lock retry | Fixed 50ms polling | Exponential backoff with cap (e.g., 50ms → 100ms → 200ms → 400ms → 800ms) | DRIFTED | Replace fixed `LOCK_RETRY_MS` with exponential backoff + jitter |
-| Test runtime | Node with mocks | Production runs on Bun; tests should exercise actual runtime where possible | DRIFTED | Add Bun-native test runner or integration tests that run under Bun |
-| Performance timing | `Date.now()` | `performance.now()` for high-resolution, monotonic timing | DRIFTED | Replace `Date.now()` in timing contexts with `performance.now()` |
-| N+1 queries | `listResolvedChanges()` queries Temporal per change | Batch query or cache | DRIFTED | Implement batch query or persistent cache; see `reduceTemporalRoundTrip` change |
-| Benchmarking | None | Continuous benchmark suite (e.g., Vitest bench, benchmark.js) | MISSING | Add `test:bench` script with baseline comparisons |
-| Metrics export | File-sink debug logs | Structured metrics (OpenTelemetry, Prometheus, or at least JSON Lines) | MISSING | Add JSON Lines structured log format or OTel integration |
+| Practice                | Current State                                                       | LBP / Canonical                                                              | Deviation | Correction                                                                      |
+| ----------------------- | ------------------------------------------------------------------- | ---------------------------------------------------------------------------- | --------- | ------------------------------------------------------------------------------- |
+| Temporal worker backoff | Bounded exponential backoff with full jitter                        | Exponential backoff with jitter (Temporal docs recommend randomized backoff) | CORRECT   | Fixed by `runtimeResilienceHardening`                                           |
+| Temporal health probe   | New connection per call                                             | Reuse connection or use lightweight gRPC health check                        | DRIFTED   | Cache connection in probe; use `connection.healthCheck()` if available          |
+| SQLite PRAGMAs          | `initDatabase` sets cache_size, synchronous, etc.                   | PRAGMAs are per-connection; every new `Database()` must call init            | CORRECT   | Already handled in `health.ts:initDatabase()`                                   |
+| SQLite WAL checkpoint   | Passive (on health check / shutdown)                                | Proactive checkpoint every N writes or time interval                         | DRIFTED   | Add periodic checkpoint in write-heavy paths or use `wal_autocheckpoint`        |
+| File lock retry         | Bounded exponential backoff with full jitter and 15s default budget | Exponential backoff with cap (e.g., 50ms → 100ms → 200ms → 400ms → 800ms)    | CORRECT   | Fixed by `runtimeResilienceHardening`                                           |
+| Test runtime            | Node with mocks                                                     | Production runs on Bun; tests should exercise actual runtime where possible  | DRIFTED   | Add Bun-native test runner or integration tests that run under Bun              |
+| Performance timing      | `Date.now()`                                                        | `performance.now()` for high-resolution, monotonic timing                    | DRIFTED   | Replace `Date.now()` in timing contexts with `performance.now()`                |
+| N+1 queries             | `listResolvedChanges()` queries Temporal per change                 | Batch query or cache                                                         | DRIFTED   | Implement batch query or persistent cache; see `reduceTemporalRoundTrip` change |
+| Benchmarking            | None                                                                | Continuous benchmark suite (e.g., Vitest bench, benchmark.js)                | MISSING   | Add `test:bench` script with baseline comparisons                               |
+| Metrics export          | File-sink debug logs                                                | Structured metrics (OpenTelemetry, Prometheus, or at least JSON Lines)       | MISSING   | Add JSON Lines structured log format or OTel integration                        |
 
 ### Greenfield Notes
 
 If rebuilding today:
+
 - **Backend:** Would still choose Temporal for durability, but would design the store adapter with batch queries and a persistent local cache from day one.
 - **Runtime:** Would target Bun exclusively (no Node fallback) to simplify the worker model and remove the OOP worker complexity.
 - **Observability:** Would integrate OpenTelemetry from the start instead of ad-hoc file-sink logging.
@@ -177,13 +179,13 @@ If rebuilding today:
 
 ## Applicability to This Repo
 
-| Competitor / Pattern | Applicable? | Local Code Path | Notes |
-|---------------------|-------------|-----------------|-------|
-| Kiro observability | Partial | `src/utils/debug-log.ts` | Could adopt structured metrics format |
-| Cursor latency optimizations | Yes | `src/storage/store-temporal.ts` | Cache batching, reduce round-trips |
-| OpenCode lite mode | Yes | `src/storage/store.ts` | Add `ADV_LITE=1` to skip Temporal |
-| Multi-agent orchestration | Yes | `src/guards/task.ts`, `src/tool-registry.ts` | Already supported; could expand |
-| MCP standardization | Yes | `src/tool-registry.ts` | Already MCP-based; optimize serialization |
+| Competitor / Pattern         | Applicable? | Local Code Path                              | Notes                                     |
+| ---------------------------- | ----------- | -------------------------------------------- | ----------------------------------------- |
+| Kiro observability           | Partial     | `src/utils/debug-log.ts`                     | Could adopt structured metrics format     |
+| Cursor latency optimizations | Yes         | `src/storage/store-temporal.ts`              | Cache batching, reduce round-trips        |
+| OpenCode lite mode           | Yes         | `src/storage/store.ts`                       | Add `ADV_LITE=1` to skip Temporal         |
+| Multi-agent orchestration    | Yes         | `src/guards/task.ts`, `src/tool-registry.ts` | Already supported; could expand           |
+| MCP standardization          | Yes         | `src/tool-registry.ts`                       | Already MCP-based; optimize serialization |
 
 ---
 
@@ -225,11 +227,11 @@ If rebuilding today:
 
 ## Overlaps with Active Changes
 
-| Finding | Active Change | Status |
-|---------|--------------|--------|
-| N+1 Temporal queries, profiling, hot-path fixes | `reduceTemporalRoundTrip` | In progress (execution done, acceptance pending) |
-| Temporal performance regression investigation | `investigateTemporalPerformance` | Draft, no tasks — may be superseded by `reduceTemporalRoundTrip` |
-| Retire legacy storage backend | `retireLegacyStorageBackend` | Draft, no tasks — would eliminate fallback overhead |
+| Finding                                         | Active Change                    | Status                                                           |
+| ----------------------------------------------- | -------------------------------- | ---------------------------------------------------------------- |
+| N+1 Temporal queries, profiling, hot-path fixes | `reduceTemporalRoundTrip`        | In progress (execution done, acceptance pending)                 |
+| Temporal performance regression investigation   | `investigateTemporalPerformance` | Draft, no tasks — may be superseded by `reduceTemporalRoundTrip` |
+| Retire legacy storage backend                   | `retireLegacyStorageBackend`     | Draft, no tasks — would eliminate fallback overhead              |
 
 ---
 
@@ -238,23 +240,27 @@ If rebuilding today:
 **Critical finding:** The Temporal store adapter has an N+1 query pattern (`listResolvedChanges()` queries Temporal once per change). This is actively being addressed by `reduceTemporalRoundTrip`.
 
 **High-priority gaps:**
+
 1. Retry wrapper lacks jitter and circuit breaker
 2. OOP worker restart budget too low
 3. Legacy store reads JSON from disk on every access
 4. Temporal health probe opens new connection per call
 
 **Medium-priority gaps:**
+
 1. No benchmark suite
 2. Profiling is opt-in
 3. SQLite WAL checkpointing is passive
 4. File lock polling uses fixed retry
 
 **Low-priority gaps:**
+
 1. `Date.now()` instead of `performance.now()`
 2. Debug log lacks rotation / structured format
 3. TTY cache TTL is arbitrary
 
 **Suggested next commands:**
+
 - `/adv-discover reduceTemporalRoundTrip` — Continue the in-progress performance work
 - `/adv-proposal add-jitter-to-retry-wrapper` — Address the thundering-herd risk
 - `/adv-proposal proactive-wal-checkpoint` — Prevent WAL growth

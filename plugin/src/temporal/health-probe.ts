@@ -59,6 +59,9 @@ export async function getTemporalHealth(): Promise<TemporalHealth> {
   })();
 
   const registered_queues = getRegisteredTemporalWorkerQueues();
+  // retry-wrapper may add internal telemetry fields over time (for example
+  // `lastAttempts`). TemporalHealth intentionally surfaces only the stable
+  // status fields used by current callers.
   const telemetry = overrideTelemetry ?? getTemporalRetryTelemetry();
   const worker_process_alive = getTemporalWorkerAliveness();
 
