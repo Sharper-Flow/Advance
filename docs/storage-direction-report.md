@@ -6,7 +6,7 @@ This investigation does **not** support retiring the local legacy storage path.
 
 Current evidence says:
 
-1. The user-felt live slowness in this session was **not** caused by Temporal, because `ADV_DISABLE_TEMPORAL=1` and no ADV worker was online.
+1. The user-felt live slowness in this session was **not** caused by Temporal, because `ADV_DISABLE_TEMPORAL=1` was set (verified via `env | grep ADV_DISABLE_TEMPORAL`) and `adv_status` reported `worker_alive: false` with `registered_queues: []`, confirming no ADV worker was online.
 2. The largest measured live storage/tool hotspot was `adv_status`, and its hot-path cost is now reduced to sub-millisecond steady-state after the focused fixes in this change.
 3. Temporal remains materially slower for interactive hot-path state access: earlier isolated benchmark work measured roughly **9–15ms p50 per round-trip** for healthy local Temporal query/update operations.
 4. JSONL primitives are fast, but they do **not** clearly outperform the optimized current local path enough to justify making JSONL the new primary source of truth.

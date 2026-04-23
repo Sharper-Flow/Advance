@@ -109,6 +109,17 @@ The Bun-host path uses one Node child per queue with restart backoff `1s -> 3s -
 | Bun host + init error about Node | Node binary not found | Install Node or set `ADV_NODE_PATH` |
 | Error about worker bundle not found | Dist worker missing for OOP path | Run `pnpm run build:worker` in `plugin/` |
 
+### OOP runtime hardening and tuning
+
+The out-of-process worker has two bounded surfaces operators can observe and, in future releases, tune:
+
+| Surface | Current default | What it controls |
+| --- | --- | --- |
+| Shutdown grace period | `5000` ms (`OOP_SHUTDOWN_GRACE_MS`) | Time between `SIGTERM` and escalating to `SIGKILL` during worker shutdown. A child that does not exit within this window is force-killed. |
+| Readiness polling | Implicit via `canReachTemporalAddress(address, 250)` | Plugin-init probes the Temporal server before creating the worker. The 250 ms timeout prevents a hung server from blocking init. |
+
+These values are compile-time constants today. If you need to adjust them for a specific host (e.g. slower disks or overloaded CI runners), open an issue — the next likely step is env-based overrides (`ADV_OOP_SHUTDOWN_GRACE_MS`, `ADV_TEMPORAL_PROBE_TIMEOUT_MS`).
+
 ## `NonDeterministicWorkflowError` recovery
 
 Treat this as a workflow-state corruption / code-history mismatch problem, not a transient retry.

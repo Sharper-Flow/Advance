@@ -797,6 +797,7 @@ pnpm build
 | Variable              | Default                      | Description                                         |
 | --------------------- | ---------------------------- | --------------------------------------------------- |
 | `ADV_DEBUG`           | `"0"`                        | Set to `"1"` for debug logging                      |
+| `ADV_PROFILE`         | `"0"`                        | Set to `"1"` to write temporal startup profile events to `$OPEN_CHAD_CACHE_DIR/adv-profile.log` (diagnostic-only; clean up after use) |
 | `OPEN_CHAD_CACHE_DIR` | `$TMPDIR` (fallback: `/tmp`) | Directory used for ADV debug log when `ADV_DEBUG=1` |
 
 ---
