@@ -169,3 +169,159 @@ prompts:
       GPT-4.1 may over-generalize from vague instructions and skip specific
       requirements like checkpoint commits. The instruction is explicit:
       checkpoint BEFORE marking done. Must not generalize away the specificity.
+
+  # ---------------------------------------------------------------------------
+  # Continuation Discipline — premature handoff between checkpoints
+  # ---------------------------------------------------------------------------
+
+  - id: continuation-multi-tool-01
+    category: continuation_discipline
+    provider_targets: [gpt]
+    query: |
+      Change "addApiEndpoint" has completed discovery and design. I need you to
+      start implementing. Look at the change details, find all ready tasks, and
+      begin executing them in order. Start with the first ready task, implement
+      it, run tests, and move on to the next one. There are 3 tasks total:
+      tk-001 (add route handler), tk-002 (add validation tests), tk-003 (update
+      API docs). Do all three.
+    expected_patterns:
+      - "adv_change_show"
+      - "adv_task_ready"
+      - "tk-001"
+      - "tk-002"
+      - "tk-003"
+    forbidden_patterns:
+      - "shall I continue"
+      - "would you like me to"
+      - "ready to proceed"
+      - "should I proceed"
+      - "/proceed\\??/"
+      - "I've completed.*should I"
+      - "I'll start with"
+      - "let me know if you want"
+      - "how many tasks"
+    notes: |
+      Tests whether GPT-5.4 drives through a multi-tool sequential task
+      (adv_change_show → adv_task_ready → execute tk-001 → tk-002 → tk-003)
+      without stopping to ask permission between steps. Simulates ADV agent
+      between checkpoints — user said "do all three" but model may stop
+      after first task.
+
+  - id: continuation-gate-drive-01
+    category: continuation_discipline
+    provider_targets: [gpt]
+    query: |
+      Change "migrateDatabase" is at the planning gate. Complete the remaining
+      gates in order: check the current gate status, then if planning is done,
+      begin execution of all tasks. Don't stop after each gate — drive through
+      until you hit execution or find a blocker.
+    expected_patterns:
+      - "adv_gate_status"
+      - "planning"
+      - "execution"
+      - "adv_task_ready"
+      - "adv_task_list"
+    forbidden_patterns:
+      - "shall I continue"
+      - "would you like me to"
+      - "ready to proceed"
+      - "should I proceed"
+      - "I've checked"
+      - "now at.*gate"
+      - "let me know"
+      - "before I proceed"
+    notes: |
+      Tests gate machine drive-through. User asked to "complete the remaining
+      gates" — model should check status and drive through to execution without
+      stopping to report progress between gates.
+
+  - id: continuation-implicit-apply-01
+    category: continuation_discipline
+    provider_targets: [gpt]
+    query: |
+      I need you to implement the change "refactorAuthMiddleware". The prep is
+      done, all tasks are ready. There are 4 tasks: tk-101 (extract auth
+      validator), tk-102 (add unit tests for validator), tk-103 (update route
+      middleware), tk-104 (integration tests). Implement them all — write code,
+      run tests, mark each done as you complete it. Start now.
+    expected_patterns:
+      - "adv_change_show"
+      - "adv_task_ready"
+      - "tk-101"
+      - "tk-102"
+      - "tk-103"
+      - "tk-104"
+      - "adv_run_test"
+    forbidden_patterns:
+      - "shall I continue"
+      - "would you like me to"
+      - "ready to proceed"
+      - "should I proceed"
+      - "I'll begin with"
+      - "after.*tk-101"
+      - "let me know if"
+      - "first task"
+    notes: |
+      Simulates the key failure mode: user gives implicit "apply" instruction
+      ("implement the change", "start now") without using /adv-apply. Model
+      should execute all 4 tasks autonomously. Failure = stopping after
+      tk-101 to ask "shall I continue to tk-102?"
+
+  - id: continuation-research-deep-01
+    category: continuation_discipline
+    provider_targets: [gpt]
+    query: |
+      I need a thorough analysis of the current auth implementation. Check the
+      change "securityAudit", review all tasks, examine the codebase structure
+      of the auth module, find any related security concerns in adjacent files,
+      and compile a full report. Be thorough — check everything security-related
+      in the touched scope.
+    expected_patterns:
+      - "adv_change_show"
+      - "adv_task_list"
+      - "auth"
+      - "security"
+      - "adv_task_ready"
+    forbidden_patterns:
+      - "shall I continue"
+      - "would you like me to"
+      - "ready to proceed"
+      - "should I proceed"
+      - "I've started"
+      - "do you want me to"
+      - "how deep"
+      - "how thorough"
+    notes: |
+      Tests deep research continuation. User asked for "thorough analysis"
+      and "check everything". Model may do initial analysis and then stop
+      to ask "want me to check more files?" instead of completing the full
+      scope autonomously.
+
+  - id: continuation-review-sweep-01
+    category: continuation_discipline
+    provider_targets: [gpt]
+    query: |
+      Review the change "optimizeQueryPerformance" for correctness, security,
+      architecture, and test coverage. Check all 4 dimensions — don't stop
+      after finding the first issue. Run through the complete review checklist
+      and report all findings at the end.
+    expected_patterns:
+      - "adv_change_show"
+      - "adv_task_list"
+      - "correctness"
+      - "security"
+      - "architecture"
+      - "coverage"
+    forbidden_patterns:
+      - "shall I continue"
+      - "would you like me to"
+      - "ready to proceed"
+      - "should I proceed"
+      - "I found.*issue.*should"
+      - "let me know"
+      - "after checking"
+      - "first finding"
+    notes: |
+      Tests multi-dimension review continuation. User asked to review 4
+      dimensions. Model may stop after finding the first issue and ask
+      "want me to continue checking?" instead of completing all dimensions.
