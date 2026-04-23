@@ -34,6 +34,9 @@ const mocks = vi.hoisted(() => {
     executeUpdate,
     query,
     close,
+    canReachTemporalAddress: vi.fn(async () => true),
+    getTemporalWorkerAliveness: vi.fn(() => true),
+    getRegisteredTemporalWorkerQueues: vi.fn(() => ["advance-proj123"]),
     addProjectWisdom,
     compactProjectWisdom,
     listProjectWisdom,
@@ -68,12 +71,37 @@ vi.mock("../storage/project-wisdom", () => ({
   listProjectWisdom: mocks.listProjectWisdom,
 }));
 
+vi.mock("../temporal/runtime-manager", async () => {
+  const actual = await vi.importActual<
+    typeof import("../temporal/runtime-manager")
+  >("../temporal/runtime-manager");
+  return {
+    ...actual,
+    canReachTemporalAddress: mocks.canReachTemporalAddress,
+  };
+});
+
+vi.mock("../plugin-init", async () => {
+  const actual =
+    await vi.importActual<typeof import("../plugin-init")>("../plugin-init");
+  return {
+    ...actual,
+    getTemporalWorkerAliveness: mocks.getTemporalWorkerAliveness,
+    getRegisteredTemporalWorkerQueues: mocks.getRegisteredTemporalWorkerQueues,
+  };
+});
+
 import { wisdomTools } from "./wisdom";
 
 describe("adv_wisdom_add derived-export path", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.listProjectWisdom.mockResolvedValue([]);
+    mocks.canReachTemporalAddress.mockResolvedValue(true);
+    mocks.getTemporalWorkerAliveness.mockReturnValue(true);
+    mocks.getRegisteredTemporalWorkerQueues.mockReturnValue([
+      "advance-proj123",
+    ]);
   });
 
   afterEach(() => {
@@ -167,5 +195,41 @@ describe("adv_wisdom_add derived-export path", () => {
     expect(store.wisdom.add).toHaveBeenCalledTimes(1); // change-level wisdom only
     expect(mocks.executeUpdate).toHaveBeenCalledTimes(1);
     expect(mocks.addProjectWisdom).not.toHaveBeenCalled();
+  });
+
+  it("falls back immediately without opening Temporal client when fast preflight fails", async () => {
+    mocks.canReachTemporalAddress.mockResolvedValueOnce(false);
+    const store = {
+      paths: {
+        root: "/repo",
+        wisdom:
+          "/home/jrede/.local/share/opencode/plugins/advance/proj123/wisdom.jsonl",
+      },
+      wisdom: {
+        add: vi.fn(async () => ({
+          id: "ws-1",
+          type: "convention",
+          content: "Always validate inputs at boundary",
+          source_task: "tk-task0001",
+          recorded_at: "2026-04-20T00:00:00.000Z",
+        })),
+      },
+    } as any;
+
+    const result = await wisdomTools.adv_wisdom_add.execute(
+      {
+        changeId: "addFeature",
+        type: "convention",
+        content: "Always validate inputs at boundary",
+        sourceTask: "tk-task0001",
+        promote: true,
+      },
+      store,
+    );
+    const parsed = JSON.parse(result);
+
+    expect(parsed.success).toBe(true);
+    expect(mocks.createTemporalClientBundle).not.toHaveBeenCalled();
+    expect(mocks.addProjectWisdom).toHaveBeenCalledTimes(1);
   });
 });

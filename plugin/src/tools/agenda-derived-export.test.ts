@@ -24,6 +24,9 @@ const mocks = vi.hoisted(() => {
     executeUpdate,
     query,
     close,
+    canReachTemporalAddress: vi.fn(async () => true),
+    getTemporalWorkerAliveness: vi.fn(() => true),
+    getRegisteredTemporalWorkerQueues: vi.fn(() => ["advance-proj123"]),
     createTemporalClientBundle: vi.fn(async () => ({
       connection: { close },
       client: {
@@ -68,11 +71,36 @@ vi.mock("../storage/agenda", async () => {
   };
 });
 
+vi.mock("../temporal/runtime-manager", async () => {
+  const actual = await vi.importActual<
+    typeof import("../temporal/runtime-manager")
+  >("../temporal/runtime-manager");
+  return {
+    ...actual,
+    canReachTemporalAddress: mocks.canReachTemporalAddress,
+  };
+});
+
+vi.mock("../plugin-init", async () => {
+  const actual =
+    await vi.importActual<typeof import("../plugin-init")>("../plugin-init");
+  return {
+    ...actual,
+    getTemporalWorkerAliveness: mocks.getTemporalWorkerAliveness,
+    getRegisteredTemporalWorkerQueues: mocks.getRegisteredTemporalWorkerQueues,
+  };
+});
+
 import { agendaTools } from "./agenda";
 
 describe("adv_agenda_add derived-export path", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.canReachTemporalAddress.mockResolvedValue(true);
+    mocks.getTemporalWorkerAliveness.mockReturnValue(true);
+    mocks.getRegisteredTemporalWorkerQueues.mockReturnValue([
+      "advance-proj123",
+    ]);
   });
 
   it("uses project workflow update/query + writeJsonlAtomic when temporal is available", async () => {
@@ -116,6 +144,21 @@ describe("adv_agenda_add derived-export path", () => {
     expect(parsed.success).toBe(true);
     expect(parsed.warning).toContain("derived agenda.jsonl write failed");
     expect(mocks.executeUpdate).toHaveBeenCalledTimes(1);
+    expect(mocks.addAgendaItem).not.toHaveBeenCalled();
+  });
+
+  it("fails fast explicitly without local fallback when workflow-backed preflight fails", async () => {
+    mocks.canReachTemporalAddress.mockResolvedValueOnce(false);
+
+    const result = await agendaTools.adv_agenda_add.execute(
+      { title: "Write docs" },
+      "/repo",
+      "/home/jrede/.local/share/opencode/plugins/advance/proj123/agenda.jsonl",
+    );
+    const parsed = JSON.parse(result);
+
+    expect(parsed.error).toContain("Project workflow unavailable");
+    expect(mocks.createTemporalClientBundle).not.toHaveBeenCalled();
     expect(mocks.addAgendaItem).not.toHaveBeenCalled();
   });
 });
