@@ -80,21 +80,17 @@ Use a two-column table wherever agents commonly fail. Required for:
 **BAD:**
 
 ```
-3+ files or high-risk signals → suggest worktree
+All ADV changes → mandatory worktree isolation (no exemptions)
 ```
 
 **GOOD:**
 
 ```
-| Signal | Risk |
-|--------|------|
-| 3+ files affected | High |
-| Breaking API changes | High |
-| DB schema change | High |
-| Auth logic change | High |
-| Shared type changes | High |
-| Docs-only or config | Low |
-| 1–2 files, trivial | Low |
+| Signal | Action |
+|--------|--------|
+| Any change with file modifications | Always create/reuse worktree |
+| Worktree tools unavailable | Hard block — cannot proceed |
+| Existing worktree for same change | Auto-reuse existing |
 ```
 
 ### 4. WHEN/THEN Tables for Decision Points

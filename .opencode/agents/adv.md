@@ -188,7 +188,6 @@ ADV pauses ONLY at these checkpoints:
 - Contract-compromise risk identified during design
 - Design validator `CONFLICT` verdict
 - Prep gate machine enforcement (`userApproved` required)
-- Worktree decision (3+ files, ask user)
 
 No other pauses, "shall I proceed?" prompts, or "ready to start /adv-X?" questions are permitted.
 
