@@ -185,6 +185,19 @@ describe("Task Tools", () => {
       expect(parsed.ready).toHaveLength(1);
       expect(parsed.ready[0].id).toBe("tk-task0002");
     });
+
+    test("emits _contextSnapshot in response", async () => {
+      const result = await taskTools.adv_task_ready.execute(
+        { changeId: "addFeature" },
+        store,
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed._contextSnapshot).toBeDefined();
+      expect(typeof parsed._contextSnapshot).toBe("string");
+      expect(parsed._contextSnapshot).toContain("addFeature");
+      expect(parsed._contextSnapshot).toMatch(/[╔╗╚╝║═]/);
+    });
   });
 
   describe("adv_task_update", () => {
@@ -285,6 +298,61 @@ describe("Task Tools", () => {
 
       const final = await store.tasks.get("tk-task0001");
       expect(final!.metadata?.tdd_intent).toBe("inline");
+    });
+
+    test("emits _contextSnapshot on in_progress transition (rq-ctxsnap2.3)", async () => {
+      const result = await taskTools.adv_task_update.execute(
+        { taskId: "tk-task0001", status: "in_progress" },
+        store,
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed.success).toBe(true);
+      expect(parsed._contextSnapshot).toBeDefined();
+      expect(typeof parsed._contextSnapshot).toBe("string");
+      expect(parsed._contextSnapshot).toContain("addFeature");
+      expect(parsed._contextSnapshot).toMatch(/[╔╗╚╝║═]/);
+    });
+
+    test("emits _contextSnapshot on done transition", async () => {
+      const result = await taskTools.adv_task_update.execute(
+        { taskId: "tk-task0001", status: "done" },
+        store,
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed.success).toBe(true);
+      expect(parsed._contextSnapshot).toBeDefined();
+      expect(typeof parsed._contextSnapshot).toBe("string");
+      expect(parsed._contextSnapshot).toContain("addFeature");
+    });
+
+    test("does NOT emit _contextSnapshot on pending transition", async () => {
+      // First move to in_progress, then back to pending
+      await taskTools.adv_task_update.execute(
+        { taskId: "tk-task0001", status: "in_progress" },
+        store,
+      );
+
+      const result = await taskTools.adv_task_update.execute(
+        { taskId: "tk-task0001", status: "pending" },
+        store,
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed.success).toBe(true);
+      expect(parsed._contextSnapshot).toBeUndefined();
+    });
+
+    test("does NOT emit _contextSnapshot for nonexistent task", async () => {
+      const result = await taskTools.adv_task_update.execute(
+        { taskId: "nonexistent", status: "done" },
+        store,
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed.error).toBeDefined();
+      expect(parsed._contextSnapshot).toBeUndefined();
     });
   });
 

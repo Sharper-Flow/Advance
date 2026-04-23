@@ -21,6 +21,7 @@ import {
 } from "../validator/task-classifier";
 import { validateEvidenceSemantics } from "../validator/evidence";
 import { formatToolOutput, paginate } from "../utils/tool-output";
+import { fetchChangeContextSnapshot } from "../utils/context-snapshot";
 
 // =============================================================================
 // Tool Definitions
@@ -102,7 +103,11 @@ export const taskTools = {
     },
     execute: async ({ changeId }: { changeId: string }, store: Store) => {
       const result = await store.tasks.ready(changeId);
-      return formatToolOutput(result);
+      const snapshot = await fetchChangeContextSnapshot(store, changeId);
+      return formatToolOutput({
+        ...result,
+        ...(snapshot ? { _contextSnapshot: snapshot } : {}),
+      });
     },
   },
 
@@ -150,6 +155,10 @@ export const taskTools = {
         });
       }
 
+      // Resolve changeId for snapshot emission (rq-ctxsnap2.3 compliance)
+      const taskShowResult = await store.tasks.show(taskId);
+      const changeId = taskShowResult?.changeId;
+
       const task = await store.tasks.update(
         taskId,
         status,
@@ -160,7 +169,20 @@ export const taskTools = {
       if (!task) {
         return formatToolOutput({ error: `Task not found: ${taskId}` });
       }
-      return formatToolOutput({ success: true, task });
+
+      // Emit snapshot on meaningful transitions (in_progress, done)
+      const output: Record<string, unknown> = { success: true, task };
+      if (
+        changeId &&
+        (status === "in_progress" || status === "done")
+      ) {
+        const snapshot = await fetchChangeContextSnapshot(store, changeId);
+        if (snapshot) {
+          output._contextSnapshot = snapshot;
+        }
+      }
+
+      return formatToolOutput(output);
     },
   },
 

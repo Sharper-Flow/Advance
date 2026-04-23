@@ -76,9 +76,13 @@ The snapshot is included automatically when ADV tools expose current change stat
 | Trigger | Mechanism |
 |---------|-----------|
 | Change loaded for work | `adv_change_show` |
-| Gate transitions | `adv_gate_complete` response and next `adv_change_show` call |
-| Task switches | Reflected in next `adv_change_show` call |
+| Task started | `adv_task_update` → `in_progress` |
+| Task completed | `adv_task_update` → `done` |
+| Task ready for work | `adv_task_ready` |
+| Gate transitions | `adv_gate_complete` response |
 | Project overview | Recent entries in `adv_status` |
+
+> **rq-ctxsnap2.3 compliance:** Task-level triggers (`adv_task_update` → `in_progress`, `adv_task_update` → `done`, `adv_task_ready`) now emit the snapshot directly rather than deferring to the next `adv_change_show` call.
 
 ### Graceful Degradation
 
