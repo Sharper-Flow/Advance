@@ -80,6 +80,7 @@ interface WorkflowHandleLike {
     definition: unknown,
     options: { args?: unknown[] },
   ) => Promise<unknown>;
+  signal: (definition: unknown, ...args: unknown[]) => Promise<void>;
 }
 
 interface TemporalHandleClient {
