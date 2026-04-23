@@ -291,7 +291,7 @@ describe("sync-global.sh", () => {
     });
 
     test("removes repo-local adv.md when provider variants are configured", () => {
-      expect(content).toContain('REPO_LOCAL_ADV=');
+      expect(content).toContain("REPO_LOCAL_ADV=");
       expect(content).toContain("repo-local adv.md");
     });
   });

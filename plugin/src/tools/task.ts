@@ -504,8 +504,7 @@ export const taskTools = {
         const firstTask = await store.tasks.show(cancelledTasks[0].id);
         const changeId = firstTask?.changeId;
         if (changeId) {
-          const snapshot =
-            await fetchChangeContextSnapshot(store, changeId);
+          const snapshot = await fetchChangeContextSnapshot(store, changeId);
           if (snapshot) {
             output._contextSnapshot = snapshot;
           }
