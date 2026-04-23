@@ -261,4 +261,25 @@ describe("benchmark-temporal scaffold (A1)", () => {
       expect(samples.every((s) => s.run_id === baseId)).toBe(true);
     });
   });
+
+  describe("op adapters (B1)", () => {
+    it("opAdapters registry has all six ops", async () => {
+      const { opAdapters } = await import("../../scripts/benchmark-temporal");
+      expect(Object.keys(opAdapters)).toHaveLength(6);
+      expect(opAdapters).toHaveProperty("adv_status");
+      expect(opAdapters).toHaveProperty("adv_change_list");
+      expect(opAdapters).toHaveProperty("adv_change_show");
+      expect(opAdapters).toHaveProperty("adv_task_list");
+      expect(opAdapters).toHaveProperty("adv_task_show");
+      expect(opAdapters).toHaveProperty("adv_wisdom_add");
+    });
+
+    it("createBoundOpAdapter returns a callable adapter", async () => {
+      const { createBoundOpAdapter } = await import("../../scripts/benchmark-temporal");
+      const adapter = createBoundOpAdapter("adv_status", "/tmp/adv-bench-test");
+      expect(typeof adapter).toBe("function");
+      // We don't actually invoke it here because it would need a real store;
+      // the integration test for invocation belongs in B4.
+    });
+  });
 });

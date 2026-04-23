@@ -390,6 +390,98 @@ async function runSingleShot(op: BenchmarkOp): Promise<BenchmarkSample> {
 }
 
 /* ------------------------------------------------------------------ */
+/* Op Adapters (B1)                                                   */
+/* ------------------------------------------------------------------ */
+
+export interface OpAdapterContext {
+  store: Store;
+  changeId?: string;
+  taskId?: string;
+}
+
+export type OpAdapterFn = (ctx: OpAdapterContext) => Promise<unknown>;
+
+export const opAdapters: Record<BenchmarkOp, OpAdapterFn> = {
+  adv_status: async (ctx) => {
+    const { statusTools } = await import("../src/tools/status.ts");
+    return statusTools.adv_status.execute({}, ctx.store);
+  },
+
+  adv_change_list: async (ctx) => {
+    const { changeTools } = await import("../src/tools/change.ts");
+    return changeTools.adv_change_list.execute({}, ctx.store);
+  },
+
+  adv_change_show: async (ctx) => {
+    const { changeTools } = await import("../src/tools/change.ts");
+    const changeId = ctx.changeId ?? "investigateTemporalPerformance";
+    return changeTools.adv_change_show.execute({ changeId }, ctx.store);
+  },
+
+  adv_task_list: async (ctx) => {
+    const { taskTools } = await import("../src/tools/task.ts");
+    const changeId = ctx.changeId ?? "investigateTemporalPerformance";
+    return taskTools.adv_task_list.execute({ changeId }, ctx.store);
+  },
+
+  adv_task_show: async (ctx) => {
+    const { taskTools } = await import("../src/tools/task.ts");
+    const taskId = ctx.taskId ?? "tk-tRAmTAZZ";
+    return taskTools.adv_task_show.execute({ taskId }, ctx.store);
+  },
+
+  adv_wisdom_add: async (ctx) => {
+    const { wisdomTools } = await import("../src/tools/wisdom.ts");
+    const changeId = ctx.changeId ?? "investigateTemporalPerformance";
+    return wisdomTools.adv_wisdom_add.execute(
+      {
+        changeId,
+        type: "pattern",
+        content: "benchmark test wisdom entry",
+      },
+      ctx.store,
+    );
+  },
+};
+
+/**
+ * Build a scratch store bound to a temp external root.
+ * This is the integration point for real Temporal measurement.
+ */
+export async function createBenchmarkStore(
+  externalRoot: string,
+): Promise<Store> {
+  const { createStore } = await import("../src/storage/store.ts");
+  // Use the current working directory as the project root
+  // but redirect external state to the scratch root
+  return createStore(process.cwd(), { externalRoot });
+}
+
+/**
+ * Create an adapter that binds a specific op to a scratch store.
+ * Returns an OpAdapter compatible with the runner signatures.
+ */
+export function createBoundOpAdapter(
+  op: BenchmarkOp,
+  externalRoot: string,
+  fixture?: { changeId?: string; taskId?: string },
+): OpAdapter {
+  return async (_opName: BenchmarkOp) => {
+    const store = await createBenchmarkStore(externalRoot);
+    try {
+      const ctx: OpAdapterContext = {
+        store,
+        changeId: fixture?.changeId,
+        taskId: fixture?.taskId,
+      };
+      return await opAdapters[op](ctx);
+    } finally {
+      store.close();
+    }
+  };
+}
+
+/* ------------------------------------------------------------------ */
 /* Stats                                                              */
 /* ------------------------------------------------------------------ */
 
@@ -479,22 +571,22 @@ async function main(): Promise<void> {
 
   const startedAt = new Date().toISOString();
 
-  // Placeholder adapter until B1 provides real op adapters
-  const placeholderAdapter: OpAdapter = async (_opName) => {
-    // Real implementation will invoke the actual tool via B1 adapters
-    return Promise.resolve();
-  };
+  // Build a bound adapter for the requested op
+  const scratchRoot = args.outputDir
+    ? join(args.outputDir, "scratch")
+    : join(process.cwd(), "temp", "bench", "scratch");
+  const boundAdapter = createBoundOpAdapter(op, scratchRoot);
 
   let benchmarkSamples: BenchmarkSample[];
   switch (mode) {
     case "cold-start":
-      benchmarkSamples = await runColdStart(op, samples, placeholderAdapter);
+      benchmarkSamples = await runColdStart(op, samples, boundAdapter);
       break;
     case "warm-interactive":
-      benchmarkSamples = await runWarmInteractive(op, samples, gapMs, placeholderAdapter);
+      benchmarkSamples = await runWarmInteractive(op, samples, gapMs, boundAdapter);
       break;
     case "repeated-command":
-      benchmarkSamples = await runRepeatedCommand(op, samples, placeholderAdapter);
+      benchmarkSamples = await runRepeatedCommand(op, samples, boundAdapter);
       break;
     default:
       throw new Error(`Unknown mode: ${mode}`);
@@ -530,8 +622,12 @@ async function main(): Promise<void> {
 
   console.log(JSON.stringify(record, null, 2));
 
-  // Also emit samples as JSONL if outputDir requested
-  if (args.outputDir) {
+    // Ensure scratch directory exists for store creation
+    const fs = await import("node:fs/promises");
+    await fs.mkdir(scratchRoot, { recursive: true });
+
+    // Also emit samples as JSONL if outputDir requested
+    if (args.outputDir) {
     const fs = await import("node:fs/promises");
     await fs.mkdir(args.outputDir, { recursive: true });
     const samplesPath = join(args.outputDir, `${runId}.jsonl`);

@@ -757,6 +757,25 @@ describe("Advance Plugin SDK Integration", () => {
       expect(getStatus().currentStatus).toBe("TOOLING");
     });
 
+    test("adv_run_test stays TOOLING when session.status idle fires mid-run", async () => {
+      const hooks = await createTrackedPlugin(tempDir, pluginInstances);
+
+      await hooks["tool.execute.before"]!(
+        { tool: "adv_run_test" } as any,
+        { args: { taskId: "tk-x", phase: "red", command: "bun test" } } as any,
+      );
+
+      await hooks.event!({
+        event: {
+          type: "session.status",
+          properties: { status: { type: "idle" } },
+        } as any,
+      });
+
+      const { getStatus } = await import("./events");
+      expect(getStatus().currentStatus).toBe("TOOLING");
+    });
+
     test("permission.asked sets ATTN status", async () => {
       const hooks = await createTrackedPlugin(tempDir, pluginInstances);
 
