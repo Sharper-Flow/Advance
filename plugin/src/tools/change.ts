@@ -92,6 +92,37 @@ function summarizeTasks(
   return { taskCounts, inProgressTask };
 }
 
+function isSyntheticValidationDraftSummary(summary: string): boolean {
+  const trimmed = summary.trim();
+
+  if (/^\[parity:(legacy|temporal)\]\s+/i.test(trimmed)) {
+    return true;
+  }
+
+  return [
+    /^change\s+roundtrip\d*$/i,
+    /^changeRoundtrip\d*$/i,
+    /^task\s+parity\d*$/i,
+    /^taskParity\d*$/i,
+    /^gate\s+parity\d*$/i,
+    /^gateParity\d*$/i,
+    /^wisdom\s+parity\d*$/i,
+    /^wisdomParity\d*$/i,
+    /^reentry\s+parity\d*$/i,
+    /^reentryParity\d*$/i,
+  ].some((pattern) => pattern.test(trimmed));
+}
+
+function buildSyntheticValidationDraftError(
+  summary: string,
+): Record<string, string> {
+  return {
+    error:
+      `Synthetic validation draft summary "${summary}" is reserved for parity/validation flows. ` +
+      "Use isolated temp/test storage instead of live ADV state.",
+  };
+}
+
 type ChangeIssueUpdate = {
   added: string[];
   removed: string[];
@@ -457,6 +488,10 @@ export const changeTools = {
       },
       store: Store,
     ) => {
+      if (isSyntheticValidationDraftSummary(summary)) {
+        return formatToolOutput(buildSyntheticValidationDraftError(summary));
+      }
+
       // ----- Cross-project creation path -----
       if (target_path) {
         // Validate target directory exists

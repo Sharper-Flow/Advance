@@ -601,6 +601,29 @@ describe("Change Tools", () => {
       const parsed2 = parseToolOutput(result2);
       expect(parsed2._duplicateWarning).toBeUndefined();
     });
+
+    test("rejects leaked synthetic parity summaries for local create", async () => {
+      const result = await changeTools.adv_change_create.execute(
+        { summary: "task parity" },
+        store,
+      );
+      const parsed = parseToolOutput(result);
+
+      expect(parsed.error).toContain("Synthetic validation draft summary");
+      expect(parsed.error).toContain("isolated temp/test storage");
+      expect(parsed.changeId).toBeUndefined();
+    });
+
+    test("allows benign parity wording for legitimate drafts", async () => {
+      const result = await changeTools.adv_change_create.execute(
+        { summary: "Fix parity bug in auth" },
+        store,
+      );
+      const parsed = parseToolOutput(result);
+
+      expect(parsed.error).toBeUndefined();
+      expect(parsed.changeId).toBe("fixParityBugAuth");
+    });
   });
 
   describe("adv_change_create — cross-project", () => {
@@ -723,6 +746,28 @@ describe("Change Tools", () => {
       const parsed = parseToolOutput(result);
 
       expect(parsed.error).toContain("does not exist");
+    });
+
+    test("rejects leaked synthetic parity summaries for cross-project create", async () => {
+      const targetDir = await createTempDir();
+      await createTestProject(targetDir);
+
+      try {
+        const result = await changeTools.adv_change_create.execute(
+          {
+            summary: "[parity:legacy] change roundtrip",
+            target_path: targetDir,
+          },
+          store,
+        );
+        const parsed = parseToolOutput(result);
+
+        expect(parsed.error).toContain("Synthetic validation draft summary");
+        expect(parsed.error).toContain("isolated temp/test storage");
+        expect(parsed.changeId).toBeUndefined();
+      } finally {
+        await cleanupTempDir(targetDir);
+      }
     });
 
     test("local create unchanged when target_path omitted", async () => {
