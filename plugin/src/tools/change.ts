@@ -19,6 +19,7 @@ import {
 } from "../types";
 import type { Store } from "../storage/store";
 import { createStore } from "../storage/store";
+import { getReflection } from "../storage/reflection";
 import { getProjectId, getExternalRoot } from "../utils/project-id";
 import { validateChange } from "../validator";
 import { createLogger } from "../utils/debug-log";
@@ -702,6 +703,17 @@ export const changeTools = {
           note: `⚠️ Cross-project follow-up from ${change.cross_project_origin.source_project}`,
           ...change.cross_project_origin,
         };
+      }
+
+      // Include reflection data for archived changes
+      if (change.status === "archived") {
+        const reflection = await getReflection(
+          store.paths.external ?? store.paths.root,
+          changeId,
+        );
+        if (reflection) {
+          output._reflection = reflection;
+        }
       }
 
       return formatToolOutput(output);

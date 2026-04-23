@@ -478,6 +478,72 @@ describe("Change Tools", () => {
 
       expect(parsed._crossProjectOrigin).toBeUndefined();
     });
+
+    test("includes _reflection for archived changes", async () => {
+      // Archive the change and add a reflection
+      const changeResult = await store.changes.get("addFeature");
+      expect(changeResult.success).toBe(true);
+      changeResult.data!.status = "archived";
+      await store.changes.save(changeResult.data!);
+
+      // Write a reflection entry
+      const { appendReflection } = await import("../storage/reflection");
+      await appendReflection(tempDir, {
+        id: "rf-test001",
+        change_id: "addFeature",
+        created_at: new Date().toISOString(),
+        plane1: {
+          efficiency: {
+            task_count: 3,
+            tasks_done: 3,
+            tasks_cancelled: 0,
+            retry_total: 0,
+            retry_density: 0,
+            elapsed_ms: 3600000,
+            per_gate_ms: {},
+            threshold_tier: "auto",
+          },
+          quality: { tdd_compliance: 1.0 },
+          process: {
+            gate_completion_rate: 1.0,
+            tdd_intent_distribution: {},
+            delegation_count: 0,
+            drift_triggers: 0,
+          },
+          wisdom: {
+            entries_captured: 0,
+            entries_promoted: 0,
+            wisdom_reuse_hits: 0,
+          },
+        },
+        plane2: {
+          friction_items: [],
+          highlights: ["Test highlight"],
+          improvement_suggestions: [],
+        },
+      });
+
+      const result = await changeTools.adv_change_show.execute(
+        { changeId: "addFeature" },
+        store,
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed._reflection).toBeDefined();
+      expect(parsed._reflection.change_id).toBe("addFeature");
+      expect(parsed._reflection.plane1.efficiency.task_count).toBe(3);
+      expect(parsed._reflection.plane2.highlights).toContain("Test highlight");
+    });
+
+    test("omits _reflection for active changes", async () => {
+      const result = await changeTools.adv_change_show.execute(
+        { changeId: "addFeature" },
+        store,
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed._reflection).toBeUndefined();
+    });
   });
 
   describe("adv_change_create", () => {
