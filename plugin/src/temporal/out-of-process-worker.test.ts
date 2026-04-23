@@ -175,6 +175,35 @@ describe("createOutOfProcessWorker", () => {
     await expect(worker.shutdown()).resolves.toBeUndefined();
   });
 
+  it("exposes queue diagnostics for startup-vs-shutdown investigation", async () => {
+    const child = makeFakeChild();
+    mocks.spawn.mockReturnValue(child);
+
+    const { createOutOfProcessWorker } =
+      await import("./out-of-process-worker");
+
+    const worker = await createOutOfProcessWorker({
+      address: "127.0.0.1:7233",
+      namespace: "default",
+      queues: ["advance-diag"],
+      workerScript: "/plugin/dist/temporal/worker.js",
+      projectId: "diag",
+    });
+
+    expect(typeof worker.getDiagnostics).toBe("function");
+    expect(worker.getDiagnostics()).toEqual([
+      {
+        queue: "advance-diag",
+        dead: false,
+        restartCount: 0,
+        childExitCode: null,
+        childRunning: true,
+      },
+    ]);
+
+    await worker.shutdown();
+  });
+
   it("throws when resolveNodeExecutable returns found:false", async () => {
     mocks.resolveNodeExecutable.mockReturnValueOnce({
       found: false,

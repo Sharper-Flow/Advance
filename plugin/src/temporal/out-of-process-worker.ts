@@ -62,6 +62,13 @@ export interface OutOfProcessWorkerInput {
  */
 export interface OutOfProcessWorker extends InProcessWorker {
   isAlive(): boolean;
+  getDiagnostics(): Array<{
+    queue: string;
+    dead: boolean;
+    restartCount: number;
+    childExitCode: number | null;
+    childRunning: boolean;
+  }>;
 }
 
 interface QueueState {
@@ -231,6 +238,16 @@ export async function createOutOfProcessWorker(
         if (state.child && state.child.exitCode === null) return true;
       }
       return false;
+    },
+
+    getDiagnostics() {
+      return [...states.values()].map((state) => ({
+        queue: state.queue,
+        dead: state.dead,
+        restartCount: state.restartCount,
+        childExitCode: state.child?.exitCode ?? null,
+        childRunning: Boolean(state.child && state.child.exitCode === null),
+      }));
     },
   };
 }
