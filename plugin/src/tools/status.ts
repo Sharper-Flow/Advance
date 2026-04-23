@@ -19,6 +19,7 @@ import { getTemporalHealth } from "../temporal/health-probe";
 import { wrapWithBanner } from "../utils/banner";
 import { formatToolOutput } from "../utils/tool-output";
 import {
+  createDefaultGates,
   GATE_ORDER,
   isGateSatisfied,
   type GateId,
@@ -123,20 +124,34 @@ export const statusTools = {
     args: {},
     execute: async (_args: Record<string, never>, store: Store) => {
       const status = await store.status();
-      const migrationStatus = await loadMigrationStatus(store);
+      const temporalDisabled = process.env.ADV_DISABLE_TEMPORAL === "1";
+      const migrationStatus = temporalDisabled
+        ? null
+        : await loadMigrationStatus(store);
 
       let temporalHealth;
-      try {
-        temporalHealth = await getTemporalHealth();
-      } catch (err) {
+      if (temporalDisabled) {
         temporalHealth = {
           server_alive: false,
           worker_alive: false,
           worker_process_alive: false,
           registered_queues: [],
           last_op_at: null,
-          last_error: err instanceof Error ? err.message : String(err),
+          last_error: null,
         };
+      } else {
+        try {
+          temporalHealth = await getTemporalHealth();
+        } catch (err) {
+          temporalHealth = {
+            server_alive: false,
+            worker_alive: false,
+            worker_process_alive: false,
+            registered_queues: [],
+            last_op_at: null,
+            last_error: err instanceof Error ? err.message : String(err),
+          };
+        }
       }
 
       // Load project config with diagnostics — surface errors instead of silently ignoring
@@ -180,7 +195,7 @@ export const statusTools = {
         const changeResult = await store.changes.get(rc.id);
         if (!changeResult.success || !changeResult.data) continue;
 
-        const gates = await store.gates.get(rc.id);
+        const gates = changeResult.data.gates ?? createDefaultGates();
         const changeDir = join(store.paths.changes, rc.id);
         const { content: proposalText } = await loadProposalWithFallback(
           changeDir,

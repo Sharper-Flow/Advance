@@ -68,6 +68,7 @@ describe("adv_status temporal health/migration status (C4)", () => {
   let store: Store;
 
   beforeEach(async () => {
+    vi.stubEnv("ADV_DISABLE_TEMPORAL", "");
     tempDir = await createTempDir();
     await createTestProject(tempDir);
     store = await createStore(tempDir);
@@ -77,6 +78,7 @@ describe("adv_status temporal health/migration status (C4)", () => {
     store.close();
     await cleanupTempDir(tempDir);
     vi.clearAllMocks();
+    vi.unstubAllEnvs();
   });
 
   test("includes temporal_health block when probe succeeds", async () => {
@@ -124,6 +126,26 @@ describe("adv_status temporal health/migration status (C4)", () => {
       registered_queues: [],
       last_op_at: null,
       last_error: "boom",
+    });
+    expect(parsed.migration_status).toBeNull();
+  });
+
+  test("skips temporal health and migration queries entirely when ADV_DISABLE_TEMPORAL=1", async () => {
+    vi.stubEnv("ADV_DISABLE_TEMPORAL", "1");
+
+    const result = await statusTools.adv_status.execute({}, store);
+    const parsed = parseToolOutput(result);
+
+    expect(mocks.getTemporalHealth).not.toHaveBeenCalled();
+    expect(mocks.canReachTemporalAddress).not.toHaveBeenCalled();
+    expect(mocks.createTemporalClientBundle).not.toHaveBeenCalled();
+    expect(parsed.temporal_health).toEqual({
+      server_alive: false,
+      worker_alive: false,
+      worker_process_alive: false,
+      registered_queues: [],
+      last_op_at: null,
+      last_error: null,
     });
     expect(parsed.migration_status).toBeNull();
   });

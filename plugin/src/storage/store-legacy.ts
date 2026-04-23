@@ -13,6 +13,7 @@
 
 import { basename, join } from "path";
 import { mkdir } from "fs/promises";
+import { statSync } from "fs";
 import type { Change, ChangeStatus } from "../types";
 import { createSQLiteStore, type SQLiteStore } from "./sqlite";
 import {
@@ -29,6 +30,7 @@ import {
   loadChange,
   saveChange,
   getProjectPaths,
+  listChangeDirs,
 } from "./json";
 import { createLogger } from "../utils/debug-log";
 import {
@@ -120,6 +122,34 @@ export async function createLegacyStore(
 
   // Create shared context
   const ctx = createStoreContext(paths, sqlite, dbPath, config);
+  const STATUS_CACHE_TTL_MS = 1000;
+  let statusCache: {
+    value: Awaited<ReturnType<Store["status"]>>;
+    computedAt: number;
+    signature: string;
+  } | null = null;
+
+  const buildStatusCacheSignature = async (): Promise<string> => {
+    const parts: string[] = [];
+    const changeIds = await listChangeDirs(paths.changes);
+
+    for (const id of changeIds.sort()) {
+      const jsonPath = join(paths.changes, id, "change.json");
+      try {
+        const stats = statSync(jsonPath);
+        parts.push(
+          `change:${id}:${Math.floor(stats.mtimeMs)}:${stats.size}:${stats.ino}`,
+        );
+      } catch {
+        parts.push(`change:${id}:missing`);
+      }
+    }
+
+    const specRows = ctx.sqlite.specs.list();
+    parts.push(`spec-count:${specRows.length}`);
+
+    return parts.join("|");
+  };
 
   // ---------------------------------------------------------------------------
   // Bound sync helpers (close over ctx)
@@ -137,6 +167,7 @@ export async function createLegacyStore(
     ctx.sqlite.changes.upsert(change, jsonPath);
     ctx.sqlite.wisdom.deleteByChange(change.id);
     ctx.sqlite.wisdom.upsertBatch(change.id, change.wisdom ?? []);
+    statusCache = null;
     // Invalidate sync cache so subsequent reads pick up the change from disk
     ctx.syncedChanges.add(change.id);
     if (shouldCheckpoint(ctx.dbPath)) {
@@ -171,6 +202,7 @@ export async function createLegacyStore(
 
     // Lifecycle
     init: async () => {
+      statusCache = null;
       if (!config) {
         await saveProjectConfig(directory, {
           name: basename(directory) || "project",
@@ -200,6 +232,7 @@ export async function createLegacyStore(
     },
 
     sync: async () => {
+      statusCache = null;
       // Reset session caches to force re-sync
       ctx.syncedSpecs.clear();
       ctx.syncedChanges.clear();
@@ -230,6 +263,16 @@ export async function createLegacyStore(
 
     // Status
     status: async () => {
+      if (
+        statusCache &&
+        Date.now() - statusCache.computedAt < STATUS_CACHE_TTL_MS
+      ) {
+        const signature = await buildStatusCacheSignature();
+        if (signature === statusCache.signature) {
+          return structuredClone(statusCache.value);
+        }
+      }
+
       await boundEnsureAllSpecsSynced();
       await boundEnsureAllChangesSynced();
 
@@ -327,7 +370,7 @@ export async function createLegacyStore(
         );
       }
 
-      return {
+      const result = {
         specs: {
           count: specRows.length,
           capabilities: specRows.map((s) => s.name),
@@ -341,6 +384,14 @@ export async function createLegacyStore(
         },
         recommendations,
       };
+
+      statusCache = {
+        value: structuredClone(result),
+        computedAt: Date.now(),
+        signature: await buildStatusCacheSignature(),
+      };
+
+      return structuredClone(result);
     },
   };
 

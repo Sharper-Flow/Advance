@@ -1,4 +1,7 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
+import { existsSync, mkdtempSync, readFileSync, rmSync } from "fs";
+import { join } from "path";
+import { tmpdir } from "os";
 
 const mocks = vi.hoisted(() => {
   const store = {
@@ -139,8 +142,16 @@ vi.mock("./storage/json", () => ({
 }));
 
 describe("plugin-init tryInitStore", () => {
+  let profileDir: string;
+  let originalAdvProfile: string | undefined;
+  let originalCacheDir: string | undefined;
+
   beforeEach(() => {
     vi.clearAllMocks();
+    profileDir = mkdtempSync(join(tmpdir(), "adv-plugin-init-"));
+    originalAdvProfile = process.env.ADV_PROFILE;
+    originalCacheDir = process.env.OPEN_CHAD_CACHE_DIR;
+    process.env.OPEN_CHAD_CACHE_DIR = profileDir;
     // Strip ambient ADV env so tests are deterministic regardless of the
     // developer's shell. ADV_DISABLE_TEMPORAL=1 (a common workaround for
     // the Bun-worker issue) otherwise bypasses the Temporal bootstrap path
@@ -148,6 +159,22 @@ describe("plugin-init tryInitStore", () => {
     vi.stubEnv("ADV_DISABLE_TEMPORAL", "");
     vi.stubEnv("ADV_ALLOW_DEGRADED_FALLBACK", "");
   });
+
+  afterEach(() => {
+    if (originalAdvProfile === undefined) {
+      delete process.env.ADV_PROFILE;
+    } else {
+      process.env.ADV_PROFILE = originalAdvProfile;
+    }
+    if (originalCacheDir === undefined) {
+      delete process.env.OPEN_CHAD_CACHE_DIR;
+    } else {
+      process.env.OPEN_CHAD_CACHE_DIR = originalCacheDir;
+    }
+    rmSync(profileDir, { recursive: true, force: true });
+  });
+
+  const profileLogFile = () => join(profileDir, "adv-profile.log");
 
   it("wires Temporal runtime + bundle into createStore when projectId resolves", async () => {
     mocks.getProjectId.mockResolvedValueOnce("proj-sha");
@@ -310,6 +337,47 @@ describe("plugin-init tryInitStore", () => {
     expect(result.initError?.message).toMatch(/store create exploded/);
     expect(mocks.createInProcessWorker).toHaveBeenCalledTimes(1);
     expect(mocks.inProcessWorker.shutdown).toHaveBeenCalledTimes(1);
+  });
+
+  it("writes temporal startup profile events when ADV_PROFILE=1 on the normal path", async () => {
+    process.env.ADV_PROFILE = "1";
+    mocks.getProjectId.mockResolvedValueOnce("proj-sha");
+
+    const { tryInitStore } = await import("./plugin-init");
+    const result = await tryInitStore("/tmp/repo", "/tmp/external");
+
+    expect(result).toEqual({ store: mocks.store, initError: null });
+    expect(existsSync(profileLogFile())).toBe(true);
+    const content = readFileSync(profileLogFile(), "utf-8");
+    expect(content).toContain('"event":"project_id_resolved"');
+    expect(content).toContain('"event":"worker_started"');
+    expect(content).toContain('"worker_model":"in_process"');
+    expect(content).toContain('"backend_mode":"temporal"');
+    expect(content).toContain('"event":"try_init_store_complete"');
+  });
+
+  it("writes degraded fallback profile events when ADV_PROFILE=1 and fallback is used", async () => {
+    process.env.ADV_PROFILE = "1";
+    mocks.getProjectId.mockResolvedValue("proj-sha");
+    mocks.ensureTemporalRuntime.mockImplementation(async () => {
+      throw new Error("Bun cannot run @temporalio/worker in-process");
+    });
+    vi.stubEnv("ADV_ALLOW_DEGRADED_FALLBACK", "1");
+
+    const { tryInitStore } = await import("./plugin-init");
+    const result = await tryInitStore("/tmp/repo", "/tmp/external");
+
+    expect(result.store).toBe(mocks.store);
+    expect(result.initError).toBeNull();
+    expect(existsSync(profileLogFile())).toBe(true);
+    const content = readFileSync(profileLogFile(), "utf-8");
+    expect(content).toContain('"event":"try_init_store_failed"');
+    expect(content).toContain('"degraded_fallback":true');
+    expect(content).toContain('"event":"degraded_fallback_started"');
+    expect(content).toContain('"event":"legacy_fallback_ready"');
+    expect(content).toContain('"backend_mode":"legacy"');
+    expect(content).toContain('"event":"try_init_store_complete"');
+    expect(content).toContain('"outcome":"success"');
   });
 });
 

@@ -260,7 +260,7 @@ export const changeTools = {
       });
 
       // Build context snapshot for context agreement
-      const gates = await store.gates.get(changeId);
+      const gates = change.gates ?? createDefaultGates();
       const { taskCounts, inProgressTask } = summarizeTasks(change.tasks);
       const snapshotInput: ContextSnapshotInput = {
         changeId: change.id,

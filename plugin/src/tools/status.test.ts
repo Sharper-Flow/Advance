@@ -4,12 +4,13 @@
  * TDD tests for project status tool
  */
 
-import { describe, test, expect, beforeEach, afterEach } from "vitest";
+import { describe, test, expect, beforeEach, afterEach, vi } from "vitest";
 import { Database } from "bun:sqlite";
 import { rm } from "fs/promises";
 import { join } from "path";
 import { statusTools } from "./status";
 import { createStore, type Store } from "../storage/store";
+import * as jsonStorage from "../storage/json";
 import {
   createTempDir,
   cleanupTempDir,
@@ -23,6 +24,7 @@ describe("Status Tools", () => {
   let store: Store;
 
   beforeEach(async () => {
+    vi.stubEnv("ADV_DISABLE_TEMPORAL", "");
     tempDir = await createTempDir();
     await createTestProject(tempDir);
     store = await createStore(tempDir);
@@ -31,6 +33,8 @@ describe("Status Tools", () => {
   afterEach(async () => {
     store.close();
     await cleanupTempDir(tempDir);
+    vi.restoreAllMocks();
+    vi.unstubAllEnvs();
   });
 
   describe("adv_status", () => {
@@ -243,6 +247,21 @@ describe("Status Tools", () => {
       expect(parsed.changes.active).toBe(0);
     });
 
+    test("reuses cached doctor/integrity work on repeated status calls without mutations", async () => {
+      const loadChangeSpy = vi.spyOn(jsonStorage, "loadChange");
+
+      await statusTools.adv_status.execute({}, store);
+      const firstCallCount = loadChangeSpy.mock.calls.length;
+
+      await statusTools.adv_status.execute({}, store);
+      const secondCallCount = loadChangeSpy.mock.calls.length;
+      const secondPassDelta = secondCallCount - firstCallCount;
+
+      expect(firstCallCount).toBeGreaterThan(0);
+      expect(secondPassDelta).toBeGreaterThan(0);
+      expect(secondPassDelta).toBeLessThan(firstCallCount);
+    });
+
     test("self-heals dangling task refs in SQLite cache", async () => {
       // First call populates SQLite cache
       await statusTools.adv_status.execute({}, store);
@@ -310,6 +329,16 @@ describe("Status Tools", () => {
       expect(rc._contextSnapshot).toContain("addFeature");
       expect(rc._contextSnapshot).toMatch(/Gates:/);
       expect(rc._contextSnapshot).toMatch(/Success:/);
+    });
+
+    test("reuses gates from loaded changes without calling store.gates.get in adv_status", async () => {
+      const gatesSpy = vi.spyOn(store.gates, "get");
+
+      const result = await statusTools.adv_status.execute({}, store);
+      const parsed = parseToolOutput(result);
+
+      expect(parsed.changes.recent[0]._contextSnapshot).toBeDefined();
+      expect(gatesSpy).not.toHaveBeenCalled();
     });
 
     test("includes clarify recommendation for change with ambiguity findings", async () => {

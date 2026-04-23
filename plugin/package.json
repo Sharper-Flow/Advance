@@ -27,7 +27,9 @@
     "format:check": "prettier --check src/",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "bench:latency": "bun --smol scripts/bench-adv-latency.ts",
+    "bench:storage": "bun --smol scripts/bench-local-storage.ts"
   },
   "dependencies": {
     "@opencode-ai/plugin": "latest",

@@ -73,10 +73,7 @@ describe.skipIf(!canRun)("createOutOfProcessWorker integration", () => {
         });
 
         try {
-          // Give the child a moment to connect + register the queue.
-          // We don't have a synchronous "registered" handshake from the
-          // child; we probe via `isAlive()` which reflects exit state.
-          await new Promise((resolve) => setTimeout(resolve, 500));
+          await waitForWorkerAlive(worker, 5_000, 100);
 
           expect(worker.queues).toEqual(["advance-oop-itest"]);
           // If the child exited prematurely (missing dep, bad env),
@@ -118,6 +115,24 @@ describe.skipIf(!canRun)("createOutOfProcessWorker integration", () => {
 function extractPort(address: string): number | null {
   const match = address.match(/:(\d+)$/);
   return match ? Number(match[1]) : null;
+}
+
+async function waitForWorkerAlive(
+  worker: Awaited<ReturnType<typeof createOutOfProcessWorker>>,
+  timeoutMs: number,
+  intervalMs: number,
+): Promise<void> {
+  const startedAt = Date.now();
+
+  while (Date.now() - startedAt < timeoutMs) {
+    if (worker.isAlive()) return;
+    await new Promise((resolve) => setTimeout(resolve, intervalMs));
+  }
+
+  const diagnostics = worker.getDiagnostics();
+  throw new Error(
+    `Worker never became alive within ${timeoutMs}ms: ${JSON.stringify(diagnostics)}`,
+  );
 }
 
 function findListeningPid(port: number): number | null {
