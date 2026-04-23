@@ -20,6 +20,7 @@ import {
 } from "../temporal/messages";
 import { writeJsonlAtomic } from "../storage/jsonl-atomic-writer";
 import { formatToolOutput } from "../utils/tool-output";
+import { fetchChangeContextSnapshot } from "../utils/context-snapshot";
 import { getBoundedProjectWorkflowAccess } from "./project-workflow-helper";
 
 function toJsonlProjectWisdomEntry(entry: {
@@ -142,11 +143,13 @@ export const wisdomTools = {
                 // Compaction failure is non-fatal; add/promote already succeeded
               }
 
+              const snapshot = await fetchChangeContextSnapshot(store, changeId);
               return formatToolOutput({
                 success: true,
                 entry,
                 promoted,
                 ...(promoteWarning ? { warning: promoteWarning } : {}),
+                ...(snapshot ? { _contextSnapshot: snapshot } : {}),
                 message: `Added and promoted ${type} wisdom for change ${changeId}`,
               });
             }
@@ -205,11 +208,13 @@ export const wisdomTools = {
           }
         }
 
+        const snapshot = await fetchChangeContextSnapshot(store, changeId);
         return formatToolOutput({
           success: true,
           entry,
           promoted,
           ...(promoteWarning ? { warning: promoteWarning } : {}),
+          ...(snapshot ? { _contextSnapshot: snapshot } : {}),
           message: promote
             ? `Added and promoted ${type} wisdom for change ${changeId}`
             : `Added ${type} wisdom to change ${changeId}`,
