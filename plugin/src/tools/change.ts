@@ -37,7 +37,10 @@ import { loadProposalWithFallback, fileExists } from "../storage/json";
 import { archiveChange } from "../archive";
 import { wrapWithBanner } from "../utils/banner";
 import { formatToolOutput, paginate } from "../utils/tool-output";
-import { formatValidationOutput, formatSmellReport } from "../utils/tool-formatters";
+import {
+  formatValidationOutput,
+  formatSmellReport,
+} from "../utils/tool-formatters";
 import { checkRequirementSmells } from "../validator/prep-readiness";
 import { buildChangeContextSnapshot } from "../utils/context-snapshot";
 import { resolveChangeSelection } from "../storage/change-selection";
@@ -1182,9 +1185,7 @@ export const changeTools = {
       if (hasSmells) {
         const smellInputs = smellIssues.map((issue) => ({
           type: issue.code,
-          text:
-            (issue.details?.requirementId as string) ??
-            issue.message,
+          text: (issue.details?.requirementId as string) ?? issue.message,
           suggestion:
             (issue.details?.remediation as string) ??
             "Review and rewrite requirement",

@@ -143,7 +143,12 @@ export const wisdomTools = {
                 // Compaction failure is non-fatal; add/promote already succeeded
               }
 
-              const snapshot = await fetchChangeContextSnapshot(store, changeId);
+              let snapshot: string | undefined;
+              try {
+                snapshot = await fetchChangeContextSnapshot(store, changeId);
+              } catch {
+                // Snapshot emission is best-effort; never fail the tool
+              }
               return formatToolOutput({
                 success: true,
                 entry,
@@ -208,7 +213,12 @@ export const wisdomTools = {
           }
         }
 
-        const snapshot = await fetchChangeContextSnapshot(store, changeId);
+        let snapshot: string | undefined;
+        try {
+          snapshot = await fetchChangeContextSnapshot(store, changeId);
+        } catch {
+          // Snapshot emission is best-effort; never fail the tool
+        }
         return formatToolOutput({
           success: true,
           entry,

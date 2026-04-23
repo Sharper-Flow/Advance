@@ -6,11 +6,6 @@ import {
   formatValidationOutput,
   formatDoomLoopDiagnostics,
   formatSmellReport,
-  type FormattedTaskReady,
-  type FormattedStatus,
-  type FormattedValidation,
-  type FormattedDoomLoop,
-  type FormattedSmellReport,
 } from "./tool-formatters";
 
 describe("tool-formatters", () => {
@@ -35,9 +30,7 @@ describe("tool-formatters", () => {
   describe("formatTaskReadyOutput", () => {
     it("returns formatted output with readyList and blockedList", () => {
       const result = formatTaskReadyOutput({
-        ready: [
-          { id: "tk-abc", content: "Implement auth", status: "pending" },
-        ],
+        ready: [{ id: "tk-abc", content: "Implement auth", status: "pending" }],
         blocked: [],
       });
       expect(result.readyList).toContain("tk-abc");
@@ -150,7 +143,13 @@ describe("tool-formatters", () => {
     it("formats errors and warnings", () => {
       const result = formatValidationOutput({
         passed: false,
-        errors: [{ code: "SPEC_NOT_FOUND", message: "Missing spec", path: "specs/foo" }],
+        errors: [
+          {
+            code: "SPEC_NOT_FOUND",
+            message: "Missing spec",
+            path: "specs/foo",
+          },
+        ],
         warnings: [{ code: "NO_TASKS", message: "No tasks", path: "tasks" }],
       });
       expect(result.summary).toContain("1");
@@ -178,9 +177,33 @@ describe("tool-formatters", () => {
         last_error: "type error",
         error_class: "SEMANTIC",
         attempts: [
-          { attempt_number: 1, error: "type error", strategy_label: "fix types", outcome: "failed", attempted_at: "2026-01-01T00:00:00Z", diagnosis: "", fix_tried: "" },
-          { attempt_number: 2, error: "type error", strategy_label: "refactor", outcome: "failed", attempted_at: "2026-01-01T00:01:00Z", diagnosis: "", fix_tried: "" },
-          { attempt_number: 3, error: "timeout", strategy_label: "retry", outcome: "failed", attempted_at: "2026-01-01T00:02:00Z", diagnosis: "", fix_tried: "" },
+          {
+            attempt_number: 1,
+            error: "type error",
+            strategy_label: "fix types",
+            outcome: "failed",
+            attempted_at: "2026-01-01T00:00:00Z",
+            diagnosis: "",
+            fix_tried: "",
+          },
+          {
+            attempt_number: 2,
+            error: "type error",
+            strategy_label: "refactor",
+            outcome: "failed",
+            attempted_at: "2026-01-01T00:01:00Z",
+            diagnosis: "",
+            fix_tried: "",
+          },
+          {
+            attempt_number: 3,
+            error: "timeout",
+            strategy_label: "retry",
+            outcome: "failed",
+            attempted_at: "2026-01-01T00:02:00Z",
+            diagnosis: "",
+            fix_tried: "",
+          },
         ],
       });
       expect(result.inDoomLoop).toBe(true);
@@ -211,8 +234,16 @@ describe("tool-formatters", () => {
   describe("formatSmellReport", () => {
     it("formats requirement smells", () => {
       const result = formatSmellReport([
-        { type: "subjective", text: "easy integration", suggestion: "Specify measurable SLA" },
-        { type: "totality", text: "handles all errors", suggestion: "List specific error types" },
+        {
+          type: "subjective",
+          text: "easy integration",
+          suggestion: "Specify measurable SLA",
+        },
+        {
+          type: "totality",
+          text: "handles all errors",
+          suggestion: "List specific error types",
+        },
       ]);
       expect(result.smellReport).toContain("subjective");
       expect(result.smellReport).toContain("easy integration");

@@ -77,8 +77,8 @@ export interface StatusInput {
 
 export interface ValidationInput {
   passed: boolean;
-  errors: Array<{ code: string; message: string; path: string }>;
-  warnings: Array<{ code: string; message: string; path: string }>;
+  errors: Array<{ code: string; message: string; path?: string }>;
+  warnings: Array<{ code: string; message: string; path?: string }>;
 }
 
 export type DoomLoopInput = {
@@ -127,7 +127,8 @@ const VALIDATION_FIX_SUGGESTIONS: Record<string, string> = {
   NO_TASKS: "Run /adv-prep to generate task graph",
   NO_DELTAS: "Add spec deltas or document why none needed",
   PROPOSAL_TASK_DRIFT: "Add tasks for proposal sections or verify coverage",
-  CROSS_REPO_MISSING_METADATA: "Set target_repo and target_path on cross-repo task",
+  CROSS_REPO_MISSING_METADATA:
+    "Set target_repo and target_path on cross-repo task",
   CLARIFY_MISSING_SUCCESS_CRITERIA: "Define measurable success criteria",
 };
 
@@ -142,10 +143,14 @@ function getFixSuggestion(code: string): string {
 /**
  * Format task readiness output for display.
  */
-export function formatTaskReadyOutput(input: TaskReadyInput): FormattedTaskReady {
+export function formatTaskReadyOutput(
+  input: TaskReadyInput,
+): FormattedTaskReady {
   const readyList =
     input.ready.length > 0
-      ? input.ready.map((t) => `- ${t.id}: ${truncate(t.content, 60)}`).join("\n")
+      ? input.ready
+          .map((t) => `- ${t.id}: ${truncate(t.content, 60)}`)
+          .join("\n")
       : "(no tasks ready)";
 
   const blockedList =
@@ -216,7 +221,9 @@ export function formatStatusOutput(input: StatusInput): FormattedStatus {
 /**
  * Format validation output for display.
  */
-export function formatValidationOutput(input: ValidationInput): FormattedValidation {
+export function formatValidationOutput(
+  input: ValidationInput,
+): FormattedValidation {
   const errorCount = input.errors.length;
   const warningCount = input.warnings.length;
 
@@ -227,14 +234,16 @@ export function formatValidationOutput(input: ValidationInput): FormattedValidat
   let errorTable = "| Code | Path | Fix |\n|------|------|-----|";
   if (errorCount > 0) {
     const rows = input.errors.map(
-      (e) => `| ${e.code} | ${truncate(e.path, 30)} | ${getFixSuggestion(e.code)} |`,
+      (e) =>
+        `| ${e.code} | ${truncate(e.path ?? "(unknown)", 30)} | ${getFixSuggestion(e.code)} |`,
     );
     errorTable += "\n" + rows.join("\n");
   }
 
   const checklistItems: string[] = [];
   if (errorCount > 0) checklistItems.push(`- [ ] Fix ${errorCount} error(s)`);
-  if (warningCount > 0) checklistItems.push(`- [ ] Review ${warningCount} warning(s)`);
+  if (warningCount > 0)
+    checklistItems.push(`- [ ] Review ${warningCount} warning(s)`);
   const checklist =
     checklistItems.length > 0
       ? `## Validation Checklist\n${checklistItems.join("\n")}`
@@ -250,7 +259,9 @@ export function formatValidationOutput(input: ValidationInput): FormattedValidat
 /**
  * Format doom-loop diagnostics from error_recovery data.
  */
-export function formatDoomLoopDiagnostics(input: DoomLoopInput): FormattedDoomLoop {
+export function formatDoomLoopDiagnostics(
+  input: DoomLoopInput,
+): FormattedDoomLoop {
   if (!input) {
     return {
       inDoomLoop: false,
