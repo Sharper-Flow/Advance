@@ -13,6 +13,7 @@ import {
   type ProjectWorkflowState,
   type ProjectWisdomEntry,
 } from "./contracts";
+import { ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES } from "./observability";
 import {
   addChangeWisdom,
   addTaskToChangeState,
@@ -297,12 +298,24 @@ export async function changeWorkflow(
       gateId: import("../types").GateId,
       notes: string | undefined,
       completedBy: string | undefined,
-    ) =>
-      completeGateInChangeState(state, gateId, {
+    ) => {
+      const result = completeGateInChangeState(state, gateId, {
         now: workflowNow(),
         completedBy: completedBy ?? "agent",
         notes,
-      }),
+      });
+      // Update search attributes with the next active gate
+      const gateOrder: import("../types").GateId[] = [
+        "proposal", "discovery", "design", "planning",
+        "execution", "acceptance", "release",
+      ];
+      const currentIdx = gateOrder.indexOf(gateId);
+      const nextGate = gateOrder[currentIdx + 1];
+      wf.upsertSearchAttributes({
+        [ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES.activeGate]: [nextGate ?? "done"],
+      });
+      return result;
+    },
   );
   wf.setHandler(
     reopenFromGateUpdate,
@@ -342,8 +355,13 @@ export async function changeWorkflow(
   );
   wf.setHandler(
     closeChangeUpdate,
-    (closure: import("../types").ChangeClosure) =>
-      closeChangeInChangeState(state, closure),
+    (closure: import("../types").ChangeClosure) => {
+      const result = closeChangeInChangeState(state, closure);
+      wf.upsertSearchAttributes({
+        [ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES.changeStatus]: ["closed"],
+      });
+      return result;
+    },
   );
 
   await wf.condition(() => false);

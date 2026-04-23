@@ -41,6 +41,7 @@ import {
   projectStateQuery,
   recordMigrationEntryUpdate,
 } from "./messages";
+import { buildTemporalSearchAttributes } from "./observability";
 import { changeWorkflow, projectWorkflow } from "./workflows";
 
 interface WorkflowHandleLike {
@@ -54,7 +55,12 @@ interface WorkflowHandleLike {
 interface WorkflowClientLike {
   start: (
     workflow: unknown,
-    options: { workflowId: string; taskQueue: string; args: [unknown] },
+    options: {
+      workflowId: string;
+      taskQueue: string;
+      args: [unknown];
+      searchAttributes?: Record<string, unknown[]>;
+    },
   ) => Promise<WorkflowHandleLike>;
   getHandle: (workflowId: string) => WorkflowHandleLike;
 }
@@ -137,6 +143,12 @@ export async function ensureChangeWorkflowStarted(
       workflowId,
       taskQueue,
       args,
+      searchAttributes: buildTemporalSearchAttributes({
+        projectId: input.projectId,
+        changeId: input.changeId,
+        changeStatus: "draft",
+        activeGate: "proposal",
+      }),
     });
   } catch (error) {
     if (isAlreadyStartedError(error)) {
