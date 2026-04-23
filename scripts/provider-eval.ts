@@ -468,13 +468,28 @@ async function runEvaluation(providerName: string): Promise<void> {
   console.log(`Provider Evaluation: ${config.name} (${config.model_id})`);
   console.log(`${"=".repeat(70)}\n`);
 
-  // Load canonical adv.md
-  const canonicalPath = join(REPO_ROOT, ".opencode/agents/adv.md");
-  if (!existsSync(canonicalPath)) {
-    console.error(`Error: canonical adv.md not found at ${canonicalPath}`);
+  // Load canonical adv.md — try repo-local first, then global provider variant
+  const localCanonical = join(REPO_ROOT, ".opencode/agents/adv.md");
+  const globalHome = process.env.XDG_CONFIG_HOME || join(process.env.HOME || "/tmp", ".config");
+  const globalVariant = join(globalHome, "opencode/agents", `adv-${providerName}.md`);
+  let canonicalPath = "";
+  if (existsSync(localCanonical)) {
+    canonicalPath = localCanonical;
+  } else if (existsSync(globalVariant)) {
+    canonicalPath = globalVariant;
+  } else {
+    console.error(`Error: canonical adv.md not found at ${localCanonical} or ${globalVariant}`);
     process.exit(1);
   }
-  const canonicalContent = readFileSync(canonicalPath, "utf-8");
+  let canonicalContent = readFileSync(canonicalPath, "utf-8");
+  // Strip any existing provider hint from provider variant (for clean baseline)
+  const hintMarker = "<!-- PROVIDER_HINT:";
+  const hintIdx = canonicalContent.indexOf(hintMarker);
+  if (hintIdx !== -1) {
+    canonicalContent = canonicalContent.slice(0, hintIdx).trimEnd() + "\n";
+    console.log(`  Stripped existing provider hint from variant for clean baseline`);
+  }
+  console.log(`  Canonical source: ${canonicalPath}`);
 
   // Load provider hint
   let hintContent: string | null = null;
