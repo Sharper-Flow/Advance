@@ -15,6 +15,7 @@
 
 import { ZodError } from "zod";
 import { formatToolOutput } from "./tool-output";
+import { appendProfileLog } from "./debug-log";
 
 /**
  * Optional enrichment context. All fields are additive — no existing
@@ -222,6 +223,28 @@ export type ContextExtractorSimple<TArgs, TExtra> = (
   extra: TExtra,
 ) => ErrorContext;
 
+function isProfilingEnabled(): boolean {
+  return process.env.ADV_PROFILE === "1";
+}
+
+function recordToolProfile(
+  tool: string,
+  startedAt: number,
+  outcome: "success" | "error",
+  errorClass?: string,
+  context?: ErrorContext,
+): void {
+  appendProfileLog("tool-profile", {
+    tool,
+    outcome,
+    duration_ms: Number((performance.now() - startedAt).toFixed(3)),
+    ...(errorClass ? { errorClass } : {}),
+    ...(context?.workdir ? { workdir: context.workdir } : {}),
+    ...(context?.path ? { path: context.path } : {}),
+    ...(context?.operation ? { operation: context.operation } : {}),
+  });
+}
+
 /**
  * Wraps an execute function to catch all errors and return them as JSON content.
  * Also enforces output budget via formatToolOutput (compact JSON + truncation envelope).
@@ -237,11 +260,32 @@ export function safeExecute<TArgs, TContext>(
   contextExtractor?: ContextExtractor<TArgs>,
 ): (args: TArgs, context: TContext) => Promise<string> {
   return async (args: TArgs, context: TContext): Promise<string> => {
+    const profiling = isProfilingEnabled();
+    const startedAt = profiling ? performance.now() : 0;
     try {
       const result = await fn(args, context);
-      return applyOutputBudget(result);
+      const output = applyOutputBudget(result);
+      if (profiling) {
+        recordToolProfile(
+          toolName,
+          startedAt,
+          "success",
+          undefined,
+          contextExtractor ? contextExtractor(args) : undefined,
+        );
+      }
+      return output;
     } catch (error) {
       const extra = contextExtractor ? contextExtractor(args) : undefined;
+      if (profiling) {
+        recordToolProfile(
+          toolName,
+          startedAt,
+          "error",
+          deriveErrorClass(error),
+          extra,
+        );
+      }
       return formatErrorResponse(error, toolName, args, extra);
     }
   };
@@ -265,9 +309,28 @@ export function safeExecuteSimple<TArgs, TExtra>(
     extra: TExtra,
     extraPath?: unknown,
   ): Promise<string> => {
+    const profiling = isProfilingEnabled();
+    const startedAt = profiling ? performance.now() : 0;
     try {
       const result = await fn(args, extra);
-      return applyOutputBudget(result);
+      const output = applyOutputBudget(result);
+      if (profiling) {
+        const derivedExtra: ErrorContext = {};
+        if (typeof extra === "string") {
+          derivedExtra.workdir = extra;
+        }
+        if (typeof extraPath === "string") {
+          derivedExtra.path = extraPath;
+        }
+        const provided = contextExtractor
+          ? contextExtractor(args, extra)
+          : undefined;
+        recordToolProfile(toolName, startedAt, "success", undefined, {
+          ...derivedExtra,
+          ...(provided ?? {}),
+        });
+      }
+      return output;
     } catch (error) {
       const derivedExtra: ErrorContext = {};
       if (typeof extra === "string") {
@@ -283,6 +346,15 @@ export function safeExecuteSimple<TArgs, TExtra>(
         ...derivedExtra,
         ...(provided ?? {}),
       };
+      if (profiling) {
+        recordToolProfile(
+          toolName,
+          startedAt,
+          "error",
+          deriveErrorClass(error),
+          merged,
+        );
+      }
       return formatErrorResponse(error, toolName, args, merged);
     }
   };

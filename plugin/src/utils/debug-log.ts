@@ -34,13 +34,21 @@ export interface Logger {
  * the environment, which the co-located test file does.
  */
 export const ADV_DEBUG_ENABLED = process.env.ADV_DEBUG === "1";
+export const ADV_PROFILE_ENABLED = process.env.ADV_PROFILE === "1";
 
 const isDebugEnabled = (): boolean => process.env.ADV_DEBUG === "1";
+const isProfileEnabled = (): boolean => process.env.ADV_PROFILE === "1";
 
 const getDebugLogPath = (): string => {
   const debugDir =
     process.env.OPEN_CHAD_CACHE_DIR ?? process.env.TMPDIR ?? tmpdir();
   return join(debugDir, "adv-debug.log");
+};
+
+const getProfileLogPath = (): string => {
+  const debugDir =
+    process.env.OPEN_CHAD_CACHE_DIR ?? process.env.TMPDIR ?? tmpdir();
+  return join(debugDir, "adv-profile.log");
 };
 
 const formatMeta = (meta?: LogMeta): string => {
@@ -111,6 +119,24 @@ export const appendDebugLog = (scope: string, msg: string): void => {
     fs.appendFileSync(
       logPath,
       `${new Date().toISOString()} [${scope}] ${msg}\n`,
+    );
+  } catch {
+    // Best-effort; never crash the caller.
+  }
+};
+
+/**
+ * Append a structured profiling event to the dedicated file sink.
+ * Silent unless `ADV_PROFILE=1`.
+ */
+export const appendProfileLog = (scope: string, meta: LogMeta): void => {
+  if (!isProfileEnabled()) return;
+  try {
+    const logPath = getProfileLogPath();
+    fs.mkdirSync(dirname(logPath), { recursive: true });
+    fs.appendFileSync(
+      logPath,
+      `${new Date().toISOString()} [${scope}] ${JSON.stringify(meta)}\n`,
     );
   } catch {
     // Best-effort; never crash the caller.

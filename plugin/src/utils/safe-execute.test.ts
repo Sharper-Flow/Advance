@@ -2,8 +2,11 @@
  * Tests for safe-execute utility
  */
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, beforeEach, afterEach } from "vitest";
 import { ZodError, z } from "zod";
+import { mkdtempSync, readFileSync, existsSync, rmSync } from "fs";
+import { tmpdir } from "os";
+import { join } from "path";
 import {
   safeExecute,
   safeExecuteSimple,
@@ -16,6 +19,35 @@ import {
 } from "./safe-execute";
 
 describe("safe-execute", () => {
+  let profileDir: string;
+  let originalAdvProfile: string | undefined;
+  let originalCacheDir: string | undefined;
+
+  beforeEach(() => {
+    profileDir = mkdtempSync(join(tmpdir(), "adv-profile-"));
+    originalAdvProfile = process.env.ADV_PROFILE;
+    originalCacheDir = process.env.OPEN_CHAD_CACHE_DIR;
+    process.env.OPEN_CHAD_CACHE_DIR = profileDir;
+  });
+
+  afterEach(() => {
+    if (originalAdvProfile === undefined) {
+      delete process.env.ADV_PROFILE;
+    } else {
+      process.env.ADV_PROFILE = originalAdvProfile;
+    }
+
+    if (originalCacheDir === undefined) {
+      delete process.env.OPEN_CHAD_CACHE_DIR;
+    } else {
+      process.env.OPEN_CHAD_CACHE_DIR = originalCacheDir;
+    }
+
+    rmSync(profileDir, { recursive: true, force: true });
+  });
+
+  const profileLogFile = () => join(profileDir, "adv-profile.log");
+
   describe("formatZodError", () => {
     it("formats a single field error", () => {
       const schema = z.object({ name: z.string() });
@@ -161,6 +193,37 @@ describe("safe-execute", () => {
       // Non-JSON, so falls through to truncateOutput (which passes short strings through)
       expect(result).toBe(banner);
     });
+
+    it("writes timing profile entries on success when ADV_PROFILE=1", async () => {
+      process.env.ADV_PROFILE = "1";
+      const fn = async (args: { id: string }) =>
+        JSON.stringify({ success: true, id: args.id });
+      const wrapped = safeExecute(fn, "profiled_tool");
+
+      await wrapped({ id: "123" }, {} as any);
+
+      expect(existsSync(profileLogFile())).toBe(true);
+      const content = readFileSync(profileLogFile(), "utf-8");
+      expect(content).toContain('"tool":"profiled_tool"');
+      expect(content).toContain('"outcome":"success"');
+      expect(content).toContain('"duration_ms":');
+    });
+
+    it("writes timing profile entries on error when ADV_PROFILE=1", async () => {
+      process.env.ADV_PROFILE = "1";
+      const fn = async (): Promise<string> => {
+        throw new Error("boom");
+      };
+      const wrapped = safeExecute(fn, "failing_tool");
+
+      await wrapped({}, {} as any);
+
+      expect(existsSync(profileLogFile())).toBe(true);
+      const content = readFileSync(profileLogFile(), "utf-8");
+      expect(content).toContain('"tool":"failing_tool"');
+      expect(content).toContain('"outcome":"error"');
+      expect(content).toContain('"errorClass":"Error"');
+    });
   });
 
   describe("safeExecuteSimple", () => {
@@ -181,6 +244,20 @@ describe("safe-execute", () => {
       const parsed = JSON.parse(result);
       expect(parsed.error).toBe("File not found");
       expect(parsed.tool).toBe("test_tool");
+    });
+
+    it("writes timing profile entries for simple wrappers when ADV_PROFILE=1", async () => {
+      process.env.ADV_PROFILE = "1";
+      const fn = async (args: { path: string }, dir: string) =>
+        JSON.stringify({ path: args.path, dir });
+      const wrapped = safeExecuteSimple(fn, "simple_profiled_tool");
+
+      await wrapped({ path: "/test" }, "/home/user");
+
+      expect(existsSync(profileLogFile())).toBe(true);
+      const content = readFileSync(profileLogFile(), "utf-8");
+      expect(content).toContain('"tool":"simple_profiled_tool"');
+      expect(content).toContain('"outcome":"success"');
     });
   });
 
