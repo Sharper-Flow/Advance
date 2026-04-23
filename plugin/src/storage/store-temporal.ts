@@ -33,7 +33,11 @@ import { withTemporalRetry } from "../temporal/retry-wrapper";
 import { listChangeDirs } from "./json";
 import { buildChangeRecency } from "./store-types";
 import type { ChangeStatus, ProjectStatus } from "../types";
-import { ChangeSummaryMemo, type ChangeSummary } from "./store-temporal-memo";
+import {
+  ChangeSummaryMemo,
+  asGateStatus,
+  type ChangeSummary,
+} from "./store-temporal-memo";
 
 // Collect the error message and every cause-chain message so we can match
 // against the *underlying* gRPC / Temporal error even when it is wrapped
@@ -209,7 +213,36 @@ export function createTemporalStoreBackend(
     }
   };
 
+  /**
+   * List all resolved changes. Uses the Memo for summary surfaces
+   * (status, changes.list). Falls back to direct O(N) query only when
+   * the Memo is empty (cold start) or individual entries are missing.
+   */
   const listResolvedChanges = async (): Promise<Change[]> => {
+    const memoAll = memo.getAll();
+    if (memoAll.length > 0) {
+      // Memo has data — convert summaries to the Change shape expected by callers.
+      // Critical surfaces (get, task ops, gates) still use direct queries.
+      return memoAll.map(
+        (summary): Change => ({
+          id: summary.id,
+          title: summary.title,
+          status: summary.status,
+          created_at: summary.lastActivityAt,
+          tasks: [],
+          deltas: {},
+          wisdom: [],
+          gates: Object.fromEntries(
+            Object.entries(summary.gateProgress).map(([gate, status]) => [
+              gate,
+              { status: status as "pending" | "done" | "skipped" | "legacy" },
+            ]),
+          ) as Change["gates"],
+        }),
+      );
+    }
+
+    // Cold start — fall back to O(N) fan-out to populate the Memo
     const changeIds = await listChangeDirs(legacy.paths.changes);
     const loaded = await Promise.all(
       changeIds.map(async (changeId) => ({

@@ -18,14 +18,29 @@
 
 import type { ChangeStatus } from "../types";
 
+export type GateStatusValue = "pending" | "done" | "skipped" | "legacy";
+
+const VALID_GATE_STATUS = new Set<string>([
+  "pending",
+  "done",
+  "skipped",
+  "legacy",
+]);
+
+/** Coerce an unknown gate status string to the typed union, defaulting to "pending". */
+export function asGateStatus(value: string | undefined): GateStatusValue {
+  if (value && VALID_GATE_STATUS.has(value)) return value as GateStatusValue;
+  return "pending";
+}
+
 export interface GateProgress {
-  proposal: string;
-  discovery: string;
-  design: string;
-  planning: string;
-  execution: string;
-  acceptance: string;
-  release: string;
+  proposal: GateStatusValue;
+  discovery: GateStatusValue;
+  design: GateStatusValue;
+  planning: GateStatusValue;
+  execution: GateStatusValue;
+  acceptance: GateStatusValue;
+  release: GateStatusValue;
 }
 
 export interface ChangeSummary {
