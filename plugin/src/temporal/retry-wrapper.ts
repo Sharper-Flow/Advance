@@ -3,11 +3,14 @@ export type TemporalErrorClass = "transient" | "fallback" | "fatal";
 interface TemporalRetryTelemetry {
   lastOpAt: string | null;
   lastError: string | null;
+  /** Number of attempts in the last withTemporalRetry call. Additive field — existing readers are unaffected. */
+  lastAttempts: number | null;
 }
 
 const temporalRetryTelemetry: TemporalRetryTelemetry = {
   lastOpAt: null,
   lastError: null,
+  lastAttempts: null,
 };
 
 export function getTemporalRetryTelemetry(): TemporalRetryTelemetry {
@@ -17,16 +20,19 @@ export function getTemporalRetryTelemetry(): TemporalRetryTelemetry {
 export function resetTemporalRetryTelemetry(): void {
   temporalRetryTelemetry.lastOpAt = null;
   temporalRetryTelemetry.lastError = null;
+  temporalRetryTelemetry.lastAttempts = null;
 }
 
-function recordTemporalSuccess(): void {
+function recordTemporalSuccess(attempts: number): void {
   temporalRetryTelemetry.lastOpAt = new Date().toISOString();
   temporalRetryTelemetry.lastError = null;
+  temporalRetryTelemetry.lastAttempts = attempts;
 }
 
-function recordTemporalFailure(error: unknown): void {
+function recordTemporalFailure(error: unknown, attempts: number): void {
   temporalRetryTelemetry.lastError =
     error instanceof Error ? error.message : String(error ?? "");
+  temporalRetryTelemetry.lastAttempts = attempts;
 }
 
 /**
@@ -79,8 +85,32 @@ export function classifyTemporalError(error: unknown): TemporalErrorClass {
 
 interface RetryOptions {
   maxAttempts?: number;
+  /** @deprecated Use initialDelayMs / backoffCoefficient / maxDelayMs instead. */
   backoffMs?: readonly number[];
+  /** Base delay for the first retry (default 250ms). */
+  initialDelayMs?: number;
+  /** Exponential multiplier between retries (default 2). */
+  backoffCoefficient?: number;
+  /** Upper bound for the delay before jitter (default 2000ms). */
+  maxDelayMs?: number;
   onTransientFailure?: () => Promise<void>;
+}
+
+/**
+ * Compute the full-jitter delay for a given attempt.
+ * delay = random(0, min(maxDelayMs, initialDelayMs * coefficient^(attempt-1)))
+ */
+function computeDelay(
+  attempt: number,
+  initialDelayMs: number,
+  coefficient: number,
+  maxDelayMs: number,
+): number {
+  const base = Math.min(
+    maxDelayMs,
+    initialDelayMs * coefficient ** (attempt - 1),
+  );
+  return Math.random() * base;
 }
 
 export async function withTemporalRetry<T>(
@@ -88,24 +118,34 @@ export async function withTemporalRetry<T>(
   options: RetryOptions = {},
 ): Promise<T> {
   const maxAttempts = options.maxAttempts ?? 3;
+
+  // Legacy path: if caller explicitly passes backoffMs, use the fixed ladder
+  const useLegacyBackoff = options.backoffMs !== undefined;
   const backoffMs = options.backoffMs ?? [250, 1000, 2000];
+  const initialDelayMs = options.initialDelayMs ?? 250;
+  const coefficient = options.backoffCoefficient ?? 2;
+  const maxDelayMs = options.maxDelayMs ?? 2000;
 
   let attempt = 0;
   while (true) {
     try {
       const result = await op();
-      recordTemporalSuccess();
+      recordTemporalSuccess(attempt + 1);
       return result;
     } catch (error) {
-      recordTemporalFailure(error);
       attempt += 1;
+      recordTemporalFailure(error, attempt);
       const cls = classifyTemporalError(error);
       if (cls !== "transient" || attempt >= maxAttempts) {
         throw error;
       }
 
       await options.onTransientFailure?.();
-      const delay = backoffMs[Math.min(attempt - 1, backoffMs.length - 1)] ?? 0;
+
+      const delay = useLegacyBackoff
+        ? (backoffMs[Math.min(attempt - 1, backoffMs.length - 1)] ?? 0)
+        : computeDelay(attempt, initialDelayMs, coefficient, maxDelayMs);
+
       if (delay > 0) {
         await new Promise((resolve) => setTimeout(resolve, delay));
       }
