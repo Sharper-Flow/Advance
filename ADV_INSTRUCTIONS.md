@@ -83,7 +83,6 @@ Between checkpoints, only system-level interrupts cause pauses:
 - Contract-compromise risk identified during design
 - Design validator `CONFLICT` verdict
 - Prep gate machine enforcement (`userApproved` required)
-- Worktree decision (3+ files, ask user)
 
 No other pauses or "shall I continue?" prompts are permitted.
 
@@ -552,15 +551,18 @@ Location: `$XDG_DATA_HOME/opencode/plugins/advance/{project-id}/` (project-id = 
 └── handoff.json # Session handoff (multi-session only)
 ```
 
-### Worktree Decision
+### Worktree Policy
 
-- 3+ files OR db schema/auth/shared types/breaking API/structural refactor → ask user → create → continue inline
-- 1-2 files AND trivial, OR docs/config → proceed in-place
+ADV always isolates mutating work in per-change worktrees. There are no exemptions or conditional skip paths.
+
+- Every change must run in a worktree — create or reuse before Phase 1
+- When worktree tools are unavailable → hard block with error. Do not proceed in-place
+- Existing worktree for same change → auto-reuse (see Worktree Reuse below)
 
 ### Worktree Reuse
 
 Before creating: `git worktree list --porcelain` → find `change/{change-id}` branch.
-- Path exists → offer reuse (switch `workdir`)
+- Path exists → auto-reuse (switch `workdir`)
 - Path missing → `git worktree prune` → proceed fresh
 
 ### Spec Divergence
