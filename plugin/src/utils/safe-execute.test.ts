@@ -454,4 +454,26 @@ describe("Temporal-aware error hints", () => {
     const parsed = JSON.parse(raw);
     expect(parsed.hint).toMatch(/runtime|worker|reach|start/i);
   });
+
+  it("inspects cause chain for wrapped Temporal errors", () => {
+    const inner = new Error("NonDeterministicWorkflowError: code changed");
+    const outer = new Error("Workflow execution failed");
+    (outer as Error & { cause: unknown }).cause = inner;
+
+    const raw = formatErrorResponse(outer, "adv_change_update");
+    const parsed = JSON.parse(raw);
+    expect(parsed.hint).toMatch(/determin|replay|patch|version/i);
+  });
+
+  it("inspects cause chain for wrapped Temporal connectivity errors", () => {
+    const inner = new Error(
+      "Temporal runtime at 127.0.0.1:7233 did not become reachable within 5000ms",
+    );
+    const outer = new Error("Worker startup failed");
+    (outer as Error & { cause: unknown }).cause = inner;
+
+    const raw = formatErrorResponse(outer, "adv_status");
+    const parsed = JSON.parse(raw);
+    expect(parsed.hint).toMatch(/runtime|worker|reach|start/i);
+  });
 });

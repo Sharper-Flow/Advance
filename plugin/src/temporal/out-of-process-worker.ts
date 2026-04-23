@@ -1,4 +1,5 @@
 import { spawn, type ChildProcess } from "node:child_process";
+import { existsSync } from "node:fs";
 import { createLogger, appendDebugLog } from "../utils/debug-log";
 import {
   buildTemporalWorkerProcessSpec,
@@ -38,6 +39,21 @@ const debugLog = (msg: string): void =>
 const RESTART_BACKOFF_MS: readonly number[] = [1_000, 3_000, 10_000];
 const MAX_RESTARTS = RESTART_BACKOFF_MS.length;
 export const OOP_SHUTDOWN_GRACE_MS = 5_000;
+
+const LOG_MAX_LENGTH = 2_000;
+
+function sanitizeLogChunk(chunk: Buffer): string {
+  let text = chunk.toString("utf-8").trimEnd();
+  // Strip control characters except tab (\x09) and newline (\x0a)
+  // Build pattern from char codes to avoid no-control-regex lint error
+  const controlChars = new RegExp(`[\x00-\x08\x0b-\x1f\x7f]`, "g");
+  text = text.replace(controlChars, "");
+  // Truncate huge chunks so a single log line can't blow up the sink
+  if (text.length > LOG_MAX_LENGTH) {
+    text = text.slice(0, LOG_MAX_LENGTH) + " …[truncated]";
+  }
+  return text;
+}
 
 export interface OutOfProcessWorkerInput {
   address: string;
@@ -93,6 +109,12 @@ export async function createOutOfProcessWorker(
   }
   const nodePath = nodeResolution.path;
 
+  if (!existsSync(input.workerScript)) {
+    throw new Error(
+      `Cannot spawn out-of-process Temporal worker: worker script not found at "${input.workerScript}". Ensure the plugin is built (pnpm run build) or the path is correct.`,
+    );
+  }
+
   const states = new Map<string, QueueState>();
   let shuttingDown = false;
 
@@ -118,14 +140,10 @@ export async function createOutOfProcessWorker(
     state.child = child;
 
     child.stdout?.on("data", (chunk: Buffer) => {
-      logger.debug(
-        `[worker:${state.queue}:stdout] ${chunk.toString().trimEnd()}`,
-      );
+      logger.debug(`[worker:${state.queue}:stdout] ${sanitizeLogChunk(chunk)}`);
     });
     child.stderr?.on("data", (chunk: Buffer) => {
-      logger.debug(
-        `[worker:${state.queue}:stderr] ${chunk.toString().trimEnd()}`,
-      );
+      logger.debug(`[worker:${state.queue}:stderr] ${sanitizeLogChunk(chunk)}`);
     });
 
     child.once(

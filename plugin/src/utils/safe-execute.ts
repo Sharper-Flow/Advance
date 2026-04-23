@@ -136,7 +136,7 @@ export function formatErrorResponse(
       error: error.message,
       tool: toolName,
       hint:
-        formatTemporalErrorHint(error.message) ??
+        formatTemporalErrorHint(error) ??
         "An unexpected error occurred. Please check your arguments.",
       ...(args !== undefined && { received_args: args }),
       ...enrichment,
@@ -160,15 +160,23 @@ export function formatErrorResponse(
 
 const DEFAULT_TRUNCATION_LIMIT = 30000;
 
-function formatTemporalErrorHint(message: string): string | undefined {
-  if (/NonDeterministicWorkflowError|non[- ]determin/i.test(message)) {
+function formatTemporalErrorHint(error: unknown): string | undefined {
+  const messages: string[] = [];
+  let current: unknown = error;
+  while (current instanceof Error) {
+    messages.push(current.message);
+    current = current.cause;
+  }
+  const combined = messages.join("\n");
+
+  if (/NonDeterministicWorkflowError|non[- ]determin/i.test(combined)) {
     return "Temporal workflow determinism issue detected. Check replay safety, patch/version workflow code changes, and avoid non-deterministic APIs inside workflows.";
   }
-  const mentionsTemporal = /temporal/i.test(message);
+  const mentionsTemporal = /temporal/i.test(combined);
   if (
     mentionsTemporal &&
     /did not become reachable|runtime|worker|gRPC|ECONNREFUSED|Connection/i.test(
-      message,
+      combined,
     )
   ) {
     return "Temporal runtime/worker connectivity issue. Verify the local Temporal runtime is running, the worker process is started, and the configured address/namespace are reachable.";

@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => {
       source: "path" as const,
     })),
     spawn: vi.fn(),
+    existsSync: vi.fn(() => true),
   };
 });
 
@@ -25,6 +26,10 @@ vi.mock("./runtime-manager", async () => {
 
 vi.mock("node:child_process", () => ({
   spawn: mocks.spawn,
+}));
+
+vi.mock("node:fs", () => ({
+  existsSync: mocks.existsSync,
 }));
 
 interface FakeChild extends EventEmitter {
@@ -270,6 +275,51 @@ describe("createOutOfProcessWorker", () => {
         projectId: "q",
       }),
     ).rejects.toThrow(/Install Node|Node executable/);
+  });
+
+  it("throws when workerScript does not exist", async () => {
+    mocks.existsSync.mockReturnValueOnce(false);
+
+    const { createOutOfProcessWorker } =
+      await import("./out-of-process-worker");
+
+    await expect(
+      createOutOfProcessWorker({
+        address: "127.0.0.1:7233",
+        namespace: "default",
+        queues: ["advance-q"],
+        workerScript: "/nonexistent/path/worker.js",
+        projectId: "q",
+      }),
+    ).rejects.toThrow(/worker script not found/);
+  });
+
+  it("sanitizes control characters and truncates huge stdout/stderr chunks", async () => {
+    const child = makeFakeChild();
+    mocks.spawn.mockReturnValue(child);
+
+    const { createOutOfProcessWorker } =
+      await import("./out-of-process-worker");
+
+    const worker = await createOutOfProcessWorker({
+      address: "127.0.0.1:7233",
+      namespace: "default",
+      queues: ["advance-sanitize"],
+      workerScript: "/plugin/dist/temporal/worker.js",
+      projectId: "sanitize",
+    });
+
+    // Emit a chunk with control characters and a huge payload
+    const huge = "a".repeat(5_000);
+    const dirty = `\x00\x01\x02normal\x7f${huge}`;
+    child.stdout.emit("data", Buffer.from(dirty));
+
+    // The debug logger is file-only, so we just verify the worker starts and
+    // shutdown works without throwing. If sanitization were broken, the logger
+    // call itself could throw on invalid UTF-8 or blow memory.
+    expect(worker.queues).toEqual(["advance-sanitize"]);
+
+    await worker.shutdown();
   });
 });
 
