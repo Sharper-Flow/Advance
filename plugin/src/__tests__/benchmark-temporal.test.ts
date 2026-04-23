@@ -1,10 +1,11 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import {
   checkEnvBypass,
   time,
   computeStats,
   classifyContamination,
   recordRun,
+  validateOutputDir,
   type BenchmarkOp,
   type BenchmarkMode,
   type ContaminationContext,
@@ -112,7 +113,14 @@ describe("benchmark-temporal scaffold (A1)", () => {
   describe("classifyContamination (A2)", () => {
     it("tags clean when no error, server alive, no fallback", () => {
       const ctx: ContaminationContext = {
-        health: { server_alive: true, worker_alive: true, worker_process_alive: true, registered_queues: [], last_op_at: new Date().toISOString(), last_error: null },
+        health: {
+          server_alive: true,
+          worker_alive: true,
+          worker_process_alive: true,
+          registered_queues: [],
+          last_op_at: new Date().toISOString(),
+          last_error: null,
+        },
         retry: { lastOpAt: new Date().toISOString(), lastError: null },
         opError: null,
         fallbackCount: 0,
@@ -132,7 +140,14 @@ describe("benchmark-temporal scaffold (A1)", () => {
 
     it("tags server-unreachable when health says server down", () => {
       const ctx: ContaminationContext = {
-        health: { server_alive: false, worker_alive: false, worker_process_alive: false, registered_queues: [], last_op_at: null, last_error: null },
+        health: {
+          server_alive: false,
+          worker_alive: false,
+          worker_process_alive: false,
+          registered_queues: [],
+          last_op_at: null,
+          last_error: null,
+        },
         retry: null,
         opError: null,
         fallbackCount: 0,
@@ -152,7 +167,14 @@ describe("benchmark-temporal scaffold (A1)", () => {
 
     it("tags retry-exhausted when retry shows error without lastOpAt", () => {
       const ctx: ContaminationContext = {
-        health: { server_alive: true, worker_alive: true, worker_process_alive: true, registered_queues: [], last_op_at: null, last_error: "err" },
+        health: {
+          server_alive: true,
+          worker_alive: true,
+          worker_process_alive: true,
+          registered_queues: [],
+          last_op_at: null,
+          last_error: "err",
+        },
         retry: { lastOpAt: null, lastError: "err" },
         opError: null,
         fallbackCount: 0,
@@ -214,9 +236,15 @@ describe("benchmark-temporal scaffold (A1)", () => {
     };
 
     it("runWarmInteractive returns N samples with correct mode and gap", async () => {
-      const { runWarmInteractive } = await import("../../scripts/benchmark-temporal");
+      const { runWarmInteractive } =
+        await import("../../scripts/benchmark-temporal");
       const start = Date.now();
-      const samples = await runWarmInteractive("adv_status", 3, 50, fakeAdapter);
+      const samples = await runWarmInteractive(
+        "adv_status",
+        3,
+        50,
+        fakeAdapter,
+      );
       const elapsed = Date.now() - start;
 
       expect(samples).toHaveLength(3);
@@ -227,9 +255,14 @@ describe("benchmark-temporal scaffold (A1)", () => {
     });
 
     it("runRepeatedCommand returns N samples back-to-back", async () => {
-      const { runRepeatedCommand } = await import("../../scripts/benchmark-temporal");
+      const { runRepeatedCommand } =
+        await import("../../scripts/benchmark-temporal");
       const start = Date.now();
-      const samples = await runRepeatedCommand("adv_change_list", 5, fakeAdapter);
+      const samples = await runRepeatedCommand(
+        "adv_change_list",
+        5,
+        fakeAdapter,
+      );
       const elapsed = Date.now() - start;
 
       expect(samples).toHaveLength(5);
@@ -275,7 +308,8 @@ describe("benchmark-temporal scaffold (A1)", () => {
     });
 
     it("createBoundOpAdapter returns a callable adapter", async () => {
-      const { createBoundOpAdapter } = await import("../../scripts/benchmark-temporal");
+      const { createBoundOpAdapter } =
+        await import("../../scripts/benchmark-temporal");
       const adapter = createBoundOpAdapter("adv_status", "/tmp/adv-bench-test");
       expect(typeof adapter).toBe("function");
       // We don't actually invoke it here because it would need a real store;
@@ -285,13 +319,19 @@ describe("benchmark-temporal scaffold (A1)", () => {
 
   describe("promote-pipeline segmented adapter (B2)", () => {
     it("runPromotePipeline returns both segment timings", async () => {
-      const { runPromotePipeline } = await import("../../scripts/benchmark-temporal");
+      const { runPromotePipeline } =
+        await import("../../scripts/benchmark-temporal");
 
       // Fake store with minimal wisdom.add implementation
       const fakeStore = {
         paths: { root: "/tmp", wisdom: "/tmp/wisdom.jsonl" },
         wisdom: {
-          add: async (_changeId: string, type: string, content: string, _sourceTask?: string) => ({
+          add: async (
+            _changeId: string,
+            type: string,
+            content: string,
+            _sourceTask?: string,
+          ) => ({
             id: "w1",
             type,
             content,
@@ -301,7 +341,12 @@ describe("benchmark-temporal scaffold (A1)", () => {
         close: () => {},
       } as unknown as import("../../src/storage/store-types").Store;
 
-      const result = await runPromotePipeline(fakeStore, "test-change", "pattern", "test content");
+      const result = await runPromotePipeline(
+        fakeStore,
+        "test-change",
+        "pattern",
+        "test content",
+      );
 
       expect(result).toHaveProperty("entry");
       expect(result).toHaveProperty("timings");
@@ -310,12 +355,14 @@ describe("benchmark-temporal scaffold (A1)", () => {
       expect(result.timings.end_to_end_ns).toBeGreaterThan(0);
       // end_to_end should be >= sum of segments (it IS the sum)
       expect(result.timings.end_to_end_ns).toBe(
-        result.timings.seg1_change_level_ns + result.timings.seg2_project_level_ns
+        result.timings.seg1_change_level_ns +
+          result.timings.seg2_project_level_ns,
       );
     });
 
     it("runPromotePipeline handles missing Temporal gracefully", async () => {
-      const { runPromotePipeline } = await import("../../scripts/benchmark-temporal");
+      const { runPromotePipeline } =
+        await import("../../scripts/benchmark-temporal");
 
       const fakeStore = {
         paths: { root: "/tmp", wisdom: "/tmp/wisdom.jsonl" },
@@ -325,7 +372,12 @@ describe("benchmark-temporal scaffold (A1)", () => {
         close: () => {},
       } as unknown as import("../../src/storage/store-types").Store;
 
-      const result = await runPromotePipeline(fakeStore, "test-change", "pattern", "test");
+      const result = await runPromotePipeline(
+        fakeStore,
+        "test-change",
+        "pattern",
+        "test",
+      );
 
       // Should still return timings even if project-level pipeline fails
       expect(result.timings.seg1_change_level_ns).toBeGreaterThan(0);
@@ -335,7 +387,8 @@ describe("benchmark-temporal scaffold (A1)", () => {
 
   describe("fixture generator (B3)", () => {
     it("creates the expected directory structure", async () => {
-      const { createBenchmarkFixture } = await import("../../scripts/benchmark-temporal");
+      const { createBenchmarkFixture } =
+        await import("../../scripts/benchmark-temporal");
       const fs = await import("node:fs/promises");
       const path = await import("node:path");
       const os = await import("node:os");
@@ -360,12 +413,18 @@ describe("benchmark-temporal scaffold (A1)", () => {
           const stat = await fs.stat(changeDir);
           expect(stat.isDirectory()).toBe(true);
 
-          const changeJson = await fs.readFile(path.join(changeDir, "change.json"), "utf-8");
+          const changeJson = await fs.readFile(
+            path.join(changeDir, "change.json"),
+            "utf-8",
+          );
           const parsed = JSON.parse(changeJson);
           expect(parsed.tasks).toHaveLength(2);
           expect(parsed.wisdom).toHaveLength(1);
 
-          const proposalMd = await fs.readFile(path.join(changeDir, "proposal.md"), "utf-8");
+          const proposalMd = await fs.readFile(
+            path.join(changeDir, "proposal.md"),
+            "utf-8",
+          );
           expect(proposalMd).toContain("Benchmark Proposal");
         }
       } finally {
@@ -374,7 +433,8 @@ describe("benchmark-temporal scaffold (A1)", () => {
     });
 
     it("defaults to stress shape (50 changes × 30 tasks)", async () => {
-      const { createBenchmarkFixture } = await import("../../scripts/benchmark-temporal");
+      const { createBenchmarkFixture } =
+        await import("../../scripts/benchmark-temporal");
       const fs = await import("node:fs/promises");
       const path = await import("node:path");
       const os = await import("node:os");

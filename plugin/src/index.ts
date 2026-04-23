@@ -52,6 +52,38 @@ function parseToolOutput<T>(rawOutput: string): T | null {
   return null;
 }
 
+const LONG_RUNNING_TOOLS = new Set(["adv_run_test", "adv_task_evidence"]);
+
+export function isLongRunningTool(toolName: string): boolean {
+  return LONG_RUNNING_TOOLS.has(toolName);
+}
+
+export function extractCreatedChangeId(rawOutput: string): string | null {
+  const result = parseToolOutput<{
+    changeId?: string;
+    data?: { changeId?: string };
+  }>(rawOutput);
+  const changeId = result?.changeId ?? result?.data?.changeId;
+  return typeof changeId === "string" ? changeId : null;
+}
+
+export function extractCompletedTask(
+  rawOutput: string,
+): { id: string; title: string } | null {
+  const result = parseToolOutput<{
+    success?: boolean;
+    task?: { id?: string; title?: string; status?: string };
+  }>(rawOutput);
+  if (!result?.success || result.task?.status !== "done") return null;
+  if (
+    typeof result.task.id !== "string" ||
+    typeof result.task.title !== "string"
+  ) {
+    return null;
+  }
+  return { id: result.task.id, title: result.task.title };
+}
+
 const PROVIDER_BEHAVIOR_HINTS: Readonly<Record<string, string>> = {
   openai:
     "[ADV:PROVIDER_HINT] Provider adaptation: prefer explicit numbered steps, use structured formats (tables, numbered lists) for multi-part output, and batch independent tool calls in a single response. Keep user-facing prose terse and direct — drop fluff and pleasantries while preserving structured outputs, safety text, and quoted errors verbatim.",
@@ -102,8 +134,6 @@ const resolveStatus = (s: PluginState): StatusMarker => {
   if (s.sessionIdle) return "ATTN";
   return "WORK";
 };
-
-const LONG_TOOLS = new Set(["adv_run_test", "adv_task_evidence"]);
 
 const debugLog = (msg: string): void => appendDebugLog("index", msg);
 const hooksLogger = createLogger("hooks");
@@ -185,6 +215,35 @@ export const AdvancePlugin: Plugin = async ({
   const setFlags = (updates: Partial<StatusFlags>) => {
     Object.assign(state, updates);
     setStatus(resolveStatus(state));
+  };
+
+  const handleLongRunningToolStart = (toolName: string) => {
+    if (!isLongRunningTool(toolName)) return;
+    setFlags({
+      activeLongTools: state.activeLongTools + 1,
+      sessionIdle: false,
+    });
+  };
+
+  const handleLongRunningToolEnd = (toolName: string) => {
+    if (!isLongRunningTool(toolName)) return;
+    setFlags({
+      activeLongTools: Math.max(0, state.activeLongTools - 1),
+    });
+  };
+
+  const recordCreatedChange = (rawOutput: string) => {
+    const newChangeId = extractCreatedChangeId(rawOutput);
+    if (!newChangeId) return;
+    state.activeChange.id = newChangeId;
+    setActiveChange(newChangeId);
+    debugLog(`adv_change_create: set activeChange to ${newChangeId}`);
+  };
+
+  const recordCompletedTask = (rawOutput: string) => {
+    const completedTask = extractCompletedTask(rawOutput);
+    if (!completedTask) return;
+    state.lastCompletedTask = completedTask;
   };
 
   // Main session ID — used to distinguish main-agent message.updated events
@@ -323,13 +382,7 @@ export const AdvancePlugin: Plugin = async ({
           setFlags({ permissionPending: true, sessionIdle: false });
         }
 
-        // Long-running tools opt into TOOLING status (yellow tab)
-        if (LONG_TOOLS.has(input.tool)) {
-          setFlags({
-            activeLongTools: state.activeLongTools + 1,
-            sessionIdle: false,
-          });
-        }
+        handleLongRunningToolStart(input.tool);
       } catch (e) {
         debugLog(`tool.execute.before error: ${e}`);
       }
@@ -343,16 +396,7 @@ export const AdvancePlugin: Plugin = async ({
         // Track new change creation (changeId only in output, not input args)
         if (input.tool === "adv_change_create" && output.output) {
           try {
-            const result = parseToolOutput<{
-              changeId?: string;
-              data?: { changeId?: string };
-            }>(output.output);
-            const newChangeId = result?.changeId ?? result?.data?.changeId;
-            if (newChangeId && typeof newChangeId === "string") {
-              state.activeChange.id = newChangeId;
-              setActiveChange(newChangeId);
-              debugLog(`adv_change_create: set activeChange to ${newChangeId}`);
-            }
+            recordCreatedChange(output.output);
           } catch (err) {
             // Outer parse error — unexpected if banner format changes
             hooksLogger.warn(
@@ -364,13 +408,7 @@ export const AdvancePlugin: Plugin = async ({
         // Track task status changes for wisdom prompt
         if (input.tool === "adv_task_update" && output.output) {
           try {
-            const result = JSON.parse(output.output);
-            if (result.success && result.task?.status === "done") {
-              state.lastCompletedTask = {
-                id: result.task.id,
-                title: result.task.title,
-              };
-            }
+            recordCompletedTask(output.output);
           } catch {
             // ignore parse errors
           }
@@ -388,12 +426,7 @@ export const AdvancePlugin: Plugin = async ({
           setFlags({ permissionPending: false });
         }
 
-        // Long-running tools: restore status after completion
-        if (LONG_TOOLS.has(input.tool)) {
-          setFlags({
-            activeLongTools: Math.max(0, state.activeLongTools - 1),
-          });
-        }
+        handleLongRunningToolEnd(input.tool);
       } catch (e) {
         debugLog(`tool.execute.after error: ${e}`);
       }

@@ -36,11 +36,7 @@ import { loadProposalWithFallback, fileExists } from "../storage/json";
 import { archiveChange } from "../archive";
 import { wrapWithBanner } from "../utils/banner";
 import { formatToolOutput, paginate } from "../utils/tool-output";
-import {
-  countSuccessCriteria,
-  formatContextSnapshot,
-  type ContextSnapshotInput,
-} from "../utils/context-snapshot";
+import { buildChangeContextSnapshot } from "../utils/context-snapshot";
 import { resolveChangeSelection } from "../storage/change-selection";
 import { BulkCloseSelectorSchema } from "../types";
 
@@ -76,20 +72,6 @@ function resolveClarifyFindings(
   }
 
   return updated;
-}
-
-function summarizeTasks(
-  tasks: Array<{ status: string; id: string; title: string }>,
-) {
-  const taskCounts = {
-    done: tasks.filter((t) => t.status === "done").length,
-    in_progress: tasks.filter((t) => t.status === "in_progress").length,
-    pending: tasks.filter((t) => t.status === "pending").length,
-    cancelled: tasks.filter((t) => t.status === "cancelled").length,
-  };
-  const inProgressTask = tasks.find((t) => t.status === "in_progress");
-
-  return { taskCounts, inProgressTask };
 }
 
 function isSyntheticValidationDraftSummary(summary: string): boolean {
@@ -292,31 +274,16 @@ export const changeTools = {
 
       // Build context snapshot for context agreement
       const gates = change.gates ?? createDefaultGates();
-      const { taskCounts, inProgressTask } = summarizeTasks(change.tasks);
-      const snapshotInput: ContextSnapshotInput = {
-        changeId: change.id,
-        title: change.title,
-        successCriteriaCount: countSuccessCriteria(proposalText),
-        gates: gates ?? undefined,
-        taskCounts,
-        workdir: store.paths.root,
-        currentTask: inProgressTask
-          ? { id: inProgressTask.id, title: inProgressTask.title }
-          : undefined,
-        wisdomCount: change.wisdom?.length ?? 0,
-        wisdomByType: change.wisdom
-          ? change.wisdom.reduce<Record<string, number>>((acc, w) => {
-              acc[w.type] = (acc[w.type] || 0) + 1;
-              return acc;
-            }, {})
-          : undefined,
-      };
-
       const output: Record<string, unknown> = {
         ...change,
         tasks: paged.items,
         _taskPagination: paged.pagination,
-        _contextSnapshot: formatContextSnapshot(snapshotInput),
+        _contextSnapshot: buildChangeContextSnapshot({
+          change,
+          proposalText,
+          gates: gates ?? undefined,
+          workdir: store.paths.root,
+        }),
       };
 
       // Check for problem-statement.md artifact

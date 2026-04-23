@@ -74,6 +74,10 @@ async function main() {
   const allSamples: BenchmarkSample[] = [];
   const records: BenchmarkRecord[] = [];
 
+  // Use generated fixture IDs instead of hardcoded ones
+  const fixtureChangeId = fixture.changeIds[0] ?? "bench-change-000";
+  const fixtureTaskId = `tk-bench-0-0`;
+
   // Main benchmark matrix
   for (const op of OPS) {
     for (const mode of MODES) {
@@ -81,8 +85,8 @@ async function main() {
       console.error(`[BENCH-EXEC] ${mode} / ${op} (n=${n})`);
 
       const adapter = createBoundOpAdapter(op, fixtureRoot, {
-        changeId: "investigateTemporalPerformance",
-        taskId: "tk-tRAmTAZZ",
+        changeId: fixtureChangeId,
+        taskId: fixtureTaskId,
       });
 
       let samples: BenchmarkSample[];

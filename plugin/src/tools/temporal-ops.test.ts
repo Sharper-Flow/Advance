@@ -101,11 +101,41 @@ vi.mock("../temporal/migration", async () => {
   };
 });
 
-import { temporalOpsTools } from "./temporal-ops";
+import {
+  asProjectWorkflowHandle,
+  asWorkflowClientSurface,
+  temporalOpsTools,
+} from "./temporal-ops";
 
 describe("temporal operator tools", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it("asProjectWorkflowHandle preserves query and terminate methods", async () => {
+    const handle = {
+      terminate: vi.fn(async () => {}),
+      query: vi.fn(async () => []),
+    };
+
+    const coerced = asProjectWorkflowHandle(handle);
+
+    await coerced.terminate("test");
+    await coerced.query("adv.project.agenda");
+    expect(handle.terminate).toHaveBeenCalledWith("test");
+    expect(handle.query).toHaveBeenCalledWith("adv.project.agenda");
+  });
+
+  it("asWorkflowClientSurface exposes workflow client shape", () => {
+    const bundleClient = {
+      workflow: {
+        getHandle: vi.fn(),
+      },
+    };
+
+    const coerced = asWorkflowClientSurface(bundleClient);
+
+    expect(coerced.workflow).toBe(bundleClient.workflow);
   });
 
   it("adv_temporal_worker_restart invokes restartCurrentProjectTemporalWorker and returns queues", async () => {

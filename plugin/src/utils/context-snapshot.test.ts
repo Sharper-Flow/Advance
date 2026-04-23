@@ -7,6 +7,7 @@
 
 import { describe, test, expect } from "vitest";
 import {
+  buildChangeContextSnapshot,
   formatContextSnapshot,
   formatCrossRepoSwitch,
   type ContextSnapshotInput,
@@ -189,5 +190,54 @@ describe("formatCrossRepoSwitch", () => {
   test("uses box-drawing characters", () => {
     const output = formatCrossRepoSwitch(baseSwitch);
     expect(output).toMatch(/[╔╗╚╝║═]/);
+  });
+});
+
+describe("buildChangeContextSnapshot", () => {
+  test("builds a formatted snapshot from change data", () => {
+    const output = buildChangeContextSnapshot({
+      change: {
+        id: "fixSlopScanFindings",
+        title: "fix slop scan findings",
+        tasks: [
+          { id: "tk-1", title: "Done task", status: "done" },
+          { id: "tk-2", title: "Active task", status: "in_progress" },
+          { id: "tk-3", title: "Pending task", status: "pending" },
+        ],
+      },
+      proposalText: "## Success Criteria\n- One\n- Two\n",
+      gates: {
+        proposal: { status: "done" },
+        discovery: { status: "done" },
+        design: { status: "pending" },
+      },
+      workdir: "/tmp/worktree",
+    });
+
+    expect(output).toContain("fixSlopScanFindings");
+    expect(output).toContain("Success: 2 criteria");
+    expect(output).toContain("1 done");
+    expect(output).toContain("1 active");
+    expect(output).toContain("1 pending");
+    expect(output).toContain("Current: tk-2");
+  });
+
+  test("includes wisdom summary when present", () => {
+    const output = buildChangeContextSnapshot({
+      change: {
+        id: "fixSlopScanFindings",
+        title: "fix slop scan findings",
+        tasks: [{ id: "tk-1", title: "Done task", status: "done" }],
+        wisdom: [{ type: "pattern" }, { type: "gotcha" }, { type: "pattern" }],
+      },
+      proposalText: "## Success Criteria\n- One\n",
+      gates: {
+        proposal: { status: "done" },
+      },
+      workdir: "/tmp/worktree",
+    });
+
+    expect(output).toContain("Wisdom: 3 entries");
+    expect(output).toContain("2 pattern");
   });
 });

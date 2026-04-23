@@ -37,6 +37,23 @@ export interface ContextSnapshotInput {
   wisdomByType?: Record<string, number>;
 }
 
+type SnapshotTaskLike = {
+  id: string;
+  title: string;
+  status: string;
+};
+
+type SnapshotWisdomLike = {
+  type: string;
+};
+
+type SnapshotChangeLike = {
+  id: string;
+  title: string;
+  tasks: SnapshotTaskLike[];
+  wisdom?: SnapshotWisdomLike[];
+};
+
 export function countSuccessCriteria(
   proposalText?: string,
 ): number | undefined {
@@ -53,6 +70,70 @@ export function countSuccessCriteria(
     .split("\n")
     .map((line) => line.trim())
     .filter((line) => line.startsWith("- ")).length;
+}
+
+export function summarizeTasks(tasks: SnapshotTaskLike[]): {
+  taskCounts: ContextSnapshotInput["taskCounts"];
+  currentTask?: { id: string; title: string };
+} {
+  const taskCounts = {
+    done: tasks.filter((t) => t.status === "done").length,
+    in_progress: tasks.filter((t) => t.status === "in_progress").length,
+    pending: tasks.filter((t) => t.status === "pending").length,
+    cancelled: tasks.filter((t) => t.status === "cancelled").length,
+  };
+  const inProgressTask = tasks.find((t) => t.status === "in_progress");
+
+  return {
+    taskCounts,
+    currentTask: inProgressTask
+      ? { id: inProgressTask.id, title: inProgressTask.title }
+      : undefined,
+  };
+}
+
+function summarizeWisdom(wisdom?: SnapshotWisdomLike[]): {
+  wisdomCount: number;
+  wisdomByType?: Record<string, number>;
+} {
+  if (!wisdom || wisdom.length === 0) {
+    return { wisdomCount: 0, wisdomByType: undefined };
+  }
+
+  return {
+    wisdomCount: wisdom.length,
+    wisdomByType: wisdom.reduce<Record<string, number>>((acc, entry) => {
+      acc[entry.type] = (acc[entry.type] || 0) + 1;
+      return acc;
+    }, {}),
+  };
+}
+
+export function buildChangeContextSnapshot({
+  change,
+  proposalText,
+  gates,
+  workdir,
+}: {
+  change: SnapshotChangeLike;
+  proposalText?: string;
+  gates?: Record<string, GateInfo>;
+  workdir?: string;
+}): string {
+  const { taskCounts, currentTask } = summarizeTasks(change.tasks);
+  const { wisdomCount, wisdomByType } = summarizeWisdom(change.wisdom);
+
+  return formatContextSnapshot({
+    changeId: change.id,
+    title: change.title,
+    successCriteriaCount: countSuccessCriteria(proposalText),
+    gates,
+    taskCounts,
+    workdir,
+    currentTask,
+    wisdomCount,
+    wisdomByType,
+  });
 }
 
 export interface CrossRepoSwitchInput {

@@ -277,14 +277,26 @@ export async function runColdStart(
       });
     } catch {
       // Fallback: measure in-process if child output is malformed
-      const { duration_ns } = await time(op, () => adapter(op));
+      let duration_ns = 0;
+      let opError: unknown = null;
+      try {
+        const timed = await time(op, () => adapter(op));
+        duration_ns = timed.duration_ns;
+      } catch (err) {
+        opError = err;
+      }
       samples.push({
         op,
         mode: "cold-start",
         run_id: runId,
         sample_index: i,
         duration_ns,
-        contamination: "clean",
+        contamination: classifyContamination({
+          health: null,
+          retry: null,
+          opError,
+          fallbackCount: 0,
+        }),
         started_at: startedAt,
         finished_at: finishedAt,
       });
@@ -305,7 +317,14 @@ export async function runWarmInteractive(
 
   for (let i = 0; i < n; i++) {
     const startedAt = new Date().toISOString();
-    const { duration_ns } = await time(op, () => adapter(op));
+    let duration_ns = 0;
+    let opError: unknown = null;
+    try {
+      const timed = await time(op, () => adapter(op));
+      duration_ns = timed.duration_ns;
+    } catch (err) {
+      opError = err;
+    }
     const finishedAt = new Date().toISOString();
 
     samples.push({
@@ -314,7 +333,12 @@ export async function runWarmInteractive(
       run_id: runId,
       sample_index: i,
       duration_ns,
-      contamination: "clean",
+      contamination: classifyContamination({
+        health: null,
+        retry: null,
+        opError,
+        fallbackCount: 0,
+      }),
       started_at: startedAt,
       finished_at: finishedAt,
     });
@@ -337,7 +361,14 @@ export async function runRepeatedCommand(
 
   for (let i = 0; i < n; i++) {
     const startedAt = new Date().toISOString();
-    const { duration_ns } = await time(op, () => adapter(op));
+    let duration_ns = 0;
+    let opError: unknown = null;
+    try {
+      const timed = await time(op, () => adapter(op));
+      duration_ns = timed.duration_ns;
+    } catch (err) {
+      opError = err;
+    }
     const finishedAt = new Date().toISOString();
 
     samples.push({
@@ -346,7 +377,12 @@ export async function runRepeatedCommand(
       run_id: runId,
       sample_index: i,
       duration_ns,
-      contamination: "clean",
+      contamination: classifyContamination({
+        health: null,
+        retry: null,
+        opError,
+        fallbackCount: 0,
+      }),
       started_at: startedAt,
       finished_at: finishedAt,
     });
@@ -359,16 +395,18 @@ export async function runRepeatedCommand(
 /* Single-shot execution (used by cold-start child processes)         */
 /* ------------------------------------------------------------------ */
 
-async function runSingleShot(op: BenchmarkOp): Promise<BenchmarkSample> {
-  // B1-B3 will provide real op adapters; this is the integration point
+async function runSingleShot(op: BenchmarkOp, adapter: OpAdapter): Promise<BenchmarkSample> {
   const runId = `single-${Date.now()}`;
   const startedAt = new Date().toISOString();
 
-  // Placeholder: just measure a no-op until B1 provides real adapters
-  const { duration_ns } = await time("noop", async () => {
-    // Real implementation will call op adapters here
-    return Promise.resolve();
-  });
+  let duration_ns = 0;
+  let opError: unknown = null;
+  try {
+    const timed = await time(op, () => adapter(op));
+    duration_ns = timed.duration_ns;
+  } catch (err) {
+    opError = err;
+  }
 
   const finishedAt = new Date().toISOString();
 
@@ -381,7 +419,7 @@ async function runSingleShot(op: BenchmarkOp): Promise<BenchmarkSample> {
     contamination: classifyContamination({
       health: null,
       retry: null,
-      opError: null,
+      opError,
       fallbackCount: 0,
     }),
     started_at: startedAt,
@@ -558,17 +596,16 @@ export async function runPromotePipeline(
   let warning: string | undefined;
 
   try {
-    const { getProjectWorkflowHandle } = await import("../src/tools/wisdom.ts");
+    const { getBoundedProjectWorkflowAccess } = await import("../src/tools/project-workflow-helper.ts");
     const { addProjectWisdomUpdate, projectWisdomQuery } = await import("../src/temporal/messages.ts");
     const { writeJsonlAtomic } = await import("../src/storage/jsonl-atomic-writer.ts");
-    const { toJsonlProjectWisdomEntry } = await import("../src/tools/wisdom.ts");
 
-    const temporal = await getProjectWorkflowHandle({
+    const temporal = await getBoundedProjectWorkflowAccess({
       projectDir: store.paths.root,
-      wisdomPath: store.paths.wisdom,
+      mutablePath: store.paths.wisdom,
     });
 
-    if (temporal) {
+    if (temporal.mode === "workflow-backed") {
       promoted = await temporal.handle.executeUpdate(addProjectWisdomUpdate, {
         args: [{
           type: (entry as { type: string }).type,
@@ -578,8 +615,29 @@ export async function runPromotePipeline(
         }],
       });
 
-      const latest = await temporal.handle.query(projectWisdomQuery, undefined) as Array<Parameters<typeof toJsonlProjectWisdomEntry>[0]>;
-      await writeJsonlAtomic(store.paths.wisdom, latest.map(toJsonlProjectWisdomEntry));
+      const latest = await temporal.handle.query(projectWisdomQuery, undefined) as Array<{
+        id: string;
+        type: string;
+        content: string;
+        sourceChange?: string;
+        sourceTask?: string;
+        promotedAt: string;
+        tags?: string[];
+        invalidatedBy?: string;
+      }>;
+
+      const mapped = latest.map((e) => ({
+        id: e.id,
+        type: e.type,
+        content: e.content,
+        source_change: e.sourceChange,
+        source_task: e.sourceTask,
+        promoted_at: e.promotedAt,
+        tags: e.tags,
+        invalidated_by: e.invalidatedBy,
+      }));
+
+      await writeJsonlAtomic(store.paths.wisdom, mapped);
       await temporal.bundle.connection.close();
     }
   } catch (err) {
@@ -740,6 +798,33 @@ async function collectHealthAndTelemetry(): Promise<{
 }
 
 /* ------------------------------------------------------------------ */
+/* Path validation                                                    */
+/* ------------------------------------------------------------------ */
+
+export function validateOutputDir(input?: string): { ok: true; path: string } | { ok: false; reason: string } {
+  if (!input) {
+    return { ok: true, path: join(process.cwd(), "temp", "bench") };
+  }
+
+  const resolved = join(process.cwd(), input);
+  const cwd = process.cwd();
+  const tempRoot = join(cwd, "temp");
+
+  // Reject absolute paths that escape cwd or temp root
+  if (!resolved.startsWith(cwd) && !resolved.startsWith(tempRoot)) {
+    return { ok: false, reason: `outputDir must be under cwd or temp/ root. Got: ${input}` };
+  }
+
+  // Reject obvious traversal
+  const normalized = resolved.replace(/\\/g, "/");
+  if (normalized.includes("/../") || normalized.endsWith("/..")) {
+    return { ok: false, reason: `outputDir contains path traversal. Got: ${input}` };
+  }
+
+  return { ok: true, path: resolved };
+}
+
+/* ------------------------------------------------------------------ */
 /* Main                                                               */
 /* ------------------------------------------------------------------ */
 
@@ -754,9 +839,21 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
+  // Validate and resolve outputDir
+  const dirValidation = validateOutputDir(args.outputDir);
+  if (!dirValidation.ok) {
+    console.error("[BENCH] Invalid outputDir:", dirValidation.reason);
+    process.exit(1);
+  }
+  const outputDir = dirValidation.path;
+
   // Single-shot mode (used by cold-start child processes)
   if (args.singleShot && args.op) {
-    const sample = await runSingleShot(args.op);
+    const fs = await import("node:fs/promises");
+    const scratchRoot = join(outputDir, "scratch");
+    await fs.mkdir(scratchRoot, { recursive: true });
+    const boundAdapter = createBoundOpAdapter(args.op, scratchRoot);
+    const sample = await runSingleShot(args.op, boundAdapter);
     console.log(JSON.stringify(sample));
     return;
   }
@@ -783,10 +880,12 @@ async function main(): Promise<void> {
 
   const startedAt = new Date().toISOString();
 
+  // Ensure scratch directory exists BEFORE building adapter
+  const fs = await import("node:fs/promises");
+  const scratchRoot = join(outputDir, "scratch");
+  await fs.mkdir(scratchRoot, { recursive: true });
+
   // Build a bound adapter for the requested op
-  const scratchRoot = args.outputDir
-    ? join(args.outputDir, "scratch")
-    : join(process.cwd(), "temp", "bench", "scratch");
   const boundAdapter = createBoundOpAdapter(op, scratchRoot);
 
   let benchmarkSamples: BenchmarkSample[];
@@ -834,15 +933,10 @@ async function main(): Promise<void> {
 
   console.log(JSON.stringify(record, null, 2));
 
-    // Ensure scratch directory exists for store creation
-    const fs = await import("node:fs/promises");
-    await fs.mkdir(scratchRoot, { recursive: true });
-
-    // Also emit samples as JSONL if outputDir requested
-    if (args.outputDir) {
-    const fs = await import("node:fs/promises");
-    await fs.mkdir(args.outputDir, { recursive: true });
-    const samplesPath = join(args.outputDir, `${runId}.jsonl`);
+  // Also emit samples as JSONL if outputDir requested
+  if (args.outputDir) {
+    await fs.mkdir(outputDir, { recursive: true });
+    const samplesPath = join(outputDir, `${runId}.jsonl`);
     const lines = benchmarkSamples.map((s) => JSON.stringify(s)).join("\n");
     await fs.writeFile(samplesPath, lines + "\n", "utf-8");
     console.error(`[BENCH] Wrote ${benchmarkSamples.length} samples to ${samplesPath}`);

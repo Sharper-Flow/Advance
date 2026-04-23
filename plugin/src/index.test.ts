@@ -6,7 +6,12 @@
  */
 
 import { describe, test, expect, beforeEach, afterEach } from "vitest";
-import { AdvancePlugin } from "./index";
+import {
+  AdvancePlugin,
+  extractCompletedTask,
+  extractCreatedChangeId,
+  isLongRunningTool,
+} from "./index";
 import {
   createTempDir,
   cleanupTempDir,
@@ -50,6 +55,8 @@ interface MockEvent {
   properties: Record<string, unknown>;
 }
 
+const TEST_SERVER_URL = new URL("http://localhost:3000");
+
 const createMockPluginInput = (directory: string): MockPluginInput => ({
   client: {},
   project: {
@@ -59,7 +66,7 @@ const createMockPluginInput = (directory: string): MockPluginInput => ({
   },
   directory,
   worktree: directory,
-  serverUrl: new URL("http://localhost:3000"),
+  serverUrl: TEST_SERVER_URL,
   $: {},
 });
 
@@ -70,10 +77,10 @@ const createMockPluginInput = (directory: string): MockPluginInput => ({
  */
 const createTrackedPlugin = async (
   directory: string,
-  tracker: any[],
-): Promise<any> => {
+  tracker: Awaited<ReturnType<typeof AdvancePlugin>>[],
+): Promise<Awaited<ReturnType<typeof AdvancePlugin>>> => {
   const input = createMockPluginInput(directory);
-  const hooks = await AdvancePlugin(input as any);
+  const hooks = await AdvancePlugin(input);
   tracker.push(hooks);
   return hooks;
 };
@@ -131,6 +138,45 @@ describe("Advance Plugin SDK Integration", () => {
 
     test("AdvancePlugin is async function", () => {
       expect(AdvancePlugin.constructor.name).toBe("AsyncFunction");
+    });
+
+    test("extractCreatedChangeId reads banner-wrapped tool output", () => {
+      const output = [
+        "╔══════════════════════════════════╗",
+        "║ ✨ adv_change_create              ║",
+        "║    Target: addFeature            ║",
+        "╚══════════════════════════════════╝",
+        "",
+        '{"changeId":"addFeature"}',
+      ].join("\n");
+
+      expect(extractCreatedChangeId(output)).toBe("addFeature");
+    });
+
+    test("isLongRunningTool matches tracked tools only", () => {
+      expect(isLongRunningTool("adv_run_test")).toBe(true);
+      expect(isLongRunningTool("adv_task_evidence")).toBe(true);
+      expect(isLongRunningTool("adv_change_show")).toBe(false);
+    });
+
+    test("extractCompletedTask returns completed task payload only for done status", () => {
+      expect(
+        extractCompletedTask(
+          JSON.stringify({
+            success: true,
+            task: { id: "tk-1", title: "Ship fix", status: "done" },
+          }),
+        ),
+      ).toEqual({ id: "tk-1", title: "Ship fix" });
+
+      expect(
+        extractCompletedTask(
+          JSON.stringify({
+            success: true,
+            task: { id: "tk-2", title: "In progress", status: "in_progress" },
+          }),
+        ),
+      ).toBeNull();
     });
   });
 
@@ -1191,11 +1237,11 @@ describe("Plugin init: project.path fallback", () => {
         },
         directory: tempDir,
         worktree: tempDir,
-        serverUrl: new URL("http://localhost:3000"),
+        serverUrl: TEST_SERVER_URL,
         $: {},
       };
 
-      const hooks = await AdvancePlugin(input as any);
+      const hooks = await AdvancePlugin(input);
       pluginInstances.push(hooks);
 
       // Plugin should initialize without error and use gitDir's external state
@@ -1221,14 +1267,14 @@ describe("Plugin init: project.path fallback", () => {
       },
       directory: tempDir,
       worktree: tempDir,
-      serverUrl: new URL("http://localhost:3000"),
+      serverUrl: TEST_SERVER_URL,
       $: {},
     };
 
     // Create minimal project structure so init doesn't fail
     await createTestProject(tempDir);
 
-    const hooks = await AdvancePlugin(input as any);
+    const hooks = await AdvancePlugin(input);
     pluginInstances.push(hooks);
 
     expect(hooks).toHaveProperty("tool");
@@ -1259,11 +1305,11 @@ describe("Plugin init: project.path fallback", () => {
       },
       directory: tempDir,
       worktree: tempDir,
-      serverUrl: new URL("http://localhost:3000"),
+      serverUrl: TEST_SERVER_URL,
       $: {},
     };
 
-    const hooks = await AdvancePlugin(input as any);
+    const hooks = await AdvancePlugin(input);
     pluginInstances.push(hooks);
 
     expect(hooks).toHaveProperty("tool");

@@ -11,6 +11,7 @@ import {
   type GateId,
   type Gates,
   type FeatureFlags,
+  type Change,
   GATE_ORDER,
   canCompleteGate,
   getIncompleteGates,
@@ -22,11 +23,193 @@ import { formatToolOutput } from "../utils/tool-output";
 import { runPrepReadinessChecks } from "../validator/prep-readiness";
 import { runClarifyReadinessChecks } from "../validator/clarify-readiness";
 import { loadProposalWithFallback } from "../storage/json";
-import {
-  countSuccessCriteria,
-  formatContextSnapshot,
-} from "../utils/context-snapshot";
+import { buildChangeContextSnapshot } from "../utils/context-snapshot";
 import { COMMAND_MANIFEST } from "../manifest";
+
+async function completeGateAndBuildResponse({
+  store,
+  change,
+  changeId,
+  gateId,
+  gates,
+  notes,
+  completedBy,
+  boundaryWarning,
+  extraPayload = {},
+}: {
+  store: Store;
+  change: Change;
+  changeId: string;
+  gateId: GateId;
+  gates: Gates;
+  notes?: string;
+  completedBy: string;
+  boundaryWarning?: string;
+  extraPayload?: Record<string, unknown>;
+}): Promise<string> {
+  const completedAt = new Date().toISOString();
+  const completedGates: Gates = {
+    ...gates,
+    [gateId]: {
+      ...gates[gateId],
+      status: "done",
+      completed_at: completedAt,
+      completed_by: completedBy,
+      ...(notes ? { notes } : {}),
+    },
+  };
+
+  try {
+    await store.gates.complete(changeId, gateId, notes);
+  } catch (saveError) {
+    return formatToolOutput({
+      error: `Failed to complete gate: ${(saveError as Error).message}`,
+      changeId,
+      gateId,
+      hint: "Gate state was not persisted. Retry the operation.",
+    });
+  }
+
+  const changeDir = join(store.paths.changes, changeId);
+  const { content: proposalText } = await loadProposalWithFallback(
+    changeDir,
+    change.title,
+  );
+
+  return wrapWithBanner(
+    { command: "adv_gate_complete", target: `${changeId}:${gateId}` },
+    formatToolOutput({
+      success: true,
+      changeId,
+      gateId,
+      status: "done",
+      completed_at: completedAt,
+      completed_by: completedBy,
+      _contextSnapshot: buildChangeContextSnapshot({
+        change,
+        proposalText,
+        gates: completedGates,
+        workdir: store.paths.root,
+      }),
+      ...(boundaryWarning ? { boundaryWarning } : {}),
+      ...extraPayload,
+    }),
+  );
+}
+
+async function handlePlanningGateCompletion({
+  store,
+  change,
+  changeId,
+  gateId,
+  gates,
+  userApproved,
+  notes,
+  completedBy,
+  boundaryWarning,
+}: {
+  store: Store;
+  change: Change;
+  changeId: string;
+  gateId: GateId;
+  gates: Gates;
+  userApproved?: boolean;
+  notes?: string;
+  completedBy: string;
+  boundaryWarning?: string;
+}): Promise<string> {
+  if (!userApproved) {
+    return formatToolOutput({
+      error:
+        "Planning gate requires userApproved: true. The user must explicitly approve the prep contract (via question tool) before this gate can be completed.",
+      changeId,
+      gateId,
+      hint: "Present the vision document to the user, obtain approval via question tool, then call adv_gate_complete with userApproved: true.",
+    });
+  }
+
+  const readiness = runPrepReadinessChecks(change);
+  if (!readiness.passed) {
+    return formatToolOutput({
+      error: `Prep gate blocked: ${readiness.mustFailures.length} readiness failure(s) must be resolved`,
+      changeId,
+      gateId,
+      readinessFailures: readiness.mustFailures.map((f) => ({
+        code: f.code,
+        severity: f.severity,
+        message: f.message,
+        path: f.path,
+        remediation: (f.details as Record<string, unknown> | undefined)
+          ?.remediation,
+      })),
+      hint: "Fix all readiness failures listed above, then retry adv_gate_complete.",
+    });
+  }
+
+  const warningsPayload =
+    readiness.warnings.length > 0
+      ? {
+          readinessWarnings: readiness.warnings.map((w) => ({
+            code: w.code,
+            message: w.message,
+            path: w.path,
+          })),
+        }
+      : {};
+
+  const features = store.config?.features as FeatureFlags | undefined;
+  const clarifyMode = features?.clarify_enforcement ?? "advisory";
+  let clarifyPayload: Record<string, unknown> = {};
+
+  if (clarifyMode !== "off") {
+    const changeDir = join(store.paths.changes, changeId);
+    const { content: proposalText } = await loadProposalWithFallback(
+      changeDir,
+      change.title,
+    );
+    const clarifyResult = runClarifyReadinessChecks(change, proposalText);
+
+    if (clarifyResult.findings.length > 0) {
+      if (clarifyMode === "strict") {
+        return formatToolOutput({
+          error: `Prep gate blocked: ${clarifyResult.findings.length} ambiguity finding(s) must be resolved via /adv-clarify`,
+          changeId,
+          gateId,
+          clarifyFindings: clarifyResult.findings.map((f) => ({
+            code: f.code,
+            severity: f.severity,
+            message: f.message,
+            questionCategory: f.details?.questionCategory,
+          })),
+          hint: `Run /adv-clarify ${changeId} to resolve ambiguity findings, then retry adv_gate_complete.`,
+        });
+      }
+
+      clarifyPayload = {
+        clarifyWarnings: clarifyResult.findings.map((f) => ({
+          code: f.code,
+          message: f.message,
+          questionCategory: f.details?.questionCategory,
+        })),
+      };
+    }
+  }
+
+  return completeGateAndBuildResponse({
+    store,
+    change,
+    changeId,
+    gateId,
+    gates,
+    notes,
+    completedBy,
+    boundaryWarning,
+    extraPayload: {
+      ...warningsPayload,
+      ...clarifyPayload,
+    },
+  });
+}
 
 // =============================================================================
 // Tool Definitions
@@ -128,47 +311,6 @@ export const gateTools = {
 
       const change = result.data;
       const gates: Gates = change.gates ?? createDefaultGates();
-      const buildContextSnapshot = async (gatesSnapshot: Gates) => {
-        const changeDir = join(store.paths.changes, changeId);
-        const { content: proposalText } = await loadProposalWithFallback(
-          changeDir,
-          change.title,
-        );
-        const taskCounts = {
-          done: change.tasks.filter((t) => t.status === "done").length,
-          in_progress: change.tasks.filter((t) => t.status === "in_progress")
-            .length,
-          pending: change.tasks.filter((t) => t.status === "pending").length,
-          cancelled: change.tasks.filter((t) => t.status === "cancelled")
-            .length,
-        };
-        const currentTask = change.tasks.find(
-          (t) => t.status === "in_progress",
-        );
-
-        return formatContextSnapshot({
-          changeId: change.id,
-          title: change.title,
-          successCriteriaCount: countSuccessCriteria(proposalText),
-          gates: gatesSnapshot,
-          taskCounts,
-          workdir: store.paths.root,
-          currentTask: currentTask
-            ? { id: currentTask.id, title: currentTask.title }
-            : undefined,
-        });
-      };
-
-      const completedGates: Gates = {
-        ...gates,
-        [gateId]: {
-          ...gates[gateId],
-          status: "done",
-          completed_at: new Date().toISOString(),
-          completed_by: completedBy,
-          ...(notes ? { notes } : {}),
-        },
-      };
 
       // Check sequence enforcement
       if (!canCompleteGate(gates, gateId)) {
@@ -187,144 +329,30 @@ export const gateTools = {
       // Boundary validation: check if the completing command owns this gate
       const boundaryWarning = validateGateBoundary(gateId, completedBy);
 
-      // Planning gate: run readiness checks before marking done
       if (gateId === "planning") {
-        // HITL Boundary: planning gate requires explicit user approval
-        if (!userApproved) {
-          return formatToolOutput({
-            error:
-              "Planning gate requires userApproved: true. The user must explicitly approve the prep contract (via question tool) before this gate can be completed.",
-            changeId,
-            gateId,
-            hint: "Present the vision document to the user, obtain approval via question tool, then call adv_gate_complete with userApproved: true.",
-          });
-        }
-
-        const readiness = runPrepReadinessChecks(change);
-        if (!readiness.passed) {
-          return formatToolOutput({
-            error: `Prep gate blocked: ${readiness.mustFailures.length} readiness failure(s) must be resolved`,
-            changeId,
-            gateId,
-            readinessFailures: readiness.mustFailures.map((f) => ({
-              code: f.code,
-              severity: f.severity,
-              message: f.message,
-              path: f.path,
-              remediation: (f.details as Record<string, unknown> | undefined)
-                ?.remediation,
-            })),
-            hint: "Fix all readiness failures listed above, then retry adv_gate_complete.",
-          });
-        }
-        // Warnings-only: gate proceeds but advisory warnings included in response
-        const warningsPayload =
-          readiness.warnings.length > 0
-            ? {
-                readinessWarnings: readiness.warnings.map((w) => ({
-                  code: w.code,
-                  message: w.message,
-                  path: w.path,
-                })),
-              }
-            : {};
-
-        // Clarify-readiness enforcement (runs after prep-readiness passes)
-        const features = store.config?.features as FeatureFlags | undefined;
-        const clarifyMode = features?.clarify_enforcement ?? "advisory";
-        let clarifyPayload: Record<string, unknown> = {};
-
-        if (clarifyMode !== "off") {
-          const changeDir = join(store.paths.changes, changeId);
-          const { content: proposalText } = await loadProposalWithFallback(
-            changeDir,
-            change.title,
-          );
-
-          const clarifyResult = runClarifyReadinessChecks(change, proposalText);
-
-          if (clarifyResult.findings.length > 0) {
-            if (clarifyMode === "strict") {
-              return formatToolOutput({
-                error: `Prep gate blocked: ${clarifyResult.findings.length} ambiguity finding(s) must be resolved via /adv-clarify`,
-                changeId,
-                gateId,
-                clarifyFindings: clarifyResult.findings.map((f) => ({
-                  code: f.code,
-                  severity: f.severity,
-                  message: f.message,
-                  questionCategory: f.details?.questionCategory,
-                })),
-                hint: `Run /adv-clarify ${changeId} to resolve ambiguity findings, then retry adv_gate_complete.`,
-              });
-            }
-            // advisory mode: include as warnings, don't block
-            clarifyPayload = {
-              clarifyWarnings: clarifyResult.findings.map((f) => ({
-                code: f.code,
-                message: f.message,
-                questionCategory: f.details?.questionCategory,
-              })),
-            };
-          }
-        }
-
-        // Mark gate complete via store
-        try {
-          await store.gates.complete(changeId, gateId, notes);
-        } catch (saveError) {
-          return formatToolOutput({
-            error: `Failed to complete gate: ${(saveError as Error).message}`,
-            changeId,
-            gateId,
-            hint: "Gate state was not persisted. Retry the operation.",
-          });
-        }
-
-        const now = new Date().toISOString();
-        return wrapWithBanner(
-          { command: "adv_gate_complete", target: `${changeId}:${gateId}` },
-          formatToolOutput({
-            success: true,
-            changeId,
-            gateId,
-            status: "done",
-            completed_at: now,
-            completed_by: completedBy,
-            _contextSnapshot: await buildContextSnapshot(completedGates),
-            ...(boundaryWarning ? { boundaryWarning } : {}),
-            ...warningsPayload,
-            ...clarifyPayload,
-          }),
-        );
-      }
-
-      // Mark gate complete via store (handles locking and sequence enforcement)
-      try {
-        await store.gates.complete(changeId, gateId, notes);
-      } catch (saveError) {
-        return formatToolOutput({
-          error: `Failed to complete gate: ${(saveError as Error).message}`,
+        return handlePlanningGateCompletion({
+          store,
+          change,
           changeId,
           gateId,
-          hint: "Gate state was not persisted. Retry the operation.",
+          gates,
+          userApproved,
+          notes,
+          completedBy,
+          boundaryWarning,
         });
       }
 
-      const now = new Date().toISOString();
-      return wrapWithBanner(
-        { command: "adv_gate_complete", target: `${changeId}:${gateId}` },
-        formatToolOutput({
-          success: true,
-          changeId,
-          gateId,
-          status: "done",
-          completed_at: now,
-          completed_by: completedBy,
-          _contextSnapshot: await buildContextSnapshot(completedGates),
-          ...(boundaryWarning ? { boundaryWarning } : {}),
-        }),
-      );
+      return completeGateAndBuildResponse({
+        store,
+        change,
+        changeId,
+        gateId,
+        gates,
+        notes,
+        completedBy,
+        boundaryWarning,
+      });
     },
   },
 };
