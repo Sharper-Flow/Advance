@@ -5,7 +5,6 @@
  * Agenda MCP surface is intentionally small: list/add/start/complete/cancel/prioritize/evidence.
  */
 
-import { basename, dirname } from "path";
 import { z } from "zod";
 import {
   loadAgenda,
@@ -16,10 +15,6 @@ import {
   cancelAgendaItem,
   reprioritizeAgendaItem,
 } from "../storage/agenda";
-import {
-  buildProjectWorkflowId,
-  createTemporalClientBundle,
-} from "../temporal/client";
 import { addAgendaItemUpdate, projectAgendaQuery } from "../temporal/messages";
 import { writeJsonlAtomic } from "../storage/jsonl-atomic-writer";
 import {
@@ -32,28 +27,7 @@ import {
   allGatesSatisfied,
 } from "../types";
 import { formatToolOutput } from "../utils/tool-output";
-import { getProjectId } from "../utils/project-id";
-
-function isExternalMutablePath(path?: string): boolean {
-  return Boolean(path && !path.includes("/.adv/"));
-}
-
-async function getProjectWorkflowHandle(input: {
-  projectDir: string;
-  agendaPath?: string;
-}) {
-  const projectId = isExternalMutablePath(input.agendaPath)
-    ? basename(dirname(input.agendaPath!))
-    : await getProjectId(input.projectDir);
-  if (!projectId) return null;
-
-  const bundle = await createTemporalClientBundle(process.env);
-  return {
-    projectId,
-    bundle,
-    handle: bundle.client.workflow.getHandle(buildProjectWorkflowId(projectId)),
-  };
-}
+import { getBoundedProjectWorkflowAccess } from "./project-workflow-helper";
 
 // =============================================================================
 // Tool Definitions
@@ -147,13 +121,19 @@ export const agendaTools = {
       let item;
       let derivedExportWarning: string | undefined;
       try {
-        const temporal = await getProjectWorkflowHandle({
+        const temporal = await getBoundedProjectWorkflowAccess({
           projectDir,
-          agendaPath,
+          mutablePath: agendaPath,
         });
 
-        if (!temporal || !agendaPath) {
+        if (temporal.mode === "local-only") {
           throw new Error("Project workflow unavailable");
+        }
+
+        if (temporal.mode === "unavailable") {
+          return formatToolOutput({
+            error: `Project workflow unavailable: ${temporal.reason}`,
+          });
         }
 
         let temporalMutationCommitted = false;
