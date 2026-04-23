@@ -1,6 +1,7 @@
 import { getTemporalAddress } from "./client";
 import { getService } from "./service";
 import { getTemporalRetryTelemetry } from "./retry-wrapper";
+import { getTemporalFallbackTelemetry } from "./fallback-telemetry";
 import {
   getRegisteredTemporalWorkerQueues,
   getTemporalWorkerAliveness,
@@ -69,5 +70,6 @@ export async function getTemporalHealth(): Promise<TemporalHealth> {
     registered_queues,
     last_op_at: telemetry.lastOpAt,
     last_error: telemetry.lastError,
-  };
+    fallback_counts: getTemporalFallbackTelemetry(),
+  } as TemporalHealth;
 }
