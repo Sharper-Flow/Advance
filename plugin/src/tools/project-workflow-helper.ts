@@ -94,6 +94,8 @@ export async function getBoundedProjectWorkflowAccess(input: {
     mode: "workflow-backed",
     projectId,
     bundle,
-    handle: bundle.client.workflow.getHandle(buildProjectWorkflowId(projectId)),
+    handle: bundle.client.workflow.getHandle(
+      buildProjectWorkflowId(projectId),
+    ) as unknown as WorkflowHandleLike,
   };
 }

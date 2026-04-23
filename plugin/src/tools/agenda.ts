@@ -155,7 +155,7 @@ export const agendaTools = {
             projectAgendaQuery,
             undefined,
           );
-          await writeJsonlAtomic(agendaPath, agenda as readonly unknown[]);
+          await writeJsonlAtomic(agendaPath!, agenda as readonly unknown[]);
         } catch (error) {
           if (temporalMutationCommitted) {
             derivedExportWarning =
