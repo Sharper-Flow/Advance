@@ -68,7 +68,7 @@ const DEFAULT_THRESHOLDS: Thresholds = {
  * escalate: any signal >= escalate band (but none at hardstop)
  * auto: all signals below escalate band
  */
-function classifyTier(
+export function classifyTier(
   taskCount: number,
   retryTotal: number,
   elapsedMinutes: number,
@@ -223,7 +223,7 @@ function parseTimestamp(value: string | null | undefined): number | null {
  * themselves "done" AND have a prior completed gate to diff against.
  * The first gate (proposal) is measured against change.created_at.
  */
-function computePerGateDurations(change: {
+export function computePerGateDurations(change: {
   created_at?: string;
   gates?: Record<
     string,
