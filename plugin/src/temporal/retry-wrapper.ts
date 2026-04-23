@@ -7,6 +7,43 @@ interface TemporalRetryTelemetry {
   lastAttempts: number | null;
 }
 
+/**
+ * Per-operation latency histogram for Temporal operations.
+ * Stores raw latencies; percentile calculations done on query.
+ */
+export interface LatencyHistogram {
+  add(latencyMs: number): void;
+  getCount(): number;
+  getPercentile(p: number): number | null;
+  reset(): void;
+}
+
+function createLatencyHistogram(): LatencyHistogram {
+  const samples: number[] = [];
+  return {
+    add(latencyMs: number): void {
+      samples.push(latencyMs);
+      // Cap at 10k samples to prevent unbounded memory growth
+      if (samples.length > 10_000) samples.shift();
+    },
+    getCount(): number {
+      return samples.length;
+    },
+    getPercentile(p: number): number | null {
+      if (samples.length === 0) return null;
+      const sorted = [...samples].sort((a, b) => a - b);
+      const idx = Math.ceil((p / 100) * sorted.length) - 1;
+      return sorted[Math.max(0, idx)] ?? null;
+    },
+    reset(): void {
+      samples.length = 0;
+    },
+  };
+}
+
+/** Latency histogram for all Temporal operations combined. */
+export const temporalOpLatency = createLatencyHistogram();
+
 const temporalRetryTelemetry: TemporalRetryTelemetry = {
   lastOpAt: null,
   lastError: null,
@@ -128,8 +165,11 @@ export async function withTemporalRetry<T>(
 
   let attempt = 0;
   while (true) {
+    const startTime = Date.now();
     try {
       const result = await op();
+      const latencyMs = Date.now() - startTime;
+      temporalOpLatency.add(latencyMs);
       recordTemporalSuccess(attempt + 1);
       return result;
     } catch (error) {

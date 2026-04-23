@@ -27,6 +27,14 @@ interface StslBundle {
 }
 
 let cachedBundle: StslBundle | null = null;
+let getServiceCallCount = 0;
+let newConnectionCount = 0;
+
+export interface StslStats {
+  getServiceCalls: number;
+  newConnections: number;
+  reuseRate: number;
+}
 
 /**
  * Initialize the shared Temporal service layer. Idempotent when called with
@@ -58,6 +66,7 @@ export async function initStsl(
   debugLog(`initStsl: creating new bundle (${address}/${namespace})`);
   const connection = await Connection.connect({ address });
   const client = new Client({ connection, namespace });
+  newConnectionCount++;
 
   cachedBundle = { address, namespace, connection, client };
   debugLog(`initStsl: bundle ready`);
@@ -68,6 +77,7 @@ export async function initStsl(
  * Get the cached STSL bundle. Returns null before initialization.
  */
 export function getService(): StslBundle | null {
+  getServiceCallCount++;
   return cachedBundle;
 }
 
@@ -103,4 +113,15 @@ export async function closeStsl(): Promise<void> {
  */
 export function resetStsl(): void {
   cachedBundle = null;
+  getServiceCallCount = 0;
+  newConnectionCount = 0;
+}
+
+export function getStslStats(): StslStats {
+  return {
+    getServiceCalls: getServiceCallCount,
+    newConnections: newConnectionCount,
+    reuseRate:
+      newConnectionCount > 0 ? getServiceCallCount / newConnectionCount : 0,
+  };
 }
