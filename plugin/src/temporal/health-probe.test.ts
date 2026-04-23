@@ -56,11 +56,16 @@ import {
   resetTemporalHealthProbeState,
   setTemporalHealthProbeState,
 } from "./health-probe";
+import {
+  resetTemporalFallbackTelemetry,
+  incrementFallbackCount,
+} from "./fallback-telemetry";
 
 describe("getTemporalHealth (C3)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     resetTemporalHealthProbeState();
+    resetTemporalFallbackTelemetry();
   });
 
   it("reports server_alive=true, worker_alive=true, queues, last_op_at, last_error when everything is healthy", async () => {
@@ -120,5 +125,24 @@ describe("getTemporalHealth (C3)", () => {
     const health = await getTemporalHealth();
 
     expect(health.worker_process_alive).toBe(false);
+  });
+
+  it("includes fallback_counts with per-domain counters", async () => {
+    incrementFallbackCount("tasks");
+    incrementFallbackCount("tasks");
+    incrementFallbackCount("changes");
+    setTemporalHealthProbeState({
+      lastOpAt: "2026-04-21T00:00:00.000Z",
+      lastError: null,
+    });
+
+    const health = await getTemporalHealth();
+
+    expect(health.fallback_counts).toEqual({
+      changes: 1,
+      tasks: 2,
+      wisdom: 0,
+      gates: 0,
+    });
   });
 });
