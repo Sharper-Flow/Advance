@@ -58,6 +58,27 @@ function makeFakeChild(): FakeChild {
   return ee;
 }
 
+function makeStuckChild(): FakeChild {
+  const ee = new EventEmitter() as FakeChild;
+  ee.pid = 54321 + Math.floor(Math.random() * 1000);
+  ee.exitCode = null;
+  ee.killed = false;
+  ee.stdout = new EventEmitter();
+  ee.stderr = new EventEmitter();
+  ee.kill = vi.fn((signal?: NodeJS.Signals | number) => {
+    ee.killed = true;
+    if (signal === "SIGKILL") {
+      queueMicrotask(() => {
+        ee.exitCode = 137;
+        ee.emit("exit", 137, signal);
+      });
+    }
+    return true;
+  });
+  ee.unref = () => ee;
+  return ee;
+}
+
 describe("createOutOfProcessWorker", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -173,6 +194,32 @@ describe("createOutOfProcessWorker", () => {
     expect(child.kill).toHaveBeenCalledWith("SIGTERM");
     // Second shutdown is a no-op (doesn't throw)
     await expect(worker.shutdown()).resolves.toBeUndefined();
+  });
+
+  it("bounds shutdown and escalates to SIGKILL when a child ignores SIGTERM", async () => {
+    vi.useFakeTimers();
+    const child = makeStuckChild();
+    mocks.spawn.mockReturnValue(child);
+
+    const { createOutOfProcessWorker } =
+      await import("./out-of-process-worker");
+
+    const worker = await createOutOfProcessWorker({
+      address: "127.0.0.1:7233",
+      namespace: "default",
+      queues: ["advance-stuck"],
+      workerScript: "/plugin/dist/temporal/worker.js",
+      projectId: "stuck",
+    });
+
+    const shutdownPromise = worker.shutdown();
+    await vi.advanceTimersByTimeAsync(5_100);
+    await shutdownPromise;
+
+    expect(child.kill).toHaveBeenCalledWith("SIGTERM");
+    expect(child.kill).toHaveBeenCalledWith("SIGKILL");
+    expect(worker.isAlive?.()).toBe(false);
+    vi.useRealTimers();
   });
 
   it("exposes queue diagnostics for startup-vs-shutdown investigation", async () => {

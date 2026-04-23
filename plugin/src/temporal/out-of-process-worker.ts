@@ -37,6 +37,7 @@ const debugLog = (msg: string): void =>
 
 const RESTART_BACKOFF_MS: readonly number[] = [1_000, 3_000, 10_000];
 const MAX_RESTARTS = RESTART_BACKOFF_MS.length;
+export const OOP_SHUTDOWN_GRACE_MS = 5_000;
 
 export interface OutOfProcessWorkerInput {
   address: string;
@@ -222,6 +223,31 @@ export async function createOutOfProcessWorker(
           debugLog(
             `SIGTERM to OOP worker queue=${state.queue} threw: ${(e as Error).message}`,
           );
+        }
+      }
+
+      const timedOut = await Promise.race([
+        Promise.allSettled(current.map((s) => s.exitPromise)).then(() => false),
+        new Promise<boolean>((resolve) => {
+          setTimeout(() => resolve(true), OOP_SHUTDOWN_GRACE_MS).unref();
+        }),
+      ]);
+
+      if (timedOut) {
+        debugLog(
+          `shutdown grace window ${OOP_SHUTDOWN_GRACE_MS}ms exceeded — escalating to SIGKILL for remaining children`,
+        );
+        for (const state of current) {
+          const child = state.child;
+          if (!child || child.exitCode !== null) continue;
+          try {
+            child.kill("SIGKILL");
+          } catch {
+            // best-effort
+          }
+          state.child = null;
+          state.dead = true;
+          state.resolveExit();
         }
       }
 
