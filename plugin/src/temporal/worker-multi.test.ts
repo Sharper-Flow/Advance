@@ -1,0 +1,293 @@
+import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
+import { createMultiWorker, MULTI_SHUTDOWN_GRACE_MS } from "./worker-multi";
+import type { MultiWorker } from "./worker-multi";
+import type { ChildProcess } from "node:child_process";
+import EventEmitter from "node:events";
+
+// ---------------------------------------------------------------------------
+// Mock child_process.spawn to avoid actually spawning Node processes
+// ---------------------------------------------------------------------------
+
+interface MockChild extends Partial<ChildProcess> {
+  emit(event: string, ...args: unknown[]): boolean;
+  stdin: { write: ReturnType<typeof vi.fn>; end?: ReturnType<typeof vi.fn> };
+  stdout: EventEmitter;
+  stderr: EventEmitter;
+  killed: boolean;
+  exitCode: number | null;
+  kill: ReturnType<typeof vi.fn>;
+}
+
+let lastMockChild: MockChild | null = null;
+const mockChildren: MockChild[] = [];
+
+function createMockChild(): MockChild {
+  const emitter = new EventEmitter();
+  const child: MockChild = {
+    stdin: { write: vi.fn() },
+    stdout: new EventEmitter(),
+    stderr: new EventEmitter(),
+    killed: false,
+    exitCode: null,
+    kill: vi.fn((signal?: string) => {
+      child.killed = true;
+      // Auto-emit exit to unblock shutdown promises
+      if (signal === "SIGKILL") {
+        child.exitCode = null;
+        setImmediate(() => emitter.emit("exit", null, "SIGKILL"));
+      } else {
+        setImmediate(() => emitter.emit("exit", 0, null));
+      }
+    }),
+    on: emitter.on.bind(emitter),
+    once: emitter.once.bind(emitter),
+    emit(event: string, ...args: unknown[]): boolean {
+      if (event === "exit") {
+        child.exitCode = args[0] as number;
+      }
+      return emitter.emit(event, ...args);
+    },
+  } as unknown as MockChild;
+  return child;
+}
+
+vi.mock("node:child_process", () => ({
+  spawn: vi.fn(() => {
+    const child = createMockChild();
+    lastMockChild = child;
+    mockChildren.push(child);
+    return child;
+  }),
+}));
+
+vi.mock("node:fs", () => ({
+  existsSync: vi.fn(() => true),
+}));
+
+vi.mock("./runtime-manager", () => ({
+  resolveNodeExecutable: vi.fn(() => ({
+    found: true,
+    path: "/usr/bin/node",
+  })),
+  buildTemporalWorkerProcessSpec: vi.fn((input: {
+    workerScript: string;
+    taskQueue: string;
+    address: string;
+    namespace: string;
+    projectId: string;
+  }) => ({
+    command: "/usr/bin/node",
+    args: [input.workerScript],
+    env: {
+      ADV_TEMPORAL_ADDRESS: input.address,
+      ADV_TEMPORAL_NAMESPACE: input.namespace,
+      ADV_TEMPORAL_TASK_QUEUE: input.taskQueue,
+      ADV_TEMPORAL_PROJECT_ID: input.projectId,
+    },
+  })),
+}));
+
+vi.mock("../utils/debug-log", () => ({
+  createLogger: () => ({ debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() }),
+  appendDebugLog: vi.fn(),
+}));
+
+const baseInput = {
+  address: "127.0.0.1:7233",
+  namespace: "default",
+  queues: ["adv-change-proj1", "adv-project-proj1"] as const,
+  workerScript: "/fake/worker.ts",
+  projectId: "proj1",
+};
+
+describe("Multi-queue worker host", () => {
+  beforeEach(() => {
+    lastMockChild = null;
+    mockChildren.length = 0;
+  });
+
+  it("spawns a single child process for multiple queues", async () => {
+    const worker = await createMultiWorker(baseInput);
+
+    expect(lastMockChild).toBeTruthy();
+    expect(worker.queues).toEqual(["adv-change-proj1", "adv-project-proj1"]);
+    expect(worker.isAlive()).toBe(true);
+
+    // Only one child spawned (not one per queue)
+    expect(mockChildren.length).toBe(1);
+
+    await worker.shutdown();
+  });
+
+  it("sets multi-queue env vars on child", async () => {
+    const { spawn } = await import("node:child_process");
+    await createMultiWorker(baseInput);
+
+    const spawnCall = (spawn as ReturnType<typeof vi.fn>).mock.calls[0];
+    const env = spawnCall[2]?.env as Record<string, string>;
+
+    // Multi-queue flag is set
+    expect(env.ADV_TEMPORAL_MULTI_QUEUE).toBe("1");
+    expect(env.ADV_TEMPORAL_TASK_QUEUES).toBe(
+      "adv-change-proj1,adv-project-proj1",
+    );
+  });
+
+  it("sends IPC register message when registerQueue is called", async () => {
+    const worker = await createMultiWorker(baseInput);
+
+    await worker.registerQueue("adv-agenda-proj1");
+
+    expect(lastMockChild?.stdin.write).toHaveBeenCalled();
+    const writeCall = lastMockChild!.stdin.write.mock.calls.find(
+      (call: unknown[]) => typeof call[0] === "string" && call[0].includes("register"),
+    );
+    expect(writeCall).toBeTruthy();
+    const msg = JSON.parse((writeCall![0] as string).trim());
+    expect(msg).toEqual({ type: "register", queue: "adv-agenda-proj1" });
+    expect(worker.queues).toContain("adv-agenda-proj1");
+
+    await worker.shutdown();
+  });
+
+  it("ignores duplicate registerQueue calls", async () => {
+    const worker = await createMultiWorker(baseInput);
+    const writeCountBefore = lastMockChild!.stdin.write.mock.calls.length;
+
+    await worker.registerQueue("adv-change-proj1"); // already registered
+
+    // No new write calls
+    expect(lastMockChild!.stdin.write.mock.calls.length).toBe(writeCountBefore);
+
+    await worker.shutdown();
+  });
+
+  it("rejects registerQueue during shutdown", async () => {
+    const worker = await createMultiWorker(baseInput);
+    await worker.shutdown();
+
+    await expect(worker.registerQueue("new-queue")).rejects.toThrow(
+      "shutting down",
+    );
+  });
+
+  it("SIGTERMs child on shutdown", async () => {
+    const worker = await createMultiWorker(baseInput);
+    const child = lastMockChild!;
+
+    const shutdownPromise = worker.shutdown();
+
+    // Simulate child exiting after SIGTERM
+    setTimeout(() => {
+      child.emit("exit", 0, null);
+    }, 10);
+
+    await shutdownPromise;
+
+    expect(child.kill).toHaveBeenCalledWith("SIGTERM");
+    expect(worker.isAlive()).toBe(false);
+  });
+
+  it("escalates to SIGKILL if child does not exit in time", async () => {
+    vi.useFakeTimers();
+    const worker = await createMultiWorker(baseInput);
+    const child = lastMockChild!;
+
+    // Override kill to NOT auto-emit exit on SIGTERM (simulates stuck child)
+    let sigkillReceived = false;
+    (child.kill as ReturnType<typeof vi.fn>).mockImplementation((signal?: string) => {
+      child.killed = true;
+      if (signal === "SIGKILL") {
+        sigkillReceived = true;
+        child.exitCode = null;
+        // Emit exit after SIGKILL
+        setImmediate(() => child.emit("exit", null, "SIGKILL"));
+      }
+      // SIGTERM does NOT emit exit — child is stuck
+    });
+
+    const shutdownPromise = worker.shutdown();
+
+    // Advance past SIGTERM grace period
+    await vi.advanceTimersByTimeAsync(MULTI_SHUTDOWN_GRACE_MS + 100);
+    await shutdownPromise;
+
+    expect(sigkillReceived).toBe(true);
+    vi.useRealTimers();
+  });
+
+  it("does not respawn on graceful exit (code 0)", async () => {
+    const worker = await createMultiWorker(baseInput);
+    const child = lastMockChild!;
+
+    // Simulate graceful exit
+    child.emit("exit", 0, null);
+
+    // Wait a tick for any scheduled respawns
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    // Only one child should have been spawned (no respawn)
+    expect(mockChildren.length).toBe(1);
+
+    await worker.shutdown();
+  });
+
+  it("respawns child after crash with exponential backoff", async () => {
+    vi.useFakeTimers();
+    const worker = await createMultiWorker(baseInput);
+    const child = lastMockChild!;
+
+    // Simulate crash
+    child.emit("exit", 1, null);
+
+    // Advance past backoff (1000ms for first retry)
+    await vi.advanceTimersByTimeAsync(1500);
+
+    // A second child should have been spawned
+    expect(mockChildren.length).toBeGreaterThanOrEqual(2);
+
+    const diag = worker.getDiagnostics();
+    expect(diag.restartCount).toBe(1);
+
+    // Cleanup: exit the respawned child
+    mockChildren[mockChildren.length - 1].emit("exit", 0, null);
+    vi.useRealTimers();
+    await worker.shutdown();
+  });
+
+  it("returns diagnostics with correct state", async () => {
+    const worker = await createMultiWorker(baseInput);
+
+    const diag = worker.getDiagnostics();
+    expect(diag.queues).toEqual(["adv-change-proj1", "adv-project-proj1"]);
+    expect(diag.childExitCode).toBeNull();
+    expect(diag.childRunning).toBe(true);
+    expect(diag.restartCount).toBe(0);
+
+    await worker.shutdown();
+  });
+
+  it("throws if Node executable not found", async () => {
+    const { resolveNodeExecutable } = await import("./runtime-manager");
+    (resolveNodeExecutable as ReturnType<typeof vi.fn>).mockReturnValueOnce({
+      found: false,
+      remediation: "Install Node",
+    });
+
+    await expect(
+      createMultiWorker(baseInput),
+    ).rejects.toThrow("Cannot spawn multi-queue");
+  });
+
+  it("throws if worker script not found", async () => {
+    const { existsSync } = await import("node:fs");
+    (existsSync as ReturnType<typeof vi.fn>).mockReturnValueOnce(false);
+
+    await expect(
+      createMultiWorker({
+        ...baseInput,
+        workerScript: "/nonexistent/worker.ts",
+      }),
+    ).rejects.toThrow("worker script not found");
+  });
+});

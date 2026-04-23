@@ -26,7 +26,10 @@ import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { TestWorkflowEnvironment } from "@temporalio/testing";
-import { withTestWorkflowEnvironment } from "./__tests__/with-test-env";
+import {
+  createTestWorkflowEnvironment,
+  withTestWorkflowEnvironment,
+} from "./__tests__/with-test-env";
 import { createOutOfProcessWorker } from "./out-of-process-worker";
 import { resolveNodeExecutable } from "./runtime-manager";
 
@@ -95,7 +98,9 @@ describe.skipIf(!canRun)("createOutOfProcessWorker integration", () => {
   }, 120_000);
 
   it("reaps the specific temporal-test-server process opened for its port", async () => {
-    const env = await TestWorkflowEnvironment.createTimeSkipping();
+    const env = await createTestWorkflowEnvironment(() =>
+      TestWorkflowEnvironment.createTimeSkipping(),
+    );
     const port = extractPort(String(env.address ?? ""));
     expect(port).not.toBeNull();
 

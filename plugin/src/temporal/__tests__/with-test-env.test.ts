@@ -1,11 +1,27 @@
 import { describe, expect, it, vi } from "vitest";
-import { withTestWorkflowEnvironment } from "./with-test-env";
+import {
+  createTestWorkflowEnvironment,
+  withTestWorkflowEnvironment,
+} from "./with-test-env";
 
 interface FakeEnv {
   teardown: () => Promise<void>;
 }
 
 describe("withTestWorkflowEnvironment", () => {
+  it("creates the env from a stable non-worktree cwd and restores cwd", async () => {
+    const originalCwd = process.cwd();
+    let observedCwd = "";
+
+    await createTestWorkflowEnvironment(async () => {
+      observedCwd = process.cwd();
+      return { teardown: async () => {} };
+    });
+
+    expect(observedCwd).toContain("advance-temporal-test-cwd");
+    expect(process.cwd()).toBe(originalCwd);
+  });
+
   it("calls fn with the created env and tears down on success", async () => {
     const teardown = vi.fn(async () => {});
     const fakeEnv: FakeEnv = { teardown };

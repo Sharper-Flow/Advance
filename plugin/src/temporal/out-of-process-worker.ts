@@ -1,5 +1,8 @@
 import { spawn, type ChildProcess } from "node:child_process";
 import { existsSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { mkdirSync } from "node:fs";
 import { createLogger, appendDebugLog } from "../utils/debug-log";
 import {
   buildTemporalWorkerProcessSpec,
@@ -41,6 +44,12 @@ const MAX_RESTARTS = RESTART_BACKOFF_MS.length;
 export const OOP_SHUTDOWN_GRACE_MS = 5_000;
 
 const LOG_MAX_LENGTH = 2_000;
+
+function getStableWorkerCwd(): string {
+  const cwd = join(tmpdir(), "advance-temporal-worker-cwd");
+  mkdirSync(cwd, { recursive: true });
+  return cwd;
+}
 
 function sanitizeLogChunk(chunk: Buffer): string {
   let text = chunk.toString("utf-8").trimEnd();
@@ -132,6 +141,7 @@ export async function createOutOfProcessWorker(
     );
 
     const child = spawn(nodePath, spec.args, {
+      cwd: getStableWorkerCwd(),
       env: spec.env,
       stdio: ["ignore", "pipe", "pipe"],
       detached: false,

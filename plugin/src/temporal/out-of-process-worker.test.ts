@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => {
     })),
     spawn: vi.fn(),
     existsSync: vi.fn(() => true),
+    mkdirSync: vi.fn(),
   };
 });
 
@@ -30,6 +31,7 @@ vi.mock("node:child_process", () => ({
 
 vi.mock("node:fs", () => ({
   existsSync: mocks.existsSync,
+  mkdirSync: mocks.mkdirSync,
 }));
 
 interface FakeChild extends EventEmitter {
@@ -117,6 +119,7 @@ describe("createOutOfProcessWorker", () => {
     const [cmd, args, opts] = mocks.spawn.mock.calls[0];
     expect(cmd).toBe("/usr/bin/node");
     expect(args).toEqual(["/plugin/dist/temporal/worker.js"]);
+    expect(opts.cwd).toContain("advance-temporal-worker-cwd");
     expect(opts.env).toMatchObject({
       ADV_TEMPORAL_ADDRESS: "127.0.0.1:7233",
       ADV_TEMPORAL_NAMESPACE: "default",

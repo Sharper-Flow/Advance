@@ -1,3 +1,7 @@
+import { mkdir } from "node:fs/promises";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
+
 /**
  * Shared harness for Temporal test environments.
  *
@@ -14,6 +18,25 @@
  */
 export interface TestEnvironmentLike {
   teardown: () => Promise<void>;
+}
+
+function getStableTemporalTestCwd(): string {
+  return join(tmpdir(), "advance-temporal-test-cwd");
+}
+
+export async function createTestWorkflowEnvironment<TEnv>(
+  createEnv: () => Promise<TEnv>,
+): Promise<TEnv> {
+  const originalCwd = process.cwd();
+  const stableCwd = getStableTemporalTestCwd();
+  await mkdir(stableCwd, { recursive: true });
+
+  try {
+    process.chdir(stableCwd);
+    return await createEnv();
+  } finally {
+    process.chdir(originalCwd);
+  }
 }
 
 /**
@@ -37,7 +60,7 @@ export async function withTestWorkflowEnvironment<
   createEnv: () => Promise<TEnv>,
   fn: (env: TEnv) => Promise<TResult>,
 ): Promise<TResult> {
-  const env = await createEnv();
+  const env = await createTestWorkflowEnvironment(createEnv);
   try {
     return await fn(env);
   } finally {
