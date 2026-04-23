@@ -8,6 +8,7 @@ import { mkdtempSync, readFileSync, existsSync, rmSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
 import {
+  mergeDefinedContext,
   safeExecute,
   safeExecuteSimple,
   formatZodError,
@@ -336,6 +337,27 @@ describe("safe-execute", () => {
     it("returns empty object for null/undefined args", () => {
       expect(deriveContextFromArgs(null)).toEqual({});
       expect(deriveContextFromArgs(undefined)).toEqual({});
+    });
+  });
+
+  describe("mergeDefinedContext", () => {
+    it("copies only defined fields from extra context", () => {
+      expect(
+        mergeDefinedContext(
+          { workdir: "/tmp/base" },
+          {
+            errorClass: "TypeError",
+            workdir: undefined,
+            path: "/tmp/file",
+            operation: "createStore",
+          },
+        ),
+      ).toEqual({
+        workdir: "/tmp/base",
+        errorClass: "TypeError",
+        path: "/tmp/file",
+        operation: "createStore",
+      });
     });
   });
 
