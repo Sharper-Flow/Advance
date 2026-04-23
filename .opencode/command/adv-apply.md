@@ -90,28 +90,30 @@ If new objectives or acceptance criteria are discovered during execution that we
 
 Existing tasks and completed work are preserved across re-entry. Only gate state is reset.
 
-## Phase 0.1: Worktree Assessment
-Assess whether change benefits from worktree isolation.
-### Risk Assessment
-| Signal | Risk |
-|--------|------|
-| 3+ files, breaking API, DB schema, auth, shared types, structural refactor, spike | High → suggest worktree |
-| 1-2 files trivial, docs/config only | Low → skip worktree |
+## Phase 0.1: Worktree Isolation
 
-If low risk → skip to Phase 1.
 ### Tool Check
-If `worktree_create` unavailable → `[ADV:INFO] Worktree tools not available — proceeding in-place.` → Phase 1.
+If `worktree_create` unavailable → hard block: `[ADV:BLOCKED] Worktree tools required but unavailable. Configure worktree MCP server to proceed.` → stop.
+
 ### Detect Existing Worktree
 `git worktree list --porcelain` → find `change/{change-id}` branch.
-- Path exists (healthy) → ask via `question`: Switch to existing (Recommended), Delete and recreate, Work in place
-- Path missing (stale) → `git worktree prune` → continue
-- No match → continue
+- Path exists (healthy) → auto-reuse: switch `workdir` to existing path
+- Path missing (stale) → `git worktree prune` → continue to create
+- No match → continue to create
+
 ### Create Worktree
-If user approves:
 1. `worktree_create branch: "change/{change-id}"`
 2. **Immediately** capture returned path and set `workdir` for ALL subsequent tool calls
 3. Continue inline — no handoff, no new terminal needed
 4. When deleting later, pass `branch: "change/{change-id}"` to `worktree_delete`
+
+### Multi-Change Worktree Switch
+When a session on change A needs to work on change B:
+1. `git worktree list --porcelain` → find `change/{change-b-id}` branch
+2. If worktree-B exists → switch `workdir` to worktree-B path
+3. If worktree-B missing → `worktree_create branch: "change/{change-b-id}"` → capture path → switch `workdir`
+4. Resume work on change B in its isolated worktree
+5. To return to change A → switch `workdir` back to worktree-A path
 
 ## Phase 0.2: Overlap Warning (Advisory)
 Check `adv_change_list` for other active changes. Compare affected files. If overlaps found → emit advisory warning listing files and overlapping change IDs. Suggest `/adv-coordinate`. Does NOT block work.
