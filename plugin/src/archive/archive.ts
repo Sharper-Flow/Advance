@@ -55,7 +55,7 @@ export async function archiveChange(
         specs.set(capability, spec);
       } else {
         errors.push(
-          `Failed to apply deltas to ${capability}: ${result.deltaResults.find((r) => !r.success)?.error}`,
+          `Failed to apply deltas to ${capability}: ${result.deltaResults.find((r) => !r.success)?.error ?? "unknown error"}`,
         );
         continue;
       }

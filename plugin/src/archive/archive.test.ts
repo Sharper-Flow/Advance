@@ -1261,3 +1261,54 @@ describe("createSpecFromDeltas empty delta guard", () => {
     expect(result.newVersion).toBe("0.0.0");
   });
 });
+
+describe("archiveChange error messages", () => {
+  it("uses fallback when failing delta result has no error field", async () => {
+    const testDir = await createTempDir();
+    try {
+      await createTestProject(testDir);
+
+      const change = structuredClone(SAMPLE_CHANGE) as Change;
+      change.tasks.forEach((t) => (t.status = "done"));
+
+      // Add a modify delta targeting a nonexistent requirement — this will fail
+      // but we also verify the error message never contains literal "undefined"
+      change.deltas = {
+        "test-capability": [
+          {
+            id: "dl-fail-nomsg",
+            operation: "modify" as const,
+            target_id: "rq-nonexistent-999",
+            changes: { title: "Will Fail" },
+          },
+        ],
+      };
+
+      const specs = new Map<string, Spec>();
+      specs.set("test-capability", structuredClone(SAMPLE_SPEC) as Spec);
+
+      const result = await archiveChange({
+        change,
+        specs,
+        paths: {
+          specs: join(testDir, "specs"),
+          archive: join(testDir, "archive"),
+          docs: join(testDir, "docs/specs"),
+        },
+      });
+
+      // Archive should report errors (delta targets nonexistent requirement)
+      expect(result.errors.length).toBeGreaterThan(0);
+      // Error message must NOT contain the literal string "undefined"
+      for (const errMsg of result.errors) {
+        expect(errMsg).not.toContain("undefined");
+        // Must contain a real error description or the fallback
+        expect(
+          errMsg.includes("not found") || errMsg.includes("unknown error"),
+        ).toBe(true);
+      }
+    } finally {
+      await cleanupTempDir(testDir);
+    }
+  });
+});
