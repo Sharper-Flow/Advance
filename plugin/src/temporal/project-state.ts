@@ -9,6 +9,7 @@ import type {
   ProjectWisdomEntry,
   ProjectWorkflowInput,
   ProjectWorkflowState,
+  ChangeSummaryPayload,
 } from "./contracts";
 
 function toAgendaId(raw: string): string {
@@ -28,6 +29,8 @@ export function createProjectWorkflowState(
     agenda: [],
     project_wisdom: [],
     migration_ledger: [],
+    change_summaries: {},
+    source_versions: {},
   };
 }
 
@@ -167,4 +170,22 @@ export function recordMigrationEntryInProjectState(
   );
   state.migration_ledger.push(entry);
   return entry;
+}
+
+/**
+ * Apply a change summary signal to the project workflow state.
+ * Uses monotonic source_version for dedupe — skips if incoming
+ * version is <= existing version for the same changeId.
+ */
+export function applyChangeSummaryToProjectState(
+  state: ProjectWorkflowState,
+  payload: ChangeSummaryPayload,
+): void {
+  const existing = state.source_versions[payload.changeId] ?? 0;
+  if (payload.sourceVersion <= existing) {
+    // Out-of-order or duplicate — skip
+    return;
+  }
+  state.source_versions[payload.changeId] = payload.sourceVersion;
+  state.change_summaries[payload.changeId] = payload;
 }

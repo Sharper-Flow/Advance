@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   addAgendaItemToProjectState,
   addProjectWisdomToProjectState,
+  applyChangeSummaryToProjectState,
   createProjectWorkflowState,
   listAgendaItemsFromProjectState,
   listProjectWisdomFromProjectState,
@@ -147,5 +148,180 @@ describe("project workflow state", () => {
     expect(PROJECT_WORKFLOW_UPDATE_NAMES.recordMigrationEntry).toBe(
       "adv.project.recordMigrationEntry",
     );
+  });
+});
+
+describe("applyChangeSummaryToProjectState", () => {
+  it("applies a new summary", () => {
+    const state = createProjectWorkflowState({
+      projectId: "proj1",
+      initializedAt: "2026-04-23T00:00:00.000Z",
+    });
+
+    applyChangeSummaryToProjectState(state, {
+      changeId: "chg-001",
+      title: "Test",
+      status: "draft",
+      gateProgress: {
+        proposal: "done",
+        discovery: "pending",
+        design: "pending",
+        planning: "pending",
+        execution: "pending",
+        acceptance: "pending",
+        release: "pending",
+      },
+      taskCounts: { total: 3, done: 1, pending: 2 },
+      lastActivityAt: "2026-04-23T12:00:00.000Z",
+      sourceVersion: 1,
+    });
+
+    expect(state.change_summaries["chg-001"]).toBeDefined();
+    expect(state.change_summaries["chg-001"].status).toBe("draft");
+    expect(state.source_versions["chg-001"]).toBe(1);
+  });
+
+  it("updates when source version is higher", () => {
+    const state = createProjectWorkflowState({
+      projectId: "proj1",
+      initializedAt: "2026-04-23T00:00:00.000Z",
+    });
+
+    applyChangeSummaryToProjectState(state, {
+      changeId: "chg-001",
+      title: "Test",
+      status: "draft",
+      gateProgress: {
+        proposal: "done", discovery: "pending", design: "pending",
+        planning: "pending", execution: "pending", acceptance: "pending",
+        release: "pending",
+      },
+      taskCounts: { total: 3, done: 1, pending: 2 },
+      lastActivityAt: "2026-04-23T12:00:00.000Z",
+      sourceVersion: 1,
+    });
+
+    applyChangeSummaryToProjectState(state, {
+      changeId: "chg-001",
+      title: "Test",
+      status: "active",
+      gateProgress: {
+        proposal: "done", discovery: "done", design: "pending",
+        planning: "pending", execution: "pending", acceptance: "pending",
+        release: "pending",
+      },
+      taskCounts: { total: 5, done: 3, pending: 2 },
+      lastActivityAt: "2026-04-23T13:00:00.000Z",
+      sourceVersion: 2,
+    });
+
+    expect(state.change_summaries["chg-001"].status).toBe("active");
+    expect(state.source_versions["chg-001"]).toBe(2);
+  });
+
+  it("skips when source version is equal (duplicate)", () => {
+    const state = createProjectWorkflowState({
+      projectId: "proj1",
+      initializedAt: "2026-04-23T00:00:00.000Z",
+    });
+
+    applyChangeSummaryToProjectState(state, {
+      changeId: "chg-001",
+      title: "First",
+      status: "draft",
+      gateProgress: {
+        proposal: "done", discovery: "pending", design: "pending",
+        planning: "pending", execution: "pending", acceptance: "pending",
+        release: "pending",
+      },
+      taskCounts: { total: 1, done: 0, pending: 1 },
+      lastActivityAt: "2026-04-23T12:00:00.000Z",
+      sourceVersion: 1,
+    });
+
+    applyChangeSummaryToProjectState(state, {
+      changeId: "chg-001",
+      title: "Duplicate",
+      status: "active",
+      gateProgress: {
+        proposal: "done", discovery: "done", design: "pending",
+        planning: "pending", execution: "pending", acceptance: "pending",
+        release: "pending",
+      },
+      taskCounts: { total: 2, done: 1, pending: 1 },
+      lastActivityAt: "2026-04-23T13:00:00.000Z",
+      sourceVersion: 1,
+    });
+
+    // Should keep the first write
+    expect(state.change_summaries["chg-001"].title).toBe("First");
+    expect(state.source_versions["chg-001"]).toBe(1);
+  });
+
+  it("skips when source version is lower (out-of-order)", () => {
+    const state = createProjectWorkflowState({
+      projectId: "proj1",
+      initializedAt: "2026-04-23T00:00:00.000Z",
+    });
+
+    applyChangeSummaryToProjectState(state, {
+      changeId: "chg-001",
+      title: "Newer",
+      status: "active",
+      gateProgress: {
+        proposal: "done", discovery: "done", design: "pending",
+        planning: "pending", execution: "pending", acceptance: "pending",
+        release: "pending",
+      },
+      taskCounts: { total: 5, done: 3, pending: 2 },
+      lastActivityAt: "2026-04-23T13:00:00.000Z",
+      sourceVersion: 3,
+    });
+
+    applyChangeSummaryToProjectState(state, {
+      changeId: "chg-001",
+      title: "Stale",
+      status: "draft",
+      gateProgress: {
+        proposal: "done", discovery: "pending", design: "pending",
+        planning: "pending", execution: "pending", acceptance: "pending",
+        release: "pending",
+      },
+      taskCounts: { total: 1, done: 0, pending: 1 },
+      lastActivityAt: "2026-04-23T12:00:00.000Z",
+      sourceVersion: 1,
+    });
+
+    expect(state.change_summaries["chg-001"].title).toBe("Newer");
+    expect(state.source_versions["chg-001"]).toBe(3);
+  });
+
+  it("handles multiple different changes independently", () => {
+    const state = createProjectWorkflowState({
+      projectId: "proj1",
+      initializedAt: "2026-04-23T00:00:00.000Z",
+    });
+
+    const baseSummary = {
+      title: "Test",
+      gateProgress: {
+        proposal: "pending", discovery: "pending", design: "pending",
+        planning: "pending", execution: "pending", acceptance: "pending",
+        release: "pending",
+      },
+      taskCounts: { total: 0, done: 0, pending: 0 },
+      lastActivityAt: "2026-04-23T12:00:00.000Z",
+    };
+
+    applyChangeSummaryToProjectState(state, {
+      ...baseSummary, changeId: "chg-a", status: "draft", sourceVersion: 1,
+    });
+    applyChangeSummaryToProjectState(state, {
+      ...baseSummary, changeId: "chg-b", status: "active", sourceVersion: 1,
+    });
+
+    expect(Object.keys(state.change_summaries)).toHaveLength(2);
+    expect(state.change_summaries["chg-a"].status).toBe("draft");
+    expect(state.change_summaries["chg-b"].status).toBe("active");
   });
 });

@@ -33,6 +33,7 @@ import type {
   ProjectWisdomEntry,
   ProjectWorkflowBootstrapState,
   ProjectWorkflowState,
+  ChangeSummaryPayload,
 } from "./contracts";
 
 export const changeBootstrapQuery =
@@ -174,3 +175,8 @@ export const recordMigrationEntryUpdate = wf.defineUpdate<
   MigrationLedgerEntry,
   [MigrationLedgerEntry]
 >("adv.project.recordMigrationEntry");
+
+// Signal: fire-and-forget change summary propagation from changeWorkflow
+export const applyChangeSummarySignal = wf.defineSignal<
+  [ChangeSummaryPayload]
+>("adv.change.applyChangeSummary");

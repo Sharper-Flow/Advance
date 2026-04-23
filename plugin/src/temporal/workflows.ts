@@ -33,6 +33,7 @@ import {
 import {
   addAgendaItemToProjectState,
   addProjectWisdomToProjectState,
+  applyChangeSummaryToProjectState,
   createProjectWorkflowState,
   listAgendaItemsFromProjectState,
   listProjectWisdomFromProjectState,
@@ -151,6 +152,10 @@ const addAgendaItemUpdate = wf.defineUpdate<
     },
   ]
 >(PROJECT_WORKFLOW_UPDATE_NAMES.addAgendaItem);
+
+const applyChangeSummarySignalDef = wf.defineSignal<
+  [import("./contracts").ChangeSummaryPayload]
+>("adv.change.applyChangeSummary");
 const updateAgendaItemUpdate = wf.defineUpdate<
   ProjectWorkflowState["agenda"][number],
   [
@@ -428,6 +433,11 @@ export async function projectWorkflow(
   );
   wf.setHandler(recordMigrationEntryUpdate, (entry: MigrationLedgerEntry) =>
     recordMigrationEntryInProjectState(state, entry),
+  );
+  wf.setHandler(
+    applyChangeSummarySignalDef,
+    (payload: import("./contracts").ChangeSummaryPayload) =>
+      applyChangeSummaryToProjectState(state, payload),
   );
 
   await wf.condition(() => false);
