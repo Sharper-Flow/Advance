@@ -184,7 +184,7 @@ export function probeTemporalWorkerRuntime(
     reason:
       "Bun cannot run @temporalio/worker in-process: Worker.create spawns a Node worker thread whose require('@temporalio/common') fails from Bun's install-cache path.",
     remediation:
-      "Use the out-of-process Node child-process worker (default when Node is on PATH), set ADV_NODE_PATH to a Node binary, or set ADV_ALLOW_DEGRADED_FALLBACK=1 to run on file-backed storage. See SETUP.md → Bun runtime troubleshooting.",
+      "Use the out-of-process Node child-process worker (default when Node is on PATH) or set ADV_NODE_PATH to a Node binary. See SETUP.md → Bun runtime troubleshooting.",
   };
 }
 
@@ -279,8 +279,6 @@ function buildSafeSpawnEnv(
     TMP: env.TMP,
     TEMP: env.TEMP,
     ADV_NODE_PATH: env.ADV_NODE_PATH,
-    ADV_ALLOW_DEGRADED_FALLBACK: env.ADV_ALLOW_DEGRADED_FALLBACK,
-    ADV_DISABLE_TEMPORAL: env.ADV_DISABLE_TEMPORAL,
   };
 
   if (process.platform === "win32") {

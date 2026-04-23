@@ -298,8 +298,6 @@ describe("plugin-init tryInitStore", () => {
 describe("tryInitStore worker routing (Phase 2.3)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.stubEnv("ADV_DISABLE_TEMPORAL", "");
-    vi.stubEnv("ADV_ALLOW_DEGRADED_FALLBACK", "");
 
     // Default mocks: Node runtime with Node found on PATH.
     mocks.probeTemporalWorkerRuntime.mockReturnValue({

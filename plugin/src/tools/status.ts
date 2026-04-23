@@ -207,34 +207,20 @@ export const statusTools = {
     args: {},
     execute: async (_args: Record<string, never>, store: Store) => {
       const status = await store.status();
-      const temporalDisabled = process.env.ADV_DISABLE_TEMPORAL === "1";
-      const migrationStatus = temporalDisabled
-        ? null
-        : await loadMigrationStatus(store);
+      const migrationStatus = await loadMigrationStatus(store);
 
       let temporalHealth;
-      if (temporalDisabled) {
+      try {
+        temporalHealth = await getTemporalHealth();
+      } catch (err) {
         temporalHealth = {
           server_alive: false,
           worker_alive: false,
           worker_process_alive: false,
           registered_queues: [],
           last_op_at: null,
-          last_error: null,
+          last_error: err instanceof Error ? err.message : String(err),
         };
-      } else {
-        try {
-          temporalHealth = await getTemporalHealth();
-        } catch (err) {
-          temporalHealth = {
-            server_alive: false,
-            worker_alive: false,
-            worker_process_alive: false,
-            registered_queues: [],
-            last_op_at: null,
-            last_error: err instanceof Error ? err.message : String(err),
-          };
-        }
       }
 
       // Load project config with diagnostics — surface errors instead of silently ignoring

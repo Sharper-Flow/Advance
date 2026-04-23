@@ -36,7 +36,7 @@ New queues can be registered at runtime via `InProcessWorker.registerQueue(taskQ
 
 When `probeTemporalWorkerRuntime()` reports Bun (or any unsupported worker runtime), plugin-init spawns one detached Node child process per task queue via `createOutOfProcessWorker`. Each child runs `plugin/src/temporal/worker.ts` (`runTemporalWorkerFromEnv`), reading its task queue + address + namespace from env. Stdout/stderr is routed to the file-sink logger only — never to console — to avoid session spam.
 
-Node binary discovery: `resolveNodeExecutable()` checks `ADV_NODE_PATH` first, then walks `PATH`. If no Node is found, plugin init throws a remediation error suggesting `nvm`/Homebrew install + `ADV_NODE_PATH`. Users can opt into file-backed fallback with `ADV_ALLOW_DEGRADED_FALLBACK=1`.
+Node binary discovery: `resolveNodeExecutable()` checks `ADV_NODE_PATH` first, then walks `PATH`. If no Node is found, plugin init throws a remediation error suggesting `nvm`/Homebrew install + `ADV_NODE_PATH`. There is no runtime fallback to the file-backed backend.
 
 Restart policy: on non-zero child exit, `createOutOfProcessWorker` schedules respawn with exponential backoff (1s → 3s → 10s). Maximum 3 attempts per queue. After exhaustion, the queue is marked dead and surfaced via `adv_status` → `worker_process_alive: false`. No automatic fallback to file-backed — that's an init-time decision.
 
@@ -105,7 +105,7 @@ The Bun-host path uses one Node child per queue with restart backoff `1s -> 3s -
 | --- | --- | --- |
 | `server_alive=false` | Temporal dev server unreachable | Start / restore Temporal runtime first |
 | `server_alive=true`, `worker_alive=true`, `worker_process_alive=false` | OOP child crashed and exhausted restart budget | Run `adv_temporal_worker_restart`; inspect `last_error` |
-| `worker_alive=false` | No worker registered (degraded file-backed mode or init failure) | Check `ADV_DISABLE_TEMPORAL`, `ADV_ALLOW_DEGRADED_FALLBACK`, init logs |
+| `worker_alive=false` | No worker registered (init failure or early bootstrap abort) | Check init logs, Node availability, and Temporal server reachability |
 | Bun host + init error about Node | Node binary not found | Install Node or set `ADV_NODE_PATH` |
 | Error about worker bundle not found | Dist worker missing for OOP path | Run `pnpm run build:worker` in `plugin/` |
 
@@ -170,8 +170,8 @@ The hybrid worker model exists because earlier wiring of the Temporal swap into 
 - **Symptom:** every opencode session emitted `[plugin-init] (warn) Plugin init failed: Webpack finished with errors ...` plus continuous `temporalio_client` retry errors. Sessions became unusable; `adv_*` tools returned `ADV_PLUGIN_INIT_FAILED` stubs.
 - **Root cause:** opencode ships as a compiled Bun 1.3.8 binary. `@temporalio/worker.Worker.create()` internally spawns a Workflow Worker Thread whose `require('@temporalio/common')` fails from Bun's install-cache path. The "Webpack finished with errors" message is misleading boilerplate — webpack itself succeeds. Upstream: [temporalio/sdk-typescript#1334](https://github.com/temporalio/sdk-typescript/issues/1334), [oven-sh/bun#27058](https://github.com/oven-sh/bun/issues/27058), [oven-sh/bun#27464](https://github.com/oven-sh/bun/issues/27464).
 - **Triggered by:** `replaceAdvStorageLayerTemporal` scaffold landing + `migrateAdvStateTemporalRetire` Phase A wiring Temporal into plugin bootstrap.
-- **Immediate workaround (still in place on some hosts):** `export ADV_DISABLE_TEMPORAL=1` in `~/.zshenv`. Routes the plugin through the file-backed harness. Must be unset before resuming the Temporal cutover (see `migrateAdvStateTemporalRetire` resume preconditions).
-- **Permanent fix:** shipped in `fixTemporalWorkerBundleFailure` (archived 2026-04-21). The hybrid worker model documented above (Node host → in-process; Bun host → out-of-process Node child via `createOutOfProcessWorker`) is the structural answer. Phase 1 also narrowed the `logger.warn` → `logger.info` for the Temporal-init failure path so it stops reaching the console, added `ADV_ALLOW_DEGRADED_FALLBACK=1` opt-in, and added a fast `canReachTemporalAddress()` short-circuit so `adv_status` no longer hangs ~5s when the server is offline. Phase 3 hardened workflow determinism (`gate-reentry.ts` accepts an explicit `now`) and added the `withTestWorkflowEnvironment` helper to prevent `/tmp/temporal-test-server-*` zombie-proc leaks.
+- **Historical workaround:** during the 2026-04-21 incident, some hosts temporarily set `ADV_DISABLE_TEMPORAL=1` in shell config to route through the file-backed harness. That workaround is now retired and should be removed if still present.
+- **Permanent fix:** shipped in `fixTemporalWorkerBundleFailure` (archived 2026-04-21). The hybrid worker model documented above (Node host → in-process; Bun host → out-of-process Node child via `createOutOfProcessWorker`) is the structural answer. Phase 1 also narrowed the `logger.warn` → `logger.info` for the Temporal-init failure path so it stops reaching the console, added a fast `canReachTemporalAddress()` short-circuit so `adv_status` no longer hangs ~5s when the server is offline, and later Temporal-only cutover work removed runtime fallback flags entirely. Phase 3 hardened workflow determinism (`gate-reentry.ts` accepts an explicit `now`) and added the `withTestWorkflowEnvironment` helper to prevent `/tmp/temporal-test-server-*` zombie-proc leaks.
 
 ### Cross-references
 

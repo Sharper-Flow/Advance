@@ -122,6 +122,7 @@ function makeLegacyStore(): Store {
 
 describe("Temporal store backend adapter", () => {
   it("overrides temporal-backed namespaces while preserving legacy specs/create", async () => {
+    const wisdomEntries: any[] = [];
     const changeHandle = {
       query: vi.fn(async (queryDef: any, ..._args: any[]) => {
         const name = queryDef?.name ?? queryDef;
@@ -144,7 +145,7 @@ describe("Temporal store backend adapter", () => {
                 tdd_phase: "none",
               },
             ],
-            wisdom: [],
+            wisdom: wisdomEntries,
             gates: {
               proposal: { status: "pending" },
               discovery: { status: "pending" },
@@ -171,7 +172,19 @@ describe("Temporal store backend adapter", () => {
         }
         return null;
       }),
-      executeUpdate: vi.fn(async () => null),
+      executeUpdate: vi.fn(async (_def: any, options?: { args?: any[] }) => {
+        const args = options?.args ?? [];
+        if (args[0] === "pattern" && args[1] === "keep it deterministic") {
+          wisdomEntries.push({
+            id: "ws-1",
+            type: "pattern",
+            content: "keep it deterministic",
+            source_task: undefined,
+            recorded_at: "2026-04-18T00:00:01.000Z",
+          });
+        }
+        return null;
+      }),
       signal: vi.fn(async () => {}),
     };
 
@@ -546,7 +559,7 @@ describe("Temporal store backend adapter", () => {
   );
 
   describe("closeBatch", () => {
-    it("falls back to legacy close per-item when Temporal workflows are not found", async () => {
+    it("propagates Temporal errors without falling back to legacy", async () => {
       const changeHandle = {
         query: vi.fn(async () => {
           throw new Error("Workflow execution not found");
@@ -586,16 +599,16 @@ describe("Temporal store backend adapter", () => {
         projectId: "proj1",
       });
 
-      const result = await adapted.changes.closeBatch(["chg-a", "chg-b"], {
-        reason: "not_planned",
-        approved_by_user: true,
-        approved_at: "2026-04-21T00:00:00Z",
-        approval_evidence: "ok",
-      });
+      await expect(
+        adapted.changes.closeBatch(["chg-a", "chg-b"], {
+          reason: "not_planned",
+          approved_by_user: true,
+          approved_at: "2026-04-21T00:00:00Z",
+          approval_evidence: "ok",
+        }),
+      ).rejects.toThrow("Workflow execution not found");
 
-      expect(result.success).toBe(true);
-      expect(result.closed).toBe(2);
-      expect(legacy.changes.close).toHaveBeenCalledTimes(2);
+      expect(legacy.changes.close).not.toHaveBeenCalled();
     });
 
     it("pre-validates and fail-alls via Temporal query when workflows exist", async () => {

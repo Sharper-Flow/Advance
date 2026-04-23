@@ -1,5 +1,7 @@
 # Storage Direction Report
 
+> Historical investigation artifact. Captures the evidence and recommendation from an earlier direction study. References to `ADV_DISABLE_TEMPORAL` describe the session state at the time of that investigation, not the current runtime contract.
+
 ## Executive Summary
 
 This investigation does **not** support retiring the local legacy storage path.

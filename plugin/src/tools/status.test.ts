@@ -24,7 +24,6 @@ describe("Status Tools", () => {
   let store: Store;
 
   beforeEach(async () => {
-    vi.stubEnv("ADV_DISABLE_TEMPORAL", "");
     tempDir = await createTempDir();
     await createTestProject(tempDir);
     store = await createLegacyStore(tempDir);
@@ -34,7 +33,6 @@ describe("Status Tools", () => {
     store.close();
     await cleanupTempDir(tempDir);
     vi.restoreAllMocks();
-    vi.unstubAllEnvs();
   });
 
   describe("adv_status", () => {

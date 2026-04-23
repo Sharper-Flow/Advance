@@ -13,39 +13,9 @@ import {
 
 describe("benchmark-temporal scaffold (A1)", () => {
   describe("checkEnvBypass", () => {
-    it("returns ok=true when neither bypass flag is set", () => {
-      const originalDisable = process.env.ADV_DISABLE_TEMPORAL;
-      const originalFallback = process.env.ADV_ALLOW_DEGRADED_FALLBACK;
-      delete process.env.ADV_DISABLE_TEMPORAL;
-      delete process.env.ADV_ALLOW_DEGRADED_FALLBACK;
-
+    it("returns ok=true when no bypass flags are set", () => {
       const result = checkEnvBypass();
       expect(result.ok).toBe(true);
-
-      process.env.ADV_DISABLE_TEMPORAL = originalDisable;
-      process.env.ADV_ALLOW_DEGRADED_FALLBACK = originalFallback;
-    });
-
-    it("returns ok=false when ADV_DISABLE_TEMPORAL is set", () => {
-      const original = process.env.ADV_DISABLE_TEMPORAL;
-      process.env.ADV_DISABLE_TEMPORAL = "1";
-
-      const result = checkEnvBypass();
-      expect(result.ok).toBe(false);
-      expect(result).toHaveProperty("remediation");
-
-      process.env.ADV_DISABLE_TEMPORAL = original;
-    });
-
-    it("returns ok=false when ADV_ALLOW_DEGRADED_FALLBACK is set", () => {
-      const original = process.env.ADV_ALLOW_DEGRADED_FALLBACK;
-      process.env.ADV_ALLOW_DEGRADED_FALLBACK = "1";
-
-      const result = checkEnvBypass();
-      expect(result.ok).toBe(false);
-      expect(result).toHaveProperty("remediation");
-
-      process.env.ADV_ALLOW_DEGRADED_FALLBACK = original;
     });
   });
 
