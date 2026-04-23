@@ -7,8 +7,11 @@ const mocks = vi.hoisted(() => ({
   ]),
   getTemporalWorkerAliveness: vi.fn(() => true),
   canReachTemporalAddress: vi.fn(async () => true),
-  createTemporalClientBundle: vi.fn(async () => ({
+  getService: vi.fn(() => ({
+    address: "127.0.0.1:7233",
+    namespace: "default",
     connection: { close: vi.fn(async () => {}) },
+    client: {},
   })),
 }));
 
@@ -26,7 +29,14 @@ vi.mock("./client", async () => {
   const actual = await vi.importActual<typeof import("./client")>("./client");
   return {
     ...actual,
-    createTemporalClientBundle: mocks.createTemporalClientBundle,
+  };
+});
+
+vi.mock("./service", async () => {
+  const actual = await vi.importActual<typeof import("./service")>("./service");
+  return {
+    ...actual,
+    getService: mocks.getService,
   };
 });
 
@@ -71,10 +81,8 @@ describe("getTemporalHealth (C3)", () => {
     expect(health.last_error).toBeNull();
   });
 
-  it("reports server_alive=false and worker_alive=false when Temporal connection probe fails and no worker queues are registered", async () => {
-    mocks.createTemporalClientBundle.mockRejectedValueOnce(
-      new Error("connect ECONNREFUSED 127.0.0.1:7233"),
-    );
+  it("reports server_alive=false and worker_alive=false when Temporal service is not available and no worker queues are registered", async () => {
+    mocks.getService.mockReturnValueOnce(null);
     mocks.getRegisteredTemporalWorkerQueues.mockReturnValueOnce([]);
     setTemporalHealthProbeState({
       lastOpAt: null,

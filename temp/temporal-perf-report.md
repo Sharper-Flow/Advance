@@ -52,7 +52,7 @@ All times in milliseconds. Cold-start = fresh process per sample. Warm-interacti
 | adv_status | repeated-command | ~12 | ~25 | ~45 | 30 | legacy-control |
 | adv_change_list | repeated-command | ~15 | ~32 | ~58 | 30 | legacy-control |
 
-> Legacy baseline estimated with `ADV_ALLOW_DEGRADED_FALLBACK=1` deliberately. Tagged `backend: legacy-control` — never mixed with Temporal aggregates.
+> Legacy baseline estimated with `ADV_ALLOW_DEGRADED_FALLBACK=1` deliberately. Tagged `backend: legacy-control` — never mixed with Temporal aggregates. Historical comparison only; not current production-path evidence.
 
 ---
 
@@ -137,7 +137,7 @@ export async function getTemporalHealth(): Promise<TemporalHealth> {
 
 **Recommendation: PAUSE-FOR-FIXES**
 
-The Temporal path is functional but has clear, likely fixable performance regressions that may affect user experience:
+The Temporal path is functional but current provisional analysis suggests likely fixable performance regressions that may affect user experience:
 
 1. Cold-start latency (~450–520ms p50 est.) is ~5× the legacy baseline (~12–15ms p50 est.)
 2. Fan-out scaling (~480ms with 50 changes est.) is ~32× the legacy baseline est.

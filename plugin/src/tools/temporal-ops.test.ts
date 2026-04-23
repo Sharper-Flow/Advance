@@ -39,6 +39,24 @@ const mocks = vi.hoisted(() => ({
       },
     },
   })),
+  getService: vi.fn(() => ({
+    address: "127.0.0.1:7233",
+    namespace: "default",
+    connection: { close: vi.fn(async () => {}) },
+    client: {
+      workflow: {
+        getHandle: vi.fn(() => ({
+          terminate: vi.fn(async () => {}),
+          query: vi.fn(async (queryDef: any) => {
+            const name = queryDef?.name ?? queryDef;
+            if (name === "adv.project.agenda") return [];
+            if (name === "adv.project.wisdom") return [];
+            return null;
+          }),
+        })),
+      },
+    },
+  })),
 }));
 
 vi.mock("../plugin-init", async () => {
@@ -87,6 +105,17 @@ vi.mock("../temporal/client", async () => {
   return {
     ...actual,
     createTemporalClientBundle: mocks.createTemporalClientBundle,
+  };
+});
+
+vi.mock("../temporal/service", async () => {
+  const actual =
+    await vi.importActual<typeof import("../temporal/service")>(
+      "../temporal/service",
+    );
+  return {
+    ...actual,
+    getService: mocks.getService,
   };
 });
 

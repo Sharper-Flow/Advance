@@ -9,8 +9,8 @@ import { writeJsonlAtomic } from "../storage/jsonl-atomic-writer";
 import { listProjectWisdom } from "../storage/project-wisdom";
 import {
   buildProjectWorkflowId,
-  createTemporalClientBundle,
 } from "../temporal/client";
+import { getService } from "../temporal/service";
 import { projectAgendaQuery, projectWisdomQuery } from "../temporal/messages";
 import {
   rebuildProjectWorkflowState,
@@ -128,7 +128,13 @@ export const temporalOpsTools = {
         wisdomPath: store.paths.wisdom,
       });
 
-      const bundle = await createTemporalClientBundle(process.env);
+      const bundle = getService();
+      if (!bundle) {
+        return formatToolOutput({
+          success: false,
+          error: "Temporal service layer not initialized — cannot repair workflow state",
+        });
+      }
       try {
         const projectHandle = asProjectWorkflowHandle(
           bundle.client.workflow.getHandle(buildProjectWorkflowId(projectId)),

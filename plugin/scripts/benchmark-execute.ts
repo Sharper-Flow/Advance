@@ -16,7 +16,7 @@
  *   temp/bench/<run-id>/summary.json
  */
 
-import { mkdir, writeFile, rm } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import {
   runColdStart,
@@ -75,7 +75,10 @@ async function main() {
   const records: BenchmarkRecord[] = [];
 
   // Use generated fixture IDs instead of hardcoded ones
-  const fixtureChangeId = fixture.changeIds[0] ?? "bench-change-000";
+  const fixtureChangeId = fixture.changeIds[0];
+  if (!fixtureChangeId) {
+    throw new Error("Benchmark fixture produced no change IDs");
+  }
   const fixtureTaskId = `tk-bench-0-0`;
 
   // Main benchmark matrix

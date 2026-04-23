@@ -130,7 +130,7 @@ export async function tryInitStore(
 
   try {
     let temporalBundle:
-      | Awaited<ReturnType<typeof createTemporalClientBundle>>
+      | Awaited<ReturnType<typeof initStsl>>
       | undefined;
     const temporalDisabled = process.env.ADV_DISABLE_TEMPORAL === "1";
     profilePluginInit("backend_mode_detected", {

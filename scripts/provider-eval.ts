@@ -130,13 +130,13 @@ const PROVIDERS: Record<string, ProviderConfig> = {
     model_id: "anthropic/claude-sonnet-4",
     name: "Claude Sonnet 4",
     hint_file: join(REPO_ROOT, ".opencode/agent-parts/providers/claude.md"),
-    prompt_files: ["shared.yaml"],
+    prompt_files: ["shared.yaml", "claude.yaml"],
   },
   gpt: {
     model_id: "openai/gpt-4.1",
     name: "GPT-4.1",
     hint_file: join(REPO_ROOT, ".opencode/agent-parts/providers/gpt.md"),
-    prompt_files: ["shared.yaml"],
+    prompt_files: ["shared.yaml", "gpt.yaml"],
   },
 };
 

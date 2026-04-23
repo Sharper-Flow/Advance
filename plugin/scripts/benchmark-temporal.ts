@@ -137,7 +137,7 @@ export function checkEnvBypass(): { ok: true } | { ok: false; remediation: strin
       ok: false,
       remediation:
         "ADV_ALLOW_DEGRADED_FALLBACK is set. This would contaminate measurements with legacy-file fallback paths. " +
-        "Unset it for Temporal-only benchmarking. For legacy-control baselines, use the dedicated --mode=legacy-control flag (not yet implemented).",
+        "Unset it for Temporal-only benchmarking. Any historical legacy-control comparison must be run outside this Temporal-only harness.",
     };
   }
 
@@ -573,6 +573,30 @@ export interface PromotePipelineResult {
   warning: string | undefined;
 }
 
+function asPromotableWisdomEntry(entry: unknown): {
+  type: string;
+  content: string;
+  source_task?: string;
+} | null {
+  if (!entry || typeof entry !== "object") return null;
+  const candidate = entry as Record<string, unknown>;
+  if (
+    typeof candidate.type !== "string" ||
+    typeof candidate.content !== "string"
+  ) {
+    return null;
+  }
+
+  return {
+    type: candidate.type,
+    content: candidate.content,
+    source_task:
+      typeof candidate.source_task === "string"
+        ? candidate.source_task
+        : undefined,
+  };
+}
+
 /**
  * Dedicated adapter for `adv_wisdom_add { promote: true }` that records
  * TWO segment timings per sample, isolating the dual Temporal connections.
@@ -599,6 +623,11 @@ export async function runPromotePipeline(
     const { getBoundedProjectWorkflowAccess } = await import("../src/tools/project-workflow-helper.ts");
     const { addProjectWisdomUpdate, projectWisdomQuery } = await import("../src/temporal/messages.ts");
     const { writeJsonlAtomic } = await import("../src/storage/jsonl-atomic-writer.ts");
+    const promotableEntry = asPromotableWisdomEntry(entry);
+
+    if (!promotableEntry) {
+      throw new Error("wisdom.add returned unexpected entry shape");
+    }
 
     const temporal = await getBoundedProjectWorkflowAccess({
       projectDir: store.paths.root,
@@ -608,10 +637,10 @@ export async function runPromotePipeline(
     if (temporal.mode === "workflow-backed") {
       promoted = await temporal.handle.executeUpdate(addProjectWisdomUpdate, {
         args: [{
-          type: (entry as { type: string }).type,
-          content: (entry as { content: string }).content,
+          type: promotableEntry.type,
+          content: promotableEntry.content,
           sourceChange: changeId,
-          sourceTask: (entry as { source_task?: string }).source_task,
+          sourceTask: promotableEntry.source_task,
         }],
       });
 

@@ -89,7 +89,14 @@ export async function getBoundedProjectWorkflowAccess(input: {
     };
   }
 
-  const bundle = await createTemporalClientBundle(process.env);
+  const bundle = getService();
+  if (!bundle) {
+    return {
+      mode: "unavailable",
+      projectId,
+      reason: "Temporal service layer not initialized",
+    };
+  }
   return {
     mode: "workflow-backed",
     projectId,
