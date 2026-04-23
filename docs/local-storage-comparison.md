@@ -7,11 +7,11 @@
 ## Benchmarks
 | Candidate | Operation | p50 | p95 | Notes |
 | --- | --- | ---: | ---: | --- |
-| sqlite_first_candidate | adv_status | 0.6 | 3.1 | current local ADV path representative hot-path tool |
-| jsonl | agenda.add | 0.4 | 0.6 | agenda append |
-| jsonl | agenda.load | 0.5 | 2.5 | agenda load |
-| jsonl | wisdom.add | 0.3 | 0.7 | wisdom append |
-| jsonl | wisdom.load | 0.5 | 3.0 | wisdom load |
+| sqlite_first_candidate | adv_status | 0.7 | 0.7 | current local ADV path representative hot-path tool |
+| jsonl | agenda.add | 0.4 | 0.7 | agenda append |
+| jsonl | agenda.load | 0.3 | 0.4 | agenda load |
+| jsonl | wisdom.add | 0.4 | 0.5 | wisdom append |
+| jsonl | wisdom.load | 0.4 | 0.5 | wisdom load |
 
 ## Tradeoffs
 ### sqlite_first_candidate

@@ -11,7 +11,7 @@
 ## Operations
 | Operation | Samples | min | p50 | p95 | max | avg |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| store.init | 1 | 8.8 | 8.8 | 8.8 | 8.8 | 8.8 |
-| adv_status | 4 | 0.6 | 0.7 | 0.8 | 0.8 | 0.7 |
-| adv_change_show | 4 | 0.1 | 0.1 | 0.2 | 0.2 | 0.1 |
-| adv_task_list | 4 | 0.1 | 0.2 | 0.2 | 0.2 | 0.2 |
+| store.init | 1 | 5.7 | 5.7 | 5.7 | 5.7 | 5.7 |
+| adv_status | 4 | 0.3 | 0.4 | 0.6 | 0.6 | 0.4 |
+| adv_change_show | 4 | 0.1 | 0.1 | 0.1 | 0.1 | 0.1 |
+| adv_task_list | 4 | 0.1 | 0.1 | 0.1 | 0.1 | 0.1 |
