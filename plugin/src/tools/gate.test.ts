@@ -6,7 +6,7 @@
 
 import { describe, test, expect, beforeEach, afterEach, vi } from "vitest";
 import { gateTools } from "./gate";
-import { createStore, type Store } from "../storage/store";
+import { createLegacyStore, type Store } from "../storage/store";
 import {
   createTempDir,
   cleanupTempDir,
@@ -38,7 +38,7 @@ describe("Gate Tools", () => {
   beforeEach(async () => {
     tempDir = await createTempDir();
     await createTestProject(tempDir);
-    store = await createStore(tempDir);
+    store = await createLegacyStore(tempDir);
     await store.init();
     await store.sync();
   });
@@ -220,7 +220,7 @@ describe("Gate Tools", () => {
       );
 
       // Reload store to verify persistence
-      const freshStore = await createStore(tempDir);
+      const freshStore = await createLegacyStore(tempDir);
       await freshStore.sync();
 
       const status = await gateTools.adv_gate_status.execute(
@@ -313,7 +313,7 @@ describe("adv_gate_complete planning — readiness enforcement", () => {
   beforeEach(async () => {
     tempDir = await createTempDir();
     await createTestProject(tempDir);
-    store = await createStore(tempDir);
+    store = await createLegacyStore(tempDir);
     await store.init();
     await store.sync();
 

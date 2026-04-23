@@ -12,7 +12,7 @@ import { join } from "path";
 import { changeTools } from "../tools/change";
 import { statusTools } from "../tools/status";
 import { gateTools } from "../tools/gate";
-import { createStore, type Store } from "../storage/store";
+import { createLegacyStore, type Store } from "../storage/store";
 import {
   createTempDir,
   cleanupTempDir,
@@ -109,7 +109,7 @@ mechanisms introduced.
       ),
     );
 
-    store = await createStore(tempDir);
+    store = await createLegacyStore(tempDir);
     await store.init();
     await store.sync();
   });

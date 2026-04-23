@@ -42,4 +42,29 @@ describe("createStore selector", () => {
     });
     expect(result).toEqual({ kind: "temporal-store" });
   });
+
+  it("throws when temporalBundle is not provided (Temporal-only runtime)", async () => {
+    const { createStore } = await import("./store");
+
+    await expect(
+      createStore("/tmp/repo", { externalRoot: "/tmp/external/proj" }),
+    ).rejects.toThrow(/temporalBundle is required/i);
+
+    expect(mocks.createLegacyStore).not.toHaveBeenCalled();
+    expect(mocks.createTemporalStoreBackend).not.toHaveBeenCalled();
+  });
+
+  it("throws when temporalBundle is null (Temporal-only runtime)", async () => {
+    const { createStore } = await import("./store");
+
+    await expect(
+      createStore("/tmp/repo", {
+        temporalBundle: undefined,
+        externalRoot: "/tmp/external/proj",
+      }),
+    ).rejects.toThrow(/temporalBundle is required/i);
+
+    expect(mocks.createLegacyStore).not.toHaveBeenCalled();
+    expect(mocks.createTemporalStoreBackend).not.toHaveBeenCalled();
+  });
 });

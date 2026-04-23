@@ -6,7 +6,7 @@
 
 import { describe, test, expect, beforeEach, afterEach } from "vitest";
 import { taskTools } from "./task";
-import { createStore, type Store } from "../storage/store";
+import { createLegacyStore, type Store } from "../storage/store";
 import {
   createTempDir,
   cleanupTempDir,
@@ -21,7 +21,7 @@ describe("Task Tools", () => {
   beforeEach(async () => {
     tempDir = await createTempDir();
     await createTestProject(tempDir);
-    store = await createStore(tempDir);
+    store = await createLegacyStore(tempDir);
   });
 
   afterEach(async () => {
@@ -1214,7 +1214,7 @@ describe("implementation_summary on adv_task_update (Leak #6)", () => {
   beforeEach(async () => {
     tempDir2 = await createTempDir();
     await createTestProject(tempDir2);
-    store2 = await createStore(tempDir2);
+    store2 = await createLegacyStore(tempDir2);
     await store2.init();
     await store2.sync();
   });
@@ -1311,7 +1311,7 @@ describe("cancelledBlockerContext in adv_task_ready (Leak #8)", () => {
   beforeEach(async () => {
     tempDir3 = await createTempDir();
     await createTestProject(tempDir3);
-    store3 = await createStore(tempDir3);
+    store3 = await createLegacyStore(tempDir3);
     await store3.init();
     await store3.sync();
   });

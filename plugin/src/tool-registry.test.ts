@@ -11,7 +11,7 @@ import {
   createDegradedToolMap,
   createToolMap,
 } from "./tool-registry";
-import { createStore } from "./storage/store";
+import { createLegacyStore } from "./storage/store";
 import {
   createTempDir,
   cleanupTempDir,
@@ -59,7 +59,7 @@ describe("createDegradedToolMap parity with createToolMap", () => {
     // Drift guard: if a new tool is added to createToolMap but ADV_TOOL_NAMES
     // is not updated, agents in degraded sessions will see "tool missing" for
     // that tool and lose the structured ADV_PLUGIN_INIT_FAILED diagnostic path.
-    const store = await createStore(tempDir);
+    const store = await createLegacyStore(tempDir);
     await store.init();
     try {
       const realToolNames = Object.keys(

@@ -5,7 +5,7 @@
  * These tests verify the plugin correctly implements the @opencode-ai/plugin interface.
  */
 
-import { describe, test, expect, beforeEach, afterEach } from "vitest";
+import { describe, test, expect, beforeEach, afterEach, vi } from "vitest";
 import {
   AdvancePlugin,
   extractCompletedTask,
@@ -20,6 +20,28 @@ import {
 } from "./__tests__/setup";
 import { addProjectWisdom } from "./storage/project-wisdom";
 import { ADV_TOOL_NAMES } from "./tool-registry";
+import { createLegacyStore } from "./storage/store-legacy";
+
+// Mock plugin-init to bypass Temporal requirement in integration tests.
+// Degraded-mode tests (malformed project.json) are preserved by checking
+// config validity before creating the store.
+vi.mock("./plugin-init", async () => {
+  const actual =
+    await vi.importActual<typeof import("./plugin-init")>("./plugin-init");
+  return {
+    ...actual,
+    tryInitStore: async (effectiveDir: string, externalRoot?: string) => {
+      try {
+        const store = await createLegacyStore(effectiveDir, { externalRoot });
+        await store.init();
+        return { store, initError: null };
+      } catch (e) {
+        const initError = e instanceof Error ? e : new Error(String(e));
+        return { store: null, initError };
+      }
+    },
+  };
+});
 
 // =============================================================================
 // Mock Plugin Input

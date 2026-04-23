@@ -9,7 +9,7 @@ import { describe, test, expect, beforeEach, afterEach } from "vitest";
 import { rm as _rm } from "fs/promises";
 import { join as _join } from "path";
 import { investmentTools } from "./investment";
-import { createStore, type Store } from "../storage/store";
+import { createLegacyStore, type Store } from "../storage/store";
 import {
   createTempDir,
   cleanupTempDir,
@@ -31,7 +31,7 @@ describe("Investment Tools", () => {
   beforeEach(async () => {
     tempDir = await createTempDir();
     await createTestProject(tempDir);
-    store = await createStore(tempDir);
+    store = await createLegacyStore(tempDir);
   });
 
   afterEach(async () => {

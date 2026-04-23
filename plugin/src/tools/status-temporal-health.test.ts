@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { statusTools } from "./status";
-import { createStore, type Store } from "../storage/store";
+import { createLegacyStore, type Store } from "../storage/store";
 import {
   createTempDir,
   cleanupTempDir,
@@ -71,7 +71,7 @@ describe("adv_status temporal health/migration status (C4)", () => {
     vi.stubEnv("ADV_DISABLE_TEMPORAL", "");
     tempDir = await createTempDir();
     await createTestProject(tempDir);
-    store = await createStore(tempDir);
+    store = await createLegacyStore(tempDir);
   });
 
   afterEach(async () => {
