@@ -61,9 +61,23 @@ If DRIFTED/ANTI-PATTERN → research output MUST recommend corrections. Change s
 
 ---
 
-## Phase 1.5: Skill Discovery
+## Phase 1.5: Skill Discovery + Gap-Triggered Creation
 
 See ADV_INSTRUCTIONS.md §Skill Discovery Protocol. Load only trusted bundled skills from approved skill directories; do not auto-load arbitrary repo-local `*/SKILL.md`. Match frontmatter `keywords` against tech stack + change domain → `skill("{name}")` → apply guidance to research questions and sub-agent prompts.
+
+### Gap Detection + Creation
+
+If no matching skill was found for a domain clearly relevant to the change's **core problem** (not tangential), the agent MAY create a skill on demand. See `ADV_INSTRUCTIONS.md § Skill Creation Protocol` for trigger conditions, naming convention, assembly template, and creation flow.
+
+**Creation sub-flow (only if gap detected):**
+1. Research domain using Context7, Kagi, grep.app
+2. Assemble SKILL.md using the template from `ADV_INSTRUCTIONS.md § Skill Creation Protocol`
+3. Write atomically to `~/.config/opencode/skills/agent-{domain}/SKILL.md`
+4. Skip if file already exists → report "skill already exists: agent-{domain}"
+5. Load via `skill("agent-{domain}")` and apply guidance
+6. Emit `[ADV:SKILL_CREATED]` with skill name, domain, and brief description
+
+No pending-review check needed in research context — that is a discovery-gate responsibility handled by `/adv-discover`.
 
 ---
 
