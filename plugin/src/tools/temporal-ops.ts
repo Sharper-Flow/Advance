@@ -36,6 +36,23 @@ interface WorkflowClientLike {
 
 type WorkflowClientSurface = { workflow: WorkflowClientLike };
 
+type ProjectWorkflowHandle = {
+  terminate: (reason?: string) => Promise<void>;
+  query: (queryDef: unknown, ...args: unknown[]) => Promise<unknown>;
+};
+
+export function asWorkflowClientSurface(
+  client: unknown,
+): WorkflowClientSurface {
+  return client as WorkflowClientSurface;
+}
+
+export function asProjectWorkflowHandle(
+  handle: unknown,
+): ProjectWorkflowHandle {
+  return handle as ProjectWorkflowHandle;
+}
+
 const RepairedProjectWisdomEntrySchema = z.object({
   id: z.string(),
   type: WisdomTypeSchema,
@@ -113,12 +130,9 @@ export const temporalOpsTools = {
 
       const bundle = await createTemporalClientBundle(process.env);
       try {
-        const projectHandle = bundle.client.workflow.getHandle(
-          buildProjectWorkflowId(projectId),
-        ) as unknown as {
-          terminate: (reason?: string) => Promise<void>;
-          query: (queryDef: unknown, ...args: unknown[]) => Promise<unknown>;
-        };
+        const projectHandle = asProjectWorkflowHandle(
+          bundle.client.workflow.getHandle(buildProjectWorkflowId(projectId)),
+        );
 
         await projectHandle
           .terminate(
@@ -127,7 +141,7 @@ export const temporalOpsTools = {
           .catch(() => undefined);
 
         await rebuildProjectWorkflowState(
-          bundle.client as unknown as WorkflowClientSurface,
+          asWorkflowClientSurface(bundle.client),
           {
             projectId,
             initializedAt: new Date().toISOString(),
@@ -147,18 +161,16 @@ export const temporalOpsTools = {
         );
 
         await reImportChangeState(
-          bundle.client as unknown as WorkflowClientSurface,
+          asWorkflowClientSurface(bundle.client),
           {
             projectId,
             change: changeResult.data,
           },
         );
 
-        const repairedHandle = bundle.client.workflow.getHandle(
-          buildProjectWorkflowId(projectId),
-        ) as unknown as {
-          query: (queryDef: unknown, ...args: unknown[]) => Promise<unknown>;
-        };
+        const repairedHandle = asProjectWorkflowHandle(
+          bundle.client.workflow.getHandle(buildProjectWorkflowId(projectId)),
+        );
         const agenda = z
           .array(AgendaItemSchema)
           .parse(await repairedHandle.query(projectAgendaQuery, undefined));

@@ -84,10 +84,10 @@ tool.schema = {
   array: <T extends z.ZodType>(schema: T) => z.array(schema),
   enum: <T extends [string, ...string[]]>(values: T) => z.enum(values),
   object: <T extends z.ZodRawShape>(shape: T) => z.object(shape),
-  record: <K extends z.ZodType<string>, V extends z.ZodType>(
-    key: K,
+  record: <V extends z.ZodType>(
+    key: z.ZodString,
     value: V,
-  ) => z.record(key as unknown as z.ZodString, value),
+  ) => z.record(key, value),
 };
 
 // Re-export types
