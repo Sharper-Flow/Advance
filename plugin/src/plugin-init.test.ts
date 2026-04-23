@@ -494,33 +494,48 @@ describe("rq-advshut1: bounded flush on shutdown after STSL changes", () => {
   it("calls store.flush → drainWorkers → store.close in order", async () => {
     const callOrder: string[] = [];
     const mockStore = {
-      flush: vi.fn(async () => { callOrder.push("flush"); }),
-      close: vi.fn(() => { callOrder.push("close"); }),
+      flush: vi.fn(async () => {
+        callOrder.push("flush");
+      }),
+      close: vi.fn(() => {
+        callOrder.push("close");
+      }),
     } as any;
 
     const mockWorker = {
-      shutdown: vi.fn(async () => { callOrder.push("drainWorker"); }),
+      shutdown: vi.fn(async () => {
+        callOrder.push("drainWorker");
+      }),
       queues: ["test-queue"],
     };
 
     mocks.createInProcessWorker.mockResolvedValue(mockWorker);
     mocks.probeTemporalWorkerRuntime.mockReturnValue({
-      supported: true, runtime: "node", reason: "node",
+      supported: true,
+      runtime: "node",
+      reason: "node",
     });
     mocks.resolveNodeExecutable.mockReturnValue({
-      found: true, path: "/usr/bin/node", source: "path",
+      found: true,
+      path: "/usr/bin/node",
+      source: "path",
     });
     mocks.ensureTemporalRuntime.mockImplementation(async () => ({
-      address: "127.0.0.1:7233", namespace: "default", startedRuntime: true,
+      address: "127.0.0.1:7233",
+      namespace: "default",
+      startedRuntime: true,
     }));
     mocks.getProjectId.mockResolvedValue("proj-shutdown");
     mocks.createStore.mockResolvedValue(mockStore);
 
-    const { tryInitStore, registerShutdownHandlers } = await import("./plugin-init");
+    const { tryInitStore, registerShutdownHandlers } =
+      await import("./plugin-init");
     await tryInitStore("/tmp/repo", "/tmp/external");
 
     const handlers = registerShutdownHandlers(mockStore);
-    const exitSpy = vi.spyOn(process, "exit").mockImplementation((() => {}) as any);
+    const exitSpy = vi
+      .spyOn(process, "exit")
+      .mockImplementation((() => {}) as any);
 
     handlers.shutdownWithFlush();
 
@@ -547,7 +562,9 @@ describe("rq-advshut1: bounded flush on shutdown after STSL changes", () => {
     const { registerShutdownHandlers } = await import("./plugin-init");
     const handlers = registerShutdownHandlers(mockStore);
 
-    const exitSpy = vi.spyOn(process, "exit").mockImplementation((() => {}) as any);
+    const exitSpy = vi
+      .spyOn(process, "exit")
+      .mockImplementation((() => {}) as any);
 
     handlers.shutdownWithFlush();
     handlers.shutdownWithFlush();

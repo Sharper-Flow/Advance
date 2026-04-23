@@ -8,14 +8,18 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { createTemporalStoreBackend } from "./store-temporal";
 import type { Store } from "./store-types";
-import type { ChangeWorkflowState, ProjectWorkflowState } from "../temporal/contracts";
-import { EventEmitter } from "node:events";
+import type {
+  ChangeWorkflowState,
+  ProjectWorkflowState,
+} from "../temporal/contracts";
 
 // ---------------------------------------------------------------------------
 // Mock helpers
 // ---------------------------------------------------------------------------
 
-function makeChangeState(overrides: Partial<ChangeWorkflowState> = {}): ChangeWorkflowState {
+function makeChangeState(
+  overrides: Partial<ChangeWorkflowState> = {},
+): ChangeWorkflowState {
   return {
     projectId: "proj1",
     changeId: overrides.changeId ?? "chg1",
@@ -98,7 +102,8 @@ function createMockHandle(state: ChangeWorkflowState) {
       if (name === "adv.change.completeGate") {
         const [gateId] = opts.args ?? [];
         if (state.gates[gateId as keyof typeof state.gates]) {
-          (state.gates[gateId as keyof typeof state.gates] as any).status = "done";
+          (state.gates[gateId as keyof typeof state.gates] as any).status =
+            "done";
         }
         return state; // Projection return
       }
@@ -155,7 +160,12 @@ function makeLegacyStore(): Store {
     },
     status: vi.fn(async () => ({
       changes: {
-        active: 0, draft: 0, pending: 0, archived: 0, closed: 0, recent: [],
+        active: 0,
+        draft: 0,
+        pending: 0,
+        archived: 0,
+        closed: 0,
+        recent: [],
       },
       recommendations: [],
     })),
@@ -360,7 +370,10 @@ describe("E2E: STSL + Memo + Projections + PSW Signals", () => {
     expect(ids).toEqual(["chg1", "chg2"]);
 
     // Close one — should not affect the other
-    await store.changes.close("chg1", { reason: "done", status: "closed" } as any);
+    await store.changes.close("chg1", {
+      reason: "done",
+      status: "closed",
+    } as any);
 
     // List again with includeClosed (list filters out closed by default)
     const list2 = await store.changes.list({ includeClosed: true });
@@ -377,7 +390,15 @@ describe("E2E: STSL + Memo + Projections + PSW Signals", () => {
         id: "chg1",
         title: "Pre-existing Change",
         status: "active",
-        gateProgress: { proposal: "done", discovery: "done", design: "pending", planning: "pending", execution: "pending", acceptance: "pending", release: "pending" },
+        gateProgress: {
+          proposal: "done",
+          discovery: "done",
+          design: "pending",
+          planning: "pending",
+          execution: "pending",
+          acceptance: "pending",
+          release: "pending",
+        },
         taskCounts: { total: 3, done: 1 },
         lastActivityAt: "2026-04-23T00:00:00.000Z",
         sourceVersion: 5,

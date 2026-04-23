@@ -402,7 +402,8 @@ export async function changeWorkflow(
  */
 function shouldContinueAsNew(threshold: number): boolean {
   const info = wf.workflowInfo();
-  const historyLength = (info as any).historyLength as number | undefined;
+  const historyLength = (info as wf.WorkflowInfo & { historyLength?: number })
+    .historyLength;
   return historyLength !== undefined && historyLength >= threshold;
 }
 
