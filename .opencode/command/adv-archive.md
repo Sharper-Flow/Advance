@@ -100,6 +100,13 @@ What shipped, what spec deltas applied.
 **{change-id}** · release ✓ · Shipped.
 ```
 
+After the archive summary is displayed, invoke reflection (non-blocking):
+
+- `adv_reflect changeId: {change-id}` → produce the reflection report
+- Runs after archive directory creation (Phase 6) and after archive summary (above)
+- If reflection fails → log a warning and continue — do NOT block the archive
+- Reflection report is informational only
+
 ---
 
 ## Phase 9: Git Finalization (Mandatory)

@@ -6,6 +6,7 @@
 
 import { describe, test, expect, beforeEach, afterEach } from "vitest";
 import { readFileSync } from "fs";
+import { join } from "path";
 import { reflectionTools } from "./reflection";
 import { createStore, type Store } from "../storage/store";
 import {
@@ -15,6 +16,7 @@ import {
   parseToolOutput,
 } from "../__tests__/setup";
 import { getReflectionsPath } from "../storage/reflection";
+import { addProjectWisdom } from "../storage/project-wisdom";
 
 // Archived change fixture with completed tasks and wisdom
 const ARCHIVED_CHANGE = {
@@ -218,13 +220,124 @@ describe("Reflection Tools", () => {
         };
       }>(result);
 
-      // Should have at least one friction item derived from wisdom
-      const hasDocsGap = parsed.reflection.plane2.friction_items.some(
-        (f) => f.category === "docs_gap" || f.category === "tool_gap",
-      );
       // Friction items are generated from wisdom + error_recovery
-      // The exact count depends on the heuristic, but there should be items
-      expect(parsed.reflection.plane2.friction_items.length).toBeGreaterThanOrEqual(0);
+      // The exact count depends on the heuristic
+      expect(parsed.reflection.plane2.friction_items).toBeInstanceOf(Array);
+    });
+
+    test("writes REFLECTION.md to archive dir when it exists", async () => {
+      const fs = await import("fs/promises");
+      const archiveDir = join(tempDir, ".adv", "archive", "2026-01-21-archivedChange");
+      await fs.mkdir(archiveDir, { recursive: true });
+
+      await reflectionTools.adv_reflect.execute(
+        { changeId: "archivedChange" },
+        store,
+      );
+
+      const mdPath = join(archiveDir, "REFLECTION.md");
+      const mdContent = readFileSync(mdPath, "utf-8");
+      expect(mdContent).toContain("# Reflection: archivedChange");
+      expect(mdContent).toContain("## Plane 1: Project Execution");
+      expect(mdContent).toContain("## Plane 2: System Friction");
+    });
+
+    test("sanitizes secrets in friction items", async () => {
+      const fs = await import("fs/promises");
+      const changeWithSecrets = {
+        ...ARCHIVED_CHANGE,
+        wisdom: [
+          {
+            id: "ws-secret001",
+            type: "gotcha",
+            content: "API key is abc123secret and bearer token xyz789",
+            recorded_at: "2026-01-21T02:00:00Z",
+          },
+        ],
+      };
+      await fs.writeFile(
+        `${tempDir}/.adv/changes/archivedChange/change.json`,
+        JSON.stringify(changeWithSecrets, null, 2),
+      );
+
+      const result = await reflectionTools.adv_reflect.execute(
+        { changeId: "archivedChange" },
+        store,
+      );
+      const parsed = parseToolOutput<{
+        reflection: {
+          plane2: {
+            friction_items: Array<{ description: string }>;
+          };
+        };
+      }>(result);
+
+      const desc = parsed.reflection.plane2.friction_items[0]?.description ?? "";
+      expect(desc).toContain("[REDACTED]");
+      expect(desc).not.toContain("abc123secret");
+      expect(desc).not.toContain("xyz789");
+    });
+
+    test("detects provider-specific friction from wisdom", async () => {
+      const fs = await import("fs/promises");
+      const changeWithProvider = {
+        ...ARCHIVED_CHANGE,
+        wisdom: [
+          {
+            id: "ws-provider001",
+            type: "gotcha",
+            content: "Bun runtime behaves differently for fs promises",
+            recorded_at: "2026-01-21T02:00:00Z",
+          },
+        ],
+      };
+      await fs.writeFile(
+        `${tempDir}/.adv/changes/archivedChange/change.json`,
+        JSON.stringify(changeWithProvider, null, 2),
+      );
+
+      const result = await reflectionTools.adv_reflect.execute(
+        { changeId: "archivedChange" },
+        store,
+      );
+      const parsed = parseToolOutput<{
+        reflection: {
+          plane2: {
+            friction_items: Array<{
+              category: string;
+              provider_specific?: { provider: string };
+            }>;
+          };
+        };
+      }>(result);
+
+      const item = parsed.reflection.plane2.friction_items.find(
+        (f) => f.category === "docs_gap",
+      );
+      expect(item).toBeDefined();
+      expect(item?.provider_specific?.provider).toBe("Bun");
+    });
+
+    test("computes wisdom_reuse_hits from project wisdom", async () => {
+      // Add project wisdom that overlaps with change/task keywords
+      await addProjectWisdom(tempDir, {
+        type: "pattern",
+        content: "Implement core logic using JSONL append-only storage",
+      });
+
+      const result = await reflectionTools.adv_reflect.execute(
+        { changeId: "archivedChange" },
+        store,
+      );
+      const parsed = parseToolOutput<{
+        reflection: {
+          plane1: {
+            wisdom: { wisdom_reuse_hits: number };
+          };
+        };
+      }>(result);
+
+      expect(parsed.reflection.plane1.wisdom.wisdom_reuse_hits).toBeGreaterThanOrEqual(1);
     });
   });
 });

@@ -7,11 +7,184 @@
  */
 
 import { z } from "zod";
+import { join } from "path";
+import { readdir } from "fs/promises";
 import { wrapWithBanner } from "../utils/banner";
 import { formatToolOutput } from "../utils/tool-output";
 import type { Store } from "../storage/store";
 import { appendReflection, type ReflectionEntry } from "../storage/reflection";
+import { listProjectWisdom } from "../storage/project-wisdom";
+import { GATE_ORDER } from "../types";
 import { computePerGateDurations, classifyTier } from "./investment";
+import { atomicWriteFile } from "../utils/fs";
+
+// =============================================================================
+// Secrets Sanitization
+// =============================================================================
+
+const SECRET_PATTERNS = [
+  /bearer\s+(?:token\s+)?[^\s&]+/gi,
+  /api[_-]?\s*key\s*(?:[:=]|is)\s*[^\s&]+/gi,
+  /password\s*(?:[:=]|is)\s*[^\s&]+/gi,
+  /token\s*(?:[:=]|is)\s*[^\s&]+/gi,
+  /secret\s*(?:[:=]|is)\s*[^\s&]+/gi,
+  /sk-[a-zA-Z0-9]{20,}/g,
+  /[a-f0-9]{32,64}/gi,
+];
+
+function sanitizeSecrets(input: string): string {
+  let result = input;
+  for (const pattern of SECRET_PATTERNS) {
+    result = result.replace(pattern, "[REDACTED]");
+  }
+  return result;
+}
+
+// =============================================================================
+// Provider-Specific Friction Detection
+// =============================================================================
+
+const PROVIDER_CUES: Record<string, string[]> = {
+  Bun: ["bun", "bun.sh"],
+  Node: ["node", "nodejs", "node.js"],
+  Claude: ["claude", "anthropic"],
+  GPT: ["gpt", "openai", "chatgpt"],
+  Kimi: ["kimi", "moonshot"],
+  GLM: ["glm", "zhipu", "chatglm"],
+};
+
+function detectProviderSpecific(text: string): { provider: string; detail: string } | null {
+  const lower = text.toLowerCase();
+  for (const [provider, cues] of Object.entries(PROVIDER_CUES)) {
+    if (cues.some((cue) => lower.includes(cue))) {
+      return { provider, detail: `Mentions ${provider}: ${text.slice(0, 120)}` };
+    }
+  }
+  return null;
+}
+
+// =============================================================================
+// Wisdom Reuse Hits Heuristic
+// =============================================================================
+
+async function computeWisdomReuseHits(
+  projectDir: string,
+  changeTitle: string,
+  tasks: Array<{ title?: string; content?: string }>,
+): Promise<number> {
+  try {
+    const projectWisdom = await listProjectWisdom(projectDir);
+    if (projectWisdom.length === 0) return 0;
+
+    const changeText = [changeTitle, ...tasks.map((t) => t.title || "")]
+      .join(" ")
+      .toLowerCase();
+    const changeWords = new Set(
+      changeText.split(/\W+/).filter((w) => w.length > 3),
+    );
+
+    let hits = 0;
+    for (const entry of projectWisdom) {
+      const contentWords = new Set(
+        entry.content.toLowerCase().split(/\W+/).filter((w) => w.length > 3),
+      );
+      const overlap = [...changeWords].filter((w) => contentWords.has(w));
+      if (overlap.length >= 2) hits++;
+    }
+    return hits;
+  } catch {
+    return 0;
+  }
+}
+
+// =============================================================================
+// Markdown Generation
+// =============================================================================
+
+function generateReflectionMarkdown(entry: ReflectionEntry): string {
+  const lines: string[] = [];
+  lines.push(`# Reflection: ${entry.change_id}`);
+  lines.push("");
+  lines.push(`**Created:** ${entry.created_at}`);
+  lines.push("");
+
+  lines.push("## Plane 1: Project Execution");
+  lines.push("");
+  lines.push("### Efficiency");
+  lines.push(`- Tasks: ${entry.plane1.efficiency.task_count} total, ${entry.plane1.efficiency.tasks_done} done, ${entry.plane1.efficiency.tasks_cancelled} cancelled`);
+  lines.push(`- Retries: ${entry.plane1.efficiency.retry_total} (density: ${entry.plane1.efficiency.retry_density.toFixed(2)})`);
+  lines.push(`- Elapsed: ${(entry.plane1.efficiency.elapsed_ms / 1000 / 60).toFixed(1)} minutes`);
+  lines.push(`- Threshold tier: ${entry.plane1.efficiency.threshold_tier}`);
+  lines.push("");
+
+  lines.push("### Quality");
+  lines.push(`- TDD compliance: ${(entry.plane1.quality.tdd_compliance * 100).toFixed(0)}%`);
+  lines.push("");
+
+  lines.push("### Process");
+  lines.push(`- Gate completion: ${(entry.plane1.process.gate_completion_rate * 100).toFixed(0)}%`);
+  lines.push(`- Drift triggers: ${entry.plane1.process.drift_triggers}`);
+  lines.push(`- Delegation count: ${entry.plane1.process.delegation_count}`);
+  lines.push("");
+
+  lines.push("### Wisdom");
+  lines.push(`- Entries captured: ${entry.plane1.wisdom.entries_captured}`);
+  lines.push(`- Entries promoted: ${entry.plane1.wisdom.entries_promoted}`);
+  lines.push(`- Reuse hits: ${entry.plane1.wisdom.wisdom_reuse_hits}`);
+  lines.push("");
+
+  lines.push("## Plane 2: System Friction");
+  lines.push("");
+
+  if (entry.plane2.friction_items.length > 0) {
+    lines.push("### Friction Items");
+    for (const item of entry.plane2.friction_items) {
+      lines.push(`- **[${item.category}]** ${item.description}`);
+      if (item.workaround) lines.push(`  - Workaround: ${item.workaround}`);
+      if (item.provider_specific) {
+        lines.push(`  - Provider: ${item.provider_specific.provider} — ${item.provider_specific.detail}`);
+      }
+    }
+    lines.push("");
+  }
+
+  if (entry.plane2.highlights.length > 0) {
+    lines.push("### Highlights");
+    for (const h of entry.plane2.highlights) {
+      lines.push(`- ${h}`);
+    }
+    lines.push("");
+  }
+
+  if (entry.plane2.improvement_suggestions.length > 0) {
+    lines.push("### Suggestions");
+    for (const s of entry.plane2.improvement_suggestions) {
+      lines.push(`- ${s}`);
+    }
+    lines.push("");
+  }
+
+  return lines.join("\n");
+}
+
+async function writeReflectionMarkdown(
+  archiveDir: string,
+  changeId: string,
+  entry: ReflectionEntry,
+): Promise<void> {
+  try {
+    const entries = await readdir(archiveDir, { withFileTypes: true });
+    const match = entries.find(
+      (e) => e.isDirectory() && e.name.endsWith(`-${changeId}`),
+    );
+    if (!match) return;
+
+    const mdPath = join(archiveDir, match.name, "REFLECTION.md");
+    await atomicWriteFile(mdPath, generateReflectionMarkdown(entry));
+  } catch {
+    // Best-effort: ignore failures
+  }
+}
 
 // =============================================================================
 // Tool Definition
@@ -105,19 +278,10 @@ export const reflectionTools = {
 
       // Process metrics
       const gates = change.gates ?? {};
-      const gateOrder = [
-        "proposal",
-        "discovery",
-        "design",
-        "planning",
-        "execution",
-        "acceptance",
-        "release",
-      ];
-      const completedGates = gateOrder.filter(
+      const completedGates = GATE_ORDER.filter(
         (g) => gates[g]?.status === "done",
       ).length;
-      const gateCompletionRate = completedGates / gateOrder.length;
+      const gateCompletionRate = completedGates / GATE_ORDER.length;
 
       const tddIntentDistribution: Record<string, number> = {};
       for (const task of tasks) {
@@ -152,15 +316,23 @@ export const reflectionTools = {
 
       // Derive friction from wisdom entries
       for (const w of wisdomEntries) {
+        const sanitizedContent = sanitizeSecrets(w.content);
+        const providerSpecific = detectProviderSpecific(sanitizedContent);
         if (w.type === "gotcha") {
           frictionItems.push({
             category: "docs_gap",
-            description: `Gotcha captured: ${w.content.slice(0, 200)}`,
+            description: `Gotcha captured: ${sanitizedContent.slice(0, 200)}`,
+            ...(providerSpecific && {
+              provider_specific: providerSpecific,
+            }),
           });
         } else if (w.type === "pattern") {
           frictionItems.push({
             category: "missing_capability",
-            description: `Pattern discovered: ${w.content.slice(0, 200)}`,
+            description: `Pattern discovered: ${sanitizedContent.slice(0, 200)}`,
+            ...(providerSpecific && {
+              provider_specific: providerSpecific,
+            }),
           });
         }
       }
@@ -170,10 +342,19 @@ export const reflectionTools = {
         if (task.error_recovery?.attempts && task.error_recovery.attempts.length > 0) {
           const lastAttempt = task.error_recovery.attempts.at(-1);
           if (lastAttempt?.outcome === "failed") {
+            const sanitizedFix = lastAttempt.fix_tried
+              ? sanitizeSecrets(lastAttempt.fix_tried)
+              : undefined;
+            const providerSpecific = sanitizedFix
+              ? detectProviderSpecific(sanitizedFix)
+              : null;
             frictionItems.push({
               category: "tool_gap",
               description: `Task "${task.title}" required ${task.error_recovery.attempts.length} retry attempts`,
-              workaround: lastAttempt.fix_tried,
+              workaround: sanitizedFix,
+              ...(providerSpecific && {
+                provider_specific: providerSpecific,
+              }),
             });
           }
         }
@@ -182,9 +363,18 @@ export const reflectionTools = {
       // Derive friction from cancelled tasks
       for (const task of tasks) {
         if (task.status === "cancelled" && task.cancellation) {
+          const sanitizedReason = task.cancellation.reason
+            ? sanitizeSecrets(task.cancellation.reason)
+            : "No reason given";
+          const providerSpecific = task.cancellation.reason
+            ? detectProviderSpecific(sanitizedReason)
+            : null;
           frictionItems.push({
             category: "ux_friction",
-            description: `Task "${task.title}" was cancelled: ${task.cancellation.reason?.slice(0, 200) ?? "No reason given"}`,
+            description: `Task "${task.title}" was cancelled: ${sanitizedReason.slice(0, 200)}`,
+            ...(providerSpecific && {
+              provider_specific: providerSpecific,
+            }),
           });
         }
       }
@@ -217,6 +407,17 @@ export const reflectionTools = {
       }
 
       // =====================================================================
+      // Wisdom Reuse Hits
+      // =====================================================================
+
+      const projectDir = store.paths.external ?? store.paths.root;
+      const wisdomReuseHits = await computeWisdomReuseHits(
+        projectDir,
+        change.title ?? "",
+        tasks,
+      );
+
+      // =====================================================================
       // Assemble and Persist
       // =====================================================================
 
@@ -247,7 +448,7 @@ export const reflectionTools = {
           wisdom: {
             entries_captured: wisdomEntries.length,
             entries_promoted: wisdomPromoted,
-            wisdom_reuse_hits: 0, // Would need wisdom lookup to compute accurately
+            wisdom_reuse_hits: wisdomReuseHits,
           },
         },
         plane2: {
@@ -259,6 +460,9 @@ export const reflectionTools = {
 
       // Persist to reflections.jsonl
       const persisted = await appendReflection(store.paths.external ?? store.paths.root, entry);
+
+      // Best-effort: write human-readable markdown to archive dir
+      await writeReflectionMarkdown(store.paths.archive, change.id, persisted);
 
       return wrapWithBanner(
         { command: "adv_reflect" },

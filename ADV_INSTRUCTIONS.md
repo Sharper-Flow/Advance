@@ -101,7 +101,7 @@ Each workflow command has a defined phase goal. These are canonical in `manifest
 | `/adv-review`   | Verify implementation matches the approved plan. Auto-fix within scope. Stop on drift.                                        |
 | `/adv-harden`   | Verify production-readiness. Auto-fix scoped issues. Stop on drift.                                                           |
 | `/adv-archive`  | Promote the change from contract to law: apply spec deltas, capture wisdom, clean up.                                         |
-| `/adv-reflect`  | Synthesize post-completion learnings into a durable reflection artifact for process improvement.                               |
+| `/adv-reflect`  | Synthesize two-plane post-completion learnings (execution + system friction) into a durable reflection artifact for process improvement. |
 
 ## Commands
 
@@ -116,7 +116,7 @@ Each workflow command has a defined phase goal. These are canonical in `manifest
 | `/adv-validate <change-id>` | Validate change compliance against specs; block archive on failure                  |
 | `/adv-apply <change-id>`    | Implement change with TDD, retry on failure, and final verification                 |
 | `/adv-archive <change-id>`  | Archive completed change: apply spec deltas and finalize git                        |
-| `/adv-reflect <change-id>`  | Produce a structured two-plane reflection report for an archived change             |
+| `/adv-reflect <change-id>`  | Produce a structured two-plane reflection report for an archived change. Optional; when called from `/adv-archive`, failures are non-blocking. |
 
 ### Pre-Implementation
 
@@ -156,6 +156,7 @@ Each workflow command has a defined phase goal. These are canonical in `manifest
 | prep     | Task graph, gap analysis, sequencing        | Complete non-prep gates, architecture decisions | prep            |
 | task     | Change + tasks + gates (fast-track exempt)  | —                                               | research + prep |
 | apply    | Implementation via TDD                      | Auto-complete research/prep gates               | implementation  |
+| reflect  | Reflection report (JSON + Markdown), friction analysis, improvement suggestions | Mutate change state, tasks, or gates; block archive when invoked from it | None            |
 
 - Only `/adv-prep` (and exempt `/adv-task`) may call `adv_task_add`
 - `/adv-apply` stops if research or prep gates pending
@@ -173,6 +174,7 @@ Emit at START of each response:
 | `[ADV:BLOCKED]`            | Doom-loop / stuck / crash                           | 🟥💀  |
 | `[ADV:TASK_STATUS_REPORT]` | Task report                                         | —     |
 | `[ADV:SKILL_CREATED]`      | Auto-created skill persisted (skill name, domain)   | 🟦    |
+| `[ADV:REFLECTION]`         | Reflection report emitted                           | 🟪    |
 
 Tab title: `<emoji> <shortname> · <normalized change>` when a change is active, or `<emoji> <shortname>` when idle. System-emitted: `[ADV:ACCUMULATED_WISDOM]`, `[ADV:TODO_CONTINUATION]`, `[ADV:RECORD_WISDOM]`, `[ADV:SKILL_CREATED]`
 
@@ -251,6 +253,28 @@ Inline TDD is default — red/green phases WITHIN each task. × Do NOT create se
 - **Cross-cutting:** Separate verification tasks OK → mark `metadata.tdd_intent: "separate_verification"`
 
 `adv_task_evidence` is fallback for externally captured evidence, not the primary inline-TDD path.
+
+### Reflection Protocol
+
+Reflection is post-completion analysis that produces a structured two-plane report for every archived change. It turns individual experience into durable process knowledge.
+
+**Two-Plane Model**
+
+- **Plane 1 — Project Execution:** Efficiency, quality, process adherence, and wisdom captured.
+- **Plane 2 — System Friction:** Tool gaps, workarounds, missing capabilities, documentation gaps, UX friction, and provider-specific issues.
+
+**When It Runs**
+
+- Automatically triggered by `/adv-archive` Phase 8.
+- Manually via `/adv-reflect <change-id>` for any archived change.
+
+**Human Review**
+
+Reports are informational. Agents present them for human review; they do not trigger autonomous process modification.
+
+**Storage**
+
+Persisted in `reflections.jsonl` in the ADV state directory. Retrievable via `adv_change_show` for archived changes.
 
 ### Task Checkpoint Commits
 
@@ -641,9 +665,10 @@ Location: `$XDG_DATA_HOME/opencode/plugins/advance/{project-id}/` (project-id = 
 ├── changes/     # Active proposals
 ├── archive/     # Completed
 ├── db/spec.db   # SQLite FTS cache
-├── wisdom.jsonl # Learnings
-├── agenda.jsonl # Work queue
-└── handoff.json # Session handoff (multi-session only)
+├── wisdom.jsonl      # Learnings
+├── reflections.jsonl # Post-completion reflection reports
+├── agenda.jsonl      # Work queue
+└── handoff.json      # Session handoff (multi-session only)
 ```
 
 ### Worktree Policy
