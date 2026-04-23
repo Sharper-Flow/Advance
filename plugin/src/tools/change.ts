@@ -511,14 +511,35 @@ async function buildReentryResult(
       : [];
   const latestEntry = reentryHistory[reentryHistory.length - 1];
 
+  // Build context snapshot showing the reset gate state
+  let contextSnapshot: string | undefined;
+  if (updatedChange.success && updatedChange.data) {
+    const changeDir = join(store.paths.changes, changeId);
+    const { content: proposalText } = await loadProposalWithFallback(
+      changeDir,
+      updatedChange.data.title,
+    );
+    contextSnapshot = buildChangeContextSnapshot({
+      change: updatedChange.data,
+      proposalText,
+      gates: gates ?? undefined,
+      workdir: store.paths.root,
+    });
+  }
+
+  const output: Record<string, unknown> = {
+    success: true,
+    message: `Re-entry from ${fromGate}: gates reset to pending. ${latestEntry?.gates_reset?.length ?? 0} gate(s) reopened.`,
+    gates,
+    reentry: latestEntry,
+  };
+  if (contextSnapshot) {
+    output._contextSnapshot = contextSnapshot;
+  }
+
   return wrapWithBanner(
     { command: "adv_change_reenter", target: changeId },
-    formatToolOutput({
-      success: true,
-      message: `Re-entry from ${fromGate}: gates reset to pending. ${latestEntry?.gates_reset?.length ?? 0} gate(s) reopened.`,
-      gates,
-      reentry: latestEntry,
-    }),
+    formatToolOutput(output),
   );
 }
 

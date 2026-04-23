@@ -1827,4 +1827,27 @@ describe("adv_change_reenter", () => {
     expect(parsed.success).toBe(true);
     expect(parsed.reentry.approval_evidence).toBeUndefined();
   });
+
+  test("emits _contextSnapshot showing reset gate state", async () => {
+    await store.gates.complete("addFeature", "proposal");
+    await store.gates.complete("addFeature", "discovery");
+
+    const result = await changeTools.adv_change_reenter.execute(
+      {
+        changeId: "addFeature",
+        fromGate: "discovery",
+        reason: "Scope expansion",
+      },
+      store,
+    );
+    const parsed = parseToolOutput(result);
+
+    expect(parsed._contextSnapshot).toBeDefined();
+    expect(typeof parsed._contextSnapshot).toBe("string");
+    expect(parsed._contextSnapshot).toContain("addFeature");
+    expect(parsed._contextSnapshot).toMatch(/[╔╗╚╝║═]/);
+    // Should show proposal as done and discovery as pending
+    expect(parsed._contextSnapshot).toMatch(/\[✓ proposal\]/);
+    expect(parsed._contextSnapshot).toMatch(/\[○ discovery\]/);
+  });
 });
