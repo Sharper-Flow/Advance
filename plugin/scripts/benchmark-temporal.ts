@@ -157,16 +157,60 @@ export async function time<T>(label: string, fn: () => Promise<T>): Promise<{ re
 }
 
 /* ------------------------------------------------------------------ */
-/* Contamination tagging (A2 placeholder — will be replaced by real   */
-/* implementation when A2 completes)                                  */
+/* Contamination tagging (A2)                                         */
 /* ------------------------------------------------------------------ */
 
-export function classifyContaminationPlaceholder(): ContaminationTag {
-  // A2 will replace this with real logic consulting:
-  // - getTemporalRetryTelemetry()
-  // - getTemporalHealth()
-  // - per-op fallback counters
+export interface ContaminationContext {
+  health: TemporalHealth | null;
+  retry: { lastOpAt: string | null; lastError: string | null } | null;
+  opError: unknown | null;
+  fallbackCount: number;
+}
+
+export function classifyContamination(ctx: ContaminationContext): ContaminationTag {
+  // Priority 1: per-op fallback counter (explicit legacy path invocation)
+  if (ctx.fallbackCount > 0) {
+    return "fallback";
+  }
+
+  // Priority 2: operation threw — classify the error
+  if (ctx.opError != null) {
+    const errorText = String(
+      ctx.opError instanceof Error ? ctx.opError.message : ctx.opError
+    );
+    // Retry-exhausted: we see an error but retry telemetry shows a recent success
+    // (meaning retries were attempted and eventually succeeded or the error is post-retry)
+    if (ctx.retry?.lastError != null && ctx.retry.lastOpAt != null) {
+      return "retry-exhausted";
+    }
+    // Server-unreachable: connection-level failure
+    if (/ECONNREFUSED|connection refused|unreachable|Unavailable/i.test(errorText)) {
+      return "server-unreachable";
+    }
+    return "unknown";
+  }
+
+  // Priority 3: health probe says server is down
+  if (ctx.health != null && !ctx.health.server_alive) {
+    return "server-unreachable";
+  }
+
+  // Priority 4: retry telemetry shows unresolved error
+  if (ctx.retry?.lastError != null && ctx.retry.lastOpAt == null) {
+    return "retry-exhausted";
+  }
+
   return "clean";
+}
+
+export function recordRun(
+  run: BenchmarkSample,
+  ctx: ContaminationContext,
+): BenchmarkSample {
+  return {
+    ...run,
+    contamination: classifyContamination(ctx),
+  };
 }
 
 /* ------------------------------------------------------------------ */
@@ -222,7 +266,12 @@ async function runSingleShot(op: BenchmarkOp): Promise<BenchmarkSample> {
     run_id: runId,
     sample_index: 0,
     duration_ns,
-    contamination: classifyContaminationPlaceholder(),
+    contamination: classifyContamination({
+      health: null,
+      retry: null,
+      opError: null,
+      fallbackCount: 0,
+    }),
     started_at: startedAt,
     finished_at: finishedAt,
   };
