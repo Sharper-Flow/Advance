@@ -171,7 +171,7 @@ Emit at START of each response:
 | `[ADV:BLOCKED]`            | Doom-loop / stuck / crash                           | 🟥💀  |
 | `[ADV:TASK_STATUS_REPORT]` | Task report                                         | —     |
 
-Tab title: `<emoji> <normalized change>` (strip verb prefixes, Title Case). System-emitted: `[ADV:ACCUMULATED_WISDOM]`, `[ADV:TODO_CONTINUATION]`, `[ADV:RECORD_WISDOM]`
+Tab title: `<emoji> <shortname> · <normalized change>` when a change is active, or `<emoji> <shortname>` when idle. System-emitted: `[ADV:ACCUMULATED_WISDOM]`, `[ADV:TODO_CONTINUATION]`, `[ADV:RECORD_WISDOM]`
 
 ### Context Snapshot
 
