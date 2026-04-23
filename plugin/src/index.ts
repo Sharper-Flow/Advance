@@ -138,6 +138,52 @@ const resolveStatus = (s: PluginState): StatusMarker => {
 const debugLog = (msg: string): void => appendDebugLog("index", msg);
 const hooksLogger = createLogger("hooks");
 
+async function resolveProjectContext(
+  directory: string,
+  project?: { vcsDir?: string },
+): Promise<{ effectiveDir: string; projectId: string | null; externalRoot?: string }> {
+  let effectiveDir = directory;
+  let projectId = await getProjectId(effectiveDir);
+
+  if (!projectId && project?.vcsDir && project.vcsDir !== directory) {
+    debugLog(`directory not a git repo, trying project.vcsDir: ${project.vcsDir}`);
+    const altId = await getProjectId(project.vcsDir);
+    if (altId) {
+      effectiveDir = project.vcsDir;
+      projectId = altId;
+    }
+  }
+
+  return {
+    effectiveDir,
+    projectId,
+    externalRoot: projectId ? getExternalRoot(projectId) : undefined,
+  };
+}
+
+async function migrateLegacyStateIfNeeded(
+  effectiveDir: string,
+  projectId: string | null,
+  externalRoot?: string,
+): Promise<void> {
+  if (!projectId || !externalRoot) {
+    debugLog("No project ID (not a git repo?) — using legacy in-repo paths");
+    return;
+  }
+
+  debugLog(`External state: projectId=${projectId}, root=${externalRoot}`);
+  try {
+    const report = await migrateToExternalState(effectiveDir, externalRoot);
+    if (report.migrated.length > 0) {
+      debugLog(
+        `Migration: ${report.migrated.join(",")} migrated, ${report.skipped.join(",")} skipped`,
+      );
+    }
+  } catch (e) {
+    debugLog(`Migration failed (non-fatal): ${(e as Error).message}`);
+  }
+}
+
 export const AdvancePlugin: Plugin = async ({
   directory,
   worktree,
@@ -148,42 +194,11 @@ export const AdvancePlugin: Plugin = async ({
     `Plugin init: dir=${directory}, worktree=${worktree}, isWorktree=${isWorktree}`,
   );
 
-  // Derive project identity and resolve external state directory.
-  // Try directory first; if not a git repo, fall back to project.path
-  // from the SDK (covers GUI clients that may start the server from $HOME).
-  let effectiveDir = directory;
-  let projectId = await getProjectId(effectiveDir);
-
-  if (!projectId && project?.vcsDir && project.vcsDir !== directory) {
-    debugLog(
-      `directory not a git repo, trying project.vcsDir: ${project.vcsDir}`,
-    );
-    const altId = await getProjectId(project.vcsDir);
-    if (altId) {
-      effectiveDir = project.vcsDir;
-      projectId = altId;
-    }
-  }
-
-  let externalRoot: string | undefined;
-
-  if (projectId) {
-    externalRoot = getExternalRoot(projectId);
-    debugLog(`External state: projectId=${projectId}, root=${externalRoot}`);
-
-    // One-time migration: copy any existing .adv/ mutable state to external dir
-    try {
-      const report = await migrateToExternalState(effectiveDir, externalRoot);
-      if (report.migrated.length > 0)
-        debugLog(
-          `Migration: ${report.migrated.join(",")} migrated, ${report.skipped.join(",")} skipped`,
-        );
-    } catch (e) {
-      debugLog(`Migration failed (non-fatal): ${(e as Error).message}`);
-    }
-  } else {
-    debugLog("No project ID (not a git repo?) — using legacy in-repo paths");
-  }
+  const { effectiveDir, projectId, externalRoot } = await resolveProjectContext(
+    directory,
+    project,
+  );
+  await migrateLegacyStateIfNeeded(effectiveDir, projectId, externalRoot);
 
   // Initialize store. tryInitStore() never throws — if createStore or
   // store.init() fails, it returns { store: null, initError: Error } so we
@@ -232,6 +247,38 @@ export const AdvancePlugin: Plugin = async ({
     });
   };
 
+  const handleToolExecuteBefore = (
+    toolName: string,
+    args: Record<string, unknown>,
+    input: Record<string, unknown>,
+  ) => {
+    if (toolName === "bash") {
+      const agent = typeof input.agent === "string" ? input.agent : "unknown";
+      const command = typeof args.command === "string" ? args.command : "";
+      enforceBashPolicy(agent, command);
+    }
+
+    if (args.changeId) {
+      state.activeChange.id = String(args.changeId);
+      setActiveChange(state.activeChange.id);
+    }
+
+    if (toolName === "task") {
+      enforceTaskPolicy(state.activeSubAgents);
+      debugLog(`Sub-agent spawned: count=${state.activeSubAgents + 1}`);
+      setFlags({
+        activeSubAgents: state.activeSubAgents + 1,
+        sessionIdle: false,
+      });
+    }
+
+    if (toolName === "question") {
+      setFlags({ permissionPending: true, sessionIdle: false });
+    }
+
+    handleLongRunningToolStart(toolName);
+  };
+
   const recordCreatedChange = (rawOutput: string) => {
     const newChangeId = extractCreatedChangeId(rawOutput);
     if (!newChangeId) return;
@@ -244,6 +291,53 @@ export const AdvancePlugin: Plugin = async ({
     const completedTask = extractCompletedTask(rawOutput);
     if (!completedTask) return;
     state.lastCompletedTask = completedTask;
+  };
+
+  const handleSessionStatusEvent = (event: { properties: unknown }) => {
+    const props = event.properties as { status?: { type?: string } };
+    const statusType = props.status?.type;
+    if (statusType === "idle") {
+      if (state.activeSubAgents === 0) {
+        setFlags({ sessionIdle: true });
+      }
+      pruneStaleRetries();
+      return;
+    }
+    if (statusType === "busy") {
+      setFlags({ sessionIdle: false });
+    }
+  };
+
+  const handleSessionDeletedEvent = () => {
+    mainSessionId = null;
+    lastObservedCompletedMessageId = null;
+    cleanupTerminal();
+    removeProcessListeners();
+    try {
+      store?.close();
+    } catch (e) {
+      debugLog(`Error closing store: ${e}`);
+    }
+  };
+
+  const handleMessageUpdatedEvent = (event: { properties: Record<string, unknown> }) => {
+    const info = event.properties?.info as Record<string, unknown> | undefined;
+    if (!info || !mainSessionId) return;
+    if (info.sessionID !== mainSessionId) return;
+    if (info.role !== "assistant") return;
+
+    const time = info.time as Record<string, unknown> | undefined;
+    if (!time?.completed) return;
+
+    const finish = info.finish as string | undefined;
+    if (!finish || finish === "tool-calls" || finish === "unknown") return;
+
+    const messageId = info.id as string | undefined;
+    if (!messageId || messageId === lastObservedCompletedMessageId) return;
+
+    lastObservedCompletedMessageId = messageId;
+    debugLog(`message.updated: arming bell for main agent message ${messageId}`);
+    armPendingFinalAlert(messageId);
   };
 
   // Main session ID — used to distinguish main-agent message.updated events
@@ -275,26 +369,9 @@ export const AdvancePlugin: Plugin = async ({
         debugLog(`event: type="${eventType}"`);
 
         if (eventType === "session.status") {
-          const props = event.properties as { status?: { type?: string } };
-          const statusType = props.status?.type;
-          if (statusType === "idle") {
-            if (state.activeSubAgents === 0) {
-              setFlags({ sessionIdle: true });
-            }
-            pruneStaleRetries();
-          } else if (statusType === "busy") {
-            setFlags({ sessionIdle: false });
-          }
+          handleSessionStatusEvent(event as { properties: unknown });
         } else if (eventType === "session.deleted") {
-          mainSessionId = null;
-          lastObservedCompletedMessageId = null;
-          cleanupTerminal();
-          removeProcessListeners();
-          try {
-            store?.close();
-          } catch (e) {
-            debugLog(`Error closing store: ${e}`);
-          }
+          handleSessionDeletedEvent();
         } else if (
           eventType === "permission.updated" ||
           eventType === "permission.asked"
@@ -303,40 +380,7 @@ export const AdvancePlugin: Plugin = async ({
         } else if (eventType === "permission.replied") {
           setFlags({ permissionPending: false });
         } else if (eventType === "message.updated") {
-          // Main-agent completion detector: arm bell-gate when the main agent
-          // finishes a non-tool-turn response.
-          const info = (event.properties as Record<string, unknown>)?.info as
-            | Record<string, unknown>
-            | undefined;
-          if (!info) return;
-
-          // Fail-closed: skip if mainSessionId not yet captured
-          if (!mainSessionId) return;
-
-          // Only main-agent messages (skip sub-agents)
-          if (info.sessionID !== mainSessionId) return;
-
-          // Only completed assistant messages
-          if (info.role !== "assistant") return;
-
-          const time = info.time as Record<string, unknown> | undefined;
-          if (!time?.completed) return;
-
-          // Only final responses (not tool turns or unknown finish reasons)
-          const finish = info.finish as string | undefined;
-          if (!finish || finish === "tool-calls" || finish === "unknown")
-            return;
-
-          // Dedup: skip if we already processed this message
-          const messageId = info.id as string | undefined;
-          if (!messageId || messageId === lastObservedCompletedMessageId)
-            return;
-
-          lastObservedCompletedMessageId = messageId;
-          debugLog(
-            `message.updated: arming bell for main agent message ${messageId}`,
-          );
-          armPendingFinalAlert(messageId);
+          handleMessageUpdatedEvent(event as { properties: Record<string, unknown> });
         }
       } catch (e) {
         debugLog(`Event hook error: ${e}`);
@@ -348,41 +392,11 @@ export const AdvancePlugin: Plugin = async ({
       try {
         debugLog(`tool.execute.before: tool="${input.tool}"`);
         const args = output.args as Record<string, unknown>;
-
-        // Enforce read-only bash policy for restricted sub-agents
-        if (input.tool === "bash") {
-          const extInput = input as Record<string, unknown>;
-          const agent =
-            typeof extInput["agent"] === "string"
-              ? extInput["agent"]
-              : "unknown";
-          const command =
-            typeof args["command"] === "string" ? args["command"] : "";
-          enforceBashPolicy(agent, command);
-        }
-
-        // Track changeId from ADV tools for context injection
-        if (args["changeId"]) {
-          state.activeChange.id = String(args["changeId"]);
-          setActiveChange(state.activeChange.id);
-        }
-
-        // Detect sub-agent spawning (Task tool)
-        if (input.tool === "task") {
-          enforceTaskPolicy(state.activeSubAgents);
-          debugLog(`Sub-agent spawned: count=${state.activeSubAgents + 1}`);
-          setFlags({
-            activeSubAgents: state.activeSubAgents + 1,
-            sessionIdle: false,
-          });
-        }
-
-        // Detect question tools (needs user input)
-        if (input.tool === "question") {
-          setFlags({ permissionPending: true, sessionIdle: false });
-        }
-
-        handleLongRunningToolStart(input.tool);
+        handleToolExecuteBefore(
+          input.tool,
+          args,
+          input as Record<string, unknown>,
+        );
       } catch (e) {
         debugLog(`tool.execute.before error: ${e}`);
       }

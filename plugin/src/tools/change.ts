@@ -168,6 +168,232 @@ function buildOriginSection(origin: {
   return section;
 }
 
+async function persistClarifyFindings(
+  store: Store,
+  changeId: string,
+  findings: ClarifyFindingSnapshot[],
+  errorLabel: string,
+): Promise<void> {
+  try {
+    const freshResult = await store.changes.get(changeId);
+    if (freshResult.success && freshResult.data) {
+      freshResult.data.clarify_findings = findings;
+      await store.changes.save(freshResult.data);
+    }
+  } catch (err) {
+    logger.warn(`${errorLabel}: ${(err as Error).message}`);
+  }
+}
+
+async function applyClarifyReadinessToChangeOutput({
+  output,
+  change,
+  proposalText,
+  changeId,
+  store,
+}: {
+  output: Record<string, unknown>;
+  change: {
+    clarify_findings?: ClarifyFindingSnapshot[];
+  } & Record<string, unknown>;
+  proposalText: string;
+  changeId: string;
+  store: Store;
+}): Promise<void> {
+  const features = store.config?.features as FeatureFlags | undefined;
+  const clarifyMode = features?.clarify_enforcement ?? "advisory";
+  if (clarifyMode === "off") return;
+
+  const clarifyResult = runClarifyReadinessChecks(change, proposalText);
+  if (clarifyResult.findings.length > 0) {
+    output.clarifyFindings = {
+      count: clarifyResult.findings.length,
+      findings: clarifyResult.findings.map((f) => ({
+        code: f.code,
+        severity: f.severity,
+        message: f.message,
+        questionCategory: f.details?.questionCategory,
+      })),
+    };
+
+    const updated = resolveClarifyFindings(
+      change.clarify_findings ?? [],
+      clarifyResult.findings,
+      new Date().toISOString(),
+    );
+    if (updated.length > 0) {
+      await persistClarifyFindings(
+        store,
+        changeId,
+        updated,
+        "Failed to persist clarify findings",
+      );
+    }
+    return;
+  }
+
+  if (change.clarify_findings?.some((f) => !f.resolved)) {
+    const updated = resolveClarifyFindings(
+      change.clarify_findings ?? [],
+      [],
+      new Date().toISOString(),
+    );
+    await persistClarifyFindings(
+      store,
+      changeId,
+      updated,
+      "Failed to resolve clarify findings",
+    );
+  }
+}
+
+async function appendClarifyNeededForCreatedChange(
+  store: Store,
+  changeId: string,
+  output: Record<string, unknown>,
+): Promise<void> {
+  const features = store.config?.features as FeatureFlags | undefined;
+  const clarifyMode = features?.clarify_enforcement ?? "advisory";
+  if (clarifyMode === "off") return;
+
+  const changeResult = await store.changes.get(changeId);
+  if (!changeResult.success || !changeResult.data) return;
+
+  const changeDir = join(store.paths.changes, changeId);
+  const { content: proposalText } = await loadProposalWithFallback(
+    changeDir,
+    changeResult.data.title,
+  );
+  const clarifyResult = runClarifyReadinessChecks(
+    changeResult.data,
+    proposalText,
+  );
+  if (clarifyResult.findings.length === 0) return;
+
+  output.clarifyNeeded = {
+    count: clarifyResult.findings.length,
+    findings: clarifyResult.findings.map((f) => ({
+      code: f.code,
+      severity: f.severity,
+      message: f.message,
+      questionCategory: f.details?.questionCategory,
+    })),
+  };
+}
+
+async function createCrossProjectFollowUp({
+  summary,
+  capability,
+  proposal,
+  problemStatement,
+  agreement,
+  design,
+  target_path,
+  source_project,
+  source_change_id,
+  store,
+}: {
+  summary: string;
+  capability?: string;
+  proposal?: string;
+  problemStatement?: string;
+  agreement?: string;
+  design?: string;
+  target_path: string;
+  source_project?: string;
+  source_change_id?: string;
+  store: Store;
+}): Promise<string> {
+  const validateTargetPath = async (): Promise<string | null> => {
+    try {
+      await access(target_path);
+    } catch {
+      return formatToolOutput({
+        error: `Target project directory does not exist: ${target_path}`,
+      });
+    }
+
+    try {
+      const [realTarget, realRoot] = await Promise.all([
+        realpath(target_path),
+        realpath(store.paths.root),
+      ]);
+      if (realTarget === realRoot) {
+        return formatToolOutput({
+          error:
+            "Target path resolves to current project. Omit target_path to create a change in the current project.",
+        });
+      }
+    } catch {
+      // fall through — store creation will surface truly invalid paths
+    }
+
+    return null;
+  };
+
+  const validationError = await validateTargetPath();
+  if (validationError) return validationError;
+
+  const resolvedSourceProject =
+    source_project ?? store.config?.name ?? basename(store.paths.root);
+  const origin: CrossProjectOrigin = {
+    source_project: resolvedSourceProject,
+    source_path: store.paths.root,
+    source_change_id,
+    linked_at: new Date().toISOString(),
+  };
+  const originSection = buildOriginSection(origin);
+  const enrichedProposal = proposal ? `${originSection}\n\n${proposal}` : undefined;
+  const targetProjectId = await getProjectId(target_path);
+  const targetExternalRoot = targetProjectId
+    ? getExternalRoot(targetProjectId)
+    : undefined;
+
+  let targetStore: Store;
+  try {
+    targetStore = await createStore(target_path, {
+      externalRoot: targetExternalRoot,
+    });
+    await targetStore.init();
+  } catch (err) {
+    return formatToolOutput({
+      error: `Failed to initialize target project at ${target_path}: ${err instanceof Error ? err.message : String(err)}`,
+    });
+  }
+
+  try {
+    const result = await targetStore.changes.create(
+      summary,
+      capability,
+      enrichedProposal,
+      problemStatement,
+      agreement,
+      design,
+    );
+    const changeResult = await targetStore.changes.get(result.changeId);
+    if (changeResult.success && changeResult.data) {
+      changeResult.data.cross_project_origin = origin;
+      await targetStore.changes.save(changeResult.data);
+    }
+
+    const output: Record<string, unknown> = {
+      ...result,
+      cross_project_origin: origin,
+      target_path,
+    };
+    if (result.duplicateWarning) {
+      output._duplicateWarning = result.duplicateWarning;
+    }
+
+    return wrapWithBanner(
+      { command: "adv_change_create", target: result.changeId },
+      formatToolOutput(output),
+    );
+  } finally {
+    targetStore.close();
+  }
+}
+
 // =============================================================================
 // Tool Definitions
 // =============================================================================
@@ -286,7 +512,6 @@ export const changeTools = {
         }),
       };
 
-      // Check for problem-statement.md artifact
       const problemStatementPath = join(changeDir, "problem-statement.md");
       const problemStatementExists = await fileExists(problemStatementPath);
       output.problemStatementExists = problemStatementExists;
@@ -294,72 +519,13 @@ export const changeTools = {
         output.problemStatementPath = problemStatementPath;
       }
 
-      // Run clarify-readiness checks if feature flag is not "off"
-      const features = store.config?.features as FeatureFlags | undefined;
-      const clarifyMode = features?.clarify_enforcement ?? "advisory";
-
-      if (clarifyMode !== "off") {
-        const clarifyResult = runClarifyReadinessChecks(change, proposalText);
-
-        if (clarifyResult.findings.length > 0) {
-          output.clarifyFindings = {
-            count: clarifyResult.findings.length,
-            findings: clarifyResult.findings.map((f) => ({
-              code: f.code,
-              severity: f.severity,
-              message: f.message,
-              questionCategory: f.details?.questionCategory,
-            })),
-          };
-
-          // Persist clarify findings as append-only snapshots
-          const now = new Date().toISOString();
-          const existing: ClarifyFindingSnapshot[] =
-            change.clarify_findings ?? [];
-          const updated = resolveClarifyFindings(
-            existing,
-            clarifyResult.findings,
-            now,
-          );
-
-          if (updated.length > 0) {
-            // Persist back to the change (best-effort — don't fail if save fails)
-            try {
-              const freshResult = await store.changes.get(changeId);
-              if (freshResult.success && freshResult.data) {
-                freshResult.data.clarify_findings = updated;
-                await store.changes.save(freshResult.data);
-              }
-            } catch (err) {
-              // Non-fatal: persistence failure doesn't affect the tool response
-              logger.warn(
-                `Failed to persist clarify findings: ${(err as Error).message}`,
-              );
-            }
-          }
-        } else {
-          // No current findings — resolve any previously-persisted unresolved findings
-          if (change.clarify_findings?.some((f) => !f.resolved)) {
-            const now = new Date().toISOString();
-            try {
-              const freshResult = await store.changes.get(changeId);
-              if (freshResult.success && freshResult.data) {
-                freshResult.data.clarify_findings = resolveClarifyFindings(
-                  freshResult.data.clarify_findings ?? [],
-                  [],
-                  now,
-                );
-                await store.changes.save(freshResult.data);
-              }
-            } catch (err) {
-              // Non-fatal
-              logger.warn(
-                `Failed to resolve clarify findings: ${(err as Error).message}`,
-              );
-            }
-          }
-        }
-      }
+      await applyClarifyReadinessToChangeOutput({
+        output,
+        change,
+        proposalText,
+        changeId,
+        store,
+      });
 
       // Surface cross-project origin prominently when present
       if (change.cross_project_origin) {
@@ -459,107 +625,19 @@ export const changeTools = {
         return formatToolOutput(buildSyntheticValidationDraftError(summary));
       }
 
-      // ----- Cross-project creation path -----
       if (target_path) {
-        // Validate target directory exists
-        try {
-          await access(target_path);
-        } catch {
-          return formatToolOutput({
-            error: `Target project directory does not exist: ${target_path}`,
-          });
-        }
-
-        // Self-target guard: reject if target_path resolves to current project
-        try {
-          const [realTarget, realRoot] = await Promise.all([
-            realpath(target_path),
-            realpath(store.paths.root),
-          ]);
-          if (realTarget === realRoot) {
-            return formatToolOutput({
-              error:
-                "Target path resolves to current project. Omit target_path to create a change in the current project.",
-            });
-          }
-        } catch {
-          // realpath failed — proceed with store creation, which will fail
-          // with its own error if the path is truly invalid
-        }
-
-        // Resolve source project identity
-        const resolvedSourceProject =
-          source_project ?? store.config?.name ?? basename(store.paths.root);
-
-        // Build origin metadata
-        const origin: CrossProjectOrigin = {
-          source_project: resolvedSourceProject,
-          source_path: store.paths.root,
+        return createCrossProjectFollowUp({
+          summary,
+          capability,
+          proposal,
+          problemStatement,
+          agreement,
+          design,
+          target_path,
+          source_project,
           source_change_id,
-          linked_at: new Date().toISOString(),
-        };
-
-        // Prepend origin section to proposal content
-        const originSection = buildOriginSection(origin);
-        const enrichedProposal = proposal
-          ? `${originSection}\n\n${proposal}`
-          : undefined;
-
-        // Resolve externalRoot for genuine cross-project targets, then create
-        // an isolated Store instance so follow-up creation stays independent of
-        // the origin project's ADV state.
-        const targetProjectId = await getProjectId(target_path);
-        const targetExternalRoot = targetProjectId
-          ? getExternalRoot(targetProjectId)
-          : undefined;
-        let targetStore: Store;
-        try {
-          targetStore = await createStore(target_path, {
-            externalRoot: targetExternalRoot,
-          });
-          await targetStore.init();
-        } catch (err) {
-          return formatToolOutput({
-            error: `Failed to initialize target project at ${target_path}: ${err instanceof Error ? err.message : String(err)}`,
-          });
-        }
-
-        try {
-          // Create the change in the target store
-          const result = await targetStore.changes.create(
-            summary,
-            capability,
-            enrichedProposal,
-            problemStatement,
-            agreement,
-            design,
-          );
-
-          // Load the created change and persist cross_project_origin
-          const changeResult = await targetStore.changes.get(result.changeId);
-          if (changeResult.success && changeResult.data) {
-            changeResult.data.cross_project_origin = origin;
-            await targetStore.changes.save(changeResult.data);
-          }
-
-          const output: Record<string, unknown> = { ...result };
-          output.cross_project_origin = origin;
-          output.target_path = target_path;
-
-          if (result.duplicateWarning) {
-            output._duplicateWarning = result.duplicateWarning;
-          }
-
-          return wrapWithBanner(
-            {
-              command: "adv_change_create",
-              target: result.changeId,
-            },
-            formatToolOutput(output),
-          );
-        } finally {
-          targetStore.close();
-        }
+          store,
+        });
       }
 
       // ----- Local creation path (unchanged) -----
@@ -572,10 +650,6 @@ export const changeTools = {
         design,
       );
 
-      // Run clarify-readiness checks if feature flag is not "off"
-      const features = store.config?.features as FeatureFlags | undefined;
-      const clarifyMode = features?.clarify_enforcement ?? "advisory";
-
       const output: Record<string, unknown> = { ...result };
 
       // Surface duplicate warning prominently if present
@@ -583,34 +657,7 @@ export const changeTools = {
         output._duplicateWarning = result.duplicateWarning;
       }
 
-      if (clarifyMode !== "off") {
-        // Load the newly created change and its proposal text
-        const changeResult = await store.changes.get(result.changeId);
-        if (changeResult.success && changeResult.data) {
-          const changeDir = join(store.paths.changes, result.changeId);
-          const { content: proposalText } = await loadProposalWithFallback(
-            changeDir,
-            changeResult.data.title,
-          );
-
-          const clarifyResult = runClarifyReadinessChecks(
-            changeResult.data,
-            proposalText,
-          );
-
-          if (clarifyResult.findings.length > 0) {
-            output.clarifyNeeded = {
-              count: clarifyResult.findings.length,
-              findings: clarifyResult.findings.map((f) => ({
-                code: f.code,
-                severity: f.severity,
-                message: f.message,
-                questionCategory: f.details?.questionCategory,
-              })),
-            };
-          }
-        }
-      }
+      await appendClarifyNeededForCreatedChange(store, result.changeId, output);
 
       return wrapWithBanner(
         { command: "adv_change_create", target: result.changeId },
