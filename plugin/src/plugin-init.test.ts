@@ -483,3 +483,79 @@ describe("tryInitStore worker routing (Phase 2.3)", () => {
     expect(mocks.createOutOfProcessWorker).not.toHaveBeenCalled();
   });
 });
+
+describe("rq-advshut1: bounded flush on shutdown after STSL changes", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.stubEnv("ADV_DISABLE_TEMPORAL", "");
+    vi.stubEnv("ADV_ALLOW_DEGRADED_FALLBACK", "");
+  });
+
+  it("calls store.flush → drainWorkers → store.close in order", async () => {
+    const callOrder: string[] = [];
+    const mockStore = {
+      flush: vi.fn(async () => { callOrder.push("flush"); }),
+      close: vi.fn(() => { callOrder.push("close"); }),
+    } as any;
+
+    const mockWorker = {
+      shutdown: vi.fn(async () => { callOrder.push("drainWorker"); }),
+      queues: ["test-queue"],
+    };
+
+    mocks.createInProcessWorker.mockResolvedValue(mockWorker);
+    mocks.probeTemporalWorkerRuntime.mockReturnValue({
+      supported: true, runtime: "node", reason: "node",
+    });
+    mocks.resolveNodeExecutable.mockReturnValue({
+      found: true, path: "/usr/bin/node", source: "path",
+    });
+    mocks.ensureTemporalRuntime.mockImplementation(async () => ({
+      address: "127.0.0.1:7233", namespace: "default", startedRuntime: true,
+    }));
+    mocks.getProjectId.mockResolvedValue("proj-shutdown");
+    mocks.createStore.mockResolvedValue(mockStore);
+
+    const { tryInitStore, registerShutdownHandlers } = await import("./plugin-init");
+    await tryInitStore("/tmp/repo", "/tmp/external");
+
+    const handlers = registerShutdownHandlers(mockStore);
+    const exitSpy = vi.spyOn(process, "exit").mockImplementation((() => {}) as any);
+
+    handlers.shutdownWithFlush();
+
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
+    expect(mockStore.flush).toHaveBeenCalledTimes(1);
+    expect(mockStore.close).toHaveBeenCalled();
+    expect(exitSpy).toHaveBeenCalledWith(0);
+
+    const flushIdx = callOrder.indexOf("flush");
+    const closeIdx = callOrder.indexOf("close");
+    expect(flushIdx).toBeLessThan(closeIdx);
+
+    exitSpy.mockRestore();
+    handlers.removeProcessListeners();
+  });
+
+  it("idempotent double-SIGINT does not double-flush", async () => {
+    const mockStore = {
+      flush: vi.fn(async () => {}),
+      close: vi.fn(() => {}),
+    } as any;
+
+    const { registerShutdownHandlers } = await import("./plugin-init");
+    const handlers = registerShutdownHandlers(mockStore);
+
+    const exitSpy = vi.spyOn(process, "exit").mockImplementation((() => {}) as any);
+
+    handlers.shutdownWithFlush();
+    handlers.shutdownWithFlush();
+
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
+    expect(mockStore.flush).toHaveBeenCalledTimes(1);
+    exitSpy.mockRestore();
+    handlers.removeProcessListeners();
+  });
+});
