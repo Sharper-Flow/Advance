@@ -44,6 +44,32 @@ export const CHANGE_WORKFLOW_UPDATE_NAMES = {
   closeChange: "adv.change.closeChange",
 } as const;
 
+export const CHANGE_WORKFLOW_SIGNAL_NAMES = {
+  applyChangeSummary: "adv.change.applyChangeSummary",
+} as const;
+
+export interface ChangeSummaryPayload {
+  changeId: string;
+  title: string;
+  status: import("../types").ChangeStatus;
+  gateProgress: {
+    proposal: string;
+    discovery: string;
+    design: string;
+    planning: string;
+    execution: string;
+    acceptance: string;
+    release: string;
+  };
+  taskCounts: {
+    total: number;
+    done: number;
+    pending: number;
+  };
+  lastActivityAt: string;
+  sourceVersion: number;
+}
+
 export type ArtifactKind =
   | "proposal"
   | "problemStatement"
@@ -127,4 +153,8 @@ export interface ProjectWorkflowState extends ProjectWorkflowInput {
   agenda: import("../types").AgendaItem[];
   project_wisdom: ProjectWisdomEntry[];
   migration_ledger: MigrationLedgerEntry[];
+  /** Durable index: changeId → ChangeSummaryPayload (populated by signals) */
+  change_summaries: Record<string, ChangeSummaryPayload>;
+  /** Monotonic version tracking per change for dedupe */
+  source_versions: Record<string, number>;
 }
