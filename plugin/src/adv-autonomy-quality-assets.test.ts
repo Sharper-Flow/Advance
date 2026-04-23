@@ -353,6 +353,22 @@ describe("Investment Check-In Policy (addCostTimeInvestment)", () => {
     }
   });
 
+  test("adv-archive.md refreshes basis before choosing local or PR archive path", () => {
+    const content = readAsset(join(COMMAND_DIR, "adv-archive.md"));
+    expect(content).toMatch(/Refresh Merge Basis/i);
+    expect(content).toMatch(/git fetch origin \{default-branch\}/);
+    expect(content).toMatch(/git merge --ff-only change\/\{change-id\}/);
+    expect(content).toMatch(/git rebase \{freshness-ref\}/);
+    expect(content).toMatch(/PR workflow path/i);
+  });
+
+  test("adv-archive.md preserves cleanup safety on reconcile conflicts", () => {
+    const content = readAsset(join(COMMAND_DIR, "adv-archive.md"));
+    expect(content).toMatch(/git rebase --abort/);
+    expect(content).toMatch(/do NOT delete worktree/i);
+    expect(content).toMatch(/conflicting files/i);
+  });
+
   test("SETUP.md documents P28 rule and cost-governance file", () => {
     const content = readAsset(SETUP);
     expect(content).toMatch(/P28/);

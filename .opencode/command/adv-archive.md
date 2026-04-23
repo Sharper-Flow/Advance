@@ -3,15 +3,21 @@ name: adv-archive
 description: Archive completed change: apply spec deltas and finalize git
 phaseGoal: "Promote the change from contract to law: apply spec deltas, capture wisdom, clean up."
 ---
+
 <!-- manifest: adv-archive · gate: release · requiresChangeId: true · prereqs: [adv-harden] · scope: reads[specs, proposal, tasks, codebase] · modifies[specs] -->
+
 # ADV Archive — Finalize Completed Change
+
 Archive change → apply deltas to specs → mandatory Phase 9 Git Finalization (commit, merge, verify, cleanup).
+
 ## Exits
-| Exit | Condition |
-|------|-----------|
+
+| Exit        | Condition                                      |
+| ----------- | ---------------------------------------------- |
 | ✅ Complete | All gates passed, specs updated, git finalized |
-| 🎤 Blocked | Incomplete gates/tasks or merge conflicts |
-| 🔁 Dry Run | Preview only, no changes |
+| 🎤 Blocked  | Incomplete gates/tasks or merge conflicts      |
+| 🔁 Dry Run  | Preview only, no changes                       |
+
 <UserRequest>
   $ARGUMENTS
 </UserRequest>
@@ -20,7 +26,9 @@ Parse `$ARGUMENTS`: `change-id` (required), `--dry-run` (optional).
 If empty → `adv_change_list` → auto-select the only plausible change; ask via `question` only if multiple plausible targets remain.
 
 ---
+
 ## Phase 1: Pre-Archive Checks
+
 1. `adv_change_show` → verify status "active"
 2. `adv_task_list` → all tasks must be "done". If incomplete → ARCHIVE BLOCKED banner → stop
 3. `adv_change_validate strict: true` → if fails → show errors/warnings → stop and review the validation output before retrying
@@ -28,32 +36,45 @@ If empty → `adv_change_list` → auto-select the only plausible change; ask vi
 5. `adv_investment_report changeId: {id}` → include investment summary in archive report (informational)
 
 ---
+
 ## Phase 2: Archive Preview
+
 Display: change ID/title, task count, delta count per capability, affected spec files, docs to generate, archive location.
 
 ---
+
 ## Phase 3: Dry Run
+
 If `--dry-run` → emit DRY RUN COMPLETE → stop.
 
 ---
+
 ## Phase 4: Gate Status
+
 `adv_gate_status` → display all 7 gates. If any incomplete before `release` → stop with guidance.
 
 ---
+
 ## Phase 5: User Signoff
+
 Ask via `question`: "Archive '{change-id}' and apply to specs?" Options: Sign off and archive (Recommended), Dry run first, Cancel.
 
 If approved → `adv_gate_complete changeId: {id} gateId: release` → proceed.
 
 ---
+
 ## Phase 6: Execute Archive
+
 `adv_change_archive changeId: <target>` — applies deltas, updates SQLite, generates docs, moves to archive.
 
 ---
+
 ## Phase 7: Verify
+
 For each affected capability: `adv_spec action: "show"` → verify new requirements present. Verify archive directory exists with change.json and ARCHIVE_SUMMARY.md.
 
 ---
+
 ## Phase 8: Archive Report
 
 Use the archive terminal variant of the Gate Handoff Voice spine (see `docs/command-voice-standard.md § Gate Handoff Voice` — archive variant: `Problem` / `Chosen direction` / `Delivered` + shipped footer):
@@ -80,18 +101,60 @@ What shipped, what spec deltas applied.
 ```
 
 ---
-## Phase 9: Git Finalization (Mandatory)
-### Step 1: Stage and Commit
-Stage `.adv/specs/`, `docs/specs/`, `.adv/archive/`, `.opencode/`, `plugin/src/`, `ADV_INSTRUCTIONS.md`, `README.md`, and any touched docs in `docs/`. Do NOT stage generated build artifacts. Commit: `chore: archive {change-id}`. If commit fails → stop.
-### Step 2: Detect Default Branch
-`git rev-parse --verify main` || `trunk` || `git symbolic-ref refs/remotes/origin/HEAD` || `git config --get init.defaultBranch`. If UNKNOWN or remote HEAD looks stale → ask user.
-### Step 3: Check Context
-`git branch --show-current` → if on `change/{change-id}` → merge required. If on default branch → skip merge.
-### Step 4: Merge
-`git checkout {default-branch}` → `git merge --no-edit change/{change-id}`. If conflicts → stop, user resolves. Alternative (PR workflow): push + `gh pr create`.
 
-### Step 4.5: Publish Safety (when pushing a default branch)
+## Phase 9: Git Finalization (Mandatory)
+
+### Step 1: Stage and Commit
+
+Stage `.adv/specs/`, `docs/specs/`, `.adv/archive/`, `.opencode/`, `plugin/src/`, `ADV_INSTRUCTIONS.md`, `README.md`, and any touched docs in `docs/`. Do NOT stage generated build artifacts. Commit: `chore: archive {change-id}`. If commit fails → stop.
+
+### Step 2: Detect Default Branch
+
+`git rev-parse --verify main` || `trunk` || `git symbolic-ref refs/remotes/origin/HEAD` || `git config --get init.defaultBranch`. If UNKNOWN or remote HEAD looks stale → ask user.
+
+### Step 3: Check Context
+
+`git branch --show-current` → if on `change/{change-id}` → merge required. If on default branch → skip merge.
+
+### Step 3.5: Overlap + Policy Scan
+
+- Reuse overlap signals already surfaced by `/adv-apply` when available
+- If other active changes touch same files or same local subsystem → mark `overlap-risk`
+- If branch policy, review requirement, or publish safety makes local merge-back the wrong fit → mark `pr-risk`
+
+### Step 4: Refresh Merge Basis
+
+- `git fetch origin {default-branch}` when `origin` exists
+- If fetch succeeds → use `origin/{default-branch}` as freshness reference
+- If fetch fails and a PR/publish path is required → stop and ask the user before proceeding
+- If no remote is configured or local-only archive is intended → continue with local `{default-branch}`
+
+### Step 4.5: Choose Integration Path
+
+Allowed outcomes:
+
+- **LOCAL_FINISH / fast path** — branch is already on current default-branch basis → `git checkout {default-branch}` → `git merge --ff-only change/{change-id}`
+- **LOCAL_FINISH / reconcile path** — no `overlap-risk`, no `pr-risk`, but trunk moved → run compatibility preflight, then rebase, then fast-forward merge
+- **PR workflow path** — `overlap-risk`, `pr-risk`, failed lightweight verification, or non-fast-forward publish risk → push + `gh pr create` (or queue entry when project policy uses one)
+
+### Step 4.6: Compatibility Preflight (for reconcile path)
+
+- From the change branch: `git merge --no-commit --no-ff {freshness-ref}`
+- If clean → `git merge --abort` → continue
+- If conflicts → capture `git diff --name-only --diff-filter=U` → `git merge --abort` → stop with conflicting files. × Do NOT delete worktree
+
+### Step 4.7: Reconcile (for reconcile path)
+
+- `git rebase {freshness-ref}`
+- If rebase conflicts → capture `git diff --name-only --diff-filter=U` → `git rebase --abort` → stop with conflicting files. × Do NOT delete worktree
+- Run lightweight verification for touched scope (targeted checks first, repo smoke check if no narrower command exists)
+- If verification fails → route to PR workflow path or stop when project policy forbids it
+- After clean verification: `git checkout {default-branch}` → `git merge --ff-only change/{change-id}`
+
+### Step 4.8: Publish Safety (when pushing a default branch)
+
 If archive finalization needs a remote push from the default branch:
+
 - `git fetch origin` (if fetch fails or auth is unclear → stop and ask the user before proceeding)
 - `git log --oneline origin/{default-branch}..HEAD` → inspect the commits that will publish
 - If `origin/{default-branch}..HEAD` is a clean fast-forward → `git push origin {default-branch}`
@@ -99,21 +162,33 @@ If archive finalization needs a remote push from the default branch:
 - Before any `--force-with-lease` prompt, show both `origin/{default-branch}..HEAD` and `HEAD..origin/{default-branch}` so the user sees local-only and remote-only commits
 - Use `--force-with-lease` only after explicit user approval via the `question` tool confirms a non-fast-forward publish is intended
 - If remote divergence is detected and intent is unclear → stop and ask the user
+
 ### Step 5: Verify
+
 `git log --oneline {default-branch}..change/{change-id}` → MUST return empty. If non-empty → stop, × do NOT delete worktree.
+
 ### Step 6: Cleanup Worktree
+
 Only if in worktree AND merge verified: `worktree_delete branch: "change/{change-id}" reason: "Change {change-id} merged"`. If unavailable → emit info.
+
 ### Step 7: Temp Artifacts
+
 Remove `*.bak`, `*.tmp`, `*.orig` (excluding node_modules).
+
 ### Completion
+
 Emit GIT FINALIZATION COMPLETE: commit SHA, merge target, verification status, worktree cleanup status, artifacts removed.
 
 ---
+
 ## Error Handling
+
 Delta application error → ARCHIVE FAILED banner with delta ID, target, error. Change NOT archived → fix and retry.
 
 ---
+
 ## Key Tool
-| Purpose | Tool |
-|---------|------|
+
+| Purpose | Tool                                |
+| ------- | ----------------------------------- |
 | Archive | `adv_change_archive changeId: <id>` |

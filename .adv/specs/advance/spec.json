@@ -501,6 +501,53 @@
       ]
     },
     {
+      "id": "rq-releaseFinalization01",
+      "title": "Archive Finalization Refreshes Basis and Preserves Cleanup Safety",
+      "body": "Phase 9 Git Finalization must refresh the current default-branch basis before deciding local merge-back versus PR workflow. Clean low-risk cases prefer a linear-history fast path (`--ff-only` when already current, reconcile only when needed). Conflicting or risky cases must stop or route to PR workflow before cleanup. Worktree deletion remains forbidden until merged-state verification proves the change branch is fully integrated.",
+      "priority": "must",
+      "tags": ["workflow", "archive", "worktree", "git"],
+      "scenarios": [
+        {
+          "id": "rq-releaseFinalization01.1",
+          "title": "Clean archive refresh uses local fast path",
+          "given": [
+            "A change branch is already on the current default-branch basis",
+            "No overlap-risk or PR-only policy applies"
+          ],
+          "when": "Phase 9 Git Finalization chooses an integration path",
+          "then": [
+            "The archive uses the local `--ff-only` path",
+            "No branch rewrite is required"
+          ]
+        },
+        {
+          "id": "rq-releaseFinalization01.2",
+          "title": "Conflicting reconcile stops before cleanup",
+          "given": [
+            "A change branch must reconcile with a fresher default branch",
+            "Compatibility preflight or rebase finds conflicts"
+          ],
+          "when": "Phase 9 Git Finalization evaluates the reconcile path",
+          "then": [
+            "The archive reports the conflicting files",
+            "The archive does not delete the worktree"
+          ]
+        },
+        {
+          "id": "rq-releaseFinalization01.3",
+          "title": "Risky archive routes to PR workflow",
+          "given": [
+            "A change has overlap-risk, PR-only policy, or non-fast-forward publish risk"
+          ],
+          "when": "Phase 9 Git Finalization chooses an integration path",
+          "then": [
+            "The archive routes to PR workflow instead of forcing local merge-back",
+            "Cleanup remains blocked until merged-state verification succeeds"
+          ]
+        }
+      ]
+    },
+    {
       "id": "rq-autonomy01",
       "title": "Human Checkpoint Contract",
       "body": "ADV must pause for human input only at explicit approval/judgment checkpoints and auto-continue through clean agent-owned workflow steps. Human checkpoints are: proposal confirmation, agreement sign-off, design approval when real tradeoffs depend on user values, when the design validator returns CONFLICT, or when contract-compromise risk is present, acceptance, archive sign-off, cancellation approval, and doom-loop recovery. All other clean workflow steps (discovery, deterministic design, prep, apply, harden, and scope-driven re-entry) proceed sequentially without prompting the user when no unresolved user-value tradeoff, contract-compromise risk, or required approval exists.",

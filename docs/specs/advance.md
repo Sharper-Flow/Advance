@@ -617,6 +617,59 @@ The canonical ADV workflow is seven sequential gates: proposal, discovery, desig
 
 ---
 
+### Archive Finalization Refreshes Basis and Preserves Cleanup Safety
+
+**ID:** `rq-releaseFinalization01` | **Priority:** **[MUST]**
+
+Phase 9 Git Finalization must refresh the current default-branch basis before deciding local merge-back versus PR workflow. Clean low-risk cases prefer a linear-history fast path (`--ff-only` when already current, reconcile only when needed). Conflicting or risky cases must stop or route to PR workflow before cleanup. Worktree deletion remains forbidden until merged-state verification proves the change branch is fully integrated.
+
+**Tags:** `workflow`, `archive`, `worktree`, `git`
+
+#### Scenarios
+
+**Clean archive refresh uses local fast path** (`rq-releaseFinalization01.1`)
+
+**Given:**
+
+- A change branch is already on the current default-branch basis
+- No overlap-risk or PR-only policy applies
+
+**When:** Phase 9 Git Finalization chooses an integration path
+
+**Then:**
+
+- The archive uses the local `--ff-only` path
+- No branch rewrite is required
+
+**Conflicting reconcile stops before cleanup** (`rq-releaseFinalization01.2`)
+
+**Given:**
+
+- A change branch must reconcile with a fresher default branch
+- Compatibility preflight or rebase finds conflicts
+
+**When:** Phase 9 Git Finalization evaluates the reconcile path
+
+**Then:**
+
+- The archive reports the conflicting files
+- The archive does not delete the worktree
+
+**Risky archive routes to PR workflow** (`rq-releaseFinalization01.3`)
+
+**Given:**
+
+- A change has overlap-risk, PR-only policy, or non-fast-forward publish risk
+
+**When:** Phase 9 Git Finalization chooses an integration path
+
+**Then:**
+
+- The archive routes to PR workflow instead of forcing local merge-back
+- Cleanup remains blocked until merged-state verification succeeds
+
+---
+
 ### Human Checkpoint Contract
 
 **ID:** `rq-autonomy01` | **Priority:** **[MUST]**
