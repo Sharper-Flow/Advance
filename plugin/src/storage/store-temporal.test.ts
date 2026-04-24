@@ -1,4 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
+import { mkdtempSync, rmSync, mkdirSync, existsSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { createTemporalStoreBackend } from "./store-temporal";
 import type { Store } from "./store-types";
 
@@ -11,6 +14,21 @@ vi.mock("../utils/debug-log", () => ({
   })),
   appendDebugLog: vi.fn(),
 }));
+
+// P1.4: spy-mock the migration module so individual tests can override
+// ensureChangeWorkflowStarted (via mockRejectedValueOnce /
+// mockResolvedValueOnce) without breaking the default behavior that
+// other tests rely on (e.g. the re-seed test which needs the real
+// ensureChangeWorkflowStarted to reach bundle.client.workflow.start).
+vi.mock("../temporal/migration", async () => {
+  const actual = await vi.importActual<typeof import("../temporal/migration")>(
+    "../temporal/migration",
+  );
+  return {
+    ...actual,
+    ensureChangeWorkflowStarted: vi.fn(actual.ensureChangeWorkflowStarted),
+  };
+});
 
 /**
  * Creates a minimal project workflow handle mock for tests.
@@ -757,6 +775,194 @@ describe("Temporal store backend adapter", () => {
       expect(result.success).toBe(true);
       expect(result.closed).toBe(1);
       expect(changeHandle.executeUpdate).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  // P1.4 — Transactional changes.create with fs.rm rollback (design.md § KD-7).
+  //
+  // Problem: `changes.create` currently writes disk scaffold first, then
+  // starts the Temporal workflow. If the workflow start throws, the disk
+  // artifacts persist as orphans that confuse subsequent tools. Fix: on
+  // workflow-start failure, remove the change directory via fs.rm.
+  describe("changes.create transactional rollback (P1.4)", () => {
+    it("removes change dir via fs.rm when ensureChangeWorkflowStarted fails", async () => {
+      const { ensureChangeWorkflowStarted } =
+        await import("../temporal/migration");
+      const mockEnsure = ensureChangeWorkflowStarted as ReturnType<
+        typeof vi.fn
+      >;
+      mockEnsure.mockRejectedValueOnce(new Error("Temporal server down"));
+
+      // Set up a real temp changes dir so fs.rm has something to remove
+      const tmp = mkdtempSync(join(tmpdir(), "p1-4-rollback-"));
+      const changesDir = join(tmp, "changes");
+      mkdirSync(changesDir, { recursive: true });
+      const changeDir = join(changesDir, "chg-rollback");
+      mkdirSync(changeDir, { recursive: true });
+      // Write a dummy proposal.md so we can verify it's gone after rollback
+      // (simulates what legacy.changes.create would have scaffolded).
+      const { writeFileSync } = await import("node:fs");
+      writeFileSync(join(changeDir, "proposal.md"), "# scaffolded");
+
+      const legacy = makeLegacyStore();
+      (legacy as any).paths = { changes: changesDir };
+      (legacy.changes.create as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
+        { changeId: "chg-rollback", path: changeDir },
+      );
+      (legacy.changes.get as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+        success: true,
+        data: {
+          id: "chg-rollback",
+          title: "Rollback test",
+          status: "draft",
+          created_at: "2026-04-24T00:00:00Z",
+          tasks: [],
+          wisdom: [],
+          gates: {},
+          reentry_history: [],
+          deltas: {},
+          validation: null,
+          github_issues: [],
+          clarify_findings: [],
+          judgment_calls: [],
+          batch_surfaced_at: null,
+          cross_project_origin: null,
+        },
+      });
+
+      const bundle = {
+        client: {
+          workflow: { getHandle: routeHandle({}), start: vi.fn() },
+        },
+      };
+      const adapted = createTemporalStoreBackend({
+        legacy,
+        temporal: bundle as any,
+        projectId: "proj1",
+      });
+
+      expect(existsSync(changeDir)).toBe(true);
+
+      await expect(adapted.changes.create("Rollback test")).rejects.toThrow(
+        /Temporal server down/,
+      );
+
+      // Acceptance: change dir must be gone after rollback
+      expect(existsSync(changeDir)).toBe(false);
+
+      rmSync(tmp, { recursive: true, force: true });
+    });
+
+    it("re-throws the original Temporal error (not the rollback error)", async () => {
+      const { ensureChangeWorkflowStarted } =
+        await import("../temporal/migration");
+      const mockEnsure = ensureChangeWorkflowStarted as ReturnType<
+        typeof vi.fn
+      >;
+      const originalError = new Error("Original workflow start failure");
+      mockEnsure.mockRejectedValueOnce(originalError);
+
+      // Point changes dir at a path that doesn't exist → fs.rm with
+      // `force: true` still succeeds (no-op), so the original error wins.
+      // If `force: false` were used, fs.rm would throw ENOENT and mask the
+      // original — this test guards against that regression.
+      const legacy = makeLegacyStore();
+      (legacy as any).paths = { changes: "/tmp/does-not-exist-p14" };
+      (legacy.changes.create as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
+        { changeId: "chg-foo", path: "/tmp/does-not-exist-p14/chg-foo" },
+      );
+      (legacy.changes.get as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+        success: true,
+        data: {
+          id: "chg-foo",
+          title: "Test",
+          status: "draft",
+          created_at: "2026-04-24T00:00:00Z",
+          tasks: [],
+          wisdom: [],
+          gates: {},
+          reentry_history: [],
+          deltas: {},
+          validation: null,
+          github_issues: [],
+          clarify_findings: [],
+          judgment_calls: [],
+          batch_surfaced_at: null,
+          cross_project_origin: null,
+        },
+      });
+
+      const bundle = {
+        client: {
+          workflow: { getHandle: routeHandle({}), start: vi.fn() },
+        },
+      };
+      const adapted = createTemporalStoreBackend({
+        legacy,
+        temporal: bundle as any,
+        projectId: "proj1",
+      });
+
+      await expect(adapted.changes.create("Test")).rejects.toBe(originalError);
+    });
+
+    it("succeeds normally when ensureChangeWorkflowStarted resolves", async () => {
+      const { ensureChangeWorkflowStarted } =
+        await import("../temporal/migration");
+      const mockEnsure = ensureChangeWorkflowStarted as ReturnType<
+        typeof vi.fn
+      >;
+      mockEnsure.mockResolvedValueOnce(undefined);
+
+      const tmp = mkdtempSync(join(tmpdir(), "p1-4-success-"));
+      const changesDir = join(tmp, "changes");
+      mkdirSync(changesDir, { recursive: true });
+      const changeDir = join(changesDir, "chg-success");
+      mkdirSync(changeDir, { recursive: true });
+
+      const legacy = makeLegacyStore();
+      (legacy as any).paths = { changes: changesDir };
+      (legacy.changes.create as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
+        { changeId: "chg-success", path: changeDir },
+      );
+      (legacy.changes.get as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+        success: true,
+        data: {
+          id: "chg-success",
+          title: "Success",
+          status: "draft",
+          created_at: "2026-04-24T00:00:00Z",
+          tasks: [],
+          wisdom: [],
+          gates: {},
+          reentry_history: [],
+          deltas: {},
+          validation: null,
+          github_issues: [],
+          clarify_findings: [],
+          judgment_calls: [],
+          batch_surfaced_at: null,
+          cross_project_origin: null,
+        },
+      });
+
+      const bundle = {
+        client: {
+          workflow: { getHandle: routeHandle({}), start: vi.fn() },
+        },
+      };
+      const adapted = createTemporalStoreBackend({
+        legacy,
+        temporal: bundle as any,
+        projectId: "proj1",
+      });
+
+      const result = await adapted.changes.create("Success");
+      expect(result.changeId).toBe("chg-success");
+      // Directory should still exist — no rollback fired
+      expect(existsSync(changeDir)).toBe(true);
+
+      rmSync(tmp, { recursive: true, force: true });
     });
   });
 });

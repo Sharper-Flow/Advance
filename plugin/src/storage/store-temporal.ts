@@ -47,7 +47,7 @@ import {
   classifyTemporalError,
   withTemporalRetry,
 } from "../temporal/retry-wrapper";
-import { listChangeDirs } from "./json";
+import { listChangeDirs, removeChangeDir } from "./json";
 import { buildChangeRecency } from "./store-types";
 import type { ChangeStatus, ProjectStatus } from "../types";
 import {
@@ -518,20 +518,46 @@ export function createTemporalStoreBackend(
             `Created change ${result.changeId} but could not reload scaffolded change state`,
           );
         }
-        const client = getTemporalWorkflowClient();
-        await ensureChangeWorkflowStarted(client, {
-          projectId: input.projectId,
-          changeId: created.data.id,
-          title: created.data.title,
-          initializedAt: created.data.created_at,
-          seedState: {
-            status: created.data.status,
-            tasks: created.data.tasks,
-            wisdom: created.data.wisdom,
-            gates: created.data.gates,
-            reentry_history: created.data.reentry_history,
-          },
-        });
+
+        // P1.4 transactional guard: if Temporal workflow start fails,
+        // the disk scaffold (proposal.md, change.json, etc.) would
+        // otherwise persist as an orphan that confuses subsequent tool
+        // calls. Remove the change dir on failure and re-throw the
+        // ORIGINAL error — never mask it with rollback errors.
+        //
+        // See design.md § KD-7.
+        try {
+          const client = getTemporalWorkflowClient();
+          await ensureChangeWorkflowStarted(client, {
+            projectId: input.projectId,
+            changeId: created.data.id,
+            title: created.data.title,
+            initializedAt: created.data.created_at,
+            seedState: {
+              status: created.data.status,
+              tasks: created.data.tasks,
+              wisdom: created.data.wisdom,
+              gates: created.data.gates,
+              reentry_history: created.data.reentry_history,
+            },
+          });
+        } catch (err) {
+          try {
+            await removeChangeDir(legacy.paths.changes, created.data.id);
+          } catch (rollbackErr) {
+            // Rollback itself failed (disk unmounted, permissions, etc).
+            // Log but don't mask the original Temporal error.
+            logger.error(
+              `P1.4 rollback failed for change '${created.data.id}' after Temporal-start error: ${
+                rollbackErr instanceof Error
+                  ? rollbackErr.message
+                  : String(rollbackErr)
+              }. Manual cleanup of the change directory may be required.`,
+            );
+          }
+          throw err;
+        }
+
         updateOverlay(created.data.id, {
           created_at: created.data.created_at,
           created_by: created.data.created_by,

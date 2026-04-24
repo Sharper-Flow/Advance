@@ -6,7 +6,7 @@
  */
 
 import { join, basename } from "path";
-import { readdir, mkdir, readFile, access } from "fs/promises";
+import { readdir, mkdir, readFile, access, rm } from "fs/promises";
 import { SpecSchema, ChangeSchema, ProjectConfigSchema } from "../types";
 import type { Spec, Change, ProjectConfig } from "../types";
 import { ZodError } from "zod";
@@ -728,6 +728,26 @@ export async function updateChangeArtifacts(
 // =============================================================================
 // File Utilities
 // =============================================================================
+
+/**
+ * Remove a change's on-disk directory (proposal.md, change.json, etc.)
+ * recursively and force-idempotently. Used by `changes.create`'s
+ * transactional rollback (P1.4) when the Temporal workflow start fails
+ * AFTER the disk scaffold was written.
+ *
+ * `force: true` makes the operation a no-op if the directory doesn't
+ * exist — critical for the re-throw semantics in store-temporal.ts's
+ * rollback path: we must propagate the ORIGINAL Temporal error, not
+ * mask it with an ENOENT from a double-rollback.
+ *
+ * See design.md § KD-7 (validator-corrected).
+ */
+export async function removeChangeDir(
+  changesDir: string,
+  changeId: string,
+): Promise<void> {
+  await rm(join(changesDir, changeId), { recursive: true, force: true });
+}
 
 export async function fileExists(path: string): Promise<boolean> {
   try {
