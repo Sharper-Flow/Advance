@@ -14,7 +14,11 @@ vi.mock("@temporalio/worker", () => ({
   Worker: { create: workerMocks.create },
 }));
 
-import { runTemporalWorker, runTemporalWorkerFromEnv } from "./worker";
+import {
+  runTemporalWorker,
+  runTemporalWorkerFromEnv,
+  createChildIPCHandler,
+} from "./worker";
 
 describe("temporal worker helpers", () => {
   beforeEach(() => {
@@ -113,5 +117,128 @@ describe("temporal worker helpers", () => {
         ADV_TEMPORAL_NAMESPACE: "default",
       } as NodeJS.ProcessEnv),
     ).rejects.toThrow(/ADV_TEMPORAL_TASK_QUEUES is empty/);
+  });
+
+  // P1.3.7 — Child IPC handler for dynamic queue register/unregister.
+  //
+  // Context: parent (worker-multi.ts) writes JSON lines to child stdin.
+  // Child must read and act. Handler dispatches to onRegister/
+  // onUnregister/onShutdown callbacks. Stdin-based IPC (not process.send)
+  // because child is spawned with stdio: ["pipe","pipe","pipe"] — no
+  // IPC fd. See design.md § KD-1.
+  describe("createChildIPCHandler (P1.3.7)", () => {
+    it("dispatches register message to onRegister callback", async () => {
+      const onRegister = vi.fn(async () => {});
+      const onUnregister = vi.fn(async () => {});
+      const onShutdown = vi.fn(async () => {});
+
+      const handler = createChildIPCHandler({
+        onRegister,
+        onUnregister,
+        onShutdown,
+      });
+      await handler.handleLine('{"type":"register","queue":"advance-new"}');
+
+      expect(onRegister).toHaveBeenCalledWith("advance-new");
+      expect(onUnregister).not.toHaveBeenCalled();
+      expect(onShutdown).not.toHaveBeenCalled();
+    });
+
+    it("dispatches unregister message to onUnregister callback", async () => {
+      const onRegister = vi.fn(async () => {});
+      const onUnregister = vi.fn(async () => {});
+      const onShutdown = vi.fn(async () => {});
+
+      const handler = createChildIPCHandler({
+        onRegister,
+        onUnregister,
+        onShutdown,
+      });
+      await handler.handleLine('{"type":"unregister","queue":"advance-old"}');
+
+      expect(onUnregister).toHaveBeenCalledWith("advance-old");
+      expect(onRegister).not.toHaveBeenCalled();
+    });
+
+    it("dispatches shutdown message to onShutdown callback", async () => {
+      const onRegister = vi.fn(async () => {});
+      const onUnregister = vi.fn(async () => {});
+      const onShutdown = vi.fn(async () => {});
+
+      const handler = createChildIPCHandler({
+        onRegister,
+        onUnregister,
+        onShutdown,
+      });
+      await handler.handleLine('{"type":"shutdown"}');
+
+      expect(onShutdown).toHaveBeenCalled();
+    });
+
+    it("handles multiple JSON lines in a single stdin chunk", async () => {
+      const onRegister = vi.fn(async () => {});
+      const handler = createChildIPCHandler({
+        onRegister,
+        onUnregister: vi.fn(async () => {}),
+        onShutdown: vi.fn(async () => {}),
+      });
+      // Simulate chunk with two IPC messages
+      await handler.handleChunk(
+        Buffer.from(
+          '{"type":"register","queue":"q1"}\n{"type":"register","queue":"q2"}\n',
+        ),
+      );
+
+      expect(onRegister).toHaveBeenCalledTimes(2);
+      expect(onRegister).toHaveBeenNthCalledWith(1, "q1");
+      expect(onRegister).toHaveBeenNthCalledWith(2, "q2");
+    });
+
+    it("handles chunk-split JSON gracefully (partial line buffering)", async () => {
+      const onRegister = vi.fn(async () => {});
+      const handler = createChildIPCHandler({
+        onRegister,
+        onUnregister: vi.fn(async () => {}),
+        onShutdown: vi.fn(async () => {}),
+      });
+
+      // First chunk has a partial line (no trailing newline)
+      await handler.handleChunk(Buffer.from('{"type":"register","queue":"'));
+      expect(onRegister).not.toHaveBeenCalled();
+
+      // Second chunk completes the message
+      await handler.handleChunk(Buffer.from('q-split"}\n'));
+      expect(onRegister).toHaveBeenCalledWith("q-split");
+    });
+
+    it("ignores malformed JSON without crashing", async () => {
+      const onRegister = vi.fn(async () => {});
+      const handler = createChildIPCHandler({
+        onRegister,
+        onUnregister: vi.fn(async () => {}),
+        onShutdown: vi.fn(async () => {}),
+      });
+
+      // Garbage line + valid line mixed
+      await handler.handleChunk(
+        Buffer.from('this is not json\n{"type":"register","queue":"ok"}\n'),
+      );
+      expect(onRegister).toHaveBeenCalledWith("ok");
+    });
+
+    it("ignores JSON with unrecognized type", async () => {
+      const onRegister = vi.fn(async () => {});
+      const onUnregister = vi.fn(async () => {});
+      const onShutdown = vi.fn(async () => {});
+      const handler = createChildIPCHandler({
+        onRegister,
+        onUnregister,
+        onShutdown,
+      });
+      await handler.handleLine('{"type":"pong","value":42}');
+      expect(onRegister).not.toHaveBeenCalled();
+      expect(onUnregister).not.toHaveBeenCalled();
+      expect(onShutdown).not.toHaveBeenCalled();
+    });
   });
 });
