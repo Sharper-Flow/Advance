@@ -13,6 +13,7 @@ overrides:
   brace-expansion: '>=5.0.5'
   protobufjs: '>=7.5.5'
   uuid: '>=14.0.0'
+  zod: 4.3.6
 
 importers:
 
@@ -37,7 +38,7 @@ importers:
         specifier: ^5.0.9
         version: 5.1.7
       zod:
-        specifier: ^4.3.6
+        specifier: 4.3.6
         version: 4.3.6
     devDependencies:
       '@eslint/js':
@@ -2234,9 +2235,6 @@ packages:
     resolution: {integrity: sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q==}
     engines: {node: '>=10'}
 
-  zod@4.1.8:
-    resolution: {integrity: sha512-5R1P+WwQqmmMIEACyzSvo4JXHY5WiAFHRMg+zBZKgKS+Q1viRa0C1hmUKtHltoIFKtIdki3pRxkmpP74jnNYHQ==}
-
   zod@4.3.6:
     resolution: {integrity: sha512-rftlrkhHZOcjDwkGlnUtZZkvaPHCsDATp4pGpuOOMDaTdDDXF91wuVDJoWoPsKX/3YPQ5fHuF3STjcYyKr+Qhg==}
 
@@ -2566,7 +2564,7 @@ snapshots:
   '@opencode-ai/plugin@1.4.3':
     dependencies:
       '@opencode-ai/sdk': 1.4.3
-      zod: 4.1.8
+      zod: 4.3.6
 
   '@opencode-ai/sdk@1.4.3':
     dependencies:
@@ -4276,7 +4274,5 @@ snapshots:
       yargs-parser: 21.1.1
 
   yocto-queue@0.1.0: {}
-
-  zod@4.1.8: {}
 
   zod@4.3.6: {}

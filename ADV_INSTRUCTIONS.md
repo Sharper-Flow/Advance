@@ -218,6 +218,18 @@ Forbidden: `~/.local/share/opencode/plugins/advance/**/{change.json,proposal.md,
 
 On direct-read failure → stop, call `adv_change_show` or `adv_task_show`.
 
+### ADV MCP Tool Invocation (P1.12)
+
+× NEVER invoke ADV tools with empty parameter sets. Always provide all required args explicitly.
+
+- `adv_change_update` — always pass `changeId` + at least one of `proposal`, `problemStatement`, `agreement`, `design`. Zero-args calls hit a 10s safety-net timeout and return `errorClass: ToolExecutionTimeout`. Confirm the target with `adv_change_show` or `adv_change_list` first.
+- `adv_task_add` — before passing `blockedBy`, call `adv_task_list changeId: <id>` to fetch current task IDs. Unknown IDs are rejected with the list of valid IDs so you can self-correct, but this costs a round trip.
+- `adv_task_cancel` — all `taskIds` must exist in the same change. Cancellations are atomic: if any ID is unknown, NO task is cancelled. Verify with `adv_task_list` before calling.
+- `adv_gate_complete` — planning gate requires `userApproved: true`. Other gates accept the flag but only planning enforces it.
+- Tool `describe()` text documents relational constraints (which other tool to call first, at-least-one-of patterns, valid enum values). Read field descriptions before constructing calls.
+
+Reasoning: during `/adv-discover` + `/adv-prep` of `completeTemporalOnlyMigration`, the agent hit three distinct failure modes — zero-args hang on `adv_change_update`, silent content overwrite via placeholder args, wrong `blockedBy` task IDs accepted without validation. P1.12 added schema hints, runtime relational validators, and a safety-net timeout to prevent each class. The guidance above avoids triggering them in the first place.
+
 ### Question Tool UX
 
 Write-in option enforced by P26 (`rules.yaml`). ADV notes:

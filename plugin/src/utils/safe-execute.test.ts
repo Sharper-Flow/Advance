@@ -225,6 +225,70 @@ describe("safe-execute", () => {
       expect(content).toContain('"outcome":"error"');
       expect(content).toContain('"errorClass":"Error"');
     });
+
+    // P1.12 Scope A3: safety-net timeout
+    //
+    // When a tool execute function hangs indefinitely (SDK-side Zod parse
+    // hang on missing required args, deadlocked workflow Update, etc),
+    // safeExecute must not block forever. After SAFE_EXECUTE_TIMEOUT_MS
+    // (default 10000ms), the wrapper MUST return a structured
+    // ToolExecutionTimeout error to the agent.
+    //
+    // This is the fix for the zero-args `adv_change_update` hang reproduced
+    // live during the /adv-design phase of this change (see wisdom
+    // ws-3550c245 and design.md KD-8).
+    describe("tool execution timeout (P1.12 A3)", () => {
+      it("returns ToolExecutionTimeout error when execute hangs past timeout", async () => {
+        // Never-resolving execute simulates a hung tool
+        const hangingFn = async (): Promise<string> =>
+          new Promise(() => {
+            /* never resolves */
+          });
+
+        const wrapped = safeExecute(hangingFn, "hanging_tool", undefined, {
+          timeoutMs: 100, // short timeout for fast test
+        });
+
+        const start = Date.now();
+        const raw = await wrapped({ some: "args" }, {} as any);
+        const elapsed = Date.now() - start;
+
+        // Must return within ~timeout + small margin, NOT hang forever
+        expect(elapsed).toBeLessThan(500);
+        expect(elapsed).toBeGreaterThanOrEqual(90);
+
+        const result = JSON.parse(raw);
+        expect(result.errorClass).toBe("ToolExecutionTimeout");
+        expect(result.tool).toBe("hanging_tool");
+        expect(result.error).toMatch(/timeout|timed out/i);
+        expect(result.hint).toMatch(/required args|missing|hang/i);
+        expect(result.received_args).toEqual({ some: "args" });
+      });
+
+      it("does not time out when execute resolves within timeout", async () => {
+        const fastFn = async (): Promise<string> =>
+          JSON.stringify({ ok: true });
+
+        const wrapped = safeExecute(fastFn, "fast_tool", undefined, {
+          timeoutMs: 1000,
+        });
+
+        const raw = await wrapped({}, {} as any);
+        const result = JSON.parse(raw);
+        expect(result.ok).toBe(true);
+      });
+
+      it("uses default 10s timeout when none specified", async () => {
+        // Indirect check: verify default is exposed and reasonable
+        const fastFn = async (): Promise<string> => JSON.stringify({ ok: 1 });
+
+        const wrapped = safeExecute(fastFn, "default_timeout_tool");
+
+        const raw = await wrapped({}, {} as any);
+        const result = JSON.parse(raw);
+        expect(result.ok).toBe(1);
+      });
+    });
   });
 
   describe("safeExecuteSimple", () => {

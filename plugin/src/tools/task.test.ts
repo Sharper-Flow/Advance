@@ -526,6 +526,92 @@ describe("Task Tools", () => {
       expect(parsed._contextSnapshot).toContain("addFeature");
       expect(parsed._contextSnapshot).toMatch(/[╔╗╚╝║═]/);
     });
+
+    // P1.12 Scope C: relational validation of blockedBy task IDs.
+    //
+    // Context: during /adv-prep of completeTemporalOnlyMigration, the agent
+    // passed wrong task IDs to blockedBy (pointing at a P1.12 task ID that
+    // was about to be cancelled instead of the P1.3.6 task). The tool
+    // accepted it silently. This broke the dependency graph semantics —
+    // downstream tasks wait on a cancelled task rather than their real
+    // predecessor. See wisdom ws-392d9c8b.
+    //
+    // Fix: validate each blockedBy ID exists in the change's current tasks
+    // before creating the new task. On miss, return a structured error
+    // listing valid task IDs so the agent can self-correct.
+    describe("blockedBy relational validation (P1.12 Scope C)", () => {
+      test("rejects unknown blockedBy task ID with helpful error", async () => {
+        const result = await taskTools.adv_task_add.execute(
+          {
+            changeId: "addFeature",
+            content: "Task with bad dep",
+            blockedBy: ["tk-does-not-exist"],
+          },
+          store,
+        );
+        const parsed = parseToolOutput(result);
+
+        expect(parsed.taskId).toBeUndefined();
+        expect(parsed.error).toContain("tk-does-not-exist");
+        expect(parsed.error).toMatch(/unknown|not found|does not exist/i);
+        // Error must list the valid task IDs so the agent can self-correct
+        expect(parsed.hint).toBeDefined();
+        expect(parsed.hint).toMatch(/adv_task_list/i);
+        // Valid IDs from the fixture should appear in the response so
+        // the agent can see what's actually available
+        expect(parsed.validTaskIds).toEqual(
+          expect.arrayContaining(["tk-task0001", "tk-task0002", "tk-task0003"]),
+        );
+      });
+
+      test("accepts known blockedBy task ID from same change", async () => {
+        const result = await taskTools.adv_task_add.execute(
+          {
+            changeId: "addFeature",
+            content: "Task with real dep",
+            blockedBy: ["tk-task0001"],
+          },
+          store,
+        );
+        const parsed = parseToolOutput(result);
+
+        expect(parsed.error).toBeUndefined();
+        expect(parsed.taskId).toMatch(/^tk-/);
+        expect(parsed.task.deps[0].target).toBe("tk-task0001");
+      });
+
+      test("rejects when ANY blockedBy ID is unknown (partial mismatch)", async () => {
+        const result = await taskTools.adv_task_add.execute(
+          {
+            changeId: "addFeature",
+            content: "Task with mixed deps",
+            blockedBy: ["tk-task0001", "tk-bogus"],
+          },
+          store,
+        );
+        const parsed = parseToolOutput(result);
+
+        expect(parsed.taskId).toBeUndefined();
+        expect(parsed.error).toContain("tk-bogus");
+        // Known good IDs should NOT appear in the "unknown" list
+        expect(parsed.error).not.toMatch(/tk-task0001.*unknown/i);
+      });
+
+      test("empty blockedBy array skips validation entirely", async () => {
+        const result = await taskTools.adv_task_add.execute(
+          {
+            changeId: "addFeature",
+            content: "Task with no deps",
+            blockedBy: [],
+          },
+          store,
+        );
+        const parsed = parseToolOutput(result);
+
+        expect(parsed.error).toBeUndefined();
+        expect(parsed.taskId).toMatch(/^tk-/);
+      });
+    });
   });
 
   describe("adv_task_evidence", () => {
@@ -938,7 +1024,10 @@ describe("Task Tools", () => {
       expect(parsed.error).toContain("approvalEvidence is required");
     });
 
-    test("handles nonexistent task in batch gracefully", async () => {
+    test("rejects batch atomically when any task is nonexistent (P1.12 Scope C)", async () => {
+      // Atomic cancellation semantics (P1.12 Scope C): if ANY taskId is
+      // unknown, NO task is cancelled. Agent must confirm the full batch
+      // is valid before retrying.
       const result = await taskTools.adv_task_cancel.execute(
         {
           taskIds: ["tk-task0001", "nonexistent"],
@@ -953,13 +1042,13 @@ describe("Task Tools", () => {
       );
       const parsed = JSON.parse(result);
 
-      // Partial success
-      expect(parsed.success).toBe(false);
-      expect(parsed.cancelled).toHaveLength(1);
-      expect(parsed.results).toHaveLength(2);
-      expect(parsed.results[0].success).toBe(true);
-      expect(parsed.results[1].success).toBe(false);
-      expect(parsed.results[1].error).toContain("not found");
+      expect(parsed.error).toBeDefined();
+      expect(parsed.error).toContain("nonexistent");
+      expect(parsed.unknownTaskIds).toEqual(["nonexistent"]);
+
+      // No task should be cancelled — atomic semantics
+      const task1 = await store.tasks.get("tk-task0001");
+      expect(task1!.status).not.toBe("cancelled");
     });
 
     test("emits _contextSnapshot after successful cancellation", async () => {
@@ -999,7 +1088,10 @@ describe("Task Tools", () => {
       expect(parsed._contextSnapshot).toContain("addFeature");
     });
 
-    test("does NOT emit _contextSnapshot when all tasks fail", async () => {
+    test("does NOT emit _contextSnapshot when all tasks are unknown (pre-flight rejection)", async () => {
+      // Post-P1.12: all-unknown batch hits pre-flight pre-check and
+      // returns a structured error, not a `success: false` with results
+      // array. No snapshot is emitted because no task state changed.
       const result = await taskTools.adv_task_cancel.execute(
         {
           taskIds: ["nonexistent1", "nonexistent2"],
@@ -1014,8 +1106,66 @@ describe("Task Tools", () => {
       );
       const parsed = JSON.parse(result);
 
-      expect(parsed.success).toBe(false);
+      expect(parsed.error).toBeDefined();
+      expect(parsed.unknownTaskIds).toEqual(["nonexistent1", "nonexistent2"]);
       expect(parsed._contextSnapshot).toBeUndefined();
+    });
+
+    // P1.12 Scope C: relational validation of taskIds.
+    //
+    // Context: agent-error cancellations during /adv-prep passed wrong
+    // task IDs. Without pre-flight validation, the first call would
+    // partially succeed (cancelling valid tasks) and fail on the unknown
+    // IDs — leaving the agent with a mixed state that's hard to recover
+    // from. Pre-flight fail-fast with a hint preserves the principle
+    // that cancellations are atomic from the agent's perspective.
+    describe("taskIds relational validation (P1.12 Scope C)", () => {
+      test("pre-flight rejects when ANY taskId is unknown (no partial cancel)", async () => {
+        const result = await taskTools.adv_task_cancel.execute(
+          {
+            taskIds: ["tk-task0001", "tk-does-not-exist"],
+            reasons: {
+              "tk-task0001": "Valid",
+              "tk-does-not-exist": "Unknown",
+            },
+            approvedByUser: true,
+            approvalEvidence: "User approved",
+          },
+          store,
+        );
+        const parsed = JSON.parse(result);
+
+        // Pre-flight error before ANY cancellation — atomic behavior
+        expect(parsed.error).toBeDefined();
+        expect(parsed.error).toContain("tk-does-not-exist");
+        expect(parsed.hint).toBeDefined();
+        expect(parsed.hint).toMatch(/adv_task_list/i);
+
+        // Valid task must NOT be cancelled — the error is pre-flight
+        const task1 = await store.tasks.get("tk-task0001");
+        expect(task1!.status).not.toBe("cancelled");
+      });
+
+      test("pre-flight error includes the full list of unknown IDs", async () => {
+        const result = await taskTools.adv_task_cancel.execute(
+          {
+            taskIds: ["tk-bogus1", "tk-bogus2"],
+            reasons: {
+              "tk-bogus1": "Unknown",
+              "tk-bogus2": "Unknown",
+            },
+            approvedByUser: true,
+            approvalEvidence: "User approved",
+          },
+          store,
+        );
+        const parsed = JSON.parse(result);
+
+        expect(parsed.error).toBeDefined();
+        expect(parsed.error).toContain("tk-bogus1");
+        expect(parsed.error).toContain("tk-bogus2");
+        expect(parsed.unknownTaskIds).toEqual(["tk-bogus1", "tk-bogus2"]);
+      });
     });
   });
 

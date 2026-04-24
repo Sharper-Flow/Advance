@@ -220,7 +220,11 @@ export const gateTools = {
     description:
       "Get gate status for a change. Returns all 7 gates with completion status, timestamps, and next gate to complete.",
     args: {
-      changeId: z.string().describe("Change ID"),
+      changeId: z
+        .string()
+        .describe(
+          "Change ID — must match an existing change from `adv_change_list`. Returns the full gate map (proposal, discovery, design, planning, execution, acceptance, release) plus `nextGate` and `canArchive` flags.",
+        ),
     },
     execute: async ({ changeId }: { changeId: string }, store: Store) => {
       const result = await store.changes.get(changeId);
@@ -251,7 +255,11 @@ export const gateTools = {
     description:
       "Mark a gate as complete for a change. Enforces sequence - prior gates must be complete first.",
     args: {
-      changeId: z.string().describe("Change ID"),
+      changeId: z
+        .string()
+        .describe(
+          "Change ID — must match an existing change from `adv_change_list`. Sequence is strict: proposal → discovery → design → planning → execution → acceptance → release. Prior gates must all be `done`.",
+        ),
       gateId: z
         .enum([
           "proposal",
@@ -262,7 +270,9 @@ export const gateTools = {
           "acceptance",
           "release",
         ])
-        .describe("Gate to mark complete"),
+        .describe(
+          "Gate to mark complete. Valid values: proposal, discovery, design, planning, execution, acceptance, release. Each gate is owned by a specific `/adv-*` command — complete it only after the owning workflow has run.",
+        ),
       completedBy: z
         .string()
         .optional()
