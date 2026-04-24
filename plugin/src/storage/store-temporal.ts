@@ -229,10 +229,16 @@ export function createTemporalStoreBackend(
         "Temporal client bundle does not expose workflow.start; cannot create change workflows in Temporal-only mode",
       );
     }
+    // Pass the full workflow object, NOT destructured methods.
+    // @temporalio/client's WorkflowClient methods (start, getHandle, etc.)
+    // rely on `this.getOrMakeInterceptors(...)` at call time. Destructuring
+    // loses the prototype receiver and crashes with
+    // "this.getOrMakeInterceptors is not a function". Forwarding the object
+    // keeps `this` bound on method-invocation.
     return {
-      workflow: {
-        start: bundle.client.workflow.start,
-        getHandle: bundle.client.workflow.getHandle,
+      workflow: bundle.client.workflow as {
+        start: (...args: unknown[]) => Promise<WorkflowHandleLike>;
+        getHandle: (workflowId: string) => WorkflowHandleLike;
       },
     };
   };
