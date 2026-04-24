@@ -314,19 +314,34 @@ export function createTemporalStoreBackend(
       );
     }
 
-    // Cold start — fall back to O(N) fan-out to populate the Memo
+    // Cold start — fall back to O(N) fan-out to populate the Memo.
+    // Each query is wrapped in try/catch so one missing/terminated workflow
+    // doesn't abort the entire batch. Falls back to legacy JSON on failure.
     const changeIds = await listChangeDirs(legacy.paths.changes);
-    const loaded = await Promise.all(
-      changeIds.map(async (changeId) => ({
-        changeId,
-        result: await getTemporalChange(changeId),
-      })),
-    );
-
+    const BATCH_SIZE = 20;
     const changes: Change[] = [];
-    for (const entry of loaded) {
-      if (entry.result.success && entry.result.data) {
-        changes.push(entry.result.data);
+
+    for (let i = 0; i < changeIds.length; i += BATCH_SIZE) {
+      const batch = changeIds.slice(i, i + BATCH_SIZE);
+      const loaded = await Promise.all(
+        batch.map(async (changeId) => {
+          try {
+            return await getTemporalChange(changeId);
+          } catch {
+            // Workflow may not exist (pre-Temporal, terminated, or evicted).
+            // Fall back to legacy JSON store.
+            try {
+              return await legacy.changes.get(changeId);
+            } catch {
+              return { success: false } as const;
+            }
+          }
+        }),
+      );
+      for (const result of loaded) {
+        if (result.success && result.data) {
+          changes.push(result.data);
+        }
       }
     }
     return changes;

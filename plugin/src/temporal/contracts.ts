@@ -173,7 +173,7 @@ export interface ContinueAsNewThresholds {
 }
 
 export function resolveHistoryThresholds(
-  env: Record<string, string | undefined> = process.env,
+  env: Record<string, string | undefined> = {},
 ): ContinueAsNewThresholds {
   return {
     projectHistoryThreshold: env.ADV_TEMPORAL_PROJECT_HISTORY_THRESHOLD
