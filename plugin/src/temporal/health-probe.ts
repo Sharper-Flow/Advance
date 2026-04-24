@@ -15,8 +15,17 @@ import {
   createTemporalClientBundle,
 } from "./client";
 
+/**
+ * A project task queue flagged as stale by `probeStaleQueues`.
+ *
+ * Stale means the queue has `Running` workflows with no local poller
+ * registered — the shape of the 2026-04-23 orphaned-workflow incident.
+ * See `docs/temporal-recovery.md § "Stale adv/change/* and adv/project/* workflows"`.
+ */
 export interface StaleQueue {
+  /** Fully-qualified task queue name, e.g. `advance-{projectId}`. */
   queue: string;
+  /** Count of `Running` workflows on this queue older than the stale threshold. */
   running_count: number;
 }
 
@@ -61,6 +70,26 @@ export function resetTemporalHealthProbeState(): void {
 
 const STALE_THRESHOLD_MS = 5 * 60 * 1000;
 
+/**
+ * Detect stale task queues for the current project.
+ *
+ * "Stale" = `Running` workflows on the project queue older than
+ * `STALE_THRESHOLD_MS` (5 min) with no matching local poller — the
+ * shape that caused the 2026-04-23 orphaned-workflow incident.
+ *
+ * Short-circuits and returns `[]` when:
+ * - `projectId` is falsy (no current project to probe)
+ * - the project queue is already in `registeredQueues` (local poller is live)
+ *
+ * Opens a fresh Temporal client bundle per call and closes it in
+ * `finally`. Caller-visible failures are swallowed: stale-queue
+ * detection is advisory and must not break `adv_status`; base Temporal
+ * health is surfaced separately.
+ *
+ * @param projectId - Current project id, or `undefined` when unknown.
+ * @param registeredQueues - Queues currently served by a local worker.
+ * @returns One `StaleQueue` entry per stale project queue, or `[]`.
+ */
 export async function probeStaleQueues(
   projectId: string | undefined,
   registeredQueues: string[],
