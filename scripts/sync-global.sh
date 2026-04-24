@@ -90,10 +90,13 @@ resolve_canonical_repo_root() {
 }
 
 REPO_ROOT="$(resolve_canonical_repo_root "$SCRIPT_REPO_ROOT")"
-REPO_COMMANDS="$REPO_ROOT/.opencode/command"
-REPO_AGENTS="$REPO_ROOT/.opencode/agents"
-REPO_OVERLAYS="$REPO_ROOT/.opencode/overlays"
-REPO_SKILLS="$REPO_ROOT/skills"
+# Asset sources must come from the script's actual checkout/worktree, not the
+# canonical primary worktree. Otherwise worktree-local edits (or restored files)
+# are invisible during sync/test runs.
+REPO_COMMANDS="$SCRIPT_REPO_ROOT/.opencode/command"
+REPO_AGENTS="$SCRIPT_REPO_ROOT/.opencode/agents"
+REPO_OVERLAYS="$SCRIPT_REPO_ROOT/.opencode/overlays"
+REPO_SKILLS="$SCRIPT_REPO_ROOT/skills"
 GLOBAL_COMMANDS="$HOME/.config/opencode/command"
 GLOBAL_AGENTS="$HOME/.config/opencode/agents"
 GLOBAL_SKILLS="$HOME/.config/opencode/skills"
@@ -343,6 +346,25 @@ generate_provider_variants() {
     local tmp_variant
     tmp_variant="$(mktemp)"
     sed -E "s/^(name:[[:space:]]*).*/\1adv-${provider}/" "$canonical" > "$tmp_variant"
+    if ! grep -q '^name:[[:space:]]*' "$tmp_variant"; then
+      python - <<'PY' "$tmp_variant" "adv-${provider}"
+from pathlib import Path
+import sys
+
+path = Path(sys.argv[1])
+name = sys.argv[2]
+text = path.read_text()
+if text.startswith('---\n'):
+    end = text.find('\n---', 4)
+    if end != -1:
+        frontmatter = text[4:end]
+        body = text[end + 4:]
+        if frontmatter and not frontmatter.endswith('\n'):
+            frontmatter += '\n'
+        text = f"---\nname: {name}\n{frontmatter}---{body}"
+path.write_text(text)
+PY
+    fi
     if [ -n "$provider_color" ]; then
       sed -Ei "s/^(color:[[:space:]]*).*/\1\"$provider_color\"/" "$tmp_variant"
     fi

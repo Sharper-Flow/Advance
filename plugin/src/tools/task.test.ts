@@ -1363,7 +1363,7 @@ describe("formatted_doom_loop on adv_task_show and adv_task_update", () => {
   beforeEach(async () => {
     tempDir4 = await createTempDir();
     await createTestProject(tempDir4);
-    store4 = await createStore(tempDir4);
+    store4 = await createLegacyStore(tempDir4);
     await store4.init();
     await store4.sync();
   });
