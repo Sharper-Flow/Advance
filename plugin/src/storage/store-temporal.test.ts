@@ -472,10 +472,15 @@ describe("Temporal store backend adapter", () => {
 
     expect(result.success).toBe(true);
     expect(changeHandle.query).toHaveBeenCalledTimes(2);
+    // Transient retry path stays on Temporal only; legacy is untouched.
     expect(legacy.changes.get).not.toHaveBeenCalled();
   });
 
-  it("does not retry fallback-safe errors; throws instead of falling back", async () => {
+  it("on fallback error with no disk snapshot, throws original error", async () => {
+    // P1.5 orphan-tolerant contract: fallback errors trigger a re-seed
+    // attempt from disk. When the disk snapshot does not exist, the
+    // original Temporal error is rethrown — callers still see the
+    // not-found error, just after one legacy read attempt.
     const changeHandle = {
       query: vi.fn(async () => {
         throw new Error("Workflow execution not found");
@@ -493,6 +498,12 @@ describe("Temporal store backend adapter", () => {
     };
 
     const legacy = makeLegacyStore();
+    // Legacy has no snapshot for this orphan id → re-seed short-circuits,
+    // original Temporal error propagates.
+    legacy.changes.get = vi.fn(async () => ({
+      success: false,
+      error: "not found",
+    }));
     const adapted = createTemporalStoreBackend({
       legacy,
       temporal: bundle as any,
@@ -504,7 +515,8 @@ describe("Temporal store backend adapter", () => {
     );
 
     expect(changeHandle.query).toHaveBeenCalledTimes(1);
-    expect(legacy.changes.get).not.toHaveBeenCalled();
+    // Legacy was consulted once for re-seed; result was empty so we threw.
+    expect(legacy.changes.get).toHaveBeenCalledTimes(1);
   });
 
   it.each([
@@ -513,7 +525,7 @@ describe("Temporal store backend adapter", () => {
     "NOT_FOUND",
     "some grpc not_found detail",
   ])(
-    "throws on Temporal not-found error instead of falling back: %s",
+    "re-seed attempt is made on Temporal not-found variant: %s",
     async (msg) => {
       const changeHandle = {
         query: vi.fn(async () => {
@@ -527,11 +539,19 @@ describe("Temporal store backend adapter", () => {
         client: {
           workflow: {
             getHandle: routeHandle(changeHandle),
+            // Re-seed tries to start the workflow; stub it out so the test
+            // exercises only the error-classification → legacy-read path.
+            start: vi.fn(async () => changeHandle),
           },
         },
       };
 
       const legacy = makeLegacyStore();
+      // Legacy has no snapshot → re-seed fails, original error propagates.
+      legacy.changes.get = vi.fn(async () => ({
+        success: false,
+        error: "not found",
+      }));
       const adapted = createTemporalStoreBackend({
         legacy,
         temporal: bundle as any,
@@ -539,9 +559,96 @@ describe("Temporal store backend adapter", () => {
       });
 
       await expect(adapted.changes.get("chg-variant")).rejects.toThrow(msg);
-      expect(legacy.changes.get).not.toHaveBeenCalled();
+      // Legacy consulted once for re-seed attempt.
+      expect(legacy.changes.get).toHaveBeenCalledTimes(1);
     },
   );
+
+  it("re-seeds orphan change from disk snapshot on fallback error", async () => {
+    // P1.5 orphan-tolerant contract: when the Temporal workflow is
+    // missing but a disk snapshot exists, ensureChangeWorkflowStarted
+    // is called with the snapshot and the hydrated state is returned.
+    // First query throws not-found; after re-seed the same handle
+    // returns the hydrated ChangeWorkflowState.
+    const hydrated = {
+      projectId: "proj1",
+      changeId: "chg-orphan",
+      title: "Orphan Change",
+      initializedAt: "2026-04-24T00:00:00.000Z",
+      id: "chg-orphan",
+      status: "draft",
+      createdAt: "2026-04-24T00:00:00.000Z",
+      tasks: [],
+      wisdom: [],
+      gates: {
+        proposal: { status: "pending" },
+        discovery: { status: "pending" },
+        design: { status: "pending" },
+        planning: { status: "pending" },
+        execution: { status: "pending" },
+        acceptance: { status: "pending" },
+        release: { status: "pending" },
+      },
+      reentry_history: [],
+      artifacts: {},
+    };
+    const query = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("Workflow execution not found"))
+      .mockResolvedValue(hydrated);
+    const changeHandle = {
+      query,
+      executeUpdate: vi.fn(async () => null),
+      signal: vi.fn(async () => {}),
+    };
+
+    const start = vi.fn(async () => changeHandle);
+    const bundle = {
+      client: {
+        workflow: {
+          getHandle: routeHandle(changeHandle),
+          start,
+        },
+      },
+    };
+
+    const legacy = makeLegacyStore();
+    legacy.changes.get = vi.fn(async () => ({
+      success: true,
+      data: {
+        id: "chg-orphan",
+        title: "Orphan Change",
+        status: "draft",
+        created_at: "2026-04-24T00:00:00.000Z",
+        tasks: [],
+        deltas: {},
+        wisdom: [],
+        gates: {
+          proposal: { status: "pending" },
+          discovery: { status: "pending" },
+          design: { status: "pending" },
+          planning: { status: "pending" },
+          execution: { status: "pending" },
+          acceptance: { status: "pending" },
+          release: { status: "pending" },
+        },
+      },
+    })) as any;
+
+    const adapted = createTemporalStoreBackend({
+      legacy,
+      temporal: bundle as any,
+      projectId: "proj1",
+    });
+
+    const result = await adapted.changes.get("chg-orphan");
+    expect(result.success).toBe(true);
+    expect(result.data?.id).toBe("chg-orphan");
+    // Disk read happened for re-seed, workflow re-started, then re-queried.
+    expect(legacy.changes.get).toHaveBeenCalledTimes(1);
+    expect(start).toHaveBeenCalledTimes(1);
+    expect(query).toHaveBeenCalledTimes(2);
+  });
 
   describe("closeBatch", () => {
     it("propagates Temporal errors without falling back to legacy", async () => {

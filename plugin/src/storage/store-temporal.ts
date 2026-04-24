@@ -39,7 +39,10 @@ import type {
 } from "../temporal/contracts";
 import { ensureChangeWorkflowStarted } from "../temporal/migration";
 import { getReadyTasksFromChangeState } from "../temporal/change-state";
-import { withTemporalRetry } from "../temporal/retry-wrapper";
+import {
+  classifyTemporalError,
+  withTemporalRetry,
+} from "../temporal/retry-wrapper";
 import { listChangeDirs } from "./json";
 import { buildChangeRecency } from "./store-types";
 import type { ChangeStatus, ProjectStatus } from "../types";
@@ -276,6 +279,59 @@ export function createTemporalStoreBackend(
     return null;
   };
 
+  /**
+   * Attempt to re-seed a missing change workflow from the disk snapshot.
+   * Used by `getTemporalChange` / `changes.get` when the Temporal query
+   * returns `WorkflowNotFoundError` (workflow terminated / evicted / never
+   * started) but a `change.json` snapshot still exists on disk.
+   *
+   * On success, the fresh ChangeWorkflow state is returned and cached so
+   * callers see the change instead of a hard error.
+   * On failure (no snapshot, re-seed itself throws), returns `null`.
+   */
+  const reseedChangeFromDisk = async (
+    changeId: string,
+  ): Promise<Change | null> => {
+    const legacyRead = await legacy.changes.get(changeId);
+    if (!legacyRead.success || !legacyRead.data) return null;
+    const change = legacyRead.data;
+    try {
+      const client = {
+        workflow: input.temporal.client.workflow as {
+          start: (...args: unknown[]) => Promise<WorkflowHandleLike>;
+          getHandle: (workflowId: string) => WorkflowHandleLike;
+        },
+      };
+      await ensureChangeWorkflowStarted(client, {
+        projectId: input.projectId,
+        changeId: change.id,
+        title: change.title,
+        initializedAt: change.created_at,
+        seedState: {
+          status: change.status,
+          tasks: change.tasks,
+          wisdom: change.wisdom,
+          gates: change.gates,
+          reentry_history: change.reentry_history,
+        },
+      });
+    } catch {
+      // Re-seed itself failed — surface the original not-found to callers
+      // rather than masking it with a seed error.
+      return null;
+    }
+    try {
+      const handle = getChangeHandle(input, changeId);
+      const state = (await runTemporal(() =>
+        handle.query(changeStateQuery),
+      )) as ChangeWorkflowState;
+      indexTasksFromState(state);
+      return setCachedChange(state);
+    } catch {
+      return null;
+    }
+  };
+
   const getTemporalChange = async (
     changeId: string,
   ): Promise<ReturnType<Store["changes"]["get"]>> => {
@@ -284,11 +340,26 @@ export function createTemporalStoreBackend(
       return { success: true, data: cached };
     }
     const handle = getChangeHandle(input, changeId);
-    const state = (await runTemporal(() =>
-      handle.query(changeStateQuery),
-    )) as ChangeWorkflowState;
-    indexTasksFromState(state);
-    return { success: true, data: setCachedChange(state) };
+    try {
+      const state = (await runTemporal(() =>
+        handle.query(changeStateQuery),
+      )) as ChangeWorkflowState;
+      indexTasksFromState(state);
+      return { success: true, data: setCachedChange(state) };
+    } catch (error) {
+      // P1.5 — orphan-tolerant changes.get with re-seed. When the
+      // workflow is missing but a disk snapshot exists, seed a fresh
+      // ChangeWorkflow from disk and return the hydrated state. This
+      // prevents a single orphan from blocking adv_status /
+      // adv_change_list / adv_change_show.
+      if (classifyTemporalError(error) === "fallback") {
+        const reseeded = await reseedChangeFromDisk(changeId);
+        if (reseeded) {
+          return { success: true, data: reseeded };
+        }
+      }
+      throw error;
+    }
   };
 
   /**
@@ -505,16 +576,11 @@ export function createTemporalStoreBackend(
         };
       },
       get: async (changeId: string) => {
-        const cached = changeCache.get(changeId);
-        if (cached) {
-          return { success: true, data: cached };
-        }
-        const handle = getChangeHandle(input, changeId);
-        const state = (await runTemporal(() =>
-          handle.query(changeStateQuery),
-        )) as ChangeWorkflowState;
-        indexTasksFromState(state);
-        return { success: true, data: setCachedChange(state) };
+        // Delegates to the shared orphan-tolerant path so adv_status,
+        // adv_change_show, and adv_change_list all behave the same when
+        // a workflow is missing: try to re-seed from disk, otherwise
+        // return the not-found error.
+        return getTemporalChange(changeId);
       },
       close: async (changeId: string, closure: ChangeClosure) => {
         invalidateChange(changeId);
