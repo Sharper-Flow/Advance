@@ -98,7 +98,32 @@ function collectErrorText(error: unknown): string {
   return parts.join(" | ");
 }
 
+/**
+ * Raised by `withTemporalRetry` when an op wrapped with `timeoutMs`
+ * exceeds its budget. Surfaces as `errorClass: "TemporalQueryTimeout"`
+ * and classifies as `"transient"` so the retry budget still applies.
+ *
+ * P1.3.8 scope: this error fires ONLY when the caller opts in via
+ * `runTemporal(op, { timeoutMs })`. The default (no timeout) path is
+ * used for `executeUpdate` and other long-running ops per design.md
+ * § KD-2.
+ */
+export class TemporalQueryTimeoutError extends Error {
+  override readonly name = "TemporalQueryTimeout";
+  constructor(public readonly timeoutMs: number) {
+    super(
+      `Temporal query exceeded ${timeoutMs}ms timeout — worker may be down or ` +
+        `workflow may be unresponsive. Retry budget (if any) still applies.`,
+    );
+  }
+}
+
 export function classifyTemporalError(error: unknown): TemporalErrorClass {
+  // P1.3.8: query timeout is inherently transient — the worker may
+  // recover before the next attempt. Check before the regex branch
+  // because the name doesn't match the transient regex.
+  if (error instanceof TemporalQueryTimeoutError) return "transient";
+
   const combined = collectErrorText(error);
 
   if (
@@ -131,6 +156,16 @@ interface RetryOptions {
   /** Upper bound for the delay before jitter (default 2000ms). */
   maxDelayMs?: number;
   onTransientFailure?: () => Promise<void>;
+  /**
+   * Per-attempt timeout in milliseconds. When set, `op()` is raced
+   * against a `TemporalQueryTimeoutError`. Omit for ops that must
+   * never be interrupted (e.g. executeUpdate, connection setup).
+   *
+   * P1.3.8: apply `timeoutMs: 5000` to `handle.query()` callsites in
+   * `store-temporal.ts`. Do NOT apply to `executeUpdate` callsites.
+   * See design.md § KD-2.
+   */
+  timeoutMs?: number;
 }
 
 /**
@@ -150,6 +185,27 @@ function computeDelay(
   return Math.random() * base;
 }
 
+/**
+ * Race a promise against a `TemporalQueryTimeoutError` on a specified
+ * timeout budget. Clears the timer on resolution to avoid leaked
+ * handles. See P1.3.8.
+ */
+function raceWithQueryTimeout<T>(
+  op: Promise<T>,
+  timeoutMs: number,
+): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeoutPromise = new Promise<T>((_, reject) => {
+    timer = setTimeout(
+      () => reject(new TemporalQueryTimeoutError(timeoutMs)),
+      timeoutMs,
+    );
+  });
+  return Promise.race([op, timeoutPromise]).finally(() => {
+    if (timer !== undefined) clearTimeout(timer);
+  });
+}
+
 export async function withTemporalRetry<T>(
   op: () => Promise<T>,
   options: RetryOptions = {},
@@ -162,12 +218,16 @@ export async function withTemporalRetry<T>(
   const initialDelayMs = options.initialDelayMs ?? 250;
   const coefficient = options.backoffCoefficient ?? 2;
   const maxDelayMs = options.maxDelayMs ?? 2000;
+  const timeoutMs = options.timeoutMs;
 
   let attempt = 0;
   while (true) {
     const startTime = Date.now();
     try {
-      const result = await op();
+      const result =
+        timeoutMs !== undefined
+          ? await raceWithQueryTimeout(op(), timeoutMs)
+          : await op();
       const latencyMs = Date.now() - startTime;
       temporalOpLatency.add(latencyMs);
       recordTemporalSuccess(attempt + 1);

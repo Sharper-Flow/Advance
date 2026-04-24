@@ -109,6 +109,22 @@ async function runTemporal<T>(op: () => Promise<T>): Promise<T> {
   return withTemporalRetry(op);
 }
 
+/**
+ * Per-attempt 5s timeout for `handle.query(...)` calls. Without this,
+ * a dead worker causes the query to hang indefinitely and all tool
+ * calls through that path stall with it.
+ *
+ * Applied ONLY to query callsites — `executeUpdate`, `workflow.start`,
+ * and `getHandle` keep the unbounded `runTemporal` so long-running
+ * legitimate operations don't get interrupted. See design.md § KD-2,
+ * P1.3.8.
+ */
+const QUERY_TIMEOUT_MS = 5_000;
+
+async function runTemporalQuery<T>(op: () => Promise<T>): Promise<T> {
+  return withTemporalRetry(op, { timeoutMs: QUERY_TIMEOUT_MS });
+}
+
 export function createTemporalStoreBackend(
   input: TemporalStoreBackendInput,
 ): Store {
@@ -261,7 +277,7 @@ export function createTemporalStoreBackend(
     if (result && typeof result === "object" && "changeId" in result) {
       return result as ChangeWorkflowState;
     }
-    return (await runTemporal(() =>
+    return (await runTemporalQuery(() =>
       handle.query(changeStateQuery),
     )) as ChangeWorkflowState;
   };
@@ -338,7 +354,7 @@ export function createTemporalStoreBackend(
     }
     try {
       const handle = getChangeHandle(input, changeId);
-      const state = (await runTemporal(() =>
+      const state = (await runTemporalQuery(() =>
         handle.query(changeStateQuery),
       )) as ChangeWorkflowState;
       indexTasksFromState(state);
@@ -362,7 +378,7 @@ export function createTemporalStoreBackend(
     }
     const handle = getChangeHandle(input, changeId);
     try {
-      const state = (await runTemporal(() =>
+      const state = (await runTemporalQuery(() =>
         handle.query(changeStateQuery),
       )) as ChangeWorkflowState;
       indexTasksFromState(state);
@@ -771,7 +787,7 @@ export function createTemporalStoreBackend(
       ...legacy.tasks,
       list: async (changeId: string, status?: string, filter?: string) => {
         const handle = getChangeHandle(input, changeId);
-        const tasks = (await runTemporal(() =>
+        const tasks = (await runTemporalQuery(() =>
           handle.query(changeTasksQuery, status, filter),
         )) as Awaited<ReturnType<Store["tasks"]["list"]>>;
         for (const task of tasks ?? []) {
@@ -781,7 +797,7 @@ export function createTemporalStoreBackend(
       },
       ready: async (changeId: string) => {
         const handle = getChangeHandle(input, changeId);
-        const state = (await runTemporal(() =>
+        const state = (await runTemporalQuery(() =>
           handle.query(changeStateQuery),
         )) as ChangeWorkflowState;
         indexTasksFromState(state);
@@ -837,7 +853,7 @@ export function createTemporalStoreBackend(
         const changeId = await resolveChangeId(taskId);
         if (!changeId) return null;
         const handle = getChangeHandle(input, changeId);
-        return (await runTemporal(() =>
+        return (await runTemporalQuery(() =>
           handle.query(changeTaskQuery, taskId),
         )) as Awaited<ReturnType<Store["tasks"]["get"]>>;
       },
@@ -845,7 +861,7 @@ export function createTemporalStoreBackend(
         const changeId = await resolveChangeId(taskId);
         if (!changeId) return null;
         const handle = getChangeHandle(input, changeId);
-        const task = await runTemporal(() =>
+        const task = await runTemporalQuery(() =>
           handle.query(changeTaskQuery, taskId),
         );
         if (!task) return null;
@@ -921,7 +937,7 @@ export function createTemporalStoreBackend(
       },
       list: async (changeId: string) => {
         const handle = getChangeHandle(input, changeId);
-        const state = (await runTemporal(() =>
+        const state = (await runTemporalQuery(() =>
           handle.query(changeStateQuery),
         )) as ChangeWorkflowState;
         return state.wisdom;
@@ -931,7 +947,7 @@ export function createTemporalStoreBackend(
       ...legacy.gates,
       get: async (changeId: string) => {
         const handle = getChangeHandle(input, changeId);
-        const state = (await runTemporal(() =>
+        const state = (await runTemporalQuery(() =>
           handle.query(changeStateQuery),
         )) as ChangeWorkflowState;
         return state.gates;
@@ -998,7 +1014,7 @@ function hydrateMemoFromPSW(
     try {
       const handle = getProjectHandleForInput(input);
       if (!handle) return;
-      const pswState = (await runTemporal(() =>
+      const pswState = (await runTemporalQuery(() =>
         handle.query(projectStateQuery),
       )) as ProjectWorkflowState | null;
       if (!pswState?.change_summaries) return;
