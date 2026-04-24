@@ -136,6 +136,60 @@ Treat this as a workflow-state corruption / code-history mismatch problem, not a
 - re-imports the requested change,
 - re-emits derived agenda/wisdom exports.
 
+## Stale `adv/change/*` and `adv/project/*` workflows
+
+Orphaned workflows occur when a bulk enqueue creates `adv/change/*` or `adv/project/*` executions on a task queue that has **no live poller**. The first workflow task is scheduled but never dispatched, so the execution remains in `Running` state indefinitely.
+
+### Symptoms
+
+- `adv_agenda_add` (and other tools that route through the project workflow) fails with `Temporal worker not ready for queue advance-{projectId}` in repos that never started a local worker.
+- `temporal workflow list` shows thousands of `Running` workflows with only 2 history events (`WorkflowExecutionStarted`, `WorkflowTaskScheduled`).
+- `temporal task-queue describe --task-queue advance-{projectId}` shows an empty poller list.
+
+### Detection
+
+```bash
+# Count all Running workflows
+temporal workflow count --query 'ExecutionStatus="Running"'
+
+# Count Running workflows for a specific queue
+temporal workflow count \
+  --query 'ExecutionStatus="Running" AND TaskQueue="advance-{projectId}"'
+
+# Check for pollers (empty list means orphaned)
+temporal task-queue describe --task-queue advance-{projectId}
+```
+
+### Safe batch-termination
+
+> **⚠️ Update the date.** Replace `YYYY-MM-DD` below with the day **before** the incident enqueue date so you do not terminate legitimate in-flight work.
+
+```bash
+# Terminate orphaned change workflows
+temporal workflow terminate \
+  --query 'ExecutionStatus="Running" AND WorkflowType="changeWorkflow" AND StartTime < "YYYY-MM-DDT00:00:00Z"' \
+  --reason "Orphaned workflow cleanup — no poller for queue"
+
+# Terminate orphaned project workflows
+temporal workflow terminate \
+  --query 'ExecutionStatus="Running" AND WorkflowType="projectWorkflow" AND StartTime < "YYYY-MM-DDT00:00:00Z"' \
+  --reason "Orphaned workflow cleanup — no poller for queue"
+```
+
+Verify after termination:
+
+```bash
+temporal workflow count --query 'ExecutionStatus="Running"'
+# Should show only expected active workflows (none if cleanup was complete).
+```
+
+### Lineage
+
+- **`bb2d901`** (2026-04-20) — introduced the dogfood migration tool `plugin/scripts/dogfood-migration.ts`, which bulk-enqueued `changeWorkflow` executions on per-project queues without ensuring a poller for every queue.
+- **`24bf177`** (2026-04-22) — deleted the migration infrastructure, including the limited termination script `adv-migration-terminate.ts`. The deletion left already-enqueued workflows orphaned.
+- **2026-04-23 incident** — 5,447 `Running` workflows discovered across 21 queues with zero pollers, blocking `adv_*` tools in affected repos.
+- **`preventRecoverOrphanedTemporal`** (this change) — added this runbook section, a prevention policy, and an `adv_status` guardrail that surfaces stale queues automatically.
+
 ## Disk-full / OOM surfaces
 
 These usually appear as secondary symptoms:
