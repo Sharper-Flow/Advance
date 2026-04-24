@@ -1003,26 +1003,12 @@ if [ -f "$GLOBAL_AGENTS/adv.md" ]; then
 fi
 
 # ---------------------------------------------------------------------------
-# Repo-local adv.md removal (gated, same condition as global removal)
+# Keep repo-local adv.md in-tree.
 #
-# When provider variants are configured, the repo-local .opencode/agents/adv.md
-# still surfaces the generic adv agent in OpenCode. Remove it so only provider
-# variants are selectable. Combined with agent.adv.disable: true in config,
-# this ensures the generic adv is fully hidden.
+# Visibility of the generic adv agent is handled by agent.adv.disable in
+# opencode.json. Do not delete the repo-local file: asset tests, sync
+# bootstrapping, and repo-local inspection expect it to exist.
 # ---------------------------------------------------------------------------
-REPO_LOCAL_ADV="$REPO_AGENTS/adv.md"
-if [ -f "$REPO_LOCAL_ADV" ]; then
-  if provider_adv_configured_in_json; then
-    if [ "$DRY_RUN" = true ]; then
-      echo "    dry-run remove repo-local adv.md (gated: agent.adv-* keys found in opencode.json)"
-    else
-      rm "$REPO_LOCAL_ADV"
-      echo "    removed repo-local adv.md (gated: agent.adv-* keys found in opencode.json)"
-    fi
-  else
-    echo "    kept repo-local adv.md (no agent.adv-* keys in opencode.json — migration not triggered)"
-  fi
-fi
 
 # ---------------------------------------------------------------------------
 # 6. Sync ADV skills from skills/ to global
