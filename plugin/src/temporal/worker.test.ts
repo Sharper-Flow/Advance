@@ -84,4 +84,34 @@ describe("temporal worker helpers", () => {
       }),
     );
   });
+
+  it("runTemporalWorkerFromEnv honors ADV_TEMPORAL_MULTI_QUEUE and creates one Worker per queue", async () => {
+    await runTemporalWorkerFromEnv({
+      ADV_TEMPORAL_MULTI_QUEUE: "1",
+      ADV_TEMPORAL_TASK_QUEUES: "advance-a, advance-b, advance-c",
+      ADV_TEMPORAL_ADDRESS: "127.0.0.1:7233",
+      ADV_TEMPORAL_NAMESPACE: "default",
+    } as NodeJS.ProcessEnv);
+
+    // One connection shared across all queues.
+    expect(workerMocks.connect).toHaveBeenCalledTimes(1);
+    // One Worker.create + .run per queue.
+    expect(workerMocks.create).toHaveBeenCalledTimes(3);
+    expect(workerMocks.run).toHaveBeenCalledTimes(3);
+    const taskQueues = workerMocks.create.mock.calls.map(
+      ([opts]) => (opts as { taskQueue: string }).taskQueue,
+    );
+    expect(taskQueues).toEqual(["advance-a", "advance-b", "advance-c"]);
+  });
+
+  it("runTemporalWorkerFromEnv rejects ADV_TEMPORAL_MULTI_QUEUE=1 with empty queue list", async () => {
+    await expect(
+      runTemporalWorkerFromEnv({
+        ADV_TEMPORAL_MULTI_QUEUE: "1",
+        ADV_TEMPORAL_TASK_QUEUES: "",
+        ADV_TEMPORAL_ADDRESS: "127.0.0.1:7233",
+        ADV_TEMPORAL_NAMESPACE: "default",
+      } as NodeJS.ProcessEnv),
+    ).rejects.toThrow(/ADV_TEMPORAL_TASK_QUEUES is empty/);
+  });
 });
