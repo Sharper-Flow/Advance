@@ -144,9 +144,7 @@ describe("adv_status temporal health/migration status (C4)", () => {
       last_op_at: "2026-04-21T00:00:00.000Z",
       last_error: null,
       fallback_counts: getTemporalFallbackTelemetry(),
-      stale_queues: [
-        { queue: "advance-target-proj", running_count: 42 },
-      ],
+      stale_queues: [{ queue: "advance-target-proj", running_count: 42 }],
     });
 
     (store.paths as { external?: string }).external =
@@ -159,9 +157,7 @@ describe("adv_status temporal health/migration status (C4)", () => {
       { queue: "advance-target-proj", running_count: 42 },
     ]);
     expect(parsed.recommendations).toEqual(
-      expect.arrayContaining([
-        expect.stringContaining("Stale Temporal queue"),
-      ]),
+      expect.arrayContaining([expect.stringContaining("Stale Temporal queue")]),
     );
   });
 });

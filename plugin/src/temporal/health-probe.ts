@@ -10,10 +10,7 @@ import {
   getTemporalWorkerAliveness,
 } from "../plugin-init";
 import { canReachTemporalAddress } from "./runtime-manager";
-import {
-  buildProjectTaskQueue,
-  createTemporalClientBundle,
-} from "./client";
+import { buildProjectTaskQueue, createTemporalClientBundle } from "./client";
 
 /**
  * A project task queue flagged as stale by `probeStaleQueues`.
