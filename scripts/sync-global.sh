@@ -61,6 +61,7 @@ done
 # ---------------------------------------------------------------------------
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SCRIPT_REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+INVOKE_CWD="$(pwd)"
 
 resolve_canonical_repo_root() {
   local candidate="$1"
@@ -93,10 +94,14 @@ REPO_ROOT="$(resolve_canonical_repo_root "$SCRIPT_REPO_ROOT")"
 # Asset sources must come from the script's actual checkout/worktree, not the
 # canonical primary worktree. Otherwise worktree-local edits (or restored files)
 # are invisible during sync/test runs.
-REPO_COMMANDS="$SCRIPT_REPO_ROOT/.opencode/command"
-REPO_AGENTS="$SCRIPT_REPO_ROOT/.opencode/agents"
-REPO_OVERLAYS="$SCRIPT_REPO_ROOT/.opencode/overlays"
-REPO_SKILLS="$SCRIPT_REPO_ROOT/skills"
+ASSET_ROOT="$SCRIPT_REPO_ROOT"
+if [ -f "$INVOKE_CWD/.opencode/agents/adv.md" ]; then
+  ASSET_ROOT="$INVOKE_CWD"
+fi
+REPO_COMMANDS="$ASSET_ROOT/.opencode/command"
+REPO_AGENTS="$ASSET_ROOT/.opencode/agents"
+REPO_OVERLAYS="$ASSET_ROOT/.opencode/overlays"
+REPO_SKILLS="$REPO_ROOT/skills"
 GLOBAL_COMMANDS="$HOME/.config/opencode/command"
 GLOBAL_AGENTS="$HOME/.config/opencode/agents"
 GLOBAL_SKILLS="$HOME/.config/opencode/skills"
@@ -907,6 +912,26 @@ if [ -d "$REPO_AGENTS" ]; then
     fi
     ((agents_copied++)) || true
   done
+fi
+
+# If adv.md was not copied from the resolved asset directory, try to source it
+# from the invoking checkout's git HEAD. This covers worktree/symlink cases
+# where the script file resolves outside the active checkout but the current
+# branch still tracks adv.md.
+if [ ! -f "$GLOBAL_AGENTS/adv.md" ]; then
+  if git -C "$INVOKE_CWD" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    if git -C "$INVOKE_CWD" show HEAD:.opencode/agents/adv.md >/tmp/adv_sync_advmd.$$ 2>/dev/null; then
+      if [ "$DRY_RUN" = true ]; then
+        echo "    dry-run bootstrap agent from git HEAD: adv.md"
+        rm -f /tmp/adv_sync_advmd.$$
+      else
+        cp /tmp/adv_sync_advmd.$$ "$GLOBAL_AGENTS/adv.md"
+        rm -f /tmp/adv_sync_advmd.$$
+        echo "    bootstrapped agent from git HEAD: adv.md"
+        ((agents_copied++)) || true
+      fi
+    fi
+  fi
 fi
 echo "    $agents_copied agent(s) synced"
 
