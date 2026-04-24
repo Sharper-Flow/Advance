@@ -9,6 +9,10 @@ import type {
   WisdomType,
   BulkCloseResult,
 } from "../types";
+import { createDefaultGates } from "../types";
+import { createLogger } from "../utils/debug-log";
+
+const logger = createLogger("store-temporal");
 import type { Store } from "./store-types";
 import type { TemporalClientBundle } from "../temporal/client";
 import {
@@ -302,6 +306,11 @@ export function createTemporalStoreBackend(
           getHandle: (workflowId: string) => WorkflowHandleLike;
         },
       };
+      // Defensively fill in fields that the workflow seed schema requires
+      // but an older / partial change.json may have omitted. Change
+      // snapshots on disk can be minimal (draft state, no gates/tasks
+      // yet); the workflow state machine still expects well-formed
+      // collections, so supply empty defaults rather than undefined.
       await ensureChangeWorkflowStarted(client, {
         projectId: input.projectId,
         changeId: change.id,
@@ -309,15 +318,22 @@ export function createTemporalStoreBackend(
         initializedAt: change.created_at,
         seedState: {
           status: change.status,
-          tasks: change.tasks,
-          wisdom: change.wisdom,
-          gates: change.gates,
-          reentry_history: change.reentry_history,
+          tasks: change.tasks ?? [],
+          wisdom: change.wisdom ?? [],
+          gates: change.gates ?? createDefaultGates(),
+          reentry_history: change.reentry_history ?? [],
         },
       });
-    } catch {
+    } catch (err) {
       // Re-seed itself failed — surface the original not-found to callers
-      // rather than masking it with a seed error.
+      // rather than masking it with a seed error. Log so operators can
+      // distinguish "orphan could not be recovered" from "orphan does
+      // not exist on disk" without having to instrument locally.
+      logger.warn(
+        `Temporal re-seed failed for change ${changeId}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
       return null;
     }
     try {
@@ -327,7 +343,12 @@ export function createTemporalStoreBackend(
       )) as ChangeWorkflowState;
       indexTasksFromState(state);
       return setCachedChange(state);
-    } catch {
+    } catch (err) {
+      logger.warn(
+        `Temporal re-seed succeeded but post-reseed query failed for change ${changeId}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
       return null;
     }
   };
