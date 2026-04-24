@@ -13,6 +13,17 @@ const mocks = vi.hoisted(() => ({
     connection: { close: vi.fn(async () => {}) },
     client: {},
   })),
+  buildProjectTaskQueue: vi.fn((projectId: string) => `advance-${projectId}`),
+  createTemporalClientBundle: vi.fn(async () => ({
+    address: "127.0.0.1:7233",
+    namespace: "default",
+    connection: { close: vi.fn(async () => {}) },
+    client: {
+      workflow: {
+        count: vi.fn(async () => ({ count: 0 })),
+      },
+    },
+  })),
 }));
 
 vi.mock("../plugin-init", async () => {
@@ -29,6 +40,8 @@ vi.mock("./client", async () => {
   const actual = await vi.importActual<typeof import("./client")>("./client");
   return {
     ...actual,
+    buildProjectTaskQueue: mocks.buildProjectTaskQueue,
+    createTemporalClientBundle: mocks.createTemporalClientBundle,
   };
 });
 
@@ -144,5 +157,56 @@ describe("getTemporalHealth (C3)", () => {
       wisdom: 0,
       gates: 0,
     });
+  });
+
+  it("returns stale_queues=[] when projectId is undefined", async () => {
+    const health = await getTemporalHealth();
+    expect(health.stale_queues).toEqual([]);
+    expect(mocks.createTemporalClientBundle).not.toHaveBeenCalled();
+  });
+
+  it("returns stale_queues=[] when the project queue is in registered_queues", async () => {
+    mocks.getRegisteredTemporalWorkerQueues.mockReturnValueOnce([
+      "advance-proj-a",
+      "advance-proj-b",
+      "advance-target-proj",
+    ]);
+    const health = await getTemporalHealth("target-proj");
+    expect(health.stale_queues).toEqual([]);
+    expect(mocks.createTemporalClientBundle).not.toHaveBeenCalled();
+  });
+
+  it("returns stale_queues=[] when count() returns zero", async () => {
+    mocks.createTemporalClientBundle.mockResolvedValueOnce({
+      address: "127.0.0.1:7233",
+      namespace: "default",
+      connection: { close: vi.fn(async () => {}) },
+      client: {
+        workflow: {
+          count: vi.fn(async () => ({ count: 0 })),
+        },
+      },
+    });
+
+    const health = await getTemporalHealth("target-proj");
+    expect(health.stale_queues).toEqual([]);
+  });
+
+  it("returns stale_queues with running_count when count() returns > 0 and queue is not registered", async () => {
+    mocks.createTemporalClientBundle.mockResolvedValueOnce({
+      address: "127.0.0.1:7233",
+      namespace: "default",
+      connection: { close: vi.fn(async () => {}) },
+      client: {
+        workflow: {
+          count: vi.fn(async () => ({ count: 42 })),
+        },
+      },
+    });
+
+    const health = await getTemporalHealth("target-proj");
+    expect(health.stale_queues).toEqual([
+      { queue: "advance-target-proj", running_count: 42 },
+    ]);
   });
 });
