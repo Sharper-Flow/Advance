@@ -69,7 +69,10 @@ describe("reflection storage", () => {
 
   describe("getReflectionsPath", () => {
     test("returns override path when provided", () => {
-      const result = getReflectionsPath("/project", "/custom/reflections.jsonl");
+      const result = getReflectionsPath(
+        "/project",
+        "/custom/reflections.jsonl",
+      );
       expect(result).toBe("/custom/reflections.jsonl");
     });
 
@@ -203,7 +206,11 @@ describe("reflection storage", () => {
 
       const path = getReflectionsPath(tempDir);
       const fs = await import("fs/promises");
-      await fs.appendFile(path, JSON.stringify({ id: "bad", change_id: "x" }) + "\n", "utf-8");
+      await fs.appendFile(
+        path,
+        JSON.stringify({ id: "bad", change_id: "x" }) + "\n",
+        "utf-8",
+      );
 
       const result = await listReflections(tempDir);
       expect(result).toHaveLength(1);

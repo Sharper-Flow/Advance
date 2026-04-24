@@ -266,7 +266,11 @@ export async function getReflection(
  */
 export async function listReflections(
   projectDir: string,
-  options?: { changeId?: string; _skipLock?: boolean; reflectionsPath?: string },
+  options?: {
+    changeId?: string;
+    _skipLock?: boolean;
+    reflectionsPath?: string;
+  },
 ): Promise<ReflectionEntry[]> {
   const path = getReflectionsPath(projectDir, options?.reflectionsPath);
 

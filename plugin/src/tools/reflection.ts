@@ -53,11 +53,16 @@ const PROVIDER_CUES: Record<string, string[]> = {
   GLM: ["glm", "zhipu", "chatglm"],
 };
 
-function detectProviderSpecific(text: string): { provider: string; detail: string } | null {
+function detectProviderSpecific(
+  text: string,
+): { provider: string; detail: string } | null {
   const lower = text.toLowerCase();
   for (const [provider, cues] of Object.entries(PROVIDER_CUES)) {
     if (cues.some((cue) => lower.includes(cue))) {
-      return { provider, detail: `Mentions ${provider}: ${text.slice(0, 120)}` };
+      return {
+        provider,
+        detail: `Mentions ${provider}: ${text.slice(0, 120)}`,
+      };
     }
   }
   return null;
@@ -86,7 +91,10 @@ async function computeWisdomReuseHits(
     let hits = 0;
     for (const entry of projectWisdom) {
       const contentWords = new Set(
-        entry.content.toLowerCase().split(/\W+/).filter((w) => w.length > 3),
+        entry.content
+          .toLowerCase()
+          .split(/\W+/)
+          .filter((w) => w.length > 3),
       );
       const overlap = [...changeWords].filter((w) => contentWords.has(w));
       if (overlap.length >= 2) hits++;
@@ -111,18 +119,28 @@ function generateReflectionMarkdown(entry: ReflectionEntry): string {
   lines.push("## Plane 1: Project Execution");
   lines.push("");
   lines.push("### Efficiency");
-  lines.push(`- Tasks: ${entry.plane1.efficiency.task_count} total, ${entry.plane1.efficiency.tasks_done} done, ${entry.plane1.efficiency.tasks_cancelled} cancelled`);
-  lines.push(`- Retries: ${entry.plane1.efficiency.retry_total} (density: ${entry.plane1.efficiency.retry_density.toFixed(2)})`);
-  lines.push(`- Elapsed: ${(entry.plane1.efficiency.elapsed_ms / 1000 / 60).toFixed(1)} minutes`);
+  lines.push(
+    `- Tasks: ${entry.plane1.efficiency.task_count} total, ${entry.plane1.efficiency.tasks_done} done, ${entry.plane1.efficiency.tasks_cancelled} cancelled`,
+  );
+  lines.push(
+    `- Retries: ${entry.plane1.efficiency.retry_total} (density: ${entry.plane1.efficiency.retry_density.toFixed(2)})`,
+  );
+  lines.push(
+    `- Elapsed: ${(entry.plane1.efficiency.elapsed_ms / 1000 / 60).toFixed(1)} minutes`,
+  );
   lines.push(`- Threshold tier: ${entry.plane1.efficiency.threshold_tier}`);
   lines.push("");
 
   lines.push("### Quality");
-  lines.push(`- TDD compliance: ${(entry.plane1.quality.tdd_compliance * 100).toFixed(0)}%`);
+  lines.push(
+    `- TDD compliance: ${(entry.plane1.quality.tdd_compliance * 100).toFixed(0)}%`,
+  );
   lines.push("");
 
   lines.push("### Process");
-  lines.push(`- Gate completion: ${(entry.plane1.process.gate_completion_rate * 100).toFixed(0)}%`);
+  lines.push(
+    `- Gate completion: ${(entry.plane1.process.gate_completion_rate * 100).toFixed(0)}%`,
+  );
   lines.push(`- Drift triggers: ${entry.plane1.process.drift_triggers}`);
   lines.push(`- Delegation count: ${entry.plane1.process.delegation_count}`);
   lines.push("");
@@ -142,7 +160,9 @@ function generateReflectionMarkdown(entry: ReflectionEntry): string {
       lines.push(`- **[${item.category}]** ${item.description}`);
       if (item.workaround) lines.push(`  - Workaround: ${item.workaround}`);
       if (item.provider_specific) {
-        lines.push(`  - Provider: ${item.provider_specific.provider} — ${item.provider_specific.detail}`);
+        lines.push(
+          `  - Provider: ${item.provider_specific.provider} — ${item.provider_specific.detail}`,
+        );
       }
     }
     lines.push("");
@@ -198,7 +218,9 @@ export const reflectionTools = {
       "Plane 2 covers system friction (tool gaps, workarounds, missing capabilities). " +
       "Persists the report to reflections.jsonl.",
     args: {
-      changeId: z.string().describe("Change ID to reflect on (must be archived)"),
+      changeId: z
+        .string()
+        .describe("Change ID to reflect on (must be archived)"),
     },
     execute: async (
       args: { changeId: string },
@@ -244,14 +266,18 @@ export const reflectionTools = {
       };
 
       const createdMs = Date.parse(change.created_at);
-      const elapsedMs =
-        isNaN(createdMs) ? 0 : Math.max(0, Date.now() - createdMs);
+      const elapsedMs = isNaN(createdMs)
+        ? 0
+        : Math.max(0, Date.now() - createdMs);
 
       let retryTotal = 0;
       for (const task of tasks) {
         retryTotal += task.error_recovery?.attempts?.length ?? 0;
       }
-      const retryDenominator = Math.max(1, taskCounts.done + taskCounts.cancelled);
+      const retryDenominator = Math.max(
+        1,
+        taskCounts.done + taskCounts.cancelled,
+      );
       const retryDensity = retryTotal / retryDenominator;
 
       const perGateMs = computePerGateDurations(change);
@@ -286,18 +312,22 @@ export const reflectionTools = {
       const tddIntentDistribution: Record<string, number> = {};
       for (const task of tasks) {
         const intent = task.metadata?.tdd_intent ?? "inline";
-        tddIntentDistribution[intent] = (tddIntentDistribution[intent] ?? 0) + 1;
+        tddIntentDistribution[intent] =
+          (tddIntentDistribution[intent] ?? 0) + 1;
       }
 
       const delegationCount = tasks.filter(
-        (t) => t.metadata?.delegation_hint === "delegate_allowed" ||
+        (t) =>
+          t.metadata?.delegation_hint === "delegate_allowed" ||
           t.metadata?.delegation_hint === "delegate_preferred",
       ).length;
 
       // Count drift triggers from error_recovery
       let driftTriggers = 0;
       for (const task of tasks) {
-        if (task.error_recovery?.attempts?.some((a) => a.outcome === "failed")) {
+        if (
+          task.error_recovery?.attempts?.some((a) => a.outcome === "failed")
+        ) {
           driftTriggers++;
         }
       }
@@ -339,7 +369,10 @@ export const reflectionTools = {
 
       // Derive friction from error_recovery
       for (const task of tasks) {
-        if (task.error_recovery?.attempts && task.error_recovery.attempts.length > 0) {
+        if (
+          task.error_recovery?.attempts &&
+          task.error_recovery.attempts.length > 0
+        ) {
           const lastAttempt = task.error_recovery.attempts.at(-1);
           if (lastAttempt?.outcome === "failed") {
             const sanitizedFix = lastAttempt.fix_tried
@@ -397,13 +430,19 @@ export const reflectionTools = {
       // Improvement suggestions
       const improvementSuggestions: string[] = [];
       if (tddCompliance < 1) {
-        improvementSuggestions.push("Some tasks lack TDD evidence — consider stricter TDD enforcement");
+        improvementSuggestions.push(
+          "Some tasks lack TDD evidence — consider stricter TDD enforcement",
+        );
       }
       if (retryTotal > 0) {
-        improvementSuggestions.push("Retry events detected — review error_recovery patterns");
+        improvementSuggestions.push(
+          "Retry events detected — review error_recovery patterns",
+        );
       }
       if (frictionItems.length > 0) {
-        improvementSuggestions.push(`${frictionItems.length} friction items identified — review for process/tool improvements`);
+        improvementSuggestions.push(
+          `${frictionItems.length} friction items identified — review for process/tool improvements`,
+        );
       }
 
       // =====================================================================
@@ -459,7 +498,10 @@ export const reflectionTools = {
       };
 
       // Persist to reflections.jsonl
-      const persisted = await appendReflection(store.paths.external ?? store.paths.root, entry);
+      const persisted = await appendReflection(
+        store.paths.external ?? store.paths.root,
+        entry,
+      );
 
       // Best-effort: write human-readable markdown to archive dir
       await writeReflectionMarkdown(store.paths.archive, change.id, persisted);

@@ -102,7 +102,9 @@ describe("Reflection Tools", () => {
 
     // Write archived change fixture
     const fs = await import("fs/promises");
-    await fs.mkdir(`${tempDir}/.adv/changes/archivedChange`, { recursive: true });
+    await fs.mkdir(`${tempDir}/.adv/changes/archivedChange`, {
+      recursive: true,
+    });
     await fs.writeFile(
       `${tempDir}/.adv/changes/archivedChange/change.json`,
       JSON.stringify(ARCHIVED_CHANGE, null, 2),
@@ -144,7 +146,9 @@ describe("Reflection Tools", () => {
       expect(parsed.reflection.change_id).toBe("archivedChange");
       expect(parsed.reflection.plane1.efficiency.task_count).toBe(3);
       expect(parsed.reflection.plane1.efficiency.tasks_done).toBe(3);
-      expect(parsed.reflection.plane1.quality.tdd_compliance).toBeGreaterThan(0);
+      expect(parsed.reflection.plane1.quality.tdd_compliance).toBeGreaterThan(
+        0,
+      );
       expect(parsed.reflection.plane1.process.gate_completion_rate).toBe(1);
       expect(parsed.reflection.plane1.wisdom.entries_captured).toBe(2);
       expect(parsed.reflection.plane2.friction_items).toBeInstanceOf(Array);
@@ -201,7 +205,9 @@ describe("Reflection Tools", () => {
         };
       }>(result);
 
-      expect(Object.keys(parsed.reflection.plane1.efficiency.per_gate_ms)).toContain("proposal");
+      expect(
+        Object.keys(parsed.reflection.plane1.efficiency.per_gate_ms),
+      ).toContain("proposal");
     });
 
     test("Plane 2 includes friction from wisdom patterns/gotchas", async () => {
@@ -227,7 +233,12 @@ describe("Reflection Tools", () => {
 
     test("writes REFLECTION.md to archive dir when it exists", async () => {
       const fs = await import("fs/promises");
-      const archiveDir = join(tempDir, ".adv", "archive", "2026-01-21-archivedChange");
+      const archiveDir = join(
+        tempDir,
+        ".adv",
+        "archive",
+        "2026-01-21-archivedChange",
+      );
       await fs.mkdir(archiveDir, { recursive: true });
 
       await reflectionTools.adv_reflect.execute(
@@ -272,7 +283,8 @@ describe("Reflection Tools", () => {
         };
       }>(result);
 
-      const desc = parsed.reflection.plane2.friction_items[0]?.description ?? "";
+      const desc =
+        parsed.reflection.plane2.friction_items[0]?.description ?? "";
       expect(desc).toContain("[REDACTED]");
       expect(desc).not.toContain("abc123secret");
       expect(desc).not.toContain("xyz789");
@@ -337,7 +349,9 @@ describe("Reflection Tools", () => {
         };
       }>(result);
 
-      expect(parsed.reflection.plane1.wisdom.wisdom_reuse_hits).toBeGreaterThanOrEqual(1);
+      expect(
+        parsed.reflection.plane1.wisdom.wisdom_reuse_hits,
+      ).toBeGreaterThanOrEqual(1);
     });
   });
 });

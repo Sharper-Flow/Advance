@@ -385,11 +385,7 @@ export function createToolMap(
     ),
 
     // Reflection Tool
-    adv_reflect: bindTool(
-      reflectionTools.adv_reflect,
-      "adv_reflect",
-      store,
-    ),
+    adv_reflect: bindTool(reflectionTools.adv_reflect, "adv_reflect", store),
   };
 }
 
