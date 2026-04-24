@@ -136,6 +136,18 @@ If no findings → `[OK] No slop detected.`
 Output structured JSON: `scope`, `phases`, `summary` (bySeverity, byCategory), `findings[]`.
 
 ---
+## Phase 4: Write Metadata
+After successful completion, call `adv_project_metadata action:"write"` with:
+- `key`: `"slop-scan"`
+- `count`: total findings count (0 if no findings)
+- `summary`: one-line string:
+  - If count > 0: `"{count} findings: {majorCount} major, {minorCount} minor"`
+  - If count = 0: `"no findings"`
+- `written_by`: `"agent"`
+
+This persists the scan result for display in `/adv-status`.
+
+---
 ## Verbose/Debug
 `--verbose`: progress output for each scan step, sub-agent spawn/complete timing, per-category match counts.
 
@@ -143,7 +155,7 @@ Output structured JSON: `scope`, `phases`, `summary` (bySeverity, byCategory), `
 
 ---
 ## Execution
-1. Parse arguments → 2. Pre-flight → 3. Phase 1 (if enabled) → 4. Phase 2 (if enabled) → 5. Aggregate → 6. Report
+1. Parse arguments → 2. Pre-flight → 3. Phase 1 (if enabled) → 4. Phase 2 (if enabled) → 5. Aggregate → 6. Report → 7. Write Metadata
 ```
 /adv-slop-scan COMPLETE
 Result: {N findings | No slop detected}

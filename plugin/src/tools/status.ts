@@ -33,6 +33,7 @@ import {
   loadProjectConfigWithDiagnostics,
   loadProposalWithFallback,
 } from "../storage/json";
+import { readProjectMetadata } from "../storage/project-metadata";
 import { runClarifyReadinessChecks } from "../validator/clarify-readiness";
 
 // =============================================================================
@@ -297,11 +298,17 @@ export const statusTools = {
         temporalAlive: !!temporalHealth?.server_alive,
       });
 
+      const projectMetadata = await readProjectMetadata(
+        store.paths.root,
+        store.paths.projectMetadata,
+      );
+
       const output = {
         ...status,
         ...(featureFlags ? { feature_flags: featureFlags } : {}),
         temporal_health: temporalHealth,
         migration_status: migrationStatus,
+        project_metadata: projectMetadata,
         formatted,
       };
 

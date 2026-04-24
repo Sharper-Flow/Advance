@@ -1106,6 +1106,32 @@ export const ProjectConfigSchema = z
 export type ProjectConfig = z.infer<typeof ProjectConfigSchema>;
 
 // =============================================================================
+// Project Metadata Entry
+// =============================================================================
+
+/**
+ * A single project metadata entry — lightweight, timestamped fact about
+ * something that happened to this project (scan run, external event, etc.).
+ * Stored in a flat JSON file for easy inspection and cross-worktree sharing.
+ */
+export const ProjectMetadataEntrySchema = z
+  .object({
+    /** Unique key identifying the metadata category (e.g., "slop-scan", "arch-scan") */
+    key: z.string().min(1).max(64),
+    /** ISO8601 timestamp when this entry was written */
+    timestamp: z.string(),
+    /** Integer count (e.g., number of findings, number of files scanned) */
+    count: z.number().int().min(0),
+    /** Human-readable one-line summary (max 200 chars) */
+    summary: z.string().min(1).max(200),
+    /** Who wrote this entry — defaults to "agent" */
+    written_by: z.enum(["agent", "user", "system"]).default("agent"),
+  })
+  .passthrough(); // Allow extra fields for forward/backward compatibility
+
+export type ProjectMetadataEntry = z.infer<typeof ProjectMetadataEntrySchema>;
+
+// =============================================================================
 // Tool Response Types
 // =============================================================================
 

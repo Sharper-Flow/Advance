@@ -206,6 +206,39 @@ describe("Status Tools", () => {
       expect(parsed.feature_flags.wisdom_accumulation).toBe(true);
     });
 
+    test("includes project_metadata in status output", async () => {
+      const result = await statusTools.adv_status.execute({}, store);
+      const parsed = parseToolOutput(result);
+
+      expect(parsed.project_metadata).toBeDefined();
+      expect(typeof parsed.project_metadata).toBe("object");
+    });
+
+    test("project_metadata reflects written entries", async () => {
+      // Write a metadata entry first
+      const { writeProjectMetadataEntry } =
+        await import("../storage/project-metadata");
+      await writeProjectMetadataEntry(
+        tempDir,
+        {
+          key: "slop-scan",
+          timestamp: "2026-04-23T00:00:00Z",
+          count: 3,
+          summary: "3 findings",
+          written_by: "agent",
+        },
+        store.paths.projectMetadata,
+      );
+
+      const result = await statusTools.adv_status.execute({}, store);
+      const parsed = parseToolOutput(result);
+
+      expect(parsed.project_metadata).toBeDefined();
+      expect(parsed.project_metadata["slop-scan"]).toBeDefined();
+      expect(parsed.project_metadata["slop-scan"].count).toBe(3);
+      expect(parsed.project_metadata["slop-scan"].summary).toBe("3 findings");
+    });
+
     test("surfaces config not-found warning when project.json is missing", async () => {
       // Create a project dir with no project.json
       const noConfigDir = await createTempDir();

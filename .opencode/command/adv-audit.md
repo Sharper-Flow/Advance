@@ -76,6 +76,20 @@ Emit PROJECT AUDIT REPORT: scope, health status, quality gate table (metric/valu
 If issues: detailed findings by severity (spec text, actual, evidence, fix suggestion), conflicts with resolution hints, orphaned code with categorization, top 3 recommendations.
 
 JSON format if `--json`: health, quality_gate, summary, drift, conflicts, orphans, recommendations.
+
+---
+## Phase 5: Write Metadata
+After successful completion, call `adv_project_metadata action:"write"` with:
+- `key`: `"adv-audit"`
+- `count`: drift finding count (0 if no drift)
+- `summary`: one-line string:
+  - If count > 0: `"{count} drift finding(s): {spec1, spec2, ...}"`
+  - If count = 0: `"no drift detected"`
+- `written_by`: `"agent"`
+
+This persists the audit result for display in `/adv-status`.
+
+---
 ```
 /adv-audit {scope} COMPLETE
 Result: {ALIGNED | N drift issues}
