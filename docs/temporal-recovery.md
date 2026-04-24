@@ -215,6 +215,61 @@ These usually appear as secondary symptoms:
 
 The temporary bootstrap migration harness used during cutover has already been retired after dogfood completion. The historical worker-model discussion remains here, but the transitional artifacts (`migrate-runner`, `migration-workflow`, dogfood scripts, and the generated dogfood report) are no longer part of the shipping codebase.
 
+## Starting workflows en masse
+
+Any code that enqueues more than a handful of workflows in a loop must satisfy **at least one** of the following three safeguards before running against a real Temporal server:
+
+1. **Register pollers for every task queue** the loop targets — a workflow with no poller is an orphan from the moment it is started.
+2. **Guarantee termination on cleanup** — a `finally` block (or equivalent) that terminates every started workflow if the process exits before completion.
+3. **Use `TestWorkflowEnvironment`** — run the bulk enqueue against an ephemeral in-process server that is torn down after validation.
+
+### Positive pattern
+
+```typescript
+import { TestWorkflowEnvironment } from "@temporalio/testing";
+import { withTestWorkflowEnvironment } from "./with-test-env";
+
+async function dryRunBulkEnqueue(
+  changes: Change[],
+  projectId: string,
+): Promise<void> {
+  await withTestWorkflowEnvironment(
+    () => TestWorkflowEnvironment.createLocal(),
+    async (env) => {
+      const queue = `advance-${projectId}`;
+      for (const change of changes) {
+        await ensureChangeWorkflowStarted(change, env.client, queue);
+      }
+      // Verify nothing leaked before teardown
+      const count = await env.client.workflow.count({
+        query: `TaskQueue="${queue}" AND ExecutionStatus="Running"`,
+      });
+      console.assert(count.count === changes.length, "All workflows started");
+    },
+  );
+  // Server is torn down here — no orphaned workflows left behind.
+}
+```
+
+### Anti-pattern
+
+> **2026-04-20 dogfood migration shape**
+>
+> ```typescript
+> // ❌ DO NOT DO THIS
+> for (const change of changes) {
+>   await ensureChangeWorkflowStarted(change, realClient, queue);
+> }
+> // Worker polls only ONE queue; wall-clock deadline exits the process;
+> // no termination step. Result: 5,447 orphaned workflows.
+> ```
+>
+> Characteristics that make this dangerous:
+> - Loop runs against the **real** dev server (`127.0.0.1:7233`), not a test environment.
+> - Only **one** task queue has a registered poller; other queues are orphaned immediately.
+> - A **wall-clock deadline** (`DEADLINE_MS`) exits the process whether or not all workflows reached `done`.
+> - **No termination step** on cleanup — `worker.shutdown()` stops the poller but leaves started workflows in `Running` state.
+
 ## Background and references
 
 ### 2026-04-21 Bun crash-loop incident
