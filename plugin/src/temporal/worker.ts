@@ -40,15 +40,39 @@ export async function runTemporalWorker(
 }
 
 /**
+ * Signal parent that the child has finished bootstrap. Writes a single
+ * JSON line to stdout where the parent listens for the
+ * `{"type":"ready"}` marker. See `worker-multi.ts` §
+ * MULTI_READY_TIMEOUT_MS and P1.3.6 (design.md § KD-1).
+ *
+ * stdout is the agreed IPC channel (see `worker-multi.ts` `stdio: ["pipe",
+ * "pipe", "pipe"]`). `process.send()` is not available because the child
+ * is not spawned with an IPC fd. Best-effort — if the write fails, the
+ * bootstrap timeout will catch it and emit a clean failure.
+ */
+function emitReady(queues: string[]): void {
+  try {
+    const msg = JSON.stringify({ type: "ready", queues });
+    // Write direct to stdout; avoid console.log which may buffer/delay.
+    process.stdout.write(msg + "\n");
+  } catch {
+    // Ignore — parent will time out and emit a clean failure.
+  }
+}
+
+/**
  * Run multiple Temporal Workers concurrently, one per task queue, sharing a
  * single NativeConnection. The multi-queue model is activated when the
  * parent sets `ADV_TEMPORAL_MULTI_QUEUE=1` and a comma-separated
  * `ADV_TEMPORAL_TASK_QUEUES` list. The child registers all queues up front,
  * then runs them in parallel so the server sees a poller per queue.
  *
+ * After every `Worker.create` resolves, the child emits a
+ * `{"type":"ready"}` IPC line so the parent can unblock
+ * `createMultiWorker`. See P1.3.6.
+ *
  * Parent-side IPC (register / unregister) is not yet wired to the live
- * worker set here; see `worker-multi.ts` for the parent protocol. The
- * initial queue set is the common case that unblocks polling today.
+ * worker set here; see `worker-multi.ts` for the parent protocol.
  */
 export async function runMultiQueueTemporalWorker(
   taskQueues: string[],
@@ -78,6 +102,11 @@ export async function runMultiQueueTemporalWorker(
         }),
       ),
     );
+
+    // P1.3.6: signal parent that bootstrap is complete. Must happen
+    // AFTER all Worker.create resolve but BEFORE worker.run (which
+    // blocks forever).
+    emitReady(taskQueues);
 
     await Promise.all(workers.map((worker) => worker.run()));
   } finally {

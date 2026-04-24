@@ -15,10 +15,23 @@ interface MockChild extends Partial<ChildProcess> {
   killed: boolean;
   exitCode: number | null;
   kill: ReturnType<typeof vi.fn>;
+  /**
+   * Simulate the child sending a ready IPC message. Real child writes a
+   * JSON line to stdout; the test emits the equivalent data event.
+   */
+  sendReady(): void;
 }
 
 let lastMockChild: MockChild | null = null;
 const mockChildren: MockChild[] = [];
+
+/**
+ * When true (default), mock children auto-emit `{"type":"ready"}` on
+ * next tick after spawn, mimicking a healthy child bootstrap. Individual
+ * tests can set this false to simulate a child that never sends ready
+ * (e.g. hang before Worker.create resolves).
+ */
+let autoEmitReady = true;
 
 function createMockChild(): MockChild {
   const emitter = new EventEmitter();
@@ -46,6 +59,9 @@ function createMockChild(): MockChild {
       }
       return emitter.emit(event, ...args);
     },
+    sendReady() {
+      child.stdout.emit("data", Buffer.from('{"type":"ready"}\n'));
+    },
   } as unknown as MockChild;
   return child;
 }
@@ -55,6 +71,16 @@ vi.mock("node:child_process", () => ({
     const child = createMockChild();
     lastMockChild = child;
     mockChildren.push(child);
+    // Auto-emit ready via a Promise microtask — this fires AFTER
+    // `createMultiWorker` synchronously attaches its stdout listener
+    // (which happens right after `spawn()` returns). Tests that want
+    // to assert ready-timeout behavior should set
+    // `autoEmitReady = false` before calling.
+    if (autoEmitReady) {
+      Promise.resolve().then(() => {
+        Promise.resolve().then(() => child.sendReady());
+      });
+    }
     return child;
   }),
 }));
@@ -110,6 +136,7 @@ describe("Multi-queue worker host", () => {
   beforeEach(() => {
     lastMockChild = null;
     mockChildren.length = 0;
+    autoEmitReady = true;
   });
 
   afterEach(() => {
@@ -301,5 +328,64 @@ describe("Multi-queue worker host", () => {
         workerScript: "/nonexistent/worker.ts",
       }),
     ).rejects.toThrow("worker script not found");
+  });
+
+  // P1.3.6 ready-handshake tests.
+  //
+  // Context: before this fix, `createMultiWorker` resolved immediately
+  // after spawning the child — tool calls in the ~500ms between spawn
+  // and first Worker.create completion silently hit an unready worker.
+  // After the fix, the parent blocks until the child writes
+  // `{"type":"ready"}` to stdout, or until a 30s bootstrap timeout
+  // fires (whichever comes first).
+  describe("ready-handshake (P1.3.6)", () => {
+    it("resolves when child sends ready IPC message", async () => {
+      // Default autoEmitReady=true path already exercises this — verify
+      // explicitly.
+      const worker = await createMultiWorker(baseInput);
+      expect(worker.isAlive()).toBe(true);
+      await worker.shutdown();
+    });
+
+    it("rejects when child never sends ready within bootstrap timeout", async () => {
+      autoEmitReady = false;
+      vi.useFakeTimers();
+
+      const createPromise = createMultiWorker(baseInput);
+      // Attach a catch handler immediately to avoid "unhandled rejection"
+      // warnings while we advance timers.
+      const settled = createPromise.catch((err: Error) => err);
+
+      // Advance past the 30s bootstrap timeout
+      await vi.advanceTimersByTimeAsync(31_000);
+
+      const result = await settled;
+      expect(result).toBeInstanceOf(Error);
+      expect((result as Error).message).toMatch(
+        /ready|bootstrap|did not become ready/i,
+      );
+
+      // Parent must kill the orphan child so it doesn't leak.
+      expect(lastMockChild).toBeTruthy();
+      expect(lastMockChild!.kill).toHaveBeenCalled();
+
+      vi.useRealTimers();
+    });
+
+    it("rejects when child exits before sending ready", async () => {
+      autoEmitReady = false;
+
+      const createPromise = createMultiWorker(baseInput);
+      const settled = createPromise.catch((err: Error) => err);
+
+      // Child crashes before bootstrap completes
+      await new Promise((r) => setImmediate(r));
+      expect(lastMockChild).toBeTruthy();
+      lastMockChild!.emit("exit", 1, null);
+
+      const result = await settled;
+      expect(result).toBeInstanceOf(Error);
+      expect((result as Error).message).toMatch(/exit|crash|never became/i);
+    });
   });
 });

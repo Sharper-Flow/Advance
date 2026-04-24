@@ -37,6 +37,19 @@ const RESTART_BACKOFF_MS: readonly number[] = [1_000, 3_000, 10_000];
 const MAX_RESTARTS = RESTART_BACKOFF_MS.length;
 export const MULTI_SHUTDOWN_GRACE_MS = 5_000;
 
+/**
+ * Maximum time the parent waits for the child to send
+ * `{"type":"ready"}` after spawn. If this elapses, parent kills the
+ * orphan child and rejects `createMultiWorker`. 30s covers Worker.create
+ * + NativeConnection handshake + workflow bundle warmup on cold-start
+ * under load. Tool calls during bootstrap wait on this, so it's
+ * deliberately longer than a single-query budget (5s, per P1.3.8) but
+ * short enough to fail fast when the child is genuinely broken.
+ *
+ * See design.md § KD-1.
+ */
+export const MULTI_READY_TIMEOUT_MS = 30_000;
+
 const LOG_MAX_LENGTH = 2_000;
 
 function sanitizeLogChunk(chunk: Buffer): string {
@@ -129,7 +142,38 @@ export async function createMultiWorker(
     resolveExit = resolve;
   });
 
-  function spawnChild(): void {
+  /**
+   * Scan an IPC stdout buffer chunk for JSON-lines messages from the
+   * child. Returns true if a `{"type":"ready"}` message was observed.
+   */
+  function chunkContainsReady(chunk: Buffer): boolean {
+    const text = chunk.toString("utf-8");
+    for (const line of text.split(/\r?\n/)) {
+      const trimmed = line.trim();
+      if (!trimmed) continue;
+      try {
+        const msg = JSON.parse(trimmed) as { type?: string };
+        if (msg && msg.type === "ready") return true;
+      } catch {
+        // Not JSON, ignore — probably a plain log line
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Spawn the Node child and install stdout/stderr/exit handlers.
+   * Returns a promise that resolves when the child sends `{"type":"ready"}`
+   * via stdout, or rejects on timeout / early exit.
+   *
+   * The parent blocks on this promise during initial spawn so tool calls
+   * don't race the ~500ms Worker.create + NativeConnection window. On
+   * respawn (after a crash), the promise is intentionally discarded —
+   * the parent stays "alive" with the existing MultiWorker handle and
+   * the next tool call sees either a healthy worker or a broken one
+   * routed through the query timeout (P1.3.8).
+   */
+  function spawnChild(): Promise<void> {
     const spec = buildTemporalWorkerProcessSpec({
       workerScript: input.workerScript,
       taskQueue: "__multi__", // placeholder; child reads QUEUES env
@@ -160,9 +204,49 @@ export async function createMultiWorker(
     child = newChild;
 
     // IPC: write messages to child stdin
-    // Stdout/stderr → debug log
+    // Stdout/stderr → debug log + ready-handshake watcher
+
+    let readyResolve: () => void = () => {};
+    let readyReject: (err: Error) => void = () => {};
+    const readyPromise = new Promise<void>((resolve, reject) => {
+      readyResolve = resolve;
+      readyReject = reject;
+    });
+    let settled = false;
+    const settle = (err?: Error): void => {
+      if (settled) return;
+      settled = true;
+      if (err) {
+        readyReject(err);
+      } else {
+        readyResolve();
+      }
+    };
+
+    const bootstrapTimer = setTimeout(() => {
+      if (settled) return;
+      logger.info(
+        `Multi-queue Temporal worker did not become ready within ${MULTI_READY_TIMEOUT_MS}ms. Killing orphan child.`,
+      );
+      try {
+        newChild.kill("SIGKILL");
+      } catch {
+        // best-effort
+      }
+      settle(
+        new Error(
+          `Multi-queue Temporal worker did not become ready within ${MULTI_READY_TIMEOUT_MS}ms — child never sent {"type":"ready"} IPC message.`,
+        ),
+      );
+    }, MULTI_READY_TIMEOUT_MS);
+    bootstrapTimer.unref();
 
     newChild.stdout?.on("data", (chunk: Buffer) => {
+      if (!settled && chunkContainsReady(chunk)) {
+        clearTimeout(bootstrapTimer);
+        debugLog("multi-queue worker sent ready IPC message");
+        settle();
+      }
       const text = sanitizeLogChunk(chunk);
       logger.debug(`[multi-worker:stdout] ${text}`);
     });
@@ -178,6 +262,17 @@ export async function createMultiWorker(
         debugLog(
           `multi-queue worker exited code=${code} signal=${signal ?? "none"} restartCount=${restartCount}`,
         );
+
+        // If child exits before emitting ready, reject the handshake
+        // so the caller sees a structured error rather than hanging.
+        if (!settled) {
+          clearTimeout(bootstrapTimer);
+          settle(
+            new Error(
+              `Multi-queue Temporal worker exited before sending ready IPC message (code=${code}, signal=${signal ?? "none"}).`,
+            ),
+          );
+        }
 
         if (shuttingDown || code === 0) {
           child = null;
@@ -201,10 +296,17 @@ export async function createMultiWorker(
         );
         setTimeout(() => {
           if (shuttingDown) return;
-          spawnChild();
+          // Respawn intentionally discards the ready promise — the
+          // existing MultiWorker handle stays live; a crashed
+          // respawn will simply loop again up to MAX_RESTARTS.
+          void spawnChild().catch((err: Error) => {
+            debugLog(`respawn ready-handshake failed: ${err.message}`);
+          });
         }, backoff).unref();
       },
     );
+
+    return readyPromise;
   }
 
   function sendToChild(msg: ParentToChildMessage): void {
@@ -216,8 +318,11 @@ export async function createMultiWorker(
     }
   }
 
-  // Spawn the initial child with all initial queues
-  spawnChild();
+  // Spawn the initial child and block until it signals ready. If the
+  // child crashes or times out during bootstrap, propagate the error so
+  // the caller sees a structured failure rather than a silently-broken
+  // worker handle. See P1.3.6 (design.md § KD-1).
+  await spawnChild();
 
   return {
     get queues() {
