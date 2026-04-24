@@ -3,14 +3,25 @@ import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 // Hoist all mock creation so they're available in both vi.mock factories and tests
 const mocks = vi.hoisted(() => {
   const connectionClose = vi.fn().mockResolvedValue(undefined);
-  const connection = { close: connectionClose };
+  const addSearchAttributes = vi.fn().mockResolvedValue({});
+  const connection = {
+    close: connectionClose,
+    operatorService: { addSearchAttributes },
+  };
   const client = {};
   const connect = vi.fn().mockResolvedValue(connection);
   // Must use function (not arrow) so `new ClientCtor()` works
   const ClientCtor = vi.fn(function (this: unknown) {
     return client;
   });
-  return { connectionClose, connection, client, connect, ClientCtor };
+  return {
+    connectionClose,
+    addSearchAttributes,
+    connection,
+    client,
+    connect,
+    ClientCtor,
+  };
 });
 
 vi.mock("@temporalio/client", () => ({
@@ -54,6 +65,54 @@ describe("STSL (Shared Temporal Service Layer)", () => {
       connection: mocks.connection,
       namespace: "test-ns",
     });
+  });
+
+  it("initStsl registers ADV search attributes with the server", async () => {
+    await initStsl({
+      ADV_TEMPORAL_ADDRESS: "127.0.0.1:7233",
+      ADV_TEMPORAL_NAMESPACE: "default",
+    });
+
+    expect(mocks.addSearchAttributes).toHaveBeenCalledTimes(1);
+    const [call] = mocks.addSearchAttributes.mock.calls;
+    expect(call[0]).toEqual({
+      namespace: "default",
+      searchAttributes: {
+        AdvProjectId: 1, // KEYWORD
+        AdvChangeId: 1, // KEYWORD
+        AdvChangeStatus: 1, // KEYWORD
+        AdvActiveGate: 1, // KEYWORD
+        AdvDoomLoopActive: 4, // BOOL
+      },
+    });
+  });
+
+  it("initStsl treats AlreadyExists as success (idempotent)", async () => {
+    mocks.addSearchAttributes.mockRejectedValueOnce(
+      new Error("search attribute already exists"),
+    );
+
+    // Must not throw
+    await expect(
+      initStsl({
+        ADV_TEMPORAL_ADDRESS: "127.0.0.1:7233",
+        ADV_TEMPORAL_NAMESPACE: "default",
+      }),
+    ).resolves.toBeDefined();
+  });
+
+  it("initStsl swallows other registration failures (non-fatal)", async () => {
+    mocks.addSearchAttributes.mockRejectedValueOnce(
+      new Error("unexpected registration failure"),
+    );
+
+    // Must not throw even on non-AlreadyExists failure
+    await expect(
+      initStsl({
+        ADV_TEMPORAL_ADDRESS: "127.0.0.1:7233",
+        ADV_TEMPORAL_NAMESPACE: "default",
+      }),
+    ).resolves.toBeDefined();
   });
 
   it("getService returns the initialized bundle", async () => {

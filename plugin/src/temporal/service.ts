@@ -15,9 +15,74 @@
 
 import { Client, Connection } from "@temporalio/client";
 import { getTemporalAddress, getTemporalNamespace } from "./client";
-import { appendDebugLog } from "../utils/debug-log";
+import { ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES } from "./observability";
+import { appendDebugLog, createLogger } from "../utils/debug-log";
 
 const debugLog = (msg: string): void => appendDebugLog("stsl", msg);
+const logger = createLogger("stsl");
+
+/**
+ * Register the ADV custom search attributes with the Temporal server.
+ * Idempotent: already-registered attributes produce `AlreadyExists` which
+ * is treated as success. Any other failure is logged and swallowed — a
+ * missing search-attribute registry on a self-hosted Temporal isn't
+ * fatal to plugin init (workflows without search attrs still run), but
+ * the downstream Visibility API queries will fail until operators run
+ * `temporal operator search-attribute create` manually.
+ *
+ * The attribute types are intentional:
+ *   - AdvProjectId, AdvChangeId, AdvChangeStatus, AdvActiveGate: Keyword
+ *     (exact-match + low-cardinality, supports `=` / `IN` filters).
+ *   - AdvDoomLoopActive: Bool (flag).
+ */
+async function registerAdvSearchAttributes(
+  connection: Connection,
+  namespace: string,
+): Promise<void> {
+  const svc = (
+    connection as unknown as {
+      operatorService?: {
+        addSearchAttributes?: (req: {
+          namespace: string;
+          searchAttributes: Record<string, number>;
+        }) => Promise<unknown>;
+      };
+    }
+  ).operatorService;
+  if (!svc || typeof svc.addSearchAttributes !== "function") {
+    logger.debug(
+      "OperatorService.addSearchAttributes unavailable — skipping search-attribute registration",
+    );
+    return;
+  }
+  // IndexedValueType enum — hard-coded numeric codes from the Temporal
+  // API proto so we don't need a proto import just for this: Keyword=1,
+  // Bool=4. Matches server-side validation.
+  const KEYWORD = 1;
+  const BOOL = 4;
+  const searchAttributes: Record<string, number> = {
+    [ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES.projectId]: KEYWORD,
+    [ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES.changeId]: KEYWORD,
+    [ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES.changeStatus]: KEYWORD,
+    [ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES.activeGate]: KEYWORD,
+    [ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES.doomLoop]: BOOL,
+  };
+  try {
+    await svc.addSearchAttributes({ namespace, searchAttributes });
+    logger.debug("Registered ADV search attributes");
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (/already\s*exists|ALREADY_EXISTS/i.test(msg)) {
+      logger.debug(
+        `ADV search attributes already registered (idempotent no-op): ${msg}`,
+      );
+      return;
+    }
+    logger.warn(
+      `Failed to register ADV search attributes (Visibility queries may fail): ${msg}`,
+    );
+  }
+}
 
 interface StslBundle {
   address: string;
@@ -67,6 +132,11 @@ export async function initStsl(
   const connection = await Connection.connect({ address });
   const client = new Client({ connection, namespace });
   newConnectionCount++;
+
+  // Register ADV custom search attributes with the server so Visibility
+  // API queries and workflow.start() search-attribute payloads work.
+  // Idempotent; failure is non-fatal (warned, not thrown).
+  await registerAdvSearchAttributes(connection, namespace);
 
   cachedBundle = { address, namespace, connection, client };
   debugLog(`initStsl: bundle ready`);
