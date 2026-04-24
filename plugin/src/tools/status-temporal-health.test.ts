@@ -16,6 +16,7 @@ const mocks = vi.hoisted(() => ({
     registered_queues: ["advance-proj123"],
     last_op_at: "2026-04-21T00:00:00.000Z",
     last_error: null,
+    stale_queues: [],
   })),
   createTemporalClientBundle: vi.fn(async () => ({
     connection: { close: vi.fn(async () => {}) },
@@ -92,6 +93,7 @@ describe("adv_status temporal health/migration status (C4)", () => {
       registered_queues: ["advance-proj123"],
       last_op_at: "2026-04-21T00:00:00.000Z",
       last_error: null,
+      stale_queues: [],
     });
   });
 
@@ -126,6 +128,7 @@ describe("adv_status temporal health/migration status (C4)", () => {
       registered_queues: [],
       last_op_at: null,
       last_error: "boom",
+      stale_queues: [],
     });
     expect(parsed.migration_status).toBeNull();
   });
@@ -146,7 +149,37 @@ describe("adv_status temporal health/migration status (C4)", () => {
       registered_queues: [],
       last_op_at: null,
       last_error: null,
+      stale_queues: [],
     });
     expect(parsed.migration_status).toBeNull();
+  });
+
+  test("surfaces stale queue recommendation when temporal health reports stale queues", async () => {
+    mocks.getTemporalHealth.mockResolvedValueOnce({
+      server_alive: true,
+      worker_alive: true,
+      worker_process_alive: true,
+      registered_queues: ["advance-proj123"],
+      last_op_at: "2026-04-21T00:00:00.000Z",
+      last_error: null,
+      stale_queues: [
+        { queue: "advance-target-proj", running_count: 42 },
+      ],
+    });
+
+    (store.paths as { external?: string }).external =
+      "/home/jrede/.local/share/opencode/plugins/advance/target-proj";
+
+    const result = await statusTools.adv_status.execute({}, store);
+    const parsed = parseToolOutput(result);
+
+    expect(parsed.temporal_health.stale_queues).toEqual([
+      { queue: "advance-target-proj", running_count: 42 },
+    ]);
+    expect(parsed.recommendations).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining("Stale Temporal queue"),
+      ]),
+    );
   });
 });

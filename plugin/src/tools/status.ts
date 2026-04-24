@@ -213,6 +213,10 @@ export const statusTools = {
         ? null
         : await loadMigrationStatus(store);
 
+      const projectId = store.paths.external
+        ? basename(store.paths.external)
+        : undefined;
+
       let temporalHealth;
       if (temporalDisabled) {
         temporalHealth = {
@@ -222,10 +226,11 @@ export const statusTools = {
           registered_queues: [],
           last_op_at: null,
           last_error: null,
+          stale_queues: [],
         };
       } else {
         try {
-          temporalHealth = await getTemporalHealth();
+          temporalHealth = await getTemporalHealth(projectId);
         } catch (err) {
           temporalHealth = {
             server_alive: false,
@@ -234,7 +239,16 @@ export const statusTools = {
             registered_queues: [],
             last_op_at: null,
             last_error: err instanceof Error ? err.message : String(err),
+            stale_queues: [],
           };
+        }
+      }
+
+      if (temporalHealth.stale_queues && temporalHealth.stale_queues.length > 0) {
+        for (const sq of temporalHealth.stale_queues) {
+          status.recommendations.push(
+            `⚠️ Stale Temporal queue \`${sq.queue}\` has ${sq.running_count} Running workflows older than 5 min with no local poller. See docs/temporal-recovery.md § "Stale workflows".`,
+          );
         }
       }
 
