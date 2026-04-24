@@ -652,5 +652,4 @@ describe("Temporal store backend adapter", () => {
       expect(changeHandle.executeUpdate).toHaveBeenCalledTimes(1);
     });
   });
-
 });
