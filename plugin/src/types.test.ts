@@ -1631,146 +1631,148 @@ describe("Schema Backward Compatibility", () => {
   });
 
   describe("ProjectMetadataEntrySchema", () => {
-  test("parses valid metadata entry", () => {
-    const entry = {
-      key: "slop-scan",
-      timestamp: "2026-04-23T00:00:00Z",
-      count: 3,
-      summary: "3 findings: 1 major, 2 minor",
-      written_by: "agent",
-    };
-    const result = ProjectMetadataEntrySchema.parse(entry);
-    expect(result.key).toBe("slop-scan");
-    expect(result.count).toBe(3);
-    expect(result.summary).toBe("3 findings: 1 major, 2 minor");
-    expect(result.written_by).toBe("agent");
-  });
+    test("parses valid metadata entry", () => {
+      const entry = {
+        key: "slop-scan",
+        timestamp: "2026-04-23T00:00:00Z",
+        count: 3,
+        summary: "3 findings: 1 major, 2 minor",
+        written_by: "agent",
+      };
+      const result = ProjectMetadataEntrySchema.parse(entry);
+      expect(result.key).toBe("slop-scan");
+      expect(result.count).toBe(3);
+      expect(result.summary).toBe("3 findings: 1 major, 2 minor");
+      expect(result.written_by).toBe("agent");
+    });
 
-  test("defaults written_by to agent", () => {
-    const entry = {
-      key: "arch-scan",
-      timestamp: "2026-04-23T00:00:00Z",
-      count: 0,
-      summary: "no findings",
-    };
-    const result = ProjectMetadataEntrySchema.parse(entry);
-    expect(result.written_by).toBe("agent");
-  });
-
-  test("accepts user and system as written_by", () => {
-    expect(
-      ProjectMetadataEntrySchema.parse({
-        key: "test",
+    test("defaults written_by to agent", () => {
+      const entry = {
+        key: "arch-scan",
         timestamp: "2026-04-23T00:00:00Z",
         count: 0,
-        summary: "test",
-        written_by: "user",
-      }).written_by,
-    ).toBe("user");
+        summary: "no findings",
+      };
+      const result = ProjectMetadataEntrySchema.parse(entry);
+      expect(result.written_by).toBe("agent");
+    });
 
-    expect(
-      ProjectMetadataEntrySchema.parse({
-        key: "test",
+    test("accepts user and system as written_by", () => {
+      expect(
+        ProjectMetadataEntrySchema.parse({
+          key: "test",
+          timestamp: "2026-04-23T00:00:00Z",
+          count: 0,
+          summary: "test",
+          written_by: "user",
+        }).written_by,
+      ).toBe("user");
+
+      expect(
+        ProjectMetadataEntrySchema.parse({
+          key: "test",
+          timestamp: "2026-04-23T00:00:00Z",
+          count: 0,
+          summary: "test",
+          written_by: "system",
+        }).written_by,
+      ).toBe("system");
+    });
+
+    test("rejects invalid written_by", () => {
+      expect(() =>
+        ProjectMetadataEntrySchema.parse({
+          key: "test",
+          timestamp: "2026-04-23T00:00:00Z",
+          count: 0,
+          summary: "test",
+          written_by: "unknown",
+        }),
+      ).toThrow();
+    });
+
+    test("rejects empty key", () => {
+      expect(() =>
+        ProjectMetadataEntrySchema.parse({
+          key: "",
+          timestamp: "2026-04-23T00:00:00Z",
+          count: 0,
+          summary: "test",
+        }),
+      ).toThrow();
+    });
+
+    test("rejects key over 64 chars", () => {
+      expect(() =>
+        ProjectMetadataEntrySchema.parse({
+          key: "a".repeat(65),
+          timestamp: "2026-04-23T00:00:00Z",
+          count: 0,
+          summary: "test",
+        }),
+      ).toThrow();
+    });
+
+    test("rejects negative count", () => {
+      expect(() =>
+        ProjectMetadataEntrySchema.parse({
+          key: "test",
+          timestamp: "2026-04-23T00:00:00Z",
+          count: -1,
+          summary: "test",
+        }),
+      ).toThrow();
+    });
+
+    test("rejects non-integer count", () => {
+      expect(() =>
+        ProjectMetadataEntrySchema.parse({
+          key: "test",
+          timestamp: "2026-04-23T00:00:00Z",
+          count: 1.5,
+          summary: "test",
+        }),
+      ).toThrow();
+    });
+
+    test("rejects empty summary", () => {
+      expect(() =>
+        ProjectMetadataEntrySchema.parse({
+          key: "test",
+          timestamp: "2026-04-23T00:00:00Z",
+          count: 0,
+          summary: "",
+        }),
+      ).toThrow();
+    });
+
+    test("rejects summary over 200 chars", () => {
+      expect(() =>
+        ProjectMetadataEntrySchema.parse({
+          key: "test",
+          timestamp: "2026-04-23T00:00:00Z",
+          count: 0,
+          summary: "x".repeat(201),
+        }),
+      ).toThrow();
+    });
+
+    test("allows extra fields (passthrough)", () => {
+      const entry = {
+        key: "slop-scan",
         timestamp: "2026-04-23T00:00:00Z",
-        count: 0,
-        summary: "test",
-        written_by: "system",
-      }).written_by,
-    ).toBe("system");
+        count: 3,
+        summary: "3 findings",
+        extra_field: "extra value",
+      };
+      const result = ProjectMetadataEntrySchema.parse(entry);
+      expect((result as Record<string, unknown>).extra_field).toBe(
+        "extra value",
+      );
+    });
   });
 
-  test("rejects invalid written_by", () => {
-    expect(() =>
-      ProjectMetadataEntrySchema.parse({
-        key: "test",
-        timestamp: "2026-04-23T00:00:00Z",
-        count: 0,
-        summary: "test",
-        written_by: "unknown",
-      }),
-    ).toThrow();
-  });
-
-  test("rejects empty key", () => {
-    expect(() =>
-      ProjectMetadataEntrySchema.parse({
-        key: "",
-        timestamp: "2026-04-23T00:00:00Z",
-        count: 0,
-        summary: "test",
-      }),
-    ).toThrow();
-  });
-
-  test("rejects key over 64 chars", () => {
-    expect(() =>
-      ProjectMetadataEntrySchema.parse({
-        key: "a".repeat(65),
-        timestamp: "2026-04-23T00:00:00Z",
-        count: 0,
-        summary: "test",
-      }),
-    ).toThrow();
-  });
-
-  test("rejects negative count", () => {
-    expect(() =>
-      ProjectMetadataEntrySchema.parse({
-        key: "test",
-        timestamp: "2026-04-23T00:00:00Z",
-        count: -1,
-        summary: "test",
-      }),
-    ).toThrow();
-  });
-
-  test("rejects non-integer count", () => {
-    expect(() =>
-      ProjectMetadataEntrySchema.parse({
-        key: "test",
-        timestamp: "2026-04-23T00:00:00Z",
-        count: 1.5,
-        summary: "test",
-      }),
-    ).toThrow();
-  });
-
-  test("rejects empty summary", () => {
-    expect(() =>
-      ProjectMetadataEntrySchema.parse({
-        key: "test",
-        timestamp: "2026-04-23T00:00:00Z",
-        count: 0,
-        summary: "",
-      }),
-    ).toThrow();
-  });
-
-  test("rejects summary over 200 chars", () => {
-    expect(() =>
-      ProjectMetadataEntrySchema.parse({
-        key: "test",
-        timestamp: "2026-04-23T00:00:00Z",
-        count: 0,
-        summary: "x".repeat(201),
-      }),
-    ).toThrow();
-  });
-
-  test("allows extra fields (passthrough)", () => {
-    const entry = {
-      key: "slop-scan",
-      timestamp: "2026-04-23T00:00:00Z",
-      count: 3,
-      summary: "3 findings",
-      extra_field: "extra value",
-    };
-    const result = ProjectMetadataEntrySchema.parse(entry);
-    expect((result as Record<string, unknown>).extra_field).toBe("extra value");
-  });
-});
-
-describe("backward compatibility", () => {
+  describe("backward compatibility", () => {
     test("ChangeSchema parses change with empty deltas object", () => {
       const changeWithEmptyDeltas = {
         id: "compat-test",

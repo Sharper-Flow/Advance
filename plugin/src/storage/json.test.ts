@@ -82,7 +82,9 @@ describe("getProjectPaths", () => {
     expect(paths.db).toBe("/ext/data/abc123/db");
     expect(paths.wisdom).toBe("/ext/data/abc123/wisdom.jsonl");
     expect(paths.agenda).toBe("/ext/data/abc123/agenda.jsonl");
-    expect(paths.projectMetadata).toBe("/ext/data/abc123/project-metadata.json");
+    expect(paths.projectMetadata).toBe(
+      "/ext/data/abc123/project-metadata.json",
+    );
     expect("handoff" in paths).toBe(false);
     expect(paths.external).toBe("/ext/data/abc123");
   });

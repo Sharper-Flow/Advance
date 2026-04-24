@@ -216,9 +216,8 @@ describe("Status Tools", () => {
 
     test("project_metadata reflects written entries", async () => {
       // Write a metadata entry first
-      const { writeProjectMetadataEntry } = await import(
-        "../storage/project-metadata"
-      );
+      const { writeProjectMetadataEntry } =
+        await import("../storage/project-metadata");
       await writeProjectMetadataEntry(
         tempDir,
         {
