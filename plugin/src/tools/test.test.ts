@@ -10,7 +10,7 @@ import {
   DEFAULT_TEST_TIMEOUT_MS,
   DEFAULT_TEST_MAX_BUFFER,
 } from "./test";
-import { createStore, type Store } from "../storage/store";
+import { createLegacyStore, type Store } from "../storage/store";
 import {
   createTempDir,
   cleanupTempDir,
@@ -24,7 +24,7 @@ describe("Test Tools", () => {
   beforeEach(async () => {
     tempDir = await createTempDir();
     await createTestProject(tempDir);
-    store = await createStore(tempDir);
+    store = await createLegacyStore(tempDir);
   });
 
   afterEach(async () => {

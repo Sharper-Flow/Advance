@@ -7,7 +7,7 @@
 import { afterEach, beforeEach, describe, expect, test } from "vitest";
 import { mkdir, rm, writeFile } from "fs/promises";
 import { join } from "path";
-import { createStore, type Store } from "./store";
+import { createLegacyStore, type Store } from "./store";
 import { createSQLiteStore, type SQLiteStore } from "./sqlite";
 import {
   cleanupTempDir,
@@ -55,7 +55,7 @@ describe("store-sync spec reconciliation", () => {
   beforeEach(async () => {
     tempDir = await createTempDir();
     await createTestProject(tempDir, { withChanges: false });
-    store = await createStore(tempDir);
+    store = await createLegacyStore(tempDir);
     sqlite = createSQLiteStore(join(tempDir, ".adv/db/spec.db"));
   });
 

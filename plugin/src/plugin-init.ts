@@ -65,29 +65,6 @@ function buildTemporalClientEnv(input: {
 }
 
 /**
- * Attempt to create and initialize the ADV store. Never throws — any failure
- * is captured in the returned initError and logged.
- */
-async function initStoreWithoutTemporal(
-  effectiveDir: string,
-  externalRoot: string | undefined,
-  projectId: string | null,
-): Promise<StoreInitResult> {
-  const startedAt = performance.now();
-  const store = await createStore(effectiveDir, {
-    externalRoot,
-    projectIdOverride: projectId ?? undefined,
-    // No temporalBundle — file-backed harness path.
-  });
-  await store.init();
-  profilePluginInit("legacy_fallback_ready", {
-    duration_ms: Number((performance.now() - startedAt).toFixed(3)),
-    backend_mode: "legacy",
-  });
-  return { store, initError: null };
-}
-
-/**
  * Resolve the worker script path used by the OOP Node child process.
  *
  * Prefers the built bundle (`dist/temporal/worker.js`) next to the plugin
@@ -128,12 +105,10 @@ export async function tryInitStore(
 
   try {
     let temporalBundle: Awaited<ReturnType<typeof initStsl>> | undefined;
-    const temporalDisabled = process.env.ADV_DISABLE_TEMPORAL === "1";
     profilePluginInit("backend_mode_detected", {
-      temporal_disabled: temporalDisabled,
-      backend_mode: temporalDisabled ? "legacy" : "temporal_candidate",
+      backend_mode: "temporal",
     });
-    if (projectId && !temporalDisabled) {
+    if (projectId) {
       const runtimeStartedAt = performance.now();
       const runtime = await ensureTemporalRuntime(projectId);
       profilePluginInit("temporal_runtime_ready", {
@@ -149,7 +124,6 @@ export async function tryInitStore(
 
       if (workerProbe.supported) {
         const workerStartedAt = performance.now();
-        // Node host — worker runs in-process (existing behavior).
         worker = await createInProcessWorker({
           address: runtime.address,
           namespace: runtime.namespace,
@@ -160,7 +134,6 @@ export async function tryInitStore(
           worker_model: "in_process",
         });
       } else {
-        // Bun (or other unsupported worker host) — spawn a Node child.
         const nodeResolution = resolveNodeExecutable();
         profilePluginInit("worker_node_resolution", {
           found: nodeResolution.found,
@@ -205,13 +178,13 @@ export async function tryInitStore(
     const store = await createStore(effectiveDir, {
       externalRoot,
       projectIdOverride: projectId ?? undefined,
-      temporalBundle,
+      temporalBundle: temporalBundle!,
     });
     profilePluginInit("store_created", {
       duration_ms: Number(
         (performance.now() - storeCreateStartedAt).toFixed(3),
       ),
-      backend_mode: temporalBundle ? "temporal" : "legacy",
+      backend_mode: "temporal",
     });
 
     const storeInitStartedAt = performance.now();
@@ -221,7 +194,7 @@ export async function tryInitStore(
     });
     profilePluginInit("try_init_store_complete", {
       duration_ms: Number((performance.now() - initStartedAt).toFixed(3)),
-      backend_mode: temporalBundle ? "temporal" : "legacy",
+      backend_mode: "temporal",
       outcome: "success",
     });
 
@@ -234,12 +207,8 @@ export async function tryInitStore(
       outcome: "error",
       errorClass: initError.name || "Error",
       message: initError.message,
-      degraded_fallback: process.env.ADV_ALLOW_DEGRADED_FALLBACK === "1",
     });
 
-    // If a worker was already created before createStore()/store.init() or the
-    // client-bundle step failed, drain it now so we don't leave a polling
-    // worker (or OOP child) running behind a failed plugin init.
     if (worker) {
       try {
         await worker.shutdown();
@@ -250,51 +219,9 @@ export async function tryInitStore(
       }
     }
 
-    // Narrow scope per validator (fixTemporalWorkerBundleFailure design):
-    // init failure is captured in initError + downstream ADV_PLUGIN_INIT_FAILED
-    // tool stubs. Log at info level (file sink only, no console) to avoid
-    // spamming every opencode session on Bun where Worker.create fails. Other
-    // logger.warn/logger.error call sites (sqlite, storage, etc.) keep their
-    // console output so real operational issues remain visible.
     logger.info(
       `Plugin init failed: ${initError.message} — adv_* tools are stubbed and will report ADV_PLUGIN_INIT_FAILED until the cause is fixed.`,
     );
-
-    // Opt-in graceful degradation: if the user has set
-    // ADV_ALLOW_DEGRADED_FALLBACK=1 they prefer a working file-backed store
-    // over the degraded-tool-map stubs. Deprecated-by-design: removed once
-    // out-of-process Node worker ships (Phase 2).
-    if (process.env.ADV_ALLOW_DEGRADED_FALLBACK === "1") {
-      try {
-        debugLog(
-          `ADV_ALLOW_DEGRADED_FALLBACK=1 — falling back to file-backed store`,
-        );
-        profilePluginInit("degraded_fallback_started", {
-          backend_mode: "legacy",
-        });
-        const fallbackResult = await initStoreWithoutTemporal(
-          effectiveDir,
-          externalRoot,
-          projectId,
-        );
-        profilePluginInit("try_init_store_complete", {
-          duration_ms: Number((performance.now() - initStartedAt).toFixed(3)),
-          backend_mode: "legacy",
-          outcome: "success",
-          degraded_fallback: true,
-        });
-        return fallbackResult;
-      } catch (fallbackError) {
-        const fbError =
-          fallbackError instanceof Error
-            ? fallbackError
-            : new Error(String(fallbackError));
-        debugLog(
-          `Fallback to file-backed store also failed: ${fbError.message}`,
-        );
-        return { store: null, initError: fbError };
-      }
-    }
 
     return { store: null, initError };
   }

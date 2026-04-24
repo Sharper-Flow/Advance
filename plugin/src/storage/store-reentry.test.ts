@@ -7,7 +7,7 @@
  */
 
 import { describe, test, expect, beforeEach, afterEach } from "vitest";
-import { createStore, type Store } from "./store";
+import { createLegacyStore, type Store } from "./store";
 import { changeTools } from "../tools/change";
 import { taskTools } from "../tools/task";
 import {
@@ -24,7 +24,7 @@ describe("Re-Entry Integration", () => {
   beforeEach(async () => {
     tempDir = await createTempDir();
     await createTestProject(tempDir);
-    store = await createStore(tempDir);
+    store = await createLegacyStore(tempDir);
   });
 
   afterEach(async () => {

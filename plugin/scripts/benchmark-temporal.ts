@@ -120,27 +120,7 @@ function parseArgs(argv: string[]): {
 /* ------------------------------------------------------------------ */
 
 export function checkEnvBypass(): { ok: true } | { ok: false; remediation: string } {
-  const disable = process.env.ADV_DISABLE_TEMPORAL;
-  const fallback = process.env.ADV_ALLOW_DEGRADED_FALLBACK;
-
-  if (disable) {
-    return {
-      ok: false,
-      remediation:
-        "ADV_DISABLE_TEMPORAL is set. This harness measures the Temporal path only. " +
-        "Unset it and ensure a Temporal server is reachable at ADV_TEMPORAL_ADDRESS.",
-    };
-  }
-
-  if (fallback) {
-    return {
-      ok: false,
-      remediation:
-        "ADV_ALLOW_DEGRADED_FALLBACK is set. This would contaminate measurements with legacy-file fallback paths. " +
-        "Unset it for Temporal-only benchmarking. Any historical legacy-control comparison must be run outside this Temporal-only harness.",
-    };
-  }
-
+  // Temporal is the only runtime mode; no bypass flags exist.
   return { ok: true };
 }
 

@@ -9,7 +9,7 @@ import { readFile, writeFile, symlink } from "fs/promises";
 import { join } from "path";
 import { getProjectId, getExternalRoot } from "../utils/project-id";
 import { changeTools } from "./change";
-import { createStore, type Store } from "../storage/store";
+import { createLegacyStore, type Store } from "../storage/store";
 import { listProjectWisdom } from "../storage/project-wisdom";
 import {
   createTempDir,
@@ -25,7 +25,7 @@ describe("Change Tools", () => {
   beforeEach(async () => {
     tempDir = await createTempDir();
     await createTestProject(tempDir);
-    store = await createStore(tempDir);
+    store = await createLegacyStore(tempDir);
   });
 
   afterEach(async () => {
@@ -657,7 +657,7 @@ describe("Change Tools", () => {
         expect(parsed.cross_project_origin.linked_at).toBeDefined();
 
         // Verify the change was persisted in the target project with origin
-        const targetStore = await createStore(targetDir);
+        const targetStore = await createLegacyStore(targetDir);
         try {
           const changeResult = await targetStore.changes.get(parsed.changeId);
           expect(changeResult.success).toBe(true);
@@ -713,7 +713,7 @@ describe("Change Tools", () => {
         const parsed = parseToolOutput(result);
 
         // Read the proposal from the target project
-        const targetStore = await createStore(targetDir);
+        const targetStore = await createLegacyStore(targetDir);
         try {
           const changeDir = join(targetStore.paths.changes, parsed.changeId);
           const proposalContent = await readFile(
@@ -1628,7 +1628,7 @@ describe("adv_change_show clarify finding persistence (Leak #12)", () => {
   beforeEach(async () => {
     tempDir4 = await createTempDir();
     await createTestProject(tempDir4);
-    store4 = await createStore(tempDir4);
+    store4 = await createLegacyStore(tempDir4);
     await store4.init();
     await store4.sync();
   });
@@ -1678,7 +1678,7 @@ describe("adv_change_reenter", () => {
   beforeEach(async () => {
     tempDir = await createTempDir();
     await createTestProject(tempDir);
-    store = await createStore(tempDir);
+    store = await createLegacyStore(tempDir);
   });
 
   afterEach(async () => {

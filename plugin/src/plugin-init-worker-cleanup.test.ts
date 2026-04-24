@@ -76,12 +76,6 @@ vi.mock("node:fs/promises", async () => {
 describe("plugin-init in-process worker shutdown (A4b')", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // Strip ambient ADV env so tests are deterministic regardless of the
-    // developer's shell. ADV_DISABLE_TEMPORAL=1 (the common Bun-workaround)
-    // otherwise bypasses the in-process worker path these tests exercise.
-    // See wisdom ws-tZ5z5I on fixTemporalWorkerBundleFailure.
-    vi.stubEnv("ADV_DISABLE_TEMPORAL", "");
-    vi.stubEnv("ADV_ALLOW_DEGRADED_FALLBACK", "");
   });
 
   it("registerShutdownHandlers drains the in-process Temporal worker on handleExit", async () => {

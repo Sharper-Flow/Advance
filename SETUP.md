@@ -57,7 +57,7 @@ temporal server start-dev
 
 Configure via environment variables (see `plugin/.env.example` — Bun hosts
 should review the **Bun out-of-process Temporal worker** section for
-`ADV_NODE_PATH` and the `ADV_ALLOW_DEGRADED_FALLBACK` escape hatch):
+`ADV_NODE_PATH`):
 
 | Variable                    | Default          | Purpose                                                  |
 | --------------------------- | ---------------- | -------------------------------------------------------- |
@@ -114,10 +114,8 @@ or set ADV_NODE_PATH."
    ```
 4. Restart opencode.
 
-If Node is genuinely unavailable and you need a working session immediately,
-set `ADV_ALLOW_DEGRADED_FALLBACK=1` to run on the file-backed store. This is
-a dev-only escape hatch — Temporal workflows, migrations, and cross-session
-workflow state are unavailable in this mode.
+If Node is genuinely unavailable, install Node (v20+) following the steps
+above. ADV is Temporal-only at runtime — there is no file-backed fallback.
 
 #### Health metric: `worker_process_alive`
 
@@ -137,9 +135,9 @@ Typical outcomes:
   cannot be restarted (exponential-backoff exhausted). Follow the Node-install
   steps above and restart opencode. Check the debug log at
   `$OPEN_CHAD_CACHE_DIR/adv-debug.log` for the crash reason.
-- **`false` / `false`** — no worker registered (file-backed degraded mode or
-  `ADV_DISABLE_TEMPORAL=1`). Temporal workflows are not running; this is
-  expected only in dev/test environments.
+- **`false` / `false`** — no worker registered (init failure or Temporal
+  not yet started). Temporal workflows are not running; check init logs at
+  `$OPEN_CHAD_CACHE_DIR/adv-debug.log` for the failure reason.
 
 > The OOP worker uses exponential backoff (1s / 3s / 10s, max 3 attempts)
 > before marking the queue dead.
