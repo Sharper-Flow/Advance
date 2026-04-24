@@ -129,6 +129,7 @@ export interface ProjectPaths {
   db: string;
   wisdom: string;
   agenda: string;
+  projectMetadata: string;
 
   /** External root directory, or null when using legacy in-repo paths */
   external: string | null;
@@ -164,6 +165,7 @@ export function getProjectPaths(
       db: join(ext, dbDir),
       wisdom: join(ext, "wisdom.jsonl"),
       agenda: join(ext, "agenda.jsonl"),
+      projectMetadata: join(ext, "project-metadata.json"),
       external: ext,
     };
   }
@@ -179,6 +181,7 @@ export function getProjectPaths(
     db: join(root, config?.db_dir ?? ".adv/db"),
     wisdom: join(root, ".adv/wisdom.jsonl"),
     agenda: join(root, ".adv/agenda.jsonl"),
+    projectMetadata: join(root, ".adv/project-metadata.json"),
     external: null,
   };
 }

@@ -31,6 +31,7 @@ import { testTools } from "./tools/test";
 import { investmentTools } from "./tools/investment";
 import { temporalOpsTools } from "./tools/temporal-ops";
 import { checkpointTools } from "./tools/checkpoint";
+import { projectMetadataTools } from "./tools/project-metadata";
 type ToolArgsSchema = Record<string, z.ZodTypeAny>;
 type ToolExecute<TArgs> = (
   args: TArgs,
@@ -305,6 +306,13 @@ export function createToolMap(
       agendaPath,
     ),
 
+    // Project Metadata Tool
+    adv_project_metadata: bindTool(
+      projectMetadataTools.adv_project_metadata,
+      "adv_project_metadata",
+      store,
+    ),
+
     // Project Tools
     adv_project_context: bindTool(
       projectTools.adv_project_context,
@@ -416,6 +424,7 @@ export const ADV_TOOL_NAMES: readonly string[] = [
   "adv_agenda_prioritize",
   "adv_agenda_evidence",
   "adv_project_context",
+  "adv_project_metadata",
   "adv_gate_status",
   "adv_gate_complete",
   "adv_run_test",
