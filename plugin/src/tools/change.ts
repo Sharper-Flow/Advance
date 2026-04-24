@@ -18,7 +18,7 @@ import {
   type ClarifyFindingSnapshot,
 } from "../types";
 import type { Store } from "../storage/store";
-import { createStore } from "../storage/store";
+import { createLegacyStore } from "../storage/store-legacy";
 import { getReflection } from "../storage/reflection";
 import { getProjectId, getExternalRoot } from "../utils/project-id";
 import { validateChange } from "../validator";
@@ -373,7 +373,10 @@ async function createCrossProjectFollowUp({
 
   let targetStore: Store;
   try {
-    targetStore = await createStore(target_path, {
+    // Cross-repo change creation uses the legacy store directly as a
+    // non-runtime filesystem utility. Temporal runtime is not initialized
+    // for external repos in this tool path.
+    targetStore = await createLegacyStore(target_path, {
       externalRoot: targetExternalRoot,
     });
     await targetStore.init();

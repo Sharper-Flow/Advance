@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+
+#### Legacy Runtime Fallback — Temporal-Only Cutover
+
+ADV is now **Temporal-only** at runtime. The legacy JSON+SQLite backend remains as a non-runtime filesystem utility for tests, cross-repo operations, and migration/repair tools, but it is no longer a runtime fallback.
+
+- **`createStore` requires `temporalBundle`** — `plugin/src/storage/store.ts` now throws if `temporalBundle` is not provided. The previous legacy-first construction and optional Temporal overlay behavior is removed.
+- **Removed `ADV_DISABLE_TEMPORAL`** — The `ADV_DISABLE_TEMPORAL=1` environment flag is no longer recognized. Setting it has no effect.
+- **Removed `ADV_ALLOW_DEGRADED_FALLBACK`** — The `ADV_ALLOW_DEGRADED_FALLBACK=1` environment flag and the associated file-backed store fallback path are removed. Temporal init failures now surface as `ADV_PLUGIN_INIT_FAILED` with diagnostic payloads instead of silently degrading.
+- **`plugin-init.ts` simplified** — Removed `initStoreWithoutTemporal`, fallback catch blocks, and degraded-fallback profile events. Worker startup failure is now a hard error.
+- **`store-temporal.ts` fallback removal** — Removed catch-block fallbacks to `legacy.*` for workflow-owned domains (changes, tasks, gates, wisdom). Temporal errors now propagate instead of silently falling back to the filesystem backend.
+- **Tests updated** — All test files that previously called `createStore` without a `temporalBundle` now use `createLegacyStore` directly, reflecting the non-runtime nature of the legacy backend in test contexts.
+
 ## [0.8.1] - 2026-04-23
 
 ### Added

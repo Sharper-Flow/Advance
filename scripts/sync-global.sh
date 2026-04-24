@@ -61,6 +61,7 @@ done
 # ---------------------------------------------------------------------------
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SCRIPT_REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+INVOKE_CWD="$(pwd)"
 
 resolve_canonical_repo_root() {
   local candidate="$1"
@@ -90,9 +91,16 @@ resolve_canonical_repo_root() {
 }
 
 REPO_ROOT="$(resolve_canonical_repo_root "$SCRIPT_REPO_ROOT")"
-REPO_COMMANDS="$REPO_ROOT/.opencode/command"
-REPO_AGENTS="$REPO_ROOT/.opencode/agents"
-REPO_OVERLAYS="$REPO_ROOT/.opencode/overlays"
+# Asset sources must come from the script's actual checkout/worktree, not the
+# canonical primary worktree. Otherwise worktree-local edits (or restored files)
+# are invisible during sync/test runs.
+ASSET_ROOT="$SCRIPT_REPO_ROOT"
+if [ -f "$INVOKE_CWD/.opencode/agents/adv.md" ]; then
+  ASSET_ROOT="$INVOKE_CWD"
+fi
+REPO_COMMANDS="$ASSET_ROOT/.opencode/command"
+REPO_AGENTS="$ASSET_ROOT/.opencode/agents"
+REPO_OVERLAYS="$ASSET_ROOT/.opencode/overlays"
 REPO_SKILLS="$REPO_ROOT/skills"
 GLOBAL_COMMANDS="$HOME/.config/opencode/command"
 GLOBAL_AGENTS="$HOME/.config/opencode/agents"
@@ -343,6 +351,25 @@ generate_provider_variants() {
     local tmp_variant
     tmp_variant="$(mktemp)"
     sed -E "s/^(name:[[:space:]]*).*/\1adv-${provider}/" "$canonical" > "$tmp_variant"
+    if ! grep -q '^name:[[:space:]]*' "$tmp_variant"; then
+      python - <<'PY' "$tmp_variant" "adv-${provider}"
+from pathlib import Path
+import sys
+
+path = Path(sys.argv[1])
+name = sys.argv[2]
+text = path.read_text()
+if text.startswith('---\n'):
+    end = text.find('\n---', 4)
+    if end != -1:
+        frontmatter = text[4:end]
+        body = text[end + 4:]
+        if frontmatter and not frontmatter.endswith('\n'):
+            frontmatter += '\n'
+        text = f"---\nname: {name}\n{frontmatter}---{body}"
+path.write_text(text)
+PY
+    fi
     if [ -n "$provider_color" ]; then
       sed -Ei "s/^(color:[[:space:]]*).*/\1\"$provider_color\"/" "$tmp_variant"
     fi
@@ -886,6 +913,26 @@ if [ -d "$REPO_AGENTS" ]; then
     ((agents_copied++)) || true
   done
 fi
+
+# If adv.md was not copied from the resolved asset directory, try to source it
+# from the invoking checkout's git HEAD. This covers worktree/symlink cases
+# where the script file resolves outside the active checkout but the current
+# branch still tracks adv.md.
+if [ ! -f "$GLOBAL_AGENTS/adv.md" ]; then
+  if git -C "$INVOKE_CWD" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    if git -C "$INVOKE_CWD" show HEAD:.opencode/agents/adv.md >/tmp/adv_sync_advmd.$$ 2>/dev/null; then
+      if [ "$DRY_RUN" = true ]; then
+        echo "    dry-run bootstrap agent from git HEAD: adv.md"
+        rm -f /tmp/adv_sync_advmd.$$
+      else
+        cp /tmp/adv_sync_advmd.$$ "$GLOBAL_AGENTS/adv.md"
+        rm -f /tmp/adv_sync_advmd.$$
+        echo "    bootstrapped agent from git HEAD: adv.md"
+        ((agents_copied++)) || true
+      fi
+    fi
+  fi
+fi
 echo "    $agents_copied agent(s) synced"
 
 # Generate provider ADV variants from canonical adv.md
@@ -956,26 +1003,12 @@ if [ -f "$GLOBAL_AGENTS/adv.md" ]; then
 fi
 
 # ---------------------------------------------------------------------------
-# Repo-local adv.md removal (gated, same condition as global removal)
+# Keep repo-local adv.md in-tree.
 #
-# When provider variants are configured, the repo-local .opencode/agents/adv.md
-# still surfaces the generic adv agent in OpenCode. Remove it so only provider
-# variants are selectable. Combined with agent.adv.disable: true in config,
-# this ensures the generic adv is fully hidden.
+# Visibility of the generic adv agent is handled by agent.adv.disable in
+# opencode.json. Do not delete the repo-local file: asset tests, sync
+# bootstrapping, and repo-local inspection expect it to exist.
 # ---------------------------------------------------------------------------
-REPO_LOCAL_ADV="$REPO_AGENTS/adv.md"
-if [ -f "$REPO_LOCAL_ADV" ]; then
-  if provider_adv_configured_in_json; then
-    if [ "$DRY_RUN" = true ]; then
-      echo "    dry-run remove repo-local adv.md (gated: agent.adv-* keys found in opencode.json)"
-    else
-      rm "$REPO_LOCAL_ADV"
-      echo "    removed repo-local adv.md (gated: agent.adv-* keys found in opencode.json)"
-    fi
-  else
-    echo "    kept repo-local adv.md (no agent.adv-* keys in opencode.json — migration not triggered)"
-  fi
-fi
 
 # ---------------------------------------------------------------------------
 # 6. Sync ADV skills from skills/ to global

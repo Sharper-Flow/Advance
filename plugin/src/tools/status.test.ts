@@ -9,7 +9,7 @@ import { Database } from "bun:sqlite";
 import { rm } from "fs/promises";
 import { join } from "path";
 import { statusTools } from "./status";
-import { createStore, type Store } from "../storage/store";
+import { createLegacyStore, type Store } from "../storage/store";
 import * as jsonStorage from "../storage/json";
 import {
   createTempDir,
@@ -24,17 +24,15 @@ describe("Status Tools", () => {
   let store: Store;
 
   beforeEach(async () => {
-    vi.stubEnv("ADV_DISABLE_TEMPORAL", "");
     tempDir = await createTempDir();
     await createTestProject(tempDir);
-    store = await createStore(tempDir);
+    store = await createLegacyStore(tempDir);
   });
 
   afterEach(async () => {
     store.close();
     await cleanupTempDir(tempDir);
     vi.restoreAllMocks();
-    vi.unstubAllEnvs();
   });
 
   describe("adv_status", () => {
@@ -154,7 +152,7 @@ describe("Status Tools", () => {
         withSpecs: false,
         withChanges: false,
       });
-      const emptyStore = await createStore(emptyDir);
+      const emptyStore = await createLegacyStore(emptyDir);
 
       const result = await statusTools.adv_status.execute({}, emptyStore);
       const parsed = parseToolOutput(result);
@@ -247,7 +245,7 @@ describe("Status Tools", () => {
         withChanges: false,
         withConfig: false,
       });
-      const noConfigStore = await createStore(noConfigDir);
+      const noConfigStore = await createLegacyStore(noConfigDir);
 
       const result = await statusTools.adv_status.execute({}, noConfigStore);
       const parsed = parseToolOutput(result);

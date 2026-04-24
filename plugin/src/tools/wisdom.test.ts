@@ -8,7 +8,7 @@ import { writeFile } from "fs/promises";
 import { describe, test, expect, beforeEach, afterEach } from "vitest";
 import { join } from "path";
 import { wisdomTools } from "./wisdom";
-import { createStore, type Store } from "../storage/store";
+import { createLegacyStore, type Store } from "../storage/store";
 import { createSQLiteStore, type SQLiteStore } from "../storage/sqlite";
 import { initDatabase } from "../storage/health";
 import { listProjectWisdom, addProjectWisdom } from "../storage/project-wisdom";
@@ -25,7 +25,7 @@ describe("Wisdom Tools", () => {
   beforeEach(async () => {
     tempDir = await createTempDir();
     await createTestProject(tempDir);
-    store = await createStore(tempDir);
+    store = await createLegacyStore(tempDir);
   });
 
   afterEach(async () => {
@@ -351,7 +351,7 @@ describe("Wisdom dedup + search + listAll (tk-Xxq9fNqw)", () => {
   beforeEach(async () => {
     tempDir = await createTempDir();
     await createTestProject(tempDir);
-    store = await createStore(tempDir);
+    store = await createLegacyStore(tempDir);
     // Open a second handle on the same DB for direct test seeding
     const dbPath = join(tempDir, ".adv", "db", "spec.db");
     rawSqlite = createSQLiteStore(dbPath);
@@ -575,7 +575,7 @@ describe("adv_wisdom_list tool expansion (tk-jmKscoDU)", () => {
   beforeEach(async () => {
     tempDir = await createTempDir();
     await createTestProject(tempDir);
-    store = await createStore(tempDir);
+    store = await createLegacyStore(tempDir);
     const dbPath = join(tempDir, ".adv", "db", "spec.db");
     rawDb = createSQLiteStore(dbPath);
     initDatabase(rawDb.db);

@@ -14,7 +14,7 @@ import {
   type ContextSnapshotInput,
   type CrossRepoSwitchInput,
 } from "./context-snapshot";
-import { createStore, type Store } from "../storage/store";
+import { createLegacyStore, type Store } from "../storage/store";
 import {
   createTempDir,
   cleanupTempDir,
@@ -256,7 +256,7 @@ describe("fetchChangeContextSnapshot", () => {
   beforeEach(async () => {
     tempDir = await createTempDir();
     await createTestProject(tempDir);
-    store = await createStore(tempDir);
+    store = await createLegacyStore(tempDir);
   });
 
   afterEach(async () => {

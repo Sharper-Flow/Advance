@@ -1,16 +1,14 @@
 /**
- * Store — Backend Selector Tests
+ * Store — Legacy Backend Tests
  *
- * Exercises createStore selection logic (legacy default, Temporal overlay
- * when temporalBundle is supplied) and the wider legacy lifecycle surface
- * via the composed backend.
+ * Exercises the legacy JSON+SQLite backend via createLegacyStore.
+ * createStore (Temporal-only) is tested in store-selector.test.ts.
  */
 
 import { describe, test, expect, beforeEach, afterEach } from "vitest";
 import { join } from "path";
 import { access, readFile, writeFile } from "fs/promises";
 import {
-  createStore,
   createLegacyStore,
   classifyRecency,
   computeLastActivity,
@@ -36,7 +34,7 @@ describe("Store", () => {
   beforeEach(async () => {
     tempDir = await createTempDir();
     await createTestProject(tempDir);
-    store = await createStore(tempDir);
+    store = await createLegacyStore(tempDir);
   });
 
   afterEach(async () => {
@@ -45,66 +43,14 @@ describe("Store", () => {
   });
 
   describe("lifecycle", () => {
-    test("createStore initializes with project paths", async () => {
+    test("createLegacyStore initializes with project paths", async () => {
       expect(store.paths.root).toBe(tempDir);
       expect(store.paths.specs).toBe(join(tempDir, ".adv/specs"));
     });
 
-    test("createLegacyStore exposes the explicit JSON+SQLite fallback backend", async () => {
-      const legacyStore = await createLegacyStore(tempDir);
-      expect(legacyStore.paths.root).toBe(tempDir);
-      expect(legacyStore.paths.specs).toBe(join(tempDir, ".adv/specs"));
-      legacyStore.close();
-    });
-
-    test("createStore wraps the legacy store with a Temporal adapter when a temporal bundle is provided", async () => {
-      const fakeHandle = {
-        query: async () => ({
-          projectId: "proj1",
-          changeId: "addFeature",
-          title: "Temporal-backed title",
-          initializedAt: "2026-04-18T00:00:00.000Z",
-          id: "addFeature",
-          status: "draft",
-          createdAt: "2026-04-18T00:00:00.000Z",
-          tasks: [],
-          wisdom: [],
-          gates: {
-            proposal: { status: "pending" },
-            discovery: { status: "pending" },
-            design: { status: "pending" },
-            planning: { status: "pending" },
-            execution: { status: "pending" },
-            acceptance: { status: "pending" },
-            release: { status: "pending" },
-          },
-          reentry_history: [],
-          artifacts: {},
-        }),
-        executeUpdate: async () => null,
-      };
-
-      const temporalStore = await createStore(tempDir, {
-        temporalBundle: {
-          client: {
-            workflow: {
-              getHandle: () => fakeHandle,
-            },
-          },
-        } as any,
-        projectIdOverride: "proj1",
-      });
-
-      const result = await temporalStore.changes.get("addFeature");
-      expect(result.success).toBe(true);
-      expect(result.data?.title).toBe("Temporal-backed title");
-
-      temporalStore.close();
-    });
-
     test("init creates directory structure", async () => {
       const emptyDir = await createTempDir();
-      const newStore = await createStore(emptyDir);
+      const newStore = await createLegacyStore(emptyDir);
       await newStore.init();
 
       // Check if project.json exists
@@ -1235,7 +1181,7 @@ describe("wisdom SQLite sync (tk-rD2wRJMK)", () => {
   beforeEach(async () => {
     tempDir = await createTempDir();
     await createTestProject(tempDir);
-    store = await createStore(tempDir);
+    store = await createLegacyStore(tempDir);
     const dbPath = join(tempDir, ".adv", "db", "spec.db");
     rawDb = createSQLiteStore(dbPath);
     initDatabase(rawDb.db);

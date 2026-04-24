@@ -1,11 +1,6 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { createTemporalStoreBackend } from "./store-temporal";
 import type { Store } from "./store-types";
-import {
-  resetTemporalFallbackTelemetry,
-  getTemporalFallbackTelemetry,
-} from "../temporal/fallback-telemetry";
-import { createLogger } from "../utils/debug-log";
 
 vi.mock("../utils/debug-log", () => ({
   createLogger: vi.fn(() => ({
@@ -16,16 +11,6 @@ vi.mock("../utils/debug-log", () => ({
   })),
   appendDebugLog: vi.fn(),
 }));
-
-// store-temporal.ts calls createLogger("store-temporal") at module load.
-// Multiple modules may also call createLogger; find the store-temporal one.
-const mockCreateLogger = createLogger as unknown as ReturnType<typeof vi.fn>;
-const storeTemporalLoggerResult = mockCreateLogger.mock.results.find(
-  (_: any, i: number) => mockCreateLogger.mock.calls[i][0] === "store-temporal",
-);
-const mockLogger = storeTemporalLoggerResult?.value as {
-  info: ReturnType<typeof vi.fn>;
-};
 
 /**
  * Creates a minimal project workflow handle mock for tests.
@@ -122,6 +107,7 @@ function makeLegacyStore(): Store {
 
 describe("Temporal store backend adapter", () => {
   it("overrides temporal-backed namespaces while preserving legacy specs/create", async () => {
+    const wisdomEntries: any[] = [];
     const changeHandle = {
       query: vi.fn(async (queryDef: any, ..._args: any[]) => {
         const name = queryDef?.name ?? queryDef;
@@ -144,7 +130,7 @@ describe("Temporal store backend adapter", () => {
                 tdd_phase: "none",
               },
             ],
-            wisdom: [],
+            wisdom: wisdomEntries,
             gates: {
               proposal: { status: "pending" },
               discovery: { status: "pending" },
@@ -171,7 +157,19 @@ describe("Temporal store backend adapter", () => {
         }
         return null;
       }),
-      executeUpdate: vi.fn(async () => null),
+      executeUpdate: vi.fn(async (_def: any, options?: { args?: any[] }) => {
+        const args = options?.args ?? [];
+        if (args[0] === "pattern" && args[1] === "keep it deterministic") {
+          wisdomEntries.push({
+            id: "ws-1",
+            type: "pattern",
+            content: "keep it deterministic",
+            source_task: undefined,
+            recorded_at: "2026-04-18T00:00:01.000Z",
+          });
+        }
+        return null;
+      }),
       signal: vi.fn(async () => {}),
     };
 
@@ -477,7 +475,7 @@ describe("Temporal store backend adapter", () => {
     expect(legacy.changes.get).not.toHaveBeenCalled();
   });
 
-  it("does not retry fallback-safe errors; falls back directly to legacy", async () => {
+  it("does not retry fallback-safe errors; throws instead of falling back", async () => {
     const changeHandle = {
       query: vi.fn(async () => {
         throw new Error("Workflow execution not found");
@@ -501,10 +499,12 @@ describe("Temporal store backend adapter", () => {
       projectId: "proj1",
     });
 
-    await adapted.changes.get("chg-fallback");
+    await expect(adapted.changes.get("chg-fallback")).rejects.toThrow(
+      "Workflow execution not found",
+    );
 
     expect(changeHandle.query).toHaveBeenCalledTimes(1);
-    expect(legacy.changes.get).toHaveBeenCalledTimes(1);
+    expect(legacy.changes.get).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -512,37 +512,39 @@ describe("Temporal store backend adapter", () => {
     "Workflow not found",
     "NOT_FOUND",
     "some grpc not_found detail",
-  ])("falls back to legacy on Temporal message variant: %s", async (msg) => {
-    const changeHandle = {
-      query: vi.fn(async () => {
-        throw new Error(msg);
-      }),
-      executeUpdate: vi.fn(async () => null),
-      signal: vi.fn(async () => {}),
-    };
+  ])(
+    "throws on Temporal not-found error instead of falling back: %s",
+    async (msg) => {
+      const changeHandle = {
+        query: vi.fn(async () => {
+          throw new Error(msg);
+        }),
+        executeUpdate: vi.fn(async () => null),
+        signal: vi.fn(async () => {}),
+      };
 
-    const bundle = {
-      client: {
-        workflow: {
-          getHandle: routeHandle(changeHandle),
+      const bundle = {
+        client: {
+          workflow: {
+            getHandle: routeHandle(changeHandle),
+          },
         },
-      },
-    };
+      };
 
-    const legacy = makeLegacyStore();
-    const adapted = createTemporalStoreBackend({
-      legacy,
-      temporal: bundle as any,
-      projectId: "proj1",
-    });
+      const legacy = makeLegacyStore();
+      const adapted = createTemporalStoreBackend({
+        legacy,
+        temporal: bundle as any,
+        projectId: "proj1",
+      });
 
-    await adapted.changes.get("chg-variant");
-
-    expect(legacy.changes.get).toHaveBeenCalledTimes(1);
-  });
+      await expect(adapted.changes.get("chg-variant")).rejects.toThrow(msg);
+      expect(legacy.changes.get).not.toHaveBeenCalled();
+    },
+  );
 
   describe("closeBatch", () => {
-    it("falls back to legacy close per-item when Temporal workflows are not found", async () => {
+    it("propagates Temporal errors without falling back to legacy", async () => {
       const changeHandle = {
         query: vi.fn(async () => {
           throw new Error("Workflow execution not found");
@@ -582,16 +584,16 @@ describe("Temporal store backend adapter", () => {
         projectId: "proj1",
       });
 
-      const result = await adapted.changes.closeBatch(["chg-a", "chg-b"], {
-        reason: "not_planned",
-        approved_by_user: true,
-        approved_at: "2026-04-21T00:00:00Z",
-        approval_evidence: "ok",
-      });
+      await expect(
+        adapted.changes.closeBatch(["chg-a", "chg-b"], {
+          reason: "not_planned",
+          approved_by_user: true,
+          approved_at: "2026-04-21T00:00:00Z",
+          approval_evidence: "ok",
+        }),
+      ).rejects.toThrow("Workflow execution not found");
 
-      expect(result.success).toBe(true);
-      expect(result.closed).toBe(2);
-      expect(legacy.changes.close).toHaveBeenCalledTimes(2);
+      expect(legacy.changes.close).not.toHaveBeenCalled();
     });
 
     it("pre-validates and fail-alls via Temporal query when workflows exist", async () => {
@@ -648,127 +650,6 @@ describe("Temporal store backend adapter", () => {
       expect(result.success).toBe(true);
       expect(result.closed).toBe(1);
       expect(changeHandle.executeUpdate).toHaveBeenCalledTimes(1);
-    });
-  });
-
-  describe("fallback observability", () => {
-    beforeEach(() => {
-      resetTemporalFallbackTelemetry();
-      mockLogger?.info.mockClear();
-    });
-
-    it("logs structured fallback data when Temporal returns not-found error", async () => {
-      const changeHandle = {
-        query: vi.fn(async () => {
-          throw new Error("NOT_FOUND: workflow not found");
-        }),
-        executeUpdate: vi.fn(async () => null),
-        signal: vi.fn(async () => {}),
-      };
-
-      const bundle = {
-        client: {
-          workflow: {
-            getHandle: routeHandle(changeHandle),
-          },
-        },
-      };
-
-      const legacy = makeLegacyStore();
-      const adapted = createTemporalStoreBackend({
-        legacy,
-        temporal: bundle as any,
-        projectId: "proj1",
-      });
-
-      await adapted.changes.get("chg-fallback-log");
-
-      expect(mockLogger.info).toHaveBeenCalledTimes(1);
-      expect(mockLogger.info).toHaveBeenCalledWith("temporal fallback", {
-        domain: "changes",
-        operation: "get",
-        changeId: "chg-fallback-log",
-        error: "NOT_FOUND: workflow not found",
-        fallback: true,
-      });
-    });
-
-    it("increments fallback counter for correct domain", async () => {
-      const changeHandle = {
-        query: vi.fn(async () => {
-          throw new Error("Workflow execution not found");
-        }),
-        executeUpdate: vi.fn(async () => null),
-        signal: vi.fn(async () => {}),
-      };
-
-      const bundle = {
-        client: {
-          workflow: {
-            getHandle: routeHandle(changeHandle),
-          },
-        },
-      };
-
-      const legacy = makeLegacyStore();
-      const adapted = createTemporalStoreBackend({
-        legacy,
-        temporal: bundle as any,
-        projectId: "proj1",
-      });
-
-      expect(getTemporalFallbackTelemetry().changes).toBe(0);
-      await adapted.changes.get("chg-counter");
-      expect(getTemporalFallbackTelemetry().changes).toBe(1);
-    });
-
-    it("does not log or increment counter on successful Temporal calls", async () => {
-      const changeHandle = {
-        query: vi.fn(async () => ({
-          projectId: "proj1",
-          changeId: "chg-ok",
-          title: "OK",
-          initializedAt: "2026-04-18T00:00:00.000Z",
-          id: "chg-ok",
-          status: "draft",
-          createdAt: "2026-04-18T00:00:00.000Z",
-          tasks: [],
-          wisdom: [],
-          gates: {
-            proposal: { status: "pending" },
-            discovery: { status: "pending" },
-            design: { status: "pending" },
-            planning: { status: "pending" },
-            execution: { status: "pending" },
-            acceptance: { status: "pending" },
-            release: { status: "pending" },
-          },
-          reentry_history: [],
-          artifacts: {},
-        })),
-        executeUpdate: vi.fn(async () => null),
-        signal: vi.fn(async () => {}),
-      };
-
-      const bundle = {
-        client: {
-          workflow: {
-            getHandle: routeHandle(changeHandle),
-          },
-        },
-      };
-
-      const legacy = makeLegacyStore();
-      const adapted = createTemporalStoreBackend({
-        legacy,
-        temporal: bundle as any,
-        projectId: "proj1",
-      });
-
-      await adapted.changes.get("chg-ok");
-
-      expect(mockLogger.info).not.toHaveBeenCalled();
-      expect(getTemporalFallbackTelemetry().changes).toBe(0);
     });
   });
 });

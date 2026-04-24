@@ -219,19 +219,12 @@ decision record.
 
 Environment variables (see `plugin/.env.example`):
 
-| Variable                                  | Default          | Purpose                                                                                                                                                                                                                              |
-| ----------------------------------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `ADV_TEMPORAL_ADDRESS`                    | `127.0.0.1:7233` | Temporal frontend address. Non-loopback requires opt-in.                                                                                                                                                                             |
-| `ADV_TEMPORAL_NAMESPACE`                  | `default`        | Temporal namespace (regex-validated).                                                                                                                                                                                                |
-| `ADV_TEMPORAL_ALLOW_REMOTE`               | unset            | Set to `true` to permit non-loopback addresses.                                                                                                                                                                                      |
-| `ADV_DISABLE_TEMPORAL`                    | unset            | Set to `1` to skip the Temporal bootstrap entirely and run on the file-backed test harness path. Intended for local dev/tests; users with broken Temporal deployments typically want `ADV_ALLOW_DEGRADED_FALLBACK=1` instead.        |
-| `ADV_ALLOW_DEGRADED_FALLBACK`<sup>†</sup> | unset            | Set to `1` to silently fall back to the file-backed store when Temporal init fails (e.g., Bun host + no Node available). Without the flag, init failures produce `ADV_PLUGIN_INIT_FAILED` stubs.                                     |
+| Variable                                  | Default          | Purpose                                                                                                                                                                                                                     |
+| ----------------------------------------- | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ADV_TEMPORAL_ADDRESS`                    | `127.0.0.1:7233` | Temporal frontend address. Non-loopback requires opt-in.                                                                                                                                                                    |
+| `ADV_TEMPORAL_NAMESPACE`                  | `default`        | Temporal namespace (regex-validated).                                                                                                                                                                                       |
+| `ADV_TEMPORAL_ALLOW_REMOTE`               | unset            | Set to `true` to permit non-loopback addresses.                                                                                                                                                                             |
 | `ADV_NODE_PATH`                           | unset            | **REQUIRED on Bun hosts when Node is not on `PATH`.** Absolute path to a Node v20+ executable. Used by the out-of-process worker when spawning the Node child. On Node hosts, this variable is optional (defaults to `PATH` lookup). |
-
-<sup>†</sup> `ADV_ALLOW_DEGRADED_FALLBACK` is deprecated-by-design: the flag is a
-temporary escape hatch for deployments where the out-of-process worker cannot
-run, and will be removed once every supported deployment has a working OOP
-worker path.
 
 Activation path:
 
@@ -244,11 +237,10 @@ const store = await createStore(projectDir, {
 });
 ```
 
-`createStore()` remains parameterized for tests and explicit callers. The
-production path is Temporal-backed state; the file-backed JSON+SQLite backend
-is retained as a **dedicated test/dev harness** (selected when no Temporal
-bundle is provided, or when `ADV_DISABLE_TEMPORAL=1` is set). It is not a
-production runtime option.
+`createStore()` requires a `temporalBundle` — the runtime is Temporal-only. The
+file-backed JSON+SQLite backend (`createLegacyStore`) is retained as a
+**non-runtime utility** for tests, cross-repo operations, and migration/repair
+tools. It is not a runtime fallback.
 
 ## What lives in this repo
 

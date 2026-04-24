@@ -1,14 +1,12 @@
 /**
- * Store — Backend Selector / Composition Root
+ * Store — Temporal-Only Backend Selector / Composition Root
  *
- * Thin selector that decides which store backend to use:
- *   1. Builds the legacy JSON+SQLite backend via `createLegacyStore` as the
- *      dedicated file-backed test/dev harness.
- *   2. When a `temporalBundle` is supplied and a `projectId` can be resolved,
- *      returns the Temporal compatibility adapter from `store-temporal.ts`.
- *      After A1 bootstrap wiring, this is the default production path.
- *   3. If no Temporal bundle is available, returns the legacy backend as-is
- *      for test/dev or legacy callers that intentionally omit Temporal.
+ * Creates a Temporal-backed store. The legacy JSON+SQLite backend is
+ * constructed internally as the file-backed persistence layer, but the
+ * returned Store is always the Temporal adapter.
+ *
+ * Temporal-only runtime: `temporalBundle` is required. Callers that do
+ * not have a Temporal bundle must not call `createStore`.
  */
 
 import { getProjectId } from "../utils/project-id";
@@ -26,36 +24,44 @@ export {
 } from "./store-types";
 
 // Re-export the bounded corruption-recovery helper for test back-compat.
-// Production wiring lives in `store-legacy.ts`; tests import via this name.
 export { recoverCorruptedDatabase as _recoverCorruptedDatabase } from "./corruption-recovery";
 
 import type { Store } from "./store-types";
 
+export interface CreateStoreOptions {
+  externalRoot?: string;
+  temporalBundle: TemporalClientBundle;
+  projectIdOverride?: string;
+}
+
 export async function createStore(
   directory: string,
-  options?: {
-    externalRoot?: string;
-    temporalBundle?: TemporalClientBundle;
-    projectIdOverride?: string;
-  },
+  options: CreateStoreOptions,
 ): Promise<Store> {
-  const legacy = await createLegacyStore(directory, {
-    externalRoot: options?.externalRoot,
-  });
-
-  if (options?.temporalBundle) {
-    const projectId =
-      options.projectIdOverride ?? (await getProjectId(directory));
-    if (projectId) {
-      return createTemporalStoreBackend({
-        legacy,
-        temporal: options.temporalBundle,
-        projectId,
-      });
-    }
+  if (!options?.temporalBundle) {
+    throw new Error(
+      "temporalBundle is required — ADV runtime is Temporal-only. " +
+        "If you see this in tests, supply a mock temporalBundle.",
+    );
   }
 
-  return legacy;
+  const legacy = await createLegacyStore(directory, {
+    externalRoot: options.externalRoot,
+  });
+
+  const projectId =
+    options.projectIdOverride ?? (await getProjectId(directory));
+  if (!projectId) {
+    throw new Error(
+      "projectId could not be resolved — required for Temporal-backed store",
+    );
+  }
+
+  return createTemporalStoreBackend({
+    legacy,
+    temporal: options.temporalBundle,
+    projectId,
+  });
 }
 
 export { createLegacyStore } from "./store-legacy";

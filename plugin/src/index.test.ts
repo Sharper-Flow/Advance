@@ -5,7 +5,7 @@
  * These tests verify the plugin correctly implements the @opencode-ai/plugin interface.
  */
 
-import { describe, test, expect, beforeEach, afterEach } from "vitest";
+import { describe, test, expect, beforeEach, afterEach, vi } from "vitest";
 import {
   AdvancePlugin,
   extractCompletedTask,
@@ -20,6 +20,28 @@ import {
 } from "./__tests__/setup";
 import { addProjectWisdom } from "./storage/project-wisdom";
 import { ADV_TOOL_NAMES } from "./tool-registry";
+import { createLegacyStore } from "./storage/store-legacy";
+
+// Mock plugin-init to bypass Temporal requirement in integration tests.
+// Degraded-mode tests (malformed project.json) are preserved by checking
+// config validity before creating the store.
+vi.mock("./plugin-init", async () => {
+  const actual =
+    await vi.importActual<typeof import("./plugin-init")>("./plugin-init");
+  return {
+    ...actual,
+    tryInitStore: async (effectiveDir: string, externalRoot?: string) => {
+      try {
+        const store = await createLegacyStore(effectiveDir, { externalRoot });
+        await store.init();
+        return { store, initError: null };
+      } catch (e) {
+        const initError = e instanceof Error ? e : new Error(String(e));
+        return { store: null, initError };
+      }
+    },
+  };
+});
 
 // =============================================================================
 // Mock Plugin Input
@@ -1220,40 +1242,27 @@ describe("Plugin init: project.path fallback", () => {
 
   test("falls back to project.vcsDir when directory is not a git repo", async () => {
     // directory = tempDir (no git), project.vcsDir = gitDir (has git).
-    // This test asserts path resolution; disable Temporal bootstrap to keep
-    // runtime under the 5s default timeout — gitDir is a real git repo so
-    // getProjectId returns an ID, which would otherwise trigger
-    // ensureTemporalRuntime (worker bundle compile adds several seconds).
-    const prevDisable = process.env.ADV_DISABLE_TEMPORAL;
-    process.env.ADV_DISABLE_TEMPORAL = "1";
-    try {
-      const input: MockPluginInput = {
-        client: {},
-        project: {
-          id: "test-project",
-          worktree: gitDir,
-          vcsDir: gitDir,
-          time: { created: Date.now() },
-        },
-        directory: tempDir,
-        worktree: tempDir,
-        serverUrl: TEST_SERVER_URL,
-        $: {},
-      };
+    // Plugin-init is mocked to bypass Temporal, so no env manipulation needed.
+    const input: MockPluginInput = {
+      client: {},
+      project: {
+        id: "test-project",
+        worktree: gitDir,
+        vcsDir: gitDir,
+        time: { created: Date.now() },
+      },
+      directory: tempDir,
+      worktree: tempDir,
+      serverUrl: TEST_SERVER_URL,
+      $: {},
+    };
 
-      const hooks = await AdvancePlugin(input);
-      pluginInstances.push(hooks);
+    const hooks = await AdvancePlugin(input);
+    pluginInstances.push(hooks);
 
-      // Plugin should initialize without error and use gitDir's external state
-      expect(hooks).toHaveProperty("tool");
-      expect(hooks.tool).not.toBeNull();
-    } finally {
-      if (prevDisable === undefined) {
-        delete process.env.ADV_DISABLE_TEMPORAL;
-      } else {
-        process.env.ADV_DISABLE_TEMPORAL = prevDisable;
-      }
-    }
+    // Plugin should initialize without error and use gitDir's external state
+    expect(hooks).toHaveProperty("tool");
+    expect(hooks.tool).not.toBeNull();
   });
 
   test("initializes with legacy paths when neither directory nor project.vcsDir is a git repo", async () => {

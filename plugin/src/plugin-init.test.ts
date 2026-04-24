@@ -153,12 +153,6 @@ describe("plugin-init tryInitStore", () => {
     originalAdvProfile = process.env.ADV_PROFILE;
     originalCacheDir = process.env.OPEN_CHAD_CACHE_DIR;
     process.env.OPEN_CHAD_CACHE_DIR = profileDir;
-    // Strip ambient ADV env so tests are deterministic regardless of the
-    // developer's shell. ADV_DISABLE_TEMPORAL=1 (a common workaround for
-    // the Bun-worker issue) otherwise bypasses the Temporal bootstrap path
-    // these tests intend to exercise.
-    vi.stubEnv("ADV_DISABLE_TEMPORAL", "");
-    vi.stubEnv("ADV_ALLOW_DEGRADED_FALLBACK", "");
   });
 
   afterEach(() => {
@@ -263,63 +257,6 @@ describe("plugin-init tryInitStore", () => {
     }));
   });
 
-  it("falls back to file-backed store when ADV_ALLOW_DEGRADED_FALLBACK=1 and Temporal init fails", async () => {
-    mocks.getProjectId.mockResolvedValue("proj-sha");
-    mocks.ensureTemporalRuntime.mockImplementation(async () => {
-      throw new Error("Bun cannot run @temporalio/worker in-process");
-    });
-    vi.stubEnv("ADV_ALLOW_DEGRADED_FALLBACK", "1");
-
-    const { tryInitStore } = await import("./plugin-init");
-
-    const result = await tryInitStore("/tmp/repo", "/tmp/external");
-
-    // Fallback succeeded: store returned, no initError
-    expect(result.store).toBe(mocks.store);
-    expect(result.initError).toBeNull();
-    // createStore called WITHOUT temporalBundle (file-backed path)
-    expect(mocks.createStore).toHaveBeenCalledWith(
-      "/tmp/repo",
-      expect.objectContaining({
-        externalRoot: "/tmp/external",
-        projectIdOverride: "proj-sha",
-      }),
-    );
-    const call = mocks.createStore.mock.calls.at(-1)?.[1];
-    expect(call?.temporalBundle).toBeUndefined();
-
-    // Restore for subsequent tests
-    mocks.ensureTemporalRuntime.mockImplementation(async () => ({
-      address: "127.0.0.1:7233",
-      namespace: "default",
-      startedRuntime: true,
-    }));
-  });
-
-  it("returns initError when ADV_ALLOW_DEGRADED_FALLBACK is not set and Temporal init fails (existing behavior)", async () => {
-    mocks.getProjectId.mockResolvedValue("proj-sha");
-    mocks.ensureTemporalRuntime.mockImplementation(async () => {
-      throw new Error("Bun cannot run @temporalio/worker in-process");
-    });
-    // Flag explicitly empty — beforeEach already stubs this but assert the
-    // expectation explicitly to make the contract clear.
-    vi.stubEnv("ADV_ALLOW_DEGRADED_FALLBACK", "");
-
-    const { tryInitStore } = await import("./plugin-init");
-
-    const result = await tryInitStore("/tmp/repo", "/tmp/external");
-
-    expect(result.store).toBeNull();
-    expect(result.initError).toBeInstanceOf(Error);
-    expect(mocks.createStore).not.toHaveBeenCalled();
-
-    mocks.ensureTemporalRuntime.mockImplementation(async () => ({
-      address: "127.0.0.1:7233",
-      namespace: "default",
-      startedRuntime: true,
-    }));
-  });
-
   it("shuts down a created worker if later plugin init steps fail", async () => {
     mocks.getProjectId.mockResolvedValue("proj-sha");
     mocks.probeTemporalWorkerRuntime.mockReturnValue({
@@ -356,37 +293,11 @@ describe("plugin-init tryInitStore", () => {
     expect(content).toContain('"backend_mode":"temporal"');
     expect(content).toContain('"event":"try_init_store_complete"');
   });
-
-  it("writes degraded fallback profile events when ADV_PROFILE=1 and fallback is used", async () => {
-    process.env.ADV_PROFILE = "1";
-    mocks.getProjectId.mockResolvedValue("proj-sha");
-    mocks.ensureTemporalRuntime.mockImplementation(async () => {
-      throw new Error("Bun cannot run @temporalio/worker in-process");
-    });
-    vi.stubEnv("ADV_ALLOW_DEGRADED_FALLBACK", "1");
-
-    const { tryInitStore } = await import("./plugin-init");
-    const result = await tryInitStore("/tmp/repo", "/tmp/external");
-
-    expect(result.store).toBe(mocks.store);
-    expect(result.initError).toBeNull();
-    expect(existsSync(profileLogFile())).toBe(true);
-    const content = readFileSync(profileLogFile(), "utf-8");
-    expect(content).toContain('"event":"try_init_store_failed"');
-    expect(content).toContain('"degraded_fallback":true');
-    expect(content).toContain('"event":"degraded_fallback_started"');
-    expect(content).toContain('"event":"legacy_fallback_ready"');
-    expect(content).toContain('"backend_mode":"legacy"');
-    expect(content).toContain('"event":"try_init_store_complete"');
-    expect(content).toContain('"outcome":"success"');
-  });
 });
 
 describe("tryInitStore worker routing (Phase 2.3)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.stubEnv("ADV_DISABLE_TEMPORAL", "");
-    vi.stubEnv("ADV_ALLOW_DEGRADED_FALLBACK", "");
 
     // Default mocks: Node runtime with Node found on PATH.
     mocks.probeTemporalWorkerRuntime.mockReturnValue({
@@ -457,38 +368,11 @@ describe("tryInitStore worker routing (Phase 2.3)", () => {
     expect(mocks.createInProcessWorker).not.toHaveBeenCalled();
     expect(mocks.createOutOfProcessWorker).not.toHaveBeenCalled();
   });
-
-  it("falls back to file-backed when Bun AND no Node AND ADV_ALLOW_DEGRADED_FALLBACK=1", async () => {
-    mocks.getProjectId.mockResolvedValueOnce("proj-sha");
-    mocks.probeTemporalWorkerRuntime.mockReturnValueOnce({
-      supported: false,
-      runtime: "bun",
-      reason: "Bun cannot host worker",
-    });
-    mocks.resolveNodeExecutable.mockReturnValueOnce({
-      found: false,
-      source: "none",
-      remediation: "Install Node",
-    });
-    vi.stubEnv("ADV_ALLOW_DEGRADED_FALLBACK", "1");
-
-    const { tryInitStore } = await import("./plugin-init");
-    const result = await tryInitStore("/tmp/repo", "/tmp/external");
-
-    expect(result.store).toBe(mocks.store);
-    expect(result.initError).toBeNull();
-    const call = mocks.createStore.mock.calls.at(-1)?.[1];
-    expect(call?.temporalBundle).toBeUndefined();
-    expect(mocks.createInProcessWorker).not.toHaveBeenCalled();
-    expect(mocks.createOutOfProcessWorker).not.toHaveBeenCalled();
-  });
 });
 
 describe("rq-advshut1: bounded flush on shutdown after STSL changes", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.stubEnv("ADV_DISABLE_TEMPORAL", "");
-    vi.stubEnv("ADV_ALLOW_DEGRADED_FALLBACK", "");
   });
 
   it("calls store.flush → drainWorkers → store.close in order", async () => {
