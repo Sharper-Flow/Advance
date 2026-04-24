@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { statusTools } from "./status";
+import { getTemporalFallbackTelemetry } from "../temporal/fallback-telemetry";
 import { createStore, type Store } from "../storage/store";
 import {
   createTempDir,
@@ -16,6 +17,7 @@ const mocks = vi.hoisted(() => ({
     registered_queues: ["advance-proj123"],
     last_op_at: "2026-04-21T00:00:00.000Z",
     last_error: null,
+    fallback_counts: getTemporalFallbackTelemetry(),
     stale_queues: [],
   })),
   createTemporalClientBundle: vi.fn(async () => ({
@@ -93,6 +95,7 @@ describe("adv_status temporal health/migration status (C4)", () => {
       registered_queues: ["advance-proj123"],
       last_op_at: "2026-04-21T00:00:00.000Z",
       last_error: null,
+      fallback_counts: getTemporalFallbackTelemetry(),
       stale_queues: [],
     });
   });
@@ -128,6 +131,7 @@ describe("adv_status temporal health/migration status (C4)", () => {
       registered_queues: [],
       last_op_at: null,
       last_error: "boom",
+      fallback_counts: getTemporalFallbackTelemetry(),
       stale_queues: [],
     });
     expect(parsed.migration_status).toBeNull();
@@ -149,6 +153,7 @@ describe("adv_status temporal health/migration status (C4)", () => {
       registered_queues: [],
       last_op_at: null,
       last_error: null,
+      fallback_counts: getTemporalFallbackTelemetry(),
       stale_queues: [],
     });
     expect(parsed.migration_status).toBeNull();
@@ -162,6 +167,7 @@ describe("adv_status temporal health/migration status (C4)", () => {
       registered_queues: ["advance-proj123"],
       last_op_at: "2026-04-21T00:00:00.000Z",
       last_error: null,
+      fallback_counts: getTemporalFallbackTelemetry(),
       stale_queues: [
         { queue: "advance-target-proj", running_count: 42 },
       ],

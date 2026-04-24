@@ -241,9 +241,9 @@ async function dryRunBulkEnqueue(
         await ensureChangeWorkflowStarted(change, env.client, queue);
       }
       // Verify nothing leaked before teardown
-      const count = await env.client.workflow.count({
-        query: `TaskQueue="${queue}" AND ExecutionStatus="Running"`,
-      });
+      const count = await env.client.workflow.count(
+        `TaskQueue="${queue}" AND ExecutionStatus="Running"`,
+      );
       console.assert(count.count === changes.length, "All workflows started");
     },
   );

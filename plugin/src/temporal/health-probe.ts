@@ -76,12 +76,14 @@ export async function probeStaleQueues(
   let bundle;
   try {
     bundle = await createTemporalClientBundle();
-    const result = await bundle.client.workflow.count({ query });
+    const result = await bundle.client.workflow.count(query);
     if (result.count > 0) {
       return [{ queue, running_count: result.count }];
     }
     return [];
   } catch {
+    // Stale-queue detection is advisory only. Failure here must not break
+    // `adv_status`; callers already surface base Temporal health separately.
     return [];
   } finally {
     if (bundle) {
@@ -98,7 +100,8 @@ export async function getTemporalHealth(
       const address = getTemporalAddress(process.env);
       const reachable = await canReachTemporalAddress(address, 250);
       if (!reachable) return false;
-      // STSL owns the connection lifecycle; probe just checks if service is available
+      // The Temporal service layer owns the connection lifecycle here; this
+      // probe only checks whether the service is available.
       return getService() !== null;
     } catch {
       return false;

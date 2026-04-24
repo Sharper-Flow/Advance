@@ -16,6 +16,7 @@ import {
 import { canReachTemporalAddress } from "../temporal/runtime-manager";
 import { projectMigrationLedgerQuery } from "../temporal/messages";
 import { getTemporalHealth } from "../temporal/health-probe";
+import { getTemporalFallbackTelemetry } from "../temporal/fallback-telemetry";
 import { wrapWithBanner } from "../utils/banner";
 import { formatToolOutput } from "../utils/tool-output";
 import { formatStatusOutput } from "../utils/tool-formatters";
@@ -226,6 +227,7 @@ export const statusTools = {
           registered_queues: [],
           last_op_at: null,
           last_error: null,
+          fallback_counts: getTemporalFallbackTelemetry(),
           stale_queues: [],
         };
       } else {
@@ -239,15 +241,16 @@ export const statusTools = {
             registered_queues: [],
             last_op_at: null,
             last_error: err instanceof Error ? err.message : String(err),
+            fallback_counts: getTemporalFallbackTelemetry(),
             stale_queues: [],
           };
         }
       }
 
-      if (temporalHealth.stale_queues && temporalHealth.stale_queues.length > 0) {
+      if (temporalHealth.stale_queues.length > 0) {
         for (const sq of temporalHealth.stale_queues) {
           status.recommendations.push(
-            `⚠️ Stale Temporal queue \`${sq.queue}\` has ${sq.running_count} Running workflows older than 5 min with no local poller. See docs/temporal-recovery.md § "Stale workflows".`,
+            `⚠️ Stale Temporal queue \`${sq.queue}\` has ${sq.running_count} Running workflows older than 5 min with no local poller. See docs/temporal-recovery.md § "Stale adv/change/* and adv/project/* workflows".`,
           );
         }
       }
