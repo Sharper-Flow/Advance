@@ -2,20 +2,14 @@ import { basename } from "path";
 import { z } from "zod";
 import type { Store } from "../storage/store";
 import { restartCurrentProjectTemporalWorker } from "../plugin-init";
-import { loadAgenda } from "../storage/agenda";
-import { loadChange } from "../storage/json";
-import { AgendaItemSchema, WisdomTypeSchema } from "../types";
-import { writeJsonlAtomic } from "../storage/jsonl-atomic-writer";
-import { listProjectWisdom } from "../storage/project-wisdom";
-import { buildProjectWorkflowId } from "../temporal/client";
 import { getService } from "../temporal/service";
-import { projectAgendaQuery, projectWisdomQuery } from "../temporal/messages";
-import {
-  rebuildProjectWorkflowState,
-  reImportChangeState,
-} from "../temporal/migration";
+import { repairChangeActivity } from "../temporal/activities";
 import { formatToolOutput } from "../utils/tool-output";
 
+// P2.6: WorkflowClientLike / asWorkflowClientSurface / asProjectWorkflowHandle
+// were inlined into the tool body before the activity refactor. They're
+// preserved as no-op re-exports so tests that import them keep compiling
+// during the migration window.
 interface WorkflowHandleLike {
   query: (definition: unknown, ...args: unknown[]) => Promise<unknown>;
   executeUpdate: (
@@ -50,17 +44,6 @@ export function asProjectWorkflowHandle(
 ): ProjectWorkflowHandle {
   return handle as ProjectWorkflowHandle;
 }
-
-const RepairedProjectWisdomEntrySchema = z.object({
-  id: z.string(),
-  type: WisdomTypeSchema,
-  content: z.string().min(1).max(2000),
-  sourceChange: z.string().optional(),
-  sourceTask: z.string().optional(),
-  promotedAt: z.string(),
-  tags: z.array(z.string()).optional(),
-  invalidatedBy: z.string().optional(),
-});
 
 export const temporalOpsTools = {
   adv_temporal_worker_restart: {
@@ -109,22 +92,6 @@ export const temporalOpsTools = {
       }
 
       const projectId = basename(store.paths.external);
-      const changeResult = await loadChange(store.paths.changes, args.changeId);
-      if (!changeResult.success) {
-        return formatToolOutput({ error: changeResult.error });
-      }
-      if (!changeResult.data) {
-        return formatToolOutput({
-          error: `No legacy change snapshot found for ${args.changeId}`,
-        });
-      }
-
-      const agendaResult = await loadAgenda(store.paths.root, {
-        agendaPath: store.paths.agenda,
-      });
-      const projectWisdom = await listProjectWisdom(store.paths.root, {
-        wisdomPath: store.paths.wisdom,
-      });
 
       const bundle = getService();
       if (!bundle) {
@@ -134,80 +101,35 @@ export const temporalOpsTools = {
             "Temporal service layer not initialized — cannot repair workflow state",
         });
       }
-      // NOTE: bundle comes from getService() — the SHARED singleton used by
-      // every other ADV tool in this plugin process. We MUST NOT close its
-      // connection in a finally; doing so poisons the session for every
-      // subsequent tool call (adv_status, adv_change_show, etc) with
-      // "Unexpected error while making gRPC request" until the plugin is
-      // reloaded. The connection is owned by the service layer
-      // (plugin/src/temporal/service.ts) which closes it on shutdown.
-      const projectHandle = asProjectWorkflowHandle(
-        bundle.client.workflow.getHandle(buildProjectWorkflowId(projectId)),
-      );
 
-      await projectHandle
-        .terminate(
-          `adv_workflow_repair: rebuild project workflow from legacy snapshot (${args.approvalEvidence.trim()})`,
-        )
-        .catch(() => undefined);
-
-      await rebuildProjectWorkflowState(
-        asWorkflowClientSurface(bundle.client),
-        {
-          projectId,
-          initializedAt: new Date().toISOString(),
-          agenda: agendaResult.items,
-          projectWisdom: projectWisdom.map((entry) => ({
-            id: entry.id,
-            type: entry.type,
-            content: entry.content,
-            sourceChange: entry.source_change,
-            sourceTask: entry.source_task,
-            promotedAt: entry.promoted_at,
-            tags: entry.tags,
-            invalidatedBy: entry.invalidated_by,
-          })),
-          migrationLedger: [],
-        },
-      );
-
-      await reImportChangeState(asWorkflowClientSurface(bundle.client), {
-        projectId,
-        change: changeResult.data,
-      });
-
-      const repairedHandle = asProjectWorkflowHandle(
-        bundle.client.workflow.getHandle(buildProjectWorkflowId(projectId)),
-      );
-      const agenda = z
-        .array(AgendaItemSchema)
-        .parse(await repairedHandle.query(projectAgendaQuery, undefined));
-      const wisdom = z
-        .array(RepairedProjectWisdomEntrySchema)
-        .parse(await repairedHandle.query(projectWisdomQuery, undefined));
-
-      await writeJsonlAtomic(store.paths.agenda, agenda);
-      await writeJsonlAtomic(
-        store.paths.wisdom,
-        wisdom.map((entry) => {
-          return {
-            id: entry.id,
-            type: entry.type,
-            content: entry.content,
-            source_change: entry.sourceChange,
-            source_task: entry.sourceTask,
-            promoted_at: entry.promotedAt,
-            tags: entry.tags,
-            invalidated_by: entry.invalidatedBy,
-          };
-        }),
-      );
-
-      return formatToolOutput({
-        success: true,
+      // P2.6: All disk + workflow logic moved into `repairChangeActivity`
+      // (see `temporal/activities.ts`). Tool body is just argument
+      // validation + activity invocation. Critically, the activity does NOT
+      // close `bundle.connection` — the service-layer singleton owns that
+      // lifecycle (was the poison-pill of the pre-4aa420e bug).
+      const result = await repairChangeActivity({
         projectId,
         changeId: args.changeId,
-        message: `Repaired workflow state for ${args.changeId} in project ${projectId}`,
+        approvalEvidence: args.approvalEvidence,
+        paths: {
+          root: store.paths.root,
+          changes: store.paths.changes,
+          agenda: store.paths.agenda,
+          wisdom: store.paths.wisdom,
+        },
+        client: bundle.client as unknown as Parameters<
+          typeof repairChangeActivity
+        >[0]["client"],
+      });
+
+      if (!result.ok) {
+        return formatToolOutput({ error: result.error });
+      }
+      return formatToolOutput({
+        success: true,
+        projectId: result.projectId,
+        changeId: result.changeId,
+        message: result.message,
       });
     },
   },

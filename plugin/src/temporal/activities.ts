@@ -22,9 +22,17 @@
 
 import { mkdir, readFile, stat } from "fs/promises";
 import { join, normalize, isAbsolute, resolve, sep } from "path";
+import { z } from "zod";
 
-import { listSpecDirs } from "../storage/json";
+import { listSpecDirs, loadChange, type ProjectPaths } from "../storage/json";
 import { atomicWriteFile } from "../utils/fs";
+import { loadAgenda } from "../storage/agenda";
+import { listProjectWisdom } from "../storage/project-wisdom";
+import { writeJsonlAtomic } from "../storage/jsonl-atomic-writer";
+import { AgendaItemSchema, WisdomTypeSchema } from "../types";
+import { rebuildProjectWorkflowState, reImportChangeState } from "./migration";
+import { buildProjectWorkflowId } from "./client";
+import { projectAgendaQuery, projectWisdomQuery } from "./messages";
 
 // =============================================================================
 // Telemetry placeholders (kept for infra tests)
@@ -334,4 +342,158 @@ export async function crossRepoArtifactActivity(
     const message = err instanceof Error ? err.message : String(err);
     return { ok: false, error: `Write failed: ${message}` };
   }
+}
+
+// =============================================================================
+// repairChangeActivity (P2.6)
+// =============================================================================
+
+const RepairedProjectWisdomEntrySchema = z.object({
+  id: z.string(),
+  type: WisdomTypeSchema,
+  content: z.string().min(1).max(2000),
+  sourceChange: z.string().optional(),
+  sourceTask: z.string().optional(),
+  promotedAt: z.string(),
+  tags: z.array(z.string()).optional(),
+  invalidatedBy: z.string().optional(),
+});
+
+interface RepairWorkflowHandleLike {
+  terminate: (reason?: string) => Promise<void>;
+  query: (def: unknown, ...args: unknown[]) => Promise<unknown>;
+}
+
+interface RepairWorkflowClientLike {
+  start: (
+    workflow: unknown,
+    options: {
+      workflowId: string;
+      taskQueue: string;
+      args: [unknown];
+      searchAttributes?: Record<string, unknown[]>;
+    },
+  ) => Promise<RepairWorkflowHandleLike>;
+  getHandle: (workflowId: string) => RepairWorkflowHandleLike;
+}
+
+export interface RepairChangeInput {
+  projectId: string;
+  changeId: string;
+  approvalEvidence: string;
+  paths: Pick<ProjectPaths, "root" | "changes" | "agenda" | "wisdom">;
+  client: { workflow: RepairWorkflowClientLike };
+}
+
+export type RepairChangeResult =
+  | {
+      ok: true;
+      projectId: string;
+      changeId: string;
+      message: string;
+    }
+  | { ok: false; error: string };
+
+/**
+ * Rebuild the project workflow from disk snapshots and re-import a single
+ * change. P2.6: extracted from the inline body of `adv_workflow_repair`
+ * (`tools/temporal-ops.ts`) so the disk + workflow logic is callable as a
+ * standalone activity.
+ *
+ * The activity does NOT close any connection — lifetime is owned by the
+ * caller. This was the original poison-pill bug fixed in hotfix `4aa420e`
+ * and is the structural concern P2.6 addresses by giving the call site
+ * (tool body) a clean single-responsibility surface.
+ */
+export async function repairChangeActivity(
+  input: RepairChangeInput,
+): Promise<RepairChangeResult> {
+  const { projectId, changeId, paths, client } = input;
+
+  const changeResult = await loadChange(paths.changes, changeId);
+  if (!changeResult.success) {
+    return { ok: false, error: changeResult.error };
+  }
+  if (!changeResult.data) {
+    return {
+      ok: false,
+      error: `No legacy change snapshot found for ${changeId}`,
+    };
+  }
+
+  const agendaResult = await loadAgenda(paths.root, {
+    agendaPath: paths.agenda,
+  });
+  const projectWisdom = await listProjectWisdom(paths.root, {
+    wisdomPath: paths.wisdom,
+  });
+
+  const projectHandle = client.workflow.getHandle(
+    buildProjectWorkflowId(projectId),
+  );
+  await projectHandle
+    .terminate(
+      `repairChangeActivity: rebuild project workflow from legacy snapshot (${input.approvalEvidence.trim()})`,
+    )
+    .catch(() => undefined);
+
+  await rebuildProjectWorkflowState(
+    client as unknown as Parameters<typeof rebuildProjectWorkflowState>[0],
+    {
+      projectId,
+      initializedAt: new Date().toISOString(),
+      agenda: agendaResult.items,
+      projectWisdom: projectWisdom.map((entry) => ({
+        id: entry.id,
+        type: entry.type,
+        content: entry.content,
+        sourceChange: entry.source_change,
+        sourceTask: entry.source_task,
+        promotedAt: entry.promoted_at,
+        tags: entry.tags,
+        invalidatedBy: entry.invalidated_by,
+      })),
+      migrationLedger: [],
+    },
+  );
+
+  await reImportChangeState(
+    client as unknown as Parameters<typeof reImportChangeState>[0],
+    {
+      projectId,
+      change: changeResult.data,
+    },
+  );
+
+  const repairedHandle = client.workflow.getHandle(
+    buildProjectWorkflowId(projectId),
+  );
+  const agenda = z
+    .array(AgendaItemSchema)
+    .parse(await repairedHandle.query(projectAgendaQuery, undefined));
+  const wisdom = z
+    .array(RepairedProjectWisdomEntrySchema)
+    .parse(await repairedHandle.query(projectWisdomQuery, undefined));
+
+  await writeJsonlAtomic(paths.agenda, agenda);
+  await writeJsonlAtomic(
+    paths.wisdom,
+    wisdom.map((entry) => ({
+      id: entry.id,
+      type: entry.type,
+      content: entry.content,
+      source_change: entry.sourceChange,
+      source_task: entry.sourceTask,
+      promoted_at: entry.promotedAt,
+      tags: entry.tags,
+      invalidated_by: entry.invalidatedBy,
+    })),
+  );
+
+  return {
+    ok: true,
+    projectId,
+    changeId,
+    message: `Repaired workflow state for ${changeId} in project ${projectId}`,
+  };
 }
