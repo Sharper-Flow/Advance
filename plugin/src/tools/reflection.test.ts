@@ -334,6 +334,205 @@ describe("Reflection Tools", () => {
       expect(item?.provider_specific?.provider).toBe("Bun");
     });
 
+    test("tdd_compliance excludes not_applicable and separate_verification tasks from denominator", async () => {
+      // Mirrors validator semantics (rq-TDD003na, rq-TDD002sep): only
+      // tasks with metadata.tdd_intent='inline' (or no intent, default
+      // 'inline') count toward TDD compliance. not_applicable and
+      // separate_verification are exempt.
+      const fs = await import("fs/promises");
+      const change = {
+        ...ARCHIVED_CHANGE,
+        tasks: [
+          {
+            id: "tk-inline01",
+            title: "Inline TDD task",
+            section: "Core",
+            status: "done",
+            priority: 0,
+            deps: [],
+            created_at: "2026-01-21T00:00:00Z",
+            completed_at: "2026-01-21T01:00:00Z",
+            metadata: { tdd_intent: "inline" },
+            tdd_phase: "complete",
+            tdd_evidence: {
+              red: { exit_code: 1 },
+              green: { exit_code: 0 },
+            },
+          },
+          {
+            id: "tk-trivial1",
+            title: "Trivial cleanup",
+            section: "Cleanup",
+            status: "done",
+            priority: 1,
+            deps: [],
+            created_at: "2026-01-21T00:00:00Z",
+            completed_at: "2026-01-21T01:30:00Z",
+            metadata: { tdd_intent: "not_applicable" },
+          },
+          {
+            id: "tk-verify01",
+            title: "Verify acceptance",
+            section: "Verify",
+            status: "done",
+            priority: 2,
+            deps: [],
+            created_at: "2026-01-21T00:00:00Z",
+            completed_at: "2026-01-21T02:00:00Z",
+            metadata: { tdd_intent: "separate_verification" },
+          },
+        ],
+      };
+      await fs.writeFile(
+        `${tempDir}/.adv/changes/archivedChange/change.json`,
+        JSON.stringify(change, null, 2),
+      );
+
+      const result = await reflectionTools.adv_reflect.execute(
+        { changeId: "archivedChange" },
+        store,
+      );
+      const parsed = parseToolOutput<{
+        reflection: {
+          plane1: { quality: { tdd_compliance: number } };
+        };
+      }>(result);
+
+      // 1 inline task with red+green evidence / 1 inline task = 1.0
+      // (NOT 1/3 = 0.33, which is the denominator-bug behavior)
+      expect(parsed.reflection.plane1.quality.tdd_compliance).toBe(1);
+    });
+
+    test("tdd_compliance is 1 when there are no inline-intent tasks", async () => {
+      // Empty inline-task set should report perfect compliance, not 0.
+      const fs = await import("fs/promises");
+      const change = {
+        ...ARCHIVED_CHANGE,
+        tasks: [
+          {
+            id: "tk-trivial1",
+            title: "Doc-only update",
+            section: "Docs",
+            status: "done",
+            priority: 0,
+            deps: [],
+            created_at: "2026-01-21T00:00:00Z",
+            completed_at: "2026-01-21T01:00:00Z",
+            metadata: { tdd_intent: "not_applicable" },
+          },
+        ],
+      };
+      await fs.writeFile(
+        `${tempDir}/.adv/changes/archivedChange/change.json`,
+        JSON.stringify(change, null, 2),
+      );
+
+      const result = await reflectionTools.adv_reflect.execute(
+        { changeId: "archivedChange" },
+        store,
+      );
+      const parsed = parseToolOutput<{
+        reflection: {
+          plane1: { quality: { tdd_compliance: number } };
+        };
+      }>(result);
+
+      expect(parsed.reflection.plane1.quality.tdd_compliance).toBe(1);
+    });
+
+    test("tdd_compliance flags missing evidence on inline-intent tasks", async () => {
+      // Inline task without red+green evidence should drag compliance below 1.
+      const fs = await import("fs/promises");
+      const change = {
+        ...ARCHIVED_CHANGE,
+        tasks: [
+          {
+            id: "tk-inline01",
+            title: "Inline TDD task with evidence",
+            section: "Core",
+            status: "done",
+            priority: 0,
+            deps: [],
+            created_at: "2026-01-21T00:00:00Z",
+            completed_at: "2026-01-21T01:00:00Z",
+            metadata: { tdd_intent: "inline" },
+            tdd_phase: "complete",
+            tdd_evidence: {
+              red: { exit_code: 1 },
+              green: { exit_code: 0 },
+            },
+          },
+          {
+            id: "tk-inline02",
+            title: "Inline TDD task missing evidence",
+            section: "Core",
+            status: "done",
+            priority: 1,
+            deps: [],
+            created_at: "2026-01-21T00:00:00Z",
+            completed_at: "2026-01-21T02:00:00Z",
+            metadata: { tdd_intent: "inline" },
+          },
+        ],
+      };
+      await fs.writeFile(
+        `${tempDir}/.adv/changes/archivedChange/change.json`,
+        JSON.stringify(change, null, 2),
+      );
+
+      const result = await reflectionTools.adv_reflect.execute(
+        { changeId: "archivedChange" },
+        store,
+      );
+      const parsed = parseToolOutput<{
+        reflection: {
+          plane1: { quality: { tdd_compliance: number } };
+        };
+      }>(result);
+
+      // 1/2 inline tasks compliant
+      expect(parsed.reflection.plane1.quality.tdd_compliance).toBe(0.5);
+    });
+
+    test("tasks without metadata.tdd_intent default to inline", async () => {
+      // Backward-compat: tasks predating tdd_intent metadata should be
+      // treated as inline (so missing evidence still flags compliance).
+      const fs = await import("fs/promises");
+      const change = {
+        ...ARCHIVED_CHANGE,
+        tasks: [
+          {
+            id: "tk-legacy01",
+            title: "Legacy task no metadata",
+            section: "Core",
+            status: "done",
+            priority: 0,
+            deps: [],
+            created_at: "2026-01-21T00:00:00Z",
+            completed_at: "2026-01-21T01:00:00Z",
+            // no metadata field at all
+          },
+        ],
+      };
+      await fs.writeFile(
+        `${tempDir}/.adv/changes/archivedChange/change.json`,
+        JSON.stringify(change, null, 2),
+      );
+
+      const result = await reflectionTools.adv_reflect.execute(
+        { changeId: "archivedChange" },
+        store,
+      );
+      const parsed = parseToolOutput<{
+        reflection: {
+          plane1: { quality: { tdd_compliance: number } };
+        };
+      }>(result);
+
+      // 1 default-inline task without evidence → 0/1 = 0
+      expect(parsed.reflection.plane1.quality.tdd_compliance).toBe(0);
+    });
+
     test("computes wisdom_reuse_hits from project wisdom", async () => {
       // Add project wisdom that overlaps with change/task keywords
       await addProjectWisdom(tempDir, {

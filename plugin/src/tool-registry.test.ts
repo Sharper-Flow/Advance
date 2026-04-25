@@ -89,3 +89,68 @@ describe("createDegradedToolMap parity with createToolMap", () => {
     expect(Object.keys(map).length).toBe(ADV_TOOL_NAMES.length);
   });
 });
+
+describe("safeExecute timeout overrides for slow-subprocess tools", () => {
+  // Tools that wrap external subprocesses (test runs, git commits with
+  // pre-commit hooks) budget more than the default 10s outer timeout
+  // internally. Without a matching outer override, the safety-net wrapper
+  // kills tools whose inner subprocess would have succeeded.
+  //
+  // adv_run_test:        DEFAULT_TEST_TIMEOUT_MS = 30_000 (test.ts)
+  // adv_task_checkpoint: DEFAULT_TIMEOUT_MS      = 30_000 (checkpoint.ts)
+  //
+  // Outer wrapper must allow at least the inner budget plus modest
+  // headroom so the subprocess is the authoritative timeout source.
+  const registrySrc = readFileSync(
+    resolve(new URL(".", import.meta.url).pathname, "tool-registry.ts"),
+    "utf8",
+  );
+
+  /**
+   * Extract the registration block for `toolName` by anchoring at
+   * `<toolName>:` and walking until the matching closing paren of the
+   * outer `registerTool(` call. Avoids brittle multi-line regex.
+   */
+  function extractRegistrationBlock(
+    src: string,
+    toolName: string,
+  ): string | null {
+    const anchor = `${toolName}: registerTool(`;
+    const start = src.indexOf(anchor);
+    if (start === -1) return null;
+    let depth = 0;
+    let i = start + anchor.length - 1; // position at the `(`
+    for (; i < src.length; i++) {
+      const ch = src[i];
+      if (ch === "(") depth++;
+      else if (ch === ")") {
+        depth--;
+        if (depth === 0) return src.slice(start, i + 1);
+      }
+    }
+    return null;
+  }
+
+  test("adv_run_test registers safeExecute with timeoutMs override ≥ 35s", () => {
+    const block = extractRegistrationBlock(registrySrc, "adv_run_test");
+    expect(block, "adv_run_test registration block not found").not.toBeNull();
+    expect(block!).toMatch(/timeoutMs:\s*\d/);
+    const valueMatch = block!.match(/timeoutMs:\s*(\d[\d_]*)/);
+    expect(valueMatch).toBeTruthy();
+    const value = Number(valueMatch![1].replace(/_/g, ""));
+    expect(value).toBeGreaterThanOrEqual(35_000);
+  });
+
+  test("adv_task_checkpoint registers safeExecute with timeoutMs override ≥ 35s", () => {
+    const block = extractRegistrationBlock(registrySrc, "adv_task_checkpoint");
+    expect(
+      block,
+      "adv_task_checkpoint registration block not found",
+    ).not.toBeNull();
+    expect(block!).toMatch(/timeoutMs:\s*\d/);
+    const valueMatch = block!.match(/timeoutMs:\s*(\d[\d_]*)/);
+    expect(valueMatch).toBeTruthy();
+    const value = Number(valueMatch![1].replace(/_/g, ""));
+    expect(value).toBeGreaterThanOrEqual(35_000);
+  });
+});

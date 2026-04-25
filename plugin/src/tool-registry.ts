@@ -370,6 +370,11 @@ export function createToolMap(
     ),
 
     // Test Tools — adv_run_test takes (args, store, directory)
+    //
+    // Outer safety-net timeout must exceed the inner subprocess budget
+    // (DEFAULT_TEST_TIMEOUT_MS = 30s in test.ts) so the subprocess is the
+    // authoritative timeout source. 35s gives 5s headroom for tool-side
+    // bookkeeping (workflow Update, evidence recording).
     adv_run_test: registerTool(
       testTools.adv_run_test.description,
       testTools.adv_run_test.args,
@@ -381,10 +386,17 @@ export function createToolMap(
             directory,
           ),
         "adv_run_test",
+        undefined,
+        { timeoutMs: 35_000 },
       ),
     ),
 
     // Checkpoint Tool — adv_task_checkpoint takes (args, store, directory)
+    //
+    // Outer safety-net timeout must exceed the inner git subprocess budget
+    // (DEFAULT_TIMEOUT_MS = 30s in checkpoint.ts) so the subprocess is the
+    // authoritative timeout source. Pre-commit hook chains in large repos
+    // routinely run 15-25s, leaving little headroom under the default 10s.
     adv_task_checkpoint: registerTool(
       checkpointTools.adv_task_checkpoint.description,
       checkpointTools.adv_task_checkpoint.args,
@@ -398,6 +410,8 @@ export function createToolMap(
             directory,
           ),
         "adv_task_checkpoint",
+        undefined,
+        { timeoutMs: 35_000 },
       ),
     ),
 
