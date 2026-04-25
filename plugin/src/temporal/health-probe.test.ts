@@ -144,9 +144,8 @@ describe("getTemporalHealth (C3)", () => {
     // RED: TemporalHealth.reconnect_count must reflect StslStats.reconnectCount.
     // Initially 0 in the live service; force one increment via the runtime
     // counter and assert the field propagates.
-    const { resetStsl, initStsl, reinitStsl, closeStsl } = await import(
-      "./service"
-    );
+    const { resetStsl, initStsl, reinitStsl, closeStsl } =
+      await import("./service");
     resetStsl();
     await initStsl({
       ADV_TEMPORAL_ADDRESS: "127.0.0.1:7233",
