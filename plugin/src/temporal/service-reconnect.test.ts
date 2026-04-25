@@ -152,6 +152,80 @@ describe("STSL reconnect via withTemporalRetry (Task 3 integration)", () => {
     expect(getStslStats().reconnectFailureCount).toBe(1);
   });
 
+  it("fresh-handle pattern: handle obtained from getService() inside op closure picks up the new client after reconnect", async () => {
+    // KD-7 contract test. Simulates the store-temporal callsite pattern
+    // where a handle is created from `bundle.client.workflow.getHandle`
+    // INSIDE the op closure. The first attempt's handle is bound to the
+    // OLD client; reinit swaps the bundle's .client in place; the
+    // second-attempt closure constructs a NEW handle from the NEW
+    // client and the op succeeds.
+    //
+    // Without the fresh-handle pattern (handle constructed once
+    // outside the closure), attempt 2 would reuse the OLD handle and
+    // fail again — the test would fail.
+
+    // Track which client was used for each handle.getHandle call.
+    let getHandleCallCount = 0;
+    let lastObservedClient: unknown = null;
+
+    const originalConn = mocks.connection;
+    const originalClient = mocks.client as { workflow?: object };
+    originalClient.workflow = {
+      getHandle: vi.fn((_id: string) => {
+        getHandleCallCount++;
+        lastObservedClient = originalClient;
+        return {
+          query: vi.fn().mockRejectedValue(new Error("connect ECONNREFUSED")),
+        };
+      }),
+    };
+
+    const newClient = { workflow: {} as { getHandle?: unknown } };
+    const newHandleQuery = vi.fn().mockResolvedValue("ok-from-new-client");
+    newClient.workflow.getHandle = vi.fn((_id: string) => {
+      getHandleCallCount++;
+      lastObservedClient = newClient;
+      return { query: newHandleQuery };
+    });
+
+    const newConnection = {
+      close: vi.fn().mockResolvedValue(undefined),
+      operatorService: {
+        addSearchAttributes: vi.fn().mockResolvedValue({}),
+      },
+    };
+    mocks.connect.mockResolvedValueOnce(newConnection);
+    mocks.ClientCtor.mockImplementationOnce(function (this: unknown) {
+      return newClient;
+    });
+
+    // Simulate the refactored store-temporal pattern: handle inside closure.
+    const op = async (): Promise<string> => {
+      const bundle = getService()!;
+      const handle = (
+        bundle.client as unknown as {
+          workflow: {
+            getHandle: (id: string) => { query: () => Promise<string> };
+          };
+        }
+      ).workflow.getHandle("ch-1");
+      return handle.query();
+    };
+
+    const result = await withTemporalRetry(op, {
+      onTransientFailure: makeReconnectingHook(),
+      backoffMs: [0, 0, 0],
+    });
+
+    expect(result).toBe("ok-from-new-client");
+    expect(getHandleCallCount).toBe(2); // attempt 1 (old client) + attempt 2 (new client)
+    expect(lastObservedClient).toBe(newClient);
+    expect(getStslStats().reconnectCount).toBe(1);
+    // Cleanup so we don't pollute other tests in this file.
+    delete originalClient.workflow;
+    void originalConn;
+  });
+
   it("two parallel ops each get their own per-op idempotent hook", async () => {
     // First reinit only — single-flight at the STSL level.
     const newConnection = {
