@@ -739,6 +739,36 @@ describe("Change Tools", () => {
       }
     });
 
+    test("P2.5: rejects target_path that is not a git repo", async () => {
+      const targetDir = await createTempDir();
+      try {
+        // targetDir is a real directory but has no .git/ entry
+        const result = await changeTools.adv_change_create.execute(
+          {
+            summary: "Should fail",
+            target_path: targetDir,
+          },
+          store,
+        );
+        const parsed = parseToolOutput<{ error: string }>(result);
+        expect(parsed.error).toMatch(/not a git repo|\.git/i);
+      } finally {
+        await cleanupTempDir(targetDir);
+      }
+    });
+
+    test("P2.5: rejects target_path that does not exist", async () => {
+      const result = await changeTools.adv_change_create.execute(
+        {
+          summary: "Should fail",
+          target_path: "/nonexistent/should/never/exist",
+        },
+        store,
+      );
+      const parsed = parseToolOutput<{ error: string }>(result);
+      expect(parsed.error).toMatch(/not exist|ENOENT/i);
+    });
+
     test("auto-detects source project name from store config", async () => {
       const targetDir = await createTempDir();
       await createTestProject(targetDir);

@@ -6,7 +6,7 @@
 
 import { z } from "zod";
 import { basename, join } from "path";
-import { readFile, stat, access, realpath } from "fs/promises";
+import { readFile, stat, realpath } from "fs/promises";
 import type { Spec, FeatureFlags, CrossProjectOrigin } from "../types";
 import {
   createDefaultGates,
@@ -23,6 +23,7 @@ import { getReflection } from "../storage/reflection";
 import { getProjectId, getExternalRoot } from "../utils/project-id";
 import { validateChange } from "../validator";
 import { createLogger } from "../utils/debug-log";
+import { validateCrossRepoTarget } from "../temporal/activities";
 
 const logger = createLogger("change");
 // Warning codes that may still surface during archive-time validation but do
@@ -325,12 +326,13 @@ async function createCrossProjectFollowUp({
   store: Store;
 }): Promise<string> {
   const validateTargetPath = async (): Promise<string | null> => {
-    try {
-      await access(target_path);
-    } catch {
-      return formatToolOutput({
-        error: `Target project directory does not exist: ${target_path}`,
-      });
+    // P2.5: route through the same validation primitive that
+    // crossRepoArtifactActivity uses. This unifies the existence + git-repo
+    // checks under one source of truth and ensures cross-repo file I/O is
+    // gated by activity-style validation per design.md § KD-4.
+    const validation = await validateCrossRepoTarget(target_path);
+    if (!validation.ok) {
+      return formatToolOutput({ error: validation.error });
     }
 
     try {

@@ -225,20 +225,18 @@ export type CrossRepoArtifactResult =
  * Failures return structured `{ ok: false, error }` — never throw. The
  * workflow caller decides retry vs surface.
  */
-export async function crossRepoArtifactActivity(
-  input: CrossRepoArtifactInput,
-): Promise<CrossRepoArtifactResult> {
-  const { target_path, relative_path, operation, content } = input;
-
-  // 1. relative_path must not be absolute
-  if (isAbsolute(relative_path)) {
-    return {
-      ok: false,
-      error: `relative_path must be relative (got absolute path: ${relative_path})`,
-    };
-  }
-
-  // 2. target_path must exist and be a directory
+/**
+ * Standalone validation that a `target_path` is suitable for cross-repo
+ * I/O. Used both by `crossRepoArtifactActivity` (before file operations)
+ * and by upstream tools (e.g. `adv_change_create` cross-project flow) to
+ * reject invalid targets before opening any store.
+ *
+ * Returns `{ ok: true }` when target_path exists, is a directory, and
+ * contains a `.git` entry. Returns `{ ok: false, error }` otherwise.
+ */
+export async function validateCrossRepoTarget(
+  target_path: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
   let stats;
   try {
     stats = await stat(target_path);
@@ -258,8 +256,6 @@ export async function crossRepoArtifactActivity(
       error: `target_path is not a directory: ${target_path}`,
     };
   }
-
-  // 3. target_path must be a git repo
   try {
     await stat(join(target_path, ".git"));
   } catch {
@@ -267,6 +263,27 @@ export async function crossRepoArtifactActivity(
       ok: false,
       error: `target_path is not a git repo (no .git entry): ${target_path}`,
     };
+  }
+  return { ok: true };
+}
+
+export async function crossRepoArtifactActivity(
+  input: CrossRepoArtifactInput,
+): Promise<CrossRepoArtifactResult> {
+  const { target_path, relative_path, operation, content } = input;
+
+  // 1. relative_path must not be absolute
+  if (isAbsolute(relative_path)) {
+    return {
+      ok: false,
+      error: `relative_path must be relative (got absolute path: ${relative_path})`,
+    };
+  }
+
+  // 2+3. target_path validation (existence + directory + git repo)
+  const validation = await validateCrossRepoTarget(target_path);
+  if (!validation.ok) {
+    return { ok: false, error: validation.error };
   }
 
   // 4. relative_path must not escape target_path after normalization
