@@ -26,11 +26,14 @@ import {
   cancelTaskUpdate,
   changeStateQuery,
   changeTaskQuery,
+  changeTaskRunQuery,
+  changeTaskRunsQuery,
   changeTasksQuery,
   closeChangeUpdate,
   completeGateUpdate,
   projectStateQuery,
   recordTaskEvidenceUpdate,
+  recordTaskRunEventUpdate,
   reclassifyTaskTddUpdate,
   reopenFromGateUpdate,
   setTaskPhaseUpdate,
@@ -1017,6 +1020,31 @@ export function createTemporalStoreBackend(
         );
         if (!task) return null;
         return { task: task as Task, changeId };
+      },
+      getRun: async (taskId) => {
+        const changeId = await resolveChangeId(taskId);
+        if (!changeId) return null;
+        const handle = getChangeHandle(input, changeId);
+        return (await runTemporalQuery(() =>
+          handle.query(changeTaskRunQuery, taskId),
+        )) as Awaited<ReturnType<Store["tasks"]["getRun"]>>;
+      },
+      listRuns: async (changeId) => {
+        const handle = getChangeHandle(input, changeId);
+        return (await runTemporalQuery(() =>
+          handle.query(changeTaskRunsQuery),
+        )) as Awaited<ReturnType<Store["tasks"]["listRuns"]>>;
+      },
+      recordRunEvent: async (taskId, event) => {
+        const changeId = await resolveChangeId(taskId);
+        if (!changeId) return null;
+        invalidateChange(changeId);
+        const handle = getChangeHandle(input, changeId);
+        return (await runTemporal(() =>
+          handle.executeUpdate(recordTaskRunEventUpdate, {
+            args: [taskId, event],
+          }),
+        )) as Awaited<ReturnType<Store["tasks"]["recordRunEvent"]>>;
       },
       recordEvidence: async (taskId, phase, evidence) => {
         const changeId = await resolveChangeId(taskId);

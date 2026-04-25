@@ -372,6 +372,51 @@ describe("Task Tools", () => {
     });
   });
 
+  describe("adv_task_run_status", () => {
+    test("returns task-run phase and resume hint for an existing task", async () => {
+      await store.tasks.recordRunEvent("tk-task0001", {
+        idempotencyKey: "status:start:1",
+        type: "start",
+        recordedAt: "2026-04-14T00:02:00.000Z",
+        payload: { workdir: tempDir },
+      });
+
+      const result = await taskTools.adv_task_run_status.execute(
+        { taskId: "tk-task0001" },
+        store,
+      );
+      const parsed = parseToolOutput(result) as Record<string, unknown>;
+
+      expect(parsed.taskId).toBe("tk-task0001");
+      expect(parsed.phase).toBe("started");
+      expect(parsed.requiredNextAction).toBe("capture_baseline");
+      expect(parsed.resumeHint).toContain("baseline");
+      expect(parsed.lastEvents).toHaveLength(1);
+    });
+
+    test("returns null run state for a task without a run", async () => {
+      const result = await taskTools.adv_task_run_status.execute(
+        { taskId: "tk-task0001" },
+        store,
+      );
+      const parsed = parseToolOutput(result) as Record<string, unknown>;
+
+      expect(parsed.taskId).toBe("tk-task0001");
+      expect(parsed.phase).toBe("not_started");
+      expect(parsed.requiredNextAction).toBe("start_task");
+    });
+
+    test("returns error for missing task", async () => {
+      const result = await taskTools.adv_task_run_status.execute(
+        { taskId: "tk-missing" },
+        store,
+      );
+      const parsed = parseToolOutput(result) as Record<string, unknown>;
+
+      expect(parsed.error).toContain("Task not found");
+    });
+  });
+
   describe("adv_task_add", () => {
     test("adds new task to change", async () => {
       const result = await taskTools.adv_task_add.execute(

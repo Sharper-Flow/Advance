@@ -40,6 +40,8 @@ import type {
   ChangeClosure,
   Spec,
   Task,
+  TaskRunEvent,
+  TaskRunState,
   TddPhase,
   TddPhaseEvidence,
   TddReclassification,
@@ -68,6 +70,8 @@ import type { Store, SearchResult } from "./store-types";
 import { generateChangeId } from "../utils/change-id";
 import { searchWisdom, filterChanges } from "./content-search";
 import { listProjectWisdom } from "./project-wisdom";
+import { recordTaskRunEventInChangeState } from "../temporal/change-state";
+import type { ChangeWorkflowState } from "../temporal/contracts";
 
 /**
  * Disk-only `Store` implementation.
@@ -633,6 +637,50 @@ export async function createDiskStore(
           if (!result.success || !result.data) continue;
           const task = result.data.tasks.find((t) => t.id === taskId);
           if (task) return { task, changeId: id };
+        }
+        return null;
+      },
+      getRun: async (taskId) => {
+        const ids = await listChangeDirs(paths.changes);
+        for (const id of ids) {
+          const result = await loadChange(paths.changes, id);
+          if (!result.success || !result.data) continue;
+          const change = result.data as Change & {
+            task_runs?: Record<string, TaskRunState>;
+          };
+          if (change.tasks.some((t) => t.id === taskId)) {
+            return change.task_runs?.[taskId] ?? null;
+          }
+        }
+        return null;
+      },
+      listRuns: async (changeId) => {
+        const result = await loadChange(paths.changes, changeId);
+        if (!result.success || !result.data) return [];
+        const change = result.data as Change & {
+          task_runs?: Record<string, TaskRunState>;
+        };
+        return Object.values(change.task_runs ?? {});
+      },
+      recordRunEvent: async (taskId, event: TaskRunEvent) => {
+        const ids = await listChangeDirs(paths.changes);
+        for (const id of ids) {
+          const result = await loadChange(paths.changes, id);
+          if (!result.success || !result.data) continue;
+          if (!result.data.tasks.some((t) => t.id === taskId)) continue;
+          const state = result.data as Change & ChangeWorkflowState;
+          state.projectId = state.projectId ?? "";
+          state.changeId = state.changeId ?? id;
+          state.initializedAt = state.initializedAt ?? state.created_at;
+          state.createdAt = state.createdAt ?? state.created_at;
+          state.artifacts = state.artifacts ?? {};
+          const recorded = recordTaskRunEventInChangeState(
+            state,
+            taskId,
+            event,
+          );
+          await saveChange(paths.changes, state as unknown as Change);
+          return recorded;
         }
         return null;
       },

@@ -25,6 +25,8 @@ import type {
   WisdomType,
   Cancellation,
   TddReclassification,
+  TaskRunEvent,
+  TaskRunState,
   Gates,
   GateId,
   BulkCloseResult,
@@ -140,6 +142,12 @@ export interface Store {
     ) => Promise<Task>;
     get: (taskId: string) => Promise<Task | null>;
     show: (taskId: string) => Promise<{ task: Task; changeId: string } | null>;
+    getRun: (taskId: string) => Promise<TaskRunState | null>;
+    listRuns: (changeId: string) => Promise<TaskRunState[]>;
+    recordRunEvent: (
+      taskId: string,
+      event: TaskRunEvent,
+    ) => Promise<{ duplicate: boolean; run: TaskRunState } | null>;
     recordEvidence: (
       taskId: string,
       phase: "red" | "green",

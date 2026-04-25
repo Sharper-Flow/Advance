@@ -56,6 +56,51 @@ export const taskTools = {
     },
   },
 
+  adv_task_run_status: {
+    description:
+      "Show durable task-run lifecycle status for a task: phase, required next action, resume hint, and recent ledger events.",
+    args: {
+      taskId: z.string().describe("Task ID to inspect"),
+    },
+    execute: async ({ taskId }: { taskId: string }, store: Store) => {
+      const shown = await store.tasks.show(taskId);
+      if (!shown) {
+        return formatToolOutput({ error: `Task not found: ${taskId}` });
+      }
+
+      const run = await store.tasks.getRun(taskId);
+      if (!run) {
+        return formatToolOutput({
+          taskId,
+          changeId: shown.changeId,
+          phase: "not_started",
+          requiredNextAction: "start_task",
+          resumeHint:
+            "No durable task-run ledger exists yet. Start task execution with adv_task_update status:'in_progress'.",
+          baseline: null,
+          evidence: null,
+          verification: null,
+          checkpoint: null,
+          lastEvents: [],
+        });
+      }
+
+      return formatToolOutput({
+        taskId,
+        changeId: shown.changeId,
+        phase: run.phase,
+        requiredNextAction: run.requiredNextAction,
+        resumeHint: run.resumeHint,
+        baseline: run.baseline ?? null,
+        evidence: run.evidence ?? null,
+        verification: run.verification ?? null,
+        checkpoint: run.checkpoint ?? null,
+        attempts: run.attempts ?? [],
+        lastEvents: run.events.slice(-5),
+      });
+    },
+  },
+
   adv_task_list: {
     description: "List tasks for a change with optional status filter",
     args: {
