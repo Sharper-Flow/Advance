@@ -88,6 +88,12 @@ tools:
   # === Worktree — orchestrator owns lifecycle ===
   worktree_create: true
   worktree_delete: true
+  # === Research MCP tools ===
+  context7_*: true
+  kagi_*: true
+  gh_grep_*: true
+  firecrawl_*: true
+  webfetch: true
 ---
 
 <!-- ADV_SYNC:START adv -->

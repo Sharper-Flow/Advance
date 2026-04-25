@@ -42,6 +42,9 @@ tools:
   lgrep_invalidate_cache: true
   # Web research (webfetch/firecrawl) — absorbed from scout; plan is now the unified investigation+ideation+planning agent
   webfetch: true
+  context7_*: true
+  kagi_*: true
+  gh_grep_*: true
   firecrawl_firecrawl_scrape: true
   firecrawl_firecrawl_crawl: true
   firecrawl_firecrawl_check_crawl_status: true

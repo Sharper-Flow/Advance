@@ -34,6 +34,9 @@ tools:
   lgrep_watch_stop_semantic: true
   # Web research
   webfetch: true
+  context7_*: true
+  kagi_*: true
+  gh_grep_*: true
   firecrawl_firecrawl_scrape: true
   firecrawl_firecrawl_crawl: true
   firecrawl_firecrawl_check_crawl_status: true
