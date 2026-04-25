@@ -59,7 +59,11 @@ export const taskTools = {
   adv_task_list: {
     description: "List tasks for a change with optional status filter",
     args: {
-      changeId: z.string().describe("Change ID"),
+      changeId: z
+        .string()
+        .describe(
+          "Change ID — must match an existing change from `adv_change_list`. Returns tasks ordered by priority with metadata, TDD state, and dependencies.",
+        ),
       status: z
         .enum(["pending", "in_progress", "done", "cancelled"])
         .optional()
@@ -112,7 +116,11 @@ export const taskTools = {
   adv_task_ready: {
     description: "Get unblocked pending tasks ready for work",
     args: {
-      changeId: z.string().describe("Change ID"),
+      changeId: z
+        .string()
+        .describe(
+          "Change ID — must match an existing change from `adv_change_list`. Returns ready (unblocked) tasks plus the blocked list with their blockedBy references.",
+        ),
     },
     execute: async ({ changeId }: { changeId: string }, store: Store) => {
       const result = await store.tasks.ready(changeId);
@@ -220,8 +228,16 @@ export const taskTools = {
   adv_task_add: {
     description: "Add a new task to a change",
     args: {
-      changeId: z.string().describe("Change ID"),
-      content: z.string().describe("Task description"),
+      changeId: z
+        .string()
+        .describe(
+          "Change ID to add the task to. Must match an existing change from `adv_change_list` — fetch the list first if unsure. Tasks are rejected after the planning gate is complete.",
+        ),
+      content: z
+        .string()
+        .describe(
+          "Task description. First line becomes the title; the rest is the body. Include affected files, RED/GREEN plan, and acceptance criteria inline for traceability.",
+        ),
       metadata: z
         .record(z.string(), z.string())
         .optional()
@@ -229,7 +245,9 @@ export const taskTools = {
       blockedBy: z
         .array(z.string())
         .optional()
-        .describe("Task IDs that block this task"),
+        .describe(
+          "Task IDs that block this task. Each ID MUST exist in the same change — fetch current task IDs with `adv_task_list changeId: <id>` before calling. Unknown IDs are rejected with the list of valid IDs in the response.",
+        ),
       section: z
         .string()
         .optional()
@@ -258,6 +276,31 @@ export const taskTools = {
           return formatToolOutput({
             error: `Cannot add tasks after planning gate is complete. Use adv_task_reclassify_tdd to modify existing task TDD intent, or use adv_change_reenter to reopen the planning gate for scope expansion.`,
           });
+        }
+
+        // P1.12 Scope C: validate blockedBy task IDs exist in this change
+        // before creating the new task. Silently accepting unknown IDs
+        // breaks the dependency graph — downstream tasks wait on phantom
+        // predecessors. Surface valid IDs in the response so the agent
+        // can self-correct without a second tool call.
+        if (blockedBy && blockedBy.length > 0) {
+          const existingChange = await store.changes.get(changeId);
+          if (existingChange.success && existingChange.data) {
+            const validTaskIds = existingChange.data.tasks.map((t) => t.id);
+            const validIdSet = new Set(validTaskIds);
+            const unknown = blockedBy.filter((id) => !validIdSet.has(id));
+            if (unknown.length > 0) {
+              return formatToolOutput({
+                error:
+                  unknown.length === 1
+                    ? `Unknown task ID in blockedBy: '${unknown[0]}' does not exist in change '${changeId}'.`
+                    : `Unknown task IDs in blockedBy: ${unknown.map((id) => `'${id}'`).join(", ")} do not exist in change '${changeId}'.`,
+                hint: `Fetch the current task IDs with 'adv_task_list changeId: ${changeId}' and copy exact IDs into blockedBy.`,
+                unknownTaskIds: unknown,
+                validTaskIds,
+              });
+            }
+          }
         }
 
         const task = await store.tasks.add(changeId, content, {
@@ -432,25 +475,29 @@ export const taskTools = {
     args: {
       taskIds: z
         .array(z.string())
-        .describe("Task IDs to cancel (batch supported)"),
+        .describe(
+          "Task IDs to cancel (batch supported). All IDs must exist in the same change — fetch with `adv_task_list` first. Cancellations are atomic: if any ID is unknown, NO task is cancelled.",
+        ),
       reasons: z
         .record(z.string(), z.string())
         .describe(
-          "Per-task cancellation reasons keyed by task ID (e.g., { 'tk-abc': 'Absorbed into tk-xyz' })",
+          "Per-task cancellation reasons keyed by task ID (e.g., { 'tk-abc': 'Absorbed into tk-xyz' }). Every task ID in `taskIds` MUST have an entry here — missing reasons are rejected.",
         ),
       approvedByUser: z
         .literal(true)
-        .describe("Must be true — confirms user explicitly approved"),
+        .describe(
+          "MUST be literal `true` — confirms the user explicitly approved this cancellation via the `question` tool. Never call this tool without first presenting the cancellations to the user.",
+        ),
       approvalEvidence: z
         .string()
         .describe(
-          "Evidence of user approval (e.g., 'User approved via question tool: selected Approve cancellations')",
+          "Evidence of user approval — cite the question tool response verbatim (e.g., 'User approved via question tool: selected Approve cancellations'). Empty or whitespace-only strings are rejected.",
         ),
       supersededBy: z
         .record(z.string(), z.string())
         .optional()
         .describe(
-          "Optional per-task superseding task ID (e.g., { 'tk-abc': 'tk-xyz' })",
+          "Optional per-task superseding task ID mapping (e.g., { 'tk-abc': 'tk-xyz' }). Populate only when a cancelled task is replaced by another task in the same change.",
         ),
     },
     execute: async (
@@ -488,6 +535,28 @@ export const taskTools = {
         return formatToolOutput({
           error:
             "approvalEvidence is required. Describe how the user approved (e.g., question tool response).",
+        });
+      }
+
+      // P1.12 Scope C: pre-flight relational validation of task IDs.
+      // Partial cancellations leave the dependency graph in a confusing
+      // mid-state when the agent passes wrong IDs. Fail-fast before any
+      // task is mutated so the agent can correct the call and retry.
+      const unknownTaskIds: string[] = [];
+      for (const taskId of taskIds) {
+        const existing = await store.tasks.get(taskId);
+        if (!existing) {
+          unknownTaskIds.push(taskId);
+        }
+      }
+      if (unknownTaskIds.length > 0) {
+        return formatToolOutput({
+          error:
+            unknownTaskIds.length === 1
+              ? `Task ID not found: '${unknownTaskIds[0]}'. No tasks were cancelled.`
+              : `Task IDs not found: ${unknownTaskIds.map((id) => `'${id}'`).join(", ")}. No tasks were cancelled.`,
+          hint: "Confirm each task ID with 'adv_task_list changeId: <id>' before retrying. Cancellations are atomic — all IDs must be valid or none are cancelled.",
+          unknownTaskIds,
         });
       }
 

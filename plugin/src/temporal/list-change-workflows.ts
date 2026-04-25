@@ -1,0 +1,131 @@
+/**
+ * Visibility-API-backed change enumeration (P2.4).
+ *
+ * Replaces the legacy `listChangeDirs(legacy.paths.changes)` cold-start
+ * path with a Temporal-native query against the visibility store.
+ *
+ * Why Visibility, not disk-listing?
+ *   - Disk-listing assumes the Temporal store and disk are in sync, which
+ *     is the precise invariant breaking when a workflow is missing on the
+ *     server but present on disk (P1.5 orphan case).
+ *   - Visibility is the canonical source-of-truth for "which workflows
+ *     exist right now". Pagination and filtering live there.
+ *   - Memo (the in-memory summary cache) hydrates from the project
+ *     workflow's `change_summaries` and is fed by per-change ChangeSummary
+ *     signals — so the listed IDs from Visibility are mostly used at cold
+ *     start before Memo warms up.
+ *
+ * Pagination: the Temporal SDK's `client.workflow.list({ query })` returns
+ * an AsyncIterable that handles cursor-based pagination internally
+ * (default page size 1000). Consumers iterate; the SDK fetches more pages
+ * as needed. This module wraps the iteration with project-scoped
+ * filtering and an optional hard `limit` cap.
+ *
+ * Search-attribute strategy: ADV registers `AdvProjectId` and
+ * `AdvChangeStatus` as custom search attributes (see `service.ts`
+ * `registerAdvSearchAttributes`). The visibility query filters on these
+ * to scope reads to one project + non-archived statuses by default.
+ */
+
+import type { ChangeStatus } from "../types";
+
+/**
+ * Statuses included by default — `draft`, `pending`, `active`. Excludes
+ * `archived` and `closed` to mirror the legacy `changes.list({}).changes`
+ * default. Pass `null` to disable status filtering entirely (for archive
+ * sweeps and audit tooling).
+ */
+const DEFAULT_STATUSES: readonly ChangeStatus[] = [
+  "draft",
+  "pending",
+  "active",
+];
+
+export interface ListChangeWorkflowIdsOptions {
+  projectId: string;
+  /**
+   * Statuses to include. Defaults to non-archived. Pass `null` to skip
+   * the status filter entirely.
+   */
+  statuses?: ChangeStatus[] | null;
+  /** Hard cap on result count — stops iteration early. */
+  limit?: number;
+}
+
+/**
+ * Minimal `Client` shape used by listChangeWorkflowIds. Real
+ * `@temporalio/client` Client satisfies this structurally.
+ */
+export interface ListClient {
+  workflow: {
+    list: (opts: { query: string }) => AsyncIterable<{
+      workflowId: string;
+    }>;
+  };
+}
+
+/**
+ * Build the visibility-API query string for change-workflow enumeration.
+ *
+ * Exposed for testing (and for callers that need to tweak the query and
+ * pass it directly to `client.workflow.list`).
+ */
+export function buildVisibilityQuery(
+  options: ListChangeWorkflowIdsOptions,
+): string {
+  const { projectId, statuses } = options;
+  const parts: string[] = [];
+
+  // Escape double-quotes in projectId. SHA-based project IDs never
+  // contain quotes in practice, but the safety net guards against
+  // visibility-query injection if someone ever runs the sweep against a
+  // user-supplied label.
+  const safeProjectId = projectId.replace(/"/g, '\\"');
+  parts.push(`AdvProjectId = "${safeProjectId}"`);
+
+  // statuses=null is the explicit "all statuses" mode; statuses=undefined
+  // falls back to DEFAULT_STATUSES; statuses=[] also disables (no rows).
+  const effectiveStatuses =
+    statuses === null
+      ? null
+      : statuses && statuses.length > 0
+        ? statuses
+        : DEFAULT_STATUSES;
+
+  if (effectiveStatuses) {
+    const list = effectiveStatuses.map((s) => `"${s}"`).join(", ");
+    parts.push(`AdvChangeStatus IN (${list})`);
+  }
+
+  return parts.join(" AND ");
+}
+
+const CHANGE_WORKFLOW_PREFIX = "adv/change/";
+
+/**
+ * Return the change IDs for all change-workflows belonging to a project,
+ * via Temporal Visibility API pagination.
+ */
+export async function listChangeWorkflowIds(
+  client: ListClient,
+  options: ListChangeWorkflowIdsOptions,
+): Promise<string[]> {
+  const query = buildVisibilityQuery(options);
+  const projectPrefix = `${CHANGE_WORKFLOW_PREFIX}${options.projectId}/`;
+  const limit = options.limit;
+  const ids: string[] = [];
+
+  for await (const wf of client.workflow.list({ query })) {
+    const wfid = wf.workflowId;
+    // Defensive: visibility may include workflows that match the search
+    // attributes but use a non-change workflow ID format (e.g. project
+    // workflows). Filter by the canonical `adv/change/{projectId}/` prefix.
+    if (!wfid.startsWith(projectPrefix)) continue;
+    const changeId = wfid.slice(projectPrefix.length);
+    if (changeId.length === 0) continue;
+    ids.push(changeId);
+    if (limit !== undefined && ids.length >= limit) break;
+  }
+
+  return ids;
+}

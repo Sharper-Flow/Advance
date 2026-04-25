@@ -6,7 +6,7 @@
 
 import { z } from "zod";
 import { basename, join } from "path";
-import { readFile, stat, access, realpath } from "fs/promises";
+import { readFile, stat, realpath } from "fs/promises";
 import type { Spec, FeatureFlags, CrossProjectOrigin } from "../types";
 import {
   createDefaultGates,
@@ -18,11 +18,12 @@ import {
   type ClarifyFindingSnapshot,
 } from "../types";
 import type { Store } from "../storage/store";
-import { createLegacyStore } from "../storage/store-legacy";
+import { createDiskStore as createLegacyStore } from "../storage/store-disk";
 import { getReflection } from "../storage/reflection";
 import { getProjectId, getExternalRoot } from "../utils/project-id";
 import { validateChange } from "../validator";
 import { createLogger } from "../utils/debug-log";
+import { validateCrossRepoTarget } from "../temporal/activities";
 
 const logger = createLogger("change");
 // Warning codes that may still surface during archive-time validation but do
@@ -325,12 +326,13 @@ async function createCrossProjectFollowUp({
   store: Store;
 }): Promise<string> {
   const validateTargetPath = async (): Promise<string | null> => {
-    try {
-      await access(target_path);
-    } catch {
-      return formatToolOutput({
-        error: `Target project directory does not exist: ${target_path}`,
-      });
+    // P2.5: route through the same validation primitive that
+    // crossRepoArtifactActivity uses. This unifies the existence + git-repo
+    // checks under one source of truth and ensures cross-repo file I/O is
+    // gated by activity-style validation per design.md § KD-4.
+    const validation = await validateCrossRepoTarget(target_path);
+    if (!validation.ok) {
+      return formatToolOutput({ error: validation.error });
     }
 
     try {
@@ -854,30 +856,34 @@ export const changeTools = {
     description:
       "Update proposal.md and/or problem-statement.md for an existing change. Does NOT create a new change or modify change.json metadata (status, tasks, deltas). Use this instead of calling adv_change_create again when refining a proposal. Only provided fields are written — omitted fields are left unchanged.",
     args: {
-      changeId: z.string().describe("Change ID to update"),
+      changeId: z
+        .string()
+        .describe(
+          "Change ID to update — must match an existing change from `adv_change_list`. Unknown IDs are rejected with a hint. This tool writes artifact files only; it does NOT modify change.json metadata (status, tasks, deltas).",
+        ),
       proposal: z
         .string()
         .optional()
         .describe(
-          "New proposal.md content (overwrites existing). Omit to leave unchanged.",
+          "New proposal.md content (overwrites existing). Omit to leave unchanged. At least one of `proposal`, `problemStatement`, `agreement`, or `design` MUST be provided.",
         ),
       problemStatement: z
         .string()
         .optional()
         .describe(
-          "New problem-statement.md content (overwrites existing). Omit to leave unchanged.",
+          "New problem-statement.md content (overwrites existing). Omit to leave unchanged. At least one of `proposal`, `problemStatement`, `agreement`, or `design` MUST be provided.",
         ),
       agreement: z
         .string()
         .optional()
         .describe(
-          "New agreement.md content (overwrites existing). Omit to leave unchanged.",
+          "New agreement.md content (overwrites existing). Omit to leave unchanged. At least one of `proposal`, `problemStatement`, `agreement`, or `design` MUST be provided.",
         ),
       design: z
         .string()
         .optional()
         .describe(
-          "New design.md content (overwrites existing). Omit to leave unchanged.",
+          "New design.md content (overwrites existing). Omit to leave unchanged. At least one of `proposal`, `problemStatement`, `agreement`, or `design` MUST be provided.",
         ),
     },
     execute: async (
@@ -896,6 +902,9 @@ export const changeTools = {
       },
       store: Store,
     ) => {
+      // P1.12 Scope C: at-least-one-field guard with agent-facing hint
+      // naming the valid fields so the next call can be constructed without
+      // a schema lookup.
       if (
         proposal === undefined &&
         problemStatement === undefined &&
@@ -907,6 +916,21 @@ export const changeTools = {
           formatToolOutput({
             error:
               "At least one of 'proposal', 'problemStatement', 'agreement', or 'design' must be provided.",
+            hint: "Pass one or more of: proposal, problemStatement, agreement, design. See the tool description for which file each field writes.",
+          }),
+        );
+      }
+
+      // P1.12 Scope C: verify changeId exists before writing. Surface a
+      // structured error that names the source-of-truth tools so the
+      // agent can self-correct without guessing.
+      const existing = await store.changes.get(changeId);
+      if (!existing.success || !existing.data) {
+        return wrapWithBanner(
+          { command: "adv_change_update", target: changeId },
+          formatToolOutput({
+            error: `Change '${changeId}' not found.`,
+            hint: "Fetch valid change IDs with 'adv_change_list' or confirm the target with 'adv_change_show changeId: <id>' before retrying.",
           }),
         );
       }

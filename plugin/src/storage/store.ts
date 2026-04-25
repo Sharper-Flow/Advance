@@ -1,18 +1,22 @@
 /**
  * Store — Temporal-Only Backend Selector / Composition Root
  *
- * Creates a Temporal-backed store. The legacy JSON+SQLite backend is
- * constructed internally as the file-backed persistence layer, but the
- * returned Store is always the Temporal adapter.
+ * Creates a Temporal-backed store. The disk-only backend is constructed
+ * internally as the file-backed persistence layer, but the returned Store
+ * is always the Temporal adapter.
  *
  * Temporal-only runtime: `temporalBundle` is required. Callers that do
  * not have a Temporal bundle must not call `createStore`.
+ *
+ * P2.7: SQLite-backed `createLegacyStore` deleted; replaced by the
+ * SQLite-free `createDiskStore`. See `store-disk.ts` for the migration
+ * rationale.
  */
 
 import { getProjectId } from "../utils/project-id";
 import type { TemporalClientBundle } from "../temporal/client";
 import { createTemporalStoreBackend } from "./store-temporal";
-import { createLegacyStore } from "./store-legacy";
+import { createDiskStore } from "./store-disk";
 
 // Re-export public types and helpers
 export {
@@ -22,9 +26,6 @@ export {
   computeLastActivity,
   buildChangeRecency,
 } from "./store-types";
-
-// Re-export the bounded corruption-recovery helper for test back-compat.
-export { recoverCorruptedDatabase as _recoverCorruptedDatabase } from "./corruption-recovery";
 
 import type { Store } from "./store-types";
 
@@ -45,7 +46,7 @@ export async function createStore(
     );
   }
 
-  const legacy = await createLegacyStore(directory, {
+  const legacy = await createDiskStore(directory, {
     externalRoot: options.externalRoot,
   });
 
@@ -64,4 +65,7 @@ export async function createStore(
   });
 }
 
-export { createLegacyStore } from "./store-legacy";
+// Back-compat: tools/change.ts cross-project flow needs a non-Temporal
+// Store for target repos that may not have a workflow bundle running.
+// `createDiskStore` is the canonical name; alias here for migration ease.
+export { createDiskStore as createLegacyStore } from "./store-disk";

@@ -10,8 +10,16 @@
  * a single line per tool. Arg schemas live in each tool file alongside
  * description and execute, keeping them co-located and readable.
  *
- * Note: tool files use Zod v3 schemas while the SDK expects Zod v4. The
- * `as any` cast is safe at runtime — both versions produce compatible objects.
+ * Zod version: both the plugin and `@opencode-ai/plugin` SDK use Zod v4.
+ * Prior to P1.12 (completeTemporalOnlyMigration), the SDK bundled
+ * `zod@4.1.8` while the plugin declared `^4.3.6`, producing two runtime
+ * Zod instances with different prototype identities. That patch-level
+ * drift was the suspected root cause of the zero-args tool-call hang
+ * reproduced during /adv-design (see wisdom ws-3550c245). A pinned
+ * `pnpm.overrides.zod = "4.3.6"` now forces a single instance across the
+ * dependency tree. The `as any` cast at the SDK boundary is retained
+ * because the SDK's typed `tool()` signature still expects the SDK's own
+ * Zod import identity — a single structural cast, not a version bridge.
  */
 
 import { tool } from "@opencode-ai/plugin";
@@ -45,9 +53,13 @@ export function registerTool(
   args: ToolArgsSchema,
   execute: ToolExecute<unknown>,
 ) {
-  // SDK uses Zod v4 while tool modules currently export Zod v3 schemas.
-  // Runtime objects are compatible, but the type systems are not identical.
-  // Keep the compatibility cast isolated to this single boundary.
+  // Structural cast at the SDK boundary: tool files import Zod directly
+  // (via `import { z } from "zod"`) while the SDK's `tool()` signature
+  // expects its own Zod import. With `pnpm.overrides.zod` pinning a
+  // single instance this is now a pure type identity bridge — no runtime
+  // difference — but the cast is still required because TypeScript treats
+  // the two imports as nominal types even when they resolve to the same
+  // module on disk.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return tool({ description, args: args as any, execute });
 }
@@ -462,7 +474,7 @@ export function createDegradedToolMap(
         "Run `pnpm --filter @goost/advance build` from the repo root (or `pnpm build` in plugin/) to ensure plugin/dist/ is current",
         "Check ~/.config/opencode/opencode.json — the .plugin array must point to the built plugin directory",
         "If project.json is present, verify it is valid JSON and matches the ADV ProjectConfig schema",
-        "Check the ADV external state dir (~/.local/share/opencode/plugins/advance/{project-id}/) for corrupted spec.db; delete it to let ADV rebuild from JSON",
+        "Check the ADV external state dir (~/.local/share/opencode/plugins/advance/{project-id}/) for malformed change/spec JSON; repair the artifact or run the orphan-sweep recovery utility, then restart OpenCode",
         "Set ADV_DEBUG=1 in your shell and restart OpenCode to capture init errors in $OPEN_CHAD_CACHE_DIR/adv-debug.log",
       ],
     },

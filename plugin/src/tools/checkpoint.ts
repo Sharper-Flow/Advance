@@ -233,7 +233,9 @@ export const checkpointTools = {
       changeId: z
         .string()
         .optional()
-        .describe("Optional change ID assertion — must match derived change from task"),
+        .describe(
+          "Optional change ID assertion — must match derived change from task",
+        ),
       expectedBranch: z
         .string()
         .optional()
@@ -245,7 +247,9 @@ export const checkpointTools = {
       verification: z
         .string()
         .optional()
-        .describe("Verification summary for complete mode (required when committing dirty tree)"),
+        .describe(
+          "Verification summary for complete mode (required when committing dirty tree)",
+        ),
     },
     execute: async (
       args: {
@@ -315,10 +319,19 @@ export const checkpointTools = {
       }
 
       // Determine if guard mode is active (explicit guard params passed)
-      const guardMode = !!(args.changeId || args.expectedBranch || args.expectedHeadSha || args.verification);
+      const guardMode = !!(
+        args.changeId ||
+        args.expectedBranch ||
+        args.expectedHeadSha ||
+        args.verification
+      );
 
       // Validate optional changeId assertion
-      if (args.changeId && derivedChangeId && args.changeId !== derivedChangeId) {
+      if (
+        args.changeId &&
+        derivedChangeId &&
+        args.changeId !== derivedChangeId
+      ) {
         return formatToolOutput({
           status: "failed",
           classification: "SEMANTIC",
@@ -329,16 +342,26 @@ export const checkpointTools = {
       }
 
       const effectiveChangeId = args.changeId || derivedChangeId;
-      const expectedBranch = args.expectedBranch || (guardMode && effectiveChangeId ? `change/${effectiveChangeId}` : undefined);
+      const expectedBranch =
+        args.expectedBranch ||
+        (guardMode && effectiveChangeId
+          ? `change/${effectiveChangeId}`
+          : undefined);
 
       // Compute git context
       let actualBranch: string;
       let actualHeadSha: string;
       let gitRoot: string;
       try {
-        actualBranch = (await runGit(["rev-parse", "--abbrev-ref", "HEAD"], cwd)).stdout.trim();
-        actualHeadSha = (await runGit(["rev-parse", "HEAD"], cwd)).stdout.trim();
-        gitRoot = (await runGit(["rev-parse", "--show-toplevel"], cwd)).stdout.trim();
+        actualBranch = (
+          await runGit(["rev-parse", "--abbrev-ref", "HEAD"], cwd)
+        ).stdout.trim();
+        actualHeadSha = (
+          await runGit(["rev-parse", "HEAD"], cwd)
+        ).stdout.trim();
+        gitRoot = (
+          await runGit(["rev-parse", "--show-toplevel"], cwd)
+        ).stdout.trim();
       } catch (err) {
         return formatToolOutput({
           status: "failed",
@@ -355,7 +378,8 @@ export const checkpointTools = {
           classification: "SEMANTIC",
           workdir: cwd,
           gitRoot,
-          error: `branch mismatch: expected ${expectedBranch} but currently on ${actualBranch}. ` +
+          error:
+            `branch mismatch: expected ${expectedBranch} but currently on ${actualBranch}. ` +
             `Run in the correct worktree for change ${effectiveChangeId || args.taskId}.`,
           expectedBranch,
           actualBranch,
@@ -369,7 +393,8 @@ export const checkpointTools = {
           classification: "SEMANTIC",
           workdir: cwd,
           gitRoot,
-          error: `HEAD mismatch: expected ${args.expectedHeadSha} but HEAD is ${actualHeadSha}. ` +
+          error:
+            `HEAD mismatch: expected ${args.expectedHeadSha} but HEAD is ${actualHeadSha}. ` +
             `The working tree may have been modified outside this task.`,
           expectedHeadSha: args.expectedHeadSha,
           actualHeadSha,
@@ -377,23 +402,21 @@ export const checkpointTools = {
       }
 
       // Check if working tree is clean
-      let isClean = false;
+      let statusOutput: string;
       try {
-        const { stdout: statusOutput } = await runGit(
-          ["status", "--porcelain"],
-          cwd,
-        );
-        isClean = statusOutput.trim() === "";
+        const { stdout } = await runGit(["status", "--porcelain"], cwd);
+        statusOutput = stdout;
       } catch (err) {
         return formatToolOutput({
           status: "failed",
           classification: classifyGitError(err),
           workdir: cwd,
+          gitRoot,
           stderr: err instanceof Error ? err.message : String(err),
         } satisfies CheckpointResult);
       }
 
-      if (isClean) {
+      if (statusOutput.trim() === "") {
         // Clean tree — idempotent, no commit needed
         return formatToolOutput({
           status: "clean",
@@ -412,7 +435,8 @@ export const checkpointTools = {
           classification: "SEMANTIC",
           workdir: cwd,
           gitRoot,
-          error: "Verification required for complete mode checkpoint on dirty tree. " +
+          error:
+            "Verification required for complete mode checkpoint on dirty tree. " +
             "Provide the verification summary (e.g., test command that passed).",
         } satisfies CheckpointResult);
       }

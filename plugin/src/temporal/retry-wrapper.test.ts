@@ -215,4 +215,55 @@ describe("retry-wrapper (C2)", () => {
       expect(delays[0]).toBe(100);
     });
   });
+
+  // P1.3.8 — Query timeout regression guard.
+  //
+  // Context: `handle.query()` against a dead worker never resolves (no
+  // built-in SDK timeout). Pre-P1.3.8 this hung the calling tool forever.
+  // Fix: add optional `timeoutMs` to RetryOptions; withTemporalRetry
+  // races op() against a TemporalQueryTimeoutError. That error is
+  // classified as `transient` so the retry budget still applies.
+  //
+  // See design.md § KD-2. Do NOT add timeout to executeUpdate callsites.
+  describe("query timeout (P1.3.8)", () => {
+    it("throws TemporalQueryTimeoutError when op exceeds timeoutMs", async () => {
+      vi.useFakeTimers();
+      try {
+        const op = vi.fn(
+          () => new Promise<string>(() => {}), // never resolves
+        );
+        const promise = withTemporalRetry(op, {
+          timeoutMs: 100,
+          maxAttempts: 1, // don't retry the timeout for this assertion
+        });
+        // Attach error handler immediately to avoid unhandled rejection noise.
+        const settled = promise.catch((err: Error) => err);
+        await vi.advanceTimersByTimeAsync(150);
+        const result = await settled;
+        expect(result).toBeInstanceOf(Error);
+        expect((result as Error).name).toBe("TemporalQueryTimeout");
+        expect((result as Error).message).toMatch(/100ms|timeout/i);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("classifies TemporalQueryTimeoutError as transient for retry", async () => {
+      const { classifyTemporalError, TemporalQueryTimeoutError } =
+        await import("./retry-wrapper");
+      const err = new TemporalQueryTimeoutError(5000);
+      expect(classifyTemporalError(err)).toBe("transient");
+    });
+
+    it("does NOT apply timeout when timeoutMs is omitted (executeUpdate path)", async () => {
+      // Slow-but-succeeds op simulates an executeUpdate: withTemporalRetry
+      // called without timeoutMs must let it finish regardless of duration.
+      const op = vi.fn(
+        () =>
+          new Promise<string>((resolve) => setTimeout(() => resolve("ok"), 50)),
+      );
+      const result = await withTemporalRetry(op);
+      expect(result).toBe("ok");
+    });
+  });
 });

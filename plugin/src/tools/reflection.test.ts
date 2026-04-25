@@ -8,7 +8,8 @@ import { describe, test, expect, beforeEach, afterEach } from "vitest";
 import { readFileSync } from "fs";
 import { join } from "path";
 import { reflectionTools } from "./reflection";
-import { createStore, type Store } from "../storage/store";
+import type { Store } from "../storage/store";
+import { createDiskStore } from "../storage/store-disk";
 import {
   createTempDir,
   cleanupTempDir,
@@ -98,7 +99,10 @@ describe("Reflection Tools", () => {
   beforeEach(async () => {
     tempDir = await createTempDir();
     await createTestProject(tempDir);
-    store = await createStore(tempDir);
+    // P2.8: reflection is a pure disk-read tool (no Temporal needed).
+    // Use createDiskStore directly to avoid the temporalBundle requirement
+    // of the full createStore composition root.
+    store = await createDiskStore(tempDir);
 
     // Write archived change fixture
     const fs = await import("fs/promises");

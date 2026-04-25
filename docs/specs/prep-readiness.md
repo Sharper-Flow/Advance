@@ -369,7 +369,7 @@ The adv_gate_complete tool for the prep gate must run all prep-readiness checks 
 
 **ID:** `rq-prdoc001` | **Priority:** **[SHOULD]**
 
-Prep and archive flows must surface lightweight integrity findings: cross-repo routing metadata gaps, JSON/SQLite cache inconsistencies, broken task-to-change references, and pending WAL checkpoint warnings.
+Prep and archive flows must surface lightweight integrity findings: cross-repo routing metadata gaps, disk-artifact/workflow consistency issues, broken task-to-change references, and stale worker/orphan workflow warnings.
 
 **Tags:** `prep`, `archive`, `doctor`, `integrity`
 
@@ -393,8 +393,8 @@ Prep and archive flows must surface lightweight integrity findings: cross-repo r
 **When:** adv-archive pre-checks run
 
 **Then:**
-- Cache inconsistency and broken refs are treated as blockers
-- Pending WAL checkpoint is surfaced as advisory warning
+- Disk-artifact/workflow inconsistency and broken refs are treated as blockers
+- Stale worker or orphan workflow signals are surfaced as advisory warnings
 
 ---
 

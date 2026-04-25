@@ -394,14 +394,13 @@ describe("adv_task_checkpoint", () => {
     expect(parsed.status).toBe("committed");
 
     // Verify commit body contains trailers
-    const logBody = await git(
-      ["log", "-1", "--format=%B"],
-      dir,
-    );
+    const logBody = await git(["log", "-1", "--format=%B"], dir);
     expect(logBody).toContain("Change: optimizeCheckpointCommits");
     expect(logBody).toContain("Task: tk-test15");
     expect(logBody).toContain("Mode: complete");
-    expect(logBody).toContain("Verification: pnpm test -- src/tools/checkpoint.test.ts");
+    expect(logBody).toContain(
+      "Verification: pnpm test -- src/tools/checkpoint.test.ts",
+    );
   });
 
   // 16. Verification required for complete mode on dirty tree

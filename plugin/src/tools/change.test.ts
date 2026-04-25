@@ -739,6 +739,36 @@ describe("Change Tools", () => {
       }
     });
 
+    test("P2.5: rejects target_path that is not a git repo", async () => {
+      const targetDir = await createTempDir();
+      try {
+        // targetDir is a real directory but has no .git/ entry
+        const result = await changeTools.adv_change_create.execute(
+          {
+            summary: "Should fail",
+            target_path: targetDir,
+          },
+          store,
+        );
+        const parsed = parseToolOutput<{ error: string }>(result);
+        expect(parsed.error).toMatch(/not a git repo|\.git/i);
+      } finally {
+        await cleanupTempDir(targetDir);
+      }
+    });
+
+    test("P2.5: rejects target_path that does not exist", async () => {
+      const result = await changeTools.adv_change_create.execute(
+        {
+          summary: "Should fail",
+          target_path: "/nonexistent/should/never/exist",
+        },
+        store,
+      );
+      const parsed = parseToolOutput<{ error: string }>(result);
+      expect(parsed.error).toMatch(/not exist|ENOENT/i);
+    });
+
     test("auto-detects source project name from store config", async () => {
       const targetDir = await createTempDir();
       await createTestProject(targetDir);
@@ -1123,6 +1153,53 @@ describe("Change Tools", () => {
 
       expect(parsed.error).toBeDefined();
       expect(parsed.error).toContain("At least one");
+    });
+
+    // P1.12 Scope C: relational validation of changeId.
+    //
+    // Context: during /adv-discover of completeTemporalOnlyMigration, the
+    // agent accidentally called adv_change_update without a valid changeId.
+    // The underlying store returned an opaque error, making it hard for
+    // the agent to recover. The fix surfaces a structured error with an
+    // explicit hint naming `adv_change_list` / `adv_change_show` as the
+    // source-of-truth tools for valid changeIds.
+    describe("changeId relational validation (P1.12 Scope C)", () => {
+      test("rejects unknown changeId with helpful hint", async () => {
+        const result = await changeTools.adv_change_update.execute(
+          {
+            changeId: "does-not-exist-xyz",
+            proposal: "# Will not be written",
+          },
+          store,
+        );
+        const parsed = parseToolOutput(result);
+
+        expect(parsed.error).toBeDefined();
+        expect(parsed.error).toContain("does-not-exist-xyz");
+        expect(parsed.hint).toBeDefined();
+        expect(parsed.hint).toMatch(/adv_change_list|adv_change_show/i);
+      });
+
+      test("at-least-one-field error includes a hint naming the fields", async () => {
+        const createResult = await changeTools.adv_change_create.execute(
+          { summary: "Hint test" },
+          store,
+        );
+        const created = parseToolOutput(createResult);
+
+        const result = await changeTools.adv_change_update.execute(
+          { changeId: created.changeId },
+          store,
+        );
+        const parsed = parseToolOutput(result);
+
+        expect(parsed.error).toContain("At least one");
+        // Agent-facing hint should name the valid fields so the next call
+        // can be constructed without a schema lookup
+        expect(parsed.hint).toBeDefined();
+        expect(parsed.hint).toMatch(/proposal/);
+        expect(parsed.hint).toMatch(/design|agreement/);
+      });
     });
   });
 

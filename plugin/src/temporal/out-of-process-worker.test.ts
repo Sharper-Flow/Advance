@@ -44,6 +44,37 @@ interface FakeChild extends EventEmitter {
   unref: () => FakeChild;
 }
 
+/**
+ * Emit the P1.3.6 ready-handshake IPC message via a Promise microtask
+ * so `createMultiWorker` resolves quickly in tests. `vi.useFakeTimers()`
+ * leaves Promise microtasks alone, so this works under both real and
+ * fake timer modes. Real child writes the same JSON line to stdout
+ * after Worker.create.
+ */
+function scheduleReady(child: FakeChild): void {
+  Promise.resolve().then(() => {
+    child.stdout.emit("data", Buffer.from('{"type":"ready"}\n'));
+  });
+}
+
+/**
+ * Wire `mocks.spawn` to return a child AND schedule its ready-handshake
+ * using mockImplementationOnce. This matters: the ready emit must
+ * happen AFTER `createMultiWorker` synchronously attaches its stdout
+ * listener (which happens right after `spawn()` returns). By wiring the
+ * microtask inside the spawn implementation itself, we guarantee the
+ * listener is attached before the ready emit fires.
+ */
+function spawnWithReady(child: FakeChild): void {
+  mocks.spawn.mockImplementationOnce(() => {
+    // Queue the ready emit on the microtask queue so it fires AFTER
+    // the synchronous listener attachment in createMultiWorker's
+    // spawnChild().
+    Promise.resolve().then(() => scheduleReady(child));
+    return child;
+  });
+}
+
 function makeFakeChild(): FakeChild {
   const ee = new EventEmitter() as FakeChild;
   ee.pid = 12345 + Math.floor(Math.random() * 1000);
@@ -102,7 +133,7 @@ describe("createOutOfProcessWorker", () => {
 
   it("spawns a single shared child with multi-queue env", async () => {
     const child = makeFakeChild();
-    mocks.spawn.mockReturnValue(child);
+    spawnWithReady(child);
 
     const { createOutOfProcessWorker } =
       await import("./out-of-process-worker");
@@ -135,7 +166,7 @@ describe("createOutOfProcessWorker", () => {
 
   it("registerQueue sends IPC message instead of spawning new child", async () => {
     const child = makeFakeChild();
-    mocks.spawn.mockReturnValue(child);
+    spawnWithReady(child);
 
     const { createOutOfProcessWorker } =
       await import("./out-of-process-worker");
@@ -160,7 +191,7 @@ describe("createOutOfProcessWorker", () => {
 
   it("registerQueue is idempotent for already-registered queues", async () => {
     const child = makeFakeChild();
-    mocks.spawn.mockReturnValue(child);
+    spawnWithReady(child);
 
     const { createOutOfProcessWorker } =
       await import("./out-of-process-worker");
@@ -181,7 +212,7 @@ describe("createOutOfProcessWorker", () => {
 
   it("shutdown sends SIGTERM and awaits child exit", async () => {
     const child = makeFakeChild();
-    mocks.spawn.mockReturnValue(child);
+    spawnWithReady(child);
 
     const { createOutOfProcessWorker } =
       await import("./out-of-process-worker");
@@ -204,7 +235,7 @@ describe("createOutOfProcessWorker", () => {
   it("bounds shutdown and escalates to SIGKILL when a child ignores SIGTERM", async () => {
     vi.useFakeTimers();
     const child = makeStuckChild();
-    mocks.spawn.mockReturnValue(child);
+    spawnWithReady(child);
 
     const { createOutOfProcessWorker } =
       await import("./out-of-process-worker");
@@ -229,7 +260,7 @@ describe("createOutOfProcessWorker", () => {
 
   it("exposes queue diagnostics for startup-vs-shutdown investigation", async () => {
     const child = makeFakeChild();
-    mocks.spawn.mockReturnValue(child);
+    spawnWithReady(child);
 
     const { createOutOfProcessWorker } =
       await import("./out-of-process-worker");
@@ -296,7 +327,7 @@ describe("createOutOfProcessWorker", () => {
 
   it("sanitizes control characters and truncates huge stdout/stderr chunks", async () => {
     const child = makeFakeChild();
-    mocks.spawn.mockReturnValue(child);
+    spawnWithReady(child);
 
     const { createOutOfProcessWorker } =
       await import("./out-of-process-worker");
@@ -363,6 +394,9 @@ describe("createOutOfProcessWorker restart policy", () => {
     let spawnCount = 0;
     mocks.spawn.mockImplementation(() => {
       const c = children[spawnCount++];
+      // Queue ready AFTER spawnChild's sync listener attach; see
+      // spawnWithReady above.
+      Promise.resolve().then(() => scheduleReady(c));
       return c;
     });
 
@@ -411,7 +445,7 @@ describe("createOutOfProcessWorker restart policy", () => {
 
   it("does not respawn after shutdown is called", async () => {
     const child = makeCrashingChild();
-    mocks.spawn.mockReturnValue(child);
+    spawnWithReady(child);
 
     const { createOutOfProcessWorker } =
       await import("./out-of-process-worker");
@@ -437,7 +471,7 @@ describe("createOutOfProcessWorker restart policy", () => {
 
   it("treats exit code 0 (graceful) as not-a-crash (no respawn)", async () => {
     const child = makeCrashingChild();
-    mocks.spawn.mockReturnValue(child);
+    spawnWithReady(child);
 
     const { createOutOfProcessWorker } =
       await import("./out-of-process-worker");

@@ -19,12 +19,12 @@ plugin/              # TypeScript plugin (the only buildable package)
     validator/       # Spec validation, prep-readiness, task classification
     events/          # Terminal UI, status markers
     utils/           # Helpers (debug-log, project-id, safe-execute)
-    __mocks__/       # Vitest aliases: @opencode-ai/plugin → mock, bun:sqlite → better-sqlite3
+    __mocks__/       # Vitest aliases, including @opencode-ai/plugin → mock
     __tests__/setup.ts  # Shared fixtures and assertion helpers
   schemas/           # JSON schema stubs ($ref pointers; Zod types in src/types.ts are authoritative)
 .adv/specs/          # Capability specs (the laws) — git-tracked, branch-local
 .opencode/
-  command/           # 21 slash-command workflow files (adv-*.md)
+  command/           # 24 slash-command workflow files (adv-*.md)
   agents/            # adv-researcher (bundled global), adv-engineer (bundled global), adv-tron (repo-local); overlay-managed: adv, plan (absorbed scout), build (absorbed refine)
   overlays/          # Managed overlay blocks synced into global shared agents
 skills/              # Bundled methodology skills synced to ~/.config/opencode/skills/
@@ -62,9 +62,10 @@ pnpm run format:check         # prettier --check
 
 ### Runtime is Bun, tests run on Node
 
-The plugin uses `bun:sqlite` at runtime. Tests mock it via vitest aliases in `vitest.config.ts`:
+OpenCode ships as a Bun executable, while the Vitest suite runs on Node. Runtime storage is Temporal-only; the old `bun:sqlite` / `better-sqlite3` path was removed by `completeTemporalOnlyMigration`.
 
-- `bun:sqlite` → `src/__mocks__/bun-sqlite.ts` (wraps `better-sqlite3`)
+Tests still mock OpenCode SDK imports via vitest aliases in `vitest.config.ts`:
+
 - `@opencode-ai/plugin` → `src/__mocks__/opencode-plugin.ts`
 
 If you add imports from the SDK or Bun APIs, ensure the mocks cover them or tests will fail with resolution errors.
@@ -78,6 +79,17 @@ Dependencies use Zod v4 (`^4.3.6`). Tool arg schemas use Zod and are cast via `a
 ADV state (changes, archive, wisdom, agenda, handoff) lives **outside the repo** at `~/.local/share/opencode/plugins/advance/{project-id}/`, keyed by root commit SHA. All worktrees of the same repo share this state. Specs (`.adv/specs/`) remain in-repo and branch-local.
 
 **Never read ADV state files directly** (`read`, `cat`, `ls`). Always use ADV MCP tools (`adv_change_show`, `adv_task_list`, etc.).
+
+### ADV MCP tool call hygiene (P1.12)
+
+Invoke ADV tools with explicit required args — never with empty parameter sets.
+
+- `adv_change_update` — pass `changeId` + at least one of `proposal`, `problemStatement`, `agreement`, `design`. Zero-args invocations hit a 10s safety-net timeout (surfaced as `errorClass: ToolExecutionTimeout`).
+- `adv_task_add` — before passing `blockedBy`, call `adv_task_list changeId: <id>` to fetch current task IDs. Invalid IDs are rejected; the error response lists the valid IDs.
+- `adv_task_cancel` — all `taskIds` must exist in the same change. Cancellations are atomic: if any ID is unknown, no task is cancelled.
+- Read each tool's field `describe()` text before constructing calls — it documents relational constraints (source-of-truth tool, at-least-one-of patterns, valid enum values).
+
+See `ADV_INSTRUCTIONS.md § ADV MCP Tool Invocation` for the full protocol.
 
 ### Overlay sync model
 

@@ -117,32 +117,42 @@ describe("adv_task_checkpoint drift guards", () => {
   // 9. adv-apply.md passes strict checkpoint args
   test("adv-apply.md passes changeId to adv_task_checkpoint", () => {
     const content = readCommand("adv-apply.md");
-    const checkpointSection = content.slice(content.indexOf("3c.5. Checkpoint:"));
+    const checkpointSection = content.slice(
+      content.indexOf("3c.5. Checkpoint:"),
+    );
     expect(checkpointSection).toContain("changeId");
   });
 
   test("adv-apply.md passes expectedBranch to adv_task_checkpoint", () => {
     const content = readCommand("adv-apply.md");
-    const checkpointSection = content.slice(content.indexOf("3c.5. Checkpoint:"));
+    const checkpointSection = content.slice(
+      content.indexOf("3c.5. Checkpoint:"),
+    );
     expect(checkpointSection).toContain("expectedBranch");
   });
 
   test("adv-apply.md passes expectedHeadSha to adv_task_checkpoint", () => {
     const content = readCommand("adv-apply.md");
-    const checkpointSection = content.slice(content.indexOf("3c.5. Checkpoint:"));
+    const checkpointSection = content.slice(
+      content.indexOf("3c.5. Checkpoint:"),
+    );
     expect(checkpointSection).toContain("expectedHeadSha");
   });
 
   test("adv-apply.md passes verification to adv_task_checkpoint", () => {
     const content = readCommand("adv-apply.md");
-    const checkpointSection = content.slice(content.indexOf("3c.5. Checkpoint:"));
+    const checkpointSection = content.slice(
+      content.indexOf("3c.5. Checkpoint:"),
+    );
     expect(checkpointSection).toContain("verification");
   });
 
   // 10. ADV_INSTRUCTIONS.md has correct ordering in the table
   test("ADV_INSTRUCTIONS.md orders incremental verification before checkpoint in table", () => {
     const content = readFileSync(INSTRUCTIONS_PATH, "utf8");
-    const checkpointSection = content.slice(content.indexOf("### Task Checkpoint Commits"));
+    const checkpointSection = content.slice(
+      content.indexOf("### Task Checkpoint Commits"),
+    );
     const tableStart = checkpointSection.indexOf("| Step |");
     const tableEnd = checkpointSection.indexOf("**Failure classification:**");
     const table = checkpointSection.slice(tableStart, tableEnd);
@@ -156,14 +166,19 @@ describe("adv_task_checkpoint drift guards", () => {
   // 11. No publication authority in checkpoint section
   test("ADV_INSTRUCTIONS.md checkpoint section states checkpoints are local-only", () => {
     const content = readFileSync(INSTRUCTIONS_PATH, "utf8");
-    const checkpointSection = content.slice(content.indexOf("### Task Checkpoint Commits"));
+    const checkpointSection = content.slice(
+      content.indexOf("### Task Checkpoint Commits"),
+    );
     const nextSectionIdx = checkpointSection.indexOf("###", 1);
-    const relevantText = nextSectionIdx > 0
-      ? checkpointSection.slice(0, nextSectionIdx)
-      : checkpointSection;
+    const relevantText =
+      nextSectionIdx > 0
+        ? checkpointSection.slice(0, nextSectionIdx)
+        : checkpointSection;
     // Must explicitly state that checkpoints are local/audit points only
     expect(relevantText).toMatch(/local\s+rollback|audit\s+points|local-only/);
     // Must explicitly prohibit publication actions
-    expect(relevantText).toMatch(/Do NOT push|Do NOT merge|Do NOT archive|Do NOT release/);
+    expect(relevantText).toMatch(
+      /Do NOT push|Do NOT merge|Do NOT archive|Do NOT release/,
+    );
   });
 });

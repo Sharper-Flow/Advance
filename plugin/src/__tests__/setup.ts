@@ -38,6 +38,11 @@ export async function createTestProject(
   // Create directories
   await mkdir(dir, { recursive: true });
 
+  // P2.5: real projects are git repos — `validateCrossRepoTarget`
+  // (used by adv_change_create's cross-project flow) requires a `.git`
+  // entry. Always create one so test fixtures match production reality.
+  await mkdir(join(dir, ".git"), { recursive: true });
+
   if (withConfig) {
     await writeFile(
       join(dir, "project.json"),

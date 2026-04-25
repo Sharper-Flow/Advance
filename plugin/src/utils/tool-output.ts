@@ -65,6 +65,10 @@ interface TruncationEnvelope {
   data: unknown;
 }
 
+function stringifyForSizing(value: unknown): string {
+  return JSON.stringify(value) ?? "null";
+}
+
 // =============================================================================
 // Core
 // =============================================================================
@@ -150,14 +154,14 @@ function buildPreview(data: unknown, maxChars: number): unknown {
 
   // Sort fields: put small fields first, large arrays last
   const entries = Object.entries(obj).sort(([, a], [, b]) => {
-    const sizeA = JSON.stringify(a).length;
-    const sizeB = JSON.stringify(b).length;
+    const sizeA = stringifyForSizing(a).length;
+    const sizeB = stringifyForSizing(b).length;
     return sizeA - sizeB;
   });
 
   let usedChars = 2; // {}
   for (const [key, value] of entries) {
-    const serialized = JSON.stringify(value);
+    const serialized = stringifyForSizing(value);
 
     if (usedChars + key.length + serialized.length + 4 <= budget) {
       result[key] = value;
@@ -197,7 +201,7 @@ function truncateArray(arr: unknown[], budget: number): unknown[] {
   const summarySize = 60; // reserve for summary
 
   for (const item of arr) {
-    const serialized = JSON.stringify(item);
+    const serialized = stringifyForSizing(item);
     if (usedChars + serialized.length + 2 <= budget - summarySize) {
       result.push(item);
       usedChars += serialized.length + 2;

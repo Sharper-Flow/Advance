@@ -47,9 +47,14 @@ import {
   classifyTemporalError,
   withTemporalRetry,
 } from "../temporal/retry-wrapper";
-import { listChangeDirs } from "./json";
-import { buildChangeRecency } from "./store-types";
-import type { ChangeStatus, ProjectStatus } from "../types";
+import { listChangeDirs, removeChangeDir } from "./json";
+import { buildChangeRecency, computeLastActivity } from "./store-types";
+import type { ChangeStatus, ProjectStatus, Spec } from "../types";
+import { SpecSchema } from "../types";
+import { listSpecsActivity, showSpecActivity } from "../temporal/activities";
+import type { LoadResult } from "./json";
+import { filterChanges } from "./content-search";
+import { listChangeWorkflowIds } from "../temporal/list-change-workflows";
 import {
   ChangeSummaryMemo,
   asGateStatus,
@@ -107,6 +112,22 @@ function getChangeHandle(
 
 async function runTemporal<T>(op: () => Promise<T>): Promise<T> {
   return withTemporalRetry(op);
+}
+
+/**
+ * Per-attempt 5s timeout for `handle.query(...)` calls. Without this,
+ * a dead worker causes the query to hang indefinitely and all tool
+ * calls through that path stall with it.
+ *
+ * Applied ONLY to query callsites — `executeUpdate`, `workflow.start`,
+ * and `getHandle` keep the unbounded `runTemporal` so long-running
+ * legitimate operations don't get interrupted. See design.md § KD-2,
+ * P1.3.8.
+ */
+const QUERY_TIMEOUT_MS = 5_000;
+
+async function runTemporalQuery<T>(op: () => Promise<T>): Promise<T> {
+  return withTemporalRetry(op, { timeoutMs: QUERY_TIMEOUT_MS });
 }
 
 export function createTemporalStoreBackend(
@@ -202,8 +223,12 @@ export function createTemporalStoreBackend(
         summary,
         sourceVersion: version,
       });
-    } catch {
-      // Best-effort: signal failure must not block mutations
+    } catch (err) {
+      // Best-effort: signal failure must not block mutations, but it should
+      // remain observable when diagnosing stale project-workflow summaries.
+      logger.debug(
+        `ChangeSummary signal skipped for ${changeId}: ${err instanceof Error ? err.message : String(err)}`,
+      );
     }
   };
 
@@ -261,7 +286,7 @@ export function createTemporalStoreBackend(
     if (result && typeof result === "object" && "changeId" in result) {
       return result as ChangeWorkflowState;
     }
-    return (await runTemporal(() =>
+    return (await runTemporalQuery(() =>
       handle.query(changeStateQuery),
     )) as ChangeWorkflowState;
   };
@@ -338,7 +363,7 @@ export function createTemporalStoreBackend(
     }
     try {
       const handle = getChangeHandle(input, changeId);
-      const state = (await runTemporal(() =>
+      const state = (await runTemporalQuery(() =>
         handle.query(changeStateQuery),
       )) as ChangeWorkflowState;
       indexTasksFromState(state);
@@ -362,7 +387,7 @@ export function createTemporalStoreBackend(
     }
     const handle = getChangeHandle(input, changeId);
     try {
-      const state = (await runTemporal(() =>
+      const state = (await runTemporalQuery(() =>
         handle.query(changeStateQuery),
       )) as ChangeWorkflowState;
       indexTasksFromState(state);
@@ -412,10 +437,37 @@ export function createTemporalStoreBackend(
       );
     }
 
-    // Cold start — fall back to O(N) fan-out to populate the Memo.
-    // Each query is wrapped in try/catch so one missing/terminated workflow
-    // doesn't abort the entire batch. Falls back to legacy JSON on failure.
-    const changeIds = await listChangeDirs(legacy.paths.changes);
+    // Cold start — populate the Memo via Temporal Visibility API.
+    //
+    // P2.4: Replaced the legacy `listChangeDirs(legacy.paths.changes)`
+    // disk-scan with a Visibility-API enumeration. The Visibility query is
+    // the canonical Temporal source-of-truth for "which workflows exist";
+    // disk listing is brittle when the two go out of sync (P1.5 orphan
+    // case). The disk path is preserved as a fallback when the bundle
+    // doesn't expose `client.workflow.list` (e.g. some test mocks).
+    //
+    // Each per-change query is wrapped in try/catch so one missing/terminated
+    // workflow doesn't abort the entire batch. Falls back to legacy JSON on
+    // failure.
+    const bundle = input.temporal as {
+      client?: { workflow?: { list?: unknown } };
+    };
+    let changeIds: string[];
+    if (typeof bundle.client?.workflow?.list === "function") {
+      try {
+        changeIds = await listChangeWorkflowIds(
+          bundle.client as Parameters<typeof listChangeWorkflowIds>[0],
+          { projectId: input.projectId },
+        );
+      } catch (err) {
+        logger.warn(
+          `[P2.4] Visibility list failed; falling back to legacy disk scan: ${err instanceof Error ? err.message : String(err)}`,
+        );
+        changeIds = await listChangeDirs(legacy.paths.changes);
+      }
+    } else {
+      changeIds = await listChangeDirs(legacy.paths.changes);
+    }
     const BATCH_SIZE = 20;
     const changes: Change[] = [];
 
@@ -446,7 +498,16 @@ export function createTemporalStoreBackend(
   };
 
   const buildTemporalStatus = async (): Promise<ProjectStatus> => {
-    const legacyStatus = await legacy.status();
+    // P2.2: status no longer routes through legacy.status(). Specs come
+    // from listSpecsActivity (disk read), changes come from Temporal-derived
+    // listResolvedChanges, recommendations are an empty array (the doctor-
+    // prefixed recs were generated by corruption-recovery.ts which is
+    // deleted in P2.7 — no longer relevant in Temporal-only mode).
+    const specsResult = await listSpecsActivity({
+      specsDir: legacy.paths.specs,
+    });
+    const specCapabilities = specsResult.ok ? specsResult.specs : [];
+
     const changes = await listResolvedChanges();
     const now = new Date();
     const byStatus: Record<ChangeStatus, number> = {
@@ -481,20 +542,104 @@ export function createTemporalStoreBackend(
       });
 
     return {
-      ...legacyStatus,
+      specs: {
+        count: specCapabilities.length,
+        capabilities: specCapabilities,
+      },
       changes: {
         active: recent.length,
         byStatus,
         recent,
       },
-      recommendations: legacyStatus.recommendations.filter((rec) =>
-        rec.startsWith("[doctor]"),
-      ),
+      recommendations: [],
     };
+  };
+
+  // P2.2: activity-backed specs surface. Reads disk via listSpecsActivity
+  // and showSpecActivity instead of routing through legacy.specs.* (which
+  // hit SQLite FTS). search/save still delegate to legacy until the spec
+  // FTS replacement (P2.3) and write path (future task) land.
+  const buildSpecsSurface = (): Store["specs"] => ({
+    list: async (filter) => {
+      const listing = await listSpecsActivity({
+        specsDir: legacy.paths.specs,
+      });
+      if (!listing.ok) {
+        return { specs: [] };
+      }
+      let names = listing.specs;
+      if (filter?.capability) {
+        names = names.filter((n) => n === filter.capability);
+      }
+      const out: Array<{
+        name: string;
+        title: string;
+        version: string;
+        requirementCount: number;
+      }> = [];
+      for (const name of names) {
+        const spec = await loadSpecViaActivity(name);
+        if (!spec.success || !spec.data) continue;
+        if (filter?.tag) {
+          const tags = (spec.data.tags ?? []) as string[];
+          if (!tags.includes(filter.tag)) continue;
+        }
+        out.push({
+          name: spec.data.name,
+          title: spec.data.title ?? spec.data.name,
+          version:
+            typeof spec.data.version === "string"
+              ? spec.data.version
+              : String(spec.data.version ?? "1"),
+          requirementCount: (spec.data.requirements ?? []).length,
+        });
+      }
+      return { specs: out };
+    },
+    get: async (capability) => loadSpecViaActivity(capability),
+    search: legacy.specs.search,
+    save: legacy.specs.save,
+  });
+
+  /**
+   * Helper: load a single spec via showSpecActivity + Zod validation.
+   * Mirrors `loadSpec`'s LoadResult contract so it slots into Store.specs.get
+   * without callers noticing the underlying source change.
+   */
+  const loadSpecViaActivity = async (
+    capability: string,
+  ): Promise<LoadResult<Spec | null>> => {
+    const result = await showSpecActivity({
+      specsDir: legacy.paths.specs,
+      capability,
+    });
+    if (!result.ok) {
+      // Treat any ENOENT-style miss as "not found, not an error" — matches
+      // the loadSpec contract used by callers downstream.
+      if (/not found|ENOENT/i.test(result.error)) {
+        return { success: true, data: null };
+      }
+      return {
+        success: false,
+        error: result.error,
+        type: "read_error",
+      };
+    }
+    try {
+      const parsed = SpecSchema.parse(JSON.parse(result.content));
+      return { success: true, data: parsed };
+    } catch (err) {
+      return {
+        success: false,
+        error: `Failed to parse spec ${capability}: ${err instanceof Error ? err.message : String(err)}`,
+        type: "schema_error",
+      };
+    }
   };
 
   const store: Store = {
     ...legacy,
+    specs: buildSpecsSurface(),
     changes: {
       create: async (
         summary,
@@ -518,20 +663,46 @@ export function createTemporalStoreBackend(
             `Created change ${result.changeId} but could not reload scaffolded change state`,
           );
         }
-        const client = getTemporalWorkflowClient();
-        await ensureChangeWorkflowStarted(client, {
-          projectId: input.projectId,
-          changeId: created.data.id,
-          title: created.data.title,
-          initializedAt: created.data.created_at,
-          seedState: {
-            status: created.data.status,
-            tasks: created.data.tasks,
-            wisdom: created.data.wisdom,
-            gates: created.data.gates,
-            reentry_history: created.data.reentry_history,
-          },
-        });
+
+        // P1.4 transactional guard: if Temporal workflow start fails,
+        // the disk scaffold (proposal.md, change.json, etc.) would
+        // otherwise persist as an orphan that confuses subsequent tool
+        // calls. Remove the change dir on failure and re-throw the
+        // ORIGINAL error — never mask it with rollback errors.
+        //
+        // See design.md § KD-7.
+        try {
+          const client = getTemporalWorkflowClient();
+          await ensureChangeWorkflowStarted(client, {
+            projectId: input.projectId,
+            changeId: created.data.id,
+            title: created.data.title,
+            initializedAt: created.data.created_at,
+            seedState: {
+              status: created.data.status,
+              tasks: created.data.tasks,
+              wisdom: created.data.wisdom,
+              gates: created.data.gates,
+              reentry_history: created.data.reentry_history,
+            },
+          });
+        } catch (err) {
+          try {
+            await removeChangeDir(legacy.paths.changes, created.data.id);
+          } catch (rollbackErr) {
+            // Rollback itself failed (disk unmounted, permissions, etc).
+            // Log but don't mask the original Temporal error.
+            logger.error(
+              `P1.4 rollback failed for change '${created.data.id}' after Temporal-start error: ${
+                rollbackErr instanceof Error
+                  ? rollbackErr.message
+                  : String(rollbackErr)
+              }. Manual cleanup of the change directory may be required.`,
+            );
+          }
+          throw err;
+        }
+
         updateOverlay(created.data.id, {
           created_at: created.data.created_at,
           created_by: created.data.created_by,
@@ -577,6 +748,28 @@ export function createTemporalStoreBackend(
         }
         if (!filter?.includeClosed) {
           filtered = filtered.filter((change) => change.status !== "closed");
+        }
+
+        // P2.3: substring/prefix/timestamp filters via linear-scan
+        // content-search helper. See `content-search.ts` and
+        // `scripts/bench-content-search.ts` for the bench data backing
+        // this strategy choice over MiniSearch.
+        if (
+          filter?.prefix ||
+          filter?.titleContains ||
+          filter?.createdBefore ||
+          filter?.lastActivityBefore
+        ) {
+          const enriched = filtered.map((c) => ({
+            ...c,
+            lastActivityAt: computeLastActivity(c),
+          }));
+          filtered = filterChanges(enriched, {
+            prefix: filter.prefix,
+            titleContains: filter.titleContains,
+            createdBefore: filter.createdBefore,
+            lastActivityBefore: filter.lastActivityBefore,
+          });
         }
 
         filtered.sort((a, b) => {
@@ -745,7 +938,7 @@ export function createTemporalStoreBackend(
       ...legacy.tasks,
       list: async (changeId: string, status?: string, filter?: string) => {
         const handle = getChangeHandle(input, changeId);
-        const tasks = (await runTemporal(() =>
+        const tasks = (await runTemporalQuery(() =>
           handle.query(changeTasksQuery, status, filter),
         )) as Awaited<ReturnType<Store["tasks"]["list"]>>;
         for (const task of tasks ?? []) {
@@ -755,7 +948,7 @@ export function createTemporalStoreBackend(
       },
       ready: async (changeId: string) => {
         const handle = getChangeHandle(input, changeId);
-        const state = (await runTemporal(() =>
+        const state = (await runTemporalQuery(() =>
           handle.query(changeStateQuery),
         )) as ChangeWorkflowState;
         indexTasksFromState(state);
@@ -811,7 +1004,7 @@ export function createTemporalStoreBackend(
         const changeId = await resolveChangeId(taskId);
         if (!changeId) return null;
         const handle = getChangeHandle(input, changeId);
-        return (await runTemporal(() =>
+        return (await runTemporalQuery(() =>
           handle.query(changeTaskQuery, taskId),
         )) as Awaited<ReturnType<Store["tasks"]["get"]>>;
       },
@@ -819,7 +1012,7 @@ export function createTemporalStoreBackend(
         const changeId = await resolveChangeId(taskId);
         if (!changeId) return null;
         const handle = getChangeHandle(input, changeId);
-        const task = await runTemporal(() =>
+        const task = await runTemporalQuery(() =>
           handle.query(changeTaskQuery, taskId),
         );
         if (!task) return null;
@@ -895,7 +1088,7 @@ export function createTemporalStoreBackend(
       },
       list: async (changeId: string) => {
         const handle = getChangeHandle(input, changeId);
-        const state = (await runTemporal(() =>
+        const state = (await runTemporalQuery(() =>
           handle.query(changeStateQuery),
         )) as ChangeWorkflowState;
         return state.wisdom;
@@ -905,7 +1098,7 @@ export function createTemporalStoreBackend(
       ...legacy.gates,
       get: async (changeId: string) => {
         const handle = getChangeHandle(input, changeId);
-        const state = (await runTemporal(() =>
+        const state = (await runTemporalQuery(() =>
           handle.query(changeStateQuery),
         )) as ChangeWorkflowState;
         return state.gates;
@@ -972,7 +1165,7 @@ function hydrateMemoFromPSW(
     try {
       const handle = getProjectHandleForInput(input);
       if (!handle) return;
-      const pswState = (await runTemporal(() =>
+      const pswState = (await runTemporalQuery(() =>
         handle.query(projectStateQuery),
       )) as ProjectWorkflowState | null;
       if (!pswState?.change_summaries) return;
