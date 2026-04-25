@@ -303,8 +303,16 @@ export const taskTools = {
           }
         }
 
+        // Default tdd_intent to "inline" when not provided — prevents
+        // TASK_TDD_INTENT_MISSING warnings in prep readiness and avoids
+        // cancel-and-recreate friction during /adv-prep.
+        const mergedMetadata = { ...metadata };
+        if (!mergedMetadata.tdd_intent) {
+          mergedMetadata.tdd_intent = "inline";
+        }
+
         const task = await store.tasks.add(changeId, content, {
-          metadata,
+          metadata: mergedMetadata,
           blockedBy,
           section,
         });

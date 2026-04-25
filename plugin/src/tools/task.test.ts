@@ -438,6 +438,36 @@ describe("Task Tools", () => {
       });
     });
 
+    test("defaults tdd_intent to inline when metadata not provided", async () => {
+      const result = await taskTools.adv_task_add.execute(
+        { changeId: "addFeature", content: "Write unit tests" },
+        store,
+      );
+      const parsed = parseToolOutput(result);
+
+      expect(parsed.task.metadata.tdd_intent).toBe("inline");
+
+      const persisted = await store.tasks.get(parsed.taskId);
+      expect(persisted?.metadata?.tdd_intent).toBe("inline");
+    });
+
+    test("defaults tdd_intent to inline when metadata has no tdd_intent key", async () => {
+      const result = await taskTools.adv_task_add.execute(
+        {
+          changeId: "addFeature",
+          content: "Update docs",
+          metadata: { priority: "low" },
+        },
+        store,
+      );
+      const parsed = parseToolOutput(result);
+
+      expect(parsed.task.metadata).toEqual({
+        tdd_intent: "inline",
+        priority: "low",
+      });
+    });
+
     test("new task appears in blocked list when dependency exists", async () => {
       await taskTools.adv_task_add.execute(
         {

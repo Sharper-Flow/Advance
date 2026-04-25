@@ -743,10 +743,17 @@ export function createTemporalStoreBackend(
             (change) => change.status === filter.status,
           );
         }
-        if (!filter?.includeArchived) {
+        // When status is explicitly "archived"/"closed", auto-enable the
+        // corresponding include flag so the status filter isn't immediately
+        // undone by the exclusion below.
+        const effectiveIncludeArchived =
+          filter?.includeArchived || filter?.status === "archived";
+        const effectiveIncludeClosed =
+          filter?.includeClosed || filter?.status === "closed";
+        if (!effectiveIncludeArchived) {
           filtered = filtered.filter((change) => change.status !== "archived");
         }
-        if (!filter?.includeClosed) {
+        if (!effectiveIncludeClosed) {
           filtered = filtered.filter((change) => change.status !== "closed");
         }
 

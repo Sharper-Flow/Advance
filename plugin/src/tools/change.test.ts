@@ -87,6 +87,22 @@ describe("Change Tools", () => {
       expect(parsed.changes).toHaveLength(1);
     });
 
+    test("status: archived returns archived changes without needing includeArchived", async () => {
+      const changeResult = await store.changes.get("addFeature");
+      expect(changeResult.success).toBe(true);
+      changeResult.data!.status = "archived";
+      await store.changes.save(changeResult.data!);
+
+      const result = await changeTools.adv_change_list.execute(
+        { status: "archived" },
+        store,
+      );
+      const parsed = parseToolOutput(result);
+
+      expect(parsed.changes).toHaveLength(1);
+      expect(parsed.changes[0].status).toBe("archived");
+    });
+
     test("excludes closed changes by default", async () => {
       await store.changes.close("addFeature", {
         reason: "cancelled",
