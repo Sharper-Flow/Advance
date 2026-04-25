@@ -58,6 +58,7 @@ tools:
   adv_task_reclassify_tdd: true
   adv_task_cancel: true
   adv_task_checkpoint: true
+  adv_task_run_status: true
   # Wisdom
   adv_wisdom_list: true
   adv_wisdom_add: true
@@ -80,6 +81,10 @@ tools:
   # Temporal / workflow ops
   adv_temporal_worker_restart: true
   adv_workflow_repair: true
+  # Reflection
+  adv_reflect: true
+  # Project metadata
+  adv_project_metadata: true
   # === Worktree — orchestrator owns lifecycle ===
   worktree_create: true
   worktree_delete: true
