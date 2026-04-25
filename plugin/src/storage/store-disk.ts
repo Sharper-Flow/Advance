@@ -156,7 +156,7 @@ export async function createDiskStore(
             // Check both spec-level tags AND requirement-level tags. The
             // legacy SQLite-FTS path used a separate tag index that could
             // match either; replicate that semantics in the disk path.
-            const specTags = ((result.data.tags ?? []) as string[]) ?? [];
+            const specTags = (result.data.tags ?? []) as string[];
             const reqTags = (result.data.requirements ?? []).flatMap(
               (req) => ((req as { tags?: string[] }).tags ?? []) as string[],
             );

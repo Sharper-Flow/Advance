@@ -95,6 +95,5 @@ describe("workflow bundle import guard (P1.8)", () => {
           `Check transitive imports from workflows.ts → contracts.ts / change-state.ts / project-state.ts.`,
       );
     }
-  }, // Webpack bundling is slow on cold cache; CI runners hit ~5-8s.
-  30_000);
+  }, 30_000); // Webpack bundling is slow on cold cache; CI runners hit ~5-8s.
 });
