@@ -47,6 +47,12 @@ interface CheckpointResult {
   stderr?: string;
   gitExitCode?: number;
   error?: string;
+  changeId?: string;
+  gitRoot?: string;
+  expectedBranch?: string;
+  actualBranch?: string;
+  expectedHeadSha?: string;
+  actualHeadSha?: string;
 }
 
 type ErrorClass = "SEMANTIC" | "ENVIRONMENTAL" | "TRANSIENT";
@@ -168,7 +174,7 @@ export function classifyGitError(error: unknown): ErrorClass {
 }
 
 /**
- * Build commit message with truncation.
+ * Build commit message with structured body/trailers.
  * Complete: `task(tk-xxxx): completed` (subject ≤ 72)
  * Cancel:   `task(tk-xxxx): cancel — <reason>` (reason ≤ 64)
  */
@@ -176,20 +182,30 @@ export function buildCommitMessage(
   taskId: string,
   mode: "complete" | "cancel",
   reason?: string,
-): string {
+  changeId?: string,
+  verification?: string,
+): { subject: string; body: string } {
+  let subject: string;
   if (mode === "cancel") {
-    // Truncate reason to fit within overall subject limit
     const prefix = `task(${taskId}): cancel \u2014 `;
     const maxReason = Math.min(
       CANCEL_REASON_MAX_LEN,
       SUBJECT_MAX_LEN - prefix.length,
     );
     const truncatedReason = (reason ?? "").slice(0, Math.max(0, maxReason));
-    return `${prefix}${truncatedReason}`;
+    subject = `${prefix}${truncatedReason}`;
+  } else {
+    subject = `task(${taskId}): completed`.slice(0, SUBJECT_MAX_LEN);
   }
 
-  const msg = `task(${taskId}): completed`;
-  return msg.slice(0, SUBJECT_MAX_LEN);
+  const lines: string[] = [];
+  if (changeId) lines.push(`Change: ${changeId}`);
+  lines.push(`Task: ${taskId}`);
+  lines.push(`Mode: ${mode}`);
+  if (verification) lines.push(`Verification: ${verification}`);
+
+  const body = lines.join("\n");
+  return { subject, body };
 }
 
 // ─── Tool definition ────────────────────────────────────────────────────────
@@ -214,6 +230,22 @@ export const checkpointTools = {
         .string()
         .optional()
         .describe("Reason for cancellation (required when mode='cancel')"),
+      changeId: z
+        .string()
+        .optional()
+        .describe("Optional change ID assertion — must match derived change from task"),
+      expectedBranch: z
+        .string()
+        .optional()
+        .describe("Expected git branch (default: change/{changeId})"),
+      expectedHeadSha: z
+        .string()
+        .optional()
+        .describe("Expected HEAD SHA for baseline validation"),
+      verification: z
+        .string()
+        .optional()
+        .describe("Verification summary for complete mode (required when committing dirty tree)"),
     },
     execute: async (
       args: {
@@ -221,8 +253,12 @@ export const checkpointTools = {
         workdir?: string;
         mode?: "complete" | "cancel";
         reason?: string;
+        changeId?: string;
+        expectedBranch?: string;
+        expectedHeadSha?: string;
+        verification?: string;
       },
-      _store: Store,
+      store: Store,
       defaultWorkdir: string,
     ): Promise<string> => {
       const cwd = args.workdir || defaultWorkdir;
@@ -267,26 +303,42 @@ export const checkpointTools = {
         } satisfies CheckpointResult);
       }
 
-      // Check if working tree is clean
+      // Resolve change identity from store
+      let derivedChangeId: string | undefined;
       try {
-        const { stdout: statusOutput } = await runGit(
-          ["status", "--porcelain"],
-          cwd,
-        );
-        if (statusOutput.trim() === "") {
-          // Clean tree — idempotent, no commit needed
-          const { stdout: sha } = await runGit(["rev-parse", "HEAD"], cwd);
-          const { stdout: branch } = await runGit(
-            ["rev-parse", "--abbrev-ref", "HEAD"],
-            cwd,
-          );
-          return formatToolOutput({
-            status: "clean",
-            sha: sha.trim(),
-            branch: branch.trim(),
-            workdir: cwd,
-          } satisfies CheckpointResult);
+        const taskInfo = await store.tasks.show(args.taskId);
+        if (taskInfo) {
+          derivedChangeId = taskInfo.changeId;
         }
+      } catch {
+        // If store doesn't support tasks.show, continue without derived changeId
+      }
+
+      // Determine if guard mode is active (explicit guard params passed)
+      const guardMode = !!(args.changeId || args.expectedBranch || args.expectedHeadSha || args.verification);
+
+      // Validate optional changeId assertion
+      if (args.changeId && derivedChangeId && args.changeId !== derivedChangeId) {
+        return formatToolOutput({
+          status: "failed",
+          classification: "SEMANTIC",
+          workdir: cwd,
+          error: `changeId mismatch: expected ${args.changeId} but task ${args.taskId} belongs to change ${derivedChangeId}`,
+          changeId: derivedChangeId,
+        } satisfies CheckpointResult);
+      }
+
+      const effectiveChangeId = args.changeId || derivedChangeId;
+      const expectedBranch = args.expectedBranch || (guardMode && effectiveChangeId ? `change/${effectiveChangeId}` : undefined);
+
+      // Compute git context
+      let actualBranch: string;
+      let actualHeadSha: string;
+      let gitRoot: string;
+      try {
+        actualBranch = (await runGit(["rev-parse", "--abbrev-ref", "HEAD"], cwd)).stdout.trim();
+        actualHeadSha = (await runGit(["rev-parse", "HEAD"], cwd)).stdout.trim();
+        gitRoot = (await runGit(["rev-parse", "--show-toplevel"], cwd)).stdout.trim();
       } catch (err) {
         return formatToolOutput({
           status: "failed",
@@ -296,8 +348,83 @@ export const checkpointTools = {
         } satisfies CheckpointResult);
       }
 
-      // Dirty tree — stage all changes and commit
-      const commitMsg = buildCommitMessage(args.taskId, mode, args.reason);
+      // Validate branch match
+      if (expectedBranch && actualBranch !== expectedBranch) {
+        return formatToolOutput({
+          status: "failed",
+          classification: "SEMANTIC",
+          workdir: cwd,
+          gitRoot,
+          error: `branch mismatch: expected ${expectedBranch} but currently on ${actualBranch}. ` +
+            `Run in the correct worktree for change ${effectiveChangeId || args.taskId}.`,
+          expectedBranch,
+          actualBranch,
+        } satisfies CheckpointResult);
+      }
+
+      // Validate HEAD match
+      if (args.expectedHeadSha && actualHeadSha !== args.expectedHeadSha) {
+        return formatToolOutput({
+          status: "failed",
+          classification: "SEMANTIC",
+          workdir: cwd,
+          gitRoot,
+          error: `HEAD mismatch: expected ${args.expectedHeadSha} but HEAD is ${actualHeadSha}. ` +
+            `The working tree may have been modified outside this task.`,
+          expectedHeadSha: args.expectedHeadSha,
+          actualHeadSha,
+        } satisfies CheckpointResult);
+      }
+
+      // Check if working tree is clean
+      let isClean = false;
+      try {
+        const { stdout: statusOutput } = await runGit(
+          ["status", "--porcelain"],
+          cwd,
+        );
+        isClean = statusOutput.trim() === "";
+      } catch (err) {
+        return formatToolOutput({
+          status: "failed",
+          classification: classifyGitError(err),
+          workdir: cwd,
+          stderr: err instanceof Error ? err.message : String(err),
+        } satisfies CheckpointResult);
+      }
+
+      if (isClean) {
+        // Clean tree — idempotent, no commit needed
+        return formatToolOutput({
+          status: "clean",
+          sha: actualHeadSha,
+          branch: actualBranch,
+          workdir: cwd,
+          gitRoot,
+          changeId: derivedChangeId,
+        } satisfies CheckpointResult);
+      }
+
+      // Dirty tree — require verification for complete mode
+      if (mode === "complete" && !args.verification) {
+        return formatToolOutput({
+          status: "failed",
+          classification: "SEMANTIC",
+          workdir: cwd,
+          gitRoot,
+          error: "Verification required for complete mode checkpoint on dirty tree. " +
+            "Provide the verification summary (e.g., test command that passed).",
+        } satisfies CheckpointResult);
+      }
+
+      // Build commit message with structured body
+      const { subject, body } = buildCommitMessage(
+        args.taskId,
+        mode,
+        args.reason,
+        derivedChangeId,
+        args.verification,
+      );
 
       try {
         // Stage
@@ -307,7 +434,7 @@ export const checkpointTools = {
         const maxRetries = 2;
         for (let attempt = 0; attempt < maxRetries; attempt++) {
           try {
-            await runGit(["commit", "-m", commitMsg], cwd);
+            await runGit(["commit", "-m", subject, "-m", body], cwd);
             break;
           } catch (err) {
             const cls = classifyGitError(err);
@@ -326,7 +453,8 @@ export const checkpointTools = {
               status: "failed",
               classification: cls === "TRANSIENT" ? "SEMANTIC" : cls,
               workdir: cwd,
-              message: commitMsg,
+              gitRoot,
+              message: subject,
               stderr: gitErr.stderr ?? gitErr.message,
               gitExitCode: gitErr.exitCode,
             } satisfies CheckpointResult);
@@ -335,22 +463,21 @@ export const checkpointTools = {
 
         // Commit succeeded — return result
         const { stdout: sha } = await runGit(["rev-parse", "HEAD"], cwd);
-        const { stdout: branch } = await runGit(
-          ["rev-parse", "--abbrev-ref", "HEAD"],
-          cwd,
-        );
         return formatToolOutput({
           status: "committed",
           sha: sha.trim(),
-          branch: branch.trim(),
+          branch: actualBranch,
           workdir: cwd,
-          message: commitMsg,
+          gitRoot,
+          message: subject,
+          changeId: derivedChangeId,
         } satisfies CheckpointResult);
       } catch (err) {
         return formatToolOutput({
           status: "failed",
           classification: classifyGitError(err),
           workdir: cwd,
+          gitRoot,
           stderr: err instanceof Error ? err.message : String(err),
         } satisfies CheckpointResult);
       }

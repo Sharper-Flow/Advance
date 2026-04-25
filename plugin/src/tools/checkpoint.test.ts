@@ -38,11 +38,20 @@ function git(
   });
 }
 
-/** Minimal store mock — only task update is watched. */
-function mockStore(): Store {
+/** Minimal store mock — supports tasks.show for change identity resolution. */
+function mockStore(taskOwnerChangeId?: string): Store {
   const tasks = {
     update: (..._args: unknown[]) => {
       throw new Error("store.tasks.update MUST NOT be called by checkpoint");
+    },
+    show: (_taskId: string) => {
+      if (taskOwnerChangeId) {
+        return Promise.resolve({
+          task: { id: _taskId, title: "Test task" },
+          changeId: taskOwnerChangeId,
+        });
+      }
+      return Promise.resolve(null);
     },
   } as unknown as Store["tasks"];
   return { tasks } as Store;
@@ -94,7 +103,7 @@ describe("adv_task_checkpoint", () => {
   it("commits dirty tree with task(tk-xxxx): <title> message", async () => {
     await writeFile(join(dir, "new-file.txt"), "hello");
     const result = await checkpointTools.adv_task_checkpoint.execute(
-      { taskId: "tk-test02" },
+      { taskId: "tk-test02", verification: "test passed" },
       store,
       dir,
     );
@@ -174,7 +183,7 @@ describe("adv_task_checkpoint", () => {
     await writeFile(join(dir, "hook-test.txt"), "hello");
 
     const result = await checkpointTools.adv_task_checkpoint.execute(
-      { taskId: "tk-test06" },
+      { taskId: "tk-test06", verification: "test passed" },
       store,
       dir,
     );
@@ -223,7 +232,7 @@ describe("adv_task_checkpoint", () => {
     const longTitle = "tk-loooong01";
     const longSuffix = "A".repeat(100);
     const result = await checkpointTools.adv_task_checkpoint.execute(
-      { taskId: `${longTitle} ${longSuffix}` },
+      { taskId: `${longTitle} ${longSuffix}`, verification: "test passed" },
       store,
       dir,
     );
@@ -245,7 +254,7 @@ describe("adv_task_checkpoint", () => {
       await writeFile(join(dir2, "override.txt"), "hello");
 
       const result = await checkpointTools.adv_task_checkpoint.execute(
-        { taskId: "tk-test09", workdir: dir2 },
+        { taskId: "tk-test09", workdir: dir2, verification: "test passed" },
         store,
         dir, // default directory, should be ignored
       );
@@ -268,5 +277,232 @@ describe("adv_task_checkpoint", () => {
     );
     // If we reach here without exception, store was not mutated
     expect(true).toBe(true);
+  });
+
+  // ─── New guardrail tests (RED phase — these will fail until implementation) ───
+
+  // 11. Derives change identity from store.tasks.show
+  it("derives changeId from store.tasks.show(taskId)", async () => {
+    const storeWithTask = mockStore("optimizeCheckpointCommits");
+    await writeFile(join(dir, "derive-test.txt"), "hello");
+
+    const result = await checkpointTools.adv_task_checkpoint.execute(
+      {
+        taskId: "tk-test11",
+        expectedBranch: "trunk",
+        verification: "pnpm test -- passed",
+      },
+      storeWithTask,
+      dir,
+    );
+    const parsed = parseToolOutput(result) as Record<string, unknown>;
+    expect(parsed.status).toBe("committed");
+    expect(parsed.changeId).toBe("optimizeCheckpointCommits");
+  });
+
+  // 12. Optional changeId mismatch fails before staging
+  it("fails before staging when optional changeId mismatches derived", async () => {
+    const storeWithTask = mockStore("optimizeCheckpointCommits");
+    await writeFile(join(dir, "mismatch-test.txt"), "hello");
+
+    const result = await checkpointTools.adv_task_checkpoint.execute(
+      {
+        taskId: "tk-test12",
+        changeId: "wrongChangeId",
+        verification: "pnpm test -- passed",
+      },
+      storeWithTask,
+      dir,
+    );
+    const parsed = parseToolOutput(result) as Record<string, unknown>;
+    expect(parsed.status).toBe("failed");
+    expect(parsed.classification).toBe("SEMANTIC");
+    expect(parsed.error).toContain("changeId mismatch");
+    // Verify nothing was staged
+    const status = await git(["status", "--porcelain"], dir);
+    expect(status.trim()).toContain("mismatch-test.txt");
+  });
+
+  // 13. Branch mismatch fails before staging
+  it("fails before staging when branch does not match expectedBranch", async () => {
+    const storeWithTask = mockStore("optimizeCheckpointCommits");
+    await writeFile(join(dir, "branch-test.txt"), "hello");
+
+    const result = await checkpointTools.adv_task_checkpoint.execute(
+      {
+        taskId: "tk-test13",
+        expectedBranch: "change/wrong-change",
+        verification: "pnpm test -- passed",
+      },
+      storeWithTask,
+      dir,
+    );
+    const parsed = parseToolOutput(result) as Record<string, unknown>;
+    expect(parsed.status).toBe("failed");
+    expect(parsed.classification).toBe("SEMANTIC");
+    expect(parsed.error).toContain("branch mismatch");
+    expect(parsed.expectedBranch).toBe("change/wrong-change");
+    expect(parsed.actualBranch).toBe("trunk");
+    // Verify nothing was staged
+    const status = await git(["status", "--porcelain"], dir);
+    expect(status.trim()).toContain("branch-test.txt");
+  });
+
+  // 14. Expected HEAD mismatch fails before staging
+  it("fails before staging when HEAD differs from expectedHeadSha", async () => {
+    const storeWithTask = mockStore("optimizeCheckpointCommits");
+    const currentHead = (await git(["rev-parse", "HEAD"], dir)).trim();
+    const wrongHead = "a".repeat(40);
+    await writeFile(join(dir, "head-test.txt"), "hello");
+
+    const result = await checkpointTools.adv_task_checkpoint.execute(
+      {
+        taskId: "tk-test14",
+        expectedBranch: "trunk",
+        expectedHeadSha: wrongHead,
+        verification: "pnpm test -- passed",
+      },
+      storeWithTask,
+      dir,
+    );
+    const parsed = parseToolOutput(result) as Record<string, unknown>;
+    expect(parsed.status).toBe("failed");
+    expect(parsed.classification).toBe("SEMANTIC");
+    expect(parsed.error).toContain("HEAD mismatch");
+    expect(parsed.expectedHeadSha).toBe(wrongHead);
+    expect(parsed.actualHeadSha).toBe(currentHead);
+    // Verify nothing was staged
+    const status = await git(["status", "--porcelain"], dir);
+    expect(status.trim()).toContain("head-test.txt");
+  });
+
+  // 15. Structured commit trailers in commit body
+  it("creates commit with structured body containing Change/Task/Mode/Verification", async () => {
+    const storeWithTask = mockStore("optimizeCheckpointCommits");
+    await writeFile(join(dir, "trailers-test.txt"), "hello");
+
+    const result = await checkpointTools.adv_task_checkpoint.execute(
+      {
+        taskId: "tk-test15",
+        expectedBranch: "trunk",
+        verification: "pnpm test -- src/tools/checkpoint.test.ts",
+      },
+      storeWithTask,
+      dir,
+    );
+    const parsed = parseToolOutput(result) as Record<string, unknown>;
+    expect(parsed.status).toBe("committed");
+
+    // Verify commit body contains trailers
+    const logBody = await git(
+      ["log", "-1", "--format=%B"],
+      dir,
+    );
+    expect(logBody).toContain("Change: optimizeCheckpointCommits");
+    expect(logBody).toContain("Task: tk-test15");
+    expect(logBody).toContain("Mode: complete");
+    expect(logBody).toContain("Verification: pnpm test -- src/tools/checkpoint.test.ts");
+  });
+
+  // 16. Verification required for complete mode on dirty tree
+  it("fails when verification is missing for complete mode on dirty tree", async () => {
+    const storeWithTask = mockStore("optimizeCheckpointCommits");
+    await writeFile(join(dir, "verify-test.txt"), "hello");
+
+    const result = await checkpointTools.adv_task_checkpoint.execute(
+      {
+        taskId: "tk-test16",
+        // no verification provided
+      },
+      storeWithTask,
+      dir,
+    );
+    const parsed = parseToolOutput(result) as Record<string, unknown>;
+    expect(parsed.status).toBe("failed");
+    expect(parsed.classification).toBe("SEMANTIC");
+    expect(parsed.error).toContain("verification");
+    // Verify nothing was staged
+    const status = await git(["status", "--porcelain"], dir);
+    expect(status.trim()).toContain("verify-test.txt");
+  });
+
+  // 17. Clean tree still validates branch/HEAD guard
+  it("validates branch/HEAD even when working tree is clean", async () => {
+    const storeWithTask = mockStore("optimizeCheckpointCommits");
+
+    const result = await checkpointTools.adv_task_checkpoint.execute(
+      {
+        taskId: "tk-test17",
+        expectedBranch: "change/wrong-change",
+        expectedHeadSha: "a".repeat(40),
+        verification: "clean tree test",
+      },
+      storeWithTask,
+      dir,
+    );
+    const parsed = parseToolOutput(result) as Record<string, unknown>;
+    expect(parsed.status).toBe("failed");
+    expect(parsed.classification).toBe("SEMANTIC");
+  });
+
+  // 18. Git failure classifications preserved
+  it("preserves ENVIRONMENTAL classification for non-git workdir with guards", async () => {
+    const nonGit = await createTempDir("adv-checkpoint-nongit-");
+    const storeWithTask = mockStore("optimizeCheckpointCommits");
+    try {
+      const result = await checkpointTools.adv_task_checkpoint.execute(
+        {
+          taskId: "tk-test18",
+          expectedBranch: "change/optimizeCheckpointCommits",
+          verification: "test",
+        },
+        storeWithTask,
+        nonGit,
+      );
+      const parsed = parseToolOutput(result) as Record<string, unknown>;
+      expect(parsed.status).toBe("failed");
+      expect(parsed.classification).toBe("ENVIRONMENTAL");
+    } finally {
+      await cleanupTempDir(nonGit);
+    }
+  });
+
+  it("preserves ENVIRONMENTAL classification for detached HEAD with guards", async () => {
+    const headSha = (await git(["rev-parse", "HEAD"], dir)).trim();
+    await git(["checkout", headSha], dir);
+    const storeWithTask = mockStore("optimizeCheckpointCommits");
+
+    const result = await checkpointTools.adv_task_checkpoint.execute(
+      {
+        taskId: "tk-test19",
+        expectedBranch: "change/optimizeCheckpointCommits",
+        verification: "test",
+      },
+      storeWithTask,
+      dir,
+    );
+    const parsed = parseToolOutput(result) as Record<string, unknown>;
+    expect(parsed.status).toBe("failed");
+    expect(parsed.classification).toBe("ENVIRONMENTAL");
+  });
+
+  it("preserves SEMANTIC classification for MERGE_HEAD with guards", async () => {
+    const gitDir = (await git(["rev-parse", "--git-dir"], dir)).trim();
+    await writeFile(join(dir, gitDir, "MERGE_HEAD"), "dummy\n");
+    await writeFile(join(dir, "conflict2.txt"), "hello");
+    const storeWithTask = mockStore("optimizeCheckpointCommits");
+
+    const result = await checkpointTools.adv_task_checkpoint.execute(
+      {
+        taskId: "tk-test20",
+        expectedBranch: "change/optimizeCheckpointCommits",
+        verification: "test",
+      },
+      storeWithTask,
+      dir,
+    );
+    const parsed = parseToolOutput(result) as Record<string, unknown>;
+    expect(parsed.status).toBe("failed");
+    expect(parsed.classification).toBe("SEMANTIC");
   });
 });
