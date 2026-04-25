@@ -26,6 +26,7 @@ import {
   resolveNodeExecutable,
 } from "./temporal/runtime-manager";
 import {
+  composeWorkerHealthProbe,
   createHealthMonitor,
   type HealthMonitor,
 } from "./temporal/health-monitor";
@@ -302,26 +303,16 @@ async function drainInProcessTemporalWorkers(): Promise<void> {
 let activeHealthMonitor: HealthMonitor | null = null;
 
 /**
- * Probe worker liveness via STSL's workflowService.describeNamespace.
- * Returns true on success, throws on failure (caller's caught and
- * routed through the failure path).
+ * Composite worker health probe (P1.6 + P1.10):
+ * 1. `describeNamespace` — connection liveness.
+ * 2. `describeWorkflowExecution` against a sentinel ID — server↔worker
+ *    round-trip. A `NotFound` rejection is the healthy outcome (server
+ *    processed our request promptly). A hang means zombie worker; the
+ *    monitor's outer `probeTimeoutMs` catches it and routes to restart.
  */
-async function probeWorkerHealth(): Promise<boolean> {
-  const bundle = getService();
-  if (!bundle) return false;
-  const svc = (
-    bundle.connection as unknown as {
-      workflowService?: {
-        describeNamespace?: (req: { namespace: string }) => Promise<unknown>;
-      };
-    }
-  ).workflowService;
-  if (!svc || typeof svc.describeNamespace !== "function") {
-    return false;
-  }
-  await svc.describeNamespace({ namespace: bundle.namespace });
-  return true;
-}
+const probeWorkerHealth = composeWorkerHealthProbe({
+  getBundle: () => getService(),
+});
 
 /**
  * Start the worker health monitor. Probes every 30s; on failure

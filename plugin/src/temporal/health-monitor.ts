@@ -77,6 +77,86 @@ export interface HealthMonitor {
 }
 
 /**
+ * Compose a worker health probe (P1.10).
+ *
+ * Two-leg probe:
+ *   1. Connection liveness via `workflowService.describeNamespace`.
+ *      Confirms the gRPC channel is open and the server is responding.
+ *   2. Worker round-trip via `workflowService.describeWorkflowExecution`
+ *      against a sentinel workflow ID that's expected to NOT exist.
+ *      A `WorkflowNotFound` response (or similar) is healthy proof
+ *      that the server-side worker reachability check completes
+ *      promptly. A hang here means the worker's event loop is stuck
+ *      (zombie state).
+ *
+ * Either leg failing — including a timeout caught by the monitor's
+ * outer `probeTimeoutMs` — counts as one health failure. The
+ * single-counter shared budget keeps semantics simple: zombie restarts
+ * count toward the same 10-attempt limit as connection failures.
+ *
+ * Returns false on bundle-missing or service-unavailable; throws on
+ * the underlying RPC error (caller catches via `probeWithTimeout`).
+ */
+export function composeWorkerHealthProbe(input: {
+  getBundle: () => {
+    namespace: string;
+    connection: unknown;
+  } | null;
+  /** Sentinel workflow ID for the round-trip leg. Default: `adv-healthcheck-sentinel`. */
+  sentinelWorkflowId?: string;
+}): () => Promise<boolean> {
+  const sentinelId = input.sentinelWorkflowId ?? "adv-healthcheck-sentinel";
+  return async () => {
+    const bundle = input.getBundle();
+    if (!bundle) return false;
+    const svc = (
+      bundle.connection as unknown as {
+        workflowService?: {
+          describeNamespace?: (req: { namespace: string }) => Promise<unknown>;
+          describeWorkflowExecution?: (req: {
+            namespace: string;
+            execution: { workflowId: string };
+          }) => Promise<unknown>;
+        };
+      }
+    ).workflowService;
+    if (
+      !svc ||
+      typeof svc.describeNamespace !== "function" ||
+      typeof svc.describeWorkflowExecution !== "function"
+    ) {
+      return false;
+    }
+
+    // Leg 1: connection liveness
+    await svc.describeNamespace({ namespace: bundle.namespace });
+
+    // Leg 2: server↔worker round-trip via sentinel describe.
+    // A `NotFound` rejection is the healthy outcome — server processed
+    // the request promptly. We catch and treat as success.
+    try {
+      await svc.describeWorkflowExecution({
+        namespace: bundle.namespace,
+        execution: { workflowId: sentinelId },
+      });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (
+        /NotFound|not[\s_]?found|NOT_FOUND|WorkflowExecutionNotFound/i.test(msg)
+      ) {
+        // Expected — server processed our request, sentinel just doesn't exist.
+        return true;
+      }
+      // Other errors (Unavailable, ResourceExhausted, etc.) propagate
+      // so the monitor can route through restart.
+      throw err;
+    }
+    // Sentinel actually existed (rare but harmless) — still healthy.
+    return true;
+  };
+}
+
+/**
  * Race a probe against a timeout. Resolves false on timeout (treated as
  * a failed probe), so callers can route through the same failure path.
  */

@@ -1,5 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { createHealthMonitor } from "./health-monitor";
+import {
+  composeWorkerHealthProbe,
+  createHealthMonitor,
+} from "./health-monitor";
 
 // P1.6 — Health-probed worker restart.
 //
@@ -242,5 +245,163 @@ describe("createHealthMonitor (P1.6)", () => {
     expect(monitor.getStats().restartCount).toBe(2);
 
     monitor.stop();
+  });
+});
+
+// P1.10 — Stale-worker auto-reboot via composite probe.
+//
+// Extends P1.6's single-leg `describeNamespace` probe with a second leg
+// that hits `describeWorkflowExecution` against a sentinel workflow ID.
+// A `NotFound` rejection from the sentinel describe is healthy proof
+// that the worker side of the connection is responsive. A hang on the
+// describe — which a zombie/wedged worker produces — gets caught by
+// the monitor's outer probeTimeoutMs and routed through the existing
+// restart budget.
+describe("composeWorkerHealthProbe (P1.10 zombie detection)", () => {
+  function makeBundle(svc: unknown) {
+    return {
+      namespace: "default",
+      connection: { workflowService: svc },
+    };
+  }
+
+  it("returns false when bundle is null (STSL not initialized)", async () => {
+    const probe = composeWorkerHealthProbe({ getBundle: () => null });
+    expect(await probe()).toBe(false);
+  });
+
+  it("returns false when workflowService methods are missing", async () => {
+    const probe = composeWorkerHealthProbe({
+      getBundle: () => makeBundle({ describeNamespace: undefined }),
+    });
+    expect(await probe()).toBe(false);
+  });
+
+  it("returns true when both legs succeed (sentinel WorkflowNotFound is healthy)", async () => {
+    const describeNamespace = vi.fn(async () => ({}));
+    const describeWorkflowExecution = vi.fn(async () => {
+      const err = new Error(
+        "WorkflowExecutionNotFound: sentinel does not exist",
+      );
+      throw err;
+    });
+    const probe = composeWorkerHealthProbe({
+      getBundle: () =>
+        makeBundle({ describeNamespace, describeWorkflowExecution }),
+    });
+    expect(await probe()).toBe(true);
+    expect(describeNamespace).toHaveBeenCalledTimes(1);
+    expect(describeWorkflowExecution).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns true when sentinel actually exists (still healthy)", async () => {
+    const probe = composeWorkerHealthProbe({
+      getBundle: () =>
+        makeBundle({
+          describeNamespace: vi.fn(async () => ({})),
+          describeWorkflowExecution: vi.fn(async () => ({
+            workflowExecutionInfo: { execution: { workflowId: "sentinel" } },
+          })),
+        }),
+    });
+    expect(await probe()).toBe(true);
+  });
+
+  it("propagates non-NotFound errors from sentinel describe (caught by monitor)", async () => {
+    const probe = composeWorkerHealthProbe({
+      getBundle: () =>
+        makeBundle({
+          describeNamespace: vi.fn(async () => ({})),
+          describeWorkflowExecution: vi.fn(async () => {
+            throw new Error("Unavailable: server overloaded");
+          }),
+        }),
+    });
+    await expect(probe()).rejects.toThrow(/Unavailable/);
+  });
+
+  it("propagates describeNamespace failures (leg 1 short-circuits)", async () => {
+    const describeWorkflowExecution = vi.fn(async () => ({}));
+    const probe = composeWorkerHealthProbe({
+      getBundle: () =>
+        makeBundle({
+          describeNamespace: vi.fn(async () => {
+            throw new Error("ECONNREFUSED");
+          }),
+          describeWorkflowExecution,
+        }),
+    });
+    await expect(probe()).rejects.toThrow(/ECONNREFUSED/);
+    expect(describeWorkflowExecution).not.toHaveBeenCalled();
+  });
+
+  it("uses default sentinel workflow ID 'adv-healthcheck-sentinel'", async () => {
+    const describeWorkflowExecution = vi.fn(async () => {
+      throw new Error("NotFound");
+    });
+    const probe = composeWorkerHealthProbe({
+      getBundle: () =>
+        makeBundle({
+          describeNamespace: vi.fn(async () => ({})),
+          describeWorkflowExecution,
+        }),
+    });
+    await probe();
+    expect(describeWorkflowExecution).toHaveBeenCalledWith({
+      namespace: "default",
+      execution: { workflowId: "adv-healthcheck-sentinel" },
+    });
+  });
+
+  it("respects custom sentinelWorkflowId override", async () => {
+    const describeWorkflowExecution = vi.fn(async () => {
+      throw new Error("NotFound");
+    });
+    const probe = composeWorkerHealthProbe({
+      getBundle: () =>
+        makeBundle({
+          describeNamespace: vi.fn(async () => ({})),
+          describeWorkflowExecution,
+        }),
+      sentinelWorkflowId: "custom-sentinel-id",
+    });
+    await probe();
+    expect(describeWorkflowExecution).toHaveBeenCalledWith({
+      namespace: "default",
+      execution: { workflowId: "custom-sentinel-id" },
+    });
+  });
+
+  it("hanging sentinel describe is caught by the monitor's probeTimeoutMs (zombie scenario)", async () => {
+    vi.useFakeTimers();
+    try {
+      const probe = composeWorkerHealthProbe({
+        getBundle: () =>
+          makeBundle({
+            describeNamespace: vi.fn(async () => ({})),
+            describeWorkflowExecution: vi.fn(
+              () => new Promise<unknown>(() => {}), // hangs forever
+            ),
+          }),
+      });
+      const restart = vi.fn(async () => {});
+      const monitor = createHealthMonitor({
+        probe,
+        restart,
+        intervalMs: 1000,
+        probeTimeoutMs: 200,
+        backoffMs: [10],
+      });
+      monitor.start();
+
+      await vi.advanceTimersByTimeAsync(1100); // first probe interval
+      await vi.advanceTimersByTimeAsync(250); // probe timeout fires
+      await vi.advanceTimersByTimeAsync(50); // backoff completes
+
+      expect(restart).toHaveBeenCalledTimes(1);
+      monitor.stop();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
