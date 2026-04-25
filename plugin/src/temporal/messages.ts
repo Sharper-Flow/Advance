@@ -35,6 +35,7 @@ import type {
   ProjectWorkflowState,
   ChangeSummaryPayload,
 } from "./contracts";
+import type { TaskRunEvent } from "../types";
 
 export const changeBootstrapQuery =
   wf.defineQuery<ChangeWorkflowBootstrapState>("adv.change.bootstrap");
@@ -55,6 +56,13 @@ export const changeTaskQuery = wf.defineQuery<
   ChangeWorkflowState["tasks"][number] | null,
   [string]
 >("adv.change.task");
+export const changeTaskRunQuery = wf.defineQuery<
+  NonNullable<ChangeWorkflowState["task_runs"]>[string] | null,
+  [string]
+>("adv.change.taskRun");
+export const changeTaskRunsQuery = wf.defineQuery<
+  NonNullable<ChangeWorkflowState["task_runs"]>[string][]
+>("adv.change.taskRuns");
 
 export const addTaskUpdate = wf.defineUpdate<
   ChangeWorkflowState["tasks"][number],
@@ -84,6 +92,10 @@ export const recordTaskEvidenceUpdate = wf.defineUpdate<
   ChangeWorkflowState["tasks"][number],
   [string, "red" | "green", TddPhaseEvidence]
 >("adv.change.recordTaskEvidence");
+export const recordTaskRunEventUpdate = wf.defineUpdate<
+  { duplicate: boolean; run: NonNullable<ChangeWorkflowState["task_runs"]>[string] },
+  [string, TaskRunEvent]
+>("adv.change.recordTaskRunEvent");
 export const setTaskPhaseUpdate = wf.defineUpdate<
   ChangeWorkflowState["tasks"][number],
   [string, TddPhase]

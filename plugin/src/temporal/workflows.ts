@@ -23,9 +23,12 @@ import {
   completeGateInChangeState,
   createChangeWorkflowState,
   getTaskFromChangeState,
+  getTaskRunFromChangeState,
   getReadyTasksFromChangeState,
+  listTaskRunsFromChangeState,
   listTasksFromChangeState,
   recordTaskEvidenceInChangeState,
+  recordTaskRunEventInChangeState,
   reclassifyTaskTddInChangeState,
   reopenFromGateInChangeState,
   setTaskPhaseInChangeState,
@@ -63,6 +66,13 @@ const changeTaskQuery = wf.defineQuery<
   ChangeWorkflowState["tasks"][number] | null,
   [string]
 >(CHANGE_WORKFLOW_QUERY_NAMES.task);
+const changeTaskRunQuery = wf.defineQuery<
+  NonNullable<ChangeWorkflowState["task_runs"]>[string] | null,
+  [string]
+>(CHANGE_WORKFLOW_QUERY_NAMES.taskRun);
+const changeTaskRunsQuery = wf.defineQuery<
+  NonNullable<ChangeWorkflowState["task_runs"]>[string][]
+>(CHANGE_WORKFLOW_QUERY_NAMES.taskRuns);
 
 const addTaskUpdate = wf.defineUpdate<
   ChangeWorkflowState["tasks"][number],
@@ -92,6 +102,13 @@ const recordTaskEvidenceUpdate = wf.defineUpdate<
   ChangeWorkflowState["tasks"][number],
   [string, "red" | "green", import("../types").TddPhaseEvidence]
 >(CHANGE_WORKFLOW_UPDATE_NAMES.recordTaskEvidence);
+const recordTaskRunEventUpdate = wf.defineUpdate<
+  {
+    duplicate: boolean;
+    run: NonNullable<ChangeWorkflowState["task_runs"]>[string];
+  },
+  [string, import("../types").TaskRunEvent]
+>(CHANGE_WORKFLOW_UPDATE_NAMES.recordTaskRunEvent);
 const setTaskPhaseUpdate = wf.defineUpdate<
   ChangeWorkflowState["tasks"][number],
   [string, import("../types").TddPhase]
@@ -220,6 +237,7 @@ export async function changeWorkflow(
       state.reentry_history = input.seedState.reentry_history;
     }
     if (input.seedState.artifacts) state.artifacts = input.seedState.artifacts;
+    if (input.seedState.task_runs) state.task_runs = input.seedState.task_runs;
   }
 
   wf.setHandler(changeBootstrapQuery, () => bootstrap);
@@ -235,6 +253,10 @@ export async function changeWorkflow(
   wf.setHandler(changeTaskQuery, (taskId: string) =>
     getTaskFromChangeState(state, taskId),
   );
+  wf.setHandler(changeTaskRunQuery, (taskId: string) =>
+    getTaskRunFromChangeState(state, taskId),
+  );
+  wf.setHandler(changeTaskRunsQuery, () => listTaskRunsFromChangeState(state));
   wf.setHandler(
     addTaskUpdate,
     (taskInput: {
@@ -275,6 +297,11 @@ export async function changeWorkflow(
       phase: "red" | "green",
       evidence: import("../types").TddPhaseEvidence,
     ) => recordTaskEvidenceInChangeState(state, taskId, phase, evidence),
+  );
+  wf.setHandler(
+    recordTaskRunEventUpdate,
+    (taskId: string, event: import("../types").TaskRunEvent) =>
+      recordTaskRunEventInChangeState(state, taskId, event),
   );
   wf.setHandler(
     setTaskPhaseUpdate,
@@ -391,6 +418,7 @@ export async function changeWorkflow(
       gates: state.gates,
       reentry_history: state.reentry_history,
       artifacts: state.artifacts,
+      task_runs: state.task_runs,
     },
   };
   await wf.continueAsNew<typeof changeWorkflow>(seed);

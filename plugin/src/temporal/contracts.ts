@@ -13,6 +13,8 @@ export const CHANGE_WORKFLOW_QUERY_NAMES = {
   tasks: "adv.change.tasks",
   ready: "adv.change.ready",
   task: "adv.change.task",
+  taskRun: "adv.change.taskRun",
+  taskRuns: "adv.change.taskRuns",
 } as const;
 
 export const PROJECT_WORKFLOW_QUERY_NAMES = {
@@ -34,6 +36,7 @@ export const CHANGE_WORKFLOW_UPDATE_NAMES = {
   addTask: "adv.change.addTask",
   updateTask: "adv.change.updateTask",
   recordTaskEvidence: "adv.change.recordTaskEvidence",
+  recordTaskRunEvent: "adv.change.recordTaskRunEvent",
   setTaskPhase: "adv.change.setTaskPhase",
   cancelTask: "adv.change.cancelTask",
   reclassifyTaskTdd: "adv.change.reclassifyTaskTdd",
