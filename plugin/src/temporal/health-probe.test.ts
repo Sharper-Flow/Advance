@@ -24,6 +24,15 @@ const mocks = vi.hoisted(() => ({
       },
     },
   })),
+  // Mock @temporalio/client so initStsl/reinitStsl don't need a real server
+  temporalConnection: {
+    close: vi.fn(async () => {}),
+    operatorService: { addSearchAttributes: vi.fn(async () => {}) },
+  },
+  temporalConnect: vi.fn(async () => mocks.temporalConnection),
+  temporalClientCtor: vi.fn(function (this: unknown) {
+    return {};
+  }),
 }));
 
 vi.mock("../plugin-init", async () => {
@@ -35,6 +44,11 @@ vi.mock("../plugin-init", async () => {
     getTemporalWorkerAliveness: mocks.getTemporalWorkerAliveness,
   };
 });
+
+vi.mock("@temporalio/client", () => ({
+  Connection: { connect: mocks.temporalConnect },
+  Client: mocks.temporalClientCtor,
+}));
 
 vi.mock("./client", async () => {
   const actual = await vi.importActual<typeof import("./client")>("./client");
