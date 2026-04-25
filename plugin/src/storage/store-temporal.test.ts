@@ -221,9 +221,202 @@ describe("Temporal store backend adapter", () => {
     await adapted.wisdom.add("chg1", "pattern", "keep it deterministic");
     expect(changeHandle.executeUpdate).toHaveBeenCalled();
 
-    // untouched legacy surfaces still delegate to existing backend
+    // P2.2: specs.list now goes through the listSpecsActivity (disk read),
+    // NOT through legacy.specs.list. legacy.specs.list must remain
+    // un-called even when the adapter's specs surface is exercised.
+    legacy.paths.specs = "/tmp/p22-specs-uncalled" as any;
     await adapted.specs.list();
-    expect(legacy.specs.list).toHaveBeenCalled();
+    expect(legacy.specs.list).not.toHaveBeenCalled();
+  });
+
+  // P2.2: explicit guards that legacy.status() and legacy.specs.* are NOT
+  // routed through legacy by the Temporal adapter.
+  describe("P2.2: legacy.status + legacy.specs.* are bypassed", () => {
+    it("status() does not call legacy.status()", async () => {
+      const tempRoot = mkdtempSync(join(tmpdir(), "p22-status-"));
+      try {
+        const specsDir = join(tempRoot, "specs");
+        mkdirSync(specsDir, { recursive: true });
+
+        const changeHandle = {
+          query: vi.fn(async () => null),
+          executeUpdate: vi.fn(async () => null),
+          signal: vi.fn(async () => {}),
+        };
+        const bundle = {
+          client: { workflow: { getHandle: routeHandle(changeHandle) } },
+        };
+
+        const legacy = makeLegacyStore();
+        legacy.paths.specs = specsDir as any;
+        legacy.paths.changes = join(tempRoot, "changes") as any;
+
+        const adapted = createTemporalStoreBackend({
+          legacy,
+          temporal: bundle as any,
+          projectId: "proj1",
+        });
+
+        const result = await adapted.status();
+
+        expect(legacy.status).not.toHaveBeenCalled();
+        expect(result).toBeDefined();
+        expect(result.specs).toBeDefined();
+        expect(Array.isArray(result.specs.capabilities)).toBe(true);
+      } finally {
+        rmSync(tempRoot, { recursive: true, force: true });
+      }
+    });
+
+    it("specs.list reads from disk (listSpecsActivity), not legacy", async () => {
+      const tempRoot = mkdtempSync(join(tmpdir(), "p22-specs-"));
+      try {
+        const specsDir = join(tempRoot, "specs");
+        mkdirSync(join(specsDir, "auth"), { recursive: true });
+        mkdirSync(join(specsDir, "payments"), { recursive: true });
+        const fs = await import("node:fs/promises");
+        await fs.writeFile(
+          join(specsDir, "auth", "spec.json"),
+          JSON.stringify({
+            name: "auth",
+            title: "Auth",
+            purpose: "Authentication and session handling.",
+            version: "1.0",
+            updated_at: "2026-04-25T00:00:00.000Z",
+            requirements: [
+              {
+                id: "rq-auth01",
+                title: "Sign in",
+                body: "Users can sign in.",
+                priority: "should",
+              },
+            ],
+          }),
+        );
+        await fs.writeFile(
+          join(specsDir, "payments", "spec.json"),
+          JSON.stringify({
+            name: "payments",
+            title: "Payments",
+            purpose: "Payment processing.",
+            version: "0.1",
+            updated_at: "2026-04-25T00:00:00.000Z",
+            requirements: [],
+          }),
+        );
+
+        const changeHandle = {
+          query: vi.fn(async () => null),
+          executeUpdate: vi.fn(async () => null),
+          signal: vi.fn(async () => {}),
+        };
+        const bundle = {
+          client: { workflow: { getHandle: routeHandle(changeHandle) } },
+        };
+        const legacy = makeLegacyStore();
+        legacy.paths.specs = specsDir as any;
+
+        const adapted = createTemporalStoreBackend({
+          legacy,
+          temporal: bundle as any,
+          projectId: "proj1",
+        });
+
+        const result = await adapted.specs.list();
+
+        expect(legacy.specs.list).not.toHaveBeenCalled();
+        expect(result.specs.map((s) => s.name).sort()).toEqual([
+          "auth",
+          "payments",
+        ]);
+        const auth = result.specs.find((s) => s.name === "auth");
+        expect(auth?.requirementCount).toBe(1);
+      } finally {
+        rmSync(tempRoot, { recursive: true, force: true });
+      }
+    });
+
+    it("specs.get reads from disk (showSpecActivity), not legacy.specs.get", async () => {
+      const tempRoot = mkdtempSync(join(tmpdir(), "p22-specs-get-"));
+      try {
+        const specsDir = join(tempRoot, "specs");
+        mkdirSync(join(specsDir, "auth"), { recursive: true });
+        const fs = await import("node:fs/promises");
+        await fs.writeFile(
+          join(specsDir, "auth", "spec.json"),
+          JSON.stringify({
+            name: "auth",
+            title: "Auth",
+            purpose: "Authentication.",
+            version: "1.0",
+            updated_at: "2026-04-25T00:00:00.000Z",
+            requirements: [],
+          }),
+        );
+
+        const changeHandle = {
+          query: vi.fn(async () => null),
+          executeUpdate: vi.fn(async () => null),
+          signal: vi.fn(async () => {}),
+        };
+        const bundle = {
+          client: { workflow: { getHandle: routeHandle(changeHandle) } },
+        };
+        const legacy = makeLegacyStore();
+        legacy.paths.specs = specsDir as any;
+
+        const adapted = createTemporalStoreBackend({
+          legacy,
+          temporal: bundle as any,
+          projectId: "proj1",
+        });
+
+        const result = await adapted.specs.get("auth");
+
+        expect(legacy.specs.get).not.toHaveBeenCalled();
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect(result.data?.name).toBe("auth");
+        }
+      } finally {
+        rmSync(tempRoot, { recursive: true, force: true });
+      }
+    });
+
+    it("specs.get returns null when capability missing (no legacy fallback)", async () => {
+      const tempRoot = mkdtempSync(join(tmpdir(), "p22-specs-missing-"));
+      try {
+        const specsDir = join(tempRoot, "specs");
+        mkdirSync(specsDir, { recursive: true });
+
+        const changeHandle = {
+          query: vi.fn(async () => null),
+          executeUpdate: vi.fn(async () => null),
+          signal: vi.fn(async () => {}),
+        };
+        const bundle = {
+          client: { workflow: { getHandle: routeHandle(changeHandle) } },
+        };
+        const legacy = makeLegacyStore();
+        legacy.paths.specs = specsDir as any;
+
+        const adapted = createTemporalStoreBackend({
+          legacy,
+          temporal: bundle as any,
+          projectId: "proj1",
+        });
+
+        const result = await adapted.specs.get("nonexistent");
+
+        expect(legacy.specs.get).not.toHaveBeenCalled();
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect(result.data).toBeNull();
+        }
+      } finally {
+        rmSync(tempRoot, { recursive: true, force: true });
+      }
+    });
   });
 
   it("uses temporal truth for changes.list and status even when legacy list/status are stale", async () => {
@@ -373,9 +566,10 @@ describe("Temporal store backend adapter", () => {
     expect(status.changes.byStatus.closed).toBe(1);
     expect(status.changes.byStatus.draft).toBe(0);
     expect(status.changes.active).toBe(0);
-    expect(status.recommendations).toEqual([
-      "[doctor] Pending WAL checkpoint: 1 bytes in WAL file (advisory — close other ADV sessions, rerun /adv-status, and restart OpenCode before archive only if it persists)",
-    ]);
+    // P2.2: doctor recommendations were generated by corruption-recovery.ts
+    // which is deleted in P2.7. The Temporal-only status path returns []
+    // for recommendations.
+    expect(status.recommendations).toEqual([]);
 
     listSpy.mockRestore();
     void listChangeDirs;
