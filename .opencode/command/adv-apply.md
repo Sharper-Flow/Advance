@@ -316,17 +316,17 @@ EXPECTED OUTPUT: implement the task, run tests, emit a fenced ENGINEER_REPORT JS
 ### Task Flow
 `adv_task_ready changeId: <id>` → for each ready task:
 
-**3a. Start:** Refresh context (MANDATORY) → `adv_task_update status: "in_progress"`
+**3a. Start:** Refresh context (MANDATORY) → `adv_task_update status: "in_progress"` → record task-run `start` in the durable task-run ledger. On resume, inspect `adv_task_run_status taskId: <id>` for `requiredNextAction` and continue from that point without adding a user pause.
 
 **3a.5. Route:** Evaluate delegation routing (above). If delegated and verified → skip to 3d.
 
-**3a.6. Clean Baseline Capture:** Verify `git status --porcelain` is clean and capture `baselineHeadSha = git rev-parse HEAD` and `baselineBranch = git branch --show-current`. If dirty → stop and remediate before Red Phase.
+**3a.6. Clean Baseline Capture:** Verify `git status --porcelain` is clean and capture `baselineHeadSha = git rev-parse HEAD` and `baselineBranch = git branch --show-current`. record baseline in the task-run ledger. If dirty → stop and remediate before Red Phase.
 
-**3b. Red Phase:** Write failing test using `edit` / `write` / `morph_edit` → run with `adv_run_test phase:'red'` → show failure evidence
+**3b. Red Phase:** Write failing test using `edit` / `write` / `morph_edit` → run with `adv_run_test phase:'red'` → show red evidence. Successful `adv_run_test` records the red evidence event in the task-run ledger.
 
-**3c. Green Phase:** Implement using `edit` / `write` / `morph_edit` → run with `adv_run_test phase:'green'` → if fails: retry protocol → show pass evidence
+**3c. Green Phase:** Implement using `edit` / `write` / `morph_edit` → run with `adv_run_test phase:'green'` → if fails: retry protocol → show green evidence. Successful `adv_run_test` records the green evidence event in the task-run ledger.
 
-**3c.4. Incremental Verification:** Run build/tests/lint for task scope → if fails: retry protocol → only proceed to checkpoint after pass.
+**3c.4. Incremental Verification:** Run build/tests/lint for task scope → if fails: retry protocol → only proceed to checkpoint after pass. Record verification event in the task-run ledger.
 
 **3c.5. Checkpoint:** Call `adv_task_checkpoint` with:
 - `taskId: <id>`
@@ -336,12 +336,12 @@ EXPECTED OUTPUT: implement the task, run tests, emit a fenced ENGINEER_REPORT JS
 - `expectedHeadSha: <baselineHeadSha>`
 - `verification: <task verification summary>`
 
-- `{status: 'clean' | 'committed'}` → proceed to 3d.
+- `{status: 'clean' | 'committed'}` → checkpoint event is recorded in the task-run ledger; proceed to 3d.
 - `{status: 'failed', classification: 'SEMANTIC'}` → diagnose, re-run checkpoint (retry budget applies).
 - `{classification: 'ENVIRONMENTAL'}` → escalate via `question` tool; keep task `in_progress`.
 - `{classification: 'TRANSIENT'}` → tool already retried internally; surface remaining failure as SEMANTIC or ENVIRONMENTAL per its follow-up classification.
 
-**3d. Complete:** `adv_task_update status: "done"` → show evidence
+**3d. Complete:** assert task-run next action is `mark_done` or checkpoint phase is satisfied → `adv_task_update status: "done"` → show evidence
 
 **3e. Loop:** `adv_task_ready` → if ready tasks remain, **GOTO 3a**. REPEAT until the ready queue is empty.
 

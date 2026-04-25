@@ -1,4 +1,4 @@
-import type { ChangeClosure, Gates } from "../types";
+import type { ChangeClosure, Gates, TaskRunState } from "../types";
 
 export const ADVANCE_TEMPORAL_TASK_QUEUE_PREFIX = "advance";
 export const DEFAULT_TEMPORAL_ADDRESS = "127.0.0.1:7233";
@@ -13,6 +13,8 @@ export const CHANGE_WORKFLOW_QUERY_NAMES = {
   tasks: "adv.change.tasks",
   ready: "adv.change.ready",
   task: "adv.change.task",
+  taskRun: "adv.change.taskRun",
+  taskRuns: "adv.change.taskRuns",
 } as const;
 
 export const PROJECT_WORKFLOW_QUERY_NAMES = {
@@ -34,6 +36,7 @@ export const CHANGE_WORKFLOW_UPDATE_NAMES = {
   addTask: "adv.change.addTask",
   updateTask: "adv.change.updateTask",
   recordTaskEvidence: "adv.change.recordTaskEvidence",
+  recordTaskRunEvent: "adv.change.recordTaskRunEvent",
   setTaskPhase: "adv.change.setTaskPhase",
   cancelTask: "adv.change.cancelTask",
   reclassifyTaskTdd: "adv.change.reclassifyTaskTdd",
@@ -90,7 +93,13 @@ export interface ChangeWorkflowInput {
   seedState?: Partial<
     Pick<
       ChangeWorkflowState,
-      "status" | "tasks" | "wisdom" | "gates" | "reentry_history" | "artifacts"
+      | "status"
+      | "tasks"
+      | "wisdom"
+      | "gates"
+      | "reentry_history"
+      | "artifacts"
+      | "task_runs"
     >
   >;
 }
@@ -112,6 +121,7 @@ export interface ChangeWorkflowState extends ChangeWorkflowInput {
     design?: ArtifactMetadata;
     agreement?: ArtifactMetadata;
   };
+  task_runs?: Record<string, TaskRunState>;
   /**
    * Closure metadata set when the workflow records a terminal close. Stored
    * on the workflow state explicitly so readers/tests don't have to rely on

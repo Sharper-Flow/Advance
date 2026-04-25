@@ -4,6 +4,10 @@ import type {
   ErrorRecovery,
   GateId,
   Task,
+  TaskRunEvent,
+  TaskRunPhase,
+  TaskRunRequiredNextAction,
+  TaskRunState,
   TddPhase,
   TddPhaseEvidence,
   TddReclassification,
@@ -46,11 +50,230 @@ function getTaskOrThrow(state: ChangeWorkflowState, taskId: string): Task {
   return task;
 }
 
+const TASK_RUN_EVENT_LIMIT = 50;
+
+const PHASE_BY_EVENT: Record<TaskRunEvent["type"], TaskRunPhase> = {
+  start: "started",
+  baseline: "baseline_captured",
+  red_evidence: "red_recorded",
+  green_evidence: "green_recorded",
+  verification: "verified",
+  checkpoint: "checkpointed",
+  complete: "done",
+  failure: "failed",
+  blocker: "blocked",
+};
+
+const NEXT_ACTION_BY_PHASE: Record<TaskRunPhase, TaskRunRequiredNextAction> = {
+  not_started: "start_task",
+  started: "capture_baseline",
+  baseline_captured: "record_red_evidence",
+  awaiting_red: "record_red_evidence",
+  red_recorded: "record_green_evidence",
+  awaiting_green: "record_green_evidence",
+  green_recorded: "run_incremental_verification",
+  verified: "checkpoint_task",
+  awaiting_checkpoint: "checkpoint_task",
+  checkpointed: "mark_done",
+  done: "none",
+  blocked: "resolve_blocker",
+  failed: "resolve_blocker",
+};
+
+const RESUME_HINT_BY_ACTION: Record<TaskRunRequiredNextAction, string> = {
+  start_task: "Start task execution with adv_task_update status:'in_progress'.",
+  capture_baseline: "Capture clean git baseline before Red Phase.",
+  record_red_evidence: "Write failing test and record red evidence.",
+  record_green_evidence: "Implement fix and record green evidence.",
+  run_incremental_verification: "Run scoped verification before checkpoint.",
+  checkpoint_task: "Create verified task checkpoint.",
+  mark_done: "Mark task done after checkpoint is satisfied.",
+  resolve_blocker: "Resolve blocker or follow doom-loop recovery.",
+  none: "Task run is complete.",
+};
+
+function ensureTaskRuns(
+  state: ChangeWorkflowState,
+): Record<string, TaskRunState> {
+  if (!state.task_runs) {
+    state.task_runs = {};
+  }
+  return state.task_runs;
+}
+
+function createTaskRun(taskId: string, now: string): TaskRunState {
+  return {
+    taskId,
+    runId: `run-${taskId}`,
+    phase: "not_started",
+    updatedAt: now,
+    resumeHint: RESUME_HINT_BY_ACTION.start_task,
+    requiredNextAction: "start_task",
+    seenIdempotencyKeys: [],
+    events: [],
+  };
+}
+
+function isTransitionAllowed(
+  current: TaskRunPhase,
+  eventType: TaskRunEvent["type"],
+): boolean {
+  if (eventType === "failure" || eventType === "blocker") {
+    return current !== "done";
+  }
+  if (eventType === "start") {
+    return current === "not_started";
+  }
+  if (eventType === "baseline") {
+    return current === "started";
+  }
+  if (eventType === "red_evidence") {
+    return current === "baseline_captured" || current === "awaiting_red";
+  }
+  if (eventType === "green_evidence") {
+    return current === "red_recorded" || current === "awaiting_green";
+  }
+  if (eventType === "verification") {
+    return current === "green_recorded";
+  }
+  if (eventType === "checkpoint") {
+    return current === "verified" || current === "awaiting_checkpoint";
+  }
+  if (eventType === "complete") {
+    return current === "checkpointed";
+  }
+  return false;
+}
+
+function applyTaskRunPayload(run: TaskRunState, event: TaskRunEvent): void {
+  if (event.type === "baseline") {
+    run.baseline = {
+      branch: String(event.payload.branch ?? ""),
+      headSha: String(event.payload.headSha ?? ""),
+      workdir: String(event.payload.workdir ?? ""),
+      capturedAt: event.recordedAt,
+    };
+  }
+  if (event.type === "red_evidence" || event.type === "green_evidence") {
+    run.evidence = run.evidence ?? {};
+    const key = event.type === "red_evidence" ? "red" : "green";
+    run.evidence[key] = {
+      test_file:
+        typeof event.payload.test_file === "string"
+          ? event.payload.test_file
+          : undefined,
+      command:
+        typeof event.payload.command === "string"
+          ? event.payload.command
+          : undefined,
+      output_snippet:
+        typeof event.payload.output_snippet === "string"
+          ? event.payload.output_snippet
+          : undefined,
+      exit_code:
+        typeof event.payload.exit_code === "number"
+          ? event.payload.exit_code
+          : undefined,
+      recorded_at: event.recordedAt,
+    };
+  }
+  if (event.type === "verification") {
+    run.verification = {
+      summary: String(event.payload.summary ?? ""),
+      recordedAt: event.recordedAt,
+    };
+  }
+  if (event.type === "checkpoint") {
+    run.checkpoint = {
+      status: event.payload.status === "committed" ? "committed" : "clean",
+      sha:
+        typeof event.payload.sha === "string" ? event.payload.sha : undefined,
+      branch:
+        typeof event.payload.branch === "string"
+          ? event.payload.branch
+          : undefined,
+      gitRoot:
+        typeof event.payload.gitRoot === "string"
+          ? event.payload.gitRoot
+          : undefined,
+      message:
+        typeof event.payload.message === "string"
+          ? event.payload.message
+          : undefined,
+      recordedAt: event.recordedAt,
+    };
+  }
+}
+
 export function getTaskFromChangeState(
   state: ChangeWorkflowState,
   taskId: string,
 ): Task | null {
   return state.tasks.find((candidate) => candidate.id === taskId) ?? null;
+}
+
+export function getTaskRunFromChangeState(
+  state: ChangeWorkflowState,
+  taskId: string,
+): TaskRunState | null {
+  return state.task_runs?.[taskId] ?? null;
+}
+
+export function listTaskRunsFromChangeState(
+  state: ChangeWorkflowState,
+): TaskRunState[] {
+  return Object.values(state.task_runs ?? {});
+}
+
+export function recordTaskRunEventInChangeState(
+  state: ChangeWorkflowState,
+  taskId: string,
+  event: TaskRunEvent,
+): { duplicate: boolean; run: TaskRunState } {
+  getTaskOrThrow(state, taskId);
+  if (!event.idempotencyKey) {
+    throw new Error("Task-run event idempotencyKey is required");
+  }
+
+  const runs = ensureTaskRuns(state);
+  const run = runs[taskId] ?? createTaskRun(taskId, event.recordedAt);
+  runs[taskId] = run;
+
+  const duplicate =
+    run.seenIdempotencyKeys.includes(event.idempotencyKey) ||
+    run.events.some(
+      (existing) => existing.idempotencyKey === event.idempotencyKey,
+    );
+  if (duplicate) {
+    return { duplicate: true, run };
+  }
+
+  if (!isTransitionAllowed(run.phase, event.type)) {
+    throw new Error(
+      `Invalid task-run transition from ${run.phase} via ${event.type}`,
+    );
+  }
+
+  if (event.type === "start" && !run.startedAt) {
+    run.startedAt = event.recordedAt;
+  }
+  run.phase = PHASE_BY_EVENT[event.type];
+  run.updatedAt = event.recordedAt;
+  run.requiredNextAction = NEXT_ACTION_BY_PHASE[run.phase];
+  run.resumeHint = RESUME_HINT_BY_ACTION[run.requiredNextAction];
+  applyTaskRunPayload(run, event);
+  run.events.push(event);
+  run.seenIdempotencyKeys.push(event.idempotencyKey);
+
+  if (run.events.length > TASK_RUN_EVENT_LIMIT) {
+    run.events = run.events.slice(-TASK_RUN_EVENT_LIMIT);
+  }
+  if (run.seenIdempotencyKeys.length > TASK_RUN_EVENT_LIMIT) {
+    run.seenIdempotencyKeys =
+      run.seenIdempotencyKeys.slice(-TASK_RUN_EVENT_LIMIT);
+  }
+
+  return { duplicate: false, run };
 }
 
 export function createChangeWorkflowState(input: {

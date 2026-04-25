@@ -19,6 +19,7 @@ import {
 } from "../__tests__/setup";
 import { checkpointTools } from "./checkpoint";
 import type { Store } from "../storage/store-types";
+import type { TaskRunEvent, TaskRunState } from "../types";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -39,10 +40,33 @@ function git(
 }
 
 /** Minimal store mock — supports tasks.show for change identity resolution. */
-function mockStore(taskOwnerChangeId?: string): Store {
+function mockStore(
+  taskOwnerChangeId?: string,
+  options?: { failRecordRunEvent?: boolean },
+): Store & { recordedRunEvents: TaskRunEvent[] } {
+  const recordedRunEvents: TaskRunEvent[] = [];
   const tasks = {
     update: (..._args: unknown[]) => {
       throw new Error("store.tasks.update MUST NOT be called by checkpoint");
+    },
+    recordRunEvent: async (_taskId: string, event: TaskRunEvent) => {
+      if (options?.failRecordRunEvent) {
+        throw new Error("ledger unavailable");
+      }
+      recordedRunEvents.push(event);
+      return {
+        duplicate: false,
+        run: {
+          taskId: _taskId,
+          runId: `run-${_taskId}`,
+          phase: "checkpointed",
+          updatedAt: event.recordedAt,
+          resumeHint: "Mark task done after checkpoint is satisfied.",
+          requiredNextAction: "mark_done",
+          seenIdempotencyKeys: [event.idempotencyKey],
+          events: [event],
+        } satisfies TaskRunState,
+      };
     },
     show: (_taskId: string) => {
       if (taskOwnerChangeId) {
@@ -54,7 +78,9 @@ function mockStore(taskOwnerChangeId?: string): Store {
       return Promise.resolve(null);
     },
   } as unknown as Store["tasks"];
-  return { tasks } as Store;
+  return { tasks, recordedRunEvents } as Store & {
+    recordedRunEvents: TaskRunEvent[];
+  };
 }
 
 /** Initialise a git repo with one initial commit. */
@@ -403,6 +429,32 @@ describe("adv_task_checkpoint", () => {
     expect(logBody).toContain(
       "Verification: pnpm test -- src/tools/checkpoint.test.ts",
     );
+    expect(storeWithTask.recordedRunEvents.at(-1)?.type).toBe("checkpoint");
+    expect(storeWithTask.recordedRunEvents.at(-1)?.payload.sha).toBe(
+      parsed.sha,
+    );
+  });
+
+  it("surfaces checkpointRecorded false when ledger write fails after git success", async () => {
+    const storeWithTask = mockStore("optimizeCheckpointCommits", {
+      failRecordRunEvent: true,
+    });
+    await writeFile(join(dir, "ledger-fail.txt"), "hello");
+
+    const result = await checkpointTools.adv_task_checkpoint.execute(
+      {
+        taskId: "tk-test-ledger-fail",
+        expectedBranch: "trunk",
+        verification: "pnpm test -- src/tools/checkpoint.test.ts",
+      },
+      storeWithTask,
+      dir,
+    );
+    const parsed = parseToolOutput(result) as Record<string, unknown>;
+
+    expect(parsed.status).toBe("committed");
+    expect(parsed.checkpointRecorded).toBe(false);
+    expect(parsed.remediation).toContain("adv_task_run_status");
   });
 
   // 16. Verification required for complete mode on dirty tree

@@ -53,6 +53,8 @@ interface CheckpointResult {
   actualBranch?: string;
   expectedHeadSha?: string;
   actualHeadSha?: string;
+  checkpointRecorded?: boolean;
+  remediation?: string;
 }
 
 type ErrorClass = "SEMANTIC" | "ENVIRONMENTAL" | "TRANSIENT";
@@ -417,6 +419,36 @@ export const checkpointTools = {
       }
 
       if (statusOutput.trim() === "") {
+        try {
+          await store.tasks.recordRunEvent(args.taskId, {
+            idempotencyKey: `${args.taskId}:checkpoint:clean:${actualHeadSha}`,
+            type: "checkpoint",
+            recordedAt: new Date().toISOString(),
+            payload: {
+              status: "clean",
+              sha: actualHeadSha,
+              branch: actualBranch,
+              gitRoot,
+              changeId: effectiveChangeId,
+              expectedBranch,
+              expectedHeadSha: args.expectedHeadSha,
+              verification: args.verification,
+            },
+          });
+        } catch (err) {
+          return formatToolOutput({
+            status: "clean",
+            sha: actualHeadSha,
+            branch: actualBranch,
+            workdir: cwd,
+            gitRoot,
+            changeId: derivedChangeId,
+            checkpointRecorded: false,
+            error: err instanceof Error ? err.message : String(err),
+            remediation:
+              "Git checkpoint is clean but task-run ledger recording failed. Run adv_task_run_status, then retry checkpoint or record the ledger event before marking the task done.",
+          } satisfies CheckpointResult);
+        }
         // Clean tree — idempotent, no commit needed
         return formatToolOutput({
           status: "clean",
@@ -425,6 +457,7 @@ export const checkpointTools = {
           workdir: cwd,
           gitRoot,
           changeId: derivedChangeId,
+          checkpointRecorded: true,
         } satisfies CheckpointResult);
       }
 
@@ -487,6 +520,38 @@ export const checkpointTools = {
 
         // Commit succeeded — return result
         const { stdout: sha } = await runGit(["rev-parse", "HEAD"], cwd);
+        try {
+          await store.tasks.recordRunEvent(args.taskId, {
+            idempotencyKey: `${args.taskId}:checkpoint:committed:${sha.trim()}`,
+            type: "checkpoint",
+            recordedAt: new Date().toISOString(),
+            payload: {
+              status: "committed",
+              sha: sha.trim(),
+              branch: actualBranch,
+              gitRoot,
+              message: subject,
+              changeId: effectiveChangeId,
+              expectedBranch,
+              expectedHeadSha: args.expectedHeadSha,
+              verification: args.verification,
+            },
+          });
+        } catch (err) {
+          return formatToolOutput({
+            status: "committed",
+            sha: sha.trim(),
+            branch: actualBranch,
+            workdir: cwd,
+            gitRoot,
+            message: subject,
+            changeId: derivedChangeId,
+            checkpointRecorded: false,
+            error: err instanceof Error ? err.message : String(err),
+            remediation:
+              "Git checkpoint commit succeeded but task-run ledger recording failed. Run adv_task_run_status, then retry checkpoint or record the ledger event before marking the task done.",
+          } satisfies CheckpointResult);
+        }
         return formatToolOutput({
           status: "committed",
           sha: sha.trim(),
@@ -495,6 +560,7 @@ export const checkpointTools = {
           gitRoot,
           message: subject,
           changeId: derivedChangeId,
+          checkpointRecorded: true,
         } satisfies CheckpointResult);
       } catch (err) {
         return formatToolOutput({

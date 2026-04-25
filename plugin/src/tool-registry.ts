@@ -186,6 +186,11 @@ export function createToolMap(
 
     // Task Tools
     adv_task_show: bindTool(taskTools.adv_task_show, "adv_task_show", store),
+    adv_task_run_status: bindTool(
+      taskTools.adv_task_run_status,
+      "adv_task_run_status",
+      store,
+    ),
     adv_task_list: bindTool(taskTools.adv_task_list, "adv_task_list", store),
     adv_task_ready: bindTool(taskTools.adv_task_ready, "adv_task_ready", store),
     adv_task_update: bindTool(
@@ -419,6 +424,7 @@ export const ADV_TOOL_NAMES: readonly string[] = [
   "adv_change_update_issues",
   "adv_change_reenter",
   "adv_task_show",
+  "adv_task_run_status",
   "adv_task_list",
   "adv_task_ready",
   "adv_task_update",

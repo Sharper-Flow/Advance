@@ -1,7 +1,7 @@
 # Advance
 
-> **Version:** 1.12.0
-> **Updated:** 2026-04-23
+> **Version:** 1.13.0
+> **Updated:** 2026-04-25
 
 ## Purpose
 
@@ -1214,3 +1214,96 @@ Every /adv-\* command that emits a user-facing gate-transition message MUST use 
 **Then:**
 
 - Its signature and behavior remain identical to before `adv_change_bulk_close` was added
+
+---
+
+### Durable Task-Run Lifecycle Ledger
+
+**ID:** `rq-taskRunLedger01` | **Priority:** **[MUST]**
+
+`/adv-apply` task execution must maintain a Temporal-owned task-run ledger that records lifecycle phase, required next action, resume hint, evidence, verification, checkpoint, and blocker/failure events without moving OpenCode tool/model/file-edit execution into Temporal activities. The ledger must preserve existing inline TDD, checkpoint-before-done, and no-pause apply-loop semantics.
+
+#### Scenarios
+
+**Task-run status exposes safe resume point** (`rq-taskRunLedger01.1`)
+
+**Given:**
+
+- An `/adv-apply` task has started or partially completed
+
+**When:** `adv_task_run_status` is called for that task
+
+**Then:**
+
+- The response includes the current phase
+- The response includes `requiredNextAction` and `resumeHint`
+- The response summarizes baseline, evidence, verification, checkpoint, attempts, and recent events when present
+
+**Evidence and checkpoint events are linked to the ledger** (`rq-taskRunLedger01.2`)
+
+**Given:**
+
+- An `/adv-apply` task records red evidence, green evidence, verification, or checkpoint result
+
+**When:** The corresponding tool path succeeds
+
+**Then:**
+
+- A task-run ledger event is recorded with a deterministic idempotency key
+- Duplicate idempotency keys do not append duplicate events or re-advance phase
+- The existing `tdd_evidence` and checkpoint outputs remain intact
+
+**Ledger survives Temporal continue-as-new** (`rq-taskRunLedger01.3`)
+
+**Given:**
+
+- A change workflow has `task_runs` state
+
+**When:** The workflow continues as new to bound history size
+
+**Then:**
+
+- The `task_runs` state is included in the seed state
+- Handler-level idempotency data survives workflow-run rollover
+- No task-run phase or resume information is silently reset
+
+**Temporal remains the runtime state authority** (`rq-taskRunLedger01.4`)
+
+**Given:**
+
+- Task-run lifecycle state is persisted
+
+**When:** The runtime reads or mutates task-run state
+
+**Then:**
+
+- The authoritative runtime state lives in Temporal workflow state
+- Disk artifacts may support recovery or tests but are not the task-run runtime source of truth
+- No SQLite or replacement local database is introduced for task-run state
+
+**No direct Temporal execution of OpenCode side effects in v1** (`rq-taskRunLedger01.5`)
+
+**Given:**
+
+- A task-run event represents evidence, verification, or checkpoint outcome
+
+**When:** The event is recorded
+
+**Then:**
+
+- OpenCode agents still perform file edits, shell/test commands, model calls, sub-agent calls, and git commits
+- Temporal records externally supplied results rather than directly executing those side effects
+
+**Apply-loop autonomy is preserved** (`rq-taskRunLedger01.6`)
+
+**Given:**
+
+- A task-run ledger indicates the next resume action
+
+**When:** `/adv-apply` resumes or continues execution
+
+**Then:**
+
+- The ledger guides the agent to the next apply-loop step
+- No new user pause or approval checkpoint is introduced
+- Existing blocker, doom-loop, cancellation, re-entry, and acceptance checkpoints remain unchanged

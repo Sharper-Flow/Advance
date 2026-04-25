@@ -191,6 +191,34 @@ export const testTools = {
         evidence,
       );
 
+      let taskRun:
+        | { phase: string; requiredNextAction: string; duplicate: boolean }
+        | undefined;
+      try {
+        const recorded = await store.tasks.recordRunEvent(args.taskId, {
+          idempotencyKey: `${args.taskId}:${args.phase}:${args.command}:${exitCode}:${truncatedOutput.slice(0, 64)}`,
+          type: args.phase === "red" ? "red_evidence" : "green_evidence",
+          recordedAt: evidence.recorded_at,
+          payload: {
+            test_file: args.command,
+            command: args.command,
+            exit_code: exitCode,
+            output_snippet: truncateOutput(truncatedOutput),
+          },
+        });
+        if (recorded) {
+          taskRun = {
+            phase: recorded.run.phase,
+            requiredNextAction: recorded.run.requiredNextAction,
+            duplicate: recorded.duplicate,
+          };
+        }
+      } catch {
+        // Ledger recording is additive. Preserve existing evidence behavior
+        // for legacy/no-ledger callers; apply flow records task-run state in
+        // the normal baseline -> red -> green order.
+      }
+
       return formatToolOutput({
         success: true,
         exitCode,
@@ -198,6 +226,7 @@ export const testTools = {
         recordedPhase: updatedTask?.tdd_phase,
         output: truncatedOutput,
         command: args.command,
+        ...(taskRun ? { taskRun } : {}),
         timedOut,
         maxBufferExceeded,
         ...(timedOut && { timeoutMs: effective.timeoutMs }),

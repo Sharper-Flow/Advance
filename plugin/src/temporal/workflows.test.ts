@@ -1,6 +1,10 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import {
+  CHANGE_WORKFLOW_QUERY_NAMES,
+  CHANGE_WORKFLOW_UPDATE_NAMES,
+} from "./contracts";
 
 /**
  * Workflow-safe invariant guard for `workflows.ts`.
@@ -19,7 +23,9 @@ import { describe, expect, it } from "vitest";
  */
 describe("workflows module (workflow-safe invariant)", () => {
   const modulePath = fileURLToPath(new URL("./workflows.ts", import.meta.url));
+  const messagesPath = fileURLToPath(new URL("./messages.ts", import.meta.url));
   const source = readFileSync(modulePath, "utf8");
+  const messagesSource = readFileSync(messagesPath, "utf8");
 
   it("direct imports are restricted to workflow-safe modules", () => {
     // Join the full source so multi-line import statements collapse to a
@@ -59,5 +65,29 @@ describe("workflows module (workflow-safe invariant)", () => {
   it("exports changeWorkflow and projectWorkflow", () => {
     expect(source).toMatch(/export async function changeWorkflow\(/);
     expect(source).toMatch(/export async function projectWorkflow\(/);
+  });
+
+  it("declares task-run query and update wire contracts", () => {
+    expect(CHANGE_WORKFLOW_QUERY_NAMES.taskRun).toBe("adv.change.taskRun");
+    expect(CHANGE_WORKFLOW_QUERY_NAMES.taskRuns).toBe("adv.change.taskRuns");
+    expect(CHANGE_WORKFLOW_UPDATE_NAMES.recordTaskRunEvent).toBe(
+      "adv.change.recordTaskRunEvent",
+    );
+  });
+
+  it("mirrors task-run query/update bindings in messages and workflows", () => {
+    expect(messagesSource).toContain("changeTaskRunQuery");
+    expect(messagesSource).toContain("changeTaskRunsQuery");
+    expect(messagesSource).toContain("recordTaskRunEventUpdate");
+    expect(source).toContain("changeTaskRunQuery");
+    expect(source).toContain("changeTaskRunsQuery");
+    expect(source).toContain("recordTaskRunEventUpdate");
+    expect(source).toContain("recordTaskRunEventInChangeState");
+  });
+
+  it("hydrates and continues task_runs across continue-as-new", () => {
+    expect(source).toContain("input.seedState.task_runs");
+    expect(source).toContain("state.task_runs = input.seedState.task_runs");
+    expect(source).toContain("task_runs: state.task_runs");
   });
 });

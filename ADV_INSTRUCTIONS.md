@@ -274,6 +274,11 @@ Persisted in `reflections.jsonl` in the ADV state directory. Retrievable via `ad
 ### Task Checkpoint Commits
 Every `/adv-apply` task with file changes in its workdir MUST produce a git commit via `adv_task_checkpoint` before transitioning to `status:'done'`. Cancellations MUST checkpoint before `status:'cancelled'`. Enforcement is at the `/adv-apply` command seam (step 3c.5), not in `adv_task_update` itself.
 
+**Durable Task-Run Ledger.**
+Each `/adv-apply` task records a durable task-run ledger in Temporal. Use `adv_task_run_status` to recover the current phase, `requiredNextAction`, resume hint, baseline, evidence, verification, checkpoint, and recent events after context loss or session restart. Ledger status never creates an extra user pause; it tells the agent where to resume inside the existing no-pause apply loop.
+
+Ledger recording points: task start, clean baseline, red evidence, green evidence, incremental verification, checkpoint, completion, failures, and blockers. `adv_task_checkpoint` records the checkpoint event after clean/committed git result; if git succeeds but ledger recording fails, surface remediation before marking the task done.
+
 **Apply-loop ordering:**
 
 | Step | Action                                          |
