@@ -68,6 +68,18 @@ describe("Test Tools", () => {
     });
 
     test("accepts red phase when command exits non-zero (correct semantics)", async () => {
+      await store.tasks.recordRunEvent("tk-task0001", {
+        idempotencyKey: "run:start:red-test",
+        type: "start",
+        recordedAt: "2026-04-14T00:00:00.000Z",
+        payload: {},
+      });
+      await store.tasks.recordRunEvent("tk-task0001", {
+        idempotencyKey: "run:baseline:red-test",
+        type: "baseline",
+        recordedAt: "2026-04-14T00:00:01.000Z",
+        payload: { branch: "main", headSha: "abc", workdir: tempDir },
+      });
       const result = await testTools.adv_run_test.execute(
         {
           taskId: "tk-task0001",
@@ -82,9 +94,30 @@ describe("Test Tools", () => {
       expect(parsed.success).toBe(true);
       expect(parsed.exitCode).toBe(1);
       expect(parsed.error).toBeUndefined();
+      const run = await store.tasks.getRun("tk-task0001");
+      expect(run?.phase).toBe("red_recorded");
+      expect(run?.events.at(-1)?.type).toBe("red_evidence");
     });
 
     test("accepts green phase when command exits 0 (correct semantics)", async () => {
+      await store.tasks.recordRunEvent("tk-task0001", {
+        idempotencyKey: "run:start:green-test",
+        type: "start",
+        recordedAt: "2026-04-14T00:00:00.000Z",
+        payload: {},
+      });
+      await store.tasks.recordRunEvent("tk-task0001", {
+        idempotencyKey: "run:baseline:green-test",
+        type: "baseline",
+        recordedAt: "2026-04-14T00:00:01.000Z",
+        payload: { branch: "main", headSha: "abc", workdir: tempDir },
+      });
+      await store.tasks.recordRunEvent("tk-task0001", {
+        idempotencyKey: "run:red:green-test",
+        type: "red_evidence",
+        recordedAt: "2026-04-14T00:00:02.000Z",
+        payload: { command: "false", exit_code: 1 },
+      });
       const result = await testTools.adv_run_test.execute(
         {
           taskId: "tk-task0001",
@@ -99,6 +132,9 @@ describe("Test Tools", () => {
       expect(parsed.success).toBe(true);
       expect(parsed.exitCode).toBe(0);
       expect(parsed.error).toBeUndefined();
+      const run = await store.tasks.getRun("tk-task0001");
+      expect(run?.phase).toBe("green_recorded");
+      expect(run?.events.at(-1)?.type).toBe("green_evidence");
     });
 
     describe("bounded execution", () => {

@@ -254,6 +254,21 @@ export const taskTools = {
 
       // Emit snapshot on meaningful transitions (in_progress, done)
       const output: Record<string, unknown> = { success: true, task };
+      if (status === "in_progress") {
+        const recorded = await store.tasks.recordRunEvent(taskId, {
+          idempotencyKey: `${taskId}:start:${task.started_at ?? "unknown"}`,
+          type: "start",
+          recordedAt: task.started_at ?? new Date().toISOString(),
+          payload: {},
+        });
+        if (recorded) {
+          output.taskRun = {
+            phase: recorded.run.phase,
+            requiredNextAction: recorded.run.requiredNextAction,
+            duplicate: recorded.duplicate,
+          };
+        }
+      }
       if (task.error_recovery) {
         output.formatted_doom_loop = formatDoomLoopDiagnostics(
           task.error_recovery,

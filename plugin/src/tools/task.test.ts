@@ -227,6 +227,9 @@ describe("Task Tools", () => {
       expect(parsed.success).toBe(true);
       expect(parsed.task.status).toBe("in_progress");
       expect(parsed.task.started_at).toBeDefined();
+      const run = await store.tasks.getRun("tk-task0001");
+      expect(run?.phase).toBe("started");
+      expect(run?.requiredNextAction).toBe("capture_baseline");
     });
 
     test("updates task status to done with notes", async () => {
