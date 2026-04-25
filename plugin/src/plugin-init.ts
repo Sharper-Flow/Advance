@@ -14,7 +14,7 @@
 import { createStore } from "./storage/store";
 import type { Store } from "./storage/store-types";
 import { buildProjectTaskQueue } from "./temporal/client";
-import { initStsl, closeStsl } from "./temporal/service";
+import { initStsl, closeStsl, getService } from "./temporal/service";
 import {
   createInProcessWorker,
   type InProcessWorker,
@@ -25,6 +25,10 @@ import {
   probeTemporalWorkerRuntime,
   resolveNodeExecutable,
 } from "./temporal/runtime-manager";
+import {
+  createHealthMonitor,
+  type HealthMonitor,
+} from "./temporal/health-monitor";
 import { fileURLToPath } from "node:url";
 import { existsSync } from "node:fs";
 import { performance } from "node:perf_hooks";
@@ -291,6 +295,69 @@ async function drainInProcessTemporalWorkers(): Promise<void> {
   );
 }
 
+// =============================================================================
+// Health monitor (P1.6)
+// =============================================================================
+
+let activeHealthMonitor: HealthMonitor | null = null;
+
+/**
+ * Probe worker liveness via STSL's workflowService.describeNamespace.
+ * Returns true on success, throws on failure (caller's caught and
+ * routed through the failure path).
+ */
+async function probeWorkerHealth(): Promise<boolean> {
+  const bundle = getService();
+  if (!bundle) return false;
+  const svc = (
+    bundle.connection as unknown as {
+      workflowService?: {
+        describeNamespace?: (req: { namespace: string }) => Promise<unknown>;
+      };
+    }
+  ).workflowService;
+  if (!svc || typeof svc.describeNamespace !== "function") {
+    return false;
+  }
+  await svc.describeNamespace({ namespace: bundle.namespace });
+  return true;
+}
+
+/**
+ * Start the worker health monitor. Probes every 30s; on failure
+ * triggers `restartCurrentProjectTemporalWorker`. Bounded to 10
+ * restart attempts before emitting `[ADV:BLOCKED]`. See P1.6.
+ */
+export function startWorkerHealthMonitor(projectDir: string): HealthMonitor {
+  if (activeHealthMonitor) return activeHealthMonitor;
+  const monitor = createHealthMonitor({
+    probe: probeWorkerHealth,
+    restart: async () => {
+      await restartCurrentProjectTemporalWorker(projectDir);
+    },
+    onBlocked: () => {
+      logger.error(
+        "[ADV:BLOCKED] Worker health restart budget exhausted — adv_* tools may stall. Run /adv-status to confirm; manual restart of OpenCode may be required.",
+      );
+    },
+  });
+  monitor.start();
+  activeHealthMonitor = monitor;
+  return monitor;
+}
+
+/**
+ * Stop the active worker health monitor. Idempotent.
+ * Called from `shutdownWithFlush` to avoid leaked timers across
+ * sessions.
+ */
+export function stopWorkerHealthMonitor(): void {
+  if (activeHealthMonitor) {
+    activeHealthMonitor.stop();
+    activeHealthMonitor = null;
+  }
+}
+
 export async function restartCurrentProjectTemporalWorker(
   projectDir: string,
 ): Promise<{ projectId: string; queues: string[] }> {
@@ -343,6 +410,7 @@ export function registerShutdownHandlers(
     // Fire-and-forget: process.on("exit") handlers MUST be synchronous.
     // The in-process worker's shutdown is best-effort at this stage; real
     // graceful drain happens via shutdownWithFlush on SIGINT/SIGTERM.
+    stopWorkerHealthMonitor();
     void drainInProcessTemporalWorkers();
     if (!store) return;
     try {
@@ -355,6 +423,7 @@ export function registerShutdownHandlers(
   let flushInFlight = false;
   const shutdownWithFlush = () => {
     cleanupTerminal();
+    stopWorkerHealthMonitor();
     if (flushInFlight) return;
     flushInFlight = true;
     if (!store) return void process.exit(0);
