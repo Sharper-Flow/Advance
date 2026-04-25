@@ -19,6 +19,7 @@ const mocks = vi.hoisted(() => ({
     last_error: null,
     fallback_counts: getTemporalFallbackTelemetry(),
     stale_queues: [],
+    reconnect_count: 0,
   })),
   createTemporalClientBundle: vi.fn(async () => ({
     connection: { close: vi.fn(async () => {}) },
@@ -95,6 +96,7 @@ describe("adv_status temporal health/migration status (C4)", () => {
       last_error: null,
       fallback_counts: getTemporalFallbackTelemetry(),
       stale_queues: [],
+      reconnect_count: 0,
     });
   });
 
@@ -131,6 +133,7 @@ describe("adv_status temporal health/migration status (C4)", () => {
       last_error: "boom",
       fallback_counts: getTemporalFallbackTelemetry(),
       stale_queues: [],
+      reconnect_count: 0,
     });
     expect(parsed.migration_status).toBeNull();
   });
@@ -145,6 +148,7 @@ describe("adv_status temporal health/migration status (C4)", () => {
       last_error: null,
       fallback_counts: getTemporalFallbackTelemetry(),
       stale_queues: [{ queue: "advance-target-proj", running_count: 42 }],
+      reconnect_count: 0,
     });
 
     (store.paths as { external?: string }).external =

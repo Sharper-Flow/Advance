@@ -140,6 +140,25 @@ describe("getTemporalHealth (C3)", () => {
     expect(health.worker_process_alive).toBe(false);
   });
 
+  it("surfaces reconnect_count from getStslStats (Task 5 — KD-6)", async () => {
+    // RED: TemporalHealth.reconnect_count must reflect StslStats.reconnectCount.
+    // Initially 0 in the live service; force one increment via the runtime
+    // counter and assert the field propagates.
+    const { resetStsl, initStsl, reinitStsl, closeStsl } = await import(
+      "./service"
+    );
+    resetStsl();
+    await initStsl({
+      ADV_TEMPORAL_ADDRESS: "127.0.0.1:7233",
+      ADV_TEMPORAL_NAMESPACE: "default",
+    });
+    await reinitStsl();
+    const health = await getTemporalHealth();
+    expect(health).toHaveProperty("reconnect_count", 1);
+    await closeStsl();
+    resetStsl();
+  });
+
   it("includes fallback_counts with per-domain counters", async () => {
     incrementFallbackCount("tasks");
     incrementFallbackCount("tasks");

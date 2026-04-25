@@ -228,6 +228,7 @@ export const statusTools = {
           last_error: err instanceof Error ? err.message : String(err),
           fallback_counts: getTemporalFallbackTelemetry(),
           stale_queues: [],
+          reconnect_count: 0,
         };
       }
 

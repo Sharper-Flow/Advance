@@ -1,5 +1,5 @@
 import { getTemporalAddress } from "./client";
-import { getService } from "./service";
+import { getService, getStslStats } from "./service";
 import { getTemporalRetryTelemetry } from "./retry-wrapper";
 import {
   type FallbackCounts,
@@ -47,6 +47,14 @@ export interface TemporalHealth {
   fallback_counts: FallbackCounts;
   /** Queues with Running workflows older than the stale threshold and no local poller. */
   stale_queues: StaleQueue[];
+  /**
+   * Number of successful STSL reconnect events since plugin init.
+   * Increments only when `reinitStsl` succeeds (close + Connection.connect +
+   * search-attribute re-registration). Useful for diagnosing connection
+   * stability — sustained growth means the Temporal server is flapping or
+   * an intermediate proxy is dropping the gRPC channel.
+   */
+  reconnect_count: number;
 }
 
 let overrideTelemetry: {
@@ -159,5 +167,6 @@ export async function getTemporalHealth(
     last_error: telemetry.lastError,
     fallback_counts: getTemporalFallbackTelemetry(),
     stale_queues,
+    reconnect_count: getStslStats().reconnectCount,
   };
 }
