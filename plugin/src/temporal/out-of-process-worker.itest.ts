@@ -62,33 +62,33 @@ describe.skipIf(!canRun)("createOutOfProcessWorker integration", () => {
     await withTestWorkflowEnvironment(
       () => TestWorkflowEnvironment.createTimeSkipping(),
       async (env) => {
-        // TestWorkflowEnvironment exposes a random-port Temporal server.
-        // The OOP worker spawns a Node child that needs to connect by
-        // address — pull it from the env's native connection.
         const address = String(env.address ?? "127.0.0.1:7233");
 
-        const worker = await createOutOfProcessWorker({
-          address,
-          namespace: "default",
-          queues: ["advance-oop-itest"],
-          workerScript: script!.path,
-          projectId: "oop-itest",
-        });
+        // Retry worker creation — child process may exit before ready IPC
+        // due to Temporal server startup timing or port races (CI flake).
+        const worker = await retry(
+          async () => {
+            const w = await createOutOfProcessWorker({
+              address,
+              namespace: "default",
+              queues: ["advance-oop-itest"],
+              workerScript: script!.path,
+              projectId: "oop-itest",
+            });
+            await waitForWorkerAlive(w, 5_000, 100);
+            return w;
+          },
+          3,
+          1_000,
+        );
 
         try {
-          await waitForWorkerAlive(worker, 5_000, 100);
-
           expect(worker.queues).toEqual(["advance-oop-itest"]);
-          // If the child exited prematurely (missing dep, bad env),
-          // isAlive returns false — this is the primary signal that the
-          // spawn succeeded.
           expect((worker as { isAlive?: () => boolean }).isAlive?.()).toBe(
             true,
           );
         } finally {
           await worker.shutdown();
-          // After shutdown, isAlive must report false — else the child
-          // outlives the worker handle and we'd leak procs across tests.
           expect((worker as { isAlive?: () => boolean }).isAlive?.()).toBe(
             false,
           );
@@ -190,6 +190,26 @@ async function waitForProcessExit(
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/** Retry an async operation up to `attempts` times with `delayMs` between failures. */
+async function retry<T>(
+  fn: () => Promise<T>,
+  attempts: number,
+  delayMs: number,
+): Promise<T> {
+  let lastError: unknown;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastError = err;
+      if (i < attempts - 1) {
+        await sleep(delayMs);
+      }
+    }
+  }
+  throw lastError;
 }
 
 // Emit a helpful diagnostic when the suite is skipped so the reader knows why.
