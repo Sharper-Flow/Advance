@@ -269,6 +269,112 @@ export const ErrorRecoverySchema = z.object({
 export type ErrorRecovery = z.infer<typeof ErrorRecoverySchema>;
 
 // =============================================================================
+// Durable Task-Run Lifecycle
+// =============================================================================
+
+export const TaskRunPhaseSchema = z.enum([
+  "not_started",
+  "started",
+  "baseline_captured",
+  "awaiting_red",
+  "red_recorded",
+  "awaiting_green",
+  "green_recorded",
+  "verified",
+  "awaiting_checkpoint",
+  "checkpointed",
+  "done",
+  "blocked",
+  "failed",
+]);
+
+export type TaskRunPhase = z.infer<typeof TaskRunPhaseSchema>;
+
+export const TaskRunRequiredNextActionSchema = z.enum([
+  "start_task",
+  "capture_baseline",
+  "record_red_evidence",
+  "record_green_evidence",
+  "run_incremental_verification",
+  "checkpoint_task",
+  "mark_done",
+  "resolve_blocker",
+  "none",
+]);
+
+export type TaskRunRequiredNextAction = z.infer<
+  typeof TaskRunRequiredNextActionSchema
+>;
+
+export const TaskRunEventTypeSchema = z.enum([
+  "start",
+  "baseline",
+  "red_evidence",
+  "green_evidence",
+  "verification",
+  "checkpoint",
+  "complete",
+  "failure",
+  "blocker",
+]);
+
+export type TaskRunEventType = z.infer<typeof TaskRunEventTypeSchema>;
+
+export const TaskRunEventSchema = z.object({
+  idempotencyKey: z.string().min(1),
+  type: TaskRunEventTypeSchema,
+  recordedAt: z.string(),
+  payload: z.record(z.string(), z.unknown()).default({}),
+});
+
+export type TaskRunEvent = z.infer<typeof TaskRunEventSchema>;
+
+export const TaskRunStateSchema = z.object({
+  taskId: z.string(),
+  runId: z.string(),
+  phase: TaskRunPhaseSchema,
+  startedAt: z.string().optional(),
+  updatedAt: z.string(),
+  resumeHint: z.string(),
+  requiredNextAction: TaskRunRequiredNextActionSchema,
+  baseline: z
+    .object({
+      branch: z.string(),
+      headSha: z.string(),
+      workdir: z.string(),
+      capturedAt: z.string(),
+    })
+    .optional(),
+  evidence: z
+    .object({
+      red: TddPhaseEvidenceSchema.optional(),
+      green: TddPhaseEvidenceSchema.optional(),
+    })
+    .optional(),
+  verification: z
+    .object({
+      summary: z.string(),
+      recordedAt: z.string(),
+    })
+    .optional(),
+  checkpoint: z
+    .object({
+      status: z.enum(["clean", "committed"]),
+      sha: z.string().optional(),
+      branch: z.string().optional(),
+      gitRoot: z.string().optional(),
+      message: z.string().optional(),
+      recordedAt: z.string(),
+    })
+    .optional(),
+  attempts: z.array(AttemptSchema).optional(),
+  seenIdempotencyKeys: z.array(z.string()).default([]),
+  events: z.array(TaskRunEventSchema).default([]),
+});
+
+export type TaskRunState = z.infer<typeof TaskRunStateSchema>;
+
+// =============================================================================
 // Task
 // =============================================================================
 

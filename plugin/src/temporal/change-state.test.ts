@@ -6,8 +6,11 @@ import {
   closeChangeInChangeState,
   completeGateInChangeState,
   createChangeWorkflowState,
+  getTaskRunFromChangeState,
   listTasksFromChangeState,
+  listTaskRunsFromChangeState,
   reclassifyTaskTddInChangeState,
+  recordTaskRunEventInChangeState,
   recordTaskEvidenceInChangeState,
   reopenFromGateInChangeState,
   updateTaskInChangeState,
@@ -113,6 +116,107 @@ describe("change workflow state", () => {
 
     expect(state.tasks[0]?.tdd_phase).toBe("complete");
     expect(state.tasks[0]?.tdd_evidence?.green?.exit_code).toBe(0);
+  });
+
+  it("records task-run events with phase, resume action, and idempotency", () => {
+    const state = createChangeWorkflowState({
+      changeId: "myChange",
+      title: "My Change",
+      createdAt: "2026-04-14T00:00:00.000Z",
+    });
+    const task = addTaskToChangeState(
+      state,
+      { title: "task one", metadata: { tdd_intent: "inline" } },
+      { now: "2026-04-14T00:01:00.000Z", uuid: () => "task-1" },
+    );
+
+    const first = recordTaskRunEventInChangeState(state, task.id, {
+      idempotencyKey: "run:start:1",
+      type: "start",
+      recordedAt: "2026-04-14T00:02:00.000Z",
+      payload: { workdir: "/repo" },
+    });
+    expect(first.duplicate).toBe(false);
+    expect(first.run.phase).toBe("started");
+    expect(first.run.requiredNextAction).toBe("capture_baseline");
+
+    const duplicate = recordTaskRunEventInChangeState(state, task.id, {
+      idempotencyKey: "run:start:1",
+      type: "start",
+      recordedAt: "2026-04-14T00:02:01.000Z",
+      payload: { workdir: "/repo" },
+    });
+    expect(duplicate.duplicate).toBe(true);
+    expect(duplicate.run.events).toHaveLength(1);
+
+    expect(getTaskRunFromChangeState(state, task.id)?.runId).toBe(
+      `run-${task.id}`,
+    );
+    expect(listTaskRunsFromChangeState(state)).toHaveLength(1);
+  });
+
+  it("rejects missing task-run idempotency keys and invalid transitions", () => {
+    const state = createChangeWorkflowState({
+      changeId: "myChange",
+      title: "My Change",
+      createdAt: "2026-04-14T00:00:00.000Z",
+    });
+    const task = addTaskToChangeState(
+      state,
+      { title: "task one", metadata: { tdd_intent: "inline" } },
+      { now: "2026-04-14T00:01:00.000Z", uuid: () => "task-1" },
+    );
+
+    expect(() =>
+      recordTaskRunEventInChangeState(state, task.id, {
+        idempotencyKey: "",
+        type: "start",
+        recordedAt: "2026-04-14T00:02:00.000Z",
+        payload: {},
+      }),
+    ).toThrow(/idempotency/i);
+
+    expect(() =>
+      recordTaskRunEventInChangeState(state, task.id, {
+        idempotencyKey: "run:checkpoint:early",
+        type: "checkpoint",
+        recordedAt: "2026-04-14T00:03:00.000Z",
+        payload: { status: "clean" },
+      }),
+    ).toThrow(/invalid task-run transition/i);
+  });
+
+  it("caps retained task-run events and idempotency keys", () => {
+    const state = createChangeWorkflowState({
+      changeId: "myChange",
+      title: "My Change",
+      createdAt: "2026-04-14T00:00:00.000Z",
+    });
+    const task = addTaskToChangeState(
+      state,
+      { title: "task one", metadata: { tdd_intent: "inline" } },
+      { now: "2026-04-14T00:01:00.000Z", uuid: () => "task-1" },
+    );
+
+    recordTaskRunEventInChangeState(state, task.id, {
+      idempotencyKey: "run:start",
+      type: "start",
+      recordedAt: "2026-04-14T00:02:00.000Z",
+      payload: {},
+    });
+    for (let i = 0; i < 60; i += 1) {
+      recordTaskRunEventInChangeState(state, task.id, {
+        idempotencyKey: `run:failure:${i}`,
+        type: "failure",
+        recordedAt: `2026-04-14T00:03:${String(i).padStart(2, "0")}.000Z`,
+        payload: { attempt: i },
+      });
+    }
+
+    const run = getTaskRunFromChangeState(state, task.id);
+    expect(run?.events).toHaveLength(50);
+    expect(run?.seenIdempotencyKeys.length).toBeLessThanOrEqual(50);
+    expect(run?.events[0]?.idempotencyKey).toBe("run:failure:10");
   });
 
   it("preserves tasks when reopening from a completed gate and tracks audit history", () => {
