@@ -62,6 +62,8 @@ async function initGitRepo(dir: string): Promise<void> {
   await git(["init"], dir);
   await git(["config", "user.email", "test@test.com"], dir);
   await git(["config", "user.name", "Test"], dir);
+  // Force consistent branch name — CI may default to 'master'
+  await git(["checkout", "-b", "trunk"], dir);
   await writeFile(join(dir, "README.md"), "# test\n");
   await git(["add", "-A"], dir);
   await git(["commit", "-m", "init"], dir, {
