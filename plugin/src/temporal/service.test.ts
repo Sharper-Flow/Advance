@@ -35,6 +35,8 @@ import {
   closeStsl,
   isStslInitialized,
   resetStsl,
+  reinitStsl,
+  getStslStats,
 } from "./service";
 
 describe("STSL (Shared Temporal Service Layer)", () => {
@@ -199,5 +201,43 @@ describe("STSL (Shared Temporal Service Layer)", () => {
   it("closeStsl on uninitiated service is a no-op", async () => {
     await closeStsl();
     expect(isStslInitialized()).toBe(false);
+  });
+
+  it("reinitStsl mutates client and connection in place; bundle reference unchanged", async () => {
+    // Bootstrap RED test for Task 1 — validates KD-1 (in-place mutation).
+    // Comprehensive reinit coverage lives in Task 2.
+    const bundleBefore = await initStsl({
+      ADV_TEMPORAL_ADDRESS: "127.0.0.1:7233",
+      ADV_TEMPORAL_NAMESPACE: "default",
+    });
+    const clientBefore = bundleBefore.client;
+    const connectionBefore = bundleBefore.connection;
+
+    // Stub a different connection + client object for the reinit's
+    // Connection.connect / new Client() calls so we can assert in-place
+    // swap (different object identity) without breaking other tests.
+    const newConnection = {
+      close: vi.fn().mockResolvedValue(undefined),
+      operatorService: {
+        addSearchAttributes: vi.fn().mockResolvedValue({}),
+      },
+    };
+    const newClient = {};
+    mocks.connect.mockResolvedValueOnce(newConnection);
+    mocks.ClientCtor.mockImplementationOnce(function (this: unknown) {
+      return newClient;
+    });
+
+    await reinitStsl();
+
+    const bundleAfter = getService();
+    expect(bundleAfter).toBe(bundleBefore); // reference identity preserved
+    expect(bundleAfter!.client).not.toBe(clientBefore);
+    expect(bundleAfter!.connection).not.toBe(connectionBefore);
+    expect(bundleAfter!.client).toBe(newClient);
+    expect(bundleAfter!.connection).toBe(newConnection);
+
+    expect(getStslStats().reconnectCount).toBe(1);
+    expect(getStslStats().reconnectFailureCount).toBe(0);
   });
 });

@@ -94,11 +94,25 @@ interface StslBundle {
 let cachedBundle: StslBundle | null = null;
 let getServiceCallCount = 0;
 let newConnectionCount = 0;
+let reconnectCount = 0;
+let reconnectFailureCount = 0;
+let inFlightReconnect: Promise<void> | null = null;
 
 export interface StslStats {
   getServiceCalls: number;
   newConnections: number;
   reuseRate: number;
+  /**
+   * Number of times reinitStsl successfully replaced the cached
+   * connection+client. Increments only when close (best-effort) +
+   * Connection.connect + new Client all succeed.
+   */
+  reconnectCount: number;
+  /**
+   * Number of times reinitStsl threw because Connection.connect rejected.
+   * close() failures are swallowed and do NOT count.
+   */
+  reconnectFailureCount: number;
 }
 
 /**
@@ -185,6 +199,9 @@ export function resetStsl(): void {
   cachedBundle = null;
   getServiceCallCount = 0;
   newConnectionCount = 0;
+  reconnectCount = 0;
+  reconnectFailureCount = 0;
+  inFlightReconnect = null;
 }
 
 export function getStslStats(): StslStats {
@@ -193,5 +210,71 @@ export function getStslStats(): StslStats {
     newConnections: newConnectionCount,
     reuseRate:
       newConnectionCount > 0 ? getServiceCallCount / newConnectionCount : 0,
+    reconnectCount,
+    reconnectFailureCount,
   };
+}
+
+/**
+ * Replace the cached Temporal connection + client in-place after a
+ * stale-connection failure (server restart, gRPC GOAWAY, broken pipe).
+ *
+ * Behavior (KD-1, KD-3, KD-5):
+ *   - Mutates `cachedBundle.connection` and `cachedBundle.client` in place;
+ *     the bundle object identity is preserved so existing closures (e.g.
+ *     `createTemporalStoreBackend`'s captured `input.temporal`) pick up
+ *     the new client/connection on the next per-call read.
+ *   - Single-flight: concurrent callers await the same in-flight promise.
+ *     JS event-loop semantics make TOCTOU impossible — the IIFE assignment
+ *     below is synchronous, so a second caller arriving before the first
+ *     `await` yields will observe a non-null `inFlightReconnect`.
+ *   - Best-effort close: a rejecting `connection.close()` is logged and
+ *     ignored; reinit proceeds to `Connection.connect`.
+ *   - Re-registers ADV search attributes (idempotent on `AlreadyExists`).
+ *   - On `Connection.connect` failure, increments `reconnectFailureCount`,
+ *     clears the in-flight guard, and rethrows so the caller (typically
+ *     a per-op `onTransientFailure` hook in `runTemporal`/
+ *     `runTemporalQuery`) can record + suppress.
+ *
+ * Throws if STSL is not initialized — production callers always come
+ * through the store backend after `initStsl` ran in `plugin-init.ts`.
+ */
+export async function reinitStsl(): Promise<void> {
+  if (inFlightReconnect) {
+    return inFlightReconnect;
+  }
+  if (!cachedBundle) {
+    throw new Error("reinitStsl: STSL not initialized — call initStsl first");
+  }
+
+  const bundle = cachedBundle;
+  const promise = (async () => {
+    try {
+      try {
+        await bundle.connection.close();
+      } catch (e) {
+        debugLog(`reinitStsl: close error (continuing): ${e}`);
+      }
+      const newConnection = await Connection.connect({ address: bundle.address });
+      const newClient = new Client({
+        connection: newConnection,
+        namespace: bundle.namespace,
+      });
+      bundle.connection = newConnection;
+      bundle.client = newClient;
+      newConnectionCount++;
+      await registerAdvSearchAttributes(newConnection, bundle.namespace);
+      reconnectCount++;
+      debugLog(`reinitStsl: success (${bundle.address}/${bundle.namespace})`);
+    } catch (err) {
+      reconnectFailureCount++;
+      debugLog(`reinitStsl: failed: ${err}`);
+      throw err;
+    }
+  })();
+
+  inFlightReconnect = promise.finally(() => {
+    inFlightReconnect = null;
+  });
+  return inFlightReconnect;
 }
