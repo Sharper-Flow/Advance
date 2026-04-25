@@ -147,6 +147,21 @@ describe("adv_task_checkpoint drift guards", () => {
     expect(checkpointSection).toContain("verification");
   });
 
+  test("adv-apply.md records durable task-run ledger steps without adding pauses", () => {
+    const content = readCommand("adv-apply.md");
+    const taskFlow = content.slice(content.indexOf("### Task Flow"));
+    expect(taskFlow).toContain("adv_task_run_status");
+    expect(taskFlow).toContain("task-run ledger");
+    expect(taskFlow).toContain("record task-run `start`");
+    expect(taskFlow).toContain("record baseline");
+    expect(taskFlow).toContain("red evidence");
+    expect(taskFlow).toContain("green evidence");
+    expect(taskFlow).toContain("verification event");
+    expect(taskFlow).toContain("checkpoint event");
+    expect(taskFlow).toContain("assert task-run next action is `mark_done`");
+    expect(taskFlow).toContain("You MUST continue to the next ready task");
+  });
+
   // 10. ADV_INSTRUCTIONS.md has correct ordering in the table
   test("ADV_INSTRUCTIONS.md orders incremental verification before checkpoint in table", () => {
     const content = readFileSync(INSTRUCTIONS_PATH, "utf8");
@@ -180,5 +195,12 @@ describe("adv_task_checkpoint drift guards", () => {
     expect(relevantText).toMatch(
       /Do NOT push|Do NOT merge|Do NOT archive|Do NOT release/,
     );
+  });
+
+  test("ADV_INSTRUCTIONS.md documents durable task-run resume status", () => {
+    const content = readFileSync(INSTRUCTIONS_PATH, "utf8");
+    expect(content).toContain("Durable Task-Run Ledger");
+    expect(content).toContain("adv_task_run_status");
+    expect(content).toContain("requiredNextAction");
   });
 });
