@@ -54,6 +54,7 @@ import { SpecSchema } from "../types";
 import { listSpecsActivity, showSpecActivity } from "../temporal/activities";
 import type { LoadResult } from "./json";
 import { filterChanges } from "./content-search";
+import { listChangeWorkflowIds } from "../temporal/list-change-workflows";
 import {
   ChangeSummaryMemo,
   asGateStatus,
@@ -432,10 +433,37 @@ export function createTemporalStoreBackend(
       );
     }
 
-    // Cold start — fall back to O(N) fan-out to populate the Memo.
-    // Each query is wrapped in try/catch so one missing/terminated workflow
-    // doesn't abort the entire batch. Falls back to legacy JSON on failure.
-    const changeIds = await listChangeDirs(legacy.paths.changes);
+    // Cold start — populate the Memo via Temporal Visibility API.
+    //
+    // P2.4: Replaced the legacy `listChangeDirs(legacy.paths.changes)`
+    // disk-scan with a Visibility-API enumeration. The Visibility query is
+    // the canonical Temporal source-of-truth for "which workflows exist";
+    // disk listing is brittle when the two go out of sync (P1.5 orphan
+    // case). The disk path is preserved as a fallback when the bundle
+    // doesn't expose `client.workflow.list` (e.g. some test mocks).
+    //
+    // Each per-change query is wrapped in try/catch so one missing/terminated
+    // workflow doesn't abort the entire batch. Falls back to legacy JSON on
+    // failure.
+    const bundle = input.temporal as {
+      client?: { workflow?: { list?: unknown } };
+    };
+    let changeIds: string[];
+    if (typeof bundle.client?.workflow?.list === "function") {
+      try {
+        changeIds = await listChangeWorkflowIds(
+          bundle.client as Parameters<typeof listChangeWorkflowIds>[0],
+          { projectId: input.projectId },
+        );
+      } catch (err) {
+        logger.warn(
+          `[P2.4] Visibility list failed; falling back to legacy disk scan: ${err instanceof Error ? err.message : String(err)}`,
+        );
+        changeIds = await listChangeDirs(legacy.paths.changes);
+      }
+    } else {
+      changeIds = await listChangeDirs(legacy.paths.changes);
+    }
     const BATCH_SIZE = 20;
     const changes: Change[] = [];
 
