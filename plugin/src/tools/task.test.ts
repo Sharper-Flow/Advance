@@ -4,7 +4,7 @@
  * TDD tests for task management tools
  */
 
-import { describe, test, expect, beforeEach, afterEach } from "vitest";
+import { describe, test, expect, beforeEach, afterEach, vi } from "vitest";
 import { taskTools } from "./task";
 import { createLegacyStore, type Store } from "../storage/store";
 import {
@@ -714,6 +714,35 @@ describe("Task Tools", () => {
       );
       expect(parsed.task.tdd_evidence.red.exit_code).toBe(1);
       expect(parsed.task.tdd_evidence.red.recorded_at).toBeDefined();
+    });
+
+    test("stamps recorded_at on evidence before passing to store", async () => {
+      const mockStore: Store = {
+        ...store,
+        tasks: {
+          ...store.tasks,
+          recordEvidence: vi.fn(async () => null),
+        },
+      };
+
+      await taskTools.adv_task_evidence.execute(
+        {
+          taskId: "tk-task0001",
+          phase: "red",
+          testFile: "test/feature.test.ts",
+          command: "pnpm test",
+          output: "FAIL",
+          exitCode: 1,
+        },
+        mockStore,
+      );
+
+      const callArgs = (
+        mockStore.tasks.recordEvidence as ReturnType<typeof vi.fn>
+      ).mock.calls[0];
+      expect(callArgs[2]).toHaveProperty("recorded_at");
+      expect(typeof callArgs[2].recorded_at).toBe("string");
+      expect(new Date(callArgs[2].recorded_at).getTime()).not.toBeNaN();
     });
 
     test("records green phase evidence and marks complete", async () => {

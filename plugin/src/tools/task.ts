@@ -441,6 +441,7 @@ export const taskTools = {
       }
 
       const evidence = {
+        recorded_at: new Date().toISOString(),
         test_file: testFile,
         command,
         output_snippet: output ? truncateOutput(output) : undefined,
