@@ -320,11 +320,22 @@ EXPECTED OUTPUT: implement the task, run tests, emit a fenced ENGINEER_REPORT JS
 
 **3a.5. Route:** Evaluate delegation routing (above). If delegated and verified → skip to 3d.
 
+**3a.6. Clean Baseline Capture:** Verify `git status --porcelain` is clean and capture `baselineHeadSha = git rev-parse HEAD` and `baselineBranch = git branch --show-current`. If dirty → stop and remediate before Red Phase.
+
 **3b. Red Phase:** Write failing test using `edit` / `write` / `morph_edit` → run with `adv_run_test phase:'red'` → show failure evidence
 
 **3c. Green Phase:** Implement using `edit` / `write` / `morph_edit` → run with `adv_run_test phase:'green'` → if fails: retry protocol → show pass evidence
 
-**3c.5. Checkpoint:** Call `adv_task_checkpoint` with `taskId: <id>`, `workdir: <effective workdir>`.
+**3c.4. Incremental Verification:** Run build/tests/lint for task scope → if fails: retry protocol → only proceed to checkpoint after pass.
+
+**3c.5. Checkpoint:** Call `adv_task_checkpoint` with:
+- `taskId: <id>`
+- `workdir: <effective workdir>`
+- `changeId: <change-id>` (assertion — must match task owner)
+- `expectedBranch: change/{change-id}` (or configured change branch)
+- `expectedHeadSha: <baselineHeadSha>`
+- `verification: <task verification summary>`
+
 - `{status: 'clean' | 'committed'}` → proceed to 3d.
 - `{status: 'failed', classification: 'SEMANTIC'}` → diagnose, re-run checkpoint (retry budget applies).
 - `{classification: 'ENVIRONMENTAL'}` → escalate via `question` tool; keep task `in_progress`.
@@ -353,7 +364,7 @@ You MUST continue to the next ready task without pausing. You MUST NOT pause bet
 - Any reason not enumerated in the Allowed exit conditions above
 
 ### Incremental Verification
-After EACH task: run build/tests/lint → if fails: retry protocol → only mark complete after pass. Note: incremental verification runs AFTER the checkpoint (step 3c.5). Post-checkpoint fix-ups produce additional commits on top of the checkpoint commit by design.
+After EACH task: run build/tests/lint → if fails: retry protocol → only mark complete after pass. Incremental verification runs BEFORE the checkpoint (step 3c.4) so the checkpoint represents verified task state. Post-checkpoint fix-ups are not expected by design — verification must pass before committing.
 
 ---
 ## Phase 4: Progress Tracking

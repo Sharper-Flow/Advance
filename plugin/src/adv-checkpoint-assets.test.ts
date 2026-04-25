@@ -91,4 +91,79 @@ describe("adv_task_checkpoint drift guards", () => {
     const content = readFileSync(INSTRUCTIONS_PATH, "utf8");
     expect(content).toContain("### Task Checkpoint Commits");
   });
+
+  // ─── New guardrail tests for optimized checkpoint ordering (RED phase) ───
+
+  // 7. adv-apply.md mentions clean baseline capture before Red Phase
+  test("adv-apply.md has clean baseline capture before Red Phase", () => {
+    const content = readCommand("adv-apply.md");
+    const redPhaseIdx = content.indexOf("3b. Red Phase:");
+    const baselineIdx = content.indexOf("Clean Baseline Capture");
+    expect(redPhaseIdx).toBeGreaterThan(0);
+    expect(baselineIdx).toBeGreaterThan(0);
+    expect(baselineIdx).toBeLessThan(redPhaseIdx);
+  });
+
+  // 8. adv-apply.md has incremental verification BEFORE checkpoint
+  test("adv-apply.md places incremental verification before checkpoint", () => {
+    const content = readCommand("adv-apply.md");
+    const verificationIdx = content.indexOf("Incremental Verification");
+    const checkpointIdx = content.indexOf("3c.5. Checkpoint:");
+    expect(verificationIdx).toBeGreaterThan(0);
+    expect(checkpointIdx).toBeGreaterThan(0);
+    expect(verificationIdx).toBeLessThan(checkpointIdx);
+  });
+
+  // 9. adv-apply.md passes strict checkpoint args
+  test("adv-apply.md passes changeId to adv_task_checkpoint", () => {
+    const content = readCommand("adv-apply.md");
+    const checkpointSection = content.slice(content.indexOf("3c.5. Checkpoint:"));
+    expect(checkpointSection).toContain("changeId");
+  });
+
+  test("adv-apply.md passes expectedBranch to adv_task_checkpoint", () => {
+    const content = readCommand("adv-apply.md");
+    const checkpointSection = content.slice(content.indexOf("3c.5. Checkpoint:"));
+    expect(checkpointSection).toContain("expectedBranch");
+  });
+
+  test("adv-apply.md passes expectedHeadSha to adv_task_checkpoint", () => {
+    const content = readCommand("adv-apply.md");
+    const checkpointSection = content.slice(content.indexOf("3c.5. Checkpoint:"));
+    expect(checkpointSection).toContain("expectedHeadSha");
+  });
+
+  test("adv-apply.md passes verification to adv_task_checkpoint", () => {
+    const content = readCommand("adv-apply.md");
+    const checkpointSection = content.slice(content.indexOf("3c.5. Checkpoint:"));
+    expect(checkpointSection).toContain("verification");
+  });
+
+  // 10. ADV_INSTRUCTIONS.md has correct ordering in the table
+  test("ADV_INSTRUCTIONS.md orders incremental verification before checkpoint in table", () => {
+    const content = readFileSync(INSTRUCTIONS_PATH, "utf8");
+    const checkpointSection = content.slice(content.indexOf("### Task Checkpoint Commits"));
+    const tableStart = checkpointSection.indexOf("| Step |");
+    const tableEnd = checkpointSection.indexOf("**Failure classification:**");
+    const table = checkpointSection.slice(tableStart, tableEnd);
+    const verifyIdx = table.indexOf("3c.4");
+    const checkpointIdx = table.indexOf("3c.5");
+    expect(verifyIdx).toBeGreaterThan(0);
+    expect(checkpointIdx).toBeGreaterThan(0);
+    expect(verifyIdx).toBeLessThan(checkpointIdx);
+  });
+
+  // 11. No publication authority in checkpoint section
+  test("ADV_INSTRUCTIONS.md checkpoint section states checkpoints are local-only", () => {
+    const content = readFileSync(INSTRUCTIONS_PATH, "utf8");
+    const checkpointSection = content.slice(content.indexOf("### Task Checkpoint Commits"));
+    const nextSectionIdx = checkpointSection.indexOf("###", 1);
+    const relevantText = nextSectionIdx > 0
+      ? checkpointSection.slice(0, nextSectionIdx)
+      : checkpointSection;
+    // Must explicitly state that checkpoints are local/audit points only
+    expect(relevantText).toMatch(/local\s+rollback|audit\s+points|local-only/);
+    // Must explicitly prohibit publication actions
+    expect(relevantText).toMatch(/Do NOT push|Do NOT merge|Do NOT archive|Do NOT release/);
+  });
 });

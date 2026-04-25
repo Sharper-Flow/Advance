@@ -277,7 +277,6 @@ Reports are informational. Agents present them for human review; they do not tri
 Persisted in `reflections.jsonl` in the ADV state directory. Retrievable via `adv_change_show` for archived changes.
 
 ### Task Checkpoint Commits
-
 Every `/adv-apply` task with file changes in its workdir MUST produce a git commit via `adv_task_checkpoint` before transitioning to `status:'done'`. Cancellations MUST checkpoint before `status:'cancelled'`. Enforcement is at the `/adv-apply` command seam (step 3c.5), not in `adv_task_update` itself.
 
 **Apply-loop ordering:**
@@ -285,31 +284,33 @@ Every `/adv-apply` task with file changes in its workdir MUST produce a git comm
 | Step | Action                                          |
 | ---- | ----------------------------------------------- |
 | 3a   | Start — `adv_task_update status: "in_progress"` |
+| 3a.6 | Clean Baseline Capture — verify clean tree, record HEAD/branch |
 | 3b   | Red Phase — write failing test                  |
 | 3c   | Green Phase — implement, tests pass             |
-| 3c.5 | **Checkpoint** — `adv_task_checkpoint`          |
+| 3c.4 | **Incremental Verification** — build/tests/lint pass |
+| 3c.5 | **Checkpoint** — `adv_task_checkpoint` with change/branch/HEAD/verification |
 | 3d   | Complete — `adv_task_update status: "done"`     |
 
 **Failure classification:**
 
-| Classification                                  | Action                                                |
-| ----------------------------------------------- | ----------------------------------------------------- |
-| `SEMANTIC` (hook rejection, merge conflict)     | Diagnose, re-run (retry budget)                       |
-| `ENVIRONMENTAL` (not a git repo, detached HEAD) | Escalate via `question`                               |
-| `TRANSIENT` (index.lock contention)             | Tool retries internally; remaining failure → SEMANTIC |
+| Classification | Action |
+| -------------- | ------ |
+| `SEMANTIC` (hook rejection, branch/HEAD mismatch) | Diagnose, re-run (retry budget) |
+| `ENVIRONMENTAL` (not a git repo, detached HEAD) | Escalate via `question` |
+| `TRANSIENT` (index.lock contention) | Tool retries internally; remaining failure → SEMANTIC |
 
 **Commit message format:**
-
-- Complete: `task(tk-xxxx): completed`
-- Cancel: `task(tk-xxxx): cancel — <reason>`
+- Subject: `task(tk-xxxx): completed` or `task(tk-xxxx): cancel — <reason>`
+- Body trailers: `Change: <change-id>`, `Task: <task-id>`, `Mode: complete|cancel`, `Verification: <summary>`
 
 **Staging:** `git add -A` — `.gitignore` is the safety net.
-
 **Anti-patterns:**
 
 - × Do NOT run git from inside a Temporal workflow or activity
 - × Do NOT create `--allow-empty` commits
 - × Do NOT bypass checkpoint for "small" tasks — clean-tree returns `{status:'clean'}` without committing
+- × Do NOT push, merge, archive, release, amend, or force-push from checkpoint commits
+**Publication boundary:** Checkpoint commits are local rollback/audit points only. Publication remains a separate human-gated workflow.
 
 Cross-link: `/adv-apply` command (`.opencode/command/adv-apply.md`) step 3c.5. `/adv-task` fast-track parity is tracked as a follow-up.
 
