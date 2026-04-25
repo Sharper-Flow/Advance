@@ -10,7 +10,8 @@
  * Enrichment: tool failures are additively tagged with an `errorClass` and
  * optional `{ workdir, path, operation }` context derived from the call
  * arguments or provided by the binder. Existing top-level keys (`error`,
- * `tool`, `hint`, `received_args`) are preserved.
+ * `tool`, `hint`, `received_args`) are preserved; sensitive argument values
+ * are redacted before being echoed back to the agent.
  */
 
 import { ZodError } from "zod";
@@ -110,6 +111,46 @@ export function mergeDefinedContext(
   return target;
 }
 
+function isSensitiveArgKey(key: string): boolean {
+  const normalized = key.replace(/[_-]/g, "").toLowerCase();
+  return [
+    "password",
+    "passwd",
+    "pwd",
+    "token",
+    "secret",
+    "apikey",
+    "credential",
+    "privatekey",
+  ].some((sensitive) => normalized.includes(sensitive));
+}
+
+function redactSensitiveArgs(
+  value: unknown,
+  seen = new WeakSet<object>(),
+): unknown {
+  if (Array.isArray(value)) {
+    return value.map((item) => redactSensitiveArgs(item, seen));
+  }
+
+  if (value === null || typeof value !== "object") {
+    return value;
+  }
+
+  if (seen.has(value)) {
+    return "[Circular]";
+  }
+  seen.add(value);
+
+  const redacted: Record<string, unknown> = {};
+  for (const [key, entry] of Object.entries(value)) {
+    redacted[key] = isSensitiveArgKey(key)
+      ? "[REDACTED]"
+      : redactSensitiveArgs(entry, seen);
+  }
+  return redacted;
+}
+
 /**
  * Format any error into a JSON response suitable for AI agents.
  * This ensures errors are returned as content, not thrown as exceptions.
@@ -127,6 +168,8 @@ export function formatErrorResponse(
   const errorClass = deriveErrorClass(error);
   const derived = deriveContextFromArgs(args, context);
   const enrichment: Record<string, unknown> = { errorClass };
+  const redactedArgs =
+    args === undefined ? undefined : redactSensitiveArgs(args);
   mergeDefinedContext(enrichment as ErrorContext, derived);
 
   // Handle Zod schema validation errors specially
@@ -135,7 +178,7 @@ export function formatErrorResponse(
       error: formatZodError(error),
       tool: toolName,
       hint: "Please check your arguments and try again.",
-      received_args: args,
+      received_args: redactedArgs,
       ...enrichment,
     });
   }
@@ -149,7 +192,7 @@ export function formatErrorResponse(
         formatToolTimeoutHint(error) ??
         formatTemporalErrorHint(error) ??
         "An unexpected error occurred. Please check your arguments.",
-      ...(args !== undefined && { received_args: args }),
+      ...(args !== undefined && { received_args: redactedArgs }),
       ...enrichment,
     });
   }

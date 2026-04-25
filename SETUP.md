@@ -28,18 +28,18 @@ Complete installation instructions for the ADV spec-driven development plugin.
 
 ### Optional
 
-| Dependency | Purpose                                                    |
-| ---------- | ---------------------------------------------------------- |
-| Git        | Version control, change tracking                           |
-| SQLite     | Comes bundled with better-sqlite3                          |
-| jq         | Required only for `sync-global.sh --fix` (config patching) |
+| Dependency   | Purpose                                                    |
+| ------------ | ---------------------------------------------------------- |
+| Git          | Version control, change tracking                           |
+| Temporal CLI | Local dev server for ADV's Temporal-backed runtime         |
+| jq           | Required only for `sync-global.sh --fix` (config patching) |
 
 ### Temporal-backed storage
 
-ADV is moving to a Temporal-backed durable-execution architecture for
-change/task/gate state. Production bootstrap is expected to wire a Temporal
-client bundle; the legacy JSON+SQLite backend remains only as temporary
-compatibility substrate during cutover.
+ADV uses a Temporal-backed durable-execution architecture for change/task/gate
+state. Runtime storage is Temporal-only; the old SQLite-backed legacy store was
+removed. A disk-only substrate remains for markdown/JSON artifacts and recovery
+utilities, not as a runtime fallback.
 
 Install the Temporal CLI (for a local dev server):
 
@@ -65,15 +65,18 @@ should review the **Bun out-of-process Temporal worker** section for
 | `ADV_TEMPORAL_NAMESPACE`    | `default`        | Temporal namespace (regex-validated).                    |
 | `ADV_TEMPORAL_ALLOW_REMOTE` | _(unset)_        | Set to `true` to permit non-loopback addresses.          |
 | `ADV_TEMPORAL_TASK_QUEUE`   | _(worker-only)_  | Task queue the worker subscribes to.                     |
+| `ADV_TEMPORAL_TASK_QUEUES`  | _(worker-only)_  | Comma-separated queues for multi-queue child mode.       |
+| `ADV_TEMPORAL_MULTI_QUEUE`  | _(worker-only)_  | Set internally to `1` for multi-queue child mode.        |
 | `ADV_TEMPORAL_PROJECT_ID`   | _(worker-only)_  | Set internally by the runtime manager.                   |
 
 Activation happens in code by passing a Temporal client bundle into
-`createStore({ temporalBundle })`; production bootstrap now owns that wiring.
-On a Node plugin host the worker runs in-process. On a Bun plugin host
-(opencode's shipping binary) the plugin spawns a Node child process per task
-queue via `createOutOfProcessWorker`; see the troubleshooting section below
-for details. The legacy file-backed backend is transitional and scheduled for
-retirement after migration completes.
+`createStore({ temporalBundle })`; production bootstrap owns that wiring. On a
+Node plugin host the worker runs in-process. On a Bun plugin host (opencode's
+shipping binary) the plugin spawns a Node child process. Multi-queue child mode
+is configured internally with `ADV_TEMPORAL_MULTI_QUEUE=1` and
+`ADV_TEMPORAL_TASK_QUEUES`; users normally only set `ADV_NODE_PATH` when Node is
+not on the plugin host's `PATH`. There is no legacy file-backed runtime
+fallback.
 
 ### Bun runtime troubleshooting
 
@@ -407,22 +410,15 @@ cat > project.json << 'EOF'
   "specs_dir": ".adv/specs",
   "changes_dir": ".adv/changes",
   "archive_dir": ".adv/archive",
-  "docs_dir": "docs/specs",
-  "db_dir": ".adv/db"
+  "docs_dir": "docs/specs"
 }
 EOF
 
 # Create directory structure
-mkdir -p .adv/specs .adv/changes .adv/archive docs/specs .adv/db
+mkdir -p .adv/specs .adv/changes .adv/archive docs/specs
 
 # Add to .gitignore
 cat >> .gitignore << 'EOF'
-# ADV SQLite cache (derived, not committed)
-.adv/db/
-*.db
-*.db-wal
-*.db-shm
-
 # Temporary brainstorm files
 temp/
 EOF
@@ -443,16 +439,15 @@ cat > project.json << 'EOF'
   "specs_dir": ".adv/specs",
   "changes_dir": ".adv/changes",
   "archive_dir": ".adv/archive",
-  "docs_dir": "docs/specs",
-  "db_dir": ".adv/db"
+  "docs_dir": "docs/specs"
 }
 EOF
 
 # Create required directories
-mkdir -p .adv/specs .adv/changes .adv/archive docs/specs .adv/db
+mkdir -p .adv/specs .adv/changes .adv/archive docs/specs
 
 # Update .gitignore
-echo -e "\n# ADV SQLite cache\n.adv/db/\ntemp/" >> .gitignore
+echo -e "\n# ADV scratch files\ntemp/" >> .gitignore
 ```
 
 ---
@@ -464,7 +459,7 @@ After setup, your project should have this structure:
 ```
 your-project/
 ├── project.json              # ADV configuration (required)
-├── .gitignore                # Should exclude .adv/db/
+├── .gitignore                # Should exclude temp/
 │
 ├── .adv/                     # ADV internals
 │   ├── specs/                # The Laws (capability specifications)
@@ -481,9 +476,6 @@ your-project/
 │   │   └── {date}-{change-id}/
 │   │       ├── change.json
 │   │       └── ARCHIVE_SUMMARY.md
-│   └── db/                   # SQLite cache (gitignored)
-│       └── spec.db
-│
 ├── docs/specs/               # Auto-generated documentation (user-facing)
 │   └── {capability}.md
 │
@@ -501,7 +493,7 @@ your-project/
 | `changes_dir`  | `".adv/changes"` | Directory for change proposals |
 | `archive_dir`  | `".adv/archive"` | Directory for archived changes |
 | `docs_dir`     | `"docs/specs"`   | Directory for generated docs   |
-| `db_dir`       | `".adv/db"`      | Directory for SQLite cache     |
+| `db_dir`       | `".adv/db"`      | Legacy cache path; retained for backward-compatible configs, unused by Temporal runtime |
 | `project_file` | `"project.md"`   | Optional project context file  |
 
 ---
@@ -693,65 +685,56 @@ If you customized your global `plan.md` or `build.md`, the sync script only patc
 - `plan.md` `tools:` — `webfetch: true`, `firecrawl_firecrawl_scrape: true`, `firecrawl_firecrawl_crawl: true`, `firecrawl_firecrawl_check_crawl_status: true`
 - `build.md` `tools:` — `adv_task_update: true`, `adv_task_evidence: true`, `adv_task_tdd: true`, `adv_run_test: true`, `adv_wisdom_add: true`, plus `webfetch: true` and `firecrawl_*: true`
 
-### SQLite Errors
+### Temporal Worker Errors
 
-If you see `better-sqlite3` errors:
+If ADV reports `worker_alive: false` or `worker_process_alive: false`, verify
+the local Temporal dev server and Node worker host:
 
 ```bash
-cd /path/to/Advance/plugin
-pnpm rebuild better-sqlite3
+temporal server start-dev
+node --version
 ```
+
+For Bun-hosted OpenCode builds, set `ADV_NODE_PATH` if Node is not available on
+the plugin host's `PATH`.
 
 ### Permission Issues
 
 Ensure write access to all ADV directories:
 
 ```bash
-chmod -R u+w specs changes archive docs .adv/db temp
+chmod -R u+w specs changes archive docs .adv temp
 ```
 
-### Cache Corruption
+### Temporal State Recovery
 
-Use the recovery script to clear and rebuild the SQLite cache:
+Use the orphan-sweep CLI to re-seed disk-only change snapshots into Temporal:
 
 ```bash
-# In-repo legacy state (.adv/db/)
-node scripts/recover-db.js
+# Preview changes under the default ADV state root
+cd /path/to/Advance/plugin
+pnpm exec tsx scripts/orphan-sweep.ts --dry-run
 
-# External state (default for git-backed projects) — auto-detects from project root commit
-node scripts/recover-db.js --external
-
-# Custom absolute or relative directory
-node scripts/recover-db.js --db-dir /path/to/db
+# Execute re-seed
+pnpm exec tsx scripts/orphan-sweep.ts
 ```
 
-After deleting the database, **restart OpenCode** — the cache rebuilds from `.adv/specs/` on next startup.
+After repair, **restart OpenCode** so the plugin reconnects to the refreshed
+Temporal workflow set.
 
 ### Stale Spec Rows After Deletion
 
-If you delete a spec from `.adv/specs/` but `adv_spec list` still shows it, the SQLite
-cache contains a stale row. The sync only adds and updates rows — it does not prune
-entries for specs that no longer exist on disk.
+If you delete a spec from `.adv/specs/` but `adv_spec list` still shows it,
+restart OpenCode. Specs are read from disk/Temporal activity paths; there is no
+SQLite cache to rebuild.
 
-**Fix (two steps):**
+**Fix:**
 
-1. Delete the spec.db to force a full rebuild:
+1. Restart OpenCode (or reload the MCP server).
+2. Re-run `adv_spec list`.
 
-   ```bash
-   # For git-backed projects using external state (recommended):
-   node scripts/recover-db.js --external
-
-   # For legacy in-repo state:
-   node scripts/recover-db.js
-   ```
-
-2. **Restart OpenCode** (or reload the MCP server). The database is rebuilt on next
-   plugin startup and will exclude the deleted spec.
-
-**Why restart is required:** The ADV plugin is a long-running server process. Even
-after the spec.db file is deleted from disk, the running process still holds the old
-database open in memory. Only a restart causes the plugin to open a fresh database
-at the original path, triggering a clean sync from `.adv/specs/`.
+**Why restart is required:** The ADV plugin is a long-running server process.
+Restarting clears in-memory handles and reloads the current disk artifacts.
 
 ### Temporal Test Servers Blocking Worktree Cleanup
 

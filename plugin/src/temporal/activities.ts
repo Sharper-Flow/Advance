@@ -30,7 +30,11 @@ import { loadAgenda } from "../storage/agenda";
 import { listProjectWisdom } from "../storage/project-wisdom";
 import { writeJsonlAtomic } from "../storage/jsonl-atomic-writer";
 import { AgendaItemSchema, WisdomTypeSchema } from "../types";
-import { rebuildProjectWorkflowState, reImportChangeState } from "./migration";
+import {
+  rebuildProjectWorkflowState,
+  reImportChangeState,
+  type WorkflowClientLike,
+} from "./migration";
 import { buildProjectWorkflowId } from "./client";
 import { projectAgendaQuery, projectWisdomQuery } from "./messages";
 
@@ -362,18 +366,14 @@ const RepairedProjectWisdomEntrySchema = z.object({
 interface RepairWorkflowHandleLike {
   terminate: (reason?: string) => Promise<void>;
   query: (def: unknown, ...args: unknown[]) => Promise<unknown>;
+  executeUpdate: (
+    def: unknown,
+    options: { args?: unknown[] },
+  ) => Promise<unknown>;
 }
 
 interface RepairWorkflowClientLike {
-  start: (
-    workflow: unknown,
-    options: {
-      workflowId: string;
-      taskQueue: string;
-      args: [unknown];
-      searchAttributes?: Record<string, unknown[]>;
-    },
-  ) => Promise<RepairWorkflowHandleLike>;
+  start: WorkflowClientLike["start"];
   getHandle: (workflowId: string) => RepairWorkflowHandleLike;
 }
 
@@ -437,33 +437,27 @@ export async function repairChangeActivity(
     )
     .catch(() => undefined);
 
-  await rebuildProjectWorkflowState(
-    client as unknown as Parameters<typeof rebuildProjectWorkflowState>[0],
-    {
-      projectId,
-      initializedAt: new Date().toISOString(),
-      agenda: agendaResult.items,
-      projectWisdom: projectWisdom.map((entry) => ({
-        id: entry.id,
-        type: entry.type,
-        content: entry.content,
-        sourceChange: entry.source_change,
-        sourceTask: entry.source_task,
-        promotedAt: entry.promoted_at,
-        tags: entry.tags,
-        invalidatedBy: entry.invalidated_by,
-      })),
-      migrationLedger: [],
-    },
-  );
+  await rebuildProjectWorkflowState(client, {
+    projectId,
+    initializedAt: new Date().toISOString(),
+    agenda: agendaResult.items,
+    projectWisdom: projectWisdom.map((entry) => ({
+      id: entry.id,
+      type: entry.type,
+      content: entry.content,
+      sourceChange: entry.source_change,
+      sourceTask: entry.source_task,
+      promotedAt: entry.promoted_at,
+      tags: entry.tags,
+      invalidatedBy: entry.invalidated_by,
+    })),
+    migrationLedger: [],
+  });
 
-  await reImportChangeState(
-    client as unknown as Parameters<typeof reImportChangeState>[0],
-    {
-      projectId,
-      change: changeResult.data,
-    },
-  );
+  await reImportChangeState(client, {
+    projectId,
+    change: changeResult.data,
+  });
 
   const repairedHandle = client.workflow.getHandle(
     buildProjectWorkflowId(projectId),

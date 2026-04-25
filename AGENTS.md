@@ -19,12 +19,12 @@ plugin/              # TypeScript plugin (the only buildable package)
     validator/       # Spec validation, prep-readiness, task classification
     events/          # Terminal UI, status markers
     utils/           # Helpers (debug-log, project-id, safe-execute)
-    __mocks__/       # Vitest aliases: @opencode-ai/plugin → mock, bun:sqlite → better-sqlite3
+    __mocks__/       # Vitest aliases, including @opencode-ai/plugin → mock
     __tests__/setup.ts  # Shared fixtures and assertion helpers
   schemas/           # JSON schema stubs ($ref pointers; Zod types in src/types.ts are authoritative)
 .adv/specs/          # Capability specs (the laws) — git-tracked, branch-local
 .opencode/
-  command/           # 21 slash-command workflow files (adv-*.md)
+  command/           # 24 slash-command workflow files (adv-*.md)
   agents/            # adv-researcher (bundled global), adv-engineer (bundled global), adv-tron (repo-local); overlay-managed: adv, plan (absorbed scout), build (absorbed refine)
   overlays/          # Managed overlay blocks synced into global shared agents
 skills/              # Bundled methodology skills synced to ~/.config/opencode/skills/
@@ -62,9 +62,10 @@ pnpm run format:check         # prettier --check
 
 ### Runtime is Bun, tests run on Node
 
-The plugin uses `bun:sqlite` at runtime. Tests mock it via vitest aliases in `vitest.config.ts`:
+OpenCode ships as a Bun executable, while the Vitest suite runs on Node. Runtime storage is Temporal-only; the old `bun:sqlite` / `better-sqlite3` path was removed by `completeTemporalOnlyMigration`.
 
-- `bun:sqlite` → `src/__mocks__/bun-sqlite.ts` (wraps `better-sqlite3`)
+Tests still mock OpenCode SDK imports via vitest aliases in `vitest.config.ts`:
+
 - `@opencode-ai/plugin` → `src/__mocks__/opencode-plugin.ts`
 
 If you add imports from the SDK or Bun APIs, ensure the mocks cover them or tests will fail with resolution errors.

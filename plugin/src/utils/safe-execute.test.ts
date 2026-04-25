@@ -112,6 +112,27 @@ describe("safe-execute", () => {
       }
     });
 
+    it("redacts sensitive keys from received args", () => {
+      const raw = formatErrorResponse(new Error("boom"), "test_tool", {
+        id: "safe-id",
+        token: "secret-token",
+        nested: {
+          apiKey: "secret-key",
+          path: "/safe/path",
+        },
+      });
+
+      const result = JSON.parse(raw);
+      expect(result.received_args).toEqual({
+        id: "safe-id",
+        token: "[REDACTED]",
+        nested: {
+          apiKey: "[REDACTED]",
+          path: "/safe/path",
+        },
+      });
+    });
+
     it("formats standard Error as compact JSON", () => {
       const error = new Error("Something went wrong");
       const raw = formatErrorResponse(error, "test_tool");

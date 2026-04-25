@@ -5,6 +5,12 @@
 - **Created:** 2026-04-23
 - **Updated:** 2026-04-23
 
+> **Historical note:** This research pack captures the pre-`completeTemporalOnlyMigration`
+> state. References to `store-legacy.ts`, `store-sync.ts`, SQLite, or Temporal
+> fallback behavior are evidence from that pre-migration snapshot, not current
+> architecture. Runtime storage is now Temporal-only with `store-disk.ts` as the
+> disk artifact substrate.
+
 ## Purpose & Scope
 
 This pack covers ADV's Temporal workflow integration, storage architecture (JSON+SQLite dual backend and Temporal-backed store adapter), JSON→SQLite sync subsystem, system resource optimization opportunities, and error handling/resiliency patterns. It deliberately does **not** cover: ADV's agent orchestration layer, command workflow semantics, spec validation, or the overlay/sync-global.sh tooling.

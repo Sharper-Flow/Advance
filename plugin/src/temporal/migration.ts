@@ -44,7 +44,7 @@ import {
 import { buildTemporalSearchAttributes } from "./observability";
 import { changeWorkflow, projectWorkflow } from "./workflows";
 
-interface WorkflowHandleLike {
+export interface WorkflowHandleLike {
   query: (definition: unknown, ...args: unknown[]) => Promise<unknown>;
   executeUpdate: (
     definition: unknown,
@@ -52,7 +52,7 @@ interface WorkflowHandleLike {
   ) => Promise<unknown>;
 }
 
-interface WorkflowClientLike {
+export interface WorkflowClientLike {
   start: (
     workflow: unknown,
     options: {

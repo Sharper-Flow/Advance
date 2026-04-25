@@ -223,8 +223,12 @@ export function createTemporalStoreBackend(
         summary,
         sourceVersion: version,
       });
-    } catch {
-      // Best-effort: signal failure must not block mutations
+    } catch (err) {
+      // Best-effort: signal failure must not block mutations, but it should
+      // remain observable when diagnosing stale project-workflow summaries.
+      logger.debug(
+        `ChangeSummary signal skipped for ${changeId}: ${err instanceof Error ? err.message : String(err)}`,
+      );
     }
   };
 

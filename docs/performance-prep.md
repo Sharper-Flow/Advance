@@ -5,6 +5,11 @@
 **Created:** 2026-04-23
 **Updated:** 2026-04-23
 
+> **Historical note:** This research pack predates
+> `completeTemporalOnlyMigration`. References to `bun:sqlite`,
+> `better-sqlite3`, `store-legacy.ts`, or legacy fallback behavior describe the
+> pre-migration snapshot. Current runtime storage is Temporal-only.
+
 ---
 
 ## Purpose & Scope

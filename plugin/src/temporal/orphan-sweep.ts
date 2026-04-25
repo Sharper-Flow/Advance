@@ -40,7 +40,11 @@ import { createLogger } from "../utils/debug-log";
 import { buildChangeWorkflowId } from "./client";
 
 const logger = createLogger("orphan-sweep");
-import { reImportChangeState } from "./migration";
+import {
+  reImportChangeState,
+  type WorkflowClientLike,
+  type WorkflowHandleLike,
+} from "./migration";
 import type { Change } from "../types";
 
 // =============================================================================
@@ -57,16 +61,8 @@ import type { Change } from "../types";
  */
 export interface SweepClient {
   workflow: {
-    start: (
-      workflow: unknown,
-      options: {
-        workflowId: string;
-        taskQueue: string;
-        args: [unknown];
-        searchAttributes?: Record<string, unknown[]>;
-      },
-    ) => Promise<unknown>;
-    getHandle: (workflowId: string) => {
+    start: WorkflowClientLike["start"];
+    getHandle: (workflowId: string) => WorkflowHandleLike & {
       describe: () => Promise<unknown>;
     };
   };
@@ -203,7 +199,7 @@ export async function sweepProject(
 
     // Phase 3: orphan detected — reseed via reImportChangeState
     try {
-      await reImportChangeState(client as never, {
+      await reImportChangeState(client, {
         projectId,
         change,
       });

@@ -57,6 +57,8 @@ interface MockClient {
     start: (...args: unknown[]) => Promise<{ workflowId: string }>;
     getHandle: (workflowId: string) => {
       describe: () => Promise<{ workflowId: string }>;
+      query: () => Promise<unknown>;
+      executeUpdate: () => Promise<unknown>;
     };
   };
 }
@@ -78,6 +80,8 @@ function createMockClient(existingWorkflowIds: string[] = []): MockClient {
       err.details = "workflow execution not found";
       throw err;
     },
+    query: async () => ({ workflowId }),
+    executeUpdate: async () => undefined,
   });
 
   return {
@@ -94,7 +98,7 @@ function createMockClient(existingWorkflowIds: string[] = []): MockClient {
           args: opts.args,
         });
         existing.add(opts.workflowId);
-        return { workflowId: opts.workflowId };
+        return handles(opts.workflowId);
       },
       getHandle: handles,
     },

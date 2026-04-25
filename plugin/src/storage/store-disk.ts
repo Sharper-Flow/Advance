@@ -32,8 +32,8 @@
  * function; everything else is overridden upstream in `store-temporal.ts`.
  */
 
-import { mkdir, readFile, writeFile, access } from "fs/promises";
-import { basename, dirname, join } from "path";
+import { mkdir } from "fs/promises";
+import { basename, join } from "path";
 
 import type {
   Change,
@@ -64,7 +64,6 @@ import {
   updateChangeArtifacts,
   type LoadResult,
 } from "./json";
-import { atomicWriteFile } from "../utils/fs";
 import type { Store, SearchResult } from "./store-types";
 import { generateChangeId } from "../utils/change-id";
 import { searchWisdom, filterChanges } from "./content-search";
@@ -133,7 +132,7 @@ export async function createDiskStore(
       // No-op — no SQLite handle to release.
     },
     flush: async () => {
-      // No-op — atomicWriteFile already flushes on every write.
+      // No-op — disk writes complete per operation in this backend.
     },
 
     // -------------------------------------------------------------------
@@ -906,14 +905,3 @@ export async function createDiskStore(
 
   return store;
 }
-
-// -- Helpers ----------------------------------------------------------------
-
-// Internal: silence unused-import warnings for symbols kept to ease future
-// migration moves (e.g. atomic write helpers used by spec.save when richer
-// persistence lands).
-void atomicWriteFile;
-void access;
-void readFile;
-void writeFile;
-void dirname;
