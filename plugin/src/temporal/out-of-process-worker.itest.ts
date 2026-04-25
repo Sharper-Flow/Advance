@@ -11,9 +11,9 @@
  *
  * Preconditions (test auto-skips otherwise):
  *   - A Node binary is on PATH (or ADV_NODE_PATH points at one)
- *   - The plugin's dist/temporal/worker.js or src/temporal/worker.ts is
- *     resolvable — dist is preferred, but the source file works too when
- *     the child has `tsx` available.
+ *   - The plugin's dist/temporal/worker.js is resolvable. Run
+ *     `pnpm run build:worker` before this integration test; otherwise it
+ *     auto-skips.
  *   - A Temporal server is reachable. This test uses TestWorkflowEnvironment
  *     in time-skipping mode, which hosts its own Temporal server process.
  *
@@ -39,15 +39,11 @@ function nodeAvailable(): boolean {
 }
 
 function workerScriptAvailable(): { path: string } | null {
-  // Prefer the built artifact (shipped to users); fall back to src for dev runs
-  // where `pnpm build:worker` hasn't been invoked yet.
+  // Use the built artifact shipped to users. A raw TypeScript source worker is
+  // not a valid Node child entrypoint in CI/runtime without an explicit loader.
   const distUrl = new URL("../../dist/temporal/worker.js", import.meta.url);
   const distPath = fileURLToPath(distUrl);
   if (existsSync(distPath)) return { path: distPath };
-
-  const srcUrl = new URL("./worker.ts", import.meta.url);
-  const srcPath = fileURLToPath(srcUrl);
-  if (existsSync(srcPath)) return { path: srcPath };
 
   return null;
 }

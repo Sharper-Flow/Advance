@@ -52,6 +52,10 @@ jobs:
           git config --global user.name "CI"
           git config --global user.email "ci@test.local"
 
+      - name: Build worker bundle for OOP integration tests
+        run: pnpm run build:worker
+        working-directory: plugin
+
       - name: Test
         run: pnpm test
         working-directory: plugin
