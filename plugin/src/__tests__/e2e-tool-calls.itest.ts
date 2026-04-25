@@ -71,7 +71,12 @@ describe("P1.9 — E2E tool calls (real Temporal stack)", () => {
             const legacy = await createLegacyStore(tempDir);
             const store = createTemporalStoreBackend({
               legacy,
-              temporal: { client: bundle.client },
+              // bundle.client is the real @temporalio/client Client, which
+              // satisfies TemporalHandleClient at runtime but the structural
+              // signatures don't unify (Client.workflow.start has stricter
+              // overloads). Cast through unknown — the e2e test exercises
+              // the real wire shape.
+              temporal: { client: bundle.client as unknown as never },
               projectId,
             });
             await store.init();
