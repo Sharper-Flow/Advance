@@ -186,7 +186,8 @@ function applyTaskRunPayload(run: TaskRunState, event: TaskRunEvent): void {
   if (event.type === "checkpoint") {
     run.checkpoint = {
       status: event.payload.status === "committed" ? "committed" : "clean",
-      sha: typeof event.payload.sha === "string" ? event.payload.sha : undefined,
+      sha:
+        typeof event.payload.sha === "string" ? event.payload.sha : undefined,
       branch:
         typeof event.payload.branch === "string"
           ? event.payload.branch
@@ -268,9 +269,8 @@ export function recordTaskRunEventInChangeState(
     run.events = run.events.slice(-TASK_RUN_EVENT_LIMIT);
   }
   if (run.seenIdempotencyKeys.length > TASK_RUN_EVENT_LIMIT) {
-    run.seenIdempotencyKeys = run.seenIdempotencyKeys.slice(
-      -TASK_RUN_EVENT_LIMIT,
-    );
+    run.seenIdempotencyKeys =
+      run.seenIdempotencyKeys.slice(-TASK_RUN_EVENT_LIMIT);
   }
 
   return { duplicate: false, run };

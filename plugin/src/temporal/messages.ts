@@ -93,7 +93,10 @@ export const recordTaskEvidenceUpdate = wf.defineUpdate<
   [string, "red" | "green", TddPhaseEvidence]
 >("adv.change.recordTaskEvidence");
 export const recordTaskRunEventUpdate = wf.defineUpdate<
-  { duplicate: boolean; run: NonNullable<ChangeWorkflowState["task_runs"]>[string] },
+  {
+    duplicate: boolean;
+    run: NonNullable<ChangeWorkflowState["task_runs"]>[string];
+  },
   [string, TaskRunEvent]
 >("adv.change.recordTaskRunEvent");
 export const setTaskPhaseUpdate = wf.defineUpdate<
