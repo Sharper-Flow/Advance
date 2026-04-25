@@ -50,6 +50,7 @@ import {
   classifyTemporalError,
   withTemporalRetry,
 } from "../temporal/retry-wrapper";
+import { reinitStsl } from "../temporal/service";
 import { listChangeDirs, removeChangeDir } from "./json";
 import { buildChangeRecency, computeLastActivity } from "./store-types";
 import type { ChangeStatus, ProjectStatus, Spec } from "../types";
@@ -113,8 +114,40 @@ function getChangeHandle(
   return bundle.client.workflow.getHandle(workflowId);
 }
 
+/**
+ * Build an idempotent `onTransientFailure` hook that calls `reinitStsl`
+ * at most once per outer op (KD-2, KD-4). `withTemporalRetry` fires its
+ * hook on every transient failure — without per-op idempotency, a
+ * 3-attempt failure cycle would close + reopen the connection twice,
+ * closing the freshly-opened socket from the first reconnect. The
+ * `reconnected` flag is local to this closure so two parallel ops each
+ * get their own gate; STSL's own single-flight guard collapses
+ * concurrent triggers into one Connection.connect.
+ *
+ * Reconnect failure is non-fatal — the original op error propagates
+ * after the retry budget. `reinitStsl` already records the failure in
+ * `StslStats.reconnectFailureCount`, so swallowing here keeps the
+ * retry loop intact without losing observability.
+ */
+function makeReconnectingHook(): () => Promise<void> {
+  let reconnected = false;
+  return async () => {
+    if (reconnected) return;
+    reconnected = true;
+    try {
+      await reinitStsl();
+    } catch (err) {
+      logger.debug(
+        `STSL reinit failed during retry: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+  };
+}
+
 async function runTemporal<T>(op: () => Promise<T>): Promise<T> {
-  return withTemporalRetry(op);
+  return withTemporalRetry(op, {
+    onTransientFailure: makeReconnectingHook(),
+  });
 }
 
 /**
@@ -130,7 +163,10 @@ async function runTemporal<T>(op: () => Promise<T>): Promise<T> {
 const QUERY_TIMEOUT_MS = 5_000;
 
 async function runTemporalQuery<T>(op: () => Promise<T>): Promise<T> {
-  return withTemporalRetry(op, { timeoutMs: QUERY_TIMEOUT_MS });
+  return withTemporalRetry(op, {
+    timeoutMs: QUERY_TIMEOUT_MS,
+    onTransientFailure: makeReconnectingHook(),
+  });
 }
 
 export function createTemporalStoreBackend(
