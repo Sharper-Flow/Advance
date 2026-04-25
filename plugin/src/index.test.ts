@@ -20,7 +20,7 @@ import {
 } from "./__tests__/setup";
 import { addProjectWisdom } from "./storage/project-wisdom";
 import { ADV_TOOL_NAMES } from "./tool-registry";
-import { createLegacyStore } from "./storage/store-legacy";
+import { createDiskStore as createLegacyStore } from "./storage/store-disk";
 
 // Mock plugin-init to bypass Temporal requirement in integration tests.
 // Degraded-mode tests (malformed project.json) are preserved by checking

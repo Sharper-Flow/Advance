@@ -24,7 +24,8 @@ import {
 import { tryInitStore, registerShutdownHandlers } from "./plugin-init";
 import type { StatusMarker } from "./types";
 import { getProjectId, getExternalRoot } from "./utils/project-id";
-import { migrateToExternalState } from "./storage/migrate";
+// P2.7: legacy-state migration removed. Disk-only store reads from existing
+// .adv/ paths or external state directly; no migration step needed.
 import { enforceBashPolicy } from "./guards/bash";
 import { enforceTaskPolicy } from "./guards/task";
 import { createToolMap, createDegradedToolMap } from "./tool-registry";
@@ -168,26 +169,19 @@ async function resolveProjectContext(
 }
 
 async function migrateLegacyStateIfNeeded(
-  effectiveDir: string,
+  _effectiveDir: string,
   projectId: string | null,
   externalRoot?: string,
 ): Promise<void> {
+  // P2.7: SQLite-backed legacy store removed. The disk-only store reads
+  // and writes the same on-disk paths the legacy store used, so no
+  // migration step is required. This function is preserved as a no-op
+  // for plugin-init wiring stability.
   if (!projectId || !externalRoot) {
     debugLog("No project ID (not a git repo?) — using legacy in-repo paths");
     return;
   }
-
   debugLog(`External state: projectId=${projectId}, root=${externalRoot}`);
-  try {
-    const report = await migrateToExternalState(effectiveDir, externalRoot);
-    if (report.migrated.length > 0) {
-      debugLog(
-        `Migration: ${report.migrated.join(",")} migrated, ${report.skipped.join(",")} skipped`,
-      );
-    }
-  } catch (e) {
-    debugLog(`Migration failed (non-fatal): ${(e as Error).message}`);
-  }
 }
 
 export const AdvancePlugin: Plugin = async ({

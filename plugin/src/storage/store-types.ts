@@ -30,7 +30,18 @@ import type {
   BulkCloseResult,
 } from "../types";
 import type { ProjectPaths, LoadResult } from "./json";
-import type { WisdomSearchResult } from "./sqlite";
+
+// Inlined from former ./sqlite module (deleted in P2.7).
+export interface WisdomSearchResult {
+  id: string;
+  type: WisdomType;
+  content: string;
+  source_task?: string;
+  recorded_at: string;
+  scope: string;
+  change_id?: string;
+  highlight?: string;
+}
 
 export interface Store {
   paths: ProjectPaths;

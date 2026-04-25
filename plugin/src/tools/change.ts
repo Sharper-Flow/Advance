@@ -18,7 +18,7 @@ import {
   type ClarifyFindingSnapshot,
 } from "../types";
 import type { Store } from "../storage/store";
-import { createLegacyStore } from "../storage/store-legacy";
+import { createDiskStore as createLegacyStore } from "../storage/store-disk";
 import { getReflection } from "../storage/reflection";
 import { getProjectId, getExternalRoot } from "../utils/project-id";
 import { validateChange } from "../validator";

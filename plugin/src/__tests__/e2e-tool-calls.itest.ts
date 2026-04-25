@@ -25,7 +25,7 @@ import { TestWorkflowEnvironment } from "@temporalio/testing";
 
 import { createInProcessWorker } from "../temporal/in-process-worker";
 import { createTemporalStoreBackend } from "../storage/store-temporal";
-import { createLegacyStore } from "../storage/store-legacy";
+import { createDiskStore as createLegacyStore } from "../storage/store-disk";
 import { changeTools } from "../tools/change";
 import { initStsl, closeStsl, resetStsl } from "../temporal/service";
 import { createTempDir, cleanupTempDir, parseToolOutput } from "./setup";
