@@ -48,11 +48,12 @@ import {
   withTemporalRetry,
 } from "../temporal/retry-wrapper";
 import { listChangeDirs, removeChangeDir } from "./json";
-import { buildChangeRecency } from "./store-types";
+import { buildChangeRecency, computeLastActivity } from "./store-types";
 import type { ChangeStatus, ProjectStatus, Spec } from "../types";
 import { SpecSchema } from "../types";
 import { listSpecsActivity, showSpecActivity } from "../temporal/activities";
 import type { LoadResult } from "./json";
+import { filterChanges } from "./content-search";
 import {
   ChangeSummaryMemo,
   asGateStatus,
@@ -715,6 +716,28 @@ export function createTemporalStoreBackend(
         }
         if (!filter?.includeClosed) {
           filtered = filtered.filter((change) => change.status !== "closed");
+        }
+
+        // P2.3: substring/prefix/timestamp filters via linear-scan
+        // content-search helper. See `content-search.ts` and
+        // `scripts/bench-content-search.ts` for the bench data backing
+        // this strategy choice over MiniSearch.
+        if (
+          filter?.prefix ||
+          filter?.titleContains ||
+          filter?.createdBefore ||
+          filter?.lastActivityBefore
+        ) {
+          const enriched = filtered.map((c) => ({
+            ...c,
+            lastActivityAt: computeLastActivity(c),
+          }));
+          filtered = filterChanges(enriched, {
+            prefix: filter.prefix,
+            titleContains: filter.titleContains,
+            createdBefore: filter.createdBefore,
+            lastActivityBefore: filter.lastActivityBefore,
+          });
         }
 
         filtered.sort((a, b) => {
