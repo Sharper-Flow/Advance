@@ -4,14 +4,7 @@ Specs are laws. Requirements are formally defined, validated, and enforced.
 
 ## Notation
 
-| Symbol | Meaning                 |
-| ------ | ----------------------- |
-| `→`    | Sequence / leads to     |
-| `←`    | Blocked by / depends on |
-| `✓`    | Complete / verified     |
-| `○`    | Pending / optional      |
-| `×`    | Forbidden / never       |
-| `⚠`    | Attention / warning     |
+`→` sequence · `←` blocked by · `✓` complete · `○` pending · `×` forbidden · `⚠` attention
 
 ## Core Decision Rules
 
@@ -53,10 +46,6 @@ For autonomous phases (`/adv-review`, `/adv-harden`), before auto-remediating an
 ### Prep Gate Machine Enforcement
 
 The prep gate requires `userApproved: true` in `adv_gate_complete`. Without it, the gate returns an error prompting the agent to obtain user approval first. This is the only machine-enforced HITL gate; other collaborative phases rely on command instructions.
-
-### Backward Compatibility
-
-For changes created before HITL enforcement, `/adv-apply` emits a soft advisory suggesting retroactive approval. This is informational, not a hard block.
 
 ### Human Checkpoints (Pause Required)
 
@@ -101,7 +90,7 @@ Each workflow command has a defined phase goal. These are canonical in `manifest
 | `/adv-review`   | Verify implementation matches the approved plan. Auto-fix within scope. Stop on drift.                                        |
 | `/adv-harden`   | Verify production-readiness. Auto-fix scoped issues. Stop on drift.                                                           |
 | `/adv-archive`  | Promote the change from contract to law: apply spec deltas, capture wisdom, clean up.                                         |
-| `/adv-reflect`  | Synthesize two-plane post-completion learnings (execution + system friction) into a durable reflection artifact for process improvement. |
+| `/adv-reflect`  | Produce a structured two-plane reflection report for an archived change                              |
 
 ## Commands
 
@@ -116,7 +105,7 @@ Each workflow command has a defined phase goal. These are canonical in `manifest
 | `/adv-validate <change-id>` | Validate change compliance against specs; block archive on failure                  |
 | `/adv-apply <change-id>`    | Implement change with TDD, retry on failure, and final verification                 |
 | `/adv-archive <change-id>`  | Archive completed change: apply spec deltas and finalize git                        |
-| `/adv-reflect <change-id>`  | Produce a structured two-plane reflection report for an archived change. Optional; when called from `/adv-archive`, failures are non-blocking. |
+| `/adv-reflect <change-id>`  | Produce a structured two-plane reflection report for an archived change                              |
 
 ### Pre-Implementation
 
@@ -136,6 +125,8 @@ Each workflow command has a defined phase goal. These are canonical in `manifest
 | `/adv-harden <change-id>` | Detect low-quality code, verify test coverage, clean up; block archive on open findings |
 | `/adv-audit [capability]` | Detect drift between specs and current implementation                                   |
 | `/adv-slop-scan [path]`   | Scan for AI slop patterns including defensive and nested code                           |
+| `/adv-arch-scan [path]`   | Scan for architecture inconsistencies using deterministic tools, research fallback, and AI heuristic |
+| `/adv-comp-scan <target>` | Scan competitor capabilities against this project for competitive intelligence          |
 
 ### Fast-Track / Advanced
 
@@ -186,15 +177,7 @@ Tab title: `<emoji> <shortname> · <normalized change>` when a change is active,
 
 Emitted on: `adv_change_show`, `adv_gate_complete`, `adv_task_update` to `in_progress`.
 
-**Cross-Repo Switch** — emit via `formatCrossRepoSwitch()`:
-
-```
-╔═══════════════════════════════════════════════════════════╗
-║ 🔀 SWITCHING REPOSITORY CONTEXT                          ║
-║ From: ~/dev/frontend  →  To: ~/dev/backend                ║
-║ Task: tk-backend01 (Add /api/oauth/callback endpoint)     ║
-╚═══════════════════════════════════════════════════════════╝
-```
+**Cross-Repo Switch** — emit via `formatCrossRepoSwitch()`.
 
 ## Critical Protocols
 

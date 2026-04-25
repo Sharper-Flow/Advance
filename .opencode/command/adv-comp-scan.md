@@ -1,6 +1,6 @@
 ---
 name: adv-comp-scan
-description: Competitive intelligence scan — compare this project against a competitor
+description: Scan competitor capabilities against this project for competitive intelligence
 ---
 <!-- manifest: adv-comp-scan · requiresChangeId: false -->
 # ADV Competitive Intelligence Scan

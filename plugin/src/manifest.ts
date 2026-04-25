@@ -370,6 +370,24 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
     prerequisites: [],
     successors: ["adv-proposal"],
   },
+  "adv-arch-scan": {
+    name: "adv-arch-scan",
+    description:
+      "Scan for architecture inconsistencies using deterministic tools, research fallback, and AI heuristic",
+    phase: "utility",
+    requiresChangeId: false,
+    prerequisites: [],
+    successors: ["adv-proposal"],
+  },
+  "adv-comp-scan": {
+    name: "adv-comp-scan",
+    description:
+      "Scan competitor capabilities against this project for competitive intelligence",
+    phase: "utility",
+    requiresChangeId: false,
+    prerequisites: [],
+    successors: ["adv-proposal"],
+  },
   "adv-tron": {
     name: "adv-tron",
     description:
