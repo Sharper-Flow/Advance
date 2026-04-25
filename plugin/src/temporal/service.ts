@@ -255,7 +255,9 @@ export async function reinitStsl(): Promise<void> {
       } catch (e) {
         debugLog(`reinitStsl: close error (continuing): ${e}`);
       }
-      const newConnection = await Connection.connect({ address: bundle.address });
+      const newConnection = await Connection.connect({
+        address: bundle.address,
+      });
       const newClient = new Client({
         connection: newConnection,
         namespace: bundle.namespace,

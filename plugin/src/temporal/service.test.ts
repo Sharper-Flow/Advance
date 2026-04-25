@@ -202,20 +202,36 @@ describe("STSL (Shared Temporal Service Layer)", () => {
     await closeStsl();
     expect(isStslInitialized()).toBe(false);
   });
+});
 
-  it("reinitStsl mutates client and connection in place; bundle reference unchanged", async () => {
-    // Bootstrap RED test for Task 1 — validates KD-1 (in-place mutation).
-    // Comprehensive reinit coverage lives in Task 2.
+describe("reinitStsl (Task 2 — comprehensive coverage)", () => {
+  beforeEach(() => {
+    resetStsl();
+    vi.clearAllMocks();
+  });
+
+  afterEach(async () => {
+    await closeStsl().catch(() => {});
+  });
+
+  // Helper: initialize STSL and stub the next Connection.connect/new Client
+  // pair to return distinct objects so we can assert in-place swap.
+  const initAndStubNextReconnect = async (): Promise<{
+    bundleBefore: Awaited<ReturnType<typeof initStsl>>;
+    clientBefore: unknown;
+    connectionBefore: unknown;
+    newConnection: {
+      close: ReturnType<typeof vi.fn>;
+      operatorService: { addSearchAttributes: ReturnType<typeof vi.fn> };
+    };
+    newClient: object;
+  }> => {
     const bundleBefore = await initStsl({
       ADV_TEMPORAL_ADDRESS: "127.0.0.1:7233",
       ADV_TEMPORAL_NAMESPACE: "default",
     });
     const clientBefore = bundleBefore.client;
     const connectionBefore = bundleBefore.connection;
-
-    // Stub a different connection + client object for the reinit's
-    // Connection.connect / new Client() calls so we can assert in-place
-    // swap (different object identity) without breaking other tests.
     const newConnection = {
       close: vi.fn().mockResolvedValue(undefined),
       operatorService: {
@@ -227,17 +243,143 @@ describe("STSL (Shared Temporal Service Layer)", () => {
     mocks.ClientCtor.mockImplementationOnce(function (this: unknown) {
       return newClient;
     });
+    return {
+      bundleBefore,
+      clientBefore,
+      connectionBefore,
+      newConnection,
+      newClient,
+    };
+  };
+
+  it("mutates client and connection in place; bundle reference unchanged", async () => {
+    const {
+      bundleBefore,
+      clientBefore,
+      connectionBefore,
+      newConnection,
+      newClient,
+    } = await initAndStubNextReconnect();
 
     await reinitStsl();
 
     const bundleAfter = getService();
-    expect(bundleAfter).toBe(bundleBefore); // reference identity preserved
+    expect(bundleAfter).toBe(bundleBefore);
     expect(bundleAfter!.client).not.toBe(clientBefore);
     expect(bundleAfter!.connection).not.toBe(connectionBefore);
     expect(bundleAfter!.client).toBe(newClient);
     expect(bundleAfter!.connection).toBe(newConnection);
-
     expect(getStslStats().reconnectCount).toBe(1);
     expect(getStslStats().reconnectFailureCount).toBe(0);
+  });
+
+  it("is single-flight under concurrent callers", async () => {
+    await initAndStubNextReconnect();
+
+    // Two concurrent reinitStsl calls — only one Connection.connect should
+    // happen for the reinit (initStsl itself already counted once before).
+    const connectCallsBefore = mocks.connect.mock.calls.length;
+    const [r1, r2] = await Promise.all([reinitStsl(), reinitStsl()]);
+    expect(r1).toBeUndefined();
+    expect(r2).toBeUndefined();
+    expect(mocks.connect.mock.calls.length).toBe(connectCallsBefore + 1);
+    expect(getStslStats().reconnectCount).toBe(1);
+  });
+
+  it("swallows close failure and proceeds with connect", async () => {
+    await initAndStubNextReconnect();
+
+    // Make the OLD connection's close reject — reinit should still succeed.
+    mocks.connectionClose.mockRejectedValueOnce(new Error("close exploded"));
+
+    await expect(reinitStsl()).resolves.toBeUndefined();
+    expect(getStslStats().reconnectCount).toBe(1);
+    expect(getStslStats().reconnectFailureCount).toBe(0);
+  });
+
+  it("propagates Connection.connect failure to caller; increments reconnectFailureCount", async () => {
+    await initStsl({
+      ADV_TEMPORAL_ADDRESS: "127.0.0.1:7233",
+      ADV_TEMPORAL_NAMESPACE: "default",
+    });
+    // Force the next Connection.connect to fail (the reinit one).
+    mocks.connect.mockRejectedValueOnce(new Error("ECONNREFUSED"));
+
+    await expect(reinitStsl()).rejects.toThrow(/ECONNREFUSED/);
+    expect(getStslStats().reconnectCount).toBe(0);
+    expect(getStslStats().reconnectFailureCount).toBe(1);
+  });
+
+  it("re-registers ADV search attributes after reconnect", async () => {
+    const { newConnection } = await initAndStubNextReconnect();
+
+    // initStsl already called addSearchAttributes once on the original conn.
+    // After reinit, the NEW connection's addSearchAttributes should be hit.
+    expect(
+      newConnection.operatorService.addSearchAttributes,
+    ).not.toHaveBeenCalled();
+    await reinitStsl();
+    expect(
+      newConnection.operatorService.addSearchAttributes,
+    ).toHaveBeenCalledTimes(1);
+  });
+
+  it("treats AlreadyExists from search-attribute re-registration as success", async () => {
+    const { newConnection } = await initAndStubNextReconnect();
+    newConnection.operatorService.addSearchAttributes.mockRejectedValueOnce(
+      new Error("search attribute already exists"),
+    );
+
+    await expect(reinitStsl()).resolves.toBeUndefined();
+    expect(getStslStats().reconnectCount).toBe(1);
+  });
+
+  it("getStslStats includes reconnectCount and reconnectFailureCount", () => {
+    const stats = getStslStats();
+    expect(stats).toHaveProperty("reconnectCount", 0);
+    expect(stats).toHaveProperty("reconnectFailureCount", 0);
+  });
+
+  it("resetStsl clears reconnect counters and inflight state", async () => {
+    await initStsl({
+      ADV_TEMPORAL_ADDRESS: "127.0.0.1:7233",
+      ADV_TEMPORAL_NAMESPACE: "default",
+    });
+    mocks.connect.mockRejectedValueOnce(new Error("force-fail"));
+    await expect(reinitStsl()).rejects.toThrow(/force-fail/);
+    expect(getStslStats().reconnectFailureCount).toBe(1);
+
+    resetStsl();
+
+    expect(getStslStats().reconnectCount).toBe(0);
+    expect(getStslStats().reconnectFailureCount).toBe(0);
+    // After reset, a fresh init must work again (proves inFlightReconnect cleared).
+    await expect(
+      initStsl({
+        ADV_TEMPORAL_ADDRESS: "127.0.0.1:7233",
+        ADV_TEMPORAL_NAMESPACE: "default",
+      }),
+    ).resolves.toBeDefined();
+  });
+
+  it("reinitStsl on uninitiated service throws with diagnostic message", async () => {
+    expect(isStslInitialized()).toBe(false);
+    await expect(reinitStsl()).rejects.toThrow(/STSL not initialized/);
+  });
+
+  it("concurrent reinitStsl calls — both observers see the rejection from the first", async () => {
+    await initStsl({
+      ADV_TEMPORAL_ADDRESS: "127.0.0.1:7233",
+      ADV_TEMPORAL_NAMESPACE: "default",
+    });
+    mocks.connect.mockRejectedValueOnce(new Error("shared-failure"));
+
+    const p1 = reinitStsl();
+    const p2 = reinitStsl();
+
+    await expect(p1).rejects.toThrow(/shared-failure/);
+    await expect(p2).rejects.toThrow(/shared-failure/);
+    // Single-flight: only one failure counts toward reconnectFailureCount.
+    expect(getStslStats().reconnectFailureCount).toBe(1);
   });
 });
