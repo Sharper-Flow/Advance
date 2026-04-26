@@ -23,11 +23,31 @@ const mocks = vi.hoisted(() => ({
   rebuildProjectWorkflowState: vi.fn(async () => ({})),
   reImportChangeState: vi.fn(async () => ({})),
   writeJsonlAtomic: vi.fn(async () => {}),
+  getTemporalHealth: vi.fn(async () => ({
+    server_alive: true,
+    worker_alive: true,
+    worker_process_alive: true,
+    registered_queues: ["advance-proj123"],
+    last_op_at: null,
+    last_error: null,
+    fallback_counts: { changes: 0, tasks: 0, wisdom: 0, gates: 0 },
+    stale_queues: [],
+    reconnect_count: 0,
+  })),
+  getStslStats: vi.fn(() => ({
+    getServiceCalls: 1,
+    newConnections: 1,
+    reuseRate: 1,
+    reconnectCount: 0,
+    reconnectFailureCount: 0,
+  })),
+  reinitStsl: vi.fn(async () => {}),
   createTemporalClientBundle: vi.fn(async () => ({
     connection: { close: vi.fn(async () => {}) },
     client: {
       workflow: {
         getHandle: vi.fn(() => ({
+          describe: vi.fn(async () => ({})),
           terminate: vi.fn(async () => {}),
           query: vi.fn(async (queryDef: any) => {
             const name = queryDef?.name ?? queryDef;
@@ -36,13 +56,30 @@ const mocks = vi.hoisted(() => ({
             return null;
           }),
         })),
+        start: vi.fn(async () => ({})),
       },
     },
   })),
   getService: vi.fn(() => ({
     address: "127.0.0.1:7233",
     namespace: "default",
-    connection: { close: vi.fn(async () => {}) },
+    connection: {
+      close: vi.fn(async () => {}),
+      operatorService: {
+        getSearchAttributes: vi.fn(async () => ({
+          customAttributes: {
+            AdvProjectId: { indexedValueType: 1 },
+            AdvChangeId: { indexedValueType: 1 },
+            AdvChangeStatus: { indexedValueType: 1 },
+            AdvActiveGate: { indexedValueType: 1 },
+            AdvDoomLoopActive: { indexedValueType: 4 },
+          },
+        })),
+      },
+      workflowService: {
+        describeWorkflowExecution: vi.fn(async () => ({})),
+      },
+    },
     client: {
       workflow: {
         getHandle: vi.fn(() => ({
@@ -115,6 +152,18 @@ vi.mock("../temporal/service", async () => {
   return {
     ...actual,
     getService: mocks.getService,
+    getStslStats: mocks.getStslStats,
+    reinitStsl: mocks.reinitStsl,
+  };
+});
+
+vi.mock("../temporal/health-probe", async () => {
+  const actual = await vi.importActual<
+    typeof import("../temporal/health-probe")
+  >("../temporal/health-probe");
+  return {
+    ...actual,
+    getTemporalHealth: mocks.getTemporalHealth,
   };
 });
 
@@ -180,6 +229,168 @@ describe("temporal operator tools", () => {
     expect(parsed.success).toBe(true);
     expect(parsed.projectId).toBe("proj123");
     expect(parsed.queues).toEqual(["advance-proj123"]);
+    expect(parsed.stsl).toEqual({
+      initialized: true,
+      reconnectCount: 0,
+      reconnectFailureCount: 0,
+      recommendedNextAction: "run adv_temporal_diagnose if tools still fail",
+    });
+  });
+
+  it("adv_temporal_reconnect calls reinitStsl and reports before/after stats", async () => {
+    mocks.getStslStats
+      .mockReturnValueOnce({
+        getServiceCalls: 1,
+        newConnections: 1,
+        reuseRate: 1,
+        reconnectCount: 0,
+        reconnectFailureCount: 0,
+      })
+      .mockReturnValueOnce({
+        getServiceCalls: 2,
+        newConnections: 2,
+        reuseRate: 1,
+        reconnectCount: 1,
+        reconnectFailureCount: 0,
+      });
+    const store = { paths: { root: "/repo" } } as any;
+
+    const result = await temporalOpsTools.adv_temporal_reconnect.execute(
+      {},
+      store,
+    );
+    const parsed = JSON.parse(result);
+
+    expect(mocks.reinitStsl).toHaveBeenCalledTimes(1);
+    expect(parsed.success).toBe(true);
+    expect(parsed.before.reconnectCount).toBe(0);
+    expect(parsed.after.reconnectCount).toBe(1);
+    expect(parsed.message).toContain("Reconnected Temporal service layer");
+  });
+
+  it("adv_temporal_diagnose reports healthy recovery state", async () => {
+    const store = {
+      paths: {
+        root: "/repo",
+        external: "/home/jrede/.local/share/opencode/plugins/advance/proj123",
+      },
+    } as any;
+
+    const result = await temporalOpsTools.adv_temporal_diagnose.execute(
+      { changeId: "chg123" },
+      store,
+    );
+    const parsed = JSON.parse(result);
+
+    expect(parsed.success).toBe(true);
+    expect(parsed.projectId).toBe("proj123");
+    expect(parsed.stsl.initialized).toBe(true);
+    expect(parsed.searchAttributes.ok).toBe(true);
+    expect(parsed.projectWorkflow.reachable).toBe(true);
+    expect(parsed.changeWorkflow).toEqual({
+      changeId: "chg123",
+      reachable: true,
+    });
+    expect(parsed.recommendedNextAction).toBe("none");
+  });
+
+  it("adv_temporal_diagnose recommends search-attribute registration when attrs are missing", async () => {
+    const bundle = mocks.getService();
+    bundle.connection.operatorService.getSearchAttributes = vi.fn(async () => ({
+      customAttributes: {},
+    }));
+    mocks.getService.mockReturnValueOnce(bundle as any);
+    const store = {
+      paths: {
+        root: "/repo",
+        external: "/home/jrede/.local/share/opencode/plugins/advance/proj123",
+      },
+    } as any;
+
+    const result = await temporalOpsTools.adv_temporal_diagnose.execute(
+      {},
+      store,
+    );
+    const parsed = JSON.parse(result);
+
+    expect(parsed.searchAttributes.ok).toBe(false);
+    expect(parsed.searchAttributes.missing).toHaveLength(5);
+    expect(parsed.recommendedNextAction).toBe(
+      "run adv_temporal_register_search_attributes",
+    );
+  });
+
+  it("adv_temporal_register_search_attributes requires explicit approval", async () => {
+    const store = { paths: { root: "/repo" } } as any;
+
+    const result =
+      await temporalOpsTools.adv_temporal_register_search_attributes.execute(
+        { approvedByUser: false, approvalEvidence: "" },
+        store,
+      );
+    const parsed = JSON.parse(result);
+
+    expect(parsed.error).toContain("approval");
+  });
+
+  it("adv_temporal_register_search_attributes creates missing attrs through STSL", async () => {
+    const bundle = mocks.getService();
+    bundle.connection.operatorService.getSearchAttributes = vi.fn(async () => ({
+      customAttributes: {
+        AdvProjectId: { indexedValueType: 1 },
+      },
+    }));
+    bundle.connection.operatorService.addSearchAttributes = vi
+      .fn()
+      .mockResolvedValue({});
+    mocks.getService.mockReturnValueOnce(bundle as any);
+    const store = { paths: { root: "/repo" } } as any;
+
+    const result =
+      await temporalOpsTools.adv_temporal_register_search_attributes.execute(
+        {
+          approvedByUser: true,
+          approvalEvidence: "User approved via question tool",
+        },
+        store,
+      );
+    const parsed = JSON.parse(result);
+
+    expect(parsed.success).toBe(true);
+    expect(parsed.result.created.map((attr: any) => attr.name)).toEqual([
+      "AdvChangeId",
+      "AdvChangeStatus",
+      "AdvActiveGate",
+      "AdvDoomLoopActive",
+    ]);
+    expect(bundle.connection.operatorService.addSearchAttributes).toHaveBeenCalledWith({
+      namespace: "default",
+      searchAttributes: {
+        AdvChangeId: 1,
+        AdvChangeStatus: 1,
+        AdvActiveGate: 1,
+        AdvDoomLoopActive: 4,
+      },
+    });
+  });
+
+  it("adv_orphan_sweep refuses execute mode without approval", async () => {
+    const store = {
+      paths: {
+        root: "/repo",
+        external: "/home/jrede/.local/share/opencode/plugins/advance/proj123",
+        changes: "/repo/.adv/changes",
+      },
+    } as any;
+
+    const result = await temporalOpsTools.adv_orphan_sweep.execute(
+      { dryRun: false, approvedByUser: false, approvalEvidence: "" },
+      store,
+    );
+    const parsed = JSON.parse(result);
+
+    expect(parsed.success).toBe(false);
+    expect(parsed.error).toContain("approval");
   });
 
   it("adv_workflow_repair rebuilds project workflow, reimports the change, and re-emits derived exports", async () => {
@@ -218,6 +429,39 @@ describe("temporal operator tools", () => {
       }),
     );
     expect(mocks.writeJsonlAtomic).toHaveBeenCalledTimes(2);
+    expect(mocks.reinitStsl).toHaveBeenCalledTimes(1);
+  });
+
+  it("adv_workflow_repair reports partial state when change re-import fails after project rebuild", async () => {
+    mocks.reImportChangeState.mockRejectedValueOnce(
+      new Error("missing search attribute AdvChangeId"),
+    );
+    const store = {
+      paths: {
+        root: "/repo",
+        external: "/home/jrede/.local/share/opencode/plugins/advance/proj123",
+        changes: "/repo/.adv/changes",
+        agenda:
+          "/home/jrede/.local/share/opencode/plugins/advance/proj123/agenda.jsonl",
+        wisdom:
+          "/home/jrede/.local/share/opencode/plugins/advance/proj123/wisdom.jsonl",
+      },
+    } as any;
+
+    const result = await temporalOpsTools.adv_workflow_repair.execute(
+      {
+        changeId: "chg123",
+        approvalEvidence: "User approved via question tool",
+      },
+      store,
+    );
+    const parsed = JSON.parse(result);
+
+    expect(parsed.success).toBe(false);
+    expect(parsed.phase).toBe("reimport-change");
+    expect(parsed.projectRebuilt).toBe(true);
+    expect(parsed.error).toContain("missing search attribute AdvChangeId");
+    expect(mocks.rebuildProjectWorkflowState).toHaveBeenCalledTimes(1);
   });
 
   it("adv_workflow_repair rejects when approvalEvidence is empty", async () => {
