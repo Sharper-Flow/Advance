@@ -1,6 +1,6 @@
 # Temporal Recovery Runbook
 
-> **Status:** worker-model and recovery baseline. This runbook now outlives the retired cutover harness and remains the operator reference for worker-model decisions, failed-migration recovery, worker auto-respawn troubleshooting, `NonDeterministicWorkflowError` recovery, and disk-full / OOM surfaces.
+> **Status:** worker-model and recovery baseline. This runbook now outlives the retired cutover harness and remains the operator reference for post-crash diagnosis, worker-model decisions, failed-migration recovery, worker auto-respawn troubleshooting, `NonDeterministicWorkflowError` recovery, orphan cleanup, and disk-full / OOM surfaces.
 
 ## Worker model
 
@@ -58,34 +58,195 @@ These alternatives were evaluated and deliberately deferred. Revisit if the link
 
 Until one of those triggers fires, keep the single in-process worker. Adding processes, shards, or services before they're needed pays the operational cost without the benefit.
 
+## Post-crash recovery entry point
+
+Use this first when agents report Temporal errors after an OpenCode or host
+crash, especially:
+
+- `Temporal re-seed failed for change ...`
+- `WorkflowNotFoundError` for an `adv/change/*` workflow
+- `ServiceError: Failed to start Workflow`
+- worker respawn-loop messages
+- startup warnings that mention plugin or Temporal initialization
+
+### Step 1 — Diagnose, do not loop retries
+
+Run the read-only classifier first:
+
+```bash
+adv_temporal_diagnose
+```
+
+If a specific change is failing, include it:
+
+```bash
+adv_temporal_diagnose changeId: "<change-id>"
+```
+
+The diagnostic output reports:
+
+- Temporal server reachability
+- STSL initialization and reconnect counters
+- worker / worker-process health
+- project workflow reachability
+- optional change workflow reachability
+- required ADV search-attribute status
+- stale queues
+- last Temporal error
+- recommended next action
+
+Agents should emit one concise diagnostic and follow the recommended next
+action. Do **not** keep cycling through `adv_status`, worker restart, and
+workflow repair when the same diagnostic remains unchanged.
+
+### Agent anti-spam rule
+
+When Temporal recovery is noisy, agents should report state changes, not every
+retry attempt.
+
+Emit once:
+
+- first diagnostic summary
+- chosen recovery action
+- approval boundary, when mutation is required
+- final recovered/blocked state
+
+Suppress repeats:
+
+- identical `adv_status` snapshots
+- identical `adv_temporal_diagnose` recommendations
+- repeated worker restart attempts with the same `last_error`
+- generic “trying again” progress messages without new evidence
+
+Escalate instead of repeating after the same recovery action fails three times.
+Include the diagnostic snapshot, attempted actions, and exact last error.
+
+### Missing required ADV search attributes
+
+ADV change workflows start with custom Temporal search attributes:
+
+| Attribute           | Type      |
+| ------------------- | --------- |
+| `AdvProjectId`      | `Keyword` |
+| `AdvChangeId`       | `Keyword` |
+| `AdvChangeStatus`   | `Keyword` |
+| `AdvActiveGate`     | `Keyword` |
+| `AdvDoomLoopActive` | `Bool`    |
+
+If these attributes are missing, project workflows may still run while change
+workflow starts fail with generic errors such as:
+
+```text
+ServiceError: Failed to start Workflow
+```
+
+Recovery:
+
+1. Run `adv_temporal_diagnose` and confirm `searchAttributes.ok=false`.
+2. Get explicit user approval.
+3. Run `adv_temporal_register_search_attributes` with approval evidence.
+4. Re-run `adv_temporal_diagnose` or the blocked ADV command.
+
+The registration tool creates missing attributes only. It refuses wrong-type
+attributes because Temporal search-attribute type migration is an operator
+decision, not a safe automatic repair.
+
+### Stale STSL connection
+
+If Temporal is serving and workers are alive but ADV tools still fail with
+connection or service-layer errors, reconnect the shared Temporal service layer:
+
+```bash
+adv_temporal_reconnect
+```
+
+This does not mutate workflow state and does not restart workers. It replaces
+the cached STSL connection/client and reports reconnect counters before/after.
+
+### Worker restart
+
+If diagnose reports `worker_process_alive=false` or no worker queues are
+registered, restart the worker:
+
+```bash
+adv_temporal_worker_restart
+```
+
+The restart output includes STSL status and recommends `adv_temporal_diagnose`
+if tools still fail. Keep worker restart and STSL reconnect conceptually
+separate: restart owns worker lifecycle; reconnect owns the client connection.
+
+### Workflow repair
+
+If diagnose shows a missing project/change workflow after server, search
+attributes, STSL, and worker health are OK, run workflow repair with explicit
+approval:
+
+```bash
+adv_workflow_repair changeId: "<change-id>" approvalEvidence: "<how user approved>"
+```
+
+Repair now reports phase-specific failures. If project rebuild succeeds but
+change re-import fails, the tool reports `phase: "reimport-change"` and
+`projectRebuilt: true` instead of a generic `Failed to start Workflow`.
+
+### Orphan sweep
+
+Use orphan sweep when disk snapshots exist but change workflows are missing in
+Temporal.
+
+Preview only (default, no mutation):
+
+```bash
+adv_orphan_sweep dryRun: true
+```
+
+Re-seed missing workflows (requires explicit approval):
+
+```bash
+adv_orphan_sweep dryRun: false approvedByUser: true approvalEvidence: "<how user approved>"
+```
+
+### External restart boundary
+
+Restart OpenCode only when diagnostics cannot run, the plugin is fully degraded
+to `ADV_PLUGIN_INIT_FAILED` stubs, or the host process itself is wedged. If ADV
+tools are live, prefer `adv_temporal_diagnose` first so recovery preserves
+evidence and avoids noisy retry loops.
+
 ## Failed migration recovery
 
 Use this when a project's import ledger is not `done`.
 
-1. Run `adv_status` and inspect:
+1. Run `adv_status` and `adv_temporal_diagnose`, then inspect:
    - `migration_status.status`
    - `migration_status.detail`
    - `temporal_health.server_alive`
    - `temporal_health.worker_process_alive`
+   - `searchAttributes.ok`
+   - `recommendedNextAction`
 2. Classify the failure:
    - `server_alive: false` → Temporal runtime/server problem first
+   - `searchAttributes.ok: false` → register missing ADV search attributes with user approval
    - `worker_process_alive: false` with `server_alive: true` → worker crash / restart exhaustion
    - `migration_status.status: failed` with detail → workflow reached a terminal failure state
    - `migration_status.status: empty|unknown|null` → no usable import ledger yet; treat as incomplete bootstrap / recovery state
 3. Recover in order:
+   - Register missing search attributes with `adv_temporal_register_search_attributes` when diagnosed
+   - Reconnect stale STSL with `adv_temporal_reconnect` when diagnosed
    - Restart the worker with `adv_temporal_worker_restart`
    - Re-check `adv_status`
-   - If the worker is healthy but the project workflow state is still wrong, run `adv_workflow_repair` with explicit user approval evidence
+   - If worker/STSL/search attributes are healthy but project or change workflow state is still wrong, run `adv_workflow_repair` with explicit user approval evidence
 4. Re-verify with `adv_status` until `migration_status.status` returns to `done`.
 
 ### Expected ledger meanings
 
-| Ledger state | Meaning | Operator action |
-| --- | --- | --- |
-| `done` | Project import succeeded | No action |
-| `failed` + detail | Workflow/import hit a terminal error | Fix root cause, then `adv_workflow_repair` |
-| `empty` | Project workflow exists but has no import ledger entry | Restart worker, then re-check |
-| `null` / missing | No reachable workflow state yet | Check server + worker health first |
+| Ledger state      | Meaning                                                | Operator action                            |
+| ----------------- | ------------------------------------------------------ | ------------------------------------------ |
+| `done`            | Project import succeeded                               | No action                                  |
+| `failed` + detail | Workflow/import hit a terminal error                   | Fix root cause, then `adv_workflow_repair` |
+| `empty`           | Project workflow exists but has no import ledger entry | Restart worker, then re-check              |
+| `null` / missing  | No reachable workflow state yet                        | Check server + worker health first         |
 
 ## Worker auto-respawn troubleshooting
 
@@ -101,22 +262,24 @@ The Bun-host path uses one Node child per queue with restart backoff `1s -> 3s -
 
 ### Common cases
 
-| Health shape | Likely cause | Fix |
-| --- | --- | --- |
-| `server_alive=false` | Temporal dev server unreachable | Start / restore Temporal runtime first |
-| `server_alive=true`, `worker_alive=true`, `worker_process_alive=false` | OOP child crashed and exhausted restart budget | Run `adv_temporal_worker_restart`; inspect `last_error` |
-| `worker_alive=false` | No worker registered (init failure or early bootstrap abort) | Check init logs, Node availability, and Temporal server reachability |
-| Bun host + init error about Node | Node binary not found | Install Node or set `ADV_NODE_PATH` |
-| Error about worker bundle not found | Dist worker missing for OOP path | Run `pnpm run build:worker` in `plugin/` |
+| Health shape                                                           | Likely cause                                                 | Fix                                                                                           |
+| ---------------------------------------------------------------------- | ------------------------------------------------------------ | --------------------------------------------------------------------------------------------- |
+| `server_alive=false`                                                   | Temporal dev server unreachable                              | Start / restore Temporal runtime first                                                        |
+| `server_alive=true`, `searchAttributes.ok=false`                       | Required ADV search attributes missing or wrong type         | Run `adv_temporal_register_search_attributes` with approval, or manually fix wrong-type attrs |
+| `server_alive=true`, workers alive, service errors persist             | Stale STSL connection/client                                 | Run `adv_temporal_reconnect`, then `adv_temporal_diagnose`                                    |
+| `server_alive=true`, `worker_alive=true`, `worker_process_alive=false` | OOP child crashed and exhausted restart budget               | Run `adv_temporal_worker_restart`; inspect `last_error`                                       |
+| `worker_alive=false`                                                   | No worker registered (init failure or early bootstrap abort) | Check init logs, Node availability, and Temporal server reachability                          |
+| Bun host + init error about Node                                       | Node binary not found                                        | Install Node or set `ADV_NODE_PATH`                                                           |
+| Error about worker bundle not found                                    | Dist worker missing for OOP path                             | Run `pnpm run build:worker` in `plugin/`                                                      |
 
 ### OOP runtime hardening and tuning
 
 The out-of-process worker has two bounded surfaces operators can observe and, in future releases, tune:
 
-| Surface | Current default | What it controls |
-| --- | --- | --- |
-| Shutdown grace period | `5000` ms (`OOP_SHUTDOWN_GRACE_MS`) | Time between `SIGTERM` and escalating to `SIGKILL` during worker shutdown. A child that does not exit within this window is force-killed. |
-| Readiness polling | Implicit via `canReachTemporalAddress(address, 250)` | Plugin-init probes the Temporal server before creating the worker. The 250 ms timeout prevents a hung server from blocking init. |
+| Surface               | Current default                                      | What it controls                                                                                                                          |
+| --------------------- | ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| Shutdown grace period | `5000` ms (`OOP_SHUTDOWN_GRACE_MS`)                  | Time between `SIGTERM` and escalating to `SIGKILL` during worker shutdown. A child that does not exit within this window is force-killed. |
+| Readiness polling     | Implicit via `canReachTemporalAddress(address, 250)` | Plugin-init probes the Temporal server before creating the worker. The 250 ms timeout prevents a hung server from blocking init.          |
 
 These values are compile-time constants today. If you need to adjust them for a specific host (e.g. slower disks or overloaded CI runners), open an issue — the next likely step is env-based overrides (`ADV_OOP_SHUTDOWN_GRACE_MS`, `ADV_TEMPORAL_PROBE_TIMEOUT_MS`).
 
@@ -127,10 +290,12 @@ Treat this as a workflow-state corruption / code-history mismatch problem, not a
 1. Confirm the error in logs or `last_error`.
 2. Do **not** keep restarting the same worker hoping it clears.
 3. Get explicit user approval.
-4. Run `adv_workflow_repair` for the affected change.
-5. Re-run `adv_status` and confirm the project/change workflow is healthy again.
+4. Run `adv_temporal_diagnose` to confirm server/search-attribute/STSL/worker health.
+5. Run `adv_workflow_repair` for the affected change.
+6. Re-run `adv_temporal_diagnose` and confirm the project/change workflow is healthy again.
 
 `adv_workflow_repair` is the supported operator path because it:
+
 - terminates the broken project workflow,
 - rebuilds workflow state from the legacy snapshot,
 - re-imports the requested change,
@@ -140,6 +305,10 @@ Treat this as a workflow-state corruption / code-history mismatch problem, not a
 
 Orphaned workflows occur when a bulk enqueue creates `adv/change/*` or `adv/project/*` executions on a task queue that has **no live poller**. The first workflow task is scheduled but never dispatched, so the execution remains in `Running` state indefinitely.
 
+Disk-only orphaned changes are the inverse shape: a `change.json` snapshot exists
+but its `adv/change/*` Temporal workflow is missing. Use `adv_orphan_sweep`
+dry-run to detect these safely, then execute with user approval to re-seed.
+
 ### Symptoms
 
 - `adv_agenda_add` (and other tools that route through the project workflow) fails with `Temporal worker not ready for queue advance-{projectId}` in repos that never started a local worker.
@@ -147,6 +316,14 @@ Orphaned workflows occur when a bulk enqueue creates `adv/change/*` or `adv/proj
 - `temporal task-queue describe --task-queue advance-{projectId}` shows an empty poller list.
 
 ### Detection
+
+Preferred ADV tool:
+
+```bash
+adv_orphan_sweep dryRun: true
+```
+
+Manual Temporal CLI checks:
 
 ```bash
 # Count all Running workflows
@@ -193,6 +370,7 @@ temporal workflow count --query 'ExecutionStatus="Running"'
 ## Disk-full / OOM surfaces
 
 These usually appear as secondary symptoms:
+
 - worker exits with restart loops,
 - `worker_process_alive=false`,
 - Temporal connection/write failures,
@@ -265,6 +443,7 @@ async function dryRunBulkEnqueue(
 > ```
 >
 > Characteristics that make this dangerous:
+>
 > - Loop runs against the **real** dev server (`127.0.0.1:7233`), not a test environment.
 > - Only **one** task queue has a registered poller; other queues are orphaned immediately.
 > - A **wall-clock deadline** (`DEADLINE_MS`) exits the process whether or not all workflows reached `done`.
