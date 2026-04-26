@@ -533,6 +533,127 @@ describe("Reflection Tools", () => {
       expect(parsed.reflection.plane1.quality.tdd_compliance).toBe(0);
     });
 
+    test("reports improveAdvPostCrashTemporal-style reflection accurately", async () => {
+      const fs = await import("fs/promises");
+      const inlineTasks = Array.from({ length: 6 }, (_, index) => ({
+        id: `tk-inline${index}`,
+        title: `Inline implementation task ${index}`,
+        section: "Implementation",
+        status: "done",
+        priority: index,
+        deps: [],
+        created_at: "2026-01-21T00:00:00Z",
+        completed_at: "2026-01-21T01:00:00Z",
+        metadata: { tdd_intent: "inline" },
+        tdd_phase: "complete",
+        tdd_evidence: {
+          red: { exit_code: 1 },
+          green: { exit_code: 0 },
+        },
+      }));
+      const change = {
+        ...ARCHIVED_CHANGE,
+        title: "improveAdvPostCrashTemporal",
+        tasks: [
+          ...inlineTasks,
+          {
+            id: "tk-docs",
+            title: "Update recovery docs",
+            section: "Docs",
+            status: "done",
+            priority: 6,
+            deps: [],
+            created_at: "2026-01-21T00:00:00Z",
+            completed_at: "2026-01-21T01:00:00Z",
+            metadata: { tdd_intent: "not_applicable" },
+            tdd_phase: "complete",
+          },
+          {
+            id: "tk-verify",
+            title: "Run final verification",
+            section: "Verification",
+            status: "done",
+            priority: 7,
+            deps: [],
+            created_at: "2026-01-21T00:00:00Z",
+            completed_at: "2026-01-21T01:00:00Z",
+            metadata: { tdd_intent: "separate_verification" },
+            tdd_phase: "complete",
+            error_recovery: {
+              last_error: "",
+              retry_count: 0,
+              max_retries: 3,
+              error_class: "TRANSIENT",
+              next_strategy: "",
+              attempts: [
+                {
+                  attempt_number: 1,
+                  error:
+                    "adv_task_checkpoint timed out after creating checkpoint commit",
+                  diagnosis:
+                    "Tool timeout occurred after git commit succeeded.",
+                  fix_tried:
+                    "Verified git status clean and git log latest commit.",
+                  strategy_label: "verify-commit-after-timeout",
+                  outcome: "succeeded",
+                  attempted_at: "2026-01-21T02:00:00Z",
+                },
+              ],
+            },
+          },
+        ],
+        wisdom: [
+          {
+            id: "ws-timeout",
+            type: "gotcha",
+            content:
+              "Temporal-backed checkpoint tools can time out after completing side effects; verify git status/log before retrying.",
+            source_task: "tk-docs",
+            recorded_at: "2026-01-21T02:00:00Z",
+          },
+        ],
+      };
+      await fs.writeFile(
+        `${tempDir}/.adv/changes/archivedChange/change.json`,
+        JSON.stringify(change, null, 2),
+      );
+
+      const result = await reflectionTools.adv_reflect.execute(
+        { changeId: "archivedChange" },
+        store,
+      );
+      const parsed = parseToolOutput<{
+        reflection: {
+          plane1: {
+            quality: { tdd_compliance: number };
+            process: { drift_triggers: number };
+          };
+          plane2: {
+            friction_items: Array<{ category: string; description: string }>;
+            improvement_suggestions: string[];
+          };
+        };
+      }>(result);
+
+      expect(parsed.reflection.plane1.quality.tdd_compliance).toBe(1);
+      expect(parsed.reflection.plane1.process.drift_triggers).toBe(0);
+      expect(parsed.reflection.plane2.improvement_suggestions).not.toContain(
+        "Some tasks lack TDD evidence — consider stricter TDD enforcement",
+      );
+      expect(parsed.reflection.plane2.friction_items).toContainEqual(
+        expect.objectContaining({
+          category: "tool_gap",
+          description: expect.stringContaining("checkpoint tools"),
+        }),
+      );
+      expect(parsed.reflection.plane2.friction_items).toContainEqual(
+        expect.objectContaining({
+          category: "tool_gap",
+          description: expect.stringContaining("recovered"),
+        }),
+      );
+    });
+
     test("computes wisdom_reuse_hits from project wisdom", async () => {
       // Add project wisdom that overlaps with change/task keywords
       await addProjectWisdom(tempDir, {
