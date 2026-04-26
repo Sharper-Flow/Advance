@@ -1458,4 +1458,255 @@ describe("Temporal store backend adapter", () => {
       }
     });
   });
+
+  describe("disk dual-write durability (task-loss bug fix)", () => {
+    /**
+     * Regression test for the task-loss bug surfaced in change
+     * `inlineApprovalGateTransition`. Tasks created via Temporal Updates
+     * were never persisted to `change.json` on disk. When the workflow was
+     * terminated/evicted between sessions, `reseedChangeFromDisk` seeded
+     * a fresh workflow from the empty disk snapshot, losing all tasks.
+     *
+     * Fix: every Temporal mutation that touches change state must
+     * dual-write to disk via `legacy.changes.save(change)` so the disk
+     * snapshot stays current and reseeds preserve work.
+     */
+    it("persists state to disk after tasks.add", async () => {
+      const legacy = makeLegacyStore();
+      const persistedChanges: any[] = [];
+      legacy.changes.save = vi.fn(async (change: any) => {
+        persistedChanges.push(change);
+      });
+
+      const taskAdded = {
+        id: "tk-new",
+        title: "new task",
+        status: "pending",
+        priority: 0,
+        created_at: "2026-04-26T00:00:00.000Z",
+        tdd_phase: "none",
+      };
+      const stateAfterAdd = {
+        projectId: "proj1",
+        changeId: "chg1",
+        title: "Change 1",
+        initializedAt: "2026-04-26T00:00:00.000Z",
+        id: "chg1",
+        status: "draft",
+        createdAt: "2026-04-26T00:00:00.000Z",
+        tasks: [taskAdded],
+        wisdom: [],
+        gates: {
+          proposal: { status: "done" },
+          discovery: { status: "pending" },
+          design: { status: "pending" },
+          planning: { status: "pending" },
+          execution: { status: "pending" },
+          acceptance: { status: "pending" },
+          release: { status: "pending" },
+        },
+        reentry_history: [],
+        artifacts: {},
+      };
+
+      const changeHandle = {
+        query: vi.fn(async () => stateAfterAdd),
+        executeUpdate: vi.fn(async () => taskAdded),
+        signal: vi.fn(async () => {}),
+      };
+
+      const bundle = {
+        client: { workflow: { getHandle: routeHandle(changeHandle) } },
+      };
+      const adapted = createTemporalStoreBackend({
+        legacy,
+        temporal: bundle as any,
+        projectId: "proj1",
+      });
+
+      await adapted.tasks.add("chg1", "new task");
+      await new Promise((resolve) => setImmediate(resolve));
+
+      expect(legacy.changes.save).toHaveBeenCalled();
+      const persisted = persistedChanges[persistedChanges.length - 1];
+      expect(persisted.id).toBe("chg1");
+      expect(persisted.tasks).toEqual([taskAdded]);
+    });
+
+    it("persists state to disk after gates.complete", async () => {
+      const legacy = makeLegacyStore();
+      const persistedChanges: any[] = [];
+      legacy.changes.save = vi.fn(async (change: any) => {
+        persistedChanges.push(change);
+      });
+
+      const stateAfterGate = {
+        projectId: "proj1",
+        changeId: "chg1",
+        title: "Change 1",
+        initializedAt: "2026-04-26T00:00:00.000Z",
+        id: "chg1",
+        status: "draft",
+        createdAt: "2026-04-26T00:00:00.000Z",
+        tasks: [],
+        wisdom: [],
+        gates: {
+          proposal: {
+            status: "done",
+            completed_at: "2026-04-26T00:00:01.000Z",
+            completed_by: "agent",
+          },
+          discovery: { status: "pending" },
+          design: { status: "pending" },
+          planning: { status: "pending" },
+          execution: { status: "pending" },
+          acceptance: { status: "pending" },
+          release: { status: "pending" },
+        },
+        reentry_history: [],
+        artifacts: {},
+      };
+
+      const changeHandle = {
+        query: vi.fn(async () => stateAfterGate),
+        executeUpdate: vi.fn(async () => stateAfterGate),
+        signal: vi.fn(async () => {}),
+      };
+
+      const bundle = {
+        client: { workflow: { getHandle: routeHandle(changeHandle) } },
+      };
+      const adapted = createTemporalStoreBackend({
+        legacy,
+        temporal: bundle as any,
+        projectId: "proj1",
+      });
+
+      await adapted.gates.complete("chg1", "proposal");
+      await new Promise((resolve) => setImmediate(resolve));
+
+      expect(legacy.changes.save).toHaveBeenCalled();
+      const persisted = persistedChanges[persistedChanges.length - 1];
+      expect(persisted.gates.proposal.status).toBe("done");
+    });
+
+    it("persists state to disk after tasks.update", async () => {
+      const legacy = makeLegacyStore();
+      legacy.changes.save = vi.fn(async () => {});
+
+      const taskUpdated = {
+        id: "tk-1",
+        title: "task",
+        status: "done",
+        priority: 0,
+        created_at: "2026-04-26T00:00:00.000Z",
+        tdd_phase: "none",
+      };
+      const stateAfterUpdate = {
+        projectId: "proj1",
+        changeId: "chg1",
+        title: "Change 1",
+        initializedAt: "2026-04-26T00:00:00.000Z",
+        id: "chg1",
+        status: "draft",
+        createdAt: "2026-04-26T00:00:00.000Z",
+        tasks: [taskUpdated],
+        wisdom: [],
+        gates: {
+          proposal: { status: "done" },
+          discovery: { status: "pending" },
+          design: { status: "pending" },
+          planning: { status: "pending" },
+          execution: { status: "pending" },
+          acceptance: { status: "pending" },
+          release: { status: "pending" },
+        },
+        reentry_history: [],
+        artifacts: {},
+      };
+
+      const changeHandle = {
+        query: vi.fn(async () => stateAfterUpdate),
+        executeUpdate: vi.fn(async () => taskUpdated),
+        signal: vi.fn(async () => {}),
+      };
+
+      legacy.tasks.show = vi.fn(async () => ({
+        task: taskUpdated as any,
+        changeId: "chg1",
+      }));
+
+      const bundle = {
+        client: { workflow: { getHandle: routeHandle(changeHandle) } },
+      };
+      const adapted = createTemporalStoreBackend({
+        legacy,
+        temporal: bundle as any,
+        projectId: "proj1",
+      });
+
+      await adapted.tasks.update("tk-1", "done" as any);
+      await new Promise((resolve) => setImmediate(resolve));
+
+      expect(legacy.changes.save).toHaveBeenCalled();
+    });
+
+    it("does not throw if disk save fails (best-effort dual-write)", async () => {
+      const legacy = makeLegacyStore();
+      legacy.changes.save = vi.fn(async () => {
+        throw new Error("EACCES: read-only filesystem");
+      });
+
+      const stateAfterAdd = {
+        projectId: "proj1",
+        changeId: "chg1",
+        title: "Change 1",
+        initializedAt: "2026-04-26T00:00:00.000Z",
+        id: "chg1",
+        status: "draft",
+        createdAt: "2026-04-26T00:00:00.000Z",
+        tasks: [
+          {
+            id: "tk-new",
+            title: "new task",
+            status: "pending",
+            priority: 0,
+            created_at: "2026-04-26T00:00:00.000Z",
+            tdd_phase: "none",
+          },
+        ],
+        wisdom: [],
+        gates: {
+          proposal: { status: "pending" },
+          discovery: { status: "pending" },
+          design: { status: "pending" },
+          planning: { status: "pending" },
+          execution: { status: "pending" },
+          acceptance: { status: "pending" },
+          release: { status: "pending" },
+        },
+        reentry_history: [],
+        artifacts: {},
+      };
+
+      const changeHandle = {
+        query: vi.fn(async () => stateAfterAdd),
+        executeUpdate: vi.fn(async () => stateAfterAdd.tasks[0]),
+        signal: vi.fn(async () => {}),
+      };
+
+      const bundle = {
+        client: { workflow: { getHandle: routeHandle(changeHandle) } },
+      };
+      const adapted = createTemporalStoreBackend({
+        legacy,
+        temporal: bundle as any,
+        projectId: "proj1",
+      });
+
+      await expect(
+        adapted.tasks.add("chg1", "new task"),
+      ).resolves.toBeDefined();
+    });
+  });
 });

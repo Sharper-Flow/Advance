@@ -227,6 +227,73 @@ export function createTemporalStoreBackend(
     return mapped;
   };
 
+  /**
+   * Dual-write the latest workflow state to the disk snapshot
+   * (`change.json`). Best-effort, fire-and-forget.
+   *
+   * Why this exists: Temporal Updates mutate workflow state but never
+   * touch the disk file. If the workflow is terminated/evicted between
+   * sessions, `reseedChangeFromDisk` rebuilds workflow state from the
+   * disk snapshot — and any tasks/gates/wisdom updates persisted only
+   * in Temporal are silently lost. Dual-writing keeps disk current so
+   * reseeds preserve work.
+   *
+   * Failures are logged but never thrown — disk write is a durability
+   * fallback, not a correctness gate. Temporal remains the source of
+   * truth during the live session.
+   */
+  const persistStateToDisk = (
+    changeId: string,
+    state: ChangeWorkflowState,
+  ): void => {
+    void (async () => {
+      try {
+        const overlay = changeOverlayCache.get(changeId);
+        const mapped: Change = {
+          ...mapTemporalChangeStateToChange(state),
+          ...(overlay ?? {}),
+          tasks: state.tasks,
+          wisdom: state.wisdom,
+          gates: state.gates,
+          reentry_history: state.reentry_history,
+        };
+        await legacy.changes.save(mapped);
+      } catch (err) {
+        logger.debug(
+          `Disk dual-write skipped for change ${changeId}: ${
+            err instanceof Error ? err.message : String(err)
+          }`,
+        );
+      }
+    })();
+  };
+
+  /**
+   * Helper for task-level mutations that don't already fetch post-mutation
+   * state. Queries the workflow once for the latest state, refreshes the
+   * cache + memo + projectWorkflow signal, then dual-writes to disk.
+   *
+   * Best-effort: if the post-mutation query fails we skip the dual-write
+   * rather than fail the original mutation. The workflow update has
+   * already succeeded by the time we get here.
+   */
+  const dualWriteAfterMutation = async (changeId: string): Promise<void> => {
+    try {
+      const state = (await runTemporalQuery(() =>
+        getChangeHandle(input, changeId).query(changeStateQuery),
+      )) as ChangeWorkflowState;
+      setCachedChange(state);
+      emitChangeSummarySignal(changeId, state);
+      persistStateToDisk(changeId, state);
+    } catch (err) {
+      logger.debug(
+        `Post-mutation state refresh failed for change ${changeId}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    }
+  };
+
   const invalidateChange = (changeId: string): void => {
     changeCache.delete(changeId);
     memo.invalidate(changeId);
@@ -1090,7 +1157,7 @@ export function createTemporalStoreBackend(
         const changeId = await resolveChangeId(taskId);
         if (!changeId) return null;
         invalidateChange(changeId);
-        return (await runTemporal(() =>
+        const result = (await runTemporal(() =>
           getChangeHandle(input, changeId).executeUpdate(updateTaskUpdate, {
             args: [
               taskId,
@@ -1103,6 +1170,8 @@ export function createTemporalStoreBackend(
             ],
           }),
         )) as Awaited<ReturnType<Store["tasks"]["update"]>>;
+        await dualWriteAfterMutation(changeId);
+        return result;
       },
       add: async (changeId, content, options) => {
         invalidateChange(changeId);
@@ -1122,6 +1191,7 @@ export function createTemporalStoreBackend(
         if (created && typeof created === "object" && "id" in created) {
           taskChangeIndex.set((created as { id: string }).id, changeId);
         }
+        await dualWriteAfterMutation(changeId);
         return created;
       },
       get: async (taskId) => {
@@ -1156,7 +1226,7 @@ export function createTemporalStoreBackend(
         const changeId = await resolveChangeId(taskId);
         if (!changeId) return null;
         invalidateChange(changeId);
-        return (await runTemporal(() =>
+        const result = (await runTemporal(() =>
           getChangeHandle(input, changeId).executeUpdate(
             recordTaskRunEventUpdate,
             {
@@ -1164,12 +1234,14 @@ export function createTemporalStoreBackend(
             },
           ),
         )) as Awaited<ReturnType<Store["tasks"]["recordRunEvent"]>>;
+        await dualWriteAfterMutation(changeId);
+        return result;
       },
       recordEvidence: async (taskId, phase, evidence) => {
         const changeId = await resolveChangeId(taskId);
         if (!changeId) return null;
         invalidateChange(changeId);
-        return (await runTemporal(() =>
+        const result = (await runTemporal(() =>
           getChangeHandle(input, changeId).executeUpdate(
             recordTaskEvidenceUpdate,
             {
@@ -1177,32 +1249,38 @@ export function createTemporalStoreBackend(
             },
           ),
         )) as Awaited<ReturnType<Store["tasks"]["recordEvidence"]>>;
+        await dualWriteAfterMutation(changeId);
+        return result;
       },
       setPhase: async (taskId, phase: TddPhase) => {
         const changeId = await resolveChangeId(taskId);
         if (!changeId) return null;
         invalidateChange(changeId);
-        return (await runTemporal(() =>
+        const result = (await runTemporal(() =>
           getChangeHandle(input, changeId).executeUpdate(setTaskPhaseUpdate, {
             args: [taskId, phase],
           }),
         )) as Awaited<ReturnType<Store["tasks"]["setPhase"]>>;
+        await dualWriteAfterMutation(changeId);
+        return result;
       },
       cancel: async (taskId, cancellation) => {
         const changeId = await resolveChangeId(taskId);
         if (!changeId) return null;
         invalidateChange(changeId);
-        return (await runTemporal(() =>
+        const result = (await runTemporal(() =>
           getChangeHandle(input, changeId).executeUpdate(cancelTaskUpdate, {
             args: [taskId, cancellation],
           }),
         )) as Awaited<ReturnType<Store["tasks"]["cancel"]>>;
+        await dualWriteAfterMutation(changeId);
+        return result;
       },
       reclassifyTdd: async (taskId, reclassification: TddReclassification) => {
         const changeId = await resolveChangeId(taskId);
         if (!changeId) return null;
         invalidateChange(changeId);
-        return (await runTemporal(() =>
+        const result = (await runTemporal(() =>
           getChangeHandle(input, changeId).executeUpdate(
             reclassifyTaskTddUpdate,
             {
@@ -1210,6 +1288,8 @@ export function createTemporalStoreBackend(
             },
           ),
         )) as Awaited<ReturnType<Store["tasks"]["reclassifyTdd"]>>;
+        await dualWriteAfterMutation(changeId);
+        return result;
       },
     },
     wisdom: {
@@ -1230,6 +1310,7 @@ export function createTemporalStoreBackend(
         );
         setCachedChange(state);
         emitChangeSummarySignal(changeId, state);
+        persistStateToDisk(changeId, state);
         const latest = state.wisdom[state.wisdom.length - 1] as
           | WisdomEntry
           | undefined;
@@ -1268,6 +1349,7 @@ export function createTemporalStoreBackend(
         );
         setCachedChange(state);
         emitChangeSummarySignal(changeId, state);
+        persistStateToDisk(changeId, state);
       },
       reopenFrom: async (
         changeId,
@@ -1294,6 +1376,7 @@ export function createTemporalStoreBackend(
         );
         setCachedChange(state);
         emitChangeSummarySignal(changeId, state);
+        persistStateToDisk(changeId, state);
       },
     },
     status: async () => {
