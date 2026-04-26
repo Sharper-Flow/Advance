@@ -864,6 +864,8 @@ export async function projectWorkflow(
     agenda: state.agenda,
     projectWisdom: state.project_wisdom,
     migrationLedger: state.migration_ledger,
+    changeSummaries: state.change_summaries,
+    sourceVersions: state.source_versions,
   };
   await wf.continueAsNew<typeof projectWorkflow>(seed);
 }

@@ -26,11 +26,11 @@ export function createProjectWorkflowState(
   return {
     projectId: input.projectId,
     initializedAt: input.initializedAt,
-    agenda: [],
-    project_wisdom: [],
-    migration_ledger: [],
-    change_summaries: {},
-    source_versions: {},
+    agenda: input.agenda ?? [],
+    project_wisdom: input.projectWisdom ?? [],
+    migration_ledger: input.migrationLedger ?? [],
+    change_summaries: input.changeSummaries ?? {},
+    source_versions: input.sourceVersions ?? {},
   };
 }
 

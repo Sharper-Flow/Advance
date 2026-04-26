@@ -136,6 +136,8 @@ export interface ProjectWorkflowInput {
   agenda?: import("../types").AgendaItem[];
   projectWisdom?: ProjectWisdomEntry[];
   migrationLedger?: MigrationLedgerEntry[];
+  changeSummaries?: Record<string, ChangeSummaryPayload>;
+  sourceVersions?: Record<string, number>;
 }
 
 export type ProjectWorkflowBootstrapState = ProjectWorkflowInput;

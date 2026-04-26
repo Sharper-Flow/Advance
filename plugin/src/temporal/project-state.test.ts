@@ -25,6 +25,38 @@ describe("project workflow state", () => {
     expect(state.agenda).toEqual([]);
     expect(state.project_wisdom).toEqual([]);
     expect(state.migration_ledger).toEqual([]);
+    expect(state.change_summaries).toEqual({});
+    expect(state.source_versions).toEqual({});
+  });
+
+  it("hydrates change summary indexes from continue-as-new seed", () => {
+    const state = createProjectWorkflowState({
+      projectId: "proj1",
+      initializedAt: "2026-04-18T00:00:00.000Z",
+      changeSummaries: {
+        "chg-001": {
+          changeId: "chg-001",
+          title: "Seeded change",
+          status: "active",
+          gateProgress: {
+            proposal: "done",
+            discovery: "done",
+            design: "pending",
+            planning: "pending",
+            execution: "pending",
+            acceptance: "pending",
+            release: "pending",
+          },
+          taskCounts: { total: 3, done: 2, pending: 1 },
+          lastActivityAt: "2026-04-18T01:00:00.000Z",
+          sourceVersion: 4,
+        },
+      },
+      sourceVersions: { "chg-001": 4 },
+    } as any);
+
+    expect(state.change_summaries["chg-001"]?.title).toBe("Seeded change");
+    expect(state.source_versions["chg-001"]).toBe(4);
   });
 
   it("adds agenda items and sorts by priority then created_at", () => {
