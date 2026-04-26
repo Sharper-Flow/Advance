@@ -3,7 +3,10 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
   CHANGE_WORKFLOW_QUERY_NAMES,
+  CHANGE_WORKFLOW_SIGNAL_NAMES,
   CHANGE_WORKFLOW_UPDATE_NAMES,
+  PROJECT_WORKFLOW_QUERY_NAMES,
+  PROJECT_WORKFLOW_UPDATE_NAMES,
 } from "./contracts";
 
 /**
@@ -70,6 +73,28 @@ describe("workflows module (workflow-safe invariant)", () => {
     expect(CHANGE_WORKFLOW_QUERY_NAMES.taskRuns).toBe("adv.change.taskRuns");
     expect(CHANGE_WORKFLOW_UPDATE_NAMES.recordTaskRunEvent).toBe(
       "adv.change.recordTaskRunEvent",
+    );
+  });
+
+  it("client-side message bindings use contract constants, not raw wire strings", () => {
+    const executableMessages = messagesSource
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/\/\/.*$/gm, "");
+
+    expect(executableMessages).not.toMatch(
+      /define(?:Query|Update|Signal)<[\s\S]*?>\("adv\./,
+    );
+    expect(messagesSource).toContain("CHANGE_WORKFLOW_QUERY_NAMES.bootstrap");
+    expect(messagesSource).toContain("CHANGE_WORKFLOW_UPDATE_NAMES.addTask");
+    expect(messagesSource).toContain(
+      "CHANGE_WORKFLOW_SIGNAL_NAMES.applyChangeSummary",
+    );
+    expect(PROJECT_WORKFLOW_QUERY_NAMES.state).toBe("adv.project.state");
+    expect(PROJECT_WORKFLOW_UPDATE_NAMES.addAgendaItem).toBe(
+      "adv.project.addAgendaItem",
+    );
+    expect(CHANGE_WORKFLOW_SIGNAL_NAMES.applyChangeSummary).toBe(
+      "adv.change.applyChangeSummary",
     );
   });
 
