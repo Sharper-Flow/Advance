@@ -60,9 +60,13 @@ ADV pauses ONLY at these checkpoints:
 - Cancellation approval — explicit user approval required
 - Doom-loop recovery — user guidance required after 3 failed attempts
 
+**Approval surface:** The first seven checkpoints (proposal, agreement, design, prep, acceptance, archive sign-off, cancellation) MUST use **inline handoff text** with reply instructions per `docs/command-voice-standard.md` § Inline Approval Voice — NOT the `question` tool. Spec ref: `rq-inlineApproval01`. Doom-loop recovery remains on the `question` tool (safety-critical structured choices).
+
+Tier A (reversible — proposal/agreement/design/prep/acceptance) uses whitelist + LLM fallback. Tier B (irreversible — archive sign-off, cancellation) uses whitelist-only with no LLM fallback. Archive emits a confirmation echo before destructive action.
+
 ### Post-Approval Auto-Continue
 
-When the user selects an "approve" or "approve and continue" option at any checkpoint above, the next phase begins inline immediately. No "shall I proceed?", no "ready to start /adv-X?", no second confirmation.
+When the user replies with a Tier A whitelist word (continue, go, approve, yes, ok, proceed, accept, lgtm, etc.) at any checkpoint, the next phase begins inline immediately. No "shall I proceed?", no "ready to start /adv-X?", no second confirmation. Slash-command replies (`/adv-X`) are no-ops for the agent — OpenCode dispatches them to a fresh session.
 
 ### Between-Checkpoint Flow
 
@@ -220,6 +224,8 @@ Write-in option enforced by P26 (`rules.yaml`). ADV notes:
 - Contextual write-in labels (`Other`, `Different approach`) — not generic
 - 2-5 options including write-in, concise labels
 - Leave custom input enabled
+
+**Scope of question tool use:** Reserved for non-checkpoint structured choices: change-id selection / disambiguation, doom-loop recovery, drift detection in `/adv-review` and `/adv-harden`, AC clarification rounds (Phase 4.5 of `/adv-discover`), investment check-in / judgment-call surfacing (`/adv-apply` Phase 1.5), and triage commands (`/adv-idea`, `/adv-problem`, `/adv-clarify`). The seven named human checkpoints (proposal, agreement, design, prep, acceptance, archive sign-off, cancellation) use inline handoff text per `docs/command-voice-standard.md` § Inline Approval Voice and `rq-inlineApproval01`.
 
 ### Tradeoff Prioritizer Protocol
 
