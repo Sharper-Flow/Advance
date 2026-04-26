@@ -193,7 +193,6 @@ describe("retry-wrapper (C2)", () => {
 
       expect(getTemporalRetryTelemetry().lastAttempts).toBe(1);
     });
-
   });
 
   // --- Phase B.1: Per-op telemetry (KD-3) ---
@@ -239,9 +238,12 @@ describe("retry-wrapper (C2)", () => {
 
     it("records failureCount on fatal error", async () => {
       await expect(
-        withTemporalRetry(async () => {
-          throw new Error("NonDeterministicWorkflowError");
-        }, { opType: "closeChangeUpdate" }),
+        withTemporalRetry(
+          async () => {
+            throw new Error("NonDeterministicWorkflowError");
+          },
+          { opType: "closeChangeUpdate" },
+        ),
       ).rejects.toThrow(/NonDeterministic/);
 
       const ops = getTemporalOpTelemetry();
@@ -270,7 +272,9 @@ describe("retry-wrapper (C2)", () => {
 
     it("keeps separate counters for different opTypes", async () => {
       await withTemporalRetry(async () => "ok", { opType: "addTaskUpdate" });
-      await withTemporalRetry(async () => "ok", { opType: "completeGateUpdate" });
+      await withTemporalRetry(async () => "ok", {
+        opType: "completeGateUpdate",
+      });
 
       const ops = getTemporalOpTelemetry();
       expect(ops).toHaveLength(2);

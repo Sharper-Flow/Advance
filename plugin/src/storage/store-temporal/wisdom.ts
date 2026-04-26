@@ -4,7 +4,12 @@ import {
   addChangeWisdomUpdate,
   changeStateQuery,
 } from "../../temporal/messages";
-import { StoreDeps, runTemporal, runTemporalQuery, getChangeHandle } from "./shared";
+import {
+  StoreDeps,
+  runTemporal,
+  runTemporalQuery,
+  getChangeHandle,
+} from "./shared";
 
 export function createWisdomOps(deps: StoreDeps): Store["wisdom"] {
   const {
@@ -22,12 +27,9 @@ export function createWisdomOps(deps: StoreDeps): Store["wisdom"] {
     add: async (changeId, type: WisdomType, content, sourceTask) => {
       invalidateChange(changeId);
       const raw = await runTemporal(() =>
-        getChangeHandle(input, changeId).executeUpdate(
-          addChangeWisdomUpdate,
-          {
-            args: [type, content, sourceTask],
-          },
-        ),
+        getChangeHandle(input, changeId).executeUpdate(addChangeWisdomUpdate, {
+          args: [type, content, sourceTask],
+        }),
       );
       const state = await resolveStateOrQuery(
         () => getChangeHandle(input, changeId),

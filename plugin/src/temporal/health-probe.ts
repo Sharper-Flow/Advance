@@ -166,7 +166,10 @@ export async function getTemporalHealth(
 
   const ops = getTemporalOpTelemetry();
   const opCounters = ops
-    .sort((a, b) => b.successCount + b.failureCount - (a.successCount + a.failureCount))
+    .sort(
+      (a, b) =>
+        b.successCount + b.failureCount - (a.successCount + a.failureCount),
+    )
     .slice(0, 10);
 
   return {

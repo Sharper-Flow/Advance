@@ -317,11 +317,24 @@ export async function changeWorkflow(
         section?: string;
         blockedBy?: string[];
         metadata?: Record<string, string>;
-      }) =>
-        addTaskToChangeState(state, taskInput, {
+      }) => {
+        wf.log.info("op:start", {
+          op: "addTaskUpdate",
+          changeId: state.changeId,
+          title: state.title?.slice(0, 80),
+        });
+        const newTask = addTaskToChangeState(state, taskInput, {
           now: workflowNow(),
           uuid: wf.uuid4,
-        }),
+        });
+        wf.log.info("op:end", {
+          op: "addTaskUpdate",
+          changeId: state.changeId,
+          taskId: newTask.id,
+          taskCount: state.tasks.length,
+        });
+        return newTask;
+      },
     ),
   );
   wf.setHandler(
@@ -336,14 +349,27 @@ export async function changeWorkflow(
           implementationSummary?: string;
           errorRecovery?: ChangeWorkflowState["tasks"][number]["error_recovery"];
         },
-      ) =>
-        updateTaskInChangeState(state, taskId, {
+      ) => {
+        wf.log.info("op:start", {
+          op: "updateTaskUpdate",
+          changeId: state.changeId,
+          title: state.title?.slice(0, 80),
+        });
+        const result = updateTaskInChangeState(state, taskId, {
           status: update.status,
           now: workflowNow(),
           notes: update.notes,
           implementationSummary: update.implementationSummary,
           errorRecovery: update.errorRecovery,
-        }),
+        });
+        wf.log.info("op:end", {
+          op: "updateTaskUpdate",
+          changeId: state.changeId,
+          taskId,
+          status: update.status,
+        });
+        return result;
+      },
     ),
   );
   wf.setHandler(
@@ -354,31 +380,92 @@ export async function changeWorkflow(
         taskId: string,
         phase: "red" | "green",
         evidence: import("../types").TddPhaseEvidence,
-      ) => recordTaskEvidenceInChangeState(state, taskId, phase, evidence),
+      ) => {
+        wf.log.info("op:start", {
+          op: "recordTaskEvidenceUpdate",
+          changeId: state.changeId,
+          title: state.title?.slice(0, 80),
+        });
+        const result = recordTaskEvidenceInChangeState(
+          state,
+          taskId,
+          phase,
+          evidence,
+        );
+        wf.log.info("op:end", {
+          op: "recordTaskEvidenceUpdate",
+          changeId: state.changeId,
+          taskId,
+          phase,
+        });
+        return result;
+      },
     ),
   );
   wf.setHandler(
     recordTaskRunEventUpdate,
     safeUpdateHandler(
       "recordTaskRunEvent",
-      (taskId: string, event: import("../types").TaskRunEvent) =>
-        recordTaskRunEventInChangeState(state, taskId, event),
+      (taskId: string, event: import("../types").TaskRunEvent) => {
+        wf.log.info("op:start", {
+          op: "recordTaskRunEventUpdate",
+          changeId: state.changeId,
+          title: state.title?.slice(0, 80),
+        });
+        const result = recordTaskRunEventInChangeState(state, taskId, event);
+        wf.log.info("op:end", {
+          op: "recordTaskRunEventUpdate",
+          changeId: state.changeId,
+          taskId,
+        });
+        return result;
+      },
     ),
   );
   wf.setHandler(
     setTaskPhaseUpdate,
     safeUpdateHandler(
       "setTaskPhase",
-      (taskId: string, phase: import("../types").TddPhase) =>
-        setTaskPhaseInChangeState(state, taskId, phase),
+      (taskId: string, phase: import("../types").TddPhase) => {
+        wf.log.info("op:start", {
+          op: "setTaskPhaseUpdate",
+          changeId: state.changeId,
+          title: state.title?.slice(0, 80),
+        });
+        const result = setTaskPhaseInChangeState(state, taskId, phase);
+        wf.log.info("op:end", {
+          op: "setTaskPhaseUpdate",
+          changeId: state.changeId,
+          taskId,
+          phase,
+        });
+        return result;
+      },
     ),
   );
   wf.setHandler(
     cancelTaskUpdate,
     safeUpdateHandler(
       "cancelTask",
-      (taskId: string, cancellation: import("../types").Cancellation) =>
-        cancelTaskInChangeState(state, taskId, cancellation, workflowNow()),
+      (taskId: string, cancellation: import("../types").Cancellation) => {
+        wf.log.info("op:start", {
+          op: "cancelTaskUpdate",
+          changeId: state.changeId,
+          title: state.title?.slice(0, 80),
+        });
+        const result = cancelTaskInChangeState(
+          state,
+          taskId,
+          cancellation,
+          workflowNow(),
+        );
+        wf.log.info("op:end", {
+          op: "cancelTaskUpdate",
+          changeId: state.changeId,
+          taskId,
+        });
+        return result;
+      },
     ),
   );
   wf.setHandler(
@@ -388,7 +475,25 @@ export async function changeWorkflow(
       (
         taskId: string,
         reclassification: import("../types").TddReclassification,
-      ) => reclassifyTaskTddInChangeState(state, taskId, reclassification),
+      ) => {
+        wf.log.info("op:start", {
+          op: "reclassifyTaskTddUpdate",
+          changeId: state.changeId,
+          title: state.title?.slice(0, 80),
+        });
+        const result = reclassifyTaskTddInChangeState(
+          state,
+          taskId,
+          reclassification,
+        );
+        wf.log.info("op:end", {
+          op: "reclassifyTaskTddUpdate",
+          changeId: state.changeId,
+          taskId,
+          toIntent: reclassification.to_intent,
+        });
+        return result;
+      },
     ),
   );
   wf.setHandler(
@@ -400,6 +505,11 @@ export async function changeWorkflow(
         notes: string | undefined,
         completedBy: string | undefined,
       ) => {
+        wf.log.info("op:start", {
+          op: "completeGateUpdate",
+          changeId: state.changeId,
+          title: state.title?.slice(0, 80),
+        });
         const result = completeGateInChangeState(state, gateId, {
           now: workflowNow(),
           completedBy: completedBy ?? "agent",
@@ -420,6 +530,12 @@ export async function changeWorkflow(
         wf.upsertSearchAttributes({
           [ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES.activeGate]: [nextGate ?? "done"],
         });
+        wf.log.info("op:end", {
+          op: "completeGateUpdate",
+          changeId: state.changeId,
+          gateId,
+          gateStatus: state.gates[gateId]?.status,
+        });
         return result;
       },
     ),
@@ -433,14 +549,26 @@ export async function changeWorkflow(
         reason: string,
         scopeDelta: string | undefined,
         approvalEvidence: string | undefined,
-      ) =>
-        reopenFromGateInChangeState(state, fromGate, {
+      ) => {
+        wf.log.info("op:start", {
+          op: "reopenFromGateUpdate",
+          changeId: state.changeId,
+          title: state.title?.slice(0, 80),
+        });
+        const result = reopenFromGateInChangeState(state, fromGate, {
           now: workflowNow(),
           reason,
           scopeDelta,
           approvalEvidence,
           reopenedBy: "agent",
-        }),
+        });
+        wf.log.info("op:end", {
+          op: "reopenFromGateUpdate",
+          changeId: state.changeId,
+          fromGate,
+        });
+        return result;
+      },
     ),
   );
   wf.setHandler(
@@ -451,12 +579,25 @@ export async function changeWorkflow(
         type: import("../types").WisdomType,
         content: string,
         sourceTask: string | undefined,
-      ) =>
-        addChangeWisdom(
+      ) => {
+        wf.log.info("op:start", {
+          op: "addWisdomUpdate",
+          changeId: state.changeId,
+          title: state.title?.slice(0, 80),
+        });
+        const result = addChangeWisdom(
           state,
           { type, content, sourceTask },
           { now: workflowNow(), uuid: wf.uuid4 },
-        ),
+        );
+        wf.log.info("op:end", {
+          op: "addWisdomUpdate",
+          changeId: state.changeId,
+          wisdomType: type,
+          wisdomCount: state.wisdom.length,
+        });
+        return result;
+      },
     ),
   );
   wf.setHandler(
@@ -466,7 +607,19 @@ export async function changeWorkflow(
       (
         kind: import("./contracts").ArtifactKind,
         metadata: import("./contracts").ArtifactMetadata,
-      ) => updateArtifactMetadataInChangeState(state, kind, metadata),
+      ) => {
+        wf.log.info("op:start", {
+          op: "updateArtifactMetadataUpdate",
+          changeId: state.changeId,
+          title: state.title?.slice(0, 80),
+        });
+        updateArtifactMetadataInChangeState(state, kind, metadata);
+        wf.log.info("op:end", {
+          op: "updateArtifactMetadataUpdate",
+          changeId: state.changeId,
+          kind,
+        });
+      },
     ),
   );
   wf.setHandler(
@@ -474,9 +627,19 @@ export async function changeWorkflow(
     safeUpdateHandler(
       "closeChange",
       (closure: import("../types").ChangeClosure) => {
+        wf.log.info("op:start", {
+          op: "closeChangeUpdate",
+          changeId: state.changeId,
+          title: state.title?.slice(0, 80),
+        });
         const result = closeChangeInChangeState(state, closure);
         wf.upsertSearchAttributes({
           [ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES.changeStatus]: ["closed"],
+        });
+        wf.log.info("op:end", {
+          op: "closeChangeUpdate",
+          changeId: state.changeId,
+          closureReason: closure.reason,
         });
         return result;
       },
@@ -561,11 +724,23 @@ export async function projectWorkflow(
         priority?: ProjectWorkflowState["agenda"][number]["priority"];
         category?: string;
         blocked_by?: string;
-      }) =>
-        addAgendaItemToProjectState(state, itemInput, {
+      }) => {
+        wf.log.info("op:start", {
+          op: "addAgendaItemUpdate",
+          projectId: state.projectId,
+        });
+        const newItem = addAgendaItemToProjectState(state, itemInput, {
           now: workflowNow(),
           uuid: wf.uuid4,
-        }),
+        });
+        wf.log.info("op:end", {
+          op: "addAgendaItemUpdate",
+          projectId: state.projectId,
+          itemId: newItem.id,
+          agendaCount: state.agenda.length,
+        });
+        return newItem;
+      },
     ),
   );
   wf.setHandler(
@@ -582,8 +757,12 @@ export async function projectWorkflow(
           blocked_by?: string;
           completion_notes?: string;
         },
-      ) =>
-        updateAgendaItemInProjectState(state, itemId, {
+      ) => {
+        wf.log.info("op:start", {
+          op: "updateAgendaItemUpdate",
+          projectId: state.projectId,
+        });
+        const result = updateAgendaItemInProjectState(state, itemId, {
           now: workflowNow(),
           status: update.status,
           description: update.description,
@@ -591,7 +770,15 @@ export async function projectWorkflow(
           category: update.category,
           blocked_by: update.blocked_by,
           completion_notes: update.completion_notes,
-        }),
+        });
+        wf.log.info("op:end", {
+          op: "updateAgendaItemUpdate",
+          projectId: state.projectId,
+          itemId,
+          status: update.status,
+        });
+        return result;
+      },
     ),
   );
   wf.setHandler(
@@ -605,25 +792,58 @@ export async function projectWorkflow(
         sourceTask?: string;
         tags?: string[];
         invalidatedBy?: string;
-      }) =>
-        addProjectWisdomToProjectState(state, input, {
+      }) => {
+        wf.log.info("op:start", {
+          op: "addProjectWisdomUpdate",
+          projectId: state.projectId,
+        });
+        const result = addProjectWisdomToProjectState(state, input, {
           now: workflowNow(),
           uuid: wf.uuid4,
-        }),
+        });
+        wf.log.info("op:end", {
+          op: "addProjectWisdomUpdate",
+          projectId: state.projectId,
+          wisdomCount: state.project_wisdom.length,
+        });
+        return result;
+      },
     ),
   );
   wf.setHandler(
     recordMigrationEntryUpdate,
-    safeUpdateHandler("recordMigrationEntry", (entry: MigrationLedgerEntry) =>
-      recordMigrationEntryInProjectState(state, entry),
-    ),
+    safeUpdateHandler("recordMigrationEntry", (entry: MigrationLedgerEntry) => {
+      wf.log.info("op:start", {
+        op: "recordMigrationEntryUpdate",
+        projectId: state.projectId,
+      });
+      const result = recordMigrationEntryInProjectState(state, entry);
+      wf.log.info("op:end", {
+        op: "recordMigrationEntryUpdate",
+        projectId: state.projectId,
+        entryCount: state.migration_ledger.length,
+      });
+      return result;
+    }),
   );
   wf.setHandler(
     applyChangeSummarySignalDef,
     safeUpdateHandler(
       "applyChangeSummary",
-      (payload: import("./contracts").ChangeSummaryPayload) =>
-        applyChangeSummaryToProjectState(state, payload),
+      (payload: import("./contracts").ChangeSummaryPayload) => {
+        wf.log.info("op:start", {
+          op: "applyChangeSummarySignalDef",
+          projectId: state.projectId,
+        });
+        const result = applyChangeSummaryToProjectState(state, payload);
+        wf.log.info("op:end", {
+          op: "applyChangeSummarySignalDef",
+          projectId: state.projectId,
+          changeId: payload.changeId,
+          sourceVersion: payload.sourceVersion,
+        });
+        return result;
+      },
     ),
   );
 

@@ -90,7 +90,10 @@ function getOrCreateOpTelemetry(opType: string): OpTelemetry {
   return temporalOpTelemetry.get(opType)!;
 }
 
-function recordTemporalSuccess(opType: string | undefined, attempts: number): void {
+function recordTemporalSuccess(
+  opType: string | undefined,
+  attempts: number,
+): void {
   temporalRetryTelemetry.lastOpAt = new Date().toISOString();
   temporalRetryTelemetry.lastError = null;
   temporalRetryTelemetry.lastAttempts = attempts;
@@ -294,7 +297,12 @@ export async function withTemporalRetry<T>(
 
       await options.onTransientFailure?.();
 
-      const delay = computeDelay(attempt, initialDelayMs, coefficient, maxDelayMs);
+      const delay = computeDelay(
+        attempt,
+        initialDelayMs,
+        coefficient,
+        maxDelayMs,
+      );
 
       if (delay > 0) {
         await new Promise((resolve) => setTimeout(resolve, delay));

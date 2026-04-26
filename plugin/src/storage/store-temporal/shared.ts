@@ -94,8 +94,20 @@ export function makeReconnectingHook(): () => Promise<void> {
   };
 }
 
-export async function runTemporal<T>(op: () => Promise<T>): Promise<T> {
+export interface RunTemporalOptions {
+  /** Per-operation type label for telemetry aggregation (KD-3). */
+  opType?: string;
+  /** Per-attempt timeout in milliseconds. Omit for long-running ops. */
+  timeoutMs?: number;
+}
+
+export async function runTemporal<T>(
+  op: () => Promise<T>,
+  options?: RunTemporalOptions,
+): Promise<T> {
   return withTemporalRetry(op, {
+    opType: options?.opType,
+    timeoutMs: options?.timeoutMs,
     onTransientFailure: makeReconnectingHook(),
   });
 }
@@ -112,13 +124,12 @@ export async function runTemporal<T>(op: () => Promise<T>): Promise<T> {
  */
 const QUERY_TIMEOUT_MS = 5_000;
 
-export async function runTemporalQuery<T>(
-  op: () => Promise<T>,
-): Promise<T> {
-  return withTemporalRetry(op, {
-    timeoutMs: QUERY_TIMEOUT_MS,
-    onTransientFailure: makeReconnectingHook(),
-  });
+/**
+ * Thin alias for query calls. Preserves backward compat with existing
+ * shard callers. `runTemporal` is the single implementation entry point.
+ */
+export async function runTemporalQuery<T>(op: () => Promise<T>): Promise<T> {
+  return runTemporal(op, { timeoutMs: QUERY_TIMEOUT_MS });
 }
 
 /**
@@ -185,7 +196,10 @@ export interface StoreDeps {
   setCachedChange: (state: ChangeWorkflowState) => Change;
   invalidateChange: (changeId: string) => void;
   updateOverlay: (changeId: string, patch: Partial<Change>) => void;
-  emitChangeSummarySignal: (changeId: string, state: ChangeWorkflowState) => void;
+  emitChangeSummarySignal: (
+    changeId: string,
+    state: ChangeWorkflowState,
+  ) => void;
   persistStateToDisk: (changeId: string, state: ChangeWorkflowState) => void;
   dualWriteAfterMutation: (changeId: string) => Promise<void>;
   getProjectHandle: () => WorkflowHandleLike | null;
@@ -195,10 +209,18 @@ export interface StoreDeps {
       getHandle: (workflowId: string) => WorkflowHandleLike;
     };
   };
-  resolveStateOrQuery: (getHandle: () => WorkflowHandleLike, result: unknown) => Promise<ChangeWorkflowState>;
+  resolveStateOrQuery: (
+    getHandle: () => WorkflowHandleLike,
+    result: unknown,
+  ) => Promise<ChangeWorkflowState>;
   indexTasksFromState: (state: ChangeWorkflowState) => void;
   resolveChangeId: (taskId: string) => Promise<string | null>;
-  getTemporalChange: (changeId: string) => Promise<ReturnType<Store["changes"]["get"]>>;
-  listResolvedChanges: (filter?: { includeArchived?: boolean; includeClosed?: boolean }) => Promise<Change[]>;
+  getTemporalChange: (
+    changeId: string,
+  ) => Promise<ReturnType<Store["changes"]["get"]>>;
+  listResolvedChanges: (filter?: {
+    includeArchived?: boolean;
+    includeClosed?: boolean;
+  }) => Promise<Change[]>;
   reseedChangeFromDisk: (changeId: string) => Promise<Change | null>;
 }

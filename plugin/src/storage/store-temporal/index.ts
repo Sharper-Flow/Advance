@@ -28,7 +28,10 @@ import {
   runTemporalQuery,
   hydrateMemoFromPSW,
 } from "./shared";
-import { applyChangeSummarySignal, changeStateQuery } from "../../temporal/messages";
+import {
+  applyChangeSummarySignal,
+  changeStateQuery,
+} from "../../temporal/messages";
 import { ensureChangeWorkflowStarted } from "../../temporal/migration";
 import type { ChangeWorkflowState } from "../../temporal/contracts";
 
@@ -39,7 +42,9 @@ import { createWisdomOps } from "./wisdom";
 
 const logger = createLogger("store-temporal");
 
-export function createTemporalStoreBackend(input: TemporalStoreBackendInput): Store {
+export function createTemporalStoreBackend(
+  input: TemporalStoreBackendInput,
+): Store {
   const { legacy } = input;
 
   // Shared state

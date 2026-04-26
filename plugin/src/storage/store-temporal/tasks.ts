@@ -15,7 +15,12 @@ import {
   changeStateQuery,
 } from "../../temporal/messages";
 import { getReadyTasksFromChangeState } from "../../temporal/change-state";
-import { StoreDeps, runTemporal, runTemporalQuery, getChangeHandle } from "./shared";
+import {
+  StoreDeps,
+  runTemporal,
+  runTemporalQuery,
+  getChangeHandle,
+} from "./shared";
 
 export function createTaskOps(deps: StoreDeps): Store["tasks"] {
   const {

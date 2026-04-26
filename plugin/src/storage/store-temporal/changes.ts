@@ -139,9 +139,7 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
       let filtered = changes;
 
       if (filter?.status) {
-        filtered = filtered.filter(
-          (change) => change.status === filter.status,
-        );
+        filtered = filtered.filter((change) => change.status === filter.status);
       }
       if (!effectiveIncludeArchived) {
         filtered = filtered.filter((change) => change.status !== "archived");
@@ -183,9 +181,8 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
           title: change.title,
           status: change.status,
           taskCount: change.tasks.length,
-          completedTasks: change.tasks.filter(
-            (task) => task.status === "done",
-          ).length,
+          completedTasks: change.tasks.filter((task) => task.status === "done")
+            .length,
         })),
       };
     },

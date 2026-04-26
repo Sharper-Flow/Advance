@@ -52,12 +52,7 @@ export function createGateOps(deps: StoreDeps): Store["gates"] {
       invalidateChange(changeId);
       const raw = await runTemporal(() =>
         getChangeHandle(input, changeId).executeUpdate(reopenFromGateUpdate, {
-          args: [
-            fromGate,
-            reason,
-            scopeDelta,
-            approvalEvidence ?? reopenedBy,
-          ],
+          args: [fromGate, reason, scopeDelta, approvalEvidence ?? reopenedBy],
         }),
       );
       const state = await resolveStateOrQuery(
