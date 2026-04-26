@@ -68,6 +68,59 @@ function detectProviderSpecific(
   return null;
 }
 
+const TOOL_GAP_GOTCHA_CUES = [
+  "checkpoint tool",
+  "evidence tool",
+  "tool timeout",
+  "timed out",
+  "timeout after",
+  "side effect",
+  "side-effect",
+];
+
+function isToolGapGotcha(text: string): boolean {
+  const lower = text.toLowerCase();
+  return TOOL_GAP_GOTCHA_CUES.some((cue) => lower.includes(cue));
+}
+
+const DRIFT_CUES = [
+  "drift",
+  "scope drift",
+  "out of scope",
+  "out-of-scope",
+  "acceptance criteria",
+  "success criteria",
+  "proposal",
+  "contract compromise",
+];
+
+function isDriftAttempt(attempt: {
+  error?: string;
+  diagnosis?: string;
+  fix_tried?: string;
+  strategy_label?: string;
+}): boolean {
+  const text = [
+    attempt.error,
+    attempt.diagnosis,
+    attempt.fix_tried,
+    attempt.strategy_label,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+  return DRIFT_CUES.some((cue) => text.includes(cue));
+}
+
+function formatRetryOutcome(
+  attempts: Array<{ outcome?: string }>,
+): "recovered" | "unresolved" | "retried" {
+  const lastAttempt = attempts.at(-1);
+  if (lastAttempt?.outcome === "succeeded") return "recovered";
+  if (lastAttempt?.outcome === "failed") return "unresolved";
+  return "retried";
+}
+
 // =============================================================================
 // Wisdom Reuse Hits Heuristic
 // =============================================================================
@@ -339,11 +392,14 @@ export const reflectionTools = {
           t.metadata?.delegation_hint === "delegate_preferred",
       ).length;
 
-      // Count drift triggers from error_recovery
+      // Count only explicit drift-related retry attempts. Generic failed
+      // attempts indicate execution friction, not scope/contract drift.
       let driftTriggers = 0;
       for (const task of tasks) {
         if (
-          task.error_recovery?.attempts?.some((a) => a.outcome === "failed")
+          task.error_recovery?.attempts?.some(
+            (a) => a.outcome === "failed" && isDriftAttempt(a),
+          )
         ) {
           driftTriggers++;
         }
@@ -367,7 +423,9 @@ export const reflectionTools = {
         const providerSpecific = detectProviderSpecific(sanitizedContent);
         if (w.type === "gotcha") {
           frictionItems.push({
-            category: "docs_gap",
+            category: isToolGapGotcha(sanitizedContent)
+              ? "tool_gap"
+              : "docs_gap",
             description: `Gotcha captured: ${sanitizedContent.slice(0, 200)}`,
             ...(providerSpecific && {
               provider_specific: providerSpecific,
@@ -391,22 +449,21 @@ export const reflectionTools = {
           task.error_recovery.attempts.length > 0
         ) {
           const lastAttempt = task.error_recovery.attempts.at(-1);
-          if (lastAttempt?.outcome === "failed") {
-            const sanitizedFix = lastAttempt.fix_tried
-              ? sanitizeSecrets(lastAttempt.fix_tried)
-              : undefined;
-            const providerSpecific = sanitizedFix
-              ? detectProviderSpecific(sanitizedFix)
-              : null;
-            frictionItems.push({
-              category: "tool_gap",
-              description: `Task "${task.title}" required ${task.error_recovery.attempts.length} retry attempts`,
-              workaround: sanitizedFix,
-              ...(providerSpecific && {
-                provider_specific: providerSpecific,
-              }),
-            });
-          }
+          const sanitizedFix = lastAttempt?.fix_tried
+            ? sanitizeSecrets(lastAttempt.fix_tried)
+            : undefined;
+          const providerSpecific = sanitizedFix
+            ? detectProviderSpecific(sanitizedFix)
+            : null;
+          const retryOutcome = formatRetryOutcome(task.error_recovery.attempts);
+          frictionItems.push({
+            category: "tool_gap",
+            description: `Task "${task.title}" ${retryOutcome} after ${task.error_recovery.attempts.length} retry attempt${task.error_recovery.attempts.length === 1 ? "" : "s"}`,
+            workaround: sanitizedFix,
+            ...(providerSpecific && {
+              provider_specific: providerSpecific,
+            }),
+          });
         }
       }
 
