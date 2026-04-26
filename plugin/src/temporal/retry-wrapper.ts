@@ -201,8 +201,6 @@ export function classifyTemporalError(error: unknown): TemporalErrorClass {
 
 interface RetryOptions {
   maxAttempts?: number;
-  /** @deprecated Use initialDelayMs / backoffCoefficient / maxDelayMs instead. */
-  backoffMs?: readonly number[];
   /** Base delay for the first retry (default 250ms). */
   initialDelayMs?: number;
   /** Exponential multiplier between retries (default 2). */
@@ -268,9 +266,6 @@ export async function withTemporalRetry<T>(
 ): Promise<T> {
   const maxAttempts = options.maxAttempts ?? 3;
 
-  // Legacy path: if caller explicitly passes backoffMs, use the fixed ladder
-  const useLegacyBackoff = options.backoffMs !== undefined;
-  const backoffMs = options.backoffMs ?? [250, 1000, 2000];
   const initialDelayMs = options.initialDelayMs ?? 250;
   const coefficient = options.backoffCoefficient ?? 2;
   const maxDelayMs = options.maxDelayMs ?? 2000;
@@ -299,9 +294,7 @@ export async function withTemporalRetry<T>(
 
       await options.onTransientFailure?.();
 
-      const delay = useLegacyBackoff
-        ? (backoffMs[Math.min(attempt - 1, backoffMs.length - 1)] ?? 0)
-        : computeDelay(attempt, initialDelayMs, coefficient, maxDelayMs);
+      const delay = computeDelay(attempt, initialDelayMs, coefficient, maxDelayMs);
 
       if (delay > 0) {
         await new Promise((resolve) => setTimeout(resolve, delay));

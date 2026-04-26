@@ -194,27 +194,6 @@ describe("retry-wrapper (C2)", () => {
       expect(getTemporalRetryTelemetry().lastAttempts).toBe(1);
     });
 
-    it("supports legacy backoffMs option (deprecated)", async () => {
-      const delays: number[] = [];
-      vi.spyOn(globalThis, "setTimeout").mockImplementation(((
-        cb: () => void,
-        ms?: number,
-      ) => {
-        delays.push(ms ?? 0);
-        cb();
-        return {} as ReturnType<typeof setTimeout>;
-      }) as typeof setTimeout);
-
-      const op = vi
-        .fn<() => Promise<string>>()
-        .mockRejectedValueOnce(new Error("connect ECONNREFUSED"))
-        .mockResolvedValueOnce("ok");
-
-      await withTemporalRetry(op, { backoffMs: [100, 200, 300] });
-
-      expect(delays).toHaveLength(1);
-      expect(delays[0]).toBe(100);
-    });
   });
 
   // --- Phase B.1: Per-op telemetry (KD-3) ---

@@ -93,7 +93,7 @@ describe("STSL reconnect via withTemporalRetry (Task 3 integration)", () => {
 
     const result = await withTemporalRetry(op, {
       onTransientFailure: makeReconnectingHook(),
-      backoffMs: [0, 0, 0], // no real delay in tests
+      initialDelayMs: 0, // no real delay in tests
     });
 
     expect(result).toBe("ok");
@@ -121,7 +121,7 @@ describe("STSL reconnect via withTemporalRetry (Task 3 integration)", () => {
       withTemporalRetry(op, {
         onTransientFailure: makeReconnectingHook(),
         maxAttempts: 3,
-        backoffMs: [0, 0, 0],
+        initialDelayMs: 0,
       }),
     ).rejects.toThrow(/ECONNREFUSED/);
 
@@ -144,7 +144,7 @@ describe("STSL reconnect via withTemporalRetry (Task 3 integration)", () => {
       withTemporalRetry(op, {
         onTransientFailure: makeReconnectingHook(),
         maxAttempts: 2,
-        backoffMs: [0, 0, 0],
+        initialDelayMs: 0,
       }),
     ).rejects.toThrow(/ECONNREFUSED/);
 
@@ -214,7 +214,7 @@ describe("STSL reconnect via withTemporalRetry (Task 3 integration)", () => {
 
     const result = await withTemporalRetry(op, {
       onTransientFailure: makeReconnectingHook(),
-      backoffMs: [0, 0, 0],
+      initialDelayMs: 0,
     });
 
     expect(result).toBe("ok-from-new-client");
@@ -248,11 +248,11 @@ describe("STSL reconnect via withTemporalRetry (Task 3 integration)", () => {
     const [r1, r2] = await Promise.all([
       withTemporalRetry(op1, {
         onTransientFailure: makeReconnectingHook(),
-        backoffMs: [0, 0, 0],
+        initialDelayMs: 0,
       }),
       withTemporalRetry(op2, {
         onTransientFailure: makeReconnectingHook(),
-        backoffMs: [0, 0, 0],
+        initialDelayMs: 0,
       }),
     ]);
 
