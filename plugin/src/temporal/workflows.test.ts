@@ -16,10 +16,8 @@ import {
  * bundle at boot — exactly the `Webpack finished with errors` path
  * this change was created to eliminate.
  *
- * This test guards the DIRECT import surface only. Transitive imports
- * (e.g., `change-state.ts → ../storage/gate-reentry`) are an
- * acknowledged debt out of scope for this task; see change
- * `fixTemporalWorkerBundleFailure` Phase 2 for the follow-up.
+ * This test guards the DIRECT import surface. Transitive imports are
+ * enforced by `workflow-bundle-boundary.test.ts` in this directory.
  */
 describe("workflows module (workflow-safe invariant)", () => {
   const modulePath = fileURLToPath(new URL("./workflows.ts", import.meta.url));
