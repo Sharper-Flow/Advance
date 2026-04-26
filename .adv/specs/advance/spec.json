@@ -3,8 +3,8 @@
   "name": "advance",
   "title": "Advance",
   "purpose": "Capability: Advance",
-  "version": "1.13.0",
-  "updated_at": "2026-04-25T03:30:00.000Z",
+  "version": "1.14.0",
+  "updated_at": "2026-04-26T16:31:00.000Z",
   "requirements": [
     {
       "id": "rq-W1sD0mR1",
@@ -1225,6 +1225,88 @@
             "The ledger guides the agent to the next apply-loop step",
             "No new user pause or approval checkpoint is introduced",
             "Existing blocker, doom-loop, cancellation, re-entry, and acceptance checkpoints remain unchanged"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-inlineApproval01",
+      "title": "Inline Approval at Named Human Checkpoints",
+      "body": "ADV's seven named human checkpoints (proposal confirmation, agreement sign-off, design approval, prep approval, acceptance, archive sign-off, cancellation approval) MUST use inline handoff text — composed with the Gate Handoff Voice spine — instead of the question tool. The inline pattern MUST emit reply instructions covering approve, redirect via slash command, revise, and stop. Reply parsing tiers MUST be: Tier A (reversible — proposal/agreement/design/prep/acceptance) uses whitelist + LLM fallback for natural-language replies; Tier B (irreversible — archive sign-off, cancellation) uses whitelist-only with no LLM fallback. Non-checkpoint question tool uses (change-id selection, doom-loop recovery, drift detection, AC clarification rounds, investment check-in, judgment calls, triage commands) remain unaffected. Canonical source: docs/command-voice-standard.md § Inline Approval Voice.",
+      "priority": "must",
+      "tags": ["voice", "checkpoints", "approval", "ux"],
+      "scenarios": [
+        {
+          "id": "rq-inlineApproval01.1",
+          "title": "Checkpoint approval uses inline handoff",
+          "given": ["An ADV workflow reaches a named human checkpoint"],
+          "when": "The agent presents the checkpoint to the user",
+          "then": [
+            "The presentation uses the Gate Handoff Voice spine plus inline reply instructions",
+            "The question tool is not used for the checkpoint approval"
+          ]
+        },
+        {
+          "id": "rq-inlineApproval01.2",
+          "title": "Tier A whitelist + LLM fallback for reversible checkpoints",
+          "given": [
+            "A reversible checkpoint (proposal, agreement, design, prep, acceptance) is presented",
+            "User replies with a whitelist word OR an ambiguous reply"
+          ],
+          "when": "The agent processes the reply",
+          "then": [
+            "Whitelist words (continue, go, approve, yes, ok, proceed, accept, lgtm, etc.) trigger immediate approval",
+            "Ambiguous replies are classified by LLM into approve / revise / redirect / stop / unclear",
+            "Unclear replies trigger re-prompt"
+          ]
+        },
+        {
+          "id": "rq-inlineApproval01.3",
+          "title": "Tier B whitelist-only for irreversible actions",
+          "given": [
+            "An irreversible checkpoint (archive sign-off, cancellation approval) is presented"
+          ],
+          "when": "The agent processes the reply",
+          "then": [
+            "Only exact whitelist matches trigger approval",
+            "LLM fallback is not used",
+            "Anything else triggers re-prompt with the same options",
+            "Archive sign-off emits a confirmation echo before destructive action with a one-message stop/abort window"
+          ]
+        },
+        {
+          "id": "rq-inlineApproval01.4",
+          "title": "Cancellation uses structured inline format",
+          "given": ["A cancellation approval is needed"],
+          "when": "The agent presents the cancellation",
+          "then": [
+            "The agent emits a numbered per-task list as inline prose",
+            "Reply instructions cover approve all, reject all, keep N, cancel N, stop",
+            "Replies are parsed by exact regex; LLM fallback is not used",
+            "Ambiguous replies trigger re-prompt"
+          ]
+        },
+        {
+          "id": "rq-inlineApproval01.5",
+          "title": "Prep gate machine contract preserved",
+          "given": ["The user replies with a Tier A whitelist word at the prep checkpoint"],
+          "when": "The agent calls adv_gate_complete gateId: planning",
+          "then": [
+            "userApproved: true is passed",
+            "The machine contract is satisfied",
+            "Inline approval is the upstream signal source independent of the API surface"
+          ]
+        },
+        {
+          "id": "rq-inlineApproval01.6",
+          "title": "Non-checkpoint question uses unaffected",
+          "given": [
+            "A non-checkpoint workflow step uses the question tool (change-id selection, doom-loop, drift detection, AC clarification round, investment check-in, judgment call, triage)"
+          ],
+          "when": "The step executes",
+          "then": [
+            "The question tool continues to be used",
+            "The inline approval pattern does not apply"
           ]
         }
       ]
