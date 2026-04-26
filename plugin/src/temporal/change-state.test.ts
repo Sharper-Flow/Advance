@@ -378,7 +378,39 @@ describe("change workflow state", () => {
       expect(run?.phase).toBe("checkpointed");
     });
 
-    it("STILL rejects started -> checkpoint for tdd_intent: 'inline' tasks (TDD discipline preserved)", () => {
+    it("allows started -> red_evidence for tdd_intent: 'inline' tasks when baseline event was skipped", () => {
+      const state = createChangeWorkflowState({
+        changeId: "myChange",
+        title: "My Change",
+        createdAt: "2026-04-14T00:00:00.000Z",
+      });
+      const task = addTaskToChangeState(
+        state,
+        { title: "code task", metadata: { tdd_intent: "inline" } },
+        { now: "2026-04-14T00:01:00.000Z", uuid: () => "task-1" },
+      );
+
+      recordTaskRunEventInChangeState(state, task.id, {
+        idempotencyKey: "run:start",
+        type: "start",
+        recordedAt: "2026-04-14T00:02:00.000Z",
+        payload: { workdir: "/repo" },
+      });
+
+      expect(() =>
+        recordTaskRunEventInChangeState(state, task.id, {
+          idempotencyKey: "run:red",
+          type: "red_evidence",
+          recordedAt: "2026-04-14T00:03:00.000Z",
+          payload: { command: "vitest", exit_code: 1 },
+        }),
+      ).not.toThrow();
+
+      const run = getTaskRunFromChangeState(state, task.id);
+      expect(run?.phase).toBe("red_recorded");
+    });
+
+    it("allows started -> checkpoint for tdd_intent: 'inline' tasks when prior ledger events were skipped", () => {
       const state = createChangeWorkflowState({
         changeId: "myChange",
         title: "My Change",
@@ -404,10 +436,13 @@ describe("change workflow state", () => {
           recordedAt: "2026-04-14T00:03:00.000Z",
           payload: { status: "committed", sha: "abc123" },
         }),
-      ).toThrow(/invalid task-run transition/i);
+      ).not.toThrow();
+
+      const run = getTaskRunFromChangeState(state, task.id);
+      expect(run?.phase).toBe("checkpointed");
     });
 
-    it("STILL rejects started -> checkpoint for tdd_intent: 'separate_verification' tasks", () => {
+    it("allows green_recorded -> checkpoint when verification event was skipped", () => {
       const state = createChangeWorkflowState({
         changeId: "myChange",
         title: "My Change",
@@ -415,10 +450,7 @@ describe("change workflow state", () => {
       });
       const task = addTaskToChangeState(
         state,
-        {
-          title: "verification task",
-          metadata: { tdd_intent: "separate_verification" },
-        },
+        { title: "code task", metadata: { tdd_intent: "inline" } },
         { now: "2026-04-14T00:01:00.000Z", uuid: () => "task-1" },
       );
 
@@ -428,17 +460,30 @@ describe("change workflow state", () => {
         recordedAt: "2026-04-14T00:02:00.000Z",
         payload: { workdir: "/repo" },
       });
+      recordTaskRunEventInChangeState(state, task.id, {
+        idempotencyKey: "run:red",
+        type: "red_evidence",
+        recordedAt: "2026-04-14T00:03:00.000Z",
+        payload: { command: "vitest", exit_code: 1 },
+      });
+      recordTaskRunEventInChangeState(state, task.id, {
+        idempotencyKey: "run:green",
+        type: "green_evidence",
+        recordedAt: "2026-04-14T00:04:00.000Z",
+        payload: { command: "vitest", exit_code: 0 },
+      });
 
-      // separate_verification tasks still need full TDD lifecycle since
-      // they verify other tasks. Skipping baseline/red/green is wrong.
       expect(() =>
         recordTaskRunEventInChangeState(state, task.id, {
           idempotencyKey: "run:checkpoint",
           type: "checkpoint",
-          recordedAt: "2026-04-14T00:03:00.000Z",
+          recordedAt: "2026-04-14T00:05:00.000Z",
           payload: { status: "committed", sha: "abc123" },
         }),
-      ).toThrow(/invalid task-run transition/i);
+      ).not.toThrow();
+
+      const run = getTaskRunFromChangeState(state, task.id);
+      expect(run?.phase).toBe("checkpointed");
     });
 
     it("allows started -> checkpoint when task has NO tdd_intent metadata (legacy tasks)", () => {

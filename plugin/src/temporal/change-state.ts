@@ -117,9 +117,12 @@ function createTaskRun(taskId: string, now: string): TaskRunState {
 /**
  * Determine whether a task-run state transition is permitted.
  *
- * The default policy enforces TDD discipline: a strict
+ * The default policy prefers the full TDD discipline:
  * `started -> baseline_captured -> red_recorded -> green_recorded ->
- * verified -> checkpointed -> done` lifecycle.
+ * verified -> checkpointed -> done`. The ledger is diagnostic state, not
+ * the source of truth for task validity, so it must also tolerate older
+ * callers that skip baseline / verification bookkeeping while preserving
+ * fundamentally invalid-transition rejections.
  *
  * Tasks with `tdd_intent: 'not_applicable'` (or no `tdd_intent` metadata
  * at all — legacy tasks) opt out of TDD discipline and may transition
@@ -127,8 +130,11 @@ function createTaskRun(taskId: string, now: string): TaskRunState {
  * the semantic meaning of "not applicable": there is no TDD lifecycle
  * to track for prose, spec, doc, or config-only changes.
  *
- * The `tdd_intent: 'separate_verification'` value still requires the
- * full lifecycle because such tasks own verification of other work.
+ * `inline` and `separate_verification` tasks may therefore transition from
+ * `started` directly to red evidence or checkpoint, and from
+ * `green_recorded` directly to checkpoint when verification was recorded
+ * externally. This keeps long-running workflows recoverable until every
+ * caller emits the full ledger sequence.
  *
  * Reliability rationale: rejecting these transitions caused the
  * workflow handler to throw, which surfaced as
@@ -150,7 +156,11 @@ function isTransitionAllowed(
     return current === "started";
   }
   if (eventType === "red_evidence") {
-    return current === "baseline_captured" || current === "awaiting_red";
+    return (
+      current === "started" ||
+      current === "baseline_captured" ||
+      current === "awaiting_red"
+    );
   }
   if (eventType === "green_evidence") {
     return current === "red_recorded" || current === "awaiting_green";
@@ -159,13 +169,11 @@ function isTransitionAllowed(
     return current === "green_recorded";
   }
   if (eventType === "checkpoint") {
-    if (current === "verified" || current === "awaiting_checkpoint") {
-      return true;
-    }
-    // tdd_intent: 'not_applicable' (or absent) skips TDD lifecycle.
     if (
-      current === "started" &&
-      (tddIntent === "not_applicable" || tddIntent === undefined)
+      current === "started" ||
+      current === "green_recorded" ||
+      current === "verified" ||
+      current === "awaiting_checkpoint"
     ) {
       return true;
     }
