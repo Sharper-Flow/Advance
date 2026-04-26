@@ -745,6 +745,67 @@ describe("Change Tools", () => {
     });
   });
 
+  describe("adv_change_create — fast-follow parent_change_id", () => {
+    test("creates change with fast_follow_of when parent_change_id valid", async () => {
+      // Create a parent change first
+      const parentResult = await changeTools.adv_change_create.execute(
+        { summary: "Parent change" },
+        store,
+      );
+      const parentParsed = parseToolOutput(parentResult);
+
+      const result = await changeTools.adv_change_create.execute(
+        {
+          summary: "Child follow-up",
+          parent_change_id: parentParsed.changeId,
+        },
+        store,
+      );
+      const parsed = parseToolOutput(result);
+
+      expect(parsed.changeId).toBe("childFollowUp");
+      expect(parsed.fast_follow_of).toBeDefined();
+      expect(parsed.fast_follow_of.parent_change_id).toBe(parentParsed.changeId);
+      expect(parsed.fast_follow_of.linked_at).toBeDefined();
+
+      // Verify persisted
+      const changeResult = await store.changes.get(parsed.changeId);
+      expect(changeResult.success).toBe(true);
+      expect(changeResult.data?.fast_follow_of?.parent_change_id).toBe(
+        parentParsed.changeId,
+      );
+    });
+
+    test("rejects mutual target_path + parent_change_id", async () => {
+      const result = await changeTools.adv_change_create.execute(
+        {
+          summary: "Should fail",
+          target_path: "/some/path",
+          parent_change_id: "someParent",
+        },
+        store,
+      );
+      const parsed = parseToolOutput(result);
+
+      expect(parsed.error).toMatch(/mutually exclusive/i);
+    });
+
+    test("rejects invalid parent_change_id with validParentIds hint", async () => {
+      const result = await changeTools.adv_change_create.execute(
+        {
+          summary: "Should fail",
+          parent_change_id: "nonExistentParent",
+        },
+        store,
+      );
+      const parsed = parseToolOutput(result);
+
+      expect(parsed.error).toMatch(/Parent change not found/i);
+      expect(parsed.validParentIds).toBeDefined();
+      expect(Array.isArray(parsed.validParentIds)).toBe(true);
+    });
+  });
+
   describe("adv_change_create — cross-project", () => {
     test("creates change in target project with origin metadata", async () => {
       // Set up a target project directory

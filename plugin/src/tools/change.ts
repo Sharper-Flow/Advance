@@ -922,6 +922,22 @@ export const changeTools = {
         output._duplicateWarning = result.duplicateWarning;
       }
 
+      // If parent_change_id set, attach fast-follow lineage
+      if (parent_change_id) {
+        const changeResult = await store.changes.get(result.changeId);
+        if (changeResult.success && changeResult.data) {
+          const updatedChange = {
+            ...changeResult.data,
+            fast_follow_of: {
+              parent_change_id: parent_change_id,
+              linked_at: new Date().toISOString(),
+            },
+          };
+          await store.changes.save(updatedChange);
+          output.fast_follow_of = updatedChange.fast_follow_of;
+        }
+      }
+
       await appendClarifyNeededForCreatedChange(store, result.changeId, output);
 
       return wrapWithBanner(
