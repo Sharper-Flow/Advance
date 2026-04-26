@@ -10,36 +10,48 @@ function readCommand(name: string): string {
 }
 
 describe("rq-autonomy01 human checkpoint assets", () => {
+  // Updated post rq-inlineApproval01: the seven named human checkpoints
+  // use inline handoff text (Tier A or Tier B) instead of question-tool
+  // popups. These tests assert the inline contract is in place.
+
   test("proposal confirmation remains in adv-proposal.md", () => {
     const content = readCommand("adv-proposal.md");
     expect(content).toMatch(/Ask the user to confirm/i);
     expect(content).toMatch(/drift is reported/i);
+    // Inline approval anchor (rq-inlineApproval01)
+    expect(content).toContain("Reply `continue`");
   });
 
-  test("agreement sign-off lives in adv-discover.md", () => {
+  test("agreement sign-off lives in adv-discover.md (inline Tier A)", () => {
     const content = readCommand("adv-discover.md");
-    expect(content).toMatch(/Ask for explicit user confirmation or edits/i);
     expect(content).toMatch(/agreement\.md/);
+    // Phase 4.5.1 + 4.6 use inline approval per rq-inlineApproval01
+    expect(content).toContain("Inline Approval prompt (Tier A");
+    expect(content).toContain("Reply `approve`");
   });
 
-  test("design approval remains conditional in adv-design.md", () => {
+  test("design approval remains conditional in adv-design.md (inline Tier A)", () => {
     const content = readCommand("adv-design.md");
     expect(content).toMatch(/real user-value tradeoffs/i);
-    expect(content).toMatch(/ask the user whether the design is acceptable/i);
-    expect(content).toMatch(/CONFLICT.*pause/i);
+    expect(content).toMatch(/CONFLICT/i);
     expect(content).toMatch(/contract[- ]compromise risk/i);
     expect(content).toMatch(
       /acceptance criteria.*constraint|constraint.*avoidance/i,
     );
+    // Inline approval prompt replaces "ask the user whether the design is acceptable"
+    expect(content).toContain("Inline Approval prompt (Tier A");
+    expect(content).toContain("Reply `continue`");
   });
 
-  test("acceptance checkpoint exists and preserves question-before-gate ordering", () => {
+  test("acceptance checkpoint preserves accept-before-gate ordering (inline Tier A)", () => {
     const review = readCommand("adv-review.md");
     const mergedGateIdx = review.search(/adv_gate_complete[\s\S]*acceptance/);
-    const questionIdx = review.search(/question/);
-    expect(questionIdx).toBeGreaterThanOrEqual(0);
-    expect(mergedGateIdx).toBeGreaterThan(questionIdx);
+    // Inline approval prompt now precedes gate completion (replaces question tool)
+    const inlineApprovalIdx = review.search(/Inline Approval prompt/);
+    expect(inlineApprovalIdx).toBeGreaterThanOrEqual(0);
+    expect(mergedGateIdx).toBeGreaterThan(inlineApprovalIdx);
     expect(review).toMatch(/acceptance|accept.*(sign.?off|approve)/i);
+    expect(review).toContain("Reply `accept`");
   });
 
   test("acceptance criteria checkpoint exists in adv-discover.md before agreement persistence", () => {
@@ -47,10 +59,11 @@ describe("rq-autonomy01 human checkpoint assets", () => {
     expect(content).toMatch(
       /Phase\s+4\.5\.1:\s+Acceptance Criteria Checkpoint/i,
     );
-    expect(content).toMatch(/Approve acceptance criteria/i);
-    expect(content).toMatch(/Start \/adv-clarify/i);
-    expect(content).toMatch(/Add or clarify acceptance criteria/i);
-    expect(content).toMatch(/custom input enabled/i);
+    // Updated outcome wording (no longer "Approve acceptance criteria"
+    // option label — inline reply with `approve` whitelist hit)
+    expect(content).toMatch(/approve AC and proceed/i);
+    expect(content).toMatch(/\/adv-clarify \{change-id\}/);
+    expect(content).toMatch(/describe what to add\/clarify/i);
     const checkpointIdx = content.indexOf(
       "Phase 4.5.1: Acceptance Criteria Checkpoint",
     );
@@ -58,15 +71,18 @@ describe("rq-autonomy01 human checkpoint assets", () => {
     expect(checkpointIdx).toBeGreaterThanOrEqual(0);
     expect(persistIdx).toBeGreaterThanOrEqual(0);
     expect(checkpointIdx).toBeLessThan(persistIdx);
-    // Existing agreement sign-off assertions must still hold
-    expect(content).toMatch(/Ask for explicit user confirmation or edits/i);
+    // Inline approval contract assertions
+    expect(content).toContain("Inline Approval prompt");
     expect(content).toMatch(/agreement\.md/);
   });
 
-  test("archive sign-off remains in adv-archive.md", () => {
+  test("archive sign-off remains in adv-archive.md (inline Tier B)", () => {
     const content = readCommand("adv-archive.md");
-    expect(content).toMatch(/Ask via `question`/i);
-    expect(content).toMatch(/Archive '\{change-id\}' and apply to specs/i);
+    // Tier B inline approval with confirmation echo
+    expect(content).toContain("Inline Approval prompt (Tier B)");
+    expect(content).toContain("Reply `sign off`");
+    expect(content).toMatch(/Confirmed\. Archiving/i);
+    expect(content).toMatch(/dry run/i);
   });
 
   test("cancellation approval remains in adv-apply.md", () => {

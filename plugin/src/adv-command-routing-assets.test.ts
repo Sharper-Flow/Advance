@@ -294,19 +294,28 @@ describe("ADV command routing assets", () => {
     );
   });
 
-  test("adv-discover.md Phase 4.5.1 encodes distinct AC checkpoint outcomes", () => {
+  test("adv-discover.md Phase 4.5.1 encodes distinct AC checkpoint outcomes (inline Tier A)", () => {
+    // Updated post rq-inlineApproval01: Phase 4.5.1 uses inline approval
+    // (Tier A whitelist + literal /adv-clarify detection) instead of the
+    // question tool. The three distinct outcomes are preserved as inline
+    // reply branches.
     const content = readFileSync(join(COMMAND_DIR, "adv-discover.md"), "utf8");
     expect(content).toMatch(
       /Phase\s+4\.5\.1:\s+Acceptance Criteria Checkpoint/i,
     );
     expect(content).toContain("/adv-clarify");
-    expect(content).toMatch(/Approve acceptance criteria/i);
-    expect(content).toMatch(/proceed to Phase 4\.6/i);
-    expect(content).toMatch(/do not persist `agreement\.md`/i);
-    expect(content).toMatch(/do not call `adv_gate_complete`/i);
-    expect(content).toMatch(/normalize into revised AC bullets/i);
-    expect(content).toMatch(/custom input enabled/i);
-    expect(content).toMatch(/STOP HERE and return control to the user/i);
+    // Outcome 1: approve AC and proceed to Phase 4.6
+    expect(content).toMatch(/approve AC and proceed to/i);
+    expect(content).toMatch(/agreement persistence|Phase 4\.6/i);
+    // Outcome 2: /adv-clarify halt branch (literal slash-command detection)
+    expect(content).toMatch(/halt cleanly/i);
+    expect(content).toMatch(/literal slash-command|literal slash command/i);
+    // Outcome 3: free-form revision text re-runs checkpoint
+    expect(content).toMatch(/normalize into revised AC|normalizes into revised AC/i);
+    expect(content).toMatch(/re-run|re-runs/i);
+    // Inline approval contract markers
+    expect(content).toContain("Inline Approval prompt (Tier A");
+    expect(content).toContain("Reply `approve`");
   });
 
   test("adv-apply.md delegation routing points to adv-engineer (not general or bare engineer)", () => {
