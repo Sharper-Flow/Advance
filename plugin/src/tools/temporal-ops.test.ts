@@ -271,6 +271,60 @@ describe("temporal operator tools", () => {
     );
   });
 
+  it("adv_temporal_register_search_attributes requires explicit approval", async () => {
+    const store = { paths: { root: "/repo" } } as any;
+
+    const result =
+      await temporalOpsTools.adv_temporal_register_search_attributes.execute(
+        { approvedByUser: false, approvalEvidence: "" },
+        store,
+      );
+    const parsed = JSON.parse(result);
+
+    expect(parsed.error).toContain("approval");
+  });
+
+  it("adv_temporal_register_search_attributes creates missing attrs through STSL", async () => {
+    const bundle = mocks.getService();
+    bundle.connection.operatorService.getSearchAttributes = vi.fn(async () => ({
+      customAttributes: {
+        AdvProjectId: { indexedValueType: 1 },
+      },
+    }));
+    bundle.connection.operatorService.addSearchAttributes = vi
+      .fn()
+      .mockResolvedValue({});
+    mocks.getService.mockReturnValueOnce(bundle as any);
+    const store = { paths: { root: "/repo" } } as any;
+
+    const result =
+      await temporalOpsTools.adv_temporal_register_search_attributes.execute(
+        {
+          approvedByUser: true,
+          approvalEvidence: "User approved via question tool",
+        },
+        store,
+      );
+    const parsed = JSON.parse(result);
+
+    expect(parsed.success).toBe(true);
+    expect(parsed.result.created.map((attr: any) => attr.name)).toEqual([
+      "AdvChangeId",
+      "AdvChangeStatus",
+      "AdvActiveGate",
+      "AdvDoomLoopActive",
+    ]);
+    expect(bundle.connection.operatorService.addSearchAttributes).toHaveBeenCalledWith({
+      namespace: "default",
+      searchAttributes: {
+        AdvChangeId: 1,
+        AdvChangeStatus: 1,
+        AdvActiveGate: 1,
+        AdvDoomLoopActive: 4,
+      },
+    });
+  });
+
   it("adv_workflow_repair rebuilds project workflow, reimports the change, and re-emits derived exports", async () => {
     const store = {
       paths: {

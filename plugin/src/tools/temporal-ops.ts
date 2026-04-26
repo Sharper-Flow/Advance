@@ -10,6 +10,7 @@ import {
   buildProjectWorkflowId,
 } from "../temporal/client";
 import { checkAdvSearchAttributes } from "../temporal/observability";
+import { registerMissingAdvSearchAttributes } from "../temporal/observability";
 import { formatToolOutput } from "../utils/tool-output";
 
 // P2.6: WorkflowClientLike / asWorkflowClientSurface / asProjectWorkflowHandle
@@ -179,6 +180,55 @@ export const temporalOpsTools = {
         projectWorkflow,
         changeWorkflow,
         recommendedNextAction,
+      });
+    },
+  },
+
+  adv_temporal_register_search_attributes: {
+    description:
+      "Register missing required ADV Temporal search attributes. Creates missing attributes only, refuses wrong-type mutations, and requires explicit user approval.",
+    args: {
+      approvedByUser: z
+        .boolean()
+        .describe("Must be true after explicit user approval"),
+      approvalEvidence: z
+        .string()
+        .describe("How the user explicitly approved metadata registration"),
+    },
+    execute: async (
+      args: { approvedByUser: boolean; approvalEvidence: string },
+      _store: Store,
+    ) => {
+      if (!args.approvedByUser || args.approvalEvidence.trim().length === 0) {
+        return formatToolOutput({
+          success: false,
+          error:
+            "Explicit user approval is required to register Temporal search attributes.",
+        });
+      }
+
+      const bundle = getService();
+      if (!bundle) {
+        return formatToolOutput({
+          success: false,
+          error:
+            "Temporal service layer not initialized — cannot register search attributes",
+        });
+      }
+
+      const result = await registerMissingAdvSearchAttributes(
+        bundle.connection,
+        bundle.namespace,
+      );
+
+      return formatToolOutput({
+        success: result.ok,
+        namespace: bundle.namespace,
+        approvalEvidence: args.approvalEvidence.trim(),
+        result,
+        message: result.ok
+          ? `ADV Temporal search attributes ready in namespace ${bundle.namespace}`
+          : `ADV Temporal search attribute registration requires attention: ${result.error ?? "unknown error"}`,
       });
     },
   },
