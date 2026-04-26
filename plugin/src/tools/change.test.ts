@@ -532,6 +532,38 @@ describe("Change Tools", () => {
       expect(parsed._crossProjectOrigin).toBeUndefined();
     });
 
+    test("surfaces _fastFollowOrigin when fast_follow_of set", async () => {
+      // Add fast_follow_of to the change
+      const changeResult = await store.changes.get("addFeature");
+      expect(changeResult.success).toBe(true);
+      changeResult.data!.fast_follow_of = {
+        parent_change_id: "parentChange",
+        linked_at: "2026-01-01T01:00:00Z",
+      };
+      await store.changes.save(changeResult.data!);
+
+      const result = await changeTools.adv_change_show.execute(
+        { changeId: "addFeature" },
+        store,
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed._fastFollowOrigin).toBeDefined();
+      expect(parsed._fastFollowOrigin.note).toContain("Fast-follow");
+      expect(parsed._fastFollowOrigin.parent_change_id).toBe("parentChange");
+      expect(parsed._fastFollowOrigin.linked_at).toBe("2026-01-01T01:00:00Z");
+    });
+
+    test("omits _fastFollowOrigin when no fast_follow_of set", async () => {
+      const result = await changeTools.adv_change_show.execute(
+        { changeId: "addFeature" },
+        store,
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed._fastFollowOrigin).toBeUndefined();
+    });
+
     test("includes _reflection for archived changes", async () => {
       // Archive the change and add a reflection
       const changeResult = await store.changes.get("addFeature");
