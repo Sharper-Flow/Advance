@@ -1159,4 +1159,303 @@ describe("Temporal store backend adapter", () => {
       rmSync(tmp, { recursive: true, force: true });
     });
   });
+
+  describe("changes.list visibility-disk union (P2.4 follow-up)", () => {
+    /**
+     * Helper: build a bundle whose `workflow.list` returns a fixed set of
+     * workflow IDs, and whose `getHandle` routes per-change queries to a
+     * map keyed by changeId. Mirrors how the real Temporal client behaves.
+     */
+    function buildBundleWithVisibility(opts: {
+      visibilityIds: string[];
+      changeStates: Record<string, any>;
+      projectId: string;
+      capturedListCalls?: { query: string }[];
+    }) {
+      const projectHandle = makeProjectHandle();
+      const handlesByChangeId: Record<string, any> = {};
+      for (const [changeId, state] of Object.entries(opts.changeStates)) {
+        handlesByChangeId[changeId] = {
+          query: vi.fn(async (queryDef: any) => {
+            const name = queryDef?.name ?? queryDef;
+            if (name === "adv.change.state") return state;
+            return null;
+          }),
+          executeUpdate: vi.fn(async () => null),
+          signal: vi.fn(async () => {}),
+        };
+      }
+      const getHandle = vi.fn((workflowId: string) => {
+        if (workflowId.startsWith("adv/project/")) return projectHandle;
+        const prefix = `adv/change/${opts.projectId}/`;
+        if (workflowId.startsWith(prefix)) {
+          const changeId = workflowId.slice(prefix.length);
+          if (handlesByChangeId[changeId]) return handlesByChangeId[changeId];
+        }
+        // Unknown workflow — simulate WorkflowNotFoundError surface.
+        return {
+          query: vi.fn(async () => {
+            throw Object.assign(new Error("workflow not found"), {
+              name: "WorkflowNotFoundError",
+            });
+          }),
+          executeUpdate: vi.fn(async () => null),
+          signal: vi.fn(async () => {}),
+        };
+      });
+      return {
+        client: {
+          workflow: {
+            getHandle,
+            list: vi.fn(({ query }: { query: string }) => {
+              opts.capturedListCalls?.push({ query });
+              const ids = opts.visibilityIds.map((changeId) => ({
+                workflowId: `adv/change/${opts.projectId}/${changeId}`,
+              }));
+              return {
+                async *[Symbol.asyncIterator]() {
+                  for (const wf of ids) yield wf;
+                },
+              };
+            }),
+            start: vi.fn(),
+          },
+        },
+      };
+    }
+
+    function makeChangeState(opts: {
+      id: string;
+      status: string;
+      title?: string;
+    }) {
+      return {
+        projectId: "proj1",
+        changeId: opts.id,
+        title: opts.title ?? `Change ${opts.id}`,
+        initializedAt: "2026-04-18T00:00:00.000Z",
+        id: opts.id,
+        status: opts.status,
+        createdAt: "2026-04-18T00:00:00.000Z",
+        tasks: [],
+        wisdom: [],
+        gates: {
+          proposal: { status: "pending" },
+          discovery: { status: "pending" },
+          design: { status: "pending" },
+          planning: { status: "pending" },
+          execution: { status: "pending" },
+          acceptance: { status: "pending" },
+          release: { status: "pending" },
+        },
+        reentry_history: [],
+        artifacts: {},
+      };
+    }
+
+    it("includeArchived:true requests archived statuses from visibility (not the default subset)", async () => {
+      // Bug A: when caller asks for archived/closed via filter, the
+      // visibility query must include those statuses too — otherwise
+      // post-filter has nothing to surface.
+      const capturedListCalls: { query: string }[] = [];
+      const bundle = buildBundleWithVisibility({
+        projectId: "proj1",
+        visibilityIds: ["chg-archived"],
+        changeStates: {
+          "chg-archived": makeChangeState({
+            id: "chg-archived",
+            status: "archived",
+          }),
+        },
+        capturedListCalls,
+      });
+
+      const legacy = makeLegacyStore();
+      const adapted = createTemporalStoreBackend({
+        legacy,
+        temporal: bundle as any,
+        projectId: "proj1",
+      });
+
+      const result = await adapted.changes.list({ includeArchived: true });
+
+      expect(result.changes).toHaveLength(1);
+      expect(result.changes[0]?.id).toBe("chg-archived");
+      expect(result.changes[0]?.status).toBe("archived");
+
+      // Confirm visibility query was widened. Either it omits the status
+      // filter entirely (no AdvChangeStatus clause) or it includes
+      // "archived" in the IN list.
+      const lastQuery =
+        capturedListCalls[capturedListCalls.length - 1]?.query ?? "";
+      const omitsStatusFilter = !lastQuery.includes("AdvChangeStatus");
+      const includesArchivedStatus =
+        /AdvChangeStatus\s+IN\s*\([^)]*"archived"/.test(lastQuery);
+      expect(omitsStatusFilter || includesArchivedStatus).toBe(true);
+    });
+
+    it("includeClosed:true requests closed statuses from visibility (not the default subset)", async () => {
+      // Bug A (mirror): same as above for closed.
+      const capturedListCalls: { query: string }[] = [];
+      const bundle = buildBundleWithVisibility({
+        projectId: "proj1",
+        visibilityIds: ["chg-closed"],
+        changeStates: {
+          "chg-closed": makeChangeState({
+            id: "chg-closed",
+            status: "closed",
+          }),
+        },
+        capturedListCalls,
+      });
+
+      const legacy = makeLegacyStore();
+      const adapted = createTemporalStoreBackend({
+        legacy,
+        temporal: bundle as any,
+        projectId: "proj1",
+      });
+
+      const result = await adapted.changes.list({ includeClosed: true });
+
+      expect(result.changes).toHaveLength(1);
+      expect(result.changes[0]?.id).toBe("chg-closed");
+      expect(result.changes[0]?.status).toBe("closed");
+
+      const lastQuery =
+        capturedListCalls[capturedListCalls.length - 1]?.query ?? "";
+      const omitsStatusFilter = !lastQuery.includes("AdvChangeStatus");
+      const includesClosedStatus =
+        /AdvChangeStatus\s+IN\s*\([^)]*"closed"/.test(lastQuery);
+      expect(omitsStatusFilter || includesClosedStatus).toBe(true);
+    });
+
+    it("default list (no include flags) excludes closed even when present on disk", async () => {
+      // Sanity: the existing default-view contract is preserved. The fix
+      // must not start surfacing closed changes by accident.
+      const tmp = mkdtempSync(join(tmpdir(), "adv-list-default-"));
+      try {
+        // Seed disk with a closed change that is NOT in visibility.
+        const changesDir = join(tmp, "changes");
+        const closedDir = join(changesDir, "chg-disk-closed");
+        mkdirSync(closedDir, { recursive: true });
+        const fs = await import("node:fs/promises");
+        await fs.writeFile(
+          join(closedDir, "change.json"),
+          JSON.stringify({
+            id: "chg-disk-closed",
+            title: "Disk-only closed",
+            status: "closed",
+            created_at: "2026-04-18T00:00:00.000Z",
+            tasks: [],
+            deltas: {},
+            wisdom: [],
+            gates: {},
+          }),
+        );
+
+        const bundle = buildBundleWithVisibility({
+          projectId: "proj1",
+          visibilityIds: [], // visibility returns nothing
+          changeStates: {},
+        });
+
+        const legacy = makeLegacyStore();
+        legacy.paths.changes = changesDir as any;
+        legacy.changes.get = vi.fn(async (id: string) => {
+          if (id === "chg-disk-closed") {
+            return {
+              success: true,
+              data: {
+                id: "chg-disk-closed",
+                title: "Disk-only closed",
+                status: "closed",
+                created_at: "2026-04-18T00:00:00.000Z",
+                tasks: [],
+                deltas: {},
+                wisdom: [],
+                gates: {},
+              },
+            } as any;
+          }
+          return { success: false } as any;
+        });
+
+        const adapted = createTemporalStoreBackend({
+          legacy,
+          temporal: bundle as any,
+          projectId: "proj1",
+        });
+
+        // No include flags — closed must be excluded even if disk has it.
+        const result = await adapted.changes.list({});
+        expect(
+          result.changes.find((c) => c.id === "chg-disk-closed"),
+        ).toBeUndefined();
+      } finally {
+        rmSync(tmp, { recursive: true, force: true });
+      }
+    });
+
+    it("draft changes present on disk but missing from visibility surface in the list", async () => {
+      // Bug B: orphaned-but-on-disk drafts must still appear, otherwise
+      // active work disappears after a worker restart that lost the
+      // workflow registration. Disk is the durable source of truth.
+      const tmp = mkdtempSync(join(tmpdir(), "adv-list-orphan-"));
+      try {
+        const changesDir = join(tmp, "changes");
+        const orphanDir = join(changesDir, "chg-orphan-draft");
+        mkdirSync(orphanDir, { recursive: true });
+        const fs = await import("node:fs/promises");
+        const orphanData = {
+          id: "chg-orphan-draft",
+          title: "Orphan draft",
+          status: "draft",
+          created_at: "2026-04-18T00:00:00.000Z",
+          tasks: [],
+          deltas: {},
+          wisdom: [],
+          gates: {},
+        };
+        await fs.writeFile(
+          join(orphanDir, "change.json"),
+          JSON.stringify(orphanData),
+        );
+
+        // Visibility returns ONLY the registered change; orphan is missing.
+        const bundle = buildBundleWithVisibility({
+          projectId: "proj1",
+          visibilityIds: ["chg-registered"],
+          changeStates: {
+            "chg-registered": makeChangeState({
+              id: "chg-registered",
+              status: "draft",
+            }),
+          },
+        });
+
+        const legacy = makeLegacyStore();
+        legacy.paths.changes = changesDir as any;
+        legacy.changes.get = vi.fn(async (id: string) => {
+          if (id === "chg-orphan-draft") {
+            return { success: true, data: orphanData } as any;
+          }
+          return { success: false } as any;
+        });
+
+        const adapted = createTemporalStoreBackend({
+          legacy,
+          temporal: bundle as any,
+          projectId: "proj1",
+        });
+
+        const result = await adapted.changes.list({});
+        const ids = result.changes.map((c) => c.id).sort();
+        // Both must surface: visibility-registered + disk-orphan.
+        expect(ids).toEqual(["chg-orphan-draft", "chg-registered"]);
+      } finally {
+        rmSync(tmp, { recursive: true, force: true });
+      }
+    });
+  });
 });

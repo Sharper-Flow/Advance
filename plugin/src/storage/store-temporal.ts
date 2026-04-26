@@ -454,11 +454,47 @@ export function createTemporalStoreBackend(
    * (status, changes.list). Falls back to direct O(N) query only when
    * the Memo is empty (cold start) or individual entries are missing.
    */
-  const listResolvedChanges = async (): Promise<Change[]> => {
+  /**
+   * Resolve all change records currently visible to this project.
+   *
+   * Two design constraints, learned the hard way:
+   *
+   * 1. Visibility-API status filter must match caller intent. The
+   *    visibility query defaults to draft/pending/active only (P2.4).
+   *    When the caller passes `includeArchived` or `includeClosed`, we
+   *    drop the status filter entirely (`statuses: null`) so archived
+   *    and closed workflows are returned by the visibility query. The
+   *    post-filter at the call sites then narrows them back if needed.
+   *    Without this, the post-filter operates on an already-narrowed set
+   *    and `includeClosed: true` silently returns nothing.
+   *
+   * 2. Disk is the durable source of truth, visibility is a cache.
+   *    A workflow registration can be lost (worker eviction, history
+   *    truncation, manual termination) while its `change.json` snapshot
+   *    survives on disk. We always union with a disk scan so orphaned-
+   *    but-on-disk changes still surface. The per-change loader
+   *    (`getTemporalChange`) already re-seeds missing workflows from
+   *    disk, so listing them triggers self-healing.
+   *
+   * The Memo cache supplies the fast path for active changes that the
+   * adapter has already touched. We seed result IDs from Memo too so
+   * recently-closed entries (which `close()` repopulates into Memo
+   * post-invalidate) still surface even when the caller's bundle has
+   * no `workflow.list` capability.
+   */
+  const listResolvedChanges = async (filter?: {
+    includeArchived?: boolean;
+    includeClosed?: boolean;
+  }): Promise<Change[]> => {
+    const wantsTerminalStatuses = Boolean(
+      filter?.includeArchived || filter?.includeClosed,
+    );
+
+    // Fast path: when no terminal statuses are requested AND Memo has
+    // data, return Memo summaries directly (no per-change query). Mirrors
+    // the original P2.4 fast path — preserved for active-change list perf.
     const memoAll = memo.getAll();
-    if (memoAll.length > 0) {
-      // Memo has data — convert summaries to the Change shape expected by callers.
-      // Critical surfaces (get, task ops, gates) still use direct queries.
+    if (memoAll.length > 0 && !wantsTerminalStatuses) {
       return memoAll.map(
         (summary): Change => ({
           id: summary.id,
@@ -478,37 +514,59 @@ export function createTemporalStoreBackend(
       );
     }
 
-    // Cold start — populate the Memo via Temporal Visibility API.
+    // Slow path: union three sources to find every change ID.
     //
-    // P2.4: Replaced the legacy `listChangeDirs(legacy.paths.changes)`
-    // disk-scan with a Visibility-API enumeration. The Visibility query is
-    // the canonical Temporal source-of-truth for "which workflows exist";
-    // disk listing is brittle when the two go out of sync (P1.5 orphan
-    // case). The disk path is preserved as a fallback when the bundle
-    // doesn't expose `client.workflow.list` (e.g. some test mocks).
+    // (1) Memo — picks up changes the adapter has touched (e.g.
+    //     recently-closed entries that close() repopulated). Survives
+    //     when the bundle has no workflow.list capability.
     //
-    // Each per-change query is wrapped in try/catch so one missing/terminated
-    // workflow doesn't abort the entire batch. Falls back to legacy JSON on
-    // failure.
+    // (2) Visibility API — canonical "which workflows exist right now"
+    //     when the bundle exposes workflow.list. We pass statuses=null
+    //     when caller wants archived/closed so the visibility query
+    //     doesn't pre-narrow the result set.
+    //
+    // (3) Disk — durable source of truth. Catches changes whose workflow
+    //     was evicted but whose change.json snapshot survives on disk
+    //     (P1.5 orphan case, P2.4 follow-up bug B).
+    //
+    // Per-change load is wrapped in try/catch so one missing/terminated
+    // workflow doesn't abort the batch; falls back to legacy disk read.
+    const memoIds = memoAll.map((s) => s.id);
+
     const bundle = input.temporal as {
       client?: { workflow?: { list?: unknown } };
     };
-    let changeIds: string[];
+    let visibilityIds: string[] = [];
     if (typeof bundle.client?.workflow?.list === "function") {
       try {
-        changeIds = await listChangeWorkflowIds(
+        visibilityIds = await listChangeWorkflowIds(
           bundle.client as Parameters<typeof listChangeWorkflowIds>[0],
-          { projectId: input.projectId },
+          {
+            projectId: input.projectId,
+            // Drop the status filter when caller wants archived/closed
+            // so the visibility query doesn't pre-narrow the result set.
+            statuses: wantsTerminalStatuses ? null : undefined,
+          },
         );
       } catch (err) {
         logger.warn(
           `[P2.4] Visibility list failed; falling back to legacy disk scan: ${err instanceof Error ? err.message : String(err)}`,
         );
-        changeIds = await listChangeDirs(legacy.paths.changes);
       }
-    } else {
-      changeIds = await listChangeDirs(legacy.paths.changes);
     }
+
+    let diskIds: string[] = [];
+    try {
+      diskIds = await listChangeDirs(legacy.paths.changes);
+    } catch (err) {
+      logger.warn(
+        `Disk listChangeDirs failed: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+    const changeIds = Array.from(
+      new Set([...memoIds, ...visibilityIds, ...diskIds]),
+    );
+
     const BATCH_SIZE = 20;
     const changes: Change[] = [];
 
@@ -776,14 +834,6 @@ export function createTemporalStoreBackend(
         });
       },
       list: async (filter) => {
-        const changes = await listResolvedChanges();
-        let filtered = changes;
-
-        if (filter?.status) {
-          filtered = filtered.filter(
-            (change) => change.status === filter.status,
-          );
-        }
         // When status is explicitly "archived"/"closed", auto-enable the
         // corresponding include flag so the status filter isn't immediately
         // undone by the exclusion below.
@@ -791,6 +841,22 @@ export function createTemporalStoreBackend(
           filter?.includeArchived || filter?.status === "archived";
         const effectiveIncludeClosed =
           filter?.includeClosed || filter?.status === "closed";
+
+        // Pass include flags into the resolver so the visibility query
+        // widens its status filter to include archived/closed workflows
+        // when the caller asked for them. Without this the post-filter
+        // below operates on a pre-narrowed set and surfaces nothing.
+        const changes = await listResolvedChanges({
+          includeArchived: effectiveIncludeArchived,
+          includeClosed: effectiveIncludeClosed,
+        });
+        let filtered = changes;
+
+        if (filter?.status) {
+          filtered = filtered.filter(
+            (change) => change.status === filter.status,
+          );
+        }
         if (!effectiveIncludeArchived) {
           filtered = filtered.filter((change) => change.status !== "archived");
         }
