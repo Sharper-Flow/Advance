@@ -450,6 +450,68 @@ async function dryRunBulkEnqueue(
 > - A **wall-clock deadline** (`DEADLINE_MS`) exits the process whether or not all workflows reached `done`.
 > - **No termination step** on cleanup — `worker.shutdown()` stops the poller but leaves started workflows in `Running` state.
 
+## Workflow Versioning Convention
+
+This section documents the R2 convention for safely evolving Temporal workflow handlers when a breaking behavior change must ship. It applies per-handler only when a future breaking change actually ships; do not add preemptive versioning.
+
+### When to apply `wf.patched`
+
+Use `wf.patched` **only** when shipping a behavior change to a **mutation handler** (an update or signal that mutates workflow state). Read-only queries do not need patching because they do not affect workflow determinism.
+
+### Naming pattern
+
+- Format: `op-name-vN`
+- Lowercase, hyphen-separated
+- Must match an entry in `CHANGE_WORKFLOW_UPDATE_NAMES` (or the equivalent signal enum) so the workflow can reference it by a stable identifier
+
+Examples:
+
+| Handler | Patch name |
+| ------- | ---------- |
+| `addTask` | `add-task-v1` |
+| `completeGate` | `complete-gate-v1` |
+| `cancelTask` | `cancel-task-v1` |
+
+### Branch structure
+
+Inside the handler, branch on `wf.patched('<op-name-vN>')`:
+
+- **True branch** — new behavior (the changed logic)
+- **False branch** — preserved old behavior (exact logic that existed before the patch)
+
+This guarantees that:
+
+1. **Existing executions** (started before the patch) continue to replay through the false branch deterministically.
+2. **New executions** (started after the patch) execute the true branch.
+3. **Mixed-history executions** (started before, continued after) replay old history on the false branch and run new history on the true branch.
+
+### Example: `addTaskUpdate`
+
+```typescript
+import * as wf from '@temporalio/workflow';
+
+export const addTaskUpdate = wf.defineUpdate<AddTaskResult, [AddTaskInput]>('addTask');
+
+export async function addTaskHandler(wfCtx: typeof wf, input: AddTaskInput): Promise<AddTaskResult> {
+  if (wfCtx.patched('add-task-v1')) {
+    // New behavior: validate input against updated schema, then append
+    validateAddTaskV1(input);
+    const task = createTaskV1(input);
+    state.tasks.push(task);
+    return { taskId: task.id };
+  } else {
+    // Preserved old behavior: legacy append without V1 validation
+    const task = createTaskLegacy(input);
+    state.tasks.push(task);
+    return { taskId: task.id };
+  }
+}
+```
+
+### Cross-references
+
+- `design.md` § KD-1 — full design context, including why preemptive `wf.patched` was removed and how the validator recommended this documented-convention approach.
+
 ## Background and references
 
 ### 2026-04-21 Bun crash-loop incident

@@ -1,11 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { mkdir, writeFile, readFile, stat } from "fs/promises";
+import { mkdir, writeFile, readFile } from "fs/promises";
 import { join } from "path";
 
 import {
-  recordProjectMigrationEvent,
-  recordProjectWisdomExport,
-  recordTemporalFoundationEvent,
   readArtifactActivity,
   writeArtifactActivity,
   listSpecsActivity,
@@ -15,40 +12,6 @@ import {
 import { createTempDir, cleanupTempDir } from "../__tests__/setup";
 
 describe("temporal activities", () => {
-  describe("legacy placeholder activities", () => {
-    it("records foundation events for change or project scope", async () => {
-      const result = await recordTemporalFoundationEvent({
-        scope: "project",
-        id: "proj1",
-      });
-      expect(result.scope).toBe("project");
-      expect(result.id).toBe("proj1");
-      expect(typeof result.recordedAt).toBe("string");
-    });
-
-    it("records project wisdom export metadata", async () => {
-      const result = await recordProjectWisdomExport({
-        projectId: "proj1",
-        entryCount: 4,
-      });
-      expect(result.projectId).toBe("proj1");
-      expect(result.entryCount).toBe(4);
-      expect(typeof result.exportedAt).toBe("string");
-    });
-
-    it("records project migration events", async () => {
-      const result = await recordProjectMigrationEvent({
-        projectId: "proj1",
-        key: "changes-import",
-        status: "done",
-      });
-      expect(result.projectId).toBe("proj1");
-      expect(result.key).toBe("changes-import");
-      expect(result.status).toBe("done");
-      expect(typeof result.recordedAt).toBe("string");
-    });
-  });
-
   describe("readArtifactActivity", () => {
     it("reads proposal.md content when present", async () => {
       const dir = await createTempDir();
@@ -365,6 +328,3 @@ describe("temporal activities", () => {
     });
   });
 });
-
-// Reference unused symbol so tsc doesn't complain
-void stat;

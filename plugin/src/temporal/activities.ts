@@ -7,10 +7,7 @@
  *
  * Two families live here:
  *
- * 1. Telemetry / event-recording activities (legacy placeholders kept for
- *    infrastructure tests). They are pure and idempotent.
- *
- * 2. Disk-artifact activities (P2.1 — Phase 2 of completeTemporalOnlyMigration).
+ * 1. Disk-artifact activities (P2.1 — Phase 2 of completeTemporalOnlyMigration).
  *    Read/write `.adv/changes/{id}/{kind}.md`, `.adv/specs/`, and cross-repo
  *    files. Migrating these off the legacy in-process store is the gating
  *    step for retiring `legacy.*` callsites in store-temporal.ts (P2.2-P2.6).
@@ -37,46 +34,6 @@ import {
 } from "./migration";
 import { buildProjectWorkflowId } from "./client";
 import { projectAgendaQuery, projectWisdomQuery } from "./messages";
-
-// =============================================================================
-// Telemetry placeholders (kept for infra tests)
-// =============================================================================
-
-export async function recordTemporalFoundationEvent(input: {
-  scope: "change" | "project";
-  id: string;
-}): Promise<{ scope: "change" | "project"; id: string; recordedAt: string }> {
-  return {
-    ...input,
-    recordedAt: new Date().toISOString(),
-  };
-}
-
-export async function recordProjectWisdomExport(input: {
-  projectId: string;
-  entryCount: number;
-}): Promise<{ projectId: string; entryCount: number; exportedAt: string }> {
-  return {
-    ...input,
-    exportedAt: new Date().toISOString(),
-  };
-}
-
-export async function recordProjectMigrationEvent(input: {
-  projectId: string;
-  key: string;
-  status: "pending" | "done" | "failed";
-}): Promise<{
-  projectId: string;
-  key: string;
-  status: "pending" | "done" | "failed";
-  recordedAt: string;
-}> {
-  return {
-    ...input,
-    recordedAt: new Date().toISOString(),
-  };
-}
 
 // =============================================================================
 // Disk-artifact activities (P2.1)
