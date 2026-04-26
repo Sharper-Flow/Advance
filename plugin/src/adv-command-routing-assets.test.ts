@@ -311,7 +311,9 @@ describe("ADV command routing assets", () => {
     expect(content).toMatch(/halt cleanly/i);
     expect(content).toMatch(/literal slash-command|literal slash command/i);
     // Outcome 3: free-form revision text re-runs checkpoint
-    expect(content).toMatch(/normalize into revised AC|normalizes into revised AC/i);
+    expect(content).toMatch(
+      /normalize into revised AC|normalizes into revised AC/i,
+    );
     expect(content).toMatch(/re-run|re-runs/i);
     // Inline approval contract markers
     expect(content).toContain("Inline Approval prompt (Tier A");

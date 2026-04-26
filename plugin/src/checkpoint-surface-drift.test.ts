@@ -18,11 +18,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, test } from "vitest";
 
-const REPO_ROOT = resolve(
-  dirname(fileURLToPath(import.meta.url)),
-  "..",
-  "..",
-);
+const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const COMMANDS_DIR = join(REPO_ROOT, ".opencode", "command");
 
 interface CheckpointCommand {
