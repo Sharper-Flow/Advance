@@ -238,7 +238,7 @@ Update the proposal artifact with the discovery findings so the sign-off flow ca
   - **Avoidances / rejected approaches**
   - **Open questions**
   - **Investment snapshot** — call `adv_investment_report changeId: {id}` and include a one-line summary: `Investment: N tasks / M retries / T min / tier: {auto|escalate|hardstop}`. Purely informational; does not gate agreement.
-- Ask for explicit user confirmation or edits using the `question` tool.
+- Agreement sign-off uses the **Inline Approval prompt (Tier A)** at Phase 4.5.1 (AC checkpoint) and Phase 4.6 (Persist Agreement). Phase 4.5 (Open Question Resolution Loop) keeps the `question` tool — that is a non-checkpoint clarification round.
 
 ### Phase 4.5: Open Question Resolution Loop
 **× MUST NOT skip this phase.** Open questions that require user input must be resolved before `agreement.md` is finalized.
@@ -310,28 +310,52 @@ Visual comparison blocks are supplementary context, not a replacement for the `q
 - Up to 5 questions per round via the `question` tool
 - Unrelated questions should be separate prompts within the same round
 
-### Phase 4.5.1: Acceptance Criteria Checkpoint
+### Phase 4.5.1: Acceptance Criteria Checkpoint (Inline)
 
 **Purpose:** Dedicated checkpoint for acceptance-criteria agreement before `agreement.md` persistence and before the `discovery` gate completes. This separates AC approval from the broader agreement sign-off that follows in Phase 4.6.
 
-**Requirement:** `rq-disc12` — Explicit Acceptance Criteria Checkpoint.
+**Requirements:** `rq-disc12` (Explicit Acceptance Criteria Checkpoint), `rq-inlineApproval01` (Inline Approval at Named Human Checkpoints).
 
 **When:** After Phase 4.5 (Open Question Resolution Loop) and before Phase 4.6 (Persist Agreement).
 
 **Protocol:**
+
 1. Present the **draft acceptance criteria** as a focused, numbered list. Separate this from the broader agreement view (objectives, constraints, avoidances).
-2. Use the `question` tool with these outcomes. Keep custom input enabled so the third outcome remains the contextual write-in required by P26:
-   - **Approve acceptance criteria (Recommended)** — proceed to Phase 4.6
-   - **Start /adv-clarify** — stop `/adv-discover` immediately; do not persist `agreement.md`; do not call `adv_gate_complete`; **STOP HERE and return control to the user**; instruct the user to run `/adv-clarify {change-id}` and then rerun `/adv-discover {change-id}`
-   - **Add or clarify acceptance criteria** — capture user input, normalize into revised AC bullets, and re-run this checkpoint
-3. If revised AC still need substantial clarification after a re-run, recommend the `/adv-clarify` branch instead of continuing to loop inside Phase 4.5.1.
-4. If AC are empty or weak, keep the approve option but remove the "(Recommended)" suffix and make `/adv-clarify` the recommended path.
-5. Do not proceed to Phase 4.6 until AC are approved.
+2. Emit the **Inline Approval prompt (Tier A with `/adv-clarify` literal detection)** per `docs/command-voice-standard.md` § Inline Approval Voice:
+
+   ```
+   Acceptance Criteria for {change-id}:
+
+   1. ...
+   2. ...
+
+   Reply:
+   - `approve` (or whitelist hit: continue, go, yes, ok, proceed, lgtm) — approve AC and proceed to agreement persistence
+   - `/adv-clarify {change-id}` — halt /adv-discover; user runs /adv-clarify; rerun /adv-discover after
+   - Or describe what to add/clarify — agent normalizes into revised AC and re-runs this checkpoint
+   ```
+
+3. **Reply detection rules (in order):**
+
+   | Reply | Action |
+   |---|---|
+   | Trimmed = `/adv-clarify` or `/adv-clarify {change-id}` | Halt cleanly: no `agreement.md` write, no `adv_gate_complete`, return control to user with instruction to rerun `/adv-discover {change-id}` after `/adv-clarify` |
+   | Trimmed first token = `/adv-clarify` | Same halt branch |
+   | Tier A whitelist match | Approve AC, proceed to Phase 4.6 |
+   | Anything else | Treat as revision text; normalize into revised AC bullets and re-run this checkpoint |
+
+   **× Do NOT** treat phrases like "I want to clarify something" or "let's clarify X" as `/adv-clarify` invocation. Only the literal slash-command form triggers the halt branch. Non-literal "clarify" intent is revision text (per `rq-disc12.2`).
+
+4. If revised AC still need substantial clarification after 3 re-runs, recommend the `/adv-clarify` branch instead of continuing to loop.
+5. If AC are empty or weak, keep the approve option but mark the `/adv-clarify` branch as the recommended path.
+6. Do not proceed to Phase 4.6 until AC are approved.
+
+**Anchor phrase:** `Reply `approve``
 
 **× MUST NOT:** Complete `discovery` gate without AC approval. Do not invoke `/adv-clarify` directly outside this checkpoint outcome — pause and hand off to the user.
 
-### Phase 4.6: Persist Agreement
-Once confirmed and all open questions are resolved (or explicitly deferred), write `agreement.md` through `adv_change_update`.
+### Phase 4.6: Persist Agreement (Inline)
+Once AC are approved at Phase 4.5.1 and all open questions are resolved (or explicitly deferred), write `agreement.md` through `adv_change_update`. The Phase 4.5.1 inline approval is the sign-off — no additional `question` tool prompt.
 
 Suggested structure:
 ```md
