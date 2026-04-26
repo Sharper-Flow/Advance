@@ -10,7 +10,6 @@ import type { ChangeStatus, ProjectStatus, Spec } from "../../types";
 import { SpecSchema } from "../../types";
 import { listSpecsActivity, showSpecActivity } from "../../temporal/activities";
 import type { LoadResult } from "../json";
-import { filterChanges } from "../content-search";
 import { listChangeWorkflowIds } from "../../temporal/list-change-workflows";
 import {
   ChangeSummaryMemo,
@@ -24,7 +23,6 @@ import {
   type StoreDeps,
   mapTemporalChangeStateToChange,
   getChangeHandle,
-  runTemporal,
   runTemporalQuery,
   hydrateMemoFromPSW,
 } from "./shared";

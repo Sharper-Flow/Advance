@@ -1,5 +1,5 @@
 import type { Store } from "../store-types";
-import type { Change, ChangeClosure, BulkCloseResult } from "../../types";
+import type { ChangeClosure, BulkCloseResult } from "../../types";
 import {
   closeChangeUpdate,
   updateArtifactMetadataUpdate,
