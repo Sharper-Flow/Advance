@@ -316,7 +316,7 @@
           ],
           "when": "/adv-discover reaches the end of its agreement presentation flow",
           "then": [
-            "The command presents objectives and constraints for user sign-off via the question tool",
+            "The command presents objectives and constraints as inline handoff text for user sign-off per docs/command-voice-standard.md § Inline Approval Voice (Tier A)",
             "agreement.md is persisted via adv_change_update",
             "adv_gate_complete gateId: discovery occurs only after the sign-off flow completes"
           ]
@@ -339,7 +339,7 @@
           "when": "The command reaches the agreement sign-off flow",
           "then": [
             "The command presents Acceptance Criteria as a focused checkpoint",
-            "The question tool offers approve, start /adv-clarify, and add/clarify outcomes",
+            "The inline handoff offers approve, start /adv-clarify, and add/clarify outcomes per docs/command-voice-standard.md § Inline Approval Voice",
             "agreement.md is persisted only after acceptance criteria are approved",
             "adv_gate_complete gateId: discovery occurs only after approval"
           ]
@@ -348,13 +348,14 @@
           "id": "rq-disc12.2",
           "title": "/adv-clarify branch stops discovery cleanly",
           "given": [
-            "The user selects the /adv-clarify option at the acceptance criteria checkpoint"
+            "The user replies with /adv-clarify literal slash command at the acceptance criteria checkpoint"
           ],
-          "when": "/adv-discover processes the selection",
+          "when": "/adv-discover detects the literal /adv-clarify reply",
           "then": [
             "/adv-discover stops immediately without persisting agreement.md",
             "/adv-discover does not call adv_gate_complete",
-            "The command instructs the user to run /adv-clarify {change-id} and rerun /adv-discover {change-id} afterward"
+            "The command instructs the user to run /adv-clarify {change-id} and rerun /adv-discover {change-id} afterward",
+            "Non-literal clarification intent (e.g. 'I want to clarify X') is treated as revision text per Tier A LLM fallback, not as the /adv-clarify branch"
           ]
         }
       ]
