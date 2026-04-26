@@ -31,7 +31,10 @@ import {
   changeStateQuery,
 } from "../../temporal/messages";
 import { ensureChangeWorkflowStarted } from "../../temporal/migration";
-import type { ChangeWorkflowState } from "../../temporal/contracts";
+import type {
+  ChangeSummaryPayload,
+  ChangeWorkflowState,
+} from "../../temporal/contracts";
 
 import { createChangeOps } from "./changes";
 import { createTaskOps } from "./tasks";
@@ -194,14 +197,18 @@ export function createTemporalStoreBackend(
       const version = (sourceVersions.get(changeId) ?? 0) + 1;
       sourceVersions.set(changeId, version);
       const summary = buildSummary(state);
-      summary.sourceVersion = version;
+      const payload: ChangeSummaryPayload = {
+        changeId,
+        title: summary.title,
+        status: summary.status,
+        gateProgress: summary.gateProgress,
+        taskCounts: summary.taskCounts,
+        lastActivityAt: summary.lastActivityAt,
+        sourceVersion: version,
+      };
       const projectHandle = getProjectHandle();
       if (!projectHandle) return;
-      void projectHandle.signal(applyChangeSummarySignal, {
-        changeId,
-        summary,
-        sourceVersion: version,
-      });
+      void projectHandle.signal(applyChangeSummarySignal, payload);
     } catch (err) {
       // Best-effort: signal failure must not block mutations, but it should
       // remain observable when diagnosing stale project-workflow summaries.

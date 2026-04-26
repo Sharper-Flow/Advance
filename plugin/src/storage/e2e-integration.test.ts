@@ -12,6 +12,7 @@ import type {
   ChangeWorkflowState,
   ProjectWorkflowState,
 } from "../temporal/contracts";
+import { applyChangeSummaryToProjectState } from "../temporal/project-state";
 
 // ---------------------------------------------------------------------------
 // Mock helpers
@@ -199,14 +200,7 @@ describe("E2E: STSL + Memo + Projections + PSW Signals", () => {
           name === "adv.change.applyChangeSummary" ||
           name === "adv.project.applyChangeSummary"
         ) {
-          const { changeId, summary, sourceVersion } = payload ?? {};
-          if (changeId && summary) {
-            const existing = pswState.source_versions[changeId] ?? 0;
-            if (sourceVersion > existing) {
-              pswState.change_summaries[changeId] = summary;
-              pswState.source_versions[changeId] = sourceVersion;
-            }
-          }
+          applyChangeSummaryToProjectState(pswState, payload);
         }
       }),
     } as any;
@@ -261,7 +255,8 @@ describe("E2E: STSL + Memo + Projections + PSW Signals", () => {
     expect(projectHandle.signal).toHaveBeenCalled();
     const signalCalls = (projectHandle.signal as any).mock.calls;
     const lastSignal = signalCalls[signalCalls.length - 1];
-    expect(lastSignal?.[1]?.summary?.status).toBe("closed");
+    expect(lastSignal?.[1]?.summary).toBeUndefined();
+    expect(lastSignal?.[1]?.status).toBe("closed");
     expect(lastSignal?.[1]?.sourceVersion).toBeGreaterThan(0);
 
     // Verify PSW state was updated via signal simulation
