@@ -20,7 +20,7 @@ import {
 } from "../temporal/messages";
 import { writeJsonlAtomic } from "../storage/jsonl-atomic-writer";
 import { formatToolOutput } from "../utils/tool-output";
-import { fetchChangeContextSnapshot } from "../utils/context-snapshot";
+import { fetchChangeContextSnapshot } from "../storage/context-snapshot-fetch";
 import { getBoundedProjectWorkflowAccess } from "./project-workflow-helper";
 
 function toJsonlProjectWisdomEntry(entry: {

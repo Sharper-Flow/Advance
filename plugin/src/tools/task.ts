@@ -21,7 +21,7 @@ import {
 } from "../validator/task-classifier";
 import { validateEvidenceSemantics } from "../validator/evidence";
 import { formatToolOutput, paginate } from "../utils/tool-output";
-import { fetchChangeContextSnapshot } from "../utils/context-snapshot";
+import { fetchChangeContextSnapshot } from "../storage/context-snapshot-fetch";
 import {
   formatTaskReadyOutput,
   formatDoomLoopDiagnostics,
