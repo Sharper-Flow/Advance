@@ -14,7 +14,7 @@ import type {
   WisdomType,
 } from "../types";
 import { canCompleteGate, createDefaultGates } from "../types";
-import { reopenChangeFromGate } from "../storage/gate-reentry";
+import { reopenChangeFromGate } from "./gate-reentry";
 import type {
   ArtifactKind,
   ArtifactMetadata,
