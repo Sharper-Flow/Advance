@@ -207,6 +207,56 @@ const recordMigrationEntryUpdate = wf.defineUpdate<
   [MigrationLedgerEntry]
 >(PROJECT_WORKFLOW_UPDATE_NAMES.recordMigrationEntry);
 
+/**
+ * Wrap a workflow update handler so domain errors propagate as
+ * `wf.ApplicationFailure` (non-retryable, surfaces as a clean update
+ * rejection on the client) instead of escaping as
+ * `WorkflowWorkerUnhandledFailure` (which permanently wedges the
+ * workflow).
+ *
+ * **Why this exists:** Temporal Update handlers that throw a plain
+ * `Error` mark the workflow task as failed. The workflow then loops
+ * trying to replay the same input, fails again, and becomes
+ * permanently unqueryable. A single bad input — e.g., an invalid
+ * task-run state transition (see `recordTaskRunEventInChangeState`) —
+ * could brick an entire change.
+ *
+ * `wf.ApplicationFailure` is the Temporal-native way to signal
+ * "this update failed for a domain reason, do not retry, surface to
+ * the client". The workflow continues running normally; only the
+ * specific update call rejects with the error.
+ *
+ * Reliability rationale: this is defense-in-depth. Even if a future
+ * domain validator throws, the workflow stays healthy and the agent
+ * sees a clean error instead of a wedged change.
+ *
+ * Usage:
+ * ```
+ * wf.setHandler(myUpdate, safeUpdateHandler("myUpdate", (...args) => {
+ *   return doSomethingThatMightThrow(args);
+ * }));
+ * ```
+ */
+function safeUpdateHandler<Args extends unknown[], R>(
+  updateName: string,
+  handler: (...args: Args) => R,
+): (...args: Args) => R {
+  return (...args: Args) => {
+    try {
+      return handler(...args);
+    } catch (err) {
+      // Re-throw as ApplicationFailure (non-retryable) so the caller's
+      // executeUpdate rejects cleanly. ApplicationFailure does NOT
+      // count as a workflow task failure — the workflow keeps running.
+      const message = err instanceof Error ? err.message : String(err);
+      throw wf.ApplicationFailure.nonRetryable(
+        message,
+        `${updateName}_DOMAIN_ERROR`,
+      );
+    }
+  };
+}
+
 export async function changeWorkflow(
   input: ChangeWorkflowInput,
 ): Promise<void> {
@@ -259,142 +309,178 @@ export async function changeWorkflow(
   wf.setHandler(changeTaskRunsQuery, () => listTaskRunsFromChangeState(state));
   wf.setHandler(
     addTaskUpdate,
-    (taskInput: {
-      title: string;
-      type?: ChangeWorkflowState["tasks"][number]["type"];
-      section?: string;
-      blockedBy?: string[];
-      metadata?: Record<string, string>;
-    }) =>
-      addTaskToChangeState(state, taskInput, {
-        now: workflowNow(),
-        uuid: wf.uuid4,
-      }),
+    safeUpdateHandler(
+      "addTask",
+      (taskInput: {
+        title: string;
+        type?: ChangeWorkflowState["tasks"][number]["type"];
+        section?: string;
+        blockedBy?: string[];
+        metadata?: Record<string, string>;
+      }) =>
+        addTaskToChangeState(state, taskInput, {
+          now: workflowNow(),
+          uuid: wf.uuid4,
+        }),
+    ),
   );
   wf.setHandler(
     updateTaskUpdate,
-    (
-      taskId: string,
-      update: {
-        status: ChangeWorkflowState["tasks"][number]["status"];
-        notes?: string;
-        implementationSummary?: string;
-        errorRecovery?: ChangeWorkflowState["tasks"][number]["error_recovery"];
-      },
-    ) =>
-      updateTaskInChangeState(state, taskId, {
-        status: update.status,
-        now: workflowNow(),
-        notes: update.notes,
-        implementationSummary: update.implementationSummary,
-        errorRecovery: update.errorRecovery,
-      }),
+    safeUpdateHandler(
+      "updateTask",
+      (
+        taskId: string,
+        update: {
+          status: ChangeWorkflowState["tasks"][number]["status"];
+          notes?: string;
+          implementationSummary?: string;
+          errorRecovery?: ChangeWorkflowState["tasks"][number]["error_recovery"];
+        },
+      ) =>
+        updateTaskInChangeState(state, taskId, {
+          status: update.status,
+          now: workflowNow(),
+          notes: update.notes,
+          implementationSummary: update.implementationSummary,
+          errorRecovery: update.errorRecovery,
+        }),
+    ),
   );
   wf.setHandler(
     recordTaskEvidenceUpdate,
-    (
-      taskId: string,
-      phase: "red" | "green",
-      evidence: import("../types").TddPhaseEvidence,
-    ) => recordTaskEvidenceInChangeState(state, taskId, phase, evidence),
+    safeUpdateHandler(
+      "recordTaskEvidence",
+      (
+        taskId: string,
+        phase: "red" | "green",
+        evidence: import("../types").TddPhaseEvidence,
+      ) => recordTaskEvidenceInChangeState(state, taskId, phase, evidence),
+    ),
   );
   wf.setHandler(
     recordTaskRunEventUpdate,
-    (taskId: string, event: import("../types").TaskRunEvent) =>
-      recordTaskRunEventInChangeState(state, taskId, event),
+    safeUpdateHandler(
+      "recordTaskRunEvent",
+      (taskId: string, event: import("../types").TaskRunEvent) =>
+        recordTaskRunEventInChangeState(state, taskId, event),
+    ),
   );
   wf.setHandler(
     setTaskPhaseUpdate,
-    (taskId: string, phase: import("../types").TddPhase) =>
-      setTaskPhaseInChangeState(state, taskId, phase),
+    safeUpdateHandler(
+      "setTaskPhase",
+      (taskId: string, phase: import("../types").TddPhase) =>
+        setTaskPhaseInChangeState(state, taskId, phase),
+    ),
   );
   wf.setHandler(
     cancelTaskUpdate,
-    (taskId: string, cancellation: import("../types").Cancellation) =>
-      cancelTaskInChangeState(state, taskId, cancellation, workflowNow()),
+    safeUpdateHandler(
+      "cancelTask",
+      (taskId: string, cancellation: import("../types").Cancellation) =>
+        cancelTaskInChangeState(state, taskId, cancellation, workflowNow()),
+    ),
   );
   wf.setHandler(
     reclassifyTaskTddUpdate,
-    (
-      taskId: string,
-      reclassification: import("../types").TddReclassification,
-    ) => reclassifyTaskTddInChangeState(state, taskId, reclassification),
+    safeUpdateHandler(
+      "reclassifyTaskTdd",
+      (
+        taskId: string,
+        reclassification: import("../types").TddReclassification,
+      ) => reclassifyTaskTddInChangeState(state, taskId, reclassification),
+    ),
   );
   wf.setHandler(
     completeGateUpdate,
-    (
-      gateId: import("../types").GateId,
-      notes: string | undefined,
-      completedBy: string | undefined,
-    ) => {
-      const result = completeGateInChangeState(state, gateId, {
-        now: workflowNow(),
-        completedBy: completedBy ?? "agent",
-        notes,
-      });
-      // Update search attributes with the next active gate
-      const gateOrder: import("../types").GateId[] = [
-        "proposal",
-        "discovery",
-        "design",
-        "planning",
-        "execution",
-        "acceptance",
-        "release",
-      ];
-      const currentIdx = gateOrder.indexOf(gateId);
-      const nextGate = gateOrder[currentIdx + 1];
-      wf.upsertSearchAttributes({
-        [ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES.activeGate]: [nextGate ?? "done"],
-      });
-      return result;
-    },
+    safeUpdateHandler(
+      "completeGate",
+      (
+        gateId: import("../types").GateId,
+        notes: string | undefined,
+        completedBy: string | undefined,
+      ) => {
+        const result = completeGateInChangeState(state, gateId, {
+          now: workflowNow(),
+          completedBy: completedBy ?? "agent",
+          notes,
+        });
+        // Update search attributes with the next active gate
+        const gateOrder: import("../types").GateId[] = [
+          "proposal",
+          "discovery",
+          "design",
+          "planning",
+          "execution",
+          "acceptance",
+          "release",
+        ];
+        const currentIdx = gateOrder.indexOf(gateId);
+        const nextGate = gateOrder[currentIdx + 1];
+        wf.upsertSearchAttributes({
+          [ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES.activeGate]: [nextGate ?? "done"],
+        });
+        return result;
+      },
+    ),
   );
   wf.setHandler(
     reopenFromGateUpdate,
-    (
-      fromGate: import("../types").GateId,
-      reason: string,
-      scopeDelta: string | undefined,
-      approvalEvidence: string | undefined,
-    ) =>
-      reopenFromGateInChangeState(state, fromGate, {
-        now: workflowNow(),
-        reason,
-        scopeDelta,
-        approvalEvidence,
-        reopenedBy: "agent",
-      }),
+    safeUpdateHandler(
+      "reopenFromGate",
+      (
+        fromGate: import("../types").GateId,
+        reason: string,
+        scopeDelta: string | undefined,
+        approvalEvidence: string | undefined,
+      ) =>
+        reopenFromGateInChangeState(state, fromGate, {
+          now: workflowNow(),
+          reason,
+          scopeDelta,
+          approvalEvidence,
+          reopenedBy: "agent",
+        }),
+    ),
   );
   wf.setHandler(
     addWisdomUpdate,
-    (
-      type: import("../types").WisdomType,
-      content: string,
-      sourceTask: string | undefined,
-    ) =>
-      addChangeWisdom(
-        state,
-        { type, content, sourceTask },
-        { now: workflowNow(), uuid: wf.uuid4 },
-      ),
+    safeUpdateHandler(
+      "addWisdom",
+      (
+        type: import("../types").WisdomType,
+        content: string,
+        sourceTask: string | undefined,
+      ) =>
+        addChangeWisdom(
+          state,
+          { type, content, sourceTask },
+          { now: workflowNow(), uuid: wf.uuid4 },
+        ),
+    ),
   );
   wf.setHandler(
     updateArtifactMetadataUpdate,
-    (
-      kind: import("./contracts").ArtifactKind,
-      metadata: import("./contracts").ArtifactMetadata,
-    ) => updateArtifactMetadataInChangeState(state, kind, metadata),
+    safeUpdateHandler(
+      "updateArtifactMetadata",
+      (
+        kind: import("./contracts").ArtifactKind,
+        metadata: import("./contracts").ArtifactMetadata,
+      ) => updateArtifactMetadataInChangeState(state, kind, metadata),
+    ),
   );
   wf.setHandler(
     closeChangeUpdate,
-    (closure: import("../types").ChangeClosure) => {
-      const result = closeChangeInChangeState(state, closure);
-      wf.upsertSearchAttributes({
-        [ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES.changeStatus]: ["closed"],
-      });
-      return result;
-    },
+    safeUpdateHandler(
+      "closeChange",
+      (closure: import("../types").ChangeClosure) => {
+        const result = closeChangeInChangeState(state, closure);
+        wf.upsertSearchAttributes({
+          [ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES.changeStatus]: ["closed"],
+        });
+        return result;
+      },
+    ),
   );
 
   const thresholds = resolveHistoryThresholds();
@@ -467,63 +553,78 @@ export async function projectWorkflow(
   wf.setHandler(projectMigrationLedgerQuery, () => state.migration_ledger);
   wf.setHandler(
     addAgendaItemUpdate,
-    (itemInput: {
-      title: string;
-      description?: string;
-      priority?: ProjectWorkflowState["agenda"][number]["priority"];
-      category?: string;
-      blocked_by?: string;
-    }) =>
-      addAgendaItemToProjectState(state, itemInput, {
-        now: workflowNow(),
-        uuid: wf.uuid4,
-      }),
-  );
-  wf.setHandler(
-    updateAgendaItemUpdate,
-    (
-      itemId: string,
-      update: {
-        status?: ProjectWorkflowState["agenda"][number]["status"];
+    safeUpdateHandler(
+      "addAgendaItem",
+      (itemInput: {
+        title: string;
         description?: string;
         priority?: ProjectWorkflowState["agenda"][number]["priority"];
         category?: string;
         blocked_by?: string;
-        completion_notes?: string;
-      },
-    ) =>
-      updateAgendaItemInProjectState(state, itemId, {
-        now: workflowNow(),
-        status: update.status,
-        description: update.description,
-        priority: update.priority,
-        category: update.category,
-        blocked_by: update.blocked_by,
-        completion_notes: update.completion_notes,
-      }),
+      }) =>
+        addAgendaItemToProjectState(state, itemInput, {
+          now: workflowNow(),
+          uuid: wf.uuid4,
+        }),
+    ),
+  );
+  wf.setHandler(
+    updateAgendaItemUpdate,
+    safeUpdateHandler(
+      "updateAgendaItem",
+      (
+        itemId: string,
+        update: {
+          status?: ProjectWorkflowState["agenda"][number]["status"];
+          description?: string;
+          priority?: ProjectWorkflowState["agenda"][number]["priority"];
+          category?: string;
+          blocked_by?: string;
+          completion_notes?: string;
+        },
+      ) =>
+        updateAgendaItemInProjectState(state, itemId, {
+          now: workflowNow(),
+          status: update.status,
+          description: update.description,
+          priority: update.priority,
+          category: update.category,
+          blocked_by: update.blocked_by,
+          completion_notes: update.completion_notes,
+        }),
+    ),
   );
   wf.setHandler(
     addProjectWisdomUpdate,
-    (input: {
-      type: import("../types").WisdomType;
-      content: string;
-      sourceChange?: string;
-      sourceTask?: string;
-      tags?: string[];
-      invalidatedBy?: string;
-    }) =>
-      addProjectWisdomToProjectState(state, input, {
-        now: workflowNow(),
-        uuid: wf.uuid4,
-      }),
+    safeUpdateHandler(
+      "addProjectWisdom",
+      (input: {
+        type: import("../types").WisdomType;
+        content: string;
+        sourceChange?: string;
+        sourceTask?: string;
+        tags?: string[];
+        invalidatedBy?: string;
+      }) =>
+        addProjectWisdomToProjectState(state, input, {
+          now: workflowNow(),
+          uuid: wf.uuid4,
+        }),
+    ),
   );
-  wf.setHandler(recordMigrationEntryUpdate, (entry: MigrationLedgerEntry) =>
-    recordMigrationEntryInProjectState(state, entry),
+  wf.setHandler(
+    recordMigrationEntryUpdate,
+    safeUpdateHandler("recordMigrationEntry", (entry: MigrationLedgerEntry) =>
+      recordMigrationEntryInProjectState(state, entry),
+    ),
   );
   wf.setHandler(
     applyChangeSummarySignalDef,
-    (payload: import("./contracts").ChangeSummaryPayload) =>
-      applyChangeSummaryToProjectState(state, payload),
+    safeUpdateHandler(
+      "applyChangeSummary",
+      (payload: import("./contracts").ChangeSummaryPayload) =>
+        applyChangeSummaryToProjectState(state, payload),
+    ),
   );
 
   const thresholds = resolveHistoryThresholds();

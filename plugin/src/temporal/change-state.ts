@@ -114,9 +114,31 @@ function createTaskRun(taskId: string, now: string): TaskRunState {
   };
 }
 
+/**
+ * Determine whether a task-run state transition is permitted.
+ *
+ * The default policy enforces TDD discipline: a strict
+ * `started -> baseline_captured -> red_recorded -> green_recorded ->
+ * verified -> checkpointed -> done` lifecycle.
+ *
+ * Tasks with `tdd_intent: 'not_applicable'` (or no `tdd_intent` metadata
+ * at all — legacy tasks) opt out of TDD discipline and may transition
+ * directly from `started` to `checkpoint` or `complete`. This matches
+ * the semantic meaning of "not applicable": there is no TDD lifecycle
+ * to track for prose, spec, doc, or config-only changes.
+ *
+ * The `tdd_intent: 'separate_verification'` value still requires the
+ * full lifecycle because such tasks own verification of other work.
+ *
+ * Reliability rationale: rejecting these transitions caused the
+ * workflow handler to throw, which surfaced as
+ * `WorkflowWorkerUnhandledFailure` and permanently wedged the entire
+ * change workflow. See agenda item ag-8c71c70f for the original bug.
+ */
 function isTransitionAllowed(
   current: TaskRunPhase,
   eventType: TaskRunEvent["type"],
+  tddIntent?: string,
 ): boolean {
   if (eventType === "failure" || eventType === "blocker") {
     return current !== "done";
@@ -137,10 +159,29 @@ function isTransitionAllowed(
     return current === "green_recorded";
   }
   if (eventType === "checkpoint") {
-    return current === "verified" || current === "awaiting_checkpoint";
+    if (current === "verified" || current === "awaiting_checkpoint") {
+      return true;
+    }
+    // tdd_intent: 'not_applicable' (or absent) skips TDD lifecycle.
+    if (
+      current === "started" &&
+      (tddIntent === "not_applicable" || tddIntent === undefined)
+    ) {
+      return true;
+    }
+    return false;
   }
   if (eventType === "complete") {
-    return current === "checkpointed";
+    if (current === "checkpointed") return true;
+    // Same opt-out: not_applicable / legacy tasks may complete
+    // directly from started (no checkpoint needed for no-op tasks).
+    if (
+      current === "started" &&
+      (tddIntent === "not_applicable" || tddIntent === undefined)
+    ) {
+      return true;
+    }
+    return false;
   }
   return false;
 }
@@ -230,7 +271,7 @@ export function recordTaskRunEventInChangeState(
   taskId: string,
   event: TaskRunEvent,
 ): { duplicate: boolean; run: TaskRunState } {
-  getTaskOrThrow(state, taskId);
+  const task = getTaskOrThrow(state, taskId);
   if (!event.idempotencyKey) {
     throw new Error("Task-run event idempotencyKey is required");
   }
@@ -248,9 +289,11 @@ export function recordTaskRunEventInChangeState(
     return { duplicate: true, run };
   }
 
-  if (!isTransitionAllowed(run.phase, event.type)) {
+  const tddIntent = task.metadata?.tdd_intent;
+  if (!isTransitionAllowed(run.phase, event.type, tddIntent)) {
     throw new Error(
-      `Invalid task-run transition from ${run.phase} via ${event.type}`,
+      `Invalid task-run transition from ${run.phase} via ${event.type}` +
+        (tddIntent ? ` (tdd_intent: ${tddIntent})` : ""),
     );
   }
 

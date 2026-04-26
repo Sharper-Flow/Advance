@@ -329,4 +329,186 @@ describe("change workflow state", () => {
     });
     expect(state.status).toBe("closed");
   });
+
+  describe("ledger flexibility for tdd_intent (reliability fix)", () => {
+    /**
+     * Regression: tasks with tdd_intent: 'not_applicable' have no TDD
+     * lifecycle (no red/green/baseline). Going from 'started' directly to
+     * 'checkpoint' MUST be allowed for these tasks, otherwise the
+     * checkpoint tool throws in the workflow handler and wedges the entire
+     * change workflow with WorkflowWorkerUnhandledFailure.
+     *
+     * Surfaced during inlineApprovalGateTransition Phase A + B.1 — both
+     * tasks were tdd_intent: 'not_applicable' (prose/spec edits) and
+     * checkpoint(complete) wedged the workflow. Manual recovery required
+     * `temporal workflow terminate` + reseed-from-disk.
+     */
+    it("allows started -> checkpoint for tdd_intent: 'not_applicable' tasks", () => {
+      const state = createChangeWorkflowState({
+        changeId: "myChange",
+        title: "My Change",
+        createdAt: "2026-04-14T00:00:00.000Z",
+      });
+      const task = addTaskToChangeState(
+        state,
+        {
+          title: "prose edit task",
+          metadata: { tdd_intent: "not_applicable" },
+        },
+        { now: "2026-04-14T00:01:00.000Z", uuid: () => "task-1" },
+      );
+
+      recordTaskRunEventInChangeState(state, task.id, {
+        idempotencyKey: "run:start",
+        type: "start",
+        recordedAt: "2026-04-14T00:02:00.000Z",
+        payload: { workdir: "/repo" },
+      });
+
+      expect(() =>
+        recordTaskRunEventInChangeState(state, task.id, {
+          idempotencyKey: "run:checkpoint",
+          type: "checkpoint",
+          recordedAt: "2026-04-14T00:03:00.000Z",
+          payload: { status: "committed", sha: "abc123" },
+        }),
+      ).not.toThrow();
+
+      const run = getTaskRunFromChangeState(state, task.id);
+      expect(run?.phase).toBe("checkpointed");
+    });
+
+    it("STILL rejects started -> checkpoint for tdd_intent: 'inline' tasks (TDD discipline preserved)", () => {
+      const state = createChangeWorkflowState({
+        changeId: "myChange",
+        title: "My Change",
+        createdAt: "2026-04-14T00:00:00.000Z",
+      });
+      const task = addTaskToChangeState(
+        state,
+        { title: "code task", metadata: { tdd_intent: "inline" } },
+        { now: "2026-04-14T00:01:00.000Z", uuid: () => "task-1" },
+      );
+
+      recordTaskRunEventInChangeState(state, task.id, {
+        idempotencyKey: "run:start",
+        type: "start",
+        recordedAt: "2026-04-14T00:02:00.000Z",
+        payload: { workdir: "/repo" },
+      });
+
+      expect(() =>
+        recordTaskRunEventInChangeState(state, task.id, {
+          idempotencyKey: "run:checkpoint",
+          type: "checkpoint",
+          recordedAt: "2026-04-14T00:03:00.000Z",
+          payload: { status: "committed", sha: "abc123" },
+        }),
+      ).toThrow(/invalid task-run transition/i);
+    });
+
+    it("STILL rejects started -> checkpoint for tdd_intent: 'separate_verification' tasks", () => {
+      const state = createChangeWorkflowState({
+        changeId: "myChange",
+        title: "My Change",
+        createdAt: "2026-04-14T00:00:00.000Z",
+      });
+      const task = addTaskToChangeState(
+        state,
+        {
+          title: "verification task",
+          metadata: { tdd_intent: "separate_verification" },
+        },
+        { now: "2026-04-14T00:01:00.000Z", uuid: () => "task-1" },
+      );
+
+      recordTaskRunEventInChangeState(state, task.id, {
+        idempotencyKey: "run:start",
+        type: "start",
+        recordedAt: "2026-04-14T00:02:00.000Z",
+        payload: { workdir: "/repo" },
+      });
+
+      // separate_verification tasks still need full TDD lifecycle since
+      // they verify other tasks. Skipping baseline/red/green is wrong.
+      expect(() =>
+        recordTaskRunEventInChangeState(state, task.id, {
+          idempotencyKey: "run:checkpoint",
+          type: "checkpoint",
+          recordedAt: "2026-04-14T00:03:00.000Z",
+          payload: { status: "committed", sha: "abc123" },
+        }),
+      ).toThrow(/invalid task-run transition/i);
+    });
+
+    it("allows started -> checkpoint when task has NO tdd_intent metadata (legacy tasks)", () => {
+      // Legacy tasks created before tdd_intent existed should not be
+      // wedged by the strict state machine. Treat absent metadata as
+      // permissive (matches default behavior elsewhere in the codebase).
+      const state = createChangeWorkflowState({
+        changeId: "myChange",
+        title: "My Change",
+        createdAt: "2026-04-14T00:00:00.000Z",
+      });
+      const task = addTaskToChangeState(
+        state,
+        { title: "legacy task" },
+        { now: "2026-04-14T00:01:00.000Z", uuid: () => "task-1" },
+      );
+
+      recordTaskRunEventInChangeState(state, task.id, {
+        idempotencyKey: "run:start",
+        type: "start",
+        recordedAt: "2026-04-14T00:02:00.000Z",
+        payload: { workdir: "/repo" },
+      });
+
+      expect(() =>
+        recordTaskRunEventInChangeState(state, task.id, {
+          idempotencyKey: "run:checkpoint",
+          type: "checkpoint",
+          recordedAt: "2026-04-14T00:03:00.000Z",
+          payload: { status: "committed", sha: "abc123" },
+        }),
+      ).not.toThrow();
+    });
+
+    it("allows started -> complete for tdd_intent: 'not_applicable' (no checkpoint needed)", () => {
+      // Some not_applicable tasks may not even create a checkpoint
+      // (e.g., the change itself is just an agenda update with no
+      // file changes). Allow direct started -> complete.
+      const state = createChangeWorkflowState({
+        changeId: "myChange",
+        title: "My Change",
+        createdAt: "2026-04-14T00:00:00.000Z",
+      });
+      const task = addTaskToChangeState(
+        state,
+        {
+          title: "no-op task",
+          metadata: { tdd_intent: "not_applicable" },
+        },
+        { now: "2026-04-14T00:01:00.000Z", uuid: () => "task-1" },
+      );
+
+      recordTaskRunEventInChangeState(state, task.id, {
+        idempotencyKey: "run:start",
+        type: "start",
+        recordedAt: "2026-04-14T00:02:00.000Z",
+        payload: { workdir: "/repo" },
+      });
+
+      expect(() =>
+        recordTaskRunEventInChangeState(state, task.id, {
+          idempotencyKey: "run:complete",
+          type: "complete",
+          recordedAt: "2026-04-14T00:03:00.000Z",
+          payload: {},
+        }),
+      ).not.toThrow();
+
+      const run = getTaskRunFromChangeState(state, task.id);
+      expect(run?.phase).toBe("done");
+    });
+  });
 });

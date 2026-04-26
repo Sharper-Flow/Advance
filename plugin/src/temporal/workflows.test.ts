@@ -90,4 +90,69 @@ describe("workflows module (workflow-safe invariant)", () => {
     expect(source).toContain("state.task_runs = input.seedState.task_runs");
     expect(source).toContain("task_runs: state.task_runs");
   });
+
+  describe("safeUpdateHandler reliability wrapper", () => {
+    /**
+     * Reliability invariant: every wf.setHandler that wraps a domain
+     * handler MUST go through safeUpdateHandler so that domain errors
+     * become wf.ApplicationFailure (non-retryable) instead of escaping
+     * as WorkflowWorkerUnhandledFailure (which permanently wedges the
+     * workflow).
+     *
+     * Pattern surfaced after a single bad input ("Invalid task-run
+     * transition from started via checkpoint") wedged the entire
+     * inlineApprovalGateTransition workflow until it was manually
+     * terminated. This static guard prevents the regression.
+     */
+    it("defines safeUpdateHandler helper", () => {
+      expect(source).toMatch(/function safeUpdateHandler</);
+    });
+
+    it("safeUpdateHandler converts thrown errors to ApplicationFailure", () => {
+      // The wrapper must use wf.ApplicationFailure.nonRetryable, not
+      // a plain Error rethrow.
+      expect(source).toMatch(/wf\.ApplicationFailure\.nonRetryable/);
+    });
+
+    it("wraps every change-workflow update handler", () => {
+      // Each wf.setHandler call for an update (not a query) must be
+      // wrapped. Queries are read-only and don't suffer from the wedge
+      // problem, so they don't require wrapping.
+      const updateHandlers = [
+        "addTaskUpdate",
+        "updateTaskUpdate",
+        "recordTaskEvidenceUpdate",
+        "recordTaskRunEventUpdate",
+        "setTaskPhaseUpdate",
+        "cancelTaskUpdate",
+        "reclassifyTaskTddUpdate",
+        "completeGateUpdate",
+        "reopenFromGateUpdate",
+        "addWisdomUpdate",
+        "updateArtifactMetadataUpdate",
+        "closeChangeUpdate",
+      ];
+      for (const handler of updateHandlers) {
+        // The handler line should be followed (within ~3 lines) by
+        // safeUpdateHandler. Joining lines on whitespace makes the
+        // regex more forgiving of formatting.
+        const flat = source.replace(/\s+/g, " ");
+        expect(flat).toMatch(new RegExp(`${handler},\\s*safeUpdateHandler\\(`));
+      }
+    });
+
+    it("wraps every project-workflow update handler", () => {
+      const updateHandlers = [
+        "addAgendaItemUpdate",
+        "updateAgendaItemUpdate",
+        "addProjectWisdomUpdate",
+        "recordMigrationEntryUpdate",
+        "applyChangeSummarySignalDef",
+      ];
+      const flat = source.replace(/\s+/g, " ");
+      for (const handler of updateHandlers) {
+        expect(flat).toMatch(new RegExp(`${handler},\\s*safeUpdateHandler\\(`));
+      }
+    });
+  });
 });
