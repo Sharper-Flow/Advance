@@ -128,10 +128,48 @@ Tasks may target other repositories. See ADV_INSTRUCTIONS.md §Cross-Repo Execut
 × Prohibited cancellation reasons: "out of scope", "different repository", "cannot modify external code", "backend/API changes needed", "would need database changes" — all require switching `workdir` and executing.
 
 ---
-## Cancellation Policy
-All cancellations require explicit user approval via `adv_task_cancel`.
+## Cancellation Policy (Inline — Tier B)
+All cancellations require explicit user approval via `adv_task_cancel`. Cancellation is irreversible — Tier B uses inline structured prose with strict regex parsing (no LLM fallback) per `docs/command-voice-standard.md` § Inline Approval Voice and `rq-inlineApproval01.4`.
 
-Workflow: collect per-task reasons → present via `question` tool (Approve all, Review individually, Reject) → user approves → **checkpoint before cancel**: call `adv_task_checkpoint` with `mode: 'cancel'`, `reason: <reason>` → then call `adv_task_cancel`.
+**Workflow:**
+
+1. **Collect per-task reasons** for each task to be cancelled.
+2. **Emit numbered per-task list inline** (no `question` tool):
+
+   ```
+   Cancellation requested for these tasks:
+
+   1. {tk-id} — "{title}" — Reason: {reason}
+   2. {tk-id} — "{title}" — Reason: {reason}
+
+   Reply EXACTLY one of:
+   - `approve all` — cancel all listed tasks
+   - `reject all` — keep all tasks active
+   - `keep N` (or `keep N,M`) — cancel inverse of listed numbers
+   - `cancel N` (or `cancel N,M`) — cancel only the listed numbers
+   - `stop` / `abort` — halt; do not cancel anything
+
+   Anything else → agent will re-prompt with the same options.
+   ```
+
+3. **Parse reply with regex (no LLM fallback):**
+
+   | Pattern | Action |
+   |---|---|
+   | `^approve all$` | Cancel all listed tasks |
+   | `^reject all$` | Keep all tasks active |
+   | `^keep ([\d,\s]+)$` | Cancel inverse of listed numbers |
+   | `^cancel ([\d,\s]+)$` | Cancel only the listed numbers |
+   | `^(stop\|abort)$` | Halt; do not cancel anything |
+   | Anything else | Re-prompt with the same options. **× Do NOT** invoke LLM. **× Do NOT** advance |
+
+4. **Anchor phrase:** `approve all`
+
+5. **On approval (checkpoint before cancel):** for each task to be cancelled:
+   - Call `adv_task_checkpoint` with `mode: 'cancel'`, `reason: <reason>`
+   - Then call `adv_task_cancel` with `approvedByUser: true` and `approvalEvidence: <user reply text>`
+
+× Do NOT use the `question` tool for cancellation approval. The inline pattern is canonical per `rq-inlineApproval01.4`.
 
 ---
 ## Phase 1: Load Change Context
