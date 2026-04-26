@@ -116,6 +116,7 @@ export async function ensureChangeWorkflowStarted(
         | "gates"
         | "reentry_history"
         | "artifacts"
+        | "task_runs"
       >
     >;
   },
@@ -133,6 +134,7 @@ export async function ensureChangeWorkflowStarted(
           | "gates"
           | "reentry_history"
           | "artifacts"
+          | "task_runs"
         >
       >;
     },
@@ -218,6 +220,9 @@ export async function reImportChangeState(
       wisdom: input.change.wisdom,
       gates: input.change.gates,
       reentry_history: input.change.reentry_history,
+      task_runs: (input.change as Change & {
+        task_runs?: ChangeWorkflowState["task_runs"];
+      }).task_runs,
     },
   });
 }
