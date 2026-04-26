@@ -267,15 +267,30 @@ Using `agreement.md`, produce:
 
 Keep the summary concise and user-facing.
 
-### Ask for Acceptance
-Use the `question` tool to ask whether the delivered work satisfies the agreement.
+### Ask for Acceptance (Inline)
+Emit the acceptance summary inline, followed by the **Inline Approval prompt (Tier A)** per `docs/command-voice-standard.md` § Inline Approval Voice:
 
-Recommended options:
-- Accept and continue (Recommended) — agent immediately proceeds inline to `/adv-harden`
-- Needs fixes before acceptance
-- Re-open earlier gates via `adv_change_reenter` (scope expansion)
+```
+Reply `accept` (or `approve`, `continue`, `looks good`, `lgtm`) to accept the delivered work and proceed inline to /adv-harden,
+or run `/adv-harden {change-id}`.
+Want fixes before acceptance? Reply with what needs adjustment.
+Want to reopen an earlier gate (scope expansion)? Reply `reopen {gate-name}` (e.g. `reopen discovery`) or `/adv-clarify {change-id}` for ambiguity.
+Want to stop here? Reply `stop` or `defer`.
+```
 
-If the user requests fixes, do not complete the gate; route back to the appropriate workflow. If the user identifies new objectives or acceptance criteria that require scope expansion, use `adv_change_reenter` to reopen from the earliest affected gate before proceeding.
+**Reply parsing (Tier A):**
+
+| Reply | Action |
+|---|---|
+| Tier A whitelist match | Call `adv_gate_complete gateId: 'acceptance'`, begin `/adv-harden` inline |
+| `/adv-harden {change-id}` | No-op; OpenCode dispatches |
+| `reopen {gate-name}` or `re-enter {gate-name}` | Invoke `adv_change_reenter fromGate: {gate-name}` (scope expansion) |
+| Free-form text | Treat as "needs fixes before acceptance"; route back to remediation; do NOT complete gate |
+| `stop` / `defer` | Halt; do not complete gate |
+
+**Anchor phrase:** `Reply `accept``
+
+If the user identifies new objectives or acceptance criteria that require scope expansion, the `reopen {gate}` inline reply triggers `adv_change_reenter` to reopen from the earliest affected gate before proceeding.
 
 ### Complete Gate
 On acceptance:
