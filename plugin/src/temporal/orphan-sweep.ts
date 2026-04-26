@@ -78,6 +78,8 @@ export interface ProjectSweepResult {
   processed: number;
   /** Change ids that were re-seeded into Temporal during this sweep. */
   reseeded: string[];
+  /** Change ids present on disk but missing from Temporal. */
+  orphans: string[];
   /** Snapshots skipped because they couldn't be parsed/loaded. */
   skipped: Array<{ changeId: string; reason: string }>;
   /** Snapshots loaded successfully but workflow.start failed. */
@@ -88,6 +90,7 @@ export interface AllProjectsSweepResult {
   stateRoot: string;
   totalProcessed: number;
   totalReseeded: number;
+  totalOrphans: number;
   totalSkipped: number;
   totalFailed: number;
   perProject: ProjectSweepResult[];
@@ -134,6 +137,8 @@ export interface SweepProjectInput {
   projectId: string;
   changesDir: string;
   client: SweepClient;
+  /** Detect missing workflows without re-seeding. Default false. */
+  dryRun?: boolean;
 }
 
 export async function sweepProject(
@@ -144,6 +149,7 @@ export async function sweepProject(
     projectId,
     processed: 0,
     reseeded: [],
+    orphans: [],
     skipped: [],
     failed: [],
   };
@@ -198,6 +204,11 @@ export async function sweepProject(
     }
 
     // Phase 3: orphan detected — reseed via reImportChangeState
+    result.orphans.push(change.id);
+    if (input.dryRun) {
+      continue;
+    }
+
     try {
       await reImportChangeState(client, {
         projectId,
@@ -239,6 +250,7 @@ export interface SweepAllInput {
    */
   stateRoot: string;
   client: SweepClient;
+  dryRun?: boolean;
 }
 
 export async function sweepAllProjects(
@@ -249,6 +261,7 @@ export async function sweepAllProjects(
     stateRoot,
     totalProcessed: 0,
     totalReseeded: 0,
+    totalOrphans: 0,
     totalSkipped: 0,
     totalFailed: 0,
     perProject: [],
@@ -276,10 +289,12 @@ export async function sweepAllProjects(
       projectId,
       changesDir,
       client,
+      dryRun: input.dryRun,
     });
     aggregate.perProject.push(projectResult);
     aggregate.totalProcessed += projectResult.processed;
     aggregate.totalReseeded += projectResult.reseeded.length;
+    aggregate.totalOrphans += projectResult.orphans.length;
     aggregate.totalSkipped += projectResult.skipped.length;
     aggregate.totalFailed += projectResult.failed.length;
   }
@@ -301,6 +316,7 @@ export function formatSweepSummary(result: AllProjectsSweepResult): string {
   lines.push(`Orphan sweep complete: ${result.stateRoot}`);
   lines.push(`  Projects scanned: ${result.perProject.length}`);
   lines.push(`  Changes processed: ${result.totalProcessed}`);
+  lines.push(`  Orphans detected: ${result.totalOrphans}`);
   lines.push(`  Reseeded: ${result.totalReseeded}`);
   lines.push(`  Skipped (corrupted): ${result.totalSkipped}`);
   lines.push(`  Failed (workflow.start error): ${result.totalFailed}`);

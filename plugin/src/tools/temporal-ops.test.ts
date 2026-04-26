@@ -47,6 +47,7 @@ const mocks = vi.hoisted(() => ({
     client: {
       workflow: {
         getHandle: vi.fn(() => ({
+          describe: vi.fn(async () => ({})),
           terminate: vi.fn(async () => {}),
           query: vi.fn(async (queryDef: any) => {
             const name = queryDef?.name ?? queryDef;
@@ -55,6 +56,7 @@ const mocks = vi.hoisted(() => ({
             return null;
           }),
         })),
+        start: vi.fn(async () => ({})),
       },
     },
   })),
@@ -370,6 +372,25 @@ describe("temporal operator tools", () => {
         AdvDoomLoopActive: 4,
       },
     });
+  });
+
+  it("adv_orphan_sweep refuses execute mode without approval", async () => {
+    const store = {
+      paths: {
+        root: "/repo",
+        external: "/home/jrede/.local/share/opencode/plugins/advance/proj123",
+        changes: "/repo/.adv/changes",
+      },
+    } as any;
+
+    const result = await temporalOpsTools.adv_orphan_sweep.execute(
+      { dryRun: false, approvedByUser: false, approvalEvidence: "" },
+      store,
+    );
+    const parsed = JSON.parse(result);
+
+    expect(parsed.success).toBe(false);
+    expect(parsed.error).toContain("approval");
   });
 
   it("adv_workflow_repair rebuilds project workflow, reimports the change, and re-emits derived exports", async () => {

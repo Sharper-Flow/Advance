@@ -354,6 +354,11 @@ export function createToolMap(
       "adv_temporal_reconnect",
       store,
     ),
+    adv_orphan_sweep: bindTool(
+      temporalOpsTools.adv_orphan_sweep,
+      "adv_orphan_sweep",
+      store,
+    ),
     adv_temporal_worker_restart: bindTool(
       temporalOpsTools.adv_temporal_worker_restart,
       "adv_temporal_worker_restart",
@@ -468,6 +473,7 @@ export const ADV_TOOL_NAMES: readonly string[] = [
   "adv_temporal_diagnose",
   "adv_temporal_register_search_attributes",
   "adv_temporal_reconnect",
+  "adv_orphan_sweep",
   "adv_temporal_worker_restart",
   "adv_workflow_repair",
   "adv_task_checkpoint",

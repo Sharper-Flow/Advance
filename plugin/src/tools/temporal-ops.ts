@@ -5,6 +5,7 @@ import { restartCurrentProjectTemporalWorker } from "../plugin-init";
 import { getService, getStslStats, reinitStsl } from "../temporal/service";
 import { repairChangeActivity } from "../temporal/activities";
 import { getTemporalHealth } from "../temporal/health-probe";
+import { sweepProject } from "../temporal/orphan-sweep";
 import {
   buildChangeWorkflowId,
   buildProjectWorkflowId,
@@ -257,6 +258,79 @@ export const temporalOpsTools = {
         before,
         after,
         message: "Reconnected Temporal service layer",
+      });
+    },
+  },
+
+  adv_orphan_sweep: {
+    description:
+      "Detect and optionally re-seed disk-backed change workflows missing from Temporal. Dry-run is default; execute mode requires explicit user approval.",
+    args: {
+      dryRun: z
+        .boolean()
+        .optional()
+        .describe("When true or omitted, detect orphans without re-seeding"),
+      approvedByUser: z
+        .boolean()
+        .optional()
+        .describe("Required true when dryRun is false"),
+      approvalEvidence: z
+        .string()
+        .optional()
+        .describe("How the user explicitly approved execute mode"),
+    },
+    execute: async (
+      args: {
+        dryRun?: boolean;
+        approvedByUser?: boolean;
+        approvalEvidence?: string;
+      },
+      store: Store,
+    ) => {
+      const dryRun = args.dryRun ?? true;
+      if (!store.paths.external) {
+        return formatToolOutput({
+          success: false,
+          error:
+            "Orphan sweep requires external state paths; current store is running in legacy in-repo mode.",
+        });
+      }
+      if (!dryRun) {
+        if (!args.approvedByUser || !args.approvalEvidence?.trim()) {
+          return formatToolOutput({
+            success: false,
+            error:
+              "Explicit user approval is required to execute orphan sweep re-seeding. Re-run with dryRun:true to preview only.",
+          });
+        }
+      }
+
+      const bundle = getService();
+      if (!bundle) {
+        return formatToolOutput({
+          success: false,
+          error:
+            "Temporal service layer not initialized — cannot run orphan sweep",
+        });
+      }
+
+      const projectId = basename(store.paths.external);
+      const result = await sweepProject({
+        projectId,
+        changesDir: store.paths.changes,
+        client: bundle.client as unknown as Parameters<typeof sweepProject>[0]["client"],
+        dryRun,
+      });
+
+      return formatToolOutput({
+        success: true,
+        dryRun,
+        projectId,
+        approvalEvidence: dryRun ? undefined : args.approvalEvidence?.trim(),
+        result,
+        message: dryRun
+          ? `Orphan sweep dry-run found ${result.orphans.length} missing change workflows`
+          : `Orphan sweep re-seeded ${result.reseeded.length} change workflows`,
       });
     },
   },

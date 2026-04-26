@@ -230,6 +230,39 @@ describe("orphan-sweep", () => {
         await cleanupTempDir(tempDir);
       }
     });
+
+    it("dry-run reports orphans without reseeding", async () => {
+      const tempDir = await createTempDir();
+      const projectId = "d".repeat(40);
+      const changesDir = join(tempDir, projectId, "changes");
+      await mkdir(changesDir, { recursive: true });
+
+      const orphan = makeChange("dryRunOrphan", "Dry Run Orphan");
+      await mkdir(join(changesDir, orphan.id), { recursive: true });
+      await writeFile(
+        join(changesDir, orphan.id, "change.json"),
+        JSON.stringify(orphan, null, 2),
+      );
+
+      const client = createMockClient();
+
+      try {
+        const result = await sweepProject({
+          projectId,
+          changesDir,
+          client,
+          dryRun: true,
+        });
+
+        expect(result.processed).toBe(1);
+        expect(result.orphans).toEqual([orphan.id]);
+        expect(result.reseeded).toEqual([]);
+        expect(result.failed).toEqual([]);
+        expect(client.starts).toEqual([]);
+      } finally {
+        await cleanupTempDir(tempDir);
+      }
+    });
   });
 
   describe("sweepAllProjects", () => {
