@@ -48,8 +48,9 @@ export const changeBootstrapQuery =
   wf.defineQuery<ChangeWorkflowBootstrapState>(
     CHANGE_WORKFLOW_QUERY_NAMES.bootstrap,
   );
-export const changeStateQuery =
-  wf.defineQuery<ChangeWorkflowState>(CHANGE_WORKFLOW_QUERY_NAMES.state);
+export const changeStateQuery = wf.defineQuery<ChangeWorkflowState>(
+  CHANGE_WORKFLOW_QUERY_NAMES.state,
+);
 export const changeTasksQuery = wf.defineQuery<
   ChangeWorkflowState["tasks"],
   [
@@ -57,10 +58,9 @@ export const changeTasksQuery = wf.defineQuery<
     string | undefined,
   ]
 >(CHANGE_WORKFLOW_QUERY_NAMES.tasks);
-export const changeReadyQuery =
-  wf.defineQuery<
-    ReturnType<typeof import("./change-state").getReadyTasksFromChangeState>
-  >(CHANGE_WORKFLOW_QUERY_NAMES.ready);
+export const changeReadyQuery = wf.defineQuery<
+  ReturnType<typeof import("./change-state").getReadyTasksFromChangeState>
+>(CHANGE_WORKFLOW_QUERY_NAMES.ready);
 export const changeTaskQuery = wf.defineQuery<
   ChangeWorkflowState["tasks"][number] | null,
   [string]
@@ -145,8 +145,9 @@ export const projectBootstrapQuery =
   wf.defineQuery<ProjectWorkflowBootstrapState>(
     PROJECT_WORKFLOW_QUERY_NAMES.bootstrap,
   );
-export const projectStateQuery =
-  wf.defineQuery<ProjectWorkflowState>(PROJECT_WORKFLOW_QUERY_NAMES.state);
+export const projectStateQuery = wf.defineQuery<ProjectWorkflowState>(
+  PROJECT_WORKFLOW_QUERY_NAMES.state,
+);
 export const projectAgendaQuery = wf.defineQuery<
   ProjectWorkflowState["agenda"],
   [ProjectWorkflowState["agenda"][number]["status"] | undefined]

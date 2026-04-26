@@ -136,55 +136,52 @@ describe("temporal migration helpers", () => {
     const start = vi.fn(async () => handle);
     const getHandle = vi.fn(() => handle);
 
-    await reImportChangeState(
-      { workflow: { start, getHandle } } as any,
-      {
-        projectId: "proj1",
-        change: {
-          id: "chg1",
-          title: "Change 1",
-          status: "draft",
-          created_at: "2026-04-19T00:00:00.000Z",
-          tasks: [],
-          deltas: {},
-          wisdom: [],
-          gates: {
-            proposal: { status: "pending" },
-            discovery: { status: "pending" },
-            design: { status: "pending" },
-            planning: { status: "pending" },
-            execution: { status: "pending" },
-            acceptance: { status: "pending" },
-            release: { status: "pending" },
+    await reImportChangeState({ workflow: { start, getHandle } } as any, {
+      projectId: "proj1",
+      change: {
+        id: "chg1",
+        title: "Change 1",
+        status: "draft",
+        created_at: "2026-04-19T00:00:00.000Z",
+        tasks: [],
+        deltas: {},
+        wisdom: [],
+        gates: {
+          proposal: { status: "pending" },
+          discovery: { status: "pending" },
+          design: { status: "pending" },
+          planning: { status: "pending" },
+          execution: { status: "pending" },
+          acceptance: { status: "pending" },
+          release: { status: "pending" },
+        },
+        task_runs: {
+          "tk-1": {
+            taskId: "tk-1",
+            runId: "run-1",
+            phase: "green",
+            updatedAt: "2026-04-19T00:05:00.000Z",
+            resumeHint: "Checkpoint before completion.",
+            requiredNextAction: "checkpoint",
+            seenIdempotencyKeys: ["tk-1:start"],
+            events: [
+              {
+                idempotencyKey: "tk-1:start",
+                type: "start",
+                recordedAt: "2026-04-19T00:01:00.000Z",
+                payload: {},
+              },
+            ],
           },
-          task_runs: {
-            "tk-1": {
-              taskId: "tk-1",
-              runId: "run-1",
-              phase: "green",
-              updatedAt: "2026-04-19T00:05:00.000Z",
-              resumeHint: "Checkpoint before completion.",
-              requiredNextAction: "checkpoint",
-              seenIdempotencyKeys: ["tk-1:start"],
-              events: [
-                {
-                  idempotencyKey: "tk-1:start",
-                  type: "start",
-                  recordedAt: "2026-04-19T00:01:00.000Z",
-                  payload: {},
-                },
-              ],
-            },
-          },
-        } as any,
-      },
-    );
+        },
+      } as any,
+    });
 
     const options = start.mock.calls[0][1];
     expect(options.args[0].seedState.task_runs["tk-1"].phase).toBe("green");
-    expect(
-      options.args[0].seedState.task_runs["tk-1"].requiredNextAction,
-    ).toBe("checkpoint");
+    expect(options.args[0].seedState.task_runs["tk-1"].requiredNextAction).toBe(
+      "checkpoint",
+    );
   });
 
   it("migration records a single terminal done ledger entry on success", async () => {

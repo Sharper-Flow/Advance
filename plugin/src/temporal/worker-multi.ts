@@ -156,7 +156,11 @@ export async function createMultiWorker(
   let shuttingDown = false;
   const pendingRegistrations = new Map<
     string,
-    { promise: Promise<void>; resolve: () => void; reject: (err: Error) => void }
+    {
+      promise: Promise<void>;
+      resolve: () => void;
+      reject: (err: Error) => void;
+    }
   >();
   const registerErrors = new Map<string, string>();
   let resolveExit: () => void = () => {};
@@ -171,10 +175,7 @@ export async function createMultiWorker(
   function handleChildMessage(msg: { type?: string; [key: string]: unknown }) {
     if (msg.type === "ready") return true;
 
-    if (
-      msg.type === "register-ack" ||
-      msg.type === "worker_started"
-    ) {
+    if (msg.type === "register-ack" || msg.type === "worker_started") {
       if (typeof msg.queue !== "string") return false;
       const pending = pendingRegistrations.get(msg.queue);
       queues.add(msg.queue);
@@ -387,8 +388,9 @@ export async function createMultiWorker(
 
   function sendToChild(msg: ParentToChildMessage): boolean {
     if (!child || child.killed || child.exitCode !== null) return false;
+    if (!child.stdin) return false;
     try {
-      child.stdin?.write(JSON.stringify(msg) + "\n");
+      child.stdin.write(JSON.stringify(msg) + "\n");
       return true;
     } catch {
       debugLog(`failed to send IPC message to child: ${JSON.stringify(msg)}`);

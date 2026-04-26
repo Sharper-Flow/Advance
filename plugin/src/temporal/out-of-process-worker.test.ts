@@ -38,6 +38,7 @@ interface FakeChild extends EventEmitter {
   pid: number;
   exitCode: number | null;
   killed: boolean;
+  stdin: { write: ReturnType<typeof vi.fn> };
   stdout: EventEmitter;
   stderr: EventEmitter;
   kill: (signal?: NodeJS.Signals | number) => boolean;
@@ -80,6 +81,30 @@ function makeFakeChild(): FakeChild {
   ee.pid = 12345 + Math.floor(Math.random() * 1000);
   ee.exitCode = null;
   ee.killed = false;
+  ee.stdin = {
+    write: vi.fn((line: string) => {
+      try {
+        const msg = JSON.parse(line.trim()) as {
+          type?: string;
+          queue?: unknown;
+        };
+        if (msg.type === "register" && typeof msg.queue === "string") {
+          queueMicrotask(() => {
+            ee.stdout.emit(
+              "data",
+              Buffer.from(
+                JSON.stringify({ type: "register-ack", queue: msg.queue }) +
+                  "\n",
+              ),
+            );
+          });
+        }
+      } catch {
+        // Ignore malformed writes in tests.
+      }
+      return true;
+    }),
+  };
   ee.stdout = new EventEmitter();
   ee.stderr = new EventEmitter();
   const killSpy = vi.fn((signal?: NodeJS.Signals | number) => {
@@ -101,6 +126,7 @@ function makeStuckChild(): FakeChild {
   ee.pid = 54321 + Math.floor(Math.random() * 1000);
   ee.exitCode = null;
   ee.killed = false;
+  ee.stdin = { write: vi.fn(() => true) };
   ee.stdout = new EventEmitter();
   ee.stderr = new EventEmitter();
   ee.kill = vi.fn((signal?: NodeJS.Signals | number) => {
