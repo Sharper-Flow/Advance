@@ -17,6 +17,7 @@ import { Client, Connection } from "@temporalio/client";
 import { getTemporalAddress, getTemporalNamespace } from "./client";
 import { ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES } from "./observability";
 import { appendDebugLog, createLogger } from "../utils/debug-log";
+import { getTemporalOpTelemetry } from "./retry-wrapper";
 
 const debugLog = (msg: string): void => appendDebugLog("stsl", msg);
 const logger = createLogger("stsl");
@@ -113,6 +114,8 @@ export interface StslStats {
    * close() failures are swallowed and do NOT count.
    */
   reconnectFailureCount: number;
+  /** Per-operation telemetry from retry-wrapper (KD-3). */
+  opTelemetry: import("./retry-wrapper").OpTelemetry[];
 }
 
 /**
@@ -212,6 +215,7 @@ export function getStslStats(): StslStats {
       newConnectionCount > 0 ? getServiceCallCount / newConnectionCount : 0,
     reconnectCount,
     reconnectFailureCount,
+    opTelemetry: getTemporalOpTelemetry(),
   };
 }
 

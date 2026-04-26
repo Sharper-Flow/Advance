@@ -1,6 +1,10 @@
 import { getTemporalAddress } from "./client";
 import { getService, getStslStats } from "./service";
-import { getTemporalRetryTelemetry } from "./retry-wrapper";
+import {
+  getTemporalRetryTelemetry,
+  getTemporalOpTelemetry,
+  type OpTelemetry,
+} from "./retry-wrapper";
 import {
   type FallbackCounts,
   getTemporalFallbackTelemetry,
@@ -55,6 +59,8 @@ export interface TemporalHealth {
    * an intermediate proxy is dropping the gRPC channel.
    */
   reconnect_count: number;
+  /** Per-op telemetry counters (top-N most active ops, KD-3). */
+  op_counters: OpTelemetry[];
 }
 
 let overrideTelemetry: {
@@ -158,6 +164,11 @@ export async function getTemporalHealth(
     }
   }
 
+  const ops = getTemporalOpTelemetry();
+  const opCounters = ops
+    .sort((a, b) => b.successCount + b.failureCount - (a.successCount + a.failureCount))
+    .slice(0, 10);
+
   return {
     server_alive,
     worker_alive: registered_queues.length > 0,
@@ -168,5 +179,6 @@ export async function getTemporalHealth(
     fallback_counts: getTemporalFallbackTelemetry(),
     stale_queues,
     reconnect_count: getStslStats().reconnectCount,
+    op_counters: opCounters,
   };
 }

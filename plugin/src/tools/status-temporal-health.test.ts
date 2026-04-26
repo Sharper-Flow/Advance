@@ -20,6 +20,7 @@ const mocks = vi.hoisted(() => ({
     fallback_counts: getTemporalFallbackTelemetry(),
     stale_queues: [],
     reconnect_count: 0,
+    op_counters: [],
   })),
   createTemporalClientBundle: vi.fn(async () => ({
     connection: { close: vi.fn(async () => {}) },
@@ -94,9 +95,10 @@ describe("adv_status temporal health/migration status (C4)", () => {
       registered_queues: ["advance-proj123"],
       last_op_at: "2026-04-21T00:00:00.000Z",
       last_error: null,
-      fallback_counts: getTemporalFallbackTelemetry(),
+      fallback_counts: { changes: 0, tasks: 0, wisdom: 0, gates: 0 },
       stale_queues: [],
       reconnect_count: 0,
+      op_counters: [],
     });
   });
 
@@ -163,5 +165,13 @@ describe("adv_status temporal health/migration status (C4)", () => {
     expect(parsed.recommendations).toEqual(
       expect.arrayContaining([expect.stringContaining("Stale Temporal queue")]),
     );
+  });
+
+  it("surfaces per-op counters in temporal_health (KD-3)", async () => {
+    const result = await statusTools.adv_status.execute({}, store);
+    const parsed = parseToolOutput(result);
+
+    expect(parsed.temporal_health).toHaveProperty("op_counters");
+    expect(Array.isArray(parsed.temporal_health.op_counters)).toBe(true);
   });
 });
