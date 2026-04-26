@@ -55,11 +55,41 @@ If `--dry-run` → emit DRY RUN COMPLETE → stop.
 
 ---
 
-## Phase 5: User Signoff
+## Phase 5: User Signoff (Inline — Tier B)
 
-Ask via `question`: "Archive '{change-id}' and apply to specs?" Options: Sign off and archive (Recommended), Dry run first, Cancel.
+Present the change report inline (per `.opencode/agents/adv.md` § Sign-Off Boundary), followed by the **Inline Approval prompt (Tier B)** per `docs/command-voice-standard.md` § Inline Approval Voice. Archive is irreversible — Tier B uses whitelist-only with no LLM fallback, plus a confirmation echo before destructive action.
 
-If approved → `adv_gate_complete changeId: {id} gateId: release` → proceed.
+After the change report:
+
+```
+---
+**{change-id}** · acceptance ✓ → release
+
+Reply `sign off` (or `signoff`, `approve`, `confirm`, `yes`, `proceed`, `ship it`) to archive,
+or `dry run` to preview the archive without applying spec deltas,
+or `cancel` / `stop` / `abort` to halt.
+```
+
+**Reply parsing (Tier B — strict, no LLM fallback):**
+
+| Reply (exact match, case-insensitive, trimmed) | Action |
+|---|---|
+| `sign off` / `signoff` / `approve` / `confirm` / `yes` / `proceed` / `ship it` | Emit confirmation echo, wait one turn, then proceed |
+| `dry run` / `dryrun` | Run `adv_change_archive dryRun: true`, present results, re-prompt with same options |
+| `cancel` / `stop` / `abort` | Halt |
+| Anything else | Re-prompt with the same options. **× Do NOT** invoke LLM fallback. **× Do NOT** advance |
+
+**Anchor phrase:** `Reply `sign off``
+
+**Confirmation echo** (after whitelist match, before destructive action):
+
+```
+Confirmed. Archiving `{change-id}` now. Reply `stop` or `abort` within the next message to abort.
+```
+
+Wait one user-turn. If next reply is `stop` / `abort` (case-insensitive, trimmed), halt and unwind. Otherwise: `adv_gate_complete gateId: 'release'` → proceed to Phase 6.
+
+**× Do NOT** use the `question` tool for archive sign-off. The inline pattern is canonical per `rq-inlineApproval01.3` (Tier B whitelist-only).
 
 ---
 
