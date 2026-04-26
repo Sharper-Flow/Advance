@@ -11,6 +11,7 @@ import {
   ChangeStatusSchema,
   ChangeClosureSchema,
   CrossProjectOriginSchema,
+  FastFollowOfSchema,
   GATE_DEFS,
   GateIdSchema,
   GATE_ORDER,
@@ -602,6 +603,55 @@ describe("ChangeSchema", () => {
       CrossProjectOriginSchema.parse({
         source_project: "test",
         linked_at: "2026-01-01T01:00:00Z",
+      }),
+    ).toThrow();
+  });
+
+  test("parses change with fast_follow_of", () => {
+    const fastFollowChange = {
+      id: "addWebhookHandler",
+      title: "Add webhook handler",
+      status: "draft",
+      created_at: "2026-01-01T00:00:00Z",
+      tasks: [],
+      deltas: {},
+      fast_follow_of: {
+        parent_change_id: "addApiEndpoint",
+        linked_at: "2026-01-01T01:00:00Z",
+      },
+    };
+
+    const result = ChangeSchema.parse(fastFollowChange);
+    expect(result.fast_follow_of).toBeDefined();
+    expect(result.fast_follow_of?.parent_change_id).toBe("addApiEndpoint");
+    expect(result.fast_follow_of?.linked_at).toBe("2026-01-01T01:00:00Z");
+  });
+
+  test("accepts change without fast_follow_of (backwards compatible)", () => {
+    const localChange = {
+      id: "testChange",
+      title: "Test Change",
+      status: "draft",
+      created_at: "2026-01-01T00:00:00Z",
+      tasks: [],
+      deltas: {},
+    };
+    const result = ChangeSchema.parse(localChange);
+    expect(result.fast_follow_of).toBeUndefined();
+  });
+
+  test("fast_follow_of parent_change_id is required", () => {
+    expect(() =>
+      FastFollowOfSchema.parse({
+        linked_at: "2026-01-01T01:00:00Z",
+      }),
+    ).toThrow();
+  });
+
+  test("fast_follow_of linked_at is required", () => {
+    expect(() =>
+      FastFollowOfSchema.parse({
+        parent_change_id: "addApiEndpoint",
       }),
     ).toThrow();
   });

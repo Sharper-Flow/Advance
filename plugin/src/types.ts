@@ -1006,14 +1006,19 @@ export const CrossProjectOriginSchema = z.object({
 
 export type CrossProjectOrigin = z.infer<typeof CrossProjectOriginSchema>;
 
+// =============================================================================
+// Fast Follow (Same-Project Follow-up Lineage)
+// =============================================================================
+
 /**
- * Same-project lineage metadata for fast-follow changes.
- * Set when a change is split from a parent change in the same project.
+ * Provenance metadata for changes created as a fast-follow within the same
+ * project. Set when a child change is created with `parent_change_id` to
+ * establish same-project lineage.
  */
 export const FastFollowOfSchema = z.object({
-  /** Parent change ID that this fast-follow was split from */
+  /** Change ID of the parent change in the current project */
   parent_change_id: z.string(),
-  /** ISO8601 timestamp when the same-project link was established */
+  /** ISO8601 timestamp when the fast-follow link was established */
   linked_at: z.string(),
 });
 
@@ -1062,9 +1067,9 @@ export const ChangeSchema = z
      */
     cross_project_origin: CrossProjectOriginSchema.optional(),
     /**
-     * Same-project fast-follow provenance — set when this change was split
-     * from another change in the same project. Presence signals lineage
-     * validation and same-project parent surfacing.
+     * Same-project fast-follow lineage — set when this change was created
+     * as a follow-up to another change within the same project. Presence
+     * signals to /adv-discover that lineage validation is required.
      */
     fast_follow_of: FastFollowOfSchema.optional(),
     /**
