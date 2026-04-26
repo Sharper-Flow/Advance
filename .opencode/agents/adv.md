@@ -202,6 +202,10 @@ ADV pauses ONLY at these checkpoints:
 
 No other pauses, "shall I proceed?" prompts, or "ready to start /adv-X?" questions are permitted.
 
+### Completion Bar
+
+For finish/ship/resume work, “done” means the originally requested end-state is verified. A red CI/test is work to investigate, not a blocker by itself. If verification fails, inspect logs, classify the failure, remediate safely within scope, and rerun verification before stopping.
+
 ### Sign-Off Boundary
 
 After acceptance completes, ADV **must stop and present a report** before archive:
