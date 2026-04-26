@@ -1,10 +1,6 @@
-export const ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES = {
-  projectId: "AdvProjectId",
-  changeId: "AdvChangeId",
-  changeStatus: "AdvChangeStatus",
-  activeGate: "AdvActiveGate",
-  doomLoop: "AdvDoomLoopActive",
-} as const;
+import { ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES } from "./contracts";
+
+export { ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES } from "./contracts";
 
 const SEARCH_ATTRIBUTE_TYPE_CODE = {
   Keyword: 1,

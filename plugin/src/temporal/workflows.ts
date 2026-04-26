@@ -1,7 +1,9 @@
 import * as wf from "@temporalio/workflow";
 import {
+  ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES,
   CHANGE_WORKFLOW_UPDATE_NAMES,
   CHANGE_WORKFLOW_QUERY_NAMES,
+  resolveHistoryThresholds,
   type ChangeWorkflowState,
   type ChangeWorkflowBootstrapState,
   type ChangeWorkflowInput,
@@ -13,8 +15,6 @@ import {
   type ProjectWorkflowState,
   type ProjectWisdomEntry,
 } from "./contracts";
-import { ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES } from "./observability";
-import { resolveHistoryThresholds } from "./contracts";
 import {
   addChangeWisdom,
   addTaskToChangeState,

@@ -7,6 +7,14 @@ export const DEFAULT_TEMPORAL_NAMESPACE = "default";
 export const CHANGE_WORKFLOW_NAME = "changeWorkflow";
 export const PROJECT_WORKFLOW_NAME = "projectWorkflow";
 
+export const ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES = {
+  projectId: "AdvProjectId",
+  changeId: "AdvChangeId",
+  changeStatus: "AdvChangeStatus",
+  activeGate: "AdvActiveGate",
+  doomLoop: "AdvDoomLoopActive",
+} as const;
+
 export const CHANGE_WORKFLOW_QUERY_NAMES = {
   bootstrap: "adv.change.bootstrap",
   state: "adv.change.state",

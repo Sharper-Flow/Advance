@@ -43,6 +43,20 @@ describe("workflows module (workflow-safe invariant)", () => {
     expect(flat).toMatch(/from "\.\/project-state";/);
   });
 
+  it("direct imports use the exact workflow-safe allowlist", () => {
+    const importSources = Array.from(
+      source.matchAll(/^\s*import(?:\s+type)?[\s\S]*?\sfrom\s"([^"]+)";/gm),
+      (match) => match[1],
+    );
+
+    expect(importSources).toEqual([
+      "@temporalio/workflow",
+      "./contracts",
+      "./change-state",
+      "./project-state",
+    ]);
+  });
+
   it("does not directly import node:* modules", () => {
     // Any `from "node:..."` would pull Node built-ins into the workflow
     // bundle and break replay determinism / webpack bundling.
