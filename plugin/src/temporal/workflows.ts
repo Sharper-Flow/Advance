@@ -678,10 +678,14 @@ export async function changeWorkflow(
  * continue-as-new to keep history size bounded.
  */
 function shouldContinueAsNew(threshold: number): boolean {
-  const info = wf.workflowInfo();
-  const historyLength = (info as wf.WorkflowInfo & { historyLength?: number })
-    .historyLength;
-  return historyLength !== undefined && historyLength >= threshold;
+  const info = wf.workflowInfo() as wf.WorkflowInfo & {
+    continueAsNewSuggested?: unknown;
+    historyLength?: unknown;
+  };
+  if (info.continueAsNewSuggested === true) return true;
+  return (
+    typeof info.historyLength === "number" && info.historyLength >= threshold
+  );
 }
 
 export async function projectWorkflow(

@@ -10,9 +10,16 @@ import {
   addAgendaItemUpdate,
   updateAgendaItemUpdate,
   addProjectWisdomUpdate,
+  recordTaskEvidenceUpdate,
+  recordMigrationEntryUpdate,
 } from "../messages";
 import { createDefaultGates } from "../../types";
-import type { ChangeWorkflowInput, ProjectWorkflowInput } from "../contracts";
+import type {
+  ChangeWorkflowInput,
+  ProjectWorkflowInput,
+  MigrationLedgerEntry,
+} from "../contracts";
+import { requiredAdvSearchAttributes } from "../observability";
 
 const workflowsPath = fileURLToPath(
   new URL("../workflows.ts", import.meta.url),
@@ -21,16 +28,14 @@ const workflowsPath = fileURLToPath(
 async function registerAdvSearchAttributes(
   env: TestWorkflowEnvironment,
 ): Promise<void> {
+  const searchAttributes: Record<string, number> = {};
+  for (const attr of requiredAdvSearchAttributes()) {
+    searchAttributes[attr.name] = attr.typeCode;
+  }
   try {
     await env.connection.operatorService.addSearchAttributes({
       namespace: env.namespace ?? "default",
-      searchAttributes: {
-        AdvProjectId: 1, // KEYWORD
-        AdvChangeId: 1, // KEYWORD
-        AdvChangeStatus: 1, // KEYWORD
-        AdvActiveGate: 1, // KEYWORD
-        AdvDoomLoopActive: 4, // BOOL
-      },
+      searchAttributes,
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
@@ -90,6 +95,20 @@ describe("replay determinism", () => {
               newTask.id,
               {
                 status: "in_progress",
+              },
+            ],
+          });
+
+          await handle.executeUpdate(recordTaskEvidenceUpdate, {
+            args: [
+              newTask.id,
+              "green",
+              {
+                test_file: "src/temporal/service.test.ts",
+                command: "pnpm test -- src/temporal/service.test.ts",
+                output_snippet: "PASS src/temporal/service.test.ts",
+                exit_code: 0,
+                recorded_at: new Date().toISOString(),
               },
             ],
           });
@@ -165,6 +184,17 @@ describe("replay determinism", () => {
                   "Use wf.condition with deterministic predicates for continue-as-new",
               },
             ],
+          });
+
+          const migrationEntry: MigrationLedgerEntry = {
+            key: "temporal-native-reliability",
+            source: "temporal",
+            status: "done",
+            recordedAt: new Date().toISOString(),
+            detail: "Migrated to native Temporal connection with retry wrapper",
+          };
+          await handle.executeUpdate(recordMigrationEntryUpdate, {
+            args: [migrationEntry],
           });
 
           // Fetch history and verify replay

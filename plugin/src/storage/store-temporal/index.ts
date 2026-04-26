@@ -390,11 +390,6 @@ export function createTemporalStoreBackend(
   };
 
   /**
-   * List all resolved changes. Uses the Memo for summary surfaces
-   * (status, changes.list). Falls back to direct O(N) query only when
-   * the Memo is empty (cold start) or individual entries are missing.
-   */
-  /**
    * Resolve all change records currently visible to this project.
    *
    * Two design constraints, learned the hard way:

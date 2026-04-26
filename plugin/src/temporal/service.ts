@@ -15,9 +15,13 @@
 
 import { Client, Connection } from "@temporalio/client";
 import { getTemporalAddress, getTemporalNamespace } from "./client";
-import { ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES } from "./observability";
+import { registerMissingAdvSearchAttributes } from "./observability";
 import { appendDebugLog, createLogger } from "../utils/debug-log";
 import { getTemporalOpTelemetry } from "./retry-wrapper";
+
+function formatErrorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
 
 const debugLog = (msg: string): void => appendDebugLog("stsl", msg);
 const logger = createLogger("stsl");
@@ -31,57 +35,51 @@ const logger = createLogger("stsl");
  * the downstream Visibility API queries will fail until operators run
  * `temporal operator search-attribute create` manually.
  *
- * The attribute types are intentional:
- *   - AdvProjectId, AdvChangeId, AdvChangeStatus, AdvActiveGate: Keyword
- *     (exact-match + low-cardinality, supports `=` / `IN` filters).
- *   - AdvDoomLoopActive: Bool (flag).
+ * Delegates to `registerMissingAdvSearchAttributes` in `./observability`
+ * so the attribute definitions live in a single place.
  */
 async function registerAdvSearchAttributes(
   connection: Connection,
   namespace: string,
 ): Promise<void> {
-  const svc = (
-    connection as unknown as {
-      operatorService?: {
-        addSearchAttributes?: (req: {
-          namespace: string;
-          searchAttributes: Record<string, number>;
-        }) => Promise<unknown>;
-      };
-    }
-  ).operatorService;
-  if (!svc || typeof svc.addSearchAttributes !== "function") {
+  const result = await registerMissingAdvSearchAttributes(
+    connection,
+    namespace,
+  );
+  if (result.created.length > 0) {
     logger.debug(
-      "OperatorService.addSearchAttributes unavailable — skipping search-attribute registration",
+      `Registered ADV search attributes: ${result.created.map((a) => a.name).join(", ")}`,
     );
-    return;
   }
-  // IndexedValueType enum — hard-coded numeric codes from the Temporal
-  // API proto so we don't need a proto import just for this: Keyword=1,
-  // Bool=4. Matches server-side validation.
-  const KEYWORD = 1;
-  const BOOL = 4;
-  const searchAttributes: Record<string, number> = {
-    [ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES.projectId]: KEYWORD,
-    [ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES.changeId]: KEYWORD,
-    [ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES.changeStatus]: KEYWORD,
-    [ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES.activeGate]: KEYWORD,
-    [ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES.doomLoop]: BOOL,
-  };
-  try {
-    await svc.addSearchAttributes({ namespace, searchAttributes });
-    logger.debug("Registered ADV search attributes");
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    if (/already\s*exists|ALREADY_EXISTS/i.test(msg)) {
-      logger.debug(
-        `ADV search attributes already registered (idempotent no-op): ${msg}`,
-      );
-      return;
-    }
-    logger.warn(
-      `Failed to register ADV search attributes (Visibility queries may fail): ${msg}`,
+  if (result.skipped.length > 0) {
+    logger.debug(
+      `ADV search attributes already registered: ${result.skipped.map((a) => a.name).join(", ")}`,
     );
+  }
+  if (result.refused.length > 0) {
+    logger.warn(
+      `ADV search attributes refused (wrong type): ${result.refused
+        .map((a) => `${a.name} (expected ${a.expected}, got ${a.actualCode})`)
+        .join(", ")}`,
+    );
+  }
+  if (result.error) {
+    const isAlreadyExists = /already\s*exists|ALREADY_EXISTS/i.test(
+      result.error,
+    );
+    if (isAlreadyExists) {
+      logger.debug(
+        `ADV search attributes already registered (idempotent no-op): ${result.error}`,
+      );
+    } else if (result.method === "unavailable") {
+      logger.debug(
+        `OperatorService.addSearchAttributes unavailable — skipping search-attribute registration: ${result.error}`,
+      );
+    } else {
+      logger.warn(
+        `Failed to register ADV search attributes (Visibility queries may fail): ${result.error}`,
+      );
+    }
   }
 }
 
@@ -189,7 +187,7 @@ export async function closeStsl(): Promise<void> {
   try {
     await cachedBundle.connection.close();
   } catch (e) {
-    debugLog(`closeStsl: connection.close error: ${e}`);
+    debugLog(`closeStsl: connection.close error: ${formatErrorMessage(e)}`);
   }
   cachedBundle = null;
   debugLog(`closeStsl: complete`);
@@ -257,7 +255,9 @@ export async function reinitStsl(): Promise<void> {
       try {
         await bundle.connection.close();
       } catch (e) {
-        debugLog(`reinitStsl: close error (continuing): ${e}`);
+        debugLog(
+          `reinitStsl: close error (continuing): ${formatErrorMessage(e)}`,
+        );
       }
       const newConnection = await Connection.connect({
         address: bundle.address,
@@ -274,7 +274,7 @@ export async function reinitStsl(): Promise<void> {
       debugLog(`reinitStsl: success (${bundle.address}/${bundle.namespace})`);
     } catch (err) {
       reconnectFailureCount++;
-      debugLog(`reinitStsl: failed: ${err}`);
+      debugLog(`reinitStsl: failed: ${formatErrorMessage(err)}`);
       throw err;
     }
   })();

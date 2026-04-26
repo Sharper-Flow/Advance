@@ -116,8 +116,8 @@ export async function checkAdvSearchAttributes(
   namespace: string,
 ): Promise<AdvSearchAttributeCheckResult> {
   const required = requiredAdvSearchAttributes();
-  const getSearchAttributes = connection.operatorService?.getSearchAttributes;
-  if (!getSearchAttributes) {
+  const operatorService = connection.operatorService;
+  if (!operatorService?.getSearchAttributes) {
     return {
       ok: false,
       present: [],
@@ -128,7 +128,9 @@ export async function checkAdvSearchAttributes(
   }
 
   try {
-    const response = await getSearchAttributes({ namespace });
+    // Temporal's generated operator service methods rely on `this.rpcCall`.
+    // Call through the service object instead of destructuring the method.
+    const response = await operatorService.getSearchAttributes({ namespace });
     const customAttributes = extractCustomAttributes(response) ?? {};
     const present: RequiredAdvSearchAttribute[] = [];
     const missing: RequiredAdvSearchAttribute[] = [];
@@ -174,7 +176,7 @@ export async function registerMissingAdvSearchAttributes(
   namespace: string,
 ): Promise<AdvSearchAttributeRegistrationResult> {
   const check = await checkAdvSearchAttributes(connection, namespace);
-  const addSearchAttributes = connection.operatorService?.addSearchAttributes;
+  const operatorService = connection.operatorService;
 
   if (check.wrongType.length > 0) {
     return {
@@ -190,7 +192,7 @@ export async function registerMissingAdvSearchAttributes(
   if (check.missing.length === 0) {
     return {
       ok: check.ok,
-      method: addSearchAttributes
+      method: operatorService?.addSearchAttributes
         ? "operatorService.addSearchAttributes"
         : "unavailable",
       created: [],
@@ -200,7 +202,7 @@ export async function registerMissingAdvSearchAttributes(
     };
   }
 
-  if (!addSearchAttributes) {
+  if (!operatorService?.addSearchAttributes) {
     return {
       ok: false,
       method: "unavailable",
@@ -216,7 +218,9 @@ export async function registerMissingAdvSearchAttributes(
   );
 
   try {
-    await addSearchAttributes({ namespace, searchAttributes });
+    // Temporal's generated operator service methods rely on `this.rpcCall`.
+    // Call through the service object instead of destructuring the method.
+    await operatorService.addSearchAttributes({ namespace, searchAttributes });
     return {
       ok: true,
       method: "operatorService.addSearchAttributes",
