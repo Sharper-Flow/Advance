@@ -365,7 +365,8 @@ temporal workflow count --query 'ExecutionStatus="Running"'
 - **`bb2d901`** (2026-04-20) — introduced the dogfood migration tool `plugin/scripts/dogfood-migration.ts`, which bulk-enqueued `changeWorkflow` executions on per-project queues without ensuring a poller for every queue.
 - **`24bf177`** (2026-04-22) — deleted the migration infrastructure, including the limited termination script `adv-migration-terminate.ts`. The deletion left already-enqueued workflows orphaned.
 - **2026-04-23 incident** — 5,447 `Running` workflows discovered across 21 queues with zero pollers, blocking `adv_*` tools in affected repos.
-- **`preventRecoverOrphanedTemporal`** (this change) — added this runbook section, a prevention policy, and an `adv_status` guardrail that surfaces stale queues automatically.
+- **`preventRecoverOrphanedTemporal`** — added the original orphaned-workflow prevention policy and `adv_status` stale-queue guardrail.
+- **`improveAdvPostCrashTemporal`** (this change) — added diagnose-first recovery, search-attribute remediation, STSL reconnect guidance, repair/orphan-sweep sequencing, and the external restart boundary.
 
 ## Disk-full / OOM surfaces
 
@@ -463,12 +464,9 @@ The hybrid worker model exists because earlier wiring of the Temporal swap into 
 
 ### Cross-references
 
-| Where                                                                           | Pointer                                                                                                  |
-| ------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| Public bug                                                                      | [Sharper-Flow/Advance#5](https://github.com/Sharper-Flow/Advance/issues/5)                               |
-| Trunk merge commit                                                              | `e8e332c` (`Merge branch 'change/fixTemporalWorkerBundleFailure' into trunk`)                            |
-| Archive                                                                         | `~/.local/share/opencode/plugins/advance/<projectId>/archive/2026-04-21-fixTemporalWorkerBundleFailure/` |
-| Project-level wisdom — root cause                                               | `pw-MfGaoxPY` (gotcha)                                                                                   |
-| Project-level wisdom — fix record                                               | `pw-jcccyH8a` (success)                                                                                  |
-| Project-level wisdom — resume preconditions for `migrateAdvStateTemporalRetire` | `pw-FPJlvon7` (pattern)                                                                                  |
-| Related earlier wisdom (worker-thread per-project queue routing)                | `ws-lRl054` on `migrateAdvStateTemporalRetire` (now structurally resolved)                               |
+| Where              | Pointer                                                                                                  |
+| ------------------ | -------------------------------------------------------------------------------------------------------- |
+| Public bug         | [Sharper-Flow/Advance#5](https://github.com/Sharper-Flow/Advance/issues/5)                               |
+| Trunk merge commit | `e8e332c` (`Merge branch 'change/fixTemporalWorkerBundleFailure' into trunk`)                            |
+| Archive            | `~/.local/share/opencode/plugins/advance/<projectId>/archive/2026-04-21-fixTemporalWorkerBundleFailure/` |
+| Related changes    | `fixTemporalWorkerBundleFailure`, `migrateAdvStateTemporalRetire`, `preventRecoverOrphanedTemporal`      |

@@ -15,9 +15,8 @@ import { registerMissingAdvSearchAttributes } from "../temporal/observability";
 import { formatToolOutput } from "../utils/tool-output";
 
 // P2.6: WorkflowClientLike / asWorkflowClientSurface / asProjectWorkflowHandle
-// were inlined into the tool body before the activity refactor. They're
-// preserved as no-op re-exports so tests that import them keep compiling
-// during the migration window.
+// are preserved as no-op re-exports during the repair-activity migration
+// window. New repair logic should use `repairChangeActivity` instead.
 interface WorkflowHandleLike {
   query: (definition: unknown, ...args: unknown[]) => Promise<unknown>;
   executeUpdate: (
@@ -41,12 +40,20 @@ type ProjectWorkflowHandle = {
   query: (queryDef: unknown, ...args: unknown[]) => Promise<unknown>;
 };
 
+/**
+ * @deprecated Compatibility shim for tests and migration-era callers. New
+ * repair code should pass the Temporal client into `repairChangeActivity`.
+ */
 export function asWorkflowClientSurface(
   client: unknown,
 ): WorkflowClientSurface {
   return client as WorkflowClientSurface;
 }
 
+/**
+ * @deprecated Compatibility shim for tests and migration-era callers. New
+ * repair code should use project workflow handles inside the activity layer.
+ */
 export function asProjectWorkflowHandle(
   handle: unknown,
 ): ProjectWorkflowHandle {
@@ -57,6 +64,11 @@ type WorkflowReachability =
   | { reachable: true; error?: undefined }
   | { reachable: false; error: string };
 
+/**
+ * Checks whether Temporal can describe a workflow ID through the current STSL
+ * connection. Returns a structured unreachable result instead of throwing so
+ * `adv_temporal_diagnose` can report recovery guidance without crashing.
+ */
 async function describeWorkflowReachability(
   bundle: ReturnType<typeof getService>,
   workflowId: string,
@@ -93,6 +105,11 @@ async function describeWorkflowReachability(
   }
 }
 
+/**
+ * Orders recovery recommendations from root-cause prerequisites to narrower
+ * workflow repairs. The returned string is operator-facing guidance surfaced by
+ * `adv_temporal_diagnose`.
+ */
 function recommendTemporalRecovery(input: {
   health: Awaited<ReturnType<typeof getTemporalHealth>>;
   stslInitialized: boolean;
@@ -419,11 +436,11 @@ export const temporalOpsTools = {
         });
       }
 
-      // P2.6: All disk + workflow logic moved into `repairChangeActivity`
-      // (see `temporal/activities.ts`). Tool body is just argument
-      // validation + activity invocation. Critically, the activity does NOT
-      // close `bundle.connection` — the service-layer singleton owns that
-      // lifecycle (was the poison-pill of the pre-4aa420e bug).
+      // P2.6: Disk + workflow repair logic lives in `repairChangeActivity`
+      // (see `temporal/activities.ts`). The tool body validates args,
+      // refreshes STSL, and invokes the activity. Critically, the activity
+      // does NOT close `bundle.connection` — the service-layer singleton owns
+      // that lifecycle (was the poison-pill of the pre-4aa420e bug).
       const result = await repairChangeActivity({
         projectId,
         changeId: args.changeId,

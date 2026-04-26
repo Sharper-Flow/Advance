@@ -224,20 +224,6 @@ export type CrossRepoArtifactResult =
   | { ok: false; error: string; content?: undefined; path?: undefined };
 
 /**
- * Cross-repo file I/O activity (per design.md KD-4).
- *
- * Validation rules:
- *   - target_path must exist and be a directory
- *   - target_path must contain a `.git` entry (file or dir, both valid for
- *     git worktrees and submodules)
- *   - relative_path must not be absolute and must not escape target_path
- *     after path normalization
- *   - For writes, content is required
- *
- * Failures return structured `{ ok: false, error }` — never throw. The
- * workflow caller decides retry vs surface.
- */
-/**
  * Standalone validation that a `target_path` is suitable for cross-repo
  * I/O. Used both by `crossRepoArtifactActivity` (before file operations)
  * and by upstream tools (e.g. `adv_change_create` cross-project flow) to
@@ -279,6 +265,20 @@ export async function validateCrossRepoTarget(
   return { ok: true };
 }
 
+/**
+ * Cross-repo file I/O activity (per design.md KD-4).
+ *
+ * Validation rules:
+ *   - target_path must exist and be a directory
+ *   - target_path must contain a `.git` entry (file or dir, both valid for
+ *     git worktrees and submodules)
+ *   - relative_path must not be absolute and must not escape target_path
+ *     after path normalization
+ *   - For writes, content is required
+ *
+ * Failures return structured `{ ok: false, error }` — never throw. The
+ * workflow caller decides retry vs surface.
+ */
 export async function crossRepoArtifactActivity(
   input: CrossRepoArtifactInput,
 ): Promise<CrossRepoArtifactResult> {
