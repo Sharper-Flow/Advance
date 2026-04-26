@@ -267,19 +267,34 @@ Generate a compact vision banner (<30 lines) and present it **in chat only** (no
 ╚══════════════════════════════════════════════════════════════════╝
 ```
 
-### 5.2 User Approval Gate
+### 5.2 User Approval Gate (Inline)
 
-Present the vision document and ask for explicit approval via `question` tool:
+Present the vision document banner inline, then emit the **Inline Approval prompt (Tier A)** per `docs/command-voice-standard.md` § Inline Approval Voice. The prep gate is the last human checkpoint before autonomous execution.
 
-- **Approve and continue** — user confirms the plan is ready for autonomous implementation; agent immediately proceeds inline to `/adv-apply` without asking for a second confirmation
-- **Request changes** — user wants modifications before approving (loop back to gap analysis)
-- **Cancel** — user wants to abandon prep
+After the vision banner:
 
-If **Request changes**: collect feedback → loop back to Phase 4 (re-analyze gaps) → regenerate vision → re-ask.
+```
+Reply `approve` (or `continue`, `go`, `yes`, `ok`, `proceed`, `lgtm`) to approve the plan and proceed inline to /adv-apply,
+or run `/adv-apply {change-id}`.
+Want changes? Reply with what to adjust (loops back to gap analysis).
+Want to abandon prep? Reply `cancel` or `stop`.
+```
 
-If **Cancel**: stop immediately, do not complete prep gate.
+**Reply parsing (Tier A):**
 
-**× MUST NOT proceed past Phase 5 without explicit user approval.** Invocation is NOT implicit approval — the prep gate is the last human checkpoint before autonomous execution.
+| Reply | Action |
+|---|---|
+| Tier A whitelist match | Call `adv_gate_complete gateId: 'planning' userApproved: true`, then begin `/adv-apply` inline |
+| `/adv-apply {change-id}` | No-op; OpenCode dispatches. **The user must reply with a whitelist word in the dispatched session for `userApproved: true` to be set** |
+| Free-form text | Treat as revision request; collect feedback → loop back to Phase 4 (re-analyze gaps) → regenerate vision → re-prompt |
+| `cancel` / `stop` | Halt; do not complete prep gate |
+| Ambiguous | LLM judgment classifies into approve / revise / redirect / stop / unclear |
+
+**Anchor phrase:** `Reply `approve``
+
+**Machine contract (CRITICAL):** when the user replies with a Tier A whitelist word (or LLM classifies as `approve`), the agent MUST pass `userApproved: true` to `adv_gate_complete gateId: 'planning'`. The machine contract enforced by `handlePlanningGateCompletion` is independent of the UX surface — inline approval is the upstream signal source.
+
+**× MUST NOT proceed past Phase 5 without an explicit user reply matching the Tier A whitelist or LLM-classified `approve`.** Invocation is NOT implicit approval. The prep gate is the last human checkpoint before autonomous execution.
 
 ---
 
