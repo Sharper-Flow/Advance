@@ -392,7 +392,35 @@ export type RepairChangeResult =
       changeId: string;
       message: string;
     }
-  | { ok: false; error: string };
+  | {
+      ok: false;
+      error: string;
+      phase:
+        | "load-change"
+        | "load-derived-state"
+        | "terminate-project"
+        | "rebuild-project"
+        | "reimport-change"
+        | "query-derived-exports"
+        | "write-derived-exports";
+      projectRebuilt: boolean;
+      changeReimported: boolean;
+    };
+
+function repairFailure(input: {
+  phase: Exclude<RepairChangeResult, { ok: true }>["phase"];
+  error: unknown;
+  projectRebuilt?: boolean;
+  changeReimported?: boolean;
+}): Exclude<RepairChangeResult, { ok: true }> {
+  return {
+    ok: false,
+    phase: input.phase,
+    error: input.error instanceof Error ? input.error.message : String(input.error),
+    projectRebuilt: input.projectRebuilt ?? false,
+    changeReimported: input.changeReimported ?? false,
+  };
+}
 
 /**
  * Rebuild the project workflow from disk snapshots and re-import a single
@@ -412,77 +440,117 @@ export async function repairChangeActivity(
 
   const changeResult = await loadChange(paths.changes, changeId);
   if (!changeResult.success) {
-    return { ok: false, error: changeResult.error };
+    return repairFailure({ phase: "load-change", error: changeResult.error });
   }
   if (!changeResult.data) {
-    return {
-      ok: false,
+    return repairFailure({
+      phase: "load-change",
       error: `No legacy change snapshot found for ${changeId}`,
-    };
+    });
   }
 
-  const agendaResult = await loadAgenda(paths.root, {
-    agendaPath: paths.agenda,
-  });
-  const projectWisdom = await listProjectWisdom(paths.root, {
-    wisdomPath: paths.wisdom,
-  });
+  let agendaResult: Awaited<ReturnType<typeof loadAgenda>>;
+  let projectWisdom: Awaited<ReturnType<typeof listProjectWisdom>>;
+  try {
+    agendaResult = await loadAgenda(paths.root, {
+      agendaPath: paths.agenda,
+    });
+    projectWisdom = await listProjectWisdom(paths.root, {
+      wisdomPath: paths.wisdom,
+    });
+  } catch (err) {
+    return repairFailure({ phase: "load-derived-state", error: err });
+  }
 
   const projectHandle = client.workflow.getHandle(
     buildProjectWorkflowId(projectId),
   );
-  await projectHandle
-    .terminate(
+  try {
+    await projectHandle.terminate(
       `repairChangeActivity: rebuild project workflow from legacy snapshot (${input.approvalEvidence.trim()})`,
-    )
-    .catch(() => undefined);
+    );
+  } catch {
+    // Missing/terminated project workflows are acceptable; rebuild below is authoritative.
+  }
 
-  await rebuildProjectWorkflowState(client, {
-    projectId,
-    initializedAt: new Date().toISOString(),
-    agenda: agendaResult.items,
-    projectWisdom: projectWisdom.map((entry) => ({
-      id: entry.id,
-      type: entry.type,
-      content: entry.content,
-      sourceChange: entry.source_change,
-      sourceTask: entry.source_task,
-      promotedAt: entry.promoted_at,
-      tags: entry.tags,
-      invalidatedBy: entry.invalidated_by,
-    })),
-    migrationLedger: [],
-  });
+  try {
+    await rebuildProjectWorkflowState(client, {
+      projectId,
+      initializedAt: new Date().toISOString(),
+      agenda: agendaResult.items,
+      projectWisdom: projectWisdom.map((entry) => ({
+        id: entry.id,
+        type: entry.type,
+        content: entry.content,
+        sourceChange: entry.source_change,
+        sourceTask: entry.source_task,
+        promotedAt: entry.promoted_at,
+        tags: entry.tags,
+        invalidatedBy: entry.invalidated_by,
+      })),
+      migrationLedger: [],
+    });
+  } catch (err) {
+    return repairFailure({ phase: "rebuild-project", error: err });
+  }
 
-  await reImportChangeState(client, {
-    projectId,
-    change: changeResult.data,
-  });
+  try {
+    await reImportChangeState(client, {
+      projectId,
+      change: changeResult.data,
+    });
+  } catch (err) {
+    return repairFailure({
+      phase: "reimport-change",
+      error: err,
+      projectRebuilt: true,
+    });
+  }
 
   const repairedHandle = client.workflow.getHandle(
     buildProjectWorkflowId(projectId),
   );
-  const agenda = z
-    .array(AgendaItemSchema)
-    .parse(await repairedHandle.query(projectAgendaQuery, undefined));
-  const wisdom = z
-    .array(RepairedProjectWisdomEntrySchema)
-    .parse(await repairedHandle.query(projectWisdomQuery, undefined));
+  let agenda: z.infer<typeof AgendaItemSchema>[];
+  let wisdom: z.infer<typeof RepairedProjectWisdomEntrySchema>[];
+  try {
+    agenda = z
+      .array(AgendaItemSchema)
+      .parse(await repairedHandle.query(projectAgendaQuery, undefined));
+    wisdom = z
+      .array(RepairedProjectWisdomEntrySchema)
+      .parse(await repairedHandle.query(projectWisdomQuery, undefined));
+  } catch (err) {
+    return repairFailure({
+      phase: "query-derived-exports",
+      error: err,
+      projectRebuilt: true,
+      changeReimported: true,
+    });
+  }
 
-  await writeJsonlAtomic(paths.agenda, agenda);
-  await writeJsonlAtomic(
-    paths.wisdom,
-    wisdom.map((entry) => ({
-      id: entry.id,
-      type: entry.type,
-      content: entry.content,
-      source_change: entry.sourceChange,
-      source_task: entry.sourceTask,
-      promoted_at: entry.promotedAt,
-      tags: entry.tags,
-      invalidated_by: entry.invalidatedBy,
-    })),
-  );
+  try {
+    await writeJsonlAtomic(paths.agenda, agenda);
+    await writeJsonlAtomic(
+      paths.wisdom,
+      wisdom.map((entry) => ({
+        id: entry.id,
+        type: entry.type,
+        content: entry.content,
+        source_change: entry.sourceChange,
+        source_task: entry.sourceTask,
+        promoted_at: entry.promotedAt,
+        tags: entry.tags,
+        invalidated_by: entry.invalidatedBy,
+      })),
+    );
+  } catch (err) {
+    return repairFailure({
+      phase: "write-derived-exports",
+      error: err,
+      projectRebuilt: true,
+      changeReimported: true,
+    });
+  }
 
   return {
     ok: true,

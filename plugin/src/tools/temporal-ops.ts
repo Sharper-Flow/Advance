@@ -325,6 +325,17 @@ export const temporalOpsTools = {
         });
       }
 
+      try {
+        await reinitStsl();
+      } catch (err) {
+        return formatToolOutput({
+          success: false,
+          phase: "reconnect-stsl",
+          error: err instanceof Error ? err.message : String(err),
+          message: "Temporal service layer reconnect failed before workflow repair",
+        });
+      }
+
       // P2.6: All disk + workflow logic moved into `repairChangeActivity`
       // (see `temporal/activities.ts`). Tool body is just argument
       // validation + activity invocation. Critically, the activity does NOT
@@ -346,7 +357,7 @@ export const temporalOpsTools = {
       });
 
       if (!result.ok) {
-        return formatToolOutput({ error: result.error });
+        return formatToolOutput({ success: false, ...result });
       }
       return formatToolOutput({
         success: true,

@@ -408,6 +408,39 @@ describe("temporal operator tools", () => {
       }),
     );
     expect(mocks.writeJsonlAtomic).toHaveBeenCalledTimes(2);
+    expect(mocks.reinitStsl).toHaveBeenCalledTimes(1);
+  });
+
+  it("adv_workflow_repair reports partial state when change re-import fails after project rebuild", async () => {
+    mocks.reImportChangeState.mockRejectedValueOnce(
+      new Error("missing search attribute AdvChangeId"),
+    );
+    const store = {
+      paths: {
+        root: "/repo",
+        external: "/home/jrede/.local/share/opencode/plugins/advance/proj123",
+        changes: "/repo/.adv/changes",
+        agenda:
+          "/home/jrede/.local/share/opencode/plugins/advance/proj123/agenda.jsonl",
+        wisdom:
+          "/home/jrede/.local/share/opencode/plugins/advance/proj123/wisdom.jsonl",
+      },
+    } as any;
+
+    const result = await temporalOpsTools.adv_workflow_repair.execute(
+      {
+        changeId: "chg123",
+        approvalEvidence: "User approved via question tool",
+      },
+      store,
+    );
+    const parsed = JSON.parse(result);
+
+    expect(parsed.success).toBe(false);
+    expect(parsed.phase).toBe("reimport-change");
+    expect(parsed.projectRebuilt).toBe(true);
+    expect(parsed.error).toContain("missing search attribute AdvChangeId");
+    expect(mocks.rebuildProjectWorkflowState).toHaveBeenCalledTimes(1);
   });
 
   it("adv_workflow_repair rejects when approvalEvidence is empty", async () => {
