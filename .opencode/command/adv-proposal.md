@@ -82,17 +82,30 @@ When creating a change in a **different project** (e.g. pokeedge backend creatin
 **Minimum required:** `target_path`. Strongly recommended: `source_change_id` for full traceability.
 ---
 
-## Step 9: Proposal Approval
+## Step 9: Proposal Approval (Inline)
 
-Present the completed proposal summary to the user for final approval via `question` tool:
+Present the completed proposal summary, then emit the **Inline Approval prompt (Tier A)** per `docs/command-voice-standard.md` § Inline Approval Voice. The Gate Handoff Voice spine footer extends with reply instructions — no `question` tool popup.
 
-- **Approve proposal (Recommended)** — proposal is finalized; agent immediately proceeds inline to `/adv-research` (or `/adv-discover` if research was already completed) without asking for a second confirmation
-- **Request changes** — user wants to adjust criteria, scope, or constraints (loop back to relevant step)
-- **Cancel** — abandon the proposal
+After the spine footer line:
 
-If **Request changes**: collect specific feedback → apply changes via `adv_change_update` → re-present → re-ask.
+```
+Reply `continue` (or `go`, `approve`, `yes`, `ok`, `proceed`, `lgtm`) to proceed inline to /adv-research (or /adv-discover if research is already complete),
+or run `/adv-research {change-id}` (or `/adv-discover {change-id}`).
+Want changes? Reply with what to adjust.
+Want to stop here? Reply `stop` or `defer`.
+```
 
-× MUST NOT mark the proposal complete without explicit user approval.
+**Reply parsing (Tier A):**
+
+| Reply | Action |
+|---|---|
+| Tier A whitelist match | Proceed inline immediately to next stage |
+| `/adv-X` slash command | No-op for this agent — OpenCode dispatches |
+| Free-form text | Treat as revision request; collect feedback → `adv_change_update` → re-present |
+| `stop` / `defer` | Halt; do not advance gate |
+| Ambiguous | LLM judgment classifies into approve / revise / redirect / stop / unclear |
+
+× MUST NOT mark the proposal complete without an explicit user reply matching the Tier A whitelist or LLM-classified `approve`. Invocation is NOT implicit approval.
 
 ---
 
@@ -116,4 +129,4 @@ Agreed problem framing + scope boundary.
 **{change-id}** · proposal ✓ → discovery · `/adv-discover {change-id}`
 ```
 
-**Auto-continue:** After user approval, immediately begin `/adv-research` (or `/adv-discover`) inline. Do not stop, do not ask "shall I proceed?" — the user's approval is the go-ahead.
+**Auto-continue:** After the user reply matches the Tier A whitelist (or LLM classifies as `approve`), immediately begin `/adv-research` (or `/adv-discover`) inline. Do not stop, do not ask "shall I proceed?" — the inline approval is the go-ahead.
