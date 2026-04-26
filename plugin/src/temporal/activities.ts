@@ -416,7 +416,8 @@ function repairFailure(input: {
   return {
     ok: false,
     phase: input.phase,
-    error: input.error instanceof Error ? input.error.message : String(input.error),
+    error:
+      input.error instanceof Error ? input.error.message : String(input.error),
     projectRebuilt: input.projectRebuilt ?? false,
     changeReimported: input.changeReimported ?? false,
   };

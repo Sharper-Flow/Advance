@@ -108,10 +108,13 @@ function recommendTemporalRecovery(input: {
   if (!input.health.worker_process_alive || !input.health.worker_alive) {
     return "run adv_temporal_worker_restart";
   }
-  if (input.health.stale_queues.length > 0) return "run adv_orphan_sweep dry-run";
-  if (input.projectWorkflowReachable === false) return "run adv_workflow_repair";
+  if (input.health.stale_queues.length > 0)
+    return "run adv_orphan_sweep dry-run";
+  if (input.projectWorkflowReachable === false)
+    return "run adv_workflow_repair";
   if (input.changeWorkflowReachable === false) return "run adv_workflow_repair";
-  if (input.health.last_error) return "inspect last_error and retry blocked tool";
+  if (input.health.last_error)
+    return "inspect last_error and retry blocked tool";
   return "none";
 }
 
@@ -123,7 +126,9 @@ export const temporalOpsTools = {
       changeId: z
         .string()
         .optional()
-        .describe("Optional change ID to check for a reachable change workflow"),
+        .describe(
+          "Optional change ID to check for a reachable change workflow",
+        ),
     },
     execute: async (args: { changeId?: string }, store: Store) => {
       const projectId = store.paths.external
@@ -318,7 +323,9 @@ export const temporalOpsTools = {
       const result = await sweepProject({
         projectId,
         changesDir: store.paths.changes,
-        client: bundle.client as unknown as Parameters<typeof sweepProject>[0]["client"],
+        client: bundle.client as unknown as Parameters<
+          typeof sweepProject
+        >[0]["client"],
         dryRun,
       });
 
@@ -352,7 +359,8 @@ export const temporalOpsTools = {
           initialized: bundle !== null,
           reconnectCount: stats.reconnectCount,
           reconnectFailureCount: stats.reconnectFailureCount,
-          recommendedNextAction: "run adv_temporal_diagnose if tools still fail",
+          recommendedNextAction:
+            "run adv_temporal_diagnose if tools still fail",
         },
         message: `Restarted Temporal worker for ${result.projectId}`,
       });
@@ -406,7 +414,8 @@ export const temporalOpsTools = {
           success: false,
           phase: "reconnect-stsl",
           error: err instanceof Error ? err.message : String(err),
-          message: "Temporal service layer reconnect failed before workflow repair",
+          message:
+            "Temporal service layer reconnect failed before workflow repair",
         });
       }
 

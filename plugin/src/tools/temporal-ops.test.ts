@@ -363,7 +363,9 @@ describe("temporal operator tools", () => {
       "AdvActiveGate",
       "AdvDoomLoopActive",
     ]);
-    expect(bundle.connection.operatorService.addSearchAttributes).toHaveBeenCalledWith({
+    expect(
+      bundle.connection.operatorService.addSearchAttributes,
+    ).toHaveBeenCalledWith({
       namespace: "default",
       searchAttributes: {
         AdvChangeId: 1,
