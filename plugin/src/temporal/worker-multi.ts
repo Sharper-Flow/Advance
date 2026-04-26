@@ -13,6 +13,8 @@
  *   Child → Parent:
  *     { "type": "ready" }
  *     { "type": "error", "queue": "<name>", "message": "..." }
+ *     { "type": "register-ack", "queue": "<name>" }
+ *     { "type": "register-error", "queue": "<name>", "message": "..." }
  *     { "type": "worker_started", "queue": "<name>" }
  *
  * Child reads initial queues from `ADV_TEMPORAL_TASK_QUEUES` (comma-separated).
@@ -91,10 +93,23 @@ export interface ChildWorkerStartedMessage {
   queue: string;
 }
 
+export interface ChildRegisterAckMessage {
+  type: "register-ack";
+  queue: string;
+}
+
+export interface ChildRegisterErrorMessage {
+  type: "register-error";
+  queue: string;
+  message: string;
+}
+
 export type ChildToParentMessage =
   | ChildReadyMessage
   | ChildErrorMessage
-  | ChildWorkerStartedMessage;
+  | ChildWorkerStartedMessage
+  | ChildRegisterAckMessage
+  | ChildRegisterErrorMessage;
 
 export interface MultiWorkerInput {
   address: string;
@@ -112,6 +127,8 @@ export interface MultiWorker extends InProcessWorker {
     restartCount: number;
     childExitCode: number | null;
     childRunning: boolean;
+    pendingRegistrations: string[];
+    registerErrors: Array<{ queue: string; message: string }>;
   };
 }
 
@@ -137,28 +154,86 @@ export async function createMultiWorker(
   let child: ChildProcess | null = null;
   let restartCount = 0;
   let shuttingDown = false;
+  const pendingRegistrations = new Map<
+    string,
+    { promise: Promise<void>; resolve: () => void; reject: (err: Error) => void }
+  >();
+  const registerErrors = new Map<string, string>();
   let resolveExit: () => void = () => {};
   const exitPromise = new Promise<void>((resolve) => {
     resolveExit = resolve;
   });
 
   /**
-   * Scan an IPC stdout buffer chunk for JSON-lines messages from the
-   * child. Returns true if a `{"type":"ready"}` message was observed.
+   * Handle a parsed JSON-line message from the child. Returns true if a
+   * `{"type":"ready"}` message was observed.
    */
-  function chunkContainsReady(chunk: Buffer): boolean {
+  function handleChildMessage(msg: { type?: string; [key: string]: unknown }) {
+    if (msg.type === "ready") return true;
+
+    if (
+      msg.type === "register-ack" ||
+      msg.type === "worker_started"
+    ) {
+      if (typeof msg.queue !== "string") return false;
+      const pending = pendingRegistrations.get(msg.queue);
+      queues.add(msg.queue);
+      registerErrors.delete(msg.queue);
+      if (pending) {
+        pendingRegistrations.delete(msg.queue);
+        pending.resolve();
+      }
+      return false;
+    }
+
+    if (msg.type === "register-error") {
+      if (typeof msg.queue !== "string") return false;
+      const message =
+        typeof msg.message === "string"
+          ? msg.message
+          : typeof msg.error === "string"
+            ? msg.error
+            : "Unknown register error";
+      registerErrors.set(msg.queue, message);
+      const pending = pendingRegistrations.get(msg.queue);
+      if (pending) {
+        pendingRegistrations.delete(msg.queue);
+        pending.reject(
+          new Error(
+            `Failed to register Temporal worker queue "${msg.queue}": ${message}`,
+          ),
+        );
+      }
+      return false;
+    }
+
+    if (msg.type === "error" && typeof msg.queue === "string") {
+      const message =
+        typeof msg.message === "string" ? msg.message : "Unknown child error";
+      registerErrors.set(msg.queue, message);
+    }
+
+    return false;
+  }
+
+  /**
+   * Scan an IPC stdout buffer chunk for JSON-lines messages from the child.
+   * Returns true if a `{"type":"ready"}` message was observed.
+   */
+  function parseChildMessages(chunk: Buffer): boolean {
+    let sawReady = false;
     const text = chunk.toString("utf-8");
     for (const line of text.split(/\r?\n/)) {
       const trimmed = line.trim();
       if (!trimmed) continue;
       try {
         const msg = JSON.parse(trimmed) as { type?: string };
-        if (msg && msg.type === "ready") return true;
+        if (msg && handleChildMessage(msg)) sawReady = true;
       } catch {
         // Not JSON, ignore — probably a plain log line
       }
     }
-    return false;
+    return sawReady;
   }
 
   /**
@@ -242,7 +317,8 @@ export async function createMultiWorker(
     bootstrapTimer.unref();
 
     newChild.stdout?.on("data", (chunk: Buffer) => {
-      if (!settled && chunkContainsReady(chunk)) {
+      const sawReady = parseChildMessages(chunk);
+      if (!settled && sawReady) {
         clearTimeout(bootstrapTimer);
         debugLog("multi-queue worker sent ready IPC message");
         settle();
@@ -309,12 +385,14 @@ export async function createMultiWorker(
     return readyPromise;
   }
 
-  function sendToChild(msg: ParentToChildMessage): void {
-    if (!child || child.killed || child.exitCode !== null) return;
+  function sendToChild(msg: ParentToChildMessage): boolean {
+    if (!child || child.killed || child.exitCode !== null) return false;
     try {
       child.stdin?.write(JSON.stringify(msg) + "\n");
+      return true;
     } catch {
       debugLog(`failed to send IPC message to child: ${JSON.stringify(msg)}`);
+      return false;
     }
   }
 
@@ -336,13 +414,46 @@ export async function createMultiWorker(
         );
       }
       if (queues.has(queue)) return;
-      queues.add(queue);
-      sendToChild({ type: "register", queue });
+      const pending = pendingRegistrations.get(queue);
+      if (pending) return pending.promise;
+
+      let resolveRegistration: () => void = () => {};
+      let rejectRegistration: (err: Error) => void = () => {};
+      const promise = new Promise<void>((resolve, reject) => {
+        resolveRegistration = resolve;
+        rejectRegistration = reject;
+      });
+      pendingRegistrations.set(queue, {
+        promise,
+        resolve: resolveRegistration,
+        reject: rejectRegistration,
+      });
+      registerErrors.delete(queue);
+
+      if (!sendToChild({ type: "register", queue })) {
+        pendingRegistrations.delete(queue);
+        const message = "child process is not running";
+        registerErrors.set(queue, message);
+        throw new Error(
+          `Failed to register Temporal worker queue "${queue}": ${message}`,
+        );
+      }
+
+      return promise;
     },
 
     async shutdown(): Promise<void> {
       if (shuttingDown) return;
       shuttingDown = true;
+
+      for (const [queue, pending] of pendingRegistrations) {
+        pending.reject(
+          new Error(
+            `Failed to register Temporal worker queue "${queue}": worker is shutting down`,
+          ),
+        );
+      }
+      pendingRegistrations.clear();
 
       if (child && child.exitCode === null) {
         try {
@@ -382,6 +493,10 @@ export async function createMultiWorker(
         restartCount,
         childExitCode: child?.exitCode ?? null,
         childRunning: Boolean(child && child.exitCode === null),
+        pendingRegistrations: [...pendingRegistrations.keys()].sort(),
+        registerErrors: [...registerErrors]
+          .map(([queue, message]) => ({ queue, message }))
+          .sort((a, b) => a.queue.localeCompare(b.queue)),
       };
     },
   };

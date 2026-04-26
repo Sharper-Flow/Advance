@@ -50,14 +50,17 @@ export async function runTemporalWorker(
  * is not spawned with an IPC fd. Best-effort — if the write fails, the
  * bootstrap timeout will catch it and emit a clean failure.
  */
-function emitReady(queues: string[]): void {
+function emitIpcMessage(message: Record<string, unknown>): void {
   try {
-    const msg = JSON.stringify({ type: "ready", queues });
     // Write direct to stdout; avoid console.log which may buffer/delay.
-    process.stdout.write(msg + "\n");
+    process.stdout.write(JSON.stringify(message) + "\n");
   } catch {
-    // Ignore — parent will time out and emit a clean failure.
+    // Ignore — parent will time out or surface the missing ACK/error.
   }
+}
+
+function emitReady(queues: string[]): void {
+  emitIpcMessage({ type: "ready", queues });
 }
 
 /**
@@ -209,7 +212,10 @@ export async function runMultiQueueTemporalWorker(
     // channel — parent writes JSON lines via child.stdin.write.
     const ipcHandler = createChildIPCHandler({
       onRegister: async (queue: string) => {
-        if (workerRegistry.has(queue)) return;
+        if (workerRegistry.has(queue)) {
+          emitIpcMessage({ type: "register-ack", queue });
+          return;
+        }
         try {
           const newWorker = await Worker.create({
             connection,
@@ -221,17 +227,13 @@ export async function runMultiQueueTemporalWorker(
           workerRegistry.set(queue, newWorker);
           // Fire-and-forget .run so the IPC handler returns promptly.
           void newWorker.run();
+          emitIpcMessage({ type: "register-ack", queue });
         } catch (err) {
-          const msg = JSON.stringify({
+          emitIpcMessage({
             type: "register-error",
             queue,
-            error: err instanceof Error ? err.message : String(err),
+            message: err instanceof Error ? err.message : String(err),
           });
-          try {
-            process.stdout.write(msg + "\n");
-          } catch {
-            // Best-effort — parent will see register lag and retry.
-          }
         }
       },
       onUnregister: async (queue: string) => {

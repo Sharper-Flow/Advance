@@ -20,6 +20,8 @@ interface MockChild extends Partial<ChildProcess> {
    * JSON line to stdout; the test emits the equivalent data event.
    */
   sendReady(): void;
+  sendRegisterAck(queue: string): void;
+  sendRegisterError(queue: string, message: string): void;
 }
 
 let lastMockChild: MockChild | null = null;
@@ -32,12 +34,30 @@ const mockChildren: MockChild[] = [];
  * (e.g. hang before Worker.create resolves).
  */
 let autoEmitReady = true;
+let autoAckRegister = true;
 
 function createMockChild(): MockChild {
   const emitter = new EventEmitter();
+  const stdout = new EventEmitter();
   const child: MockChild = {
-    stdin: { write: vi.fn() },
-    stdout: new EventEmitter(),
+    stdin: {
+      write: vi.fn((line: string) => {
+        if (!autoAckRegister) return true;
+        try {
+          const msg = JSON.parse(line.trim()) as {
+            type?: string;
+            queue?: unknown;
+          };
+          if (msg.type === "register" && typeof msg.queue === "string") {
+            queueMicrotask(() => child.sendRegisterAck(msg.queue as string));
+          }
+        } catch {
+          // Ignore malformed test writes.
+        }
+        return true;
+      }),
+    },
+    stdout,
     stderr: new EventEmitter(),
     killed: false,
     exitCode: null,
@@ -61,6 +81,20 @@ function createMockChild(): MockChild {
     },
     sendReady() {
       child.stdout.emit("data", Buffer.from('{"type":"ready"}\n'));
+    },
+    sendRegisterAck(queue: string) {
+      child.stdout.emit(
+        "data",
+        Buffer.from(JSON.stringify({ type: "register-ack", queue }) + "\n"),
+      );
+    },
+    sendRegisterError(queue: string, message: string) {
+      child.stdout.emit(
+        "data",
+        Buffer.from(
+          JSON.stringify({ type: "register-error", queue, message }) + "\n",
+        ),
+      );
     },
   } as unknown as MockChild;
   return child;
@@ -137,6 +171,7 @@ describe("Multi-queue worker host", () => {
     lastMockChild = null;
     mockChildren.length = 0;
     autoEmitReady = true;
+    autoAckRegister = true;
   });
 
   afterEach(() => {
@@ -185,6 +220,54 @@ describe("Multi-queue worker host", () => {
     const msg = JSON.parse((writeCall![0] as string).trim());
     expect(msg).toEqual({ type: "register", queue: "adv-agenda-proj1" });
     expect(worker.queues).toContain("adv-agenda-proj1");
+
+    await worker.shutdown();
+  });
+
+  it("does not expose dynamically registered queue until child ACK", async () => {
+    autoAckRegister = false;
+    const worker = await createMultiWorker(baseInput);
+
+    const registerPromise = worker.registerQueue("adv-delayed-proj1");
+    await Promise.resolve();
+
+    expect(lastMockChild?.stdin.write).toHaveBeenCalled();
+    expect(worker.queues).not.toContain("adv-delayed-proj1");
+    expect(worker.getDiagnostics().queues).not.toContain("adv-delayed-proj1");
+
+    lastMockChild!.sendRegisterAck("adv-delayed-proj1");
+    await registerPromise;
+
+    expect(worker.queues).toContain("adv-delayed-proj1");
+    expect(worker.getDiagnostics().queues).toContain("adv-delayed-proj1");
+
+    await worker.shutdown();
+  });
+
+  it("rejects registerQueue and surfaces diagnostics when child reports register-error", async () => {
+    autoAckRegister = false;
+    const worker = await createMultiWorker(baseInput);
+
+    const registerPromise = worker.registerQueue("adv-broken-proj1");
+    await Promise.resolve();
+
+    lastMockChild!.sendRegisterError(
+      "adv-broken-proj1",
+      "Worker.create failed for adv-broken-proj1",
+    );
+
+    await expect(registerPromise).rejects.toThrow(
+      "Worker.create failed for adv-broken-proj1",
+    );
+    expect(worker.queues).not.toContain("adv-broken-proj1");
+    expect(worker.getDiagnostics()).toMatchObject({
+      registerErrors: [
+        {
+          queue: "adv-broken-proj1",
+          message: "Worker.create failed for adv-broken-proj1",
+        },
+      ],
+    });
 
     await worker.shutdown();
   });
