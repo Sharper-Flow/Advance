@@ -123,20 +123,37 @@ Show a compact summary with:
   - No validation data (legacy design with no validator markers) → omit section silently
 
 After displaying the validator result:
-- If a visual comparison block is used, keep it text-readable and align it with any follow-up `question` options
-- If the design involves real user-value tradeoffs, ask the user whether the design is acceptable before moving into `/adv-prep`
-- If the validator found an unresolved `CONFLICT`, always pause for user resolution before planning
-- If the agent identifies a contract-compromise risk — the design can only be delivered by compromising agreed acceptance criteria, explicit constraints, or stated avoidances (as written in agreement.md) — always pause and surface a discussion of possible routes to the user before planning, regardless of validator verdict
-- If the design is straightforward with no user-value tradeoffs, no unresolved `CONFLICT` (resolved Phase 3.6 conflicts do not count), and no contract-compromise risk, and validation returned `VALIDATED`, `CAUTION`, or `INCONCLUSIVE`, proceed directly to `/adv-prep`
+- If a visual comparison block is used, keep it text-readable and align it with the inline reply choices below
+- If the design involves real user-value tradeoffs, emit the **Inline Approval prompt (Tier A)** before moving into `/adv-prep`
+- If the validator found an unresolved `CONFLICT`, always pause with the inline approval prompt for user resolution before planning
+- If the agent identifies a contract-compromise risk — the design can only be delivered by compromising agreed acceptance criteria, explicit constraints, or stated avoidances (as written in agreement.md) — always pause and surface a discussion of possible routes to the user before planning, regardless of validator verdict (see Phase 4.1)
+- If the design is straightforward with no user-value tradeoffs, no unresolved `CONFLICT` (resolved Phase 3.6 conflicts do not count), and no contract-compromise risk, and validation returned `VALIDATED`, `CAUTION`, or `INCONCLUSIVE`, proceed directly to `/adv-prep` (no inline pause)
 
-Recommended options (when pausing):
-- Looks good — proceed to planning (agent begins `/adv-prep` inline immediately)
-- Adjust design details
-- Revisit discovery/agreement
-- Keep design with documented compromise — amend agreement to reflect the necessary concession, then proceed
-- Cancel this change
+**Inline Approval prompt when pausing** (Tier A per `docs/command-voice-standard.md` § Inline Approval Voice):
 
-### Phase 4.1: Contract-Compromise Risk Assessment
+After the spine footer line:
+
+```
+Reply `continue` (or `go`, `approve`, `looks good`, `proceed`, `lgtm`) to proceed inline to /adv-prep,
+or run `/adv-prep {change-id}`.
+Want to adjust the design? Reply with what to change.
+Want to revisit discovery? Reply `/adv-discover {change-id}` or `revisit discovery`.
+Want to stop here? Reply `cancel` or `stop`.
+```
+
+**Reply parsing (Tier A):**
+
+| Reply | Action |
+|---|---|
+| Tier A whitelist match (continue, go, approve, looks good, proceed, etc.) | Begin `/adv-prep` inline |
+| `/adv-prep {change-id}` | No-op; OpenCode dispatches |
+| `/adv-discover {change-id}` or `revisit discovery` | Halt design; user re-enters discovery |
+| Free-form text | Treat as design revision; apply via `adv_change_update`, re-present |
+| `cancel` / `stop` | Halt change |
+
+**Anchor phrase:** `Reply `continue``
+
+### Phase 4.1: Contract-Compromise Risk Assessment (Inline)
 
 When the agent recognizes that the chosen design path requires violating an explicit acceptance criterion, constraint, or avoidance stated in agreement.md, it must surface the compromise risk rather than silently proceed.
 
@@ -149,15 +166,34 @@ If both an unresolved `CONFLICT` and a contract-compromise risk are present, sur
 2. Is there a materially different approach that preserves them?
 3. What is the minimum viable scope if the compromise is accepted?
 
-**Route options (present to user):**
-1. **Keep design with documented compromise** — accept the compromise and amend agreement.md via `adv_change_update` to document the change, then proceed
-2. **Revise design** — find an alternative path that preserves all constraints
-3. **Revisit agreement/discovery** — return to `/adv-discover` to renegotiate scope or objectives
-4. **Defer the change** — halt the change and capture the reason in the change notes; this check must surface again when the change resumes
+**Inline Approval prompt** (Tier A, with route options as inline reply choices):
+
+After presenting the compromise analysis:
+
+```
+This design path requires compromising:
+- {criterion / constraint / avoidance from agreement.md}
+- {why no alternative preserves it}
+
+Reply:
+- `keep with compromise` — accept and amend agreement.md, then proceed to /adv-prep
+- `revise` (or describe the alternative) — agent finds an alternative path preserving all constraints
+- `revisit discovery` (or `/adv-discover {change-id}`) — re-enter discovery to renegotiate scope or objectives
+- `defer` — halt the change; this check resurfaces on resume
+```
+
+**Reply parsing (Tier A with route extension):**
+
+| Reply | Action |
+|---|---|
+| `keep with compromise` (or whitelist + explicit acknowledgment) | Amend agreement.md (append "Design Compromise" section), then `/adv-prep` |
+| `revise` or revision text | Find alternative design preserving constraints; re-present |
+| `revisit discovery` or `/adv-discover {change-id}` | Halt design; user re-enters discovery |
+| `defer` / `cancel` / `stop` | Halt change; record reason in change notes |
 
 **Amendment procedure for "keep with compromise":**
 - Use `adv_change_update` to append a "Design Compromise" section to agreement.md
-- Document: which criterion/constraint/avoidance is compromised, why it was unavoidable, and approval evidence including timestamp and explicit user approval
+- Document: which criterion/constraint/avoidance is compromised, why it was unavoidable, and approval evidence (the user's `keep with compromise` reply text + timestamp)
 - Only proceed to `/adv-prep` after the amendment is persisted
 
 ### Phase 4.5: Persist Revisions
