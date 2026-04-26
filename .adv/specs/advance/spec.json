@@ -253,10 +253,10 @@
           "id": "rq-advprop02.3",
           "title": "Drift detection in confirmation",
           "given": ["A problem statement block is shown to the user"],
-          "when": "The user reviews it via the question tool",
+          "when": "The user reviews it via inline handoff text per docs/command-voice-standard.md § Inline Approval Voice (Tier A)",
           "then": [
-            "The confirmation question explicitly asks the user to check Prior Decisions and Rejected Approaches for accuracy",
-            "A 'Drift detected' option is available for the user to flag discrepancies",
+            "The presentation explicitly asks the user to check Prior Decisions and Rejected Approaches for accuracy",
+            "A 'Drift detected' reply path is documented for the user to flag discrepancies (free-form revise reply or explicit drift wording)",
             "If drift is detected, the agent re-extracts and re-synthesizes before proceeding"
           ]
         },
@@ -577,7 +577,7 @@
           "when": "The ADV orchestrator evaluates the next gate",
           "then": [
             "The orchestrator stops and presents a change report",
-            "The user is asked for explicit sign-off via the question tool"
+            "The user is asked for explicit sign-off via inline handoff text per docs/command-voice-standard.md § Inline Approval Voice (Tier B)"
           ]
         },
         {
@@ -959,7 +959,8 @@
           "when": "The handoff message is rendered",
           "then": [
             "All three narrative spine headings are present: Problem, Chosen direction, Delivered, plus a footer line below a --- separator",
-            "The archive terminal variant uses **{change-id}** · release ✓ · Shipped. instead of the standard arrow+command footer"
+            "The archive terminal variant uses **{change-id}** · release ✓ · Shipped. instead of the standard arrow+command footer",
+            "When the handoff is paired with a human-checkpoint approval, the footer line MAY be followed by an Inline Approval reply-instruction block per docs/command-voice-standard.md § Inline Approval Voice; the three-section spine (Problem / Chosen direction / Delivered) is unchanged"
           ]
         },
         {
@@ -1001,7 +1002,8 @@
           "then": [
             "## Next stage and ## Next headings are absent from the handoff",
             "A footer line appears after ## Delivered with the change id, gate transition, and next command",
-            "The archive terminal variant ends the footer with Shipped. and no arrow or command"
+            "The archive terminal variant ends the footer with Shipped. and no arrow or command",
+            "Optional reply instructions for human checkpoints (Inline Approval Voice) MAY follow the footer line; reply instructions are part of the footer block and do not require a separate heading"
           ]
         }
       ]
