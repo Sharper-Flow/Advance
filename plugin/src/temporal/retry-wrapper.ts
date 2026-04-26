@@ -7,6 +7,15 @@ interface TemporalRetryTelemetry {
   lastAttempts: number | null;
 }
 
+export interface OpTelemetry {
+  opType: string;
+  successCount: number;
+  failureCount: number;
+  retryCount: number;
+  lastOpAt: string | null;
+  lastError: string | null;
+}
+
 /**
  * Per-operation latency histogram for Temporal operations.
  * Stores raw latencies; percentile calculations done on query.
@@ -44,6 +53,8 @@ function createLatencyHistogram(): LatencyHistogram {
 /** Latency histogram for all Temporal operations combined. */
 export const temporalOpLatency = createLatencyHistogram();
 
+const temporalOpTelemetry = new Map<string, OpTelemetry>();
+
 const temporalRetryTelemetry: TemporalRetryTelemetry = {
   lastOpAt: null,
   lastError: null,
@@ -54,22 +65,65 @@ export function getTemporalRetryTelemetry(): TemporalRetryTelemetry {
   return { ...temporalRetryTelemetry };
 }
 
+export function getTemporalOpTelemetry(): OpTelemetry[] {
+  return Array.from(temporalOpTelemetry.values()).map((t) => ({ ...t }));
+}
+
 export function resetTemporalRetryTelemetry(): void {
   temporalRetryTelemetry.lastOpAt = null;
   temporalRetryTelemetry.lastError = null;
   temporalRetryTelemetry.lastAttempts = null;
+  temporalOpTelemetry.clear();
 }
 
-function recordTemporalSuccess(attempts: number): void {
+function getOrCreateOpTelemetry(opType: string): OpTelemetry {
+  if (!temporalOpTelemetry.has(opType)) {
+    temporalOpTelemetry.set(opType, {
+      opType,
+      successCount: 0,
+      failureCount: 0,
+      retryCount: 0,
+      lastOpAt: null,
+      lastError: null,
+    });
+  }
+  return temporalOpTelemetry.get(opType)!;
+}
+
+function recordTemporalSuccess(opType: string | undefined, attempts: number): void {
   temporalRetryTelemetry.lastOpAt = new Date().toISOString();
   temporalRetryTelemetry.lastError = null;
   temporalRetryTelemetry.lastAttempts = attempts;
+  if (opType) {
+    const tel = getOrCreateOpTelemetry(opType);
+    tel.successCount += 1;
+    tel.retryCount += Math.max(0, attempts - 1);
+    tel.lastOpAt = temporalRetryTelemetry.lastOpAt;
+    tel.lastError = null;
+  }
 }
 
-function recordTemporalFailure(error: unknown, attempts: number): void {
+function recordTemporalFailure(
+  opType: string | undefined,
+  error: unknown,
+  attempts: number,
+): void {
   temporalRetryTelemetry.lastError =
     error instanceof Error ? error.message : String(error ?? "");
   temporalRetryTelemetry.lastAttempts = attempts;
+  if (opType) {
+    const tel = getOrCreateOpTelemetry(opType);
+    // retryCount counts all attempts beyond the first (retries)
+    tel.retryCount += Math.max(0, attempts - 1);
+    tel.lastError = temporalRetryTelemetry.lastError;
+  }
+}
+
+function recordFinalFailure(opType: string | undefined): void {
+  if (opType) {
+    const tel = getOrCreateOpTelemetry(opType);
+    tel.failureCount += 1;
+  }
 }
 
 /**
@@ -166,6 +220,8 @@ interface RetryOptions {
    * See design.md § KD-2.
    */
   timeoutMs?: number;
+  /** Per-operation type label for telemetry aggregation (KD-3). */
+  opType?: string;
 }
 
 /**
@@ -230,13 +286,14 @@ export async function withTemporalRetry<T>(
           : await op();
       const latencyMs = Date.now() - startTime;
       temporalOpLatency.add(latencyMs);
-      recordTemporalSuccess(attempt + 1);
+      recordTemporalSuccess(options.opType, attempt + 1);
       return result;
     } catch (error) {
       attempt += 1;
-      recordTemporalFailure(error, attempt);
+      recordTemporalFailure(options.opType, error, attempt);
       const cls = classifyTemporalError(error);
       if (cls !== "transient" || attempt >= maxAttempts) {
+        recordFinalFailure(options.opType);
         throw error;
       }
 

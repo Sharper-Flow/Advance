@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   classifyTemporalError,
   getTemporalRetryTelemetry,
+  getTemporalOpTelemetry,
   resetTemporalRetryTelemetry,
   withTemporalRetry,
 } from "./retry-wrapper";
@@ -213,6 +214,106 @@ describe("retry-wrapper (C2)", () => {
 
       expect(delays).toHaveLength(1);
       expect(delays[0]).toBe(100);
+    });
+  });
+
+  // --- Phase B.1: Per-op telemetry (KD-3) ---
+
+  describe("per-op telemetry", () => {
+    afterEach(() => {
+      resetTemporalRetryTelemetry();
+    });
+
+    it("getTemporalOpTelemetry returns empty array when no ops recorded", () => {
+      expect(getTemporalOpTelemetry()).toEqual([]);
+    });
+
+    it("records successCount per opType", async () => {
+      await withTemporalRetry(async () => "ok", { opType: "addTaskUpdate" });
+      const ops = getTemporalOpTelemetry();
+      expect(ops).toHaveLength(1);
+      expect(ops[0]).toMatchObject({
+        opType: "addTaskUpdate",
+        successCount: 1,
+        failureCount: 0,
+        retryCount: 0,
+      });
+    });
+
+    it("records failureCount and retryCount per opType", async () => {
+      const op = vi
+        .fn<() => Promise<string>>()
+        .mockRejectedValueOnce(new Error("connect ECONNREFUSED"))
+        .mockResolvedValueOnce("ok");
+
+      await withTemporalRetry(op, { opType: "updateTaskUpdate" });
+
+      const ops = getTemporalOpTelemetry();
+      expect(ops).toHaveLength(1);
+      expect(ops[0]).toMatchObject({
+        opType: "updateTaskUpdate",
+        successCount: 1,
+        failureCount: 0,
+        retryCount: 1,
+      });
+    });
+
+    it("records failureCount on fatal error", async () => {
+      await expect(
+        withTemporalRetry(async () => {
+          throw new Error("NonDeterministicWorkflowError");
+        }, { opType: "closeChangeUpdate" }),
+      ).rejects.toThrow(/NonDeterministic/);
+
+      const ops = getTemporalOpTelemetry();
+      expect(ops).toHaveLength(1);
+      expect(ops[0]).toMatchObject({
+        opType: "closeChangeUpdate",
+        successCount: 0,
+        failureCount: 1,
+        retryCount: 0,
+      });
+    });
+
+    it("aggregates multiple ops of same type", async () => {
+      await withTemporalRetry(async () => "ok", { opType: "addTaskUpdate" });
+      await withTemporalRetry(async () => "ok", { opType: "addTaskUpdate" });
+
+      const ops = getTemporalOpTelemetry();
+      expect(ops).toHaveLength(1);
+      expect(ops[0]).toMatchObject({
+        opType: "addTaskUpdate",
+        successCount: 2,
+        failureCount: 0,
+        retryCount: 0,
+      });
+    });
+
+    it("keeps separate counters for different opTypes", async () => {
+      await withTemporalRetry(async () => "ok", { opType: "addTaskUpdate" });
+      await withTemporalRetry(async () => "ok", { opType: "completeGateUpdate" });
+
+      const ops = getTemporalOpTelemetry();
+      expect(ops).toHaveLength(2);
+      const addTask = ops.find((o) => o.opType === "addTaskUpdate");
+      const completeGate = ops.find((o) => o.opType === "completeGateUpdate");
+      expect(addTask?.successCount).toBe(1);
+      expect(completeGate?.successCount).toBe(1);
+    });
+
+    it("preserves getTemporalRetryTelemetry as aggregated view", async () => {
+      resetTemporalRetryTelemetry();
+      await withTemporalRetry(async () => "ok", { opType: "addTaskUpdate" });
+
+      const agg = getTemporalRetryTelemetry();
+      expect(agg.lastOpAt).toBeTruthy();
+      expect(agg.lastError).toBeNull();
+      expect(agg.lastAttempts).toBe(1);
+    });
+
+    it("does not record per-op telemetry when opType is omitted", async () => {
+      await withTemporalRetry(async () => "ok");
+      expect(getTemporalOpTelemetry()).toEqual([]);
     });
   });
 
