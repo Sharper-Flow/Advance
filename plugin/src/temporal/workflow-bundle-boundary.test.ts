@@ -3,9 +3,7 @@ import { dirname, join, normalize, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
-const repoRoot = normalize(
-  join(dirname(fileURLToPath(import.meta.url)), ".."),
-);
+const repoRoot = normalize(join(dirname(fileURLToPath(import.meta.url)), ".."));
 const workflowRoot = normalize(join(repoRoot, "temporal", "workflows.ts"));
 
 const importSourcePattern =
@@ -15,7 +13,10 @@ function rel(path: string): string {
   return relative(repoRoot, path).replaceAll("\\", "/");
 }
 
-function resolveLocalImport(fromFile: string, source: string): string | undefined {
+function resolveLocalImport(
+  fromFile: string,
+  source: string,
+): string | undefined {
   if (!source.startsWith(".")) return undefined;
 
   const base = normalize(join(dirname(fromFile), source));
@@ -84,7 +85,9 @@ describe("workflow bundle transitive boundary", () => {
     const nodeImports = [...parents.keys()].flatMap((filePath) =>
       importSources(filePath)
         .filter((source) => source.startsWith("node:"))
-        .map((source) => `${pathFromRoot(parents, filePath)} imports ${source}`),
+        .map(
+          (source) => `${pathFromRoot(parents, filePath)} imports ${source}`,
+        ),
     );
 
     expect(nodeImports).toEqual([]);

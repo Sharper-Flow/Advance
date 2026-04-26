@@ -70,6 +70,20 @@ Tests still mock OpenCode SDK imports via vitest aliases in `vitest.config.ts`:
 
 If you add imports from the SDK or Bun APIs, ensure the mocks cover them or tests will fail with resolution errors.
 
+### Layer boundaries (enforced by test)
+
+`temporal/workflows.ts` is the webpack root for the Temporal worker bundle. Every internal module reachable via static `import` / `export … from` must stay workflow-safe: `temporal/` modules or `types.ts` only. No reachable module may import from `storage/`, `tools/`, `tool-registry`, `plugin-init`, or any `node:*` external.
+
+`utils/context-snapshot.ts` is a pure formatter over already-loaded data. It must not import from `../storage/` or `../tools/`; storage-backed snapshot loading lives in `storage/context-snapshot-fetch.ts`.
+
+Enforcing tests:
+
+- `plugin/src/temporal/workflow-bundle-boundary.test.ts` — transitive workflow-bundle import walker
+- `plugin/src/temporal/workflows.test.ts` — fast direct-import guard
+- `plugin/src/utils/context-snapshot.purity.test.ts` — utility purity guard
+
+Rationale: prevent the `Webpack finished with errors` worker-bundle regression class and keep `utils/` reusable from workflow-safe contexts.
+
 ### Zod v4 with v3 compatibility
 
 Dependencies use Zod v4 (`^4.3.6`). Tool arg schemas use Zod and are cast via `as any` in tool-registry.ts for SDK compatibility. The cast is intentional — don't "fix" it.
