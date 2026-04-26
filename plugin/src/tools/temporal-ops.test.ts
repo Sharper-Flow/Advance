@@ -34,6 +34,14 @@ const mocks = vi.hoisted(() => ({
     stale_queues: [],
     reconnect_count: 0,
   })),
+  getStslStats: vi.fn(() => ({
+    getServiceCalls: 1,
+    newConnections: 1,
+    reuseRate: 1,
+    reconnectCount: 0,
+    reconnectFailureCount: 0,
+  })),
+  reinitStsl: vi.fn(async () => {}),
   createTemporalClientBundle: vi.fn(async () => ({
     connection: { close: vi.fn(async () => {}) },
     client: {
@@ -142,6 +150,8 @@ vi.mock("../temporal/service", async () => {
   return {
     ...actual,
     getService: mocks.getService,
+    getStslStats: mocks.getStslStats,
+    reinitStsl: mocks.reinitStsl,
   };
 });
 
@@ -217,6 +227,43 @@ describe("temporal operator tools", () => {
     expect(parsed.success).toBe(true);
     expect(parsed.projectId).toBe("proj123");
     expect(parsed.queues).toEqual(["advance-proj123"]);
+    expect(parsed.stsl).toEqual({
+      initialized: true,
+      reconnectCount: 0,
+      reconnectFailureCount: 0,
+      recommendedNextAction: "run adv_temporal_diagnose if tools still fail",
+    });
+  });
+
+  it("adv_temporal_reconnect calls reinitStsl and reports before/after stats", async () => {
+    mocks.getStslStats
+      .mockReturnValueOnce({
+        getServiceCalls: 1,
+        newConnections: 1,
+        reuseRate: 1,
+        reconnectCount: 0,
+        reconnectFailureCount: 0,
+      })
+      .mockReturnValueOnce({
+        getServiceCalls: 2,
+        newConnections: 2,
+        reuseRate: 1,
+        reconnectCount: 1,
+        reconnectFailureCount: 0,
+      });
+    const store = { paths: { root: "/repo" } } as any;
+
+    const result = await temporalOpsTools.adv_temporal_reconnect.execute(
+      {},
+      store,
+    );
+    const parsed = JSON.parse(result);
+
+    expect(mocks.reinitStsl).toHaveBeenCalledTimes(1);
+    expect(parsed.success).toBe(true);
+    expect(parsed.before.reconnectCount).toBe(0);
+    expect(parsed.after.reconnectCount).toBe(1);
+    expect(parsed.message).toContain("Reconnected Temporal service layer");
   });
 
   it("adv_temporal_diagnose reports healthy recovery state", async () => {

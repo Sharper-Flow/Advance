@@ -2,7 +2,7 @@ import { basename } from "path";
 import { z } from "zod";
 import type { Store } from "../storage/store";
 import { restartCurrentProjectTemporalWorker } from "../plugin-init";
-import { getService } from "../temporal/service";
+import { getService, getStslStats, reinitStsl } from "../temporal/service";
 import { repairChangeActivity } from "../temporal/activities";
 import { getTemporalHealth } from "../temporal/health-probe";
 import {
@@ -233,6 +233,34 @@ export const temporalOpsTools = {
     },
   },
 
+  adv_temporal_reconnect: {
+    description:
+      "Reconnect the shared Temporal service layer (STSL) without mutating workflow state or restarting workers.",
+    args: {},
+    execute: async (_args: Record<string, never>, _store: Store) => {
+      const before = getStslStats();
+      try {
+        await reinitStsl();
+      } catch (err) {
+        const after = getStslStats();
+        return formatToolOutput({
+          success: false,
+          before,
+          after,
+          error: err instanceof Error ? err.message : String(err),
+          message: "Temporal service layer reconnect failed",
+        });
+      }
+      const after = getStslStats();
+      return formatToolOutput({
+        success: true,
+        before,
+        after,
+        message: "Reconnected Temporal service layer",
+      });
+    },
+  },
+
   adv_temporal_worker_restart: {
     description:
       "Force-restart the in-process Temporal worker for the current project when the respawn loop is exhausted or the worker is wedged.",
@@ -241,9 +269,17 @@ export const temporalOpsTools = {
       const result = await restartCurrentProjectTemporalWorker(
         store.paths.root,
       );
+      const bundle = getService();
+      const stats = getStslStats();
       return formatToolOutput({
         success: true,
         ...result,
+        stsl: {
+          initialized: bundle !== null,
+          reconnectCount: stats.reconnectCount,
+          reconnectFailureCount: stats.reconnectFailureCount,
+          recommendedNextAction: "run adv_temporal_diagnose if tools still fail",
+        },
         message: `Restarted Temporal worker for ${result.projectId}`,
       });
     },
