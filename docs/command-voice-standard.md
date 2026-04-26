@@ -208,6 +208,8 @@ Every `/adv-*` command that emits a user-facing gate-transition message MUST use
 
 **Spec requirement:** `rq-handoffVoice01` (MUST priority). Violations are spec violations.
 
+**Cross-link:** When a gate handoff is paired with a human-checkpoint approval, the footer extends with reply instructions per `## Inline Approval Voice` below. The three-section spine (Problem / Chosen direction / Delivered) stays canonical; only the footer block grows.
+
 ### Canonical spine
 
 Every gate handoff uses exactly three narrative sections, in this order:
@@ -398,8 +400,191 @@ Agreed objectives + constraints + user decisions. Spine = Problem / Chosen direc
 **gateHandoffVoiceStandard** · discovery ✓ → design · `/adv-design gateHandoffVoiceStandard`
 ```
 
+## Inline Approval Voice
+
+Replaces `question`-tool popups for approval at the seven named human checkpoints. The popup blocks chat input — users cannot switch agents, redirect with a different slash command, or add free-form context without first answering or cancelling. Inline approval emits prose reply instructions, leaving chat input free.
+
+**Spec requirement:** `rq-inlineApproval01` (MUST priority). Violations are spec violations.
+
+**Applies to** the seven named human checkpoints from `rq-autonomy01`:
+
+1. Proposal confirmation (`/adv-proposal` step 9)
+2. Agreement sign-off (`/adv-discover` Phase 4.5.1 + 4.6)
+3. Design approval (`/adv-design` Phase 4 conditional pause)
+4. Prep approval (`/adv-prep` Phase 5.2)
+5. Acceptance (`/adv-review` end-of-phase)
+6. Archive sign-off (`/adv-archive` Phase 5)
+7. Cancellation approval (`/adv-apply` cancellation policy + any caller of `adv_task_cancel`)
+
+**Does NOT apply to** these question-tool surfaces, which keep their current behavior:
+
+- Doom-loop recovery (3 failed task attempts)
+- Drift detection in `/adv-review` and `/adv-harden`
+- Change-id selection / disambiguation
+- AC clarification rounds (`/adv-discover` Phase 4.5)
+- Investment check-in / judgment-call surfacing (`/adv-apply` Phase 1.5)
+- Triage commands (`/adv-idea`, `/adv-problem`, `/adv-clarify`)
+
+### Two parsing tiers
+
+Reply parsing depends on action reversibility. Reversible checkpoints get a forgiving whitelist plus LLM fallback for natural-language replies. Irreversible checkpoints get a strict whitelist with no LLM fallback to prevent mis-parsed approvals.
+
+#### Tier A — Reversible (proposal, agreement, design, prep, acceptance)
+
+**Whitelist (case-insensitive, trimmed):**
+
+```
+continue, go, approve, approved, yes, ok, okay, proceed, accept, accepted,
+lgtm, ship it, looks good, sounds good, fine, yep, yeah
+```
+
+**Reply matches whitelist** → proceed inline immediately.
+
+**Reply starts with `/adv-X`** → no-op for the agent. OpenCode dispatches the slash command into its own session.
+
+**Reply does NOT match whitelist and is not a slash command** → LLM judgment classifies into one of:
+
+| Category | Action |
+|---|---|
+| `approve` | Proceed inline (treat as whitelist hit). |
+| `revise` | Treat reply text as the change request; loop back to refinement. |
+| `redirect` | The user described an alternate slash command. Treat as no-op for the agent; invite the user to run it. |
+| `stop` / `defer` | Halt; do not advance the gate. |
+| `unclear` | Re-prompt with the same options. |
+
+#### Tier B — Irreversible (archive sign-off, cancellation approval)
+
+**Whitelist (case-insensitive). Reply MUST be the entire trimmed reply OR the first non-whitespace token. NO LLM fallback.**
+
+**Archive sign-off whitelist:**
+
+```
+approve, approved, confirm, confirmed, yes, proceed, sign off, signoff, ship it
+```
+
+**Cancellation whitelist (regex parser, no LLM):**
+
+```
+^approve all$        → cancel all listed tasks
+^reject all$         → keep all tasks active
+^keep ([\d,\s]+)$    → cancel inverse of listed numbers
+^cancel ([\d,\s]+)$  → cancel only listed numbers
+^(stop|abort)$       → halt
+```
+
+**Anything else** → re-prompt with the same options. Do not invoke the LLM. Do not advance.
+
+**Archive confirmation echo:** when an approval whitelist match is detected, emit:
+
+```
+Confirmed. Archiving `{change-id}` now. Reply `stop` or `abort` within the next message to abort.
+```
+
+Wait one user-turn. If the next reply is `stop` or `abort` (case-insensitive, trimmed), halt and unwind. Otherwise proceed with `adv_change_archive`.
+
+### Pattern templates
+
+#### Tier A — Standard inline approval (composed with Gate Handoff Voice spine)
+
+```
+## Problem
+{One-line restatement.}
+
+## Chosen direction
+{Per-stage anchor.}
+
+## Delivered
+- ...
+
+---
+**{change-id}** · {gate} ✓ → {next-gate}
+
+Reply `continue` (or `go`, `approve`, `yes`, `ok`, `proceed`, `lgtm`) to proceed inline to {next-stage},
+or run `/adv-{next-command} {change-id}`.
+Want changes? Reply with what to adjust.
+Want to stop here? Reply `stop` or `defer`.
+```
+
+#### Tier B — Archive sign-off
+
+```
+{Change report — see .opencode/agents/adv.md § Sign-Off Boundary.}
+
+---
+**{change-id}** · acceptance ✓ → release
+
+Reply `sign off` (or `signoff`, `approve`, `confirm`, `yes`, `proceed`, `ship it`) to archive,
+or `dry run` to preview the archive without applying spec deltas,
+or `cancel` / `stop` / `abort` to halt.
+```
+
+After whitelist match, emit confirmation echo and wait one turn for `stop` / `abort` before proceeding.
+
+#### Tier B — Cancellation approval (structured)
+
+```
+Cancellation requested for these tasks:
+
+1. {tk-id} — "{title}" — Reason: {reason}
+2. {tk-id} — "{title}" — Reason: {reason}
+
+Reply EXACTLY one of:
+- `approve all` — cancel all listed tasks
+- `reject all` — keep all tasks active
+- `keep N` (or `keep N,M`) — cancel only the unlisted tasks
+- `cancel N` (or `cancel N,M`) — cancel only the listed tasks
+- `stop` / `abort` — halt; do not cancel anything
+
+Anything else → agent re-prompts with the same options.
+```
+
+#### AC checkpoint with `/adv-clarify` literal detection
+
+```
+Acceptance Criteria for {change-id}:
+
+1. ...
+2. ...
+
+Reply:
+- `approve` (or whitelist hit) — approve AC and proceed to agreement persistence
+- `/adv-clarify {change-id}` — halt /adv-discover; user runs /adv-clarify; rerun /adv-discover after
+- Or describe what to add/clarify — agent normalizes into revised AC and re-runs this checkpoint
+```
+
+**Detection rules (in order):**
+
+1. Reply trimmed = `/adv-clarify` or `/adv-clarify {change-id}` → halt cleanly (no `agreement.md` write, no `adv_gate_complete` call).
+2. Reply trimmed first token = `/adv-clarify` → halt cleanly.
+3. Reply matches Tier A whitelist → approve AC, proceed.
+4. Otherwise → treat as revision text. Revise AC. Re-run checkpoint (max 3 loops, then recommend `/adv-clarify`).
+
+**× Do NOT** treat phrases like "I want to clarify something" or "let's clarify X" as `/adv-clarify` invocation. Only the literal slash command triggers the halt branch. Non-literal "clarify" intent is revision text.
+
+### Prep gate machine contract
+
+The prep gate's `userApproved: true` argument on `adv_gate_complete` is a machine contract independent of the UX surface. When the user replies with a Tier A whitelist word at `/adv-prep` Phase 5.2, the agent MUST pass `userApproved: true` to `adv_gate_complete`. Inline approval is the upstream signal source; the machine contract is unchanged.
+
+### BAD / GOOD
+
+| BAD | GOOD |
+|---|---|
+| `question` popup with "Approve and proceed to /adv-discover" option | Inline footer with `Reply `continue` to proceed inline to discovery, or run `/adv-discover {change-id}`` |
+| Cancellation popup with "Approve all / Review individually / Reject" | Inline numbered task list with `Reply `approve all`, `reject all`, `keep N`, `cancel N`, `stop`` |
+| LLM fallback for archive sign-off | Whitelist-only + confirmation echo |
+| Phrase "I want to clarify" treated as `/adv-clarify` | Only literal `/adv-clarify` reply triggers halt branch |
+| Two `question` calls (popup + "shall I proceed?") | One inline footer; whitelist match advances immediately |
+
+### Anti-patterns
+
+- × Don't ask "shall I proceed?" after the user replies with a whitelist word — that's the go-ahead.
+- × Don't add LLM fallback for Tier B checkpoints. Reversibility is the axis.
+- × Don't migrate non-checkpoint `question` uses (doom-loop, drift detection, change-id selection, AC clarification rounds, judgment calls). They keep structured options.
+- × Don't keep the old "Ask via `question`..." phrasing in any of the seven checkpoint command docs after this section is in force. Regression test `plugin/src/checkpoint-surface-drift.test.ts` enforces this.
+
 ## Enforcement
 
 - `plugin/src/manifest.test.ts` asserts: verb-first, 5–14 words, no banned phrases
 - `plugin/src/manifest-doc-drift.test.ts` asserts: exact equality between manifest descriptions and command doc frontmatter (runs in `bun test`)
+- `plugin/src/checkpoint-surface-drift.test.ts` asserts: each of the seven checkpoint-owning command docs uses the Inline Approval Voice anchor phrase, and does NOT contain old `question`-tool checkpoint phrasing
 - PR review checklist includes: "Does the description start with a verb? Is it ≤14 words?"
