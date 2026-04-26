@@ -150,6 +150,14 @@ describe("Change Tools", () => {
       expect(parsed.changes).toHaveLength(1);
       expect(parsed.changes[0].parent_change_id).toBe("parentChange");
     });
+
+    test("omits parent_change_id when fast_follow_of not set", async () => {
+      const result = await changeTools.adv_change_list.execute({}, store);
+      const parsed = parseToolOutput(result);
+
+      expect(parsed.changes).toHaveLength(1);
+      expect(parsed.changes[0].parent_change_id).toBeUndefined();
+    });
   });
 
   describe("adv_change_close", () => {

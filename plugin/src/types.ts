@@ -1287,7 +1287,9 @@ export interface ChangeListResponse {
     status: ChangeStatus;
     taskCount: number;
     completedTasks: number;
+    /** Same-project fast-follow lineage (optional) */
     fast_follow_of?: FastFollowOf;
+    /** Convenience top-level annotation when fast_follow_of is set (added by adv_change_list) */
     parent_change_id?: string;
   }>;
 }
