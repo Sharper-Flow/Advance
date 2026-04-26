@@ -339,6 +339,11 @@ export function createToolMap(
     ),
 
     // Temporal operator tools
+    adv_temporal_diagnose: bindTool(
+      temporalOpsTools.adv_temporal_diagnose,
+      "adv_temporal_diagnose",
+      store,
+    ),
     adv_temporal_worker_restart: bindTool(
       temporalOpsTools.adv_temporal_worker_restart,
       "adv_temporal_worker_restart",
@@ -450,6 +455,7 @@ export const ADV_TOOL_NAMES: readonly string[] = [
   "adv_gate_status",
   "adv_gate_complete",
   "adv_run_test",
+  "adv_temporal_diagnose",
   "adv_temporal_worker_restart",
   "adv_workflow_repair",
   "adv_task_checkpoint",

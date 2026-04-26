@@ -4,6 +4,12 @@ import type { Store } from "../storage/store";
 import { restartCurrentProjectTemporalWorker } from "../plugin-init";
 import { getService } from "../temporal/service";
 import { repairChangeActivity } from "../temporal/activities";
+import { getTemporalHealth } from "../temporal/health-probe";
+import {
+  buildChangeWorkflowId,
+  buildProjectWorkflowId,
+} from "../temporal/client";
+import { checkAdvSearchAttributes } from "../temporal/observability";
 import { formatToolOutput } from "../utils/tool-output";
 
 // P2.6: WorkflowClientLike / asWorkflowClientSurface / asProjectWorkflowHandle
@@ -45,7 +51,138 @@ export function asProjectWorkflowHandle(
   return handle as ProjectWorkflowHandle;
 }
 
+type WorkflowReachability =
+  | { reachable: true; error?: undefined }
+  | { reachable: false; error: string };
+
+async function describeWorkflowReachability(
+  bundle: ReturnType<typeof getService>,
+  workflowId: string,
+): Promise<WorkflowReachability> {
+  const describeWorkflowExecution = (
+    bundle?.connection as unknown as {
+      workflowService?: {
+        describeWorkflowExecution?: (req: {
+          namespace: string;
+          execution: { workflowId: string };
+        }) => Promise<unknown>;
+      };
+    }
+  )?.workflowService?.describeWorkflowExecution;
+
+  if (!bundle || typeof describeWorkflowExecution !== "function") {
+    return {
+      reachable: false,
+      error: "Temporal workflow describe unavailable",
+    };
+  }
+
+  try {
+    await describeWorkflowExecution({
+      namespace: bundle.namespace,
+      execution: { workflowId },
+    });
+    return { reachable: true };
+  } catch (err) {
+    return {
+      reachable: false,
+      error: err instanceof Error ? err.message : String(err),
+    };
+  }
+}
+
+function recommendTemporalRecovery(input: {
+  health: Awaited<ReturnType<typeof getTemporalHealth>>;
+  stslInitialized: boolean;
+  searchAttributesOk: boolean;
+  projectWorkflowReachable: boolean | null;
+  changeWorkflowReachable: boolean | null;
+}): string {
+  if (!input.health.server_alive) return "restore Temporal server";
+  if (!input.stslInitialized) return "restart OpenCode or initialize STSL";
+  if (!input.searchAttributesOk) {
+    return "run adv_temporal_register_search_attributes";
+  }
+  if (!input.health.worker_process_alive || !input.health.worker_alive) {
+    return "run adv_temporal_worker_restart";
+  }
+  if (input.health.stale_queues.length > 0) return "run adv_orphan_sweep dry-run";
+  if (input.projectWorkflowReachable === false) return "run adv_workflow_repair";
+  if (input.changeWorkflowReachable === false) return "run adv_workflow_repair";
+  if (input.health.last_error) return "inspect last_error and retry blocked tool";
+  return "none";
+}
+
 export const temporalOpsTools = {
+  adv_temporal_diagnose: {
+    description:
+      "Read-only Temporal recovery diagnostic for ADV: classifies server, STSL, worker, workflow, search-attribute, stale-queue, and last-error health with a recommended next action.",
+    args: {
+      changeId: z
+        .string()
+        .optional()
+        .describe("Optional change ID to check for a reachable change workflow"),
+    },
+    execute: async (args: { changeId?: string }, store: Store) => {
+      const projectId = store.paths.external
+        ? basename(store.paths.external)
+        : undefined;
+      const health = await getTemporalHealth(projectId);
+      const bundle = getService();
+      const searchAttributes = bundle
+        ? await checkAdvSearchAttributes(bundle.connection, bundle.namespace)
+        : {
+            ok: false,
+            present: [],
+            missing: [],
+            wrongType: [],
+            error: "Temporal service layer not initialized",
+          };
+
+      const projectWorkflow = projectId
+        ? await describeWorkflowReachability(
+            bundle,
+            buildProjectWorkflowId(projectId),
+          )
+        : { reachable: false as const, error: "No projectId resolved" };
+
+      const changeWorkflow =
+        projectId && args.changeId
+          ? {
+              changeId: args.changeId,
+              ...(await describeWorkflowReachability(
+                bundle,
+                buildChangeWorkflowId(projectId, args.changeId),
+              )),
+            }
+          : null;
+
+      const recommendedNextAction = recommendTemporalRecovery({
+        health,
+        stslInitialized: bundle !== null,
+        searchAttributesOk: searchAttributes.ok,
+        projectWorkflowReachable: projectWorkflow.reachable,
+        changeWorkflowReachable: changeWorkflow?.reachable ?? null,
+      });
+
+      return formatToolOutput({
+        success: true,
+        projectId,
+        stsl: {
+          initialized: bundle !== null,
+          namespace: bundle?.namespace ?? null,
+          address: bundle?.address ?? null,
+          reconnectCount: health.reconnect_count,
+        },
+        temporalHealth: health,
+        searchAttributes,
+        projectWorkflow,
+        changeWorkflow,
+        recommendedNextAction,
+      });
+    },
+  },
+
   adv_temporal_worker_restart: {
     description:
       "Force-restart the in-process Temporal worker for the current project when the respawn loop is exhausted or the worker is wedged.",

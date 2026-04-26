@@ -23,6 +23,17 @@ const mocks = vi.hoisted(() => ({
   rebuildProjectWorkflowState: vi.fn(async () => ({})),
   reImportChangeState: vi.fn(async () => ({})),
   writeJsonlAtomic: vi.fn(async () => {}),
+  getTemporalHealth: vi.fn(async () => ({
+    server_alive: true,
+    worker_alive: true,
+    worker_process_alive: true,
+    registered_queues: ["advance-proj123"],
+    last_op_at: null,
+    last_error: null,
+    fallback_counts: { changes: 0, tasks: 0, wisdom: 0, gates: 0 },
+    stale_queues: [],
+    reconnect_count: 0,
+  })),
   createTemporalClientBundle: vi.fn(async () => ({
     connection: { close: vi.fn(async () => {}) },
     client: {
@@ -42,7 +53,23 @@ const mocks = vi.hoisted(() => ({
   getService: vi.fn(() => ({
     address: "127.0.0.1:7233",
     namespace: "default",
-    connection: { close: vi.fn(async () => {}) },
+    connection: {
+      close: vi.fn(async () => {}),
+      operatorService: {
+        getSearchAttributes: vi.fn(async () => ({
+          customAttributes: {
+            AdvProjectId: { indexedValueType: 1 },
+            AdvChangeId: { indexedValueType: 1 },
+            AdvChangeStatus: { indexedValueType: 1 },
+            AdvActiveGate: { indexedValueType: 1 },
+            AdvDoomLoopActive: { indexedValueType: 4 },
+          },
+        })),
+      },
+      workflowService: {
+        describeWorkflowExecution: vi.fn(async () => ({})),
+      },
+    },
     client: {
       workflow: {
         getHandle: vi.fn(() => ({
@@ -118,6 +145,16 @@ vi.mock("../temporal/service", async () => {
   };
 });
 
+vi.mock("../temporal/health-probe", async () => {
+  const actual = await vi.importActual<
+    typeof import("../temporal/health-probe")
+  >("../temporal/health-probe");
+  return {
+    ...actual,
+    getTemporalHealth: mocks.getTemporalHealth,
+  };
+});
+
 vi.mock("../temporal/migration", async () => {
   const actual = await vi.importActual<typeof import("../temporal/migration")>(
     "../temporal/migration",
@@ -180,6 +217,58 @@ describe("temporal operator tools", () => {
     expect(parsed.success).toBe(true);
     expect(parsed.projectId).toBe("proj123");
     expect(parsed.queues).toEqual(["advance-proj123"]);
+  });
+
+  it("adv_temporal_diagnose reports healthy recovery state", async () => {
+    const store = {
+      paths: {
+        root: "/repo",
+        external: "/home/jrede/.local/share/opencode/plugins/advance/proj123",
+      },
+    } as any;
+
+    const result = await temporalOpsTools.adv_temporal_diagnose.execute(
+      { changeId: "chg123" },
+      store,
+    );
+    const parsed = JSON.parse(result);
+
+    expect(parsed.success).toBe(true);
+    expect(parsed.projectId).toBe("proj123");
+    expect(parsed.stsl.initialized).toBe(true);
+    expect(parsed.searchAttributes.ok).toBe(true);
+    expect(parsed.projectWorkflow.reachable).toBe(true);
+    expect(parsed.changeWorkflow).toEqual({
+      changeId: "chg123",
+      reachable: true,
+    });
+    expect(parsed.recommendedNextAction).toBe("none");
+  });
+
+  it("adv_temporal_diagnose recommends search-attribute registration when attrs are missing", async () => {
+    const bundle = mocks.getService();
+    bundle.connection.operatorService.getSearchAttributes = vi.fn(async () => ({
+      customAttributes: {},
+    }));
+    mocks.getService.mockReturnValueOnce(bundle as any);
+    const store = {
+      paths: {
+        root: "/repo",
+        external: "/home/jrede/.local/share/opencode/plugins/advance/proj123",
+      },
+    } as any;
+
+    const result = await temporalOpsTools.adv_temporal_diagnose.execute(
+      {},
+      store,
+    );
+    const parsed = JSON.parse(result);
+
+    expect(parsed.searchAttributes.ok).toBe(false);
+    expect(parsed.searchAttributes.missing).toHaveLength(5);
+    expect(parsed.recommendedNextAction).toBe(
+      "run adv_temporal_register_search_attributes",
+    );
   });
 
   it("adv_workflow_repair rebuilds project workflow, reimports the change, and re-emits derived exports", async () => {
