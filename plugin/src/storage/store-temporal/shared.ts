@@ -168,3 +168,37 @@ export function getProjectHandleForInput(
     return null;
   }
 }
+
+export interface StoreDeps {
+  input: TemporalStoreBackendInput;
+  legacy: Store;
+
+  // Shared state maps
+  changeCache: Map<string, Change>;
+  changeOverlayCache: Map<string, Partial<Change>>;
+  memo: ChangeSummaryMemo;
+  sourceVersions: Map<string, number>;
+  taskChangeIndex: Map<string, string>;
+
+  // Shared helpers (closures over the maps above)
+  buildSummary: (state: ChangeWorkflowState) => ChangeSummary;
+  setCachedChange: (state: ChangeWorkflowState) => Change;
+  invalidateChange: (changeId: string) => void;
+  updateOverlay: (changeId: string, patch: Partial<Change>) => void;
+  emitChangeSummarySignal: (changeId: string, state: ChangeWorkflowState) => void;
+  persistStateToDisk: (changeId: string, state: ChangeWorkflowState) => void;
+  dualWriteAfterMutation: (changeId: string) => Promise<void>;
+  getProjectHandle: () => WorkflowHandleLike | null;
+  getTemporalWorkflowClient: () => {
+    workflow: {
+      start: (...args: unknown[]) => Promise<WorkflowHandleLike>;
+      getHandle: (workflowId: string) => WorkflowHandleLike;
+    };
+  };
+  resolveStateOrQuery: (getHandle: () => WorkflowHandleLike, result: unknown) => Promise<ChangeWorkflowState>;
+  indexTasksFromState: (state: ChangeWorkflowState) => void;
+  resolveChangeId: (taskId: string) => Promise<string | null>;
+  getTemporalChange: (changeId: string) => Promise<ReturnType<Store["changes"]["get"]>>;
+  listResolvedChanges: (filter?: { includeArchived?: boolean; includeClosed?: boolean }) => Promise<Change[]>;
+  reseedChangeFromDisk: (changeId: string) => Promise<Change | null>;
+}

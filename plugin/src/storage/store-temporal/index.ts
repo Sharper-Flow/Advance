@@ -1,76 +1,48 @@
-import type {
-  Change,
-  ChangeClosure,
-  GateId,
-  Task,
-  WisdomEntry,
-  TddPhase,
-  TddReclassification,
-  WisdomType,
-  BulkCloseResult,
-} from "../types";
-import { createDefaultGates } from "../types";
-import { createLogger } from "../utils/debug-log";
-
-const logger = createLogger("store-temporal");
-import type { Store } from "./store-types";
-import type { TemporalClientBundle } from "../temporal/client";
-import { buildProjectWorkflowId } from "../temporal/client";
-import {
-  addChangeWisdomUpdate,
-  addTaskUpdate,
-  applyChangeSummarySignal,
-  cancelTaskUpdate,
-  changeStateQuery,
-  changeTaskQuery,
-  changeTaskRunQuery,
-  changeTaskRunsQuery,
-  changeTasksQuery,
-  closeChangeUpdate,
-  completeGateUpdate,
-  recordTaskEvidenceUpdate,
-  recordTaskRunEventUpdate,
-  reclassifyTaskTddUpdate,
-  reopenFromGateUpdate,
-  setTaskPhaseUpdate,
-  updateArtifactMetadataUpdate,
-  updateTaskUpdate,
-} from "../temporal/messages";
-import type {
-  ChangeWorkflowState,
-  ProjectWorkflowState,
-} from "../temporal/contracts";
-import { ensureChangeWorkflowStarted } from "../temporal/migration";
-import { getReadyTasksFromChangeState } from "../temporal/change-state";
-import { classifyTemporalError } from "../temporal/retry-wrapper";
-import { listChangeDirs, removeChangeDir } from "./json";
-import { buildChangeRecency, computeLastActivity } from "./store-types";
-import type { ChangeStatus, ProjectStatus, Spec } from "../types";
-import { SpecSchema } from "../types";
-import { listSpecsActivity, showSpecActivity } from "../temporal/activities";
-import type { LoadResult } from "./json";
-import { filterChanges } from "./content-search";
-import { listChangeWorkflowIds } from "../temporal/list-change-workflows";
+import type { Store } from "../store-types";
+import type { Change } from "../../types";
+import { createDefaultGates } from "../../types";
+import { createLogger } from "../../utils/debug-log";
+import { buildProjectWorkflowId } from "../../temporal/client";
+import { classifyTemporalError } from "../../temporal/retry-wrapper";
+import { listChangeDirs } from "../json";
+import { buildChangeRecency } from "../store-types";
+import type { ChangeStatus, ProjectStatus, Spec } from "../../types";
+import { SpecSchema } from "../../types";
+import { listSpecsActivity, showSpecActivity } from "../../temporal/activities";
+import type { LoadResult } from "../json";
+import { filterChanges } from "../content-search";
+import { listChangeWorkflowIds } from "../../temporal/list-change-workflows";
 import {
   ChangeSummaryMemo,
   asGateStatus,
   type ChangeSummary,
-} from "./store-temporal-memo";
+} from "../store-temporal-memo";
 import {
-  WorkflowHandleLike,
-  type TemporalHandleClient,
   type TemporalStoreBackendInput,
+  type TemporalHandleClient,
+  type WorkflowHandleLike,
+  type StoreDeps,
   mapTemporalChangeStateToChange,
   getChangeHandle,
   runTemporal,
   runTemporalQuery,
   hydrateMemoFromPSW,
-} from "./store-temporal/shared";
+} from "./shared";
+import { applyChangeSummarySignal, changeStateQuery } from "../../temporal/messages";
+import { ensureChangeWorkflowStarted } from "../../temporal/migration";
+import type { ChangeWorkflowState } from "../../temporal/contracts";
 
-export function createTemporalStoreBackend(
-  input: TemporalStoreBackendInput,
-): Store {
+import { createChangeOps } from "./changes";
+import { createTaskOps } from "./tasks";
+import { createGateOps } from "./gates";
+import { createWisdomOps } from "./wisdom";
+
+const logger = createLogger("store-temporal");
+
+export function createTemporalStoreBackend(input: TemporalStoreBackendInput): Store {
   const { legacy } = input;
+
+  // Shared state
   const changeCache = new Map<string, Change>();
   const changeOverlayCache = new Map<string, Partial<Change>>();
   const memo = new ChangeSummaryMemo();
@@ -701,592 +673,49 @@ export function createTemporalStoreBackend(
     }
   };
 
+  // Assemble deps
+  const deps: StoreDeps = {
+    input,
+    legacy,
+    changeCache,
+    changeOverlayCache,
+    memo,
+    sourceVersions,
+    taskChangeIndex,
+    buildSummary,
+    setCachedChange,
+    invalidateChange,
+    updateOverlay,
+    emitChangeSummarySignal,
+    persistStateToDisk,
+    dualWriteAfterMutation,
+    getProjectHandle,
+    getTemporalWorkflowClient,
+    resolveStateOrQuery,
+    indexTasksFromState,
+    resolveChangeId,
+    getTemporalChange,
+    listResolvedChanges,
+    reseedChangeFromDisk,
+  };
+
   const store: Store = {
     ...legacy,
     specs: buildSpecsSurface(),
-    changes: {
-      create: async (
-        summary,
-        capability,
-        proposalContent,
-        problemStatementContent,
-        agreementContent,
-        designContent,
-      ) => {
-        const result = await legacy.changes.create(
-          summary,
-          capability,
-          proposalContent,
-          problemStatementContent,
-          agreementContent,
-          designContent,
-        );
-        const created = await legacy.changes.get(result.changeId);
-        if (!created.success || !created.data) {
-          throw new Error(
-            `Created change ${result.changeId} but could not reload scaffolded change state`,
-          );
-        }
-
-        // P1.4 transactional guard: if Temporal workflow start fails,
-        // the disk scaffold (proposal.md, change.json, etc.) would
-        // otherwise persist as an orphan that confuses subsequent tool
-        // calls. Remove the change dir on failure and re-throw the
-        // ORIGINAL error — never mask it with rollback errors.
-        //
-        // See design.md § KD-7.
-        try {
-          const client = getTemporalWorkflowClient();
-          await ensureChangeWorkflowStarted(client, {
-            projectId: input.projectId,
-            changeId: created.data.id,
-            title: created.data.title,
-            initializedAt: created.data.created_at,
-            seedState: {
-              status: created.data.status,
-              tasks: created.data.tasks,
-              wisdom: created.data.wisdom,
-              gates: created.data.gates,
-              reentry_history: created.data.reentry_history,
-            },
-          });
-        } catch (err) {
-          try {
-            await removeChangeDir(legacy.paths.changes, created.data.id);
-          } catch (rollbackErr) {
-            // Rollback itself failed (disk unmounted, permissions, etc).
-            // Log but don't mask the original Temporal error.
-            logger.error(
-              `P1.4 rollback failed for change '${created.data.id}' after Temporal-start error: ${
-                rollbackErr instanceof Error
-                  ? rollbackErr.message
-                  : String(rollbackErr)
-              }. Manual cleanup of the change directory may be required.`,
-            );
-          }
-          throw err;
-        }
-
-        updateOverlay(created.data.id, {
-          created_at: created.data.created_at,
-          created_by: created.data.created_by,
-          deltas: created.data.deltas,
-          validation: created.data.validation,
-          github_issues: created.data.github_issues,
-          clarify_findings: created.data.clarify_findings,
-          judgment_calls: created.data.judgment_calls,
-          batch_surfaced_at: created.data.batch_surfaced_at,
-          cross_project_origin: created.data.cross_project_origin,
-        });
-        return result;
-      },
-      save: async (change) => {
-        await legacy.changes.save(change);
-        updateOverlay(change.id, {
-          title: change.title,
-          status: change.status,
-          created_at: change.created_at,
-          created_by: change.created_by,
-          deltas: change.deltas,
-          validation: change.validation,
-          github_issues: change.github_issues,
-          closure: change.closure,
-          clarify_findings: change.clarify_findings,
-          reentry_history: change.reentry_history,
-          judgment_calls: change.judgment_calls,
-          batch_surfaced_at: change.batch_surfaced_at,
-          cross_project_origin: change.cross_project_origin,
-        });
-      },
-      list: async (filter) => {
-        // When status is explicitly "archived"/"closed", auto-enable the
-        // corresponding include flag so the status filter isn't immediately
-        // undone by the exclusion below.
-        const effectiveIncludeArchived =
-          filter?.includeArchived || filter?.status === "archived";
-        const effectiveIncludeClosed =
-          filter?.includeClosed || filter?.status === "closed";
-
-        // Pass include flags into the resolver so the visibility query
-        // widens its status filter to include archived/closed workflows
-        // when the caller asked for them. Without this the post-filter
-        // below operates on a pre-narrowed set and surfaces nothing.
-        const changes = await listResolvedChanges({
-          includeArchived: effectiveIncludeArchived,
-          includeClosed: effectiveIncludeClosed,
-        });
-        let filtered = changes;
-
-        if (filter?.status) {
-          filtered = filtered.filter(
-            (change) => change.status === filter.status,
-          );
-        }
-        if (!effectiveIncludeArchived) {
-          filtered = filtered.filter((change) => change.status !== "archived");
-        }
-        if (!effectiveIncludeClosed) {
-          filtered = filtered.filter((change) => change.status !== "closed");
-        }
-
-        // P2.3: substring/prefix/timestamp filters via linear-scan
-        // content-search helper. See `content-search.ts` and
-        // `scripts/bench-content-search.ts` for the bench data backing
-        // this strategy choice over MiniSearch.
-        if (
-          filter?.prefix ||
-          filter?.titleContains ||
-          filter?.createdBefore ||
-          filter?.lastActivityBefore
-        ) {
-          const enriched = filtered.map((c) => ({
-            ...c,
-            lastActivityAt: computeLastActivity(c),
-          }));
-          filtered = filterChanges(enriched, {
-            prefix: filter.prefix,
-            titleContains: filter.titleContains,
-            createdBefore: filter.createdBefore,
-            lastActivityBefore: filter.lastActivityBefore,
-          });
-        }
-
-        filtered.sort((a, b) => {
-          const cmp = b.created_at.localeCompare(a.created_at);
-          return cmp !== 0 ? cmp : a.id.localeCompare(b.id);
-        });
-
-        return {
-          changes: filtered.map((change) => ({
-            id: change.id,
-            title: change.title,
-            status: change.status,
-            taskCount: change.tasks.length,
-            completedTasks: change.tasks.filter(
-              (task) => task.status === "done",
-            ).length,
-          })),
-        };
-      },
-      get: async (changeId: string) => {
-        // Delegates to the shared orphan-tolerant path so adv_status,
-        // adv_change_show, and adv_change_list all behave the same when
-        // a workflow is missing: try to re-seed from disk, otherwise
-        // return the not-found error.
-        return getTemporalChange(changeId);
-      },
-      close: async (changeId: string, closure: ChangeClosure) => {
-        invalidateChange(changeId);
-        const raw = await runTemporal(() =>
-          getChangeHandle(input, changeId).executeUpdate(closeChangeUpdate, {
-            args: [closure],
-          }),
-        );
-        const result = await resolveStateOrQuery(
-          () => getChangeHandle(input, changeId),
-          raw,
-        );
-        indexTasksFromState(result);
-        updateOverlay(changeId, { status: "closed", closure });
-        const change = setCachedChange(result);
-        emitChangeSummarySignal(changeId, result);
-        return change;
-      },
-
-      closeBatch: async (
-        changeIds: string[],
-        closure: ChangeClosure,
-      ): Promise<BulkCloseResult> => {
-        // Pre-validate: fail-all if any target is invalid or protected
-        for (const id of changeIds) {
-          const change = await getTemporalChange(id);
-          if (!change.success || !change.data) {
-            return {
-              success: false,
-              closed: 0,
-              results: changeIds.map((cid) => ({
-                changeId: cid,
-                success: false,
-                error:
-                  cid === id
-                    ? change.success === false
-                      ? change.error
-                      : "Change not found"
-                    : "Aborted due to sibling failure",
-              })),
-              message: `Bulk close aborted: Change "${id}" not found.`,
-            };
-          }
-          if (
-            change.data.status !== "draft" &&
-            change.data.status !== "pending"
-          ) {
-            return {
-              success: false,
-              closed: 0,
-              results: changeIds.map((cid) => ({
-                changeId: cid,
-                success: false,
-                error:
-                  cid === id
-                    ? `Protected status "${change.data!.status}"`
-                    : "Aborted due to sibling failure",
-              })),
-              message: `Bulk close aborted: Change "${id}" has protected status "${change.data.status}". Only draft or pending changes can be bulk-closed.`,
-            };
-          }
-        }
-
-        const results: {
-          changeId: string;
-          success: boolean;
-          error?: string;
-        }[] = [];
-        let closed = 0;
-
-        for (const id of changeIds) {
-          try {
-            invalidateChange(id);
-            const raw = await runTemporal(() =>
-              getChangeHandle(input, id).executeUpdate(closeChangeUpdate, {
-                args: [closure],
-              }),
-            );
-            const result = await resolveStateOrQuery(
-              () => getChangeHandle(input, id),
-              raw,
-            );
-            indexTasksFromState(result);
-            updateOverlay(id, { status: "closed", closure });
-            setCachedChange(result);
-            emitChangeSummarySignal(id, result);
-            results.push({ changeId: id, success: true });
-            closed++;
-          } catch (err) {
-            results.push({
-              changeId: id,
-              success: false,
-              error: String(err),
-            });
-          }
-        }
-
-        const allSuccess = closed === changeIds.length;
-        return {
-          success: allSuccess,
-          closed,
-          results,
-          message: allSuccess
-            ? `Successfully closed ${closed} change(s).`
-            : `Closed ${closed}of ${changeIds.length} change(s). See results for details.`,
-        };
-      },
-      updateArtifacts: async (
-        changeId,
-        proposalContent,
-        problemStatementContent,
-        agreementContent,
-        designContent,
-      ) => {
-        const result = await legacy.changes.updateArtifacts(
-          changeId,
-          proposalContent,
-          problemStatementContent,
-          agreementContent,
-          designContent,
-        );
-        if (!result.success) {
-          return result;
-        }
-        const updates: Array<
-          [
-            "proposal" | "problemStatement" | "agreement" | "design",
-            string | undefined,
-          ]
-        > = [
-          ["proposal", result.proposalPath],
-          ["problemStatement", result.problemStatementPath],
-          ["agreement", result.agreementPath],
-          ["design", result.designPath],
-        ];
-        for (const [kind, path] of updates) {
-          if (!path) continue;
-          await runTemporal(() =>
-            getChangeHandle(input, changeId).executeUpdate(
-              updateArtifactMetadataUpdate,
-              {
-                args: [kind, { path, updatedAt: new Date().toISOString() }],
-              },
-            ),
-          );
-        }
-        return result;
-      },
-    },
-    tasks: {
-      ...legacy.tasks,
-      list: async (changeId: string, status?: string, filter?: string) => {
-        const tasks = (await runTemporalQuery(() =>
-          getChangeHandle(input, changeId).query(
-            changeTasksQuery,
-            status,
-            filter,
-          ),
-        )) as Awaited<ReturnType<Store["tasks"]["list"]>>;
-        for (const task of tasks ?? []) {
-          taskChangeIndex.set(task.id, changeId);
-        }
-        return tasks;
-      },
-      ready: async (changeId: string) => {
-        const state = (await runTemporalQuery(() =>
-          getChangeHandle(input, changeId).query(changeStateQuery),
-        )) as ChangeWorkflowState;
-        indexTasksFromState(state);
-        return getReadyTasksFromChangeState(state);
-      },
-      update: async (
-        taskId,
-        status,
-        notes,
-        implementationSummary,
-        errorRecovery,
-      ) => {
-        const changeId = await resolveChangeId(taskId);
-        if (!changeId) return null;
-        invalidateChange(changeId);
-        const result = (await runTemporal(() =>
-          getChangeHandle(input, changeId).executeUpdate(updateTaskUpdate, {
-            args: [
-              taskId,
-              {
-                status: status as Task["status"],
-                notes,
-                implementationSummary,
-                errorRecovery,
-              },
-            ],
-          }),
-        )) as Awaited<ReturnType<Store["tasks"]["update"]>>;
-        await dualWriteAfterMutation(changeId);
-        return result;
-      },
-      add: async (changeId, content, options) => {
-        invalidateChange(changeId);
-        const created = (await runTemporal(() =>
-          getChangeHandle(input, changeId).executeUpdate(addTaskUpdate, {
-            args: [
-              {
-                title: content,
-                type: options?.type,
-                section: options?.section,
-                blockedBy: options?.blockedBy,
-                metadata: options?.metadata,
-              },
-            ],
-          }),
-        )) as Awaited<ReturnType<Store["tasks"]["add"]>>;
-        if (created && typeof created === "object" && "id" in created) {
-          taskChangeIndex.set((created as { id: string }).id, changeId);
-        }
-        await dualWriteAfterMutation(changeId);
-        return created;
-      },
-      get: async (taskId) => {
-        const changeId = await resolveChangeId(taskId);
-        if (!changeId) return null;
-        return (await runTemporalQuery(() =>
-          getChangeHandle(input, changeId).query(changeTaskQuery, taskId),
-        )) as Awaited<ReturnType<Store["tasks"]["get"]>>;
-      },
-      show: async (taskId) => {
-        const changeId = await resolveChangeId(taskId);
-        if (!changeId) return null;
-        const task = await runTemporalQuery(() =>
-          getChangeHandle(input, changeId).query(changeTaskQuery, taskId),
-        );
-        if (!task) return null;
-        return { task: task as Task, changeId };
-      },
-      getRun: async (taskId) => {
-        const changeId = await resolveChangeId(taskId);
-        if (!changeId) return null;
-        return (await runTemporalQuery(() =>
-          getChangeHandle(input, changeId).query(changeTaskRunQuery, taskId),
-        )) as Awaited<ReturnType<Store["tasks"]["getRun"]>>;
-      },
-      listRuns: async (changeId) => {
-        return (await runTemporalQuery(() =>
-          getChangeHandle(input, changeId).query(changeTaskRunsQuery),
-        )) as Awaited<ReturnType<Store["tasks"]["listRuns"]>>;
-      },
-      recordRunEvent: async (taskId, event) => {
-        const changeId = await resolveChangeId(taskId);
-        if (!changeId) return null;
-        invalidateChange(changeId);
-        const result = (await runTemporal(() =>
-          getChangeHandle(input, changeId).executeUpdate(
-            recordTaskRunEventUpdate,
-            {
-              args: [taskId, event],
-            },
-          ),
-        )) as Awaited<ReturnType<Store["tasks"]["recordRunEvent"]>>;
-        await dualWriteAfterMutation(changeId);
-        return result;
-      },
-      recordEvidence: async (taskId, phase, evidence) => {
-        const changeId = await resolveChangeId(taskId);
-        if (!changeId) return null;
-        invalidateChange(changeId);
-        const result = (await runTemporal(() =>
-          getChangeHandle(input, changeId).executeUpdate(
-            recordTaskEvidenceUpdate,
-            {
-              args: [taskId, phase, evidence],
-            },
-          ),
-        )) as Awaited<ReturnType<Store["tasks"]["recordEvidence"]>>;
-        await dualWriteAfterMutation(changeId);
-        return result;
-      },
-      setPhase: async (taskId, phase: TddPhase) => {
-        const changeId = await resolveChangeId(taskId);
-        if (!changeId) return null;
-        invalidateChange(changeId);
-        const result = (await runTemporal(() =>
-          getChangeHandle(input, changeId).executeUpdate(setTaskPhaseUpdate, {
-            args: [taskId, phase],
-          }),
-        )) as Awaited<ReturnType<Store["tasks"]["setPhase"]>>;
-        await dualWriteAfterMutation(changeId);
-        return result;
-      },
-      cancel: async (taskId, cancellation) => {
-        const changeId = await resolveChangeId(taskId);
-        if (!changeId) return null;
-        invalidateChange(changeId);
-        const result = (await runTemporal(() =>
-          getChangeHandle(input, changeId).executeUpdate(cancelTaskUpdate, {
-            args: [taskId, cancellation],
-          }),
-        )) as Awaited<ReturnType<Store["tasks"]["cancel"]>>;
-        await dualWriteAfterMutation(changeId);
-        return result;
-      },
-      reclassifyTdd: async (taskId, reclassification: TddReclassification) => {
-        const changeId = await resolveChangeId(taskId);
-        if (!changeId) return null;
-        invalidateChange(changeId);
-        const result = (await runTemporal(() =>
-          getChangeHandle(input, changeId).executeUpdate(
-            reclassifyTaskTddUpdate,
-            {
-              args: [taskId, reclassification],
-            },
-          ),
-        )) as Awaited<ReturnType<Store["tasks"]["reclassifyTdd"]>>;
-        await dualWriteAfterMutation(changeId);
-        return result;
-      },
-    },
-    wisdom: {
-      ...legacy.wisdom,
-      add: async (changeId, type: WisdomType, content, sourceTask) => {
-        invalidateChange(changeId);
-        const raw = await runTemporal(() =>
-          getChangeHandle(input, changeId).executeUpdate(
-            addChangeWisdomUpdate,
-            {
-              args: [type, content, sourceTask],
-            },
-          ),
-        );
-        const state = await resolveStateOrQuery(
-          () => getChangeHandle(input, changeId),
-          raw,
-        );
-        setCachedChange(state);
-        emitChangeSummarySignal(changeId, state);
-        persistStateToDisk(changeId, state);
-        const latest = state.wisdom[state.wisdom.length - 1] as
-          | WisdomEntry
-          | undefined;
-        if (!latest) {
-          throw new Error(
-            `Temporal wisdom update for change ${changeId} completed without returning an appended wisdom entry`,
-          );
-        }
-        return latest;
-      },
-      list: async (changeId: string) => {
-        const state = (await runTemporalQuery(() =>
-          getChangeHandle(input, changeId).query(changeStateQuery),
-        )) as ChangeWorkflowState;
-        return state.wisdom;
-      },
-    },
-    gates: {
-      ...legacy.gates,
-      get: async (changeId: string) => {
-        const state = (await runTemporalQuery(() =>
-          getChangeHandle(input, changeId).query(changeStateQuery),
-        )) as ChangeWorkflowState;
-        return state.gates;
-      },
-      complete: async (changeId: string, gateId: GateId, notes?: string) => {
-        invalidateChange(changeId);
-        const raw = await runTemporal(() =>
-          getChangeHandle(input, changeId).executeUpdate(completeGateUpdate, {
-            args: [gateId, notes, "agent"],
-          }),
-        );
-        const state = await resolveStateOrQuery(
-          () => getChangeHandle(input, changeId),
-          raw,
-        );
-        setCachedChange(state);
-        emitChangeSummarySignal(changeId, state);
-        persistStateToDisk(changeId, state);
-      },
-      reopenFrom: async (
-        changeId,
-        fromGate,
-        reason,
-        scopeDelta,
-        reopenedBy,
-        approvalEvidence,
-      ) => {
-        invalidateChange(changeId);
-        const raw = await runTemporal(() =>
-          getChangeHandle(input, changeId).executeUpdate(reopenFromGateUpdate, {
-            args: [
-              fromGate,
-              reason,
-              scopeDelta,
-              approvalEvidence ?? reopenedBy,
-            ],
-          }),
-        );
-        const state = await resolveStateOrQuery(
-          () => getChangeHandle(input, changeId),
-          raw,
-        );
-        setCachedChange(state);
-        emitChangeSummarySignal(changeId, state);
-        persistStateToDisk(changeId, state);
-      },
-    },
-    status: async () => {
-      return buildTemporalStatus();
-    },
+    changes: createChangeOps(deps),
+    tasks: createTaskOps(deps),
+    gates: createGateOps(deps),
+    wisdom: createWisdomOps(deps),
+    status: async () => buildTemporalStatus(),
   };
 
-  // Fire-and-forget PSW hydration: warm-start the Memo from projectWorkflow
-  // state so first status/list calls hit Memo instead of O(N) fan-out.
   hydrateMemoFromPSW(input, memo);
-
   return store;
 }
 
-
+// Re-export for any direct importers
+export { StoreDeps } from "./shared";
+export { createChangeOps } from "./changes";
+export { createTaskOps } from "./tasks";
+export { createGateOps } from "./gates";
+export { createWisdomOps } from "./wisdom";
