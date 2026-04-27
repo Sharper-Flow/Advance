@@ -71,8 +71,7 @@ async function completeGateAndBuildResponse({
         errorClass: "AdvProjectContextMismatch",
         owningProjectId: e.owningProjectId,
         currentProjectId: e.currentProjectId,
-        hint:
-          "Open the change in its owning project's context, or verify the linked-project configuration.",
+        hint: "Open the change in its owning project's context, or verify the linked-project configuration.",
       });
     }
     return formatToolOutput({
@@ -271,8 +270,7 @@ export const gateTools = {
             errorClass: "AdvProjectContextMismatch",
             owningProjectId: e.owningProjectId,
             currentProjectId: e.currentProjectId,
-            hint:
-              "Open the change in its owning project's context, or verify the linked-project configuration.",
+            hint: "Open the change in its owning project's context, or verify the linked-project configuration.",
           });
         }
         throw error;
@@ -359,8 +357,7 @@ export const gateTools = {
             errorClass: "AdvProjectContextMismatch",
             owningProjectId: e.owningProjectId,
             currentProjectId: e.currentProjectId,
-            hint:
-              "Open the change in its owning project's context, or verify the linked-project configuration.",
+            hint: "Open the change in its owning project's context, or verify the linked-project configuration.",
           });
         }
         throw error;

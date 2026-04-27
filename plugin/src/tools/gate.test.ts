@@ -995,7 +995,9 @@ describe("adv_gate_complete planning — readiness enforcement", () => {
 
   describe("AdvProjectContextMismatch diagnostics", () => {
     test("adv_gate_status returns structured mismatch fields when store throws mismatch", async () => {
-      const mismatchError = new Error("Change 'chg1' is owned by project 'owner-proj'");
+      const mismatchError = new Error(
+        "Change 'chg1' is owned by project 'owner-proj'",
+      );
       (mismatchError as any).name = "AdvProjectContextMismatch";
       (mismatchError as any).changeId = "chg1";
       (mismatchError as any).owningProjectId = "owner-proj";
@@ -1013,11 +1015,15 @@ describe("adv_gate_complete planning — readiness enforcement", () => {
       expect(parsed.changeId).toBe("chg1");
       expect(parsed.owningProjectId).toBe("owner-proj");
       expect(parsed.currentProjectId).toBe("current-proj");
-      expect(parsed.hint).toContain("Open the change in its owning project's context");
+      expect(parsed.hint).toContain(
+        "Open the change in its owning project's context",
+      );
     });
 
     test("adv_gate_complete returns structured mismatch fields when store throws mismatch", async () => {
-      const mismatchError = new Error("Change 'chg1' is owned by project 'owner-proj'");
+      const mismatchError = new Error(
+        "Change 'chg1' is owned by project 'owner-proj'",
+      );
       (mismatchError as any).name = "AdvProjectContextMismatch";
       (mismatchError as any).changeId = "chg1";
       (mismatchError as any).owningProjectId = "owner-proj";
@@ -1035,7 +1041,9 @@ describe("adv_gate_complete planning — readiness enforcement", () => {
       expect(parsed.changeId).toBe("addFeature");
       expect(parsed.owningProjectId).toBe("owner-proj");
       expect(parsed.currentProjectId).toBe("current-proj");
-      expect(parsed.hint).toContain("Open the change in its owning project's context");
+      expect(parsed.hint).toContain(
+        "Open the change in its owning project's context",
+      );
     });
   });
 });

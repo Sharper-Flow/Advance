@@ -1362,7 +1362,11 @@ describe("resolveProjectContext worktree preference", () => {
       return null;
     });
 
-    const result = await resolveProjectContext(directory, { vcsDir }, worktreeDir);
+    const result = await resolveProjectContext(
+      directory,
+      { vcsDir },
+      worktreeDir,
+    );
 
     expect(result.effectiveDir).toBe(worktreeDir);
     expect(result.projectId).toBe("worktree-proj-id");
