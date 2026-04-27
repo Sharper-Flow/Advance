@@ -17,6 +17,7 @@ import { listProjectWisdom } from "../storage/project-wisdom";
 import { GATE_ORDER } from "../types";
 import { computePerGateDurations, classifyTier } from "./investment";
 import { atomicWriteFile } from "../utils/fs";
+import { appendDebugLog } from "../utils/debug-log";
 
 // =============================================================================
 // Secrets Sanitization
@@ -153,7 +154,11 @@ async function computeWisdomReuseHits(
       if (overlap.length >= 2) hits++;
     }
     return hits;
-  } catch {
+  } catch (error) {
+    appendDebugLog(
+      "reflection",
+      `wisdom reuse hit computation failed: ${error}`,
+    );
     return 0;
   }
 }
@@ -257,8 +262,9 @@ async function writeReflectionMarkdown(
 
     const mdPath = join(archiveDir, match.name, "REFLECTION.md");
     await atomicWriteFile(mdPath, generateReflectionMarkdown(entry));
-  } catch {
+  } catch (error) {
     // Best-effort: ignore failures
+    appendDebugLog("reflection", `reflection markdown write failed: ${error}`);
   }
 }
 

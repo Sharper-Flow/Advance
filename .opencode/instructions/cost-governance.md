@@ -75,9 +75,9 @@ change tier classification semantics.
 
 | Want | Action |
 |---|---|
-| Fewer interruptions | Raise `escalate.tasks` and `escalate.elapsed_minutes`. Keep `hardstop` as a safety valve. |
-| Earlier check-ins | Lower `escalate` values. |
-| Never missed high-investment runs | Lower `hardstop` — it's the safety ceiling. |
+| Fewer interruptions | Raise `escalate.tasks` and/or `escalate.retries`. Keep `hardstop` as a safety valve. |
+| Earlier check-ins | Lower `escalate.tasks` and/or `escalate.retries`. |
+| Never missed high-investment runs | Lower `hardstop.tasks` and/or `hardstop.retries` — they are the safety ceiling. |
 
 ## References
 
