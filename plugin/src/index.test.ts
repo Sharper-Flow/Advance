@@ -1195,6 +1195,236 @@ describe("Plugin init resilience: degraded mode", () => {
 });
 
 // =============================================================================
+// Degraded-mode banner & factory-failure wrapper
+// =============================================================================
+
+describe("Degraded-mode diagnostic banner", () => {
+  let tempDir: string;
+  const pluginInstances: any[] = [];
+
+  beforeEach(async () => {
+    tempDir = await createTempDir();
+    await createTestProject(tempDir);
+  });
+
+  afterEach(async () => {
+    for (const hooks of pluginInstances) {
+      if (hooks?.event) {
+        try {
+          await hooks.event({
+            event: { type: "session.deleted", properties: {} },
+          });
+        } catch {
+          // ignore cleanup errors
+        }
+      }
+    }
+    pluginInstances.length = 0;
+    await cleanupTempDir(tempDir);
+  });
+
+  test("init failure: system.transform injects [ADV:DEGRADED] banner", async () => {
+    // Force tryInitStore to fail by writing malformed project.json
+    const { writeFile } = await import("fs/promises");
+    await writeFile(`${tempDir}/project.json`, "{ not valid json {{");
+
+    const hooks = await createTrackedPlugin(tempDir, pluginInstances);
+    const out = { system: [] as string[] };
+    await hooks["experimental.chat.system.transform"]!(
+      { sessionID: "test" } as any,
+      out as any,
+    );
+
+    const banner = out.system.find((line) => line.includes("[ADV:DEGRADED]"));
+    expect(banner).toBeDefined();
+    expect(banner).toContain("ADV plugin is running in degraded mode");
+    expect(banner).toContain("Plugin store initialization failed");
+    expect(banner).toContain("ADV_PLUGIN_INIT_FAILED");
+    expect(banner).toContain("× Do NOT proceed with any ADV workflow");
+    expect(banner).toContain("✓ Allowed");
+    expect(banner).toContain("Remediation");
+  });
+
+  test("healthy session: system.transform does NOT inject [ADV:DEGRADED] banner", async () => {
+    const hooks = await createTrackedPlugin(tempDir, pluginInstances);
+    const out = { system: [] as string[] };
+    await hooks["experimental.chat.system.transform"]!(
+      { sessionID: "test" } as any,
+      out as any,
+    );
+
+    const banner = out.system.find((line) => line.includes("[ADV:DEGRADED]"));
+    expect(banner).toBeUndefined();
+  });
+
+  test("init failure: banner injection does not throw even if output.system is malformed", async () => {
+    const { writeFile } = await import("fs/promises");
+    await writeFile(`${tempDir}/project.json`, "{ not valid json {{");
+
+    const hooks = await createTrackedPlugin(tempDir, pluginInstances);
+    // Pass a frozen output to force push to throw
+    const out = Object.freeze({ system: Object.freeze([]) });
+    await expect(
+      hooks["experimental.chat.system.transform"]!(
+        { sessionID: "test" } as any,
+        out as any,
+      ),
+    ).resolves.not.toThrow();
+  });
+});
+
+describe("Factory-failure wrapper", () => {
+  let tempDir: string;
+  const pluginInstances: any[] = [];
+
+  beforeEach(async () => {
+    tempDir = await createTempDir();
+  });
+
+  afterEach(async () => {
+    for (const hooks of pluginInstances) {
+      if (hooks?.event) {
+        try {
+          await hooks.event({
+            event: { type: "session.deleted", properties: {} },
+          });
+        } catch {
+          // ignore cleanup errors
+        }
+      }
+    }
+    pluginInstances.length = 0;
+    await cleanupTempDir(tempDir);
+    vi.restoreAllMocks();
+  });
+
+  test("factory throw: returns degraded hooks instead of propagating", async () => {
+    // Force a factory-level throw by spying on a module the factory uses
+    // before tryInitStore — initializeStatus runs after store init in the
+    // impl, but getProjectName runs synchronously and is reachable via
+    // events module. We mock initializeStatus to throw; advancePluginImpl
+    // calls it AFTER tryInitStore so it executes during factory body and
+    // its throw must NOT propagate to the caller.
+    const events = await import("./events");
+    vi.spyOn(events, "initializeStatus").mockImplementation(() => {
+      throw new Error("simulated factory-level failure");
+    });
+
+    const input = createMockPluginInput(tempDir);
+    const hooks = await AdvancePlugin(input);
+    pluginInstances.push(hooks);
+
+    // Wrapper must have caught the throw and returned hooks
+    expect(hooks).toBeDefined();
+    expect(hooks).toHaveProperty("tool");
+    expect(hooks.tool).not.toBeNull();
+  });
+
+  test("factory throw: degraded tool map contains every adv_* tool name", async () => {
+    const events = await import("./events");
+    vi.spyOn(events, "initializeStatus").mockImplementation(() => {
+      throw new Error("simulated factory-level failure");
+    });
+
+    const input = createMockPluginInput(tempDir);
+    const hooks = await AdvancePlugin(input);
+    pluginInstances.push(hooks);
+
+    const toolNames = Object.keys(hooks.tool!);
+    expect(toolNames).toContain("adv_status");
+    expect(toolNames).toContain("adv_change_create");
+    expect(toolNames).toContain("adv_change_list");
+    expect(toolNames).toContain("adv_task_list");
+    expect(toolNames).toContain("adv_gate_complete");
+    expect(toolNames.length).toBe(ADV_TOOL_NAMES.length);
+  });
+
+  test("factory throw: stub tools return ADV_PLUGIN_INIT_FAILED with simulated error", async () => {
+    const events = await import("./events");
+    vi.spyOn(events, "initializeStatus").mockImplementation(() => {
+      throw new Error("simulated factory-level failure");
+    });
+
+    const input = createMockPluginInput(tempDir);
+    const hooks = await AdvancePlugin(input);
+    pluginInstances.push(hooks);
+
+    const context = createMockToolContext();
+    const result = await hooks.tool!.adv_status.execute({}, context);
+    const parsed = parseToolOutput(result) as Record<string, unknown>;
+
+    expect(parsed.status).toBe("ADV_PLUGIN_INIT_FAILED");
+    expect(parsed.error).toContain("simulated factory-level failure");
+  });
+
+  test("factory throw: system.transform emits [ADV:DEGRADED] factory-stage banner", async () => {
+    const events = await import("./events");
+    vi.spyOn(events, "initializeStatus").mockImplementation(() => {
+      throw new Error("simulated factory-level failure");
+    });
+
+    const input = createMockPluginInput(tempDir);
+    const hooks = await AdvancePlugin(input);
+    pluginInstances.push(hooks);
+
+    const out = { system: [] as string[] };
+    await hooks["experimental.chat.system.transform"]!(
+      { sessionID: "test" } as any,
+      out as any,
+    );
+
+    const banner = out.system.find((line) => line.includes("[ADV:DEGRADED]"));
+    expect(banner).toBeDefined();
+    expect(banner).toContain(
+      "Plugin factory threw before initialization completed",
+    );
+    expect(banner).toContain("simulated factory-level failure");
+  });
+
+  test("factory throw: all hook keys are present and safe to call", async () => {
+    const events = await import("./events");
+    vi.spyOn(events, "initializeStatus").mockImplementation(() => {
+      throw new Error("simulated factory-level failure");
+    });
+
+    const input = createMockPluginInput(tempDir);
+    const hooks = await AdvancePlugin(input);
+    pluginInstances.push(hooks);
+
+    expect(hooks.event).toBeDefined();
+    expect(hooks["tool.execute.before"]).toBeDefined();
+    expect(hooks["tool.execute.after"]).toBeDefined();
+    expect(hooks["experimental.session.compacting"]).toBeDefined();
+    expect(hooks["experimental.chat.system.transform"]).toBeDefined();
+
+    // None of these may throw
+    await expect(
+      hooks.event!({
+        event: { type: "session.deleted", properties: {} },
+      } as any),
+    ).resolves.not.toThrow();
+    await expect(
+      hooks["tool.execute.before"]!(
+        { tool: "adv_status" } as any,
+        { args: {} } as any,
+      ),
+    ).resolves.not.toThrow();
+    await expect(
+      hooks["tool.execute.after"]!(
+        { tool: "adv_status" } as any,
+        { args: {}, output: "{}" } as any,
+      ),
+    ).resolves.not.toThrow();
+    await expect(
+      hooks["experimental.session.compacting"]!(
+        {} as any,
+        { context: [] } as any,
+      ),
+    ).resolves.not.toThrow();
+  });
+});
+
+// =============================================================================
 // project.path fallback tests
 // =============================================================================
 

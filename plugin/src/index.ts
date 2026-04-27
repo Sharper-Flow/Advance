@@ -195,11 +195,73 @@ async function migrateLegacyStateIfNeeded(
   debugLog(`External state: projectId=${projectId}, root=${externalRoot}`);
 }
 
-export const AdvancePlugin: Plugin = async ({
-  directory,
-  worktree,
-  project,
-}) => {
+/**
+ * Build a minimal degraded hooks object for the case where the plugin
+ * factory itself cannot complete normal initialization (project-context
+ * resolve throws, terminal init throws, or any other top-level failure
+ * before `tryInitStore` can run).
+ *
+ * Without this, OpenCode catches the factory throw and drops the entire
+ * plugin from the session — agents see ADV operating protocol but have
+ * ZERO `adv_*` tools in their function schema and no diagnostic of any
+ * kind. The pre-flight rule "verify by calling" then becomes mechanically
+ * impossible.
+ *
+ * The returned hooks expose:
+ *   - the same `createDegradedToolMap` stubs used for `tryInitStore`
+ *     failures, so any tool call returns `ADV_PLUGIN_INIT_FAILED`
+ *   - a `system.transform` hook that injects an `[ADV:DEGRADED]` banner
+ *     on every turn, so the agent discovers the failure BEFORE making
+ *     any tool call
+ *   - safe no-ops for all other hooks
+ */
+function buildFactoryFailureHooks(
+  error: Error,
+  directory: string,
+): Awaited<ReturnType<Plugin>> {
+  const banner = formatDegradedBanner(error, "factory");
+  return {
+    tool: createDegradedToolMap(error, directory),
+    event: async () => {},
+    "tool.execute.before": async () => {},
+    "tool.execute.after": async () => {},
+    "experimental.chat.system.transform": async (_input, output) => {
+      try {
+        output.system.push(banner);
+      } catch {
+        // banner injection must never throw
+      }
+    },
+    "experimental.session.compacting": async () => {},
+  };
+}
+
+/**
+ * Format the `[ADV:DEGRADED]` banner that surfaces in every system prompt
+ * when the plugin is running in any degraded state. Stage labels:
+ *   - "factory"  — the plugin factory itself threw before tryInitStore ran
+ *   - "init"     — tryInitStore failed; degraded tool map is wired
+ */
+function formatDegradedBanner(
+  error: Error,
+  stage: "factory" | "init",
+): string {
+  const stageMsg =
+    stage === "factory"
+      ? "Plugin factory threw before initialization completed"
+      : "Plugin store initialization failed";
+  return [
+    `[ADV:DEGRADED] ADV plugin is running in degraded mode — ${stageMsg}.`,
+    `Reason: ${error.message}`,
+    "Every `adv_*` tool is stubbed and will return ADV_PLUGIN_INIT_FAILED.",
+    "× Do NOT proceed with any ADV workflow (proposal, discover, design, prep, apply, review, harden, archive). They will silently break.",
+    "✓ Allowed in this mode: read files, surface this diagnosis, recommend remediation, run /adv-idea or /adv-problem (no tool calls required).",
+    "× Forbidden in this mode: drafting markdown as substitute for adv_change_create, fabricating change-ids or gate transitions, declaring tools 'unavailable' without surfacing this banner verbatim.",
+    "Remediation: rebuild the plugin (`pnpm --filter @goost/advance build`), confirm `~/.config/opencode/opencode.json` plugin path is current, then restart OpenCode.",
+  ].join("\n");
+}
+
+const advancePluginImpl: Plugin = async ({ directory, worktree, project }) => {
   const isWorktree = !!worktree && worktree !== directory;
   debugLog(
     `Plugin init: dir=${directory}, worktree=${worktree}, isWorktree=${isWorktree}`,
@@ -495,6 +557,22 @@ export const AdvancePlugin: Plugin = async ({
           debugLog(`Captured mainSessionId: ${mainSessionId}`);
         }
 
+        // Degraded-mode banner: emit on every turn so the agent sees the
+        // failure BEFORE attempting any adv_* tool call. The pre-flight
+        // rule "verify first" needs a verifiable signal to read; this is
+        // it. Without this banner, agents observed silent self-blocking
+        // ("tools unavailable" with no diagnostic).
+        if (initError || !store) {
+          try {
+            output.system.push(formatDegradedBanner(
+              initError ?? new Error("Plugin store unavailable"),
+              "init",
+            ));
+          } catch {
+            // banner injection must never break the transform hook
+          }
+        }
+
         const providerHint = getProviderBehaviorHint(input.model?.providerID);
         if (providerHint) {
           output.system.push(providerHint);
@@ -582,6 +660,34 @@ export const AdvancePlugin: Plugin = async ({
       }
     },
   };
+};
+
+/**
+ * Top-level Plugin export.
+ *
+ * Wraps `advancePluginImpl` so that ANY throw originating outside
+ * `tryInitStore` (project-context resolve, terminal init, sub-helper
+ * imports, etc.) is caught and converted into a degraded hooks object.
+ *
+ * Without this wrapper, OpenCode catches the factory throw, drops the
+ * plugin from the session, and the agent ends up with zero `adv_*` tools
+ * in its function schema and zero diagnostic surface — the original
+ * "silent disappearance" failure mode.
+ *
+ * The wrapper preserves the existing happy path verbatim (impl is called
+ * directly; on success its hooks are returned unchanged) and only takes
+ * over when the factory throws.
+ */
+export const AdvancePlugin: Plugin = async (input) => {
+  try {
+    return await advancePluginImpl(input);
+  } catch (e) {
+    const error = e instanceof Error ? e : new Error(String(e));
+    debugLog(
+      `AdvancePlugin factory threw: ${error.message} — registering degraded hooks`,
+    );
+    return buildFactoryFailureHooks(error, input.directory);
+  }
 };
 
 // Default export for OpenCode
