@@ -137,6 +137,170 @@ describe("Test Tools", () => {
       expect(run?.events.at(-1)?.type).toBe("green_evidence");
     });
 
+    describe("ledger auto-advance (Phase F.0)", () => {
+      /**
+       * Phase F.0 regression: production code never emitted `baseline`
+       * events, so the strict task-run ledger stayed wedged at `started`
+       * (or `not_started`) and `red_evidence` writes silently failed in
+       * adv_run_test. The next checkpoint then surfaced the failure as
+       * "Workflow Update failed". Recurred across enforceLayerBoundariesWorkflow,
+       * fixReflectionAccuracyReporting, and bringTemporalNativeReliability.
+       *
+       * Fix: adv_run_test must auto-emit start + baseline before its
+       * red_evidence ledger event when the task-run is still in
+       * `not_started` or `started`. This drives the strict lifecycle
+       * automatically without weakening the change-state contract.
+       */
+      test("auto-emits start+baseline before red_evidence on a fresh task", async () => {
+        const result = await testTools.adv_run_test.execute(
+          {
+            taskId: "tk-task0001",
+            command: "false",
+            phase: "red",
+          },
+          store,
+          tempDir,
+        );
+        const parsed = JSON.parse(result);
+
+        expect(parsed.success).toBe(true);
+        expect(parsed.exitCode).toBe(1);
+
+        const run = await store.tasks.getRun("tk-task0001");
+        expect(run?.phase).toBe("red_recorded");
+        const eventTypes = run?.events.map((e) => e.type) ?? [];
+        expect(eventTypes).toContain("start");
+        expect(eventTypes).toContain("baseline");
+        expect(eventTypes.at(-1)).toBe("red_evidence");
+      });
+
+      test("auto-emits baseline before red_evidence when start was already emitted", async () => {
+        await store.tasks.recordRunEvent("tk-task0001", {
+          idempotencyKey: "run:start:autoadv2",
+          type: "start",
+          recordedAt: "2026-04-14T00:00:00.000Z",
+          payload: {},
+        });
+
+        const result = await testTools.adv_run_test.execute(
+          {
+            taskId: "tk-task0001",
+            command: "false",
+            phase: "red",
+          },
+          store,
+          tempDir,
+        );
+        const parsed = JSON.parse(result);
+
+        expect(parsed.success).toBe(true);
+        const run = await store.tasks.getRun("tk-task0001");
+        expect(run?.phase).toBe("red_recorded");
+        const eventTypes = run?.events.map((e) => e.type) ?? [];
+        expect(eventTypes).toContain("baseline");
+        expect(eventTypes.at(-1)).toBe("red_evidence");
+      });
+
+      test("does not re-emit baseline when ledger already past baseline_captured", async () => {
+        await store.tasks.recordRunEvent("tk-task0001", {
+          idempotencyKey: "run:start:autoadv3",
+          type: "start",
+          recordedAt: "2026-04-14T00:00:00.000Z",
+          payload: {},
+        });
+        await store.tasks.recordRunEvent("tk-task0001", {
+          idempotencyKey: "run:baseline:autoadv3",
+          type: "baseline",
+          recordedAt: "2026-04-14T00:00:01.000Z",
+          payload: {
+            branch: "manual",
+            headSha: "deadbeef",
+            workdir: tempDir,
+          },
+        });
+
+        const result = await testTools.adv_run_test.execute(
+          {
+            taskId: "tk-task0001",
+            command: "false",
+            phase: "red",
+          },
+          store,
+          tempDir,
+        );
+        expect(JSON.parse(result).success).toBe(true);
+
+        const run = await store.tasks.getRun("tk-task0001");
+        const baselines =
+          run?.events.filter((e) => e.type === "baseline") ?? [];
+        expect(baselines.length).toBe(1);
+        expect(baselines[0]?.payload.branch).toBe("manual");
+      });
+
+      test("auto-emits baseline before red_evidence when start was already emitted", async () => {
+        await store.tasks.recordRunEvent("tk-task0001", {
+          idempotencyKey: "run:start:autoadv2",
+          type: "start",
+          recordedAt: "2026-04-14T00:00:00.000Z",
+          payload: {},
+        });
+
+        const result = await testTools.adv_run_test.execute(
+          {
+            taskId: "tk-task0001",
+            command: "false",
+            phase: "red",
+          },
+          store,
+          tempDir,
+        );
+        const parsed = JSON.parse(result);
+
+        expect(parsed.success).toBe(true);
+        const run = await store.tasks.getRun("tk-task0001");
+        expect(run?.phase).toBe("red_recorded");
+        const eventTypes = run?.events.map((e) => e.type) ?? [];
+        expect(eventTypes).toContain("baseline");
+        expect(eventTypes.at(-1)).toBe("red_evidence");
+      });
+
+      test("does not re-emit baseline when ledger already past baseline_captured", async () => {
+        await store.tasks.recordRunEvent("tk-task0001", {
+          idempotencyKey: "run:start:autoadv3",
+          type: "start",
+          recordedAt: "2026-04-14T00:00:00.000Z",
+          payload: {},
+        });
+        await store.tasks.recordRunEvent("tk-task0001", {
+          idempotencyKey: "run:baseline:autoadv3",
+          type: "baseline",
+          recordedAt: "2026-04-14T00:00:01.000Z",
+          payload: {
+            branch: "manual",
+            headSha: "deadbeef",
+            workdir: tempDir,
+          },
+        });
+
+        const result = await testTools.adv_run_test.execute(
+          {
+            taskId: "tk-task0001",
+            command: "false",
+            phase: "red",
+          },
+          store,
+          tempDir,
+        );
+        expect(JSON.parse(result).success).toBe(true);
+
+        const run = await store.tasks.getRun("tk-task0001");
+        const baselines =
+          run?.events.filter((e) => e.type === "baseline") ?? [];
+        expect(baselines.length).toBe(1);
+        expect(baselines[0]?.payload.branch).toBe("manual");
+      });
+    });
+
     describe("bounded execution", () => {
       test("exports DEFAULT_TEST_TIMEOUT_MS = 30_000", () => {
         expect(DEFAULT_TEST_TIMEOUT_MS).toBe(30_000);

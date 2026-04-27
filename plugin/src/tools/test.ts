@@ -191,6 +191,32 @@ export const testTools = {
         evidence,
       );
 
+      if (args.phase === "red") {
+        try {
+          let run = await store.tasks.getRun(args.taskId);
+          if (!run || run.phase === "not_started") {
+            await store.tasks.recordRunEvent(args.taskId, {
+              idempotencyKey: `${args.taskId}:auto-start:${evidence.recorded_at}`,
+              type: "start",
+              recordedAt: evidence.recorded_at,
+              payload: { workdir: cwd },
+            });
+            run = await store.tasks.getRun(args.taskId);
+          }
+          if (run?.phase === "started") {
+            await store.tasks.recordRunEvent(args.taskId, {
+              idempotencyKey: `${args.taskId}:auto-baseline:${evidence.recorded_at}`,
+              type: "baseline",
+              recordedAt: evidence.recorded_at,
+              payload: { branch: "unknown", headSha: "unknown", workdir: cwd },
+            });
+          }
+        } catch {
+          // Ledger bootstrap is additive. Preserve evidence behavior if
+          // the backing store rejects optional task-run bookkeeping.
+        }
+      }
+
       let taskRun:
         | { phase: string; requiredNextAction: string; duplicate: boolean }
         | undefined;
