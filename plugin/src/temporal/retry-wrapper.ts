@@ -184,7 +184,7 @@ export function classifyTemporalError(error: unknown): TemporalErrorClass {
   const combined = collectErrorText(error);
 
   if (
-    /ECONNREFUSED|connection refused|no task queue handler|task queue handler is subscribed|Unavailable/i.test(
+    /ECONNREFUSED|connection refused|no task queue handler|task queue handler is subscribed|Unavailable|Channel has been shut down|Unexpected error while making gRPC request/i.test(
       combined,
     )
   ) {

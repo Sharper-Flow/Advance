@@ -52,6 +52,56 @@ describe("retry-wrapper (C2)", () => {
     ).toBe("fatal");
   });
 
+  // Channel-staleness regression suite — fixbrokentaskrunledger.
+  //
+  // These error patterns surface when the gRPC channel between the
+  // Temporal SDK client and the server becomes invalid (worker
+  // restart, idle timeout, server-side close). The reconnect machinery
+  // (reinitStsl + makeReconnectingHook) already handles recovery; the
+  // classifier just needs to route them to the transient bucket so the
+  // retry hook fires.
+  //
+  // Without this classification, every change-scoped Update bubbles up
+  // a "Workflow Update failed" with no recovery — observed across
+  // every checkpoint of fixTemporalContextMismatch.
+  it("classifies '@grpc/grpc-js' channel-shutdown messages as transient", () => {
+    expect(
+      classifyTemporalError(new Error("Channel has been shut down")),
+    ).toBe("transient");
+  });
+
+  it("classifies Temporal SDK 'Unexpected error while making gRPC request' as transient", () => {
+    // Pattern thrown by Temporal Node SDK at workflow-client.ts:932,
+    // schedule-client.ts:528, task-queue-client.ts:177 when the
+    // underlying error isn't a standard gRPC ServiceError.
+    expect(
+      classifyTemporalError(
+        new Error("Unexpected error while making gRPC request"),
+      ),
+    ).toBe("transient");
+  });
+
+  it("classifies channel-shutdown wrapped via SDK cause-chain as transient", () => {
+    // Real-world SDK shape per workflow-client.ts:932:
+    //   new ServiceError('Unexpected error...', { cause: <grpc error> })
+    // collectErrorText walks the .cause chain so matching either layer works.
+    const wrapped = new Error(
+      "Unexpected error while making gRPC request",
+      { cause: new Error("Channel has been shut down") },
+    );
+    expect(classifyTemporalError(wrapped)).toBe("transient");
+  });
+
+  it("does not over-classify generic errors as transient (negative case)", () => {
+    // Guard against regex breadth — unrelated messages must stay fatal.
+    expect(classifyTemporalError(new Error("some random error"))).toBe(
+      "fatal",
+    );
+    expect(
+      classifyTemporalError(new Error("WorkflowExecutionAlreadyStarted")),
+    ).toBe("fatal");
+  });
+
   it("retries transient failures with recovery hook then succeeds", async () => {
     const recover = vi.fn(async () => {});
     const op = vi
