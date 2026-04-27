@@ -242,10 +242,7 @@ function buildFactoryFailureHooks(
  *   - "factory"  — the plugin factory itself threw before tryInitStore ran
  *   - "init"     — tryInitStore failed; degraded tool map is wired
  */
-function formatDegradedBanner(
-  error: Error,
-  stage: "factory" | "init",
-): string {
+function formatDegradedBanner(error: Error, stage: "factory" | "init"): string {
   const stageMsg =
     stage === "factory"
       ? "Plugin factory threw before initialization completed"
@@ -564,10 +561,12 @@ const advancePluginImpl: Plugin = async ({ directory, worktree, project }) => {
         // ("tools unavailable" with no diagnostic).
         if (initError || !store) {
           try {
-            output.system.push(formatDegradedBanner(
-              initError ?? new Error("Plugin store unavailable"),
-              "init",
-            ));
+            output.system.push(
+              formatDegradedBanner(
+                initError ?? new Error("Plugin store unavailable"),
+                "init",
+              ),
+            );
           } catch {
             // banner injection must never break the transform hook
           }
