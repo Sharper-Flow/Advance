@@ -399,8 +399,10 @@ Visual comparison blocks are supplementary context, not a replacement for the `q
    |---|---|
    | Trimmed = `/adv-clarify` or `/adv-clarify {change-id}` | Halt cleanly: no `agreement.md` write, no `adv_gate_complete`, return control to user with instruction to rerun `/adv-discover {change-id}` after `/adv-clarify` |
    | Trimmed first token = `/adv-clarify` | Same halt branch |
-   | Tier A whitelist match | Approve AC, proceed to Phase 4.6 |
-   | Anything else | Treat as revision text; normalize into revised AC bullets and re-run this checkpoint |
+    | Tier A whitelist match | Approve AC, proceed to Phase 4.6 |
+    | Anything else | Treat as revision text; normalize into revised AC bullets and re-run this checkpoint |
+
+   **× Do NOT** treat phrases like "I want to clarify something" or "let's clarify X" as `/adv-clarify` invocation. Only the literal slash-command form triggers the halt branch. Non-literal "clarify" intent is revision text (per `rq-disc12.2`).
 
 > **Note:** The `/adv-clarify` halt path at Phase 4.5.1 is the same mechanism as the Phase 2.5 trigger evaluation halt. Both hand off to `/adv-clarify` with the same rerun instruction. Phase 2.5 catches ambiguity findings in the proposal's scope/success criteria; Phase 4.5.1 catches ambiguity introduced by AC revision text.
 
