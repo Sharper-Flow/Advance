@@ -185,6 +185,13 @@ export function formatErrorResponse(
 
   // Handle standard Error objects
   if (error instanceof Error) {
+    // Preserve structured fields from AdvProjectContextMismatch errors
+    if (error.name === "AdvProjectContextMismatch") {
+      const e = error as unknown as Record<string, unknown>;
+      enrichment.changeId = e.changeId;
+      enrichment.owningProjectId = e.owningProjectId;
+      enrichment.currentProjectId = e.currentProjectId;
+    }
     return formatToolOutput({
       error: error.message,
       tool: toolName,
