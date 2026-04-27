@@ -407,6 +407,77 @@ Quality obligations extend to:
 
 Do NOT expand into implicit repo-wide refactors or untouched subsystems. Campsite-rule fixes (P23) are opportunistic and must be small, safe, and local.
 
+### Ambiguity Taxonomy
+
+Structured 11-category taxonomy for detecting ambiguity in proposals and discovery findings. Used by `/adv-proposal` (B/F/S scan), `/adv-discover` (B/F/S/M scan), and `/adv-clarify` (findings-driven mode).
+
+Composes alongside `clarify-readiness.ts` (6 heuristic checks, `severity: "warning"`) — this taxonomy adds depth and gate-blocking severity. Reuses `clarify_enforcement` flag semantics (`off`/`advisory`/`strict` in `plugin/src/types.ts:1194-1196`).
+
+#### Categories
+
+| Prefix | Name | Scope | v1 Enforcement |
+| ------ | ---- | ----- | -------------- |
+| **B** | Boundaries | What is explicitly in/out of scope; edge cases | Required |
+| **F** | Functional Scope | Required features, behaviors, data flows | Required |
+| **S** | Completion Signals | Measurability of success/done criteria | Required |
+| **M** | Missing Information | Critical unknowns, unspecified dependencies | Required |
+| **D** | Data Assumptions | Data shape, volume, freshness, ownership | Optional (v2 promotion path) |
+| **X** | External Dependencies | Third-party API, service, or tool constraints | Optional (v2 promotion path) |
+| **Q** | Quality Attributes | NFRs: performance, security, accessibility | Optional (v2 promotion path) |
+| **I** | Integration Points | Handoffs between systems, modules, teams | Optional (v2 promotion path) |
+| **E** | Error Handling | Failure modes, recovery, rollback paths | Optional (v2 promotion path) |
+| **C** | Conformance | Standards, compliance, regulatory requirements | Optional (v2 promotion path) |
+| **T** | Temporal Constraints | Ordering, timing, deadlines, milestones | Optional (v2 promotion path) |
+
+#### Finding Shape
+
+```
+{Letter}{N}  {SEVERITY}  {Category}  {Finding text}
+  Evidence: {verbatim quote from source OR `(no {section} section)`}
+  Reason: unclear because {X}
+```
+
+- `{Letter}{N}` — sequential finding ID within category (B1, B2, F1, S1, ...)
+- `{SEVERITY}` — CRITICAL | HIGH | MEDIUM | LOW
+
+#### Severity Rubric
+
+| Severity | Meaning | Example |
+| -------- | ------- | ------- |
+| CRITICAL | Structurally missing required content; cannot proceed without resolution | Missing `### Out of Scope` subsection, no `## Success Criteria` section |
+| HIGH | Vague or unmeasurable language that will cause ambiguity during implementation | Success criteria "fast response" without threshold |
+| MEDIUM | Soft ambiguity that may cause rework but is resolvable during implementation | Implicit ordering dependency not stated |
+| LOW | Minor clarity improvement; does not block execution | Inconsistent terminology across sections |
+
+#### Anti-Hallucination Evidence Rule
+
+Every finding MUST include either:
+- A **verbatim quote** from the source document: `Evidence: proposal.md:{section} "{exact text}"`
+- OR an explicit absence marker: `Evidence: (no {section} section)`
+
+× MUST NOT fabricate, paraphrase, or infer evidence. If the source text cannot be located, use the `(no ...)` marker. Findings without valid evidence are malformed and MUST NOT be surfaced.
+
+#### Trigger Threshold
+
+- **CRITICAL ≥ 1** → halt current phase, hand off to `/adv-clarify`
+- **HIGH ≥ 2** → halt current phase, hand off to `/adv-clarify`
+- **Single HIGH** → warning only, continue phase
+- Skip trigger evaluation when `clarify_enforcement: 'off'`
+
+Applies in `/adv-proposal` (B/F/S scan) and `/adv-discover` (B/F/S/M scan).
+
+#### Coverage Report
+
+After each scan, emit a coverage summary:
+
+```
+Coverage: B:C F:P S:M D:C X:C Q:P I:N/A E:P C:C T:C S:P M:M
+```
+
+Legend: **C** = Clear (no ambiguity), **P** = Partial (some vagueness), **M** = Missing (no content found), **N/A** = Not applicable to this change.
+
+Required v1 categories (B/F/S/M) MUST have a coverage entry. Optional categories MAY be omitted (treated as N/A).
+
 ## 6-Gate Quality Checklist
 
 | Gate                | Triggered By      |
