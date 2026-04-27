@@ -170,7 +170,8 @@ Use the Gate Handoff Voice spine (see `docs/command-voice-standard.md § Gate Ha
 - {suggestion 2}
 
 ---
-**{change-id}** · reflection persisted · {timestamp}
+
+> **{change-id}** · reflection persisted · {timestamp}
 ```
 
 ---

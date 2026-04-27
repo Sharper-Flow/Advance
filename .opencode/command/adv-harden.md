@@ -374,11 +374,11 @@ What was cleaned, hardened, and verified for release.
 - Cleanup actions taken
 
 ---
-**{change-id}** · release ✓ → archive
 
-Current phase: release
-Next phase: archive
-Run when ready: `/adv-archive {change-id}`
+> **{change-id}**
+> release ✓ → archive
+>
+> → `/adv-archive {change-id}`
 ```
 
 **Auto-continue:** If status is READY, immediately begin `/adv-archive` inline. The archive command itself will stop at the sign-off boundary for user approval of the final release. Do not add an extra "shall I proceed?" before starting archive.

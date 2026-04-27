@@ -461,11 +461,11 @@ Agreed objectives + constraints + user decisions.
 - Open design questions for /adv-design
 
 ---
-**{change-id}** · discovery ✓ → design
 
-Current phase: discovery
-Next phase: design
-Run when ready: `/adv-design {change-id}`
+> **{change-id}**
+> discovery ✓ → design
+>
+> → `/adv-design {change-id}`
 ```
 
 **Auto-continue:** After user approval of acceptance criteria and agreement, immediately begin `/adv-design` inline. Do not stop or ask "shall I proceed?" — the user's approval is the go-ahead.

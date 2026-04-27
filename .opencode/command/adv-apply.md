@@ -452,11 +452,11 @@ What was built and how it was verified.
 - {Cancelled tasks with reasons, if any}
 
 ---
-**{change-id}** · execution ✓ → acceptance
 
-Current phase: execution
-Next phase: acceptance
-Run when ready: `/adv-review {change-id}`
+> **{change-id}**
+> execution ✓ → acceptance
+>
+> → `/adv-review {change-id}`
 ```
 
 ---

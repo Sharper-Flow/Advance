@@ -224,11 +224,11 @@ Chosen architecture + key tradeoff outcomes.
 - Validator result: {VALIDATED|CAUTION|CONFLICT|INCONCLUSIVE}
 
 ---
-**{change-id}** · design ✓ → planning
 
-Current phase: design
-Next phase: planning
-Run when ready: `/adv-prep {change-id}`
+> **{change-id}**
+> design ✓ → planning
+>
+> → `/adv-prep {change-id}`
 ```
 
 **Auto-continue:** After gate completion (whether user approved with "proceed" or design was straightforward enough to skip user pause), immediately begin `/adv-prep` inline. Do not stop or ask "shall I proceed?" — approval or clean auto-pass is the go-ahead.

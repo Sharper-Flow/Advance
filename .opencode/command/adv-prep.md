@@ -371,11 +371,11 @@ Firm plan shape (task structure, approach, not task list).
 - TDD intent assigned per task
 
 ---
-**{change-id}** · planning ✓ → execution
 
-Current phase: planning
-Next phase: execution
-Run when ready: `/adv-apply {change-id}`
+> **{change-id}**
+> planning ✓ → execution
+>
+> → `/adv-apply {change-id}`
 ```
 
 **Auto-continue:** After user approval, immediately begin `/adv-apply` inline. This is the last human checkpoint before autonomous execution — the user's "approve and continue" is the go-ahead to start implementation without any further confirmation.

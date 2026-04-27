@@ -63,10 +63,9 @@ After the change report:
 
 ```
 ---
-**{change-id}** · acceptance ✓ → release
 
-Current phase: acceptance
-Next phase: release
+> **{change-id}**
+> acceptance ✓ → release
 
 Reply `sign off` (or `signoff`, `approve`, `confirm`, `yes`, `proceed`, `ship it`) to archive,
 or `dry run` to preview the archive without applying spec deltas,
@@ -136,7 +135,8 @@ What shipped (or merged locally), what spec deltas applied.
 - Investment: N tasks / M retries / T min / tier: {auto|escalate|hardstop}
 
 ---
-**{change-id}** · release ✓ · {Shipped. | Merged locally.}
+
+> **{change-id}** · release ✓ · {Shipped. | Merged locally.}
 ```
 
 After the archive summary is displayed, invoke reflection (non-blocking):
