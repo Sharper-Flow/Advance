@@ -63,8 +63,19 @@ After confirmation:
 4. Fill proposal sections: What Changes, Success Criteria, Affected Code, Related Repositories, Constraints, Impact, Context, Discovery Agenda (unresolved unknowns from Phase 1b)
 5. Determine cross-repo scope autonomously from code paths/interfaces/config; ask only if boundary ambiguity changes the intended outcome
 6. Run the proposal checklist quality gate; refine autonomously unless refinement would change confirmed intent
-7. `adv_change_update` with the completed proposal
-8. `adv_gate_complete gateId: proposal`
+7. **Phase 2.5: Build Scope Section** — Build `## Scope` section in proposal.md with `### In Scope` and `### Out of Scope` subsections. Surface to user inline if subsections are empty or missing — block gate completion until populated. Backwards-compat: if proposal gate already done (re-entry case), skip rebuilding (treat as legacy).
+8. **Phase 2.6: Run B/F/S Ambiguity Scan** — Read full proposal.md content. Apply 3-category scan per `ADV_INSTRUCTIONS.md § Ambiguity Taxonomy`:
+   - B (Boundaries) — check for `### Out of Scope` content
+   - F (Functional Scope) — check for testable Success Criteria
+   - S (Completion Signals) — check for vague/unmeasurable language
+   - Emit findings inline in proposal output (not persisted as section unless any CRITICAL)
+   - × MUST NOT call `adv_gate_complete gateId: 'proposal'` if any CRITICAL B/F/S finding exists (agent honor-system rule per KD1; v2 may add machine enforcement)
+   - × MUST NOT fabricate evidence quotes — every finding cites verbatim text from proposal.md or `(no {section} section)`
+   - Skip scan if `clarify_enforcement: 'off'`
+   
+   See `ADV_INSTRUCTIONS.md § Ambiguity Taxonomy` for finding shape, severity rules, and trigger threshold.
+9. `adv_change_update` with the completed proposal
+10. `adv_gate_complete gateId: proposal`
 
 ### Cross-Project Follow-up Proposals
 
