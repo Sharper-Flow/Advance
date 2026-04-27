@@ -180,6 +180,62 @@ describe("handoff footer labeled block contract", () => {
       archiveSection,
       "Archive terminal must NOT contain 'Run when ready:'",
     ).not.toMatch(/Run when ready:/);
+
+    expect(
+      archiveSection,
+      "Shipped variant (first code block) must contain 'Shipped.'",
+    ).toMatch(/Shipped\./);
+  });
+
+  test("Merged locally variant has no labeled footer block", () => {
+    const content = readFileSync(
+      join(DOCS_DIR, "command-voice-standard.md"),
+      "utf8",
+    );
+
+    // Extract the full Archive terminal variant section (until next sibling
+    // ### heading at column 0). Use lookahead bounded by `\n### ` to skip
+    // nested `##` headings inside code fences.
+    const sectionMatch = content.match(
+      /### Archive terminal variant\n[\s\S]*?(?=\n### )/,
+    );
+    expect(
+      sectionMatch,
+      "Archive terminal variant section must exist",
+    ).toBeTruthy();
+    const sectionText = sectionMatch![0];
+
+    // Collect all code blocks within the section
+    const codeBlocks = [...sectionText.matchAll(/```([\s\S]*?)```/g)].map(
+      (m) => m[1],
+    );
+
+    expect(
+      codeBlocks.length,
+      "Archive terminal variant must contain at least 2 code blocks (Shipped + Merged locally)",
+    ).toBeGreaterThanOrEqual(2);
+
+    const localBlock = codeBlocks[1];
+
+    expect(
+      localBlock,
+      "Merged locally variant must NOT contain 'Current phase:'",
+    ).not.toMatch(/Current phase:/);
+
+    expect(
+      localBlock,
+      "Merged locally variant must NOT contain 'Next phase:'",
+    ).not.toMatch(/Next phase:/);
+
+    expect(
+      localBlock,
+      "Merged locally variant must NOT contain 'Run when ready:'",
+    ).not.toMatch(/Run when ready:/);
+
+    expect(
+      localBlock,
+      "Merged locally variant must contain 'Merged locally.'",
+    ).toMatch(/Merged locally\./);
   });
 });
 
