@@ -192,8 +192,8 @@ Build a compact discovery report. The output MUST contain these sections (order 
 Run a structured ambiguity scan using the taxonomy from `ADV_INSTRUCTIONS.md § Ambiguity Taxonomy`:
 
 - **v1 required categories:** B (Boundaries), F (Functional Scope), S (Completion Signals), M (Missing Information) — MUST be scanned
-- **v1 optional categories:** D/X/Q/I/E/C/T — agent MAY emit findings; NOT gate-blocking in v1
-- Per UD2 hybrid scope: required categories MUST appear in every discovery; optional categories are at agent discretion
+- **v1 optional categories:** D/X/Q/I/E/C/T — agent MAY emit findings; optional means scan-optional, not ignored if emitted
+- Per UD2 hybrid scope: required categories MUST appear in every discovery; optional categories are at agent discretion. Any emitted optional-category CRITICAL/HIGH findings still participate in trigger evaluation.
 
 **Finding shape** (from `ADV_INSTRUCTIONS.md § Ambiguity Taxonomy`):
 ```

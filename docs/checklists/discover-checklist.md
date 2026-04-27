@@ -81,9 +81,9 @@ Run during `/adv-discover` Phase 2 (Discovery Analysis). Cross-references `ADV_I
 ### v1 Category Scope
 
 - **Required (v1):** B (Boundaries), F (Functional Scope), S (Completion Signals), M (Missing Information)
-- **Optional (v1):** D (Data Assumptions), X (External Dependencies), Q (Quality Attributes), I (Integration Points), E (Error Handling), C (Conformance), T (Temporal Constraints) — agent MAY emit findings; these are NOT gate-blocking in v1
+- **Optional (v1):** D (Data Assumptions), X (External Dependencies), Q (Quality Attributes), I (Integration Points), E (Error Handling), C (Conformance), T (Temporal Constraints) — agent MAY emit findings; optional means scan-optional, not ignored if emitted
 
-Per UD2 hybrid scope: required categories MUST be scanned; optional categories are at agent discretion.
+Per UD2 hybrid scope: required categories MUST be scanned; optional categories are at agent discretion. Any emitted optional-category CRITICAL/HIGH findings still participate in trigger evaluation.
 
 ### Output Section
 
@@ -95,7 +95,7 @@ Emit `### AMBIGUITY ANALYSIS` containing:
      Evidence: {verbatim quote OR `(no {section} section)`}
      Reason: unclear because {X}
    ```
-2. **Coverage report line** — `Coverage: B:C F:P S:M D:C X:C Q:P I:N/A E:P C:C T:C S:P M:M` (C=Clear, P=Partial, M=Missing, N/A=Not applicable)
+2. **Coverage report line** — `Coverage: B:C F:P D:C X:C Q:P I:N/A E:P C:C T:C S:P M:M` (C=Clear, P=Partial, M=Missing, N/A=Not applicable)
 
 If scan is clean (no findings), emit: `### AMBIGUITY ANALYSIS — no ambiguity findings. Coverage: B:C F:C S:C M:C`
 

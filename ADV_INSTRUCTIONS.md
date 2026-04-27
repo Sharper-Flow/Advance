@@ -471,7 +471,7 @@ Applies in `/adv-proposal` (B/F/S scan) and `/adv-discover` (B/F/S/M scan).
 After each scan, emit a coverage summary:
 
 ```
-Coverage: B:C F:P S:M D:C X:C Q:P I:N/A E:P C:C T:C S:P M:M
+Coverage: B:C F:P D:C X:C Q:P I:N/A E:P C:C T:C S:P M:M
 ```
 
 Legend: **C** = Clear (no ambiguity), **P** = Partial (some vagueness), **M** = Missing (no content found), **N/A** = Not applicable to this change.
