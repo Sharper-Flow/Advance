@@ -1048,6 +1048,12 @@ export const ChangeSchema = z
      * that origin validation is required before agreement.
      */
     cross_project_origin: CrossProjectOriginSchema.optional(),
+    /**
+     * Temporal project ID that owns this change. Persisted on disk snapshots
+     * so the shared guard can detect cross-project context mismatches.
+     * Optional for legacy compatibility — ownerless changes are best-effort.
+     */
+    adv_project_id: z.string().optional(),
   })
   .passthrough(); // Allow extra fields for forward/backward compatibility
 

@@ -98,6 +98,7 @@ function mapTemporalChangeStateToChange(state: ChangeWorkflowState): Change {
     wisdom: state.wisdom,
     gates: state.gates,
     reentry_history: state.reentry_history,
+    adv_project_id: state.projectId,
   };
 }
 
@@ -869,6 +870,20 @@ export function createTemporalStoreBackend(
           throw err;
         }
 
+        const changeWithOwner: Change = {
+          ...created.data,
+          adv_project_id: input.projectId,
+        };
+        try {
+          await legacy.changes.save(changeWithOwner);
+        } catch (saveErr) {
+          logger.debug(
+            `Disk save of adv_project_id skipped for change ${changeWithOwner.id}: ${
+              saveErr instanceof Error ? saveErr.message : String(saveErr)
+            }`,
+          );
+        }
+
         updateOverlay(created.data.id, {
           created_at: created.data.created_at,
           created_by: created.data.created_by,
@@ -879,6 +894,7 @@ export function createTemporalStoreBackend(
           judgment_calls: created.data.judgment_calls,
           batch_surfaced_at: created.data.batch_surfaced_at,
           cross_project_origin: created.data.cross_project_origin,
+          adv_project_id: input.projectId,
         });
         return result;
       },
@@ -898,6 +914,7 @@ export function createTemporalStoreBackend(
           judgment_calls: change.judgment_calls,
           batch_surfaced_at: change.batch_surfaced_at,
           cross_project_origin: change.cross_project_origin,
+          adv_project_id: change.adv_project_id,
         });
       },
       list: async (filter) => {

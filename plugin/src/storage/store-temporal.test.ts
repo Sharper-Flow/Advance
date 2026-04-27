@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createTemporalStoreBackend } from "./store-temporal";
 import type { Store } from "./store-types";
+import { ChangeSchema } from "../types";
 
 vi.mock("../utils/debug-log", () => ({
   createLogger: vi.fn(() => ({
@@ -1707,6 +1708,125 @@ describe("Temporal store backend adapter", () => {
       await expect(
         adapted.tasks.add("chg1", "new task"),
       ).resolves.toBeDefined();
+    });
+  });
+
+  describe("owner metadata (adv_project_id)", () => {
+    it("maps ChangeWorkflowState.projectId to adv_project_id on changes.get", async () => {
+      const state = {
+        projectId: "owner-proj",
+        changeId: "chg1",
+        title: "Change 1",
+        initializedAt: "2026-04-18T00:00:00.000Z",
+        id: "chg1",
+        status: "draft",
+        createdAt: "2026-04-18T00:00:00.000Z",
+        tasks: [],
+        wisdom: [],
+        gates: {
+          proposal: { status: "pending" },
+          discovery: { status: "pending" },
+          design: { status: "pending" },
+          planning: { status: "pending" },
+          execution: { status: "pending" },
+          acceptance: { status: "pending" },
+          release: { status: "pending" },
+        },
+        reentry_history: [],
+        artifacts: {},
+      };
+
+      const changeHandle = {
+        query: vi.fn(async () => state),
+        executeUpdate: vi.fn(async () => null),
+        signal: vi.fn(async () => {}),
+      };
+      const bundle = {
+        client: { workflow: { getHandle: routeHandle(changeHandle) } },
+      };
+      const adapted = createTemporalStoreBackend({
+        legacy: makeLegacyStore(),
+        temporal: bundle as any,
+        projectId: "owner-proj",
+      });
+
+      const result = await adapted.changes.get("chg1");
+      expect(result.success).toBe(true);
+      expect((result.data as any).adv_project_id).toBe("owner-proj");
+    });
+
+    it("dual-writes adv_project_id to disk snapshot after mutations", async () => {
+      const legacy = makeLegacyStore();
+
+      const stateAfterAdd = {
+        projectId: "current-proj",
+        changeId: "chg1",
+        title: "Change 1",
+        initializedAt: "2026-04-26T00:00:00.000Z",
+        id: "chg1",
+        status: "draft",
+        createdAt: "2026-04-26T00:00:00.000Z",
+        tasks: [
+          {
+            id: "tk-new",
+            title: "new task",
+            status: "pending",
+            priority: 0,
+            created_at: "2026-04-26T00:00:00.000Z",
+            tdd_phase: "none",
+          },
+        ],
+        wisdom: [],
+        gates: {
+          proposal: { status: "pending" },
+          discovery: { status: "pending" },
+          design: { status: "pending" },
+          planning: { status: "pending" },
+          execution: { status: "pending" },
+          acceptance: { status: "pending" },
+          release: { status: "pending" },
+        },
+        reentry_history: [],
+        artifacts: {},
+      };
+
+      const changeHandle = {
+        query: vi.fn(async () => stateAfterAdd),
+        executeUpdate: vi.fn(async () => stateAfterAdd.tasks[0]),
+        signal: vi.fn(async () => {}),
+      };
+
+      const bundle = {
+        client: { workflow: { getHandle: routeHandle(changeHandle) } },
+      };
+      const adapted = createTemporalStoreBackend({
+        legacy,
+        temporal: bundle as any,
+        projectId: "current-proj",
+      });
+
+      await adapted.tasks.add("chg1", "new task");
+
+      // Wait a tick for the fire-and-forget dual-write
+      await new Promise((r) => setTimeout(r, 10));
+
+      expect(legacy.changes.save).toHaveBeenCalled();
+      const savedCall = (legacy.changes.save as any).mock.calls.find(
+        (call: any[]) => call[0]?.id === "chg1",
+      );
+      expect(savedCall[0].adv_project_id).toBe("current-proj");
+    });
+
+    it("ChangeSchema accepts legacy snapshots without adv_project_id", () => {
+      const legacyChange = {
+        id: "legacy-chg",
+        title: "Legacy",
+        status: "draft",
+        created_at: "2026-04-18T00:00:00.000Z",
+        tasks: [],
+        deltas: {},
+      };
+      expect(() => ChangeSchema.parse(legacyChange)).not.toThrow();
     });
   });
 });
