@@ -70,6 +70,59 @@ Discovery output persisted via `adv_change_update` must contain these sections:
 | Related Pattern Scan   | Matches or "no similar patterns found"     | Prose                     |
 | LBP Check              | Direction + evidence                       | Prose                     |
 | Recommended Objectives | Numbered list for the agreement phase      | List                      |
+| AMBIGUITY ANALYSIS     | Finding IDs (B1, F1, etc.), severity, evidence quotes, coverage report | Table + coverage line |
+
+---
+
+## Ambiguity Analysis Protocol
+
+Run during `/adv-discover` Phase 2 (Discovery Analysis). Cross-references `ADV_INSTRUCTIONS.md § Ambiguity Taxonomy` for canonical taxonomy, finding shape, severity rubric, and anti-hallucination rule.
+
+### v1 Category Scope
+
+- **Required (v1):** B (Boundaries), F (Functional Scope), S (Completion Signals), M (Missing Information)
+- **Optional (v1):** D (Data Assumptions), X (External Dependencies), Q (Quality Attributes), I (Integration Points), E (Error Handling), C (Conformance), T (Temporal Constraints) — agent MAY emit findings; these are NOT gate-blocking in v1
+
+Per UD2 hybrid scope: required categories MUST be scanned; optional categories are at agent discretion.
+
+### Output Section
+
+Emit `### AMBIGUITY ANALYSIS` containing:
+
+1. **Finding table** — one row per finding using the canonical finding shape:
+   ```
+   {Letter}{N}  {SEVERITY}  {Category}  {Finding text}
+     Evidence: {verbatim quote OR `(no {section} section)`}
+     Reason: unclear because {X}
+   ```
+2. **Coverage report line** — `Coverage: B:C F:P S:M D:C X:C Q:P I:N/A E:P C:C T:C S:P M:M` (C=Clear, P=Partial, M=Missing, N/A=Not applicable)
+
+If scan is clean (no findings), emit: `### AMBIGUITY ANALYSIS — no ambiguity findings. Coverage: B:C F:C S:C M:C`
+
+### Trigger Evaluation Rules
+
+After producing the AMBIGUITY ANALYSIS, evaluate findings to determine if `/adv-discover` can proceed:
+
+| Condition | Action |
+|-----------|--------|
+| CRITICAL ≥ 1 | Halt discovery. Do NOT call `adv_gate_complete gateId: 'discovery'`. Output handoff: "Run `/adv-clarify {change-id}` to resolve CRITICAL findings, then rerun `/adv-discover {change-id}`." |
+| HIGH ≥ 2 (no CRITICAL) | Halt discovery. Same handoff as above. |
+| Single HIGH only | Warning logged inline. Continue to Phase 3 (Persist Discovery Findings). |
+| All clean | Continue to Phase 3. |
+
+Skip trigger evaluation when `clarify_enforcement: 'off'` or when discovery gate is already completed (legacy/in-flight changes).
+
+### Resolution Log
+
+When `/adv-clarify` resolves findings and the user reruns `/adv-discover`:
+
+- Read `## Clarify Resolution Log` section from proposal.md (added by `/adv-clarify`)
+- Previously-resolved findings (listed in the log) are excluded from the current trigger count
+- Reruns capped at 2 before escalating to user via `question` tool per EC4
+
+### Backwards-Compatibility
+
+Skip the entire Ambiguity Analysis Protocol if the discovery gate is already completed (in-flight changes created before this rollout). Detect via gate-state check.
 
 ---
 
@@ -85,5 +138,6 @@ Discovery analysis is complete when ALL of the following are true:
 - [ ] At least one skill discovery pass completed (or "none available")
 - [ ] Conflict scan executed with all 3 mandatory tool calls
 - [ ] Each identified gap has edge case coverage
+- [ ] AMBIGUITY ANALYSIS section present with finding table and coverage report (or "no ambiguity findings" if scan clean)
 
 **Gate requirement**: Discovery gate can be marked complete when all heuristics are satisfied and the agreement phase can proceed with well-formed findings.
