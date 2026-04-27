@@ -137,6 +137,7 @@ export interface ChangeWorkflowState extends ChangeWorkflowInput {
     agreement?: ArtifactMetadata;
   };
   task_runs?: Record<string, TaskRunState>;
+  /** Same-project fast-follow lineage (optional) */
   fast_follow_of?: FastFollowOf;
   /**
    * Closure metadata set when the workflow records a terminal close. Stored

@@ -54,6 +54,7 @@ export interface ChangeSummary {
     pending: number;
   };
   lastActivityAt: string;
+  /** Same-project fast-follow lineage (optional) */
   fast_follow_of?: FastFollowOf;
   /** Monotonic version for PSW signal dedupe */
   sourceVersion: number;

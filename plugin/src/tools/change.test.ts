@@ -805,7 +805,9 @@ describe("Change Tools", () => {
 
       expect(parsed.changeId).toBe("childFollowUp");
       expect(parsed.fast_follow_of).toBeDefined();
-      expect(parsed.fast_follow_of.parent_change_id).toBe(parentParsed.changeId);
+      expect(parsed.fast_follow_of.parent_change_id).toBe(
+        parentParsed.changeId,
+      );
       expect(parsed.fast_follow_of.linked_at).toBeDefined();
 
       // Verify persisted

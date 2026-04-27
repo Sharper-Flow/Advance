@@ -38,6 +38,7 @@ import { basename, join } from "path";
 import type {
   Change,
   ChangeClosure,
+  ChangeStatus,
   Spec,
   Task,
   TaskRunEvent,
@@ -953,7 +954,7 @@ export async function createDiskStore(
           Boolean(r.success && r.data),
         )
         .map((r) => r.data);
-      const byStatus = {
+      const byStatus: Record<ChangeStatus, number> = {
         draft: 0,
         pending: 0,
         active: 0,
@@ -978,7 +979,10 @@ export async function createDiskStore(
             now,
           ),
         )
-        .sort((a, b) => b.lastActivityAt.localeCompare(a.lastActivityAt));
+        .sort((a, b) => {
+          const cmp = b.lastActivityAt.localeCompare(a.lastActivityAt);
+          return cmp !== 0 ? cmp : a.id.localeCompare(b.id);
+        });
       return {
         specs: { count: specs.length, capabilities: specs },
         changes: {

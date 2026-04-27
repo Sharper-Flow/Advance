@@ -127,6 +127,26 @@ describe("tool-formatters", () => {
       expect(result.activeSection).toContain("🔥");
       expect(result.activeSection).toContain("testChange");
     });
+
+    it("prepends ↳ to active changes with parent_change_id", () => {
+      const result = formatStatusOutput({
+        specCount: 1,
+        requirementCount: 5,
+        activeChanges: [
+          {
+            id: "childChange",
+            title: "Child Change",
+            minutesSinceActivity: 2,
+            recency: "hot",
+            parent_change_id: "parentChange",
+          },
+        ],
+        archivedCount: 0,
+        recommendations: [],
+        temporalAlive: true,
+      });
+      expect(result.activeSection).toContain("↳ childChange");
+    });
   });
 
   describe("formatValidationOutput", () => {
