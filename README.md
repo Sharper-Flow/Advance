@@ -131,7 +131,7 @@ When a change has multiple viable directions with real user-value tradeoffs, pri
 | `/adv-slop-scan`  | Scan for AI slop patterns including defensive and nested code                                        |
 | `/adv-arch-scan`  | Scan for architecture inconsistencies using deterministic tools, research fallback, and AI heuristic |
 | `/adv-comp-scan`  | Scan competitor capabilities against this project for competitive intelligence                       |
-| `/adv-refactor`   | Refresh a stale proposal to reflect current codebase state                                           |
+| `/adv-refactor`   | Refresh a stale proposal or batch-refresh the oldest 30% of active changes                          |
 | `/adv-coordinate` | Detect and resolve conflicts across multiple active changes                                          |
 | `/adv-improve`    | Suggest targeted improvements to existing specs or implementation                                    |
 | `/adv-tron`       | Investigate codebase structure, hotspots, risks, and suggest follow-up agenda candidates             |

@@ -344,12 +344,13 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
   // ---- Advanced ----
   "adv-refactor": {
     name: "adv-refactor",
-    description: "Refresh a stale proposal to reflect current codebase state",
+    description:
+      "Refresh a stale proposal or batch-refresh the oldest 30% of active changes",
     phase: "advanced",
-    requiresChangeId: true,
+    requiresChangeId: false,
     prerequisites: ["adv-proposal"],
     successors: ["adv-prep"],
-    args_hint: "<change-id>",
+    args_hint: "[change-id]",
   },
   "adv-coordinate": {
     name: "adv-coordinate",

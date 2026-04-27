@@ -137,7 +137,7 @@ Each workflow command has a defined phase goal. These are canonical in `manifest
 | Command                     | Purpose                                                                                         |
 | --------------------------- | ----------------------------------------------------------------------------------------------- |
 | `/adv-task`                 | Fast-track a discussed change: synthesize contract, validate best practices, prep, and hand off |
-| `/adv-refactor <change-id>` | Refresh a stale proposal to reflect current codebase state                                      |
+| `/adv-refactor [change-id]` | Refresh a stale proposal or batch-refresh the oldest 30% of active changes                      |
 | `/adv-coordinate`           | Detect and resolve conflicts across multiple active changes                                     |
 | `/adv-improve`              | Suggest targeted improvements to existing specs or implementation                               |
 | `/adv-tron [target]`        | Investigate codebase structure, hotspots, risks, and suggest follow-up agenda candidates        |

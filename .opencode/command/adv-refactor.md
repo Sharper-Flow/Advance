@@ -1,8 +1,8 @@
 ---
 name: adv-refactor
-description: Refresh a stale proposal to reflect current codebase state
+description: Refresh a stale proposal or batch-refresh the oldest 30% of active changes
 ---
-<!-- manifest: adv-refactor · requiresChangeId: true · prereqs: [adv-proposal] -->
+<!-- manifest: adv-refactor · requiresChangeId: false · prereqs: [adv-proposal] -->
 # ADV Refactor — Refresh Stale Proposals
 Bidirectional reconciliation: update stale change proposals to match current codebase reality.
 
@@ -11,10 +11,18 @@ Bidirectional reconciliation: update stale change proposals to match current cod
   $ARGUMENTS
 </UserRequest>
 ## Parse Flags
-`change-id` (required), `--execute` (apply changes; default: dry-run), `--interactive` (approve per category), `--force` (skip recent-modification warnings).
+`change-id` (optional — omit to enter batch mode), `--execute` (apply changes; default: dry-run), `--interactive` (approve per category), `--force` (skip recent-modification warnings).
 ## Target Resolution
-1. If change-id provided → use directly
-2. If empty → `adv_change_list` → auto-select the only plausible change; ask via `question` only if multiple plausible targets remain
+1. If change-id provided → single-target mode, use directly. Skip to **Pre-flight**.
+2. If omitted → **batch mode**:
+   1. Run `adv_status` first → display the project overview to the user (specs, active changes, recommendations).
+   2. From `adv_change_list` (excluding archived/closed), sort active changes by last activity ascending (stalest first). Use `_contextSnapshot.lastActivity` from `adv_change_show` if list ordering is ambiguous.
+   3. Compute `N = max(1, ceil(activeCount * 0.30))` — the oldest 30% by last activity.
+   4. Announce the batch via `[ADV:WORK]`: list the `N` selected change-ids with their staleness band (⏰ stale / ⏳ warm) and ages.
+   5. For each target in stalest-first order, run **Pre-flight → Phase 1 → Phase 2 → Phase 3 (if `--execute`) → Phase 4** as defined below.
+   6. **Continue on failure**: if any phase throws or `adv_change_validate` fails for one change, log the error and proceed to the next target. Do not abort the batch.
+   7. After all targets complete, emit a single aggregate **Final Report** covering every processed change, including any failures.
+   8. The `--execute` flag is honored **globally** across the batch — dry-run for all, or apply for all.
 ## Pre-flight
 `adv_change_show` + `adv_task_list` → use returned proposal/problem context for scope (× don't read `proposal.md` directly). Worktree context: `pwd` → record `{workdir}`, include in all sub-agent prompts.
 
@@ -57,9 +65,11 @@ Proceed with updates:
 Emit REFACTOR REPORT: staleness summary (age, drift count, outdated deps, obsolete requirements).
 
 If dry-run → list what would change. If executed → list changes by confidence (HIGH applied, MEDIUM/LOW need manual review), validation status. Include rollback: `git restore .`
+
+**Batch mode**: aggregate per-change subsections under one report. Group by outcome — `Updated`, `Dry-run preview`, `Failed` (with error class) — and surface the staleness band for each entry. Recommend follow-up commands per change.
 ```
-/adv-refactor {change-id} COMPLETE
-Result: {Dry run | N changes applied}
+/adv-refactor {change-id | batch:N} COMPLETE
+Result: {Dry run | N changes applied | M of N targets succeeded}
 Next: /adv-review or /adv-apply
 ```
 
