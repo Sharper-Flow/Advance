@@ -121,12 +121,7 @@ describe("handoff blockquote wayfinder contract", () => {
       expect(
         content,
         `${file} must contain blockquote arrow-prefixed command row for /${command}`,
-      ).toMatch(
-        new RegExp(
-          `^> → \`\\/${command} \\{change-id\\}\`$`,
-          "m",
-        ),
-      );
+      ).toMatch(new RegExp(`^> → \`\\/${command} \\{change-id\\}\`$`, "m"));
     },
   );
 
@@ -248,10 +243,9 @@ describe("handoff blockquote wayfinder contract", () => {
       "Shipped variant must NOT contain 'Run when ready:'",
     ).not.toMatch(/Run when ready:/);
 
-    expect(
-      shippedBlock,
-      "Shipped variant must contain 'Shipped.'",
-    ).toMatch(/Shipped\./);
+    expect(shippedBlock, "Shipped variant must contain 'Shipped.'").toMatch(
+      /Shipped\./,
+    );
 
     expect(
       shippedBlock,
@@ -417,10 +411,7 @@ describe("command-as-approval semantics", () => {
     const wayfinderScenario = handoffVoice.scenarios.find(
       (s: any) => s.id === "rq-handoffVoice01.1",
     );
-    expect(
-      wayfinderScenario,
-      "rq-handoffVoice01.1 must exist",
-    ).toBeTruthy();
+    expect(wayfinderScenario, "rq-handoffVoice01.1 must exist").toBeTruthy();
 
     expect(
       wayfinderScenario.then.some((t: string) =>
@@ -446,10 +437,7 @@ describe("command-as-approval semantics", () => {
     const replacesNextScenario = handoffVoice.scenarios.find(
       (s: any) => s.id === "rq-handoffVoice01.4",
     );
-    expect(
-      replacesNextScenario,
-      "rq-handoffVoice01.4 must exist",
-    ).toBeTruthy();
+    expect(replacesNextScenario, "rq-handoffVoice01.4 must exist").toBeTruthy();
 
     expect(
       replacesNextScenario.title,
