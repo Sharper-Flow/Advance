@@ -3,7 +3,7 @@
   "name": "advance",
   "title": "Advance",
   "purpose": "Capability: Advance",
-  "version": "1.15.0",
+  "version": "1.16.0",
   "updated_at": "2026-04-27T01:00:00.000Z",
   "requirements": [
     {
@@ -962,7 +962,7 @@
             "The footer block contains `Current phase:` labeled with the completed gate name",
             "The footer block contains `Next phase:` labeled with the next gate name",
             "The footer block contains a command-needed-to-continue label (e.g., `Run when ready:`) with exactly one runnable command",
-            "The archive terminal variant uses **{change-id}** · release ✓ · Shipped. instead of the standard labeled footer block",
+            "The archive terminal variant uses **{change-id}** · release ✓ · followed by a terminal verb (Shipped. when push succeeds and assets propagate to the global install, Merged locally. when no remote is configured or push is skipped or push fails) instead of the standard labeled footer block",
             "When the handoff is paired with a human-checkpoint approval, reply instructions are part of the same footer block and do not require a separate heading; the three-section spine (Problem / Chosen direction / Delivered) is unchanged"
           ]
         },
@@ -1005,7 +1005,7 @@
           "then": [
             "## Next stage and ## Next headings are absent from the handoff",
             "A labeled footer block appears after ## Delivered with Current phase, Next phase, and a single runnable command",
-            "The archive terminal variant ends with Shipped. and no labeled block",
+            "The archive terminal variant ends with a terminal verb (Shipped. or Merged locally. depending on push state) and no labeled block",
             "Optional reply instructions for human checkpoints (Inline Approval Voice) are part of the labeled footer block, not a separate section"
           ]
         },
