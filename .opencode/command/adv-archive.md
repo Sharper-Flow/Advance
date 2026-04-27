@@ -65,6 +65,9 @@ After the change report:
 ---
 **{change-id}** · acceptance ✓ → release
 
+Current phase: acceptance
+Next phase: release
+
 Reply `sign off` (or `signoff`, `approve`, `confirm`, `yes`, `proceed`, `ship it`) to archive,
 or `dry run` to preview the archive without applying spec deltas,
 or `cancel` / `stop` / `abort` to halt.
