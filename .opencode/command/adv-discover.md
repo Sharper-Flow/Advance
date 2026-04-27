@@ -185,6 +185,28 @@ Build a compact discovery report. The output MUST contain these sections (order 
 | **Related Pattern Scan**   | Results from Phase 1.7                                                                      |
 | **LBP Check**              | Whether likely direction matches long-term best practice                                    |
 | **Recommended Objectives** | Numbered list for the agreement phase                                                       |
+| **AMBIGUITY ANALYSIS**     | Finding table: B/F/S/M findings (required v1) + optional D/X/Q/I/E/C/T findings; severity column; evidence quotes; coverage report row |
+
+### Ambiguity Analysis
+
+Run a structured ambiguity scan using the taxonomy from `ADV_INSTRUCTIONS.md § Ambiguity Taxonomy`:
+
+- **v1 required categories:** B (Boundaries), F (Functional Scope), S (Completion Signals), M (Missing Information) — MUST be scanned
+- **v1 optional categories:** D/X/Q/I/E/C/T — agent MAY emit findings; NOT gate-blocking in v1
+- Per UD2 hybrid scope: required categories MUST appear in every discovery; optional categories are at agent discretion
+
+**Finding shape** (from `ADV_INSTRUCTIONS.md § Ambiguity Taxonomy`):
+```
+{Letter}{N}  {SEVERITY}  {Category}  {Finding text}
+  Evidence: {verbatim quote OR `(no {section} section)`}
+  Reason: unclear because {X}
+```
+
+**Coverage report format:** `Coverage: B:C F:P S:M M:C` (C=Clear, P=Partial, M=Missing, N/A=Not applicable)
+
+**Anti-hallucination rule:** × MUST NOT fabricate evidence quotes — every finding cites verbatim text from proposal.md or `(no {section} section)`.
+
+If scan is clean: emit `### AMBIGUITY ANALYSIS — no ambiguity findings. Coverage: B:C F:C S:C M:C`
 
 ### Prior Research Extension
 
@@ -236,6 +258,25 @@ Required when the proposal's Discovery Agenda contains ecosystem unknowns OR an 
 3. Emit findings inline in the LBP Check section. Recommend `/adv-improve {target}` as a follow-up to persist the findings as a durable research pack when the discovery agenda will need them repeatedly.
 
 Skip this step for purely internal changes (refactors, bug fixes, local doc/test fixes) where no external alternative is viable — say so explicitly in the LBP Check.
+
+---
+## Phase 2.5: Trigger Evaluation
+
+After producing the AMBIGUITY ANALYSIS, evaluate findings before proceeding to Phase 3:
+
+1. **Count findings** — count CRITICAL findings + count HIGH findings across all categories (required AND optional)
+2. **Resolution log check** — read `## Clarify Resolution Log` section from proposal.md if present; previously-resolved findings are excluded from the current trigger count
+3. **Evaluate threshold:**
+
+| Condition | Action |
+|-----------|--------|
+| CRITICAL ≥ 1 | Halt discovery. Do NOT call `adv_gate_complete gateId: 'discovery'`. Do NOT proceed to Phase 3. Output: "AMBIGUITY CRITICAL finding(s) detected. Run `/adv-clarify {change-id}` to resolve, then rerun `/adv-discover {change-id}`." |
+| HIGH ≥ 2 (no CRITICAL) | Halt discovery. Same handoff as above. |
+| Single HIGH only | Warning logged inline. Continue to Phase 3. |
+| All clean | Continue to Phase 3. |
+
+4. **Skip trigger evaluation** when `clarify_enforcement: 'off'` or when discovery gate is already completed (legacy/in-flight changes)
+5. **Rerun cap:** After `/adv-clarify` resolves findings and the user reruns `/adv-discover`, cap at 2 reruns before escalating to user via `question` tool per EC4
 
 ---
 ## Phase 3: Persist Discovery Findings
@@ -361,7 +402,7 @@ Visual comparison blocks are supplementary context, not a replacement for the `q
    | Tier A whitelist match | Approve AC, proceed to Phase 4.6 |
    | Anything else | Treat as revision text; normalize into revised AC bullets and re-run this checkpoint |
 
-   **× Do NOT** treat phrases like "I want to clarify something" or "let's clarify X" as `/adv-clarify` invocation. Only the literal slash-command form triggers the halt branch. Non-literal "clarify" intent is revision text (per `rq-disc12.2`).
+> **Note:** The `/adv-clarify` halt path at Phase 4.5.1 is the same mechanism as the Phase 2.5 trigger evaluation halt. Both hand off to `/adv-clarify` with the same rerun instruction. Phase 2.5 catches ambiguity findings in the proposal's scope/success criteria; Phase 4.5.1 catches ambiguity introduced by AC revision text.
 
 4. If revised AC still need substantial clarification after 3 re-runs, recommend the `/adv-clarify` branch instead of continuing to loop.
 5. If AC are empty or weak, keep the approve option but mark the `/adv-clarify` branch as the recommended path.
