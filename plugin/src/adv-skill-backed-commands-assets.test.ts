@@ -191,6 +191,66 @@ describe("canonical policy sections in ADV_INSTRUCTIONS.md", () => {
   });
 });
 
+describe("ambiguity taxonomy spec assets", () => {
+  test("adv-proposal spec includes taxonomy requirements", () => {
+    const spec = JSON.parse(
+      readFileSync(
+        join(REPO_ROOT, ".adv/specs/adv-proposal/spec.json"),
+        "utf8",
+      ),
+    ) as { version: string; requirements: Array<{ id: string }> };
+
+    expect(spec.version).toBe("1.2.0");
+    expect(spec.requirements.map((rq) => rq.id)).toEqual(
+      expect.arrayContaining(["rq-prop-tax1", "rq-prop-tax2", "rq-prop-tax3"]),
+    );
+  });
+
+  test("adv-discover spec includes taxonomy requirements", () => {
+    const spec = JSON.parse(
+      readFileSync(
+        join(REPO_ROOT, ".adv/specs/adv-discover/spec.json"),
+        "utf8",
+      ),
+    ) as { version: string; requirements: Array<{ id: string }> };
+
+    expect(spec.version).toBe("1.1.0");
+    expect(spec.requirements.map((rq) => rq.id)).toEqual(
+      expect.arrayContaining(["rq-disc-tax1", "rq-disc-tax2", "rq-disc-tax3"]),
+    );
+  });
+
+  test("ambiguity taxonomy command/checklist surfaces remain wired", () => {
+    const proposal = readFileSync(
+      join(REPO_ROOT, ".opencode/command/adv-proposal.md"),
+      "utf8",
+    );
+    const discover = readFileSync(
+      join(REPO_ROOT, ".opencode/command/adv-discover.md"),
+      "utf8",
+    );
+    const clarify = readFileSync(
+      join(REPO_ROOT, ".opencode/command/adv-clarify.md"),
+      "utf8",
+    );
+    const proposalChecklist = readFileSync(
+      join(REPO_ROOT, "docs/checklists/proposal-checklist.md"),
+      "utf8",
+    );
+    const discoverChecklist = readFileSync(
+      join(REPO_ROOT, "docs/checklists/discover-checklist.md"),
+      "utf8",
+    );
+
+    expect(proposal).toContain("Phase 2.6: Run B/F/S Ambiguity Scan");
+    expect(discover).toContain("## Phase 2.5: Trigger Evaluation");
+    expect(discover).toContain("AMBIGUITY ANALYSIS");
+    expect(clarify).toContain("## Findings-Driven Mode");
+    expect(proposalChecklist).toContain("## Ambiguity Scan (B/F/S)");
+    expect(discoverChecklist).toContain("## Ambiguity Analysis Protocol");
+  });
+});
+
 describe("thin-command shape enforcement", () => {
   const THIN_COMMANDS = [
     {

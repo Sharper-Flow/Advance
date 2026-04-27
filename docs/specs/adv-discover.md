@@ -1,7 +1,7 @@
 # ADV Discover Command
 
-> **Version:** 1.0.0
-> **Updated:** 2026-04-10
+> **Version:** 1.1.0
+> **Updated:** 2026-04-27
 
 ## Purpose
 
@@ -30,7 +30,7 @@ Defines the rigor requirements for /adv-discover. The discover command gathers c
 **Then:**
 
 - The output contains a 'Discovery Checklist' section
-- The checklist lists at least 7 mandatory protocol steps
+- The checklist lists all mandatory protocol steps
 - Each step has a PASS or SKIP status with a reason
 
 ---
@@ -409,6 +409,138 @@ When /adv-discover absorbs the user-facing agreement flow, the command MUST pres
 - /adv-discover stops immediately without persisting agreement.md
 - /adv-discover does not call adv_gate_complete
 - The command instructs the user to run /adv-clarify {change-id} and rerun /adv-discover {change-id} afterward
+
+---
+
+### Full 11-Category AMBIGUITY ANALYSIS
+
+**ID:** `rq-disc-tax1` | **Priority:** **[MUST]**
+
+/adv-discover MUST run an ambiguity scan during Phase 2 with B/F/S/M required (v1) and D/X/Q/I/E/C/T optional, and emit an `### AMBIGUITY ANALYSIS` section containing finding IDs, severity, evidence quotes, and a coverage report.
+
+**Tags:** `discover`, `ambiguity-scan`, `taxonomy`
+
+#### Scenarios
+
+**Discovery produces AMBIGUITY ANALYSIS section with findings and coverage** (`rq-disc-tax1.1`)
+
+**Given:**
+- A change in the discovery phase
+- `clarify_enforcement` is `advisory` or `strict`
+
+**When:** /adv-discover runs Phase 2 analysis
+
+**Then:**
+- Output contains `### AMBIGUITY ANALYSIS`
+- Section includes per-category findings with severity ratings
+- Evidence quotes follow the anti-hallucination rule
+- Coverage line shows C/P/M/N/A status per required category (B/F/S/M)
+
+**Legacy discovery skips AMBIGUITY ANALYSIS enforcement** (`rq-disc-tax1.2`)
+
+**Given:**
+- A change with discovery gate already completed before this rollout
+
+**When:** /adv-discover is invoked again
+
+**Then:**
+- Existing discovery output is preserved
+- AMBIGUITY ANALYSIS is not enforced retroactively
+
+**clarify_enforcement off skips AMBIGUITY ANALYSIS** (`rq-disc-tax1.3`)
+
+**Given:**
+- `clarify_enforcement` is `off`
+
+**When:** /adv-discover runs Phase 2
+
+**Then:**
+- No AMBIGUITY ANALYSIS section is emitted
+- No trigger evaluation runs
+
+---
+
+### Mandatory /adv-clarify Trigger
+
+**ID:** `rq-disc-tax2` | **Priority:** **[MUST]**
+
+/adv-discover MUST halt and hand off to /adv-clarify when AMBIGUITY ANALYSIS produces any CRITICAL finding OR 2+ HIGH findings. Single HIGH findings produce a warning but do not block. Trigger applies to all emitted categories (required + optional).
+
+**Tags:** `discover`, `clarify-trigger`, `mandatory-handoff`
+
+#### Scenarios
+
+**CRITICAL finding halts discovery and hands off to /adv-clarify** (`rq-disc-tax2.1`)
+
+**Given:**
+- AMBIGUITY ANALYSIS shows 1 CRITICAL B finding
+
+**When:** /adv-discover evaluates findings in Phase 2.5
+
+**Then:**
+- Discovery halts
+- Output instructs user to run /adv-clarify {change-id}
+- adv_gate_complete gateId: discovery is NOT called
+
+**Single HIGH finding produces warning, proceeds normally** (`rq-disc-tax2.2`)
+
+**Given:**
+- AMBIGUITY ANALYSIS shows 1 HIGH finding only
+
+**When:** /adv-discover evaluates findings
+
+**Then:**
+- Warning is logged inline
+- Discovery proceeds normally to Phase 3
+
+**2+ HIGH findings halt discovery** (`rq-disc-tax2.3`)
+
+**Given:**
+- AMBIGUITY ANALYSIS shows 2+ HIGH findings and no CRITICAL
+
+**When:** /adv-discover evaluates findings
+
+**Then:**
+- Discovery halts
+- Output hands off to /adv-clarify
+
+---
+
+### Post-Clarify Clean Coverage
+
+**ID:** `rq-disc-tax3` | **Priority:** **[MUST]**
+
+After /adv-clarify resolves findings via `## Clarify Resolution Log`, a fresh /adv-discover rerun MUST produce a coverage report with no CRITICAL findings and at most 1 HIGH finding. Reruns are capped at 2 before escalating.
+
+**Tags:** `discover`, `post-clarify`, `rerun-cap`
+
+#### Scenarios
+
+**Post-clarify rerun shows clean coverage** (`rq-disc-tax3.1`)
+
+**Given:**
+- /adv-clarify has written resolutions to proposal.md
+- `## Clarify Resolution Log` contains resolved entries
+
+**When:** /adv-discover is rerun
+
+**Then:**
+- New AMBIGUITY ANALYSIS shows no CRITICAL findings
+- At most 1 HIGH finding remains
+- Discovery proceeds to agreement normally
+
+**Third rerun triggers escalation instead of auto-halt** (`rq-disc-tax3.2`)
+
+**Given:**
+- 2 prior /adv-clarify cycles completed
+- A third rerun is attempted
+
+**When:** /adv-discover evaluates findings
+
+**Then:**
+- Rerun cap is enforced
+- Agent escalates to user via question tool
+- No automatic halt-handoff occurs
 
 ---
 

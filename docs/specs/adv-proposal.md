@@ -1,7 +1,7 @@
 # ADV Proposal Command
 
-> **Version:** 1.1.0
-> **Updated:** 2026-03-14
+> **Version:** 1.2.0
+> **Updated:** 2026-04-27
 
 ## Purpose
 
@@ -152,3 +152,111 @@ After the problem statement is confirmed and before building the full proposal, 
 - Task decomposition is deferred to /adv-prep
 
 ---
+
+### Mandatory Scope Section
+
+**ID:** `rq-prop-tax1` | **Priority:** **[MUST]**
+
+/adv-proposal MUST require a `## Scope` section in proposal.md with `### In Scope` and `### Out of Scope` subsections. Gate completion MUST block if either subsection is missing or empty.
+
+**Tags:** `proposal`, `scope`, `ambiguity-taxonomy`
+
+#### Scenarios
+
+**New proposal contains Scope section with In/Out subsections** (`rq-prop-tax1.1`)
+
+**Given:**
+- A user invokes /adv-proposal for a new change
+
+**When:** Phase 2 builds the full proposal
+
+**Then:**
+- proposal.md contains `## Scope`
+- `## Scope` has `### In Scope` content
+- `## Scope` has `### Out of Scope` content
+- Proposal gate refuses to complete if either subsection is missing or empty
+
+**Legacy proposal skips Scope enforcement** (`rq-prop-tax1.2`)
+
+**Given:**
+- A change with proposal gate already completed before this rollout
+
+**When:** /adv-proposal is invoked again on the same change
+
+**Then:**
+- Existing proposal is preserved
+- Scope section requirement is not enforced retroactively
+- Proposal gate is not blocked on missing Scope section
+
+---
+
+### B/F/S Ambiguity Scan
+
+**ID:** `rq-prop-tax2` | **Priority:** **[MUST]**
+
+/adv-proposal MUST run a 3-category ambiguity scan (B=Boundaries, F=Functional Scope, S=Completion Signals) against the proposal during Phase 2.6. CRITICAL findings MUST block proposal gate completion under `clarify_enforcement: strict`.
+
+**Tags:** `proposal`, `ambiguity-scan`, `boundaries`, `functional`, `completion-signals`
+
+#### Scenarios
+
+**Vague success criteria produce S1 HIGH finding** (`rq-prop-tax2.1`)
+
+**Given:**
+- A proposal with success criteria containing "fast response"
+
+**When:** The B/F/S scan runs during Phase 2.6
+
+**Then:**
+- An S1 HIGH finding is emitted
+- Evidence cites exact phrase "fast response" verbatim
+- Reason explains why the criterion is vague
+
+**Missing Out of Scope blocks proposal gate** (`rq-prop-tax2.2`)
+
+**Given:**
+- A proposal missing `### Out of Scope`
+- `clarify_enforcement` is `strict`
+
+**When:** The B/F/S scan runs during Phase 2.6
+
+**Then:**
+- A B1 CRITICAL finding is emitted
+- Evidence contains `(no Out of Scope subsection)`
+- Proposal gate completion is refused
+
+---
+
+### Anti-Hallucination Evidence Rule
+
+**ID:** `rq-prop-tax3` | **Priority:** **[MUST]**
+
+Every ambiguity finding emitted by /adv-proposal MUST include either a verbatim source quote or an explicit `(no {section} section)` marker, plus a `reason: unclear because {X}` field. Findings without evidence are malformed.
+
+**Tags:** `proposal`, `anti-hallucination`, `evidence`
+
+#### Scenarios
+
+**Finding includes evidence and reason fields** (`rq-prop-tax3.1`)
+
+**Given:**
+- The B/F/S scan produces a finding
+
+**When:** The finding is emitted
+
+**Then:**
+- Finding contains `evidence:` with verbatim quote or absence marker
+- Finding contains `reason:` with explanation
+- Finding is well-formed per `ADV_INSTRUCTIONS.md § Ambiguity Taxonomy`
+
+**Finding without evidence is malformed** (`rq-prop-tax3.2`)
+
+**Given:**
+- An attempted finding without evidence quote
+
+**When:** The finding is reviewed before emission
+
+**Then:**
+- Finding is classified as malformed
+- Finding is not surfaced to the user
+- Agent self-corrects or omits the finding
