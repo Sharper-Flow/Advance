@@ -251,11 +251,12 @@ The `Chosen direction` section content differs per stage. Use the anchor from th
 
 ### Archive terminal variant
 
-The `/adv-archive` handoff is the terminal message. Use this variant:
+The `/adv-archive` handoff is the terminal message. The terminal verb branches by push state — use the variant matching the actual end-state.
+
+**Shipped variant** (push succeeded AND assets propagated to global install):
 
 ```
 ## Shipped.
-{No heading — just the word.}
 
 ## Problem
 {One-line restatement.}
@@ -264,13 +265,48 @@ The `/adv-archive` handoff is the terminal message. Use this variant:
 What shipped, what spec deltas applied.
 
 ## Delivered
-{Spec deltas applied + git merge + cleanup + investment summary. Bullet list.}
+- Spec deltas applied: {counts}
+- Archive location: {path}
+- Git merge: {default-branch} ({mode})
+- Push: {SHA range pushed}
+- Pre-push hooks: {strategy}
+- Asset sync: {action}
+- Cleanup: worktree + temp artifacts
+- Investment: {summary}
 
 ---
 **{change-id}** · release ✓ · Shipped.
 ```
 
-No labeled footer block — the change is complete.
+**Merged locally variant** (no remote configured OR push skipped OR push failed):
+
+```
+## Merged locally.
+
+## Problem
+{One-line restatement.}
+
+## Chosen direction
+What was merged locally, what spec deltas applied. Note: not pushed.
+
+## Delivered
+- Spec deltas applied: {counts}
+- Archive location: {path}
+- Git merge: {default-branch} ({mode})
+- Push: skipped ({reason: no_remote | local_only_mode | push_failed})
+- Cleanup: worktree + temp artifacts
+- Investment: {summary}
+
+---
+**{change-id}** · release ✓ · Merged locally.
+```
+
+Selection rule (from `/adv-archive` Phase 8):
+
+- **Shipped.** — push succeeded AND `sync_action` ∈ {`auto via hook`, `manual fix`, `not needed`}
+- **Merged locally.** — no remote configured OR push skipped OR push failed (with explicit reason)
+
+Both variants have no labeled footer block — the change is terminal.
 
 ### Fast-track variant (`/adv-task`)
 
