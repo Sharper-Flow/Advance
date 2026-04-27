@@ -1066,7 +1066,7 @@ Every /adv-\* command that emits a user-facing gate-transition message MUST use 
 **Then:**
 
 - All three narrative spine headings are present: Problem, Chosen direction, Delivered, plus a footer line below a --- separator
-- The archive terminal variant uses **{change-id}** · release ✓ · Shipped. instead of the standard arrow+command footer
+- The archive terminal variant uses **{change-id}** · release ✓ · followed by a terminal verb (Shipped. when push succeeds and assets propagate to the global install, Merged locally. when no remote is configured or push is skipped or push fails) instead of the standard arrow+command footer
 
 **No mechanics leakage** (`rq-handoffVoice01.2`)
 
@@ -1111,7 +1111,7 @@ Every /adv-\* command that emits a user-facing gate-transition message MUST use 
 
 - ## Next stage and ## Next headings are absent from the handoff
 - A footer line appears after ## Delivered with the change id, gate transition, and next command
-- The archive terminal variant ends the footer with Shipped. and no arrow or command
+- The archive terminal variant ends the footer with a terminal verb (Shipped. or Merged locally. depending on push state) and no arrow or command
 
 ---
 
