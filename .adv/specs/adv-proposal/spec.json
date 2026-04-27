@@ -3,7 +3,7 @@
   "name": "adv-proposal",
   "title": "ADV Proposal Command",
   "purpose": "Defines the responsibilities and boundaries of /adv-proposal. The proposal command establishes WHAT and WHY — problem statement, objectives, success criteria, and constraints. It produces alignment artifacts, not implementation artifacts.",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "updated_at": "2026-03-14T00:00:00.000Z",
   "requirements": [
     {
@@ -95,6 +95,100 @@
             "The proposal does not prescribe specific libraries or patterns",
             "Implementation approach is deferred to /adv-discover and /adv-design",
             "Task decomposition is deferred to /adv-prep"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-prop-tax1",
+      "title": "Mandatory Scope Section",
+      "body": "/adv-proposal MUST require a ## Scope section in proposal.md with ### In Scope and ### Out of Scope subsections. Gate completion MUST block if either subsection is missing or empty.",
+      "priority": "must",
+      "tags": ["proposal", "scope", "ambiguity-taxonomy"],
+      "scenarios": [
+        {
+          "id": "rq-prop-tax1.1",
+          "title": "New proposal contains Scope section with In/Out subsections",
+          "given": ["A user invokes /adv-proposal for a new change"],
+          "when": "Phase 2 builds the full proposal",
+          "then": [
+            "proposal.md contains ## Scope section",
+            "## Scope has ### In Scope subsection with content",
+            "## Scope has ### Out of Scope subsection with content",
+            "Proposal gate refuses to complete if either subsection is missing or empty"
+          ]
+        },
+        {
+          "id": "rq-prop-tax1.2",
+          "title": "Legacy proposal skips Scope enforcement (backwards-compat)",
+          "given": ["A change with proposal gate already completed (created before this rollout)"],
+          "when": "/adv-proposal is invoked again on the same change",
+          "then": [
+            "The existing proposal is preserved",
+            "Scope section requirement is not enforced retroactively",
+            "The proposal gate is not blocked on missing Scope section"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-prop-tax2",
+      "title": "B/F/S Ambiguity Scan",
+      "body": "/adv-proposal MUST run a 3-category ambiguity scan (B=Boundaries, F=Functional Scope, S=Completion Signals) against the proposal during Phase 2.6. CRITICAL findings MUST block proposal gate completion under clarify_enforcement: strict.",
+      "priority": "must",
+      "tags": ["proposal", "ambiguity-scan", "boundaries", "functional", "completion-signals"],
+      "scenarios": [
+        {
+          "id": "rq-prop-tax2.1",
+          "title": "Vague success criteria produce S1 HIGH finding",
+          "given": ["A proposal with success criteria containing 'fast response'"],
+          "when": "The B/F/S scan runs during Phase 2.6",
+          "then": [
+            "An S1 HIGH finding is emitted",
+            "Evidence field cites exact phrase 'fast response' verbatim",
+            "Reason field states why the criterion is vague"
+          ]
+        },
+        {
+          "id": "rq-prop-tax2.2",
+          "title": "Missing Out of Scope blocks proposal gate",
+          "given": ["A proposal missing ### Out of Scope subsection", "clarify_enforcement is 'strict'"],
+          "when": "The B/F/S scan runs during Phase 2.6",
+          "then": [
+            "A B1 CRITICAL finding is emitted",
+            "Evidence field contains '(no Out of Scope subsection)'",
+            "Proposal gate completion is refused"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-prop-tax3",
+      "title": "Anti-Hallucination Evidence Rule",
+      "body": "Every ambiguity finding emitted by /adv-proposal MUST include either a verbatim source quote or an explicit '(no {section} section)' marker, plus a 'reason: unclear because {X}' field. Findings without evidence are malformed.",
+      "priority": "must",
+      "tags": ["proposal", "anti-hallucination", "evidence"],
+      "scenarios": [
+        {
+          "id": "rq-prop-tax3.1",
+          "title": "Finding includes evidence and reason fields",
+          "given": ["The B/F/S scan produces a finding"],
+          "when": "The finding is emitted",
+          "then": [
+            "Finding contains evidence: field with verbatim quote or (no X) marker",
+            "Finding contains reason: field with explanation",
+            "Finding is well-formed per ADV_INSTRUCTIONS.md Ambiguity Taxonomy"
+          ]
+        },
+        {
+          "id": "rq-prop-tax3.2",
+          "title": "Finding without evidence is malformed",
+          "given": ["An attempted finding without evidence quote"],
+          "when": "The finding is reviewed before emission",
+          "then": [
+            "The finding is classified as malformed",
+            "The finding is not surfaced to the user",
+            "Agent self-corrects or omits the finding"
           ]
         }
       ]
