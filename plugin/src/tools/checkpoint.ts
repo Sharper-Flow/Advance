@@ -419,6 +419,28 @@ export const checkpointTools = {
       }
 
       if (statusOutput.trim() === "") {
+        // Phase F.0: same auto-verification rule as the dirty-tree path.
+        // Without this, clean checkpoints at `green_recorded` silently
+        // fail their ledger write (caught + reported as
+        // checkpointRecorded:false) and the run stays wedged.
+        if (mode === "complete" && args.verification) {
+          try {
+            const run = await store.tasks.getRun(args.taskId);
+            if (run?.phase === "green_recorded") {
+              await store.tasks.recordRunEvent(args.taskId, {
+                idempotencyKey: `${args.taskId}:auto-verification:clean:${actualHeadSha}`,
+                type: "verification",
+                recordedAt: new Date().toISOString(),
+                payload: { summary: args.verification },
+              });
+            }
+          } catch {
+            // Auto-verification is additive bookkeeping; the subsequent
+            // checkpoint recordRunEvent will surface the underlying
+            // ledger error if anything is genuinely broken.
+          }
+        }
+
         try {
           await store.tasks.recordRunEvent(args.taskId, {
             idempotencyKey: `${args.taskId}:checkpoint:clean:${actualHeadSha}`,
@@ -520,6 +542,35 @@ export const checkpointTools = {
 
         // Commit succeeded — return result
         const { stdout: sha } = await runGit(["rev-parse", "HEAD"], cwd);
+
+        // Phase F.0: auto-emit `verification` task-run event when the
+        // ledger phase is `green_recorded` and the caller supplied the
+        // verification arg. Without this, the strict change-state machine
+        // rejects `green_recorded -> checkpoint` for inline /
+        // separate_verification tasks (see
+        // recordTaskRunEventInChangeState + isTransitionAllowed in
+        // plugin/src/temporal/change-state.ts), which surfaces as a
+        // generic "Workflow Update failed" error and wedges /adv-apply.
+        // Fix is at the tool seam to preserve the strict transition
+        // contract; the change-state rules are intentional and tested.
+        if (mode === "complete" && args.verification) {
+          try {
+            const run = await store.tasks.getRun(args.taskId);
+            if (run?.phase !== "verified" && run?.phase !== "checkpointed") {
+              await store.tasks.recordRunEvent(args.taskId, {
+                idempotencyKey: `${args.taskId}:auto-verification:${sha.trim()}`,
+                type: "verification",
+                recordedAt: new Date().toISOString(),
+                payload: { summary: args.verification },
+              });
+            }
+          } catch {
+            // Auto-verification is additive bookkeeping. If the backing
+            // store rejects it the subsequent checkpoint event will
+            // surface the underlying ledger error.
+          }
+        }
+
         try {
           await store.tasks.recordRunEvent(args.taskId, {
             idempotencyKey: `${args.taskId}:checkpoint:committed:${sha.trim()}`,

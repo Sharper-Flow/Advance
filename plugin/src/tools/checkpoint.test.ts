@@ -498,6 +498,179 @@ describe("adv_task_checkpoint", () => {
     expect(parsed.classification).toBe("SEMANTIC");
   });
 
+  // ─── Phase F.0: Auto-emit verification before checkpoint ───────────────
+
+  describe("ledger auto-advance for checkpoint (Phase F.0)", () => {
+    /**
+     * Phase F.0 regression: production code never emits a `verification`
+     * task-run event, so inline / separate_verification tasks reach
+     * `green_recorded` and then adv_task_checkpoint fails with
+     * "Workflow Update failed" because checkpoint requires phase
+     * `verified` or `awaiting_checkpoint`. Same root-cause class as the
+     * baseline auto-emit gap fixed in adv_run_test, just one phase
+     * later in the lifecycle.
+     *
+     * Fix: when phase is `green_recorded` and a `verification` arg is
+     * provided, adv_task_checkpoint must auto-emit a `verification`
+     * event before recording the checkpoint event. Preserves the strict
+     * change-state contract (no isTransitionAllowed weakening) by driving
+     * the missing precursor event from the tool surface.
+     */
+    function ledgerStore(
+      ownerChangeId: string,
+      initialPhase:
+        | "not_started"
+        | "started"
+        | "baseline_captured"
+        | "red_recorded"
+        | "green_recorded"
+        | "verified"
+        | "checkpointed" = "green_recorded",
+    ): Store & {
+      recordedRunEvents: TaskRunEvent[];
+      currentPhase: { value: string };
+    } {
+      const recordedRunEvents: TaskRunEvent[] = [];
+      const currentPhase = { value: initialPhase as string };
+      const phaseByEvent: Record<string, string> = {
+        start: "started",
+        baseline: "baseline_captured",
+        red_evidence: "red_recorded",
+        green_evidence: "green_recorded",
+        verification: "verified",
+        checkpoint: "checkpointed",
+        complete: "done",
+        failure: "failed",
+        blocker: "blocked",
+      };
+      const tasks = {
+        update: (..._args: unknown[]) => {
+          throw new Error(
+            "store.tasks.update MUST NOT be called by checkpoint",
+          );
+        },
+        recordRunEvent: async (taskId: string, event: TaskRunEvent) => {
+          recordedRunEvents.push(event);
+          currentPhase.value = phaseByEvent[event.type] ?? currentPhase.value;
+          return {
+            duplicate: false,
+            run: {
+              taskId,
+              runId: `run-${taskId}`,
+              phase: currentPhase.value,
+              updatedAt: event.recordedAt,
+              resumeHint: "",
+              requiredNextAction: "mark_done",
+              seenIdempotencyKeys: [event.idempotencyKey],
+              events: [event],
+            } satisfies TaskRunState,
+          };
+        },
+        getRun: async (taskId: string) =>
+          ({
+            taskId,
+            runId: `run-${taskId}`,
+            phase: currentPhase.value,
+            updatedAt: "2026-04-26T00:00:00.000Z",
+            resumeHint: "",
+            requiredNextAction: "checkpoint_task",
+            seenIdempotencyKeys: [],
+            events: [],
+          }) satisfies TaskRunState,
+        show: async (_taskId: string) => ({
+          task: { id: _taskId, title: "Test task" },
+          changeId: ownerChangeId,
+        }),
+      } as unknown as Store["tasks"];
+      return {
+        tasks,
+        recordedRunEvents,
+        currentPhase,
+      } as Store & {
+        recordedRunEvents: TaskRunEvent[];
+        currentPhase: { value: string };
+      };
+    }
+
+    it("auto-emits verification before checkpoint when phase is green_recorded", async () => {
+      const ledger = ledgerStore("optimizeCheckpointCommits", "green_recorded");
+      await writeFile(join(dir, "f0-verify.txt"), "hello");
+
+      const result = await checkpointTools.adv_task_checkpoint.execute(
+        {
+          taskId: "tk-f0-verify",
+          expectedBranch: "trunk",
+          verification: "pnpm test passed",
+        },
+        ledger,
+        dir,
+      );
+      const parsed = parseToolOutput(result) as Record<string, unknown>;
+
+      expect(parsed.status).toBe("committed");
+      const types = ledger.recordedRunEvents.map((e) => e.type);
+      expect(types).toContain("verification");
+      expect(types).toContain("checkpoint");
+      // verification MUST precede checkpoint in the recorded order
+      expect(types.indexOf("verification")).toBeLessThan(
+        types.indexOf("checkpoint"),
+      );
+      const verificationEvent = ledger.recordedRunEvents.find(
+        (e) => e.type === "verification",
+      );
+      expect(verificationEvent?.payload.summary).toBe("pnpm test passed");
+    });
+
+    it("does not re-emit verification when phase is already verified", async () => {
+      const ledger = ledgerStore("optimizeCheckpointCommits", "verified");
+      await writeFile(join(dir, "f0-verified.txt"), "hello");
+
+      const result = await checkpointTools.adv_task_checkpoint.execute(
+        {
+          taskId: "tk-f0-verified",
+          expectedBranch: "trunk",
+          verification: "pnpm test passed",
+        },
+        ledger,
+        dir,
+      );
+      const parsed = parseToolOutput(result) as Record<string, unknown>;
+
+      expect(parsed.status).toBe("committed");
+      const types = ledger.recordedRunEvents.map((e) => e.type);
+      expect(types.filter((t) => t === "verification").length).toBe(0);
+      expect(types).toContain("checkpoint");
+    });
+
+    it("auto-emits verification before checkpoint on clean tree at green_recorded", async () => {
+      const ledger = ledgerStore("optimizeCheckpointCommits", "green_recorded");
+      // clean tree: no file writes
+
+      const result = await checkpointTools.adv_task_checkpoint.execute(
+        {
+          taskId: "tk-f0-clean",
+          expectedBranch: "trunk",
+          verification: "pnpm test passed",
+        },
+        ledger,
+        dir,
+      );
+      const parsed = parseToolOutput(result) as Record<string, unknown>;
+
+      expect(parsed.status).toBe("clean");
+      const types = ledger.recordedRunEvents.map((e) => e.type);
+      // Clean checkpoint at green_recorded must auto-advance through
+      // verification before recording the checkpoint event so the
+      // task-run ledger does not stay wedged at green_recorded for
+      // tasks whose work was already committed before checkpoint.
+      expect(types).toContain("verification");
+      expect(types).toContain("checkpoint");
+      expect(types.indexOf("verification")).toBeLessThan(
+        types.indexOf("checkpoint"),
+      );
+    });
+  });
+
   // 18. Git failure classifications preserved
   it("preserves ENVIRONMENTAL classification for non-git workdir with guards", async () => {
     const nonGit = await createTempDir("adv-checkpoint-nongit-");
