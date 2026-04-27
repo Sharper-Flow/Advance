@@ -126,7 +126,11 @@ Agreed problem framing + scope boundary.
 - Discovery agenda captured
 
 ---
-**{change-id}** · proposal ✓ → discovery · `/adv-discover {change-id}`
+**{change-id}** · proposal ✓ → discovery
+
+Current phase: proposal
+Next phase: discovery
+Run when ready: `/adv-discover {change-id}`
 ```
 
 **Auto-continue:** After the user reply matches the Tier A whitelist (or LLM classifies as `approve`), immediately begin `/adv-research` (or `/adv-discover`) inline. Do not stop, do not ask "shall I proceed?" — the inline approval is the go-ahead.

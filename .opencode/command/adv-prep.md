@@ -285,7 +285,7 @@ Want to abandon prep? Reply `cancel` or `stop`.
 | Reply | Action |
 |---|---|
 | Tier A whitelist match | Call `adv_gate_complete gateId: 'planning' userApproved: true`, then begin `/adv-apply` inline |
-| `/adv-apply {change-id}` | No-op; OpenCode dispatches. **The user must reply with a whitelist word in the dispatched session for `userApproved: true` to be set** |
+| `/adv-apply {change-id}` | Counts as explicit approval. The agent completes planning with `userApproved: true` and proceeds to execution inline — no second approval prompt |
 | Free-form text | Treat as revision request; collect feedback → loop back to Phase 4 (re-analyze gaps) → regenerate vision → re-prompt |
 | `cancel` / `stop` | Halt; do not complete prep gate |
 | Ambiguous | LLM judgment classifies into approve / revise / redirect / stop / unclear |
@@ -294,7 +294,7 @@ Want to abandon prep? Reply `cancel` or `stop`.
 
 **Machine contract (CRITICAL):** when the user replies with a Tier A whitelist word (or LLM classifies as `approve`), the agent MUST pass `userApproved: true` to `adv_gate_complete gateId: 'planning'`. The machine contract enforced by `handlePlanningGateCompletion` is independent of the UX surface — inline approval is the upstream signal source.
 
-**× MUST NOT proceed past Phase 5 without an explicit user reply matching the Tier A whitelist or LLM-classified `approve`.** Invocation is NOT implicit approval. The prep gate is the last human checkpoint before autonomous execution.
+**× MUST NOT proceed past Phase 5 without an explicit user reply matching the Tier A whitelist, LLM-classified `approve`, or exact shown continuation command invocation.** The prep gate is the last human checkpoint before autonomous execution.
 
 ---
 
@@ -371,7 +371,11 @@ Firm plan shape (task structure, approach, not task list).
 - TDD intent assigned per task
 
 ---
-**{change-id}** · planning ✓ → execution · `/adv-apply {change-id}`
+**{change-id}** · planning ✓ → execution
+
+Current phase: planning
+Next phase: execution
+Run when ready: `/adv-apply {change-id}`
 ```
 
 **Auto-continue:** After user approval, immediately begin `/adv-apply` inline. This is the last human checkpoint before autonomous execution — the user's "approve and continue" is the go-ahead to start implementation without any further confirmation.

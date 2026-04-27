@@ -100,7 +100,11 @@ Use the fast-track variant of the Gate Handoff Voice spine (see `docs/command-vo
 - Proposal + agreement + design artifacts produced
 
 ---
-**{change-id}** · task ✓ → apply · `/adv-apply {change-id}`
+**{change-id}** · task ✓ → apply
+
+Current phase: planning
+Next phase: execution
+Run when ready: `/adv-apply {change-id}`
 ```
 
 × Do NOT begin implementation.

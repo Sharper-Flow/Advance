@@ -225,10 +225,14 @@ Every gate handoff uses exactly three narrative sections, in this order:
 {What was produced in this stage. Bullet list. Concrete artifacts, not process.}
 
 ---
-**{change-id}** · {gate} ✓ → {next-gate} · `/adv-{next-command} {change-id}`
+**{change-id}** · {gate} ✓ → {next-gate}
+
+Current phase: {completed-gate-name}
+Next phase: {next-gate-name}
+Run when ready: `/adv-{next-command} {change-id}`
 ```
 
-No other sections, headings, or structural elements in the handoff. The footer line is the only content after `## Delivered`. Internal state (task lists, gate checkboxes, sub-agent counts, step logs) lives in ADV tools (`adv_change_show`, `adv_task_list`, `_contextSnapshot`), not in chat.
+No other sections, headings, or structural elements in the handoff. The labeled footer block is the only content after `## Delivered`. Internal state (task lists, gate checkboxes, sub-agent counts, step logs) lives in ADV tools (`adv_change_show`, `adv_task_list`, `_contextSnapshot`), not in chat.
 
 ### Per-stage anchors (Chosen direction)
 
@@ -266,7 +270,7 @@ What shipped, what spec deltas applied.
 **{change-id}** · release ✓ · Shipped.
 ```
 
-No footer arrow or command — the change is complete.
+No labeled footer block — the change is complete.
 
 ### Fast-track variant (`/adv-task`)
 
@@ -283,7 +287,11 @@ No footer arrow or command — the change is complete.
 {All artifacts produced: proposal, agreement, design, task graph. Bullet list.}
 
 ---
-**{change-id}** · task ✓ → apply · `/adv-apply {change-id}`
+**{change-id}** · task ✓ → apply
+
+Current phase: planning
+Next phase: execution
+Run when ready: `/adv-apply {change-id}`
 ```
 
 ### Action banner cleanup
@@ -342,7 +350,7 @@ Run /adv-review gateHandoffVoiceStandard
 Gate handoff messages dump internal mechanics (todo lists, step logs, gate checkboxes, sub-agent counts) instead of user-relevant content.
 
 ## Chosen direction
-What was built and how it was verified. Three-section spine + footer replaces all prior handoff templates.
+What was built and how it was verified. Three-section spine + labeled footer block replaces all prior handoff templates.
 
 ## Delivered
 - Voice standard doc extended with Gate Handoff Voice section
@@ -353,7 +361,11 @@ What was built and how it was verified. Three-section spine + footer replaces al
 - Build, tests, lint pass
 
 ---
-**gateHandoffVoiceStandard** · execution ✓ → acceptance · `/adv-review gateHandoffVoiceStandard`
+**gateHandoffVoiceStandard** · execution ✓ → acceptance
+
+Current phase: execution
+Next phase: acceptance
+Run when ready: `/adv-review gateHandoffVoiceStandard`
 ```
 
 #### Pair 2: /adv-discover handoff (artifact-recall → spine)
@@ -387,17 +399,21 @@ Remaining gates: design ○, planning ○, execution ○, acceptance ○, releas
 Gate handoff messages dump internal mechanics instead of user-relevant content.
 
 ## Chosen direction
-Agreed objectives + constraints + user decisions. Spine = Problem / Chosen direction / Delivered + footer. Banner cleanup included. Caveman-lite matches global config. Extend existing voice standard doc. Replace Orchestration Summary entirely.
+Agreed objectives + constraints + user decisions. Spine = Problem / Chosen direction / Delivered + labeled footer block. Banner cleanup included. Caveman-lite matches global config. Extend existing voice standard doc. Replace Orchestration Summary entirely.
 
 ## Delivered
-- Agreement confirmed: three-section spine + footer for all gate handoffs
+- Agreement confirmed: three-section spine + labeled footer block for all gate handoffs
 - Scope: all /adv-* commands, not just /adv-apply
 - Constraint: extend existing voice standard doc, no sibling doc
 - Constraint: replace Orchestration Summary entirely, not supplement
 - 21-task graph synthesized across Phases A–G
 
 ---
-**gateHandoffVoiceStandard** · discovery ✓ → design · `/adv-design gateHandoffVoiceStandard`
+**gateHandoffVoiceStandard** · discovery ✓ → design
+
+Current phase: discovery
+Next phase: design
+Run when ready: `/adv-design gateHandoffVoiceStandard`
 ```
 
 ## Inline Approval Voice
@@ -499,11 +515,17 @@ Wait one user-turn. If the next reply is `stop` or `abort` (case-insensitive, tr
 ---
 **{change-id}** · {gate} ✓ → {next-gate}
 
+Current phase: {completed-gate-name}
+Next phase: {next-gate-name}
+Run when ready: `/adv-{next-command} {change-id}`
+
 Reply `continue` (or `go`, `approve`, `yes`, `ok`, `proceed`, `lgtm`) to proceed inline to {next-stage},
-or run `/adv-{next-command} {change-id}`.
+or run the command above.
 Want changes? Reply with what to adjust.
 Want to stop here? Reply `stop` or `defer`.
 ```
+
+**Command-as-approval rule:** When the footer block shows a specific continuation command (e.g., `/adv-apply {change-id}`), invoking that exact command while the checkpoint is pending counts as explicit approval equivalent to a Tier A whitelist word. The agent completes the pending gate with `userApproved: true` and proceeds immediately without a second approval prompt. This applies only to Tier A checkpoints; Tier B remains whitelist-only.
 
 #### Tier B — Archive sign-off
 
@@ -512,6 +534,9 @@ Want to stop here? Reply `stop` or `defer`.
 
 ---
 **{change-id}** · acceptance ✓ → release
+
+Current phase: acceptance
+Next phase: release
 
 Reply `sign off` (or `signoff`, `approve`, `confirm`, `yes`, `proceed`, `ship it`) to archive,
 or `dry run` to preview the archive without applying spec deltas,
@@ -569,18 +594,23 @@ The prep gate's `userApproved: true` argument on `adv_gate_complete` is a machin
 
 | BAD | GOOD |
 |---|---|
-| `question` popup with "Approve and proceed to /adv-discover" option | Inline footer with `Reply `continue` to proceed inline to discovery, or run `/adv-discover {change-id}`` |
+| `question` popup with "Approve and proceed to /adv-discover" option | Inline labeled footer block with `Reply `continue` to proceed inline to discovery, or run `/adv-discover {change-id}`` |
 | Cancellation popup with "Approve all / Review individually / Reject" | Inline numbered task list with `Reply `approve all`, `reject all`, `keep N`, `cancel N`, `stop`` |
 | LLM fallback for archive sign-off | Whitelist-only + confirmation echo |
 | Phrase "I want to clarify" treated as `/adv-clarify` | Only literal `/adv-clarify` reply triggers halt branch |
-| Two `question` calls (popup + "shall I proceed?") | One inline footer; whitelist match advances immediately |
+| Two `question` calls (popup + "shall I proceed?") | One inline footer block; whitelist match or exact command invocation advances immediately |
+| Compressed footer line `**{id}** · gate ✓ → next · `/adv-cmd id`` | Labeled footer block with `Current phase:`, `Next phase:`, `Run when ready:` |
+| Redundant command lines in footer block | Exactly one runnable command shown |
 
 ### Anti-patterns
 
-- × Don't ask "shall I proceed?" after the user replies with a whitelist word — that's the go-ahead.
+- × Don't ask "shall I proceed?" after the user replies with a whitelist word or invokes the exact shown continuation command — that's the go-ahead.
 - × Don't add LLM fallback for Tier B checkpoints. Reversibility is the axis.
 - × Don't migrate non-checkpoint `question` uses (doom-loop, drift detection, change-id selection, AC clarification rounds, judgment calls). They keep structured options.
 - × Don't keep the old "Ask via `question`..." phrasing in any of the seven checkpoint command docs after this section is in force. Regression test `plugin/src/checkpoint-surface-drift.test.ts` enforces this.
+- × Don't show redundant alternative command lines in the labeled footer block — show exactly the one command needed to continue.
+- × Don't make the footer block a separate section or heading — it is the only content after `## Delivered` and `---`.
+- × Don't allow slash-command invocation to bypass Tier B whitelist-only approval.
 
 ## Enforcement
 

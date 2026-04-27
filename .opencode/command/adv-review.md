@@ -319,7 +319,11 @@ What was reviewed and user-accepted.
 - {Remaining caveats, if any}
 
 ---
-**{change-id}** · acceptance ✓ → release · `/adv-harden {change-id}`
+**{change-id}** · acceptance ✓ → release
+
+Current phase: acceptance
+Next phase: release
+Run when ready: `/adv-harden {change-id}`
 ```
 
 **Auto-continue:** After user acceptance, immediately begin `/adv-harden` inline. Do not stop or ask "shall I proceed?" — the user's acceptance is the go-ahead.

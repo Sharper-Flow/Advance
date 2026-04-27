@@ -199,7 +199,9 @@ ADV pauses ONLY at these checkpoints:
 - **Cancellation approval** — explicit user approval required
 - **Doom-loop recovery** — user guidance required after 3 failed attempts
 
-**Post-approval auto-continue:** When the user selects an "approve" or "approve and continue" option at any checkpoint above, the next phase begins inline immediately. The agent does NOT stop, emit a "proceed to /adv-X?" prompt, or wait for a second confirmation. The gate handoff footer (`**{change-id}** · {gate} ✓ → {next-gate}`) is informational output — not a stopping point.
+**Post-approval auto-continue:** When the user selects an "approve" or "approve and continue" option at any checkpoint above, the next phase begins inline immediately. The agent does NOT stop, emit a "proceed to /adv-X?" prompt, or wait for a second confirmation. The gate handoff footer block is informational output — not a stopping point.
+
+**Command-as-approval (Tier A only):** When a labeled footer block shows a specific continuation command (e.g., `/adv-apply {change-id}`), invoking that exact command while the checkpoint is pending counts as explicit approval equivalent to a Tier A whitelist word. The agent completes the pending gate with `userApproved: true` and proceeds immediately without a second approval prompt. This applies to proposal, agreement, design, prep, and acceptance checkpoints only. Tier B checkpoints (archive sign-off, cancellation) remain whitelist-only with no command-as-approval bypass.
 
 **Between-checkpoint flow:** Between checkpoints, the only valid pause triggers are system-level interrupts:
 - Doom-loop detection (3 failed task attempts)
@@ -238,6 +240,9 @@ After acceptance completes, ADV **must stop and present a report** before archiv
 
 ---
 **{change-id}** · acceptance ✓ → release
+
+Current phase: acceptance
+Next phase: release
 
 Reply `sign off` (or `signoff`, `approve`, `confirm`, `yes`, `proceed`, `ship it`) to archive,
 or `dry run` to preview the archive without applying spec deltas,
@@ -337,10 +342,14 @@ After completing any workflow that emits a user-facing gate-transition message, 
 {Concrete artifacts, not process. Bullet list.}
 
 ---
-**{change-id}** · {gate} ✓ → {next-gate} · `/adv-{command} {change-id}`
+**{change-id}** · {gate} ✓ → {next-gate}
+
+Current phase: {completed-gate-name}
+Next phase: {next-gate-name}
+Run when ready: `/adv-{command} {change-id}`
 ```
 
-Internal state (task lists, gate checkboxes, sub-agent counts, step logs) lives in ADV tools (`adv_change_show`, `adv_task_list`, `_contextSnapshot`), not in chat. The footer line is the only content after `## Delivered`. Do not emit Orchestration Summary, Steps Completed, Sub-Agents Spawned, or gate checkbox banners as handoff content.
+Internal state (task lists, gate checkboxes, sub-agent counts, step logs) lives in ADV tools (`adv_change_show`, `adv_task_list`, `_contextSnapshot`), not in chat. The labeled footer block is the only content after `## Delivered`. Do not emit Orchestration Summary, Steps Completed, Sub-Agents Spawned, or gate checkbox banners as handoff content.
 
 ## ADV State Access Policy
 

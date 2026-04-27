@@ -218,7 +218,8 @@ Verify that the prep gate was completed with user approval. The prep gate is the
   Proceeding with implementation.
   ```
   Ask via `question` tool: Proceed with implementation (Recommended), Re-run prep for explicit approval, Cancel.
-- **Prep gate not complete**: Stop — require `/adv-prep` first (handled by Gate Prerequisite Check above).
+- **Planning gate pending**: The `/adv-apply {change-id}` invocation itself counts as explicit approval. Complete planning with `adv_gate_complete gateId: planning userApproved: true` and proceed immediately to execution. This is the command-as-approval behavior per `rq-inlineApproval01.7`.
+- **Prep gate not complete (and not planning pending)**: Stop — require `/adv-prep` first (handled by Gate Prerequisite Check above).
 
 × MUST NOT ask "Begin work?" when prep gate has `userApproved` — that approval already happened during `/adv-prep`.
 
@@ -451,7 +452,11 @@ What was built and how it was verified.
 - {Cancelled tasks with reasons, if any}
 
 ---
-**{change-id}** · execution ✓ → acceptance · `/adv-review {change-id}`
+**{change-id}** · execution ✓ → acceptance
+
+Current phase: execution
+Next phase: acceptance
+Run when ready: `/adv-review {change-id}`
 ```
 
 ---
