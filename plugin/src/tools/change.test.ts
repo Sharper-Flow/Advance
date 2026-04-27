@@ -172,6 +172,18 @@ describe("Change Tools", () => {
       });
     });
 
+    test("lastActivity reflects task activity newer than creation", async () => {
+      const changeResult = await store.changes.get("addFeature");
+      expect(changeResult.success).toBe(true);
+      changeResult.data!.tasks[0].completed_at = "2026-01-22T00:00:00Z";
+      await store.changes.save(changeResult.data!);
+
+      const result = await changeTools.adv_change_list.execute({}, store);
+      const parsed = parseToolOutput(result);
+
+      expect(parsed.changes[0].lastActivity).toBe("2026-01-22T00:00:00Z");
+    });
+
     test("sort: stalest returns oldest lastActivity first", async () => {
       // Create two changes with different timestamps
       const now = Date.now();

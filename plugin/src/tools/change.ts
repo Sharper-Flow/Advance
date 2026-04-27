@@ -658,18 +658,17 @@ export const changeTools = {
         includeClosed,
       });
 
-      // Enrich with recency data (lastActivity defaults to created_at,
-      // matching the store's lastActivityBefore filter approach)
+      // Enrich with recency data from the store-computed last activity.
       const now = new Date();
       const withRecency = result.changes.map((change) => {
-        const createdAt = new Date(change.created_at);
+        const lastActivityAt = new Date(change.lastActivityAt);
         const minutesSince = Math.max(
           0,
-          Math.floor((now.getTime() - createdAt.getTime()) / 60000),
+          Math.floor((now.getTime() - lastActivityAt.getTime()) / 60000),
         );
         return {
           ...change,
-          lastActivity: change.created_at,
+          lastActivity: change.lastActivityAt,
           lastActivityAgeMinutes: minutesSince,
           recencyBand: classifyRecency(minutesSince),
           ...(change.fast_follow_of

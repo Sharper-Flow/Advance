@@ -69,6 +69,7 @@ import {
 } from "./json";
 import {
   buildChangeRecency,
+  computeLastActivity,
   type Store,
   type SearchResult,
 } from "./store-types";
@@ -276,6 +277,7 @@ export async function createDiskStore(
             title: c.title,
             status: c.status,
             created_at: c.created_at,
+            lastActivityAt: computeLastActivity(c),
             taskCount: c.tasks.length,
             completedTasks: c.tasks.filter((t) => t.status === "done").length,
             fast_follow_of: c.fast_follow_of,

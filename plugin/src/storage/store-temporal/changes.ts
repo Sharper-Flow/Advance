@@ -203,6 +203,7 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
           title: change.title,
           status: change.status,
           created_at: change.created_at,
+          lastActivityAt: computeLastActivity(change),
           taskCount: change.tasks.length,
           completedTasks: change.tasks.filter((task) => task.status === "done")
             .length,
