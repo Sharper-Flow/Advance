@@ -33,6 +33,7 @@ export interface ReflectionEntry {
       tasks_cancelled: number;
       retry_total: number;
       retry_density: number;
+      active_elapsed_ms?: number;
       elapsed_ms: number;
       per_gate_ms: Record<string, number>;
       threshold_tier: string;
@@ -112,6 +113,7 @@ const ReflectionEntrySchema = z.object({
       tasks_cancelled: z.number().int().min(0),
       retry_total: z.number().int().min(0),
       retry_density: z.number().min(0),
+      active_elapsed_ms: z.number().min(0).optional(),
       elapsed_ms: z.number().min(0),
       per_gate_ms: z.record(z.string(), z.number().min(0)),
       threshold_tier: z.string(),

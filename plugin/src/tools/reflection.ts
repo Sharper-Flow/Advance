@@ -178,8 +178,11 @@ function generateReflectionMarkdown(entry: ReflectionEntry): string {
   lines.push(
     `- Retries: ${entry.plane1.efficiency.retry_total} (density: ${entry.plane1.efficiency.retry_density.toFixed(2)})`,
   );
+  const activeElapsedMs =
+    entry.plane1.efficiency.active_elapsed_ms ??
+    entry.plane1.efficiency.elapsed_ms;
   lines.push(
-    `- Elapsed: ${(entry.plane1.efficiency.elapsed_ms / 1000 / 60).toFixed(1)} minutes`,
+    `- Elapsed: ${(entry.plane1.efficiency.elapsed_ms / 1000 / 60).toFixed(1)} minutes (wall-clock) / ${(activeElapsedMs / 1000 / 60).toFixed(1)} minutes (active)`,
   );
   lines.push(`- Threshold tier: ${entry.plane1.efficiency.threshold_tier}`);
   lines.push("");
@@ -334,6 +337,10 @@ export const reflectionTools = {
       const retryDensity = retryTotal / retryDenominator;
 
       const perGateMs = computePerGateDurations(change);
+      const activeElapsedMs = Object.values(perGateMs).reduce(
+        (sum, ms) => sum + ms,
+        0,
+      );
 
       // Default thresholds (same as investment.ts defaults)
       const thresholds = {
@@ -546,6 +553,7 @@ export const reflectionTools = {
             retry_total: retryTotal,
             retry_density: retryDensity,
             elapsed_ms: elapsedMs,
+            active_elapsed_ms: activeElapsedMs,
             per_gate_ms: perGateMs,
             threshold_tier: thresholdTier,
           },

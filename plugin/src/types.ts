@@ -967,6 +967,8 @@ export const InvestmentReportSchema = z
       pending: z.number().int().min(0),
       in_progress: z.number().int().min(0),
     }),
+    /** Active gate duration ms, computed from per_gate_ms */
+    active_elapsed_ms: z.number().int().min(0).optional(),
     /** Wall-clock ms since change.created_at */
     elapsed_ms: z.number().int().min(0),
     /** Sum of retry attempts across all tasks (from error_recovery.attempts[]) */

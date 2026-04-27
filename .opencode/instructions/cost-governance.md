@@ -1,8 +1,10 @@
 ---
 # Cost / Time Investment Governance (ADV v1 — behavioral-only)
 #
-# Conservative default thresholds. Any dimension hitting a tier promotes
-# the whole report to that tier (MAX rule). Tunable without code changes —
+# Conservative default thresholds. Task/retry dimensions hitting a tier promote
+# the whole report to that tier (MAX rule). `elapsed_minutes` is retained for
+# reporting/config compatibility but is informational only; elapsed time no
+# longer participates in tier classification. Tunable without code changes —
 # edit these values and restart OpenCode. The `adv_investment_report` tool
 # reads thresholds from command arguments and falls back to these defaults
 # when no override is provided.

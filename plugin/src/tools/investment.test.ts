@@ -8,7 +8,7 @@
 import { describe, test, expect, beforeEach, afterEach } from "vitest";
 import { rm as _rm } from "fs/promises";
 import { join as _join } from "path";
-import { investmentTools } from "./investment";
+import { classifyTier, investmentTools } from "./investment";
 import { createLegacyStore, type Store } from "../storage/store";
 import {
   createTempDir,
@@ -158,6 +158,16 @@ describe("Investment Tools", () => {
       expect(parsed.threshold_tier).toBe("auto");
     });
 
+    test("tier classification ignores elapsed thresholds", () => {
+      const tier = classifyTier(1, 0, 1_000_000, {
+        auto: { tasks: 1, retries: 0, elapsed_minutes: 1 },
+        escalate: { tasks: 10, retries: 10, elapsed_minutes: 5 },
+        hardstop: { tasks: 20, retries: 20, elapsed_minutes: 10 },
+      });
+
+      expect(tier).toBe("auto");
+    });
+
     test("tier classification: escalate tier when tasks exceed escalate threshold", async () => {
       // SAMPLE_CHANGE has 3 tasks
       // With aggressive thresholds (escalate >=2), 3 tasks should tip to escalate
@@ -205,6 +215,34 @@ describe("Investment Tools", () => {
       );
       expect(parsed.per_gate_ms).toBeDefined();
       expect(typeof parsed.per_gate_ms).toBe("object");
+    });
+
+    test("active_elapsed_ms is sum of per_gate_ms", async () => {
+      const result = await investmentTools.adv_investment_report.execute(
+        { changeId: "addFeature", thresholds: DEFAULT_THRESHOLDS },
+        store,
+      );
+      const parsed = parseToolOutput<{
+        active_elapsed_ms: number;
+        per_gate_ms: Record<string, number>;
+      }>(result);
+
+      const expected = Object.values(parsed.per_gate_ms).reduce(
+        (sum, ms) => sum + ms,
+        0,
+      );
+      expect(parsed.active_elapsed_ms).toBe(expected);
+    });
+
+    test("active_elapsed_ms is zero for no-gate changes", async () => {
+      const newChange = await store.changes.create("No Gate Change");
+
+      const result = await investmentTools.adv_investment_report.execute(
+        { changeId: newChange.changeId, thresholds: DEFAULT_THRESHOLDS },
+        store,
+      );
+      const parsed = parseToolOutput<{ active_elapsed_ms: number }>(result);
+      expect(parsed.active_elapsed_ms).toBe(0);
     });
 
     test("default thresholds: works when no thresholds arg provided", async () => {

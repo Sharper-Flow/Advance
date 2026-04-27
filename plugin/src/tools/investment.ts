@@ -28,6 +28,8 @@ import { getDoomLoopInfo } from "../events/status";
 const ThresholdBandSchema = z.object({
   tasks: z.number().int().min(0),
   retries: z.number().int().min(0),
+  // Retained for reporting/config compatibility. Elapsed time no longer
+  // participates in tier classification.
   elapsed_minutes: z.number().min(0),
 });
 
@@ -57,33 +59,34 @@ const DEFAULT_THRESHOLDS: Thresholds = {
 /**
  * Compute the threshold tier from current investment metrics.
  *
- * Rule: tier is the MAXIMUM across the three signal dimensions — any one
+ * Rule: tier is the MAXIMUM across task count and retry signals — any one
  * dimension crossing a tier boundary promotes the whole report to that tier.
  *
  * `auto` values are retained in config for user-facing guidance and possible
  * future expansion, but v1 classification is intentionally binary above that:
  * anything below `escalate` resolves to `auto`.
  *
- * hardstop: any signal >= hardstop band
- * escalate: any signal >= escalate band (but none at hardstop)
- * auto: all signals below escalate band
+ * Elapsed minutes are accepted for API compatibility but ignored per the
+ * discovery agreement for fixthreereflectionfollowups.
+ *
+ * hardstop: task count or retry count >= hardstop band
+ * escalate: task count or retry count >= escalate band (but none at hardstop)
+ * auto: all tiering signals below escalate band
  */
 export function classifyTier(
   taskCount: number,
   retryTotal: number,
-  elapsedMinutes: number,
+  _elapsedMinutes: number,
   thresholds: Thresholds,
 ): ThresholdTier {
   const hitsHardstop =
     taskCount >= thresholds.hardstop.tasks ||
-    retryTotal >= thresholds.hardstop.retries ||
-    elapsedMinutes >= thresholds.hardstop.elapsed_minutes;
+    retryTotal >= thresholds.hardstop.retries;
   if (hitsHardstop) return "hardstop";
 
   const hitsEscalate =
     taskCount >= thresholds.escalate.tasks ||
-    retryTotal >= thresholds.escalate.retries ||
-    elapsedMinutes >= thresholds.escalate.elapsed_minutes;
+    retryTotal >= thresholds.escalate.retries;
   if (hitsEscalate) return "escalate";
 
   return "auto";
@@ -176,6 +179,10 @@ export const investmentTools = {
 
       // Per-gate durations (completed_at deltas between consecutive gates)
       const perGateMs = computePerGateDurations(change);
+      const activeElapsedMs = Object.values(perGateMs).reduce(
+        (sum, ms) => sum + ms,
+        0,
+      );
 
       // Tier classification
       const thresholdTier = classifyTier(
@@ -190,6 +197,7 @@ export const investmentTools = {
         formatToolOutput({
           task_counts: taskCounts,
           elapsed_ms: elapsedMs,
+          active_elapsed_ms: activeElapsedMs,
           retry_total: retryTotal,
           retry_density: retryDensity,
           doom_loop_active: doomLoopActive,
