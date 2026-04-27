@@ -1,8 +1,16 @@
 /**
  * Handoff footer drift regression test
  *
- * Asserts that gate handoff footers use labeled blocks with
- * Current phase, Next phase, and Run when ready labels.
+ * Asserts that gate handoff footers use the blockquote wayfinder block:
+ *
+ *     > **{change-id}**
+ *     > {gate} ✓ → {next-gate}
+ *     >
+ *     > → `/adv-{next-command} {change-id}`
+ *
+ * Also asserts the prior prose-labeled footer (Current phase / Next phase /
+ * Run when ready) is absent.
+ *
  * Also asserts command-as-approval semantics for Tier A checkpoints
  * and Tier B strictness (no command-as-approval bypass).
  *
@@ -71,131 +79,139 @@ const handoffCommands: HandoffCommand[] = [
   },
   {
     file: "adv-task.md",
-    currentPhase: "planning",
-    nextPhase: "execution",
+    currentPhase: "task",
+    nextPhase: "apply",
     command: "adv-apply",
   },
 ];
 
-describe("handoff footer labeled block contract", () => {
+describe("handoff blockquote wayfinder contract", () => {
   test.each(handoffCommands)(
-    "$file uses labeled footer block",
+    "$file uses blockquote wayfinder block",
     ({ file, currentPhase, nextPhase, command }) => {
       const content = readFileSync(join(COMMANDS_DIR, file), "utf8");
 
-      expect(content, `${file} must contain 'Current phase:' label`).toMatch(
-        /Current phase:\s*\w+/,
-      );
-
-      expect(content, `${file} must contain 'Next phase:' label`).toMatch(
-        /Next phase:\s*\w+/,
-      );
+      // Negative assertions — prose labels MUST be absent
+      expect(
+        content,
+        `${file} must NOT contain 'Current phase:' label`,
+      ).not.toMatch(/Current phase:/);
 
       expect(
         content,
-        `${file} must contain 'Run when ready:' label with a command`,
-      ).toMatch(/Run when ready:\s*`\/adv-[\w-]+\s+\{change-id\}`/);
-
-      // Verify the specific phases match the gate transition
-      expect(
-        content,
-        `${file} Current phase must be '${currentPhase}'`,
-      ).toMatch(new RegExp(`Current phase:\\s*${currentPhase}`));
-
-      expect(content, `${file} Next phase must be '${nextPhase}'`).toMatch(
-        new RegExp(`Next phase:\\s*${nextPhase}`),
-      );
+        `${file} must NOT contain 'Next phase:' label`,
+      ).not.toMatch(/Next phase:/);
 
       expect(
         content,
-        `${file} Run when ready must reference /${command}`,
+        `${file} must NOT contain 'Run when ready:' label`,
+      ).not.toMatch(/Run when ready:/);
+
+      // Positive assertions — blockquote wayfinder rows MUST be present
+      expect(
+        content,
+        `${file} must contain blockquote change-id row '> **{change-id}**'`,
+      ).toMatch(/^> \*\*\{change-id\}\*\*$/m);
+
+      expect(
+        content,
+        `${file} must contain blockquote gate-transition row '> ${currentPhase} ✓ → ${nextPhase}'`,
+      ).toMatch(new RegExp(`^> ${currentPhase} ✓ → ${nextPhase}$`, "m"));
+
+      expect(
+        content,
+        `${file} must contain blockquote arrow-prefixed command row for /${command}`,
       ).toMatch(
-        new RegExp(`Run when ready:\\s*\`\\/${command}\\s+\\{change-id\\}\``),
+        new RegExp(
+          `^> → \`\\/${command} \\{change-id\\}\`$`,
+          "m",
+        ),
       );
     },
   );
 
-  test("command-voice-standard.md requires labeled footer block in canonical spine", () => {
+  test("command-voice-standard.md canonical spine shows blockquote wayfinder", () => {
     const content = readFileSync(
       join(DOCS_DIR, "command-voice-standard.md"),
       "utf8",
     );
 
-    expect(content, "Canonical spine must show labeled footer block").toMatch(
-      /Current phase:\s*\{completed-gate-name\}/,
+    // Extract the canonical spine code block
+    const spineMatch = content.match(
+      /### Canonical spine[\s\S]*?```\n([\s\S]*?)\n```/,
     );
-
-    expect(content, "Canonical spine must show Next phase label").toMatch(
-      /Next phase:\s*\{next-gate-name\}/,
-    );
-
-    expect(content, "Canonical spine must show Run when ready label").toMatch(
-      /Run when ready:\s*`\/adv-\{next-command\}\s+\{change-id\}`/,
-    );
-  });
-
-  test("adv.md output contract uses labeled footer block", () => {
-    const content = readFileSync(join(AGENTS_DIR, "adv.md"), "utf8");
+    expect(spineMatch, "Canonical spine code block must exist").toBeTruthy();
+    const spineBlock = spineMatch![1];
 
     expect(
-      content,
-      "adv.md Output Contract must show labeled footer block",
-    ).toMatch(/Current phase:\s*\{completed-gate-name\}/);
-
-    expect(
-      content,
-      "adv.md Output Contract must show Next phase label",
-    ).toMatch(/Next phase:\s*\{next-gate-name\}/);
-
-    expect(
-      content,
-      "adv.md Output Contract must show Run when ready label",
-    ).toMatch(/Run when ready:\s*`\/adv-\{command\}\s+\{change-id\}`/);
-  });
-
-  test("archive terminal variant has no labeled footer block", () => {
-    const content = readFileSync(
-      join(DOCS_DIR, "command-voice-standard.md"),
-      "utf8",
-    );
-
-    // Extract archive terminal variant section
-    const archiveMatch = content.match(
-      /### Archive terminal variant[\s\S]*?```([\s\S]*?)```/,
-    );
-    expect(archiveMatch, "Archive terminal variant must exist").toBeTruthy();
-    const archiveSection = archiveMatch![1];
-
-    expect(
-      archiveSection,
-      "Archive terminal must NOT contain 'Current phase:'",
+      spineBlock,
+      "Canonical spine must NOT show 'Current phase:' label",
     ).not.toMatch(/Current phase:/);
 
     expect(
-      archiveSection,
-      "Archive terminal must NOT contain 'Next phase:'",
-    ).not.toMatch(/Next phase:/);
-
-    expect(
-      archiveSection,
-      "Archive terminal must NOT contain 'Run when ready:'",
+      spineBlock,
+      "Canonical spine must NOT show 'Run when ready:' label",
     ).not.toMatch(/Run when ready:/);
 
     expect(
-      archiveSection,
-      "Shipped variant (first code block) must contain 'Shipped.'",
-    ).toMatch(/Shipped\./);
+      spineBlock,
+      "Canonical spine must show blockquote change-id row",
+    ).toMatch(/^> \*\*\{change-id\}\*\*$/m);
+
+    expect(
+      spineBlock,
+      "Canonical spine must show blockquote gate transition row",
+    ).toMatch(/^> \{gate\} ✓ → \{next-gate\}$/m);
+
+    expect(
+      spineBlock,
+      "Canonical spine must show blockquote arrow command row",
+    ).toMatch(/^> → `\/adv-\{next-command\} \{change-id\}`$/m);
   });
 
-  test("Merged locally variant has no labeled footer block", () => {
+  test("adv.md output contract uses blockquote wayfinder", () => {
+    const content = readFileSync(join(AGENTS_DIR, "adv.md"), "utf8");
+
+    // Extract the Output Contract code block
+    const outputMatch = content.match(
+      /## Output Contract[\s\S]*?```\n([\s\S]*?)\n```/,
+    );
+    expect(outputMatch, "Output Contract code block must exist").toBeTruthy();
+    const outputBlock = outputMatch![1];
+
+    expect(
+      outputBlock,
+      "adv.md Output Contract must NOT show 'Current phase:' label",
+    ).not.toMatch(/Current phase:/);
+
+    expect(
+      outputBlock,
+      "adv.md Output Contract must NOT show 'Run when ready:' label",
+    ).not.toMatch(/Run when ready:/);
+
+    expect(
+      outputBlock,
+      "adv.md Output Contract must show blockquote change-id row",
+    ).toMatch(/^> \*\*\{change-id\}\*\*$/m);
+
+    expect(
+      outputBlock,
+      "adv.md Output Contract must show blockquote gate transition row",
+    ).toMatch(/^> \{gate\} ✓ → \{next-gate\}$/m);
+
+    expect(
+      outputBlock,
+      "adv.md Output Contract must show blockquote arrow command row",
+    ).toMatch(/^> → `\/adv-\{next-command\} \{change-id\}`$/m);
+  });
+
+  test("Archive Shipped variant uses single-line blockquote terminal", () => {
     const content = readFileSync(
       join(DOCS_DIR, "command-voice-standard.md"),
       "utf8",
     );
 
-    // Extract the full Archive terminal variant section (until next sibling
-    // ### heading at column 0). Use lookahead bounded by `\n### ` to skip
-    // nested `##` headings inside code fences.
+    // Extract the full Archive terminal variant section
     const sectionMatch = content.match(
       /### Archive terminal variant\n[\s\S]*?(?=\n### )/,
     );
@@ -215,27 +231,78 @@ describe("handoff footer labeled block contract", () => {
       "Archive terminal variant must contain at least 2 code blocks (Shipped + Merged locally)",
     ).toBeGreaterThanOrEqual(2);
 
+    const shippedBlock = codeBlocks[0];
+
+    expect(
+      shippedBlock,
+      "Shipped variant must NOT contain 'Current phase:'",
+    ).not.toMatch(/Current phase:/);
+
+    expect(
+      shippedBlock,
+      "Shipped variant must NOT contain 'Next phase:'",
+    ).not.toMatch(/Next phase:/);
+
+    expect(
+      shippedBlock,
+      "Shipped variant must NOT contain 'Run when ready:'",
+    ).not.toMatch(/Run when ready:/);
+
+    expect(
+      shippedBlock,
+      "Shipped variant must contain 'Shipped.'",
+    ).toMatch(/Shipped\./);
+
+    expect(
+      shippedBlock,
+      "Shipped variant must use single-line blockquote terminal",
+    ).toMatch(/^> \*\*\{change-id\}\*\* · release ✓ · Shipped\.$/m);
+  });
+
+  test("Archive Merged-locally variant uses single-line blockquote terminal", () => {
+    const content = readFileSync(
+      join(DOCS_DIR, "command-voice-standard.md"),
+      "utf8",
+    );
+
+    const sectionMatch = content.match(
+      /### Archive terminal variant\n[\s\S]*?(?=\n### )/,
+    );
+    expect(
+      sectionMatch,
+      "Archive terminal variant section must exist",
+    ).toBeTruthy();
+    const sectionText = sectionMatch![0];
+
+    const codeBlocks = [...sectionText.matchAll(/```([\s\S]*?)```/g)].map(
+      (m) => m[1],
+    );
     const localBlock = codeBlocks[1];
 
     expect(
       localBlock,
-      "Merged locally variant must NOT contain 'Current phase:'",
+      "Merged-locally variant must NOT contain 'Current phase:'",
     ).not.toMatch(/Current phase:/);
 
     expect(
       localBlock,
-      "Merged locally variant must NOT contain 'Next phase:'",
+      "Merged-locally variant must NOT contain 'Next phase:'",
     ).not.toMatch(/Next phase:/);
 
     expect(
       localBlock,
-      "Merged locally variant must NOT contain 'Run when ready:'",
+      "Merged-locally variant must NOT contain 'Run when ready:'",
     ).not.toMatch(/Run when ready:/);
 
     expect(
       localBlock,
-      "Merged locally variant must contain 'Merged locally.'",
+      "Merged-locally variant must contain 'Merged locally.'",
     ).toMatch(/Merged locally\./);
+
+    expect(
+      localBlock,
+      "Merged-locally variant must use single-line blockquote terminal",
+    ).toMatch(/^> \*\*\{change-id\}\*\* · release ✓ · Merged locally\.$/m);
   });
 });
 
@@ -300,6 +367,15 @@ describe("command-as-approval semantics", () => {
       "Scenario title must mention exact shown command counts as approval",
     ).toMatch(/Exact shown.*command counts as approval/i);
 
+    // Given-clause was updated for spec-text consistency: the wayfinder
+    // block (formerly labeled footer block) shows the continuation command.
+    expect(
+      commandAsApproval.given.some((g: string) =>
+        g.includes("blockquote wayfinder block"),
+      ),
+      "rq-inlineApproval01.7 given-clause must reference blockquote wayfinder block",
+    ).toBe(true);
+
     const tierBStrict = inlineApproval.scenarios.find(
       (s: any) => s.id === "rq-inlineApproval01.8",
     );
@@ -314,7 +390,7 @@ describe("command-as-approval semantics", () => {
     ).toMatch(/Tier B.*whitelist-only/i);
   });
 
-  test("spec.json includes labeled footer block scenarios", () => {
+  test("spec.json describes blockquote wayfinder block", () => {
     const content = readFileSync(join(SPECS_DIR, "spec.json"), "utf8");
     const spec = JSON.parse(content);
 
@@ -323,34 +399,62 @@ describe("command-as-approval semantics", () => {
     );
     expect(handoffVoice, "rq-handoffVoice01 must exist").toBeTruthy();
 
-    expect(handoffVoice.body, "Body must mention labeled footer block").toMatch(
-      /labeled footer block/,
-    );
-
-    expect(handoffVoice.body, "Body must mention Current phase").toMatch(
-      /Current phase:/,
-    );
-
-    expect(handoffVoice.body, "Body must mention Next phase").toMatch(
-      /Next phase:/,
-    );
+    expect(
+      handoffVoice.body,
+      "Body must mention blockquote wayfinder block",
+    ).toMatch(/blockquote wayfinder block/);
 
     expect(
       handoffVoice.body,
-      "Body must mention command-needed-to-continue label",
-    ).toMatch(/command-needed-to-continue/);
-
-    const labeledBlockScenario = handoffVoice.scenarios.find(
-      (s: any) => s.id === "rq-handoffVoice01.1",
-    );
-    expect(labeledBlockScenario, "rq-handoffVoice01.1 must exist").toBeTruthy();
+      "Body must NOT mention 'Current phase:' (legacy prose label)",
+    ).not.toMatch(/Current phase:/);
 
     expect(
-      labeledBlockScenario.then.some((t: string) =>
-        t.includes("labeled footer block"),
+      handoffVoice.body,
+      "Body must NOT mention 'Run when ready:' (legacy prose label)",
+    ).not.toMatch(/Run when ready:/);
+
+    const wayfinderScenario = handoffVoice.scenarios.find(
+      (s: any) => s.id === "rq-handoffVoice01.1",
+    );
+    expect(
+      wayfinderScenario,
+      "rq-handoffVoice01.1 must exist",
+    ).toBeTruthy();
+
+    expect(
+      wayfinderScenario.then.some((t: string) =>
+        t.includes("blockquote wayfinder block"),
       ),
-      "Scenario must assert labeled footer block",
+      "Scenario .1 must assert blockquote wayfinder block in then-clause",
     ).toBe(true);
+
+    expect(
+      wayfinderScenario.then.some((t: string) =>
+        t.includes("`**{change-id}**`"),
+      ),
+      "Scenario .1 must assert bolded change-id row",
+    ).toBe(true);
+
+    expect(
+      wayfinderScenario.then.some((t: string) =>
+        t.includes("{gate} ✓ → {next-gate}"),
+      ),
+      "Scenario .1 must assert gate transition row",
+    ).toBe(true);
+
+    const replacesNextScenario = handoffVoice.scenarios.find(
+      (s: any) => s.id === "rq-handoffVoice01.4",
+    );
+    expect(
+      replacesNextScenario,
+      "rq-handoffVoice01.4 must exist",
+    ).toBeTruthy();
+
+    expect(
+      replacesNextScenario.title,
+      "Scenario .4 title must reference blockquote wayfinder",
+    ).toMatch(/blockquote wayfinder/i);
 
     const singleCommandScenario = handoffVoice.scenarios.find(
       (s: any) => s.id === "rq-handoffVoice01.5",
