@@ -116,6 +116,12 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
       return result;
     },
     save: async (change) => {
+      // Invalidate Memo before save to prevent stale status from being
+      // served by the fast path in listResolvedChanges. Without this,
+      // archive operations (which set status="archived" then save) leave
+      // a zombie entry in the Memo, causing list() to show archived
+      // changes as still active.
+      invalidateChange(change.id);
       await legacy.changes.save(change);
       updateOverlay(change.id, {
         title: change.title,

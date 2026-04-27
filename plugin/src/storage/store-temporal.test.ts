@@ -1713,4 +1713,121 @@ describe("Temporal store backend adapter", () => {
       ).resolves.toBeDefined();
     });
   });
+
+  describe("archive bookkeeping: save() invalidates Memo", () => {
+    /**
+     * Regression test for the zombie-bookkeeping bug: `adv_change_archive`
+     * sets `status: "archived"` and calls `store.changes.save()`, but the
+     * Memo (ChangeSummaryMemo) was never invalidated. The fast path in
+     * `listResolvedChanges` returns stale entries from Memo, showing
+     * archived changes as still active (zombie records).
+     *
+     * Fix: `save()` must call `invalidateChange()` to clear the stale Memo
+     * entry before updating the overlay cache.
+     */
+    it("save() with status=archived removes change from list results", async () => {
+      const legacy = makeLegacyStore();
+      legacy.changes.create = vi.fn(async () => ({
+        changeId: "chg-archive-zombie",
+        path: "/tmp/chg-archive-zombie",
+      }));
+      legacy.changes.get = vi.fn(async (id: string) => {
+        if (id === "chg-archive-zombie") {
+          return {
+            success: true,
+            data: {
+              id: "chg-archive-zombie",
+              title: "Zombie Test",
+              status: "archived",
+              created_at: "2026-04-27T00:00:00.000Z",
+              tasks: [],
+              deltas: {},
+              wisdom: [],
+              gates: {},
+            },
+          };
+        }
+        return { success: false };
+      });
+
+      const createdState = {
+        projectId: "proj1",
+        changeId: "chg-archive-zombie",
+        title: "Zombie Test",
+        initializedAt: "2026-04-27T00:00:00.000Z",
+        id: "chg-archive-zombie",
+        status: "draft",
+        createdAt: "2026-04-27T00:00:00.000Z",
+        tasks: [],
+        wisdom: [],
+        gates: {
+          proposal: { status: "pending" },
+          discovery: { status: "pending" },
+          design: { status: "pending" },
+          planning: { status: "pending" },
+          execution: { status: "pending" },
+          acceptance: { status: "pending" },
+          release: { status: "pending" },
+        },
+        reentry_history: [],
+        artifacts: {},
+      };
+
+      const startedState = { ...createdState };
+
+      const changeHandle = {
+        query: vi.fn(async () => createdState),
+        executeUpdate: vi.fn(async () => createdState),
+        signal: vi.fn(async () => {}),
+        result: vi.fn(async () => startedState),
+      };
+
+      const bundle = {
+        client: {
+          workflow: {
+            getHandle: routeHandle(changeHandle),
+            start: vi.fn(async () => ({
+              workflowId: "adv/change/chg-archive-zombie",
+            })),
+          },
+        },
+      };
+
+      const adapted = createTemporalStoreBackend({
+        legacy,
+        temporal: bundle as any,
+        projectId: "proj1",
+      });
+
+      // Step 1: Create + get change — populates Memo via setCachedChange
+      // (create seeds disk, get queries Temporal and populates Memo)
+      await adapted.changes.create({
+        summary: "Zombie Test",
+        projectId: "proj1",
+      });
+      await adapted.changes.get("chg-archive-zombie");
+
+      // Step 2: Verify change appears in list (Memo has it as draft)
+      const listBefore = await adapted.changes.list();
+      const idsBefore = listBefore.changes.map((c: any) => c.id);
+      expect(idsBefore).toContain("chg-archive-zombie");
+
+      // Step 3: Simulate archive — save with status=archived
+      await adapted.changes.save({
+        id: "chg-archive-zombie",
+        title: "Zombie Test",
+        status: "archived",
+        created_at: "2026-04-27T00:00:00.000Z",
+        tasks: [],
+        deltas: {},
+        wisdom: [],
+        gates: {},
+      } as any);
+
+      // Step 4: List should NOT contain the archived change
+      const listAfter = await adapted.changes.list();
+      const idsAfter = listAfter.changes.map((c: any) => c.id);
+      expect(idsAfter).not.toContain("chg-archive-zombie");
+    });
+  });
 });
