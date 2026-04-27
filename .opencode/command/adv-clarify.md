@@ -14,6 +14,33 @@ Use structured questions to uncover hidden assumptions, edge cases, acceptance c
 | Alternatives | Other perspectives | "How would a power user see this?" |
 | Implications | Downstream effects | "If this happened, what else results?" |
 | Meta-questions | Question the question | "Which requirement is most critical?" |
+
+## Findings-Driven Mode
+
+When invoked from `/adv-discover` Phase 2.5 mandatory trigger (CRITICAL ≥ 1 or HIGH ≥ 2), `/adv-clarify` receives a structured findings list as input — carried in conversation context, not as a tool argument.
+
+**Findings list shape** (from `ADV_INSTRUCTIONS.md § Ambiguity Taxonomy`):
+```json
+[
+  {"id": "B1", "severity": "CRITICAL", "category": "Boundaries", "finding": "...", "evidence": "...", "reason": "..."},
+  {"id": "S1", "severity": "HIGH", "category": "Completion Signals", "finding": "...", "evidence": "...", "reason": "..."}
+]
+```
+
+**Protocol:**
+1. Each finding becomes a Socratic question seeded by the finding's `reason` field
+2. Resolve findings by writing back to the appropriate section in proposal.md via `adv_change_update`
+3. Add a `## Clarify Resolution Log` section to proposal.md tracking each resolved finding:
+   ```
+   ## Clarify Resolution Log
+   - B1 (resolved {ISO timestamp}): {resolution text}
+   - S1 (resolved {ISO timestamp}): {resolution text}
+   ```
+4. After all findings resolved: emit REQUIREMENTS DISCOVERY SUMMARY with cleared findings list
+5. End with: `Next: rerun /adv-discover {change-id}` to verify clean coverage
+
+**Return path:** Same as `/adv-discover` AC Checkpoint (Phase 4.5.1) — `/adv-clarify` MUST NOT write `agreement.md` or call `adv_gate_complete`.
+
 ## Questioning Protocol
 - Max 2-3 questions per response (cognitive load limit)
 - Lead with one open-ended, add 1-2 clarifying
@@ -32,11 +59,14 @@ Use `/adv-clarify` whenever ambiguity blocks:
 - `agree` — constraints, avoidances, and acceptance criteria
 - `design` — architecture choices and operational implications
 
-## Return Path — From /adv-discover AC Checkpoint
+## Return Path — From /adv-discover
 
-When `/adv-clarify` is invoked from `/adv-discover`'s **Acceptance Criteria Checkpoint** (Phase 4.5.1):
+When `/adv-clarify` is invoked from `/adv-discover`:
 
-- `/adv-clarify` outputs a **REQUIREMENTS DISCOVERY SUMMARY** that includes the revised acceptance-criteria list
+- **Phase 2.5 trigger** (mandatory ambiguity halt — CRITICAL ≥ 1 or HIGH ≥ 2): resolves ambiguity findings via Findings-Driven Mode above. Resolution log written to proposal.md. User reruns `/adv-discover {change-id}` to verify clean coverage.
+- **Phase 4.5.1 AC Checkpoint**: `/adv-clarify` outputs a **REQUIREMENTS DISCOVERY SUMMARY** that includes the revised acceptance-criteria list.
+
+Both paths share the same constraints:
 - `/adv-clarify` **MUST NOT** write `agreement.md`
 - `/adv-clarify` **MUST NOT** call `adv_gate_complete`
 - The final line of `/adv-clarify` output confirms the user must rerun `/adv-discover {change-id}` to resume discovery at **Phase 4.5.1 (Acceptance Criteria Checkpoint)** with the revised criteria from this session
@@ -81,7 +111,7 @@ Flow: analyze → summarize understanding → ask via `question` (1-2 questions)
 
 After sufficient questions, emit REQUIREMENTS DISCOVERY SUMMARY: confirmed requirements with acceptance criteria, assumptions to validate, edge cases identified, remaining questions, suggested next steps.
 
-If `/adv-clarify` was invoked from `/adv-discover` Phase 4.5.1, end the summary with: `Next: rerun /adv-discover {change-id}`.
+If `/adv-clarify` was invoked from `/adv-discover` Phase 2.5 or Phase 4.5.1, end the summary with: `Next: rerun /adv-discover {change-id}`.
 ## Anti-Patterns
 | × Anti-Pattern | ✓ Fix |
 |----------------|-------|
