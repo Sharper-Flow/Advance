@@ -557,6 +557,7 @@ describe("Temporal store backend adapter", () => {
         id: "chg1",
         title: "Change 1",
         status: "closed",
+        created_at: "2026-04-18T00:00:00.000Z",
         taskCount: 1,
         completedTasks: 0,
       },

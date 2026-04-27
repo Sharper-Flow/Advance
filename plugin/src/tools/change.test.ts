@@ -158,6 +158,122 @@ describe("Change Tools", () => {
       expect(parsed.changes).toHaveLength(1);
       expect(parsed.changes[0].parent_change_id).toBeUndefined();
     });
+
+    test("enriches entries with lastActivity, lastActivityAgeMinutes, and recencyBand", async () => {
+      const result = await changeTools.adv_change_list.execute({}, store);
+      const parsed = parseToolOutput(result);
+
+      expect(parsed.changes).toHaveLength(1);
+      expect(parsed.changes[0]).toMatchObject({
+        id: "addFeature",
+        lastActivity: expect.any(String),
+        lastActivityAgeMinutes: expect.any(Number),
+        recencyBand: expect.stringMatching(/^(hot|warm|stale)$/),
+      });
+    });
+
+    test("sort: stalest returns oldest lastActivity first", async () => {
+      // Create two changes with different timestamps
+      const now = Date.now();
+      const oldChange = await store.changes.create("Old Change");
+      const newChange = await store.changes.create("New Change");
+
+      const oldData = (await store.changes.get(oldChange.changeId)).data!;
+      oldData.created_at = new Date(now - 86400000).toISOString(); // 1 day ago
+      await store.changes.save(oldData);
+
+      const newData = (await store.changes.get(newChange.changeId)).data!;
+      newData.created_at = new Date(now - 3600000).toISOString(); // 1 hour ago
+      await store.changes.save(newData);
+
+      const result = await changeTools.adv_change_list.execute(
+        { sort: "stalest" },
+        store,
+      );
+      const parsed = parseToolOutput(result);
+
+      expect(parsed.changes).toHaveLength(3); // addFeature + old + new
+      const ids = parsed.changes.map((c: { id: string }) => c.id);
+      expect(ids[0]).toBe("addFeature"); // oldest (created 2026-01-21)
+      expect(ids[1]).toBe(oldChange.changeId);
+      expect(ids[2]).toBe(newChange.changeId);
+    });
+
+    test("sort: recency returns most recent lastActivity first", async () => {
+      const now = Date.now();
+      const oldChange = await store.changes.create("Old Change 2");
+      const newChange = await store.changes.create("New Change 2");
+
+      const oldData = (await store.changes.get(oldChange.changeId)).data!;
+      oldData.created_at = new Date(now - 86400000).toISOString();
+      await store.changes.save(oldData);
+
+      const newData = (await store.changes.get(newChange.changeId)).data!;
+      newData.created_at = new Date(now - 3600000).toISOString();
+      await store.changes.save(newData);
+
+      const result = await changeTools.adv_change_list.execute(
+        { sort: "recency" },
+        store,
+      );
+      const parsed = parseToolOutput(result);
+
+      expect(parsed.changes).toHaveLength(3);
+      const ids = parsed.changes.map((c: { id: string }) => c.id);
+      expect(ids[0]).toBe(newChange.changeId); // most recent
+      expect(ids[1]).toBe(oldChange.changeId);
+      expect(ids[2]).toBe("addFeature"); // oldest
+    });
+
+    test("excludeRecencyBands filters matching entries", async () => {
+      const now = Date.now();
+      const hotChange = await store.changes.create("Hot Change");
+      const staleChange = await store.changes.create("Stale Change");
+
+      const hotData = (await store.changes.get(hotChange.changeId)).data!;
+      hotData.created_at = new Date(now - 30000).toISOString(); // 30 seconds ago
+      await store.changes.save(hotData);
+
+      const staleData = (await store.changes.get(staleChange.changeId)).data!;
+      staleData.created_at = new Date(now - 86400000).toISOString(); // 1 day ago
+      await store.changes.save(staleData);
+
+      const result = await changeTools.adv_change_list.execute(
+        { excludeRecencyBands: ["hot"] },
+        store,
+      );
+      const parsed = parseToolOutput(result);
+
+      expect(parsed.changes).toHaveLength(2); // addFeature + stale (not hot)
+      const bands = parsed.changes.map(
+        (c: { recencyBand: string }) => c.recencyBand,
+      );
+      expect(bands).not.toContain("hot");
+    });
+
+    test("filter before pagination: excludeRecencyBands + limit", async () => {
+      const now = Date.now();
+      const hotChange = await store.changes.create("Hot Change 2");
+      const staleChange = await store.changes.create("Stale Change 2");
+
+      const hotData = (await store.changes.get(hotChange.changeId)).data!;
+      hotData.created_at = new Date(now - 30000).toISOString();
+      await store.changes.save(hotData);
+
+      const staleData = (await store.changes.get(staleChange.changeId)).data!;
+      staleData.created_at = new Date(now - 86400000).toISOString();
+      await store.changes.save(staleData);
+
+      const result = await changeTools.adv_change_list.execute(
+        { excludeRecencyBands: ["hot"], limit: 1 },
+        store,
+      );
+      const parsed = parseToolOutput(result);
+
+      // Should return 1 non-hot entry, not 1 raw entry that might be hot
+      expect(parsed.changes).toHaveLength(1);
+      expect(parsed.changes[0].recencyBand).not.toBe("hot");
+    });
   });
 
   describe("adv_change_close", () => {

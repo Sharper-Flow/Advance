@@ -275,6 +275,7 @@ export async function createDiskStore(
             id: c.id,
             title: c.title,
             status: c.status,
+            created_at: c.created_at,
             taskCount: c.tasks.length,
             completedTasks: c.tasks.filter((t) => t.status === "done").length,
             fast_follow_of: c.fast_follow_of,

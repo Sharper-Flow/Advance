@@ -24,6 +24,7 @@ import {
 } from "../types";
 import type { Store } from "../storage/store";
 import { createDiskStore as createLegacyStore } from "../storage/store-disk";
+import { classifyRecency } from "../storage/store-types";
 import { getReflection } from "../storage/reflection";
 import { getProjectId, getExternalRoot } from "../utils/project-id";
 import { validateChange } from "../validator";
@@ -597,7 +598,7 @@ async function buildReentryResult(
 
 export const changeTools = {
   adv_change_list: {
-    description: "List active changes with optional filtering",
+    description: "List active changes with optional filtering, recency enrichment, and sorting",
     args: {
       status: z
         .enum(["draft", "pending", "active", "archived", "closed"])
@@ -611,6 +612,14 @@ export const changeTools = {
         .boolean()
         .optional()
         .describe("Include closed changes (default: false)"),
+      sort: z
+        .enum(["recency", "stalest", "default"])
+        .optional()
+        .describe('Sort order: "recency" (most recent first), "stalest" (oldest first), "default" (created_at desc)'),
+      excludeRecencyBands: z
+        .array(z.enum(["hot", "warm", "stale"]))
+        .optional()
+        .describe("Exclude changes in these recency bands"),
       limit: z
         .number()
         .optional()
@@ -625,12 +634,16 @@ export const changeTools = {
         status,
         includeArchived,
         includeClosed,
+        sort,
+        excludeRecencyBands,
         limit,
         offset,
       }: {
         status?: string;
         includeArchived?: boolean;
         includeClosed?: boolean;
+        sort?: "recency" | "stalest" | "default";
+        excludeRecencyBands?: ("hot" | "warm" | "stale")[];
         limit?: number;
         offset?: number;
       },
@@ -641,20 +654,59 @@ export const changeTools = {
         includeArchived,
         includeClosed,
       });
-      const paged = paginate(result.changes, {
+
+      // Enrich with recency data (lastActivity defaults to created_at,
+      // matching the store's lastActivityBefore filter approach)
+      const now = new Date();
+      const withRecency = result.changes.map((change) => {
+        const createdAt = new Date(change.created_at);
+        const minutesSince = Math.max(
+          0,
+          Math.floor((now.getTime() - createdAt.getTime()) / 60000),
+        );
+        return {
+          ...change,
+          lastActivity: change.created_at,
+          lastActivityAgeMinutes: minutesSince,
+          recencyBand: classifyRecency(minutesSince),
+          ...(change.fast_follow_of
+            ? { parent_change_id: change.fast_follow_of.parent_change_id }
+            : {}),
+        };
+      });
+
+      // Filter by recency band before pagination
+      let filtered = withRecency;
+      if (excludeRecencyBands && excludeRecencyBands.length > 0) {
+        const excludeSet = new Set(excludeRecencyBands);
+        filtered = withRecency.filter(
+          (c) => !excludeSet.has(c.recencyBand),
+        );
+      }
+
+      // Sort: stalest (asc by lastActivity) or recency (desc by lastActivity)
+      if (sort === "stalest") {
+        filtered.sort((a, b) => {
+          const cmp = a.lastActivity.localeCompare(b.lastActivity);
+          return cmp !== 0 ? cmp : a.id.localeCompare(b.id);
+        });
+      } else if (sort === "recency") {
+        filtered.sort((a, b) => {
+          const cmp = b.lastActivity.localeCompare(a.lastActivity);
+          return cmp !== 0 ? cmp : a.id.localeCompare(b.id);
+        });
+      }
+      // sort === "default" or omitted: preserve store order (created_at desc)
+
+      const paged = paginate(filtered, {
         limit,
         offset,
         tool: "adv_change_list",
         args: status ? `status: "${status}"` : undefined,
       });
-      const enriched = paged.items.map((change) => ({
-        ...change,
-        ...(change.fast_follow_of
-          ? { parent_change_id: change.fast_follow_of.parent_change_id }
-          : {}),
-      }));
+
       return formatToolOutput({
-        changes: enriched,
+        changes: paged.items,
         pagination: paged.pagination,
       });
     },
