@@ -1287,6 +1287,7 @@ export interface ChangeListResponse {
     id: string;
     title: string;
     status: ChangeStatus;
+    created_at: string;
     taskCount: number;
     completedTasks: number;
     /** Same-project fast-follow lineage (optional) */

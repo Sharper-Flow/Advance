@@ -598,7 +598,8 @@ async function buildReentryResult(
 
 export const changeTools = {
   adv_change_list: {
-    description: "List active changes with optional filtering, recency enrichment, and sorting",
+    description:
+      "List active changes with optional filtering, recency enrichment, and sorting",
     args: {
       status: z
         .enum(["draft", "pending", "active", "archived", "closed"])
@@ -615,7 +616,9 @@ export const changeTools = {
       sort: z
         .enum(["recency", "stalest", "default"])
         .optional()
-        .describe('Sort order: "recency" (most recent first), "stalest" (oldest first), "default" (created_at desc)'),
+        .describe(
+          'Sort order: "recency" (most recent first), "stalest" (oldest first), "default" (created_at desc)',
+        ),
       excludeRecencyBands: z
         .array(z.enum(["hot", "warm", "stale"]))
         .optional()
@@ -679,9 +682,7 @@ export const changeTools = {
       let filtered = withRecency;
       if (excludeRecencyBands && excludeRecencyBands.length > 0) {
         const excludeSet = new Set(excludeRecencyBands);
-        filtered = withRecency.filter(
-          (c) => !excludeSet.has(c.recencyBand),
-        );
+        filtered = withRecency.filter((c) => !excludeSet.has(c.recencyBand));
       }
 
       // Sort: stalest (asc by lastActivity) or recency (desc by lastActivity)
