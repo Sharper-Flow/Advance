@@ -2012,6 +2012,97 @@ describe("Temporal store backend adapter", () => {
       expect(changeHandle.query).toHaveBeenCalled();
     });
 
+    it("tasks.add rejects with AdvProjectContextMismatch before executeUpdate", async () => {
+      const legacy = makeLegacyStore();
+      legacy.changes.get = vi.fn(async () => ({
+        success: true,
+        data: {
+          id: "chg1",
+          title: "Change 1",
+          status: "draft",
+          created_at: "2026-04-18T00:00:00.000Z",
+          tasks: [],
+          deltas: {},
+          adv_project_id: "owner-proj",
+        },
+      }));
+
+      const changeHandle = {
+        query: vi.fn(async () => null),
+        executeUpdate: vi.fn(async () => null),
+        signal: vi.fn(async () => {}),
+      };
+      const bundle = {
+        client: { workflow: { getHandle: routeHandle(changeHandle) } },
+      };
+      const adapted = createTemporalStoreBackend({
+        legacy,
+        temporal: bundle as any,
+        projectId: "current-proj",
+      });
+
+      await expect(adapted.tasks.add("chg1", "new task")).rejects.toMatchObject(
+        {
+          name: "AdvProjectContextMismatch",
+          changeId: "chg1",
+          owningProjectId: "owner-proj",
+          currentProjectId: "current-proj",
+        },
+      );
+
+      // Guard must block before invoking executeUpdate
+      expect(changeHandle.executeUpdate).not.toHaveBeenCalled();
+    });
+
+    it("falls through guard when legacy disk read throws (best-effort)", async () => {
+      const legacy = makeLegacyStore();
+      legacy.changes.get = vi.fn(async () => {
+        throw new Error("EACCES: read-only filesystem");
+      });
+
+      const state = {
+        projectId: "current-proj",
+        changeId: "chg1",
+        title: "Change 1",
+        initializedAt: "2026-04-18T00:00:00.000Z",
+        id: "chg1",
+        status: "draft",
+        createdAt: "2026-04-18T00:00:00.000Z",
+        tasks: [],
+        wisdom: [],
+        gates: {
+          proposal: { status: "pending" },
+          discovery: { status: "pending" },
+          design: { status: "pending" },
+          planning: { status: "pending" },
+          execution: { status: "pending" },
+          acceptance: { status: "pending" },
+          release: { status: "pending" },
+        },
+        reentry_history: [],
+        artifacts: {},
+      };
+
+      const changeHandle = {
+        query: vi.fn(async () => state),
+        executeUpdate: vi.fn(async () => null),
+        signal: vi.fn(async () => {}),
+      };
+      const bundle = {
+        client: { workflow: { getHandle: routeHandle(changeHandle) } },
+      };
+      const adapted = createTemporalStoreBackend({
+        legacy,
+        temporal: bundle as any,
+        projectId: "current-proj",
+      });
+
+      // Should NOT throw guard error; should pass through to Temporal
+      const result = await adapted.gates.get("chg1");
+      expect(result).toBeDefined();
+      expect(changeHandle.query).toHaveBeenCalled();
+    });
+
     it("allows best-effort access for ownerless legacy changes", async () => {
       const legacy = makeLegacyStore();
       legacy.changes.get = vi.fn(async () => ({

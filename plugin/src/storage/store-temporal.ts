@@ -141,7 +141,21 @@ async function getGuardedChangeHandle(
   input: TemporalStoreBackendInput,
   changeId: string,
 ): Promise<WorkflowHandleLike> {
-  const legacyResult = await input.legacy.changes.get(changeId);
+  let legacyResult: Awaited<ReturnType<typeof input.legacy.changes.get>>;
+  try {
+    legacyResult = await input.legacy.changes.get(changeId);
+  } catch (err) {
+    // Best-effort: legacy disk read failure (transient I/O, missing
+    // file, permissions) MUST NOT cascade as a guard rejection. Pass
+    // through to Temporal — the underlying error will surface from
+    // the actual workflow call if it's persistent.
+    logger.debug(
+      `Owner guard skipped for change ${changeId}: legacy read failed (${
+        err instanceof Error ? err.message : String(err)
+      })`,
+    );
+    return getChangeHandle(input, changeId);
+  }
   if (legacyResult.success && legacyResult.data?.adv_project_id) {
     const owningProjectId = legacyResult.data.adv_project_id;
     if (owningProjectId !== input.projectId) {
