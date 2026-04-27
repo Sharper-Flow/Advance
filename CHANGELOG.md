@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+#### Gate Handoff Footer — Blockquote Wayfinder Block
+
+The Gate Handoff Voice spine now ends with a blockquote-wrapped wayfinder block instead of a prose-labeled four-line footer. The arrow `{gate} ✓ → {next-gate}` already encoded the where-am-I / where-next signal; the labels (`Current phase:`, `Next phase:`, `Run when ready:`) below it were redundant and read as menu prose. The new format keeps the same information density in three visual rows inside a left-bordered callout — clearly the wayfinder, not menu options.
+
+**New format:**
+
+```
+---
+
+> **{change-id}**
+> {gate} ✓ → {next-gate}
+>
+> → `/adv-{next-command} {change-id}`
+```
+
+**Archive terminal variant** — wrapped in single-line blockquote for visual consistency:
+
+```
+---
+
+> **{change-id}** · release ✓ · Shipped.
+```
+
+- **Spec law updated** — `rq-handoffVoice01` body and scenarios `.1`, `.4`, `.5` rewritten to describe the blockquote wayfinder block. Scenarios `.2` (no mechanics leakage) and `.3` (auto-continue unaffected) are unchanged.
+- **Spec-text consistency** — `rq-inlineApproval01.7` given-clause wording updated from "labeled footer block" to "blockquote wayfinder block". Semantics preserved; command-as-approval still works exactly the same way.
+- **All consumers updated** — `docs/command-voice-standard.md` canonical spine, fast-track variant, archive terminal variant, both BAD/GOOD pairs, Tier A pattern template, Tier B archive template, BAD/GOOD migration table; `.opencode/agents/adv.md` Output Contract and Sign-Off Boundary acceptance report; 10 command files (`adv-proposal`, `adv-discover`, `adv-design`, `adv-prep`, `adv-apply`, `adv-review`, `adv-harden`, `adv-task`, `adv-reflect`, `adv-archive`); spec mirror in `docs/specs/advance.md`.
+- **Reply instructions stay outside the blockquote** — for approval-paired handoffs (Tier A/B), reply prose appears below the blockquote. Inline Approval Voice semantics, whitelist words, command-as-approval, and Tier B strictness are all unchanged.
+- **Drift test rewritten** — `plugin/src/handoff-footer-drift.test.ts` inverted: asserts blockquote rows present and prose labels absent across all 10 surfaces. The `command-as-approval semantics` describe block is preserved verbatim.
+
 ### Removed
 
 #### Legacy Runtime Fallback — Temporal-Only Cutover
