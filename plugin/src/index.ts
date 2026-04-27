@@ -139,16 +139,27 @@ const resolveStatus = (s: PluginState): StatusMarker => {
 const debugLog = (msg: string): void => appendDebugLog("index", msg);
 const hooksLogger = createLogger("hooks");
 
-async function resolveProjectContext(
+export async function resolveProjectContext(
   directory: string,
   project?: { vcsDir?: string },
+  worktree?: string,
 ): Promise<{
   effectiveDir: string;
   projectId: string | null;
   externalRoot?: string;
 }> {
+  // Resolution order: worktree → directory → project.vcsDir → legacy fallback
   let effectiveDir = directory;
   let projectId = await getProjectId(effectiveDir);
+
+  if (worktree && worktree !== directory) {
+    debugLog(`trying worktree: ${worktree}`);
+    const wtId = await getProjectId(worktree);
+    if (wtId) {
+      effectiveDir = worktree;
+      projectId = wtId;
+    }
+  }
 
   if (!projectId && project?.vcsDir && project.vcsDir !== directory) {
     debugLog(
@@ -197,6 +208,7 @@ export const AdvancePlugin: Plugin = async ({
   const { effectiveDir, projectId, externalRoot } = await resolveProjectContext(
     directory,
     project,
+    worktree,
   );
   await migrateLegacyStateIfNeeded(effectiveDir, projectId, externalRoot);
 
