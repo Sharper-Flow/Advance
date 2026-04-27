@@ -684,8 +684,9 @@ describe("Temporal store backend adapter", () => {
 
     expect(result.success).toBe(true);
     expect(changeHandle.query).toHaveBeenCalledTimes(2);
-    // Transient retry path stays on Temporal only; legacy is untouched.
-    expect(legacy.changes.get).not.toHaveBeenCalled();
+    // Guard calls legacy.changes.get before each Temporal query attempt.
+    // With one transient failure + one success = 2 guard calls.
+    expect(legacy.changes.get).toHaveBeenCalledTimes(2);
   });
 
   it("on fallback error with no disk snapshot, throws original error", async () => {
@@ -727,8 +728,9 @@ describe("Temporal store backend adapter", () => {
     );
 
     expect(changeHandle.query).toHaveBeenCalledTimes(1);
-    // Legacy was consulted once for re-seed; result was empty so we threw.
-    expect(legacy.changes.get).toHaveBeenCalledTimes(1);
+    // Guard calls legacy once before Temporal query, then re-seed calls
+    // legacy once. Total: 2 legacy reads.
+    expect(legacy.changes.get).toHaveBeenCalledTimes(2);
   });
 
   it.each([
@@ -771,8 +773,9 @@ describe("Temporal store backend adapter", () => {
       });
 
       await expect(adapted.changes.get("chg-variant")).rejects.toThrow(msg);
-      // Legacy consulted once for re-seed attempt.
-      expect(legacy.changes.get).toHaveBeenCalledTimes(1);
+      // Guard calls legacy once before Temporal query, then re-seed calls
+      // legacy once. Total: 2 legacy reads.
+      expect(legacy.changes.get).toHaveBeenCalledTimes(2);
     },
   );
 
@@ -856,8 +859,9 @@ describe("Temporal store backend adapter", () => {
     const result = await adapted.changes.get("chg-orphan");
     expect(result.success).toBe(true);
     expect(result.data?.id).toBe("chg-orphan");
-    // Disk read happened for re-seed, workflow re-started, then re-queried.
-    expect(legacy.changes.get).toHaveBeenCalledTimes(1);
+    // Guard calls legacy before first query, re-seed reads disk, guard
+    // calls legacy again before second query. Total: 3 legacy reads.
+    expect(legacy.changes.get).toHaveBeenCalledTimes(3);
     expect(start).toHaveBeenCalledTimes(1);
     expect(query).toHaveBeenCalledTimes(2);
   });

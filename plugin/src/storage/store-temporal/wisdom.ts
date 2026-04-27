@@ -7,7 +7,7 @@ import {
 import {
   runTemporal,
   runTemporalQuery,
-  getChangeHandle,
+  getGuardedChangeHandle,
   type StoreDeps,
 } from "./shared";
 
@@ -26,13 +26,16 @@ export function createWisdomOps(deps: StoreDeps): Store["wisdom"] {
     ...legacy.wisdom,
     add: async (changeId, type: WisdomType, content, sourceTask) => {
       invalidateChange(changeId);
-      const raw = await runTemporal(() =>
-        getChangeHandle(input, changeId).executeUpdate(addChangeWisdomUpdate, {
-          args: [type, content, sourceTask],
-        }),
+      const raw = await runTemporal(async () =>
+        (await getGuardedChangeHandle(input, changeId)).executeUpdate(
+          addChangeWisdomUpdate,
+          {
+            args: [type, content, sourceTask],
+          },
+        ),
       );
       const state = await resolveStateOrQuery(
-        () => getChangeHandle(input, changeId),
+        async () => await getGuardedChangeHandle(input, changeId),
         raw,
       );
       setCachedChange(state);
@@ -49,8 +52,8 @@ export function createWisdomOps(deps: StoreDeps): Store["wisdom"] {
       return latest;
     },
     list: async (changeId: string) => {
-      const state = (await runTemporalQuery(() =>
-        getChangeHandle(input, changeId).query(changeStateQuery),
+      const state = (await runTemporalQuery(async () =>
+        (await getGuardedChangeHandle(input, changeId)).query(changeStateQuery),
       )) as import("../../temporal/contracts").ChangeWorkflowState;
       return state.wisdom;
     },

@@ -53,6 +53,7 @@ export function mapTemporalChangeStateToChange(
     gates: state.gates,
     reentry_history: state.reentry_history,
     fast_follow_of: state.fast_follow_of,
+    adv_project_id: state.projectId,
   };
 }
 
@@ -63,6 +64,62 @@ export function getChangeHandle(
   const workflowId = buildChangeWorkflowId(input.projectId, changeId);
   const bundle = input.temporal as { client: TemporalHandleClient };
   return bundle.client.workflow.getHandle(workflowId);
+}
+
+/**
+ * Typed error thrown when a change-scoped operation targets a change
+ * owned by a different project than the current store binding.
+ */
+export class AdvProjectContextMismatchError extends Error {
+  readonly name = "AdvProjectContextMismatch";
+  constructor(
+    readonly changeId: string,
+    readonly owningProjectId: string,
+    readonly currentProjectId: string,
+    message: string,
+  ) {
+    super(message);
+  }
+}
+
+/**
+ * Shared guard: before returning a Temporal workflow handle for a change,
+ * verify the change's owner (via legacy disk snapshot) matches the
+ * current store's project binding. Ownerless legacy changes are
+ * best-effort compatible — the guard passes through silently.
+ */
+export async function getGuardedChangeHandle(
+  input: TemporalStoreBackendInput,
+  changeId: string,
+): Promise<WorkflowHandleLike> {
+  let legacyResult: Awaited<ReturnType<typeof input.legacy.changes.get>>;
+  try {
+    legacyResult = await input.legacy.changes.get(changeId);
+  } catch (err) {
+    // Best-effort: legacy disk read failure (transient I/O, missing
+    // file, permissions) MUST NOT cascade as a guard rejection. Pass
+    // through to Temporal — the underlying error will surface from
+    // the actual workflow call if it's persistent.
+    logger.debug(
+      `Owner guard skipped for change ${changeId}: legacy read failed (${
+        err instanceof Error ? err.message : String(err)
+      })`,
+    );
+    return getChangeHandle(input, changeId);
+  }
+  if (legacyResult.success && legacyResult.data?.adv_project_id) {
+    const owningProjectId = legacyResult.data.adv_project_id;
+    if (owningProjectId !== input.projectId) {
+      throw new AdvProjectContextMismatchError(
+        changeId,
+        owningProjectId,
+        input.projectId,
+        `Change '${changeId}' is owned by project '${owningProjectId}' (current: '${input.projectId}'). ` +
+          `Open the change in its owning project's context, or verify the linked-project configuration.`,
+      );
+    }
+  }
+  return getChangeHandle(input, changeId);
 }
 
 /**
@@ -211,7 +268,7 @@ export interface StoreDeps {
     };
   };
   resolveStateOrQuery: (
-    getHandle: () => WorkflowHandleLike,
+    getHandle: () => WorkflowHandleLike | Promise<WorkflowHandleLike>,
     result: unknown,
   ) => Promise<ChangeWorkflowState>;
   indexTasksFromState: (state: ChangeWorkflowState) => void;

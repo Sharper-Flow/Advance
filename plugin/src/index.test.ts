@@ -11,6 +11,7 @@ import {
   extractCompletedTask,
   extractCreatedChangeId,
   isLongRunningTool,
+  resolveProjectContext,
 } from "./index";
 import {
   createTempDir,
@@ -21,6 +22,7 @@ import {
 import { addProjectWisdom } from "./storage/project-wisdom";
 import { ADV_TOOL_NAMES } from "./tool-registry";
 import { createDiskStore as createLegacyStore } from "./storage/store-disk";
+import { getProjectId } from "./utils/project-id";
 
 // Mock plugin-init to bypass Temporal requirement in integration tests.
 // Degraded-mode tests (malformed project.json) are preserved by checking
@@ -40,6 +42,18 @@ vi.mock("./plugin-init", async () => {
         return { store: null, initError };
       }
     },
+  };
+});
+
+vi.mock("./utils/project-id", async () => {
+  const actual =
+    await vi.importActual<typeof import("./utils/project-id")>(
+      "./utils/project-id",
+    );
+  return {
+    ...actual,
+    getProjectId: vi.fn(),
+    getExternalRoot: vi.fn(() => "/mock/external/root"),
   };
 });
 
@@ -1327,5 +1341,64 @@ describe("Plugin init: project.path fallback", () => {
     const result = await hooks.tool!.adv_status.execute({}, context);
     const parsed = parseToolOutput(result);
     expect(parsed).toHaveProperty("specs");
+  });
+});
+
+describe("resolveProjectContext worktree preference", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  test("prefers valid worktree over directory and project.vcsDir", async () => {
+    const worktreeDir = "/worktree/path";
+    const directory = "/directory/path";
+    const vcsDir = "/vcs/dir";
+
+    // getProjectId returns ID only for worktreeDir
+    vi.mocked(getProjectId).mockImplementation(async (dir: string) => {
+      if (dir === worktreeDir) return "worktree-proj-id";
+      if (dir === directory) return null;
+      if (dir === vcsDir) return "vcs-proj-id";
+      return null;
+    });
+
+    const result = await resolveProjectContext(
+      directory,
+      { vcsDir },
+      worktreeDir,
+    );
+
+    expect(result.effectiveDir).toBe(worktreeDir);
+    expect(result.projectId).toBe("worktree-proj-id");
+  });
+
+  test("falls back to directory when worktree is undefined", async () => {
+    const directory = "/directory/path";
+
+    vi.mocked(getProjectId).mockImplementation(async (dir: string) => {
+      if (dir === directory) return "dir-proj-id";
+      return null;
+    });
+
+    const result = await resolveProjectContext(directory);
+
+    expect(result.effectiveDir).toBe(directory);
+    expect(result.projectId).toBe("dir-proj-id");
+  });
+
+  test("falls back to project.vcsDir when worktree and directory both invalid", async () => {
+    const directory = "/directory/path";
+    const vcsDir = "/vcs/dir";
+
+    vi.mocked(getProjectId).mockImplementation(async (dir: string) => {
+      if (dir === directory) return null;
+      if (dir === vcsDir) return "vcs-proj-id";
+      return null;
+    });
+
+    const result = await resolveProjectContext(directory, { vcsDir });
+
+    expect(result.effectiveDir).toBe(vcsDir);
+    expect(result.projectId).toBe("vcs-proj-id");
   });
 });

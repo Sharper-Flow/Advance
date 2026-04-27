@@ -62,12 +62,23 @@ async function completeGateAndBuildResponse({
   try {
     await store.gates.complete(changeId, gateId, notes);
   } catch (saveError) {
-    return formatToolOutput({
-      error: `Failed to complete gate: ${(saveError as Error).message}`,
+    const err = saveError as Error;
+    const base: Record<string, unknown> = {
+      error: `Failed to complete gate: ${err.message}`,
       changeId,
       gateId,
       hint: "Gate state was not persisted. Retry the operation.",
-    });
+    };
+    // Preserve structured fields from AdvProjectContextMismatch errors
+    if (err.name === "AdvProjectContextMismatch") {
+      const e = err as unknown as Record<string, unknown>;
+      base.errorClass = "AdvProjectContextMismatch";
+      base.owningProjectId = e.owningProjectId;
+      base.currentProjectId = e.currentProjectId;
+      base.hint =
+        "This change belongs to a different project context. Open the change in its owning project, or verify linked-project configuration.";
+    }
+    return formatToolOutput(base);
   }
 
   const changeDir = join(store.paths.changes, changeId);
@@ -227,27 +238,42 @@ export const gateTools = {
         ),
     },
     execute: async ({ changeId }: { changeId: string }, store: Store) => {
-      const result = await store.changes.get(changeId);
-      if (!result.success) {
-        return formatToolOutput({ error: result.error });
-      }
-      if (!result.data) {
-        return formatToolOutput({ error: `Change not found: ${changeId}` });
-      }
+      try {
+        const result = await store.changes.get(changeId);
+        if (!result.success) {
+          return formatToolOutput({ error: result.error });
+        }
+        if (!result.data) {
+          return formatToolOutput({ error: `Change not found: ${changeId}` });
+        }
 
-      // Get or create gates
-      const gates = result.data.gates ?? createDefaultGates();
-      const incomplete = getIncompleteGates(gates);
-      const canArchive = allGatesSatisfied(gates);
-      const nextGate = incomplete.length > 0 ? incomplete[0] : null;
+        // Get or create gates
+        const gates = result.data.gates ?? createDefaultGates();
+        const incomplete = getIncompleteGates(gates);
+        const canArchive = allGatesSatisfied(gates);
+        const nextGate = incomplete.length > 0 ? incomplete[0] : null;
 
-      return formatToolOutput({
-        changeId,
-        gates,
-        incomplete,
-        canArchive,
-        nextGate,
-      });
+        return formatToolOutput({
+          changeId,
+          gates,
+          incomplete,
+          canArchive,
+          nextGate,
+        });
+      } catch (error) {
+        if ((error as Error).name === "AdvProjectContextMismatch") {
+          const e = error as unknown as Record<string, unknown>;
+          return formatToolOutput({
+            error: (error as Error).message,
+            changeId,
+            errorClass: "AdvProjectContextMismatch",
+            owningProjectId: e.owningProjectId,
+            currentProjectId: e.currentProjectId,
+            hint: "Open the change in its owning project's context, or verify the linked-project configuration.",
+          });
+        }
+        throw error;
+      }
     },
   },
 
@@ -311,15 +337,31 @@ export const gateTools = {
         });
       }
 
-      const result = await store.changes.get(changeId);
-      if (!result.success) {
-        return formatToolOutput({ error: result.error });
-      }
-      if (!result.data) {
-        return formatToolOutput({ error: `Change not found: ${changeId}` });
+      let change: Change;
+      try {
+        const result = await store.changes.get(changeId);
+        if (!result.success) {
+          return formatToolOutput({ error: result.error });
+        }
+        if (!result.data) {
+          return formatToolOutput({ error: `Change not found: ${changeId}` });
+        }
+        change = result.data;
+      } catch (error) {
+        if ((error as Error).name === "AdvProjectContextMismatch") {
+          const e = error as unknown as Record<string, unknown>;
+          return formatToolOutput({
+            error: (error as Error).message,
+            changeId,
+            errorClass: "AdvProjectContextMismatch",
+            owningProjectId: e.owningProjectId,
+            currentProjectId: e.currentProjectId,
+            hint: "Open the change in its owning project's context, or verify the linked-project configuration.",
+          });
+        }
+        throw error;
       }
 
-      const change = result.data;
       const gates: Gates = change.gates ?? createDefaultGates();
 
       // Check sequence enforcement

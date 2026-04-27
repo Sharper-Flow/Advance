@@ -1067,6 +1067,12 @@ export const ChangeSchema = z
      * validation and same-project parent surfacing.
      */
     fast_follow_of: FastFollowOfSchema.optional(),
+    /**
+     * Temporal project ID that owns this change. Persisted on disk snapshots
+     * so the shared guard can detect cross-project context mismatches.
+     * Optional for legacy compatibility — ownerless changes are best-effort.
+     */
+    adv_project_id: z.string().optional(),
   })
   .passthrough(); // Allow extra fields for forward/backward compatibility
 

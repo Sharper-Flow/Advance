@@ -992,4 +992,54 @@ describe("adv_gate_complete planning — readiness enforcement", () => {
     const failures = parsed.readinessFailures as Array<Record<string, unknown>>;
     expect(failures.some((f) => f.code === "TASK_TDD_INVERSION")).toBe(true);
   });
+
+  describe("AdvProjectContextMismatch diagnostics", () => {
+    test("adv_gate_status returns structured mismatch fields when store throws mismatch", async () => {
+      const mismatchError = new Error(
+        "Change 'chg1' is owned by project 'owner-proj'",
+      );
+      (mismatchError as any).name = "AdvProjectContextMismatch";
+      (mismatchError as any).changeId = "chg1";
+      (mismatchError as any).owningProjectId = "owner-proj";
+      (mismatchError as any).currentProjectId = "current-proj";
+
+      vi.spyOn(store.changes, "get").mockRejectedValueOnce(mismatchError);
+
+      const result = await gateTools.adv_gate_status.execute(
+        { changeId: "chg1" },
+        store,
+      );
+      const parsed = extractJson(result) as Record<string, unknown>;
+
+      expect(parsed.errorClass).toBe("AdvProjectContextMismatch");
+      expect(parsed.changeId).toBe("chg1");
+      expect(parsed.owningProjectId).toBe("owner-proj");
+      expect(parsed.currentProjectId).toBe("current-proj");
+      expect(parsed.hint).toContain("owning project");
+    });
+
+    test("adv_gate_complete returns structured mismatch fields when store throws mismatch", async () => {
+      const mismatchError = new Error(
+        "Change 'chg1' is owned by project 'owner-proj'",
+      );
+      (mismatchError as any).name = "AdvProjectContextMismatch";
+      (mismatchError as any).changeId = "chg1";
+      (mismatchError as any).owningProjectId = "owner-proj";
+      (mismatchError as any).currentProjectId = "current-proj";
+
+      vi.spyOn(store.gates, "complete").mockRejectedValueOnce(mismatchError);
+
+      const result = await gateTools.adv_gate_complete.execute(
+        { changeId: "addFeature", gateId: "proposal" },
+        store,
+      );
+      const parsed = extractJson(result) as Record<string, unknown>;
+
+      expect(parsed.errorClass).toBe("AdvProjectContextMismatch");
+      expect(parsed.changeId).toBe("addFeature");
+      expect(parsed.owningProjectId).toBe("owner-proj");
+      expect(parsed.currentProjectId).toBe("current-proj");
+      expect(parsed.hint).toContain("owning project");
+    });
+  });
 });

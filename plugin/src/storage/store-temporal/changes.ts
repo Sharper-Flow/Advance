@@ -1,5 +1,5 @@
 import type { Store } from "../store-types";
-import type { ChangeClosure, BulkCloseResult } from "../../types";
+import type { ChangeClosure, BulkCloseResult, Change } from "../../types";
 import {
   closeChangeUpdate,
   updateArtifactMetadataUpdate,
@@ -8,7 +8,7 @@ import { ensureChangeWorkflowStarted } from "../../temporal/migration";
 import { removeChangeDir } from "../json";
 import { filterChanges } from "../content-search";
 import { computeLastActivity } from "../store-types";
-import { runTemporal, getChangeHandle, type StoreDeps } from "./shared";
+import { runTemporal, getGuardedChangeHandle, type StoreDeps } from "./shared";
 
 export function createChangeOps(deps: StoreDeps): Store["changes"] {
   const {
@@ -89,6 +89,17 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
         throw err;
       }
 
+      const changeWithOwner: Change = {
+        ...created.data,
+        adv_project_id: input.projectId,
+      };
+      try {
+        await legacy.changes.save(changeWithOwner);
+      } catch {
+        // Best-effort: disk save failure for owner metadata MUST NOT
+        // cascade as a creation failure.
+      }
+
       updateOverlay(created.data.id, {
         created_at: created.data.created_at,
         created_by: created.data.created_by,
@@ -100,6 +111,7 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
         batch_surfaced_at: created.data.batch_surfaced_at,
         cross_project_origin: created.data.cross_project_origin,
         fast_follow_of: created.data.fast_follow_of,
+        adv_project_id: input.projectId,
       });
       return result;
     },
@@ -120,6 +132,7 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
         batch_surfaced_at: change.batch_surfaced_at,
         cross_project_origin: change.cross_project_origin,
         fast_follow_of: change.fast_follow_of,
+        adv_project_id: change.adv_project_id,
       });
     },
     list: async (filter) => {
@@ -199,13 +212,16 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
     },
     close: async (changeId: string, closure: ChangeClosure) => {
       invalidateChange(changeId);
-      const raw = await runTemporal(() =>
-        getChangeHandle(input, changeId).executeUpdate(closeChangeUpdate, {
-          args: [closure],
-        }),
+      const raw = await runTemporal(async () =>
+        (await getGuardedChangeHandle(input, changeId)).executeUpdate(
+          closeChangeUpdate,
+          {
+            args: [closure],
+          },
+        ),
       );
       const result = await resolveStateOrQuery(
-        () => getChangeHandle(input, changeId),
+        async () => await getGuardedChangeHandle(input, changeId),
         raw,
       );
       indexTasksFromState(result);
@@ -269,13 +285,16 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
       for (const id of changeIds) {
         try {
           invalidateChange(id);
-          const raw = await runTemporal(() =>
-            getChangeHandle(input, id).executeUpdate(closeChangeUpdate, {
-              args: [closure],
-            }),
+          const raw = await runTemporal(async () =>
+            (await getGuardedChangeHandle(input, id)).executeUpdate(
+              closeChangeUpdate,
+              {
+                args: [closure],
+              },
+            ),
           );
           const result = await resolveStateOrQuery(
-            () => getChangeHandle(input, id),
+            async () => await getGuardedChangeHandle(input, id),
             raw,
           );
           indexTasksFromState(result);
@@ -334,8 +353,8 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
       ];
       for (const [kind, path] of updates) {
         if (!path) continue;
-        await runTemporal(() =>
-          getChangeHandle(input, changeId).executeUpdate(
+        await runTemporal(async () =>
+          (await getGuardedChangeHandle(input, changeId)).executeUpdate(
             updateArtifactMetadataUpdate,
             {
               args: [kind, { path, updatedAt: new Date().toISOString() }],

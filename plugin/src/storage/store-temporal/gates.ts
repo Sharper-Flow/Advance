@@ -5,7 +5,7 @@ import {
   reopenFromGateUpdate,
   changeStateQuery,
 } from "../../temporal/messages";
-import { runTemporal, getChangeHandle, type StoreDeps } from "./shared";
+import { runTemporal, getGuardedChangeHandle, type StoreDeps } from "./shared";
 
 export function createGateOps(deps: StoreDeps): Store["gates"] {
   const {
@@ -21,20 +21,23 @@ export function createGateOps(deps: StoreDeps): Store["gates"] {
   return {
     ...legacy.gates,
     get: async (changeId: string) => {
-      const state = (await runTemporal(() =>
-        getChangeHandle(input, changeId).query(changeStateQuery),
+      const state = (await runTemporal(async () =>
+        (await getGuardedChangeHandle(input, changeId)).query(changeStateQuery),
       )) as import("../../temporal/contracts").ChangeWorkflowState;
       return state.gates;
     },
     complete: async (changeId: string, gateId: GateId, notes?: string) => {
       invalidateChange(changeId);
-      const raw = await runTemporal(() =>
-        getChangeHandle(input, changeId).executeUpdate(completeGateUpdate, {
-          args: [gateId, notes, "agent"],
-        }),
+      const raw = await runTemporal(async () =>
+        (await getGuardedChangeHandle(input, changeId)).executeUpdate(
+          completeGateUpdate,
+          {
+            args: [gateId, notes, "agent"],
+          },
+        ),
       );
       const state = await resolveStateOrQuery(
-        () => getChangeHandle(input, changeId),
+        async () => await getGuardedChangeHandle(input, changeId),
         raw,
       );
       setCachedChange(state);
@@ -50,13 +53,21 @@ export function createGateOps(deps: StoreDeps): Store["gates"] {
       approvalEvidence,
     ) => {
       invalidateChange(changeId);
-      const raw = await runTemporal(() =>
-        getChangeHandle(input, changeId).executeUpdate(reopenFromGateUpdate, {
-          args: [fromGate, reason, scopeDelta, approvalEvidence ?? reopenedBy],
-        }),
+      const raw = await runTemporal(async () =>
+        (await getGuardedChangeHandle(input, changeId)).executeUpdate(
+          reopenFromGateUpdate,
+          {
+            args: [
+              fromGate,
+              reason,
+              scopeDelta,
+              approvalEvidence ?? reopenedBy,
+            ],
+          },
+        ),
       );
       const state = await resolveStateOrQuery(
-        () => getChangeHandle(input, changeId),
+        async () => await getGuardedChangeHandle(input, changeId),
         raw,
       );
       setCachedChange(state);

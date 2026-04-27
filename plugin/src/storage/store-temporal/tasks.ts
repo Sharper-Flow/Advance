@@ -18,7 +18,7 @@ import { getReadyTasksFromChangeState } from "../../temporal/change-state";
 import {
   runTemporal,
   runTemporalQuery,
-  getChangeHandle,
+  getGuardedChangeHandle,
   type StoreDeps,
 } from "./shared";
 
@@ -36,8 +36,8 @@ export function createTaskOps(deps: StoreDeps): Store["tasks"] {
   return {
     ...legacy.tasks,
     list: async (changeId: string, status?: string, filter?: string) => {
-      const tasks = (await runTemporalQuery(() =>
-        getChangeHandle(input, changeId).query(
+      const tasks = (await runTemporalQuery(async () =>
+        (await getGuardedChangeHandle(input, changeId)).query(
           changeTasksQuery,
           status,
           filter,
@@ -49,8 +49,8 @@ export function createTaskOps(deps: StoreDeps): Store["tasks"] {
       return tasks;
     },
     ready: async (changeId: string) => {
-      const state = (await runTemporalQuery(() =>
-        getChangeHandle(input, changeId).query(changeStateQuery),
+      const state = (await runTemporalQuery(async () =>
+        (await getGuardedChangeHandle(input, changeId)).query(changeStateQuery),
       )) as import("../../temporal/contracts").ChangeWorkflowState;
       indexTasksFromState(state);
       return getReadyTasksFromChangeState(state);
@@ -65,36 +65,42 @@ export function createTaskOps(deps: StoreDeps): Store["tasks"] {
       const changeId = await resolveChangeId(taskId);
       if (!changeId) return null;
       invalidateChange(changeId);
-      const result = (await runTemporal(() =>
-        getChangeHandle(input, changeId).executeUpdate(updateTaskUpdate, {
-          args: [
-            taskId,
-            {
-              status: status as Task["status"],
-              notes,
-              implementationSummary,
-              errorRecovery,
-            },
-          ],
-        }),
+      const result = (await runTemporal(async () =>
+        (await getGuardedChangeHandle(input, changeId)).executeUpdate(
+          updateTaskUpdate,
+          {
+            args: [
+              taskId,
+              {
+                status: status as Task["status"],
+                notes,
+                implementationSummary,
+                errorRecovery,
+              },
+            ],
+          },
+        ),
       )) as Awaited<ReturnType<Store["tasks"]["update"]>>;
       await dualWriteAfterMutation(changeId);
       return result;
     },
     add: async (changeId, content, options) => {
       invalidateChange(changeId);
-      const created = (await runTemporal(() =>
-        getChangeHandle(input, changeId).executeUpdate(addTaskUpdate, {
-          args: [
-            {
-              title: content,
-              type: options?.type,
-              section: options?.section,
-              blockedBy: options?.blockedBy,
-              metadata: options?.metadata,
-            },
-          ],
-        }),
+      const created = (await runTemporal(async () =>
+        (await getGuardedChangeHandle(input, changeId)).executeUpdate(
+          addTaskUpdate,
+          {
+            args: [
+              {
+                title: content,
+                type: options?.type,
+                section: options?.section,
+                blockedBy: options?.blockedBy,
+                metadata: options?.metadata,
+              },
+            ],
+          },
+        ),
       )) as Awaited<ReturnType<Store["tasks"]["add"]>>;
       if (created && typeof created === "object" && "id" in created) {
         taskChangeIndex.set((created as { id: string }).id, changeId);
@@ -105,15 +111,21 @@ export function createTaskOps(deps: StoreDeps): Store["tasks"] {
     get: async (taskId) => {
       const changeId = await resolveChangeId(taskId);
       if (!changeId) return null;
-      return (await runTemporalQuery(() =>
-        getChangeHandle(input, changeId).query(changeTaskQuery, taskId),
+      return (await runTemporalQuery(async () =>
+        (await getGuardedChangeHandle(input, changeId)).query(
+          changeTaskQuery,
+          taskId,
+        ),
       )) as Awaited<ReturnType<Store["tasks"]["get"]>>;
     },
     show: async (taskId) => {
       const changeId = await resolveChangeId(taskId);
       if (!changeId) return null;
-      const task = await runTemporalQuery(() =>
-        getChangeHandle(input, changeId).query(changeTaskQuery, taskId),
+      const task = await runTemporalQuery(async () =>
+        (await getGuardedChangeHandle(input, changeId)).query(
+          changeTaskQuery,
+          taskId,
+        ),
       );
       if (!task) return null;
       return { task: task as Task, changeId };
@@ -121,21 +133,26 @@ export function createTaskOps(deps: StoreDeps): Store["tasks"] {
     getRun: async (taskId) => {
       const changeId = await resolveChangeId(taskId);
       if (!changeId) return null;
-      return (await runTemporalQuery(() =>
-        getChangeHandle(input, changeId).query(changeTaskRunQuery, taskId),
+      return (await runTemporalQuery(async () =>
+        (await getGuardedChangeHandle(input, changeId)).query(
+          changeTaskRunQuery,
+          taskId,
+        ),
       )) as Awaited<ReturnType<Store["tasks"]["getRun"]>>;
     },
     listRuns: async (changeId) => {
-      return (await runTemporalQuery(() =>
-        getChangeHandle(input, changeId).query(changeTaskRunsQuery),
+      return (await runTemporalQuery(async () =>
+        (await getGuardedChangeHandle(input, changeId)).query(
+          changeTaskRunsQuery,
+        ),
       )) as Awaited<ReturnType<Store["tasks"]["listRuns"]>>;
     },
     recordRunEvent: async (taskId, event) => {
       const changeId = await resolveChangeId(taskId);
       if (!changeId) return null;
       invalidateChange(changeId);
-      const result = (await runTemporal(() =>
-        getChangeHandle(input, changeId).executeUpdate(
+      const result = (await runTemporal(async () =>
+        (await getGuardedChangeHandle(input, changeId)).executeUpdate(
           recordTaskRunEventUpdate,
           {
             args: [taskId, event],
@@ -149,8 +166,8 @@ export function createTaskOps(deps: StoreDeps): Store["tasks"] {
       const changeId = await resolveChangeId(taskId);
       if (!changeId) return null;
       invalidateChange(changeId);
-      const result = (await runTemporal(() =>
-        getChangeHandle(input, changeId).executeUpdate(
+      const result = (await runTemporal(async () =>
+        (await getGuardedChangeHandle(input, changeId)).executeUpdate(
           recordTaskEvidenceUpdate,
           {
             args: [taskId, phase, evidence],
@@ -164,10 +181,13 @@ export function createTaskOps(deps: StoreDeps): Store["tasks"] {
       const changeId = await resolveChangeId(taskId);
       if (!changeId) return null;
       invalidateChange(changeId);
-      const result = (await runTemporal(() =>
-        getChangeHandle(input, changeId).executeUpdate(setTaskPhaseUpdate, {
-          args: [taskId, phase],
-        }),
+      const result = (await runTemporal(async () =>
+        (await getGuardedChangeHandle(input, changeId)).executeUpdate(
+          setTaskPhaseUpdate,
+          {
+            args: [taskId, phase],
+          },
+        ),
       )) as Awaited<ReturnType<Store["tasks"]["setPhase"]>>;
       await dualWriteAfterMutation(changeId);
       return result;
@@ -176,10 +196,13 @@ export function createTaskOps(deps: StoreDeps): Store["tasks"] {
       const changeId = await resolveChangeId(taskId);
       if (!changeId) return null;
       invalidateChange(changeId);
-      const result = (await runTemporal(() =>
-        getChangeHandle(input, changeId).executeUpdate(cancelTaskUpdate, {
-          args: [taskId, cancellation],
-        }),
+      const result = (await runTemporal(async () =>
+        (await getGuardedChangeHandle(input, changeId)).executeUpdate(
+          cancelTaskUpdate,
+          {
+            args: [taskId, cancellation],
+          },
+        ),
       )) as Awaited<ReturnType<Store["tasks"]["cancel"]>>;
       await dualWriteAfterMutation(changeId);
       return result;
@@ -188,8 +211,8 @@ export function createTaskOps(deps: StoreDeps): Store["tasks"] {
       const changeId = await resolveChangeId(taskId);
       if (!changeId) return null;
       invalidateChange(changeId);
-      const result = (await runTemporal(() =>
-        getChangeHandle(input, changeId).executeUpdate(
+      const result = (await runTemporal(async () =>
+        (await getGuardedChangeHandle(input, changeId)).executeUpdate(
           reclassifyTaskTddUpdate,
           {
             args: [taskId, reclassification],

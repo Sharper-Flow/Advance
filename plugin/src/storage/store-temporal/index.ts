@@ -22,7 +22,7 @@ import {
   type WorkflowHandleLike,
   type StoreDeps,
   mapTemporalChangeStateToChange,
-  getChangeHandle,
+  getGuardedChangeHandle,
   runTemporalQuery,
   hydrateMemoFromPSW,
 } from "./shared";
@@ -157,8 +157,8 @@ export function createTemporalStoreBackend(
    */
   const dualWriteAfterMutation = async (changeId: string): Promise<void> => {
     try {
-      const state = (await runTemporalQuery(() =>
-        getChangeHandle(input, changeId).query(changeStateQuery),
+      const state = (await runTemporalQuery(async () =>
+        (await getGuardedChangeHandle(input, changeId)).query(changeStateQuery),
       )) as ChangeWorkflowState;
       setCachedChange(state);
       emitChangeSummarySignal(changeId, state);
@@ -273,14 +273,14 @@ export function createTemporalStoreBackend(
    * gets a fresh handle bound to the (possibly post-reconnect) client.
    */
   const resolveStateOrQuery = async (
-    getHandle: () => WorkflowHandleLike,
+    getHandle: () => WorkflowHandleLike | Promise<WorkflowHandleLike>,
     result: unknown,
   ): Promise<ChangeWorkflowState> => {
     if (result && typeof result === "object" && "changeId" in result) {
       return result as ChangeWorkflowState;
     }
-    return (await runTemporalQuery(() =>
-      getHandle().query(changeStateQuery),
+    return (await runTemporalQuery(async () =>
+      (await getHandle()).query(changeStateQuery),
     )) as ChangeWorkflowState;
   };
 
@@ -355,8 +355,8 @@ export function createTemporalStoreBackend(
       return null;
     }
     try {
-      const state = (await runTemporalQuery(() =>
-        getChangeHandle(input, changeId).query(changeStateQuery),
+      const state = (await runTemporalQuery(async () =>
+        (await getGuardedChangeHandle(input, changeId)).query(changeStateQuery),
       )) as ChangeWorkflowState;
       indexTasksFromState(state);
       return setCachedChange(state);
@@ -378,8 +378,8 @@ export function createTemporalStoreBackend(
       return { success: true, data: cached };
     }
     try {
-      const state = (await runTemporalQuery(() =>
-        getChangeHandle(input, changeId).query(changeStateQuery),
+      const state = (await runTemporalQuery(async () =>
+        (await getGuardedChangeHandle(input, changeId)).query(changeStateQuery),
       )) as ChangeWorkflowState;
       indexTasksFromState(state);
       return { success: true, data: setCachedChange(state) };
