@@ -365,6 +365,26 @@ All cancellations require explicit user approval via `adv_task_cancel`.
 
 Workflow: identify tasks + reasons → present to user via `question` → user approves → call `adv_task_cancel` with evidence.
 
+### Large-Scope Validity
+
+Planned-and-structured size is valid. Once a change has completed the prep gate
+with `userApproved`, the agent MUST NOT suggest splitting based on size, complexity,
+or task count alone. Size-triggered concerns route through cost-governance Phase 1.5
+judgment-call surfacing only.
+
+| × Bad | ✓ Good |
+|-------|--------|
+| "This seems large, want to split?" | Trust the prep gate; execute |
+| "Maybe break this into smaller changes?" | Execute as planned |
+| "Lots of tasks here, should we cut some?" | Surface real concerns as judgment calls (Phase 1.5) |
+| Mid-execution split-suggestion | Mid-execution scope discovery → scope-discovery protocol |
+
+Cost-governance hardstop tier remains advisory — it informs investment check-ins,
+not split decisions. See `.opencode/instructions/cost-governance.md`.
+
+For the canonical scope-discovery protocol (when non-campsite scope is found
+mid-execution), see `docs/scope-discovery-protocol.md`.
+
 ### Task Status Report
 
 On loop stop or compaction: emit `[ADV:TASK_STATUS_REPORT]` with completed/cancelled/remaining. See [docs/adv-task-report.md](docs/adv-task-report.md).

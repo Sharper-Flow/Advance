@@ -1,7 +1,7 @@
 # Advance
 
-> **Version:** 1.13.0
-> **Updated:** 2026-04-25
+> **Version:** 1.15.0
+> **Updated:** 2026-04-27
 
 ## Purpose
 
@@ -1307,3 +1307,213 @@ Every /adv-\* command that emits a user-facing gate-transition message MUST use 
 - The ledger guides the agent to the next apply-loop step
 - No new user pause or approval checkpoint is introduced
 - Existing blocker, doom-loop, cancellation, re-entry, and acceptance checkpoints remain unchanged
+
+---
+
+### Fast-Follow Schema Contract
+
+**ID:** `rq-scopeFollowupSchema01` | **Priority:** **[MUST]**
+
+The ChangeSchema must support an optional `fast_follow_of` field that records same-project parent lineage. The `adv_change_create` tool must accept `parent_change_id` and enforce mutual exclusion with `target_path`.
+
+#### Scenarios
+
+**parent_change_id creates fast_follow_of metadata** (`rq-scopeFollowupSchema01.1`)
+
+**Given:**
+
+- A valid parent change ID in the current project
+
+**When:** `adv_change_create` is called with `parent_change_id`
+
+**Then:**
+
+- The new change has `fast_follow_of: { parent_change_id, linked_at }` set
+- `linked_at` is an ISO8601 timestamp
+
+**Backward compatibility without fast_follow_of** (`rq-scopeFollowupSchema01.2`)
+
+**Given:**
+
+- A change created without `parent_change_id`
+
+**When:** ChangeSchema is parsed
+
+**Then:**
+
+- The `fast_follow_of` field is absent
+- Parsing succeeds normally
+
+**Mutual exclusion with target_path** (`rq-scopeFollowupSchema01.3`)
+
+**Given:**
+
+- Both `target_path` and `parent_change_id` are provided
+
+**When:** `adv_change_create` is called
+
+**Then:**
+
+- A mutual-exclusion error is returned
+- No change is created
+
+---
+
+### Inline-Approval Protocol for Non-Campsite Scope Discovery
+
+**ID:** `rq-scopeDiscoveryProtocol01` | **Priority:** **[MUST]**
+
+When non-P23-campsite-eligible scope is discovered during `/adv-apply`, `/adv-review`, or `/adv-harden`, the agent must emit a Tier A inline prompt with options reenter/split/keep/cancel. The agent must never silently absorb discovered scope.
+
+#### Scenarios
+
+**Non-campsite scope triggers inline prompt** (`rq-scopeDiscoveryProtocol01.1`)
+
+**Given:**
+
+- Non-P23-campsite-eligible scope discovered during `/adv-apply`, `/adv-review`, or `/adv-harden`
+
+**When:** The agent evaluates the discovered scope
+
+**Then:**
+
+- A Tier A inline prompt is emitted with options: reenter {gate}, split, keep, cancel
+- The agent never silently absorbs the scope
+
+**Split creates fast-follow child** (`rq-scopeDiscoveryProtocol01.2`)
+
+**Given:**
+
+- User replies `split` to the scope-discovery prompt
+
+**When:** The agent processes the reply
+
+**Then:**
+
+- `adv_change_create` is called with `parent_change_id` set to the current change
+- The new change is a fast-follow child
+
+**Keep with new objectives requires re-entry** (`rq-scopeDiscoveryProtocol01.3`)
+
+**Given:**
+
+- User replies `keep` and the absorbed scope adds new objectives or acceptance criteria
+
+**When:** The agent processes the reply
+
+**Then:**
+
+- `adv_change_reenter` is invoked per `rq-scopeReentry01`
+- Keep does not bypass re-entry when scope adds objectives/AC
+
+**Campsite-eligible scope applied freely** (`rq-scopeDiscoveryProtocol01.4`)
+
+**Given:**
+
+- P23-campsite-eligible adjacent scope (any size, clear, safe, focused)
+
+**When:** The agent evaluates the scope
+
+**Then:**
+
+- The campsite-rule is applied freely without prompting
+- No inline approval is required
+
+---
+
+### Lineage Display in List, Show, and Status
+
+**ID:** `rq-scopeFollowupSurfacing01` | **Priority:** **[MUST]**
+
+Tools that surface change data must display fast-follow lineage: `adv_change_show` includes `_fastFollowOrigin`, `adv_change_list` annotates entries with `parent_change_id`, and `adv_status` prefixes child labels and references parents in recommendations.
+
+#### Scenarios
+
+**adv_change_show surfaces _fastFollowOrigin** (`rq-scopeFollowupSurfacing01.1`)
+
+**Given:**
+
+- A change with `fast_follow_of` set
+
+**When:** `adv_change_show` is called
+
+**Then:**
+
+- Output includes `_fastFollowOrigin` parallel to `_crossProjectOrigin`
+- `_fastFollowOrigin` contains `note`, `parent_change_id`, and `linked_at`
+
+**adv_change_list annotates parent_change_id** (`rq-scopeFollowupSurfacing01.2`)
+
+**Given:**
+
+- Changes with `fast_follow_of` in the list
+
+**When:** `adv_change_list` is called
+
+**Then:**
+
+- Entries with `fast_follow_of` include `parent_change_id` at the top level
+- Children remain top-level (not nested)
+
+**adv_status prefixes and references parents** (`rq-scopeFollowupSurfacing01.3`)
+
+**Given:**
+
+- Changes with `fast_follow_of` in the project
+
+**When:** `adv_status` is called
+
+**Then:**
+
+- Child change labels are prefixed with `↳ `
+- Recommendations reference the parent change ID
+- Archived parents are annotated with `(archived)`
+
+---
+
+### Size Alone Is Not Grounds for Split-Suggestion
+
+**ID:** `rq-largeScopeValidity01` | **Priority:** **[MUST]**
+
+Once a change has completed the prep gate with `userApproved`, the agent must not suggest splitting based on size, task count, or complexity alone. Size-triggered concerns route through cost-governance Phase 1.5 judgment-call surfacing only.
+
+#### Scenarios
+
+**No split-suggestion after prep approval** (`rq-largeScopeValidity01.1`)
+
+**Given:**
+
+- A change has completed the prep gate with `userApproved`
+
+**When:** The agent evaluates whether to suggest splitting
+
+**Then:**
+
+- The agent does not emit split-suggestions based on size, task count, or complexity alone
+- Execution proceeds as planned
+
+**Size concerns route through cost-governance** (`rq-largeScopeValidity01.2`)
+
+**Given:**
+
+- Size-triggered concerns exist during execution
+
+**When:** The agent evaluates how to surface concerns
+
+**Then:**
+
+- Concerns are routed through cost-governance Phase 1.5 judgment-call surfacing
+- No split-suggestion is made
+
+**Hardstop remains advisory** (`rq-largeScopeValidity01.3`)
+
+**Given:**
+
+- Cost-governance hardstop tier fires
+
+**When:** The agent evaluates the hardstop signal
+
+**Then:**
+
+- The hardstop is advisory only
+- It does not auto-trigger split or `adv_change_reenter`

@@ -291,11 +291,16 @@ Before applying ANY fix, evaluate: **"If I apply this fix, will proposal.md's Su
 
 - **NO** → auto-remediate (proceed with fix)
 - **YES** → **STOP** — present the finding and proposed fix to the user via `question` tool:
-  - **Approve fix and update scope** — user agrees the scope should expand
+  - **Approve fix and update scope** — user agrees the scope should expand; route through scope-discovery protocol (`docs/scope-discovery-protocol.md`)
+  - **Split** — create a fast-follow child change via `adv_change_create parent_change_id: <current>` for the scope expansion
   - **Skip fix, document as accepted debt** — finding is valid but out of scope
   - **Cancel hardening** — user wants to reconsider
 
 This is the single declarative drift detection rule. It applies to every finding, every fix, every auto-remediation action.
+
+**Scope-discovery cross-link:** When drift detection identifies scope expansion, defer to the canonical protocol at `docs/scope-discovery-protocol.md`. The split option creates a fast-follow child change, preserving the current change's momentum while isolating the expanded scope. See also `ADV_INSTRUCTIONS.md § Large-Scope Validity`.
+
+**Anti-pattern:** The drift-detection auto-fix path must NOT silently absorb non-campsite scope. If the fix would expand the agreement, always defer to the scope-discovery protocol above.
 
 If fixing → establish CONTRACT ACTIVE banner listing issues grouped by category → spawn fix sub-agents → verify → update status.
 

@@ -3,8 +3,8 @@
   "name": "advance",
   "title": "Advance",
   "purpose": "Capability: Advance",
-  "version": "1.14.0",
-  "updated_at": "2026-04-26T16:31:00.000Z",
+  "version": "1.15.0",
+  "updated_at": "2026-04-27T01:00:00.000Z",
   "requirements": [
     {
       "id": "rq-W1sD0mR1",
@@ -1307,6 +1307,173 @@
           "then": [
             "The question tool continues to be used",
             "The inline approval pattern does not apply"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-scopeFollowupSchema01",
+      "title": "Fast-Follow Schema Contract",
+      "body": "The ChangeSchema must support an optional `fast_follow_of` field that records same-project parent lineage. The `adv_change_create` tool must accept `parent_change_id` and enforce mutual exclusion with `target_path`.",
+      "priority": "must",
+      "tags": ["schema", "lineage", "fast-follow"],
+      "scenarios": [
+        {
+          "id": "rq-scopeFollowupSchema01.1",
+          "title": "parent_change_id creates fast_follow_of metadata",
+          "given": ["A valid parent change ID in the current project"],
+          "when": "adv_change_create is called with parent_change_id",
+          "then": [
+            "The new change has fast_follow_of: { parent_change_id, linked_at } set",
+            "linked_at is an ISO8601 timestamp"
+          ]
+        },
+        {
+          "id": "rq-scopeFollowupSchema01.2",
+          "title": "Backward compatibility without fast_follow_of",
+          "given": ["A change created without parent_change_id"],
+          "when": "ChangeSchema is parsed",
+          "then": [
+            "The fast_follow_of field is absent",
+            "Parsing succeeds normally"
+          ]
+        },
+        {
+          "id": "rq-scopeFollowupSchema01.3",
+          "title": "Mutual exclusion with target_path",
+          "given": ["Both target_path and parent_change_id are provided"],
+          "when": "adv_change_create is called",
+          "then": [
+            "A mutual-exclusion error is returned",
+            "No change is created"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-scopeDiscoveryProtocol01",
+      "title": "Inline-Approval Protocol for Non-Campsite Scope Discovery",
+      "body": "When non-P23-campsite-eligible scope is discovered during /adv-apply, /adv-review, or /adv-harden, the agent must emit a Tier A inline prompt with options reenter/split/keep/cancel. The agent must never silently absorb discovered scope.",
+      "priority": "must",
+      "tags": ["workflow", "scope-discovery", "inline-approval", "campsite-rule"],
+      "scenarios": [
+        {
+          "id": "rq-scopeDiscoveryProtocol01.1",
+          "title": "Non-campsite scope triggers inline prompt",
+          "given": ["Non-P23-campsite-eligible scope discovered during /adv-apply, /adv-review, or /adv-harden"],
+          "when": "The agent evaluates the discovered scope",
+          "then": [
+            "A Tier A inline prompt is emitted with options: reenter {gate}, split, keep, cancel",
+            "The agent never silently absorbs the scope"
+          ]
+        },
+        {
+          "id": "rq-scopeDiscoveryProtocol01.2",
+          "title": "Split creates fast-follow child",
+          "given": ["User replies split to the scope-discovery prompt"],
+          "when": "The agent processes the reply",
+          "then": [
+            "adv_change_create is called with parent_change_id set to the current change",
+            "The new change is a fast-follow child"
+          ]
+        },
+        {
+          "id": "rq-scopeDiscoveryProtocol01.3",
+          "title": "Keep with new objectives requires re-entry",
+          "given": ["User replies keep and the absorbed scope adds new objectives or acceptance criteria"],
+          "when": "The agent processes the reply",
+          "then": [
+            "adv_change_reenter is invoked per rq-scopeReentry01",
+            "Keep does not bypass re-entry when scope adds objectives/AC"
+          ]
+        },
+        {
+          "id": "rq-scopeDiscoveryProtocol01.4",
+          "title": "Campsite-eligible scope applied freely",
+          "given": ["P23-campsite-eligible adjacent scope (any size, clear, safe, focused)"],
+          "when": "The agent evaluates the scope",
+          "then": [
+            "The campsite-rule is applied freely without prompting",
+            "No inline approval is required"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-scopeFollowupSurfacing01",
+      "title": "Lineage Display in List, Show, and Status",
+      "body": "Tools that surface change data must display fast-follow lineage: adv_change_show includes _fastFollowOrigin, adv_change_list annotates entries with parent_change_id, and adv_status prefixes child labels and references parents in recommendations.",
+      "priority": "must",
+      "tags": ["lineage", "surfacing", "ui"],
+      "scenarios": [
+        {
+          "id": "rq-scopeFollowupSurfacing01.1",
+          "title": "adv_change_show surfaces _fastFollowOrigin",
+          "given": ["A change with fast_follow_of set"],
+          "when": "adv_change_show is called",
+          "then": [
+            "Output includes _fastFollowOrigin parallel to _crossProjectOrigin",
+            "_fastFollowOrigin contains note, parent_change_id, and linked_at"
+          ]
+        },
+        {
+          "id": "rq-scopeFollowupSurfacing01.2",
+          "title": "adv_change_list annotates parent_change_id",
+          "given": ["Changes with fast_follow_of in the list"],
+          "when": "adv_change_list is called",
+          "then": [
+            "Entries with fast_follow_of include parent_change_id at the top level",
+            "Children remain top-level (not nested)"
+          ]
+        },
+        {
+          "id": "rq-scopeFollowupSurfacing01.3",
+          "title": "adv_status prefixes and references parents",
+          "given": ["Changes with fast_follow_of in the project"],
+          "when": "adv_status is called",
+          "then": [
+            "Child change labels are prefixed with ↳ ",
+            "Recommendations reference the parent change ID",
+            "Archived parents are annotated with (archived)"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-largeScopeValidity01",
+      "title": "Size Alone Is Not Grounds for Split-Suggestion",
+      "body": "Once a change has completed the prep gate with userApproved, the agent must not suggest splitting based on size, task count, or complexity alone. Size-triggered concerns route through cost-governance Phase 1.5 judgment-call surfacing only.",
+      "priority": "must",
+      "tags": ["workflow", "scope", "cost-governance", "autonomy"],
+      "scenarios": [
+        {
+          "id": "rq-largeScopeValidity01.1",
+          "title": "No split-suggestion after prep approval",
+          "given": ["A change has completed the prep gate with userApproved"],
+          "when": "The agent evaluates whether to suggest splitting",
+          "then": [
+            "The agent does not emit split-suggestions based on size, task count, or complexity alone",
+            "Execution proceeds as planned"
+          ]
+        },
+        {
+          "id": "rq-largeScopeValidity01.2",
+          "title": "Size concerns route through cost-governance",
+          "given": ["Size-triggered concerns exist during execution"],
+          "when": "The agent evaluates how to surface concerns",
+          "then": [
+            "Concerns are routed through cost-governance Phase 1.5 judgment-call surfacing",
+            "No split-suggestion is made"
+          ]
+        },
+        {
+          "id": "rq-largeScopeValidity01.3",
+          "title": "Hardstop remains advisory",
+          "given": ["Cost-governance hardstop tier fires"],
+          "when": "The agent evaluates the hardstop signal",
+          "then": [
+            "The hardstop is advisory only",
+            "It does not auto-trigger split or adv_change_reenter"
           ]
         }
       ]

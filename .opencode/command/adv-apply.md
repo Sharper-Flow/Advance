@@ -82,13 +82,20 @@ Before any retry: emit diagnosis with root cause analysis and planned approach. 
 - **Canonical sources** — defer to `ADV_INSTRUCTIONS.md` for detailed protocol rules
 - **No workflow sequencing** — the command owns phase ordering and task loop
 ### Scope Expansion During Execution
-If new objectives or acceptance criteria are discovered during execution that were not part of the original agreement, do NOT silently fold them into the current task graph. Instead:
-1. Identify earliest invalidated gate for the expanded scope
-2. Use `adv_change_reenter` to reopen from the earliest affected gate (typically `discovery`)
-3. Walk the reopened gates normally (`/adv-discover` → `/adv-design` → `/adv-prep`)
-4. After the planning gate re-completes, resume `/adv-apply` — new tasks will be available alongside existing completed work
+If new objectives or acceptance criteria are discovered during execution that were not part of the original agreement, do NOT silently fold them into the current task graph. Instead, apply the **scope-discovery protocol** from `docs/scope-discovery-protocol.md`:
+
+1. **Assess campsite eligibility** — If the discovered scope is P23-campsite-eligible (adjacent, clear, safe, focused), apply it freely without prompting.
+2. **Non-campsite scope** — Emit a Tier A inline prompt with options:
+   - `reenter {gate}` — reopen from the earliest affected gate (typically `discovery`)
+   - `split` — create a fast-follow child change via `adv_change_create parent_change_id: <current>`
+   - `keep` — absorb into current change (still requires `adv_change_reenter` if new objectives/AC are added)
+   - `cancel` — discard the discovered scope
+3. **Walk reopened gates** — If reenter chosen, use `adv_change_reenter` then walk gates normally (`/adv-discover` → `/adv-design` → `/adv-prep`)
+4. **Resume execution** — After planning re-completes, resume `/adv-apply` — new tasks will be available alongside existing completed work
 
 Existing tasks and completed work are preserved across re-entry. Only gate state is reset.
+
+See also `ADV_INSTRUCTIONS.md § Large-Scope Validity` — size alone is never grounds for split-suggestion after prep approval.
 
 ## Phase 0.1: Worktree Isolation
 
@@ -279,6 +286,9 @@ Use task IDs only (`tk-abc123`), not descriptions. Forces context lookup via `ad
 | Marking "blocked" after 1 try | Must attempt 3 distinct fixes |
 | "This targets another repo" | Switch workdir and execute |
 | Shell-authored test-file content (heredoc / `python -c` / `echo > *.test.*` / `tee` / `cat >`) | Prohibited for ordinary TDD. Use `edit` / `write` / `morph_edit` for file changes, then run `adv_run_test` |
+| Silent fold of non-campsite scope | Apply scope-discovery protocol (`docs/scope-discovery-protocol.md`) |
+| "We'll handle this later" without surfacing | Apply scope-discovery protocol |
+| Quietly trimming a planned task as redundant | Apply scope-discovery protocol |
 
 `adv_task_evidence` is fallback for externally captured evidence. It is not the primary inline-TDD path when the test command can run via `adv_run_test`.
 ### Delegation Routing

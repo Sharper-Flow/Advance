@@ -73,18 +73,35 @@ After all 8 steps, emit a **Discovery Checklist** table listing each step with P
 
 If the proposal gate is still pending → stop and direct the user to `/adv-proposal` first.
 
-### Phase 1.0: Cross-Project Origin Validation
+### Phase 1.0: Lineage Validation
 
-If `adv_change_show` reveals a `cross_project_origin` field on the change:
+Validate any lineage attached to the change before proceeding to agreement.
+
+#### Cross-Project Origin (`cross_project_origin`)
+
+If `adv_change_show` reveals a `cross_project_origin` field:
 
 1. **Confirm the origin is valid** — verify that `source_path` points to a real project and `source_project` matches a known project
 2. **Trace the source change** — if `source_change_id` is set, report it to the user so they can confirm the originating context is relevant
 3. **Present origin summary** — surface the origin details to the user for confirmation:
    - "This change was created as a follow-up from **{source_project}** (change: {source_change_id}). Does this context match your expectations?"
 4. **If origin is invalid or unexpected** → flag as a blocking finding; the agent should not proceed with agreement until the user confirms
-5. **If no origin** → skip this phase (local change, normal flow)
 
-> **Gate requirement:** Cross-project origin MUST be validated and confirmed by the user before proceeding to agreement. This prevents stale or misdirected follow-up changes from being adopted blindly.
+#### Same-Project Fast Follow (`fast_follow_of`)
+
+If `adv_change_show` reveals a `fast_follow_of` field:
+
+1. **Confirm the parent exists** — call `adv_change_show changeId: {parent_change_id}` to validate the parent change exists in the current project (archived or closed parents are valid)
+2. **Surface parent context** — present to the user:
+   - "This change is a fast-follow of **{parent_change_id}**. Parent status: {parent_status}. Does this lineage match your expectations?"
+3. **If parent not found** → flag as blocking finding; user must confirm or correct the parent reference
+4. **If both `cross_project_origin` AND `fast_follow_of` present** → surface as blocking finding (mutual-exclusion at create time should prevent this; defensive validation here)
+
+#### No Lineage
+
+If neither field is present → skip this phase (local change, normal flow).
+
+> **Gate requirement:** Lineage MUST be validated and confirmed by the user before proceeding to agreement. This prevents stale or misdirected follow-up changes from being adopted blindly.
 
 ---
 ## Phase 1.5: Skill Discovery + Gap-Triggered Creation

@@ -275,7 +275,10 @@ Reply `accept` (or `approve`, `continue`, `looks good`, `lgtm`) to accept the de
 or run `/adv-harden {change-id}`.
 Want fixes before acceptance? Reply with what needs adjustment.
 Want to reopen an earlier gate (scope expansion)? Reply `reopen {gate-name}` (e.g. `reopen discovery`) or `/adv-clarify {change-id}` for ambiguity.
+Want to split discovered scope into a fast-follow change? Reply `split` — creates a new child change linked to this one.
 Want to stop here? Reply `stop` or `defer`.
+
+See `docs/scope-discovery-protocol.md` for the full protocol on scope discovery during review.
 ```
 
 **Reply parsing (Tier A):**
@@ -285,12 +288,13 @@ Want to stop here? Reply `stop` or `defer`.
 | Tier A whitelist match | Call `adv_gate_complete gateId: 'acceptance'`, begin `/adv-harden` inline |
 | `/adv-harden {change-id}` | No-op; OpenCode dispatches |
 | `reopen {gate-name}` or `re-enter {gate-name}` | Invoke `adv_change_reenter fromGate: {gate-name}` (scope expansion) |
+| `split` | Create new fast-follow change via `adv_change_create parent_change_id: <current>` for the discovered scope |
 | Free-form text | Treat as "needs fixes before acceptance"; route back to remediation; do NOT complete gate |
 | `stop` / `defer` | Halt; do not complete gate |
 
 **Anchor phrase:** `Reply `accept``
 
-If the user identifies new objectives or acceptance criteria that require scope expansion, the `reopen {gate}` inline reply triggers `adv_change_reenter` to reopen from the earliest affected gate before proceeding.
+If the user identifies new objectives or acceptance criteria that require scope expansion, the `reopen {gate}` inline reply triggers `adv_change_reenter` to reopen from the earliest affected gate before proceeding. The `split` reply creates a fast-follow child change for the discovered scope, preserving the current change's momentum.
 
 ### Complete Gate
 On acceptance:
