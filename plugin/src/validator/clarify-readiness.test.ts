@@ -253,6 +253,24 @@ describe("checkAssumptionHeavy", () => {
     expect(issues.length).toBeGreaterThan(0);
   });
 
+  test("does not flag bare role in non-auth contexts", () => {
+    const proposalText = `# My Change\n\n## Intent\n\nKeep the same role in the project workflow.`;
+    const issues = checkAssumptionHeavy(makeChange(), proposalText);
+    expect(issues).toEqual([]);
+  });
+
+  test("still flags role-based access control", () => {
+    const proposalText = `# My Change\n\n## Intent\n\nAdd role-based access control to the dashboard.`;
+    const issues = checkAssumptionHeavy(makeChange(), proposalText);
+    expect(issues.length).toBeGreaterThan(0);
+  });
+
+  test("does not flag weak auth-adjacent words alone", () => {
+    const proposalText = `# My Change\n\n## Intent\n\nClarify credentials and privileges in the operator role documentation.`;
+    const issues = checkAssumptionHeavy(makeChange(), proposalText);
+    expect(issues).toEqual([]);
+  });
+
   test("does not flag when auth model is specified", () => {
     const proposalText = `# My Change\n\n## Intent\n\nAdd JWT-based authentication using RS256 tokens with 15-minute expiry.`;
     const issues = checkAssumptionHeavy(makeChange(), proposalText);

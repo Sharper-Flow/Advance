@@ -52,7 +52,7 @@ const SUBJECTIVE_PATTERN =
 
 /** Auth/access/permission terms that need a specified model */
 const AUTH_TERMS_PATTERN =
-  /\b(auth(?:entication|orization)?|permissions?|access\s+control|rbac|acl|roles?|privileges?|credentials?)\b/i;
+  /\b(auth(?:entication|orization)?|permissions?|access\s+control|rbac|acl)\b/i;
 
 /** Specific auth model indicators — if present, the assumption is resolved */
 const AUTH_MODEL_SPECIFIED_PATTERN =
