@@ -1006,6 +1006,19 @@ export const CrossProjectOriginSchema = z.object({
 
 export type CrossProjectOrigin = z.infer<typeof CrossProjectOriginSchema>;
 
+/**
+ * Same-project lineage metadata for fast-follow changes.
+ * Set when a change is split from a parent change in the same project.
+ */
+export const FastFollowOfSchema = z.object({
+  /** Parent change ID that this fast-follow was split from */
+  parent_change_id: z.string(),
+  /** ISO8601 timestamp when the same-project link was established */
+  linked_at: z.string(),
+});
+
+export type FastFollowOf = z.infer<typeof FastFollowOfSchema>;
+
 export const ChangeSchema = z
   .object({
     $schema: z.string().optional(),
@@ -1048,6 +1061,12 @@ export const ChangeSchema = z
      * that origin validation is required before agreement.
      */
     cross_project_origin: CrossProjectOriginSchema.optional(),
+    /**
+     * Same-project fast-follow provenance — set when this change was split
+     * from another change in the same project. Presence signals lineage
+     * validation and same-project parent surfacing.
+     */
+    fast_follow_of: FastFollowOfSchema.optional(),
   })
   .passthrough(); // Allow extra fields for forward/backward compatibility
 
@@ -1257,6 +1276,8 @@ export interface ChangeListResponse {
     status: ChangeStatus;
     taskCount: number;
     completedTasks: number;
+    fast_follow_of?: FastFollowOf;
+    parent_change_id?: string;
   }>;
 }
 
@@ -1317,6 +1338,8 @@ export interface ChangeRecency {
   minutesSinceActivity: number;
   /** Recency classification */
   recency: RecencyBand;
+  /** Parent change ID when this change is a same-project fast-follow */
+  parent_change_id?: string;
 }
 
 export interface ProjectStatus {

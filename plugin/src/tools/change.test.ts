@@ -134,6 +134,22 @@ describe("Change Tools", () => {
       expect(parsed.changes).toHaveLength(1);
       expect(parsed.changes[0].status).toBe("closed");
     });
+
+    test("annotates fast-follow entries with parent_change_id", async () => {
+      const changeResult = await store.changes.get("addFeature");
+      expect(changeResult.success).toBe(true);
+      changeResult.data!.fast_follow_of = {
+        parent_change_id: "parentChange",
+        linked_at: "2026-01-01T01:00:00Z",
+      };
+      await store.changes.save(changeResult.data!);
+
+      const result = await changeTools.adv_change_list.execute({}, store);
+      const parsed = parseToolOutput(result);
+
+      expect(parsed.changes).toHaveLength(1);
+      expect(parsed.changes[0].parent_change_id).toBe("parentChange");
+    });
   });
 
   describe("adv_change_close", () => {
@@ -483,6 +499,27 @@ describe("Change Tools", () => {
       expect(parsed._crossProjectOrigin.source_change_id).toBe(
         "addApiEndpoint",
       );
+    });
+
+    test("surfaces fast_follow_of prominently in output", async () => {
+      const changeResult = await store.changes.get("addFeature");
+      expect(changeResult.success).toBe(true);
+      changeResult.data!.fast_follow_of = {
+        parent_change_id: "parentChange",
+        linked_at: "2026-01-01T01:00:00Z",
+      };
+      await store.changes.save(changeResult.data!);
+
+      const result = await changeTools.adv_change_show.execute(
+        { changeId: "addFeature" },
+        store,
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed._fastFollowOrigin).toBeDefined();
+      expect(parsed._fastFollowOrigin.note).toContain("Fast-follow");
+      expect(parsed._fastFollowOrigin.parent_change_id).toBe("parentChange");
+      expect(parsed._fastFollowOrigin.linked_at).toBe("2026-01-01T01:00:00Z");
     });
 
     test("omits _crossProjectOrigin when no origin set", async () => {
@@ -918,6 +955,61 @@ describe("Change Tools", () => {
       const changeResult = await store.changes.get(parsed.changeId);
       expect(changeResult.success).toBe(true);
       expect(changeResult.data?.cross_project_origin).toBeUndefined();
+    });
+
+    test("creates same-project fast-follow with parent_change_id", async () => {
+      const result = await changeTools.adv_change_create.execute(
+        {
+          summary: "Fast follow cleanup",
+          parent_change_id: "addFeature",
+        },
+        store,
+      );
+      const parsed = parseToolOutput(result);
+
+      expect(parsed.changeId).toBe("fastFollowCleanup");
+      expect(parsed.fast_follow_of).toMatchObject({
+        parent_change_id: "addFeature",
+      });
+      expect(parsed.fast_follow_of.linked_at).toBeDefined();
+
+      const changeResult = await store.changes.get(parsed.changeId);
+      expect(changeResult.success).toBe(true);
+      expect(changeResult.data?.fast_follow_of?.parent_change_id).toBe(
+        "addFeature",
+      );
+    });
+
+    test("rejects parent_change_id with target_path", async () => {
+      const result = await changeTools.adv_change_create.execute(
+        {
+          summary: "Invalid mixed followup",
+          target_path: "/tmp/other-project",
+          parent_change_id: "addFeature",
+        },
+        store,
+      );
+      const parsed = parseToolOutput(result);
+
+      expect(parsed.error).toContain(
+        "target_path and parent_change_id are mutually exclusive",
+      );
+      expect(parsed.changeId).toBeUndefined();
+    });
+
+    test("rejects unknown parent_change_id with valid parent hint", async () => {
+      const result = await changeTools.adv_change_create.execute(
+        {
+          summary: "Unknown parent followup",
+          parent_change_id: "missingParent",
+        },
+        store,
+      );
+      const parsed = parseToolOutput(result);
+
+      expect(parsed.error).toBe("Parent change not found: missingParent");
+      expect(parsed.validParentIds).toContain("addFeature");
+      expect(parsed.changeId).toBeUndefined();
     });
 
     test("rejects self-target with clear error when target_path equals current project root", async () => {

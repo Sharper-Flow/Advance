@@ -167,6 +167,34 @@ describe("adv_status temporal health/migration status (C4)", () => {
     );
   });
 
+  test("surfaces fast-follow lineage in active list and recommendations", async () => {
+    const parentResult = await store.changes.create("Parent Change");
+    const parent = await store.changes.get(parentResult.changeId);
+    expect(parent.success).toBe(true);
+    parent.data!.status = "archived";
+    await store.changes.save(parent.data!);
+
+    const child = await store.changes.get("addFeature");
+    expect(child.success).toBe(true);
+    child.data!.fast_follow_of = {
+      parent_change_id: parentResult.changeId,
+      linked_at: "2026-01-01T01:00:00Z",
+    };
+    await store.changes.save(child.data!);
+
+    const result = await statusTools.adv_status.execute({}, store);
+    const parsed = parseToolOutput(result);
+
+    expect(parsed.formatted.activeSection).toContain("↳ addFeature");
+    expect(parsed.recommendations).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining(
+          `Change \`addFeature\` (fast-follow of \`${parentResult.changeId} (archived)\`)`,
+        ),
+      ]),
+    );
+  });
+
   it("surfaces per-op counters in temporal_health (KD-3)", async () => {
     const result = await statusTools.adv_status.execute({}, store);
     const parsed = parseToolOutput(result);

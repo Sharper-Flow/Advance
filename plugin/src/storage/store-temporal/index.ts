@@ -84,6 +84,7 @@ export function createTemporalStoreBackend(
         pending: tasks.filter((t) => t.status === "pending").length,
       },
       lastActivityAt: state.createdAt,
+      fast_follow_of: state.fast_follow_of,
       sourceVersion: 0, // Updated by PSW signals; 0 = direct-query sourced
     };
   };
@@ -132,6 +133,7 @@ export function createTemporalStoreBackend(
           wisdom: state.wisdom,
           gates: state.gates,
           reentry_history: state.reentry_history,
+          fast_follow_of: state.fast_follow_of,
         };
         await legacy.changes.save(mapped);
       } catch (err) {
@@ -204,6 +206,7 @@ export function createTemporalStoreBackend(
         gateProgress: summary.gateProgress,
         taskCounts: summary.taskCounts,
         lastActivityAt: summary.lastActivityAt,
+        fast_follow_of: summary.fast_follow_of,
         sourceVersion: version,
       };
       const projectHandle = getProjectHandle();
@@ -452,6 +455,7 @@ export function createTemporalStoreBackend(
               { status: status as "pending" | "done" | "skipped" | "legacy" },
             ]),
           ) as Change["gates"],
+          fast_follow_of: summary.fast_follow_of,
         }),
       );
     }

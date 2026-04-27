@@ -272,5 +272,6 @@ export function buildChangeRecency(
     lastActivityAt,
     minutesSinceActivity,
     recency: classifyRecency(minutesSinceActivity),
+    parent_change_id: change.fast_follow_of?.parent_change_id,
   };
 }

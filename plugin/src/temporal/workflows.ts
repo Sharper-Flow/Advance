@@ -288,6 +288,9 @@ export async function changeWorkflow(
     }
     if (input.seedState.artifacts) state.artifacts = input.seedState.artifacts;
     if (input.seedState.task_runs) state.task_runs = input.seedState.task_runs;
+    if (input.seedState.fast_follow_of) {
+      state.fast_follow_of = input.seedState.fast_follow_of;
+    }
   }
 
   wf.setHandler(changeBootstrapQuery, () => bootstrap);
@@ -668,6 +671,7 @@ export async function changeWorkflow(
       reentry_history: state.reentry_history,
       artifacts: state.artifacts,
       task_runs: state.task_runs,
+      fast_follow_of: state.fast_follow_of,
     },
   };
   await wf.continueAsNew<typeof changeWorkflow>(seed);

@@ -52,6 +52,7 @@ export function mapTemporalChangeStateToChange(
     wisdom: state.wisdom,
     gates: state.gates,
     reentry_history: state.reentry_history,
+    fast_follow_of: state.fast_follow_of,
   };
 }
 

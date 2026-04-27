@@ -7,7 +7,12 @@
 import { z } from "zod";
 import { basename, join } from "path";
 import { readFile, stat, realpath } from "fs/promises";
-import type { Spec, FeatureFlags, CrossProjectOrigin } from "../types";
+import type {
+  Spec,
+  FeatureFlags,
+  CrossProjectOrigin,
+  FastFollowOf,
+} from "../types";
 import {
   createDefaultGates,
   getIncompleteGates,
@@ -421,6 +426,23 @@ async function createCrossProjectFollowUp({
   }
 }
 
+async function validateParentChange(
+  store: Store,
+  parentChangeId: string,
+): Promise<{ ok: true } | { ok: false; validParentIds: string[] }> {
+  const parent = await store.changes.get(parentChangeId);
+  if (parent.success && parent.data) return { ok: true };
+
+  const list = await store.changes.list({
+    includeArchived: true,
+    includeClosed: true,
+  });
+  return {
+    ok: false,
+    validParentIds: list.changes.map((change) => change.id),
+  };
+}
+
 async function loadValidationContext(
   store: Store,
   changeId: string,
@@ -625,8 +647,14 @@ export const changeTools = {
         tool: "adv_change_list",
         args: status ? `status: "${status}"` : undefined,
       });
+      const enriched = paged.items.map((change) => ({
+        ...change,
+        ...(change.fast_follow_of
+          ? { parent_change_id: change.fast_follow_of.parent_change_id }
+          : {}),
+      }));
       return formatToolOutput({
-        changes: paged.items,
+        changes: enriched,
         pagination: paged.pagination,
       });
     },
@@ -710,6 +738,14 @@ export const changeTools = {
         };
       }
 
+      // Surface same-project fast-follow origin prominently when present
+      if (change.fast_follow_of) {
+        output._fastFollowOrigin = {
+          note: `↳ Fast-follow from ${change.fast_follow_of.parent_change_id}`,
+          ...change.fast_follow_of,
+        };
+      }
+
       // Include reflection data for archived changes
       if (change.status === "archived") {
         const reflection = await getReflection(
@@ -782,6 +818,14 @@ export const changeTools = {
         .describe(
           "Change ID in the source project that triggered this follow-up.",
         ),
+      parent_change_id: z
+        .string()
+        .optional()
+        .describe(
+          "Same-project parent change ID for fast-follow lineage. " +
+            "Mutually exclusive with target_path (cross-project follow-up). " +
+            "Parent must exist in the current project.",
+        ),
     },
     execute: async (
       {
@@ -794,6 +838,7 @@ export const changeTools = {
         target_path,
         source_project,
         source_change_id,
+        parent_change_id,
       }: {
         summary: string;
         capability?: string;
@@ -804,11 +849,18 @@ export const changeTools = {
         target_path?: string;
         source_project?: string;
         source_change_id?: string;
+        parent_change_id?: string;
       },
       store: Store,
     ) => {
       if (isSyntheticValidationDraftSummary(summary)) {
         return formatToolOutput(buildSyntheticValidationDraftError(summary));
+      }
+
+      if (target_path && parent_change_id) {
+        return formatToolOutput({
+          error: "target_path and parent_change_id are mutually exclusive",
+        });
       }
 
       if (target_path) {
@@ -826,6 +878,24 @@ export const changeTools = {
         });
       }
 
+      let fastFollowOf: FastFollowOf | undefined;
+      if (parent_change_id) {
+        const parentValidation = await validateParentChange(
+          store,
+          parent_change_id,
+        );
+        if (!parentValidation.ok) {
+          return formatToolOutput({
+            error: `Parent change not found: ${parent_change_id}`,
+            validParentIds: parentValidation.validParentIds,
+          });
+        }
+        fastFollowOf = {
+          parent_change_id,
+          linked_at: new Date().toISOString(),
+        };
+      }
+
       // ----- Local creation path (unchanged) -----
       const result = await store.changes.create(
         summary,
@@ -837,6 +907,15 @@ export const changeTools = {
       );
 
       const output: Record<string, unknown> = { ...result };
+
+      if (fastFollowOf) {
+        const changeResult = await store.changes.get(result.changeId);
+        if (changeResult.success && changeResult.data) {
+          changeResult.data.fast_follow_of = fastFollowOf;
+          await store.changes.save(changeResult.data);
+        }
+        output.fast_follow_of = fastFollowOf;
+      }
 
       // Surface duplicate warning prominently if present
       if (result.duplicateWarning) {

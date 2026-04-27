@@ -1,4 +1,9 @@
-import type { ChangeClosure, Gates, TaskRunState } from "../types";
+import type {
+  ChangeClosure,
+  FastFollowOf,
+  Gates,
+  TaskRunState,
+} from "../types";
 
 export const ADVANCE_TEMPORAL_TASK_QUEUE_PREFIX = "advance";
 export const DEFAULT_TEMPORAL_ADDRESS = "127.0.0.1:7233";
@@ -78,6 +83,7 @@ export interface ChangeSummaryPayload {
     pending: number;
   };
   lastActivityAt: string;
+  fast_follow_of?: FastFollowOf;
   sourceVersion: number;
 }
 
@@ -108,6 +114,7 @@ export interface ChangeWorkflowInput {
       | "reentry_history"
       | "artifacts"
       | "task_runs"
+      | "fast_follow_of"
     >
   >;
 }
@@ -130,6 +137,7 @@ export interface ChangeWorkflowState extends ChangeWorkflowInput {
     agreement?: ArtifactMetadata;
   };
   task_runs?: Record<string, TaskRunState>;
+  fast_follow_of?: FastFollowOf;
   /**
    * Closure metadata set when the workflow records a terminal close. Stored
    * on the workflow state explicitly so readers/tests don't have to rely on

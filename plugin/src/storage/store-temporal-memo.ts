@@ -16,7 +16,7 @@
  * every write invalidates before executing.
  */
 
-import type { ChangeStatus } from "../types";
+import type { ChangeStatus, FastFollowOf } from "../types";
 
 export type GateStatusValue = "pending" | "done" | "skipped" | "legacy";
 
@@ -54,6 +54,7 @@ export interface ChangeSummary {
     pending: number;
   };
   lastActivityAt: string;
+  fast_follow_of?: FastFollowOf;
   /** Monotonic version for PSW signal dedupe */
   sourceVersion: number;
 }

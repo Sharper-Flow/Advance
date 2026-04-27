@@ -66,7 +66,11 @@ import {
   updateChangeArtifacts,
   type LoadResult,
 } from "./json";
-import type { Store, SearchResult } from "./store-types";
+import {
+  buildChangeRecency,
+  type Store,
+  type SearchResult,
+} from "./store-types";
 import { generateChangeId } from "../utils/change-id";
 import { searchWisdom, filterChanges } from "./content-search";
 import { listProjectWisdom } from "./project-wisdom";
@@ -272,6 +276,7 @@ export async function createDiskStore(
             status: c.status,
             taskCount: c.tasks.length,
             completedTasks: c.tasks.filter((t) => t.status === "done").length,
+            fast_follow_of: c.fast_follow_of,
           })),
         };
       },
@@ -940,18 +945,46 @@ export async function createDiskStore(
     status: async () => {
       const ids = await listChangeDirs(paths.changes);
       const specs = await listSpecDirs(paths.specs);
+      const loaded = await Promise.all(
+        ids.map((id) => loadChange(paths.changes, id)),
+      );
+      const changes = loaded
+        .filter((r): r is { success: true; data: Change } =>
+          Boolean(r.success && r.data),
+        )
+        .map((r) => r.data);
+      const byStatus = {
+        draft: 0,
+        pending: 0,
+        active: 0,
+        archived: 0,
+        closed: 0,
+      };
+      for (const change of changes) byStatus[change.status]++;
+      const now = new Date();
+      const recent = changes
+        .filter(
+          (change) =>
+            change.status !== "archived" && change.status !== "closed",
+        )
+        .map((change) =>
+          buildChangeRecency(
+            change,
+            {
+              total: change.tasks.length,
+              done: change.tasks.filter((task) => task.status === "done")
+                .length,
+            },
+            now,
+          ),
+        )
+        .sort((a, b) => b.lastActivityAt.localeCompare(a.lastActivityAt));
       return {
         specs: { count: specs.length, capabilities: specs },
         changes: {
-          active: ids.length,
-          byStatus: {
-            draft: 0,
-            pending: 0,
-            active: 0,
-            archived: 0,
-            closed: 0,
-          },
-          recent: [],
+          active: recent.length,
+          byStatus,
+          recent,
         },
         recommendations: [],
       };

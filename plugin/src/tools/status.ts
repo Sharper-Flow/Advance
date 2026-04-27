@@ -49,6 +49,7 @@ import { runClarifyReadinessChecks } from "../validator/clarify-readiness";
 function getRecommendationForGate(
   gateId: GateId,
   changeId: string,
+  parentContext?: string,
 ): string | null {
   const cmds = getCommandsByGate(gateId);
   if (cmds.length === 0) {
@@ -57,7 +58,25 @@ function getRecommendationForGate(
 
   // Pick the first (primary) command for this gate
   const cmd = cmds[0];
-  return `Change \`${changeId}\`: next gate is \`${gateId}\` → run \`/${cmd.name} ${changeId}\``;
+  const label = parentContext
+    ? `Change \`${changeId}\` (fast-follow of \`${parentContext}\`)`
+    : `Change \`${changeId}\``;
+  return `${label}: next gate is \`${gateId}\` → run \`/${cmd.name} ${changeId}\``;
+}
+
+async function getFastFollowParentContext(
+  store: Store,
+  parentChangeId: string,
+): Promise<string> {
+  const parent = await store.changes.get(parentChangeId);
+  if (parent.success && parent.data) {
+    const terminal =
+      parent.data.status === "archived" || parent.data.status === "closed";
+    return terminal
+      ? `${parentChangeId} (${parent.data.status})`
+      : parentChangeId;
+  }
+  return parentChangeId;
 }
 
 async function enrichRecentChangeStatus(
@@ -78,6 +97,7 @@ async function enrichRecentChangeStatus(
   );
 
   Object.assign(rc, {
+    parent_change_id: changeResult.data.fast_follow_of?.parent_change_id,
     _contextSnapshot: buildChangeContextSnapshot({
       change: changeResult.data,
       proposalText,
@@ -88,7 +108,17 @@ async function enrichRecentChangeStatus(
 
   const nextGate = GATE_ORDER.find((gateId) => !isGateSatisfied(gates[gateId]));
   if (nextGate) {
-    const rec = getRecommendationForGate(nextGate as GateId, changeId);
+    const parentContext = changeResult.data.fast_follow_of
+      ? await getFastFollowParentContext(
+          store,
+          changeResult.data.fast_follow_of.parent_change_id,
+        )
+      : undefined;
+    const rec = getRecommendationForGate(
+      nextGate as GateId,
+      changeId,
+      parentContext,
+    );
     if (rec) status.recommendations.push(rec);
   }
 
@@ -294,6 +324,7 @@ export const statusTools = {
           title: c.title,
           minutesSinceActivity: c.minutesSinceActivity,
           recency: c.recency,
+          parent_change_id: c.parent_change_id,
         })),
         archivedCount: status.changes.byStatus.archived ?? 0,
         recommendations: status.recommendations,

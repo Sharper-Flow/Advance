@@ -69,6 +69,7 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
             wisdom: created.data.wisdom,
             gates: created.data.gates,
             reentry_history: created.data.reentry_history,
+            fast_follow_of: created.data.fast_follow_of,
           },
         });
       } catch (err) {
@@ -98,6 +99,7 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
         judgment_calls: created.data.judgment_calls,
         batch_surfaced_at: created.data.batch_surfaced_at,
         cross_project_origin: created.data.cross_project_origin,
+        fast_follow_of: created.data.fast_follow_of,
       });
       return result;
     },
@@ -117,6 +119,7 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
         judgment_calls: change.judgment_calls,
         batch_surfaced_at: change.batch_surfaced_at,
         cross_project_origin: change.cross_project_origin,
+        fast_follow_of: change.fast_follow_of,
       });
     },
     list: async (filter) => {
@@ -183,6 +186,7 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
           taskCount: change.tasks.length,
           completedTasks: change.tasks.filter((task) => task.status === "done")
             .length,
+          fast_follow_of: change.fast_follow_of,
         })),
       };
     },

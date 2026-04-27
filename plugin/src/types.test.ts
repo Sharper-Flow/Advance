@@ -547,6 +547,39 @@ describe("ChangeSchema", () => {
     expect(result.cross_project_origin).toBeUndefined();
   });
 
+  test("parses change with fast_follow_of", () => {
+    const fastFollowChange = {
+      id: "followUpTightenDocs",
+      title: "Follow up tighten docs",
+      status: "draft",
+      created_at: "2026-01-01T00:00:00Z",
+      tasks: [],
+      deltas: {},
+      fast_follow_of: {
+        parent_change_id: "addScopeProtocol",
+        linked_at: "2026-01-01T01:00:00Z",
+      },
+    };
+
+    const result = ChangeSchema.parse(fastFollowChange);
+    expect(result.fast_follow_of).toBeDefined();
+    expect(result.fast_follow_of?.parent_change_id).toBe("addScopeProtocol");
+    expect(result.fast_follow_of?.linked_at).toBe("2026-01-01T01:00:00Z");
+  });
+
+  test("accepts change without fast_follow_of (backwards compatible)", () => {
+    const localChange = {
+      id: "testChange",
+      title: "Test Change",
+      status: "draft",
+      created_at: "2026-01-01T00:00:00Z",
+      tasks: [],
+      deltas: {},
+    };
+    const result = ChangeSchema.parse(localChange);
+    expect(result.fast_follow_of).toBeUndefined();
+  });
+
   test("cross_project_origin source_change_id is optional", () => {
     const origin = {
       source_project: "pokeedge",

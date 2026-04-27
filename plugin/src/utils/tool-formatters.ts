@@ -69,6 +69,7 @@ export interface StatusInput {
     title: string;
     minutesSinceActivity: number;
     recency: string;
+    parent_change_id?: string;
   }>;
   archivedCount: number;
   recommendations: string[];
@@ -198,7 +199,8 @@ export function formatStatusOutput(input: StatusInput): FormattedStatus {
     const mins = c.minutesSinceActivity;
     const timeLabel =
       mins < 60 ? `${mins}m ago` : `${Math.floor(mins / 60)}h ago`;
-    return `${emoji} ${c.id} (${timeLabel})`;
+    const label = c.parent_change_id ? `↳ ${c.id}` : c.id;
+    return `${emoji} ${label} (${timeLabel})`;
   });
 
   const activeSection =
