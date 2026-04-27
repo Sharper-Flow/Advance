@@ -116,6 +116,48 @@ function getChangeHandle(
 }
 
 /**
+ * Typed error thrown when a change-scoped operation targets a change
+ * owned by a different project than the current store binding.
+ */
+class AdvProjectContextMismatchError extends Error {
+  readonly name = "AdvProjectContextMismatch";
+  constructor(
+    readonly changeId: string,
+    readonly owningProjectId: string,
+    readonly currentProjectId: string,
+    message: string,
+  ) {
+    super(message);
+  }
+}
+
+/**
+ * Shared guard: before returning a Temporal workflow handle for a change,
+ * verify the change's owner (via legacy disk snapshot) matches the
+ * current store's project binding. Ownerless legacy changes are
+ * best-effort compatible — the guard passes through silently.
+ */
+async function getGuardedChangeHandle(
+  input: TemporalStoreBackendInput,
+  changeId: string,
+): Promise<WorkflowHandleLike> {
+  const legacyResult = await input.legacy.changes.get(changeId);
+  if (legacyResult.success && legacyResult.data?.adv_project_id) {
+    const owningProjectId = legacyResult.data.adv_project_id;
+    if (owningProjectId !== input.projectId) {
+      throw new AdvProjectContextMismatchError(
+        changeId,
+        owningProjectId,
+        input.projectId,
+        `Change '${changeId}' is owned by project '${owningProjectId}' (current: '${input.projectId}'). ` +
+          `Open the change in its owning project's context, or verify the linked-project configuration.`,
+      );
+    }
+  }
+  return getChangeHandle(input, changeId);
+}
+
+/**
  * Build an idempotent `onTransientFailure` hook that calls `reinitStsl`
  * at most once per outer op (KD-2, KD-4). `withTemporalRetry` fires its
  * hook on every transient failure — without per-op idempotency, a
@@ -280,8 +322,8 @@ export function createTemporalStoreBackend(
    */
   const dualWriteAfterMutation = async (changeId: string): Promise<void> => {
     try {
-      const state = (await runTemporalQuery(() =>
-        getChangeHandle(input, changeId).query(changeStateQuery),
+      const state = (await runTemporalQuery(async () =>
+        (await getGuardedChangeHandle(input, changeId)).query(changeStateQuery),
       )) as ChangeWorkflowState;
       setCachedChange(state);
       emitChangeSummarySignal(changeId, state);
@@ -391,14 +433,14 @@ export function createTemporalStoreBackend(
    * gets a fresh handle bound to the (possibly post-reconnect) client.
    */
   const resolveStateOrQuery = async (
-    getHandle: () => WorkflowHandleLike,
+    getHandle: () => WorkflowHandleLike | Promise<WorkflowHandleLike>,
     result: unknown,
   ): Promise<ChangeWorkflowState> => {
     if (result && typeof result === "object" && "changeId" in result) {
       return result as ChangeWorkflowState;
     }
-    return (await runTemporalQuery(() =>
-      getHandle().query(changeStateQuery),
+    return (await runTemporalQuery(async () =>
+      (await getHandle()).query(changeStateQuery),
     )) as ChangeWorkflowState;
   };
 
@@ -473,8 +515,8 @@ export function createTemporalStoreBackend(
       return null;
     }
     try {
-      const state = (await runTemporalQuery(() =>
-        getChangeHandle(input, changeId).query(changeStateQuery),
+      const state = (await runTemporalQuery(async () =>
+        (await getGuardedChangeHandle(input, changeId)).query(changeStateQuery),
       )) as ChangeWorkflowState;
       indexTasksFromState(state);
       return setCachedChange(state);
@@ -496,8 +538,8 @@ export function createTemporalStoreBackend(
       return { success: true, data: cached };
     }
     try {
-      const state = (await runTemporalQuery(() =>
-        getChangeHandle(input, changeId).query(changeStateQuery),
+      const state = (await runTemporalQuery(async () =>
+        (await getGuardedChangeHandle(input, changeId)).query(changeStateQuery),
       )) as ChangeWorkflowState;
       indexTasksFromState(state);
       return { success: true, data: setCachedChange(state) };
@@ -996,13 +1038,13 @@ export function createTemporalStoreBackend(
       },
       close: async (changeId: string, closure: ChangeClosure) => {
         invalidateChange(changeId);
-        const raw = await runTemporal(() =>
-          getChangeHandle(input, changeId).executeUpdate(closeChangeUpdate, {
+        const raw = await runTemporal(async () =>
+          (await getGuardedChangeHandle(input, changeId)).executeUpdate(closeChangeUpdate, {
             args: [closure],
           }),
         );
         const result = await resolveStateOrQuery(
-          () => getChangeHandle(input, changeId),
+          async () => await getGuardedChangeHandle(input, changeId),
           raw,
         );
         indexTasksFromState(result);
@@ -1066,13 +1108,13 @@ export function createTemporalStoreBackend(
         for (const id of changeIds) {
           try {
             invalidateChange(id);
-            const raw = await runTemporal(() =>
-              getChangeHandle(input, id).executeUpdate(closeChangeUpdate, {
+            const raw = await runTemporal(async () =>
+              (await getGuardedChangeHandle(input, id)).executeUpdate(closeChangeUpdate, {
                 args: [closure],
               }),
             );
             const result = await resolveStateOrQuery(
-              () => getChangeHandle(input, id),
+              async () => await getGuardedChangeHandle(input, id),
               raw,
             );
             indexTasksFromState(result);
@@ -1130,8 +1172,8 @@ export function createTemporalStoreBackend(
         ];
         for (const [kind, path] of updates) {
           if (!path) continue;
-          await runTemporal(() =>
-            getChangeHandle(input, changeId).executeUpdate(
+          await runTemporal(async () =>
+            (await getGuardedChangeHandle(input, changeId)).executeUpdate(
               updateArtifactMetadataUpdate,
               {
                 args: [kind, { path, updatedAt: new Date().toISOString() }],
@@ -1145,8 +1187,8 @@ export function createTemporalStoreBackend(
     tasks: {
       ...legacy.tasks,
       list: async (changeId: string, status?: string, filter?: string) => {
-        const tasks = (await runTemporalQuery(() =>
-          getChangeHandle(input, changeId).query(
+        const tasks = (await runTemporalQuery(async () =>
+          (await getGuardedChangeHandle(input, changeId)).query(
             changeTasksQuery,
             status,
             filter,
@@ -1158,8 +1200,8 @@ export function createTemporalStoreBackend(
         return tasks;
       },
       ready: async (changeId: string) => {
-        const state = (await runTemporalQuery(() =>
-          getChangeHandle(input, changeId).query(changeStateQuery),
+        const state = (await runTemporalQuery(async () =>
+          (await getGuardedChangeHandle(input, changeId)).query(changeStateQuery),
         )) as ChangeWorkflowState;
         indexTasksFromState(state);
         return getReadyTasksFromChangeState(state);
@@ -1174,8 +1216,8 @@ export function createTemporalStoreBackend(
         const changeId = await resolveChangeId(taskId);
         if (!changeId) return null;
         invalidateChange(changeId);
-        const result = (await runTemporal(() =>
-          getChangeHandle(input, changeId).executeUpdate(updateTaskUpdate, {
+        const result = (await runTemporal(async () =>
+          (await getGuardedChangeHandle(input, changeId)).executeUpdate(updateTaskUpdate, {
             args: [
               taskId,
               {
@@ -1192,8 +1234,8 @@ export function createTemporalStoreBackend(
       },
       add: async (changeId, content, options) => {
         invalidateChange(changeId);
-        const created = (await runTemporal(() =>
-          getChangeHandle(input, changeId).executeUpdate(addTaskUpdate, {
+        const created = (await runTemporal(async () =>
+          (await getGuardedChangeHandle(input, changeId)).executeUpdate(addTaskUpdate, {
             args: [
               {
                 title: content,
@@ -1214,15 +1256,15 @@ export function createTemporalStoreBackend(
       get: async (taskId) => {
         const changeId = await resolveChangeId(taskId);
         if (!changeId) return null;
-        return (await runTemporalQuery(() =>
-          getChangeHandle(input, changeId).query(changeTaskQuery, taskId),
+        return (await runTemporalQuery(async () =>
+          (await getGuardedChangeHandle(input, changeId)).query(changeTaskQuery, taskId),
         )) as Awaited<ReturnType<Store["tasks"]["get"]>>;
       },
       show: async (taskId) => {
         const changeId = await resolveChangeId(taskId);
         if (!changeId) return null;
-        const task = await runTemporalQuery(() =>
-          getChangeHandle(input, changeId).query(changeTaskQuery, taskId),
+        const task = await runTemporalQuery(async () =>
+          (await getGuardedChangeHandle(input, changeId)).query(changeTaskQuery, taskId),
         );
         if (!task) return null;
         return { task: task as Task, changeId };
@@ -1230,21 +1272,21 @@ export function createTemporalStoreBackend(
       getRun: async (taskId) => {
         const changeId = await resolveChangeId(taskId);
         if (!changeId) return null;
-        return (await runTemporalQuery(() =>
-          getChangeHandle(input, changeId).query(changeTaskRunQuery, taskId),
+        return (await runTemporalQuery(async () =>
+          (await getGuardedChangeHandle(input, changeId)).query(changeTaskRunQuery, taskId),
         )) as Awaited<ReturnType<Store["tasks"]["getRun"]>>;
       },
       listRuns: async (changeId) => {
-        return (await runTemporalQuery(() =>
-          getChangeHandle(input, changeId).query(changeTaskRunsQuery),
+        return (await runTemporalQuery(async () =>
+          (await getGuardedChangeHandle(input, changeId)).query(changeTaskRunsQuery),
         )) as Awaited<ReturnType<Store["tasks"]["listRuns"]>>;
       },
       recordRunEvent: async (taskId, event) => {
         const changeId = await resolveChangeId(taskId);
         if (!changeId) return null;
         invalidateChange(changeId);
-        const result = (await runTemporal(() =>
-          getChangeHandle(input, changeId).executeUpdate(
+        const result = (await runTemporal(async () =>
+          (await getGuardedChangeHandle(input, changeId)).executeUpdate(
             recordTaskRunEventUpdate,
             {
               args: [taskId, event],
@@ -1258,8 +1300,8 @@ export function createTemporalStoreBackend(
         const changeId = await resolveChangeId(taskId);
         if (!changeId) return null;
         invalidateChange(changeId);
-        const result = (await runTemporal(() =>
-          getChangeHandle(input, changeId).executeUpdate(
+        const result = (await runTemporal(async () =>
+          (await getGuardedChangeHandle(input, changeId)).executeUpdate(
             recordTaskEvidenceUpdate,
             {
               args: [taskId, phase, evidence],
@@ -1273,8 +1315,8 @@ export function createTemporalStoreBackend(
         const changeId = await resolveChangeId(taskId);
         if (!changeId) return null;
         invalidateChange(changeId);
-        const result = (await runTemporal(() =>
-          getChangeHandle(input, changeId).executeUpdate(setTaskPhaseUpdate, {
+        const result = (await runTemporal(async () =>
+          (await getGuardedChangeHandle(input, changeId)).executeUpdate(setTaskPhaseUpdate, {
             args: [taskId, phase],
           }),
         )) as Awaited<ReturnType<Store["tasks"]["setPhase"]>>;
@@ -1285,8 +1327,8 @@ export function createTemporalStoreBackend(
         const changeId = await resolveChangeId(taskId);
         if (!changeId) return null;
         invalidateChange(changeId);
-        const result = (await runTemporal(() =>
-          getChangeHandle(input, changeId).executeUpdate(cancelTaskUpdate, {
+        const result = (await runTemporal(async () =>
+          (await getGuardedChangeHandle(input, changeId)).executeUpdate(cancelTaskUpdate, {
             args: [taskId, cancellation],
           }),
         )) as Awaited<ReturnType<Store["tasks"]["cancel"]>>;
@@ -1297,8 +1339,8 @@ export function createTemporalStoreBackend(
         const changeId = await resolveChangeId(taskId);
         if (!changeId) return null;
         invalidateChange(changeId);
-        const result = (await runTemporal(() =>
-          getChangeHandle(input, changeId).executeUpdate(
+        const result = (await runTemporal(async () =>
+          (await getGuardedChangeHandle(input, changeId)).executeUpdate(
             reclassifyTaskTddUpdate,
             {
               args: [taskId, reclassification],
@@ -1313,8 +1355,8 @@ export function createTemporalStoreBackend(
       ...legacy.wisdom,
       add: async (changeId, type: WisdomType, content, sourceTask) => {
         invalidateChange(changeId);
-        const raw = await runTemporal(() =>
-          getChangeHandle(input, changeId).executeUpdate(
+        const raw = await runTemporal(async () =>
+          (await getGuardedChangeHandle(input, changeId)).executeUpdate(
             addChangeWisdomUpdate,
             {
               args: [type, content, sourceTask],
@@ -1322,7 +1364,7 @@ export function createTemporalStoreBackend(
           ),
         );
         const state = await resolveStateOrQuery(
-          () => getChangeHandle(input, changeId),
+          async () => await getGuardedChangeHandle(input, changeId),
           raw,
         );
         setCachedChange(state);
@@ -1339,8 +1381,8 @@ export function createTemporalStoreBackend(
         return latest;
       },
       list: async (changeId: string) => {
-        const state = (await runTemporalQuery(() =>
-          getChangeHandle(input, changeId).query(changeStateQuery),
+        const state = (await runTemporalQuery(async () =>
+          (await getGuardedChangeHandle(input, changeId)).query(changeStateQuery),
         )) as ChangeWorkflowState;
         return state.wisdom;
       },
@@ -1348,20 +1390,20 @@ export function createTemporalStoreBackend(
     gates: {
       ...legacy.gates,
       get: async (changeId: string) => {
-        const state = (await runTemporalQuery(() =>
-          getChangeHandle(input, changeId).query(changeStateQuery),
+        const state = (await runTemporalQuery(async () =>
+          (await getGuardedChangeHandle(input, changeId)).query(changeStateQuery),
         )) as ChangeWorkflowState;
         return state.gates;
       },
       complete: async (changeId: string, gateId: GateId, notes?: string) => {
         invalidateChange(changeId);
-        const raw = await runTemporal(() =>
-          getChangeHandle(input, changeId).executeUpdate(completeGateUpdate, {
+        const raw = await runTemporal(async () =>
+          (await getGuardedChangeHandle(input, changeId)).executeUpdate(completeGateUpdate, {
             args: [gateId, notes, "agent"],
           }),
         );
         const state = await resolveStateOrQuery(
-          () => getChangeHandle(input, changeId),
+          async () => await getGuardedChangeHandle(input, changeId),
           raw,
         );
         setCachedChange(state);
@@ -1377,8 +1419,8 @@ export function createTemporalStoreBackend(
         approvalEvidence,
       ) => {
         invalidateChange(changeId);
-        const raw = await runTemporal(() =>
-          getChangeHandle(input, changeId).executeUpdate(reopenFromGateUpdate, {
+        const raw = await runTemporal(async () =>
+          (await getGuardedChangeHandle(input, changeId)).executeUpdate(reopenFromGateUpdate, {
             args: [
               fromGate,
               reason,
@@ -1388,7 +1430,7 @@ export function createTemporalStoreBackend(
           }),
         );
         const state = await resolveStateOrQuery(
-          () => getChangeHandle(input, changeId),
+          async () => await getGuardedChangeHandle(input, changeId),
           raw,
         );
         setCachedChange(state);
@@ -1419,7 +1461,7 @@ function hydrateMemoFromPSW(
 ): void {
   void (async () => {
     try {
-      const pswState = (await runTemporalQuery(() => {
+      const pswState = (await runTemporalQuery(async () => {
         const handle = getProjectHandleForInput(input);
         if (!handle) {
           throw new Error("hydrateMemoFromPSW: no project handle available");
