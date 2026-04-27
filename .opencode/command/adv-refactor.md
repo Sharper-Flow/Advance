@@ -11,18 +11,25 @@ Bidirectional reconciliation: update stale change proposals to match current cod
   $ARGUMENTS
 </UserRequest>
 ## Parse Flags
-`change-id` (optional — omit to enter batch mode), `--execute` (apply changes; default: dry-run), `--interactive` (approve per category), `--force` (skip recent-modification warnings).
+`change-id` (optional — omit to enter batch mode), `--execute` (apply changes; default: dry-run), `--interactive` (approve per category), `--force` (skip recent-modification warnings), `--include-hot` (batch mode only: include hot changes in candidate set; default: exclude), `--top <N>` (batch mode only: select exactly N stalest changes, overriding the 30% rule).
 ## Target Resolution
 1. If change-id provided → single-target mode, use directly. Skip to **Pre-flight**.
 2. If omitted → **batch mode**:
-   1. Run `adv_status` first → display the project overview to the user (specs, active changes, recommendations).
-   2. From `adv_change_list` (excluding archived/closed), sort active changes by last activity ascending (stalest first). Use `_contextSnapshot.lastActivity` from `adv_change_show` if list ordering is ambiguous.
-   3. Compute `N = max(1, ceil(activeCount * 0.30))` — the oldest 30% by last activity.
-   4. Announce the batch via `[ADV:WORK]`: list the `N` selected change-ids with their staleness band (⏰ stale / ⏳ warm) and ages.
-   5. For each target in stalest-first order, run **Pre-flight → Phase 1 → Phase 2 → Phase 3 (if `--execute`) → Phase 4** as defined below.
-   6. **Continue on failure**: if any phase throws or `adv_change_validate` fails for one change, log the error and proceed to the next target. Do not abort the batch.
-   7. After all targets complete, emit a single aggregate **Final Report** covering every processed change, including any failures.
-   8. The `--execute` flag is honored **globally** across the batch — dry-run for all, or apply for all.
+   1. Run `adv_change_list({ sort: "stalest", excludeRecencyBands: ["hot"] })` — single tool call returns all active changes ordered oldest-first with `lastActivity`, `lastActivityAgeMinutes`, and `recencyBand` on every entry. If `--include-hot` is set, omit `excludeRecencyBands`.
+   2. Compute `N = max(1, ceil(activeCount * 0.30))` — the oldest 30% by last activity. If `--top <N>` is set, use that value instead (capped at available count).
+   3. Announce the batch via `[ADV:WORK]`:
+      ```
+      /adv-refactor batch mode
+      Active: {total} · Hot excluded: {hotCount} · Selected: {N} (oldest {percent}% of {eligible} eligible)
+      Oldest: {oldestId} ({oldestAgeMinutes}min ago, {recencyBand})
+      Targets: {selectedIds}
+      ```
+   4. For each target in stalest-first order, run **Pre-flight → Phase 1 → Phase 2 → Phase 3 (if `--execute`) → Phase 4** as defined below.
+   5. **Continue on failure**: if any phase throws or `adv_change_validate` fails for one change, log the error and proceed to the next target. Do not abort the batch.
+   6. After all targets complete, emit a single aggregate **Final Report** covering every processed change, including any failures.
+   7. The `--execute` flag is honored **globally** across the batch — dry-run for all, or apply for all.
+
+   > **Why skip hot by default?** Hot changes (active within the last 60 minutes) are likely in-flight by another agent session. Refactoring them mid-flight creates a race condition where two agents edit the same proposal concurrently. The `--include-hot` flag is an explicit opt-in for this risk.
 ## Pre-flight
 `adv_change_show` + `adv_task_list` → use returned proposal/problem context for scope (× don't read `proposal.md` directly). Worktree context: `pwd` → record `{workdir}`, include in all sub-agent prompts.
 
