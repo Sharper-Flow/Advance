@@ -163,7 +163,7 @@ export interface ProjectWisdomEntry {
 
 export interface MigrationLedgerEntry {
   key: string;
-  source: "json" | "sqlite" | "external_state" | "temporal";
+  source: "json" | "external_state" | "temporal";
   status: "pending" | "done" | "failed";
   recordedAt: string;
   detail?: string;

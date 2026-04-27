@@ -19,9 +19,6 @@ export default defineConfig({
         "./src/__mocks__/opencode-plugin.ts",
         import.meta.url,
       ).pathname,
-      // Mock bun:sqlite with better-sqlite3 for Node.js tests
-      "bun:sqlite": new URL("./src/__mocks__/bun-sqlite.ts", import.meta.url)
-        .pathname,
     },
   },
 });
