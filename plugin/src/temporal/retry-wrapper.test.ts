@@ -65,9 +65,9 @@ describe("retry-wrapper (C2)", () => {
   // a "Workflow Update failed" with no recovery — observed across
   // every checkpoint of fixTemporalContextMismatch.
   it("classifies '@grpc/grpc-js' channel-shutdown messages as transient", () => {
-    expect(
-      classifyTemporalError(new Error("Channel has been shut down")),
-    ).toBe("transient");
+    expect(classifyTemporalError(new Error("Channel has been shut down"))).toBe(
+      "transient",
+    );
   });
 
   it("classifies Temporal SDK 'Unexpected error while making gRPC request' as transient", () => {
@@ -85,18 +85,15 @@ describe("retry-wrapper (C2)", () => {
     // Real-world SDK shape per workflow-client.ts:932:
     //   new ServiceError('Unexpected error...', { cause: <grpc error> })
     // collectErrorText walks the .cause chain so matching either layer works.
-    const wrapped = new Error(
-      "Unexpected error while making gRPC request",
-      { cause: new Error("Channel has been shut down") },
-    );
+    const wrapped = new Error("Unexpected error while making gRPC request", {
+      cause: new Error("Channel has been shut down"),
+    });
     expect(classifyTemporalError(wrapped)).toBe("transient");
   });
 
   it("does not over-classify generic errors as transient (negative case)", () => {
     // Guard against regex breadth — unrelated messages must stay fatal.
-    expect(classifyTemporalError(new Error("some random error"))).toBe(
-      "fatal",
-    );
+    expect(classifyTemporalError(new Error("some random error"))).toBe("fatal");
     expect(
       classifyTemporalError(new Error("WorkflowExecutionAlreadyStarted")),
     ).toBe("fatal");

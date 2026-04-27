@@ -102,6 +102,59 @@ describe("STSL reconnect via withTemporalRetry (Task 3 integration)", () => {
     expect(getService()!.connection).toBe(newConnection);
   });
 
+  // fixbrokentaskrunledger — full retry+reconnect chain on stale gRPC channel.
+  //
+  // Reproduces the exact SDK wrapping pattern that surfaces when the
+  // gRPC channel between the Temporal SDK client and the worker becomes
+  // invalid (worker restart, idle timeout, server-side close):
+  //
+  //   new ServiceError(
+  //     'Unexpected error while making gRPC request',
+  //     { cause: new Error('Channel has been shut down') },
+  //   )
+  //
+  // This pattern is thrown by `workflow-client.ts:932`, `schedule-client.ts:528`,
+  // and `task-queue-client.ts:177` in the Temporal Node SDK. Before the
+  // classifier was extended (see retry-wrapper.ts and the channel-staleness
+  // regression suite in retry-wrapper.test.ts), this error was misclassified
+  // as `fatal` and surfaced as `Workflow Update failed` to the user without
+  // any recovery — observed across every checkpoint of the
+  // `fixTemporalContextMismatch` change.
+  //
+  // This test asserts the END-TO-END recovery path: classifier → retry →
+  // onTransientFailure → reinitStsl → fresh connection → op succeeds.
+  it("op fails with SDK-wrapped channel-shutdown → reinit fires → retry succeeds (AC4)", async () => {
+    const newConnection = {
+      close: vi.fn().mockResolvedValue(undefined),
+      operatorService: {
+        addSearchAttributes: vi.fn().mockResolvedValue({}),
+      },
+    };
+    mocks.connect.mockResolvedValueOnce(newConnection);
+
+    const sdkWrappedError = new Error(
+      "Unexpected error while making gRPC request",
+      { cause: new Error("Channel has been shut down") },
+    );
+
+    const op = vi
+      .fn<() => Promise<string>>()
+      .mockRejectedValueOnce(sdkWrappedError)
+      .mockResolvedValueOnce("ok");
+
+    const result = await withTemporalRetry(op, {
+      onTransientFailure: makeReconnectingHook(),
+      initialDelayMs: 1, // jitter negligible
+    });
+
+    // Full chain recovered: op succeeded after exactly one retry,
+    // reconnect fired exactly once, and the new connection replaced the old.
+    expect(result).toBe("ok");
+    expect(op).toHaveBeenCalledTimes(2);
+    expect(getStslStats().reconnectCount).toBe(1);
+    expect(getService()!.connection).toBe(newConnection);
+  });
+
   it("op fails 3 transient times → reinit called only once (per-op idempotent)", async () => {
     // First reinit returns a fresh connection; subsequent reinits would
     // also return fresh ones, but the per-op hook must suppress them.
