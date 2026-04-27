@@ -946,24 +946,24 @@
     {
       "id": "rq-handoffVoice01",
       "title": "Gate Handoff Voice Spine",
-      "body": "Every /adv-* command that emits a user-facing gate-transition message MUST use the Gate Handoff Voice spine: Problem / Chosen direction / Delivered, followed by a labeled footer block. The footer block MUST include `Current phase:`, `Next phase:`, and a command-needed-to-continue label (e.g., `Run when ready:`). The command shown MUST be the single command needed to continue — no redundant or alternative command lines. Canonical source: docs/command-voice-standard.md § Gate Handoff Voice.",
+      "body": "Every /adv-* command that emits a user-facing gate-transition message MUST use the Gate Handoff Voice spine: Problem / Chosen direction / Delivered, followed by a blockquote wayfinder block. The blockquote MUST contain three rows: bolded `**{change-id}**`, the gate transition `{gate} ✓ → {next-gate}`, and an arrow-prefixed runnable command `→ `/adv-{next-command} {change-id}``. The command shown MUST be the single command needed to continue — no redundant or alternative command lines. Canonical source: docs/command-voice-standard.md § Gate Handoff Voice.",
       "priority": "must",
       "tags": ["voice", "handoff", "presentation"],
       "scenarios": [
         {
           "id": "rq-handoffVoice01.1",
-          "title": "Handoff follows spine with labeled footer block",
+          "title": "Handoff follows spine with blockquote wayfinder block",
           "given": [
             "An /adv-* command completes a gate and emits a user-facing gate-transition message"
           ],
           "when": "The handoff message is rendered",
           "then": [
-            "All three narrative spine headings are present: Problem, Chosen direction, Delivered, plus a labeled footer block below a --- separator",
-            "The footer block contains `Current phase:` labeled with the completed gate name",
-            "The footer block contains `Next phase:` labeled with the next gate name",
-            "The footer block contains a command-needed-to-continue label (e.g., `Run when ready:`) with exactly one runnable command",
-            "The archive terminal variant uses **{change-id}** · release ✓ · followed by a terminal verb (Shipped. when push succeeds and assets propagate to the global install, Merged locally. when no remote is configured or push is skipped or push fails) instead of the standard labeled footer block",
-            "When the handoff is paired with a human-checkpoint approval, reply instructions are part of the same footer block and do not require a separate heading; the three-section spine (Problem / Chosen direction / Delivered) is unchanged"
+            "All three narrative spine headings are present: Problem, Chosen direction, Delivered, followed by a blockquote wayfinder block below a --- separator",
+            "The blockquote contains a row with `**{change-id}**` (bolded change ID)",
+            "The blockquote contains a row with `{gate} ✓ → {next-gate}` (gate transition)",
+            "The blockquote contains an arrow-prefixed row `→ `/adv-{next-command} {change-id}`` showing exactly one runnable command",
+            "The archive terminal variant uses a single-line blockquote `> **{change-id}** · release ✓ ·` followed by a terminal verb (Shipped. when push succeeds and assets propagate to the global install, Merged locally. when no remote is configured or push is skipped or push fails) instead of the standard three-row wayfinder block",
+            "When the handoff is paired with a human-checkpoint approval, reply instructions appear as plain prose below the blockquote (not inside it); the three-section spine (Problem / Chosen direction / Delivered) is unchanged"
           ]
         },
         {
@@ -997,27 +997,27 @@
         },
         {
           "id": "rq-handoffVoice01.4",
-          "title": "Labeled footer block replaces Next sections",
+          "title": "Blockquote wayfinder block replaces Next sections",
           "given": [
             "An /adv-* command completes a gate and emits a user-facing gate-transition message"
           ],
           "when": "The handoff message is rendered",
           "then": [
             "## Next stage and ## Next headings are absent from the handoff",
-            "A labeled footer block appears after ## Delivered with Current phase, Next phase, and a single runnable command",
-            "The archive terminal variant ends with a terminal verb (Shipped. or Merged locally. depending on push state) and no labeled block",
-            "Optional reply instructions for human checkpoints (Inline Approval Voice) are part of the labeled footer block, not a separate section"
+            "A blockquote wayfinder block appears after ## Delivered with three rows: change-id, gate transition, arrow-prefixed runnable command",
+            "The archive terminal variant ends with a single-line blockquote `> **{change-id}** · release ✓ ·` followed by a terminal verb (Shipped. or Merged locally. depending on push state) and no separate labeled block",
+            "Optional reply instructions for human checkpoints (Inline Approval Voice) appear as plain prose below the blockquote, not inside it"
           ]
         },
         {
           "id": "rq-handoffVoice01.5",
-          "title": "Footer block shows only the needed command",
+          "title": "Blockquote wayfinder shows only the needed command",
           "given": [
             "An /adv-* command completes a gate and emits a user-facing gate-transition message"
           ],
-          "when": "The footer block is inspected",
+          "when": "The blockquote wayfinder block is inspected",
           "then": [
-            "Exactly one runnable command is shown in the footer block",
+            "Exactly one runnable command is shown in the wayfinder block (in the arrow-prefixed row)",
             "No redundant alternative command lines appear",
             "The command shown is the single next action needed to continue"
           ]
@@ -1329,7 +1329,7 @@
           "id": "rq-inlineApproval01.7",
           "title": "Exact shown Tier A continuation command counts as approval",
           "given": [
-            "A Tier A checkpoint (proposal, agreement, design, prep, acceptance) is presented with a labeled footer block showing a specific continuation command (e.g., `/adv-apply {change-id}`)",
+            "A Tier A checkpoint (proposal, agreement, design, prep, acceptance) is presented with a blockquote wayfinder block showing a specific continuation command (e.g., `/adv-apply {change-id}`)",
             "The user invokes that exact command while the checkpoint is pending"
           ],
           "when": "The agent processes the command invocation",

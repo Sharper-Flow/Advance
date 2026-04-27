@@ -1051,11 +1051,11 @@ When an agent identifies that a proposed design can only be delivered by comprom
 
 **ID:** `rq-handoffVoice01` | **Priority:** **[MUST]**
 
-Every /adv-\* command that emits a user-facing gate-transition message MUST use the Gate Handoff Voice spine: Problem / Chosen direction / Delivered, followed by a footer line containing the change id, gate transition, and next command. Canonical source: docs/command-voice-standard.md § Gate Handoff Voice.
+Every /adv-\* command that emits a user-facing gate-transition message MUST use the Gate Handoff Voice spine: Problem / Chosen direction / Delivered, followed by a blockquote wayfinder block containing three rows: bolded change-id, the gate transition arrow, and an arrow-prefixed runnable command. Canonical source: docs/command-voice-standard.md § Gate Handoff Voice.
 
 #### Scenarios
 
-**Handoff follows spine** (`rq-handoffVoice01.1`)
+**Handoff follows spine with blockquote wayfinder block** (`rq-handoffVoice01.1`)
 
 **Given:**
 
@@ -1065,8 +1065,12 @@ Every /adv-\* command that emits a user-facing gate-transition message MUST use 
 
 **Then:**
 
-- All three narrative spine headings are present: Problem, Chosen direction, Delivered, plus a footer line below a --- separator
-- The archive terminal variant uses **{change-id}** · release ✓ · followed by a terminal verb (Shipped. when push succeeds and assets propagate to the global install, Merged locally. when no remote is configured or push is skipped or push fails) instead of the standard arrow+command footer
+- All three narrative spine headings are present: Problem, Chosen direction, Delivered, followed by a blockquote wayfinder block below a --- separator
+- The blockquote contains a row with `**{change-id}**` (bolded change ID)
+- The blockquote contains a row with `{gate} ✓ → {next-gate}` (gate transition)
+- The blockquote contains an arrow-prefixed row `→ `/adv-{next-command} {change-id}`` showing exactly one runnable command
+- The archive terminal variant uses a single-line blockquote `> **{change-id}** · release ✓ ·` followed by a terminal verb (Shipped. when push succeeds and assets propagate to the global install, Merged locally. when no remote is configured or push is skipped or push fails) instead of the standard three-row wayfinder block
+- When paired with a human-checkpoint approval, reply instructions appear as plain prose below the blockquote (not inside it); the three-section spine is unchanged
 
 **No mechanics leakage** (`rq-handoffVoice01.2`)
 
@@ -1099,7 +1103,7 @@ Every /adv-\* command that emits a user-facing gate-transition message MUST use 
 - No handoff message is emitted
 - No handoff validation is required for the silent transition
 
-**Footer replaces Next sections** (`rq-handoffVoice01.4`)
+**Blockquote wayfinder block replaces Next sections** (`rq-handoffVoice01.4`)
 
 **Given:**
 
@@ -1110,8 +1114,23 @@ Every /adv-\* command that emits a user-facing gate-transition message MUST use 
 **Then:**
 
 - ## Next stage and ## Next headings are absent from the handoff
-- A footer line appears after ## Delivered with the change id, gate transition, and next command
-- The archive terminal variant ends the footer with a terminal verb (Shipped. or Merged locally. depending on push state) and no arrow or command
+- A blockquote wayfinder block appears after ## Delivered with three rows: change-id, gate transition, arrow-prefixed runnable command
+- The archive terminal variant ends with a single-line blockquote `> **{change-id}** · release ✓ ·` followed by a terminal verb (Shipped. or Merged locally. depending on push state) and no separate labeled block
+- Optional reply instructions for human checkpoints appear as plain prose below the blockquote, not inside it
+
+**Blockquote wayfinder shows only the needed command** (`rq-handoffVoice01.5`)
+
+**Given:**
+
+- An /adv-\* command completes a gate and emits a user-facing gate-transition message
+
+**When:** The blockquote wayfinder block is inspected
+
+**Then:**
+
+- Exactly one runnable command is shown in the wayfinder block (in the arrow-prefixed row)
+- No redundant alternative command lines appear
+- The command shown is the single next action needed to continue
 
 ---
 
