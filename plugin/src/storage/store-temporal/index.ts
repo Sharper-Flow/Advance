@@ -723,7 +723,7 @@ export function createTemporalStoreBackend(
 }
 
 // Re-export for any direct importers
-export { StoreDeps } from "./shared";
+export type { StoreDeps } from "./shared";
 export { createChangeOps } from "./changes";
 export { createTaskOps } from "./tasks";
 export { createGateOps } from "./gates";

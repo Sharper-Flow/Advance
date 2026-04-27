@@ -16,10 +16,10 @@ import {
 } from "../../temporal/messages";
 import { getReadyTasksFromChangeState } from "../../temporal/change-state";
 import {
-  StoreDeps,
   runTemporal,
   runTemporalQuery,
   getChangeHandle,
+  type StoreDeps,
 } from "./shared";
 
 export function createTaskOps(deps: StoreDeps): Store["tasks"] {

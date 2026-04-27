@@ -8,7 +8,7 @@ import { ensureChangeWorkflowStarted } from "../../temporal/migration";
 import { removeChangeDir } from "../json";
 import { filterChanges } from "../content-search";
 import { computeLastActivity } from "../store-types";
-import { StoreDeps, runTemporal, getChangeHandle } from "./shared";
+import { runTemporal, getChangeHandle, type StoreDeps } from "./shared";
 
 export function createChangeOps(deps: StoreDeps): Store["changes"] {
   const {

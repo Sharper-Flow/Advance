@@ -5,10 +5,10 @@ import {
   changeStateQuery,
 } from "../../temporal/messages";
 import {
-  StoreDeps,
   runTemporal,
   runTemporalQuery,
   getChangeHandle,
+  type StoreDeps,
 } from "./shared";
 
 export function createWisdomOps(deps: StoreDeps): Store["wisdom"] {

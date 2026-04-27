@@ -5,7 +5,7 @@ import {
   reopenFromGateUpdate,
   changeStateQuery,
 } from "../../temporal/messages";
-import { StoreDeps, runTemporal, getChangeHandle } from "./shared";
+import { runTemporal, getChangeHandle, type StoreDeps } from "./shared";
 
 export function createGateOps(deps: StoreDeps): Store["gates"] {
   const {
