@@ -1,0 +1,1064 @@
+{
+  "$schema": "https://raw.githubusercontent.com/anomalyco/oc-plugins/main/advance/plugin/schemas/spec.schema.json",
+  "name": "advance-workflow",
+  "title": "Advance Workflow",
+  "purpose": "Capability: Workflow contract layer for ADV \u2014 gate model, autonomy boundaries, design validation, scope management, releases, approvals, handoff voice, review remediation, and touched-scope quality. Split from `advance` capability.",
+  "version": "1.0.0",
+  "updated_at": "2026-04-28T00:00:00.000Z",
+  "requirements": [
+    {
+      "id": "rq-R3v13wR1",
+      "title": "Adversarial Review Enforcement",
+      "body": "/adv-review and /adv-harden must enforce a minimum findings threshold to prevent shallow 'LGTM' behavior. /adv-review must run mandatory remediation that fixes all blocker/issue findings, investigates all suggestions/questions, implements validated suggestions, and runs cleanup before final verdict.",
+      "priority": "must",
+      "scenarios": [
+        {
+          "id": "rq-R3v13wR1.1",
+          "title": "Minimum findings validation",
+          "given": [
+            "A review with fewer than 3 non-nit findings"
+          ],
+          "when": "Gate completion is attempted",
+          "then": [
+            "The gate remains open and requires explicit justification for the clean result"
+          ]
+        },
+        {
+          "id": "rq-R3v13wR1.2",
+          "title": "Review remediation is mandatory",
+          "given": [
+            "A review produces blocker, issue, suggestion, or question findings"
+          ],
+          "when": "/adv-review enters remediation",
+          "then": [
+            "All blocker and issue findings are fixed and verified",
+            "Each suggestion/question is investigated and marked validated or rejected with evidence",
+            "Validated suggestions are implemented",
+            "A cleanup pass runs before final verdict is emitted"
+          ]
+        }
+      ],
+      "meta": {
+        "merged_from": "advance"
+      }
+    },
+    {
+      "id": "rq-scopeReentry01",
+      "title": "Mid-Change Scope Expansion Re-Entry",
+      "body": "When new objectives or acceptance criteria are introduced after a change has already progressed through the gate workflow, the added scope must be routed back through the earliest invalidated pre-implementation gate via adv_change_reenter before execution continues. Agents may trigger this re-entry autonomously; explicit user approval is not required to circle back to an earlier gate. Unaffected approved scope may continue without re-entry, and non-invalidating clarifications do not require re-entry.",
+      "priority": "must",
+      "tags": [
+        "workflow",
+        "re-entry",
+        "scope-expansion",
+        "gates"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-scopeReentry01.1",
+          "title": "Scope expansion triggers re-entry",
+          "given": [
+            "A change is in execution or a later gate",
+            "New objectives or acceptance criteria are discovered that were not part of the approved agreement"
+          ],
+          "when": "adv_change_reenter is used from the earliest affected gate",
+          "then": [
+            "The newly added scope is routed back through discovery, agreement, design, and planning as needed before execution resumes",
+            "Execution does not silently absorb the new scope without re-entry"
+          ]
+        },
+        {
+          "id": "rq-scopeReentry01.2",
+          "title": "Unaffected approved scope continues without re-entry",
+          "given": [
+            "A change has approved scope already in execution",
+            "A newly discovered item does not invalidate the existing approved work"
+          ],
+          "when": "The unaffected scope is evaluated",
+          "then": [
+            "Previously approved scope may continue without reopening unrelated gates",
+            "Only the newly invalidated scope is routed back through re-entry"
+          ]
+        },
+        {
+          "id": "rq-scopeReentry01.3",
+          "title": "Non-invalidating clarification does not require re-entry",
+          "given": [
+            "A change is in progress",
+            "A clarification is discovered that does not alter objectives, acceptance criteria, or design intent"
+          ],
+          "when": "The clarification is applied",
+          "then": [
+            "adv_change_reenter is not required",
+            "Execution may continue within the existing scope"
+          ]
+        },
+        {
+          "id": "rq-scopeReentry01.4",
+          "title": "Re-entry may proceed without explicit user approval",
+          "given": [
+            "A change needs scope-expansion re-entry"
+          ],
+          "when": "adv_change_reenter is executed",
+          "then": [
+            "The call may succeed without approvedByUser or approvalEvidence",
+            "approvalEvidence is optional audit context when re-entry follows an explicit user instruction"
+          ]
+        }
+      ],
+      "meta": {
+        "merged_from": "advance"
+      }
+    },
+    {
+      "id": "rq-scopeReentry02",
+      "title": "Re-Entry Cascade Reset Preserves Work",
+      "body": "Reopening a change from gate X must reset gate X and all downstream gates to pending while preserving existing tasks and completed work. Each re-entry must append an audit entry describing the reopened gate, reason, optional scope delta, actor, timestamp, and gates reset.",
+      "priority": "must",
+      "tags": [
+        "workflow",
+        "re-entry",
+        "audit",
+        "gates"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-scopeReentry02.1",
+          "title": "Cascade from discovery resets downstream gates",
+          "given": [
+            "A change has completed proposal, discovery, design, planning, execution, acceptance, and release is still pending"
+          ],
+          "when": "adv_change_reenter reopens from discovery",
+          "then": [
+            "discovery, design, planning, execution, acceptance, and release are reset to pending",
+            "proposal remains satisfied"
+          ]
+        },
+        {
+          "id": "rq-scopeReentry02.2",
+          "title": "Tasks remain intact after cascade reset",
+          "given": [
+            "A change has existing tasks, including completed tasks"
+          ],
+          "when": "adv_change_reenter resets gates to pending",
+          "then": [
+            "All existing tasks remain on the change",
+            "Task status and task content are preserved"
+          ]
+        },
+        {
+          "id": "rq-scopeReentry02.3",
+          "title": "Re-entry appends audit history",
+          "given": [
+            "A change has been reopened via adv_change_reenter"
+          ],
+          "when": "The re-entry is persisted",
+          "then": [
+            "A reentry_history entry is appended with from_gate, reason, reopened_by, approval_evidence, reopened_at, and gates_reset",
+            "scope_delta is included when provided"
+          ]
+        }
+      ],
+      "meta": {
+        "merged_from": "advance"
+      }
+    },
+    {
+      "id": "rq-gatemodel01",
+      "title": "Seven-Gate Collaborative Workflow",
+      "body": "The canonical ADV workflow is seven sequential gates: proposal, discovery, design, planning, execution, acceptance, release. Gates must be completed in order. A change cannot be archived until all seven gates are satisfied (status 'done' or 'skipped').",
+      "priority": "must",
+      "tags": [
+        "workflow",
+        "gates"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-gatemodel01.1",
+          "title": "Sequential gate enforcement",
+          "given": [
+            "A change with the proposal gate pending"
+          ],
+          "when": "adv_gate_complete is called for the discovery gate",
+          "then": [
+            "The call is rejected",
+            "The response identifies proposal as the blocking gate"
+          ]
+        },
+        {
+          "id": "rq-gatemodel01.2",
+          "title": "Archive requires all seven gates satisfied",
+          "given": [
+            "A change with gates proposal through acceptance marked done",
+            "The release gate still pending"
+          ],
+          "when": "adv_change_archive is called",
+          "then": [
+            "The archive is rejected with incomplete-gates error",
+            "release is listed as the remaining gate"
+          ]
+        }
+      ],
+      "meta": {
+        "merged_from": "advance"
+      }
+    },
+    {
+      "id": "rq-releaseFinalization01",
+      "title": "Archive Finalization Refreshes Basis and Preserves Cleanup Safety",
+      "body": "Phase 9 Git Finalization must refresh the current default-branch basis before deciding local merge-back versus PR workflow. Clean low-risk cases prefer a linear-history fast path (`--ff-only` when already current, reconcile only when needed). Conflicting or risky cases must stop or route to PR workflow before cleanup. Worktree deletion remains forbidden until merged-state verification proves the change branch is fully integrated.",
+      "priority": "must",
+      "tags": [
+        "workflow",
+        "archive",
+        "worktree",
+        "git"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-releaseFinalization01.1",
+          "title": "Clean archive refresh uses local fast path",
+          "given": [
+            "A change branch is already on the current default-branch basis",
+            "No overlap-risk or PR-only policy applies"
+          ],
+          "when": "Phase 9 Git Finalization chooses an integration path",
+          "then": [
+            "The archive uses the local `--ff-only` path",
+            "No branch rewrite is required"
+          ]
+        },
+        {
+          "id": "rq-releaseFinalization01.2",
+          "title": "Conflicting reconcile stops before cleanup",
+          "given": [
+            "A change branch must reconcile with a fresher default branch",
+            "Compatibility preflight or rebase finds conflicts"
+          ],
+          "when": "Phase 9 Git Finalization evaluates the reconcile path",
+          "then": [
+            "The archive reports the conflicting files",
+            "The archive does not delete the worktree"
+          ]
+        },
+        {
+          "id": "rq-releaseFinalization01.3",
+          "title": "Risky archive routes to PR workflow",
+          "given": [
+            "A change has overlap-risk, PR-only policy, or non-fast-forward publish risk"
+          ],
+          "when": "Phase 9 Git Finalization chooses an integration path",
+          "then": [
+            "The archive routes to PR workflow instead of forcing local merge-back",
+            "Cleanup remains blocked until merged-state verification succeeds"
+          ]
+        }
+      ],
+      "meta": {
+        "merged_from": "advance"
+      }
+    },
+    {
+      "id": "rq-autonomy01",
+      "title": "Human Checkpoint Contract",
+      "body": "ADV must pause for human input only at explicit approval/judgment checkpoints and auto-continue through clean agent-owned workflow steps. Human checkpoints are: proposal confirmation, agreement sign-off, design approval when real tradeoffs depend on user values, when the design validator returns CONFLICT, or when contract-compromise risk is present, acceptance, archive sign-off, cancellation approval, and doom-loop recovery. All other clean workflow steps (discovery, deterministic design, prep, apply, harden, and scope-driven re-entry) proceed sequentially without prompting the user when no unresolved user-value tradeoff, contract-compromise risk, or required approval exists.",
+      "priority": "must",
+      "tags": [
+        "workflow",
+        "autonomy",
+        "checkpoints"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-autonomy01.1",
+          "title": "Clean agent-owned step auto-continues",
+          "given": [
+            "A change has completed the proposal gate",
+            "The next step is discovery with no unresolved user-value tradeoffs"
+          ],
+          "when": "The ADV orchestrator evaluates the next gate",
+          "then": [
+            "Discovery proceeds without prompting the user",
+            "No question tool call is made for the gate transition"
+          ]
+        },
+        {
+          "id": "rq-autonomy01.2",
+          "title": "Human checkpoint pauses for approval",
+          "given": [
+            "A change has completed the acceptance gate via /adv-review",
+            "Archive sign-off is the next step"
+          ],
+          "when": "The ADV orchestrator evaluates the next gate",
+          "then": [
+            "The orchestrator stops and presents a change report",
+            "The user is asked for explicit sign-off via inline handoff text per docs/command-voice-standard.md \u00a7 Inline Approval Voice (Tier B)"
+          ]
+        },
+        {
+          "id": "rq-autonomy01.3",
+          "title": "Design approval conditional on tradeoffs",
+          "given": [
+            "A change has a straightforward design with no user-value tradeoffs"
+          ],
+          "when": "The design gate completes",
+          "then": [
+            "The orchestrator proceeds to planning without a design-approval pause"
+          ]
+        },
+        {
+          "id": "rq-autonomy01.4",
+          "title": "Apply auto-continues across task boundaries",
+          "given": [
+            "A change is in the execution gate with multiple pending ready tasks",
+            "No enumerated human checkpoint has triggered (no doom-loop, no environmental blocker, no cancellation, no re-entry, no unresolved judgment call)"
+          ],
+          "when": "A task completes successfully and `adv_task_ready` returns another pending task",
+          "then": [
+            "`/adv-apply` proceeds immediately to the next task's TDD loop",
+            "No \"task complete\", \"section complete\", \"progress update\", or \"shall I continue?\" pause is emitted",
+            "No question tool call is made between tasks"
+          ]
+        },
+        {
+          "id": "rq-autonomy01.5",
+          "title": "Apply forbids execution-start approval pause",
+          "given": [
+            "A change has completed planning and is entering the execution gate",
+            "Judgment-call surfacing (Phase 1.5) has already resolved any pending user input"
+          ],
+          "when": "`/adv-apply` begins the TDD work loop",
+          "then": [
+            "No \"Begin work / Modify criteria / Cancel\" prompt or equivalent execution-start approval is emitted",
+            "The first ready task's TDD phase starts directly"
+          ]
+        },
+        {
+          "id": "rq-autonomy01.6",
+          "title": "Contract-compromise risk triggers design pause",
+          "given": [
+            "A change is at the design gate",
+            "The agent identifies that delivering the design would require compromising agreed acceptance criteria, explicit constraints, or stated avoidances"
+          ],
+          "when": "The orchestrator evaluates whether to proceed from design to planning",
+          "then": [
+            "The orchestrator pauses for human input before proceeding",
+            "The design approval checkpoint is triggered regardless of whether user-value tradeoffs exist"
+          ]
+        }
+      ],
+      "meta": {
+        "merged_from": "advance"
+      }
+    },
+    {
+      "id": "rq-remediation01",
+      "title": "Validated In-Scope Findings Resolved In-Change",
+      "body": "When /adv-review or /adv-harden validates an actionable finding or suggestion as in-scope, the current change must fix it before completion. No report-only, future-work, or accepted-debt path is permitted for validated in-scope findings. Findings may only be left unresolved if rejected with evidence showing they are invalid or out of scope.",
+      "priority": "must",
+      "tags": [
+        "workflow",
+        "review",
+        "harden",
+        "quality"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-remediation01.1",
+          "title": "Validated suggestion implemented before completion",
+          "given": [
+            "/adv-review validates a suggestion as in-scope and correct"
+          ],
+          "when": "Remediation runs",
+          "then": [
+            "The validated suggestion is implemented and verified in the current change",
+            "The finding status is updated to fixed"
+          ]
+        },
+        {
+          "id": "rq-remediation01.2",
+          "title": "Report-only path rejected for in-scope findings",
+          "given": [
+            "/adv-harden identifies an actionable in-scope finding"
+          ],
+          "when": "Remediation options are presented",
+          "then": [
+            "No report-only or future-work option is offered",
+            "The finding must be fixed before the release gate can complete"
+          ]
+        },
+        {
+          "id": "rq-remediation01.3",
+          "title": "Rejection with evidence is permitted",
+          "given": [
+            "/adv-review flags a suggestion as potentially in-scope"
+          ],
+          "when": "Investigation determines the suggestion is invalid or out of scope",
+          "then": [
+            "The finding is rejected with documented evidence",
+            "The rejection does not block gate completion"
+          ]
+        }
+      ],
+      "meta": {
+        "merged_from": "advance"
+      }
+    },
+    {
+      "id": "rq-touchedScope01",
+      "title": "Touched-Scope Quality Ownership",
+      "body": "A change owns quality and test coverage for: (1) directly touched implementation files, (2) adjacent tests and docs needed for correctness, and (3) same-pattern quality or test issues in the local touched subsystem. This ownership boundary must remain local enough to avoid implicit repo-wide refactors. /adv-prep must synthesize tasks covering touched-scope obligations, /adv-apply must verify them before execution completes, and /adv-review and /adv-harden must enforce them.",
+      "priority": "must",
+      "tags": [
+        "workflow",
+        "quality",
+        "ownership",
+        "testing"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-touchedScope01.1",
+          "title": "Adjacent test gaps addressed",
+          "given": [
+            "A change modifies an implementation file",
+            "The corresponding test file has gaps in coverage for the touched code"
+          ],
+          "when": "Execution completes",
+          "then": [
+            "The test gaps are addressed as part of the change",
+            "The execution gate is not marked complete while known test gaps remain in touched files"
+          ]
+        },
+        {
+          "id": "rq-touchedScope01.2",
+          "title": "Same-pattern issues fixed in local subsystem",
+          "given": [
+            "A change fixes a defect pattern in one file",
+            "The same pattern exists in other files within the local touched subsystem"
+          ],
+          "when": "Review or harden identifies the related instances",
+          "then": [
+            "The same-pattern instances are fixed in the current change",
+            "The fixes are verified before gate completion"
+          ]
+        },
+        {
+          "id": "rq-touchedScope01.3",
+          "title": "Ownership boundary remains local",
+          "given": [
+            "A change touches files in one subsystem",
+            "A similar pattern exists in unrelated subsystems"
+          ],
+          "when": "Ownership scope is evaluated",
+          "then": [
+            "Only the local touched subsystem is in scope",
+            "Unrelated subsystems are not implicitly pulled into the change"
+          ]
+        }
+      ],
+      "meta": {
+        "merged_from": "advance"
+      }
+    },
+    {
+      "id": "rq-designval01",
+      "title": "Design Stage Requires Independent Validation",
+      "body": "Before the design gate can complete, /adv-design must run an independent validation pass via an independent, read-only, externally informed validator sub-agent. The validator must be a distinct agent from the designer (different model or isolated context), have read-only access to ADV state, and possess external research capabilities (documentation lookup, web search). The validator assesses correctness, simplicity, spec-law compliance, and key alternatives. The current implementation of this capability is adv-researcher. Validator failure or timeout results in an INCONCLUSIVE warning and does not block gate completion.",
+      "priority": "must",
+      "tags": [
+        "workflow",
+        "design",
+        "validation",
+        "autonomy"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-designval01.1",
+          "title": "Validator runs before design gate completion",
+          "given": [
+            "A change has a confirmed agreement and completed design work"
+          ],
+          "when": "/adv-design is executed",
+          "then": [
+            "An independent validation sub-agent pass runs before adv_gate_complete is called for the design gate",
+            "The validator is a distinct agent from the designer with read-only state access and external research capabilities",
+            "The validator assesses at least: correctness, simplicity, spec-law compliance, and key alternatives"
+          ]
+        },
+        {
+          "id": "rq-designval01.2",
+          "title": "Validator failure results in INCONCLUSIVE, not a block",
+          "given": [
+            "The validator sub-agent fails, returns empty, or times out"
+          ],
+          "when": "/adv-design handles the failed validator response",
+          "then": [
+            "The result is recorded as INCONCLUSIVE with a warning",
+            "The design gate is not blocked by the validator failure",
+            "The warning is surfaced in the /adv-design presentation output"
+          ]
+        }
+      ],
+      "meta": {
+        "merged_from": "advance"
+      }
+    },
+    {
+      "id": "rq-designval02",
+      "title": "Validation Findings Included in Design Presentation",
+      "body": "When /adv-design summarizes the design, it must include the validator verdict and findings from the design validation step. VALIDATED shows a brief clean-pass note. CAUTION shows findings inline. CONFLICT shows conflict details. INCONCLUSIVE shows a warning. Legacy designs without validation data omit the section silently.",
+      "priority": "must",
+      "tags": [
+        "workflow",
+        "design",
+        "presentation"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-designval02.1",
+          "title": "Clean-pass note shown for VALIDATED verdict",
+          "given": [
+            "The design validator returned VALIDATED"
+          ],
+          "when": "/adv-design presents the design summary",
+          "then": [
+            "The output includes a one-line clean-pass note (e.g. 'Validator: clean pass')",
+            "No detailed findings are shown"
+          ]
+        },
+        {
+          "id": "rq-designval02.2",
+          "title": "Conflict details shown for CONFLICT verdict",
+          "given": [
+            "The design validator returned CONFLICT with findings"
+          ],
+          "when": "/adv-design presents the design summary",
+          "then": [
+            "The conflict details and unresolved findings are shown to the user",
+            "The presentation pauses for user resolution before proceeding to planning"
+          ]
+        }
+      ],
+      "meta": {
+        "merged_from": "advance"
+      }
+    },
+    {
+      "id": "rq-designval03",
+      "title": "Critical Validator Disagreement Requires Explicit Handling",
+      "body": "When the design validator returns a CONFLICT verdict, the orchestrator must not silently auto-continue to planning. The conflict must be surfaced to the user or resolved inline before /adv-prep can proceed.",
+      "priority": "must",
+      "tags": [
+        "workflow",
+        "design",
+        "autonomy",
+        "checkpoints"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-designval03.1",
+          "title": "CONFLICT verdict blocks silent auto-continue to planning",
+          "given": [
+            "The design validator returned a CONFLICT verdict with unresolved findings"
+          ],
+          "when": "The orchestrator evaluates whether to proceed from design to planning",
+          "then": [
+            "The orchestrator does not silently proceed to /adv-prep",
+            "The conflict is surfaced to the user via /adv-design presentation pause or inline resolution attempt"
+          ]
+        },
+        {
+          "id": "rq-designval03.2",
+          "title": "VALIDATED and CAUTION verdicts auto-continue",
+          "given": [
+            "The design validator returned VALIDATED or CAUTION"
+          ],
+          "when": "The orchestrator evaluates whether to proceed from design to planning",
+          "then": [
+            "Planning proceeds without a new user-facing checkpoint (assuming no other user-value tradeoffs)"
+          ]
+        }
+      ],
+      "meta": {
+        "merged_from": "advance"
+      }
+    },
+    {
+      "id": "rq-designval04",
+      "title": "Contract-Compromise Risk Requires Design Pause",
+      "body": "When an agent identifies that a proposed design can only be delivered by compromising agreed acceptance criteria, explicit constraints, or stated avoidances, the orchestrator must pause for human input before proceeding to planning. This check is independent of the design validator verdict and must trigger even when the validator returns VALIDATED or CAUTION.",
+      "priority": "must",
+      "tags": [
+        "workflow",
+        "design",
+        "autonomy",
+        "checkpoints"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-designval04.1",
+          "title": "Contract-compromise risk triggers design pause",
+          "given": [
+            "A design is being evaluated",
+            "The agent determines that implementing the design would violate an agreed acceptance criterion or explicit constraint"
+          ],
+          "when": "The orchestrator evaluates whether to proceed from design to planning",
+          "then": [
+            "The orchestrator pauses for human input",
+            "No silent auto-continue to planning occurs"
+          ]
+        },
+        {
+          "id": "rq-designval04.2",
+          "title": "No compromise risk auto-continues",
+          "given": [
+            "A design is being evaluated",
+            "The agent confirms the design can be delivered without compromising any acceptance criteria, constraints, or stated avoidances"
+          ],
+          "when": "The orchestrator evaluates whether to proceed from design to planning",
+          "then": [
+            "Planning proceeds without a new design-approval checkpoint (assuming no other user-value tradeoffs)"
+          ]
+        }
+      ],
+      "meta": {
+        "merged_from": "advance"
+      }
+    },
+    {
+      "id": "rq-handoffVoice01",
+      "title": "Gate Handoff Voice Spine",
+      "body": "Every /adv-* command that emits a user-facing gate-transition message MUST use the Gate Handoff Voice spine: Problem / Chosen direction / Delivered, followed by a blockquote wayfinder block. The blockquote MUST contain three rows: bolded `**{change-id}**`, the gate transition `{gate} \u2713 \u2192 {next-gate}`, and an arrow-prefixed runnable command `\u2192 `/adv-{next-command} {change-id}``. The command shown MUST be the single command needed to continue \u2014 no redundant or alternative command lines. Canonical source: docs/command-voice-standard.md \u00a7 Gate Handoff Voice.",
+      "priority": "must",
+      "tags": [
+        "voice",
+        "handoff",
+        "presentation"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-handoffVoice01.1",
+          "title": "Handoff follows spine with blockquote wayfinder block",
+          "given": [
+            "An /adv-* command completes a gate and emits a user-facing gate-transition message"
+          ],
+          "when": "The handoff message is rendered",
+          "then": [
+            "All three narrative spine headings are present: Problem, Chosen direction, Delivered, followed by a blockquote wayfinder block below a --- separator",
+            "The blockquote contains a row with `**{change-id}**` (bolded change ID)",
+            "The blockquote contains a row with `{gate} \u2713 \u2192 {next-gate}` (gate transition)",
+            "The blockquote contains an arrow-prefixed row `\u2192 `/adv-{next-command} {change-id}`` showing exactly one runnable command",
+            "The archive terminal variant uses a single-line blockquote `> **{change-id}** \u00b7 release \u2713 \u00b7` followed by a terminal verb (Shipped. when push succeeds and assets propagate to the global install, Merged locally. when no remote is configured or push is skipped or push fails) instead of the standard three-row wayfinder block",
+            "When the handoff is paired with a human-checkpoint approval, reply instructions appear as plain prose below the blockquote (not inside it); the three-section spine (Problem / Chosen direction / Delivered) is unchanged"
+          ]
+        },
+        {
+          "id": "rq-handoffVoice01.2",
+          "title": "No mechanics leakage",
+          "given": [
+            "An /adv-* command completes a gate and emits a user-facing gate-transition message"
+          ],
+          "when": "The handoff message is rendered",
+          "then": [
+            "No todo checklists appear as primary handoff content",
+            "No step-completed logs appear as primary handoff content",
+            "No orchestration summaries appear as primary handoff content",
+            "No sub-agent bookkeeping appears as primary handoff content",
+            "No gate checkbox banners appear as primary handoff content"
+          ]
+        },
+        {
+          "id": "rq-handoffVoice01.3",
+          "title": "Auto-continue transitions unaffected",
+          "given": [
+            "rq-autonomy01 permits auto-continue between stages",
+            "No unresolved user-value tradeoff exists",
+            "No required approval is pending"
+          ],
+          "when": "The agent proceeds without emitting a user-facing message",
+          "then": [
+            "No handoff message is emitted",
+            "No handoff validation is required for the silent transition"
+          ]
+        },
+        {
+          "id": "rq-handoffVoice01.4",
+          "title": "Blockquote wayfinder block replaces Next sections",
+          "given": [
+            "An /adv-* command completes a gate and emits a user-facing gate-transition message"
+          ],
+          "when": "The handoff message is rendered",
+          "then": [
+            "## Next stage and ## Next headings are absent from the handoff",
+            "A blockquote wayfinder block appears after ## Delivered with three rows: change-id, gate transition, arrow-prefixed runnable command",
+            "The archive terminal variant ends with a single-line blockquote `> **{change-id}** \u00b7 release \u2713 \u00b7` followed by a terminal verb (Shipped. or Merged locally. depending on push state) and no separate labeled block",
+            "Optional reply instructions for human checkpoints (Inline Approval Voice) appear as plain prose below the blockquote, not inside it"
+          ]
+        },
+        {
+          "id": "rq-handoffVoice01.5",
+          "title": "Blockquote wayfinder shows only the needed command",
+          "given": [
+            "An /adv-* command completes a gate and emits a user-facing gate-transition message"
+          ],
+          "when": "The blockquote wayfinder block is inspected",
+          "then": [
+            "Exactly one runnable command is shown in the wayfinder block (in the arrow-prefixed row)",
+            "No redundant alternative command lines appear",
+            "The command shown is the single next action needed to continue"
+          ]
+        }
+      ],
+      "meta": {
+        "merged_from": "advance"
+      }
+    },
+    {
+      "id": "rq-inlineApproval01",
+      "title": "Inline Approval at Named Human Checkpoints",
+      "body": "ADV's seven named human checkpoints (proposal confirmation, agreement sign-off, design approval, prep approval, acceptance, archive sign-off, cancellation approval) MUST use inline handoff text \u2014 composed with the Gate Handoff Voice spine \u2014 instead of the question tool. The inline pattern MUST emit reply instructions covering approve, redirect via slash command, revise, and stop. Reply parsing tiers MUST be: Tier A (reversible \u2014 proposal/agreement/design/prep/acceptance) uses whitelist + LLM fallback for natural-language replies; Tier B (irreversible \u2014 archive sign-off, cancellation) uses whitelist-only with no LLM fallback. Non-checkpoint question tool uses (change-id selection, doom-loop recovery, drift detection, AC clarification rounds, investment check-in, judgment calls, triage commands) remain unaffected. Canonical source: docs/command-voice-standard.md \u00a7 Inline Approval Voice.",
+      "priority": "must",
+      "tags": [
+        "voice",
+        "checkpoints",
+        "approval",
+        "ux"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-inlineApproval01.1",
+          "title": "Checkpoint approval uses inline handoff",
+          "given": [
+            "An ADV workflow reaches a named human checkpoint"
+          ],
+          "when": "The agent presents the checkpoint to the user",
+          "then": [
+            "The presentation uses the Gate Handoff Voice spine plus inline reply instructions",
+            "The question tool is not used for the checkpoint approval"
+          ]
+        },
+        {
+          "id": "rq-inlineApproval01.2",
+          "title": "Tier A whitelist + LLM fallback for reversible checkpoints",
+          "given": [
+            "A reversible checkpoint (proposal, agreement, design, prep, acceptance) is presented",
+            "User replies with a whitelist word OR an ambiguous reply"
+          ],
+          "when": "The agent processes the reply",
+          "then": [
+            "Whitelist words (continue, go, approve, yes, ok, proceed, accept, lgtm, etc.) trigger immediate approval",
+            "Ambiguous replies are classified by LLM into approve / revise / redirect / stop / unclear",
+            "Unclear replies trigger re-prompt"
+          ]
+        },
+        {
+          "id": "rq-inlineApproval01.3",
+          "title": "Tier B whitelist-only for irreversible actions",
+          "given": [
+            "An irreversible checkpoint (archive sign-off, cancellation approval) is presented"
+          ],
+          "when": "The agent processes the reply",
+          "then": [
+            "Only exact whitelist matches trigger approval",
+            "LLM fallback is not used",
+            "Anything else triggers re-prompt with the same options",
+            "Archive sign-off executes in the same response as the whitelist-match acknowledgment with no separate confirmation-echo turn"
+          ]
+        },
+        {
+          "id": "rq-inlineApproval01.4",
+          "title": "Cancellation uses structured inline format",
+          "given": [
+            "A cancellation approval is needed"
+          ],
+          "when": "The agent presents the cancellation",
+          "then": [
+            "The agent emits a numbered per-task list as inline prose",
+            "Reply instructions cover approve all, reject all, keep N, cancel N, stop",
+            "Replies are parsed by exact regex; LLM fallback is not used",
+            "Ambiguous replies trigger re-prompt"
+          ]
+        },
+        {
+          "id": "rq-inlineApproval01.5",
+          "title": "Prep gate machine contract preserved",
+          "given": [
+            "The user replies with a Tier A whitelist word at the prep checkpoint"
+          ],
+          "when": "The agent calls adv_gate_complete gateId: planning",
+          "then": [
+            "userApproved: true is passed",
+            "The machine contract is satisfied",
+            "Inline approval is the upstream signal source independent of the API surface"
+          ]
+        },
+        {
+          "id": "rq-inlineApproval01.6",
+          "title": "Non-checkpoint question uses unaffected",
+          "given": [
+            "A non-checkpoint workflow step uses the question tool (change-id selection, doom-loop, drift detection, AC clarification round, investment check-in, judgment call, triage)"
+          ],
+          "when": "The step executes",
+          "then": [
+            "The question tool continues to be used",
+            "The inline approval pattern does not apply"
+          ]
+        },
+        {
+          "id": "rq-inlineApproval01.7",
+          "title": "Exact shown Tier A continuation command counts as approval",
+          "given": [
+            "A Tier A checkpoint (proposal, agreement, design, prep, acceptance) is presented with a blockquote wayfinder block showing a specific continuation command (e.g., `/adv-apply {change-id}`)",
+            "The user invokes that exact command while the checkpoint is pending"
+          ],
+          "when": "The agent processes the command invocation",
+          "then": [
+            "The invocation counts as explicit approval equivalent to a Tier A whitelist word",
+            "The agent completes the pending gate with userApproved: true",
+            "The agent proceeds immediately to the next stage without a second approval prompt"
+          ]
+        },
+        {
+          "id": "rq-inlineApproval01.8",
+          "title": "Tier B remains whitelist-only with no command-as-approval bypass",
+          "given": [
+            "A Tier B checkpoint (archive sign-off, cancellation approval) is presented"
+          ],
+          "when": "The user invokes a slash command or provides a non-whitelist reply",
+          "then": [
+            "Only exact whitelist matches trigger approval",
+            "No slash command invocation counts as approval",
+            "LLM fallback is not used",
+            "Anything else triggers re-prompt with the same options"
+          ]
+        }
+      ],
+      "meta": {
+        "merged_from": "advance"
+      }
+    },
+    {
+      "id": "rq-scopeFollowupSchema01",
+      "title": "Fast-Follow Schema Contract",
+      "body": "The ChangeSchema must support an optional `fast_follow_of` field that records same-project parent lineage. The `adv_change_create` tool must accept `parent_change_id` and enforce mutual exclusion with `target_path`.",
+      "priority": "must",
+      "tags": [
+        "schema",
+        "lineage",
+        "fast-follow"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-scopeFollowupSchema01.1",
+          "title": "parent_change_id creates fast_follow_of metadata",
+          "given": [
+            "A valid parent change ID in the current project"
+          ],
+          "when": "adv_change_create is called with parent_change_id",
+          "then": [
+            "The new change has fast_follow_of: { parent_change_id, linked_at } set",
+            "linked_at is an ISO8601 timestamp"
+          ]
+        },
+        {
+          "id": "rq-scopeFollowupSchema01.2",
+          "title": "Backward compatibility without fast_follow_of",
+          "given": [
+            "A change created without parent_change_id"
+          ],
+          "when": "ChangeSchema is parsed",
+          "then": [
+            "The fast_follow_of field is absent",
+            "Parsing succeeds normally"
+          ]
+        },
+        {
+          "id": "rq-scopeFollowupSchema01.3",
+          "title": "Mutual exclusion with target_path",
+          "given": [
+            "Both target_path and parent_change_id are provided"
+          ],
+          "when": "adv_change_create is called",
+          "then": [
+            "A mutual-exclusion error is returned",
+            "No change is created"
+          ]
+        }
+      ],
+      "meta": {
+        "merged_from": "advance"
+      }
+    },
+    {
+      "id": "rq-scopeDiscoveryProtocol01",
+      "title": "Inline-Approval Protocol for Non-Campsite Scope Discovery",
+      "body": "When non-P23-campsite-eligible scope is discovered during /adv-apply, /adv-review, or /adv-harden, the agent must emit a Tier A inline prompt with options reenter/split/keep/cancel. The agent must never silently absorb discovered scope.",
+      "priority": "must",
+      "tags": [
+        "workflow",
+        "scope-discovery",
+        "inline-approval",
+        "campsite-rule"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-scopeDiscoveryProtocol01.1",
+          "title": "Non-campsite scope triggers inline prompt",
+          "given": [
+            "Non-P23-campsite-eligible scope discovered during /adv-apply, /adv-review, or /adv-harden"
+          ],
+          "when": "The agent evaluates the discovered scope",
+          "then": [
+            "A Tier A inline prompt is emitted with options: reenter {gate}, split, keep, cancel",
+            "The agent never silently absorbs the scope"
+          ]
+        },
+        {
+          "id": "rq-scopeDiscoveryProtocol01.2",
+          "title": "Split creates fast-follow child",
+          "given": [
+            "User replies split to the scope-discovery prompt"
+          ],
+          "when": "The agent processes the reply",
+          "then": [
+            "adv_change_create is called with parent_change_id set to the current change",
+            "The new change is a fast-follow child"
+          ]
+        },
+        {
+          "id": "rq-scopeDiscoveryProtocol01.3",
+          "title": "Keep with new objectives requires re-entry",
+          "given": [
+            "User replies keep and the absorbed scope adds new objectives or acceptance criteria"
+          ],
+          "when": "The agent processes the reply",
+          "then": [
+            "adv_change_reenter is invoked per rq-scopeReentry01",
+            "Keep does not bypass re-entry when scope adds objectives/AC"
+          ]
+        },
+        {
+          "id": "rq-scopeDiscoveryProtocol01.4",
+          "title": "Campsite-eligible scope applied freely",
+          "given": [
+            "P23-campsite-eligible adjacent scope (any size, clear, safe, focused)"
+          ],
+          "when": "The agent evaluates the scope",
+          "then": [
+            "The campsite-rule is applied freely without prompting",
+            "No inline approval is required"
+          ]
+        }
+      ],
+      "meta": {
+        "merged_from": "advance"
+      }
+    },
+    {
+      "id": "rq-scopeFollowupSurfacing01",
+      "title": "Lineage Display in List, Show, and Status",
+      "body": "Tools that surface change data must display fast-follow lineage: adv_change_show includes _fastFollowOrigin, adv_change_list annotates entries with parent_change_id, and adv_status prefixes child labels and references parents in recommendations.",
+      "priority": "must",
+      "tags": [
+        "lineage",
+        "surfacing",
+        "ui"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-scopeFollowupSurfacing01.1",
+          "title": "adv_change_show surfaces _fastFollowOrigin",
+          "given": [
+            "A change with fast_follow_of set"
+          ],
+          "when": "adv_change_show is called",
+          "then": [
+            "Output includes _fastFollowOrigin parallel to _crossProjectOrigin",
+            "_fastFollowOrigin contains note, parent_change_id, and linked_at"
+          ]
+        },
+        {
+          "id": "rq-scopeFollowupSurfacing01.2",
+          "title": "adv_change_list annotates parent_change_id",
+          "given": [
+            "Changes with fast_follow_of in the list"
+          ],
+          "when": "adv_change_list is called",
+          "then": [
+            "Entries with fast_follow_of include parent_change_id at the top level",
+            "Children remain top-level (not nested)"
+          ]
+        },
+        {
+          "id": "rq-scopeFollowupSurfacing01.3",
+          "title": "adv_status prefixes and references parents",
+          "given": [
+            "Changes with fast_follow_of in the project"
+          ],
+          "when": "adv_status is called",
+          "then": [
+            "Child change labels are prefixed with \u21b3 ",
+            "Recommendations reference the parent change ID",
+            "Archived parents are annotated with (archived)"
+          ]
+        }
+      ],
+      "meta": {
+        "merged_from": "advance"
+      }
+    },
+    {
+      "id": "rq-largeScopeValidity01",
+      "title": "Size Alone Is Not Grounds for Split-Suggestion",
+      "body": "Once a change has completed the prep gate with userApproved, the agent must not suggest splitting based on size, task count, or complexity alone. Size-triggered concerns route through cost-governance Phase 1.5 judgment-call surfacing only.",
+      "priority": "must",
+      "tags": [
+        "workflow",
+        "scope",
+        "cost-governance",
+        "autonomy"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-largeScopeValidity01.1",
+          "title": "No split-suggestion after prep approval",
+          "given": [
+            "A change has completed the prep gate with userApproved"
+          ],
+          "when": "The agent evaluates whether to suggest splitting",
+          "then": [
+            "The agent does not emit split-suggestions based on size, task count, or complexity alone",
+            "Execution proceeds as planned"
+          ]
+        },
+        {
+          "id": "rq-largeScopeValidity01.2",
+          "title": "Size concerns route through cost-governance",
+          "given": [
+            "Size-triggered concerns exist during execution"
+          ],
+          "when": "The agent evaluates how to surface concerns",
+          "then": [
+            "Concerns are routed through cost-governance Phase 1.5 judgment-call surfacing",
+            "No split-suggestion is made"
+          ]
+        },
+        {
+          "id": "rq-largeScopeValidity01.3",
+          "title": "Hardstop remains advisory",
+          "given": [
+            "Cost-governance hardstop tier fires"
+          ],
+          "when": "The agent evaluates the hardstop signal",
+          "then": [
+            "The hardstop is advisory only",
+            "It does not auto-trigger split or adv_change_reenter"
+          ]
+        }
+      ],
+      "meta": {
+        "merged_from": "advance"
+      }
+    }
+  ]
+}

@@ -1,0 +1,440 @@
+{
+  "$schema": "https://raw.githubusercontent.com/anomalyco/oc-plugins/main/advance/plugin/schemas/spec.schema.json",
+  "name": "advance-meta",
+  "title": "Advance Meta",
+  "purpose": "Capability: Cross-cutting ADV concerns \u2014 config diagnostics, metadata filters, shutdown lifecycle, proposal lineage, due-diligence routing, synthetic-state guards, and slop scanning. Split from `advance` capability.",
+  "version": "1.0.0",
+  "updated_at": "2026-04-28T00:00:00.000Z",
+  "requirements": [
+    {
+      "id": "rq-synthstate01",
+      "title": "Synthetic Validation Draft Isolation",
+      "body": "Supported internal validation or parity flows must not leave synthetic draft changes in live ADV project state. Protection must preserve legitimate user-created drafts and keep draft/status surfaces focused on real changes.",
+      "priority": "must",
+      "scenarios": [
+        {
+          "id": "rq-synthstate01.1",
+          "title": "Synthetic validation families blocked on supported create path",
+          "given": [
+            "A supported internal validation or parity flow attempts to create a synthetic draft change matching a reserved parity-validation family on live ADV state"
+          ],
+          "when": "The create path executes",
+          "then": [
+            "The synthetic draft is not persisted to the live project state",
+            "The caller receives a clear error or bounded degraded outcome directing synthetic activity to isolated temp/test storage"
+          ]
+        },
+        {
+          "id": "rq-synthstate01.2",
+          "title": "Legitimate parity wording remains allowed",
+          "given": [
+            "A normal user-driven change proposal uses benign wording that mentions parity but does not match a reserved synthetic family"
+          ],
+          "when": "The change is created",
+          "then": [
+            "The draft change is persisted normally",
+            "The protection does not block or rename the legitimate draft"
+          ]
+        },
+        {
+          "id": "rq-synthstate01.3",
+          "title": "Draft and status surfaces stay clear after validation activity",
+          "given": [
+            "Supported internal validation activity has run"
+          ],
+          "when": "adv_change_list with status draft or adv_status is executed on the live project",
+          "then": [
+            "Stale synthetic parity-validation drafts are absent from live draft results",
+            "Real user-authored drafts remain visible"
+          ]
+        }
+      ],
+      "meta": {
+        "merged_from": "advance"
+      }
+    },
+    {
+      "id": "rq-advcfg01",
+      "title": "Status Config Diagnostics and Feature Flags",
+      "body": "adv_status must surface project.json diagnostics and include parsed feature flag values so agents can see config health and runtime policy settings without opening files.",
+      "priority": "must",
+      "scenarios": [
+        {
+          "id": "rq-advcfg01.1",
+          "title": "Invalid project config is surfaced",
+          "given": [
+            "project.json is malformed or schema-invalid"
+          ],
+          "when": "adv_status is executed",
+          "then": [
+            "Output includes a config error or warning recommendation",
+            "The command does not fail hard due to config parse issues"
+          ]
+        },
+        {
+          "id": "rq-advcfg01.2",
+          "title": "Feature flags are visible in status output",
+          "given": [
+            "project.json parses successfully"
+          ],
+          "when": "adv_status is executed",
+          "then": [
+            "Output includes feature_flags values",
+            "Defaults are applied when flags are omitted"
+          ]
+        }
+      ],
+      "meta": {
+        "merged_from": "advance"
+      }
+    },
+    {
+      "id": "rq-advmeta01",
+      "title": "Task Metadata Filter Semantics",
+      "body": "Tasks may include optional metadata key/value pairs. adv_task_list must support has_metadata_key:<key> and metadata:<key>=<value> filters with behavior aligned between workflow-owned source-of-truth state and any derived query or index surface.",
+      "priority": "must",
+      "scenarios": [
+        {
+          "id": "rq-advmeta01.1",
+          "title": "Filter by metadata key",
+          "given": [
+            "A change with tasks containing metadata keys"
+          ],
+          "when": "adv_task_list is called with filter has_metadata_key:<key>",
+          "then": [
+            "Only tasks containing that metadata key are returned"
+          ]
+        },
+        {
+          "id": "rq-advmeta01.2",
+          "title": "Filter by metadata key/value",
+          "given": [
+            "A change with tasks containing metadata key/value pairs"
+          ],
+          "when": "adv_task_list is called with filter metadata:<key>=<value>",
+          "then": [
+            "Only tasks matching both key and value are returned"
+          ]
+        }
+      ],
+      "meta": {
+        "merged_from": "advance"
+      }
+    },
+    {
+      "id": "rq-advshut1",
+      "title": "Bounded Signal Flush on Shutdown",
+      "body": "On SIGINT/SIGTERM, the plugin must run a bounded flush path before close, with idempotent/reentrant handling so duplicate signals cannot trigger multiple concurrent flush sequences.",
+      "priority": "must",
+      "scenarios": [
+        {
+          "id": "rq-advshut1.1",
+          "title": "Signal performs bounded flush",
+          "given": [
+            "The process receives SIGINT or SIGTERM"
+          ],
+          "when": "Shutdown handling begins",
+          "then": [
+            "store.flush is attempted before store.close",
+            "A hard timeout bounds flush duration"
+          ]
+        },
+        {
+          "id": "rq-advshut1.2",
+          "title": "Duplicate signals are idempotent",
+          "given": [
+            "A shutdown flush is already in progress"
+          ],
+          "when": "A second SIGINT/SIGTERM is received",
+          "then": [
+            "No second flush path starts",
+            "Shutdown remains deterministic"
+          ]
+        }
+      ],
+      "meta": {
+        "merged_from": "advance"
+      }
+    },
+    {
+      "id": "rq-advprop01",
+      "title": "Durable Proposal Context for adv-task",
+      "body": "After Quick Contract confirmation, /adv-task must always persist contract context to proposal.md, and downstream workflows must tolerate missing/empty legacy proposal files via scaffold fallback warnings.",
+      "priority": "must",
+      "scenarios": [
+        {
+          "id": "rq-advprop01.1",
+          "title": "adv-task writes proposal by default",
+          "given": [
+            "A Quick Contract is confirmed in /adv-task"
+          ],
+          "when": "The change is created",
+          "then": [
+            "proposal.md is written in the change directory",
+            "The file includes intent, scope, and success criteria"
+          ]
+        },
+        {
+          "id": "rq-advprop01.2",
+          "title": "Legacy missing proposal is non-blocking",
+          "given": [
+            "A legacy change has missing or empty proposal.md"
+          ],
+          "when": "Proposal context is loaded",
+          "then": [
+            "A scaffold proposal is generated",
+            "A non-blocking warning is emitted"
+          ]
+        }
+      ],
+      "meta": {
+        "merged_from": "advance"
+      }
+    },
+    {
+      "id": "rq-advprop02",
+      "title": "Problem Statement Agreement for adv-proposal",
+      "body": "/adv-proposal must extract prior discussion context (decisions, rejected approaches, constraints, open questions) from the conversation before synthesizing a problem statement, confirm it via the question tool before creating any change artifacts, and persist the confirmed text (including prior decisions and rejected approaches) as the opening section of proposal.md via the proposal parameter in adv_change_create. The problem statement must not contradict, omit, or reinterpret any prior decision or constraint from the conversation.",
+      "priority": "must",
+      "tags": [
+        "proposal",
+        "context-agreement",
+        "transcript-grounding"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-advprop02.1",
+          "title": "Prior discussion context extracted before synthesis",
+          "given": [
+            "A user invokes /adv-proposal after a conversation containing decisions, constraints, or rejected approaches"
+          ],
+          "when": "Phase 1 begins",
+          "then": [
+            "The agent extracts agreed facts, decisions made, rejected approaches, open questions, and constraints stated from the conversation",
+            "Empty categories are listed as 'None identified' rather than omitted",
+            "No decisions or constraints are fabricated that were not explicitly discussed"
+          ]
+        },
+        {
+          "id": "rq-advprop02.2",
+          "title": "Problem statement grounded in prior discussion",
+          "given": [
+            "Prior discussion context has been extracted"
+          ],
+          "when": "The problem statement is synthesized",
+          "then": [
+            "The problem statement includes Prior Decisions, Rejected Approaches, and Open Questions sections",
+            "The problem statement does not contradict any extracted agreed fact",
+            "The problem statement does not reintroduce any rejected approach as a proposed solution",
+            "The problem statement does not ignore any stated constraint"
+          ]
+        },
+        {
+          "id": "rq-advprop02.3",
+          "title": "Drift detection in confirmation",
+          "given": [
+            "A problem statement block is shown to the user"
+          ],
+          "when": "The user reviews it via inline handoff text per docs/command-voice-standard.md \u00a7 Inline Approval Voice (Tier A)",
+          "then": [
+            "The presentation explicitly asks the user to check Prior Decisions and Rejected Approaches for accuracy",
+            "A 'Drift detected' reply path is documented for the user to flag discrepancies (free-form revise reply or explicit drift wording)",
+            "If drift is detected, the agent re-extracts and re-synthesizes before proceeding"
+          ]
+        },
+        {
+          "id": "rq-advprop02.4",
+          "title": "Confirmed problem statement persisted in proposal.md",
+          "given": [
+            "The user confirms the problem statement in Phase 1"
+          ],
+          "when": "The change is created in Phase 2",
+          "then": [
+            "adv_change_create is called with the proposal parameter containing the confirmed text",
+            "proposal.md includes the confirmed problem statement as the Why section",
+            "proposal.md includes a Constraints from Discussion section with prior decisions and rejected approaches"
+          ]
+        },
+        {
+          "id": "rq-advprop02.5",
+          "title": "Abort path creates no artifacts",
+          "given": [
+            "The user selects Abort during Phase 1 confirmation"
+          ],
+          "when": "The command exits",
+          "then": [
+            "No change.json is created",
+            "No proposal.md is created",
+            "No tasks are added"
+          ]
+        },
+        {
+          "id": "rq-advprop02.6",
+          "title": "Confirmed problem statement persisted as standalone artifact",
+          "given": [
+            "The user confirms the problem statement in Phase 1"
+          ],
+          "when": "The change is created in Phase 2",
+          "then": [
+            "adv_change_create is called with the problemStatement parameter containing the confirmed problem statement text",
+            "A problem-statement.md file is written to the change directory as a sibling of proposal.md",
+            "The problem-statement.md content exactly matches the confirmed text (no template wrapping)",
+            "The tool output includes problemStatementPath pointing to the artifact",
+            "When the change is archived, problem-statement.md is preserved in the archive directory"
+          ]
+        }
+      ],
+      "meta": {
+        "merged_from": "advance"
+      }
+    },
+    {
+      "id": "rq-slopscan01",
+      "title": "Defensive and Nesting Slop Detection",
+      "body": "/adv-slop-scan must detect overly defensive code (redundant guard chains, paranoid null checks, unreachable fallback branches) and deeply nested code (nesting depth >= configured threshold) using AST-first analysis with deterministic degraded fallback when AST tools are unavailable. Findings must include structured diagnostic fields in all output formats.",
+      "priority": "must",
+      "tags": [
+        "slop-scan",
+        "quality",
+        "ast"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-slopscan01.1",
+          "title": "Deep nesting detected via AST",
+          "given": [
+            "A source file containing a function with nesting depth >= nesting_depth_threshold (default 4)",
+            "An AST analysis tool (ESLint, radon, or gocyclo) is available"
+          ],
+          "when": "/adv-slop-scan is run on the file",
+          "then": [
+            "A finding is emitted with smell ID MAINT-004",
+            "The finding includes nestingDepth, complexity, confidence, and detectionMethod fields",
+            "detectionMethod is 'ast'"
+          ]
+        },
+        {
+          "id": "rq-slopscan01.2",
+          "title": "Defensive overkill detected",
+          "given": [
+            "A source file containing a function with >= defensive_guard_threshold (default 3) redundant guard patterns on the same value"
+          ],
+          "when": "/adv-slop-scan is run on the file",
+          "then": [
+            "A finding is emitted with smell ID QUAL-011",
+            "The finding includes confidence and detectionMethod fields",
+            "Severity is at least medium"
+          ]
+        },
+        {
+          "id": "rq-slopscan01.3",
+          "title": "Degraded fallback annotated when AST unavailable",
+          "given": [
+            "No AST analysis tool is installed for the detected language"
+          ],
+          "when": "/adv-slop-scan is run",
+          "then": [
+            "Nesting detection falls back to brace/indent counter",
+            "Findings from fallback include detectionMethod: 'degraded'",
+            "Report annotates affected findings with [DEGRADED: AST tool unavailable]"
+          ]
+        },
+        {
+          "id": "rq-slopscan01.4",
+          "title": "Project threshold overrides respected",
+          "given": [
+            "project.json contains features.slop_scan.nesting_depth_threshold: 6"
+          ],
+          "when": "/adv-slop-scan is run",
+          "then": [
+            "Functions with nesting depth 4 or 5 are NOT flagged",
+            "Functions with nesting depth >= 6 ARE flagged"
+          ]
+        },
+        {
+          "id": "rq-slopscan01.5",
+          "title": "Clean code produces no false positives",
+          "given": [
+            "A source file with a single null check and a single try/catch block"
+          ],
+          "when": "/adv-slop-scan is run",
+          "then": [
+            "No QUAL-011 or MAINT-004 findings are emitted for that file"
+          ]
+        }
+      ],
+      "meta": {
+        "merged_from": "advance"
+      }
+    },
+    {
+      "id": "rq-dueDiligence01",
+      "title": "Source-Appropriate Due Diligence for Unknown Capability Questions",
+      "body": "ADV-managed guidance (orchestrator agent text, synced overlays, and accompanying drift tests) must require source-appropriate due diligence before answering, recommending, or deciding on unknown platform, architecture, or capability questions. Diligence may use any appropriate mix of evidence sources (local code via lgrep/read, repo history or repo examples, GitHub examples, official docs, web research, or similar); the evidence bar is not a fixed source stack. Requests like \"quick answer\", \"from your knowledge\", or \"don't research\" may change response brevity only and must not lower the evidence bar. If required diligence cannot be completed, the response must stop and surface the blockage instead of presenting an unverified recommendation as settled.",
+      "priority": "must",
+      "tags": [
+        "research",
+        "due-diligence",
+        "routing",
+        "guidance"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-dueDiligence01.1",
+          "title": "Unknown capability question triggers source-appropriate diligence",
+          "given": [
+            "An unknown platform, architecture, or capability question is posed to an ADV-managed agent"
+          ],
+          "when": "The agent prepares an answer, recommendation, or decision",
+          "then": [
+            "The agent gathers source-appropriate evidence before answering",
+            "Evidence may come from local code inspection, repo history or repo examples, GitHub examples, official docs, web research, or other relevant sources chosen to fit the question",
+            "No carve-out permits skipping diligence on the basis that the question is local, short, or familiar"
+          ]
+        },
+        {
+          "id": "rq-dueDiligence01.2",
+          "title": "Quick-answer requests change brevity only",
+          "given": [
+            "The user requests a \"quick answer\", asks \"from your knowledge\", or says \"don't research\"",
+            "The question still requires due diligence under rq-dueDiligence01.1"
+          ],
+          "when": "The agent responds",
+          "then": [
+            "The response may be shortened or compressed",
+            "The evidence bar is not lowered; diligence is still performed before recommending or deciding"
+          ]
+        },
+        {
+          "id": "rq-dueDiligence01.3",
+          "title": "Blocked diligence stops and surfaces the blockage",
+          "given": [
+            "Required diligence cannot be completed (for example: docs, research tools, or evidence sources are unavailable)"
+          ],
+          "when": "The agent would otherwise present a directional answer or recommendation",
+          "then": [
+            "The agent stops instead of presenting an unverified direction as settled",
+            "The response surfaces the specific blockage or missing evidence",
+            "No carve-out permits proceeding with an unverified recommendation"
+          ]
+        },
+        {
+          "id": "rq-dueDiligence01.4",
+          "title": "Guidance surfaces and drift tests encode the rule",
+          "given": [
+            "The repo contains ADV orchestrator agent text, synced overlays, and routing asset tests"
+          ],
+          "when": "Those surfaces are inspected",
+          "then": [
+            "The ADV agent and plan agent sources describe due-diligence-first routing for unknown capability questions",
+            "The synced overlays (adv.overlay.md, plan.overlay.md) carry the same rule",
+            "Regression tests fail if the legacy carve-out-first wording returns"
+          ]
+        }
+      ],
+      "meta": {
+        "merged_from": "advance"
+      }
+    }
+  ]
+}

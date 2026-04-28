@@ -25,7 +25,7 @@ const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const COMMANDS_DIR = join(REPO_ROOT, ".opencode", "command");
 const AGENTS_DIR = join(REPO_ROOT, ".opencode", "agents");
 const DOCS_DIR = join(REPO_ROOT, "docs");
-const SPECS_DIR = join(REPO_ROOT, ".adv", "specs", "advance");
+const SPECS_DIR = join(REPO_ROOT, ".adv", "specs", "advance-workflow");
 
 interface HandoffCommand {
   file: string;
