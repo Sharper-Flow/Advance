@@ -256,7 +256,9 @@ describe("formatContextSnapshot — approval_mode autopilot display", () => {
       approval_mode: "autopilot",
       autopilot_invoked_at: "2026-04-28T22:00:00.000Z",
     });
-    expect(output).toContain("Mode: autopilot (since 2026-04-28T22:00:00.000Z)");
+    expect(output).toContain(
+      "Mode: autopilot (since 2026-04-28T22:00:00.000Z)",
+    );
   });
 
   test("omits Mode line when approval_mode is not set", () => {

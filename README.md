@@ -125,6 +125,7 @@ When a change has multiple viable directions with real user-value tradeoffs, pri
 | `/adv-prep`       | Analyze gaps and synthesize tasks from validated research findings                                   |
 | `/adv-apply`      | Implement change with TDD, retry on failure, and final verification                                  |
 | `/adv-task`       | Fast-track a discussed change: synthesize contract, validate best practices, prep, and hand off      |
+| `/adv-autopilot`  | Delegate routine checkpoints to the agent, stop only on safety boundaries                             |
 | `/adv-review`     | Review code for correctness, security, and architecture; emit REVIEW_FINDINGS                        |
 | `/adv-harden`     | Detect low-quality code, verify test coverage, clean up; block archive on open findings              |
 | `/adv-audit`      | Detect drift between specs and current implementation                                                |

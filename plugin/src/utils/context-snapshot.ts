@@ -253,10 +253,7 @@ export function formatContextSnapshot(input: ContextSnapshotInput): string {
   }
 
   // Build content lines — budget management to stay within 10 lines
-  const lines: string[] = [
-    `CONTEXT: ${changeId}`,
-    title,
-  ];
+  const lines: string[] = [`CONTEXT: ${changeId}`, title];
 
   // Autopilot mode indicator
   if (input.approval_mode === "autopilot" && input.autopilot_invoked_at) {
