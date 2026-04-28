@@ -141,6 +141,44 @@ describe("RequirementSchema", () => {
     expect(result.tags).toEqual(["security", "auth"]);
     expect(result.scenarios).toHaveLength(1);
   });
+
+  test("accepts optional meta.merged_from for audit trail", () => {
+    const req = {
+      id: "rq-abc12345",
+      title: "Test Requirement",
+      body: "This is the body",
+      priority: "must",
+      meta: {
+        merged_from: "contract-system/rq-renameop",
+      },
+    };
+    const result = RequirementSchema.parse(req);
+    expect(result.meta?.merged_from).toBe("contract-system/rq-renameop");
+  });
+
+  test("rejects non-string meta.merged_from", () => {
+    const req = {
+      id: "rq-abc12345",
+      title: "Test Requirement",
+      body: "This is the body",
+      priority: "must",
+      meta: {
+        merged_from: 123,
+      },
+    };
+    expect(() => RequirementSchema.parse(req)).toThrow();
+  });
+
+  test("accepts requirement without meta field", () => {
+    const req = {
+      id: "rq-abc12345",
+      title: "Test Requirement",
+      body: "This is the body",
+      priority: "must",
+    };
+    const result = RequirementSchema.parse(req);
+    expect(result.meta).toBeUndefined();
+  });
 });
 
 describe("SpecSchema", () => {

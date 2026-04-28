@@ -54,6 +54,12 @@ export const RequirementSchema = z
     priority: PrioritySchema,
     tags: z.array(z.string()).optional(),
     scenarios: z.array(ScenarioSchema).optional(),
+    // Audit-trail metadata for moved/merged requirements.
+    meta: z
+      .object({
+        merged_from: z.string(), // e.g., "contract-system/rq-renameop"
+      })
+      .optional(),
   })
   .passthrough(); // Allow extra fields for forward/backward compatibility
 
