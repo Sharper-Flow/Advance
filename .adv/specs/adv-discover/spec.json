@@ -546,6 +546,172 @@
           ]
         }
       ]
+    },
+    {
+      "id": "rq-sc01",
+      "title": "Skill Gap Detection",
+      "body": "When `/adv-discover` or `/adv-research` Phase 1.5 skill discovery finds no matching skill for a domain relevant to the change's core problem, the agent MUST explicitly report the gap and MAY initiate on-demand skill creation.",
+      "priority": "must",
+      "tags": [
+        "skill-creation",
+        "gap-detection",
+        "phase-1.5"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-sc01.1",
+          "title": "Gap detected for core-relevant domain",
+          "given": [
+            "Phase 1.5 skill discovery completes with no matching skill",
+            "The change's tech stack or domain terms suggest a skill would be useful",
+            "The domain is clearly relevant to the change's core problem"
+          ],
+          "when": "The agent evaluates skill search results",
+          "then": [
+            "The agent reports the gap in Skills Considered with \"skill gap: {domain}\"",
+            "The agent may proceed to skill creation"
+          ]
+        },
+        {
+          "id": "rq-sc01.2",
+          "title": "Partial match does not trigger creation",
+          "given": [
+            "Phase 1.5 finds a partial keyword match in an existing skill",
+            "The existing skill partially covers the detected domain"
+          ],
+          "when": "The agent evaluates skill search results",
+          "then": [
+            "The agent reports \"partial coverage: {existing skill}\" in Skills Considered",
+            "The agent does NOT create a new skill for the partially covered domain"
+          ]
+        },
+        {
+          "id": "rq-sc01.3",
+          "title": "Tangential domain does not trigger creation",
+          "given": [
+            "Phase 1.5 finds no matching skill for a domain",
+            "The domain is tangential to the change's core problem"
+          ],
+          "when": "The agent evaluates skill search results",
+          "then": [
+            "The agent reports \"no skills matched\" as normal",
+            "The agent does NOT create a skill for tangential domains"
+          ]
+        }
+      ],
+      "meta": {
+        "merged_from": "skill-creation.md"
+      }
+    },
+    {
+      "id": "rq-sc02",
+      "title": "Skill Assembly and Persistence",
+      "body": "Auto-created skills MUST use valid SKILL.md frontmatter format, MUST NOT use the `adv-` prefix (sync script collision), and MUST be written atomically to the global skills directory.",
+      "priority": "must",
+      "tags": [
+        "skill-creation",
+        "assembly",
+        "persistence"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-sc02.1",
+          "title": "Valid frontmatter format",
+          "given": [
+            "The agent decides to create a skill for domain X"
+          ],
+          "when": "The agent assembles the SKILL.md",
+          "then": [
+            "The file has valid YAML frontmatter with `name: \"agent-{domain}\"`, `description`, `keywords`",
+            "The file includes `metadata.source: \"agent-created\"`",
+            "The file includes `metadata.review_status: \"pending\"`",
+            "The file includes `metadata.created_at` with ISO timestamp",
+            "The file includes `metadata.trigger_change` with the originating change ID",
+            "The skill name does NOT start with `adv-`"
+          ]
+        },
+        {
+          "id": "rq-sc02.2",
+          "title": "Atomic write with skip-if-exists",
+          "given": [
+            "An auto-created skill is ready to persist"
+          ],
+          "when": "The agent writes to `~/.config/opencode/skills/agent-{domain}/SKILL.md`",
+          "then": [
+            "The write is atomic (temp+rename or equivalent)",
+            "If a file already exists at the target path, the agent skips creation and reports \"skill already exists: agent-{domain}\""
+          ]
+        },
+        {
+          "id": "rq-sc02.3",
+          "title": "Overlap detection",
+          "given": [
+            "A skill with the same name already exists in the global dir"
+          ],
+          "when": "The agent attempts creation",
+          "then": [
+            "The agent skips creation and reports \"skill already exists: {name}\"",
+            "The existing skill is NOT overwritten"
+          ]
+        }
+      ],
+      "meta": {
+        "merged_from": "skill-creation.md"
+      }
+    },
+    {
+      "id": "rq-sc03",
+      "title": "Use-and-Notify Pattern",
+      "body": "After creating a skill, the agent MUST load it via `skill()`, use it in the current workflow, and emit `[ADV:SKILL_CREATED]` notification.",
+      "priority": "must",
+      "tags": [
+        "skill-creation",
+        "notification",
+        "status-marker"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-sc03.1",
+          "title": "Skill loaded and used after creation",
+          "given": [
+            "A skill was successfully written to the global skills dir"
+          ],
+          "when": "The agent continues the current workflow",
+          "then": [
+            "`skill(\"agent-{domain}\")` is called",
+            "The skill's guidance is applied in the current workflow"
+          ]
+        },
+        {
+          "id": "rq-sc03.2",
+          "title": "Notification emitted",
+          "given": [
+            "A skill was created during discovery or research"
+          ],
+          "when": "The workflow continues after creation",
+          "then": [
+            "`[ADV:SKILL_CREATED]` marker is emitted",
+            "The notification includes the skill name, domain, and a brief description"
+          ]
+        },
+        {
+          "id": "rq-sc03.3",
+          "title": "Pending review surfaced on next discovery",
+          "given": [
+            "A skill exists in the global dir with `metadata.review_status: \"pending\"`"
+          ],
+          "when": "A subsequent `/adv-discover` Phase 1.5 runs",
+          "then": [
+            "Phase 1.5 scans for pending-review skills BEFORE keyword matching",
+            "Pending skills are surfaced to the user for confirmation",
+            "User confirms \u2192 `metadata.review_status` updated to \"reviewed\"",
+            "User rejects \u2192 skill file deleted"
+          ]
+        }
+      ],
+      "meta": {
+        "merged_from": "skill-creation.md"
+      }
     }
   ]
 }
