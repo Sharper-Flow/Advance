@@ -16,10 +16,9 @@ function readAsset(path: string): string {
 // =============================================================================
 
 describe("Human checkpoint and auto-continue policy", () => {
-  test("ADV_INSTRUCTIONS.md contains Human Checkpoints section", () => {
-    const content = readAsset(INSTRUCTIONS);
-    expect(content).toContain("### Human Checkpoints (Pause Required)");
-  });
+  // Heuristic-drift heading assertions removed per T1.5 audit
+  // (`adv-autonomy-quality-assets.test.ts` H-class). Canonical-list V
+  // assertions retained below.
 
   test("ADV_INSTRUCTIONS.md lists required human checkpoints", () => {
     const content = readAsset(INSTRUCTIONS);
@@ -32,15 +31,13 @@ describe("Human checkpoint and auto-continue policy", () => {
     expect(content).toMatch(/Doom-loop recovery/);
   });
 
-  test("ADV_INSTRUCTIONS.md contains Post-Approval Auto-Continue Rule", () => {
+  test("ADV_INSTRUCTIONS.md preserves auto-continue anti-pattern", () => {
     const content = readAsset(INSTRUCTIONS);
-    expect(content).toContain("### Post-Approval Auto-Continue");
     expect(content).toMatch(/No "shall I proceed\?"/);
   });
 
-  test("adv.md orchestrator names pause vs auto-continue", () => {
+  test("adv.md orchestrator names checkpoint canonical list", () => {
     const content = readAsset(join(AGENT_DIR, "adv.md"));
-    expect(content).toContain("Human Checkpoints vs Auto-Continue");
     expect(content).toMatch(/Proposal confirmation/);
     expect(content).toMatch(/Agreement sign-off/);
     expect(content).toMatch(/Cancellation approval/);
@@ -54,46 +51,31 @@ describe("Human checkpoint and auto-continue policy", () => {
 // =============================================================================
 
 describe("Validated in-scope remediation policy", () => {
-  test("ADV_INSTRUCTIONS.md contains remediation policy", () => {
+  // Heuristic-drift heading and topic-presence assertions removed per
+  // T1.5 audit. Anti-pattern × assertions and canonical-policy V
+  // assertions retained.
+
+  test("ADV_INSTRUCTIONS.md preserves remediation anti-patterns", () => {
     const content = readAsset(INSTRUCTIONS);
-    expect(content).toContain("### Validated In-Scope Remediation Policy");
     expect(content).toMatch(/No report-only/);
     expect(content).toMatch(/future-work/);
   });
 
-  test("adv-harden.md does NOT offer Report only for in-scope findings", () => {
+  test("adv-harden.md forbids Report only / accepted-debt anti-patterns", () => {
     const content = readAsset(join(COMMAND_DIR, "adv-harden.md"));
-    // The old wording "Report only" should no longer appear as an option
     expect(content).not.toMatch(/Report only/);
-  });
-
-  test("adv-harden.md does NOT allow accepted debt for validated in-scope findings", () => {
-    const content = readAsset(join(COMMAND_DIR, "adv-harden.md"));
     expect(content).not.toMatch(/documented as accepted debt/i);
     expect(content).not.toMatch(/accepted debt:/i);
     expect(content).not.toMatch(/fix or document as accepted debt/i);
     expect(content).toMatch(
       /No report-only, future-work, or accepted-debt path/i,
     );
-  });
-
-  test("adv-harden.md requires fixing validated in-scope findings", () => {
-    const content = readAsset(join(COMMAND_DIR, "adv-harden.md"));
     expect(content).toMatch(/fix all validated in-scope findings/i);
   });
 
-  test("adv-review.md forbids future-work deferral for validated findings", () => {
+  test("adv-review.md forbids future-work deferral and accepted_debt", () => {
     const content = readAsset(join(COMMAND_DIR, "adv-review.md"));
     expect(content).toMatch(/no future-work deferral/i);
-  });
-
-  test("adv-review.md requires implementing validated in-scope suggestions", () => {
-    const content = readAsset(join(COMMAND_DIR, "adv-review.md"));
-    expect(content).toMatch(/validated in-scope/i);
-  });
-
-  test("adv-review.md REVIEW_FINDINGS template does not use accepted_debt", () => {
-    const content = readAsset(join(COMMAND_DIR, "adv-review.md"));
     expect(content).not.toMatch(/accepted_debt/);
     expect(content).toMatch(/rejected_with_evidence/);
   });
@@ -104,49 +86,29 @@ describe("Validated in-scope remediation policy", () => {
 // =============================================================================
 
 describe("Touched-scope quality ownership", () => {
-  test("ADV_INSTRUCTIONS.md contains touched-scope ownership section", () => {
+  // Heuristic-drift heading exact-match assertions removed per T1.5 audit.
+  // Canonical-list V phrases (3 scope categories) and anti-pattern × phrases
+  // for ralph-loop restoration retained.
+
+  test("ADV_INSTRUCTIONS.md preserves 3 touched-scope categories", () => {
     const content = readAsset(INSTRUCTIONS);
-    expect(content).toContain("### Touched-Scope Quality Ownership");
     expect(content).toMatch(/Directly touched implementation files/);
     expect(content).toMatch(/Adjacent tests and docs/);
     expect(content).toMatch(/Same-pattern local subsystem issues/);
+    expect(content).toMatch(/Do NOT expand into implicit repo-wide refactors/);
   });
 
-  test("adv-prep.md requires touched-scope tasks", () => {
+  test("adv-prep.md preserves touched-scope categories", () => {
     const content = readAsset(join(COMMAND_DIR, "adv-prep.md"));
-    expect(content).toContain("Touched-Scope Quality Ownership");
     expect(content).toMatch(/Adjacent tests and docs/);
     expect(content).toMatch(/Same-pattern local subsystem issues/);
   });
 
-  test("adv-apply.md verifies touched-scope obligations", () => {
-    const content = readAsset(join(COMMAND_DIR, "adv-apply.md"));
-    expect(content).toMatch(/touched-scope/i);
-  });
-
-  test("adv-apply.md forbids 'Shall I continue' prompt between tasks", () => {
-    // Ralph-loop restoration: agent must not pause to ask permission
-    // between task boundaries. See rq-autonomy01.4.
+  test("adv-apply.md ralph-loop restoration anti-patterns + MUST-continue (rq-autonomy01.4)", () => {
     const content = readAsset(join(COMMAND_DIR, "adv-apply.md"));
     expect(content).not.toMatch(/Shall I continue/i);
-  });
-
-  test("adv-apply.md forbids 'Task N of M complete, continue?' pattern", () => {
-    // Ralph-loop restoration: progress-display pauses are forbidden.
-    const content = readAsset(join(COMMAND_DIR, "adv-apply.md"));
     expect(content).not.toMatch(/Task \d+ of \d+ complete[^\n]*continue/i);
-  });
-
-  test("adv-apply.md declares explicit MUST-continue directive", () => {
-    // Ralph-loop restoration: positive affirmation that loop auto-continues
-    // through task boundaries until allowed exit condition reached.
-    const content = readAsset(join(COMMAND_DIR, "adv-apply.md"));
     expect(content).toMatch(/MUST continue|MUST NOT pause/);
-  });
-
-  test("ownership boundary prevents repo-wide expansion", () => {
-    const content = readAsset(INSTRUCTIONS);
-    expect(content).toMatch(/Do NOT expand into implicit repo-wide refactors/);
   });
 });
 

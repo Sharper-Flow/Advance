@@ -165,9 +165,12 @@ describe("adv-improve research pack persistence contract", () => {
     expect(content).toMatch(/update in place|overwrites|refresh/i);
   });
 
-  test("output block surfaces the research pack path", () => {
+  test("doc surfaces the research pack path format", () => {
+    // Anti-drift: research-pack file path format is documented (was previously
+    // asserted via the /adv-improve COMPLETE trailer line; trailer removed in
+    // T3 prose-reduction, assertion broadened to match doc-body references).
     const content = readFileSync(COMMAND_PATH, "utf8");
-    expect(content).toMatch(/Research Pack:[^\n]*docs\/[^\n]*prep\.md/);
+    expect(content).toMatch(/docs\/[^\n]*prep\.md/);
   });
 });
 
