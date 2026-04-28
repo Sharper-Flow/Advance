@@ -73,6 +73,8 @@ function loadAllSpecs(): SpecFile[] {
  * Returns a Set of IDs that have at least one external citation.
  */
 function findCitedRequirements(reqIds: string[]): Set<string> {
+  if (reqIds.length === 0) return new Set<string>();
+
   const searchPaths = [
     "plugin/src",
     ".opencode",
@@ -85,8 +87,8 @@ function findCitedRequirements(reqIds: string[]): Set<string> {
 
   const excludeGlobs = ["docs/specs/*.md"];
 
-  // Use ripgrep to find which IDs appear anywhere in citation sources
-  // Build a regex that matches any of the requirement IDs as whole words
+  // Use ripgrep to find which IDs appear anywhere in citation sources.
+  // Build one alternation regex so we only spawn a single process.
   const pattern = reqIds
     .map((id) => id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
     .join("|");
@@ -113,9 +115,17 @@ function findCitedRequirements(reqIds: string[]): Set<string> {
       if (trimmed) cited.add(trimmed);
     }
     return cited;
-  } catch (err: unknown) {
-    // rg exits 1 when no matches at all — return empty set
-    return new Set<string>();
+  } catch (error: unknown) {
+    // rg exits 1 when no matches at all — return empty set.
+    // Any other failure is infrastructure/tooling failure and should fail loudly.
+    const status =
+      typeof error === "object" && error !== null && "status" in error
+        ? (error as { status?: number }).status
+        : undefined;
+
+    if (status === 1) return new Set<string>();
+
+    throw error;
   }
 }
 
@@ -172,13 +182,14 @@ describe("spec citation invariant", () => {
     expect(uncited).toHaveLength(0);
   }, 30_000);
 
-  test("total requirement count is stable", () => {
-    // Guardrail: alert if requirement count changes significantly
-    // Current count: 88 across 10 capabilities
+  test("requirement count does not shrink unexpectedly", () => {
+    // Guardrail: alert if capabilities/requirements disappear unexpectedly.
+    // New cited requirements are allowed; the citation invariant above catches
+    // new uncited requirements.
     const totalReqs = allRequirements.length;
     const specCount = specs.length;
 
-    expect(specCount).toBe(10);
-    expect(totalReqs).toBe(88);
+    expect(specCount).toBeGreaterThanOrEqual(10);
+    expect(totalReqs).toBeGreaterThanOrEqual(88);
   });
 });
