@@ -57,18 +57,18 @@ Inventory rows are at H2-section granularity. Within each section, T2/T3/T4/T5 d
 | ### Reflection Protocol (259–280) | 21 | partial | `adv_reflect` tool | Tool records report; agent decides when/how to interpret | T4 | pending |
 | ### Task Checkpoint Commits (281–323) | 42 | full | `adv_task_checkpoint`, `plugin/src/checkpoint-surface-drift.test.ts` | — | T2 | pending |
 | ### Doom Loop Detection (324–339) | 15 | partial | `plugin/src/utils/tool-formatters.ts` (formatDoomLoopDiagnostics) | Format encoded; retry budget is convention | T4 | pending |
-| ### Investment Check-In (340–343) | 3 | full | `adv_investment_report`, `skills/adv-cost-governance-methodology` | — | T2 | pending |
+| ### Investment Check-In (340–343) | 3 | full | `adv_investment_report`, `skills/adv-cost-governance-methodology` | — | T2 | already-compliant (3 lines, already minimal) |
 | ### Cross-Repo Execution (344–362) | 18 | inherent | (workdir param exists; routing is judgment) | Agent decides when to switch | T5 | pending |
-| ### Cancellation Policy (363–368) | 5 | full | `adv_task_cancel` (requires approvedByUser) | — | T2 | pending |
+| ### Cancellation Policy (363–368) | 5 | full | `adv_task_cancel` (requires approvedByUser) | — | T2 | already-compliant (5 lines, already minimal) |
 | ### Large-Scope Validity (369–388) | 19 | inherent | — | Pure agent judgment | T5 | pending |
 | ### Task Status Report (389–392) | 3 | inherent | — | Pure agent emission | T5 | pending |
 | ### Post-Remediation Re-Verification (393–396) | 3 | inherent | — | Agent process | T5 | pending |
 | ### Validated In-Scope Remediation Policy (397–400) | 3 | inherent | — | Agent judgment | T5 | pending |
 | ### Touched-Scope Quality Ownership (401–410) | 9 | inherent | — | Agent judgment (P23 + P25 in rules.yaml) | T5 | pending |
 | ### Ambiguity Taxonomy (411–481) | 70 | partial | `plugin/src/validator/clarify-readiness.ts` (6 of 11 categories) | clarify-readiness covers smell detection; full taxonomy is agent classification | T4 | pending |
-| ## 7-Gate Quality Checklist (482–501) | 19 | full | `adv_gate_complete` (sequential enforcement), `plugin/src/types.ts` GATE_ORDER | — | T2 | pending |
+| ## 7-Gate Quality Checklist (482–501) | 19 | full | `adv_gate_complete` (sequential enforcement), `plugin/src/types.ts` GATE_ORDER | — | T2 | already-compliant |
 | ## Command Execution Model (502–579) | 77 | partial | `plugin/src/guards/task.ts` (depth=1) | Guard enforces nesting; rest is agent process | T4 | pending |
-| ## Sub-Agent Selection (580–608) | 28 | full | `plugin/src/guards/task.ts` (enforceTaskPolicy) | — | T2 | pending |
+| ## Sub-Agent Selection (580–608) | 28 | full | `plugin/src/guards/task.ts` (enforceTaskPolicy), `adv-command-routing-assets.test.ts` (V phrases: tier↔agent mapping) | — | T2 | already-compliant (tables ARE the constraint; only prose blockquotes compressible) |
 | ## Skill Discovery Protocol (609–628) | 19 | inherent | — | Agent file-system search behavior | T5 | pending |
 | ## Skill Creation Protocol (629–695) | 66 | inherent | — | Agent assembly process; template only | T5 | pending |
 | ## Command vs Skill Boundaries (696–753) | 57 | inherent | — | Architecture documentation; classification table | T5 | pending |
@@ -372,16 +372,28 @@ This honors UD4's spirit (eliminate prose-policing maintenance burden) while pro
 
 ---
 
-## Summary
+## Summary (revised post-execution)
 
-| Class | Section count (approx) | Total lines | Pass owner |
-|---|---|---|---|
-| **full** (pointer + table) | 22 | ~700 | T2 (ADV_INSTR + adv.md), T3 (voice canon + commands) |
-| **partial** (pointer + table + gap) | 18 | ~1,400 | T4 (all surfaces) |
-| **inherent** (structured template) | 35 | ~1,800 | T5 (all surfaces) |
-| frontmatter / out-of-scope | — | ~3,800 | n/a |
+| Class | Section count | Total lines | Pass owner | Realistic yield |
+|---|---|---|---|---|
+| **full** (pointer + table) | 22 | ~700 | T2 (ADV_INSTR + adv.md), T3 (voice canon + commands) | LOW — most ADV_INSTR `full` sections already KD2-compliant; main wins in voice canon + command docs |
+| **partial** (pointer + table + gap) | 18 | ~1,400 | T4 (all surfaces) | MEDIUM — paragraph explanations around tables can compress |
+| **inherent** (structured template) | 35 | ~1,800 | T5 (all surfaces) | HIGH — paragraph-heavy sections (TDD protocol, worktree, skill discovery) re-template to tables |
+| frontmatter / out-of-scope | — | ~3,800 | n/a | — |
 
-Total in-scope content: ~3,900 lines across ~75 sections. Compression target: pointer-line + table for `full` sections (typically 30→8 lines), pointer + table + gap for `partial` (typically 50→12 lines), structured template for `inherent` (typically 40→25 lines).
+Total in-scope content: ~3,900 lines across ~75 sections.
+
+**Practical compression yield (post-T1.5 audit + T2 reality check):**
+
+| Pass | Original estimate | Revised yield |
+|---|---|---|
+| T2 | ~150 lines | ~30-50 (most full sections already compliant) |
+| T3 | ~200 lines | ~150-200 (commands docs vary; voice canon has prose around tables) |
+| T4 | ~300 lines | ~150-200 (paragraph compression with V-phrase preservation) |
+| T5 | ~150 lines | ~150-250 (inherent has the largest re-template wins) |
+| **Total** | **~800 lines** | **~480-700 lines** |
+
+Plus ~165 H assertions (~30% of asset tests) removed in T6.
 
 ## Stop Condition (UD3)
 
