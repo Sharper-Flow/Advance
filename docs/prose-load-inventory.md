@@ -47,7 +47,7 @@ Inventory rows are at H2-section granularity. Within each section, T2/T3/T4/T5 d
 | ## Commands (99–145) | 46 | inherent | — | (reference table — kept as catalog) | T5 | pending |
 | ## Command Boundaries (146–160) | 14 | inherent | — | (boundary table — already in target form) | T5 | pending |
 | ## Status Markers (161–186) | 25 | partial | `plugin/src/utils/banner.ts`, `plugin/src/events/` | Format partially encoded; agent decides when to emit | T4 | pending |
-| ### Context Snapshot (177–186) | 9 | full | `plugin/src/utils/context-snapshot.ts` | — | T2 | pending |
+| ### Context Snapshot (177–186) | 9 | full | `plugin/src/utils/context-snapshot.ts` | — | T2 | already-compliant (9 lines, pointer + bullet summary) |
 | ### ADV State Access (189–207) | 18 | full | (× direct-read forbidden — runtime guard absent; prose-only enforcement) | NOTE: re-classify to `partial` — table mapping is enforceable but read-prevention is prose | T4 | pending |
 | ### ADV MCP Tool Invocation (P1.12) (209–219) | 10 | partial | `plugin/src/tools/*.ts` arg validators (Zod) | Schema enforces required args; relational constraints partly enforced via runtime checks | T4 | pending |
 | ### Question Tool UX (221–230) | 9 | inherent | (P26 in rules.yaml — user-managed) | Agent-side judgment | T5 | pending |
@@ -55,7 +55,7 @@ Inventory rows are at H2-section granularity. Within each section, T2/T3/T4/T5 d
 | ### Context Freshness (241–247) | 6 | full | `plugin/src/utils/context-snapshot.ts` (auto-emission triggers) | — | T2 | pending |
 | ### TDD Protocol (RSTC) (248–258) | 10 | inherent | `adv_run_test`, `adv_task_evidence` | Process is agent-driven; tools record evidence | T5 | pending |
 | ### Reflection Protocol (259–280) | 21 | partial | `adv_reflect` tool | Tool records report; agent decides when/how to interpret | T4 | pending |
-| ### Task Checkpoint Commits (281–323) | 42 | full | `adv_task_checkpoint`, `plugin/src/checkpoint-surface-drift.test.ts` | — | T2 | pending |
+| ### Task Checkpoint Commits (281–323) | 42 | full | `adv_task_checkpoint`, `plugin/src/checkpoint-surface-drift.test.ts` | — | T2 | already-compliant (mostly tabular: apply-loop table + failure classification table; anti-patterns are V phrases asserted by `adv-checkpoint-assets.test.ts`) |
 | ### Doom Loop Detection (324–339) | 15 | partial | `plugin/src/utils/tool-formatters.ts` (formatDoomLoopDiagnostics) | Format encoded; retry budget is convention | T4 | pending |
 | ### Investment Check-In (340–343) | 3 | full | `adv_investment_report`, `skills/adv-cost-governance-methodology` | — | T2 | already-compliant (3 lines, already minimal) |
 | ### Cross-Repo Execution (344–362) | 18 | inherent | (workdir param exists; routing is judgment) | Agent decides when to switch | T5 | pending |
@@ -99,18 +99,18 @@ Inventory rows are at H2-section granularity. Within each section, T2/T3/T4/T5 d
 | Section | Lines | Class | Code Reference | Gap Rationale | Pass | Status |
 |---|---|---|---|---|---|---|
 | (frontmatter, 1–104) | 104 | — | — | (config block; not subject to compression) | — | n/a |
-| ## ADV Overlay (105–110) | 5 | full | `plugin/src/guards/task.ts` (depth ≤ 1) | — | T2 | pending |
+| ## ADV Overlay (105–110) | 5 | full | `plugin/src/guards/task.ts` (depth ≤ 1) | — | T2 | already-compliant (5 lines, bullets) |
 | ## Voice Contract (111–116) | 5 | partial | `plugin/src/index.ts` PROVIDER_BEHAVIOR_HINTS | Provider hints; agent applies | T4 | pending |
 | ## Scope Validity (117–124) | 7 | inherent | — | Agent rule (post-prep no-split) | T5 | pending |
 | ## Collaborative Workflow (125–134) | 9 | partial | `adv_gate_complete` (machine-enforced for planning) | Other gates rely on agent | T4 | pending |
 | ## Slash Command Boundary (135–141) | 6 | inherent | — | Agent-side principle | T5 | pending |
 | ## Step 1: Understand Intent (142–158) | 16 | inherent | — | Routing table; agent decides | T5 | pending |
-| ## Step 2: Load State (159–167) | 8 | full | `adv_change_show`, `adv_gate_status` | — | T2 | pending |
-| ## Step 3: Gate Machine (168–224) | 56 | full | `adv_gate_complete` (sequence enforcement) | — | T2 | pending |
+| ## Step 2: Load State (159–167) | 8 | full | `adv_change_show`, `adv_gate_status` | — | T2 | already-compliant (8 lines, pointer + numbered list) |
+| ## Step 3: Gate Machine (168–224) | 56 | full | `adv_gate_complete` (sequence enforcement) | — | T2 | already-compliant (gate table + Human Checkpoints V-phrases asserted by `adv-autonomy-quality-assets.test.ts`; rules are bullets, paragraph notes carry V anchors) |
 | ## Change Report (225–260) | 35 | inherent | — | Acceptance/release report template | T5 | pending |
 | ## Context-Optimal Execution (261–284) | 23 | inherent | — | Agent judgment | T5 | pending |
-| ## Sub-Agent Policy (285–322) | 37 | full | `plugin/src/guards/task.ts` (enforceTaskPolicy) | — | T2 | pending |
-| ## Output Contract (323–346) | 23 | full | `plugin/src/handoff-footer-drift.test.ts` | — | T2 | pending |
+| ## Sub-Agent Policy (285–322) | 37 | full | `plugin/src/guards/task.ts` (enforceTaskPolicy) | — | T2 | done (compressed, commit b0d7f3a) |
+| ## Output Contract (323–346) | 23 | full | `plugin/src/handoff-footer-drift.test.ts` | — | T2 | already-compliant (template code-block + 1 line; format enforced by drift test) |
 | ## ADV State Access Policy (347–371) | 24 | partial | (× direct-read prose-only; tools listed) | No runtime guard against direct file read; prose-only enforcement | T4 | pending |
 
 ---
