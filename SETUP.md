@@ -878,6 +878,7 @@ New changes start directly in the 7-gate model.
 | `/adv-slop-scan [path]`   | Scan for AI slop patterns                                                                                                          |
 | `/adv-refactor [id]`      | Refresh a stale proposal — single change-id, or omit to batch-refresh the oldest 30% of active changes                            |
 | `/adv-coordinate`         | Detect cross-change conflicts                                                                                                      |
+| `/adv-cleanup`            | Triage stale, abandoned, duplicate, and ready-to-archive active changes                                                            |
 | `/adv-improve`            | Suggest spec/implementation improvements and persist a reusable research pack under `docs/*-prep.md` (consumed by `/adv-discover`) |
 | `/adv-tron [target]`      | Investigate codebase structure and suggest agenda candidates                                                                       |
 

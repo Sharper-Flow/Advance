@@ -133,6 +133,7 @@ When a change has multiple viable directions with real user-value tradeoffs, pri
 | `/adv-comp-scan`  | Scan competitor capabilities against this project for competitive intelligence                       |
 | `/adv-refactor`   | Refresh a stale proposal or batch-refresh the oldest 30% of active changes                          |
 | `/adv-coordinate` | Detect and resolve conflicts across multiple active changes                                          |
+| `/adv-cleanup`    | Triage stale, abandoned, duplicate, and ready-to-archive active changes                              |
 | `/adv-improve`    | Suggest targeted improvements to existing specs or implementation                                    |
 | `/adv-tron`       | Investigate codebase structure, hotspots, risks, and suggest follow-up agenda candidates             |
 | `/adv-reflect`    | Produce a structured two-plane reflection report for an archived change                              |

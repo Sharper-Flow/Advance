@@ -1,6 +1,6 @@
 ---
 name: adv-cleanup
-description: Triage active ADV state: scan, categorize, and act on stale, abandoned, duplicate, and ready-to-archive changes
+description: Triage stale, abandoned, duplicate, and ready-to-archive active changes
 ---
 <!-- manifest: adv-cleanup · requiresChangeId: false -->
 # ADV Cleanup — Active State Triage

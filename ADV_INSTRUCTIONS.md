@@ -139,6 +139,7 @@ Each workflow command has a defined phase goal. These are canonical in `manifest
 | `/adv-task`                 | Fast-track a discussed change: synthesize contract, validate best practices, prep, and hand off |
 | `/adv-refactor [change-id]` | Refresh a stale proposal or batch-refresh the oldest 30% of active changes                      |
 | `/adv-coordinate`           | Detect and resolve conflicts across multiple active changes                                     |
+| `/adv-cleanup`              | Triage stale, abandoned, duplicate, and ready-to-archive active changes                         |
 | `/adv-improve`              | Suggest targeted improvements to existing specs or implementation                               |
 | `/adv-tron [target]`        | Investigate codebase structure, hotspots, risks, and suggest follow-up agenda candidates        |
 
@@ -536,7 +537,7 @@ Rules:
 
 Design gate requires mandatory independent validator (adv-researcher) before gate completion. See /adv-design command for verdict handling (VALIDATED, CAUTION, CONFLICT, INCONCLUSIVE).
 
-Inline-only: `/adv-status`, `/adv-idea`, `/adv-problem`, `/adv-proposal`, `/adv-validate`, `/adv-archive`, `/adv-clarify`, `/adv-prep`, `/adv-coordinate`, `/adv-improve`
+Inline-only: `/adv-status`, `/adv-idea`, `/adv-problem`, `/adv-proposal`, `/adv-validate`, `/adv-archive`, `/adv-clarify`, `/adv-prep`, `/adv-coordinate`, `/adv-cleanup`, `/adv-improve`
 
 ### Delegation Routing
 
@@ -716,7 +717,7 @@ Commands that fan out to sub-agents with reusable methodology should follow this
 ### Classification
 
 **Command-only** (no fixed skill load; may reference skill-discovery protocol):
-`adv-idea`, `adv-problem`, `adv-proposal`, `adv-research`, `adv-task`, `adv-validate`, `adv-archive`, `adv-status`, `adv-coordinate`, `adv-clarify`, `adv-refactor`, `adv-improve`, `adv-design`, `adv-audit`
+`adv-idea`, `adv-problem`, `adv-proposal`, `adv-research`, `adv-task`, `adv-validate`, `adv-archive`, `adv-status`, `adv-coordinate`, `adv-cleanup`, `adv-clarify`, `adv-refactor`, `adv-improve`, `adv-design`, `adv-audit`
 
 **Command + dedicated backing skill** (loads a single-purpose skill with inline fallback):
 
