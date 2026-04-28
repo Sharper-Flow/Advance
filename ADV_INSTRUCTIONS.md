@@ -479,25 +479,25 @@ Legend: **C** = Clear (no ambiguity), **P** = Partial (some vagueness), **M** = 
 
 Required v1 categories (B/F/S/M) MUST have a coverage entry. Optional categories MAY be omitted (treated as N/A).
 
-## 6-Gate Quality Checklist
+## 7-Gate Quality Checklist
 
-| Gate                | Triggered By      |
-| ------------------- | ----------------- |
-| 1. `research`       | `/adv-research`   |
-| 2. `prep`           | `/adv-prep`       |
-| 3. `implementation` | All tasks done    |
-| 4. `review`         | `/adv-review`     |
-| 5. `harden`         | `/adv-harden`     |
-| 6. `signoff`        | User confirmation |
+| Gate              | Triggered By                         |
+| ----------------- | ------------------------------------ |
+| 1. `proposal`     | `/adv-proposal`                      |
+| 2. `discovery`    | `/adv-discover` / research workflow  |
+| 3. `design`       | `/adv-design`                        |
+| 4. `planning`     | `/adv-prep`                          |
+| 5. `execution`    | `/adv-apply`                         |
+| 6. `acceptance`   | `/adv-review` + user acceptance      |
+| 7. `release`      | `/adv-harden` + `/adv-archive`       |
 
-Gates are sequential. Archive blocks until all 6 satisfied. See [docs/adv-gates.md](docs/adv-gates.md).
+Gates are sequential. Archive blocks until release readiness is verified. See [docs/adv-gates.md](docs/adv-gates.md).
 
 Gate behaviors:
 
-- `research`/`prep` evaluate full change including completed tasks — completed work is evidence to validate, not acceptance proof. Add follow-up tasks where gaps found.
-- `review` emits `REVIEW_FINDINGS` block (blocker, issue, suggestion, question).
-- `harden` blocks on unresolved review findings (except `nit:`). Runs merge compatibility check first.
-- `archive` runs Phase 9 Git Finalization: stage → commit → detect default branch → refresh basis → choose `--ff-only` / reconcile / PR path → verify → cleanup worktree → remove temp artifacts.
+- `discovery`/`planning` evaluate full change including completed tasks — completed work is evidence to validate, not acceptance proof. Add follow-up tasks where gaps found.
+- `acceptance` emits `REVIEW_FINDINGS` block (blocker, issue, suggestion, question) and records user acceptance.
+- `release` runs hardening, archive spec promotion, git finalization, worktree cleanup, and reflection.
 
 ## Command Execution Model
 

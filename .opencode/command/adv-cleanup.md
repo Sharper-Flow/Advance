@@ -45,11 +45,13 @@ For each entry from Phase 1, apply detection rules in **precedence order — mos
 | # | Bucket | Detection (in order) | Action target |
 |---|--------|----------------------|---------------|
 | 1 | **Orphan** | `is_orphan == true` | `adv_orphan_sweep dryRun: false` |
-| 2 | **Duplicate** | Title (lowercased, whitespace-collapsed) equals another active or archived change's title, OR ID matches `<stem><N>` pattern with N ≥ 2 where `<stem>` is another change's ID | `adv_change_bulk_close reason: superseded supersededBy: {target} selector: { kind: "explicit", changeIds: [...] }` |
-| 3 | **Stuck at proposal** | `gates.proposal.status == "pending"` AND `tasks.length == 0` AND `lastActivityAgeMinutes > age-threshold` | `adv_change_bulk_close reason: not_planned selector: { kind: "filter", filter: { lastActivityBefore, status: "draft" } }` |
+| 2 | **Duplicate** | Title (lowercased, whitespace-collapsed) equals another active or archived change's title, OR ID matches `<stem><N>` pattern with N ≥ 2 where `<stem>` is another change's ID and `<stem>` has at least 3 characters | `adv_change_bulk_close reason: superseded supersededBy: {target} selector: { kind: "explicit", changeIds: [...] }` |
+| 3 | **Stuck at proposal** | `gates.proposal.status == "pending"` AND `tasks.length == 0` AND `lastActivityAgeMinutes > age-threshold` | `adv_change_bulk_close reason: not_planned selector: { kind: "filter", filter: { lastActivityBefore } }` |
 | 4 | **Abandoned mid-flight** | `gates.proposal.status == "done"` AND `tasks.some(t => t.status == "pending" \|\| t.status == "in_progress")` AND `lastActivityAgeMinutes > age-threshold` AND no gate completed within age-threshold | `adv_change_bulk_close reason: cancelled selector: { kind: "filter", filter: { lastActivityBefore } }` |
 | 5 | **Ready to archive** | All gates done except `release` AND all tasks `done` AND no unresolved review findings | Emit `/adv-archive {id}` per-change recommendation (no bulk action) |
 | 6 | **Healthy** | Anything else | Skip |
+
+Title normalization for duplicate detection: trim, replace every run of Unicode whitespace with a single ASCII space, then lowercase. Draft-only duplicate titles are intentionally not scanned until the draft appears in the active cleanup list; cleanup is for active change triage, not proposal shaping. ID suffix detection is a conservative hint only; if the target cannot be verified before apply, do not close the duplicate candidate.
 
 ### Per-change inspection sequence
 
@@ -84,6 +86,7 @@ Emit a grouped inline report (not a `question` popup). Skip the Healthy bucket e
 Mode: {dry-run | execute}
 Active changes scanned: {N}
 Hot excluded: {M}
+Orphans detected: {O}
 Age threshold: {7d | --age-threshold value}
 
 ### Ready to archive ({count})
@@ -195,7 +198,7 @@ adv_change_bulk_close({
     changeIds: [<approved IDs>]
   } | {
     kind: "filter",
-    filter: { lastActivityBefore: <ISO timestamp from age-threshold>, status?: "draft" }
+    filter: { lastActivityBefore: <ISO timestamp from age-threshold> }
   },
   reason: "superseded" | "not_planned" | "cancelled",
   supersededBy: <target-id>,  // only for Duplicate bucket; required by tool contract
@@ -205,6 +208,10 @@ adv_change_bulk_close({
 ```
 
 × Filter-based bulk close with `reason: "superseded"` is **rejected** by the tool contract. Duplicate bucket MUST use explicit IDs.
+
+### Duplicate target recheck
+
+Before applying the Duplicate bucket, call `adv_change_show` for each `supersededBy` target. If any target is missing, skip only candidates pointing at that target, list them as `skipped: missing supersededBy target`, and continue with remaining approved duplicate candidates.
 
 ### Orphan path
 
