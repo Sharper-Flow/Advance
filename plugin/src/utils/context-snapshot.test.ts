@@ -195,6 +195,99 @@ describe("formatCrossRepoSwitch", () => {
     const output = formatCrossRepoSwitch(baseSwitch);
     expect(output).toMatch(/[╔╗╚╝║═]/);
   });
+
+  test("output is at most 5 lines (3 content + 2 borders) per rq-ctxswitch.2", () => {
+    const output = formatCrossRepoSwitch(baseSwitch);
+    const lines = output.split("\n");
+    expect(lines.length).toBeLessThanOrEqual(5);
+    // Top + bottom borders contain ╔/╗ and ╚/╝
+    expect(lines[0]).toMatch(/^╔/);
+    expect(lines[lines.length - 1]).toMatch(/^╚/);
+    // Content lines are between borders — 3 of them
+    expect(lines.length - 2).toBeLessThanOrEqual(3);
+  });
+
+  test("each line is ≤80 columns (rq-ctxformat.3)", () => {
+    const output = formatCrossRepoSwitch(baseSwitch);
+    for (const line of output.split("\n")) {
+      expect(line.length).toBeLessThanOrEqual(80);
+    }
+  });
+
+  test("merges from→to onto a single line", () => {
+    const output = formatCrossRepoSwitch(baseSwitch);
+    // The trimmed format puts both paths on one line separated by →
+    expect(output).toMatch(
+      /\/home\/user\/dev\/frontend.*→.*\/home\/user\/dev\/backend/,
+    );
+  });
+});
+
+describe("MAX_BOX_WIDTH cap on compact surfaces (rq-ctxformat.3, rq-ctxformat.4)", () => {
+  test("formatContextSnapshot CONTEXT line truncates very long change IDs with ellipsis", () => {
+    // 80-char synthetic change ID that exceeds the MAX_BOX_WIDTH-budgeted reserve
+    const longId = "a".repeat(80);
+    const input: ContextSnapshotInput = {
+      changeId: longId,
+      title: "synthetic test for truncation",
+      successCriteriaCount: 0,
+      gates: {},
+      taskCounts: { done: 0, in_progress: 0, pending: 0, cancelled: 0 },
+      workdir: "/tmp",
+    };
+    const output = formatContextSnapshot(input);
+    const contextLine = output.split("\n").find((l) => l.includes("CONTEXT:"));
+    expect(contextLine).toBeDefined();
+    // The full 80-char ID does not appear — it's truncated
+    expect(contextLine!.includes(longId)).toBe(false);
+    // Truncation marker is present
+    expect(contextLine).toContain("…");
+  });
+
+  test("formatContextSnapshot CONTEXT line passes short change IDs through unmodified", () => {
+    const input: ContextSnapshotInput = {
+      changeId: "improverefactorbatchorderingan",
+      title: "improve refactor batch ordering and hot skip",
+      successCriteriaCount: 0,
+      gates: {},
+      taskCounts: { done: 0, in_progress: 0, pending: 0, cancelled: 0 },
+      workdir: "/tmp",
+    };
+    const output = formatContextSnapshot(input);
+    const contextLine = output.split("\n").find((l) => l.includes("CONTEXT:"));
+    expect(contextLine).toBeDefined();
+    // 30-char ID is well under the truncation threshold — full ID appears
+    expect(contextLine).toContain("improverefactorbatchorderingan");
+    expect(contextLine).not.toContain("…");
+  });
+
+  test("formatCrossRepoSwitch handles long paths without exceeding 80 cols (rq-ctxformat.3)", () => {
+    const longSwitch: CrossRepoSwitchInput = {
+      fromPath:
+        "/very/very/long/path/to/some/deeply/nested/repository/frontend-app",
+      toPath:
+        "/another/very/long/path/to/some/deeply/nested/repository/backend-app",
+      taskId: "tk-long-cross-repo",
+      taskTitle: "A reasonably long task title that should not blow the line",
+    };
+    const output = formatCrossRepoSwitch(longSwitch);
+    for (const line of output.split("\n")) {
+      expect(line.length).toBeLessThanOrEqual(80);
+    }
+  });
+
+  test("formatTickerSnapshot output never exceeds 80 columns", () => {
+    const longTicker = formatTickerSnapshot({
+      changeId: "improverefactorbatchorderingan",
+      gates: {
+        proposal: { status: "done" },
+        discovery: { status: "done" },
+        design: { status: "pending" },
+      },
+      taskCounts: { done: 0, in_progress: 0, pending: 0, cancelled: 0 },
+    });
+    expect(longTicker.length).toBeLessThanOrEqual(80);
+  });
 });
 
 describe("buildChangeContextSnapshot", () => {

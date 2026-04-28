@@ -345,7 +345,7 @@ When the agent switches workdir to a different repository during a change, a for
 
 **ID:** `rq-ctxformat` | **Priority:** **[MUST]**
 
-All context display formatting (snapshot, ticker, cross-repo switch) MUST use box-drawing characters consistent with existing ADV patterns (`banner.ts`). The format MUST be deterministic — identical state produces identical output. No box output may exceed 80 columns; long content (change IDs, paths, task titles) is truncated rather than wrapped. The output MUST NOT include interactive prompts or block execution.
+All context display formatting (snapshot, ticker, cross-repo switch) MUST use box-drawing characters consistent with existing ADV patterns (`banner.ts`). The format MUST be deterministic — identical state produces identical output. The compact ticker and the cross-repo switch indicator MUST stay within 80 columns; long content (change IDs, paths, task titles) is truncated rather than wrapped. The full Context Snapshot prioritises gate-progress visibility (`rq-ctxsnap1`) over the 80-column budget — its box grows naturally to fit the inline gate row, and only the `CONTEXT` line truncates the change ID to keep the overall budget bounded. The output MUST NOT include interactive prompts or block execution.
 
 **Tags:** `chat-output-display`, `format`
 
@@ -372,15 +372,27 @@ All context display formatting (snapshot, ticker, cross-repo switch) MUST use bo
 - No interactive prompts are displayed
 - Execution is not blocked waiting for user input
 
-**Output never exceeds 80 columns** (`rq-ctxformat.3`)
+**Compact surfaces never exceed 80 columns** (`rq-ctxformat.3`)
 
 **Given:**
-- A change with a long change ID and a deep gate-progress state
+- A long change ID and a long combined cross-repo `from → to` path
 
-**When:** Any chat-output-display surface (snapshot, ticker, cross-repo switch) is rendered
+**When:** The compact ticker or cross-repo switch indicator is rendered
 
 **Then:**
 - Each emitted line is ≤80 columns wide
+- The full snapshot box is exempt — its width is driven by the gate-progress row (`rq-ctxsnap1`) and may exceed 80 cols when all 7 gates are displayed
+
+**Snapshot CONTEXT line truncates long change IDs** (`rq-ctxformat.4`)
+
+**Given:**
+- A change ID longer than the available width on the CONTEXT line
+
+**When:** `formatContextSnapshot` renders the box
+
+**Then:**
+- The CONTEXT line displays the change ID truncated with an ellipsis suffix
+- The CONTEXT line itself stays within the snapshot's bounded width
 
 ---
 

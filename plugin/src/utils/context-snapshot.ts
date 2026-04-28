@@ -49,12 +49,19 @@ type SnapshotWisdomLike = {
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
-/** Minimum box width for context snapshot display boxes.
- *  Accommodates typical change IDs (e.g. "tk-abc1234567") and gate status
- *  markers like [✓ planning] [○ execution] without line wrapping in
- *  80-column terminals. Shared by formatContextSnapshot and
- *  formatCrossRepoSwitch. */
-const MIN_BOX_WIDTH = 55;
+/** Minimum box width for context snapshot display boxes — keeps a stable look
+ *  for short content. Boxes never grow narrower than this. */
+const MIN_BOX_WIDTH = 40;
+
+/** Maximum box width for any context-display surface. Caps output at 80 columns
+ *  total (78 inner + 2 box-border characters) per rq-ctxformat.3. Shared by
+ *  formatContextSnapshot and formatCrossRepoSwitch. Long content (change IDs,
+ *  paths, task titles) is truncated rather than allowed to grow the box. */
+const MAX_BOX_WIDTH = 78;
+
+/** Reserved characters for `CONTEXT: ` prefix + box rails + minimum padding.
+ *  Used to compute how many chars of a change ID can fit on the CONTEXT line. */
+const CONTEXT_LINE_PREFIX_RESERVED = 12;
 
 type SnapshotChangeLike = {
   id: string;
@@ -271,9 +278,17 @@ export function formatContextSnapshot(input: ContextSnapshotInput): string {
       : `Wisdom: ${wisdomCount} entries`;
   }
 
+  // Truncate the change ID on the CONTEXT line so a long ID never blows the
+  // 80-column budget (rq-ctxformat.3). Other places retain the full ID.
+  const maxIdChars = MAX_BOX_WIDTH - CONTEXT_LINE_PREFIX_RESERVED;
+  const displayChangeId =
+    changeId.length > maxIdChars
+      ? changeId.slice(0, maxIdChars - 1) + "…"
+      : changeId;
+
   // Build content lines — budget management to stay within 10 lines
   const lines: string[] = [
-    `CONTEXT: ${changeId}`,
+    `CONTEXT: ${displayChangeId}`,
     title,
     "",
     `Gates: ${gateProgress}`,
@@ -306,9 +321,17 @@ export function formatContextSnapshot(input: ContextSnapshotInput): string {
 
   lines.push(`Workdir: ${workdir ?? "(unavailable)"}`);
 
-  // Calculate box width
-  const maxContent = Math.max(...lines.map((l) => l.length));
-  const innerWidth = Math.max(MIN_BOX_WIDTH, maxContent + 3);
+  // Calculate box width. Floor at MIN_BOX_WIDTH so the snapshot has a stable
+  // visual baseline; otherwise grow naturally to fit content. The 7-gate
+  // progress line drives width on real-world changes and may exceed 80 cols —
+  // that is intentional (rq-ctxsnap1 mandates per-gate visibility). The
+  // CONTEXT line was already truncated above so a long change ID cannot
+  // single-handedly blow the budget. Cross-repo switch and tickers (which
+  // have no gate-progress row) cap separately at MAX_BOX_WIDTH.
+  const innerWidth = Math.max(
+    MIN_BOX_WIDTH,
+    Math.max(...lines.map((l) => l.length)) + 3,
+  );
 
   // Build box
   const top = `╔${"═".repeat(innerWidth)}╗`;
@@ -324,17 +347,19 @@ export function formatContextSnapshot(input: ContextSnapshotInput): string {
 // =============================================================================
 
 /**
- * Render a cross-repo switch indicator.
+ * Render a cross-repo switch indicator (rq-ctxswitch).
  *
- * Format:
+ * Format (3 content lines + 2 borders = 5 total):
  * ```
  * ╔═══════════════════════════════════════════════════════════╗
- * ║ 🔀 SWITCHING REPOSITORY CONTEXT                          ║
- * ║ From: /home/user/dev/frontend                            ║
- * ║ To:   /home/user/dev/backend                             ║
- * ║ Task: tk-backend01 (Add /api/oauth/callback endpoint)    ║
+ * ║ 🔀 SWITCHING REPOSITORY CONTEXT                           ║
+ * ║ /home/user/dev/frontend → /home/user/dev/backend          ║
+ * ║ Task: tk-backend01 (Add /api/oauth/callback endpoint)     ║
  * ╚═══════════════════════════════════════════════════════════╝
  * ```
+ *
+ * Long combined `from → to` strings or task titles are truncated rather than
+ * allowed to grow the box past MAX_BOX_WIDTH (80 cols total).
  */
 export function formatCrossRepoSwitch(input: CrossRepoSwitchInput): string {
   const { fromPath, toPath, taskId, taskTitle } = input;
@@ -342,20 +367,32 @@ export function formatCrossRepoSwitch(input: CrossRepoSwitchInput): string {
   const taskDesc =
     taskTitle.length > 45 ? taskTitle.slice(0, 42) + "..." : taskTitle;
 
+  // Compose the three content rows with from→to merged onto a single line.
   const lines = [
     "🔀 SWITCHING REPOSITORY CONTEXT",
-    `From: ${fromPath}`,
-    `To:   ${toPath}`,
+    `${fromPath} → ${toPath}`,
     `Task: ${taskId} (${taskDesc})`,
   ];
 
-  const maxContent = Math.max(...lines.map((l) => l.length));
-  const innerWidth = Math.max(MIN_BOX_WIDTH, maxContent + 3);
+  // Clamp width to MAX_BOX_WIDTH; truncate any line that would overflow so the
+  // box stays ≤80 cols even with very long paths.
+  const innerWidth = Math.min(
+    Math.max(MIN_BOX_WIDTH, Math.max(...lines.map((l) => l.length)) + 3),
+    MAX_BOX_WIDTH,
+  );
+
+  const truncatedLines = lines.map((line) =>
+    line.length > innerWidth - 1 ? line.slice(0, innerWidth - 2) + "…" : line,
+  );
 
   const top = `╔${"═".repeat(innerWidth)}╗`;
   const bottom = `╚${"═".repeat(innerWidth)}╝`;
 
-  const boxLines = [top, ...lines.map((l) => boxLine(l, innerWidth)), bottom];
+  const boxLines = [
+    top,
+    ...truncatedLines.map((l) => boxLine(l, innerWidth)),
+    bottom,
+  ];
 
   return boxLines.join("\n");
 }
