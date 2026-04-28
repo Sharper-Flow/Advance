@@ -450,6 +450,66 @@ describe("ADV command routing assets", () => {
     expect(content).not.toMatch(/Due diligence first/);
   });
 
+  // Context-shed delegation heuristic drift tests (rq-contextShed01, rq-contextShed02)
+  test("ADV_INSTRUCTIONS.md Delegation Routing table contains step 4.5 context-shed row", () => {
+    const content = readFileSync(join(REPO_ROOT, "ADV_INSTRUCTIONS.md"), "utf8");
+    const section = content.split("### Delegation Routing")[1]?.split("###")[0] ?? "";
+    expect(section).toContain("4.5");
+    expect(section).toMatch(/context-shed/i);
+    expect(section).toMatch(/\bAND\b/);
+    expect(section).toMatch(/floor/i);
+    // Table should now have 6 data rows (steps 1, 2, 3, 4, 4.5, 5)
+    const rows = section.match(/^\|[^|]+\|[^|]+\|[^|]+\|/gm);
+    expect(rows?.length).toBeGreaterThanOrEqual(7); // header + separator + 6 data rows
+  });
+
+  test("adv-apply.md Delegation Routing table contains step 4.5 context-shed row", () => {
+    const content = readFileSync(join(COMMAND_DIR, "adv-apply.md"), "utf8");
+    const section = content.split("### Delegation Routing")[1]?.split("###")[0] ?? "";
+    expect(section).toContain("4.5");
+    expect(section).toMatch(/context-shed/i);
+    expect(section).toMatch(/\bAND\b/);
+    expect(section).toMatch(/floor/i);
+    const rows = section.match(/^\|[^|]+\|[^|]+\|[^|]+\|/gm);
+    expect(rows?.length).toBeGreaterThanOrEqual(7); // header + separator + 6 data rows
+  });
+
+  test("adv-apply.md contains post-delegation P23 diff-scan step", () => {
+    const content = readFileSync(join(COMMAND_DIR, "adv-apply.md"), "utf8");
+    expect(content).toMatch(/3c\.55/);
+    expect(content).toMatch(/P23/);
+    expect(content).toMatch(/diff-scan/i);
+  });
+
+  test("adv.md Context-Optimal Execution contains context-shed prose (NOT routing table)", () => {
+    const content = readFileSync(join(AGENT_DIR, "adv.md"), "utf8");
+    const section = content.split("## Context-Optimal Execution")[1]?.split("## ")[0] ?? "";
+    expect(section).toMatch(/context-shed/i);
+    expect(section).toMatch(/mechanical implementation/);
+    expect(section).toMatch(/floor/i);
+    // adv.md must use prose bullets, NOT a routing table
+    // Check for table pipe characters (3+ pipes on a line = table row)
+    const tableRows = section.match(/^\|.*\|.*\|/gm);
+    expect(tableRows).toBeNull();
+  });
+
+  test("ADV_INSTRUCTIONS.md and adv-apply.md delegation tables use identical step 4.5 wording", () => {
+    const instructions = readFileSync(join(REPO_ROOT, "ADV_INSTRUCTIONS.md"), "utf8");
+    const apply = readFileSync(join(COMMAND_DIR, "adv-apply.md"), "utf8");
+
+    const extractStep45 = (content: string) => {
+      const section = content.split("### Delegation Routing")[1]?.split("###")[0] ?? "";
+      const match = section.match(/^\|\s*4\.5\s*\|.*\|/m);
+      return match ? match[0].replace(/\s+/g, " ").trim() : null;
+    };
+
+    const instructionsRow = extractStep45(instructions);
+    const applyRow = extractStep45(apply);
+    expect(instructionsRow).not.toBeNull();
+    expect(applyRow).not.toBeNull();
+    expect(instructionsRow).toBe(applyRow);
+  });
+
   // Provider ADV agent assembly (providerAdvAgentAssemblySystem)
   test("provider hint files exist outside repo agent discovery path", () => {
     const providers = ["claude", "gpt", "glm", "kimi"];
