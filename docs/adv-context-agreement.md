@@ -131,12 +131,17 @@ Emit when the agent switches `workdir` to a different repository for a cross-rep
 
 ## Spec
 
-Requirements defined in `.adv/specs/context-display/spec.json`:
+Requirements defined in `.adv/specs/chat-output-display/spec.json` (renamed from `context-display` in v1.3.0 of change `consolidatechatoutputdisplay`):
 
 | Requirement | Summary |
 |-------------|---------|
-| `rq-ctxsnap1` | Snapshot content (change ID, title, success criteria, gates, tasks, workdir) |
-| `rq-ctxsnap2` | Emission triggers (change load, gate transition, task switch) |
-| `rq-ctxswitch` | Cross-repo switch indicator format |
-| `rq-ctxformat` | Box-drawing format, max 10 lines, deterministic |
+| `rq-ctxsnap1` | Full-box snapshot content (change ID, title, success criteria, gates, tasks, workdir) |
+| `rq-ctxsnap2` | Full-box emission triggers (change load, gate transition, re-entry, status query) |
+| `rq-ctxticker1` | Compact ticker content (truncated change ID, gate arrow, done/total) |
+| `rq-ctxticker2` | Ticker emission triggers (transient task tools — update, ready, add, cancel) |
+| `rq-idleMarker01` | IDLE / ATTN status marker split |
+| `rq-idleMarker02` | `STATUS_MARKERS.IDLE` constant + ⬜ emoji |
+| `rq-idleMarker03` | IDLE bell policy (WORK/TOOLING→IDLE rings; IDLE↔IDLE / BLOCKED→IDLE / lateral IDLE↔ATTN do not) |
+| `rq-ctxswitch` | Cross-repo switch indicator format (≤3 content lines) |
+| `rq-ctxformat` | Box-drawing format, max 10 lines, ≤80 cols, deterministic |
 | `rq-ctxfallback` | Graceful degradation for missing data |

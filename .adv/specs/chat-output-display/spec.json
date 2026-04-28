@@ -1,0 +1,416 @@
+{
+  "$schema": "https://raw.githubusercontent.com/anomalyco/oc-plugins/main/advance/plugin/schemas/spec.schema.json",
+  "name": "chat-output-display",
+  "title": "Chat Output Display",
+  "purpose": "Unified formatting for the chat-output surface — context snapshots (full box), context tickers (compact 1-line for transient transitions), cross-repo switch indicators, and status markers. Consolidates the previous `context-display` and `task-status-report` rules under one capability so all surfaces share a glyph vocabulary and emission policy. Closes the context-agreement gap between agent state and user visibility.",
+  "version": "1.3.0",
+  "updated_at": "2026-04-28T00:00:00.000Z",
+  "supersedes": ["context-display"],
+  "requirements": [
+    {
+      "id": "rq-ctxsnap1",
+      "title": "Context Snapshot Content",
+      "body": "The Context Snapshot (full box) MUST display: change ID and title, success criteria count, gate progress (inline visual), task counts by status, and current workdir. The snapshot MUST fit within 10 lines for quick scanning.",
+      "priority": "must",
+      "tags": ["chat-output-display", "snapshot"],
+      "scenarios": [
+        {
+          "id": "rq-ctxsnap1.1",
+          "title": "Snapshot includes all required fields",
+          "given": [
+            "An active change with tasks, gates, and a proposal"
+          ],
+          "when": "A context snapshot is rendered",
+          "then": [
+            "The output includes the change ID and title",
+            "The output includes gate progress as an inline visual",
+            "The output includes task counts grouped by status",
+            "The output includes the current workdir path"
+          ]
+        },
+        {
+          "id": "rq-ctxsnap1.2",
+          "title": "Snapshot fits within 10 lines",
+          "given": [
+            "A change with 20 tasks across 4 sections and all 7 gates"
+          ],
+          "when": "A context snapshot is rendered",
+          "then": [
+            "The total output is 10 lines or fewer"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-ctxsnap2",
+      "title": "Context Snapshot Emission Triggers",
+      "body": "The Context Snapshot (full box) MUST be emitted by tools that represent major state transitions: adv_change_show, adv_change_create, adv_gate_complete, adv_change_reenter, adv_status, and on session resume with an active change. Transient task-state tools emit a Context Ticker instead — see rq-ctxticker2.",
+      "priority": "must",
+      "tags": ["chat-output-display", "snapshot", "triggers"],
+      "scenarios": [
+        {
+          "id": "rq-ctxsnap2.1",
+          "title": "Snapshot emitted on change load",
+          "given": [
+            "An agent begins work on a change via adv_change_show or /adv-apply"
+          ],
+          "when": "The change data is loaded",
+          "then": [
+            "A context snapshot (full box) is included in the tool output"
+          ]
+        },
+        {
+          "id": "rq-ctxsnap2.2",
+          "title": "Snapshot emitted on gate transition",
+          "given": [
+            "A gate is marked complete via adv_gate_complete"
+          ],
+          "when": "The gate status changes",
+          "then": [
+            "The updated gate progress is visible in subsequent tool output as a full-box snapshot"
+          ]
+        },
+        {
+          "id": "rq-ctxsnap2.6",
+          "title": "Snapshot emitted on gate re-entry",
+          "given": [
+            "A change with completed gates"
+          ],
+          "when": "adv_change_reenter reopens gates from a specified point",
+          "then": [
+            "The tool output includes an updated _contextSnapshot (full box)",
+            "The snapshot gate progress shows the reset gate state"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-ctxticker1",
+      "title": "Context Ticker Content",
+      "body": "The Context Ticker MUST be a single-line, ≤80-column compact summary with three segments separated by middle dots: change ID (truncated to ≤20 characters with `…` suffix on overflow), gate arrow (`{prev} ✓→{next}`, `release ✓` if all gates done, or `proposal ○→discovery` if none done), and task progress in `{done}/{total}` form. The ticker uses box-drawing rails (`║ ... ║`) to share visual vocabulary with the full snapshot and remain deterministic (identical input → identical output).",
+      "priority": "must",
+      "tags": ["chat-output-display", "ticker"],
+      "scenarios": [
+        {
+          "id": "rq-ctxticker1.1",
+          "title": "Ticker is a single line",
+          "given": [
+            "An active change with at least one task and gates partially complete"
+          ],
+          "when": "The context ticker is rendered",
+          "then": [
+            "The output contains exactly one line",
+            "The output is no more than 80 columns wide",
+            "The output contains the box-drawing rail character ║"
+          ]
+        },
+        {
+          "id": "rq-ctxticker1.2",
+          "title": "Ticker truncates long change IDs",
+          "given": [
+            "A change ID longer than 20 characters"
+          ],
+          "when": "The context ticker is rendered",
+          "then": [
+            "The change ID segment is truncated to at most 20 characters",
+            "The truncated segment ends with the ellipsis character …"
+          ]
+        },
+        {
+          "id": "rq-ctxticker1.3",
+          "title": "Ticker shows compact gate arrow",
+          "given": [
+            "A change with proposal/discovery/design done and planning pending"
+          ],
+          "when": "The context ticker is rendered",
+          "then": [
+            "The output contains the gate arrow `design ✓→planning`",
+            "The output does not contain the full gate-progress glyph list"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-ctxticker2",
+      "title": "Context Ticker Emission Triggers",
+      "body": "The Context Ticker MUST be emitted (instead of the full snapshot) by transient task-state tools: adv_task_update transitioning to in_progress or done, adv_task_ready, adv_task_add, and adv_task_cancel. Other emission sites (adv_change_show, adv_change_create, adv_gate_complete, adv_change_reenter, adv_status) MUST continue to emit the full snapshot per rq-ctxsnap2.",
+      "priority": "must",
+      "tags": ["chat-output-display", "ticker", "triggers"],
+      "scenarios": [
+        {
+          "id": "rq-ctxticker2.1",
+          "title": "Ticker emitted by adv_task_update on in_progress / done transitions",
+          "given": [
+            "An active change with a pending task"
+          ],
+          "when": "adv_task_update transitions the task to in_progress or done",
+          "then": [
+            "The tool output includes a single-line context ticker as _contextSnapshot",
+            "The output is not a multi-line full-box snapshot"
+          ]
+        },
+        {
+          "id": "rq-ctxticker2.2",
+          "title": "Ticker emitted by adv_task_ready",
+          "given": [
+            "An active change"
+          ],
+          "when": "adv_task_ready is invoked",
+          "then": [
+            "The tool output includes a single-line context ticker as _contextSnapshot"
+          ]
+        },
+        {
+          "id": "rq-ctxticker2.3",
+          "title": "Ticker emitted by adv_task_add and adv_task_cancel",
+          "given": [
+            "An active change"
+          ],
+          "when": "adv_task_add successfully creates a task or adv_task_cancel cancels one or more tasks",
+          "then": [
+            "The tool output includes a single-line context ticker as _contextSnapshot"
+          ]
+        },
+        {
+          "id": "rq-ctxticker2.4",
+          "title": "Full-box snapshot still emitted by gate / change tools",
+          "given": [
+            "An active change"
+          ],
+          "when": "adv_change_show, adv_gate_complete, or adv_change_reenter is invoked",
+          "then": [
+            "The tool output includes a multi-line context snapshot (full box) as _contextSnapshot"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-idleMarker01",
+      "title": "IDLE / ATTN Status Marker Split",
+      "body": "The status resolver MUST distinguish two distinct user-visible states: ATTN (user must act — permission pending, approval, or question) and IDLE (agent finished, no user action needed — session start or completed work). resolveStatus MUST return ATTN only when permissionPending is set, and IDLE when the session is idle without sub-agents or long tools. The initial status state MUST be IDLE so a fresh session is not falsely flagged as needing user attention.",
+      "priority": "must",
+      "tags": ["chat-output-display", "status-marker"],
+      "scenarios": [
+        {
+          "id": "rq-idleMarker01.1",
+          "title": "sessionIdle resolves to IDLE",
+          "given": [
+            "Plugin state where sessionIdle is true and permissionPending is false and no sub-agents are active"
+          ],
+          "when": "resolveStatus is called",
+          "then": [
+            "The returned marker is IDLE"
+          ]
+        },
+        {
+          "id": "rq-idleMarker01.2",
+          "title": "permissionPending resolves to ATTN",
+          "given": [
+            "Plugin state where permissionPending is true"
+          ],
+          "when": "resolveStatus is called",
+          "then": [
+            "The returned marker is ATTN regardless of other flags"
+          ]
+        },
+        {
+          "id": "rq-idleMarker01.3",
+          "title": "Initial state is IDLE",
+          "given": [
+            "A freshly initialised plugin status state"
+          ],
+          "when": "getStatus is called before any transitions",
+          "then": [
+            "currentStatus is IDLE"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-idleMarker02",
+      "title": "IDLE Marker Constant",
+      "body": "The STATUS_MARKERS enum MUST contain an IDLE entry mapping to the textual marker `[ADV:IDLE]`. The IDLE emoji MUST be the white square (⬜) — visually distinct from ATTN's red square (🟥) and color-blind safe paired with the textual marker.",
+      "priority": "must",
+      "tags": ["chat-output-display", "status-marker", "enum"],
+      "scenarios": [
+        {
+          "id": "rq-idleMarker02.1",
+          "title": "STATUS_MARKERS contains IDLE",
+          "given": [
+            "The STATUS_MARKERS constant is loaded"
+          ],
+          "when": "The IDLE key is read",
+          "then": [
+            "The value is the literal string [ADV:IDLE]"
+          ]
+        },
+        {
+          "id": "rq-idleMarker02.2",
+          "title": "IDLE emoji is distinct from ATTN",
+          "given": [
+            "The terminal status emoji map"
+          ],
+          "when": "getStatusEmoji is called for IDLE and ATTN",
+          "then": [
+            "IDLE returns ⬜",
+            "ATTN returns 🟥",
+            "The two values are not equal"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-idleMarker03",
+      "title": "IDLE Bell Policy",
+      "body": "The terminal bell MUST ring on transitions from active work into the IDLE marker (WORK→IDLE and TOOLING→IDLE) using the same debounce/armed state machine as ATTN. The bell MUST NOT ring on IDLE→IDLE (no transition), on BLOCKED→IDLE (recovery without user action), or on lateral IDLE↔ATTN transitions (already user-visible state).",
+      "priority": "must",
+      "tags": ["chat-output-display", "status-marker", "bell"],
+      "scenarios": [
+        {
+          "id": "rq-idleMarker03.1",
+          "title": "WORK → IDLE rings",
+          "given": [
+            "Previous status is WORK"
+          ],
+          "when": "Status transitions to IDLE",
+          "then": [
+            "The bell rings (immediately when not armed, debounced when armed)"
+          ]
+        },
+        {
+          "id": "rq-idleMarker03.2",
+          "title": "BLOCKED → IDLE does not ring",
+          "given": [
+            "Previous status is BLOCKED"
+          ],
+          "when": "Status transitions to IDLE",
+          "then": [
+            "The bell does not ring",
+            "Any pending bell timer is cancelled"
+          ]
+        },
+        {
+          "id": "rq-idleMarker03.3",
+          "title": "IDLE ↔ ATTN does not double-ring",
+          "given": [
+            "Status has already transitioned into IDLE or ATTN and rung the bell"
+          ],
+          "when": "Status moves laterally between IDLE and ATTN",
+          "then": [
+            "The bell does not ring again for the lateral transition"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-ctxswitch",
+      "title": "Cross-Repo Switch Indicator",
+      "body": "When the agent switches workdir to a different repository during a change, a formatted indicator MUST be emitted showing the from/to paths and the task that triggered the switch. The indicator MUST be ≤3 content lines (excluding box borders) so it stays compact when emitted alongside other context surfaces. This prevents the user from losing track of which repository context the agent is operating in without flooding scrollback.",
+      "priority": "must",
+      "tags": ["chat-output-display", "cross-repo"],
+      "scenarios": [
+        {
+          "id": "rq-ctxswitch.1",
+          "title": "Switch indicator shows from/to paths",
+          "given": [
+            "A change with cross-repo tasks",
+            "The agent is switching workdir from repo A to repo B"
+          ],
+          "when": "The cross-repo switch indicator is rendered",
+          "then": [
+            "The output shows the source repository path",
+            "The output shows the target repository path",
+            "The output shows the task that triggered the switch"
+          ]
+        },
+        {
+          "id": "rq-ctxswitch.2",
+          "title": "Switch indicator is at most 3 content lines",
+          "given": [
+            "A cross-repo switch with typical from-path, to-path, and task title"
+          ],
+          "when": "formatCrossRepoSwitch renders the indicator",
+          "then": [
+            "The rendered output has no more than 3 content lines (excluding ╔ and ╚ box borders)"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-ctxformat",
+      "title": "Context Display Format Constraints",
+      "body": "All context display formatting (snapshot, ticker, cross-repo switch) MUST use box-drawing characters consistent with existing ADV patterns (banner.ts). The format MUST be deterministic — identical state produces identical output. No box output may exceed 80 columns; long content (change IDs, paths, task titles) is truncated rather than wrapped. The output MUST NOT include interactive prompts or block execution.",
+      "priority": "must",
+      "tags": ["chat-output-display", "format"],
+      "scenarios": [
+        {
+          "id": "rq-ctxformat.1",
+          "title": "Deterministic output",
+          "given": [
+            "A change with known state (fixed tasks, gates, workdir)"
+          ],
+          "when": "A context snapshot or ticker is rendered twice with the same input",
+          "then": [
+            "Both outputs are identical"
+          ]
+        },
+        {
+          "id": "rq-ctxformat.2",
+          "title": "Non-blocking display",
+          "given": [
+            "A context snapshot or ticker is being rendered"
+          ],
+          "when": "The formatter is called",
+          "then": [
+            "No interactive prompts are displayed",
+            "Execution is not blocked waiting for user input"
+          ]
+        },
+        {
+          "id": "rq-ctxformat.3",
+          "title": "Output never exceeds 80 columns",
+          "given": [
+            "A change with a long change ID and a deep gate-progress state"
+          ],
+          "when": "Any chat-output-display surface (snapshot, ticker, cross-repo switch) is rendered",
+          "then": [
+            "Each emitted line is ≤80 columns wide"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-ctxfallback",
+      "title": "Context Display Graceful Degradation",
+      "body": "The context snapshot and ticker formatters MUST gracefully handle missing or partial data: absent gate info, empty task lists, missing proposal, unavailable workdir. Partial outputs are emitted with placeholder values rather than errors.",
+      "priority": "must",
+      "tags": ["chat-output-display", "error-handling"],
+      "scenarios": [
+        {
+          "id": "rq-ctxfallback.1",
+          "title": "Missing gates handled gracefully",
+          "given": [
+            "A change with no gate data"
+          ],
+          "when": "A context snapshot is rendered",
+          "then": [
+            "Gate progress shows all gates as unknown/pending",
+            "No error is thrown"
+          ]
+        },
+        {
+          "id": "rq-ctxfallback.2",
+          "title": "Empty task list handled gracefully",
+          "given": [
+            "A change with zero tasks"
+          ],
+          "when": "A context snapshot or ticker is rendered",
+          "then": [
+            "Task counts show 0 for all statuses",
+            "No error is thrown"
+          ]
+        }
+      ]
+    }
+  ]
+}

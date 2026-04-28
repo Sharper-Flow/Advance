@@ -1,61 +1,15 @@
-# ADV Task Status Report
+# ADV Task Status Report (Retired)
 
-When the `/adv-apply` loop stops, or during OpenCode session compaction, emit a task status report.
+> **Status:** Retired
+> **Superseded by:** [`chat-output-display`](specs/chat-output-display.md) v1.3.0
+> **Change:** `consolidatechatoutputdisplay`
 
-## Trigger Events
+The doc-only "task status report" rules previously hosted here have been promoted into the `chat-output-display` spec under the unified context-snapshot / context-ticker / cross-repo-switch glyph vocabulary. There is no separate "task status report" surface anymore — task-state transitions emit the **Context Ticker** (`rq-ctxticker1`, `rq-ctxticker2`) and major state transitions emit the full **Context Snapshot** (`rq-ctxsnap1`, `rq-ctxsnap2`).
 
-| Event | Description |
-|-------|-------------|
-| **Loop Stop** | `/adv-apply` terminates (success, error, doom loop, or user cancel) |
-| **Compaction** | OpenCode session compaction reduces context |
+For the canonical rules, see:
 
-## Report Format
+- [`docs/specs/chat-output-display.md`](specs/chat-output-display.md) — markdown mirror
+- [`.adv/specs/chat-output-display/spec.json`](../.adv/specs/chat-output-display/spec.json) — spec law
+- `ADV_INSTRUCTIONS.md § Status Markers` — `[ADV:WORK]`, `[ADV:TOOLING]`, `[ADV:ATTN]`, `[ADV:IDLE]`, `[ADV:BLOCKED]`
 
-```
-╔══════════════════════════════════════════════════════════════╗
-║ TASK STATUS REPORT                                           ║
-╠══════════════════════════════════════════════════════════════╣
-║ Change: {change-id}                                          ║
-║ Trigger: {loop_stop | compaction}                            ║
-║ Timestamp: {ISO timestamp}                                   ║
-╠══════════════════════════════════════════════════════════════╣
-║ COMPLETED THIS SESSION:                                      ║
-║   ✓ tk-abc123: Task description                              ║
-╠══════════════════════════════════════════════════════════════╣
-║ IN PROGRESS (interrupted):                                   ║
-║   ⚡ tk-ghi789: Task description                              ║
-╠══════════════════════════════════════════════════════════════╣
-║ CANCELLED (with reasoning):                                  ║
-║   ✗ tk-jkl012: Task description                              ║
-║     → Reason: Why task was cancelled                         ║
-╠══════════════════════════════════════════════════════════════╣
-║ REMAINING:                                                   ║
-║   ○ tk-mno345: Task description                              ║
-╚══════════════════════════════════════════════════════════════╝
-```
-
-## Report Contents
-
-| Section | Description |
-|---------|-------------|
-| **COMPLETED** | Tasks marked `done` during this session |
-| **IN PROGRESS** | Tasks with `in_progress` status when stopped |
-| **CANCELLED** | Tasks marked `cancelled` with full reasoning |
-| **REMAINING** | Tasks still `pending` for future work |
-
-## Cancelled Task Requirements
-
-For ANY cancelled task, provide:
-- Why the task was cancelled (superseded, duplicate, out of scope)
-- What alternative approach was taken, if any
-- Related tasks that replaced this work
-
-## Usage
-
-Emit `[ADV:TASK_STATUS_REPORT]` marker before the report:
-
-```
-[ADV:TASK_STATUS_REPORT]
-╔══════════════════════════════════════════════════════════════╗
-...
-```
+This file is retained only as a redirect anchor for prior cross-references; do not add new content here.
