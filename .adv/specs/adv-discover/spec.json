@@ -11,12 +11,18 @@
       "title": "Discovery Checklist Enforcement",
       "body": "/adv-discover output MUST contain a Discovery Checklist section listing each mandatory protocol step with PASS or SKIP and a reason. This ensures no protocol step is silently omitted.",
       "priority": "must",
-      "tags": ["discover", "checklist", "protocol"],
+      "tags": [
+        "discover",
+        "checklist",
+        "protocol"
+      ],
       "scenarios": [
         {
           "id": "rq-disc01.1",
           "title": "Checklist present in discovery output",
-          "given": ["A /adv-discover invocation completes successfully"],
+          "given": [
+            "A /adv-discover invocation completes successfully"
+          ],
           "when": "The discovery output is persisted via adv_change_update",
           "then": [
             "The output contains a 'Discovery Checklist' section",
@@ -31,12 +37,18 @@
       "title": "Phase 1.5 Skill Discovery Enforcement",
       "body": "/adv-discover MUST execute the skill discovery protocol from ADV_INSTRUCTIONS.md and emit a Skills Considered section. This prevents the agent from skipping domain-specific skill loading.",
       "priority": "must",
-      "tags": ["discover", "skill-discovery", "protocol"],
+      "tags": [
+        "discover",
+        "skill-discovery",
+        "protocol"
+      ],
       "scenarios": [
         {
           "id": "rq-disc02.1",
           "title": "Skill discovery executes and reports results",
-          "given": ["Trusted skill directories exist with SKILL.md files"],
+          "given": [
+            "Trusted skill directories exist with SKILL.md files"
+          ],
           "when": "/adv-discover runs Phase 1.5",
           "then": [
             "The output contains a 'Skills Considered' section",
@@ -46,7 +58,9 @@
         {
           "id": "rq-disc02.2",
           "title": "No skills available is reported explicitly",
-          "given": ["No SKILL.md files exist in trusted skill directories"],
+          "given": [
+            "No SKILL.md files exist in trusted skill directories"
+          ],
           "when": "/adv-discover runs Phase 1.5",
           "then": [
             "The output reports 'Skills considered: none available'",
@@ -60,12 +74,18 @@
       "title": "Prior Research Extension",
       "body": "When prior research artifacts exist (temp/*.md, docs/*-prep.md including /adv-improve research packs, related archived changes), /adv-discover MUST cite them in an Extends section AND add at least one new finding beyond what they contained. This prevents discovery from rehashing prior work. When a cited pack contains Competitors & Alternatives or Emerging Patterns sections relevant to an open design question, /adv-discover MUST cite those sections in the LBP Check.",
       "priority": "must",
-      "tags": ["discover", "prior-research", "extension"],
+      "tags": [
+        "discover",
+        "prior-research",
+        "extension"
+      ],
       "scenarios": [
         {
           "id": "rq-disc03.1",
           "title": "Prior artifacts cited and extended",
-          "given": ["A prior research artifact exists in temp/, docs/, or a related archived change"],
+          "given": [
+            "A prior research artifact exists in temp/, docs/, or a related archived change"
+          ],
           "when": "/adv-discover runs the prior research check",
           "then": [
             "The output includes an 'Extends' section citing the artifact",
@@ -75,7 +95,9 @@
         {
           "id": "rq-disc03.2",
           "title": "No prior research is non-blocking",
-          "given": ["No prior research artifacts exist in any canonical location"],
+          "given": [
+            "No prior research artifacts exist in any canonical location"
+          ],
           "when": "/adv-discover runs the prior research check",
           "then": [
             "The output reports 'No prior research found'",
@@ -103,7 +125,12 @@
       "title": "Gated External-Solution Check",
       "body": "When the proposal's Discovery Agenda contains ecosystem unknowns, or an open design question lists external tools/libraries/services as a realistic option, /adv-discover MUST perform an External-Solution Check. It MUST first consult any cited docs/*-prep.md research pack; only when no relevant pack covers the question may it run fresh Kagi queries for competitors, alternatives, and emerging patterns. Purely internal changes (refactors, bug fixes, local doc/test fixes) may record 'No external alternatives apply' with rationale and skip the fresh search.",
       "priority": "must",
-      "tags": ["discover", "external-solution", "lbp", "research-pack"],
+      "tags": [
+        "discover",
+        "external-solution",
+        "lbp",
+        "research-pack"
+      ],
       "scenarios": [
         {
           "id": "rq-disc10.1",
@@ -151,12 +178,18 @@
       "title": "Conflict and Related-Work Scan",
       "body": "/adv-discover MUST run adv_change_list (with includeArchived), adv_change_validate, and adv_agenda_list, and report results in a Conflict Scan section. This prevents the agent from proposing work that conflicts with existing or archived changes.",
       "priority": "must",
-      "tags": ["discover", "conflict-scan", "related-work"],
+      "tags": [
+        "discover",
+        "conflict-scan",
+        "related-work"
+      ],
       "scenarios": [
         {
           "id": "rq-disc04.1",
           "title": "All three mandatory tools are called",
-          "given": ["A change in the discovery phase"],
+          "given": [
+            "A change in the discovery phase"
+          ],
           "when": "/adv-discover runs the conflict scan",
           "then": [
             "adv_change_list with includeArchived is called",
@@ -168,7 +201,9 @@
         {
           "id": "rq-disc04.2",
           "title": "Own-change validation warnings are excluded from conflict findings",
-          "given": ["adv_change_validate returns passed:false due to NO_TASKS or NO_DELTAS on the change being discovered"],
+          "given": [
+            "adv_change_validate returns passed:false due to NO_TASKS or NO_DELTAS on the change being discovered"
+          ],
           "when": "Conflict scan results are reported",
           "then": [
             "Own-change pre-prep warnings are not reported as external conflicts",
@@ -182,12 +217,18 @@
       "title": "Edge Case Investigation",
       "body": "For each gap identified during discovery, /adv-discover MUST document at least 2 edge cases or failure modes, OR explicitly mark the gap as N/A: structural with rationale. This prevents shallow analysis that misses failure modes.",
       "priority": "must",
-      "tags": ["discover", "edge-cases", "investigation"],
+      "tags": [
+        "discover",
+        "edge-cases",
+        "investigation"
+      ],
       "scenarios": [
         {
           "id": "rq-disc05.1",
           "title": "Each gap has at least 2 edge cases",
-          "given": ["A gap identified during discovery that involves logic or behavior"],
+          "given": [
+            "A gap identified during discovery that involves logic or behavior"
+          ],
           "when": "Discovery output is persisted",
           "then": [
             "The gap section contains at least 2 documented edge cases or failure modes"
@@ -196,10 +237,12 @@
         {
           "id": "rq-disc05.2",
           "title": "Structural gaps allow N/A with rationale",
-          "given": ["A gap that is purely structural with no logic to test"],
+          "given": [
+            "A gap that is purely structural with no logic to test"
+          ],
           "when": "Discovery output is persisted",
           "then": [
-            "The gap may be marked 'Edge cases: N/A — structural' with a rationale explaining why no edge cases apply"
+            "The gap may be marked 'Edge cases: N/A \u2014 structural' with a rationale explaining why no edge cases apply"
           ]
         }
       ]
@@ -209,12 +252,18 @@
       "title": "Design Question Depth",
       "body": "Each open design question in /adv-discover output MUST include trust model implications, blast radius, and alternatives considered. This prevents shallow one-liner questions that lack analysis depth.",
       "priority": "must",
-      "tags": ["discover", "design-questions", "depth"],
+      "tags": [
+        "discover",
+        "design-questions",
+        "depth"
+      ],
       "scenarios": [
         {
           "id": "rq-disc06.1",
           "title": "Each question has three required annotations",
-          "given": ["A discovery output with open design questions"],
+          "given": [
+            "A discovery output with open design questions"
+          ],
           "when": "The output is persisted",
           "then": [
             "Each question lists trust model implications (agent-only, user-only, or joint)",
@@ -229,12 +278,18 @@
       "title": "Draft Spec Delta Shapes",
       "body": "/adv-discover MUST include draft spec deltas with concrete requirement IDs (rq-* format) and at least one Given/When/Then scenario per delta, OR explicitly state 'No spec deltas required' with rationale. This prevents vague 'spec deltas will be needed' placeholders.",
       "priority": "must",
-      "tags": ["discover", "spec-deltas", "requirements"],
+      "tags": [
+        "discover",
+        "spec-deltas",
+        "requirements"
+      ],
       "scenarios": [
         {
           "id": "rq-disc07.1",
           "title": "Drafted deltas include IDs and scenarios",
-          "given": ["A discovery that identifies spec changes are needed"],
+          "given": [
+            "A discovery that identifies spec changes are needed"
+          ],
           "when": "Discovery output is persisted",
           "then": [
             "Each draft delta has a concrete rq-* requirement ID",
@@ -244,7 +299,9 @@
         {
           "id": "rq-disc07.2",
           "title": "No-delta changes are declared explicitly",
-          "given": ["A discovery that determines no spec changes are required"],
+          "given": [
+            "A discovery that determines no spec changes are required"
+          ],
           "when": "Discovery output is persisted",
           "then": [
             "The output states 'No spec deltas required' with a rationale",
@@ -258,12 +315,18 @@
       "title": "P25 Related-Pattern Scan",
       "body": "/adv-discover MUST execute a related-pattern scan per rule P25 to detect similar bugs or gaps elsewhere in the codebase, and report results in a Related Pattern Scan section. This prevents fixing one instance while identical issues remain elsewhere.",
       "priority": "must",
-      "tags": ["discover", "p25", "related-scan"],
+      "tags": [
+        "discover",
+        "p25",
+        "related-scan"
+      ],
       "scenarios": [
         {
           "id": "rq-disc08.1",
           "title": "Related-pattern scan executes and reports",
-          "given": ["A change in the discovery phase"],
+          "given": [
+            "A change in the discovery phase"
+          ],
           "when": "/adv-discover runs the P25 scan",
           "then": [
             "The output contains a 'Related Pattern Scan' section",
@@ -273,40 +336,16 @@
       ]
     },
     {
-      "id": "rq-disc09",
-      "title": "Embedded Discovery Methodology",
-      "body": "/adv-discover MUST carry the discovery methodology inline in the command file so the workflow remains self-contained even when no external skill is present. The embedded methodology must preserve the 8-step discovery protocol and remain aligned with docs/checklists/discover-checklist.md.",
-      "priority": "should",
-      "tags": ["discover", "embedded-methodology", "lbp"],
-      "scenarios": [
-        {
-          "id": "rq-disc09.1",
-          "title": "Embedded methodology is present in the command",
-          "given": ["The /adv-discover command is present in the repo"],
-          "when": "/adv-discover runs Phase 0",
-          "then": [
-            "The command contains an embedded discovery methodology block",
-            "The 8-step discovery protocol is available without loading an external skill"
-          ]
-        },
-        {
-          "id": "rq-disc09.2",
-          "title": "Embedded methodology stays aligned with checklist",
-          "given": ["The command embeds discovery methodology"],
-          "when": "/adv-discover runs Phase 0",
-          "then": [
-            "The methodology remains aligned with docs/checklists/discover-checklist.md",
-            "The command continues without any external skill dependency"
-          ]
-        }
-      ]
-    },
-    {
       "id": "rq-disc11",
       "title": "Discovery-Owned Agreement Sign-Off",
       "body": "When /adv-discover absorbs the user-facing agreement flow, the command MUST present objectives and constraints for user sign-off before completing the discovery gate, and MUST persist agreement.md as part of the same command contract. This prevents discovery findings from being marked complete before the user-facing sign-off step occurs.",
       "priority": "must",
-      "tags": ["discover", "agreement", "sign-off", "gate-ownership"],
+      "tags": [
+        "discover",
+        "agreement",
+        "sign-off",
+        "gate-ownership"
+      ],
       "scenarios": [
         {
           "id": "rq-disc11.1",
@@ -316,7 +355,7 @@
           ],
           "when": "/adv-discover reaches the end of its agreement presentation flow",
           "then": [
-            "The command presents objectives and constraints as inline handoff text for user sign-off per docs/command-voice-standard.md § Inline Approval Voice (Tier A)",
+            "The command presents objectives and constraints as inline handoff text for user sign-off per docs/command-voice-standard.md \u00a7 Inline Approval Voice (Tier A)",
             "agreement.md is persisted via adv_change_update",
             "adv_gate_complete gateId: discovery occurs only after the sign-off flow completes"
           ]
@@ -328,7 +367,12 @@
       "title": "Explicit Acceptance Criteria Checkpoint",
       "body": "/adv-discover MUST present draft acceptance criteria as a dedicated checkpoint before agreement.md persistence and before adv_gate_complete gateId: discovery. The checkpoint MUST offer explicit user outcomes for approval, /adv-clarify handoff, or write-in edits, and MUST NOT complete discovery until acceptance criteria are approved.",
       "priority": "must",
-      "tags": ["discover", "acceptance-criteria", "checkpoint", "agreement"],
+      "tags": [
+        "discover",
+        "acceptance-criteria",
+        "checkpoint",
+        "agreement"
+      ],
       "scenarios": [
         {
           "id": "rq-disc12.1",
@@ -339,7 +383,7 @@
           "when": "The command reaches the agreement sign-off flow",
           "then": [
             "The command presents Acceptance Criteria as a focused checkpoint",
-            "The inline handoff offers approve, start /adv-clarify, and add/clarify outcomes per docs/command-voice-standard.md § Inline Approval Voice",
+            "The inline handoff offers approve, start /adv-clarify, and add/clarify outcomes per docs/command-voice-standard.md \u00a7 Inline Approval Voice",
             "agreement.md is persisted only after acceptance criteria are approved",
             "adv_gate_complete gateId: discovery occurs only after approval"
           ]
@@ -365,12 +409,19 @@
       "title": "Full 11-Category AMBIGUITY ANALYSIS",
       "body": "/adv-discover MUST run an ambiguity scan during Phase 2 with B/F/S/M required (v1) and D/X/Q/I/E/C/T optional, and emit an ### AMBIGUITY ANALYSIS section containing finding IDs, severity, evidence quotes, and a coverage report.",
       "priority": "must",
-      "tags": ["discover", "ambiguity-scan", "taxonomy"],
+      "tags": [
+        "discover",
+        "ambiguity-scan",
+        "taxonomy"
+      ],
       "scenarios": [
         {
           "id": "rq-disc-tax1.1",
           "title": "Discovery produces AMBIGUITY ANALYSIS section with findings and coverage",
-          "given": ["A change in the discovery phase", "clarify_enforcement is 'advisory' or 'strict'"],
+          "given": [
+            "A change in the discovery phase",
+            "clarify_enforcement is 'advisory' or 'strict'"
+          ],
           "when": "/adv-discover runs Phase 2 analysis",
           "then": [
             "Output contains ### AMBIGUITY ANALYSIS section",
@@ -382,7 +433,9 @@
         {
           "id": "rq-disc-tax1.2",
           "title": "Legacy discovery skips AMBIGUITY ANALYSIS enforcement",
-          "given": ["A change with discovery gate already completed (in-flight)"],
+          "given": [
+            "A change with discovery gate already completed (in-flight)"
+          ],
           "when": "/adv-discover is invoked again",
           "then": [
             "The existing discovery output is preserved",
@@ -392,7 +445,9 @@
         {
           "id": "rq-disc-tax1.3",
           "title": "clarify_enforcement off skips AMBIGUITY ANALYSIS",
-          "given": ["clarify_enforcement is 'off'"],
+          "given": [
+            "clarify_enforcement is 'off'"
+          ],
           "when": "/adv-discover runs Phase 2",
           "then": [
             "No AMBIGUITY ANALYSIS section is emitted",
@@ -406,12 +461,18 @@
       "title": "Mandatory /adv-clarify Trigger",
       "body": "/adv-discover MUST halt and hand off to /adv-clarify when the AMBIGUITY ANALYSIS produces any CRITICAL finding OR 2+ HIGH findings. Single HIGH findings produce a warning but do not block. Trigger applies to all categories (required + optional).",
       "priority": "must",
-      "tags": ["discover", "clarify-trigger", "mandatory-handoff"],
+      "tags": [
+        "discover",
+        "clarify-trigger",
+        "mandatory-handoff"
+      ],
       "scenarios": [
         {
           "id": "rq-disc-tax2.1",
           "title": "CRITICAL finding halts discovery and hands off to /adv-clarify",
-          "given": ["AMBIGUITY ANALYSIS shows 1 CRITICAL B finding"],
+          "given": [
+            "AMBIGUITY ANALYSIS shows 1 CRITICAL B finding"
+          ],
           "when": "/adv-discover evaluates findings in Phase 2.5",
           "then": [
             "Discovery halts",
@@ -422,7 +483,9 @@
         {
           "id": "rq-disc-tax2.2",
           "title": "Single HIGH finding produces warning, proceeds normally",
-          "given": ["AMBIGUITY ANALYSIS shows 1 HIGH finding only"],
+          "given": [
+            "AMBIGUITY ANALYSIS shows 1 HIGH finding only"
+          ],
           "when": "/adv-discover evaluates findings",
           "then": [
             "Warning is logged inline",
@@ -432,7 +495,9 @@
         {
           "id": "rq-disc-tax2.3",
           "title": "2+ HIGH findings halt discovery",
-          "given": ["AMBIGUITY ANALYSIS shows 2+ HIGH findings (no CRITICAL)"],
+          "given": [
+            "AMBIGUITY ANALYSIS shows 2+ HIGH findings (no CRITICAL)"
+          ],
           "when": "/adv-discover evaluates findings",
           "then": [
             "Discovery halts",
@@ -446,12 +511,19 @@
       "title": "Post-Clarify Clean Coverage",
       "body": "After /adv-clarify resolves findings via the ## Clarify Resolution Log mechanism, a fresh /adv-discover rerun MUST produce a coverage report with no CRITICAL findings and at most 1 HIGH finding. Reruns are capped at 2 before escalating.",
       "priority": "must",
-      "tags": ["discover", "post-clarify", "rerun-cap"],
+      "tags": [
+        "discover",
+        "post-clarify",
+        "rerun-cap"
+      ],
       "scenarios": [
         {
           "id": "rq-disc-tax3.1",
           "title": "Post-clarify rerun shows clean coverage",
-          "given": ["/adv-clarify has written resolutions to proposal.md", "## Clarify Resolution Log contains resolved entries"],
+          "given": [
+            "/adv-clarify has written resolutions to proposal.md",
+            "## Clarify Resolution Log contains resolved entries"
+          ],
           "when": "/adv-discover is rerun",
           "then": [
             "New AMBIGUITY ANALYSIS shows no CRITICAL findings",
@@ -462,7 +534,10 @@
         {
           "id": "rq-disc-tax3.2",
           "title": "Third rerun triggers escalation instead of auto-halt",
-          "given": ["2 prior /adv-clarify cycles completed", "A third rerun is attempted"],
+          "given": [
+            "2 prior /adv-clarify cycles completed",
+            "A third rerun is attempted"
+          ],
           "when": "/adv-discover evaluates findings",
           "then": [
             "Rerun cap is enforced",

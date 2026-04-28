@@ -9,7 +9,7 @@
     {
       "id": "rq-PR001sml",
       "title": "Requirement Smell Detection",
-      "body": "The validator must scan requirement titles and bodies in spec deltas for language patterns that indicate ambiguity, subjectivity, or unmeasurable claims. These patterns are advisory warnings — not blockers — because smell heuristics have false-positive risk.",
+      "body": "The validator must scan requirement titles and bodies in spec deltas for language patterns that indicate ambiguity, subjectivity, or unmeasurable claims. These patterns are advisory warnings \u2014 not blockers \u2014 because smell heuristics have false-positive risk.",
       "priority": "should",
       "tags": [
         "prep",
@@ -392,43 +392,6 @@
           "when": "The gate is completed",
           "then": [
             "No prep-readiness checks are run; behavior is unchanged from baseline"
-          ]
-        }
-      ]
-    },
-    {
-      "id": "rq-prdoc001",
-      "title": "Doctor-Lite Integrity Signals for Prep and Archive",
-      "body": "Prep and archive flows must surface lightweight integrity findings: cross-repo routing metadata gaps, JSON/SQLite cache inconsistencies, broken task-to-change references, and pending WAL checkpoint warnings.",
-      "priority": "should",
-      "tags": [
-        "prep",
-        "archive",
-        "doctor",
-        "integrity"
-      ],
-      "scenarios": [
-        {
-          "id": "rq-prdoc001.1",
-          "title": "Prep surfaces routing metadata gaps",
-          "given": [
-            "Tasks contain incomplete cross-repo routing fields"
-          ],
-          "when": "adv-prep performs readiness analysis",
-          "then": [
-            "Missing target_repo/target_path metadata is surfaced in findings"
-          ]
-        },
-        {
-          "id": "rq-prdoc001.2",
-          "title": "Archive checks doctor warnings before finalization",
-          "given": [
-            "adv_status reports doctor-lite findings"
-          ],
-          "when": "adv-archive pre-checks run",
-          "then": [
-            "Cache inconsistency and broken refs are treated as blockers",
-            "Pending WAL checkpoint is surfaced as advisory warning"
           ]
         }
       ]

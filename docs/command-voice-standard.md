@@ -199,7 +199,7 @@ Manifest descriptions and command doc text cover **what** and **when**. This sec
 ### Drift control
 
 - Lightweight: voice block referenced in `.opencode/agents/adv.md` and shared-agent overlays
-- Governed by `rq-presentationSurface01` (surface discipline) and `rq-handoffVoice01` (handoff voice spine)
+- Governed by `rq-handoffVoice01` (handoff voice spine)
 - Global `~/.config/opencode/instructions/caveman.md` remains user-config; not synced by repo
 
 ## Gate Handoff Voice
