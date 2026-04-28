@@ -1730,6 +1730,46 @@
           ]
         }
       ]
+    },
+    {
+      "id": "rq-deltaOps01",
+      "title": "Typed Delta Operations",
+      "body": "The delta system MUST enforce type safety on modifications and support rename operations on requirements. Modifications must reject unknown keys; renames must update title (and optionally id) while preserving all other fields.",
+      "priority": "must",
+      "tags": [
+        "contract-system",
+        "delta",
+        "schema"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-deltaOps01.1",
+          "title": "Reject unknown keys on modify",
+          "given": [
+            "A DeltaModifySchema object with unknown keys"
+          ],
+          "when": "The schema is parsed by Zod",
+          "then": [
+            "The parse operation MUST fail with a validation error"
+          ]
+        },
+        {
+          "id": "rq-deltaOps01.2",
+          "title": "Successful rename preserves other fields",
+          "given": [
+            "An existing requirement",
+            "A rename delta targeting its ID"
+          ],
+          "when": "The delta is applied",
+          "then": [
+            "The requirement's title is updated",
+            "All other fields are preserved"
+          ]
+        }
+      ],
+      "meta": {
+        "merged_from": "contract-system/rq-typedmod+rq-renameop"
+      }
     }
   ]
 }
