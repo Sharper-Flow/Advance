@@ -1,13 +1,11 @@
 # TDD Contract
 
 > **Version:** 1.4.0
-> **Updated:** 2026-04-21
+> **Updated:** 2026-04-20
 
 ## Purpose
 
 Canonical definition of how TDD phases integrate with the ADV task model. Inline TDD (red/green within each implementation task) is the default. Separate verification tasks are reserved for cross-cutting tests spanning multiple implementation tasks.
-
-The primary red/green evidence path is `adv_run_test` (captures exit code + output). `adv_task_evidence` is fallback for externally captured evidence. Test-file creation MUST use editing tools (`edit`, `write`, `morph_edit`), not shell redirects.
 
 ## Requirements
 
@@ -264,6 +262,7 @@ Once the planning gate is marked complete, task metadata.tdd_intent is frozen. N
 **Then:**
 - The operation is rejected with an error
 - The error message directs users to adv_task_reclassify_tdd for adjusting existing tasks
+- The error message directs users to adv_change_reenter for scope-expansion re-entry when new tasks are genuinely needed
 
 **Task addition succeeds before planning gate complete** (`rq-TDD007req.2`)
 
@@ -323,5 +322,52 @@ Once the planning gate is marked complete, task metadata.tdd_intent is frozen. N
 **Then:**
 - The tdd_reclassification field contains from_intent, to_intent, reason, approved_by_user (true), approval_evidence, and approved_at
 - The audit trail is included in change validation and archive
+
+---
+
+### Primary TDD Evidence Path for Inline Work
+
+**ID:** `rq-TDD008path` | **Priority:** **[MUST]**
+
+For ordinary inline TDD work, the primary red/green execution path MUST use adv_run_test for both phases after test or implementation changes are made with editing tools. adv_task_evidence remains available as fallback only for externally obtained or manually captured evidence that did not flow through adv_run_test.
+
+**Tags:** `tdd`, `inline`, `evidence`, `workflow`
+
+#### Scenarios
+
+**Inline TDD uses adv_run_test as primary red and green path** (`rq-TDD008path.1`)
+
+**Given:**
+- An implementation task with metadata.tdd_intent='inline'
+- The task is entering red or green phase
+
+**When:** The ordinary TDD workflow is executed
+
+**Then:**
+- The test command is run through adv_run_test for the red phase
+- The test command is run through adv_run_test for the green phase
+
+**adv_task_evidence is fallback for externally obtained evidence** (`rq-TDD008path.2`)
+
+**Given:**
+- Evidence was produced outside adv_run_test
+- The evidence still needs to be attached to the task record
+
+**When:** The fallback evidence path is used
+
+**Then:**
+- adv_task_evidence may be used to record the evidence
+- The fallback path is not described as the primary inline-TDD path
+
+**Primary path does not change evidence semantics validation** (`rq-TDD008path.3`)
+
+**Given:**
+- adv_run_test or adv_task_evidence records red or green phase evidence
+
+**When:** Exit-code semantics are validated
+
+**Then:**
+- Red phase still rejects exitCode=0
+- Green phase still rejects non-zero exit codes
 
 ---

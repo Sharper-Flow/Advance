@@ -365,39 +365,6 @@ The adv_gate_complete tool for the prep gate must run all prep-readiness checks 
 
 ---
 
-### Doctor-Lite Integrity Signals for Prep and Archive
-
-**ID:** `rq-prdoc001` | **Priority:** **[SHOULD]**
-
-Prep and archive flows must surface lightweight integrity findings: cross-repo routing metadata gaps, disk-artifact/workflow consistency issues, broken task-to-change references, and stale worker/orphan workflow warnings.
-
-**Tags:** `prep`, `archive`, `doctor`, `integrity`
-
-#### Scenarios
-
-**Prep surfaces routing metadata gaps** (`rq-prdoc001.1`)
-
-**Given:**
-- Tasks contain incomplete cross-repo routing fields
-
-**When:** adv-prep performs readiness analysis
-
-**Then:**
-- Missing target_repo/target_path metadata is surfaced in findings
-
-**Archive checks doctor warnings before finalization** (`rq-prdoc001.2`)
-
-**Given:**
-- adv_status reports doctor-lite findings
-
-**When:** adv-archive pre-checks run
-
-**Then:**
-- Disk-artifact/workflow inconsistency and broken refs are treated as blockers
-- Stale worker or orphan workflow signals are surfaced as advisory warnings
-
----
-
 ### TDD Intent Assignment at Prep Finalization
 
 **ID:** `rq-PR006tdi` | **Priority:** **[MUST]**

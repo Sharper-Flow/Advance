@@ -39,7 +39,10 @@ describe("preserved narrative rules — wording presence", () => {
     const req = spec.requirements.find(
       (r) => r.id === "rq-largeScopeValidity01",
     );
-    expect(req, "rq-largeScopeValidity01 must exist in advance-workflow").toBeDefined();
+    expect(
+      req,
+      "rq-largeScopeValidity01 must exist in advance-workflow",
+    ).toBeDefined();
     expect(req!.priority).toBe("must");
     // Anchor wording: agents must trust the prep gate; size alone is not grounds for split
     expect(req!.body.toLowerCase()).toMatch(/size|split|prep gate/);

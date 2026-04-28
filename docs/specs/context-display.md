@@ -1,7 +1,7 @@
 # Context Display
 
-> **Version:** 1.1.0
-> **Updated:** 2026-03-10
+> **Version:** 1.2.0
+> **Updated:** 2026-04-23
 
 ## Purpose
 
@@ -48,7 +48,7 @@ The Context Snapshot MUST display: change ID and title, success criteria count, 
 
 **ID:** `rq-ctxsnap2` | **Priority:** **[MUST]**
 
-The Context Snapshot MUST be emitted at defined trigger points: when a change is first loaded for work, when a gate transitions, when the active task switches, and when a session resumes with an active change. Emission is automatic — not only on user request.
+The Context Snapshot MUST be emitted at defined trigger points: when a change is first loaded for work, when a gate transitions, when the active task switches, when tasks are cancelled, when tasks are created, when gates are reopened via re-entry, and when a session resumes with an active change. Emission is automatic — not only on user request.
 
 **Tags:** `context-display`, `snapshot`, `triggers`
 
@@ -83,6 +83,39 @@ The Context Snapshot MUST be emitted at defined trigger points: when a change is
 
 **Then:**
 - The tool output reflects the new current task context
+
+**Snapshot emitted on task cancellation** (`rq-ctxsnap2.4`)
+
+**Given:**
+- An active change with tasks
+
+**When:** adv_task_cancel successfully cancels one or more tasks
+
+**Then:**
+- The tool output includes an updated _contextSnapshot
+- The snapshot task counts reflect the cancellations
+
+**Snapshot emitted on task creation** (`rq-ctxsnap2.5`)
+
+**Given:**
+- An active change where the planning gate is not yet complete
+
+**When:** adv_task_add successfully creates a new task
+
+**Then:**
+- The tool output includes an updated _contextSnapshot
+- The snapshot task counts reflect the new task
+
+**Snapshot emitted on gate re-entry** (`rq-ctxsnap2.6`)
+
+**Given:**
+- A change with completed gates
+
+**When:** adv_change_reenter reopens gates from a specified point
+
+**Then:**
+- The tool output includes an updated _contextSnapshot
+- The snapshot gate progress shows the reset gate state
 
 ---
 
