@@ -35,6 +35,10 @@ export interface ContextSnapshotInput {
   wisdomCount?: number;
   /** Breakdown by type (e.g. { pattern: 2, gotcha: 1 }) */
   wisdomByType?: Record<string, number>;
+  /** Autopilot mode indicator — set when approval_mode === "autopilot" */
+  approval_mode?: string;
+  /** ISO8601 timestamp when autopilot was invoked */
+  autopilot_invoked_at?: string;
 }
 
 type SnapshotTaskLike = {
@@ -61,6 +65,8 @@ type SnapshotChangeLike = {
   title: string;
   tasks: SnapshotTaskLike[];
   wisdom?: SnapshotWisdomLike[];
+  approval_mode?: string;
+  autopilot_invoked_at?: string;
 };
 
 export function countSuccessCriteria(
@@ -142,6 +148,8 @@ export function buildChangeContextSnapshot({
     currentTask,
     wisdomCount,
     wisdomByType,
+    approval_mode: change.approval_mode,
+    autopilot_invoked_at: change.autopilot_invoked_at,
   });
 }
 
@@ -248,11 +256,19 @@ export function formatContextSnapshot(input: ContextSnapshotInput): string {
   const lines: string[] = [
     `CONTEXT: ${changeId}`,
     title,
+  ];
+
+  // Autopilot mode indicator
+  if (input.approval_mode === "autopilot" && input.autopilot_invoked_at) {
+    lines.push(`Mode: autopilot (since ${input.autopilot_invoked_at})`);
+  }
+
+  lines.push(
     "",
     `Gates: ${gateProgress}`,
     `Success: ${successCriteriaCount ?? "?"} criteria`,
     taskLine,
-  ];
+  );
 
   // Budget: we have 3 remaining line slots (10 total - 2 box borders - 5 fixed lines above)
   // Priority: wisdom line > success criteria (already included) > current task
