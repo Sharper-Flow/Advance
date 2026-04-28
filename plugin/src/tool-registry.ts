@@ -38,6 +38,7 @@ import { gateTools } from "./tools/gate";
 import { testTools } from "./tools/test";
 import { investmentTools } from "./tools/investment";
 import { temporalOpsTools } from "./tools/temporal-ops";
+import { archiveSweepTools } from "./tools/archive-sweep";
 import { checkpointTools } from "./tools/checkpoint";
 import { reflectionTools } from "./tools/reflection";
 import { projectMetadataTools } from "./tools/project-metadata";
@@ -359,6 +360,11 @@ export function createToolMap(
       "adv_orphan_sweep",
       store,
     ),
+    adv_archive_sweep_orphans: bindTool(
+      archiveSweepTools.adv_archive_sweep_orphans,
+      "adv_archive_sweep_orphans",
+      store,
+    ),
     adv_temporal_worker_restart: bindTool(
       temporalOpsTools.adv_temporal_worker_restart,
       "adv_temporal_worker_restart",
@@ -488,6 +494,7 @@ export const ADV_TOOL_NAMES: readonly string[] = [
   "adv_temporal_register_search_attributes",
   "adv_temporal_reconnect",
   "adv_orphan_sweep",
+  "adv_archive_sweep_orphans",
   "adv_temporal_worker_restart",
   "adv_workflow_repair",
   "adv_task_checkpoint",
