@@ -1059,6 +1059,71 @@
       "meta": {
         "merged_from": "advance"
       }
+    },
+    {
+      "id": "rq-autopilot01",
+      "title": "Autopilot Mode Records Delegation Audit and Preserves Safety Boundaries",
+      "body": "The /adv-autopilot command provides a single-shot delegation surface that auto-approves the 5 routine human checkpoints (proposal, agreement, design, prep, acceptance) for a change. The change records approval_mode: 'autopilot' and autopilot_invoked_at on invocation, and each auto-approved gate is completed with completedBy: 'adv-autopilot' and notes documenting the delegation. Tier B checkpoints (archive sign-off, cancellation) remain whitelist-only and are NOT auto-approved by autopilot. All system-level interrupts (doom-loop, design validator CONFLICT, contract-compromise risk, Phase 1.5 judgment-call surfacing, drift detection in /adv-review and /adv-harden) remain active and are NOT suppressed by autopilot mode.",
+      "priority": "must",
+      "tags": ["workflow", "autonomy", "autopilot", "audit"],
+      "scenarios": [
+        {
+          "id": "rq-autopilot01.1",
+          "title": "Autopilot invocation records change-level audit fields",
+          "given": [
+            "A change has the proposal gate pending",
+            "/adv-autopilot {change-id} is invoked"
+          ],
+          "when": "The autopilot workflow begins",
+          "then": [
+            "change.approval_mode is set to 'autopilot'",
+            "change.autopilot_invoked_at is set to the invocation timestamp"
+          ]
+        },
+        {
+          "id": "rq-autopilot01.2",
+          "title": "Auto-approved gates record adv-autopilot as completer",
+          "given": [
+            "An autopilot run is in progress",
+            "The discovery gate is being completed"
+          ],
+          "when": "adv_gate_complete is called",
+          "then": [
+            "completedBy is set to 'adv-autopilot'",
+            "notes contain 'approved via /adv-autopilot at <ISO>'"
+          ]
+        },
+        {
+          "id": "rq-autopilot01.3",
+          "title": "Tier B and dynamic interrupts preserved under autopilot",
+          "given": [
+            "An autopilot run reaches acceptance gate completion",
+            "Or a populated judgment_calls[] surfaces during /adv-apply Phase 1.5",
+            "Or design validator returns CONFLICT"
+          ],
+          "when": "The orchestrator evaluates whether to proceed",
+          "then": [
+            "Archive sign-off uses the standard Tier B inline-approval prompt",
+            "Phase 1.5 surfaces unresolved judgment calls via question tool",
+            "Design CONFLICT pauses for user resolution",
+            "Cancellation always requires adv_task_cancel approvedByUser: true"
+          ]
+        },
+        {
+          "id": "rq-autopilot01.4",
+          "title": "Autopilot delegates design-approval for user-value tradeoffs",
+          "given": [
+            "approval_mode: 'autopilot' is set on the change",
+            "The design phase identifies real user-value tradeoffs that do NOT trigger CONFLICT or contract-compromise risk"
+          ],
+          "when": "The orchestrator evaluates whether to pause for design approval per rq-autonomy01.3",
+          "then": [
+            "Design approval is satisfied by autopilot delegation; no inline approval prompt is emitted",
+            "rq-designval03 (CONFLICT) and rq-autonomy01.6 (contract-compromise) remain blocking interrupts regardless of approval_mode",
+            "The audit trail records completedBy: 'adv-autopilot' on the design gate so the delegation is forensically distinguishable from manual design approval"
+          ]
+        }
+      ]
     }
   ]
 }
