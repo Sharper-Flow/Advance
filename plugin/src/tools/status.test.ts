@@ -5,6 +5,8 @@
  */
 
 import { describe, test, expect, beforeEach, afterEach } from "vitest";
+import { mkdir, writeFile } from "fs/promises";
+import { join } from "path";
 import { statusTools } from "./status";
 import {
   createTestProject,
@@ -14,6 +16,7 @@ import {
 } from "../__tests__/setup";
 import { createLegacyStore } from "../storage/store";
 import type { Store } from "../storage/store";
+import { GATE_ORDER, createDefaultGates } from "../types";
 
 describe("Status Tools", () => {
   let tempDir: string;
@@ -79,6 +82,118 @@ describe("Status Tools", () => {
       expect(followRec).toBeDefined();
       expect(followRec).toContain("childFollowUp");
       expect(followRec).toContain(parentParsed.changeId);
+    });
+
+    test("suppresses clarify recommendation when all gates complete", async () => {
+      // Vague proposal that triggers ≥2 clarify-readiness findings:
+      // missing Success Criteria + missing Scope sections.
+      const vagueProposal = `# Completed Vague Change
+
+## Summary
+
+Did some work.
+
+## Notes
+
+No success criteria, no scope section.
+`;
+
+      const allGatesDone = Object.fromEntries(
+        GATE_ORDER.map((g) => [
+          g,
+          {
+            status: "done" as const,
+            completed_at: "2026-01-21T00:00:00Z",
+            completed_by: "test-user",
+          },
+        ]),
+      );
+
+      const completedChange = {
+        $schema: "https://advance.dev/schemas/change.v1.json",
+        id: "completedVagueChange",
+        title: "Completed Vague Change",
+        status: "active",
+        created_at: "2026-01-20T00:00:00Z",
+        tasks: [],
+        deltas: {},
+        gates: allGatesDone,
+      };
+
+      await mkdir(join(tempDir, ".adv/changes/completedVagueChange"), {
+        recursive: true,
+      });
+      await writeFile(
+        join(tempDir, ".adv/changes/completedVagueChange/change.json"),
+        JSON.stringify(completedChange, null, 2),
+      );
+      await writeFile(
+        join(tempDir, ".adv/changes/completedVagueChange/proposal.md"),
+        vagueProposal,
+      );
+      await store.sync();
+
+      const result = await statusTools.adv_status.execute({}, store);
+      const parsed = parseToolOutput<{ recommendations: string[] }>(result);
+
+      const ambiguityRec = parsed.recommendations.find((r) =>
+        r.includes("ambiguity finding"),
+      );
+      const completedAmbiguityRec = parsed.recommendations.find(
+        (r) =>
+          r.includes("ambiguity finding") && r.includes("completedVagueChange"),
+      );
+
+      // No clarify recommendation should fire for the fully-gated change.
+      expect(completedAmbiguityRec).toBeUndefined();
+      // Sanity: if any ambiguity rec exists at all, it must not be ours.
+      if (ambiguityRec) {
+        expect(ambiguityRec).not.toContain("completedVagueChange");
+      }
+    });
+
+    test("emits clarify recommendation when at least one gate incomplete", async () => {
+      // Same vague proposal, but gates pending — recommendation should fire.
+      const vagueProposal = `# In-Flight Vague Change
+
+## Summary
+
+Vague in-flight work.
+`;
+
+      const inFlightChange = {
+        $schema: "https://advance.dev/schemas/change.v1.json",
+        id: "inFlightVagueChange",
+        title: "In-Flight Vague Change",
+        status: "active",
+        created_at: "2026-01-20T00:00:00Z",
+        tasks: [],
+        deltas: {},
+        gates: createDefaultGates(),
+      };
+
+      await mkdir(join(tempDir, ".adv/changes/inFlightVagueChange"), {
+        recursive: true,
+      });
+      await writeFile(
+        join(tempDir, ".adv/changes/inFlightVagueChange/change.json"),
+        JSON.stringify(inFlightChange, null, 2),
+      );
+      await writeFile(
+        join(tempDir, ".adv/changes/inFlightVagueChange/proposal.md"),
+        vagueProposal,
+      );
+      await store.sync();
+
+      const result = await statusTools.adv_status.execute({}, store);
+      const parsed = parseToolOutput<{ recommendations: string[] }>(result);
+
+      const ambiguityRec = parsed.recommendations.find(
+        (r) =>
+          r.includes("ambiguity finding") && r.includes("inFlightVagueChange"),
+      );
+      expect(ambiguityRec).toBeDefined();
+      expect(ambiguityRec).toContain("/adv-clarify inFlightVagueChange");
     });
 
     test("recommendation annotates terminal parent", async () => {
