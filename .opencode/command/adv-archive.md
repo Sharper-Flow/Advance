@@ -143,6 +143,7 @@ After the archive summary is displayed, invoke reflection (non-blocking):
 ---
 
 ## Phase 9: Git Finalization (Mandatory)
+<!-- rq-releaseFinalization01 -->
 
 ### Step 1: Stage and Commit
 

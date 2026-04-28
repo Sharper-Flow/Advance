@@ -35,8 +35,11 @@ Parse `$ARGUMENTS`:
 
 ---
 ## Phase 1: Automatable Detection
+<!-- rq-ss001 -->
+<!-- rq-slopscan01 -->
 Fast AST-first structural detection + regex signal layer for deterministic patterns.
 ### Threshold Config
+<!-- rq-ss002 -->
 Load `features.slop_scan` from `project.json` (defaults: nesting_depth=4, defensive_guard=3, complexity=10, ast_timeout_ms=10000).
 ### AST Structural Detection (MAINT-004, QUAL-011)
 | Language | Tool | Command |
@@ -47,6 +50,7 @@ Load `features.slop_scan` from `project.json` (defaults: nesting_depth=4, defens
 
 Fallback: brace/indent counting → `detectionMethod: degraded`.
 ### Defensive Overkill (QUAL-011)
+<!-- rq-ss003 -->
 Regex for repeated null/undefined checks on same identifier. Escalate when >= `defensive_guard_threshold`.
 ### Pattern Detection
 | Category | Smell IDs | Patterns |
@@ -59,6 +63,7 @@ Regex for repeated null/undefined checks on same identifier. Escalate when >= `d
 | AI signatures | DOC-003 | `Certainly!`, `Sure!`, `I'll help`, `As an AI` |
 | Security | QUAL-003 | String-concat SQL, hardcoded passwords/keys/secrets |
 ### Dead Code (MAINT-003)
+<!-- rq-ss005 -->
 | Language | Tool | Command |
 |----------|------|---------|
 | Python | vulture | `vulture <path> --min-confidence 80` |
@@ -67,6 +72,7 @@ Regex for repeated null/undefined checks on same identifier. Escalate when >= `d
 
 If no tool available → suggest installation → skip to Phase 2 heuristic.
 ### Finding Format
+<!-- rq-ss004 -->
 Each finding: `id`, `name`, `severity`, `file`, `line`, `description`, `fix`, `nestingDepth`, `complexity`, `confidence` (high/medium/low), `detectionMethod` (ast/regex/heuristic/degraded), `phase: 1`.
 
 If `--phase 1` only → skip to Report.

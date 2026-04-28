@@ -101,6 +101,7 @@ export const taskTools = {
     },
   },
 
+  // rq-advmeta01: Task Metadata Filter Semantics
   adv_task_list: {
     description: "List tasks for a change with optional status filter",
     args: {

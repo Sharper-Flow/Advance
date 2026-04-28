@@ -96,6 +96,10 @@ const runCommand = async (
   }
 };
 
+// rq-ADVEXEC01: Canonical Apply Tool Path for Inline TDD
+// rq-ADVEXEC02: Apply Contract Regression Anchors
+// rq-ADVEXEC03: Runtime Enforcement for Inline-TDD Bash Workarounds
+
 export const testTools = {
   adv_run_test: {
     description:

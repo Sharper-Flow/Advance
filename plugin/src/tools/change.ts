@@ -1,3 +1,4 @@
+// rq-advprop01: Durable Proposal Context for adv-task
 /**
  * Change Tools
  *
@@ -88,6 +89,7 @@ function resolveClarifyFindings(
   return updated;
 }
 
+// rq-synthstate01: Synthetic Validation Draft Isolation
 function isSyntheticValidationDraftSummary(summary: string): boolean {
   const trimmed = summary.trim();
 
@@ -1227,6 +1229,7 @@ export const changeTools = {
     },
   },
 
+  // rq-bulkClose01: Filter-Aware Bulk Close
   adv_change_bulk_close: {
     description:
       "Close multiple changes in a single approved operation. Supports explicit IDs or filter-based selection. Requires either a status filter or a staleness filter. Fail-all if any target is protected or invalid.",

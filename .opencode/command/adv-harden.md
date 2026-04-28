@@ -280,6 +280,7 @@ Count non-nit findings. If <3 → require genuinely-clean justification with sca
 ---
 
 ## Phase 3: Remediation
+<!-- rq-remediation01 -->
 
 If READY → skip to cleanup.
 
@@ -337,6 +338,7 @@ Aggregate cleanup candidates from scanner + session artifacts. Display preview l
 ---
 
 ## Final Report
+<!-- rq-touchedScope01 -->
 
 ### Mark Harden Gate
 

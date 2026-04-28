@@ -69,6 +69,7 @@ Doctor-Lite: check cross-repo routing completeness — flag MUST gap if `target_
 
 ---
 ## Phase 2: Gap Analysis + Task Synthesis
+<!-- rq-prep-synth1 -->
 Run 4-Step Gap Analysis (desired state → current state → gap → action plan) using the loaded skill methodology:
 1. **Requirements quality** — INVEST criteria + smell detection (from skill)
 2. **Task sequencing** — absorption analysis, TDD ordering, dependency graph coherence (from skill)

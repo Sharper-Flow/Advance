@@ -10,6 +10,7 @@ phaseGoal: "Clarify the problem, user needs, and acceptance criteria scope. Esta
 Two-phase workflow: Phase 1 (problem statement agreement) → Phase 2 (full proposal with INVEST criteria and smell detection). **Fully collaborative** — the user shapes every decision.
 
 ## Command Boundary
+<!-- rq-prop-neg1 -->
 
 **Produces:** Confirmed problem statement, initial change scaffold, and the proposal artifact needed to begin discovery.
 
@@ -31,6 +32,7 @@ Two-phase workflow: Phase 1 (problem statement agreement) → Phase 2 (full prop
 
 ---
 ## Phase 1: Problem Statement Agreement
+<!-- rq-advprop02 -->
 Before creating artifacts:
 1. Extract agreed facts, decisions, rejected approaches, open questions, and constraints from the conversation
 2. Synthesize a concise problem statement with desired outcome and expected scope
@@ -64,6 +66,7 @@ After confirmation:
 5. Determine cross-repo scope autonomously from code paths/interfaces/config; ask only if boundary ambiguity changes the intended outcome
 6. Run the proposal checklist quality gate; refine autonomously unless refinement would change confirmed intent
 7. **Phase 2.5: Build Scope Section** — Build `## Scope` section in proposal.md with `### In Scope` and `### Out of Scope` subsections. Surface to user inline if subsections are empty or missing — block gate completion until populated. Backwards-compat: if proposal gate already done (re-entry case), skip rebuilding (treat as legacy).
+<!-- rq-prop-scope1 -->
 8. **Phase 2.6: Run B/F/S Ambiguity Scan** — Read full proposal.md content. Apply 3-category scan per `ADV_INSTRUCTIONS.md § Ambiguity Taxonomy`:
    - B (Boundaries) — check for `### Out of Scope` content
    - F (Functional Scope) — check for testable Success Criteria
@@ -121,6 +124,7 @@ Want to stop here? Reply `stop` or `defer`.
 ---
 
 ## Output
+<!-- rq-prop-out1 -->
 
 Use the Gate Handoff Voice spine (see `docs/command-voice-standard.md § Gate Handoff Voice`):
 

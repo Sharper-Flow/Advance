@@ -54,6 +54,7 @@ Every `/adv-discover` invocation must execute these 8 protocol steps and emit a 
 | 8 | **LBP Check (with gated External-Solution Check)** | LBP Check | Whether likely direction matches long-term best practice |
 
 After all 8 steps, emit a **Discovery Checklist** table listing each step with PASS/SKIP + reason.
+<!-- rq-disc01 -->
 
 #### Constraints
 
@@ -105,6 +106,7 @@ If neither field is present → skip this phase (local change, normal flow).
 
 ---
 ## Phase 1.5: Skill Discovery + Gap-Triggered Creation
+<!-- rq-disc02 -->
 
 Execute the skill discovery protocol from `ADV_INSTRUCTIONS.md § Skill Discovery Protocol`, then check for skill gaps and pending reviews.
 
@@ -123,16 +125,19 @@ Before keyword matching, scan the global skills dir (`~/.config/opencode/skills/
 Search trusted skill directories → match `keywords` against tech stack/domain → load via `skill("{name}")` → apply guidance.
 
 ### Step 3: Gap Detection + Creation
+<!-- rq-sc01 -->
 
 If no matching skill was found for a domain clearly relevant to the change's **core problem** (not tangential), the agent MAY create a skill on demand. See `ADV_INSTRUCTIONS.md § Skill Creation Protocol` for the full trigger conditions, naming convention, assembly template, and creation flow.
 
 **Creation sub-flow (only if gap detected):**
+<!-- rq-sc02 -->
 1. Research domain using Context7, Kagi, grep.app
 2. Assemble SKILL.md using the template from `ADV_INSTRUCTIONS.md § Skill Creation Protocol`
 3. Write atomically to `~/.config/opencode/skills/agent-{domain}/SKILL.md`
 4. Skip if file already exists → report "skill already exists: agent-{domain}"
 5. Load via `skill("agent-{domain}")` and apply guidance in current workflow
 6. Emit `[ADV:SKILL_CREATED]` with skill name, domain, and brief description
+<!-- rq-sc03 -->
 
 **Output:** "Skills Considered" section listing each examined skill, match assessment, action taken, and any gap detection/creation results.
 
@@ -147,6 +152,7 @@ If no matching skill was found for a domain clearly relevant to the change's **c
 ---
 
 ## Phase 1.6: Conflict & Related-Work Scan
+<!-- rq-disc04 -->
 
 Execute all three tools and report findings in a "Conflict Scan" section:
 
@@ -158,6 +164,7 @@ For relevant archived changes, use `adv_change_show` to inspect their tasks and 
 
 ---
 ## Phase 1.7: P25 Related-Pattern Scan
+<!-- rq-disc08 -->
 Per rule P25 (related-scan): identify the class of bug or gap being addressed, then scan for similar patterns elsewhere in the codebase.
 
 **Output:** "Related Pattern Scan" section listing similar patterns with file references, or explicitly stating "no similar patterns found".
@@ -185,7 +192,9 @@ Build a compact discovery report. The output MUST contain these sections (order 
 | **Related Pattern Scan**   | Results from Phase 1.7                                                                      |
 | **LBP Check**              | Whether likely direction matches long-term best practice                                    |
 | **Recommended Objectives** | Numbered list for the agreement phase                                                       |
-| **AMBIGUITY ANALYSIS**     | Finding table: B/F/S/M findings (required v1) + optional D/X/Q/I/E/C/T findings; severity column; evidence quotes; coverage report row |
+| **AMBIGUITY ANALYSIS** | Finding table: B/F/S/M findings (required v1) + optional D/X/Q/I/E/C/T findings; severity column; evidence quotes; coverage report row |
+
+<!-- rq-disc07 -->
 
 ### Ambiguity Analysis
 
@@ -209,6 +218,7 @@ Run a structured ambiguity scan using the taxonomy from `ADV_INSTRUCTIONS.md § 
 If scan is clean: emit `### AMBIGUITY ANALYSIS — no ambiguity findings. Coverage: B:C F:C S:C M:C`
 
 ### Prior Research Extension
+<!-- rq-disc03 -->
 
 Search these locations for prior artifacts:
 
@@ -225,6 +235,7 @@ Search these locations for prior artifacts:
 - No prior artifacts → report "No prior research found" (non-blocking). If the discovery agenda includes ecosystem unknowns or viable external alternatives, note that running `/adv-improve {target}` first would produce a reusable research pack.
 
 ### Edge Case Investigation
+<!-- rq-disc05 -->
 
 For each gap identified:
 
@@ -233,6 +244,7 @@ For each gap identified:
 - Structural gaps (no logic) may be marked "Edge cases: N/A — structural" with rationale
 
 ### Design Question Depth
+<!-- rq-disc06 -->
 
 Each open design question MUST include:
 
@@ -247,6 +259,7 @@ Each open design question MUST include:
 If there are 2+ viable approaches with user-value tradeoffs, load `skill("prioritizer")` and apply the criteria-based tradeoff analysis workflow. If the skill is unavailable, continue with the existing inline prioritizer workflow before asking questions.
 
 ### External-Solution Check (gated)
+<!-- rq-disc10 -->
 
 Required when the proposal's Discovery Agenda contains ecosystem unknowns OR an open design question lists external tools / libraries / services as a realistic option.
 
@@ -287,6 +300,7 @@ Update the proposal artifact with the discovery findings so the sign-off flow ca
 ---
 
 ## Phase 4: Present Agreement Draft + Resolve Questions
+<!-- rq-disc11 -->
 - Load the refreshed discovery context from the proposal findings
 - Extract objectives, constraints, avoidances, open questions, and draft acceptance criteria
 - Present a concise agreement view:

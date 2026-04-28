@@ -81,6 +81,7 @@ const SMELL_PATTERNS = {
 // Check: Requirement Smells
 // =============================================================================
 
+// rq-PR001sml: Requirement Smell Detection
 /**
  * Scan requirement titles in spec deltas for language smell patterns.
  * All smell issues are advisory warnings — never errors.
@@ -120,6 +121,7 @@ export function checkRequirementSmells(change: Change): ValidationIssue[] {
 // Check: Scenario Adequacy
 // =============================================================================
 
+// rq-PR002scn: Scenario Adequacy Enforcement
 /**
  * Ensure every added requirement has at least one scenario.
  * Requirements with no scenarios cannot be tested or validated → must-failure.
@@ -155,6 +157,7 @@ export function checkScenarioAdequacy(change: Change): ValidationIssue[] {
 // Check: Task Graph Integrity
 // =============================================================================
 
+// rq-PR003tdd: TDD Inversion Detection
 /**
  * Check task graph for TDD inversions and orphan tasks.
  *
@@ -266,6 +269,7 @@ export function checkTaskGraphIntegrity(change: Change): ValidationIssue[] {
 const CROSS_REPO_TITLE_HINTS =
   /(\[[\w-]+\]|~\/dev\/|~\/repos\/|\/home\/\w+\/dev\/)/i;
 
+// rq-PR004xrp: Cross-Repo Routing Completeness
 /**
  * Validate cross-repo routing metadata consistency.
  *
@@ -406,6 +410,7 @@ export function checkTddIntentAssigned(
 // runPrepReadinessChecks
 // =============================================================================
 
+// rq-PR005gat: Prep Gate Readiness Enforcement
 /**
  * Run all prep-readiness checks against a change.
  *

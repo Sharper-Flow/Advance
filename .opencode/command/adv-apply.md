@@ -82,6 +82,8 @@ Before any retry: emit diagnosis with root cause analysis and planned approach. 
 - **Canonical sources** — defer to `ADV_INSTRUCTIONS.md` for detailed protocol rules
 - **No workflow sequencing** — the command owns phase ordering and task loop
 ### Scope Expansion During Execution
+<!-- rq-scopeDiscoveryProtocol01 -->
+<!-- rq-scopeFollowupSchema01 -->
 If new objectives or acceptance criteria are discovered during execution that were not part of the original agreement, do NOT silently fold them into the current task graph. Instead, apply the **scope-discovery protocol** from `docs/scope-discovery-protocol.md`:
 
 1. **Assess campsite eligibility** — If the discovered scope is P23-campsite-eligible (adjacent, clear, safe, focused), apply it freely without prompting.
@@ -225,6 +227,7 @@ Verify that the prep gate was completed with user approval. The prep gate is the
 
 ---
 ## Phase 2: Display Contract
+<!-- rq-scopeFollowupSurfacing01 -->
 
 Emit a purpose line: `Working on: {change-id}`. State is visible via `_contextSnapshot` and `adv_change_show` — do not duplicate it in a banner.
 
@@ -260,6 +263,8 @@ Ask via `question` tool: Provide hint (Recommended), Take over task, Void contra
 
 ---
 ## Phase 3: TDD Work Loop
+<!-- rq-TDD008path -->
+<!-- rq-taskRunLedger01 -->
 ### Context Freshness (MANDATORY)
 Load context in two tiers:
 

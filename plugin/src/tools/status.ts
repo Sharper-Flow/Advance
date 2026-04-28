@@ -232,6 +232,7 @@ async function loadMigrationStatus(store: Store) {
 // Tool Definitions
 // =============================================================================
 
+// rq-advcfg01: Status Config Diagnostics and Feature Flags
 export const statusTools = {
   adv_status: {
     description:

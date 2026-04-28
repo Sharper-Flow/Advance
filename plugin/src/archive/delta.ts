@@ -10,6 +10,7 @@ import { appendDebugLog, createLogger } from "../utils/debug-log";
 const logger = createLogger("delta");
 import type { DeltaApplicationResult, SpecUpdateResult } from "./types";
 
+// rq-deltaOps01: Typed Delta Operations
 /**
  * Apply a single delta to a spec.
  * Mutates the spec in place.

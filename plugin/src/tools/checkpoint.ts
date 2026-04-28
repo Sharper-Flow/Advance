@@ -213,6 +213,12 @@ export function buildCommitMessage(
   return { subject, body };
 }
 
+// rq-cc01: Verified Checkpoint Ordering
+// rq-cc02: Scope Guard
+// rq-cc03: Audit Metadata
+// rq-cc04: Dirty-Baseline Protection
+// rq-cc05: No-Publication Authority
+
 // ─── Tool definition ────────────────────────────────────────────────────────
 
 export const checkpointTools = {

@@ -23,6 +23,7 @@ Orchestrate multi-dimensional review of the delivered work. This command is part
 2. If empty → `adv_change_list` → auto-select or `question` tool
 
 ## Phase 0: Embedded Methodology
+<!-- rq-R3v13wR1 -->
 
 ### Review Methodology
 
@@ -183,6 +184,7 @@ Emit CODE REVIEW banner: per-dimension status, severity breakdown, verdict.
 
 ---
 ## Phase 5: Remediation (if issues found)
+<!-- rq-remediation01 -->
 If APPROVED → skip to completion.
 
 If CHANGES_REQUESTED/BLOCKED → auto-remediation is mandatory:
@@ -226,6 +228,7 @@ After remediation fixes are applied, re-verify affected dimensions before recomp
 
 ---
 ## Phase 6: Final Report
+<!-- rq-touchedScope01 -->
 ### Report
 Emit final CODE REVIEW banner: verdict, per-dimension summaries, numbered review comments (label, file:line, what, why, fix), positive notes, fixes applied with verification status.
 ### Emit REVIEW_FINDINGS Block
