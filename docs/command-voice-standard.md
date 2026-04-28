@@ -202,6 +202,53 @@ Manifest descriptions and command doc text cover **what** and **when**. This sec
 - Governed by `rq-handoffVoice01` (handoff voice spine)
 - Global `~/.config/opencode/instructions/caveman.md` remains user-config; not synced by repo
 
+## Prose-Load Reduction Rules
+
+ADV instruction surfaces (`ADV_INSTRUCTIONS.md`, `docs/command-voice-standard.md`, `.opencode/agents/adv.md`, `.opencode/command/adv-*.md`) MUST classify every section by enforcement class and use the matching compression template. Governed by `rq-proseReduction01`–`rq-proseReduction04`.
+
+### Enforcement classes
+
+| Class | Definition |
+|---|---|
+| **fully-enforced** | Behavior fully enforced by code: drift test, runtime guard, schema validation, tool formatter, or runtime tool requiring approval params |
+| **partially-enforced** | Code enforces some aspects (output format, sequencing) but agent decides others (when to call, how to interpret) |
+| **inherently-prose** | Agent-side judgment, narration, or domain context that cannot be structurally enforced |
+
+### Compression templates
+
+**fully-enforced:**
+
+```markdown
+{Behavior name} enforced by `{tool/file path}`. See {section reference}.
+
+| Constraint | Value |
+|---|---|
+| {dimension} | {value, code-enforced} |
+```
+
+**partially-enforced:** same as fully-enforced, plus one final line:
+
+```markdown
+**Agent-side gap:** {one line — what code does not enforce}
+```
+
+**inherently-prose:**
+
+```markdown
+{One-line purpose statement.}
+
+| {Trigger / scenario} | {Action / decision} |
+|---|---|
+```
+
+### Stop condition
+
+Compression work halts when no remaining section can be classified as fully-enforced or partially-enforced. Inherently-prose categories use the structured template but are not "compressed away" — they keep their content in scannable form.
+
+### Drift control
+
+`plugin/src/manifest-doc-drift.test.ts` enforces structural assertions per `rq-proseReduction02`: per-class line caps and presence of code-path reference in fully/partially-enforced sections. Assertions are structural, not content-based.
+
 ## Gate Handoff Voice
 
 Every `/adv-*` command that emits a user-facing gate-transition message MUST use the Gate Handoff Voice spine. This replaces all prior handoff templates (Orchestration Summary, CONTRACT FULFILLED, ARCHIVE COMPLETE, READY FOR BUILD, etc.).
