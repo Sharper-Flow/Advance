@@ -558,7 +558,7 @@ Inline-only: `/adv-status`, `/adv-idea`, `/adv-problem`, `/adv-proposal`, `/adv-
 | 1        | `metadata.delegation_hint` set?                                | Use hint value     |
 | 2        | `tdd_intent == "not_applicable"`?                              | `delegate_allowed` |
 | 3        | Title matches `isTrivialTask` patterns?                        | `delegate_allowed` |
-| 4        | Risk signals (multi-file, cross-repo, architectural keywords)? | `inline_required`  |
+| 4        | Risk signals (multi-file, cross-repo, architectural keywords, failing-test diagnosis)? | `inline_required`  |
 | 4.5      | Context-shed test passes? (4-question AND, floor ~5 files or ~50 lines) | `delegate_allowed` |
 | 5        | Default                                                        | `inline_required`  |
 

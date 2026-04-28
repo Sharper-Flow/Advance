@@ -455,36 +455,36 @@ describe("ADV command routing assets", () => {
     const content = readFileSync(join(REPO_ROOT, "ADV_INSTRUCTIONS.md"), "utf8");
     const section = content.split("### Delegation Routing")[1]?.split("###")[0] ?? "";
     expect(section).toContain("4.5");
-    expect(section).toMatch(/context-shed/i);
+    expect(section).toMatch(/\bcontext-shed\b/i);
     expect(section).toMatch(/\bAND\b/);
     expect(section).toMatch(/floor/i);
     // Table should now have 6 data rows (steps 1, 2, 3, 4, 4.5, 5)
     const rows = section.match(/^\|[^|]+\|[^|]+\|[^|]+\|/gm);
-    expect(rows?.length).toBeGreaterThanOrEqual(7); // header + separator + 6 data rows
+    expect(rows?.length).toBe(8); // header + separator + 6 data rows
   });
 
   test("adv-apply.md Delegation Routing table contains step 4.5 context-shed row", () => {
     const content = readFileSync(join(COMMAND_DIR, "adv-apply.md"), "utf8");
     const section = content.split("### Delegation Routing")[1]?.split("###")[0] ?? "";
     expect(section).toContain("4.5");
-    expect(section).toMatch(/context-shed/i);
+    expect(section).toMatch(/\bcontext-shed\b/i);
     expect(section).toMatch(/\bAND\b/);
     expect(section).toMatch(/floor/i);
     const rows = section.match(/^\|[^|]+\|[^|]+\|[^|]+\|/gm);
-    expect(rows?.length).toBeGreaterThanOrEqual(7); // header + separator + 6 data rows
+    expect(rows?.length).toBe(8); // header + separator + 6 data rows
   });
 
   test("adv-apply.md contains post-delegation P23 diff-scan step", () => {
     const content = readFileSync(join(COMMAND_DIR, "adv-apply.md"), "utf8");
     expect(content).toMatch(/3c\.55/);
-    expect(content).toMatch(/P23/);
+    expect(content).toMatch(/\bP23\b/);
     expect(content).toMatch(/diff-scan/i);
   });
 
   test("adv.md Context-Optimal Execution contains context-shed prose (NOT routing table)", () => {
     const content = readFileSync(join(AGENT_DIR, "adv.md"), "utf8");
     const section = content.split("## Context-Optimal Execution")[1]?.split("## ")[0] ?? "";
-    expect(section).toMatch(/context-shed/i);
+    expect(section).toMatch(/\bcontext-shed\b/i);
     expect(section).toMatch(/mechanical implementation/);
     expect(section).toMatch(/floor/i);
     // adv.md must use prose bullets, NOT a routing table
