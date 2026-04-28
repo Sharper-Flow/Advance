@@ -186,7 +186,7 @@ describe("Task Tools", () => {
       expect(parsed.ready[0].id).toBe("tk-task0002");
     });
 
-    test("emits _contextSnapshot in response", async () => {
+    test("emits _contextSnapshot as compact ticker (rq-ctxticker2.2)", async () => {
       const result = await taskTools.adv_task_ready.execute(
         { changeId: "addFeature" },
         store,
@@ -197,6 +197,10 @@ describe("Task Tools", () => {
       expect(typeof parsed._contextSnapshot).toBe("string");
       expect(parsed._contextSnapshot).toContain("addFeature");
       expect(parsed._contextSnapshot).toMatch(/[╔╗╚╝║═]/);
+      // Ticker contract: single line, two `·` separators, done/total counts
+      expect(parsed._contextSnapshot.split("\n").length).toBe(1);
+      expect(parsed._contextSnapshot).toMatch(/║.*·.*·.*\d+\/\d+.*║/);
+      expect(parsed._contextSnapshot.length).toBeLessThanOrEqual(80);
     });
 
     test("includes formatted output with readyList and blockedList", async () => {
@@ -319,7 +323,7 @@ describe("Task Tools", () => {
       expect(final!.metadata?.tdd_intent).toBe("inline");
     });
 
-    test("emits _contextSnapshot on in_progress transition (rq-ctxsnap2.3)", async () => {
+    test("emits _contextSnapshot on in_progress transition as ticker (rq-ctxticker2.1)", async () => {
       const result = await taskTools.adv_task_update.execute(
         { taskId: "tk-task0001", status: "in_progress" },
         store,
@@ -331,9 +335,12 @@ describe("Task Tools", () => {
       expect(typeof parsed._contextSnapshot).toBe("string");
       expect(parsed._contextSnapshot).toContain("addFeature");
       expect(parsed._contextSnapshot).toMatch(/[╔╗╚╝║═]/);
+      // Ticker contract: single line, two `·` separators, done/total counts
+      expect(parsed._contextSnapshot.split("\n").length).toBe(1);
+      expect(parsed._contextSnapshot).toMatch(/║.*·.*·.*\d+\/\d+.*║/);
     });
 
-    test("emits _contextSnapshot on done transition", async () => {
+    test("emits _contextSnapshot on done transition as ticker (rq-ctxticker2.1)", async () => {
       const result = await taskTools.adv_task_update.execute(
         { taskId: "tk-task0001", status: "done" },
         store,
@@ -344,6 +351,9 @@ describe("Task Tools", () => {
       expect(parsed._contextSnapshot).toBeDefined();
       expect(typeof parsed._contextSnapshot).toBe("string");
       expect(parsed._contextSnapshot).toContain("addFeature");
+      expect(parsed._contextSnapshot).toMatch(/[╔╗╚╝║═]/);
+      expect(parsed._contextSnapshot.split("\n").length).toBe(1);
+      expect(parsed._contextSnapshot).toMatch(/║.*·.*·.*\d+\/\d+.*║/);
     });
 
     test("does NOT emit _contextSnapshot on pending transition", async () => {
@@ -592,7 +602,7 @@ describe("Task Tools", () => {
       expect(parsed.taskId).toMatch(/^tk-/);
     });
 
-    test("emits _contextSnapshot after successful task creation", async () => {
+    test("emits _contextSnapshot after successful task creation as ticker (rq-ctxticker2.3)", async () => {
       const result = await taskTools.adv_task_add.execute(
         { changeId: "addFeature", content: "New task for snapshot test" },
         store,
@@ -603,6 +613,9 @@ describe("Task Tools", () => {
       expect(typeof parsed._contextSnapshot).toBe("string");
       expect(parsed._contextSnapshot).toContain("addFeature");
       expect(parsed._contextSnapshot).toMatch(/[╔╗╚╝║═]/);
+      // Ticker contract: single line, two `·` separators, done/total counts
+      expect(parsed._contextSnapshot.split("\n").length).toBe(1);
+      expect(parsed._contextSnapshot).toMatch(/║.*·.*·.*\d+\/\d+.*║/);
     });
 
     // P1.12 Scope C: relational validation of blockedBy task IDs.
@@ -1158,7 +1171,7 @@ describe("Task Tools", () => {
       expect(task1!.status).not.toBe("cancelled");
     });
 
-    test("emits _contextSnapshot after successful cancellation", async () => {
+    test("emits _contextSnapshot after successful cancellation as ticker (rq-ctxticker2.3)", async () => {
       const result = await taskTools.adv_task_cancel.execute(
         {
           taskIds: ["tk-task0001"],
@@ -1174,6 +1187,9 @@ describe("Task Tools", () => {
       expect(typeof parsed._contextSnapshot).toBe("string");
       expect(parsed._contextSnapshot).toContain("addFeature");
       expect(parsed._contextSnapshot).toMatch(/[╔╗╚╝║═]/);
+      // Ticker contract: single line, two `·` separators, done/total counts
+      expect(parsed._contextSnapshot.split("\n").length).toBe(1);
+      expect(parsed._contextSnapshot).toMatch(/║.*·.*·.*\d+\/\d+.*║/);
     });
 
     test("emits _contextSnapshot after batch cancellation", async () => {

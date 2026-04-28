@@ -21,7 +21,7 @@ import {
 } from "../validator/task-classifier";
 import { validateEvidenceSemantics } from "../validator/evidence";
 import { formatToolOutput, paginate } from "../utils/tool-output";
-import { fetchChangeContextSnapshot } from "../storage/context-snapshot-fetch";
+import { fetchChangeContextTicker } from "../storage/context-snapshot-fetch";
 import {
   formatTaskReadyOutput,
   formatDoomLoopDiagnostics,
@@ -170,7 +170,7 @@ export const taskTools = {
     },
     execute: async ({ changeId }: { changeId: string }, store: Store) => {
       const result = await store.tasks.ready(changeId);
-      const snapshot = await fetchChangeContextSnapshot(store, changeId);
+      const snapshot = await fetchChangeContextTicker(store, changeId);
       const formatted = formatTaskReadyOutput({
         ready: result.ready.map((t) => ({
           id: t.id,
@@ -276,7 +276,7 @@ export const taskTools = {
         );
       }
       if (changeId && (status === "in_progress" || status === "done")) {
-        const snapshot = await fetchChangeContextSnapshot(store, changeId);
+        const snapshot = await fetchChangeContextTicker(store, changeId);
         if (snapshot) {
           output._contextSnapshot = snapshot;
         }
@@ -383,7 +383,7 @@ export const taskTools = {
           blockedBy,
           section,
         });
-        const snapshot = await fetchChangeContextSnapshot(store, changeId);
+        const snapshot = await fetchChangeContextTicker(store, changeId);
         return formatToolOutput({
           taskId: task.id,
           task,
@@ -685,7 +685,7 @@ export const taskTools = {
         const firstTask = await store.tasks.show(cancelledTasks[0].id);
         const changeId = firstTask?.changeId;
         if (changeId) {
-          const snapshot = await fetchChangeContextSnapshot(store, changeId);
+          const snapshot = await fetchChangeContextTicker(store, changeId);
           if (snapshot) {
             output._contextSnapshot = snapshot;
           }

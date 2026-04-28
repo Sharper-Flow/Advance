@@ -20,7 +20,7 @@ import {
 } from "../temporal/messages";
 import { writeJsonlAtomic } from "../storage/jsonl-atomic-writer";
 import { formatToolOutput } from "../utils/tool-output";
-import { fetchChangeContextSnapshot } from "../storage/context-snapshot-fetch";
+import { fetchChangeContextTicker } from "../storage/context-snapshot-fetch";
 import { getBoundedProjectWorkflowAccess } from "./project-workflow-helper";
 
 function toJsonlProjectWisdomEntry(entry: {
@@ -145,7 +145,7 @@ export const wisdomTools = {
 
               let snapshot: string | undefined;
               try {
-                snapshot = await fetchChangeContextSnapshot(store, changeId);
+                snapshot = await fetchChangeContextTicker(store, changeId);
               } catch {
                 // Snapshot emission is best-effort; never fail the tool
               }
@@ -215,7 +215,7 @@ export const wisdomTools = {
 
         let snapshot: string | undefined;
         try {
-          snapshot = await fetchChangeContextSnapshot(store, changeId);
+          snapshot = await fetchChangeContextTicker(store, changeId);
         } catch {
           // Snapshot emission is best-effort; never fail the tool
         }
