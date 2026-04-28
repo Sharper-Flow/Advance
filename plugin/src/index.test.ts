@@ -979,7 +979,7 @@ describe("Advance Plugin SDK Integration", () => {
         } as any,
       });
 
-      expect(getStatus().currentStatus).toBe("ATTN");
+      expect(getStatus().currentStatus).toBe("IDLE");
     });
   });
 });

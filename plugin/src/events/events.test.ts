@@ -68,11 +68,11 @@ describe("Status State Management", () => {
   });
 
   describe("initializeStatus", () => {
-    it("sets project name and default status", () => {
+    it("sets project name and default status (IDLE)", () => {
       initializeStatus("test-project");
       const status = getStatus();
       expect(status.projectName).toBe("test-project");
-      expect(status.currentStatus).toBe("ATTN");
+      expect(status.currentStatus).toBe("IDLE");
     });
   });
 
@@ -136,7 +136,7 @@ describe("Status State Management", () => {
       resetStatus();
 
       const status = getStatus();
-      expect(status.currentStatus).toBe("ATTN");
+      expect(status.currentStatus).toBe("IDLE");
       expect(status.activeChangeId).toBeNull();
       expect(status.taskProgress).toBeNull();
       expect(status.projectName).toBe("test-project"); // Preserved
@@ -909,6 +909,100 @@ describe("Bell-Gate Policy", () => {
     updateTerminalStatus("ATTN", "test");
     // No armed flag (dedup prevented re-arm) → immediate ring
     expect(bellCount()).toBe(2);
+  });
+});
+
+// =============================================================================
+// IDLE Bell Transitions (rq-idleMarker01)
+// =============================================================================
+
+describe("IDLE Bell Transitions", () => {
+  let bells: number;
+
+  const bellCount = (): number => bells;
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    bells = 0;
+    _setBellCallback(() => {
+      bells++;
+    });
+    cleanupTerminal();
+    _clearPendingFinalAlert();
+  });
+
+  afterEach(() => {
+    _setBellCallback(null);
+    vi.useRealTimers();
+  });
+
+  // Bell policy for IDLE (the agent-finished-no-action-needed marker):
+  //   - WORK → IDLE: ring (debounced via armed flag, immediate without)
+  //   - TOOLING → IDLE: ring (debounced via armed flag, immediate without)
+  //   - IDLE → IDLE: NO ring (same status — no transition)
+  //   - IDLE → ATTN: ring (transition to user-action-needed; same as ATTN policy)
+  //   - BLOCKED → IDLE: NO ring (recovery without user action)
+
+  it("WORK → IDLE rings immediately without armed flag", () => {
+    updateTerminalStatus("WORK", "test");
+    updateTerminalStatus("IDLE", "test");
+    expect(bellCount()).toBe(1);
+  });
+
+  it("TOOLING → IDLE rings immediately without armed flag", () => {
+    updateTerminalStatus("TOOLING", "test");
+    updateTerminalStatus("IDLE", "test");
+    expect(bellCount()).toBe(1);
+  });
+
+  it("WORK → IDLE with armed flag debounces", () => {
+    armPendingFinalAlert("msg-idle-1");
+    updateTerminalStatus("WORK", "test");
+    updateTerminalStatus("IDLE", "test");
+    expect(bellCount()).toBe(0); // debounce
+    vi.advanceTimersByTime(2000);
+    expect(bellCount()).toBe(1);
+  });
+
+  it("IDLE → IDLE does not ring (same status)", () => {
+    updateTerminalStatus("WORK", "test");
+    updateTerminalStatus("IDLE", "test"); // rings
+    expect(bellCount()).toBe(1);
+    updateTerminalStatus("IDLE", "test"); // no transition
+    vi.advanceTimersByTime(2000);
+    expect(bellCount()).toBe(1); // no extra ring
+  });
+
+  it("BLOCKED → IDLE does not ring (recovery without user action)", () => {
+    updateTerminalStatus("BLOCKED", "test");
+    updateTerminalStatus("IDLE", "test");
+    vi.advanceTimersByTime(2000);
+    expect(bellCount()).toBe(0); // no ring — distinct from BLOCKED→ATTN
+  });
+
+  it("IDLE → ATTN does not ring (lateral within user-visible state)", () => {
+    updateTerminalStatus("WORK", "test");
+    updateTerminalStatus("IDLE", "test"); // first ring (agent finished)
+    expect(bellCount()).toBe(1);
+    updateTerminalStatus("ATTN", "test"); // permission pending — user already engaged from IDLE bell
+    vi.advanceTimersByTime(2000);
+    expect(bellCount()).toBe(1); // no extra ring — avoids noise
+  });
+
+  it("ATTN → IDLE does not ring (downgrade from user-needed to idle)", () => {
+    updateTerminalStatus("WORK", "test");
+    updateTerminalStatus("ATTN", "test"); // rings
+    expect(bellCount()).toBe(1);
+    updateTerminalStatus("IDLE", "test"); // user resolved — no extra ring
+    vi.advanceTimersByTime(2000);
+    expect(bellCount()).toBe(1);
+  });
+
+  it("null → IDLE does not ring (new session)", () => {
+    // cleanupTerminal in beforeEach sets lastAlertedStatus = null
+    updateTerminalStatus("IDLE", "test");
+    vi.advanceTimersByTime(2000);
+    expect(bellCount()).toBe(0);
   });
 });
 

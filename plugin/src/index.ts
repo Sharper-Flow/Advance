@@ -123,16 +123,20 @@ interface PluginState extends StatusFlags {
  * Resolve the current StatusMarker from plugin state flags.
  *
  * Precedence (highest → lowest):
- *   ATTN (permission pending) > TOOLING (sub-agents/long tools) > ATTN (idle) > WORK
+ *   ATTN (permission pending) > TOOLING (sub-agents/long tools) > IDLE (session idle) > WORK
  *
- * ATTN is shown both when user explicitly needs to act (permission pending)
- * and when the session is idle (agent finished, user should look).
+ * Markers:
+ *   - ATTN: user must act (permission pending, approval, or question pending)
+ *   - TOOLING: sub-agent or long-running tool in flight
+ *   - IDLE: agent finished, no user action needed (rq-idleMarker01)
+ *   - WORK: agent actively working
+ *
  * BLOCKED is set directly by trackRetry() in status.ts, bypassing the resolver.
  */
 const resolveStatus = (s: PluginState): StatusMarker => {
   if (s.permissionPending) return "ATTN";
   if (s.activeSubAgents > 0 || s.activeLongTools > 0) return "TOOLING";
-  if (s.sessionIdle) return "ATTN";
+  if (s.sessionIdle) return "IDLE";
   return "WORK";
 };
 

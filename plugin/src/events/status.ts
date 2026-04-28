@@ -21,7 +21,7 @@ interface StatusState {
 }
 
 let state: StatusState = {
-  currentStatus: "ATTN",
+  currentStatus: "IDLE",
   projectName: "Unknown",
   activeChangeId: null,
   taskProgress: null,
@@ -48,7 +48,7 @@ export const getStatusMarker = (status: StatusMarker): string => {
  */
 export const initializeStatus = (projectName: string): void => {
   state = {
-    currentStatus: "ATTN",
+    currentStatus: "IDLE",
     projectName,
     activeChangeId: null,
     taskProgress: null,
@@ -109,7 +109,7 @@ export const getStatus = (): Readonly<StatusState> => {
 export const resetStatus = (): void => {
   state = {
     ...state,
-    currentStatus: "ATTN",
+    currentStatus: "IDLE",
     activeChangeId: null,
     taskProgress: null,
     lastUpdated: Date.now(),
