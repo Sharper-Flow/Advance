@@ -284,7 +284,7 @@ Choose between inline work and delegation based on what produces the best **cont
 
 ## Sub-Agent Policy
 
-Only `mode: subagent` agents are spawnable via the Task tool. Current spawnable roster:
+Sub-agent nesting depth enforced by `plugin/src/guards/task.ts` (`enforceTaskPolicy`, depth ≤ 1). Only `mode: subagent` agents spawnable via Task tool.
 
 | Agent            | Spawn When                                                           | Returns                               |
 | ---------------- | -------------------------------------------------------------------- | ------------------------------------- |
@@ -297,28 +297,32 @@ Only `mode: subagent` agents are spawnable via the Task tool. Current spawnable 
 | `adv-tron`       | Codebase reconnaissance, hotspots, risk mapping                      | Structure + risk report               |
 | `prioritizer`    | Multi-approach tradeoff analysis needing criteria questions          | Draft criteria questions for the user |
 
-> `adv-engineer` is the preferred target for ADV code-writing delegation; `general` remains for verify-only and generic multi-step work; Build stays primary-only.
->
-> **Primary agents (not spawnable):** `build` and `plan` are `mode: primary` — the user switches to them directly; they cannot be invoked via the Task tool. Delegate execution/verify work to `adv-engineer` or `general`; delegate planning research to `librarian` + `adv-researcher` or work inline.
+| Constraint | Value |
+|---|---|
+| Max nesting depth | 1 (runtime-enforced via `enforceTaskPolicy`) |
+| Max parallel spawn | 3-4 (coordination overhead beyond) |
+| Default for ADV code-writing | `adv-engineer` (preferred); `general` for verify-only |
+| Primary agents (not spawnable) | `build`, `plan` (user switches directly) |
 
-> **Tradeoff analysis shortcut:** For simple multi-approach decisions, you can also load `skill("prioritizer")` inline instead of spawning the `prioritizer` subagent.
-
-> **Comparison protocol routing:** When facing a decision with 2+ concrete candidates (layouts, search results, design alternatives), load `skill("adv-user-intuit")` for structured pairwise/best-of-N presentation via the question tool. Use `prioritizer` for criteria-based tradeoff analysis; use `adv-user-intuit` for presenting concrete candidates. They're complementary: prioritizer researches, user-intuit presents. See `docs/user-intuit-protocol.md` for the full spec.
+**Skill alternatives:** load `skill("prioritizer")` inline instead of spawning `prioritizer` for simple multi-approach decisions; load `skill("adv-user-intuit")` for 2+ concrete-candidate comparisons (see `docs/user-intuit-protocol.md`).
 
 ### Dispatch Rules
 
-1. **Don't delegate what benefits from your context.** If you've been building understanding of a problem across steps, keep working inline.
-2. **Batch parallel work.** If you need `librarian` + `explore`, spawn both in one message.
-3. **Cap at 3-4 parallel.** More creates coordination overhead.
-4. **Scope tightly.** Always include: WORKING DIRECTORY, specific task, expected output format.
-5. **Sub-agents cannot spawn sub-agents.** `enforceTaskPolicy` blocks nesting.
+| Rule | Action |
+|---|---|
+| Context-bound problem | Keep inline; don't delegate context understanding |
+| Multiple parallel needs | Batch spawn in one message; cap 3-4 |
+| Sub-agent prompts | Always include WORKING DIRECTORY, specific task, expected output |
+| Nesting | Forbidden — `enforceTaskPolicy` blocks |
 
 ### Failure Handling
 
-- **Sub-agent returns empty/incomplete:** Retry once with a narrower prompt.
-- **Still failing:** Do the work inline yourself or switch to a different agent type.
-- **3 failures on same task:** Stop → `[ADV:BLOCKED]` → document attempts → ask user via `question`.
-- **MCP/tool failure:** Spawn `mechanic` with the error message and context.
+| Failure | Action |
+|---|---|
+| Empty/incomplete return | Retry once with narrower prompt |
+| Still failing | Inline-fallback or switch agent type |
+| 3 failures same task | `[ADV:BLOCKED]` → document attempts → user `question` |
+| MCP/tool failure | Spawn `mechanic` with error + context |
 
 ## Output Contract
 
