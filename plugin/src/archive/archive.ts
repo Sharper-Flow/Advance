@@ -22,6 +22,7 @@ import {
   listProjectWisdom,
   compactProjectWisdom,
 } from "../storage/project-wisdom";
+import { removeChangeDir } from "../storage/json";
 
 /**
  * Archive a change - applies deltas to specs and generates documentation.
@@ -150,8 +151,32 @@ export async function archiveChange(
     errors,
   );
 
+  // Remove the source `changes/<id>/` directory ONLY after the archive bundle
+  // is durable (createArchive returned, atomicWriteFile per file) AND the rest
+  // of the archive flow succeeded (no spec-delta, doc-gen, or wisdom-promotion
+  // errors). On any prior failure the source dir is preserved as the rollback
+  // path so the user can retry archive. Cleanup is best-effort: a failure here
+  // surfaces as a warning in `errors[]` but does NOT flip `success` to false —
+  // the archive bundle is the source of truth at this point and a leaked
+  // source dir is recoverable via `adv_archive_sweep_orphans`.
+  if (!dryRun && errors.length === 0 && paths.changes) {
+    try {
+      await removeChangeDir(paths.changes, change.id);
+    } catch (err) {
+      errors.push(
+        `Source cleanup warning: failed to remove changes/${change.id}: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+  }
+
+  // `success` reflects whether the archive bundle is durable + complete.
+  // Cleanup-only warnings appended above MUST NOT flip this to false.
+  const fatalErrorCount = errors.filter(
+    (e) => !e.startsWith("Source cleanup warning:"),
+  ).length;
+
   return {
-    success: errors.length === 0,
+    success: fatalErrorCount === 0,
     changeId: change.id,
     specsUpdated,
     docsGenerated,

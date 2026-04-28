@@ -1312,3 +1312,199 @@ describe("archiveChange error messages", () => {
     }
   });
 });
+
+// =============================================================================
+// Source directory cleanup after successful archive (GH #15)
+// =============================================================================
+
+describe("archiveChange source directory cleanup", () => {
+  let testDir: string;
+
+  beforeEach(async () => {
+    testDir = await createTempDir();
+    await createTestProject(testDir);
+  });
+
+  afterEach(async () => {
+    await cleanupTempDir(testDir);
+  });
+
+  it("removes source changes/<id>/ after successful archive", async () => {
+    const change = structuredClone(SAMPLE_CHANGE) as Change;
+    change.tasks.forEach((t) => (t.status = "done"));
+
+    const changesDir = join(testDir, "changes");
+    const sourceChangeDir = join(changesDir, change.id);
+    await mkdir(sourceChangeDir, { recursive: true });
+    await writeFile(join(sourceChangeDir, "proposal.md"), "# Proposal\n\nbody");
+    await writeFile(
+      join(sourceChangeDir, "problem-statement.md"),
+      "PROBLEM\nbody",
+    );
+
+    const specs = new Map<string, Spec>();
+    specs.set("test-capability", structuredClone(SAMPLE_SPEC) as Spec);
+
+    const result = await archiveChange({
+      change,
+      specs,
+      paths: {
+        specs: join(testDir, "specs"),
+        archive: join(testDir, "archive"),
+        docs: join(testDir, "docs/specs"),
+        changes: changesDir,
+      },
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.errors).toEqual([]);
+
+    // Source dir should be gone
+    await expect(access(sourceChangeDir)).rejects.toThrow();
+
+    // Archive bundle must still be intact (sibling files copied before cleanup)
+    await access(join(result.archivePath, "change.json"));
+    await access(join(result.archivePath, "proposal.md"));
+    await access(join(result.archivePath, "problem-statement.md"));
+  });
+
+  it("preserves source changes/<id>/ on dryRun", async () => {
+    const change = structuredClone(SAMPLE_CHANGE) as Change;
+    change.tasks.forEach((t) => (t.status = "done"));
+
+    const changesDir = join(testDir, "changes");
+    const sourceChangeDir = join(changesDir, change.id);
+    await mkdir(sourceChangeDir, { recursive: true });
+    await writeFile(join(sourceChangeDir, "proposal.md"), "# x");
+
+    const specs = new Map<string, Spec>();
+    specs.set("test-capability", structuredClone(SAMPLE_SPEC) as Spec);
+
+    const result = await archiveChange({
+      change,
+      specs,
+      paths: {
+        specs: join(testDir, "specs"),
+        archive: join(testDir, "archive"),
+        docs: join(testDir, "docs/specs"),
+        changes: changesDir,
+      },
+      dryRun: true,
+    });
+
+    expect(result.success).toBe(true);
+
+    // Source dir must still exist
+    await access(sourceChangeDir);
+    await access(join(sourceChangeDir, "proposal.md"));
+  });
+
+  it("preserves source changes/<id>/ when archive errors out", async () => {
+    const change = structuredClone(SAMPLE_CHANGE) as Change;
+    change.tasks.forEach((t) => (t.status = "done"));
+
+    // Inject a delta that will fail (modify nonexistent target)
+    change.deltas = {
+      "test-capability": [
+        {
+          id: "dl-mustfail",
+          operation: "modify" as const,
+          target_id: "rq-doesnotexist-999",
+          changes: { title: "Will fail" },
+        },
+      ],
+    };
+
+    const changesDir = join(testDir, "changes");
+    const sourceChangeDir = join(changesDir, change.id);
+    await mkdir(sourceChangeDir, { recursive: true });
+    await writeFile(join(sourceChangeDir, "proposal.md"), "# x");
+
+    const specs = new Map<string, Spec>();
+    specs.set("test-capability", structuredClone(SAMPLE_SPEC) as Spec);
+
+    const result = await archiveChange({
+      change,
+      specs,
+      paths: {
+        specs: join(testDir, "specs"),
+        archive: join(testDir, "archive"),
+        docs: join(testDir, "docs/specs"),
+        changes: changesDir,
+      },
+    });
+
+    // Archive failed (delta couldn't apply)
+    expect(result.errors.length).toBeGreaterThan(0);
+
+    // Source dir must be preserved as the rollback path
+    await access(sourceChangeDir);
+    await access(join(sourceChangeDir, "proposal.md"));
+  });
+
+  it("does not attempt cleanup when paths.changes is omitted (existing test contract preserved)", async () => {
+    const change = structuredClone(SAMPLE_CHANGE) as Change;
+    change.tasks.forEach((t) => (t.status = "done"));
+
+    const specs = new Map<string, Spec>();
+    specs.set("test-capability", structuredClone(SAMPLE_SPEC) as Spec);
+
+    // No paths.changes — must not throw, must not flag errors
+    const result = await archiveChange({
+      change,
+      specs,
+      paths: {
+        specs: join(testDir, "specs"),
+        archive: join(testDir, "archive"),
+        docs: join(testDir, "docs/specs"),
+      },
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.errors).toEqual([]);
+  });
+
+  it("reports cleanup failure as warning in errors[] but keeps success:true", async () => {
+    const change = structuredClone(SAMPLE_CHANGE) as Change;
+    change.tasks.forEach((t) => (t.status = "done"));
+
+    const changesDir = join(testDir, "changes");
+    const sourceChangeDir = join(changesDir, change.id);
+    await mkdir(sourceChangeDir, { recursive: true });
+    await writeFile(join(sourceChangeDir, "proposal.md"), "# x");
+
+    // Make the changes parent dir read-only so removal of the source dir fails
+    // with EACCES (rm needs write perm on the *parent* dir to unlink children).
+    await chmod(changesDir, 0o555);
+
+    try {
+      const specs = new Map<string, Spec>();
+      specs.set("test-capability", structuredClone(SAMPLE_SPEC) as Spec);
+
+      const result = await archiveChange({
+        change,
+        specs,
+        paths: {
+          specs: join(testDir, "specs"),
+          archive: join(testDir, "archive"),
+          docs: join(testDir, "docs/specs"),
+          changes: changesDir,
+        },
+      });
+
+      // Cleanup failed but archive bundle is durable → success stays true,
+      // warning surfaces in errors[].
+      expect(result.success).toBe(true);
+      expect(result.errors.length).toBeGreaterThan(0);
+      expect(
+        result.errors.some((e) => e.includes("Source cleanup warning")),
+      ).toBe(true);
+
+      // Archive bundle still intact
+      await access(join(result.archivePath, "change.json"));
+    } finally {
+      // Restore writable so afterEach can clean up
+      await chmod(changesDir, 0o755);
+    }
+  });
+});
