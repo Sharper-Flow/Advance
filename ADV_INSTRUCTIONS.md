@@ -62,7 +62,7 @@ ADV pauses ONLY at these checkpoints:
 
 **Approval surface:** The first seven checkpoints (proposal, agreement, design, prep, acceptance, archive sign-off, cancellation) MUST use **inline handoff text** with reply instructions per `docs/command-voice-standard.md` § Inline Approval Voice — NOT the `question` tool. Spec ref: `rq-inlineApproval01`. Doom-loop recovery remains on the `question` tool (safety-critical structured choices).
 
-Tier A (reversible — proposal/agreement/design/prep/acceptance) uses whitelist + LLM fallback. Tier B (irreversible — archive sign-off, cancellation) uses whitelist-only with no LLM fallback. Archive emits a confirmation echo before destructive action.
+Tier A (reversible — proposal/agreement/design/prep/acceptance) uses whitelist + LLM fallback. Tier B (irreversible — archive sign-off, cancellation) uses whitelist-only with no LLM fallback. Archive sign-off executes inline in the same response as the whitelist match — no separate confirmation-echo turn.
 
 ### Post-Approval Auto-Continue
 

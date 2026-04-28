@@ -78,10 +78,11 @@ describe("rq-autonomy01 human checkpoint assets", () => {
 
   test("archive sign-off remains in adv-archive.md (inline Tier B)", () => {
     const content = readCommand("adv-archive.md");
-    // Tier B inline approval with confirmation echo
+    // Tier B inline approval, single-turn execution (no confirmation-echo turn)
     expect(content).toContain("Inline Approval prompt (Tier B)");
     expect(content).toContain("Reply `sign off`");
-    expect(content).toMatch(/Confirmed\. Archiving/i);
+    expect(content).toMatch(/Archiving \{change-id\}/);
+    expect(content).toMatch(/no separate confirmation-echo turn/i);
     expect(content).toMatch(/dry run/i);
   });
 

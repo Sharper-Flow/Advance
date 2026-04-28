@@ -528,13 +528,13 @@ approve, approved, confirm, confirmed, yes, proceed, sign off, signoff, ship it
 
 **Anything else** → re-prompt with the same options. Do not invoke the LLM. Do not advance.
 
-**Archive confirmation echo:** when an approval whitelist match is detected, emit:
+**Archive single-turn execution:** when an approval whitelist match is detected, emit a one-line acknowledgment as the opening of the response:
 
 ```
-Confirmed. Archiving `{change-id}` now. Reply `stop` or `abort` within the next message to abort.
+Archiving `{change-id}`.
 ```
 
-Wait one user-turn. If the next reply is `stop` or `abort` (case-insensitive, trimmed), halt and unwind. Otherwise proceed with `adv_change_archive`.
+Then proceed with `adv_gate_complete gateId: 'release'` → `adv_change_archive` → Phase 9 git finalization in the same response. No separate confirmation-echo turn. Tier B safety comes from the strict whitelist (no LLM fallback, deliberate phrases) plus the six prior gate approvals already cemented; the wait-one-turn pattern was removed because it added friction without meaningfully changing the abort surface.
 
 ### Pattern templates
 
@@ -580,7 +580,7 @@ or `dry run` to preview the archive without applying spec deltas,
 or `cancel` / `stop` / `abort` to halt.
 ```
 
-After whitelist match, emit confirmation echo and wait one turn for `stop` / `abort` before proceeding.
+After whitelist match, emit `Archiving {change-id}.` and execute the archive workflow inline in the same response. No separate confirmation-echo turn.
 
 #### Tier B — Cancellation approval (structured)
 
@@ -633,7 +633,8 @@ The prep gate's `userApproved: true` argument on `adv_gate_complete` is a machin
 |---|---|
 | `question` popup with "Approve and proceed to /adv-discover" option | Inline blockquote wayfinder block with `Reply `continue` to proceed inline to discovery, or run `/adv-discover {change-id}`` |
 | Cancellation popup with "Approve all / Review individually / Reject" | Inline numbered task list with `Reply `approve all`, `reject all`, `keep N`, `cancel N`, `stop`` |
-| LLM fallback for archive sign-off | Whitelist-only + confirmation echo |
+| LLM fallback for archive sign-off | Whitelist-only, single-turn execution on match |
+| Two-turn archive (echo + wait + execute) | One-turn archive (whitelist match → `Archiving {id}.` + execute in same response) |
 | Phrase "I want to clarify" treated as `/adv-clarify` | Only literal `/adv-clarify` reply triggers halt branch |
 | Two `question` calls (popup + "shall I proceed?") | One inline blockquote wayfinder block; whitelist match or exact command invocation advances immediately |
 | Prose-labeled footer block with `Current phase:`, `Next phase:`, `Run when ready:` | Blockquote wayfinder block: `> **{id}**` / `> {gate} ✓ → {next}` / `> → `/adv-cmd {id}`` |

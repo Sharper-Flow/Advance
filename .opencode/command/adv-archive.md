@@ -57,7 +57,7 @@ If `--dry-run` → emit DRY RUN COMPLETE → stop.
 
 ## Phase 5: User Signoff (Inline — Tier B)
 
-Present the change report inline (per `.opencode/agents/adv.md` § Sign-Off Boundary), followed by the **Inline Approval prompt (Tier B)** per `docs/command-voice-standard.md` § Inline Approval Voice. Archive is irreversible — Tier B uses whitelist-only with no LLM fallback, plus a confirmation echo before destructive action.
+Present the change report inline (per `.opencode/agents/adv.md` § Sign-Off Boundary), followed by the **Inline Approval prompt (Tier B)** per `docs/command-voice-standard.md` § Inline Approval Voice. Archive is irreversible — Tier B uses whitelist-only with no LLM fallback. On whitelist match, the agent executes the archive workflow inline in the same response (no separate confirmation-echo turn).
 
 After the change report:
 
@@ -76,20 +76,14 @@ or `cancel` / `stop` / `abort` to halt.
 
 | Reply (exact match, case-insensitive, trimmed) | Action |
 |---|---|
-| `sign off` / `signoff` / `approve` / `confirm` / `yes` / `proceed` / `ship it` | Emit confirmation echo, wait one turn, then proceed |
+| `sign off` / `signoff` / `approve` / `confirm` / `yes` / `proceed` / `ship it` | Emit one-line acknowledgment (`Archiving {change-id}.`), then execute Phase 6 onward in the same response — no second user turn |
 | `dry run` / `dryrun` | Run `adv_change_archive dryRun: true`, present results, re-prompt with same options |
 | `cancel` / `stop` / `abort` | Halt |
 | Anything else | Re-prompt with the same options. **× Do NOT** invoke LLM fallback. **× Do NOT** advance |
 
 **Anchor phrase:** `Reply `sign off``
 
-**Confirmation echo** (after whitelist match, before destructive action):
-
-```
-Confirmed. Archiving `{change-id}` now. Reply `stop` or `abort` within the next message to abort.
-```
-
-Wait one user-turn. If next reply is `stop` / `abort` (case-insensitive, trimmed), halt and unwind. Otherwise: `adv_gate_complete gateId: 'release'` → proceed to Phase 6.
+**On whitelist match → proceed immediately.** Emit `Archiving {change-id}.` as the opening line of the response, then call `adv_gate_complete gateId: 'release'` and proceed through Phase 6 in the same turn. Tier B safety comes from the strict whitelist (no LLM fallback) plus the six prior gate approvals already cemented; no separate confirmation-echo turn is required.
 
 **× Do NOT** use the `question` tool for archive sign-off. The inline pattern is canonical per `rq-inlineApproval01.3` (Tier B whitelist-only).
 

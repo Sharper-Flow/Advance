@@ -249,18 +249,12 @@ or `cancel` / `stop` / `abort` to halt.
 ```
 
 **Tier B parsing rules** (irreversible action — no LLM fallback):
-- Whitelist match (exact, case-insensitive): proceed to confirmation echo
+- Whitelist match (exact, case-insensitive): emit one-line acknowledgment (`Archiving {change-id}.`) and execute the archive workflow inline in the same response
 - `dry run` / `dryrun`: run `adv_change_archive dryRun: true`, present results, re-prompt
 - `cancel` / `stop` / `abort`: halt
 - Anything else: re-prompt with the same options
 
-**Confirmation echo** on whitelist match (before destructive action):
-
-```
-Confirmed. Archiving `{change-id}` now. Reply `stop` or `abort` within the next message to abort.
-```
-
-Wait one user-turn. If next reply is `stop` / `abort` (case-insensitive, trimmed), halt and unwind. Otherwise execute the archive workflow inline.
+**Single-turn execution.** Tier B safety comes from the strict whitelist (no LLM fallback, deliberate phrases like `sign off` / `ship it`) plus the six prior gate approvals already cemented. No separate confirmation-echo turn is required. On whitelist match, the agent runs `adv_gate_complete gateId: 'release'` → `adv_change_archive` → Phase 9 git finalization in the same response.
 
 × Do NOT use the `question` tool for archive sign-off. The inline pattern is canonical per `rq-inlineApproval01`.
 

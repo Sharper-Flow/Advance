@@ -1287,7 +1287,7 @@
             "Only exact whitelist matches trigger approval",
             "LLM fallback is not used",
             "Anything else triggers re-prompt with the same options",
-            "Archive sign-off emits a confirmation echo before destructive action with a one-message stop/abort window"
+            "Archive sign-off executes in the same response as the whitelist-match acknowledgment with no separate confirmation-echo turn"
           ]
         },
         {
