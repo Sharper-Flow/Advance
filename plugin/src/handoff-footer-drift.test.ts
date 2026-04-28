@@ -458,3 +458,109 @@ describe("command-as-approval semantics", () => {
     ).toMatch(/shows only the needed command/i);
   });
 });
+
+// =============================================================================
+// chat-output-display drift assertions (consolidatechatoutputdisplay change)
+// =============================================================================
+//
+// Asserts the IDLE marker, distinct emoji, ticker format contract, and
+// chat-output-display spec rename. Preserves the blockquote wayfinder
+// assertions above (rq-handoffVoice01) unmodified.
+//
+// Spec ref: rq-idleMarker01, rq-idleMarker02, rq-idleMarker03, rq-ctxticker1,
+// rq-ctxticker2.
+
+describe("chat-output-display drift contract", () => {
+  test("STATUS_MARKERS.IDLE exists in types.ts", () => {
+    const typesPath = join(REPO_ROOT, "plugin", "src", "types.ts");
+    const content = readFileSync(typesPath, "utf8");
+    expect(content).toMatch(/IDLE:\s*"\[ADV:IDLE\]"/);
+  });
+
+  test("getStatusEmoji returns ⬜ for IDLE (distinct from ATTN's 🟥)", async () => {
+    const terminalPath = join(
+      REPO_ROOT,
+      "plugin",
+      "src",
+      "events",
+      "terminal.ts",
+    );
+    const content = readFileSync(terminalPath, "utf8");
+    // The switch statement contains an IDLE case returning ⬜
+    expect(content).toMatch(/case\s+"IDLE":\s*\n\s*return\s+"⬜"/);
+    // ATTN still returns 🟥 — distinct
+    expect(content).toMatch(/case\s+"ATTN":\s*\n\s*return\s+"🟥"/);
+  });
+
+  test("buildChangeContextTicker produces a single-line ticker with required structure", async () => {
+    const { buildChangeContextTicker } =
+      await import("./utils/context-snapshot");
+    const output = buildChangeContextTicker({
+      change: {
+        id: "demoChange",
+        title: "demo change",
+        tasks: [
+          { id: "tk-1", title: "T1", status: "done" },
+          { id: "tk-2", title: "T2", status: "pending" },
+        ],
+      },
+      gates: {
+        proposal: { status: "done" },
+        discovery: { status: "pending" },
+      },
+    });
+
+    expect(output.split("\n").length).toBe(1);
+    expect(output).toContain("║");
+    // Two `·` separators (changeId · arrow · counts)
+    expect(output.match(/·/g)?.length).toBe(2);
+    expect(output.length).toBeLessThanOrEqual(80);
+  });
+
+  test("ticker truncates change IDs longer than 20 chars", async () => {
+    const { buildChangeContextTicker } =
+      await import("./utils/context-snapshot");
+    const output = buildChangeContextTicker({
+      change: {
+        id: "improverefactorbatchorderingan", // 30 chars
+        title: "long ID",
+        tasks: [],
+      },
+      gates: undefined,
+    });
+    expect(output).not.toContain("improverefactorbatchorderingan");
+    expect(output).toContain("…");
+    expect(output.length).toBeLessThanOrEqual(80);
+  });
+
+  test("chat-output-display spec exists with v1.3.0 and required requirements", () => {
+    const specPath = join(
+      REPO_ROOT,
+      ".adv",
+      "specs",
+      "chat-output-display",
+      "spec.json",
+    );
+    const spec = JSON.parse(readFileSync(specPath, "utf8"));
+
+    expect(spec.name).toBe("chat-output-display");
+    expect(spec.version).toBe("1.3.0");
+    expect(spec.supersedes).toContain("context-display");
+
+    const requirementIds = spec.requirements.map((r: any) => r.id);
+    expect(requirementIds).toContain("rq-idleMarker01");
+    expect(requirementIds).toContain("rq-idleMarker02");
+    expect(requirementIds).toContain("rq-idleMarker03");
+    expect(requirementIds).toContain("rq-ctxticker1");
+    expect(requirementIds).toContain("rq-ctxticker2");
+    // Pre-existing requirements preserved
+    expect(requirementIds).toContain("rq-ctxsnap1");
+    expect(requirementIds).toContain("rq-ctxswitch");
+    expect(requirementIds).toContain("rq-ctxformat");
+  });
+
+  test("legacy context-display spec directory has been retired (renamed)", () => {
+    const oldSpecDir = join(REPO_ROOT, ".adv", "specs", "context-display");
+    expect(() => readFileSync(join(oldSpecDir, "spec.json"), "utf8")).toThrow();
+  });
+});
