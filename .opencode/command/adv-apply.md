@@ -308,6 +308,8 @@ Before TDD phases, evaluate each task for delegation eligibility:
 | 4.5 | Context-shed test passes? (4-question AND, floor ~5 files or ~50 lines) | `delegate_allowed` |
 | 5 | Default | `inline_required` |
 
+Step 4.5 does not override step 1 (`delegation_hint`) or step 4 (risk signals); priority order is authoritative.
+
 Hint semantics:
 - `inline_required` → never delegate
 - `delegate_allowed` → delegate when no risk signals force inline

@@ -458,9 +458,8 @@ describe("ADV command routing assets", () => {
     expect(section).toMatch(/\bcontext-shed\b/i);
     expect(section).toMatch(/\bAND\b/);
     expect(section).toMatch(/floor/i);
-    // Table should now have 6 data rows (steps 1, 2, 3, 4, 4.5, 5)
-    const rows = section.match(/^\|[^|]+\|[^|]+\|[^|]+\|/gm);
-    expect(rows?.length).toBe(8); // header + separator + 6 data rows
+    const rows = section.match(/^\|\s*(?:1|2|3|4|4\.5|5)\s*\|/gm);
+    expect(rows).toHaveLength(6);
   });
 
   test("adv-apply.md Delegation Routing table contains step 4.5 context-shed row", () => {
@@ -470,8 +469,8 @@ describe("ADV command routing assets", () => {
     expect(section).toMatch(/\bcontext-shed\b/i);
     expect(section).toMatch(/\bAND\b/);
     expect(section).toMatch(/floor/i);
-    const rows = section.match(/^\|[^|]+\|[^|]+\|[^|]+\|/gm);
-    expect(rows?.length).toBe(8); // header + separator + 6 data rows
+    const rows = section.match(/^\|\s*(?:1|2|3|4|4\.5|5)\s*\|/gm);
+    expect(rows).toHaveLength(6);
   });
 
   test("adv-apply.md contains post-delegation P23 diff-scan step", () => {
