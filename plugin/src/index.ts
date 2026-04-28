@@ -575,7 +575,8 @@ const advancePluginImpl: Plugin = async ({ directory, worktree, project }) => {
         }
 
         // Provider-switch detection: inject fallback chain suggestion
-        const currentProviderID = input.model?.providerID?.toLowerCase() ?? null;
+        const currentProviderID =
+          input.model?.providerID?.toLowerCase() ?? null;
         if (
           currentProviderID &&
           lastProviderID &&
@@ -677,12 +678,12 @@ const advancePluginImpl: Plugin = async ({ directory, worktree, project }) => {
             const tasks = await store.tasks.list(state.activeChange.id);
             const inProgress = tasks.find((t) => t.status === "in_progress");
             const done = tasks.filter((t) => t.status === "done").length;
-            const active = tasks.filter((t) => t.status === "in_progress").length;
+            const active = tasks.filter(
+              (t) => t.status === "in_progress",
+            ).length;
             const pending = tasks.filter((t) => t.status === "pending").length;
 
-            const lines: string[] = [
-              "=== ADV TASK CONTEXT ===",
-            ];
+            const lines: string[] = ["=== ADV TASK CONTEXT ==="];
 
             if (inProgress) {
               const desc =

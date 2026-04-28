@@ -244,7 +244,9 @@ async function bridgeErrorClass(
       retry_count: existing?.retry_count ?? 0,
       max_retries: existing?.max_retries ?? 3,
       error_class: errorClass,
-      ...(existing?.next_strategy ? { next_strategy: existing.next_strategy } : {}),
+      ...(existing?.next_strategy
+        ? { next_strategy: existing.next_strategy }
+        : {}),
       ...(existing?.attempts ? { attempts: existing.attempts } : {}),
     };
     await store.tasks.update(
@@ -256,10 +258,7 @@ async function bridgeErrorClass(
     );
   } catch (err) {
     if (ADV_DEBUG) {
-      console.warn(
-        "[checkpoint] error_class bridge failed (non-fatal):",
-        err,
-      );
+      console.warn("[checkpoint] error_class bridge failed (non-fatal):", err);
     }
   }
 }

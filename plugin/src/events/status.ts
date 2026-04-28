@@ -260,11 +260,17 @@ export const getEffectiveDoomLoopInfo = (
   // Use persisted data when it has more info than live tracker,
   // OR when TRANSIENT persisted data exists but live has nothing.
   const hasPersistedData = rawPersistedCount > 0 || persisted?.last_error;
-  if (hasPersistedData && (effectivePersistedCount > live.attempts || (isTransient && rawPersistedCount > live.transientAttempts))) {
+  if (
+    hasPersistedData &&
+    (effectivePersistedCount > live.attempts ||
+      (isTransient && rawPersistedCount > live.transientAttempts))
+  ) {
     return {
       inDoomLoop: effectivePersistedCount >= DOOM_LOOP_THRESHOLD,
       attempts: effectivePersistedCount,
-      transientAttempts: isTransient ? rawPersistedCount : live.transientAttempts,
+      transientAttempts: isTransient
+        ? rawPersistedCount
+        : live.transientAttempts,
       lastError: persisted?.last_error ?? live.lastError,
     };
   }

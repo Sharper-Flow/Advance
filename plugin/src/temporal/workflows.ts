@@ -351,6 +351,7 @@ export async function changeWorkflow(
           notes?: string;
           implementationSummary?: string;
           errorRecovery?: ChangeWorkflowState["tasks"][number]["error_recovery"];
+          touchedFiles?: string[];
         },
       ) => {
         wf.log.info("op:start", {

@@ -42,7 +42,11 @@ const ARCHIVE_SAFE_STRICT_WARNING_CODES = new Set([
   "PROPOSAL_TASK_DRIFT",
 ]);
 import { runClarifyReadinessChecks } from "../validator/clarify-readiness";
-import { loadProposalWithFallback, fileExists } from "../storage/json";
+import {
+  loadProposalWithFallback,
+  fileExists,
+  removeChangeDir,
+} from "../storage/json";
 import { archiveChange } from "../archive";
 import { wrapWithBanner } from "../utils/banner";
 import { formatToolOutput, paginate } from "../utils/tool-output";
@@ -1210,12 +1214,26 @@ export const changeTools = {
           );
         }
 
+        // Remove source `changes/<id>/` directory after successful close.
+        // Best-effort: failure surfaces as a warning but does NOT flip success
+        // to false — the closed status is durable.
+        let cleanupWarning: string | undefined;
+        if (store.paths?.changes) {
+          try {
+            await removeChangeDir(store.paths.changes, changeId);
+          } catch (err) {
+            cleanupWarning = `Source cleanup warning: failed to remove changes/${changeId}: ${err instanceof Error ? err.message : String(err)}`;
+          }
+        }
+
         return wrapWithBanner(
           { command: "adv_change_close", target: changeId },
           formatToolOutput({
             success: true,
             change,
-            message: `Closed change ${changeId} as ${reason}.`,
+            message: cleanupWarning
+              ? `Closed change ${changeId} as ${reason}. ${cleanupWarning}`
+              : `Closed change ${changeId} as ${reason}.`,
           }),
         );
       } catch (error) {

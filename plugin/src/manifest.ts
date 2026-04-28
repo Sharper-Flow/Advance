@@ -284,6 +284,21 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
       gates: ["discovery", "planning"],
     },
   },
+  "adv-autopilot": {
+    name: "adv-autopilot",
+    description:
+      "Delegate routine checkpoints to the agent, stop only on safety boundaries",
+    phase: "advanced",
+    requiresChangeId: false,
+    prerequisites: [],
+    successors: ["adv-archive"],
+    scope: {
+      creates: [],
+      reads: ["specs", "proposal", "codebase"],
+      modifies: ["proposal"],
+      gates: ["proposal", "discovery", "design", "planning", "acceptance"],
+    },
+  },
 
   // ---- Post-Implementation ----
   "adv-review": {

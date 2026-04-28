@@ -452,8 +452,12 @@ describe("ADV command routing assets", () => {
 
   // Context-shed delegation heuristic drift tests (rq-contextShed01, rq-contextShed02)
   test("ADV_INSTRUCTIONS.md Delegation Routing table contains step 4.5 context-shed row", () => {
-    const content = readFileSync(join(REPO_ROOT, "ADV_INSTRUCTIONS.md"), "utf8");
-    const section = content.split("### Delegation Routing")[1]?.split("###")[0] ?? "";
+    const content = readFileSync(
+      join(REPO_ROOT, "ADV_INSTRUCTIONS.md"),
+      "utf8",
+    );
+    const section =
+      content.split("### Delegation Routing")[1]?.split("###")[0] ?? "";
     expect(section).toContain("4.5");
     expect(section).toMatch(/\bcontext-shed\b/i);
     expect(section).toMatch(/\bAND\b/);
@@ -464,7 +468,8 @@ describe("ADV command routing assets", () => {
 
   test("adv-apply.md Delegation Routing table contains step 4.5 context-shed row", () => {
     const content = readFileSync(join(COMMAND_DIR, "adv-apply.md"), "utf8");
-    const section = content.split("### Delegation Routing")[1]?.split("###")[0] ?? "";
+    const section =
+      content.split("### Delegation Routing")[1]?.split("###")[0] ?? "";
     expect(section).toContain("4.5");
     expect(section).toMatch(/\bcontext-shed\b/i);
     expect(section).toMatch(/\bAND\b/);
@@ -482,7 +487,8 @@ describe("ADV command routing assets", () => {
 
   test("adv.md Context-Optimal Execution contains context-shed prose (NOT routing table)", () => {
     const content = readFileSync(join(AGENT_DIR, "adv.md"), "utf8");
-    const section = content.split("## Context-Optimal Execution")[1]?.split("## ")[0] ?? "";
+    const section =
+      content.split("## Context-Optimal Execution")[1]?.split("## ")[0] ?? "";
     expect(section).toMatch(/\bcontext-shed\b/i);
     expect(section).toMatch(/mechanical implementation/);
     expect(section).toMatch(/floor/i);
@@ -493,11 +499,15 @@ describe("ADV command routing assets", () => {
   });
 
   test("ADV_INSTRUCTIONS.md and adv-apply.md delegation tables use identical step 4.5 wording", () => {
-    const instructions = readFileSync(join(REPO_ROOT, "ADV_INSTRUCTIONS.md"), "utf8");
+    const instructions = readFileSync(
+      join(REPO_ROOT, "ADV_INSTRUCTIONS.md"),
+      "utf8",
+    );
     const apply = readFileSync(join(COMMAND_DIR, "adv-apply.md"), "utf8");
 
     const extractStep45 = (content: string) => {
-      const section = content.split("### Delegation Routing")[1]?.split("###")[0] ?? "";
+      const section =
+        content.split("### Delegation Routing")[1]?.split("###")[0] ?? "";
       const match = section.match(/^\|\s*4\.5\s*\|.*\|/m);
       return match ? match[0].replace(/\s+/g, " ").trim() : null;
     };

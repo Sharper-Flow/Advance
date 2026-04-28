@@ -5,7 +5,7 @@
  */
 
 import { describe, test, expect, beforeEach, afterEach } from "vitest";
-import { readFile, writeFile, symlink } from "fs/promises";
+import { readFile, writeFile, symlink, access } from "fs/promises";
 import { join } from "path";
 import { getProjectId, getExternalRoot } from "../utils/project-id";
 import { changeTools } from "./change";
@@ -339,6 +339,27 @@ describe("Change Tools", () => {
       const parsed = parseToolOutput(result);
 
       expect(parsed.error).toContain("archived");
+    });
+
+    test("removes source directory after successful close", async () => {
+      // Verify source dir exists before close
+      const changeDir = join(store.paths.changes, "addFeature");
+      await expect(access(changeDir)).resolves.toBeUndefined();
+
+      const result = await changeTools.adv_change_close.execute(
+        {
+          changeId: "addFeature",
+          reason: "cancelled",
+          approvedByUser: true,
+          approvalEvidence: "User approved",
+        },
+        store,
+      );
+      const parsed = parseToolOutput(result);
+      expect(parsed.success).toBe(true);
+
+      // Source dir should be gone
+      await expect(access(changeDir)).rejects.toThrow();
     });
   });
 

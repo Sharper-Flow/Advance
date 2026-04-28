@@ -295,8 +295,18 @@ describe("formatContextSnapshot enrichment", () => {
 describe("summarizeTasks", () => {
   test("computes union touched files count across tasks", () => {
     const result = summarizeTasks([
-      { id: "tk-1", title: "T1", status: "done", touched_files: ["a.ts", "b.ts"] },
-      { id: "tk-2", title: "T2", status: "done", touched_files: ["b.ts", "c.ts"] },
+      {
+        id: "tk-1",
+        title: "T1",
+        status: "done",
+        touched_files: ["a.ts", "b.ts"],
+      },
+      {
+        id: "tk-2",
+        title: "T2",
+        status: "done",
+        touched_files: ["b.ts", "c.ts"],
+      },
       { id: "tk-3", title: "T3", status: "pending" },
     ]);
     expect(result.touchedFilesCount).toBe(3); // a.ts, b.ts, c.ts (union)
@@ -312,8 +322,18 @@ describe("summarizeTasks", () => {
 
   test("computes errorBudgetProximity from max retry_count", () => {
     const result = summarizeTasks([
-      { id: "tk-1", title: "T1", status: "done", error_recovery: { retry_count: 1 } },
-      { id: "tk-2", title: "T2", status: "in_progress", error_recovery: { retry_count: 2 } },
+      {
+        id: "tk-1",
+        title: "T1",
+        status: "done",
+        error_recovery: { retry_count: 1 },
+      },
+      {
+        id: "tk-2",
+        title: "T2",
+        status: "in_progress",
+        error_recovery: { retry_count: 2 },
+      },
       { id: "tk-3", title: "T3", status: "pending" },
     ]);
     expect(result.errorBudgetProximity).toBe("⚠ 2/3 budget");
@@ -325,5 +345,30 @@ describe("summarizeTasks", () => {
       { id: "tk-2", title: "T2", status: "pending" },
     ]);
     expect(result.errorBudgetProximity).toBeUndefined();
+  });
+});
+
+describe("formatContextSnapshot — approval_mode autopilot display", () => {
+  const baseInput: ContextSnapshotInput = {
+    changeId: "autopilotTest",
+    title: "Autopilot test change",
+    successCriteriaCount: 1,
+    taskCounts: { done: 0, in_progress: 0, pending: 1, cancelled: 0 },
+  };
+
+  test("shows Mode: autopilot line when approval_mode is set", () => {
+    const output = formatContextSnapshot({
+      ...baseInput,
+      approval_mode: "autopilot",
+      autopilot_invoked_at: "2026-04-28T22:00:00.000Z",
+    });
+    expect(output).toContain(
+      "Mode: autopilot (since 2026-04-28T22:00:00.000Z)",
+    );
+  });
+
+  test("omits Mode line when approval_mode is not set", () => {
+    const output = formatContextSnapshot(baseInput);
+    expect(output).not.toContain("Mode: autopilot");
   });
 });

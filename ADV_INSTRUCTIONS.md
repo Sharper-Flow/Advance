@@ -103,6 +103,7 @@ Each workflow command has a defined phase goal. These are canonical in `manifest
 | `/adv-review`   | Verify implementation matches the approved plan. Auto-fix within scope. Stop on drift.                                        |
 | `/adv-harden`   | Verify production-readiness. Auto-fix scoped issues. Stop on drift.                                                           |
 | `/adv-archive`  | Promote the change from contract to law: apply spec deltas, capture wisdom, clean up.                                         |
+| `/adv-autopilot` | Execute a full change pipeline autonomously, delegating routine human checkpoints while preserving all safety boundaries.    |
 | `/adv-reflect`  | Produce a structured two-plane reflection report for an archived change                              |
 
 ## Commands
@@ -146,6 +147,7 @@ Each workflow command has a defined phase goal. These are canonical in `manifest
 | Command                     | Purpose                                                                                         |
 | --------------------------- | ----------------------------------------------------------------------------------------------- |
 | `/adv-task`                 | Fast-track a discussed change: synthesize contract, validate best practices, prep, and hand off |
+| `/adv-autopilot [target]`   | Delegate routine checkpoints to the agent, stop only on safety boundaries                       |
 | `/adv-refactor [change-id]` | Refresh a stale proposal or batch-refresh the oldest 30% of active changes                      |
 | `/adv-coordinate`           | Detect and resolve conflicts across multiple active changes                                     |
 | `/adv-cleanup`              | Triage stale, abandoned, duplicate, and ready-to-archive active changes                         |

@@ -10,11 +10,7 @@
 
 import { describe, test, expect, beforeEach, afterEach, vi } from "vitest";
 import { AdvancePlugin } from "../index";
-import {
-  createTempDir,
-  cleanupTempDir,
-  createTestProject,
-} from "./setup";
+import { createTempDir, cleanupTempDir, createTestProject } from "./setup";
 import { createDiskStore as createLegacyStore } from "../storage/store-disk";
 
 // Mock plugin-init to bypass Temporal requirement
@@ -37,10 +33,9 @@ vi.mock("../plugin-init", async () => {
 });
 
 vi.mock("../utils/project-id", async () => {
-  const actual =
-    await vi.importActual<typeof import("../utils/project-id")>(
-      "../utils/project-id",
-    );
+  const actual = await vi.importActual<typeof import("../utils/project-id")>(
+    "../utils/project-id",
+  );
   return {
     ...actual,
     getProjectId: vi.fn(),
@@ -124,7 +119,11 @@ describe("experimental.session.compacting enrichment", () => {
       externalRoot: undefined,
     });
     await store.init();
-    await store.changes.create("Compaction test", undefined, "Change for compaction tests");
+    await store.changes.create(
+      "Compaction test",
+      undefined,
+      "Change for compaction tests",
+    );
 
     const titles = options?.taskTitles ?? ["Task One"];
     for (const title of titles) {
