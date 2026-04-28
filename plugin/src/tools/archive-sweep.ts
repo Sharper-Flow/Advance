@@ -22,8 +22,10 @@ export interface ArchiveOrphanCandidate {
   id: string;
   /** Absolute path to the source dir slated for removal */
   sourcePath: string;
-  /** Absolute path to the archive bundle that justifies removal */
+  /** Absolute path to the archive bundle that justifies removal (empty for closed orphans) */
   archivePath: string;
+  /** Discriminator: "archive" = matched by archive bundle, "closed" = status:closed with no archive */
+  kind?: "archive" | "closed";
 }
 
 export interface ArchiveOrphanSweepResult {
@@ -35,10 +37,13 @@ export interface ArchiveOrphanSweepResult {
   removalErrors?: { id: string; error: string }[];
   /** Source dir IDs with NO matching archive bundle — left alone (likely active) */
   skippedActive: string[];
+  /** Count of closed-change source dirs detected (only when includeClosed: true) */
+  closedCandidateCount?: number;
 }
 
 interface SweepOptions {
   dryRun: boolean;
+  includeClosed?: boolean;
 }
 
 /**
@@ -78,7 +83,8 @@ async function buildArchiveIndex(
 }
 
 /**
- * Find source `changes/<id>/` directories whose archive bundle exists.
+ * Find source `changes/<id>/` directories whose archive bundle exists,
+ * and optionally closed-change dirs with no archive bundle.
  * Pure function — no side effects when `dryRun: true`.
  */
 export async function sweepArchiveOrphans(
@@ -104,6 +110,7 @@ export async function sweepArchiveOrphans(
 
   const candidates: ArchiveOrphanCandidate[] = [];
   const skippedActive: string[] = [];
+  const closedCandidates: ArchiveOrphanCandidate[] = [];
 
   for (const entry of sourceEntries) {
     if (!entry.isDirectory()) continue;
@@ -111,24 +118,48 @@ export async function sweepArchiveOrphans(
     const archivePath = archiveIndex.get(id);
     const sourcePath = join(changesDir, id);
     if (archivePath) {
-      candidates.push({ id, sourcePath, archivePath });
+      candidates.push({ id, sourcePath, archivePath, kind: "archive" });
+    } else if (options.includeClosed) {
+      // Check if this is a closed change by reading change.json
+      try {
+        const raw = await readFile(join(sourcePath, "change.json"), "utf-8");
+        const parsed = JSON.parse(raw) as { status?: unknown };
+        if (parsed.status === "closed") {
+          closedCandidates.push({
+            id,
+            sourcePath,
+            archivePath: "",
+            kind: "closed",
+          });
+        } else {
+          skippedActive.push(id);
+        }
+      } catch {
+        // Can't read/parse change.json — treat as active
+        skippedActive.push(id);
+      }
     } else {
       skippedActive.push(id);
     }
   }
 
+  // Merge closed candidates into the main candidates list for unified
+  // processing (removal). Report closed count separately for clarity.
+  const allCandidates = [...candidates, ...closedCandidates];
+
   if (options.dryRun) {
     return {
       dryRun: true,
-      candidateCount: candidates.length,
-      candidates,
+      candidateCount: allCandidates.length,
+      candidates: allCandidates,
       skippedActive,
+      closedCandidateCount: closedCandidates.length || undefined,
     };
   }
 
   const removed: string[] = [];
   const removalErrors: { id: string; error: string }[] = [];
-  for (const c of candidates) {
+  for (const c of allCandidates) {
     try {
       await rm(c.sourcePath, { recursive: true, force: true });
       removed.push(c.id);
@@ -142,25 +173,32 @@ export async function sweepArchiveOrphans(
 
   return {
     dryRun: false,
-    candidateCount: candidates.length,
-    candidates,
+    candidateCount: allCandidates.length,
+    candidates: allCandidates,
     removedCount: removed.length,
     removed,
     removalErrors,
     skippedActive,
+    closedCandidateCount: closedCandidates.length || undefined,
   };
 }
 
 export const archiveSweepTools = {
   adv_archive_sweep_orphans: {
     description:
-      "Detect and optionally remove leaked source `changes/<id>/` directories whose archive bundle exists. Disk-level cleanup for archives that landed before the in-archive cleanup hook (GH #15). Dry-run is default; execute mode requires explicit user approval. Distinct from `adv_orphan_sweep` (Temporal workflow re-seed).",
+      "Detect and optionally remove leaked source `changes/<id>/` directories whose archive bundle exists, and optionally closed-change dirs with no archive. Disk-level cleanup for leaks that landed before the cleanup hooks (GH #15, #16). Dry-run is default; execute mode requires explicit user approval. Distinct from `adv_orphan_sweep` (Temporal workflow re-seed).",
     args: {
       dryRun: z
         .boolean()
         .optional()
         .describe(
           "When true or omitted, list orphan candidates without removing them",
+        ),
+      includeClosed: z
+        .boolean()
+        .optional()
+        .describe(
+          "When true, also detect source dirs for closed (not archived) changes with no archive bundle",
         ),
       approvedByUser: z
         .boolean()
@@ -174,6 +212,7 @@ export const archiveSweepTools = {
     execute: async (
       args: {
         dryRun?: boolean;
+        includeClosed?: boolean;
         approvedByUser?: boolean;
         approvalEvidence?: string;
       },
@@ -193,12 +232,16 @@ export const archiveSweepTools = {
       const result = await sweepArchiveOrphans(
         store.paths.changes,
         store.paths.archive,
-        { dryRun },
+        { dryRun, includeClosed: args.includeClosed ?? false },
       );
 
+      const closedPart =
+        result.closedCandidateCount && result.closedCandidateCount > 0
+          ? `; ${result.closedCandidateCount} closed-change orphan(s)`
+          : "";
       const message = dryRun
-        ? `Found ${result.candidateCount} archive orphan source dir(s); ${result.skippedActive.length} active dir(s) left alone`
-        : `Removed ${result.removedCount ?? 0} of ${result.candidateCount} archive orphan source dir(s)${
+        ? `Found ${result.candidateCount} orphan source dir(s)${closedPart}; ${result.skippedActive.length} active dir(s) left alone`
+        : `Removed ${result.removedCount ?? 0} of ${result.candidateCount} orphan source dir(s)${closedPart}${
             result.removalErrors && result.removalErrors.length > 0
               ? ` (${result.removalErrors.length} error(s))`
               : ""

@@ -463,6 +463,36 @@ describe("Change Tools", () => {
       expect(parsed.success).toBe(true);
       expect(parsed.closed).toBeGreaterThanOrEqual(1);
     });
+
+    test("removes source directories after successful bulk close", async () => {
+      const c1 = await store.changes.create("Bulk A");
+      const c2 = await store.changes.create("Bulk B");
+
+      // Verify source dirs exist before close
+      const dir1 = join(store.paths.changes, c1.changeId);
+      const dir2 = join(store.paths.changes, c2.changeId);
+      await expect(access(dir1)).resolves.toBeUndefined();
+      await expect(access(dir2)).resolves.toBeUndefined();
+
+      const result = await changeTools.adv_change_bulk_close.execute(
+        {
+          selector: {
+            kind: "explicit",
+            changeIds: [c1.changeId, c2.changeId],
+          },
+          reason: "not_planned",
+          approvedByUser: true,
+          approvalEvidence: "User approved bulk close",
+        },
+        store,
+      );
+      const parsed = parseToolOutput(result);
+      expect(parsed.success).toBe(true);
+
+      // Source dirs should be gone
+      await expect(access(dir1)).rejects.toThrow();
+      await expect(access(dir2)).rejects.toThrow();
+    });
   });
 
   describe("adv_change_show", () => {

@@ -1335,6 +1335,27 @@ export const changeTools = {
           approved_at: new Date().toISOString(),
         });
 
+        // Remove source dirs for successfully closed changes.
+        // Only run when closeBatch succeeded overall — partial failures
+        // preserve source dirs as rollback path.
+        if (result.success && store.paths?.changes) {
+          const cleanupWarnings: string[] = [];
+          for (const r of result.results) {
+            if (r.success) {
+              try {
+                await removeChangeDir(store.paths.changes, r.changeId);
+              } catch (err) {
+                cleanupWarnings.push(
+                  `Source cleanup warning: failed to remove changes/${r.changeId}: ${err instanceof Error ? err.message : String(err)}`,
+                );
+              }
+            }
+          }
+          if (cleanupWarnings.length > 0) {
+            result.message += ` ${cleanupWarnings.join(" ")}`;
+          }
+        }
+
         return wrapWithBanner(
           { command: "adv_change_bulk_close" },
           formatToolOutput({

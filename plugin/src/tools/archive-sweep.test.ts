@@ -270,4 +270,74 @@ describe("adv_archive_sweep_orphans tool", () => {
     expect(parsed.message).toContain("Removed 1");
     await expect(access(orphan)).rejects.toThrow();
   });
+
+  it("includeClosed: true detects closed-change source dirs without archive", async () => {
+    // A closed change with no archive bundle — should be a candidate
+    await makeSourceDir(fixture.changesDir, "closedNoArchive", {
+      "change.json": JSON.stringify({ id: "closedNoArchive", status: "closed" }),
+      "proposal.md": "x",
+    });
+    // An active change — should NOT be a candidate
+    await makeSourceDir(fixture.changesDir, "activeNoArchive", {
+      "change.json": JSON.stringify({ id: "activeNoArchive", status: "active" }),
+    });
+
+    const result = await sweepArchiveOrphans(
+      fixture.changesDir,
+      fixture.archiveDir,
+      { dryRun: true, includeClosed: true },
+    );
+
+    expect(result.closedCandidateCount).toBe(1);
+    expect(result.candidates.map((c) => c.id)).toContain("closedNoArchive");
+    expect(result.candidates.map((c) => c.id)).not.toContain("activeNoArchive");
+    // Active change still in skippedActive
+    expect(result.skippedActive).toContain("activeNoArchive");
+  });
+
+  it("includeClosed: true also detects archive orphans alongside closed orphans", async () => {
+    // Archive orphan
+    await makeSourceDir(fixture.changesDir, "archiveOrphan", {
+      "proposal.md": "x",
+    });
+    await makeArchiveBundle(fixture.archiveDir, "2026-01-01", "archiveOrphan");
+
+    // Closed orphan (no archive bundle)
+    await makeSourceDir(fixture.changesDir, "closedOrphan", {
+      "change.json": JSON.stringify({ id: "closedOrphan", status: "closed" }),
+    });
+
+    const result = await sweepArchiveOrphans(
+      fixture.changesDir,
+      fixture.archiveDir,
+      { dryRun: true, includeClosed: true },
+    );
+
+    // 1 archive orphan + 1 closed orphan = 2 total
+    expect(result.candidateCount).toBe(2);
+    expect(result.closedCandidateCount).toBe(1);
+    const allIds = result.candidates.map((c) => c.id);
+    expect(allIds).toContain("archiveOrphan");
+    expect(allIds).toContain("closedOrphan");
+  });
+
+  it("includeClosed: false (default) ignores closed changes", async () => {
+    await makeSourceDir(fixture.changesDir, "closedNoArchive", {
+      "change.json": JSON.stringify({ id: "closedNoArchive", status: "closed" }),
+    });
+    await makeSourceDir(fixture.changesDir, "leakedChange1");
+    await makeArchiveBundle(fixture.archiveDir, "2026-01-01", "leakedChange1");
+
+    const result = await sweepArchiveOrphans(
+      fixture.changesDir,
+      fixture.archiveDir,
+      { dryRun: true },
+    );
+
+    // Only archive orphan detected, closed change in skippedActive
+    expect(result.candidateCount).toBe(1);
+    expect(result.candidates[0].id).toBe("leakedChange1");
+    expect(result.closedCandidateCount).toBeUndefined();
+    expect(result.skippedActive).toContain("closedNoArchive");
+  });
 });
