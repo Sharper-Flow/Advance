@@ -9,6 +9,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+#### Consolidate Chat Output Display (`consolidatechatoutputdisplay`)
+
+Three previously divergent "where am I" surfaces — `context-display`, `task-status-report`, `gate-handoff-voice` — consolidated under a single `chat-output-display` capability with shared glyph vocabulary and emission policy. The `[ADV:ATTN]` marker is split into distinct `IDLE` and `ATTN` markers so the tab-strip glance can distinguish "agent finished" from "user must act". Transient task-state tools now emit a compact 1-line ticker instead of the full snapshot box.
+
+**Status marker split** — `STATUS_MARKERS.IDLE = "[ADV:IDLE]"` (⬜) added; `resolveStatus` returns `IDLE` for `sessionIdle` and `ATTN` only for `permissionPending`; initial state changes from `ATTN` → `IDLE` so a fresh session is no longer falsely flagged as needing attention.
+
+**Bell policy** — extends the existing debounce/armed state machine to cover IDLE: `WORK→IDLE` and `TOOLING→IDLE` ring (debounced when armed, immediate otherwise); `IDLE→IDLE`, `BLOCKED→IDLE`, and lateral `IDLE↔ATTN` are silent (recovery without user action / already user-visible state).
+
+**Compact context ticker** — `formatTickerSnapshot` + `buildChangeContextTicker` produce a single-line `║ {changeId-truncated} · {gateArrow} · {done}/{total} ║` (≤80 cols) emitted by `adv_task_update→in_progress|done`, `adv_task_ready`, `adv_task_add`, `adv_task_cancel`, and the wisdom emit sites. Full-box snapshots still emit on `adv_change_show`, `adv_change_create`, `adv_gate_complete`, `adv_change_reenter`, and `adv_status`. New `formatGateArrow()` helper returns the compact `{prev} ✓→{next}` form.
+
+**Cross-repo switch trim** — `formatCrossRepoSwitch` reduced from 4 to 3 content lines (header + merged `from → to` + task) and capped at 80 cols with truncation when paths overflow.
+
+**Magic-constant cleanup** — `MIN_BOX_WIDTH = 55` retired in favor of a `MIN_BOX_WIDTH = 40` floor + `MAX_BOX_WIDTH = 78` cap (with `CONTEXT_LINE_PREFIX_RESERVED = 12` for change-id truncation). Compact surfaces (ticker, cross-repo) stay within 80 cols; the full snapshot box still grows naturally to fit the inline 7-gate progress row per `rq-ctxsnap1`.
+
+**Spec rename** — `.adv/specs/context-display/` → `.adv/specs/chat-output-display/` (v1.2.0 → v1.3.0, `supersedes: ["context-display"]`). Five new requirements: `rq-idleMarker01` (resolver split), `rq-idleMarker02` (IDLE marker constant + ⬜ emoji), `rq-idleMarker03` (IDLE bell policy), `rq-ctxticker1` (ticker content), `rq-ctxticker2` (ticker emission triggers). `rq-ctxformat` extended with `rq-ctxformat.4` (CONTEXT-line truncation) and `rq-ctxformat.3` clarified to apply only to compact surfaces. `rq-ctxswitch` updated with `.2` (≤3 content lines).
+
+**Doc retirement** — `docs/adv-task-report.md` reduced to a redirect pointer to the new spec; `docs/adv-context-agreement.md` cross-reference updated; `docs/chat-output-adhd-prep.md` research pack marked as `Status: Consumed`.
+
+**Drift test extension** — `plugin/src/handoff-footer-drift.test.ts` adds a `chat-output-display drift contract` describe block (6 tests: STATUS_MARKERS.IDLE, ⬜/🟥 emoji distinction, ticker structure, ticker truncation, spec rename + new requirement IDs, legacy directory retired). All pre-existing 17 wayfinder assertions are preserved verbatim — no regression to `trimGateHandoffFooterSingle`.
+
+**Out of scope (separate proposals)** — wayfinder-first positioning (DX2), tab-title gate state (DX3), chat heartbeat (OBS1), agent-identity cue (OBS2), one-question-rule enforcement.
+
 #### Prose-Load Reduction on ADV Control Surfaces
 
 ADV instruction surfaces (`ADV_INSTRUCTIONS.md`, `docs/command-voice-standard.md`, `.opencode/agents/adv.md`, `.opencode/command/adv-*.md`) now classify each section by enforcement class and apply matching compression templates. Reduces agent prompt-load on control-related prose by moving control mechanisms into code (drift tests, runtime guards, schema validators, tool formatters) and compressing the prose that duplicates them.

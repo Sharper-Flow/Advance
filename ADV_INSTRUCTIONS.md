@@ -175,7 +175,8 @@ Emit at START of each response:
 | -------------------------- | --------------------------------------------------- | ----- |
 | `[ADV:WORK]`               | Agent actively working                              | 🟩    |
 | `[ADV:TOOLING]`            | Tool run or sub-agent in flight                     | 🟨    |
-| `[ADV:ATTN]`               | User needed (approval, question, or agent finished) | 🟥    |
+| `[ADV:ATTN]`               | User needed (permission pending, approval, or question) | 🟥    |
+| `[ADV:IDLE]`               | Agent idle, no action needed (session start or finished work) | ⬜    |
 | `[ADV:BLOCKED]`            | Doom-loop / stuck / crash                           | 🟥💀  |
 | `[ADV:TASK_STATUS_REPORT]` | Task report                                         | —     |
 | `[ADV:SKILL_CREATED]`      | Auto-created skill persisted (skill name, domain)   | 🟦    |
