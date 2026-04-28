@@ -90,12 +90,7 @@ After successful completion, call `adv_project_metadata action:"write"` with:
 This persists the audit result for display in `/adv-status`.
 
 ---
-```
-/adv-audit {scope} COMPLETE
-Result: {ALIGNED | N drift issues}
-Quality Gate: {PASS | FAIL}
-Next: /adv-proposal <summary>
-```
+
 
 ---
 ## Key Tools

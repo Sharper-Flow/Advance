@@ -251,11 +251,9 @@ Compression work halts when no remaining section can be classified as fully-enfo
 
 ## Gate Handoff Voice
 
-Every `/adv-*` command that emits a user-facing gate-transition message MUST use the Gate Handoff Voice spine. This replaces all prior handoff templates (Orchestration Summary, CONTRACT FULFILLED, ARCHIVE COMPLETE, READY FOR BUILD, etc.).
+Three-section spine + blockquote wayfinder for all `/adv-*` gate-transition messages. Enforced by `plugin/src/handoff-footer-drift.test.ts`. Spec: `rq-handoffVoice01` (MUST priority). Replaces prior templates (Orchestration Summary, CONTRACT FULFILLED, ARCHIVE COMPLETE, READY FOR BUILD).
 
-**Spec requirement:** `rq-handoffVoice01` (MUST priority). Violations are spec violations.
-
-**Cross-link:** When a gate handoff is paired with a human-checkpoint approval, reply instructions appear as plain prose below the blockquote per `## Inline Approval Voice` below. The three-section spine (Problem / Chosen direction / Delivered) and the blockquote wayfinder block stay canonical; reply instructions are added below, not inside.
+Reply instructions for human-checkpoint approvals stay outside the blockquote per § Inline Approval Voice.
 
 ### Canonical spine
 
@@ -279,11 +277,9 @@ Every gate handoff uses exactly three narrative sections, in this order:
 > → `/adv-{next-command} {change-id}`
 ```
 
-No other sections, headings, or structural elements in the handoff. The blockquote wayfinder block is the only content after `## Delivered`. Internal state (task lists, gate checkboxes, sub-agent counts, step logs) lives in ADV tools (`adv_change_show`, `adv_task_list`, `_contextSnapshot`), not in chat.
+No other sections, headings, or structural elements in the handoff. The blockquote wayfinder block is the only content after `## Delivered`. Internal state lives in ADV tools (`adv_change_show`, `adv_task_list`, `_contextSnapshot`), not chat.
 
 ### Per-stage anchors (Chosen direction)
-
-The `Chosen direction` section content differs per stage. Use the anchor from this table:
 
 | Stage | Chosen direction anchor |
 |-------|------------------------|
@@ -298,9 +294,9 @@ The `Chosen direction` section content differs per stage. Use the anchor from th
 
 ### Archive terminal variant
 
-The `/adv-archive` handoff is the terminal message. The terminal verb branches by push state — use the variant matching the actual end-state.
+`/adv-archive` is the terminal message; verb branches by push state.
 
-**Shipped variant** (push succeeded AND assets propagated to global install):
+**Shipped** (push succeeded AND assets propagated):
 
 ```
 ## Shipped.
@@ -326,7 +322,7 @@ What shipped, what spec deltas applied.
 > **{change-id}** · release ✓ · Shipped.
 ```
 
-**Merged locally variant** (no remote configured OR push skipped OR push failed):
+**Merged locally** (no remote OR push skipped/failed):
 
 ```
 ## Merged locally.
@@ -350,16 +346,16 @@ What was merged locally, what spec deltas applied. Note: not pushed.
 > **{change-id}** · release ✓ · Merged locally.
 ```
 
-Selection rule (from `/adv-archive` Phase 8):
-
-- **Shipped.** — push succeeded AND `sync_action` ∈ {`auto via hook`, `manual fix`, `not needed`}
-- **Merged locally.** — no remote configured OR push skipped OR push failed (with explicit reason)
+| Selection (from `/adv-archive` Phase 8) | Variant |
+|---|---|
+| push succeeded AND `sync_action` ∈ {`auto via hook`, `manual fix`, `not needed`} | **Shipped.** |
+| no remote OR push skipped OR push failed (with explicit reason) | **Merged locally.** |
 
 Both variants use a single-line blockquote terminal — the change is final.
 
 ### Fast-track variant (`/adv-task`)
 
-`/adv-task` collapses proposal → discovery → design → planning into one step. Use this variant at the handoff point:
+Collapses proposal → discovery → design → planning into one step. Variant at handoff:
 
 ```
 ## Problem
@@ -381,7 +377,7 @@ Both variants use a single-line blockquote terminal — the change is final.
 
 ### Action banner cleanup
 
-Mid-command banners (CONTRACT ACTIVE, CONTRACT STATUS, CONTRACT FULFILLED, QUICK CONTRACT, READY FOR BUILD, ARCHIVE COMPLETE) are replaced or trimmed per this taxonomy:
+Mid-command banner taxonomy (CONTRACT ACTIVE, CONTRACT STATUS, CONTRACT FULFILLED, QUICK CONTRACT, READY FOR BUILD, ARCHIVE COMPLETE):
 
 | Banner | Action | Replacement |
 |--------|--------|-------------|
@@ -394,11 +390,11 @@ Mid-command banners (CONTRACT ACTIVE, CONTRACT STATUS, CONTRACT FULFILLED, QUICK
 
 ### Safety-warning surface
 
-Block banners remain for safety-critical confirmations (destructive actions, cancellation approval, doom-loop recovery). These are NOT gate handoffs — they are interaction prompts governed by `rq-autonomy01` human checkpoints. The spine does not apply to them.
+Block banners remain for safety-critical confirmations (destructive actions, cancellation approval, doom-loop recovery). NOT gate handoffs — interaction prompts governed by `rq-autonomy01`. The spine does not apply.
 
 ### Auto-continue transitions
 
-When `rq-autonomy01` permits auto-continue (no unresolved user-value tradeoff, no required approval), the agent proceeds without emitting a handoff message between stages. No message = no handoff to validate. The spine applies only when the agent emits a user-facing gate-transition message.
+When `rq-autonomy01` permits auto-continue, the agent proceeds without emitting a handoff message. No message = no handoff to validate. Spine applies only to user-facing gate-transition messages.
 
 ### BAD / GOOD transcript examples
 
@@ -503,9 +499,7 @@ Agreed objectives + constraints + user decisions. Spine = Problem / Chosen direc
 
 ## Inline Approval Voice
 
-Replaces `question`-tool popups for approval at the seven named human checkpoints. The popup blocks chat input — users cannot switch agents, redirect with a different slash command, or add free-form context without first answering or cancelling. Inline approval emits prose reply instructions, leaving chat input free.
-
-**Spec requirement:** `rq-inlineApproval01` (MUST priority). Violations are spec violations.
+Inline prose reply instructions at the seven named human checkpoints (vs `question`-tool popups, which block chat input and prevent agent-switching/slash-command redirection). Spec: `rq-inlineApproval01` (MUST priority).
 
 **Applies to** the seven named human checkpoints from `rq-autonomy01`:
 
@@ -528,7 +522,10 @@ Replaces `question`-tool popups for approval at the seven named human checkpoint
 
 ### Two parsing tiers
 
-Reply parsing depends on action reversibility. Reversible checkpoints get a forgiving whitelist plus LLM fallback for natural-language replies. Irreversible checkpoints get a strict whitelist with no LLM fallback to prevent mis-parsed approvals.
+| Tier | Reversibility | Parser |
+|---|---|---|
+| **A** | Reversible (proposal, agreement, design, prep, acceptance) | Forgiving whitelist + LLM fallback |
+| **B** | Irreversible (archive sign-off, cancellation) | Strict whitelist; NO LLM fallback |
 
 #### Tier A — Reversible (proposal, agreement, design, prep, acceptance)
 

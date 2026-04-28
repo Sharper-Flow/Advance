@@ -174,10 +174,4 @@ The artifact is a **mirror** of the report findings plus the Applicability and O
 
 ## Output
 
-```
-/adv-improve [target] COMPLETE
-Result: {N findings | Production ready}
-ADV State Mutation: none
-Research Pack: docs/{target-slug}-prep.md ({created|updated})
-Next: {suggested commands}
-```
+

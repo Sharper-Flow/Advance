@@ -93,8 +93,4 @@ Output structured JSON: `stack`, `phases`, `summary` (bySeverity, byCategory), `
 ---
 ## Execution
 1. Parse arguments → 2. Pre-flight → 3. Phase 1 (if enabled) → 4. Phase 2 (if enabled) → 5. Phase 3 (if enabled) → 6. Write Metadata → 7. Report
-```
-/adv-arch-scan COMPLETE
-Result: {N findings | No issues}
-Next: /adv-proposal <summary>
-```
+

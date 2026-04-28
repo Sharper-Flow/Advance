@@ -87,11 +87,7 @@ If not ready, emit:
 
 ## Output
 
-```
-/adv-idea COMPLETE
-Result: {ready for /adv-proposal | still exploring | stopped}
-Next: {/adv-proposal <summary> | continue ideation later}
-```
+
 
 ## Anti-Patterns
 

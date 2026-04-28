@@ -162,8 +162,4 @@ This persists the scan result for display in `/adv-status`.
 ---
 ## Execution
 1. Parse arguments → 2. Pre-flight → 3. Phase 1 (if enabled) → 4. Phase 2 (if enabled) → 5. Aggregate → 6. Report → 7. Write Metadata
-```
-/adv-slop-scan COMPLETE
-Result: {N findings | No slop detected}
-Next: /adv-harden {change-id}
-```
+

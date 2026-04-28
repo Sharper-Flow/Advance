@@ -84,8 +84,4 @@ Output structured JSON: `competitor`, `mode`, `comparison`, `findings[]`, `takea
 ---
 ## Execution
 1. Parse arguments → 2. Pre-flight → 3. Phase 1 (mode-specific) → 4. Phase 2 (synthesis) → 5. Write Metadata → 6. Report
-```
-/adv-comp-scan COMPLETE
-Result: {N findings | No data}
-Next: /adv-proposal <summary>
-```
+

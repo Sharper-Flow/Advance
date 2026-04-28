@@ -102,11 +102,7 @@ Always emit a compact triage summary:
 - Scope assessment
 - Suggested next command or action
 
-```
-/adv-problem COMPLETE
-Result: {direct-fix candidate | proposal candidate | need more info | stopped}
-Next: {fix now | /adv-proposal <summary> | gather more evidence}
-```
+
 
 ## Anti-Patterns
 

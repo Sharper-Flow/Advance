@@ -15,15 +15,15 @@ Parse `$ARGUMENTS`: `change-id`, `--strict`.
 
 ---
 ## Phase 1: Run Validation
-`adv_change_validate changeId: <target> strict: {true if --strict}`
-
-Returns: `valid` (bool), `errors[]`, `warnings[]`, `info[]`.
+`adv_change_validate changeId: <target> strict: {true if --strict}` → returns `valid` (bool), `errors[]`, `warnings[]`, `info[]`.
 
 ---
 ## Phase 2: Display Results
-If valid → VALIDATION PASSED banner: change-id, mode, warnings (if any), info.
 
-If invalid → VALIDATION FAILED banner: change-id, mode, numbered errors (code, message, location, fix suggestion), warnings.
+| Outcome | Banner |
+|---|---|
+| valid | VALIDATION PASSED — change-id, mode, warnings (if any), info |
+| invalid | VALIDATION FAILED — change-id, mode, numbered errors (code, message, location, fix suggestion), warnings |
 
 ---
 ## Phase 3: Error Guidance
@@ -39,11 +39,7 @@ If invalid → VALIDATION FAILED banner: change-id, mode, numbered errors (code,
 ---
 ## Strict Mode
 Warnings promoted to errors. Use before `/adv-apply` and `/adv-archive`.
-```
-/adv-validate {change-id} COMPLETE
-Result: {PASSED | FAILED} ({errors} errors, {warnings} warnings)
-Next: /adv-prep {change-id}
-```
+
 ## Key Tool
 | Purpose | Tool |
 |---------|------|

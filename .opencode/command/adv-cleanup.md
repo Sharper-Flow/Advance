@@ -245,13 +245,7 @@ Continue to the next bucket. Do not abort the whole run on a single bucket failu
 
 After all buckets are processed (or skipped in dry-run), emit a closing summary:
 
-```
-/adv-cleanup COMPLETE
-Mode: {dry-run | execute}
-Buckets acted on: {count}
-Total changes affected: {N}
-Recommended next: {/adv-archive {id} for ready-to-archive entries, if any}
-```
+
 
 Use the Gate Handoff Voice spine for the closing block (cleanup does not own a gate, so omit gate footer). Cleanup is a utility command — no sub-agent spawn, no gate completion.
 

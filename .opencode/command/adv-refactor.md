@@ -74,11 +74,7 @@ Emit REFACTOR REPORT: staleness summary (age, drift count, outdated deps, obsole
 If dry-run → list what would change. If executed → list changes by confidence (HIGH applied, MEDIUM/LOW need manual review), validation status. Include rollback: `git restore .`
 
 **Batch mode**: aggregate per-change subsections under one report. Group by outcome — `Updated`, `Dry-run preview`, `Failed` (with error class) — and surface the staleness band for each entry. Recommend follow-up commands per change.
-```
-/adv-refactor {change-id | batch:N} COMPLETE
-Result: {Dry run | N changes applied | M of N targets succeeded}
-Next: /adv-review or /adv-apply
-```
+
 
 ---
 ## Key Tools

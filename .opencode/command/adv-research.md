@@ -354,13 +354,7 @@ If **Request additional research**: collect specific areas → re-run relevant p
 
 Mark gate: `adv_gate_complete changeId: {change-id} gateId: research`
 
-```
-/adv-research {target} COMPLETE
-Result: {N findings applied | All validated | Report only}
-Simplifications: {N opportunities}
-Research Gate: MARKED COMPLETE
-Next: /adv-prep {change-id}
-```
+
 
 **Auto-continue:** After user approval, immediately begin `/adv-prep` (or `/adv-design` if design gate is incomplete) inline. Do not stop or ask "shall I proceed?" — the user's approval is the go-ahead.
 

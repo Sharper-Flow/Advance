@@ -120,8 +120,4 @@ If `/adv-clarify` was invoked from `/adv-discover` Phase 2.5 or Phase 4.5.1, end
 | Rapid-fire (>3) | Max 2-3, pause |
 | Closed-only | Lead with open |
 | No summarization | Regularly play back |
-```
-/adv-clarify COMPLETE
-Result: {N} requirements clarified, {M} open questions
-Next: /adv-discover, /adv-design, or /adv-task (or `rerun /adv-discover {change-id}` to resume at Phase 4.5.1 with the revised criteria from this session)
-```
+

@@ -31,11 +31,7 @@ Emit COORDINATION DASHBOARD: active change count with task progress and file cou
 | Hot files (3+) | HIGH | Serialize — implement one first |
 | Semantic conflicts | HIGH | Review both changes |
 | Hot files (2) | MEDIUM | Coordinate modifications |
-```
-/adv-coordinate COMPLETE
-Result: {N changes analyzed | No coordination needed}
-Next: /adv-proposal
-```
+
 ## Key Tools
 | Purpose | Tool |
 |---------|------|
