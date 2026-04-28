@@ -20,7 +20,9 @@ Specs are laws. Requirements are formally defined, validated, and enforced.
 
 ## HITL Boundary Model
 
-Each workflow phase has a defined collaboration mode. Agents self-enforce these boundaries.
+Per-phase collaboration mode. Planning gate machine-enforced via `adv_gate_complete` (`userApproved: true`); other modes are agent self-enforced.
+
+**Agent-side gap:** Only planning is machine-enforced. Other phase boundaries rely on command-doc adherence.
 
 | Phase           | Mode                         | Detail                                                                         |
 | --------------- | ---------------------------- | ------------------------------------------------------------------------------ |
@@ -36,16 +38,16 @@ Each workflow phase has a defined collaboration mode. Agents self-enforce these 
 
 ### Drift Detection Rule
 
-For autonomous phases (`/adv-review`, `/adv-harden`), before auto-remediating any finding, the agent must evaluate:
+In autonomous phases (`/adv-review`, `/adv-harden`), before auto-remediating ask: "Will `proposal.md`'s **Success Criteria**, **Acceptance Criteria**, or **Out-of-Scope** sections need to change?"
 
-> "If I apply this fix, will `proposal.md`'s **Success Criteria**, **Acceptance Criteria**, or **Out-of-Scope** sections need to change?"
-
-- **YES** → STOP. Present finding to user via `question` tool (`[ADV:ATTN]`).
-- **NO** → Auto-remediate within scope.
+| Answer | Action |
+|---|---|
+| YES | STOP. Present finding via `question` tool (`[ADV:ATTN]`). |
+| NO | Auto-remediate within scope. |
 
 ### Prep Gate Machine Enforcement
 
-The prep gate requires `userApproved: true` in `adv_gate_complete`. Without it, the gate returns an error prompting the agent to obtain user approval first. This is the only machine-enforced HITL gate; other collaborative phases rely on command instructions.
+`adv_gate_complete gateId: 'planning'` requires `userApproved: true`. Without it, the gate returns an error. Only machine-enforced HITL gate.
 
 ### Human Checkpoints (Pause Required)
 
@@ -60,26 +62,33 @@ ADV pauses ONLY at these checkpoints:
 - Cancellation approval — explicit user approval required
 - Doom-loop recovery — user guidance required after 3 failed attempts
 
-**Approval surface:** The first seven checkpoints (proposal, agreement, design, prep, acceptance, archive sign-off, cancellation) MUST use **inline handoff text** with reply instructions per `docs/command-voice-standard.md` § Inline Approval Voice — NOT the `question` tool. Spec ref: `rq-inlineApproval01`. Doom-loop recovery remains on the `question` tool (safety-critical structured choices).
+**Approval surface:** First seven checkpoints (proposal, agreement, design, prep, acceptance, archive sign-off, cancellation) MUST use inline handoff text per `docs/command-voice-standard.md` § Inline Approval Voice — NOT the `question` tool. Spec ref: `rq-inlineApproval01`. Doom-loop recovery uses `question` tool (safety-critical structured choices).
 
-Tier A (reversible — proposal/agreement/design/prep/acceptance) uses whitelist + LLM fallback. Tier B (irreversible — archive sign-off, cancellation) uses whitelist-only with no LLM fallback. Archive sign-off executes inline in the same response as the whitelist match — no separate confirmation-echo turn.
+| Tier | Checkpoints | Parser |
+|---|---|---|
+| A (reversible) | proposal, agreement, design, prep, acceptance | whitelist + LLM fallback |
+| B (irreversible) | archive sign-off, cancellation | whitelist-only, NO LLM fallback |
+
+Archive sign-off executes inline in the same response as the whitelist match — no separate confirmation-echo turn.
 
 ### Post-Approval Auto-Continue
 
-When the user replies with a Tier A whitelist word (continue, go, approve, yes, ok, proceed, accept, lgtm, etc.) at any checkpoint, the next phase begins inline immediately. No "shall I proceed?", no "ready to start /adv-X?", no second confirmation. Slash-command replies (`/adv-X`) are no-ops for the agent — OpenCode dispatches them to a fresh session.
+Tier A whitelist reply (continue, go, approve, yes, ok, proceed, accept, lgtm, etc.) → next phase begins inline immediately. No "shall I proceed?", no second confirmation. Slash-command replies (`/adv-X`) are no-ops; OpenCode dispatches them to fresh sessions.
 
 ### Between-Checkpoint Flow
 
-Between checkpoints, only system-level interrupts cause pauses:
+Only system-level interrupts cause pauses between checkpoints:
 
-- Doom-loop detection (3 failed task attempts)
-- Cost governance / investment check-in (judgment calls to surface)
-- Drift detection (auto-fix boundary exceeded in review/harden)
-- Contract-compromise risk identified during design
-- Design validator `CONFLICT` verdict
-- Prep gate machine enforcement (`userApproved` required)
+| Interrupt | Trigger |
+|---|---|
+| Doom-loop | 3 failed task attempts |
+| Cost governance / investment check-in | judgment calls to surface |
+| Drift detection | auto-fix boundary exceeded in review/harden |
+| Contract-compromise risk | identified during design |
+| Design validator `CONFLICT` | verdict requires user resolution |
+| Prep gate machine enforcement | `userApproved` required |
 
-No other pauses or "shall I continue?" prompts are permitted.
+No other pauses or "shall I continue?" prompts permitted.
 
 ## Phase Goals
 
@@ -340,7 +349,14 @@ After 3 failures: STOP → `[ADV:BLOCKED]` → document all 3 attempts → ask v
 
 ### Investment Check-In
 
-When an ADV change reaches /adv-apply, pending judgment calls are surfaced before execution. The `adv_investment_report` tool produces tier classification (auto/escalate/hardstop). Hard-stop is advisory in v1 — does NOT trigger adv_change_reenter. Doom-loop supersede: doom-loop recovery supersedes investment check-in on simultaneous trigger. Unresolved user-value tradeoff triggers escape-clause citation (rq-autonomy01). See `.opencode/instructions/cost-governance.md` and `skills/adv-cost-governance-methodology/SKILL.md` for methodology and thresholds.
+`/adv-apply` Phase 1.5 surfaces pending judgment calls before execution. Methodology in `skills/adv-cost-governance-methodology/SKILL.md`; thresholds in `.opencode/instructions/cost-governance.md`.
+
+| Rule | Behavior |
+|---|---|
+| `adv_investment_report` tier classification | auto / escalate / hardstop |
+| Hard-stop in v1 | advisory only — does NOT trigger `adv_change_reenter` |
+| Doom-loop supersede | Doom-loop recovery supersedes investment check-in on simultaneous trigger |
+| Unresolved user-value tradeoff | Triggers `rq-autonomy01` escape-clause citation |
 
 ### Cross-Repo Execution
 
@@ -411,9 +427,9 @@ Do NOT expand into implicit repo-wide refactors or untouched subsystems. Campsit
 
 ### Ambiguity Taxonomy
 
-Structured 11-category taxonomy for detecting ambiguity in proposals and discovery findings. Used by `/adv-proposal` (B/F/S scan), `/adv-discover` (B/F/S/M scan), and `/adv-clarify` (findings-driven mode).
+11-category ambiguity taxonomy used by `/adv-proposal` (B/F/S scan), `/adv-discover` (B/F/S/M scan), and `/adv-clarify` (findings-driven mode). Composes alongside `plugin/src/validator/clarify-readiness.ts` (6 heuristic checks, `severity: "warning"`); reuses `clarify_enforcement` flag (`off`/`advisory`/`strict` in `plugin/src/types.ts:1194-1196`).
 
-Composes alongside `clarify-readiness.ts` (6 heuristic checks, `severity: "warning"`) — this taxonomy adds depth and gate-blocking severity. Reuses `clarify_enforcement` flag semantics (`off`/`advisory`/`strict` in `plugin/src/types.ts:1194-1196`).
+**Agent-side gap:** Categories D/X/Q/I/E/C/T are scan-optional in v1 — agent decides emission based on change domain.
 
 #### Categories
 
@@ -453,11 +469,14 @@ Composes alongside `clarify-readiness.ts` (6 heuristic checks, `severity: "warni
 
 #### Anti-Hallucination Evidence Rule
 
-Every finding MUST include either:
-- A **verbatim quote** from the source document: `Evidence: proposal.md:{section} "{exact text}"`
-- OR an explicit absence marker: `Evidence: (no {section} section)`
+Every finding MUST include verbatim source quote OR explicit absence marker. × MUST NOT fabricate, paraphrase, or infer.
 
-× MUST NOT fabricate, paraphrase, or infer evidence. If the source text cannot be located, use the `(no ...)` marker. Findings without valid evidence are malformed and MUST NOT be surfaced.
+| Evidence form | Format |
+|---|---|
+| Verbatim quote | `Evidence: proposal.md:{section} "{exact text}"` |
+| Absence marker | `Evidence: (no {section} section)` |
+
+Findings without valid evidence are malformed and MUST NOT be surfaced.
 
 #### Trigger Threshold
 
@@ -470,15 +489,16 @@ Applies in `/adv-proposal` (B/F/S scan) and `/adv-discover` (B/F/S/M scan).
 
 #### Coverage Report
 
-After each scan, emit a coverage summary:
+Emit per scan: `Coverage: B:C F:P D:C X:C Q:P I:N/A E:P C:C T:C S:P M:M`.
 
-```
-Coverage: B:C F:P D:C X:C Q:P I:N/A E:P C:C T:C S:P M:M
-```
+| Code | Meaning |
+|---|---|
+| C | Clear (no ambiguity) |
+| P | Partial (some vagueness) |
+| M | Missing (no content found) |
+| N/A | Not applicable to this change |
 
-Legend: **C** = Clear (no ambiguity), **P** = Partial (some vagueness), **M** = Missing (no content found), **N/A** = Not applicable to this change.
-
-Required v1 categories (B/F/S/M) MUST have a coverage entry. Optional categories MAY be omitted (treated as N/A).
+Required categories (B/F/S/M) MUST have a coverage entry; optional MAY be omitted (treated as N/A).
 
 ## 7-Gate Quality Checklist
 <!-- rq-gatemodel01 -->
