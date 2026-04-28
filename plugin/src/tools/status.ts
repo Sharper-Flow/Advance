@@ -143,6 +143,12 @@ function appendClarifyRecommendation(
   const resolvedChangeId = changeId ?? change.id;
   if (clarifyMode === "off") return;
 
+  // Suppress clarify recommendations once every gate is satisfied — the change
+  // is archive-eligible (or already archived) and ambiguity findings are no
+  // longer actionable. See GH issue #14.
+  const gates = change.gates;
+  if (gates && GATE_ORDER.every((g) => isGateSatisfied(gates[g]))) return;
+
   const clarifyResult = runClarifyReadinessChecks(change, proposalText);
   if (clarifyResult.findings.length === 0) return;
 
