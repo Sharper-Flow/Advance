@@ -267,25 +267,15 @@ Inline TDD is default — red/green phases WITHIN each task. × Do NOT create se
 
 ### Reflection Protocol
 
-Reflection is post-completion analysis that produces a structured two-plane report for every archived change. It turns individual experience into durable process knowledge.
+Post-completion two-plane analysis for every archived change. Tool: `adv_reflect`. Persisted in `reflections.jsonl` in ADV state directory.
 
-**Two-Plane Model**
-
-- **Plane 1 — Project Execution:** Efficiency, quality, process adherence, and wisdom captured.
-- **Plane 2 — System Friction:** Tool gaps, workarounds, missing capabilities, documentation gaps, UX friction, and provider-specific issues.
-
-**When It Runs**
-
-- Automatically triggered by `/adv-archive` Phase 8.
-- Manually via `/adv-reflect <change-id>` for any archived change.
-
-**Human Review**
-
-Reports are informational. Agents present them for human review; they do not trigger autonomous process modification.
-
-**Storage**
-
-Persisted in `reflections.jsonl` in the ADV state directory. Retrievable via `adv_change_show` for archived changes.
+| Aspect | Detail |
+|---|---|
+| Plane 1 — Project Execution | Efficiency, quality, process adherence, wisdom captured |
+| Plane 2 — System Friction | Tool gaps, workarounds, missing capabilities, doc gaps, UX friction, provider-specific issues |
+| Triggers | Auto via `/adv-archive` Phase 8; manual via `/adv-reflect <change-id>` |
+| Audience | Informational — human review; does NOT trigger autonomous process modification |
+| Retrieval | `adv_change_show` for archived changes |
 
 ### Task Checkpoint Commits
 Every `/adv-apply` task with file changes in its workdir MUST produce a git commit via `adv_task_checkpoint` before transitioning to `status:'done'`. Cancellations MUST checkpoint before `status:'cancelled'`. Enforcement is at the `/adv-apply` command seam (step 3c.5), not in `adv_task_update` itself.
@@ -630,9 +620,15 @@ Orchestrator pattern: spawn `librarian` + `adv-researcher` in parallel → synth
 
 ## Skill Discovery Protocol
 
-Enabled in `/adv-research` Phase 1.5. Improves research quality via domain-specific skills.
+Enabled in `/adv-research` Phase 1.5. Filesystem-only, no API calls.
 
-Flow: search trusted skill directories only (`~/.config/opencode/skills/*/SKILL.md`, repo `skills/*/SKILL.md`) → read YAML frontmatter → match `keywords` against tech stack + change domain → `skill("{name}")` → apply guidance.
+| Step | Action |
+|---|---|
+| Search | Trusted skill dirs only: `~/.config/opencode/skills/*/SKILL.md`, repo `skills/*/SKILL.md` |
+| Match | Read YAML frontmatter, match `keywords` against tech stack + change domain |
+| Load | `skill("{name}")` → apply guidance |
+| Trust | × Never auto-load arbitrary `*/SKILL.md` outside trusted dirs without explicit user approval |
+| Degrade | Skip skills without frontmatter/`keywords`; no matches → proceed normally |
 
 Skill metadata:
 
@@ -644,26 +640,21 @@ keywords: ["term1", "term2", "term3"]
 ---
 ```
 
-Trust boundary: repo-local skills are trusted only from the repository's `skills/` directory. × Never auto-load arbitrary `*/SKILL.md` elsewhere in the repo. Any other path requires explicit user approval.
-
-Graceful degradation: skip skills without frontmatter or `keywords`. No matches → proceed normally. Filesystem-only, no API calls.
-
 ## Skill Creation Protocol
 
-**Enabled in:** `/adv-discover` Phase 1.5, `/adv-research` Phase 1.5.
+Enabled in `/adv-discover` Phase 1.5 and `/adv-research` Phase 1.5. Conservative — only triggers for the change's core problem domain.
 
-When skill discovery finds no matching skill for a domain clearly relevant to the change's **core problem**, the agent MAY create a skill on demand. This is a conservative extension — tangential domains do not trigger creation.
+### Trigger Conditions (ALL must be true)
 
-### Trigger Conditions
-
-Agent creates a skill ONLY when ALL of these are true:
-1. Phase 1.5 finds no matching skill for a domain
-2. The domain is clearly relevant to the change's **core problem** (not tangential)
-3. No partial-skill match covers the domain
+| # | Condition |
+|---|---|
+| 1 | Phase 1.5 finds no matching skill for a domain |
+| 2 | Domain is clearly relevant to the change's **core problem** (not tangential) |
+| 3 | No partial-skill match covers the domain |
 
 ### Naming Convention
 
-Auto-created skills use `agent-{domain-slug}` naming. The slug is lowercased, hyphenated. **× MUST NOT use `adv-` prefix** — the sync script (`sync-global.sh`) removes stale `adv-*` skills from the global dir.
+`agent-{domain-slug}` (lowercased, hyphenated). **× MUST NOT use `adv-` prefix** — `scripts/sync-global.sh` removes stale `adv-*` skills from global dir.
 
 ### Assembly Template
 
@@ -705,15 +696,18 @@ metadata:
 
 ### Pending Review
 
-Auto-created skills include `metadata.review_status: "pending"`. On the next `/adv-discover` Phase 1.5:
-- Scan for skills with `metadata.review_status: "pending"` BEFORE keyword matching
-- Surface pending skills to the user for confirmation
-- User confirms → update `metadata.review_status` to `"reviewed"`
-- User rejects → delete the skill file
+Auto-created skills set `metadata.review_status: "pending"`. Next `/adv-discover` Phase 1.5:
+
+| Step | Action |
+|---|---|
+| Scan | Skills with `review_status: "pending"` BEFORE keyword matching |
+| Surface | Present pending skills to user for confirmation |
+| Confirm | Update `review_status` to `"reviewed"` |
+| Reject | Delete the skill file |
 
 ### Protocol Extension Note
 
-This protocol extends the Skill Discovery Protocol's "No matches → proceed normally" behavior. When all trigger conditions are met, "no matches" becomes a conditional trigger for skill creation rather than a terminal state. Agents that don't implement creation still conform by reporting the gap and proceeding.
+Extends Skill Discovery Protocol's "No matches → proceed normally" — when all trigger conditions are met, "no matches" becomes a conditional creation trigger instead of a terminal state. Non-implementing agents still conform by reporting the gap and proceeding.
 
 ## Command vs Skill Boundaries
 
