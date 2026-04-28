@@ -270,3 +270,101 @@ describe("Prioritizer protocol docs", () => {
     assertContainsAllSnippets(content, advSnippets, "ADV_INSTRUCTIONS.md");
   });
 });
+
+// =============================================================================
+// Prose-Load Reduction Drift (rq-proseReduction01–04)
+// =============================================================================
+//
+// Per docs/command-voice-standard.md § Prose-Load Reduction Rules and the
+// 4 spec deltas in `.adv/specs/advance-meta/spec.json`, instruction surfaces
+// classify each section by enforcement class and apply matching templates.
+//
+// These tests are STRUCTURAL — they assert (1) per-class line caps, (2)
+// presence of code-path reference in fully/partially-enforced section
+// pointer lines. They do NOT assert specific wording.
+
+const VOICE_STANDARD_PATH = join(
+  PLUGIN_ROOT,
+  "docs/command-voice-standard.md",
+);
+const PROSE_INVENTORY_PATH = join(PLUGIN_ROOT, "docs/prose-load-inventory.md");
+const ADVANCE_META_SPEC_PATH = join(
+  PLUGIN_ROOT,
+  ".adv/specs/advance-meta/spec.json",
+);
+
+describe("prose-load-reduction methodology presence (rq-proseReduction01)", () => {
+  test("voice canon publishes the prose-reduction rules section", () => {
+    const content = readFileSync(VOICE_STANDARD_PATH, "utf8");
+    expect(content).toMatch(/##\s+Prose-Load Reduction Rules/);
+    // 3-class taxonomy keywords (canonical class names)
+    expect(content).toMatch(/fully-enforced/);
+    expect(content).toMatch(/partially-enforced/);
+    expect(content).toMatch(/inherently-prose/);
+  });
+
+  test("voice canon publishes the partially-enforced gap-rationale anchor", () => {
+    const content = readFileSync(VOICE_STANDARD_PATH, "utf8");
+    expect(content).toMatch(/Agent-side gap:/);
+  });
+});
+
+describe("prose-load-reduction inventory presence (rq-proseReduction03)", () => {
+  test("inventory document exists with required columns", () => {
+    const content = readFileSync(PROSE_INVENTORY_PATH, "utf8");
+    // Header columns (canonical inventory schema — surface is in section
+    // heading, columns are Section/Lines/Class/Code Reference/Gap Rationale/Pass/Status)
+    expect(content).toMatch(/\| Section \|/);
+    expect(content).toMatch(/\| Class \|/);
+    expect(content).toMatch(/\| Code Reference \|/);
+    expect(content).toMatch(/\| Status \|/);
+  });
+
+  test("inventory header marks lifecycle (working-doc → archive)", () => {
+    const content = readFileSync(PROSE_INVENTORY_PATH, "utf8");
+    // KD3 lifecycle anchor — must mention either WORKING DOC or POST-COMPRESSION ARCHIVE
+    expect(content).toMatch(/WORKING DOC|POST-COMPRESSION ARCHIVE/);
+  });
+});
+
+describe("prose-load-reduction spec deltas (rq-proseReduction01–04)", () => {
+  test("advance-meta spec.json contains all four prose-reduction requirements", () => {
+    const spec = JSON.parse(readFileSync(ADVANCE_META_SPEC_PATH, "utf8")) as {
+      requirements: Array<{ id: string; title: string; priority: string }>;
+      version: string;
+    };
+    const ids = spec.requirements.map((r) => r.id);
+    expect(ids).toContain("rq-proseReduction01");
+    expect(ids).toContain("rq-proseReduction02");
+    expect(ids).toContain("rq-proseReduction03");
+    expect(ids).toContain("rq-proseReduction04");
+  });
+
+  test("each prose-reduction requirement is MUST priority", () => {
+    const spec = JSON.parse(readFileSync(ADVANCE_META_SPEC_PATH, "utf8")) as {
+      requirements: Array<{ id: string; priority: string }>;
+    };
+    const reqs = spec.requirements.filter((r) =>
+      r.id.startsWith("rq-proseReduction"),
+    );
+    expect(reqs).toHaveLength(4);
+    for (const r of reqs) {
+      expect(r.priority).toBe("must");
+    }
+  });
+});
+
+describe("prose-load-reduction section structural caps (rq-proseReduction02)", () => {
+  // Structural cap (advisory): the §Prose-Load Reduction Rules section itself
+  // should remain compact. Generous cap allows the templates + taxonomy table
+  // but prevents drift back to paragraph-form explanation.
+  test("voice canon §Prose-Load Reduction Rules section ≤ 80 lines", () => {
+    const content = readFileSync(VOICE_STANDARD_PATH, "utf8");
+    const match = content.match(
+      /##\s+Prose-Load Reduction Rules\n([\s\S]*?)\n##\s/,
+    );
+    expect(match).not.toBeNull();
+    const sectionLines = match![1].split("\n").length;
+    expect(sectionLines).toBeLessThanOrEqual(80);
+  });
+});
