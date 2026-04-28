@@ -1,6 +1,6 @@
 # Prose-Load Inventory
 
-> **Lifecycle:** WORKING DOC during execution → marked **POST-COMPRESSION ARCHIVE** in T9 → no maintenance owner thereafter.
+> **Lifecycle:** **POST-COMPRESSION ARCHIVE** (compression complete). No maintenance owner. Durable invariants live in `.adv/specs/advance-meta/spec.json` § rq-proseReduction01–04 and `plugin/src/manifest-doc-drift.test.ts` drift assertions.
 >
 > Durability lives in spec deltas `rq-proseReduction01`–`rq-proseReduction04`, not this file. This inventory is the audit trail for the compression passes (T2/T3/T4/T5) and the planning input for the asset-test audit (T1.5).
 

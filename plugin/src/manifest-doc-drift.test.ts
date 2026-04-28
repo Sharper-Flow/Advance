@@ -283,10 +283,7 @@ describe("Prioritizer protocol docs", () => {
 // presence of code-path reference in fully/partially-enforced section
 // pointer lines. They do NOT assert specific wording.
 
-const VOICE_STANDARD_PATH = join(
-  PLUGIN_ROOT,
-  "docs/command-voice-standard.md",
-);
+const VOICE_STANDARD_PATH = join(PLUGIN_ROOT, "docs/command-voice-standard.md");
 const PROSE_INVENTORY_PATH = join(PLUGIN_ROOT, "docs/prose-load-inventory.md");
 const ADVANCE_META_SPEC_PATH = join(
   PLUGIN_ROOT,

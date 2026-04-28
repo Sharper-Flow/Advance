@@ -9,6 +9,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+#### Prose-Load Reduction on ADV Control Surfaces
+
+ADV instruction surfaces (`ADV_INSTRUCTIONS.md`, `docs/command-voice-standard.md`, `.opencode/agents/adv.md`, `.opencode/command/adv-*.md`) now classify each section by enforcement class and apply matching compression templates. Reduces agent prompt-load on control-related prose by moving control mechanisms into code (drift tests, runtime guards, schema validators, tool formatters) and compressing the prose that duplicates them.
+
+**Methodology** — see `docs/command-voice-standard.md` § Prose-Load Reduction Rules (new):
+
+| Class | Compression target |
+|---|---|
+| **fully-enforced** | Pointer line + constraint table (no paragraph) |
+| **partially-enforced** | Pointer + constraint table + 1-line gap rationale |
+| **inherently-prose** | Structured table/checklist/template (no paragraphs) |
+
+**Spec deltas** — 4 new MUST requirements in `.adv/specs/advance-meta/spec.json` (capability bumped 1.0.0 → 1.1.0):
+- `rq-proseReduction01` — Code-Enforced Prose Deduplication
+- `rq-proseReduction02` — Drift Test Coverage for Compressed Prose
+- `rq-proseReduction03` — Category Classification Inventory
+- `rq-proseReduction04` — Inherently-Prose Constraint Templates
+
+**Drift test extension** — `plugin/src/manifest-doc-drift.test.ts` adds 7 structural assertions (methodology presence, inventory presence, spec-delta presence, structural caps); no content-based assertions.
+
+**Asset-test cleanup** — `plugin/src/adv-autonomy-quality-assets.test.ts` consolidated from 414 → 376 lines: removed heuristic heading-exact-match assertions; preserved value-enforcing canonical-list and anti-pattern × assertions. `adv-improve-assets.test.ts` Research Pack regex broadened to match doc body (no longer requires removed COMPLETE-trailer line).
+
+**COMPLETE trailer removal** — 12 command docs (`adv-arch-scan`, `adv-audit`, `adv-clarify`, `adv-cleanup`, `adv-comp-scan`, `adv-coordinate`, `adv-idea`, `adv-improve`, `adv-problem`, `adv-refactor`, `adv-research`, `adv-slop-scan`) had their `/adv-X COMPLETE` code-block trailers removed.
+
+**Inventory** — `docs/prose-load-inventory.md` (new, archive) records per-section classification, code reference, and gap rationale. Marked POST-COMPRESSION ARCHIVE on completion; durable invariants live in spec deltas, not the inventory.
+
+**Net effect:** 12-task plan delivered — methodology + spec law + drift tests + asset-test cleanup + targeted compressions across 5 surfaces. Many `full`-classified sections (gate sequencing, sub-agent selection, checkpoint commits, context snapshot, cancellation policy) found already in KD2 template form post-prior refactors. Significant scannability improvement; raw line-count savings modest because prose conversion to tabular form sometimes adds structural lines. Stop condition (UD3) applied: only inherently-prose categories remain after compression passes.
+
 #### Gate Handoff Footer — Blockquote Wayfinder Block
 
 The Gate Handoff Voice spine now ends with a blockquote-wrapped wayfinder block instead of a prose-labeled four-line footer. The arrow `{gate} ✓ → {next-gate}` already encoded the where-am-I / where-next signal; the labels (`Current phase:`, `Next phase:`, `Run when ready:`) below it were redundant and read as menu prose. The new format keeps the same information density in three visual rows inside a left-bordered callout — clearly the wayfinder, not menu options.
