@@ -581,6 +581,7 @@ export async function createDiskStore(
         notes,
         implementationSummary,
         errorRecovery,
+        touchedFiles,
       ) => {
         // Disk-only update — find task, mutate, save.
         const ids = await listChangeDirs(paths.changes);
@@ -602,6 +603,9 @@ export async function createDiskStore(
           }
           if (typeof errorRecovery !== "undefined") {
             task.error_recovery = errorRecovery;
+          }
+          if (typeof touchedFiles !== "undefined") {
+            task.touched_files = touchedFiles;
           }
           await saveChange(paths.changes, result.data);
           return task;

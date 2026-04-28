@@ -10,7 +10,7 @@
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { execFile } from "child_process";
-import { writeFile, mkdir } from "fs/promises";
+import { writeFile, mkdir, chmod } from "fs/promises";
 import { join } from "path";
 import {
   createTempDir,
@@ -733,5 +733,215 @@ describe("adv_task_checkpoint", () => {
     const parsed = parseToolOutput(result) as Record<string, unknown>;
     expect(parsed.status).toBe("failed");
     expect(parsed.classification).toBe("SEMANTIC");
+  });
+
+  // ─── touched_files + error_class bridge tests ──────────────────────────────
+
+  /** Store mock that supports tasks.get and tasks.update for bridge tests. */
+  function mockStoreWithUpdate(
+    taskOwnerChangeId?: string,
+    options?: {
+      failUpdate?: boolean;
+      taskStatus?: string;
+    },
+  ): Store & {
+    updateCalls: Array<{
+      taskId: string;
+      status: string;
+      touchedFiles?: string[];
+      errorRecovery?: unknown;
+    }>;
+  } {
+    const updateCalls: Array<{
+      taskId: string;
+      status: string;
+      touchedFiles?: string[];
+      errorRecovery?: unknown;
+    }> = [];
+
+    const tasks = {
+      get: async (_taskId: string) => ({
+        id: _taskId,
+        status: options?.taskStatus ?? "in_progress",
+        error_recovery: undefined,
+      }),
+      update: async (
+        taskId: string,
+        status: string,
+        _title?: unknown,
+        _blockedBy?: unknown,
+        errorRecovery?: unknown,
+        touchedFiles?: string[],
+      ) => {
+        if (options?.failUpdate) {
+          throw new Error("store update failed");
+        }
+        updateCalls.push({ taskId, status, touchedFiles, errorRecovery });
+      },
+      show: async (_taskId: string) => {
+        if (taskOwnerChangeId) {
+          return {
+            task: { id: _taskId, title: "Test task" },
+            changeId: taskOwnerChangeId,
+          };
+        }
+        return null;
+      },
+      recordRunEvent: async (_taskId: string, event: TaskRunEvent) => ({
+        duplicate: false,
+        run: {
+          taskId: _taskId,
+          runId: `run-${_taskId}`,
+          phase: "checkpointed",
+          updatedAt: event.recordedAt,
+          resumeHint: "",
+          requiredNextAction: "mark_done",
+          seenIdempotencyKeys: [event.idempotencyKey],
+          events: [event],
+        } satisfies TaskRunState,
+      }),
+    } as unknown as Store["tasks"];
+
+    return { tasks, updateCalls } as Store & {
+      updateCalls: Array<{
+        taskId: string;
+        status: string;
+        touchedFiles?: string[];
+        errorRecovery?: unknown;
+      }>;
+    };
+  }
+
+  it("includes touched_files in checkpoint result on successful commit", async () => {
+    const storeWithUpdate = mockStoreWithUpdate("optimizeCheckpointCommits");
+    await writeFile(join(dir, "file-a.txt"), "hello a");
+    await writeFile(join(dir, "file-b.txt"), "hello b");
+
+    const result = await checkpointTools.adv_task_checkpoint.execute(
+      {
+        taskId: "tk-touched-01",
+        expectedBranch: "trunk",
+        verification: "test passed",
+      },
+      storeWithUpdate,
+      dir,
+    );
+    const parsed = parseToolOutput(result) as Record<string, unknown>;
+    expect(parsed.status).toBe("committed");
+    expect(parsed.touched_files).toBeDefined();
+    expect(Array.isArray(parsed.touched_files)).toBe(true);
+  });
+
+  it("populates touched_files from git diff --name-only as repo-relative paths", async () => {
+    const storeWithUpdate = mockStoreWithUpdate("optimizeCheckpointCommits");
+    await mkdir(join(dir, "nested"), { recursive: true });
+    await writeFile(join(dir, "nested", "deep.txt"), "deep content");
+    await writeFile(join(dir, "root.txt"), "root content");
+
+    const result = await checkpointTools.adv_task_checkpoint.execute(
+      {
+        taskId: "tk-touched-02",
+        expectedBranch: "trunk",
+        verification: "test passed",
+      },
+      storeWithUpdate,
+      dir,
+    );
+    const parsed = parseToolOutput(result) as Record<string, unknown>;
+    expect(parsed.status).toBe("committed");
+    const touched = parsed.touched_files as string[];
+    expect(touched.length).toBeGreaterThanOrEqual(2);
+    // Paths should be relative to repo root, not absolute
+    for (const p of touched) {
+      expect(p).not.toContain(dir);
+      expect(p.startsWith("/")).toBe(false);
+    }
+    expect(touched).toContain("nested/deep.txt");
+    expect(touched).toContain("root.txt");
+  });
+
+  it("handles touched_files when git diff has content after commit", async () => {
+    const freshDir = await createTempDir("adv-checkpoint-fresh-");
+    await initGitRepo(freshDir);
+    const storeWithUpdate = mockStoreWithUpdate("optimizeCheckpointCommits");
+    await writeFile(join(freshDir, "only-file.txt"), "hello");
+
+    try {
+      const result = await checkpointTools.adv_task_checkpoint.execute(
+        {
+          taskId: "tk-touched-03",
+          expectedBranch: "trunk",
+          verification: "test passed",
+        },
+        storeWithUpdate,
+        freshDir,
+      );
+      const parsed = parseToolOutput(result) as Record<string, unknown>;
+      expect(parsed.status).toBe("committed");
+      // git diff HEAD~1 works after the commit (HEAD~1 = init commit)
+      expect(parsed.touched_files).toContain("only-file.txt");
+    } finally {
+      await cleanupTempDir(freshDir);
+    }
+  });
+
+  it("persists error_class to task.error_recovery on checkpoint failure", async () => {
+    const storeWithUpdate = mockStoreWithUpdate("optimizeCheckpointCommits");
+    // Install a pre-commit hook that always fails to trigger git commit error
+    const hooksDir = join(dir, ".git", "hooks");
+    await mkdir(hooksDir, { recursive: true });
+    await writeFile(
+      join(hooksDir, "pre-commit"),
+      '#!/bin/sh\necho "hook rejected" >&2\nexit 1\n',
+    );
+    await chmod(join(hooksDir, "pre-commit"), 0o755);
+    await writeFile(join(dir, "hook-fail.txt"), "hello");
+
+    const result = await checkpointTools.adv_task_checkpoint.execute(
+      {
+        taskId: "tk-bridge-01",
+        expectedBranch: "trunk",
+        verification: "test passed",
+      },
+      storeWithUpdate,
+      dir,
+    );
+    const parsed = parseToolOutput(result) as Record<string, unknown>;
+    expect(parsed.status).toBe("failed");
+    expect(parsed.classification).toBe("SEMANTIC");
+
+    // Verify store.tasks.update was called with error_recovery containing error_class
+    const updateCall = storeWithUpdate.updateCalls.find(
+      (c) => c.taskId === "tk-bridge-01" && c.errorRecovery,
+    );
+    expect(updateCall).toBeDefined();
+    const recovery = updateCall!.errorRecovery as {
+      error_class?: string;
+      last_error?: string;
+    };
+    expect(recovery.error_class).toBe("SEMANTIC");
+    expect(recovery.last_error).toContain("hook rejected");
+  });
+
+  it("bridgeErrorClass is non-blocking when store update fails", async () => {
+    const storeWithFailingUpdate = mockStoreWithUpdate(
+      "optimizeCheckpointCommits",
+      { failUpdate: true },
+    );
+    await writeFile(join(dir, "fail-store.txt"), "hello");
+
+    // This should still return a checkpoint result even though store.update throws
+    const result = await checkpointTools.adv_task_checkpoint.execute(
+      {
+        taskId: "tk-bridge-02",
+        expectedBranch: "trunk",
+        verification: "test passed",
+      },
+      storeWithFailingUpdate,
+      dir,
+    );
+    const parsed = parseToolOutput(result) as Record<string, unknown>;
+    // The commit itself should succeed; store failure is non-fatal
+    expect(parsed.status).toBe("committed");
   });
 });

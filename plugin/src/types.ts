@@ -438,6 +438,12 @@ export const TaskSchema = z
      * Cleared when the task succeeds.
      */
     error_recovery: ErrorRecoverySchema.optional(),
+    /**
+     * Repo-relative paths of files changed by this task.
+     * Populated by adv_task_checkpoint after successful git commit.
+     * Empty array when no files changed or on git failure.
+     */
+    touched_files: z.array(z.string()).optional(),
   })
   .passthrough(); // Allow extra fields for forward/backward compatibility
 

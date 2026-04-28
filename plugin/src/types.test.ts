@@ -2793,3 +2793,30 @@ describe("ChangeSchema — judgment_calls extension", () => {
     ).toThrow();
   });
 });
+
+describe("ChangeSchema — approval_mode / autopilot_invoked_at extension", () => {
+  test("accepts change with approval_mode 'autopilot' and autopilot_invoked_at", () => {
+    const result = ChangeSchema.parse({
+      ...SAMPLE_CHANGE,
+      approval_mode: "autopilot",
+      autopilot_invoked_at: "2026-04-28T22:00:00.000Z",
+    });
+    expect(result.approval_mode).toBe("autopilot");
+    expect(result.autopilot_invoked_at).toBe("2026-04-28T22:00:00.000Z");
+  });
+
+  test("accepts change without approval_mode (backward compat)", () => {
+    const result = ChangeSchema.parse(SAMPLE_CHANGE);
+    expect(result.approval_mode).toBeUndefined();
+    expect(result.autopilot_invoked_at).toBeUndefined();
+  });
+
+  test("rejects approval_mode with invalid value", () => {
+    expect(() =>
+      ChangeSchema.parse({
+        ...SAMPLE_CHANGE,
+        approval_mode: "other",
+      }),
+    ).toThrow();
+  });
+});

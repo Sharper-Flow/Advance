@@ -203,6 +203,8 @@ export const investmentTools = {
           doom_loop_active: doomLoopActive,
           per_gate_ms: perGateMs,
           threshold_tier: thresholdTier,
+          token_hint:
+            "Token tracking not yet available — informational field reserved for v2.",
         }),
       );
     },

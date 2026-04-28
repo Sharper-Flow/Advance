@@ -87,9 +87,18 @@ export function extractCompletedTask(
 
 const PROVIDER_BEHAVIOR_HINTS: Readonly<Record<string, string>> = {
   openai:
-    "[ADV:PROVIDER_HINT] Provider adaptation: prefer explicit numbered steps, use structured formats (tables, numbered lists) for multi-part output, and batch independent tool calls in a single response. Keep user-facing prose terse and direct — drop fluff and pleasantries while preserving structured outputs, safety text, and quoted errors verbatim.",
+    "[ADV:PROVIDER_HINT] Provider adaptation: prefer explicit numbered steps, use structured formats (tables, numbered lists) for multi-part output, and batch independent tool calls in a single response. Keep user-facing prose terse and direct — drop fluff and pleasantries while preserving structured outputs, safety text, and quoted errors verbatim. When morph_edit fails (API error/timeout), fall back to native edit tool immediately.",
   "zai-coding-plan":
-    "[ADV:PROVIDER_HINT] Provider adaptation: prefer direct explicit instructions, briefly restate the task before acting, and treat absolute constraints like NEVER/ONLY/MUST as binding. Keep user-facing prose terse and direct — drop fluff and pleasantries while preserving structured outputs, safety text, and quoted errors verbatim.",
+    "[ADV:PROVIDER_HINT] Provider adaptation: prefer direct explicit instructions, briefly restate the task before acting, and treat absolute constraints like NEVER/ONLY/MUST as binding. Keep user-facing prose terse and direct — drop fluff and pleasantries while preserving structured outputs, safety text, and quoted errors verbatim. When morph_edit fails (API error/timeout), fall back to native edit tool immediately.",
+};
+
+/** Fallback chain: maps providerID → list of alternative provider names.
+ *  On provider switch, injects a one-line suggestion listing alternatives. */
+const FALLBACK_CHAIN: Readonly<Record<string, string[]>> = {
+  openai: ["anthropic", "google"],
+  anthropic: ["openai", "google"],
+  google: ["openai", "anthropic"],
+  "zai-coding-plan": [],
 };
 
 const getProviderBehaviorHint = (providerID?: string): string | null => {
@@ -428,6 +437,9 @@ const advancePluginImpl: Plugin = async ({ directory, worktree, project }) => {
   // message ID we've seen to avoid re-arming on duplicate events.
   let lastObservedCompletedMessageId: string | null = null;
 
+  // Provider-switch detection — tracks last providerID for fallback chain hint
+  let lastProviderID: string | null = null;
+
   // Register process-level shutdown handlers (tolerates init failure).
   const { removeProcessListeners } = registerShutdownHandlers(store);
 
@@ -562,6 +574,25 @@ const advancePluginImpl: Plugin = async ({ directory, worktree, project }) => {
           output.system.push(providerHint);
         }
 
+        // Provider-switch detection: inject fallback chain suggestion
+        const currentProviderID = input.model?.providerID?.toLowerCase() ?? null;
+        if (
+          currentProviderID &&
+          lastProviderID &&
+          lastProviderID !== currentProviderID
+        ) {
+          const alternatives = FALLBACK_CHAIN[currentProviderID] ?? [];
+          if (alternatives.length > 0) {
+            output.system.push(
+              `[ADV:PROVIDER_SWITCH] Provider changed from ${lastProviderID} to ${currentProviderID}. ` +
+                `Configured fallback alternatives: ${alternatives.join(", ")}.`,
+            );
+          }
+        }
+        if (currentProviderID) {
+          lastProviderID = currentProviderID;
+        }
+
         // Inject worktree session marker if running in a worktree
         if (state.isWorktree && state.activeChange.id) {
           output.system.push(
@@ -638,6 +669,39 @@ const advancePluginImpl: Plugin = async ({ directory, worktree, project }) => {
           }
         } catch (e) {
           debugLog(`Error loading specs for compaction: ${e}`);
+        }
+
+        // Push ADV TASK CONTEXT block for compaction continuity
+        try {
+          if (state.activeChange.id) {
+            const tasks = await store.tasks.list(state.activeChange.id);
+            const inProgress = tasks.find((t) => t.status === "in_progress");
+            const done = tasks.filter((t) => t.status === "done").length;
+            const active = tasks.filter((t) => t.status === "in_progress").length;
+            const pending = tasks.filter((t) => t.status === "pending").length;
+
+            const lines: string[] = [
+              "=== ADV TASK CONTEXT ===",
+            ];
+
+            if (inProgress) {
+              const desc =
+                inProgress.title.length > 40
+                  ? inProgress.title.slice(0, 37) + "..."
+                  : inProgress.title;
+              const phase = inProgress.tdd_phase ?? "none";
+              const currentLine = `Current: ${inProgress.id} (${desc}) | Phase: ${phase}`;
+              lines.push(currentLine.slice(0, 80));
+            }
+
+            const progressLine = `Progress: ${done} done | ${active} active | ${pending} pending`;
+            lines.push(progressLine.slice(0, 80));
+            lines.push("========================");
+
+            output.context.push(lines.join("\n"));
+          }
+        } catch (e) {
+          debugLog(`Error loading tasks for compaction: ${e}`);
         }
       } catch (e) {
         debugLog(`Session compacting hook error: ${e}`);

@@ -35,12 +35,18 @@ export interface ContextSnapshotInput {
   wisdomCount?: number;
   /** Breakdown by type (e.g. { pattern: 2, gotcha: 1 }) */
   wisdomByType?: Record<string, number>;
+  /** Union count of all touched_files across tasks */
+  touchedFilesCount?: number;
+  /** Doom-loop budget proximity indicator (e.g. "⚠ 2/3 budget") */
+  errorBudgetProximity?: string;
 }
 
 type SnapshotTaskLike = {
   id: string;
   title: string;
   status: string;
+  touched_files?: string[];
+  error_recovery?: { retry_count?: number };
 };
 
 type SnapshotWisdomLike = {
@@ -84,6 +90,8 @@ export function countSuccessCriteria(
 export function summarizeTasks(tasks: SnapshotTaskLike[]): {
   taskCounts: ContextSnapshotInput["taskCounts"];
   currentTask?: { id: string; title: string };
+  touchedFilesCount?: number;
+  errorBudgetProximity?: string;
 } {
   const taskCounts = {
     done: tasks.filter((t) => t.status === "done").length,
@@ -93,11 +101,32 @@ export function summarizeTasks(tasks: SnapshotTaskLike[]): {
   };
   const inProgressTask = tasks.find((t) => t.status === "in_progress");
 
+  // Compute touched files count (union of all task touched_files)
+  const allTouched = new Set<string>();
+  for (const t of tasks) {
+    if (t.touched_files) {
+      for (const f of t.touched_files) allTouched.add(f);
+    }
+  }
+  const touchedFilesCount = allTouched.size > 0 ? allTouched.size : undefined;
+
+  // Compute error budget proximity (max retry_count / 3 threshold)
+  const DOOM_LOOP_THRESHOLD = 3;
+  let maxRetry = 0;
+  for (const t of tasks) {
+    const rc = t.error_recovery?.retry_count ?? 0;
+    if (rc > maxRetry) maxRetry = rc;
+  }
+  const errorBudgetProximity =
+    maxRetry > 0 ? `⚠ ${maxRetry}/${DOOM_LOOP_THRESHOLD} budget` : undefined;
+
   return {
     taskCounts,
     currentTask: inProgressTask
       ? { id: inProgressTask.id, title: inProgressTask.title }
       : undefined,
+    touchedFilesCount,
+    errorBudgetProximity,
   };
 }
 
@@ -129,7 +158,8 @@ export function buildChangeContextSnapshot({
   gates?: Record<string, GateInfo>;
   workdir?: string;
 }): string {
-  const { taskCounts, currentTask } = summarizeTasks(change.tasks);
+  const { taskCounts, currentTask, touchedFilesCount, errorBudgetProximity } =
+    summarizeTasks(change.tasks);
   const { wisdomCount, wisdomByType } = summarizeWisdom(change.wisdom);
 
   return formatContextSnapshot({
@@ -142,6 +172,8 @@ export function buildChangeContextSnapshot({
     currentTask,
     wisdomCount,
     wisdomByType,
+    touchedFilesCount,
+    errorBudgetProximity,
   });
 }
 
@@ -214,11 +246,13 @@ export function formatContextSnapshot(input: ContextSnapshotInput): string {
     currentTask,
     wisdomCount,
     wisdomByType,
+    touchedFilesCount,
+    errorBudgetProximity,
   } = input;
 
   const gateProgress = formatGateProgress(input.gates);
 
-  // Build task summary
+  // Build task summary (append touched files count if available)
   const taskParts: string[] = [];
   if (taskCounts.done > 0) taskParts.push(`${taskCounts.done} done`);
   if (taskCounts.in_progress > 0)
@@ -227,6 +261,9 @@ export function formatContextSnapshot(input: ContextSnapshotInput): string {
   if (taskCounts.cancelled > 0)
     taskParts.push(`${taskCounts.cancelled} cancelled`);
   if (taskParts.length === 0) taskParts.push("0 done | 0 active | 0 pending");
+  if (touchedFilesCount !== undefined && touchedFilesCount > 0) {
+    taskParts.push(`${touchedFilesCount} files`);
+  }
   const taskLine = `Tasks: ${taskParts.join(" | ")}`;
 
   // Build wisdom line (compact type breakdown)
@@ -250,19 +287,19 @@ export function formatContextSnapshot(input: ContextSnapshotInput): string {
     title,
     "",
     `Gates: ${gateProgress}`,
-    `Success: ${successCriteriaCount ?? "?"} criteria`,
+    errorBudgetProximity ?? `Success: ${successCriteriaCount ?? "?"} criteria`,
     taskLine,
   ];
 
   // Budget: we have 3 remaining line slots (10 total - 2 box borders - 5 fixed lines above)
   // Priority: wisdom line > success criteria (already included) > current task
   // When both currentTask AND wisdom are present, we still fit (9 content lines = 11 total with borders)
-  // which is close enough — but let's drop the Success line if we need to save space
+  // which is close enough — but let's drop the Success/Budget line if we need to save space
   const hasCurrentTask = !!currentTask;
   const needBudgetTrim = hasCurrentTask && hasWisdom;
   if (needBudgetTrim) {
-    // Remove Success line to make room for both Current and Wisdom
-    lines.splice(4, 1); // Remove "Success: ..." line
+    // Remove Success/Budget line to make room for both Current and Wisdom
+    lines.splice(4, 1);
   }
 
   if (hasWisdom && wisdomLine) {

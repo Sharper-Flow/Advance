@@ -17,6 +17,7 @@ import { canReachTemporalAddress } from "../temporal/runtime-manager";
 import { projectMigrationLedgerQuery } from "../temporal/messages";
 import { getTemporalHealth } from "../temporal/health-probe";
 import { getTemporalFallbackTelemetry } from "../temporal/fallback-telemetry";
+import { getTemporalRetryTelemetry } from "../temporal/retry-wrapper";
 import { wrapWithBanner } from "../utils/banner";
 import { formatToolOutput } from "../utils/tool-output";
 import { formatStatusOutput } from "../utils/tool-formatters";
@@ -141,12 +142,6 @@ function appendClarifyRecommendation(
 ): void {
   const resolvedChangeId = changeId ?? change.id;
   if (clarifyMode === "off") return;
-
-  // Suppress clarify recommendations once every gate is satisfied — the change
-  // is archive-eligible (or already archived) and ambiguity findings are no
-  // longer actionable. See GH issue #14.
-  const gates = change.gates;
-  if (gates && GATE_ORDER.every((g) => isGateSatisfied(gates[g]))) return;
 
   const clarifyResult = runClarifyReadinessChecks(change, proposalText);
   if (clarifyResult.findings.length === 0) return;
@@ -349,6 +344,14 @@ export const statusTools = {
         temporal_health: temporalHealth,
         migration_status: migrationStatus,
         project_metadata: projectMetadata,
+        diagnostics: {
+          temporalWorker: temporalHealth?.worker_alive
+            ? ("healthy" as const)
+            : temporalHealth?.server_alive
+              ? ("degraded" as const)
+              : ("unknown" as const),
+          lastErrorClass: getTemporalRetryTelemetry().lastError ?? undefined,
+        },
         formatted,
       };
 
