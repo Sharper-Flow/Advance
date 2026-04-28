@@ -8,10 +8,14 @@
 import { describe, test, expect } from "vitest";
 import {
   buildChangeContextSnapshot,
+  buildChangeContextTicker,
   formatContextSnapshot,
   formatCrossRepoSwitch,
+  formatGateArrow,
+  formatTickerSnapshot,
   type ContextSnapshotInput,
   type CrossRepoSwitchInput,
+  type GateInfo,
 } from "./context-snapshot";
 
 describe("formatContextSnapshot", () => {
@@ -239,5 +243,130 @@ describe("buildChangeContextSnapshot", () => {
 
     expect(output).toContain("Wisdom: 3 entries");
     expect(output).toContain("2 pattern");
+  });
+});
+
+// =============================================================================
+// formatGateArrow — compact gate progress for ticker (rq-ctxticker1)
+// =============================================================================
+
+describe("formatGateArrow", () => {
+  const allGates: Record<string, GateInfo> = {
+    proposal: { status: "pending" },
+    discovery: { status: "pending" },
+    design: { status: "pending" },
+    planning: { status: "pending" },
+    execution: { status: "pending" },
+    acceptance: { status: "pending" },
+    release: { status: "pending" },
+  };
+
+  test("none done — shows first gate as pending pointing to next", () => {
+    expect(formatGateArrow(allGates)).toBe("proposal ○→discovery");
+  });
+
+  test("partial done — shows last completed pointing to first incomplete", () => {
+    const gates = {
+      ...allGates,
+      proposal: { status: "done" },
+      discovery: { status: "done" },
+      design: { status: "done" },
+    };
+    // First incomplete is "planning"; last done is "design"
+    expect(formatGateArrow(gates)).toBe("design ✓→planning");
+  });
+
+  test("all done — shows release ✓ with no arrow", () => {
+    const gates = Object.fromEntries(
+      Object.keys(allGates).map((g) => [g, { status: "done" }]),
+    ) as Record<string, GateInfo>;
+    expect(formatGateArrow(gates)).toBe("release ✓");
+  });
+
+  test("missing gates record — falls back to proposal ○→discovery", () => {
+    expect(formatGateArrow(undefined)).toBe("proposal ○→discovery");
+  });
+});
+
+// =============================================================================
+// formatTickerSnapshot — compact 1-line ticker (rq-ctxticker1)
+// =============================================================================
+
+describe("formatTickerSnapshot", () => {
+  const baseInput = {
+    changeId: "addFeatureX",
+    gates: {
+      proposal: { status: "done" },
+      discovery: { status: "done" },
+      design: { status: "pending" },
+      planning: { status: "pending" },
+      execution: { status: "pending" },
+      acceptance: { status: "pending" },
+      release: { status: "pending" },
+    },
+    taskCounts: { done: 1, in_progress: 0, pending: 5, cancelled: 0 },
+  };
+
+  test("short change ID — single line, contains expected segments", () => {
+    const output = formatTickerSnapshot(baseInput);
+    expect(output.split("\n").length).toBe(1);
+    expect(output).toMatch(/║.*addFeatureX.*·.*discovery ✓→design.*·.*1\/6.*║/);
+    expect(output.length).toBeLessThanOrEqual(80);
+  });
+
+  test("long change ID — truncated to ≤20 chars with …", () => {
+    const output = formatTickerSnapshot({
+      ...baseInput,
+      changeId: "improverefactorbatchorderingan", // 30 chars
+    });
+    expect(output).not.toContain("improverefactorbatchorderingan");
+    expect(output).toMatch(/improverefactorbatc…/);
+    // Truncated id is ≤TICKER_MAX_ID_CHARS (20) chars including the ellipsis
+    const idMatch = output.match(/║ ([^·]+?) ·/);
+    expect(idMatch?.[1].length).toBeLessThanOrEqual(20);
+    expect(output.length).toBeLessThanOrEqual(80);
+  });
+
+  test("deterministic — same input produces same output", () => {
+    const a = formatTickerSnapshot(baseInput);
+    const b = formatTickerSnapshot(baseInput);
+    expect(a).toBe(b);
+  });
+
+  test("contains box-drawing rails (║) for visual consistency", () => {
+    const output = formatTickerSnapshot(baseInput);
+    expect(output).toMatch(/[║]/);
+  });
+});
+
+// =============================================================================
+// buildChangeContextTicker — integration with change-shaped input
+// =============================================================================
+
+describe("buildChangeContextTicker", () => {
+  test("builds a single-line ticker from change data", () => {
+    const output = buildChangeContextTicker({
+      change: {
+        id: "consolidatechatoutputdisplay",
+        title: "consolidate chat output display",
+        tasks: [
+          { id: "tk-1", title: "T1", status: "done" },
+          { id: "tk-2", title: "T2", status: "in_progress" },
+          { id: "tk-3", title: "T3", status: "pending" },
+        ],
+      },
+      gates: {
+        proposal: { status: "done" },
+        discovery: { status: "done" },
+        design: { status: "done" },
+        planning: { status: "done" },
+        execution: { status: "pending" },
+      },
+    });
+
+    expect(output.split("\n").length).toBe(1);
+    expect(output).toMatch(/║.*·.*·.*1\/3.*║/);
+    expect(output).toContain("planning ✓→execution");
+    expect(output.length).toBeLessThanOrEqual(80);
   });
 });

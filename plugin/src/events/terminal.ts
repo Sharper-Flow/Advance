@@ -884,6 +884,8 @@ const getStatusEmoji = (status: StatusMarker): string => {
       return "🟨";
     case "ATTN":
       return "🟥";
+    case "IDLE":
+      return "⬜";
     case "BLOCKED":
       return "🟥";
     default:

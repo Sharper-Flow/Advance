@@ -174,6 +174,33 @@ function formatGateProgress(gates?: Record<string, GateInfo>): string {
   }).join(" ");
 }
 
+/**
+ * Compact gate-progress glyph for the ticker (rq-ctxticker1).
+ *
+ * Forms:
+ *   - "proposal ○→discovery" — none done (or no gates record)
+ *   - "design ✓→planning"    — partial; last completed → first incomplete
+ *   - "release ✓"            — all done
+ */
+export function formatGateArrow(gates?: Record<string, GateInfo>): string {
+  if (!gates) return `${GATE_ORDER[0]} ○→${GATE_ORDER[1]}`;
+
+  const isDone = (g?: GateInfo): boolean =>
+    g?.status === "done" || g?.status === "skipped";
+
+  if (GATE_ORDER.every((id) => isDone(gates[id]))) {
+    return `${GATE_ORDER[GATE_ORDER.length - 1]} ✓`;
+  }
+
+  const firstIncompleteIdx = GATE_ORDER.findIndex((id) => !isDone(gates[id]));
+
+  if (firstIncompleteIdx <= 0) {
+    return `${GATE_ORDER[0]} ○→${GATE_ORDER[1]}`;
+  }
+
+  return `${GATE_ORDER[firstIncompleteIdx - 1]} ✓→${GATE_ORDER[firstIncompleteIdx]}`;
+}
+
 // =============================================================================
 // Box Drawing Helpers
 // =============================================================================
@@ -331,4 +358,63 @@ export function formatCrossRepoSwitch(input: CrossRepoSwitchInput): string {
   const boxLines = [top, ...lines.map((l) => boxLine(l, innerWidth)), bottom];
 
   return boxLines.join("\n");
+}
+
+// =============================================================================
+// Compact Context Ticker (rq-ctxticker1, rq-ctxticker2)
+// =============================================================================
+
+/** Maximum chars allowed for the change ID inside a ticker before truncation. */
+const TICKER_MAX_ID_CHARS = 20;
+
+export interface TickerSnapshotInput {
+  changeId: string;
+  gates?: Record<string, GateInfo>;
+  taskCounts: ContextSnapshotInput["taskCounts"];
+}
+
+/**
+ * Render a compact, single-line context ticker for transient task transitions.
+ *
+ * Format: `║ {changeId-truncated} · {gateArrow} · {done}/{total} ║`
+ *
+ * Constraints (rq-ctxticker1):
+ *   - Single line, ≤80 columns
+ *   - Change ID truncated to ≤TICKER_MAX_ID_CHARS chars (with `…` suffix)
+ *   - Deterministic (same input → same output)
+ */
+export function formatTickerSnapshot(input: TickerSnapshotInput): string {
+  const id =
+    input.changeId.length > TICKER_MAX_ID_CHARS
+      ? input.changeId.slice(0, TICKER_MAX_ID_CHARS - 1) + "…"
+      : input.changeId;
+  const arrow = formatGateArrow(input.gates);
+  const total =
+    input.taskCounts.done +
+    input.taskCounts.in_progress +
+    input.taskCounts.pending;
+  const counts = `${input.taskCounts.done}/${total}`;
+  return `║ ${id} · ${arrow} · ${counts} ║`;
+}
+
+/**
+ * Build a compact context ticker from change-shaped input.
+ *
+ * Parallel to buildChangeContextSnapshot; emitted by transient task tools
+ * (adv_task_update→in_progress|done, adv_task_ready, adv_task_add,
+ * adv_task_cancel) per rq-ctxticker2.
+ */
+export function buildChangeContextTicker({
+  change,
+  gates,
+}: {
+  change: SnapshotChangeLike;
+  gates?: Record<string, GateInfo>;
+}): string {
+  const { taskCounts } = summarizeTasks(change.tasks);
+  return formatTickerSnapshot({
+    changeId: change.id,
+    gates,
+    taskCounts,
+  });
 }
