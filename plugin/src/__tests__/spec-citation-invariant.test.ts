@@ -20,7 +20,6 @@
 import { describe, expect, test } from "vitest";
 import { readFileSync, readdirSync, statSync } from "fs";
 import { join, relative } from "path";
-import { execFileSync } from "child_process";
 
 const REPO_ROOT = join(__dirname, "../../..");
 
@@ -68,65 +67,81 @@ function loadAllSpecs(): SpecFile[] {
   return specs;
 }
 
+// Pure-Node recursive directory walker
+function walkDir(dir: string, excludePrefixes: string[]): string[] {
+  const results: string[] = [];
+  try {
+    const entries = readdirSync(dir, { withFileTypes: true });
+    for (const entry of entries) {
+      const fullPath = join(dir, entry.name);
+      if (entry.isDirectory()) {
+        results.push(...walkDir(fullPath, excludePrefixes));
+      } else if (entry.isFile()) {
+        results.push(fullPath);
+      }
+    }
+  } catch {
+    // Directory may not exist (e.g. skills/ on a fresh checkout)
+  }
+  return results;
+}
+
 /**
- * Batch-search for all requirement IDs in a single ripgrep invocation.
+ * Search for requirement IDs using pure Node.js (no external deps).
  * Returns a Set of IDs that have at least one external citation.
  */
 function findCitedRequirements(reqIds: string[]): Set<string> {
   if (reqIds.length === 0) return new Set<string>();
 
-  const searchPaths = [
-    "plugin/src",
-    ".opencode",
-    "skills",
-    "docs",
-    "ADV_INSTRUCTIONS.md",
-    "AGENTS.md",
-    "CHANGELOG.md",
-  ].map((p) => join(REPO_ROOT, p));
-
-  const excludeGlobs = ["docs/specs/*.md"];
-
-  // Use ripgrep to find which IDs appear anywhere in citation sources.
-  // Build one alternation regex so we only spawn a single process.
-  const pattern = reqIds
-    .map((id) => id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
-    .join("|");
-  const rgArgs = [
-    "--regexp",
-    pattern,
-    "--only-matching",
-    "--no-filename",
-    ...excludeGlobs.flatMap((g) => ["--glob", `!${g}`]),
-    ...searchPaths,
+  const searchRoots = [
+    join(REPO_ROOT, "plugin/src"),
+    join(REPO_ROOT, ".opencode"),
+    join(REPO_ROOT, "skills"),
+    join(REPO_ROOT, "docs"),
+  ];
+  const searchFiles = [
+    join(REPO_ROOT, "ADV_INSTRUCTIONS.md"),
+    join(REPO_ROOT, "AGENTS.md"),
+    join(REPO_ROOT, "CHANGELOG.md"),
   ];
 
-  try {
-    const output = execFileSync("rg", rgArgs, {
-      cwd: REPO_ROOT,
-      timeout: 30_000,
-      maxBuffer: 10 * 1024 * 1024,
-      stdio: "pipe",
-      encoding: "utf8",
-    });
-    const cited = new Set<string>();
-    for (const line of output.split("\n")) {
-      const trimmed = line.trim();
-      if (trimmed) cited.add(trimmed);
-    }
-    return cited;
-  } catch (error: unknown) {
-    // rg exits 1 when no matches at all — return empty set.
-    // Any other failure is infrastructure/tooling failure and should fail loudly.
-    const status =
-      typeof error === "object" && error !== null && "status" in error
-        ? (error as { status?: number }).status
-        : undefined;
+  // Exclude auto-generated docs/specs/ mirrors
+  const excludePrefix = join(REPO_ROOT, "docs", "specs");
 
-    if (status === 1) return new Set<string>();
-
-    throw error;
+  // Collect all files from search directories
+  const allFiles = [...searchFiles];
+  for (const root of searchRoots) {
+    allFiles.push(...walkDir(root, [excludePrefix]));
   }
+
+  // Filter out excluded paths and non-text files
+  const textFiles = allFiles.filter(
+    (f) =>
+      !f.startsWith(excludePrefix) &&
+      /\.(ts|tsx|js|jsx|md|json|yaml|yml)$/.test(f),
+  );
+
+  // Build a single alternation regex from all IDs
+  const pattern = new RegExp(
+    reqIds.map((id) => id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|"),
+    "g",
+  );
+
+  const cited = new Set<string>();
+  for (const file of textFiles) {
+    try {
+      const content = readFileSync(file, "utf8");
+      let match: RegExpExecArray | null;
+      pattern.lastIndex = 0;
+      while ((match = pattern.exec(content)) !== null) {
+        cited.add(match[0]);
+      }
+    } catch {
+      // Skip unreadable files
+    }
+  }
+
+  return cited;
 }
 
 describe("spec citation invariant", () => {
