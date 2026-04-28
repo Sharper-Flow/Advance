@@ -592,6 +592,33 @@
           ]
         },
         {
+          "id": "rq-autonomy01.4",
+          "title": "Apply auto-continues across task boundaries",
+          "given": [
+            "A change is in the execution gate with multiple pending ready tasks",
+            "No enumerated human checkpoint has triggered (no doom-loop, no environmental blocker, no cancellation, no re-entry, no unresolved judgment call)"
+          ],
+          "when": "A task completes successfully and `adv_task_ready` returns another pending task",
+          "then": [
+            "`/adv-apply` proceeds immediately to the next task's TDD loop",
+            "No \"task complete\", \"section complete\", \"progress update\", or \"shall I continue?\" pause is emitted",
+            "No question tool call is made between tasks"
+          ]
+        },
+        {
+          "id": "rq-autonomy01.5",
+          "title": "Apply forbids execution-start approval pause",
+          "given": [
+            "A change has completed planning and is entering the execution gate",
+            "Judgment-call surfacing (Phase 1.5) has already resolved any pending user input"
+          ],
+          "when": "`/adv-apply` begins the TDD work loop",
+          "then": [
+            "No \"Begin work / Modify criteria / Cancel\" prompt or equivalent execution-start approval is emitted",
+            "The first ready task's TDD phase starts directly"
+          ]
+        },
+        {
           "id": "rq-autonomy01.6",
           "title": "Contract-compromise risk triggers design pause",
           "given": [
