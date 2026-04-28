@@ -292,12 +292,15 @@ describe("Command Manifest", () => {
     });
 
     test("no two commands claim the same gate as sole primary owner", () => {
-      // Build a map of gate -> commands that own it (excluding adv-task which is exempt)
+      // Build a map of gate -> commands that own it
+      // Orchestrator commands (adv-task, adv-autopilot) are exempt — they
+      // intentionally cross gate boundaries to drive multi-phase workflows.
       const gateOwners = new Map<string, string[]>();
       for (const [name, def] of Object.entries(COMMAND_MANIFEST)) {
         if (!def.scope) continue;
-        // adv-task is exempt — it intentionally crosses boundaries
+        // Orchestrator commands exempt — they intentionally cross boundaries
         if (name === "adv-task") continue;
+        if (name === "adv-autopilot") continue;
         for (const gate of def.scope.gates) {
           const owners = gateOwners.get(gate) ?? [];
           owners.push(name);
@@ -334,6 +337,17 @@ describe("Command Manifest", () => {
     test("adv-prep scope creates tasks", () => {
       const def = getCommandDef("adv-prep");
       expect(def!.scope!.creates).toContain("tasks");
+    });
+
+    test("adv-autopilot scope gates cover all 5 routine checkpoints", () => {
+      const def = getCommandDef("adv-autopilot");
+      expect(def!.scope!.gates).toEqual([
+        "proposal",
+        "discovery",
+        "design",
+        "planning",
+        "acceptance",
+      ]);
     });
   });
 
