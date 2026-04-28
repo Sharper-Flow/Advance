@@ -18,7 +18,7 @@
  */
 
 import { mkdir, readFile, stat } from "fs/promises";
-import { join, normalize, isAbsolute, resolve, sep } from "path";
+import { join, normalize, isAbsolute, resolve, dirname, sep } from "path";
 import { z } from "zod";
 
 import { listSpecDirs, loadChange, type ProjectPaths } from "../storage/json";
@@ -295,7 +295,7 @@ export async function crossRepoArtifactActivity(
   }
   try {
     // mkdir parents — relative_path may include nested subdirs
-    const parentDir = absoluteFile.substring(0, absoluteFile.lastIndexOf(sep));
+    const parentDir = dirname(absoluteFile);
     await mkdir(parentDir, { recursive: true });
     await atomicWriteFile(absoluteFile, content);
     return { ok: true, path: absoluteFile };

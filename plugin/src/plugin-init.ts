@@ -426,10 +426,15 @@ export function registerShutdownHandlers(
         debugLog(`Error closing store (${phase}): ${e}`);
       }
     };
+    // Maximum wait for in-flight Temporal operations to complete during
+    // process shutdown. After this timeout, force-exit to prevent hangs.
+    // 3s is sufficient for typical Temporal signal/query completions while
+    // keeping shutdown responsive for interactive use.
+    const SHUTDOWN_FLUSH_TIMEOUT_MS = 3_000;
     const flushTimeout = setTimeout(() => {
       safeClose("timeout");
       process.exit(0);
-    }, 3000);
+    }, SHUTDOWN_FLUSH_TIMEOUT_MS);
     void (async () => {
       try {
         await activeStore.flush();

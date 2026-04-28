@@ -303,8 +303,11 @@ describe("adv_task_checkpoint", () => {
       store,
       dir,
     );
-    // If we reach here without exception, store was not mutated
-    expect(true).toBe(true);
+    // mockStore().tasks.update throws if called — reaching this point
+    // without exception proves the store was never mutated. Use
+    // expect.assertions(0) to document that no assertions are expected
+    // (the mock throwing IS the assertion mechanism).
+    expect.assertions(0);
   });
 
   // ─── New guardrail tests (RED phase — these will fail until implementation) ───

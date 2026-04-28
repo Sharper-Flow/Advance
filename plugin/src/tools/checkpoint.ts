@@ -29,6 +29,9 @@ const DEFAULT_MAX_BUFFER = 10 * 1024 * 1024;
 const SUBJECT_MAX_LEN = 72;
 const CANCEL_REASON_MAX_LEN = 64;
 
+/** Enable verbose checkpoint diagnostics. Set ADV_DEBUG=1 in env. */
+const ADV_DEBUG = process.env.ADV_DEBUG === "1";
+
 const GIT_ENV = {
   GIT_EDITOR: "true",
   GIT_PAGER: "cat",
@@ -434,10 +437,18 @@ export const checkpointTools = {
                 payload: { summary: args.verification },
               });
             }
-          } catch {
+          } catch (autoVerificationError) {
             // Auto-verification is additive bookkeeping; the subsequent
             // checkpoint recordRunEvent will surface the underlying
             // ledger error if anything is genuinely broken.
+            // Log at debug level for diagnostics without blocking the
+            // checkpoint flow.
+            if (ADV_DEBUG) {
+              console.warn(
+                "[checkpoint] auto-verification recording failed (non-fatal):",
+                autoVerificationError,
+              );
+            }
           }
         }
 
@@ -564,10 +575,16 @@ export const checkpointTools = {
                 payload: { summary: args.verification },
               });
             }
-          } catch {
+          } catch (autoVerificationError) {
             // Auto-verification is additive bookkeeping. If the backing
             // store rejects it the subsequent checkpoint event will
             // surface the underlying ledger error.
+            if (ADV_DEBUG) {
+              console.warn(
+                "[checkpoint] auto-verification recording failed (non-fatal):",
+                autoVerificationError,
+              );
+            }
           }
         }
 

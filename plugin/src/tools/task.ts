@@ -366,6 +366,12 @@ export const taskTools = {
         // Default tdd_intent to "inline" when not provided — prevents
         // TASK_TDD_INTENT_MISSING warnings in prep readiness and avoids
         // cancel-and-recreate friction during /adv-prep.
+        //
+        // "inline" is the preferred default because the RSTC protocol runs
+        // red/green phases within each task. "separate_verification" is for
+        // cross-cutting verification tasks that can't be tied to a single
+        // implementation task. "not_applicable" is for non-code tasks (docs,
+        // config) where TDD doesn't apply.
         const mergedMetadata = { ...metadata };
         if (!mergedMetadata.tdd_intent) {
           mergedMetadata.tdd_intent = "inline";
@@ -672,7 +678,9 @@ export const taskTools = {
       };
 
       if (cancelledTasks.length > 0) {
-        // Resolve changeId from the first successfully cancelled task
+        // Resolve changeId from the first successfully cancelled task.
+        // store.tasks.show() may return null on store-level failure — guard
+        // against that to avoid emitting a snapshot with undefined changeId.
         const firstTask = await store.tasks.show(cancelledTasks[0].id);
         const changeId = firstTask?.changeId;
         if (changeId) {

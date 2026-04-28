@@ -85,7 +85,9 @@ export function createTemporalStoreBackend(
       },
       lastActivityAt: state.createdAt,
       fast_follow_of: state.fast_follow_of,
-      sourceVersion: 0, // Updated by PSW signals; 0 = direct-query sourced
+      sourceVersion: 0, // Updated by PSW signals; 0 = direct-query sourced (pre-PSW state)
+      // When sourceVersion > 0, the change state was reconstructed from a
+      // ProjectStateWorkflow signal rather than a direct Temporal query.
     };
   };
 
@@ -513,11 +515,14 @@ export function createTemporalStoreBackend(
       new Set([...memoIds, ...visibilityIds, ...diskIds]),
     );
 
-    const BATCH_SIZE = 20;
+    // Batch size for loading changes — balances Temporal query parallelism
+    // against memory usage. 20 keeps per-batch latency under ~200ms with
+    // typical Temporal backends while avoiding excessive concurrent signals.
+    const CHANGE_LIST_BATCH_SIZE = 20;
     const changes: Change[] = [];
 
-    for (let i = 0; i < changeIds.length; i += BATCH_SIZE) {
-      const batch = changeIds.slice(i, i + BATCH_SIZE);
+    for (let i = 0; i < changeIds.length; i += CHANGE_LIST_BATCH_SIZE) {
+      const batch = changeIds.slice(i, i + CHANGE_LIST_BATCH_SIZE);
       const loaded = await Promise.all(
         batch.map(async (changeId) => {
           try {

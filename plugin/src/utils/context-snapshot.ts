@@ -47,6 +47,15 @@ type SnapshotWisdomLike = {
   type: string;
 };
 
+// ─── Constants ──────────────────────────────────────────────────────────────
+
+/** Minimum box width for context snapshot display boxes.
+ *  Accommodates typical change IDs (e.g. "tk-abc1234567") and gate status
+ *  markers like [✓ planning] [○ execution] without line wrapping in
+ *  80-column terminals. Shared by formatContextSnapshot and
+ *  formatCrossRepoSwitch. */
+const MIN_BOX_WIDTH = 55;
+
 type SnapshotChangeLike = {
   id: string;
   title: string;
@@ -272,7 +281,7 @@ export function formatContextSnapshot(input: ContextSnapshotInput): string {
 
   // Calculate box width
   const maxContent = Math.max(...lines.map((l) => l.length));
-  const innerWidth = Math.max(55, maxContent + 3);
+  const innerWidth = Math.max(MIN_BOX_WIDTH, maxContent + 3);
 
   // Build box
   const top = `╔${"═".repeat(innerWidth)}╗`;
@@ -314,7 +323,7 @@ export function formatCrossRepoSwitch(input: CrossRepoSwitchInput): string {
   ];
 
   const maxContent = Math.max(...lines.map((l) => l.length));
-  const innerWidth = Math.max(55, maxContent + 3);
+  const innerWidth = Math.max(MIN_BOX_WIDTH, maxContent + 3);
 
   const top = `╔${"═".repeat(innerWidth)}╗`;
   const bottom = `╚${"═".repeat(innerWidth)}╝`;

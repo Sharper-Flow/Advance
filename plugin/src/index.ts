@@ -179,22 +179,6 @@ export async function resolveProjectContext(
   };
 }
 
-async function migrateLegacyStateIfNeeded(
-  _effectiveDir: string,
-  projectId: string | null,
-  externalRoot?: string,
-): Promise<void> {
-  // P2.7: SQLite-backed legacy store removed. The disk-only store reads
-  // and writes the same on-disk paths the legacy store used, so no
-  // migration step is required. This function is preserved as a no-op
-  // for plugin-init wiring stability.
-  if (!projectId || !externalRoot) {
-    debugLog("No project ID (not a git repo?) — using legacy in-repo paths");
-    return;
-  }
-  debugLog(`External state: projectId=${projectId}, root=${externalRoot}`);
-}
-
 /**
  * Build a minimal degraded hooks object for the case where the plugin
  * factory itself cannot complete normal initialization (project-context
@@ -264,12 +248,13 @@ const advancePluginImpl: Plugin = async ({ directory, worktree, project }) => {
     `Plugin init: dir=${directory}, worktree=${worktree}, isWorktree=${isWorktree}`,
   );
 
-  const { effectiveDir, projectId, externalRoot } = await resolveProjectContext(
+  const { effectiveDir, externalRoot } = await resolveProjectContext(
     directory,
     project,
     worktree,
   );
-  await migrateLegacyStateIfNeeded(effectiveDir, projectId, externalRoot);
+  // P2.7: legacy migration removed — disk-only store reads/writes the same
+  // on-disk paths. No migration step needed.
 
   // Initialize store. tryInitStore() never throws — if createStore or
   // store.init() fails, it returns { store: null, initError: Error } so we
