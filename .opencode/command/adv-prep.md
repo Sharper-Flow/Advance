@@ -315,7 +315,7 @@ Want to abandon prep? Reply `cancel` or `stop`.
 
 ## Phase 7: Progress Tracking
 
-After EACH fix, emit CONTRACT STATUS: gap checkboxes with evidence, fixed/total count.
+After EACH fix, keep progress in ADV state (`adv_task_list`, `_contextSnapshot`). Emit no `CONTRACT STATUS` block.
 
 ---
 

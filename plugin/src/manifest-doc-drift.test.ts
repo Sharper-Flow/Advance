@@ -317,10 +317,11 @@ describe("prose-load-reduction inventory presence (rq-proseReduction03)", () => 
     expect(content).toMatch(/\| Status \|/);
   });
 
-  test("inventory header marks lifecycle (working-doc → archive)", () => {
+  test("inventory header marks post-compression archive lifecycle", () => {
     const content = readFileSync(PROSE_INVENTORY_PATH, "utf8");
-    // KD3 lifecycle anchor — must mention either WORKING DOC or POST-COMPRESSION ARCHIVE
-    expect(content).toMatch(/WORKING DOC|POST-COMPRESSION ARCHIVE/);
+    // KD3 lifecycle anchor — after the compression pass completes, the
+    // inventory freezes as an audit artifact rather than maintained guidance.
+    expect(content).toMatch(/POST-COMPRESSION ARCHIVE/);
   });
 });
 
