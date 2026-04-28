@@ -169,9 +169,7 @@ export const archiveSweepTools = {
       approvalEvidence: z
         .string()
         .optional()
-        .describe(
-          "How the user explicitly approved disk-level orphan removal",
-        ),
+        .describe("How the user explicitly approved disk-level orphan removal"),
     },
     execute: async (
       args: {

@@ -1336,10 +1336,7 @@ describe("archiveChange source directory cleanup", () => {
     const changesDir = join(testDir, "changes");
     const sourceChangeDir = join(changesDir, change.id);
     await mkdir(sourceChangeDir, { recursive: true });
-    await writeFile(
-      join(sourceChangeDir, "proposal.md"),
-      "# Proposal\n\nbody",
-    );
+    await writeFile(join(sourceChangeDir, "proposal.md"), "# Proposal\n\nbody");
     await writeFile(
       join(sourceChangeDir, "problem-statement.md"),
       "PROBLEM\nbody",

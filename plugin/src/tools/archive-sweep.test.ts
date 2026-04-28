@@ -214,11 +214,10 @@ describe("adv_archive_sweep_orphans tool", () => {
     await makeSourceDir(fixture.changesDir, "leakedChange1");
     await makeArchiveBundle(fixture.archiveDir, "2026-01-01", "leakedChange1");
 
-    const out =
-      await archiveSweepTools.adv_archive_sweep_orphans.execute(
-        {},
-        makeStub(fixture.changesDir, fixture.archiveDir),
-      );
+    const out = await archiveSweepTools.adv_archive_sweep_orphans.execute(
+      {},
+      makeStub(fixture.changesDir, fixture.archiveDir),
+    );
     const parsed = JSON.parse(out);
     expect(parsed.success).toBe(true);
     expect(parsed.dryRun).toBe(true);
@@ -230,11 +229,10 @@ describe("adv_archive_sweep_orphans tool", () => {
     await makeSourceDir(fixture.changesDir, "leakedChange1");
     await makeArchiveBundle(fixture.archiveDir, "2026-01-01", "leakedChange1");
 
-    const out =
-      await archiveSweepTools.adv_archive_sweep_orphans.execute(
-        { dryRun: false },
-        makeStub(fixture.changesDir, fixture.archiveDir),
-      );
+    const out = await archiveSweepTools.adv_archive_sweep_orphans.execute(
+      { dryRun: false },
+      makeStub(fixture.changesDir, fixture.archiveDir),
+    );
     const parsed = JSON.parse(out);
     expect(parsed.success).toBe(false);
     expect(parsed.error).toContain("Explicit user approval is required");
@@ -244,11 +242,10 @@ describe("adv_archive_sweep_orphans tool", () => {
     await makeSourceDir(fixture.changesDir, "leakedChange1");
     await makeArchiveBundle(fixture.archiveDir, "2026-01-01", "leakedChange1");
 
-    const out =
-      await archiveSweepTools.adv_archive_sweep_orphans.execute(
-        { dryRun: false, approvedByUser: true },
-        makeStub(fixture.changesDir, fixture.archiveDir),
-      );
+    const out = await archiveSweepTools.adv_archive_sweep_orphans.execute(
+      { dryRun: false, approvedByUser: true },
+      makeStub(fixture.changesDir, fixture.archiveDir),
+    );
     const parsed = JSON.parse(out);
     expect(parsed.success).toBe(false);
     expect(parsed.error).toContain("Explicit user approval is required");
@@ -258,15 +255,14 @@ describe("adv_archive_sweep_orphans tool", () => {
     const orphan = await makeSourceDir(fixture.changesDir, "leakedChange1");
     await makeArchiveBundle(fixture.archiveDir, "2026-01-01", "leakedChange1");
 
-    const out =
-      await archiveSweepTools.adv_archive_sweep_orphans.execute(
-        {
-          dryRun: false,
-          approvedByUser: true,
-          approvalEvidence: "User typed 'remove orphans' at the prompt",
-        },
-        makeStub(fixture.changesDir, fixture.archiveDir),
-      );
+    const out = await archiveSweepTools.adv_archive_sweep_orphans.execute(
+      {
+        dryRun: false,
+        approvedByUser: true,
+        approvalEvidence: "User typed 'remove orphans' at the prompt",
+      },
+      makeStub(fixture.changesDir, fixture.archiveDir),
+    );
     const parsed = JSON.parse(out);
     expect(parsed.success).toBe(true);
     expect(parsed.dryRun).toBe(false);
