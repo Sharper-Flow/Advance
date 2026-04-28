@@ -360,6 +360,16 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
     prerequisites: [],
     successors: [],
   },
+  "adv-cleanup": {
+    name: "adv-cleanup",
+    description:
+      "Triage stale, abandoned, duplicate, and ready-to-archive active changes",
+    phase: "advanced",
+    requiresChangeId: false,
+    prerequisites: [],
+    successors: [],
+    args_hint: "[--execute] [--bucket <name>] [--age-threshold <duration>]",
+  },
 
   // ---- Utility ----
   "adv-improve": {
