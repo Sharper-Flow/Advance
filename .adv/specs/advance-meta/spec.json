@@ -3,8 +3,8 @@
   "name": "advance-meta",
   "title": "Advance Meta",
   "purpose": "Capability: Cross-cutting ADV concerns \u2014 config diagnostics, metadata filters, shutdown lifecycle, proposal lineage, due-diligence routing, synthetic-state guards, and slop scanning. Split from `advance` capability.",
-  "version": "1.0.0",
-  "updated_at": "2026-04-28T00:00:00.000Z",
+  "version": "1.1.0",
+  "updated_at": "2026-04-28T15:00:00.000Z",
   "requirements": [
     {
       "id": "rq-synthstate01",
@@ -435,6 +435,141 @@
       "meta": {
         "merged_from": "advance"
       }
+    },
+    {
+      "id": "rq-proseReduction01",
+      "title": "Code-Enforced Prose Deduplication",
+      "body": "ADV instruction surfaces (ADV_INSTRUCTIONS.md, docs/command-voice-standard.md, .opencode/agents/adv.md, .opencode/command/adv-*.md) MUST classify each section by enforcement class (fully-enforced, partially-enforced, inherently-prose) and apply the matching compression template defined in docs/command-voice-standard.md \u00a7 Prose-Load Reduction Rules. Sections whose behavior is fully or partially enforced by code MUST NOT contain paragraph explanations duplicating the enforced behavior; they MUST use a pointer line + constraint table format.",
+      "priority": "must",
+      "tags": ["prose-reduction", "instruction-surfaces", "compression"],
+      "scenarios": [
+        {
+          "id": "rq-proseReduction01.1",
+          "title": "Fully-enforced section uses pointer + table",
+          "given": [
+            "A section in an ADV instruction surface describes behavior that is fully enforced by code (drift test, runtime guard, schema validation, tool formatter, or runtime tool requiring approval params)"
+          ],
+          "when": "The section is inspected",
+          "then": [
+            "The section opens with a pointer line referencing the enforcing code path",
+            "The section contains a constraint table summarizing the rule",
+            "The section does NOT contain paragraph explanations duplicating the enforced behavior"
+          ]
+        },
+        {
+          "id": "rq-proseReduction01.2",
+          "title": "Partially-enforced section adds gap rationale",
+          "given": [
+            "A section describes behavior that is partially enforced by code (some aspects machine-checked, others rely on agent behavior)"
+          ],
+          "when": "The section is inspected",
+          "then": [
+            "The section uses the fully-enforced template (pointer + constraint table)",
+            "The section additionally contains a single line marked 'Agent-side gap:' describing what the code does NOT enforce"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-proseReduction02",
+      "title": "Drift Test Coverage for Compressed Prose",
+      "body": "plugin/src/manifest-doc-drift.test.ts MUST contain structural assertions that verify compressed sections in ADV instruction surfaces conform to the enforcement-class templates. Assertions MUST be structural (line caps per class, presence of code-path reference in pointer line) and MUST NOT assert specific wording.",
+      "priority": "must",
+      "tags": ["prose-reduction", "drift-test", "structural"],
+      "scenarios": [
+        {
+          "id": "rq-proseReduction02.1",
+          "title": "Drift test enforces line caps per class",
+          "given": [
+            "manifest-doc-drift.test.ts is inspected"
+          ],
+          "when": "The structural-assertions block is read",
+          "then": [
+            "An assertion verifies fully-enforced sections do not exceed the documented line cap",
+            "An assertion verifies partially-enforced sections do not exceed the documented line cap",
+            "An assertion verifies inherently-prose template sections do not exceed the documented line cap"
+          ]
+        },
+        {
+          "id": "rq-proseReduction02.2",
+          "title": "Drift test enforces code-path reference",
+          "given": [
+            "A section is classified fully-enforced or partially-enforced"
+          ],
+          "when": "The drift test inspects the section",
+          "then": [
+            "The pointer line MUST contain a backtick-wrapped code-path reference matching `.+\\.(ts|md|json)`",
+            "The assertion is structural; no specific wording is required"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-proseReduction03",
+      "title": "Category Classification Inventory",
+      "body": "When a change executes prose-load reduction work, an inventory document MUST be produced and committed during execution that records every section being reclassified, its enforcement class, target compression format, code reference (for fully/partially-enforced classes), and gap rationale (for partially-enforced class). The inventory is a working document during execution; after compression completes it is marked as a post-compression archive and is not maintained thereafter. Durable invariants live in this spec, not in the inventory document.",
+      "priority": "must",
+      "tags": ["prose-reduction", "audit-trail", "inventory"],
+      "scenarios": [
+        {
+          "id": "rq-proseReduction03.1",
+          "title": "Inventory captures classification rows",
+          "given": [
+            "A change executes prose-load reduction work"
+          ],
+          "when": "The inventory document is inspected after the inventory pass completes",
+          "then": [
+            "Every reclassified section appears as a row",
+            "Each row records: surface, section, line count, class (full/partial/inherent), target format, code reference (for full/partial), gap rationale (for partial), status"
+          ]
+        },
+        {
+          "id": "rq-proseReduction03.2",
+          "title": "Inventory marked archive after compression",
+          "given": [
+            "All compression passes for a prose-reduction change have completed"
+          ],
+          "when": "The inventory document header is inspected",
+          "then": [
+            "The header records POST-COMPRESSION ARCHIVE status",
+            "No maintenance owner is assigned to the inventory thereafter"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-proseReduction04",
+      "title": "Inherently-Prose Constraint Templates",
+      "body": "Sections classified inherently-prose (agent-side judgment, narration, or domain context that cannot be structurally enforced) MUST use a structured template (table, checklist, or trigger/action grid) and MUST NOT use paragraph prose. The structured template is the canonical scannable form for inherently-prose categories.",
+      "priority": "must",
+      "tags": ["prose-reduction", "inherently-prose", "structured-template"],
+      "scenarios": [
+        {
+          "id": "rq-proseReduction04.1",
+          "title": "Inherently-prose section uses structured template",
+          "given": [
+            "A section is classified inherently-prose"
+          ],
+          "when": "The section is inspected",
+          "then": [
+            "The section opens with a one-line purpose statement",
+            "The section content uses a table, checklist, or trigger/action grid",
+            "The section does NOT contain paragraph prose explaining the rule"
+          ]
+        },
+        {
+          "id": "rq-proseReduction04.2",
+          "title": "Inherently-prose template excludes mandatory pointer",
+          "given": [
+            "A section is classified inherently-prose (no code mechanism to point to)"
+          ],
+          "when": "The section is inspected",
+          "then": [
+            "The section MAY omit a code-path reference",
+            "The structural template is the only required form"
+          ]
+        }
+      ]
     }
   ]
 }
