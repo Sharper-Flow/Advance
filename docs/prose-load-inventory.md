@@ -163,13 +163,121 @@ Inventory rows are at H2-section granularity. Within each section, T2/T3/T4/T5 d
 
 ---
 
-## Asset Test Audit
+## Asset Test Audit (T1.5)
 
-> Section populated by T1.5. Empty until then.
+### Audit Methodology
 
-| Test File | Assertion | Type | Backed Spec | Migration Plan | Status |
-|---|---|---|---|---|---|
-| _populate via T1.5_ | | | | | pending |
+Per KD4: every assertion in each `*-assets.test.ts` file is classified as:
+- **prose-duplicating** — wording mirrors code-enforced behavior with no spec backing → safe to remove (UD4)
+- **spec-enforcing** — backs an `rq-*` scenario → migrate or retain
+
+### Audit Result Summary
+
+**Conclusion:** Validator C1 was correct. Nearly all assertions in asset tests are **spec-enforcing**. UD4's blanket "remove prose-asserting asset tests" must be applied surgically — most assertions retain in place. The dominant migration plan is "retain (and exclude asserted phrases from compression)" rather than "remove".
+
+This means: T2/T3/T4/T5 compression passes MUST preserve asserted phrases verbatim within their compressed sections. The asset tests are the regression net for spec-required wording.
+
+### Per-File Audit
+
+| Test File | Lines | Assertion Density | Backing Spec(s) | Dominant Class | Migration Plan | Status |
+|---|---|---|---|---|---|---|
+| `adv-autonomy-quality-assets.test.ts` | 414 | 138 expects | `rq-autonomy01.4` (post-approval auto-continue, doom-loop), `rq-remediation01` (validated in-scope), `rq-touchedScope01` (touched-scope ownership), design-validation requirements, cost-governance scenarios in advance-meta | spec-enforcing | **RETAIN** — compression passes preserve asserted phrases verbatim. Asserted phrases logged in §"Phrases to Preserve" below. | pending |
+| `adv-checkpoint-assets.test.ts` | (45 expects) | spec-enforcing | `rq-cc01`–`rq-cc05` (checkpoint contract in advance-delivery) | spec-enforcing | **RETAIN** — checkpoint surface protected by separate drift test (`checkpoint-surface-drift.test.ts`); these asset assertions complement it. | pending |
+| `adv-command-routing-assets.test.ts` | (121 expects) | spec-enforcing | manifest entries (governed by `manifest-doc-drift.test.ts`) | spec-enforcing | **RETAIN** | pending |
+| `adv-engineer-assets.test.ts` | (17 expects) | spec-enforcing | engineer subagent contract | spec-enforcing | **RETAIN** | pending |
+| `adv-improve-assets.test.ts` | (48 expects) | spec-enforcing | `/adv-improve` methodology spec | spec-enforcing | **RETAIN** | pending |
+| `adv-skill-backed-commands-assets.test.ts` | (62 expects) | spec-enforcing | command↔skill loading contract | spec-enforcing | **RETAIN** | pending |
+| `adv-slop-scan-assets.test.ts` | (6 expects) | spec-enforcing | `rq-slopscan01` (advance-meta) | spec-enforcing | **RETAIN** | pending |
+| `adv-tron-assets.test.ts` | (13 expects) | spec-enforcing | adv-tron command/skill pairing | spec-enforcing | **RETAIN** | pending |
+| `commands-spine-assets.test.ts` | (8 expects) | spec-enforcing | manifest spine | spec-enforcing | **RETAIN** | pending |
+| `overlay-sync-assets.test.ts` | (40 expects) | spec-enforcing | sync-global.sh behavior | spec-enforcing | **RETAIN** | pending |
+| `scope-discovery-assets.test.ts` | (5 expects) | spec-enforcing | scope-discovery protocol | spec-enforcing | **RETAIN** | pending |
+| `__tests__/human-checkpoints-assets.test.ts` | (38 expects) | spec-enforcing | `rq-autonomy01` (human checkpoints) | spec-enforcing | **RETAIN** | pending |
+| `__tests__/preserved-narrative-rules-assets.test.ts` | 59 (8 expects) | already-migrated | `rq-largeScopeValidity01`, `rq-dueDiligence01` | spec-asset (asserts spec.json directly) | **RETAIN** — already in target form (assertions against spec.json, not prose) | pending |
+
+### Phrases to Preserve (asserted by `adv-autonomy-quality-assets.test.ts`)
+
+Compression passes must keep these phrases verbatim in their respective sections:
+
+#### `ADV_INSTRUCTIONS.md`
+- `### Human Checkpoints (Pause Required)` (heading, exact match)
+- "Proposal confirmation", "Agreement sign-off", "Design approval", "Acceptance", "Archive sign-off", "Cancellation approval", "Doom-loop recovery"
+- `### Post-Approval Auto-Continue` (heading)
+- `No "shall I proceed?"` (regex)
+- `### Validated In-Scope Remediation Policy` (heading)
+- `No report-only`, `future-work`
+- `### Touched-Scope Quality Ownership` (heading)
+- `Directly touched implementation files`, `Adjacent tests and docs`, `Same-pattern local subsystem issues`
+- `Do NOT expand into implicit repo-wide refactors`
+- `### Investment Check-In` (heading)
+- `rq-autonomy01`, `escape clause`, `unresolved user-value tradeoff`
+- `Hard-stop`, `advisory`, `does NOT.*adv_change_reenter` (regex)
+- `Doom-loop supersede` or `supersede.*doom-loop` (regex)
+- `design.*validator|validator.*design` (regex)
+
+#### `.opencode/agents/adv.md`
+- `Human Checkpoints vs Auto-Continue` (heading)
+- `Proposal confirmation`, `Agreement sign-off`, `Cancellation approval`, `Doom-loop recovery`, `Post-approval auto-continue`
+
+#### `.opencode/command/adv-harden.md`
+- `No report-only, future-work, or accepted-debt path` (regex)
+- `fix all validated in-scope findings` (regex)
+- × MUST NOT contain: `Report only`, `documented as accepted debt`, `accepted debt:`, `fix or document as accepted debt`
+
+#### `.opencode/command/adv-review.md`
+- `no future-work deferral` (regex)
+- `validated in-scope` (regex)
+- `rejected_with_evidence`
+- × MUST NOT contain: `accepted_debt`
+
+#### `.opencode/command/adv-prep.md`
+- `Touched-Scope Quality Ownership` (heading)
+- `Adjacent tests and docs`, `Same-pattern local subsystem issues`
+- `Phase J`, `Identify Judgment Calls`, `adv-cost-governance-methodology`
+
+#### `.opencode/command/adv-apply.md`
+- `touched-scope` (regex)
+- `MUST continue|MUST NOT pause` (regex)
+- `Phase 1.5`, `Investment Check-In Preamble`, `adv-cost-governance-methodology`
+- `Doom-loop`, `Hard-stop`
+- × MUST NOT contain: `Shall I continue` (regex), `Task N of M complete[^\n]*continue` (regex)
+
+#### `.opencode/command/adv-design.md`
+- `adv-researcher` (regex)
+- `[Vv]alid` (regex)
+- `independent.*valid|valid.*independent` (regex)
+- `VALIDATED`, `CAUTION`, `CONFLICT`, `INCONCLUSIVE`
+- `adv_change_update` (regex)
+- `No validation data.*omit section silently` (regex)
+- `CONFLICT.*pause` (regex)
+- `contract[- ]compromise risk` (regex)
+- `keep.*compromise|revise.*design|revisit.*agreement|defer` (regex)
+- `Phase 4\\.1|contract-compromise risk assessment` (regex)
+- `acceptance criteria.*explicit constraints.*stated avoidances|written agreement` (regex)
+- `agreement\\.md.*amend|amend.*agreement` (regex)
+- × MUST NOT contain: `inform the user.*additional frontier model` (regex), `have an additional frontier model` (regex)
+
+#### `.opencode/command/adv-discover.md`, `adv-review.md`, `adv-archive.md`
+- `adv_investment_report` (regex)
+
+#### `.opencode/command/adv-archive.md`
+- `Refresh Merge Basis`, `git fetch origin {default-branch}`, `git merge --ff-only change/{change-id}`, `git rebase {freshness-ref}`, `PR workflow path`
+- `git rebase --abort`, `do NOT delete worktree`, `conflicting files`
+
+### Implication for T2/T3/T4/T5
+
+Compression of these sections must be **phrase-preserving**: the surrounding paragraph prose can be removed/restructured, but the asserted phrases (heading text, exact strings, regex anchors) must remain intact within the compressed section. The compression templates in KD2 accommodate this — pointer + table format can carry asserted phrases as table values or bullet items within the section.
+
+If a compression pass would unavoidably remove an asserted phrase, the affected section is excluded from that pass and re-classified `inherent` (kept in scannable structured form, no compression applied to the asserted lines).
+
+### Implication for T6 (Asset-Test Cleanup)
+
+Per UD4 ("remove prose-asserting asset tests"), the original intent assumed many assertions would be prose-duplicating. Audit shows nearly all are spec-enforcing. T6 scope is therefore **minimal removal**:
+- Keep all spec-enforcing assertions in place
+- The drift-test extension in T7 (line caps + code-path reference) supplements but does not replace the asset tests
+- If any specific assertion is found to be redundant with T7's structural assertions during T6 execution, surface it as a judgment call rather than auto-removing
+
+This honors UD4's spirit (eliminate prose-policing maintenance burden) while protecting spec enforcement (validator C1).
 
 ---
 
