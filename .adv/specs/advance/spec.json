@@ -1770,6 +1770,234 @@
       "meta": {
         "merged_from": "contract-system/rq-typedmod+rq-renameop"
       }
+    },
+    {
+      "id": "rq-cc01",
+      "title": "Verified Checkpoint Ordering",
+      "body": "Checkpoint commits MUST only represent verified task completion state. Verification runs before checkpoint, not after.",
+      "priority": "must",
+      "tags": [
+        "checkpoint",
+        "ordering",
+        "verification",
+        "apply-flow"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-cc01.1",
+          "title": "Complete-mode checkpoint requires verification",
+          "given": [
+            "A task is in the green phase with file changes",
+            "The agent calls `adv_task_checkpoint` with `mode: \"complete\"`"
+          ],
+          "when": "The checkpoint tool evaluates the request",
+          "then": [
+            "If `verification` is absent or empty, the checkpoint MUST fail with `errorClass: SEMANTIC`",
+            "If `verification` is present, the checkpoint proceeds to guard validation"
+          ]
+        },
+        {
+          "id": "rq-cc01.2",
+          "title": "Red-phase checkpoint prohibited",
+          "given": [
+            "A task has failing tests or unverified changes"
+          ],
+          "when": "The agent attempts checkpoint before green phase",
+          "then": [
+            "The checkpoint MUST NOT run",
+            "The agent retries or escalates per doom-loop protocol"
+          ]
+        }
+      ],
+      "meta": {
+        "merged_from": "checkpoint-commits.md"
+      }
+    },
+    {
+      "id": "rq-cc02",
+      "title": "Scope Guard",
+      "body": "Checkpoint commits MUST be scoped to the correct change worktree. Branch and HEAD guards are fail-closed and run before staging.",
+      "priority": "must",
+      "tags": [
+        "checkpoint",
+        "guard",
+        "worktree",
+        "scope"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-cc02.1",
+          "title": "Branch mismatch blocks checkpoint",
+          "given": [
+            "`expectedBranch` is provided and does not match `git branch --show-current`"
+          ],
+          "when": "The checkpoint tool validates context",
+          "then": [
+            "The checkpoint MUST fail with structured mismatch details (`expectedBranch`, `actualBranch`)",
+            "Remediation guidance MUST include the correct branch name and checkout command",
+            "No files are staged or committed"
+          ]
+        },
+        {
+          "id": "rq-cc02.2",
+          "title": "HEAD mismatch blocks checkpoint",
+          "given": [
+            "`expectedHeadSha` is provided and does not match `git rev-parse HEAD`"
+          ],
+          "when": "The checkpoint tool validates context",
+          "then": [
+            "The checkpoint MUST fail with structured mismatch details (`expectedHeadSha`, `actualHeadSha`)",
+            "Remediation guidance MUST include the correct HEAD SHA",
+            "No files are staged or committed"
+          ]
+        },
+        {
+          "id": "rq-cc02.3",
+          "title": "Change identity derived from task",
+          "given": [
+            "A valid `taskId` is provided"
+          ],
+          "when": "The checkpoint tool resolves the change context",
+          "then": [
+            "The tool MUST call `store.tasks.show(taskId)` to derive the owning `changeId`",
+            "If an optional caller `changeId` is provided, it MUST match the derived value",
+            "Mismatch MUST fail with `errorClass: SEMANTIC`"
+          ]
+        }
+      ],
+      "meta": {
+        "merged_from": "checkpoint-commits.md"
+      }
+    },
+    {
+      "id": "rq-cc03",
+      "title": "Audit Metadata",
+      "body": "Checkpoint commits MUST include machine-readable metadata in the commit message for audit and rollback purposes.",
+      "priority": "must",
+      "tags": [
+        "checkpoint",
+        "metadata",
+        "audit",
+        "commit-message"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-cc03.1",
+          "title": "Structured commit message",
+          "given": [
+            "A checkpoint succeeds"
+          ],
+          "when": "The commit is created",
+          "then": [
+            "The commit message MUST have a terse subject line (`task({taskId}): {mode}`)",
+            "The commit body MUST include `Change: {changeId}`",
+            "The commit body MUST include `Task: {taskId}`",
+            "The commit body MUST include `Mode: {mode}`",
+            "When `verification` is present, the body MUST include `Verification: {verification}`",
+            "The message MUST be created with multiple `-m` args for subject + body/trailers"
+          ]
+        },
+        {
+          "id": "rq-cc03.2",
+          "title": "Clean tree returns without commit",
+          "given": [
+            "The working tree has no changes"
+          ],
+          "when": "The checkpoint tool runs",
+          "then": [
+            "No commit is created",
+            "The result MUST include `status: \"clean\"`",
+            "Branch/HEAD guards still validate when guard params are active"
+          ]
+        }
+      ],
+      "meta": {
+        "merged_from": "checkpoint-commits.md"
+      }
+    },
+    {
+      "id": "rq-cc04",
+      "title": "Dirty-Baseline Protection",
+      "body": "The `/adv-apply` flow MUST capture a clean baseline before the Red Phase to ensure checkpoint commits represent only the task's incremental changes.",
+      "priority": "must",
+      "tags": [
+        "checkpoint",
+        "baseline",
+        "apply-flow",
+        "dirty-tree"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-cc04.1",
+          "title": "Baseline capture before Red Phase",
+          "given": [
+            "A task is starting in `/adv-apply`"
+          ],
+          "when": "The agent begins the task workflow",
+          "then": [
+            "The agent MUST verify the working tree is clean or checkpoint any pre-existing changes before entering Red Phase",
+            "The Red Phase MUST begin from a known-clean or checkpointed state"
+          ]
+        },
+        {
+          "id": "rq-cc04.2",
+          "title": "Incremental verification before checkpoint",
+          "given": [
+            "A task has completed the Green Phase"
+          ],
+          "when": "The agent prepares to checkpoint",
+          "then": [
+            "The agent MUST run incremental verification (tests, typecheck, lint) before calling `adv_task_checkpoint`",
+            "Verification output is passed as the `verification` argument"
+          ]
+        }
+      ],
+      "meta": {
+        "merged_from": "checkpoint-commits.md"
+      }
+    },
+    {
+      "id": "rq-cc05",
+      "title": "No-Publication Authority",
+      "body": "Checkpoint commits are local rollback/audit points only. Publication, merge, and archive remain separate workflows requiring explicit user approval.",
+      "priority": "must",
+      "tags": [
+        "checkpoint",
+        "publication",
+        "authority",
+        "archive"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-cc05.1",
+          "title": "Checkpoint commits are not published",
+          "given": [
+            "A checkpoint commit exists in a change worktree"
+          ],
+          "when": "The agent considers next steps",
+          "then": [
+            "The agent MUST NOT push the checkpoint commit to a remote",
+            "The agent MUST NOT merge the checkpoint commit to the default branch",
+            "The agent MUST NOT treat the checkpoint as an archived release"
+          ]
+        },
+        {
+          "id": "rq-cc05.2",
+          "title": "Archive is the separate publication path",
+          "given": [
+            "All tasks are done and the acceptance gate is complete"
+          ],
+          "when": "The user requests archive",
+          "then": [
+            "`/adv-archive` runs Phase 9 Git Finalization as the publication path",
+            "Worktree cleanup is blocked until the branch is merged or the archive process completes",
+            "The user MUST explicitly approve archive sign-off"
+          ]
+        }
+      ],
+      "meta": {
+        "merged_from": "checkpoint-commits.md"
+      }
     }
   ]
 }
