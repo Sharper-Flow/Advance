@@ -53,7 +53,7 @@ describe("Command Manifest", () => {
     for (const cmd of expectedCommands) {
       expect(COMMAND_MANIFEST).toHaveProperty(cmd);
     }
-    expect(Object.keys(COMMAND_MANIFEST)).toHaveLength(25);
+    expect(Object.keys(COMMAND_MANIFEST)).toHaveLength(26);
   });
 
   test("every command has required fields", () => {
@@ -179,6 +179,7 @@ describe("Command Manifest", () => {
       "Gather",
       "Produce",
       "Triage",
+      "Delegate",
     ];
 
     test("every description starts with a strong verb", () => {
