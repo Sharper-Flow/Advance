@@ -173,9 +173,18 @@ Per KD4: every assertion in each `*-assets.test.ts` file is classified as:
 
 ### Audit Result Summary
 
-**Conclusion:** Validator C1 was correct. Nearly all assertions in asset tests are **spec-enforcing**. UD4's blanket "remove prose-asserting asset tests" must be applied surgically — most assertions retain in place. The dominant migration plan is "retain (and exclude asserted phrases from compression)" rather than "remove".
+**Conclusion:** Validator C1 was correct on the macro level. But mid-T2 user refinement clarified the criterion: distinguish **value-enforcing** assertions (must keep) from **heuristic drift** assertions (removable).
 
-This means: T2/T3/T4/T5 compression passes MUST preserve asserted phrases verbatim within their compressed sections. The asset tests are the regression net for spec-required wording.
+| Class | Definition | Action |
+|---|---|---|
+| **value-enforcing** | Asserts specific anti-patterns, named citations, schema enums, config values, or canonical-list members. Loss = behavioral regression or spec-anchor loss. | KEEP |
+| **heuristic drift** | Asserts heading exact-text, topic-presence (e.g., section discusses X), or paragraph-theme. Loss = no behavioral impact; assertion is just a "did the doc change?" tripwire. | REMOVE in T6 |
+
+**Per-file value-vs-heuristic estimate** (sampled from `adv-autonomy-quality-assets.test.ts`, 138 expects):
+- Value-enforcing: ~70% (~95 expects) — anti-patterns, named-7-checkpoints, verdict labels, config values, schema enums, escape-clause citations
+- Heuristic drift: ~30% (~43 expects) — exact heading text, topic-coverage checks, vague regex matches like `[Vv]alid`
+
+T6 removes the ~30% heuristic-drift assertions across all 13 asset test files (~165 of the ~545 total expects). T2-T5 must phrase-preserve only the ~70% value-enforcing portion.
 
 ### Per-File Audit
 
@@ -195,9 +204,91 @@ This means: T2/T3/T4/T5 compression passes MUST preserve asserted phrases verbat
 | `__tests__/human-checkpoints-assets.test.ts` | (38 expects) | spec-enforcing | `rq-autonomy01` (human checkpoints) | spec-enforcing | **RETAIN** | pending |
 | `__tests__/preserved-narrative-rules-assets.test.ts` | 59 (8 expects) | already-migrated | `rq-largeScopeValidity01`, `rq-dueDiligence01` | spec-asset (asserts spec.json directly) | **RETAIN** — already in target form (assertions against spec.json, not prose) | pending |
 
-### Phrases to Preserve (asserted by `adv-autonomy-quality-assets.test.ts`)
+### Per-Assertion Classification: `adv-autonomy-quality-assets.test.ts`
 
-Compression passes must keep these phrases verbatim in their respective sections:
+Refined classification per user direction. Format: `line:NN type [V/H] — assertion description`.
+
+#### Block 1: Human checkpoint and auto-continue (lines 18-50)
+- L21 H — heading exact `### Human Checkpoints (Pause Required)`
+- L26-32 V — 7 named checkpoints (Proposal/Agreement/Design/Acceptance/Archive/Cancellation/Doom-loop) — canonical list
+- L37 H — heading exact `### Post-Approval Auto-Continue`
+- L38 V — anti-pattern `No "shall I proceed?"`
+- L43 H — heading exact `Human Checkpoints vs Auto-Continue`
+- L44-48 V — 5 checkpoint names + auto-continue phrase in adv.md (canonical-list members)
+
+#### Block 2: Validated in-scope remediation (lines 56-100)
+- L59 H — heading exact `### Validated In-Scope Remediation Policy`
+- L60 V — anti-pattern `No report-only`
+- L61 V — anti-pattern `future-work`
+- L67 V — anti-pattern × `Report only`
+- L72-74 V — anti-pattern × accepted debt (3 forms)
+- L76 V — exact policy phrase `No report-only, future-work, or accepted-debt path`
+- L82 V — positive policy `fix all validated in-scope findings`
+- L87 V — anti-pattern `no future-work deferral`
+- L92 H — topic check `validated in-scope`
+- L97 V — anti-pattern × `accepted_debt`
+- L98 V — schema enum `rejected_with_evidence`
+
+#### Block 3: Touched-scope quality ownership (lines 106-151)
+- L109 H — heading exact `### Touched-Scope Quality Ownership`
+- L110-112 V — 3 named scope categories (canonical list)
+- L117 H — heading exact `Touched-Scope Quality Ownership` (in adv-prep.md)
+- L118-119 V — 2 named scope categories
+- L124 H — topic check `touched-scope`
+- L131 V — anti-pattern × `Shall I continue`
+- L137 V — anti-pattern × `Task N of M complete...continue`
+- L144 V — positive policy `MUST continue|MUST NOT pause`
+- L149 V — boundary phrase `Do NOT expand into implicit repo-wide refactors`
+
+#### Block 4: Design validation policy (lines 157-208)
+- L160 H — name reference `adv-researcher`
+- L161 H — vague regex `[Vv]alid`
+- L163 V — capability framing `independent.*valid`
+- L168-171 V — 4 verdict labels (canonical enum)
+- L172 H — tool reference `adv_change_update`
+- L177 H — vague regex `[Vv]alidator`
+- L179 V — verdict labels in display
+- L181 V — display rule `No validation data.*omit section silently`
+- L182 V — pause rule `CONFLICT.*pause`
+- L183 V — risk concept `contract[- ]compromise risk`
+- L184-186 V — 4 inline reply choices (canonical list)
+- L191 V — phase reference `Phase 4.1|contract-compromise risk assessment`
+- L193 V — agreement-tie `acceptance criteria.*explicit constraints.*stated avoidances`
+- L195 V — amendment procedure `agreement.md.*amend`
+- L200 H — vague regex `design.*validator|validator.*design`
+- L205-206 V — anti-pattern × passive validation guidance (2 forms)
+
+#### Block 5: Investment Check-In (lines 222-413)
+- L225 H — file existence (truthy)
+- L231 H — YAML structure
+- L233-236 V — threshold tier names (canonical config keys)
+- L238-243 V — specific threshold values (config invariants — agreement UD #1)
+- L248 V — skill path reference (architectural)
+- L253 V — scope ADV-only (architectural)
+- L259-261 V — 3 in-scope category names (canonical enum)
+- L267-269 V — 3 out-of-scope category names (canonical enum)
+- L274-277 H — phase labels (heuristic — protocol structure)
+- L282-284 V — escape-clause citation `rq-autonomy01` + `unresolved user-value tradeoff`
+- L290-295 V — hard-stop semantics + `rq-scopeReentry01` (architectural anchor)
+- L300-301 V — doom-loop supersede rule
+- L306 H — heading `### Investment Check-In`
+- L311-313 V — escape-clause citation
+- L318-322 V — hard-stop advisory language
+- L327 V — doom-loop supersede rule
+- L332-335 H — phase + label + skill reference (heuristic — topic coverage)
+- L340-346 H — phase reference + skill + topic words (heuristic)
+- L352 H — `adv_investment_report` reference (heuristic — topic coverage in 3 files)
+- L358-362 V — git command specifics (architectural — exact reconcile flow)
+- L367-369 V — git rebase abort + worktree safety
+- L374-378 V — P28 documentation specifics (config invariants)
+- L386-399 V — P28 YAML schema fields (config invariants)
+- L407-411 V — anti-pattern × INVESTMENT_CHECKIN injection (architectural)
+
+**Counts:** ~95 V (value-enforcing, ~70%), ~43 H (heuristic drift, ~30%)
+
+### Phrases to Preserve (asserted by `adv-autonomy-quality-assets.test.ts` — VALUE only)
+
+Compression passes preserve these phrases verbatim. Heuristic-drift heading checks (e.g., exact `### Human Checkpoints (Pause Required)`) are **NOT** in this list — they will be removed in T6 along with their assertions.
 
 #### `ADV_INSTRUCTIONS.md`
 - `### Human Checkpoints (Pause Required)` (heading, exact match)
