@@ -1865,6 +1865,24 @@ describe("Change Tools", () => {
   });
 
   describe("adv_change_archive", () => {
+    async function completeArchivePreflight(): Promise<void> {
+      await store.tasks.update("tk-task0001", "done");
+      await store.tasks.update("tk-task0002", "done");
+      await store.tasks.update("tk-task0003", "done");
+
+      const change = (await store.changes.get("addFeature")).data!;
+      change.gates = {
+        proposal: { status: "done", completed_at: new Date().toISOString() },
+        discovery: { status: "done", completed_at: new Date().toISOString() },
+        design: { status: "done", completed_at: new Date().toISOString() },
+        planning: { status: "done", completed_at: new Date().toISOString() },
+        execution: { status: "done", completed_at: new Date().toISOString() },
+        acceptance: { status: "done", completed_at: new Date().toISOString() },
+        release: { status: "done", completed_at: new Date().toISOString() },
+      };
+      await store.changes.save(change);
+    }
+
     test("archives change with all tasks and gates completed", async () => {
       // Complete all tasks
       await store.tasks.update("tk-task0001", "done");
@@ -1894,6 +1912,58 @@ describe("Change Tools", () => {
       expect(
         parsed.specsUpdated.map((s: { capability: string }) => s.capability),
       ).toContain("test-capability");
+    });
+
+    test("fully retires a change from active source and list state", async () => {
+      await completeArchivePreflight();
+
+      const sourceDir = join(tempDir, ".adv/changes/addFeature");
+      const result = await changeTools.adv_change_archive.execute(
+        { changeId: "addFeature" },
+        store,
+      );
+      const parsed = parseToolOutput(result);
+
+      expect(parsed.success).toBe(true);
+      await access(join(parsed.archivePath, "change.json"));
+      await expect(access(sourceDir)).rejects.toThrow();
+
+      const activeList = parseToolOutput(
+        await changeTools.adv_change_list.execute({}, store),
+      );
+      expect(activeList.changes.map((c: { id: string }) => c.id)).not.toContain(
+        "addFeature",
+      );
+
+      const archivedList = parseToolOutput(
+        await changeTools.adv_change_list.execute(
+          { status: "archived" },
+          store,
+        ),
+      );
+      expect(archivedList.changes).toHaveLength(1);
+      expect(archivedList.changes[0]).toMatchObject({
+        id: "addFeature",
+        status: "archived",
+      });
+    });
+
+    test("dry-run does not archive status or remove source dir", async () => {
+      await completeArchivePreflight();
+
+      const sourceDir = join(tempDir, ".adv/changes/addFeature");
+      const result = await changeTools.adv_change_archive.execute(
+        { changeId: "addFeature", dryRun: true },
+        store,
+      );
+      const parsed = parseToolOutput(result);
+
+      expect(parsed.success).toBe(true);
+      expect(parsed.dryRun).toBe(true);
+      await access(sourceDir);
+
+      const change = (await store.changes.get("addFeature")).data!;
+      expect(change.status).toBe("active");
     });
 
     test("copies problem statement artifact through adv_change_archive", async () => {

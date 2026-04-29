@@ -1512,6 +1512,19 @@ export const changeTools = {
       if (!dryRun && archiveResult.success) {
         change.status = "archived";
         await store.changes.save(change);
+
+        // Final source cleanup happens AFTER the archived status transition.
+        // This prevents the archive flow from deleting changes/<id>/ and then
+        // recreating it via store.changes.save(change). Cleanup failures are
+        // warning-only after durable archive + status transition; sweep can
+        // retry the disk removal later.
+        try {
+          await removeChangeDir(store.paths.changes, change.id);
+        } catch (err) {
+          archiveResult.errors.push(
+            `Source cleanup warning: failed to remove changes/${change.id}: ${err instanceof Error ? err.message : String(err)}`,
+          );
+        }
       }
 
       return wrapWithBanner(

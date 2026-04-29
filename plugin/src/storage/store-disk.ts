@@ -102,6 +102,19 @@ export async function createDiskStore(
     await mkdir(paths.external, { recursive: true });
   }
 
+  const loadArchivedChanges = async (): Promise<Change[]> => {
+    const archiveDirs = await listChangeDirs(paths.archive);
+    const loaded = await Promise.all(
+      archiveDirs.map((dir) => loadChange(paths.archive, dir)),
+    );
+    return loaded
+      .filter((r): r is { success: true; data: Change } =>
+        Boolean(r.success && r.data),
+      )
+      .map((r) => r.data)
+      .filter((change) => change.status === "archived");
+  };
+
   const store: Store = {
     paths,
     config,
@@ -228,6 +241,13 @@ export async function createDiskStore(
     changes: {
       list: async (filter) => {
         const ids = await listChangeDirs(paths.changes);
+        // When status is explicitly "archived"/"closed", auto-enable the
+        // corresponding include flag so the status filter isn't immediately
+        // undone by the exclusion below.
+        const effectiveIncludeArchived =
+          filter?.includeArchived || filter?.status === "archived";
+        const effectiveIncludeClosed =
+          filter?.includeClosed || filter?.status === "closed";
         const loaded = await Promise.all(
           ids.map((id) => loadChange(paths.changes, id)),
         );
@@ -237,16 +257,18 @@ export async function createDiskStore(
           )
           .map((r) => r.data);
 
+        if (effectiveIncludeArchived) {
+          const existingIds = new Set(changes.map((c) => c.id));
+          for (const archived of await loadArchivedChanges()) {
+            if (!existingIds.has(archived.id)) {
+              changes.push(archived);
+            }
+          }
+        }
+
         if (filter?.status) {
           changes = changes.filter((c) => c.status === filter.status);
         }
-        // When status is explicitly "archived"/"closed", auto-enable the
-        // corresponding include flag so the status filter isn't immediately
-        // undone by the exclusion below.
-        const effectiveIncludeArchived =
-          filter?.includeArchived || filter?.status === "archived";
-        const effectiveIncludeClosed =
-          filter?.includeClosed || filter?.status === "closed";
         if (!effectiveIncludeArchived) {
           changes = changes.filter((c) => c.status !== "archived");
         }
@@ -961,6 +983,13 @@ export async function createDiskStore(
           Boolean(r.success && r.data),
         )
         .map((r) => r.data);
+      const archivedChanges = await loadArchivedChanges();
+      const activeIds = new Set(changes.map((change) => change.id));
+      for (const archived of archivedChanges) {
+        if (!activeIds.has(archived.id)) {
+          changes.push(archived);
+        }
+      }
       const byStatus: Record<ChangeStatus, number> = {
         draft: 0,
         pending: 0,
