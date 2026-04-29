@@ -398,7 +398,7 @@ mid-execution), see `docs/scope-discovery-protocol.md`.
 
 ### Task Status Report
 
-On loop stop or compaction: emit `[ADV:TASK_STATUS_REPORT]` with completed/cancelled/remaining. See [docs/adv-task-report.md](docs/adv-task-report.md).
+On loop stop or compaction: emit `[ADV:TASK_STATUS_REPORT]` with completed/cancelled/remaining. Canonical display rules live in [docs/specs/chat-output-display.md](docs/specs/chat-output-display.md); [docs/adv-task-report.md](docs/adv-task-report.md) is a retired redirect anchor.
 
 ### Post-Remediation Re-Verification
 

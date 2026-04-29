@@ -274,12 +274,18 @@ describe("adv_archive_sweep_orphans tool", () => {
   it("includeClosed: true detects closed-change source dirs without archive", async () => {
     // A closed change with no archive bundle — should be a candidate
     await makeSourceDir(fixture.changesDir, "closedNoArchive", {
-      "change.json": JSON.stringify({ id: "closedNoArchive", status: "closed" }),
+      "change.json": JSON.stringify({
+        id: "closedNoArchive",
+        status: "closed",
+      }),
       "proposal.md": "x",
     });
     // An active change — should NOT be a candidate
     await makeSourceDir(fixture.changesDir, "activeNoArchive", {
-      "change.json": JSON.stringify({ id: "activeNoArchive", status: "active" }),
+      "change.json": JSON.stringify({
+        id: "activeNoArchive",
+        status: "active",
+      }),
     });
 
     const result = await sweepArchiveOrphans(
@@ -323,7 +329,10 @@ describe("adv_archive_sweep_orphans tool", () => {
 
   it("includeClosed: false (default) ignores closed changes", async () => {
     await makeSourceDir(fixture.changesDir, "closedNoArchive", {
-      "change.json": JSON.stringify({ id: "closedNoArchive", status: "closed" }),
+      "change.json": JSON.stringify({
+        id: "closedNoArchive",
+        status: "closed",
+      }),
     });
     await makeSourceDir(fixture.changesDir, "leakedChange1");
     await makeArchiveBundle(fixture.archiveDir, "2026-01-01", "leakedChange1");

@@ -274,7 +274,7 @@ This repository is both the implementation and the operating manual.
 - [`ADV_INSTRUCTIONS.md`](ADV_INSTRUCTIONS.md) — full workflow protocol and agent rules
 - [`AGENTS.md`](AGENTS.md) — contributor-facing repo architecture and commands
 - [`docs/adv-gates.md`](docs/adv-gates.md) — gate contracts and sequencing
-- [`docs/adv-task-report.md`](docs/adv-task-report.md) — task handoff and status reporting
+- [`docs/adv-task-report.md`](docs/adv-task-report.md) — retired redirect to [`docs/specs/chat-output-display.md`](docs/specs/chat-output-display.md)
 - [`docs/checklists/`](docs/checklists/) — prep, review, and harden checklists
 - [`docs/specs/`](docs/specs/) — generated spec documentation
 

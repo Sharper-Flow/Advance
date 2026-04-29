@@ -123,6 +123,26 @@ describe("adv_wisdom_add derived-export path", () => {
           recorded_at: "2026-04-20T00:00:00.000Z",
         })),
       },
+      changes: {
+        get: vi.fn(async () => ({
+          success: true,
+          data: {
+            id: "addFeature",
+            title: "Add Feature",
+            tasks: [
+              { id: "tk-task0001", title: "Done", status: "done" },
+              { id: "tk-task0002", title: "Pending", status: "pending" },
+            ],
+          },
+        })),
+      },
+      gates: {
+        get: vi.fn(async () => ({
+          proposal: { status: "done" },
+          discovery: { status: "done" },
+          design: { status: "pending" },
+        })),
+      },
     } as any;
 
     const result = await wisdomTools.adv_wisdom_add.execute(
@@ -157,6 +177,10 @@ describe("adv_wisdom_add derived-export path", () => {
     );
     expect(mocks.addProjectWisdom).not.toHaveBeenCalled();
     expect(mocks.close).toHaveBeenCalledTimes(1);
+    expect(parsed._contextSnapshot).toMatch(
+      /║.*addFeature.*·.*discovery ✓→design.*·.*1\/2.*║/,
+    );
+    expect(parsed._contextSnapshot.split("\n").length).toBe(1);
   });
 
   it("returns success+warning and does NOT fall back to addProjectWisdom when derived wisdom.jsonl write fails after workflow update", async () => {

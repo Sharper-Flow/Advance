@@ -1,5 +1,8 @@
 import { describe, test, expect, beforeEach, afterEach } from "vitest";
-import { fetchChangeContextSnapshot } from "./context-snapshot-fetch";
+import {
+  fetchChangeContextSnapshot,
+  fetchChangeContextTicker,
+} from "./context-snapshot-fetch";
 import { createLegacyStore, type Store } from "./store";
 import {
   createTempDir,
@@ -59,5 +62,30 @@ describe("fetchChangeContextSnapshot", () => {
     expect(snapshot).toBeDefined();
     expect(snapshot).toContain("[✓ proposal]");
     expect(snapshot).toContain("[✓ release]");
+  });
+
+  test("returns a compact ticker for an existing change", async () => {
+    const ticker = await fetchChangeContextTicker(store, "addFeature", {
+      proposal: { status: "done" },
+      discovery: { status: "done" },
+      design: { status: "pending" },
+      planning: { status: "pending" },
+      execution: { status: "pending" },
+      acceptance: { status: "pending" },
+      release: { status: "pending" },
+    });
+
+    expect(ticker).toBeDefined();
+    expect(ticker?.split("\n").length).toBe(1);
+    expect(ticker).toMatch(
+      /║.*addFeature.*·.*discovery ✓→design.*·.*\d+\/\d+.*║/,
+    );
+    expect(ticker!.length).toBeLessThanOrEqual(80);
+  });
+
+  test("returns undefined ticker for non-existent change", async () => {
+    const ticker = await fetchChangeContextTicker(store, "nonExistent");
+
+    expect(ticker).toBeUndefined();
   });
 });
