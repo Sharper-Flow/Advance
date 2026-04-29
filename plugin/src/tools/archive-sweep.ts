@@ -32,6 +32,13 @@ export interface ArchiveOrphanSweepResult {
   dryRun: boolean;
   candidateCount: number;
   candidates: ArchiveOrphanCandidate[];
+  /** Archive candidates whose active workflow/source state needs status repair */
+  repairCandidateCount?: number;
+  repairCandidates?: string[];
+  /** Archive candidates successfully repaired before removal */
+  repairedCount?: number;
+  repaired?: string[];
+  repairErrors?: { id: string; error: string }[];
   removedCount?: number;
   removed?: string[];
   removalErrors?: { id: string; error: string }[];
@@ -44,6 +51,15 @@ export interface ArchiveOrphanSweepResult {
 interface SweepOptions {
   dryRun: boolean;
   includeClosed?: boolean;
+}
+
+interface RepairSummary {
+  repairCandidateCount: number;
+  repairCandidates: string[];
+  repairedCount: number;
+  repaired: string[];
+  repairErrors: { id: string; error: string }[];
+  blockedRemovalIds: Set<string>;
 }
 
 /**
@@ -80,6 +96,87 @@ async function buildArchiveIndex(
     }
   }
   return index;
+}
+
+async function removeArchiveOrphanCandidates(
+  candidates: ArchiveOrphanCandidate[],
+): Promise<{
+  removed: string[];
+  removalErrors: { id: string; error: string }[];
+}> {
+  const removed: string[] = [];
+  const removalErrors: { id: string; error: string }[] = [];
+  for (const c of candidates) {
+    try {
+      await rm(c.sourcePath, { recursive: true, force: true });
+      removed.push(c.id);
+    } catch (err) {
+      removalErrors.push({
+        id: c.id,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+  return { removed, removalErrors };
+}
+
+async function repairArchiveZombies(
+  candidates: ArchiveOrphanCandidate[],
+  store: Store,
+  dryRun: boolean,
+): Promise<RepairSummary> {
+  const repairCandidates: string[] = [];
+  const repaired: string[] = [];
+  const repairErrors: { id: string; error: string }[] = [];
+  const blockedRemovalIds = new Set<string>();
+
+  if (!store.changes?.get || !store.changes?.save) {
+    return {
+      repairCandidateCount: 0,
+      repairCandidates,
+      repairedCount: 0,
+      repaired,
+      repairErrors,
+      blockedRemovalIds,
+    };
+  }
+
+  for (const candidate of candidates) {
+    if (candidate.kind === "closed") continue;
+    const loaded = await store.changes.get(candidate.id);
+    if (!loaded.success || !loaded.data) {
+      const error = loaded.success
+        ? "Change not found"
+        : loaded.error || "Change could not be loaded";
+      repairErrors.push({ id: candidate.id, error });
+      blockedRemovalIds.add(candidate.id);
+      continue;
+    }
+    if (loaded.data.status === "archived") continue;
+
+    repairCandidates.push(candidate.id);
+    if (dryRun) continue;
+
+    try {
+      await store.changes.save({ ...loaded.data, status: "archived" });
+      repaired.push(candidate.id);
+    } catch (err) {
+      repairErrors.push({
+        id: candidate.id,
+        error: err instanceof Error ? err.message : String(err),
+      });
+      blockedRemovalIds.add(candidate.id);
+    }
+  }
+
+  return {
+    repairCandidateCount: repairCandidates.length,
+    repairCandidates,
+    repairedCount: repaired.length,
+    repaired,
+    repairErrors,
+    blockedRemovalIds,
+  };
 }
 
 /**
@@ -157,19 +254,8 @@ export async function sweepArchiveOrphans(
     };
   }
 
-  const removed: string[] = [];
-  const removalErrors: { id: string; error: string }[] = [];
-  for (const c of allCandidates) {
-    try {
-      await rm(c.sourcePath, { recursive: true, force: true });
-      removed.push(c.id);
-    } catch (err) {
-      removalErrors.push({
-        id: c.id,
-        error: err instanceof Error ? err.message : String(err),
-      });
-    }
-  }
+  const { removed, removalErrors } =
+    await removeArchiveOrphanCandidates(allCandidates);
 
   return {
     dryRun: false,
@@ -229,28 +315,56 @@ export const archiveSweepTools = {
         }
       }
 
-      const result = await sweepArchiveOrphans(
+      const preview = await sweepArchiveOrphans(
         store.paths.changes,
         store.paths.archive,
-        { dryRun, includeClosed: args.includeClosed ?? false },
+        { dryRun: true, includeClosed: args.includeClosed ?? false },
       );
+
+      const repair = await repairArchiveZombies(
+        preview.candidates,
+        store,
+        dryRun,
+      );
+
+      const result: ArchiveOrphanSweepResult = dryRun
+        ? { ...preview, ...repair, dryRun: true }
+        : {
+            ...preview,
+            ...repair,
+            dryRun: false,
+            ...(await (async () => {
+              const removalTargets = preview.candidates.filter(
+                (candidate) => !repair.blockedRemovalIds.has(candidate.id),
+              );
+              const { removed, removalErrors } =
+                await removeArchiveOrphanCandidates(removalTargets);
+              return {
+                removedCount: removed.length,
+                removed,
+                removalErrors,
+              };
+            })()),
+          };
 
       const closedPart =
         result.closedCandidateCount && result.closedCandidateCount > 0
           ? `; ${result.closedCandidateCount} closed-change orphan(s)`
           : "";
       const message = dryRun
-        ? `Found ${result.candidateCount} orphan source dir(s)${closedPart}; ${result.skippedActive.length} active dir(s) left alone`
+        ? `Found ${result.candidateCount} orphan source dir(s)${closedPart}; ${result.repairCandidateCount ?? 0} archive zombie(s) need status repair; ${result.skippedActive.length} active dir(s) left alone`
         : `Removed ${result.removedCount ?? 0} of ${result.candidateCount} orphan source dir(s)${closedPart}${
-            result.removalErrors && result.removalErrors.length > 0
-              ? ` (${result.removalErrors.length} error(s))`
+            (result.removalErrors && result.removalErrors.length > 0) ||
+            (result.repairErrors && result.repairErrors.length > 0)
+              ? ` (${(result.removalErrors?.length ?? 0) + (result.repairErrors?.length ?? 0)} error(s))`
               : ""
-          }`;
+          }; repaired ${result.repairedCount ?? 0} archive zombie(s)`;
 
       return formatToolOutput({
         success: true,
         approvalEvidence: dryRun ? undefined : args.approvalEvidence?.trim(),
         ...result,
+        blockedRemovalIds: undefined,
         message,
       });
     },

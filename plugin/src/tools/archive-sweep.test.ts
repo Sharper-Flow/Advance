@@ -2,12 +2,13 @@
  * Archive Orphan Sweep Tests
  */
 
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { join } from "path";
 import { mkdir, writeFile, access } from "fs/promises";
 import { createTempDir, cleanupTempDir } from "../__tests__/setup";
 import { sweepArchiveOrphans, archiveSweepTools } from "./archive-sweep";
 import type { Store } from "../storage/store";
+import type { Change } from "../types";
 
 // =============================================================================
 // Test fixture builders
@@ -199,6 +200,17 @@ function makeStub(changesDir: string, archiveDir: string): Store {
   } as unknown as Store;
 }
 
+function makeChange(id: string, status: Change["status"]): Change {
+  return {
+    id,
+    title: id,
+    status,
+    created_at: "2026-01-01T00:00:00.000Z",
+    tasks: [],
+    deltas: {},
+  } as Change;
+}
+
 describe("adv_archive_sweep_orphans tool", () => {
   let fixture: FixtureLayout;
 
@@ -269,6 +281,108 @@ describe("adv_archive_sweep_orphans tool", () => {
     expect(parsed.removedCount).toBe(1);
     expect(parsed.message).toContain("Removed 1");
     await expect(access(orphan)).rejects.toThrow();
+  });
+
+  it("dry-run reports archive zombies that need status repair without mutating", async () => {
+    const orphan = await makeSourceDir(fixture.changesDir, "zombieChange");
+    await makeArchiveBundle(fixture.archiveDir, "2026-01-01", "zombieChange");
+    const save = vi.fn(async () => undefined);
+    const store = {
+      ...makeStub(fixture.changesDir, fixture.archiveDir),
+      changes: {
+        get: vi.fn(async () => ({
+          success: true,
+          data: makeChange("zombieChange", "active"),
+        })),
+        save,
+      },
+    } as unknown as Store;
+
+    const out = await archiveSweepTools.adv_archive_sweep_orphans.execute(
+      {},
+      store,
+    );
+    const parsed = JSON.parse(out);
+
+    expect(parsed.success).toBe(true);
+    expect(parsed.dryRun).toBe(true);
+    expect(parsed.candidateCount).toBe(1);
+    expect(parsed.repairCandidateCount).toBe(1);
+    expect(save).not.toHaveBeenCalled();
+    await access(orphan);
+  });
+
+  it("execute mode repairs archive zombie status before removing source dir", async () => {
+    const orphan = await makeSourceDir(fixture.changesDir, "zombieChange");
+    await makeArchiveBundle(fixture.archiveDir, "2026-01-01", "zombieChange");
+    const saved: Change[] = [];
+    const store = {
+      ...makeStub(fixture.changesDir, fixture.archiveDir),
+      changes: {
+        get: vi.fn(async () => ({
+          success: true,
+          data: makeChange("zombieChange", "active"),
+        })),
+        save: vi.fn(async (change: Change) => {
+          await access(orphan); // proves repair happens before source removal
+          saved.push(change);
+        }),
+      },
+    } as unknown as Store;
+
+    const out = await archiveSweepTools.adv_archive_sweep_orphans.execute(
+      {
+        dryRun: false,
+        approvedByUser: true,
+        approvalEvidence: "User approved zombie repair and removal",
+      },
+      store,
+    );
+    const parsed = JSON.parse(out);
+
+    expect(parsed.success).toBe(true);
+    expect(parsed.repairedCount).toBe(1);
+    expect(parsed.repaired).toEqual(["zombieChange"]);
+    expect(parsed.repairErrors).toEqual([]);
+    expect(parsed.removedCount).toBe(1);
+    expect(saved).toHaveLength(1);
+    expect(saved[0].status).toBe("archived");
+    await expect(access(orphan)).rejects.toThrow();
+  });
+
+  it("execute mode reports repair errors separately and skips unsafe removal", async () => {
+    const orphan = await makeSourceDir(fixture.changesDir, "zombieChange");
+    await makeArchiveBundle(fixture.archiveDir, "2026-01-01", "zombieChange");
+    const store = {
+      ...makeStub(fixture.changesDir, fixture.archiveDir),
+      changes: {
+        get: vi.fn(async () => ({
+          success: true,
+          data: makeChange("zombieChange", "active"),
+        })),
+        save: vi.fn(async () => {
+          throw new Error("Temporal unavailable");
+        }),
+      },
+    } as unknown as Store;
+
+    const out = await archiveSweepTools.adv_archive_sweep_orphans.execute(
+      {
+        dryRun: false,
+        approvedByUser: true,
+        approvalEvidence: "User approved zombie repair and removal",
+      },
+      store,
+    );
+    const parsed = JSON.parse(out);
+
+    expect(parsed.success).toBe(true);
+    expect(parsed.repairedCount).toBe(0);
+    expect(parsed.repairErrors).toEqual([
+      { id: "zombieChange", error: "Temporal unavailable" },
+    ]);
+    expect(parsed.removedCount).toBe(0);
+    await access(orphan);
   });
 
   it("includeClosed: true detects closed-change source dirs without archive", async () => {
