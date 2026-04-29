@@ -3,8 +3,8 @@
   "name": "advance-workflow",
   "title": "Advance Workflow",
   "purpose": "Capability: Workflow contract layer for ADV \u2014 gate model, autonomy boundaries, design validation, scope management, releases, approvals, handoff voice, review remediation, and touched-scope quality. Split from `advance` capability.",
-  "version": "1.0.0",
-  "updated_at": "2026-04-28T00:00:00.000Z",
+  "version": "1.1.0",
+  "updated_at": "2026-04-29T00:00:00.000Z",
   "requirements": [
     {
       "id": "rq-R3v13wR1",
@@ -15,9 +15,7 @@
         {
           "id": "rq-R3v13wR1.1",
           "title": "Minimum findings validation",
-          "given": [
-            "A review with fewer than 3 non-nit findings"
-          ],
+          "given": ["A review with fewer than 3 non-nit findings"],
           "when": "Gate completion is attempted",
           "then": [
             "The gate remains open and requires explicit justification for the clean result"
@@ -47,12 +45,7 @@
       "title": "Mid-Change Scope Expansion Re-Entry",
       "body": "When new objectives or acceptance criteria are introduced after a change has already progressed through the gate workflow, the added scope must be routed back through the earliest invalidated pre-implementation gate via adv_change_reenter before execution continues. Agents may trigger this re-entry autonomously; explicit user approval is not required to circle back to an earlier gate. Unaffected approved scope may continue without re-entry, and non-invalidating clarifications do not require re-entry.",
       "priority": "must",
-      "tags": [
-        "workflow",
-        "re-entry",
-        "scope-expansion",
-        "gates"
-      ],
+      "tags": ["workflow", "re-entry", "scope-expansion", "gates"],
       "scenarios": [
         {
           "id": "rq-scopeReentry01.1",
@@ -96,9 +89,7 @@
         {
           "id": "rq-scopeReentry01.4",
           "title": "Re-entry may proceed without explicit user approval",
-          "given": [
-            "A change needs scope-expansion re-entry"
-          ],
+          "given": ["A change needs scope-expansion re-entry"],
           "when": "adv_change_reenter is executed",
           "then": [
             "The call may succeed without approvedByUser or approvalEvidence",
@@ -115,12 +106,7 @@
       "title": "Re-Entry Cascade Reset Preserves Work",
       "body": "Reopening a change from gate X must reset gate X and all downstream gates to pending while preserving existing tasks and completed work. Each re-entry must append an audit entry describing the reopened gate, reason, optional scope delta, actor, timestamp, and gates reset.",
       "priority": "must",
-      "tags": [
-        "workflow",
-        "re-entry",
-        "audit",
-        "gates"
-      ],
+      "tags": ["workflow", "re-entry", "audit", "gates"],
       "scenarios": [
         {
           "id": "rq-scopeReentry02.1",
@@ -137,9 +123,7 @@
         {
           "id": "rq-scopeReentry02.2",
           "title": "Tasks remain intact after cascade reset",
-          "given": [
-            "A change has existing tasks, including completed tasks"
-          ],
+          "given": ["A change has existing tasks, including completed tasks"],
           "when": "adv_change_reenter resets gates to pending",
           "then": [
             "All existing tasks remain on the change",
@@ -149,9 +133,7 @@
         {
           "id": "rq-scopeReentry02.3",
           "title": "Re-entry appends audit history",
-          "given": [
-            "A change has been reopened via adv_change_reenter"
-          ],
+          "given": ["A change has been reopened via adv_change_reenter"],
           "when": "The re-entry is persisted",
           "then": [
             "A reentry_history entry is appended with from_gate, reason, reopened_by, approval_evidence, reopened_at, and gates_reset",
@@ -168,17 +150,12 @@
       "title": "Seven-Gate Collaborative Workflow",
       "body": "The canonical ADV workflow is seven sequential gates: proposal, discovery, design, planning, execution, acceptance, release. Gates must be completed in order. A change cannot be archived until all seven gates are satisfied (status 'done' or 'skipped').",
       "priority": "must",
-      "tags": [
-        "workflow",
-        "gates"
-      ],
+      "tags": ["workflow", "gates"],
       "scenarios": [
         {
           "id": "rq-gatemodel01.1",
           "title": "Sequential gate enforcement",
-          "given": [
-            "A change with the proposal gate pending"
-          ],
+          "given": ["A change with the proposal gate pending"],
           "when": "adv_gate_complete is called for the discovery gate",
           "then": [
             "The call is rejected",
@@ -208,12 +185,7 @@
       "title": "Archive Finalization Refreshes Basis and Preserves Cleanup Safety",
       "body": "Phase 9 Git Finalization must refresh the current default-branch basis before deciding local merge-back versus PR workflow. Clean low-risk cases prefer a linear-history fast path (`--ff-only` when already current, reconcile only when needed). Conflicting or risky cases must stop or route to PR workflow before cleanup. Worktree deletion remains forbidden until merged-state verification proves the change branch is fully integrated.",
       "priority": "must",
-      "tags": [
-        "workflow",
-        "archive",
-        "worktree",
-        "git"
-      ],
+      "tags": ["workflow", "archive", "worktree", "git"],
       "scenarios": [
         {
           "id": "rq-releaseFinalization01.1",
@@ -259,15 +231,57 @@
       }
     },
     {
+      "id": "rq-archiveRetirement01",
+      "title": "Archive Retirement Removes Active Source State After Durable Archive",
+      "body": "When adv_change_archive completes successfully, ADV MUST create the archive bundle first, transition the change workflow/status to archived, and only then remove the active changes/<id>/ source directory. Post-archive persistence MUST NOT recreate active change.json for archived changes. Archive orphan sweep recovery MUST repair any matching non-archived workflow/source state to archived before approved source-dir removal and MUST report repair errors separately from removal errors.",
+      "priority": "must",
+      "tags": ["workflow", "archive", "recovery", "cleanup"],
+      "scenarios": [
+        {
+          "id": "rq-archiveRetirement01.1",
+          "title": "Archive retires active source after durable status transition",
+          "given": ["A change has satisfied all archive gates"],
+          "when": "adv_change_archive completes successfully",
+          "then": [
+            "The archive bundle exists",
+            "The change status is archived in durable state",
+            "The source changes/<id>/ directory is removed",
+            "Default active change lists do not include the archived change"
+          ]
+        },
+        {
+          "id": "rq-archiveRetirement01.2",
+          "title": "Post-archive persistence cannot resurrect active change state",
+          "given": ["A change has been transitioned to archived"],
+          "when": "Archive completion persists final state or refreshes caches",
+          "then": [
+            "No active changes/<id>/change.json is written for the archived change",
+            "Archived change lookups resolve from durable archived state or the archive bundle"
+          ]
+        },
+        {
+          "id": "rq-archiveRetirement01.3",
+          "title": "Sweep repairs archive zombies before source cleanup",
+          "given": [
+            "An archive bundle exists for a change",
+            "A matching source changes/<id>/ directory still exists",
+            "The workflow or source state is not marked archived"
+          ],
+          "when": "adv_archive_sweep_orphans runs in approved execute mode",
+          "then": [
+            "The change status is repaired to archived before source removal",
+            "Repair counts and repair errors are reported separately from removal counts and removal errors",
+            "A candidate with repair failure is not removed"
+          ]
+        }
+      ]
+    },
+    {
       "id": "rq-autonomy01",
       "title": "Human Checkpoint Contract",
       "body": "ADV must pause for human input only at explicit approval/judgment checkpoints and auto-continue through clean agent-owned workflow steps. Human checkpoints are: proposal confirmation, agreement sign-off, design approval when real tradeoffs depend on user values, when the design validator returns CONFLICT, or when contract-compromise risk is present, acceptance, archive sign-off, cancellation approval, and doom-loop recovery. All other clean workflow steps (discovery, deterministic design, prep, apply, harden, and scope-driven re-entry) proceed sequentially without prompting the user when no unresolved user-value tradeoff, contract-compromise risk, or required approval exists.",
       "priority": "must",
-      "tags": [
-        "workflow",
-        "autonomy",
-        "checkpoints"
-      ],
+      "tags": ["workflow", "autonomy", "checkpoints"],
       "scenarios": [
         {
           "id": "rq-autonomy01.1",
@@ -356,12 +370,7 @@
       "title": "Validated In-Scope Findings Resolved In-Change",
       "body": "When /adv-review or /adv-harden validates an actionable finding or suggestion as in-scope, the current change must fix it before completion. No report-only, future-work, or accepted-debt path is permitted for validated in-scope findings. Findings may only be left unresolved if rejected with evidence showing they are invalid or out of scope.",
       "priority": "must",
-      "tags": [
-        "workflow",
-        "review",
-        "harden",
-        "quality"
-      ],
+      "tags": ["workflow", "review", "harden", "quality"],
       "scenarios": [
         {
           "id": "rq-remediation01.1",
@@ -378,9 +387,7 @@
         {
           "id": "rq-remediation01.2",
           "title": "Report-only path rejected for in-scope findings",
-          "given": [
-            "/adv-harden identifies an actionable in-scope finding"
-          ],
+          "given": ["/adv-harden identifies an actionable in-scope finding"],
           "when": "Remediation options are presented",
           "then": [
             "No report-only or future-work option is offered",
@@ -390,9 +397,7 @@
         {
           "id": "rq-remediation01.3",
           "title": "Rejection with evidence is permitted",
-          "given": [
-            "/adv-review flags a suggestion as potentially in-scope"
-          ],
+          "given": ["/adv-review flags a suggestion as potentially in-scope"],
           "when": "Investigation determines the suggestion is invalid or out of scope",
           "then": [
             "The finding is rejected with documented evidence",
@@ -409,12 +414,7 @@
       "title": "Touched-Scope Quality Ownership",
       "body": "A change owns quality and test coverage for: (1) directly touched implementation files, (2) adjacent tests and docs needed for correctness, and (3) same-pattern quality or test issues in the local touched subsystem. This ownership boundary must remain local enough to avoid implicit repo-wide refactors. /adv-prep must synthesize tasks covering touched-scope obligations, /adv-apply must verify them before execution completes, and /adv-review and /adv-harden must enforce them.",
       "priority": "must",
-      "tags": [
-        "workflow",
-        "quality",
-        "ownership",
-        "testing"
-      ],
+      "tags": ["workflow", "quality", "ownership", "testing"],
       "scenarios": [
         {
           "id": "rq-touchedScope01.1",
@@ -465,12 +465,7 @@
       "title": "Design Stage Requires Independent Validation",
       "body": "Before the design gate can complete, /adv-design must run an independent validation pass via an independent, read-only, externally informed validator sub-agent. The validator must be a distinct agent from the designer (different model or isolated context), have read-only access to ADV state, and possess external research capabilities (documentation lookup, web search). The validator assesses correctness, simplicity, spec-law compliance, and key alternatives. The current implementation of this capability is adv-researcher. Validator failure or timeout results in an INCONCLUSIVE warning and does not block gate completion.",
       "priority": "must",
-      "tags": [
-        "workflow",
-        "design",
-        "validation",
-        "autonomy"
-      ],
+      "tags": ["workflow", "design", "validation", "autonomy"],
       "scenarios": [
         {
           "id": "rq-designval01.1",
@@ -508,18 +503,12 @@
       "title": "Validation Findings Included in Design Presentation",
       "body": "When /adv-design summarizes the design, it must include the validator verdict and findings from the design validation step. VALIDATED shows a brief clean-pass note. CAUTION shows findings inline. CONFLICT shows conflict details. INCONCLUSIVE shows a warning. Legacy designs without validation data omit the section silently.",
       "priority": "must",
-      "tags": [
-        "workflow",
-        "design",
-        "presentation"
-      ],
+      "tags": ["workflow", "design", "presentation"],
       "scenarios": [
         {
           "id": "rq-designval02.1",
           "title": "Clean-pass note shown for VALIDATED verdict",
-          "given": [
-            "The design validator returned VALIDATED"
-          ],
+          "given": ["The design validator returned VALIDATED"],
           "when": "/adv-design presents the design summary",
           "then": [
             "The output includes a one-line clean-pass note (e.g. 'Validator: clean pass')",
@@ -529,9 +518,7 @@
         {
           "id": "rq-designval02.2",
           "title": "Conflict details shown for CONFLICT verdict",
-          "given": [
-            "The design validator returned CONFLICT with findings"
-          ],
+          "given": ["The design validator returned CONFLICT with findings"],
           "when": "/adv-design presents the design summary",
           "then": [
             "The conflict details and unresolved findings are shown to the user",
@@ -548,12 +535,7 @@
       "title": "Critical Validator Disagreement Requires Explicit Handling",
       "body": "When the design validator returns a CONFLICT verdict, the orchestrator must not silently auto-continue to planning. The conflict must be surfaced to the user or resolved inline before /adv-prep can proceed.",
       "priority": "must",
-      "tags": [
-        "workflow",
-        "design",
-        "autonomy",
-        "checkpoints"
-      ],
+      "tags": ["workflow", "design", "autonomy", "checkpoints"],
       "scenarios": [
         {
           "id": "rq-designval03.1",
@@ -570,9 +552,7 @@
         {
           "id": "rq-designval03.2",
           "title": "VALIDATED and CAUTION verdicts auto-continue",
-          "given": [
-            "The design validator returned VALIDATED or CAUTION"
-          ],
+          "given": ["The design validator returned VALIDATED or CAUTION"],
           "when": "The orchestrator evaluates whether to proceed from design to planning",
           "then": [
             "Planning proceeds without a new user-facing checkpoint (assuming no other user-value tradeoffs)"
@@ -588,12 +568,7 @@
       "title": "Contract-Compromise Risk Requires Design Pause",
       "body": "When an agent identifies that a proposed design can only be delivered by compromising agreed acceptance criteria, explicit constraints, or stated avoidances, the orchestrator must pause for human input before proceeding to planning. This check is independent of the design validator verdict and must trigger even when the validator returns VALIDATED or CAUTION.",
       "priority": "must",
-      "tags": [
-        "workflow",
-        "design",
-        "autonomy",
-        "checkpoints"
-      ],
+      "tags": ["workflow", "design", "autonomy", "checkpoints"],
       "scenarios": [
         {
           "id": "rq-designval04.1",
@@ -630,11 +605,7 @@
       "title": "Gate Handoff Voice Spine",
       "body": "Every /adv-* command that emits a user-facing gate-transition message MUST use the Gate Handoff Voice spine: Problem / Chosen direction / Delivered, followed by a blockquote wayfinder block. The blockquote MUST contain three rows: bolded `**{change-id}**`, the gate transition `{gate} \u2713 \u2192 {next-gate}`, and an arrow-prefixed runnable command `\u2192 `/adv-{next-command} {change-id}``. The command shown MUST be the single command needed to continue \u2014 no redundant or alternative command lines. Canonical source: docs/command-voice-standard.md \u00a7 Gate Handoff Voice.",
       "priority": "must",
-      "tags": [
-        "voice",
-        "handoff",
-        "presentation"
-      ],
+      "tags": ["voice", "handoff", "presentation"],
       "scenarios": [
         {
           "id": "rq-handoffVoice01.1",
@@ -718,19 +689,12 @@
       "title": "Inline Approval at Named Human Checkpoints",
       "body": "ADV's seven named human checkpoints (proposal confirmation, agreement sign-off, design approval, prep approval, acceptance, archive sign-off, cancellation approval) MUST use inline handoff text \u2014 composed with the Gate Handoff Voice spine \u2014 instead of the question tool. The inline pattern MUST emit reply instructions covering approve, redirect via slash command, revise, and stop. Reply parsing tiers MUST be: Tier A (reversible \u2014 proposal/agreement/design/prep/acceptance) uses whitelist + LLM fallback for natural-language replies; Tier B (irreversible \u2014 archive sign-off, cancellation) uses whitelist-only with no LLM fallback. Non-checkpoint question tool uses (change-id selection, doom-loop recovery, drift detection, AC clarification rounds, investment check-in, judgment calls, triage commands) remain unaffected. Canonical source: docs/command-voice-standard.md \u00a7 Inline Approval Voice.",
       "priority": "must",
-      "tags": [
-        "voice",
-        "checkpoints",
-        "approval",
-        "ux"
-      ],
+      "tags": ["voice", "checkpoints", "approval", "ux"],
       "scenarios": [
         {
           "id": "rq-inlineApproval01.1",
           "title": "Checkpoint approval uses inline handoff",
-          "given": [
-            "An ADV workflow reaches a named human checkpoint"
-          ],
+          "given": ["An ADV workflow reaches a named human checkpoint"],
           "when": "The agent presents the checkpoint to the user",
           "then": [
             "The presentation uses the Gate Handoff Voice spine plus inline reply instructions",
@@ -768,9 +732,7 @@
         {
           "id": "rq-inlineApproval01.4",
           "title": "Cancellation uses structured inline format",
-          "given": [
-            "A cancellation approval is needed"
-          ],
+          "given": ["A cancellation approval is needed"],
           "when": "The agent presents the cancellation",
           "then": [
             "The agent emits a numbered per-task list as inline prose",
@@ -842,18 +804,12 @@
       "title": "Fast-Follow Schema Contract",
       "body": "The ChangeSchema must support an optional `fast_follow_of` field that records same-project parent lineage. The `adv_change_create` tool must accept `parent_change_id` and enforce mutual exclusion with `target_path`.",
       "priority": "must",
-      "tags": [
-        "schema",
-        "lineage",
-        "fast-follow"
-      ],
+      "tags": ["schema", "lineage", "fast-follow"],
       "scenarios": [
         {
           "id": "rq-scopeFollowupSchema01.1",
           "title": "parent_change_id creates fast_follow_of metadata",
-          "given": [
-            "A valid parent change ID in the current project"
-          ],
+          "given": ["A valid parent change ID in the current project"],
           "when": "adv_change_create is called with parent_change_id",
           "then": [
             "The new change has fast_follow_of: { parent_change_id, linked_at } set",
@@ -863,9 +819,7 @@
         {
           "id": "rq-scopeFollowupSchema01.2",
           "title": "Backward compatibility without fast_follow_of",
-          "given": [
-            "A change created without parent_change_id"
-          ],
+          "given": ["A change created without parent_change_id"],
           "when": "ChangeSchema is parsed",
           "then": [
             "The fast_follow_of field is absent",
@@ -875,9 +829,7 @@
         {
           "id": "rq-scopeFollowupSchema01.3",
           "title": "Mutual exclusion with target_path",
-          "given": [
-            "Both target_path and parent_change_id are provided"
-          ],
+          "given": ["Both target_path and parent_change_id are provided"],
           "when": "adv_change_create is called",
           "then": [
             "A mutual-exclusion error is returned",
@@ -916,9 +868,7 @@
         {
           "id": "rq-scopeDiscoveryProtocol01.2",
           "title": "Split creates fast-follow child",
-          "given": [
-            "User replies split to the scope-discovery prompt"
-          ],
+          "given": ["User replies split to the scope-discovery prompt"],
           "when": "The agent processes the reply",
           "then": [
             "adv_change_create is called with parent_change_id set to the current change",
@@ -959,18 +909,12 @@
       "title": "Lineage Display in List, Show, and Status",
       "body": "Tools that surface change data must display fast-follow lineage: adv_change_show includes _fastFollowOrigin, adv_change_list annotates entries with parent_change_id, and adv_status prefixes child labels and references parents in recommendations.",
       "priority": "must",
-      "tags": [
-        "lineage",
-        "surfacing",
-        "ui"
-      ],
+      "tags": ["lineage", "surfacing", "ui"],
       "scenarios": [
         {
           "id": "rq-scopeFollowupSurfacing01.1",
           "title": "adv_change_show surfaces _fastFollowOrigin",
-          "given": [
-            "A change with fast_follow_of set"
-          ],
+          "given": ["A change with fast_follow_of set"],
           "when": "adv_change_show is called",
           "then": [
             "Output includes _fastFollowOrigin parallel to _crossProjectOrigin",
@@ -980,9 +924,7 @@
         {
           "id": "rq-scopeFollowupSurfacing01.2",
           "title": "adv_change_list annotates parent_change_id",
-          "given": [
-            "Changes with fast_follow_of in the list"
-          ],
+          "given": ["Changes with fast_follow_of in the list"],
           "when": "adv_change_list is called",
           "then": [
             "Entries with fast_follow_of include parent_change_id at the top level",
@@ -992,9 +934,7 @@
         {
           "id": "rq-scopeFollowupSurfacing01.3",
           "title": "adv_status prefixes and references parents",
-          "given": [
-            "Changes with fast_follow_of in the project"
-          ],
+          "given": ["Changes with fast_follow_of in the project"],
           "when": "adv_status is called",
           "then": [
             "Child change labels are prefixed with \u21b3 ",
@@ -1012,19 +952,12 @@
       "title": "Size Alone Is Not Grounds for Split-Suggestion",
       "body": "Once a change has completed the prep gate with userApproved, the agent must not suggest splitting based on size, task count, or complexity alone. Size-triggered concerns route through cost-governance Phase 1.5 judgment-call surfacing only.",
       "priority": "must",
-      "tags": [
-        "workflow",
-        "scope",
-        "cost-governance",
-        "autonomy"
-      ],
+      "tags": ["workflow", "scope", "cost-governance", "autonomy"],
       "scenarios": [
         {
           "id": "rq-largeScopeValidity01.1",
           "title": "No split-suggestion after prep approval",
-          "given": [
-            "A change has completed the prep gate with userApproved"
-          ],
+          "given": ["A change has completed the prep gate with userApproved"],
           "when": "The agent evaluates whether to suggest splitting",
           "then": [
             "The agent does not emit split-suggestions based on size, task count, or complexity alone",
@@ -1034,9 +967,7 @@
         {
           "id": "rq-largeScopeValidity01.2",
           "title": "Size concerns route through cost-governance",
-          "given": [
-            "Size-triggered concerns exist during execution"
-          ],
+          "given": ["Size-triggered concerns exist during execution"],
           "when": "The agent evaluates how to surface concerns",
           "then": [
             "Concerns are routed through cost-governance Phase 1.5 judgment-call surfacing",
@@ -1046,9 +977,7 @@
         {
           "id": "rq-largeScopeValidity01.3",
           "title": "Hardstop remains advisory",
-          "given": [
-            "Cost-governance hardstop tier fires"
-          ],
+          "given": ["Cost-governance hardstop tier fires"],
           "when": "The agent evaluates the hardstop signal",
           "then": [
             "The hardstop is advisory only",

@@ -1513,7 +1513,7 @@ export const changeTools = {
         change.status = "archived";
         await store.changes.save(change);
 
-        // Final source cleanup happens AFTER the archived status transition.
+        // rq-archiveRetirement01: final source cleanup happens AFTER the archived status transition.
         // This prevents the archive flow from deleting changes/<id>/ and then
         // recreating it via store.changes.save(change). Cleanup failures are
         // warning-only after durable archive + status transition; sweep can
