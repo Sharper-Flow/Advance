@@ -167,6 +167,7 @@ describe("workflows module (workflow-safe invariant)", () => {
         "reopenFromGateUpdate",
         "addWisdomUpdate",
         "updateArtifactMetadataUpdate",
+        "archiveChangeUpdate",
         "closeChangeUpdate",
       ];
       for (const handler of updateHandlers) {

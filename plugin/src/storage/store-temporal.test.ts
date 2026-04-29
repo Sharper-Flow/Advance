@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createTemporalStoreBackend } from "./store-temporal";
 import type { Store } from "./store-types";
+import { CHANGE_WORKFLOW_UPDATE_NAMES } from "../temporal/contracts";
 
 vi.mock("../utils/debug-log", () => ({
   createLogger: vi.fn(() => ({
@@ -1776,10 +1777,11 @@ describe("Temporal store backend adapter", () => {
       };
 
       const startedState = { ...createdState };
+      const archivedState = { ...createdState, status: "archived" };
 
       const changeHandle = {
         query: vi.fn(async () => createdState),
-        executeUpdate: vi.fn(async () => createdState),
+        executeUpdate: vi.fn(async () => archivedState),
         signal: vi.fn(async () => {}),
         result: vi.fn(async () => startedState),
       };
@@ -1830,6 +1832,124 @@ describe("Temporal store backend adapter", () => {
       const listAfter = await adapted.changes.list();
       const idsAfter = listAfter.changes.map((c: any) => c.id);
       expect(idsAfter).not.toContain("chg-archive-zombie");
+    });
+
+    it("save() with status=archived uses Temporal archive transition and avoids active-dir disk save", async () => {
+      const legacy = makeLegacyStore();
+      const archivedState = {
+        projectId: "proj1",
+        changeId: "chg-archive-transition",
+        title: "Archive Transition Test",
+        initializedAt: "2026-04-27T00:00:00.000Z",
+        id: "chg-archive-transition",
+        status: "archived",
+        createdAt: "2026-04-27T00:00:00.000Z",
+        tasks: [],
+        wisdom: [],
+        gates: {
+          proposal: { status: "done" },
+          discovery: { status: "done" },
+          design: { status: "done" },
+          planning: { status: "done" },
+          execution: { status: "done" },
+          acceptance: { status: "done" },
+          release: { status: "done" },
+        },
+        reentry_history: [],
+        artifacts: {},
+      };
+      const draftState = { ...archivedState, status: "active" };
+
+      const changeHandle = {
+        query: vi.fn(async () => draftState),
+        executeUpdate: vi.fn(async (def: any) => {
+          expect(def?.name ?? def).toBe(
+            CHANGE_WORKFLOW_UPDATE_NAMES.archiveChange,
+          );
+          return archivedState;
+        }),
+        signal: vi.fn(async () => {}),
+      };
+      const projectHandle = makeProjectHandle();
+      const bundle = {
+        client: {
+          workflow: { getHandle: routeHandle(changeHandle, projectHandle) },
+        },
+      };
+
+      const adapted = createTemporalStoreBackend({
+        legacy,
+        temporal: bundle as any,
+        projectId: "proj1",
+      });
+
+      await adapted.changes.save({
+        id: "chg-archive-transition",
+        title: "Archive Transition Test",
+        status: "archived",
+        created_at: "2026-04-27T00:00:00.000Z",
+        tasks: [],
+        deltas: {},
+        wisdom: [],
+        gates: {},
+      } as any);
+
+      expect(changeHandle.executeUpdate).toHaveBeenCalledOnce();
+      expect(legacy.changes.save).not.toHaveBeenCalled();
+      expect(projectHandle.signal).toHaveBeenCalled();
+      const signalPayload = (projectHandle.signal as any).mock.calls.at(-1)?.[1];
+      expect(signalPayload.status).toBe("archived");
+    });
+
+    it("does not dual-write archived workflow state back into active change dirs", async () => {
+      const legacy = makeLegacyStore();
+      const archivedState = {
+        projectId: "proj1",
+        changeId: "chg-archived-dual-write",
+        title: "Archived Dual Write Test",
+        initializedAt: "2026-04-27T00:00:00.000Z",
+        id: "chg-archived-dual-write",
+        status: "archived",
+        createdAt: "2026-04-27T00:00:00.000Z",
+        tasks: [],
+        wisdom: [
+          {
+            id: "ws-1",
+            type: "pattern",
+            content: "archive state must not dual-write",
+            recorded_at: "2026-04-27T00:00:00.000Z",
+          },
+        ],
+        gates: {},
+        reentry_history: [],
+        artifacts: {},
+      };
+
+      const changeHandle = {
+        query: vi.fn(async () => archivedState),
+        executeUpdate: vi.fn(async () => archivedState),
+        signal: vi.fn(async () => {}),
+      };
+      const bundle = {
+        client: {
+          workflow: { getHandle: routeHandle(changeHandle) },
+        },
+      };
+
+      const adapted = createTemporalStoreBackend({
+        legacy,
+        temporal: bundle as any,
+        projectId: "proj1",
+      });
+
+      await adapted.wisdom.add(
+        "chg-archived-dual-write",
+        "pattern",
+        "archive state must not dual-write",
+      );
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      expect(legacy.changes.save).not.toHaveBeenCalled();
     });
   });
 });

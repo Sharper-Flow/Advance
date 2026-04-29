@@ -642,3 +642,10 @@ export function closeChangeInChangeState(
   state.closure = closure;
   return state;
 }
+
+export function archiveChangeInChangeState(
+  state: ChangeWorkflowState,
+): ChangeWorkflowState {
+  state.status = "archived";
+  return state;
+}

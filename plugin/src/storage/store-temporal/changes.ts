@@ -1,6 +1,7 @@
 import type { Store } from "../store-types";
 import type { ChangeClosure, BulkCloseResult, Change } from "../../types";
 import {
+  archiveChangeUpdate,
   closeChangeUpdate,
   updateArtifactMetadataUpdate,
 } from "../../temporal/messages";
@@ -122,6 +123,25 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
       // a zombie entry in the Memo, causing list() to show archived
       // changes as still active.
       invalidateChange(change.id);
+
+      if (change.status === "archived") {
+        const raw = await runTemporal(async () =>
+          (await getGuardedChangeHandle(input, change.id)).executeUpdate(
+            archiveChangeUpdate,
+            { args: [] },
+          ),
+        );
+        const result = await resolveStateOrQuery(
+          async () => await getGuardedChangeHandle(input, change.id),
+          raw,
+        );
+        indexTasksFromState(result);
+        updateOverlay(change.id, { status: "archived" });
+        setCachedChange(result);
+        emitChangeSummarySignal(change.id, result);
+        return;
+      }
+
       await legacy.changes.save(change);
       updateOverlay(change.id, {
         title: change.title,

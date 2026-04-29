@@ -137,6 +137,9 @@ export const updateArtifactMetadataUpdate = wf.defineUpdate<
   void,
   [ArtifactKind, ArtifactMetadata]
 >(CHANGE_WORKFLOW_UPDATE_NAMES.updateArtifactMetadata);
+export const archiveChangeUpdate = wf.defineUpdate<ChangeWorkflowState>(
+  CHANGE_WORKFLOW_UPDATE_NAMES.archiveChange,
+);
 export const closeChangeUpdate = wf.defineUpdate<
   ChangeWorkflowState,
   [ChangeClosure]

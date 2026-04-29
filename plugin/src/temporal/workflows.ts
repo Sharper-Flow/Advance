@@ -18,6 +18,7 @@ import {
 import {
   addChangeWisdom,
   addTaskToChangeState,
+  archiveChangeInChangeState,
   cancelTaskInChangeState,
   closeChangeInChangeState,
   completeGateInChangeState,
@@ -137,6 +138,9 @@ const updateArtifactMetadataUpdate = wf.defineUpdate<
   void,
   [import("./contracts").ArtifactKind, import("./contracts").ArtifactMetadata]
 >(CHANGE_WORKFLOW_UPDATE_NAMES.updateArtifactMetadata);
+const archiveChangeUpdate = wf.defineUpdate<ChangeWorkflowState>(
+  CHANGE_WORKFLOW_UPDATE_NAMES.archiveChange,
+);
 const closeChangeUpdate = wf.defineUpdate<
   ChangeWorkflowState,
   [import("../types").ChangeClosure]
@@ -626,6 +630,25 @@ export async function changeWorkflow(
         });
       },
     ),
+  );
+  wf.setHandler(
+    archiveChangeUpdate,
+    safeUpdateHandler("archiveChange", () => {
+      wf.log.info("op:start", {
+        op: "archiveChangeUpdate",
+        changeId: state.changeId,
+        title: state.title?.slice(0, 80),
+      });
+      const result = archiveChangeInChangeState(state);
+      wf.upsertSearchAttributes({
+        [ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES.changeStatus]: ["archived"],
+      });
+      wf.log.info("op:end", {
+        op: "archiveChangeUpdate",
+        changeId: state.changeId,
+      });
+      return result;
+    }),
   );
   wf.setHandler(
     closeChangeUpdate,

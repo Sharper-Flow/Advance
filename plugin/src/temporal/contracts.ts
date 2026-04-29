@@ -57,6 +57,7 @@ export const CHANGE_WORKFLOW_UPDATE_NAMES = {
   reopenFromGate: "adv.change.reopenFromGate",
   addWisdom: "adv.change.addWisdom",
   updateArtifactMetadata: "adv.change.updateArtifactMetadata",
+  archiveChange: "adv.change.archiveChange",
   closeChange: "adv.change.closeChange",
 } as const;
 

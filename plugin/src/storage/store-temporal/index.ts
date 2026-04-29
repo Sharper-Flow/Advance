@@ -125,6 +125,12 @@ export function createTemporalStoreBackend(
     changeId: string,
     state: ChangeWorkflowState,
   ): void => {
+    if (state.status === "archived") {
+      logger.debug(
+        `Disk dual-write skipped for archived change ${changeId}: archive bundle is the durable snapshot`,
+      );
+      return;
+    }
     void (async () => {
       try {
         const overlay = changeOverlayCache.get(changeId);
