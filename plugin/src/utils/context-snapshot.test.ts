@@ -13,6 +13,7 @@ import {
   formatCrossRepoSwitch,
   formatGateArrow,
   formatTickerSnapshot,
+  summarizeTasks,
   type ContextSnapshotInput,
   type CrossRepoSwitchInput,
   type GateInfo,
@@ -430,6 +431,15 @@ describe("formatTickerSnapshot", () => {
     const output = formatTickerSnapshot(baseInput);
     expect(output).toMatch(/[║]/);
   });
+
+  test("includes cancelled tasks in total progress count", () => {
+    const output = formatTickerSnapshot({
+      ...baseInput,
+      taskCounts: { done: 1, in_progress: 0, pending: 2, cancelled: 3 },
+    });
+
+    expect(output).toMatch(/1\/6/);
+  });
 });
 
 // =============================================================================
@@ -461,5 +471,135 @@ describe("buildChangeContextTicker", () => {
     expect(output).toMatch(/║.*·.*·.*1\/3.*║/);
     expect(output).toContain("planning ✓→execution");
     expect(output.length).toBeLessThanOrEqual(80);
+  });
+});
+
+describe("formatContextSnapshot enrichment", () => {
+  const baseInput: ContextSnapshotInput = {
+    changeId: "improveContextAgreement",
+    title: "Improve context agreement",
+    successCriteriaCount: 3,
+    gates: {
+      proposal: { status: "done" },
+      discovery: { status: "done" },
+      design: { status: "pending" },
+      planning: { status: "pending" },
+      execution: { status: "pending" },
+      acceptance: { status: "pending" },
+      release: { status: "pending" },
+    },
+    taskCounts: { done: 2, in_progress: 1, pending: 5, cancelled: 0 },
+    workdir: "/home/user/dev/my-project",
+  };
+
+  test("appends touched files count to Tasks line when provided", () => {
+    const input: ContextSnapshotInput = {
+      ...baseInput,
+      touchedFilesCount: 5,
+    };
+    const output = formatContextSnapshot(input);
+    expect(output).toContain("Tasks: 2 done | 1 active | 5 pending | 5 files");
+  });
+
+  test("does not add files suffix when touchedFilesCount is absent", () => {
+    const output = formatContextSnapshot(baseInput);
+    expect(output).toContain("Tasks: 2 done | 1 active | 5 pending");
+    expect(output).not.toContain("files");
+  });
+
+  test("replaces Success line with errorBudgetProximity when provided", () => {
+    const input: ContextSnapshotInput = {
+      ...baseInput,
+      errorBudgetProximity: "⚠ 2/3 budget",
+    };
+    const output = formatContextSnapshot(input);
+    expect(output).toContain("⚠ 2/3 budget");
+    expect(output).not.toContain("Success: 3 criteria");
+  });
+
+  test("shows Success line when errorBudgetProximity is absent", () => {
+    const output = formatContextSnapshot(baseInput);
+    expect(output).toContain("Success: 3 criteria");
+  });
+});
+
+describe("summarizeTasks", () => {
+  test("computes union touched files count across tasks", () => {
+    const result = summarizeTasks([
+      {
+        id: "tk-1",
+        title: "T1",
+        status: "done",
+        touched_files: ["a.ts", "b.ts"],
+      },
+      {
+        id: "tk-2",
+        title: "T2",
+        status: "done",
+        touched_files: ["b.ts", "c.ts"],
+      },
+      { id: "tk-3", title: "T3", status: "pending" },
+    ]);
+    expect(result.touchedFilesCount).toBe(3); // a.ts, b.ts, c.ts (union)
+  });
+
+  test("returns undefined touchedFilesCount when no task has touched_files", () => {
+    const result = summarizeTasks([
+      { id: "tk-1", title: "T1", status: "done" },
+      { id: "tk-2", title: "T2", status: "pending" },
+    ]);
+    expect(result.touchedFilesCount).toBeUndefined();
+  });
+
+  test("computes errorBudgetProximity from max retry_count", () => {
+    const result = summarizeTasks([
+      {
+        id: "tk-1",
+        title: "T1",
+        status: "done",
+        error_recovery: { retry_count: 1 },
+      },
+      {
+        id: "tk-2",
+        title: "T2",
+        status: "in_progress",
+        error_recovery: { retry_count: 2 },
+      },
+      { id: "tk-3", title: "T3", status: "pending" },
+    ]);
+    expect(result.errorBudgetProximity).toBe("⚠ 2/3 budget");
+  });
+
+  test("returns undefined errorBudgetProximity when no retries", () => {
+    const result = summarizeTasks([
+      { id: "tk-1", title: "T1", status: "done" },
+      { id: "tk-2", title: "T2", status: "pending" },
+    ]);
+    expect(result.errorBudgetProximity).toBeUndefined();
+  });
+});
+
+describe("formatContextSnapshot — approval_mode autopilot display", () => {
+  const baseInput: ContextSnapshotInput = {
+    changeId: "autopilotTest",
+    title: "Autopilot test change",
+    successCriteriaCount: 1,
+    taskCounts: { done: 0, in_progress: 0, pending: 1, cancelled: 0 },
+  };
+
+  test("shows Mode: autopilot line when approval_mode is set", () => {
+    const output = formatContextSnapshot({
+      ...baseInput,
+      approval_mode: "autopilot",
+      autopilot_invoked_at: "2026-04-28T22:00:00.000Z",
+    });
+    expect(output).toContain(
+      "Mode: autopilot (since 2026-04-28T22:00:00.000Z)",
+    );
+  });
+
+  test("omits Mode line when approval_mode is not set", () => {
+    const output = formatContextSnapshot(baseInput);
+    expect(output).not.toContain("Mode: autopilot");
   });
 });

@@ -107,8 +107,7 @@ A formatted block emitted by the agent when switching `workdir` to a different r
 ```
 ╔═══════════════════════════════════════════════════════════╗
 ║ 🔀 SWITCHING REPOSITORY CONTEXT                          ║
-║ From: /home/user/dev/frontend                            ║
-║ To:   /home/user/dev/backend                             ║
+║ /home/user/dev/frontend → /home/user/dev/backend         ║
 ║ Task: tk-backend01 (Add /api/oauth/callback endpoint)    ║
 ╚═══════════════════════════════════════════════════════════╝
 ```
@@ -131,7 +130,7 @@ Emit when the agent switches `workdir` to a different repository for a cross-rep
 
 ## Spec
 
-Requirements defined in `.adv/specs/chat-output-display/spec.json` (renamed from `context-display` in v1.3.0 of change `consolidatechatoutputdisplay`):
+Requirements are defined in canonical JSON at `.adv/specs/chat-output-display/spec.json` and mirrored for humans at `docs/specs/chat-output-display.md` (renamed from `context-display` in v1.3.0 of change `consolidatechatoutputdisplay`):
 
 | Requirement | Summary |
 |-------------|---------|

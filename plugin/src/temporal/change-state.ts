@@ -35,6 +35,8 @@ export interface UpdateTaskInput {
   notes?: string;
   implementationSummary?: string;
   errorRecovery?: ErrorRecovery;
+  /** Repo-relative paths of files modified by the task, populated by checkpoint */
+  touchedFiles?: string[];
 }
 
 export interface StateMutationContext {
@@ -463,6 +465,10 @@ export function updateTaskInChangeState(
 
   if (typeof input.errorRecovery !== "undefined") {
     task.error_recovery = input.errorRecovery;
+  }
+
+  if (typeof input.touchedFiles !== "undefined") {
+    task.touched_files = input.touchedFiles;
   }
 
   return task;

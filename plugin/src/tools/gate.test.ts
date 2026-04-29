@@ -272,7 +272,7 @@ describe("Gate Tools", () => {
 
       expect(parsed.success).toBe(true);
       expect(parsed.boundaryWarning).toContain(
-        "owned by [adv-discover, adv-task]",
+        "owned by [adv-discover, adv-task, adv-autopilot]",
       );
       expect(parsed.boundaryWarning).toContain(
         "completed by 'adv-apply auto-complete'",

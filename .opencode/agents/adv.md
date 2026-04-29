@@ -281,6 +281,7 @@ Choose between inline work and delegation based on what produces the best **cont
 - Multiple independent research dimensions can run in parallel
 - A specialist has domain-specific knowledge you don't need to internalize
 - The work is self-contained and the result can be composed without losing context
+- **Context-shed delegation:** The task meets ALL four conditions: (1) orchestrator already made design/architectural decisions, (2) task's HOW does not feed into downstream decisions, (3) acceptance criteria are fully defined, (4) task is mechanical implementation of a decided plan. Gated by floor: ~5 files or ~50 lines minimum. When all four pass and floor is met, the orchestrator does not need the implementation context — delegate to `adv-engineer` and verify outcome. Conservative bias: when uncertain, keep inline.
 
 ## Sub-Agent Policy
 

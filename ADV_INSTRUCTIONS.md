@@ -103,6 +103,7 @@ Each workflow command has a defined phase goal. These are canonical in `manifest
 | `/adv-review`   | Verify implementation matches the approved plan. Auto-fix within scope. Stop on drift.                                        |
 | `/adv-harden`   | Verify production-readiness. Auto-fix scoped issues. Stop on drift.                                                           |
 | `/adv-archive`  | Promote the change from contract to law: apply spec deltas, capture wisdom, clean up.                                         |
+| `/adv-autopilot` | Execute a full change pipeline autonomously, delegating routine human checkpoints while preserving all safety boundaries.    |
 | `/adv-reflect`  | Produce a structured two-plane reflection report for an archived change                              |
 
 ## Commands
@@ -146,6 +147,7 @@ Each workflow command has a defined phase goal. These are canonical in `manifest
 | Command                     | Purpose                                                                                         |
 | --------------------------- | ----------------------------------------------------------------------------------------------- |
 | `/adv-task`                 | Fast-track a discussed change: synthesize contract, validate best practices, prep, and hand off |
+| `/adv-autopilot [target]`   | Delegate routine checkpoints to the agent, stop only on safety boundaries                       |
 | `/adv-refactor [change-id]` | Refresh a stale proposal or batch-refresh the oldest 30% of active changes                      |
 | `/adv-coordinate`           | Detect and resolve conflicts across multiple active changes                                     |
 | `/adv-cleanup`              | Triage stale, abandoned, duplicate, and ready-to-archive active changes                         |
@@ -559,8 +561,11 @@ Inline-only: `/adv-status`, `/adv-idea`, `/adv-problem`, `/adv-proposal`, `/adv-
 | 1        | `metadata.delegation_hint` set?                                | Use hint value     |
 | 2        | `tdd_intent == "not_applicable"`?                              | `delegate_allowed` |
 | 3        | Title matches `isTrivialTask` patterns?                        | `delegate_allowed` |
-| 4        | Risk signals (multi-file, cross-repo, architectural keywords)? | `inline_required`  |
+| 4        | Risk signals (multi-file, cross-repo, architectural keywords, failing-test diagnosis)? | `inline_required`  |
+| 4.5      | Context-shed test passes? (4-question AND, floor ~5 files or ~50 lines) | `delegate_allowed` |
 | 5        | Default                                                        | `inline_required`  |
+
+Step 4.5 is the **Context-Shed Test** — a 4-question AND-conjunctive heuristic: (1) orchestrator already made design/architectural decisions for this task, (2) task's HOW does not feed into a downstream task's decisions, (3) acceptance criteria are fully defined before delegation, (4) task is mechanical implementation of a decided plan. Gated by floor: ~5 files touched OR ~50 lines changed. All four must pass AND floor must be met for `delegate_allowed`. Conservative bias: when uncertain, default to `inline_required`.
 
 ADV code-writing delegation targets `adv-engineer` (not `general`). Verify-burst and non-ADV multi-step work remain on `general`.
 

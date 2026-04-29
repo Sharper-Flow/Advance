@@ -17,6 +17,7 @@ import { canReachTemporalAddress } from "../temporal/runtime-manager";
 import { projectMigrationLedgerQuery } from "../temporal/messages";
 import { getTemporalHealth } from "../temporal/health-probe";
 import { getTemporalFallbackTelemetry } from "../temporal/fallback-telemetry";
+import { getTemporalRetryTelemetry } from "../temporal/retry-wrapper";
 import { wrapWithBanner } from "../utils/banner";
 import { formatToolOutput } from "../utils/tool-output";
 import { formatStatusOutput } from "../utils/tool-formatters";
@@ -349,6 +350,14 @@ export const statusTools = {
         temporal_health: temporalHealth,
         migration_status: migrationStatus,
         project_metadata: projectMetadata,
+        diagnostics: {
+          temporalWorker: temporalHealth?.worker_alive
+            ? ("healthy" as const)
+            : temporalHealth?.server_alive
+              ? ("degraded" as const)
+              : ("unknown" as const),
+          lastErrorClass: getTemporalRetryTelemetry().lastError ?? undefined,
+        },
         formatted,
       };
 

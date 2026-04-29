@@ -14,13 +14,14 @@
  * - Commit message: `task(tk-xxxx): <title>` for complete,
  *   `task(tk-xxxx): cancel — <reason>` for cancel.
  * - Idempotent on clean trees: returns {status:'clean'} without committing.
- * - No store mutations — this is a read-only git operation.
+ * - Persists touched_files and error_class bridge via store.tasks.update.
  */
 
 import { execFile } from "child_process";
 import { z } from "zod";
 import { formatToolOutput } from "../utils/tool-output";
 import type { Store } from "../storage/store-types";
+import type { ErrorRecovery } from "../types";
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -58,6 +59,8 @@ interface CheckpointResult {
   actualHeadSha?: string;
   checkpointRecorded?: boolean;
   remediation?: string;
+  /** Repo-relative paths of files modified in this checkpoint */
+  touched_files?: string[];
 }
 
 type ErrorClass = "SEMANTIC" | "ENVIRONMENTAL" | "TRANSIENT";
@@ -218,6 +221,47 @@ export function buildCommitMessage(
 // rq-cc03: Audit Metadata
 // rq-cc04: Dirty-Baseline Protection
 // rq-cc05: No-Publication Authority
+
+// ─── Error-class bridge helper ──────────────────────────────────────────────
+
+/**
+ * Bridge checkpoint error classification to the task's error_recovery field.
+ * Non-blocking — errors are logged but never prevent the checkpoint result
+ * from returning.
+ */
+async function bridgeErrorClass(
+  store: Store,
+  taskId: string,
+  errorClass: "SEMANTIC" | "ENVIRONMENTAL" | "TRANSIENT",
+  errorMessage: string,
+): Promise<void> {
+  try {
+    const task = await store.tasks.get(taskId);
+    if (!task) return;
+    const existing = task.error_recovery;
+    const updatedRecovery: ErrorRecovery = {
+      last_error: errorMessage.slice(0, 200),
+      retry_count: existing?.retry_count ?? 0,
+      max_retries: existing?.max_retries ?? 3,
+      error_class: errorClass,
+      ...(existing?.next_strategy
+        ? { next_strategy: existing.next_strategy }
+        : {}),
+      ...(existing?.attempts ? { attempts: existing.attempts } : {}),
+    };
+    await store.tasks.update(
+      taskId,
+      task.status,
+      undefined,
+      undefined,
+      updatedRecovery,
+    );
+  } catch (err) {
+    if (ADV_DEBUG) {
+      console.warn("[checkpoint] error_class bridge failed (non-fatal):", err);
+    }
+  }
+}
 
 // ─── Tool definition ────────────────────────────────────────────────────────
 
@@ -545,6 +589,13 @@ export const checkpointTools = {
               exitCode?: number;
               message: string;
             };
+            // Bridge error_class to task's error_recovery
+            await bridgeErrorClass(
+              store,
+              args.taskId,
+              cls === "TRANSIENT" ? "SEMANTIC" : cls,
+              gitErr.stderr ?? gitErr.message,
+            );
             return formatToolOutput({
               status: "failed",
               classification: cls === "TRANSIENT" ? "SEMANTIC" : cls,
@@ -557,8 +608,46 @@ export const checkpointTools = {
           }
         }
 
-        // Commit succeeded — return result
+        // Commit succeeded — get SHA
         const { stdout: sha } = await runGit(["rev-parse", "HEAD"], cwd);
+
+        // Compute touched files from diff (repo-relative paths)
+        let touchedFiles: string[] = [];
+        try {
+          const { stdout: diffOutput } = await runGit(
+            ["diff", "--name-only", "HEAD~1"],
+            cwd,
+          );
+          touchedFiles = diffOutput
+            .split("\n")
+            .map((f) => f.trim())
+            .filter((f) => f.length > 0);
+        } catch {
+          // Diff failed (e.g., initial commit) — use empty array
+          touchedFiles = [];
+        }
+
+        // Persist touched_files to task via store
+        try {
+          const currentTask = await store.tasks.get(args.taskId);
+          if (currentTask) {
+            await store.tasks.update(
+              args.taskId,
+              currentTask.status,
+              undefined,
+              undefined,
+              undefined,
+              touchedFiles,
+            );
+          }
+        } catch (persistErr) {
+          if (ADV_DEBUG) {
+            console.warn(
+              "[checkpoint] touched_files persist failed (non-fatal):",
+              persistErr,
+            );
+          }
+        }
 
         // Phase F.0: auto-emit `verification` task-run event when the
         // ledger phase is `green_recorded` and the caller supplied the
@@ -609,6 +698,7 @@ export const checkpointTools = {
               expectedBranch,
               expectedHeadSha: args.expectedHeadSha,
               verification: args.verification,
+              touched_files: touchedFiles,
             },
           });
         } catch (err) {
@@ -621,6 +711,7 @@ export const checkpointTools = {
             message: subject,
             changeId: derivedChangeId,
             checkpointRecorded: false,
+            touched_files: touchedFiles,
             error: err instanceof Error ? err.message : String(err),
             remediation:
               "Git checkpoint commit succeeded but task-run ledger recording failed. Run adv_task_run_status, then retry checkpoint or record the ledger event before marking the task done.",
@@ -635,11 +726,20 @@ export const checkpointTools = {
           message: subject,
           changeId: derivedChangeId,
           checkpointRecorded: true,
+          touched_files: touchedFiles,
         } satisfies CheckpointResult);
       } catch (err) {
+        const cls = classifyGitError(err);
+        // Bridge error_class to task's error_recovery
+        await bridgeErrorClass(
+          store,
+          args.taskId,
+          cls,
+          err instanceof Error ? err.message : String(err),
+        );
         return formatToolOutput({
           status: "failed",
-          classification: classifyGitError(err),
+          classification: cls,
           workdir: cwd,
           gitRoot,
           stderr: err instanceof Error ? err.message : String(err),

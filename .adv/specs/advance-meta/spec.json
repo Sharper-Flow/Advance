@@ -3,8 +3,8 @@
   "name": "advance-meta",
   "title": "Advance Meta",
   "purpose": "Capability: Cross-cutting ADV concerns \u2014 config diagnostics, metadata filters, shutdown lifecycle, proposal lineage, due-diligence routing, synthetic-state guards, and slop scanning. Split from `advance` capability.",
-  "version": "1.1.0",
-  "updated_at": "2026-04-28T15:00:00.000Z",
+  "version": "1.2.0",
+  "updated_at": "2026-04-28T22:20:00.000Z",
   "requirements": [
     {
       "id": "rq-synthstate01",
@@ -567,6 +567,117 @@
           "then": [
             "The section MAY omit a code-path reference",
             "The structural template is the only required form"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-contextShed01",
+      "title": "Context-Shed Delegation Heuristic for Routing Tables",
+      "body": "Delegation routing tables in ADV_INSTRUCTIONS.md and adv-apply.md MUST include step 4.5 (Context-Shed Test) between risk-signal check (step 4) and default fallback (step 5). The test is a 4-question AND-conjunctive heuristic: (1) orchestrator already made design/architectural decisions for this task, (2) task's HOW does not feed into a downstream task's decisions, (3) acceptance criteria are fully defined before delegation, (4) task is mechanical implementation of a decided plan. All four must pass for delegate_allowed. Gated by floor: ~5 files touched OR ~50 lines changed. Conservative bias: when uncertain, default to inline_required. Step 4.5 MUST NOT override step 1 (human delegation_hint) or step 4 (risk signals).",
+      "priority": "must",
+      "tags": ["delegation", "routing", "context-shed", "orchestrator"],
+      "scenarios": [
+        {
+          "id": "rq-contextShed01.1",
+          "title": "Step 4.5 inserted between step 4 and step 5 in both routing tables",
+          "given": [
+            "ADV_INSTRUCTIONS.md contains the Delegation Routing table",
+            "adv-apply.md contains the Delegation Routing table"
+          ],
+          "when": "The routing tables are inspected",
+          "then": [
+            "Both tables contain a step 4.5 row between step 4 (risk signals) and step 5 (default)",
+            "Step 4.5 result is delegate_allowed when all four questions pass AND floor is met",
+            "Step 4.5 result is inline_required when any question fails or floor is not met",
+            "Step 1 (delegation_hint) and step 4 (risk signals) are unchanged"
+          ]
+        },
+        {
+          "id": "rq-contextShed01.2",
+          "title": "Floor prevents micro-task delegation",
+          "given": [
+            "A task touches fewer than ~5 files AND fewer than ~50 lines",
+            "All four context-shed questions pass"
+          ],
+          "when": "Step 4.5 evaluates the task",
+          "then": [
+            "The floor check fails",
+            "Result is inline_required regardless of question answers"
+          ]
+        },
+        {
+          "id": "rq-contextShed01.3",
+          "title": "AND-conjunction requires all four questions",
+          "given": [
+            "A task passes 3 of 4 context-shed questions and meets the floor"
+          ],
+          "when": "Step 4.5 evaluates the task",
+          "then": [
+            "Result is inline_required",
+            "Conservative bias preserves orchestrator context for borderline tasks"
+          ]
+        },
+        {
+          "id": "rq-contextShed01.4",
+          "title": "Step 4.5 does not override human hint or risk signals",
+          "given": [
+            "A task has metadata.delegation_hint set to inline_required",
+            "The context-shed test passes for the task"
+          ],
+          "when": "Delegation routing evaluates",
+          "then": [
+            "Step 1 returns inline_required",
+            "Step 4.5 is never reached"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-contextShed02",
+      "title": "Context-Shed Prose in Orchestrator Agent and Post-Delegation P23 Scan",
+      "body": "The adv.md orchestrator agent's Context-Optimal Execution section MUST include context-shed delegation criteria as prose bullets (NOT a routing table). Wording must reference the 4-question AND test and floor threshold. Additionally, adv-apply.md Task Flow MUST include a post-delegation P23 campsite-rule diff-scan step that checks same-pattern local subsystem issues after a delegated task returns, applying small/safe/local fixes inline and documenting scope-expanding findings as follow-ups without auto-fixing.",
+      "priority": "must",
+      "tags": ["delegation", "orchestrator", "campsite-rule", "context-shed"],
+      "scenarios": [
+        {
+          "id": "rq-contextShed02.1",
+          "title": "adv.md contains context-shed prose bullets not table",
+          "given": [
+            "The adv.md Context-Optimal Execution section is inspected"
+          ],
+          "when": "The delegation criteria are checked",
+          "then": [
+            "The section contains context-shed delegation criteria as prose bullets",
+            "The section does NOT contain a markdown routing table (no | pipe characters in table format)",
+            "The criteria reference the 4-question AND test and floor threshold"
+          ]
+        },
+        {
+          "id": "rq-contextShed02.2",
+          "title": "adv-apply.md contains post-delegation P23 diff-scan step",
+          "given": [
+            "The adv-apply.md Task Flow is inspected"
+          ],
+          "when": "Post-delegation steps are checked",
+          "then": [
+            "A step after delegation spawn and before task completion performs a P23 campsite-rule diff-scan",
+            "The step diffs the sub-agent's touched files against pre-delegation baseline",
+            "Small/safe/local same-pattern fixes are applied inline",
+            "Scope-expanding findings are documented as follow-ups, not auto-fixed"
+          ]
+        },
+        {
+          "id": "rq-contextShed02.3",
+          "title": "Drift tests enforce prose-only on adv.md and table on other surfaces",
+          "given": [
+            "The drift test suite runs"
+          ],
+          "when": "Context-shed assertions are evaluated",
+          "then": [
+            "ADV_INSTRUCTIONS.md and adv-apply.md delegation tables contain step 4.5 with matching wording",
+            "adv.md Context-Optimal Execution section contains context-shed tokens without table pipe characters",
+            "adv-apply.md contains P23 diff-scan step tokens"
           ]
         }
       ]

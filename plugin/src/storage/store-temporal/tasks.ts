@@ -61,6 +61,7 @@ export function createTaskOps(deps: StoreDeps): Store["tasks"] {
       notes,
       implementationSummary,
       errorRecovery,
+      touchedFiles,
     ) => {
       const changeId = await resolveChangeId(taskId);
       if (!changeId) return null;
@@ -76,6 +77,7 @@ export function createTaskOps(deps: StoreDeps): Store["tasks"] {
                 notes,
                 implementationSummary,
                 errorRecovery,
+                touchedFiles,
               },
             ],
           },

@@ -129,6 +129,7 @@ export interface Store {
       notes?: string,
       implementationSummary?: string,
       errorRecovery?: Task["error_recovery"],
+      touchedFiles?: string[],
     ) => Promise<Task | null>;
     add: (
       changeId: string,

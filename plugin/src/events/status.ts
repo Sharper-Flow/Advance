@@ -133,6 +133,8 @@ export const cleanup = (): void => {
 interface RetryTracker {
   taskId: string;
   attempts: number;
+  /** TRANSIENT retry count — does NOT count toward doom-loop budget */
+  transientCount: number;
   lastError: string | null;
   startTime: number;
 }
@@ -141,11 +143,19 @@ const retryTrackers = new Map<string, RetryTracker>();
 const DOOM_LOOP_THRESHOLD = 3;
 const RETRY_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
 
+type ErrorClass = "TRANSIENT" | "SEMANTIC" | "ENVIRONMENTAL" | "FATAL";
+
 /**
  * Track a retry attempt for a task.
  * Returns true if doom loop detected.
+ * When errorClass === "TRANSIENT", increments transientCount only —
+ * does NOT count toward doom-loop budget.
  */
-export const trackRetry = (taskId: string, error?: string): boolean => {
+export const trackRetry = (
+  taskId: string,
+  error?: string,
+  errorClass?: ErrorClass,
+): boolean => {
   const now = Date.now();
   let tracker = retryTrackers.get(taskId);
 
@@ -153,7 +163,8 @@ export const trackRetry = (taskId: string, error?: string): boolean => {
     // Start fresh tracker
     tracker = {
       taskId,
-      attempts: 1,
+      attempts: errorClass === "TRANSIENT" ? 0 : 1,
+      transientCount: errorClass === "TRANSIENT" ? 1 : 0,
       lastError: error ?? null,
       startTime: now,
     };
@@ -161,11 +172,15 @@ export const trackRetry = (taskId: string, error?: string): boolean => {
     return false;
   }
 
-  // Increment attempts
-  tracker.attempts++;
+  // Increment appropriate counter
+  if (errorClass === "TRANSIENT") {
+    tracker.transientCount++;
+  } else {
+    tracker.attempts++;
+  }
   tracker.lastError = error ?? tracker.lastError;
 
-  // Check for doom loop
+  // Check for doom loop (TRANSIENT never triggers)
   if (tracker.attempts >= DOOM_LOOP_THRESHOLD) {
     setStatus("BLOCKED");
     return true;
@@ -186,14 +201,25 @@ export const clearRetry = (taskId: string): void => {
  */
 export const getDoomLoopInfo = (
   taskId: string,
-): { inDoomLoop: boolean; attempts: number; lastError: string | null } => {
+): {
+  inDoomLoop: boolean;
+  attempts: number;
+  transientAttempts: number;
+  lastError: string | null;
+} => {
   const tracker = retryTrackers.get(taskId);
   if (!tracker) {
-    return { inDoomLoop: false, attempts: 0, lastError: null };
+    return {
+      inDoomLoop: false,
+      attempts: 0,
+      transientAttempts: 0,
+      lastError: null,
+    };
   }
   return {
     inDoomLoop: tracker.attempts >= DOOM_LOOP_THRESHOLD,
     attempts: tracker.attempts,
+    transientAttempts: tracker.transientCount,
     lastError: tracker.lastError,
   };
 };
@@ -202,6 +228,10 @@ export const getDoomLoopInfo = (
  * Merge in-memory doom-loop tracking with persisted error_recovery state.
  * Useful for Temporal-backed state or after session restart when retryTrackers
  * are empty but task.error_recovery still records 3+ failed attempts.
+ *
+ * When persisted error_recovery.error_class === "TRANSIENT", those attempts
+ * are excluded from the doom-loop count. Missing error_class defaults to
+ * SEMANTIC (conservative: counts toward doom-loop budget).
  */
 export const getEffectiveDoomLoopInfo = (
   taskId: string,
@@ -209,17 +239,38 @@ export const getEffectiveDoomLoopInfo = (
     retry_count?: number;
     attempts?: Array<unknown>;
     last_error?: string | null;
+    error_class?: string;
   },
-): { inDoomLoop: boolean; attempts: number; lastError: string | null } => {
+): {
+  inDoomLoop: boolean;
+  attempts: number;
+  transientAttempts: number;
+  lastError: string | null;
+} => {
   const live = getDoomLoopInfo(taskId);
   const persistedAttempts = persisted?.attempts?.length ?? 0;
   const persistedRetryCount = persisted?.retry_count ?? 0;
-  const persistedCount = Math.max(persistedAttempts, persistedRetryCount);
+  const rawPersistedCount = Math.max(persistedAttempts, persistedRetryCount);
 
-  if (persistedCount > live.attempts) {
+  // TRANSIENT errors don't count toward doom-loop budget.
+  // Missing error_class defaults to SEMANTIC (conservative).
+  const isTransient = persisted?.error_class === "TRANSIENT";
+  const effectivePersistedCount = isTransient ? 0 : rawPersistedCount;
+
+  // Use persisted data when it has more info than live tracker,
+  // OR when TRANSIENT persisted data exists but live has nothing.
+  const hasPersistedData = rawPersistedCount > 0 || persisted?.last_error;
+  if (
+    hasPersistedData &&
+    (effectivePersistedCount > live.attempts ||
+      (isTransient && rawPersistedCount > live.transientAttempts))
+  ) {
     return {
-      inDoomLoop: persistedCount >= DOOM_LOOP_THRESHOLD,
-      attempts: persistedCount,
+      inDoomLoop: effectivePersistedCount >= DOOM_LOOP_THRESHOLD,
+      attempts: effectivePersistedCount,
+      transientAttempts: isTransient
+        ? rawPersistedCount
+        : live.transientAttempts,
       lastError: persisted?.last_error ?? live.lastError,
     };
   }

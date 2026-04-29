@@ -438,6 +438,12 @@ export const TaskSchema = z
      * Cleared when the task succeeds.
      */
     error_recovery: ErrorRecoverySchema.optional(),
+    /**
+     * Repo-relative paths of files changed by this task.
+     * Populated by adv_task_checkpoint after successful git commit.
+     * Empty array when no files changed or on git failure.
+     */
+    touched_files: z.array(z.string()).optional(),
   })
   .passthrough(); // Allow extra fields for forward/backward compatibility
 
@@ -1080,6 +1086,17 @@ export const ChangeSchema = z
      * signals to /adv-discover that lineage validation is required.
      */
     fast_follow_of: FastFollowOfSchema.optional(),
+    /**
+     * Set when /adv-autopilot was invoked on this change. Marks the change as
+     * having been driven through the routine checkpoints under autopilot
+     * delegation rather than per-gate manual approval.
+     */
+    approval_mode: z.literal("autopilot").optional(),
+    /**
+     * ISO8601 timestamp when /adv-autopilot was invoked.
+     * Set once at the start of an autopilot run; not modified afterwards.
+     */
+    autopilot_invoked_at: z.string().optional(),
     /**
      * Temporal project ID that owns this change. Persisted on disk snapshots
      * so the shared guard can detect cross-project context mismatches.
