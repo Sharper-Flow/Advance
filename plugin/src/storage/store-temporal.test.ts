@@ -1897,7 +1897,9 @@ describe("Temporal store backend adapter", () => {
       expect(changeHandle.executeUpdate).toHaveBeenCalledOnce();
       expect(legacy.changes.save).not.toHaveBeenCalled();
       expect(projectHandle.signal).toHaveBeenCalled();
-      const signalPayload = (projectHandle.signal as any).mock.calls.at(-1)?.[1];
+      const signalPayload = (projectHandle.signal as any).mock.calls.at(
+        -1,
+      )?.[1];
       expect(signalPayload.status).toBe("archived");
     });
 

@@ -1464,5 +1464,4 @@ describe("archiveChange source artifact handling", () => {
     expect(result.success).toBe(true);
     expect(result.errors).toEqual([]);
   });
-
 });
