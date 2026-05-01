@@ -247,9 +247,8 @@ Vague in-flight work.
 
     describe("search_attributes", () => {
       test("includes search_attributes section with saVerification from getStslStats", async () => {
-        const { getStslStats, isStslInitialized } = await import(
-          "../temporal/service"
-        );
+        const { getStslStats, isStslInitialized } =
+          await import("../temporal/service");
         const mockGetStslStats = vi.mocked(getStslStats);
         const mockIsStslInitialized = vi.mocked(isStslInitialized);
         mockIsStslInitialized.mockReturnValue(true);
@@ -271,9 +270,8 @@ Vague in-flight work.
       });
 
       test("includes recommendation when search_attributes not ok", async () => {
-        const { getStslStats, isStslInitialized } = await import(
-          "../temporal/service"
-        );
+        const { getStslStats, isStslInitialized } =
+          await import("../temporal/service");
         const mockGetStslStats = vi.mocked(getStslStats);
         const mockIsStslInitialized = vi.mocked(isStslInitialized);
         mockIsStslInitialized.mockReturnValue(true);
@@ -301,9 +299,8 @@ Vague in-flight work.
       });
 
       test("shows search_attributes as unknown when STSL not initialized", async () => {
-        const { getStslStats, isStslInitialized } = await import(
-          "../temporal/service"
-        );
+        const { getStslStats, isStslInitialized } =
+          await import("../temporal/service");
         const mockGetStslStats = vi.mocked(getStslStats);
         const mockIsStslInitialized = vi.mocked(isStslInitialized);
         mockIsStslInitialized.mockReturnValue(false);

@@ -367,29 +367,27 @@ describe("temporal operator tools", () => {
     // First calls: check sees only AdvProjectId (triggers registration of the rest)
     // Subsequent calls: all SAs present (post-registration verification)
     let callCount = 0;
-    bundle.connection.operatorService.listSearchAttributes = vi.fn(
-      async () => {
-        callCount++;
-        if (callCount === 1) {
-          // Pre-registration check: only AdvProjectId present
-          return {
-            customAttributes: {
-              AdvProjectId: { indexedValueType: 1 },
-            },
-          };
-        }
-        // Post-registration (calls 2+): all present
+    bundle.connection.operatorService.listSearchAttributes = vi.fn(async () => {
+      callCount++;
+      if (callCount === 1) {
+        // Pre-registration check: only AdvProjectId present
         return {
           customAttributes: {
             AdvProjectId: { indexedValueType: 1 },
-            AdvChangeId: { indexedValueType: 1 },
-            AdvChangeStatus: { indexedValueType: 1 },
-            AdvActiveGate: { indexedValueType: 1 },
-            AdvDoomLoopActive: { indexedValueType: 4 },
           },
         };
-      },
-    );
+      }
+      // Post-registration (calls 2+): all present
+      return {
+        customAttributes: {
+          AdvProjectId: { indexedValueType: 1 },
+          AdvChangeId: { indexedValueType: 1 },
+          AdvChangeStatus: { indexedValueType: 1 },
+          AdvActiveGate: { indexedValueType: 1 },
+          AdvDoomLoopActive: { indexedValueType: 4 },
+        },
+      };
+    });
     bundle.connection.operatorService.addSearchAttributes = vi
       .fn()
       .mockResolvedValue({});
@@ -545,7 +543,9 @@ describe("temporal operator tools", () => {
   describe("searchAttributesStatus in adv_temporal_diagnose", () => {
     it("returns searchAttributesStatus 'ok' when all SAs present", async () => {
       // Default getService mock returns all SAs present
-      const store = { paths: { root: "/repo", external: "/data/proj123" } } as any;
+      const store = {
+        paths: { root: "/repo", external: "/data/proj123" },
+      } as any;
       const result = await temporalOpsTools.adv_temporal_diagnose.execute(
         {},
         store,
@@ -557,7 +557,9 @@ describe("temporal operator tools", () => {
 
     it("returns searchAttributesStatus 'missing' when STSL not initialized", async () => {
       mocks.getService.mockReturnValueOnce(null as any);
-      const store = { paths: { root: "/repo", external: "/data/proj123" } } as any;
+      const store = {
+        paths: { root: "/repo", external: "/data/proj123" },
+      } as any;
       const result = await temporalOpsTools.adv_temporal_diagnose.execute(
         {},
         store,
@@ -578,7 +580,9 @@ describe("temporal operator tools", () => {
         }),
       );
       mocks.getService.mockReturnValueOnce(bundle as any);
-      const store = { paths: { root: "/repo", external: "/data/proj123" } } as any;
+      const store = {
+        paths: { root: "/repo", external: "/data/proj123" },
+      } as any;
       const result = await temporalOpsTools.adv_temporal_diagnose.execute(
         {},
         store,

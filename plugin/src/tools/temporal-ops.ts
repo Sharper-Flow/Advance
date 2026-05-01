@@ -211,10 +211,7 @@ export const temporalOpsTools = {
       // Compute searchAttributesStatus from the searchAttributes check result
       let searchAttributesStatus: "ok" | "degraded" | "missing";
       if (!searchAttributes.ok) {
-        if (
-          searchAttributes.error ||
-          !bundle
-        ) {
+        if (searchAttributes.error || !bundle) {
           searchAttributesStatus = "missing";
         } else if (
           searchAttributes.missing.length > 0 ||

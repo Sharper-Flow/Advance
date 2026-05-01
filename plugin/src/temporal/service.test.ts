@@ -85,7 +85,8 @@ describe("STSL (Shared Temporal Service Layer)", () => {
     mocks.listSearchAttributes
       .mockResolvedValueOnce({ customAttributes: {} }) // check before register
       .mockResolvedValueOnce({ customAttributes: {} }) // verification poll 1
-      .mockResolvedValue({ // verification polls 2+ succeed
+      .mockResolvedValue({
+        // verification polls 2+ succeed
         customAttributes: {
           AdvProjectId: { indexedValueType: 1 },
           AdvChangeId: { indexedValueType: 1 },
@@ -518,9 +519,7 @@ describe("verifyAdvSearchAttributes", () => {
 
   it("handles listSearchAttributes throwing an error", async () => {
     const original = mocks.listSearchAttributes.getMockImplementation();
-    mocks.listSearchAttributes.mockRejectedValue(
-      new Error("gRPC UNAVAILABLE"),
-    );
+    mocks.listSearchAttributes.mockRejectedValue(new Error("gRPC UNAVAILABLE"));
 
     const result = await verifyAdvSearchAttributes(
       mocks.connection,
