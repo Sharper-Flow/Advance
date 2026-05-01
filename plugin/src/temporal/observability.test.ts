@@ -49,7 +49,7 @@ describe("temporal observability helpers", () => {
 
   it("classifies present, missing, and wrong-type search attributes", async () => {
     const operatorService = {
-      getSearchAttributes: async () => ({
+      listSearchAttributes: async () => ({
         customAttributes: {
           AdvProjectId: { indexedValueType: 1 },
           AdvChangeId: { indexedValueType: 1 },
@@ -86,7 +86,7 @@ describe("temporal observability helpers", () => {
   it("registers only missing search attributes and reports method", async () => {
     const addSearchAttributes = vi.fn().mockResolvedValue({});
     const operatorService = {
-      getSearchAttributes: async () => ({
+      listSearchAttributes: async () => ({
         customAttributes: {
           AdvProjectId: { indexedValueType: 1 },
           AdvChangeId: { indexedValueType: 1 },

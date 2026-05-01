@@ -141,17 +141,25 @@ export async function ensureChangeWorkflowStarted(
   ] = [input];
 
   try {
-    return await client.workflow.start(changeWorkflow, {
+    const startOpts: {
+      workflowId: string;
+      taskQueue: string;
+      args: [unknown];
+      searchAttributes?: Record<string, unknown[]>;
+    } = {
       workflowId,
       taskQueue,
       args,
-      searchAttributes: buildTemporalSearchAttributes({
+    };
+    if (input.searchAttributesEnabled !== false) {
+      startOpts.searchAttributes = buildTemporalSearchAttributes({
         projectId: input.projectId,
         changeId: input.changeId,
         changeStatus: "draft",
         activeGate: "proposal",
-      }),
-    });
+      });
+    }
+    return await client.workflow.start(changeWorkflow, startOpts);
   } catch (error) {
     if (isAlreadyStartedError(error)) {
       return client.workflow.getHandle(workflowId);

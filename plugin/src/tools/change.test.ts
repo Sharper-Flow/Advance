@@ -2079,6 +2079,64 @@ describe("Change Tools", () => {
       expect(parsed.incompleteGates).toBeDefined();
       expect(parsed.incompleteGates.length).toBeGreaterThan(0);
     });
+
+    // rq-archiveOrdering01.1: idempotent retry skips disk write when bundle
+    // already exists. Simulates the recovery scenario where a previous
+    // archive succeeded on disk but the status transition failed.
+    test("idempotent retry: detects existing bundle and uses its path", async () => {
+      await completeArchivePreflight();
+
+      // First archive succeeds and writes bundle to a date-prefixed dir.
+      const first = parseToolOutput(
+        await changeTools.adv_change_archive.execute(
+          { changeId: "addFeature" },
+          store,
+        ),
+      );
+      expect(first.success).toBe(true);
+      const bundlePath = first.archivePath;
+      await access(join(bundlePath, "change.json"));
+
+      // findArchiveBundle locates the existing bundle by changeId.
+      const { findArchiveBundle, archiveBundleExists } =
+        await import("../archive");
+      const archiveRoot = join(tempDir, ".adv/archive");
+      const found = await findArchiveBundle(archiveRoot, "addFeature");
+      expect(found).toBe(bundlePath);
+      expect(await archiveBundleExists(archiveRoot, "addFeature")).toBe(true);
+    });
+
+    // rq-archiveOrdering01.2: archive error output surfaces full cause chain
+    // when the post-disk status transition (store.changes.save) fails.
+    test("surfaces full cause chain when status transition fails", async () => {
+      await completeArchivePreflight();
+
+      // Monkey-patch store.changes.save to throw with a nested cause.
+      const originalSave = store.changes.save.bind(store.changes);
+      const innerCause = new Error("workflow rejected: AdvChangeId missing");
+      const outerError = new Error("WorkflowUpdateFailedError");
+      (outerError as Error & { cause?: unknown }).cause = innerCause;
+      store.changes.save = async () => {
+        throw outerError;
+      };
+
+      try {
+        const result = await changeTools.adv_change_archive.execute(
+          { changeId: "addFeature" },
+          store,
+        );
+        const parsed = parseToolOutput(result);
+
+        expect(parsed.success).toBe(false);
+        // Cause-chain text must include both outer and inner messages.
+        expect(parsed.error).toContain("WorkflowUpdateFailedError");
+        expect(parsed.error).toContain("AdvChangeId missing");
+        // Bundle path is preserved so caller can retry idempotently.
+        expect(parsed.archivePath).toBeTruthy();
+      } finally {
+        store.changes.save = originalSave;
+      }
+    });
   });
 
   describe("adv_change_update_issues", () => {

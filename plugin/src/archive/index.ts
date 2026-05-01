@@ -5,4 +5,8 @@
  */
 
 // Main orchestrator
-export { archiveChange } from "./archive";
+export {
+  archiveChange,
+  archiveBundleExists,
+  findArchiveBundle,
+} from "./archive";

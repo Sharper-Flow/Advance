@@ -536,9 +536,13 @@ export async function changeWorkflow(
         ];
         const currentIdx = gateOrder.indexOf(gateId);
         const nextGate = gateOrder[currentIdx + 1];
-        wf.upsertSearchAttributes({
-          [ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES.activeGate]: [nextGate ?? "done"],
-        });
+        if (input.searchAttributesEnabled !== false) {
+          wf.upsertSearchAttributes({
+            [ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES.activeGate]: [
+              nextGate ?? "done",
+            ],
+          });
+        }
         wf.log.info("op:end", {
           op: "completeGateUpdate",
           changeId: state.changeId,
@@ -640,9 +644,11 @@ export async function changeWorkflow(
         title: state.title?.slice(0, 80),
       });
       const result = archiveChangeInChangeState(state);
-      wf.upsertSearchAttributes({
-        [ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES.changeStatus]: ["archived"],
-      });
+      if (input.searchAttributesEnabled !== false) {
+        wf.upsertSearchAttributes({
+          [ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES.changeStatus]: ["archived"],
+        });
+      }
       wf.log.info("op:end", {
         op: "archiveChangeUpdate",
         changeId: state.changeId,
@@ -661,9 +667,11 @@ export async function changeWorkflow(
           title: state.title?.slice(0, 80),
         });
         const result = closeChangeInChangeState(state, closure);
-        wf.upsertSearchAttributes({
-          [ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES.changeStatus]: ["closed"],
-        });
+        if (input.searchAttributesEnabled !== false) {
+          wf.upsertSearchAttributes({
+            [ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES.changeStatus]: ["closed"],
+          });
+        }
         wf.log.info("op:end", {
           op: "closeChangeUpdate",
           changeId: state.changeId,
@@ -688,6 +696,7 @@ export async function changeWorkflow(
     projectId,
     initializedAt,
     title,
+    searchAttributesEnabled: input.searchAttributesEnabled,
     seedState: {
       status: state.status,
       tasks: state.tasks,
