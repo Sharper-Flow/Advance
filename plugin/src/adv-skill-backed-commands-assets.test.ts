@@ -71,6 +71,33 @@ describe("skill-backed command assets", () => {
     });
   }
 
+  test("adv-slop-detection skill documents false-positive control guidance", () => {
+    const content = readFileSync(
+      join(REPO_ROOT, "skills/adv-slop-detection/SKILL.md"),
+      "utf8",
+    );
+
+    expect(content).toContain("## False-Positive Control");
+    expect(content).toContain("Context Boundary");
+    expect(content).toContain(
+      "context packets are orientation only, not finding locations",
+    );
+    expect(content).toContain("Source Evidence Requirement");
+    expect(content).toContain("Every finding must cite a target source file");
+    expect(content).toContain(
+      "Low-confidence findings are non-blocking by default",
+    );
+    expect(content).toContain(
+      "AST-backed structural findings default to `confidence: high`",
+    );
+    expect(content).toContain(
+      "Regex-only defensive-overkill findings default to `confidence: medium`",
+    );
+    expect(content).toContain(
+      "Degraded fallback findings default to `confidence: low`",
+    );
+  });
+
   for (const { command, commandPath } of SHARED_SKILL_COMMANDS) {
     test(`${command} command loads its backing skill`, () => {
       const content = readFileSync(commandPath, "utf8");
