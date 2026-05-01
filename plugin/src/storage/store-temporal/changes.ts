@@ -240,6 +240,28 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
     },
     close: async (changeId: string, closure: ChangeClosure) => {
       invalidateChange(changeId);
+
+      // Layer C1 (rq-archiveRetirement01-followon for closed class):
+      // disk-first safety-net write. Without this, close() updates the
+      // in-memory overlay only — disk change.json retains stale draft
+      // status. On process restart, listResolvedChanges disk fallback
+      // returns the stale draft as a zombie. Closed changes have NO
+      // archive bundle, so Layer A1 cannot detect them.
+      //
+      // Disk-first ordering: if disk write fails, propagate the error
+      // and DO NOT execute the Temporal transition (no half-state).
+      // The current state is fetched from Temporal/disk and merged with
+      // the closed status + closure to write a complete change.json.
+      const current = await getTemporalChange(changeId);
+      if (current.success && current.data) {
+        const updated: Change = {
+          ...current.data,
+          status: "closed",
+          closure,
+        };
+        await legacy.changes.save(updated);
+      }
+
       const raw = await runTemporal(async () =>
         (await getGuardedChangeHandle(input, changeId)).executeUpdate(
           closeChangeUpdate,

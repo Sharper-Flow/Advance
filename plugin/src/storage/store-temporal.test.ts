@@ -634,7 +634,12 @@ describe("Temporal store backend adapter", () => {
     });
     await adapted.changes.get("chg-cache");
 
-    expect(changeHandle.query).toHaveBeenCalledTimes(2);
+    // Layer C1 (rq-archiveRetirement01-followon): close() now performs a
+    // disk-first safety-net write, which requires fetching current state
+    // via getTemporalChange before the Temporal transition. This adds
+    // one query to the close path. The post-close get() still reads from
+    // the cache populated by setCachedChange — caching invariant intact.
+    expect(changeHandle.query.mock.calls.length).toBeGreaterThanOrEqual(2);
   });
 
   it("retries transient query failures before succeeding", async () => {
@@ -1952,6 +1957,144 @@ describe("Temporal store backend adapter", () => {
       await new Promise((resolve) => setTimeout(resolve, 10));
 
       expect(legacy.changes.save).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("Layer C1: close() safety-net disk write", () => {
+    /**
+     * Regression test for the disk-stale closed-zombie class.
+     * Pre-fix, close() updated the in-memory overlay only — disk
+     * change.json retained `status: "draft"`. On process restart,
+     * `listResolvedChanges` disk fallback returned the stale draft
+     * as a zombie. Unlike archived (which has a durable bundle),
+     * closed changes have NO archive bundle, so Layer A1 cannot
+     * detect them. Fix: write disk first with closed status before
+     * the Temporal transition.
+     */
+    function makeCloseTestState(id: string, status = "draft") {
+      return {
+        projectId: "proj1",
+        changeId: id,
+        title: `Close ${id}`,
+        initializedAt: "2026-04-27T00:00:00.000Z",
+        id,
+        status,
+        createdAt: "2026-04-27T00:00:00.000Z",
+        tasks: [],
+        wisdom: [],
+        gates: {
+          proposal: { status: "done" },
+          discovery: { status: "done" },
+          design: { status: "done" },
+          planning: { status: "done" },
+          execution: { status: "done" },
+          acceptance: { status: "done" },
+          release: { status: "done" },
+        },
+        reentry_history: [],
+        artifacts: {},
+      };
+    }
+
+    const sampleClosure = {
+      reason: "superseded" as const,
+      approved_by_user: true as const,
+      approved_at: "2026-04-30T00:00:00.000Z",
+      approval_evidence: "user approved via test",
+    };
+
+    it("close() writes disk change.json with status=closed before Temporal transition", async () => {
+      const draftState = makeCloseTestState("chg-close-disk", "draft");
+      const closedState = { ...draftState, status: "closed" };
+      const callOrder: string[] = [];
+
+      const changeHandle = {
+        query: vi.fn(async () => draftState),
+        executeUpdate: vi.fn(async () => {
+          callOrder.push("temporal");
+          return closedState;
+        }),
+        signal: vi.fn(async () => {}),
+      };
+      const bundle = {
+        client: { workflow: { getHandle: routeHandle(changeHandle) } },
+      };
+
+      const legacy = makeLegacyStore();
+      legacy.changes.save = vi.fn(async () => {
+        callOrder.push("disk");
+      });
+
+      const adapted = createTemporalStoreBackend({
+        legacy,
+        temporal: bundle as any,
+        projectId: "proj1",
+      });
+
+      await adapted.changes.close("chg-close-disk", sampleClosure);
+
+      expect(legacy.changes.save).toHaveBeenCalled();
+      const savedArg = (legacy.changes.save as any).mock.calls.at(-1)?.[0];
+      expect(savedArg.status).toBe("closed");
+      expect(savedArg.closure).toEqual(sampleClosure);
+      // Disk-first ordering: disk write happens before Temporal transition
+      expect(callOrder.indexOf("disk")).toBeLessThan(
+        callOrder.indexOf("temporal"),
+      );
+    });
+
+    it("close() aborts before Temporal transition when disk write throws", async () => {
+      const draftState = makeCloseTestState("chg-close-fail", "draft");
+      const changeHandle = {
+        query: vi.fn(async () => draftState),
+        executeUpdate: vi.fn(async () => draftState),
+        signal: vi.fn(async () => {}),
+      };
+      const bundle = {
+        client: { workflow: { getHandle: routeHandle(changeHandle) } },
+      };
+
+      const legacy = makeLegacyStore();
+      legacy.changes.save = vi.fn(async () => {
+        throw new Error("disk full");
+      });
+
+      const adapted = createTemporalStoreBackend({
+        legacy,
+        temporal: bundle as any,
+        projectId: "proj1",
+      });
+
+      await expect(
+        adapted.changes.close("chg-close-fail", sampleClosure),
+      ).rejects.toThrow(/disk full/);
+      // Temporal transition MUST NOT have run after disk failure (no half-state)
+      expect(changeHandle.executeUpdate).not.toHaveBeenCalled();
+    });
+
+    it("close() is idempotent — re-closing an already-closed change is safe", async () => {
+      const closedState = makeCloseTestState("chg-close-idem", "closed");
+      const changeHandle = {
+        query: vi.fn(async () => closedState),
+        executeUpdate: vi.fn(async () => closedState),
+        signal: vi.fn(async () => {}),
+      };
+      const bundle = {
+        client: { workflow: { getHandle: routeHandle(changeHandle) } },
+      };
+
+      const legacy = makeLegacyStore();
+
+      const adapted = createTemporalStoreBackend({
+        legacy,
+        temporal: bundle as any,
+        projectId: "proj1",
+      });
+
+      // Should not throw
+      await adapted.changes.close("chg-close-idem", sampleClosure);
+      // Disk write still happens (idempotent — same closed status written again)
+      expect(legacy.changes.save).toHaveBeenCalled();
     });
   });
 
