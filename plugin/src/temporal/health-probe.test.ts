@@ -31,11 +31,11 @@ const mocks = vi.hoisted(() => ({
       addSearchAttributes: vi.fn(async () => {}),
       listSearchAttributes: vi.fn(async () => ({
         customAttributes: {
-          AdvProjectId: { indexedValueType: 1 },
-          AdvChangeId: { indexedValueType: 1 },
-          AdvChangeStatus: { indexedValueType: 1 },
-          AdvActiveGate: { indexedValueType: 1 },
-          AdvDoomLoopActive: { indexedValueType: 4 },
+          AdvProjectId: { indexedValueType: 2 },
+          AdvChangeId: { indexedValueType: 2 },
+          AdvChangeStatus: { indexedValueType: 2 },
+          AdvActiveGate: { indexedValueType: 2 },
+          AdvDoomLoopActive: { indexedValueType: 5 },
         },
       })),
     },

@@ -68,11 +68,11 @@ const mocks = vi.hoisted(() => ({
       operatorService: {
         listSearchAttributes: vi.fn(async () => ({
           customAttributes: {
-            AdvProjectId: { indexedValueType: 1 },
-            AdvChangeId: { indexedValueType: 1 },
-            AdvChangeStatus: { indexedValueType: 1 },
-            AdvActiveGate: { indexedValueType: 1 },
-            AdvDoomLoopActive: { indexedValueType: 4 },
+            AdvProjectId: { indexedValueType: 2 },
+            AdvChangeId: { indexedValueType: 2 },
+            AdvChangeStatus: { indexedValueType: 2 },
+            AdvActiveGate: { indexedValueType: 2 },
+            AdvDoomLoopActive: { indexedValueType: 5 },
           },
         })),
       },
@@ -373,18 +373,18 @@ describe("temporal operator tools", () => {
         // Pre-registration check: only AdvProjectId present
         return {
           customAttributes: {
-            AdvProjectId: { indexedValueType: 1 },
+            AdvProjectId: { indexedValueType: 2 },
           },
         };
       }
       // Post-registration (calls 2+): all present
       return {
         customAttributes: {
-          AdvProjectId: { indexedValueType: 1 },
-          AdvChangeId: { indexedValueType: 1 },
-          AdvChangeStatus: { indexedValueType: 1 },
-          AdvActiveGate: { indexedValueType: 1 },
-          AdvDoomLoopActive: { indexedValueType: 4 },
+          AdvProjectId: { indexedValueType: 2 },
+          AdvChangeId: { indexedValueType: 2 },
+          AdvChangeStatus: { indexedValueType: 2 },
+          AdvActiveGate: { indexedValueType: 2 },
+          AdvDoomLoopActive: { indexedValueType: 5 },
         },
       };
     });
@@ -419,10 +419,10 @@ describe("temporal operator tools", () => {
     ).toHaveBeenCalledWith({
       namespace: "default",
       searchAttributes: {
-        AdvChangeId: 1,
-        AdvChangeStatus: 1,
-        AdvActiveGate: 1,
-        AdvDoomLoopActive: 4,
+        AdvChangeId: 2,
+        AdvChangeStatus: 2,
+        AdvActiveGate: 2,
+        AdvDoomLoopActive: 5,
       },
     });
   });
@@ -574,7 +574,7 @@ describe("temporal operator tools", () => {
       bundle.connection.operatorService.listSearchAttributes = vi.fn(
         async () => ({
           customAttributes: {
-            AdvProjectId: { indexedValueType: 1 },
+            AdvProjectId: { indexedValueType: 2 },
             // Missing: AdvChangeId, AdvChangeStatus, AdvActiveGate, AdvDoomLoopActive
           },
         }),
@@ -601,17 +601,17 @@ describe("temporal operator tools", () => {
         // First call: check before register → some missing
         .mockResolvedValueOnce({
           customAttributes: {
-            AdvProjectId: { indexedValueType: 1 },
+            AdvProjectId: { indexedValueType: 2 },
           },
         })
         // Second call: check after register → all present (verification)
         .mockResolvedValue({
           customAttributes: {
-            AdvProjectId: { indexedValueType: 1 },
-            AdvChangeId: { indexedValueType: 1 },
-            AdvChangeStatus: { indexedValueType: 1 },
-            AdvActiveGate: { indexedValueType: 1 },
-            AdvDoomLoopActive: { indexedValueType: 4 },
+            AdvProjectId: { indexedValueType: 2 },
+            AdvChangeId: { indexedValueType: 2 },
+            AdvChangeStatus: { indexedValueType: 2 },
+            AdvActiveGate: { indexedValueType: 2 },
+            AdvDoomLoopActive: { indexedValueType: 5 },
           },
         });
       bundle.connection.operatorService.addSearchAttributes = vi

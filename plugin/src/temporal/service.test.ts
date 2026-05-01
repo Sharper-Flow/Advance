@@ -6,11 +6,11 @@ const mocks = vi.hoisted(() => {
   const addSearchAttributes = vi.fn().mockResolvedValue({});
   const listSearchAttributes = vi.fn().mockResolvedValue({
     customAttributes: {
-      AdvProjectId: { indexedValueType: 1 },
-      AdvChangeId: { indexedValueType: 1 },
-      AdvChangeStatus: { indexedValueType: 1 },
-      AdvActiveGate: { indexedValueType: 1 },
-      AdvDoomLoopActive: { indexedValueType: 4 },
+      AdvProjectId: { indexedValueType: 2 },
+      AdvChangeId: { indexedValueType: 2 },
+      AdvChangeStatus: { indexedValueType: 2 },
+      AdvActiveGate: { indexedValueType: 2 },
+      AdvDoomLoopActive: { indexedValueType: 5 },
     },
   });
   const connection = {
@@ -88,11 +88,11 @@ describe("STSL (Shared Temporal Service Layer)", () => {
       .mockResolvedValue({
         // verification polls 2+ succeed
         customAttributes: {
-          AdvProjectId: { indexedValueType: 1 },
-          AdvChangeId: { indexedValueType: 1 },
-          AdvChangeStatus: { indexedValueType: 1 },
-          AdvActiveGate: { indexedValueType: 1 },
-          AdvDoomLoopActive: { indexedValueType: 4 },
+          AdvProjectId: { indexedValueType: 2 },
+          AdvChangeId: { indexedValueType: 2 },
+          AdvChangeStatus: { indexedValueType: 2 },
+          AdvActiveGate: { indexedValueType: 2 },
+          AdvDoomLoopActive: { indexedValueType: 5 },
         },
       });
 
@@ -106,11 +106,11 @@ describe("STSL (Shared Temporal Service Layer)", () => {
     expect(call[0]).toEqual({
       namespace: "default",
       searchAttributes: {
-        AdvProjectId: 1, // KEYWORD
-        AdvChangeId: 1, // KEYWORD
-        AdvChangeStatus: 1, // KEYWORD
-        AdvActiveGate: 1, // KEYWORD
-        AdvDoomLoopActive: 4, // BOOL
+        AdvProjectId: 2, // KEYWORD
+        AdvChangeId: 2, // KEYWORD
+        AdvChangeStatus: 2, // KEYWORD
+        AdvActiveGate: 2, // KEYWORD
+        AdvDoomLoopActive: 5, // BOOL
       },
     });
   });
@@ -275,11 +275,11 @@ describe("reinitStsl (Task 2 — comprehensive coverage)", () => {
         addSearchAttributes: vi.fn().mockResolvedValue({}),
         listSearchAttributes: vi.fn().mockResolvedValue({
           customAttributes: {
-            AdvProjectId: { indexedValueType: 1 },
-            AdvChangeId: { indexedValueType: 1 },
-            AdvChangeStatus: { indexedValueType: 1 },
-            AdvActiveGate: { indexedValueType: 1 },
-            AdvDoomLoopActive: { indexedValueType: 4 },
+            AdvProjectId: { indexedValueType: 2 },
+            AdvChangeId: { indexedValueType: 2 },
+            AdvChangeStatus: { indexedValueType: 2 },
+            AdvActiveGate: { indexedValueType: 2 },
+            AdvDoomLoopActive: { indexedValueType: 5 },
           },
         }),
       },
@@ -364,11 +364,11 @@ describe("reinitStsl (Task 2 — comprehensive coverage)", () => {
       .mockResolvedValueOnce({ customAttributes: {} }) // verification poll 1
       .mockResolvedValue({
         customAttributes: {
-          AdvProjectId: { indexedValueType: 1 },
-          AdvChangeId: { indexedValueType: 1 },
-          AdvChangeStatus: { indexedValueType: 1 },
-          AdvActiveGate: { indexedValueType: 1 },
-          AdvDoomLoopActive: { indexedValueType: 4 },
+          AdvProjectId: { indexedValueType: 2 },
+          AdvChangeId: { indexedValueType: 2 },
+          AdvChangeStatus: { indexedValueType: 2 },
+          AdvActiveGate: { indexedValueType: 2 },
+          AdvDoomLoopActive: { indexedValueType: 5 },
         },
       });
 
@@ -507,11 +507,11 @@ describe("verifyAdvSearchAttributes", () => {
     } else {
       mocks.listSearchAttributes.mockResolvedValue({
         customAttributes: {
-          AdvProjectId: { indexedValueType: 1 },
-          AdvChangeId: { indexedValueType: 1 },
-          AdvChangeStatus: { indexedValueType: 1 },
-          AdvActiveGate: { indexedValueType: 1 },
-          AdvDoomLoopActive: { indexedValueType: 4 },
+          AdvProjectId: { indexedValueType: 2 },
+          AdvChangeId: { indexedValueType: 2 },
+          AdvChangeStatus: { indexedValueType: 2 },
+          AdvActiveGate: { indexedValueType: 2 },
+          AdvDoomLoopActive: { indexedValueType: 5 },
         },
       });
     }
@@ -537,11 +537,11 @@ describe("verifyAdvSearchAttributes", () => {
     } else {
       mocks.listSearchAttributes.mockResolvedValue({
         customAttributes: {
-          AdvProjectId: { indexedValueType: 1 },
-          AdvChangeId: { indexedValueType: 1 },
-          AdvChangeStatus: { indexedValueType: 1 },
-          AdvActiveGate: { indexedValueType: 1 },
-          AdvDoomLoopActive: { indexedValueType: 4 },
+          AdvProjectId: { indexedValueType: 2 },
+          AdvChangeId: { indexedValueType: 2 },
+          AdvChangeStatus: { indexedValueType: 2 },
+          AdvActiveGate: { indexedValueType: 2 },
+          AdvDoomLoopActive: { indexedValueType: 5 },
         },
       });
     }
@@ -556,11 +556,11 @@ describe("initStsl verification integration", () => {
     // (previous tests may have overridden it with mockResolvedValue/mockRejectedValue)
     mocks.listSearchAttributes.mockResolvedValue({
       customAttributes: {
-        AdvProjectId: { indexedValueType: 1 },
-        AdvChangeId: { indexedValueType: 1 },
-        AdvChangeStatus: { indexedValueType: 1 },
-        AdvActiveGate: { indexedValueType: 1 },
-        AdvDoomLoopActive: { indexedValueType: 4 },
+        AdvProjectId: { indexedValueType: 2 },
+        AdvChangeId: { indexedValueType: 2 },
+        AdvChangeStatus: { indexedValueType: 2 },
+        AdvActiveGate: { indexedValueType: 2 },
+        AdvDoomLoopActive: { indexedValueType: 5 },
       },
     });
   });
@@ -615,11 +615,11 @@ describe("initStsl verification integration", () => {
         addSearchAttributes: vi.fn().mockResolvedValue({}),
         listSearchAttributes: vi.fn().mockResolvedValue({
           customAttributes: {
-            AdvProjectId: { indexedValueType: 1 },
-            AdvChangeId: { indexedValueType: 1 },
-            AdvChangeStatus: { indexedValueType: 1 },
-            AdvActiveGate: { indexedValueType: 1 },
-            AdvDoomLoopActive: { indexedValueType: 4 },
+            AdvProjectId: { indexedValueType: 2 },
+            AdvChangeId: { indexedValueType: 2 },
+            AdvChangeStatus: { indexedValueType: 2 },
+            AdvActiveGate: { indexedValueType: 2 },
+            AdvDoomLoopActive: { indexedValueType: 5 },
           },
         }),
       },

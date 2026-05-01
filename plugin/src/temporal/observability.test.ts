@@ -39,11 +39,11 @@ describe("temporal observability helpers", () => {
 
   it("declares required ADV search attributes with server types", () => {
     expect(requiredAdvSearchAttributes()).toEqual([
-      { name: "AdvProjectId", type: "Keyword", typeCode: 1 },
-      { name: "AdvChangeId", type: "Keyword", typeCode: 1 },
-      { name: "AdvChangeStatus", type: "Keyword", typeCode: 1 },
-      { name: "AdvActiveGate", type: "Keyword", typeCode: 1 },
-      { name: "AdvDoomLoopActive", type: "Bool", typeCode: 4 },
+      { name: "AdvProjectId", type: "Keyword", typeCode: 2 },
+      { name: "AdvChangeId", type: "Keyword", typeCode: 2 },
+      { name: "AdvChangeStatus", type: "Keyword", typeCode: 2 },
+      { name: "AdvActiveGate", type: "Keyword", typeCode: 2 },
+      { name: "AdvDoomLoopActive", type: "Bool", typeCode: 5 },
     ]);
   });
 
@@ -75,13 +75,17 @@ describe("temporal observability helpers", () => {
   });
 
   it("classifies present, missing, and wrong-type search attributes", async () => {
+    // Mock fixture types use canonical IndexedValueType codes:
+    //   Keyword = 2, Int = 3 (used here as wrong-type sentinel), Bool = 5.
+    // AdvChangeStatus is intentionally registered as Int (3) to exercise
+    // wrong-type classification — it must NOT equal Keyword (2) or Bool (5).
     const operatorService = {
       listSearchAttributes: async () => ({
         customAttributes: {
-          AdvProjectId: { indexedValueType: 1 },
-          AdvChangeId: { indexedValueType: 1 },
-          AdvChangeStatus: { indexedValueType: 2 },
-          AdvActiveGate: { indexedValueType: 1 },
+          AdvProjectId: { indexedValueType: 2 },
+          AdvChangeId: { indexedValueType: 2 },
+          AdvChangeStatus: { indexedValueType: 3 },
+          AdvActiveGate: { indexedValueType: 2 },
         },
       }),
     };
@@ -105,8 +109,8 @@ describe("temporal observability helpers", () => {
       {
         name: "AdvChangeStatus",
         expected: "Keyword",
-        expectedCode: 1,
-        actualCode: 2,
+        expectedCode: 2,
+        actualCode: 3,
       },
     ]);
   });
@@ -160,10 +164,10 @@ describe("temporal observability helpers", () => {
     const operatorService = {
       listSearchAttributes: async () => ({
         customAttributes: {
-          AdvProjectId: { indexedValueType: 1 },
-          AdvChangeId: { indexedValueType: 1 },
-          AdvChangeStatus: { indexedValueType: 1 },
-          AdvActiveGate: { indexedValueType: 1 },
+          AdvProjectId: { indexedValueType: 2 },
+          AdvChangeId: { indexedValueType: 2 },
+          AdvChangeStatus: { indexedValueType: 2 },
+          AdvActiveGate: { indexedValueType: 2 },
         },
       }),
       addSearchAttributes,
@@ -176,18 +180,18 @@ describe("temporal observability helpers", () => {
 
     expect(addSearchAttributes).toHaveBeenCalledWith({
       namespace: "default",
-      searchAttributes: { AdvDoomLoopActive: 4 },
+      searchAttributes: { AdvDoomLoopActive: 5 },
     });
     expect(result).toEqual({
       ok: true,
       method: "operatorService.addSearchAttributes",
       verificationStatus: "verified",
-      created: [{ name: "AdvDoomLoopActive", type: "Bool", typeCode: 4 }],
+      created: [{ name: "AdvDoomLoopActive", type: "Bool", typeCode: 5 }],
       skipped: [
-        { name: "AdvProjectId", type: "Keyword", typeCode: 1 },
-        { name: "AdvChangeId", type: "Keyword", typeCode: 1 },
-        { name: "AdvChangeStatus", type: "Keyword", typeCode: 1 },
-        { name: "AdvActiveGate", type: "Keyword", typeCode: 1 },
+        { name: "AdvProjectId", type: "Keyword", typeCode: 2 },
+        { name: "AdvChangeId", type: "Keyword", typeCode: 2 },
+        { name: "AdvChangeStatus", type: "Keyword", typeCode: 2 },
+        { name: "AdvActiveGate", type: "Keyword", typeCode: 2 },
       ],
       refused: [],
     });
