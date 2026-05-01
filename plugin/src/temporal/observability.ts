@@ -40,7 +40,7 @@ export interface AdvSearchAttributeRegistrationResult {
 }
 
 interface SearchAttributeOperatorService {
-  getSearchAttributes?: (req: { namespace: string }) => Promise<unknown>;
+  listSearchAttributes?: (req: { namespace: string }) => Promise<unknown>;
   addSearchAttributes?: (req: {
     namespace: string;
     searchAttributes: Record<string, number>;
@@ -113,20 +113,20 @@ export async function checkAdvSearchAttributes(
 ): Promise<AdvSearchAttributeCheckResult> {
   const required = requiredAdvSearchAttributes();
   const operatorService = connection.operatorService;
-  if (!operatorService?.getSearchAttributes) {
+  if (!operatorService?.listSearchAttributes) {
     return {
       ok: false,
       present: [],
       missing: required,
       wrongType: [],
-      error: "OperatorService.getSearchAttributes unavailable",
+      error: "OperatorService.listSearchAttributes unavailable",
     };
   }
 
   try {
     // Temporal's generated operator service methods rely on `this.rpcCall`.
     // Call through the service object instead of destructuring the method.
-    const response = await operatorService.getSearchAttributes({ namespace });
+    const response = await operatorService.listSearchAttributes({ namespace });
     const customAttributes = extractCustomAttributes(response) ?? {};
     const present: RequiredAdvSearchAttribute[] = [];
     const missing: RequiredAdvSearchAttribute[] = [];
