@@ -1020,6 +1020,69 @@ export const CrossProjectOriginSchema = z.object({
 
 export type CrossProjectOrigin = z.infer<typeof CrossProjectOriginSchema>;
 
+export const CrossProjectLinkRelationshipSchema = z.enum([
+  "origin",
+  "follow_up",
+  "coordinates_with",
+  "depends_on",
+]);
+
+/**
+ * Outbound or inbound coordination link to a change in another project.
+ * Links are advisory/provenance metadata; each referenced project remains
+ * authoritative for its own change state.
+ */
+export const CrossProjectLinkSchema = z.object({
+  /** Absolute path to the linked project repository root */
+  target_path: z.string().min(1),
+  /** Stable ADV project ID for the linked repository, when known */
+  target_project_id: z
+    .string()
+    .regex(/^[0-9a-f]{40}$/)
+    .optional(),
+  /** Change ID in the linked project */
+  changeId: z.string().min(1),
+  /** Relationship between this change and the linked change */
+  relationship: CrossProjectLinkRelationshipSchema,
+  /** ISO8601 timestamp when the link was established */
+  linked_at: z.string(),
+});
+
+export type CrossProjectLink = z.infer<typeof CrossProjectLinkSchema>;
+
+export const ExternalDependencyRelationshipSchema = z.enum([
+  "requires",
+  "blocks",
+  "coordinates_with",
+]);
+
+/**
+ * Advisory dependency on a change, gate, or task in another project.
+ * V1 dependencies are intentionally non-blocking; unmet dependencies surface
+ * warnings/status only and do not block gates or archive.
+ */
+export const ExternalDependencySchema = z.object({
+  /** Absolute path to the dependency project repository root */
+  target_path: z.string().min(1),
+  /** Stable ADV project ID for the dependency repository, when known */
+  target_project_id: z
+    .string()
+    .regex(/^[0-9a-f]{40}$/)
+    .optional(),
+  /** Change ID in the dependency project */
+  changeId: z.string().min(1),
+  /** Optional gate that the dependency references */
+  gate: GateIdSchema.optional(),
+  /** Optional task that the dependency references */
+  taskId: z.string().min(1).optional(),
+  /** How this change relates to the external work */
+  relationship: ExternalDependencyRelationshipSchema,
+  /** V1 dependencies are advisory-only by agreement */
+  advisory: z.literal(true),
+});
+
+export type ExternalDependency = z.infer<typeof ExternalDependencySchema>;
+
 // =============================================================================
 // Fast Follow (Same-Project Follow-up Lineage)
 // =============================================================================
@@ -1080,6 +1143,10 @@ export const ChangeSchema = z
      * that origin validation is required before agreement.
      */
     cross_project_origin: CrossProjectOriginSchema.optional(),
+    /** Cross-project coordination links to changes in other projects. */
+    cross_project_links: z.array(CrossProjectLinkSchema).optional(),
+    /** Advisory external dependencies on changes/gates/tasks in other projects. */
+    external_dependencies: z.array(ExternalDependencySchema).optional(),
     /**
      * Same-project fast-follow lineage — set when this change was created
      * as a follow-up to another change within the same project. Presence
