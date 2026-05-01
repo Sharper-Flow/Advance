@@ -1954,4 +1954,246 @@ describe("Temporal store backend adapter", () => {
       expect(legacy.changes.save).not.toHaveBeenCalled();
     });
   });
+
+  describe("Layer A1: defensive listing via archive bundle existence", () => {
+    /**
+     * Regression test for the disk-stale archived-zombie class.
+     * When `removeChangeDir` cleanup fails (or a process crashes between
+     * archive transition and source cleanup), `changes/<id>/change.json`
+     * persists on disk with stale `status: "draft"`. On process restart,
+     * `listResolvedChanges` falls back to disk via `legacy.changes.get`
+     * and would otherwise return the stale draft as a zombie.
+     *
+     * Layer A1: when the disk-fallback returns non-terminal status BUT
+     * `archive/<id>/change.json` exists (durable bundle), override the
+     * loaded status to "archived" so default lists exclude it.
+     *
+     * Spec: rq-archiveRetirement01.1 — "Default active change lists do
+     * not include the archived change."
+     */
+    function buildEmptyVisibilityBundle() {
+      const projectHandle = makeProjectHandle();
+      const getHandle = vi.fn((workflowId: string) => {
+        if (workflowId.startsWith("adv/project/")) return projectHandle;
+        return {
+          query: vi.fn(async () => {
+            throw Object.assign(new Error("workflow not found"), {
+              name: "WorkflowNotFoundError",
+            });
+          }),
+          executeUpdate: vi.fn(async () => null),
+          signal: vi.fn(async () => {}),
+        };
+      });
+      return {
+        client: {
+          workflow: {
+            getHandle,
+            list: vi.fn(() => ({
+              async *[Symbol.asyncIterator]() {},
+            })),
+            start: vi.fn(),
+          },
+        },
+      };
+    }
+
+    it("disk-fallback overrides stale draft status to archived when archive bundle exists", async () => {
+      const tmp = mkdtempSync(join(tmpdir(), "adv-layer-a1-"));
+      try {
+        const changesDir = join(tmp, "changes");
+        const archiveDir = join(tmp, "archive");
+        const fs = await import("node:fs/promises");
+
+        const zombieSourceDir = join(changesDir, "chg-zombie");
+        mkdirSync(zombieSourceDir, { recursive: true });
+        const staleData = {
+          id: "chg-zombie",
+          title: "Zombie shadow",
+          status: "draft",
+          created_at: "2026-04-18T00:00:00.000Z",
+          tasks: [],
+          deltas: {},
+          wisdom: [],
+          gates: {},
+        };
+        await fs.writeFile(
+          join(zombieSourceDir, "change.json"),
+          JSON.stringify(staleData),
+        );
+
+        const bundleDir = join(archiveDir, "chg-zombie");
+        mkdirSync(bundleDir, { recursive: true });
+        await fs.writeFile(
+          join(bundleDir, "change.json"),
+          JSON.stringify({ ...staleData, status: "archived" }),
+        );
+
+        const bundle = buildEmptyVisibilityBundle();
+
+        const legacy = makeLegacyStore();
+        legacy.paths.changes = changesDir as any;
+        legacy.paths.archive = archiveDir as any;
+        legacy.changes.get = vi.fn(async (id: string) => {
+          if (id === "chg-zombie") {
+            return { success: true, data: staleData } as any;
+          }
+          return { success: false } as any;
+        });
+
+        const adapted = createTemporalStoreBackend({
+          legacy,
+          temporal: bundle as any,
+          projectId: "proj1",
+        });
+
+        const defaultList = await adapted.changes.list({});
+        expect(
+          defaultList.changes.find((c) => c.id === "chg-zombie"),
+        ).toBeUndefined();
+
+        const withArchived = await adapted.changes.list({
+          includeArchived: true,
+        });
+        const found = withArchived.changes.find((c) => c.id === "chg-zombie");
+        expect(found?.status).toBe("archived");
+      } finally {
+        rmSync(tmp, { recursive: true, force: true });
+      }
+    });
+
+    it("disk-fallback preserves draft status when no archive bundle exists (negative case)", async () => {
+      const tmp = mkdtempSync(join(tmpdir(), "adv-layer-a1-neg-"));
+      try {
+        const changesDir = join(tmp, "changes");
+        const archiveDir = join(tmp, "archive");
+        const fs = await import("node:fs/promises");
+
+        const draftDir = join(changesDir, "chg-active");
+        mkdirSync(draftDir, { recursive: true });
+        mkdirSync(archiveDir, { recursive: true });
+        const draftData = {
+          id: "chg-active",
+          title: "Active draft",
+          status: "draft",
+          created_at: "2026-04-18T00:00:00.000Z",
+          tasks: [],
+          deltas: {},
+          wisdom: [],
+          gates: {},
+        };
+        await fs.writeFile(
+          join(draftDir, "change.json"),
+          JSON.stringify(draftData),
+        );
+
+        const bundle = buildEmptyVisibilityBundle();
+
+        const legacy = makeLegacyStore();
+        legacy.paths.changes = changesDir as any;
+        legacy.paths.archive = archiveDir as any;
+        legacy.changes.get = vi.fn(async (id: string) => {
+          if (id === "chg-active") {
+            return { success: true, data: draftData } as any;
+          }
+          return { success: false } as any;
+        });
+
+        const adapted = createTemporalStoreBackend({
+          legacy,
+          temporal: bundle as any,
+          projectId: "proj1",
+        });
+
+        const result = await adapted.changes.list({});
+        const found = result.changes.find((c) => c.id === "chg-active");
+        expect(found).toBeDefined();
+        expect(found?.status).toBe("draft");
+      } finally {
+        rmSync(tmp, { recursive: true, force: true });
+      }
+    });
+
+    it("multiple zombies in one list call are all classified correctly (cache scenario)", async () => {
+      const tmp = mkdtempSync(join(tmpdir(), "adv-layer-a1-multi-"));
+      try {
+        const changesDir = join(tmp, "changes");
+        const archiveDir = join(tmp, "archive");
+        const fs = await import("node:fs/promises");
+
+        const zombieIds = ["chg-zombie-1", "chg-zombie-2", "chg-zombie-3"];
+        for (const id of zombieIds) {
+          const sourceDir = join(changesDir, id);
+          mkdirSync(sourceDir, { recursive: true });
+          const data = {
+            id,
+            title: `Zombie ${id}`,
+            status: "draft",
+            created_at: "2026-04-18T00:00:00.000Z",
+            tasks: [],
+            deltas: {},
+            wisdom: [],
+            gates: {},
+          };
+          await fs.writeFile(
+            join(sourceDir, "change.json"),
+            JSON.stringify(data),
+          );
+          const bundleDir = join(archiveDir, id);
+          mkdirSync(bundleDir, { recursive: true });
+          await fs.writeFile(
+            join(bundleDir, "change.json"),
+            JSON.stringify({ ...data, status: "archived" }),
+          );
+        }
+
+        const bundle = buildEmptyVisibilityBundle();
+
+        const legacy = makeLegacyStore();
+        legacy.paths.changes = changesDir as any;
+        legacy.paths.archive = archiveDir as any;
+        legacy.changes.get = vi.fn(async (id: string) => {
+          if (zombieIds.includes(id)) {
+            return {
+              success: true,
+              data: {
+                id,
+                title: `Zombie ${id}`,
+                status: "draft",
+                created_at: "2026-04-18T00:00:00.000Z",
+                tasks: [],
+                deltas: {},
+                wisdom: [],
+                gates: {},
+              },
+            } as any;
+          }
+          return { success: false } as any;
+        });
+
+        const adapted = createTemporalStoreBackend({
+          legacy,
+          temporal: bundle as any,
+          projectId: "proj1",
+        });
+
+        const defaultList = await adapted.changes.list({});
+        for (const id of zombieIds) {
+          expect(
+            defaultList.changes.find((c) => c.id === id),
+          ).toBeUndefined();
+        }
+
+        const withArchived = await adapted.changes.list({
+          includeArchived: true,
+        });
+        for (const id of zombieIds) {
+          const found = withArchived.changes.find((c) => c.id === id);
+          expect(found?.status).toBe("archived");
+        }
+      } finally {
+        rmSync(tmp, { recursive: true, force: true });
+      }
+    });
+  });
 });

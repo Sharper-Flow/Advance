@@ -4,7 +4,7 @@ import { createDefaultGates } from "../../types";
 import { createLogger } from "../../utils/debug-log";
 import { buildProjectWorkflowId } from "../../temporal/client";
 import { classifyTemporalError } from "../../temporal/retry-wrapper";
-import { listChangeDirs } from "../json";
+import { hasArchiveBundle, listChangeDirs } from "../json";
 import { buildChangeRecency } from "../store-types";
 import type { ChangeStatus, ProjectStatus, Spec } from "../../types";
 import { SpecSchema } from "../../types";
@@ -527,6 +527,26 @@ export function createTemporalStoreBackend(
     const CHANGE_LIST_BATCH_SIZE = 20;
     const changes: Change[] = [];
 
+    // Layer A1 (rq-archiveRetirement01.1): per-list-call cache for archive
+    // bundle existence. When `getTemporalChange` throws and we fall back to
+    // legacy disk read, the loaded change.json may carry a stale `draft`
+    // status because save(archived) intentionally skips disk writes (per
+    // rq-archiveRetirement01.2) and `removeChangeDir` is best-effort. If a
+    // matching archive bundle exists for that id, the change IS archived
+    // — override the status so default lists exclude the zombie shadow.
+    const archiveBundleCache = new Map<string, boolean>();
+    const checkArchiveBundle = async (id: string): Promise<boolean> => {
+      // Guard: if no archive path is configured (test fixtures, partial
+      // store init), skip the bundle check entirely — there's no archive
+      // to consult, so no override is possible.
+      if (!legacy.paths.archive) return false;
+      const cached = archiveBundleCache.get(id);
+      if (cached !== undefined) return cached;
+      const exists = await hasArchiveBundle(legacy.paths.archive, id);
+      archiveBundleCache.set(id, exists);
+      return exists;
+    };
+
     for (let i = 0; i < changeIds.length; i += CHANGE_LIST_BATCH_SIZE) {
       const batch = changeIds.slice(i, i + CHANGE_LIST_BATCH_SIZE);
       const loaded = await Promise.all(
@@ -537,7 +557,20 @@ export function createTemporalStoreBackend(
             // Workflow may not exist (pre-Temporal, terminated, or evicted).
             // Fall back to legacy JSON store.
             try {
-              return await legacy.changes.get(changeId);
+              const result = await legacy.changes.get(changeId);
+              // Layer A1 defensive override: if disk-fallback returned a
+              // non-terminal status but an archive bundle exists, treat
+              // as archived (the bundle is the durable terminal record).
+              if (
+                result.success &&
+                result.data &&
+                result.data.status !== "archived" &&
+                result.data.status !== "closed" &&
+                (await checkArchiveBundle(changeId))
+              ) {
+                result.data.status = "archived";
+              }
+              return result;
             } catch {
               return { success: false } as const;
             }
