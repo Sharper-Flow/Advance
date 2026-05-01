@@ -151,6 +151,69 @@ The registration tool creates missing attributes only. It refuses wrong-type
 attributes because Temporal search-attribute type migration is an operator
 decision, not a safe automatic repair.
 
+### Wrong-type ADV search attributes
+
+If `adv_temporal_diagnose` reports `wrongType` entries (attributes that exist
+but with the wrong Temporal `IndexedValueType`), the dev server has stale
+registrations from an earlier session that registered the attributes with
+incorrect numeric type codes. ADV does **not** automatically remove these
+because in-flight workflows may still reference them — removal is destructive
+and must be operator-driven.
+
+#### Symptom
+
+```text
+[adv:stsl] ADV search attributes refused (wrong type): \
+  AdvProjectId (expected Keyword, got 1), \
+  AdvChangeId (expected Keyword, got 1), \
+  ...
+[adv:stsl] Failed to register ADV search attributes (Visibility queries may fail)
+```
+
+`adv_temporal_diagnose` will additionally surface a `wrongType` array under
+the `searchAttributes` block listing each affected attribute with its
+expected and actual type codes.
+
+#### Detection
+
+```bash
+adv_temporal_diagnose
+```
+
+Look for `searchAttributes.wrongType.length > 0` in the output.
+
+#### Manual remediation
+
+1. Stop your active OpenCode sessions to avoid mid-removal races.
+2. Remove the wrong-type attributes via the Temporal CLI:
+
+   ```bash
+   temporal operator search-attribute remove --name AdvProjectId --yes
+   temporal operator search-attribute remove --name AdvChangeId --yes
+   temporal operator search-attribute remove --name AdvChangeStatus --yes
+   temporal operator search-attribute remove --name AdvActiveGate --yes
+   temporal operator search-attribute remove --name AdvDoomLoopActive --yes
+   ```
+
+3. Restart your OpenCode session. ADV's `initStsl` will re-register the
+   attributes with the correct type codes on the next session start.
+4. Re-run `adv_temporal_diagnose` to confirm `searchAttributes.ok=true`.
+
+#### Persistence note
+
+If your dev server is running with the default ephemeral SQLite (no
+`--db-filename`), the registrations are lost on every restart. Switch to
+the persistent variant (see SETUP.md → "Persistent dev-server storage")
+to retain the corrected registrations across restarts and prevent future
+wrong-type accumulation.
+
+#### Why no auto-cleanup
+
+ADV's registration tool refuses to remove existing attributes because
+removal can break in-flight workflows that reference them. Cleanup must
+be an explicit operator action, not a side effect of plugin
+initialization.
+
 ### Stale STSL connection
 
 If Temporal is serving and workers are alive but ADV tools still fail with
