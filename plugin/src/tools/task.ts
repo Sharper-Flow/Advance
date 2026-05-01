@@ -26,7 +26,12 @@ import {
   formatTaskReadyOutput,
   formatDoomLoopDiagnostics,
 } from "../utils/tool-formatters";
-import { withOptionalTargetPathStore } from "./target-project";
+import {
+  formatTargetProjectContext,
+  type TargetProjectOutputContext,
+  withOptionalTargetPathStore,
+  withTargetPathStore,
+} from "./target-project";
 
 // =============================================================================
 // Tool Definitions
@@ -276,6 +281,24 @@ export const taskTools = {
       error_recovery: ErrorRecoverySchema.optional().describe(
         "Structured retry history for doom-loop tracking, including attempts[]",
       ),
+      target_path: z
+        .string()
+        .optional()
+        .describe(
+          "Optional absolute path to another ADV project. When provided, mutates that project through a Temporal-backed target store.",
+        ),
+      target_confirmed: z
+        .literal(true)
+        .optional()
+        .describe(
+          "Required for untrusted target_path mutation. Confirms the target project was explicitly approved.",
+        ),
+      confirmationEvidence: z
+        .string()
+        .optional()
+        .describe(
+          "Required with target_confirmed for untrusted target_path mutation. Cite user approval evidence.",
+        ),
     },
     execute: async (
       {
@@ -284,69 +307,103 @@ export const taskTools = {
         notes,
         implementation_summary,
         error_recovery,
+        target_path,
+        target_confirmed,
+        confirmationEvidence,
       }: {
         taskId: string;
         status: string;
         notes?: string;
         implementation_summary?: string;
         error_recovery?: ErrorRecovery;
+        target_path?: string;
+        target_confirmed?: true;
+        confirmationEvidence?: string;
       },
       store: Store,
     ) => {
-      // Reject direct cancellation — must use adv_task_cancel with user approval
-      if (status === "cancelled") {
-        return formatToolOutput({
-          error:
-            "Direct task cancellation is not allowed. Use adv_task_cancel instead, which requires presenting cancellation reasons to the user and obtaining explicit approval.",
-          hint: "Call adv_task_cancel with taskIds, reasons (per task), and user approval evidence.",
-        });
-      }
-
-      // Resolve changeId for snapshot emission (rq-ctxsnap2.3 compliance)
-      const taskShowResult = await store.tasks.show(taskId);
-      const changeId = taskShowResult?.changeId;
-
-      const task = await store.tasks.update(
-        taskId,
-        status,
-        notes,
-        implementation_summary,
-        error_recovery,
-      );
-      if (!task) {
-        return formatToolOutput({ error: `Task not found: ${taskId}` });
-      }
-
-      // Emit snapshot on meaningful transitions (in_progress, done)
-      const output: Record<string, unknown> = { success: true, task };
-      if (status === "in_progress") {
-        const recorded = await store.tasks.recordRunEvent(taskId, {
-          idempotencyKey: `${taskId}:start:${task.started_at ?? "unknown"}`,
-          type: "start",
-          recordedAt: task.started_at ?? new Date().toISOString(),
-          payload: {},
-        });
-        if (recorded) {
-          output.taskRun = {
-            phase: recorded.run.phase,
-            requiredNextAction: recorded.run.requiredNextAction,
-            duplicate: recorded.duplicate,
-          };
+      const runUpdate = async (
+        activeStore: Store,
+        projectContext?: TargetProjectOutputContext,
+      ) => {
+        // Reject direct cancellation — must use adv_task_cancel with user approval
+        if (status === "cancelled") {
+          return formatToolOutput({
+            error:
+              "Direct task cancellation is not allowed. Use adv_task_cancel instead, which requires presenting cancellation reasons to the user and obtaining explicit approval.",
+            hint: "Call adv_task_cancel with taskIds, reasons (per task), and user approval evidence.",
+          });
         }
-      }
-      if (task.error_recovery) {
-        output.formatted_doom_loop = formatDoomLoopDiagnostics(
-          task.error_recovery,
+
+        // Resolve changeId for snapshot emission (rq-ctxsnap2.3 compliance)
+        const taskShowResult = await activeStore.tasks.show(taskId);
+        const changeId = taskShowResult?.changeId;
+
+        const task = await activeStore.tasks.update(
+          taskId,
+          status,
+          notes,
+          implementation_summary,
+          error_recovery,
+        );
+        if (!task) {
+          return formatToolOutput({ error: `Task not found: ${taskId}` });
+        }
+
+        // Emit snapshot on meaningful transitions (in_progress, done)
+        const output: Record<string, unknown> = {
+          success: true,
+          task,
+          ...(projectContext ? { _projectContext: projectContext } : {}),
+        };
+        if (status === "in_progress") {
+          const recorded = await activeStore.tasks.recordRunEvent(taskId, {
+            idempotencyKey: `${taskId}:start:${task.started_at ?? "unknown"}`,
+            type: "start",
+            recordedAt: task.started_at ?? new Date().toISOString(),
+            payload: {},
+          });
+          if (recorded) {
+            output.taskRun = {
+              phase: recorded.run.phase,
+              requiredNextAction: recorded.run.requiredNextAction,
+              duplicate: recorded.duplicate,
+            };
+          }
+        }
+        if (task.error_recovery) {
+          output.formatted_doom_loop = formatDoomLoopDiagnostics(
+            task.error_recovery,
+          );
+        }
+        if (changeId && (status === "in_progress" || status === "done")) {
+          const snapshot = await fetchChangeContextTicker(
+            activeStore,
+            changeId,
+          );
+          if (snapshot) {
+            output._contextSnapshot = snapshot;
+          }
+        }
+
+        return formatToolOutput(output);
+      };
+
+      if (target_path) {
+        return withTargetPathStore(
+          {
+            currentProjectPath: store.paths.root,
+            target_path,
+            stateRequirement: "temporal-required",
+            target_confirmed,
+            confirmationEvidence,
+          },
+          async ({ context, store: targetStore }) =>
+            runUpdate(targetStore, formatTargetProjectContext(context)),
         );
       }
-      if (changeId && (status === "in_progress" || status === "done")) {
-        const snapshot = await fetchChangeContextTicker(store, changeId);
-        if (snapshot) {
-          output._contextSnapshot = snapshot;
-        }
-      }
 
-      return formatToolOutput(output);
+      return runUpdate(store);
     },
   },
 
@@ -482,6 +539,14 @@ export const taskTools = {
         .number()
         .optional()
         .describe("Exit code from test runner (0=pass, non-zero=fail)"),
+      target_path: z
+        .string()
+        .optional()
+        .describe(
+          "Optional absolute path to another ADV project. When provided, mutates that project through a Temporal-backed target store.",
+        ),
+      target_confirmed: z.literal(true).optional(),
+      confirmationEvidence: z.string().optional(),
     },
     execute: async (
       {
@@ -491,6 +556,9 @@ export const taskTools = {
         command,
         output,
         exitCode,
+        target_path,
+        target_confirmed,
+        confirmationEvidence,
       }: {
         taskId: string;
         phase: "red" | "green";
@@ -498,38 +566,67 @@ export const taskTools = {
         command?: string;
         output?: string;
         exitCode?: number;
+        target_path?: string;
+        target_confirmed?: true;
+        confirmationEvidence?: string;
       },
       store: Store,
     ) => {
-      // Validate exit-code semantics before recording
-      const validation = validateEvidenceSemantics(phase, exitCode);
-      if (!validation.valid) {
-        return formatToolOutput({
-          error: `Evidence rejected: ${validation.reason}`,
-          phase,
-          exitCode,
-        });
-      }
+      const runEvidence = async (
+        activeStore: Store,
+        projectContext?: TargetProjectOutputContext,
+      ) => {
+        // Validate exit-code semantics before recording
+        const validation = validateEvidenceSemantics(phase, exitCode);
+        if (!validation.valid) {
+          return formatToolOutput({
+            error: `Evidence rejected: ${validation.reason}`,
+            phase,
+            exitCode,
+          });
+        }
 
-      const evidence = {
-        recorded_at: new Date().toISOString(),
-        test_file: testFile,
-        command,
-        output_snippet: output ? truncateOutput(output) : undefined,
-        exit_code: exitCode,
+        const evidence = {
+          recorded_at: new Date().toISOString(),
+          test_file: testFile,
+          command,
+          output_snippet: output ? truncateOutput(output) : undefined,
+          exit_code: exitCode,
+        };
+
+        const task = await activeStore.tasks.recordEvidence(
+          taskId,
+          phase,
+          evidence,
+        );
+        if (!task) {
+          return formatToolOutput({ error: `Task not found: ${taskId}` });
+        }
+
+        return formatToolOutput({
+          success: true,
+          task,
+          compliance: getTaskTddCompliance(task),
+          message: `Recorded ${phase} phase evidence for task ${taskId}`,
+          ...(projectContext ? { _projectContext: projectContext } : {}),
+        });
       };
 
-      const task = await store.tasks.recordEvidence(taskId, phase, evidence);
-      if (!task) {
-        return formatToolOutput({ error: `Task not found: ${taskId}` });
+      if (target_path) {
+        return withTargetPathStore(
+          {
+            currentProjectPath: store.paths.root,
+            target_path,
+            stateRequirement: "temporal-required",
+            target_confirmed,
+            confirmationEvidence,
+          },
+          async ({ context, store: targetStore }) =>
+            runEvidence(targetStore, formatTargetProjectContext(context)),
+        );
       }
 
-      return formatToolOutput({
-        success: true,
-        task,
-        compliance: getTaskTddCompliance(task),
-        message: `Recorded ${phase} phase evidence for task ${taskId}`,
-      });
+      return runEvidence(store);
     },
   },
 
@@ -544,65 +641,103 @@ export const taskTools = {
         .enum(["none", "red", "green", "refactor", "complete"])
         .optional()
         .describe("Required when action=set; ignored for action=status"),
+      target_path: z
+        .string()
+        .optional()
+        .describe(
+          "Optional absolute path to another ADV project. When provided, mutates set operations through a Temporal-backed target store and reads status from that target.",
+        ),
+      target_confirmed: z.literal(true).optional(),
+      confirmationEvidence: z.string().optional(),
     },
     execute: async (
       {
         taskId,
         action,
         phase,
+        target_path,
+        target_confirmed,
+        confirmationEvidence,
       }: {
         taskId: string;
         action: "set" | "status";
         phase?: "none" | "red" | "green" | "refactor" | "complete";
+        target_path?: string;
+        target_confirmed?: true;
+        confirmationEvidence?: string;
       },
       store: Store,
     ) => {
-      if (action === "set") {
-        if (!phase) {
+      const runTdd = async (
+        activeStore: Store,
+        projectContext?: TargetProjectOutputContext,
+      ) => {
+        if (action === "set") {
+          if (!phase) {
+            return formatToolOutput({
+              error: "phase is required when action='set'",
+            });
+          }
+          const updated = await activeStore.tasks.setPhase(taskId, phase);
+          if (!updated) {
+            return formatToolOutput({ error: `Task not found: ${taskId}` });
+          }
+
           return formatToolOutput({
-            error: "phase is required when action='set'",
+            success: true,
+            action,
+            task: updated,
+            message: `Set TDD phase to '${phase}' for task ${taskId}`,
+            ...(projectContext ? { _projectContext: projectContext } : {}),
           });
         }
-        const updated = await store.tasks.setPhase(taskId, phase);
-        if (!updated) {
+
+        const task = await activeStore.tasks.get(taskId);
+        if (!task) {
           return formatToolOutput({ error: `Task not found: ${taskId}` });
         }
 
+        const compliance = getTaskTddCompliance(task);
+        const requiresTdd = requiresTddEvidence(task);
+        const trivial = isTrivialTask(task.title);
+
         return formatToolOutput({
-          success: true,
           action,
-          task: updated,
-          message: `Set TDD phase to '${phase}' for task ${taskId}`,
+          taskId: task.id,
+          title: task.title,
+          tdd_phase: task.tdd_phase,
+          tdd_evidence: task.tdd_evidence,
+          analysis: {
+            requires_tdd: requiresTdd,
+            is_trivial: trivial,
+            compliance,
+          },
+          recommendation:
+            compliance === "missing"
+              ? "Record TDD evidence with adv_run_test (preferred) or adv_task_evidence for externally obtained evidence; reclassify with adv_task_reclassify_tdd when TDD is not applicable"
+              : compliance === "compliant"
+                ? "TDD requirements satisfied"
+                : "TDD not required for this task type",
+          ...(projectContext ? { _projectContext: projectContext } : {}),
         });
+      };
+
+      if (target_path) {
+        return withTargetPathStore(
+          {
+            currentProjectPath: store.paths.root,
+            target_path,
+            stateRequirement:
+              action === "set" ? "temporal-required" : "snapshot-ok",
+            target_confirmed,
+            confirmationEvidence,
+          },
+          async ({ context, store: targetStore }) =>
+            runTdd(targetStore, formatTargetProjectContext(context)),
+        );
       }
 
-      const task = await store.tasks.get(taskId);
-      if (!task) {
-        return formatToolOutput({ error: `Task not found: ${taskId}` });
-      }
-
-      const compliance = getTaskTddCompliance(task);
-      const requiresTdd = requiresTddEvidence(task);
-      const trivial = isTrivialTask(task.title);
-
-      return formatToolOutput({
-        action,
-        taskId: task.id,
-        title: task.title,
-        tdd_phase: task.tdd_phase,
-        tdd_evidence: task.tdd_evidence,
-        analysis: {
-          requires_tdd: requiresTdd,
-          is_trivial: trivial,
-          compliance,
-        },
-        recommendation:
-          compliance === "missing"
-            ? "Record TDD evidence with adv_run_test (preferred) or adv_task_evidence for externally obtained evidence; reclassify with adv_task_reclassify_tdd when TDD is not applicable"
-            : compliance === "compliant"
-              ? "TDD requirements satisfied"
-              : "TDD not required for this task type",
-      });
+      return runTdd(store);
     },
   },
 

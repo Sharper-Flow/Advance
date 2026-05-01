@@ -59,7 +59,12 @@ import { buildChangeContextSnapshot } from "../utils/context-snapshot";
 import { resolveChangeSelection } from "../storage/change-selection";
 import { BulkCloseSelectorSchema } from "../types";
 import { collectErrorText } from "../temporal/retry-wrapper";
-import { withOptionalTargetPathStore } from "./target-project";
+import {
+  formatTargetProjectContext,
+  type TargetProjectOutputContext,
+  withOptionalTargetPathStore,
+  withTargetPathStore,
+} from "./target-project";
 
 /**
  * Extract structured context-mismatch fields from an error, if it's an
@@ -1133,6 +1138,24 @@ export const changeTools = {
         .describe(
           "New design.md content (overwrites existing). Omit to leave unchanged. At least one of `proposal`, `problemStatement`, `agreement`, or `design` MUST be provided.",
         ),
+      target_path: z
+        .string()
+        .optional()
+        .describe(
+          "Optional absolute path to another ADV project. When provided, mutates that project through a Temporal-backed target store.",
+        ),
+      target_confirmed: z
+        .literal(true)
+        .optional()
+        .describe(
+          "Required for untrusted target_path mutation. Confirms the target project was explicitly approved.",
+        ),
+      confirmationEvidence: z
+        .string()
+        .optional()
+        .describe(
+          "Required with target_confirmed for untrusted target_path mutation. Cite user approval evidence.",
+        ),
     },
     execute: async (
       {
@@ -1141,73 +1164,101 @@ export const changeTools = {
         problemStatement,
         agreement,
         design,
+        target_path,
+        target_confirmed,
+        confirmationEvidence,
       }: {
         changeId: string;
         proposal?: string;
         problemStatement?: string;
         agreement?: string;
         design?: string;
+        target_path?: string;
+        target_confirmed?: true;
+        confirmationEvidence?: string;
       },
       store: Store,
     ) => {
-      // P1.12 Scope C: at-least-one-field guard with agent-facing hint
-      // naming the valid fields so the next call can be constructed without
-      // a schema lookup.
-      if (
-        proposal === undefined &&
-        problemStatement === undefined &&
-        agreement === undefined &&
-        design === undefined
-      ) {
-        return wrapWithBanner(
-          { command: "adv_change_update", target: changeId },
-          formatToolOutput({
-            error:
-              "At least one of 'proposal', 'problemStatement', 'agreement', or 'design' must be provided.",
-            hint: "Pass one or more of: proposal, problemStatement, agreement, design. See the tool description for which file each field writes.",
-          }),
-        );
-      }
+      const runUpdate = async (
+        activeStore: Store,
+        projectContext?: TargetProjectOutputContext,
+      ) => {
+        // P1.12 Scope C: at-least-one-field guard with agent-facing hint
+        // naming the valid fields so the next call can be constructed without
+        // a schema lookup.
+        if (
+          proposal === undefined &&
+          problemStatement === undefined &&
+          agreement === undefined &&
+          design === undefined
+        ) {
+          return wrapWithBanner(
+            { command: "adv_change_update", target: changeId },
+            formatToolOutput({
+              error:
+                "At least one of 'proposal', 'problemStatement', 'agreement', or 'design' must be provided.",
+              hint: "Pass one or more of: proposal, problemStatement, agreement, design. See the tool description for which file each field writes.",
+            }),
+          );
+        }
 
-      // P1.12 Scope C: verify changeId exists before writing. Surface a
-      // structured error that names the source-of-truth tools so the
-      // agent can self-correct without guessing.
-      const existing = await store.changes.get(changeId);
-      if (!existing.success || !existing.data) {
-        return wrapWithBanner(
-          { command: "adv_change_update", target: changeId },
-          formatToolOutput({
-            error: `Change '${changeId}' not found.`,
-            hint: "Fetch valid change IDs with 'adv_change_list' or confirm the target with 'adv_change_show changeId: <id>' before retrying.",
-          }),
-        );
-      }
+        // P1.12 Scope C: verify changeId exists before writing. Surface a
+        // structured error that names the source-of-truth tools so the
+        // agent can self-correct without guessing.
+        const existing = await activeStore.changes.get(changeId);
+        if (!existing.success || !existing.data) {
+          return wrapWithBanner(
+            { command: "adv_change_update", target: changeId },
+            formatToolOutput({
+              error: `Change '${changeId}' not found.`,
+              hint: "Fetch valid change IDs with 'adv_change_list' or confirm the target with 'adv_change_show changeId: <id>' before retrying.",
+            }),
+          );
+        }
 
-      const result = await store.changes.updateArtifacts(
-        changeId,
-        proposal,
-        problemStatement,
-        agreement,
-        design,
-      );
-
-      if (!result.success) {
-        return wrapWithBanner(
-          { command: "adv_change_update", target: changeId },
-          formatToolOutput({ error: result.error }),
-        );
-      }
-
-      return wrapWithBanner(
-        { command: "adv_change_update", target: changeId },
-        formatToolOutput({
+        const result = await activeStore.changes.updateArtifacts(
           changeId,
-          proposalPath: result.proposalPath,
-          problemStatementPath: result.problemStatementPath,
-          agreementPath: result.agreementPath,
-          designPath: result.designPath,
-        }),
-      );
+          proposal,
+          problemStatement,
+          agreement,
+          design,
+        );
+
+        if (!result.success) {
+          return wrapWithBanner(
+            { command: "adv_change_update", target: changeId },
+            formatToolOutput({ error: result.error }),
+          );
+        }
+
+        return wrapWithBanner(
+          { command: "adv_change_update", target: changeId },
+          formatToolOutput({
+            changeId,
+            proposalPath: result.proposalPath,
+            problemStatementPath: result.problemStatementPath,
+            agreementPath: result.agreementPath,
+            designPath: result.designPath,
+            ...(projectContext ? { _projectContext: projectContext } : {}),
+          }),
+        );
+      };
+
+      if (target_path) {
+        return withTargetPathStore(
+          {
+            currentProjectPath: store.paths.root,
+            target_path,
+            stateRequirement: "temporal-required",
+            target_confirmed,
+            confirmationEvidence,
+          },
+          async ({ context, store: targetStore }) =>
+            runUpdate(targetStore, formatTargetProjectContext(context)),
+        );
+      }
+
+      return runUpdate(store);
     },
   },
 

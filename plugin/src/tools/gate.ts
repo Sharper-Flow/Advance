@@ -25,7 +25,12 @@ import { runClarifyReadinessChecks } from "../validator/clarify-readiness";
 import { loadProposalWithFallback } from "../storage/json";
 import { buildChangeContextSnapshot } from "../utils/context-snapshot";
 import { COMMAND_MANIFEST } from "../manifest";
-import { withOptionalTargetPathStore } from "./target-project";
+import {
+  formatTargetProjectContext,
+  type TargetProjectOutputContext,
+  withOptionalTargetPathStore,
+  withTargetPathStore,
+} from "./target-project";
 
 async function completeGateAndBuildResponse({
   store,
@@ -331,6 +336,14 @@ export const gateTools = {
         .string()
         .optional()
         .describe("Optional notes about the gate completion"),
+      target_path: z
+        .string()
+        .optional()
+        .describe(
+          "Optional absolute path to another ADV project. When provided, mutates that project through a Temporal-backed target store.",
+        ),
+      target_confirmed: z.literal(true).optional(),
+      confirmationEvidence: z.string().optional(),
     },
     execute: async (
       {
@@ -339,90 +352,120 @@ export const gateTools = {
         completedBy = "agent",
         userApproved,
         notes,
+        target_path,
+        target_confirmed,
+        confirmationEvidence,
       }: {
         changeId: string;
         gateId: GateId;
         completedBy?: string;
         userApproved?: boolean;
         notes?: string;
+        target_path?: string;
+        target_confirmed?: true;
+        confirmationEvidence?: string;
       },
       store: Store,
     ) => {
-      // Validate gate ID
-      if (!GATE_ORDER.includes(gateId)) {
-        return formatToolOutput({
-          error: `Invalid gate ID: ${gateId}. Valid gates: ${GATE_ORDER.join(", ")}`,
-        });
-      }
-
-      let change: Change;
-      try {
-        const result = await store.changes.get(changeId);
-        if (!result.success) {
-          return formatToolOutput({ error: result.error });
-        }
-        if (!result.data) {
-          return formatToolOutput({ error: `Change not found: ${changeId}` });
-        }
-        change = result.data;
-      } catch (error) {
-        if ((error as Error).name === "AdvProjectContextMismatch") {
-          const e = error as unknown as Record<string, unknown>;
+      const runComplete = async (
+        activeStore: Store,
+        projectContext?: TargetProjectOutputContext,
+      ) => {
+        // Validate gate ID
+        if (!GATE_ORDER.includes(gateId)) {
           return formatToolOutput({
-            error: (error as Error).message,
-            changeId,
-            errorClass: "AdvProjectContextMismatch",
-            owningProjectId: e.owningProjectId,
-            currentProjectId: e.currentProjectId,
-            hint: "Open the change in its owning project's context, or verify the linked-project configuration.",
+            error: `Invalid gate ID: ${gateId}. Valid gates: ${GATE_ORDER.join(", ")}`,
           });
         }
-        throw error;
-      }
 
-      const gates: Gates = change.gates ?? createDefaultGates();
+        let change: Change;
+        try {
+          const result = await activeStore.changes.get(changeId);
+          if (!result.success) {
+            return formatToolOutput({ error: result.error });
+          }
+          if (!result.data) {
+            return formatToolOutput({ error: `Change not found: ${changeId}` });
+          }
+          change = result.data;
+        } catch (error) {
+          if ((error as Error).name === "AdvProjectContextMismatch") {
+            const e = error as unknown as Record<string, unknown>;
+            return formatToolOutput({
+              error: (error as Error).message,
+              changeId,
+              errorClass: "AdvProjectContextMismatch",
+              owningProjectId: e.owningProjectId,
+              currentProjectId: e.currentProjectId,
+              hint: "Open the change in its owning project's context, or verify the linked-project configuration.",
+            });
+          }
+          throw error;
+        }
 
-      // Check sequence enforcement
-      if (!canCompleteGate(gates, gateId)) {
-        const blockedBy = GATE_ORDER.slice(
-          0,
-          GATE_ORDER.indexOf(gateId),
-        ).filter(
-          (g) => gates[g].status !== "done" && gates[g].status !== "legacy",
-        );
-        return formatToolOutput({
-          error: `Cannot complete ${gateId}: prior gate(s) incomplete`,
-          blockedBy,
-        });
-      }
+        const gates: Gates = change.gates ?? createDefaultGates();
 
-      // Boundary validation: check if the completing command owns this gate
-      const boundaryWarning = validateGateBoundary(gateId, completedBy);
+        // Check sequence enforcement
+        if (!canCompleteGate(gates, gateId)) {
+          const blockedBy = GATE_ORDER.slice(
+            0,
+            GATE_ORDER.indexOf(gateId),
+          ).filter(
+            (g) => gates[g].status !== "done" && gates[g].status !== "legacy",
+          );
+          return formatToolOutput({
+            error: `Cannot complete ${gateId}: prior gate(s) incomplete`,
+            blockedBy,
+          });
+        }
 
-      if (gateId === "planning") {
-        return handlePlanningGateCompletion({
-          store,
+        // Boundary validation: check if the completing command owns this gate
+        const boundaryWarning = validateGateBoundary(gateId, completedBy);
+
+        if (gateId === "planning") {
+          return handlePlanningGateCompletion({
+            store: activeStore,
+            change,
+            changeId,
+            gateId,
+            gates,
+            userApproved,
+            notes,
+            completedBy,
+            boundaryWarning,
+          });
+        }
+
+        return completeGateAndBuildResponse({
+          store: activeStore,
           change,
           changeId,
           gateId,
           gates,
-          userApproved,
           notes,
           completedBy,
           boundaryWarning,
+          extraPayload: projectContext
+            ? { _projectContext: projectContext }
+            : {},
         });
+      };
+
+      if (target_path) {
+        return withTargetPathStore(
+          {
+            currentProjectPath: store.paths.root,
+            target_path,
+            stateRequirement: "temporal-required",
+            target_confirmed,
+            confirmationEvidence,
+          },
+          async ({ context, store: targetStore }) =>
+            runComplete(targetStore, formatTargetProjectContext(context)),
+        );
       }
 
-      return completeGateAndBuildResponse({
-        store,
-        change,
-        changeId,
-        gateId,
-        gates,
-        notes,
-        completedBy,
-        boundaryWarning,
-      });
+      return runComplete(store);
     },
   },
 };

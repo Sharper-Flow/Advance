@@ -212,6 +212,15 @@ export function formatTargetProjectContext(
   };
 }
 
+export function appendTargetProjectContextOutput(
+  output: string,
+  context: TargetProjectContext,
+): string {
+  const parsed = JSON.parse(output) as Record<string, unknown>;
+  parsed._projectContext = formatTargetProjectContext(context);
+  return JSON.stringify(parsed);
+}
+
 export async function withOptionalTargetPathStore<T>(
   input: { store: Store; target_path?: string },
   fn: (store: Store, projectContext?: TargetProjectOutputContext) => Promise<T>,
