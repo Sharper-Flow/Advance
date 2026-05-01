@@ -351,6 +351,26 @@ After 3 failures: STOP → `[ADV:BLOCKED]` → document all 3 attempts → ask v
 | Doom-loop supersede | Doom-loop recovery supersedes investment check-in on simultaneous trigger |
 | Unresolved user-value tradeoff | Triggers `rq-autonomy01` escape-clause citation |
 
+### External Conformance
+
+Black-box AC verification run by external CI. Specs under conformance are "locked" after first archive — the agent cannot read conformance test source.
+
+**Tool:** `adv_conformance` (single multi-action tool: `status | init | lock | unlock | override | run`)
+
+**Location modes:**
+| Mode | Path | Isolation |
+|---|---|---|
+| `subfolder` (default) | `.adv/specs/_conformance/` | In-repo, honor-system |
+| `sibling` (opt-in) | `{parent}/advance-conformance-{pid}/` | External repo, guard-enforced |
+
+**Archive gate:** Phase 5.5 of `/adv-archive` runs conformance check before executing archive. DRIFT halts archive with 3 user options (fix locally / override / unlock). No auto-fix.
+
+**Override audit:** Every unlock or override requires `{user, reason, re_verify_deadline}`. Recorded permanently in conformance state.
+
+**State location:** `~/.local/share/opencode/plugins/advance/{pid}/conformance.json` (external, project-keyed).
+
+**Enforcement layers:** (1) bash guard blocks git clone/curl/wget on locked sibling paths, (2) tool.execute.before blocks `adv_conformance` during execution gate, (3) path policy blocks read/glob/grep/lgrep on locked conformance directories.
+
 ### Cross-Repo Execution
 
 | × Invalid Cancellation        | ✓ Correct                 |

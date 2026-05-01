@@ -80,6 +80,9 @@ Changes, archive, wisdom, agenda, and handoff live **outside the repo** at:
 ### Never read ADV state files directly
 Use ADV MCP tools (`adv_change_show`, `adv_task_list`, etc.). Direct reads via `cat`/`read`/`ls` are forbidden — state format may change and direct reads bypass caching/migration logic.
 
+### Conformance state
+External CI-isolated spec conformance state lives at `~/.local/share/opencode/plugins/advance/{project-id}/conformance.json`. Conformance test source lives in `.adv/specs/_conformance/` (default, in-repo subfolder) or `{project-parent}/advance-conformance-{pid}/` (opt-in sibling repo). Use `adv_conformance` tool for all conformance operations.
+
 ### Tool registration pattern
 Each `src/tools/*.ts` exports a `*Tools` object. `tool-registry.ts` collects all via `createToolMap()`. To add a tool: define in the relevant tools file → export from `src/tools/index.ts` → auto-picked up.
 
