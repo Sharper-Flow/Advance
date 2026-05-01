@@ -228,10 +228,7 @@ export function formatStatusOutput(input: StatusInput): FormattedStatus {
       parts.push(
         `${input.worktreeCensus.stale.length} stale (>7d)\n` +
           input.worktreeCensus.stale
-            .map(
-              (s) =>
-                `  ⏰ ${s.branch} — last activity ${s.lastActivity}`,
-            )
+            .map((s) => `  ⏰ ${s.branch} — last activity ${s.lastActivity}`)
             .join("\n"),
       );
     }
