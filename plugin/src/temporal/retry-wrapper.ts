@@ -137,7 +137,7 @@ function recordFinalFailure(opType: string | undefined): void {
  * message is something like "Failed to query Workflow". The underlying
  * not-found signal lives in `.cause`.
  */
-function collectErrorText(error: unknown): string {
+export function collectErrorText(error: unknown): string {
   const parts: string[] = [];
   let current: unknown = error;
   const seen = new Set<unknown>();

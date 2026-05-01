@@ -58,6 +58,7 @@ import { checkRequirementSmells } from "../validator/prep-readiness";
 import { buildChangeContextSnapshot } from "../utils/context-snapshot";
 import { resolveChangeSelection } from "../storage/change-selection";
 import { BulkCloseSelectorSchema } from "../types";
+import { collectErrorText } from "../temporal/retry-wrapper";
 
 /**
  * Pure function: merge current clarify findings with persisted snapshots.
@@ -1511,7 +1512,25 @@ export const changeTools = {
       // Update change status in store (unless dry run)
       if (!dryRun && archiveResult.success) {
         change.status = "archived";
-        await store.changes.save(change);
+        try {
+          await store.changes.save(change);
+        } catch (saveError) {
+          // Surface the full cause chain (e.g. WorkflowUpdateFailedError →
+          // the real reason) so the caller can diagnose the failure.
+          return wrapWithBanner(
+            { command: "adv_change_archive", target: changeId },
+            formatToolOutput({
+              success: false,
+              error: `Failed to update change status to archived: ${collectErrorText(saveError)}`,
+              archivePath: archiveResult.archivePath,
+              specsUpdated: archiveResult.specsUpdated.map((s) => ({
+                capability: s.capability,
+                version: `${s.originalVersion} → ${s.newVersion}`,
+                deltas: s.deltaResults.length,
+              })),
+            }),
+          );
+        }
 
         // rq-archiveRetirement01: final source cleanup happens AFTER the archived status transition.
         // This prevents the archive flow from deleting changes/<id>/ and then
