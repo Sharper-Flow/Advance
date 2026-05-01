@@ -372,22 +372,13 @@ Review/Harden gates block if cross-repo tasks incomplete or cancelled without ap
 
 ### Cross-Project Coordination
 
-Use cross-project coordination when a source ADV change needs to reference or
-contribute to a different ADV-enabled project via explicit `target_path`.
-
-| Operation | Store mode | Contract |
-|---|---|---|
-| Read target change/task/gate/status | `snapshot-ok` | Use ADV tools with `target_path`; read disk snapshot and include `_projectContext` |
-| Mutate target change/task/gate/evidence/test | `temporal-required` | Use ADV tools with `target_path`; target Temporal queue must be reachable |
-| Untrusted target mutation | `temporal-required` | Require `target_confirmed: true` and `confirmationEvidence` citing user approval |
-
-Rules:
-
-1. Use ADV tools with `target_path`; never direct ADV state file reads/writes.
-2. `cross_project_links` record source/target provenance; preserve local-only behavior when absent.
-3. `external_dependencies` are advisory-only dependencies; unmet dependencies warn, never block gates or archive by default.
-4. Inspect `_externalDependencyStatus` on `adv_change_show`/status output for satisfied/warning/blocking counts and drilldown targets.
-5. Target-project contribution workflow: create/link target change → verify source-side `cross_project_links` → monitor advisory dependencies → execute target mutations only after confirmation where required.
+Use when a source ADV change references/contributes to another ADV-enabled project via `target_path`.
+Reads: use ADV tools in `snapshot-ok` mode; include `_projectContext`.
+Mutations: use ADV tools in `temporal-required` mode; target queue must be reachable.
+Untrusted mutation: require `target_confirmed: true` + `confirmationEvidence` citing approval.
+Never direct ADV state file reads/writes.
+`cross_project_links` records provenance; `external_dependencies` are advisory-only dependencies and never block gates/archive by default.
+Inspect `_externalDependencyStatus` for satisfied/warning/blocking counts and drilldown; target-project contribution flow is create/link → verify source link → monitor advisory dependencies → confirmed target mutation.
 
 ### Cancellation Policy
 
