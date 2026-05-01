@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { isMutating, enforceBashPolicy, enforceTddBashPolicy } from "./bash";
+import {
+  isMutating,
+  enforceBashPolicy,
+  enforceTddBashPolicy,
+  enforceConformanceBashPolicy,
+} from "./bash";
 
 describe("Bash Policy Guard", () => {
   describe("isMutating", () => {
@@ -138,6 +143,93 @@ describe("Bash Policy Guard", () => {
       expect(
         enforceTddBashPolicy("pnpm exec vitest run src/foo.test.ts", {}),
       ).toMatchObject({ action: "allow" });
+    });
+  });
+
+  describe("enforceConformanceBashPolicy (sibling-repo URL block)", () => {
+    const lockedRoot = "/home/u/dev/advance-conformance-abc123";
+    const otherLocked = "/home/u/dev/advance-conformance-def456";
+
+    it("allows any command when no locked sibling roots are tracked", () => {
+      expect(
+        enforceConformanceBashPolicy(
+          "git clone https://github.com/foo/advance-conformance-abc123.git",
+          { lockedSiblingRoots: [] },
+        ),
+      ).toMatchObject({ action: "allow" });
+    });
+
+    it("blocks git clone of a tracked sibling repo by URL", () => {
+      expect(
+        enforceConformanceBashPolicy(
+          "git clone https://github.com/foo/advance-conformance-abc123.git",
+          { lockedSiblingRoots: [lockedRoot] },
+        ),
+      ).toMatchObject({ action: "block" });
+    });
+
+    it("blocks git clone of a tracked sibling repo by absolute path", () => {
+      expect(
+        enforceConformanceBashPolicy(`git clone ${lockedRoot} /tmp/copy`, {
+          lockedSiblingRoots: [lockedRoot],
+        }),
+      ).toMatchObject({ action: "block" });
+    });
+
+    it("blocks curl of a tracked sibling-repo CI artifact URL", () => {
+      expect(
+        enforceConformanceBashPolicy(
+          "curl https://ci.example.com/advance-conformance-abc123/artifact.json",
+          { lockedSiblingRoots: [lockedRoot] },
+        ),
+      ).toMatchObject({ action: "block" });
+    });
+
+    it("blocks wget of a tracked sibling-repo URL", () => {
+      expect(
+        enforceConformanceBashPolicy(
+          "wget https://example.com/advance-conformance-abc123/raw.tgz",
+          { lockedSiblingRoots: [lockedRoot] },
+        ),
+      ).toMatchObject({ action: "block" });
+    });
+
+    it("blocks even when only a different locked root is the actual target (multi-spec safety)", () => {
+      expect(
+        enforceConformanceBashPolicy(
+          "git clone https://example.com/advance-conformance-def456.git",
+          { lockedSiblingRoots: [lockedRoot, otherLocked] },
+        ),
+      ).toMatchObject({ action: "block" });
+    });
+
+    it("allows benign git clone of an unrelated repo", () => {
+      expect(
+        enforceConformanceBashPolicy(
+          "git clone https://github.com/foo/some-other-repo.git",
+          { lockedSiblingRoots: [lockedRoot] },
+        ),
+      ).toMatchObject({ action: "allow" });
+    });
+
+    it("allows benign curl to an unrelated URL", () => {
+      expect(
+        enforceConformanceBashPolicy(
+          "curl https://example.com/unrelated.json",
+          {
+            lockedSiblingRoots: [lockedRoot],
+          },
+        ),
+      ).toMatchObject({ action: "allow" });
+    });
+
+    it("returns a block message that names the conformance boundary", () => {
+      const result = enforceConformanceBashPolicy(
+        "git clone https://github.com/foo/advance-conformance-abc123.git",
+        { lockedSiblingRoots: [lockedRoot] },
+      );
+      expect(result.action).toBe("block");
+      expect(result.message).toMatch(/conformance/i);
     });
   });
 });

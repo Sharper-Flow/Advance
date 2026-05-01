@@ -108,4 +108,18 @@ describe("rq-autonomy01 human checkpoint assets", () => {
       /new tasks will be available alongside existing completed work/i,
     );
   });
+
+  test("conformance verdict gate (Phase 5.5) exists in adv-archive.md", () => {
+    const content = readCommand("adv-archive.md");
+    // Phase 5.5 marker
+    expect(content).toMatch(/Phase 5\.5.*Conformance/i);
+    // rq-extConfGate01 citation
+    expect(content).toContain("rq-extConfGate01");
+    // DRIFT halt path
+    expect(content).toMatch(/DRIFT.*HALT/i);
+    // User options on drift
+    expect(content).toMatch(/override.*unlock/is);
+    // No auto-fix instruction
+    expect(content).toMatch(/do NOT.*auto-fix|auto-resume|orchestrate/i);
+  });
 });

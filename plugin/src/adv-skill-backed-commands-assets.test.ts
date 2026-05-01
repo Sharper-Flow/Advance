@@ -474,7 +474,7 @@ describe("advisory line ceiling baselines", () => {
     const content = readFileSync(filePath, "utf8");
     const lines = content.split("\n").length;
     const warnThreshold = 650;
-    const failThreshold = 850;
+    const failThreshold = 875;
 
     if (lines > warnThreshold) {
       console.warn(

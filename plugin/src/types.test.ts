@@ -2820,3 +2820,185 @@ describe("ChangeSchema — approval_mode / autopilot_invoked_at extension", () =
     ).toThrow();
   });
 });
+
+// =============================================================================
+// ConformanceState Schema Tests (rq-confSource01, rq-confLock01, rq-confOverride01)
+// =============================================================================
+
+describe("ConformanceStateSchema", () => {
+  const VALID_STATE = {
+    version: 1,
+    conformance_root: "/abs/path/repo/.adv/specs/_conformance",
+    conformance_root_kind: "subfolder" as const,
+    specs: {
+      "advance-workflow": {
+        conformance_required: true,
+        locked: true,
+        locked_at: "2026-05-01T21:01:03Z",
+        locked_at_archive: "externalCiIsolatedSpec",
+        last_verdict: {
+          verdict: "PASS" as const,
+          run_id: "cr-abc123",
+          ran_at: "2026-05-01T22:00:00Z",
+        },
+        overrides: [],
+      },
+      "tdd-contract": {
+        conformance_required: false,
+        locked: false,
+        overrides: [],
+      },
+    },
+  };
+
+  test("parses a valid conformance state (subfolder kind)", async () => {
+    const { ConformanceStateSchema } = await import("./types");
+    const result = ConformanceStateSchema.parse(VALID_STATE);
+    expect(result.version).toBe(1);
+    expect(result.conformance_root_kind).toBe("subfolder");
+    expect(result.specs["advance-workflow"]?.conformance_required).toBe(true);
+    expect(result.specs["advance-workflow"]?.locked).toBe(true);
+    expect(result.specs["tdd-contract"]?.conformance_required).toBe(false);
+  });
+
+  test("parses sibling kind", async () => {
+    const { ConformanceStateSchema } = await import("./types");
+    const sibling = {
+      ...VALID_STATE,
+      conformance_root: "/abs/path/advance-conformance-abc123",
+      conformance_root_kind: "sibling" as const,
+    };
+    const result = ConformanceStateSchema.parse(sibling);
+    expect(result.conformance_root_kind).toBe("sibling");
+  });
+
+  test("rejects unknown kind", async () => {
+    const { ConformanceStateSchema } = await import("./types");
+    expect(() =>
+      ConformanceStateSchema.parse({
+        ...VALID_STATE,
+        conformance_root_kind: "embedded",
+      }),
+    ).toThrow();
+  });
+
+  test("parses minimal spec entry (defaults applied)", async () => {
+    const { ConformanceStateSchema } = await import("./types");
+    const minimal = {
+      version: 1,
+      conformance_root: "/abs/path",
+      conformance_root_kind: "subfolder" as const,
+      specs: {
+        "some-spec": {
+          conformance_required: false,
+          locked: false,
+          overrides: [],
+        },
+      },
+    };
+    const result = ConformanceStateSchema.parse(minimal);
+    expect(result.specs["some-spec"]?.locked_at).toBeUndefined();
+    expect(result.specs["some-spec"]?.last_verdict).toBeUndefined();
+  });
+
+  test("rejects state without version", async () => {
+    const { ConformanceStateSchema } = await import("./types");
+    const { version: _v, ...invalid } = VALID_STATE;
+    expect(() => ConformanceStateSchema.parse(invalid)).toThrow();
+  });
+
+  test("rejects state without conformance_root_kind", async () => {
+    const { ConformanceStateSchema } = await import("./types");
+    const { conformance_root_kind: _k, ...invalid } = VALID_STATE;
+    expect(() => ConformanceStateSchema.parse(invalid)).toThrow();
+  });
+
+  test("rejects state with wrong version literal", async () => {
+    const { ConformanceStateSchema } = await import("./types");
+    expect(() =>
+      ConformanceStateSchema.parse({ ...VALID_STATE, version: 2 }),
+    ).toThrow();
+  });
+
+  test("rejects spec entry with non-boolean conformance_required", async () => {
+    const { ConformanceStateSchema } = await import("./types");
+    expect(() =>
+      ConformanceStateSchema.parse({
+        ...VALID_STATE,
+        specs: {
+          bad: {
+            conformance_required: "yes",
+            locked: false,
+            overrides: [],
+          },
+        },
+      }),
+    ).toThrow();
+  });
+
+  test("rejects last_verdict with invalid verdict literal", async () => {
+    const { ConformanceStateSchema } = await import("./types");
+    expect(() =>
+      ConformanceStateSchema.parse({
+        ...VALID_STATE,
+        specs: {
+          "advance-workflow": {
+            ...VALID_STATE.specs["advance-workflow"],
+            last_verdict: {
+              verdict: "MAYBE",
+              run_id: "cr-x",
+              ran_at: "2026-05-01T22:00:00Z",
+            },
+          },
+        },
+      }),
+    ).toThrow();
+  });
+
+  test("accepts override with required audit fields", async () => {
+    const { ConformanceStateSchema } = await import("./types");
+    const stateWithOverride = {
+      ...VALID_STATE,
+      specs: {
+        "advance-workflow": {
+          ...VALID_STATE.specs["advance-workflow"],
+          overrides: [
+            {
+              user: "jrede",
+              reason: "CI provider outage 2026-05-15",
+              re_verify_deadline: "2026-05-22T00:00:00Z",
+              applied_at: "2026-05-15T14:00:00Z",
+            },
+          ],
+        },
+      },
+    };
+    const result = ConformanceStateSchema.parse(stateWithOverride);
+    expect(result.specs["advance-workflow"]?.overrides).toHaveLength(1);
+    expect(result.specs["advance-workflow"]?.overrides[0]?.user).toBe("jrede");
+  });
+
+  test("rejects override missing required audit fields", async () => {
+    const { ConformanceStateSchema } = await import("./types");
+    expect(() =>
+      ConformanceStateSchema.parse({
+        ...VALID_STATE,
+        specs: {
+          "advance-workflow": {
+            ...VALID_STATE.specs["advance-workflow"],
+            overrides: [
+              { user: "jrede" /* missing reason, deadline, applied_at */ },
+            ],
+          },
+        },
+      }),
+    ).toThrow();
+  });
+
+  test("ConformanceVerdict union accepts PASS and DRIFT only", async () => {
+    const { ConformanceVerdictSchema } = await import("./types");
+    expect(ConformanceVerdictSchema.parse("PASS")).toBe("PASS");
+    expect(ConformanceVerdictSchema.parse("DRIFT")).toBe("DRIFT");
+    expect(() => ConformanceVerdictSchema.parse("FAIL")).toThrow();
+  });
+});

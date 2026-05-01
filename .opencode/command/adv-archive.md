@@ -89,6 +89,48 @@ or `cancel` / `stop` / `abort` to halt.
 
 ---
 
+## Phase 5.5: Conformance Verdict Gate
+
+<!-- rq-extConfGate01 -->
+
+Run only if the spec being archived has `conformance_required: true` in the conformance state. Skip entirely for specs with `conformance_required: false` or no conformance state.
+
+### Steps
+
+1. **Check conformance state.** `adv_conformance action: "status"` → inspect `specs[{capability}].conformance_required`. If false or absent → skip to Phase 6.
+
+2. **Run conformance check.** `adv_conformance action: "run"` with `artifact_path` pointing to the CI-produced verdict artifact. Default artifact convention: `conformance-verdict.json` unless the project's conformance checklist says otherwise. If the artifact does not exist, report CI outage and halt.
+
+3. **Evaluate verdict.**
+
+   | Verdict | Action |
+   |---------|--------|
+   | `PASS` | Continue to Phase 6. |
+   | `DRIFT` | **HALT.** Do NOT proceed to Phase 6. Present drift report and user options. |
+   | Artifact missing / malformed | **HALT.** Report CI outage. User must resolve externally (re-run CI, check workflow logs). |
+
+4. **On DRIFT — present user options (inline, NOT question tool).**
+
+   Print failing AC labels with full diagnostic:
+   ```
+   ## Conformance Drift Detected
+
+   Failing acceptance criteria:
+   - {rq_id}: {summary}
+   - {rq_id}: {summary}
+
+   Options:
+   1. Fix code locally and rerun archive
+   2. Record override: `adv_conformance action: "override"` (requires user, reason, re_verify_deadline)
+   3. Unlock spec for amendment: `adv_conformance action: "unlock"` (requires user, reason, re_verify_deadline)
+
+   Archive halted. Respond with your choice or `stop` to abort.
+   ```
+
+   **× Do NOT** auto-fix, auto-resume, or orchestrate the fix. Halt and wait for user response.
+
+---
+
 ## Phase 6: Execute Archive
 
 `adv_change_archive changeId: <target>` — applies deltas, updates SQLite, generates docs, moves to archive.

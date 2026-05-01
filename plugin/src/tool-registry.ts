@@ -42,6 +42,7 @@ import { archiveSweepTools } from "./tools/archive-sweep";
 import { checkpointTools } from "./tools/checkpoint";
 import { reflectionTools } from "./tools/reflection";
 import { projectMetadataTools } from "./tools/project-metadata";
+import { conformanceTools } from "./tools/conformance";
 type ToolArgsSchema = Record<string, z.ZodTypeAny>;
 type ToolExecute<TArgs> = (
   args: TArgs,
@@ -443,6 +444,14 @@ export function createToolMap(
 
     // Reflection Tool
     adv_reflect: bindTool(reflectionTools.adv_reflect, "adv_reflect", store),
+
+    // Conformance Tool — adv_conformance takes (args, dir=projectDir, path=externalRoot)
+    adv_conformance: bindToolSimple(
+      conformanceTools.adv_conformance,
+      "adv_conformance",
+      directory,
+      store.paths.external ?? undefined,
+    ),
   };
 }
 
@@ -499,6 +508,7 @@ export const ADV_TOOL_NAMES: readonly string[] = [
   "adv_workflow_repair",
   "adv_task_checkpoint",
   "adv_reflect",
+  "adv_conformance",
 ] as const;
 
 /**

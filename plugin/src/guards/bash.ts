@@ -145,3 +145,88 @@ export function enforceBashPolicy(agent: string, command: string): void {
     }
   }
 }
+
+// =============================================================================
+// Conformance Bash Policy (sibling-repo isolation, layered enforcement)
+//
+// In sibling location mode, the conformance suite lives in an external repo
+// the agent has no clone of. The bash guard adds a second-line defense by
+// blocking any agent-issued `git clone`, `curl`, or `wget` command that
+// references a tracked locked sibling-repo path or its directory name.
+//
+// In subfolder mode this guard is a no-op (lockedSiblingRoots is empty);
+// path-pattern enforcement happens in tool.execute.before instead.
+// =============================================================================
+
+export interface ConformanceBashContext {
+  /**
+   * Absolute paths of sibling-repo conformance roots whose specs are
+   * currently locked. Empty array means no sibling-mode conformance
+   * is tracked, and this guard becomes a no-op.
+   */
+  lockedSiblingRoots: string[];
+}
+
+const CONFORMANCE_BASH_TARGETS_PATTERN = /\b(?:git\s+clone|curl|wget)\b/i;
+
+/**
+ * Extract the trailing directory basename of an absolute sibling-repo
+ * path (e.g. `/home/u/dev/advance-conformance-abc123` →
+ * `advance-conformance-abc123`).
+ */
+function siblingDirName(absolutePath: string): string {
+  const trimmed = absolutePath.replace(/\/+$/, "");
+  const idx = trimmed.lastIndexOf("/");
+  return idx >= 0 ? trimmed.slice(idx + 1) : trimmed;
+}
+
+function escapeRegex(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
+ * Returns block / allow for a bash command relative to the conformance
+ * boundary. Block when the command appears to be a network or filesystem
+ * fetch (`git clone` / `curl` / `wget`) referencing a tracked locked
+ * sibling-repo path or its directory name.
+ *
+ * Pure function — no side effects, no IO. Caller (`tool.execute.before`)
+ * supplies `lockedSiblingRoots` from current conformance state.
+ */
+export function enforceConformanceBashPolicy(
+  command: string,
+  context: ConformanceBashContext,
+): TddBashResult {
+  if (!context.lockedSiblingRoots.length) {
+    return { action: "allow" };
+  }
+  if (!CONFORMANCE_BASH_TARGETS_PATTERN.test(command)) {
+    return { action: "allow" };
+  }
+
+  const tokens = new Set<string>();
+  for (const root of context.lockedSiblingRoots) {
+    tokens.add(root);
+    const name = siblingDirName(root);
+    if (name) tokens.add(name);
+  }
+
+  const tokenList = Array.from(tokens).filter(Boolean);
+  if (!tokenList.length) {
+    return { action: "allow" };
+  }
+
+  const tokenPattern = new RegExp(tokenList.map(escapeRegex).join("|"), "i");
+  if (!tokenPattern.test(command)) {
+    return { action: "allow" };
+  }
+
+  return {
+    action: "block",
+    message:
+      "Conformance boundary: agent-level git clone/curl/wget against a " +
+      "locked sibling conformance repo is blocked. Conformance test source " +
+      "is hidden after first archive. If the user needs to inspect it " +
+      "manually, run the command outside the agent context.",
+  };
+}

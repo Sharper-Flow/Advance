@@ -359,6 +359,9 @@ Internal state (task lists, gate checkboxes, sub-agent counts, step logs) lives 
 - `~/.local/share/opencode/plugins/advance/**/agenda.jsonl`
 - `~/.local/share/opencode/plugins/advance/**/wisdom.jsonl`
 - `~/.local/share/opencode/plugins/advance/**/handoff.json`
+- `~/.local/share/opencode/plugins/advance/**/conformance.json`
+
+**Additionally**, when conformance is in sibling-repo mode, NEVER read files inside the locked conformance directory (`advance-conformance-{pid}/`). Path guards block read/glob/grep/lgrep on locked sibling paths.
 
 **ALWAYS** use the ADV MCP tools instead:
 
@@ -373,5 +376,6 @@ Internal state (task lists, gate checkboxes, sub-agent counts, step logs) lives 
 | Validate a change              | `adv_change_validate` |
 | Wisdom / learnings             | `adv_wisdom_list`     |
 | Agenda items                   | `adv_agenda_list`     |
+| Conformance state              | `adv_conformance action: "status"` |
 
 If a direct read attempt fails (file not found, wrong path), **do not retry with a different path**. Stop and call `adv_change_show` instead.

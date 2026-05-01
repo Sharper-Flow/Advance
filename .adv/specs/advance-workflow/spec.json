@@ -3,8 +3,8 @@
   "name": "advance-workflow",
   "title": "Advance Workflow",
   "purpose": "Capability: Workflow contract layer for ADV \u2014 gate model, autonomy boundaries, design validation, scope management, releases, approvals, handoff voice, review remediation, and touched-scope quality. Split from `advance` capability.",
-  "version": "1.1.0",
-  "updated_at": "2026-04-29T00:00:00.000Z",
+  "version": "1.2.0",
+  "updated_at": "2026-05-01T00:00:00.000Z",
   "requirements": [
     {
       "id": "rq-R3v13wR1",
@@ -174,11 +174,77 @@
             "The archive is rejected with incomplete-gates error",
             "release is listed as the remaining gate"
           ]
+        },
+        {
+          "id": "rq-gatemodel01.3",
+          "title": "Archive blocked when conformance-required spec has non-PASS verdict",
+          "given": [
+            "A change touches a spec with conformance_required: true",
+            "All seven gates including release are otherwise satisfied",
+            "Conformance verdict is DRIFT and no override is recorded"
+          ],
+          "when": "/adv-archive Phase 5.5 evaluates the conformance gate",
+          "then": [
+            "Archive is halted before Phase 6 (Execute Archive)",
+            "adv_change_archive is not called",
+            "The user is presented with the failing AC labels and three explicit options (fix locally, override, unlock + amend) per rq-confTriage01"
+          ]
         }
       ],
       "meta": {
         "merged_from": "advance"
       }
+    },
+    {
+      "id": "rq-extConfGate01",
+      "title": "External Conformance Gate Cross-Link",
+      "body": "Archive of a change that touches a spec with `conformance_required: true` is blocked unless the external conformance verdict is PASS or a valid override is recorded. The external conformance capability is defined by `spec-conformance` (rq-confSource01 through rq-confTriage01). The conformance gate runs as `/adv-archive` Phase 5.5, between User Signoff (Phase 5) and Execute Archive (Phase 6), so active source removal (rq-archiveRetirement01) only triggers on a passing or override-approved release.",
+      "priority": "must",
+      "tags": ["workflow", "archive", "conformance", "cross-link"],
+      "scenarios": [
+        {
+          "id": "rq-extConfGate01.1",
+          "title": "Archive halts on DRIFT without override",
+          "given": [
+            "A change touches a spec with conformance_required: true",
+            "Phase 5.5 conformance run returns verdict: DRIFT",
+            "No valid override has been recorded for this archive attempt"
+          ],
+          "when": "The orchestrator evaluates whether to advance to Phase 6",
+          "then": [
+            "Archive halts at Phase 5.5",
+            "adv_change_archive is not invoked",
+            "The drift triage flow defined by rq-confTriage01 is surfaced to the user"
+          ]
+        },
+        {
+          "id": "rq-extConfGate01.2",
+          "title": "Archive proceeds on PASS",
+          "given": [
+            "A change touches a spec with conformance_required: true",
+            "Phase 5.5 conformance run returns verdict: PASS"
+          ],
+          "when": "The orchestrator evaluates whether to advance to Phase 6",
+          "then": [
+            "Phase 6 (Execute Archive) runs",
+            "rq-archiveRetirement01 source removal proceeds normally"
+          ]
+        },
+        {
+          "id": "rq-extConfGate01.3",
+          "title": "Archive proceeds on valid override",
+          "given": [
+            "A change touches a spec with conformance_required: true",
+            "Phase 5.5 conformance run returns DRIFT or is unavailable",
+            "A valid override entry has been recorded for this archive attempt with required audit fields per rq-confOverride01"
+          ],
+          "when": "The orchestrator evaluates whether to advance to Phase 6",
+          "then": [
+            "Phase 6 (Execute Archive) runs",
+            "The override entry is preserved in the spec's append-only audit log"
+          ]
+        }
+      ]
     },
     {
       "id": "rq-releaseFinalization01",
