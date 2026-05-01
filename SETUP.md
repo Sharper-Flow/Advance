@@ -59,6 +59,45 @@ Start a local dev server (default loopback address and namespace):
 temporal server start-dev
 ```
 
+#### Persistent dev-server storage (recommended)
+
+The default `temporal server start-dev` invocation runs the embedded SQLite
+backend in **ephemeral mode** — when you stop the server, its database is
+discarded. ADV registers custom search attributes (`AdvProjectId`,
+`AdvChangeId`, `AdvChangeStatus`, `AdvActiveGate`, `AdvDoomLoopActive`) on
+each session start; on an ephemeral server those registrations are lost on
+every restart, and partial-failure states can accumulate as wrong-type
+attribute leftovers across sessions. Persisting the dev-server SQLite file
+keeps the registrations stable across restarts and avoids re-registration
+churn.
+
+Recommended path (cross-platform):
+
+| OS    | Path                                                |
+| ----- | --------------------------------------------------- |
+| Linux | `$XDG_DATA_HOME/temporal/dev-server.db` (fallback `~/.local/share/temporal/dev-server.db`) |
+| macOS | `~/Library/Application Support/temporal/dev-server.db` |
+
+Example (Linux/XDG):
+
+```bash
+mkdir -p ~/.local/share/temporal
+temporal server start-dev \
+  --db-filename ~/.local/share/temporal/dev-server.db
+```
+
+Example (macOS):
+
+```bash
+mkdir -p "$HOME/Library/Application Support/temporal"
+temporal server start-dev \
+  --db-filename "$HOME/Library/Application Support/temporal/dev-server.db"
+```
+
+The minimal `temporal server start-dev` command remains valid for one-off
+ephemeral testing (CI, throwaway sandboxes), but the persistent variant is
+the recommended default for ongoing development.
+
 Configure via environment variables (see `plugin/.env.example` — Bun hosts
 should review the **Bun out-of-process Temporal worker** section for
 `ADV_NODE_PATH`):
