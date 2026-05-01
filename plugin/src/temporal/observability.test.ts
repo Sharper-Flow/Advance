@@ -99,7 +99,9 @@ describe("temporal observability helpers", () => {
       "AdvActiveGate",
       "AdvDoomLoopActive",
     ]);
-    expect(result.error).toBe("OperatorService.listSearchAttributes unavailable");
+    expect(result.error).toBe(
+      "OperatorService.listSearchAttributes unavailable",
+    );
   });
 
   it("marks search attribute checks unverified when list throws", async () => {

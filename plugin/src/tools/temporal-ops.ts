@@ -147,7 +147,8 @@ function recommendPostRegistrationAction(input: {
   if (input.createdCount > 0 || input.verificationStatus === "unverified") {
     return "run adv_temporal_worker_restart, then retry the failed workflow update or archive command";
   }
-  if (!input.ok) return "run adv_temporal_diagnose and follow recommendedNextAction";
+  if (!input.ok)
+    return "run adv_temporal_diagnose and follow recommendedNextAction";
   return "retry the previously blocked Temporal tool; worker restart is not required";
 }
 
@@ -171,11 +172,11 @@ export const temporalOpsTools = {
       const bundle = getService();
       const searchAttributes = bundle
         ? await checkAdvSearchAttributes(bundle.connection, bundle.namespace)
-          : {
-              ok: false,
-              verificationStatus: "unverified" as const,
-              present: [],
-              missing: [],
+        : {
+            ok: false,
+            verificationStatus: "unverified" as const,
+            present: [],
+            missing: [],
             wrongType: [],
             error: "Temporal service layer not initialized",
           };
@@ -202,8 +203,7 @@ export const temporalOpsTools = {
         health,
         stslInitialized: bundle !== null,
         searchAttributesOk: searchAttributes.ok,
-        searchAttributesVerificationStatus:
-          searchAttributes.verificationStatus,
+        searchAttributesVerificationStatus: searchAttributes.verificationStatus,
         projectWorkflowReachable: projectWorkflow.reachable,
         changeWorkflowReachable: changeWorkflow?.reachable ?? null,
       });
