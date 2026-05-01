@@ -300,3 +300,20 @@ function generateArchiveSummary(change: Change): string {
 
   return lines.join("\n");
 }
+
+/**
+ * Check whether an archive bundle already exists on disk for a given change.
+ * Returns true when `{archiveDir}/{changeId}/change.json` is readable.
+ */
+export async function archiveBundleExists(
+  archiveDir: string,
+  changeId: string,
+): Promise<boolean> {
+  try {
+    const manifestPath = join(archiveDir, changeId, "change.json");
+    await readFile(manifestPath, "utf-8");
+    return true;
+  } catch {
+    return false;
+  }
+}

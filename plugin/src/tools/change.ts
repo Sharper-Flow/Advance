@@ -47,7 +47,7 @@ import {
   fileExists,
   removeChangeDir,
 } from "../storage/json";
-import { archiveChange } from "../archive";
+import { archiveChange, archiveBundleExists } from "../archive";
 import { wrapWithBanner } from "../utils/banner";
 import { formatToolOutput, paginate } from "../utils/tool-output";
 import {
@@ -1502,12 +1502,32 @@ export const changeTools = {
           ? { ...store.paths, wisdom: undefined }
           : store.paths;
 
-      const archiveResult = await archiveChange({
-        change,
-        specs,
-        paths: archivePaths,
-        dryRun,
-      });
+      // Idempotent retry: if the bundle already exists on disk but the status
+      // transition failed on a previous attempt, skip the disk write and go
+      // straight to the state transition.
+      const bundleExists = await archiveBundleExists(
+        archivePaths.archive,
+        changeId,
+      );
+      let archiveResult: import("../archive/types").ArchiveOperationResult;
+
+      if (bundleExists && change.status !== "archived" && !dryRun) {
+        // Re-read the bundle to build a result without re-writing disk
+        archiveResult = {
+          success: true,
+          specsUpdated: [],
+          docsGenerated: [],
+          archivePath: join(archivePaths.archive, changeId),
+          errors: [],
+        };
+      } else {
+        archiveResult = await archiveChange({
+          change,
+          specs,
+          paths: archivePaths,
+          dryRun,
+        });
+      }
 
       // Update change status in store (unless dry run)
       if (!dryRun && archiveResult.success) {
