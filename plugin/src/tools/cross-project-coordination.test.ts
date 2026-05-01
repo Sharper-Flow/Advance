@@ -7,6 +7,7 @@ import {
   parseToolOutput,
 } from "../__tests__/setup";
 import { changeTools } from "./change";
+import { statusTools } from "./status";
 
 describe("cross-project coordination metadata", () => {
   let sourceDir: string;
@@ -98,5 +99,56 @@ describe("cross-project coordination metadata", () => {
     expect(parsed._externalDependencyStatus.dependencies[0].message).toContain(
       "missingTargetChange",
     );
+  });
+
+  test("status overview includes concise advisory dependency summary", async () => {
+    const sourceChange = await sourceStore.changes.get("addFeature");
+    expect(sourceChange.success).toBe(true);
+    sourceChange.data!.external_dependencies = [
+      {
+        target_path: targetDir,
+        changeId: "missingTargetChange",
+        relationship: "requires",
+        advisory: true,
+      },
+      {
+        target_path: targetDir,
+        changeId: "addFeature",
+        taskId: "tk-task0001",
+        relationship: "coordinates_with",
+        advisory: true,
+      },
+    ];
+    await sourceStore.changes.save(sourceChange.data!);
+
+    const targetChange = await targetStore.changes.get("addFeature");
+    expect(targetChange.success).toBe(true);
+    targetChange.data!.tasks[0]!.status = "done";
+    await targetStore.changes.save(targetChange.data!);
+
+    const output = await statusTools.adv_status.execute({}, sourceStore);
+    const parsed = parseToolOutput(output);
+    const recent = parsed.changes.recent.find(
+      (change: { id: string }) => change.id === "addFeature",
+    );
+
+    expect(recent._externalDependencyStatus).toEqual({
+      total: 2,
+      satisfied: 1,
+      warning: 1,
+      blocking: 0,
+      advisoryOnly: true,
+    });
+  });
+
+  test("local-only change show remains free of target project context", async () => {
+    const output = await changeTools.adv_change_show.execute(
+      { changeId: "addFeature" },
+      sourceStore,
+    );
+    const parsed = parseToolOutput(output);
+
+    expect(parsed.id).toBe("addFeature");
+    expect(parsed._projectContext).toBeUndefined();
   });
 });

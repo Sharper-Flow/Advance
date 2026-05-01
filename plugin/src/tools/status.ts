@@ -41,6 +41,7 @@ import { getWorktreeCensus } from "../utils/worktree-census";
 import { runClarifyReadinessChecks } from "../validator/clarify-readiness";
 import { z } from "zod";
 import { withOptionalTargetPathStore } from "./target-project";
+import { buildExternalDependencyStatus } from "./external-dependency-status";
 
 // =============================================================================
 // Helpers
@@ -110,6 +111,14 @@ async function enrichRecentChangeStatus(
       workdir: store.paths.root,
     }),
   });
+
+  const dependencyStatus = await buildExternalDependencyStatus(
+    changeResult.data.external_dependencies,
+  );
+  if (dependencyStatus) {
+    (rc as unknown as Record<string, unknown>)._externalDependencyStatus =
+      dependencyStatus.summary;
+  }
 
   const nextGate = GATE_ORDER.find((gateId) => !isGateSatisfied(gates[gateId]));
   if (nextGate) {
