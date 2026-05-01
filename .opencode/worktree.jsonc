@@ -20,7 +20,7 @@
   "hooks": {
     // Commands to run after worktree creation
     // Example: ["pnpm install", "docker compose up -d"]
-    "postCreate": [],
+    "postCreate": ["pnpm install --frozen-lockfile -C plugin"],
 
     // Commands to run before worktree deletion
     // Example: ["docker compose down"]
