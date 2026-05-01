@@ -4,7 +4,7 @@
  * Test adv_status lineage and recommendation behavior.
  */
 
-import { describe, test, expect, beforeEach, afterEach } from "vitest";
+import { describe, test, expect, beforeEach, afterEach, vi } from "vitest";
 import { mkdir, writeFile } from "fs/promises";
 import { join } from "path";
 import { statusTools } from "./status";
@@ -17,6 +17,20 @@ import {
 import { createLegacyStore } from "../storage/store";
 import type { Store } from "../storage/store";
 import { GATE_ORDER, createDefaultGates } from "../types";
+
+// Mock getStslStats and isStslInitialized for search_attributes testing
+vi.mock("../temporal/service", () => ({
+  getStslStats: vi.fn().mockReturnValue({
+    getServiceCalls: 0,
+    newConnections: 0,
+    reuseRate: 0,
+    reconnectCount: 0,
+    reconnectFailureCount: 0,
+    opTelemetry: [],
+    saVerification: null,
+  }),
+  isStslInitialized: vi.fn().mockReturnValue(false),
+}));
 
 describe("Status Tools", () => {
   let tempDir: string;
@@ -229,6 +243,86 @@ Vague in-flight work.
       expect(followRec).toBeDefined();
       // Terminal parent (archived or closed) should be annotated with its state
       expect(followRec).toMatch(/\((archived|closed)\)/);
+    });
+
+    describe("search_attributes", () => {
+      test("includes search_attributes section with saVerification from getStslStats", async () => {
+        const { getStslStats, isStslInitialized } = await import(
+          "../temporal/service"
+        );
+        const mockGetStslStats = vi.mocked(getStslStats);
+        const mockIsStslInitialized = vi.mocked(isStslInitialized);
+        mockIsStslInitialized.mockReturnValue(true);
+        mockGetStslStats.mockReturnValue({
+          getServiceCalls: 1,
+          newConnections: 1,
+          reuseRate: 1,
+          reconnectCount: 0,
+          reconnectFailureCount: 0,
+          opTelemetry: [],
+          saVerification: { ok: true, checkedAt: Date.now() },
+        });
+
+        const result = await statusTools.adv_status.execute({}, store);
+        const parsed = parseToolOutput(result);
+
+        expect(parsed.search_attributes).toBeDefined();
+        expect(parsed.search_attributes.ok).toBe(true);
+      });
+
+      test("includes recommendation when search_attributes not ok", async () => {
+        const { getStslStats, isStslInitialized } = await import(
+          "../temporal/service"
+        );
+        const mockGetStslStats = vi.mocked(getStslStats);
+        const mockIsStslInitialized = vi.mocked(isStslInitialized);
+        mockIsStslInitialized.mockReturnValue(true);
+        mockGetStslStats.mockReturnValue({
+          getServiceCalls: 1,
+          newConnections: 1,
+          reuseRate: 1,
+          reconnectCount: 0,
+          reconnectFailureCount: 0,
+          opTelemetry: [],
+          saVerification: { ok: false, checkedAt: Date.now() },
+        });
+
+        const result = await statusTools.adv_status.execute({}, store);
+        const parsed = parseToolOutput(result);
+
+        expect(parsed.search_attributes).toBeDefined();
+        expect(parsed.search_attributes.ok).toBe(false);
+        const saRec = parsed.recommendations.find(
+          (r: string) =>
+            r.includes("search attributes") ||
+            r.includes("adv_temporal_register_search_attributes"),
+        );
+        expect(saRec).toBeDefined();
+      });
+
+      test("shows search_attributes as unknown when STSL not initialized", async () => {
+        const { getStslStats, isStslInitialized } = await import(
+          "../temporal/service"
+        );
+        const mockGetStslStats = vi.mocked(getStslStats);
+        const mockIsStslInitialized = vi.mocked(isStslInitialized);
+        mockIsStslInitialized.mockReturnValue(false);
+        mockGetStslStats.mockReturnValue({
+          getServiceCalls: 0,
+          newConnections: 0,
+          reuseRate: 0,
+          reconnectCount: 0,
+          reconnectFailureCount: 0,
+          opTelemetry: [],
+          saVerification: null,
+        });
+
+        const result = await statusTools.adv_status.execute({}, store);
+        const parsed = parseToolOutput(result);
+
+        expect(parsed.search_attributes).toBeDefined();
+        expect(parsed.search_attributes.ok).toBe(false);
+      });
     });
   });
 });

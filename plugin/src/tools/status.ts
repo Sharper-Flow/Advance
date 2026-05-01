@@ -18,6 +18,7 @@ import { projectMigrationLedgerQuery } from "../temporal/messages";
 import { getTemporalHealth } from "../temporal/health-probe";
 import { getTemporalFallbackTelemetry } from "../temporal/fallback-telemetry";
 import { getTemporalRetryTelemetry } from "../temporal/retry-wrapper";
+import { getStslStats, isStslInitialized } from "../temporal/service";
 import { wrapWithBanner } from "../utils/banner";
 import { formatToolOutput } from "../utils/tool-output";
 import { formatStatusOutput } from "../utils/tool-formatters";
@@ -279,6 +280,35 @@ export const statusTools = {
         }
       }
 
+      // Search attributes health from STSL cache
+      const stslStats = getStslStats();
+      const stslReady = isStslInitialized();
+      let searchAttributes: {
+        ok: boolean;
+        checkedAt?: number;
+        error?: string;
+      };
+      if (!stslReady) {
+        searchAttributes = {
+          ok: false,
+          error: "STSL not initialized",
+        };
+      } else if (stslStats.saVerification) {
+        searchAttributes = {
+          ok: stslStats.saVerification.ok,
+          checkedAt: stslStats.saVerification.checkedAt,
+        };
+      } else {
+        searchAttributes = { ok: false, error: "Not yet verified" };
+      }
+
+      if (!searchAttributes.ok) {
+        status.recommendations.push(
+          "⚠️ Temporal search attributes not verified — " +
+            "run `adv_temporal_register_search_attributes` to register missing search attributes.",
+        );
+      }
+
       // Load project config with diagnostics — surface errors instead of silently ignoring
       const configResult = await loadProjectConfigWithDiagnostics(
         store.paths.root,
@@ -358,6 +388,7 @@ export const statusTools = {
         ...status,
         ...(featureFlags ? { feature_flags: featureFlags } : {}),
         temporal_health: temporalHealth,
+        search_attributes: searchAttributes,
         migration_status: migrationStatus,
         project_metadata: projectMetadata,
         worktree_census: worktreeCensus,
