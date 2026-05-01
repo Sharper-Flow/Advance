@@ -13,6 +13,7 @@ import type {
   FeatureFlags,
   CrossProjectOrigin,
   FastFollowOf,
+  ExternalDependency,
 } from "../types";
 import {
   createDefaultGates,
@@ -243,11 +244,7 @@ function applyIssueUpdates(
 /**
  * Build a markdown section documenting cross-project origin for a proposal.
  */
-function buildOriginSection(origin: {
-  source_project: string;
-  source_path: string;
-  source_change_id?: string;
-}): string {
+function buildOriginSection(origin: CrossProjectOrigin): string {
   let section = `## Cross-Project Origin\n\n`;
   section += `This change was created as a follow-up from **${origin.source_project}**.\n\n`;
   section += `| Field | Value |\n|-------|-------|\n`;
@@ -258,6 +255,116 @@ function buildOriginSection(origin: {
   }
   section += `\n> **Note:** The originating project should be consulted for context on why this change is needed.\n`;
   return section;
+}
+
+async function buildExternalDependencyStatus(
+  dependencies: ExternalDependency[] | undefined,
+): Promise<Record<string, unknown> | undefined> {
+  if (!dependencies || dependencies.length === 0) return undefined;
+
+  const dependencyStatuses = await Promise.all(
+    dependencies.map(async (dependency) => {
+      const base = {
+        target_path: dependency.target_path,
+        changeId: dependency.changeId,
+        gate: dependency.gate,
+        taskId: dependency.taskId,
+        relationship: dependency.relationship,
+        advisory: dependency.advisory,
+      };
+
+      try {
+        const validation = await validateCrossRepoTarget(
+          dependency.target_path,
+        );
+        if (!validation.ok) {
+          return {
+            ...base,
+            status: "warning" as const,
+            message: validation.error,
+          };
+        }
+
+        const targetProjectId = await getProjectId(dependency.target_path);
+        const targetStore = await createLegacyStore(dependency.target_path, {
+          externalRoot: targetProjectId
+            ? getExternalRoot(targetProjectId)
+            : undefined,
+        });
+        try {
+          const changeResult = await targetStore.changes.get(
+            dependency.changeId,
+          );
+          if (!changeResult.success || !changeResult.data) {
+            return {
+              ...base,
+              status: "warning" as const,
+              message: `Target change not found: ${dependency.changeId}`,
+            };
+          }
+
+          if (dependency.gate) {
+            const gates = changeResult.data.gates ?? createDefaultGates();
+            const gate = gates[dependency.gate];
+            const satisfied =
+              gate?.status === "done" || gate?.status === "legacy";
+            return {
+              ...base,
+              status: satisfied ? ("satisfied" as const) : ("warning" as const),
+              message: satisfied
+                ? `Target gate satisfied: ${dependency.gate}`
+                : `Target gate not complete: ${dependency.gate}`,
+            };
+          }
+
+          if (dependency.taskId) {
+            const task = changeResult.data.tasks.find(
+              (candidate) => candidate.id === dependency.taskId,
+            );
+            const satisfied = task?.status === "done";
+            return {
+              ...base,
+              status: satisfied ? ("satisfied" as const) : ("warning" as const),
+              message: satisfied
+                ? `Target task satisfied: ${dependency.taskId}`
+                : `Target task not complete: ${dependency.taskId}`,
+            };
+          }
+
+          return {
+            ...base,
+            status: "satisfied" as const,
+            message: `Target change found: ${dependency.changeId}`,
+          };
+        } finally {
+          targetStore.close();
+        }
+      } catch (err) {
+        return {
+          ...base,
+          status: "warning" as const,
+          message: err instanceof Error ? err.message : String(err),
+        };
+      }
+    }),
+  );
+
+  const satisfied = dependencyStatuses.filter(
+    (dependency) => dependency.status === "satisfied",
+  ).length;
+  const warning = dependencyStatuses.length - satisfied;
+
+  return {
+    summary: {
+      total: dependencyStatuses.length,
+      satisfied,
+      warning,
+      blocking: 0,
+      advisoryOnly: true,
+    },
+    note: "External dependencies are advisory only and do not block gates or archive by default.",
+    dependencies: dependencyStatuses,
+  };
 }
 
 async function persistClarifyFindings(
@@ -479,6 +586,30 @@ async function createCrossProjectFollowUp({
     };
     if (result.duplicateWarning) {
       output._duplicateWarning = result.duplicateWarning;
+    }
+
+    if (source_change_id) {
+      const sourceResult = await store.changes.get(source_change_id);
+      if (sourceResult.success && sourceResult.data) {
+        const sourceChange = sourceResult.data;
+        const links = sourceChange.cross_project_links ?? [];
+        const duplicate = links.some(
+          (link) =>
+            link.target_path === target_path &&
+            link.changeId === result.changeId,
+        );
+        if (!duplicate) {
+          links.push({
+            target_path,
+            ...(targetProjectId ? { target_project_id: targetProjectId } : {}),
+            changeId: result.changeId,
+            relationship: "follow_up",
+            linked_at: origin.linked_at,
+          });
+          sourceChange.cross_project_links = links;
+          await store.changes.save(sourceChange);
+        }
+      }
     }
 
     return wrapWithBanner(
@@ -900,6 +1031,13 @@ export const changeTools = {
               note: `↳ Fast-follow from ${change.fast_follow_of.parent_change_id}`,
               ...change.fast_follow_of,
             };
+          }
+
+          const dependencyStatus = await buildExternalDependencyStatus(
+            change.external_dependencies,
+          );
+          if (dependencyStatus) {
+            output._externalDependencyStatus = dependencyStatus;
           }
 
           // Include reflection data for archived changes
