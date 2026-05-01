@@ -28,6 +28,14 @@ import { getProjectId, getExternalRoot } from "./utils/project-id";
 // .adv/ paths or external state directly; no migration step needed.
 import { enforceBashPolicy } from "./guards/bash";
 import { enforceTaskPolicy } from "./guards/task";
+import {
+  enforceConformanceToolPolicy,
+  enforceConformancePathPolicy,
+} from "./guards/conformance";
+import type {
+  ConformanceCallerContext,
+  ConformancePathContext,
+} from "./guards/conformance";
 import { createToolMap, createDegradedToolMap } from "./tool-registry";
 import { appendDebugLog, createLogger } from "./utils/debug-log";
 
@@ -126,6 +134,10 @@ interface PluginState extends StatusFlags {
   } | null;
   /** True when running inside a git worktree (directory !== main repo root) */
   isWorktree: boolean;
+  /** Current active gate (set from adv_gate_complete output). Used by conformance guards. */
+  activeGate: string | null;
+  /** Cached locked sibling-repo conformance paths. Updated on adv_conformance calls. */
+  conformanceLockedPaths: string[];
 }
 
 /**
@@ -288,6 +300,8 @@ const advancePluginImpl: Plugin = async ({ directory, worktree, project }) => {
     activeChange: { id: null, objective: null },
     lastCompletedTask: null,
     isWorktree,
+    activeGate: null,
+    conformanceLockedPaths: [],
   };
 
   // No handoff.json hydration: session startup is now workflow-backed.
@@ -326,6 +340,17 @@ const advancePluginImpl: Plugin = async ({ directory, worktree, project }) => {
       const command = typeof args.command === "string" ? args.command : "";
       enforceBashPolicy(agent, command);
     }
+
+    // Conformance guards (rq-confDegradation01)
+    if (toolName === "adv_conformance") {
+      const callerCtx: ConformanceCallerContext = {
+        gate: state.activeGate as ConformanceCallerContext["gate"],
+      };
+      enforceConformanceToolPolicy(toolName, callerCtx);
+    }
+    enforceConformancePathPolicy(toolName, args, {
+      lockedPaths: state.conformanceLockedPaths,
+    } as ConformancePathContext);
 
     if (args.changeId) {
       state.activeChange.id = String(args.changeId);
@@ -520,6 +545,22 @@ const advancePluginImpl: Plugin = async ({ directory, worktree, project }) => {
         if (input.tool === "adv_task_update" && output.output) {
           try {
             recordCompletedTask(output.output);
+          } catch {
+            // ignore parse errors
+          }
+        }
+
+        // Track active gate from adv_gate_complete output
+        if (input.tool === "adv_gate_complete") {
+          try {
+            const afterInput = input as unknown as { args?: Record<string, unknown> };
+            const gateId = typeof afterInput.args?.gateId === "string"
+              ? afterInput.args.gateId
+              : null;
+            if (gateId) {
+              state.activeGate = gateId;
+              debugLog(`adv_gate_complete: set activeGate to ${gateId}`);
+            }
           } catch {
             // ignore parse errors
           }
