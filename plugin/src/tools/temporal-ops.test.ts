@@ -296,9 +296,11 @@ describe("temporal operator tools", () => {
 
   it("adv_temporal_diagnose recommends search-attribute registration when attrs are missing", async () => {
     const bundle = mocks.getService();
-    bundle.connection.operatorService.listSearchAttributes = vi.fn(async () => ({
-      customAttributes: {},
-    }));
+    bundle.connection.operatorService.listSearchAttributes = vi.fn(
+      async () => ({
+        customAttributes: {},
+      }),
+    );
     mocks.getService.mockReturnValueOnce(bundle as any);
     const store = {
       paths: {
@@ -335,11 +337,13 @@ describe("temporal operator tools", () => {
 
   it("adv_temporal_register_search_attributes creates missing attrs through STSL", async () => {
     const bundle = mocks.getService();
-    bundle.connection.operatorService.listSearchAttributes = vi.fn(async () => ({
-      customAttributes: {
-        AdvProjectId: { indexedValueType: 1 },
-      },
-    }));
+    bundle.connection.operatorService.listSearchAttributes = vi.fn(
+      async () => ({
+        customAttributes: {
+          AdvProjectId: { indexedValueType: 1 },
+        },
+      }),
+    );
     bundle.connection.operatorService.addSearchAttributes = vi
       .fn()
       .mockResolvedValue({});

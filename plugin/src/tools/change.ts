@@ -1515,10 +1515,12 @@ export const changeTools = {
         // Re-read the bundle to build a result without re-writing disk
         archiveResult = {
           success: true,
+          changeId,
           specsUpdated: [],
           docsGenerated: [],
           archivePath: join(archivePaths.archive, changeId),
           errors: [],
+          archivedAt: new Date().toISOString(),
         };
       } else {
         archiveResult = await archiveChange({

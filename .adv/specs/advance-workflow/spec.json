@@ -1053,6 +1053,75 @@
           ]
         }
       ]
+    },
+    {
+      "id": "rq-searchAttrHealth01",
+      "title": "Search-Attribute Registration Must Use Correct OperatorService Method",
+      "body": "The Temporal OperatorService search-attribute health check MUST use `listSearchAttributes` (not `getSearchAttributes`). `getSearchAttributes` exists on WorkflowService, not OperatorService. Using the wrong method causes the check to silently fail, returning ok: false even when attributes are registered. All code paths that query search-attribute health — observability checks, diagnose tool, and register tool — must go through `checkAdvSearchAttributes` which uses the correct OperatorService method.",
+      "priority": "must",
+      "scenarios": [
+        {
+          "id": "rq-searchAttrHealth01.1",
+          "title": "OperatorService method name is listSearchAttributes",
+          "given": [
+            "A Temporal connection with operatorService available",
+            "Search attributes AdvChangeId, AdvChangeStatus, AdvActiveGate, AdvProjectId, AdvDoomLoopActive are registered"
+          ],
+          "when": "checkAdvSearchAttributes is called",
+          "then": [
+            "It calls operatorService.listSearchAttributes (not getSearchAttributes)",
+            "It returns { ok: true, present: [...], missing: [], wrongType: [] }"
+          ]
+        },
+        {
+          "id": "rq-searchAttrHealth01.2",
+          "title": "Workflow handlers conditionally skip upsertSearchAttributes",
+          "given": [
+            "A ChangeWorkflowInput with searchAttributesEnabled: false"
+          ],
+          "when": "completeGateUpdate, archiveChangeUpdate, or closeChangeUpdate handlers execute",
+          "then": [
+            "wf.upsertSearchAttributes is NOT called",
+            "The handler completes normally without error"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-archiveOrdering01",
+      "title": "Archive State Transition Must Be Resilient to Failed Disk Bundle Write",
+      "body": "adv_change_archive MUST be idempotent when retrying after a previous failure where the disk bundle was written but the Temporal status transition failed. On retry, if the archive bundle already exists on disk and the change status is not 'archived', the disk write MUST be skipped and the flow proceeds directly to the status transition. This prevents double-writing the bundle and allows recovery from transient Temporal failures.",
+      "priority": "must",
+      "scenarios": [
+        {
+          "id": "rq-archiveOrdering01.1",
+          "title": "Idempotent retry skips disk write",
+          "given": [
+            "An archive bundle exists at {archiveDir}/{changeId}/change.json",
+            "The change status is not 'archived' (previous status transition failed)",
+            "dryRun is false"
+          ],
+          "when": "adv_change_archive is called",
+          "then": [
+            "archiveChange() is NOT called (disk write skipped)",
+            "The status transition to 'archived' proceeds",
+            "The result includes the existing archivePath"
+          ]
+        },
+        {
+          "id": "rq-archiveOrdering01.2",
+          "title": "Error output includes cause chain",
+          "given": [
+            "The archive disk write succeeded",
+            "store.changes.save(change) throws a Temporal WorkflowUpdateFailedError with a nested cause"
+          ],
+          "when": "The error is caught",
+          "then": [
+            "The tool output includes the full cause chain (not just the outer error class name)",
+            "The output shows success: false with a descriptive error message"
+          ]
+        }
+      ]
     }
   ]
 }

@@ -141,7 +141,12 @@ export async function ensureChangeWorkflowStarted(
   ] = [input];
 
   try {
-    const startOpts: Record<string, unknown> = {
+    const startOpts: {
+      workflowId: string;
+      taskQueue: string;
+      args: [unknown];
+      searchAttributes?: Record<string, unknown[]>;
+    } = {
       workflowId,
       taskQueue,
       args,

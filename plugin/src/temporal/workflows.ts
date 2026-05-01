@@ -538,7 +538,9 @@ export async function changeWorkflow(
         const nextGate = gateOrder[currentIdx + 1];
         if (input.searchAttributesEnabled !== false) {
           wf.upsertSearchAttributes({
-            [ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES.activeGate]: [nextGate ?? "done"],
+            [ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES.activeGate]: [
+              nextGate ?? "done",
+            ],
           });
         }
         wf.log.info("op:end", {
