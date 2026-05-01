@@ -3,27 +3,20 @@
   "name": "advance-delivery",
   "title": "Advance Delivery",
   "purpose": "Capability: Execution-layer contract for ADV \u2014 TDD execution routing, task-run ledger, bulk operations, delta operations, and per-task checkpoint commits. Split from `advance` capability; absorbs former `contract-system` and `checkpoint-commits` capabilities.",
-  "version": "1.0.0",
-  "updated_at": "2026-04-28T00:00:00.000Z",
+  "version": "1.1.0",
+  "updated_at": "2026-05-02T00:00:00.000Z",
   "requirements": [
     {
       "id": "rq-ADVEXEC01",
       "title": "Canonical Apply Tool Path for Inline TDD",
       "body": "For ordinary inline TDD work, /adv-apply MUST explicitly name editing tools (edit, write, morph_edit where appropriate) as the correct path for creating or modifying test files, and MUST explicitly name adv_run_test as the primary red/green test execution path.",
       "priority": "must",
-      "tags": [
-        "workflow",
-        "execution",
-        "tdd",
-        "tool-routing"
-      ],
+      "tags": ["workflow", "execution", "tdd", "tool-routing"],
       "scenarios": [
         {
           "id": "rq-ADVEXEC01.1",
           "title": "Red and green contract lines name adv_run_test",
-          "given": [
-            "The /adv-apply command contract is present"
-          ],
+          "given": ["The /adv-apply command contract is present"],
           "when": "Its Red and Green phase guidance is inspected",
           "then": [
             "The Red phase line names adv_run_test with phase 'red'",
@@ -33,9 +26,7 @@
         {
           "id": "rq-ADVEXEC01.2",
           "title": "Apply contract names editing tools for test-file changes",
-          "given": [
-            "The /adv-apply command contract is present"
-          ],
+          "given": ["The /adv-apply command contract is present"],
           "when": "Its ordinary inline-TDD file-editing guidance is inspected",
           "then": [
             "At least one supported editing tool is named for test-file creation or modification",
@@ -64,34 +55,21 @@
       "title": "Apply Contract Regression Anchors",
       "body": "The repository MUST maintain asset or regression tests that fail when canonical inline-TDD path wording is removed from /adv-apply or when shell-authored test-file content is reintroduced as normal-path guidance.",
       "priority": "must",
-      "tags": [
-        "workflow",
-        "execution",
-        "regression",
-        "tool-routing"
-      ],
+      "tags": ["workflow", "execution", "regression", "tool-routing"],
       "scenarios": [
         {
           "id": "rq-ADVEXEC02.1",
           "title": "Asset tests guard canonical path wording",
-          "given": [
-            "The /adv-apply contract is covered by asset tests"
-          ],
+          "given": ["The /adv-apply contract is covered by asset tests"],
           "when": "Canonical Red/Green adv_run_test wording is removed",
-          "then": [
-            "The asset or regression suite fails"
-          ]
+          "then": ["The asset or regression suite fails"]
         },
         {
           "id": "rq-ADVEXEC02.2",
           "title": "Asset tests guard anti-pattern row",
-          "given": [
-            "The /adv-apply contract is covered by asset tests"
-          ],
+          "given": ["The /adv-apply contract is covered by asset tests"],
           "when": "The shell-authored test-file anti-pattern row is removed or weakened",
-          "then": [
-            "The asset or regression suite fails"
-          ]
+          "then": ["The asset or regression suite fails"]
         }
       ],
       "meta": {
@@ -103,13 +81,7 @@
       "title": "Runtime Enforcement for Inline-TDD Bash Workarounds",
       "body": "During active inline-TDD work, runtime enforcement MUST treat shell-authored test-file content and direct test-runner bash differently. Shell-authored test-file content targeting test-glob paths is prohibited and MUST be blocked. Direct test-runner bash without a matching recent adv_run_test signal MUST emit an advisory but MUST NOT be blocked. These are firm defaults, not feature-flagged rollout modes.",
       "priority": "must",
-      "tags": [
-        "workflow",
-        "execution",
-        "runtime",
-        "guard",
-        "tdd"
-      ],
+      "tags": ["workflow", "execution", "runtime", "guard", "tdd"],
       "scenarios": [
         {
           "id": "rq-ADVEXEC03.1",
@@ -149,18 +121,12 @@
       "title": "Filter-Aware Bulk Close",
       "body": "adv_change_bulk_close must support closing multiple changes in a single approved tool call, using either an explicit ID list or filter-based selection, with fail-all semantics on invalid targets and a structured result envelope.",
       "priority": "must",
-      "tags": [
-        "workflow",
-        "changes",
-        "bulk-operations"
-      ],
+      "tags": ["workflow", "changes", "bulk-operations"],
       "scenarios": [
         {
           "id": "rq-bulkClose01.1",
           "title": "Explicit ID list close",
-          "given": [
-            "A list of valid active change IDs"
-          ],
+          "given": ["A list of valid active change IDs"],
           "when": "adv_change_bulk_close is called with kind: 'explicit' and those IDs",
           "then": [
             "All specified changes are closed with the provided reason",
@@ -171,9 +137,7 @@
         {
           "id": "rq-bulkClose01.2",
           "title": "Filter-based close requires explicit filter",
-          "given": [
-            "A repository with changes in various states"
-          ],
+          "given": ["A repository with changes in various states"],
           "when": "adv_change_bulk_close is called with kind: 'filter'",
           "then": [
             "The call must supply either a status filter (draft or pending) OR a staleness filter (createdBefore or lastActivityBefore)",
@@ -195,9 +159,7 @@
         {
           "id": "rq-bulkClose01.4",
           "title": "Empty match is a structured error",
-          "given": [
-            "A filter-based bulk close that matches zero changes"
-          ],
+          "given": ["A filter-based bulk close that matches zero changes"],
           "when": "The selection resolves",
           "then": [
             "A structured error is returned with success: false",
@@ -208,9 +170,7 @@
         {
           "id": "rq-bulkClose01.5",
           "title": "Result envelope mirrors task-cancel pattern",
-          "given": [
-            "A bulk close request that partially or fully succeeds"
-          ],
+          "given": ["A bulk close request that partially or fully succeeds"],
           "when": "The result is returned",
           "then": [
             "The envelope contains success, closed (count), results (array of per-change entries), and message",
@@ -220,9 +180,7 @@
         {
           "id": "rq-bulkClose01.6",
           "title": "No hard delete",
-          "given": [
-            "Any bulk close call"
-          ],
+          "given": ["Any bulk close call"],
           "when": "The operation completes",
           "then": [
             "Changes are closed (status moved to closed) but never purged or hard-deleted",
@@ -232,9 +190,7 @@
         {
           "id": "rq-bulkClose01.7",
           "title": "Existing close signature unchanged",
-          "given": [
-            "The existing adv_change_close tool"
-          ],
+          "given": ["The existing adv_change_close tool"],
           "when": "Inspected after this change ships",
           "then": [
             "Its signature and behavior remain identical to before adv_change_bulk_close was added"
@@ -250,20 +206,12 @@
       "title": "Durable Task-Run Lifecycle Ledger",
       "body": "/adv-apply task execution must maintain a Temporal-owned task-run ledger that records lifecycle phase, required next action, resume hint, evidence, verification, checkpoint, and blocker/failure events without moving OpenCode tool/model/file-edit execution into Temporal activities. The ledger must preserve existing inline TDD, checkpoint-before-done, and no-pause apply-loop semantics.",
       "priority": "must",
-      "tags": [
-        "tasks",
-        "temporal",
-        "resumability",
-        "ledger",
-        "apply"
-      ],
+      "tags": ["tasks", "temporal", "resumability", "ledger", "apply"],
       "scenarios": [
         {
           "id": "rq-taskRunLedger01.1",
           "title": "Task-run status exposes safe resume point",
-          "given": [
-            "An /adv-apply task has started or partially completed"
-          ],
+          "given": ["An /adv-apply task has started or partially completed"],
           "when": "adv_task_run_status is called for that task",
           "then": [
             "The response includes the current phase",
@@ -287,9 +235,7 @@
         {
           "id": "rq-taskRunLedger01.3",
           "title": "Ledger survives Temporal continue-as-new",
-          "given": [
-            "A change workflow has task_runs state"
-          ],
+          "given": ["A change workflow has task_runs state"],
           "when": "The workflow continues as new to bound history size",
           "then": [
             "The task_runs state is included in the seed state",
@@ -300,9 +246,7 @@
         {
           "id": "rq-taskRunLedger01.4",
           "title": "Temporal remains the runtime state authority",
-          "given": [
-            "Task-run lifecycle state is persisted"
-          ],
+          "given": ["Task-run lifecycle state is persisted"],
           "when": "The runtime reads or mutates task-run state",
           "then": [
             "The authoritative runtime state lives in Temporal workflow state",
@@ -325,9 +269,7 @@
         {
           "id": "rq-taskRunLedger01.6",
           "title": "Apply-loop autonomy is preserved",
-          "given": [
-            "A task-run ledger indicates the next resume action"
-          ],
+          "given": ["A task-run ledger indicates the next resume action"],
           "when": "/adv-apply resumes or continues execution",
           "then": [
             "The ledger guides the agent to the next apply-loop step",
@@ -345,22 +287,14 @@
       "title": "Typed Delta Operations",
       "body": "The delta system MUST enforce type safety on modifications and support rename operations on requirements. Modifications must reject unknown keys; renames must update title (and optionally id) while preserving all other fields.",
       "priority": "must",
-      "tags": [
-        "contract-system",
-        "delta",
-        "schema"
-      ],
+      "tags": ["contract-system", "delta", "schema"],
       "scenarios": [
         {
           "id": "rq-deltaOps01.1",
           "title": "Reject unknown keys on modify",
-          "given": [
-            "A DeltaModifySchema object with unknown keys"
-          ],
+          "given": ["A DeltaModifySchema object with unknown keys"],
           "when": "The schema is parsed by Zod",
-          "then": [
-            "The parse operation MUST fail with a validation error"
-          ]
+          "then": ["The parse operation MUST fail with a validation error"]
         },
         {
           "id": "rq-deltaOps01.2",
@@ -385,12 +319,7 @@
       "title": "Verified Checkpoint Ordering",
       "body": "Checkpoint commits MUST only represent verified task completion state. Verification runs before checkpoint, not after.",
       "priority": "must",
-      "tags": [
-        "checkpoint",
-        "ordering",
-        "verification",
-        "apply-flow"
-      ],
+      "tags": ["checkpoint", "ordering", "verification", "apply-flow"],
       "scenarios": [
         {
           "id": "rq-cc01.1",
@@ -408,9 +337,7 @@
         {
           "id": "rq-cc01.2",
           "title": "Red-phase checkpoint prohibited",
-          "given": [
-            "A task has failing tests or unverified changes"
-          ],
+          "given": ["A task has failing tests or unverified changes"],
           "when": "The agent attempts checkpoint before green phase",
           "then": [
             "The checkpoint MUST NOT run",
@@ -427,12 +354,7 @@
       "title": "Scope Guard",
       "body": "Checkpoint commits MUST be scoped to the correct change worktree. Branch and HEAD guards are fail-closed and run before staging.",
       "priority": "must",
-      "tags": [
-        "checkpoint",
-        "guard",
-        "worktree",
-        "scope"
-      ],
+      "tags": ["checkpoint", "guard", "worktree", "scope"],
       "scenarios": [
         {
           "id": "rq-cc02.1",
@@ -463,9 +385,7 @@
         {
           "id": "rq-cc02.3",
           "title": "Change identity derived from task",
-          "given": [
-            "A valid `taskId` is provided"
-          ],
+          "given": ["A valid `taskId` is provided"],
           "when": "The checkpoint tool resolves the change context",
           "then": [
             "The tool MUST call `store.tasks.show(taskId)` to derive the owning `changeId`",
@@ -483,19 +403,12 @@
       "title": "Audit Metadata",
       "body": "Checkpoint commits MUST include machine-readable metadata in the commit message for audit and rollback purposes.",
       "priority": "must",
-      "tags": [
-        "checkpoint",
-        "metadata",
-        "audit",
-        "commit-message"
-      ],
+      "tags": ["checkpoint", "metadata", "audit", "commit-message"],
       "scenarios": [
         {
           "id": "rq-cc03.1",
           "title": "Structured commit message",
-          "given": [
-            "A checkpoint succeeds"
-          ],
+          "given": ["A checkpoint succeeds"],
           "when": "The commit is created",
           "then": [
             "The commit message MUST have a terse subject line (`task({taskId}): {mode}`)",
@@ -509,9 +422,7 @@
         {
           "id": "rq-cc03.2",
           "title": "Clean tree returns without commit",
-          "given": [
-            "The working tree has no changes"
-          ],
+          "given": ["The working tree has no changes"],
           "when": "The checkpoint tool runs",
           "then": [
             "No commit is created",
@@ -529,19 +440,12 @@
       "title": "Dirty-Baseline Protection",
       "body": "The `/adv-apply` flow MUST capture a clean baseline before the Red Phase to ensure checkpoint commits represent only the task's incremental changes.",
       "priority": "must",
-      "tags": [
-        "checkpoint",
-        "baseline",
-        "apply-flow",
-        "dirty-tree"
-      ],
+      "tags": ["checkpoint", "baseline", "apply-flow", "dirty-tree"],
       "scenarios": [
         {
           "id": "rq-cc04.1",
           "title": "Baseline capture before Red Phase",
-          "given": [
-            "A task is starting in `/adv-apply`"
-          ],
+          "given": ["A task is starting in `/adv-apply`"],
           "when": "The agent begins the task workflow",
           "then": [
             "The agent MUST verify the working tree is clean or checkpoint any pre-existing changes before entering Red Phase",
@@ -551,9 +455,7 @@
         {
           "id": "rq-cc04.2",
           "title": "Incremental verification before checkpoint",
-          "given": [
-            "A task has completed the Green Phase"
-          ],
+          "given": ["A task has completed the Green Phase"],
           "when": "The agent prepares to checkpoint",
           "then": [
             "The agent MUST run incremental verification (tests, typecheck, lint) before calling `adv_task_checkpoint`",
@@ -570,19 +472,12 @@
       "title": "No-Publication Authority",
       "body": "Checkpoint commits are local rollback/audit points only. Publication, merge, and archive remain separate workflows requiring explicit user approval.",
       "priority": "must",
-      "tags": [
-        "checkpoint",
-        "publication",
-        "authority",
-        "archive"
-      ],
+      "tags": ["checkpoint", "publication", "authority", "archive"],
       "scenarios": [
         {
           "id": "rq-cc05.1",
           "title": "Checkpoint commits are not published",
-          "given": [
-            "A checkpoint commit exists in a change worktree"
-          ],
+          "given": ["A checkpoint commit exists in a change worktree"],
           "when": "The agent considers next steps",
           "then": [
             "The agent MUST NOT push the checkpoint commit to a remote",
@@ -593,9 +488,7 @@
         {
           "id": "rq-cc05.2",
           "title": "Archive is the separate publication path",
-          "given": [
-            "All tasks are done and the acceptance gate is complete"
-          ],
+          "given": ["All tasks are done and the acceptance gate is complete"],
           "when": "The user requests archive",
           "then": [
             "`/adv-archive` runs Phase 9 Git Finalization as the publication path",
@@ -607,6 +500,55 @@
       "meta": {
         "merged_from": "advance (originally checkpoint-commits.md)"
       }
+    },
+    {
+      "id": "rq-archiveValidate01",
+      "title": "Archive Completeness Validation",
+      "body": "adv_change_archive MUST run validateChange before creating the archive bundle. Validation errors block the archive; warnings are included in the response but do not block. Validation runs before the idempotent bundle-existence check so that retries also validate.",
+      "priority": "must",
+      "tags": ["workflow", "archive", "validation", "completeness"],
+      "scenarios": [
+        {
+          "id": "rq-archiveValidate01.1",
+          "title": "Validation errors block archive",
+          "given": [
+            "A change passing archive preflight (all tasks done/cancelled, all gates satisfied)",
+            "validateChange returns one or more errors"
+          ],
+          "when": "adv_change_archive is invoked",
+          "then": [
+            "The archive is rejected with a structured error response",
+            "The error response includes validator error codes and messages",
+            "No archive bundle is written"
+          ]
+        },
+        {
+          "id": "rq-archiveValidate01.2",
+          "title": "Validation warnings do not block archive",
+          "given": [
+            "A change passing archive preflight",
+            "validateChange returns warnings but no errors"
+          ],
+          "when": "adv_change_archive is invoked",
+          "then": [
+            "Validation warnings are included in the archive response",
+            "The archive proceeds normally"
+          ]
+        },
+        {
+          "id": "rq-archiveValidate01.3",
+          "title": "Idempotent retry still validates",
+          "given": [
+            "A previous archive attempt wrote a bundle but failed status transition",
+            "The bundle exists on disk"
+          ],
+          "when": "adv_change_archive is invoked again",
+          "then": [
+            "validateChange runs before the bundle-existence short-circuit",
+            "A previously-written bundle does not bypass validation"
+          ]
+        }
+      ]
     }
   ]
 }

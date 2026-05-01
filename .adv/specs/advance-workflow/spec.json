@@ -3,8 +3,8 @@
   "name": "advance-workflow",
   "title": "Advance Workflow",
   "purpose": "Capability: Workflow contract layer for ADV \u2014 gate model, autonomy boundaries, design validation, scope management, releases, approvals, handoff voice, review remediation, and touched-scope quality. Split from `advance` capability.",
-  "version": "1.2.0",
-  "updated_at": "2026-05-01T00:00:00.000Z",
+  "version": "1.3.0",
+  "updated_at": "2026-05-02T00:00:00.000Z",
   "requirements": [
     {
       "id": "rq-R3v13wR1",
@@ -189,6 +189,30 @@
             "adv_change_archive is not called",
             "The user is presented with the failing AC labels and three explicit options (fix locally, override, unlock + amend) per rq-confTriage01"
           ]
+        },
+        {
+          "id": "rq-gatemodel01.4",
+          "title": "Execution-gate requires all non-cancelled tasks done",
+          "given": [
+            "A change whose execution gate is being completed",
+            "The change has tasks with status not 'done' and not 'cancelled'"
+          ],
+          "when": "adv_gate_complete is called with gateId 'execution'",
+          "then": [
+            "The call is rejected",
+            "The response lists each incomplete task with id, title, and status",
+            "The execution gate remains pending"
+          ]
+        },
+        {
+          "id": "rq-gatemodel01.5",
+          "title": "Execution-gate passes when all tasks done or cancelled",
+          "given": [
+            "A change whose execution gate is being completed",
+            "All tasks are either 'done' or 'cancelled' (including zero tasks)"
+          ],
+          "when": "adv_gate_complete is called with gateId 'execution'",
+          "then": ["The gate completes normally"]
         }
       ],
       "meta": {
