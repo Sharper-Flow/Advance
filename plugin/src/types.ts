@@ -1679,14 +1679,24 @@ export const AGENDA_PRIORITY_ORDER: Record<AgendaPriority, number> = {
 // Conformance State (rq-confSource01, rq-confLock01, rq-confVerdict01,
 // rq-confArchiveGate01, rq-confOverride01, rq-confDegradation01)
 //
-// Per-spec conformance lock state + sibling-repo path + audit log.
+// Per-spec conformance lock state + conformance-root path + audit log.
 // Lives in external state at:
 //   ~/.local/share/opencode/plugins/advance/{project-id}/conformance.json
 // Pure opt-in backfill: every spec defaults conformance_required: false.
+//
+// Two location modes:
+//   - "subfolder" (default): .adv/specs/_conformance/ inside the main repo.
+//     Easy management, branch-local versioning, no bootstrap.
+//   - "sibling" (opt-in via init mode flag): {project-parent}/advance-
+//     conformance-{project-id}/. Stronger physical isolation; user manages
+//     a separate repo.
 // =============================================================================
 
 export const ConformanceVerdictSchema = z.enum(["PASS", "DRIFT"]);
 export type ConformanceVerdict = z.infer<typeof ConformanceVerdictSchema>;
+
+export const ConformanceRootKindSchema = z.enum(["subfolder", "sibling"]);
+export type ConformanceRootKind = z.infer<typeof ConformanceRootKindSchema>;
 
 export const ConformanceLastVerdictSchema = z
   .object({
@@ -1722,7 +1732,8 @@ export type ConformanceSpecEntry = z.infer<typeof ConformanceSpecEntrySchema>;
 export const ConformanceStateSchema = z
   .object({
     version: z.literal(1),
-    sibling_repo_path: z.string(),
+    conformance_root: z.string(),
+    conformance_root_kind: ConformanceRootKindSchema,
     specs: z.record(z.string(), ConformanceSpecEntrySchema),
   })
   .passthrough();
@@ -1731,9 +1742,16 @@ export type ConformanceState = z.infer<typeof ConformanceStateSchema>;
 /**
  * Empty conformance state used when conformance.json is missing.
  * Pure opt-in: every spec defaults to conformance_required: false.
+ *
+ * Defaults to "subfolder" kind for ease of management. Init action can
+ * scaffold a "sibling" external repo when the user opts in.
  */
-export const EMPTY_CONFORMANCE_STATE = (siblingRepoPath: string): ConformanceState => ({
+export const EMPTY_CONFORMANCE_STATE = (
+  conformanceRoot: string,
+  kind: ConformanceRootKind = "subfolder",
+): ConformanceState => ({
   version: 1,
-  sibling_repo_path: siblingRepoPath,
+  conformance_root: conformanceRoot,
+  conformance_root_kind: kind,
   specs: {},
 });

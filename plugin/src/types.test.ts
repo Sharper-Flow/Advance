@@ -2828,7 +2828,8 @@ describe("ChangeSchema — approval_mode / autopilot_invoked_at extension", () =
 describe("ConformanceStateSchema", () => {
   const VALID_STATE = {
     version: 1,
-    sibling_repo_path: "/abs/path/advance-conformance-abc123",
+    conformance_root: "/abs/path/repo/.adv/specs/_conformance",
+    conformance_root_kind: "subfolder" as const,
     specs: {
       "advance-workflow": {
         conformance_required: true,
@@ -2850,20 +2851,43 @@ describe("ConformanceStateSchema", () => {
     },
   };
 
-  test("parses a valid conformance state", async () => {
+  test("parses a valid conformance state (subfolder kind)", async () => {
     const { ConformanceStateSchema } = await import("./types");
     const result = ConformanceStateSchema.parse(VALID_STATE);
     expect(result.version).toBe(1);
+    expect(result.conformance_root_kind).toBe("subfolder");
     expect(result.specs["advance-workflow"]?.conformance_required).toBe(true);
     expect(result.specs["advance-workflow"]?.locked).toBe(true);
     expect(result.specs["tdd-contract"]?.conformance_required).toBe(false);
+  });
+
+  test("parses sibling kind", async () => {
+    const { ConformanceStateSchema } = await import("./types");
+    const sibling = {
+      ...VALID_STATE,
+      conformance_root: "/abs/path/advance-conformance-abc123",
+      conformance_root_kind: "sibling" as const,
+    };
+    const result = ConformanceStateSchema.parse(sibling);
+    expect(result.conformance_root_kind).toBe("sibling");
+  });
+
+  test("rejects unknown kind", async () => {
+    const { ConformanceStateSchema } = await import("./types");
+    expect(() =>
+      ConformanceStateSchema.parse({
+        ...VALID_STATE,
+        conformance_root_kind: "embedded",
+      }),
+    ).toThrow();
   });
 
   test("parses minimal spec entry (defaults applied)", async () => {
     const { ConformanceStateSchema } = await import("./types");
     const minimal = {
       version: 1,
-      sibling_repo_path: "/abs/path",
+      conformance_root: "/abs/path",
+      conformance_root_kind: "subfolder" as const,
       specs: {
         "some-spec": {
           conformance_required: false,
@@ -2880,6 +2904,12 @@ describe("ConformanceStateSchema", () => {
   test("rejects state without version", async () => {
     const { ConformanceStateSchema } = await import("./types");
     const { version: _v, ...invalid } = VALID_STATE;
+    expect(() => ConformanceStateSchema.parse(invalid)).toThrow();
+  });
+
+  test("rejects state without conformance_root_kind", async () => {
+    const { ConformanceStateSchema } = await import("./types");
+    const { conformance_root_kind: _k, ...invalid } = VALID_STATE;
     expect(() => ConformanceStateSchema.parse(invalid)).toThrow();
   });
 
