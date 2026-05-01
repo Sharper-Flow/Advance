@@ -29,6 +29,7 @@ export interface FormattedStatus {
   archivedSection: string;
   recommendationsList: string[];
   healthSection: string;
+  worktreeSection: string;
 }
 
 export interface FormattedValidation {
@@ -74,6 +75,10 @@ export interface StatusInput {
   archivedCount: number;
   recommendations: string[];
   temporalAlive: boolean;
+  worktreeCensus?: {
+    total: number;
+    stale: Array<{ path: string; branch: string; lastActivity: string }>;
+  };
 }
 
 export interface ValidationInput {
@@ -211,12 +216,35 @@ export function formatStatusOutput(input: StatusInput): FormattedStatus {
   const archivedSection = `## Archived\n${input.archivedCount} total`;
   const healthSection = `Temporal: ${input.temporalAlive ? "server alive ✓" : "server down ✗"}`;
 
+  // Worktree census section
+  let worktreeSection: string;
+  if (!input.worktreeCensus) {
+    worktreeSection = "## Worktrees\n(unavailable)";
+  } else if (input.worktreeCensus.total === 0) {
+    worktreeSection = "## Worktrees\n(none)";
+  } else {
+    const parts = [`${input.worktreeCensus.total} active`];
+    if (input.worktreeCensus.stale.length > 0) {
+      parts.push(
+        `${input.worktreeCensus.stale.length} stale (>7d)\n` +
+          input.worktreeCensus.stale
+            .map(
+              (s) =>
+                `  ⏰ ${s.branch} — last activity ${s.lastActivity}`,
+            )
+            .join("\n"),
+      );
+    }
+    worktreeSection = `## Worktrees\n${parts.join(", ")}`;
+  }
+
   return {
     specsSection,
     activeSection,
     archivedSection,
     recommendationsList: input.recommendations,
     healthSection,
+    worktreeSection,
   };
 }
 

@@ -147,6 +147,59 @@ describe("tool-formatters", () => {
       });
       expect(result.activeSection).toContain("↳ childChange");
     });
+
+    describe("worktree census", () => {
+      const baseInput = {
+        specCount: 1,
+        requirementCount: 5,
+        activeChanges: [],
+        archivedCount: 0,
+        recommendations: [],
+        temporalAlive: true,
+      };
+
+      it("shows (unavailable) when no census data", () => {
+        const result = formatStatusOutput(baseInput);
+        expect(result.worktreeSection).toBe("## Worktrees\n(unavailable)");
+      });
+
+      it("shows active count with no stale worktrees", () => {
+        const result = formatStatusOutput({
+          ...baseInput,
+          worktreeCensus: { total: 3, stale: [] },
+        });
+        expect(result.worktreeSection).toContain("3 active");
+        expect(result.worktreeSection).not.toContain("stale");
+      });
+
+      it("shows stale count and details when stale worktrees exist", () => {
+        const result = formatStatusOutput({
+          ...baseInput,
+          worktreeCensus: {
+            total: 4,
+            stale: [
+              {
+                path: "/tmp/wt-old",
+                branch: "change/oldFeature",
+                lastActivity: "10d ago",
+              },
+            ],
+          },
+        });
+        expect(result.worktreeSection).toContain("4 active");
+        expect(result.worktreeSection).toContain("1 stale");
+        expect(result.worktreeSection).toContain("change/oldFeature");
+        expect(result.worktreeSection).toContain("10d ago");
+      });
+
+      it("shows (none) when total is 0", () => {
+        const result = formatStatusOutput({
+          ...baseInput,
+          worktreeCensus: { total: 0, stale: [] },
+        });
+        expect(result.worktreeSection).toContain("(none)");
+      });
+    });
   });
 
   describe("formatValidationOutput", () => {

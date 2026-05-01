@@ -36,6 +36,7 @@ import {
   loadProposalWithFallback,
 } from "../storage/json";
 import { readProjectMetadata } from "../storage/project-metadata";
+import { getWorktreeCensus } from "../utils/worktree-census";
 import { runClarifyReadinessChecks } from "../validator/clarify-readiness";
 
 // =============================================================================
@@ -318,6 +319,9 @@ export const statusTools = {
         await enrichRecentChangeStatus(rc, status, store, clarifyMode);
       }
 
+      // Worktree census
+      const worktreeCensus = await getWorktreeCensus(store.paths.root);
+
       const specsList = await store.specs.list();
       const requirementCount = specsList.specs.reduce(
         (sum, s) => sum + (s.requirementCount ?? 0),
@@ -337,6 +341,12 @@ export const statusTools = {
         archivedCount: status.changes.byStatus.archived ?? 0,
         recommendations: status.recommendations,
         temporalAlive: !!temporalHealth?.server_alive,
+        worktreeCensus: worktreeCensus
+          ? {
+              total: worktreeCensus.total,
+              stale: worktreeCensus.stale,
+            }
+          : undefined,
       });
 
       const projectMetadata = await readProjectMetadata(
@@ -350,6 +360,7 @@ export const statusTools = {
         temporal_health: temporalHealth,
         migration_status: migrationStatus,
         project_metadata: projectMetadata,
+        worktree_census: worktreeCensus,
         diagnostics: {
           temporalWorker: temporalHealth?.worker_alive
             ? ("healthy" as const)
