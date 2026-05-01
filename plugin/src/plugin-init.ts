@@ -254,6 +254,22 @@ export function getRegisteredTemporalWorkerQueues(): string[] {
   return [...queues].sort();
 }
 
+export async function ensureProjectTemporalQueue(
+  projectId: string,
+): Promise<void> {
+  const queue = buildProjectTaskQueue(projectId);
+  if (getRegisteredTemporalWorkerQueues().includes(queue)) return;
+
+  const workers = [...inProcessTemporalWorkers];
+  if (workers.length === 0) {
+    throw new Error(
+      `Temporal worker not ready for target project queue ${queue}: no registered worker`,
+    );
+  }
+
+  await Promise.all(workers.map((worker) => worker.registerQueue(queue)));
+}
+
 /**
  * Aggregate liveness probe for registered Temporal workers.
  *
