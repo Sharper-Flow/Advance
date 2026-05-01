@@ -19,6 +19,50 @@ describe("adv-slop-scan anti-recursion assets", () => {
     );
   });
 
+  test("documents Phase 1 confidence defaults and actionability grouping", () => {
+    const content = readFileSync(COMMAND_PATH, "utf8");
+
+    expect(content).toContain("### Phase 1 Confidence Defaults");
+    expect(content).toContain(
+      "AST-backed structural findings default to `confidence: high`",
+    );
+    expect(content).toContain(
+      "Regex-only defensive-overkill findings default to `confidence: medium`",
+    );
+    expect(content).toContain(
+      "Degraded fallback findings default to `confidence: low`",
+    );
+    expect(content).toContain(
+      "Assign `actionability` and `grouping` before severity sorting",
+    );
+  });
+
+  test("documents non-scannable context packet boundaries", () => {
+    const content = readFileSync(COMMAND_PATH, "utf8");
+
+    expect(content).toContain("### Context Boundary (Non-Scannable)");
+    expect(content).toContain(
+      "Context packet text is orientation only, not a finding location",
+    );
+    expect(content).toContain(
+      "Every finding must cite a target source file and line or scoped source evidence",
+    );
+    expect(content).toContain(
+      "Do NOT emit findings against CHANGE, AFFECTED FILES summaries, TASK EVIDENCE SUMMARY, examples, or fixture descriptions",
+    );
+  });
+
+  test("documents low-confidence report grouping and JSON metadata", () => {
+    const content = readFileSync(COMMAND_PATH, "utf8");
+
+    expect(content).toContain("Low-confidence / non-blocking findings");
+    expect(content).toContain(
+      "Low-confidence findings are not blocking by default",
+    );
+    expect(content).toContain("grouping: 'actionable' | 'low-confidence'");
+    expect(content).toContain("actionability: 'blocking' | 'non-blocking'");
+  });
+
   test("documents single-level scanner orchestration in shared ADV instructions", () => {
     const content = readFileSync(ADV_INSTRUCTIONS_PATH, "utf8");
 
