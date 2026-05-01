@@ -192,6 +192,32 @@ describe("tool-formatters", () => {
         expect(result.worktreeSection).toContain("10d ago");
       });
 
+      it("shows multiple stale worktrees", () => {
+        const result = formatStatusOutput({
+          ...baseInput,
+          worktreeCensus: {
+            total: 3,
+            stale: [
+              {
+                path: "/tmp/wt-old",
+                branch: "change/oldFeature",
+                lastActivity: "10d ago",
+              },
+              {
+                path: "/tmp/wt-older",
+                branch: "change/olderFeature",
+                lastActivity: "14d ago",
+              },
+            ],
+          },
+        });
+
+        expect(result.worktreeSection).toContain("3 active");
+        expect(result.worktreeSection).toContain("2 stale");
+        expect(result.worktreeSection).toContain("change/oldFeature");
+        expect(result.worktreeSection).toContain("change/olderFeature");
+      });
+
       it("shows (none) when total is 0", () => {
         const result = formatStatusOutput({
           ...baseInput,

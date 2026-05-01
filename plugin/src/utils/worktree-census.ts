@@ -16,6 +16,14 @@ export interface WorktreeCensus {
 }
 
 const SEVEN_DAYS_MS = 7 * 86400_000;
+const MAX_WORKTREE_LIST_BUFFER = 10 * 1024 * 1024;
+
+const GIT_ENV = {
+  ...process.env,
+  GIT_TERMINAL_PROMPT: "0",
+  GIT_ASKPASS: "/bin/false",
+  GIT_EDITOR: "true",
+};
 
 /**
  * Enumerate git worktrees and detect stale ones (>7d inactive).
@@ -32,7 +40,8 @@ export async function getWorktreeCensus(
         {
           cwd: repoRoot,
           timeout: 5000,
-          env: { ...process.env, GIT_TERMINAL_PROMPT: "0" },
+          maxBuffer: MAX_WORKTREE_LIST_BUFFER,
+          env: GIT_ENV,
         },
         (err, out) => {
           if (err) reject(err);
