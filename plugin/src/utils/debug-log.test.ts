@@ -57,23 +57,39 @@ describe("debug-log logger", () => {
       expect(typeof log.error).toBe("function");
     });
 
-    test("warn writes to console.warn in normal runs", async () => {
+    test("warn does NOT write to console.warn when ADV_DEBUG is off", async () => {
       delete process.env.ADV_DEBUG;
       const { createLogger } = await import("./debug-log");
       const log = createLogger("scope-a");
       log.warn("something happened");
-      expect(warnSpy).toHaveBeenCalledTimes(1);
-      expect(warnSpy.mock.calls[0][0]).toContain("[adv:scope-a]");
-      expect(warnSpy.mock.calls[0][0]).toContain("something happened");
+      expect(warnSpy).not.toHaveBeenCalled();
     });
 
-    test("error writes to console.error in normal runs", async () => {
+    test("error does NOT write to console.error when ADV_DEBUG is off", async () => {
       delete process.env.ADV_DEBUG;
       const { createLogger } = await import("./debug-log");
       const log = createLogger("scope-b");
       log.error("oh no");
+      expect(errorSpy).not.toHaveBeenCalled();
+    });
+
+    test("warn writes to console.warn when ADV_DEBUG=1", async () => {
+      process.env.ADV_DEBUG = "1";
+      const { createLogger } = await import("./debug-log");
+      const log = createLogger("scope-a-debug");
+      log.warn("something happened");
+      expect(warnSpy).toHaveBeenCalledTimes(1);
+      expect(warnSpy.mock.calls[0][0]).toContain("[adv:scope-a-debug]");
+      expect(warnSpy.mock.calls[0][0]).toContain("something happened");
+    });
+
+    test("error writes to console.error when ADV_DEBUG=1", async () => {
+      process.env.ADV_DEBUG = "1";
+      const { createLogger } = await import("./debug-log");
+      const log = createLogger("scope-b-debug");
+      log.error("oh no");
       expect(errorSpy).toHaveBeenCalledTimes(1);
-      expect(errorSpy.mock.calls[0][0]).toContain("[adv:scope-b]");
+      expect(errorSpy.mock.calls[0][0]).toContain("[adv:scope-b-debug]");
       expect(errorSpy.mock.calls[0][0]).toContain("oh no");
     });
 

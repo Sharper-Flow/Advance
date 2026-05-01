@@ -79,6 +79,10 @@ const writeFileSink = (scope: string, level: LogLevel, line: string): void => {
 /**
  * Create a scoped logger. `scope` is a short module/service name that
  * appears in both the console prefix and the file sink.
+ *
+ * Console output (warn/error) is gated on `ADV_DEBUG=1` to prevent
+ * Temporal retry/init spam from drowning interactive sessions. All
+ * levels always write to the file sink when `ADV_DEBUG=1`.
  */
 export const createLogger = (scope: string): Logger => {
   const consolePrefix = `[adv:${scope}]`;
@@ -90,10 +94,14 @@ export const createLogger = (scope: string): Logger => {
 
     writeFileSink(scope, level, fileLine);
 
-    if (level === "warn") {
-      console.warn(consoleLine);
-    } else if (level === "error") {
-      console.error(consoleLine);
+    // Console output only when ADV_DEBUG=1. Normal sessions are quiet;
+    // diagnostics live in the file sink for offline inspection.
+    if (isDebugEnabled()) {
+      if (level === "warn") {
+        console.warn(consoleLine);
+      } else if (level === "error") {
+        console.error(consoleLine);
+      }
     }
     // debug/info: file sink only, no console output.
   };

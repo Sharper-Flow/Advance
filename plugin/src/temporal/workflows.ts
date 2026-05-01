@@ -536,12 +536,21 @@ export async function changeWorkflow(
         ];
         const currentIdx = gateOrder.indexOf(gateId);
         const nextGate = gateOrder[currentIdx + 1];
+        // Search attributes are best-effort index metadata. GH #17.
         if (input.searchAttributesEnabled !== false) {
-          wf.upsertSearchAttributes({
-            [ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES.activeGate]: [
-              nextGate ?? "done",
-            ],
-          });
+          try {
+            wf.upsertSearchAttributes({
+              [ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES.activeGate]: [
+                nextGate ?? "done",
+              ],
+            });
+          } catch (saErr) {
+            wf.log.warn("search-attribute-upsert-failed", {
+              op: "completeGateUpdate",
+              changeId: state.changeId,
+              error: saErr instanceof Error ? saErr.message : String(saErr),
+            });
+          }
         }
         wf.log.info("op:end", {
           op: "completeGateUpdate",
@@ -644,10 +653,22 @@ export async function changeWorkflow(
         title: state.title?.slice(0, 80),
       });
       const result = archiveChangeInChangeState(state);
+      // Search attributes are best-effort index metadata. Failure to upsert
+      // (e.g. unregistered attributes, operator service unavailable) MUST NOT
+      // block the archive state transition — the change is already archived
+      // in the workflow state and on disk. GH #17.
       if (input.searchAttributesEnabled !== false) {
-        wf.upsertSearchAttributes({
-          [ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES.changeStatus]: ["archived"],
-        });
+        try {
+          wf.upsertSearchAttributes({
+            [ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES.changeStatus]: ["archived"],
+          });
+        } catch (saErr) {
+          wf.log.warn("search-attribute-upsert-failed", {
+            op: "archiveChangeUpdate",
+            changeId: state.changeId,
+            error: saErr instanceof Error ? saErr.message : String(saErr),
+          });
+        }
       }
       wf.log.info("op:end", {
         op: "archiveChangeUpdate",
@@ -667,10 +688,19 @@ export async function changeWorkflow(
           title: state.title?.slice(0, 80),
         });
         const result = closeChangeInChangeState(state, closure);
+        // Search attributes are best-effort index metadata. GH #17.
         if (input.searchAttributesEnabled !== false) {
-          wf.upsertSearchAttributes({
-            [ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES.changeStatus]: ["closed"],
-          });
+          try {
+            wf.upsertSearchAttributes({
+              [ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES.changeStatus]: ["closed"],
+            });
+          } catch (saErr) {
+            wf.log.warn("search-attribute-upsert-failed", {
+              op: "closeChangeUpdate",
+              changeId: state.changeId,
+              error: saErr instanceof Error ? saErr.message : String(saErr),
+            });
+          }
         }
         wf.log.info("op:end", {
           op: "closeChangeUpdate",

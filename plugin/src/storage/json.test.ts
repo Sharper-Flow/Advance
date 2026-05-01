@@ -137,6 +137,10 @@ describe("ProjectConfig", () => {
       JSON.stringify({ totally: "wrong", schema: true }),
       "utf-8",
     );
+    // Enable ADV_DEBUG so logger.warn routes to console.warn (GH #5:
+    // console output is now gated on ADV_DEBUG=1).
+    const prevDebug = process.env.ADV_DEBUG;
+    process.env.ADV_DEBUG = "1";
     const warnSpy = vi
       .spyOn(console, "warn")
       .mockImplementation(() => undefined);
@@ -148,6 +152,11 @@ describe("ProjectConfig", () => {
       );
     } finally {
       warnSpy.mockRestore();
+      if (prevDebug === undefined) {
+        delete process.env.ADV_DEBUG;
+      } else {
+        process.env.ADV_DEBUG = prevDebug;
+      }
     }
   });
 

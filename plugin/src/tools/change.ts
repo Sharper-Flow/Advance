@@ -61,6 +61,32 @@ import { BulkCloseSelectorSchema } from "../types";
 import { collectErrorText } from "../temporal/retry-wrapper";
 
 /**
+ * Extract structured context-mismatch fields from an error, if it's an
+ * AdvProjectContextMismatchError. Returns undefined for other error types.
+ * GH #11: surface actionable project-context diagnostics instead of
+ * opaque Temporal gRPC errors.
+ */
+function extractContextMismatch(error: unknown): {
+  errorClass: "AdvProjectContextMismatch";
+  owningProjectId: string;
+  currentProjectId: string;
+  hint: string;
+} | void {
+  if (error instanceof Error && error.name === "AdvProjectContextMismatch") {
+    const e = error as Error & {
+      owningProjectId?: string;
+      currentProjectId?: string;
+    };
+    return {
+      errorClass: "AdvProjectContextMismatch",
+      owningProjectId: e.owningProjectId ?? "unknown",
+      currentProjectId: e.currentProjectId ?? "unknown",
+      hint: "This change belongs to a different project context. Open the change in its owning project, or verify linked-project configuration.",
+    };
+  }
+}
+
+/**
  * Pure function: merge current clarify findings with persisted snapshots.
  * Resolves stale findings and appends new ones.
  */
@@ -1247,10 +1273,12 @@ export const changeTools = {
           }),
         );
       } catch (error) {
+        const contextMismatch = extractContextMismatch(error);
         return wrapWithBanner(
           { command: "adv_change_close", target: changeId },
           formatToolOutput({
             error: error instanceof Error ? error.message : String(error),
+            ...contextMismatch,
           }),
         );
       }
@@ -1376,10 +1404,12 @@ export const changeTools = {
           }),
         );
       } catch (error) {
+        const contextMismatch = extractContextMismatch(error);
         return wrapWithBanner(
           { command: "adv_change_bulk_close" },
           formatToolOutput({
             error: error instanceof Error ? error.message : String(error),
+            ...contextMismatch,
           }),
         );
       }
@@ -1550,6 +1580,18 @@ export const changeTools = {
           await store.changes.save(change);
         } catch (saveError) {
           const saveErrorText = collectErrorText(saveError);
+          const contextMismatch = extractContextMismatch(saveError);
+          if (contextMismatch) {
+            return wrapWithBanner(
+              { command: "adv_change_archive", target: changeId },
+              formatToolOutput({
+                success: false,
+                error: `Failed to update change status to archived: ${saveErrorText}`,
+                archivePath: archiveResult.archivePath,
+                ...contextMismatch,
+              }),
+            );
+          }
           const searchAttributeRecovery = isSearchAttributeArchiveFailure(
             saveErrorText,
           )

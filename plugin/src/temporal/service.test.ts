@@ -155,6 +155,10 @@ describe("STSL (Shared Temporal Service Layer)", () => {
   });
 
   it("initStsl logs non-AlreadyExists registration failures at error level", async () => {
+    // Enable ADV_DEBUG so logger.error routes to console.error (GH #5:
+    // console output is now gated on ADV_DEBUG=1).
+    const prevDebug = process.env.ADV_DEBUG;
+    process.env.ADV_DEBUG = "1";
     // Reset implementation queues (vi.clearAllMocks does NOT clear queued
     // mockRejectedValueOnce entries; prior tests can leak rejections that
     // were never consumed because their default mock made the call path
@@ -215,6 +219,11 @@ describe("STSL (Shared Temporal Service Layer)", () => {
     } finally {
       errorSpy.mockRestore();
       warnSpy.mockRestore();
+      if (prevDebug === undefined) {
+        delete process.env.ADV_DEBUG;
+      } else {
+        process.env.ADV_DEBUG = prevDebug;
+      }
     }
   });
 
