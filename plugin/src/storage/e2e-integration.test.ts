@@ -137,6 +137,7 @@ function makeLegacyStore(): Store {
       get: vi.fn(async () => ({ success: false, error: "Not found" })),
       create: vi.fn(async () => ({ success: true, data: { id: "chg1" } })),
       close: vi.fn(async () => ({ success: true, data: {} })),
+      save: vi.fn(async () => {}),
     },
     tasks: {
       list: vi.fn(async () => []),

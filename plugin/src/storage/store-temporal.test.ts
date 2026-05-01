@@ -2171,13 +2171,16 @@ describe("Temporal store backend adapter", () => {
       expect(failResult?.success).toBe(false);
       expect(failResult?.error).toMatch(/disk full/);
       // The Temporal transition for the failed id must NOT have run
-      expect(handlesByChangeId["chg-batch-fail"].executeUpdate).not
-        .toHaveBeenCalled();
+      expect(
+        handlesByChangeId["chg-batch-fail"].executeUpdate,
+      ).not.toHaveBeenCalled();
       // The other ids' Temporal transitions DID run
-      expect(handlesByChangeId["chg-batch-ok-1"].executeUpdate)
-        .toHaveBeenCalled();
-      expect(handlesByChangeId["chg-batch-ok-2"].executeUpdate)
-        .toHaveBeenCalled();
+      expect(
+        handlesByChangeId["chg-batch-ok-1"].executeUpdate,
+      ).toHaveBeenCalled();
+      expect(
+        handlesByChangeId["chg-batch-ok-2"].executeUpdate,
+      ).toHaveBeenCalled();
     });
 
     it("close() is idempotent — re-closing an already-closed change is safe", async () => {
@@ -2728,9 +2731,7 @@ describe("Temporal store backend adapter", () => {
 
         const defaultList = await adapted.changes.list({});
         for (const id of zombieIds) {
-          expect(
-            defaultList.changes.find((c) => c.id === id),
-          ).toBeUndefined();
+          expect(defaultList.changes.find((c) => c.id === id)).toBeUndefined();
         }
 
         const withArchived = await adapted.changes.list({
