@@ -5,9 +5,18 @@ import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 const mocks = vi.hoisted(() => {
   const connectionClose = vi.fn().mockResolvedValue(undefined);
   const addSearchAttributes = vi.fn().mockResolvedValue({});
+  const listSearchAttributes = vi.fn().mockResolvedValue({
+    customAttributes: {
+      AdvProjectId: { indexedValueType: 1 },
+      AdvChangeId: { indexedValueType: 1 },
+      AdvChangeStatus: { indexedValueType: 1 },
+      AdvActiveGate: { indexedValueType: 1 },
+      AdvDoomLoopActive: { indexedValueType: 4 },
+    },
+  });
   const connection = {
     close: connectionClose,
-    operatorService: { addSearchAttributes },
+    operatorService: { addSearchAttributes, listSearchAttributes },
   };
   const client = {};
   const connect = vi.fn().mockResolvedValue(connection);
@@ -17,6 +26,7 @@ const mocks = vi.hoisted(() => {
   return {
     connectionClose,
     addSearchAttributes,
+    listSearchAttributes,
     connection,
     client,
     connect,
@@ -82,6 +92,15 @@ describe("STSL reconnect via withTemporalRetry (Task 3 integration)", () => {
       close: vi.fn().mockResolvedValue(undefined),
       operatorService: {
         addSearchAttributes: vi.fn().mockResolvedValue({}),
+        listSearchAttributes: vi.fn().mockResolvedValue({
+          customAttributes: {
+            AdvProjectId: { indexedValueType: 1 },
+            AdvChangeId: { indexedValueType: 1 },
+            AdvChangeStatus: { indexedValueType: 1 },
+            AdvActiveGate: { indexedValueType: 1 },
+            AdvDoomLoopActive: { indexedValueType: 4 },
+          },
+        }),
       },
     };
     mocks.connect.mockResolvedValueOnce(newConnection);
@@ -128,6 +147,15 @@ describe("STSL reconnect via withTemporalRetry (Task 3 integration)", () => {
       close: vi.fn().mockResolvedValue(undefined),
       operatorService: {
         addSearchAttributes: vi.fn().mockResolvedValue({}),
+        listSearchAttributes: vi.fn().mockResolvedValue({
+          customAttributes: {
+            AdvProjectId: { indexedValueType: 1 },
+            AdvChangeId: { indexedValueType: 1 },
+            AdvChangeStatus: { indexedValueType: 1 },
+            AdvActiveGate: { indexedValueType: 1 },
+            AdvDoomLoopActive: { indexedValueType: 4 },
+          },
+        }),
       },
     };
     mocks.connect.mockResolvedValueOnce(newConnection);
@@ -162,6 +190,15 @@ describe("STSL reconnect via withTemporalRetry (Task 3 integration)", () => {
       close: vi.fn().mockResolvedValue(undefined),
       operatorService: {
         addSearchAttributes: vi.fn().mockResolvedValue({}),
+        listSearchAttributes: vi.fn().mockResolvedValue({
+          customAttributes: {
+            AdvProjectId: { indexedValueType: 1 },
+            AdvChangeId: { indexedValueType: 1 },
+            AdvChangeStatus: { indexedValueType: 1 },
+            AdvActiveGate: { indexedValueType: 1 },
+            AdvDoomLoopActive: { indexedValueType: 4 },
+          },
+        }),
       },
     };
     mocks.connect.mockResolvedValue(newConnection);
@@ -245,6 +282,15 @@ describe("STSL reconnect via withTemporalRetry (Task 3 integration)", () => {
       close: vi.fn().mockResolvedValue(undefined),
       operatorService: {
         addSearchAttributes: vi.fn().mockResolvedValue({}),
+        listSearchAttributes: vi.fn().mockResolvedValue({
+          customAttributes: {
+            AdvProjectId: { indexedValueType: 1 },
+            AdvChangeId: { indexedValueType: 1 },
+            AdvChangeStatus: { indexedValueType: 1 },
+            AdvActiveGate: { indexedValueType: 1 },
+            AdvDoomLoopActive: { indexedValueType: 4 },
+          },
+        }),
       },
     };
     mocks.connect.mockResolvedValueOnce(newConnection);
@@ -285,6 +331,15 @@ describe("STSL reconnect via withTemporalRetry (Task 3 integration)", () => {
       close: vi.fn().mockResolvedValue(undefined),
       operatorService: {
         addSearchAttributes: vi.fn().mockResolvedValue({}),
+        listSearchAttributes: vi.fn().mockResolvedValue({
+          customAttributes: {
+            AdvProjectId: { indexedValueType: 1 },
+            AdvChangeId: { indexedValueType: 1 },
+            AdvChangeStatus: { indexedValueType: 1 },
+            AdvActiveGate: { indexedValueType: 1 },
+            AdvDoomLoopActive: { indexedValueType: 4 },
+          },
+        }),
       },
     };
     mocks.connect.mockResolvedValueOnce(newConnection);

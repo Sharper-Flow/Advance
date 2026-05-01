@@ -27,7 +27,18 @@ const mocks = vi.hoisted(() => ({
   // Mock @temporalio/client so initStsl/reinitStsl don't need a real server
   temporalConnection: {
     close: vi.fn(async () => {}),
-    operatorService: { addSearchAttributes: vi.fn(async () => {}) },
+    operatorService: {
+      addSearchAttributes: vi.fn(async () => {}),
+      listSearchAttributes: vi.fn(async () => ({
+        customAttributes: {
+          AdvProjectId: { indexedValueType: 1 },
+          AdvChangeId: { indexedValueType: 1 },
+          AdvChangeStatus: { indexedValueType: 1 },
+          AdvActiveGate: { indexedValueType: 1 },
+          AdvDoomLoopActive: { indexedValueType: 4 },
+        },
+      })),
+    },
   },
   temporalConnect: vi.fn(async () => mocks.temporalConnection),
   temporalClientCtor: vi.fn(function (this: unknown) {

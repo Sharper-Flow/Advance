@@ -4,9 +4,18 @@ import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 const mocks = vi.hoisted(() => {
   const connectionClose = vi.fn().mockResolvedValue(undefined);
   const addSearchAttributes = vi.fn().mockResolvedValue({});
+  const listSearchAttributes = vi.fn().mockResolvedValue({
+    customAttributes: {
+      AdvProjectId: { indexedValueType: 1 },
+      AdvChangeId: { indexedValueType: 1 },
+      AdvChangeStatus: { indexedValueType: 1 },
+      AdvActiveGate: { indexedValueType: 1 },
+      AdvDoomLoopActive: { indexedValueType: 4 },
+    },
+  });
   const connection = {
     close: connectionClose,
-    operatorService: { addSearchAttributes },
+    operatorService: { addSearchAttributes, listSearchAttributes },
   };
   const client = {};
   const connect = vi.fn().mockResolvedValue(connection);
@@ -17,6 +26,7 @@ const mocks = vi.hoisted(() => {
   return {
     connectionClose,
     addSearchAttributes,
+    listSearchAttributes,
     connection,
     client,
     connect,
@@ -37,6 +47,7 @@ import {
   resetStsl,
   reinitStsl,
   getStslStats,
+  verifyAdvSearchAttributes,
 } from "./service";
 
 describe("STSL (Shared Temporal Service Layer)", () => {
@@ -69,7 +80,21 @@ describe("STSL (Shared Temporal Service Layer)", () => {
     });
   });
 
-  it("initStsl registers ADV search attributes with the server", async () => {
+  it("initStsl registers ADV search attributes if missing", async () => {
+    // Mock: SAs not yet present → registration should fire
+    mocks.listSearchAttributes
+      .mockResolvedValueOnce({ customAttributes: {} }) // check before register
+      .mockResolvedValueOnce({ customAttributes: {} }) // verification poll 1
+      .mockResolvedValue({ // verification polls 2+ succeed
+        customAttributes: {
+          AdvProjectId: { indexedValueType: 1 },
+          AdvChangeId: { indexedValueType: 1 },
+          AdvChangeStatus: { indexedValueType: 1 },
+          AdvActiveGate: { indexedValueType: 1 },
+          AdvDoomLoopActive: { indexedValueType: 4 },
+        },
+      });
+
     await initStsl({
       ADV_TEMPORAL_ADDRESS: "127.0.0.1:7233",
       ADV_TEMPORAL_NAMESPACE: "default",
@@ -87,6 +112,17 @@ describe("STSL (Shared Temporal Service Layer)", () => {
         AdvDoomLoopActive: 4, // BOOL
       },
     });
+  });
+
+  it("initStsl skips registration when SAs already present", async () => {
+    // Default mock has all SAs present → registration should be skipped
+    await initStsl({
+      ADV_TEMPORAL_ADDRESS: "127.0.0.1:7233",
+      ADV_TEMPORAL_NAMESPACE: "default",
+    });
+
+    // addSearchAttributes NOT called because checkAdvSearchAttributes sees all present
+    expect(mocks.addSearchAttributes).toHaveBeenCalledTimes(0);
   });
 
   it("initStsl treats AlreadyExists as success (idempotent)", async () => {
@@ -236,6 +272,15 @@ describe("reinitStsl (Task 2 — comprehensive coverage)", () => {
       close: vi.fn().mockResolvedValue(undefined),
       operatorService: {
         addSearchAttributes: vi.fn().mockResolvedValue({}),
+        listSearchAttributes: vi.fn().mockResolvedValue({
+          customAttributes: {
+            AdvProjectId: { indexedValueType: 1 },
+            AdvChangeId: { indexedValueType: 1 },
+            AdvChangeStatus: { indexedValueType: 1 },
+            AdvActiveGate: { indexedValueType: 1 },
+            AdvDoomLoopActive: { indexedValueType: 4 },
+          },
+        }),
       },
     };
     const newClient = {};
@@ -310,8 +355,21 @@ describe("reinitStsl (Task 2 — comprehensive coverage)", () => {
     expect(getStslStats().reconnectFailureCount).toBe(1);
   });
 
-  it("re-registers ADV search attributes after reconnect", async () => {
+  it("re-registers ADV search attributes after reconnect if missing", async () => {
     const { newConnection } = await initAndStubNextReconnect();
+    // Make the new connection see SAs as missing on first check, then present
+    newConnection.operatorService.listSearchAttributes
+      .mockResolvedValueOnce({ customAttributes: {} }) // check → missing → register
+      .mockResolvedValueOnce({ customAttributes: {} }) // verification poll 1
+      .mockResolvedValue({
+        customAttributes: {
+          AdvProjectId: { indexedValueType: 1 },
+          AdvChangeId: { indexedValueType: 1 },
+          AdvChangeStatus: { indexedValueType: 1 },
+          AdvActiveGate: { indexedValueType: 1 },
+          AdvDoomLoopActive: { indexedValueType: 4 },
+        },
+      });
 
     // initStsl already called addSearchAttributes once on the original conn.
     // After reinit, the NEW connection's addSearchAttributes should be hit.
@@ -381,5 +439,211 @@ describe("reinitStsl (Task 2 — comprehensive coverage)", () => {
     await expect(p2).rejects.toThrow(/shared-failure/);
     // Single-flight: only one failure counts toward reconnectFailureCount.
     expect(getStslStats().reconnectFailureCount).toBe(1);
+  });
+});
+
+describe("verifyAdvSearchAttributes", () => {
+  beforeEach(() => {
+    resetStsl();
+    vi.clearAllMocks();
+  });
+
+  afterEach(async () => {
+    await closeStsl().catch(() => {});
+  });
+
+  it("returns ok immediately when check passes on first attempt", async () => {
+    // listSearchAttributes returns all 5 SAs present by default in mocks
+    const result = await verifyAdvSearchAttributes(
+      mocks.connection,
+      "test-ns",
+      3,
+      10,
+    );
+
+    expect(result.ok).toBe(true);
+    expect(mocks.listSearchAttributes).toHaveBeenCalledTimes(1);
+  });
+
+  it("polls until ok, then returns", async () => {
+    // First 2 calls return empty (SAs missing), third returns all present
+    mocks.listSearchAttributes
+      .mockResolvedValueOnce({ customAttributes: {} })
+      .mockResolvedValueOnce({ customAttributes: {} });
+
+    const result = await verifyAdvSearchAttributes(
+      mocks.connection,
+      "test-ns",
+      5,
+      10,
+    );
+
+    expect(result.ok).toBe(true);
+    expect(mocks.listSearchAttributes).toHaveBeenCalledTimes(3);
+  });
+
+  it("returns final check result after maxAttempts exhausted", async () => {
+    // Override mock to return empty — SAs never propagate. Use mockResolvedValue
+    // since this test runs before integration tests and we restore in afterEach.
+    const original = mocks.listSearchAttributes.getMockImplementation();
+    mocks.listSearchAttributes.mockResolvedValue({ customAttributes: {} });
+
+    const result = await verifyAdvSearchAttributes(
+      mocks.connection,
+      "test-ns",
+      3,
+      1, // minimal delay for tests
+    );
+
+    expect(result.ok).toBe(false);
+    expect(result.missing.length).toBeGreaterThan(0);
+    // 3 loop attempts + 1 final check = 4 calls
+    expect(mocks.listSearchAttributes).toHaveBeenCalledTimes(4);
+
+    // Restore original implementation so downstream tests get the hoisted mock
+    if (original) {
+      mocks.listSearchAttributes.mockImplementation(original);
+    } else {
+      mocks.listSearchAttributes.mockResolvedValue({
+        customAttributes: {
+          AdvProjectId: { indexedValueType: 1 },
+          AdvChangeId: { indexedValueType: 1 },
+          AdvChangeStatus: { indexedValueType: 1 },
+          AdvActiveGate: { indexedValueType: 1 },
+          AdvDoomLoopActive: { indexedValueType: 4 },
+        },
+      });
+    }
+  });
+
+  it("handles listSearchAttributes throwing an error", async () => {
+    const original = mocks.listSearchAttributes.getMockImplementation();
+    mocks.listSearchAttributes.mockRejectedValue(
+      new Error("gRPC UNAVAILABLE"),
+    );
+
+    const result = await verifyAdvSearchAttributes(
+      mocks.connection,
+      "test-ns",
+      2,
+      1, // minimal delay for tests
+    );
+
+    expect(result.ok).toBe(false);
+    expect(result.error).toContain("UNAVAILABLE");
+
+    // Restore original implementation
+    if (original) {
+      mocks.listSearchAttributes.mockImplementation(original);
+    } else {
+      mocks.listSearchAttributes.mockResolvedValue({
+        customAttributes: {
+          AdvProjectId: { indexedValueType: 1 },
+          AdvChangeId: { indexedValueType: 1 },
+          AdvChangeStatus: { indexedValueType: 1 },
+          AdvActiveGate: { indexedValueType: 1 },
+          AdvDoomLoopActive: { indexedValueType: 4 },
+        },
+      });
+    }
+  });
+});
+
+describe("initStsl verification integration", () => {
+  beforeEach(() => {
+    resetStsl();
+    vi.clearAllMocks();
+    // Ensure listSearchAttributes mock is restored to the hoisted default
+    // (previous tests may have overridden it with mockResolvedValue/mockRejectedValue)
+    mocks.listSearchAttributes.mockResolvedValue({
+      customAttributes: {
+        AdvProjectId: { indexedValueType: 1 },
+        AdvChangeId: { indexedValueType: 1 },
+        AdvChangeStatus: { indexedValueType: 1 },
+        AdvActiveGate: { indexedValueType: 1 },
+        AdvDoomLoopActive: { indexedValueType: 4 },
+      },
+    });
+  });
+
+  afterEach(async () => {
+    await closeStsl().catch(() => {});
+  });
+
+  it("initStsl sets saVerification after successful verification", async () => {
+    const env = {
+      ADV_TEMPORAL_ADDRESS: "127.0.0.1:7233",
+      ADV_TEMPORAL_NAMESPACE: "test-ns",
+    };
+
+    await initStsl(env);
+
+    const stats = getStslStats();
+    expect(stats.saVerification).toBeDefined();
+    expect(stats.saVerification!.ok).toBe(true);
+    expect(stats.saVerification!.checkedAt).toBeGreaterThan(0);
+  }, 15_000);
+
+  it("initStsl sets saVerification ok:false when verification fails", async () => {
+    vi.useFakeTimers();
+    mocks.listSearchAttributes.mockResolvedValue({ customAttributes: {} });
+
+    const env = {
+      ADV_TEMPORAL_ADDRESS: "127.0.0.1:7233",
+      ADV_TEMPORAL_NAMESPACE: "test-ns",
+    };
+
+    const initPromise = initStsl(env);
+    // Advance through all setTimeout calls in the poll loop
+    await vi.advanceTimersByTimeAsync(10_000);
+    await initPromise;
+
+    const stats = getStslStats();
+    expect(stats.saVerification).toBeDefined();
+    expect(stats.saVerification!.ok).toBe(false);
+    vi.useRealTimers();
+  });
+
+  it("reinitStsl updates saVerification after reconnect", async () => {
+    await initStsl({
+      ADV_TEMPORAL_ADDRESS: "127.0.0.1:7233",
+      ADV_TEMPORAL_NAMESPACE: "default",
+    });
+
+    const newConnection = {
+      close: vi.fn().mockResolvedValue(undefined),
+      operatorService: {
+        addSearchAttributes: vi.fn().mockResolvedValue({}),
+        listSearchAttributes: vi.fn().mockResolvedValue({
+          customAttributes: {
+            AdvProjectId: { indexedValueType: 1 },
+            AdvChangeId: { indexedValueType: 1 },
+            AdvChangeStatus: { indexedValueType: 1 },
+            AdvActiveGate: { indexedValueType: 1 },
+            AdvDoomLoopActive: { indexedValueType: 4 },
+          },
+        }),
+      },
+    };
+    mocks.connect.mockResolvedValueOnce(newConnection);
+
+    await reinitStsl();
+
+    const stats = getStslStats();
+    expect(stats.saVerification).toBeDefined();
+    expect(stats.saVerification!.ok).toBe(true);
+  });
+
+  it("resetStsl clears saVerification", async () => {
+    await initStsl({
+      ADV_TEMPORAL_ADDRESS: "127.0.0.1:7233",
+      ADV_TEMPORAL_NAMESPACE: "default",
+    });
+
+    expect(getStslStats().saVerification).toBeDefined();
+
+    resetStsl();
+
+    expect(getStslStats().saVerification).toBeNull();
   });
 });

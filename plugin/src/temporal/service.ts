@@ -15,7 +15,11 @@
 
 import { Client, Connection } from "@temporalio/client";
 import { getTemporalAddress, getTemporalNamespace } from "./client";
-import { registerMissingAdvSearchAttributes } from "./observability";
+import {
+  checkAdvSearchAttributes,
+  registerMissingAdvSearchAttributes,
+} from "./observability";
+import type { AdvSearchAttributeCheckResult } from "./observability";
 import { appendDebugLog, createLogger } from "../utils/debug-log";
 import { getTemporalOpTelemetry } from "./retry-wrapper";
 
@@ -83,6 +87,46 @@ async function registerAdvSearchAttributes(
   }
 }
 
+/**
+ * Verify that ADV search attributes are queryable by polling
+ * `checkAdvSearchAttributes` after registration. Covers Temporal's
+ * documented propagation delay (up to 10s on SQLite backends).
+ *
+ * Non-throwing: returns the final check result regardless of outcome.
+ * Logs each poll at debug level; warns on timeout.
+ */
+export async function verifyAdvSearchAttributes(
+  connection: Connection,
+  namespace: string,
+  maxAttempts = 20,
+  delayMs = 500,
+): Promise<AdvSearchAttributeCheckResult> {
+  let lastResult: AdvSearchAttributeCheckResult;
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    lastResult = await checkAdvSearchAttributes(connection, namespace);
+    if (lastResult.ok) {
+      debugLog(
+        `verifyAdvSearchAttributes: ok after ${attempt + 1}/${maxAttempts} attempts`,
+      );
+      return lastResult;
+    }
+    if (attempt < maxAttempts - 1) {
+      debugLog(
+        `verifyAdvSearchAttributes: attempt ${attempt + 1}/${maxAttempts} — ${lastResult.missing.length} missing, retrying in ${delayMs}ms`,
+      );
+      await new Promise((r) => setTimeout(r, delayMs));
+    }
+  }
+  // Final check after all attempts exhausted
+  lastResult = await checkAdvSearchAttributes(connection, namespace);
+  if (!lastResult.ok) {
+    logger.warn(
+      `verifyAdvSearchAttributes: still not ok after ${maxAttempts} attempts — ${lastResult.missing.length} missing, ${lastResult.wrongType.length} wrong type`,
+    );
+  }
+  return lastResult;
+}
+
 interface StslBundle {
   address: string;
   namespace: string;
@@ -96,6 +140,7 @@ let newConnectionCount = 0;
 let reconnectCount = 0;
 let reconnectFailureCount = 0;
 let inFlightReconnect: Promise<void> | null = null;
+let lastSaVerification: { ok: boolean; checkedAt: number } | null = null;
 
 export interface StslStats {
   getServiceCalls: number;
@@ -114,6 +159,8 @@ export interface StslStats {
   reconnectFailureCount: number;
   /** Per-operation telemetry from retry-wrapper (KD-3). */
   opTelemetry: import("./retry-wrapper").OpTelemetry[];
+  /** Last SA verification result. Null before first verification. */
+  saVerification: { ok: boolean; checkedAt: number } | null;
 }
 
 /**
@@ -152,6 +199,10 @@ export async function initStsl(
   // API queries and workflow.start() search-attribute payloads work.
   // Idempotent; failure is non-fatal (warned, not thrown).
   await registerAdvSearchAttributes(connection, namespace);
+
+  // Verify SAs propagated (covers Temporal's documented propagation delay).
+  const verification = await verifyAdvSearchAttributes(connection, namespace);
+  lastSaVerification = { ok: verification.ok, checkedAt: Date.now() };
 
   cachedBundle = { address, namespace, connection, client };
   debugLog(`initStsl: bundle ready`);
@@ -203,6 +254,7 @@ export function resetStsl(): void {
   reconnectCount = 0;
   reconnectFailureCount = 0;
   inFlightReconnect = null;
+  lastSaVerification = null;
 }
 
 export function getStslStats(): StslStats {
@@ -214,6 +266,7 @@ export function getStslStats(): StslStats {
     reconnectCount,
     reconnectFailureCount,
     opTelemetry: getTemporalOpTelemetry(),
+    saVerification: lastSaVerification,
   };
 }
 
@@ -270,6 +323,11 @@ export async function reinitStsl(): Promise<void> {
       bundle.client = newClient;
       newConnectionCount++;
       await registerAdvSearchAttributes(newConnection, bundle.namespace);
+      const verification = await verifyAdvSearchAttributes(
+        newConnection,
+        bundle.namespace,
+      );
+      lastSaVerification = { ok: verification.ok, checkedAt: Date.now() };
       reconnectCount++;
       debugLog(`reinitStsl: success (${bundle.address}/${bundle.namespace})`);
     } catch (err) {
