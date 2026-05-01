@@ -208,6 +208,26 @@ export const temporalOpsTools = {
         changeWorkflowReachable: changeWorkflow?.reachable ?? null,
       });
 
+      // Compute searchAttributesStatus from the searchAttributes check result
+      let searchAttributesStatus: "ok" | "degraded" | "missing";
+      if (!searchAttributes.ok) {
+        if (
+          searchAttributes.error ||
+          !bundle
+        ) {
+          searchAttributesStatus = "missing";
+        } else if (
+          searchAttributes.missing.length > 0 ||
+          searchAttributes.wrongType.length > 0
+        ) {
+          searchAttributesStatus = "degraded";
+        } else {
+          searchAttributesStatus = "missing";
+        }
+      } else {
+        searchAttributesStatus = "ok";
+      }
+
       return formatToolOutput({
         success: true,
         projectId,
@@ -219,6 +239,7 @@ export const temporalOpsTools = {
         },
         temporalHealth: health,
         searchAttributes,
+        searchAttributesStatus,
         projectWorkflow,
         changeWorkflow,
         recommendedNextAction,
@@ -262,6 +283,13 @@ export const temporalOpsTools = {
         bundle.connection,
         bundle.namespace,
       );
+
+      // Verify SAs are actually queryable after registration
+      const verification = await checkAdvSearchAttributes(
+        bundle.connection,
+        bundle.namespace,
+      );
+
       const nextAction = recommendPostRegistrationAction({
         ok: result.ok,
         createdCount: result.created.length,
@@ -269,14 +297,23 @@ export const temporalOpsTools = {
       });
 
       return formatToolOutput({
-        success: result.ok,
+        success: result.ok && verification.ok,
         namespace: bundle.namespace,
         approvalEvidence: args.approvalEvidence.trim(),
         result,
+        verification: {
+          ok: verification.ok,
+          present: verification.present.map((a) => a.name),
+          missing: verification.missing.map((a) => a.name),
+          wrongType: verification.wrongType.map((a) => a.name),
+        },
         nextAction,
-        message: result.ok
-          ? `ADV Temporal search attributes ready in namespace ${bundle.namespace}`
-          : `ADV Temporal search attribute registration requires attention: ${result.error ?? "unknown error"}`,
+        message:
+          result.ok && verification.ok
+            ? `ADV Temporal search attributes ready in namespace ${bundle.namespace}`
+            : verification.ok
+              ? `Registration succeeded but verification found issues: ${result.error ?? "unknown error"}`
+              : `Registration completed but verification failed — ${verification.missing.length} SAs still missing`,
       });
     },
   },

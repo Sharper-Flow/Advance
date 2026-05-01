@@ -364,12 +364,31 @@ describe("temporal operator tools", () => {
 
   it("adv_temporal_register_search_attributes creates missing attrs through STSL", async () => {
     const bundle = mocks.getService();
+    // First calls: check sees only AdvProjectId (triggers registration of the rest)
+    // Subsequent calls: all SAs present (post-registration verification)
+    let callCount = 0;
     bundle.connection.operatorService.listSearchAttributes = vi.fn(
-      async () => ({
-        customAttributes: {
-          AdvProjectId: { indexedValueType: 1 },
-        },
-      }),
+      async () => {
+        callCount++;
+        if (callCount === 1) {
+          // Pre-registration check: only AdvProjectId present
+          return {
+            customAttributes: {
+              AdvProjectId: { indexedValueType: 1 },
+            },
+          };
+        }
+        // Post-registration (calls 2+): all present
+        return {
+          customAttributes: {
+            AdvProjectId: { indexedValueType: 1 },
+            AdvChangeId: { indexedValueType: 1 },
+            AdvChangeStatus: { indexedValueType: 1 },
+            AdvActiveGate: { indexedValueType: 1 },
+            AdvDoomLoopActive: { indexedValueType: 4 },
+          },
+        };
+      },
     );
     bundle.connection.operatorService.addSearchAttributes = vi
       .fn()
@@ -521,5 +540,95 @@ describe("temporal operator tools", () => {
 
     expect(parsed.error).toContain("approvalEvidence is required");
     expect(mocks.rebuildProjectWorkflowState).not.toHaveBeenCalled();
+  });
+
+  describe("searchAttributesStatus in adv_temporal_diagnose", () => {
+    it("returns searchAttributesStatus 'ok' when all SAs present", async () => {
+      // Default getService mock returns all SAs present
+      const store = { paths: { root: "/repo", external: "/data/proj123" } } as any;
+      const result = await temporalOpsTools.adv_temporal_diagnose.execute(
+        {},
+        store,
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed.searchAttributesStatus).toBe("ok");
+    });
+
+    it("returns searchAttributesStatus 'missing' when STSL not initialized", async () => {
+      mocks.getService.mockReturnValueOnce(null as any);
+      const store = { paths: { root: "/repo", external: "/data/proj123" } } as any;
+      const result = await temporalOpsTools.adv_temporal_diagnose.execute(
+        {},
+        store,
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed.searchAttributesStatus).toBe("missing");
+    });
+
+    it("returns searchAttributesStatus 'degraded' when SAs partially present", async () => {
+      const bundle = mocks.getService();
+      bundle.connection.operatorService.listSearchAttributes = vi.fn(
+        async () => ({
+          customAttributes: {
+            AdvProjectId: { indexedValueType: 1 },
+            // Missing: AdvChangeId, AdvChangeStatus, AdvActiveGate, AdvDoomLoopActive
+          },
+        }),
+      );
+      mocks.getService.mockReturnValueOnce(bundle as any);
+      const store = { paths: { root: "/repo", external: "/data/proj123" } } as any;
+      const result = await temporalOpsTools.adv_temporal_diagnose.execute(
+        {},
+        store,
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed.searchAttributesStatus).toBe("degraded");
+    });
+  });
+
+  describe("adv_temporal_register_search_attributes verification", () => {
+    it("includes verification result after registration", async () => {
+      const bundle = mocks.getService();
+      bundle.connection.operatorService.listSearchAttributes = vi
+        .fn()
+        // First call: check before register → some missing
+        .mockResolvedValueOnce({
+          customAttributes: {
+            AdvProjectId: { indexedValueType: 1 },
+          },
+        })
+        // Second call: check after register → all present (verification)
+        .mockResolvedValue({
+          customAttributes: {
+            AdvProjectId: { indexedValueType: 1 },
+            AdvChangeId: { indexedValueType: 1 },
+            AdvChangeStatus: { indexedValueType: 1 },
+            AdvActiveGate: { indexedValueType: 1 },
+            AdvDoomLoopActive: { indexedValueType: 4 },
+          },
+        });
+      bundle.connection.operatorService.addSearchAttributes = vi
+        .fn()
+        .mockResolvedValue({});
+      mocks.getService.mockReturnValueOnce(bundle as any);
+      const store = { paths: { root: "/repo" } } as any;
+
+      const result =
+        await temporalOpsTools.adv_temporal_register_search_attributes.execute(
+          {
+            approvedByUser: true,
+            approvalEvidence: "User approved via question tool",
+          },
+          store,
+        );
+      const parsed = JSON.parse(result);
+
+      expect(parsed.success).toBe(true);
+      expect(parsed.verification).toBeDefined();
+      expect(parsed.verification.ok).toBe(true);
+    });
   });
 });
