@@ -436,6 +436,26 @@ export const gateTools = {
           });
         }
 
+        if (gateId === "execution") {
+          const incompleteTasks = change.tasks.filter(
+            (t: { status: string }) =>
+              t.status !== "done" && t.status !== "cancelled",
+          );
+          if (incompleteTasks.length > 0) {
+            return formatToolOutput({
+              error: `Cannot complete execution: ${incompleteTasks.length} task(s) not done or cancelled`,
+              incompleteTasks: incompleteTasks.map(
+                (t: { id: string; title: string; status: string }) => ({
+                  id: t.id,
+                  title: t.title,
+                  status: t.status,
+                }),
+              ),
+            });
+          }
+          // All tasks done/cancelled (or empty list) — fall through
+        }
+
         return completeGateAndBuildResponse({
           store: activeStore,
           change,

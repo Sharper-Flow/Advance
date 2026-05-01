@@ -11,6 +11,7 @@ import {
   createTempDir,
   cleanupTempDir,
   createTestProject,
+  SAMPLE_CHANGE,
 } from "../__tests__/setup";
 import { mkdir, writeFile } from "fs/promises";
 import { join } from "path";
@@ -1041,5 +1042,167 @@ describe("adv_gate_complete planning — readiness enforcement", () => {
       expect(parsed.currentProjectId).toBe("current-proj");
       expect(parsed.hint).toContain("owning project");
     });
+  });
+});
+
+// =============================================================================
+// Execution Gate Task-Completion Enforcement
+// =============================================================================
+
+describe("adv_gate_complete execution — task-completion enforcement", () => {
+  let tempDir: string;
+  let store: Store;
+
+  beforeEach(async () => {
+    tempDir = await createTempDir();
+    await createTestProject(tempDir);
+    store = await createLegacyStore(tempDir);
+    await store.init();
+    await store.sync();
+  });
+
+  afterEach(async () => {
+    await cleanupTempDir(tempDir);
+  });
+
+  /**
+   * Helper: write updated change.json to disk and reload store.
+   * Used to set tdd_intent on tasks since store.tasks.update doesn't support metadata.
+   */
+  async function patchChangeOnDisk(
+    changeId: string,
+    patch: (change: typeof SAMPLE_CHANGE) => void,
+  ): Promise<void> {
+    const changePath = join(tempDir, `.adv/changes/${changeId}/change.json`);
+    const raw = await import("fs/promises").then((fs) =>
+      fs.readFile(changePath, "utf-8"),
+    );
+    const change = JSON.parse(raw);
+    patch(change);
+    await writeFile(changePath, JSON.stringify(change, null, 2));
+    await store.sync();
+  }
+
+  /**
+   * Helper: complete proposal/discovery/design/planning gates
+   * so execution gate can be attempted. Uses the default addFeature change
+   * with tdd_intent patched in.
+   */
+  async function completeExecutionPrereqs(changeId: string): Promise<void> {
+    await gateTools.adv_gate_complete.execute(
+      { changeId, gateId: "proposal" },
+      store,
+    );
+    await gateTools.adv_gate_complete.execute(
+      { changeId, gateId: "discovery" },
+      store,
+    );
+    await gateTools.adv_gate_complete.execute(
+      { changeId, gateId: "design" },
+      store,
+    );
+    await gateTools.adv_gate_complete.execute(
+      { changeId, gateId: "planning", userApproved: true },
+      store,
+    );
+  }
+
+  test("allows execution gate with zero tasks", async () => {
+    // Patch addFeature to have zero tasks + tdd_intent N/A + no deltas
+    await patchChangeOnDisk("addFeature", (ch) => {
+      ch.tasks = [];
+      ch.deltas = {};
+      delete ch.validation;
+    });
+    await completeExecutionPrereqs("addFeature");
+
+    const result = await gateTools.adv_gate_complete.execute(
+      { changeId: "addFeature", gateId: "execution" },
+      store,
+    );
+    const parsed = extractJson(result) as Record<string, unknown>;
+
+    expect(parsed.error).toBeUndefined();
+    expect(parsed.gateId).toBe("execution");
+  });
+
+  test("allows execution gate when all tasks are done", async () => {
+    // Patch addFeature to have tdd_intent + no deltas (avoid SCENARIO_MISSING)
+    await patchChangeOnDisk("addFeature", (ch) => {
+      ch.tasks = ch.tasks.map((t: Record<string, unknown>) => ({
+        ...t,
+        metadata: { ...(t as Record<string, Record<string, unknown>>).metadata, tdd_intent: "not_applicable" },
+      }));
+      ch.deltas = {};
+      delete ch.validation;
+    });
+    await completeExecutionPrereqs("addFeature");
+
+    // Now mark all tasks done
+    await store.tasks.update("tk-task0001", "done");
+    await store.tasks.update("tk-task0002", "done");
+    await store.tasks.update("tk-task0003", "done");
+
+    const result = await gateTools.adv_gate_complete.execute(
+      { changeId: "addFeature", gateId: "execution" },
+      store,
+    );
+    const parsed = extractJson(result) as Record<string, unknown>;
+
+    expect(parsed.error).toBeUndefined();
+    expect(parsed.gateId).toBe("execution");
+  });
+
+  test("allows execution gate when all tasks are cancelled", async () => {
+    await patchChangeOnDisk("addFeature", (ch) => {
+      ch.tasks = ch.tasks.map((t: Record<string, unknown>) => ({
+        ...t,
+        metadata: { ...(t as Record<string, Record<string, unknown>>).metadata, tdd_intent: "not_applicable" },
+      }));
+      ch.deltas = {};
+      delete ch.validation;
+    });
+    await completeExecutionPrereqs("addFeature");
+
+    await store.tasks.update("tk-task0001", "cancelled");
+    await store.tasks.update("tk-task0002", "cancelled");
+    await store.tasks.update("tk-task0003", "cancelled");
+
+    const result = await gateTools.adv_gate_complete.execute(
+      { changeId: "addFeature", gateId: "execution" },
+      store,
+    );
+    const parsed = extractJson(result) as Record<string, unknown>;
+
+    expect(parsed.error).toBeUndefined();
+    expect(parsed.gateId).toBe("execution");
+  });
+
+  test("blocks execution gate when at least one task is pending", async () => {
+    await patchChangeOnDisk("addFeature", (ch) => {
+      ch.tasks = ch.tasks.map((t: Record<string, unknown>) => ({
+        ...t,
+        metadata: { ...(t as Record<string, Record<string, unknown>>).metadata, tdd_intent: "not_applicable" },
+      }));
+      ch.deltas = {};
+      delete ch.validation;
+    });
+    await completeExecutionPrereqs("addFeature");
+
+    await store.tasks.update("tk-task0001", "done");
+    await store.tasks.update("tk-task0002", "done");
+    // tk-task0003 remains pending
+
+    const result = await gateTools.adv_gate_complete.execute(
+      { changeId: "addFeature", gateId: "execution" },
+      store,
+    );
+    const parsed = extractJson(result) as Record<string, unknown>;
+
+    expect(parsed.error).toBeDefined();
+    expect(parsed.incompleteTasks).toBeDefined();
+    const incomplete = parsed.incompleteTasks as Array<Record<string, unknown>>;
+    expect(incomplete.length).toBeGreaterThanOrEqual(1);
+    expect(incomplete.some((t) => t.id === "tk-task0003")).toBe(true);
   });
 });
