@@ -99,7 +99,7 @@ Run only if the spec being archived has `conformance_required: true` in the conf
 
 1. **Check conformance state.** `adv_conformance action: "status"` → inspect `specs[{capability}].conformance_required`. If false or absent → skip to Phase 6.
 
-2. **Run conformance check.** `adv_conformance action: "run"` with `artifact_path` pointing to the CI-produced verdict artifact. This reads a JSON file produced by the external CI workflow.
+2. **Run conformance check.** `adv_conformance action: "run"` with `artifact_path` pointing to the CI-produced verdict artifact. Default artifact convention: `conformance-verdict.json` unless the project's conformance checklist says otherwise. If the artifact does not exist, report CI outage and halt.
 
 3. **Evaluate verdict.**
 

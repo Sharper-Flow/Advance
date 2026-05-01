@@ -355,7 +355,7 @@ After 3 failures: STOP → `[ADV:BLOCKED]` → document all 3 attempts → ask v
 
 Black-box AC verification run by external CI. Specs under conformance are "locked" after first archive — the agent cannot read conformance test source.
 
-**Tool:** `adv_conformance` (single multi-action tool: `status | init | lock | unlock | override | run`)
+**Tool:** `adv_conformance` (single multi-action tool: `status | init | lock | unlock | override | run`). `run` reads a CI verdict artifact from `artifact_path` and returns `{verdict: 'PASS'|'DRIFT', run_id, failed: [{rq_id, summary}]}`.
 
 **Location modes:**
 | Mode | Path | Isolation |

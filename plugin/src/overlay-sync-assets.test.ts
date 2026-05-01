@@ -1,4 +1,4 @@
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 import {
   mkdtempSync,
   mkdirSync,
@@ -13,6 +13,10 @@ import { join, resolve } from "path";
 
 const REPO_ROOT = resolve(__dirname, "../..");
 const SYNC_SCRIPT_PATH = join(REPO_ROOT, "scripts/sync-global.sh");
+
+// sync-global.sh copies provider-specific agent assets and can exceed the
+// default 5s Vitest timeout on loaded machines.
+vi.setConfig({ testTimeout: 20_000 });
 
 describe("overlay sync script support", () => {
   const content = readFileSync(SYNC_SCRIPT_PATH, "utf8");
