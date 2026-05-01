@@ -26,8 +26,9 @@ interface ValidatorOptions {
   activeChanges?: ActiveChange[];
   /** Skip specific check types (for testing) */
   skipChecks?: ("completeness" | "conflicts" | "proposal-drift")[];
-  /** Whether running inside a git worktree (triggers spec-sync warning, Leak #7) */
-  isWorktree?: boolean;
+  /** Spec files that differ between current HEAD and merge-base with default branch.
+   *  string[] = computed diff (empty = no divergence), null = degraded (couldn't compute) */
+  changedSpecFiles?: string[] | null;
   /** Proposal markdown text for drift detection */
   proposalText?: string;
 }
@@ -108,7 +109,7 @@ export async function validateChange(
     specs,
     activeChanges,
     skipChecks = [],
-    isWorktree,
+    changedSpecFiles,
     proposalText,
   } = options;
   const context = buildValidationContext(specs, activeChanges);
@@ -145,19 +146,37 @@ export async function validateChange(
     }
   }
 
-  // Worktree spec-sync divergence warning
-  // Specs are branch-local while changes are external shared state.
-  // When running in a worktree, the active specs may differ from the default branch.
-  if (isWorktree) {
-    checksPerformed.push("worktree-spec-sync");
-    warnings.push({
-      code: "WORKTREE_SPEC_DIVERGENCE",
-      severity: "warning",
-      message:
-        "Running in a git worktree. Specs (.adv/specs/) are branch-local and may diverge from the default branch. " +
-        "Changes and wisdom are shared via external storage. Validate against the default branch before archiving.",
-      path: "worktree",
-    });
+  // Merge-base-aware spec divergence detection
+  // When running in a worktree, compare current specs against merge-base with default branch.
+  // changedSpecFiles: string[] = computed diff, null = degraded mode, undefined = not in worktree.
+  if (changedSpecFiles !== undefined) {
+    checksPerformed.push("spec-divergence");
+    if (changedSpecFiles === null) {
+      // Degraded mode — couldn't compute merge-base
+      warnings.push({
+        code: "SPEC_RESOLUTION_DEGRADED",
+        severity: "warning",
+        message:
+          "Could not compute spec divergence (detached HEAD, shallow clone, or no default branch). " +
+          "Specs (.adv/specs/) are branch-local. Validate against the default branch before archiving.",
+        path: "worktree",
+      });
+    } else if (changedSpecFiles.length > 0) {
+      for (const specFile of changedSpecFiles) {
+        // Extract spec name from path: .adv/specs/{name}/spec.json
+        const nameMatch = specFile.match(/\.adv\/specs\/([^/]+)\//);
+        const specName = nameMatch ? nameMatch[1] : specFile;
+        warnings.push({
+          code: "SPEC_DIVERGED",
+          severity: "warning",
+          message:
+            `Spec "${specName}" differs from default branch (${specFile}). ` +
+            "Branch-local spec changes are safe, but validate against the default branch before archiving.",
+          path: specFile,
+        });
+      }
+    }
+    // changedSpecFiles.length === 0 → no divergence, no warning (correct)
   }
 
   // Proposal-task drift detection

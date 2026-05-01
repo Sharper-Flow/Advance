@@ -1256,33 +1256,80 @@ describe("Validator", () => {
 });
 
 // =============================================================================
-// Spec-sync worktree divergence warning (Leak #7)
+// Merge-base-aware spec divergence detection
 // =============================================================================
 
-describe("worktree spec-sync warning (Leak #7)", () => {
-  it("emits WORKTREE_SPEC_DIVERGENCE warning when isWorktree=true", async () => {
+describe("merge-base spec divergence detection", () => {
+  it("emits SPEC_DIVERGED warning per changed spec file", async () => {
     const change = structuredClone(SAMPLE_CHANGE) as Change;
     const result = await validateChange(change, {
       specs: [],
-      isWorktree: true,
+      changedSpecFiles: [
+        ".adv/specs/advance-workflow/spec.json",
+        ".adv/specs/tdd-contract/spec.json",
+      ],
     });
 
-    const hasDivergenceWarning = result.warnings.some(
-      (w) => w.code === "WORKTREE_SPEC_DIVERGENCE",
-    );
-    expect(hasDivergenceWarning).toBe(true);
+    const diverged = result.warnings.filter((w) => w.code === "SPEC_DIVERGED");
+    expect(diverged.length).toBe(2);
+    expect(diverged[0].message).toContain("advance-workflow");
+    expect(diverged[1].message).toContain("tdd-contract");
   });
 
-  it("does NOT emit WORKTREE_SPEC_DIVERGENCE when isWorktree=false (default)", async () => {
+  it("emits SPEC_RESOLUTION_DEGRADED when changedSpecFiles is null", async () => {
+    const change = structuredClone(SAMPLE_CHANGE) as Change;
+    const result = await validateChange(change, {
+      specs: [],
+      changedSpecFiles: null,
+    });
+
+    const degraded = result.warnings.some(
+      (w) => w.code === "SPEC_RESOLUTION_DEGRADED",
+    );
+    expect(degraded).toBe(true);
+  });
+
+  it("emits NO spec warnings when changedSpecFiles is empty array", async () => {
+    const change = structuredClone(SAMPLE_CHANGE) as Change;
+    const result = await validateChange(change, {
+      specs: [],
+      changedSpecFiles: [],
+    });
+
+    const hasSpecWarning = result.warnings.some(
+      (w) =>
+        w.code === "SPEC_DIVERGED" ||
+        w.code === "SPEC_RESOLUTION_DEGRADED" ||
+        w.code === "WORKTREE_SPEC_DIVERGENCE",
+    );
+    expect(hasSpecWarning).toBe(false);
+  });
+
+  it("emits NO spec warnings when changedSpecFiles is undefined (not in worktree)", async () => {
     const change = structuredClone(SAMPLE_CHANGE) as Change;
     const result = await validateChange(change, {
       specs: [],
     });
 
-    const hasDivergenceWarning = result.warnings.some(
-      (w) => w.code === "WORKTREE_SPEC_DIVERGENCE",
+    const hasSpecWarning = result.warnings.some(
+      (w) =>
+        w.code === "SPEC_DIVERGED" ||
+        w.code === "SPEC_RESOLUTION_DEGRADED" ||
+        w.code === "WORKTREE_SPEC_DIVERGENCE",
     );
-    expect(hasDivergenceWarning).toBe(false);
+    expect(hasSpecWarning).toBe(false);
+  });
+
+  it("extracts spec name from path correctly", async () => {
+    const change = structuredClone(SAMPLE_CHANGE) as Change;
+    const result = await validateChange(change, {
+      specs: [],
+      changedSpecFiles: [".adv/specs/advance-meta/spec.json"],
+    });
+
+    const diverged = result.warnings.find((w) => w.code === "SPEC_DIVERGED");
+    expect(diverged).toBeDefined();
+    expect(diverged!.message).toContain('"advance-meta"');
   });
 });
 

@@ -66,6 +66,10 @@ export const ValidationCodes = {
 
   // Change-to-change conflicts
   OVERLAPPING_CAPABILITY: "OVERLAPPING_CAPABILITY",
+
+  // Spec divergence (merge-base-aware)
+  SPEC_DIVERGED: "SPEC_DIVERGED",
+  SPEC_RESOLUTION_DEGRADED: "SPEC_RESOLUTION_DEGRADED",
 } as const;
 
 type _ValidationCode = (typeof ValidationCodes)[keyof typeof ValidationCodes];

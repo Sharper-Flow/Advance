@@ -8,6 +8,7 @@
 import { z } from "zod";
 import { basename, join } from "path";
 import { readFile, stat, realpath } from "fs/promises";
+import { execGit, getDefaultBranch } from "../utils/git.js";
 import type {
   Spec,
   FeatureFlags,
@@ -509,7 +510,7 @@ async function loadValidationContext(
   specs: Spec[];
   activeChanges: { id: string; title: string; capabilities: string[] }[];
   proposalText: string;
-  isWorktree: boolean;
+  changedSpecFiles: string[] | null | undefined;
 }> {
   const changeDir = join(store.paths.changes, changeId);
   const specList = await store.specs.list();
@@ -538,19 +539,46 @@ async function loadValidationContext(
     changeTitle,
   );
 
-  let isWorktree = false;
+  // Detect worktree and compute merge-base-aware spec divergence
+  let changedSpecFiles: string[] | null | undefined = undefined;
   try {
     const gitPath = join(store.paths.root, ".git");
     const gitStat = await stat(gitPath);
     if (gitStat.isFile()) {
       const gitFile = await readFile(gitPath, "utf-8");
-      isWorktree = gitFile.includes("gitdir:");
+      if (gitFile.includes("gitdir:")) {
+        // We're in a worktree — compute spec divergence
+        changedSpecFiles = await computeChangedSpecFiles(store.paths.root);
+      }
     }
   } catch {
-    // best-effort only
+    // best-effort only — changedSpecFiles stays undefined (not in worktree)
   }
 
-  return { specs, activeChanges, proposalText, isWorktree };
+  return { specs, activeChanges, proposalText, changedSpecFiles };
+}
+
+/**
+ * Compute spec files that differ between current HEAD and the merge-base
+ * with the default branch. Returns string[] of changed paths, or null on
+ * failure (detached HEAD, shallow clone, no default branch).
+ */
+async function computeChangedSpecFiles(rootDir: string): Promise<string[] | null> {
+  try {
+    const defaultBranch = await getDefaultBranch(rootDir);
+    const raw = await execGit(
+      ["diff", "--name-only", `${defaultBranch}...HEAD`, "--", ".adv/specs/"],
+      rootDir,
+    );
+    const files = raw
+      .split("\n")
+      .map((l) => l.trim())
+      .filter((l) => l.length > 0);
+    return files;
+  } catch {
+    // Degraded: detached HEAD, no default branch, shallow clone, etc.
+    return null;
+  }
 }
 
 function getArchivePreflightError(
@@ -1442,7 +1470,7 @@ export const changeTools = {
       }
 
       const change = result.data;
-      const { specs, activeChanges, proposalText, isWorktree } =
+      const { specs, activeChanges, proposalText, changedSpecFiles } =
         await loadValidationContext(store, changeId, change.title);
 
       // Run full validation with active changes for conflict detection
@@ -1450,7 +1478,7 @@ export const changeTools = {
         specs,
         activeChanges,
         proposalText,
-        isWorktree,
+        changedSpecFiles,
       });
 
       // Check for requirement smells in spec deltas
