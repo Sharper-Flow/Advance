@@ -105,6 +105,13 @@ export interface ChangeWorkflowInput {
   changeId: string;
   title: string;
   initializedAt: string;
+  /**
+   * When false, workflow handlers skip wf.upsertSearchAttributes() calls.
+   * Defaults to true (or undefined, which is treated as true) for backward
+   * compatibility. Set to false when Temporal search attributes are not
+   * registered on the server to prevent workflow task failures.
+   */
+  searchAttributesEnabled?: boolean;
   seedState?: Partial<
     Pick<
       ChangeWorkflowState,
