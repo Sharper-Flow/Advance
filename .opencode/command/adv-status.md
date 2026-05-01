@@ -14,6 +14,7 @@ Call `adv_status` for project overview. Format defined by `plugin/src/utils/tool
 |---|---|
 | **SPECS** | total capabilities; per-spec requirement count |
 | **ACTIVE CHANGES** | sorted by recency; per-change: id, title, status, tasks (done/total), last activity, gate progress, workdir |
+| **WORKTREES** | active worktree count; stale worktrees (>7d inactive) with branch + last activity |
 | **ARCHIVED CHANGES** | total count + last 5 (date/id/title) |
 | **RECOMMENDATIONS** | gate-based, from workflow manifest (table below) |
 

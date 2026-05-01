@@ -18,7 +18,9 @@
   },
 
   "hooks": {
-    // Commands to run after worktree creation
+    // Commands to run after worktree creation from the worktree root.
+    // `-C plugin` keeps install scoped to this repo's buildable package.
+    // Requires pnpm on PATH before creating ADV worktrees.
     // Example: ["pnpm install", "docker compose up -d"]
     "postCreate": ["pnpm install --frozen-lockfile -C plugin"],
 

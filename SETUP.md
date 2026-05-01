@@ -26,6 +26,10 @@ Complete installation instructions for the ADV spec-driven development plugin.
 | pnpm         | 10.x (recommended) | `pnpm --version`     |
 | OpenCode CLI | Latest             | `opencode --version` |
 
+`pnpm` must be on `PATH` when worktrees are created: `.opencode/worktree.jsonc`
+uses a `postCreate` hook to run `pnpm install --frozen-lockfile -C plugin` in
+new ADV worktrees.
+
 ### Optional
 
 | Dependency   | Purpose                                                    |
