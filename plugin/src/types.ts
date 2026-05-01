@@ -1705,7 +1705,9 @@ export const ConformanceLastVerdictSchema = z
     ran_at: z.string(),
   })
   .passthrough();
-export type ConformanceLastVerdict = z.infer<typeof ConformanceLastVerdictSchema>;
+export type ConformanceLastVerdict = z.infer<
+  typeof ConformanceLastVerdictSchema
+>;
 
 export const ConformanceOverrideSchema = z
   .object({

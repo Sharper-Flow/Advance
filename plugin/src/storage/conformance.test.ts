@@ -21,10 +21,7 @@ import {
   appendOverride,
 } from "./conformance";
 
-import {
-  EMPTY_CONFORMANCE_STATE,
-  type ConformanceState,
-} from "../types";
+import { EMPTY_CONFORMANCE_STATE, type ConformanceState } from "../types";
 
 let tempDir: string;
 let projectDir: string;
@@ -109,7 +106,9 @@ describe("loadConformanceState", () => {
       join(externalRoot, "conformance.json"),
       JSON.stringify({ version: 99, garbage: true }),
     );
-    await expect(loadConformanceState(externalRoot, projectDir)).rejects.toThrow();
+    await expect(
+      loadConformanceState(externalRoot, projectDir),
+    ).rejects.toThrow();
   });
 });
 
@@ -144,10 +143,7 @@ describe("saveConformanceState", () => {
       join(projectDir, ".adv", "specs", "_conformance"),
     );
     await saveConformanceState(externalRoot, state);
-    const raw = await readFile(
-      join(externalRoot, "conformance.json"),
-      "utf-8",
-    );
+    const raw = await readFile(join(externalRoot, "conformance.json"), "utf-8");
     expect(raw.endsWith("\n")).toBe(true);
   });
 });

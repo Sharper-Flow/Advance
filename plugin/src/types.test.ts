@@ -2986,7 +2986,9 @@ describe("ConformanceStateSchema", () => {
         specs: {
           "advance-workflow": {
             ...VALID_STATE.specs["advance-workflow"],
-            overrides: [{ user: "jrede" /* missing reason, deadline, applied_at */ }],
+            overrides: [
+              { user: "jrede" /* missing reason, deadline, applied_at */ },
+            ],
           },
         },
       }),

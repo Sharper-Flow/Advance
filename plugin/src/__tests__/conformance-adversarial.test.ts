@@ -34,9 +34,9 @@ const LOCKED_SIBLING = "/home/user/dev/advance-conformance-abc123";
 describe("adversarial: adv_conformance blocked during execution", () => {
   test("execution gate blocks adv_conformance", () => {
     const ctx: ConformanceCallerContext = { gate: "execution" };
-    expect(() =>
-      enforceConformanceToolPolicy("adv_conformance", ctx),
-    ).toThrow(/execution gate/);
+    expect(() => enforceConformanceToolPolicy("adv_conformance", ctx)).toThrow(
+      /execution gate/,
+    );
   });
 
   test("acceptance gate allows adv_conformance", () => {

@@ -167,8 +167,7 @@ export interface ConformanceBashContext {
   lockedSiblingRoots: string[];
 }
 
-const CONFORMANCE_BASH_TARGETS_PATTERN =
-  /\b(?:git\s+clone|curl|wget)\b/i;
+const CONFORMANCE_BASH_TARGETS_PATTERN = /\b(?:git\s+clone|curl|wget)\b/i;
 
 /**
  * Extract the trailing directory basename of an absolute sibling-repo
@@ -217,10 +216,7 @@ export function enforceConformanceBashPolicy(
     return { action: "allow" };
   }
 
-  const tokenPattern = new RegExp(
-    tokenList.map(escapeRegex).join("|"),
-    "i",
-  );
+  const tokenPattern = new RegExp(tokenList.map(escapeRegex).join("|"), "i");
   if (!tokenPattern.test(command)) {
     return { action: "allow" };
   }

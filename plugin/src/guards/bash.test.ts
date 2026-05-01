@@ -214,9 +214,12 @@ describe("Bash Policy Guard", () => {
 
     it("allows benign curl to an unrelated URL", () => {
       expect(
-        enforceConformanceBashPolicy("curl https://example.com/unrelated.json", {
-          lockedSiblingRoots: [lockedRoot],
-        }),
+        enforceConformanceBashPolicy(
+          "curl https://example.com/unrelated.json",
+          {
+            lockedSiblingRoots: [lockedRoot],
+          },
+        ),
       ).toMatchObject({ action: "allow" });
     });
 

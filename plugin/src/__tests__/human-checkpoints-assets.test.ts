@@ -118,7 +118,7 @@ describe("rq-autonomy01 human checkpoint assets", () => {
     // DRIFT halt path
     expect(content).toMatch(/DRIFT.*HALT/i);
     // User options on drift
-    expect(content).toMatch(/override.*unlock/si);
+    expect(content).toMatch(/override.*unlock/is);
     // No auto-fix instruction
     expect(content).toMatch(/do NOT.*auto-fix|auto-resume|orchestrate/i);
   });

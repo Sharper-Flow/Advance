@@ -109,10 +109,7 @@ function isInsideLockedPath(
 ): boolean {
   for (const locked of lockedPaths) {
     // Exact match or prefix (with separator boundary)
-    if (
-      candidatePath === locked ||
-      candidatePath.startsWith(locked + "/")
-    ) {
+    if (candidatePath === locked || candidatePath.startsWith(locked + "/")) {
       return true;
     }
   }

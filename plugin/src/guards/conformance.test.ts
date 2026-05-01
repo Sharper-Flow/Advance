@@ -26,9 +26,9 @@ describe("enforceConformanceToolPolicy", () => {
 
   test("blocks adv_conformance when gate is execution", () => {
     const ctx: ConformanceCallerContext = { gate: "execution" };
-    expect(() =>
-      enforceConformanceToolPolicy("adv_conformance", ctx),
-    ).toThrow(/execution gate/i);
+    expect(() => enforceConformanceToolPolicy("adv_conformance", ctx)).toThrow(
+      /execution gate/i,
+    );
   });
 
   test("allows non-conformance tools regardless of gate", () => {
@@ -52,7 +52,11 @@ describe("enforceConformancePathPolicy", () => {
     const ctx: ConformancePathContext = {
       lockedPaths: [],
     };
-    enforceConformancePathPolicy("read", { filePath: "/home/user/dev/myrepo/src/index.ts" }, ctx);
+    enforceConformancePathPolicy(
+      "read",
+      { filePath: "/home/user/dev/myrepo/src/index.ts" },
+      ctx,
+    );
   });
 
   test("blocks read of locked sibling-repo path", () => {
@@ -62,7 +66,9 @@ describe("enforceConformancePathPolicy", () => {
     expect(() =>
       enforceConformancePathPolicy(
         "read",
-        { filePath: `${lockedRoot}/specs/advance-workflow/rq-confLock01.test.ts` },
+        {
+          filePath: `${lockedRoot}/specs/advance-workflow/rq-confLock01.test.ts`,
+        },
         ctx,
       ),
     ).toThrow(/conformance.*locked/i);
@@ -112,7 +118,11 @@ describe("enforceConformancePathPolicy", () => {
     };
     // bash, edit, write, etc. are not path-gated by this policy
     enforceConformancePathPolicy("bash", { command: "echo hello" }, ctx);
-    enforceConformancePathPolicy("edit", { filePath: lockedRoot + "/foo.ts" }, ctx);
+    enforceConformancePathPolicy(
+      "edit",
+      { filePath: lockedRoot + "/foo.ts" },
+      ctx,
+    );
   });
 
   test("blocks lgrep_search_semantic on locked path", () => {

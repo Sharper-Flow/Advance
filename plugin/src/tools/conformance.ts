@@ -23,9 +23,8 @@
  */
 
 import { z } from "zod";
-import { join } from "path";
 import { existsSync } from "fs";
-import { mkdir, readFile, writeFile } from "fs/promises";
+import { mkdir, readFile } from "fs/promises";
 import { nanoid } from "nanoid";
 
 import { formatToolOutput } from "../utils/tool-output";
@@ -37,10 +36,7 @@ import {
   resolveDefaultConformanceRoot,
   resolveSiblingConformanceRoot,
 } from "../storage/conformance";
-import {
-  ConformanceVerdictSchema,
-  type ConformanceState,
-} from "../types";
+import { ConformanceVerdictSchema, type ConformanceState } from "../types";
 
 // =============================================================================
 // Action Schemas
@@ -127,10 +123,7 @@ async function actionInit(
     if (!args.projectId) {
       return makeError("init mode='sibling' requires projectId arg");
     }
-    conformanceRoot = resolveSiblingConformanceRoot(
-      projectDir,
-      args.projectId,
-    );
+    conformanceRoot = resolveSiblingConformanceRoot(projectDir, args.projectId);
     // Caller is responsible for `git init` + remote setup; we record the
     // path. The conformance root may not exist yet on disk in sibling
     // mode — that's OK; init is purely advisory in that case.
@@ -259,7 +252,10 @@ async function actionRun(
   }
 
   const raw = await readFile(args.artifact_path, "utf-8");
-  let parsed: { passed: string[]; failed: { rq_id: string; summary: string }[] };
+  let parsed: {
+    passed: string[];
+    failed: { rq_id: string; summary: string }[];
+  };
   try {
     parsed = ARTIFACT_SCHEMA.parse(JSON.parse(raw));
   } catch (err) {
@@ -340,9 +336,7 @@ export const conformanceTools = {
       artifact_path: z
         .string()
         .optional()
-        .describe(
-          "Path to CI-produced JSON verdict artifact for action='run'",
-        ),
+        .describe("Path to CI-produced JSON verdict artifact for action='run'"),
     },
     /**
      * Execute via bindToolSimple-style: (args, projectDir, externalRoot).
@@ -377,8 +371,3 @@ export const conformanceTools = {
     },
   },
 };
-
-// Defensive: ensure all action branches return a value (TS exhaustiveness).
-// `writeFile` is imported for symmetry with other storage tools but not
-// directly invoked here (storage layer owns disk writes).
-void writeFile;

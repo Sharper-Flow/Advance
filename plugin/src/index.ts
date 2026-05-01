@@ -553,10 +553,13 @@ const advancePluginImpl: Plugin = async ({ directory, worktree, project }) => {
         // Track active gate from adv_gate_complete output
         if (input.tool === "adv_gate_complete") {
           try {
-            const afterInput = input as unknown as { args?: Record<string, unknown> };
-            const gateId = typeof afterInput.args?.gateId === "string"
-              ? afterInput.args.gateId
-              : null;
+            const afterInput = input as unknown as {
+              args?: Record<string, unknown>;
+            };
+            const gateId =
+              typeof afterInput.args?.gateId === "string"
+                ? afterInput.args.gateId
+                : null;
             if (gateId) {
               state.activeGate = gateId;
               debugLog(`adv_gate_complete: set activeGate to ${gateId}`);

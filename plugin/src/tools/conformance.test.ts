@@ -7,14 +7,7 @@
 
 import { describe, test, expect, beforeEach, afterEach } from "vitest";
 import { join } from "path";
-import {
-  mkdir,
-  mkdtemp,
-  rm,
-  writeFile,
-  readFile,
-  access,
-} from "fs/promises";
+import { mkdir, mkdtemp, rm, writeFile, access } from "fs/promises";
 import { existsSync } from "fs";
 import { tmpdir } from "os";
 
