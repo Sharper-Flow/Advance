@@ -1674,3 +1674,66 @@ export const AGENDA_PRIORITY_ORDER: Record<AgendaPriority, number> = {
   low: 3,
   backlog: 4,
 };
+
+// =============================================================================
+// Conformance State (rq-confSource01, rq-confLock01, rq-confVerdict01,
+// rq-confArchiveGate01, rq-confOverride01, rq-confDegradation01)
+//
+// Per-spec conformance lock state + sibling-repo path + audit log.
+// Lives in external state at:
+//   ~/.local/share/opencode/plugins/advance/{project-id}/conformance.json
+// Pure opt-in backfill: every spec defaults conformance_required: false.
+// =============================================================================
+
+export const ConformanceVerdictSchema = z.enum(["PASS", "DRIFT"]);
+export type ConformanceVerdict = z.infer<typeof ConformanceVerdictSchema>;
+
+export const ConformanceLastVerdictSchema = z
+  .object({
+    verdict: ConformanceVerdictSchema,
+    run_id: z.string(),
+    ran_at: z.string(),
+  })
+  .passthrough();
+export type ConformanceLastVerdict = z.infer<typeof ConformanceLastVerdictSchema>;
+
+export const ConformanceOverrideSchema = z
+  .object({
+    user: z.string(),
+    reason: z.string(),
+    re_verify_deadline: z.string(),
+    applied_at: z.string(),
+  })
+  .passthrough();
+export type ConformanceOverride = z.infer<typeof ConformanceOverrideSchema>;
+
+export const ConformanceSpecEntrySchema = z
+  .object({
+    conformance_required: z.boolean(),
+    locked: z.boolean(),
+    locked_at: z.string().optional(),
+    locked_at_archive: z.string().optional(),
+    last_verdict: ConformanceLastVerdictSchema.optional(),
+    overrides: z.array(ConformanceOverrideSchema).default([]),
+  })
+  .passthrough();
+export type ConformanceSpecEntry = z.infer<typeof ConformanceSpecEntrySchema>;
+
+export const ConformanceStateSchema = z
+  .object({
+    version: z.literal(1),
+    sibling_repo_path: z.string(),
+    specs: z.record(z.string(), ConformanceSpecEntrySchema),
+  })
+  .passthrough();
+export type ConformanceState = z.infer<typeof ConformanceStateSchema>;
+
+/**
+ * Empty conformance state used when conformance.json is missing.
+ * Pure opt-in: every spec defaults to conformance_required: false.
+ */
+export const EMPTY_CONFORMANCE_STATE = (siblingRepoPath: string): ConformanceState => ({
+  version: 1,
+  sibling_repo_path: siblingRepoPath,
+  specs: {},
+});
