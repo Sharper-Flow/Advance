@@ -80,6 +80,7 @@ tools:
   adv_run_test: true
   # Temporal / workflow ops
   adv_orphan_sweep: true
+  adv_archive_sweep_orphans: true
   adv_temporal_diagnose: true
   adv_temporal_reconnect: true
   adv_temporal_register_search_attributes: true
