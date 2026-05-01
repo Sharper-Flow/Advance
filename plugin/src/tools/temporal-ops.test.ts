@@ -66,7 +66,7 @@ const mocks = vi.hoisted(() => ({
     connection: {
       close: vi.fn(async () => {}),
       operatorService: {
-        getSearchAttributes: vi.fn(async () => ({
+        listSearchAttributes: vi.fn(async () => ({
           customAttributes: {
             AdvProjectId: { indexedValueType: 1 },
             AdvChangeId: { indexedValueType: 1 },
@@ -296,7 +296,7 @@ describe("temporal operator tools", () => {
 
   it("adv_temporal_diagnose recommends search-attribute registration when attrs are missing", async () => {
     const bundle = mocks.getService();
-    bundle.connection.operatorService.getSearchAttributes = vi.fn(async () => ({
+    bundle.connection.operatorService.listSearchAttributes = vi.fn(async () => ({
       customAttributes: {},
     }));
     mocks.getService.mockReturnValueOnce(bundle as any);
@@ -335,7 +335,7 @@ describe("temporal operator tools", () => {
 
   it("adv_temporal_register_search_attributes creates missing attrs through STSL", async () => {
     const bundle = mocks.getService();
-    bundle.connection.operatorService.getSearchAttributes = vi.fn(async () => ({
+    bundle.connection.operatorService.listSearchAttributes = vi.fn(async () => ({
       customAttributes: {
         AdvProjectId: { indexedValueType: 1 },
       },
