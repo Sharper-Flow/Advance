@@ -47,6 +47,33 @@ describe("temporal observability helpers", () => {
     ]);
   });
 
+  // Drift-catch: pin Temporal IndexedValueType numeric codes to the canonical
+  // proto values from temporal/api/enums/v1/common.proto. If Temporal changes
+  // these (or the local constants drift), this test fails clearly with a
+  // pointer to the proto source.
+  //
+  // Source: https://github.com/temporalio/api/blob/master/temporal/api/enums/v1/common.proto
+  //   INDEXED_VALUE_TYPE_UNSPECIFIED = 0;
+  //   INDEXED_VALUE_TYPE_TEXT        = 1;
+  //   INDEXED_VALUE_TYPE_KEYWORD     = 2;
+  //   INDEXED_VALUE_TYPE_INT         = 3;
+  //   INDEXED_VALUE_TYPE_DOUBLE      = 4;
+  //   INDEXED_VALUE_TYPE_BOOL        = 5;
+  //   INDEXED_VALUE_TYPE_DATETIME    = 6;
+  //   INDEXED_VALUE_TYPE_KEYWORD_LIST = 7;
+  it("uses canonical Temporal IndexedValueType numeric codes", () => {
+    const CANONICAL_KEYWORD = 2;
+    const CANONICAL_BOOL = 5;
+    const attrs = requiredAdvSearchAttributes();
+    for (const attr of attrs) {
+      if (attr.type === "Keyword") {
+        expect(attr.typeCode).toBe(CANONICAL_KEYWORD);
+      } else if (attr.type === "Bool") {
+        expect(attr.typeCode).toBe(CANONICAL_BOOL);
+      }
+    }
+  });
+
   it("classifies present, missing, and wrong-type search attributes", async () => {
     const operatorService = {
       listSearchAttributes: async () => ({

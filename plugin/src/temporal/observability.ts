@@ -2,9 +2,17 @@ import { ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES } from "./contracts";
 
 export { ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES } from "./contracts";
 
+// Numeric IndexedValueType codes from temporal/api/enums/v1/common.proto.
+// Source: https://github.com/temporalio/api/blob/master/temporal/api/enums/v1/common.proto
+//   INDEXED_VALUE_TYPE_KEYWORD = 2
+//   INDEXED_VALUE_TYPE_BOOL    = 5
+// The Temporal operator service expects these exact numeric codes when
+// registering search attributes via OperatorService.addSearchAttributes.
+// Drift is caught by the "uses canonical Temporal IndexedValueType numeric
+// codes" test in observability.test.ts.
 const SEARCH_ATTRIBUTE_TYPE_CODE = {
-  Keyword: 1,
-  Bool: 4,
+  Keyword: 2,
+  Bool: 5,
 } as const;
 
 export type AdvSearchAttributeType = keyof typeof SEARCH_ATTRIBUTE_TYPE_CODE;
