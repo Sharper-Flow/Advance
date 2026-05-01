@@ -2,14 +2,20 @@ import { execFile } from "node:child_process";
 
 /**
  * Execute a git command and return stdout.
- * Shared utility — extracted from project-id.ts for reuse.
+ * Shared git command utility with non-interactive execution defaults.
  */
 export function execGit(args: string[], cwd: string): Promise<string> {
   return new Promise((resolve, reject) => {
+    const env = { ...process.env };
+    delete env.GIT_ASKPASS;
     execFile(
       "git",
       args,
-      { cwd, timeout: 5000, env: { ...process.env, GIT_TERMINAL_PROMPT: "0" } },
+      {
+        cwd,
+        timeout: 5000,
+        env: { ...env, GIT_TERMINAL_PROMPT: "0" },
+      },
       (error, stdout) => {
         if (error) {
           reject(error);

@@ -1273,7 +1273,9 @@ describe("merge-base spec divergence detection", () => {
     const diverged = result.warnings.filter((w) => w.code === "SPEC_DIVERGED");
     expect(diverged.length).toBe(2);
     expect(diverged[0].message).toContain("advance-workflow");
+    expect(diverged[0].path).toBe(".adv/specs/advance-workflow/spec.json");
     expect(diverged[1].message).toContain("tdd-contract");
+    expect(diverged[1].path).toBe(".adv/specs/tdd-contract/spec.json");
   });
 
   it("emits SPEC_RESOLUTION_DEGRADED when changedSpecFiles is null", async () => {

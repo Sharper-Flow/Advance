@@ -502,6 +502,14 @@ async function validateParentChange(
   };
 }
 
+/**
+ * Build the validator input bundle for a change.
+ *
+ * Specs stay loaded from the current worktree through the store. When the
+ * current root is a git worktree, this also computes merge-base-aware spec
+ * divergence against the default branch so validation can warn only on real
+ * branch-local spec changes.
+ */
 async function loadValidationContext(
   store: Store,
   changeId: string,
