@@ -1084,6 +1084,34 @@
             "wf.upsertSearchAttributes is NOT called",
             "The handler completes normally without error"
           ]
+        },
+        {
+          "id": "rq-searchAttrHealth01.3",
+          "title": "initStsl verifies search attributes after registration",
+          "given": [
+            "initStsl is called on a Temporal namespace",
+            "OperatorService.listSearchAttributes and addSearchAttributes are available"
+          ],
+          "when": "initStsl completes",
+          "then": [
+            "After registerAdvSearchAttributes, verifyAdvSearchAttributes is called",
+            "getStslStats().saVerification reflects the verification result",
+            "The verification polls checkAdvSearchAttributes until ok:true or maxAttempts exhausted"
+          ]
+        },
+        {
+          "id": "rq-searchAttrHealth01.4",
+          "title": "adv_temporal_register_search_attributes returns verification result",
+          "given": [
+            "A Temporal namespace where ADV search attributes need registration",
+            "User has approved registration with approvedByUser: true"
+          ],
+          "when": "adv_temporal_register_search_attributes is called",
+          "then": [
+            "After registerMissingAdvSearchAttributes, checkAdvSearchAttributes is called for verification",
+            "The tool output includes a verification field with ok, present, missing, wrongType",
+            "The tool success field requires both registration ok AND verification ok"
+          ]
         }
       ]
     },
