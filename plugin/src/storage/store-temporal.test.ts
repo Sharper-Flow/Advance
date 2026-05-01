@@ -2837,5 +2837,90 @@ describe("Temporal store backend adapter", () => {
         rmSync(tmp, { recursive: true, force: true });
       }
     });
+
+    /**
+     * Regression test for the legacy-archive-index bug.
+     *
+     * After fixStaleDraftShadowsArchiving (2026-05-01), newly-archived changes
+     * are correctly removed from the active `changes/<id>/` source dir per
+     * rq-archiveRetirement01.1. But `listResolvedChanges` did not list the
+     * `archive/` directory when the caller requested terminal statuses, so
+     * archive-only IDs (no shadow on disk, no Temporal workflow) were
+     * invisible to `adv_change_list({ status: "archived" })` and to the
+     * `includeArchived: true` filter.
+     *
+     * Reproduction: a project with archive bundles but no source-dir shadow
+     * and no Temporal-workflow record should still surface those archives.
+     *
+     * Spec: rq-archiveRetirement01.1 — archived changes must be discoverable
+     * via the archive bundle as the durable terminal record.
+     */
+    it("discovers archive-only changes when caller requests terminal statuses", async () => {
+      const tmp = mkdtempSync(join(tmpdir(), "adv-archive-only-"));
+      try {
+        const changesDir = join(tmp, "changes");
+        const archiveDir = join(tmp, "archive");
+        const fs = await import("node:fs/promises");
+
+        // Active changes dir is empty (no shadow). Archive dir has 3 bundles.
+        mkdirSync(changesDir, { recursive: true });
+        mkdirSync(archiveDir, { recursive: true });
+
+        const archivedIds = ["chg-a", "chg-b", "chg-c"];
+        for (const id of archivedIds) {
+          const bundleDir = join(archiveDir, id);
+          mkdirSync(bundleDir, { recursive: true });
+          await fs.writeFile(
+            join(bundleDir, "change.json"),
+            JSON.stringify({
+              id,
+              title: `Archived change ${id}`,
+              status: "archived",
+              created_at: "2026-04-18T00:00:00.000Z",
+              tasks: [],
+              deltas: {},
+              wisdom: [],
+              gates: {},
+            }),
+          );
+        }
+
+        const bundle = buildEmptyVisibilityBundle();
+
+        const legacy = makeLegacyStore();
+        legacy.paths.changes = changesDir as any;
+        legacy.paths.archive = archiveDir as any;
+        // No source-dir shadow → legacy.changes.get returns failure for
+        // every id.
+        legacy.changes.get = vi.fn(async () => ({ success: false }) as any);
+
+        const adapted = createTemporalStoreBackend({
+          legacy,
+          temporal: bundle as any,
+          projectId: "proj1",
+        });
+
+        const withArchived = await adapted.changes.list({
+          includeArchived: true,
+        });
+
+        for (const id of archivedIds) {
+          const found = withArchived.changes.find((c) => c.id === id);
+          expect(
+            found,
+            `archive-only id ${id} missing from listing`,
+          ).toBeDefined();
+          expect(found?.status).toBe("archived");
+        }
+
+        // Default list (no includeArchived) must NOT include them.
+        const defaultList = await adapted.changes.list({});
+        for (const id of archivedIds) {
+          expect(defaultList.changes.find((c) => c.id === id)).toBeUndefined();
+        }
+      } finally {
+        rmSync(tmp, { recursive: true, force: true });
+      }
+    });
   });
 });

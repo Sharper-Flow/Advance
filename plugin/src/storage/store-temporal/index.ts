@@ -4,7 +4,7 @@ import { createDefaultGates } from "../../types";
 import { createLogger } from "../../utils/debug-log";
 import { buildProjectWorkflowId } from "../../temporal/client";
 import { classifyTemporalError } from "../../temporal/retry-wrapper";
-import { hasArchiveBundle, listChangeDirs } from "../json";
+import { hasArchiveBundle, listChangeDirs, loadChange } from "../json";
 import { buildChangeRecency } from "../store-types";
 import type { ChangeStatus, ProjectStatus, Spec } from "../../types";
 import { SpecSchema } from "../../types";
@@ -517,8 +517,27 @@ export function createTemporalStoreBackend(
         `Disk listChangeDirs failed: ${err instanceof Error ? err.message : String(err)}`,
       );
     }
+
+    // (4) Archive bundles — required when caller asks for terminal statuses.
+    //
+    // After rq-archiveRetirement01.1, archived changes have their active
+    // source dir removed, so they aren't in `diskIds`. Their workflow may
+    // also be evicted from Temporal so `visibilityIds` skips them too. Without
+    // this listing, archive-only changes are invisible to
+    // `adv_change_list({ status: "archived" })` and `includeArchived: true`.
+    let archiveIds: string[] = [];
+    if (wantsTerminalStatuses && legacy.paths.archive) {
+      try {
+        archiveIds = await listChangeDirs(legacy.paths.archive);
+      } catch (err) {
+        logger.warn(
+          `Disk listChangeDirs(archive) failed: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+    }
+
     const changeIds = Array.from(
-      new Set([...memoIds, ...visibilityIds, ...diskIds]),
+      new Set([...memoIds, ...visibilityIds, ...diskIds, ...archiveIds]),
     );
 
     // Batch size for loading changes — balances Temporal query parallelism
@@ -558,6 +577,7 @@ export function createTemporalStoreBackend(
             // Fall back to legacy JSON store.
             try {
               const result = await legacy.changes.get(changeId);
+
               // Layer A1 defensive override: if disk-fallback returned a
               // non-terminal status but an archive bundle exists, treat
               // as archived (the bundle is the durable terminal record).
@@ -569,7 +589,26 @@ export function createTemporalStoreBackend(
                 (await checkArchiveBundle(changeId))
               ) {
                 result.data = { ...result.data, status: "archived" };
+                return result;
               }
+
+              // Archive-only fallback: when there is no source-dir shadow
+              // (legacy.changes.get returned success: false) but an archive
+              // bundle exists, load the change directly from the bundle.
+              // The bundle is the durable terminal record per
+              // rq-archiveRetirement01.1.
+              if (
+                !result.success &&
+                legacy.paths.archive &&
+                (await checkArchiveBundle(changeId))
+              ) {
+                try {
+                  return await loadChange(legacy.paths.archive, changeId);
+                } catch {
+                  return { success: false } as const;
+                }
+              }
+
               return result;
             } catch {
               return { success: false } as const;
