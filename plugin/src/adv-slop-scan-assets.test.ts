@@ -63,6 +63,24 @@ describe("adv-slop-scan anti-recursion assets", () => {
     expect(content).toContain("actionability: 'blocking' | 'non-blocking'");
   });
 
+  test("preserves slop scanner category wildcards", () => {
+    const content = readFileSync(COMMAND_PATH, "utf8");
+
+    for (const category of [
+      "HALLU-*",
+      "STRUCT-*",
+      "QUAL-*",
+      "DOC-*",
+      "DEP-*",
+      "MAINT-*",
+      "AI-*",
+      "PERF-*",
+      "TEST-*",
+    ]) {
+      expect(content).toContain(category);
+    }
+  });
+
   test("documents single-level scanner orchestration in shared ADV instructions", () => {
     const content = readFileSync(ADV_INSTRUCTIONS_PATH, "utf8");
 

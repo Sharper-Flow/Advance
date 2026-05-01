@@ -131,15 +131,15 @@ AI-assisted detection via parallel sub-agents (`subagent_type: "explore"`).
 Divide files among up to 9 scanners by relevance. Cap each file at 3 scanners: `Hallucination`, `Structure`, `Quality` first; if a file also matches a specialized bucket, keep only the strongest specialized match and drop lower-priority extras.
 | Scanner | Category | Focus | File Selection |
 |---------|----------|-------|---------------|
-| Hallucination | HALLU-_ | Phantom imports, invented methods, version confusion | All (batched) |
-| Structure | STRUCT-_ | Cargo cult, context amnesia, frankencode | All (batched) |
-| Quality | QUAL-_ | Happy path only, confident incorrectness | All (batched) |
-| Documentation | DOC-_ | Obvious comments, stale docs, copy-paste | Export-heavy |
-| Dependency | DEP-_ | Bloat, version roulette, phantom deps | Config + imports |
-| Maintainability | MAINT-_ | Dead code, context collapse, style whiplash | All (batched) |
-| AI-Specific | AI-_ | Sycophantic code, context blindness | Newest files (git) |
-| Performance | PERF-_ | N+1 queries, excessive renders | Large files (>100 lines) |
-| Test | TEST-\* | Magic numbers, assertion roulette | `tests/`, `__tests__/` |
+| Hallucination | `HALLU-*` | Phantom imports, invented methods, version confusion | All (batched) |
+| Structure | `STRUCT-*` | Cargo cult, context amnesia, frankencode | All (batched) |
+| Quality | `QUAL-*` | Happy path only, confident incorrectness | All (batched) |
+| Documentation | `DOC-*` | Obvious comments, stale docs, copy-paste | Export-heavy |
+| Dependency | `DEP-*` | Bloat, version roulette, phantom deps | Config + imports |
+| Maintainability | `MAINT-*` | Dead code, context collapse, style whiplash | All (batched) |
+| AI-Specific | `AI-*` | Sycophantic code, context blindness | Newest files (git) |
+| Performance | `PERF-*` | N+1 queries, excessive renders | Large files (>100 lines) |
+| Test | `TEST-*` | Magic numbers, assertion roulette | `tests/`, `__tests__/` |
 
 ### Sub-Agent Prompt
 
