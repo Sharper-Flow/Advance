@@ -1,9 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { execGit, getDefaultBranch } from "./git.js";
-import {
-  createTempDir,
-  cleanupTempDir,
-} from "../__tests__/setup.js";
+import { createTempDir, cleanupTempDir } from "../__tests__/setup.js";
 import { join } from "node:path";
 import { execFile } from "node:child_process";
 
@@ -43,7 +40,10 @@ describe("git utilities", () => {
     it("returns hardcoded 'main' when no remote and no config", async () => {
       // Explicitly unset local defaultBranch to test hardcoded fallback
       await execGit(["init"], tempDir);
-      await execGit(["config", "--local", "--unset", "init.defaultBranch"], tempDir).catch(() => {});
+      await execGit(
+        ["config", "--local", "--unset", "init.defaultBranch"],
+        tempDir,
+      ).catch(() => {});
       // Also unset global for this test — use --unset-all to be thorough
       // We can't unset global safely, so instead verify the function returns
       // either the global default or "main"

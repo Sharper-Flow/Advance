@@ -563,7 +563,9 @@ async function loadValidationContext(
  * with the default branch. Returns string[] of changed paths, or null on
  * failure (detached HEAD, shallow clone, no default branch).
  */
-async function computeChangedSpecFiles(rootDir: string): Promise<string[] | null> {
+async function computeChangedSpecFiles(
+  rootDir: string,
+): Promise<string[] | null> {
   try {
     const defaultBranch = await getDefaultBranch(rootDir);
     const raw = await execGit(
