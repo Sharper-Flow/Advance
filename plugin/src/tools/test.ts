@@ -5,6 +5,10 @@ import type { Store } from "../storage/store";
 import { truncateOutput } from "../types";
 import { validateEvidenceSemantics } from "../validator/evidence";
 import { formatToolOutput } from "../utils/tool-output";
+import {
+  appendTargetProjectContextOutput,
+  withTargetPathStore,
+} from "./target-project";
 
 const execAsync = promisify(exec);
 
@@ -116,6 +120,14 @@ export const testTools = {
         .string()
         .optional()
         .describe("Working directory to run the test in"),
+      target_path: z
+        .string()
+        .optional()
+        .describe(
+          "Optional absolute path to another ADV project. When provided, records evidence in that project through a Temporal-backed target store.",
+        ),
+      target_confirmed: z.literal(true).optional(),
+      confirmationEvidence: z.string().optional(),
     },
     execute: async (
       args: {
@@ -123,11 +135,35 @@ export const testTools = {
         command: string;
         phase: "red" | "green";
         workdir?: string;
+        target_path?: string;
+        target_confirmed?: true;
+        confirmationEvidence?: string;
       },
       store: Store,
       defaultWorkdir: string,
       bounds?: ExecBounds,
-    ) => {
+    ): Promise<string> => {
+      if (args.target_path) {
+        return withTargetPathStore(
+          {
+            currentProjectPath: store.paths.root,
+            target_path: args.target_path,
+            stateRequirement: "temporal-required",
+            target_confirmed: args.target_confirmed,
+            confirmationEvidence: args.confirmationEvidence,
+          },
+          async ({ context, store: targetStore }): Promise<string> => {
+            const output: string = await testTools.adv_run_test.execute(
+              { ...args, target_path: undefined },
+              targetStore,
+              args.workdir ?? context.root,
+              bounds,
+            );
+            return appendTargetProjectContextOutput(output, context);
+          },
+        );
+      }
+
       const task = await store.tasks.get(args.taskId);
       if (!task) {
         return formatToolOutput({ error: `Task not found: ${args.taskId}` });

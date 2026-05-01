@@ -60,6 +60,13 @@ import { buildChangeContextSnapshot } from "../utils/context-snapshot";
 import { resolveChangeSelection } from "../storage/change-selection";
 import { BulkCloseSelectorSchema } from "../types";
 import { collectErrorText } from "../temporal/retry-wrapper";
+import {
+  formatTargetProjectContext,
+  type TargetProjectOutputContext,
+  withOptionalTargetPathStore,
+  withTargetPathStore,
+} from "./target-project";
+import { buildExternalDependencyStatus } from "./external-dependency-status";
 
 /**
  * Extract structured context-mismatch fields from an error, if it's an
@@ -238,11 +245,7 @@ function applyIssueUpdates(
 /**
  * Build a markdown section documenting cross-project origin for a proposal.
  */
-function buildOriginSection(origin: {
-  source_project: string;
-  source_path: string;
-  source_change_id?: string;
-}): string {
+function buildOriginSection(origin: CrossProjectOrigin): string {
   let section = `## Cross-Project Origin\n\n`;
   section += `This change was created as a follow-up from **${origin.source_project}**.\n\n`;
   section += `| Field | Value |\n|-------|-------|\n`;
@@ -474,6 +477,30 @@ async function createCrossProjectFollowUp({
     };
     if (result.duplicateWarning) {
       output._duplicateWarning = result.duplicateWarning;
+    }
+
+    if (source_change_id) {
+      const sourceResult = await store.changes.get(source_change_id);
+      if (sourceResult.success && sourceResult.data) {
+        const sourceChange = sourceResult.data;
+        const links = sourceChange.cross_project_links ?? [];
+        const duplicate = links.some(
+          (link) =>
+            link.target_path === target_path &&
+            link.changeId === result.changeId,
+        );
+        if (!duplicate) {
+          links.push({
+            target_path,
+            ...(targetProjectId ? { target_project_id: targetProjectId } : {}),
+            changeId: result.changeId,
+            relationship: "follow_up",
+            linked_at: origin.linked_at,
+          });
+          sourceChange.cross_project_links = links;
+          await store.changes.save(sourceChange);
+        }
+      }
     }
 
     return wrapWithBanner(
@@ -735,6 +762,12 @@ export const changeTools = {
         .number()
         .optional()
         .describe("Offset for pagination (default: 0)"),
+      target_path: z
+        .string()
+        .optional()
+        .describe(
+          "Optional absolute path to another ADV project. When provided, reads that project as a disk snapshot and returns _projectContext.",
+        ),
     },
     execute: async (
       {
@@ -745,6 +778,7 @@ export const changeTools = {
         excludeRecencyBands,
         limit,
         offset,
+        target_path,
       }: {
         status?: string;
         includeArchived?: boolean;
@@ -753,66 +787,75 @@ export const changeTools = {
         excludeRecencyBands?: ("hot" | "warm" | "stale")[];
         limit?: number;
         offset?: number;
+        target_path?: string;
       },
       store: Store,
     ) => {
-      const result = await store.changes.list({
-        status,
-        includeArchived,
-        includeClosed,
-      });
+      return withOptionalTargetPathStore(
+        { store, target_path },
+        async (activeStore, projectContext) => {
+          const result = await activeStore.changes.list({
+            status,
+            includeArchived,
+            includeClosed,
+          });
 
-      // Enrich with recency data from the store-computed last activity.
-      const now = new Date();
-      const withRecency = result.changes.map((change) => {
-        const lastActivityAt = new Date(change.lastActivityAt);
-        const minutesSince = Math.max(
-          0,
-          Math.floor((now.getTime() - lastActivityAt.getTime()) / 60000),
-        );
-        return {
-          ...change,
-          lastActivity: change.lastActivityAt,
-          lastActivityAgeMinutes: minutesSince,
-          recencyBand: classifyRecency(minutesSince),
-          ...(change.fast_follow_of
-            ? { parent_change_id: change.fast_follow_of.parent_change_id }
-            : {}),
-        };
-      });
+          // Enrich with recency data from the store-computed last activity.
+          const now = new Date();
+          const withRecency = result.changes.map((change) => {
+            const lastActivityAt = new Date(change.lastActivityAt);
+            const minutesSince = Math.max(
+              0,
+              Math.floor((now.getTime() - lastActivityAt.getTime()) / 60000),
+            );
+            return {
+              ...change,
+              lastActivity: change.lastActivityAt,
+              lastActivityAgeMinutes: minutesSince,
+              recencyBand: classifyRecency(minutesSince),
+              ...(change.fast_follow_of
+                ? { parent_change_id: change.fast_follow_of.parent_change_id }
+                : {}),
+            };
+          });
 
-      // Filter by recency band before pagination
-      let filtered = withRecency;
-      if (excludeRecencyBands && excludeRecencyBands.length > 0) {
-        const excludeSet = new Set(excludeRecencyBands);
-        filtered = withRecency.filter((c) => !excludeSet.has(c.recencyBand));
-      }
+          // Filter by recency band before pagination
+          let filtered = withRecency;
+          if (excludeRecencyBands && excludeRecencyBands.length > 0) {
+            const excludeSet = new Set(excludeRecencyBands);
+            filtered = withRecency.filter(
+              (c) => !excludeSet.has(c.recencyBand),
+            );
+          }
 
-      // Sort: stalest (asc by lastActivity) or recency (desc by lastActivity)
-      if (sort === "stalest") {
-        filtered.sort((a, b) => {
-          const cmp = a.lastActivity.localeCompare(b.lastActivity);
-          return cmp !== 0 ? cmp : a.id.localeCompare(b.id);
-        });
-      } else if (sort === "recency") {
-        filtered.sort((a, b) => {
-          const cmp = b.lastActivity.localeCompare(a.lastActivity);
-          return cmp !== 0 ? cmp : a.id.localeCompare(b.id);
-        });
-      }
-      // sort === "default" or omitted: preserve store order (created_at desc)
+          // Sort: stalest (asc by lastActivity) or recency (desc by lastActivity)
+          if (sort === "stalest") {
+            filtered.sort((a, b) => {
+              const cmp = a.lastActivity.localeCompare(b.lastActivity);
+              return cmp !== 0 ? cmp : a.id.localeCompare(b.id);
+            });
+          } else if (sort === "recency") {
+            filtered.sort((a, b) => {
+              const cmp = b.lastActivity.localeCompare(a.lastActivity);
+              return cmp !== 0 ? cmp : a.id.localeCompare(b.id);
+            });
+          }
+          // sort === "default" or omitted: preserve store order (created_at desc)
 
-      const paged = paginate(filtered, {
-        limit,
-        offset,
-        tool: "adv_change_list",
-        args: status ? `status: "${status}"` : undefined,
-      });
+          const paged = paginate(filtered, {
+            limit,
+            offset,
+            tool: "adv_change_list",
+            args: status ? `status: "${status}"` : undefined,
+          });
 
-      return formatToolOutput({
-        changes: paged.items,
-        pagination: paged.pagination,
-      });
+          return formatToolOutput({
+            changes: paged.items,
+            pagination: paged.pagination,
+            ...(projectContext ? { _projectContext: projectContext } : {}),
+          });
+        },
+      );
     },
   },
 
@@ -828,92 +871,117 @@ export const changeTools = {
         .number()
         .optional()
         .describe("Task offset for pagination (default: 0)"),
+      target_path: z
+        .string()
+        .optional()
+        .describe(
+          "Optional absolute path to another ADV project. When provided, reads that project as a disk snapshot and returns _projectContext.",
+        ),
     },
     execute: async (
       {
         changeId,
         limit,
         offset,
-      }: { changeId: string; limit?: number; offset?: number },
+        target_path,
+      }: {
+        changeId: string;
+        limit?: number;
+        offset?: number;
+        target_path?: string;
+      },
       store: Store,
     ) => {
-      const result = await store.changes.get(changeId);
-      if (!result.success) {
-        return formatToolOutput({ error: result.error });
-      }
-      if (!result.data) {
-        return formatToolOutput({ error: `Change not found: ${changeId}` });
-      }
-      const change = result.data;
-      const changeDir = join(store.paths.changes, changeId);
-      const { content: proposalText } = await loadProposalWithFallback(
-        changeDir,
-        change.title,
+      return withOptionalTargetPathStore(
+        { store, target_path },
+        async (activeStore, projectContext) => {
+          const result = await activeStore.changes.get(changeId);
+          if (!result.success) {
+            return formatToolOutput({ error: result.error });
+          }
+          if (!result.data) {
+            return formatToolOutput({ error: `Change not found: ${changeId}` });
+          }
+          const change = result.data;
+          const changeDir = join(activeStore.paths.changes, changeId);
+          const { content: proposalText } = await loadProposalWithFallback(
+            changeDir,
+            change.title,
+          );
+          const paged = paginate(change.tasks, {
+            limit,
+            offset,
+            tool: "adv_change_show",
+            args: `changeId: "${changeId}"`,
+          });
+
+          // Build context snapshot for context agreement
+          const gates = change.gates ?? createDefaultGates();
+          const output: Record<string, unknown> = {
+            ...change,
+            tasks: paged.items,
+            _taskPagination: paged.pagination,
+            _contextSnapshot: buildChangeContextSnapshot({
+              change,
+              proposalText,
+              gates: gates ?? undefined,
+              workdir: activeStore.paths.root,
+            }),
+            ...(projectContext ? { _projectContext: projectContext } : {}),
+          };
+
+          const problemStatementPath = join(changeDir, "problem-statement.md");
+          const problemStatementExists = await fileExists(problemStatementPath);
+          output.problemStatementExists = problemStatementExists;
+          if (problemStatementExists) {
+            output.problemStatementPath = problemStatementPath;
+          }
+
+          await applyClarifyReadinessToChangeOutput({
+            output,
+            change,
+            proposalText,
+            changeId,
+            store: activeStore,
+          });
+
+          // Surface cross-project origin prominently when present
+          if (change.cross_project_origin) {
+            output._crossProjectOrigin = {
+              note: `⚠️ Cross-project follow-up from ${change.cross_project_origin.source_project}`,
+              ...change.cross_project_origin,
+            };
+          }
+
+          // Surface same-project fast-follow origin prominently when present
+          if (change.fast_follow_of) {
+            output._fastFollowOrigin = {
+              note: `↳ Fast-follow from ${change.fast_follow_of.parent_change_id}`,
+              ...change.fast_follow_of,
+            };
+          }
+
+          const dependencyStatus = await buildExternalDependencyStatus(
+            change.external_dependencies,
+          );
+          if (dependencyStatus) {
+            output._externalDependencyStatus = dependencyStatus;
+          }
+
+          // Include reflection data for archived changes
+          if (change.status === "archived") {
+            const reflection = await getReflection(
+              activeStore.paths.external ?? activeStore.paths.root,
+              changeId,
+            );
+            if (reflection) {
+              output._reflection = reflection;
+            }
+          }
+
+          return formatToolOutput(output);
+        },
       );
-      const paged = paginate(change.tasks, {
-        limit,
-        offset,
-        tool: "adv_change_show",
-        args: `changeId: "${changeId}"`,
-      });
-
-      // Build context snapshot for context agreement
-      const gates = change.gates ?? createDefaultGates();
-      const output: Record<string, unknown> = {
-        ...change,
-        tasks: paged.items,
-        _taskPagination: paged.pagination,
-        _contextSnapshot: buildChangeContextSnapshot({
-          change,
-          proposalText,
-          gates: gates ?? undefined,
-          workdir: store.paths.root,
-        }),
-      };
-
-      const problemStatementPath = join(changeDir, "problem-statement.md");
-      const problemStatementExists = await fileExists(problemStatementPath);
-      output.problemStatementExists = problemStatementExists;
-      if (problemStatementExists) {
-        output.problemStatementPath = problemStatementPath;
-      }
-
-      await applyClarifyReadinessToChangeOutput({
-        output,
-        change,
-        proposalText,
-        changeId,
-        store,
-      });
-
-      // Surface cross-project origin prominently when present
-      if (change.cross_project_origin) {
-        output._crossProjectOrigin = {
-          note: `⚠️ Cross-project follow-up from ${change.cross_project_origin.source_project}`,
-          ...change.cross_project_origin,
-        };
-      }
-
-      // Surface same-project fast-follow origin prominently when present
-      if (change.fast_follow_of) {
-        output._fastFollowOrigin = {
-          note: `↳ Fast-follow from ${change.fast_follow_of.parent_change_id}`,
-          ...change.fast_follow_of,
-        };
-      }
-
-      // Include reflection data for archived changes
-      if (change.status === "archived") {
-        const reflection = await getReflection(
-          store.paths.external ?? store.paths.root,
-          changeId,
-        );
-        if (reflection) {
-          output._reflection = reflection;
-        }
-      }
-
-      return formatToolOutput(output);
     },
   },
 
@@ -1136,6 +1204,24 @@ export const changeTools = {
         .describe(
           "New design.md content (overwrites existing). Omit to leave unchanged. At least one of `proposal`, `problemStatement`, `agreement`, or `design` MUST be provided.",
         ),
+      target_path: z
+        .string()
+        .optional()
+        .describe(
+          "Optional absolute path to another ADV project. When provided, mutates that project through a Temporal-backed target store.",
+        ),
+      target_confirmed: z
+        .literal(true)
+        .optional()
+        .describe(
+          "Required for untrusted target_path mutation. Confirms the target project was explicitly approved.",
+        ),
+      confirmationEvidence: z
+        .string()
+        .optional()
+        .describe(
+          "Required with target_confirmed for untrusted target_path mutation. Cite user approval evidence.",
+        ),
     },
     execute: async (
       {
@@ -1144,73 +1230,101 @@ export const changeTools = {
         problemStatement,
         agreement,
         design,
+        target_path,
+        target_confirmed,
+        confirmationEvidence,
       }: {
         changeId: string;
         proposal?: string;
         problemStatement?: string;
         agreement?: string;
         design?: string;
+        target_path?: string;
+        target_confirmed?: true;
+        confirmationEvidence?: string;
       },
       store: Store,
     ) => {
-      // P1.12 Scope C: at-least-one-field guard with agent-facing hint
-      // naming the valid fields so the next call can be constructed without
-      // a schema lookup.
-      if (
-        proposal === undefined &&
-        problemStatement === undefined &&
-        agreement === undefined &&
-        design === undefined
-      ) {
-        return wrapWithBanner(
-          { command: "adv_change_update", target: changeId },
-          formatToolOutput({
-            error:
-              "At least one of 'proposal', 'problemStatement', 'agreement', or 'design' must be provided.",
-            hint: "Pass one or more of: proposal, problemStatement, agreement, design. See the tool description for which file each field writes.",
-          }),
-        );
-      }
+      const runUpdate = async (
+        activeStore: Store,
+        projectContext?: TargetProjectOutputContext,
+      ) => {
+        // P1.12 Scope C: at-least-one-field guard with agent-facing hint
+        // naming the valid fields so the next call can be constructed without
+        // a schema lookup.
+        if (
+          proposal === undefined &&
+          problemStatement === undefined &&
+          agreement === undefined &&
+          design === undefined
+        ) {
+          return wrapWithBanner(
+            { command: "adv_change_update", target: changeId },
+            formatToolOutput({
+              error:
+                "At least one of 'proposal', 'problemStatement', 'agreement', or 'design' must be provided.",
+              hint: "Pass one or more of: proposal, problemStatement, agreement, design. See the tool description for which file each field writes.",
+            }),
+          );
+        }
 
-      // P1.12 Scope C: verify changeId exists before writing. Surface a
-      // structured error that names the source-of-truth tools so the
-      // agent can self-correct without guessing.
-      const existing = await store.changes.get(changeId);
-      if (!existing.success || !existing.data) {
-        return wrapWithBanner(
-          { command: "adv_change_update", target: changeId },
-          formatToolOutput({
-            error: `Change '${changeId}' not found.`,
-            hint: "Fetch valid change IDs with 'adv_change_list' or confirm the target with 'adv_change_show changeId: <id>' before retrying.",
-          }),
-        );
-      }
+        // P1.12 Scope C: verify changeId exists before writing. Surface a
+        // structured error that names the source-of-truth tools so the
+        // agent can self-correct without guessing.
+        const existing = await activeStore.changes.get(changeId);
+        if (!existing.success || !existing.data) {
+          return wrapWithBanner(
+            { command: "adv_change_update", target: changeId },
+            formatToolOutput({
+              error: `Change '${changeId}' not found.`,
+              hint: "Fetch valid change IDs with 'adv_change_list' or confirm the target with 'adv_change_show changeId: <id>' before retrying.",
+            }),
+          );
+        }
 
-      const result = await store.changes.updateArtifacts(
-        changeId,
-        proposal,
-        problemStatement,
-        agreement,
-        design,
-      );
-
-      if (!result.success) {
-        return wrapWithBanner(
-          { command: "adv_change_update", target: changeId },
-          formatToolOutput({ error: result.error }),
-        );
-      }
-
-      return wrapWithBanner(
-        { command: "adv_change_update", target: changeId },
-        formatToolOutput({
+        const result = await activeStore.changes.updateArtifacts(
           changeId,
-          proposalPath: result.proposalPath,
-          problemStatementPath: result.problemStatementPath,
-          agreementPath: result.agreementPath,
-          designPath: result.designPath,
-        }),
-      );
+          proposal,
+          problemStatement,
+          agreement,
+          design,
+        );
+
+        if (!result.success) {
+          return wrapWithBanner(
+            { command: "adv_change_update", target: changeId },
+            formatToolOutput({ error: result.error }),
+          );
+        }
+
+        return wrapWithBanner(
+          { command: "adv_change_update", target: changeId },
+          formatToolOutput({
+            changeId,
+            proposalPath: result.proposalPath,
+            problemStatementPath: result.problemStatementPath,
+            agreementPath: result.agreementPath,
+            designPath: result.designPath,
+            ...(projectContext ? { _projectContext: projectContext } : {}),
+          }),
+        );
+      };
+
+      if (target_path) {
+        return withTargetPathStore(
+          {
+            currentProjectPath: store.paths.root,
+            target_path,
+            stateRequirement: "temporal-required",
+            target_confirmed,
+            confirmationEvidence,
+          },
+          async ({ context, store: targetStore }) =>
+            runUpdate(targetStore, formatTargetProjectContext(context)),
+        );
+      }
+
+      return runUpdate(store);
     },
   },
 

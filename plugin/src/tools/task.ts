@@ -26,6 +26,12 @@ import {
   formatTaskReadyOutput,
   formatDoomLoopDiagnostics,
 } from "../utils/tool-formatters";
+import {
+  formatTargetProjectContext,
+  type TargetProjectOutputContext,
+  withOptionalTargetPathStore,
+  withTargetPathStore,
+} from "./target-project";
 
 // =============================================================================
 // Tool Definitions
@@ -37,22 +43,37 @@ export const taskTools = {
       "Get full details of a single task by ID, including its parent change ID. Use when you have a task ID but need the complete task object.",
     args: {
       taskId: z.string().describe("Task ID (e.g., 'tk-Hf7dK2mN')"),
+      target_path: z
+        .string()
+        .optional()
+        .describe(
+          "Optional absolute path to another ADV project. When provided, reads that project as a disk snapshot and returns _projectContext.",
+        ),
     },
-    execute: async ({ taskId }: { taskId: string }, store: Store) => {
-      const result = await store.tasks.show(taskId);
-      if (!result) {
-        return formatToolOutput({ error: `Task not found: ${taskId}` });
-      }
-      const output: Record<string, unknown> = {
-        task: result.task,
-        changeId: result.changeId,
-      };
-      if (result.task.error_recovery) {
-        output.formatted_doom_loop = formatDoomLoopDiagnostics(
-          result.task.error_recovery,
-        );
-      }
-      return formatToolOutput(output);
+    execute: async (
+      { taskId, target_path }: { taskId: string; target_path?: string },
+      store: Store,
+    ) => {
+      return withOptionalTargetPathStore(
+        { store, target_path },
+        async (activeStore, projectContext) => {
+          const result = await activeStore.tasks.show(taskId);
+          if (!result) {
+            return formatToolOutput({ error: `Task not found: ${taskId}` });
+          }
+          const output: Record<string, unknown> = {
+            task: result.task,
+            changeId: result.changeId,
+            ...(projectContext ? { _projectContext: projectContext } : {}),
+          };
+          if (result.task.error_recovery) {
+            output.formatted_doom_loop = formatDoomLoopDiagnostics(
+              result.task.error_recovery,
+            );
+          }
+          return formatToolOutput(output);
+        },
+      );
     },
   },
 
@@ -61,43 +82,59 @@ export const taskTools = {
       "Show durable task-run lifecycle status for a task: phase, required next action, resume hint, and recent ledger events.",
     args: {
       taskId: z.string().describe("Task ID to inspect"),
+      target_path: z
+        .string()
+        .optional()
+        .describe(
+          "Optional absolute path to another ADV project. When provided, reads that project as a disk snapshot and returns _projectContext.",
+        ),
     },
-    execute: async ({ taskId }: { taskId: string }, store: Store) => {
-      const shown = await store.tasks.show(taskId);
-      if (!shown) {
-        return formatToolOutput({ error: `Task not found: ${taskId}` });
-      }
+    execute: async (
+      { taskId, target_path }: { taskId: string; target_path?: string },
+      store: Store,
+    ) => {
+      return withOptionalTargetPathStore(
+        { store, target_path },
+        async (activeStore, projectContext) => {
+          const shown = await activeStore.tasks.show(taskId);
+          if (!shown) {
+            return formatToolOutput({ error: `Task not found: ${taskId}` });
+          }
 
-      const run = await store.tasks.getRun(taskId);
-      if (!run) {
-        return formatToolOutput({
-          taskId,
-          changeId: shown.changeId,
-          phase: "not_started",
-          requiredNextAction: "start_task",
-          resumeHint:
-            "No durable task-run ledger exists yet. Start task execution with adv_task_update status:'in_progress'.",
-          baseline: null,
-          evidence: null,
-          verification: null,
-          checkpoint: null,
-          lastEvents: [],
-        });
-      }
+          const run = await activeStore.tasks.getRun(taskId);
+          if (!run) {
+            return formatToolOutput({
+              taskId,
+              changeId: shown.changeId,
+              phase: "not_started",
+              requiredNextAction: "start_task",
+              resumeHint:
+                "No durable task-run ledger exists yet. Start task execution with adv_task_update status:'in_progress'.",
+              baseline: null,
+              evidence: null,
+              verification: null,
+              checkpoint: null,
+              lastEvents: [],
+              ...(projectContext ? { _projectContext: projectContext } : {}),
+            });
+          }
 
-      return formatToolOutput({
-        taskId,
-        changeId: shown.changeId,
-        phase: run.phase,
-        requiredNextAction: run.requiredNextAction,
-        resumeHint: run.resumeHint,
-        baseline: run.baseline ?? null,
-        evidence: run.evidence ?? null,
-        verification: run.verification ?? null,
-        checkpoint: run.checkpoint ?? null,
-        attempts: run.attempts ?? [],
-        lastEvents: run.events.slice(-5),
-      });
+          return formatToolOutput({
+            taskId,
+            changeId: shown.changeId,
+            phase: run.phase,
+            requiredNextAction: run.requiredNextAction,
+            resumeHint: run.resumeHint,
+            baseline: run.baseline ?? null,
+            evidence: run.evidence ?? null,
+            verification: run.verification ?? null,
+            checkpoint: run.checkpoint ?? null,
+            attempts: run.attempts ?? [],
+            lastEvents: run.events.slice(-5),
+            ...(projectContext ? { _projectContext: projectContext } : {}),
+          });
+        },
+      );
     },
   },
 
@@ -128,6 +165,12 @@ export const taskTools = {
         .number()
         .optional()
         .describe("Offset for pagination (default: 0)"),
+      target_path: z
+        .string()
+        .optional()
+        .describe(
+          "Optional absolute path to another ADV project. When provided, reads that project as a disk snapshot and returns _projectContext.",
+        ),
     },
     execute: async (
       {
@@ -136,26 +179,34 @@ export const taskTools = {
         filter,
         limit,
         offset,
+        target_path,
       }: {
         changeId: string;
         status?: string;
         filter?: string;
         limit?: number;
         offset?: number;
+        target_path?: string;
       },
       store: Store,
     ) => {
-      const tasks = await store.tasks.list(changeId, status, filter);
-      const paged = paginate(tasks, {
-        limit,
-        offset,
-        tool: "adv_task_list",
-        args: `changeId: "${changeId}"${status ? `, status: "${status}"` : ""}${filter ? `, filter: "${filter}"` : ""}`,
-      });
-      return formatToolOutput({
-        tasks: paged.items,
-        pagination: paged.pagination,
-      });
+      return withOptionalTargetPathStore(
+        { store, target_path },
+        async (activeStore, projectContext) => {
+          const tasks = await activeStore.tasks.list(changeId, status, filter);
+          const paged = paginate(tasks, {
+            limit,
+            offset,
+            tool: "adv_task_list",
+            args: `changeId: "${changeId}"${status ? `, status: "${status}"` : ""}${filter ? `, filter: "${filter}"` : ""}`,
+          });
+          return formatToolOutput({
+            tasks: paged.items,
+            pagination: paged.pagination,
+            ...(projectContext ? { _projectContext: projectContext } : {}),
+          });
+        },
+      );
     },
   },
 
@@ -167,30 +218,48 @@ export const taskTools = {
         .describe(
           "Change ID — must match an existing change from `adv_change_list`. Returns ready (unblocked) tasks plus the blocked list with their blockedBy references.",
         ),
+      target_path: z
+        .string()
+        .optional()
+        .describe(
+          "Optional absolute path to another ADV project. When provided, reads that project as a disk snapshot and returns _projectContext.",
+        ),
     },
-    execute: async ({ changeId }: { changeId: string }, store: Store) => {
-      const result = await store.tasks.ready(changeId);
-      const snapshot = await fetchChangeContextTicker(store, changeId);
-      const formatted = formatTaskReadyOutput({
-        ready: result.ready.map((t) => ({
-          id: t.id,
-          content: t.title,
-          status: t.status,
-        })),
-        blocked: result.blocked.map((b) => ({
-          task: {
-            id: b.task.id,
-            content: b.task.title,
-            status: b.task.status,
-          },
-          blockedBy: b.blockedBy,
-        })),
-      });
-      return formatToolOutput({
-        ...result,
-        formatted,
-        ...(snapshot ? { _contextSnapshot: snapshot } : {}),
-      });
+    execute: async (
+      { changeId, target_path }: { changeId: string; target_path?: string },
+      store: Store,
+    ) => {
+      return withOptionalTargetPathStore(
+        { store, target_path },
+        async (activeStore, projectContext) => {
+          const result = await activeStore.tasks.ready(changeId);
+          const snapshot = await fetchChangeContextTicker(
+            activeStore,
+            changeId,
+          );
+          const formatted = formatTaskReadyOutput({
+            ready: result.ready.map((t) => ({
+              id: t.id,
+              content: t.title,
+              status: t.status,
+            })),
+            blocked: result.blocked.map((b) => ({
+              task: {
+                id: b.task.id,
+                content: b.task.title,
+                status: b.task.status,
+              },
+              blockedBy: b.blockedBy,
+            })),
+          });
+          return formatToolOutput({
+            ...result,
+            formatted,
+            ...(snapshot ? { _contextSnapshot: snapshot } : {}),
+            ...(projectContext ? { _projectContext: projectContext } : {}),
+          });
+        },
+      );
     },
   },
 
@@ -212,6 +281,24 @@ export const taskTools = {
       error_recovery: ErrorRecoverySchema.optional().describe(
         "Structured retry history for doom-loop tracking, including attempts[]",
       ),
+      target_path: z
+        .string()
+        .optional()
+        .describe(
+          "Optional absolute path to another ADV project. When provided, mutates that project through a Temporal-backed target store.",
+        ),
+      target_confirmed: z
+        .literal(true)
+        .optional()
+        .describe(
+          "Required for untrusted target_path mutation. Confirms the target project was explicitly approved.",
+        ),
+      confirmationEvidence: z
+        .string()
+        .optional()
+        .describe(
+          "Required with target_confirmed for untrusted target_path mutation. Cite user approval evidence.",
+        ),
     },
     execute: async (
       {
@@ -220,69 +307,103 @@ export const taskTools = {
         notes,
         implementation_summary,
         error_recovery,
+        target_path,
+        target_confirmed,
+        confirmationEvidence,
       }: {
         taskId: string;
         status: string;
         notes?: string;
         implementation_summary?: string;
         error_recovery?: ErrorRecovery;
+        target_path?: string;
+        target_confirmed?: true;
+        confirmationEvidence?: string;
       },
       store: Store,
     ) => {
-      // Reject direct cancellation — must use adv_task_cancel with user approval
-      if (status === "cancelled") {
-        return formatToolOutput({
-          error:
-            "Direct task cancellation is not allowed. Use adv_task_cancel instead, which requires presenting cancellation reasons to the user and obtaining explicit approval.",
-          hint: "Call adv_task_cancel with taskIds, reasons (per task), and user approval evidence.",
-        });
-      }
-
-      // Resolve changeId for snapshot emission (rq-ctxsnap2.3 compliance)
-      const taskShowResult = await store.tasks.show(taskId);
-      const changeId = taskShowResult?.changeId;
-
-      const task = await store.tasks.update(
-        taskId,
-        status,
-        notes,
-        implementation_summary,
-        error_recovery,
-      );
-      if (!task) {
-        return formatToolOutput({ error: `Task not found: ${taskId}` });
-      }
-
-      // Emit snapshot on meaningful transitions (in_progress, done)
-      const output: Record<string, unknown> = { success: true, task };
-      if (status === "in_progress") {
-        const recorded = await store.tasks.recordRunEvent(taskId, {
-          idempotencyKey: `${taskId}:start:${task.started_at ?? "unknown"}`,
-          type: "start",
-          recordedAt: task.started_at ?? new Date().toISOString(),
-          payload: {},
-        });
-        if (recorded) {
-          output.taskRun = {
-            phase: recorded.run.phase,
-            requiredNextAction: recorded.run.requiredNextAction,
-            duplicate: recorded.duplicate,
-          };
+      const runUpdate = async (
+        activeStore: Store,
+        projectContext?: TargetProjectOutputContext,
+      ) => {
+        // Reject direct cancellation — must use adv_task_cancel with user approval
+        if (status === "cancelled") {
+          return formatToolOutput({
+            error:
+              "Direct task cancellation is not allowed. Use adv_task_cancel instead, which requires presenting cancellation reasons to the user and obtaining explicit approval.",
+            hint: "Call adv_task_cancel with taskIds, reasons (per task), and user approval evidence.",
+          });
         }
-      }
-      if (task.error_recovery) {
-        output.formatted_doom_loop = formatDoomLoopDiagnostics(
-          task.error_recovery,
+
+        // Resolve changeId for snapshot emission (rq-ctxsnap2.3 compliance)
+        const taskShowResult = await activeStore.tasks.show(taskId);
+        const changeId = taskShowResult?.changeId;
+
+        const task = await activeStore.tasks.update(
+          taskId,
+          status,
+          notes,
+          implementation_summary,
+          error_recovery,
+        );
+        if (!task) {
+          return formatToolOutput({ error: `Task not found: ${taskId}` });
+        }
+
+        // Emit snapshot on meaningful transitions (in_progress, done)
+        const output: Record<string, unknown> = {
+          success: true,
+          task,
+          ...(projectContext ? { _projectContext: projectContext } : {}),
+        };
+        if (status === "in_progress") {
+          const recorded = await activeStore.tasks.recordRunEvent(taskId, {
+            idempotencyKey: `${taskId}:start:${task.started_at ?? "unknown"}`,
+            type: "start",
+            recordedAt: task.started_at ?? new Date().toISOString(),
+            payload: {},
+          });
+          if (recorded) {
+            output.taskRun = {
+              phase: recorded.run.phase,
+              requiredNextAction: recorded.run.requiredNextAction,
+              duplicate: recorded.duplicate,
+            };
+          }
+        }
+        if (task.error_recovery) {
+          output.formatted_doom_loop = formatDoomLoopDiagnostics(
+            task.error_recovery,
+          );
+        }
+        if (changeId && (status === "in_progress" || status === "done")) {
+          const snapshot = await fetchChangeContextTicker(
+            activeStore,
+            changeId,
+          );
+          if (snapshot) {
+            output._contextSnapshot = snapshot;
+          }
+        }
+
+        return formatToolOutput(output);
+      };
+
+      if (target_path) {
+        return withTargetPathStore(
+          {
+            currentProjectPath: store.paths.root,
+            target_path,
+            stateRequirement: "temporal-required",
+            target_confirmed,
+            confirmationEvidence,
+          },
+          async ({ context, store: targetStore }) =>
+            runUpdate(targetStore, formatTargetProjectContext(context)),
         );
       }
-      if (changeId && (status === "in_progress" || status === "done")) {
-        const snapshot = await fetchChangeContextTicker(store, changeId);
-        if (snapshot) {
-          output._contextSnapshot = snapshot;
-        }
-      }
 
-      return formatToolOutput(output);
+      return runUpdate(store);
     },
   },
 
@@ -418,6 +539,14 @@ export const taskTools = {
         .number()
         .optional()
         .describe("Exit code from test runner (0=pass, non-zero=fail)"),
+      target_path: z
+        .string()
+        .optional()
+        .describe(
+          "Optional absolute path to another ADV project. When provided, mutates that project through a Temporal-backed target store.",
+        ),
+      target_confirmed: z.literal(true).optional(),
+      confirmationEvidence: z.string().optional(),
     },
     execute: async (
       {
@@ -427,6 +556,9 @@ export const taskTools = {
         command,
         output,
         exitCode,
+        target_path,
+        target_confirmed,
+        confirmationEvidence,
       }: {
         taskId: string;
         phase: "red" | "green";
@@ -434,38 +566,67 @@ export const taskTools = {
         command?: string;
         output?: string;
         exitCode?: number;
+        target_path?: string;
+        target_confirmed?: true;
+        confirmationEvidence?: string;
       },
       store: Store,
     ) => {
-      // Validate exit-code semantics before recording
-      const validation = validateEvidenceSemantics(phase, exitCode);
-      if (!validation.valid) {
-        return formatToolOutput({
-          error: `Evidence rejected: ${validation.reason}`,
-          phase,
-          exitCode,
-        });
-      }
+      const runEvidence = async (
+        activeStore: Store,
+        projectContext?: TargetProjectOutputContext,
+      ) => {
+        // Validate exit-code semantics before recording
+        const validation = validateEvidenceSemantics(phase, exitCode);
+        if (!validation.valid) {
+          return formatToolOutput({
+            error: `Evidence rejected: ${validation.reason}`,
+            phase,
+            exitCode,
+          });
+        }
 
-      const evidence = {
-        recorded_at: new Date().toISOString(),
-        test_file: testFile,
-        command,
-        output_snippet: output ? truncateOutput(output) : undefined,
-        exit_code: exitCode,
+        const evidence = {
+          recorded_at: new Date().toISOString(),
+          test_file: testFile,
+          command,
+          output_snippet: output ? truncateOutput(output) : undefined,
+          exit_code: exitCode,
+        };
+
+        const task = await activeStore.tasks.recordEvidence(
+          taskId,
+          phase,
+          evidence,
+        );
+        if (!task) {
+          return formatToolOutput({ error: `Task not found: ${taskId}` });
+        }
+
+        return formatToolOutput({
+          success: true,
+          task,
+          compliance: getTaskTddCompliance(task),
+          message: `Recorded ${phase} phase evidence for task ${taskId}`,
+          ...(projectContext ? { _projectContext: projectContext } : {}),
+        });
       };
 
-      const task = await store.tasks.recordEvidence(taskId, phase, evidence);
-      if (!task) {
-        return formatToolOutput({ error: `Task not found: ${taskId}` });
+      if (target_path) {
+        return withTargetPathStore(
+          {
+            currentProjectPath: store.paths.root,
+            target_path,
+            stateRequirement: "temporal-required",
+            target_confirmed,
+            confirmationEvidence,
+          },
+          async ({ context, store: targetStore }) =>
+            runEvidence(targetStore, formatTargetProjectContext(context)),
+        );
       }
 
-      return formatToolOutput({
-        success: true,
-        task,
-        compliance: getTaskTddCompliance(task),
-        message: `Recorded ${phase} phase evidence for task ${taskId}`,
-      });
+      return runEvidence(store);
     },
   },
 
@@ -480,65 +641,103 @@ export const taskTools = {
         .enum(["none", "red", "green", "refactor", "complete"])
         .optional()
         .describe("Required when action=set; ignored for action=status"),
+      target_path: z
+        .string()
+        .optional()
+        .describe(
+          "Optional absolute path to another ADV project. When provided, mutates set operations through a Temporal-backed target store and reads status from that target.",
+        ),
+      target_confirmed: z.literal(true).optional(),
+      confirmationEvidence: z.string().optional(),
     },
     execute: async (
       {
         taskId,
         action,
         phase,
+        target_path,
+        target_confirmed,
+        confirmationEvidence,
       }: {
         taskId: string;
         action: "set" | "status";
         phase?: "none" | "red" | "green" | "refactor" | "complete";
+        target_path?: string;
+        target_confirmed?: true;
+        confirmationEvidence?: string;
       },
       store: Store,
     ) => {
-      if (action === "set") {
-        if (!phase) {
+      const runTdd = async (
+        activeStore: Store,
+        projectContext?: TargetProjectOutputContext,
+      ) => {
+        if (action === "set") {
+          if (!phase) {
+            return formatToolOutput({
+              error: "phase is required when action='set'",
+            });
+          }
+          const updated = await activeStore.tasks.setPhase(taskId, phase);
+          if (!updated) {
+            return formatToolOutput({ error: `Task not found: ${taskId}` });
+          }
+
           return formatToolOutput({
-            error: "phase is required when action='set'",
+            success: true,
+            action,
+            task: updated,
+            message: `Set TDD phase to '${phase}' for task ${taskId}`,
+            ...(projectContext ? { _projectContext: projectContext } : {}),
           });
         }
-        const updated = await store.tasks.setPhase(taskId, phase);
-        if (!updated) {
+
+        const task = await activeStore.tasks.get(taskId);
+        if (!task) {
           return formatToolOutput({ error: `Task not found: ${taskId}` });
         }
 
+        const compliance = getTaskTddCompliance(task);
+        const requiresTdd = requiresTddEvidence(task);
+        const trivial = isTrivialTask(task.title);
+
         return formatToolOutput({
-          success: true,
           action,
-          task: updated,
-          message: `Set TDD phase to '${phase}' for task ${taskId}`,
+          taskId: task.id,
+          title: task.title,
+          tdd_phase: task.tdd_phase,
+          tdd_evidence: task.tdd_evidence,
+          analysis: {
+            requires_tdd: requiresTdd,
+            is_trivial: trivial,
+            compliance,
+          },
+          recommendation:
+            compliance === "missing"
+              ? "Record TDD evidence with adv_run_test (preferred) or adv_task_evidence for externally obtained evidence; reclassify with adv_task_reclassify_tdd when TDD is not applicable"
+              : compliance === "compliant"
+                ? "TDD requirements satisfied"
+                : "TDD not required for this task type",
+          ...(projectContext ? { _projectContext: projectContext } : {}),
         });
+      };
+
+      if (target_path) {
+        return withTargetPathStore(
+          {
+            currentProjectPath: store.paths.root,
+            target_path,
+            stateRequirement:
+              action === "set" ? "temporal-required" : "snapshot-ok",
+            target_confirmed,
+            confirmationEvidence,
+          },
+          async ({ context, store: targetStore }) =>
+            runTdd(targetStore, formatTargetProjectContext(context)),
+        );
       }
 
-      const task = await store.tasks.get(taskId);
-      if (!task) {
-        return formatToolOutput({ error: `Task not found: ${taskId}` });
-      }
-
-      const compliance = getTaskTddCompliance(task);
-      const requiresTdd = requiresTddEvidence(task);
-      const trivial = isTrivialTask(task.title);
-
-      return formatToolOutput({
-        action,
-        taskId: task.id,
-        title: task.title,
-        tdd_phase: task.tdd_phase,
-        tdd_evidence: task.tdd_evidence,
-        analysis: {
-          requires_tdd: requiresTdd,
-          is_trivial: trivial,
-          compliance,
-        },
-        recommendation:
-          compliance === "missing"
-            ? "Record TDD evidence with adv_run_test (preferred) or adv_task_evidence for externally obtained evidence; reclassify with adv_task_reclassify_tdd when TDD is not applicable"
-            : compliance === "compliant"
-              ? "TDD requirements satisfied"
-              : "TDD not required for this task type",
-      });
+      return runTdd(store);
     },
   },
 

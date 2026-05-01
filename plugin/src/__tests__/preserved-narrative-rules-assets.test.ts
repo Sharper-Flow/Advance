@@ -25,6 +25,13 @@ interface SpecJson {
     title: string;
     body: string;
     priority: string;
+    scenarios?: Array<{
+      id: string;
+      title: string;
+      given: string[];
+      when: string;
+      then: string[];
+    }>;
   }>;
 }
 
@@ -46,6 +53,22 @@ describe("preserved narrative rules — wording presence", () => {
     expect(req!.priority).toBe("must");
     // Anchor wording: agents must trust the prep gate; size alone is not grounds for split
     expect(req!.body.toLowerCase()).toMatch(/size|split|prep gate/);
+  });
+
+  test("rq-crossProjectCoordination01 exists with advisory dependency anchors", () => {
+    const spec = loadSpec("advance-workflow");
+    const req = spec.requirements.find(
+      (r) => r.id === "rq-crossProjectCoordination01",
+    );
+    expect(
+      req,
+      "rq-crossProjectCoordination01 must exist in advance-workflow",
+    ).toBeDefined();
+    expect(req!.priority).toBe("must");
+    expect(req!.body).toContain("target_path");
+    expect(req!.body.toLowerCase()).toContain("advisory");
+    expect(req!.body.toLowerCase()).toContain("drilldown");
+    expect(req!.scenarios?.length).toBeGreaterThanOrEqual(4);
   });
 
   test("rq-dueDiligence01 exists in advance-meta with research anchor", () => {

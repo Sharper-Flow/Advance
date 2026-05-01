@@ -83,6 +83,10 @@ Format: `{label}: [{file}:{line}] {what}` + `Why: {why}` + `Fix: {how}` (optiona
 **Step 1:** Check cancelled tasks for `cancellation.approved_by_user === true`. If any lack approval → REVIEW BLOCKED → stop.
 
 **Step 2:** Check cross-repo tasks (`target_repo`/`target_path`) are `done`. If incomplete → REVIEW BLOCKED → stop.
+
+**Step 3:** For cross-project coordination, inspect `_externalDependencyStatus` from `adv_change_show`. Unmet advisory dependencies are warnings, not blockers by themselves; block only if the agreement explicitly made a dependency mandatory or the implementation violates accepted scope.
+
+**Step 4:** Verify target-project contribution workflow used ADV tools with `target_path`: target reads via `snapshot-ok`, target mutations via `temporal-required`, and untrusted mutations include `target_confirmed` plus `confirmationEvidence`.
 ### Extract Context
 From change data: affected files, spec scenarios, task completion evidence.
 ### Worktree Context

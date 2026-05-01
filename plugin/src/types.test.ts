@@ -11,6 +11,8 @@ import {
   ChangeStatusSchema,
   ChangeClosureSchema,
   CrossProjectOriginSchema,
+  CrossProjectLinkSchema,
+  ExternalDependencySchema,
   FastFollowOfSchema,
   GATE_DEFS,
   GateIdSchema,
@@ -584,6 +586,98 @@ describe("ChangeSchema", () => {
     };
     const result = ChangeSchema.parse(localChange);
     expect(result.cross_project_origin).toBeUndefined();
+  });
+
+  test("parses change with cross_project_links and external_dependencies", () => {
+    const change = {
+      id: "coordinateBackendFrontend",
+      title: "Coordinate backend frontend",
+      status: "draft",
+      created_at: "2026-01-01T00:00:00Z",
+      tasks: [],
+      deltas: {},
+      cross_project_links: [
+        {
+          target_path: "/home/user/dev/frontend",
+          target_project_id: "a".repeat(40),
+          changeId: "addFrontendFlow",
+          relationship: "follow_up",
+          linked_at: "2026-01-01T01:00:00Z",
+        },
+      ],
+      external_dependencies: [
+        {
+          target_path: "/home/user/dev/backend",
+          target_project_id: "b".repeat(40),
+          changeId: "addBackendEndpoint",
+          gate: "execution",
+          relationship: "requires",
+          advisory: true,
+        },
+      ],
+    };
+
+    const result = ChangeSchema.parse(change);
+    expect(result.cross_project_links?.[0]?.relationship).toBe("follow_up");
+    expect(result.external_dependencies?.[0]?.advisory).toBe(true);
+  });
+
+  test("cross-project link and dependency schemas reject unsafe minimums", () => {
+    expect(() =>
+      CrossProjectLinkSchema.parse({
+        target_path: "/home/user/dev/frontend",
+        relationship: "follow_up",
+        linked_at: "2026-01-01T01:00:00Z",
+      }),
+    ).toThrow();
+
+    expect(() =>
+      ExternalDependencySchema.parse({
+        target_path: "/home/user/dev/backend",
+        changeId: "addBackendEndpoint",
+        relationship: "requires",
+        advisory: false,
+      }),
+    ).toThrow();
+  });
+
+  test("ChangeSchema validates malformed cross-project fields", () => {
+    expect(() =>
+      ChangeSchema.parse({
+        id: "badCrossProjectChange",
+        title: "Bad Cross Project Change",
+        status: "draft",
+        created_at: "2026-01-01T00:00:00Z",
+        tasks: [],
+        deltas: {},
+        cross_project_links: [
+          {
+            target_path: "/home/user/dev/frontend",
+            relationship: "follow_up",
+            linked_at: "2026-01-01T01:00:00Z",
+          },
+        ],
+      }),
+    ).toThrow();
+
+    expect(() =>
+      ChangeSchema.parse({
+        id: "badDependencyChange",
+        title: "Bad Dependency Change",
+        status: "draft",
+        created_at: "2026-01-01T00:00:00Z",
+        tasks: [],
+        deltas: {},
+        external_dependencies: [
+          {
+            target_path: "/home/user/dev/backend",
+            changeId: "addBackendEndpoint",
+            relationship: "requires",
+            advisory: false,
+          },
+        ],
+      }),
+    ).toThrow();
   });
 
   test("parses change with fast_follow_of", () => {

@@ -204,6 +204,28 @@ describe("plugin-init tryInitStore", () => {
     expect(result).toEqual({ store: mocks.store, initError: null });
   });
 
+  it("ensureProjectTemporalQueue registers the target project queue", async () => {
+    const queues = new Set<string>();
+    const worker = {
+      registerQueue: vi.fn(async (queue: string) => {
+        queues.add(queue);
+      }),
+      shutdown: vi.fn(async () => {}),
+      get queues() {
+        return [...queues];
+      },
+    };
+
+    const { ensureProjectTemporalQueue, registerInProcessTemporalWorker } =
+      await import("./plugin-init");
+
+    registerInProcessTemporalWorker(worker as any);
+    await ensureProjectTemporalQueue("target-proj");
+
+    expect(worker.registerQueue).toHaveBeenCalledWith("advance-target-proj");
+    expect(queues.has("advance-target-proj")).toBe(true);
+  });
+
   it("returns initError and never calls createStore when runtime probe blocks Bun", async () => {
     mocks.getProjectId.mockResolvedValueOnce("proj-sha");
     mocks.ensureTemporalRuntime.mockRejectedValueOnce(

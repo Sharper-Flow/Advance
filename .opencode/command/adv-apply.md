@@ -136,6 +136,19 @@ Tasks may target other repositories. See ADV_INSTRUCTIONS.md §Cross-Repo Execut
 
 × Prohibited cancellation reasons: "out of scope", "different repository", "cannot modify external code", "backend/API changes needed", "would need database changes" — all require switching `workdir` and executing.
 
+## Cross-Project Coordination
+When a task contributes to another ADV-enabled project, use ADV tools with explicit `target_path` instead of reading or editing ADV state files directly.
+
+| Operation | Required behavior |
+|---|---|
+| Target reads | Use `snapshot-ok` tools (`adv_change_show`, task/gate/status reads) with `target_path`; inspect `_projectContext` |
+| Target mutations | Use `temporal-required` tools with `target_path`; fail closed if target queue is unavailable |
+| Untrusted target mutations | Pass `target_confirmed: true` and `confirmationEvidence` from explicit user approval |
+
+- `cross_project_links` records source/target provenance after target change creation/linking.
+- `external_dependencies` are advisory-only dependencies: unmet targets warn through `_externalDependencyStatus`; warnings do not block task/gate completion by themselves.
+- Target-project contribution workflow: create/link target change → verify source-side `cross_project_links` → read `_externalDependencyStatus` → mutate target only through ADV tools with confirmation when required.
+
 ---
 ## Cancellation Policy (Inline — Tier B)
 All cancellations require explicit user approval via `adv_task_cancel`. Cancellation is irreversible — Tier B uses inline structured prose with strict regex parsing (no LLM fallback) per `docs/command-voice-standard.md` § Inline Approval Voice and `rq-inlineApproval01.4`.

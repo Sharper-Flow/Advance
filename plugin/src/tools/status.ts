@@ -39,6 +39,9 @@ import {
 import { readProjectMetadata } from "../storage/project-metadata";
 import { getWorktreeCensus } from "../utils/worktree-census";
 import { runClarifyReadinessChecks } from "../validator/clarify-readiness";
+import { z } from "zod";
+import { withOptionalTargetPathStore } from "./target-project";
+import { buildExternalDependencyStatus } from "./external-dependency-status";
 
 // =============================================================================
 // Helpers
@@ -108,6 +111,14 @@ async function enrichRecentChangeStatus(
       workdir: store.paths.root,
     }),
   });
+
+  const dependencyStatus = await buildExternalDependencyStatus(
+    changeResult.data.external_dependencies,
+  );
+  if (dependencyStatus) {
+    (rc as unknown as Record<string, unknown>)._externalDependencyStatus =
+      dependencyStatus.summary;
+  }
 
   const nextGate = GATE_ORDER.find((gateId) => !isGateSatisfied(gates[gateId]));
   if (nextGate) {
@@ -246,166 +257,195 @@ export const statusTools = {
   adv_status: {
     description:
       "Show project overview: specs, active changes, and next-step recommendations",
-    args: {},
-    execute: async (_args: Record<string, never>, store: Store) => {
-      const status = await store.status();
-      const migrationStatus = await loadMigrationStatus(store);
+    args: {
+      target_path: z
+        .string()
+        .optional()
+        .describe(
+          "Optional absolute path to another ADV project. When provided, reads that project as a disk snapshot and returns _projectContext.",
+        ),
+    },
+    execute: async (
+      { target_path }: { target_path?: string },
+      store: Store,
+    ) => {
+      return withOptionalTargetPathStore(
+        { store, target_path },
+        async (activeStore, projectContext) => {
+          const status = await activeStore.status();
+          const migrationStatus = await loadMigrationStatus(activeStore);
 
-      const projectId = store.paths.external
-        ? basename(store.paths.external)
-        : undefined;
+          const projectId = activeStore.paths.external
+            ? basename(activeStore.paths.external)
+            : undefined;
 
-      let temporalHealth;
-      try {
-        temporalHealth = await getTemporalHealth(projectId);
-      } catch (err) {
-        temporalHealth = {
-          server_alive: false,
-          worker_alive: false,
-          worker_process_alive: false,
-          registered_queues: [],
-          last_op_at: null,
-          last_error: err instanceof Error ? err.message : String(err),
-          fallback_counts: getTemporalFallbackTelemetry(),
-          stale_queues: [],
-          reconnect_count: 0,
-        };
-      }
+          let temporalHealth;
+          try {
+            temporalHealth = await getTemporalHealth(projectId);
+          } catch (err) {
+            temporalHealth = {
+              server_alive: false,
+              worker_alive: false,
+              worker_process_alive: false,
+              registered_queues: [],
+              last_op_at: null,
+              last_error: err instanceof Error ? err.message : String(err),
+              fallback_counts: getTemporalFallbackTelemetry(),
+              stale_queues: [],
+              reconnect_count: 0,
+            };
+          }
 
-      if (temporalHealth.stale_queues.length > 0) {
-        for (const sq of temporalHealth.stale_queues) {
-          status.recommendations.push(
-            `⚠️ Stale Temporal queue \`${sq.queue}\` has ${sq.running_count} Running workflows older than 5 min with no local poller. See docs/temporal-recovery.md § "Stale \`adv/change/*\` and \`adv/project/*\` workflows".`,
-          );
-        }
-      }
-
-      // Search attributes health from STSL cache
-      const stslStats = getStslStats();
-      const stslReady = isStslInitialized();
-      let searchAttributes: {
-        ok: boolean;
-        checkedAt?: number;
-        error?: string;
-      };
-      if (!stslReady) {
-        searchAttributes = {
-          ok: false,
-          error: "STSL not initialized",
-        };
-      } else if (stslStats.saVerification) {
-        searchAttributes = {
-          ok: stslStats.saVerification.ok,
-          checkedAt: stslStats.saVerification.checkedAt,
-        };
-      } else {
-        searchAttributes = { ok: false, error: "Not yet verified" };
-      }
-
-      if (!searchAttributes.ok) {
-        status.recommendations.push(
-          "⚠️ Temporal search attributes not verified — " +
-            "run `adv_temporal_register_search_attributes` to register missing search attributes.",
-        );
-      }
-
-      // Load project config with diagnostics — surface errors instead of silently ignoring
-      const configResult = await loadProjectConfigWithDiagnostics(
-        store.paths.root,
-      );
-      let featureFlags: Record<string, unknown> | undefined;
-
-      // Warn when external state is unavailable — worktree sharing and
-      // state isolation won't function.  This happens when the plugin
-      // directory is not inside a git repo and no project.path fallback
-      // was available (e.g. GUI clients starting from $HOME).
-      if (!store.paths.external) {
-        status.recommendations.unshift(
-          "⚠️  Running without external state — ADV state is stored in-repo (.adv/). " +
-            "Worktree sharing and state isolation are unavailable. " +
-            "Ensure OpenCode is started from a git repository.",
-        );
-      }
-
-      if (!configResult.success) {
-        // Prepend config error/warning to recommendations so it's visible
-        const prefix =
-          configResult.type === "not_found"
-            ? "⚠️  Config warning"
-            : "❌ Config error";
-        status.recommendations.unshift(`${prefix}: ${configResult.error}`);
-      } else {
-        // Expose feature flags in status output for visibility
-        featureFlags = configResult.data.features as Record<string, boolean>;
-      }
-
-      // Single-pass over recent changes: context snapshot, gate recommendation,
-      // clarify readiness, and recency labels — all built in one traversal.
-      const recentChanges = status.changes.recent ?? [];
-      const features = store.config?.features as FeatureFlags | undefined;
-      const clarifyMode = features?.clarify_enforcement ?? "advisory";
-
-      for (const rc of recentChanges) {
-        await enrichRecentChangeStatus(rc, status, store, clarifyMode);
-      }
-
-      // Worktree census
-      const worktreeCensus = await getWorktreeCensus(store.paths.root);
-
-      const specsList = await store.specs.list();
-      const requirementCount = specsList.specs.reduce(
-        (sum, s) => sum + (s.requirementCount ?? 0),
-        0,
-      );
-
-      const formatted = formatStatusOutput({
-        specCount: status.specs.count,
-        requirementCount,
-        activeChanges: status.changes.recent.map((c) => ({
-          id: c.id,
-          title: c.title,
-          minutesSinceActivity: c.minutesSinceActivity,
-          recency: c.recency,
-          parent_change_id: c.parent_change_id,
-        })),
-        archivedCount: status.changes.byStatus.archived ?? 0,
-        recommendations: status.recommendations,
-        temporalAlive: !!temporalHealth?.server_alive,
-        worktreeCensus: worktreeCensus
-          ? {
-              total: worktreeCensus.total,
-              stale: worktreeCensus.stale,
+          if (temporalHealth.stale_queues.length > 0) {
+            for (const sq of temporalHealth.stale_queues) {
+              status.recommendations.push(
+                `⚠️ Stale Temporal queue \`${sq.queue}\` has ${sq.running_count} Running workflows older than 5 min with no local poller. See docs/temporal-recovery.md § "Stale \`adv/change/*\` and \`adv/project/*\` workflows".`,
+              );
             }
-          : undefined,
-      });
+          }
 
-      const projectMetadata = await readProjectMetadata(
-        store.paths.root,
-        store.paths.projectMetadata,
-      );
+          // Search attributes health from STSL cache
+          const stslStats = getStslStats();
+          const stslReady = isStslInitialized();
+          let searchAttributes: {
+            ok: boolean;
+            checkedAt?: number;
+            error?: string;
+          };
+          if (!stslReady) {
+            searchAttributes = {
+              ok: false,
+              error: "STSL not initialized",
+            };
+          } else if (stslStats.saVerification) {
+            searchAttributes = {
+              ok: stslStats.saVerification.ok,
+              checkedAt: stslStats.saVerification.checkedAt,
+            };
+          } else {
+            searchAttributes = { ok: false, error: "Not yet verified" };
+          }
 
-      const output = {
-        ...status,
-        ...(featureFlags ? { feature_flags: featureFlags } : {}),
-        temporal_health: temporalHealth,
-        search_attributes: searchAttributes,
-        migration_status: migrationStatus,
-        project_metadata: projectMetadata,
-        worktree_census: worktreeCensus,
-        diagnostics: {
-          temporalWorker: temporalHealth?.worker_alive
-            ? ("healthy" as const)
-            : temporalHealth?.server_alive
-              ? ("degraded" as const)
-              : ("unknown" as const),
-          lastErrorClass: getTemporalRetryTelemetry().lastError ?? undefined,
+          if (!searchAttributes.ok) {
+            status.recommendations.push(
+              "⚠️ Temporal search attributes not verified — " +
+                "run `adv_temporal_register_search_attributes` to register missing search attributes.",
+            );
+          }
+
+          // Load project config with diagnostics — surface errors instead of silently ignoring
+          const configResult = await loadProjectConfigWithDiagnostics(
+            activeStore.paths.root,
+          );
+          let featureFlags: Record<string, unknown> | undefined;
+
+          // Warn when external state is unavailable — worktree sharing and
+          // state isolation won't function.  This happens when the plugin
+          // directory is not inside a git repo and no project.path fallback
+          // was available (e.g. GUI clients starting from $HOME).
+          if (!activeStore.paths.external) {
+            status.recommendations.unshift(
+              "⚠️  Running without external state — ADV state is stored in-repo (.adv/). " +
+                "Worktree sharing and state isolation are unavailable. " +
+                "Ensure OpenCode is started from a git repository.",
+            );
+          }
+
+          if (!configResult.success) {
+            // Prepend config error/warning to recommendations so it's visible
+            const prefix =
+              configResult.type === "not_found"
+                ? "⚠️  Config warning"
+                : "❌ Config error";
+            status.recommendations.unshift(`${prefix}: ${configResult.error}`);
+          } else {
+            // Expose feature flags in status output for visibility
+            featureFlags = configResult.data.features as Record<
+              string,
+              boolean
+            >;
+          }
+
+          // Single-pass over recent changes: context snapshot, gate recommendation,
+          // clarify readiness, and recency labels — all built in one traversal.
+          const recentChanges = status.changes.recent ?? [];
+          const features = activeStore.config?.features as
+            | FeatureFlags
+            | undefined;
+          const clarifyMode = features?.clarify_enforcement ?? "advisory";
+
+          for (const rc of recentChanges) {
+            await enrichRecentChangeStatus(
+              rc,
+              status,
+              activeStore,
+              clarifyMode,
+            );
+          }
+
+          // Worktree census
+          const worktreeCensus = await getWorktreeCensus(
+            activeStore.paths.root,
+          );
+
+          const specsList = await activeStore.specs.list();
+          const requirementCount = specsList.specs.reduce(
+            (sum, s) => sum + (s.requirementCount ?? 0),
+            0,
+          );
+
+          const formatted = formatStatusOutput({
+            specCount: status.specs.count,
+            requirementCount,
+            activeChanges: status.changes.recent.map((c) => ({
+              id: c.id,
+              title: c.title,
+              minutesSinceActivity: c.minutesSinceActivity,
+              recency: c.recency,
+              parent_change_id: c.parent_change_id,
+            })),
+            archivedCount: status.changes.byStatus.archived ?? 0,
+            recommendations: status.recommendations,
+            temporalAlive: !!temporalHealth?.server_alive,
+            worktreeCensus: worktreeCensus
+              ? {
+                  total: worktreeCensus.total,
+                  stale: worktreeCensus.stale,
+                }
+              : undefined,
+          });
+
+          const projectMetadata = await readProjectMetadata(
+            activeStore.paths.root,
+            activeStore.paths.projectMetadata,
+          );
+
+          const output = {
+            ...status,
+            ...(featureFlags ? { feature_flags: featureFlags } : {}),
+            temporal_health: temporalHealth,
+            search_attributes: searchAttributes,
+            migration_status: migrationStatus,
+            project_metadata: projectMetadata,
+            worktree_census: worktreeCensus,
+            diagnostics: {
+              temporalWorker: temporalHealth?.worker_alive
+                ? ("healthy" as const)
+                : temporalHealth?.server_alive
+                  ? ("degraded" as const)
+                  : ("unknown" as const),
+              lastErrorClass:
+                getTemporalRetryTelemetry().lastError ?? undefined,
+            },
+            formatted,
+            ...(projectContext ? { _projectContext: projectContext } : {}),
+          };
+
+          return wrapWithBanner(
+            { command: "adv_status" },
+            formatToolOutput(output),
+          );
         },
-        formatted,
-      };
-
-      return wrapWithBanner(
-        { command: "adv_status" },
-        formatToolOutput(output),
       );
     },
   },

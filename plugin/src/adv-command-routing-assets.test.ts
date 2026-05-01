@@ -519,6 +519,48 @@ describe("ADV command routing assets", () => {
     expect(instructionsRow).toBe(applyRow);
   });
 
+  test("ADV_INSTRUCTIONS.md documents cross-project coordination tool routing", () => {
+    const content = readFileSync(
+      join(REPO_ROOT, "ADV_INSTRUCTIONS.md"),
+      "utf8",
+    );
+    const section =
+      content.split("### Cross-Project Coordination")[1]?.split("###")[0] ?? "";
+
+    expect(section).toContain("target_path");
+    expect(section).toContain("ADV tools");
+    expect(section).toContain("snapshot-ok");
+    expect(section).toContain("temporal-required");
+    expect(section).toContain("target_confirmed");
+    expect(section).toContain("confirmationEvidence");
+    expect(section).toContain("_externalDependencyStatus");
+    expect(section).toMatch(/advisory(?:-only)? dependencies/i);
+    expect(section).toMatch(/never.*direct.*ADV state/i);
+  });
+
+  test("adv-apply/prep/review contracts mention cross-project coordination safeguards", () => {
+    const apply = readFileSync(join(COMMAND_DIR, "adv-apply.md"), "utf8");
+    const prep = readFileSync(join(COMMAND_DIR, "adv-prep.md"), "utf8");
+    const review = readFileSync(join(COMMAND_DIR, "adv-review.md"), "utf8");
+    const combined = `${apply}\n${prep}\n${review}`;
+
+    expect(apply).toContain("Cross-Project Coordination");
+    expect(apply).toContain("target_path");
+    expect(apply).toContain("target_confirmed");
+    expect(apply).toContain("confirmationEvidence");
+    expect(apply).toMatch(/advisory(?:-only)? dependencies/i);
+
+    expect(prep).toContain("external_dependencies");
+    expect(prep).toContain("cross_project_links");
+    expect(prep).toMatch(/advisory(?:-only)? dependencies/i);
+
+    expect(review).toContain("_externalDependencyStatus");
+    expect(review).toMatch(/warning.*not.*block|not.*block.*warning/i);
+
+    expect(combined).toContain("snapshot-ok");
+    expect(combined).toContain("temporal-required");
+  });
+
   // Provider ADV agent assembly (providerAdvAgentAssemblySystem)
   test("provider hint files exist outside repo agent discovery path", () => {
     const providers = ["claude", "gpt", "glm", "kimi"];

@@ -932,6 +932,72 @@
       }
     },
     {
+      "id": "rq-crossProjectCoordination01",
+      "title": "Target-Path Cross-Project Coordination",
+      "body": "ADV tools that support cross-project coordination must use explicit `target_path` routing, persist structured cross_project_links and advisory external_dependencies on changes, require explicit confirmation before mutating untrusted target projects, and present dependency status as summary by default with drilldown available on request. External dependencies are advisory warnings only and must not block gates or archive by default.",
+      "priority": "must",
+      "tags": [
+        "workflow",
+        "cross-project",
+        "target-path",
+        "advisory-dependencies",
+        "safety"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-crossProjectCoordination01.1",
+          "title": "Target path routes cross-project tools",
+          "given": [
+            "An ADV tool supports cross-project reads or contributions",
+            "The caller provides target_path"
+          ],
+          "when": "The tool resolves the target project",
+          "then": [
+            "The tool validates target_path as a git-backed project root",
+            "The tool derives the target project identity from that repository",
+            "The tool never reads ADV state files directly"
+          ]
+        },
+        {
+          "id": "rq-crossProjectCoordination01.2",
+          "title": "Untrusted target mutation requires confirmation",
+          "given": [
+            "A mutating ADV tool is called with target_path",
+            "The target is not configured as a trusted related repository"
+          ],
+          "when": "The mutation is evaluated",
+          "then": [
+            "The tool requires explicit target confirmation evidence before changing target state",
+            "Without confirmation, the tool fails before any target state mutation"
+          ]
+        },
+        {
+          "id": "rq-crossProjectCoordination01.3",
+          "title": "Dependencies remain advisory",
+          "given": [
+            "A change has external_dependencies that reference another project"
+          ],
+          "when": "Gate completion or archive readiness is evaluated",
+          "then": [
+            "Unmet external dependencies are reported as warnings or status metadata",
+            "Unmet external dependencies do not block gates or archive by default"
+          ]
+        },
+        {
+          "id": "rq-crossProjectCoordination01.4",
+          "title": "Status defaults to summary with drilldown",
+          "given": [
+            "A change has cross_project_links or external_dependencies"
+          ],
+          "when": "Cross-project status is displayed",
+          "then": [
+            "Default output summarizes linked projects and dependency health concisely",
+            "Detailed dependency graph and target diagnostics are available only through drilldown or coordinate output"
+          ]
+        }
+      ]
+    },
+    {
       "id": "rq-scopeDiscoveryProtocol01",
       "title": "Inline-Approval Protocol for Non-Campsite Scope Discovery",
       "body": "When non-P23-campsite-eligible scope is discovered during /adv-apply, /adv-review, or /adv-harden, the agent must emit a Tier A inline prompt with options reenter/split/keep/cancel. The agent must never silently absorb discovered scope.",
