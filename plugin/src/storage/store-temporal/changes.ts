@@ -335,6 +335,21 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
       for (const id of changeIds) {
         try {
           invalidateChange(id);
+
+          // Layer C1 (rq-archiveRetirement01-followon): disk-first
+          // safety-net write per id. If disk write fails, record a
+          // per-id failure and SKIP this id's Temporal mutation
+          // (no half-state). Other ids in the batch continue.
+          const current = await getTemporalChange(id);
+          if (current.success && current.data) {
+            const updated: Change = {
+              ...current.data,
+              status: "closed",
+              closure,
+            };
+            await legacy.changes.save(updated);
+          }
+
           const raw = await runTemporal(async () =>
             (await getGuardedChangeHandle(input, id)).executeUpdate(
               closeChangeUpdate,

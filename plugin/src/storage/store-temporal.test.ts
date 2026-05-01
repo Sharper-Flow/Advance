@@ -2072,6 +2072,114 @@ describe("Temporal store backend adapter", () => {
       expect(changeHandle.executeUpdate).not.toHaveBeenCalled();
     });
 
+    it("closeBatch() writes disk change.json with status=closed for every successful id", async () => {
+      const ids = ["chg-batch-a", "chg-batch-b", "chg-batch-c"];
+      const states: Record<string, any> = {};
+      for (const id of ids) states[id] = makeCloseTestState(id, "draft");
+
+      const handlesByChangeId: Record<string, any> = {};
+      for (const id of ids) {
+        handlesByChangeId[id] = {
+          query: vi.fn(async () => states[id]),
+          executeUpdate: vi.fn(async () => ({
+            ...states[id],
+            status: "closed",
+          })),
+          signal: vi.fn(async () => {}),
+        };
+      }
+      const projectHandle = makeProjectHandle();
+      const getHandle = vi.fn((workflowId: string) => {
+        if (workflowId.startsWith("adv/project/")) return projectHandle;
+        const prefix = "adv/change/proj1/";
+        if (workflowId.startsWith(prefix)) {
+          const id = workflowId.slice(prefix.length);
+          if (handlesByChangeId[id]) return handlesByChangeId[id];
+        }
+        throw Object.assign(new Error("workflow not found"), {
+          name: "WorkflowNotFoundError",
+        });
+      });
+      const bundle = { client: { workflow: { getHandle } } };
+
+      const legacy = makeLegacyStore();
+      const adapted = createTemporalStoreBackend({
+        legacy,
+        temporal: bundle as any,
+        projectId: "proj1",
+      });
+
+      const result = await adapted.changes.closeBatch(ids, sampleClosure);
+      expect(result.success).toBe(true);
+      expect(result.closed).toBe(3);
+      expect((legacy.changes.save as any).mock.calls.length).toBe(3);
+      const savedStatuses = (legacy.changes.save as any).mock.calls.map(
+        (c: any) => c[0].status,
+      );
+      expect(savedStatuses).toEqual(["closed", "closed", "closed"]);
+    });
+
+    it("closeBatch() partial failure: one id's disk write throws, batch continues for others", async () => {
+      const ids = ["chg-batch-ok-1", "chg-batch-fail", "chg-batch-ok-2"];
+      const states: Record<string, any> = {};
+      for (const id of ids) states[id] = makeCloseTestState(id, "draft");
+
+      const handlesByChangeId: Record<string, any> = {};
+      for (const id of ids) {
+        handlesByChangeId[id] = {
+          query: vi.fn(async () => states[id]),
+          executeUpdate: vi.fn(async () => ({
+            ...states[id],
+            status: "closed",
+          })),
+          signal: vi.fn(async () => {}),
+        };
+      }
+      const projectHandle = makeProjectHandle();
+      const getHandle = vi.fn((workflowId: string) => {
+        if (workflowId.startsWith("adv/project/")) return projectHandle;
+        const prefix = "adv/change/proj1/";
+        if (workflowId.startsWith(prefix)) {
+          const id = workflowId.slice(prefix.length);
+          if (handlesByChangeId[id]) return handlesByChangeId[id];
+        }
+        throw Object.assign(new Error("workflow not found"), {
+          name: "WorkflowNotFoundError",
+        });
+      });
+      const bundle = { client: { workflow: { getHandle } } };
+
+      const legacy = makeLegacyStore();
+      legacy.changes.save = vi.fn(async (change: any) => {
+        if (change.id === "chg-batch-fail") {
+          throw new Error("disk full for chg-batch-fail");
+        }
+      });
+
+      const adapted = createTemporalStoreBackend({
+        legacy,
+        temporal: bundle as any,
+        projectId: "proj1",
+      });
+
+      const result = await adapted.changes.closeBatch(ids, sampleClosure);
+      expect(result.success).toBe(false); // not all succeeded
+      expect(result.closed).toBe(2);
+      const failResult = result.results.find(
+        (r) => r.changeId === "chg-batch-fail",
+      );
+      expect(failResult?.success).toBe(false);
+      expect(failResult?.error).toMatch(/disk full/);
+      // The Temporal transition for the failed id must NOT have run
+      expect(handlesByChangeId["chg-batch-fail"].executeUpdate).not
+        .toHaveBeenCalled();
+      // The other ids' Temporal transitions DID run
+      expect(handlesByChangeId["chg-batch-ok-1"].executeUpdate)
+        .toHaveBeenCalled();
+      expect(handlesByChangeId["chg-batch-ok-2"].executeUpdate)
+        .toHaveBeenCalled();
+    });
+
     it("close() is idempotent — re-closing an already-closed change is safe", async () => {
       const closedState = makeCloseTestState("chg-close-idem", "closed");
       const changeHandle = {
