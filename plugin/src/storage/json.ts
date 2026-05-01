@@ -757,3 +757,26 @@ export async function fileExists(path: string): Promise<boolean> {
     return false;
   }
 }
+
+/**
+ * Check whether an archive bundle exists for a change ID.
+ *
+ * Tests for the `archive/<changeId>/change.json` sentinel file rather than
+ * just the directory, to avoid false positives from partial bundle dirs
+ * (e.g. mkdir succeeded but file write failed).
+ *
+ * Used by `listResolvedChanges` (Layer A1) to detect archived changes whose
+ * source `changes/<id>/` directory persists with stale `status: "draft"` —
+ * a zombie shadow caused by `removeChangeDir` cleanup failure or process
+ * crash between archive transition and source cleanup.
+ *
+ * Spec: rq-archiveRetirement01.1 — "Default active change lists do not
+ * include the archived change." This helper enables that contract to be
+ * upheld even when disk-fallback returns stale status.
+ */
+export async function hasArchiveBundle(
+  archivePath: string,
+  changeId: string,
+): Promise<boolean> {
+  return fileExists(join(archivePath, changeId, "change.json"));
+}

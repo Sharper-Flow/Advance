@@ -32,8 +32,10 @@ import {
   listChangeDirs,
   getProjectPaths,
   fileExists,
+  hasArchiveBundle,
   resolveChangeId,
 } from "./json";
+import { mkdir } from "fs/promises";
 import {
   createTempDir,
   cleanupTempDir,
@@ -782,6 +784,44 @@ describe("fileExists", () => {
   test("returns false for missing file", async () => {
     const path = join(tempDir, "missing.txt");
     expect(await fileExists(path)).toBe(false);
+  });
+});
+
+describe("hasArchiveBundle", () => {
+  let tempDir: string;
+  let archiveDir: string;
+
+  beforeEach(async () => {
+    tempDir = await createTempDir();
+    archiveDir = join(tempDir, "archive");
+    await mkdir(archiveDir, { recursive: true });
+  });
+
+  afterEach(async () => {
+    await cleanupTempDir(tempDir);
+  });
+
+  test("returns true when archive/<id>/change.json exists (sentinel)", async () => {
+    const bundleDir = join(archiveDir, "chg-archived");
+    await mkdir(bundleDir, { recursive: true });
+    await writeFile(join(bundleDir, "change.json"), '{"id":"chg-archived"}');
+    expect(await hasArchiveBundle(archiveDir, "chg-archived")).toBe(true);
+  });
+
+  test("returns false when archive directory for change does not exist", async () => {
+    expect(await hasArchiveBundle(archiveDir, "chg-missing")).toBe(false);
+  });
+
+  test("returns false when bundle dir exists but change.json sentinel is missing (partial bundle)", async () => {
+    const bundleDir = join(archiveDir, "chg-partial");
+    await mkdir(bundleDir, { recursive: true });
+    // Intentionally NO change.json — simulating a partially-created bundle
+    expect(await hasArchiveBundle(archiveDir, "chg-partial")).toBe(false);
+  });
+
+  test("returns false when archive root itself does not exist", async () => {
+    const missingArchive = join(tempDir, "no-archive-here");
+    expect(await hasArchiveBundle(missingArchive, "chg-anything")).toBe(false);
   });
 });
 
