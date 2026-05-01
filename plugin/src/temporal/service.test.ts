@@ -154,6 +154,117 @@ describe("STSL (Shared Temporal Service Layer)", () => {
     ).resolves.toBeDefined();
   });
 
+  it("initStsl logs non-AlreadyExists registration failures at error level", async () => {
+    // Reset implementation queues (vi.clearAllMocks does NOT clear queued
+    // mockRejectedValueOnce entries; prior tests can leak rejections that
+    // were never consumed because their default mock made the call path
+    // unreachable). Restore original defaults from vi.hoisted setup.
+    mocks.listSearchAttributes.mockReset();
+    mocks.addSearchAttributes.mockReset();
+    mocks.listSearchAttributes.mockResolvedValue({
+      customAttributes: {
+        AdvProjectId: { indexedValueType: 2 },
+        AdvChangeId: { indexedValueType: 2 },
+        AdvChangeStatus: { indexedValueType: 2 },
+        AdvActiveGate: { indexedValueType: 2 },
+        AdvDoomLoopActive: { indexedValueType: 5 },
+      },
+    });
+    mocks.addSearchAttributes.mockResolvedValue({});
+    // Test-specific overrides:
+    // SAs not yet present on first list call so registration is attempted.
+    mocks.listSearchAttributes.mockResolvedValueOnce({ customAttributes: {} });
+    // Force a non-AlreadyExists, non-unavailable failure path on the addSA call.
+    mocks.addSearchAttributes.mockRejectedValueOnce(
+      new Error("permission denied"),
+    );
+
+    // Spy on console.error and console.warn to detect which level was used.
+    // logger.warn → console.warn; logger.error → console.error
+    // (see plugin/src/utils/debug-log.ts createLogger)
+    const errorSpy = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
+    const warnSpy = vi
+      .spyOn(console, "warn")
+      .mockImplementation(() => undefined);
+
+    try {
+      await initStsl({
+        ADV_TEMPORAL_ADDRESS: "127.0.0.1:7233",
+        ADV_TEMPORAL_NAMESPACE: "default",
+      });
+
+      // The non-AlreadyExists, non-unavailable failure path MUST log at
+      // error level (not warn). This is the AC-5 elevation: real registration
+      // failures are visible to the agent / operator without scraping debug
+      // logs.
+      const errorCalls = errorSpy.mock.calls.map((c) => String(c[0]));
+      const failureLogged = errorCalls.some((line) =>
+        line.includes("Failed to register ADV search attributes"),
+      );
+      expect(failureLogged).toBe(true);
+
+      // The same message MUST NOT also be emitted at warn level (no
+      // duplicate logging across severities).
+      const warnCalls = warnSpy.mock.calls.map((c) => String(c[0]));
+      const warnedTheSame = warnCalls.some((line) =>
+        line.includes("Failed to register ADV search attributes"),
+      );
+      expect(warnedTheSame).toBe(false);
+    } finally {
+      errorSpy.mockRestore();
+      warnSpy.mockRestore();
+    }
+  });
+
+  it("initStsl keeps AlreadyExists registration failures at debug level (no warn/error)", async () => {
+    // Reset queues + restore defaults (see prior test for rationale).
+    mocks.listSearchAttributes.mockReset();
+    mocks.addSearchAttributes.mockReset();
+    mocks.listSearchAttributes.mockResolvedValue({
+      customAttributes: {
+        AdvProjectId: { indexedValueType: 2 },
+        AdvChangeId: { indexedValueType: 2 },
+        AdvChangeStatus: { indexedValueType: 2 },
+        AdvActiveGate: { indexedValueType: 2 },
+        AdvDoomLoopActive: { indexedValueType: 5 },
+      },
+    });
+    mocks.addSearchAttributes.mockResolvedValue({});
+    // Test-specific: empty list on first check, then AlreadyExists rejection
+    mocks.listSearchAttributes.mockResolvedValueOnce({ customAttributes: {} });
+    mocks.addSearchAttributes.mockRejectedValueOnce(
+      new Error("search attribute already exists"),
+    );
+
+    const errorSpy = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
+    const warnSpy = vi
+      .spyOn(console, "warn")
+      .mockImplementation(() => undefined);
+
+    try {
+      await initStsl({
+        ADV_TEMPORAL_ADDRESS: "127.0.0.1:7233",
+        ADV_TEMPORAL_NAMESPACE: "default",
+      });
+
+      // AlreadyExists is idempotent success — must not surface at warn or
+      // error level (would be noise on every session start with persisted SAs).
+      const errorCalls = errorSpy.mock.calls.map((c) => String(c[0]));
+      const warnCalls = warnSpy.mock.calls.map((c) => String(c[0]));
+      const failureSurfaced = [...errorCalls, ...warnCalls].some((line) =>
+        line.includes("Failed to register ADV search attributes"),
+      );
+      expect(failureSurfaced).toBe(false);
+    } finally {
+      errorSpy.mockRestore();
+      warnSpy.mockRestore();
+    }
+  });
+
   it("getService returns the initialized bundle", async () => {
     await initStsl({
       ADV_TEMPORAL_ADDRESS: "127.0.0.1:7233",

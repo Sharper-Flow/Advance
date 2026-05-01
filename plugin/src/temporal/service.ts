@@ -80,7 +80,11 @@ async function registerAdvSearchAttributes(
         `OperatorService.addSearchAttributes unavailable — skipping search-attribute registration: ${result.error}`,
       );
     } else {
-      logger.warn(
+      // Real registration failure (not AlreadyExists, not operator-API
+      // unavailable). Elevated from warn to error so agents/operators see
+      // it without scraping debug logs. Idempotent per session — runs once
+      // per initStsl call. See change fixTemporalSearchAttrTypeCodes (AC-5).
+      logger.error(
         `Failed to register ADV search attributes (Visibility queries may fail): ${result.error}`,
       );
     }
