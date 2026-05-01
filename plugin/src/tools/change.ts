@@ -566,6 +566,15 @@ function getArchivePreflightError(
   return null;
 }
 
+const ARCHIVE_SEARCH_ATTRIBUTE_RECOVERY_HINT =
+  "Run adv_temporal_diagnose. If search attributes are missing or unverified, run adv_temporal_register_search_attributes, then adv_temporal_worker_restart, then retry archive.";
+
+function isSearchAttributeArchiveFailure(errorText: string): boolean {
+  return /search attribute|SearchAttribute|upsertSearchAttributes|AdvChangeStatus|AdvChangeId/i.test(
+    errorText,
+  );
+}
+
 async function loadSpecsMap(store: Store): Promise<Map<string, Spec>> {
   const specList = await store.specs.list();
   const specs = new Map<string, Spec>();
@@ -1540,14 +1549,24 @@ export const changeTools = {
         try {
           await store.changes.save(change);
         } catch (saveError) {
+          const saveErrorText = collectErrorText(saveError);
+          const searchAttributeRecovery = isSearchAttributeArchiveFailure(
+            saveErrorText,
+          )
+            ? {
+                recoveryHint: ARCHIVE_SEARCH_ATTRIBUTE_RECOVERY_HINT,
+                retrySafe: true,
+              }
+            : {};
           // Surface the full cause chain (e.g. WorkflowUpdateFailedError →
           // the real reason) so the caller can diagnose the failure.
           return wrapWithBanner(
             { command: "adv_change_archive", target: changeId },
             formatToolOutput({
               success: false,
-              error: `Failed to update change status to archived: ${collectErrorText(saveError)}`,
+              error: `Failed to update change status to archived: ${saveErrorText}`,
               archivePath: archiveResult.archivePath,
+              ...searchAttributeRecovery,
               specsUpdated: archiveResult.specsUpdated.map((s) => ({
                 capability: s.capability,
                 version: `${s.originalVersion} → ${s.newVersion}`,

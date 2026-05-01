@@ -2108,12 +2108,14 @@ describe("Change Tools", () => {
 
     // rq-archiveOrdering01.2: archive error output surfaces full cause chain
     // when the post-disk status transition (store.changes.save) fails.
-    test("surfaces full cause chain when status transition fails", async () => {
+    test("surfaces full cause chain and search-attribute recovery when status transition fails", async () => {
       await completeArchivePreflight();
 
       // Monkey-patch store.changes.save to throw with a nested cause.
       const originalSave = store.changes.save.bind(store.changes);
-      const innerCause = new Error("workflow rejected: AdvChangeId missing");
+      const innerCause = new Error(
+        "workflow rejected: upsertSearchAttributes failed for AdvChangeId search attribute",
+      );
       const outerError = new Error("WorkflowUpdateFailedError");
       (outerError as Error & { cause?: unknown }).cause = innerCause;
       store.changes.save = async () => {
@@ -2130,9 +2132,17 @@ describe("Change Tools", () => {
         expect(parsed.success).toBe(false);
         // Cause-chain text must include both outer and inner messages.
         expect(parsed.error).toContain("WorkflowUpdateFailedError");
-        expect(parsed.error).toContain("AdvChangeId missing");
+        expect(parsed.error).toContain("upsertSearchAttributes failed");
+        expect(parsed.error).toContain("AdvChangeId search attribute");
         // Bundle path is preserved so caller can retry idempotently.
         expect(parsed.archivePath).toBeTruthy();
+        expect(parsed.retrySafe).toBe(true);
+        expect(parsed.recoveryHint).toContain("adv_temporal_diagnose");
+        expect(parsed.recoveryHint).toContain(
+          "adv_temporal_register_search_attributes",
+        );
+        expect(parsed.recoveryHint).toContain("adv_temporal_worker_restart");
+        expect(parsed.recoveryHint).toContain("retry archive");
       } finally {
         store.changes.save = originalSave;
       }
