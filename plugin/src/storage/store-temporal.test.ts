@@ -2206,6 +2206,304 @@ describe("Temporal store backend adapter", () => {
     });
   });
 
+  describe("Cross-cutting restart-simulation regression (AC #1/#2/#5/#6)", () => {
+    /**
+     * Integration tests proving the archive- and close-class zombie
+     * defenses survive a simulated process restart. "Restart" is
+     * simulated by creating a fresh store backend instance — this
+     * clears Memo, overlay cache, and source-version map, forcing the
+     * slow path that exercises disk fallback + bundle override (Layer
+     * A1) and the disk-first close write (Layer C1).
+     *
+     * Covers acceptance criteria:
+     *   AC #1 — archived NOT in default lists despite stale source dir
+     *   AC #2 — closed NOT in default lists despite stale source dir
+     *   AC #5 — listResolvedChanges disk-fallback overrides via bundle
+     *   AC #6 — closed status reflected in disk fallback
+     */
+    function buildRestartBundle() {
+      const projectHandle = makeProjectHandle();
+      const getHandle = vi.fn((workflowId: string) => {
+        if (workflowId.startsWith("adv/project/")) return projectHandle;
+        return {
+          query: vi.fn(async () => {
+            throw Object.assign(new Error("workflow not found"), {
+              name: "WorkflowNotFoundError",
+            });
+          }),
+          executeUpdate: vi.fn(async () => null),
+          signal: vi.fn(async () => {}),
+        };
+      });
+      return {
+        client: {
+          workflow: {
+            getHandle,
+            list: vi.fn(() => ({
+              async *[Symbol.asyncIterator]() {},
+            })),
+            start: vi.fn(),
+          },
+        },
+      };
+    }
+
+    it("archive-class zombie: simulated restart → list excludes zombie even when source dir persists with stale draft", async () => {
+      const tmp = mkdtempSync(join(tmpdir(), "adv-restart-archive-"));
+      try {
+        const changesDir = join(tmp, "changes");
+        const archiveDir = join(tmp, "archive");
+        const fs = await import("node:fs/promises");
+
+        const zombieDir = join(changesDir, "chg-restart-archived");
+        mkdirSync(zombieDir, { recursive: true });
+        const staleDraft = {
+          id: "chg-restart-archived",
+          title: "Restart-survived archived zombie",
+          status: "draft",
+          created_at: "2026-04-18T00:00:00.000Z",
+          tasks: [],
+          deltas: {},
+          wisdom: [],
+          gates: {},
+        };
+        await fs.writeFile(
+          join(zombieDir, "change.json"),
+          JSON.stringify(staleDraft),
+        );
+
+        const bundleDir = join(archiveDir, "chg-restart-archived");
+        mkdirSync(bundleDir, { recursive: true });
+        await fs.writeFile(
+          join(bundleDir, "change.json"),
+          JSON.stringify({ ...staleDraft, status: "archived" }),
+        );
+
+        // Fresh adapter (simulates new process) — Memo + overlay empty
+        const legacy = makeLegacyStore();
+        legacy.paths.changes = changesDir as any;
+        legacy.paths.archive = archiveDir as any;
+        legacy.changes.get = vi.fn(async (id: string) => {
+          if (id === "chg-restart-archived") {
+            return { success: true, data: staleDraft } as any;
+          }
+          return { success: false } as any;
+        });
+
+        const adapted = createTemporalStoreBackend({
+          legacy,
+          temporal: buildRestartBundle() as any,
+          projectId: "proj1",
+        });
+
+        const list = await adapted.changes.list({});
+        expect(
+          list.changes.find((c) => c.id === "chg-restart-archived"),
+        ).toBeUndefined();
+      } finally {
+        rmSync(tmp, { recursive: true, force: true });
+      }
+    });
+
+    it("closed-class: close() persists status to disk so a simulated restart sees correct closed status", async () => {
+      const tmp = mkdtempSync(join(tmpdir(), "adv-restart-closed-"));
+      try {
+        const changesDir = join(tmp, "changes");
+        const fs = await import("node:fs/promises");
+        mkdirSync(changesDir, { recursive: true });
+
+        // Step 1: simulate a session where close() runs.
+        // The disk-first write must persist status=closed.
+        const closeDir = join(changesDir, "chg-restart-closed");
+        mkdirSync(closeDir, { recursive: true });
+        const draftData = {
+          id: "chg-restart-closed",
+          title: "Restart-survived close",
+          status: "draft",
+          created_at: "2026-04-18T00:00:00.000Z",
+          tasks: [],
+          deltas: {},
+          wisdom: [],
+          gates: {},
+        };
+        await fs.writeFile(
+          join(closeDir, "change.json"),
+          JSON.stringify(draftData),
+        );
+
+        const sessionOneState = {
+          projectId: "proj1",
+          changeId: "chg-restart-closed",
+          title: "Restart-survived close",
+          initializedAt: "2026-04-18T00:00:00.000Z",
+          id: "chg-restart-closed",
+          status: "draft",
+          createdAt: "2026-04-18T00:00:00.000Z",
+          tasks: [],
+          wisdom: [],
+          gates: {
+            proposal: { status: "pending" },
+            discovery: { status: "pending" },
+            design: { status: "pending" },
+            planning: { status: "pending" },
+            execution: { status: "pending" },
+            acceptance: { status: "pending" },
+            release: { status: "pending" },
+          },
+          reentry_history: [],
+          artifacts: {},
+        };
+
+        const sessionOneHandle = {
+          query: vi.fn(async () => sessionOneState),
+          executeUpdate: vi.fn(async () => ({
+            ...sessionOneState,
+            status: "closed",
+          })),
+          signal: vi.fn(async () => {}),
+        };
+
+        // Capture what close() writes to disk
+        let lastWrittenChange: any = null;
+        const sessionOneLegacy = makeLegacyStore();
+        sessionOneLegacy.paths.changes = changesDir as any;
+        sessionOneLegacy.changes.save = vi.fn(async (change: any) => {
+          lastWrittenChange = change;
+          await fs.writeFile(
+            join(closeDir, "change.json"),
+            JSON.stringify(change),
+          );
+        });
+
+        const sessionOne = createTemporalStoreBackend({
+          legacy: sessionOneLegacy,
+          temporal: {
+            client: {
+              workflow: { getHandle: routeHandle(sessionOneHandle) },
+            },
+          } as any,
+          projectId: "proj1",
+        });
+
+        await sessionOne.changes.close("chg-restart-closed", {
+          reason: "superseded",
+          approved_by_user: true,
+          approved_at: "2026-04-18T00:01:00.000Z",
+          approval_evidence: "test",
+        });
+
+        // Verify disk write persisted closed status
+        expect(lastWrittenChange?.status).toBe("closed");
+
+        // Step 2: simulate restart — fresh adapter + workflow-not-found
+        // disk-fallback reads the persisted closed status from disk.
+        const sessionTwoLegacy = makeLegacyStore();
+        sessionTwoLegacy.paths.changes = changesDir as any;
+        sessionTwoLegacy.changes.get = vi.fn(async (id: string) => {
+          if (id === "chg-restart-closed") {
+            const raw = await fs.readFile(
+              join(closeDir, "change.json"),
+              "utf8",
+            );
+            return { success: true, data: JSON.parse(raw) } as any;
+          }
+          return { success: false } as any;
+        });
+
+        const sessionTwo = createTemporalStoreBackend({
+          legacy: sessionTwoLegacy,
+          temporal: buildRestartBundle() as any,
+          projectId: "proj1",
+        });
+
+        // Default list (no includeClosed) — must exclude the closed change
+        const defaultList = await sessionTwo.changes.list({});
+        expect(
+          defaultList.changes.find((c) => c.id === "chg-restart-closed"),
+        ).toBeUndefined();
+
+        // includeClosed: true — surfaces with closed status
+        const withClosed = await sessionTwo.changes.list({
+          includeClosed: true,
+        });
+        const found = withClosed.changes.find(
+          (c) => c.id === "chg-restart-closed",
+        );
+        expect(found?.status).toBe("closed");
+      } finally {
+        rmSync(tmp, { recursive: true, force: true });
+      }
+    });
+
+    it("idempotent re-archive: save(archived) called twice does not write to disk (preserves rq-archiveRetirement01.2)", async () => {
+      // Note: the original "save() with status=archived ... avoids
+      // active-dir disk save" test already verifies single-call
+      // behavior. This test extends it to multiple successive calls
+      // (the re-archive path) to prove idempotency with respect to
+      // disk artifacts.
+      const archivedState = {
+        projectId: "proj1",
+        changeId: "chg-reArchive",
+        title: "Re-archive idempotency",
+        initializedAt: "2026-04-27T00:00:00.000Z",
+        id: "chg-reArchive",
+        status: "archived",
+        createdAt: "2026-04-27T00:00:00.000Z",
+        tasks: [],
+        wisdom: [],
+        gates: {
+          proposal: { status: "done" },
+          discovery: { status: "done" },
+          design: { status: "done" },
+          planning: { status: "done" },
+          execution: { status: "done" },
+          acceptance: { status: "done" },
+          release: { status: "done" },
+        },
+        reentry_history: [],
+        artifacts: {},
+      };
+
+      const changeHandle = {
+        query: vi.fn(async () => archivedState),
+        executeUpdate: vi.fn(async () => archivedState),
+        signal: vi.fn(async () => {}),
+      };
+      const projectHandle = makeProjectHandle();
+      const bundle = {
+        client: {
+          workflow: { getHandle: routeHandle(changeHandle, projectHandle) },
+        },
+      };
+
+      const legacy = makeLegacyStore();
+      const adapted = createTemporalStoreBackend({
+        legacy,
+        temporal: bundle as any,
+        projectId: "proj1",
+      });
+
+      const archivedPayload = {
+        id: "chg-reArchive",
+        title: "Re-archive idempotency",
+        status: "archived" as const,
+        created_at: "2026-04-27T00:00:00.000Z",
+        tasks: [],
+        deltas: {},
+        wisdom: [],
+        gates: {},
+      };
+
+      await adapted.changes.save(archivedPayload as any);
+      await adapted.changes.save(archivedPayload as any);
+      await adapted.changes.save(archivedPayload as any);
+
+      // rq-archiveRetirement01.2 — disk MUST NOT be written for archived,
+      // regardless of how many times save() is called.
+      expect(legacy.changes.save).not.toHaveBeenCalled();
+    });
+  });
+
   describe("Layer A1: defensive listing via archive bundle existence", () => {
     /**
      * Regression test for the disk-stale archived-zombie class.
