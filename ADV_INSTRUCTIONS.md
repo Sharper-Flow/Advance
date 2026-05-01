@@ -508,6 +508,8 @@ Required categories (B/F/S/M) MUST have a coverage entry; optional MAY be omitte
 
 Gates are sequential. Archive blocks until release readiness is verified. See [docs/adv-gates.md](docs/adv-gates.md).
 
+<!-- rq-extConfGate01 --> When spec conformance is enabled, the archive flow runs an external CI conformance check at Phase 5.5 (between user sign-off and execute archive). DRIFT verdicts halt archive and present user options; no auto-resolve.
+
 Gate behaviors:
 
 - `discovery`/`planning` evaluate full change including completed tasks — completed work is evidence to validate, not acceptance proof. Add follow-up tasks where gaps found.
