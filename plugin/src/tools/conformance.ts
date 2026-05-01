@@ -36,7 +36,7 @@ import {
   resolveDefaultConformanceRoot,
   resolveSiblingConformanceRoot,
 } from "../storage/conformance";
-import { ConformanceVerdictSchema, type ConformanceState } from "../types";
+import { type ConformanceState } from "../types";
 
 // =============================================================================
 // Action Schemas
@@ -244,6 +244,14 @@ async function actionRun(
   if (!args.spec) return makeError("run requires spec arg");
   if (!args.artifact_path) return makeError("run requires artifact_path arg");
 
+  const state = await loadConformanceState(externalRoot, projectDir);
+  const entry = state.specs[args.spec];
+  if (!entry?.conformance_required) {
+    return makeError(
+      `Conformance run skipped: spec "${args.spec}" is not tracked with conformance_required: true`,
+    );
+  }
+
   if (!existsSync(args.artifact_path)) {
     return makeError(
       `Conformance verdict artifact not found at ${args.artifact_path}. ` +
@@ -265,18 +273,14 @@ async function actionRun(
   }
 
   const verdict = parsed.failed.length === 0 ? "PASS" : "DRIFT";
-  ConformanceVerdictSchema.parse(verdict); // belt+suspenders
   const runId = `cr-${nanoid(8)}`;
   const ranAt = nowIso();
 
   // Persist last_verdict on the spec entry (rq-confVerdict01)
-  const state = await loadConformanceState(externalRoot, projectDir);
-  if (state.specs[args.spec]) {
-    const next = upsertSpecEntry(state, args.spec, {
-      last_verdict: { verdict, run_id: runId, ran_at: ranAt },
-    });
-    await saveConformanceState(externalRoot, next);
-  }
+  const next = upsertSpecEntry(state, args.spec, {
+    last_verdict: { verdict, run_id: runId, ran_at: ranAt },
+  });
+  await saveConformanceState(externalRoot, next);
 
   return formatToolOutput({
     verdict,

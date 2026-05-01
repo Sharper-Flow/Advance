@@ -72,6 +72,7 @@ const PATH_GATED_TOOLS = new Set([
   "glob",
   "grep",
   "lgrep_search_semantic",
+  "lgrep_search_symbols",
   "lgrep_search_text",
   "lgrep_get_file_outline",
   "lgrep_get_file_tree",
@@ -89,15 +90,21 @@ const PATH_GATED_TOOLS = new Set([
  * - read: filePath
  * - glob: path
  * - grep: path
- * - lgrep_*: path
+ * - lgrep_*: path or repo_root
  */
-function extractPathArg(args: Record<string, unknown>): string | null {
-  const candidates = ["filePath", "path", "target_filepath"] as const;
+function extractPathArgs(args: Record<string, unknown>): string[] {
+  const candidates = [
+    "filePath",
+    "path",
+    "target_filepath",
+    "repo_root",
+  ] as const;
+  const paths: string[] = [];
   for (const key of candidates) {
     const val = args[key];
-    if (typeof val === "string" && val.length > 0) return val;
+    if (typeof val === "string" && val.length > 0) paths.push(val);
   }
-  return null;
+  return paths;
 }
 
 /**
@@ -133,12 +140,15 @@ export function enforceConformancePathPolicy(
   if (!PATH_GATED_TOOLS.has(toolName)) return;
   if (!context.lockedPaths.length) return;
 
-  const pathArg = extractPathArg(args);
-  if (!pathArg) return;
+  const pathArgs = extractPathArgs(args);
+  if (!pathArgs.length) return;
 
-  if (isInsideLockedPath(pathArg, context.lockedPaths)) {
+  const blockedPath = pathArgs.find((pathArg) =>
+    isInsideLockedPath(pathArg, context.lockedPaths),
+  );
+  if (blockedPath) {
     throw new Error(
-      `Path "${pathArg}" is inside a locked conformance directory. ` +
+      `Path "${blockedPath}" is inside a locked conformance directory. ` +
         `Read access to conformance test sources is blocked while the spec is locked. ` +
         `Unlock via adv_conformance action: "unlock" (requires audit entry) or wait for CI verdict.`,
     );

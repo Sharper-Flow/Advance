@@ -150,4 +150,30 @@ describe("enforceConformancePathPolicy", () => {
       ),
     ).toThrow(/conformance.*locked/i);
   });
+
+  test("blocks lgrep_search_symbols on locked path", () => {
+    const ctx: ConformancePathContext = {
+      lockedPaths: [lockedRoot],
+    };
+    expect(() =>
+      enforceConformancePathPolicy(
+        "lgrep_search_symbols",
+        { query: "assertConformance", path: lockedRoot },
+        ctx,
+      ),
+    ).toThrow(/conformance.*locked/i);
+  });
+
+  test("blocks repo_root arg on locked path", () => {
+    const ctx: ConformancePathContext = {
+      lockedPaths: [lockedRoot],
+    };
+    expect(() =>
+      enforceConformancePathPolicy(
+        "lgrep_get_file_outline",
+        { path: "/safe/file.ts", repo_root: lockedRoot },
+        ctx,
+      ),
+    ).toThrow(/conformance.*locked/i);
+  });
 });

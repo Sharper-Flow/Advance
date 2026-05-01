@@ -34,6 +34,19 @@ afterEach(async () => {
 
 const tool = conformanceTools.adv_conformance;
 
+async function seedRequiredSpec(spec = "advance-workflow"): Promise<void> {
+  const state = await loadConformanceState(externalRoot, projectDir);
+  state.specs[spec] = {
+    conformance_required: true,
+    locked: false,
+    overrides: [],
+  };
+  await writeFile(
+    join(externalRoot, "conformance.json"),
+    JSON.stringify(state),
+  );
+}
+
 describe("adv_conformance action: status", () => {
   test("returns empty state when conformance.json is missing", async () => {
     const result = await tool.execute(
@@ -273,6 +286,7 @@ describe("adv_conformance action: override", () => {
 describe("adv_conformance action: run", () => {
   test("returns DRIFT verdict when CI artifact reports failed AC labels", async () => {
     await tool.execute({ action: "init" }, projectDir, externalRoot);
+    await seedRequiredSpec();
     // Seed a CI artifact at the documented path
     const artifactPath = join(externalRoot, "verdict.json");
     await writeFile(
@@ -302,6 +316,7 @@ describe("adv_conformance action: run", () => {
 
   test("returns PASS verdict when artifact has empty failed array", async () => {
     await tool.execute({ action: "init" }, projectDir, externalRoot);
+    await seedRequiredSpec();
     const artifactPath = join(externalRoot, "verdict.json");
     await writeFile(
       artifactPath,
@@ -326,6 +341,7 @@ describe("adv_conformance action: run", () => {
 
   test("rejects when artifact path is missing", async () => {
     await tool.execute({ action: "init" }, projectDir, externalRoot);
+    await seedRequiredSpec();
     const result = await tool.execute(
       {
         action: "run",
@@ -338,6 +354,24 @@ describe("adv_conformance action: run", () => {
     const parsed = JSON.parse(result);
     expect(parsed.success).toBe(false);
     expect(parsed.error).toMatch(/artifact|not found/i);
+  });
+
+  test("rejects when spec is not conformance_required", async () => {
+    await tool.execute({ action: "init" }, projectDir, externalRoot);
+    const artifactPath = join(externalRoot, "verdict.json");
+    await writeFile(artifactPath, JSON.stringify({ passed: [], failed: [] }));
+    const result = await tool.execute(
+      {
+        action: "run",
+        spec: "advance-workflow",
+        artifact_path: artifactPath,
+      },
+      projectDir,
+      externalRoot,
+    );
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(false);
+    expect(parsed.error).toMatch(/conformance_required/);
   });
 
   test("persists run_id and ran_at in spec.last_verdict", async () => {

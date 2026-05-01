@@ -26,7 +26,7 @@ import type { StatusMarker } from "./types";
 import { getProjectId, getExternalRoot } from "./utils/project-id";
 // P2.7: legacy-state migration removed. Disk-only store reads from existing
 // .adv/ paths or external state directly; no migration step needed.
-import { enforceBashPolicy } from "./guards/bash";
+import { enforceBashPolicy, enforceConformanceBashPolicy } from "./guards/bash";
 import { enforceTaskPolicy } from "./guards/task";
 import {
   enforceConformanceToolPolicy,
@@ -36,6 +36,7 @@ import type {
   ConformanceCallerContext,
   ConformancePathContext,
 } from "./guards/conformance";
+import { loadConformanceState } from "./storage/conformance";
 import { createToolMap, createDegradedToolMap } from "./tool-registry";
 import { appendDebugLog, createLogger } from "./utils/debug-log";
 
@@ -330,26 +331,86 @@ const advancePluginImpl: Plugin = async ({ directory, worktree, project }) => {
     });
   };
 
-  const handleToolExecuteBefore = (
+  const inferActiveGate = async (
+    args: Record<string, unknown>,
+  ): Promise<ConformanceCallerContext["gate"]> => {
+    const gateOrder: Array<NonNullable<ConformanceCallerContext["gate"]>> = [
+      "proposal",
+      "discovery",
+      "design",
+      "planning",
+      "execution",
+      "acceptance",
+      "release",
+    ];
+    const changeId = args.changeId
+      ? String(args.changeId)
+      : state.activeChange.id;
+    if (!store || !changeId) {
+      return state.activeGate as ConformanceCallerContext["gate"];
+    }
+
+    const gates = await store.gates.get(changeId);
+    if (!gates) return state.activeGate as ConformanceCallerContext["gate"];
+
+    for (const gate of gateOrder) {
+      if (gates[gate]?.status !== "done") return gate;
+    }
+    return "release";
+  };
+
+  const refreshConformanceLockedPaths = async (): Promise<string[]> => {
+    if (!store?.paths.external) return [];
+    try {
+      const conformance = await loadConformanceState(
+        store.paths.external,
+        directory,
+      );
+      const lockedPaths =
+        conformance.conformance_root_kind === "sibling" &&
+        Object.values(conformance.specs).some(
+          (entry) => entry.conformance_required && entry.locked,
+        )
+          ? [conformance.conformance_root]
+          : [];
+      state.conformanceLockedPaths = lockedPaths;
+      return lockedPaths;
+    } catch (err) {
+      debugLog(
+        `conformance locked-path refresh failed: ${(err as Error).message}`,
+      );
+      return state.conformanceLockedPaths;
+    }
+  };
+
+  const handleToolExecuteBefore = async (
     toolName: string,
     args: Record<string, unknown>,
     input: Record<string, unknown>,
   ) => {
+    const lockedPaths = await refreshConformanceLockedPaths();
+
     if (toolName === "bash") {
       const agent = typeof input.agent === "string" ? input.agent : "unknown";
       const command = typeof args.command === "string" ? args.command : "";
       enforceBashPolicy(agent, command);
+      const conformanceBash = enforceConformanceBashPolicy(command, {
+        lockedSiblingRoots: lockedPaths,
+      });
+      if (conformanceBash.action === "block") {
+        throw new Error(conformanceBash.message);
+      }
     }
 
     // Conformance guards (rq-confDegradation01)
     if (toolName === "adv_conformance") {
       const callerCtx: ConformanceCallerContext = {
-        gate: state.activeGate as ConformanceCallerContext["gate"],
+        gate: await inferActiveGate(args),
       };
       enforceConformanceToolPolicy(toolName, callerCtx);
     }
     enforceConformancePathPolicy(toolName, args, {
-      lockedPaths: state.conformanceLockedPaths,
+      lockedPaths,
     } as ConformancePathContext);
 
     if (args.changeId) {
@@ -514,13 +575,14 @@ const advancePluginImpl: Plugin = async ({ directory, worktree, project }) => {
       try {
         debugLog(`tool.execute.before: tool="${input.tool}"`);
         const args = output.args as Record<string, unknown>;
-        handleToolExecuteBefore(
+        await handleToolExecuteBefore(
           input.tool,
           args,
           input as Record<string, unknown>,
         );
       } catch (e) {
         debugLog(`tool.execute.before error: ${e}`);
+        throw e;
       }
     },
 
