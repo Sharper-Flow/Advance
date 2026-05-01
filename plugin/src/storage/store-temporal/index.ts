@@ -568,7 +568,7 @@ export function createTemporalStoreBackend(
                 result.data.status !== "closed" &&
                 (await checkArchiveBundle(changeId))
               ) {
-                result.data.status = "archived";
+                result.data = { ...result.data, status: "archived" };
               }
               return result;
             } catch {

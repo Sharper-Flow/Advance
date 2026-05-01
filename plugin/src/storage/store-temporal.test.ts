@@ -2072,6 +2072,37 @@ describe("Temporal store backend adapter", () => {
       expect(changeHandle.executeUpdate).not.toHaveBeenCalled();
     });
 
+    it("close() restores the disk snapshot when Temporal transition fails after disk write", async () => {
+      const draftState = makeCloseTestState("chg-close-temporal-fail", "draft");
+      const changeHandle = {
+        query: vi.fn(async () => draftState),
+        executeUpdate: vi.fn(async () => {
+          throw new Error("Temporal close failed");
+        }),
+        signal: vi.fn(async () => {}),
+      };
+      const bundle = {
+        client: { workflow: { getHandle: routeHandle(changeHandle) } },
+      };
+
+      const legacy = makeLegacyStore();
+
+      const adapted = createTemporalStoreBackend({
+        legacy,
+        temporal: bundle as any,
+        projectId: "proj1",
+      });
+
+      await expect(
+        adapted.changes.close("chg-close-temporal-fail", sampleClosure),
+      ).rejects.toThrow(/Temporal close failed/);
+
+      const savedStatuses = (legacy.changes.save as any).mock.calls.map(
+        (call: any) => call[0].status,
+      );
+      expect(savedStatuses).toEqual(["closed", "draft"]);
+    });
+
     it("closeBatch() writes disk change.json with status=closed for every successful id", async () => {
       const ids = ["chg-batch-a", "chg-batch-b", "chg-batch-c"];
       const states: Record<string, any> = {};
@@ -2181,6 +2212,67 @@ describe("Temporal store backend adapter", () => {
       expect(
         handlesByChangeId["chg-batch-ok-2"].executeUpdate,
       ).toHaveBeenCalled();
+    });
+
+    it("closeBatch() restores one id's disk snapshot when its Temporal transition fails", async () => {
+      const ids = [
+        "chg-batch-ok-1",
+        "chg-batch-temporal-fail",
+        "chg-batch-ok-2",
+      ];
+      const states: Record<string, any> = {};
+      for (const id of ids) states[id] = makeCloseTestState(id, "draft");
+
+      const handlesByChangeId: Record<string, any> = {};
+      for (const id of ids) {
+        handlesByChangeId[id] = {
+          query: vi.fn(async () => states[id]),
+          executeUpdate: vi.fn(async () => {
+            if (id === "chg-batch-temporal-fail") {
+              throw new Error("Temporal close failed for batch id");
+            }
+            return { ...states[id], status: "closed" };
+          }),
+          signal: vi.fn(async () => {}),
+        };
+      }
+      const projectHandle = makeProjectHandle();
+      const getHandle = vi.fn((workflowId: string) => {
+        if (workflowId.startsWith("adv/project/")) return projectHandle;
+        const prefix = "adv/change/proj1/";
+        if (workflowId.startsWith(prefix)) {
+          const id = workflowId.slice(prefix.length);
+          if (handlesByChangeId[id]) return handlesByChangeId[id];
+        }
+        throw Object.assign(new Error("workflow not found"), {
+          name: "WorkflowNotFoundError",
+        });
+      });
+      const bundle = { client: { workflow: { getHandle } } };
+
+      const legacy = makeLegacyStore();
+      const adapted = createTemporalStoreBackend({
+        legacy,
+        temporal: bundle as any,
+        projectId: "proj1",
+      });
+
+      const result = await adapted.changes.closeBatch(ids, sampleClosure);
+      expect(result.success).toBe(false);
+      expect(result.closed).toBe(2);
+      const failResult = result.results.find(
+        (r) => r.changeId === "chg-batch-temporal-fail",
+      );
+      expect(failResult?.success).toBe(false);
+      expect(failResult?.error).toMatch(/Temporal close failed/);
+
+      const savesForFailedId = (legacy.changes.save as any).mock.calls
+        .map((call: any) => call[0])
+        .filter((change: any) => change.id === "chg-batch-temporal-fail");
+      expect(savesForFailedId.map((change: any) => change.status)).toEqual([
+        "closed",
+        "draft",
+      ]);
     });
 
     it("close() is idempotent — re-closing an already-closed change is safe", async () => {

@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+#### Fix Stale Draft Shadows After Archiving (`fixStaleDraftShadowsArchiving`)
+
+ADV storage now defends against stale active `change.json` shadows left behind after terminal transitions. Archived shadows are detected in `listResolvedChanges` by the durable `archive/<id>/change.json` bundle sentinel, so default active lists exclude them even when source-dir cleanup was best-effort. Closed changes now write a disk-first `closed` safety-net before Temporal close transitions, with per-id failure reporting in batch closes and rollback to the prior disk snapshot when the Temporal close fails.
+
 #### Consolidate Chat Output Display (`consolidatechatoutputdisplay`)
 
 Three previously divergent "where am I" surfaces — `context-display`, `task-status-report`, `gate-handoff-voice` — consolidated under a single `chat-output-display` capability with shared glyph vocabulary and emission policy. The `[ADV:ATTN]` marker is split into distinct `IDLE` and `ATTN` markers so the tab-strip glance can distinguish "agent finished" from "user must act". Transient task-state tools now emit a compact 1-line ticker instead of the full snapshot box.

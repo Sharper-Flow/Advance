@@ -10,6 +10,9 @@ import { removeChangeDir } from "../json";
 import { filterChanges } from "../content-search";
 import { computeLastActivity } from "../store-types";
 import { runTemporal, getGuardedChangeHandle, type StoreDeps } from "./shared";
+import { createLogger } from "../../utils/debug-log";
+
+const logger = createLogger("store-temporal-changes");
 
 export function createChangeOps(deps: StoreDeps): Store["changes"] {
   const {
@@ -25,6 +28,27 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
     listResolvedChanges,
     getTemporalWorkflowClient,
   } = deps;
+
+  const restoreDiskSnapshot = async (
+    changeId: string,
+    snapshot: Change,
+    cause: unknown,
+  ): Promise<void> => {
+    try {
+      await legacy.changes.save(snapshot);
+    } catch (rollbackErr) {
+      logger.warn(
+        `Failed to restore disk snapshot for change ${changeId} after Temporal close failure: ${
+          rollbackErr instanceof Error
+            ? rollbackErr.message
+            : String(rollbackErr)
+        }`,
+        {
+          cause: cause instanceof Error ? cause.message : String(cause),
+        },
+      );
+    }
+  };
 
   return {
     create: async (
@@ -79,7 +103,7 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
         } catch (rollbackErr) {
           // Rollback itself failed (disk unmounted, permissions, etc).
           // Log but don't mask the original Temporal error.
-          console.error(
+          logger.error(
             `P1.4 rollback failed for change '${created.data.id}' after Temporal-start error: ${
               rollbackErr instanceof Error
                 ? rollbackErr.message
@@ -96,9 +120,14 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
       };
       try {
         await legacy.changes.save(changeWithOwner);
-      } catch {
+      } catch (err) {
         // Best-effort: disk save failure for owner metadata MUST NOT
         // cascade as a creation failure.
+        logger.warn(
+          `Owner metadata disk save failed for change ${created.data.id}: ${
+            err instanceof Error ? err.message : String(err)
+          }`,
+        );
       }
 
       updateOverlay(created.data.id, {
@@ -239,8 +268,6 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
       return getTemporalChange(changeId);
     },
     close: async (changeId: string, closure: ChangeClosure) => {
-      invalidateChange(changeId);
-
       // Layer C1 (rq-archiveRetirement01-followon for closed class):
       // disk-first safety-net write. Without this, close() updates the
       // in-memory overlay only — disk change.json retains stale draft
@@ -253,23 +280,36 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
       // The current state is fetched from Temporal/disk and merged with
       // the closed status + closure to write a complete change.json.
       const current = await getTemporalChange(changeId);
-      if (current.success && current.data) {
-        const updated: Change = {
-          ...current.data,
-          status: "closed",
-          closure,
-        };
-        await legacy.changes.save(updated);
+      if (!current.success || !current.data) {
+        throw new Error(
+          current.success === false
+            ? current.error
+            : `Change ${changeId} not found`,
+        );
       }
+      const updated: Change = {
+        ...current.data,
+        status: "closed",
+        closure,
+      };
+      await legacy.changes.save(updated);
 
-      const raw = await runTemporal(async () =>
-        (await getGuardedChangeHandle(input, changeId)).executeUpdate(
-          closeChangeUpdate,
-          {
-            args: [closure],
-          },
-        ),
-      );
+      invalidateChange(changeId);
+
+      let raw: unknown;
+      try {
+        raw = await runTemporal(async () =>
+          (await getGuardedChangeHandle(input, changeId)).executeUpdate(
+            closeChangeUpdate,
+            {
+              args: [closure],
+            },
+          ),
+        );
+      } catch (err) {
+        await restoreDiskSnapshot(changeId, current.data, err);
+        throw err;
+      }
       const result = await resolveStateOrQuery(
         async () => await getGuardedChangeHandle(input, changeId),
         raw,
@@ -334,30 +374,41 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
 
       for (const id of changeIds) {
         try {
-          invalidateChange(id);
-
           // Layer C1 (rq-archiveRetirement01-followon): disk-first
           // safety-net write per id. If disk write fails, record a
           // per-id failure and SKIP this id's Temporal mutation
           // (no half-state). Other ids in the batch continue.
           const current = await getTemporalChange(id);
-          if (current.success && current.data) {
-            const updated: Change = {
-              ...current.data,
-              status: "closed",
-              closure,
-            };
-            await legacy.changes.save(updated);
+          if (!current.success || !current.data) {
+            throw new Error(
+              current.success === false
+                ? current.error
+                : `Change ${id} not found`,
+            );
           }
+          const updated: Change = {
+            ...current.data,
+            status: "closed",
+            closure,
+          };
+          await legacy.changes.save(updated);
 
-          const raw = await runTemporal(async () =>
-            (await getGuardedChangeHandle(input, id)).executeUpdate(
-              closeChangeUpdate,
-              {
-                args: [closure],
-              },
-            ),
-          );
+          invalidateChange(id);
+
+          let raw: unknown;
+          try {
+            raw = await runTemporal(async () =>
+              (await getGuardedChangeHandle(input, id)).executeUpdate(
+                closeChangeUpdate,
+                {
+                  args: [closure],
+                },
+              ),
+            );
+          } catch (err) {
+            await restoreDiskSnapshot(id, current.data, err);
+            throw err;
+          }
           const result = await resolveStateOrQuery(
             async () => await getGuardedChangeHandle(input, id),
             raw,
