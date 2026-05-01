@@ -25,6 +25,7 @@ import { runClarifyReadinessChecks } from "../validator/clarify-readiness";
 import { loadProposalWithFallback } from "../storage/json";
 import { buildChangeContextSnapshot } from "../utils/context-snapshot";
 import { COMMAND_MANIFEST } from "../manifest";
+import { withOptionalTargetPathStore } from "./target-project";
 
 async function completeGateAndBuildResponse({
   store,
@@ -236,44 +237,61 @@ export const gateTools = {
         .describe(
           "Change ID — must match an existing change from `adv_change_list`. Returns the full gate map (proposal, discovery, design, planning, execution, acceptance, release) plus `nextGate` and `canArchive` flags.",
         ),
+      target_path: z
+        .string()
+        .optional()
+        .describe(
+          "Optional absolute path to another ADV project. When provided, reads that project as a disk snapshot and returns _projectContext.",
+        ),
     },
-    execute: async ({ changeId }: { changeId: string }, store: Store) => {
-      try {
-        const result = await store.changes.get(changeId);
-        if (!result.success) {
-          return formatToolOutput({ error: result.error });
-        }
-        if (!result.data) {
-          return formatToolOutput({ error: `Change not found: ${changeId}` });
-        }
+    execute: async (
+      { changeId, target_path }: { changeId: string; target_path?: string },
+      store: Store,
+    ) => {
+      return withOptionalTargetPathStore(
+        { store, target_path },
+        async (activeStore, projectContext) => {
+          try {
+            const result = await activeStore.changes.get(changeId);
+            if (!result.success) {
+              return formatToolOutput({ error: result.error });
+            }
+            if (!result.data) {
+              return formatToolOutput({
+                error: `Change not found: ${changeId}`,
+              });
+            }
 
-        // Get or create gates
-        const gates = result.data.gates ?? createDefaultGates();
-        const incomplete = getIncompleteGates(gates);
-        const canArchive = allGatesSatisfied(gates);
-        const nextGate = incomplete.length > 0 ? incomplete[0] : null;
+            // Get or create gates
+            const gates = result.data.gates ?? createDefaultGates();
+            const incomplete = getIncompleteGates(gates);
+            const canArchive = allGatesSatisfied(gates);
+            const nextGate = incomplete.length > 0 ? incomplete[0] : null;
 
-        return formatToolOutput({
-          changeId,
-          gates,
-          incomplete,
-          canArchive,
-          nextGate,
-        });
-      } catch (error) {
-        if ((error as Error).name === "AdvProjectContextMismatch") {
-          const e = error as unknown as Record<string, unknown>;
-          return formatToolOutput({
-            error: (error as Error).message,
-            changeId,
-            errorClass: "AdvProjectContextMismatch",
-            owningProjectId: e.owningProjectId,
-            currentProjectId: e.currentProjectId,
-            hint: "Open the change in its owning project's context, or verify the linked-project configuration.",
-          });
-        }
-        throw error;
-      }
+            return formatToolOutput({
+              changeId,
+              gates,
+              incomplete,
+              canArchive,
+              nextGate,
+              ...(projectContext ? { _projectContext: projectContext } : {}),
+            });
+          } catch (error) {
+            if ((error as Error).name === "AdvProjectContextMismatch") {
+              const e = error as unknown as Record<string, unknown>;
+              return formatToolOutput({
+                error: (error as Error).message,
+                changeId,
+                errorClass: "AdvProjectContextMismatch",
+                owningProjectId: e.owningProjectId,
+                currentProjectId: e.currentProjectId,
+                hint: "Open the change in its owning project's context, or verify the linked-project configuration.",
+              });
+            }
+            throw error;
+          }
+        },
+      );
     },
   },
 

@@ -53,6 +53,15 @@ export interface TargetStoreScope {
   store: Store;
 }
 
+export interface TargetProjectOutputContext {
+  root: string;
+  projectId: string;
+  trusted: boolean;
+  trustSource: TargetProjectContext["trustSource"];
+  stateMode: TargetProjectContext["stateMode"];
+  warning?: string;
+}
+
 function hasConfirmation(input: ResolveTargetProjectInput): boolean {
   return Boolean(
     input.target_confirmed && input.confirmationEvidence?.trim().length,
@@ -183,4 +192,41 @@ export async function withTargetPathStore<T>(
   } finally {
     await closeStore(store);
   }
+}
+
+export function formatTargetProjectContext(
+  context: TargetProjectContext,
+): TargetProjectOutputContext {
+  return {
+    root: context.root,
+    projectId: context.projectId,
+    trusted: context.trusted,
+    trustSource: context.trustSource,
+    stateMode: context.stateMode,
+    ...(context.trusted
+      ? {}
+      : {
+          warning:
+            "Read-only untrusted target_path snapshot. Mutations require explicit target confirmation.",
+        }),
+  };
+}
+
+export async function withOptionalTargetPathStore<T>(
+  input: { store: Store; target_path?: string },
+  fn: (store: Store, projectContext?: TargetProjectOutputContext) => Promise<T>,
+): Promise<T> {
+  if (!input.target_path) {
+    return fn(input.store);
+  }
+
+  return withTargetPathStore(
+    {
+      currentProjectPath: input.store.paths.root,
+      target_path: input.target_path,
+      stateRequirement: "snapshot-ok",
+    },
+    async ({ context, store }) =>
+      fn(store, formatTargetProjectContext(context)),
+  );
 }

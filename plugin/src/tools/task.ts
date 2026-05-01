@@ -26,6 +26,7 @@ import {
   formatTaskReadyOutput,
   formatDoomLoopDiagnostics,
 } from "../utils/tool-formatters";
+import { withOptionalTargetPathStore } from "./target-project";
 
 // =============================================================================
 // Tool Definitions
@@ -37,22 +38,37 @@ export const taskTools = {
       "Get full details of a single task by ID, including its parent change ID. Use when you have a task ID but need the complete task object.",
     args: {
       taskId: z.string().describe("Task ID (e.g., 'tk-Hf7dK2mN')"),
+      target_path: z
+        .string()
+        .optional()
+        .describe(
+          "Optional absolute path to another ADV project. When provided, reads that project as a disk snapshot and returns _projectContext.",
+        ),
     },
-    execute: async ({ taskId }: { taskId: string }, store: Store) => {
-      const result = await store.tasks.show(taskId);
-      if (!result) {
-        return formatToolOutput({ error: `Task not found: ${taskId}` });
-      }
-      const output: Record<string, unknown> = {
-        task: result.task,
-        changeId: result.changeId,
-      };
-      if (result.task.error_recovery) {
-        output.formatted_doom_loop = formatDoomLoopDiagnostics(
-          result.task.error_recovery,
-        );
-      }
-      return formatToolOutput(output);
+    execute: async (
+      { taskId, target_path }: { taskId: string; target_path?: string },
+      store: Store,
+    ) => {
+      return withOptionalTargetPathStore(
+        { store, target_path },
+        async (activeStore, projectContext) => {
+          const result = await activeStore.tasks.show(taskId);
+          if (!result) {
+            return formatToolOutput({ error: `Task not found: ${taskId}` });
+          }
+          const output: Record<string, unknown> = {
+            task: result.task,
+            changeId: result.changeId,
+            ...(projectContext ? { _projectContext: projectContext } : {}),
+          };
+          if (result.task.error_recovery) {
+            output.formatted_doom_loop = formatDoomLoopDiagnostics(
+              result.task.error_recovery,
+            );
+          }
+          return formatToolOutput(output);
+        },
+      );
     },
   },
 
@@ -61,43 +77,59 @@ export const taskTools = {
       "Show durable task-run lifecycle status for a task: phase, required next action, resume hint, and recent ledger events.",
     args: {
       taskId: z.string().describe("Task ID to inspect"),
+      target_path: z
+        .string()
+        .optional()
+        .describe(
+          "Optional absolute path to another ADV project. When provided, reads that project as a disk snapshot and returns _projectContext.",
+        ),
     },
-    execute: async ({ taskId }: { taskId: string }, store: Store) => {
-      const shown = await store.tasks.show(taskId);
-      if (!shown) {
-        return formatToolOutput({ error: `Task not found: ${taskId}` });
-      }
+    execute: async (
+      { taskId, target_path }: { taskId: string; target_path?: string },
+      store: Store,
+    ) => {
+      return withOptionalTargetPathStore(
+        { store, target_path },
+        async (activeStore, projectContext) => {
+          const shown = await activeStore.tasks.show(taskId);
+          if (!shown) {
+            return formatToolOutput({ error: `Task not found: ${taskId}` });
+          }
 
-      const run = await store.tasks.getRun(taskId);
-      if (!run) {
-        return formatToolOutput({
-          taskId,
-          changeId: shown.changeId,
-          phase: "not_started",
-          requiredNextAction: "start_task",
-          resumeHint:
-            "No durable task-run ledger exists yet. Start task execution with adv_task_update status:'in_progress'.",
-          baseline: null,
-          evidence: null,
-          verification: null,
-          checkpoint: null,
-          lastEvents: [],
-        });
-      }
+          const run = await activeStore.tasks.getRun(taskId);
+          if (!run) {
+            return formatToolOutput({
+              taskId,
+              changeId: shown.changeId,
+              phase: "not_started",
+              requiredNextAction: "start_task",
+              resumeHint:
+                "No durable task-run ledger exists yet. Start task execution with adv_task_update status:'in_progress'.",
+              baseline: null,
+              evidence: null,
+              verification: null,
+              checkpoint: null,
+              lastEvents: [],
+              ...(projectContext ? { _projectContext: projectContext } : {}),
+            });
+          }
 
-      return formatToolOutput({
-        taskId,
-        changeId: shown.changeId,
-        phase: run.phase,
-        requiredNextAction: run.requiredNextAction,
-        resumeHint: run.resumeHint,
-        baseline: run.baseline ?? null,
-        evidence: run.evidence ?? null,
-        verification: run.verification ?? null,
-        checkpoint: run.checkpoint ?? null,
-        attempts: run.attempts ?? [],
-        lastEvents: run.events.slice(-5),
-      });
+          return formatToolOutput({
+            taskId,
+            changeId: shown.changeId,
+            phase: run.phase,
+            requiredNextAction: run.requiredNextAction,
+            resumeHint: run.resumeHint,
+            baseline: run.baseline ?? null,
+            evidence: run.evidence ?? null,
+            verification: run.verification ?? null,
+            checkpoint: run.checkpoint ?? null,
+            attempts: run.attempts ?? [],
+            lastEvents: run.events.slice(-5),
+            ...(projectContext ? { _projectContext: projectContext } : {}),
+          });
+        },
+      );
     },
   },
 
@@ -128,6 +160,12 @@ export const taskTools = {
         .number()
         .optional()
         .describe("Offset for pagination (default: 0)"),
+      target_path: z
+        .string()
+        .optional()
+        .describe(
+          "Optional absolute path to another ADV project. When provided, reads that project as a disk snapshot and returns _projectContext.",
+        ),
     },
     execute: async (
       {
@@ -136,26 +174,34 @@ export const taskTools = {
         filter,
         limit,
         offset,
+        target_path,
       }: {
         changeId: string;
         status?: string;
         filter?: string;
         limit?: number;
         offset?: number;
+        target_path?: string;
       },
       store: Store,
     ) => {
-      const tasks = await store.tasks.list(changeId, status, filter);
-      const paged = paginate(tasks, {
-        limit,
-        offset,
-        tool: "adv_task_list",
-        args: `changeId: "${changeId}"${status ? `, status: "${status}"` : ""}${filter ? `, filter: "${filter}"` : ""}`,
-      });
-      return formatToolOutput({
-        tasks: paged.items,
-        pagination: paged.pagination,
-      });
+      return withOptionalTargetPathStore(
+        { store, target_path },
+        async (activeStore, projectContext) => {
+          const tasks = await activeStore.tasks.list(changeId, status, filter);
+          const paged = paginate(tasks, {
+            limit,
+            offset,
+            tool: "adv_task_list",
+            args: `changeId: "${changeId}"${status ? `, status: "${status}"` : ""}${filter ? `, filter: "${filter}"` : ""}`,
+          });
+          return formatToolOutput({
+            tasks: paged.items,
+            pagination: paged.pagination,
+            ...(projectContext ? { _projectContext: projectContext } : {}),
+          });
+        },
+      );
     },
   },
 
@@ -167,30 +213,48 @@ export const taskTools = {
         .describe(
           "Change ID — must match an existing change from `adv_change_list`. Returns ready (unblocked) tasks plus the blocked list with their blockedBy references.",
         ),
+      target_path: z
+        .string()
+        .optional()
+        .describe(
+          "Optional absolute path to another ADV project. When provided, reads that project as a disk snapshot and returns _projectContext.",
+        ),
     },
-    execute: async ({ changeId }: { changeId: string }, store: Store) => {
-      const result = await store.tasks.ready(changeId);
-      const snapshot = await fetchChangeContextTicker(store, changeId);
-      const formatted = formatTaskReadyOutput({
-        ready: result.ready.map((t) => ({
-          id: t.id,
-          content: t.title,
-          status: t.status,
-        })),
-        blocked: result.blocked.map((b) => ({
-          task: {
-            id: b.task.id,
-            content: b.task.title,
-            status: b.task.status,
-          },
-          blockedBy: b.blockedBy,
-        })),
-      });
-      return formatToolOutput({
-        ...result,
-        formatted,
-        ...(snapshot ? { _contextSnapshot: snapshot } : {}),
-      });
+    execute: async (
+      { changeId, target_path }: { changeId: string; target_path?: string },
+      store: Store,
+    ) => {
+      return withOptionalTargetPathStore(
+        { store, target_path },
+        async (activeStore, projectContext) => {
+          const result = await activeStore.tasks.ready(changeId);
+          const snapshot = await fetchChangeContextTicker(
+            activeStore,
+            changeId,
+          );
+          const formatted = formatTaskReadyOutput({
+            ready: result.ready.map((t) => ({
+              id: t.id,
+              content: t.title,
+              status: t.status,
+            })),
+            blocked: result.blocked.map((b) => ({
+              task: {
+                id: b.task.id,
+                content: b.task.title,
+                status: b.task.status,
+              },
+              blockedBy: b.blockedBy,
+            })),
+          });
+          return formatToolOutput({
+            ...result,
+            formatted,
+            ...(snapshot ? { _contextSnapshot: snapshot } : {}),
+            ...(projectContext ? { _projectContext: projectContext } : {}),
+          });
+        },
+      );
     },
   },
 
