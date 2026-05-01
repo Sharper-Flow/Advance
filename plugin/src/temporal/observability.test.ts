@@ -65,6 +65,7 @@ describe("temporal observability helpers", () => {
     );
 
     expect(result.ok).toBe(false);
+    expect(result.verificationStatus).toBe("verified");
     expect(result.present.map((attr) => attr.name)).toEqual([
       "AdvProjectId",
       "AdvChangeId",
@@ -81,6 +82,48 @@ describe("temporal observability helpers", () => {
         actualCode: 2,
       },
     ]);
+  });
+
+  it("marks search attribute checks unverified when list is unavailable", async () => {
+    const result = await checkAdvSearchAttributes(
+      { operatorService: {} },
+      "default",
+    );
+
+    expect(result.ok).toBe(false);
+    expect(result.verificationStatus).toBe("unverified");
+    expect(result.missing.map((attr) => attr.name)).toEqual([
+      "AdvProjectId",
+      "AdvChangeId",
+      "AdvChangeStatus",
+      "AdvActiveGate",
+      "AdvDoomLoopActive",
+    ]);
+    expect(result.error).toBe("OperatorService.listSearchAttributes unavailable");
+  });
+
+  it("marks search attribute checks unverified when list throws", async () => {
+    const operatorService = {
+      listSearchAttributes: async () => {
+        throw new Error("search attribute RPC unavailable");
+      },
+    };
+
+    const result = await checkAdvSearchAttributes(
+      { operatorService },
+      "default",
+    );
+
+    expect(result.ok).toBe(false);
+    expect(result.verificationStatus).toBe("unverified");
+    expect(result.missing.map((attr) => attr.name)).toEqual([
+      "AdvProjectId",
+      "AdvChangeId",
+      "AdvChangeStatus",
+      "AdvActiveGate",
+      "AdvDoomLoopActive",
+    ]);
+    expect(result.error).toBe("search attribute RPC unavailable");
   });
 
   it("registers only missing search attributes and reports method", async () => {

@@ -24,6 +24,7 @@ export interface WrongTypeAdvSearchAttribute {
 
 export interface AdvSearchAttributeCheckResult {
   ok: boolean;
+  verificationStatus: "verified" | "unverified";
   present: RequiredAdvSearchAttribute[];
   missing: RequiredAdvSearchAttribute[];
   wrongType: WrongTypeAdvSearchAttribute[];
@@ -116,6 +117,7 @@ export async function checkAdvSearchAttributes(
   if (!operatorService?.listSearchAttributes) {
     return {
       ok: false,
+      verificationStatus: "unverified",
       present: [],
       missing: required,
       wrongType: [],
@@ -152,6 +154,7 @@ export async function checkAdvSearchAttributes(
 
     return {
       ok: missing.length === 0 && wrongType.length === 0,
+      verificationStatus: "verified",
       present,
       missing,
       wrongType,
@@ -159,6 +162,7 @@ export async function checkAdvSearchAttributes(
   } catch (err) {
     return {
       ok: false,
+      verificationStatus: "unverified",
       present: [],
       missing: required,
       wrongType: [],
