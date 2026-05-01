@@ -303,17 +303,51 @@ function generateArchiveSummary(change: Change): string {
 
 /**
  * Check whether an archive bundle already exists on disk for a given change.
- * Returns true when `{archiveDir}/{changeId}/change.json` is readable.
+ *
+ * Bundles are written by createArchive() at `{archiveDir}/{date}-{changeId}/`.
+ * Returns the path to the bundle when one exists with a readable
+ * `change.json` manifest, otherwise null.
+ *
+ * If multiple bundles exist for the same change (e.g. partial retries on
+ * different days), the lexically last one is returned — `YYYY-MM-DD-`
+ * prefixes sort to the most recent bundle.
+ */
+export async function findArchiveBundle(
+  archiveDir: string,
+  changeId: string,
+): Promise<string | null> {
+  let entries: string[];
+  try {
+    entries = await readdir(archiveDir);
+  } catch {
+    return null;
+  }
+
+  const matches = entries
+    .filter((name) => name.endsWith(`-${changeId}`))
+    .sort();
+
+  for (let i = matches.length - 1; i >= 0; i--) {
+    const candidate = join(archiveDir, matches[i]);
+    try {
+      await readFile(join(candidate, "change.json"), "utf-8");
+      return candidate;
+    } catch {
+      // Manifest missing or unreadable — try next candidate.
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Boolean variant of findArchiveBundle for callers that only need to know
+ * whether a bundle exists.
  */
 export async function archiveBundleExists(
   archiveDir: string,
   changeId: string,
 ): Promise<boolean> {
-  try {
-    const manifestPath = join(archiveDir, changeId, "change.json");
-    await readFile(manifestPath, "utf-8");
-    return true;
-  } catch {
-    return false;
-  }
+  const path = await findArchiveBundle(archiveDir, changeId);
+  return path !== null;
 }

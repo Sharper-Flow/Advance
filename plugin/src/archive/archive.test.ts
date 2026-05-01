@@ -17,7 +17,7 @@ import {
 import type { Change, Spec, Delta } from "../types";
 import { applyDelta, applyDeltasToSpec, createSpecFromDeltas } from "./delta";
 import { generateSpecDoc } from "./docs";
-import { archiveChange } from "./archive";
+import { archiveChange, archiveBundleExists } from "./archive";
 import { listProjectWisdom, addProjectWisdom } from "../storage/project-wisdom";
 
 describe("Delta Application", () => {
@@ -1463,5 +1463,125 @@ describe("archiveChange source artifact handling", () => {
 
     expect(result.success).toBe(true);
     expect(result.errors).toEqual([]);
+  });
+});
+
+// rq-archiveOrdering01: idempotent archive retry helper. Bundles are
+// written by createArchive() at `{archiveDir}/{date}-{changeId}/`, so
+// the helper must scan for any directory matching `*-{changeId}`.
+describe("archiveBundleExists / findArchiveBundle", () => {
+  let testDir: string;
+
+  beforeEach(async () => {
+    testDir = await createTempDir();
+  });
+
+  afterEach(async () => {
+    await cleanupTempDir(testDir);
+  });
+
+  it("returns false when archive directory does not exist", async () => {
+    const result = await archiveBundleExists(
+      join(testDir, "nonexistent"),
+      "ch-missing",
+    );
+    expect(result).toBe(false);
+  });
+
+  it("returns false when no bundle matches the changeId", async () => {
+    const archiveDir = join(testDir, "archive");
+    await mkdir(join(archiveDir, "2026-05-01-otherchange"), {
+      recursive: true,
+    });
+    await writeFile(
+      join(archiveDir, "2026-05-01-otherchange", "change.json"),
+      JSON.stringify({ id: "otherchange" }),
+      "utf-8",
+    );
+    const result = await archiveBundleExists(archiveDir, "ch-missing");
+    expect(result).toBe(false);
+  });
+
+  it("returns false when bundle directory exists but change.json is missing", async () => {
+    const archiveDir = join(testDir, "archive");
+    await mkdir(join(archiveDir, "2026-05-01-ch-empty"), { recursive: true });
+    const result = await archiveBundleExists(archiveDir, "ch-empty");
+    expect(result).toBe(false);
+  });
+
+  it("returns true when a date-prefixed bundle has a readable change.json", async () => {
+    const archiveDir = join(testDir, "archive");
+    await mkdir(join(archiveDir, "2026-05-01-ch-existing"), {
+      recursive: true,
+    });
+    await writeFile(
+      join(archiveDir, "2026-05-01-ch-existing", "change.json"),
+      JSON.stringify({ id: "ch-existing", status: "archived" }),
+      "utf-8",
+    );
+    const result = await archiveBundleExists(archiveDir, "ch-existing");
+    expect(result).toBe(true);
+  });
+
+  it("returns true even when change.json content is empty", async () => {
+    const archiveDir = join(testDir, "archive");
+    await mkdir(join(archiveDir, "2026-05-01-ch-empty-json"), {
+      recursive: true,
+    });
+    await writeFile(
+      join(archiveDir, "2026-05-01-ch-empty-json", "change.json"),
+      "",
+      "utf-8",
+    );
+    const result = await archiveBundleExists(archiveDir, "ch-empty-json");
+    expect(result).toBe(true);
+  });
+
+  it("findArchiveBundle returns the bundle path when found", async () => {
+    const { findArchiveBundle } = await import("./archive");
+    const archiveDir = join(testDir, "archive");
+    const bundleDir = join(archiveDir, "2026-05-01-ch-found");
+    await mkdir(bundleDir, { recursive: true });
+    await writeFile(
+      join(bundleDir, "change.json"),
+      JSON.stringify({ id: "ch-found" }),
+      "utf-8",
+    );
+    const result = await findArchiveBundle(archiveDir, "ch-found");
+    expect(result).toBe(bundleDir);
+  });
+
+  it("findArchiveBundle returns the most recent bundle when multiple exist", async () => {
+    const { findArchiveBundle } = await import("./archive");
+    const archiveDir = join(testDir, "archive");
+    const oldBundle = join(archiveDir, "2026-04-01-ch-multi");
+    const newBundle = join(archiveDir, "2026-05-01-ch-multi");
+    await mkdir(oldBundle, { recursive: true });
+    await mkdir(newBundle, { recursive: true });
+    await writeFile(
+      join(oldBundle, "change.json"),
+      JSON.stringify({ id: "ch-multi", v: 1 }),
+      "utf-8",
+    );
+    await writeFile(
+      join(newBundle, "change.json"),
+      JSON.stringify({ id: "ch-multi", v: 2 }),
+      "utf-8",
+    );
+    const result = await findArchiveBundle(archiveDir, "ch-multi");
+    expect(result).toBe(newBundle);
+  });
+
+  it("does NOT match a different change with similar id suffix", async () => {
+    const archiveDir = join(testDir, "archive");
+    // "ch-foobar" must not match a search for "ch-foo".
+    await mkdir(join(archiveDir, "2026-05-01-ch-foobar"), { recursive: true });
+    await writeFile(
+      join(archiveDir, "2026-05-01-ch-foobar", "change.json"),
+      JSON.stringify({ id: "ch-foobar" }),
+      "utf-8",
+    );
+    const result = await archiveBundleExists(archiveDir, "ch-foo");
+    expect(result).toBe(false);
   });
 });

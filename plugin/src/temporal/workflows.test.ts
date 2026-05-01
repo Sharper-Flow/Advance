@@ -193,4 +193,34 @@ describe("workflows module (workflow-safe invariant)", () => {
       }
     });
   });
+
+  // rq-searchAttrHealth01.2: workflow handlers must conditionally skip
+  // upsertSearchAttributes when input.searchAttributesEnabled === false.
+  describe("conditional upsertSearchAttributes guards", () => {
+    it("guards every upsertSearchAttributes call with the searchAttributesEnabled flag", () => {
+      // Every wf.upsertSearchAttributes(...) call site MUST be inside an
+      // `if (input.searchAttributesEnabled !== false)` block. There must
+      // be the same number of guards as upsert call sites.
+      const upsertCount = (source.match(/wf\.upsertSearchAttributes\(/g) ?? [])
+        .length;
+      const guardCount = (
+        source.match(
+          /if\s*\(\s*input\.searchAttributesEnabled\s*!==\s*false/g,
+        ) ?? []
+      ).length;
+      expect(upsertCount).toBeGreaterThan(0);
+      expect(guardCount).toBe(upsertCount);
+    });
+
+    it("propagates searchAttributesEnabled into the continue-as-new seed", () => {
+      // The continue-as-new seed object literal MUST include the field so
+      // the flag survives history rollover. Without this, a workflow that
+      // started with the flag disabled would re-enable it after CAN and
+      // fail on the next handler call.
+      const flat = source.replace(/\s+/g, " ");
+      expect(flat).toMatch(
+        /searchAttributesEnabled:\s*input\.searchAttributesEnabled/,
+      );
+    });
+  });
 });

@@ -47,7 +47,7 @@ import {
   fileExists,
   removeChangeDir,
 } from "../storage/json";
-import { archiveChange, archiveBundleExists } from "../archive";
+import { archiveChange, findArchiveBundle } from "../archive";
 import { wrapWithBanner } from "../utils/banner";
 import { formatToolOutput, paginate } from "../utils/tool-output";
 import {
@@ -1502,23 +1502,26 @@ export const changeTools = {
           ? { ...store.paths, wisdom: undefined }
           : store.paths;
 
-      // Idempotent retry: if the bundle already exists on disk but the status
-      // transition failed on a previous attempt, skip the disk write and go
-      // straight to the state transition.
-      const bundleExists = await archiveBundleExists(
-        archivePaths.archive,
-        changeId,
-      );
+      // Idempotent retry: if the bundle already exists on disk, skip the
+      // disk write. Two sub-cases:
+      //   1. status === "archived"  → no-op success (archive already
+      //      complete; both disk + state already transitioned).
+      //   2. status !== "archived"  → recovery path; previous attempt
+      //      wrote the bundle but the status transition failed. Build a
+      //      synthetic result without re-writing disk; let the status
+      //      transition (below) complete the recovery.
+      const existingBundlePath = !dryRun
+        ? await findArchiveBundle(archivePaths.archive, changeId)
+        : null;
       let archiveResult: import("../archive/types").ArchiveOperationResult;
 
-      if (bundleExists && change.status !== "archived" && !dryRun) {
-        // Re-read the bundle to build a result without re-writing disk
+      if (existingBundlePath !== null) {
         archiveResult = {
           success: true,
           changeId,
           specsUpdated: [],
           docsGenerated: [],
-          archivePath: join(archivePaths.archive, changeId),
+          archivePath: existingBundlePath,
           errors: [],
           archivedAt: new Date().toISOString(),
         };
