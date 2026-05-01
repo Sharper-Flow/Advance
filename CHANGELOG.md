@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.2] - 2026-05-01
+
+### Fixed
+
+#### Wrong `IndexedValueType` Numeric Codes for Search Attributes (`fixtemporalsearchattrtypecodes`)
+
+`SEARCH_ATTRIBUTE_TYPE_CODE` in `plugin/src/temporal/observability.ts` mapped `Keyword: 1, Bool: 4` instead of the canonical proto values `Keyword: 2, Bool: 5` (`temporal/api/enums/v1/common.proto INDEXED_VALUE_TYPE_KEYWORD = 2, INDEXED_VALUE_TYPE_BOOL = 5`). The wrong codes caused the operator service to register ADV search attributes as Text/Double rather than Keyword/Bool, which then failed `checkAdvSearchAttributes` wrong-type detection on every subsequent verification.
+
+- **Source fix** — `SEARCH_ATTRIBUTE_TYPE_CODE = { Keyword: 2, Bool: 5 }` with proto-source comment
+- **Drift-catch test** — new assertion in `observability.test.ts` pins canonical values; CI fails on future drift
+- **Fixture updates** — 5 test files rewritten to match (62+ literal-value updates): `observability.test.ts`, `service-reconnect.test.ts`, `service.test.ts`, `health-probe.test.ts`, `tools/temporal-ops.test.ts`. `replay-determinism.test.ts` unchanged — it derives values from `requiredAdvSearchAttributes()` dynamically and auto-tracks the source fix.
+- **Wrong-type test semantic preservation (KD-6)** — the `classifies present, missing, and wrong-type` test in `observability.test.ts` previously used `indexedValueType: 2` for `AdvChangeStatus` to simulate a wrong-type scenario. After the fix, value `2` matches the corrected Keyword code; mock changed to `indexedValueType: 3` (canonical INT) to keep the wrong-type assertion semantically valid.
+- **Log-level elevation** — `service.ts` registration failure path elevated from `logger.warn` to `logger.error` for non-AlreadyExists, non-unavailable failures only. AlreadyExists and operator-API-unavailable paths preserved at debug. Surfaces real registration failures without scraping debug logs.
+- **SETUP.md** — new "Persistent dev-server storage (recommended)" section explaining `--db-filename` for `temporal server start-dev` with cross-platform path conventions (Linux XDG / macOS Application Support).
+- **Recovery doc** — `docs/temporal-recovery.md` gains "Wrong-type ADV search attributes" section documenting manual CLI cleanup (`temporal operator search-attribute remove`) for servers with pre-existing wrong-type attrs from earlier sessions. Auto-cleanup intentionally not performed (avoidance recorded in agreement.md) because removal could affect attrs in use by in-flight workflows.
+
+#### Legacy Archive Bundles Invisible to `adv_change_list` Filter
+
+`adv_change_list({ status: "archived" })` and `includeArchived: true` returned only newly-archived changes (3 of 149 archive bundles on disk). After `fixStaleDraftShadowsArchiving` removes the active source dir post-archive (`rq-archiveRetirement01.1`), the Temporal store's `listResolvedChanges` had no way to discover archive-only IDs — Memo only tracks recently-touched changes, the Visibility API skips evicted workflows, and `diskIds` came from `paths.changes` only.
+
+- `listResolvedChanges` (`store-temporal/index.ts`) now also lists `legacy.paths.archive` when callers request terminal statuses, merging archive IDs into the change set.
+- Per-change load loop falls through to `loadChange(legacy.paths.archive, id)` when both Temporal and active-disk lookup fail.
+- Existing Layer A1 zombie-shadow override path preserved unchanged.
+- Regression test in `store-temporal.test.ts > Layer A1` verifies 3 archive-only IDs (no shadow, no Temporal workflow) appear in `includeArchived: true` listings and stay out of default listings.
+
 ### Changed
 
 #### Fix Stale Draft Shadows After Archiving (`fixStaleDraftShadowsArchiving`)

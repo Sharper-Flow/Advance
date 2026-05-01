@@ -14,7 +14,12 @@ import { join, resolve } from "path";
 const REPO_ROOT = resolve(__dirname, "../..");
 const SYNC_SCRIPT_PATH = join(REPO_ROOT, "scripts/sync-global.sh");
 
-describe("overlay sync script support", () => {
+// 15s per-test timeout: most tests in this suite spawn `bash sync-global.sh`
+// which does real disk I/O and bash + jq execution. Individual tests run in
+// 1-1.5s in isolation, but under suite-level parallelism they can exceed
+// vitest's 5s default due to filesystem contention. Bumping to 15s prevents
+// flakes without masking real regressions.
+describe("overlay sync script support", { timeout: 15000 }, () => {
   const content = readFileSync(SYNC_SCRIPT_PATH, "utf8");
 
   test("supports dry-run and diff options for overlay review", () => {
