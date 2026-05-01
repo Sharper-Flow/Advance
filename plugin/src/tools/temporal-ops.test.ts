@@ -316,9 +316,36 @@ describe("temporal operator tools", () => {
     const parsed = JSON.parse(result);
 
     expect(parsed.searchAttributes.ok).toBe(false);
+    expect(parsed.searchAttributes.verificationStatus).toBe("verified");
     expect(parsed.searchAttributes.missing).toHaveLength(5);
     expect(parsed.recommendedNextAction).toBe(
       "run adv_temporal_register_search_attributes",
+    );
+  });
+
+  it("adv_temporal_diagnose recommends verification recovery when search-attribute health is unverified", async () => {
+    const bundle = mocks.getService();
+    bundle.connection.operatorService.listSearchAttributes = vi.fn(async () => {
+      throw new Error("operator unavailable");
+    });
+    mocks.getService.mockReturnValueOnce(bundle as any);
+    const store = {
+      paths: {
+        root: "/repo",
+        external: "/home/jrede/.local/share/opencode/plugins/advance/proj123",
+      },
+    } as any;
+
+    const result = await temporalOpsTools.adv_temporal_diagnose.execute(
+      {},
+      store,
+    );
+    const parsed = JSON.parse(result);
+
+    expect(parsed.searchAttributes.ok).toBe(false);
+    expect(parsed.searchAttributes.verificationStatus).toBe("unverified");
+    expect(parsed.recommendedNextAction).toBe(
+      "verify Temporal search-attribute health, run adv_temporal_reconnect or adv_temporal_worker_restart, then retry blocked tool",
     );
   });
 
@@ -367,6 +394,9 @@ describe("temporal operator tools", () => {
       "AdvActiveGate",
       "AdvDoomLoopActive",
     ]);
+    expect(parsed.nextAction).toBe(
+      "run adv_temporal_worker_restart, then retry the failed workflow update or archive command",
+    );
     expect(
       bundle.connection.operatorService.addSearchAttributes,
     ).toHaveBeenCalledWith({

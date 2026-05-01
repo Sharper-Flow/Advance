@@ -152,6 +152,7 @@ describe("temporal observability helpers", () => {
     expect(result).toEqual({
       ok: true,
       method: "operatorService.addSearchAttributes",
+      verificationStatus: "verified",
       created: [{ name: "AdvDoomLoopActive", type: "Bool", typeCode: 4 }],
       skipped: [
         { name: "AdvProjectId", type: "Keyword", typeCode: 1 },

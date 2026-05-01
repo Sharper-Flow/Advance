@@ -114,12 +114,16 @@ function recommendTemporalRecovery(input: {
   health: Awaited<ReturnType<typeof getTemporalHealth>>;
   stslInitialized: boolean;
   searchAttributesOk: boolean;
+  searchAttributesVerificationStatus: "verified" | "unverified";
   projectWorkflowReachable: boolean | null;
   changeWorkflowReachable: boolean | null;
 }): string {
   if (!input.health.server_alive) return "restore Temporal server";
   if (!input.stslInitialized) return "restart OpenCode or initialize STSL";
   if (!input.searchAttributesOk) {
+    if (input.searchAttributesVerificationStatus === "unverified") {
+      return "verify Temporal search-attribute health, run adv_temporal_reconnect or adv_temporal_worker_restart, then retry blocked tool";
+    }
     return "run adv_temporal_register_search_attributes";
   }
   if (!input.health.worker_process_alive || !input.health.worker_alive) {
@@ -133,6 +137,18 @@ function recommendTemporalRecovery(input: {
   if (input.health.last_error)
     return "inspect last_error and retry blocked tool";
   return "none";
+}
+
+function recommendPostRegistrationAction(input: {
+  ok: boolean;
+  createdCount: number;
+  verificationStatus: "verified" | "unverified";
+}): string {
+  if (input.createdCount > 0 || input.verificationStatus === "unverified") {
+    return "run adv_temporal_worker_restart, then retry the failed workflow update or archive command";
+  }
+  if (!input.ok) return "run adv_temporal_diagnose and follow recommendedNextAction";
+  return "retry the previously blocked Temporal tool; worker restart is not required";
 }
 
 export const temporalOpsTools = {
@@ -155,10 +171,11 @@ export const temporalOpsTools = {
       const bundle = getService();
       const searchAttributes = bundle
         ? await checkAdvSearchAttributes(bundle.connection, bundle.namespace)
-        : {
-            ok: false,
-            present: [],
-            missing: [],
+          : {
+              ok: false,
+              verificationStatus: "unverified" as const,
+              present: [],
+              missing: [],
             wrongType: [],
             error: "Temporal service layer not initialized",
           };
@@ -185,6 +202,8 @@ export const temporalOpsTools = {
         health,
         stslInitialized: bundle !== null,
         searchAttributesOk: searchAttributes.ok,
+        searchAttributesVerificationStatus:
+          searchAttributes.verificationStatus,
         projectWorkflowReachable: projectWorkflow.reachable,
         changeWorkflowReachable: changeWorkflow?.reachable ?? null,
       });
@@ -243,12 +262,18 @@ export const temporalOpsTools = {
         bundle.connection,
         bundle.namespace,
       );
+      const nextAction = recommendPostRegistrationAction({
+        ok: result.ok,
+        createdCount: result.created.length,
+        verificationStatus: result.verificationStatus,
+      });
 
       return formatToolOutput({
         success: result.ok,
         namespace: bundle.namespace,
         approvalEvidence: args.approvalEvidence.trim(),
         result,
+        nextAction,
         message: result.ok
           ? `ADV Temporal search attributes ready in namespace ${bundle.namespace}`
           : `ADV Temporal search attribute registration requires attention: ${result.error ?? "unknown error"}`,

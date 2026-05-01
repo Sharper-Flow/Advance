@@ -34,6 +34,7 @@ export interface AdvSearchAttributeCheckResult {
 export interface AdvSearchAttributeRegistrationResult {
   ok: boolean;
   method: "operatorService.addSearchAttributes" | "unavailable";
+  verificationStatus: "verified" | "unverified";
   created: RequiredAdvSearchAttribute[];
   skipped: RequiredAdvSearchAttribute[];
   refused: WrongTypeAdvSearchAttribute[];
@@ -182,6 +183,7 @@ export async function registerMissingAdvSearchAttributes(
     return {
       ok: false,
       method: "operatorService.addSearchAttributes",
+      verificationStatus: check.verificationStatus,
       created: [],
       skipped: check.present,
       refused: check.wrongType,
@@ -195,6 +197,7 @@ export async function registerMissingAdvSearchAttributes(
       method: operatorService?.addSearchAttributes
         ? "operatorService.addSearchAttributes"
         : "unavailable",
+      verificationStatus: check.verificationStatus,
       created: [],
       skipped: check.present,
       refused: [],
@@ -206,6 +209,7 @@ export async function registerMissingAdvSearchAttributes(
     return {
       ok: false,
       method: "unavailable",
+      verificationStatus: check.verificationStatus,
       created: [],
       skipped: check.present,
       refused: [],
@@ -224,6 +228,7 @@ export async function registerMissingAdvSearchAttributes(
     return {
       ok: true,
       method: "operatorService.addSearchAttributes",
+      verificationStatus: check.verificationStatus,
       created: check.missing,
       skipped: check.present,
       refused: [],
@@ -232,6 +237,7 @@ export async function registerMissingAdvSearchAttributes(
     return {
       ok: false,
       method: "operatorService.addSearchAttributes",
+      verificationStatus: check.verificationStatus,
       created: [],
       skipped: check.present,
       refused: [],
