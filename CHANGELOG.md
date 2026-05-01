@@ -9,6 +9,129 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.8.2] - 2026-05-01
 
+### Added
+
+#### `/adv-cleanup` — Active State Triage Command (`addadvcleanupcommand`)
+
+New slash command for triaging active ADV changes. Scans all active changes, categorizes each (Orphan, Duplicate, Stuck, Abandoned, Ready-to-archive, Healthy), and optionally applies per-bucket actions with Tier B approval.
+
+- Dry-run by default; `--execute` applies actions after per-bucket approval
+- `--bucket <name>` limits triage to a single bucket
+- `--age-threshold <duration>` overrides default 7d staleness threshold
+- Orphan detection via `adv_orphan_sweep` integration
+- Duplicate detection by title normalization and ID suffix patterns
+- Blocked-by-child lineage check prevents premature closure
+- Registered in `manifest.ts` with gate: none (utility command)
+- Asset test coverage for command presence, manifest wiring, and sync compatibility
+
+#### Two-Plane Reflection System (`buildTwoPlaneReflectionSystem`)
+
+Post-completion reflection analysis for archived changes. `adv_reflect` produces a structured two-plane report persisted to `reflections.jsonl`.
+
+- **Plane 1 — Project Execution** — efficiency, quality, process adherence, wisdom captured
+- **Plane 2 — System Friction** — tool gaps, workarounds, missing capabilities, doc gaps, UX friction, provider-specific issues
+- Triggered automatically by `/adv-archive` Phase 8; manual via `/adv-reflect <change-id>`
+- New `adv_reflect` tool; retrieved via `adv_change_show` for archived changes
+- Informational — does not trigger autonomous process modification
+
+#### Reflection Follow-Up Fixes (`fixthreereflectionfollowups`)
+
+Three targeted improvements surfaced by the reflection system:
+
+- **Archive Tier B sign-off** — removed confirmation-echo turn; single-turn execution after whitelist match
+- **Batch close ordering** — `adv_change_bulk_close` now processes IDs in deterministic order; per-id failure reporting; rollback to prior disk snapshot on Temporal failure
+- **Campsite-rule cleanups** — removed stale artifacts discovered during batch-ordering refactor
+
+#### Per-Project Metadata Store and Scanner Integrations
+
+New `adv_project_metadata` tool for per-project metadata entries (scan results, external events).
+
+- `read` / `write` / `list` actions with key-value storage
+- `adv_status` surfaces project metadata in output
+- Scanner integrations can persist results for cross-session recall
+
+#### Factory-Failure Degraded-Mode Hooks
+
+Plugin now handles factory/init failures gracefully with diagnostic banners.
+
+- `plugin/src/index.ts` hooks for factory-failure degraded mode
+- `formatDegradedBanner()` produces user-visible diagnostic output on init failure
+- Cross-project context mismatch guard in `store-temporal` prevents wrong-project state mutations
+
+#### Search Attribute Verification and Health Display (`verified-bootstrap`)
+
+ADV now verifies search attributes after registration and surfaces their health in status output.
+
+- `verifyAdvSearchAttributes()` poll-loop integrated into `initStsl`/`reinitStsl`
+- `adv_status` surfaces `search_attributes` health section
+- `adv_temporal_diagnose` includes `searchAttributesStatus`
+- Spec `rq-searchAttrHealth01` extended with scenarios `.3` (verification after registration) and `.4` (diagnose inclusion)
+
+#### `/adv-refactor` — Batch Mode
+
+`/adv-refactor` now supports batch mode: when no `change-id` is provided, it refreshes the oldest 30% of active changes instead of targeting a single change.
+
+### Changed
+
+#### Temporal Store Decomposition (`completeTemporalOnlyMigration`)
+
+Monolithic `store-temporal.ts` decomposed into focused shard files for maintainability.
+
+- `store-temporal/changes.ts`, `tasks.ts`, `gates.ts`, `wisdom.ts`, `agenda.ts`, `index.ts`
+- `store-temporal/activities.ts` — 5 disk-artifact Temporal activities (legacy.status, legacy.specs, content-search, visibility enumeration, cross-repo validation)
+- Unified `runTemporal` + `wf.log` for all handlers
+- Replay-determinism tests for both project and change workflows
+- Purged retired SQLite legacy artifacts (`plugin/src/storage/sqlite.ts`, `plugin/src/storage/db.ts`, and 9 related test files)
+- `better-sqlite3` dependency removed
+
+#### Archive Merge Reliability (`archiveMergeReliability`)
+
+Hardened the archive → merge → worktree-delete sequence.
+
+- `/adv-archive` Phase 9 merge verification: detects default branch, refreshes basis, chooses `--ff-only` / reconcile / PR path
+- Source-dir removal after close (`rq-archiveRetirement01.1`) with extended sweep for closed orphans
+- `adv_change_list` clarify suppression on fully-gated changes (restored)
+
+#### Temporal Optimization (`optimizeTemporalAdv`)
+
+Reduced Temporal round-trips and improved observability.
+
+- Memo + Visibility + Disk union in `changes.list` for complete change enumeration
+- Observability metrics for Temporal operations
+- Worker health probe with bounded respawn budget
+- Orphan re-seed utility — `adv_orphan_sweep` re-seeds disk-only changes into Temporal
+- Zombie detection via composite worker health probe
+
+#### Tab Status Emoji Improvements (`alwaysShowTabStatusEmoji`)
+
+Tab status emoji now consistently displays across all session states.
+
+- Always-visible tab emoji regardless of session state
+- TDD phase detection and tab emoji integration
+- Health-probe fallback counts surfaced in Temporal health interface
+
+#### Ambiguity Taxonomy Hardening
+
+Ambiguity taxonomy (11 categories: B/F/S/M/D/X/Q/I/E/C/T) hardened across docs, command files, and tests.
+
+- `/adv-proposal` B/F/S scan; `/adv-discover` B/F/S/M scan
+- Severity rubric (CRITICAL/HIGH/MEDIUM/LOW) with trigger thresholds
+- Anti-hallucination evidence rule — every finding must include verbatim source quote or absence marker
+- Coverage report per scan
+- Drift tests for taxonomy structure in command and instruction surfaces
+
+#### Provider Variant Sync Improvements
+
+- Provider-specific ADV variants (`adv-claude`, `adv-gpt`, `adv-glm`, `adv-kimi`) generated from canonical `adv.md`
+- Provider hint injection after `ADV_SYNC:END adv` marker
+- `sync-global.sh` `check_tool_drift` runs for all variants
+- Legacy `adv.md` hidden via `agent.adv.disable: true` when variants enabled
+- Cleaned provider sync leftovers and hidden provider hint fragments
+
+#### Post-Approval Auto-Continue Cleanup
+
+Eliminated redundant pause-after-approval across all gate transitions. Tier A approval now flows directly into the next phase inline without a second confirmation prompt.
+
 ### Fixed
 
 #### Wrong `IndexedValueType` Numeric Codes for Search Attributes (`fixtemporalsearchattrtypecodes`)
@@ -32,7 +155,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Existing Layer A1 zombie-shadow override path preserved unchanged.
 - Regression test in `store-temporal.test.ts > Layer A1` verifies 3 archive-only IDs (no shadow, no Temporal workflow) appear in `includeArchived: true` listings and stay out of default listings.
 
-### Changed
+#### Temporal Worker Lifecycle Stabilization
+
+- Stabilized temporal worker lifecycle: return correct update state from Temporal mutations
+- Added workflow handle signal typing for type-safe signal operations
+- Resolved postcss XSS vulnerability and added retry to flaky temporal integration test
+- Clarify suppression on fully-gated changes restored in `adv_status`
+- Bumped `ADV_INSTRUCTIONS.md` ratchet ceiling to 700
+
+#### Doc and Test Drift Corrections
+
+- Restored literal slash-command text in command files and bumped `ADV_INSTRUCTIONS.md` line ratchet
+- Fixed status marker migration test failures and type errors
+- Resolved test assertion mismatches from renamed auto-continue sections
+- Removed unused imports and change test imports from decomposition
+- Overlay-sync describe timeout bumped to 15s to stabilize spawnSync-based tests under suite parallelism
 
 #### Fix Stale Draft Shadows After Archiving (`fixStaleDraftShadowsArchiving`)
 
@@ -970,7 +1107,9 @@ Implemented all 13 identified context leak surfaces where ADV drops important co
 - **Linting**: ESLint 9 with TypeScript support
 - **Formatting**: Prettier
 
-[Unreleased]: https://github.com/Sharper-Flow/Advance/compare/v0.8.0...HEAD
+[Unreleased]: https://github.com/Sharper-Flow/Advance/compare/v0.8.2...HEAD
+[0.8.2]: https://github.com/Sharper-Flow/Advance/compare/v0.8.1...v0.8.2
+[0.8.1]: https://github.com/Sharper-Flow/Advance/compare/v0.8.0...v0.8.1
 [0.8.0]: https://github.com/Sharper-Flow/Advance/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/Sharper-Flow/Advance/releases/tag/v0.7.0
 [0.4.0]: https://github.com/Sharper-Flow/Advance/releases/tag/v0.4.0
