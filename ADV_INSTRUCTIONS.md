@@ -370,6 +370,25 @@ Config: `related_repos` in `project.json` maps repo IDs to paths.
 
 Review/Harden gates block if cross-repo tasks incomplete or cancelled without approval.
 
+### Cross-Project Coordination
+
+Use cross-project coordination when a source ADV change needs to reference or
+contribute to a different ADV-enabled project via explicit `target_path`.
+
+| Operation | Store mode | Contract |
+|---|---|---|
+| Read target change/task/gate/status | `snapshot-ok` | Use ADV tools with `target_path`; read disk snapshot and include `_projectContext` |
+| Mutate target change/task/gate/evidence/test | `temporal-required` | Use ADV tools with `target_path`; target Temporal queue must be reachable |
+| Untrusted target mutation | `temporal-required` | Require `target_confirmed: true` and `confirmationEvidence` citing user approval |
+
+Rules:
+
+1. Use ADV tools with `target_path`; never direct ADV state file reads/writes.
+2. `cross_project_links` record source/target provenance; preserve local-only behavior when absent.
+3. `external_dependencies` are advisory-only dependencies; unmet dependencies warn, never block gates or archive by default.
+4. Inspect `_externalDependencyStatus` on `adv_change_show`/status output for satisfied/warning/blocking counts and drilldown targets.
+5. Target-project contribution workflow: create/link target change → verify source-side `cross_project_links` → monitor advisory dependencies → execute target mutations only after confirmation where required.
+
 ### Cancellation Policy
 
 All cancellations require explicit user approval via `adv_task_cancel`.
