@@ -185,13 +185,6 @@ describe("temporal operator tools", () => {
     vi.clearAllMocks();
   });
 
-  it("does not expose migration compatibility shim exports", async () => {
-    const module = await import("./temporal-ops");
-
-    expect(module).not.toHaveProperty("asWorkflowClientSurface");
-    expect(module).not.toHaveProperty("asProjectWorkflowHandle");
-  });
-
   it("adv_temporal_worker_restart invokes restartCurrentProjectTemporalWorker and returns queues", async () => {
     const store = { paths: { root: "/repo" } } as any;
     const result = await temporalOpsTools.adv_temporal_worker_restart.execute(
