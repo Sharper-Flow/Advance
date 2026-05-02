@@ -32,7 +32,7 @@ Two-phase workflow: Phase 1 (problem statement agreement) → Phase 2 (full prop
 
 ---
 ## Phase 1: Problem Statement Agreement
-<!-- rq-advprop02 -->
+<!-- rq-prop-context2 -->
 Before creating artifacts:
 1. Extract agreed facts, decisions, rejected approaches, open questions, and constraints from the conversation
 2. Synthesize a concise problem statement with desired outcome and expected scope
