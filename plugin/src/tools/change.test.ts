@@ -2160,6 +2160,62 @@ describe("Change Tools", () => {
       expect(parsed.incompleteGates.length).toBeGreaterThan(0);
     });
 
+    test("F1: suggests adv_change_diagnose when disk gates are done but store sees incomplete (divergence)", async () => {
+      // Complete all tasks
+      await store.tasks.update("tk-task0001", "done");
+      await store.tasks.update("tk-task0002", "done");
+      await store.tasks.update("tk-task0003", "done");
+
+      // Save complete gates to disk
+      const change = (await store.changes.get("addFeature")).data!;
+      change.gates = {
+        proposal: { status: "done", completed_at: new Date().toISOString() },
+        discovery: { status: "done", completed_at: new Date().toISOString() },
+        design: { status: "done", completed_at: new Date().toISOString() },
+        planning: { status: "done", completed_at: new Date().toISOString() },
+        execution: { status: "done", completed_at: new Date().toISOString() },
+        acceptance: { status: "done", completed_at: new Date().toISOString() },
+        release: { status: "done", completed_at: new Date().toISOString() },
+      };
+      await store.changes.save(change);
+
+      // Monkey-patch store.changes.get to simulate Temporal divergence:
+      // return the same change but with pending gates.
+      const originalGet = store.changes.get.bind(store.changes);
+      store.changes.get = async (id: string) => {
+        const result = await originalGet(id);
+        if (result.success && result.data && id === "addFeature") {
+          const staleChange = { ...result.data };
+          staleChange.gates = {
+            proposal: { status: "pending" },
+            discovery: { status: "pending" },
+            design: { status: "pending" },
+            planning: { status: "pending" },
+            execution: { status: "pending" },
+            acceptance: { status: "pending" },
+            release: { status: "pending" },
+          };
+          return { success: true, data: staleChange };
+        }
+        return result;
+      };
+
+      try {
+        const result = await changeTools.adv_change_archive.execute(
+          { changeId: "addFeature" },
+          store,
+        );
+        const parsed = parseToolOutput(result);
+
+        expect(parsed.error).toContain("Cannot archive: incomplete gates");
+        expect(parsed.hint).toContain("adv_change_diagnose");
+        expect(parsed.hint).toContain("adv_workflow_repair");
+        expect(parsed.hint).toContain("addFeature");
+      } finally {
+        store.changes.get = originalGet;
+      }
+    });
+
     // rq-archiveOrdering01.1: idempotent retry skips disk write when bundle
     // already exists. Simulates the recovery scenario where a previous
     // archive succeeded on disk but the status transition failed.

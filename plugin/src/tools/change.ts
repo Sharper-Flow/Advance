@@ -48,6 +48,7 @@ import {
   loadProposalWithFallback,
   fileExists,
   removeChangeDir,
+  loadChange,
 } from "../storage/json";
 import { archiveChange, findArchiveBundle } from "../archive";
 import { wrapWithBanner } from "../utils/banner";
@@ -656,6 +657,35 @@ function getArchivePreflightError(
   }
 
   return null;
+}
+
+/**
+ * Detect disk/Temporal gate divergence for the incomplete-gates archive
+ * preflight path. If the on-disk change.json shows all gates satisfied but
+ * the store-backed change object does not, the Temporal workflow state is
+ * stale relative to disk — typically after a manual gate fix or recovery.
+ */
+async function getGateDivergenceHint(
+  store: Store,
+  changeId: string,
+  change: { gates?: ReturnType<typeof createDefaultGates> },
+): Promise<string | null> {
+  const storeGates = change.gates ?? createDefaultGates();
+  if (allGatesSatisfied(storeGates)) {
+    return null; // No divergence — store already sees gates done
+  }
+
+  const diskResult = await loadChange(store.paths.changes, changeId);
+  if (!diskResult.success || !diskResult.data) {
+    return null; // Can't read disk — degrade gracefully
+  }
+
+  const diskGates = diskResult.data.gates ?? createDefaultGates();
+  if (allGatesSatisfied(diskGates)) {
+    return `Disk shows gates done but Temporal sees them incomplete. Run \`adv_change_diagnose changeId: ${changeId}\` to inspect, then \`adv_workflow_repair changeId: ${changeId}\` to rebind.`;
+  }
+
+  return null; // Both agree gates are incomplete
 }
 
 const ARCHIVE_SEARCH_ATTRIBUTE_RECOVERY_HINT =
@@ -1686,6 +1716,27 @@ export const changeTools = {
       const change = result.data;
       const preflightError = getArchivePreflightError(changeId, change);
       if (preflightError) {
+        // Detect disk/Temporal divergence for incomplete gates so the user
+        // gets a repair hint instead of a generic block message.
+        const gates = change.gates ?? createDefaultGates();
+        if (!allGatesSatisfied(gates)) {
+          const divergenceHint = await getGateDivergenceHint(
+            store,
+            changeId,
+            change,
+          );
+          if (divergenceHint) {
+            return wrapWithBanner(
+              { command: "adv_change_archive", target: changeId },
+              formatToolOutput({
+                error:
+                  "Cannot archive: incomplete gates. Complete all quality gates before archiving.",
+                incompleteGates: getIncompleteGates(gates),
+                hint: divergenceHint,
+              }),
+            );
+          }
+        }
         return preflightError;
       }
 
