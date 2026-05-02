@@ -60,7 +60,7 @@ interface OpenCodeDbEnv {
   OPENCODE_DB?: string;
 }
 
-type BunSqliteDatabase = new (
+type BunSqliteDatabaseConstructor = new (
   path: string,
   options: { readonly: true },
 ) => {
@@ -129,10 +129,10 @@ export async function scanOpenCodeSessionDebt(
     );
   }
 
-  let db: InstanceType<BunSqliteDatabase> | undefined;
+  let db: InstanceType<BunSqliteDatabaseConstructor> | undefined;
   try {
     const sqlite = (await (options.importSqlite ?? importBunSqlite)()) as {
-      Database?: BunSqliteDatabase;
+      Database?: BunSqliteDatabaseConstructor;
     };
     if (!sqlite.Database) {
       return unavailable(
@@ -190,9 +190,19 @@ function normalizeRow(row: unknown): BlankAssistantRow | null {
   const candidate = row as Record<string, unknown>;
   const id = String(candidate.id ?? "");
   const sessionId = String(candidate.session_id ?? "");
-  const createdMs = Number(candidate.created_ms ?? 0);
+  const rawCreatedMs = candidate.created_ms;
+  const createdMs = Number(rawCreatedMs);
   const partCount = Number(candidate.part_count ?? 0);
-  if (!id || !sessionId || !Number.isFinite(createdMs)) return null;
+  if (
+    !id ||
+    !sessionId ||
+    rawCreatedMs === null ||
+    rawCreatedMs === undefined ||
+    !Number.isFinite(createdMs) ||
+    createdMs <= 0
+  ) {
+    return null;
+  }
   return {
     id,
     session_id: sessionId,
@@ -221,6 +231,7 @@ function unavailable(
 }
 
 async function importBunSqlite(): Promise<unknown> {
+  // Keep this dynamic so Node-based typecheck/tests do not try to resolve Bun-only sqlite.
   const specifier = "bun:" + "sqlite";
   return import(specifier);
 }

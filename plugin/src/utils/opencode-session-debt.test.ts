@@ -1,4 +1,7 @@
-import { describe, expect, test, vi } from "vitest";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterEach, describe, expect, test, vi } from "vitest";
 import {
   classifyBlankAssistantRows,
   getDefaultOpenCodeDbPath,
@@ -9,6 +12,13 @@ import {
 
 describe("opencode-session-debt", () => {
   const nowMs = Date.parse("2026-05-02T02:20:00.000Z");
+  const tempDirs: string[] = [];
+
+  afterEach(() => {
+    for (const dir of tempDirs.splice(0)) {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
 
   test("classifies old blank assistant rows as repairable stale debt", () => {
     const rows: BlankAssistantRow[] = [
@@ -76,5 +86,52 @@ describe("opencode-session-debt", () => {
 
     expect(result.available).toBe(false);
     expect(result.reason).toContain("not found");
+  });
+
+  test("scanner opens database read-only and ignores malformed timestamps", async () => {
+    const tempDir = mkdtempSync(join(tmpdir(), "opencode-session-debt-"));
+    tempDirs.push(tempDir);
+    const dbPath = join(tempDir, "opencode.db");
+    writeFileSync(dbPath, "stub");
+    const constructorArgs: unknown[] = [];
+
+    class FakeDatabase {
+      constructor(...args: unknown[]) {
+        constructorArgs.push(args);
+      }
+
+      query() {
+        return {
+          all: () => [
+            {
+              id: "msg-valid",
+              session_id: "ses-valid",
+              created_ms: nowMs - STALE_BLANK_ASSISTANT_THRESHOLD_MS - 1,
+              part_count: 0,
+            },
+            {
+              id: "msg-malformed",
+              session_id: "ses-malformed",
+              created_ms: null,
+              part_count: 0,
+            },
+          ],
+        };
+      }
+
+      close() {}
+    }
+
+    const result = await scanOpenCodeSessionDebt({
+      dbPath,
+      importSqlite: vi.fn(async () => ({ Database: FakeDatabase })),
+      nowMs,
+    });
+
+    expect(constructorArgs).toEqual([[dbPath, { readonly: true }]]);
+    expect(result.available).toBe(true);
+    expect(result.total_blank).toBe(1);
+    expect(result.repairable_stale).toHaveLength(1);
+    expect(result.repairable_stale[0]?.id).toBe("msg-valid");
   });
 });

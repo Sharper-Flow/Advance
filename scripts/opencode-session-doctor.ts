@@ -120,7 +120,7 @@ async function backupDatabaseFiles(dbPath: string, backupDir: string): Promise<s
 
 function deleteMessages(dbPath: string, ids: string[]): number {
   if (ids.length === 0) return 0;
-  const db = new Database(dbPath, { readwrite: true, create: false } as never);
+  const db = new Database(dbPath, { readwrite: true, create: false });
   try {
     const deleteMessage = db.query("DELETE FROM message WHERE id = ?");
     let deleted = 0;
