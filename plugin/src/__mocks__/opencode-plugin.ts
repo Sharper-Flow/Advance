@@ -43,6 +43,10 @@ export interface Hooks {
     input: { sessionID: string },
     output: { system: string[] },
   ) => Promise<void>;
+  "experimental.chat.messages.transform"?: (
+    input: unknown,
+    output: { messages: Array<{ info: unknown; parts: unknown[] }> },
+  ) => Promise<void>;
 }
 
 export interface ToolContext {

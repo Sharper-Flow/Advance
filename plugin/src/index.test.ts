@@ -189,6 +189,18 @@ describe("Advance Plugin SDK Integration", () => {
       expect(extractCreatedChangeId(output)).toBe("addFeature");
     });
 
+    test("extractCreatedChangeId reads object tool output without throwing", () => {
+      expect(extractCreatedChangeId({ changeId: "addFeature" } as any)).toBe(
+        "addFeature",
+      );
+    });
+
+    test("extractCompletedTask ignores null and non-json tool output", () => {
+      expect(extractCompletedTask(null as any)).toBeNull();
+      expect(extractCompletedTask({ success: false } as any)).toBeNull();
+      expect(extractCompletedTask("not json")).toBeNull();
+    });
+
     test("isLongRunningTool matches tracked tools only", () => {
       expect(isLongRunningTool("adv_run_test")).toBe(true);
       expect(isLongRunningTool("adv_task_evidence")).toBe(true);
@@ -255,6 +267,15 @@ describe("Advance Plugin SDK Integration", () => {
 
       expect(hooks["experimental.session.compacting"]).toBeDefined();
       expect(typeof hooks["experimental.session.compacting"]).toBe("function");
+    });
+
+    test("returns Hooks with experimental.chat.messages.transform hook", async () => {
+      const hooks = await createTrackedPlugin(tempDir, pluginInstances);
+
+      expect(hooks["experimental.chat.messages.transform"]).toBeDefined();
+      expect(typeof hooks["experimental.chat.messages.transform"]).toBe(
+        "function",
+      );
     });
   });
 
@@ -470,9 +491,123 @@ describe("Advance Plugin SDK Integration", () => {
         } as MockEvent as any,
       });
     });
+
+    test("session.error sets blocked recovery banner for next system transform", async () => {
+      const hooks = await createTrackedPlugin(tempDir, pluginInstances);
+
+      await hooks.event!({
+        event: {
+          type: "session.error",
+          properties: { error: "Aborted process" },
+        } as MockEvent as any,
+      });
+
+      const { getStatus } = await import("./events");
+      expect(getStatus().currentStatus).toBe("BLOCKED");
+
+      await hooks.event!({
+        event: {
+          type: "session.status",
+          properties: { status: { type: "idle" } },
+        } as MockEvent as any,
+      });
+      expect(getStatus().currentStatus).toBe("BLOCKED");
+
+      const out = { system: [] as string[] };
+      await hooks["experimental.chat.system.transform"]!(
+        { sessionID: "test" } as any,
+        out as any,
+      );
+
+      const banner = out.system.find((line) =>
+        line.includes("[ADV:SESSION_HEALTH]"),
+      );
+      expect(banner).toBeDefined();
+      expect(banner).toContain("session.error");
+      expect(banner).toContain("Aborted process");
+      expect(banner).toContain("resume by changeId");
+    });
   });
 
   describe("Hooks", () => {
+    test("experimental.chat.messages.transform drops blank unfinished assistant messages", async () => {
+      const hooks = await createTrackedPlugin(tempDir, pluginInstances);
+      const out = {
+        messages: [
+          {
+            info: { id: "msg-user", role: "user" },
+            parts: [{ type: "text", text: "continue" }],
+          },
+          { info: { id: "msg-blank", role: "assistant" }, parts: [] },
+          {
+            info: { id: "msg-assistant", role: "assistant", finish: "stop" },
+            parts: [{ type: "text", text: "done" }],
+          },
+        ],
+      };
+
+      await hooks["experimental.chat.messages.transform"]!({} as any, out);
+
+      expect(out.messages.map((m) => (m.info as any).id)).toEqual([
+        "msg-user",
+        "msg-assistant",
+      ]);
+    });
+
+    test("experimental.chat.messages.transform compacts oversized tool outputs", async () => {
+      const hooks = await createTrackedPlugin(tempDir, pluginInstances);
+      const hugeOutput = "x".repeat(40_000);
+      const out = {
+        messages: [
+          {
+            info: { id: "msg-tool", role: "assistant", finish: "tool-calls" },
+            parts: [
+              {
+                type: "tool",
+                tool: "xray_xray_scan",
+                callID: "call-1",
+                state: { status: "completed", output: hugeOutput },
+              },
+            ],
+          },
+        ],
+      };
+
+      await hooks["experimental.chat.messages.transform"]!({} as any, out);
+
+      const output = ((out.messages[0]!.parts[0] as any).state as any).output;
+      expect(output).toContain("[ADV:TOOL_OUTPUT_TRUNCATED]");
+      expect(output).toContain("xray_xray_scan");
+      expect(output).toContain("40000 chars");
+      expect(output.length).toBeLessThan(8_000);
+    });
+
+    test("experimental.chat.messages.transform compacts oversized summary diffs", async () => {
+      const hooks = await createTrackedPlugin(tempDir, pluginInstances);
+      const hugePatch = "diff --git a/file b/file\n" + "x".repeat(40_000);
+      const out = {
+        messages: [
+          {
+            info: {
+              id: "msg-summary",
+              role: "user",
+              summary: {
+                diffs: [{ file: "src/app.css", patch: hugePatch }],
+              },
+            },
+            parts: [{ type: "text", text: "continue" }],
+          },
+        ],
+      };
+
+      await hooks["experimental.chat.messages.transform"]!({} as any, out);
+
+      const patch = (out.messages[0]!.info as any).summary.diffs[0].patch;
+      expect(patch).toContain("[ADV:DIFF_TRUNCATED]");
+      expect(patch).toContain("40025 chars");
+      expect(patch.length).toBeLessThan(8_000);
+    });
+
     test("experimental.chat.system.transform injects provider hint for OpenAI models", async () => {
       const hooks = await createTrackedPlugin(tempDir, pluginInstances);
 
@@ -1396,6 +1531,7 @@ describe("Factory-failure wrapper", () => {
     expect(hooks["tool.execute.after"]).toBeDefined();
     expect(hooks["experimental.session.compacting"]).toBeDefined();
     expect(hooks["experimental.chat.system.transform"]).toBeDefined();
+    expect(hooks["experimental.chat.messages.transform"]).toBeDefined();
 
     // None of these may throw
     await expect(
@@ -1419,6 +1555,12 @@ describe("Factory-failure wrapper", () => {
       hooks["experimental.session.compacting"]!(
         {} as any,
         { context: [] } as any,
+      ),
+    ).resolves.not.toThrow();
+    await expect(
+      hooks["experimental.chat.messages.transform"]!(
+        {} as any,
+        { messages: [] } as any,
       ),
     ).resolves.not.toThrow();
   });

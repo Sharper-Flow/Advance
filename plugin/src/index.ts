@@ -41,12 +41,23 @@ import { createToolMap, createDegradedToolMap } from "./tool-registry";
 import { appendDebugLog, createLogger } from "./utils/debug-log";
 
 /**
- * Parse JSON from a (potentially banner-wrapped) tool output string.
- * Tries the post-banner segment first, then falls back to the full string.
- * Returns null if neither parses as valid JSON.
+ * Parse JSON from a (potentially banner-wrapped) tool output.
+ * OpenCode's hook contract types `output.output` as string, but real plugins
+ * and SDK changes can pass structured values. Hooks must never crash during
+ * parsing — a parser failure here can make an otherwise resumable session look
+ * dead to the user.
+ *
+ * Strings: tries the post-banner segment first, then the full string.
+ * Objects: returns the object directly.
+ * Other values: returns null.
  */
-function parseToolOutput<T>(rawOutput: string): T | null {
+function parseToolOutput<T>(rawOutput: unknown): T | null {
+  if (rawOutput == null) return null;
+  if (typeof rawOutput === "object") return rawOutput as T;
+  if (typeof rawOutput !== "string") return null;
+
   const trimmed = rawOutput.trim();
+  if (!trimmed) return null;
   const separatorIndex = trimmed.lastIndexOf("\n\n");
   const candidates = [
     separatorIndex >= 0 ? trimmed.slice(separatorIndex + 2).trim() : null,
@@ -68,7 +79,7 @@ export function isLongRunningTool(toolName: string): boolean {
   return LONG_RUNNING_TOOLS.has(toolName);
 }
 
-export function extractCreatedChangeId(rawOutput: string): string | null {
+export function extractCreatedChangeId(rawOutput: unknown): string | null {
   const result = parseToolOutput<{
     changeId?: string;
     data?: { changeId?: string };
@@ -78,7 +89,7 @@ export function extractCreatedChangeId(rawOutput: string): string | null {
 }
 
 export function extractCompletedTask(
-  rawOutput: string,
+  rawOutput: unknown,
 ): { id: string; title: string } | null {
   const result = parseToolOutput<{
     success?: boolean;
@@ -93,6 +104,148 @@ export function extractCompletedTask(
   }
   return { id: result.task.id, title: result.task.title };
 }
+
+const MAX_PROMPT_TOOL_OUTPUT_CHARS = 24_000;
+const MAX_PROMPT_DIFF_CHARS = 24_000;
+const PROMPT_EXCERPT_CHARS = 2_000;
+
+interface SessionHealthIssue {
+  kind: "session.error" | "message-history";
+  message: string;
+  detectedAt: number;
+}
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null;
+
+const compactLargeText = (
+  marker: "TOOL_OUTPUT" | "DIFF",
+  source: string,
+  text: string,
+): string => {
+  const first = text.slice(0, PROMPT_EXCERPT_CHARS);
+  const last = text.slice(-PROMPT_EXCERPT_CHARS);
+  return [
+    `[ADV:${marker}_TRUNCATED] ${source} produced ${text.length} chars. Full content omitted from model prompt to keep the session resumable.`,
+    `--- first ${PROMPT_EXCERPT_CHARS} chars ---`,
+    first,
+    `--- last ${PROMPT_EXCERPT_CHARS} chars ---`,
+    last,
+  ].join("\n");
+};
+
+const compactToolPart = (part: unknown): boolean => {
+  if (!isRecord(part) || part.type !== "tool") return false;
+  const toolName =
+    typeof part.tool === "string"
+      ? part.tool
+      : typeof part.callID === "string"
+        ? part.callID
+        : "tool output";
+  let compacted = false;
+
+  if (isRecord(part.state) && typeof part.state.output === "string") {
+    const output = part.state.output;
+    if (output.length > MAX_PROMPT_TOOL_OUTPUT_CHARS) {
+      part.state.output = compactLargeText("TOOL_OUTPUT", toolName, output);
+      compacted = true;
+    }
+  }
+
+  if (typeof part.output === "string") {
+    const output = part.output;
+    if (output.length > MAX_PROMPT_TOOL_OUTPUT_CHARS) {
+      part.output = compactLargeText("TOOL_OUTPUT", toolName, output);
+      compacted = true;
+    }
+  }
+
+  return compacted;
+};
+
+const compactSummaryDiffs = (info: unknown): number => {
+  if (!isRecord(info) || !isRecord(info.summary)) return 0;
+  const diffs = info.summary.diffs;
+  if (!Array.isArray(diffs)) return 0;
+
+  let compacted = 0;
+  for (const diff of diffs) {
+    if (!isRecord(diff) || typeof diff.patch !== "string") continue;
+    if (diff.patch.length <= MAX_PROMPT_DIFF_CHARS) continue;
+    const file = typeof diff.file === "string" ? diff.file : "summary diff";
+    diff.patch = compactLargeText("DIFF", file, diff.patch);
+    compacted++;
+  }
+  return compacted;
+};
+
+const isBlankUnfinishedAssistantMessage = (message: {
+  info?: unknown;
+  parts?: unknown[];
+}): boolean => {
+  if (!isRecord(message.info)) return false;
+  if (message.info.role !== "assistant") return false;
+  if (Array.isArray(message.parts) && message.parts.length > 0) return false;
+  return message.info.finish == null;
+};
+
+const compactPromptMessages = (
+  messages: Array<{ info?: unknown; parts?: unknown[] }>,
+): {
+  droppedBlank: number;
+  compactedToolOutputs: number;
+  compactedDiffs: number;
+} => {
+  let droppedBlank = 0;
+  let compactedToolOutputs = 0;
+  let compactedDiffs = 0;
+
+  for (let index = messages.length - 1; index >= 0; index--) {
+    const message = messages[index];
+    if (!message) continue;
+    if (isBlankUnfinishedAssistantMessage(message)) {
+      messages.splice(index, 1);
+      droppedBlank++;
+      continue;
+    }
+
+    compactedDiffs += compactSummaryDiffs(message.info);
+    if (Array.isArray(message.parts)) {
+      for (const part of message.parts) {
+        if (compactToolPart(part)) compactedToolOutputs++;
+      }
+    }
+  }
+
+  return { droppedBlank, compactedToolOutputs, compactedDiffs };
+};
+
+const extractSessionErrorMessage = (properties: unknown): string => {
+  if (!isRecord(properties)) return "Unknown session error";
+  for (const key of ["error", "message", "reason"]) {
+    const value = properties[key];
+    if (typeof value === "string" && value.trim()) return value.trim();
+  }
+  try {
+    return JSON.stringify(properties);
+  } catch {
+    return "Unknown session error";
+  }
+};
+
+const formatSessionHealthBanner = (
+  issue: SessionHealthIssue,
+  changeId: string | null,
+): string => {
+  const changeHint = changeId
+    ? ` Known active change: ${changeId}. Open a fresh OpenCode session and resume by changeId.`
+    : " Open a fresh OpenCode session and resume by changeId if this was ADV work.";
+  return [
+    `[ADV:SESSION_HEALTH] ${issue.kind}: ${issue.message}`,
+    "Current session may be unsafe to continue from chat history.",
+    `${changeHint} Do not rely on prior chat history as source of truth.`,
+  ].join("\n");
+};
 
 const PROVIDER_BEHAVIOR_HINTS: Readonly<Record<string, string>> = {
   openai:
@@ -139,6 +292,8 @@ interface PluginState extends StatusFlags {
   activeGate: string | null;
   /** Cached locked sibling-repo conformance paths. Updated on adv_conformance calls. */
   conformanceLockedPaths: string[];
+  /** Last detected session-resume hazard to surface in system context. */
+  lastSessionHealthIssue: SessionHealthIssue | null;
 }
 
 /**
@@ -156,6 +311,7 @@ interface PluginState extends StatusFlags {
  * BLOCKED is set directly by trackRetry() in status.ts, bypassing the resolver.
  */
 const resolveStatus = (s: PluginState): StatusMarker => {
+  if (s.lastSessionHealthIssue?.kind === "session.error") return "BLOCKED";
   if (s.permissionPending) return "ATTN";
   if (s.activeSubAgents > 0 || s.activeLongTools > 0) return "TOOLING";
   if (s.sessionIdle) return "IDLE";
@@ -242,6 +398,7 @@ function buildFactoryFailureHooks(
         // banner injection must never throw
       }
     },
+    "experimental.chat.messages.transform": async () => {},
     "experimental.session.compacting": async () => {},
   };
 }
@@ -303,6 +460,7 @@ const advancePluginImpl: Plugin = async ({ directory, worktree, project }) => {
     isWorktree,
     activeGate: null,
     conformanceLockedPaths: [],
+    lastSessionHealthIssue: null,
   };
 
   // No handoff.json hydration: session startup is now workflow-backed.
@@ -463,6 +621,16 @@ const advancePluginImpl: Plugin = async ({ directory, worktree, project }) => {
     }
   };
 
+  const handleSessionErrorEvent = (event: { properties: unknown }) => {
+    const message = extractSessionErrorMessage(event.properties);
+    state.lastSessionHealthIssue = {
+      kind: "session.error",
+      message,
+      detectedAt: Date.now(),
+    };
+    setStatus("BLOCKED");
+  };
+
   const handleSessionDeletedEvent = () => {
     mainSessionId = null;
     lastObservedCompletedMessageId = null;
@@ -560,6 +728,8 @@ const advancePluginImpl: Plugin = async ({ directory, worktree, project }) => {
           setFlags({ permissionPending: true, sessionIdle: false });
         } else if (eventType === "permission.replied") {
           setFlags({ permissionPending: false });
+        } else if (eventType === "session.error") {
+          handleSessionErrorEvent(event as { properties: unknown });
         } else if (eventType === "message.updated") {
           handleMessageUpdatedEvent(
             event as { properties: Record<string, unknown> },
@@ -679,6 +849,19 @@ const advancePluginImpl: Plugin = async ({ directory, worktree, project }) => {
           }
         }
 
+        if (state.lastSessionHealthIssue) {
+          try {
+            output.system.push(
+              formatSessionHealthBanner(
+                state.lastSessionHealthIssue,
+                state.activeChange.id,
+              ),
+            );
+          } catch {
+            // health banner injection must never break the transform hook
+          }
+        }
+
         const providerHint = getProviderBehaviorHint(input.model?.providerID);
         if (providerHint) {
           output.system.push(providerHint);
@@ -729,6 +912,30 @@ const advancePluginImpl: Plugin = async ({ directory, worktree, project }) => {
         }
       } catch (e) {
         debugLog(`experimental.chat.system.transform error: ${e}`);
+      }
+    },
+
+    "experimental.chat.messages.transform": async (_input, output) => {
+      try {
+        if (!Array.isArray(output.messages)) return;
+        const result = compactPromptMessages(output.messages);
+        if (
+          result.droppedBlank > 0 ||
+          result.compactedToolOutputs > 0 ||
+          result.compactedDiffs > 0
+        ) {
+          state.lastSessionHealthIssue = {
+            kind: "message-history",
+            message:
+              `Sanitized prompt history: dropped ${result.droppedBlank} blank assistant message(s), ` +
+              `compacted ${result.compactedToolOutputs} oversized tool output(s), ` +
+              `compacted ${result.compactedDiffs} oversized diff(s).`,
+            detectedAt: Date.now(),
+          };
+          debugLog(state.lastSessionHealthIssue.message);
+        }
+      } catch (e) {
+        debugLog(`experimental.chat.messages.transform error: ${e}`);
       }
     },
 
