@@ -5,9 +5,9 @@
  */
 
 import { describe, test, expect, beforeEach, afterEach, vi } from "vitest";
-import { mkdir, writeFile } from "fs/promises";
+import { mkdir, writeFile, rm } from "fs/promises";
 import { join } from "path";
-import { statusTools } from "./status";
+import { statusTools, _healthSnapshotCache } from "./status";
 import {
   createTestProject,
   createTempDir,
@@ -411,6 +411,157 @@ Vague in-flight work.
 
         expect(parsed.search_attributes).toBeDefined();
         expect(parsed.search_attributes.ok).toBe(false);
+      });
+    });
+
+    describe("_healthSnapshot", () => {
+      beforeEach(() => {
+        _healthSnapshotCache.clear();
+      });
+
+      test("includes _healthSnapshot with disk leak metrics", async () => {
+        // Closed change with NO archive bundle → leaked_source_dirs
+        await mkdir(join(tempDir, ".adv/changes/closedNoArchive"), {
+          recursive: true,
+        });
+        await writeFile(
+          join(tempDir, ".adv/changes/closedNoArchive/change.json"),
+          JSON.stringify({
+            $schema: "https://advance.dev/schemas/change.v1.json",
+            id: "closedNoArchive",
+            title: "Closed No Archive",
+            status: "closed",
+            created_at: "2026-01-20T00:00:00Z",
+            tasks: [],
+            deltas: {},
+          }),
+        );
+
+        // Closed change WITH archive bundle → NOT leaked
+        await mkdir(join(tempDir, ".adv/changes/closedWithArchive"), {
+          recursive: true,
+        });
+        await writeFile(
+          join(tempDir, ".adv/changes/closedWithArchive/change.json"),
+          JSON.stringify({
+            $schema: "https://advance.dev/schemas/change.v1.json",
+            id: "closedWithArchive",
+            title: "Closed With Archive",
+            status: "closed",
+            created_at: "2026-01-20T00:00:00Z",
+            tasks: [],
+            deltas: {},
+          }),
+        );
+        await mkdir(
+          join(tempDir, ".adv/archive/2026-01-01-closedWithArchive"),
+          { recursive: true },
+        );
+        await writeFile(
+          join(
+            tempDir,
+            ".adv/archive/2026-01-01-closedWithArchive/change.json",
+          ),
+          JSON.stringify({ id: "closedWithArchive", status: "archived" }),
+        );
+
+        // Archived change still in source dir → leaked_archived_source_dirs
+        await mkdir(join(tempDir, ".adv/changes/archivedLeak"), {
+          recursive: true,
+        });
+        await writeFile(
+          join(tempDir, ".adv/changes/archivedLeak/change.json"),
+          JSON.stringify({
+            $schema: "https://advance.dev/schemas/change.v1.json",
+            id: "archivedLeak",
+            title: "Archived Leak",
+            status: "archived",
+            created_at: "2026-01-20T00:00:00Z",
+            tasks: [],
+            deltas: {},
+          }),
+        );
+
+        await store.sync();
+
+        const result = await statusTools.adv_status.execute({}, store);
+        const parsed = parseToolOutput(result);
+
+        expect(parsed._healthSnapshot).toBeDefined();
+        expect(parsed._healthSnapshot.leaked_source_dirs).toBe(1); // closedNoArchive only
+        expect(parsed._healthSnapshot.leaked_archived_source_dirs).toBe(1); // archivedLeak
+        expect(parsed._healthSnapshot.archive_dirs).toBe(1);
+        // 2 closed / 1 active (addFeature from createTestProject)
+        expect(parsed._healthSnapshot.closed_to_active_ratio).toBe(2);
+      });
+
+      test("caches _healthSnapshot for 30s", async () => {
+        await mkdir(join(tempDir, ".adv/changes/closedCached"), {
+          recursive: true,
+        });
+        await writeFile(
+          join(tempDir, ".adv/changes/closedCached/change.json"),
+          JSON.stringify({
+            $schema: "https://advance.dev/schemas/change.v1.json",
+            id: "closedCached",
+            title: "Closed Cached",
+            status: "closed",
+            created_at: "2026-01-20T00:00:00Z",
+            tasks: [],
+            deltas: {},
+          }),
+        );
+        await store.sync();
+
+        const result1 = await statusTools.adv_status.execute({}, store);
+        const parsed1 = parseToolOutput(result1);
+        expect(parsed1._healthSnapshot.leaked_source_dirs).toBe(1);
+
+        // Delete the source dir; without cache, second call would report 0
+        await rm(join(tempDir, ".adv/changes/closedCached"), {
+          recursive: true,
+          force: true,
+        });
+        await store.sync();
+
+        const result2 = await statusTools.adv_status.execute({}, store);
+        const parsed2 = parseToolOutput(result2);
+        expect(parsed2._healthSnapshot.leaked_source_dirs).toBe(1);
+      });
+
+      test("appends leak recommendation when closed_to_active_ratio > 5", async () => {
+        // 6 closed + 1 active (addFeature) → ratio 6:1
+        for (let i = 1; i <= 6; i++) {
+          await mkdir(join(tempDir, `.adv/changes/closed${i}`), {
+            recursive: true,
+          });
+          await writeFile(
+            join(tempDir, `.adv/changes/closed${i}/change.json`),
+            JSON.stringify({
+              $schema: "https://advance.dev/schemas/change.v1.json",
+              id: `closed${i}`,
+              title: `Closed ${i}`,
+              status: "closed",
+              created_at: "2026-01-20T00:00:00Z",
+              tasks: [],
+              deltas: {},
+            }),
+          );
+        }
+        await store.sync();
+
+        const result = await statusTools.adv_status.execute({}, store);
+        const parsed = parseToolOutput(result);
+
+        expect(parsed._healthSnapshot.closed_to_active_ratio).toBe(6);
+        const leakRec = parsed.recommendations.find((r: string) =>
+          r.includes("Closed-change disk leak detected"),
+        );
+        expect(leakRec).toBeDefined();
+        expect(leakRec).toContain("ratio 6:1");
+        expect(leakRec).toContain(
+          "adv_archive_sweep_orphans dryRun: true includeClosed: true",
+        );
       });
     });
   });

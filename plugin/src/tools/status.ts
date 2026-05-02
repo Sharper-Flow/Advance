@@ -43,6 +43,85 @@ import { runClarifyReadinessChecks } from "../validator/clarify-readiness";
 import { z } from "zod";
 import { withOptionalTargetPathStore } from "./target-project";
 import { buildExternalDependencyStatus } from "./external-dependency-status";
+import { listChangeDirs, loadChange } from "../storage/json";
+import { archiveBundleExists } from "../archive/archive";
+
+// =============================================================================
+// Health Snapshot Cache
+// =============================================================================
+
+const HEALTH_SNAPSHOT_TTL_MS = 30000;
+
+interface HealthSnapshot {
+  leaked_source_dirs: number;
+  leaked_archived_source_dirs: number;
+  archive_dirs: number;
+  closed_to_active_ratio: number;
+}
+
+const healthSnapshotCache = new Map<
+  string,
+  { snapshot: HealthSnapshot; computedAt: number }
+>();
+
+/** Exported for test isolation only */
+export const _healthSnapshotCache = healthSnapshotCache;
+
+async function computeHealthSnapshot(store: Store): Promise<HealthSnapshot> {
+  const cacheKey = store.paths.external
+    ? basename(store.paths.external)
+    : store.paths.root;
+
+  const cached = healthSnapshotCache.get(cacheKey);
+  const now = Date.now();
+  if (cached && now - cached.computedAt < HEALTH_SNAPSHOT_TTL_MS) {
+    return cached.snapshot;
+  }
+
+  const changesDir = store.paths.changes;
+  const archiveDir = store.paths.archive;
+
+  const [changeIds, archiveIds] = await Promise.all([
+    listChangeDirs(changesDir),
+    listChangeDirs(archiveDir),
+  ]);
+
+  let leakedSourceDirs = 0;
+  let leakedArchivedSourceDirs = 0;
+  let closedCount = 0;
+  let activeCount = 0;
+
+  await Promise.all(
+    changeIds.map(async (id) => {
+      const result = await loadChange(changesDir, id);
+      if (!result.success || !result.data) return;
+
+      const status = result.data.status;
+      if (status === "closed") {
+        closedCount++;
+        const hasArchive = await archiveBundleExists(archiveDir, id);
+        if (!hasArchive) {
+          leakedSourceDirs++;
+        }
+      } else if (status === "archived") {
+        leakedArchivedSourceDirs++;
+      } else if (status === "active") {
+        activeCount++;
+      }
+    }),
+  );
+
+  const snapshot: HealthSnapshot = {
+    leaked_source_dirs: leakedSourceDirs,
+    leaked_archived_source_dirs: leakedArchivedSourceDirs,
+    archive_dirs: archiveIds.length,
+    closed_to_active_ratio:
+      Math.round((closedCount / Math.max(activeCount, 1)) * 100) / 100,
+  };
+
+  healthSnapshotCache.set(cacheKey, { snapshot, computedAt: now });
+  return snapshot;
+}
 
 // =============================================================================
 // Helpers
@@ -399,6 +478,14 @@ export const statusTools = {
             );
           }
 
+          const healthSnapshot = await computeHealthSnapshot(activeStore);
+          if (healthSnapshot.closed_to_active_ratio > 5) {
+            const ratio = healthSnapshot.closed_to_active_ratio;
+            status.recommendations.push(
+              `⚠️  Closed-change disk leak detected (ratio ${ratio}:1). Run \`adv_archive_sweep_orphans dryRun: true includeClosed: true\` to inspect.`,
+            );
+          }
+
           const specsList = await activeStore.specs.list();
           const requirementCount = specsList.specs.reduce(
             (sum, s) => sum + (s.requirementCount ?? 0),
@@ -451,6 +538,7 @@ export const statusTools = {
             migration_status: migrationStatus,
             project_metadata: projectMetadata,
             worktree_census: worktreeCensus,
+            _healthSnapshot: healthSnapshot,
             diagnostics: {
               temporalWorker: temporalHealth?.worker_alive
                 ? ("healthy" as const)
