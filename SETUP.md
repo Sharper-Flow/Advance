@@ -11,8 +11,9 @@ Complete installation instructions for the ADV spec-driven development plugin.
 5. [Directory Structure](#directory-structure)
 6. [Creating Your First Spec](#creating-your-first-spec)
 7. [Verification](#verification)
-8. [Migration from OpenSpec](#migration-from-openspec)
-9. [Troubleshooting](#troubleshooting)
+8. [ADV CLI (`bin/adv`)](#adv-cli-binadv)
+9. [Migration from OpenSpec](#migration-from-openspec)
+10. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -708,6 +709,23 @@ pnpm dlx tsx scripts/migrate-openspec.ts /path/to/your-project/openspec ./specs
 3. Update your project.json if needed
 
 4. Remove old openspec/ directory (backup is created automatically)
+
+---
+
+## ADV CLI (`bin/adv`)
+
+Standalone terminal client for viewing ADV status without an OpenCode session. Reads state directly from disk.
+
+**Requirements:** Bun 1.3+ must be installed (`bun --version` to check).
+
+```bash
+# Install (one-time symlink)
+ln -s "$(pwd)/bin/adv" ~/.local/bin/adv   # ensure ~/.local/bin is in PATH
+adv --version                              # verify: "adv v0.1.0"
+adv                                        # show status for current repo
+```
+
+Flags: `--no-color` (or `NO_COLOR=1`) to disable ANSI colors. See `adv --help` for details.
 
 ---
 
