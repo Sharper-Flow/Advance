@@ -935,9 +935,9 @@ describe("Temporal store backend adapter", () => {
     expect(result.success).toBe(true);
     expect(result.data?.id).toBe("chg-archived-purged");
     expect(result.data?.status).toBe("archived");
-    expect(
-      (result.data as { _source?: string } | undefined)?._source,
-    ).toBe("disk");
+    expect((result.data as { _source?: string } | undefined)?._source).toBe(
+      "disk",
+    );
     // Critical invariant: workflow.start MUST NOT be called for archived
     // changes. Re-seeding would re-create the workflow and re-emit a
     // ChangeSummary signal, undoing adv_archive_purge.

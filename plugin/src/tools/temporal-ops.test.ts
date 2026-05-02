@@ -230,9 +230,11 @@ describe("temporal operator tools", () => {
 
   it("adv_temporal_worker_restart logs async failures via appendDebugLog without throwing", async () => {
     // Reject with an error; tool should not throw, response should still be success.
-    mocks.restartCurrentProjectTemporalWorker.mockImplementationOnce(async () => {
-      throw new Error("simulated worker restart failure");
-    });
+    mocks.restartCurrentProjectTemporalWorker.mockImplementationOnce(
+      async () => {
+        throw new Error("simulated worker restart failure");
+      },
+    );
     const store = { paths: { root: "/repo" } } as any;
     const result = await temporalOpsTools.adv_temporal_worker_restart.execute(
       {},

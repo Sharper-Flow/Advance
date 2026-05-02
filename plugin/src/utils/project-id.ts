@@ -34,8 +34,7 @@ import { createHash } from "crypto";
  * SHAs cannot start with 16 zeros in practice, so any value matching this
  * prefix is unambiguously test-mode state.
  */
-export const SYNTHETIC_TEST_PROJECT_ID_PREFIX =
-  "0000000000000000"; // 16 zeros
+export const SYNTHETIC_TEST_PROJECT_ID_PREFIX = "0000000000000000"; // 16 zeros
 
 /**
  * Synthetic project identifier returned by `getProjectId` during vitest

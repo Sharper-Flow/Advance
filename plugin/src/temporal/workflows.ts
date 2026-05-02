@@ -211,10 +211,9 @@ const recordMigrationEntryUpdate = wf.defineUpdate<
   MigrationLedgerEntry,
   [MigrationLedgerEntry]
 >(PROJECT_WORKFLOW_UPDATE_NAMES.recordMigrationEntry);
-const purgeChangeSummaryUpdate = wf.defineUpdate<
-  void,
-  [{ changeId: string }]
->(PROJECT_WORKFLOW_UPDATE_NAMES.purgeChangeSummary);
+const purgeChangeSummaryUpdate = wf.defineUpdate<void, [{ changeId: string }]>(
+  PROJECT_WORKFLOW_UPDATE_NAMES.purgeChangeSummary,
+);
 
 /**
  * Wrap a workflow update handler so domain errors propagate as

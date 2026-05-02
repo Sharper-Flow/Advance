@@ -143,7 +143,6 @@ export const archivePurgeTools = {
           });
         }
         // benign: workflow was already gone; proceed to purge registry entry.
-        terminated = false;
       }
 
       // (4) Send purgeChangeSummary update to parent project workflow.
@@ -195,8 +194,7 @@ export const archivePurgeTools = {
             purged: changeId,
             terminated,
             diskRemoved: false,
-            diskRemovalError:
-              err instanceof Error ? err.message : String(err),
+            diskRemovalError: err instanceof Error ? err.message : String(err),
             message: `Workflow state for ${changeId} purged from change_summaries; child workflow terminated. Disk bundle removal failed — manual cleanup of ${archiveBundlePath} required.`,
           });
         }

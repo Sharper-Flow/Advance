@@ -40,10 +40,7 @@ import {
   createLogger,
 } from "./utils/debug-log";
 import { getExternalRoot, getProjectId } from "./utils/project-id";
-import {
-  acquireWorkerLock,
-  releaseWorkerLock,
-} from "./temporal/worker-lock";
+import { acquireWorkerLock, releaseWorkerLock } from "./temporal/worker-lock";
 
 const debugLog = (msg: string): void => appendDebugLog("plugin-init", msg);
 const logger = createLogger("plugin-init");
@@ -136,13 +133,12 @@ export async function tryInitStore(
       // instances participate as Temporal clients only.
       // ADV_FORCE_IN_PROCESS_WORKER=1 bypasses the singleton (legacy
       // per-session behavior); used by tests and as the rollback path.
-      const forceInProcess =
-        process.env.ADV_FORCE_IN_PROCESS_WORKER === "1";
+      const forceInProcess = process.env.ADV_FORCE_IN_PROCESS_WORKER === "1";
       const projectStateDir = externalRoot ?? getExternalRoot(projectId);
       const lock = forceInProcess
         ? null
         : await acquireWorkerLock(projectStateDir);
-      const shouldSpawnWorker = forceInProcess || (lock?.owned === true);
+      const shouldSpawnWorker = forceInProcess || lock?.owned === true;
 
       if (lock && !lock.owned) {
         debugLog(

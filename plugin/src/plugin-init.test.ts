@@ -546,9 +546,8 @@ describe("tryInitStore worker singleton (C5 / rq-workerSingleton01)", () => {
       startedRuntime: true,
     }));
     // worker-lock default: owned:true (this instance owns the lock).
-    const { acquireWorkerLock, releaseWorkerLock } = await import(
-      "./temporal/worker-lock"
-    );
+    const { acquireWorkerLock, releaseWorkerLock } =
+      await import("./temporal/worker-lock");
     (acquireWorkerLock as any).mockImplementation(async () => ({
       owned: true,
       ownerPid: process.pid,
