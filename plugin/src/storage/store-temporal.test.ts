@@ -874,6 +874,115 @@ describe("Temporal store backend adapter", () => {
     expect(query).toHaveBeenCalledTimes(2);
   });
 
+  // =============================================================================
+  // A5 / rq-archivePurge01.1: disk fallback for archived changes (NO re-seed)
+  // =============================================================================
+
+  it("archived change with terminated workflow returns from disk WITHOUT re-seeding", async () => {
+    // After adv_archive_purge terminates the workflow, a subsequent
+    // changes.get must return content from the on-disk archive bundle
+    // — and must NOT re-seed the workflow (re-seeding would re-emit a
+    // summary signal and undo the purge on the very next read).
+    const query = vi
+      .fn()
+      .mockRejectedValue(new Error("Workflow execution not found"));
+    const changeHandle = {
+      query,
+      executeUpdate: vi.fn(async () => null),
+      signal: vi.fn(async () => {}),
+    };
+
+    const start = vi.fn(async () => changeHandle); // MUST NOT be invoked
+    const bundle = {
+      client: {
+        workflow: {
+          getHandle: routeHandle(changeHandle),
+          start,
+        },
+      },
+    };
+
+    const legacy = makeLegacyStore();
+    legacy.changes.get = vi.fn(async () => ({
+      success: true,
+      data: {
+        id: "chg-archived-purged",
+        title: "Archived & Purged",
+        status: "archived",
+        created_at: "2026-04-01T00:00:00.000Z",
+        tasks: [],
+        deltas: {},
+        wisdom: [],
+        gates: {
+          proposal: { status: "done" },
+          discovery: { status: "done" },
+          design: { status: "done" },
+          planning: { status: "done" },
+          execution: { status: "done" },
+          acceptance: { status: "done" },
+          release: { status: "done" },
+        },
+      },
+    })) as any;
+
+    const adapted = createTemporalStoreBackend({
+      legacy,
+      temporal: bundle as any,
+      projectId: "proj1",
+    });
+
+    const result = await adapted.changes.get("chg-archived-purged");
+    expect(result.success).toBe(true);
+    expect(result.data?.id).toBe("chg-archived-purged");
+    expect(result.data?.status).toBe("archived");
+    expect(
+      (result.data as { _source?: string } | undefined)?._source,
+    ).toBe("disk");
+    // Critical invariant: workflow.start MUST NOT be called for archived
+    // changes. Re-seeding would re-create the workflow and re-emit a
+    // ChangeSummary signal, undoing adv_archive_purge.
+    expect(start).not.toHaveBeenCalled();
+  });
+
+  it("archived change missing on disk surfaces the original not-found error", async () => {
+    const query = vi
+      .fn()
+      .mockRejectedValue(new Error("Workflow execution not found"));
+    const changeHandle = {
+      query,
+      executeUpdate: vi.fn(async () => null),
+      signal: vi.fn(async () => {}),
+    };
+    const start = vi.fn(async () => changeHandle);
+    const bundle = {
+      client: {
+        workflow: {
+          getHandle: routeHandle(changeHandle),
+          start,
+        },
+      },
+    };
+
+    const legacy = makeLegacyStore();
+    // No disk snapshot — legacy.changes.get returns {success:true,data:null}.
+    legacy.changes.get = vi.fn(async () => ({
+      success: true,
+      data: null,
+    })) as any;
+
+    const adapted = createTemporalStoreBackend({
+      legacy,
+      temporal: bundle as any,
+      projectId: "proj1",
+    });
+
+    await expect(adapted.changes.get("chg-gone")).rejects.toThrow(
+      /Workflow execution not found/i,
+    );
+    // No archive on disk + no workflow → no reseed attempt either.
+    expect(start).not.toHaveBeenCalled();
+  });
+
   describe("closeBatch", () => {
     it("propagates Temporal errors without falling back to legacy", async () => {
       const changeHandle = {

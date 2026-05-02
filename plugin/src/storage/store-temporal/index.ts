@@ -325,6 +325,18 @@ export function createTemporalStoreBackend(
     const legacyRead = await legacy.changes.get(changeId);
     if (!legacyRead.success || !legacyRead.data) return null;
     const change = legacyRead.data;
+
+    // (A5 / rq-archivePurge01.1) Archived changes are terminal — return
+    // the on-disk projection directly WITHOUT re-creating the workflow.
+    // Re-seeding would re-emit a ChangeSummary signal and undo
+    // adv_archive_purge on the very next read. Mark the result so callers
+    // (and tests) can identify disk-sourced returns.
+    if (change.status === "archived") {
+      return {
+        ...change,
+        _source: "disk",
+      } as Change & { _source: "disk" };
+    }
     try {
       const client = {
         workflow: input.temporal.client.workflow as {
@@ -397,6 +409,11 @@ export function createTemporalStoreBackend(
       // ChangeWorkflow from disk and return the hydrated state. This
       // prevents a single orphan from blocking adv_status /
       // adv_change_list / adv_change_show.
+      //
+      // (A5 / rq-archivePurge01.1) For archived changes specifically,
+      // reseedChangeFromDisk short-circuits and returns the on-disk
+      // projection without re-creating the workflow — re-seeding would
+      // re-emit a summary signal and undo adv_archive_purge.
       if (classifyTemporalError(error) === "fallback") {
         const reseeded = await reseedChangeFromDisk(changeId);
         if (reseeded) {
