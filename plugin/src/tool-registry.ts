@@ -10,16 +10,10 @@
  * a single line per tool. Arg schemas live in each tool file alongside
  * description and execute, keeping them co-located and readable.
  *
- * Zod version: both the plugin and `@opencode-ai/plugin` SDK use Zod v4.
- * Prior to P1.12 (completeTemporalOnlyMigration), the SDK bundled
- * `zod@4.1.8` while the plugin declared `^4.3.6`, producing two runtime
- * Zod instances with different prototype identities. That patch-level
- * drift was the suspected root cause of the zero-args tool-call hang
- * reproduced during /adv-design (see wisdom ws-3550c245). A pinned
- * `pnpm.overrides.zod = "4.3.6"` now forces a single instance across the
- * dependency tree. The `as any` cast at the SDK boundary is retained
- * because the SDK's typed `tool()` signature still expects the SDK's own
- * Zod import identity — a single structural cast, not a version bridge.
+ * P1.12 pinned `pnpm.overrides.zod = "4.3.6"` so the plugin and SDK share one
+ * runtime Zod instance. The `as any` cast at the SDK boundary remains required
+ * because the typed `tool()` signature expects the SDK's own Zod import
+ * identity — a single structural cast, not a version bridge.
  */
 
 import { tool } from "@opencode-ai/plugin";

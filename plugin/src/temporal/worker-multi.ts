@@ -41,13 +41,11 @@ const debugLog = (msg: string): void =>
  * Sequence: 1s → 3s → 10s, then exhaust at MAX_RESTARTS=3. Total wall-clock
  * time from first crash to exhaustion ≈ 14s plus per-attempt child runtime.
  *
- * KD-9 (boundParentProjectWorkflow): the field report at
- * `/tmp/opencode/adv-plugin-issue-report.md` observed "ephemeral workers
- * every ~2s" during diagnostics. Investigation confirms this matches the
- * first-attempt 1s backoff plus ~1s child startup — i.e. correct and
- * bounded behavior, NOT an unbounded respawn loop. After 3 attempts the
- * worker exhausts and stops respawning. The visibility of the cycle was
- * the surprise, not the cycle itself.
+ * KD-9 (boundParentProjectWorkflow): diagnostics observed "ephemeral workers
+ * every ~2s". Investigation confirms this matches first-attempt 1s backoff
+ * plus ~1s child startup — correct bounded behavior, NOT an unbounded respawn
+ * loop. After 3 attempts the worker exhausts and stops respawning. The
+ * visibility of the cycle was the surprise, not the cycle itself.
  *
  * Follow-up captured separately: surface `exhausted N restart attempts`
  * via the agent-visible health surface (currently only logged to debug).

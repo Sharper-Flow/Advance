@@ -484,8 +484,7 @@ export const temporalOpsTools = {
     execute: async (_args: Record<string, never>, store: Store) => {
       // KD-5 fire-and-forget: kick off the restart asynchronously and
       // return immediately. The underlying restart legitimately exceeds
-      // the 10s safety-net timeout on mature projects (see report at
-      // /tmp/opencode/adv-plugin-issue-report.md). Awaiting it produced
+      // the 10s safety-net timeout on mature projects. Awaiting it produced
       // false-positive ToolExecutionTimeout responses despite the restart
       // succeeding. adv_status / adv_temporal_diagnose are the documented
       // verification path.
