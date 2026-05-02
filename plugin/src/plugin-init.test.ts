@@ -75,8 +75,28 @@ vi.mock("./storage/store", () => ({
   createStore: mocks.createStore,
 }));
 
-vi.mock("./utils/project-id", () => ({
-  getProjectId: mocks.getProjectId,
+vi.mock("./utils/project-id", async () => {
+  const actual =
+    await vi.importActual<typeof import("./utils/project-id")>(
+      "./utils/project-id",
+    );
+  return {
+    ...actual,
+    getProjectId: mocks.getProjectId,
+  };
+});
+
+// Mock worker-lock so plugin-init tests don't write real lock files to
+// arbitrary tmp paths. Default: every acquire reports owned (so spawn
+// path is exercised); individual tests override for not-owned coverage.
+vi.mock("./temporal/worker-lock", () => ({
+  acquireWorkerLock: vi.fn(async (_dir: string) => ({
+    owned: true,
+    ownerPid: process.pid,
+    workerId: "test-worker-id",
+    lockPath: "/tmp/test/worker.lock",
+  })),
+  releaseWorkerLock: vi.fn(async () => {}),
 }));
 
 vi.mock("./temporal/runtime-manager", async () => {

@@ -39,7 +39,11 @@ import {
   appendProfileLog,
   createLogger,
 } from "./utils/debug-log";
-import { getProjectId } from "./utils/project-id";
+import { getExternalRoot, getProjectId } from "./utils/project-id";
+import {
+  acquireWorkerLock,
+  releaseWorkerLock,
+} from "./temporal/worker-lock";
 
 const debugLog = (msg: string): void => appendDebugLog("plugin-init", msg);
 const logger = createLogger("plugin-init");
@@ -127,43 +131,71 @@ export async function tryInitStore(
         supported: workerProbe.supported,
       });
 
-      if (workerProbe.supported) {
-        const workerStartedAt = performance.now();
-        worker = await createInProcessWorker({
-          address: runtime.address,
-          namespace: runtime.namespace,
-          queues: [buildProjectTaskQueue(projectId)],
+      // C2 / rq-workerSingleton01: file-lock coordination so only one
+      // plugin instance per project_id spawns a worker. Subsequent
+      // instances participate as Temporal clients only.
+      // ADV_FORCE_IN_PROCESS_WORKER=1 bypasses the singleton (legacy
+      // per-session behavior); used by tests and as the rollback path.
+      const forceInProcess =
+        process.env.ADV_FORCE_IN_PROCESS_WORKER === "1";
+      const projectStateDir = externalRoot ?? getExternalRoot(projectId);
+      const lock = forceInProcess
+        ? null
+        : await acquireWorkerLock(projectStateDir);
+      const shouldSpawnWorker = forceInProcess || (lock?.owned === true);
+
+      if (lock && !lock.owned) {
+        debugLog(
+          `worker.lock held by pid=${lock.ownerPid} — skipping worker spawn, joining as Temporal client only`,
+        );
+        profilePluginInit("worker_singleton_yield", {
+          owner_pid: lock.ownerPid,
         });
-        profilePluginInit("worker_started", {
-          duration_ms: Number((performance.now() - workerStartedAt).toFixed(3)),
-          worker_model: "in_process",
-        });
-      } else {
-        const nodeResolution = resolveNodeExecutable();
-        profilePluginInit("worker_node_resolution", {
-          found: nodeResolution.found,
-          source: nodeResolution.source,
-        });
-        if (!nodeResolution.found) {
-          profilePluginInit("worker_node_missing", {
-            worker_runtime: workerProbe.runtime,
+      }
+
+      if (shouldSpawnWorker) {
+        if (workerProbe.supported) {
+          const workerStartedAt = performance.now();
+          worker = await createInProcessWorker({
+            address: runtime.address,
+            namespace: runtime.namespace,
+            queues: [buildProjectTaskQueue(projectId)],
           });
-          throw new Error(
-            `Temporal worker cannot run under ${workerProbe.runtime}. ${nodeResolution.remediation ?? "Install Node on PATH or set ADV_NODE_PATH."}`,
-          );
+          profilePluginInit("worker_started", {
+            duration_ms: Number(
+              (performance.now() - workerStartedAt).toFixed(3),
+            ),
+            worker_model: "in_process",
+          });
+        } else {
+          const nodeResolution = resolveNodeExecutable();
+          profilePluginInit("worker_node_resolution", {
+            found: nodeResolution.found,
+            source: nodeResolution.source,
+          });
+          if (!nodeResolution.found) {
+            profilePluginInit("worker_node_missing", {
+              worker_runtime: workerProbe.runtime,
+            });
+            throw new Error(
+              `Temporal worker cannot run under ${workerProbe.runtime}. ${nodeResolution.remediation ?? "Install Node on PATH or set ADV_NODE_PATH."}`,
+            );
+          }
+          const workerStartedAt = performance.now();
+          worker = await createOutOfProcessWorker({
+            address: runtime.address,
+            namespace: runtime.namespace,
+            queues: [buildProjectTaskQueue(projectId)],
+            workerScript: resolveWorkerScriptPath(),
+            projectId,
+          });
+          profilePluginInit("worker_started", {
+            duration_ms: Number(
+              (performance.now() - workerStartedAt).toFixed(3),
+            ),
+            worker_model: "out_of_process",
+          });
         }
-        const workerStartedAt = performance.now();
-        worker = await createOutOfProcessWorker({
-          address: runtime.address,
-          namespace: runtime.namespace,
-          queues: [buildProjectTaskQueue(projectId)],
-          workerScript: resolveWorkerScriptPath(),
-          projectId,
-        });
-        profilePluginInit("worker_started", {
-          duration_ms: Number((performance.now() - workerStartedAt).toFixed(3)),
-          worker_model: "out_of_process",
-        });
       }
 
       const bundleStartedAt = performance.now();
@@ -176,7 +208,15 @@ export async function tryInitStore(
       profilePluginInit("temporal_client_ready", {
         duration_ms: Number((performance.now() - bundleStartedAt).toFixed(3)),
       });
-      registerInProcessTemporalWorker(worker);
+      if (worker) {
+        registerInProcessTemporalWorker(worker);
+        if (lock?.owned === true && !forceInProcess) {
+          // Register lock release on worker shutdown — release happens
+          // before worker.shutdown() so a fresh start can reclaim if
+          // shutdown stalls.
+          registerOwnedWorkerLock(projectStateDir);
+        }
+      }
     }
 
     const storeCreateStartedAt = performance.now();
@@ -233,6 +273,18 @@ export async function tryInitStore(
 }
 
 const inProcessTemporalWorkers = new Set<InProcessWorker>();
+
+/**
+ * Project state directories whose worker.lock is owned by THIS plugin
+ * instance. Released during shutdown drain so subsequent plugin starts
+ * can reclaim. Stale-PID detection on next start is the recovery path
+ * if release is skipped (hard exit, etc).
+ */
+const ownedWorkerLockDirs = new Set<string>();
+
+export function registerOwnedWorkerLock(projectStateDir: string): void {
+  ownedWorkerLockDirs.add(projectStateDir);
+}
 
 /**
  * Register an in-process Temporal worker so registerShutdownHandlers can
@@ -301,6 +353,21 @@ export function getTemporalWorkerAliveness(): boolean {
 async function drainInProcessTemporalWorkers(): Promise<void> {
   const workers = [...inProcessTemporalWorkers];
   inProcessTemporalWorkers.clear();
+  // Release worker.lock files BEFORE worker shutdown so a fresh start
+  // can reclaim quickly if our shutdown stalls. Release is best-effort;
+  // stale-PID detection on next start is the authoritative recovery
+  // path. (rq-workerSingleton01.3)
+  const lockDirs = [...ownedWorkerLockDirs];
+  ownedWorkerLockDirs.clear();
+  await Promise.all(
+    lockDirs.map(async (dir) => {
+      try {
+        await releaseWorkerLock(dir);
+      } catch (e) {
+        debugLog(`Error releasing worker.lock in ${dir}: ${e}`);
+      }
+    }),
+  );
   await Promise.all(
     workers.map(async (worker) => {
       try {
