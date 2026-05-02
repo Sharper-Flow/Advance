@@ -67,7 +67,7 @@ This pack covers ADV's Temporal workflow integration, storage architecture (JSON
 - **Worker consolidation:** Per-queue children → single multi-queue child, reducing process overhead.
 - **Error classification:** Four-class taxonomy (TRANSIENT/SEMANTIC/ENVIRONMENTAL/FATAL) + Temporal-specific (transient/fallback/fatal) with telemetry histograms.
 - **Bounded recovery:** `corruption-recovery.ts` with configurable attempts and backoff.
-- **RCA maturity:** `docs/rca-opencode-bootstrap-lock.md` demonstrates thorough multi-process SQLite analysis.
+- **RCA maturity:** `../rca-opencode-bootstrap-lock.md` demonstrates thorough multi-process SQLite analysis.
 
 ## LBP / Reference Comparison
 
@@ -143,7 +143,7 @@ If rebuilt from scratch today with Temporal as the primary store:
 - `plugin/src/plugin-init.ts` — plugin bootstrap + worker lifecycle
 - `plugin/src/events/status.ts` — doom loop tracking
 - `plugin/src/types.ts` — error recovery taxonomy
-- `docs/rca-opencode-bootstrap-lock.md` — multi-process SQLite RCA
+- `../rca-opencode-bootstrap-lock.md` — multi-process SQLite RCA
 - Context7: `/temporalio/documentation` — TypeScript SDK production best practices
 - https://www.zenml.io/blog/temporal-alternatives
 - https://akka.io/blog/temporal-alternatives

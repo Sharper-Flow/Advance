@@ -5,7 +5,7 @@
 - **Created:** 2026-04-26
 - **Updated:** 2026-04-26
 
-> Companion to `docs/temporal-data-sync-resiliency-prep.md` (2026-04-23). That pack covered the pre-Temporal-only-migration data layer. This pack covers post-migration **runtime reliability** for agent-driven workloads, including the `improveAdvPostCrashTemporal` (in-progress) recovery surfaces and the still-open agent-facing failure modes the in-flight change does not yet address.
+> Companion to `temporal-data-sync-resiliency-prep.md` (2026-04-23). That pack covered the pre-Temporal-only-migration data layer. This pack covers post-migration **runtime reliability** for agent-driven workloads, including the `improveAdvPostCrashTemporal` (in-progress) recovery surfaces and the still-open agent-facing failure modes the in-flight change does not yet address.
 
 ## Purpose & Scope
 
@@ -180,10 +180,10 @@ If rebuilding the Temporal integration today for the same per-session ADV deploy
 - `plugin/src/utils/safe-execute.ts:173-195` (Temporal error hint formatter)
 
 ### Local docs
-- `docs/temporal-recovery.md` (worker model + recovery runbook)
-- `docs/temporal-data-sync-resiliency-prep.md` (2026-04-23 pre-migration pack — companion)
-- `docs/performance-prep.md`
-- `ADV_INSTRUCTIONS.md`
+- `../temporal-recovery.md` (worker model + recovery runbook)
+- `temporal-data-sync-resiliency-prep.md` (2026-04-23 pre-migration pack — companion)
+- `performance-prep.md`
+- `../../ADV_INSTRUCTIONS.md`
 - In-flight change `improveAdvPostCrashTemporal` (8 tasks, 6 done, 1 in_progress, 1 pending)
 
 ### External (Kagi searches 2026-04-26)

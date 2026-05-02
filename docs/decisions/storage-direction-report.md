@@ -19,7 +19,7 @@ Current evidence says:
 
 ### Current live ADV path
 
-See `docs/live-adv-latency.md`.
+See `../live-adv-latency.md`.
 
 Current measured values in this worktree/session:
 
@@ -37,7 +37,7 @@ Interpretation:
 
 ### JSONL primitives
 
-See `docs/local-storage-comparison.md`.
+See `local-storage-comparison.md`.
 
 Measured JSONL primitives in this repo:
 

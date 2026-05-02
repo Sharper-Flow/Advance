@@ -47,7 +47,7 @@ pnpm run format               # prettier --write
 pnpm run format:check         # prettier --check
 # Note: `pnpm run validate:temporal` and its harness were retired by the
 # `migrateAdvStateTemporalRetire` change (D3). The Temporal cutover has shipped;
-# `docs/temporal-readiness-decision.md` is preserved as the historical record.
+# `docs/decisions/temporal-readiness-decision.md` is preserved as the historical record.
 # Note: no `generate:schemas` or `generate:docs` scripts exist.
 # plugin/schemas/ contains $ref stub files only — Zod types in src/types.ts
 # are the authoritative source. When extending Zod schemas, no separate
