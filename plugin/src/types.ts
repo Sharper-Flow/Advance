@@ -591,6 +591,15 @@ export const ChangeStatusSchema = z.enum([
 
 export type ChangeStatus = z.infer<typeof ChangeStatusSchema>;
 
+/**
+ * Filter-only status value for adv_change_list.
+ * "in-flight" is a union filter (draft + pending + active), not a stored status.
+ */
+export const ChangeListStatusFilterSchema = z.union([
+  ChangeStatusSchema,
+  z.literal("in-flight"),
+]);
+
 const ChangeClosureReasonSchema = z.enum([
   "cancelled",
   "superseded",

@@ -59,6 +59,65 @@ describe("Change Tools", () => {
       expect(parsed.changes).toHaveLength(0);
     });
 
+    test("status: in-flight returns draft, pending, and active changes", async () => {
+      // We already have 1 active change: addFeature
+      // Create additional changes and set their statuses
+      const createDraft = await changeTools.adv_change_create.execute(
+        { summary: "Draft change" },
+        store,
+      );
+      const draftId = parseToolOutput(createDraft).changeId;
+      const draftChange = await store.changes.get(draftId);
+      expect(draftChange.success).toBe(true);
+      draftChange.data!.status = "draft";
+      await store.changes.save(draftChange.data!);
+
+      const createPending = await changeTools.adv_change_create.execute(
+        { summary: "Pending change" },
+        store,
+      );
+      const pendingId = parseToolOutput(createPending).changeId;
+      const pendingChange = await store.changes.get(pendingId);
+      expect(pendingChange.success).toBe(true);
+      pendingChange.data!.status = "pending";
+      await store.changes.save(pendingChange.data!);
+
+      const createArchived = await changeTools.adv_change_create.execute(
+        { summary: "Archived change" },
+        store,
+      );
+      const archivedId = parseToolOutput(createArchived).changeId;
+      const archivedChange = await store.changes.get(archivedId);
+      expect(archivedChange.success).toBe(true);
+      archivedChange.data!.status = "archived";
+      await store.changes.save(archivedChange.data!);
+
+      const createClosed = await changeTools.adv_change_create.execute(
+        { summary: "Closed change" },
+        store,
+      );
+      const closedId = parseToolOutput(createClosed).changeId;
+      const closedChange = await store.changes.get(closedId);
+      expect(closedChange.success).toBe(true);
+      closedChange.data!.status = "closed";
+      await store.changes.save(closedChange.data!);
+
+      const result = await changeTools.adv_change_list.execute(
+        { status: "in-flight" },
+        store,
+      );
+      const parsed = parseToolOutput(result);
+
+      // Should return exactly draft, pending, active — not archived or closed
+      expect(parsed.changes).toHaveLength(3);
+      const statuses = parsed.changes.map((c: { status: string }) => c.status);
+      expect(statuses).toContain("draft");
+      expect(statuses).toContain("pending");
+      expect(statuses).toContain("active");
+      expect(statuses).not.toContain("archived");
+      expect(statuses).not.toContain("closed");
+    });
+
     test("excludes archived by default", async () => {
       // Archive the existing change
       const changeResult = await store.changes.get("addFeature");

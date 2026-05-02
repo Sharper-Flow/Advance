@@ -20,6 +20,7 @@ import {
   getIncompleteGates,
   allGatesSatisfied,
   GateIdSchema,
+  ChangeListStatusFilterSchema,
   type GateId,
   type Change,
   type ClarifyFindingSnapshot,
@@ -732,10 +733,9 @@ export const changeTools = {
     description:
       "List active changes with optional filtering, recency enrichment, and sorting",
     args: {
-      status: z
-        .enum(["draft", "pending", "active", "archived", "closed"])
-        .optional()
-        .describe("Filter by status"),
+      status: ChangeListStatusFilterSchema.optional().describe(
+        'Filter by status. Use "in-flight" for the union of draft + pending + active.',
+      ),
       includeArchived: z
         .boolean()
         .optional()
@@ -795,7 +795,7 @@ export const changeTools = {
         { store, target_path },
         async (activeStore, projectContext) => {
           const result = await activeStore.changes.list({
-            status,
+            status: status === "in-flight" ? undefined : status,
             includeArchived,
             includeClosed,
           });
@@ -821,11 +821,13 @@ export const changeTools = {
 
           // Filter by recency band before pagination
           let filtered = withRecency;
+          if (status === "in-flight") {
+            const inFlightStatuses = new Set(["draft", "pending", "active"]);
+            filtered = filtered.filter((c) => inFlightStatuses.has(c.status));
+          }
           if (excludeRecencyBands && excludeRecencyBands.length > 0) {
             const excludeSet = new Set(excludeRecencyBands);
-            filtered = withRecency.filter(
-              (c) => !excludeSet.has(c.recencyBand),
-            );
+            filtered = filtered.filter((c) => !excludeSet.has(c.recencyBand));
           }
 
           // Sort: stalest (asc by lastActivity) or recency (desc by lastActivity)
