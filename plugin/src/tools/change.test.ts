@@ -9,6 +9,7 @@ import { readFile, writeFile, symlink, access, mkdir } from "fs/promises";
 import { join } from "path";
 import { getProjectId, getExternalRoot } from "../utils/project-id";
 import { changeTools } from "./change";
+import { gateTools } from "./gate";
 import { createLegacyStore, type Store } from "../storage/store";
 import { listProjectWisdom } from "../storage/project-wisdom";
 import {
@@ -2420,6 +2421,100 @@ describe("Change Tools", () => {
           store.specs.list = originalList;
         }
       });
+    });
+
+    // F12: canArchive ⇔ archive contract tests
+    test("F12: happy path — all gates done in disk and store, canArchive true and dryRun archive succeeds", async () => {
+      // Complete all tasks
+      await store.tasks.update("tk-task0001", "done");
+      await store.tasks.update("tk-task0002", "done");
+      await store.tasks.update("tk-task0003", "done");
+
+      // Complete all gates on disk
+      const change = (await store.changes.get("addFeature")).data!;
+      change.gates = {
+        proposal: { status: "done", completed_at: new Date().toISOString() },
+        discovery: { status: "done", completed_at: new Date().toISOString() },
+        design: { status: "done", completed_at: new Date().toISOString() },
+        planning: { status: "done", completed_at: new Date().toISOString() },
+        execution: { status: "done", completed_at: new Date().toISOString() },
+        acceptance: { status: "done", completed_at: new Date().toISOString() },
+        release: { status: "done", completed_at: new Date().toISOString() },
+      };
+      await store.changes.save(change);
+
+      // Gate status reports canArchive
+      const gateResult = await gateTools.adv_gate_status.execute(
+        { changeId: "addFeature" },
+        store,
+      );
+      const gateParsed = parseToolOutput(gateResult);
+      expect(gateParsed.canArchive).toBe(true);
+      expect(gateParsed.incomplete).toHaveLength(0);
+
+      // Dry-run archive succeeds
+      const archiveResult = await changeTools.adv_change_archive.execute(
+        { changeId: "addFeature", dryRun: true },
+        store,
+      );
+      const archiveParsed = parseToolOutput(archiveResult);
+      expect(archiveParsed.success).toBe(true);
+      expect(archiveParsed.dryRun).toBe(true);
+    });
+
+    test("F12: divergence — disk gates done but store sees pending, archive fails with F1 hint", async () => {
+      // Complete all tasks
+      await store.tasks.update("tk-task0001", "done");
+      await store.tasks.update("tk-task0002", "done");
+      await store.tasks.update("tk-task0003", "done");
+
+      // Save complete gates to disk
+      const change = (await store.changes.get("addFeature")).data!;
+      change.gates = {
+        proposal: { status: "done", completed_at: new Date().toISOString() },
+        discovery: { status: "done", completed_at: new Date().toISOString() },
+        design: { status: "done", completed_at: new Date().toISOString() },
+        planning: { status: "done", completed_at: new Date().toISOString() },
+        execution: { status: "done", completed_at: new Date().toISOString() },
+        acceptance: { status: "done", completed_at: new Date().toISOString() },
+        release: { status: "done", completed_at: new Date().toISOString() },
+      };
+      await store.changes.save(change);
+
+      // Monkey-patch store.changes.get to simulate Temporal divergence
+      const originalGet = store.changes.get.bind(store.changes);
+      store.changes.get = async (id: string) => {
+        const result = await originalGet(id);
+        if (result.success && result.data && id === "addFeature") {
+          const staleChange = { ...result.data };
+          staleChange.gates = {
+            proposal: { status: "pending" },
+            discovery: { status: "pending" },
+            design: { status: "pending" },
+            planning: { status: "pending" },
+            execution: { status: "pending" },
+            acceptance: { status: "pending" },
+            release: { status: "pending" },
+          };
+          return { success: true, data: staleChange };
+        }
+        return result;
+      };
+
+      try {
+        const result = await changeTools.adv_change_archive.execute(
+          { changeId: "addFeature" },
+          store,
+        );
+        const parsed = parseToolOutput(result);
+
+        expect(parsed.error).toContain("Cannot archive: incomplete gates");
+        expect(parsed.hint).toContain("adv_change_diagnose");
+        expect(parsed.hint).toContain("adv_workflow_repair");
+        expect(parsed.hint).toContain("addFeature");
+      } finally {
+        store.changes.get = originalGet;
+      }
     });
   });
 
