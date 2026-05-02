@@ -3,8 +3,8 @@
   "name": "advance-meta",
   "title": "Advance Meta",
   "purpose": "Capability: Cross-cutting ADV concerns \u2014 config diagnostics, metadata filters, shutdown lifecycle, due-diligence routing, and synthetic-state guards. Split from `advance` capability.",
-  "version": "1.3.0",
-  "updated_at": "2026-05-02T02:18:00.000Z",
+  "version": "1.4.0",
+  "updated_at": "2026-05-02T05:50:00.000Z",
   "requirements": [
     {
       "id": "rq-synthstate01",
@@ -500,6 +500,264 @@
             "ADV_INSTRUCTIONS.md and adv-apply.md delegation tables contain step 4.5 with matching wording",
             "adv.md Context-Optimal Execution section contains context-shed tokens without table pipe characters",
             "adv-apply.md contains P23 diff-scan step tokens"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-archivePurge01",
+      "title": "adv_archive_purge tool",
+      "body": "ADV must provide an explicit user-side lever to terminate an archived child workflow and remove its entry from the parent project workflow's in-memory change_summaries registry. The on-disk archive bundle is preserved by default; the destructive disk-removal escalation requires opt-in. After a workflow-only purge, adv_change_show for the purged change continues returning content from the on-disk projection.",
+      "priority": "must",
+      "scenarios": [
+        {
+          "id": "rq-archivePurge01.1",
+          "title": "Workflow-only purge by default preserves disk bundle",
+          "given": [
+            "An archived change with both an entry in the parent's change_summaries and an existing archive/<id>/change.json bundle on disk"
+          ],
+          "when": "adv_archive_purge changeId: <id> is invoked without includeDiskBundle",
+          "then": [
+            "The child workflow is terminated via Temporal client",
+            "The change is removed from the parent's change_summaries and source_versions",
+            "The on-disk archive bundle is preserved",
+            "adv_change_show for the changeId returns content from the on-disk projection"
+          ]
+        },
+        {
+          "id": "rq-archivePurge01.2",
+          "title": "Opt-in includeDiskBundle removes both workflow state and disk artifacts",
+          "given": [
+            "An archived change with both workflow-state entry and disk bundle"
+          ],
+          "when": "adv_archive_purge changeId: <id> includeDiskBundle: true is invoked",
+          "then": [
+            "The child workflow is terminated and removed from change_summaries",
+            "The archive/<id>/ directory is recursively removed from disk",
+            "Subsequent adv_change_show returns the existing not-found error path"
+          ]
+        },
+        {
+          "id": "rq-archivePurge01.3",
+          "title": "Refuses non-archived or unknown changes",
+          "given": [
+            "A change in active status, OR a changeId that does not exist in change_summaries"
+          ],
+          "when": "adv_archive_purge is invoked",
+          "then": [
+            "The tool returns a structured error and makes no state mutations"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-changeSummariesCap01",
+      "title": "Bounded change_summaries registry",
+      "body": "The parent project workflow's change_summaries registry MUST be bounded by a configurable cap. Default cap is 50 entries; the ADV_CHANGE_SUMMARIES_CAP environment variable overrides at process start. When a new archive summary signal would push the registry past the cap, the oldest archived entry (by lastActivityAt) is evicted. Active and other non-archived statuses are never evicted regardless of count. Eviction is replay-deterministic.",
+      "priority": "must",
+      "scenarios": [
+        {
+          "id": "rq-changeSummariesCap01.1",
+          "title": "Insertion at cap does not evict",
+          "given": [
+            "A project workflow whose change_summaries holds exactly N entries (where N equals the configured cap)"
+          ],
+          "when": "applyChangeSummaryToProjectState is called with an existing changeId (in-place update)",
+          "then": [
+            "The registry size remains exactly N",
+            "No entry is evicted"
+          ]
+        },
+        {
+          "id": "rq-changeSummariesCap01.2",
+          "title": "Insertion past cap evicts oldest archived entry",
+          "given": [
+            "A project workflow whose change_summaries already holds N entries (one archived, the rest in mixed statuses)"
+          ],
+          "when": "applyChangeSummaryToProjectState is called with a new (N+1)th changeId",
+          "then": [
+            "The oldest entry with status archived (by lastActivityAt) is removed from change_summaries and source_versions",
+            "Active and non-archived entries are preserved"
+          ]
+        },
+        {
+          "id": "rq-changeSummariesCap01.3",
+          "title": "Eviction is replay-deterministic",
+          "given": [
+            "A workflow history that triggered eviction during a prior run"
+          ],
+          "when": "The same workflow is replayed",
+          "then": [
+            "The same entry is evicted with the same final state",
+            "Replay-determinism guards in the test suite pass"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-toolTimeoutOverride01",
+      "title": "Per-tool safety-net timeout overrides",
+      "body": "The plugin's safety-net wrapper has a default 10s timeout (DEFAULT_TOOL_TIMEOUT_MS in safe-execute.ts). Tools whose execute body legitimately exceeds 10s on a mature project MUST declare an explicit timeoutMs override at registration time, with a code comment citing the inner-budget rationale. The default value remains 10s; raising the global default is not permitted.",
+      "priority": "must",
+      "scenarios": [
+        {
+          "id": "rq-toolTimeoutOverride01.1",
+          "title": "Long-running tools declare an explicit override",
+          "given": [
+            "A tool whose execute body wraps a subprocess or workflow operation that legitimately exceeds 10s"
+          ],
+          "when": "The tool is registered in tool-registry.ts",
+          "then": [
+            "The registration uses safeExecute with an explicit { timeoutMs: N } where N is sufficient for the inner budget plus modest headroom",
+            "A code comment cites the inner-budget rationale and references this requirement"
+          ]
+        },
+        {
+          "id": "rq-toolTimeoutOverride01.2",
+          "title": "adv_temporal_worker_restart returns within 1s on success via fire-and-forget",
+          "given": [
+            "A worker restart that takes longer than 10s to fully complete"
+          ],
+          "when": "adv_temporal_worker_restart is invoked",
+          "then": [
+            "The tool returns within 1s with success:true and a verification hint pointing at adv_status / adv_temporal_diagnose",
+            "The underlying restart proceeds asynchronously",
+            "An async failure is logged via appendDebugLog without surfacing a ToolExecutionTimeout"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-bulkCloseDiskSweep01",
+      "title": "adv_change_bulk_close composes disk sweep",
+      "body": "After a successful adv_change_bulk_close, both workflow state and on-disk source artifacts (changes/<id>/change.json, proposal.md) MUST be removed in the same call for changes whose individual close succeeded. Per-id outcomes are reported in diskRemoved and diskFailed arrays in the response. Mid-flight workflow-close failure preserves source dirs as the orphan-sweep recovery path.",
+      "priority": "must",
+      "scenarios": [
+        {
+          "id": "rq-bulkCloseDiskSweep01.1",
+          "title": "Successful bulk-close removes disk artifacts and reports per-id results",
+          "given": [
+            "Multiple draft changes selected for closure with explicit user approval"
+          ],
+          "when": "adv_change_bulk_close is invoked and the underlying closeBatch succeeds",
+          "then": [
+            "Each closed change's source directory is removed via sweepClosedChangesFromDisk",
+            "The response includes diskRemoved and diskFailed arrays per changeId",
+            "Idempotency guarantees of the helper apply (already-missing dirs are reported as removed)"
+          ]
+        },
+        {
+          "id": "rq-bulkCloseDiskSweep01.2",
+          "title": "Partial workflow-close failure preserves source dirs",
+          "given": [
+            "A bulk-close where the overall closeBatch reports success:false (one or more closures failed)"
+          ],
+          "when": "The tool returns",
+          "then": [
+            "Source dirs for failed closures are NOT removed",
+            "The orphan sweeper (adv_archive_sweep_orphans includeClosed: true) remains the documented recovery path"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-testFixtureProjectId01",
+      "title": "Test-mode synthetic project_id guardrail",
+      "body": "During vitest runs (process.env.VITEST === 'true' or process.env.ADV_TEST_MODE === '1'), getProjectId MUST NOT resolve to a real git root commit SHA from a fixture path. For a real-git directory it returns a path-derived synthetic ID with a recognizable prefix; for a non-git fixture it returns null (preserving the legacy in-repo path fallback). This prevents test fixtures from leaking state into a real ADV project's external state directory.",
+      "priority": "must",
+      "scenarios": [
+        {
+          "id": "rq-testFixtureProjectId01.1",
+          "title": "Vitest run resolves to a synthetic ID with the SYNTHETIC_TEST_PROJECT_ID_PREFIX",
+          "given": [
+            "process.env.VITEST is 'true' and the directory is a real git repo"
+          ],
+          "when": "getProjectId(directory) is called",
+          "then": [
+            "The returned ID is 40 hex chars",
+            "The ID starts with SYNTHETIC_TEST_PROJECT_ID_PREFIX (16 leading zeros)",
+            "Distinct directories produce distinct synthetic IDs (cross-project test isolation)"
+          ]
+        },
+        {
+          "id": "rq-testFixtureProjectId01.2",
+          "title": "Vitest run on a non-git directory returns null",
+          "given": [
+            "process.env.VITEST is 'true' and the directory is not a git repo (e.g. a createTestProject fixture with a stub .git and no commits)"
+          ],
+          "when": "getProjectId(directory) is called",
+          "then": [
+            "The function returns null",
+            "Callers fall back to legacy in-repo paths via their existing 'targetProjectId ? getExternalRoot(...) : undefined' patterns"
+          ]
+        },
+        {
+          "id": "rq-testFixtureProjectId01.3",
+          "title": "Hard-fail guardrail asserts override is active during test runs",
+          "given": ["The vitest test suite runs in the plugin checkout"],
+          "when": "The project-id guardrail test executes",
+          "then": [
+            "process.env.VITEST is 'true'",
+            "getProjectId(process.cwd()) returns a synthetic ID, not the real root commit SHA",
+            "Resolving a real git SHA from this code path is a hard test failure"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-workerSingleton01",
+      "title": "Singleton Temporal worker per project across sessions",
+      "body": "When multiple plugin instances initialize against the same external state directory for the same project, at most ONE Temporal worker process MUST exist for that project_id at any given time. A file-lock sentinel at {external-state-dir}/{project-id}/worker.lock coordinates ownership. Subsequent instances participate as Temporal clients only. Stale-PID detection (process.kill(pid, 0)) reclaims the lock when the recorded owner has exited.",
+      "priority": "must",
+      "scenarios": [
+        {
+          "id": "rq-workerSingleton01.1",
+          "title": "First plugin instance acquires lock and spawns worker",
+          "given": [
+            "No worker.lock file exists in the project external state directory"
+          ],
+          "when": "The plugin initializes",
+          "then": [
+            "A worker.lock file is created atomically (O_CREAT | O_EXCL) with the plugin process PID",
+            "An out-of-process Temporal worker is spawned via the existing out-of-process-worker.ts path",
+            "Cleanup hooks (process exit / SIGINT / SIGTERM) release the lock and terminate the worker"
+          ]
+        },
+        {
+          "id": "rq-workerSingleton01.2",
+          "title": "Subsequent plugin instance reads lock and skips worker spawn",
+          "given": [
+            "A worker.lock file exists and the recorded PID is alive (process.kill(pid, 0) succeeds or throws EPERM)"
+          ],
+          "when": "A second plugin initializes against the same project",
+          "then": [
+            "The acquireWorkerLock helper reports owned:false with ownerPid",
+            "No additional worker process is spawned",
+            "The plugin still initializes the Temporal client and participates as a client only"
+          ]
+        },
+        {
+          "id": "rq-workerSingleton01.3",
+          "title": "Stale lock from dead PID is reclaimed",
+          "given": [
+            "A worker.lock file exists but the recorded PID is no longer alive (process.kill(pid, 0) throws ESRCH)"
+          ],
+          "when": "A plugin attempts to acquire the lock",
+          "then": [
+            "The stale lock file is removed",
+            "Acquisition is retried once",
+            "On success the new plugin owns the lock and spawns its own worker"
+          ]
+        },
+        {
+          "id": "rq-workerSingleton01.4",
+          "title": "ADV_FORCE_IN_PROCESS_WORKER bypasses singleton lock",
+          "given": ["process.env.ADV_FORCE_IN_PROCESS_WORKER === '1'"],
+          "when": "The plugin initializes",
+          "then": [
+            "The lock-acquisition step is skipped",
+            "The legacy in-process worker path is used",
+            "This rollback path supports per-session debugging when needed"
           ]
         }
       ]
