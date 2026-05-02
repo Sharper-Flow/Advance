@@ -29,6 +29,7 @@ import type { Store } from "./storage/store-types";
 
 import { specTools } from "./tools/spec";
 import { changeTools } from "./tools/change";
+import { changeDiagnoseTools } from "./tools/change-diagnose";
 import { taskTools } from "./tools/task";
 import { wisdomTools } from "./tools/wisdom";
 import { statusTools } from "./tools/status";
@@ -184,6 +185,11 @@ export function createToolMap(
     adv_change_reenter: bindTool(
       changeTools.adv_change_reenter,
       "adv_change_reenter",
+      store,
+    ),
+    adv_change_diagnose: bindTool(
+      changeDiagnoseTools.adv_change_diagnose,
+      "adv_change_diagnose",
       store,
     ),
 
@@ -478,6 +484,7 @@ export const ADV_TOOL_NAMES: readonly string[] = [
   "adv_change_archive",
   "adv_change_update_issues",
   "adv_change_reenter",
+  "adv_change_diagnose",
   "adv_task_show",
   "adv_task_run_status",
   "adv_task_list",
