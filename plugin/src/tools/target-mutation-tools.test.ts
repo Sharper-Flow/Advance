@@ -124,12 +124,64 @@ vi.mock("fs/promises", async () => {
   };
 });
 
+vi.mock("../temporal/service", async () => {
+  const actual = await vi.importActual<typeof import("../temporal/service")>(
+    "../temporal/service",
+  );
+  return {
+    ...actual,
+    getService: vi.fn(() => ({
+      address: "127.0.0.1:7233",
+      namespace: "default",
+      connection: { close: vi.fn(async () => {}) },
+      client: {},
+    })),
+    getStslStats: vi.fn(() => ({
+      getServiceCalls: 1,
+      newConnections: 1,
+      reuseRate: 1,
+      reconnectCount: 0,
+      reconnectFailureCount: 0,
+    })),
+    reinitStsl: vi.fn(async () => {}),
+  };
+});
+
+vi.mock("../temporal/orphan-sweep", async () => {
+  const actual = await vi.importActual<
+    typeof import("../temporal/orphan-sweep")
+  >("../temporal/orphan-sweep");
+  return {
+    ...actual,
+    sweepProject: vi.fn(async () => ({
+      orphans: ["chg1"],
+      reseeded: [],
+    })),
+  };
+});
+
+vi.mock("../temporal/activities", async () => {
+  const actual = await vi.importActual<typeof import("../temporal/activities")>(
+    "../temporal/activities",
+  );
+  return {
+    ...actual,
+    repairChangeActivity: vi.fn(async () => ({
+      ok: true,
+      projectId: "proj123",
+      changeId: "chg123",
+      message: "Repaired",
+    })),
+  };
+});
+
 import { parseToolOutput } from "../__tests__/setup";
 import { changeTools } from "./change";
 import { taskTools } from "./task";
 import { gateTools } from "./gate";
 import { testTools } from "./test";
 import { archiveSweepTools } from "./archive-sweep";
+import { temporalOpsTools } from "./temporal-ops";
 
 describe("target_path mutation tools", () => {
   const sourceStore = { paths: { root: "/source/project" } } as any;
@@ -259,9 +311,64 @@ describe("target_path mutation tools", () => {
     expect(mocks.targetStore.tasks.recordEvidence).toHaveBeenCalled();
   });
 
-  test("adv_archive_sweep_orphans mutates target project through temporal-required store", async () => {
+  test("[F4] adv_archive_sweep_orphans mutates target project through temporal-required store", async () => {
     const output = await archiveSweepTools.adv_archive_sweep_orphans.execute(
       { dryRun: true, ...targetArgs } as any,
+      sourceStore,
+    );
+    const parsed = parseToolOutput(output);
+
+    expect(mocks.withTargetPathStore).toHaveBeenCalledWith(
+      expect.objectContaining({
+        target_path: "/target/project",
+        stateRequirement: "temporal-required",
+      }),
+      expect.any(Function),
+    );
+    expect(parsed._projectContext.stateMode).toBe("temporal");
+  });
+
+  test("adv_temporal_reconnect mutates target project through temporal-required store", async () => {
+    const output = await temporalOpsTools.adv_temporal_reconnect.execute(
+      targetArgs as any,
+      sourceStore,
+    );
+    const parsed = parseToolOutput(output);
+
+    expect(mocks.withTargetPathStore).toHaveBeenCalledWith(
+      expect.objectContaining({
+        target_path: "/target/project",
+        stateRequirement: "temporal-required",
+      }),
+      expect.any(Function),
+    );
+    expect(parsed._projectContext.stateMode).toBe("temporal");
+  });
+
+  test("adv_orphan_sweep mutates target project through temporal-required store", async () => {
+    const output = await temporalOpsTools.adv_orphan_sweep.execute(
+      { dryRun: true, ...targetArgs } as any,
+      sourceStore,
+    );
+    const parsed = parseToolOutput(output);
+
+    expect(mocks.withTargetPathStore).toHaveBeenCalledWith(
+      expect.objectContaining({
+        target_path: "/target/project",
+        stateRequirement: "temporal-required",
+      }),
+      expect.any(Function),
+    );
+    expect(parsed._projectContext.stateMode).toBe("temporal");
+  });
+
+  test("adv_workflow_repair mutates target project through temporal-required store", async () => {
+    const output = await temporalOpsTools.adv_workflow_repair.execute(
+      {
+        changeId: "chg123",
+        approvalEvidence: "User approved via question tool",
+        ...targetArgs,
+      } as any,
       sourceStore,
     );
     const parsed = parseToolOutput(output);

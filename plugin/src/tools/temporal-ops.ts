@@ -13,6 +13,11 @@ import {
 import { checkAdvSearchAttributes } from "../temporal/observability";
 import { registerMissingAdvSearchAttributes } from "../temporal/observability";
 import { formatToolOutput } from "../utils/tool-output";
+import {
+  formatTargetProjectContext,
+  type TargetProjectOutputContext,
+  withTargetPathStore,
+} from "./target-project";
 
 type WorkflowReachability =
   | { reachable: true; error?: undefined }
@@ -272,28 +277,81 @@ export const temporalOpsTools = {
   adv_temporal_reconnect: {
     description:
       "Reconnect the shared Temporal service layer (STSL) without mutating workflow state or restarting workers.",
-    args: {},
-    execute: async (_args: Record<string, never>, _store: Store) => {
-      const before = getStslStats();
-      try {
-        await reinitStsl();
-      } catch (err) {
+    args: {
+      target_path: z
+        .string()
+        .optional()
+        .describe(
+          "Optional absolute path to another ADV project. When provided, mutates that project through a Temporal-backed target store.",
+        ),
+      target_confirmed: z
+        .literal(true)
+        .optional()
+        .describe(
+          "Required for untrusted target_path mutation. Confirms the target project was explicitly approved.",
+        ),
+      confirmationEvidence: z
+        .string()
+        .optional()
+        .describe(
+          "Required with target_confirmed for untrusted target_path mutation. Cite user approval evidence.",
+        ),
+    },
+    execute: async (
+      {
+        target_path,
+        target_confirmed,
+        confirmationEvidence,
+      }: {
+        target_path?: string;
+        target_confirmed?: true;
+        confirmationEvidence?: string;
+      },
+      store: Store,
+    ) => {
+      const runReconnect = async (
+        _activeStore: Store,
+        projectContext?: TargetProjectOutputContext,
+      ) => {
+        const before = getStslStats();
+        try {
+          await reinitStsl();
+        } catch (err) {
+          const after = getStslStats();
+          return formatToolOutput({
+            success: false,
+            before,
+            after,
+            error: err instanceof Error ? err.message : String(err),
+            message: "Temporal service layer reconnect failed",
+            ...(projectContext ? { _projectContext: projectContext } : {}),
+          });
+        }
         const after = getStslStats();
         return formatToolOutput({
-          success: false,
+          success: true,
           before,
           after,
-          error: err instanceof Error ? err.message : String(err),
-          message: "Temporal service layer reconnect failed",
+          message: "Reconnected Temporal service layer",
+          ...(projectContext ? { _projectContext: projectContext } : {}),
         });
+      };
+
+      if (target_path) {
+        return withTargetPathStore(
+          {
+            currentProjectPath: store.paths.root,
+            target_path,
+            stateRequirement: "temporal-required",
+            target_confirmed,
+            confirmationEvidence,
+          },
+          async ({ context, store: targetStore }) =>
+            runReconnect(targetStore, formatTargetProjectContext(context)),
+        );
       }
-      const after = getStslStats();
-      return formatToolOutput({
-        success: true,
-        before,
-        after,
-        message: "Reconnected Temporal service layer",
-      });
+
+      return runReconnect(store);
     },
   },
 
@@ -315,62 +373,106 @@ export const temporalOpsTools = {
         .string()
         .optional()
         .describe("How the user explicitly approved execute mode"),
+      target_path: z
+        .string()
+        .optional()
+        .describe(
+          "Optional absolute path to another ADV project. When provided, mutates that project through a Temporal-backed target store.",
+        ),
+      target_confirmed: z
+        .literal(true)
+        .optional()
+        .describe(
+          "Required for untrusted target_path mutation. Confirms the target project was explicitly approved.",
+        ),
+      confirmationEvidence: z
+        .string()
+        .optional()
+        .describe(
+          "Required with target_confirmed for untrusted target_path mutation. Cite user approval evidence.",
+        ),
     },
     execute: async (
       args: {
         dryRun?: boolean;
         approvedByUser?: boolean;
         approvalEvidence?: string;
+        target_path?: string;
+        target_confirmed?: true;
+        confirmationEvidence?: string;
       },
       store: Store,
     ) => {
       const dryRun = args.dryRun ?? true;
-      if (!store.paths.external) {
-        return formatToolOutput({
-          success: false,
-          error:
-            "Orphan sweep requires external state paths; current store is running in legacy in-repo mode.",
-        });
-      }
-      if (!dryRun) {
-        if (!args.approvedByUser || !args.approvalEvidence?.trim()) {
+
+      const runSweep = async (
+        activeStore: Store,
+        projectContext?: TargetProjectOutputContext,
+      ) => {
+        if (!activeStore.paths.external) {
           return formatToolOutput({
             success: false,
             error:
-              "Explicit user approval is required to execute orphan sweep re-seeding. Re-run with dryRun:true to preview only.",
+              "Orphan sweep requires external state paths; current store is running in legacy in-repo mode.",
           });
         }
-      }
+        if (!dryRun) {
+          if (!args.approvedByUser || !args.approvalEvidence?.trim()) {
+            return formatToolOutput({
+              success: false,
+              error:
+                "Explicit user approval is required to execute orphan sweep re-seeding. Re-run with dryRun:true to preview only.",
+            });
+          }
+        }
 
-      const bundle = getService();
-      if (!bundle) {
-        return formatToolOutput({
-          success: false,
-          error:
-            "Temporal service layer not initialized — cannot run orphan sweep",
+        const bundle = getService();
+        if (!bundle) {
+          return formatToolOutput({
+            success: false,
+            error:
+              "Temporal service layer not initialized — cannot run orphan sweep",
+          });
+        }
+
+        const projectId = basename(activeStore.paths.external);
+        const result = await sweepProject({
+          projectId,
+          changesDir: activeStore.paths.changes,
+          client: bundle.client as unknown as Parameters<
+            typeof sweepProject
+          >[0]["client"],
+          dryRun,
         });
+
+        return formatToolOutput({
+          success: true,
+          dryRun,
+          projectId,
+          approvalEvidence: dryRun ? undefined : args.approvalEvidence?.trim(),
+          result,
+          message: dryRun
+            ? `Orphan sweep dry-run found ${result.orphans.length} missing change workflows`
+            : `Orphan sweep re-seeded ${result.reseeded.length} change workflows`,
+          ...(projectContext ? { _projectContext: projectContext } : {}),
+        });
+      };
+
+      if (args.target_path) {
+        return withTargetPathStore(
+          {
+            currentProjectPath: store.paths.root,
+            target_path: args.target_path,
+            stateRequirement: "temporal-required",
+            target_confirmed: args.target_confirmed,
+            confirmationEvidence: args.confirmationEvidence,
+          },
+          async ({ context, store: targetStore }) =>
+            runSweep(targetStore, formatTargetProjectContext(context)),
+        );
       }
 
-      const projectId = basename(store.paths.external);
-      const result = await sweepProject({
-        projectId,
-        changesDir: store.paths.changes,
-        client: bundle.client as unknown as Parameters<
-          typeof sweepProject
-        >[0]["client"],
-        dryRun,
-      });
-
-      return formatToolOutput({
-        success: true,
-        dryRun,
-        projectId,
-        approvalEvidence: dryRun ? undefined : args.approvalEvidence?.trim(),
-        result,
-        message: dryRun
-          ? `Orphan sweep dry-run found ${result.orphans.length} missing change workflows`
-          : `Orphan sweep re-seeded ${result.reseeded.length} change workflows`,
-      });
+      return runSweep(store);
     },
   },
 
@@ -409,77 +511,130 @@ export const temporalOpsTools = {
       approvalEvidence: z
         .string()
         .describe("How the user explicitly approved running workflow repair"),
+      target_path: z
+        .string()
+        .optional()
+        .describe(
+          "Optional absolute path to another ADV project. When provided, mutates that project through a Temporal-backed target store.",
+        ),
+      target_confirmed: z
+        .literal(true)
+        .optional()
+        .describe(
+          "Required for untrusted target_path mutation. Confirms the target project was explicitly approved.",
+        ),
+      confirmationEvidence: z
+        .string()
+        .optional()
+        .describe(
+          "Required with target_confirmed for untrusted target_path mutation. Cite user approval evidence.",
+        ),
     },
     execute: async (
-      args: { changeId: string; approvalEvidence: string },
+      args: {
+        changeId: string;
+        approvalEvidence: string;
+        target_path?: string;
+        target_confirmed?: true;
+        confirmationEvidence?: string;
+      },
       store: Store,
     ) => {
-      if (!args.approvalEvidence || args.approvalEvidence.trim().length === 0) {
-        return formatToolOutput({
-          error:
-            "approvalEvidence is required. Describe how the user explicitly approved workflow repair.",
+      const runRepair = async (
+        activeStore: Store,
+        projectContext?: TargetProjectOutputContext,
+      ) => {
+        if (
+          !args.approvalEvidence ||
+          args.approvalEvidence.trim().length === 0
+        ) {
+          return formatToolOutput({
+            error:
+              "approvalEvidence is required. Describe how the user explicitly approved workflow repair.",
+          });
+        }
+
+        if (!activeStore.paths.external) {
+          return formatToolOutput({
+            error:
+              "Workflow repair requires external state paths; current store is running in legacy in-repo mode.",
+          });
+        }
+
+        const projectId = basename(activeStore.paths.external);
+
+        const bundle = getService();
+        if (!bundle) {
+          return formatToolOutput({
+            success: false,
+            error:
+              "Temporal service layer not initialized — cannot repair workflow state",
+          });
+        }
+
+        try {
+          await reinitStsl();
+        } catch (err) {
+          return formatToolOutput({
+            success: false,
+            phase: "reconnect-stsl",
+            error: err instanceof Error ? err.message : String(err),
+            message:
+              "Temporal service layer reconnect failed before workflow repair",
+          });
+        }
+
+        // P2.6: Disk + workflow repair logic lives in `repairChangeActivity`
+        // (see `temporal/activities.ts`). The tool body validates args,
+        // refreshes STSL, and invokes the activity. Critically, the activity
+        // does NOT close `bundle.connection` — the service-layer singleton owns
+        // that lifecycle (was the poison-pill of the pre-4aa420e bug).
+        const result = await repairChangeActivity({
+          projectId,
+          changeId: args.changeId,
+          approvalEvidence: args.approvalEvidence,
+          paths: {
+            root: activeStore.paths.root,
+            changes: activeStore.paths.changes,
+            agenda: activeStore.paths.agenda,
+            wisdom: activeStore.paths.wisdom,
+          },
+          client: bundle.client as unknown as Parameters<
+            typeof repairChangeActivity
+          >[0]["client"],
         });
-      }
 
-      if (!store.paths.external) {
+        if (!result.ok) {
+          return formatToolOutput({
+            success: false,
+            ...result,
+            ...(projectContext ? { _projectContext: projectContext } : {}),
+          });
+        }
         return formatToolOutput({
-          error:
-            "Workflow repair requires external state paths; current store is running in legacy in-repo mode.",
+          success: true,
+          projectId: result.projectId,
+          changeId: result.changeId,
+          message: result.message,
+          ...(projectContext ? { _projectContext: projectContext } : {}),
         });
+      };
+
+      if (args.target_path) {
+        return withTargetPathStore(
+          {
+            currentProjectPath: store.paths.root,
+            target_path: args.target_path,
+            stateRequirement: "temporal-required",
+            target_confirmed: args.target_confirmed,
+            confirmationEvidence: args.confirmationEvidence,
+          },
+          async ({ context, store: targetStore }) =>
+            runRepair(targetStore, formatTargetProjectContext(context)),
+        );
       }
 
-      const projectId = basename(store.paths.external);
-
-      const bundle = getService();
-      if (!bundle) {
-        return formatToolOutput({
-          success: false,
-          error:
-            "Temporal service layer not initialized — cannot repair workflow state",
-        });
-      }
-
-      try {
-        await reinitStsl();
-      } catch (err) {
-        return formatToolOutput({
-          success: false,
-          phase: "reconnect-stsl",
-          error: err instanceof Error ? err.message : String(err),
-          message:
-            "Temporal service layer reconnect failed before workflow repair",
-        });
-      }
-
-      // P2.6: Disk + workflow repair logic lives in `repairChangeActivity`
-      // (see `temporal/activities.ts`). The tool body validates args,
-      // refreshes STSL, and invokes the activity. Critically, the activity
-      // does NOT close `bundle.connection` — the service-layer singleton owns
-      // that lifecycle (was the poison-pill of the pre-4aa420e bug).
-      const result = await repairChangeActivity({
-        projectId,
-        changeId: args.changeId,
-        approvalEvidence: args.approvalEvidence,
-        paths: {
-          root: store.paths.root,
-          changes: store.paths.changes,
-          agenda: store.paths.agenda,
-          wisdom: store.paths.wisdom,
-        },
-        client: bundle.client as unknown as Parameters<
-          typeof repairChangeActivity
-        >[0]["client"],
-      });
-
-      if (!result.ok) {
-        return formatToolOutput({ success: false, ...result });
-      }
-      return formatToolOutput({
-        success: true,
-        projectId: result.projectId,
-        changeId: result.changeId,
-        message: result.message,
-      });
+      return runRepair(store);
     },
   },
 };

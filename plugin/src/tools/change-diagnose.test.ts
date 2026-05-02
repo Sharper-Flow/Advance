@@ -72,7 +72,7 @@ describe("Change Diagnose Tool", () => {
       gates: {
         proposal: { status: "done" },
         discovery: { status: "done" },
-        design: { status: "done" },     // DIFFERENT: done on Temporal, pending on disk
+        design: { status: "done" }, // DIFFERENT: done on Temporal, pending on disk
         planning: { status: "pending" },
         execution: { status: "pending" },
         acceptance: { status: "pending" },
@@ -185,7 +185,17 @@ describe("Change Diagnose Tool", () => {
           title: "In Sync",
           status: "active",
           created_at: "2026-01-21T00:00:00Z",
-          tasks: [{ id: "tk-1", title: "Task", section: "A", status: "pending", priority: 0, deps: [], created_at: "2026-01-21T00:00:00Z" }],
+          tasks: [
+            {
+              id: "tk-1",
+              title: "Task",
+              section: "A",
+              status: "pending",
+              priority: 0,
+              deps: [],
+              created_at: "2026-01-21T00:00:00Z",
+            },
+          ],
           deltas: {},
           gates: {
             proposal: { status: "done" },
@@ -210,7 +220,17 @@ describe("Change Diagnose Tool", () => {
         title: "In Sync",
         status: "active",
         created_at: "2026-01-21T00:00:00Z",
-        tasks: [{ id: "tk-1", title: "Task", section: "A", status: "pending", priority: 0, deps: [], created_at: "2026-01-21T00:00:00Z" }],
+        tasks: [
+          {
+            id: "tk-1",
+            title: "Task",
+            section: "A",
+            status: "pending",
+            priority: 0,
+            deps: [],
+            created_at: "2026-01-21T00:00:00Z",
+          },
+        ],
         deltas: {},
         gates: {
           proposal: { status: "done" },
@@ -232,7 +252,9 @@ describe("Change Diagnose Tool", () => {
     const parsed = parseToolOutput(result);
 
     expect(parsed.divergences).toHaveLength(0);
-    expect(parsed.recommendedFix).toBe("No divergence detected. Both disk and Temporal agree.");
+    expect(parsed.recommendedFix).toBe(
+      "No divergence detected. Both disk and Temporal agree.",
+    );
     expect(parsed.disk.taskCount).toBe(1);
   });
 
