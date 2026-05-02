@@ -3,8 +3,8 @@
   "name": "advance-meta",
   "title": "Advance Meta",
   "purpose": "Capability: Cross-cutting ADV concerns \u2014 config diagnostics, metadata filters, shutdown lifecycle, proposal lineage, due-diligence routing, synthetic-state guards, and slop scanning. Split from `advance` capability.",
-  "version": "1.2.0",
-  "updated_at": "2026-04-28T22:20:00.000Z",
+  "version": "1.3.0",
+  "updated_at": "2026-05-02T02:18:00.000Z",
   "requirements": [
     {
       "id": "rq-synthstate01",
@@ -87,6 +87,72 @@
       "meta": {
         "merged_from": "advance"
       }
+    },
+    {
+      "id": "rq-opencodeDebt01",
+      "title": "OpenCode Session Debt Diagnostics",
+      "body": "ADV diagnostics must safely detect stale blank assistant messages in the shared OpenCode session database, distinguish live in-flight rows from repairable stale debt, and require dry-run plus backup before any repair deletes rows.",
+      "priority": "must",
+      "tags": [
+        "diagnostics",
+        "opencode",
+        "session-debt",
+        "doctor"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-opencodeDebt01.1",
+          "title": "Status reports stale blank assistant debt read-only",
+          "given": [
+            "The OpenCode database contains assistant messages with finish null and zero parts older than the stale threshold"
+          ],
+          "when": "adv_status or an ADV doctor diagnostic is executed",
+          "then": [
+            "The diagnostic opens the OpenCode database read-only",
+            "The output reports the count and bounded samples of stale blank assistant messages",
+            "A doctor recommendation is surfaced without modifying the database"
+          ]
+        },
+        {
+          "id": "rq-opencodeDebt01.2",
+          "title": "Live in-flight blank rows are excluded from repairable debt",
+          "given": [
+            "The OpenCode database contains assistant messages with finish null and zero parts younger than the stale threshold"
+          ],
+          "when": "OpenCode session-debt classification runs",
+          "then": [
+            "Younger rows are classified as live or in-flight",
+            "Younger rows are not counted as repairable stale debt",
+            "No repair recommendation is emitted solely because of younger rows"
+          ]
+        },
+        {
+          "id": "rq-opencodeDebt01.3",
+          "title": "Repair requires dry-run and backup",
+          "given": [
+            "A repair utility is invoked against the OpenCode database"
+          ],
+          "when": "Deletion is requested",
+          "then": [
+            "The utility refuses deletion unless apply mode is explicit",
+            "The utility refuses deletion unless a backup destination is provided and populated before deletion",
+            "Only assistant messages with finish null, zero parts, and age at or above the stale threshold are deleted"
+          ]
+        },
+        {
+          "id": "rq-opencodeDebt01.4",
+          "title": "Unavailable database degrades safely",
+          "given": [
+            "The OpenCode database is missing, inaccessible, or the SQLite runtime is unavailable"
+          ],
+          "when": "The session-debt diagnostic runs",
+          "then": [
+            "The diagnostic returns an unavailable/degraded result",
+            "adv_status continues to complete",
+            "No destructive operation is attempted"
+          ]
+        }
+      ]
     },
     {
       "id": "rq-advmeta01",
