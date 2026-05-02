@@ -1686,8 +1686,7 @@ export const changeTools = {
       }
 
       // rq-archiveValidate01: run completeness validation before bundle creation.
-      let validationResult: Awaited<ReturnType<typeof validateChange>> | null =
-        null;
+      let validationResult: Awaited<ReturnType<typeof validateChange>>;
       try {
         const validationContext = await loadValidationContext(
           store,
@@ -1700,10 +1699,24 @@ export const changeTools = {
           proposalText: validationContext.proposalText,
           changedSpecFiles: validationContext.changedSpecFiles,
         });
-      } catch {
-        // Validation context unavailable — skip validation gracefully
+      } catch (validationError) {
+        const validationErrorText = collectErrorText(validationError);
+        return wrapWithBanner(
+          { command: "adv_change_archive", target: changeId },
+          formatToolOutput({
+            success: false,
+            error: `Archive blocked: validation could not run: ${validationErrorText}`,
+            validationErrors: [
+              {
+                code: "VALIDATION_CONTEXT_FAILED",
+                message: validationErrorText,
+              },
+            ],
+            changeId,
+          }),
+        );
       }
-      if (validationResult && validationResult.errors.length > 0) {
+      if (validationResult.errors.length > 0) {
         return wrapWithBanner(
           { command: "adv_change_archive", target: changeId },
           formatToolOutput({
@@ -1830,7 +1843,7 @@ export const changeTools = {
           archivePath: archiveResult.archivePath,
           errors: archiveResult.errors,
           dryRun: dryRun ?? false,
-          ...(validationResult && validationResult.warnings.length > 0
+          ...(validationResult.warnings.length > 0
             ? {
                 validationWarnings: validationResult.warnings.map((w) => ({
                   code: w.code,

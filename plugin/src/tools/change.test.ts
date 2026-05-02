@@ -2278,6 +2278,33 @@ describe("Change Tools", () => {
         expect(parsed.error).toBeDefined();
         expect(parsed.error).toContain("validation");
       });
+
+      test("validation context failure blocks archive", async () => {
+        await completeArchivePreflight();
+        const originalList = store.specs.list.bind(store.specs);
+        store.specs.list = async () => {
+          throw new Error("spec list failed");
+        };
+
+        try {
+          const result = await changeTools.adv_change_archive.execute(
+            { changeId: "addFeature" },
+            store,
+          );
+          const parsed = parseToolOutput(result);
+          expect(parsed.success).toBe(false);
+          expect(parsed.error).toContain("validation could not run");
+          expect(parsed.validationErrors).toHaveLength(1);
+          expect(parsed.validationErrors[0]).toMatchObject({
+            code: "VALIDATION_CONTEXT_FAILED",
+          });
+          expect(parsed.validationErrors[0].message).toContain(
+            "spec list failed",
+          );
+        } finally {
+          store.specs.list = originalList;
+        }
+      });
     });
   });
 

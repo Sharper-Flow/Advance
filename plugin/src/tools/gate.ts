@@ -32,6 +32,18 @@ import {
   withTargetPathStore,
 } from "./target-project";
 
+function getContextMismatchFields(error: Error): {
+  owningProjectId?: unknown;
+  currentProjectId?: unknown;
+} {
+  return {
+    owningProjectId:
+      "owningProjectId" in error ? error.owningProjectId : undefined,
+    currentProjectId:
+      "currentProjectId" in error ? error.currentProjectId : undefined,
+  };
+}
+
 async function completeGateAndBuildResponse({
   store,
   change,
@@ -77,10 +89,10 @@ async function completeGateAndBuildResponse({
     };
     // Preserve structured fields from AdvProjectContextMismatch errors
     if (err.name === "AdvProjectContextMismatch") {
-      const e = err as unknown as Record<string, unknown>;
+      const context = getContextMismatchFields(err);
       base.errorClass = "AdvProjectContextMismatch";
-      base.owningProjectId = e.owningProjectId;
-      base.currentProjectId = e.currentProjectId;
+      base.owningProjectId = context.owningProjectId;
+      base.currentProjectId = context.currentProjectId;
       base.hint =
         "This change belongs to a different project context. Open the change in its owning project, or verify linked-project configuration.";
     }
@@ -282,14 +294,15 @@ export const gateTools = {
               ...(projectContext ? { _projectContext: projectContext } : {}),
             });
           } catch (error) {
-            if ((error as Error).name === "AdvProjectContextMismatch") {
-              const e = error as unknown as Record<string, unknown>;
+            const err = error as Error;
+            if (err.name === "AdvProjectContextMismatch") {
+              const context = getContextMismatchFields(err);
               return formatToolOutput({
-                error: (error as Error).message,
+                error: err.message,
                 changeId,
                 errorClass: "AdvProjectContextMismatch",
-                owningProjectId: e.owningProjectId,
-                currentProjectId: e.currentProjectId,
+                owningProjectId: context.owningProjectId,
+                currentProjectId: context.currentProjectId,
                 hint: "Open the change in its owning project's context, or verify the linked-project configuration.",
               });
             }
@@ -389,14 +402,15 @@ export const gateTools = {
           }
           change = result.data;
         } catch (error) {
-          if ((error as Error).name === "AdvProjectContextMismatch") {
-            const e = error as unknown as Record<string, unknown>;
+          const err = error as Error;
+          if (err.name === "AdvProjectContextMismatch") {
+            const context = getContextMismatchFields(err);
             return formatToolOutput({
-              error: (error as Error).message,
+              error: err.message,
               changeId,
               errorClass: "AdvProjectContextMismatch",
-              owningProjectId: e.owningProjectId,
-              currentProjectId: e.currentProjectId,
+              owningProjectId: context.owningProjectId,
+              currentProjectId: context.currentProjectId,
               hint: "Open the change in its owning project's context, or verify the linked-project configuration.",
             });
           }
@@ -438,19 +452,16 @@ export const gateTools = {
 
         if (gateId === "execution") {
           const incompleteTasks = change.tasks.filter(
-            (t: { status: string }) =>
-              t.status !== "done" && t.status !== "cancelled",
+            (t) => t.status !== "done" && t.status !== "cancelled",
           );
           if (incompleteTasks.length > 0) {
             return formatToolOutput({
               error: `Cannot complete execution: ${incompleteTasks.length} task(s) not done or cancelled`,
-              incompleteTasks: incompleteTasks.map(
-                (t: { id: string; title: string; status: string }) => ({
-                  id: t.id,
-                  title: t.title,
-                  status: t.status,
-                }),
-              ),
+              incompleteTasks: incompleteTasks.map((t) => ({
+                id: t.id,
+                title: t.title,
+                status: t.status,
+              })),
             });
           }
           // All tasks done/cancelled (or empty list) — fall through
