@@ -1,0 +1,498 @@
+#!/usr/bin/env bun
+/**
+ * adv — ADV (Advance) status CLI
+ *
+ * Read-only terminal client that reads ADV state from disk and prints
+ * a formatted status table. No OpenCode session required.
+ *
+ * Runtime: Bun 1.3+
+ * Dependencies: none (Bun built-ins + Node stdlib only)
+ */
+
+import { readdir, readFile } from "fs/promises";
+import { join } from "path";
+import { homedir } from "os";
+import { parseArgs } from "node:util";
+
+// =============================================================================
+// Constants
+// =============================================================================
+
+const VERSION = "0.1.0";
+
+/** Canonical gate order — mirrors plugin/src/types.ts GATE_DEFS */
+const GATE_ORDER = [
+  "proposal",
+  "discovery",
+  "design",
+  "planning",
+  "execution",
+  "acceptance",
+  "release",
+] as const;
+
+type GateId = (typeof GATE_ORDER)[number];
+
+const RECENCY_HOT_THRESHOLD_MIN = 60;
+const RECENCY_STALE_THRESHOLD_MIN = 180;
+
+// =============================================================================
+// Types
+// =============================================================================
+
+interface GateState {
+  status: string;
+  completed_at?: string;
+  completed_by?: string;
+}
+
+interface TaskRecord {
+  id: string;
+  title: string;
+  status: string;
+  created_at?: string;
+  started_at?: string;
+  completed_at?: string;
+  cancellation?: { approved_at?: string };
+}
+
+interface WisdomEntry {
+  recorded_at?: string;
+}
+
+interface ChangeRecord {
+  id: string;
+  title: string;
+  status: string;
+  created_at: string;
+  tasks: TaskRecord[];
+  gates?: Record<string, GateState>;
+  wisdom?: WisdomEntry[];
+  validation?: { validated_at?: string };
+  fast_follow_of?: { parent_change_id?: string };
+}
+
+interface ChangeSummary {
+  id: string;
+  title: string;
+  status: string;
+  recency: "hot" | "warm" | "stale";
+  lastActivityAt: string;
+  minutesSinceActivity: number;
+  tasksDone: number;
+  tasksTotal: number;
+  firstIncompleteGate: string | null;
+  gateProgressStr: string;
+  parentChangeId?: string;
+}
+
+// =============================================================================
+// Color Support
+// =============================================================================
+
+const BOLD = "\x1b[1m";
+const DIM = "\x1b[2m";
+const RED = "\x1b[31m";
+const YELLOW = "\x1b[33m";
+const RESET = "\x1b[0m";
+
+function shouldUseColor(noColorFlag: boolean): boolean {
+  if (process.env.NO_COLOR) return false;
+  if (noColorFlag) return false;
+  if (!process.stdout.isTTY) return false;
+  if (typeof Bun !== "undefined" && typeof Bun.enableANSIColors === "boolean") {
+    return Bun.enableANSIColors;
+  }
+  return true;
+}
+
+// =============================================================================
+// Project Resolution
+// =============================================================================
+
+async function resolveProjectId(cwd: string): Promise<string | null> {
+  try {
+    const proc = Bun.spawn(["git", "rev-list", "--max-parents=0", "HEAD"], {
+      cwd,
+      stdout: "pipe",
+      stderr: "pipe",
+      env: { ...process.env, GIT_TERMINAL_PROMPT: "0" },
+    });
+    const stdout = await new Response(proc.stdout).text();
+    const exitCode = await proc.exited;
+    if (exitCode !== 0) return null;
+
+    const roots = stdout.trim().split("\n").filter(Boolean).sort();
+    const sha = roots[0];
+    if (/^[0-9a-f]{40}$/.test(sha)) return sha;
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function resolveExternalRoot(projectId: string): string {
+  const dataHome =
+    process.env.XDG_DATA_HOME || join(homedir(), ".local/share");
+  return join(dataHome, "opencode/plugins/advance", projectId);
+}
+
+// =============================================================================
+// State Loading
+// =============================================================================
+
+async function* listChanges(
+  changesDir: string,
+): AsyncGenerator<ChangeRecord> {
+  let entries: string[];
+  try {
+    entries = await readdir(changesDir);
+  } catch {
+    return;
+  }
+
+  for (const entry of entries) {
+    const changePath = join(changesDir, entry, "change.json");
+    const record = await loadChangeJson(changePath);
+    if (record) yield record;
+  }
+}
+
+async function loadChangeJson(
+  filePath: string,
+): Promise<ChangeRecord | null> {
+  try {
+    const raw = await readFile(filePath, "utf-8");
+    const data = JSON.parse(raw);
+    if (!data.id || !data.created_at) return null;
+    return data as ChangeRecord;
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    process.stderr.write(`warn: skipping ${filePath}: ${msg}\n`);
+    return null;
+  }
+}
+
+// =============================================================================
+// Pure Computation
+// =============================================================================
+
+/**
+ * Compute the most recent activity timestamp for a change.
+ *
+ * Source of truth: plugin/src/storage/store-types.ts:229-254
+ * Algorithm: lexicographic-max over all recorded timestamps.
+ */
+function computeLastActivity(change: ChangeRecord): string {
+  let latest = change.created_at;
+  const consider = (ts: string | null | undefined) => {
+    if (ts && ts > latest) latest = ts;
+  };
+
+  for (const task of change.tasks) {
+    consider(task.created_at);
+    consider(task.started_at);
+    consider(task.completed_at);
+    if (task.cancellation?.approved_at) consider(task.cancellation.approved_at);
+  }
+
+  if (change.gates) {
+    for (const gateId of GATE_ORDER) {
+      consider(change.gates[gateId]?.completed_at);
+    }
+  }
+
+  consider(change.validation?.validated_at);
+  if (change.wisdom) {
+    for (const entry of change.wisdom) consider(entry.recorded_at);
+  }
+
+  return latest;
+}
+
+function classifyRecency(minutes: number): "hot" | "warm" | "stale" {
+  if (minutes <= RECENCY_HOT_THRESHOLD_MIN) return "hot";
+  if (minutes >= RECENCY_STALE_THRESHOLD_MIN) return "stale";
+  return "warm";
+}
+
+function buildGateProgress(gates?: Record<string, GateState>): string {
+  if (!gates) return "○ ○ ○ ○ ○ ○ ○";
+  return GATE_ORDER.map((g) =>
+    gates[g]?.status === "done" ? "✓" : "○",
+  ).join(" ");
+}
+
+function firstIncompleteGate(
+  gates?: Record<string, GateState>,
+): string | null {
+  if (!gates) return GATE_ORDER[0];
+  for (const gateId of GATE_ORDER) {
+    const g = gates[gateId];
+    if (!g || g.status !== "done") return gateId;
+  }
+  return null;
+}
+
+function countTasks(tasks: TaskRecord[]): { done: number; total: number } {
+  let done = 0;
+  for (const t of tasks) {
+    if (t.status === "done" || t.status === "cancelled") done++;
+  }
+  return { done, total: tasks.length };
+}
+
+// =============================================================================
+// Rendering
+// =============================================================================
+
+function relativeTime(iso: string, now: Date): string {
+  const then = new Date(iso);
+  const diffMs = now.getTime() - then.getTime();
+  const mins = Math.max(0, Math.floor(diffMs / 60000));
+  if (mins < 1) return "now";
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `${days}d ago`;
+  return `${Math.floor(days / 30)}mo ago`;
+}
+
+function emojiFor(recency: "hot" | "warm" | "stale"): string {
+  switch (recency) {
+    case "hot":
+      return "🔥";
+    case "warm":
+      return "⏳";
+    case "stale":
+      return "⏰";
+  }
+}
+
+function formatTable(
+  summaries: ChangeSummary[],
+  useColor: boolean,
+  now: Date,
+): string {
+  if (summaries.length === 0) return "(no active changes)";
+
+  const W = {
+    id: Math.max(
+      20,
+      ...summaries.map((s) =>
+        s.parentChangeId ? `↳ ${s.id}`.length : s.id.length,
+      ),
+    ),
+    title: Math.max(
+      25,
+      ...summaries.map((s) => Math.min(s.title.length, 40)),
+    ),
+    gate: 13,
+    tasks: 5,
+  };
+
+  const colHeader = [
+    "".padEnd(2),
+    "ID".padEnd(W.id),
+    "TITLE".padEnd(W.title),
+    "TASKS".padStart(W.tasks),
+    "GATES".padEnd(W.gate),
+    "LAST ACTIVITY",
+  ].join("  ");
+
+  const lines: string[] = [];
+
+  if (useColor) {
+    lines.push(`${DIM}${colHeader}${RESET}`);
+  } else {
+    lines.push(colHeader);
+  }
+
+  for (const s of summaries) {
+    const idLabel = s.parentChangeId ? `↳ ${s.id}` : s.id;
+    const titleStr =
+      s.title.length > W.title
+        ? s.title.slice(0, W.title - 1) + "…"
+        : s.title;
+    const taskStr = `${s.tasksDone}/${s.tasksTotal}`;
+    const timeStr = relativeTime(s.lastActivityAt, now);
+
+    const parts = [
+      emojiFor(s.recency),
+      idLabel.padEnd(W.id),
+      titleStr.padEnd(W.title),
+      taskStr.padStart(W.tasks),
+      s.gateProgressStr,
+      timeStr,
+    ];
+
+    const row = parts.join("  ");
+    if (useColor) {
+      const color =
+        s.recency === "hot" ? RED : s.recency === "warm" ? YELLOW : DIM;
+      lines.push(`${color}${row}${RESET}`);
+    } else {
+      lines.push(row);
+    }
+  }
+
+  return lines.join("\n");
+}
+
+// =============================================================================
+// Subcommands
+// =============================================================================
+
+async function runStatus(noColor: boolean): Promise<number> {
+  const cwd = process.cwd();
+  const projectId = await resolveProjectId(cwd);
+  if (!projectId) {
+    process.stderr.write(
+      "error: not in a git repo (or git unavailable)\n",
+    );
+    return 1;
+  }
+
+  const root = resolveExternalRoot(projectId);
+
+  // Check state directory exists
+  try {
+    await readdir(root);
+  } catch {
+    process.stderr.write(
+      `error: no ADV state for project ${projectId.slice(0, 8)}…\n`,
+    );
+    process.stderr.write(
+      "       run /adv-status in an OpenCode session first.\n",
+    );
+    return 2;
+  }
+
+  const useColor = shouldUseColor(noColor);
+  const now = new Date();
+
+  // Collect active changes
+  const summaries: ChangeSummary[] = [];
+  const activeDir = join(root, "changes");
+
+  for await (const change of listChanges(activeDir)) {
+    const lastActivityAt = computeLastActivity(change);
+    const activityDate = new Date(lastActivityAt);
+    const minutesSinceActivity = Math.max(
+      0,
+      Math.floor((now.getTime() - activityDate.getTime()) / 60000),
+    );
+    const { done, total } = countTasks(change.tasks);
+
+    summaries.push({
+      id: change.id,
+      title: change.title,
+      status: change.status,
+      recency: classifyRecency(minutesSinceActivity),
+      lastActivityAt,
+      minutesSinceActivity,
+      tasksDone: done,
+      tasksTotal: total,
+      firstIncompleteGate: firstIncompleteGate(change.gates),
+      gateProgressStr: buildGateProgress(change.gates),
+      parentChangeId: change.fast_follow_of?.parent_change_id,
+    });
+  }
+
+  // Sort by lastActivityAt descending
+  summaries.sort((a, b) => b.lastActivityAt.localeCompare(a.lastActivityAt));
+
+  // Count statuses for footer
+  let archivedCount = 0;
+  let closedCount = 0;
+  const archiveDir = join(root, "archive");
+  for await (const change of listChanges(archiveDir)) {
+    if (change.status === "archived") archivedCount++;
+    else if (change.status === "closed") closedCount++;
+  }
+
+  // Header
+  const shortId = projectId.slice(0, 8);
+  const headerLine = useColor
+    ? `${BOLD}ADV — ${shortId}…${RESET}`
+    : `ADV — ${shortId}…`;
+
+  const output: string[] = [];
+  output.push(headerLine);
+  output.push("");
+  output.push(formatTable(summaries, useColor, now));
+  output.push("");
+  output.push(
+    `${summaries.length} active · ${archivedCount} archived · ${closedCount} closed`,
+  );
+
+  process.stdout.write(output.join("\n") + "\n");
+  return 0;
+}
+
+function runHelp(): number {
+  process.stdout.write(
+    `adv — ADV (Advance) status CLI
+
+USAGE:
+  adv [SUBCOMMAND] [FLAGS]
+
+SUBCOMMANDS:
+  status      (default)  Show active changes table
+
+FLAGS:
+  -h, --help              Show this help
+  -v, --version           Print version
+      --no-color          Disable ANSI colors (also: NO_COLOR=1)
+
+EXIT CODES:
+  0  Success
+  1  Not in a git repo, git failure, or unknown command
+  2  No ADV state directory for this project
+
+DOCS:
+  https://github.com/Sharper-Flow/Advance
+`,
+  );
+  return 0;
+}
+
+function runVersion(): number {
+  process.stdout.write(`adv v${VERSION}\n`);
+  return 0;
+}
+
+// =============================================================================
+// Entrypoint
+// =============================================================================
+
+async function main(argv: string[]): Promise<number> {
+  const { values, positionals } = parseArgs({
+    args: argv,
+    options: {
+      help: { type: "boolean", short: "h" },
+      version: { type: "boolean", short: "v" },
+      "no-color": { type: "boolean" },
+    },
+    allowPositionals: true,
+    strict: false,
+  });
+
+  if (values.help) return runHelp();
+  if (values.version) return runVersion();
+
+  const subcommand = positionals[0];
+  if (subcommand && subcommand !== "status") {
+    process.stderr.write(
+      `unknown command: ${subcommand}. See adv --help\n`,
+    );
+    return 1;
+  }
+
+  return runStatus(values["no-color"] ?? false);
+}
+
+main(process.argv.slice(2)).then((code) => {
+  process.exit(code);
+});
