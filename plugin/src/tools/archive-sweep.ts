@@ -283,7 +283,7 @@ export const archiveSweepTools = {
         .boolean()
         .optional()
         .describe(
-          "When true or omitted, list orphan candidates without removing them",
+          "When true or omitted, list orphan candidates without removing them. With dryRun: true, this tool is read-only and safe to invoke without approval.",
         ),
       includeClosed: z
         .boolean()

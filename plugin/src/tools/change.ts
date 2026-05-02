@@ -1659,7 +1659,9 @@ export const changeTools = {
       dryRun: z
         .boolean()
         .optional()
-        .describe("Preview changes without writing"),
+        .describe(
+          "Preview changes without writing. With dryRun: true, this tool is read-only and safe to invoke without approval.",
+        ),
     },
     execute: async (
       { changeId, dryRun }: { changeId: string; dryRun?: boolean },

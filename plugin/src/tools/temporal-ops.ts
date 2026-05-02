@@ -304,7 +304,9 @@ export const temporalOpsTools = {
       dryRun: z
         .boolean()
         .optional()
-        .describe("When true or omitted, detect orphans without re-seeding"),
+        .describe(
+          "When true or omitted, detect orphans without re-seeding. With dryRun: true, this tool is read-only and safe to invoke without approval.",
+        ),
       approvedByUser: z
         .boolean()
         .optional()
