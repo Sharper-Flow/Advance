@@ -1,8 +1,8 @@
 <h1 align="center">Advance</h1>
 
 <p align="center">
-  <strong>Sanity infrastructure for AI-assisted development.</strong><br>
-  <em>Vibe coding doesn't scale.</em>
+  <strong>Spec-driven engineering infrastructure for AI-assisted development.</strong><br>
+  <em>Vibe coding does not scale. Durable engineering loops do.</em>
 </p>
 
 <p align="center">
@@ -23,139 +23,236 @@
   <a href="https://github.com/Sharper-Flow/Advance">GitHub</a>
   &middot;
   <a href="CHANGELOG.md">Changelog</a>
+  &middot;
+  <a href="SETUP.md">Setup</a>
 </p>
 
 ---
 
-## Why Advance exists
+## What Advance is
 
-AI coding agents are fast. They're also unreliable in ways that compound:
+Advance is an [OpenCode](https://github.com/anomalyco/opencode) plugin that turns AI coding from a chat-driven activity into a governed engineering system.
 
-**They drift from requirements.** What started as "add OAuth" becomes a sprawling refactor nobody asked for. There's no contract tying the work back to what was agreed.
+It combines:
 
-**They lose context between sessions.** Compaction, session switches, worktree hops — each one sheds critical context. The agent forgets what it learned, what it tried, what failed.
+- **Spec law** — durable capability requirements in `.adv/specs/`
+- **7-gate delivery** — proposal → discovery → design → planning → execution → acceptance → release
+- **Temporal-backed orchestration** — durable change/task workflows that survive process and context loss
+- **MCP tool surface** — structured state mutation and inspection, not hidden chat memory
+- **TDD evidence capture** — red/green proof recorded on tasks
+- **Worktree isolation** — branch-local specs, shared external change state, safe parallel implementation
+- **Task checkpoint commits** — local rollback/audit commits before task completion
+- **Review + hardening loops** — explicit correctness, security, architecture, test, and slop checks
+- **Wisdom accumulation** — reusable project learnings promoted from completed work
+- **Runtime guardrails** — bash safety, sub-agent nesting limits, cancellation policy, doom-loop detection
+- **External conformance hooks** — optional black-box CI verification for spec drift
 
-**They skip verification under pressure.** "The tests pass" means "I didn't write any." Without enforced TDD evidence, you're trusting vibes.
+The result: AI agents can move fast without losing the engineering contract.
 
-**They do shallow review.** Ask for a code review and you get "looks good" with generic suggestions. Real review needs structure — security, architecture, error handling, test coverage — checked systematically.
+## Why it exists
 
-**They leave changes half-finished.** Work gets abandoned mid-implementation. No archive, no spec updates, no record of decisions. The next session starts from scratch.
+AI coding tools are powerful, but raw chat has weak guarantees:
 
-These aren't edge cases. They're the default behavior of every AI coding tool at scale.
+| Failure mode       | What usually happens                                |
+| ------------------ | --------------------------------------------------- |
+| Scope drift        | “Add OAuth” becomes unrelated refactors             |
+| Context loss       | Compaction or new sessions drop critical decisions  |
+| Fake verification  | “Tests pass” means no evidence was captured         |
+| Shallow review     | Generic comments replace systematic review          |
+| Infinite retries   | Agents repeat failing strategies without escalation |
+| Half-finished work | No archive, no spec update, no durable handoff      |
 
-## How Advance fixes it
+Advance treats these as infrastructure problems, not prompt problems.
 
-Advance is an [OpenCode](https://github.com/anomalyco/opencode) plugin that replaces ad-hoc AI coding with a structured engineering workflow.
+## Why Advance is different
 
-**Specs are laws, not suggestions.** Define what must be true. Every change is validated against specs before it can ship. Drift gets caught, not discovered in production.
+Many tools solve one slice of this problem. Some provide durable workflows. Some enforce test commands. Some add memory. Some add review bots. Some add task plans.
 
-**Every change passes 7 gates.** Proposal → Discovery → Design → Planning → Execution → Acceptance → Release. No shortcuts. Each gate has explicit completion criteria.
+Advance is different because it balances all of those parts in one loop.
 
-**TDD evidence is captured, not claimed.** Red phase, green phase — the actual test output is recorded. "It works" has proof attached.
+| Single-aspect approach               | What it helps with             | What it still misses                                              | Advance adds                                                         |
+| ------------------------------------ | ------------------------------ | ----------------------------------------------------------------- | -------------------------------------------------------------------- |
+| Durable functions / workflow engines | Process survival               | Requirements, review, TDD proof, acceptance, archive              | Temporal-backed workflows bound to specs, gates, tasks, and evidence |
+| Prompt checklists                    | Agent behavior hints           | Enforcement, persistence, machine-readable state                  | MCP tools, gate state, validators, guardrails                        |
+| Test runners                         | Verification command execution | Scope control, red/green audit trail, design agreement            | Per-task TDD evidence plus change contract                           |
+| Memory layers                        | Session continuity             | Acceptance criteria, release governance, conflict detection       | External change state, wisdom, agenda, context snapshots             |
+| Review bots                          | Post-hoc feedback              | Planning, implementation discipline, archival closure             | Review and harden as first-class gates                               |
+| Task managers                        | Work breakdown                 | Spec conformance, retries, checkpointing, cross-session execution | Task graph tied to specs, worktrees, evidence, commits               |
 
-**Context survives everything.** Session switches, worktree hops, compaction — Advance persists change state, task progress, and accumulated wisdom outside the conversation. Nothing is lost when the context window resets.
+Advance does not claim one mechanism is enough. It makes the mechanisms cooperate:
 
-**Wisdom compounds.** Patterns, gotchas, failures, and conventions are recorded per-change and promoted to project-level learnings. The agent gets smarter across changes, not just within them.
+```text
+specs define truth
+gates define lifecycle
+Temporal preserves workflow
+MCP tools expose state
+tasks carry evidence
+worktrees isolate change
+checkpoints preserve rollback
+review/harden catch drift
+archive promotes learnings back into law
+```
 
-**Failure is bounded.** Three failed attempts on a task trigger doom loop detection — the agent stops, documents what it tried, and escalates. No infinite retry spirals.
+That combination is the product.
 
-## At a glance
+## Unique technical stack
 
-Advance gives OpenCode a real engineering workflow instead of a glorified chat log.
+Advance is intentionally unusual. It is not just commands around an LLM.
 
-- **Specs as laws** — requirements become executable constraints
-- **7 gated stages** — proposal, discovery, design, planning, execution, acceptance, release
-- **Task-level evidence** — red/green TDD proof lives with the work
-- **Durable state** — changes, wisdom, and task history survive compaction and worktrees
-- **Bounded failure** — retry loops are detected and escalated instead of spinning forever
-- **Scriptable workflow** — MCP tools expose the system, not just the chat surface
+| Layer                 | Technology / system                                 | Why it matters                                                                     |
+| --------------------- | --------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| Host                  | OpenCode plugin                                     | Runs where coding agents already work                                              |
+| Runtime               | Bun host + Node worker path                         | Matches OpenCode runtime while supporting worker code that needs Node              |
+| Durable orchestration | Temporal workflows                                  | Recovers task/change state across crashes, compaction, and long-running work       |
+| Tool API              | MCP-style ADV tools                                 | State changes are explicit, typed, inspectable, and auditable                      |
+| Contracts             | `.adv/specs/` + proposal/agreement/design artifacts | Requirements become durable law, not chat context                                  |
+| Validation            | Zod v4 schemas + spec validators                    | Tool inputs and change state stay structured                                       |
+| Workflow UX           | Slash commands + gate contracts                     | Humans approve the right checkpoints; agents run autonomous phases                 |
+| Methodology reuse     | Skills                                              | Discovery, prep, review, harden, slop detection, and cost governance stay reusable |
+| Specialist execution  | Bounded sub-agents                                  | Research and implementation can be delegated without recursive agent sprawl        |
+| Isolation             | Git worktrees                                       | Implementation can happen away from the main checkout while sharing ADV state      |
+| Evidence              | TDD logs + task checkpoints                         | “Done” means auditable proof exists                                                |
+| Learning loop         | Wisdom + reflection                                 | Successful patterns and gotchas survive the change that produced them              |
+| Safety                | Bash guard, task nesting guard, doom-loop detection | Agent autonomy has hard limits                                                     |
+| Conformance           | External CI verdict ingestion                       | Specs can be checked by black-box tests outside the agent’s reach                  |
 
-## Without Advance / With Advance
-
-| Without Advance                    | With Advance                                      |
-| ---------------------------------- | ------------------------------------------------- |
-| Requirements live in chat history  | Requirements live in specs and agreements         |
-| Work expands silently              | Changes stay tied to explicit scope               |
-| "Tests passed" is often unverified | Red/green evidence is captured on tasks           |
-| Review is ad hoc and shallow       | Review and hardening are explicit workflow stages |
-| Context disappears across sessions | State, wisdom, and task history persist           |
-| Failed attempts loop forever       | Retry spirals stop and escalate                   |
+This is why Advance is more than durable functions, more than a memory layer, more than a prompt pack, and more than a test wrapper.
 
 ## Core workflow
 
 ```text
-/adv-proposal -> define problem and scope
-/adv-discover -> gather evidence, agree on objectives and acceptance criteria
-/adv-design   -> produce, validate, and present implementation strategy
-/adv-prep     -> synthesize task graph
-/adv-apply    -> execute with TDD evidence
-/adv-review   -> review delivered work and record user acceptance
-/adv-harden   -> final quality pass
-/adv-archive  -> finalize, preserve wisdom, close loop
+/adv-proposal -> define problem, success criteria, constraints
+/adv-discover -> gather evidence, agree objectives and acceptance criteria
+/adv-design   -> design implementation strategy and validate architecture
+/adv-prep     -> synthesize task graph and close gaps
+/adv-apply    -> implement autonomously with TDD evidence and checkpoints
+/adv-review   -> verify delivered work against the contract
+/adv-harden   -> production-readiness and quality pass
+/adv-archive  -> promote deltas to specs, preserve wisdom, finalize release
 ```
 
-The point is not command count. The point is that work moves through explicit stages with artifacts, evidence, and validation at each step.
+The command count is not the point. The point is that every phase produces artifacts that later phases can verify.
+
+## The 7 gates
+
+| Gate       | Purpose                                           | Human role                                                        |
+| ---------- | ------------------------------------------------- | ----------------------------------------------------------------- |
+| Proposal   | Clarify problem, scope, success criteria          | Confirm problem statement                                         |
+| Discovery  | Gather evidence and define agreement              | Approve objectives and acceptance criteria                        |
+| Design     | Validate architecture and implementation strategy | Approve only when tradeoffs need judgment or validation conflicts |
+| Planning   | Build task graph and flight-check readiness       | Explicit prep approval                                            |
+| Execution  | Implement tasks with TDD, retries, checkpoints    | Autonomous unless blocked                                         |
+| Acceptance | Review delivered work against agreement           | Confirm delivered result                                          |
+| Release    | Harden, archive, reflect, finalize                | Sign off archive                                                  |
+
+No gate is a vibe check. Each gate has a contract.
+
+## What “done” means
+
+Advance narrows “done” to evidence:
+
+- Agreement exists and acceptance criteria are explicit.
+- Design has been validated before implementation.
+- Tasks are tracked and blocked dependencies are known.
+- TDD evidence exists where applicable.
+- Changed work is checkpointed before task completion.
+- Review and hardening findings are fixed or classified out of scope.
+- Specs are updated when behavior becomes law.
+- Wisdom and reflection are recorded for the next change.
+
+## Without Advance / With Advance
+
+| Without Advance                                       | With Advance                                                         |
+| ----------------------------------------------------- | -------------------------------------------------------------------- |
+| Requirements live in chat history                     | Requirements live in specs, proposals, and agreements                |
+| Work expands silently                                 | Scope is tied to explicit gates and acceptance criteria              |
+| Durable execution is separate from engineering policy | Temporal state is integrated with specs, tasks, evidence, and gates  |
+| Memory is unstructured                                | Context snapshots, wisdom, agenda, and task ledgers are structured   |
+| “Tests passed” is a claim                             | Red/green output is captured as task evidence                        |
+| Review is optional or generic                         | Review and harden are required workflow stages                       |
+| Agent retries are invisible                           | Failures are classified; doom loops escalate after 3 failed attempts |
+| Worktrees fragment state                              | Worktrees share external ADV state while specs stay branch-local     |
+| Completion disappears after merge                     | Archive promotes decisions and learnings back into the project       |
+
+## Key capabilities
+
+### Spec-driven changes
+
+Specs are laws. Proposals and implementations can evolve, but archive validates against the current spec contract. When behavior changes permanently, archive applies spec deltas.
+
+### Durable task orchestration
+
+Temporal-backed workflows track changes, task runs, gates, evidence, and recovery state. If an agent session dies or compacts, the next session resumes from durable state instead of reconstructing intent from chat.
+
+### TDD evidence, not test theater
+
+For implementation tasks, Advance records red and green phases with command, output, test file, and exit code. If TDD is not applicable, the task must say why.
+
+### Checkpoint commits
+
+Every `/adv-apply` task with file changes creates a local checkpoint through `adv_task_checkpoint` before it is marked done. Checkpoints include change ID, task ID, mode, and verification summary.
+
+### Worktree-aware execution
+
+Mutating work runs in per-change worktrees. ADV state is external and shared across worktrees; specs remain git-tracked and branch-local. That gives isolation without losing coordination.
+
+### Bounded autonomy
+
+Advance lets agents work autonomously only inside approved boundaries. It stops for human checkpoints, design conflicts, doom loops, cancellation approval, archive sign-off, and scope drift that changes the agreement.
+
+### Accumulated wisdom
+
+Patterns, successes, failures, conventions, and gotchas can be recorded per change and promoted to project-level wisdom. The system gets better as it ships.
+
+### External conformance
+
+Optional CI-isolated conformance checks can verify specs from outside the agent’s editable context. Drift blocks archive unless a human explicitly unlocks or overrides.
 
 ## Command + skill architecture
 
-Advance uses **commands** for user-facing workflow entry points and **skills** for reusable methodology.
+Advance separates workflow ownership from reusable methodology.
 
-- Commands own workflow state, artifacts, and gate completion.
-- Skills provide reusable guidance (discovery, prep, apply, review, harden) without mutating ADV state.
-- The system is **inline by default**: commands run directly unless a bounded specialist sub-agent materially improves the result.
+- **Commands** own user entry points, gate transitions, state mutation, and artifacts.
+- **Skills** own reusable guidance and checklists.
+- **Sub-agents** handle bounded research, validation, and implementation work when context can be safely shed.
+- **The ADV orchestrator** keeps sequencing, approvals, and state consistent.
 
-### Prioritizer protocol
-
-When a change has multiple viable directions with real user-value tradeoffs, prioritization runs **inline by default** before asking the user. The optional `prioritizer` skill can help frame tradeoff questions, but the goal is the same: ask about outcomes, not implementation trivia, so the downstream `task` graph reflects the user's actual priorities.
+This keeps methodology reusable without letting random helper prompts mutate workflow state.
 
 ## Command reference
 
-| Command           | Description                                                                                          |
-| ----------------- | ---------------------------------------------------------------------------------------------------- |
-| `/adv-status`     | Show project overview: specs, active changes, and next-step recommendations                          |
-| `/adv-idea`       | Explore rough ideas before drafting a proposal                                                       |
-| `/adv-problem`    | Triage issues before fixing or drafting a proposal                                                   |
-| `/adv-proposal`   | Extract problem statement, success criteria, and constraints without creating tasks                  |
-| `/adv-validate`   | Validate change compliance against specs; block archive on failure                                   |
-| `/adv-archive`    | Archive completed change: apply spec deltas and finalize git                                         |
-| `/adv-clarify`    | Ask clarifying questions to resolve ambiguous requirements                                           |
-| `/adv-research`   | Produce a defined, fully-researched proposed plan ready for user approval                            |
-| `/adv-discover`   | Gather context, analyze current state, identify objectives, and obtain user agreement                |
-| `/adv-design`     | Validate architecture decisions, produce implementation strategy, and present design for user review |
-| `/adv-prep`       | Analyze gaps and synthesize tasks from validated research findings                                   |
-| `/adv-apply`      | Implement change with TDD, retry on failure, and final verification                                  |
-| `/adv-task`       | Fast-track a discussed change: synthesize contract, validate best practices, prep, and hand off      |
-| `/adv-autopilot`  | Delegate routine checkpoints to the agent, stop only on safety boundaries                             |
-| `/adv-review`     | Review code for correctness, security, and architecture; emit REVIEW_FINDINGS                        |
-| `/adv-harden`     | Detect low-quality code, verify test coverage, clean up; block archive on open findings              |
-| `/adv-audit`      | Detect drift between specs and current implementation                                                |
-| `/adv-slop-scan`  | Scan for AI slop patterns including defensive and nested code                                        |
-| `/adv-arch-scan`  | Scan for architecture inconsistencies using deterministic tools, research fallback, and AI heuristic |
-| `/adv-comp-scan`  | Scan competitor capabilities against this project for competitive intelligence                       |
-| `/adv-refactor`   | Refresh a stale proposal or batch-refresh the oldest 30% of active changes                          |
-| `/adv-coordinate` | Detect and resolve conflicts across multiple active changes                                          |
-| `/adv-cleanup`    | Triage stale, abandoned, duplicate, and ready-to-archive active changes                              |
-| `/adv-improve`    | Suggest targeted improvements to existing specs or implementation                                    |
-| `/adv-tron`       | Investigate codebase structure, hotspots, risks, and suggest follow-up agenda candidates             |
-| `/adv-reflect`    | Produce a structured two-plane reflection report for an archived change                              |
-
-## Why it feels different
-
-Most AI coding workflows optimize for speed of output.
-
-Advance optimizes for **quality of completion**:
-
-- work starts with a contract
-- tasks are explicit and inspectable
-- tests are evidence, not claims
-- review and hardening are mandatory stages
-- decisions and learnings survive the session that produced them
-
-For serious projects, this is not prompt engineering. It is process infrastructure.
+| Command           | Description                                                                       |
+| ----------------- | --------------------------------------------------------------------------------- |
+| `/adv-status`     | Show project overview: specs, active changes, and next-step recommendations       |
+| `/adv-idea`       | Explore rough ideas before drafting a proposal                                    |
+| `/adv-problem`    | Triage issues before fixing or drafting a proposal                                |
+| `/adv-proposal`   | Extract problem statement, success criteria, and constraints                      |
+| `/adv-discover`   | Gather context, analyze current state, identify objectives, and obtain agreement  |
+| `/adv-design`     | Validate architecture decisions and produce implementation strategy               |
+| `/adv-prep`       | Analyze gaps and synthesize task graph                                            |
+| `/adv-apply`      | Implement with TDD, retry policy, checkpoint commits, and final verification      |
+| `/adv-review`     | Review code for correctness, security, architecture, and contract fit             |
+| `/adv-harden`     | Detect low-quality code, verify coverage, clean up, and block archive on findings |
+| `/adv-archive`    | Apply spec deltas, preserve wisdom, finalize release                              |
+| `/adv-validate`   | Validate change compliance against specs                                          |
+| `/adv-clarify`    | Resolve ambiguous requirements                                                    |
+| `/adv-research`   | Produce a researched proposed plan ready for approval                             |
+| `/adv-task`       | Fast-track a discussed change through contract, research, prep, and handoff       |
+| `/adv-autopilot`  | Delegate routine checkpoints while preserving safety boundaries                   |
+| `/adv-audit`      | Detect drift between specs and implementation                                     |
+| `/adv-slop-scan`  | Scan for AI slop patterns                                                         |
+| `/adv-arch-scan`  | Scan for architecture inconsistencies                                             |
+| `/adv-comp-scan`  | Compare public/source capabilities for competitive intelligence                   |
+| `/adv-refactor`   | Refresh stale proposals or active changes                                         |
+| `/adv-coordinate` | Detect and resolve conflicts across active changes                                |
+| `/adv-cleanup`    | Triage stale, duplicate, abandoned, and ready-to-archive changes                  |
+| `/adv-improve`    | Suggest targeted improvements to specs or implementation                          |
+| `/adv-tron`       | Investigate codebase structure, hotspots, risks, and follow-up candidates         |
+| `/adv-reflect`    | Produce a two-plane reflection report for an archived change                      |
 
 ## Quick start
 
-### Use Advance in OpenCode
+### Install into OpenCode
 
 ```bash
 git clone https://github.com/Sharper-Flow/Advance.git
@@ -163,21 +260,21 @@ cd Advance
 ./scripts/sync-global.sh --fix
 ```
 
-That syncs the plugin, commands, overlays, bundled agents, and skills into your local OpenCode setup.
+That syncs the plugin, commands, overlays, bundled agents, and skills into the local OpenCode setup.
 
-Then in an OpenCode project, start with:
+Then, inside an OpenCode project:
 
 ```text
 /adv-proposal add OAuth login without breaking existing session flows
 ```
 
-From there, Advance walks the change through discovery, agreement, design, planning, execution, review, and archive.
+Advance will move the change through discovery, agreement, design, planning, implementation, review, hardening, and archive.
 
-For setup details, troubleshooting, and project bootstrapping, see [`SETUP.md`](SETUP.md).
+For setup details and troubleshooting, see [`SETUP.md`](SETUP.md).
 
-### Develop the plugin
+## Develop the plugin
 
-All buildable code lives in [`plugin/`](plugin/).
+All buildable code lives in [`plugin/`](plugin/). Run commands from that directory.
 
 ```bash
 cd plugin
@@ -187,108 +284,72 @@ pnpm run check
 pnpm run build
 ```
 
-### Temporal runtime expectations
+CI runs typecheck → lint → format check → tests → build on Node 20.x and 22.x.
 
-ADV storage now targets a **Node worker runtime** plus a probe-gated client
-path for Bun. Current defaults (used in tests and local bootstrap helpers)
-are:
+## Runtime model
 
-- address: `127.0.0.1:7233`
-- namespace: `default`
-- project-scoped task queue: `advance-<projectId>`
+OpenCode ships as a Bun executable. Advance supports that host while running Temporal worker code through a Node-compatible worker path.
 
-Useful commands while developing against Temporal-backed storage:
+Current Temporal defaults:
 
-```bash
-cd plugin
-pnpm exec vitest run src/temporal/*.test.ts
+| Setting    | Default               |
+| ---------- | --------------------- |
+| Address    | `127.0.0.1:7233`      |
+| Namespace  | `default`             |
+| Task queue | `advance-<projectId>` |
+
+Environment variables:
+
+| Variable                    | Default          | Purpose                                                           |
+| --------------------------- | ---------------- | ----------------------------------------------------------------- |
+| `ADV_TEMPORAL_ADDRESS`      | `127.0.0.1:7233` | Temporal frontend address. Non-loopback requires opt-in.          |
+| `ADV_TEMPORAL_NAMESPACE`    | `default`        | Temporal namespace.                                               |
+| `ADV_TEMPORAL_ALLOW_REMOTE` | unset            | Set to `true` to permit non-loopback addresses.                   |
+| `ADV_NODE_PATH`             | unset            | Absolute Node v20+ path for Bun hosts when Node is not on `PATH`. |
+
+Production storage is Temporal-only. Legacy file/SQLite utilities are retained for tests, migrations, repair, and cross-repo tooling; they are not a runtime fallback.
+
+See [`docs/temporal-recovery.md`](docs/temporal-recovery.md) for worker recovery details.
+
+## Repository map
+
+```text
+plugin/              TypeScript OpenCode plugin implementation
+  src/tools/         MCP tool implementations
+  src/storage/       persistence, migrations, Temporal integration, external state
+  src/temporal/      workflows, worker bootstrap, recovery helpers
+  src/guards/        bash and sub-agent policy enforcement
+  src/validator/     spec validation, prep readiness, task classification
+  src/events/        terminal UI/status helpers
+  src/utils/         project IDs, debug logs, context snapshots, safe helpers
+  schemas/           schema anchor stubs; Zod types are authoritative
+.adv/specs/          git-tracked capability specs
+.opencode/command/   slash-command workflow contracts
+.opencode/agents/    bundled/repo-local ADV agents and overlays
+skills/              reusable methodology skills
+docs/                gates, checklists, design notes, specs, recovery docs
+scripts/             sync, migration, maintenance, blind-test helpers
 ```
-
-The Temporal worker runs either in-process (when the plugin host is Node) or
-out-of-process (when the plugin host is Bun — opencode's shipping binary).
-
-- **In-process** (`plugin/src/temporal/in-process-worker.ts`) — selected
-  automatically when `probeTemporalWorkerRuntime()` reports Node. Worker code
-  is loaded by `@temporalio/worker` at startup from `workflows.ts`.
-- **Out-of-process** (`plugin/src/temporal/out-of-process-worker.ts`) — selected
-  automatically when the probe reports Bun. A Node child process is spawned
-  per task queue, loading the worker bundle from `dist/temporal/worker.js`
-  (produced by `pnpm run build:worker`). Plugin (Bun) keeps only the Temporal
-  client; the child runs the worker with Node-native module resolution.
-  Exponential-backoff restart policy on child crash (1s, 3s, 10s; max 3
-  attempts). Requires a Node binary on `PATH` (or set `ADV_NODE_PATH`).
-
-See [docs/temporal-recovery.md](docs/temporal-recovery.md) for the worker-model
-decision record.
-
-Environment variables (see `plugin/.env.example`):
-
-| Variable                                  | Default          | Purpose                                                                                                                                                                                                                     |
-| ----------------------------------------- | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ADV_TEMPORAL_ADDRESS`                    | `127.0.0.1:7233` | Temporal frontend address. Non-loopback requires opt-in.                                                                                                                                                                    |
-| `ADV_TEMPORAL_NAMESPACE`                  | `default`        | Temporal namespace (regex-validated).                                                                                                                                                                                       |
-| `ADV_TEMPORAL_ALLOW_REMOTE`               | unset            | Set to `true` to permit non-loopback addresses.                                                                                                                                                                             |
-| `ADV_NODE_PATH`                           | unset            | **REQUIRED on Bun hosts when Node is not on `PATH`.** Absolute path to a Node v20+ executable. Used by the out-of-process worker when spawning the Node child. On Node hosts, this variable is optional (defaults to `PATH` lookup). |
-
-Activation path:
-
-```ts
-import { createStore } from "./plugin/src/storage/store";
-// Production bootstrap wires a Temporal client bundle before calling createStore().
-const store = await createStore(projectDir, {
-  temporalBundle,
-  projectIdOverride,
-});
-```
-
-`createStore()` requires a `temporalBundle` — the runtime is Temporal-only. The
-file-backed JSON+SQLite backend (`createLegacyStore`) is retained as a
-**non-runtime utility** for tests, cross-repo operations, and migration/repair
-tools. It is not a runtime fallback.
-
-## What lives in this repo
-
-This repository is both the implementation and the operating manual.
-
-- `plugin/` — TypeScript OpenCode plugin implementation
-- `.adv/specs/` — capability specs that define ADV behavior
-- `.opencode/command/` — slash-command workflow contracts
-- `.opencode/agents/` — repo-local agents and managed overlays
-- `skills/` — bundled skills synced into the OpenCode skill registry
-- `docs/` — workflow docs, gate contracts, and checklists
-- `scripts/` — sync, migration, and maintenance helpers
-
-## Key capabilities
-
-- **Spec-driven changes** — define what must be true before implementation starts
-- **Task orchestration** — break changes into explicit, trackable work units
-- **TDD evidence** — capture red/green proof as part of execution
-- **Per-task checkpoints** — every `/adv-apply` task with file changes produces a verified git commit via `adv_task_checkpoint` before being marked done; commits include change/task/verification metadata and are scoped to the change worktree; checkpoint commits are local rollback/audit points only — archive is the separate publication path (see `ADV_INSTRUCTIONS.md § Task Checkpoint Commits`)
-- **Worktree-aware state** — share mutable change state across worktrees and sessions
-- **Accumulated wisdom** — persist patterns, gotchas, conventions, successes, and failures
-- **Validation and archive flow** — reduce drift between proposal, implementation, and specs
 
 ## Documentation map
 
-- [`SETUP.md`](SETUP.md) — installation, project setup, and troubleshooting
-- [`ADV_INSTRUCTIONS.md`](ADV_INSTRUCTIONS.md) — full workflow protocol and agent rules
-- [`AGENTS.md`](AGENTS.md) — contributor-facing repo architecture and commands
-- [`docs/adv-gates.md`](docs/adv-gates.md) — gate contracts and sequencing
-- [`docs/adv-task-report.md`](docs/adv-task-report.md) — retired redirect to [`docs/specs/chat-output-display.md`](docs/specs/chat-output-display.md)
-- [`docs/checklists/`](docs/checklists/) — prep, review, and harden checklists
-- [`docs/specs/`](docs/specs/) — generated spec documentation
+| Document                                                 | Purpose                                                      |
+| -------------------------------------------------------- | ------------------------------------------------------------ |
+| [`SETUP.md`](SETUP.md)                                   | Installation, project setup, troubleshooting                 |
+| [`ADV_INSTRUCTIONS.md`](ADV_INSTRUCTIONS.md)             | Full ADV operating protocol                                  |
+| [`AGENTS.md`](AGENTS.md)                                 | Contributor quick-reference: architecture, commands, gotchas |
+| [`docs/adv-gates.md`](docs/adv-gates.md)                 | Gate contracts and sequencing                                |
+| [`docs/checklists/`](docs/checklists/)                   | Prep, review, and harden checklists                          |
+| [`docs/temporal-recovery.md`](docs/temporal-recovery.md) | Temporal worker recovery model                               |
+| [`docs/specs/`](docs/specs/)                             | Generated/spec-facing documentation                          |
 
-## Development
+## Philosophy
 
-Useful commands from `plugin/`:
+Advance is not trying to make AI coding slower. It is trying to make fast work finish cleanly.
 
-```bash
-pnpm test
-pnpm run build
-pnpm run typecheck
-pnpm run lint
-pnpm run check
-```
+For throwaway scripts, raw chat may be enough. For serious projects, speed without durable scope, evidence, review, recovery, and archive is not speed. It is deferred cleanup.
+
+Advance makes the cleanup part of the system.
 
 ## License
 
