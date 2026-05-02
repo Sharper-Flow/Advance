@@ -65,10 +65,23 @@ Direct standalone CLI would duplicate:
 
 This is essentially building a second copy of the plugin runtime. The cost is high enough that Option B (which reuses the existing `opencode serve` runtime) is strictly better for any usage volume that's not "primary access path".
 
-## Decision points needed from user
+## Resolution status (2026-05-02)
 
-1. **Phase 1 doc update — go now?** (5min effort, no code)
-2. **Phase 2 timing — wait for hot-path signal or kick off as fast-follow?** (1-2 day effort)
-3. **Phase 3 — file the OpenCode feature request now?** (1hr effort, no commitment)
+| Phase | Status | Reference |
+|---|---|---|
+| Phase 1 (doc update) | ✓ Shipped | commit `beddcf5` — added LLM-overhead caveat to ADV_INSTRUCTIONS.md `target_path` matrix |
+| Phase 3 (upstream FR) | ✓ Filed | [`anomalyco/opencode#25478`](https://github.com/anomalyco/opencode/issues/25478) — `opencode tool <name>` subcommand request |
+| Phase 2 (CLI helper) | Deferred | Tracked as agenda item. Conditional implementation: kick off if (a) issue #25478 doesn't land within ~6 months, OR (b) cross-project ADV op volume crosses ~10/day threshold. Whichever comes first. |
 
-If the user wants Phase 2 immediately, open `addNonLlmToolExecHelper` change (or similar) and treat as standalone work. If deferring, mark F10 as resolved-with-deferral in the gaps doc.
+## Why Phase 2 deferred
+
+Phase 2's value depends on:
+1. **Upstream timeline** — if #25478 ships in OpenCode within months, Phase 2 work becomes throwaway.
+2. **Usage volume** — cross-project ADV ops are currently rare enough that the 60–300s LLM-loop cost is acceptable.
+3. **API stability** — the `opencode serve` `/tool` endpoint that Phase 2 would target is undocumented; building against it now risks rework when OpenCode formalizes the API (likely as part of #25478 implementation).
+
+Phase 2 stays viable as a fast-follow if either condition (a) or (b) materializes.
+
+## Original analysis (preserved)
+
+If the user wants Phase 2 immediately, open `addNonLlmToolExecHelper` change (or similar) and treat as standalone work. The ADV agenda has an entry tracking the trigger conditions.

@@ -17,7 +17,7 @@ All 14 findings landed via change `repairtemporalmigrationdebt` on branch `chang
 | F7 — legacy in-repo cleanup tool | Fixed | `251ff03` |
 | F8 — adv_change_import tool | Fixed | `b0d04eb` |
 | F9 — in-flight status filter | Fixed | `2b537b3` |
-| F10 — non-LLM tool exec | **Deferred** to a separate change due to plugin-boundary scope (depends on undocumented `opencode serve` API or LLM round-trip). |
+| F10 — non-LLM tool exec | Phase 1 (doc) `beddcf5`; Phase 3 (upstream FR) [`anomalyco/opencode#25478`](https://github.com/anomalyco/opencode/issues/25478); Phase 2 (CLI helper) **deferred** — see `docs/f10-investigation.md` § Resolution status. |
 | F11 — _healthSnapshot field | Fixed | `fd9f8cb` |
 | F12 — canArchive contract test | Fixed | `7d5bcd1` |
 | F13 — adv_change_diagnose tool | Fixed | `5a97221` |
