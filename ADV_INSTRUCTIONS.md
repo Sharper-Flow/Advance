@@ -218,6 +218,19 @@ Forbidden: `~/.local/share/opencode/plugins/advance/**/{change.json,proposal.md,
 
 On direct-read failure → stop, call `adv_change_show` or `adv_task_show`.
 
+### Concurrent Session Hazard
+
+Multiple OpenCode sessions sharing the same project working directory create a **git race condition**. Any session may stage, commit, or switch branches; operations from one session silently affect the state visible to all others.
+
+**Plugin behavior:** At init, the plugin scans for peer `opencode` processes whose current working directory equals the project directory. When peers are found, it emits:
+
+```
+[ADV:WARN] Concurrent OpenCode sessions detected in this project (PIDs: a,b,c).
+Git operations from any session affect all. Limit to one git-mutating session per repo.
+```
+
+**Agent rule:** When this warning is present, avoid git mutations (commit, merge, branch operations) unless you have confirmed no other session is actively mutating the repo. Prefer read-only operations or coordinate with the user.
+
 ### ADV MCP Tool Invocation (P1.12)
 
 × NEVER invoke ADV tools with empty parameter sets. Always provide all required args explicitly.

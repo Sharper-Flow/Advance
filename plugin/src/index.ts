@@ -39,6 +39,7 @@ import type {
 import { loadConformanceState } from "./storage/conformance";
 import { createToolMap, createDegradedToolMap } from "./tool-registry";
 import { appendDebugLog, createLogger } from "./utils/debug-log";
+import { detectConcurrentSessions } from "./utils/concurrent-sessions";
 import {
   extractCompletedTask,
   extractCreatedChangeId,
@@ -367,6 +368,17 @@ const advancePluginImpl: Plugin = async ({ directory, worktree, project }) => {
   // The old external handoff file is transitional legacy state and will be
   // deleted in Phase D. Fresh sessions derive active context from explicit
   // tool calls / status queries rather than consuming a sidecar JSON file.
+
+  // Detect concurrent OpenCode sessions sharing this project CWD
+  const peerPids = await detectConcurrentSessions(directory);
+  if (peerPids.length > 0) {
+    debugLog(
+      `Concurrent OpenCode sessions detected: PIDs ${peerPids.join(", ")}`,
+    );
+    hooksLogger.warn(
+      `[ADV:WARN] Concurrent OpenCode sessions detected in this project (PIDs: ${peerPids.join(", ")}). Git operations from any session affect all. Limit to one git-mutating session per repo.`,
+    );
+  }
 
   // Helper to update status flags and push the resolved status to the terminal
   const setFlags = (updates: Partial<StatusFlags>) => {
