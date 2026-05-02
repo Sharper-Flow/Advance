@@ -413,6 +413,32 @@ Never direct ADV state file reads/writes.
 `cross_project_links` records provenance; `external_dependencies` are advisory-only dependencies and never block gates/archive by default.
 Inspect `_externalDependencyStatus` for satisfied/warning/blocking counts and drilldown; target-project contribution flow is create/link → verify source link → monitor advisory dependencies → confirmed target mutation.
 
+#### `target_path` matrix (which tools support cross-project)
+
+Tools with `target_path` (read or mutation) accept the optional path argument and route through `resolveTargetProject` / `withTargetPathStore`. Tools NOT in the table operate on the current process project only.
+
+| Tool | Mode | Notes |
+|---|---|---|
+| `adv_change_show`, `adv_change_list`, `adv_change_validate` | snapshot-ok | Read-only; no `target_confirmed` needed |
+| `adv_status` | snapshot-ok | Read-only; cross-project disk-snapshot view |
+| `adv_task_show`, `adv_task_list`, `adv_task_ready` | snapshot-ok | Read-only |
+| `adv_change_update`, `adv_change_create` | temporal-required | Mutation; `target_confirmed: true` + `confirmationEvidence` required for untrusted |
+| `adv_change_archive`, `adv_change_close`, `adv_change_bulk_close` | temporal-required | Mutation |
+| `adv_task_update`, `adv_task_evidence`, `adv_task_tdd`, `adv_task_cancel`, `adv_task_add` | temporal-required | Mutation |
+| `adv_gate_status`, `adv_gate_complete` | temporal-required | Read-status / mutation |
+| `adv_workflow_repair`, `adv_orphan_sweep`, `adv_temporal_reconnect` | temporal-required | Mutation (added 2026-05-02 for F4) |
+| `adv_archive_sweep_orphans` | temporal-required | Mutation (added 2026-05-02 for F4) |
+| `adv_change_diagnose`, `adv_change_import`, `adv_migrate_cleanup` | snapshot-ok / temporal-required | Read-only diagnose; import & cleanup are mutations |
+| `adv_run_test` | temporal-required | Mutation (records evidence) |
+
+Tools without `target_path` (current-project only): `adv_status`/`adv_temporal_diagnose` (planned to add), `adv_temporal_register_search_attributes`, `adv_temporal_worker_restart`, `adv_reflect`, `adv_conformance`, `adv_agenda_*`, `adv_wisdom_*`, `adv_project_metadata`, `adv_project_context`, `adv_run_test` workdir-resolution.
+
+When a tool you need lacks `target_path` and the work is genuinely cross-project, switch sessions: `cd <other-project> && opencode`.
+
+#### `status: "in-flight"` filter shorthand
+
+`adv_change_list status: "in-flight"` returns the union `draft + pending + active`. Use this when an agent prompt or human asks "what's in flight" without caring about the specific stored status. The filter is **input-only**; it never appears as a stored `status` value on a change. The plain `"active"` filter (and other status values) keeps its strict storage-enum meaning.
+
 ### Cancellation Policy
 
 All cancellations require explicit user approval via `adv_task_cancel`.
