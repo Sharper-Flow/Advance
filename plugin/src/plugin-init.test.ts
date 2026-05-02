@@ -502,3 +502,138 @@ describe("rq-advshut1: bounded flush on shutdown after STSL changes", () => {
     handlers.removeProcessListeners();
   });
 });
+
+// =============================================================================
+// C5 / rq-workerSingleton01: cross-session singleton worker integration
+// =============================================================================
+
+describe("tryInitStore worker singleton (C5 / rq-workerSingleton01)", () => {
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    // vi.clearAllMocks() also clears default implementations set at
+    // mock factory time. Restore everything this describe block needs.
+    mocks.createStore.mockImplementation(async () => mocks.store as any);
+    mocks.createInProcessWorker.mockImplementation(
+      async () => mocks.inProcessWorker,
+    );
+    mocks.createOutOfProcessWorker.mockImplementation(
+      async () => mocks.outOfProcessWorker,
+    );
+    mocks.initStsl.mockImplementation(async () => ({
+      address: "127.0.0.1:7233",
+      namespace: "default",
+      connection: {} as any,
+      client: {
+        workflow: {
+          start: mocks.workflowStart,
+          getHandle: mocks.workflowGetHandle,
+        },
+      } as any,
+    }));
+    mocks.probeTemporalWorkerRuntime.mockReturnValue({
+      supported: true,
+      runtime: "node",
+      reason: "node",
+    });
+    mocks.resolveNodeExecutable.mockReturnValue({
+      found: true,
+      path: "/usr/bin/node",
+      source: "path",
+    });
+    mocks.ensureTemporalRuntime.mockImplementation(async () => ({
+      address: "127.0.0.1:7233",
+      namespace: "default",
+      startedRuntime: true,
+    }));
+    // worker-lock default: owned:true (this instance owns the lock).
+    const { acquireWorkerLock, releaseWorkerLock } = await import(
+      "./temporal/worker-lock"
+    );
+    (acquireWorkerLock as any).mockImplementation(async () => ({
+      owned: true,
+      ownerPid: process.pid,
+      workerId: "test-worker-id",
+      lockPath: "/tmp/test/worker.lock",
+    }));
+    (releaseWorkerLock as any).mockImplementation(async () => {});
+    delete process.env.ADV_FORCE_IN_PROCESS_WORKER;
+  });
+
+  afterEach(() => {
+    delete process.env.ADV_FORCE_IN_PROCESS_WORKER;
+  });
+
+  it("when worker.lock is owned by another instance, no worker is spawned and store still resolves", async () => {
+    mocks.getProjectId.mockResolvedValueOnce("proj-sha");
+
+    // Override the worker-lock mock for THIS test: report owned:false.
+    const { acquireWorkerLock } = await import("./temporal/worker-lock");
+    (acquireWorkerLock as any).mockResolvedValueOnce({
+      owned: false,
+      ownerPid: 99999,
+      lockPath: "/tmp/external/worker.lock",
+      reason: "lock_held_by_alive_pid",
+    });
+
+    const { tryInitStore } = await import("./plugin-init");
+    const result = await tryInitStore("/tmp/repo", "/tmp/external");
+
+    // Store still created (Temporal client still init'd) — second
+    // instance participates as client only.
+    expect(result.store).toBe(mocks.store);
+    expect(result.initError).toBeNull();
+    // Critical: no worker process spawned.
+    expect(mocks.createInProcessWorker).not.toHaveBeenCalled();
+    expect(mocks.createOutOfProcessWorker).not.toHaveBeenCalled();
+  });
+
+  it("when worker.lock is owned by us, worker IS spawned (default behavior)", async () => {
+    mocks.getProjectId.mockResolvedValueOnce("proj-sha");
+    // Default mock returns owned:true — no override needed.
+
+    const { tryInitStore } = await import("./plugin-init");
+    await tryInitStore("/tmp/repo", "/tmp/external");
+
+    expect(mocks.createInProcessWorker).toHaveBeenCalledTimes(1);
+  });
+
+  it("ADV_FORCE_IN_PROCESS_WORKER=1 bypasses the lock check entirely", async () => {
+    mocks.getProjectId.mockResolvedValueOnce("proj-sha");
+    process.env.ADV_FORCE_IN_PROCESS_WORKER = "1";
+
+    const { acquireWorkerLock } = await import("./temporal/worker-lock");
+
+    const { tryInitStore } = await import("./plugin-init");
+    await tryInitStore("/tmp/repo", "/tmp/external");
+
+    // Lock acquisition is skipped — env var is the rollback path.
+    expect(acquireWorkerLock).not.toHaveBeenCalled();
+    // Worker is still spawned via the legacy probe-based path.
+    expect(mocks.createInProcessWorker).toHaveBeenCalledTimes(1);
+  });
+
+  it("two sequential plugin-inits with worker.lock contention spawn exactly one worker", async () => {
+    // First instance owns the lock.
+    mocks.getProjectId.mockResolvedValue("proj-sha");
+    const { acquireWorkerLock } = await import("./temporal/worker-lock");
+
+    const { tryInitStore } = await import("./plugin-init");
+
+    // First init: default acquire returns owned:true → spawn.
+    await tryInitStore("/tmp/repo", "/tmp/external");
+    expect(mocks.createInProcessWorker).toHaveBeenCalledTimes(1);
+
+    // Second init: simulate lock held → no spawn.
+    (acquireWorkerLock as any).mockResolvedValueOnce({
+      owned: false,
+      ownerPid: process.pid + 1,
+      lockPath: "/tmp/external/worker.lock",
+      reason: "lock_held_by_alive_pid",
+    });
+
+    await tryInitStore("/tmp/repo", "/tmp/external");
+
+    // Total spawns across both inits: still 1 (rq-workerSingleton01).
+    expect(mocks.createInProcessWorker).toHaveBeenCalledTimes(1);
+  });
+});
