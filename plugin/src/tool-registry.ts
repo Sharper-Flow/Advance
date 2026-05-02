@@ -41,6 +41,7 @@ import { investmentTools } from "./tools/investment";
 import { temporalOpsTools } from "./tools/temporal-ops";
 import { archiveSweepTools } from "./tools/archive-sweep";
 import { migrateCleanupTools } from "./tools/migrate-cleanup";
+import { archivePurgeTools } from "./tools/archive-purge";
 import { checkpointTools } from "./tools/checkpoint";
 import { reflectionTools } from "./tools/reflection";
 import { projectMetadataTools } from "./tools/project-metadata";
@@ -384,6 +385,11 @@ export function createToolMap(
       "adv_migrate_cleanup",
       store,
     ),
+    adv_archive_purge: bindTool(
+      archivePurgeTools.adv_archive_purge,
+      "adv_archive_purge",
+      store,
+    ),
     adv_temporal_worker_restart: bindTool(
       temporalOpsTools.adv_temporal_worker_restart,
       "adv_temporal_worker_restart",
@@ -542,6 +548,7 @@ export const ADV_TOOL_NAMES: readonly string[] = [
   "adv_orphan_sweep",
   "adv_archive_sweep_orphans",
   "adv_migrate_cleanup",
+  "adv_archive_purge",
   "adv_temporal_worker_restart",
   "adv_workflow_repair",
   "adv_task_checkpoint",
