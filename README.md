@@ -208,6 +208,10 @@ Patterns, successes, failures, conventions, and gotchas can be recorded per chan
 
 Optional CI-isolated conformance checks can verify specs from outside the agent’s editable context. Drift blocks archive unless a human explicitly unlocks or overrides.
 
+### Prioritizer protocol
+
+When 2+ viable approaches depend on user values, Advance runs the prioritizer before asking. The tradeoff Prioritizer protocol is inline by default — the orchestrator agent researches tradeoffs, drafts criteria questions, and surfaces them via the prioritizer skill or inline question tool. Delegated sub-agents use the same protocol for task-level decisions.
+
 ## Command + skill architecture
 
 Advance separates workflow ownership from reusable methodology.
@@ -226,29 +230,29 @@ This keeps methodology reusable without letting random helper prompts mutate wor
 | `/adv-status`     | Show project overview: specs, active changes, and next-step recommendations       |
 | `/adv-idea`       | Explore rough ideas before drafting a proposal                                    |
 | `/adv-problem`    | Triage issues before fixing or drafting a proposal                                |
-| `/adv-proposal`   | Extract problem statement, success criteria, and constraints                      |
-| `/adv-discover`   | Gather context, analyze current state, identify objectives, and obtain agreement  |
-| `/adv-design`     | Validate architecture decisions and produce implementation strategy               |
-| `/adv-prep`       | Analyze gaps and synthesize task graph                                            |
-| `/adv-apply`      | Implement with TDD, retry policy, checkpoint commits, and final verification      |
-| `/adv-review`     | Review code for correctness, security, architecture, and contract fit             |
-| `/adv-harden`     | Detect low-quality code, verify coverage, clean up, and block archive on findings |
-| `/adv-archive`    | Apply spec deltas, preserve wisdom, finalize release                              |
-| `/adv-validate`   | Validate change compliance against specs                                          |
-| `/adv-clarify`    | Resolve ambiguous requirements                                                    |
-| `/adv-research`   | Produce a researched proposed plan ready for approval                             |
-| `/adv-task`       | Fast-track a discussed change through contract, research, prep, and handoff       |
-| `/adv-autopilot`  | Delegate routine checkpoints while preserving safety boundaries                   |
-| `/adv-audit`      | Detect drift between specs and implementation                                     |
-| `/adv-slop-scan`  | Scan for AI slop patterns                                                         |
-| `/adv-arch-scan`  | Scan for architecture inconsistencies                                             |
-| `/adv-comp-scan`  | Compare public/source capabilities for competitive intelligence                   |
-| `/adv-refactor`   | Refresh stale proposals or active changes                                         |
-| `/adv-coordinate` | Detect and resolve conflicts across active changes                                |
-| `/adv-cleanup`    | Triage stale, duplicate, abandoned, and ready-to-archive changes                  |
-| `/adv-improve`    | Suggest targeted improvements to specs or implementation                          |
-| `/adv-tron`       | Investigate codebase structure, hotspots, risks, and follow-up candidates         |
-| `/adv-reflect`    | Produce a two-plane reflection report for an archived change                      |
+| `/adv-proposal`   | Extract problem statement, success criteria, and constraints without creating tasks |
+| `/adv-discover`   | Gather context, analyze current state, identify objectives, and obtain user agreement |
+| `/adv-design`     | Validate architecture decisions, produce implementation strategy, and present design for user review |
+| `/adv-prep`       | Analyze gaps and synthesize tasks from validated research findings                |
+| `/adv-apply`      | Implement change with TDD, retry on failure, and final verification              |
+| `/adv-review`     | Review code for correctness, security, and architecture; emit REVIEW_FINDINGS     |
+| `/adv-harden`     | Detect low-quality code, verify test coverage, clean up; block archive on open findings |
+| `/adv-archive`    | Archive completed change: apply spec deltas and finalize git                      |
+| `/adv-validate`   | Validate change compliance against specs; block archive on failure                |
+| `/adv-clarify`    | Ask clarifying questions to resolve ambiguous requirements                        |
+| `/adv-research`   | Produce a defined, fully-researched proposed plan ready for user approval         |
+| `/adv-task`       | Fast-track a discussed change: synthesize contract, validate best practices, prep, and hand off |
+| `/adv-autopilot`  | Delegate routine checkpoints to the agent, stop only on safety boundaries         |
+| `/adv-audit`      | Detect drift between specs and current implementation                             |
+| `/adv-slop-scan`  | Scan for AI slop patterns including defensive and nested code                     |
+| `/adv-arch-scan`  | Scan for architecture inconsistencies using deterministic tools, research fallback, and AI heuristic |
+| `/adv-comp-scan`  | Scan competitor capabilities against this project for competitive intelligence    |
+| `/adv-refactor`   | Refresh a stale proposal or batch-refresh the oldest 30% of active changes       |
+| `/adv-coordinate` | Detect and resolve conflicts across multiple active changes                       |
+| `/adv-cleanup`    | Triage stale, abandoned, duplicate, and ready-to-archive active changes          |
+| `/adv-improve`    | Suggest targeted improvements to existing specs or implementation                 |
+| `/adv-tron`       | Investigate codebase structure, hotspots, risks, and suggest follow-up agenda candidates |
+| `/adv-reflect`    | Produce a structured two-plane reflection report for an archived change           |
 
 ## Quick start
 
