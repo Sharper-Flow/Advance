@@ -576,7 +576,7 @@ Available to agents with `task: true` in their frontmatter: `adv`, `build`, `pla
 Rules:
 
 - Sub-agents × NEVER spawn sub-agents (`enforceTaskPolicy` blocks nesting)
-- Cap parallel bursts at 3-4
+- Cap parallel bursts at `MAX_PARALLEL_SUBAGENTS` (runtime constant, currently 3)
 - Batch independent work into single spawn message
 - × Don't spawn for single-tool-call work
 - For `/adv-research`, `librarian`, `adv-researcher`, and `explore` fallback must do the research inline and must not delegate to additional research sub-agents
@@ -621,7 +621,7 @@ Every sub-agent spawn must include: ROLE:, OUTPUT_SCHEMA:, BUDGET:, STOP_WHEN:. 
 
 ### Orchestration Token-Budget Policy
 
-When to spawn: 3+ independent scan dimensions. Max parallel workers: 3-4. Cap total sub-agents per command at 6. Use inline work for sequential or context-dependent tasks.
+When to spawn: 3+ independent scan dimensions. Max parallel workers: 3 (runtime-enforced via `enforceTaskPolicy`). Batch pattern: spawn 3, wait for completions, spawn next batch. Cap total sub-agents per command at 6. Use inline work for sequential or context-dependent tasks.
 
 ### Phase Summary Pattern
 

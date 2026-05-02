@@ -286,7 +286,7 @@ Choose between inline work and delegation based on what produces the best **cont
 
 ## Sub-Agent Policy
 
-Sub-agent nesting depth enforced by `plugin/src/guards/task.ts` (`enforceTaskPolicy`, depth ≤ 1). Only `mode: subagent` agents spawnable via Task tool.
+Sub-agent nesting depth enforced by `plugin/src/guards/task.ts` (`enforceTaskPolicy`, depth ≤ 1, parallel cap 3). Primary agents (`adv`, `build`, `plan` + provider variants) may spawn up to 3 concurrent sub-agents; sub-agents are blocked from spawning further sub-agents. Only `mode: subagent` agents spawnable via Task tool.
 
 | Agent            | Spawn When                                                           | Returns                               |
 | ---------------- | -------------------------------------------------------------------- | ------------------------------------- |
@@ -302,7 +302,7 @@ Sub-agent nesting depth enforced by `plugin/src/guards/task.ts` (`enforceTaskPol
 | Constraint | Value |
 |---|---|
 | Max nesting depth | 1 (runtime-enforced via `enforceTaskPolicy`) |
-| Max parallel spawn | 3-4 (coordination overhead beyond) |
+| Max parallel spawn | 3 (runtime-enforced via `enforceTaskPolicy`). Batch: spawn 3, wait, spawn next 3. |
 | Default for ADV code-writing | `adv-engineer` (preferred); `general` for verify-only |
 | Primary agents (not spawnable) | `build`, `plan` (user switches directly) |
 
@@ -313,7 +313,7 @@ Sub-agent nesting depth enforced by `plugin/src/guards/task.ts` (`enforceTaskPol
 | Rule | Action |
 |---|---|
 | Context-bound problem | Keep inline; don't delegate context understanding |
-| Multiple parallel needs | Batch spawn in one message; cap 3-4 |
+| Multiple parallel needs | Batch spawn in one message; cap 3; wait for completions before next batch |
 | Sub-agent prompts | Always include WORKING DIRECTORY, specific task, expected output |
 | Nesting | Forbidden — `enforceTaskPolicy` blocks |
 

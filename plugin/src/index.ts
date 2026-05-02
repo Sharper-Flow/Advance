@@ -477,8 +477,9 @@ const advancePluginImpl: Plugin = async ({ directory, worktree, project }) => {
     }
 
     if (toolName === "task") {
-      enforceTaskPolicy(state.activeSubAgents);
-      debugLog(`Sub-agent spawned: count=${state.activeSubAgents + 1}`);
+      const callerAgent = typeof input.agent === "string" ? input.agent : undefined;
+      enforceTaskPolicy(state.activeSubAgents, callerAgent);
+      debugLog(`Sub-agent spawned: count=${state.activeSubAgents + 1} caller=${callerAgent ?? "unknown"}`);
       setFlags({
         activeSubAgents: state.activeSubAgents + 1,
         sessionIdle: false,

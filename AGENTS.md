@@ -15,7 +15,7 @@ plugin/              # TypeScript plugin (the only buildable package)
     manifest.ts      # Command manifest (phases, gates, scopes)
     tools/           # MCP tool implementations (spec, change, task, gate, wisdom, agenda, test, status, project)
     storage/         # JSON + SQLite persistence, migrations, handoff, external state
-    guards/          # Runtime policy enforcement (bash sanitization, task nesting depth)
+    guards/          # Runtime policy enforcement (bash sanitization, task nesting + parallelism)
     validator/       # Spec validation, prep-readiness, task classification
     events/          # Terminal UI, status markers
     utils/           # Helpers (debug-log, project-id, safe-execute)
@@ -126,7 +126,7 @@ Runtime visibility is controlled by OpenCode's native `agent.<name>.disable` fie
 ### Guard system
 
 - `guards/bash.ts` — sanitizes bash commands at runtime (blocks destructive patterns)
-- `guards/task.ts` — enforces single-level sub-agent nesting (hard depth limit of 1)
+- `guards/task.ts` — enforces sub-agent nesting (depth ≤ 1) and parallelism (max 3 concurrent from primary agents)
 
 ### Tool registration pattern
 

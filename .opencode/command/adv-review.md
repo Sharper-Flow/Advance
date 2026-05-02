@@ -154,7 +154,7 @@ EXPECTED OUTPUT: {dimension-specific JSON schema}
 ```
 This replaces the minimal one-liner and gives explore agents grounded context without ADV tool access. Build the packet from `adv_task_list` and `adv_change_show` outputs at spawn time. Inject verbatim — do NOT give explore agents ADV tool access.
 
-Spawn **5 parallel sub-agents** (`subagent_type: "explore"`). Each receives the Review Context Packet above plus dimension-specific instructions.
+Spawn **5 sub-agents in two batches** (`subagent_type: "explore"`). Batch 1: sub-agents 1–3. Wait for completions. Batch 2: sub-agents 4–5. Each receives the Review Context Packet above plus dimension-specific instructions.
 ### Sub-Agent 1: Requirement Traceability
 For each scenario → search files for implementation evidence → calculate coverage → flag untraced. Return: `dimension`, `coverage_percent`, `traced`, `untraced`, `issues`.
 ### Sub-Agent 2: Logic & Edge Cases

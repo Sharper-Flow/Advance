@@ -181,7 +181,7 @@ EXPECTED OUTPUT: {dimension-specific JSON schema}
 
 Build packet from `adv_task_list` and `adv_change_show` outputs at spawn time. Inject verbatim — do NOT give explore agents ADV tool access.
 
-Spawn **6 parallel sub-agents** (`subagent_type: "explore"`). Each receives the Harden Context Packet above plus dimension-specific instructions.
+Spawn **6 sub-agents in two batches** (`subagent_type: "explore"`). Batch 1: sub-agents 1–3. Wait for completions. Batch 2: sub-agents 4–6. Each receives the Harden Context Packet above plus dimension-specific instructions.
 
 ### Sub-Agent 1: Test Coverage Scanner
 
