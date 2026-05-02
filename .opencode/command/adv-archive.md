@@ -187,17 +187,23 @@ After the archive summary is displayed, invoke reflection (non-blocking):
 ## Phase 9: Git Finalization (Mandatory)
 <!-- rq-releaseFinalization01 -->
 
-### Step 1: Stage and Commit
+> **Invariant: main checkout stays on the default branch.** ADV NEVER runs `git checkout` or `git switch` on any worktree (or on the main checkout) during archive. Trunk is updated in place via `git -C "$MAIN" merge --ff-only`. The agent MUST resolve `$MAIN` once at the start of Phase 9 (Step 3) and use it for all default-branch operations (fetch, merge, push, verify, hook detection) through Step 7. If main is not on the default branch or not clean, the invariant check (Step 4.4) hard-blocks and asks the user — ADV does not "fix" main's state on the user's behalf.
 
-Stage `.adv/specs/`, `docs/specs/`, `.adv/archive/`, `.opencode/`, `plugin/src/`, `ADV_INSTRUCTIONS.md`, `README.md`, and any touched docs in `docs/`. Do NOT stage generated build artifacts. Commit: `chore: archive {change-id}`. If commit fails → stop.
+### Step 1: Stage and Commit (in the worktree, on the change branch)
+
+Stage `.adv/specs/`, `docs/specs/`, `.adv/archive/`, `.opencode/`, `plugin/src/`, `ADV_INSTRUCTIONS.md`, `README.md`, and any touched docs in `docs/`. Do NOT stage generated build artifacts. Commit on the **change branch in the worktree**: `chore: archive {change-id}`. If commit fails → stop.
 
 ### Step 2: Detect Default Branch
 
 `git rev-parse --verify main` || `trunk` || `git symbolic-ref refs/remotes/origin/HEAD` || `git config --get init.defaultBranch`. If UNKNOWN or remote HEAD looks stale → ask user.
 
-### Step 3: Check Context
+### Step 3: Resolve Main Checkout Path (`$MAIN`)
 
-`git branch --show-current` → if on `change/{change-id}` → merge required. If on default branch → skip merge.
+```
+MAIN="$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")"
+```
+
+This resolves to the absolute path of the main checkout root from any workdir (worktree or main). Used for every subsequent default-branch operation through Step 7. If running from the main checkout itself, `$MAIN` equals the current working directory and `git -C "$MAIN" ...` is a no-op prefix — the same commands work in both modes.
 
 ### Step 3.5: Overlap + Policy Scan
 
@@ -207,42 +213,52 @@ Stage `.adv/specs/`, `docs/specs/`, `.adv/archive/`, `.opencode/`, `plugin/src/`
 
 ### Step 4: Refresh Merge Basis
 
-- `git fetch origin {default-branch}` when `origin` exists
+- `git -C "$MAIN" fetch origin {default-branch}` when `origin` exists
 - If fetch succeeds → use `origin/{default-branch}` as freshness reference
 - If fetch fails and a PR/publish path is required → stop and ask the user before proceeding
 - If no remote is configured or local-only archive is intended → continue with local `{default-branch}`
+
+### Step 4.4: Main Checkout Invariant Check (HARD GATE)
+
+Before any merge attempt, verify the main checkout is in a state ADV can safely fast-forward into:
+
+1. `git -C "$MAIN" branch --show-current` → MUST equal `{default-branch}`. If not → **STOP**. Report the actual branch. Tell user: "Main checkout at `$MAIN` is on branch `<actual>`, expected `{default-branch}`. ADV will not switch branches. Restore main to `{default-branch}` (commit or stash any work in `$MAIN`, then `git -C "$MAIN" switch {default-branch}`) and retry."
+2. `git -C "$MAIN" status --porcelain` → MUST be empty. If not → **STOP**. List the dirty files. Tell user: "Main checkout at `$MAIN` has uncommitted changes. ADV will not merge over a dirty tree. Commit or stash them in `$MAIN` and retry."
+3. Both pass → proceed to Step 4.5.
+
+× ADV MUST NOT attempt to switch main's branch, stash main's working tree, or otherwise mutate main's state on the user's behalf. This is a stop-and-ask gate.
 
 ### Step 4.5: Choose Integration Path
 
 Allowed outcomes:
 
-- **LOCAL_FINISH / fast path** — branch is already on current default-branch basis → `git checkout {default-branch}` → `git merge --ff-only change/{change-id}`
-- **LOCAL_FINISH / reconcile path** — no `overlap-risk`, no `pr-risk`, but trunk moved → run compatibility preflight, then rebase, then fast-forward merge
-- **PR workflow path** — `overlap-risk`, `pr-risk`, failed lightweight verification, or non-fast-forward publish risk → push + `gh pr create` (or queue entry when project policy uses one)
+- **LOCAL_FINISH / fast path** — branch is already on current default-branch basis → `git -C "$MAIN" merge --ff-only change/{change-id}`
+- **LOCAL_FINISH / reconcile path** — no `overlap-risk`, no `pr-risk`, but trunk moved → run compatibility preflight, rebase the change branch in the worktree, then `git -C "$MAIN" merge --ff-only change/{change-id}`
+- **PR workflow path** — `overlap-risk`, `pr-risk`, failed lightweight verification, or non-fast-forward publish risk → push the change branch from the worktree + `gh pr create` (or queue entry when project policy uses one)
 
 ### Step 4.6: Compatibility Preflight (for reconcile path)
 
-- From the change branch: `git merge --no-commit --no-ff {freshness-ref}`
+- From the change branch in the worktree: `git merge --no-commit --no-ff {freshness-ref}`
 - If clean → `git merge --abort` → continue
 - If conflicts → capture `git diff --name-only --diff-filter=U` → `git merge --abort` → stop with conflicting files. × Do NOT delete worktree
 
 ### Step 4.7: Reconcile (for reconcile path)
 
-- `git rebase {freshness-ref}`
+- In the worktree (on the change branch): `git rebase {freshness-ref}`
 - If rebase conflicts → capture `git diff --name-only --diff-filter=U` → `git rebase --abort` → stop with conflicting files. × Do NOT delete worktree
 - Run lightweight verification for touched scope (targeted checks first, repo smoke check if no narrower command exists)
 - If verification fails → route to PR workflow path or stop when project policy forbids it
-- After clean verification: `git checkout {default-branch}` → `git merge --ff-only change/{change-id}`
+- After clean verification: `git -C "$MAIN" merge --ff-only change/{change-id}`
 
-### Step 4.8: Publish Safety (when pushing a default branch)
+### Step 4.8: Publish Safety (when pushing the default branch)
 
-If archive finalization needs a remote push from the default branch:
+If archive finalization needs a remote push of the default branch, run from `$MAIN`:
 
-- `git fetch origin` (if fetch fails or auth is unclear → stop and ask the user before proceeding)
-- `git log --oneline origin/{default-branch}..HEAD` → inspect the commits that will publish
-- If `origin/{default-branch}..HEAD` is a clean fast-forward → `git push origin {default-branch} 2>&1` (capture output verbatim — do NOT redirect to `/dev/null`; agent must observe pre-push hook output)
+- `git -C "$MAIN" fetch origin` (if fetch fails or auth is unclear → stop and ask the user before proceeding)
+- `git -C "$MAIN" log --oneline origin/{default-branch}..{default-branch}` → inspect the commits that will publish
+- If `origin/{default-branch}..{default-branch}` is a clean fast-forward → `git -C "$MAIN" push origin {default-branch} 2>&1` (capture output verbatim — do NOT redirect to `/dev/null`; agent must observe pre-push hook output)
 - × Do NOT force-push by default
-- Before any `--force-with-lease` prompt, show both `origin/{default-branch}..HEAD` and `HEAD..origin/{default-branch}` so the user sees local-only and remote-only commits
+- Before any `--force-with-lease` prompt, show both `git -C "$MAIN" log --oneline origin/{default-branch}..{default-branch}` and `git -C "$MAIN" log --oneline {default-branch}..origin/{default-branch}` so the user sees local-only and remote-only commits
 - Use `--force-with-lease` only after explicit user approval via the `question` tool confirms a non-fast-forward publish is intended
 - If remote divergence is detected and intent is unclear → stop and ask the user
 
@@ -252,20 +268,20 @@ If no remote is configured OR push is skipped OR push fails: record the reason �
 
 ### Step 4.85: Pre-Push Hook Detection
 
-Before pushing (Step 4.8), detect what the project automates on pre-push so the agent doesn't redundantly run sync, and so Phase 8 can report what fired.
+Before pushing (Step 4.8), detect what the project automates on pre-push so the agent doesn't redundantly run sync, and so Phase 8 can report what fired. Inspect the **main checkout** (`$MAIN`), since that is where the push runs.
 
 Detection (in order; stop at first match):
 
-1. `git config --get core.hooksPath` — if set AND `<path>/pre-push` exists AND is executable → `hook_strategy: hooksPath`
-2. `.githooks/pre-push` exists AND executable → `hook_strategy: githooks`
-3. `.git/hooks/pre-push` exists AND executable AND not the `.sample` file → `hook_strategy: standard`
-4. `.husky/pre-push` exists → `hook_strategy: husky`
-5. `lefthook.yml` (or `lefthook.yaml`) exists with `pre-push:` section → `hook_strategy: lefthook`
+1. `git -C "$MAIN" config --get core.hooksPath` — if set AND `<path>/pre-push` exists AND is executable → `hook_strategy: hooksPath`
+2. `$MAIN/.githooks/pre-push` exists AND executable → `hook_strategy: githooks`
+3. `$MAIN/.git/hooks/pre-push` exists AND executable AND not the `.sample` file → `hook_strategy: standard`
+4. `$MAIN/.husky/pre-push` exists → `hook_strategy: husky`
+5. `$MAIN/lefthook.yml` (or `lefthook.yaml`) exists with `pre-push:` section → `hook_strategy: lefthook`
 6. None of the above → `hook_strategy: none`
 
 Asset-sync gap check:
 
-- `hook_strategy == "none"` AND change touched any path in synced asset list (`.opencode/`, `ADV_INSTRUCTIONS.md`, `skills/`) AND `scripts/sync-global.sh` exists AND is executable → run `scripts/sync-global.sh --fix` explicitly before push, capture output → `sync_action: manual fix`
+- `hook_strategy == "none"` AND change touched any path in synced asset list (`.opencode/`, `ADV_INSTRUCTIONS.md`, `skills/`) AND `$MAIN/scripts/sync-global.sh` exists AND is executable → run `scripts/sync-global.sh --fix` explicitly from `$MAIN` before push, capture output → `sync_action: manual fix`
 - `hook_strategy != "none"` → `sync_action: auto via hook` (rely on hook; capture push output verbatim in Step 4.8 to observe what fired)
 - No asset paths touched AND no hook → `sync_action: not needed`
 
@@ -275,21 +291,21 @@ Record `(hook_strategy, sync_action)` for the Phase 8 archive report (footer lin
 
 ### Step 5: Verify
 
-`git log --oneline {default-branch}..change/{change-id}` → MUST return empty. If non-empty → stop, × do NOT delete worktree.
+`git -C "$MAIN" log --oneline {default-branch}..change/{change-id}` → MUST return empty (every commit on the change branch is reachable from default-branch). If non-empty → stop, × do NOT delete worktree.
 
-If push was performed (Step 4.8 succeeded): `git fetch origin {default-branch} && git rev-parse origin/{default-branch}` → MUST equal local `HEAD`. If mismatch → stop, do NOT delete worktree, report drift in Phase 8.
+If push was performed (Step 4.8 succeeded): `git -C "$MAIN" fetch origin {default-branch}` then compare `git -C "$MAIN" rev-parse origin/{default-branch}` with `git -C "$MAIN" rev-parse {default-branch}` → MUST be equal. If mismatch → stop, do NOT delete worktree, report drift in Phase 8.
 
 ### Step 6: Cleanup Worktree
 
-Only if in worktree AND merge verified: `worktree_delete branch: "change/{change-id}" reason: "Change {change-id} merged"`. If unavailable → emit info.
+Only if running in a worktree AND merge verified in Step 5: `worktree_delete branch: "change/{change-id}" reason: "Change {change-id} merged"`. If `worktree_delete` is unavailable → emit an info banner naming the manual fallback: `git -C "$MAIN" worktree remove <worktree-path>` followed by `git -C "$MAIN" branch -D change/{change-id}`.
 
 ### Step 7: Temp Artifacts
 
-Remove `*.bak`, `*.tmp`, `*.orig` (excluding node_modules).
+Remove `*.bak`, `*.tmp`, `*.orig` from `$MAIN` (excluding `node_modules`).
 
 ### Completion
 
-Emit GIT FINALIZATION COMPLETE: commit SHA, merge target, verification status, worktree cleanup status, artifacts removed.
+Emit GIT FINALIZATION COMPLETE: commit SHA, merge target (`$MAIN` default-branch HEAD), verification status, worktree cleanup status, artifacts removed.
 
 ---
 

@@ -318,10 +318,41 @@ describe("Investment Check-In Policy (addCostTimeInvestment)", () => {
   test("adv-archive.md refreshes basis before choosing local or PR archive path", () => {
     const content = readAsset(join(COMMAND_DIR, "adv-archive.md"));
     expect(content).toMatch(/Refresh Merge Basis/i);
-    expect(content).toMatch(/git fetch origin \{default-branch\}/);
-    expect(content).toMatch(/git merge --ff-only change\/\{change-id\}/);
+    expect(content).toMatch(/git -C "\$MAIN" fetch origin \{default-branch\}/);
+    expect(content).toMatch(/git -C "\$MAIN" merge --ff-only change\/\{change-id\}/);
     expect(content).toMatch(/git rebase \{freshness-ref\}/);
     expect(content).toMatch(/PR workflow path/i);
+  });
+
+  test("adv-archive.md Phase 9 keeps main checkout on default branch (no git checkout/switch)", () => {
+    const content = readAsset(join(COMMAND_DIR, "adv-archive.md"));
+    // Resolve $MAIN once at start of Phase 9
+    expect(content).toMatch(/MAIN="\$\(dirname "\$\(git rev-parse --path-format=absolute --git-common-dir\)"\)"/);
+    // Hard gate before any merge
+    expect(content).toMatch(/Step 4\.4: Main Checkout Invariant Check/);
+    expect(content).toMatch(/git -C "\$MAIN" branch --show-current/);
+    expect(content).toMatch(/git -C "\$MAIN" status --porcelain/);
+    // Invariant statement at top of Phase 9
+    expect(content).toMatch(/Invariant: main checkout stays on the default branch/i);
+    // No git checkout / git switch directives anywhere in Phase 9 except the
+    // forbidding statement in the invariant block.
+    const phase9Match = content.match(/## Phase 9: Git Finalization[\s\S]*?(?=\n## |\Z)/);
+    expect(phase9Match).toBeTruthy();
+    const phase9 = phase9Match?.[0] ?? "";
+    // Allow `git checkout` / `git switch` only inside the invariant statement
+    // and the user-remediation hint, both of which describe what NOT to do or
+    // what the user must do manually. Strip those known-safe lines and assert
+    // no other occurrences remain.
+    const stripped = phase9
+      .split("\n")
+      .filter(
+        (line) =>
+          !/Invariant: main checkout/i.test(line) &&
+          !/git -C "\$MAIN" switch \{default-branch\}/.test(line),
+      )
+      .join("\n");
+    expect(stripped).not.toMatch(/git checkout/);
+    expect(stripped).not.toMatch(/git switch/);
   });
 
   test("adv-archive.md preserves cleanup safety on reconcile conflicts", () => {
