@@ -61,9 +61,9 @@ describe("opencode-session-debt", () => {
   });
 
   test("uses OPENCODE_DB override for default database path", () => {
-    expect(getDefaultOpenCodeDbPath({ OPENCODE_DB: "/tmp/custom-opencode.db" })).toBe(
-      "/tmp/custom-opencode.db",
-    );
+    expect(
+      getDefaultOpenCodeDbPath({ OPENCODE_DB: "/tmp/custom-opencode.db" }),
+    ).toBe("/tmp/custom-opencode.db");
   });
 
   test("scanner degrades safely when database is unavailable", async () => {

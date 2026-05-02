@@ -68,9 +68,7 @@ type BunSqliteDatabase = new (
   close: () => void;
 };
 
-export function getDefaultOpenCodeDbPath(
-  env?: OpenCodeDbEnv,
-): string {
+export function getDefaultOpenCodeDbPath(env?: OpenCodeDbEnv): string {
   return (
     env?.OPENCODE_DB ||
     process.env.OPENCODE_DB ||
@@ -123,7 +121,12 @@ export async function scanOpenCodeSessionDebt(
   const checkedAt = new Date().toISOString();
 
   if (!existsSync(dbPath)) {
-    return unavailable(dbPath, checkedAt, thresholdMs, `OpenCode database not found: ${dbPath}`);
+    return unavailable(
+      dbPath,
+      checkedAt,
+      thresholdMs,
+      `OpenCode database not found: ${dbPath}`,
+    );
   }
 
   let db: InstanceType<BunSqliteDatabase> | undefined;
@@ -132,7 +135,12 @@ export async function scanOpenCodeSessionDebt(
       Database?: BunSqliteDatabase;
     };
     if (!sqlite.Database) {
-      return unavailable(dbPath, checkedAt, thresholdMs, "bun:sqlite Database export unavailable");
+      return unavailable(
+        dbPath,
+        checkedAt,
+        thresholdMs,
+        "bun:sqlite Database export unavailable",
+      );
     }
 
     db = new sqlite.Database(dbPath, { readonly: true });

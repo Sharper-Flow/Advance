@@ -295,7 +295,9 @@ Vague in-flight work.
 
       expect(parsed.opencode_session_debt.available).toBe(true);
       expect(parsed.opencode_session_debt.repairable_stale).toHaveLength(1);
-      expect(parsed.formatted.sessionDebtSection).toContain("1 stale blank assistant");
+      expect(parsed.formatted.sessionDebtSection).toContain(
+        "1 stale blank assistant",
+      );
       expect(
         parsed.recommendations.find((r: string) =>
           r.includes("Stale OpenCode blank assistant messages"),
