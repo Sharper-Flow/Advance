@@ -435,6 +435,8 @@ Tools without `target_path` (current-project only): `adv_status`/`adv_temporal_d
 
 When a tool you need lacks `target_path` and the work is genuinely cross-project, switch sessions: `cd <other-project> && opencode`.
 
+**LLM-loop overhead caveat (F10 / 2026-05-02):** if you must invoke an ADV mutation against another project from your current session, `opencode run --dir <other> --agent build --dangerously-skip-permissions "Run X tool"` works but pays ~60–300s per call (LLM round-trip + tool execution). Use it sparingly. For high-volume cross-project ops (>5 sequential calls), open a session in the target project instead. A non-LLM tool exec helper is documented as a deferred follow-up in `docs/f10-investigation.md`.
+
 #### `status: "in-flight"` filter shorthand
 
 `adv_change_list status: "in-flight"` returns the union `draft + pending + active`. Use this when an agent prompt or human asks "what's in flight" without caring about the specific stored status. The filter is **input-only**; it never appears as a stored `status` value on a change. The plain `"active"` filter (and other status values) keeps its strict storage-enum meaning.
