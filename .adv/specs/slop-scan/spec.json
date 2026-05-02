@@ -61,6 +61,7 @@
       ],
       "meta": {
         "legacy_ids": ["rq-slopscan01.1", "rq-slopscan01.3"],
+        "merged_from": "advance-meta",
         "supersedes": "Legacy advance-meta slop-scan AST/degraded fallback coverage."
       }
     },
@@ -111,6 +112,7 @@
       ],
       "meta": {
         "legacy_ids": ["rq-slopscan01.4"],
+        "merged_from": "advance-meta",
         "supersedes": "Legacy advance-meta slop-scan threshold override coverage."
       }
     },
@@ -146,6 +148,7 @@
       ],
       "meta": {
         "legacy_ids": ["rq-slopscan01.2", "rq-slopscan01.5"],
+        "merged_from": "advance-meta",
         "supersedes": "Legacy advance-meta defensive-overkill and clean-code coverage."
       }
     },
@@ -181,6 +184,7 @@
       ],
       "meta": {
         "legacy_ids": ["rq-slopscan01.1", "rq-slopscan01.2"],
+        "merged_from": "advance-meta",
         "supersedes": "Legacy advance-meta structured diagnostic field coverage."
       }
     },
