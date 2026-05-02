@@ -553,6 +553,38 @@ describe("Change Tools", () => {
       await expect(access(dir1)).rejects.toThrow();
       await expect(access(dir2)).rejects.toThrow();
     });
+
+    test("D3: response includes per-id diskRemoved + diskFailed fields", async () => {
+      const c1 = await store.changes.create("Bulk D3 A");
+      const c2 = await store.changes.create("Bulk D3 B");
+
+      const result = await changeTools.adv_change_bulk_close.execute(
+        {
+          selector: {
+            kind: "explicit",
+            changeIds: [c1.changeId, c2.changeId],
+          },
+          reason: "not_planned",
+          approvedByUser: true,
+          approvalEvidence: "User approved",
+        },
+        store,
+      );
+      const parsed = parseToolOutput(result);
+      expect(parsed.success).toBe(true);
+      // New per-id disk-result fields exposed by the unified helper.
+      expect(parsed.diskRemoved).toEqual(
+        expect.arrayContaining([c1.changeId, c2.changeId]),
+      );
+      expect(parsed.diskFailed).toEqual([]);
+    });
+
+    // Helper-level idempotency (rm with force:true on already-removed dirs)
+    // is covered by sweepClosedChangesFromDisk tests in
+    // src/storage/disk-sweep.test.ts. The bulk_close path is not reachable
+    // when disk is pre-removed because closeBatch reads change.json from
+    // disk first; the failure-mode is workflow-state close, not the disk
+    // sweep that runs only on success.
   });
 
   describe("adv_change_show", () => {

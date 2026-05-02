@@ -60,6 +60,7 @@ import {
 import { checkRequirementSmells } from "../validator/prep-readiness";
 import { buildChangeContextSnapshot } from "../utils/context-snapshot";
 import { resolveChangeSelection } from "../storage/change-selection";
+import { sweepClosedChangesFromDisk } from "../storage/disk-sweep";
 import { BulkCloseSelectorSchema } from "../types";
 import { collectErrorText } from "../temporal/retry-wrapper";
 import {
@@ -1557,24 +1558,30 @@ export const changeTools = {
           approved_at: new Date().toISOString(),
         });
 
-        // Remove source dirs for successfully closed changes.
-        // Only run when closeBatch succeeded overall — partial failures
-        // preserve source dirs as rollback path.
+        // D3: Compose with sweepClosedChangesFromDisk for unified per-id
+        // disk-removal reporting. Only run when closeBatch succeeded overall
+        // — partial workflow-close failures preserve source dirs as the
+        // rollback / orphan-sweep recovery path. (rq-bulkCloseDiskSweep01)
+        let diskRemoved: string[] = [];
+        let diskFailed: Array<{ id: string; error: string }> = [];
         if (result.success && store.paths?.changes) {
-          const cleanupWarnings: string[] = [];
-          for (const r of result.results) {
-            if (r.success) {
-              try {
-                await removeChangeDir(store.paths.changes, r.changeId);
-              } catch (err) {
-                cleanupWarnings.push(
-                  `Source cleanup warning: failed to remove changes/${r.changeId}: ${err instanceof Error ? err.message : String(err)}`,
-                );
-              }
-            }
-          }
-          if (cleanupWarnings.length > 0) {
-            result.message += ` ${cleanupWarnings.join(" ")}`;
+          const successfulIds = result.results
+            .filter((r) => r.success)
+            .map((r) => r.changeId);
+          const sweep = await sweepClosedChangesFromDisk(
+            successfulIds,
+            store.paths.changes,
+          );
+          diskRemoved = sweep.removed;
+          diskFailed = sweep.failed;
+          if (diskFailed.length > 0) {
+            const warnings = diskFailed
+              .map(
+                (f) =>
+                  `Source cleanup warning: failed to remove changes/${f.id}: ${f.error}`,
+              )
+              .join(" ");
+            result.message += ` ${warnings}`;
           }
         }
 
@@ -1584,6 +1591,8 @@ export const changeTools = {
             success: result.success,
             closed: result.closed,
             results: result.results,
+            diskRemoved,
+            diskFailed,
             message: result.message,
           }),
         );
