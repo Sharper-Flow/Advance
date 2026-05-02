@@ -1,0 +1,74 @@
+# F10 — Non-LLM Tool Execution for Cross-Project ADV Ops
+
+**Status:** Investigation complete 2026-05-02. Recommendation below.
+**Origin:** Deferred from change `repairTemporalMigrationDebt` (archived `2026-05-02-repairtemporalmigrationdebt`) due to plugin-boundary scope.
+
+## Problem
+
+Cross-project ADV ops via `opencode run --dir <other> --agent build --dangerously-skip-permissions "..."` incur 60–300s LLM-loop overhead even for verification calls that just need to invoke a single MCP tool and exit. Observed during 2026-05-02 pokeedge cleanup: 8 sequential `adv_workflow_repair` calls cost ~30 minutes of agent loop time when the actual work was 8 single-tool invocations totaling <10s of compute.
+
+## Investigation findings
+
+### 1. `opencode serve` exists
+
+`opencode serve` starts a headless HTTP server on a random port (defaults to 4096). Loads plugins. Suitable as a long-lived per-project daemon.
+
+- `--port` flag accepts 0 for OS-assigned port
+- `--print-logs` writes server stdout to the controlling shell
+- `--cors` allows additional origins
+- `--mdns` enables service discovery (useful for multi-machine setups)
+
+### 2. HTTP API is partially documented
+
+`GET /doc` returns OpenAPI 3.1 spec, but the spec is minimal — only `/auth/{providerID}` and `/log` endpoints are documented. Other endpoints exist but are undocumented:
+
+- `/session`, `/session/{id}`, `/session/{id}/message` — session lifecycle
+- `/agent`, `/agent/{name}` — agent registry
+- `/tool`, `/tool/{name}` — tool registry (likely the F10 target)
+- `/event` — server-sent events
+- `/provider`, `/file`, `/project`, `/command`, `/find`, `/config`, `/app`
+
+(Probed by direct GET requests; all return non-zero responses but content is undocumented.)
+
+### 3. `opencode acp` exists
+
+ACP (Agent Client Protocol) server with `--cwd` flag for per-invocation project context. Implements a documented agent protocol but invocations still flow through agent loops (LLM-mediated by design).
+
+### 4. `opencode run --attach <url>` exists
+
+Indicates an established client/server multiplex pattern. New `run` invocations can attach to a running server instead of starting their own.
+
+## Options
+
+| Option | Description | Risk | Latency target |
+|---|---|---|---|
+| **A. Defer permanently** | Accept 60–300s latency for cross-project ops; document the existing `opencode run` path | None | Status quo |
+| **B. CLI helper using `/tool` endpoint** | New `scripts/opencode-adv.sh` that maintains a per-project `opencode serve` + POSTs to undocumented tool endpoint | Medium — undocumented endpoint may change between OpenCode versions | <5s |
+| **C. Direct ADV plugin CLI** | Build standalone CLI from `plugin/src/`; bypass OpenCode entirely | High — duplicates plugin's project resolution + Temporal connection logic; new compatibility surface | <2s |
+| **D. Upstream `opencode tool` subcommand** | Submit feature request to OpenCode for first-class single-tool invocation | Low (no risk to ADV) but slow (depends on upstream timeline) | <1s, eventually |
+
+## Recommendation
+
+**Phase 1 — Defer with documentation (immediate):** Update `ADV_INSTRUCTIONS.md` cross-project section to note: cross-project ops without a session in the target project incur LLM-loop overhead via `opencode run`; for fast verification, switch sessions instead. Mark F10 as "won't-fix unless cross-project usage volume justifies the work".
+
+**Phase 2 — Option B if usage justifies (deferred follow-up):** If cross-project ADV ops become a hot path (>10/day across the team), implement the CLI helper using `opencode serve` + the undocumented `/tool` endpoint. Pin OpenCode version compatibility. Cite specific endpoint structure in the helper script.
+
+**Phase 3 — Option D as upstream signal (long-term):** File OpenCode feature request for `opencode tool <name> --dir <dir> --args <json>`. This is the right architectural place for it. Track upstream progress.
+
+## Why not Option C
+
+Direct standalone CLI would duplicate:
+- Project resolution logic (`utils/project-id.ts`, `tools/target-project.ts`)
+- Temporal client lifecycle (`temporal/service.ts`)
+- Storage abstraction (`storage/store.ts`)
+- All tool registration + arg parsing
+
+This is essentially building a second copy of the plugin runtime. The cost is high enough that Option B (which reuses the existing `opencode serve` runtime) is strictly better for any usage volume that's not "primary access path".
+
+## Decision points needed from user
+
+1. **Phase 1 doc update — go now?** (5min effort, no code)
+2. **Phase 2 timing — wait for hot-path signal or kick off as fast-follow?** (1-2 day effort)
+3. **Phase 3 — file the OpenCode feature request now?** (1hr effort, no commitment)
+
+If the user wants Phase 2 immediately, open `addNonLlmToolExecHelper` change (or similar) and treat as standalone work. If deferring, mark F10 as resolved-with-deferral in the gaps doc.
