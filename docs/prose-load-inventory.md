@@ -196,7 +196,7 @@ T6 performed targeted cleanup where the audit proved safe: `adv-autonomy-quality
 | `adv-engineer-assets.test.ts` | (17 expects) | spec-enforcing | engineer subagent contract | spec-enforcing | **RETAIN** | retained |
 | `adv-improve-assets.test.ts` | (48 expects) | spec-enforcing | `/adv-improve` methodology spec | spec-enforcing | **TARGETED UPDATE** — regex broadened after COMPLETE trailer removal; value assertion retained. | done |
 | `adv-skill-backed-commands-assets.test.ts` | (62 expects) | spec-enforcing | command↔skill loading contract | spec-enforcing | **RETAIN** | retained |
-| `adv-slop-scan-assets.test.ts` | (6 expects) | spec-enforcing | `rq-slopscan01` (advance-meta) | spec-enforcing | **RETAIN** | retained |
+| `adv-slop-scan-assets.test.ts` | (6 expects) | spec-enforcing | `rq-ss001`–`rq-ss004` (slop-scan; legacy `rq-slopscan01`) | spec-enforcing | **RETAIN** | retained |
 | `adv-tron-assets.test.ts` | (13 expects) | spec-enforcing | adv-tron command/skill pairing | spec-enforcing | **RETAIN** | retained |
 | `commands-spine-assets.test.ts` | (8 expects) | spec-enforcing | manifest spine | spec-enforcing | **RETAIN** | retained |
 | `overlay-sync-assets.test.ts` | (40 expects) | spec-enforcing | sync-global.sh behavior | spec-enforcing | **RETAIN** | retained |
