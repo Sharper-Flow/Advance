@@ -23,7 +23,7 @@ import {
 } from "./events";
 import { tryInitStore, registerShutdownHandlers } from "./plugin-init";
 import type { StatusMarker } from "./types";
-import { getProjectId, getExternalRoot } from "./utils/project-id";
+import { resolveProjectContext } from "./plugin-context";
 // P2.7: legacy-state migration removed. Disk-only store reads from existing
 // .adv/ paths or external state directly; no migration step needed.
 import { enforceBashPolicy, enforceConformanceBashPolicy } from "./guards/bash";
@@ -39,71 +39,11 @@ import type {
 import { loadConformanceState } from "./storage/conformance";
 import { createToolMap, createDegradedToolMap } from "./tool-registry";
 import { appendDebugLog, createLogger } from "./utils/debug-log";
-
-/**
- * Parse JSON from a (potentially banner-wrapped) tool output.
- * OpenCode's hook contract types `output.output` as string, but real plugins
- * and SDK changes can pass structured values. Hooks must never crash during
- * parsing — a parser failure here can make an otherwise resumable session look
- * dead to the user.
- *
- * Strings: tries the post-banner segment first, then the full string.
- * Objects: returns the object directly.
- * Other values: returns null.
- */
-function parseToolOutput<T>(rawOutput: unknown): T | null {
-  if (rawOutput == null) return null;
-  if (typeof rawOutput === "object") return rawOutput as T;
-  if (typeof rawOutput !== "string") return null;
-
-  const trimmed = rawOutput.trim();
-  if (!trimmed) return null;
-  const separatorIndex = trimmed.lastIndexOf("\n\n");
-  const candidates = [
-    separatorIndex >= 0 ? trimmed.slice(separatorIndex + 2).trim() : null,
-    trimmed,
-  ].filter((c): c is string => !!c);
-  for (const candidate of candidates) {
-    try {
-      return JSON.parse(candidate) as T;
-    } catch {
-      // try next candidate
-    }
-  }
-  return null;
-}
-
-const LONG_RUNNING_TOOLS = new Set(["adv_run_test", "adv_task_evidence"]);
-
-export function isLongRunningTool(toolName: string): boolean {
-  return LONG_RUNNING_TOOLS.has(toolName);
-}
-
-export function extractCreatedChangeId(rawOutput: unknown): string | null {
-  const result = parseToolOutput<{
-    changeId?: string;
-    data?: { changeId?: string };
-  }>(rawOutput);
-  const changeId = result?.changeId ?? result?.data?.changeId;
-  return typeof changeId === "string" ? changeId : null;
-}
-
-export function extractCompletedTask(
-  rawOutput: unknown,
-): { id: string; title: string } | null {
-  const result = parseToolOutput<{
-    success?: boolean;
-    task?: { id?: string; title?: string; status?: string };
-  }>(rawOutput);
-  if (!result?.success || result.task?.status !== "done") return null;
-  if (
-    typeof result.task.id !== "string" ||
-    typeof result.task.title !== "string"
-  ) {
-    return null;
-  }
-  return { id: result.task.id, title: result.task.title };
-}
+import {
+  extractCompletedTask,
+  extractCreatedChangeId,
+  isLongRunningTool,
+} from "./plugin-output";
 
 const MAX_PROMPT_TOOL_OUTPUT_CHARS = 24_000;
 const MAX_PROMPT_DIFF_CHARS = 24_000;
@@ -320,46 +260,6 @@ const resolveStatus = (s: PluginState): StatusMarker => {
 
 const debugLog = (msg: string): void => appendDebugLog("index", msg);
 const hooksLogger = createLogger("hooks");
-
-export async function resolveProjectContext(
-  directory: string,
-  project?: { vcsDir?: string },
-  worktree?: string,
-): Promise<{
-  effectiveDir: string;
-  projectId: string | null;
-  externalRoot?: string;
-}> {
-  // Resolution order: worktree → directory → project.vcsDir → legacy fallback
-  let effectiveDir = directory;
-  let projectId = await getProjectId(effectiveDir);
-
-  if (worktree && worktree !== directory) {
-    debugLog(`trying worktree: ${worktree}`);
-    const wtId = await getProjectId(worktree);
-    if (wtId) {
-      effectiveDir = worktree;
-      projectId = wtId;
-    }
-  }
-
-  if (!projectId && project?.vcsDir && project.vcsDir !== directory) {
-    debugLog(
-      `directory not a git repo, trying project.vcsDir: ${project.vcsDir}`,
-    );
-    const altId = await getProjectId(project.vcsDir);
-    if (altId) {
-      effectiveDir = project.vcsDir;
-      projectId = altId;
-    }
-  }
-
-  return {
-    effectiveDir,
-    projectId,
-    externalRoot: projectId ? getExternalRoot(projectId) : undefined,
-  };
-}
 
 /**
  * Build a minimal degraded hooks object for the case where the plugin

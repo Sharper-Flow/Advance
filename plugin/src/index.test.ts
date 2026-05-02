@@ -6,13 +6,14 @@
  */
 
 import { describe, test, expect, beforeEach, afterEach, vi } from "vitest";
+import * as entrypoint from "./index";
+import { AdvancePlugin } from "./index";
 import {
-  AdvancePlugin,
   extractCompletedTask,
   extractCreatedChangeId,
   isLongRunningTool,
-  resolveProjectContext,
-} from "./index";
+} from "./plugin-output";
+import { resolveProjectContext } from "./plugin-context";
 import {
   createTempDir,
   cleanupTempDir,
@@ -174,6 +175,16 @@ describe("Advance Plugin SDK Integration", () => {
 
     test("AdvancePlugin is async function", () => {
       expect(AdvancePlugin.constructor.name).toBe("AsyncFunction");
+    });
+
+    test("entrypoint exposes only plugin function exports", () => {
+      const functionExports = Object.entries(entrypoint)
+        .filter(([, value]) => typeof value === "function")
+        .map(([name]) => name)
+        .sort();
+
+      expect(functionExports).toEqual(["AdvancePlugin", "default"]);
+      expect(entrypoint.default).toBe(entrypoint.AdvancePlugin);
     });
 
     test("extractCreatedChangeId reads banner-wrapped tool output", () => {
