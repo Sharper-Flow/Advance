@@ -185,7 +185,7 @@ describe("temporal operator tools", () => {
     vi.clearAllMocks();
   });
 
-  it("adv_temporal_worker_restart invokes restartCurrentProjectTemporalWorker and returns queues", async () => {
+  it("adv_temporal_worker_restart fires-and-forgets: invokes restart but returns immediately with verification hint", async () => {
     const store = { paths: { root: "/repo" } } as any;
     const result = await temporalOpsTools.adv_temporal_worker_restart.execute(
       {},
@@ -193,18 +193,55 @@ describe("temporal operator tools", () => {
     );
     const parsed = JSON.parse(result);
 
+    // Underlying restart was kicked off asynchronously (not awaited).
     expect(mocks.restartCurrentProjectTemporalWorker).toHaveBeenCalledWith(
       "/repo",
     );
+    // Response is the fire-and-forget acknowledgment, not the restart result.
     expect(parsed.success).toBe(true);
-    expect(parsed.projectId).toBe("proj123");
-    expect(parsed.queues).toEqual(["advance-proj123"]);
+    expect(parsed.message).toContain("initiated");
+    expect(parsed.recommendedNextAction).toContain("adv_status");
     expect(parsed.stsl).toEqual({
       initialized: true,
       reconnectCount: 0,
       reconnectFailureCount: 0,
-      recommendedNextAction: "run adv_temporal_diagnose if tools still fail",
     });
+    // No projectId / queues fields — those came from awaiting the result.
+    expect(parsed.projectId).toBeUndefined();
+    expect(parsed.queues).toBeUndefined();
+  });
+
+  it("adv_temporal_worker_restart returns within 1s even when restart hangs (KD-5 fire-and-forget)", async () => {
+    // Simulate a hanging restart: never resolves.
+    mocks.restartCurrentProjectTemporalWorker.mockImplementationOnce(
+      () => new Promise(() => {}),
+    );
+    const store = { paths: { root: "/repo" } } as any;
+    const start = Date.now();
+    const result = await temporalOpsTools.adv_temporal_worker_restart.execute(
+      {},
+      store,
+    );
+    const elapsed = Date.now() - start;
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(true);
+    expect(elapsed).toBeLessThan(1000);
+  });
+
+  it("adv_temporal_worker_restart logs async failures via appendDebugLog without throwing", async () => {
+    // Reject with an error; tool should not throw, response should still be success.
+    mocks.restartCurrentProjectTemporalWorker.mockImplementationOnce(async () => {
+      throw new Error("simulated worker restart failure");
+    });
+    const store = { paths: { root: "/repo" } } as any;
+    const result = await temporalOpsTools.adv_temporal_worker_restart.execute(
+      {},
+      store,
+    );
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(true);
+    // Allow microtask queue to drain so the .catch() runs before assertion exit.
+    await new Promise((r) => setImmediate(r));
   });
 
   it("adv_temporal_reconnect calls reinitStsl and reports before/after stats", async () => {

@@ -13,6 +13,7 @@ import {
 import { checkAdvSearchAttributes } from "../temporal/observability";
 import { registerMissingAdvSearchAttributes } from "../temporal/observability";
 import { formatToolOutput } from "../utils/tool-output";
+import { appendDebugLog } from "../utils/debug-log";
 import {
   formatTargetProjectContext,
   type TargetProjectOutputContext,
@@ -478,25 +479,35 @@ export const temporalOpsTools = {
 
   adv_temporal_worker_restart: {
     description:
-      "Force-restart the in-process Temporal worker for the current project when the respawn loop is exhausted or the worker is wedged.",
+      "Initiate a fire-and-forget restart of the in-process Temporal worker for the current project. Returns immediately; verify completion via adv_status or adv_temporal_diagnose. Use when the respawn loop is exhausted or the worker is wedged.",
     args: {},
     execute: async (_args: Record<string, never>, store: Store) => {
-      const result = await restartCurrentProjectTemporalWorker(
-        store.paths.root,
-      );
+      // KD-5 fire-and-forget: kick off the restart asynchronously and
+      // return immediately. The underlying restart legitimately exceeds
+      // the 10s safety-net timeout on mature projects (see report at
+      // /tmp/opencode/adv-plugin-issue-report.md). Awaiting it produced
+      // false-positive ToolExecutionTimeout responses despite the restart
+      // succeeding. adv_status / adv_temporal_diagnose are the documented
+      // verification path.
+      restartCurrentProjectTemporalWorker(store.paths.root).catch((err) => {
+        appendDebugLog(
+          "adv_temporal_worker_restart",
+          `async restart failure: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      });
       const bundle = getService();
       const stats = getStslStats();
       return formatToolOutput({
         success: true,
-        ...result,
+        message:
+          "Worker restart initiated. Verify via adv_status or adv_temporal_diagnose.",
+        recommendedNextAction:
+          "Wait ~2s, then run adv_status to confirm worker_alive.",
         stsl: {
           initialized: bundle !== null,
           reconnectCount: stats.reconnectCount,
           reconnectFailureCount: stats.reconnectFailureCount,
-          recommendedNextAction:
-            "run adv_temporal_diagnose if tools still fail",
         },
-        message: `Restarted Temporal worker for ${result.projectId}`,
       });
     },
   },
