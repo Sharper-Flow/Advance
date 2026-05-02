@@ -421,4 +421,35 @@ describe("overlay sync script support", () => {
       rmSync(tempHome, { recursive: true, force: true });
     }
   });
+
+  test("refuses to strip JSONC comments during --fix", () => {
+    const tempHome = mkdtempSync(join(tmpdir(), "adv-jsonc-protect-"));
+
+    try {
+      const configDir = join(tempHome, ".config/opencode");
+      mkdirSync(configDir, { recursive: true });
+      const jsoncPath = join(configDir, "opencode.jsonc");
+      writeFileSync(
+        jsoncPath,
+        `{
+          // This is a comment
+          "plugin": [],
+          "instructions": []
+        }`,
+      );
+
+      const result = spawnSync("bash", [SYNC_SCRIPT_PATH, "--fix"], {
+        cwd: REPO_ROOT,
+        env: { ...process.env, HOME: tempHome, CI: "true" },
+        encoding: "utf8",
+      });
+
+      // Should fail rather than silently strip comments.
+      expect(result.status).not.toBe(0);
+      const content = readFileSync(jsoncPath, "utf8");
+      expect(content).toContain("// This is a comment");
+    } finally {
+      rmSync(tempHome, { recursive: true, force: true });
+    }
+  });
 });

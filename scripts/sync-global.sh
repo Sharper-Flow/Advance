@@ -642,12 +642,6 @@ fix_config() {
     return 1
   fi
 
-  # Warn about JSONC comment stripping
-  if [ "$GLOBAL_JSON_IS_JSONC" = true ]; then
-    echo "    ⚠  Config is JSONC — patching will strip comments from the file"
-    echo "       A backup will be created before any changes"
-  fi
-
   # Back up before patching
   local backup="$GLOBAL_JSON.bak.$(date +%Y%m%d%H%M%S)"
   if [ "$DRY_RUN" = true ]; then
@@ -655,6 +649,19 @@ fix_config() {
   else
     cp "$GLOBAL_JSON" "$backup"
     echo "    Backup: $backup"
+  fi
+
+  # Refuse to patch JSONC files — jq cannot preserve comments, so --fix
+  # would silently rewrite JSONC as plain JSON. Fail with guidance instead.
+  if [ "$GLOBAL_JSON_IS_JSONC" = true ]; then
+    if [ "$DRY_RUN" = true ]; then
+      echo "    dry-run: would refuse to patch JSONC (comments would be stripped)"
+    else
+      echo "    ✗  Config is JSONC — auto-patch would strip comments"
+      echo "       Backup preserved at: $backup"
+      echo "       Convert to plain JSON, or apply the needed changes manually"
+      return 1
+    fi
   fi
 
   local patched=0
