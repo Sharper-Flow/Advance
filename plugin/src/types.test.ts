@@ -459,9 +459,40 @@ describe("ChangeSchema", () => {
     expect(() =>
       ChangeSchema.parse({
         id: "test",
-        // missing title, status, created_at, tasks, deltas
+        // missing title, status, created_at — these are still required
       }),
     ).toThrow();
+  });
+
+  test("[F3] accepts change without tasks or deltas (lenient import)", () => {
+    // Hand-authored proposal directories often lack tasks/deltas fields;
+    // ChangeSchema must default them to [] / {} for adv_workflow_repair
+    // and adv_change_import to load such files without manual schema patching.
+    const minimalChange = {
+      id: "minimalImport",
+      title: "Minimal hand-authored change",
+      status: "draft",
+      created_at: "2026-05-02T17:00:00.000Z",
+      // tasks omitted — should default to []
+      // deltas omitted — should default to {}
+    };
+    const result = ChangeSchema.parse(minimalChange);
+    expect(result.tasks).toEqual([]);
+    expect(result.deltas).toEqual({});
+  });
+
+  test("[F3] preserves explicit tasks/deltas when provided", () => {
+    const change = {
+      id: "withFields",
+      title: "Has tasks and deltas",
+      status: "draft",
+      created_at: "2026-05-02T17:00:00.000Z",
+      tasks: [],
+      deltas: { someCapability: [] },
+    };
+    const result = ChangeSchema.parse(change);
+    expect(result.tasks).toEqual([]);
+    expect(result.deltas).toEqual({ someCapability: [] });
   });
 
   test("parses change with github_issues field", () => {
