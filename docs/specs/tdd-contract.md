@@ -22,33 +22,39 @@ Implementation tasks MUST use inline TDD by default: the red phase (write failin
 **Implementation task uses inline TDD phases** (`rq-TDD001inl.1`)
 
 **Given:**
+
 - An implementation task with metadata.tdd_intent='inline' or no metadata.tdd_intent set
 
 **When:** TDD compliance is checked
 
 **Then:**
+
 - The task is expected to have tdd_evidence with both red and green phases
 - No separate test task is required for this scope
 
 **Proposal templates do not create separate test tasks for same-scope work** (`rq-TDD001inl.2`)
 
 **Given:**
+
 - A proposal is generated via /adv-proposal
 
 **When:** Step 8 task generation runs
 
 **Then:**
+
 - Implementation tasks include inline TDD instructions in their description
 - No standalone 'Write tests for X' tasks are created for the same scope as an implementation task
 
 **Default tdd_intent is inline when metadata is absent** (`rq-TDD001inl.3`)
 
 **Given:**
+
 - A task with no metadata.tdd_intent field set
 
 **When:** The task classifier determines TDD intent
 
 **Then:**
+
 - The task is treated as tdd_intent='inline' for TDD compliance purposes
 - Title-based heuristics are used as fallback to determine if the task is test-relevant or implementation-relevant
 
@@ -67,18 +73,21 @@ A task MAY use separate verification (metadata.tdd_intent='separate_verification
 **Cross-cutting test task blocked by impl tasks is not an inversion** (`rq-TDD002sep.1`)
 
 **Given:**
+
 - A task with metadata.tdd_intent='separate_verification'
 - That task has blocked_by dependencies on implementation tasks
 
 **When:** TDD inversion detection runs
 
 **Then:**
+
 - No TASK_TDD_INVERSION error is returned
 - The dependency ordering is accepted as correct
 
 **Separate verification requires explicit metadata** (`rq-TDD002sep.2`)
 
 **Given:**
+
 - A task that appears to be a test task based on title heuristics
 - That task has blocked_by dependencies on implementation tasks
 - That task has no metadata.tdd_intent set
@@ -86,6 +95,7 @@ A task MAY use separate verification (metadata.tdd_intent='separate_verification
 **When:** TDD inversion detection runs
 
 **Then:**
+
 - A TASK_TDD_INVERSION warning or error is returned (title heuristic fallback)
 - The remediation hint suggests either merging into the impl task or setting metadata.tdd_intent='separate_verification'
 
@@ -104,23 +114,27 @@ Tasks that are not logic-bearing (documentation, configuration, chores, releases
 **Not-applicable task skips TDD evidence requirement** (`rq-TDD003na.1`)
 
 **Given:**
+
 - A task with metadata.tdd_intent='not_applicable'
 
 **When:** TDD compliance is checked
 
 **Then:**
+
 - No tdd_evidence is required
 - The task is not flagged for missing TDD phases
 
 **Legacy task without metadata uses title heuristics** (`rq-TDD003na.2`)
 
 **Given:**
+
 - A task with no metadata.tdd_intent field
 - The task title matches isTrivialTask patterns (docs, config, chore)
 
 **When:** TDD compliance is checked
 
 **Then:**
+
 - The task is treated as not requiring TDD evidence (backward compatible)
 
 ---
@@ -138,34 +152,40 @@ A shared task classifier MUST check metadata.tdd_intent first, then fall back to
 **Metadata takes precedence over title heuristics** (`rq-TDD004cls.1`)
 
 **Given:**
+
 - A task with metadata.tdd_intent='not_applicable'
 - The task title contains 'test' (would match isTestTask heuristic)
 
 **When:** The classifier determines TDD intent
 
 **Then:**
+
 - The metadata value 'not_applicable' is used
 - The title heuristic is not consulted
 
 **Invalid metadata value falls back to title heuristics** (`rq-TDD004cls.2`)
 
 **Given:**
+
 - A task with metadata.tdd_intent='invalid_value'
 
 **When:** The classifier determines TDD intent
 
 **Then:**
+
 - The invalid value is ignored with a warning log
 - Title-based heuristics are used as fallback
 
 **Classifier is used by all validators** (`rq-TDD004cls.3`)
 
 **Given:**
+
 - The prep-readiness validator, completeness validator, and gate checks
 
 **When:** Any of these validators need to determine a task's TDD intent
 
 **Then:**
+
 - They call the shared classifier rather than implementing their own detection logic
 - Detection behavior is consistent across all validators
 
@@ -184,35 +204,41 @@ TDD contract owns the canonical semantics for TDD inversion and task-classifier 
 **Metadata-classified test task blocked by impl task is flagged** (`rq-TDD005inv.1`)
 
 **Given:**
+
 - A task classified as 'test' by title heuristics (no metadata.tdd_intent set)
 - That task has blocked_by dependency on a task classified as 'impl'
 
 **When:** TDD inversion detection runs in prep-readiness
 
 **Then:**
+
 - A TASK_TDD_INVERSION error is returned
 - Remediation suggests merging the test task into the impl task or setting metadata.tdd_intent='separate_verification'
 
 **Separate-verification task is exempt from inversion detection** (`rq-TDD005inv.2`)
 
 **Given:**
+
 - A task with metadata.tdd_intent='separate_verification'
 - That task has blocked_by dependency on implementation tasks
 
 **When:** TDD inversion detection runs in prep-readiness
 
 **Then:**
+
 - No TASK_TDD_INVERSION error is returned
 
 **False positive prevention for non-test tasks with test-like titles** (`rq-TDD005inv.3`)
 
 **Given:**
+
 - A task with metadata.tdd_intent='inline'
 - The task title contains 'test' (e.g., 'Create task classifier with test-first approach')
 
 **When:** TDD inversion detection runs in prep-readiness
 
 **Then:**
+
 - The task is classified as 'inline' per metadata, not as a test task
 - No false-positive TASK_TDD_INVERSION error is returned
 
@@ -231,11 +257,13 @@ When a TDD inversion is detected, the remediation MUST be: merge the test task i
 **Remediation suggests merge, not dependency reversal** (`rq-TDD006rem.1`)
 
 **Given:**
+
 - A TASK_TDD_INVERSION error is detected
 
 **When:** Remediation guidance is provided
 
 **Then:**
+
 - The primary remediation is: merge the test task into the implementation task
 - An alternative is: set metadata.tdd_intent='separate_verification' if the test is genuinely cross-cutting
 - 'Reverse the dependency' is NOT offered as a remediation option
@@ -255,11 +283,13 @@ Once the planning gate is marked complete, task metadata.tdd_intent is frozen. N
 **Task addition rejected after planning gate complete** (`rq-TDD007req.1`)
 
 **Given:**
+
 - A change whose planning gate status is 'done'
 
 **When:** adv_task_add is called for that change
 
 **Then:**
+
 - The operation is rejected with an error
 - The error message directs users to adv_task_reclassify_tdd for adjusting existing tasks
 - The error message directs users to adv_change_reenter for scope-expansion re-entry when new tasks are genuinely needed
@@ -267,47 +297,55 @@ Once the planning gate is marked complete, task metadata.tdd_intent is frozen. N
 **Task addition succeeds before planning gate complete** (`rq-TDD007req.2`)
 
 **Given:**
+
 - A change whose planning gate status is 'pending'
 
 **When:** adv_task_add is called for that change
 
 **Then:**
+
 - The task is added normally
 - No immutability check blocks the operation
 
 **TDD intent reclassification requires user approval** (`rq-TDD007req.3`)
 
 **Given:**
+
 - A task with metadata.tdd_intent='inline'
 - The planning gate is complete
 
 **When:** adv_task_reclassify_tdd is called with approvedByUser=true, approvalEvidence, reason, and toIntent='not_applicable'
 
 **Then:**
+
 - The task's metadata.tdd_intent is updated to 'not_applicable'
 - A tdd_reclassification record is stored on the task with from_intent, to_intent, reason, approval_evidence, and approved_at timestamp
 
 **Reclassification without approval is rejected** (`rq-TDD007req.4`)
 
 **Given:**
+
 - A task with metadata.tdd_intent='inline'
 - The planning gate is complete
 
 **When:** adv_task_reclassify_tdd is called without approvedByUser=true or without approvalEvidence
 
 **Then:**
+
 - The operation is rejected
 - The task's tdd_intent remains unchanged
 
 **adv_task_update does not affect tdd_intent** (`rq-TDD007req.5`)
 
 **Given:**
+
 - A task with metadata.tdd_intent='inline'
 - The planning gate is complete
 
 **When:** adv_task_update is called with any status change
 
 **Then:**
+
 - The task status is updated normally
 - metadata.tdd_intent remains unchanged
 - No immutability check is triggered (adv_task_update does not mutate metadata)
@@ -315,11 +353,13 @@ Once the planning gate is marked complete, task metadata.tdd_intent is frozen. N
 **Reclassification audit trail is preserved** (`rq-TDD007req.6`)
 
 **Given:**
+
 - A task that was reclassified via adv_task_reclassify_tdd
 
 **When:** The task is retrieved via adv_task_show
 
 **Then:**
+
 - The tdd_reclassification field contains from_intent, to_intent, reason, approved_by_user (true), approval_evidence, and approved_at
 - The audit trail is included in change validation and archive
 
@@ -338,35 +378,41 @@ For ordinary inline TDD work, the primary red/green execution path MUST use adv_
 **Inline TDD uses adv_run_test as primary red and green path** (`rq-TDD008path.1`)
 
 **Given:**
+
 - An implementation task with metadata.tdd_intent='inline'
 - The task is entering red or green phase
 
 **When:** The ordinary TDD workflow is executed
 
 **Then:**
+
 - The test command is run through adv_run_test for the red phase
 - The test command is run through adv_run_test for the green phase
 
 **adv_task_evidence is fallback for externally obtained evidence** (`rq-TDD008path.2`)
 
 **Given:**
+
 - Evidence was produced outside adv_run_test
 - The evidence still needs to be attached to the task record
 
 **When:** The fallback evidence path is used
 
 **Then:**
+
 - adv_task_evidence may be used to record the evidence
 - The fallback path is not described as the primary inline-TDD path
 
 **Primary path does not change evidence semantics validation** (`rq-TDD008path.3`)
 
 **Given:**
+
 - adv_run_test or adv_task_evidence records red or green phase evidence
 
 **When:** Exit-code semantics are validated
 
 **Then:**
+
 - Red phase still rejects exitCode=0
 - Green phase still rejects non-zero exit codes
 

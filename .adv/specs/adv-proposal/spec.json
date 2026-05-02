@@ -11,18 +11,12 @@
       "title": "Proposal Produces Alignment Artifacts Only",
       "body": "/adv-proposal must produce a confirmed problem statement, success criteria, constraints, and affected specs. It must NOT create tasks, complete gates, or make implementation decisions.",
       "priority": "must",
-      "tags": [
-        "proposal",
-        "boundary",
-        "alignment"
-      ],
+      "tags": ["proposal", "boundary", "alignment"],
       "scenarios": [
         {
           "id": "rq-prop-out1.1",
           "title": "Proposal creates change with proposal.md but zero tasks",
-          "given": [
-            "A user invokes /adv-proposal with a summary"
-          ],
+          "given": ["A user invokes /adv-proposal with a summary"],
           "when": "The command completes successfully",
           "then": [
             "A change is created via adv_change_create",
@@ -34,9 +28,7 @@
         {
           "id": "rq-prop-out1.2",
           "title": "Proposal does not complete any gates",
-          "given": [
-            "A user invokes /adv-proposal"
-          ],
+          "given": ["A user invokes /adv-proposal"],
           "when": "The command completes successfully",
           "then": [
             "No calls to adv_gate_complete are made",
@@ -50,18 +42,12 @@
       "title": "Proposal Focuses on Problem Agreement",
       "body": "/adv-proposal must use a two-phase workflow: Phase 1 establishes shared understanding of the problem via inline approval voice, Phase 2 builds the full proposal with INVEST-quality success criteria. The command must not proceed to Phase 2 without user confirmation of the problem statement.",
       "priority": "must",
-      "tags": [
-        "proposal",
-        "boundary",
-        "context-agreement"
-      ],
+      "tags": ["proposal", "boundary", "context-agreement"],
       "scenarios": [
         {
           "id": "rq-prop-scope1.1",
           "title": "Problem statement confirmed before change creation",
-          "given": [
-            "A user invokes /adv-proposal"
-          ],
+          "given": ["A user invokes /adv-proposal"],
           "when": "Phase 1 synthesizes a problem statement",
           "then": [
             "The problem statement is shown to the user",
@@ -72,9 +58,7 @@
         {
           "id": "rq-prop-scope1.2",
           "title": "Success criteria pass INVEST quality check",
-          "given": [
-            "Phase 2 is reached after problem statement confirmation"
-          ],
+          "given": ["Phase 2 is reached after problem statement confirmation"],
           "when": "Success criteria are defined",
           "then": [
             "Each criterion is testable and measurable",
@@ -89,11 +73,7 @@
       "title": "Proposal Prohibited Actions",
       "body": "/adv-proposal MUST NOT create tasks (adv_task_add), complete gates (adv_gate_complete), research architectural decisions, or make implementation choices. These are the responsibilities of downstream commands (discover, design, prep).",
       "priority": "must",
-      "tags": [
-        "proposal",
-        "boundary",
-        "negative"
-      ],
+      "tags": ["proposal", "boundary", "negative"],
       "scenarios": [
         {
           "id": "rq-prop-neg1.1",
@@ -111,9 +91,7 @@
         {
           "id": "rq-prop-neg1.2",
           "title": "No implementation decisions during proposal",
-          "given": [
-            "A user invokes /adv-proposal"
-          ],
+          "given": ["A user invokes /adv-proposal"],
           "when": "The proposal is being built",
           "then": [
             "The proposal does not prescribe specific libraries or patterns",
@@ -128,18 +106,12 @@
       "title": "Mandatory Scope Section",
       "body": "/adv-proposal MUST require a ## Scope section in proposal.md with ### In Scope and ### Out of Scope subsections. Gate completion MUST block if either subsection is missing or empty.",
       "priority": "must",
-      "tags": [
-        "proposal",
-        "scope",
-        "ambiguity-taxonomy"
-      ],
+      "tags": ["proposal", "scope", "ambiguity-taxonomy"],
       "scenarios": [
         {
           "id": "rq-prop-tax1.1",
           "title": "New proposal contains Scope section with In/Out subsections",
-          "given": [
-            "A user invokes /adv-proposal for a new change"
-          ],
+          "given": ["A user invokes /adv-proposal for a new change"],
           "when": "Phase 2 builds the full proposal",
           "then": [
             "proposal.md contains ## Scope section",
@@ -197,18 +169,12 @@
       "title": "Anti-Hallucination Evidence Rule",
       "body": "Every ambiguity finding emitted by /adv-proposal MUST include either a verbatim source quote or an explicit '(no {section} section)' marker, plus a 'reason: unclear because {X}' field. Findings without evidence are malformed.",
       "priority": "must",
-      "tags": [
-        "proposal",
-        "anti-hallucination",
-        "evidence"
-      ],
+      "tags": ["proposal", "anti-hallucination", "evidence"],
       "scenarios": [
         {
           "id": "rq-prop-tax3.1",
           "title": "Finding includes evidence and reason fields",
-          "given": [
-            "The B/F/S scan produces a finding"
-          ],
+          "given": ["The B/F/S scan produces a finding"],
           "when": "The finding is emitted",
           "then": [
             "Finding contains evidence: field with verbatim quote or (no X) marker",
@@ -219,9 +185,7 @@
         {
           "id": "rq-prop-tax3.2",
           "title": "Finding without evidence is malformed",
-          "given": [
-            "An attempted finding without evidence quote"
-          ],
+          "given": ["An attempted finding without evidence quote"],
           "when": "The finding is reviewed before emission",
           "then": [
             "The finding is classified as malformed",
@@ -236,18 +200,12 @@
       "title": "Durable Proposal Context for adv-task",
       "body": "After Quick Contract confirmation, /adv-task must always persist contract context to proposal.md, and downstream workflows must tolerate missing or empty legacy proposal files via scaffold fallback warnings.",
       "priority": "must",
-      "tags": [
-        "proposal",
-        "adv-task",
-        "context"
-      ],
+      "tags": ["proposal", "adv-task", "context"],
       "scenarios": [
         {
           "id": "rq-prop-context1.1",
           "title": "adv-task writes proposal by default",
-          "given": [
-            "A Quick Contract is confirmed in /adv-task"
-          ],
+          "given": ["A Quick Contract is confirmed in /adv-task"],
           "when": "The change is created",
           "then": [
             "proposal.md is written in the change directory",
@@ -257,9 +215,7 @@
         {
           "id": "rq-prop-context1.2",
           "title": "Legacy missing proposal is non-blocking",
-          "given": [
-            "A legacy change has missing or empty proposal.md"
-          ],
+          "given": ["A legacy change has missing or empty proposal.md"],
           "when": "Proposal context is loaded",
           "then": [
             "A scaffold proposal is generated",
@@ -277,11 +233,7 @@
       "title": "Problem Statement Agreement for adv-proposal",
       "body": "/adv-proposal must extract prior discussion context (decisions, rejected approaches, constraints, open questions) from the conversation before synthesizing a problem statement, confirm it via inline approval voice before creating any change artifacts, and persist the confirmed text (including prior decisions and rejected approaches) as the opening section of proposal.md via the proposal parameter and as a standalone problem-statement.md artifact via the problemStatement parameter in adv_change_create. The problem statement must not contradict, omit, or reinterpret any prior decision or constraint from the conversation.",
       "priority": "must",
-      "tags": [
-        "proposal",
-        "context-agreement",
-        "transcript-grounding"
-      ],
+      "tags": ["proposal", "context-agreement", "transcript-grounding"],
       "scenarios": [
         {
           "id": "rq-prop-context2.1",
@@ -299,9 +251,7 @@
         {
           "id": "rq-prop-context2.2",
           "title": "Problem statement grounded in prior discussion",
-          "given": [
-            "Prior discussion context has been extracted"
-          ],
+          "given": ["Prior discussion context has been extracted"],
           "when": "The problem statement is synthesized",
           "then": [
             "The problem statement includes Prior Decisions, Rejected Approaches, and Open Questions sections",
@@ -313,9 +263,7 @@
         {
           "id": "rq-prop-context2.3",
           "title": "Drift detection in confirmation",
-          "given": [
-            "A problem statement block is shown to the user"
-          ],
+          "given": ["A problem statement block is shown to the user"],
           "when": "The user reviews it via inline handoff text per docs/command-voice-standard.md § Inline Approval Voice (Tier A)",
           "then": [
             "The presentation explicitly asks the user to check Prior Decisions and Rejected Approaches for accuracy",
@@ -326,9 +274,7 @@
         {
           "id": "rq-prop-context2.4",
           "title": "Confirmed problem statement persisted in proposal.md",
-          "given": [
-            "The user confirms the problem statement in Phase 1"
-          ],
+          "given": ["The user confirms the problem statement in Phase 1"],
           "when": "The change is created in Phase 2",
           "then": [
             "adv_change_create is called with the proposal parameter containing the confirmed text",
@@ -339,9 +285,7 @@
         {
           "id": "rq-prop-context2.5",
           "title": "Abort path creates no artifacts",
-          "given": [
-            "The user selects Abort during Phase 1 confirmation"
-          ],
+          "given": ["The user selects Abort during Phase 1 confirmation"],
           "when": "The command exits",
           "then": [
             "No change.json is created",
@@ -352,9 +296,7 @@
         {
           "id": "rq-prop-context2.6",
           "title": "Confirmed problem statement persisted as standalone artifact",
-          "given": [
-            "The user confirms the problem statement in Phase 1"
-          ],
+          "given": ["The user confirms the problem statement in Phase 1"],
           "when": "The change is created in Phase 2",
           "then": [
             "adv_change_create is called with the problemStatement parameter containing the confirmed problem statement text",

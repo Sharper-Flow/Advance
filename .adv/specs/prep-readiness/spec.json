@@ -11,11 +11,7 @@
       "title": "Requirement Smell Detection",
       "body": "The validator must scan requirement titles and bodies in spec deltas for language patterns that indicate ambiguity, subjectivity, or unmeasurable claims. These patterns are advisory warnings \u2014 not blockers \u2014 because smell heuristics have false-positive risk.",
       "priority": "should",
-      "tags": [
-        "prep",
-        "quality",
-        "requirements"
-      ],
+      "tags": ["prep", "quality", "requirements"],
       "scenarios": [
         {
           "id": "rq-PR001sml.1",
@@ -36,9 +32,7 @@
             "A requirement title containing 'etc' or 'and/or' or 'various'"
           ],
           "when": "runPrepReadinessChecks is called",
-          "then": [
-            "A SMELL_AMBIGUOUS warning is returned"
-          ]
+          "then": ["A SMELL_AMBIGUOUS warning is returned"]
         },
         {
           "id": "rq-PR001sml.3",
@@ -47,9 +41,7 @@
             "A requirement title containing 'best' or 'fastest' or 'always'"
           ],
           "when": "runPrepReadinessChecks is called",
-          "then": [
-            "A SMELL_SUPERLATIVE warning is returned"
-          ]
+          "then": ["A SMELL_SUPERLATIVE warning is returned"]
         },
         {
           "id": "rq-PR001sml.4",
@@ -58,9 +50,7 @@
             "A requirement title containing 'not' or 'never' or 'without'"
           ],
           "when": "runPrepReadinessChecks is called",
-          "then": [
-            "A SMELL_NEGATIVE warning is returned"
-          ]
+          "then": ["A SMELL_NEGATIVE warning is returned"]
         },
         {
           "id": "rq-PR001sml.5",
@@ -69,9 +59,7 @@
             "A requirement title containing 'all' or 'every' or 'none'"
           ],
           "when": "runPrepReadinessChecks is called",
-          "then": [
-            "A SMELL_TOTALITY warning is returned"
-          ]
+          "then": ["A SMELL_TOTALITY warning is returned"]
         },
         {
           "id": "rq-PR001sml.6",
@@ -80,9 +68,7 @@
             "A requirement with a specific, measurable, positively-phrased title"
           ],
           "when": "runPrepReadinessChecks is called",
-          "then": [
-            "No smell warnings are returned for that requirement"
-          ]
+          "then": ["No smell warnings are returned for that requirement"]
         },
         {
           "id": "rq-PR001sml.7",
@@ -91,9 +77,7 @@
             "A change with tasks but no spec deltas (bug-fix scenario)"
           ],
           "when": "runPrepReadinessChecks is called",
-          "then": [
-            "No smell issues are emitted (nothing to check)"
-          ]
+          "then": ["No smell issues are emitted (nothing to check)"]
         }
       ]
     },
@@ -102,11 +86,7 @@
       "title": "Scenario Adequacy Enforcement",
       "body": "Requirements added via deltas must have at least one scenario defined. This is a must-level failure because requirements without any scenarios cannot be tested or validated.",
       "priority": "must",
-      "tags": [
-        "prep",
-        "quality",
-        "scenarios"
-      ],
+      "tags": ["prep", "quality", "scenarios"],
       "scenarios": [
         {
           "id": "rq-PR002scn.1",
@@ -127,9 +107,7 @@
             "A change delta that adds a requirement with one or more scenarios"
           ],
           "when": "runPrepReadinessChecks is called",
-          "then": [
-            "No SCENARIO_MISSING error is returned for that requirement"
-          ]
+          "then": ["No SCENARIO_MISSING error is returned for that requirement"]
         },
         {
           "id": "rq-PR002scn.3",
@@ -138,20 +116,14 @@
             "A requirement with exactly one scenario whose title contains only 'happy path' language and the requirement body suggests error/edge conditions exist"
           ],
           "when": "runPrepReadinessChecks is called",
-          "then": [
-            "A SCENARIO_INADEQUATE warning is returned (advisory only)"
-          ]
+          "then": ["A SCENARIO_INADEQUATE warning is returned (advisory only)"]
         },
         {
           "id": "rq-PR002scn.4",
           "title": "Bug-fix change with no deltas is not penalized",
-          "given": [
-            "A change with tasks but zero spec deltas"
-          ],
+          "given": ["A change with tasks but zero spec deltas"],
           "when": "runPrepReadinessChecks is called",
-          "then": [
-            "No SCENARIO_MISSING errors are emitted"
-          ]
+          "then": ["No SCENARIO_MISSING errors are emitted"]
         }
       ]
     },
@@ -160,12 +132,7 @@
       "title": "TDD Inversion Detection",
       "body": "Prep-readiness owns enforcement of TDD inversion at planning time. A task graph where a same-scope test task is blocked_by an implementation task violates the inline TDD contract. Detection uses metadata.tdd_intent first (values: inline, separate_verification, not_applicable), falling back to title-based heuristics for legacy tasks without metadata. Tasks with tdd_intent 'separate_verification' or 'not_applicable' are exempt from inversion checks. Canonical TDD semantics and classifier expectations are defined by tdd-contract/rq-TDD005inv; this requirement defines the prep gate readiness behavior and failure surface.",
       "priority": "must",
-      "tags": [
-        "prep",
-        "tdd",
-        "task-graph",
-        "metadata"
-      ],
+      "tags": ["prep", "tdd", "task-graph", "metadata"],
       "scenarios": [
         {
           "id": "rq-PR003tdd.1",
@@ -202,20 +169,14 @@
             "That task has a blocked_by dependency on an implementation task"
           ],
           "when": "runPrepReadinessChecks is called",
-          "then": [
-            "No TASK_TDD_INVERSION error is returned"
-          ]
+          "then": ["No TASK_TDD_INVERSION error is returned"]
         },
         {
           "id": "rq-PR003tdd.4",
           "title": "Task with tdd_intent 'not_applicable' is exempt",
-          "given": [
-            "A task with metadata.tdd_intent set to 'not_applicable'"
-          ],
+          "given": ["A task with metadata.tdd_intent set to 'not_applicable'"],
           "when": "runPrepReadinessChecks is called",
-          "then": [
-            "No TASK_TDD_INVERSION error is returned"
-          ]
+          "then": ["No TASK_TDD_INVERSION error is returned"]
         },
         {
           "id": "rq-PR003tdd.5",
@@ -249,9 +210,7 @@
             "Tasks about docs, chores, or releases with no test/impl naming pattern and no metadata.tdd_intent"
           ],
           "when": "runPrepReadinessChecks is called",
-          "then": [
-            "No TASK_TDD_INVERSION error is returned"
-          ]
+          "then": ["No TASK_TDD_INVERSION error is returned"]
         },
         {
           "id": "rq-PR003tdd.8",
@@ -260,9 +219,7 @@
             "A task with no deps and which is not a dependency of any other task"
           ],
           "when": "runPrepReadinessChecks is called",
-          "then": [
-            "A TASK_ORPHAN warning is returned (advisory only)"
-          ]
+          "then": ["A TASK_ORPHAN warning is returned (advisory only)"]
         }
       ]
     },
@@ -271,18 +228,12 @@
       "title": "Cross-Repo Routing Completeness",
       "body": "Tasks that have one of target_repo or target_path set but not both have incomplete routing metadata. This creates ambiguity about where the task should be executed and must be flagged as a must-level failure.",
       "priority": "must",
-      "tags": [
-        "prep",
-        "cross-repo",
-        "routing"
-      ],
+      "tags": ["prep", "cross-repo", "routing"],
       "scenarios": [
         {
           "id": "rq-PR004xrp.1",
           "title": "Task with target_repo but missing target_path is a must-failure",
-          "given": [
-            "A task with target_repo set but target_path absent"
-          ],
+          "given": ["A task with target_repo set but target_path absent"],
           "when": "runPrepReadinessChecks is called",
           "then": [
             "A CROSS_REPO_MISSING_METADATA issue with severity 'error' is returned",
@@ -292,9 +243,7 @@
         {
           "id": "rq-PR004xrp.2",
           "title": "Task with target_path but missing target_repo is a must-failure",
-          "given": [
-            "A task with target_path set but target_repo absent"
-          ],
+          "given": ["A task with target_path set but target_repo absent"],
           "when": "runPrepReadinessChecks is called",
           "then": [
             "A CROSS_REPO_MISSING_METADATA issue with severity 'error' is returned"
@@ -303,9 +252,7 @@
         {
           "id": "rq-PR004xrp.3",
           "title": "Task with both fields set passes routing check",
-          "given": [
-            "A task with both target_repo and target_path set"
-          ],
+          "given": ["A task with both target_repo and target_path set"],
           "when": "runPrepReadinessChecks is called",
           "then": [
             "No CROSS_REPO_MISSING_METADATA error is returned for that task"
@@ -318,9 +265,7 @@
             "A task with neither target_repo nor target_path set (local task)"
           ],
           "when": "runPrepReadinessChecks is called",
-          "then": [
-            "No CROSS_REPO_MISSING_METADATA error is returned"
-          ]
+          "then": ["No CROSS_REPO_MISSING_METADATA error is returned"]
         },
         {
           "id": "rq-PR004xrp.5",
@@ -340,18 +285,12 @@
       "title": "Prep Gate Readiness Enforcement",
       "body": "The adv_gate_complete tool for the prep gate must run all prep-readiness checks before marking the gate done. Must-level failures block gate completion; warnings produce advisory output but do not block.",
       "priority": "must",
-      "tags": [
-        "prep",
-        "gate",
-        "enforcement"
-      ],
+      "tags": ["prep", "gate", "enforcement"],
       "scenarios": [
         {
           "id": "rq-PR005gat.1",
           "title": "Gate blocked when must-failures exist",
-          "given": [
-            "A change with at least one prep-readiness must-failure"
-          ],
+          "given": ["A change with at least one prep-readiness must-failure"],
           "when": "adv_gate_complete with gateId 'planning' is called",
           "then": [
             "The gate is NOT marked done",
@@ -362,9 +301,7 @@
         {
           "id": "rq-PR005gat.2",
           "title": "Gate succeeds with only warnings",
-          "given": [
-            "A change with no must-failures but one or more warnings"
-          ],
+          "given": ["A change with no must-failures but one or more warnings"],
           "when": "adv_gate_complete with gateId 'planning' is called",
           "then": [
             "The gate IS marked done",
@@ -401,12 +338,7 @@
       "title": "TDD Intent Assignment at Prep Finalization",
       "body": "During prep finalization, every non-cancelled task MUST have an explicit metadata.tdd_intent value assigned (inline | separate_verification | not_applicable). The prep gate MUST verify that all tasks have tdd_intent set and reject gate completion when any task lacks it. This ensures TDD classification decisions are made deliberately at planning time, not deferred to implementation where they may be skipped or forgotten.",
       "priority": "must",
-      "tags": [
-        "prep",
-        "tdd",
-        "metadata",
-        "gate"
-      ],
+      "tags": ["prep", "tdd", "metadata", "gate"],
       "scenarios": [
         {
           "id": "rq-PR006tdi.1",
@@ -427,9 +359,7 @@
             "A change where all non-cancelled tasks have metadata.tdd_intent set to one of: inline, separate_verification, not_applicable"
           ],
           "when": "runPrepReadinessChecks is called",
-          "then": [
-            "No TASK_TDD_INTENT_MISSING errors are returned"
-          ]
+          "then": ["No TASK_TDD_INTENT_MISSING errors are returned"]
         },
         {
           "id": "rq-PR006tdi.3",

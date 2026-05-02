@@ -39,9 +39,7 @@
         {
           "id": "rq-synthstate01.3",
           "title": "Draft and status surfaces stay clear after validation activity",
-          "given": [
-            "Supported internal validation activity has run"
-          ],
+          "given": ["Supported internal validation activity has run"],
           "when": "adv_change_list with status draft or adv_status is executed on the live project",
           "then": [
             "Stale synthetic parity-validation drafts are absent from live draft results",
@@ -62,9 +60,7 @@
         {
           "id": "rq-advcfg01.1",
           "title": "Invalid project config is surfaced",
-          "given": [
-            "project.json is malformed or schema-invalid"
-          ],
+          "given": ["project.json is malformed or schema-invalid"],
           "when": "adv_status is executed",
           "then": [
             "Output includes a config error or warning recommendation",
@@ -74,9 +70,7 @@
         {
           "id": "rq-advcfg01.2",
           "title": "Feature flags are visible in status output",
-          "given": [
-            "project.json parses successfully"
-          ],
+          "given": ["project.json parses successfully"],
           "when": "adv_status is executed",
           "then": [
             "Output includes feature_flags values",
@@ -163,24 +157,16 @@
         {
           "id": "rq-advmeta01.1",
           "title": "Filter by metadata key",
-          "given": [
-            "A change with tasks containing metadata keys"
-          ],
+          "given": ["A change with tasks containing metadata keys"],
           "when": "adv_task_list is called with filter has_metadata_key:<key>",
-          "then": [
-            "Only tasks containing that metadata key are returned"
-          ]
+          "then": ["Only tasks containing that metadata key are returned"]
         },
         {
           "id": "rq-advmeta01.2",
           "title": "Filter by metadata key/value",
-          "given": [
-            "A change with tasks containing metadata key/value pairs"
-          ],
+          "given": ["A change with tasks containing metadata key/value pairs"],
           "when": "adv_task_list is called with filter metadata:<key>=<value>",
-          "then": [
-            "Only tasks matching both key and value are returned"
-          ]
+          "then": ["Only tasks matching both key and value are returned"]
         }
       ],
       "meta": {
@@ -196,9 +182,7 @@
         {
           "id": "rq-advshut1.1",
           "title": "Signal performs bounded flush",
-          "given": [
-            "The process receives SIGINT or SIGTERM"
-          ],
+          "given": ["The process receives SIGINT or SIGTERM"],
           "when": "Shutdown handling begins",
           "then": [
             "store.flush is attempted before store.close",
@@ -208,9 +192,7 @@
         {
           "id": "rq-advshut1.2",
           "title": "Duplicate signals are idempotent",
-          "given": [
-            "A shutdown flush is already in progress"
-          ],
+          "given": ["A shutdown flush is already in progress"],
           "when": "A second SIGINT/SIGTERM is received",
           "then": [
             "No second flush path starts",
@@ -227,12 +209,7 @@
       "title": "Source-Appropriate Due Diligence for Unknown Capability Questions",
       "body": "ADV-managed guidance (orchestrator agent text, synced overlays, and accompanying drift tests) must require source-appropriate due diligence before answering, recommending, or deciding on unknown platform, architecture, or capability questions. Diligence may use any appropriate mix of evidence sources (local code via lgrep/read, repo history or repo examples, GitHub examples, official docs, web research, or similar); the evidence bar is not a fixed source stack. Requests like \"quick answer\", \"from your knowledge\", or \"don't research\" may change response brevity only and must not lower the evidence bar. If required diligence cannot be completed, the response must stop and surface the blockage instead of presenting an unverified recommendation as settled.",
       "priority": "must",
-      "tags": [
-        "research",
-        "due-diligence",
-        "routing",
-        "guidance"
-      ],
+      "tags": ["research", "due-diligence", "routing", "guidance"],
       "scenarios": [
         {
           "id": "rq-dueDiligence01.1",
@@ -335,9 +312,7 @@
         {
           "id": "rq-proseReduction02.1",
           "title": "Drift test enforces line caps per class",
-          "given": [
-            "manifest-doc-drift.test.ts is inspected"
-          ],
+          "given": ["manifest-doc-drift.test.ts is inspected"],
           "when": "The structural-assertions block is read",
           "then": [
             "An assertion verifies fully-enforced sections do not exceed the documented line cap",
@@ -369,9 +344,7 @@
         {
           "id": "rq-proseReduction03.1",
           "title": "Inventory captures classification rows",
-          "given": [
-            "A change executes prose-load reduction work"
-          ],
+          "given": ["A change executes prose-load reduction work"],
           "when": "The inventory document is inspected after the inventory pass completes",
           "then": [
             "Every reclassified section appears as a row",
@@ -402,9 +375,7 @@
         {
           "id": "rq-proseReduction04.1",
           "title": "Inherently-prose section uses structured template",
-          "given": [
-            "A section is classified inherently-prose"
-          ],
+          "given": ["A section is classified inherently-prose"],
           "when": "The section is inspected",
           "then": [
             "The section opens with a one-line purpose statement",
@@ -511,9 +482,7 @@
         {
           "id": "rq-contextShed02.2",
           "title": "adv-apply.md contains post-delegation P23 diff-scan step",
-          "given": [
-            "The adv-apply.md Task Flow is inspected"
-          ],
+          "given": ["The adv-apply.md Task Flow is inspected"],
           "when": "Post-delegation steps are checked",
           "then": [
             "A step after delegation spawn and before task completion performs a P23 campsite-rule diff-scan",
@@ -525,9 +494,7 @@
         {
           "id": "rq-contextShed02.3",
           "title": "Drift tests enforce prose-only on adv.md and table on other surfaces",
-          "given": [
-            "The drift test suite runs"
-          ],
+          "given": ["The drift test suite runs"],
           "when": "Context-shed assertions are evaluated",
           "then": [
             "ADV_INSTRUCTIONS.md and adv-apply.md delegation tables contain step 4.5 with matching wording",

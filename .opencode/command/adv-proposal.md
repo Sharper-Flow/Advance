@@ -3,6 +3,7 @@ name: adv-proposal
 description: "Extract problem statement, success criteria, and constraints without creating tasks"
 phaseGoal: "Clarify the problem, user needs, and acceptance criteria scope. Establish what and why — no how."
 ---
+
 <!-- manifest: adv-proposal · gate: proposal · requiresChangeId: false · scope: reads[specs] -->
 
 # ADV Proposal — Establish the Problem Statement
@@ -10,6 +11,7 @@ phaseGoal: "Clarify the problem, user needs, and acceptance criteria scope. Esta
 Two-phase workflow: Phase 1 (problem statement agreement) → Phase 2 (full proposal with INVEST criteria and smell detection). **Fully collaborative** — the user shapes every decision.
 
 ## Command Boundary
+
 <!-- rq-prop-neg1 -->
 
 **Produces:** Confirmed problem statement, initial change scaffold, and the proposal artifact needed to begin discovery.
@@ -25,19 +27,24 @@ Two-phase workflow: Phase 1 (problem statement agreement) → Phase 2 (full prop
 
 ## Pre-flight
 
-1. **Verify ADV tools are live** — call `adv_status` once. If it returns `ADV_PLUGIN_INIT_FAILED`, stop immediately, report the `error` + `remediation` fields verbatim, and ask the user how to proceed. × Do NOT self-block by declaring adv_* tools "unavailable" based on prior assumption — verify first.
+1. **Verify ADV tools are live** — call `adv_status` once. If it returns `ADV_PLUGIN_INIT_FAILED`, stop immediately, report the `error` + `remediation` fields verbatim, and ask the user how to proceed. × Do NOT self-block by declaring adv\_\* tools "unavailable" based on prior assumption — verify first.
 2. Resolve summary from `$ARGUMENTS` or derive a 2-5 word summary from the conversation
 3. `adv_change_list` → detect overlapping changes; reuse/reference an obvious existing match, ask only if overlap is still ambiguous
 4. Read any `./temp/brainstorm-*.md` notes if present
 
 ---
+
 ## Phase 1: Problem Statement Agreement
+
 <!-- rq-prop-context2 -->
+
 Before creating artifacts:
+
 1. Extract agreed facts, decisions, rejected approaches, open questions, and constraints from the conversation
 2. Synthesize a concise problem statement with desired outcome and expected scope
 3. Ask the user to confirm whether that framing matches the intended outcome
 4. If drift is reported → revise and re-confirm; if aborted → stop with no artifacts
+
 ---
 
 ## Phase 1b: Knowledge Gap Analysis
@@ -57,8 +64,11 @@ After the problem statement is confirmed, before building the proposal:
 > **Principle:** Never make recommendations based on assumed context. If you haven't verified it, flag it.
 
 ---
+
 ## Phase 2: Full Proposal
+
 After confirmation:
+
 1. `adv_change_create` with the confirmed problem statement as `## Why`
 2. Infer change type autonomously from the problem statement + current codebase
 3. Use `adv_spec` list/show/search to determine affected capabilities and whether a new capability/spec is required
@@ -75,8 +85,9 @@ After confirmation:
    - × MUST NOT call `adv_gate_complete gateId: 'proposal'` if any CRITICAL B/F/S finding exists (agent honor-system rule per KD1; v2 may add machine enforcement)
    - × MUST NOT fabricate evidence quotes — every finding cites verbatim text from proposal.md or `(no {section} section)`
    - Skip scan if `clarify_enforcement: 'off'`
-   
+
    See `ADV_INSTRUCTIONS.md § Ambiguity Taxonomy` for finding shape, severity rules, and trigger threshold.
+
 9. `adv_change_update` with the completed proposal
 10. `adv_gate_complete gateId: proposal`
 
@@ -93,8 +104,7 @@ When creating a change in a **different project** (e.g. pokeedge backend creatin
 4. The change is created in the target project's ADV state — not the current project's
 5. The target project's agent picks it up via `/adv-discover` and validates the origin before proceeding
 
-**Minimum required:** `target_path`. Strongly recommended: `source_change_id` for full traceability.
----
+## **Minimum required:** `target_path`. Strongly recommended: `source_change_id` for full traceability.
 
 ## Step 9: Proposal Approval (Inline)
 
@@ -111,19 +121,20 @@ Want to stop here? Reply `stop` or `defer`.
 
 **Reply parsing (Tier A):**
 
-| Reply | Action |
-|---|---|
-| Tier A whitelist match | Proceed inline immediately to next stage |
-| `/adv-X` slash command | No-op for this agent — OpenCode dispatches |
-| Free-form text | Treat as revision request; collect feedback → `adv_change_update` → re-present |
-| `stop` / `defer` | Halt; do not advance gate |
-| Ambiguous | LLM judgment classifies into approve / revise / redirect / stop / unclear |
+| Reply                  | Action                                                                         |
+| ---------------------- | ------------------------------------------------------------------------------ |
+| Tier A whitelist match | Proceed inline immediately to next stage                                       |
+| `/adv-X` slash command | No-op for this agent — OpenCode dispatches                                     |
+| Free-form text         | Treat as revision request; collect feedback → `adv_change_update` → re-present |
+| `stop` / `defer`       | Halt; do not advance gate                                                      |
+| Ambiguous              | LLM judgment classifies into approve / revise / redirect / stop / unclear      |
 
 × MUST NOT mark the proposal complete without an explicit user reply matching the Tier A whitelist or LLM-classified `approve`. Invocation is NOT implicit approval.
 
 ---
 
 ## Output
+
 <!-- rq-prop-out1 -->
 
 Use the Gate Handoff Voice spine (see `docs/command-voice-standard.md § Gate Handoff Voice`):
