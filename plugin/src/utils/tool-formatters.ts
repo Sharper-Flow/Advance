@@ -30,6 +30,7 @@ export interface FormattedStatus {
   recommendationsList: string[];
   healthSection: string;
   worktreeSection: string;
+  sessionDebtSection: string;
 }
 
 export interface FormattedValidation {
@@ -78,6 +79,12 @@ export interface StatusInput {
   worktreeCensus?: {
     total: number;
     stale: Array<{ path: string; branch: string; lastActivity: string }>;
+  };
+  opencodeSessionDebt?: {
+    available: boolean;
+    repairableStaleCount?: number;
+    liveInFlightCount?: number;
+    reason?: string;
   };
 }
 
@@ -235,6 +242,17 @@ export function formatStatusOutput(input: StatusInput): FormattedStatus {
     worktreeSection = `## Worktrees\n${parts.join(", ")}`;
   }
 
+  let sessionDebtSection: string;
+  if (!input.opencodeSessionDebt) {
+    sessionDebtSection = "## OpenCode Session Debt\n(unchecked)";
+  } else if (!input.opencodeSessionDebt.available) {
+    sessionDebtSection = `## OpenCode Session Debt\n(unavailable: ${truncate(input.opencodeSessionDebt.reason ?? "unknown", 80)})`;
+  } else {
+    const stale = input.opencodeSessionDebt.repairableStaleCount ?? 0;
+    const live = input.opencodeSessionDebt.liveInFlightCount ?? 0;
+    sessionDebtSection = `## OpenCode Session Debt\n${stale} stale blank assistant row(s), ${live} live/in-flight`;
+  }
+
   return {
     specsSection,
     activeSection,
@@ -242,6 +260,7 @@ export function formatStatusOutput(input: StatusInput): FormattedStatus {
     recommendationsList: input.recommendations,
     healthSection,
     worktreeSection,
+    sessionDebtSection,
   };
 }
 

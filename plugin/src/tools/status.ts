@@ -38,6 +38,7 @@ import {
 } from "../storage/json";
 import { readProjectMetadata } from "../storage/project-metadata";
 import { getWorktreeCensus } from "../utils/worktree-census";
+import { scanOpenCodeSessionDebt } from "../utils/opencode-session-debt";
 import { runClarifyReadinessChecks } from "../validator/clarify-readiness";
 import { z } from "zod";
 import { withOptionalTargetPathStore } from "./target-project";
@@ -388,6 +389,16 @@ export const statusTools = {
             activeStore.paths.root,
           );
 
+          const opencodeSessionDebt = await scanOpenCodeSessionDebt();
+          if (
+            opencodeSessionDebt.available &&
+            opencodeSessionDebt.repairable_stale.length > 0
+          ) {
+            status.recommendations.push(
+              `[doctor] Stale OpenCode blank assistant messages detected (${opencodeSessionDebt.repairable_stale.length} sample(s), ${opencodeSessionDebt.total_blank} total blank row(s)) — run \`bun scripts/opencode-session-doctor.ts --dry-run\` before deletion.`,
+            );
+          }
+
           const specsList = await activeStore.specs.list();
           const requirementCount = specsList.specs.reduce(
             (sum, s) => sum + (s.requirementCount ?? 0),
@@ -413,6 +424,17 @@ export const statusTools = {
                   stale: worktreeCensus.stale,
                 }
               : undefined,
+            opencodeSessionDebt: opencodeSessionDebt.available
+              ? {
+                  available: true,
+                  repairableStaleCount:
+                    opencodeSessionDebt.repairable_stale.length,
+                  liveInFlightCount: opencodeSessionDebt.live_in_flight.length,
+                }
+              : {
+                  available: false,
+                  reason: opencodeSessionDebt.reason,
+                },
           });
 
           const projectMetadata = await readProjectMetadata(
@@ -425,6 +447,7 @@ export const statusTools = {
             ...(featureFlags ? { feature_flags: featureFlags } : {}),
             temporal_health: temporalHealth,
             search_attributes: searchAttributes,
+            opencode_session_debt: opencodeSessionDebt,
             migration_status: migrationStatus,
             project_metadata: projectMetadata,
             worktree_census: worktreeCensus,

@@ -18,6 +18,19 @@ import { createLegacyStore } from "../storage/store";
 import type { Store } from "../storage/store";
 import { GATE_ORDER, createDefaultGates } from "../types";
 
+const { mockScanOpenCodeSessionDebt } = vi.hoisted(() => ({
+  mockScanOpenCodeSessionDebt: vi.fn(),
+}));
+
+vi.mock("../utils/opencode-session-debt", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("../utils/opencode-session-debt")>();
+  return {
+    ...actual,
+    scanOpenCodeSessionDebt: mockScanOpenCodeSessionDebt,
+  };
+});
+
 // Mock getStslStats and isStslInitialized for search_attributes testing
 vi.mock("../temporal/service", () => ({
   getStslStats: vi.fn().mockReturnValue({
@@ -37,6 +50,18 @@ describe("Status Tools", () => {
   let store: Store;
 
   beforeEach(async () => {
+    mockScanOpenCodeSessionDebt.mockReset();
+    mockScanOpenCodeSessionDebt.mockResolvedValue({
+      available: false,
+      db_path: "/missing/opencode.db",
+      checked_at: "2026-05-02T02:30:00.000Z",
+      reason: "not found",
+      threshold_ms: 300_000,
+      total_blank: 0,
+      repairable_stale: [],
+      live_in_flight: [],
+      ignored_with_parts: [],
+    });
     tempDir = await createTempDir();
     await createTestProject(tempDir);
     store = await createLegacyStore(tempDir);
@@ -243,6 +268,71 @@ Vague in-flight work.
       expect(followRec).toBeDefined();
       // Terminal parent (archived or closed) should be annotated with its state
       expect(followRec).toMatch(/\((archived|closed)\)/);
+    });
+
+    test("includes OpenCode session debt and doctor recommendation when stale rows exist", async () => {
+      mockScanOpenCodeSessionDebt.mockResolvedValueOnce({
+        available: true,
+        db_path: "/home/user/.local/share/opencode/opencode.db",
+        checked_at: "2026-05-02T02:30:00.000Z",
+        threshold_ms: 300_000,
+        total_blank: 1,
+        repairable_stale: [
+          {
+            id: "msg-stale",
+            session_id: "ses-stale",
+            created_ms: 1,
+            part_count: 0,
+            age_ms: 301_000,
+          },
+        ],
+        live_in_flight: [],
+        ignored_with_parts: [],
+      });
+
+      const result = await statusTools.adv_status.execute({}, store);
+      const parsed = parseToolOutput(result);
+
+      expect(parsed.opencode_session_debt.available).toBe(true);
+      expect(parsed.opencode_session_debt.repairable_stale).toHaveLength(1);
+      expect(parsed.formatted.sessionDebtSection).toContain("1 stale blank assistant");
+      expect(
+        parsed.recommendations.find((r: string) =>
+          r.includes("Stale OpenCode blank assistant messages"),
+        ),
+      ).toBeDefined();
+    });
+
+    test("does not emit debt recommendation for live-only blank rows", async () => {
+      mockScanOpenCodeSessionDebt.mockResolvedValueOnce({
+        available: true,
+        db_path: "/home/user/.local/share/opencode/opencode.db",
+        checked_at: "2026-05-02T02:30:00.000Z",
+        threshold_ms: 300_000,
+        total_blank: 1,
+        repairable_stale: [],
+        live_in_flight: [
+          {
+            id: "msg-live",
+            session_id: "ses-live",
+            created_ms: 1,
+            part_count: 0,
+            age_ms: 1_000,
+          },
+        ],
+        ignored_with_parts: [],
+      });
+
+      const result = await statusTools.adv_status.execute({}, store);
+      const parsed = parseToolOutput(result);
+
+      expect(parsed.opencode_session_debt.live_in_flight).toHaveLength(1);
+      expect(parsed.formatted.sessionDebtSection).toContain("1 live/in-flight");
+      expect(
+        parsed.recommendations.find((r: string) =>
+          r.includes("Stale OpenCode blank assistant messages"),
+        ),
+      ).toBeUndefined();
     });
 
     describe("search_attributes", () => {

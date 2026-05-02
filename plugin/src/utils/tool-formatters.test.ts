@@ -95,6 +95,25 @@ describe("tool-formatters", () => {
       expect(result.healthSection).toBeDefined();
     });
 
+    it("formats OpenCode session debt diagnostics", () => {
+      const result = formatStatusOutput({
+        specCount: 1,
+        requirementCount: 1,
+        activeChanges: [],
+        archivedCount: 0,
+        recommendations: [],
+        temporalAlive: true,
+        opencodeSessionDebt: {
+          available: true,
+          repairableStaleCount: 2,
+          liveInFlightCount: 1,
+        },
+      });
+
+      expect(result.sessionDebtSection).toContain("2 stale blank assistant");
+      expect(result.sessionDebtSection).toContain("1 live/in-flight");
+    });
+
     it("handles empty state", () => {
       const result = formatStatusOutput({
         specCount: 0,
