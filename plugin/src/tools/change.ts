@@ -1685,6 +1685,39 @@ export const changeTools = {
         return preflightError;
       }
 
+      // rq-archiveValidate01: run completeness validation before bundle creation.
+      let validationResult: Awaited<ReturnType<typeof validateChange>> | null =
+        null;
+      try {
+        const validationContext = await loadValidationContext(
+          store,
+          changeId,
+          change.title,
+        );
+        validationResult = await validateChange(change, {
+          specs: validationContext.specs,
+          activeChanges: validationContext.activeChanges,
+          proposalText: validationContext.proposalText,
+          changedSpecFiles: validationContext.changedSpecFiles,
+        });
+      } catch {
+        // Validation context unavailable — skip validation gracefully
+      }
+      if (validationResult && validationResult.errors.length > 0) {
+        return wrapWithBanner(
+          { command: "adv_change_archive", target: changeId },
+          formatToolOutput({
+            error: `Archive blocked: ${validationResult.errors.length} validation error(s). Fix errors and retry.`,
+            validationErrors: validationResult.errors.map((e) => ({
+              code: e.code,
+              message: e.message,
+              path: e.path,
+            })),
+            changeId,
+          }),
+        );
+      }
+
       const specs = await loadSpecsMap(store);
 
       // Run the archive operation
@@ -1797,6 +1830,15 @@ export const changeTools = {
           archivePath: archiveResult.archivePath,
           errors: archiveResult.errors,
           dryRun: dryRun ?? false,
+          ...(validationResult && validationResult.warnings.length > 0
+            ? {
+                validationWarnings: validationResult.warnings.map((w) => ({
+                  code: w.code,
+                  message: w.message,
+                  path: w.path,
+                })),
+              }
+            : {}),
         }),
       );
     },

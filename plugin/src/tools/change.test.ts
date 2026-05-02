@@ -4,8 +4,8 @@
  * TDD tests for change management tools
  */
 
-import { describe, test, expect, beforeEach, afterEach } from "vitest";
-import { readFile, writeFile, symlink, access } from "fs/promises";
+import { describe, test, expect, beforeEach, afterEach, vi } from "vitest";
+import { readFile, writeFile, symlink, access, mkdir } from "fs/promises";
 import { join } from "path";
 import { getProjectId, getExternalRoot } from "../utils/project-id";
 import { changeTools } from "./change";
@@ -1865,6 +1865,25 @@ describe("Change Tools", () => {
   });
 
   describe("adv_change_archive", () => {
+    // Default mock: validateChange returns passed with no errors.
+    // Individual tests override as needed.
+    let validateChangeSpy: ReturnType<typeof vi.spyOn>;
+
+    beforeEach(async () => {
+      const validator = await import("../validator");
+      validateChangeSpy = vi.spyOn(validator, "validateChange").mockResolvedValue({
+        passed: true,
+        errors: [],
+        warnings: [],
+        checkedAt: new Date().toISOString(),
+        checksPerformed: [],
+      });
+    });
+
+    afterEach(() => {
+      validateChangeSpy?.mockRestore();
+    });
+
     async function completeArchivePreflight(): Promise<void> {
       await store.tasks.update("tk-task0001", "done");
       await store.tasks.update("tk-task0002", "done");
@@ -2146,6 +2165,99 @@ describe("Change Tools", () => {
       } finally {
         store.changes.save = originalSave;
       }
+    });
+
+    // rq-archiveValidate01: archive completeness validation
+    describe("archive completeness validation", () => {
+      test("validation errors block archive", async () => {
+        await completeArchivePreflight();
+        validateChangeSpy.mockResolvedValue({
+          passed: false,
+          errors: [{ code: "MISSING_TDD_EVIDENCE", message: "Task tk-task0001 missing TDD evidence", severity: "error" }],
+          warnings: [],
+          checkedAt: new Date().toISOString(),
+          checksPerformed: ["checkTddCompliance"],
+        });
+
+        const result = await changeTools.adv_change_archive.execute(
+          { changeId: "addFeature" },
+          store,
+        );
+        const parsed = parseToolOutput(result);
+        expect(parsed.error).toBeDefined();
+        expect(parsed.error).toContain("validation");
+        expect(parsed.validationErrors).toBeDefined();
+        expect(parsed.validationErrors.length).toBeGreaterThan(0);
+      });
+
+      test("validation warnings pass through without blocking", async () => {
+        await completeArchivePreflight();
+        validateChangeSpy.mockResolvedValue({
+          passed: true,
+          errors: [],
+          warnings: [{ code: "MISSING_TDD_INTENT", message: "Task missing TDD intent", severity: "warning" }],
+          checkedAt: new Date().toISOString(),
+          checksPerformed: ["checkTddCompliance"],
+        });
+
+        const result = await changeTools.adv_change_archive.execute(
+          { changeId: "addFeature" },
+          store,
+        );
+        const parsed = parseToolOutput(result);
+        expect(parsed.success).toBe(true);
+        expect(parsed.validationWarnings).toBeDefined();
+        expect(parsed.validationWarnings.length).toBeGreaterThan(0);
+      });
+
+      test("idempotent retry still validates (does not skip)", async () => {
+        await completeArchivePreflight();
+        // First archive succeeds (default mock returns passed)
+        const first = parseToolOutput(
+          await changeTools.adv_change_archive.execute(
+            { changeId: "addFeature" },
+            store,
+          ),
+        );
+        expect(first.success).toBe(true);
+
+        // The archive moves source to archive. Re-create source with status=active
+        // to simulate a failed status transition (bundle exists, but change still active)
+        const archiveDir = first.archivePath;
+        const sourceDir = join(tempDir, ".adv/changes/addFeature");
+        await mkdir(sourceDir, { recursive: true });
+        const archivedChange = JSON.parse(
+          await readFile(join(archiveDir, "change.json"), "utf-8"),
+        );
+        archivedChange.status = "active";
+        await writeFile(
+          join(sourceDir, "change.json"),
+          JSON.stringify(archivedChange, null, 2),
+        );
+        await writeFile(
+          join(sourceDir, "proposal.md"),
+          "# addFeature\n\nTest.\n",
+        );
+        await store.sync();
+
+        // Override mock to return errors — should block even though bundle exists
+        validateChangeSpy.mockResolvedValue({
+          passed: false,
+          errors: [{ code: "MISSING_TDD_EVIDENCE", message: "Missing TDD", severity: "error" }],
+          warnings: [],
+          checkedAt: new Date().toISOString(),
+          checksPerformed: ["checkTddCompliance"],
+        });
+
+        const result = await changeTools.adv_change_archive.execute(
+          { changeId: "addFeature" },
+          store,
+        );
+        const parsed = parseToolOutput(result);
+        // Should be blocked by validation, not proceed via idempotent retry
+        expect(parsed.error).toBeDefined();
+        expect(parsed.error).toContain("validation");
+      });
     });
   });
 
