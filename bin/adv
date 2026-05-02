@@ -35,6 +35,7 @@ type GateId = (typeof GATE_ORDER)[number];
 
 const RECENCY_HOT_THRESHOLD_MIN = 60;
 const RECENCY_STALE_THRESHOLD_MIN = 180;
+const DASHBOARD_ACTIVE_STATUSES = new Set(["draft", "pending", "active"]);
 
 // =============================================================================
 // Types
@@ -242,6 +243,10 @@ function countTasks(tasks: TaskRecord[]): { done: number; total: number } {
   return { done, total: tasks.length };
 }
 
+function isDashboardActiveStatus(status: string): boolean {
+  return DASHBOARD_ACTIVE_STATUSES.has(status);
+}
+
 // =============================================================================
 // Rendering
 // =============================================================================
@@ -374,9 +379,15 @@ async function runStatus(noColor: boolean): Promise<number> {
 
   // Collect active changes
   const summaries: ChangeSummary[] = [];
+  let archivedCount = 0;
+  let closedCount = 0;
   const activeDir = join(root, "changes");
 
   for await (const change of listChanges(activeDir)) {
+    if (change.status === "archived") archivedCount++;
+    else if (change.status === "closed") closedCount++;
+    if (!isDashboardActiveStatus(change.status)) continue;
+
     const lastActivityAt = computeLastActivity(change);
     const activityDate = new Date(lastActivityAt);
     const minutesSinceActivity = Math.max(
@@ -404,8 +415,6 @@ async function runStatus(noColor: boolean): Promise<number> {
   summaries.sort((a, b) => b.lastActivityAt.localeCompare(a.lastActivityAt));
 
   // Count statuses for footer
-  let archivedCount = 0;
-  let closedCount = 0;
   const archiveDir = join(root, "archive");
   for await (const change of listChanges(archiveDir)) {
     if (change.status === "archived") archivedCount++;
