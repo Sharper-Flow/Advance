@@ -149,7 +149,7 @@ Requirements added via deltas must have at least one scenario defined. This is a
 
 **ID:** `rq-PR003tdd` | **Priority:** **[MUST]**
 
-A task graph where a same-scope test task is blocked_by an implementation task violates the inline TDD contract. Detection uses metadata.tdd_intent first (values: inline, separate_verification, not_applicable), falling back to title-based heuristics for legacy tasks without metadata. Tasks with tdd_intent 'separate_verification' or 'not_applicable' are exempt from inversion checks.
+Prep-readiness owns enforcement of TDD inversion at planning time. A task graph where a same-scope test task is blocked_by an implementation task violates the inline TDD contract. Detection uses metadata.tdd_intent first (values: inline, separate_verification, not_applicable), falling back to title-based heuristics for legacy tasks without metadata. Tasks with tdd_intent 'separate_verification' or 'not_applicable' are exempt from inversion checks. Canonical TDD semantics and classifier expectations are defined by tdd-contract/rq-TDD005inv; this requirement defines the prep gate readiness behavior and failure surface.
 
 **Tags:** `prep`, `tdd`, `task-graph`, `metadata`
 

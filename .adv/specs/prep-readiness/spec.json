@@ -158,7 +158,7 @@
     {
       "id": "rq-PR003tdd",
       "title": "TDD Inversion Detection",
-      "body": "A task graph where a same-scope test task is blocked_by an implementation task violates the inline TDD contract. Detection uses metadata.tdd_intent first (values: inline, separate_verification, not_applicable), falling back to title-based heuristics for legacy tasks without metadata. Tasks with tdd_intent 'separate_verification' or 'not_applicable' are exempt from inversion checks.",
+      "body": "Prep-readiness owns enforcement of TDD inversion at planning time. A task graph where a same-scope test task is blocked_by an implementation task violates the inline TDD contract. Detection uses metadata.tdd_intent first (values: inline, separate_verification, not_applicable), falling back to title-based heuristics for legacy tasks without metadata. Tasks with tdd_intent 'separate_verification' or 'not_applicable' are exempt from inversion checks. Canonical TDD semantics and classifier expectations are defined by tdd-contract/rq-TDD005inv; this requirement defines the prep gate readiness behavior and failure surface.",
       "priority": "must",
       "tags": [
         "prep",

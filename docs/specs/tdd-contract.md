@@ -175,7 +175,7 @@ A shared task classifier MUST check metadata.tdd_intent first, then fall back to
 
 **ID:** `rq-TDD005inv` | **Priority:** **[MUST]**
 
-The prep-readiness TDD inversion check MUST use the task classifier to determine task roles. A test task (by classifier) blocked_by an implementation task (by classifier) of the same scope is a TDD inversion — UNLESS the test task has metadata.tdd_intent='separate_verification'. This replaces the previous title-only detection that produced false positives.
+TDD contract owns the canonical semantics for TDD inversion and task-classifier expectations. The prep-readiness TDD inversion check MUST use the task classifier to determine task roles. A test task (by classifier) blocked_by an implementation task (by classifier) of the same scope is a TDD inversion — UNLESS the test task has metadata.tdd_intent='separate_verification'. This replaces the previous title-only detection that produced false positives. Prep-readiness/rq-PR003tdd owns the planning-gate enforcement behavior and readiness failure surface.
 
 **Tags:** `tdd`, `prep`, `inversion`, `task-graph`
 
