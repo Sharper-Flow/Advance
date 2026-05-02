@@ -389,10 +389,27 @@ export function createToolMap(
       "adv_temporal_worker_restart",
       store,
     ),
-    adv_workflow_repair: bindTool(
-      temporalOpsTools.adv_workflow_repair,
-      "adv_workflow_repair",
-      store,
+    // adv_workflow_repair — KD-6 timeout override (rq-toolTimeoutOverride01).
+    // Outer safety-net timeout must exceed the inner state-rebuild budget:
+    // this tool rebuilds the project workflow from legacy snapshots and re-
+    // imports change state, which legitimately exceeds the 10s default on
+    // mature projects. 30s gives headroom for typical state sizes; bumps
+    // beyond that signal a deeper problem (use adv_status to inspect).
+    adv_workflow_repair: registerTool(
+      temporalOpsTools.adv_workflow_repair.description,
+      temporalOpsTools.adv_workflow_repair.args,
+      safeExecute(
+        async (args) =>
+          temporalOpsTools.adv_workflow_repair.execute(
+            args as Parameters<
+              typeof temporalOpsTools.adv_workflow_repair.execute
+            >[0],
+            store,
+          ),
+        "adv_workflow_repair",
+        undefined,
+        { timeoutMs: 30_000 },
+      ),
     ),
 
     // Gate Tools
