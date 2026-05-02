@@ -5,7 +5,7 @@
  */
 
 import { describe, test, expect, beforeEach, afterEach, vi } from "vitest";
-import { readFile, writeFile, mkdir, rm } from "fs/promises";
+import { writeFile, mkdir } from "fs/promises";
 import { join } from "path";
 import { changeImportTools } from "./change-import";
 import { changeTools } from "./change";
@@ -30,10 +30,9 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("../temporal/migration", async () => {
-  const actual =
-    await vi.importActual<typeof import("../temporal/migration")>(
-      "../temporal/migration",
-    );
+  const actual = await vi.importActual<typeof import("../temporal/migration")>(
+    "../temporal/migration",
+  );
   return {
     ...actual,
     ensureChangeWorkflowStarted: mocks.ensureChangeWorkflowStarted,
@@ -41,10 +40,9 @@ vi.mock("../temporal/migration", async () => {
 });
 
 vi.mock("../temporal/service", async () => {
-  const actual =
-    await vi.importActual<typeof import("../temporal/service")>(
-      "../temporal/service",
-    );
+  const actual = await vi.importActual<typeof import("../temporal/service")>(
+    "../temporal/service",
+  );
   return {
     ...actual,
     getService: mocks.getService,

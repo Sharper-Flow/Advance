@@ -142,7 +142,6 @@ async function runImport(
   }
 
   // 7. Seed Temporal workflow
-  let seededAtTemporal = false;
   const bundle = getService();
   if (!bundle) {
     return formatToolOutput({
@@ -156,8 +155,12 @@ async function runImport(
   }
 
   try {
-    const projectId = basename(activeStore.paths.external ?? activeStore.paths.root);
-    const taskRuns = (change as Change & { task_runs?: ChangeWorkflowState["task_runs"] }).task_runs;
+    const projectId = basename(
+      activeStore.paths.external ?? activeStore.paths.root,
+    );
+    const taskRuns = (
+      change as Change & { task_runs?: ChangeWorkflowState["task_runs"] }
+    ).task_runs;
     await ensureChangeWorkflowStarted(
       {
         workflow: bundle.client.workflow as {
@@ -180,7 +183,6 @@ async function runImport(
         },
       },
     );
-    seededAtTemporal = true;
   } catch (err) {
     return formatToolOutput({
       success: false,
@@ -191,11 +193,12 @@ async function runImport(
     });
   }
 
+  // If the catch block didn't return, Temporal seed succeeded.
   const result: ImportResult = {
     success: true,
     changeId,
     importedFields,
-    seededAtTemporal,
+    seededAtTemporal: true,
     message: `Imported change "${changeId}" from ${args.source_path}. Defaulted fields: [${importedFields.join(", ")}].`,
   };
 
