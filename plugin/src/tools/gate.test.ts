@@ -1131,7 +1131,10 @@ describe("adv_gate_complete execution — task-completion enforcement", () => {
     await patchChangeOnDisk("addFeature", (ch) => {
       ch.tasks = ch.tasks.map((t: Record<string, unknown>) => ({
         ...t,
-        metadata: { ...(t as Record<string, Record<string, unknown>>).metadata, tdd_intent: "not_applicable" },
+        metadata: {
+          ...(t as Record<string, Record<string, unknown>>).metadata,
+          tdd_intent: "not_applicable",
+        },
       }));
       ch.deltas = {};
       delete ch.validation;
@@ -1157,7 +1160,10 @@ describe("adv_gate_complete execution — task-completion enforcement", () => {
     await patchChangeOnDisk("addFeature", (ch) => {
       ch.tasks = ch.tasks.map((t: Record<string, unknown>) => ({
         ...t,
-        metadata: { ...(t as Record<string, Record<string, unknown>>).metadata, tdd_intent: "not_applicable" },
+        metadata: {
+          ...(t as Record<string, Record<string, unknown>>).metadata,
+          tdd_intent: "not_applicable",
+        },
       }));
       ch.deltas = {};
       delete ch.validation;
@@ -1182,7 +1188,10 @@ describe("adv_gate_complete execution — task-completion enforcement", () => {
     await patchChangeOnDisk("addFeature", (ch) => {
       ch.tasks = ch.tasks.map((t: Record<string, unknown>) => ({
         ...t,
-        metadata: { ...(t as Record<string, Record<string, unknown>>).metadata, tdd_intent: "not_applicable" },
+        metadata: {
+          ...(t as Record<string, Record<string, unknown>>).metadata,
+          tdd_intent: "not_applicable",
+        },
       }));
       ch.deltas = {};
       delete ch.validation;

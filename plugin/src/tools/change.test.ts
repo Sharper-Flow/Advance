@@ -1871,13 +1871,15 @@ describe("Change Tools", () => {
 
     beforeEach(async () => {
       const validator = await import("../validator");
-      validateChangeSpy = vi.spyOn(validator, "validateChange").mockResolvedValue({
-        passed: true,
-        errors: [],
-        warnings: [],
-        checkedAt: new Date().toISOString(),
-        checksPerformed: [],
-      });
+      validateChangeSpy = vi
+        .spyOn(validator, "validateChange")
+        .mockResolvedValue({
+          passed: true,
+          errors: [],
+          warnings: [],
+          checkedAt: new Date().toISOString(),
+          checksPerformed: [],
+        });
     });
 
     afterEach(() => {
@@ -2173,7 +2175,13 @@ describe("Change Tools", () => {
         await completeArchivePreflight();
         validateChangeSpy.mockResolvedValue({
           passed: false,
-          errors: [{ code: "MISSING_TDD_EVIDENCE", message: "Task tk-task0001 missing TDD evidence", severity: "error" }],
+          errors: [
+            {
+              code: "MISSING_TDD_EVIDENCE",
+              message: "Task tk-task0001 missing TDD evidence",
+              severity: "error",
+            },
+          ],
           warnings: [],
           checkedAt: new Date().toISOString(),
           checksPerformed: ["checkTddCompliance"],
@@ -2195,7 +2203,13 @@ describe("Change Tools", () => {
         validateChangeSpy.mockResolvedValue({
           passed: true,
           errors: [],
-          warnings: [{ code: "MISSING_TDD_INTENT", message: "Task missing TDD intent", severity: "warning" }],
+          warnings: [
+            {
+              code: "MISSING_TDD_INTENT",
+              message: "Task missing TDD intent",
+              severity: "warning",
+            },
+          ],
           checkedAt: new Date().toISOString(),
           checksPerformed: ["checkTddCompliance"],
         });
@@ -2243,7 +2257,13 @@ describe("Change Tools", () => {
         // Override mock to return errors — should block even though bundle exists
         validateChangeSpy.mockResolvedValue({
           passed: false,
-          errors: [{ code: "MISSING_TDD_EVIDENCE", message: "Missing TDD", severity: "error" }],
+          errors: [
+            {
+              code: "MISSING_TDD_EVIDENCE",
+              message: "Missing TDD",
+              severity: "error",
+            },
+          ],
           warnings: [],
           checkedAt: new Date().toISOString(),
           checksPerformed: ["checkTddCompliance"],
