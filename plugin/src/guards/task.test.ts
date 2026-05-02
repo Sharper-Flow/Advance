@@ -30,11 +30,15 @@ describe("Task Guard", () => {
     });
 
     it("should block primary agent when MAX_PARALLEL_SUBAGENTS reached", () => {
-      expect(() => enforceTaskPolicy(3, "adv")).toThrow(/parallel sub-agent cap/i);
+      expect(() => enforceTaskPolicy(3, "adv")).toThrow(
+        /parallel sub-agent cap/i,
+      );
     });
 
     it("should block primary agent when above MAX_PARALLEL_SUBAGENTS", () => {
-      expect(() => enforceTaskPolicy(5, "adv")).toThrow(/parallel sub-agent cap/i);
+      expect(() => enforceTaskPolicy(5, "adv")).toThrow(
+        /parallel sub-agent cap/i,
+      );
     });
 
     it("should include the active count in parallel cap error message", () => {
@@ -46,19 +50,29 @@ describe("Task Guard", () => {
     });
 
     // All primary agents can spawn sub-agents
-    it.each(["adv", "adv-claude", "adv-gpt", "adv-glm", "adv-kimi", "build", "plan"])(
-      "should allow primary agent %s to spawn with 0 active",
-      (agent) => {
-        expect(() => enforceTaskPolicy(0, agent)).not.toThrow();
-      },
-    );
+    it.each([
+      "adv",
+      "adv-claude",
+      "adv-gpt",
+      "adv-glm",
+      "adv-kimi",
+      "build",
+      "plan",
+    ])("should allow primary agent %s to spawn with 0 active", (agent) => {
+      expect(() => enforceTaskPolicy(0, agent)).not.toThrow();
+    });
 
-    it.each(["adv", "adv-claude", "adv-gpt", "adv-glm", "adv-kimi", "build", "plan"])(
-      "should block primary agent %s at parallel cap",
-      (agent) => {
-        expect(() => enforceTaskPolicy(MAX_PARALLEL_SUBAGENTS, agent)).toThrow();
-      },
-    );
+    it.each([
+      "adv",
+      "adv-claude",
+      "adv-gpt",
+      "adv-glm",
+      "adv-kimi",
+      "build",
+      "plan",
+    ])("should block primary agent %s at parallel cap", (agent) => {
+      expect(() => enforceTaskPolicy(MAX_PARALLEL_SUBAGENTS, agent)).toThrow();
+    });
 
     // --- Sub-agent nesting prevention ---
 
@@ -75,11 +89,15 @@ describe("Task Guard", () => {
     });
 
     it("should block sub-agent (adv-engineer) from spawning", () => {
-      expect(() => enforceTaskPolicy(0, "adv-engineer")).toThrow(/nested task/i);
+      expect(() => enforceTaskPolicy(0, "adv-engineer")).toThrow(
+        /nested task/i,
+      );
     });
 
     it("should block sub-agent (adv-researcher) from spawning", () => {
-      expect(() => enforceTaskPolicy(0, "adv-researcher")).toThrow(/nested task/i);
+      expect(() => enforceTaskPolicy(0, "adv-researcher")).toThrow(
+        /nested task/i,
+      );
     });
 
     it("should block sub-agent (adv-tron) from spawning", () => {
@@ -118,7 +136,9 @@ describe("Task Guard", () => {
     });
 
     it("should throw for any unknown agent name (treated as sub-agent)", () => {
-      expect(() => enforceTaskPolicy(0, "some-new-agent")).toThrow(/nested task/i);
+      expect(() => enforceTaskPolicy(0, "some-new-agent")).toThrow(
+        /nested task/i,
+      );
     });
   });
 });
