@@ -16,6 +16,11 @@ import { join } from "path";
 import { z } from "zod";
 import type { Store } from "../storage/store";
 import { formatToolOutput } from "../utils/tool-output";
+import {
+  formatTargetProjectContext,
+  type TargetProjectOutputContext,
+  withTargetPathStore,
+} from "./target-project";
 
 export interface ArchiveOrphanCandidate {
   /** Change ID (matches both source dir name AND archive change.json `id`) */
@@ -294,6 +299,24 @@ export const archiveSweepTools = {
         .string()
         .optional()
         .describe("How the user explicitly approved disk-level orphan removal"),
+      target_path: z
+        .string()
+        .optional()
+        .describe(
+          "Optional absolute path to another ADV project. When provided, mutates that project through a Temporal-backed target store.",
+        ),
+      target_confirmed: z
+        .literal(true)
+        .optional()
+        .describe(
+          "Required for untrusted target_path mutation. Confirms the target project was explicitly approved.",
+        ),
+      confirmationEvidence: z
+        .string()
+        .optional()
+        .describe(
+          "Required with target_confirmed for untrusted target_path mutation. Cite user approval evidence.",
+        ),
     },
     execute: async (
       args: {
@@ -301,72 +324,98 @@ export const archiveSweepTools = {
         includeClosed?: boolean;
         approvedByUser?: boolean;
         approvalEvidence?: string;
+        target_path?: string;
+        target_confirmed?: true;
+        confirmationEvidence?: string;
       },
       store: Store,
     ) => {
       const dryRun = args.dryRun ?? true;
-      if (!dryRun) {
-        if (!args.approvedByUser || !args.approvalEvidence?.trim()) {
-          return formatToolOutput({
-            success: false,
-            error:
-              "Explicit user approval is required to execute archive orphan removal. Re-run with dryRun:true to preview only.",
-          });
+
+      const runArchiveSweep = async (
+        activeStore: Store,
+        projectContext?: TargetProjectOutputContext,
+      ) => {
+        if (!dryRun) {
+          if (!args.approvedByUser || !args.approvalEvidence?.trim()) {
+            return formatToolOutput({
+              success: false,
+              error:
+                "Explicit user approval is required to execute archive orphan removal. Re-run with dryRun:true to preview only.",
+            });
+          }
         }
+
+        const preview = await sweepArchiveOrphans(
+          activeStore.paths.changes,
+          activeStore.paths.archive,
+          { dryRun: true, includeClosed: args.includeClosed ?? false },
+        );
+
+        const repair = await repairArchiveZombies(
+          preview.candidates,
+          activeStore,
+          dryRun,
+        );
+
+        const result: ArchiveOrphanSweepResult = dryRun
+          ? { ...preview, ...repair, dryRun: true }
+          : {
+              ...preview,
+              ...repair,
+              dryRun: false,
+              ...(await (async () => {
+                const removalTargets = preview.candidates.filter(
+                  (candidate) => !repair.blockedRemovalIds.has(candidate.id),
+                );
+                const { removed, removalErrors } =
+                  await removeArchiveOrphanCandidates(removalTargets);
+                return {
+                  removedCount: removed.length,
+                  removed,
+                  removalErrors,
+                };
+              })()),
+            };
+
+        const closedPart =
+          result.closedCandidateCount && result.closedCandidateCount > 0
+            ? `; ${result.closedCandidateCount} closed-change orphan(s)`
+            : "";
+        const message = dryRun
+          ? `Found ${result.candidateCount} orphan source dir(s)${closedPart}; ${result.repairCandidateCount ?? 0} archive zombie(s) need status repair; ${result.skippedActive.length} active dir(s) left alone`
+          : `Removed ${result.removedCount ?? 0} of ${result.candidateCount} orphan source dir(s)${closedPart}${
+              (result.removalErrors && result.removalErrors.length > 0) ||
+              (result.repairErrors && result.repairErrors.length > 0)
+                ? ` (${(result.removalErrors?.length ?? 0) + (result.repairErrors?.length ?? 0)} error(s))`
+                : ""
+            }; repaired ${result.repairedCount ?? 0} archive zombie(s)`;
+
+        return formatToolOutput({
+          success: true,
+          approvalEvidence: dryRun ? undefined : args.approvalEvidence?.trim(),
+          ...result,
+          blockedRemovalIds: undefined,
+          message,
+          ...(projectContext ? { _projectContext: projectContext } : {}),
+        });
+      };
+
+      if (args.target_path) {
+        return withTargetPathStore(
+          {
+            currentProjectPath: store.paths.root,
+            target_path: args.target_path,
+            stateRequirement: "temporal-required",
+            target_confirmed: args.target_confirmed,
+            confirmationEvidence: args.confirmationEvidence,
+          },
+          async ({ context, store: targetStore }) =>
+            runArchiveSweep(targetStore, formatTargetProjectContext(context)),
+        );
       }
 
-      const preview = await sweepArchiveOrphans(
-        store.paths.changes,
-        store.paths.archive,
-        { dryRun: true, includeClosed: args.includeClosed ?? false },
-      );
-
-      const repair = await repairArchiveZombies(
-        preview.candidates,
-        store,
-        dryRun,
-      );
-
-      const result: ArchiveOrphanSweepResult = dryRun
-        ? { ...preview, ...repair, dryRun: true }
-        : {
-            ...preview,
-            ...repair,
-            dryRun: false,
-            ...(await (async () => {
-              const removalTargets = preview.candidates.filter(
-                (candidate) => !repair.blockedRemovalIds.has(candidate.id),
-              );
-              const { removed, removalErrors } =
-                await removeArchiveOrphanCandidates(removalTargets);
-              return {
-                removedCount: removed.length,
-                removed,
-                removalErrors,
-              };
-            })()),
-          };
-
-      const closedPart =
-        result.closedCandidateCount && result.closedCandidateCount > 0
-          ? `; ${result.closedCandidateCount} closed-change orphan(s)`
-          : "";
-      const message = dryRun
-        ? `Found ${result.candidateCount} orphan source dir(s)${closedPart}; ${result.repairCandidateCount ?? 0} archive zombie(s) need status repair; ${result.skippedActive.length} active dir(s) left alone`
-        : `Removed ${result.removedCount ?? 0} of ${result.candidateCount} orphan source dir(s)${closedPart}${
-            (result.removalErrors && result.removalErrors.length > 0) ||
-            (result.repairErrors && result.repairErrors.length > 0)
-              ? ` (${(result.removalErrors?.length ?? 0) + (result.repairErrors?.length ?? 0)} error(s))`
-              : ""
-          }; repaired ${result.repairedCount ?? 0} archive zombie(s)`;
-
-      return formatToolOutput({
-        success: true,
-        approvalEvidence: dryRun ? undefined : args.approvalEvidence?.trim(),
-        ...result,
-        blockedRemovalIds: undefined,
-        message,
-      });
+      return runArchiveSweep(store);
     },
   },
 };

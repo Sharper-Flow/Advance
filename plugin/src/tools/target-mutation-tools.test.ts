@@ -41,11 +41,13 @@ const mocks = vi.hoisted(() => {
     paths: {
       root: "/target/project",
       changes: "/target/project/.adv/changes",
+      archive: "/target/project/.adv/archive",
       external: "/state/target",
     },
     config: { features: { clarify_enforcement: "off" } },
     changes: {
       get: vi.fn(async () => ({ success: true, data: targetChange })),
+      save: vi.fn(async () => ({ success: true })),
       updateArtifacts: vi.fn(async () => ({
         success: true,
         proposalPath: "/target/project/.adv/changes/targetChange/proposal.md",
@@ -114,11 +116,20 @@ vi.mock("../storage/json", async () => {
   };
 });
 
+vi.mock("fs/promises", async () => {
+  return {
+    readdir: vi.fn(async () => []),
+    readFile: vi.fn(async () => ""),
+    rm: vi.fn(async () => undefined),
+  };
+});
+
 import { parseToolOutput } from "../__tests__/setup";
 import { changeTools } from "./change";
 import { taskTools } from "./task";
 import { gateTools } from "./gate";
 import { testTools } from "./test";
+import { archiveSweepTools } from "./archive-sweep";
 
 describe("target_path mutation tools", () => {
   const sourceStore = { paths: { root: "/source/project" } } as any;
@@ -246,5 +257,22 @@ describe("target_path mutation tools", () => {
     expect(parsed.success).toBe(true);
     expect(parsed._projectContext.stateMode).toBe("temporal");
     expect(mocks.targetStore.tasks.recordEvidence).toHaveBeenCalled();
+  });
+
+  test("adv_archive_sweep_orphans mutates target project through temporal-required store", async () => {
+    const output = await archiveSweepTools.adv_archive_sweep_orphans.execute(
+      { dryRun: true, ...targetArgs } as any,
+      sourceStore,
+    );
+    const parsed = parseToolOutput(output);
+
+    expect(mocks.withTargetPathStore).toHaveBeenCalledWith(
+      expect.objectContaining({
+        target_path: "/target/project",
+        stateRequirement: "temporal-required",
+      }),
+      expect.any(Function),
+    );
+    expect(parsed._projectContext.stateMode).toBe("temporal");
   });
 });
