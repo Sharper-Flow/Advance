@@ -43,6 +43,7 @@ import {
   createProjectWorkflowState,
   listAgendaItemsFromProjectState,
   listProjectWisdomFromProjectState,
+  purgeChangeSummaryFromProjectState,
   recordMigrationEntryInProjectState,
   updateAgendaItemInProjectState,
 } from "./project-state";
@@ -210,6 +211,10 @@ const recordMigrationEntryUpdate = wf.defineUpdate<
   MigrationLedgerEntry,
   [MigrationLedgerEntry]
 >(PROJECT_WORKFLOW_UPDATE_NAMES.recordMigrationEntry);
+const purgeChangeSummaryUpdate = wf.defineUpdate<
+  void,
+  [{ changeId: string }]
+>(PROJECT_WORKFLOW_UPDATE_NAMES.purgeChangeSummary);
 
 /**
  * Wrap a workflow update handler so domain errors propagate as
@@ -897,6 +902,28 @@ export async function projectWorkflow(
       });
       return result;
     }),
+  );
+  wf.setHandler(
+    purgeChangeSummaryUpdate,
+    safeUpdateHandler(
+      "purgeChangeSummary",
+      ({ changeId }: { changeId: string }) => {
+        // adv_archive_purge support (rq-archivePurge01). Idempotent —
+        // unknown changeIds are silently a no-op so retries are safe.
+        wf.log.info("op:start", {
+          op: "purgeChangeSummaryUpdate",
+          projectId: state.projectId,
+          changeId,
+        });
+        purgeChangeSummaryFromProjectState(state, changeId);
+        wf.log.info("op:end", {
+          op: "purgeChangeSummaryUpdate",
+          projectId: state.projectId,
+          changeId,
+          remaining: Object.keys(state.change_summaries).length,
+        });
+      },
+    ),
   );
   wf.setHandler(
     applyChangeSummarySignalDef,

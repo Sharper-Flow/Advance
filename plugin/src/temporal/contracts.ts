@@ -43,6 +43,11 @@ export const PROJECT_WORKFLOW_UPDATE_NAMES = {
   updateAgendaItem: "adv.project.updateAgendaItem",
   addWisdom: "adv.project.addWisdom",
   recordMigrationEntry: "adv.project.recordMigrationEntry",
+  /**
+   * adv_archive_purge support: removes a single change from
+   * `change_summaries` and `source_versions`. See rq-archivePurge01.
+   */
+  purgeChangeSummary: "adv.project.purgeChangeSummary",
 } as const;
 
 export const CHANGE_WORKFLOW_UPDATE_NAMES = {

@@ -208,6 +208,15 @@ export const recordMigrationEntryUpdate = wf.defineUpdate<
   [MigrationLedgerEntry]
 >(PROJECT_WORKFLOW_UPDATE_NAMES.recordMigrationEntry);
 
+// adv_archive_purge support: terminate child workflow first via Temporal
+// client, then signal parent project workflow to drop the entry from the
+// in-memory change_summaries / source_versions registry. Idempotent —
+// purging an unknown changeId is a no-op. See rq-archivePurge01.
+export const purgeChangeSummaryUpdate = wf.defineUpdate<
+  void,
+  [{ changeId: string }]
+>(PROJECT_WORKFLOW_UPDATE_NAMES.purgeChangeSummary);
+
 // Signal: fire-and-forget change summary propagation from changeWorkflow
 export const applyChangeSummarySignal = wf.defineSignal<[ChangeSummaryPayload]>(
   CHANGE_WORKFLOW_SIGNAL_NAMES.applyChangeSummary,
