@@ -35,6 +35,23 @@ const logger = createLogger("temporal-multi-worker");
 const debugLog = (msg: string): void =>
   appendDebugLog("temporal-multi-worker", msg);
 
+/**
+ * Restart backoff schedule for the multi-queue Temporal worker child.
+ *
+ * Sequence: 1s → 3s → 10s, then exhaust at MAX_RESTARTS=3. Total wall-clock
+ * time from first crash to exhaustion ≈ 14s plus per-attempt child runtime.
+ *
+ * KD-9 (boundParentProjectWorkflow): the field report at
+ * `/tmp/opencode/adv-plugin-issue-report.md` observed "ephemeral workers
+ * every ~2s" during diagnostics. Investigation confirms this matches the
+ * first-attempt 1s backoff plus ~1s child startup — i.e. correct and
+ * bounded behavior, NOT an unbounded respawn loop. After 3 attempts the
+ * worker exhausts and stops respawning. The visibility of the cycle was
+ * the surprise, not the cycle itself.
+ *
+ * Follow-up captured separately: surface `exhausted N restart attempts`
+ * via the agent-visible health surface (currently only logged to debug).
+ */
 const RESTART_BACKOFF_MS: readonly number[] = [1_000, 3_000, 10_000];
 const MAX_RESTARTS = RESTART_BACKOFF_MS.length;
 export const MULTI_SHUTDOWN_GRACE_MS = 5_000;
