@@ -58,7 +58,11 @@
             "Report includes [DEGRADED: AST tool unavailable] annotation"
           ]
         }
-      ]
+      ],
+      "meta": {
+        "legacy_ids": ["rq-slopscan01.1", "rq-slopscan01.3"],
+        "supersedes": "Legacy advance-meta slop-scan AST/degraded fallback coverage."
+      }
     },
     {
       "id": "rq-ss002",
@@ -104,7 +108,11 @@
             "Report annotates the file with [DEGRADED: AST timeout]"
           ]
         }
-      ]
+      ],
+      "meta": {
+        "legacy_ids": ["rq-slopscan01.4"],
+        "supersedes": "Legacy advance-meta slop-scan threshold override coverage."
+      }
     },
     {
       "id": "rq-ss003",
@@ -135,7 +143,11 @@
           "when": "/adv-slop-scan runs",
           "then": ["No QUAL-011 finding is emitted for that function"]
         }
-      ]
+      ],
+      "meta": {
+        "legacy_ids": ["rq-slopscan01.2", "rq-slopscan01.5"],
+        "supersedes": "Legacy advance-meta defensive-overkill and clean-code coverage."
+      }
     },
     {
       "id": "rq-ss004",
@@ -166,7 +178,11 @@
             "nestingDepth and complexity are shown when non-null"
           ]
         }
-      ]
+      ],
+      "meta": {
+        "legacy_ids": ["rq-slopscan01.1", "rq-slopscan01.2"],
+        "supersedes": "Legacy advance-meta structured diagnostic field coverage."
+      }
     },
     {
       "id": "rq-ss005",

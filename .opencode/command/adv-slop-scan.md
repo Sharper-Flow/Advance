@@ -47,7 +47,8 @@ $ARGUMENTS
 ## Phase 1: Automatable Detection
 
 <!-- rq-ss001 -->
-<!-- rq-slopscan01 -->
+<!-- rq-ss003 -->
+<!-- rq-ss004 -->
 
 Fast AST-first structural detection + regex signal layer for deterministic patterns.
 

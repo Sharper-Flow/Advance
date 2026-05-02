@@ -5,7 +5,7 @@
 
 ## Purpose
 
-Capability: Cross-cutting ADV concerns — config diagnostics, metadata filters, shutdown lifecycle, proposal lineage, due-diligence routing, synthetic-state guards, and slop scanning. Split from `advance` capability.
+Capability: Cross-cutting ADV concerns — config diagnostics, metadata filters, shutdown lifecycle, due-diligence routing, and synthetic-state guards. Split from `advance` capability.
 
 ## Requirements
 
@@ -262,76 +262,6 @@ After Quick Contract confirmation, /adv-task must always persist contract contex
 - The problem-statement.md content exactly matches the confirmed text (no template wrapping)
 - The tool output includes problemStatementPath pointing to the artifact
 - When the change is archived, problem-statement.md is preserved in the archive directory
-
----
-
-### Defensive and Nesting Slop Detection
-
-**ID:** `rq-slopscan01` | **Priority:** **[MUST]**
-
-/adv-slop-scan must detect overly defensive code (redundant guard chains, paranoid null checks, unreachable fallback branches) and deeply nested code (nesting depth >= configured threshold) using AST-first analysis with deterministic degraded fallback when AST tools are unavailable. Findings must include structured diagnostic fields in all output formats.
-
-**Tags:** `slop-scan`, `quality`, `ast`
-
-#### Scenarios
-
-**Deep nesting detected via AST** (`rq-slopscan01.1`)
-
-**Given:**
-- A source file containing a function with nesting depth >= nesting_depth_threshold (default 4)
-- An AST analysis tool (ESLint, radon, or gocyclo) is available
-
-**When:** /adv-slop-scan is run on the file
-
-**Then:**
-- A finding is emitted with smell ID MAINT-004
-- The finding includes nestingDepth, complexity, confidence, and detectionMethod fields
-- detectionMethod is 'ast'
-
-**Defensive overkill detected** (`rq-slopscan01.2`)
-
-**Given:**
-- A source file containing a function with >= defensive_guard_threshold (default 3) redundant guard patterns on the same value
-
-**When:** /adv-slop-scan is run on the file
-
-**Then:**
-- A finding is emitted with smell ID QUAL-011
-- The finding includes confidence and detectionMethod fields
-- Severity is at least medium
-
-**Degraded fallback annotated when AST unavailable** (`rq-slopscan01.3`)
-
-**Given:**
-- No AST analysis tool is installed for the detected language
-
-**When:** /adv-slop-scan is run
-
-**Then:**
-- Nesting detection falls back to brace/indent counter
-- Findings from fallback include detectionMethod: 'degraded'
-- Report annotates affected findings with [DEGRADED: AST tool unavailable]
-
-**Project threshold overrides respected** (`rq-slopscan01.4`)
-
-**Given:**
-- project.json contains features.slop_scan.nesting_depth_threshold: 6
-
-**When:** /adv-slop-scan is run
-
-**Then:**
-- Functions with nesting depth 4 or 5 are NOT flagged
-- Functions with nesting depth >= 6 ARE flagged
-
-**Clean code produces no false positives** (`rq-slopscan01.5`)
-
-**Given:**
-- A source file with a single null check and a single try/catch block
-
-**When:** /adv-slop-scan is run
-
-**Then:**
-- No QUAL-011 or MAINT-004 findings are emitted for that file
 
 ---
 

@@ -15,6 +15,8 @@ Capability: /adv-slop-scan command — detect AI-generated code quality issues i
 
 /adv-slop-scan must attempt AST-based analysis before falling back to regex or heuristic methods. One primary AST tool per language is used; fallback is a brace/indent counter annotated as degraded.
 
+**Legacy trace:** Supersedes `rq-slopscan01.1` and `rq-slopscan01.3` from `advance-meta`.
+
 **Tags:** `detection`, `ast`, `phase1`
 
 #### Scenarios
@@ -84,6 +86,8 @@ Capability: /adv-slop-scan command — detect AI-generated code quality issues i
 
 Detection thresholds must have smart defaults and support per-project overrides via project.json features.slop_scan block. Defaults must not produce false positives for normal single-guard or single-catch patterns.
 
+**Legacy trace:** Supersedes `rq-slopscan01.4` from `advance-meta`.
+
 **Tags:** `config`, `thresholds`
 
 #### Scenarios
@@ -138,6 +142,8 @@ Detection thresholds must have smart defaults and support per-project overrides 
 
 /adv-slop-scan must detect overly defensive code patterns: redundant null/undefined guard chains, paranoid pre-condition checks on the same value, and unreachable fallback branches. These are reported as QUAL-011.
 
+**Legacy trace:** Supersedes `rq-slopscan01.2` and `rq-slopscan01.5` from `advance-meta`.
+
 **Tags:** `detection`, `defensive`, `qual-011`
 
 #### Scenarios
@@ -175,6 +181,8 @@ Detection thresholds must have smart defaults and support per-project overrides 
 **ID:** `rq-ss004` | **Priority:** **[MUST]**
 
 Every finding in JSON output must include nestingDepth, complexity, confidence, and detectionMethod fields regardless of verbosity flags. Text output must surface these fields inline.
+
+**Legacy trace:** Supersedes structured diagnostic field coverage from `rq-slopscan01.1` and `rq-slopscan01.2` in `advance-meta`.
 
 **Tags:** `output`, `contract`, `json`
 
