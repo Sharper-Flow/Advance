@@ -4,12 +4,13 @@ import {
   type AgendaItem,
   type WisdomType,
 } from "../types";
-import type {
-  MigrationLedgerEntry,
-  ProjectWisdomEntry,
-  ProjectWorkflowInput,
-  ProjectWorkflowState,
-  ChangeSummaryPayload,
+import {
+  DEFAULT_CHANGE_SUMMARIES_CAP,
+  type MigrationLedgerEntry,
+  type ProjectWisdomEntry,
+  type ProjectWorkflowInput,
+  type ProjectWorkflowState,
+  type ChangeSummaryPayload,
 } from "./contracts";
 
 function toAgendaId(raw: string): string {
@@ -31,6 +32,12 @@ export function createProjectWorkflowState(
     migration_ledger: input.migrationLedger ?? [],
     change_summaries: input.changeSummaries ?? {},
     source_versions: input.sourceVersions ?? {},
+    change_summaries_cap:
+      typeof input.changeSummariesCap === "number" &&
+      Number.isFinite(input.changeSummariesCap) &&
+      input.changeSummariesCap > 0
+        ? input.changeSummariesCap
+        : DEFAULT_CHANGE_SUMMARIES_CAP,
   };
 }
 
@@ -176,6 +183,14 @@ export function recordMigrationEntryInProjectState(
  * Apply a change summary signal to the project workflow state.
  * Uses monotonic source_version for dedupe — skips if incoming
  * version is <= existing version for the same changeId.
+ *
+ * After insert/update, if the registry size exceeds
+ * `state.change_summaries_cap`, evict the oldest archived entry by
+ * `lastActivityAt`. Active and other non-archived statuses are never
+ * evicted regardless of count. Eviction is replay-deterministic
+ * (ES2019+ stable sort + monotonic source_version dedupe).
+ *
+ * Spec: rq-changeSummariesCap01.
  */
 export function applyChangeSummaryToProjectState(
   state: ProjectWorkflowState,
@@ -188,4 +203,53 @@ export function applyChangeSummaryToProjectState(
   }
   state.source_versions[payload.changeId] = payload.sourceVersion;
   state.change_summaries[payload.changeId] = payload;
+
+  evictArchivedFromChangeSummariesIfNeeded(state);
+}
+
+/**
+ * Eviction helper: when `state.change_summaries` size exceeds the cap,
+ * remove the oldest archived entry (by `lastActivityAt`) along with its
+ * `source_versions` entry. Skips entirely when no archived entry exists
+ * (active changes are never evicted).
+ *
+ * Replay-determinism: `localeCompare` on ISO 8601 strings is stable,
+ * `Object.entries` iterates in insertion order, and the ES2019+ Array
+ * sort is required to be stable. Same inputs always produce the same
+ * eviction outcome.
+ */
+function evictArchivedFromChangeSummariesIfNeeded(
+  state: ProjectWorkflowState,
+): void {
+  const cap = state.change_summaries_cap;
+  if (typeof cap !== "number" || cap <= 0) return;
+
+  while (Object.keys(state.change_summaries).length > cap) {
+    const archivedEntries = Object.entries(state.change_summaries).filter(
+      ([, summary]) => summary.status === "archived",
+    );
+    if (archivedEntries.length === 0) {
+      // Cap exceeded but only by non-archived entries; never evict those.
+      return;
+    }
+    archivedEntries.sort((a, b) =>
+      a[1].lastActivityAt.localeCompare(b[1].lastActivityAt),
+    );
+    const [oldestId] = archivedEntries[0];
+    delete state.change_summaries[oldestId];
+    delete state.source_versions[oldestId];
+  }
+}
+
+/**
+ * Remove a specific change from `change_summaries` and `source_versions`.
+ * Idempotent: purging an unknown changeId is a no-op. Used by the
+ * `adv.project.purgeChangeSummary` workflow update (rq-archivePurge01).
+ */
+export function purgeChangeSummaryFromProjectState(
+  state: ProjectWorkflowState,
+  changeId: string,
+): void {
+  delete state.change_summaries[changeId];
+  delete state.source_versions[changeId];
 }

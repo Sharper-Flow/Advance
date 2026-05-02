@@ -925,7 +925,9 @@ export async function projectWorkflow(
     return false;
   });
 
-  // Continue-as-new: pass current state as seed
+  // Continue-as-new: pass current state as seed.
+  // change_summaries_cap is preserved across CaN so the bounded-registry
+  // contract (rq-changeSummariesCap01) survives workflow rotation.
   const seed: ProjectWorkflowInput = {
     projectId: input.projectId,
     initializedAt: input.initializedAt,
@@ -934,6 +936,7 @@ export async function projectWorkflow(
     migrationLedger: state.migration_ledger,
     changeSummaries: state.change_summaries,
     sourceVersions: state.source_versions,
+    changeSummariesCap: state.change_summaries_cap,
   };
   await wf.continueAsNew<typeof projectWorkflow>(seed);
 }

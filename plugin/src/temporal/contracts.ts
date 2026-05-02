@@ -163,6 +163,18 @@ export interface ProjectWorkflowInput {
   migrationLedger?: MigrationLedgerEntry[];
   changeSummaries?: Record<string, ChangeSummaryPayload>;
   sourceVersions?: Record<string, number>;
+  /**
+   * Maximum number of entries to keep in `change_summaries`. When the
+   * registry exceeds this cap, the oldest archived entry (by
+   * `lastActivityAt`) is evicted on each subsequent insert. Active and
+   * other non-archived statuses are never evicted.
+   *
+   * Defaults to `DEFAULT_CHANGE_SUMMARIES_CAP` (50). Resolve from the
+   * `ADV_CHANGE_SUMMARIES_CAP` env var via `resolveChangeSummariesCap`.
+   *
+   * Spec: rq-changeSummariesCap01.
+   */
+  changeSummariesCap?: number;
 }
 
 export type ProjectWorkflowBootstrapState = ProjectWorkflowInput;
@@ -194,6 +206,42 @@ export interface ProjectWorkflowState extends ProjectWorkflowInput {
   change_summaries: Record<string, ChangeSummaryPayload>;
   /** Monotonic version tracking per change for dedupe */
   source_versions: Record<string, number>;
+  /**
+   * Resolved cap for `change_summaries`. Eviction (oldest archived by
+   * `lastActivityAt`) runs whenever an insert pushes the registry size
+   * past this cap. Cached on state so the workflow is replay-deterministic
+   * — re-resolving from env at replay time would not be deterministic.
+   *
+   * Spec: rq-changeSummariesCap01.
+   */
+  change_summaries_cap: number;
+}
+
+/**
+ * Default cap for the parent project workflow's `change_summaries`
+ * registry. Tunable via the `ADV_CHANGE_SUMMARIES_CAP` env var, resolved
+ * once at workflow bootstrap and cached on state for replay determinism.
+ *
+ * Rationale: 50 is a conservative default informed by the field measurement
+ * that mature projects with 250+ archived changes hit > 4s per
+ * project-scoped MCP call; capping at 50 keeps the in-memory iteration cost
+ * bounded while supporting recently-relevant changes without disk fallback.
+ *
+ * Spec: rq-changeSummariesCap01.
+ */
+export const DEFAULT_CHANGE_SUMMARIES_CAP = 50;
+
+export function resolveChangeSummariesCap(
+  env: Record<string, string | undefined> = {},
+): number {
+  const raw = env.ADV_CHANGE_SUMMARIES_CAP;
+  if (!raw) return DEFAULT_CHANGE_SUMMARIES_CAP;
+  const parsed = parseInt(raw, 10);
+  // Guard against NaN, negative, and zero — fall back to the default.
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return DEFAULT_CHANGE_SUMMARIES_CAP;
+  }
+  return parsed;
 }
 
 /**
