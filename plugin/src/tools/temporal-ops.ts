@@ -14,52 +14,6 @@ import { checkAdvSearchAttributes } from "../temporal/observability";
 import { registerMissingAdvSearchAttributes } from "../temporal/observability";
 import { formatToolOutput } from "../utils/tool-output";
 
-// P2.6: WorkflowClientLike / asWorkflowClientSurface / asProjectWorkflowHandle
-// are preserved as no-op re-exports during the repair-activity migration
-// window. New repair logic should use `repairChangeActivity` instead.
-interface WorkflowHandleLike {
-  query: (definition: unknown, ...args: unknown[]) => Promise<unknown>;
-  executeUpdate: (
-    definition: unknown,
-    options: { args?: unknown[] },
-  ) => Promise<unknown>;
-}
-
-interface WorkflowClientLike {
-  start: (
-    workflow: unknown,
-    options: { workflowId: string; taskQueue: string; args: [unknown] },
-  ) => Promise<WorkflowHandleLike>;
-  getHandle: (workflowId: string) => WorkflowHandleLike;
-}
-
-type WorkflowClientSurface = { workflow: WorkflowClientLike };
-
-type ProjectWorkflowHandle = {
-  terminate: (reason?: string) => Promise<void>;
-  query: (queryDef: unknown, ...args: unknown[]) => Promise<unknown>;
-};
-
-/**
- * @deprecated Compatibility shim for tests and migration-era callers. New
- * repair code should pass the Temporal client into `repairChangeActivity`.
- */
-export function asWorkflowClientSurface(
-  client: unknown,
-): WorkflowClientSurface {
-  return client as WorkflowClientSurface;
-}
-
-/**
- * @deprecated Compatibility shim for tests and migration-era callers. New
- * repair code should use project workflow handles inside the activity layer.
- */
-export function asProjectWorkflowHandle(
-  handle: unknown,
-): ProjectWorkflowHandle {
-  return handle as ProjectWorkflowHandle;
-}
-
 type WorkflowReachability =
   | { reachable: true; error?: undefined }
   | { reachable: false; error: string };
