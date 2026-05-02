@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **OpenCode session debt is now visible and safely repairable.** `adv_status` reports stale blank assistant messages in the shared OpenCode database and emits a `[doctor]` recommendation only for rows older than the live-session threshold. `scripts/opencode-session-doctor.ts` provides dry-run-first repair and refuses deletion without `--apply --backup-dir <dir>`.
+- **Worktree plugin pending deletes are queued.** The installed `kdco/worktree` plugin now preserves multiple pending delete requests, retries them through guarded cleanup, and adds `worktree_cleanup` for explicit retry. The installed-artifact patch is committed in `~/.config/opencode` and should be promoted to the `kdco/worktree` registry source if the package is reinstalled or resynced.
 - **Execution-gate task-completion guard restored.** `adv_gate_complete(execution)` now rejects when any tasks are incomplete (status not `done` or `cancelled`). The guard regressed in v0.8.x during the Temporal migration. The restored check mirrors the planning-gate dispatch pattern and lists each incomplete task in the error response.
 
 ### Added
@@ -211,13 +213,14 @@ ADV instruction surfaces (`ADV_INSTRUCTIONS.md`, `docs/command-voice-standard.md
 
 **Methodology** — see `docs/command-voice-standard.md` § Prose-Load Reduction Rules (new):
 
-| Class | Compression target |
-|---|---|
-| **fully-enforced** | Pointer line + constraint table (no paragraph) |
-| **partially-enforced** | Pointer + constraint table + 1-line gap rationale |
-| **inherently-prose** | Structured table/checklist/template (no paragraphs) |
+| Class                  | Compression target                                  |
+| ---------------------- | --------------------------------------------------- |
+| **fully-enforced**     | Pointer line + constraint table (no paragraph)      |
+| **partially-enforced** | Pointer + constraint table + 1-line gap rationale   |
+| **inherently-prose**   | Structured table/checklist/template (no paragraphs) |
 
 **Spec deltas** — 4 new MUST requirements in `.adv/specs/advance-meta/spec.json` (capability bumped 1.0.0 → 1.1.0):
+
 - `rq-proseReduction01` — Code-Enforced Prose Deduplication
 - `rq-proseReduction02` — Drift Test Coverage for Compressed Prose
 - `rq-proseReduction03` — Category Classification Inventory
