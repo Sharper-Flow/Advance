@@ -2,6 +2,29 @@
 
 This is a working notes file capturing tooling weaknesses surfaced while cleaning up corrupted ADV state in `pokeedge`, `pokeedge-web`, and the advance plugin itself. The corruption pattern is consistent with incomplete or under-tested code paths from the Temporal migration era.
 
+## Resolution status (2026-05-02)
+
+All 14 findings landed via change `repairtemporalmigrationdebt` on branch `change/repairtemporalmigrationdebt`. Commit references appear inline next to each finding below.
+
+| Finding | Status | Commit |
+|---|---|---|
+| F1 — archive divergence detection | Fixed | `e6e0cc7` |
+| F2 — migration test isolation lint | Fixed | `adb0f4a` |
+| F3 — workflow_repair lenient schema | Fixed | `08dc548` |
+| F4 — target_path on mutation tools | Fixed | `1c8429a` (temporal-ops) + `b61e8b6` (archive-sweep) |
+| F5 — adv_status target_path timeout | Verified already working — **no fix shipped**. The earlier 10s timeout was transient (Temporal worker startup contention). Audit confirmed `adv_status target_path` returns disk-snapshot in <2s. |
+| F6 — concurrent-session warning | Fixed | `d6ca253` |
+| F7 — legacy in-repo cleanup tool | Fixed | `251ff03` |
+| F8 — adv_change_import tool | Fixed | `b0d04eb` |
+| F9 — in-flight status filter | Fixed | `2b537b3` |
+| F10 — non-LLM tool exec | **Deferred** to a separate change due to plugin-boundary scope (depends on undocumented `opencode serve` API or LLM round-trip). |
+| F11 — _healthSnapshot field | Fixed | `fd9f8cb` |
+| F12 — canArchive contract test | Fixed | `7d5bcd1` |
+| F13 — adv_change_diagnose tool | Fixed | `5a97221` |
+| F14 — dryRun safety boilerplate | Fixed | `3226be0` |
+
+Plus supporting commits: `bafe05e` + `14f22da` (line-guard threshold bumps for ADV_INSTRUCTIONS doc growth), `14f22da` (target_path matrix + in-flight filter docs).
+
 ## Severity classification
 
 | Sev | Meaning |
