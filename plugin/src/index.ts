@@ -543,11 +543,15 @@ const advancePluginImpl: Plugin = async ({ directory, worktree, project }) => {
     }
 
     if (toolName === "task") {
-      const callerAgent =
-        typeof input.agent === "string" ? input.agent : undefined;
-      enforceTaskPolicy(state.activeSubAgents, callerAgent);
+      // Use session ID to distinguish orchestrator vs sub-agent callers.
+      // OpenCode plugin SDK v1.4.5 does not provide `input.agent` on the
+      // `tool.execute.before` hook (input shape: {tool, sessionID, callID}),
+      // so session-based discrimination is the deterministic signal.
+      const callerSessionId =
+        typeof input.sessionID === "string" ? input.sessionID : undefined;
+      enforceTaskPolicy(state.activeSubAgents, callerSessionId, mainSessionId);
       debugLog(
-        `Sub-agent spawned: count=${state.activeSubAgents + 1} caller=${callerAgent ?? "unknown"}`,
+        `Sub-agent spawned: count=${state.activeSubAgents + 1} callerSession=${callerSessionId ?? "unknown"} mainSession=${mainSessionId ?? "null"}`,
       );
       setFlags({
         activeSubAgents: state.activeSubAgents + 1,
