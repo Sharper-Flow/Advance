@@ -480,6 +480,73 @@ Restart OpenCode after editing.
 
 ---
 
+## Docs-Before-Probing Rule (P30) + P16 Strengthening
+
+ADV recommends an external-docs-first rule that counters the agent failure
+mode of "probe library behavior via tests / read library source / extrapolate
+from existing repo patterns instead of just reading the official docs."
+Pairs with a scope-broadening rewrite of P16 to cover both internal and
+external documentation.
+
+Like P28 and P29, `rules.yaml` is **user-managed** so these changes must be
+applied manually.
+
+### Step 1: Strengthen P16
+
+Replace the existing `P16` block with the following (broadens scope from
+internal-only to internal + external docs; priority and name unchanged):
+
+```yaml
+  P16:
+    name: docs-first
+    rule: Consult existing documentation — internal (repo docs, ADRs,
+      workflows) and external (official library, framework, API, and
+      vendor docs via Context7 or canonical sources) — before changing
+      behavior or implementing against unfamiliar surfaces. Keep
+      documentation current and remove stale content.
+    tags: [docs, governance, external-docs]
+    hint: docs_check
+    priority: 6
+```
+
+### Step 2: Add P30
+
+Add the following entry in the `rules:` map (P30 recommended):
+
+```yaml
+  P30:
+    name: docs-before-probing
+    rule: When the behavior, API surface, or correct usage of an external
+      library, framework, language feature, or service is unclear, consult
+      its official documentation (via Context7, official site, or vendor
+      docs) BEFORE writing probe tests, reading library source, or
+      extrapolating from existing repo usage. Probing is a fallback when
+      authoritative docs are missing, ambiguous, or contradicted by
+      observed behavior — not the first move.
+    tags: [docs, research, external-docs, efficiency]
+    hint: docs_before_probing
+    priority: 8
+```
+
+**Rationale for priority 8:** parity with `P07 verify`, `P08 clarify`,
+`P25 related-scan` — strong enough to consistently win against "just write
+a test to figure it out" heuristics, but below `P27 due-diligence` (9) and
+the priority-10 absolute-constraint tier (security, collaboration,
+timeouts).
+
+**Why these rules exist:** agents frequently probe external library
+behavior via test scripts, source reads, or extrapolation from existing
+repo patterns when the official docs already answer the question
+authoritatively. This wastes tokens, produces less reliable answers, and
+risks codifying incorrect assumptions. P16 (strengthened) sets the broader
+"docs first" stance covering both repo and external surfaces; P30 catches
+the specific anti-pattern of probing-before-docs and makes Context7 / official
+docs the mandatory first move when external behavior is unclear.
+
+Restart OpenCode after editing.
+
+---
+
 ## Project Initialization
 
 ### Option A: New Project
