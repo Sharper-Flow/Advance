@@ -322,7 +322,13 @@ describe("Investment Check-In Policy (addCostTimeInvestment)", () => {
     expect(content).toMatch(
       /git -C "\$MAIN" merge --ff-only change\/\{change-id\}/,
     );
-    expect(content).toMatch(/git rebase \{freshness-ref\}/);
+    // Post-T28e (J3 expansion): the reconcile path rebases the change branch
+    // and Step 4 handles conflicts via the full classification + resolution
+    // flow (classifyConflict → navigateConflicts → applyResolveAction). The
+    // old `git rebase {freshness-ref}` placeholder was replaced by explicit
+    // references to the conflict-recovery flow.
+    expect(content).toMatch(/rebase the change branch/i);
+    expect(content).toMatch(/Step 4 handles conflicts/i);
     expect(content).toMatch(/PR workflow path/i);
   });
 
