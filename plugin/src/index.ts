@@ -41,6 +41,12 @@ import { createToolMap, createDegradedToolMap } from "./tool-registry";
 import { appendDebugLog, createLogger } from "./utils/debug-log";
 import { detectPeerSessions } from "./utils/peer-sessions";
 import { detectStaleBranchHead } from "./utils/stale-head";
+import { generateSessionId } from "./utils/session-id";
+import {
+  initStateDb as initWorktreeStateDb,
+  registerSession as registerSessionInRegistry,
+  unregisterSession as unregisterSessionFromRegistry,
+} from "./tools/worktree/state";
 import {
   extractCompletedTask,
   extractCreatedChangeId,
@@ -392,6 +398,40 @@ const advancePluginImpl: Plugin = async ({ directory, worktree, project }) => {
     }
   } catch (err) {
     debugLog(`stale-HEAD detection failed: ${(err as Error).message}`);
+  }
+
+  // Register this session in the project workflow's session_registry (T21).
+  // Best-effort: any failure is swallowed so peer-discovery never blocks
+  // plugin init. The registry is consumed by adv_status, adv_session_list,
+  // adv_session_show, and adv_temporal_diagnose.
+  const advSessionId = generateSessionId();
+  try {
+    const access = await initWorktreeStateDb(directory);
+    await registerSessionInRegistry(access, {
+      sessionId: advSessionId,
+      worktreePath: directory,
+      pid: process.pid,
+      now: new Date().toISOString(),
+    });
+    debugLog(`session registered: ${advSessionId} (pid=${process.pid})`);
+
+    // Graceful unregister on SIGINT/SIGTERM. Best-effort.
+    const unregister = async () => {
+      try {
+        await unregisterSessionFromRegistry(access, advSessionId);
+        debugLog(`session unregistered: ${advSessionId}`);
+      } catch (err) {
+        debugLog(`session unregister failed: ${(err as Error).message}`);
+      }
+    };
+    process.once("SIGINT", () => {
+      void unregister();
+    });
+    process.once("SIGTERM", () => {
+      void unregister();
+    });
+  } catch (err) {
+    debugLog(`session registration failed: ${(err as Error).message}`);
   }
 
   // Helper to update status flags and push the resolved status to the terminal

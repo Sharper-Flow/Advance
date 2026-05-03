@@ -30,6 +30,7 @@ import {
   removeWorktreeSessionUpdate,
   setPendingWorktreeDeleteUpdate,
   unregisterSessionUpdate,
+  updateSessionActivityUpdate,
 } from "../../temporal/messages";
 import type {
   PendingWorktreeDelete,
@@ -462,4 +463,87 @@ export async function getSessionRecord(
   if (!state) return null;
   const record = state.session_registry[sessionId];
   return record ?? null;
+}
+
+// =============================================================================
+// Session lifecycle (T21) — register/unregister/heartbeat at plugin init/shutdown
+// =============================================================================
+
+/**
+ * Register the current session in `session_registry`. Called once at
+ * plugin init after the project workflow is reachable. Idempotent —
+ * re-registering with the same sessionId refreshes startedAt.
+ *
+ * Distinct from `addSession` (which adds a worktree_registry entry):
+ * a session may exist without owning a worktree (e.g. main checkout).
+ */
+export async function registerSession(
+  access: WorktreeStateAccess,
+  payload: {
+    sessionId: string;
+    worktreeBranch?: string;
+    worktreePath: string;
+    pid: number;
+    now: string;
+  },
+): Promise<void> {
+  await withHandle(
+    access,
+    async (handle) => {
+      await handle.executeUpdate(registerSessionUpdate, { args: [payload] });
+    },
+    () => {
+      // Workflow not reachable — best-effort silent skip.
+    },
+  );
+}
+
+/**
+ * Unregister the current session from `session_registry`. Called on
+ * graceful shutdown (SIGINT/SIGTERM). Idempotent.
+ */
+export async function unregisterSession(
+  access: WorktreeStateAccess,
+  sessionId: string,
+): Promise<void> {
+  await withHandle(
+    access,
+    async (handle) => {
+      await handle.executeUpdate(unregisterSessionUpdate, {
+        args: [{ sessionId }],
+      });
+    },
+    () => {
+      // Workflow not reachable — best-effort silent skip.
+    },
+  );
+}
+
+/**
+ * Update session heartbeat + active-context fields. Called periodically
+ * (or on tool-call) to keep the registry fresh and surface what the
+ * session is currently working on. Best-effort — any failure is logged
+ * and swallowed so the heartbeat never blocks the caller.
+ */
+export async function updateSessionActivity(
+  access: WorktreeStateAccess,
+  payload: {
+    sessionId: string;
+    now: string;
+    activeChangeId?: string;
+    currentTaskId?: string;
+    activeGate?: string;
+  },
+): Promise<void> {
+  await withHandle(
+    access,
+    async (handle) => {
+      await handle.executeUpdate(updateSessionActivityUpdate, {
+        args: [payload],
+      });
+    },
+    () => {
+      // Workflow not reachable — best-effort silent skip.
+    },
+  );
 }
