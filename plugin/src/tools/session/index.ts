@@ -27,6 +27,7 @@ import { z } from "zod";
 import {
   initStateDb,
   listSessions,
+  getSessionRecord,
   type WorktreeStateAccess,
 } from "../worktree/state";
 import type { SessionRecord } from "../../temporal/contracts";
@@ -166,4 +167,105 @@ export async function listPeerSessions(
   });
 
   return { sessions: alive, total: alive.length, deadFiltered };
+}
+
+// =============================================================================
+// adv_session_show (T20)
+// =============================================================================
+
+/**
+ * Detail returned for an own-session lookup. Includes PID, full workdir,
+ * and active workflow context — these MUST NOT leak to peers.
+ */
+export interface SessionDetail {
+  sessionId: string;
+  pid: number;
+  workdir: string;
+  startedAt: string;
+  lastSeenAt: string;
+  activeChangeId?: string;
+  currentTaskId?: string;
+  activeGate?: string;
+}
+
+export type SessionShowError =
+  | { error: "SESSION_NOT_FOUND" }
+  | {
+      error: "ACCESS_DENIED";
+      reason: "pid_mismatch" | "non_self_peer" | "workflow_unavailable";
+    };
+
+export type SessionShowResult = SessionDetail | SessionShowError;
+
+export const advSessionShowArgs = z.object({
+  sessionId: z.string().describe("Opaque session id (sess_<8 alphanumeric>)"),
+  projectRoot: z.string().optional(),
+});
+
+export type AdvSessionShowArgs = z.infer<typeof advSessionShowArgs>;
+
+/**
+ * Implementation of `adv_session_show` with **2-factor ACL**:
+ *
+ *   Factor 1 — PID match: the requested session's `pid` must equal the
+ *              caller's `process.pid`. Anything else returns `ACCESS_DENIED`.
+ *   Factor 2 — own-session sentinel: when `currentSessionId` is supplied
+ *              (caller's known own session id) and does not match the
+ *              requested sessionId, deny even on PID match. This guards
+ *              the PID-spoof edge case where two sessions briefly share
+ *              a recycled PID.
+ *
+ * × MUST NOT support arbitrary peer lookup. There is no `force` override.
+ *
+ * Test seams: `accessOverride`, `selfPid`, `currentSessionId`.
+ */
+export async function showOwnSession(
+  args: AdvSessionShowArgs,
+  opts: {
+    accessOverride?: WorktreeStateAccess;
+    selfPid?: number;
+    /**
+     * Caller's own session id, if known. When supplied and the requested
+     * sessionId differs, the call is denied even if PID happens to match.
+     * Defaults to undefined (Factor 2 skipped — Factor 1 is sufficient).
+     */
+    currentSessionId?: string;
+  } = {},
+): Promise<SessionShowResult> {
+  const projectRoot = args.projectRoot ?? process.cwd();
+  const selfPid = opts.selfPid ?? process.pid;
+
+  let access: WorktreeStateAccess;
+  try {
+    access = opts.accessOverride ?? (await initStateDb(projectRoot));
+  } catch {
+    return { error: "ACCESS_DENIED", reason: "workflow_unavailable" };
+  }
+
+  const record = await getSessionRecord(access, args.sessionId);
+  if (!record) return { error: "SESSION_NOT_FOUND" };
+
+  // Factor 1: PID match.
+  if (record.pid !== selfPid) {
+    return { error: "ACCESS_DENIED", reason: "pid_mismatch" };
+  }
+
+  // Factor 2: own-session sentinel (optional, defense-in-depth).
+  if (
+    opts.currentSessionId !== undefined &&
+    opts.currentSessionId !== args.sessionId
+  ) {
+    return { error: "ACCESS_DENIED", reason: "non_self_peer" };
+  }
+
+  return {
+    sessionId: record.sessionId,
+    pid: record.pid,
+    workdir: record.worktreePath,
+    startedAt: record.startedAt,
+    lastSeenAt: record.lastSeenAt,
+    activeChangeId: record.activeChangeId,
+    currentTaskId: record.currentTaskId,
+    activeGate: record.activeGate,
+  };
 }

@@ -10,13 +10,20 @@ vi.mock("../worktree/state", () => ({
     projectId: "test-id",
   })),
   listSessions: vi.fn(async () => []),
+  getSessionRecord: vi.fn(async () => null),
 }));
 
-import { listPeerSessions, isPidAlive, projectSession } from "./index";
-import { listSessions } from "../worktree/state";
+import {
+  listPeerSessions,
+  isPidAlive,
+  projectSession,
+  showOwnSession,
+} from "./index";
+import { listSessions, getSessionRecord } from "../worktree/state";
 import type { SessionRecord } from "../../temporal/contracts";
 
 const mockedListSessions = vi.mocked(listSessions);
+const mockedGetSessionRecord = vi.mocked(getSessionRecord);
 
 const baseRecord = (
   override: Partial<SessionRecord> = {},
@@ -141,6 +148,87 @@ describe("isPidAlive (T19 helper)", () => {
     // semantic guarantee (ESRCH → false) is what we're checking.
     const result = isPidAlive(999_999);
     expect(typeof result).toBe("boolean");
+  });
+});
+
+describe("adv_session_show (T20 — 2-factor ACL)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockedGetSessionRecord.mockResolvedValue(null);
+  });
+
+  it("returns SessionDetail when own-session lookup succeeds", async () => {
+    const record = baseRecord({
+      sessionId: "sess_self",
+      pid: 1000,
+      worktreePath: "/work/main",
+      activeChangeId: "ch1",
+      currentTaskId: "tk1",
+      activeGate: "execution",
+    });
+    mockedGetSessionRecord.mockResolvedValue(record);
+
+    const result = await showOwnSession(
+      { sessionId: "sess_self" },
+      { selfPid: 1000 },
+    );
+
+    expect(result).toMatchObject({
+      sessionId: "sess_self",
+      pid: 1000,
+      workdir: "/work/main",
+      activeChangeId: "ch1",
+      currentTaskId: "tk1",
+      activeGate: "execution",
+    });
+  });
+
+  it("returns SESSION_NOT_FOUND when sessionId is unknown", async () => {
+    mockedGetSessionRecord.mockResolvedValue(null);
+    const result = await showOwnSession({ sessionId: "sess_missing" });
+    expect(result).toEqual({ error: "SESSION_NOT_FOUND" });
+  });
+
+  it("returns ACCESS_DENIED with pid_mismatch when peer attempts lookup", async () => {
+    mockedGetSessionRecord.mockResolvedValue(
+      baseRecord({ sessionId: "sess_peer", pid: 2000 }),
+    );
+    const result = await showOwnSession(
+      { sessionId: "sess_peer" },
+      { selfPid: 1000 },
+    );
+    expect(result).toEqual({
+      error: "ACCESS_DENIED",
+      reason: "pid_mismatch",
+    });
+  });
+
+  it("returns ACCESS_DENIED with non_self_peer when currentSessionId differs (Factor 2)", async () => {
+    // PID matches (Factor 1 passes) but currentSessionId is different —
+    // defense-in-depth against PID-recycle/spoof.
+    mockedGetSessionRecord.mockResolvedValue(
+      baseRecord({ sessionId: "sess_recycled", pid: 1000 }),
+    );
+    const result = await showOwnSession(
+      { sessionId: "sess_recycled" },
+      { selfPid: 1000, currentSessionId: "sess_real" },
+    );
+    expect(result).toEqual({
+      error: "ACCESS_DENIED",
+      reason: "non_self_peer",
+    });
+  });
+
+  it("returns ACCESS_DENIED with workflow_unavailable when project workflow not reachable", async () => {
+    const { initStateDb } = await import("../worktree/state");
+    vi.mocked(initStateDb).mockRejectedValueOnce(
+      new Error("workflow not ready"),
+    );
+    const result = await showOwnSession({ sessionId: "sess_x" });
+    expect(result).toEqual({
+      error: "ACCESS_DENIED",
+      reason: "workflow_unavailable",
+    });
   });
 });
 

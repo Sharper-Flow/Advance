@@ -444,3 +444,22 @@ export async function getChangeSummaries(
   if (!state) return {};
   return (state.change_summaries ?? {}) as Record<string, { status?: string }>;
 }
+
+/**
+ * Full SessionRecord lookup by sessionId. Used by adv_session_show (T20)
+ * which requires PID + full workdir for own-session ACL checks. Returns
+ * null when the session is unknown or the workflow is unreachable.
+ *
+ * × DO NOT surface the returned record to peers — it contains PID,
+ * full workdir, activeChangeId, etc. Public callers must use
+ * `listPeerSessions` (T19) which projects to the privacy-defensive schema.
+ */
+export async function getSessionRecord(
+  access: WorktreeStateAccess,
+  sessionId: string,
+): Promise<SessionRecord | null> {
+  const state = await readProjectState(access);
+  if (!state) return null;
+  const record = state.session_registry[sessionId];
+  return record ?? null;
+}
