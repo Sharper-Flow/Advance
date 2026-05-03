@@ -40,6 +40,7 @@ import { loadConformanceState } from "./storage/conformance";
 import { createToolMap, createDegradedToolMap } from "./tool-registry";
 import { appendDebugLog, createLogger } from "./utils/debug-log";
 import { detectPeerSessions } from "./utils/peer-sessions";
+import { detectStaleBranchHead } from "./utils/stale-head";
 import {
   extractCompletedTask,
   extractCreatedChangeId,
@@ -377,6 +378,20 @@ const advancePluginImpl: Plugin = async ({ directory, worktree, project }) => {
       // Best-effort detection; never block init on peer-detection failure.
       debugLog(`peer detection failed: ${(err as Error).message}`);
     }
+  }
+
+  // Detect stale HEAD (branch merged + remote deleted). Warn-only; never
+  // mutates branch state. Recovery is the user's responsibility.
+  try {
+    const staleHead = await detectStaleBranchHead(directory);
+    if (staleHead.stale) {
+      debugLog(`Stale HEAD detected: ${staleHead.reason}`);
+      hooksLogger.warn(
+        `[ADV:WARN] Stale HEAD: ${staleHead.reason} — ${staleHead.suggestion}`,
+      );
+    }
+  } catch (err) {
+    debugLog(`stale-HEAD detection failed: ${(err as Error).message}`);
   }
 
   // Helper to update status flags and push the resolved status to the terminal
