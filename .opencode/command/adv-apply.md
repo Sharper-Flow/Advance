@@ -127,6 +127,23 @@ When a session on change A needs to work on change B:
 ## Phase 0.2: Overlap Warning (Advisory)
 Check `adv_change_list` for other active changes. Compare affected files. If overlaps found → emit advisory warning listing files and overlapping change IDs. Suggest `/adv-coordinate`. Does NOT block work.
 
+## Phase 0.5: Pre-Execution Rebase (per-worktree)
+
+Before the task loop begins, run `preExecutionRebase` from `apply-helpers/pre-rebase.ts` against the current worktree. This keeps the change branch fresh against `origin/<default-branch>` without modifying origin.
+
+**Why per-worktree is safe:** Each change runs in its own git worktree with an independent working directory. There is no shared index or working tree, so concurrent `/adv-apply` sessions on different changes cannot interfere with each other. No cross-session lock is required.
+
+**Outcomes:**
+- `up_to_date` — nothing to do; proceed to the task loop.
+- `rebased` — local branch was behind; rebase succeeded. Proceed to the task loop.
+- `conflict` — rebase failed with conflicts. The worktree is left clean (rebase aborted). Halt `/adv-apply` and surface the conflict to the user with the list of conflicted files.
+- `no_remote` / `default_branch_unresolvable` / `not_a_worktree` / `rebase_failed` — halt `/adv-apply` and surface the specific error with the provided hint.
+
+× **Local-only** — does not push or modify origin.
+× **Requires clean worktree** — the apply pre-flight elsewhere enforces this before Phase 0.5 runs. No `--autostash` is used.
+
+**Runtime wiring:** The actual call to `preExecutionRebase` before the task loop is OUT OF SCOPE for this document; it will be wired in a follow-up task.
+
 ---
 ## Cross-Repo Execution
 Tasks may target other repositories. See ADV_INSTRUCTIONS.md §Cross-Repo Execution for full protocol.
