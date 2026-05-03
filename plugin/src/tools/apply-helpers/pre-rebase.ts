@@ -8,10 +8,20 @@
 import { execGit, getDefaultBranch } from "../../utils/git";
 
 export type PreRebaseResult =
-  | { ok: true; status: "up_to_date" | "rebased"; defaultBranch: string; commits?: number }
+  | {
+      ok: true;
+      status: "up_to_date" | "rebased";
+      defaultBranch: string;
+      commits?: number;
+    }
   | {
       ok: false;
-      reason: "conflict" | "not_a_worktree" | "default_branch_unresolvable" | "no_remote" | "rebase_failed";
+      reason:
+        | "conflict"
+        | "not_a_worktree"
+        | "default_branch_unresolvable"
+        | "no_remote"
+        | "rebase_failed";
       detail: string;
       hint: string;
       conflictFiles?: string[];
@@ -19,10 +29,20 @@ export type PreRebaseResult =
 
 export interface PreRebaseDeps {
   resolveDefaultBranch?: (cwd: string) => Promise<string | null>;
-  fetchOrigin?: (cwd: string, branch: string) => Promise<{ ok: boolean; error?: string }>;
-  rebase?: (cwd: string, ontoRef: string) => Promise<{ ok: boolean; conflictFiles?: string[]; error?: string }>;
+  fetchOrigin?: (
+    cwd: string,
+    branch: string,
+  ) => Promise<{ ok: boolean; error?: string }>;
+  rebase?: (
+    cwd: string,
+    ontoRef: string,
+  ) => Promise<{ ok: boolean; conflictFiles?: string[]; error?: string }>;
   isAhead?: (cwd: string, branch: string, ontoRef: string) => Promise<boolean>;
   isWorktree?: (cwd: string) => Promise<boolean>;
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
 }
 
 /**
@@ -79,12 +99,14 @@ export async function preExecutionRebase(
   if (!fetchResult.ok) {
     // If fetch fails because there's no remote, surface that clearly.
     // Otherwise treat as rebase_failed (we can't verify state).
-    const isNoRemote = fetchResult.error?.toLowerCase().includes("no remote") ?? false;
+    const isNoRemote =
+      fetchResult.error?.toLowerCase().includes("no remote") ?? false;
     if (isNoRemote) {
       return {
         ok: false,
         reason: "no_remote",
-        detail: fetchResult.error ?? "No remote configured for this repository.",
+        detail:
+          fetchResult.error ?? "No remote configured for this repository.",
         hint: "Add a remote origin or skip pre-execution rebase.",
       };
     }
@@ -167,8 +189,8 @@ async function defaultFetchOrigin(
   try {
     await execGit(["fetch", "origin", branch], cwd);
     return { ok: true };
-  } catch (err: any) {
-    const msg = err?.message ?? String(err);
+  } catch (err: unknown) {
+    const msg = errorMessage(err);
     return { ok: false, error: msg };
   }
 }
@@ -180,13 +202,16 @@ async function defaultRebase(
   try {
     await execGit(["rebase", ontoRef], cwd);
     return { ok: true };
-  } catch (err: any) {
-    const msg = err?.message ?? String(err);
+  } catch (err: unknown) {
+    const msg = errorMessage(err);
 
     // Parse conflict files
     let conflictFiles: string[] | undefined;
     try {
-      const diff = await execGit(["diff", "--name-only", "--diff-filter=U"], cwd);
+      const diff = await execGit(
+        ["diff", "--name-only", "--diff-filter=U"],
+        cwd,
+      );
       conflictFiles = diff
         .trim()
         .split("\n")

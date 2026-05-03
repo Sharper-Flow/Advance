@@ -159,8 +159,7 @@ export async function runHooksWithSafety(
     if (failures.length > 0) {
       const summary = failures
         .map(
-          (f) =>
-            `- ${f.command} (exit=${f.exitCode}, timedOut=${f.timedOut})`,
+          (f) => `- ${f.command} (exit=${f.exitCode}, timedOut=${f.timedOut})`,
         )
         .join("\n");
       throw new HookFailedError(
@@ -205,8 +204,7 @@ async function execOneHookCommand(
           };
           const timedOut =
             errAny.killed === true && errAny.signal === "SIGKILL";
-          const exitCode =
-            typeof errAny.code === "number" ? errAny.code : null;
+          const exitCode = typeof errAny.code === "number" ? errAny.code : null;
           resolve({
             command,
             phase,

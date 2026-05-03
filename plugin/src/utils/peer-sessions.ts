@@ -93,9 +93,8 @@ async function defaultScanOpencodeProcesses(): Promise<
   return candidates;
 }
 
-let processScanner: () => Promise<
-  Array<{ pid: number; cwd: string }>
-> = defaultScanOpencodeProcesses;
+let processScanner: () => Promise<Array<{ pid: number; cwd: string }>> =
+  defaultScanOpencodeProcesses;
 
 /**
  * Test seam — replace process scanner. Tests must restore the default

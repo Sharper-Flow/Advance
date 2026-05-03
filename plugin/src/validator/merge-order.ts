@@ -11,10 +11,7 @@
  * - rq-multiSessionCoordination01 (Temporal serializes peer-session writes)
  */
 
-import {
-  initStateDb,
-  getChangeSummaries,
-} from "../tools/worktree/state";
+import { initStateDb, getChangeSummaries } from "../tools/worktree/state";
 
 export interface MergeOrderEntry {
   changeId: string;
@@ -33,12 +30,15 @@ export interface MergeOrderResult {
 }
 
 export interface MergeOrderDeps {
-  changeSummaries?: Record<string, {
-    branch?: string;
-    status?: string;
-    touched_files?: string[];
-    archived_at?: string;
-  }>;
+  changeSummaries?: Record<
+    string,
+    {
+      branch?: string;
+      status?: string;
+      touched_files?: string[];
+      archived_at?: string;
+    }
+  >;
 }
 
 /**
@@ -61,12 +61,15 @@ export async function computeMergeOrder(
   projectRoot: string,
   opts: MergeOrderDeps = {},
 ): Promise<MergeOrderResult> {
-  let summaries: Record<string, {
-    branch?: string;
-    status?: string;
-    touched_files?: string[];
-    archived_at?: string;
-  }>;
+  let summaries: Record<
+    string,
+    {
+      branch?: string;
+      status?: string;
+      touched_files?: string[];
+      archived_at?: string;
+    }
+  >;
 
   if (opts.changeSummaries !== undefined) {
     summaries = opts.changeSummaries;

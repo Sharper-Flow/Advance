@@ -519,7 +519,7 @@ export const statusTools = {
                 worktree: string;
                 isSelf: boolean;
               }>
-            | { unavailable: true } = { unavailable: true };
+            | { unavailable: true };
           try {
             const peerResult = await listPeerSessions({
               projectRoot: activeStore.paths.root,

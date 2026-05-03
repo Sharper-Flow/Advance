@@ -534,9 +534,8 @@ describe("benchmark-temporal scaffold (A1)", () => {
 
   describe("runConcurrentClients (A4)", () => {
     it("returns valid result structure when Temporal is unavailable", async () => {
-      const { runConcurrentClients } = await import(
-        "../../scripts/benchmark-temporal"
-      );
+      const { runConcurrentClients } =
+        await import("../../scripts/benchmark-temporal");
       const start = Date.now();
       const result = await runConcurrentClients({
         clients: 2,
@@ -554,9 +553,8 @@ describe("benchmark-temporal scaffold (A1)", () => {
     });
 
     it("accepts custom ops list", async () => {
-      const { runConcurrentClients } = await import(
-        "../../scripts/benchmark-temporal"
-      );
+      const { runConcurrentClients } =
+        await import("../../scripts/benchmark-temporal");
       const result = await runConcurrentClients({
         clients: 1,
         durationSec: 1,

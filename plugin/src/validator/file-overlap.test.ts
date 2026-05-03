@@ -133,7 +133,8 @@ describe("scanFileOverlaps with injected deps", () => {
 // =============================================================================
 
 vi.mock("../tools/worktree/state", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../tools/worktree/state")>();
+  const actual =
+    await importOriginal<typeof import("../tools/worktree/state")>();
   return {
     ...actual,
     initStateDb: vi.fn(async () => {

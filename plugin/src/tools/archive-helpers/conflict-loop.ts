@@ -49,7 +49,8 @@ function buildBatchSummary(conflicts: ConflictRecord[]): string {
 
   for (const c of conflicts) {
     if (c.classification.class === "duplicate_content") autoSkip++;
-    else if (c.classification.class === "auto_resolvable_trivial") autoResolve++;
+    else if (c.classification.class === "auto_resolvable_trivial")
+      autoResolve++;
     else divergent++;
   }
 
@@ -147,7 +148,11 @@ export async function navigateConflicts(opts: {
     };
     const result = await apply(action, "", repoRoot);
     if (result.ok) {
-      applied.push({ filePath: "", action: "abort_rebase", auditEntry: result.auditEntry });
+      applied.push({
+        filePath: "",
+        action: "abort_rebase",
+        auditEntry: result.auditEntry,
+      });
     } else {
       return {
         ok: false,
@@ -204,7 +209,8 @@ export async function navigateConflicts(opts: {
   }
 
   // mode === "step"
-  for (const conflict of conflicts) {
+  for (let index = 0; index < conflicts.length; index++) {
+    const conflict = conflicts[index]!;
     const action = await resolveDivergent(conflict);
     if (action.kind === "abort_rebase") {
       const result = await apply(action, conflict.filePath, repoRoot);
@@ -220,7 +226,7 @@ export async function navigateConflicts(opts: {
         mode: "step",
         applied,
         aborted: { reason: "abort_rebase" },
-        unresolved: conflicts.slice(conflicts.indexOf(conflict) + 1),
+        unresolved: conflicts.slice(index + 1),
       };
     }
 
@@ -231,7 +237,7 @@ export async function navigateConflicts(opts: {
         mode: "step",
         applied,
         aborted: { reason: "apply_failed" },
-        unresolved: conflicts.slice(conflicts.indexOf(conflict) + 1),
+        unresolved: conflicts.slice(index + 1),
       };
     }
     applied.push({
@@ -261,12 +267,12 @@ async function defaultApply(
   _filePath: string,
   _repoRoot: string,
 ): Promise<ResolveActionResult> {
-  throw new Error(
-    "navigateConflicts requires an injected `apply` dependency.",
-  );
+  throw new Error("navigateConflicts requires an injected `apply` dependency.");
 }
 
-async function defaultResolveDivergent(_conflict: ConflictRecord): Promise<ResolveAction> {
+async function defaultResolveDivergent(
+  _conflict: ConflictRecord,
+): Promise<ResolveAction> {
   throw new Error(
     "navigateConflicts requires an injected `resolveDivergent` dependency.",
   );

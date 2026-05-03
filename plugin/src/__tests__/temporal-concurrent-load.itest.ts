@@ -20,11 +20,8 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 import { createInProcessWorker } from "../temporal/in-process-worker";
-import { initStsl, closeStsl, resetStsl, getService } from "../temporal/service";
-import {
-  acquireWorkerLock,
-  releaseWorkerLock,
-} from "../temporal/worker-lock";
+import { initStsl, closeStsl, resetStsl } from "../temporal/service";
+import { acquireWorkerLock, releaseWorkerLock } from "../temporal/worker-lock";
 import { registerInProcessTemporalWorker } from "../plugin-init";
 import { createTempDir, cleanupTempDir } from "./setup";
 import { withTestWorkflowEnvironment } from "../temporal/__tests__/with-test-env";
@@ -52,19 +49,18 @@ interface ConcurrentClientResult {
   }>;
 }
 
-async function runConcurrentClients(
-  opts: {
-    clients: number;
-    durationSec: number;
-    ops?: string[];
-    projectDir?: string;
-    skipConnectionClose?: boolean;
-  },
-): Promise<ConcurrentClientResult> {
+async function runConcurrentClients(opts: {
+  clients: number;
+  durationSec: number;
+  ops?: string[];
+  projectDir?: string;
+  skipConnectionClose?: boolean;
+}): Promise<ConcurrentClientResult> {
   // Dynamic import avoids rootDir restriction; harness is dev-only.
   const mod = await import("../../scripts/benchmark-temporal" as string);
-  const fn = (mod as Record<string, unknown>)
-    .runConcurrentClients as (opts: unknown) => Promise<ConcurrentClientResult>;
+  const fn = (mod as Record<string, unknown>).runConcurrentClients as (
+    opts: unknown,
+  ) => Promise<ConcurrentClientResult>;
   return fn({ ...opts, skipConnectionClose: true });
 }
 
@@ -79,28 +75,19 @@ async function initGitRepo(dir: string): Promise<void> {
     execFile("git", ["init"], opts, (err) => (err ? reject(err) : resolve()));
   });
   await new Promise<void>((resolve, reject) => {
-    execFile(
-      "git",
-      ["config", "user.email", "test@test.com"],
-      opts,
-      (err) => (err ? reject(err) : resolve()),
+    execFile("git", ["config", "user.email", "test@test.com"], opts, (err) =>
+      err ? reject(err) : resolve(),
     );
   });
   await new Promise<void>((resolve, reject) => {
-    execFile(
-      "git",
-      ["config", "user.name", "Test User"],
-      opts,
-      (err) => (err ? reject(err) : resolve()),
+    execFile("git", ["config", "user.name", "Test User"], opts, (err) =>
+      err ? reject(err) : resolve(),
     );
   });
   // Create an initial commit so rev-list has something to return.
   await new Promise<void>((resolve, reject) => {
-    execFile(
-      "git",
-      ["commit", "--allow-empty", "-m", "init"],
-      opts,
-      (err) => (err ? reject(err) : resolve()),
+    execFile("git", ["commit", "--allow-empty", "-m", "init"], opts, (err) =>
+      err ? reject(err) : resolve(),
     );
   });
 }
@@ -119,9 +106,7 @@ if (process.platform !== "linux") {
       /* Shared harness                                                */
       /* -------------------------------------------------------------- */
 
-      async function withConcurrentHarness<
-        TResult,
-      >(
+      async function withConcurrentHarness<TResult>(
         fn: (opts: {
           projectDir: string;
           mutablePath: string;
@@ -190,10 +175,9 @@ if (process.platform !== "linux") {
       /* Scenario A — Worker-lock contention (5 clients, ~30 s)        */
       /* -------------------------------------------------------------- */
 
-      it(
-        "A: 5 clients contend for 30 s with no deadlocks or lost updates",
-        async () => {
-          await withConcurrentHarness(async ({ projectDir, mutablePath }) => {
+      it("A: 5 clients contend for 30 s with no deadlocks or lost updates", async () => {
+        await withConcurrentHarness(
+          async ({ projectDir, mutablePath: _mutablePath }) => {
             const result = await runConcurrentClients({
               clients: 5,
               durationSec: 30,
@@ -206,19 +190,17 @@ if (process.platform !== "linux") {
             expect(result.errors).toHaveLength(0);
             // Monotonic source_version preserved across all writes
             expect(result.lostUpdates).toHaveLength(0);
-          });
-        },
-        65_000,
-      );
+          },
+        );
+      }, 65_000);
 
       /* -------------------------------------------------------------- */
       /* Scenario B — State-write race (5 clients × 10 cycles)         */
       /* -------------------------------------------------------------- */
 
-      it(
-        "B: 5 clients × 10 worktree_register/worktree_remove cycles",
-        async () => {
-          await withConcurrentHarness(async ({ projectDir, mutablePath }) => {
+      it("B: 5 clients × 10 worktree_register/worktree_remove cycles", async () => {
+        await withConcurrentHarness(
+          async ({ projectDir, mutablePath: _mutablePath }) => {
             // Custom op-list drives create/delete pairs.
             // durationSec is a ceiling — each client stops after 10 cycles
             // (implemented by the harness as a time-bounded loop; with
@@ -237,19 +219,17 @@ if (process.platform !== "linux") {
             expect(result.errors).toHaveLength(0);
             // Replay-determinism proxy: monotonic source_version
             expect(result.lostUpdates).toHaveLength(0);
-          });
-        },
-        35_000,
-      );
+          },
+        );
+      }, 35_000);
 
       /* -------------------------------------------------------------- */
       /* Scenario C — Worker-kill respawn-elect                        */
       /* -------------------------------------------------------------- */
 
-      it(
-        "C: stale worker-lock reclaimed after simulated kill",
-        async () => {
-          await withConcurrentHarness(async ({ projectDir, mutablePath }) => {
+      it("C: stale worker-lock reclaimed after simulated kill", async () => {
+        await withConcurrentHarness(
+          async ({ projectDir, mutablePath: _mutablePath }) => {
             const externalStateDir = join(projectDir, "external-state");
             await mkdir(externalStateDir, { recursive: true });
 
@@ -299,10 +279,9 @@ if (process.platform !== "linux") {
 
             // Cleanup lock
             await releaseWorkerLock(externalStateDir);
-          });
-        },
-        40_000,
-      );
+          },
+        );
+      }, 40_000);
     },
   );
 }

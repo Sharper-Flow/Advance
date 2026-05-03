@@ -99,8 +99,10 @@ describe("session lifecycle helpers (T21)", () => {
   it("silently falls back when project workflow is not reachable", async () => {
     const helper = await import("../project-workflow-helper");
     vi.mocked(helper.getBoundedProjectWorkflowAccess).mockResolvedValueOnce({
-      mode: "fallback",
-    } as any);
+      mode: "unavailable",
+      projectId: "test-id",
+      reason: "test fallback",
+    });
 
     // Should NOT throw, should NOT call executeUpdate.
     await registerSession(access, {

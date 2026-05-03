@@ -88,7 +88,9 @@ async function readProjectState(
     mutablePath,
   });
   if (resolved.mode !== "workflow-backed") return null;
-  return (await resolved.handle.query(projectStateQuery)) as ProjectWorkflowState;
+  return (await resolved.handle.query(
+    projectStateQuery,
+  )) as ProjectWorkflowState;
 }
 
 // =============================================================================
@@ -101,6 +103,8 @@ export async function readLegacySessions(
   Array<{ id: string; branch: string; path: string; createdAt: string }>
 > {
   try {
+    // Keep the Bun-only module out of Node/Vitest static resolution while
+    // preserving the exact runtime specifier for OpenCode's Bun executable.
     const specifier = "bun:" + "sqlite";
     const sqlite = await import(specifier);
     const db = new sqlite.Database(sqlitePath, { readonly: true });
@@ -323,13 +327,9 @@ export async function migrateAndReconcile(
   const registryWorktrees = await listWorktrees(access);
 
   const diskMap = new Map(
-    diskWorktrees
-      .filter((w) => w.branch)
-      .map((w) => [w.branch!, w]),
+    diskWorktrees.filter((w) => w.branch).map((w) => [w.branch!, w]),
   );
-  const registryMap = new Map(
-    registryWorktrees.map((w) => [w.branch, w]),
-  );
+  const registryMap = new Map(registryWorktrees.map((w) => [w.branch, w]));
 
   // Adopt disk-only entries on change/* branches
   for (const disk of diskWorktrees) {

@@ -25,6 +25,7 @@ import {
   WorkflowNotReadyError,
   assertProjectWorkflowReachable,
   resolveChangeSummariesCap,
+  type ProjectWorkflowState,
 } from "./contracts";
 import type { ChangeStatus } from "../types";
 
@@ -110,7 +111,7 @@ describe("project workflow state", () => {
       const broken = {
         pending_worktree_deletes: {},
         session_registry: {},
-      } as any;
+      };
       expect(() => assertProjectWorkflowReachable(broken)).toThrow(
         /worktree_registry/,
       );
@@ -120,7 +121,7 @@ describe("project workflow state", () => {
       const broken = {
         worktree_registry: {},
         pending_worktree_deletes: {},
-      } as any;
+      };
       expect(() => assertProjectWorkflowReachable(broken)).toThrow(
         /session_registry/,
       );
@@ -201,7 +202,7 @@ describe("project workflow state", () => {
         },
       },
       sourceVersions: { "chg-001": 4 },
-    } as any);
+    });
 
     expect(state.change_summaries["chg-001"]?.title).toBe("Seeded change");
     expect(state.source_versions["chg-001"]).toBe(4);
@@ -985,6 +986,51 @@ describe("worktree + session mutators (T6)", () => {
       expect(out.sourceVersion).toBe(5);
     });
 
+    it("dedup: skips exact duplicate equal sourceVersion updates", () => {
+      const state = freshState();
+      const payload = {
+        branch: "change/foo",
+        path: "/wt/foo",
+        baseRef: "trunk",
+        headSha: "abc123",
+        source: "tool" as const,
+        now: "2026-04-18T00:01:00.000Z",
+        sourceVersion: 5,
+      };
+      applyAddWorktreeSession(state, payload);
+      const out = applyAddWorktreeSession(state, payload);
+
+      expect(out.path).toBe("/wt/foo");
+      expect(out.sourceVersion).toBe(5);
+    });
+
+    it("updates equal sourceVersion when payload differs", () => {
+      const state = freshState();
+      applyAddWorktreeSession(state, {
+        branch: "change/foo",
+        path: "/wt/foo",
+        baseRef: "trunk",
+        headSha: "abc123",
+        source: "tool",
+        now: "2026-04-18T00:01:00.000Z",
+        sourceVersion: 5,
+      });
+
+      const out = applyAddWorktreeSession(state, {
+        branch: "change/foo",
+        path: "/wt/foo-new",
+        baseRef: "trunk",
+        headSha: "def456",
+        source: "tool",
+        now: "2026-04-18T00:01:00.000Z",
+        sourceVersion: 5,
+      });
+
+      expect(out.path).toBe("/wt/foo-new");
+      expect(out.headSha).toBe("def456");
+      expect(out.sourceVersion).toBe(6);
+    });
+
     it("preserves createdAt when updating an existing record", () => {
       const state = freshState();
       applyAddWorktreeSession(state, {
@@ -1210,7 +1256,7 @@ describe("worktree + session mutators (T6)", () => {
     it("addWorktreeSession throws when registries are missing", () => {
       const broken = {
         // Missing all 3 registries
-      } as any;
+      } as ProjectWorkflowState;
       expect(() =>
         applyAddWorktreeSession(broken, {
           branch: "change/x",
@@ -1225,7 +1271,7 @@ describe("worktree + session mutators (T6)", () => {
     });
 
     it("registerSession throws when registries are missing", () => {
-      const broken = {} as any;
+      const broken = {} as ProjectWorkflowState;
       expect(() =>
         applyRegisterSession(broken, {
           sessionId: "sess_x",

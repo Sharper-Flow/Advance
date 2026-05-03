@@ -1110,24 +1110,21 @@ export async function projectWorkflow(
   );
   wf.setHandler(
     registerSessionUpdate,
-    safeUpdateHandler(
-      "registerSession",
-      (payload: RegisterSessionPayload) => {
-        wf.log.info("op:start", {
-          op: "registerSessionUpdate",
-          projectId: state.projectId,
-          sessionId: payload.sessionId,
-        });
-        const result = applyRegisterSession(state, payload);
-        wf.log.info("op:end", {
-          op: "registerSessionUpdate",
-          projectId: state.projectId,
-          sessionId: payload.sessionId,
-          sessionCount: Object.keys(state.session_registry).length,
-        });
-        return result;
-      },
-    ),
+    safeUpdateHandler("registerSession", (payload: RegisterSessionPayload) => {
+      wf.log.info("op:start", {
+        op: "registerSessionUpdate",
+        projectId: state.projectId,
+        sessionId: payload.sessionId,
+      });
+      const result = applyRegisterSession(state, payload);
+      wf.log.info("op:end", {
+        op: "registerSessionUpdate",
+        projectId: state.projectId,
+        sessionId: payload.sessionId,
+        sessionCount: Object.keys(state.session_registry).length,
+      });
+      return result;
+    }),
   );
   wf.setHandler(
     unregisterSessionUpdate,

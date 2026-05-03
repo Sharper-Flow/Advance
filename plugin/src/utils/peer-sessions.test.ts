@@ -6,7 +6,7 @@
  *              subdirectory peer (NEW) + unrelated process filtered.
  */
 
-import { describe, expect, it, beforeEach, afterEach, vi } from "vitest";
+import { describe, expect, it, beforeEach, afterEach } from "vitest";
 import { tmpdir } from "os";
 import { mkdtempSync, rmSync, mkdirSync } from "fs";
 import { join } from "path";
@@ -156,7 +156,9 @@ describe("peer-sessions.ts (T17)", () => {
   it("excludes current process PID", async () => {
     setLinux();
     const myPid = process.pid;
-    __setProcessScannerForTests(async () => [{ pid: myPid, cwd: mainCheckout }]);
+    __setProcessScannerForTests(async () => [
+      { pid: myPid, cwd: mainCheckout },
+    ]);
 
     const peers = await detectPeerSessions(mainCheckout);
     expect(peers).toEqual([]);

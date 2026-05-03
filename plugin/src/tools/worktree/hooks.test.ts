@@ -13,11 +13,7 @@ import { describe, expect, it, beforeEach, afterEach } from "vitest";
 import { tmpdir } from "os";
 import { mkdtempSync, rmSync } from "fs";
 import { join } from "path";
-import {
-  runHooksWithSafety,
-  HookFailedError,
-  HOOK_DEFAULTS,
-} from "./hooks";
+import { runHooksWithSafety, HookFailedError, HOOK_DEFAULTS } from "./hooks";
 
 const isLinux = process.platform === "linux";
 
@@ -33,11 +29,7 @@ describe.skipIf(!isLinux)("hooks.ts (T12) — Linux only", () => {
   });
 
   it("clean preDelete hook executes successfully", async () => {
-    const results = await runHooksWithSafety(
-      "preDelete",
-      cwd,
-      ["echo hello"],
-    );
+    const results = await runHooksWithSafety("preDelete", cwd, ["echo hello"]);
     expect(results).toHaveLength(1);
     expect(results[0].exitCode).toBe(0);
     expect(results[0].timedOut).toBe(false);
@@ -45,9 +37,7 @@ describe.skipIf(!isLinux)("hooks.ts (T12) — Linux only", () => {
   });
 
   it("postCreate hook with non-zero exit does NOT throw", async () => {
-    const results = await runHooksWithSafety("postCreate", cwd, [
-      "exit 7",
-    ]);
+    const results = await runHooksWithSafety("postCreate", cwd, ["exit 7"]);
     expect(results).toHaveLength(1);
     expect(results[0].exitCode).toBe(7);
   });

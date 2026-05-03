@@ -13,7 +13,9 @@ describe("applyResolveAction", () => {
   const filePath = "src/foo.ts";
   const repoRoot = "/fake/repo";
 
-  const makeDeps = (overrides: Partial<ApplyResolveDeps> = {}): ApplyResolveDeps => ({
+  const makeDeps = (
+    overrides: Partial<ApplyResolveDeps> = {},
+  ): ApplyResolveDeps => ({
     writeFile: vi.fn().mockResolvedValue(undefined),
     gitAdd: vi.fn().mockResolvedValue({ ok: true }),
     gitRebaseSkip: vi.fn().mockResolvedValue({ ok: true }),
@@ -25,9 +27,12 @@ describe("applyResolveAction", () => {
   // ---------------------------------------------------------------------------
   // 1. skip path delegates to T28
   // ---------------------------------------------------------------------------
-  it('skip: calls gitRebaseSkip and returns correct auditEntry', async () => {
+  it("skip: calls gitRebaseSkip and returns correct auditEntry", async () => {
     const deps = makeDeps();
-    const action: ResolveAction = { kind: "skip", reason: "duplicate content (T28)" };
+    const action: ResolveAction = {
+      kind: "skip",
+      reason: "duplicate content (T28)",
+    };
 
     const result = await applyResolveAction(action, filePath, repoRoot, deps);
 
@@ -43,7 +48,7 @@ describe("applyResolveAction", () => {
   // ---------------------------------------------------------------------------
   // 2. auto-resolve trivial (whitespace conflict)
   // ---------------------------------------------------------------------------
-  it('auto_resolve: writes file, adds, continues, and returns correct auditEntry', async () => {
+  it("auto_resolve: writes file, adds, continues, and returns correct auditEntry", async () => {
     const deps = makeDeps();
     const action: ResolveAction = {
       kind: "auto_resolve",
@@ -61,14 +66,18 @@ describe("applyResolveAction", () => {
     expect(deps.writeFile).toHaveBeenCalledWith(filePath, "resolved\n");
     expect(deps.gitAdd).toHaveBeenCalledWith(filePath, repoRoot);
     expect(deps.gitRebaseContinue).toHaveBeenCalledWith(repoRoot);
-    expect(deps.writeFile).toHaveBeenCalledBefore(deps.gitAdd as ReturnType<typeof vi.fn>);
-    expect(deps.gitAdd).toHaveBeenCalledBefore(deps.gitRebaseContinue as ReturnType<typeof vi.fn>);
+    expect(deps.writeFile).toHaveBeenCalledBefore(
+      deps.gitAdd as ReturnType<typeof vi.fn>,
+    );
+    expect(deps.gitAdd).toHaveBeenCalledBefore(
+      deps.gitRebaseContinue as ReturnType<typeof vi.fn>,
+    );
   });
 
   // ---------------------------------------------------------------------------
   // 3. user resolve-in-place (semantic divergence accepted)
   // ---------------------------------------------------------------------------
-  it('user_resolve_in_place: same flow as auto_resolve with user reason in audit', async () => {
+  it("user_resolve_in_place: same flow as auto_resolve with user reason in audit", async () => {
     const deps = makeDeps();
     const action: ResolveAction = {
       kind: "user_resolve_in_place",
@@ -81,7 +90,9 @@ describe("applyResolveAction", () => {
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.action).toBe("user_resolve_in_place");
-      expect(result.auditEntry).toBe("user-resolved-in-place: accepted semantic divergence");
+      expect(result.auditEntry).toBe(
+        "user-resolved-in-place: accepted semantic divergence",
+      );
     }
     expect(deps.writeFile).toHaveBeenCalledWith(filePath, "user resolved\n");
     expect(deps.gitAdd).toHaveBeenCalledWith(filePath, repoRoot);
@@ -91,7 +102,7 @@ describe("applyResolveAction", () => {
   // ---------------------------------------------------------------------------
   // 4. user abort (semantic divergence rejected → rebase aborted)
   // ---------------------------------------------------------------------------
-  it('abort_rebase: calls gitRebaseAbort and returns correct auditEntry', async () => {
+  it("abort_rebase: calls gitRebaseAbort and returns correct auditEntry", async () => {
     const deps = makeDeps();
     const action: ResolveAction = {
       kind: "abort_rebase",
@@ -103,7 +114,9 @@ describe("applyResolveAction", () => {
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.action).toBe("abort_rebase");
-      expect(result.auditEntry).toBe("rebase-aborted: rejected semantic divergence");
+      expect(result.auditEntry).toBe(
+        "rebase-aborted: rejected semantic divergence",
+      );
     }
     expect(deps.gitRebaseAbort).toHaveBeenCalledWith(repoRoot);
     expect(deps.gitRebaseAbort).toHaveBeenCalledTimes(1);
@@ -112,7 +125,7 @@ describe("applyResolveAction", () => {
   // ---------------------------------------------------------------------------
   // 5. user skip-with-decision
   // ---------------------------------------------------------------------------
-  it('skip_with_decision: calls gitRebaseSkip with user reason in audit', async () => {
+  it("skip_with_decision: calls gitRebaseSkip with user reason in audit", async () => {
     const deps = makeDeps();
     const action: ResolveAction = {
       kind: "skip_with_decision",
@@ -124,7 +137,9 @@ describe("applyResolveAction", () => {
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.action).toBe("skip_with_decision");
-      expect(result.auditEntry).toBe("skipped-with-decision: user accepted skip");
+      expect(result.auditEntry).toBe(
+        "skipped-with-decision: user accepted skip",
+      );
     }
     expect(deps.gitRebaseSkip).toHaveBeenCalledWith(repoRoot);
     expect(deps.gitRebaseSkip).toHaveBeenCalledTimes(1);
@@ -133,7 +148,7 @@ describe("applyResolveAction", () => {
   // ---------------------------------------------------------------------------
   // BONUS: Error propagation — writeFile fails → WRITE_FAILED
   // ---------------------------------------------------------------------------
-  it('returns WRITE_FAILED when writeFile throws', async () => {
+  it("returns WRITE_FAILED when writeFile throws", async () => {
     const deps = makeDeps({
       writeFile: vi.fn().mockRejectedValue(new Error("disk full")),
     });
@@ -157,9 +172,11 @@ describe("applyResolveAction", () => {
   // ---------------------------------------------------------------------------
   // BONUS: Error propagation — gitRebaseAbort fails → REBASE_ABORT_FAILED
   // ---------------------------------------------------------------------------
-  it('returns REBASE_ABORT_FAILED when gitRebaseAbort fails', async () => {
+  it("returns REBASE_ABORT_FAILED when gitRebaseAbort fails", async () => {
     const deps = makeDeps({
-      gitRebaseAbort: vi.fn().mockResolvedValue({ ok: false, error: "no rebase in progress" }),
+      gitRebaseAbort: vi
+        .fn()
+        .mockResolvedValue({ ok: false, error: "no rebase in progress" }),
     });
     const action: ResolveAction = {
       kind: "abort_rebase",
@@ -178,7 +195,7 @@ describe("applyResolveAction", () => {
   // ---------------------------------------------------------------------------
   // BONUS: Error propagation — gitAdd fails → GIT_FAILED, no continue attempted
   // ---------------------------------------------------------------------------
-  it('returns GIT_FAILED when gitAdd fails and does not continue', async () => {
+  it("returns GIT_FAILED when gitAdd fails and does not continue", async () => {
     const deps = makeDeps({
       gitAdd: vi.fn().mockResolvedValue({ ok: false, error: "index lock" }),
     });
@@ -201,9 +218,11 @@ describe("applyResolveAction", () => {
   // ---------------------------------------------------------------------------
   // BONUS: Error propagation — gitRebaseContinue fails → GIT_FAILED
   // ---------------------------------------------------------------------------
-  it('returns GIT_FAILED when gitRebaseContinue fails', async () => {
+  it("returns GIT_FAILED when gitRebaseContinue fails", async () => {
     const deps = makeDeps({
-      gitRebaseContinue: vi.fn().mockResolvedValue({ ok: false, error: "merge conflict remains" }),
+      gitRebaseContinue: vi
+        .fn()
+        .mockResolvedValue({ ok: false, error: "merge conflict remains" }),
     });
     const action: ResolveAction = {
       kind: "user_resolve_in_place",
@@ -223,9 +242,11 @@ describe("applyResolveAction", () => {
   // ---------------------------------------------------------------------------
   // BONUS: Error propagation — gitRebaseSkip fails → GIT_FAILED
   // ---------------------------------------------------------------------------
-  it('returns GIT_FAILED when gitRebaseSkip fails', async () => {
+  it("returns GIT_FAILED when gitRebaseSkip fails", async () => {
     const deps = makeDeps({
-      gitRebaseSkip: vi.fn().mockResolvedValue({ ok: false, error: "fatal: no rebase" }),
+      gitRebaseSkip: vi
+        .fn()
+        .mockResolvedValue({ ok: false, error: "fatal: no rebase" }),
     });
     const action: ResolveAction = { kind: "skip", reason: "test" };
 

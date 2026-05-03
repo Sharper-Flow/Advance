@@ -55,7 +55,8 @@ vi.mock("../session/index", () => ({
 }));
 
 vi.mock("../../temporal/contracts", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../../temporal/contracts")>();
+  const actual =
+    await importOriginal<typeof import("../../temporal/contracts")>();
   return {
     ...actual,
     assertProjectWorkflowReachable: vi.fn(),
@@ -313,7 +314,7 @@ describe("migrateAndReconcile (T8)", () => {
           startedAt: "2026-01-01T00:00:00Z",
           lastSeenAt: "2026-01-01T00:00:00Z",
           worktreePath: "/some/path",
-        } as any,
+        },
       ]);
       vi.mocked(isPidAlive).mockReturnValue(false);
 

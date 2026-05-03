@@ -11,7 +11,9 @@ describe("detectSkipDuplicate", () => {
   const repoRoot = "/fake/repo";
 
   // Helper to build minimal deps
-  const makeDeps = (overrides: Partial<SkipDuplicateDeps> = {}): SkipDuplicateDeps => ({
+  const makeDeps = (
+    overrides: Partial<SkipDuplicateDeps> = {},
+  ): SkipDuplicateDeps => ({
     resolveDefaultBranch: async () => defaultBranch,
     treeAt: async () => "abc123",
     currentCommitRef: "REBASE_HEAD",
@@ -29,7 +31,9 @@ describe("detectSkipDuplicate", () => {
     const result = await detectSkipDuplicate(filePath, repoRoot, deps);
 
     expect(result.isDuplicate).toBe(true);
-    expect(result.reason).toBe("duplicate-content commit (already on default branch)");
+    expect(result.reason).toBe(
+      "duplicate-content commit (already on default branch)",
+    );
     expect(result.defaultBranch).toBe("main");
   });
 

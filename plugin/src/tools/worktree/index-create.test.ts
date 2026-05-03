@@ -46,10 +46,7 @@ vi.mock("./hooks", async (importOriginal) => {
   };
 });
 
-import {
-  advWorktreeCreate,
-  type AdvWorktreeCreateDeps,
-} from "./index";
+import { advWorktreeCreate, type AdvWorktreeCreateDeps } from "./index";
 
 import { runHooksWithSafety } from "./hooks";
 
@@ -71,7 +68,7 @@ function createGitRepo(): string {
 function createMockDeps(repoRoot: string): AdvWorktreeCreateDeps {
   return {
     projectRoot: repoRoot,
-    database: { projectDir: repoRoot, projectId: "test-id" } as any,
+    database: { projectDir: repoRoot, projectId: "test-id" },
     log: {
       debug: vi.fn(),
       info: vi.fn(),
@@ -81,161 +78,176 @@ function createMockDeps(repoRoot: string): AdvWorktreeCreateDeps {
   };
 }
 
-describe.skipIf(!isLinux)("ADV-safe worktree create (T10)", { sequence: { concurrent: false } }, () => {
-  let repoRoot: string;
+describe.skipIf(!isLinux)(
+  "ADV-safe worktree create (T10)",
+  { sequence: { concurrent: false } },
+  () => {
+    let repoRoot: string;
 
-  beforeEach(() => {
-    repoRoot = createGitRepo();
-    vi.clearAllMocks();
-    vi.mocked(runHooksWithSafety).mockReset();
-  });
-
-  afterEach(() => {
-    rmSync(repoRoot, { recursive: true, force: true });
-  });
-
-  it("DEFAULT_BRANCH_UNRESOLVABLE — blocks when default branch cannot be resolved", async () => {
-    const deps = createMockDeps(repoRoot);
-    deps.resolveDefaultBranch = async () => null;
-
-    const result = await advWorktreeCreate("feature/test", {}, deps);
-
-    expect(result).toEqual({
-      ok: false,
-      error: "DEFAULT_BRANCH_UNRESOLVABLE",
-      hint: "Specify opts.base explicitly or fix repo HEAD (no origin/HEAD, no init.defaultBranch, no main branch found)",
+    beforeEach(() => {
+      repoRoot = createGitRepo();
+      vi.clearAllMocks();
+      vi.mocked(runHooksWithSafety).mockReset();
     });
 
-    // Worktree should NOT be created
-    const list = execSync("git worktree list", { cwd: repoRoot }).toString();
-    expect(list).not.toContain("feature/test");
-  });
-
-  it("STALE_BASE — blocks when base is stale and force is not set", async () => {
-    const deps = createMockDeps(repoRoot);
-    deps.resolveDefaultBranch = async () => "main";
-    deps.detectStaleBasis = async () => ({
-      stale: true,
-      reason: "branch is merged and remote-deleted",
-      suggestion: "git switch main && git branch -d old-branch",
+    afterEach(() => {
+      rmSync(repoRoot, { recursive: true, force: true });
     });
 
-    const result = await advWorktreeCreate("feature/test", {}, deps);
+    it("DEFAULT_BRANCH_UNRESOLVABLE — blocks when default branch cannot be resolved", async () => {
+      const deps = createMockDeps(repoRoot);
+      deps.resolveDefaultBranch = async () => null;
 
-    expect(result).toEqual({
-      ok: false,
-      error: "STALE_BASE",
-      reason: "branch is merged and remote-deleted",
-      suggestion: "git switch main && git branch -d old-branch",
+      const result = await advWorktreeCreate("feature/test", {}, deps);
+
+      expect(result).toEqual({
+        ok: false,
+        error: "DEFAULT_BRANCH_UNRESOLVABLE",
+        hint: "Specify opts.base explicitly or fix repo HEAD (no origin/HEAD, no init.defaultBranch, no main branch found)",
+      });
+
+      // Worktree should NOT be created
+      const list = execSync("git worktree list", { cwd: repoRoot }).toString();
+      expect(list).not.toContain("feature/test");
     });
 
-    // Worktree should NOT be created
-    const list = execSync("git worktree list", { cwd: repoRoot }).toString();
-    expect(list).not.toContain("feature/test");
-  });
+    it("STALE_BASE — blocks when base is stale and force is not set", async () => {
+      const deps = createMockDeps(repoRoot);
+      deps.resolveDefaultBranch = async () => "main";
+      deps.detectStaleBasis = async () => ({
+        stale: true,
+        reason: "branch is merged and remote-deleted",
+        suggestion: "git switch main && git branch -d old-branch",
+      });
 
-  it("STALE_BASE — force overrides stale check", async () => {
-    const deps = createMockDeps(repoRoot);
-    deps.resolveDefaultBranch = async () => "main";
-    deps.detectStaleBasis = async () => ({
-      stale: true,
-      reason: "branch is merged and remote-deleted",
-      suggestion: "git switch main && git branch -d old-branch",
+      const result = await advWorktreeCreate("feature/test", {}, deps);
+
+      expect(result).toEqual({
+        ok: false,
+        error: "STALE_BASE",
+        reason: "branch is merged and remote-deleted",
+        suggestion: "git switch main && git branch -d old-branch",
+      });
+
+      // Worktree should NOT be created
+      const list = execSync("git worktree list", { cwd: repoRoot }).toString();
+      expect(list).not.toContain("feature/test");
     });
 
-    const result = await advWorktreeCreate("feature/test", { force: true }, deps);
+    it("STALE_BASE — force overrides stale check", async () => {
+      const deps = createMockDeps(repoRoot);
+      deps.resolveDefaultBranch = async () => "main";
+      deps.detectStaleBasis = async () => ({
+        stale: true,
+        reason: "branch is merged and remote-deleted",
+        suggestion: "git switch main && git branch -d old-branch",
+      });
 
-    expect(result.ok).toBe(true);
-    if (result.ok) {
-      expect(result.branch).toBe("feature/test");
-      expect(result.baseRef).toBe("main");
-    }
+      const result = await advWorktreeCreate(
+        "feature/test",
+        { force: true },
+        deps,
+      );
 
-    // Worktree should exist
-    const list = execSync("git worktree list", { cwd: repoRoot }).toString();
-    expect(list).toContain("feature/test");
-  });
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.branch).toBe("feature/test");
+        expect(result.baseRef).toBe("main");
+      }
 
-  it("clean create with default base — resolves base from origin/HEAD", async () => {
-    // Create a repo with origin/HEAD pointing to trunk
-    const remoteDir = mkdtempSync(join(tmpdir(), "adv-wt-remote-"));
-    execSync("git init --bare", { cwd: remoteDir });
-    execSync(`git remote add origin ${remoteDir}`, { cwd: repoRoot });
-    
-    // Create trunk branch and push it
-    execSync("git checkout -b trunk", { cwd: repoRoot });
-    writeFileSync(join(repoRoot, "trunk.md"), "trunk");
-    execSync("git add trunk.md", { cwd: repoRoot });
-    execSync("git commit -m 'trunk commit'", { cwd: repoRoot });
-    execSync("git push -u origin trunk", { cwd: repoRoot });
-    
-    // Set origin/HEAD to point to trunk
-    execSync("git symbolic-ref refs/remotes/origin/HEAD refs/remotes/origin/trunk", { cwd: repoRoot });
-
-    const deps = createMockDeps(repoRoot);
-    // Use real getDefaultBranch
-    deps.resolveDefaultBranch = undefined;
-    deps.detectStaleBasis = async () => ({ stale: false });
-
-    const result = await advWorktreeCreate("change/feature", {}, deps);
-
-    expect(result.ok).toBe(true);
-    if (result.ok) {
-      expect(result.branch).toBe("change/feature");
-      expect(result.baseRef).toBe("trunk");
-      expect(result.path).toContain("change/feature");
-      expect(result.headSha).toBeTruthy();
-    }
-
-    // Worktree should exist
-    const list = execSync("git worktree list", { cwd: repoRoot }).toString();
-    expect(list).toContain("change/feature");
-  });
-
-  it("clean create with explicit base — uses provided base branch", async () => {
-    // Create develop branch
-    execSync("git checkout -b develop", { cwd: repoRoot });
-    writeFileSync(join(repoRoot, "develop.md"), "develop");
-    execSync("git add develop.md", { cwd: repoRoot });
-    execSync("git commit -m 'develop commit'", { cwd: repoRoot });
-    
-    // Go back to main
-    execSync("git checkout main", { cwd: repoRoot });
-
-    const deps = createMockDeps(repoRoot);
-    deps.detectStaleBasis = async () => ({ stale: false });
-
-    const result = await advWorktreeCreate("change/feature", { base: "develop" }, deps);
-
-    expect(result.ok).toBe(true);
-    if (result.ok) {
-      expect(result.branch).toBe("change/feature");
-      expect(result.baseRef).toBe("develop");
-    }
-
-    // Worktree should exist
-    const list = execSync("git worktree list", { cwd: repoRoot }).toString();
-    expect(list).toContain("change/feature");
-  });
-
-  it("BRANCH_LOCKED — blocks when flock is held by another session", async () => {
-    const deps = createMockDeps(repoRoot);
-    deps.resolveDefaultBranch = async () => "main";
-    deps.detectStaleBasis = async () => ({ stale: false });
-    deps.flock = {
-      acquire: async () => ({ owned: false, release: async () => {} }),
-    };
-
-    const result = await advWorktreeCreate("feature/test", {}, deps);
-
-    expect(result).toEqual({
-      ok: false,
-      error: "BRANCH_LOCKED",
-      hint: "Another session is creating a worktree; retry in a moment",
+      // Worktree should exist
+      const list = execSync("git worktree list", { cwd: repoRoot }).toString();
+      expect(list).toContain("feature/test");
     });
 
-    // Worktree should NOT be created
-    const list = execSync("git worktree list", { cwd: repoRoot }).toString();
-    expect(list).not.toContain("feature/test");
-  });
-});
+    it("clean create with default base — resolves base from origin/HEAD", async () => {
+      // Create a repo with origin/HEAD pointing to trunk
+      const remoteDir = mkdtempSync(join(tmpdir(), "adv-wt-remote-"));
+      execSync("git init --bare", { cwd: remoteDir });
+      execSync(`git remote add origin ${remoteDir}`, { cwd: repoRoot });
+
+      // Create trunk branch and push it
+      execSync("git checkout -b trunk", { cwd: repoRoot });
+      writeFileSync(join(repoRoot, "trunk.md"), "trunk");
+      execSync("git add trunk.md", { cwd: repoRoot });
+      execSync("git commit -m 'trunk commit'", { cwd: repoRoot });
+      execSync("git push -u origin trunk", { cwd: repoRoot });
+
+      // Set origin/HEAD to point to trunk
+      execSync(
+        "git symbolic-ref refs/remotes/origin/HEAD refs/remotes/origin/trunk",
+        { cwd: repoRoot },
+      );
+
+      const deps = createMockDeps(repoRoot);
+      // Use real getDefaultBranch
+      deps.resolveDefaultBranch = undefined;
+      deps.detectStaleBasis = async () => ({ stale: false });
+
+      const result = await advWorktreeCreate("change/feature", {}, deps);
+
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.branch).toBe("change/feature");
+        expect(result.baseRef).toBe("trunk");
+        expect(result.path).toContain("change/feature");
+        expect(result.headSha).toBeTruthy();
+      }
+
+      // Worktree should exist
+      const list = execSync("git worktree list", { cwd: repoRoot }).toString();
+      expect(list).toContain("change/feature");
+    });
+
+    it("clean create with explicit base — uses provided base branch", async () => {
+      // Create develop branch
+      execSync("git checkout -b develop", { cwd: repoRoot });
+      writeFileSync(join(repoRoot, "develop.md"), "develop");
+      execSync("git add develop.md", { cwd: repoRoot });
+      execSync("git commit -m 'develop commit'", { cwd: repoRoot });
+
+      // Go back to main
+      execSync("git checkout main", { cwd: repoRoot });
+
+      const deps = createMockDeps(repoRoot);
+      deps.detectStaleBasis = async () => ({ stale: false });
+
+      const result = await advWorktreeCreate(
+        "change/feature",
+        { base: "develop" },
+        deps,
+      );
+
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.branch).toBe("change/feature");
+        expect(result.baseRef).toBe("develop");
+      }
+
+      // Worktree should exist
+      const list = execSync("git worktree list", { cwd: repoRoot }).toString();
+      expect(list).toContain("change/feature");
+    });
+
+    it("BRANCH_LOCKED — blocks when flock is held by another session", async () => {
+      const deps = createMockDeps(repoRoot);
+      deps.resolveDefaultBranch = async () => "main";
+      deps.detectStaleBasis = async () => ({ stale: false });
+      deps.flock = {
+        acquire: async () => ({ owned: false, release: async () => {} }),
+      };
+
+      const result = await advWorktreeCreate("feature/test", {}, deps);
+
+      expect(result).toEqual({
+        ok: false,
+        error: "BRANCH_LOCKED",
+        hint: "Another session is creating a worktree; retry in a moment",
+      });
+
+      // Worktree should NOT be created
+      const list = execSync("git worktree list", { cwd: repoRoot }).toString();
+      expect(list).not.toContain("feature/test");
+    });
+  },
+);

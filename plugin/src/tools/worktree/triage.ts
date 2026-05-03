@@ -152,10 +152,7 @@ export async function triageWorktrees(
     if (dw.branch) diskByBranch.set(dw.branch, dw);
   }
 
-  const registryByBranch = new Map<
-    string,
-    (typeof registry)[number]
-  >();
+  const registryByBranch = new Map<string, (typeof registry)[number]>();
   for (const r of registry) {
     if (r.branch) registryByBranch.set(r.branch, r);
   }

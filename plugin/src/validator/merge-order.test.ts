@@ -199,9 +199,7 @@ describe("computeMergeOrder with injected deps", () => {
     const withBranch = result.queue.find(
       (e) => e.changeId === "chg-with-branch",
     )!;
-    const noBranch = result.queue.find(
-      (e) => e.changeId === "chg-no-branch",
-    )!;
+    const noBranch = result.queue.find((e) => e.changeId === "chg-no-branch")!;
 
     expect(withBranch.branch).toBe("custom/branch-name");
     expect(noBranch.branch).toBe("change/chg-no-branch");
@@ -213,7 +211,8 @@ describe("computeMergeOrder with injected deps", () => {
 // =============================================================================
 
 vi.mock("../tools/worktree/state", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../tools/worktree/state")>();
+  const actual =
+    await importOriginal<typeof import("../tools/worktree/state")>();
   return {
     ...actual,
     initStateDb: vi.fn(async () => {

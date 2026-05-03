@@ -53,13 +53,18 @@ git status
 # Should show "nothing to commit, working tree clean"
 ```
 
-### Step 2: Merge to the default branch
+### Step 2: Verify main checkout invariant, then merge
 
 ```bash
-# Switch back to the main working directory (not the worktree)
-# Merge the change branch into the default branch
-git checkout trunk        # or main — use the repo's default branch
-git merge --no-edit change/{change-id}
+# Resolve the main checkout from any worktree. Do not checkout/switch branches.
+MAIN="$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")"
+
+# Main checkout must already be on the default branch and clean.
+git -C "$MAIN" branch --show-current
+git -C "$MAIN" status --porcelain
+
+# Fast-forward default branch in place.
+git -C "$MAIN" merge --ff-only change/{change-id}
 ```
 
 Alternatively, if the project uses pull requests, push the branch and open a PR:
@@ -75,7 +80,7 @@ Wait for the PR to be merged before proceeding to deletion.
 
 ```bash
 # Confirm the change branch commits are reachable from the default branch
-git log --oneline trunk..change/{change-id}
+git -C "$MAIN" log --oneline trunk..change/{change-id}
 # Should return EMPTY (no commits ahead) — meaning everything is merged
 ```
 
@@ -87,7 +92,7 @@ Only after merge is confirmed:
 adv_worktree_delete branch: "change/{change-id}" reason: "Change {change-id} merged to default branch"
 ```
 
-The 3-condition gate (archived AND merged AND clean) blocks unsafe deletion. Force only with explicit `opts.force: true` and audit trail.
+The 3-condition gate (archived AND merged AND clean) blocks unsafe deletion. `opts.force: true` never bypasses integration; it only affects uncommitted-work removal after explicit audit reason.
 
 ### Checklist
 

@@ -42,7 +42,9 @@ describe("git-worktree-flock (T15)", () => {
     if (!result.owned) throw new Error("expected owned:true");
     expect(result.lockPath).toBe(join(stateDir, GIT_WORKTREE_LOCK_FILENAME));
     // worker.lock is NOT created by the git-worktree flock.
-    await expect(access(join(stateDir, WORKER_LOCK_FILENAME))).rejects.toThrow();
+    await expect(
+      access(join(stateDir, WORKER_LOCK_FILENAME)),
+    ).rejects.toThrow();
     await releaseGitWorktreeFlock(stateDir);
   });
 
@@ -57,7 +59,8 @@ describe("git-worktree-flock (T15)", () => {
     // worker-lock.test.ts; this test verifies the wrapper surface.
     const second = await acquireGitWorktreeFlock(stateDir);
     expect(second.owned).toBe(false);
-    if (second.owned) throw new Error("expected owned:false on contended re-acquire");
+    if (second.owned)
+      throw new Error("expected owned:false on contended re-acquire");
     expect(second.reason).toBe("lock_held_by_alive_pid");
     expect(second.ownerPid).toBe(process.pid);
 

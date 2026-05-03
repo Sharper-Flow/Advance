@@ -76,7 +76,7 @@ function createMockDeps(
 ): AdvWorktreeDeleteDeps {
   return {
     projectRoot,
-    database: { projectDir: projectRoot, projectId: "test-id" } as any,
+    database: { projectDir: projectRoot, projectId: "test-id" },
     log: {
       debug: vi.fn(),
       info: vi.fn(),
@@ -148,7 +148,10 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
       hint: expect.stringContaining("force"),
     });
     expect(result).toHaveProperty("files");
-    expect((result as any).files.length).toBeGreaterThan(0);
+    if (result.ok || result.error !== "UNCOMMITTED_WORK") {
+      throw new Error("expected UNCOMMITTED_WORK result");
+    }
+    expect(result.files.length).toBeGreaterThan(0);
 
     // Worktree should still exist
     expect(
@@ -175,7 +178,10 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
       hint: expect.stringContaining("Hook introduced"),
     });
     expect(result).toHaveProperty("files");
-    expect((result as any).files.length).toBeGreaterThan(0);
+    if (result.ok || result.error !== "HOOK_INTRODUCED_CHANGES") {
+      throw new Error("expected HOOK_INTRODUCED_CHANGES result");
+    }
+    expect(result.files.length).toBeGreaterThan(0);
 
     // Worktree should still exist
     expect(

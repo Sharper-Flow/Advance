@@ -160,7 +160,10 @@ export async function initStateDb(
   }
   // local-only mode is acceptable here — many code paths still want
   // to function (read empty registries) when Temporal is offline.
-  appendDebugLog("worktree-state", `initStateDb ready for project ${projectId}`);
+  appendDebugLog(
+    "worktree-state",
+    `initStateDb ready for project ${projectId}`,
+  );
   return { projectDir: projectRoot, projectId };
 }
 
@@ -384,12 +387,9 @@ export async function incrementPendingDeleteAttempts(
   await withHandle(
     access,
     async (handle) => {
-      await handle.executeUpdate(
-        incrementPendingWorktreeDeleteAttemptsUpdate,
-        {
-          args: [{ branch }],
-        },
-      );
+      await handle.executeUpdate(incrementPendingWorktreeDeleteAttemptsUpdate, {
+        args: [{ branch }],
+      });
     },
     () => undefined,
   );

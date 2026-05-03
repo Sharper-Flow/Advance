@@ -16,7 +16,11 @@ export interface SkipDuplicateResult {
 
 export interface SkipDuplicateDeps {
   resolveDefaultBranch?: (cwd: string) => Promise<string | null>;
-  treeAt?: (commitRef: string, filePath: string, cwd: string) => Promise<string | null>;
+  treeAt?: (
+    commitRef: string,
+    filePath: string,
+    cwd: string,
+  ) => Promise<string | null>;
   /** SHA of the commit currently being rebased (the to-be-skipped candidate). Defaults to "REBASE_HEAD". */
   currentCommitRef?: string;
 }

@@ -85,7 +85,9 @@ describe("detectStaleBranchHead (T14)", () => {
 
     const result = await detectStaleBranchHead(repo);
     expect(result.stale).toBe(true);
-    expect(result.reason).toMatch(/merged into trunk and remote branch is deleted/);
+    expect(result.reason).toMatch(
+      /merged into trunk and remote branch is deleted/,
+    );
     expect(result.suggestion).toBe(
       "git switch trunk && git branch -d feature/done",
     );

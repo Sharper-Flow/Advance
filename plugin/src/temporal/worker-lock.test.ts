@@ -171,9 +171,7 @@ describe("acquireWorkerLock + releaseWorkerLock", () => {
       const defaultResult = await acquireWorkerLock(stateDir);
       expect(defaultResult.owned).toBe(true);
       if (!defaultResult.owned) throw new Error("expected owned:true");
-      expect(defaultResult.lockPath).toBe(
-        join(stateDir, WORKER_LOCK_FILENAME),
-      );
+      expect(defaultResult.lockPath).toBe(join(stateDir, WORKER_LOCK_FILENAME));
     });
 
     it("release honors custom lockFilename", async () => {

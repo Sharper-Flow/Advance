@@ -80,7 +80,8 @@ describe("triageWorktrees (T18)", () => {
   it("reports stale_head when detectStaleBranchHead returns stale", async () => {
     mockedStaleHead.mockResolvedValue({
       stale: true,
-      reason: 'branch "feature/old" is merged into trunk and remote branch is deleted',
+      reason:
+        'branch "feature/old" is merged into trunk and remote branch is deleted',
       suggestion: "git switch trunk && git branch -d feature/old",
     });
 
@@ -124,15 +125,13 @@ describe("triageWorktrees (T18)", () => {
         lastSeenAt: "2026-05-01T00:00:00Z",
         baseRef: "trunk",
         headSha: "deadbeef",
-        source: "user",
+        source: "tool",
         sourceVersion: 1,
-      } as any,
+      },
     ]);
 
     const result = await triageWorktrees(repoRoot);
-    const orphan = result.orphans.find(
-      (o) => o.class === "missing_from_disk",
-    );
+    const orphan = result.orphans.find((o) => o.class === "missing_from_disk");
     expect(orphan).toBeDefined();
     expect(orphan?.branch).toBe("change/ghost");
     expect(orphan?.recommendedFix).toContain("disk_missing change/ghost");
@@ -156,9 +155,9 @@ describe("triageWorktrees (T18)", () => {
         lastSeenAt: "2026-05-01T00:00:00Z",
         baseRef: "trunk",
         headSha: "deadbeef",
-        source: "user",
+        source: "tool",
         sourceVersion: 1,
-      } as any,
+      },
     ]);
     mockedGetSummaries.mockResolvedValue({
       archivedchange: { status: "archived" },
@@ -170,6 +169,8 @@ describe("triageWorktrees (T18)", () => {
     );
     expect(orphan).toBeDefined();
     expect(orphan?.branch).toBe("change/archived");
-    expect(orphan?.recommendedFix).toContain("adv_worktree_delete change/archived");
+    expect(orphan?.recommendedFix).toContain(
+      "adv_worktree_delete change/archived",
+    );
   });
 });

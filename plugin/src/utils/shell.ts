@@ -11,8 +11,8 @@
  * Characters that cannot be safely escaped in any shell.
  * Null bytes (\x00) cannot be represented in C strings and must be rejected.
  */
-// biome-ignore lint/suspicious/noControlCharactersInRegex: Null byte detection is intentional for security
-const SHELL_FORBIDDEN_CHARS = /[\x00]/
+// eslint-disable-next-line no-control-regex -- null byte detection is intentional for security
+const SHELL_FORBIDDEN_CHARS = /[\x00]/;
 
 /**
  * Assert that a string is safe for shell escaping.
@@ -34,12 +34,12 @@ const SHELL_FORBIDDEN_CHARS = /[\x00]/
  * ```
  */
 export function assertShellSafe(value: string, context: string): void {
-	// Law 4: Fail Fast - reject invalid input immediately with clear message
-	if (SHELL_FORBIDDEN_CHARS.test(value)) {
-		throw new Error(
-			`${context} contains null bytes which cannot be safely escaped for shell execution`,
-		)
-	}
+  // Law 4: Fail Fast - reject invalid input immediately with clear message
+  if (SHELL_FORBIDDEN_CHARS.test(value)) {
+    throw new Error(
+      `${context} contains null bytes which cannot be safely escaped for shell execution`,
+    );
+  }
 }
 
 /**
@@ -66,15 +66,15 @@ export function assertShellSafe(value: string, context: string): void {
  * ```
  */
 export function escapeBash(str: string): string {
-	assertShellSafe(str, "Bash argument")
-	return str
-		.replace(/\\/g, "\\\\") // Backslash first (order matters!)
-		.replace(/"/g, '\\"') // Double quotes
-		.replace(/\$/g, "\\$") // Dollar sign (variable expansion)
-		.replace(/`/g, "\\`") // Backticks (command substitution)
-		.replace(/!/g, "\\!") // History expansion
-		.replace(/\n/g, " ") // Newlines -> spaces
-		.replace(/\r/g, " ") // Carriage returns -> spaces
+  assertShellSafe(str, "Bash argument");
+  return str
+    .replace(/\\/g, "\\\\") // Backslash first (order matters!)
+    .replace(/"/g, '\\"') // Double quotes
+    .replace(/\$/g, "\\$") // Dollar sign (variable expansion)
+    .replace(/`/g, "\\`") // Backticks (command substitution)
+    .replace(/!/g, "\\!") // History expansion
+    .replace(/\n/g, " ") // Newlines -> spaces
+    .replace(/\r/g, " "); // Carriage returns -> spaces
 }
 
 /**
@@ -96,12 +96,12 @@ export function escapeBash(str: string): string {
  * ```
  */
 export function escapeAppleScript(str: string): string {
-	assertShellSafe(str, "AppleScript argument")
-	return str
-		.replace(/\\/g, "\\\\") // Backslash
-		.replace(/"/g, '\\"') // Double quotes
-		.replace(/\n/g, " ") // Newlines -> spaces
-		.replace(/\r/g, " ") // Carriage returns -> spaces
+  assertShellSafe(str, "AppleScript argument");
+  return str
+    .replace(/\\/g, "\\\\") // Backslash
+    .replace(/"/g, '\\"') // Double quotes
+    .replace(/\n/g, " ") // Newlines -> spaces
+    .replace(/\r/g, " "); // Carriage returns -> spaces
 }
 
 /**
@@ -127,12 +127,12 @@ export function escapeAppleScript(str: string): string {
  * ```
  */
 export function escapeBatch(str: string): string {
-	assertShellSafe(str, "Batch argument")
-	return str
-		.replace(/%/g, "%%") // Percent (double to escape)
-		.replace(/\^/g, "^^") // Caret (escape character itself)
-		.replace(/&/g, "^&") // Ampersand
-		.replace(/</g, "^<") // Less than
-		.replace(/>/g, "^>") // Greater than
-		.replace(/\|/g, "^|") // Pipe
+  assertShellSafe(str, "Batch argument");
+  return str
+    .replace(/%/g, "%%") // Percent (double to escape)
+    .replace(/\^/g, "^^") // Caret (escape character itself)
+    .replace(/&/g, "^&") // Ampersand
+    .replace(/</g, "^<") // Less than
+    .replace(/>/g, "^>") // Greater than
+    .replace(/\|/g, "^|"); // Pipe
 }

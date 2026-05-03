@@ -111,12 +111,7 @@ function normalizeConflictLines(raw: string): string {
   return raw
     .replace(/\r\n/g, "\n")
     .split("\n")
-    .map((line) =>
-      line
-        .trimEnd()
-        .replace(/\s+/g, " ")
-        .trim(),
-    )
+    .map((line) => line.trimEnd().replace(/\s+/g, " ").trim())
     .join("\n");
 }
 

@@ -455,6 +455,8 @@ describe("sync-global.sh", () => {
       expect(skillContent).toMatch(/multi-session/i);
       expect(skillContent).toMatch(/Multi-Session Note/);
       expect(skillContent).not.toMatch(/already in a worktree session/);
+      expect(skillContent).not.toMatch(/git checkout|git switch/);
+      expect(skillContent).toContain('git -C "$MAIN" merge --ff-only');
     });
   });
 });

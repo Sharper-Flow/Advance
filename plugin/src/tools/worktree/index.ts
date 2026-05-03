@@ -147,7 +147,7 @@ const branchNameSchema = z
   .refine((name) => !name.includes(".."), {
     message: "Branch name cannot contain '..'",
   })
-  // biome-ignore lint/suspicious/noControlCharactersInRegex: Control character detection is intentional for security
+  // eslint-disable-next-line no-control-regex -- control character detection is intentional for security
   .refine((name) => !/[\x00-\x1f\x7f ~^:?*[\]\\]/.test(name), {
     message: "Branch name contains invalid characters",
   })
@@ -341,8 +341,8 @@ async function forkWithContext(
   }
 
   // Copy data with cleanup on failure
-  let planCopied = false;
-  let delegationsCopied = false;
+  let planCopied: boolean;
+  let delegationsCopied: boolean;
 
   try {
     const workspaceBase = path.join(
@@ -1340,8 +1340,11 @@ export const WorktreePlugin: Plugin = async (ctx) => {
                 return `Failed to create worktree: ${createResult.hint}`;
               case "GIT_FAILED":
                 return `Failed to create worktree: ${createResult.reason}`;
-              default:
-                return `Failed to create worktree: ${(createResult as any).error}`;
+              default: {
+                const _exhaustive: never = createResult;
+                void _exhaustive;
+                return "Failed to create worktree: unknown error";
+              }
             }
           }
 
@@ -1472,17 +1475,18 @@ export const WorktreePlugin: Plugin = async (ctx) => {
           const worktreeConfig = await loadWorktreeConfig(directory, log);
 
           // Find the worktree session record. T13: getSession now async.
-          let session: Awaited<ReturnType<typeof getSession>> = null;
+          const session = worktreeConfig.inline
+            ? await (async () => {
+                // Inline mode: look up by "inline:<branch>" key
+                if (!args.branch) {
+                  return null;
+                }
+                return getSession(database, `inline:${args.branch}`);
+              })()
+            : await getSession(database, toolCtx?.sessionID ?? "");
 
-          if (worktreeConfig.inline) {
-            // Inline mode: look up by "inline:<branch>" key
-            if (!args.branch) {
-              return `In inline mode, you must provide the branch name of the worktree to delete.`;
-            }
-            session = await getSession(database, `inline:${args.branch}`);
-          } else {
-            // Non-inline mode: look up by forked session ID
-            session = await getSession(database, toolCtx?.sessionID ?? "");
+          if (worktreeConfig.inline && !args.branch) {
+            return `In inline mode, you must provide the branch name of the worktree to delete.`;
           }
 
           if (!session) {

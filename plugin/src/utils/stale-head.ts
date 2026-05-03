@@ -80,12 +80,9 @@ export async function detectStaleBranchHead(
     };
   }
 
-  let mergedList = "";
+  let mergedList: string;
   try {
-    mergedList = await execGit(
-      ["branch", "--merged", defaultBranch],
-      repoRoot,
-    );
+    mergedList = await execGit(["branch", "--merged", defaultBranch], repoRoot);
   } catch {
     return {
       stale: false,
@@ -110,7 +107,7 @@ export async function detectStaleBranchHead(
     };
   }
 
-  let remoteOutput = "";
+  let remoteOutput: string;
   try {
     remoteOutput = await execGit(
       ["ls-remote", "--heads", "origin", head],

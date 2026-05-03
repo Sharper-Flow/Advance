@@ -14,7 +14,6 @@ import {
   initStateDb,
   listWorktrees,
   getChangeSummaries,
-  type WorktreeStateAccess,
 } from "../tools/worktree/state";
 
 export interface OverlapMatch {
@@ -32,7 +31,10 @@ export interface FileOverlapResult {
 
 export interface FileOverlapDeps {
   registry?: Array<{ branch: string; path: string; changeId?: string }>;
-  changeSummaries?: Record<string, { touched_files?: string[]; status?: string }>;
+  changeSummaries?: Record<
+    string,
+    { touched_files?: string[]; status?: string }
+  >;
   currentBranch?: string;
 }
 

@@ -3,7 +3,11 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { preExecutionRebase, PreRebaseDeps, PreRebaseResult } from "./pre-rebase";
+import {
+  preExecutionRebase,
+  PreRebaseDeps,
+  PreRebaseResult,
+} from "./pre-rebase";
 
 describe("preExecutionRebase", () => {
   const defaultBranch = "main";
@@ -30,8 +34,12 @@ describe("preExecutionRebase", () => {
     const result = await preExecutionRebase("/fake/worktree", deps);
 
     expect(result.ok).toBe(true);
-    expect((result as Extract<PreRebaseResult, { ok: true }>).status).toBe("rebased");
-    expect((result as Extract<PreRebaseResult, { ok: true }>).defaultBranch).toBe("main");
+    expect((result as Extract<PreRebaseResult, { ok: true }>).status).toBe(
+      "rebased",
+    );
+    expect(
+      (result as Extract<PreRebaseResult, { ok: true }>).defaultBranch,
+    ).toBe("main");
   });
 
   // ---------------------------------------------------------------------------
@@ -49,10 +57,12 @@ describe("preExecutionRebase", () => {
     const result = await preExecutionRebase("/fake/worktree", deps);
 
     expect(result.ok).toBe(false);
-    expect((result as Extract<PreRebaseResult, { ok: false }>).reason).toBe("conflict");
-    expect((result as Extract<PreRebaseResult, { ok: false }>).conflictFiles).toEqual([
-      "src/foo.ts",
-    ]);
+    expect((result as Extract<PreRebaseResult, { ok: false }>).reason).toBe(
+      "conflict",
+    );
+    expect(
+      (result as Extract<PreRebaseResult, { ok: false }>).conflictFiles,
+    ).toEqual(["src/foo.ts"]);
   });
 
   // ---------------------------------------------------------------------------
@@ -66,8 +76,12 @@ describe("preExecutionRebase", () => {
     const result = await preExecutionRebase("/fake/worktree", deps);
 
     expect(result.ok).toBe(true);
-    expect((result as Extract<PreRebaseResult, { ok: true }>).status).toBe("up_to_date");
-    expect((result as Extract<PreRebaseResult, { ok: true }>).defaultBranch).toBe("main");
+    expect((result as Extract<PreRebaseResult, { ok: true }>).status).toBe(
+      "up_to_date",
+    );
+    expect(
+      (result as Extract<PreRebaseResult, { ok: true }>).defaultBranch,
+    ).toBe("main");
   });
 
   // ---------------------------------------------------------------------------
@@ -100,7 +114,9 @@ describe("preExecutionRebase", () => {
     const result = await preExecutionRebase("/fake/worktree", deps);
 
     expect(result.ok).toBe(false);
-    expect((result as Extract<PreRebaseResult, { ok: false }>).reason).toBe("no_remote");
+    expect((result as Extract<PreRebaseResult, { ok: false }>).reason).toBe(
+      "no_remote",
+    );
   });
 
   // ---------------------------------------------------------------------------
@@ -117,7 +133,9 @@ describe("preExecutionRebase", () => {
     const result = await preExecutionRebase("/fake/worktree", deps);
 
     expect(result.ok).toBe(false);
-    expect((result as Extract<PreRebaseResult, { ok: false }>).reason).toBe("rebase_failed");
+    expect((result as Extract<PreRebaseResult, { ok: false }>).reason).toBe(
+      "rebase_failed",
+    );
   });
 
   // ---------------------------------------------------------------------------
@@ -135,7 +153,9 @@ describe("preExecutionRebase", () => {
     const result = await preExecutionRebase("/fake/worktree", deps);
 
     expect(result.ok).toBe(false);
-    expect((result as Extract<PreRebaseResult, { ok: false }>).reason).toBe("rebase_failed");
+    expect((result as Extract<PreRebaseResult, { ok: false }>).reason).toBe(
+      "rebase_failed",
+    );
   });
 
   // ---------------------------------------------------------------------------

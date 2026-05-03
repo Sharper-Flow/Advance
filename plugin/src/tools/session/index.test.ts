@@ -25,9 +25,7 @@ import type { SessionRecord } from "../../temporal/contracts";
 const mockedListSessions = vi.mocked(listSessions);
 const mockedGetSessionRecord = vi.mocked(getSessionRecord);
 
-const baseRecord = (
-  override: Partial<SessionRecord> = {},
-): SessionRecord => ({
+const baseRecord = (override: Partial<SessionRecord> = {}): SessionRecord => ({
   sessionId: "sess_AAAA1111",
   worktreePath: "/home/u/proj/main",
   pid: 1000,
@@ -90,10 +88,7 @@ describe("adv_session_list (T19)", () => {
     ]);
     const liveness = (pid: number) => pid !== 2000;
 
-    const result = await listPeerSessions(
-      {},
-      { liveness, selfPid: 9999 },
-    );
+    const result = await listPeerSessions({}, { liveness, selfPid: 9999 });
 
     expect(result.total).toBe(1);
     expect(result.deadFiltered).toBe(1);

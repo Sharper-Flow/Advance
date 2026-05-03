@@ -350,11 +350,28 @@ export interface UpdateSessionActivityPayload {
   activeGate?: string;
 }
 
+function isDuplicateWorktreeSessionPayload(
+  existing: WorktreeRecord,
+  payload: AddWorktreeSessionPayload,
+): boolean {
+  return (
+    existing.status === "active" &&
+    existing.path === payload.path &&
+    existing.changeId === payload.changeId &&
+    existing.baseRef === payload.baseRef &&
+    existing.headSha === payload.headSha &&
+    existing.source === payload.source &&
+    existing.lastSeenAt === payload.now
+  );
+}
+
 /**
  * Insert or update a worktree registry record. Monotonic
  * `sourceVersion` per branch ensures replay-determinism for
- * out-of-order updates. Returns the resulting WorktreeRecord (or the
- * existing record when the update was skipped due to dedup).
+ * out-of-order updates. Lower versions and exact duplicate equal-version
+ * payloads are skipped; equal-version payloads with different content are
+ * promoted to `existing.sourceVersion + 1` so two same-millisecond
+ * multi-session updates do not silently drop the later workflow update.
  */
 export function applyAddWorktreeSession(
   state: ProjectWorkflowState,
@@ -362,10 +379,22 @@ export function applyAddWorktreeSession(
 ): WorktreeRecord {
   assertProjectWorkflowReachable(state);
   const existing = state.worktree_registry[payload.branch];
-  if (existing && payload.sourceVersion <= existing.sourceVersion) {
-    // Out-of-order or duplicate — preserve existing record.
-    return existing;
+  if (existing) {
+    if (payload.sourceVersion < existing.sourceVersion) {
+      // Out-of-order — preserve existing record.
+      return existing;
+    }
+    if (
+      payload.sourceVersion === existing.sourceVersion &&
+      isDuplicateWorktreeSessionPayload(existing, payload)
+    ) {
+      // Exact duplicate — preserve existing record.
+      return existing;
+    }
   }
+  const sourceVersion = existing
+    ? Math.max(payload.sourceVersion, existing.sourceVersion + 1)
+    : payload.sourceVersion;
   const next: WorktreeRecord = {
     branch: payload.branch,
     path: payload.path,
@@ -376,7 +405,7 @@ export function applyAddWorktreeSession(
     baseRef: payload.baseRef,
     headSha: payload.headSha,
     source: payload.source,
-    sourceVersion: payload.sourceVersion,
+    sourceVersion,
     pendingDelete: existing?.pendingDelete,
   };
   state.worktree_registry[payload.branch] = next;

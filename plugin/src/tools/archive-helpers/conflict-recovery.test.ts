@@ -6,10 +6,7 @@
  */
 
 import { describe, it, expect, vi } from "vitest";
-import {
-  navigateConflicts,
-  ConflictRecord,
-} from "./conflict-loop";
+import { navigateConflicts, ConflictRecord } from "./conflict-loop";
 import {
   applyResolveAction,
   ResolveAction,
@@ -100,53 +97,50 @@ describe("conflict-recovery matrix", () => {
   // -------------------------------------------------------------------------
   // Scenario 2: Single duplicate-content
   // -------------------------------------------------------------------------
-  it(
-    "S2 duplicate-content: auto mode applies skip via git rebase --skip",
-    async () => {
-      const {
+  it("S2 duplicate-content: auto mode applies skip via git rebase --skip", async () => {
+    const {
+      apply,
+      calls,
+      writeFile,
+      gitAdd,
+      gitRebaseSkip,
+      gitRebaseContinue,
+    } = makeApply();
+    const conflicts = [makeConflict("dup.ts", "duplicate_content")];
+
+    const result = await navigateConflicts({
+      conflicts,
+      repoRoot,
+      deps: {
         apply,
-        calls,
-        writeFile,
-        gitAdd,
-        gitRebaseSkip,
-        gitRebaseContinue,
-      } = makeApply();
-      const conflicts = [makeConflict("dup.ts", "duplicate_content")];
+        prompt: vi.fn().mockResolvedValue("auto"),
+        resolveDivergent: vi.fn(),
+      },
+    });
 
-      const result = await navigateConflicts({
-        conflicts,
-        repoRoot,
-        deps: {
-          apply,
-          prompt: vi.fn().mockResolvedValue("auto"),
-          resolveDivergent: vi.fn(),
-        },
-      });
+    expect(result.ok).toBe(true);
+    expect(result.mode).toBe("auto");
+    expect(result.applied).toHaveLength(1);
+    expect(result.applied[0]).toEqual({
+      filePath: "dup.ts",
+      action: "skip",
+      auditEntry: "skipped: duplicate_content reason",
+    });
 
-      expect(result.ok).toBe(true);
-      expect(result.mode).toBe("auto");
-      expect(result.applied).toHaveLength(1);
-      expect(result.applied[0]).toEqual({
-        filePath: "dup.ts",
-        action: "skip",
-        auditEntry: "skipped: duplicate_content reason",
-      });
+    expect(calls).toHaveLength(1);
+    expect(calls[0].action).toEqual({
+      kind: "skip",
+      reason: "duplicate_content reason",
+    });
+    expect(calls[0].filePath).toBe("dup.ts");
+    expect(calls[0].repoRoot).toBe(repoRoot);
 
-      expect(calls).toHaveLength(1);
-      expect(calls[0].action).toEqual({
-        kind: "skip",
-        reason: "duplicate_content reason",
-      });
-      expect(calls[0].filePath).toBe("dup.ts");
-      expect(calls[0].repoRoot).toBe(repoRoot);
-
-      expect(gitRebaseSkip).toHaveBeenCalledTimes(1);
-      expect(gitRebaseSkip).toHaveBeenCalledWith(repoRoot);
-      expect(writeFile).not.toHaveBeenCalled();
-      expect(gitAdd).not.toHaveBeenCalled();
-      expect(gitRebaseContinue).not.toHaveBeenCalled();
-    },
-  );
+    expect(gitRebaseSkip).toHaveBeenCalledTimes(1);
+    expect(gitRebaseSkip).toHaveBeenCalledWith(repoRoot);
+    expect(writeFile).not.toHaveBeenCalled();
+    expect(gitAdd).not.toHaveBeenCalled();
+    expect(gitRebaseContinue).not.toHaveBeenCalled();
+  });
 
   // -------------------------------------------------------------------------
   // Scenario 3: Single auto-resolvable trivial
@@ -345,7 +339,11 @@ describe("conflict-recovery matrix", () => {
 
       expect(writeFile).toHaveBeenCalledTimes(2);
       expect(writeFile).toHaveBeenNthCalledWith(1, "triv.ts", "x ");
-      expect(writeFile).toHaveBeenNthCalledWith(2, "div.ts", "user resolved div");
+      expect(writeFile).toHaveBeenNthCalledWith(
+        2,
+        "div.ts",
+        "user resolved div",
+      );
 
       expect(gitAdd).toHaveBeenCalledTimes(2);
       expect(gitAdd).toHaveBeenNthCalledWith(1, "triv.ts", repoRoot);

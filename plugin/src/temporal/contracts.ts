@@ -267,8 +267,10 @@ export interface WorktreeRecord {
   source: "tool" | "git_census";
   /**
    * Monotonic version per worktree branch for replay-deterministic
-   * dedup of out-of-order updates. Mutators skip updates whose
-   * sourceVersion is less than or equal to the existing record's.
+   * dedup of out-of-order updates. Mutators skip lower versions and
+   * exact duplicate equal-version updates. Equal-version updates with
+   * different payloads are promoted by the workflow mutator to avoid
+   * same-millisecond multi-session write loss.
    */
   sourceVersion: number;
   /** Pending-delete marker; populated by `setPendingWorktreeDelete`. */
@@ -460,10 +462,14 @@ export class WorkflowNotReadyError extends Error {
 }
 
 export function assertProjectWorkflowReachable(
-  state: Pick<
-    ProjectWorkflowState,
-    "worktree_registry" | "pending_worktree_deletes" | "session_registry"
-  > | null
+  state:
+    | Partial<
+        Pick<
+          ProjectWorkflowState,
+          "worktree_registry" | "pending_worktree_deletes" | "session_registry"
+        >
+      >
+    | null
     | undefined,
 ): asserts state is Pick<
   ProjectWorkflowState,

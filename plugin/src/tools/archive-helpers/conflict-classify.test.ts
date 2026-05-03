@@ -46,14 +46,14 @@ describe("classifyConflict", () => {
   // ---------------------------------------------------------------------------
   it('returns "auto_resolvable_trivial" for whitespace-only differences', async () => {
     const deps = makeDeps();
-    const hunks: ConflictHunk[] = [
-      { ours: "  hello\n", theirs: "hello\n" },
-    ];
+    const hunks: ConflictHunk[] = [{ ours: "  hello\n", theirs: "hello\n" }];
 
     const result = await classifyConflict(filePath, hunks, repoRoot, deps);
 
     expect(result.class).toBe("auto_resolvable_trivial");
-    expect(result.reason).toBe("whitespace-only conflict; auto-resolve to incoming");
+    expect(result.reason).toBe(
+      "whitespace-only conflict; auto-resolve to incoming",
+    );
   });
 
   // ---------------------------------------------------------------------------
@@ -61,14 +61,14 @@ describe("classifyConflict", () => {
   // ---------------------------------------------------------------------------
   it('returns "auto_resolvable_trivial" for CRLF vs LF differences', async () => {
     const deps = makeDeps();
-    const hunks: ConflictHunk[] = [
-      { ours: "hello\r\n", theirs: "hello\n" },
-    ];
+    const hunks: ConflictHunk[] = [{ ours: "hello\r\n", theirs: "hello\n" }];
 
     const result = await classifyConflict(filePath, hunks, repoRoot, deps);
 
     expect(result.class).toBe("auto_resolvable_trivial");
-    expect(result.reason).toBe("whitespace-only conflict; auto-resolve to incoming");
+    expect(result.reason).toBe(
+      "whitespace-only conflict; auto-resolve to incoming",
+    );
   });
 
   // ---------------------------------------------------------------------------
@@ -76,9 +76,7 @@ describe("classifyConflict", () => {
   // ---------------------------------------------------------------------------
   it('returns "divergent_content" for semantic differences', async () => {
     const deps = makeDeps();
-    const hunks: ConflictHunk[] = [
-      { ours: "let x = 1", theirs: "let x = 2" },
-    ];
+    const hunks: ConflictHunk[] = [{ ours: "let x = 1", theirs: "let x = 2" }];
 
     const result = await classifyConflict(filePath, hunks, repoRoot, deps);
 
@@ -165,15 +163,13 @@ describe("classifyConflict", () => {
   // ---------------------------------------------------------------------------
   // BONUS: isDuplicate throws — falls through to trivial/divergent
   // ---------------------------------------------------------------------------
-  it('falls through to trivial check when isDuplicate throws', async () => {
+  it("falls through to trivial check when isDuplicate throws", async () => {
     const deps = makeDeps({
       isDuplicate: async () => {
         throw new Error("git failure");
       },
     });
-    const hunks: ConflictHunk[] = [
-      { ours: "  hello\n", theirs: "hello\n" },
-    ];
+    const hunks: ConflictHunk[] = [{ ours: "  hello\n", theirs: "hello\n" }];
 
     const result = await classifyConflict(filePath, hunks, repoRoot, deps);
 
@@ -183,7 +179,7 @@ describe("classifyConflict", () => {
   // ---------------------------------------------------------------------------
   // BONUS: Multi-line whitespace collapse
   // ---------------------------------------------------------------------------
-  it('collapses internal whitespace runs for trivial comparison', async () => {
+  it("collapses internal whitespace runs for trivial comparison", async () => {
     const deps = makeDeps();
     const hunks: ConflictHunk[] = [
       { ours: "hello    world", theirs: "hello world" },
