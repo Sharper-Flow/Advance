@@ -4,6 +4,7 @@ import { join, resolve } from "path";
 
 const REPO_ROOT = resolve(__dirname, "../..");
 const SYNC_SCRIPT_PATH = join(REPO_ROOT, "scripts/sync-global.sh");
+const PROVIDER_EVAL_PATH = join(REPO_ROOT, "scripts/provider-eval.ts");
 
 describe("sync-global.sh", () => {
   const content = readFileSync(SYNC_SCRIPT_PATH, "utf8");
@@ -318,6 +319,24 @@ describe("sync-global.sh", () => {
       expect(content).toContain("Keep repo-local adv.md in-tree");
       expect(content).toContain("agent.adv.disable");
       expect(content).not.toContain("REPO_LOCAL_ADV=");
+    });
+  });
+
+  describe("provider evaluation metrics", () => {
+    const providerEval = readFileSync(PROVIDER_EVAL_PATH, "utf8");
+
+    test("provider eval reports generated-file and runtime-prompt metrics separately", () => {
+      expect(providerEval).toContain("collectPromptSizeMetrics");
+      expect(providerEval).toContain("generated_provider_file");
+      expect(providerEval).toContain("selected_agent_runtime_prompt");
+      expect(providerEval).toContain("Generated provider file");
+      expect(providerEval).toContain("Selected-agent runtime prompt");
+    });
+
+    test("provider eval does not use generated provider variants as canonical prompt source", () => {
+      expect(providerEval).toContain("loadCanonicalAdvPrompt");
+      expect(providerEval).toContain("agent-parts/advance/adv.md");
+      expect(providerEval).not.toContain("global provider variant");
     });
   });
 });

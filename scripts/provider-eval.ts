@@ -14,7 +14,13 @@
  */
 
 import { parseArgs } from "node:util";
-import { mkdirSync, writeFileSync, existsSync, readFileSync } from "node:fs";
+import {
+  mkdirSync,
+  writeFileSync,
+  existsSync,
+  readFileSync,
+  statSync,
+} from "node:fs";
 import { join, basename } from "node:path";
 
 // ---------------------------------------------------------------------------
@@ -95,6 +101,16 @@ interface ProviderScorecard {
   };
   prompts_total: number;
   cost_estimate_usd: number;
+}
+
+interface PromptSizeMetric {
+  bytes: number;
+  lines: number;
+}
+
+interface PromptSizeMetrics {
+  generated_provider_file: PromptSizeMetric | null;
+  selected_agent_runtime_prompt: PromptSizeMetric;
 }
 
 // ---------------------------------------------------------------------------
@@ -201,12 +217,16 @@ Results stored in scripts/provider-eval-results/<run-id>/`);
 
   const providerName = values.provider;
   if (!providerName) {
-    console.error("Error: --provider <name> or --all required. Use --help for usage.");
+    console.error(
+      "Error: --provider <name> or --all required. Use --help for usage.",
+    );
     process.exit(1);
   }
 
   if (!PROVIDERS[providerName]) {
-    console.error(`Error: unknown provider "${providerName}". Available: ${Object.keys(PROVIDERS).join(", ")}`);
+    console.error(
+      `Error: unknown provider "${providerName}". Available: ${Object.keys(PROVIDERS).join(", ")}`,
+    );
     process.exit(1);
   }
 
@@ -237,7 +257,10 @@ function stripFrontmatter(content: string): string {
  *
  * If no marker found, appends hint at end.
  */
-function composeSystemPrompt(canonicalContent: string, hintContent: string | null): string {
+function composeSystemPrompt(
+  canonicalContent: string,
+  hintContent: string | null,
+): string {
   const stripped = stripFrontmatter(canonicalContent);
 
   if (!hintContent) return stripped; // baseline: no hint
@@ -254,7 +277,100 @@ function composeSystemPrompt(canonicalContent: string, hintContent: string | nul
     pos++;
   }
 
-  return stripped.slice(0, pos) + "\n" + hintContent + "\n" + stripped.slice(pos);
+  return (
+    stripped.slice(0, pos) + "\n" + hintContent + "\n" + stripped.slice(pos)
+  );
+}
+
+function countLines(content: string): number {
+  if (content.length === 0) return 0;
+  return content.split(/\r?\n/).length;
+}
+
+function sizeOfContent(content: string): PromptSizeMetric {
+  return {
+    bytes: Buffer.byteLength(content, "utf8"),
+    lines: countLines(content),
+  };
+}
+
+function formatSize(metric: PromptSizeMetric): string {
+  return `${metric.lines} lines / ${metric.bytes} bytes`;
+}
+
+function collectPromptSizeMetrics(input: {
+  generatedProviderPath: string;
+  runtimePrompt: string;
+}): PromptSizeMetrics {
+  const generated_provider_file = existsSync(input.generatedProviderPath)
+    ? {
+        bytes: statSync(input.generatedProviderPath).size,
+        lines: countLines(readFileSync(input.generatedProviderPath, "utf8")),
+      }
+    : null;
+
+  return {
+    generated_provider_file,
+    selected_agent_runtime_prompt: sizeOfContent(input.runtimePrompt),
+  };
+}
+
+function loadCanonicalAdvPrompt(globalHome: string): {
+  source: string;
+  content: string;
+} {
+  const localCanonical = join(REPO_ROOT, ".opencode/agents/adv.md");
+  const globalPromptPart = join(
+    globalHome,
+    "opencode/agent-parts/advance/adv.md",
+  );
+
+  if (existsSync(localCanonical)) {
+    return {
+      source: localCanonical,
+      content: readFileSync(localCanonical, "utf8"),
+    };
+  }
+
+  if (existsSync(globalPromptPart)) {
+    return {
+      source: globalPromptPart,
+      content: readFileSync(globalPromptPart, "utf8"),
+    };
+  }
+
+  console.error(
+    `Error: canonical ADV prompt not found at ${localCanonical} or ${globalPromptPart}`,
+  );
+  process.exit(1);
+}
+
+function loadProviderHint(
+  providerName: string,
+  config: ProviderConfig,
+  globalHome: string,
+): { source: string; content: string } | null {
+  const globalHintPart = join(
+    globalHome,
+    "opencode/agent-parts/advance/providers",
+    `${providerName}.md`,
+  );
+
+  if (existsSync(config.hint_file)) {
+    return {
+      source: config.hint_file,
+      content: readFileSync(config.hint_file, "utf8"),
+    };
+  }
+
+  if (existsSync(globalHintPart)) {
+    return {
+      source: globalHintPart,
+      content: readFileSync(globalHintPart, "utf8"),
+    };
+  }
+
+  return null;
 }
 
 // ---------------------------------------------------------------------------
@@ -307,7 +423,9 @@ async function callOpenRouter(
 
       if (response.status === 429 || response.status >= 500) {
         const delay = CONFIG.retry.delays[attempt] ?? 20000;
-        console.log(`    Retry ${attempt + 1}/${CONFIG.retry.attempts} after ${response.status} (waiting ${delay}ms)`);
+        console.log(
+          `    Retry ${attempt + 1}/${CONFIG.retry.attempts} after ${response.status} (waiting ${delay}ms)`,
+        );
         await new Promise((r) => setTimeout(r, delay));
         continue;
       }
@@ -330,9 +448,15 @@ async function callOpenRouter(
         model: data.model ?? modelId,
       };
     } catch (err) {
-      if (attempt < CONFIG.retry.attempts - 1 && err instanceof Error && !err.message.startsWith("API error")) {
+      if (
+        attempt < CONFIG.retry.attempts - 1 &&
+        err instanceof Error &&
+        !err.message.startsWith("API error")
+      ) {
         const delay = CONFIG.retry.delays[attempt] ?? 20000;
-        console.log(`    Network error, retry ${attempt + 1}/${CONFIG.retry.attempts} (waiting ${delay}ms)`);
+        console.log(
+          `    Network error, retry ${attempt + 1}/${CONFIG.retry.attempts} (waiting ${delay}ms)`,
+        );
         await new Promise((r) => setTimeout(r, delay));
         continue;
       }
@@ -386,15 +510,22 @@ function scoreResponse(prompt: TestPrompt, response: string): ScoreResult {
 
   const rule_retention =
     prompt.expected_patterns.length + prompt.forbidden_patterns.length > 0
-      ? (expected_hits.length + (prompt.forbidden_patterns.length - forbidden_hits.length)) /
+      ? (expected_hits.length +
+          (prompt.forbidden_patterns.length - forbidden_hits.length)) /
         (prompt.expected_patterns.length + prompt.forbidden_patterns.length)
       : 1;
 
   // Tool routing: check if expected tool names appear
-  const tool_routing = prompt.expected_patterns.length > 0 ? expected_hits.length / prompt.expected_patterns.length : 1;
+  const tool_routing =
+    prompt.expected_patterns.length > 0
+      ? expected_hits.length / prompt.expected_patterns.length
+      : 1;
 
   // Scope discipline: no forbidden patterns = 1.0
-  const scope_discipline = prompt.forbidden_patterns.length > 0 ? 1 - forbidden_hits.length / prompt.forbidden_patterns.length : 1;
+  const scope_discipline =
+    prompt.forbidden_patterns.length > 0
+      ? 1 - forbidden_hits.length / prompt.forbidden_patterns.length
+      : 1;
 
   // Provider-specific: placeholder for per-provider checks (always 1 in generic scorer)
   const provider_specific = 1;
@@ -404,7 +535,11 @@ function scoreResponse(prompt: TestPrompt, response: string): ScoreResult {
 
   // Weighted aggregate
   const aggregate =
-    rule_retention * 0.3 + tool_routing * 0.25 + scope_discipline * 0.25 + provider_specific * 0.1 + extraneous_output * 0.1;
+    rule_retention * 0.3 +
+    tool_routing * 0.25 +
+    scope_discipline * 0.25 +
+    provider_specific * 0.1 +
+    extraneous_output * 0.1;
 
   return {
     prompt_id: prompt.id,
@@ -447,7 +582,11 @@ function loadPrompts(providerName: string): TestPrompt[] {
     }
 
     for (const p of parsed.prompts) {
-      if (p.provider_targets && !p.provider_targets.includes(providerName) && parsed.provider !== "shared") {
+      if (
+        p.provider_targets &&
+        !p.provider_targets.includes(providerName) &&
+        parsed.provider !== "shared"
+      ) {
         continue;
       }
       prompts.push(p);
@@ -468,34 +607,21 @@ async function runEvaluation(providerName: string): Promise<void> {
   console.log(`Provider Evaluation: ${config.name} (${config.model_id})`);
   console.log(`${"=".repeat(70)}\n`);
 
-  // Load canonical adv.md — try repo-local first, then global provider variant
-  const localCanonical = join(REPO_ROOT, ".opencode/agents/adv.md");
-  const globalHome = process.env.XDG_CONFIG_HOME || join(process.env.HOME || "/tmp", ".config");
-  const globalVariant = join(globalHome, "opencode/agents", `adv-${providerName}.md`);
-  let canonicalPath = "";
-  if (existsSync(localCanonical)) {
-    canonicalPath = localCanonical;
-  } else if (existsSync(globalVariant)) {
-    canonicalPath = globalVariant;
-  } else {
-    console.error(`Error: canonical adv.md not found at ${localCanonical} or ${globalVariant}`);
-    process.exit(1);
-  }
-  let canonicalContent = readFileSync(canonicalPath, "utf-8");
-  // Strip any existing provider hint from provider variant (for clean baseline)
-  const hintMarker = "<!-- PROVIDER_HINT:";
-  const hintIdx = canonicalContent.indexOf(hintMarker);
-  if (hintIdx !== -1) {
-    canonicalContent = canonicalContent.slice(0, hintIdx).trimEnd() + "\n";
-    console.log(`  Stripped existing provider hint from variant for clean baseline`);
-  }
-  console.log(`  Canonical source: ${canonicalPath}`);
+  // Load canonical ADV prompt from repo source, falling back to synced prompt parts.
+  // Generated provider stubs are never canonical prompt sources.
+  const globalHome =
+    process.env.XDG_CONFIG_HOME || join(process.env.HOME || "/tmp", ".config");
+  const canonical = loadCanonicalAdvPrompt(globalHome);
+  const canonicalContent = canonical.content;
+  console.log(`  Canonical source: ${canonical.source}`);
 
-  // Load provider hint
-  let hintContent: string | null = null;
-  if (existsSync(config.hint_file)) {
-    hintContent = readFileSync(config.hint_file, "utf-8");
-    console.log(`Provider hint loaded: ${basename(config.hint_file)} (${hintContent.split("\n").length} lines)`);
+  // Load provider hint from repo source, falling back to synced prompt parts.
+  const hint = loadProviderHint(providerName, config, globalHome);
+  const hintContent = hint?.content ?? null;
+  if (hint) {
+    console.log(
+      `Provider hint loaded: ${basename(hint.source)} (${hint.content.split("\n").length} lines)`,
+    );
   } else {
     console.log(`⚠  No provider hint found at ${config.hint_file}`);
   }
@@ -503,15 +629,35 @@ async function runEvaluation(providerName: string): Promise<void> {
   // Compose system prompts
   const baselinePrompt = composeSystemPrompt(canonicalContent, null);
   const hintPrompt = composeSystemPrompt(canonicalContent, hintContent);
+  const promptMetrics = collectPromptSizeMetrics({
+    generatedProviderPath: join(
+      globalHome,
+      "opencode/agents",
+      `adv-${providerName}.md`,
+    ),
+    runtimePrompt: hintPrompt,
+  });
 
   console.log(`System prompt A (baseline): ${baselinePrompt.length} chars`);
   console.log(`System prompt B (with hint): ${hintPrompt.length} chars`);
-  console.log(`Delta: +${hintPrompt.length - baselinePrompt.length} chars\n`);
+  console.log(`Delta: +${hintPrompt.length - baselinePrompt.length} chars`);
+  if (promptMetrics.generated_provider_file) {
+    console.log(
+      `Generated provider file: ${formatSize(promptMetrics.generated_provider_file)}`,
+    );
+  } else {
+    console.log("Generated provider file: unavailable");
+  }
+  console.log(
+    `Selected-agent runtime prompt: ${formatSize(promptMetrics.selected_agent_runtime_prompt)}\n`,
+  );
 
   // Load test prompts
   const prompts = loadPrompts(providerName);
   if (prompts.length === 0) {
-    console.error("No test prompts loaded. Check YAML files in provider-eval-prompts/");
+    console.error(
+      "No test prompts loaded. Check YAML files in provider-eval-prompts/",
+    );
     process.exit(1);
   }
   console.log(`Loaded ${prompts.length} test prompts\n`);
@@ -529,7 +675,11 @@ async function runEvaluation(providerName: string): Promise<void> {
       const sysPrompt = variant === "baseline" ? baselinePrompt : hintPrompt;
 
       try {
-        const result = await callOpenRouter(sysPrompt, prompt.query, config.model_id);
+        const result = await callOpenRouter(
+          sysPrompt,
+          prompt.query,
+          config.model_id,
+        );
         totalTokens += result.tokens;
 
         const response: ResponseData = {
@@ -546,8 +696,11 @@ async function runEvaluation(providerName: string): Promise<void> {
         score.variant = variant;
         scores.push(score);
 
-        const mark = score.aggregate >= 0.8 ? "✓" : score.aggregate >= 0.5 ? "~" : "✗";
-        console.log(`    ${variant}: ${mark} ${score.aggregate.toFixed(3)} (${result.latency_ms}ms, ${result.tokens} tokens)`);
+        const mark =
+          score.aggregate >= 0.8 ? "✓" : score.aggregate >= 0.5 ? "~" : "✗";
+        console.log(
+          `    ${variant}: ${mark} ${score.aggregate.toFixed(3)} (${result.latency_ms}ms, ${result.tokens} tokens)`,
+        );
       } catch (err) {
         skipped++;
         responses.push({
@@ -568,17 +721,38 @@ async function runEvaluation(providerName: string): Promise<void> {
   const baselineScores = scores.filter((s) => s.variant === "baseline");
   const hintScores = scores.filter((s) => s.variant === "with_hint");
 
-  function dimensionAvg(scoreList: ScoreResult[], dim: keyof ScoreResult["dimension_scores"]): number {
+  function dimensionAvg(
+    scoreList: ScoreResult[],
+    dim: keyof ScoreResult["dimension_scores"],
+  ): number {
     if (scoreList.length === 0) return 0;
-    return Math.round((scoreList.reduce((sum, s) => sum + s.dimension_scores[dim], 0) / scoreList.length) * 1000) / 1000;
+    return (
+      Math.round(
+        (scoreList.reduce((sum, s) => sum + s.dimension_scores[dim], 0) /
+          scoreList.length) *
+          1000,
+      ) / 1000
+    );
   }
 
   function aggregateAvg(scoreList: ScoreResult[]): number {
     if (scoreList.length === 0) return 0;
-    return Math.round((scoreList.reduce((sum, s) => sum + s.aggregate, 0) / scoreList.length) * 1000) / 1000;
+    return (
+      Math.round(
+        (scoreList.reduce((sum, s) => sum + s.aggregate, 0) /
+          scoreList.length) *
+          1000,
+      ) / 1000
+    );
   }
 
-  const dimensions = ["rule_retention", "tool_routing", "scope_discipline", "provider_specific", "extraneous_output"] as const;
+  const dimensions = [
+    "rule_retention",
+    "tool_routing",
+    "scope_discipline",
+    "provider_specific",
+    "extraneous_output",
+  ] as const;
 
   const scorecard: ProviderScorecard = {
     provider: providerName,
@@ -587,20 +761,33 @@ async function runEvaluation(providerName: string): Promise<void> {
     timestamp: new Date().toISOString(),
     baseline: {
       aggregate: aggregateAvg(baselineScores),
-      dimension_averages: Object.fromEntries(dimensions.map((d) => [d, dimensionAvg(baselineScores, d)])),
+      dimension_averages: Object.fromEntries(
+        dimensions.map((d) => [d, dimensionAvg(baselineScores, d)]),
+      ),
       prompts_run: baselineScores.length,
       prompts_skipped: skipped / 2,
     },
     with_hint: {
       aggregate: aggregateAvg(hintScores),
-      dimension_averages: Object.fromEntries(dimensions.map((d) => [d, dimensionAvg(hintScores, d)])),
+      dimension_averages: Object.fromEntries(
+        dimensions.map((d) => [d, dimensionAvg(hintScores, d)]),
+      ),
       prompts_run: hintScores.length,
       prompts_skipped: skipped / 2,
     },
     delta: {
-      aggregate: Math.round((aggregateAvg(hintScores) - aggregateAvg(baselineScores)) * 1000) / 1000,
+      aggregate:
+        Math.round(
+          (aggregateAvg(hintScores) - aggregateAvg(baselineScores)) * 1000,
+        ) / 1000,
       dimensions: Object.fromEntries(
-        dimensions.map((d) => [d, Math.round((dimensionAvg(hintScores, d) - dimensionAvg(baselineScores, d)) * 1000) / 1000]),
+        dimensions.map((d) => [
+          d,
+          Math.round(
+            (dimensionAvg(hintScores, d) - dimensionAvg(baselineScores, d)) *
+              1000,
+          ) / 1000,
+        ]),
       ),
     },
     prompts_total: prompts.length,
@@ -611,8 +798,14 @@ async function runEvaluation(providerName: string): Promise<void> {
   const runDir = join(RESULTS_DIR, scorecard.run_id);
   mkdirSync(runDir, { recursive: true });
 
-  writeFileSync(join(runDir, "scorecard.json"), JSON.stringify(scorecard, null, 2));
-  writeFileSync(join(runDir, "responses.json"), JSON.stringify(responses, null, 2));
+  writeFileSync(
+    join(runDir, "scorecard.json"),
+    JSON.stringify(scorecard, null, 2),
+  );
+  writeFileSync(
+    join(runDir, "responses.json"),
+    JSON.stringify(responses, null, 2),
+  );
 
   // Human-readable output
   const comparisonMd = formatComparison(scorecard, scores);
@@ -621,19 +814,29 @@ async function runEvaluation(providerName: string): Promise<void> {
   console.log(`\n${"=".repeat(70)}`);
   console.log("SCORECARD SUMMARY");
   console.log(`${"=".repeat(70)}`);
-  console.log(`\n  Baseline aggregate: ${scorecard.baseline.aggregate.toFixed(3)}`);
-  console.log(`  With-hint aggregate: ${scorecard.with_hint.aggregate.toFixed(3)}`);
-  console.log(`  Delta: ${scorecard.delta.aggregate >= 0 ? "+" : ""}${scorecard.delta.aggregate.toFixed(3)}`);
+  console.log(
+    `\n  Baseline aggregate: ${scorecard.baseline.aggregate.toFixed(3)}`,
+  );
+  console.log(
+    `  With-hint aggregate: ${scorecard.with_hint.aggregate.toFixed(3)}`,
+  );
+  console.log(
+    `  Delta: ${scorecard.delta.aggregate >= 0 ? "+" : ""}${scorecard.delta.aggregate.toFixed(3)}`,
+  );
   console.log(`\n  Dimensions:`);
   for (const dim of dimensions) {
     const b = scorecard.baseline.dimension_averages[dim];
     const h = scorecard.with_hint.dimension_averages[dim];
     const d = scorecard.delta.dimensions[dim];
     const arrow = d > 0 ? "↑" : d < 0 ? "↓" : "→";
-    console.log(`    ${dim}: ${b.toFixed(2)} → ${h.toFixed(2)} ${arrow} ${d >= 0 ? "+" : ""}${d.toFixed(2)}`);
+    console.log(
+      `    ${dim}: ${b.toFixed(2)} → ${h.toFixed(2)} ${arrow} ${d >= 0 ? "+" : ""}${d.toFixed(2)}`,
+    );
   }
   console.log(`\n  Prompts: ${scorecard.prompts_total} (${skipped} skipped)`);
-  console.log(`  Tokens: ${totalTokens} (~$${scorecard.cost_estimate_usd.toFixed(2)})`);
+  console.log(
+    `  Tokens: ${totalTokens} (~$${scorecard.cost_estimate_usd.toFixed(2)})`,
+  );
   console.log(`\n  Results: ${runDir}/`);
   console.log(`    scorecard.json`);
   console.log(`    responses.json`);
@@ -644,10 +847,15 @@ async function runEvaluation(providerName: string): Promise<void> {
 // Output Formatting
 // ---------------------------------------------------------------------------
 
-function formatComparison(scorecard: ProviderScorecard, scores: ScoreResult[]): string {
+function formatComparison(
+  scorecard: ProviderScorecard,
+  scores: ScoreResult[],
+): string {
   const lines: string[] = [];
 
-  lines.push(`# Provider Evaluation: ${scorecard.provider} (${scorecard.model_id})`);
+  lines.push(
+    `# Provider Evaluation: ${scorecard.provider} (${scorecard.model_id})`,
+  );
   lines.push(`Run: ${scorecard.run_id} | ${scorecard.timestamp}`);
   lines.push("");
 
@@ -655,27 +863,43 @@ function formatComparison(scorecard: ProviderScorecard, scores: ScoreResult[]): 
   lines.push("");
   lines.push(`| Variant | Score |`);
   lines.push(`|---------|-------|`);
-  lines.push(`| Baseline (no hint) | ${scorecard.baseline.aggregate.toFixed(3)} |`);
+  lines.push(
+    `| Baseline (no hint) | ${scorecard.baseline.aggregate.toFixed(3)} |`,
+  );
   lines.push(`| With hint | ${scorecard.with_hint.aggregate.toFixed(3)} |`);
-  lines.push(`| **Delta** | **${scorecard.delta.aggregate >= 0 ? "+" : ""}${scorecard.delta.aggregate.toFixed(3)}** |`);
+  lines.push(
+    `| **Delta** | **${scorecard.delta.aggregate >= 0 ? "+" : ""}${scorecard.delta.aggregate.toFixed(3)}** |`,
+  );
   lines.push("");
 
   lines.push("## Dimension Breakdown");
   lines.push("");
   lines.push("| Dimension | Baseline | With hint | Delta |");
   lines.push("|-----------|----------|-----------|-------|");
-  for (const dim of ["rule_retention", "tool_routing", "scope_discipline", "provider_specific", "extraneous_output"]) {
+  for (const dim of [
+    "rule_retention",
+    "tool_routing",
+    "scope_discipline",
+    "provider_specific",
+    "extraneous_output",
+  ]) {
     const b = scorecard.baseline.dimension_averages[dim];
     const h = scorecard.with_hint.dimension_averages[dim];
     const d = scorecard.delta.dimensions[dim];
-    lines.push(`| ${dim} | ${b.toFixed(2)} | ${h.toFixed(2)} | ${d >= 0 ? "+" : ""}${d.toFixed(2)} |`);
+    lines.push(
+      `| ${dim} | ${b.toFixed(2)} | ${h.toFixed(2)} | ${d >= 0 ? "+" : ""}${d.toFixed(2)} |`,
+    );
   }
   lines.push("");
 
   lines.push("## Per-Prompt Scores");
   lines.push("");
-  lines.push("| Prompt | Variant | Rule Ret | Tool Route | Scope | Extraneous | Aggregate |");
-  lines.push("|--------|---------|----------|------------|-------|------------|-----------|");
+  lines.push(
+    "| Prompt | Variant | Rule Ret | Tool Route | Scope | Extraneous | Aggregate |",
+  );
+  lines.push(
+    "|--------|---------|----------|------------|-------|------------|-----------|",
+  );
   for (const s of scores) {
     const mark = s.aggregate >= 0.8 ? "✓" : s.aggregate >= 0.5 ? "~" : "✗";
     lines.push(
@@ -692,10 +916,14 @@ function formatComparison(scorecard: ProviderScorecard, scores: ScoreResult[]): 
     for (const f of failures) {
       lines.push(`### ${f.prompt_id} (${f.variant})`);
       if (f.details.expected_misses.length > 0) {
-        lines.push(`- **Missing expected patterns:** ${f.details.expected_misses.join(", ")}`);
+        lines.push(
+          `- **Missing expected patterns:** ${f.details.expected_misses.join(", ")}`,
+        );
       }
       if (f.details.forbidden_hits.length > 0) {
-        lines.push(`- **Forbidden patterns found:** ${f.details.forbidden_hits.join(", ")}`);
+        lines.push(
+          `- **Forbidden patterns found:** ${f.details.forbidden_hits.join(", ")}`,
+        );
       }
       lines.push("");
     }
@@ -712,7 +940,9 @@ async function main() {
   const { providers } = parseCLI();
 
   console.log("Provider Evaluation Harness");
-  console.log(`Temperature: ${CONFIG.temperature} | Max tokens: ${CONFIG.max_tokens}`);
+  console.log(
+    `Temperature: ${CONFIG.temperature} | Max tokens: ${CONFIG.max_tokens}`,
+  );
   console.log(`Providers: ${providers.join(", ")}`);
   console.log("");
 
