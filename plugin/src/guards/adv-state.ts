@@ -28,6 +28,12 @@
  * specs are git-tracked and meant to be read by agents.
  */
 
+import {
+  PATH_GATED_TOOLS,
+  extractPathArgs,
+  isInsideLockedPath,
+} from "./path-policy-shared";
+
 // rq-advStatePath01 — ADV-state path guard blocks read/glob/grep/lgrep_*
 // against external state directories (/changes, /archive).
 
@@ -52,69 +58,6 @@ export interface AdvStatePathContext {
 export function getAdvStateLockedPaths(externalRoot: string): string[] {
   if (!externalRoot) return [];
   return [`${externalRoot}/changes`, `${externalRoot}/archive`];
-}
-
-/**
- * Tools whose args may contain file paths subject to ADV-state path
- * policy. EXACTLY mirrors the conformance guard's PATH_GATED_TOOLS set
- * — agents that need filesystem access for ADV state must use
- * `adv_change_show`, `adv_task_list`, etc.
- *
- * Excluded: bash. Bash gating lives in enforceBashPolicy. Defense is
- * instruction-based ('NEVER read ADV state directly') for adversarial
- * paths; this guard prevents accidental reads via tool names.
- */
-const PATH_GATED_TOOLS = new Set([
-  "read",
-  "glob",
-  "grep",
-  "lgrep_search_semantic",
-  "lgrep_search_symbols",
-  "lgrep_search_text",
-  "lgrep_get_file_outline",
-  "lgrep_get_file_tree",
-  "lgrep_get_repo_outline",
-  "lgrep_get_symbol",
-  "lgrep_get_symbols",
-  "lgrep_index_semantic",
-  "lgrep_index_symbols_folder",
-]);
-
-/**
- * Extract the path-like argument(s) from a tool's args object.
- *
- * Different tools use different arg names for paths:
- * - read: filePath
- * - glob: path
- * - grep: path
- * - lgrep_*: path or repo_root
- */
-function extractPathArgs(args: Record<string, unknown>): string[] {
-  const candidates = [
-    "filePath",
-    "path",
-    "target_filepath",
-    "repo_root",
-  ] as const;
-  const paths: string[] = [];
-  for (const key of candidates) {
-    const val = args[key];
-    if (typeof val === "string" && val.length > 0) paths.push(val);
-  }
-  return paths;
-}
-
-/** True when `candidatePath` equals or is nested under any locked path. */
-function isInsideLockedPath(
-  candidatePath: string,
-  lockedPaths: string[],
-): boolean {
-  for (const locked of lockedPaths) {
-    if (candidatePath === locked || candidatePath.startsWith(locked + "/")) {
-      return true;
-    }
-  }
-  return false;
 }
 
 /**
