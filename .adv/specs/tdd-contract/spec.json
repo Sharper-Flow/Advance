@@ -3,8 +3,8 @@
   "name": "tdd-contract",
   "title": "TDD Contract",
   "purpose": "Canonical definition of how TDD phases integrate with the ADV task model. Inline TDD (red/green within each implementation task) is the default. Separate verification tasks are reserved for cross-cutting tests spanning multiple implementation tasks.",
-  "version": "1.4.0",
-  "updated_at": "2026-04-20T19:11:00.000Z",
+  "version": "1.5.0",
+  "updated_at": "2026-05-03T00:00:00.000Z",
   "requirements": [
     {
       "id": "rq-TDD001inl",
@@ -346,6 +346,87 @@
           "then": [
             "Red phase still rejects exitCode=0",
             "Green phase still rejects non-zero exit codes"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-TDD009idem",
+      "title": "Idempotent Fallback Evidence Writes",
+      "body": "Fallback/manual evidence attachment MUST be idempotent and correction-aware. Repeating identical same-phase evidence MUST NOT overwrite the original audit timestamp. Replacing conflicting same-phase evidence MUST require an explicit correction reason.",
+      "priority": "must",
+      "tags": ["tdd", "evidence", "idempotency", "audit"],
+      "scenarios": [
+        {
+          "id": "rq-TDD009idem.1",
+          "title": "Identical fallback evidence is a no-op",
+          "given": [
+            "A task already has red or green evidence",
+            "A fallback evidence call repeats the same stable evidence fields"
+          ],
+          "when": "The evidence is recorded again",
+          "then": [
+            "The existing evidence is preserved",
+            "The stored recorded_at timestamp is not overwritten",
+            "The result identifies the write as a duplicate"
+          ]
+        },
+        {
+          "id": "rq-TDD009idem.2",
+          "title": "Conflicting fallback evidence requires correction reason",
+          "given": [
+            "A task already has red or green evidence",
+            "A fallback evidence call supplies different stable evidence fields for that same phase"
+          ],
+          "when": "No correction reason is supplied",
+          "then": [
+            "The write is rejected",
+            "The existing evidence is preserved",
+            "The error tells the caller to provide a correction reason"
+          ]
+        },
+        {
+          "id": "rq-TDD009idem.3",
+          "title": "Correction reason permits replacement",
+          "given": [
+            "A task already has red or green evidence",
+            "A fallback evidence call supplies different stable evidence fields for that same phase",
+            "The call includes a correction reason"
+          ],
+          "when": "The correction is recorded",
+          "then": [
+            "The evidence is replaced",
+            "The correction reason is preserved with the corrected evidence or returned result",
+            "The result identifies the write as corrected"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-TDD010phase",
+      "title": "Evidence Phase Derivation Is Monotonic by Presence",
+      "body": "Task tdd_phase MUST be derived from red/green evidence presence after fallback evidence writes. A task with both red and green evidence is complete, even when red evidence is attached or corrected after green evidence.",
+      "priority": "must",
+      "tags": ["tdd", "evidence", "phase", "audit"],
+      "scenarios": [
+        {
+          "id": "rq-TDD010phase.1",
+          "title": "Red after green does not regress complete phase",
+          "given": ["A task has both red and green evidence"],
+          "when": "Red fallback evidence is duplicated or corrected after green evidence exists",
+          "then": [
+            "The task remains in tdd_phase: complete",
+            "Phase is not regressed to red"
+          ]
+        },
+        {
+          "id": "rq-TDD010phase.2",
+          "title": "Single-phase evidence derives expected phase",
+          "given": ["A task has only red evidence or only green evidence"],
+          "when": "Fallback evidence policy derives the phase",
+          "then": [
+            "Red-only evidence yields tdd_phase: red",
+            "Green-only evidence yields tdd_phase: green"
           ]
         }
       ]

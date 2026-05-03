@@ -310,7 +310,7 @@ Inline TDD is default — red/green phases WITHIN each task. × Do NOT create se
 - **Trivial:** Note `(trivial: docs change)`, skip TDD
 - **Cross-cutting:** Separate verification tasks OK → mark `metadata.tdd_intent: "separate_verification"`
 
-`adv_task_evidence` is fallback for externally captured evidence, not the primary inline-TDD path.
+`adv_run_test` is prescribed for ordinary inline red/green work because it provides executable proof, durable evidence, and task-run ledger continuity. `adv_task_evidence` is fallback for externally captured or manual evidence only when it adds unique audit/recovery value; do not add evidence-tool ceremony without reproducibility, durable audit, or recovery value.
 
 ### Reflection Protocol
 

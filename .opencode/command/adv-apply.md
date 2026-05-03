@@ -336,7 +336,7 @@ Use task IDs only (`tk-abc123`), not descriptions. Forces context lookup via `ad
 | "We'll handle this later" without surfacing | Apply scope-discovery protocol |
 | Quietly trimming a planned task as redundant | Apply scope-discovery protocol |
 
-`adv_task_evidence` is fallback for externally captured evidence. It is not the primary inline-TDD path when the test command can run via `adv_run_test`.
+`adv_run_test` is prescribed for ordinary inline red/green work because it provides executable proof, durable evidence, and task-run ledger continuity in one command. `adv_task_evidence` is fallback for externally captured or manual evidence only when it adds unique audit/recovery value. It is not the primary inline-TDD path when the test command can run via `adv_run_test`; extra evidence-tool ceremony without reproducibility, durable audit, or recovery value is burden without benefit.
 ### Delegation Routing
 Before TDD phases, evaluate each task for delegation eligibility:
 | Priority | Check | Result |

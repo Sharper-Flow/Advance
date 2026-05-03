@@ -1,7 +1,7 @@
 # TDD Contract
 
-> **Version:** 1.4.0
-> **Updated:** 2026-04-20
+> **Version:** 1.5.0
+> **Updated:** 2026-05-03
 
 ## Purpose
 
@@ -415,5 +415,101 @@ For ordinary inline TDD work, the primary red/green execution path MUST use adv_
 
 - Red phase still rejects exitCode=0
 - Green phase still rejects non-zero exit codes
+
+---
+
+### Idempotent Fallback Evidence Writes
+
+**ID:** `rq-TDD009idem` | **Priority:** **[MUST]**
+
+Fallback/manual evidence attachment MUST be idempotent and correction-aware. Repeating identical same-phase evidence MUST NOT overwrite the original audit timestamp. Replacing conflicting same-phase evidence MUST require an explicit correction reason.
+
+**Tags:** `tdd`, `evidence`, `idempotency`, `audit`
+
+#### Scenarios
+
+**Identical fallback evidence is a no-op** (`rq-TDD009idem.1`)
+
+**Given:**
+
+- A task already has red or green evidence
+- A fallback evidence call repeats the same stable evidence fields
+
+**When:** The evidence is recorded again
+
+**Then:**
+
+- The existing evidence is preserved
+- The stored recorded_at timestamp is not overwritten
+- The result identifies the write as a duplicate
+
+**Conflicting fallback evidence requires correction reason** (`rq-TDD009idem.2`)
+
+**Given:**
+
+- A task already has red or green evidence
+- A fallback evidence call supplies different stable evidence fields for that same phase
+
+**When:** No correction reason is supplied
+
+**Then:**
+
+- The write is rejected
+- The existing evidence is preserved
+- The error tells the caller to provide a correction reason
+
+**Correction reason permits replacement** (`rq-TDD009idem.3`)
+
+**Given:**
+
+- A task already has red or green evidence
+- A fallback evidence call supplies different stable evidence fields for that same phase
+- The call includes a correction reason
+
+**When:** The correction is recorded
+
+**Then:**
+
+- The evidence is replaced
+- The correction reason is preserved with the corrected evidence or returned result
+- The result identifies the write as corrected
+
+---
+
+### Evidence Phase Derivation Is Monotonic by Presence
+
+**ID:** `rq-TDD010phase` | **Priority:** **[MUST]**
+
+Task `tdd_phase` MUST be derived from red/green evidence presence after fallback evidence writes. A task with both red and green evidence is complete, even when red evidence is attached or corrected after green evidence.
+
+**Tags:** `tdd`, `evidence`, `phase`, `audit`
+
+#### Scenarios
+
+**Red after green does not regress complete phase** (`rq-TDD010phase.1`)
+
+**Given:**
+
+- A task has both red and green evidence
+
+**When:** Red fallback evidence is duplicated or corrected after green evidence exists
+
+**Then:**
+
+- The task remains in `tdd_phase: complete`
+- Phase is not regressed to `red`
+
+**Single-phase evidence derives expected phase** (`rq-TDD010phase.2`)
+
+**Given:**
+
+- A task has only red evidence or only green evidence
+
+**When:** Fallback evidence policy derives the phase
+
+**Then:**
+
+- Red-only evidence yields `tdd_phase: red`
+- Green-only evidence yields `tdd_phase: green`
 
 ---

@@ -3,8 +3,8 @@
   "name": "advance-delivery",
   "title": "Advance Delivery",
   "purpose": "Capability: Execution-layer contract for ADV \u2014 TDD execution routing, task-run ledger, bulk operations, delta operations, and per-task checkpoint commits. Split from `advance` capability; absorbs former `contract-system` and `checkpoint-commits` capabilities.",
-  "version": "1.1.0",
-  "updated_at": "2026-05-02T00:00:00.000Z",
+  "version": "1.2.0",
+  "updated_at": "2026-05-03T00:00:00.000Z",
   "requirements": [
     {
       "id": "rq-ADVEXEC01",
@@ -115,6 +115,66 @@
       "meta": {
         "merged_from": "advance"
       }
+    },
+    {
+      "id": "rq-ADVEXEC04",
+      "title": "Evidence Tool Value Justification",
+      "body": "ADV command and instruction guidance MUST justify prescribed evidence tooling by durable user value. adv_run_test is the normal inline TDD path because it provides executable proof, durable evidence, and task-run ledger continuity. adv_task_evidence is a fallback/manual attachment path only when it adds unique audit or recovery value.",
+      "priority": "must",
+      "tags": ["workflow", "execution", "tdd", "evidence", "value"],
+      "scenarios": [
+        {
+          "id": "rq-ADVEXEC04.1",
+          "title": "adv_run_test prescription names value categories",
+          "given": ["/adv-apply or agent guidance prescribes adv_run_test for inline TDD"],
+          "when": "The guidance is inspected",
+          "then": [
+            "It explains executable proof value",
+            "It explains durable evidence value",
+            "It explains task-run ledger continuity value"
+          ]
+        },
+        {
+          "id": "rq-ADVEXEC04.2",
+          "title": "adv_task_evidence remains value-gated fallback",
+          "given": ["Guidance references adv_task_evidence"],
+          "when": "The guidance is inspected",
+          "then": [
+            "It describes adv_task_evidence as fallback/manual attachment",
+            "It limits use to externally obtained evidence or recovery/audit cases",
+            "It does not prescribe the tool as ceremony for ordinary inline TDD"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-ADVEXEC05",
+      "title": "Prescriptive Tool Guidance Must Pass Value-vs-Burden Test",
+      "body": "New prescriptive ADV execution guidance MUST state the durable value category that justifies its burden. Valid categories include reproducibility, durable audit, recovery, safety, validation, and governance. Guidance that only adds ceremony without one of these values MUST NOT be added.",
+      "priority": "must",
+      "tags": ["workflow", "execution", "governance", "value", "burden"],
+      "scenarios": [
+        {
+          "id": "rq-ADVEXEC05.1",
+          "title": "Prescriptive guidance includes value category",
+          "given": ["A command or agent instruction tells the agent it MUST use a specific tool or workflow step"],
+          "when": "The guidance is reviewed",
+          "then": [
+            "The guidance states at least one durable value category",
+            "The category explains why the burden is useful to the user or future recovery"
+          ]
+        },
+        {
+          "id": "rq-ADVEXEC05.2",
+          "title": "Ceremony without durable value is rejected",
+          "given": ["Proposed guidance adds an extra tool call or diagnostic surface"],
+          "when": "It does not improve reproducibility, durable audit, recovery, safety, validation, or governance",
+          "then": [
+            "The guidance is not added",
+            "Existing guidance is kept focused on value-producing evidence"
+          ]
+        }
+      ]
     },
     {
       "id": "rq-bulkClose01",

@@ -1,7 +1,7 @@
 # Advance Delivery
 
-> **Version:** 1.0.0
-> **Updated:** 2026-04-28
+> **Version:** 1.2.0
+> **Updated:** 2026-05-03
 
 ## Purpose
 
@@ -121,6 +121,76 @@ During active inline-TDD work, runtime enforcement MUST treat shell-authored tes
 **Then:**
 - The command is not blocked
 - An advisory is emitted directing the agent to prefer adv_run_test
+
+---
+
+### Evidence Tool Value Justification
+
+**ID:** `rq-ADVEXEC04` | **Priority:** **[MUST]**
+
+ADV command and instruction guidance MUST justify prescribed evidence tooling by durable user value. `adv_run_test` is the normal inline TDD path because it provides executable proof, durable evidence, and task-run ledger continuity. `adv_task_evidence` is a fallback/manual attachment path only when it adds unique audit or recovery value.
+
+**Tags:** `workflow`, `execution`, `tdd`, `evidence`, `value`
+
+#### Scenarios
+
+**adv_run_test prescription names value categories** (`rq-ADVEXEC04.1`)
+
+**Given:**
+- /adv-apply or agent guidance prescribes adv_run_test for inline TDD
+
+**When:** The guidance is inspected
+
+**Then:**
+- It explains executable proof value
+- It explains durable evidence value
+- It explains task-run ledger continuity value
+
+**adv_task_evidence remains value-gated fallback** (`rq-ADVEXEC04.2`)
+
+**Given:**
+- Guidance references adv_task_evidence
+
+**When:** The guidance is inspected
+
+**Then:**
+- It describes adv_task_evidence as fallback/manual attachment
+- It limits use to externally obtained evidence or recovery/audit cases
+- It does not prescribe the tool as ceremony for ordinary inline TDD
+
+---
+
+### Prescriptive Tool Guidance Must Pass Value-vs-Burden Test
+
+**ID:** `rq-ADVEXEC05` | **Priority:** **[MUST]**
+
+New prescriptive ADV execution guidance MUST state the durable value category that justifies its burden. Valid categories include reproducibility, durable audit, recovery, safety, validation, and governance. Guidance that only adds ceremony without one of these values MUST NOT be added.
+
+**Tags:** `workflow`, `execution`, `governance`, `value`, `burden`
+
+#### Scenarios
+
+**Prescriptive guidance includes value category** (`rq-ADVEXEC05.1`)
+
+**Given:**
+- A command or agent instruction tells the agent it MUST use a specific tool or workflow step
+
+**When:** The guidance is reviewed
+
+**Then:**
+- The guidance states at least one durable value category
+- The category explains why the burden is useful to the user or future recovery
+
+**Ceremony without durable value is rejected** (`rq-ADVEXEC05.2`)
+
+**Given:**
+- Proposed guidance adds an extra tool call or diagnostic surface
+
+**When:** It does not improve reproducibility, durable audit, recovery, safety, validation, or governance
+
+**Then:**
+- The guidance is not added
+- Existing guidance is kept focused on value-producing evidence
 
 ---
 
