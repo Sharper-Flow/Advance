@@ -256,8 +256,8 @@ function composeSystemPrompt(
 
   if (!hintContent) return stripped; // baseline: no hint
 
-  // Replicates OpenCode prompt-ref composition:
-  // {file:./agent-parts/advance/adv.md}\n\n{file:./agent-parts/advance/providers/{provider}.md}
+  // Replicates sync-global.sh concatenated prompt file:
+  // agent-parts/advance/adv-{provider}.md = canonical body + provider hint
   return `${stripped}\n\n${hintContent}`;
 }
 

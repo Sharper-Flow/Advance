@@ -320,7 +320,21 @@
             "Global adv-{provider}.md files preserve provider frontmatter and tool allowlists",
             "Global adv-{provider}.md bodies contain the [ADV:PROVIDER_STUB_UNEXPANDED] diagnostic instead of the canonical ADV body",
             "Global prompt parts are written to agent-parts/advance/adv.md and agent-parts/advance/providers/{provider}.md",
-            "agent.adv-{provider}.prompt references the canonical prompt part plus exactly one provider hint prompt part"
+            "Concatenated prompt files are generated at agent-parts/advance/adv-{provider}.md (canonical body + provider hint)",
+            "agent.adv-{provider}.prompt references exactly one {file:./agent-parts/advance/adv-{provider}.md} concatenated prompt file"
+          ]
+        },
+        {
+          "id": "rq-providerAdvSkinny01.1a",
+          "title": "Concatenated provider prompt files are kept fresh by regenerate-and-diff staleness detection",
+          "given": [
+            "A concatenated prompt file agent-parts/advance/adv-{provider}.md exists from a previous sync"
+          ],
+          "when": "sync-global.sh --check runs and the canonical body or provider hint has changed",
+          "then": [
+            "The stale concatenated file is detected via regenerate-and-diff (fresh generation compared to disk)",
+            "The staleness is reported as a check failure with instructions to run --fix",
+            "Running --fix regenerates all concatenated files idempotently"
           ]
         },
         {

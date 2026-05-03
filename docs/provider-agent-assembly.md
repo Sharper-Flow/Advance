@@ -6,18 +6,18 @@ How ADV generates provider-specific orchestrator variants and how they integrate
 
 ADV ships one canonical orchestrator source: `.opencode/agents/adv.md`. During `sync-global.sh --fix`, ADV syncs that canonical body to global prompt part `~/.config/opencode/agent-parts/advance/adv.md`, syncs provider hints to `~/.config/opencode/agent-parts/advance/providers/{provider}.md`, and generates skinny global provider stubs.
 
-| Variant      | Provider         | Hint source                                 | Runtime prompt refs                                                                                 |
-| ------------ | ---------------- | ------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| `adv-claude` | Anthropic Claude | `.opencode/agent-parts/providers/claude.md` | `agent-parts/advance/adv.md` + `agent-parts/advance/providers/claude.md` |
-| `adv-gpt`    | OpenAI GPT       | `.opencode/agent-parts/providers/gpt.md`    | `agent-parts/advance/adv.md` + `agent-parts/advance/providers/gpt.md`    |
-| `adv-glm`    | Zhipu GLM        | `.opencode/agent-parts/providers/glm.md`    | `agent-parts/advance/adv.md` + `agent-parts/advance/providers/glm.md`    |
-| `adv-kimi`   | Moonshot Kimi    | `.opencode/agent-parts/providers/kimi.md`   | `agent-parts/advance/adv.md` + `agent-parts/advance/providers/kimi.md`   |
+| Variant      | Provider         | Hint source                                 | Runtime prompt ref                                              |
+| ------------ | ---------------- | ------------------------------------------- | --------------------------------------------------------------- |
+| `adv-claude` | Anthropic Claude | `.opencode/agent-parts/providers/claude.md` | `agent-parts/advance/adv-claude.md` (concatenated) |
+| `adv-gpt`    | OpenAI GPT       | `.opencode/agent-parts/providers/gpt.md`    | `agent-parts/advance/adv-gpt.md` (concatenated)    |
+| `adv-glm`    | Zhipu GLM        | `.opencode/agent-parts/providers/glm.md`    | `agent-parts/advance/adv-glm.md` (concatenated)    |
+| `adv-kimi`   | Moonshot Kimi    | `.opencode/agent-parts/providers/kimi.md`   | `agent-parts/advance/adv-kimi.md` (concatenated)   |
 
 ## Design Principles
 
 1. **Single source of truth** — `adv.md` remains canonical. Provider stubs do not fork ADV behavior.
 2. **Skinny generated files** — `adv-{provider}.md` keeps frontmatter/tool allowlist only, then emits `[ADV:PROVIDER_STUB_UNEXPANDED]` if OpenCode fails to expand prompt refs.
-3. **Prompt-part composition** — native OpenCode `agent.adv-{provider}.prompt` contains `{file:./agent-parts/advance/adv.md}` plus `{file:./agent-parts/advance/providers/{provider}.md}`.
+3. **Prompt-part composition** — sync generates a single concatenated file per provider (`adv-{provider}.md` = canonical body + provider hint). OpenCode `agent.adv-{provider}.prompt` contains one `{file:./agent-parts/advance/adv-{provider}.md}` ref. Multi-file refs (`{file:A}\n\n{file:B}`) do not resolve at runtime.
 4. **Prompt-only key safety** — `prompt` without activation fields (`model`, `disable`, `variant`, `color`) does not activate provider mode or hide generic `adv`.
 5. **No duplicate runtime hints** — the plugin runtime does not inject `[ADV:PROVIDER_HINT]`; provider behavior comes only from prompt parts.
 6. **Global-only provider state** — Provider-ADV files and prompt refs live in global `opencode.json`. Repo-local `adv.md` stays canonical and git-tracked.
@@ -30,16 +30,17 @@ ADV ships one canonical orchestrator source: `.opencode/agents/adv.md`. During `
 
 1. Copy canonical `adv.md` body to `~/.config/opencode/agent-parts/advance/adv.md`.
 2. Copy `.opencode/agent-parts/providers/{provider}.md` to `~/.config/opencode/agent-parts/advance/providers/{provider}.md`.
-3. Generate `~/.config/opencode/agents/adv-{provider}.md` from canonical frontmatter/tool allowlist only.
-4. Patch frontmatter `name:` to `adv-{provider}` and optional configured `color:`.
-5. Insert stub body with `[ADV:PROVIDER_STUB_UNEXPANDED]` diagnostic text.
-6. Patch `opencode.json` prompt refs:
+3. Generate concatenated prompt file `~/.config/opencode/agent-parts/advance/adv-{provider}.md` (canonical body + provider hint).
+4. Generate `~/.config/opencode/agents/adv-{provider}.md` from canonical frontmatter/tool allowlist only.
+5. Patch frontmatter `name:` to `adv-{provider}` and optional configured `color:`.
+6. Insert stub body with `[ADV:PROVIDER_STUB_UNEXPANDED]` diagnostic text.
+7. Patch `opencode.json` prompt refs:
 
 ```json
 {
   "agent": {
     "adv-gpt": {
-      "prompt": "{file:./agent-parts/advance/adv.md}\n\n{file:./agent-parts/advance/providers/gpt.md}"
+      "prompt": "{file:./agent-parts/advance/adv-gpt.md}"
     }
   }
 }

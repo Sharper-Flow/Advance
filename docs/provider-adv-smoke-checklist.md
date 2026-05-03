@@ -19,8 +19,9 @@ Run after `scripts/sync-global.sh --fix` and OMP apply.
 - [ ] `~/.config/opencode/agent-parts/advance/adv.md` contains canonical ADV body
 - [ ] `~/.config/opencode/agent-parts/advance/providers/{provider}.md` exists for each provider
 - [ ] `~/.config/opencode/agent-parts/advance/providers/{provider}.md` contains `<!-- PROVIDER_HINT:{provider} -->`
-- [ ] `opencode.json` has `agent.adv-{provider}.prompt` with `{file:./agent-parts/advance/adv.md}`
-- [ ] `opencode.json` has `agent.adv-{provider}.prompt` with `{file:./agent-parts/advance/providers/{provider}.md}`
+- [ ] `~/.config/opencode/agent-parts/advance/adv-{provider}.md` exists (concatenated file)
+- [ ] `~/.config/opencode/agent-parts/advance/adv-{provider}.md` contains canonical body followed by provider hint
+- [ ] `opencode.json` has `agent.adv-{provider}.prompt` with `{file:./agent-parts/advance/adv-{provider}.md}`
 
 ## Legacy Migration
 
