@@ -2,7 +2,15 @@ import { describe, expect, it } from "vitest";
 import {
   addAgendaItemToProjectState,
   addProjectWisdomToProjectState,
+  applyAddWorktreeSession,
   applyChangeSummaryToProjectState,
+  applyClearPendingWorktreeDelete,
+  applyIncrementPendingWorktreeDeleteAttempts,
+  applyRegisterSession,
+  applyRemoveWorktreeSession,
+  applySetPendingWorktreeDelete,
+  applyUnregisterSession,
+  applyUpdateSessionActivity,
   createProjectWorkflowState,
   listAgendaItemsFromProjectState,
   listProjectWisdomFromProjectState,
@@ -918,5 +926,314 @@ describe("purgeChangeSummaryFromProjectState", () => {
     ).not.toThrow();
     expect(state.change_summaries).toEqual({});
     expect(state.source_versions).toEqual({});
+  });
+});
+
+// =============================================================================
+// T6 (KD-1): worktree + session lifecycle mutator tests
+// Spec: rq-worktreeRegistry01, rq-multiSessionCoordination01.
+// =============================================================================
+
+describe("worktree + session mutators (T6)", () => {
+  function freshState() {
+    return createProjectWorkflowState({
+      projectId: "p",
+      initializedAt: "2026-04-18T00:00:00.000Z",
+    });
+  }
+
+  describe("applyAddWorktreeSession", () => {
+    it("inserts a new worktree record", () => {
+      const state = freshState();
+      const out = applyAddWorktreeSession(state, {
+        branch: "change/foo",
+        path: "/wt/foo",
+        changeId: "foo",
+        baseRef: "trunk",
+        headSha: "abc123",
+        source: "tool",
+        now: "2026-04-18T00:01:00.000Z",
+        sourceVersion: 1,
+      });
+      expect(out.branch).toBe("change/foo");
+      expect(out.status).toBe("active");
+      expect(out.createdAt).toBe("2026-04-18T00:01:00.000Z");
+      expect(state.worktree_registry["change/foo"]).toBe(out);
+    });
+
+    it("dedup: skips out-of-order updates with stale sourceVersion", () => {
+      const state = freshState();
+      applyAddWorktreeSession(state, {
+        branch: "change/foo",
+        path: "/wt/foo",
+        baseRef: "trunk",
+        headSha: "abc123",
+        source: "tool",
+        now: "2026-04-18T00:01:00.000Z",
+        sourceVersion: 5,
+      });
+      const out = applyAddWorktreeSession(state, {
+        branch: "change/foo",
+        path: "/wt/foo-changed",
+        baseRef: "trunk",
+        headSha: "deadbeef",
+        source: "tool",
+        now: "2026-04-18T00:02:00.000Z",
+        sourceVersion: 3, // <= existing 5 → dedup skip
+      });
+      expect(out.path).toBe("/wt/foo"); // unchanged
+      expect(out.sourceVersion).toBe(5);
+    });
+
+    it("preserves createdAt when updating an existing record", () => {
+      const state = freshState();
+      applyAddWorktreeSession(state, {
+        branch: "change/foo",
+        path: "/wt/foo",
+        baseRef: "trunk",
+        headSha: "abc",
+        source: "tool",
+        now: "2026-04-18T00:01:00.000Z",
+        sourceVersion: 1,
+      });
+      const out = applyAddWorktreeSession(state, {
+        branch: "change/foo",
+        path: "/wt/foo",
+        baseRef: "trunk",
+        headSha: "def",
+        source: "tool",
+        now: "2026-04-18T00:02:00.000Z",
+        sourceVersion: 2,
+      });
+      expect(out.createdAt).toBe("2026-04-18T00:01:00.000Z");
+      expect(out.lastSeenAt).toBe("2026-04-18T00:02:00.000Z");
+      expect(out.headSha).toBe("def");
+    });
+  });
+
+  describe("applyRemoveWorktreeSession", () => {
+    function withWorktree() {
+      const state = freshState();
+      applyAddWorktreeSession(state, {
+        branch: "change/foo",
+        path: "/wt/foo",
+        baseRef: "trunk",
+        headSha: "abc",
+        source: "tool",
+        now: "2026-04-18T00:01:00.000Z",
+        sourceVersion: 1,
+      });
+      return state;
+    }
+
+    it("soft-delete (default) flips status to deleted, retains record", () => {
+      const state = withWorktree();
+      const out = applyRemoveWorktreeSession(state, {
+        branch: "change/foo",
+        now: "2026-04-18T00:03:00.000Z",
+      });
+      expect(out?.status).toBe("deleted");
+      expect(state.worktree_registry["change/foo"]?.status).toBe("deleted");
+    });
+
+    it("hard-delete removes the record entirely", () => {
+      const state = withWorktree();
+      const out = applyRemoveWorktreeSession(state, {
+        branch: "change/foo",
+        mode: "hard",
+        now: "2026-04-18T00:03:00.000Z",
+      });
+      expect(out).toBeNull();
+      expect(state.worktree_registry["change/foo"]).toBeUndefined();
+    });
+
+    it("returns null for unknown branch (idempotent)", () => {
+      const state = freshState();
+      const out = applyRemoveWorktreeSession(state, {
+        branch: "change/nope",
+        now: "2026-04-18T00:03:00.000Z",
+      });
+      expect(out).toBeNull();
+    });
+  });
+
+  describe("applySetPendingWorktreeDelete + applyClearPendingWorktreeDelete", () => {
+    it("sets a pending delete record idempotently", () => {
+      const state = freshState();
+      const a = applySetPendingWorktreeDelete(state, {
+        branch: "change/foo",
+        path: "/wt/foo",
+        reason: "in_use",
+        now: "2026-04-18T00:01:00.000Z",
+      });
+      expect(a.attempts).toBe(0);
+      expect(a.recordedAt).toBe("2026-04-18T00:01:00.000Z");
+
+      // Second call preserves recordedAt + attempts
+      const b = applySetPendingWorktreeDelete(state, {
+        branch: "change/foo",
+        path: "/wt/foo",
+        reason: "still_in_use",
+        now: "2026-04-18T00:02:00.000Z",
+      });
+      expect(b.recordedAt).toBe("2026-04-18T00:01:00.000Z"); // preserved
+      expect(b.reason).toBe("still_in_use"); // updated
+      expect(b.attempts).toBe(0);
+    });
+
+    it("clears pending delete record idempotently", () => {
+      const state = freshState();
+      applySetPendingWorktreeDelete(state, {
+        branch: "change/foo",
+        path: "/wt/foo",
+        reason: "in_use",
+        now: "2026-04-18T00:01:00.000Z",
+      });
+      applyClearPendingWorktreeDelete(state, { branch: "change/foo" });
+      expect(state.pending_worktree_deletes["change/foo"]).toBeUndefined();
+      // Idempotent: clearing again does not throw
+      expect(() =>
+        applyClearPendingWorktreeDelete(state, { branch: "change/foo" }),
+      ).not.toThrow();
+    });
+  });
+
+  describe("applyIncrementPendingWorktreeDeleteAttempts", () => {
+    it("increments the attempts counter (RMW)", () => {
+      const state = freshState();
+      applySetPendingWorktreeDelete(state, {
+        branch: "change/foo",
+        path: "/wt/foo",
+        reason: "in_use",
+        now: "2026-04-18T00:01:00.000Z",
+      });
+      const a = applyIncrementPendingWorktreeDeleteAttempts(state, {
+        branch: "change/foo",
+      });
+      expect(a?.attempts).toBe(1);
+      const b = applyIncrementPendingWorktreeDeleteAttempts(state, {
+        branch: "change/foo",
+      });
+      expect(b?.attempts).toBe(2);
+    });
+
+    it("returns null when pending entry is absent (race-safe)", () => {
+      const state = freshState();
+      const out = applyIncrementPendingWorktreeDeleteAttempts(state, {
+        branch: "change/nope",
+      });
+      expect(out).toBeNull();
+    });
+  });
+
+  describe("session lifecycle mutators", () => {
+    it("registerSession inserts an entry with full schema", () => {
+      const state = freshState();
+      const out = applyRegisterSession(state, {
+        sessionId: "sess_AbCdEfGh",
+        worktreeBranch: "change/foo",
+        worktreePath: "/wt/foo",
+        pid: 12345,
+        now: "2026-04-18T00:01:00.000Z",
+      });
+      expect(out.sessionId).toBe("sess_AbCdEfGh");
+      expect(out.startedAt).toBe("2026-04-18T00:01:00.000Z");
+      expect(out.lastSeenAt).toBe("2026-04-18T00:01:00.000Z");
+      expect(out.pid).toBe(12345);
+    });
+
+    it("registerSession on same id refreshes lastSeenAt, preserves startedAt", () => {
+      const state = freshState();
+      applyRegisterSession(state, {
+        sessionId: "sess_x",
+        worktreePath: "/wt/x",
+        pid: 1,
+        now: "2026-04-18T00:01:00.000Z",
+      });
+      const out = applyRegisterSession(state, {
+        sessionId: "sess_x",
+        worktreePath: "/wt/x",
+        pid: 1,
+        now: "2026-04-18T00:02:00.000Z",
+      });
+      expect(out.startedAt).toBe("2026-04-18T00:01:00.000Z");
+      expect(out.lastSeenAt).toBe("2026-04-18T00:02:00.000Z");
+    });
+
+    it("unregisterSession removes the entry idempotently", () => {
+      const state = freshState();
+      applyRegisterSession(state, {
+        sessionId: "sess_y",
+        worktreePath: "/wt/y",
+        pid: 2,
+        now: "2026-04-18T00:01:00.000Z",
+      });
+      applyUnregisterSession(state, { sessionId: "sess_y" });
+      expect(state.session_registry.sess_y).toBeUndefined();
+      expect(() =>
+        applyUnregisterSession(state, { sessionId: "sess_y" }),
+      ).not.toThrow();
+    });
+
+    it("updateSessionActivity refreshes lastSeenAt + active fields", () => {
+      const state = freshState();
+      applyRegisterSession(state, {
+        sessionId: "sess_z",
+        worktreePath: "/wt/z",
+        pid: 3,
+        now: "2026-04-18T00:01:00.000Z",
+      });
+      const out = applyUpdateSessionActivity(state, {
+        sessionId: "sess_z",
+        now: "2026-04-18T00:02:00.000Z",
+        activeChangeId: "chg-1",
+        currentTaskId: "tk-1",
+        activeGate: "execution",
+      });
+      expect(out?.lastSeenAt).toBe("2026-04-18T00:02:00.000Z");
+      expect(out?.activeChangeId).toBe("chg-1");
+      expect(out?.currentTaskId).toBe("tk-1");
+      expect(out?.activeGate).toBe("execution");
+    });
+
+    it("updateSessionActivity returns null if session was unregistered", () => {
+      const state = freshState();
+      const out = applyUpdateSessionActivity(state, {
+        sessionId: "sess_nope",
+        now: "2026-04-18T00:02:00.000Z",
+      });
+      expect(out).toBeNull();
+    });
+  });
+
+  describe("WORKFLOW_NOT_READY enforcement (T4 guard wired into mutators)", () => {
+    it("addWorktreeSession throws when registries are missing", () => {
+      const broken = {
+        // Missing all 3 registries
+      } as any;
+      expect(() =>
+        applyAddWorktreeSession(broken, {
+          branch: "change/x",
+          path: "/wt/x",
+          baseRef: "trunk",
+          headSha: "abc",
+          source: "tool",
+          now: "2026-04-18T00:00:00.000Z",
+          sourceVersion: 1,
+        }),
+      ).toThrow(/WORKFLOW_NOT_READY|workflow not ready/i);
+    });
+
+    it("registerSession throws when registries are missing", () => {
+      const broken = {} as any;
+      expect(() =>
+        applyRegisterSession(broken, {
+          sessionId: "sess_x",
+          worktreePath: "/wt/x",
+          pid: 1,
+          now: "2026-04-18T00:00:00.000Z",
+        }),
+      ).toThrow(/WORKFLOW_NOT_READY|workflow not ready/i);
+    });
   });
 });

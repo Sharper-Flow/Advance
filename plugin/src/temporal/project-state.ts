@@ -7,10 +7,14 @@ import {
 import {
   DEFAULT_CHANGE_SUMMARIES_CAP,
   type MigrationLedgerEntry,
+  type PendingWorktreeDelete,
   type ProjectWisdomEntry,
   type ProjectWorkflowInput,
   type ProjectWorkflowState,
   type ChangeSummaryPayload,
+  type SessionRecord,
+  type WorktreeRecord,
+  assertProjectWorkflowReachable,
 } from "./contracts";
 
 function toAgendaId(raw: string): string {
@@ -257,4 +261,252 @@ export function purgeChangeSummaryFromProjectState(
 ): void {
   delete state.change_summaries[changeId];
   delete state.source_versions[changeId];
+}
+
+// =============================================================================
+// T6 (KD-1): worktree + session lifecycle mutators
+// Spec anchors: rq-worktreeRegistry01, rq-multiSessionCoordination01.
+//
+// Replay-determinism guarantees:
+// - Monotonic `sourceVersion` per worktree-id / session-id for dedup
+//   (out-of-order updates skipped if version <= existing)
+// - All timestamps come in via the payload (no Date.now() in mutator body)
+// - No floating-point math; no random IDs in the mutator body
+// - Object iteration uses insertion order (ES2019+) for determinism
+//
+// Each mutator invokes `assertProjectWorkflowReachable()` first so a
+// degraded workflow state (e.g. continue-as-new from an older snapshot
+// that lacks the new registries) returns a deterministic
+// WORKFLOW_NOT_READY error instead of a NPE.
+// =============================================================================
+
+/** Payload for `adv.project.addWorktreeSession`. */
+export interface AddWorktreeSessionPayload {
+  branch: string;
+  path: string;
+  changeId?: string;
+  baseRef: string;
+  headSha: string;
+  source: WorktreeRecord["source"];
+  /** ISO 8601 timestamp; mutator must NOT use Date.now(). */
+  now: string;
+  /** Monotonic version per branch for dedup. */
+  sourceVersion: number;
+}
+
+/** Payload for `adv.project.removeWorktreeSession`. */
+export interface RemoveWorktreeSessionPayload {
+  branch: string;
+  /**
+   * `soft` flips status to "deleted" (audit trail preserved); `hard`
+   * removes the registry entry entirely. Defaults to `soft`.
+   */
+  mode?: "soft" | "hard";
+  /** ISO 8601 timestamp for lastSeenAt update before removal. */
+  now: string;
+}
+
+/** Payload for `adv.project.setPendingWorktreeDelete`. */
+export interface SetPendingWorktreeDeletePayload {
+  branch: string;
+  path: string;
+  reason: string;
+  /** ISO 8601 timestamp. */
+  now: string;
+}
+
+/** Payload for `adv.project.clearPendingWorktreeDelete`. */
+export interface ClearPendingWorktreeDeletePayload {
+  branch: string;
+}
+
+/** Payload for `adv.project.incrementPendingWorktreeDeleteAttempts`. */
+export interface IncrementPendingWorktreeDeleteAttemptsPayload {
+  branch: string;
+}
+
+/** Payload for `adv.project.registerSession`. */
+export interface RegisterSessionPayload {
+  sessionId: string;
+  worktreeBranch?: string;
+  worktreePath: string;
+  pid: number;
+  /** ISO 8601 timestamp. */
+  now: string;
+}
+
+/** Payload for `adv.project.unregisterSession`. */
+export interface UnregisterSessionPayload {
+  sessionId: string;
+}
+
+/** Payload for `adv.project.updateSessionActivity`. */
+export interface UpdateSessionActivityPayload {
+  sessionId: string;
+  /** ISO 8601 timestamp; becomes new lastSeenAt. */
+  now: string;
+  activeChangeId?: string;
+  currentTaskId?: string;
+  activeGate?: string;
+}
+
+/**
+ * Insert or update a worktree registry record. Monotonic
+ * `sourceVersion` per branch ensures replay-determinism for
+ * out-of-order updates. Returns the resulting WorktreeRecord (or the
+ * existing record when the update was skipped due to dedup).
+ */
+export function applyAddWorktreeSession(
+  state: ProjectWorkflowState,
+  payload: AddWorktreeSessionPayload,
+): WorktreeRecord {
+  assertProjectWorkflowReachable(state);
+  const existing = state.worktree_registry[payload.branch];
+  if (existing && payload.sourceVersion <= existing.sourceVersion) {
+    // Out-of-order or duplicate — preserve existing record.
+    return existing;
+  }
+  const next: WorktreeRecord = {
+    branch: payload.branch,
+    path: payload.path,
+    changeId: payload.changeId,
+    status: "active",
+    createdAt: existing?.createdAt ?? payload.now,
+    lastSeenAt: payload.now,
+    baseRef: payload.baseRef,
+    headSha: payload.headSha,
+    source: payload.source,
+    sourceVersion: payload.sourceVersion,
+    pendingDelete: existing?.pendingDelete,
+  };
+  state.worktree_registry[payload.branch] = next;
+  return next;
+}
+
+/**
+ * Soft-delete (status=`deleted`) or hard-remove a worktree registry
+ * entry. Soft is the default — preserves audit trail. Hard is used by
+ * the migration / triage path when an entry is provably stale.
+ */
+export function applyRemoveWorktreeSession(
+  state: ProjectWorkflowState,
+  payload: RemoveWorktreeSessionPayload,
+): WorktreeRecord | null {
+  assertProjectWorkflowReachable(state);
+  const existing = state.worktree_registry[payload.branch];
+  if (!existing) return null;
+  const mode = payload.mode ?? "soft";
+  if (mode === "hard") {
+    delete state.worktree_registry[payload.branch];
+    return null;
+  }
+  existing.status = "deleted";
+  existing.lastSeenAt = payload.now;
+  return existing;
+}
+
+/**
+ * Idempotent merge into pending_worktree_deletes. If an entry already
+ * exists, attempts counter is preserved.
+ */
+export function applySetPendingWorktreeDelete(
+  state: ProjectWorkflowState,
+  payload: SetPendingWorktreeDeletePayload,
+): PendingWorktreeDelete {
+  assertProjectWorkflowReachable(state);
+  const existing = state.pending_worktree_deletes[payload.branch];
+  const next: PendingWorktreeDelete = {
+    branch: payload.branch,
+    path: payload.path,
+    reason: payload.reason,
+    recordedAt: existing?.recordedAt ?? payload.now,
+    attempts: existing?.attempts ?? 0,
+  };
+  state.pending_worktree_deletes[payload.branch] = next;
+  return next;
+}
+
+/** Remove an entry from pending_worktree_deletes. Idempotent. */
+export function applyClearPendingWorktreeDelete(
+  state: ProjectWorkflowState,
+  payload: ClearPendingWorktreeDeletePayload,
+): void {
+  assertProjectWorkflowReachable(state);
+  delete state.pending_worktree_deletes[payload.branch];
+}
+
+/**
+ * RMW (read-modify-write) increment of pending-delete attempt counter.
+ * No-op (returns null) if the pending entry has been cleared between
+ * caller's check and the workflow update.
+ */
+export function applyIncrementPendingWorktreeDeleteAttempts(
+  state: ProjectWorkflowState,
+  payload: IncrementPendingWorktreeDeleteAttemptsPayload,
+): PendingWorktreeDelete | null {
+  assertProjectWorkflowReachable(state);
+  const existing = state.pending_worktree_deletes[payload.branch];
+  if (!existing) return null;
+  existing.attempts += 1;
+  return existing;
+}
+
+/**
+ * Insert a session registry entry. If the same sessionId is registered
+ * twice (typical when a session restarts under the same ID), the
+ * latest payload wins — heartbeat fields are refreshed from `now`.
+ */
+export function applyRegisterSession(
+  state: ProjectWorkflowState,
+  payload: RegisterSessionPayload,
+): SessionRecord {
+  assertProjectWorkflowReachable(state);
+  const existing = state.session_registry[payload.sessionId];
+  const next: SessionRecord = {
+    sessionId: payload.sessionId,
+    worktreeBranch: payload.worktreeBranch,
+    worktreePath: payload.worktreePath,
+    pid: payload.pid,
+    startedAt: existing?.startedAt ?? payload.now,
+    lastSeenAt: payload.now,
+    activeChangeId: existing?.activeChangeId,
+    currentTaskId: existing?.currentTaskId,
+    activeGate: existing?.activeGate,
+  };
+  state.session_registry[payload.sessionId] = next;
+  return next;
+}
+
+/** Remove a session from the registry. Idempotent. */
+export function applyUnregisterSession(
+  state: ProjectWorkflowState,
+  payload: UnregisterSessionPayload,
+): void {
+  assertProjectWorkflowReachable(state);
+  delete state.session_registry[payload.sessionId];
+}
+
+/**
+ * Update session heartbeat + active-context fields. No-op (returns
+ * null) if the session has been unregistered between caller and the
+ * workflow update.
+ */
+export function applyUpdateSessionActivity(
+  state: ProjectWorkflowState,
+  payload: UpdateSessionActivityPayload,
+): SessionRecord | null {
+  assertProjectWorkflowReachable(state);
+  const existing = state.session_registry[payload.sessionId];
+  if (!existing) return null;
+  existing.lastSeenAt = payload.now;
+  if (payload.activeChangeId !== undefined) {
+    existing.activeChangeId = payload.activeChangeId;
+  }
+  if (payload.currentTaskId !== undefined) {
+    existing.currentTaskId = payload.currentTaskId;
+  }
+  if (payload.activeGate !== undefined) {
+    existing.activeGate = payload.activeGate;
+  }
+  return existing;
 }

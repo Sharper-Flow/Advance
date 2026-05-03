@@ -39,13 +39,29 @@ import {
 import {
   addAgendaItemToProjectState,
   addProjectWisdomToProjectState,
+  applyAddWorktreeSession,
   applyChangeSummaryToProjectState,
+  applyClearPendingWorktreeDelete,
+  applyIncrementPendingWorktreeDeleteAttempts,
+  applyRegisterSession,
+  applyRemoveWorktreeSession,
+  applySetPendingWorktreeDelete,
+  applyUnregisterSession,
+  applyUpdateSessionActivity,
   createProjectWorkflowState,
   listAgendaItemsFromProjectState,
   listProjectWisdomFromProjectState,
   purgeChangeSummaryFromProjectState,
   recordMigrationEntryInProjectState,
   updateAgendaItemInProjectState,
+  type AddWorktreeSessionPayload,
+  type ClearPendingWorktreeDeletePayload,
+  type IncrementPendingWorktreeDeleteAttemptsPayload,
+  type RegisterSessionPayload,
+  type RemoveWorktreeSessionPayload,
+  type SetPendingWorktreeDeletePayload,
+  type UnregisterSessionPayload,
+  type UpdateSessionActivityPayload,
 } from "./project-state";
 
 const changeBootstrapQuery = wf.defineQuery<ChangeWorkflowBootstrapState>(
@@ -214,6 +230,43 @@ const recordMigrationEntryUpdate = wf.defineUpdate<
 const purgeChangeSummaryUpdate = wf.defineUpdate<void, [{ changeId: string }]>(
   PROJECT_WORKFLOW_UPDATE_NAMES.purgeChangeSummary,
 );
+
+// T5 (KD-1): worktree + session lifecycle update definitions.
+// Each handler delegates to the matching `apply*` mutator from
+// project-state.ts (T6). All payload-carrying updates require an ISO
+// 8601 `now` field so mutators stay deterministic across replay.
+const addWorktreeSessionUpdate = wf.defineUpdate<
+  Awaited<ReturnType<typeof applyAddWorktreeSession>>,
+  [AddWorktreeSessionPayload]
+>(PROJECT_WORKFLOW_UPDATE_NAMES.addWorktreeSession);
+const removeWorktreeSessionUpdate = wf.defineUpdate<
+  Awaited<ReturnType<typeof applyRemoveWorktreeSession>>,
+  [RemoveWorktreeSessionPayload]
+>(PROJECT_WORKFLOW_UPDATE_NAMES.removeWorktreeSession);
+const setPendingWorktreeDeleteUpdate = wf.defineUpdate<
+  Awaited<ReturnType<typeof applySetPendingWorktreeDelete>>,
+  [SetPendingWorktreeDeletePayload]
+>(PROJECT_WORKFLOW_UPDATE_NAMES.setPendingWorktreeDelete);
+const clearPendingWorktreeDeleteUpdate = wf.defineUpdate<
+  void,
+  [ClearPendingWorktreeDeletePayload]
+>(PROJECT_WORKFLOW_UPDATE_NAMES.clearPendingWorktreeDelete);
+const incrementPendingWorktreeDeleteAttemptsUpdate = wf.defineUpdate<
+  Awaited<ReturnType<typeof applyIncrementPendingWorktreeDeleteAttempts>>,
+  [IncrementPendingWorktreeDeleteAttemptsPayload]
+>(PROJECT_WORKFLOW_UPDATE_NAMES.incrementPendingWorktreeDeleteAttempts);
+const registerSessionUpdate = wf.defineUpdate<
+  Awaited<ReturnType<typeof applyRegisterSession>>,
+  [RegisterSessionPayload]
+>(PROJECT_WORKFLOW_UPDATE_NAMES.registerSession);
+const unregisterSessionUpdate = wf.defineUpdate<
+  void,
+  [UnregisterSessionPayload]
+>(PROJECT_WORKFLOW_UPDATE_NAMES.unregisterSession);
+const updateSessionActivityUpdate = wf.defineUpdate<
+  Awaited<ReturnType<typeof applyUpdateSessionActivity>>,
+  [UpdateSessionActivityPayload]
+>(PROJECT_WORKFLOW_UPDATE_NAMES.updateSessionActivity);
 
 /**
  * Wrap a workflow update handler so domain errors propagate as
@@ -945,6 +998,177 @@ export async function projectWorkflow(
     ),
   );
 
+  // T5 (KD-1): worktree + session lifecycle handlers. Each handler
+  // delegates to the matching `apply*` mutator (T6). The mutators
+  // call assertProjectWorkflowReachable() internally so degraded
+  // workflow state surfaces as WORKFLOW_NOT_READY instead of NPE.
+  wf.setHandler(
+    addWorktreeSessionUpdate,
+    safeUpdateHandler(
+      "addWorktreeSession",
+      (payload: AddWorktreeSessionPayload) => {
+        wf.log.info("op:start", {
+          op: "addWorktreeSessionUpdate",
+          projectId: state.projectId,
+          branch: payload.branch,
+        });
+        const result = applyAddWorktreeSession(state, payload);
+        wf.log.info("op:end", {
+          op: "addWorktreeSessionUpdate",
+          projectId: state.projectId,
+          branch: payload.branch,
+          worktreeCount: Object.keys(state.worktree_registry).length,
+        });
+        return result;
+      },
+    ),
+  );
+  wf.setHandler(
+    removeWorktreeSessionUpdate,
+    safeUpdateHandler(
+      "removeWorktreeSession",
+      (payload: RemoveWorktreeSessionPayload) => {
+        wf.log.info("op:start", {
+          op: "removeWorktreeSessionUpdate",
+          projectId: state.projectId,
+          branch: payload.branch,
+          mode: payload.mode ?? "soft",
+        });
+        const result = applyRemoveWorktreeSession(state, payload);
+        wf.log.info("op:end", {
+          op: "removeWorktreeSessionUpdate",
+          projectId: state.projectId,
+          branch: payload.branch,
+        });
+        return result;
+      },
+    ),
+  );
+  wf.setHandler(
+    setPendingWorktreeDeleteUpdate,
+    safeUpdateHandler(
+      "setPendingWorktreeDelete",
+      (payload: SetPendingWorktreeDeletePayload) => {
+        wf.log.info("op:start", {
+          op: "setPendingWorktreeDeleteUpdate",
+          projectId: state.projectId,
+          branch: payload.branch,
+        });
+        const result = applySetPendingWorktreeDelete(state, payload);
+        wf.log.info("op:end", {
+          op: "setPendingWorktreeDeleteUpdate",
+          projectId: state.projectId,
+          branch: payload.branch,
+          pendingCount: Object.keys(state.pending_worktree_deletes).length,
+        });
+        return result;
+      },
+    ),
+  );
+  wf.setHandler(
+    clearPendingWorktreeDeleteUpdate,
+    safeUpdateHandler(
+      "clearPendingWorktreeDelete",
+      (payload: ClearPendingWorktreeDeletePayload) => {
+        wf.log.info("op:start", {
+          op: "clearPendingWorktreeDeleteUpdate",
+          projectId: state.projectId,
+          branch: payload.branch,
+        });
+        applyClearPendingWorktreeDelete(state, payload);
+        wf.log.info("op:end", {
+          op: "clearPendingWorktreeDeleteUpdate",
+          projectId: state.projectId,
+          branch: payload.branch,
+        });
+      },
+    ),
+  );
+  wf.setHandler(
+    incrementPendingWorktreeDeleteAttemptsUpdate,
+    safeUpdateHandler(
+      "incrementPendingWorktreeDeleteAttempts",
+      (payload: IncrementPendingWorktreeDeleteAttemptsPayload) => {
+        wf.log.info("op:start", {
+          op: "incrementPendingWorktreeDeleteAttemptsUpdate",
+          projectId: state.projectId,
+          branch: payload.branch,
+        });
+        const result = applyIncrementPendingWorktreeDeleteAttempts(
+          state,
+          payload,
+        );
+        wf.log.info("op:end", {
+          op: "incrementPendingWorktreeDeleteAttemptsUpdate",
+          projectId: state.projectId,
+          branch: payload.branch,
+          attempts: result?.attempts ?? null,
+        });
+        return result;
+      },
+    ),
+  );
+  wf.setHandler(
+    registerSessionUpdate,
+    safeUpdateHandler(
+      "registerSession",
+      (payload: RegisterSessionPayload) => {
+        wf.log.info("op:start", {
+          op: "registerSessionUpdate",
+          projectId: state.projectId,
+          sessionId: payload.sessionId,
+        });
+        const result = applyRegisterSession(state, payload);
+        wf.log.info("op:end", {
+          op: "registerSessionUpdate",
+          projectId: state.projectId,
+          sessionId: payload.sessionId,
+          sessionCount: Object.keys(state.session_registry).length,
+        });
+        return result;
+      },
+    ),
+  );
+  wf.setHandler(
+    unregisterSessionUpdate,
+    safeUpdateHandler(
+      "unregisterSession",
+      (payload: UnregisterSessionPayload) => {
+        wf.log.info("op:start", {
+          op: "unregisterSessionUpdate",
+          projectId: state.projectId,
+          sessionId: payload.sessionId,
+        });
+        applyUnregisterSession(state, payload);
+        wf.log.info("op:end", {
+          op: "unregisterSessionUpdate",
+          projectId: state.projectId,
+          sessionId: payload.sessionId,
+        });
+      },
+    ),
+  );
+  wf.setHandler(
+    updateSessionActivityUpdate,
+    safeUpdateHandler(
+      "updateSessionActivity",
+      (payload: UpdateSessionActivityPayload) => {
+        wf.log.info("op:start", {
+          op: "updateSessionActivityUpdate",
+          projectId: state.projectId,
+          sessionId: payload.sessionId,
+        });
+        const result = applyUpdateSessionActivity(state, payload);
+        wf.log.info("op:end", {
+          op: "updateSessionActivityUpdate",
+          projectId: state.projectId,
+          sessionId: payload.sessionId,
+        });
+        return result;
+      },
+    ),
+  );
+
   const thresholds = resolveHistoryThresholds();
   await wf.condition(() => {
     if (shouldContinueAsNew(thresholds.projectHistoryThreshold)) return true;
@@ -963,6 +1187,12 @@ export async function projectWorkflow(
     changeSummaries: state.change_summaries,
     sourceVersions: state.source_versions,
     changeSummariesCap: state.change_summaries_cap,
+    // T4/T5 (KD-1, rq-worktreeRegistry01): preserve worktree + session
+    // registries across workflow rotation so peer-session coordination
+    // survives continue-as-new.
+    worktreeRegistry: state.worktree_registry,
+    pendingWorktreeDeletes: state.pending_worktree_deletes,
+    sessionRegistry: state.session_registry,
   };
   await wf.continueAsNew<typeof projectWorkflow>(seed);
 }
