@@ -9,16 +9,14 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
 // Mock project-workflow-helper so we can drive the access state machine.
-const mockResolveAccess = vi.fn();
 
 vi.mock("../project-workflow-helper", () => ({
   getBoundedProjectWorkflowAccess: vi.fn(),
 }));
 
-vi.mock("./state", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("./state")>();
-  return actual;
-});
+// Note: do NOT mock ./state here — the test needs the real implementation.
+// Mocking it with importOriginal causes module-resolution ordering issues
+// when sibling files (e.g. branch-integration.ts) also import from state.
 
 // Capture executeUpdate calls.
 const executeUpdate = vi.fn(async () => undefined);

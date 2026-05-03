@@ -195,13 +195,7 @@ type WorktreeConfig = z.infer<typeof worktreeConfigSchema>;
 // BRANCH INTEGRATION & UNCOMMITTED STATE HELPERS (T9)
 // =============================================================================
 
-// T29 will replace this stub with the 3-condition gate (archived AND merged AND clean).
-export async function verifyBranchIntegration(
-  _branch: string,
-  _repoRoot: string,
-): Promise<{ ok: true } | { ok: false; reason: string }> {
-  return { ok: true as const };
-}
+import { verifyBranchIntegration } from "../../utils/branch-integration";
 
 export async function detectUncommittedState(
   worktreePath: string,

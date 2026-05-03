@@ -46,10 +46,7 @@ vi.mock("./hooks", async (importOriginal) => {
   };
 });
 
-import {
-  advWorktreeDelete,
-  type AdvWorktreeDeleteDeps,
-} from "./index";
+import { advWorktreeDelete, type AdvWorktreeDeleteDeps } from "./index";
 
 import { appendDebugLog } from "../../utils/debug-log";
 import { runHooksWithSafety } from "./hooks";
@@ -87,6 +84,13 @@ function createMockDeps(
       error: vi.fn(),
     },
     worktreePath,
+    // Default integration check passes — tests that need failure override this.
+    integrationCheck: async () => ({
+      ok: true as const,
+      branch: "",
+      changeId: "",
+      defaultBranch: "",
+    }),
   };
 }
 
@@ -108,21 +112,26 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
     const wtPath = addWorktree(repoRoot, branch);
 
     const deps = createMockDeps(repoRoot, wtPath);
-    deps.integrationCheck = async () => ({ ok: false, reason: "not archived" });
+    deps.integrationCheck = async () => ({
+      ok: false,
+      reason: "change_not_archived",
+      detail: "Change is not archived",
+      hint: "Archive the change first",
+    });
 
     const result = await advWorktreeDelete(branch, {}, deps);
 
     expect(result).toEqual({
       ok: false,
       error: "INTEGRATION_REQUIRED",
-      reason: "not archived",
+      reason: "change_not_archived",
       hint: "Branch must be archived, merged, and clean",
     });
 
     // Worktree should still exist
-    expect(execSync("git worktree list", { cwd: repoRoot }).toString()).toContain(
-      branch,
-    );
+    expect(
+      execSync("git worktree list", { cwd: repoRoot }).toString(),
+    ).toContain(branch);
   });
 
   it("UNCOMMITTED_WORK — blocks delete without force when uncommitted files exist", async () => {
@@ -142,9 +151,9 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
     expect((result as any).files.length).toBeGreaterThan(0);
 
     // Worktree should still exist
-    expect(execSync("git worktree list", { cwd: repoRoot }).toString()).toContain(
-      branch,
-    );
+    expect(
+      execSync("git worktree list", { cwd: repoRoot }).toString(),
+    ).toContain(branch);
   });
 
   it("HOOK_INTRODUCED_CHANGES — blocks delete when hook creates uncommitted changes", async () => {
@@ -169,9 +178,9 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
     expect((result as any).files.length).toBeGreaterThan(0);
 
     // Worktree should still exist
-    expect(execSync("git worktree list", { cwd: repoRoot }).toString()).toContain(
-      branch,
-    );
+    expect(
+      execSync("git worktree list", { cwd: repoRoot }).toString(),
+    ).toContain(branch);
   });
 
   it("clean delete succeeds — removes worktree and calls removeSession", async () => {
