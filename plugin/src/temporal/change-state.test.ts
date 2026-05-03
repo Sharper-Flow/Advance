@@ -210,9 +210,7 @@ describe("change workflow state", () => {
       { correctionReason: "Original command omitted changed test file." },
     );
 
-    expect(state.tasks[0]?.tdd_evidence?.red?.command).toBe(
-      "vitest --changed",
-    );
+    expect(state.tasks[0]?.tdd_evidence?.red?.command).toBe("vitest --changed");
     expect(state.tasks[0]?.tdd_phase).toBe("red");
   });
 

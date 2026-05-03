@@ -604,9 +604,14 @@ export const taskTools = {
 
         let result: Awaited<ReturnType<Store["tasks"]["recordEvidence"]>>;
         try {
-          result = await activeStore.tasks.recordEvidence(taskId, phase, evidence, {
-            correctionReason,
-          });
+          result = await activeStore.tasks.recordEvidence(
+            taskId,
+            phase,
+            evidence,
+            {
+              correctionReason,
+            },
+          );
         } catch (error) {
           return formatToolOutput({
             success: false,
@@ -622,8 +627,12 @@ export const taskTools = {
           return formatToolOutput({ error: `Task not found: ${taskId}` });
         }
 
-        const { task, duplicate, corrected, correctionReason: recordedReason } =
-          result;
+        const {
+          task,
+          duplicate,
+          corrected,
+          correctionReason: recordedReason,
+        } = result;
         return formatToolOutput({
           success: true,
           task,
