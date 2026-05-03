@@ -6,6 +6,10 @@ const REPO_ROOT = resolve(__dirname, "../..");
 const COMMAND_DIR = join(REPO_ROOT, ".opencode/command");
 const AGENT_DIR = join(REPO_ROOT, ".opencode/agents");
 const INSTRUCTIONS = join(REPO_ROOT, "ADV_INSTRUCTIONS.md");
+const ADVANCE_WORKFLOW_SPEC = join(
+  REPO_ROOT,
+  ".adv/specs/advance-workflow/spec.json",
+);
 
 function readAsset(path: string): string {
   return readFileSync(path, "utf8");
@@ -330,6 +334,23 @@ describe("Investment Check-In Policy (addCostTimeInvestment)", () => {
     expect(content).toMatch(/rebase the change branch/i);
     expect(content).toMatch(/Step 4 handles conflicts/i);
     expect(content).toMatch(/PR workflow path/i);
+  });
+
+  test("adv-archive.md explicitly owns ship finalization merge and push", () => {
+    const content = readAsset(join(COMMAND_DIR, "adv-archive.md"));
+    expect(content).toMatch(/canonical ship\/finalize path/i);
+    expect(content).toMatch(/merge\+push/i);
+    expect(content).toMatch(
+      /git -C "\$MAIN" merge --ff-only change\/\{change-id\}[\s\S]*git -C "\$MAIN" push origin \{default-branch\}/,
+    );
+    expect(content).toMatch(/push failure[\s\S]*Merged locally\./i);
+  });
+
+  test("advance-workflow spec encodes archive push-after-merge semantics", () => {
+    const content = readAsset(ADVANCE_WORKFLOW_SPEC);
+    expect(content).toMatch(/push origin \{default-branch\}/);
+    expect(content).toMatch(/Merged locally\./);
+    expect(content).toMatch(/push fails/);
   });
 
   test("adv-archive.md Phase 9 keeps main checkout on default branch (no git checkout/switch)", () => {

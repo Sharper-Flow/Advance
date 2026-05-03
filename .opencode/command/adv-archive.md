@@ -8,7 +8,7 @@ phaseGoal: "Promote the change from contract to law: apply spec deltas, capture 
 
 # ADV Archive — Finalize Completed Change
 
-Archive change → apply deltas to specs → mandatory Phase 9 Git Finalization (commit, merge, verify, cleanup).
+Archive change → apply deltas to specs → canonical ship/finalize path via mandatory Phase 9 Git Finalization (commit, merge+push, verify, cleanup).
 
 ## Exits
 
@@ -293,9 +293,9 @@ navigateConflicts presents:
   `auto-skippable: 1, auto-resolvable: 1, divergent: 1. Reply auto/step/abort.`
 User picks `auto`. b.ts skipped, a.ts auto-resolved (THEIRS side written + add + continue), c.ts escalated → resolveDivergent stub returns user_resolve_in_place. All 3 audit entries captured.
 
-### Step 5: Publish Safety (when pushing the default branch)
+### Step 5: Publish Safety (merge+push finalization for the default branch)
 
-If archive finalization needs a remote push of the default branch, run from `$MAIN`:
+After local merge succeeds, archive finalization attempts a safe remote push of the default branch from `$MAIN` when `origin` exists:
 
 - `git -C "$MAIN" fetch origin` (if fetch fails or auth is unclear → stop and ask the user before proceeding)
 - `git -C "$MAIN" log --oneline origin/{default-branch}..{default-branch}` → inspect the commits that will publish
@@ -307,7 +307,7 @@ If archive finalization needs a remote push of the default branch, run from `$MA
 
 If push hook output indicates failure (non-zero hook exit) but push itself succeeded: report it in Phase 8 but do NOT block — pre-push hook is best-effort sync; failure does not invalidate the push.
 
-If no remote is configured OR push is skipped OR push fails: record the reason — Phase 8 footer becomes "Merged locally." instead of "Shipped."
+If no remote is configured OR push is skipped OR push fails: record the push failure/skipped reason — Phase 8 footer becomes "Merged locally." instead of "Shipped."
 
 ### Step 5.5: Pre-Push Hook Detection
 

@@ -250,7 +250,7 @@ Archive of a change that touches a spec with `conformance_required: true` is blo
 
 **ID:** `rq-releaseFinalization01` | **Priority:** **[MUST]**
 
-Phase 9 Git Finalization must refresh the current default-branch basis before deciding local merge-back versus PR workflow. Clean low-risk cases prefer a linear-history fast path (`--ff-only` when already current, reconcile only when needed). Conflicting or risky cases must stop or route to PR workflow before cleanup. Worktree deletion remains forbidden until merged-state verification proves the change branch is fully integrated.
+Phase 9 Git Finalization must refresh the current default-branch basis before deciding local merge-back versus PR workflow. Clean low-risk cases prefer a linear-history fast path (`--ff-only` when already current, reconcile only when needed). After a successful local merge, Phase 9 must attempt safe `git push origin {default-branch}` when `origin` exists. If no remote exists or the push fails or is skipped, the archive may complete as a local-only result and must report `Merged locally.` with the explicit reason. Conflicting or risky cases must stop or route to PR workflow before cleanup. Worktree deletion remains forbidden until merged-state verification proves the change branch is fully integrated.
 
 **Tags:** `workflow`, `archive`, `worktree`, `git`
 
@@ -290,6 +290,19 @@ Phase 9 Git Finalization must refresh the current default-branch basis before de
 **Then:**
 - The archive routes to PR workflow instead of forcing local merge-back
 - Cleanup remains blocked until merged-state verification succeeds
+
+**Successful local archive attempts origin push** (`rq-releaseFinalization01.4`)
+
+**Given:**
+- A change branch has been merged into the local default branch
+- An origin remote is configured
+
+**When:** Phase 9 Git Finalization publishes the archive result
+
+**Then:**
+- The archive attempts safe `git push origin {default-branch}`
+- If the push succeeds, the archive reports `Shipped.`
+- If the push fails or is skipped, the archive reports `Merged locally.` with an explicit reason
 
 ---
 
@@ -1197,4 +1210,3 @@ adv_change_archive MUST be idempotent when retrying after a previous failure whe
 - The output shows success: false with a descriptive error message
 
 ---
-
