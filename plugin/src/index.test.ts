@@ -619,7 +619,7 @@ describe("Advance Plugin SDK Integration", () => {
       expect(patch.length).toBeLessThan(8_000);
     });
 
-    test("experimental.chat.system.transform injects provider hint for OpenAI models", async () => {
+    test("experimental.chat.system.transform does not inject provider hint for OpenAI models", async () => {
       const hooks = await createTrackedPlugin(tempDir, pluginInstances);
 
       const transformHook = hooks["experimental.chat.system.transform"]!;
@@ -631,13 +631,13 @@ describe("Advance Plugin SDK Integration", () => {
 
       expect(
         hookOutput.system.some((s) => s.includes("[ADV:PROVIDER_HINT]")),
-      ).toBe(true);
+      ).toBe(false);
       expect(
         hookOutput.system.some((s) => s.includes("structured formats")),
-      ).toBe(true);
+      ).toBe(false);
     });
 
-    test("experimental.chat.system.transform injects provider hint for ZAI models", async () => {
+    test("experimental.chat.system.transform does not inject provider hint for ZAI models", async () => {
       const hooks = await createTrackedPlugin(tempDir, pluginInstances);
 
       const transformHook = hooks["experimental.chat.system.transform"]!;
@@ -649,12 +649,12 @@ describe("Advance Plugin SDK Integration", () => {
 
       expect(
         hookOutput.system.some((s) => s.includes("[ADV:PROVIDER_HINT]")),
-      ).toBe(true);
+      ).toBe(false);
       expect(
         hookOutput.system.some((s) =>
           s.includes("restate the task before acting"),
         ),
-      ).toBe(true);
+      ).toBe(false);
     });
 
     test("experimental.chat.system.transform does not inject provider hint for baseline providers", async () => {

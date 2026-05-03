@@ -188,13 +188,6 @@ const formatSessionHealthBanner = (
   ].join("\n");
 };
 
-const PROVIDER_BEHAVIOR_HINTS: Readonly<Record<string, string>> = {
-  openai:
-    "[ADV:PROVIDER_HINT] Provider adaptation: prefer explicit numbered steps, use structured formats (tables, numbered lists) for multi-part output, and batch independent tool calls in a single response. Keep user-facing prose terse and direct — drop fluff and pleasantries while preserving structured outputs, safety text, and quoted errors verbatim. When morph_edit fails (API error/timeout), fall back to native edit tool immediately.",
-  "zai-coding-plan":
-    "[ADV:PROVIDER_HINT] Provider adaptation: prefer direct explicit instructions, briefly restate the task before acting, and treat absolute constraints like NEVER/ONLY/MUST as binding. Keep user-facing prose terse and direct — drop fluff and pleasantries while preserving structured outputs, safety text, and quoted errors verbatim. When morph_edit fails (API error/timeout), fall back to native edit tool immediately.",
-};
-
 /** Fallback chain: maps providerID → list of alternative provider names.
  *  On provider switch, injects a one-line suggestion listing alternatives. */
 const FALLBACK_CHAIN: Readonly<Record<string, string[]>> = {
@@ -202,11 +195,6 @@ const FALLBACK_CHAIN: Readonly<Record<string, string[]>> = {
   anthropic: ["openai", "google"],
   google: ["openai", "anthropic"],
   "zai-coding-plan": [],
-};
-
-const getProviderBehaviorHint = (providerID?: string): string | null => {
-  if (!providerID) return null;
-  return PROVIDER_BEHAVIOR_HINTS[providerID.toLowerCase()] ?? null;
 };
 
 /** Flags that drive the resolved StatusMarker (via resolveStatus). */
@@ -776,11 +764,6 @@ const advancePluginImpl: Plugin = async ({ directory, worktree, project }) => {
           } catch {
             // health banner injection must never break the transform hook
           }
-        }
-
-        const providerHint = getProviderBehaviorHint(input.model?.providerID);
-        if (providerHint) {
-          output.system.push(providerHint);
         }
 
         // Provider-switch detection: inject fallback chain suggestion
