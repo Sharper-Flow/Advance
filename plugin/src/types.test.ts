@@ -1073,6 +1073,55 @@ describe("ProjectConfigSchema", () => {
     };
     expect(() => ProjectConfigSchema.parse(config)).toThrow();
   });
+
+  test("related_repos accepts trusted and gh_repo fields", () => {
+    const config = {
+      name: "test-project",
+      related_repos: [
+        { id: "backend", path: "/path/to/backend", trusted: true, gh_repo: "org/backend" },
+        { id: "frontend", path: "/path/to/frontend" },
+      ],
+    };
+    const result = ProjectConfigSchema.parse(config);
+    expect(result.related_repos).toBeDefined();
+    expect(result.related_repos![0]).toMatchObject({
+      id: "backend",
+      path: "/path/to/backend",
+      trusted: true,
+      gh_repo: "org/backend",
+    });
+    expect(result.related_repos![1]).toMatchObject({
+      id: "frontend",
+      path: "/path/to/frontend",
+    });
+  });
+
+  test("related_repos trusted defaults to false", () => {
+    const config = {
+      name: "test-project",
+      related_repos: [{ id: "db", path: "/path/to/db" }],
+    };
+    const result = ProjectConfigSchema.parse(config);
+    expect(result.related_repos![0].trusted).toBe(false);
+  });
+
+  test("related_repos gh_repo is optional", () => {
+    const config = {
+      name: "test-project",
+      related_repos: [{ id: "db", path: "/path/to/db", trusted: true }],
+    };
+    const result = ProjectConfigSchema.parse(config);
+    expect(result.related_repos![0].gh_repo).toBeUndefined();
+    expect(result.related_repos![0].trusted).toBe(true);
+  });
+
+  test("related_repos rejects invalid trusted value", () => {
+    const config = {
+      name: "test-project",
+      related_repos: [{ id: "db", path: "/path/to/db", trusted: "yes" }],
+    };
+    expect(() => ProjectConfigSchema.parse(config)).toThrow();
+  });
 });
 
 describe("FeatureFlagsSchema", () => {
