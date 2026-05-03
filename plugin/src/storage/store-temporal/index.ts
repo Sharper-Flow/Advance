@@ -207,6 +207,12 @@ export function createTemporalStoreBackend(
       const version = (sourceVersions.get(changeId) ?? 0) + 1;
       sourceVersions.set(changeId, version);
       const summary = buildSummary(state);
+      const allTouched = new Set<string>();
+      for (const t of state.tasks ?? []) {
+        if (t.touched_files) {
+          for (const f of t.touched_files) allTouched.add(f);
+        }
+      }
       const payload: ChangeSummaryPayload = {
         changeId,
         title: summary.title,
@@ -216,6 +222,7 @@ export function createTemporalStoreBackend(
         lastActivityAt: summary.lastActivityAt,
         fast_follow_of: summary.fast_follow_of,
         sourceVersion: version,
+        touched_files: [...allTouched],
       };
       const projectHandle = getProjectHandle();
       if (!projectHandle) return;

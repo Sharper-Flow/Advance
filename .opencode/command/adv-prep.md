@@ -229,6 +229,23 @@ Search codebase for key terms → compare with affected files. Flag missing file
 
 **Check 6:** Target tool mode — planned target reads must use `snapshot-ok` ADV tools with `target_path`; planned target mutations must use `temporal-required` ADV tools and capture `target_confirmed`/`confirmationEvidence` for untrusted targets.
 
+### 3.8 Multi-Worktree File-Overlap Scan
+
+When 2+ worktrees are active for the same project, scan for file-path intersections between the current change's planned `touched_files` and peer worktrees' active changes' `touched_files`.
+
+**How it works:**
+1. Read `worktree_registry` from the project workflow state (via `listWorktrees`).
+2. For each peer worktree (skipping the current branch), resolve its `changeId` and read `change_summaries[changeId].touched_files` from Temporal (via `getChangeSummaries`).
+3. Compute the intersection with the current change's planned `touched_files`.
+4. Flag non-empty intersections as "potential merge conflict" warnings.
+5. Archived changes are skipped (their files are already merged).
+
+**Cross-session reliability:** Temporal serializes `touched_files` writes from peer sessions; the snapshot read by the scan is consistent at read time.
+
+**Surfacing:** Overlaps are surfaced in the vision banner (Phase 5.1) as advisory warnings. They do NOT block the prep gate — they inform the user of coordination risk before autonomous execution begins.
+
+> **TODO:** Wire `scanFileOverlaps` from `plugin/src/validator/file-overlap.ts` into the prep validator. The validator is currently pure-sync over `Change` objects; integrating an async Temporal query requires refactoring the validator runner to accept async checks. Defer until the validator framework gains async I/O support.
+
 ---
 
 ## Phase 4: Prioritize Gaps (MoSCoW)

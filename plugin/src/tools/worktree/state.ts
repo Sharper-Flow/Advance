@@ -440,10 +440,13 @@ export async function listSessions(
  */
 export async function getChangeSummaries(
   access: WorktreeStateAccess,
-): Promise<Record<string, { status?: string }>> {
+): Promise<Record<string, { status?: string; touched_files?: string[] }>> {
   const state = await readProjectState(access);
   if (!state) return {};
-  return (state.change_summaries ?? {}) as Record<string, { status?: string }>;
+  return (state.change_summaries ?? {}) as Record<
+    string,
+    { status?: string; touched_files?: string[] }
+  >;
 }
 
 /**
