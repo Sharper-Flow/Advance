@@ -12,7 +12,6 @@ import {
   writeProjectMetadataEntry,
 } from "../storage/project-metadata";
 import { formatToolOutput } from "../utils/tool-output";
-import { wrapWithBanner } from "../utils/banner";
 
 // =============================================================================
 // Tool Definitions
@@ -101,10 +100,7 @@ export const projectMetadataTools = {
             store.paths.projectMetadata,
           );
 
-          return wrapWithBanner(
-            { command: "adv_project_metadata", target: "write" },
-            formatToolOutput({ entry }),
-          );
+          return formatToolOutput({ entry });
         }
 
         case "list": {

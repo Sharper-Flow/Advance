@@ -19,7 +19,6 @@ import { getTemporalHealth } from "../temporal/health-probe";
 import { getTemporalFallbackTelemetry } from "../temporal/fallback-telemetry";
 import { getTemporalRetryTelemetry } from "../temporal/retry-wrapper";
 import { getStslStats, isStslInitialized } from "../temporal/service";
-import { wrapWithBanner } from "../utils/banner";
 import { formatToolOutput } from "../utils/tool-output";
 import { formatStatusOutput } from "../utils/tool-formatters";
 import {
@@ -552,10 +551,7 @@ export const statusTools = {
             ...(projectContext ? { _projectContext: projectContext } : {}),
           };
 
-          return wrapWithBanner(
-            { command: "adv_status" },
-            formatToolOutput(output),
-          );
+          return formatToolOutput(output);
         },
       );
     },

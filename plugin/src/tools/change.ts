@@ -51,7 +51,6 @@ import {
   loadChange,
 } from "../storage/json";
 import { archiveChange, findArchiveBundle } from "../archive";
-import { wrapWithBanner } from "../utils/banner";
 import { formatToolOutput, paginate } from "../utils/tool-output";
 import {
   formatValidationOutput,
@@ -506,10 +505,7 @@ async function createCrossProjectFollowUp({
       }
     }
 
-    return wrapWithBanner(
-      { command: "adv_change_create", target: result.changeId },
-      formatToolOutput(output),
-    );
+    return formatToolOutput(output);
   } finally {
     targetStore.close();
   }
@@ -632,29 +628,23 @@ function getArchivePreflightError(
     (t) => t.status !== "done" && t.status !== "cancelled",
   );
   if (incompleteTasks.length > 0) {
-    return wrapWithBanner(
-      { command: "adv_change_archive", target: changeId },
-      formatToolOutput({
+    return formatToolOutput({
         error: "Cannot archive: incomplete tasks",
         incompleteTasks: incompleteTasks.map((t) => ({
           id: t.id,
           title: t.title,
         })),
-      }),
-    );
+      });
   }
 
   const gates = change.gates ?? createDefaultGates();
   if (!allGatesSatisfied(gates)) {
-    return wrapWithBanner(
-      { command: "adv_change_archive", target: changeId },
-      formatToolOutput({
+    return formatToolOutput({
         error:
           "Cannot archive: incomplete gates. Complete all quality gates before archiving.",
         incompleteGates: getIncompleteGates(gates),
         hint: `Run /adv-gate-status ${changeId} to see gate details`,
-      }),
-    );
+      });
   }
 
   return null;
@@ -749,10 +739,7 @@ async function buildReentryResult(
     output._contextSnapshot = contextSnapshot;
   }
 
-  return wrapWithBanner(
-    { command: "adv_change_reenter", target: changeId },
-    formatToolOutput(output),
-  );
+  return formatToolOutput(output);
 }
 
 // =============================================================================
@@ -1197,10 +1184,7 @@ export const changeTools = {
 
       await appendClarifyNeededForCreatedChange(store, result.changeId, output);
 
-      return wrapWithBanner(
-        { command: "adv_change_create", target: result.changeId },
-        formatToolOutput(output),
-      );
+      return formatToolOutput(output);
     },
   },
 
@@ -1291,14 +1275,11 @@ export const changeTools = {
           agreement === undefined &&
           design === undefined
         ) {
-          return wrapWithBanner(
-            { command: "adv_change_update", target: changeId },
-            formatToolOutput({
+          return formatToolOutput({
               error:
                 "At least one of 'proposal', 'problemStatement', 'agreement', or 'design' must be provided.",
               hint: "Pass one or more of: proposal, problemStatement, agreement, design. See the tool description for which file each field writes.",
-            }),
-          );
+            });
         }
 
         // P1.12 Scope C: verify changeId exists before writing. Surface a
@@ -1306,13 +1287,10 @@ export const changeTools = {
         // agent can self-correct without guessing.
         const existing = await activeStore.changes.get(changeId);
         if (!existing.success || !existing.data) {
-          return wrapWithBanner(
-            { command: "adv_change_update", target: changeId },
-            formatToolOutput({
+          return formatToolOutput({
               error: `Change '${changeId}' not found.`,
               hint: "Fetch valid change IDs with 'adv_change_list' or confirm the target with 'adv_change_show changeId: <id>' before retrying.",
-            }),
-          );
+            });
         }
 
         const result = await activeStore.changes.updateArtifacts(
@@ -1324,23 +1302,17 @@ export const changeTools = {
         );
 
         if (!result.success) {
-          return wrapWithBanner(
-            { command: "adv_change_update", target: changeId },
-            formatToolOutput({ error: result.error }),
-          );
+          return formatToolOutput({ error: result.error });
         }
 
-        return wrapWithBanner(
-          { command: "adv_change_update", target: changeId },
-          formatToolOutput({
+        return formatToolOutput({
             changeId,
             proposalPath: result.proposalPath,
             problemStatementPath: result.problemStatementPath,
             agreementPath: result.agreementPath,
             designPath: result.designPath,
             ...(projectContext ? { _projectContext: projectContext } : {}),
-          }),
-        );
+          });
       };
 
       if (target_path) {
@@ -1397,26 +1369,17 @@ export const changeTools = {
       store: Store,
     ) => {
       if (reason === "superseded" && !supersededBy) {
-        return wrapWithBanner(
-          { command: "adv_change_close", target: changeId },
-          formatToolOutput({
+        return formatToolOutput({
             error: "supersededBy is required when reason is 'superseded'.",
-          }),
-        );
+          });
       }
 
       const result = await store.changes.get(changeId);
       if (!result.success) {
-        return wrapWithBanner(
-          { command: "adv_change_close", target: changeId },
-          formatToolOutput({ error: result.error }),
-        );
+        return formatToolOutput({ error: result.error });
       }
       if (!result.data) {
-        return wrapWithBanner(
-          { command: "adv_change_close", target: changeId },
-          formatToolOutput({ error: `Change not found: ${changeId}` }),
-        );
+        return formatToolOutput({ error: `Change not found: ${changeId}` });
       }
 
       try {
@@ -1429,10 +1392,7 @@ export const changeTools = {
         });
 
         if (!change) {
-          return wrapWithBanner(
-            { command: "adv_change_close", target: changeId },
-            formatToolOutput({ error: `Change not found: ${changeId}` }),
-          );
+          return formatToolOutput({ error: `Change not found: ${changeId}` });
         }
 
         // Remove source `changes/<id>/` directory after successful close.
@@ -1447,25 +1407,19 @@ export const changeTools = {
           }
         }
 
-        return wrapWithBanner(
-          { command: "adv_change_close", target: changeId },
-          formatToolOutput({
+        return formatToolOutput({
             success: true,
             change,
             message: cleanupWarning
               ? `Closed change ${changeId} as ${reason}. ${cleanupWarning}`
               : `Closed change ${changeId} as ${reason}.`,
-          }),
-        );
+          });
       } catch (error) {
         const contextMismatch = extractContextMismatch(error);
-        return wrapWithBanner(
-          { command: "adv_change_close", target: changeId },
-          formatToolOutput({
+        return formatToolOutput({
             error: error instanceof Error ? error.message : String(error),
             ...contextMismatch,
-          }),
-        );
+          });
       }
     },
   },
@@ -1510,21 +1464,15 @@ export const changeTools = {
     ) => {
       if (reason === "superseded") {
         if (selector.kind === "filter") {
-          return wrapWithBanner(
-            { command: "adv_change_bulk_close" },
-            formatToolOutput({
+          return formatToolOutput({
               error:
                 "Filter-based bulk close with reason 'superseded' is not supported. Use explicit IDs.",
-            }),
-          );
+            });
         }
         if (!supersededBy) {
-          return wrapWithBanner(
-            { command: "adv_change_bulk_close" },
-            formatToolOutput({
+          return formatToolOutput({
               error: "supersededBy is required when reason is 'superseded'.",
-            }),
-          );
+            });
         }
       }
 
@@ -1534,19 +1482,13 @@ export const changeTools = {
       });
 
       if (!selection.ok) {
-        return wrapWithBanner(
-          { command: "adv_change_bulk_close" },
-          formatToolOutput({ error: selection.error }),
-        );
+        return formatToolOutput({ error: selection.error });
       }
 
       if (selection.changeIds.length === 0) {
-        return wrapWithBanner(
-          { command: "adv_change_bulk_close" },
-          formatToolOutput({
+        return formatToolOutput({
             error: "SELECTION_ERROR: No changes matched the provided criteria.",
-          }),
-        );
+          });
       }
 
       try {
@@ -1585,26 +1527,20 @@ export const changeTools = {
           }
         }
 
-        return wrapWithBanner(
-          { command: "adv_change_bulk_close" },
-          formatToolOutput({
+        return formatToolOutput({
             success: result.success,
             closed: result.closed,
             results: result.results,
             diskRemoved,
             diskFailed,
             message: result.message,
-          }),
-        );
+          });
       } catch (error) {
         const contextMismatch = extractContextMismatch(error);
-        return wrapWithBanner(
-          { command: "adv_change_bulk_close" },
-          formatToolOutput({
+        return formatToolOutput({
             error: error instanceof Error ? error.message : String(error),
             ...contextMismatch,
-          }),
-        );
+          });
       }
     },
   },
@@ -1622,16 +1558,10 @@ export const changeTools = {
     ) => {
       const result = await store.changes.get(changeId);
       if (!result.success) {
-        return wrapWithBanner(
-          { command: "adv_change_validate", target: changeId },
-          formatToolOutput({ error: result.error }),
-        );
+        return formatToolOutput({ error: result.error });
       }
       if (!result.data) {
-        return wrapWithBanner(
-          { command: "adv_change_validate", target: changeId },
-          formatToolOutput({ error: `Change not found: ${changeId}` }),
-        );
+        return formatToolOutput({ error: `Change not found: ${changeId}` });
       }
 
       const change = result.data;
@@ -1679,17 +1609,14 @@ export const changeTools = {
         Object.assign(formatted, smellReport);
       }
 
-      return wrapWithBanner(
-        { command: "adv_change_validate", target: changeId },
-        formatToolOutput({
+      return formatToolOutput({
           passed,
           errors: validationResult.errors,
           warnings: validationResult.warnings,
           checksPerformed: validationResult.checksPerformed,
           checkedAt: validationResult.checkedAt,
           formatted,
-        }),
-      );
+        });
     },
   },
 
@@ -1710,16 +1637,10 @@ export const changeTools = {
     ) => {
       const result = await store.changes.get(changeId);
       if (!result.success) {
-        return wrapWithBanner(
-          { command: "adv_change_archive", target: changeId },
-          formatToolOutput({ error: result.error }),
-        );
+        return formatToolOutput({ error: result.error });
       }
       if (!result.data) {
-        return wrapWithBanner(
-          { command: "adv_change_archive", target: changeId },
-          formatToolOutput({ error: `Change not found: ${changeId}` }),
-        );
+        return formatToolOutput({ error: `Change not found: ${changeId}` });
       }
 
       const change = result.data;
@@ -1735,15 +1656,12 @@ export const changeTools = {
             change,
           );
           if (divergenceHint) {
-            return wrapWithBanner(
-              { command: "adv_change_archive", target: changeId },
-              formatToolOutput({
+            return formatToolOutput({
                 error:
                   "Cannot archive: incomplete gates. Complete all quality gates before archiving.",
                 incompleteGates: getIncompleteGates(gates),
                 hint: divergenceHint,
-              }),
-            );
+              });
           }
         }
         return preflightError;
@@ -1765,9 +1683,7 @@ export const changeTools = {
         });
       } catch (validationError) {
         const validationErrorText = collectErrorText(validationError);
-        return wrapWithBanner(
-          { command: "adv_change_archive", target: changeId },
-          formatToolOutput({
+        return formatToolOutput({
             success: false,
             error: `Archive blocked: validation could not run: ${validationErrorText}`,
             validationErrors: [
@@ -1777,13 +1693,10 @@ export const changeTools = {
               },
             ],
             changeId,
-          }),
-        );
+          });
       }
       if (validationResult.errors.length > 0) {
-        return wrapWithBanner(
-          { command: "adv_change_archive", target: changeId },
-          formatToolOutput({
+        return formatToolOutput({
             error: `Archive blocked: ${validationResult.errors.length} validation error(s). Fix errors and retry.`,
             validationErrors: validationResult.errors.map((e) => ({
               code: e.code,
@@ -1791,8 +1704,7 @@ export const changeTools = {
               path: e.path,
             })),
             changeId,
-          }),
-        );
+          });
       }
 
       const specs = await loadSpecsMap(store);
@@ -1844,15 +1756,12 @@ export const changeTools = {
           const saveErrorText = collectErrorText(saveError);
           const contextMismatch = extractContextMismatch(saveError);
           if (contextMismatch) {
-            return wrapWithBanner(
-              { command: "adv_change_archive", target: changeId },
-              formatToolOutput({
+            return formatToolOutput({
                 success: false,
                 error: `Failed to update change status to archived: ${saveErrorText}`,
                 archivePath: archiveResult.archivePath,
                 ...contextMismatch,
-              }),
-            );
+              });
           }
           const searchAttributeRecovery = isSearchAttributeArchiveFailure(
             saveErrorText,
@@ -1864,9 +1773,7 @@ export const changeTools = {
             : {};
           // Surface the full cause chain (e.g. WorkflowUpdateFailedError →
           // the real reason) so the caller can diagnose the failure.
-          return wrapWithBanner(
-            { command: "adv_change_archive", target: changeId },
-            formatToolOutput({
+          return formatToolOutput({
               success: false,
               error: `Failed to update change status to archived: ${saveErrorText}`,
               archivePath: archiveResult.archivePath,
@@ -1876,8 +1783,7 @@ export const changeTools = {
                 version: `${s.originalVersion} → ${s.newVersion}`,
                 deltas: s.deltaResults.length,
               })),
-            }),
-          );
+            });
         }
 
         // rq-archiveRetirement01: final source cleanup happens AFTER the archived status transition.
@@ -1894,9 +1800,7 @@ export const changeTools = {
         }
       }
 
-      return wrapWithBanner(
-        { command: "adv_change_archive", target: changeId },
-        formatToolOutput({
+      return formatToolOutput({
           success: archiveResult.success,
           specsUpdated: archiveResult.specsUpdated.map((s) => ({
             capability: s.capability,
@@ -1916,8 +1820,7 @@ export const changeTools = {
                 })),
               }
             : {}),
-        }),
-      );
+        });
     },
   },
 
@@ -1945,26 +1848,17 @@ export const changeTools = {
       const addList = (add ?? []).filter(Boolean);
       const removeList = (remove ?? []).filter(Boolean);
       if (addList.length === 0 && removeList.length === 0) {
-        return wrapWithBanner(
-          { command: "adv_change_update_issues", target: changeId },
-          formatToolOutput({
+        return formatToolOutput({
             error: "At least one non-empty add/remove issue list is required",
-          }),
-        );
+          });
       }
 
       const result = await store.changes.get(changeId);
       if (!result.success) {
-        return wrapWithBanner(
-          { command: "adv_change_update_issues", target: changeId },
-          formatToolOutput({ error: result.error }),
-        );
+        return formatToolOutput({ error: result.error });
       }
       if (!result.data) {
-        return wrapWithBanner(
-          { command: "adv_change_update_issues", target: changeId },
-          formatToolOutput({ error: `Change not found: ${changeId}` }),
-        );
+        return formatToolOutput({ error: `Change not found: ${changeId}` });
       }
 
       const change = result.data;
@@ -1978,17 +1872,12 @@ export const changeTools = {
       try {
         await store.changes.save(change);
       } catch (err) {
-        return wrapWithBanner(
-          { command: "adv_change_update_issues", target: changeId },
-          formatToolOutput({
+        return formatToolOutput({
             error: `Failed to save change: ${err instanceof Error ? err.message : String(err)}`,
-          }),
-        );
+          });
       }
 
-      return wrapWithBanner(
-        { command: "adv_change_update_issues", target: changeId },
-        formatToolOutput({
+      return formatToolOutput({
           success: true,
           message: `Issues updated: +${update.added.length} -${update.removed.length}`,
           github_issues: change.github_issues,
@@ -1996,8 +1885,7 @@ export const changeTools = {
           removed: update.removed,
           alreadyLinked: update.alreadyLinked,
           notLinked: update.notLinked,
-        }),
-      );
+        });
     },
   },
 
@@ -2045,16 +1933,10 @@ export const changeTools = {
       const normalizedApprovalEvidence = approvalEvidence?.trim() || undefined;
       const result = await store.changes.get(changeId);
       if (!result.success) {
-        return wrapWithBanner(
-          { command: "adv_change_reenter", target: changeId },
-          formatToolOutput({ error: result.error }),
-        );
+        return formatToolOutput({ error: result.error });
       }
       if (!result.data) {
-        return wrapWithBanner(
-          { command: "adv_change_reenter", target: changeId },
-          formatToolOutput({ error: `Change not found: ${changeId}` }),
-        );
+        return formatToolOutput({ error: `Change not found: ${changeId}` });
       }
 
       try {
@@ -2068,12 +1950,9 @@ export const changeTools = {
         );
         return buildReentryResult(store, changeId, fromGate);
       } catch (error) {
-        return wrapWithBanner(
-          { command: "adv_change_reenter", target: changeId },
-          formatToolOutput({
+        return formatToolOutput({
             error: error instanceof Error ? error.message : String(error),
-          }),
-        );
+          });
       }
     },
   },

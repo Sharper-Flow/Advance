@@ -18,7 +18,6 @@ import {
   allGatesSatisfied,
   createDefaultGates,
 } from "../types";
-import { wrapWithBanner } from "../utils/banner";
 import { formatToolOutput } from "../utils/tool-output";
 import { runPrepReadinessChecks } from "../validator/prep-readiness";
 import { runClarifyReadinessChecks } from "../validator/clarify-readiness";
@@ -105,9 +104,7 @@ async function completeGateAndBuildResponse({
     change.title,
   );
 
-  return wrapWithBanner(
-    { command: "adv_gate_complete", target: `${changeId}:${gateId}` },
-    formatToolOutput({
+  return formatToolOutput({
       success: true,
       changeId,
       gateId,
@@ -122,8 +119,7 @@ async function completeGateAndBuildResponse({
       }),
       ...(boundaryWarning ? { boundaryWarning } : {}),
       ...extraPayload,
-    }),
-  );
+    });
 }
 
 async function handlePlanningGateCompletion({

@@ -1572,7 +1572,7 @@ describe("Change Tools", () => {
       expect(created2.changeId).toBe(`${created.changeId}2`);
     });
 
-    test("wraps output with banner", async () => {
+    test("returns output without banner", async () => {
       const createResult = await changeTools.adv_change_create.execute(
         { summary: "Banner test update" },
         store,
@@ -1588,9 +1588,9 @@ describe("Change Tools", () => {
         store,
       );
 
-      // Banner should contain the tool name and target
-      expect(result).toContain("adv_change_update");
+      // Output should contain the changeId and not have banner markers
       expect(result).toContain(created.changeId);
+      expect(result).not.toContain("╔");
     });
 
     test("updates only proposal when problemStatement is omitted", async () => {

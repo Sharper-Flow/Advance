@@ -9,7 +9,6 @@
 import { z } from "zod";
 import { join } from "path";
 import { readdir } from "fs/promises";
-import { wrapWithBanner } from "../utils/banner";
 import { formatToolOutput } from "../utils/tool-output";
 import type { Store } from "../storage/store";
 import { appendReflection, type ReflectionEntry } from "../storage/reflection";
@@ -290,26 +289,17 @@ export const reflectionTools = {
     ): Promise<string> => {
       const changeResult = await store.changes.get(args.changeId);
       if (!changeResult.success) {
-        return wrapWithBanner(
-          { command: "adv_reflect" },
-          formatToolOutput({ error: changeResult.error }),
-        );
+        return formatToolOutput({ error: changeResult.error });
       }
       if (!changeResult.data) {
-        return wrapWithBanner(
-          { command: "adv_reflect" },
-          formatToolOutput({ error: `Change not found: ${args.changeId}` }),
-        );
+        return formatToolOutput({ error: `Change not found: ${args.changeId}` });
       }
 
       const change = changeResult.data;
       if (change.status !== "archived") {
-        return wrapWithBanner(
-          { command: "adv_reflect" },
-          formatToolOutput({
+        return formatToolOutput({
             error: `Change ${args.changeId} is not archived (status: ${change.status}). Reflection only runs on archived changes.`,
-          }),
-        );
+          });
       }
 
       const tasks = change.tasks ?? [];
@@ -594,12 +584,9 @@ export const reflectionTools = {
       // Best-effort: write human-readable markdown to archive dir
       await writeReflectionMarkdown(store.paths.archive, change.id, persisted);
 
-      return wrapWithBanner(
-        { command: "adv_reflect" },
-        formatToolOutput({
+      return formatToolOutput({
           reflection: persisted,
-        }),
-      );
+        });
     },
   },
 };

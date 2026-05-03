@@ -16,7 +16,6 @@
  */
 import { z } from "zod";
 import type { Store } from "../storage/store";
-import { wrapWithBanner } from "../utils/banner";
 import { formatToolOutput } from "../utils/tool-output";
 import { GATE_ORDER, type GateId, type ThresholdTier } from "../types";
 import { getDoomLoopInfo } from "../events/status";
@@ -114,16 +113,10 @@ export const investmentTools = {
 
       const changeResult = await store.changes.get(args.changeId);
       if (!changeResult.success) {
-        return wrapWithBanner(
-          { command: "adv_investment_report" },
-          formatToolOutput({ error: changeResult.error }),
-        );
+        return formatToolOutput({ error: changeResult.error });
       }
       if (!changeResult.data) {
-        return wrapWithBanner(
-          { command: "adv_investment_report" },
-          formatToolOutput({ error: `Change not found: ${args.changeId}` }),
-        );
+        return formatToolOutput({ error: `Change not found: ${args.changeId}` });
       }
 
       const change = changeResult.data;
@@ -192,9 +185,7 @@ export const investmentTools = {
         thresholds,
       );
 
-      return wrapWithBanner(
-        { command: "adv_investment_report" },
-        formatToolOutput({
+      return formatToolOutput({
           task_counts: taskCounts,
           elapsed_ms: elapsedMs,
           active_elapsed_ms: activeElapsedMs,
@@ -205,8 +196,7 @@ export const investmentTools = {
           threshold_tier: thresholdTier,
           token_hint:
             "Token tracking not yet available — informational field reserved for v2.",
-        }),
-      );
+        });
     },
   },
 };
