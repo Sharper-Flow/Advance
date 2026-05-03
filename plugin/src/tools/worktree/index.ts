@@ -21,6 +21,7 @@ import type { WorktreeStateAccess as Database } from "./state"
 import { access, copyFile, cp, mkdir, rm, stat, symlink } from "node:fs/promises"
 import * as os from "node:os"
 import * as path from "node:path"
+import { execFile } from "child_process"
 import { type Plugin, tool } from "@opencode-ai/plugin"
 import type { Event } from "@opencode-ai/sdk"
 import type { OpencodeClient } from "../../utils/opencode-types"
@@ -53,10 +54,12 @@ import {
 	getWorktreePath,
 	incrementPendingDeleteAttempts,
 	initStateDb,
+	listWorktrees,
 	removeSession,
-	setPendingDelete,
 } from "./state"
 import { openTerminal } from "./terminal"
+import { runHooksWithSafety, HookFailedError } from "./hooks"
+import { appendDebugLog } from "../../utils/debug-log"
 
 /** Maximum retries for database initialization */
 const DB_MAX_RETRIES = 3
@@ -160,6 +163,42 @@ const worktreeConfigSchema = z.object({
 })
 
 type WorktreeConfig = z.infer<typeof worktreeConfigSchema>
+
+// =============================================================================
+// BRANCH INTEGRATION & UNCOMMITTED STATE HELPERS (T9)
+// =============================================================================
+
+// T29 will replace this stub with the 3-condition gate (archived AND merged AND clean).
+export async function verifyBranchIntegration(_branch: string, _repoRoot: string): Promise<{ ok: true } | { ok: false; reason: string }> {
+	return { ok: true as const }
+}
+
+export async function detectUncommittedState(worktreePath: string): Promise<{ clean: boolean; files: string[] }> {
+	return new Promise((resolve, reject) => {
+		execFile("git", ["status", "--porcelain"], { cwd: worktreePath }, (error, stdout) => {
+			if (error) {
+				reject(error)
+				return
+			}
+			const lines = stdout.trim().split("\n").filter(Boolean)
+			resolve({ clean: lines.length === 0, files: lines })
+		})
+	})
+}
+
+async function gitWorktreeRemove(repoRoot: string, worktreePath: string, force?: boolean): Promise<Result<void, string>> {
+	return new Promise((resolve) => {
+		const args = ["worktree", "remove", worktreePath]
+		if (force) args.push("--force")
+		execFile("git", args, { cwd: repoRoot }, (error, _stdout, stderr) => {
+			if (error) {
+				resolve(Result.err(stderr.trim() || error.message))
+			} else {
+				resolve(Result.ok(undefined))
+			}
+		})
+	})
+}
 
 // =============================================================================
 // ERROR TYPES
@@ -479,12 +518,131 @@ async function createWorktree(
 	}
 }
 
-async function removeWorktree(
-	repoRoot: string,
-	worktreePath: string,
-): Promise<Result<void, string>> {
-	const result = await git(["worktree", "remove", "--force", worktreePath], repoRoot)
-	return result.ok ? Result.ok(undefined) : Result.err(result.error)
+// =============================================================================
+// ADV-SAFE WORKTREE DELETE (T9 — KD-6b, F2, R13)
+// =============================================================================
+
+export interface AdvWorktreeDeleteDeps {
+	projectRoot: string
+	database: Database
+	log: Logger
+	worktreePath?: string
+	hooks?: { preDelete: string[] }
+	integrationCheck?: typeof verifyBranchIntegration
+}
+
+export type AdvWorktreeDeleteResult =
+	| { ok: true; branch: string; path: string }
+	| { ok: false; error: "WORKTREE_NOT_FOUND"; branch: string }
+	| { ok: false; error: "INTEGRATION_REQUIRED"; reason: string; hint: string }
+	| { ok: false; error: "UNCOMMITTED_WORK"; files: string[]; hint: string }
+	| { ok: false; error: "HOOK_FAILED"; details: unknown }
+	| { ok: false; error: "HOOK_INTRODUCED_CHANGES"; files: string[]; hint: string }
+	| { ok: false; error: "REMOVE_FAILED"; reason: string }
+
+export async function advWorktreeDelete(
+	branch: string,
+	opts: { force?: boolean } = {},
+	deps: AdvWorktreeDeleteDeps,
+): Promise<AdvWorktreeDeleteResult> {
+	// 1. Resolve worktree path
+	let worktreePath: string
+	if (deps.worktreePath) {
+		worktreePath = deps.worktreePath
+	} else {
+		try {
+			worktreePath = await getWorktreePath(deps.projectRoot, branch)
+		} catch {
+			const registry = await listWorktrees(deps.database)
+			const record = registry.find((r) => r.branch === branch)
+			if (!record) {
+				return { ok: false, error: "WORKTREE_NOT_FOUND", branch }
+			}
+			worktreePath = record.path
+		}
+	}
+
+	// 2. Branch integration check
+	const integrationFn = deps.integrationCheck ?? verifyBranchIntegration
+	const integration = await integrationFn(branch, deps.projectRoot)
+	if (!integration.ok) {
+		return {
+			ok: false,
+			error: "INTEGRATION_REQUIRED",
+			reason: integration.reason,
+			hint: "Branch must be archived, merged, and clean",
+		}
+	}
+
+	// 3. Pre-hook uncommitted check
+	let preHookStatus: { clean: boolean; files: string[] }
+	try {
+		preHookStatus = await detectUncommittedState(worktreePath)
+	} catch (err) {
+		return {
+			ok: false,
+			error: "UNCOMMITTED_WORK",
+			files: [String(err)],
+			hint: "Failed to check uncommitted state",
+		}
+	}
+	if (!preHookStatus.clean && !opts.force) {
+		return {
+			ok: false,
+			error: "UNCOMMITTED_WORK",
+			files: preHookStatus.files,
+			hint: "Commit or stash, or pass opts.force: true with explicit audit reason",
+		}
+	}
+
+	// 4. Run preDelete hooks
+	const hooks = deps.hooks ?? (await loadWorktreeConfig(deps.projectRoot, deps.log)).hooks
+	if (hooks.preDelete.length > 0) {
+		try {
+			await runHooksWithSafety("preDelete", worktreePath, hooks.preDelete)
+		} catch (err) {
+			if (err instanceof HookFailedError) {
+				return { ok: false, error: "HOOK_FAILED", details: err.results }
+			}
+			throw err
+		}
+	}
+
+	// 5. Post-hook re-verification
+	let postHookStatus: { clean: boolean; files: string[] }
+	try {
+		postHookStatus = await detectUncommittedState(worktreePath)
+	} catch (err) {
+		return {
+			ok: false,
+			error: "HOOK_INTRODUCED_CHANGES",
+			files: [String(err)],
+			hint: "Failed to re-check uncommitted state after hooks",
+		}
+	}
+	if (!postHookStatus.clean && !opts.force) {
+		return {
+			ok: false,
+			error: "HOOK_INTRODUCED_CHANGES",
+			files: postHookStatus.files,
+			hint: "Hook introduced uncommitted changes; review and commit, or pass opts.force: true",
+		}
+	}
+
+	// 6. Execute git worktree remove
+	if (opts.force) {
+		appendDebugLog("worktree-delete", `force-removing ${branch} at ${worktreePath} (uncommitted=${!preHookStatus.clean})`)
+	}
+	const removeResult = await gitWorktreeRemove(deps.projectRoot, worktreePath, opts.force)
+	if (!removeResult.ok) {
+		return { ok: false, error: "REMOVE_FAILED", reason: removeResult.error }
+	}
+
+	// 7. Remove from registry
+	await removeSession(deps.database, branch)
+
+	// 8. Return success
+	return { ok: true as const, branch, path: worktreePath }
 }
 
 // =============================================================================
@@ -725,7 +883,6 @@ export const WorktreePlugin: Plugin = async (ctx) => {
 		const pendingDeletes = await getPendingDeletes(database)
 		if (pendingDeletes.length === 0) return { removed: 0, retained: 0 }
 
-		const config = await loadWorktreeConfig(directory, log)
 		let removed = 0
 		let retained = 0
 
@@ -749,28 +906,17 @@ export const WorktreePlugin: Plugin = async (ctx) => {
 				continue
 			}
 
-			try {
-				if (config.hooks.preDelete.length > 0) {
-					await runHooks(worktreePath, config.hooks.preDelete, log)
-				}
+			const result = await advWorktreeDelete(
+				branch,
+				{ force: options.forceAttempts },
+				{ projectRoot: directory, database, log, worktreePath },
+			)
 
-				const addResult = await git(["add", "-A"], worktreePath)
-				if (!addResult.ok) throw new Error(`git add failed: ${addResult.error}`)
-
-				const commitResult = await git(
-					["commit", "-m", "chore(worktree): session snapshot", "--allow-empty"],
-					worktreePath,
-				)
-				if (!commitResult.ok) throw new Error(`git commit failed: ${commitResult.error}`)
-
-				const removeResult = await removeWorktree(directory, worktreePath)
-				if (!removeResult.ok) throw new Error(`remove worktree failed: ${removeResult.error}`)
-
+			if (result.ok) {
 				await clearPendingDelete(database, branch)
-				await removeSession(database, branch)
 				removed++
-			} catch (error) {
-				log.warn(`[worktree] Failed pending delete for ${branch}: ${error}`)
+			} else {
+				log.warn(`[worktree] Failed pending delete for ${branch}: ${result.error}`)
 				await incrementPendingDeleteAttempts(database, branch)
 				retained++
 			}
@@ -902,7 +1048,7 @@ export const WorktreePlugin: Plugin = async (ctx) => {
 
 			worktree_delete: tool({
 				description:
-					"Delete a worktree and clean up. Changes will be committed before removal. In inline mode, provide the branch name to identify which worktree to delete.",
+					"Delete a worktree and clean up. In inline mode, provide the branch name to identify which worktree to delete.",
 				args: {
 					reason: tool.schema
 						.string()
@@ -911,6 +1057,10 @@ export const WorktreePlugin: Plugin = async (ctx) => {
 						.string()
 						.optional()
 						.describe("Branch name of the worktree to delete (required in inline mode)"),
+					force: tool.schema
+						.boolean()
+						.optional()
+						.describe("Force removal even with uncommitted changes (requires explicit audit reason)"),
 				},
 				async execute(args, toolCtx) {
 					const worktreeConfig = await loadWorktreeConfig(directory, log)
@@ -933,14 +1083,32 @@ export const WorktreePlugin: Plugin = async (ctx) => {
 						return `No worktree found${args.branch ? ` for branch "${args.branch}"` : " associated with this session"}`
 					}
 
-					// Queue pending delete and run one guarded cleanup attempt immediately.
-					await setPendingDelete(database, { branch: session.branch, path: session.path }, client)
-					const cleanup = await processPendingDeletes("worktree_delete")
-					if (cleanup.removed > 0 && cleanup.retained === 0) {
-						return `Worktree removed and changes committed on branch "${session.branch}".`
+					const result = await advWorktreeDelete(
+						session.branch,
+						{ force: args.force ?? false },
+						{ projectRoot: directory, database, log, worktreePath: session.path },
+					)
+
+					if (result.ok) {
+						return `Worktree removed on branch "${result.branch}".`
 					}
 
-					return `Worktree scheduled for cleanup. Removed ${cleanup.removed}, retained ${cleanup.retained}. Ensure no process is using it, then retry with worktree_cleanup if needed.`
+					switch (result.error) {
+						case "WORKTREE_NOT_FOUND":
+							return `Worktree not found for branch "${result.branch}".`
+						case "INTEGRATION_REQUIRED":
+							return `Integration required: ${result.reason}. ${result.hint}`
+						case "UNCOMMITTED_WORK":
+							return `Uncommitted work detected:\n${result.files.join("\n")}\n\n${result.hint}`
+						case "HOOK_FAILED":
+							return `Pre-delete hook failed. Details: ${JSON.stringify(result.details)}`
+						case "HOOK_INTRODUCED_CHANGES":
+							return `Hook introduced uncommitted changes:\n${result.files.join("\n")}\n\n${result.hint}`
+						case "REMOVE_FAILED":
+							return `Failed to remove worktree: ${result.reason}`
+						default:
+							return `Delete failed: ${(result as { error: string }).error}`
+					}
 				},
 			}),
 
