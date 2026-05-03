@@ -449,7 +449,7 @@ provider_adv_has_activation_fields() {
   jq -e '
     (.agent // {}) as $agents |
     ["adv-claude", "adv-gpt", "adv-glm", "adv-kimi"][] as $key |
-    (($agents[$key] // {}) | if type == "object" then any(["model", "disable", "variant", "color"][]; has(.)) else false end)
+    (($agents[$key] // {}) | if type == "object" then . as $agent | any(["model", "disable", "variant", "color"][]; . as $field | $agent | has($field)) else false end)
   ' >/dev/null
 }
 

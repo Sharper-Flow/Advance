@@ -45,6 +45,8 @@ tools:
   adv_change_bulk_close: true
   adv_change_validate: true
   adv_change_archive: true
+  adv_change_diagnose: true
+  adv_change_import: true
   adv_change_update_issues: true
   adv_change_reenter: true
   # Tasks
@@ -81,6 +83,8 @@ tools:
   # Temporal / workflow ops
   adv_orphan_sweep: true
   adv_archive_sweep_orphans: true
+  adv_migrate_cleanup: true
+  adv_archive_purge: true
   adv_temporal_diagnose: true
   adv_temporal_reconnect: true
   adv_temporal_register_search_attributes: true
@@ -88,6 +92,7 @@ tools:
   adv_workflow_repair: true
   # Reflection
   adv_reflect: true
+  adv_conformance: true
   # Project metadata
   adv_project_metadata: true
   # === Worktree — orchestrator owns lifecycle ===

@@ -444,6 +444,50 @@ describe("overlay sync script support", () => {
     }
   });
 
+  test("prompt-only provider activation check tolerates non-object agent entries", () => {
+    const tempHome = mkdtempSync(join(tmpdir(), "adv-provider-prompt-only-"));
+
+    try {
+      const configDir = join(tempHome, ".config/opencode");
+      const globalAgents = join(configDir, "agents");
+      mkdirSync(globalAgents, { recursive: true });
+      writeFileSync(
+        join(configDir, "opencode.json"),
+        JSON.stringify({
+          plugin: [],
+          instructions: [],
+          agent: {
+            build: "openai/gpt-5.5",
+            "adv-gpt": {
+              prompt:
+                "{file:./agent-parts/advance/adv.md}\n\n{file:./agent-parts/advance/providers/gpt.md}",
+            },
+          },
+        }),
+      );
+      writeFileSync(
+        join(globalAgents, "adv.md"),
+        "---\ndescription: temp adv\n---\n",
+      );
+
+      const result = spawnSync(
+        "bash",
+        [SYNC_SCRIPT_PATH, "--dry-run", "--diff"],
+        {
+          cwd: REPO_ROOT,
+          env: { ...process.env, HOME: tempHome, CI: "true" },
+          encoding: "utf8",
+        },
+      );
+
+      expect(result.status).toBe(0);
+      expect(result.stderr).not.toContain("jq: error");
+      expect(result.stdout).toContain("kept legacy adv.md");
+    } finally {
+      rmSync(tempHome, { recursive: true, force: true });
+    }
+  });
+
   test("refuses to strip JSONC comments during --fix", () => {
     const tempHome = mkdtempSync(join(tmpdir(), "adv-jsonc-protect-"));
 
