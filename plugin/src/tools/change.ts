@@ -1830,10 +1830,12 @@ export const changeTools = {
       const specs = await loadSpecsMap(store);
 
       // Run the archive operation
+      // Include in-repo archive path: always resolves within the repo at .adv/archive/
+      const inRepoArchive = join(store.paths.root, ".adv", "archive");
       const archivePaths =
         store.config?.features?.wisdom_accumulation === false
-          ? { ...store.paths, wisdom: undefined }
-          : store.paths;
+          ? { ...store.paths, wisdom: undefined, inRepoArchive }
+          : { ...store.paths, inRepoArchive };
 
       // Idempotent retry: if the bundle already exists on disk, skip the
       // disk write. Two sub-cases:

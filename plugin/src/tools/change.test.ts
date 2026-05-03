@@ -2733,6 +2733,68 @@ describe("Change Tools", () => {
     });
   });
 
+  describe("adv_change_archive in-repo archive wiring", () => {
+    test("creates in-repo archive bundle alongside external archive", async () => {
+      // Complete all tasks with TDD evidence
+      const change = (await store.changes.get("addFeature")).data!;
+      for (const task of change.tasks) {
+        task.tdd_evidence = {
+          red: {
+            test_file: "test.ts",
+            command: "vitest run test.ts",
+            exit_code: 1,
+            recorded_at: new Date().toISOString(),
+          },
+          green: {
+            test_file: "test.ts",
+            command: "vitest run test.ts",
+            exit_code: 0,
+            recorded_at: new Date().toISOString(),
+          },
+        };
+        task.status = "done";
+      }
+      await store.changes.save(change);
+
+      // Complete all gates
+      change.gates = {
+        proposal: { status: "done", completed_at: new Date().toISOString() },
+        discovery: { status: "done", completed_at: new Date().toISOString() },
+        design: { status: "done", completed_at: new Date().toISOString() },
+        planning: { status: "done", completed_at: new Date().toISOString() },
+        execution: { status: "done", completed_at: new Date().toISOString() },
+        acceptance: { status: "done", completed_at: new Date().toISOString() },
+        release: { status: "done", completed_at: new Date().toISOString() },
+      };
+      await store.changes.save(change);
+
+      const result = await changeTools.adv_change_archive.execute(
+        { changeId: "addFeature" },
+        store,
+      );
+      const parsed = parseToolOutput(result);
+      expect(parsed.success).toBe(true);
+
+      // Verify in-repo bundle was created
+      const { readFile: readFs, access: accessFs } = await import("fs/promises");
+      const { join: joinPath } = await import("path");
+      const inRepoArchiveDir = joinPath(store.paths.root, ".adv", "archive");
+
+      // Find the bundle directory
+      const { readdir: readdirFs } = await import("fs/promises");
+      const entries = await readdirFs(inRepoArchiveDir);
+      const bundleEntry = entries.find((e) => e.endsWith("-addFeature"));
+      expect(bundleEntry).toBeDefined();
+
+      const bundlePath = joinPath(inRepoArchiveDir, bundleEntry!);
+      const changeJson = JSON.parse(
+        await readFs(joinPath(bundlePath, "change.json"), "utf-8"),
+      );
+      expect(changeJson.id).toBe("addFeature");
+      expect(changeJson.status).toBe("archived");
+    });
+  });
+
   describe("adv_change_update_issues", () => {
     test("adds issue URL to change without existing issues", async () => {
       const result = await changeTools.adv_change_update_issues.execute(
