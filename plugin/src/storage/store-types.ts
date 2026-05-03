@@ -155,6 +155,10 @@ export interface Store {
     recordRunEvent: (
       taskId: string,
       event: TaskRunEvent,
+      /**
+       * Returns duplicate=true when the idempotency key was already seen; the
+       * event is ignored and the current run state is returned unchanged.
+       */
     ) => Promise<{ duplicate: boolean; run: TaskRunState } | null>;
     recordEvidence: (
       taskId: string,

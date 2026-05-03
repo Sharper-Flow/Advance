@@ -283,6 +283,12 @@ export function listTaskRunsFromChangeState(
   return Object.values(state.task_runs ?? {});
 }
 
+/**
+ * Append a task-run ledger event exactly once per idempotency key.
+ *
+ * duplicate=true means the event key was already recorded; no phase transition
+ * is applied, and the existing run state is returned for callers to inspect.
+ */
 export function recordTaskRunEventInChangeState(
   state: ChangeWorkflowState,
   taskId: string,

@@ -150,7 +150,7 @@ Canonical columns: `| Section | Lines | Class | Code Reference | Gap Rationale |
 | adv-tron.md → SKILL | (in skill) | inherent       | —                                                                    | Investigation methodology                                           | T5    | done   |
 | adv-validate.md     | 50         | full           | `adv_change_validate`                                                | —                                                                   | T3    | done   |
 | adv-status.md       | 46         | full           | `adv_status`                                                         | —                                                                   | T3    | done   |
-| adv-coordinate.md   | 43         | inherent       | —                                                                    | Coordination methodology                                            | T5    | done   |
+| ~~adv-coordinate.md~~ | ~~43~~     | ~~removed~~    | —                                                                    | Functionality integrated into /adv-archive, /adv-status, /adv-apply | T5    | done   |
 
 ---
 

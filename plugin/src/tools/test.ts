@@ -4,6 +4,7 @@ import { promisify } from "util";
 import type { Store } from "../storage/store";
 import { truncateOutput } from "../types";
 import { validateEvidenceSemantics } from "../validator/evidence";
+import { createLogger } from "../utils/debug-log";
 import { formatToolOutput } from "../utils/tool-output";
 import {
   appendTargetProjectContextOutput,
@@ -11,6 +12,7 @@ import {
 } from "./target-project";
 
 const execAsync = promisify(exec);
+const logger = createLogger("adv_run_test");
 
 /**
  * Default bounded-execution limits for `adv_run_test`.
@@ -25,6 +27,17 @@ const execAsync = promisify(exec);
  */
 export const DEFAULT_TEST_TIMEOUT_MS = 30_000;
 export const DEFAULT_TEST_MAX_BUFFER = 10 * 1024 * 1024;
+export const TASK_RUN_IDEMPOTENCY_OUTPUT_PREVIEW_CHARS = 64;
+
+interface TaskRunRecordOutput {
+  phase: string;
+  requiredNextAction: string;
+  /**
+   * True when the task-run ledger already saw this idempotency key. Duplicate
+   * events are ignored and the returned phase is the existing run state.
+   */
+  duplicate: boolean;
+}
 
 interface ExecBounds {
   timeoutMs?: number;
@@ -251,18 +264,17 @@ export const testTools = {
               payload: { branch: "unknown", headSha: "unknown", workdir: cwd },
             });
           }
-        } catch {
+        } catch (error) {
           // Ledger bootstrap is additive. Preserve evidence behavior if
           // the backing store rejects optional task-run bookkeeping.
+          logger.debug(`task-run bootstrap skipped: ${error}`);
         }
       }
 
-      let taskRun:
-        | { phase: string; requiredNextAction: string; duplicate: boolean }
-        | undefined;
+      let taskRun: TaskRunRecordOutput | undefined;
       try {
         const recorded = await store.tasks.recordRunEvent(args.taskId, {
-          idempotencyKey: `${args.taskId}:${args.phase}:${args.command}:${exitCode}:${truncatedOutput.slice(0, 64)}`,
+          idempotencyKey: `${args.taskId}:${args.phase}:${args.command}:${exitCode}:${truncatedOutput.slice(0, TASK_RUN_IDEMPOTENCY_OUTPUT_PREVIEW_CHARS)}`,
           type: args.phase === "red" ? "red_evidence" : "green_evidence",
           recordedAt: evidence.recorded_at,
           payload: {
@@ -279,10 +291,11 @@ export const testTools = {
             duplicate: recorded.duplicate,
           };
         }
-      } catch {
+      } catch (error) {
         // Ledger recording is additive. Preserve existing evidence behavior
         // for legacy/no-ledger callers; apply flow records task-run state in
         // the normal baseline -> red -> green order.
+        logger.debug(`task-run evidence event skipped: ${error}`);
       }
 
       return formatToolOutput({

@@ -230,6 +230,89 @@ describe("Temporal store backend adapter", () => {
     expect(legacy.specs.list).not.toHaveBeenCalled();
   });
 
+  it("routes task evidence recording through the Temporal update surface", async () => {
+    const task = {
+      id: "tk-1",
+      title: "Task 1",
+      status: "pending",
+      priority: 0,
+      created_at: "2026-04-18T00:00:00.000Z",
+      tdd_phase: "none",
+    } as const;
+    const recordResult = {
+      task: { ...task, tdd_phase: "red" },
+      duplicate: false,
+      corrected: true,
+      correctionReason: "external runner rerun",
+    };
+    const changeHandle = {
+      query: vi.fn(async (queryDef: any) => {
+        const name = queryDef?.name ?? queryDef;
+        if (name === "adv.change.tasks") return [task];
+        if (name === "adv.change.state") {
+          return {
+            projectId: "proj1",
+            changeId: "chg1",
+            title: "Change 1",
+            initializedAt: "2026-04-18T00:00:00.000Z",
+            id: "chg1",
+            status: "draft",
+            createdAt: "2026-04-18T00:00:00.000Z",
+            tasks: [task],
+            wisdom: [],
+            gates: {},
+            reentry_history: [],
+            artifacts: {},
+          };
+        }
+        return null;
+      }),
+      executeUpdate: vi.fn(async (updateDef: any) => {
+        const name = updateDef?.name ?? updateDef;
+        if (name === CHANGE_WORKFLOW_UPDATE_NAMES.recordTaskEvidence) {
+          return recordResult;
+        }
+        return null;
+      }),
+      signal: vi.fn(async () => {}),
+    };
+
+    const adapted = createTemporalStoreBackend({
+      legacy: makeLegacyStore(),
+      temporal: {
+        client: { workflow: { getHandle: routeHandle(changeHandle) } },
+      } as any,
+      projectId: "proj1",
+    });
+
+    await adapted.tasks.list("chg1");
+    const result = await adapted.tasks.recordEvidence(
+      "tk-1",
+      "red",
+      {
+        recorded_at: "2026-04-18T00:00:01.000Z",
+        command: "external-test",
+        exit_code: 1,
+      },
+      { correctionReason: "external runner rerun" },
+    );
+
+    expect(result).toEqual(recordResult);
+    expect(changeHandle.executeUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: CHANGE_WORKFLOW_UPDATE_NAMES.recordTaskEvidence,
+      }),
+      {
+        args: [
+          "tk-1",
+          "red",
+          expect.objectContaining({ command: "external-test", exit_code: 1 }),
+          { correctionReason: "external runner rerun" },
+        ],
+      },
+    );
+  });
+
   // P2.2: explicit guards that legacy.status() and legacy.specs.* are NOT
   // routed through legacy by the Temporal adapter.
   describe("P2.2: legacy.status + legacy.specs.* are bypassed", () => {

@@ -1200,16 +1200,20 @@ export type Change = z.infer<typeof ChangeSchema>;
  * A related repository that tasks in this project may target.
  * Generic model — any repo/path pair, not hardcoded to specific projects.
  */
-const RelatedRepoSchema = z.object({
+export const RelatedRepoSchema = z.object({
   /** Short identifier used in task metadata (e.g., "backend", "api", "db") */
   id: z.string(),
   /** Absolute path to the repository root */
   path: z.string(),
   /** Human-readable role description (e.g., "Backend API server", "Database migrations") */
   role: z.string().optional(),
+  /** Whether this repo is a trusted source for cross-project agent mesh coordination */
+  trusted: z.boolean().default(false),
+  /** GitHub repository identifier for mesh issue creation (e.g., "owner/repo") */
+  gh_repo: z.string().optional(),
 });
 
-type _RelatedRepo = z.infer<typeof RelatedRepoSchema>;
+export type RelatedRepo = z.infer<typeof RelatedRepoSchema>;
 
 // =============================================================================
 // Slop Scan Config

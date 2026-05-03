@@ -41,7 +41,6 @@ describe("Command Manifest", () => {
       "adv-arch-scan",
       "adv-comp-scan",
       "adv-refactor",
-      "adv-coordinate",
       "adv-improve",
       "adv-slop-scan",
       "adv-task",
@@ -53,7 +52,7 @@ describe("Command Manifest", () => {
     for (const cmd of expectedCommands) {
       expect(COMMAND_MANIFEST).toHaveProperty(cmd);
     }
-    expect(Object.keys(COMMAND_MANIFEST)).toHaveLength(26);
+    expect(Object.keys(COMMAND_MANIFEST)).toHaveLength(25);
   });
 
   test("every command has required fields", () => {

@@ -257,7 +257,7 @@ Use the Gate Handoff Voice spine for the closing block (cleanup does not own a g
 |---------|------|--------------|
 | `/adv-status` | Read-only project overview | Cleanup is the actionable counterpart |
 | `/adv-refactor` | Refresh stale proposal *content* | Cleanup detects abandoned/dead proposals (closes them) |
-| `/adv-coordinate` | Cross-change conflict detection | Different lens (per-change health vs cross-change overlaps) |
+| `/adv-status` | Cross-change health dashboard (hot files, merge queue) | Cleanup is the actionable counterpart |
 | `/adv-archive` | Single-change archive (Tier B sign-off) | Cleanup recommends, does not invoke |
 
 ---

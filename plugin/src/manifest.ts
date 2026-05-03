@@ -367,14 +367,6 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
     successors: ["adv-prep"],
     args_hint: "[change-id]",
   },
-  "adv-coordinate": {
-    name: "adv-coordinate",
-    description: "Detect and resolve conflicts across multiple active changes",
-    phase: "advanced",
-    requiresChangeId: false,
-    prerequisites: [],
-    successors: [],
-  },
   "adv-cleanup": {
     name: "adv-cleanup",
     description:

@@ -113,6 +113,7 @@ const updateTaskUpdate = wf.defineUpdate<
       notes?: string;
       implementationSummary?: string;
       errorRecovery?: ChangeWorkflowState["tasks"][number]["error_recovery"];
+      touchedFiles?: string[];
     },
   ]
 >(CHANGE_WORKFLOW_UPDATE_NAMES.updateTask);
