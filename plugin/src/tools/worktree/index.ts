@@ -60,6 +60,13 @@ import {
 import { openTerminal } from "./terminal"
 import { runHooksWithSafety, HookFailedError } from "./hooks"
 import { appendDebugLog } from "../../utils/debug-log"
+import { execGit, getDefaultBranch } from "../../utils/git"
+import {
+	acquireGitWorktreeFlock,
+	releaseGitWorktreeFlock,
+} from "../../utils/git-worktree-flock"
+import { generateSessionId } from "../../utils/session-id"
+import { getExternalRoot } from "../../utils/project-id"
 
 /** Maximum retries for database initialization */
 const DB_MAX_RETRIES = 3
@@ -465,28 +472,20 @@ async function initDb(root: string, log: Logger): Promise<Database> {
 // =============================================================================
 
 /**
- * Execute a git command safely using Bun.spawn with explicit array.
+ * Execute a git command safely using child_process.execFile.
  * Avoids shell interpolation entirely by passing args as array.
+ * Node-compatible (used in tests); replaces legacy Bun.spawn.
  */
 async function git(args: string[], cwd: string): Promise<Result<string, string>> {
-	try {
-		const proc = Bun.spawn(["git", ...args], {
-			cwd,
-			stdout: "pipe",
-			stderr: "pipe",
+	return new Promise((resolve) => {
+		execFile("git", args, { cwd, timeout: 30000, env: { ...process.env, GIT_TERMINAL_PROMPT: "0" } }, (error, stdout, stderr) => {
+			if (error) {
+				resolve(Result.err(stderr.trim() || error.message || `git ${args[0]} failed`))
+			} else {
+				resolve(Result.ok(stdout.trim()))
+			}
 		})
-		const [stdout, stderr, exitCode] = await Promise.all([
-			new Response(proc.stdout).text(),
-			new Response(proc.stderr).text(),
-			proc.exited,
-		])
-		if (exitCode !== 0) {
-			return Result.err(stderr.trim() || `git ${args[0]} failed`)
-		}
-		return Result.ok(stdout.trim())
-	} catch (error) {
-		return Result.err(error instanceof Error ? error.message : String(error))
-	}
+	})
 }
 
 async function branchExists(cwd: string, branch: string): Promise<boolean> {
@@ -494,7 +493,149 @@ async function branchExists(cwd: string, branch: string): Promise<boolean> {
 	return result.ok
 }
 
-async function createWorktree(
+// =============================================================================
+// ADV-SAFE WORKTREE CREATE (T10 — KD-13, peer-review F3, R14)
+// =============================================================================
+
+export interface AdvWorktreeCreateDeps {
+	projectRoot: string
+	database: Database
+	log: Logger
+	resolveDefaultBranch?: (cwd: string) => Promise<string | null>
+	detectStaleBasis?: (base: string, cwd: string) => Promise<{ stale: boolean; reason?: string; suggestion?: string }>
+	hooks?: { postCreate?: string[] }
+	flock?: {
+		acquire: (dir: string) => Promise<{ owned: boolean; release: () => Promise<void> }>
+	}
+}
+
+export type AdvWorktreeCreateResult =
+	| { ok: true; branch: string; path: string; baseRef: string; headSha: string }
+	| { ok: false; error: "DEFAULT_BRANCH_UNRESOLVABLE"; hint: string }
+	| { ok: false; error: "STALE_BASE"; reason: string; suggestion: string }
+	| { ok: false; error: "BRANCH_LOCKED"; hint: string }
+	| { ok: false; error: "GIT_FAILED"; reason: string }
+
+export async function advWorktreeCreate(
+	branch: string,
+	opts: { base?: string; force?: boolean } = {},
+	deps: AdvWorktreeCreateDeps,
+): Promise<AdvWorktreeCreateResult> {
+	const repoRoot = deps.projectRoot
+
+	// Step 1: resolve base branch explicitly. NEVER fall through to HEAD.
+	const resolveDefaultBranchFn = deps.resolveDefaultBranch ?? getDefaultBranch
+	const resolvedBase = opts.base ?? await resolveDefaultBranchFn(repoRoot)
+	if (!resolvedBase) {
+		return {
+			ok: false,
+			error: "DEFAULT_BRANCH_UNRESOLVABLE",
+			hint: "Specify opts.base explicitly or fix repo HEAD (no origin/HEAD, no init.defaultBranch, no main branch found)",
+		}
+	}
+
+	// Step 2: stale-basis check — refuse to fork from a merged-and-deleted branch.
+	async function defaultDetectStaleBasis(base: string, cwd: string): Promise<{ stale: boolean; reason?: string; suggestion?: string }> {
+		// Adapt detectStaleBranchHead (which checks current HEAD) to check any base branch.
+		// We do this by checking if the base branch is merged into default AND has no remote.
+		try {
+			const defaultBranch = await getDefaultBranch(cwd)
+			if (base === defaultBranch) {
+				return { stale: false }
+			}
+			const mergedList = await execGit(["branch", "--merged", defaultBranch], cwd)
+			const mergedBranches = mergedList
+				.split("\n")
+				.map((line) => line.replace(/^\*?\s+/, "").trim())
+				.filter((line) => line.length > 0)
+			const isMerged = mergedBranches.includes(base)
+			if (!isMerged) {
+				return { stale: false }
+			}
+			const remoteOutput = await execGit(["ls-remote", "--heads", "origin", base], cwd)
+			const remoteExists = remoteOutput.trim().length > 0
+			if (remoteExists) {
+				return { stale: false }
+			}
+			return {
+				stale: true,
+				reason: `branch "${base}" is merged into ${defaultBranch} and remote branch is deleted`,
+				suggestion: `git switch ${defaultBranch} && git branch -d ${base}`,
+			}
+		} catch {
+			return { stale: false }
+		}
+	}
+	const detectStaleBasisFn = deps.detectStaleBasis ?? defaultDetectStaleBasis
+	const staleCheck = await detectStaleBasisFn(resolvedBase, repoRoot)
+	if (staleCheck.stale && !opts.force) {
+		return {
+			ok: false,
+			error: "STALE_BASE",
+			reason: staleCheck.reason ?? "",
+			suggestion: staleCheck.suggestion ?? "",
+		}
+	}
+
+	// Step 3: serialize concurrent create calls via the per-project flock (T15).
+	const projectId = await getProjectIdRaw(repoRoot)
+	const projectStateDir = projectId ? getExternalRoot(projectId) : repoRoot
+	// Ensure the state directory exists before attempting to acquire lock.
+	await mkdir(projectStateDir, { recursive: true })
+	const flockAcquireFn = deps.flock?.acquire ?? acquireGitWorktreeFlock
+	const lock = await flockAcquireFn(projectStateDir)
+	if (!lock.owned) {
+		return {
+			ok: false,
+			error: "BRANCH_LOCKED",
+			hint: "Another session is creating a worktree; retry in a moment",
+		}
+	}
+	try {
+		// Step 4: execute git worktree add explicitly with the resolved base.
+		const worktreePath = await getWorktreePath(repoRoot, branch)
+		await mkdir(path.dirname(worktreePath), { recursive: true })
+
+		const exists = await branchExists(repoRoot, branch)
+		let gitResult: Result<string, string>
+		if (exists) {
+			gitResult = await git(["worktree", "add", worktreePath, branch], repoRoot)
+		} else {
+			gitResult = await git(["worktree", "add", "-b", branch, worktreePath, resolvedBase], repoRoot)
+		}
+		if (!gitResult.ok) {
+			return { ok: false, error: "GIT_FAILED", reason: gitResult.error }
+		}
+
+		const headSha = (await execGit(["rev-parse", "HEAD"], worktreePath)).trim()
+
+		// Step 5: register in worktree_registry.
+		const sessionId = generateSessionId()
+		await addSession(deps.database, {
+			sessionId,
+			branch,
+			path: worktreePath,
+		})
+
+		// Step 6: postCreate hooks (T12 — best-effort; failure logs but does not abort).
+		const hooks = deps.hooks
+		if (hooks?.postCreate?.length) {
+			try {
+				await runHooksWithSafety("postCreate", worktreePath, hooks.postCreate)
+			} catch (err) {
+				deps.log.warn(`[worktree] postCreate hook failed for ${branch}: ${err}`)
+			}
+		}
+
+		return { ok: true, branch, path: worktreePath, baseRef: resolvedBase, headSha }
+	} finally {
+		await releaseGitWorktreeFlock(projectStateDir)
+	}
+}
+
+// Legacy createWorktree — kept for backward compatibility during T10 transition.
+// Will be removed once all callers migrate to advWorktreeCreate.
+async function _createWorktree(
 	repoRoot: string,
 	branch: string,
 	baseBranch?: string,
@@ -954,13 +1095,28 @@ export const WorktreePlugin: Plugin = async (ctx) => {
 						}
 					}
 
-					// Create worktree
-					const result = await createWorktree(directory, args.branch, args.baseBranch)
-					if (!result.ok) {
-						return `Failed to create worktree: ${result.error}`
+					// Create worktree using ADV-safe flow (T10)
+					const createResult = await advWorktreeCreate(
+						args.branch,
+						{ base: args.baseBranch },
+						{ projectRoot: directory, database, log },
+					)
+					if (!createResult.ok) {
+						switch (createResult.error) {
+							case "DEFAULT_BRANCH_UNRESOLVABLE":
+								return `Failed to create worktree: default branch unresolvable. ${createResult.hint}`
+							case "STALE_BASE":
+								return `Failed to create worktree: base branch is stale. ${createResult.reason}. ${createResult.suggestion}`
+							case "BRANCH_LOCKED":
+								return `Failed to create worktree: ${createResult.hint}`
+							case "GIT_FAILED":
+								return `Failed to create worktree: ${createResult.reason}`
+							default:
+								return `Failed to create worktree: ${(createResult as any).error}`
+						}
 					}
 
-					const worktreePath = result.value
+					const worktreePath = createResult.path
 
 					// Sync files from main worktree
 					const worktreeConfig = await loadWorktreeConfig(directory, log)
