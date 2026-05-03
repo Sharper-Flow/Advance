@@ -248,15 +248,6 @@ function stripFrontmatter(content: string): string {
   return trimmed.slice(end + 3).trimStart();
 }
 
-/**
- * Compose a system prompt by injecting provider hint after ADV_SYNC:END marker.
- * Replicates sync-global.sh logic exactly:
- *   1. Find <!-- ADV_SYNC:END adv --> marker
- *   2. Skip trailing newlines after marker
- *   3. Insert hint block
- *
- * If no marker found, appends hint at end.
- */
 function composeSystemPrompt(
   canonicalContent: string,
   hintContent: string | null,
@@ -265,21 +256,9 @@ function composeSystemPrompt(
 
   if (!hintContent) return stripped; // baseline: no hint
 
-  const endMarker = "<!-- ADV_SYNC:END adv -->";
-  const end = stripped.indexOf(endMarker);
-
-  if (end === -1) {
-    return stripped + "\n" + hintContent + "\n";
-  }
-
-  let pos = end + endMarker.length;
-  while (pos < stripped.length && stripped[pos] === "\n") {
-    pos++;
-  }
-
-  return (
-    stripped.slice(0, pos) + "\n" + hintContent + "\n" + stripped.slice(pos)
-  );
+  // Replicates OpenCode prompt-ref composition:
+  // {file:./agent-parts/advance/adv.md}\n\n{file:./agent-parts/advance/providers/{provider}.md}
+  return `${stripped}\n\n${hintContent}`;
 }
 
 function countLines(content: string): number {

@@ -357,6 +357,16 @@ describe("sync-global.sh", () => {
       expect(providerEval).toContain("agent-parts/advance/adv.md");
       expect(providerEval).not.toContain("global provider variant");
     });
+
+    test("provider eval models native prompt-ref concatenation order", () => {
+      expect(providerEval).toContain(
+        "Replicates OpenCode prompt-ref composition",
+      );
+      expect(providerEval).toContain(
+        "return `${stripped}\\n\\n${hintContent}`",
+      );
+      expect(providerEval).not.toContain("stripped.indexOf(endMarker)");
+    });
   });
 
   describe("provider docs and spec deltas", () => {
