@@ -188,11 +188,13 @@ Tab title: `<emoji> <shortname> · <normalized change>` when a change is active,
 
 ### Context Snapshot
 
-`adv_change_show` includes `_contextSnapshot` — compact summary closing the context agreement gap:
+`_contextSnapshot` — compact summary closing the context agreement gap:
 
 - Change ID/title, gate progress (`[✓ research] [○ impl] ...`), task counts, current task, workdir
 
-Emitted on: `adv_change_show`, `adv_gate_complete`, `adv_task_update` to `in_progress`.
+Emitted on: `adv_gate_complete`, `adv_task_update` to `in_progress`.
+
+`adv_change_show` returns structured JSON for direct LLM consumption — no `_contextSnapshot` field.
 
 **Cross-Repo Switch** — emit via `formatCrossRepoSwitch()`.
 
@@ -215,6 +217,8 @@ Forbidden: `~/.local/share/opencode/plugins/advance/**/{change.json,proposal.md,
 | Validate                 | `adv_change_validate`                                     |
 | Agenda                   | `adv_agenda_list`                                         |
 | Wisdom                   | `adv_wisdom_list`                                         |
+
+> **Note:** `_contextSnapshot` is available on mutation tools only (`adv_change_create`, `adv_gate_complete`, `adv_change_reenter`, `adv_status` primary change). Read tools (`adv_change_show`, `adv_task_show`) return structured JSON without `_contextSnapshot`.
 
 On direct-read failure → stop, call `adv_change_show` or `adv_task_show`.
 
@@ -265,7 +269,7 @@ Skip for: bug fixes, mechanical work, choices constrained by security/API/archit
 
 ### Context Freshness
 
-Phase start (once): `adv_change_show` → load full context snapshot.
+Phase start (once): `adv_change_show` → load full change context (structured JSON for direct LLM consumption; no `_contextSnapshot`).
 Per task: `adv_task_show` → refresh only the current task. Do NOT call adv_change_show before every task — use the lighter per-task refresh.
 
 TodoWrite: use task IDs only (`tk-abc123`), not descriptions.

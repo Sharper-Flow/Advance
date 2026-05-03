@@ -12,7 +12,7 @@ Two formatted outputs, each with distinct triggers:
 
 | Pattern | Purpose | Trigger |
 |---------|---------|---------|
-| Context Snapshot | Compact state summary | `adv_change_show` output |
+| Context Snapshot | Compact state summary | ADV tool responses (task/gate transitions, status) |
 | Cross-Repo Switch | Workdir change indicator | Agent switches `workdir` to a different repo |
 
 ## Context Snapshot
@@ -75,7 +75,6 @@ The snapshot is included automatically when ADV tools expose current change stat
 
 | Trigger | Mechanism |
 |---------|-----------|
-| Change loaded for work | `adv_change_show` |
 | Task started | `adv_task_update` → `in_progress` |
 | Task completed | `adv_task_update` → `done` |
 | Task cancelled | `adv_task_cancel` → batch cancellation |
@@ -84,6 +83,8 @@ The snapshot is included automatically when ADV tools expose current change stat
 | Gate transitions | `adv_gate_complete` response |
 | Gate re-entry | `adv_change_reenter` response |
 | Project overview | Recent entries in `adv_status` |
+
+> **Note:** `adv_change_show` does not emit a snapshot — it returns structured JSON for direct LLM consumption. `adv_status` emits a full-box snapshot for the primary change only; non-primary changes receive a compact ticker.
 
 > **rq-ctxsnap2.3–2.6 compliance:** Task-level triggers (`adv_task_update` → `in_progress`, `adv_task_update` → `done`, `adv_task_ready`, `adv_task_cancel`, `adv_task_add`) now emit the snapshot directly rather than deferring to the next `adv_change_show` call. Gate re-entry (`adv_change_reenter`) emits the snapshot showing the reset gate state.
 
@@ -122,11 +123,10 @@ Emit when the agent switches `workdir` to a different repository for a cross-rep
 |------|---------|
 | `plugin/src/utils/context-snapshot.ts` | `formatContextSnapshot()`, `formatCrossRepoSwitch()` |
 | `plugin/src/utils/context-snapshot.ts` | Types: `ContextSnapshotInput`, `CrossRepoSwitchInput` |
-| `plugin/src/tools/change.ts` | Builds snapshot from change/gates/tasks/proposal, adds `_contextSnapshot` to output |
-| `plugin/src/tools/status.ts` | Adds `_contextSnapshot` to each recent change in `adv_status` |
+| `plugin/src/tools/status.ts` | Adds full-box `_contextSnapshot` to primary change; compact ticker to non-primary changes |
 | `plugin/src/tools/gate.ts` | Emits updated `_contextSnapshot` in `adv_gate_complete` responses |
 | `plugin/src/tools/task.ts` | Emits `_contextSnapshot` on `adv_task_update` (→ `in_progress` / → `done`), `adv_task_ready`, `adv_task_cancel`, and `adv_task_add` |
-| `plugin/src/tools/change.ts` | Emits `_contextSnapshot` on `adv_change_show` and `adv_change_reenter` (via `buildReentryResult`) |
+| `plugin/src/tools/change.ts` | Emits `_contextSnapshot` on `adv_change_reenter` (via `buildReentryResult`) |
 
 ## Spec
 
