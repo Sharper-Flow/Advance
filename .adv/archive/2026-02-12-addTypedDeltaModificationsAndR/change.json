@@ -1,0 +1,541 @@
+{
+  "$schema": "https://raw.githubusercontent.com/anomalyco/oc-plugins/main/advance/plugin/schemas/change.schema.json",
+  "id": "addTypedDeltaModificationsAndR",
+  "title": "Add typed delta modifications and rename operation to spec change system",
+  "status": "archived",
+  "created_at": "2026-02-12T21:39:07.245Z",
+  "tasks": [
+    {
+      "id": "tk-gh2zXNHI",
+      "title": "Define DeltaModifyChangesSchema as typed partial of RequirementSchema (TDD: include validation tests)",
+      "section": "Schema Changes",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-02-12T21:43:07.832Z",
+      "started_at": "2026-02-12T21:50:31.777Z",
+      "completed_at": "2026-02-12T21:52:15.476Z",
+      "completed_by": "Added DeltaModifyChangesSchema with .strict() - rejects unknown keys, validates types for title/body/priority/tags/scenarios",
+      "tdd_phase": "complete",
+      "tdd_evidence": {
+        "red": {
+          "test_file": "plugin/src/types.test.ts",
+          "command": "npx vitest run src/types.test.ts",
+          "output_snippet": "FAIL DeltaSchema > rejects modify delta with unknown keys in changes - expected [Function] to throw an error\\nFAIL DeltaSchema > rejects modify delta with invalid priority value in changes - expected [Function] to throw an error",
+          "exit_code": 1,
+          "recorded_at": "2026-02-12T21:51:20.631Z"
+        },
+        "green": {
+          "test_file": "plugin/src/types.test.ts",
+          "command": "npx vitest run src/types.test.ts",
+          "output_snippet": "Test Files 1 passed (1)\\nTests 71 passed (71)\\n0 regressions in full suite (4 pre-existing failures unchanged)",
+          "exit_code": 0,
+          "recorded_at": "2026-02-12T21:52:14.206Z"
+        }
+      }
+    },
+    {
+      "id": "tk-_PfGTJDp",
+      "title": "Add DeltaRenameSchema with target_id, new_title, optional new_id to types.ts",
+      "section": "Schema Changes",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-02-12T21:43:12.963Z",
+      "started_at": "2026-02-12T21:52:38.435Z",
+      "completed_at": "2026-02-12T21:53:43.709Z",
+      "completed_by": "Added DeltaRenameSchema with target_id, new_title, optional new_id. Updated DeltaOperationSchema enum and DeltaSchema discriminated union.",
+      "tdd_phase": "complete",
+      "tdd_evidence": {
+        "red": {
+          "test_file": "plugin/src/types.test.ts",
+          "command": "npx vitest run src/types.test.ts",
+          "output_snippet": "FAIL DeltaSchema > parses rename delta with title only\\nFAIL DeltaSchema > parses rename delta with title and new ID\\nTests 2 failed | 73 passed (75)",
+          "exit_code": 1,
+          "recorded_at": "2026-02-12T21:53:19.490Z"
+        },
+        "green": {
+          "test_file": "plugin/src/types.test.ts",
+          "command": "npx vitest run src/types.test.ts",
+          "output_snippet": "Tests 75 passed (75)",
+          "exit_code": 0,
+          "recorded_at": "2026-02-12T21:53:42.550Z"
+        }
+      }
+    },
+    {
+      "id": "tk-zbhSf6fQ",
+      "title": "Write failing tests for typed modify delta validation (rejects unknown keys, accepts valid keys)",
+      "section": "TDD Red Phase",
+      "status": "cancelled",
+      "priority": 2,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-gh2zXNHI"
+        }
+      ],
+      "created_at": "2026-02-12T21:43:17.718Z",
+      "completed_at": "2026-02-12T21:47:47.349Z",
+      "completed_by": "Absorbed into tk-gh2zXNHI: TDD tests for typed modify delta validation should be done as part of the schema definition task.",
+      "tdd_phase": "none"
+    },
+    {
+      "id": "tk-mxtOm5eA",
+      "title": "Write failing tests for rename delta application (renames title/id, preserves other fields)",
+      "section": "TDD Red Phase",
+      "status": "cancelled",
+      "priority": 3,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-_PfGTJDp"
+        }
+      ],
+      "created_at": "2026-02-12T21:43:22.931Z",
+      "completed_at": "2026-02-12T21:47:47.705Z",
+      "completed_by": "Absorbed into tk-507D4ubg: TDD tests for rename delta application should be done as part of the implementation task.",
+      "tdd_phase": "none"
+    },
+    {
+      "id": "tk-B-t2DfJE",
+      "title": "Write failing tests for delta application ordering (rename before remove/modify/add)",
+      "section": "TDD Red Phase",
+      "status": "cancelled",
+      "priority": 4,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-_PfGTJDp"
+        }
+      ],
+      "created_at": "2026-02-12T21:43:28.273Z",
+      "completed_at": "2026-02-12T21:47:48.090Z",
+      "completed_by": "Absorbed into tk-wfIOdsXo: TDD tests for delta application ordering should be done as part of the enforcement task.",
+      "tdd_phase": "none"
+    },
+    {
+      "id": "tk-507D4ubg",
+      "title": "Implement applyRenameDelta and version bumping in archive/delta.ts (TDD: include application tests)",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 5,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-_PfGTJDp"
+        }
+      ],
+      "created_at": "2026-02-12T21:43:33.527Z",
+      "started_at": "2026-02-12T21:53:59.143Z",
+      "completed_at": "2026-02-12T21:58:18.945Z",
+      "completed_by": "Implemented applyRenameDelta in delta.ts: renames title, optionally renames ID (with duplicate check), preserves all other fields. Refactored bumpVersion to use hasPatchChange boolean covering modify/remove/rename. Full TDD red→green cycle complete.",
+      "tdd_phase": "complete",
+      "tdd_evidence": {
+        "red": {
+          "test_file": "plugin/src/archive/archive.test.ts",
+          "command": "npx vitest run src/archive/archive.test.ts",
+          "output_snippet": "4 new rename failures: renames title, renames title+ID, fails non-existent, fails duplicate ID. Plus 1 version bump test. 3 pre-existing failures.",
+          "exit_code": 1,
+          "recorded_at": "2026-02-12T21:55:18.722Z"
+        },
+        "green": {
+          "test_file": "plugin/src/archive/archive.test.ts",
+          "command": "npx vitest run src/archive/archive.test.ts",
+          "output_snippet": "Tests 3 failed | 23 passed (26). All 3 failures are pre-existing in archiveChange block. All 5 new rename tests pass: renames title, renames title+ID, fails non-existent target, fails duplicate ID, version bump for rename.",
+          "exit_code": 1,
+          "recorded_at": "2026-02-12T21:58:14.035Z"
+        }
+      }
+    },
+    {
+      "id": "tk-wfIOdsXo",
+      "title": "Enforce delta application ordering in applyDeltasToSpec (TDD: include ordering tests)",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 6,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-_PfGTJDp"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-507D4ubg"
+        }
+      ],
+      "created_at": "2026-02-12T21:43:38.665Z",
+      "started_at": "2026-02-12T21:58:38.620Z",
+      "completed_at": "2026-02-12T21:59:55.804Z",
+      "completed_by": "Added sortDeltas() with canonical order: rename(0) > remove(1) > modify(2) > add(3). applyDeltasToSpec now sorts before iterating. 4 TDD tests confirm ordering enforcement.",
+      "tdd_phase": "complete",
+      "tdd_evidence": {
+        "red": {
+          "test_file": "plugin/src/archive/archive.test.ts",
+          "command": "npx vitest run src/archive/archive.test.ts",
+          "output_snippet": "4 new ordering test failures: enforces rename before modify, rename before remove, remove before add, full ordering (rename>remove>modify>add). 3 pre-existing failures. Tests 7 failed | 23 passed (30).",
+          "exit_code": 1,
+          "recorded_at": "2026-02-12T21:59:32.997Z"
+        },
+        "green": {
+          "test_file": "plugin/src/archive/archive.test.ts",
+          "command": "npx vitest run src/archive/archive.test.ts",
+          "output_snippet": "Tests 3 failed | 27 passed (30). All 3 failures are pre-existing. All 4 new ordering tests pass: rename before modify, rename before remove, remove before add, full ordering.",
+          "exit_code": 1,
+          "recorded_at": "2026-02-12T21:59:54.326Z"
+        }
+      }
+    },
+    {
+      "id": "tk-iSOEqjAr",
+      "title": "Implement checkIntraDeltaConflicts and validation codes in validator/ (TDD: include conflict detection tests)",
+      "section": "Validation",
+      "status": "done",
+      "priority": 7,
+      "created_at": "2026-02-12T21:43:43.650Z",
+      "started_at": "2026-02-12T22:00:09.412Z",
+      "completed_at": "2026-02-12T22:02:12.560Z",
+      "completed_by": "Added INTRA_DELTA_CONFLICT and RENAME_TARGET_NOT_FOUND validation codes. Implemented checkIntraDeltaConflicts detecting: rename+remove on same target, double rename, rename new_id collisions with add IDs. Updated checkDeltaTargetsExist to handle rename. Wired into runConflictChecks.",
+      "tdd_phase": "complete",
+      "tdd_evidence": {
+        "red": {
+          "test_file": "plugin/src/validator/validator.test.ts",
+          "command": "npx vitest run src/validator/validator.test.ts",
+          "output_snippet": "4 new failures: rename+remove conflict, double rename, rename-add ID collision, rename target not found. Tests 4 failed | 26 passed (30).",
+          "exit_code": 1,
+          "recorded_at": "2026-02-12T22:01:06.161Z"
+        },
+        "green": {
+          "test_file": "plugin/src/validator/validator.test.ts",
+          "command": "npx vitest run src/validator/validator.test.ts",
+          "output_snippet": "Tests 30 passed (30). All 5 new intra-delta conflict tests pass: rename+remove conflict, double rename, rename-add collision, non-conflicting allowed, rename target not found.",
+          "exit_code": 0,
+          "recorded_at": "2026-02-12T22:02:10.937Z"
+        }
+      }
+    },
+    {
+      "id": "tk-oWvwSOCP",
+      "title": "Write failing tests for intra-delta conflict detection",
+      "section": "TDD Red Phase",
+      "status": "cancelled",
+      "priority": 8,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-iSOEqjAr"
+        }
+      ],
+      "created_at": "2026-02-12T21:43:49.352Z",
+      "completed_at": "2026-02-12T21:47:48.465Z",
+      "completed_by": "Absorbed into tk-iSOEqjAr: TDD tests for intra-delta conflict detection should be done as part of the implementation task.",
+      "tdd_phase": "none"
+    },
+    {
+      "id": "tk-pRvLGtuI",
+      "title": "Add INTRA_DELTA_CONFLICT and RENAME_TARGET_NOT_FOUND validation codes to validator/types.ts",
+      "section": "Validation",
+      "status": "cancelled",
+      "priority": 9,
+      "created_at": "2026-02-12T21:43:53.820Z",
+      "completed_at": "2026-02-12T21:47:48.762Z",
+      "completed_by": "Absorbed into tk-iSOEqjAr: Validation codes are logically part of the conflict detection implementation.",
+      "tdd_phase": "none"
+    },
+    {
+      "id": "tk-txRbnfLL",
+      "title": "Update SQLite delta upsert to handle rename operation in sqlite.ts",
+      "section": "Storage",
+      "status": "done",
+      "priority": 10,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-_PfGTJDp"
+        }
+      ],
+      "created_at": "2026-02-12T21:43:59.677Z",
+      "started_at": "2026-02-12T22:02:31.249Z",
+      "completed_at": "2026-02-12T22:04:25.027Z",
+      "completed_by": "Updated deltas table CHECK constraint to include 'rename'. Added migration to recreate table for existing DBs (cache-safe). Updated delta insert logic to store rename data (new_title, new_id) in changes_json column. Added test confirming rename delta round-trips correctly.",
+      "tdd_phase": "green",
+      "tdd_evidence": {
+        "green": {
+          "test_file": "plugin/src/storage/sqlite.test.ts",
+          "command": "npx vitest run src/storage/sqlite.test.ts",
+          "output_snippet": "Tests 37 passed (37). New test confirms rename delta upsert: operation stored as 'rename', target_id preserved, new_title/new_id stored in changes_json.",
+          "exit_code": 0,
+          "recorded_at": "2026-02-12T22:04:22.875Z"
+        }
+      }
+    },
+    {
+      "id": "tk-vNqrHcPr",
+      "title": "Update completeness.ts ID format checks to handle rename deltas",
+      "section": "Validation",
+      "status": "done",
+      "priority": 11,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-_PfGTJDp"
+        }
+      ],
+      "created_at": "2026-02-12T21:44:04.510Z",
+      "started_at": "2026-02-12T22:04:38.250Z",
+      "completed_at": "2026-02-12T22:05:27.141Z",
+      "completed_by": "Added new_id format check for rename deltas in checkIdFormats. Validates that rename new_id matches rq-{nanoid} pattern. Full TDD red→green cycle.",
+      "tdd_phase": "complete",
+      "tdd_evidence": {
+        "red": {
+          "test_file": "plugin/src/validator/validator.test.ts",
+          "command": "npx vitest run src/validator/validator.test.ts",
+          "output_snippet": "1 new failure: validates rename delta new_id format. Tests 1 failed | 31 passed (32).",
+          "exit_code": 1,
+          "recorded_at": "2026-02-12T22:05:07.504Z"
+        },
+        "green": {
+          "test_file": "plugin/src/validator/validator.test.ts",
+          "command": "npx vitest run src/validator/validator.test.ts",
+          "output_snippet": "Tests 32 passed (32). Both rename ID format tests pass: invalid format rejected, valid format accepted.",
+          "exit_code": 0,
+          "recorded_at": "2026-02-12T22:05:25.707Z"
+        }
+      }
+    },
+    {
+      "id": "tk-HCX6_l0Q",
+      "title": "Update version bumping in delta.ts to treat rename as patch-level",
+      "section": "Implementation",
+      "status": "cancelled",
+      "priority": 12,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-507D4ubg"
+        }
+      ],
+      "created_at": "2026-02-12T21:44:09.707Z",
+      "completed_at": "2026-02-12T21:47:49.025Z",
+      "completed_by": "Absorbed into tk-507D4ubg: Version bumping for rename is part of the core rename implementation.",
+      "tdd_phase": "none"
+    },
+    {
+      "id": "tk-I1O65aJb",
+      "title": "Verify backward compatibility: existing change.json files with empty deltas still parse",
+      "section": "Verification",
+      "status": "done",
+      "priority": 13,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-gh2zXNHI"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-_PfGTJDp"
+        }
+      ],
+      "created_at": "2026-02-12T21:44:14.936Z",
+      "started_at": "2026-02-12T22:05:39.160Z",
+      "completed_at": "2026-02-12T22:06:33.991Z",
+      "completed_by": "Verified backward compatibility: all 13 existing change.json files have empty deltas or add-only. Added 3 tests confirming empty deltas, legacy add-only changes, and legacy add/modify/remove deltas all parse correctly with updated schemas.",
+      "tdd_phase": "none",
+      "tdd_evidence": {
+        "skipped": true,
+        "skip_reason": "trivial: verification-only task confirming backward compatibility. Added 3 tests proving empty deltas, legacy add-only changes, and legacy add/modify/remove deltas all still parse."
+      }
+    },
+    {
+      "id": "tk-slApqqqc",
+      "title": "Run schema generation script to update plugin JSON schemas for typed modify and rename deltas",
+      "section": "Automation",
+      "status": "done",
+      "priority": 14,
+      "created_at": "2026-02-12T21:48:40.544Z",
+      "started_at": "2026-02-12T22:06:47.349Z",
+      "completed_at": "2026-02-12T22:07:21.778Z",
+      "completed_by": "Ran generate-schemas.ts. All 7 schemas regenerated. delta.schema.json now includes rename operation with target_id, new_title, optional new_id.",
+      "tdd_phase": "none",
+      "tdd_evidence": {
+        "skipped": true,
+        "skip_reason": "trivial: automation script execution. Ran generate-schemas.ts, verified delta.schema.json includes rename operation alongside add/modify/remove."
+      }
+    },
+    {
+      "id": "tk-Ie43iqVx",
+      "title": "Ensure applyRenameDelta provides clear error messages when target_id is not found in spec (TDD)",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 15,
+      "created_at": "2026-02-12T21:48:40.782Z",
+      "completed_at": "2026-02-12T22:07:42.604Z",
+      "completed_by": "Already covered: applyRenameDelta returns clear error 'Requirement X not found in spec' (tested in archive.test.ts) and RENAME_TARGET_NOT_FOUND validation code catches it at validation time (tested in validator.test.ts).",
+      "tdd_phase": "none",
+      "tdd_evidence": {
+        "skipped": true,
+        "skip_reason": "Already covered by tk-507D4ubg (applyRenameDelta has clear error messages for not-found and duplicate-ID) and tk-iSOEqjAr (RENAME_TARGET_NOT_FOUND validation code). Tests already exist in archive.test.ts and validator.test.ts."
+      }
+    },
+    {
+      "id": "tk-qitoEmM1",
+      "title": "Verify intra-delta conflict detection handles chains (e.g., rename rq-A to rq-B, then modify rq-B) (TDD)",
+      "section": "Validation",
+      "status": "done",
+      "priority": 16,
+      "created_at": "2026-02-12T21:48:41.219Z",
+      "started_at": "2026-02-12T22:07:53.919Z",
+      "completed_at": "2026-02-12T22:08:30.815Z",
+      "completed_by": "Added test verifying rename chains (rename rq-A to rq-B, then modify rq-B) are correctly allowed by checkIntraDeltaConflicts. The conflict detector only flags same-target conflicts, so chained operations on different IDs pass correctly.",
+      "tdd_phase": "none",
+      "tdd_evidence": {
+        "skipped": true,
+        "skip_reason": "Verification task: confirmed that rename chains (rename A→B, then modify B) are correctly handled — not flagged as conflicts since they target different IDs. Test added proving the chain is allowed."
+      }
+    },
+    {
+      "id": "tk-6g0AF-Lv",
+      "title": "Update README.md and documentation with examples of typed modify and rename deltas (trivial: docs change)",
+      "section": "Documentation",
+      "status": "done",
+      "priority": 17,
+      "created_at": "2026-02-12T21:48:41.489Z",
+      "started_at": "2026-02-12T22:08:39.598Z",
+      "completed_at": "2026-02-12T22:09:16.401Z",
+      "completed_by": "Added Delta Operations section to README.md with: operation table (add/modify/remove/rename), canonical ordering note, JSON examples for all 4 operations, typed modify explanation, and intra-delta conflict detection rules.",
+      "tdd_phase": "none",
+      "tdd_evidence": {
+        "skipped": true,
+        "skip_reason": "trivial: docs change. Added Delta Operations section to README with operation table, examples, typed modify explanation, and validation rules."
+      }
+    },
+    {
+      "id": "tk-APhiHd9K",
+      "title": "Add structured logging for rename and typed modify operations in delta application flow",
+      "section": "Observability",
+      "status": "done",
+      "priority": 18,
+      "created_at": "2026-02-12T21:48:41.827Z",
+      "started_at": "2026-02-12T22:09:28.553Z",
+      "completed_at": "2026-02-12T22:11:36.780Z",
+      "completed_by": "Defined logDeltaResult function in delta.ts. Logs structured objects with spec name, delta ID, operation, success/failure, and operation-specific details (targetId, newTitle, newId for rename; targetId + changedKeys for modify; targetId for remove; newId for add). Failures logged via console.warn with error message. All 27 non-pre-existing tests pass.",
+      "tdd_phase": "none",
+      "tdd_evidence": {
+        "skipped": true,
+        "skip_reason": "trivial: observability-only change. Added logDeltaResult function for structured console logging of delta application results. No behavioral change — logging is side-effect only."
+      }
+    }
+  ],
+  "deltas": {
+    "contract-system": [
+      {
+        "id": "dl-typedmod",
+        "operation": "add",
+        "requirement": {
+          "id": "rq-typedmod",
+          "title": "Typed Delta Modifications",
+          "body": "The delta system MUST enforce type safety for modifications to requirements. Any keys not present in the RequirementSchema MUST be rejected at parse time.",
+          "priority": "must",
+          "scenarios": [
+            {
+              "id": "rq-typedmod.1",
+              "title": "Reject unknown keys",
+              "given": [
+                "A DeltaModifySchema object with unknown keys"
+              ],
+              "when": "The schema is parsed by Zod",
+              "then": [
+                "The parse operation MUST fail with a validation error"
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "id": "dl-renameop",
+        "operation": "add",
+        "requirement": {
+          "id": "rq-renameop",
+          "title": "Rename Operation",
+          "body": "The delta system MUST support a rename operation that updates a requirement's title and optionally its ID while preserving all other fields.",
+          "priority": "must",
+          "scenarios": [
+            {
+              "id": "rq-renameop.1",
+              "title": "Successful rename",
+              "given": [
+                "An existing requirement",
+                "A rename delta targeting its ID"
+              ],
+              "when": "The delta is applied",
+              "then": [
+                "The requirement's title is updated",
+                "All other fields are preserved"
+              ]
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "wisdom": [
+    {
+      "id": "ws-qg26WB",
+      "type": "pattern",
+      "content": "Zod discriminatedUnion allows adding new members to the union without breaking existing parsing — adding DeltaRenameSchema to the union didn't affect any existing delta parsing. The .strict() modifier on DeltaModifyChangesSchema is the key to rejecting unknown keys while .passthrough() on RequirementSchema preserves forward compatibility for the requirement objects themselves.",
+      "source_task": "tk-_PfGTJDp",
+      "recorded_at": "2026-02-12T21:53:53.085Z"
+    },
+    {
+      "id": "ws-a9UsIY",
+      "type": "pattern",
+      "content": "Version bumping in bumpVersion was refactored to use a `hasPatchChange` boolean that checks for modify, remove, OR rename operations — all three bump patch. Only `add` bumps minor. This makes adding new patch-level operations trivial: just add to the hasPatchChange check.",
+      "source_task": "tk-507D4ubg",
+      "recorded_at": "2026-02-12T21:58:25.100Z"
+    },
+    {
+      "id": "ws-g-xil9",
+      "type": "pattern",
+      "content": "Intra-delta conflict detection is context-free (doesn't need ValidationContext) — it only inspects the change's own deltas. This makes it callable without loading specs, useful for early feedback. Wired it into runConflictChecks alongside context-dependent checks by having checkIntraDeltaConflicts take only Change, not ValidationContext.",
+      "source_task": "tk-iSOEqjAr",
+      "recorded_at": "2026-02-12T22:02:19.355Z"
+    },
+    {
+      "id": "ws-7ZWFtO",
+      "type": "gotcha",
+      "content": "When adding a function call to existing code before defining the function, the code will fail with ReferenceError at runtime (not a type error caught at compile time in plain TS). Always define helper functions before or in the same session as adding calls to them — don't leave undefined references across session boundaries.",
+      "source_task": "tk-APhiHd9K",
+      "recorded_at": "2026-02-12T22:11:42.505Z"
+    }
+  ],
+  "gates": {
+    "research": {
+      "status": "done",
+      "completed_at": "2026-02-12T21:49:49.410Z",
+      "completed_by": "agent"
+    },
+    "prep": {
+      "status": "done",
+      "completed_at": "2026-02-12T21:49:51.529Z",
+      "completed_by": "agent"
+    },
+    "implementation": {
+      "status": "done",
+      "completed_at": "2026-02-12T22:12:33.600Z",
+      "completed_by": "agent"
+    },
+    "review": {
+      "status": "done",
+      "completed_at": "2026-02-12T22:18:14.838Z",
+      "completed_by": "agent"
+    },
+    "harden": {
+      "status": "done",
+      "completed_at": "2026-02-12T22:22:34.518Z",
+      "completed_by": "agent"
+    },
+    "signoff": {
+      "status": "done",
+      "completed_at": "2026-02-12T22:23:23.847Z",
+      "completed_by": "user"
+    }
+  }
+}

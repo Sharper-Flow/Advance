@@ -1,0 +1,530 @@
+{
+  "$schema": "https://raw.githubusercontent.com/anomalyco/oc-plugins/main/advance/plugin/schemas/change.schema.json",
+  "id": "adoptBmadInspiredWorkflowEngin",
+  "title": "Adopt BMAD-inspired workflow engine, adversarial review, validation checklists, project wisdom, workflow manifest, and structured proposal templates",
+  "status": "archived",
+  "created_at": "2026-02-12T21:44:30.171Z",
+  "tasks": [
+    {
+      "id": "tk-pIQ_kUb2",
+      "title": "Delete .opencode/command/adv-quick.md and remove all /adv-quick references from adv-task.md, adv-clarify.md, and ADV_INSTRUCTIONS.md",
+      "section": "1. Remove /adv-quick",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-02-12T21:45:26.988Z",
+      "started_at": "2026-02-12T21:54:03.652Z",
+      "completed_at": "2026-02-12T21:54:34.973Z",
+      "completed_by": "Deleted .opencode/command/adv-quick.md. Removed 3 references: adv-task.md (lines 3, 14), adv-clarify.md (line 305). ADV_INSTRUCTIONS.md was already clean. Grep confirms zero remaining references.",
+      "tdd_phase": "none",
+      "tdd_evidence": {
+        "skipped": true,
+        "skip_reason": "trivial: file deletion and reference removal, no code logic"
+      }
+    },
+    {
+      "id": "tk-H7LSuNeg",
+      "title": "Create docs/checklists/review-checklist.md with structured criteria for /adv-review minimum findings enforcement (12-dimension coverage, conventional comment labels, min 3 non-nit findings or explicit genuinely-clean justification)",
+      "section": "2. Adversarial Review Enforcement",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-02-12T21:45:29.033Z",
+      "started_at": "2026-02-12T21:54:52.267Z",
+      "completed_at": "2026-02-12T21:55:25.628Z",
+      "completed_by": "Created docs/checklists/review-checklist.md with: 12-dimension coverage checklist, conventional comment labels, minimum 3 non-nit findings threshold, genuinely-clean justification template with file-level evidence, red flags list, verdict criteria.",
+      "tdd_phase": "none",
+      "tdd_evidence": {
+        "skipped": true,
+        "skip_reason": "trivial: creating a Markdown checklist document, no code logic"
+      }
+    },
+    {
+      "id": "tk-0nuTE2n6",
+      "title": "Create docs/checklists/harden-checklist.md with structured criteria for /adv-harden minimum findings enforcement (5-scanner coverage, severity scoring, min 3 non-nit findings or explicit genuinely-clean justification)",
+      "section": "2. Adversarial Review Enforcement",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-02-12T21:45:30.147Z",
+      "started_at": "2026-02-12T21:55:42.321Z",
+      "completed_at": "2026-02-12T21:56:12.703Z",
+      "completed_by": "Created docs/checklists/harden-checklist.md with: 5-scanner coverage checklist, severity scoring matrix (Impact x Effort), minimum 3 non-nit findings threshold, genuinely-clean justification template with scanner-level evidence, red flags list, status determination criteria, Fowler's debt quadrant classification.",
+      "tdd_phase": "none",
+      "tdd_evidence": {
+        "skipped": true,
+        "skip_reason": "trivial: creating a Markdown checklist document, no code logic"
+      }
+    },
+    {
+      "id": "tk-AHz1_F5W",
+      "title": "Update .opencode/command/adv-review.md to reference review-checklist.md and enforce minimum findings (3+ non-nit or genuinely-clean with file-level evidence)",
+      "section": "2. Adversarial Review Enforcement",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-02-12T21:45:31.479Z",
+      "started_at": "2026-02-12T21:56:36.437Z",
+      "completed_at": "2026-02-12T21:56:55.961Z",
+      "completed_by": "Updated adv-review.md: added checklist reference callout after SUB-AGENT CONTEXT, added Minimum Findings Enforcement section before Determine Verdict, updated APPROVED verdict criteria to note justification requirement.",
+      "tdd_phase": "none",
+      "tdd_evidence": {
+        "skipped": true,
+        "skip_reason": "trivial: updating Markdown command doc to reference checklist, no code logic"
+      }
+    },
+    {
+      "id": "tk-YmQnEYey",
+      "title": "Update .opencode/command/adv-harden.md to reference harden-checklist.md and enforce minimum findings (3+ non-nit or genuinely-clean with file-level evidence)",
+      "section": "2. Adversarial Review Enforcement",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-02-12T21:45:32.432Z",
+      "started_at": "2026-02-12T21:56:59.419Z",
+      "completed_at": "2026-02-12T21:57:13.969Z",
+      "completed_by": "Updated adv-harden.md: added checklist reference callout after SUB-AGENT CONTEXT, added Minimum Findings Enforcement section before Determine Status, updated READY status criteria to note justification requirement.",
+      "tdd_phase": "none",
+      "tdd_evidence": {
+        "skipped": true,
+        "skip_reason": "trivial: updating Markdown command doc to reference checklist, no code logic"
+      }
+    },
+    {
+      "id": "tk-xp9CaF3p",
+      "title": "Create docs/checklists/prep-checklist.md with semantic validation criteria for /adv-prep gate (requirement specificity, scenario completeness, testability, scope clarity, dependency mapping)",
+      "section": "3. Semantic Validation Checklists",
+      "status": "done",
+      "priority": 5,
+      "created_at": "2026-02-12T21:45:37.352Z",
+      "started_at": "2026-02-12T21:57:26.378Z",
+      "completed_at": "2026-02-12T21:58:00.750Z",
+      "completed_by": "Created docs/checklists/prep-checklist.md with: INVEST criteria for requirement specificity, requirements smell detection table, scenario completeness (minimum coverage by type), testability criteria with red flags, scope clarity checklist, dependency mapping (TDD inversions, task sequencing), cross-cutting concerns grid, completeness heuristics.",
+      "tdd_phase": "none",
+      "tdd_evidence": {
+        "skipped": true,
+        "skip_reason": "trivial: creating a Markdown checklist document, no code logic"
+      }
+    },
+    {
+      "id": "tk-qu0FAip5",
+      "title": "Add project-level wisdom JSONL store (wisdom.jsonl) with add, list, compact operations in plugin/src/storage/store.ts and plugin/src/storage/json.ts (TDD: write tests first)",
+      "section": "4. Project-Level Wisdom",
+      "status": "done",
+      "priority": 6,
+      "created_at": "2026-02-12T21:45:38.526Z",
+      "started_at": "2026-02-12T21:58:18.810Z",
+      "completed_at": "2026-02-12T22:00:10.760Z",
+      "completed_by": "Created plugin/src/storage/project-wisdom.ts with: addProjectWisdom (append), listProjectWisdom (read + sort newest-first + maxEntries), compactProjectWisdom (50-cap, convention-priority pruning, atomic write). TDD: 17/17 tests pass.",
+      "tdd_phase": "complete",
+      "tdd_evidence": {
+        "red": {
+          "test_file": "plugin/src/storage/project-wisdom.test.ts",
+          "command": "bun test plugin/src/storage/project-wisdom.test.ts",
+          "output_snippet": "Cannot find module './project-wisdom' - 0 pass, 1 fail, 1 error",
+          "exit_code": 1,
+          "recorded_at": "2026-02-12T21:59:29.570Z"
+        },
+        "green": {
+          "test_file": "plugin/src/storage/project-wisdom.test.ts",
+          "command": "bun test plugin/src/storage/project-wisdom.test.ts",
+          "output_snippet": "17 pass, 0 fail, 27 expect() calls [234ms]",
+          "exit_code": 0,
+          "recorded_at": "2026-02-12T22:00:05.768Z"
+        }
+      }
+    },
+    {
+      "id": "tk-yA29VevS",
+      "title": "Add adv_wisdom_promote tool to plugin/src/tools/wisdom.ts that promotes a change-level entry to project wisdom with pruning criteria (durable, convention-level, not one-off) (TDD: write tests first)",
+      "section": "4. Project-Level Wisdom",
+      "status": "done",
+      "priority": 7,
+      "created_at": "2026-02-12T21:45:39.852Z",
+      "started_at": "2026-02-12T22:04:28.392Z",
+      "completed_at": "2026-02-12T22:06:44.889Z",
+      "completed_by": "Added adv_wisdom_promote tool to wisdom.ts: looks up change-level entry, promotes to project JSONL via addProjectWisdom. Registered in index.ts. Updated tool count 34→36 in index.test.ts. TDD: 15/15 wisdom tests pass, 27/27 index tests pass.",
+      "tdd_phase": "complete",
+      "tdd_evidence": {
+        "red": {
+          "test_file": "plugin/src/tools/wisdom.test.ts",
+          "command": "bun test plugin/src/tools/wisdom.test.ts",
+          "output_snippet": "10 pass, 5 fail — adv_wisdom_promote is undefined",
+          "exit_code": 1,
+          "recorded_at": "2026-02-12T22:05:12.043Z"
+        },
+        "green": {
+          "test_file": "plugin/src/tools/wisdom.test.ts",
+          "command": "bun test plugin/src/tools/wisdom.test.ts",
+          "output_snippet": "15 pass, 0 fail, 43 expect() calls [797ms]",
+          "exit_code": 0,
+          "recorded_at": "2026-02-12T22:05:37.898Z"
+        }
+      }
+    },
+    {
+      "id": "tk-Rdy6OLBj",
+      "title": "Update context injection in plugin/src/index.ts to draw from both current-change wisdom (max 10) and project-level wisdom (max 10), with project wisdom prioritized by recency",
+      "section": "4. Project-Level Wisdom",
+      "status": "done",
+      "priority": 8,
+      "created_at": "2026-02-12T21:45:41.399Z",
+      "started_at": "2026-02-12T22:06:55.672Z",
+      "completed_at": "2026-02-12T22:10:09.691Z",
+      "completed_by": "Added project-level wisdom injection to context hook in index.ts. Reads from listProjectWisdom(store.paths.root), injects as [ADV:PROJECT_WISDOM] section (max 10, newest first), with truncation note. 3 new tests: dual injection, truncation at 10, skip when empty. TDD: 30/30 pass.",
+      "tdd_phase": "complete",
+      "tdd_evidence": {
+        "red": {
+          "test_file": "plugin/src/index.test.ts",
+          "command": "bun test plugin/src/index.test.ts",
+          "output_snippet": "28 pass, 2 fail — [ADV:PROJECT_WISDOM] undefined (not injected yet)",
+          "exit_code": 1,
+          "recorded_at": "2026-02-12T22:09:28.182Z"
+        },
+        "green": {
+          "test_file": "plugin/src/index.test.ts",
+          "command": "bun test plugin/src/index.test.ts",
+          "output_snippet": "30 pass, 0 fail, 259 expect() calls [2.01s]",
+          "exit_code": 0,
+          "recorded_at": "2026-02-12T22:10:07.364Z"
+        }
+      }
+    },
+    {
+      "id": "tk-b4WgaESa",
+      "title": "Add project wisdom compaction (prune entries beyond 50 cap, removing oldest non-convention entries first)",
+      "section": "4. Project-Level Wisdom",
+      "status": "done",
+      "priority": 9,
+      "created_at": "2026-02-12T21:45:42.807Z",
+      "started_at": "2026-02-12T22:10:26.549Z",
+      "completed_at": "2026-02-12T22:11:17.131Z",
+      "completed_by": "Wired compactProjectWisdom into adv_wisdom_promote — called after every addProjectWisdom to enforce 50-entry cap. Convention entries prioritized during pruning. TDD: 16/16 pass.",
+      "tdd_phase": "complete",
+      "tdd_evidence": {
+        "red": {
+          "test_file": "plugin/src/tools/wisdom.test.ts",
+          "command": "bun test plugin/src/tools/wisdom.test.ts",
+          "output_snippet": "15 pass, 1 fail — Expected length 50, received 51 (compaction not triggered)",
+          "exit_code": 1,
+          "recorded_at": "2026-02-12T22:10:56.201Z"
+        },
+        "green": {
+          "test_file": "plugin/src/tools/wisdom.test.ts",
+          "command": "bun test plugin/src/tools/wisdom.test.ts",
+          "output_snippet": "16 pass, 0 fail, 46 expect() calls [1329ms]",
+          "exit_code": 0,
+          "recorded_at": "2026-02-12T22:11:15.384Z"
+        }
+      }
+    },
+    {
+      "id": "tk-1MYZ86dk",
+      "title": "Create docs/adv-manifest.yaml with entries for all 19 commands (post-quick removal) including phase, prerequisites, gates affected, and successor commands",
+      "section": "5. Workflow Manifest",
+      "status": "cancelled",
+      "priority": 10,
+      "created_at": "2026-02-12T21:45:48.099Z",
+      "completed_at": "2026-02-12T21:50:56.329Z",
+      "completed_by": "Superseded by tk-C_P_tqcW — manifest changed from YAML to TypeScript per research findings",
+      "tdd_phase": "none"
+    },
+    {
+      "id": "tk-BfBouZH5",
+      "title": "Update .opencode/command/adv-status.md and plugin/src/tools/status.ts to use manifest for context-aware next-step recommendations",
+      "section": "5. Workflow Manifest",
+      "status": "done",
+      "priority": 11,
+      "created_at": "2026-02-12T21:45:49.295Z",
+      "started_at": "2026-02-12T22:13:05.906Z",
+      "completed_at": "2026-02-12T22:15:02.964Z",
+      "completed_by": "Enhanced status.ts to add manifest-driven gate recommendations for active changes. Uses getCommandsByGate from manifest.ts. Updated adv-status.md with gate-based recommendation docs. TDD: 9/9 pass.",
+      "tdd_phase": "complete",
+      "tdd_evidence": {
+        "red": {
+          "test_file": "plugin/src/tools/status.test.ts",
+          "command": "bun test plugin/src/tools/status.test.ts",
+          "output_snippet": "7 pass, 2 fail — gate-based recommendations not generated yet",
+          "exit_code": 1,
+          "recorded_at": "2026-02-12T22:14:12.786Z"
+        },
+        "green": {
+          "test_file": "plugin/src/tools/status.test.ts",
+          "command": "bun test plugin/src/tools/status.test.ts",
+          "output_snippet": "9 pass, 0 fail, 19 expect() calls [595ms]",
+          "exit_code": 0,
+          "recorded_at": "2026-02-12T22:15:01.243Z"
+        }
+      },
+      "blockedBy": [
+        "tk-C_P_tqcW"
+      ]
+    },
+    {
+      "id": "tk-e6WmQk75",
+      "title": "Expand proposal.md scaffold in plugin/src/storage/json.ts to include sections: Why, What Changes, Success Criteria, Affected Code, Constraints, Impact, Risks, Validation Plan (TDD: write tests first)",
+      "section": "6. Structured Proposal Template",
+      "status": "done",
+      "priority": 12,
+      "created_at": "2026-02-12T21:45:50.859Z",
+      "started_at": "2026-02-12T22:15:08.500Z",
+      "completed_at": "2026-02-12T22:16:12.418Z",
+      "completed_by": "Expanded proposal.md template from 4 sections (Summary, Motivation, Design, Acceptance Criteria) to 8 structured sections (Why, What Changes, Success Criteria, Affected Code, Constraints, Impact, Risks, Validation Plan). TDD mentions in Validation Plan. TDD: 27/27 pass.",
+      "tdd_phase": "complete",
+      "tdd_evidence": {
+        "red": {
+          "test_file": "plugin/src/storage/json.test.ts",
+          "command": "bun test plugin/src/storage/json.test.ts",
+          "output_snippet": "25 pass, 2 fail — proposal template missing 8 new sections",
+          "exit_code": 1,
+          "recorded_at": "2026-02-12T22:15:46.656Z"
+        },
+        "green": {
+          "test_file": "plugin/src/storage/json.test.ts",
+          "command": "bun test plugin/src/storage/json.test.ts",
+          "output_snippet": "27 pass, 0 fail, 59 expect() calls [80ms]",
+          "exit_code": 0,
+          "recorded_at": "2026-02-12T22:16:10.486Z"
+        }
+      }
+    },
+    {
+      "id": "tk-eK4XX0JE",
+      "title": "Write tests for project-level wisdom (JSONL read/write, promotion, compaction, 50-entry cap enforcement)",
+      "section": "7. Testing",
+      "status": "cancelled",
+      "priority": 13,
+      "created_at": "2026-02-12T21:45:52.096Z",
+      "completed_at": "2026-02-12T21:51:55.504Z",
+      "completed_by": "Merged into tk-qu0FAip5 and tk-yA29VevS for proper TDD sequencing. Test-first development will be performed within those tasks.",
+      "tdd_phase": "none"
+    },
+    {
+      "id": "tk-N4j-P1ur",
+      "title": "Write tests for expanded proposal template (verify all 8 sections present in scaffold output)",
+      "section": "7. Testing",
+      "status": "cancelled",
+      "priority": 14,
+      "created_at": "2026-02-12T21:45:53.323Z",
+      "completed_at": "2026-02-12T21:51:55.916Z",
+      "completed_by": "Merged into tk-e6WmQk75 for proper TDD sequencing. Test-first development will be performed within that task.",
+      "tdd_phase": "none"
+    },
+    {
+      "id": "tk-zR-yGIVl",
+      "title": "Run full test suite (bun test) and fix any regressions",
+      "section": "7. Testing",
+      "status": "done",
+      "priority": 15,
+      "created_at": "2026-02-12T21:45:54.214Z",
+      "started_at": "2026-02-12T22:19:54.166Z",
+      "completed_at": "2026-02-12T22:20:42.028Z",
+      "completed_by": "Full test suite: 492 pass, 0 fail across 19 files (12.74s). TypeScript type check: 0 errors. No regressions from any changes.",
+      "tdd_phase": "none",
+      "tdd_evidence": {
+        "skipped": true,
+        "skip_reason": "trivial: this task IS the test suite run — no code to test-first"
+      }
+    },
+    {
+      "id": "tk-C_P_tqcW",
+      "title": "Change manifest format from YAML (docs/adv-manifest.yaml) to TypeScript constant (plugin/src/manifest.ts) with type-safe CommandDef interface — compile-time checked, zero parse overhead, consistent with codebase",
+      "section": "Research Findings",
+      "status": "done",
+      "priority": 16,
+      "created_at": "2026-02-12T21:50:17.206Z",
+      "started_at": "2026-02-12T22:11:33.005Z",
+      "completed_at": "2026-02-12T22:13:00.940Z",
+      "completed_by": "Created plugin/src/manifest.ts with CommandDef interface, COMMAND_MANIFEST constant (19 commands), and 3 helper functions (getCommandDef, getCommandsByGate, getSuccessors). TypeScript const + satisfies for type safety. TDD: 19/19 pass.",
+      "tdd_phase": "complete",
+      "tdd_evidence": {
+        "red": {
+          "test_file": "plugin/src/manifest.test.ts",
+          "command": "bun test plugin/src/manifest.test.ts",
+          "output_snippet": "0 pass, 1 fail, 1 error — Cannot find module './manifest'",
+          "exit_code": 1,
+          "recorded_at": "2026-02-12T22:12:24.520Z"
+        },
+        "green": {
+          "test_file": "plugin/src/manifest.test.ts",
+          "command": "bun test plugin/src/manifest.test.ts",
+          "output_snippet": "19 pass, 0 fail, 216 expect() calls [9ms]",
+          "exit_code": 0,
+          "recorded_at": "2026-02-12T22:12:58.951Z"
+        }
+      }
+    },
+    {
+      "id": "tk-B8Qxkzw1",
+      "title": "Implement file-locking or atomic-rename retry logic for wisdom.jsonl to prevent concurrency issues during multi-agent promotion",
+      "section": "4. Project-Level Wisdom",
+      "status": "done",
+      "priority": 17,
+      "created_at": "2026-02-12T21:51:56.262Z",
+      "started_at": "2026-02-12T22:16:26.009Z",
+      "completed_at": "2026-02-12T22:18:40.360Z",
+      "completed_by": "Added file-locking to addProjectWisdom and compactProjectWisdom using .lock file pattern from agenda.ts (wx exclusive create, stale lock detection at 30s, retry at 50ms intervals). Fixed pre-existing test ordering issue. TDD: 19/19 pass.",
+      "tdd_phase": "complete",
+      "tdd_evidence": {
+        "red": {
+          "test_file": "plugin/src/storage/project-wisdom.test.ts",
+          "command": "bun test plugin/src/storage/project-wisdom.test.ts",
+          "output_snippet": "18 pass, 1 fail — concurrent add+compact loses appended entry (no file locking)",
+          "exit_code": 1,
+          "recorded_at": "2026-02-12T22:17:19.265Z"
+        },
+        "green": {
+          "test_file": "plugin/src/storage/project-wisdom.test.ts",
+          "command": "bun test plugin/src/storage/project-wisdom.test.ts",
+          "output_snippet": "19 pass, 0 fail, 42 expect() calls [810ms]",
+          "exit_code": 0,
+          "recorded_at": "2026-02-12T22:18:37.707Z"
+        }
+      }
+    },
+    {
+      "id": "tk-tiJ0Qikh",
+      "title": "Add schema validation for project wisdom entries during promotion and loading to prevent store corruption",
+      "section": "4. Project-Level Wisdom",
+      "status": "done",
+      "priority": 18,
+      "created_at": "2026-02-12T21:51:56.739Z",
+      "started_at": "2026-02-12T22:18:45.920Z",
+      "completed_at": "2026-02-12T22:19:48.443Z",
+      "completed_by": "Added ProjectWisdomEntrySchema (Zod) for strict validation during loading: validates id prefix, wisdom type enum, non-empty content, ISO8601 datetime. listProjectWisdom now uses safeParse instead of basic truthiness checks. TDD: 22/22 pass.",
+      "tdd_phase": "complete",
+      "tdd_evidence": {
+        "red": {
+          "test_file": "plugin/src/storage/project-wisdom.test.ts",
+          "command": "bun test plugin/src/storage/project-wisdom.test.ts",
+          "output_snippet": "20 pass, 2 fail — invalid type and invalid date pass through without schema validation",
+          "exit_code": 1,
+          "recorded_at": "2026-02-12T22:19:22.497Z"
+        },
+        "green": {
+          "test_file": "plugin/src/storage/project-wisdom.test.ts",
+          "command": "bun test plugin/src/storage/project-wisdom.test.ts",
+          "output_snippet": "22 pass, 0 fail, 48 expect() calls [731ms]",
+          "exit_code": 0,
+          "recorded_at": "2026-02-12T22:19:46.402Z"
+        }
+      }
+    }
+  ],
+  "deltas": {
+    "advance": [
+      {
+        "id": "dl-W1sD0mP1",
+        "operation": "add",
+        "requirement": {
+          "id": "rq-W1sD0mR1",
+          "title": "Project-Level Wisdom System",
+          "body": "Durable cross-change learnings must be persisted in a project-level JSONL store to improve agent performance across sessions.",
+          "priority": "must",
+          "scenarios": [
+            {
+              "id": "rq-W1sD0mR1.1",
+              "title": "Durable learning promotion",
+              "given": [
+                "A convention-level learning discovered in a change"
+              ],
+              "when": "adv_wisdom_promote is executed",
+              "then": [
+                "The entry is appended to project-level wisdom.jsonl"
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "id": "dl-M4n1f3st",
+        "operation": "add",
+        "requirement": {
+          "id": "rq-M4n1f3s1",
+          "title": "Manifest-Driven Workflow recommendations",
+          "body": "Command recommendations in adv-status must be derived from a type-safe workflow manifest to ensure consistent pathing.",
+          "priority": "must",
+          "scenarios": [
+            {
+              "id": "rq-M4n1f3s1.1",
+              "title": "Context-aware recommendations",
+              "given": [
+                "A change at implementation gate"
+              ],
+              "when": "adv-status is run",
+              "then": [
+                "It recommends adv-review or adv-harden based on manifest successors"
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "id": "dl-R3v13wER",
+        "operation": "add",
+        "requirement": {
+          "id": "rq-R3v13wR1",
+          "title": "Adversarial Review Enforcement",
+          "body": "/adv-review and /adv-harden must enforce a minimum findings threshold to prevent shallow 'LGTM' behavior.",
+          "priority": "must",
+          "scenarios": [
+            {
+              "id": "rq-R3v13wR1.1",
+              "title": "Minimum findings validation",
+              "given": [
+                "A review with fewer than 3 non-nit findings"
+              ],
+              "when": "Gate completion is attempted",
+              "then": [
+                "The gate remains open and requires explicit justification for the clean result"
+              ]
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "wisdom": [
+    {
+      "id": "ws-qEmQMW",
+      "type": "convention",
+      "content": "Checklists under docs/checklists/ should mirror the structure of the command they enforce: review-checklist.md mirrors adv-review.md's 12 dimensions, harden-checklist.md mirrors adv-harden.md's 5 scanners. The minimum-findings threshold (3+ non-nit) and genuinely-clean justification template are consistent across both.",
+      "source_task": "tk-0nuTE2n6",
+      "recorded_at": "2026-02-12T21:56:32.172Z"
+    },
+    {
+      "id": "ws-XRyzyN",
+      "type": "convention",
+      "content": "When expanding a template/scaffold (like proposal.md), update the test expectations first to match the new section names. Old section names in existing tests will silently pass if the new template includes similar strings.",
+      "source_task": "tk-e6WmQk75",
+      "recorded_at": "2026-02-12T22:16:21.700Z"
+    }
+  ],
+  "gates": {
+    "research": {
+      "status": "done",
+      "completed_at": "2026-02-12T21:51:00.740Z",
+      "completed_by": "librarian + adv-researcher sub-agents: validated JSONL wisdom, TS manifest, Markdown checklists, explicit promotion, command-level enforcement"
+    },
+    "prep": {
+      "status": "done",
+      "completed_at": "2026-02-12T21:52:45.439Z",
+      "completed_by": "agent"
+    },
+    "implementation": {
+      "status": "done",
+      "completed_at": "2026-02-12T22:22:03.185Z",
+      "completed_by": "agent"
+    },
+    "review": {
+      "status": "done",
+      "completed_at": "2026-02-13T18:25:27.269Z",
+      "completed_by": "12-dimension code review: 1 blocker + 7 issues found and fixed. 496/496 tests pass. Fixes: stale lock race (F1), compaction error handling (F2), duplicate check type field (F3), GateId dedup (F4), skipped gate status (F5), content length limit (F6), JSONL parse logging (F7), dead import cleanup (F8)."
+    },
+    "harden": {
+      "status": "done",
+      "completed_at": "2026-02-13T18:29:06.441Z",
+      "completed_by": "agent"
+    },
+    "signoff": {
+      "status": "done",
+      "completed_at": "2026-02-13T18:31:29.291Z",
+      "completed_by": "User signed off via interactive confirmation"
+    }
+  }
+}

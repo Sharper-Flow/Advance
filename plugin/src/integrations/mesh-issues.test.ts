@@ -22,7 +22,7 @@ import {
   MAX_BODY_SIZE,
 } from "./mesh-issues";
 
-import type { MeshPayload } from "./mesh-issues";
+import type { MeshPayload as _MeshPayload } from "./mesh-issues";
 
 describe("buildMeshPayload", () => {
   test("builds payload with YAML frontmatter and markdown body", () => {

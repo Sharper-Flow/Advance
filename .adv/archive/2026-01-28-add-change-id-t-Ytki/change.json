@@ -1,0 +1,55 @@
+{
+  "$schema": "https://raw.githubusercontent.com/anomalyco/oc-plugins/main/advance/plugin/schemas/change.schema.json",
+  "id": "add-change-id-t-Ytki",
+  "title": "Add change ID to tab title for /adv- commands",
+  "status": "archived",
+  "created_at": "2026-01-28T05:35:13.470Z",
+  "tasks": [
+    {
+      "id": "tk-7X4QTo7k",
+      "title": "Modify updateTerminal function call to pass changeId from state",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-01-28T05:35:18.653Z",
+      "completed_at": "2026-01-28T05:40:00.000Z",
+      "completed_by": "updateTerminal already passes state.activeChangeId in status.ts line 113",
+      "tdd_phase": "none",
+      "tdd_evidence": {
+        "skipped": true,
+        "skip_reason": "trivial: verified existing code passes changeId"
+      }
+    },
+    {
+      "id": "tk-Er2levxY",
+      "title": "Update updateTerminalStatus to include changeId in title",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-01-28T05:35:18.653Z",
+      "completed_at": "2026-01-28T05:40:00.000Z",
+      "completed_by": "Modified updateTerminalStatus in terminal.ts to include changeId parameter and use it in title",
+      "tdd_phase": "none",
+      "tdd_evidence": {
+        "skipped": true,
+        "skip_reason": "trivial: simple string concatenation change"
+      }
+    },
+    {
+      "id": "tk-Mz5pN9zA",
+      "title": "Update title format to show first 15 chars of change ID",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-01-28T05:35:18.653Z",
+      "completed_at": "2026-01-28T05:40:00.000Z",
+      "completed_by": "Used changeId.substring(0, 15) to truncate to first 15 characters in title format",
+      "tdd_phase": "none",
+      "tdd_evidence": {
+        "skipped": true,
+        "skip_reason": "trivial: straightforward string manipulation"
+      }
+    }
+  ],
+  "deltas": {}
+}

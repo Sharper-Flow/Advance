@@ -1,0 +1,139 @@
+{
+  "$schema": "https://raw.githubusercontent.com/anomalyco/oc-plugins/main/advance/plugin/schemas/change.schema.json",
+  "id": "addPurposeBuiltAdvResearcherSu",
+  "title": "Add purpose-built adv-researcher subagent for /adv-research command",
+  "status": "archived",
+  "created_at": "2026-02-01T00:20:40.578Z",
+  "tasks": [
+    {
+      "id": "tk-aDxyyqD9",
+      "title": "Create .opencode/agents/adv-researcher.md with optimized settings (model, temperature 0.15, hidden, tool restrictions, research protocol prompt)",
+      "section": "implementation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-02-01T00:21:38.975Z",
+      "started_at": "2026-02-01T05:31:20.344Z",
+      "completed_at": "2026-02-01T05:31:57.627Z",
+      "completed_by": "Created .opencode/agents/adv-researcher.md with: model=google/gemini-3-flash-preview, temp=0.10, hidden=true, strict uncertainty handling, arxiv tools added, simplicity scoring removed (brain model handles). Total 97 lines.",
+      "tdd_phase": "none",
+      "tdd_evidence": {
+        "skipped": true,
+        "skip_reason": "config: agent definition file, no testable logic"
+      }
+    },
+    {
+      "id": "tk-UigQLdEW",
+      "title": "Update .opencode/command/adv-research.md Phase 3 to specify subagent_type: \"adv-researcher\"",
+      "section": "implementation",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-02-01T00:21:39.849Z",
+      "started_at": "2026-02-01T05:32:04.410Z",
+      "completed_at": "2026-02-01T05:32:28.168Z",
+      "completed_by": "Updated Phase 3 with agent selection logic: Step 1 uses glob to detect adv-researcher.md, Step 2 selects subagent_type based on result, added fallback prompt enhancement for explore agent mode.",
+      "tdd_phase": "none",
+      "tdd_evidence": {
+        "skipped": true,
+        "skip_reason": "config: command markdown file, no testable logic (verification task covers integration testing)"
+      }
+    },
+    {
+      "id": "tk-yyz4vhhM",
+      "title": "Document agent configuration and override options in ADV_INSTRUCTIONS.md",
+      "section": "documentation",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-02-01T00:21:40.574Z",
+      "started_at": "2026-02-01T05:32:35.880Z",
+      "completed_at": "2026-02-01T05:33:22.639Z",
+      "completed_by": "Added 'Specialized Agents' section to ADV_INSTRUCTIONS.md with: adv-researcher agent overview, default configuration table, tools table with categories, user override examples, alternative models table, fallback behavior.",
+      "tdd_phase": "none",
+      "tdd_evidence": {
+        "skipped": true,
+        "skip_reason": "docs: documentation update, no testable logic"
+      }
+    },
+    {
+      "id": "tk-jbAQ5w1E",
+      "title": "Verify adv-researcher agent invocation (test /adv-research with sample query, confirm output format)",
+      "section": "verification",
+      "status": "cancelled",
+      "priority": 3,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-aDxyyqD9"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-UigQLdEW"
+        }
+      ],
+      "created_at": "2026-02-01T00:42:12.540Z",
+      "completed_at": "2026-02-01T05:34:12.776Z",
+      "completed_by": "Skipped by user - verification to be done in production use",
+      "tdd_phase": "none"
+    },
+    {
+      "id": "tk-uFDwO5L6",
+      "title": "Validate research topics: model ID format, fallback behavior, tool wildcards (before implementation)",
+      "section": "research",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-02-01T00:42:13.858Z",
+      "completed_at": "2026-02-01T04:37:54.531Z",
+      "completed_by": "Research complete. Validated: model ID format (dated required), fallback behavior (undefined, use file check), tool wildcards (work with hyphens), agent auto-discovery (confirmed).",
+      "tdd_phase": "none"
+    },
+    {
+      "id": "tk-LMcvGOeV",
+      "title": "Test fallback path: verify /adv-research works when adv-researcher agent is absent",
+      "section": "verification",
+      "status": "cancelled",
+      "priority": 5,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-UigQLdEW"
+        }
+      ],
+      "created_at": "2026-02-01T00:42:15.455Z",
+      "completed_at": "2026-02-01T05:34:13.592Z",
+      "completed_by": "Skipped by user - fallback testing to be done in production use",
+      "tdd_phase": "none"
+    }
+  ],
+  "deltas": {},
+  "gates": {
+    "research": {
+      "status": "done",
+      "completed_at": "2026-02-01T04:38:18.190Z",
+      "completed_by": "claude-opus-4-5-20250514"
+    },
+    "prep": {
+      "status": "done",
+      "completed_at": "2026-02-01T05:31:10.159Z",
+      "completed_by": "claude-opus-4-5-20250514 - User preferences finalized via blind testing. Proposal updated with Gemini 3 Flash Preview, temp 0.10, strict uncertainty, arxiv tools, no simplicity scoring."
+    },
+    "implementation": {
+      "status": "done",
+      "completed_at": "2026-02-01T05:34:25.435Z",
+      "completed_by": "claude-opus-4-5-20250514 - Created adv-researcher.md (97 lines), updated adv-research.md Phase 3, documented in ADV_INSTRUCTIONS.md. User approved cancellation of verification tasks."
+    },
+    "review": {
+      "status": "done",
+      "completed_at": "2026-02-01T05:44:06.392Z",
+      "completed_by": "User confirmed - config-only change, no code logic to review"
+    },
+    "harden": {
+      "status": "done",
+      "completed_at": "2026-02-01T05:44:07.078Z",
+      "completed_by": "User confirmed - config-only change, no hardening needed"
+    },
+    "signoff": {
+      "status": "done",
+      "completed_at": "2026-02-01T05:58:31.352Z",
+      "completed_by": "User signoff confirmed via question tool"
+    }
+  }
+}

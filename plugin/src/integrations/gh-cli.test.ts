@@ -6,27 +6,13 @@
  */
 
 import { describe, test, expect, vi, beforeEach } from "vitest";
-import type { GhExecResult, GhAuthStatus } from "./gh-cli";
+import { execGh, detectGhAuth, isGhAvailable, getGhAuthStatus } from "./gh-cli";
 
-// Mock child_process before importing the module under test
+// Mock child_process must be set up before dynamic import of module under test
 const mockExecFile = vi.fn();
 vi.mock("child_process", () => ({
   execFile: (...args: unknown[]) => mockExecFile(...args),
 }));
-
-// Import after mock setup
-import {
-  execGh,
-  detectGhAuth,
-  isGhAvailable,
-  getGhAuthStatus,
-} from "./gh-cli";
-
-function callbackArg(callIndex = 0): (...cbArgs: unknown[]) => void {
-  const call = mockExecFile.mock.calls[callIndex];
-  if (!call) throw new Error(`No mock call at index ${callIndex}`);
-  return call[call.length - 1] as (...cbArgs: unknown[]) => void;
-}
 
 describe("execGh", () => {
   beforeEach(() => {

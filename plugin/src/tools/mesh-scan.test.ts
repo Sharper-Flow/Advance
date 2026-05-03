@@ -5,10 +5,8 @@
  */
 
 import { describe, test, expect, vi, beforeEach } from "vitest";
-import {
-  performMeshScan,
-  getMeshInboxCount,
-} from "./mesh-scan";
+// All functions under test are imported dynamically inside each test
+// to allow per-test mock configuration.
 import type { Store } from "../storage/store-types";
 
 // Mock dependencies
@@ -56,7 +54,12 @@ describe("Mesh Scan", () => {
 
   test("scans trusted repos and returns mesh items", async () => {
     mockGetTrustedRepos.mockReturnValue([
-      { id: "backend", path: "/backend", trusted: true, gh_repo: "org/backend" },
+      {
+        id: "backend",
+        path: "/backend",
+        trusted: true,
+        gh_repo: "org/backend",
+      },
     ]);
     mockListMeshIssues.mockResolvedValue({
       issues: [
@@ -85,7 +88,12 @@ describe("Mesh Scan", () => {
 
   test("returns cached results on second call", async () => {
     mockGetTrustedRepos.mockReturnValue([
-      { id: "backend", path: "/backend", trusted: true, gh_repo: "org/backend" },
+      {
+        id: "backend",
+        path: "/backend",
+        trusted: true,
+        gh_repo: "org/backend",
+      },
     ]);
     mockListMeshIssues.mockResolvedValue({
       issues: [],
@@ -107,7 +115,12 @@ describe("Mesh Scan", () => {
 
   test("forceRefresh bypasses cache", async () => {
     mockGetTrustedRepos.mockReturnValue([
-      { id: "backend", path: "/backend", trusted: true, gh_repo: "org/backend" },
+      {
+        id: "backend",
+        path: "/backend",
+        trusted: true,
+        gh_repo: "org/backend",
+      },
     ]);
     mockListMeshIssues.mockResolvedValue({
       issues: [],
@@ -129,7 +142,12 @@ describe("Mesh Scan", () => {
 
   test("records errors from failed scans", async () => {
     mockGetTrustedRepos.mockReturnValue([
-      { id: "backend", path: "/backend", trusted: true, gh_repo: "org/backend" },
+      {
+        id: "backend",
+        path: "/backend",
+        trusted: true,
+        gh_repo: "org/backend",
+      },
     ]);
     mockListMeshIssues.mockResolvedValue({
       issues: [],

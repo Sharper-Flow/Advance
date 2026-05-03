@@ -5,10 +5,7 @@
  */
 
 import { describe, test, expect, vi, beforeEach } from "vitest";
-import {
-  getTrustedRepos,
-  createMeshIssuesForArchive,
-} from "./archive-mesh";
+import { getTrustedRepos, createMeshIssuesForArchive } from "./archive-mesh";
 import type { Change, RelatedRepo, CrossProjectLink } from "../types";
 
 // Mock mesh-issues module
@@ -28,7 +25,12 @@ describe("getTrustedRepos", () => {
 
   test("filters to repos with trusted=true and gh_repo set", () => {
     const repos: RelatedRepo[] = [
-      { id: "backend", path: "/backend", trusted: true, gh_repo: "org/backend" },
+      {
+        id: "backend",
+        path: "/backend",
+        trusted: true,
+        gh_repo: "org/backend",
+      },
       { id: "api", path: "/api", trusted: false, gh_repo: "org/api" },
       { id: "frontend", path: "/frontend", trusted: true },
       { id: "db", path: "/db" },
@@ -56,7 +58,12 @@ describe("createMeshIssuesForArchive", () => {
     } as Change;
 
     const result = await createMeshIssuesForArchive(change, [
-      { id: "backend", path: "/backend", trusted: true, gh_repo: "org/backend" },
+      {
+        id: "backend",
+        path: "/backend",
+        trusted: true,
+        gh_repo: "org/backend",
+      },
     ]);
 
     expect(result.issueUrls).toEqual([]);
@@ -84,20 +91,33 @@ describe("createMeshIssuesForArchive", () => {
       status: "active",
       created_at: new Date().toISOString(),
       tasks: [
-        { id: "tk-1", title: "Task 1", status: "done", priority: 0, created_at: new Date().toISOString() },
+        {
+          id: "tk-1",
+          title: "Task 1",
+          status: "done",
+          priority: 0,
+          created_at: new Date().toISOString(),
+        },
       ],
       deltas: { "advance-workflow": [] },
       cross_project_links: [link],
     } as unknown as Change;
 
     const trustedRepos: RelatedRepo[] = [
-      { id: "backend", path: "/path/to/backend", trusted: true, gh_repo: "org/backend" },
+      {
+        id: "backend",
+        path: "/path/to/backend",
+        trusted: true,
+        gh_repo: "org/backend",
+      },
     ];
 
     const result = await createMeshIssuesForArchive(change, trustedRepos);
 
     expect(result.issueUrls).toHaveLength(1);
-    expect(result.issueUrls[0]).toBe("https://github.com/org/backend/issues/42");
+    expect(result.issueUrls[0]).toBe(
+      "https://github.com/org/backend/issues/42",
+    );
     expect(mockCreateMeshIssue).toHaveBeenCalledTimes(1);
   });
 
@@ -120,7 +140,12 @@ describe("createMeshIssuesForArchive", () => {
     } as unknown as Change;
 
     const trustedRepos: RelatedRepo[] = [
-      { id: "backend", path: "/backend", trusted: true, gh_repo: "org/backend" },
+      {
+        id: "backend",
+        path: "/backend",
+        trusted: true,
+        gh_repo: "org/backend",
+      },
     ];
 
     const result = await createMeshIssuesForArchive(change, trustedRepos);
@@ -153,7 +178,12 @@ describe("createMeshIssuesForArchive", () => {
     } as unknown as Change;
 
     const trustedRepos: RelatedRepo[] = [
-      { id: "backend", path: "/backend", trusted: true, gh_repo: "org/backend" },
+      {
+        id: "backend",
+        path: "/backend",
+        trusted: true,
+        gh_repo: "org/backend",
+      },
     ];
 
     const result = await createMeshIssuesForArchive(change, trustedRepos);
@@ -188,7 +218,12 @@ describe("createMeshIssuesForArchive", () => {
     } as unknown as Change;
 
     const trustedRepos: RelatedRepo[] = [
-      { id: "backend", path: "/backend", trusted: true, gh_repo: "org/backend" },
+      {
+        id: "backend",
+        path: "/backend",
+        trusted: true,
+        gh_repo: "org/backend",
+      },
     ];
 
     const result = await createMeshIssuesForArchive(change, trustedRepos);

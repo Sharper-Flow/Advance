@@ -153,11 +153,7 @@ export async function archiveChange(
   // In-repo archive: write identical bundle to in-repo path (warning-only on failure)
   if (paths.inRepoArchive && !dryRun) {
     try {
-      await createInRepoArchive(
-        change,
-        paths.inRepoArchive,
-        sourceChangeDir,
-      );
+      await createInRepoArchive(change, paths.inRepoArchive, sourceChangeDir);
     } catch (err) {
       // In-repo failure is warning-only — do NOT add to errors array
       // to avoid failing the overall archive operation.

@@ -70,9 +70,9 @@ export function execGh(
       },
       (error, stdout, stderr) => {
         if (error) {
-          const isEnoent =
-            (error as NodeJS.ErrnoException).code === "ENOENT";
-          const isKilled = ("killed" in error ? (error as { killed: boolean }).killed : false);
+          const isEnoent = (error as NodeJS.ErrnoException).code === "ENOENT";
+          const isKilled =
+            "killed" in error ? (error as { killed: boolean }).killed : false;
           const rawStderr = stderr ?? "";
           const isRateLimit =
             rawStderr.includes("HTTP 429") ||
@@ -84,7 +84,9 @@ export function execGh(
           resolve({
             stdout: stdout ?? "",
             stderr: effectiveStderr,
-            exitCode: isEnoent ? -1 : (error as NodeJS.ErrnoException).errno ?? (isKilled ? -1 : 1),
+            exitCode: isEnoent
+              ? -1
+              : ((error as NodeJS.ErrnoException).errno ?? (isKilled ? -1 : 1)),
             ghNotFound: isEnoent || undefined,
             timedOut: isKilled || undefined,
             rateLimited: isRateLimit || undefined,

@@ -52,7 +52,6 @@ import {
   stripTddEvidence,
   BulkCloseSelectorSchema,
   BulkCloseResultSchema,
-  type RelatedRepo,
   type Task,
 } from "./types";
 import { SAMPLE_SPEC, SAMPLE_CHANGE } from "./__tests__/setup";

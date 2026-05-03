@@ -2776,7 +2776,7 @@ describe("Change Tools", () => {
       expect(parsed.success).toBe(true);
 
       // Verify in-repo bundle was created
-      const { readFile: readFs, access: accessFs } = await import("fs/promises");
+      const { readFile: readFs } = await import("fs/promises");
       const { join: joinPath } = await import("path");
       const inRepoArchiveDir = joinPath(store.paths.root, ".adv", "archive");
 

@@ -1,0 +1,208 @@
+{
+  "$schema": "https://raw.githubusercontent.com/anomalyco/oc-plugins/main/advance/plugin/schemas/change.schema.json",
+  "id": "change-ids-to-c-OTfE",
+  "title": "Change IDs to camelCase format",
+  "status": "archived",
+  "created_at": "2026-01-31T04:28:52.394Z",
+  "tasks": [
+    {
+      "id": "tk-bfzOmiCp",
+      "title": "Update store.ts: Change ID generation from kebab-case+nanoid to camelCase with auto-increment",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-01-31T04:30:14.206Z",
+      "started_at": "2026-01-31T04:43:22.493Z",
+      "completed_at": "2026-01-31T04:44:18.337Z",
+      "completed_by": "Implemented camelCase ID generation with auto-increment. Verified with new test suite.",
+      "tdd_phase": "none"
+    },
+    {
+      "id": "tk-f0Badgz7",
+      "title": "Update json.ts: Remove hyphen-specific suffix matching in resolveChangeId",
+      "section": "Implementation",
+      "status": "cancelled",
+      "priority": 1,
+      "created_at": "2026-01-31T04:30:15.328Z",
+      "completed_at": "2026-01-31T04:36:03.759Z",
+      "completed_by": "Absorbed into tk-Yih5dbVr: Both tasks remove suffix matching from resolveChangeId - the \"hyphen-specific suffix matching\" at json.ts:252 IS the same code as \"suffix matching (dead code)\" to be removed. Combining avoids duplicate work.",
+      "tdd_phase": "none"
+    },
+    {
+      "id": "tk-Zaix84CR",
+      "title": "Update types.ts: Change comment from kebab-case to camelCase",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-01-31T04:30:16.068Z",
+      "started_at": "2026-01-31T04:44:21.287Z",
+      "completed_at": "2026-01-31T04:44:30.754Z",
+      "tdd_phase": "none"
+    },
+    {
+      "id": "tk-d6nyeiL3",
+      "title": "Update ADV_INSTRUCTIONS.md: Change ID format table and examples",
+      "section": "Documentation",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-01-31T04:30:16.832Z",
+      "started_at": "2026-01-31T04:45:29.956Z",
+      "completed_at": "2026-01-31T04:45:35.153Z",
+      "tdd_phase": "none"
+    },
+    {
+      "id": "tk-6iZZLdSS",
+      "title": "Update AGENTS.md: Change ID format table",
+      "section": "Documentation",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-01-31T04:30:17.521Z",
+      "started_at": "2026-01-31T04:45:37.863Z",
+      "completed_at": "2026-01-31T04:45:42.912Z",
+      "tdd_phase": "none"
+    },
+    {
+      "id": "tk-cRAjPRSy",
+      "title": "Update change.test.ts: Fix regex expectations for new camelCase format",
+      "section": "Testing",
+      "status": "done",
+      "priority": 5,
+      "created_at": "2026-01-31T04:30:18.350Z",
+      "started_at": "2026-01-31T04:45:45.458Z",
+      "completed_at": "2026-01-31T04:45:56.118Z",
+      "tdd_phase": "none"
+    },
+    {
+      "id": "tk-JH0M1Mae",
+      "title": "Update store.test.ts: Fix test expectations for new format",
+      "section": "Testing",
+      "status": "done",
+      "priority": 6,
+      "created_at": "2026-01-31T04:30:18.995Z",
+      "started_at": "2026-01-31T04:45:58.759Z",
+      "completed_at": "2026-01-31T04:46:09.752Z",
+      "tdd_phase": "none"
+    },
+    {
+      "id": "tk-MNcrUoHW",
+      "title": "Update json.test.ts: Add tests for resolving both kebab and camelCase IDs",
+      "section": "Testing",
+      "status": "done",
+      "priority": 7,
+      "created_at": "2026-01-31T04:30:20.047Z",
+      "started_at": "2026-01-31T04:46:12.605Z",
+      "completed_at": "2026-01-31T04:47:16.284Z",
+      "tdd_phase": "none"
+    },
+    {
+      "id": "tk-NYlUSB0V",
+      "title": "Run full test suite and fix any failures",
+      "section": "Verification",
+      "status": "done",
+      "priority": 8,
+      "created_at": "2026-01-31T04:30:20.777Z",
+      "started_at": "2026-01-31T04:47:19.358Z",
+      "completed_at": "2026-01-31T04:47:52.371Z",
+      "completed_by": "Verified all tests pass after updating all test hardcoded references to the new camelCase format.",
+      "tdd_phase": "none"
+    },
+    {
+      "id": "tk-Yih5dbVr",
+      "title": "Simplify resolveChangeId: Remove suffix matching (dead code), keep exact + prefix only",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 9,
+      "created_at": "2026-01-31T04:33:32.358Z",
+      "started_at": "2026-01-31T04:44:34.008Z",
+      "completed_at": "2026-01-31T04:44:54.954Z",
+      "completed_by": "Simplified resolveChangeId to use exact and case-insensitive prefix matching. Verified with new test suite.",
+      "tdd_phase": "none"
+    },
+    {
+      "id": "tk-xXDpz-uM",
+      "title": "Add case-insensitive prefix matching to resolveChangeId for ergonomics",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 10,
+      "created_at": "2026-01-31T04:33:33.024Z",
+      "completed_at": "2026-01-31T04:44:55.163Z",
+      "completed_by": "Added case-insensitive prefix matching to resolveChangeId. Verified with tests.",
+      "tdd_phase": "none"
+    },
+    {
+      "id": "tk-e9bGo1vq",
+      "title": "Update setup.ts: Change SAMPLE_CHANGE.id to camelCase format - this propagates to all tests using the fixture",
+      "section": "Testing",
+      "status": "done",
+      "priority": 11,
+      "created_at": "2026-01-31T04:36:41.698Z",
+      "started_at": "2026-01-31T04:44:57.842Z",
+      "completed_at": "2026-01-31T04:45:08.058Z",
+      "tdd_phase": "none"
+    },
+    {
+      "id": "tk-qfJk-ROQ",
+      "title": "Update gate.test.ts: Fix 18+ hardcoded refs to \"add-feature-abc123\" format",
+      "section": "Testing",
+      "status": "done",
+      "priority": 12,
+      "created_at": "2026-01-31T04:36:42.449Z",
+      "started_at": "2026-01-31T04:45:10.787Z",
+      "completed_at": "2026-01-31T04:45:19.023Z",
+      "tdd_phase": "none"
+    },
+    {
+      "id": "tk-fEG17gTB",
+      "title": "Update integration.test.ts: Fix hardcoded changeId ref to use camelCase format",
+      "section": "Testing",
+      "status": "done",
+      "priority": 13,
+      "created_at": "2026-01-31T04:36:43.121Z",
+      "started_at": "2026-01-31T04:45:22.515Z",
+      "completed_at": "2026-01-31T04:45:27.136Z",
+      "tdd_phase": "none"
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-WKrAjS",
+      "type": "convention",
+      "content": "The plugin uses vitest for testing, not bun:test, despite some mentions in AGENTS.md. Always check package.json for the correct test runner.",
+      "source_task": "tk-bfzOmiCp",
+      "recorded_at": "2026-01-31T04:44:18.750Z"
+    }
+  ],
+  "gates": {
+    "research": {
+      "status": "done",
+      "completed_at": "2026-01-31T04:33:37.403Z",
+      "completed_by": "agent"
+    },
+    "prep": {
+      "status": "done",
+      "completed_at": "2026-01-31T04:36:55.125Z",
+      "completed_by": "agent"
+    },
+    "implementation": {
+      "status": "done",
+      "completed_at": "2026-01-31T05:08:29.595Z",
+      "completed_by": "agent"
+    },
+    "review": {
+      "status": "done",
+      "completed_at": "2026-01-31T05:09:59.834Z",
+      "completed_by": "agent"
+    },
+    "harden": {
+      "status": "done",
+      "completed_at": "2026-01-31T05:25:47.384Z",
+      "completed_by": "agent"
+    },
+    "signoff": {
+      "status": "done",
+      "completed_at": "2026-01-31T05:43:24.561Z",
+      "completed_by": "agent"
+    }
+  }
+}

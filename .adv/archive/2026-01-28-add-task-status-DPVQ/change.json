@@ -1,0 +1,71 @@
+{
+  "$schema": "https://raw.githubusercontent.com/anomalyco/oc-plugins/main/advance/plugin/schemas/change.schema.json",
+  "id": "add-task-status-DPVQ",
+  "title": "Add task status report requirement for loop interruptions and compaction events",
+  "status": "archived",
+  "created_at": "2026-01-28T05:23:01.858Z",
+  "tasks": [
+    {
+      "id": "tk-LaZwj2Cu",
+      "title": "Define task status report requirement in ADV_INSTRUCTIONS.md",
+      "section": "Documentation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-01-28T05:23:27.682Z",
+      "started_at": "2026-01-28T05:23:49.007Z",
+      "completed_at": "2026-01-28T05:24:26.350Z",
+      "completed_by": "Added Task Status Report section to ADV_INSTRUCTIONS.md with mandatory requirement",
+      "tdd_phase": "none",
+      "tdd_evidence": {
+        "skipped": true,
+        "skip_reason": "trivial: docs change to ADV_INSTRUCTIONS.md"
+      }
+    },
+    {
+      "id": "tk-cb-UkvSc",
+      "title": "Add TASK_STATUS_REPORT marker to status markers table",
+      "section": "Documentation",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-01-28T05:23:28.529Z",
+      "completed_at": "2026-01-28T05:24:27.042Z",
+      "completed_by": "Added [ADV:TASK_STATUS_REPORT] marker to status markers table",
+      "tdd_phase": "none",
+      "tdd_evidence": {
+        "skipped": true,
+        "skip_reason": "trivial: docs change to ADV_INSTRUCTIONS.md"
+      }
+    },
+    {
+      "id": "tk-PahN3JZw",
+      "title": "Document report format specification with example",
+      "section": "Documentation",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-01-28T05:23:29.376Z",
+      "completed_at": "2026-01-28T05:24:27.883Z",
+      "completed_by": "Added Report Format and Report Contents sections with full example",
+      "tdd_phase": "none",
+      "tdd_evidence": {
+        "skipped": true,
+        "skip_reason": "trivial: docs change to ADV_INSTRUCTIONS.md"
+      }
+    },
+    {
+      "id": "tk-2Uufj4d4",
+      "title": "Add trigger events section (loop stop, compaction)",
+      "section": "Documentation",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-01-28T05:23:30.121Z",
+      "completed_at": "2026-01-28T05:24:29.004Z",
+      "completed_by": "Added Trigger Events table (loop_stop, compaction)",
+      "tdd_phase": "none",
+      "tdd_evidence": {
+        "skipped": true,
+        "skip_reason": "trivial: docs change to ADV_INSTRUCTIONS.md"
+      }
+    }
+  ],
+  "deltas": {}
+}

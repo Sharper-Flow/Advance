@@ -1198,18 +1198,20 @@ export type Change = z.infer<typeof ChangeSchema>;
  * A related repository that tasks in this project may target.
  * Generic model — any repo/path pair, not hardcoded to specific projects.
  */
-export const RelatedRepoSchema = z.object({
-  /** Short identifier used in task metadata (e.g., "backend", "api", "db") */
-  id: z.string(),
-  /** Absolute path to the repository root */
-  path: z.string(),
-  /** Human-readable role description (e.g., "Backend API server", "Database migrations") */
-  role: z.string().optional(),
-  /** Whether this repo is trusted for automated cross-project operations (e.g., mesh issue creation) */
-  trusted: z.boolean().default(false),
-  /** GitHub repo in owner/name format for GH CLI operations (e.g., "org/backend-api") */
-  gh_repo: z.string().optional(),
-}).passthrough();
+export const RelatedRepoSchema = z
+  .object({
+    /** Short identifier used in task metadata (e.g., "backend", "api", "db") */
+    id: z.string(),
+    /** Absolute path to the repository root */
+    path: z.string(),
+    /** Human-readable role description (e.g., "Backend API server", "Database migrations") */
+    role: z.string().optional(),
+    /** Whether this repo is trusted for automated cross-project operations (e.g., mesh issue creation) */
+    trusted: z.boolean().default(false),
+    /** GitHub repo in owner/name format for GH CLI operations (e.g., "org/backend-api") */
+    gh_repo: z.string().optional(),
+  })
+  .passthrough();
 
 export type RelatedRepo = z.infer<typeof RelatedRepoSchema>;
 

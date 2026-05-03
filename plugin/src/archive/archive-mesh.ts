@@ -25,9 +25,7 @@ export function getTrustedRepos(
   relatedRepos: RelatedRepo[] | undefined,
 ): RelatedRepo[] {
   if (!relatedRepos) return [];
-  return relatedRepos.filter(
-    (repo) => repo.trusted === true && !!repo.gh_repo,
-  );
+  return relatedRepos.filter((repo) => repo.trusted === true && !!repo.gh_repo);
 }
 
 /**
@@ -112,10 +110,7 @@ function findTrustedRepoForLink(
 /**
  * Build the markdown body for a mesh issue.
  */
-function buildMeshIssueBody(
-  change: Change,
-  link: CrossProjectLink,
-): string {
+function buildMeshIssueBody(change: Change, link: CrossProjectLink): string {
   const lines: string[] = [];
   lines.push(`## Agent Mesh Link`);
   lines.push("");
@@ -138,9 +133,7 @@ function buildMeshIssueBody(
   if (change.implementation_notes || change.design) {
     lines.push("### Details");
     lines.push("");
-    lines.push(
-      `See archive bundle for full change details.`,
-    );
+    lines.push(`See archive bundle for full change details.`);
   }
 
   return lines.join("\n");

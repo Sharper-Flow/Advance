@@ -10,9 +10,12 @@
 import { z } from "zod";
 import type { Store } from "../storage/store-types";
 import { formatToolOutput } from "../utils/tool-output";
-import { listMeshIssues, parseMeshFrontmatter } from "../integrations/mesh-issues";
+import {
+  listMeshIssues,
+  parseMeshFrontmatter,
+} from "../integrations/mesh-issues";
 import { getTrustedRepos } from "../archive/archive-mesh";
-import type { MeshIssue, MeshFrontmatter } from "../integrations/mesh-issues";
+import type { MeshFrontmatter } from "../integrations/mesh-issues";
 
 // ─── Cache ──────────────────────────────────────────────────────────────────
 
@@ -25,7 +28,7 @@ interface CachedScan {
 
 let scanCache: CachedScan | null = null;
 
-function invalidateCache(): void {
+function _invalidateCache(): void {
   scanCache = null;
 }
 
@@ -105,9 +108,7 @@ export async function performMeshScan(
       }
 
       for (const issue of result.issues) {
-        const frontmatter = issue.body
-          ? parseMeshFrontmatter(issue.body)
-          : {};
+        const frontmatter = issue.body ? parseMeshFrontmatter(issue.body) : {};
         items.push({
           repo: repo.gh_repo,
           issueNumber: issue.number,
@@ -151,9 +152,7 @@ export const meshScanTools = {
       forceRefresh: z
         .boolean()
         .optional()
-        .describe(
-          "Force a fresh scan, ignoring the cache. Default: false.",
-        ),
+        .describe("Force a fresh scan, ignoring the cache. Default: false."),
     },
     execute: async (
       { forceRefresh }: { forceRefresh?: boolean },

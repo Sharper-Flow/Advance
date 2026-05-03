@@ -1,0 +1,162 @@
+{
+  "$schema": "https://raw.githubusercontent.com/anomalyco/oc-plugins/main/advance/plugin/schemas/change.schema.json",
+  "id": "addAdvTaskShowToolToRetrieveFu",
+  "title": "Add adv_task_show tool to retrieve full task details by task ID",
+  "status": "archived",
+  "created_at": "2026-02-09T21:14:25.052Z",
+  "tasks": [
+    {
+      "id": "tk-TntADaeM",
+      "title": "Add adv_task_show tool definition to plugin/src/tools/task.ts — takes taskId arg, calls store.tasks.get(), returns full Task + changeId. Handle 'Task Not Found' error.",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-02-09T21:15:36.614Z",
+      "started_at": "2026-02-09T21:17:27.182Z",
+      "completed_at": "2026-02-09T21:19:09.799Z",
+      "completed_by": "Added adv_task_show tool to task.ts and store.tasks.show() to store.ts. 3 new tests all passing.",
+      "tdd_phase": "complete",
+      "tdd_evidence": {
+        "red": {
+          "test_file": "plugin/src/tools/task.test.ts",
+          "command": "npx vitest run src/tools/task.test.ts",
+          "output_snippet": "FAIL src/tools/task.test.ts > Task Tools > adv_task_show > returns full task with changeId for existing task - TypeError: Cannot read properties of undefined (reading 'execute'). 3 failed | 32 passed (35)",
+          "exit_code": 1,
+          "recorded_at": "2026-02-09T21:18:23.148Z"
+        },
+        "green": {
+          "test_file": "plugin/src/tools/task.test.ts",
+          "command": "npx vitest run src/tools/task.test.ts",
+          "output_snippet": "Test Files 1 passed (1). Tests 35 passed (35). adv_task_show: returns full task with changeId, returns all task fields, returns error for nonexistent task - all passing.",
+          "exit_code": 0,
+          "recorded_at": "2026-02-09T21:19:05.675Z"
+        }
+      }
+    },
+    {
+      "id": "tk-yPe79iSQ",
+      "title": "Export adv_task_show in plugin/src/tools/index.ts",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 1,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-TntADaeM"
+        }
+      ],
+      "created_at": "2026-02-09T21:16:54.749Z",
+      "started_at": "2026-02-09T21:19:16.911Z",
+      "completed_at": "2026-02-09T21:19:25.448Z",
+      "completed_by": "No change needed — taskTools is already exported as a whole object from index.ts, adv_task_show is automatically included.",
+      "tdd_phase": "none",
+      "tdd_evidence": {
+        "skipped": true,
+        "skip_reason": "trivial: taskTools already exported as a single object from ./task — adv_task_show is automatically included. No code change needed."
+      }
+    },
+    {
+      "id": "tk-3-HBKGXi",
+      "title": "Register adv_task_show in plugin/src/index.ts tool registration block",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 2,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-yPe79iSQ"
+        }
+      ],
+      "created_at": "2026-02-09T21:16:54.997Z",
+      "started_at": "2026-02-09T21:19:31.264Z",
+      "completed_at": "2026-02-09T21:20:09.534Z",
+      "completed_by": "Registered adv_task_show in plugin/src/index.ts tool block. tsc --noEmit clean, full test suite 403/407 pass (4 pre-existing archive failures).",
+      "tdd_phase": "none",
+      "tdd_evidence": {
+        "skipped": true,
+        "skip_reason": "trivial: tool registration follows exact same pattern as 8 other task tools — pure wiring, verified by tsc --noEmit and full test suite"
+      }
+    },
+    {
+      "id": "tk-H5HQ_sF1",
+      "title": "Refactor: Extract resolveTask(taskId) helper in store.ts to DRY up the 6 methods that repeat the same 8-line task-resolution boilerplate (ensureAllChangesSynced → sqlite.tasks.get → loadChange → tasks.find). Have get, show, update, recordEvidence, setPhase, skipTdd all use it.",
+      "section": "Refactoring",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-02-09T21:22:58.609Z",
+      "started_at": "2026-02-09T21:27:56.136Z",
+      "completed_at": "2026-02-09T21:29:34.416Z",
+      "completed_by": "Extracted resolveTask() helper in store.ts. 6 methods now use it. Net -69 lines. tsc clean, 35/35 tests pass.",
+      "tdd_phase": "complete",
+      "tdd_evidence": {
+        "red": {
+          "test_file": "plugin/src/tools/task.test.ts",
+          "command": "npx vitest run src/tools/task.test.ts",
+          "output_snippet": "Characterization tests baseline: 35 passed (35). Refactoring must preserve all behavior.",
+          "exit_code": 0,
+          "recorded_at": "2026-02-09T21:28:17.240Z"
+        },
+        "green": {
+          "test_file": "plugin/src/tools/task.test.ts",
+          "command": "npx vitest run src/tools/task.test.ts",
+          "output_snippet": "Test Files 1 passed (1). Tests 35 passed (35). All characterization tests pass after extracting resolveTask() helper. Behavior fully preserved.",
+          "exit_code": 0,
+          "recorded_at": "2026-02-09T21:29:32.763Z"
+        }
+      }
+    },
+    {
+      "id": "tk-Fuzr3qfj",
+      "title": "Run multi-dimensional code review via sub-agents (logic, security, architecture, traceability)",
+      "section": "Review",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-02-09T21:31:38.194Z",
+      "started_at": "2026-02-09T21:31:40.390Z",
+      "completed_at": "2026-02-09T21:33:43.056Z",
+      "completed_by": "Code review completed. Coverage 100% for new tool. resolveTask refactor verified. Logic, Security, Architecture, and Traceability all pass. Verdict: APPROVED.",
+      "tdd_phase": "none"
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-pgq964",
+      "type": "gotcha",
+      "content": "Found documentation gaps in README.md and CHANGELOG.md during hardening. adv_task_show was missing from tool lists.",
+      "recorded_at": "2026-02-09T21:34:46.929Z"
+    }
+  ],
+  "gates": {
+    "research": {
+      "status": "done",
+      "completed_at": "2026-02-09T21:17:07.284Z",
+      "completed_by": "agent"
+    },
+    "prep": {
+      "status": "done",
+      "completed_at": "2026-02-09T21:17:09.164Z",
+      "completed_by": "agent"
+    },
+    "implementation": {
+      "status": "done",
+      "completed_at": "2026-02-09T21:20:15.422Z",
+      "completed_by": "agent"
+    },
+    "review": {
+      "status": "done",
+      "completed_at": "2026-02-09T21:33:45.034Z",
+      "completed_by": "agent"
+    },
+    "harden": {
+      "status": "done",
+      "completed_at": "2026-02-09T21:34:55.890Z",
+      "completed_by": "agent"
+    },
+    "signoff": {
+      "status": "done",
+      "completed_at": "2026-02-09T21:35:31.940Z",
+      "completed_by": "user"
+    }
+  }
+}
