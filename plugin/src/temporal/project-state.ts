@@ -38,6 +38,11 @@ export function createProjectWorkflowState(
       input.changeSummariesCap > 0
         ? input.changeSummariesCap
         : DEFAULT_CHANGE_SUMMARIES_CAP,
+    // T4 (KD-1): worktree + session registries — state authority lives in
+    // the project workflow. Spec: rq-worktreeRegistry01.
+    worktree_registry: input.worktreeRegistry ?? {},
+    pending_worktree_deletes: input.pendingWorktreeDeletes ?? {},
+    session_registry: input.sessionRegistry ?? {},
   };
 }
 

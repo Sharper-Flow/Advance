@@ -14,6 +14,8 @@ import {
   DEFAULT_CHANGE_SUMMARIES_CAP,
   PROJECT_WORKFLOW_QUERY_NAMES,
   PROJECT_WORKFLOW_UPDATE_NAMES,
+  WorkflowNotReadyError,
+  assertProjectWorkflowReachable,
   resolveChangeSummariesCap,
 } from "./contracts";
 import type { ChangeStatus } from "../types";
@@ -31,6 +33,140 @@ describe("project workflow state", () => {
     expect(state.migration_ledger).toEqual([]);
     expect(state.change_summaries).toEqual({});
     expect(state.source_versions).toEqual({});
+    // T4 (KD-1): new registries initialized to empty objects.
+    // Spec: rq-worktreeRegistry01, rq-multiSessionCoordination01.
+    expect(state.worktree_registry).toEqual({});
+    expect(state.pending_worktree_deletes).toEqual({});
+    expect(state.session_registry).toEqual({});
+  });
+
+  // T4 (KD-1, peer-review F1): worktree/session registries can be seeded
+  // from continue-as-new payloads.
+  it("hydrates worktree/session registries from input", () => {
+    const state = createProjectWorkflowState({
+      projectId: "proj1",
+      initializedAt: "2026-04-18T00:00:00.000Z",
+      worktreeRegistry: {
+        "change/foo": {
+          branch: "change/foo",
+          path: "/tmp/wt/foo",
+          changeId: "foo",
+          status: "active",
+          createdAt: "2026-04-18T00:00:01.000Z",
+          lastSeenAt: "2026-04-18T00:00:02.000Z",
+          baseRef: "trunk",
+          headSha: "deadbeef",
+          source: "tool",
+          sourceVersion: 1,
+        },
+      },
+      pendingWorktreeDeletes: {
+        "change/bar": {
+          branch: "change/bar",
+          path: "/tmp/wt/bar",
+          reason: "in_use",
+          recordedAt: "2026-04-18T00:00:03.000Z",
+          attempts: 0,
+        },
+      },
+      sessionRegistry: {
+        sess_AbCdEfGh: {
+          sessionId: "sess_AbCdEfGh",
+          worktreePath: "/tmp/wt/foo",
+          pid: 12345,
+          startedAt: "2026-04-18T00:00:04.000Z",
+          lastSeenAt: "2026-04-18T00:00:05.000Z",
+        },
+      },
+    });
+
+    expect(state.worktree_registry["change/foo"]?.headSha).toBe("deadbeef");
+    expect(state.pending_worktree_deletes["change/bar"]?.attempts).toBe(0);
+    expect(state.session_registry.sess_AbCdEfGh?.pid).toBe(12345);
+  });
+
+  describe("assertProjectWorkflowReachable (T4 / rq-worktreeRegistry01)", () => {
+    it("throws WorkflowNotReadyError when state is null", () => {
+      expect(() => assertProjectWorkflowReachable(null)).toThrow(
+        WorkflowNotReadyError,
+      );
+    });
+
+    it("throws WorkflowNotReadyError when state is undefined", () => {
+      expect(() => assertProjectWorkflowReachable(undefined)).toThrow(
+        WorkflowNotReadyError,
+      );
+    });
+
+    it("throws WorkflowNotReadyError when worktree_registry is missing", () => {
+      const broken = {
+        pending_worktree_deletes: {},
+        session_registry: {},
+      } as any;
+      expect(() => assertProjectWorkflowReachable(broken)).toThrow(
+        /worktree_registry/,
+      );
+    });
+
+    it("throws WorkflowNotReadyError when session_registry is missing", () => {
+      const broken = {
+        worktree_registry: {},
+        pending_worktree_deletes: {},
+      } as any;
+      expect(() => assertProjectWorkflowReachable(broken)).toThrow(
+        /session_registry/,
+      );
+    });
+
+    it("includes the run-adv_workflow_repair hint", () => {
+      try {
+        assertProjectWorkflowReachable(null);
+        throw new Error("expected throw");
+      } catch (err) {
+        expect(err).toBeInstanceOf(WorkflowNotReadyError);
+        const e = err as WorkflowNotReadyError;
+        expect(e.code).toBe("WORKFLOW_NOT_READY");
+        expect(e.hint).toBe("run adv_workflow_repair");
+        expect(e.message).toContain("adv_workflow_repair");
+      }
+    });
+
+    it("does NOT throw when all 3 registries are present (even if empty)", () => {
+      const state = createProjectWorkflowState({
+        projectId: "p",
+        initializedAt: "2026-04-18T00:00:00.000Z",
+      });
+      expect(() => assertProjectWorkflowReachable(state)).not.toThrow();
+    });
+  });
+
+  describe("PROJECT_WORKFLOW_UPDATE_NAMES has 8 new worktree/session updates (T4)", () => {
+    it("registers all 8 update names", () => {
+      expect(PROJECT_WORKFLOW_UPDATE_NAMES.addWorktreeSession).toBe(
+        "adv.project.addWorktreeSession",
+      );
+      expect(PROJECT_WORKFLOW_UPDATE_NAMES.removeWorktreeSession).toBe(
+        "adv.project.removeWorktreeSession",
+      );
+      expect(PROJECT_WORKFLOW_UPDATE_NAMES.setPendingWorktreeDelete).toBe(
+        "adv.project.setPendingWorktreeDelete",
+      );
+      expect(PROJECT_WORKFLOW_UPDATE_NAMES.clearPendingWorktreeDelete).toBe(
+        "adv.project.clearPendingWorktreeDelete",
+      );
+      expect(
+        PROJECT_WORKFLOW_UPDATE_NAMES.incrementPendingWorktreeDeleteAttempts,
+      ).toBe("adv.project.incrementPendingWorktreeDeleteAttempts");
+      expect(PROJECT_WORKFLOW_UPDATE_NAMES.registerSession).toBe(
+        "adv.project.registerSession",
+      );
+      expect(PROJECT_WORKFLOW_UPDATE_NAMES.unregisterSession).toBe(
+        "adv.project.unregisterSession",
+      );
+      expect(PROJECT_WORKFLOW_UPDATE_NAMES.updateSessionActivity).toBe(
+        "adv.project.updateSessionActivity",
+      );
+    });
   });
 
   it("hydrates change summary indexes from continue-as-new seed", () => {

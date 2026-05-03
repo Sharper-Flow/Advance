@@ -48,6 +48,22 @@ export const PROJECT_WORKFLOW_UPDATE_NAMES = {
    * `change_summaries` and `source_versions`. See rq-archivePurge01.
    */
   purgeChangeSummary: "adv.project.purgeChangeSummary",
+  /**
+   * Worktree + session lifecycle updates (T4, KD-1).
+   * Spec anchors: rq-worktreeRegistry01 + rq-multiSessionCoordination01.
+   * State authority for worktrees and sessions lives inside this project
+   * workflow (no SQLite or sidecar JSONL); peer sessions coordinate via
+   * these workflow updates.
+   */
+  addWorktreeSession: "adv.project.addWorktreeSession",
+  removeWorktreeSession: "adv.project.removeWorktreeSession",
+  setPendingWorktreeDelete: "adv.project.setPendingWorktreeDelete",
+  clearPendingWorktreeDelete: "adv.project.clearPendingWorktreeDelete",
+  incrementPendingWorktreeDeleteAttempts:
+    "adv.project.incrementPendingWorktreeDeleteAttempts",
+  registerSession: "adv.project.registerSession",
+  unregisterSession: "adv.project.unregisterSession",
+  updateSessionActivity: "adv.project.updateSessionActivity",
 } as const;
 
 export const CHANGE_WORKFLOW_UPDATE_NAMES = {
@@ -180,6 +196,15 @@ export interface ProjectWorkflowInput {
    * Spec: rq-changeSummariesCap01.
    */
   changeSummariesCap?: number;
+  /**
+   * Worktree + session registries (T4, KD-1).
+   * Optional on input so existing seedState payloads remain compatible;
+   * `createProjectWorkflowState` initializes to `{}` when omitted.
+   * Spec: rq-worktreeRegistry01.
+   */
+  worktreeRegistry?: Record<string, WorktreeRecord>;
+  pendingWorktreeDeletes?: Record<string, PendingWorktreeDelete>;
+  sessionRegistry?: Record<string, SessionRecord>;
 }
 
 export type ProjectWorkflowBootstrapState = ProjectWorkflowInput;
@@ -203,6 +228,109 @@ export interface MigrationLedgerEntry {
   detail?: string;
 }
 
+/**
+ * Worktree registry record. State authority for ADV-managed worktrees
+ * lives inside `ProjectWorkflowState.worktree_registry`. Peer sessions
+ * read this registry via the project workflow query path; no sidecar
+ * SQLite or JSONL is involved.
+ *
+ * Spec anchors: rq-worktreeRegistry01, rq-multiSessionCoordination01.
+ */
+export interface WorktreeRecord {
+  /** Branch name (registry key). */
+  branch: string;
+  /** Absolute path on disk. */
+  path: string;
+  /** Owning ADV change id, if any. */
+  changeId?: string;
+  /** Lifecycle status. `deleted` is a soft-delete marker. */
+  status: "active" | "pending_delete" | "deleted";
+  /** ISO 8601 creation timestamp. */
+  createdAt: string;
+  /** ISO 8601 last-seen heartbeat from any peer session. */
+  lastSeenAt: string;
+  /**
+   * Resolved base ref (default branch) the worktree was created from.
+   * Stored explicitly so KD-13 (default-branch resolution) is recorded
+   * for audit and for stale-base detection.
+   */
+  baseRef: string;
+  /** HEAD SHA at creation. */
+  headSha: string;
+  /**
+   * Provenance of the registry entry. `tool` = created via
+   * `adv_worktree_create`. `git_census` = adopted by the migration
+   * reconciliation step from `git worktree list`.
+   */
+  source: "tool" | "git_census";
+  /**
+   * Monotonic version per worktree branch for replay-deterministic
+   * dedup of out-of-order updates. Mutators skip updates whose
+   * sourceVersion is less than or equal to the existing record's.
+   */
+  sourceVersion: number;
+  /** Pending-delete marker; populated by `setPendingWorktreeDelete`. */
+  pendingDelete?: PendingWorktreeDelete;
+}
+
+/**
+ * Pending-worktree-delete record. Survives across sessions so a
+ * delete that could not complete (worktree still in use, integration
+ * gate not satisfied) can be retried by the next session that owns
+ * the change.
+ */
+export interface PendingWorktreeDelete {
+  /** Branch name (registry key). */
+  branch: string;
+  /** Absolute path on disk. */
+  path: string;
+  /** Reason recorded by the caller that flagged the pending delete. */
+  reason: string;
+  /** ISO 8601 timestamp when the pending delete was recorded. */
+  recordedAt: string;
+  /**
+   * Number of retry attempts made so far. Incremented by
+   * `incrementPendingWorktreeDeleteAttempts`.
+   */
+  attempts: number;
+}
+
+/**
+ * Session registry record. Tracks live OpenCode sessions for the
+ * project so peers can be enumerated (`adv_session_list`) and queried
+ * (`adv_session_show`, own-session-only via two-factor ACL).
+ *
+ * Privacy-defensive schema (KD-4, T3 user decision): public surfaces
+ * (adv_status peer-sessions, adv_session_list) expose only
+ * `sessionId`, `startedAt`, and the worktree basename. PID and full
+ * worktree path are stored here for own-session diagnostics
+ * (`adv_session_show` after two-factor ACL) and never exposed to
+ * peer-facing surfaces.
+ */
+export interface SessionRecord {
+  /** Opaque session id (`sess_<8 alphanumeric>`). */
+  sessionId: string;
+  /** Branch the session is operating against, if any. */
+  worktreeBranch?: string;
+  /**
+   * Absolute worktree path. Internal-only; never surfaced to peers.
+   * Public surfaces show basename via privacy-defensive projection.
+   */
+  worktreePath: string;
+  /** Process id of the session. Internal-only; never surfaced to peers. */
+  pid: number;
+  /** ISO 8601 session start time. */
+  startedAt: string;
+  /** ISO 8601 last heartbeat. */
+  lastSeenAt: string;
+  /** Active change the session is working on, if any. Own-session only. */
+  activeChangeId?: string;
+  /** Current task id, if any. Own-session only. */
+  currentTaskId?: string;
+  /** Current gate the session is interacting with, if any. Own-session only. */
+  activeGate?: string;
+}
+
 export interface ProjectWorkflowState extends ProjectWorkflowInput {
   agenda: import("../types").AgendaItem[];
   project_wisdom: ProjectWisdomEntry[];
@@ -220,6 +348,26 @@ export interface ProjectWorkflowState extends ProjectWorkflowInput {
    * Spec: rq-changeSummariesCap01.
    */
   change_summaries_cap: number;
+  /**
+   * Worktree registry (T4, KD-1). State authority for ADV-managed
+   * worktrees lives here; sidecar SQLite/JSONL is forbidden.
+   * Spec: rq-worktreeRegistry01.
+   */
+  worktree_registry: Record<string, WorktreeRecord>;
+  /**
+   * Pending-worktree-delete registry (T4, KD-1). Survives across
+   * sessions so a delete that could not complete is retried by the
+   * next session.
+   */
+  pending_worktree_deletes: Record<string, PendingWorktreeDelete>;
+  /**
+   * Session registry (T4, KD-1, KD-4). Tracks live OpenCode sessions
+   * for the project. Privacy-defensive: only sessionId/startedAt/
+   * worktree basename are exposed to peer-facing surfaces; PID and
+   * full worktree path are own-session-only.
+   * Spec: rq-multiSessionCoordination01.
+   */
+  session_registry: Record<string, SessionRecord>;
 }
 
 /**
@@ -273,4 +421,62 @@ export function resolveHistoryThresholds(
       ? parseInt(env.ADV_TEMPORAL_CHANGE_HISTORY_THRESHOLD, 10)
       : DEFAULT_CHANGE_HISTORY_THRESHOLD,
   };
+}
+
+/**
+ * Project workflow precondition guard (T4, KD-1, peer-review F1).
+ *
+ * Invoked by the 8 worktree/session lifecycle mutators (T6) before
+ * mutating state. Confirms the workflow has been bootstrapped to a
+ * shape that supports the new registries — i.e. the worktree/session
+ * registry fields are present (initialized to `{}` by
+ * `createProjectWorkflowState`).
+ *
+ * Throws `WorkflowNotReadyError` when the workflow state predates the
+ * v1.5.0 schema (e.g. seeded from an older snapshot that did not yet
+ * carry the new registries) so callers receive a deterministic error
+ * with the recommended remediation hint instead of a NPE on
+ * `state.worktree_registry`.
+ *
+ * Spec anchors: rq-worktreeRegistry01, rq-multiSessionCoordination01.
+ */
+export class WorkflowNotReadyError extends Error {
+  readonly code = "WORKFLOW_NOT_READY";
+  readonly hint: string;
+  readonly missing: readonly string[];
+
+  constructor(missing: readonly string[]) {
+    super(
+      `Project workflow not ready: missing required field(s): ${missing.join(
+        ", ",
+      )}. Hint: run adv_workflow_repair to rebuild project workflow state.`,
+    );
+    this.name = "WorkflowNotReadyError";
+    this.hint = "run adv_workflow_repair";
+    this.missing = missing;
+  }
+}
+
+export function assertProjectWorkflowReachable(
+  state: Pick<
+    ProjectWorkflowState,
+    "worktree_registry" | "pending_worktree_deletes" | "session_registry"
+  > | null
+    | undefined,
+): asserts state is Pick<
+  ProjectWorkflowState,
+  "worktree_registry" | "pending_worktree_deletes" | "session_registry"
+> {
+  if (!state) {
+    throw new WorkflowNotReadyError([
+      "worktree_registry",
+      "pending_worktree_deletes",
+      "session_registry",
+    ]);
+  }
+  const missing: string[] = [];
+  if (!state.worktree_registry) missing.push("worktree_registry");
+  if (!state.pending_worktree_deletes) missing.push("pending_worktree_deletes");
+  if (!state.session_registry) missing.push("session_registry");
+  if (missing.length > 0) throw new WorkflowNotReadyError(missing);
 }
