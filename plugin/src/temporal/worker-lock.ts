@@ -8,6 +8,18 @@
  *
  * Spec: rq-workerSingleton01.
  *
+ * The lock primitive is parametrized by `lockFilename` (default
+ * `worker.lock`) so adjacent coordination domains — for example the
+ * git-worktree-flock used during `git worktree add/remove` — can reuse
+ * the same atomic O_EXCL acquisition machinery without colliding with
+ * the worker-singleton lock. The default keeps full backward compat.
+ *
+ * Multi-session note (rq-multiSessionCoordination01): worker-singleton
+ * coordination is a building block of multi-session-safe ADV operation.
+ * The worker is shared across peer sessions in the same project; ADV
+ * state writes from those sessions are serialized by the Temporal
+ * workflow updates the singleton worker hosts.
+ *
  * Lock file: `{projectStateDir}/worker.lock` containing JSON:
  *   {
  *     "pid": <owner-process-pid>,
@@ -74,6 +86,21 @@ export interface AcquireWorkerLockOptions {
   pid?: number;
   /** Override liveness check. Test-only. */
   isAlive?: (pid: number) => "alive" | "dead" | "unknown_owner";
+  /**
+   * Override the lock filename. Defaults to `WORKER_LOCK_FILENAME`
+   * (`"worker.lock"`). Used by adjacent coordination domains that want
+   * to reuse this primitive (for example git-worktree-flock at T15).
+   * Backward-compat: omit to retain default behavior.
+   */
+  lockFilename?: string;
+}
+
+export interface ReleaseWorkerLockOptions {
+  /**
+   * Override the lock filename. Must match the value passed to
+   * `acquireWorkerLock`. Defaults to `WORKER_LOCK_FILENAME`.
+   */
+  lockFilename?: string;
 }
 
 /**
@@ -85,7 +112,8 @@ export async function acquireWorkerLock(
   projectStateDir: string,
   options: AcquireWorkerLockOptions = {},
 ): Promise<WorkerLockResult> {
-  const lockPath = join(projectStateDir, WORKER_LOCK_FILENAME);
+  const lockFilename = options.lockFilename ?? WORKER_LOCK_FILENAME;
+  const lockPath = join(projectStateDir, lockFilename);
   const myPid = options.pid ?? process.pid;
   const isAlive = options.isAlive ?? defaultIsAlive;
 
@@ -165,8 +193,10 @@ export async function acquireWorkerLock(
  */
 export async function releaseWorkerLock(
   projectStateDir: string,
+  options: ReleaseWorkerLockOptions = {},
 ): Promise<void> {
-  const lockPath = join(projectStateDir, WORKER_LOCK_FILENAME);
+  const lockFilename = options.lockFilename ?? WORKER_LOCK_FILENAME;
+  const lockPath = join(projectStateDir, lockFilename);
   const releasingPath = lockPath + WORKER_LOCK_RELEASING_SUFFIX;
   try {
     await rename(lockPath, releasingPath);

@@ -154,6 +154,61 @@ describe("acquireWorkerLock + releaseWorkerLock", () => {
     expect(owners).toHaveLength(1);
     expect(notOwners).toHaveLength(1);
   });
+
+  // T2 (KD-7): parametrize lock filename so other coordination domains
+  // (e.g. git-worktree-flock at T15) can reuse this lock primitive
+  // without colliding with the default worker.lock file.
+  describe("lockFilename option (T2)", () => {
+    it("acquire honors custom lockFilename and does not collide with default", async () => {
+      const customResult = await acquireWorkerLock(stateDir, {
+        lockFilename: "test.lock",
+      });
+      expect(customResult.owned).toBe(true);
+      if (!customResult.owned) throw new Error("expected owned:true");
+      expect(customResult.lockPath).toBe(join(stateDir, "test.lock"));
+
+      // Default lock is independent and still acquirable.
+      const defaultResult = await acquireWorkerLock(stateDir);
+      expect(defaultResult.owned).toBe(true);
+      if (!defaultResult.owned) throw new Error("expected owned:true");
+      expect(defaultResult.lockPath).toBe(
+        join(stateDir, WORKER_LOCK_FILENAME),
+      );
+    });
+
+    it("release honors custom lockFilename", async () => {
+      await acquireWorkerLock(stateDir, { lockFilename: "test.lock" });
+      await releaseWorkerLock(stateDir, { lockFilename: "test.lock" });
+      await expect(access(join(stateDir, "test.lock"))).rejects.toThrow();
+    });
+
+    it("two acquires of the same custom lockFilename respect O_EXCL", async () => {
+      const [a, b] = await Promise.all([
+        acquireWorkerLock(stateDir, {
+          pid: 33333,
+          isAlive: () => "alive",
+          lockFilename: "shared.lock",
+        }),
+        acquireWorkerLock(stateDir, {
+          pid: 44444,
+          isAlive: () => "alive",
+          lockFilename: "shared.lock",
+        }),
+      ]);
+      const owners = [a, b].filter((r) => r.owned);
+      const notOwners = [a, b].filter((r) => !r.owned);
+      expect(owners).toHaveLength(1);
+      expect(notOwners).toHaveLength(1);
+      expect(owners[0].lockPath).toBe(join(stateDir, "shared.lock"));
+    });
+
+    it("default behavior unchanged when lockFilename omitted", async () => {
+      const result = await acquireWorkerLock(stateDir);
+      expect(result.owned).toBe(true);
+      if (!result.owned) throw new Error("expected owned:true");
+      expect(result.lockPath).toBe(join(stateDir, WORKER_LOCK_FILENAME));
+    });
+  });
 });
 
 // =============================================================================
