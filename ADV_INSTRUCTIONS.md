@@ -92,7 +92,7 @@ No other pauses or "shall I continue?" prompts permitted.
 
 ## Phase Goals
 
-Each workflow command has a defined phase goal. These are canonical in `manifest.ts` (`phaseGoal` field on `CommandDef`). Agents should self-check: "Am I still working toward this phase's goal?"
+Each workflow command has a defined phase goal. Canonical in `manifest.ts` (`phaseGoal` field on `CommandDef`). Self-check: "Am I still working toward this phase's goal?"
 
 | Phase           | Goal                                                                                                                          |
 | --------------- | ----------------------------------------------------------------------------------------------------------------------------- |
@@ -239,7 +239,7 @@ Multi-session is the supported design center. Temporal serializes ADV state writ
 [ADV:PEER_SESSIONS] N peer session(s) active in this project.
 ```
 
-This is informational only — peer sessions are first-class and supported. No agent rule restricts behavior based on this marker.
+Informational only — peer sessions are first-class and supported. No agent rule restricts behavior based on this marker.
 
 **Trust-domain note:** peer-session visibility (`adv_status`, `adv_session_list`) assumes same project = same trust domain. Multi-developer / shared-CI scenarios are out of scope; revisit via separate change if needed. The defensive opaque `session_id` schema (no PID, no full path in public output) mitigates leak risk.
 
@@ -259,8 +259,6 @@ This is informational only — peer sessions are first-class and supported. No a
 - `adv_task_cancel` — all `taskIds` must exist in the same change. Cancellations are atomic: if any ID is unknown, NO task is cancelled. Verify with `adv_task_list` before calling.
 - `adv_gate_complete` — planning gate requires `userApproved: true`. Other gates accept the flag but only planning enforces it.
 - Tool `describe()` text documents relational constraints (which other tool to call first, at-least-one-of patterns, valid enum values). Read field descriptions before constructing calls.
-
-Reasoning: during `/adv-discover` + `/adv-prep` of `completeTemporalOnlyMigration`, the agent hit three distinct failure modes — zero-args hang on `adv_change_update`, silent content overwrite via placeholder args, wrong `blockedBy` task IDs accepted without validation. P1.12 added schema hints, runtime relational validators, and a safety-net timeout to prevent each class. The guidance above avoids triggering them in the first place.
 
 ### Question Tool UX
 
@@ -354,7 +352,7 @@ Ledger recording points: task start, clean baseline, red evidence, green evidenc
 - × Do NOT push, merge, archive, release, amend, or force-push from checkpoint commits
 **Publication boundary:** Checkpoint commits are local rollback/audit points only. Publication remains a separate human-gated workflow.
 
-Cross-link: `/adv-apply` command (`.opencode/command/adv-apply.md`) step 3c.5. `/adv-task` fast-track parity is tracked as a follow-up.
+Cross-link: `/adv-apply` command (`.opencode/command/adv-apply.md`) step 3c.5.
 
 ### Doom Loop Detection
 
@@ -454,7 +452,7 @@ Tools without `target_path` (current-project only): `adv_status`/`adv_temporal_d
 
 When a tool you need lacks `target_path` and the work is genuinely cross-project, switch sessions: `cd <other-project> && opencode`.
 
-**LLM-loop overhead caveat (F10 / 2026-05-02):** if you must invoke an ADV mutation against another project from your current session, `opencode run --dir <other> --agent build --dangerously-skip-permissions "Run X tool"` works but pays ~60–300s per call (LLM round-trip + tool execution). Use it sparingly. For high-volume cross-project ops (>5 sequential calls), open a session in the target project instead. A non-LLM tool exec helper is documented as a deferred follow-up in `docs/f10-investigation.md`.
+**Cross-session ADV mutation:** `opencode run --dir <other> --agent build --dangerously-skip-permissions "Run X tool"` works but pays ~60–300s per call. Use sparingly; for >5 sequential ops, open a session in the target project.
 
 #### `status: "in-flight"` filter shorthand
 
@@ -488,7 +486,7 @@ mid-execution), see `docs/scope-discovery-protocol.md`.
 
 ### Task Status Report
 
-On loop stop or compaction: emit `[ADV:TASK_STATUS_REPORT]` with completed/cancelled/remaining. Canonical display rules live in [docs/specs/chat-output-display.md](docs/specs/chat-output-display.md); [docs/adv-task-report.md](docs/adv-task-report.md) is a retired redirect anchor.
+On loop stop or compaction: emit `[ADV:TASK_STATUS_REPORT]` with completed/cancelled/remaining. Canonical display rules live in [docs/specs/chat-output-display.md](docs/specs/chat-output-display.md).
 
 ### Post-Remediation Re-Verification
 
@@ -714,7 +712,7 @@ After each phase, use `adv_change_update` to record compact summaries. Do not du
 | `mechanic`       | System/infra issues                                  | Vision, bash, read/write                                        |
 | `adv-tron`       | Reconnaissance, hotspot detection                    | Read, Glob, Grep, lgrep                                         |
 
-> **Note:** `adv-tron` is a repo-local agent — only available in ADV-enabled repos (repos with `.opencode/agents/adv-tron.md`). `adv-researcher` and `adv-engineer` are bundled global specialists — synced to `~/.config/opencode/agents/` by this repo's sync script; they are available in any session where the global install has been synced from an ADV-enabled repo. All ADV-shipped sub-agents follow the `adv-<name>` naming convention.
+> **Note:** `adv-tron` is repo-local (requires `.opencode/agents/adv-tron.md`). `adv-researcher` / `adv-engineer` are bundled global specialists — synced to `~/.config/opencode/agents/` by `scripts/sync-global.sh`. All ADV-shipped sub-agents use `adv-<name>` naming.
 
 Orchestrator pattern: spawn `librarian` + `adv-researcher` in parallel → synthesize.
 
@@ -858,7 +856,7 @@ Commands that fan out to sub-agents with reusable methodology should follow this
 - `adv-discover` — loads skills matching change domain via `skill("{name}")` (Phase 1.5)
 - `adv-research` — references skill discovery protocol; may load matching skills
 
-> Stale-reference note: earlier iterations shipped `adv-review-methodology` and `adv-harden-methodology` skill files. These were inlined into the commands and the skill files deleted. If you see an agent call `skill("adv-review-methodology")` or `skill("adv-apply-methodology")`, it is a stale/hallucinated reference — read the command file's Phase 0 section instead.
+> **Stale-reference note:** `adv-review-methodology` and `adv-harden-methodology` skills were inlined and deleted. Calls to `skill("adv-review-methodology")` or `skill("adv-apply-methodology")` are stale/hallucinated references — read the command file's Phase 0 section instead.
 
 ### Constraints
 
