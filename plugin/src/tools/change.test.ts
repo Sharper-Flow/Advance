@@ -1678,6 +1678,124 @@ describe("Change Tools", () => {
     });
   });
 
+  // AC3 — adv_change_show include flags (snapshot/ledger/readyTasks)
+  describe("adv_change_show include flags (AC3)", () => {
+    test("default behavior: no include flags → no _contextSnapshot/_ledger/_readyTasks", async () => {
+      const result = await changeTools.adv_change_show.execute(
+        { changeId: "addFeature" },
+        store,
+      );
+      const parsed = JSON.parse(result);
+      expect(parsed._contextSnapshot).toBeUndefined();
+      expect(parsed._ledger).toBeUndefined();
+      expect(parsed._readyTasks).toBeUndefined();
+    });
+
+    test("include.snapshot: true attaches _contextSnapshot at top-level (F1)", async () => {
+      const result = await changeTools.adv_change_show.execute(
+        { changeId: "addFeature", include: { snapshot: true } },
+        store,
+      );
+      const parsed = JSON.parse(result);
+      expect(parsed._contextSnapshot).toBeDefined();
+      expect(typeof parsed._contextSnapshot).toBe("string");
+      // The rendered snapshot includes the change-id (truncated or full)
+      expect(parsed._contextSnapshot).toContain("addFeature");
+    });
+
+    test("include.ledger: true attaches _ledger when an in-progress task exists", async () => {
+      await store.tasks.update("tk-task0001", "in_progress");
+      const result = await changeTools.adv_change_show.execute(
+        { changeId: "addFeature", include: { ledger: true } },
+        store,
+      );
+      const parsed = JSON.parse(result);
+      // _ledger field is always present when include.ledger is set
+      // (null when no in-progress task or no ledger recorded yet).
+      expect(parsed._ledger !== undefined).toBe(true);
+    });
+
+    test("include.ledger: true attaches _ledger=null when no in-progress task exists", async () => {
+      const result = await changeTools.adv_change_show.execute(
+        { changeId: "addFeature", include: { ledger: true } },
+        store,
+      );
+      const parsed = JSON.parse(result);
+      expect(parsed._ledger).toBeNull();
+    });
+
+    test("include.readyTasks: true attaches _readyTasks (top-10 default) and _readyTasksMeta", async () => {
+      const result = await changeTools.adv_change_show.execute(
+        { changeId: "addFeature", include: { readyTasks: true } },
+        store,
+      );
+      const parsed = JSON.parse(result);
+      expect(parsed._readyTasks).toBeDefined();
+      expect(Array.isArray(parsed._readyTasks)).toBe(true);
+      expect(parsed._readyTasks.length).toBeLessThanOrEqual(10);
+      expect(parsed._readyTasksMeta).toBeDefined();
+      expect(parsed._readyTasksMeta.limit).toBe(10);
+      expect(typeof parsed._readyTasksMeta.total).toBe("number");
+    });
+
+    test("include.readyTasksLimit overrides the default 10-task slice", async () => {
+      const result = await changeTools.adv_change_show.execute(
+        {
+          changeId: "addFeature",
+          include: { readyTasks: true, readyTasksLimit: 2 },
+        },
+        store,
+      );
+      const parsed = JSON.parse(result);
+      expect(parsed._readyTasks.length).toBeLessThanOrEqual(2);
+      expect(parsed._readyTasksMeta.limit).toBe(2);
+    });
+
+    test("include with all flags attaches all three sections", async () => {
+      const result = await changeTools.adv_change_show.execute(
+        {
+          changeId: "addFeature",
+          include: { snapshot: true, ledger: true, readyTasks: true },
+        },
+        store,
+      );
+      const parsed = JSON.parse(result);
+      expect(parsed._contextSnapshot).toBeDefined();
+      expect(parsed._ledger !== undefined).toBe(true);
+      expect(parsed._readyTasks).toBeDefined();
+      expect(parsed._readyTasksMeta).toBeDefined();
+    });
+
+    test("include.readyTasksLimit rejects out-of-range values via Zod", async () => {
+      // Zod schema rejects min < 1 / max > 50. Tool layer doesn't enforce
+      // (it's the SDK's job), but the schema definition is what we own.
+      const schema = changeTools.adv_change_show.args.include;
+      // The include schema is z.object({...}).optional() — drill in.
+      const innerSchema = (schema as any)._def?.innerType ?? schema;
+      const badLow = innerSchema.safeParse({
+        readyTasks: true,
+        readyTasksLimit: 0,
+      });
+      const badHigh = innerSchema.safeParse({
+        readyTasks: true,
+        readyTasksLimit: 51,
+      });
+      expect(badLow.success).toBe(false);
+      expect(badHigh.success).toBe(false);
+
+      const goodMin = innerSchema.safeParse({
+        readyTasks: true,
+        readyTasksLimit: 1,
+      });
+      const goodMax = innerSchema.safeParse({
+        readyTasks: true,
+        readyTasksLimit: 50,
+      });
+      expect(goodMin.success).toBe(true);
+      expect(goodMax.success).toBe(true);
+    });
+  });
+
   describe("adv_change_show clarify integration", () => {
     test("includes clarifyFindings for change with ambiguity signals", async () => {
       // The sample change has a delta with add + no scenarios, and the sample

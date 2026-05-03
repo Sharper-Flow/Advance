@@ -880,7 +880,15 @@ export const changeTools = {
   },
 
   adv_change_show: {
-    description: "Get full change details including tasks and deltas",
+    description:
+      "Get full change details including tasks and deltas. " +
+      "Supports optional include flags to collapse the phase-start " +
+      "tool quartet: include.ledger pulls the in-progress task's " +
+      "durable run state; include.snapshot returns the rendered " +
+      "context snapshot at top-level (matches mutation-tool convention); " +
+      "include.readyTasks returns the unblocked ready queue (top-N " +
+      "by priority then created_at; default 10, max 50). Defaults are " +
+      "unchanged when include is omitted.",
     args: {
       changeId: z.string().describe("Change ID"),
       limit: z
@@ -897,6 +905,39 @@ export const changeTools = {
         .describe(
           "Optional absolute path to another ADV project. When provided, reads that project as a disk snapshot and returns _projectContext.",
         ),
+      include: z
+        .object({
+          ledger: z
+            .boolean()
+            .optional()
+            .describe(
+              "When true, attaches the in-progress task's durable run ledger as `_ledger`.",
+            ),
+          snapshot: z
+            .boolean()
+            .optional()
+            .describe(
+              "When true, attaches the rendered context snapshot as top-level `_contextSnapshot`.",
+            ),
+          readyTasks: z
+            .boolean()
+            .optional()
+            .describe(
+              "When true, attaches the unblocked ready queue as `_readyTasks` (top-N by priority then created_at).",
+            ),
+          readyTasksLimit: z
+            .number()
+            .min(1)
+            .max(50)
+            .optional()
+            .describe(
+              "Override default top-10 ready-task slice. Range 1-50.",
+            ),
+        })
+        .optional()
+        .describe(
+          "Optional include flags to attach extra fields. Defaults preserve current behavior.",
+        ),
     },
     execute: async (
       {
@@ -904,11 +945,18 @@ export const changeTools = {
         limit,
         offset,
         target_path,
+        include,
       }: {
         changeId: string;
         limit?: number;
         offset?: number;
         target_path?: string;
+        include?: {
+          ledger?: boolean;
+          snapshot?: boolean;
+          readyTasks?: boolean;
+          readyTasksLimit?: number;
+        };
       },
       store: Store,
     ) => {
@@ -988,6 +1036,73 @@ export const changeTools = {
             );
             if (reflection) {
               output._reflection = reflection;
+            }
+          }
+
+          // include flags (AC3) — opt-in attachments. Defaults preserve
+          // current behavior.
+          if (include) {
+            // Snapshot — matches mutation-tool convention (top-level
+            // `_contextSnapshot`). Uses the same formatter live emission
+            // and compaction use, ensuring fidelity parity.
+            if (include.snapshot) {
+              try {
+                let gates: Awaited<
+                  ReturnType<typeof activeStore.gates.get>
+                > = null;
+                try {
+                  gates = await activeStore.gates.get(changeId);
+                } catch {
+                  // best-effort: missing gates → snapshot still useful
+                }
+                output._contextSnapshot = buildChangeContextSnapshot({
+                  change,
+                  proposalText,
+                  gates: gates ?? undefined,
+                  workdir: activeStore.paths.root,
+                });
+              } catch (e) {
+                output._contextSnapshotError =
+                  e instanceof Error ? e.message : String(e);
+              }
+            }
+
+            // Ledger — durable run state for the in-progress task. When
+            // none exists, attaches `null` so callers can detect "no
+            // ledger" without re-issuing the call.
+            if (include.ledger) {
+              try {
+                const inProgress = change.tasks.find(
+                  (t) => t.status === "in_progress",
+                );
+                if (inProgress) {
+                  const run = await activeStore.tasks.getRun(inProgress.id);
+                  output._ledger = run ?? null;
+                } else {
+                  output._ledger = null;
+                }
+              } catch (e) {
+                output._ledgerError =
+                  e instanceof Error ? e.message : String(e);
+              }
+            }
+
+            // Ready tasks — unblocked queue, sliced to top-N. Avoids the
+            // separate adv_task_ready round-trip on phase boundaries.
+            if (include.readyTasks) {
+              try {
+                const readyResult = await activeStore.tasks.ready(changeId);
+                const readyLimit = include.readyTasksLimit ?? 10;
+                output._readyTasks = readyResult.ready.slice(0, readyLimit);
+                output._readyTasksMeta = {
+                  total: readyResult.ready.length,
+                  limit: readyLimit,
+                  blockedCount: readyResult.blocked.length,
+                };
+              } catch (e) {
+                output._readyTasksError =
+                  e instanceof Error ? e.message : String(e);
+              }
             }
           }
 
