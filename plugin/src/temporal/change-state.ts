@@ -39,6 +39,13 @@ export interface UpdateTaskInput {
   touchedFiles?: string[];
 }
 
+export interface TaskEvidencePolicyResult {
+  task: Task;
+  duplicate: boolean;
+  corrected: boolean;
+  correctionReason?: string;
+}
+
 export interface StateMutationContext {
   now: string;
   uuid: () => string;
@@ -481,9 +488,25 @@ export function recordTaskEvidenceInChangeState(
   evidence: TddPhaseEvidence,
   options?: { correctionReason?: string },
 ): Task {
+  return recordTaskEvidenceResultInChangeState(
+    state,
+    taskId,
+    phase,
+    evidence,
+    options,
+  ).task;
+}
+
+export function recordTaskEvidenceResultInChangeState(
+  state: ChangeWorkflowState,
+  taskId: string,
+  phase: "red" | "green",
+  evidence: TddPhaseEvidence,
+  options?: { correctionReason?: string },
+): TaskEvidencePolicyResult {
   const task = getTaskOrThrow(state, taskId);
-  applyTaskEvidencePolicy(task, phase, evidence, options);
-  return task;
+  const result = applyTaskEvidencePolicy(task, phase, evidence, options);
+  return { task, ...result };
 }
 
 export function applyTaskEvidencePolicy(
@@ -491,7 +514,7 @@ export function applyTaskEvidencePolicy(
   phase: "red" | "green",
   evidence: TddPhaseEvidence,
   options?: { correctionReason?: string },
-): { duplicate: boolean } {
+): Omit<TaskEvidencePolicyResult, "task"> {
   if (!task.tdd_evidence) {
     task.tdd_evidence = {};
   }
@@ -499,9 +522,10 @@ export function applyTaskEvidencePolicy(
   const existing = task.tdd_evidence[phase];
   if (existing && stableEvidenceEqual(existing, evidence)) {
     deriveTaskEvidencePhase(task);
-    return { duplicate: true };
+    return { duplicate: true, corrected: false };
   }
 
+  const correctionReason = options?.correctionReason?.trim();
   if (existing && !options?.correctionReason?.trim()) {
     throw new Error(
       `Conflicting ${phase} evidence already exists for task ${task.id}; provide correctionReason to replace it.`,
@@ -511,9 +535,14 @@ export function applyTaskEvidencePolicy(
   task.tdd_evidence[phase] = {
     ...evidence,
     recorded_at: evidence.recorded_at,
+    ...(correctionReason ? { correction_reason: correctionReason } : {}),
   };
   deriveTaskEvidencePhase(task);
-  return { duplicate: false };
+  return {
+    duplicate: false,
+    corrected: Boolean(existing),
+    ...(correctionReason ? { correctionReason } : {}),
+  };
 }
 
 function stableEvidenceEqual(

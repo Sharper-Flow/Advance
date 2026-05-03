@@ -200,6 +200,8 @@ export const TddPhaseEvidenceSchema = z.object({
   exit_code: z.number().optional(),
   /** ISO8601 timestamp when evidence was recorded */
   recorded_at: z.string().optional(),
+  /** Rationale required when replacing conflicting same-phase fallback evidence */
+  correction_reason: z.string().optional(),
 });
 
 export type TddPhaseEvidence = z.infer<typeof TddPhaseEvidenceSchema>;

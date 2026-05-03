@@ -99,7 +99,12 @@ export const updateTaskUpdate = wf.defineUpdate<
   ]
 >(CHANGE_WORKFLOW_UPDATE_NAMES.updateTask);
 export const recordTaskEvidenceUpdate = wf.defineUpdate<
-  ChangeWorkflowState["tasks"][number],
+  {
+    task: ChangeWorkflowState["tasks"][number];
+    duplicate: boolean;
+    corrected: boolean;
+    correctionReason?: string;
+  },
   [
     string,
     "red" | "green",

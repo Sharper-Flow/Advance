@@ -520,7 +520,7 @@ export const taskTools = {
 
   adv_task_evidence: {
     description:
-      "Record TDD evidence (red/green phase) for a task. Captures test file, command, output, and exit code for audit trail.",
+      "Fallback/manual evidence attachment for TDD red/green phases when adv_run_test cannot run the command directly. Captures externally obtained test file, command, output, and exit code for durable audit trail.",
     args: {
       taskId: z.string().describe("Task ID"),
       phase: z
@@ -539,6 +539,12 @@ export const taskTools = {
         .number()
         .optional()
         .describe("Exit code from test runner (0=pass, non-zero=fail)"),
+      correctionReason: z
+        .string()
+        .optional()
+        .describe(
+          "Required when replacing conflicting same-phase fallback evidence; explain why the correction is needed.",
+        ),
       target_path: z
         .string()
         .optional()
@@ -556,6 +562,7 @@ export const taskTools = {
         command,
         output,
         exitCode,
+        correctionReason,
         target_path,
         target_confirmed,
         confirmationEvidence,
@@ -566,6 +573,7 @@ export const taskTools = {
         command?: string;
         output?: string;
         exitCode?: number;
+        correctionReason?: string;
         target_path?: string;
         target_confirmed?: true;
         confirmationEvidence?: string;
@@ -594,20 +602,40 @@ export const taskTools = {
           exit_code: exitCode,
         };
 
-        const task = await activeStore.tasks.recordEvidence(
-          taskId,
-          phase,
-          evidence,
-        );
-        if (!task) {
+        let result: Awaited<ReturnType<Store["tasks"]["recordEvidence"]>>;
+        try {
+          result = await activeStore.tasks.recordEvidence(taskId, phase, evidence, {
+            correctionReason,
+          });
+        } catch (error) {
+          return formatToolOutput({
+            success: false,
+            error:
+              error instanceof Error
+                ? error.message
+                : "Failed to record task evidence",
+            phase,
+            taskId,
+          });
+        }
+        if (!result) {
           return formatToolOutput({ error: `Task not found: ${taskId}` });
         }
 
+        const { task, duplicate, corrected, correctionReason: recordedReason } =
+          result;
         return formatToolOutput({
           success: true,
           task,
           compliance: getTaskTddCompliance(task),
-          message: `Recorded ${phase} phase evidence for task ${taskId}`,
+          duplicate,
+          corrected,
+          ...(recordedReason ? { correctionReason: recordedReason } : {}),
+          message: duplicate
+            ? `${phase} phase evidence already recorded for task ${taskId}; duplicate ignored`
+            : corrected
+              ? `Corrected ${phase} phase evidence for task ${taskId}`
+              : `Recorded ${phase} phase fallback evidence for task ${taskId}`,
           ...(projectContext ? { _projectContext: projectContext } : {}),
         });
       };

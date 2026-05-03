@@ -62,9 +62,13 @@ const mocks = vi.hoisted(() => {
       get: vi.fn(async () => targetTask),
       update: vi.fn(async (_taskId, status) => ({ ...targetTask, status })),
       recordEvidence: vi.fn(async (_taskId, phase, evidence) => ({
-        ...targetTask,
-        tdd_phase: phase,
-        tdd_evidence: { [phase]: evidence },
+        task: {
+          ...targetTask,
+          tdd_phase: phase,
+          tdd_evidence: { [phase]: evidence },
+        },
+        duplicate: false,
+        corrected: false,
       })),
       setPhase: vi.fn(async (_taskId, phase) => ({
         ...targetTask,

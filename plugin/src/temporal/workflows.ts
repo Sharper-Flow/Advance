@@ -28,7 +28,7 @@ import {
   getReadyTasksFromChangeState,
   listTaskRunsFromChangeState,
   listTasksFromChangeState,
-  recordTaskEvidenceInChangeState,
+  recordTaskEvidenceResultInChangeState,
   recordTaskRunEventInChangeState,
   reclassifyTaskTddInChangeState,
   reopenFromGateInChangeState,
@@ -117,7 +117,12 @@ const updateTaskUpdate = wf.defineUpdate<
   ]
 >(CHANGE_WORKFLOW_UPDATE_NAMES.updateTask);
 const recordTaskEvidenceUpdate = wf.defineUpdate<
-  ChangeWorkflowState["tasks"][number],
+  {
+    task: ChangeWorkflowState["tasks"][number];
+    duplicate: boolean;
+    corrected: boolean;
+    correctionReason?: string;
+  },
   [
     string,
     "red" | "green",
@@ -458,7 +463,7 @@ export async function changeWorkflow(
           changeId: state.changeId,
           title: state.title?.slice(0, 80),
         });
-        const result = recordTaskEvidenceInChangeState(
+        const result = recordTaskEvidenceResultInChangeState(
           state,
           taskId,
           phase,

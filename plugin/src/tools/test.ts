@@ -225,7 +225,7 @@ export const testTools = {
         output_snippet: truncateOutput(truncatedOutput),
       };
 
-      const updatedTask = await store.tasks.recordEvidence(
+      const evidenceResult = await store.tasks.recordEvidence(
         args.taskId,
         args.phase,
         evidence,
@@ -289,7 +289,7 @@ export const testTools = {
         success: true,
         exitCode,
         phase: args.phase,
-        recordedPhase: updatedTask?.tdd_phase,
+        recordedPhase: evidenceResult?.task.tdd_phase,
         output: truncatedOutput,
         command: args.command,
         ...(taskRun ? { taskRun } : {}),

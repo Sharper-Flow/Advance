@@ -45,6 +45,13 @@ export interface WisdomSearchResult {
   highlight?: string;
 }
 
+export interface TaskEvidenceRecordResult {
+  task: Task;
+  duplicate: boolean;
+  corrected: boolean;
+  correctionReason?: string;
+}
+
 export interface Store {
   paths: ProjectPaths;
   config: ProjectConfig | null;
@@ -154,7 +161,7 @@ export interface Store {
       phase: "red" | "green",
       evidence: TddPhaseEvidence,
       options?: { correctionReason?: string },
-    ) => Promise<Task | null>;
+    ) => Promise<TaskEvidenceRecordResult | null>;
     setPhase: (taskId: string, phase: TddPhase) => Promise<Task | null>;
     cancel: (
       taskId: string,

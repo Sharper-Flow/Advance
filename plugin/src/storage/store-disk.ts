@@ -745,9 +745,14 @@ export async function createDiskStore(
             ...evidence,
             recorded_at: evidence.recorded_at ?? new Date().toISOString(),
           };
-          applyTaskEvidencePolicy(task, phase, evidenceWithTimestamp, options);
+          const policy = applyTaskEvidencePolicy(
+            task,
+            phase,
+            evidenceWithTimestamp,
+            options,
+          );
           await saveChange(paths.changes, result.data);
-          return task;
+          return { task, ...policy };
         }
         return null;
       },
