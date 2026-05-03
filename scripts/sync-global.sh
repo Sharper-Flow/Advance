@@ -321,7 +321,7 @@ PY
 # surface them as selectable repo-local agents.
 # The canonical adv.md remains the single source of truth.
 # ---------------------------------------------------------------------------
-PROVIDER_HINT_DIR="$REPO_ROOT/.opencode/agent-parts/providers"
+PROVIDER_HINT_DIR="$ASSET_ROOT/.opencode/agent-parts/providers"
 PROVIDERS=(claude gpt glm kimi)
 PROVIDER_STUB_DIAGNOSTIC='[ADV:PROVIDER_STUB_UNEXPANDED] Provider ADV stub did not expand through opencode.json prompt refs. Do NOT proceed with ADV workflow. Run `scripts/sync-global.sh --fix`, verify `agent.adv-{provider}.prompt` references `{file:./agent-parts/advance/adv.md}` and the provider hint, then restart OpenCode.'
 
@@ -331,7 +331,7 @@ provider_prompt_ref() {
 }
 
 sync_adv_prompt_parts() {
-  local canonical="$GLOBAL_AGENTS/adv.md"
+  local canonical="$REPO_AGENTS/adv.md"
   if [ ! -f "$canonical" ]; then
     echo "    ✗  provider prompt parts: canonical adv.md missing at $canonical"
     return 1
@@ -368,7 +368,7 @@ PY
 }
 
 generate_provider_variants() {
-  local canonical="$GLOBAL_AGENTS/adv.md"
+  local canonical="$REPO_AGENTS/adv.md"
   if [ ! -f "$canonical" ]; then
     echo "    ⚠  canonical adv.md missing — skipping provider variant generation"
     return

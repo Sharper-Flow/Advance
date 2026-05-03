@@ -488,6 +488,42 @@ describe("overlay sync script support", () => {
     }
   });
 
+  test("dry-run works when provider mode removed global adv.md", () => {
+    const tempHome = mkdtempSync(join(tmpdir(), "adv-provider-dryrun-no-adv-"));
+
+    try {
+      const configDir = join(tempHome, ".config/opencode");
+      const globalAgents = join(configDir, "agents");
+      mkdirSync(globalAgents, { recursive: true });
+      writeFileSync(
+        join(configDir, "opencode.json"),
+        JSON.stringify({
+          plugin: [],
+          instructions: [],
+          agent: {
+            "adv-gpt": { disable: false },
+          },
+        }),
+      );
+
+      const result = spawnSync(
+        "bash",
+        [SYNC_SCRIPT_PATH, "--dry-run", "--diff"],
+        {
+          cwd: REPO_ROOT,
+          env: { ...process.env, HOME: tempHome, CI: "true" },
+          encoding: "utf8",
+        },
+      );
+
+      expect(result.status).toBe(0);
+      expect(result.stdout).toContain("dry-run sync provider prompt parts");
+      expect(result.stderr).not.toContain("canonical adv.md missing");
+    } finally {
+      rmSync(tempHome, { recursive: true, force: true });
+    }
+  });
+
   test("refuses to strip JSONC comments during --fix", () => {
     const tempHome = mkdtempSync(join(tmpdir(), "adv-jsonc-protect-"));
 

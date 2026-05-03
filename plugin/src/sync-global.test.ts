@@ -284,6 +284,12 @@ describe("sync-global.sh", () => {
       expect(content).toContain("agent-parts/advance/providers");
     });
 
+    test("provider hint source follows asset root for worktree-local edits", () => {
+      expect(content).toContain(
+        'PROVIDER_HINT_DIR="$ASSET_ROOT/.opencode/agent-parts/providers"',
+      );
+    });
+
     test("sync script does not embed provider hints in generated variants", () => {
       expect(content).not.toContain(
         "inject provider hint after ADV overlay block",
