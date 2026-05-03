@@ -267,13 +267,13 @@ ADV instruction surfaces (ADV_INSTRUCTIONS.md, docs/command-voice-standard.md, .
 
 ---
 
-### Skinny Provider ADV Agent Assembly
+### Provider ADV Runtime Agent Assembly
 
 **ID:** `rq-providerAdvSkinny01` | **Priority:** **[MUST]**
 
-Provider-specific ADV agents must preserve separate selectable agents while avoiding duplicated canonical ADV prompt bodies in generated agent files. Generated provider variants are skinny frontmatter/tool stubs backed by global prompt parts for the canonical ADV body and one provider hint.
+Provider-specific ADV agents must preserve separate selectable agents while ensuring runtime prompt resolution uses the canonical ADV prompt body plus exactly one provider hint. Generated provider variants preserve frontmatter/tool allowlists and embed the concatenated runtime body because current OpenCode resolves markdown agent bodies before JSON prompt refs when both exist.
 
-**Generated provider variants are skinny stubs backed by prompt parts** (`rq-providerAdvSkinny01.1`)
+**Generated provider variants embed runtime bodies backed by prompt parts** (`rq-providerAdvSkinny01.1`)
 
 **Given:**
 
@@ -284,9 +284,12 @@ Provider-specific ADV agents must preserve separate selectable agents while avoi
 **Then:**
 
 - Global `adv-{provider}.md` files preserve provider frontmatter and tool allowlists
-- Global `adv-{provider}.md` bodies contain `[ADV:PROVIDER_STUB_UNEXPANDED]` diagnostic instead of canonical ADV body
+- Global `adv-{provider}.md` bodies contain the canonical ADV body plus exactly one matching provider hint
+- Global `adv-{provider}.md` bodies do not contain `[ADV:PROVIDER_STUB_UNEXPANDED]`
 - Global prompt parts are written to `agent-parts/advance/adv.md` and `agent-parts/advance/providers/{provider}.md`
-- `agent.adv-{provider}.prompt` references canonical prompt part plus exactly one provider hint prompt part
+- Concatenated prompt files are generated at `agent-parts/advance/adv-{provider}.md` (canonical body + provider hint)
+- `agent.adv-{provider}.prompt` references exactly one `{file:./agent-parts/advance/adv-{provider}.md}` concatenated prompt file
+- `sync-global.sh --check` runtime canary verifies `opencode debug agent adv-{provider}` resolves canonical markers plus provider hint and no stub marker when `opencode` is available
 
 **Prompt-only provider config does not activate provider mode** (`rq-providerAdvSkinny01.2`)
 

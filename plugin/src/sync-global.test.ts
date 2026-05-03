@@ -277,7 +277,7 @@ describe("sync-global.sh", () => {
       expect(content).toMatch(/sed.*name:.*adv-\$\{provider\}/);
     });
 
-    test("sync script writes provider prompt parts and skinny diagnostics", () => {
+    test("sync script writes provider prompt parts and runtime canary marker", () => {
       expect(content).toContain("PROVIDER_PROMPT_PARTS_DIR");
       expect(content).toContain("sync_adv_prompt_parts");
       expect(content).toContain("[ADV:PROVIDER_STUB_UNEXPANDED]");
@@ -291,11 +291,12 @@ describe("sync-global.sh", () => {
       );
     });
 
-    test("sync script does not embed provider hints in generated variants", () => {
-      expect(content).not.toContain(
-        "inject provider hint after ADV overlay block",
+    test("sync script embeds concatenated runtime bodies in generated variants", () => {
+      expect(content).toContain(
+        'prompt_body="$PROVIDER_PROMPT_PARTS_DIR/adv-${provider}.md"',
       );
-      expect(content).not.toContain('hint_block="$(cat "$hint_file")"');
+      expect(content).toContain("body = Path(body_path).read_text().rstrip()");
+      expect(content).not.toContain("PROVIDER_STUB_DIAGNOSTIC");
     });
 
     test("sync script patches prompt refs for provider variants using single-file concatenation", () => {
@@ -324,6 +325,15 @@ describe("sync-global.sh", () => {
       // Must do regenerate-and-diff (no SHA256 sidecar)
       expect(content).not.toContain(".sha256");
       expect(content).toMatch(/content.*mismatch/i);
+    });
+
+    test("sync script includes runtime canary for provider prompt resolution", () => {
+      expect(content).toContain("check_provider_runtime_canary");
+      expect(content).toContain("opencode");
+      expect(content).toContain("debug");
+      expect(content).toContain("agent");
+      expect(content).toContain("missing canonical ADV marker");
+      expect(content).toContain("missing provider hint marker");
     });
 
     test("sync script extends drift checks to all provider variants", () => {
@@ -403,11 +413,11 @@ describe("sync-global.sh", () => {
       (r.scenarios ?? []).map((s) => s.id),
     );
 
-    test("provider docs describe skinny stubs, prompt parts, prompt-only config, and metrics", () => {
+    test("provider docs describe runtime bodies, prompt parts, prompt-only config, and metrics", () => {
       for (const required of [
         "agent-parts/advance/adv.md",
         "agent-parts/advance/providers/{provider}.md",
-        "[ADV:PROVIDER_STUB_UNEXPANDED]",
+        "runtime canary",
         "prompt-only",
         "generated_provider_file",
         "selected_agent_runtime_prompt",
@@ -416,7 +426,7 @@ describe("sync-global.sh", () => {
       }
     });
 
-    test("advance-meta spec contains provider skinny and metrics requirements", () => {
+    test("advance-meta spec contains provider runtime and metrics requirements", () => {
       expect(requirementIds).toContain("rq-providerAdvSkinny01");
       expect(requirementIds).toContain("rq-providerAdvMetrics01");
       expect(scenarioIds).toContain("rq-providerAdvSkinny01.1");
@@ -429,7 +439,9 @@ describe("sync-global.sh", () => {
 
     test("canonical ADV prompt stays under the safe compression ceiling", () => {
       const lines = advAgent.split(/\r?\n/).length;
-      expect(lines).toBeLessThanOrEqual(350);
+      // Ceiling raised from 350 → 360 after adding the newly registered
+      // session/worktree ADV tools to the orchestrator allowlist.
+      expect(lines).toBeLessThanOrEqual(360);
     });
 
     test("canonical ADV prompt keeps safety-critical markers", () => {

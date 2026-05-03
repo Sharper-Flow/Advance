@@ -587,7 +587,9 @@ async function runEvaluation(providerName: string): Promise<void> {
   console.log(`${"=".repeat(70)}\n`);
 
   // Load canonical ADV prompt from repo source, falling back to synced prompt parts.
-  // Generated provider stubs are never canonical prompt sources.
+  // Generated provider agent files include frontmatter; canonical source stays
+  // the repo/local prompt parts so metrics can separate body size from agent
+  // wrapper size.
   const globalHome =
     process.env.XDG_CONFIG_HOME || join(process.env.HOME || "/tmp", ".config");
   const canonical = loadCanonicalAdvPrompt(globalHome);

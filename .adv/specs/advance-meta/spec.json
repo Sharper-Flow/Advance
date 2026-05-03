@@ -304,24 +304,26 @@
     },
     {
       "id": "rq-providerAdvSkinny01",
-      "title": "Skinny Provider ADV Agent Assembly",
-      "body": "Provider-specific ADV agents must preserve separate selectable agents while avoiding duplicated canonical ADV prompt bodies in generated agent files. Generated provider variants are skinny frontmatter/tool stubs backed by global prompt parts for the canonical ADV body and one provider hint.",
+      "title": "Provider ADV Runtime Agent Assembly",
+      "body": "Provider-specific ADV agents must preserve separate selectable agents while ensuring runtime prompt resolution uses the canonical ADV prompt body plus exactly one provider hint. Generated provider variants preserve frontmatter/tool allowlists and embed the concatenated runtime body because current OpenCode resolves markdown agent bodies before JSON prompt refs when both exist.",
       "priority": "must",
       "tags": ["provider-adv", "prompt-parts", "sync"],
       "scenarios": [
         {
           "id": "rq-providerAdvSkinny01.1",
-          "title": "Generated provider variants are skinny stubs backed by prompt parts",
+          "title": "Generated provider variants embed runtime bodies backed by prompt parts",
           "given": [
             "scripts/sync-global.sh --fix runs with canonical ADV and provider hint assets present"
           ],
           "when": "Provider ADV variants are generated",
           "then": [
             "Global adv-{provider}.md files preserve provider frontmatter and tool allowlists",
-            "Global adv-{provider}.md bodies contain the [ADV:PROVIDER_STUB_UNEXPANDED] diagnostic instead of the canonical ADV body",
+            "Global adv-{provider}.md bodies contain the canonical ADV body plus exactly one matching provider hint",
+            "Global adv-{provider}.md bodies do not contain the [ADV:PROVIDER_STUB_UNEXPANDED] diagnostic",
             "Global prompt parts are written to agent-parts/advance/adv.md and agent-parts/advance/providers/{provider}.md",
             "Concatenated prompt files are generated at agent-parts/advance/adv-{provider}.md (canonical body + provider hint)",
-            "agent.adv-{provider}.prompt references exactly one {file:./agent-parts/advance/adv-{provider}.md} concatenated prompt file"
+            "agent.adv-{provider}.prompt references exactly one {file:./agent-parts/advance/adv-{provider}.md} concatenated prompt file",
+            "sync-global.sh --check runtime canary verifies opencode debug agent adv-{provider} resolves canonical markers plus provider hint and no stub marker when opencode is available"
           ]
         },
         {

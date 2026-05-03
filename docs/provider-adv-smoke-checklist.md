@@ -9,9 +9,9 @@ Run after `scripts/sync-global.sh --fix` and OMP apply.
 - [ ] `adv-glm.md` exists in `~/.config/opencode/agents/`
 - [ ] `adv-kimi.md` exists in `~/.config/opencode/agents/`
 - [ ] Each variant contains `name: adv-{provider}` in frontmatter
-- [ ] Each variant contains `[ADV:PROVIDER_STUB_UNEXPANDED]`
-- [ ] Each variant does NOT contain canonical `## ADV Overlay`
-- [ ] Each variant does NOT contain `<!-- PROVIDER_HINT:{provider} -->`
+- [ ] Each variant does NOT contain `[ADV:PROVIDER_STUB_UNEXPANDED]`
+- [ ] Each variant contains canonical `## ADV Overlay`
+- [ ] Each variant contains `<!-- PROVIDER_HINT:{provider} -->`
 
 ## Prompt Parts
 
@@ -22,6 +22,15 @@ Run after `scripts/sync-global.sh --fix` and OMP apply.
 - [ ] `~/.config/opencode/agent-parts/advance/adv-{provider}.md` exists (concatenated file)
 - [ ] `~/.config/opencode/agent-parts/advance/adv-{provider}.md` contains canonical body followed by provider hint
 - [ ] `opencode.json` has `agent.adv-{provider}.prompt` with `{file:./agent-parts/advance/adv-{provider}.md}`
+
+## Runtime Canary
+
+- [ ] `scripts/sync-global.sh --check` runs provider runtime canary when `opencode` is on `PATH`
+- [ ] `opencode debug agent adv-claude` resolved `prompt` contains `## ADV Overlay` and `<!-- PROVIDER_HINT:claude -->`
+- [ ] `opencode debug agent adv-gpt` resolved `prompt` contains `## ADV Overlay` and `<!-- PROVIDER_HINT:gpt -->`
+- [ ] `opencode debug agent adv-glm` resolved `prompt` contains `## ADV Overlay` and `<!-- PROVIDER_HINT:glm -->`
+- [ ] `opencode debug agent adv-kimi` resolved `prompt` contains `## ADV Overlay` and `<!-- PROVIDER_HINT:kimi -->`
+- [ ] No provider debug prompt contains `[ADV:PROVIDER_STUB_UNEXPANDED]`
 
 ## Legacy Migration
 
@@ -52,7 +61,7 @@ Run after `scripts/sync-global.sh --fix` and OMP apply.
 
 - [ ] Provider eval reports `generated_provider_file`
 - [ ] Provider eval reports `selected_agent_runtime_prompt`
-- [ ] `generated_provider_file` size reflects skinny stub bytes/lines
+- [ ] `generated_provider_file` size reflects generated frontmatter plus runtime body bytes/lines
 - [ ] `selected_agent_runtime_prompt` includes canonical body plus exactly one provider hint
 
 ## Drift Checks

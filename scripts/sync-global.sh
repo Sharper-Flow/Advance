@@ -314,16 +314,19 @@ PY
 # ---------------------------------------------------------------------------
 # Provider ADV Variant Generation
 #
-# Generates skinny adv-{provider}.md stubs from the canonical adv.md frontmatter.
-# Runtime prompt text is configured via opencode.json prompt refs pointing at
-# shared global prompt parts under ~/.config/opencode/agent-parts/advance/.
+# Generates adv-{provider}.md variants from canonical adv.md frontmatter.
+# Runtime prompt text is written directly into the generated markdown body because
+# OpenCode currently gives markdown agent bodies precedence over JSON prompt refs
+# when both define the same agent name. The JSON prompt refs are still patched as
+# source-of-truth metadata and for JSON-only/future runtimes, but they are not
+# sufficient on their own.
 # Provider hint fragments live outside .opencode/agents/ so OpenCode does not
 # surface them as selectable repo-local agents.
 # The canonical adv.md remains the single source of truth.
 # ---------------------------------------------------------------------------
 PROVIDER_HINT_DIR="$ASSET_ROOT/.opencode/agent-parts/providers"
 PROVIDERS=(claude gpt glm kimi)
-PROVIDER_STUB_DIAGNOSTIC='[ADV:PROVIDER_STUB_UNEXPANDED] Provider ADV stub did not expand through opencode.json prompt refs. Do NOT proceed with ADV workflow. Run `scripts/sync-global.sh --fix`, verify `agent.adv-{provider}.prompt` references `{file:./agent-parts/advance/adv-{provider}.md}` (single concatenated file), then restart OpenCode.'
+PROVIDER_STUB_MARKER='[ADV:PROVIDER_STUB_UNEXPANDED]'
 
 provider_prompt_ref() {
   local provider="$1"
@@ -427,10 +430,15 @@ generate_provider_variants() {
   for provider in "${PROVIDERS[@]}"; do
     local hint_file="$PROVIDER_HINT_DIR/${provider}.md"
     local variant="$GLOBAL_AGENTS/adv-${provider}.md"
+    local prompt_body="$PROVIDER_PROMPT_PARTS_DIR/adv-${provider}.md"
     local provider_color=""
 
     if [ ! -f "$hint_file" ]; then
       echo "    ⚠  provider hint missing: $hint_file"
+      continue
+    fi
+    if [ ! -f "$prompt_body" ]; then
+      echo "    ⚠  provider prompt body missing: $prompt_body"
       continue
     fi
 
@@ -439,7 +447,7 @@ generate_provider_variants() {
     fi
 
     if [ "$DRY_RUN" = true ]; then
-      echo "    dry-run generate skinny variant: adv-${provider}.md"
+      echo "    dry-run generate provider variant: adv-${provider}.md"
       continue
     fi
 
@@ -469,27 +477,27 @@ PY
       sed -Ei "s/^(color:[[:space:]]*).*/\1\"$provider_color\"/" "$tmp_variant"
     fi
 
-    python - <<'PY' "$tmp_variant" "$variant" "$provider" "$PROVIDER_STUB_DIAGNOSTIC"
+    python - <<'PY' "$tmp_variant" "$variant" "$prompt_body" "$provider"
 from pathlib import Path
 import sys
 
-tmp_path, output_path, provider, diagnostic = sys.argv[1:5]
+tmp_path, output_path, body_path, provider = sys.argv[1:5]
 text = Path(tmp_path).read_text()
-diagnostic = diagnostic.replace('{provider}', provider)
+body = Path(body_path).read_text().rstrip()
 if text.startswith('---\n'):
     end = text.find('\n---', 4)
     if end != -1:
         frontmatter = text[: end + 4]
-        result = f"{frontmatter}\n\n{diagnostic}\n"
+        result = f"{frontmatter}\n\n{body}\n"
     else:
-        result = f"---\nname: adv-{provider}\n---\n\n{diagnostic}\n"
+        result = f"---\nname: adv-{provider}\n---\n\n{body}\n"
 else:
-    result = f"---\nname: adv-{provider}\n---\n\n{diagnostic}\n"
+    result = f"---\nname: adv-{provider}\n---\n\n{body}\n"
 Path(output_path).write_text(result)
 PY
 
     rm -f "$tmp_variant"
-    echo "    generated skinny variant: adv-${provider}.md"
+    echo "    generated provider variant: adv-${provider}.md"
   done
 }
 
@@ -592,6 +600,76 @@ PY
   done
 }
 
+check_provider_runtime_canary() {
+  if [ "${ADV_SKIP_RUNTIME_CANARY:-}" = "1" ]; then
+    echo "    ⚠  runtime canary: skipped by ADV_SKIP_RUNTIME_CANARY=1"
+    return 0
+  fi
+
+  if ! command -v opencode >/dev/null 2>&1; then
+    echo "    ⚠  runtime canary: skipped (opencode not found on PATH)"
+    return 0
+  fi
+
+  python - "$PROVIDER_STUB_MARKER" "${PROVIDERS[@]}" <<'PY' || ((config_issues++)) || true
+import json
+import subprocess
+import sys
+
+stub_marker = sys.argv[1]
+providers = sys.argv[2:]
+issues = 0
+
+for provider in providers:
+    agent = f"adv-{provider}"
+    try:
+        proc = subprocess.run(
+            ["opencode", "debug", "agent", agent],
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            timeout=30,
+        )
+    except subprocess.TimeoutExpired:
+        print(f"    ✗  runtime canary: {agent} timed out after 30s")
+        issues += 1
+        continue
+
+    if proc.returncode != 0:
+        print(f"    ✗  runtime canary: {agent} debug failed (exit {proc.returncode})")
+        if proc.stderr.strip():
+            print(f"       stderr: {proc.stderr.strip()[:300]}")
+        issues += 1
+        continue
+
+    try:
+        data = json.loads(proc.stdout)
+    except json.JSONDecodeError as exc:
+        print(f"    ✗  runtime canary: {agent} debug output was not JSON ({exc})")
+        issues += 1
+        continue
+
+    prompt = data.get("prompt") or ""
+    expected_hint = f"<!-- PROVIDER_HINT:{provider} -->"
+    agent_issues = []
+    if stub_marker in prompt:
+        agent_issues.append("resolved stub diagnostic")
+    if "## ADV Overlay" not in prompt:
+        agent_issues.append("missing canonical ADV marker")
+    if expected_hint not in prompt:
+        agent_issues.append(f"missing provider hint marker {expected_hint}")
+
+    if agent_issues:
+        print(f"    ✗  runtime canary: {agent} invalid prompt ({'; '.join(agent_issues)})")
+        issues += 1
+
+if issues == 0:
+    print(f"    ✓  runtime canary: {len(providers)} provider ADV prompt(s) resolve real ADV bodies")
+
+sys.exit(1 if issues else 0)
+PY
+}
+
 # Agent Tool Allowlist Drift Check
 #
 # Cross-references the `adv` agent's `tools:` allowlist in
@@ -677,7 +755,7 @@ PY
 # Check tool drift for all provider variants
 check_provider_variant_drifts() {
   for provider in "${PROVIDERS[@]}"; do
-    local variant_file="$REPO_AGENTS/adv-${provider}.md"
+    local variant_file="$GLOBAL_AGENTS/adv-${provider}.md"
     if [ -f "$variant_file" ]; then
       check_tool_drift "$variant_file"
     fi
@@ -713,6 +791,7 @@ check_config() {
   fi
 
   check_provider_prompt_parts
+  check_provider_runtime_canary
 
   # Validate plugin path exists
   if json_array_contains "$GLOBAL_JSON" ".plugin // []" "$ADV_PLUGIN_PATH"; then
@@ -1136,7 +1215,7 @@ fi
 echo "    $agents_copied agent(s) synced"
 
 # Generate provider ADV variants from canonical adv.md
-# (skinny stub + prompt refs to shared prompt parts)
+# (frontmatter/tool allowlist + concatenated runtime body)
 sync_adv_prompt_parts
 generate_concatenated_provider_prompts
 generate_provider_variants

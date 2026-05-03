@@ -35,6 +35,8 @@ tools:
   # Specs + project context
   adv_spec: true
   adv_status: true
+  adv_session_list: true
+  adv_session_show: true
   adv_project_context: true
   # Changes
   adv_change_list: true
@@ -96,8 +98,13 @@ tools:
   # Project metadata
   adv_project_metadata: true
   # === Worktree — orchestrator owns lifecycle ===
+  adv_worktree_create: true
+  adv_worktree_delete: true
+  adv_worktree_cleanup: true
+  adv_worktree_triage: true
   worktree_create: true
   worktree_delete: true
+  worktree_cleanup: true
   # === Research MCP tools ===
   context7_*: true
   kagi_*: true

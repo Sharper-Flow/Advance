@@ -348,7 +348,7 @@ describe("overlay sync script support", () => {
     }
   });
 
-  test("generated provider variants are skinny stubs backed by prompt parts", () => {
+  test("generated provider variants contain runtime bodies backed by prompt parts", () => {
     const tempHome = mkdtempSync(join(tmpdir(), "adv-provider-hints-"));
 
     try {
@@ -384,17 +384,16 @@ describe("overlay sync script support", () => {
           join(globalAgents, `adv-${p}.md`),
           "utf8",
         );
-        expect(variantContent, `adv-${p}.md missing stub diagnostic`).toContain(
-          "[ADV:PROVIDER_STUB_UNEXPANDED]",
+        expect(
+          variantContent,
+          `adv-${p}.md still has stub diagnostic`,
+        ).not.toContain("[ADV:PROVIDER_STUB_UNEXPANDED]");
+        expect(variantContent, `adv-${p}.md missing provider hint`).toContain(
+          `<!-- PROVIDER_HINT:${p} -->`,
         );
-        expect(
-          variantContent,
-          `adv-${p}.md still embeds provider hint`,
-        ).not.toContain(`<!-- PROVIDER_HINT:${p} -->`);
-        expect(
-          variantContent,
-          `adv-${p}.md still embeds canonical body`,
-        ).not.toContain("## ADV Overlay");
+        expect(variantContent, `adv-${p}.md missing canonical body`).toContain(
+          "## ADV Overlay",
+        );
         expect(
           readFileSync(join(promptParts, "providers", `${p}.md`), "utf8"),
         ).toContain(`<!-- PROVIDER_HINT:${p} -->`);
