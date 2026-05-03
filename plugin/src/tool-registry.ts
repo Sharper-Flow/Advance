@@ -512,6 +512,53 @@ export function createToolMap(
       store,
     ),
 
+    // Backward-compat aliases for standalone worktree plugin (KD-8 phase 2)
+    // These share the same implementation as adv_worktree_* but are registered
+    // under the old standalone names. Will be removed in a future change once
+    // standalone-plugin users have migrated.
+    worktree_create: registerTool(
+      "Alias → adv_worktree_create (backward compat). Will be removed in a future change once standalone-plugin users have migrated.",
+      advWorktreeTools.adv_worktree_create.args,
+      safeExecute(
+        async (args) =>
+          advWorktreeTools.adv_worktree_create.execute(
+            args as Parameters<
+              typeof advWorktreeTools.adv_worktree_create.execute
+            >[0],
+            store,
+          ),
+        "worktree_create",
+      ),
+    ),
+    worktree_delete: registerTool(
+      "Alias → adv_worktree_delete (backward compat).",
+      advWorktreeTools.adv_worktree_delete.args,
+      safeExecute(
+        async (args) =>
+          advWorktreeTools.adv_worktree_delete.execute(
+            args as Parameters<
+              typeof advWorktreeTools.adv_worktree_delete.execute
+            >[0],
+            store,
+          ),
+        "worktree_delete",
+      ),
+    ),
+    worktree_cleanup: registerTool(
+      "Alias → adv_worktree_cleanup (backward compat).",
+      advWorktreeTools.adv_worktree_cleanup.args,
+      safeExecute(
+        async (args) =>
+          advWorktreeTools.adv_worktree_cleanup.execute(
+            args as Parameters<
+              typeof advWorktreeTools.adv_worktree_cleanup.execute
+            >[0],
+            store,
+          ),
+        "worktree_cleanup",
+      ),
+    ),
+
     // Session Tools
     adv_session_list: bindTool(
       advSessionTools.adv_session_list,
@@ -590,6 +637,10 @@ export const ADV_TOOL_NAMES: readonly string[] = [
   "adv_worktree_triage",
   "adv_session_list",
   "adv_session_show",
+  // Backward-compat aliases (KD-8 phase 2)
+  "worktree_create",
+  "worktree_delete",
+  "worktree_cleanup",
 ] as const;
 
 /**

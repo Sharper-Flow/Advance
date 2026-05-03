@@ -160,6 +160,48 @@ describe("KD-8 worktree + session tool registrations", () => {
     expect(parsed.sessions).toEqual([]);
     expect(parsed.total).toBe(0);
   });
+
+  test("backward-compat aliases are registered (KD-8 phase 2)", async () => {
+    const map = createToolMap(store, tempDir, store.paths.agenda);
+    const aliases = ["worktree_create", "worktree_delete", "worktree_cleanup"];
+    for (const name of aliases) {
+      expect(map).toHaveProperty(name);
+      const tool = (map as Record<string, unknown>)[name];
+      expect(typeof tool).toBe("object");
+      expect(tool).toHaveProperty("description");
+      expect(typeof (tool as { description: unknown }).description).toBe(
+        "string",
+      );
+      expect((tool as { description: string }).description).toContain(
+        "Alias →",
+      );
+      expect(tool).toHaveProperty("execute");
+      expect(typeof (tool as { execute: unknown }).execute).toBe("function");
+    }
+  });
+
+  test("aliases share the same execute shape as adv_worktree_* counterparts", async () => {
+    const map = createToolMap(store, tempDir, store.paths.agenda);
+    const pairs: [string, string][] = [
+      ["worktree_create", "adv_worktree_create"],
+      ["worktree_delete", "adv_worktree_delete"],
+      ["worktree_cleanup", "adv_worktree_cleanup"],
+    ];
+    for (const [aliasName, canonicalName] of pairs) {
+      const alias = (map as Record<string, unknown>)[aliasName];
+      const canonical = (map as Record<string, unknown>)[canonicalName];
+      expect(alias).toBeDefined();
+      expect(canonical).toBeDefined();
+      expect(typeof (alias as { execute: unknown }).execute).toBe("function");
+      expect(typeof (canonical as { execute: unknown }).execute).toBe(
+        "function",
+      );
+      // Args schemas should be identical (same reference)
+      expect((alias as { args: unknown }).args).toBe(
+        (canonical as { args: unknown }).args,
+      );
+    }
+  });
 });
 
 describe("safeExecute timeout overrides for slow-subprocess tools", () => {
