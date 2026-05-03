@@ -917,6 +917,67 @@ describe("Advance Plugin SDK Integration", () => {
       expect(sentIdx).toBeLessThan(wisdomIdx);
     });
 
+    // T18: OpenAI-compat provider simulation. Verifies the AC1 contract
+    // under the exact failure mode that motivated the refactor: when
+    // multiple system entries are pushed, openai-compat providers reject
+    // anything past output.system[0] as assistant prefilling. The new
+    // single-block assembler MUST keep output.system.length === 1 and
+    // append ADV content to the existing system[0] cleanly.
+    test("OpenAI-compat scenario: single system entry, prefilling-rejection avoided (AC1)", async () => {
+      const hooks = await createTrackedPlugin(tempDir, pluginInstances);
+      const transformHook = hooks["experimental.chat.system.transform"]!;
+
+      // Drive a state where multiple sections would have fired in the
+      // pre-refactor code: active change + just-completed task = active
+      // change line + wisdom-recording prompt as separate entries.
+      const changeId = "addFeature";
+      const taskId = "tk-openaicompat-1";
+      await hooks["tool.execute.before"]!(
+        { tool: "adv_task_list" } as any,
+        { args: { changeId } } as any,
+      );
+      await hooks["tool.execute.after"]!(
+        { tool: "adv_task_update" } as any,
+        {
+          args: { taskId, status: "done" },
+          output: JSON.stringify({
+            success: true,
+            task: { id: taskId, title: "Implement openai-compat fix", status: "done" },
+          }),
+        } as any,
+      );
+
+      // Simulate an existing user-prompt system entry (the openai-compat
+      // failure mode is triggered when output.system has > 1 entries
+      // after the transform; the upstream provider then rejects the
+      // request as assistant prefilling).
+      const out = {
+        system: ["You are an ADV agent. Help with the active change."],
+      };
+      await transformHook(
+        { sessionID: "test", model: { providerID: "openai-compat" } } as any,
+        out as any,
+      );
+
+      // (a) only output.system[0] is appended to (length stays 1)
+      expect(out.system).toHaveLength(1);
+
+      // (b) ADV content is prefixed/suffixed cleanly without bare
+      //     system[1] entries.
+      const block = out.system[0]!;
+      expect(block).toContain("You are an ADV agent");
+      expect(block).toContain(`[ADV] Active change: ${changeId}`);
+      expect(block).toContain("[ADV:RECORD_WISDOM]");
+
+      // (c) The prefilling-rejection failure mode is NOT triggered because
+      //     output.system never grew beyond a single entry.
+      expect(out.system.every((s) => typeof s === "string")).toBe(true);
+      expect(out.system).not.toEqual([
+        expect.any(String),
+        expect.any(String),
+      ]);
+    });
+
     // Internal-call short-circuit (JC-3): when output.system[0] matches
     // an OpenCode internal-call pattern (title generation, summarizer),
     // the assembler returns null and ADV content is NOT appended.
