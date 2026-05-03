@@ -23,10 +23,7 @@
  * consulting the store and passes them in.
  */
 
-import {
-  buildChangeContextSnapshot,
-  type GateInfo,
-} from "./context-snapshot";
+import { buildChangeContextSnapshot, type GateInfo } from "./context-snapshot";
 
 // ─── Local types (subset of TaskRunState / Task) ────────────────────────────
 
@@ -102,8 +99,7 @@ export function formatResumeHint(
   const referencedTask = tasks.find((t) => t.id === taskRun.taskId);
   if (
     referencedTask &&
-    (referencedTask.status === "cancelled" ||
-      referencedTask.status === "done")
+    (referencedTask.status === "cancelled" || referencedTask.status === "done")
   ) {
     return [
       "=== ADV RESUME HINT ===",
@@ -174,5 +170,8 @@ export function buildCompactionContext(
   if (resumeHint) sections.push(resumeHint);
 
   const combined = sections.join("\n\n");
-  return applyByteBudget(combined, input.maxBytes ?? DEFAULT_COMPACTION_MAX_BYTES);
+  return applyByteBudget(
+    combined,
+    input.maxBytes ?? DEFAULT_COMPACTION_MAX_BYTES,
+  );
 }

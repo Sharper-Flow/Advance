@@ -909,9 +909,7 @@ const advancePluginImpl: Plugin = async ({ directory, worktree, project }) => {
           debugLog(`Error loading change for compaction: ${e}`);
         }
 
-        let tasks: Awaited<
-          ReturnType<typeof store.tasks.list>
-        > = [];
+        let tasks: Awaited<ReturnType<typeof store.tasks.list>> = [];
         try {
           tasks = await store.tasks.list(changeId);
         } catch (e) {
@@ -935,9 +933,8 @@ const advancePluginImpl: Plugin = async ({ directory, worktree, project }) => {
 
         // Resolve in-progress task ledger if any.
         const inProgressTask = tasks.find((t) => t.status === "in_progress");
-        let inProgressTaskRun: Awaited<
-          ReturnType<typeof store.tasks.getRun>
-        > = null;
+        let inProgressTaskRun: Awaited<ReturnType<typeof store.tasks.getRun>> =
+          null;
         if (inProgressTask) {
           try {
             inProgressTaskRun = await store.tasks.getRun(inProgressTask.id);

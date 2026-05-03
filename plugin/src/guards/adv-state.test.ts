@@ -13,7 +13,8 @@ import {
   type AdvStatePathContext,
 } from "./adv-state";
 
-const EXTERNAL_ROOT = "/home/jrede/.local/share/opencode/plugins/advance/abc123";
+const EXTERNAL_ROOT =
+  "/home/jrede/.local/share/opencode/plugins/advance/abc123";
 
 const lockedContext = (): AdvStatePathContext => ({
   lockedPaths: getAdvStateLockedPaths(EXTERNAL_ROOT),
@@ -231,11 +232,7 @@ describe("enforceAdvStatePathPolicy", () => {
 
     it("does not throw when path arg is empty string", () => {
       expect(() =>
-        enforceAdvStatePathPolicy(
-          "read",
-          { filePath: "" },
-          lockedContext(),
-        ),
+        enforceAdvStatePathPolicy("read", { filePath: "" }, lockedContext()),
       ).not.toThrow();
     });
 

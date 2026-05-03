@@ -187,9 +187,7 @@ describe("formatResumeHint (AC7 — stale-ledger detection)", () => {
     expect(hint).toContain(
       "Last ledger reference (task tk-cancelled) was cancelled before resume",
     );
-    expect(hint).toContain(
-      "adv_change_show include:{readyTasks:true}",
-    );
+    expect(hint).toContain("adv_change_show include:{readyTasks:true}");
     // Old phase/hint should be suppressed.
     expect(hint).not.toContain("green_recorded");
     expect(hint).not.toContain("Old hint");

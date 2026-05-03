@@ -419,9 +419,7 @@ Vague in-flight work.
           store,
         );
         const summary = parseToolOutput(summaryResult);
-        const saRec = (
-          summary.recommendations as string[] | undefined
-        )?.find(
+        const saRec = (summary.recommendations as string[] | undefined)?.find(
           (r: string) =>
             r.includes("search attributes") ||
             r.includes("adv_temporal_register_search_attributes"),

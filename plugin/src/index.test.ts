@@ -942,7 +942,11 @@ describe("Advance Plugin SDK Integration", () => {
           args: { taskId, status: "done" },
           output: JSON.stringify({
             success: true,
-            task: { id: taskId, title: "Implement openai-compat fix", status: "done" },
+            task: {
+              id: taskId,
+              title: "Implement openai-compat fix",
+              status: "done",
+            },
           }),
         } as any,
       );
@@ -972,10 +976,7 @@ describe("Advance Plugin SDK Integration", () => {
       // (c) The prefilling-rejection failure mode is NOT triggered because
       //     output.system never grew beyond a single entry.
       expect(out.system.every((s) => typeof s === "string")).toBe(true);
-      expect(out.system).not.toEqual([
-        expect.any(String),
-        expect.any(String),
-      ]);
+      expect(out.system).not.toEqual([expect.any(String), expect.any(String)]);
     });
 
     // Internal-call short-circuit (JC-3): when output.system[0] matches

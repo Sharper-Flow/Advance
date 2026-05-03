@@ -218,9 +218,7 @@ describe("assembleSystemBlock", () => {
     });
 
     it("emits degraded banner when storeAvailable is false (no initError)", () => {
-      const block = assembleSystemBlock(
-        cleanInput({ storeAvailable: false }),
-      );
+      const block = assembleSystemBlock(cleanInput({ storeAvailable: false }));
       expect(block).toContain("[ADV:DEGRADED]");
       expect(block).toContain("Plugin store unavailable");
     });

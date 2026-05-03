@@ -181,9 +181,7 @@ function healthSection(input: AssembleSystemBlockInput): string | null {
 /** Stable: provider-switch hint. Fires when the current provider differs
  *  from the previous turn's provider AND the fallback chain has at least
  *  one alternative for the current provider. */
-function providerSwitchSection(
-  input: AssembleSystemBlockInput,
-): string | null {
+function providerSwitchSection(input: AssembleSystemBlockInput): string | null {
   const { currentProviderID } = input;
   const { lastProviderID } = input.state;
   if (!currentProviderID) return null;
@@ -212,9 +210,7 @@ function worktreeSection(input: AssembleSystemBlockInput): string | null {
 
 /** Stable: active-change line. Fires whenever an active change is set;
  *  appends a 60-char-truncated objective when present. */
-function activeChangeSection(
-  input: AssembleSystemBlockInput,
-): string | null {
+function activeChangeSection(input: AssembleSystemBlockInput): string | null {
   const { activeChange } = input.state;
   if (!activeChange.id) return null;
   const objectiveSuffix = activeChange.objective
@@ -226,9 +222,7 @@ function activeChangeSection(
 /** Volatile: wisdom-recording prompt. Fires when a task just finished
  *  (`state.lastCompletedTask` is set). The caller is responsible for
  *  clearing `state.lastCompletedTask` after a successful emission. */
-function wisdomPromptSection(
-  input: AssembleSystemBlockInput,
-): string | null {
+function wisdomPromptSection(input: AssembleSystemBlockInput): string | null {
   const completed = input.state.lastCompletedTask;
   if (!completed) return null;
   return (
@@ -269,9 +263,7 @@ export function applyAdvSystemBlock(
   if (block === null) {
     return { emitted: false, consumedWisdomPrompt: false };
   }
-  output.system[0] = existingSystem
-    ? `${existingSystem}\n\n${block}`
-    : block;
+  output.system[0] = existingSystem ? `${existingSystem}\n\n${block}` : block;
   return {
     emitted: true,
     consumedWisdomPrompt: input.state.lastCompletedTask !== null,

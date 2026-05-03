@@ -931,9 +931,7 @@ export const changeTools = {
             .min(1)
             .max(50)
             .optional()
-            .describe(
-              "Override default top-10 ready-task slice. Range 1-50.",
-            ),
+            .describe("Override default top-10 ready-task slice. Range 1-50."),
         })
         .optional()
         .describe(
@@ -1048,9 +1046,8 @@ export const changeTools = {
             // and compaction use, ensuring fidelity parity.
             if (include.snapshot) {
               try {
-                let gates: Awaited<
-                  ReturnType<typeof activeStore.gates.get>
-                > = null;
+                let gates: Awaited<ReturnType<typeof activeStore.gates.get>> =
+                  null;
                 try {
                   gates = await activeStore.gates.get(changeId);
                 } catch {

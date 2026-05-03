@@ -389,9 +389,7 @@ export function applyStatusView(
   const temporalHealth = full.temporal_health as
     | { server_alive?: boolean }
     | undefined;
-  const worktreeCensus = full.worktree_census as
-    | { total?: number }
-    | undefined;
+  const worktreeCensus = full.worktree_census as { total?: number } | undefined;
   const specs = full.specs as { count?: number } | undefined;
 
   switch (view) {
