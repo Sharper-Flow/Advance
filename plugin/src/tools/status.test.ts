@@ -700,6 +700,29 @@ Vague in-flight work.
         expect(parsed.temporal_health).toBeUndefined();
       });
 
+      test("health view exposes metrics counters (AC6)", async () => {
+        const result = await statusTools.adv_status.execute(
+          { view: "health" },
+          store,
+        );
+        const parsed = parseToolOutput(result);
+        expect(parsed.metrics).toBeDefined();
+        expect(typeof parsed.metrics.adv_tool_calls).toBe("number");
+        expect(typeof parsed.metrics.system_block_bytes).toBe("number");
+        expect(typeof parsed.metrics.subagent_spawns).toBe("number");
+        expect(typeof parsed.metrics.wall_time_ms).toBe("number");
+        expect(parsed.metrics.adv_tool_call_count_by_name).toBeDefined();
+      });
+
+      test("summary view does NOT expose metrics counters", async () => {
+        const result = await statusTools.adv_status.execute(
+          { view: "summary" },
+          store,
+        );
+        const parsed = parseToolOutput(result);
+        expect(parsed.metrics).toBeUndefined();
+      });
+
       test("formatted block is preserved across all views", async () => {
         for (const view of [
           "summary",

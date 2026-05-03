@@ -41,6 +41,7 @@ import {
 } from "../storage/json";
 import { readProjectMetadata } from "../storage/project-metadata";
 import { getWorktreeCensus } from "../utils/worktree-census";
+import { getMetrics } from "../utils/metrics";
 import { scanOpenCodeSessionDebt } from "../utils/opencode-session-debt";
 import { runClarifyReadinessChecks } from "../validator/clarify-readiness";
 import { z } from "zod";
@@ -707,6 +708,9 @@ export const statusTools = {
             project_metadata: projectMetadata,
             worktree_census: worktreeCensus,
             _healthSnapshot: healthSnapshot,
+            // AC6: in-memory counters surfaced via view: "health".
+            // Counters reset on plugin init (JC-1).
+            metrics: getMetrics(),
             diagnostics: {
               temporalWorker: temporalHealth?.worker_alive
                 ? ("healthy" as const)

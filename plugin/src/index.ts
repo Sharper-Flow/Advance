@@ -32,6 +32,12 @@ import {
   type SessionHealthIssue,
 } from "./utils/system-block";
 import { buildCompactionContext } from "./utils/compaction-context";
+import {
+  recordAdvToolCall,
+  recordSubagentSpawn,
+  recordSystemBlockBytes,
+  resetMetrics,
+} from "./utils/metrics";
 import { enforceBashPolicy, enforceConformanceBashPolicy } from "./guards/bash";
 import { enforceTaskPolicy } from "./guards/task";
 import {
@@ -327,6 +333,10 @@ const advancePluginImpl: Plugin = async ({ directory, worktree, project }) => {
     lastProviderID: null,
   };
 
+  // AC6 — reset session-scoped metrics on every plugin init. JC-1 keeps
+  // metrics in-memory only; no persistence across plugin restarts.
+  resetMetrics();
+
   // No handoff.json hydration: session startup is now workflow-backed.
   // The old external handoff file is transitional legacy state and will be
   // deleted in Phase D. Fresh sessions derive active context from explicit
@@ -535,6 +545,8 @@ const advancePluginImpl: Plugin = async ({ directory, worktree, project }) => {
         activeSubAgents: state.activeSubAgents + 1,
         sessionIdle: false,
       });
+      // AC6: subagent_spawns counter
+      recordSubagentSpawn();
     }
 
     if (toolName === "question") {
@@ -713,6 +725,10 @@ const advancePluginImpl: Plugin = async ({ directory, worktree, project }) => {
       try {
         debugLog(`tool.execute.after: tool="${input.tool}"`);
 
+        // AC6: increment adv_tool_calls + adv_tool_call_count_by_name for
+        // any adv_* tool. Non-adv tools are ignored by recordAdvToolCall.
+        recordAdvToolCall(input.tool);
+
         // Track new change creation (changeId only in output, not input args)
         if (input.tool === "adv_change_create" && output.output) {
           try {
@@ -791,12 +807,19 @@ const advancePluginImpl: Plugin = async ({ directory, worktree, project }) => {
         const currentProviderID =
           input.model?.providerID?.toLowerCase() ?? null;
 
+        const beforeBytes = output.system[0]?.length ?? 0;
         const result = applyAdvSystemBlock(output, {
           state,
           currentProviderID,
           initError,
           storeAvailable: !!store,
         });
+
+        // AC6: track bytes added to output.system[0] this turn.
+        if (result.emitted) {
+          const afterBytes = output.system[0]?.length ?? 0;
+          recordSystemBlockBytes(afterBytes - beforeBytes);
+        }
 
         // Update lastProviderID after assembly (so the next turn detects
         // the switch). Track regardless of whether this turn emitted.
