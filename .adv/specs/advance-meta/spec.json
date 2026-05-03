@@ -303,6 +303,64 @@
       ]
     },
     {
+      "id": "rq-providerAdvSkinny01",
+      "title": "Skinny Provider ADV Agent Assembly",
+      "body": "Provider-specific ADV agents must preserve separate selectable agents while avoiding duplicated canonical ADV prompt bodies in generated agent files. Generated provider variants are skinny frontmatter/tool stubs backed by global prompt parts for the canonical ADV body and one provider hint.",
+      "priority": "must",
+      "tags": ["provider-adv", "prompt-parts", "sync"],
+      "scenarios": [
+        {
+          "id": "rq-providerAdvSkinny01.1",
+          "title": "Generated provider variants are skinny stubs backed by prompt parts",
+          "given": [
+            "scripts/sync-global.sh --fix runs with canonical ADV and provider hint assets present"
+          ],
+          "when": "Provider ADV variants are generated",
+          "then": [
+            "Global adv-{provider}.md files preserve provider frontmatter and tool allowlists",
+            "Global adv-{provider}.md bodies contain the [ADV:PROVIDER_STUB_UNEXPANDED] diagnostic instead of the canonical ADV body",
+            "Global prompt parts are written to agent-parts/advance/adv.md and agent-parts/advance/providers/{provider}.md",
+            "agent.adv-{provider}.prompt references the canonical prompt part plus exactly one provider hint prompt part"
+          ]
+        },
+        {
+          "id": "rq-providerAdvSkinny01.2",
+          "title": "Prompt-only provider config does not activate provider mode",
+          "given": [
+            "Global opencode.json contains agent.adv-{provider}.prompt refs but no model, disable, variant, or color activation fields"
+          ],
+          "when": "Provider activation and legacy adv visibility are evaluated",
+          "then": [
+            "Provider mode is not considered active from prompt-only keys",
+            "The generic adv agent is not hidden solely because prompt refs were synced",
+            "When activation fields are present, agent.adv.disable is set true and the global generic adv.md is removed"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-providerAdvMetrics01",
+      "title": "Provider ADV Prompt Size Metrics",
+      "body": "Provider ADV evaluation must report generated provider-file size separately from the expanded selected-agent runtime prompt size so duplication removal and model-facing prompt cost are both visible.",
+      "priority": "must",
+      "tags": ["provider-adv", "metrics", "prompt-size"],
+      "scenarios": [
+        {
+          "id": "rq-providerAdvMetrics01.1",
+          "title": "Provider eval reports generated-file and runtime-prompt size planes",
+          "given": [
+            "Provider ADV prompt parts and generated provider stubs exist"
+          ],
+          "when": "The provider evaluation harness reports prompt size metrics",
+          "then": [
+            "Metrics include generated_provider_file bytes and lines from the global adv-{provider}.md stub",
+            "Metrics include selected_agent_runtime_prompt bytes and lines from the composed canonical ADV body plus one provider hint",
+            "The harness does not treat the generated provider variant file as the canonical prompt source"
+          ]
+        }
+      ]
+    },
+    {
       "id": "rq-proseReduction02",
       "title": "Drift Test Coverage for Compressed Prose",
       "body": "plugin/src/manifest-doc-drift.test.ts MUST contain structural assertions that verify compressed sections in ADV instruction surfaces conform to the enforcement-class templates. Assertions MUST be structural (line caps per class, presence of code-path reference in pointer line) and MUST NOT assert specific wording.",

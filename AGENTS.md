@@ -113,13 +113,14 @@ Shared global agents (`adv`, `general`, `build`, `plan`) are NOT fully replaced 
 
 ### Provider ADV agent assembly
 
-`scripts/sync-global.sh` generates provider-specific ADV variants (`adv-claude`, `adv-gpt`, `adv-glm`, `adv-kimi`) from the canonical `.opencode/agents/adv.md`:
+`scripts/sync-global.sh` generates provider-specific ADV variants (`adv-claude`, `adv-gpt`, `adv-glm`, `adv-kimi`) as skinny stubs backed by global prompt parts:
 
-1. **Copy canonical** — `adv.md` is the single source of truth for ADV behavior
-2. **Patch frontmatter** — `name: adv-{provider}` is injected per variant
-3. **Inject provider hint** — a small ≤20-line behavioral hint from `.opencode/agent-parts/providers/{provider}.md` is appended after the `ADV_SYNC:END adv` marker
-4. **Drift checks** — `check_tool_drift` runs for all variants plus the canonical agent
-5. **Legacy gating** — the canonical `adv.md` is only removed from global (and repo-local) when `opencode.json` contains `agent.adv-*` keys; `agent.adv.disable: true` is also set to hide the generic agent via OpenCode's native disable mechanism
+1. **Copy canonical body to prompt part** — `.opencode/agents/adv.md` syncs to `~/.config/opencode/agent-parts/advance/adv.md`
+2. **Copy provider hints to prompt parts** — `.opencode/agent-parts/providers/{provider}.md` syncs to `~/.config/opencode/agent-parts/advance/providers/{provider}.md`
+3. **Generate skinny stubs** — global `adv-{provider}.md` preserves frontmatter/tool allowlist and contains `[ADV:PROVIDER_STUB_UNEXPANDED]` as the fail-closed body
+4. **Patch native prompt refs** — `agent.adv-{provider}.prompt` points to canonical body plus exactly one provider hint
+5. **Drift checks** — `check_tool_drift` runs for all variants plus the canonical agent; prompt parts are checked for presence
+6. **Legacy gating** — prompt-only keys do not activate provider mode. Active provider config sets `agent.adv.disable: true` and removes global generic `adv.md`; repo-local `.opencode/agents/adv.md` remains tracked.
 
 Runtime visibility is controlled by OpenCode's native `agent.<name>.disable` field in `opencode.json` — no hidden routing, no fallback chains. The `opencode-model-preferences` (OMP) tool writes these config entries; ADV only generates the files.
 

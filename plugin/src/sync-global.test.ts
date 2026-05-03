@@ -6,6 +6,18 @@ const REPO_ROOT = resolve(__dirname, "../..");
 const SYNC_SCRIPT_PATH = join(REPO_ROOT, "scripts/sync-global.sh");
 const PROVIDER_EVAL_PATH = join(REPO_ROOT, "scripts/provider-eval.ts");
 const ADV_AGENT_PATH = join(REPO_ROOT, ".opencode/agents/adv.md");
+const PROVIDER_ASSEMBLY_DOC_PATH = join(
+  REPO_ROOT,
+  "docs/provider-agent-assembly.md",
+);
+const PROVIDER_SMOKE_DOC_PATH = join(
+  REPO_ROOT,
+  "docs/provider-adv-smoke-checklist.md",
+);
+const ADVANCE_META_SPEC_PATH = join(
+  REPO_ROOT,
+  ".adv/specs/advance-meta/spec.json",
+);
 
 describe("sync-global.sh", () => {
   const content = readFileSync(SYNC_SCRIPT_PATH, "utf8");
@@ -338,6 +350,38 @@ describe("sync-global.sh", () => {
       expect(providerEval).toContain("loadCanonicalAdvPrompt");
       expect(providerEval).toContain("agent-parts/advance/adv.md");
       expect(providerEval).not.toContain("global provider variant");
+    });
+  });
+
+  describe("provider docs and spec deltas", () => {
+    const assemblyDoc = readFileSync(PROVIDER_ASSEMBLY_DOC_PATH, "utf8");
+    const smokeDoc = readFileSync(PROVIDER_SMOKE_DOC_PATH, "utf8");
+    const spec = JSON.parse(readFileSync(ADVANCE_META_SPEC_PATH, "utf8")) as {
+      requirements: Array<{ id: string; scenarios?: Array<{ id: string }> }>;
+    };
+    const requirementIds = spec.requirements.map((r) => r.id);
+    const scenarioIds = spec.requirements.flatMap((r) =>
+      (r.scenarios ?? []).map((s) => s.id),
+    );
+
+    test("provider docs describe skinny stubs, prompt parts, prompt-only config, and metrics", () => {
+      for (const required of [
+        "agent-parts/advance/adv.md",
+        "agent-parts/advance/providers/{provider}.md",
+        "[ADV:PROVIDER_STUB_UNEXPANDED]",
+        "prompt-only",
+        "generated_provider_file",
+        "selected_agent_runtime_prompt",
+      ]) {
+        expect(`${assemblyDoc}\n${smokeDoc}`).toContain(required);
+      }
+    });
+
+    test("advance-meta spec contains provider skinny and metrics requirements", () => {
+      expect(requirementIds).toContain("rq-providerAdvSkinny01");
+      expect(requirementIds).toContain("rq-providerAdvMetrics01");
+      expect(scenarioIds).toContain("rq-providerAdvSkinny01.1");
+      expect(scenarioIds).toContain("rq-providerAdvSkinny01.2");
     });
   });
 

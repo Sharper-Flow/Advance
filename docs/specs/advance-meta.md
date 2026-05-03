@@ -267,6 +267,65 @@ ADV instruction surfaces (ADV_INSTRUCTIONS.md, docs/command-voice-standard.md, .
 
 ---
 
+### Skinny Provider ADV Agent Assembly
+
+**ID:** `rq-providerAdvSkinny01` | **Priority:** **[MUST]**
+
+Provider-specific ADV agents must preserve separate selectable agents while avoiding duplicated canonical ADV prompt bodies in generated agent files. Generated provider variants are skinny frontmatter/tool stubs backed by global prompt parts for the canonical ADV body and one provider hint.
+
+**Generated provider variants are skinny stubs backed by prompt parts** (`rq-providerAdvSkinny01.1`)
+
+**Given:**
+
+- `scripts/sync-global.sh --fix` runs with canonical ADV and provider hint assets present
+
+**When:** Provider ADV variants are generated
+
+**Then:**
+
+- Global `adv-{provider}.md` files preserve provider frontmatter and tool allowlists
+- Global `adv-{provider}.md` bodies contain `[ADV:PROVIDER_STUB_UNEXPANDED]` diagnostic instead of canonical ADV body
+- Global prompt parts are written to `agent-parts/advance/adv.md` and `agent-parts/advance/providers/{provider}.md`
+- `agent.adv-{provider}.prompt` references canonical prompt part plus exactly one provider hint prompt part
+
+**Prompt-only provider config does not activate provider mode** (`rq-providerAdvSkinny01.2`)
+
+**Given:**
+
+- Global `opencode.json` contains `agent.adv-{provider}.prompt` refs but no `model`, `disable`, `variant`, or `color` activation fields
+
+**When:** Provider activation and legacy `adv` visibility are evaluated
+
+**Then:**
+
+- Provider mode is not considered active from prompt-only keys
+- Generic `adv` agent is not hidden solely because prompt refs were synced
+- When activation fields are present, `agent.adv.disable` is set true and global generic `adv.md` is removed
+
+---
+
+### Provider ADV Prompt Size Metrics
+
+**ID:** `rq-providerAdvMetrics01` | **Priority:** **[MUST]**
+
+Provider ADV evaluation must report generated provider-file size separately from expanded selected-agent runtime prompt size so duplication removal and model-facing prompt cost are both visible.
+
+**Provider eval reports generated-file and runtime-prompt size planes** (`rq-providerAdvMetrics01.1`)
+
+**Given:**
+
+- Provider ADV prompt parts and generated provider stubs exist
+
+**When:** Provider evaluation harness reports prompt size metrics
+
+**Then:**
+
+- Metrics include `generated_provider_file` bytes and lines from global `adv-{provider}.md` stub
+- Metrics include `selected_agent_runtime_prompt` bytes and lines from composed canonical ADV body plus one provider hint
+- Harness does not treat generated provider variant file as canonical prompt source
+
+---
+
 ### Drift Test Coverage for Compressed Prose
 
 **ID:** `rq-proseReduction02` | **Priority:** **[MUST]**
