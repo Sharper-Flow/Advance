@@ -1176,6 +1176,21 @@ export const changeTools = {
 
       await appendClarifyNeededForCreatedChange(store, result.changeId, output);
 
+      const createdChangeResult = await store.changes.get(result.changeId);
+      if (createdChangeResult.success && createdChangeResult.data) {
+        const changeDir = join(store.paths.changes, result.changeId);
+        const { content: proposalText } = await loadProposalWithFallback(
+          changeDir,
+          createdChangeResult.data.title,
+        );
+        output._contextSnapshot = buildChangeContextSnapshot({
+          change: createdChangeResult.data,
+          proposalText,
+          gates: createdChangeResult.data.gates ?? createDefaultGates(),
+          workdir: store.paths.root,
+        });
+      }
+
       return formatToolOutput(output);
     },
   },

@@ -903,6 +903,19 @@ describe("Change Tools", () => {
       expect(parsed.path).toContain("proposal.md");
     });
 
+    test("emits _contextSnapshot on create", async () => {
+      const result = await changeTools.adv_change_create.execute(
+        { summary: "Create snapshot" },
+        store,
+      );
+      const parsed = parseToolOutput(result);
+
+      expect(parsed._contextSnapshot).toBeDefined();
+      expect(typeof parsed._contextSnapshot).toBe("string");
+      expect(parsed._contextSnapshot).toContain("createSnapshot");
+      expect(parsed._contextSnapshot).toMatch(/[╔╗╚╝║═]/);
+    });
+
     test("creates change.json with draft status", async () => {
       const result = await changeTools.adv_change_create.execute(
         { summary: "New feature" },
