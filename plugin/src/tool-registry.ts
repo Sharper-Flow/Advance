@@ -41,6 +41,8 @@ import { reflectionTools } from "./tools/reflection";
 import { projectMetadataTools } from "./tools/project-metadata";
 import { conformanceTools } from "./tools/conformance";
 import { changeImportTools } from "./tools/change-import";
+import { advWorktreeTools } from "./tools/adv-worktree";
+import { advSessionTools } from "./tools/adv-session";
 type ToolArgsSchema = Record<string, z.ZodTypeAny>;
 type ToolExecute<TArgs> = (
   args: TArgs,
@@ -487,6 +489,40 @@ export function createToolMap(
       directory,
       store.paths.external ?? undefined,
     ),
+
+    // Worktree Tools
+    adv_worktree_create: bindTool(
+      advWorktreeTools.adv_worktree_create,
+      "adv_worktree_create",
+      store,
+    ),
+    adv_worktree_delete: bindTool(
+      advWorktreeTools.adv_worktree_delete,
+      "adv_worktree_delete",
+      store,
+    ),
+    adv_worktree_cleanup: bindTool(
+      advWorktreeTools.adv_worktree_cleanup,
+      "adv_worktree_cleanup",
+      store,
+    ),
+    adv_worktree_triage: bindTool(
+      advWorktreeTools.adv_worktree_triage,
+      "adv_worktree_triage",
+      store,
+    ),
+
+    // Session Tools
+    adv_session_list: bindTool(
+      advSessionTools.adv_session_list,
+      "adv_session_list",
+      store,
+    ),
+    adv_session_show: bindTool(
+      advSessionTools.adv_session_show,
+      "adv_session_show",
+      store,
+    ),
   };
 }
 
@@ -548,6 +584,12 @@ export const ADV_TOOL_NAMES: readonly string[] = [
   "adv_task_checkpoint",
   "adv_reflect",
   "adv_conformance",
+  "adv_worktree_create",
+  "adv_worktree_delete",
+  "adv_worktree_cleanup",
+  "adv_worktree_triage",
+  "adv_session_list",
+  "adv_session_show",
 ] as const;
 
 /**

@@ -1,0 +1,152 @@
+/**
+ * ADV Worktree Tools (T24 — KD-8 phase 1)
+ *
+ * Tool definitions for `adv_worktree_create`, `adv_worktree_delete`,
+ * `adv_worktree_cleanup`, and `adv_worktree_triage`.
+ *
+ * These wrap the underlying worktree implementations from
+ * `tools/worktree/` and format output via `formatToolOutput()`.
+ */
+
+import { z } from "zod";
+import { formatToolOutput } from "../utils/tool-output";
+import type { Store } from "../storage/store-types";
+import {
+  advWorktreeCreate,
+  advWorktreeDelete,
+  advWorktreeCleanup,
+} from "./worktree";
+import { triageWorktrees } from "./worktree/triage";
+import { initStateDb, type WorktreeStateAccess } from "./worktree/state";
+
+/** Simple no-op-ish logger for ADV worktree tools. */
+function createLogger(): {
+  debug: (msg: string) => void;
+  info: (msg: string) => void;
+  warn: (msg: string) => void;
+  error: (msg: string) => void;
+} {
+  return {
+    debug: () => {},
+    info: () => {},
+    warn: (msg: string) => {
+      console.warn(msg);
+    },
+    error: (msg: string) => {
+      console.error(msg);
+    },
+  };
+}
+
+async function initWorktreeDb(
+  projectRoot: string,
+): Promise<WorktreeStateAccess> {
+  return initStateDb(projectRoot);
+}
+
+export const advWorktreeTools = {
+  adv_worktree_create: {
+    description:
+      "Create a new git worktree for isolated development. Returns the worktree path, branch, and base reference.",
+    args: {
+      branch: z
+        .string()
+        .describe("Branch name for the worktree (e.g., 'feature/dark-mode')"),
+      base: z
+        .string()
+        .optional()
+        .describe("Base branch to create from (defaults to HEAD)"),
+      force: z
+        .boolean()
+        .optional()
+        .describe("Force creation even if branch exists"),
+    },
+    execute: async (
+      args: { branch: string; base?: string; force?: boolean },
+      store: Store,
+    ) => {
+      const projectRoot = store.paths.root;
+      const database = await initWorktreeDb(projectRoot);
+      const log = createLogger();
+      const result = await advWorktreeCreate(
+        args.branch,
+        { base: args.base, force: args.force },
+        { projectRoot, database, log },
+      );
+      return formatToolOutput(result);
+    },
+  },
+
+  adv_worktree_delete: {
+    description:
+      "Delete a git worktree by branch name. Safe: checks for uncommitted work and integration requirements before removing.",
+    args: {
+      branch: z.string().describe("Branch name of the worktree to delete"),
+      force: z
+        .boolean()
+        .optional()
+        .describe("Force deletion bypassing some safety checks"),
+    },
+    execute: async (
+      args: { branch: string; force?: boolean },
+      store: Store,
+    ) => {
+      const projectRoot = store.paths.root;
+      const database = await initWorktreeDb(projectRoot);
+      const log = createLogger();
+      const result = await advWorktreeDelete(
+        args.branch,
+        { force: args.force },
+        { projectRoot, database, log },
+      );
+      return formatToolOutput(result);
+    },
+  },
+
+  adv_worktree_cleanup: {
+    description:
+      "Retry queued worktree deletions. Safe: skips worktrees still used as a process CWD and keeps them queued.",
+    args: {
+      reason: z
+        .string()
+        .describe("Brief explanation of why you are retrying queued cleanup"),
+    },
+    execute: async (args: { reason: string }, store: Store) => {
+      const projectRoot = store.paths.root;
+      const database = await initWorktreeDb(projectRoot);
+      const log = createLogger();
+      const result = await advWorktreeCleanup(args.reason, {
+        projectRoot,
+        database,
+        log,
+      });
+      return formatToolOutput({
+        success: true,
+        removed: result.removed,
+        retained: result.retained,
+      });
+    },
+  },
+
+  adv_worktree_triage: {
+    description:
+      "Read-only worktree inventory + advisory recommendations. Detects stale heads, missing registry entries, and archived-not-cleaned worktrees.",
+    args: {
+      projectRoot: z
+        .string()
+        .optional()
+        .describe(
+          "Optional project root override (defaults to current working directory)",
+        ),
+    },
+    execute: async (args: { projectRoot?: string }, store: Store) => {
+      const repoRoot = args.projectRoot ?? store.paths.root;
+      const result = await triageWorktrees(repoRoot);
+      return formatToolOutput({
+        success: true,
+        orphans: result.orphans,
+        total: result.total,
+      });
+    },
+  },
+};

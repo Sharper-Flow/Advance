@@ -90,6 +90,78 @@ describe("createDegradedToolMap parity with createToolMap", () => {
   });
 });
 
+describe("KD-8 worktree + session tool registrations", () => {
+  let tempDir: string;
+  let store: Awaited<ReturnType<typeof createLegacyStore>>;
+
+  beforeEach(async () => {
+    tempDir = await createTempDir();
+    await createTestProject(tempDir);
+    store = await createLegacyStore(tempDir);
+    await store.init();
+  });
+
+  afterEach(async () => {
+    store.close();
+    await cleanupTempDir(tempDir);
+  });
+
+  test("createToolMap contains all 6 new KD-8 tool names", async () => {
+    const map = createToolMap(store, tempDir, store.paths.agenda);
+    const expected = [
+      "adv_worktree_create",
+      "adv_worktree_delete",
+      "adv_worktree_cleanup",
+      "adv_worktree_triage",
+      "adv_session_list",
+      "adv_session_show",
+    ];
+    for (const name of expected) {
+      expect(map).toHaveProperty(name);
+    }
+  });
+
+  test("each new tool has description, args, and execute function", async () => {
+    const map = createToolMap(store, tempDir, store.paths.agenda);
+    const expected = [
+      "adv_worktree_create",
+      "adv_worktree_delete",
+      "adv_worktree_cleanup",
+      "adv_worktree_triage",
+      "adv_session_list",
+      "adv_session_show",
+    ];
+    for (const name of expected) {
+      const tool = (map as Record<string, unknown>)[name];
+      expect(typeof tool).toBe("object");
+      expect(tool).toHaveProperty("description");
+      expect(typeof (tool as { description: unknown }).description).toBe(
+        "string",
+      );
+      expect(tool).toHaveProperty("args");
+      expect(typeof (tool as { args: unknown }).args).toBe("object");
+      expect(tool).toHaveProperty("execute");
+      expect(typeof (tool as { execute: unknown }).execute).toBe("function");
+    }
+  });
+
+  test("adv_session_list smoke-test returns unavailable in test fixture", async () => {
+    const map = createToolMap(store, tempDir, store.paths.agenda);
+    const tool = map.adv_session_list as {
+      execute: (args: unknown) => Promise<string>;
+    };
+    const raw = await tool.execute({});
+    const parsed = JSON.parse(raw) as {
+      unavailable?: boolean;
+      sessions?: unknown[];
+      total?: number;
+    };
+    expect(parsed.unavailable).toBe(true);
+    expect(parsed.sessions).toEqual([]);
+    expect(parsed.total).toBe(0);
+  });
+});
+
 describe("safeExecute timeout overrides for slow-subprocess tools", () => {
   // Tools that wrap external subprocesses (test runs, git commits with
   // pre-commit hooks) budget more than the default 10s outer timeout
