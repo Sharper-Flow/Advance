@@ -1,542 +1,433 @@
 /**
- * SQLite State Module for Worktree Plugin
+ * Worktree State (T13 / KD-1) — thin Temporal client wrapper.
  *
- * Provides atomic, crash-safe persistence for worktree sessions and pending operations.
- * Uses bun:sqlite for zero external dependencies.
+ * Replaces the legacy SQLite-backed state module with workflow-update
+ * calls into the project workflow. State authority for worktrees
+ * lives in `ProjectWorkflowState.{worktree_registry,
+ * pending_worktree_deletes, session_registry}` — populated and
+ * mutated via the 8 lifecycle handlers wired in T5.
  *
- * Database location: ~/.local/share/opencode/plugins/worktree/{project-id}.sqlite
- * Project ID is the first git root commit SHA (40-char hex), with SHA-256 path hash fallback (16-char).
+ * Spec anchors:
+ * - rq-worktreeRegistry01 (state authority lives in the project workflow)
+ * - rq-multiSessionCoordination01 (Temporal serializes peer-session writes)
+ *
+ * NO SQLite. NO sidecar JSONL. NO local files written by this module.
+ *
+ * The legacy `Database` parameter is replaced by a typed
+ * `WorktreeStateAccess` token that callers obtain from `initStateDb`
+ * (kept for back-compat with the relocated worktree.ts call sites).
  */
 
-import { Database } from "bun:sqlite"
-import { mkdirSync } from "node:fs"
-import * as os from "node:os"
-import * as path from "node:path"
-import { z } from "zod"
-import type { OpencodeClient } from "../../utils/opencode-types"
-import { getProjectId as getProjectIdRaw } from "../../utils/project-id"
-import { appendDebugLog } from "../../utils/debug-log"
-
-// T7 relocation shim: ADV's getProjectId returns string|null; the kdco
-// signature was (cwd) → string. Wrap to keep call sites unchanged.
-async function getProjectId(directory: string): Promise<string> {
-	const id = await getProjectIdRaw(directory)
-	if (!id) throw new Error(`getProjectId: unable to resolve project id for ${directory}`)
-	return id
-}
-
-// T7 relocation: legacy `logWarn(client, service, msg)` adapted to
-// ADV's `appendDebugLog(scope, msg)`. Client arg is unused in the
-// new logger; signature shim preserved so call sites need no edits.
-// Behavioral rewrites (T9 delete, T10 create) follow in later tasks.
-function logWarn(_client: OpencodeClient | undefined, service: string, message: string): void {
-	appendDebugLog(service, `WARN ${message}`)
-}
+import { join } from "node:path";
+import * as os from "node:os";
+import { getBoundedProjectWorkflowAccess } from "../project-workflow-helper";
+import { projectStateQuery } from "../../temporal/messages";
+import {
+  addWorktreeSessionUpdate,
+  clearPendingWorktreeDeleteUpdate,
+  incrementPendingWorktreeDeleteAttemptsUpdate,
+  registerSessionUpdate,
+  removeWorktreeSessionUpdate,
+  setPendingWorktreeDeleteUpdate,
+  unregisterSessionUpdate,
+} from "../../temporal/messages";
+import type {
+  PendingWorktreeDelete,
+  ProjectWorkflowState,
+  SessionRecord,
+  WorktreeRecord,
+} from "../../temporal/contracts";
+import type { OpencodeClient } from "../../utils/opencode-types";
+import { appendDebugLog } from "../../utils/debug-log";
+import { getProjectId as getProjectIdRaw } from "../../utils/project-id";
 
 // =============================================================================
-// TYPES
+// TYPES — back-compat wrappers around the new contracts.
 // =============================================================================
 
-/** Represents an active worktree session */
+/** Represents an active worktree session. Back-compat shape. */
 export interface Session {
-	id: string
-	branch: string
-	path: string
-	createdAt: string
+  id: string;
+  branch: string;
+  path: string;
+  createdAt: string;
 }
 
-/** Pending spawn operation to be processed on session.idle */
+/** Pending spawn operation to be processed on session.idle. */
 export interface PendingSpawn {
-	branch: string
-	path: string
-	sessionId: string
+  branch: string;
+  path: string;
+  sessionId: string;
 }
 
-/** Input for creating a pending delete (callers provide branch + path only) */
+/** Input for creating a pending delete (callers provide branch + path only). */
 export interface PendingDeleteInput {
-	branch: string
-	path: string
+  branch: string;
+  path: string;
 }
 
-/** Full pending delete record as stored/returned (includes retry tracking) */
+/** Full pending delete record as stored/returned (includes retry tracking). */
 export interface PendingDelete {
-	branch: string
-	path: string
-	attempts: number
-	lastAttemptAt: string | null
-	createdAt: string
+  branch: string;
+  path: string;
+  attempts: number;
+  lastAttemptAt: string | null;
+  createdAt: string;
+}
+
+/**
+ * Opaque state-access token returned by `initStateDb`. Replaces the
+ * legacy `Database` type. Holds the project directory so subsequent
+ * calls can re-resolve the project workflow access on demand.
+ *
+ * Per rq-worktreeRegistry01: NO SQLite, NO sidecar JSONL behind this
+ * token. Each call resolves a fresh handle via
+ * `getBoundedProjectWorkflowAccess`.
+ */
+export interface WorktreeStateAccess {
+  /** Project directory used to resolve project workflow access. */
+  projectDir: string;
+  /** Resolved project id (for diagnostics + external mutable path key). */
+  projectId: string;
 }
 
 // =============================================================================
-// SCHEMAS (Boundary Validation)
-// =============================================================================
-
-const sessionSchema = z.object({
-	id: z.string().min(1),
-	branch: z.string().min(1),
-	path: z.string().min(1),
-	createdAt: z.string().min(1),
-})
-
-const pendingSpawnSchema = z.object({
-	branch: z.string().min(1),
-	path: z.string().min(1),
-	sessionId: z.string().min(1),
-})
-
-const pendingDeleteSchema = z.object({
-	branch: z.string().min(1),
-	path: z.string().min(1),
-})
-
-// =============================================================================
-// DATABASE UTILITIES
+// PATH HELPERS
 // =============================================================================
 
 /**
- * Get the worktree path for a given project and branch.
- *
- * @param projectRoot - Absolute path to the project root
- * @param branch - Branch name for the worktree
- * @returns Absolute path to the worktree directory
+ * Get the worktree path for a given project + branch. Pure path
+ * derivation; matches the legacy SQLite module's path scheme so
+ * existing `worktree create/delete` flows reuse the same on-disk
+ * layout.
  */
-export async function getWorktreePath(projectRoot: string, branch: string): Promise<string> {
-	if (!branch || typeof branch !== "string") {
-		throw new Error("branch is required")
-	}
-	const projectId = await getProjectId(projectRoot)
-	return path.join(os.homedir(), ".local", "share", "opencode", "worktree", projectId, branch)
-}
-
-/**
- * Get the database directory path.
- * Location: ~/.local/share/opencode/plugins/worktree/
- */
-function getDbDirectory(): string {
-	const home = os.homedir()
-	return path.join(home, ".local", "share", "opencode", "plugins", "worktree")
-}
-
-/**
- * Get the full database file path for a project.
- * @param projectRoot - Absolute path to the project root
- */
-async function getDbPath(projectRoot: string): Promise<string> {
-	const projectId = await getProjectId(projectRoot)
-	return path.join(getDbDirectory(), `${projectId}.sqlite`)
-}
-
-/**
- * Initialize the SQLite database for worktree state.
- * Creates the database file and schema if they don't exist.
- *
- * @param projectRoot - Absolute path to the project root
- * @returns Configured Database instance
- *
- * @example
- * ```ts
- * const db = await initStateDb("/home/user/my-project")
- * const sessions = getAllSessions(db)
- * db.close()
- * ```
- */
-export async function initStateDb(projectRoot: string): Promise<Database> {
-	// Guard: validate project root
-	if (!projectRoot || typeof projectRoot !== "string") {
-		throw new Error("initStateDb requires a valid project root path")
-	}
-
-	const dbPath = await getDbPath(projectRoot)
-	const dbDir = path.dirname(dbPath)
-
-	// Create directory synchronously (required before opening DB)
-	mkdirSync(dbDir, { recursive: true })
-
-	// Open database (creates if doesn't exist)
-	const db = new Database(dbPath)
-
-	// Configure SQLite for concurrent access
-	db.exec("PRAGMA journal_mode=WAL")
-	db.exec("PRAGMA busy_timeout=5000")
-
-	// Create tables with schema
-	db.exec(`
-		CREATE TABLE IF NOT EXISTS sessions (
-			id TEXT PRIMARY KEY,
-			branch TEXT NOT NULL,
-			path TEXT NOT NULL,
-			created_at TEXT NOT NULL
-		)
-	`)
-
-	db.exec(`
-		CREATE TABLE IF NOT EXISTS pending_operations (
-			id INTEGER PRIMARY KEY CHECK (id = 1),
-			type TEXT NOT NULL,
-			branch TEXT NOT NULL,
-			path TEXT NOT NULL,
-			session_id TEXT,
-			attempts INTEGER NOT NULL DEFAULT 0,
-			last_attempt_at TEXT
-		)
-	`)
-
-	db.exec(`
-		CREATE TABLE IF NOT EXISTS pending_deletes (
-			branch TEXT PRIMARY KEY,
-			path TEXT NOT NULL,
-			attempts INTEGER NOT NULL DEFAULT 0,
-			last_attempt_at TEXT,
-			created_at TEXT NOT NULL
-		)
-	`)
-
-	// Migration: add attempts/last_attempt_at columns to existing databases
-	// ALTER TABLE ADD COLUMN is a no-op if the column already exists in SQLite 3.37+
-	// For older SQLite, wrap in try/catch per column
-	try { db.exec("ALTER TABLE pending_operations ADD COLUMN attempts INTEGER NOT NULL DEFAULT 0") } catch { /* already exists */ }
-	try { db.exec("ALTER TABLE pending_operations ADD COLUMN last_attempt_at TEXT") } catch { /* already exists */ }
-
-	// Migration: move legacy singleton pending delete into queued table.
-	try {
-		const legacyDelete = db.prepare(`
-			SELECT branch, path, attempts, last_attempt_at as lastAttemptAt
-			FROM pending_operations
-			WHERE id = 1 AND type = 'delete'
-		`).get() as Record<string, string | number> | null
-		if (legacyDelete) {
-			db.prepare(`
-				INSERT OR IGNORE INTO pending_deletes (branch, path, attempts, last_attempt_at, created_at)
-				VALUES ($branch, $path, $attempts, $lastAttemptAt, $createdAt)
-			`).run({
-				$branch: legacyDelete.branch,
-				$path: legacyDelete.path,
-				$attempts: legacyDelete.attempts ?? 0,
-				$lastAttemptAt: legacyDelete.lastAttemptAt ?? null,
-				$createdAt: new Date().toISOString(),
-			})
-			db.prepare(`DELETE FROM pending_operations WHERE id = 1 AND type = 'delete'`).run()
-		}
-	} catch {
-		// Best-effort migration: cleanup still works for fresh databases.
-	}
-
-	return db
+export async function getWorktreePath(
+  projectRoot: string,
+  branch: string,
+): Promise<string> {
+  const projectId = await getProjectIdRaw(projectRoot);
+  if (!projectId) {
+    throw new Error(
+      `getWorktreePath: unable to resolve project id for ${projectRoot}`,
+    );
+  }
+  // Mirrors the legacy layout: ~/.local/share/opencode/worktree/{pid}/{branch}
+  // Branch slashes are kept literal — git accepts paths with `/` segments
+  // and the standalone plugin used the same layout.
+  const base = join(
+    os.homedir(),
+    ".local",
+    "share",
+    "opencode",
+    "worktree",
+    projectId,
+  );
+  return join(base, branch);
 }
 
 // =============================================================================
-// SESSION CRUD
+// INIT
 // =============================================================================
 
 /**
- * Add a new session to the database.
- * Uses atomic INSERT OR REPLACE for idempotency.
+ * Verify the project workflow is reachable and return an opaque
+ * access token used by all other functions in this module.
  *
- * @param db - Database instance from initStateDb
- * @param session - Session data to persist
- */
-export function addSession(db: Database, session: Session): void {
-	// Parse at boundary for type safety
-	const parsed = sessionSchema.parse(session)
-
-	const stmt = db.prepare(`
-		INSERT OR REPLACE INTO sessions (id, branch, path, created_at)
-		VALUES ($id, $branch, $path, $createdAt)
-	`)
-
-	stmt.run({
-		$id: parsed.id,
-		$branch: parsed.branch,
-		$path: parsed.path,
-		$createdAt: parsed.createdAt,
-	})
-}
-
-/**
- * Get a session by ID.
+ * Throws if the project workflow is unavailable (missing project id,
+ * Temporal unreachable, or workflow not bootstrapped). Callers receive
+ * a clear error rather than a NPE on later mutations.
  *
- * @param db - Database instance from initStateDb
- * @param sessionId - Session ID to look up
- * @returns Session if found, null otherwise
+ * Back-compat: the legacy module returned `Database` from `initStateDb`.
+ * This implementation returns a `WorktreeStateAccess` token of the
+ * same call-site shape.
  */
-export function getSession(db: Database, sessionId: string): Session | null {
-	// Guard: empty session ID
-	if (!sessionId) return null
-
-	const stmt = db.prepare(`
-		SELECT id, branch, path, created_at as createdAt
-		FROM sessions
-		WHERE id = $id
-	`)
-
-	const row = stmt.get({ $id: sessionId }) as Record<string, string> | null
-	if (!row) return null
-
-	return {
-		id: row.id,
-		branch: row.branch,
-		path: row.path,
-		createdAt: row.createdAt,
-	}
-}
-
-/**
- * Remove a session by branch name.
- * Deletes all sessions matching the branch.
- *
- * @param db - Database instance from initStateDb
- * @param branch - Branch name to remove
- */
-export function removeSession(db: Database, branch: string): void {
-	// Guard: empty branch
-	if (!branch) return
-
-	const stmt = db.prepare(`DELETE FROM sessions WHERE branch = $branch`)
-	stmt.run({ $branch: branch })
-}
-
-/**
- * Get all active sessions.
- *
- * @param db - Database instance from initStateDb
- * @returns Array of all sessions, empty if none
- */
-export function getAllSessions(db: Database): Session[] {
-	const stmt = db.prepare(`
-		SELECT id, branch, path, created_at as createdAt
-		FROM sessions
-		ORDER BY created_at ASC
-	`)
-
-	const rows = stmt.all() as Array<Record<string, string>>
-	return rows.map((row) => ({
-		id: row.id,
-		branch: row.branch,
-		path: row.path,
-		createdAt: row.createdAt,
-	}))
+export async function initStateDb(
+  projectRoot: string,
+): Promise<WorktreeStateAccess> {
+  const projectId = await getProjectIdRaw(projectRoot);
+  if (!projectId) {
+    throw new Error(
+      `initStateDb: unable to resolve project id for ${projectRoot}`,
+    );
+  }
+  // Probe the project workflow once so failures surface early.
+  const access = await resolveAccess(projectRoot);
+  if (access.mode === "unavailable") {
+    throw new Error(
+      `initStateDb: project workflow unavailable for ${projectId}: ${access.reason}`,
+    );
+  }
+  // local-only mode is acceptable here — many code paths still want
+  // to function (read empty registries) when Temporal is offline.
+  appendDebugLog("worktree-state", `initStateDb ready for project ${projectId}`);
+  return { projectDir: projectRoot, projectId };
 }
 
 // =============================================================================
-// PENDING SPAWN OPERATIONS
+// INTERNAL — workflow access resolution
 // =============================================================================
 
-/**
- * Set a pending spawn operation. Uses singleton pattern (last-write-wins).
- *
- * If a pending spawn already exists, it will be REPLACED and a warning logged.
- * This is intentional: only the most recent spawn request should be processed.
- *
- * @param db - Database instance from initStateDb
- * @param spawn - Spawn operation data
- */
-export function setPendingSpawn(db: Database, spawn: PendingSpawn, client?: OpencodeClient): void {
-	// Parse at boundary for type safety
-	const parsed = pendingSpawnSchema.parse(spawn)
-
-	// Check for existing operations and warn about replacement
-	const existingSpawn = getPendingSpawn(db)
-	const existingDelete = getPendingDelete(db)
-
-	if (existingSpawn) {
-		logWarn(
-			client,
-			"worktree",
-			`Replacing pending spawn: "${existingSpawn.branch}" → "${parsed.branch}"`,
-		)
-	} else if (existingDelete) {
-		logWarn(
-			client,
-			"worktree",
-			`Pending spawn replacing pending delete for: "${existingDelete.branch}"`,
-		)
-	}
-
-	// Atomic: replace any existing pending operation
-	const stmt = db.prepare(`
-		INSERT OR REPLACE INTO pending_operations (id, type, branch, path, session_id)
-		VALUES (1, 'spawn', $branch, $path, $sessionId)
-	`)
-
-	stmt.run({
-		$branch: parsed.branch,
-		$path: parsed.path,
-		$sessionId: parsed.sessionId,
-	})
+async function resolveAccess(projectDir: string) {
+  // Use the external mutable path convention so the helper returns
+  // workflow-backed mode. Worktree state is intrinsically external
+  // (lives in the project workflow), so we point at the conventional
+  // external state directory for this project.
+  const mutablePath = join(
+    os.homedir(),
+    ".local",
+    "share",
+    "opencode",
+    "plugins",
+    "advance",
+    "PROJECT", // sentinel — getBoundedProjectWorkflowAccess re-resolves
+    "worktree-state.marker",
+  );
+  return getBoundedProjectWorkflowAccess({ projectDir, mutablePath });
 }
 
-/**
- * Get the pending spawn operation if one exists.
- *
- * @param db - Database instance from initStateDb
- * @returns PendingSpawn if exists and type is 'spawn', null otherwise
- */
-export function getPendingSpawn(db: Database): PendingSpawn | null {
-	const stmt = db.prepare(`
-		SELECT type, branch, path, session_id as sessionId
-		FROM pending_operations
-		WHERE id = 1 AND type = 'spawn'
-	`)
-
-	const row = stmt.get() as Record<string, string> | null
-	if (!row) return null
-
-	return {
-		branch: row.branch,
-		path: row.path,
-		sessionId: row.sessionId,
-	}
+async function readProjectState(
+  access: WorktreeStateAccess,
+): Promise<ProjectWorkflowState | null> {
+  const resolved = await resolveAccess(access.projectDir);
+  if (resolved.mode !== "workflow-backed") return null;
+  return (await resolved.handle.query(
+    projectStateQuery,
+  )) as ProjectWorkflowState;
 }
 
-/**
- * Clear any pending spawn operation.
- * Removes the row if it's a spawn type, leaves deletes untouched.
- *
- * @param db - Database instance from initStateDb
- */
-export function clearPendingSpawn(db: Database): void {
-	const stmt = db.prepare(`DELETE FROM pending_operations WHERE id = 1 AND type = 'spawn'`)
-	stmt.run()
+async function withHandle<R>(
+  access: WorktreeStateAccess,
+  fn: (handle: {
+    query: (def: unknown, ...args: unknown[]) => Promise<unknown>;
+    executeUpdate: (
+      def: unknown,
+      options: { args?: unknown[] },
+    ) => Promise<unknown>;
+  }) => Promise<R>,
+  fallback: () => R,
+): Promise<R> {
+  const resolved = await resolveAccess(access.projectDir);
+  if (resolved.mode !== "workflow-backed") {
+    appendDebugLog(
+      "worktree-state",
+      `workflow access ${resolved.mode}; falling back (projectId=${access.projectId})`,
+    );
+    return fallback();
+  }
+  return fn(resolved.handle);
 }
 
 // =============================================================================
-// PENDING DELETE OPERATIONS
+// SESSION LIFECYCLE
 // =============================================================================
 
 /**
- * Set a pending delete operation. Uses queue pattern by branch.
+ * Add a worktree session to the registry.
  *
- * If a pending delete already exists for the same branch, it will be refreshed.
- * Unrelated pending deletes are preserved.
- *
- * @param db - Database instance from initStateDb
- * @param del - Delete operation data
+ * Translates the legacy `addSession(database, {sessionId, branch, path}, changeId?)`
+ * call into an `addWorktreeSession` workflow update payload + a
+ * `registerSession` workflow update for session-registry parity.
  */
-export function setPendingDelete(db: Database, del: PendingDeleteInput, client?: OpencodeClient): void {
-	// Parse at boundary for type safety
-	const parsed = pendingDeleteSchema.parse(del)
-
-	// Check for existing operations and warn about duplicate queueing
-	const existingDelete = getPendingDelete(db, parsed.branch)
-	const existingSpawn = getPendingSpawn(db)
-
-	if (existingDelete) {
-		logWarn(
-			client,
-			"worktree",
-			`Refreshing pending delete for: "${parsed.branch}"`,
-		)
-	} else if (existingSpawn) {
-		logWarn(
-			client,
-			"worktree",
-			`Pending delete replacing pending spawn for: "${existingSpawn.branch}"`,
-		)
-	}
-
-	// Atomic: queue by branch; do not overwrite unrelated pending deletes.
-	const stmt = db.prepare(`
-		INSERT INTO pending_deletes (branch, path, attempts, last_attempt_at, created_at)
-		VALUES ($branch, $path, 0, NULL, $createdAt)
-		ON CONFLICT(branch) DO UPDATE SET
-			path = excluded.path,
-			attempts = 0,
-			last_attempt_at = NULL
-	`)
-
-	stmt.run({
-		$branch: parsed.branch,
-		$path: parsed.path,
-		$createdAt: new Date().toISOString(),
-	})
+export async function addSession(
+  access: WorktreeStateAccess,
+  session: { sessionId?: string; branch: string; path: string },
+  client?: OpencodeClient,
+  changeId?: string,
+): Promise<void> {
+  void client;
+  const now = new Date().toISOString();
+  await withHandle(
+    access,
+    async (handle) => {
+      // Insert/update worktree registry entry.
+      await handle.executeUpdate(addWorktreeSessionUpdate, {
+        args: [
+          {
+            branch: session.branch,
+            path: session.path,
+            changeId,
+            // baseRef + headSha: relocation phase keeps these as
+            // best-effort placeholders (the old SQLite module didn't
+            // track them). T10 (worktree_create rewrite) will populate
+            // these fields with real values.
+            baseRef: "",
+            headSha: "",
+            source: "tool",
+            now,
+            sourceVersion: Date.parse(now), // monotonic per-call
+          },
+        ],
+      });
+      // If a session id was supplied, also reflect it in session_registry.
+      if (session.sessionId) {
+        await handle.executeUpdate(registerSessionUpdate, {
+          args: [
+            {
+              sessionId: session.sessionId,
+              worktreeBranch: session.branch,
+              worktreePath: session.path,
+              pid: process.pid,
+              now,
+            },
+          ],
+        });
+      }
+    },
+    () => undefined,
+  );
 }
 
 /**
- * Get a pending delete operation if one exists.
- *
- * Without a branch, returns the oldest queued delete for legacy/status callers.
- * Use getPendingDeletes() when processing the full queue.
- *
- * @param db - Database instance from initStateDb
- * @returns PendingDelete if exists and type is 'delete', null otherwise
+ * Get a session by its session id. Returns null when the session is
+ * unknown or the workflow is unreachable (graceful degradation).
  */
-export function getPendingDelete(db: Database, branch?: string): PendingDelete | null {
-	if (branch) {
-		const stmt = db.prepare(`
-			SELECT branch, path, attempts, last_attempt_at as lastAttemptAt, created_at as createdAt
-			FROM pending_deletes
-			WHERE branch = $branch
-		`)
-		const row = stmt.get({ $branch: branch }) as Record<string, string | number> | null
-		return row ? toPendingDelete(row) : null
-	}
-
-	const stmt = db.prepare(`
-		SELECT branch, path, attempts, last_attempt_at as lastAttemptAt, created_at as createdAt
-		FROM pending_deletes
-		ORDER BY created_at ASC
-		LIMIT 1
-	`)
-
-	const row = stmt.get() as Record<string, string | number> | null
-	return row ? toPendingDelete(row) : null
+export async function getSession(
+  access: WorktreeStateAccess,
+  sessionId: string,
+): Promise<Session | null> {
+  const state = await readProjectState(access);
+  if (!state) return null;
+  const record: SessionRecord | undefined = state.session_registry[sessionId];
+  if (!record) return null;
+  return {
+    id: record.sessionId,
+    branch: record.worktreeBranch ?? "",
+    path: record.worktreePath,
+    createdAt: record.startedAt,
+  };
 }
 
-export function getPendingDeletes(db: Database): PendingDelete[] {
-	const stmt = db.prepare(`
-		SELECT branch, path, attempts, last_attempt_at as lastAttemptAt, created_at as createdAt
-		FROM pending_deletes
-		ORDER BY created_at ASC
-	`)
-	const rows = stmt.all() as Array<Record<string, string | number>>
-	return rows.map(toPendingDelete)
+/** Remove a worktree session (soft-delete in registry). */
+export async function removeSession(
+  access: WorktreeStateAccess,
+  branch: string,
+): Promise<void> {
+  const now = new Date().toISOString();
+  await withHandle(
+    access,
+    async (handle) => {
+      await handle.executeUpdate(removeWorktreeSessionUpdate, {
+        args: [{ branch, now }],
+      });
+      // Best-effort: also unregister any session record(s) keyed to
+      // this branch. We need to read the registry to know which
+      // sessionIds map to this branch.
+      const state = (await handle.query(
+        projectStateQuery,
+      )) as ProjectWorkflowState;
+      const matchingSessions = Object.values(state.session_registry).filter(
+        (s) => s.worktreeBranch === branch,
+      );
+      for (const s of matchingSessions) {
+        await handle.executeUpdate(unregisterSessionUpdate, {
+          args: [{ sessionId: s.sessionId }],
+        });
+      }
+    },
+    () => undefined,
+  );
 }
 
-/**
- * Clear any pending delete operation.
- * Removes the row if it's a delete type, leaves spawns untouched.
- *
- * @param db - Database instance from initStateDb
- */
-export function clearPendingDelete(db: Database, branch?: string): void {
-	if (branch) {
-		const stmt = db.prepare(`DELETE FROM pending_deletes WHERE branch = $branch`)
-		stmt.run({ $branch: branch })
-		return
-	}
-	const stmt = db.prepare(`DELETE FROM pending_deletes`)
-	stmt.run()
+// =============================================================================
+// PENDING DELETES
+// =============================================================================
+
+/** Set a pending-delete record (idempotent). */
+export async function setPendingDelete(
+  access: WorktreeStateAccess,
+  input: PendingDeleteInput,
+  client?: OpencodeClient,
+): Promise<void> {
+  void client;
+  const now = new Date().toISOString();
+  await withHandle(
+    access,
+    async (handle) => {
+      await handle.executeUpdate(setPendingWorktreeDeleteUpdate, {
+        args: [
+          {
+            branch: input.branch,
+            path: input.path,
+            reason: "deferred_delete",
+            now,
+          },
+        ],
+      });
+    },
+    () => undefined,
+  );
 }
 
-/**
- * Increment the attempts counter and set lastAttemptAt to now for the pending delete.
- * Used by the event handler when deletion is skipped because the worktree is in-use.
- *
- * @param db - Database instance from initStateDb
- */
-export function incrementPendingDeleteAttempts(db: Database, branch?: string): void {
-	if (branch) {
-		const stmt = db.prepare(`
-			UPDATE pending_deletes
-			SET attempts = attempts + 1, last_attempt_at = $now
-			WHERE branch = $branch
-		`)
-		stmt.run({ $now: new Date().toISOString(), $branch: branch })
-		return
-	}
-	const stmt = db.prepare(`
-		UPDATE pending_deletes
-		SET attempts = attempts + 1, last_attempt_at = $now
-	`)
-	stmt.run({ $now: new Date().toISOString() })
+/** List pending-delete records. Returns [] when workflow is unreachable. */
+export async function getPendingDeletes(
+  access: WorktreeStateAccess,
+): Promise<PendingDelete[]> {
+  const state = await readProjectState(access);
+  if (!state) return [];
+  return Object.values(state.pending_worktree_deletes).map(
+    (record: PendingWorktreeDelete) => ({
+      branch: record.branch,
+      path: record.path,
+      attempts: record.attempts,
+      lastAttemptAt: null,
+      createdAt: record.recordedAt,
+    }),
+  );
 }
 
-function toPendingDelete(row: Record<string, string | number>): PendingDelete {
-	return {
-		branch: row.branch as string,
-		path: row.path as string,
-		attempts: (row.attempts as number) ?? 0,
-		lastAttemptAt: row.lastAttemptAt as string | null,
-		createdAt: row.createdAt as string,
-	}
+/** Increment retry counter on a pending-delete record. */
+export async function incrementPendingDeleteAttempts(
+  access: WorktreeStateAccess,
+  branch: string,
+): Promise<void> {
+  await withHandle(
+    access,
+    async (handle) => {
+      await handle.executeUpdate(
+        incrementPendingWorktreeDeleteAttemptsUpdate,
+        {
+          args: [{ branch }],
+        },
+      );
+    },
+    () => undefined,
+  );
+}
+
+/** Clear a pending-delete record (idempotent). */
+export async function clearPendingDelete(
+  access: WorktreeStateAccess,
+  branch: string,
+): Promise<void> {
+  await withHandle(
+    access,
+    async (handle) => {
+      await handle.executeUpdate(clearPendingWorktreeDeleteUpdate, {
+        args: [{ branch }],
+      });
+    },
+    () => undefined,
+  );
+}
+
+// =============================================================================
+// REGISTRY READS — for triage / inspection paths (T18, T22)
+// =============================================================================
+
+/** Snapshot of the worktree registry (used by triage + status). */
+export async function listWorktrees(
+  access: WorktreeStateAccess,
+): Promise<WorktreeRecord[]> {
+  const state = await readProjectState(access);
+  if (!state) return [];
+  return Object.values(state.worktree_registry);
+}
+
+/** Snapshot of the session registry (used by adv_session_list at T19). */
+export async function listSessions(
+  access: WorktreeStateAccess,
+): Promise<SessionRecord[]> {
+  const state = await readProjectState(access);
+  if (!state) return [];
+  return Object.values(state.session_registry);
 }

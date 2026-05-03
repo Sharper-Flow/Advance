@@ -11,7 +11,13 @@
  * Rewritten for OCX with production-proven patterns.
  */
 
-import type { Database } from "bun:sqlite"
+// T13: SQLite Database type replaced by WorktreeStateAccess token.
+// The legacy `Database` symbol survives only as a type alias so the
+// large amount of existing code in this file (call sites that pass
+// `db` around) keeps compiling. Behavioral rewrites (T9/T10) will
+// drop these adapters as flows are migrated to the Temporal-backed
+// state module directly.
+import type { WorktreeStateAccess as Database } from "./state"
 import { access, copyFile, cp, mkdir, rm, stat, symlink } from "node:fs/promises"
 import * as os from "node:os"
 import * as path from "node:path"
@@ -353,17 +359,16 @@ let cleanupRegistered = false
  *
  * @param database - The database instance to clean up
  */
-function registerCleanupHandlers(database: Database): void {
+function registerCleanupHandlers(_database: Database): void {
 	if (cleanupRegistered) return // Early exit guard
 	cleanupRegistered = true
 
+	// T13: SQLite cleanup (wal_checkpoint, close) is no-op now —
+	// state lives in the project workflow, not in a local database.
+	// Cleanup hooks remain registered for back-compat with future
+	// session-shutdown work that may need to flush pending updates.
 	const cleanup = () => {
-		try {
-			database.exec("PRAGMA wal_checkpoint(TRUNCATE)")
-			database.close()
-		} catch {
-			// Best effort cleanup - process is exiting anyway
-		}
+		// no-op
 	}
 
 	process.once("SIGTERM", cleanup)
@@ -717,7 +722,7 @@ export const WorktreePlugin: Plugin = async (ctx) => {
 		trigger: string,
 		options: { forceAttempts?: boolean } = {},
 	): Promise<{ removed: number; retained: number }> {
-		const pendingDeletes = getPendingDeletes(database)
+		const pendingDeletes = await getPendingDeletes(database)
 		if (pendingDeletes.length === 0) return { removed: 0, retained: 0 }
 
 		const config = await loadWorktreeConfig(directory, log)
@@ -739,7 +744,7 @@ export const WorktreePlugin: Plugin = async (ctx) => {
 				log.warn(
 					`[worktree] Skipping worktree removal during ${trigger} — directory still in use: ${worktreePath} (attempt ${pendingDelete.attempts + 1})`,
 				)
-				incrementPendingDeleteAttempts(database, branch)
+				await incrementPendingDeleteAttempts(database, branch)
 				retained++
 				continue
 			}
@@ -761,12 +766,12 @@ export const WorktreePlugin: Plugin = async (ctx) => {
 				const removeResult = await removeWorktree(directory, worktreePath)
 				if (!removeResult.ok) throw new Error(`remove worktree failed: ${removeResult.error}`)
 
-				clearPendingDelete(database, branch)
-				removeSession(database, branch)
+				await clearPendingDelete(database, branch)
+				await removeSession(database, branch)
 				removed++
 			} catch (error) {
 				log.warn(`[worktree] Failed pending delete for ${branch}: ${error}`)
-				incrementPendingDeleteAttempts(database, branch)
+				await incrementPendingDeleteAttempts(database, branch)
 				retained++
 			}
 		}
@@ -834,14 +839,12 @@ export const WorktreePlugin: Plugin = async (ctx) => {
 					if (worktreeConfig.inline) {
 						log.info(`[worktree] Inline mode — skipping terminal spawn for ${args.branch}`)
 
-						// Record session for tracking (used by delete flow)
-						// Use "inline:<branch>" as the ID to avoid PK collision when
-						// the same session creates multiple worktrees.
-						addSession(database, {
-							id: `inline:${args.branch}`,
+						// Record session for tracking (used by delete flow).
+						// T13: addSession now async + sessionId/branch/path shape.
+						await addSession(database, {
+							sessionId: `inline:${args.branch}`,
 							branch: args.branch,
 							path: worktreePath,
-							createdAt: new Date().toISOString(),
 						})
 
 						return [
@@ -885,12 +888,12 @@ export const WorktreePlugin: Plugin = async (ctx) => {
 						log.warn(`[worktree] Failed to open terminal: ${terminalResult.error}`)
 					}
 
-					// Record session for tracking (used by delete flow)
-					addSession(database, {
-						id: forkedSession.id,
+					// Record session for tracking (used by delete flow).
+					// T13: addSession now async + sessionId/branch/path shape.
+					await addSession(database, {
+						sessionId: forkedSession.id,
 						branch: args.branch,
 						path: worktreePath,
-						createdAt: new Date().toISOString(),
 					})
 
 					return `Worktree created at ${worktreePath}\n\nA new terminal has been opened with OpenCode.`
@@ -912,18 +915,18 @@ export const WorktreePlugin: Plugin = async (ctx) => {
 				async execute(args, toolCtx) {
 					const worktreeConfig = await loadWorktreeConfig(directory, log)
 
-					// Find the worktree session record
-					let session: ReturnType<typeof getSession> = null
+					// Find the worktree session record. T13: getSession now async.
+					let session: Awaited<ReturnType<typeof getSession>> = null
 
 					if (worktreeConfig.inline) {
 						// Inline mode: look up by "inline:<branch>" key
 						if (!args.branch) {
 							return `In inline mode, you must provide the branch name of the worktree to delete.`
 						}
-						session = getSession(database, `inline:${args.branch}`)
+						session = await getSession(database, `inline:${args.branch}`)
 					} else {
 						// Non-inline mode: look up by forked session ID
-						session = getSession(database, toolCtx?.sessionID ?? "")
+						session = await getSession(database, toolCtx?.sessionID ?? "")
 					}
 
 					if (!session) {
@@ -931,7 +934,7 @@ export const WorktreePlugin: Plugin = async (ctx) => {
 					}
 
 					// Queue pending delete and run one guarded cleanup attempt immediately.
-					setPendingDelete(database, { branch: session.branch, path: session.path }, client)
+					await setPendingDelete(database, { branch: session.branch, path: session.path }, client)
 					const cleanup = await processPendingDeletes("worktree_delete")
 					if (cleanup.removed > 0 && cleanup.retained === 0) {
 						return `Worktree removed and changes committed on branch "${session.branch}".`

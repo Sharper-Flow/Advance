@@ -217,6 +217,65 @@ export const purgeChangeSummaryUpdate = wf.defineUpdate<
   [{ changeId: string }]
 >(PROJECT_WORKFLOW_UPDATE_NAMES.purgeChangeSummary);
 
+// T5 (KD-1): worktree + session lifecycle update bindings.
+// Client-side definitions for the 8 mutators wired in workflows.ts.
+// Spec anchors: rq-worktreeRegistry01, rq-multiSessionCoordination01.
+import type {
+  AddWorktreeSessionPayload,
+  ClearPendingWorktreeDeletePayload,
+  IncrementPendingWorktreeDeleteAttemptsPayload,
+  RegisterSessionPayload,
+  RemoveWorktreeSessionPayload,
+  SetPendingWorktreeDeletePayload,
+  UnregisterSessionPayload,
+  UpdateSessionActivityPayload,
+} from "./project-state";
+import type {
+  PendingWorktreeDelete,
+  SessionRecord,
+  WorktreeRecord,
+} from "./contracts";
+
+export const addWorktreeSessionUpdate = wf.defineUpdate<
+  WorktreeRecord,
+  [AddWorktreeSessionPayload]
+>(PROJECT_WORKFLOW_UPDATE_NAMES.addWorktreeSession);
+
+export const removeWorktreeSessionUpdate = wf.defineUpdate<
+  WorktreeRecord | null,
+  [RemoveWorktreeSessionPayload]
+>(PROJECT_WORKFLOW_UPDATE_NAMES.removeWorktreeSession);
+
+export const setPendingWorktreeDeleteUpdate = wf.defineUpdate<
+  PendingWorktreeDelete,
+  [SetPendingWorktreeDeletePayload]
+>(PROJECT_WORKFLOW_UPDATE_NAMES.setPendingWorktreeDelete);
+
+export const clearPendingWorktreeDeleteUpdate = wf.defineUpdate<
+  void,
+  [ClearPendingWorktreeDeletePayload]
+>(PROJECT_WORKFLOW_UPDATE_NAMES.clearPendingWorktreeDelete);
+
+export const incrementPendingWorktreeDeleteAttemptsUpdate = wf.defineUpdate<
+  PendingWorktreeDelete | null,
+  [IncrementPendingWorktreeDeleteAttemptsPayload]
+>(PROJECT_WORKFLOW_UPDATE_NAMES.incrementPendingWorktreeDeleteAttempts);
+
+export const registerSessionUpdate = wf.defineUpdate<
+  SessionRecord,
+  [RegisterSessionPayload]
+>(PROJECT_WORKFLOW_UPDATE_NAMES.registerSession);
+
+export const unregisterSessionUpdate = wf.defineUpdate<
+  void,
+  [UnregisterSessionPayload]
+>(PROJECT_WORKFLOW_UPDATE_NAMES.unregisterSession);
+
+export const updateSessionActivityUpdate = wf.defineUpdate<
+  SessionRecord | null,
+  [UpdateSessionActivityPayload]
+>(PROJECT_WORKFLOW_UPDATE_NAMES.updateSessionActivity);
+
 // Signal: fire-and-forget change summary propagation from changeWorkflow
 export const applyChangeSummarySignal = wf.defineSignal<[ChangeSummaryPayload]>(
   CHANGE_WORKFLOW_SIGNAL_NAMES.applyChangeSummary,
