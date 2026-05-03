@@ -21,6 +21,7 @@
 import { join } from "node:path";
 import * as os from "node:os";
 import { getBoundedProjectWorkflowAccess } from "../project-workflow-helper";
+import { getProjectId } from "../../utils/project-id";
 import { projectStateQuery } from "../../temporal/messages";
 import {
   addWorktreeSessionUpdate,
@@ -176,6 +177,23 @@ async function resolveAccess(projectDir: string) {
   // workflow-backed mode. Worktree state is intrinsically external
   // (lives in the project workflow), so we point at the conventional
   // external state directory for this project.
+  //
+  // CRITICAL: resolve the actual projectId here BEFORE building
+  // mutablePath. A prior implementation used the literal string "PROJECT"
+  // as a sentinel and relied on getBoundedProjectWorkflowAccess to
+  // "re-resolve" it — but the helper only does
+  // `basename(dirname(mutablePath))`, which returns "PROJECT" verbatim
+  // and produces queue lookups for the bogus name `advance-PROJECT`.
+  // The sentinel scheme was never actually wired up; resolve early.
+  //
+  // When projectId is unresolvable (non-git directory), fall through to
+  // the helper without a mutablePath so it can apply its own local-only
+  // fallback. This preserves test mocks that drive the access mode
+  // directly via the helper.
+  const projectId = await getProjectId(projectDir);
+  if (!projectId) {
+    return getBoundedProjectWorkflowAccess({ projectDir });
+  }
   const mutablePath = join(
     os.homedir(),
     ".local",
@@ -183,7 +201,7 @@ async function resolveAccess(projectDir: string) {
     "opencode",
     "plugins",
     "advance",
-    "PROJECT", // sentinel — getBoundedProjectWorkflowAccess re-resolves
+    projectId,
     "worktree-state.marker",
   );
   return getBoundedProjectWorkflowAccess({ projectDir, mutablePath });
