@@ -281,7 +281,8 @@ describe("sync-global.sh", () => {
       expect(content).toContain("PROVIDER_PROMPT_PARTS_DIR");
       expect(content).toContain("sync_adv_prompt_parts");
       expect(content).toContain("[ADV:PROVIDER_STUB_UNEXPANDED]");
-      expect(content).toContain("agent-parts/advance/providers");
+      // Provider hints are copied to providers/ subdirectory (via variable)
+      expect(content).toContain("providers/${provider}.md");
     });
 
     test("provider hint source follows asset root for worktree-local edits", () => {
@@ -297,10 +298,32 @@ describe("sync-global.sh", () => {
       expect(content).not.toContain('hint_block="$(cat "$hint_file")"');
     });
 
-    test("sync script patches prompt refs for provider variants", () => {
+    test("sync script patches prompt refs for provider variants using single-file concatenation", () => {
       expect(content).toContain("patch_provider_prompt_refs");
-      expect(content).toContain("{file:./agent-parts/advance/adv.md}");
-      expect(content).toContain("{file:./agent-parts/advance/providers/");
+      // Single-file concatenated prompt ref via printf format string
+      expect(content).toContain("{file:./agent-parts/advance/adv-%s.md}");
+      // Multi-file pattern must NOT appear in provider_prompt_ref function
+      expect(content).not.toMatch(
+        /provider_prompt_ref\(\).*\{file:.*adv\.md\}\\n\\n\{file:/s,
+      );
+    });
+
+    test("sync script generates per-provider concatenated prompt files", () => {
+      expect(content).toContain("generate_concatenated_provider_prompts");
+      // Concatenated output path uses provider name in filename
+      expect(content).toMatch(/adv-\$\{provider\}\.md/);
+      // Must read from existing prompt parts (source-of-truth)
+      expect(content).toContain("PROVIDER_PROMPT_PARTS_DIR/adv.md");
+      expect(content).toContain("PROVIDER_PROMPT_PARTS_DIR/providers");
+    });
+
+    test("sync script validates concatenated files with regenerate-and-diff staleness", () => {
+      expect(content).toContain("check_provider_prompt_parts");
+      // Must detect legacy multi-ref pattern
+      expect(content).toMatch(/legacy.*multi/i);
+      // Must do regenerate-and-diff (no SHA256 sidecar)
+      expect(content).not.toContain(".sha256");
+      expect(content).toMatch(/content.*mismatch/i);
     });
 
     test("sync script extends drift checks to all provider variants", () => {

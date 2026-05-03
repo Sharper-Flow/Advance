@@ -323,11 +323,11 @@ PY
 # ---------------------------------------------------------------------------
 PROVIDER_HINT_DIR="$ASSET_ROOT/.opencode/agent-parts/providers"
 PROVIDERS=(claude gpt glm kimi)
-PROVIDER_STUB_DIAGNOSTIC='[ADV:PROVIDER_STUB_UNEXPANDED] Provider ADV stub did not expand through opencode.json prompt refs. Do NOT proceed with ADV workflow. Run `scripts/sync-global.sh --fix`, verify `agent.adv-{provider}.prompt` references `{file:./agent-parts/advance/adv.md}` and the provider hint, then restart OpenCode.'
+PROVIDER_STUB_DIAGNOSTIC='[ADV:PROVIDER_STUB_UNEXPANDED] Provider ADV stub did not expand through opencode.json prompt refs. Do NOT proceed with ADV workflow. Run `scripts/sync-global.sh --fix`, verify `agent.adv-{provider}.prompt` references `{file:./agent-parts/advance/adv-{provider}.md}` (single concatenated file), then restart OpenCode.'
 
 provider_prompt_ref() {
   local provider="$1"
-  printf '{file:./agent-parts/advance/adv.md}\n\n{file:./agent-parts/advance/providers/%s.md}' "$provider"
+  printf '{file:./agent-parts/advance/adv-%s.md}' "$provider"
 }
 
 sync_adv_prompt_parts() {
@@ -365,6 +365,56 @@ PY
     cp "$hint_file" "$PROVIDER_PROMPT_PARTS_DIR/providers/${provider}.md"
   done
   echo "    synced provider prompt parts: agent-parts/advance"
+}
+
+# ---------------------------------------------------------------------------
+# Generate per-provider concatenated prompt files
+#
+# Joins the canonical adv.md body with each provider hint into a single
+# file per provider. These files are referenced by opencode.json prompt
+# refs (single-file form, matching OpenCode documented API).
+# ---------------------------------------------------------------------------
+generate_concatenated_provider_prompts() {
+  local canonical="$PROVIDER_PROMPT_PARTS_DIR/adv.md"
+
+  if [ "$DRY_RUN" = true ]; then
+    echo "    dry-run generate concatenated provider prompts"
+    return 0
+  fi
+
+  if [ ! -f "$canonical" ]; then
+    echo "    ✗  concatenated provider prompts: canonical adv.md missing at $canonical"
+    return 1
+  fi
+
+  local generated=0
+  for provider in "${PROVIDERS[@]}"; do
+    local hint_file="$PROVIDER_PROMPT_PARTS_DIR/providers/${provider}.md"
+    local output_file="$PROVIDER_PROMPT_PARTS_DIR/adv-${provider}.md"
+
+    if [ ! -f "$hint_file" ]; then
+      echo "    ✗  concatenated provider prompts: missing hint $hint_file"
+      return 1
+    fi
+
+    # Join canonical body + provider hint with double newline
+    python - "$canonical" "$hint_file" "$output_file" <<'PY'
+from pathlib import Path
+import sys
+
+canonical_path, hint_path, output_path = sys.argv[1], sys.argv[2], sys.argv[3]
+canonical = Path(canonical_path).read_text().rstrip()
+hint = Path(hint_path).read_text().rstrip()
+Path(output_path).write_text(canonical + "\n\n" + hint + "\n")
+PY
+
+    if [ $? -ne 0 ]; then
+      echo "    ✗  concatenated provider prompts: failed to generate $output_file"
+      return 1
+    fi
+    ((generated++)) || true
+  done
+  echo "    generated $generated concatenated provider prompt(s)"
 }
 
 generate_provider_variants() {
@@ -473,8 +523,21 @@ check_provider_prompt_parts() {
 
   local needs_parts=false
   for provider in "${PROVIDERS[@]}"; do
-    local expected
+    local expected single_ref
     expected="$(provider_prompt_ref "$provider")"
+
+    # Detect old multi-ref pattern and flag it
+    local current
+    current="$(jsonc_to_json "$GLOBAL_JSON" | jq -r --arg agent "adv-${provider}" '.agent[$agent].prompt // ""')"
+    if echo "$current" | grep -qE '\{file:[^}]+\}.*\{file:[^}]+\}'; then
+      echo "    ✗  Provider ADV prompt ref uses legacy multi-file pattern for adv-${provider}"
+      echo "       Expected: $expected"
+      echo "       Run: scripts/sync-global.sh --fix"
+      ((config_issues++)) || true
+      needs_parts=true
+      continue
+    fi
+
     if jsonc_to_json "$GLOBAL_JSON" | jq -e --arg agent "adv-${provider}" --arg expected "$expected" '(.agent[$agent].prompt // "") == $expected' >/dev/null; then
       needs_parts=true
     fi
@@ -494,6 +557,37 @@ check_provider_prompt_parts() {
       echo "    ✗  Provider ADV prompt part missing: $PROVIDER_PROMPT_PARTS_DIR/providers/${provider}.md"
       echo "       Run: scripts/sync-global.sh --fix"
       ((config_issues++)) || true
+    fi
+  done
+
+  # Check concatenated files exist and are fresh (regenerate-and-diff)
+  for provider in "${PROVIDERS[@]}"; do
+    local concat_file="$PROVIDER_PROMPT_PARTS_DIR/adv-${provider}.md"
+    if [ ! -f "$concat_file" ]; then
+      echo "    ✗  Concatenated provider prompt missing: $concat_file"
+      echo "       Run: scripts/sync-global.sh --fix"
+      ((config_issues++)) || true
+      continue
+    fi
+
+    # Regenerate-and-diff: compute expected content and compare
+    if [ -f "$PROVIDER_PROMPT_PARTS_DIR/adv.md" ] && [ -f "$PROVIDER_PROMPT_PARTS_DIR/providers/${provider}.md" ]; then
+      local expected_content
+      expected_content="$(python - "$PROVIDER_PROMPT_PARTS_DIR/adv.md" "$PROVIDER_PROMPT_PARTS_DIR/providers/${provider}.md" <<'PY'
+from pathlib import Path
+import sys
+canonical = Path(sys.argv[1]).read_text().rstrip()
+hint = Path(sys.argv[2]).read_text().rstrip()
+print(canonical + "\n\n" + hint + "\n", end="")
+PY
+)"
+      local actual_content
+      actual_content="$(cat "$concat_file")"
+      if [ "$expected_content" != "$actual_content" ]; then
+        echo "    ✗  Concatenated provider prompt stale (content mismatch): $concat_file"
+        echo "       Run: scripts/sync-global.sh --fix"
+        ((config_issues++)) || true
+      fi
     fi
   done
 }
@@ -1044,6 +1138,7 @@ echo "    $agents_copied agent(s) synced"
 # Generate provider ADV variants from canonical adv.md
 # (skinny stub + prompt refs to shared prompt parts)
 sync_adv_prompt_parts
+generate_concatenated_provider_prompts
 generate_provider_variants
 
 # Apply repo-owned overlays to shared global agents without replacing the file.

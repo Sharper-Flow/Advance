@@ -399,7 +399,7 @@ describe("overlay sync script support", () => {
           readFileSync(join(promptParts, "providers", `${p}.md`), "utf8"),
         ).toContain(`<!-- PROVIDER_HINT:${p} -->`);
         expect(config.agent[`adv-${p}`].prompt).toBe(
-          `{file:./agent-parts/advance/adv.md}\n\n{file:./agent-parts/advance/providers/${p}.md}`,
+          `{file:./agent-parts/advance/adv-${p}.md}`,
         );
       }
     } finally {
