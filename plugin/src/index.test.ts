@@ -825,6 +825,122 @@ describe("Advance Plugin SDK Integration", () => {
         hookOutput.system.some((s) => s.includes("[ADV:TODO_CONTINUATION]")),
       ).toBe(false);
     });
+
+    // AC1: at most one ADV-controlled system entry per turn.
+    // Refactor in T2 collapsed seven `output.system.push` sites into a
+    // single ordered append into `output.system[0]`. This contract is
+    // what fixes the OpenAI-compat assistant-prefilling rejection.
+    test("experimental.chat.system.transform never grows output.system past one entry (AC1)", async () => {
+      const hooks = await createTrackedPlugin(tempDir, pluginInstances);
+      const transformHook = hooks["experimental.chat.system.transform"]!;
+      const changeId = "addFeature";
+      const taskId = "tk-singleblock-1";
+
+      // Set active change.
+      await hooks["tool.execute.before"]!(
+        { tool: "adv_task_list" } as any,
+        { args: { changeId } } as any,
+      );
+
+      // Force a just-completed task → wisdomPrompt section fires.
+      const toolOutput = JSON.stringify({
+        success: true,
+        task: { id: taskId, title: "Implement foo", status: "done" },
+      });
+      await hooks["tool.execute.after"]!(
+        { tool: "adv_task_update" } as any,
+        { args: { taskId, status: "done" }, output: toolOutput } as any,
+      );
+
+      // Healthy + active change + wisdom prompt: previously emitted 2-3
+      // separate entries. Single-entry contract requires length <= 1.
+      const out1 = { system: [] as string[] };
+      await transformHook(
+        { sessionID: "test", model: { providerID: "openai" } } as any,
+        out1 as any,
+      );
+      expect(out1.system.length).toBeLessThanOrEqual(1);
+
+      // After wisdom prompt clears, next turn with worktree-style state
+      // should still respect the single-entry contract.
+      const out2 = { system: [] as string[] };
+      await transformHook(
+        { sessionID: "test", model: { providerID: "anthropic" } } as any,
+        out2 as any,
+      );
+      expect(out2.system.length).toBeLessThanOrEqual(1);
+
+      // Both entries must contain the active-change marker AND no two
+      // distinct entries have been added.
+      if (out1.system[0]) {
+        expect(out1.system[0]).toContain(`[ADV] Active change: ${changeId}`);
+        expect(out1.system[0]).toContain("[ADV:RECORD_WISDOM]");
+      }
+    });
+
+    // AC8: stable header → sentinel → volatile suffix when both exist.
+    test("experimental.chat.system.transform places sentinel between stable and volatile sections (AC8)", async () => {
+      const hooks = await createTrackedPlugin(tempDir, pluginInstances);
+      const transformHook = hooks["experimental.chat.system.transform"]!;
+      const changeId = "addFeature";
+      const taskId = "tk-sentinel-1";
+
+      await hooks["tool.execute.before"]!(
+        { tool: "adv_task_list" } as any,
+        { args: { changeId } } as any,
+      );
+      const toolOutput = JSON.stringify({
+        success: true,
+        task: { id: taskId, title: "Implement bar", status: "done" },
+      });
+      await hooks["tool.execute.after"]!(
+        { tool: "adv_task_update" } as any,
+        { args: { taskId, status: "done" }, output: toolOutput } as any,
+      );
+
+      const out = { system: [] as string[] };
+      await transformHook(
+        { sessionID: "test", model: { providerID: "anthropic" } } as any,
+        out as any,
+      );
+
+      expect(out.system).toHaveLength(1);
+      const block = out.system[0]!;
+      expect(block).toContain("--- ADV:VOLATILE ---");
+      // Stable (active change) precedes sentinel; volatile (wisdom)
+      // follows sentinel.
+      const sentIdx = block.indexOf("--- ADV:VOLATILE ---");
+      const activeIdx = block.indexOf("[ADV] Active change");
+      const wisdomIdx = block.indexOf("[ADV:RECORD_WISDOM]");
+      expect(activeIdx).toBeGreaterThanOrEqual(0);
+      expect(activeIdx).toBeLessThan(sentIdx);
+      expect(sentIdx).toBeLessThan(wisdomIdx);
+    });
+
+    // Internal-call short-circuit (JC-3): when output.system[0] matches
+    // an OpenCode internal-call pattern (title generation, summarizer),
+    // the assembler returns null and ADV content is NOT appended.
+    test("experimental.chat.system.transform skips ADV content for internal calls", async () => {
+      const hooks = await createTrackedPlugin(tempDir, pluginInstances);
+      const transformHook = hooks["experimental.chat.system.transform"]!;
+      const changeId = "addFeature";
+
+      await hooks["tool.execute.before"]!(
+        { tool: "adv_task_list" } as any,
+        { args: { changeId } } as any,
+      );
+
+      const out = {
+        system: ["Generate a short title for this conversation"],
+      };
+      await transformHook(
+        { sessionID: "test", model: { providerID: "anthropic" } } as any,
+        out as any,
+      );
+      expect(out.system).toEqual([
+        "Generate a short title for this conversation",
+      ]);
+    });
   });
 
   describe("Internal SDK Hooks", () => {

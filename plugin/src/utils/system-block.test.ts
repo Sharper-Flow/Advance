@@ -13,6 +13,7 @@ import {
   FALLBACK_CHAIN,
   INTERNAL_CALL_PATTERNS,
   VOLATILE_SENTINEL,
+  applyAdvSystemBlock,
   assembleSystemBlock,
   formatDegradedBanner,
   formatSessionHealthBanner,
@@ -490,5 +491,143 @@ describe("assembleSystemBlock", () => {
         /\[ADV:WORKTREE_SESSION\][\s\S]*\n\n\[ADV\] Active change/,
       );
     });
+  });
+});
+
+// ─── applyAdvSystemBlock — single-entry emission (AC1) ──────────────────────
+
+describe("applyAdvSystemBlock", () => {
+  it("appends a single entry when output.system was empty (AC1)", () => {
+    const output = { system: [] as string[] };
+    const result = applyAdvSystemBlock(output, {
+      state: cleanState({ activeChange: { id: "c1", objective: null } }),
+      currentProviderID: null,
+      initError: null,
+      storeAvailable: true,
+    });
+    expect(result.emitted).toBe(true);
+    expect(output.system).toHaveLength(1);
+    expect(output.system[0]).toContain("[ADV] Active change: c1");
+  });
+
+  it("never grows output.system past one entry across all branches (AC1)", () => {
+    const branches: AssembleSystemBlockInput[] = [
+      // Degraded
+      cleanInput({ initError: new Error("init failed") }),
+      // Healthy with active change
+      cleanInput({
+        state: cleanState({ activeChange: { id: "c1", objective: null } }),
+      }),
+      // In worktree with active change
+      cleanInput({
+        state: cleanState({
+          isWorktree: true,
+          activeChange: { id: "c1", objective: "build feature" },
+        }),
+      }),
+      // Provider switch + active change
+      cleanInput({
+        currentProviderID: "anthropic",
+        state: cleanState({
+          activeChange: { id: "c1", objective: null },
+          lastProviderID: "openai",
+        }),
+      }),
+      // Active change + just-completed task (volatile suffix)
+      cleanInput({
+        state: cleanState({
+          activeChange: { id: "c1", objective: null },
+          lastCompletedTask: { id: "tk-1", title: "Implement foo" },
+        }),
+      }),
+    ];
+
+    for (const input of branches) {
+      const output = { system: [] as string[] };
+      applyAdvSystemBlock(output, input);
+      expect(output.system).toHaveLength(1);
+    }
+  });
+
+  it("preserves an existing system[0] entry by prefixing the ADV block", () => {
+    const output = { system: ["You are an agent."] };
+    applyAdvSystemBlock(output, {
+      state: cleanState({ activeChange: { id: "c1", objective: null } }),
+      currentProviderID: null,
+      initError: null,
+      storeAvailable: true,
+    });
+    expect(output.system).toHaveLength(1);
+    expect(output.system[0]).toContain("You are an agent.");
+    expect(output.system[0]).toContain("[ADV] Active change: c1");
+    expect(output.system[0].indexOf("You are an agent.")).toBeLessThan(
+      output.system[0].indexOf("[ADV] Active change"),
+    );
+  });
+
+  it("returns emitted: false and leaves system untouched on internal call", () => {
+    const output = { system: ["Generate a short title for this conversation"] };
+    const result = applyAdvSystemBlock(output, {
+      state: cleanState({ activeChange: { id: "c1", objective: null } }),
+      currentProviderID: null,
+      initError: null,
+      storeAvailable: true,
+    });
+    expect(result.emitted).toBe(false);
+    expect(output.system).toEqual([
+      "Generate a short title for this conversation",
+    ]);
+  });
+
+  it("returns emitted: false when no section produces content", () => {
+    const output = { system: [] as string[] };
+    const result = applyAdvSystemBlock(output, {
+      state: cleanState(),
+      currentProviderID: null,
+      initError: null,
+      storeAvailable: true,
+    });
+    expect(result.emitted).toBe(false);
+    expect(output.system).toEqual([]);
+  });
+
+  it("flags consumedWisdomPrompt when lastCompletedTask was set", () => {
+    const output = { system: [] as string[] };
+    const result = applyAdvSystemBlock(output, {
+      state: cleanState({
+        activeChange: { id: "c1", objective: null },
+        lastCompletedTask: { id: "tk-1", title: "Foo" },
+      }),
+      currentProviderID: null,
+      initError: null,
+      storeAvailable: true,
+    });
+    expect(result.emitted).toBe(true);
+    expect(result.consumedWisdomPrompt).toBe(true);
+    expect(output.system[0]).toContain("[ADV:RECORD_WISDOM]");
+  });
+
+  it("does NOT flag consumedWisdomPrompt when no task just completed", () => {
+    const output = { system: [] as string[] };
+    const result = applyAdvSystemBlock(output, {
+      state: cleanState({ activeChange: { id: "c1", objective: null } }),
+      currentProviderID: null,
+      initError: null,
+      storeAvailable: true,
+    });
+    expect(result.emitted).toBe(true);
+    expect(result.consumedWisdomPrompt).toBe(false);
+  });
+
+  it("emits degraded banner via single entry when storeAvailable is false", () => {
+    const output = { system: [] as string[] };
+    applyAdvSystemBlock(output, {
+      state: cleanState(),
+      currentProviderID: null,
+      initError: null,
+      storeAvailable: false,
+    });
+    expect(output.system).toHaveLength(1);
+    expect(output.system[0]).toContain("[ADV:DEGRADED]");
   });
 });

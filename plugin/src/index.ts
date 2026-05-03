@@ -26,6 +26,11 @@ import type { StatusMarker } from "./types";
 import { resolveProjectContext } from "./plugin-context";
 // P2.7: legacy-state migration removed. Disk-only store reads from existing
 // .adv/ paths or external state directly; no migration step needed.
+import {
+  applyAdvSystemBlock,
+  formatDegradedBanner,
+  type SessionHealthIssue,
+} from "./utils/system-block";
 import { enforceBashPolicy, enforceConformanceBashPolicy } from "./guards/bash";
 import { enforceTaskPolicy } from "./guards/task";
 import {
@@ -56,12 +61,6 @@ import {
 const MAX_PROMPT_TOOL_OUTPUT_CHARS = 24_000;
 const MAX_PROMPT_DIFF_CHARS = 24_000;
 const PROMPT_EXCERPT_CHARS = 2_000;
-
-interface SessionHealthIssue {
-  kind: "session.error" | "message-history";
-  message: string;
-  detectedAt: number;
-}
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
@@ -181,29 +180,6 @@ const extractSessionErrorMessage = (properties: unknown): string => {
   }
 };
 
-const formatSessionHealthBanner = (
-  issue: SessionHealthIssue,
-  changeId: string | null,
-): string => {
-  const changeHint = changeId
-    ? ` Known active change: ${changeId}. Open a fresh OpenCode session and resume by changeId.`
-    : " Open a fresh OpenCode session and resume by changeId if this was ADV work.";
-  return [
-    `[ADV:SESSION_HEALTH] ${issue.kind}: ${issue.message}`,
-    "Current session may be unsafe to continue from chat history.",
-    `${changeHint} Do not rely on prior chat history as source of truth.`,
-  ].join("\n");
-};
-
-/** Fallback chain: maps providerID → list of alternative provider names.
- *  On provider switch, injects a one-line suggestion listing alternatives. */
-const FALLBACK_CHAIN: Readonly<Record<string, string[]>> = {
-  openai: ["anthropic", "google"],
-  anthropic: ["openai", "google"],
-  google: ["openai", "anthropic"],
-  "zai-coding-plan": [],
-};
-
 /** Flags that drive the resolved StatusMarker (via resolveStatus). */
 interface StatusFlags {
   sessionIdle: boolean;
@@ -230,6 +206,10 @@ interface PluginState extends StatusFlags {
   conformanceLockedPaths: string[];
   /** Last detected session-resume hazard to surface in system context. */
   lastSessionHealthIssue: SessionHealthIssue | null;
+  /** Provider ID seen on the previous turn — drives provider-switch hint
+   *  in the assembled system block. Updated each turn after the
+   *  experimental.chat.system.transform hook runs. */
+  lastProviderID: string | null;
 }
 
 /**
@@ -289,7 +269,11 @@ function buildFactoryFailureHooks(
     "tool.execute.after": async () => {},
     "experimental.chat.system.transform": async (_input, output) => {
       try {
-        output.system.push(banner);
+        // Single ordered append per AC1: never use output.system.push.
+        // Factory-failure path has no plugin state, so we append the
+        // degraded banner directly into output.system[0].
+        const existing = output.system[0] ?? null;
+        output.system[0] = existing ? `${existing}\n\n${banner}` : banner;
       } catch {
         // banner injection must never throw
       }
@@ -297,28 +281,6 @@ function buildFactoryFailureHooks(
     "experimental.chat.messages.transform": async () => {},
     "experimental.session.compacting": async () => {},
   };
-}
-
-/**
- * Format the `[ADV:DEGRADED]` banner that surfaces in every system prompt
- * when the plugin is running in any degraded state. Stage labels:
- *   - "factory"  — the plugin factory itself threw before tryInitStore ran
- *   - "init"     — tryInitStore failed; degraded tool map is wired
- */
-function formatDegradedBanner(error: Error, stage: "factory" | "init"): string {
-  const stageMsg =
-    stage === "factory"
-      ? "Plugin factory threw before initialization completed"
-      : "Plugin store initialization failed";
-  return [
-    `[ADV:DEGRADED] ADV plugin is running in degraded mode — ${stageMsg}.`,
-    `Reason: ${error.message}`,
-    "Every `adv_*` tool is stubbed and will return ADV_PLUGIN_INIT_FAILED.",
-    "× Do NOT proceed with any ADV workflow (proposal, discover, design, prep, apply, review, harden, archive). They will silently break.",
-    "✓ Allowed in this mode: read files, surface this diagnosis, recommend remediation, run /adv-idea or /adv-problem (no tool calls required).",
-    "× Forbidden in this mode: drafting markdown as substitute for adv_change_create, fabricating change-ids or gate transitions, declaring tools 'unavailable' without surfacing this banner verbatim.",
-    "Remediation: rebuild the plugin (`pnpm --filter @goost/advance build`), confirm `~/.config/opencode/opencode.json` plugin path is current, then restart OpenCode.",
-  ].join("\n");
 }
 
 const advancePluginImpl: Plugin = async ({ directory, worktree, project }) => {
@@ -357,6 +319,7 @@ const advancePluginImpl: Plugin = async ({ directory, worktree, project }) => {
     activeGate: null,
     conformanceLockedPaths: [],
     lastSessionHealthIssue: null,
+    lastProviderID: null,
   };
 
   // No handoff.json hydration: session startup is now workflow-backed.
@@ -669,8 +632,8 @@ const advancePluginImpl: Plugin = async ({ directory, worktree, project }) => {
   // message ID we've seen to avoid re-arming on duplicate events.
   let lastObservedCompletedMessageId: string | null = null;
 
-  // Provider-switch detection — tracks last providerID for fallback chain hint
-  let lastProviderID: string | null = null;
+  // Provider-switch detection lives in `state.lastProviderID` — see
+  // applyAdvSystemBlock invocation in the system.transform hook below.
 
   // Register process-level shutdown handlers (tolerates init failure).
   const { removeProcessListeners } = registerShutdownHandlers(store);
@@ -794,6 +757,11 @@ const advancePluginImpl: Plugin = async ({ directory, worktree, project }) => {
     },
 
     // Context Injection Hook (Continuation & Wisdom)
+    //
+    // Single ordered emit per AC1: assembles the entire ADV system-context
+    // block in `applyAdvSystemBlock` and writes it to `output.system[0]`.
+    // No `output.system.push` calls here — multi-block emission breaks the
+    // OpenAI-compat provider (assistant-prefilling rejection).
     "experimental.chat.system.transform": async (
       input,
       output,
@@ -805,78 +773,25 @@ const advancePluginImpl: Plugin = async ({ directory, worktree, project }) => {
           debugLog(`Captured mainSessionId: ${mainSessionId}`);
         }
 
-        // Degraded-mode banner: emit on every turn so the agent sees the
-        // failure BEFORE attempting any adv_* tool call. The pre-flight
-        // rule "verify first" needs a verifiable signal to read; this is
-        // it. Without this banner, agents observed silent self-blocking
-        // ("tools unavailable" with no diagnostic).
-        if (initError || !store) {
-          try {
-            output.system.push(
-              formatDegradedBanner(
-                initError ?? new Error("Plugin store unavailable"),
-                "init",
-              ),
-            );
-          } catch {
-            // banner injection must never break the transform hook
-          }
-        }
-
-        if (state.lastSessionHealthIssue) {
-          try {
-            output.system.push(
-              formatSessionHealthBanner(
-                state.lastSessionHealthIssue,
-                state.activeChange.id,
-              ),
-            );
-          } catch {
-            // health banner injection must never break the transform hook
-          }
-        }
-
-        // Provider-switch detection: inject fallback chain suggestion
         const currentProviderID =
           input.model?.providerID?.toLowerCase() ?? null;
-        if (
-          currentProviderID &&
-          lastProviderID &&
-          lastProviderID !== currentProviderID
-        ) {
-          const alternatives = FALLBACK_CHAIN[currentProviderID] ?? [];
-          if (alternatives.length > 0) {
-            output.system.push(
-              `[ADV:PROVIDER_SWITCH] Provider changed from ${lastProviderID} to ${currentProviderID}. ` +
-                `Configured fallback alternatives: ${alternatives.join(", ")}.`,
-            );
-          }
-        }
+
+        const result = applyAdvSystemBlock(output, {
+          state,
+          currentProviderID,
+          initError,
+          storeAvailable: !!store,
+        });
+
+        // Update lastProviderID after assembly (so the next turn detects
+        // the switch). Track regardless of whether this turn emitted.
         if (currentProviderID) {
-          lastProviderID = currentProviderID;
+          state.lastProviderID = currentProviderID;
         }
 
-        // Inject worktree session marker if running in a worktree
-        if (state.isWorktree && state.activeChange.id) {
-          output.system.push(
-            `[ADV:WORKTREE_SESSION] You are working in a git worktree. ` +
-              `Active change: ${state.activeChange.id}. ` +
-              `All ADV state (changes, tasks, wisdom) is shared via external storage. ` +
-              `Use adv_change_show and adv_task_ready to pick up where the parent session left off.`,
-          );
-        }
-
-        if (!state.activeChange.id) return;
-
-        output.system.push(
-          `[ADV] Active change: ${state.activeChange.id}${state.activeChange.objective ? ` | Objective: ${state.activeChange.objective.slice(0, 60)}` : ""}`,
-        );
-
-        // Wisdom Recording Prompt (if task just finished)
-        if (state.lastCompletedTask) {
-          output.system.push(
-            `[ADV:RECORD_WISDOM] You just completed task "${state.lastCompletedTask.title}" (${state.lastCompletedTask.id}). If you learned anything (gotchas, patterns, successes), please record it using 'adv_wisdom_add'.`,
-          );
+        // Wisdom prompt is volatile: clear lastCompletedTask once it has
+        // been emitted so the prompt does not repeat next turn.
+        if (result.consumedWisdomPrompt) {
           state.lastCompletedTask = null;
         }
       } catch (e) {

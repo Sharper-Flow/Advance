@@ -135,6 +135,7 @@ export function formatDegradedBanner(
     "× Do NOT proceed with any ADV workflow (proposal, discover, design, prep, apply, review, harden, archive). They will silently break.",
     "✓ Allowed in this mode: read files, surface this diagnosis, recommend remediation, run /adv-idea or /adv-problem (no tool calls required).",
     "× Forbidden in this mode: drafting markdown as substitute for adv_change_create, fabricating change-ids or gate transitions, declaring tools 'unavailable' without surfacing this banner verbatim.",
+    "Remediation: rebuild the plugin (`pnpm --filter @goost/advance build`), confirm `~/.config/opencode/opencode.json` plugin path is current, then restart OpenCode.",
   ].join("\n");
 }
 
@@ -236,6 +237,45 @@ function wisdomPromptSection(
 }
 
 // ─── Orchestrator ───────────────────────────────────────────────────────────
+
+/**
+ * Result of applying the assembled block to an `output.system` array.
+ */
+export interface ApplyAdvSystemBlockResult {
+  /** True when a non-null block was assembled and appended. */
+  emitted: boolean;
+  /** True when the block included the wisdom prompt; caller should clear
+   *  `state.lastCompletedTask` after a successful emission so the prompt
+   *  doesn't repeat on subsequent turns. */
+  consumedWisdomPrompt: boolean;
+}
+
+/**
+ * Append the assembled ADV system block to `output.system[0]` (single
+ * ordered append per AC1). Mutates the array in place; never grows past
+ * one entry. Returns details so the caller can perform follow-on state
+ * cleanup (e.g. clearing per-turn volatile state).
+ *
+ * Internal-call detection is delegated to `assembleSystemBlock`, which
+ * uses the existing system content (read from `output.system[0]`).
+ */
+export function applyAdvSystemBlock(
+  output: { system: string[] },
+  input: Omit<AssembleSystemBlockInput, "existingSystem">,
+): ApplyAdvSystemBlockResult {
+  const existingSystem = output.system[0] ?? null;
+  const block = assembleSystemBlock({ ...input, existingSystem });
+  if (block === null) {
+    return { emitted: false, consumedWisdomPrompt: false };
+  }
+  output.system[0] = existingSystem
+    ? `${existingSystem}\n\n${block}`
+    : block;
+  return {
+    emitted: true,
+    consumedWisdomPrompt: input.state.lastCompletedTask !== null,
+  };
+}
 
 /**
  * Assemble the single ADV system-context block.
