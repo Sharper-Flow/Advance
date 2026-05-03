@@ -113,14 +113,17 @@ Workaround used: `adv_change_list target_path: ...` (which DOES work via `disk-s
 - Test coverage: `adv_status` with `target_path` to a different valid project root
 
 ### F6 — Concurrent-session git thrashing (P0)
+
+> **[CORRECTED 2026-05]** Root cause analysis updated: the 7-session pokeedge incident root cause was 7 sessions sharing the **same checkout** (single working tree), NOT concurrency itself. Per-worktree branch isolation (each session owns its own worktree) prevents this class of failure. The `[ADV:WARN] Concurrent OpenCode sessions detected` warning has been DELETED in favor of `[ADV:PEER_SESSIONS]` informational marker. The `unifyworktreeunderadvmultisess` change formalizes per-worktree isolation as the supported design center; multi-session is first-class. See `ADV_INSTRUCTIONS.md § Multi-Session Coordination`. The "Improvements needed" list below (warn + soft-lock) is **NOT pursued** — diagnosis preserved as historical context.
+
 **Symptom:** With 7 OpenCode sessions running concurrently in pokeedge-web, an unrelated `git commit` from one session ran `git reset HEAD` + `git checkout -- .` to clean its working tree, **silently restoring the legacy `.adv/` files I had just deleted**. Reflog showed the reset between my delete and the unrelated commit.
 
 This isn't ADV's bug per se, but ADV doesn't warn about the danger of multiple sessions per repo.
 
-**Improvements needed:**
-- ADV should emit `[ADV:WARN]` at session start if multiple OpenCode processes hold the same project's CWD
-- Document the concurrent-session hazard in `ADV_INSTRUCTIONS.md`
-- Optional: ADV plugin could grab a per-project file lock at session start (advisory; opt-in)
+**Improvements needed (SUPERSEDED — see corrected note above):**
+- ~~ADV should emit `[ADV:WARN]` at session start if multiple OpenCode processes hold the same project's CWD~~ — replaced by informational `[ADV:PEER_SESSIONS]` only
+- ~~Document the concurrent-session hazard in `ADV_INSTRUCTIONS.md`~~ — replaced by `§ Multi-Session Coordination` section
+- ~~Optional: ADV plugin could grab a per-project file lock at session start (advisory; opt-in)~~ — soft-locks for ADV-mutating ops are explicitly forbidden in the new model
 
 ### F7 — In-repo `.adv/{changes,archive,db,agenda*}` lingered after Temporal migration (P1)
 **Symptom:** Pokeedge-web had 4.5MB of legacy in-repo state under `.adv/` even though Temporal migration moved authoritative state external. The in-repo files were stale, partially git-tracked, and confused multiple sessions (some sessions still wrote to them).
