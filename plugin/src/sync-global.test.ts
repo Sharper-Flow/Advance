@@ -424,4 +424,37 @@ describe("sync-global.sh", () => {
       }
     });
   });
+
+  // -----------------------------------------------------------------------
+  // Skills sync (T33/T34 — adv-worktree skill is repo-owned)
+  // -----------------------------------------------------------------------
+  describe("skills sync", () => {
+    test("skills/adv-worktree/SKILL.md exists in repo", () => {
+      expect(
+        existsSync(resolve(REPO_ROOT, "skills/adv-worktree/SKILL.md")),
+      ).toBe(true);
+    });
+
+    test("sync-global.sh covers skills/adv-* glob", () => {
+      // Pattern must match the adv-* prefix so adv-worktree (and future
+      // adv-<name> skills) are picked up by the sync loop.
+      expect(content).toMatch(/skills.*adv-/);
+      expect(content).toContain('"$REPO_SKILLS"/adv-*/');
+    });
+
+    test("sync-global.sh removes stale adv-* skills from global", () => {
+      expect(content).toContain('"$GLOBAL_SKILLS"/adv-*/');
+      expect(content).toMatch(/removed stale skill|stale skill\(s\) removed/);
+    });
+
+    test("adv-worktree skill is multi-session-first (no concurrent-session warnings)", () => {
+      const skillContent = readFileSync(
+        resolve(REPO_ROOT, "skills/adv-worktree/SKILL.md"),
+        "utf8",
+      );
+      expect(skillContent).toMatch(/multi-session/i);
+      expect(skillContent).toMatch(/Multi-Session Note/);
+      expect(skillContent).not.toMatch(/already in a worktree session/);
+    });
+  });
 });
