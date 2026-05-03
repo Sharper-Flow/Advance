@@ -43,6 +43,7 @@ import { conformanceTools } from "./tools/conformance";
 import { changeImportTools } from "./tools/change-import";
 import { advWorktreeTools } from "./tools/adv-worktree";
 import { advSessionTools } from "./tools/adv-session";
+import { meshScanTools } from "./tools/mesh-scan";
 type ToolArgsSchema = Record<string, z.ZodTypeAny>;
 type ToolExecute<TArgs> = (
   args: TArgs,
@@ -570,6 +571,13 @@ export function createToolMap(
       "adv_session_show",
       store,
     ),
+
+    // Mesh Scan Tool
+    adv_mesh_scan: bindTool(
+      meshScanTools.adv_mesh_scan,
+      "adv_mesh_scan",
+      store,
+    ),
   };
 }
 
@@ -637,6 +645,7 @@ export const ADV_TOOL_NAMES: readonly string[] = [
   "adv_worktree_triage",
   "adv_session_list",
   "adv_session_show",
+  "adv_mesh_scan",
   // Backward-compat aliases (KD-8 phase 2)
   "worktree_create",
   "worktree_delete",
