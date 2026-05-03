@@ -474,11 +474,10 @@ describe("advisory line ceiling baselines", () => {
     const content = readFileSync(filePath, "utf8");
     const lines = content.split("\n").length;
     const warnThreshold = 650;
-    // 2026-05-02: bumped from 875 → 925 to accommodate F4/F6/F9
-    // (concurrent-session hazard, target_path matrix, in-flight filter
-    // documentation in repairTemporalMigrationDebt change).
+    // 2026-05-03: bumped from 925 → 950 to accommodate intentional
+    // long-term-practice rule docs plus multi-session coordination docs.
     // Ratchet up only when adding intentional documented content.
-    const failThreshold = 925;
+    const failThreshold = 950;
 
     if (lines > warnThreshold) {
       console.warn(
