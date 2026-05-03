@@ -31,6 +31,7 @@ import {
   formatDegradedBanner,
   type SessionHealthIssue,
 } from "./utils/system-block";
+import { buildCompactionContext } from "./utils/compaction-context";
 import { enforceBashPolicy, enforceConformanceBashPolicy } from "./guards/bash";
 import { enforceTaskPolicy } from "./guards/task";
 import {
@@ -824,87 +825,97 @@ const advancePluginImpl: Plugin = async ({ directory, worktree, project }) => {
     },
 
     // Session Compaction Hook
-    "experimental.session.compacting": async (input, output): Promise<void> => {
+    //
+    // Single combined context entry per AC2: composes a change-context
+    // snapshot (via buildChangeContextSnapshot — same formatter the live
+    // path uses), specs summary, and a resume-hint block sourced from
+    // the in-progress task's durable run ledger. Stale-ledger detection
+    // (AC7) replaces the resume hint with an explicit warning when the
+    // referenced task is cancelled or done.
+    "experimental.session.compacting": async (
+      _input,
+      output,
+    ): Promise<void> => {
       try {
-        if (state.activeChange.id) {
-          const changeContext = [
-            "=== ACTIVE ADV CHANGE ===",
-            `Change ID: ${state.activeChange.id}`,
-            state.activeChange.objective
-              ? `Objective: ${state.activeChange.objective}`
-              : "",
-            "This change should be preserved across compaction.",
-            "========================",
-          ]
-            .filter(Boolean)
-            .join("\n");
-
-          output.context.push(changeContext);
-        }
-
-        if (!store) {
-          // Plugin init failed — no specs available, skip compaction context
+        const changeId = state.activeChange.id;
+        if (!changeId || !store) {
+          // No active change OR plugin init failed: nothing to compose.
           return;
         }
 
+        // Resolve change record. Tolerate a not-found / read-error result
+        // by falling back to a minimal CompactionChangeLike sourced from
+        // active state — the snapshot still produces useful output.
+        let changeTitle = state.activeChange.objective ?? changeId;
         try {
-          const specs = await store.specs.list({});
-          if (specs.specs && specs.specs.length > 0) {
-            const specsSummary = [
-              "=== ADV SPECS CONTEXT ===",
-              `Project has ${specs.specs.length} spec(s):`,
-              ...specs.specs
-                .slice(0, 5)
-                .map(
-                  (s: { name: string; title: string }) =>
-                    `- ${s.name}: ${s.title}`,
-                ),
-              specs.specs.length > 5
-                ? `... and ${specs.specs.length - 5} more`
-                : "",
-              "=========================",
-            ]
-              .filter(Boolean)
-              .join("\n");
-
-            output.context.push(specsSummary);
+          const changeResult = await store.changes.get(changeId);
+          if (changeResult.success && changeResult.data) {
+            changeTitle = changeResult.data.title || changeTitle;
           }
+        } catch (e) {
+          debugLog(`Error loading change for compaction: ${e}`);
+        }
+
+        let tasks: Awaited<
+          ReturnType<typeof store.tasks.list>
+        > = [];
+        try {
+          tasks = await store.tasks.list(changeId);
+        } catch (e) {
+          debugLog(`Error loading tasks for compaction: ${e}`);
+        }
+
+        let gates: Awaited<ReturnType<typeof store.gates.get>> = null;
+        try {
+          gates = await store.gates.get(changeId);
+        } catch (e) {
+          debugLog(`Error loading gates for compaction: ${e}`);
+        }
+
+        let specs: Array<{ name: string; title: string }> = [];
+        try {
+          const specsResult = await store.specs.list({});
+          specs = specsResult.specs ?? [];
         } catch (e) {
           debugLog(`Error loading specs for compaction: ${e}`);
         }
 
-        // Push ADV TASK CONTEXT block for compaction continuity
-        try {
-          if (state.activeChange.id) {
-            const tasks = await store.tasks.list(state.activeChange.id);
-            const inProgress = tasks.find((t) => t.status === "in_progress");
-            const done = tasks.filter((t) => t.status === "done").length;
-            const active = tasks.filter(
-              (t) => t.status === "in_progress",
-            ).length;
-            const pending = tasks.filter((t) => t.status === "pending").length;
-
-            const lines: string[] = ["=== ADV TASK CONTEXT ==="];
-
-            if (inProgress) {
-              const desc =
-                inProgress.title.length > 40
-                  ? inProgress.title.slice(0, 37) + "..."
-                  : inProgress.title;
-              const phase = inProgress.tdd_phase ?? "none";
-              const currentLine = `Current: ${inProgress.id} (${desc}) | Phase: ${phase}`;
-              lines.push(currentLine.slice(0, 80));
-            }
-
-            const progressLine = `Progress: ${done} done | ${active} active | ${pending} pending`;
-            lines.push(progressLine.slice(0, 80));
-            lines.push("========================");
-
-            output.context.push(lines.join("\n"));
+        // Resolve in-progress task ledger if any.
+        const inProgressTask = tasks.find((t) => t.status === "in_progress");
+        let inProgressTaskRun: Awaited<
+          ReturnType<typeof store.tasks.getRun>
+        > = null;
+        if (inProgressTask) {
+          try {
+            inProgressTaskRun = await store.tasks.getRun(inProgressTask.id);
+          } catch (e) {
+            debugLog(`Error loading task run for compaction: ${e}`);
           }
-        } catch (e) {
-          debugLog(`Error loading tasks for compaction: ${e}`);
         }
+
+        const block = buildCompactionContext({
+          change: { id: changeId, title: changeTitle },
+          tasks: tasks.map((t) => ({
+            id: t.id,
+            title: t.title,
+            status: t.status,
+            touched_files: t.touched_files,
+            error_recovery: t.error_recovery,
+          })),
+          gates: gates ?? undefined,
+          workdir: directory,
+          inProgressTaskRun: inProgressTaskRun
+            ? {
+                taskId: inProgressTaskRun.taskId,
+                phase: inProgressTaskRun.phase,
+                requiredNextAction: inProgressTaskRun.requiredNextAction,
+                resumeHint: inProgressTaskRun.resumeHint,
+              }
+            : null,
+          specs,
+        });
+
+        output.context.push(block);
       } catch (e) {
         debugLog(`Session compacting hook error: ${e}`);
       }
