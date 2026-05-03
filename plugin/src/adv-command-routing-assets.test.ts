@@ -187,6 +187,49 @@ describe("ADV command routing assets", () => {
     );
   });
 
+  test("adv-apply.md justifies prescribed evidence tools by durable value", () => {
+    const content = squish(
+      readFileSync(join(COMMAND_DIR, "adv-apply.md"), "utf8"),
+    );
+
+    expect(content).toMatch(/adv_run_test.*executable proof/i);
+    expect(content).toMatch(/adv_run_test.*durable evidence/i);
+    expect(content).toMatch(/adv_run_test.*ledger/i);
+    expect(content).toMatch(/adv_task_evidence.*unique audit/i);
+    expect(content).toMatch(/reproducibility|durable audit|recovery/i);
+  });
+
+  test("specs encode idempotent fallback evidence and value-vs-burden rules", () => {
+    const tdd = readFileSync(
+      join(REPO_ROOT, "docs/specs/tdd-contract.md"),
+      "utf8",
+    );
+    const delivery = readFileSync(
+      join(REPO_ROOT, "docs/specs/advance-delivery.md"),
+      "utf8",
+    );
+
+    expect(tdd).toContain("rq-TDD009idem");
+    expect(tdd).toContain("rq-TDD010phase");
+    expect(delivery).toContain("rq-ADVEXEC04");
+    expect(delivery).toContain("rq-ADVEXEC05");
+    expect(squish(delivery)).toMatch(/value.*burden/i);
+  });
+
+  test("evidence guidance does not add default diagnostic context output", () => {
+    const surfaces = [
+      readFileSync(join(COMMAND_DIR, "adv-apply.md"), "utf8"),
+      readFileSync(join(REPO_ROOT, "ADV_INSTRUCTIONS.md"), "utf8"),
+      readFileSync(join(REPO_ROOT, "docs/command-voice-standard.md"), "utf8"),
+    ].map(squish);
+
+    for (const content of surfaces) {
+      expect(content).not.toMatch(/default evidence diagnostic/i);
+      expect(content).not.toMatch(/emit.*evidence diagnostic context/i);
+      expect(content).not.toMatch(/show.*evidence diagnostic context/i);
+    }
+  });
+
   test("adv-review.md uses structured context packet (not one-liner)", () => {
     const content = readFileSync(join(COMMAND_DIR, "adv-review.md"), "utf8");
     expect(content).toContain("Review Context Packet");

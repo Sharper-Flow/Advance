@@ -39,6 +39,13 @@ export interface UpdateTaskInput {
   touchedFiles?: string[];
 }
 
+export interface TaskEvidencePolicyResult {
+  task: Task;
+  duplicate: boolean;
+  corrected: boolean;
+  correctionReason?: string;
+}
+
 export interface StateMutationContext {
   now: string;
   uuid: () => string;
@@ -276,6 +283,12 @@ export function listTaskRunsFromChangeState(
   return Object.values(state.task_runs ?? {});
 }
 
+/**
+ * Append a task-run ledger event exactly once per idempotency key.
+ *
+ * duplicate=true means the event key was already recorded; no phase transition
+ * is applied, and the existing run state is returned for callers to inspect.
+ */
 export function recordTaskRunEventInChangeState(
   state: ChangeWorkflowState,
   taskId: string,
@@ -479,26 +492,90 @@ export function recordTaskEvidenceInChangeState(
   taskId: string,
   phase: "red" | "green",
   evidence: TddPhaseEvidence,
+  options?: { correctionReason?: string },
 ): Task {
+  return recordTaskEvidenceResultInChangeState(
+    state,
+    taskId,
+    phase,
+    evidence,
+    options,
+  ).task;
+}
+
+export function recordTaskEvidenceResultInChangeState(
+  state: ChangeWorkflowState,
+  taskId: string,
+  phase: "red" | "green",
+  evidence: TddPhaseEvidence,
+  options?: { correctionReason?: string },
+): TaskEvidencePolicyResult {
   const task = getTaskOrThrow(state, taskId);
+  const result = applyTaskEvidencePolicy(task, phase, evidence, options);
+  return { task, ...result };
+}
+
+export function applyTaskEvidencePolicy(
+  task: Task,
+  phase: "red" | "green",
+  evidence: TddPhaseEvidence,
+  options?: { correctionReason?: string },
+): Omit<TaskEvidencePolicyResult, "task"> {
   if (!task.tdd_evidence) {
     task.tdd_evidence = {};
+  }
+
+  const existing = task.tdd_evidence[phase];
+  if (existing && stableEvidenceEqual(existing, evidence)) {
+    deriveTaskEvidencePhase(task);
+    return { duplicate: true, corrected: false };
+  }
+
+  const correctionReason = options?.correctionReason?.trim();
+  if (existing && !options?.correctionReason?.trim()) {
+    throw new Error(
+      `Conflicting ${phase} evidence already exists for task ${task.id}; provide correctionReason to replace it.`,
+    );
   }
 
   task.tdd_evidence[phase] = {
     ...evidence,
     recorded_at: evidence.recorded_at,
+    ...(correctionReason ? { correction_reason: correctionReason } : {}),
   };
+  deriveTaskEvidencePhase(task);
+  return {
+    duplicate: false,
+    corrected: Boolean(existing),
+    ...(correctionReason ? { correctionReason } : {}),
+  };
+}
 
-  if (phase === "red") {
-    task.tdd_phase = "red";
-  } else if (task.tdd_evidence.red?.recorded_at) {
+function stableEvidenceEqual(
+  left: TddPhaseEvidence,
+  right: TddPhaseEvidence,
+): boolean {
+  return (
+    left.test_file === right.test_file &&
+    left.command === right.command &&
+    left.output_snippet === right.output_snippet &&
+    left.exit_code === right.exit_code
+  );
+}
+
+function deriveTaskEvidencePhase(task: Task): void {
+  const hasRed = Boolean(task.tdd_evidence?.red);
+  const hasGreen = Boolean(task.tdd_evidence?.green);
+
+  if (hasRed && hasGreen) {
     task.tdd_phase = "complete";
-  } else {
+  } else if (hasRed) {
+    task.tdd_phase = "red";
+  } else if (hasGreen) {
     task.tdd_phase = "green";
+  } else {
+    task.tdd_phase = "none";
   }
-
-  return task;
 }
 
 export function setTaskPhaseInChangeState(

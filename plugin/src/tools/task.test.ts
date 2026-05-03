@@ -706,6 +706,12 @@ describe("Task Tools", () => {
   });
 
   describe("adv_task_evidence", () => {
+    test("description frames tool as fallback/manual evidence attachment", () => {
+      expect(taskTools.adv_task_evidence.description).toMatch(/fallback/i);
+      expect(taskTools.adv_task_evidence.description).toMatch(/manual/i);
+      expect(taskTools.adv_task_evidence.description).toMatch(/adv_run_test/i);
+    });
+
     test("records red phase evidence", async () => {
       const result = await taskTools.adv_task_evidence.execute(
         {
@@ -888,6 +894,86 @@ describe("Task Tools", () => {
 
       expect(parsed.success).toBe(true);
       expect(parsed.error).toBeUndefined();
+    });
+
+    test("returns duplicate flag for identical fallback evidence", async () => {
+      const payload = {
+        taskId: "tk-task0001",
+        phase: "red" as const,
+        command: "pnpm test focused",
+        output: "FAIL",
+        exitCode: 1,
+      };
+      await taskTools.adv_task_evidence.execute(payload, store);
+
+      const result = await taskTools.adv_task_evidence.execute(payload, store);
+      const parsed = JSON.parse(result);
+
+      expect(parsed.success).toBe(true);
+      expect(parsed.duplicate).toBe(true);
+      expect(parsed.message).toMatch(/already recorded/i);
+    });
+
+    test("returns structured error for conflicting evidence without correctionReason", async () => {
+      await taskTools.adv_task_evidence.execute(
+        {
+          taskId: "tk-task0001",
+          phase: "red",
+          command: "pnpm test first",
+          output: "FAIL first",
+          exitCode: 1,
+        },
+        store,
+      );
+
+      const result = await taskTools.adv_task_evidence.execute(
+        {
+          taskId: "tk-task0001",
+          phase: "red",
+          command: "pnpm test second",
+          output: "FAIL second",
+          exitCode: 1,
+        },
+        store,
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed.success).toBe(false);
+      expect(parsed.error).toContain("correctionReason");
+      expect(parsed.phase).toBe("red");
+    });
+
+    test("records correction when conflicting evidence includes correctionReason", async () => {
+      await taskTools.adv_task_evidence.execute(
+        {
+          taskId: "tk-task0001",
+          phase: "red",
+          command: "pnpm test first",
+          output: "FAIL first",
+          exitCode: 1,
+        },
+        store,
+      );
+
+      const result = await taskTools.adv_task_evidence.execute(
+        {
+          taskId: "tk-task0001",
+          phase: "red",
+          command: "pnpm test second",
+          output: "FAIL second",
+          exitCode: 1,
+          correctionReason: "Original fallback command missed focused file.",
+        },
+        store,
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed.success).toBe(true);
+      expect(parsed.corrected).toBe(true);
+      expect(parsed.correctionReason).toBe(
+        "Original fallback command missed focused file.",
+      );
+      expect(parsed.task.tdd_evidence.red.command).toBe("pnpm test second");
     });
   });
 

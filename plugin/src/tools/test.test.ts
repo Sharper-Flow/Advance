@@ -33,6 +33,13 @@ describe("Test Tools", () => {
   });
 
   describe("adv_run_test", () => {
+    test("description says it runs commands and records durable TDD evidence", () => {
+      expect(testTools.adv_run_test.description).toMatch(/run/i);
+      expect(testTools.adv_run_test.description).toMatch(/record/i);
+      expect(testTools.adv_run_test.description).toMatch(/durable/i);
+      expect(testTools.adv_run_test.description).toMatch(/evidence/i);
+    });
+
     test("rejects red phase when command exits 0 (test is passing)", async () => {
       const result = await testTools.adv_run_test.execute(
         {
@@ -172,69 +179,6 @@ describe("Test Tools", () => {
         expect(eventTypes).toContain("start");
         expect(eventTypes).toContain("baseline");
         expect(eventTypes.at(-1)).toBe("red_evidence");
-      });
-
-      test("auto-emits baseline before red_evidence when start was already emitted", async () => {
-        await store.tasks.recordRunEvent("tk-task0001", {
-          idempotencyKey: "run:start:autoadv2",
-          type: "start",
-          recordedAt: "2026-04-14T00:00:00.000Z",
-          payload: {},
-        });
-
-        const result = await testTools.adv_run_test.execute(
-          {
-            taskId: "tk-task0001",
-            command: "false",
-            phase: "red",
-          },
-          store,
-          tempDir,
-        );
-        const parsed = JSON.parse(result);
-
-        expect(parsed.success).toBe(true);
-        const run = await store.tasks.getRun("tk-task0001");
-        expect(run?.phase).toBe("red_recorded");
-        const eventTypes = run?.events.map((e) => e.type) ?? [];
-        expect(eventTypes).toContain("baseline");
-        expect(eventTypes.at(-1)).toBe("red_evidence");
-      });
-
-      test("does not re-emit baseline when ledger already past baseline_captured", async () => {
-        await store.tasks.recordRunEvent("tk-task0001", {
-          idempotencyKey: "run:start:autoadv3",
-          type: "start",
-          recordedAt: "2026-04-14T00:00:00.000Z",
-          payload: {},
-        });
-        await store.tasks.recordRunEvent("tk-task0001", {
-          idempotencyKey: "run:baseline:autoadv3",
-          type: "baseline",
-          recordedAt: "2026-04-14T00:00:01.000Z",
-          payload: {
-            branch: "manual",
-            headSha: "deadbeef",
-            workdir: tempDir,
-          },
-        });
-
-        const result = await testTools.adv_run_test.execute(
-          {
-            taskId: "tk-task0001",
-            command: "false",
-            phase: "red",
-          },
-          store,
-          tempDir,
-        );
-        expect(JSON.parse(result).success).toBe(true);
-
-        const run = await store.tasks.getRun("tk-task0001");
-        const baselines =
-          run?.events.filter((e) => e.type === "baseline") ?? [];
-        expect(baselines.length).toBe(1);
-        expect(baselines[0]?.payload.branch).toBe("manual");
       });
 
       test("auto-emits baseline before red_evidence when start was already emitted", async () => {

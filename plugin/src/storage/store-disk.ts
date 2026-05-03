@@ -76,7 +76,10 @@ import {
 import { generateChangeId } from "../utils/change-id";
 import { searchWisdom, filterChanges } from "./content-search";
 import { listProjectWisdom } from "./project-wisdom";
-import { recordTaskRunEventInChangeState } from "../temporal/change-state";
+import {
+  applyTaskEvidencePolicy,
+  recordTaskRunEventInChangeState,
+} from "../temporal/change-state";
 import type { ChangeWorkflowState } from "../temporal/contracts";
 
 /**
@@ -730,6 +733,7 @@ export async function createDiskStore(
         taskId,
         phase: "red" | "green",
         evidence: TddPhaseEvidence,
+        options?: { correctionReason?: string },
       ) => {
         const ids = await listChangeDirs(paths.changes);
         for (const id of ids) {
@@ -741,23 +745,14 @@ export async function createDiskStore(
             ...evidence,
             recorded_at: evidence.recorded_at ?? new Date().toISOString(),
           };
-          task.tdd_evidence = {
-            ...(task.tdd_evidence ?? {}),
-            [phase]: evidenceWithTimestamp,
-          } as Task["tdd_evidence"];
-          // Auto-advance tdd_phase per the legacy contract:
-          // - red evidence → tdd_phase = "red"
-          // - green evidence after red → tdd_phase = "complete"
-          // - green evidence without red → tdd_phase = "green"
-          if (phase === "red") {
-            task.tdd_phase = "red";
-          } else if (phase === "green") {
-            task.tdd_phase = task.tdd_evidence?.red?.recorded_at
-              ? "complete"
-              : "green";
-          }
+          const policy = applyTaskEvidencePolicy(
+            task,
+            phase,
+            evidenceWithTimestamp,
+            options,
+          );
           await saveChange(paths.changes, result.data);
-          return task;
+          return { task, ...policy };
         }
         return null;
       },

@@ -28,7 +28,7 @@ import {
   getReadyTasksFromChangeState,
   listTaskRunsFromChangeState,
   listTasksFromChangeState,
-  recordTaskEvidenceInChangeState,
+  recordTaskEvidenceResultInChangeState,
   recordTaskRunEventInChangeState,
   reclassifyTaskTddInChangeState,
   reopenFromGateInChangeState,
@@ -113,12 +113,23 @@ const updateTaskUpdate = wf.defineUpdate<
       notes?: string;
       implementationSummary?: string;
       errorRecovery?: ChangeWorkflowState["tasks"][number]["error_recovery"];
+      touchedFiles?: string[];
     },
   ]
 >(CHANGE_WORKFLOW_UPDATE_NAMES.updateTask);
 const recordTaskEvidenceUpdate = wf.defineUpdate<
-  ChangeWorkflowState["tasks"][number],
-  [string, "red" | "green", import("../types").TddPhaseEvidence]
+  {
+    task: ChangeWorkflowState["tasks"][number];
+    duplicate: boolean;
+    corrected: boolean;
+    correctionReason?: string;
+  },
+  [
+    string,
+    "red" | "green",
+    import("../types").TddPhaseEvidence,
+    { correctionReason?: string } | undefined,
+  ]
 >(CHANGE_WORKFLOW_UPDATE_NAMES.recordTaskEvidence);
 const recordTaskRunEventUpdate = wf.defineUpdate<
   {
@@ -446,17 +457,19 @@ export async function changeWorkflow(
         taskId: string,
         phase: "red" | "green",
         evidence: import("../types").TddPhaseEvidence,
+        options?: { correctionReason?: string },
       ) => {
         wf.log.info("op:start", {
           op: "recordTaskEvidenceUpdate",
           changeId: state.changeId,
           title: state.title?.slice(0, 80),
         });
-        const result = recordTaskEvidenceInChangeState(
+        const result = recordTaskEvidenceResultInChangeState(
           state,
           taskId,
           phase,
           evidence,
+          options,
         );
         wf.log.info("op:end", {
           op: "recordTaskEvidenceUpdate",

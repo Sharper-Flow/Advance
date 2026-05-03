@@ -194,7 +194,7 @@ export function checkTddCompliance(change: Change): ValidationIssue[] {
           taskId: task.id,
           tdd_phase: task.tdd_phase,
           recommendation:
-            "Record TDD evidence with adv_run_test (preferred) or adv_task_evidence for externally obtained evidence; reclassify with adv_task_reclassify_tdd when TDD is not applicable.",
+            "Record TDD evidence with adv_run_test (preferred executable proof + durable evidence path) or adv_task_evidence for externally obtained evidence only; reclassify with adv_task_reclassify_tdd when TDD is not applicable.",
         },
       });
     }

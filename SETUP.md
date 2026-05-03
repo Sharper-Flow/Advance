@@ -1169,7 +1169,7 @@ Parallel ADV scanners follow the same single-level delegation rule as other ADV 
 | `adv_task_add`            | Add a new task to a change                                    |
 | `adv_task_update`         | Update task status (pending/in_progress/done)                 |
 | `adv_task_cancel`         | Cancel tasks with required user approval                      |
-| `adv_task_evidence`       | Record TDD evidence (red/green phase proof)                   |
+| `adv_task_evidence`       | Attach fallback/manual TDD evidence when `adv_run_test` cannot run the command directly |
 | `adv_task_tdd`            | Set or inspect TDD state for a task (`action=set              | status`) |
 | `adv_task_reclassify_tdd` | Reclassify TDD intent after planning gate (requires approval) |
 
