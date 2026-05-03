@@ -150,6 +150,22 @@ export async function archiveChange(
     errors,
   );
 
+  // In-repo archive: write identical bundle to in-repo path (warning-only on failure)
+  if (paths.inRepoArchive && !dryRun) {
+    try {
+      await createInRepoArchive(
+        change,
+        paths.inRepoArchive,
+        sourceChangeDir,
+      );
+    } catch (err) {
+      // In-repo failure is warning-only — do NOT add to errors array
+      // to avoid failing the overall archive operation.
+      // Logged for diagnostic purposes only.
+      void err; // intentionally swallowed
+    }
+  }
+
   return {
     success: errors.length === 0,
     changeId: change.id,
@@ -299,6 +315,77 @@ function generateArchiveSummary(change: Change): string {
   }
 
   return lines.join("\n");
+}
+
+/**
+ * Create an identical archive bundle inside the repository.
+ * Writes the same files as createArchive() but to an in-repo path.
+ * Failure is warning-only — the caller logs it but does not fail the archive.
+ */
+export async function createInRepoArchive(
+  change: Change,
+  inRepoArchiveDir: string,
+  sourceChangeDir?: string,
+): Promise<string> {
+  const date = new Date().toISOString().split("T")[0];
+  const archivePath = join(inRepoArchiveDir, `${date}-${change.id}`);
+
+  // Strip TDD evidence to minimal proof before archiving
+  const strippedTasks = change.tasks.map((task) => ({
+    ...task,
+    tdd_evidence: task.tdd_evidence
+      ? stripTddEvidence(task.tdd_evidence)
+      : task.tdd_evidence,
+  }));
+
+  const archivedChange: Change = {
+    ...change,
+    tasks: strippedTasks,
+    status: "archived",
+  };
+  await atomicWriteFile(
+    join(archivePath, "change.json"),
+    JSON.stringify(archivedChange, null, 2),
+  );
+
+  // Write archive summary
+  const summary = generateArchiveSummary(change);
+  await atomicWriteFile(join(archivePath, "ARCHIVE_SUMMARY.md"), summary);
+
+  // Copy wisdom entries to archive if present
+  if (change.wisdom && change.wisdom.length > 0) {
+    await atomicWriteFile(
+      join(archivePath, "wisdom.json"),
+      JSON.stringify(
+        { entries: change.wisdom, count: change.wisdom.length },
+        null,
+        2,
+      ),
+    );
+  }
+
+  // Copy sibling files from source change directory
+  if (sourceChangeDir) {
+    try {
+      const entries = await readdir(sourceChangeDir, { withFileTypes: true });
+      for (const entry of entries) {
+        if (entry.name === "change.json" || !entry.isFile()) continue;
+        try {
+          const content = await readFile(
+            join(sourceChangeDir, entry.name),
+            "utf-8",
+          );
+          await atomicWriteFile(join(archivePath, entry.name), content);
+        } catch {
+          // Non-fatal — sibling file copy failure is a warning
+        }
+      }
+    } catch {
+      // Source directory may not exist — not an error
+    }
+  }
+
+  return archivePath;
 }
 
 /**

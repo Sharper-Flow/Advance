@@ -103,6 +103,8 @@ export interface ArchiveContext {
     changes?: string;
     /** Project wisdom file path — when provided, convention/pattern wisdom is auto-promoted during archive */
     wisdom?: string;
+    /** In-repo archive path — when provided, an identical bundle is written to this path within the repository */
+    inRepoArchive?: string;
   };
   /** Whether to perform a dry run (no writes) */
   dryRun?: boolean;

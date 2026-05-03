@@ -1585,3 +1585,185 @@ describe("archiveBundleExists / findArchiveBundle", () => {
     expect(result).toBe(false);
   });
 });
+
+describe("In-Repo Archive", () => {
+  let testDir: string;
+
+  beforeEach(async () => {
+    testDir = await createTempDir();
+  });
+
+  afterEach(async () => {
+    await cleanupTempDir(testDir);
+  });
+
+  it("createInRepoArchive writes identical bundle to in-repo path", async () => {
+    const { createInRepoArchive } = await import("./archive");
+    const inRepoDir = join(testDir, ".adv", "archive");
+    const change: Change = {
+      id: "ch-inrepo1",
+      title: "In-repo test",
+      status: "active",
+      created_at: new Date().toISOString(),
+      tasks: [
+        {
+          id: "tk-1",
+          title: "Task 1",
+          status: "done",
+          priority: 0,
+          created_at: new Date().toISOString(),
+        },
+      ],
+      deltas: {},
+    };
+
+    const result = await createInRepoArchive(change, inRepoDir);
+
+    // Verify bundle was created
+    expect(result).toContain("ch-inrepo1");
+
+    // Verify change.json
+    const changeJson = JSON.parse(
+      await readFile(join(result, "change.json"), "utf-8"),
+    );
+    expect(changeJson.id).toBe("ch-inrepo1");
+    expect(changeJson.status).toBe("archived");
+
+    // Verify ARCHIVE_SUMMARY.md
+    const summary = await readFile(join(result, "ARCHIVE_SUMMARY.md"), "utf-8");
+    expect(summary).toContain("In-repo test");
+  });
+
+  it("createInRepoArchive writes wisdom.json when wisdom present", async () => {
+    const { createInRepoArchive } = await import("./archive");
+    const inRepoDir = join(testDir, ".adv", "archive");
+    const change: Change = {
+      id: "ch-wisdom",
+      title: "Wisdom test",
+      status: "active",
+      created_at: new Date().toISOString(),
+      tasks: [],
+      deltas: {},
+      wisdom: [
+        {
+          id: "ws-1",
+          type: "pattern",
+          content: "Test pattern",
+          recorded_at: new Date().toISOString(),
+        },
+      ],
+    };
+
+    const result = await createInRepoArchive(change, inRepoDir);
+
+    const wisdomJson = JSON.parse(
+      await readFile(join(result, "wisdom.json"), "utf-8"),
+    );
+    expect(wisdomJson.entries).toHaveLength(1);
+    expect(wisdomJson.entries[0].content).toBe("Test pattern");
+  });
+
+  it("archiveChange succeeds even when in-repo write fails", async () => {
+    const specsDir = join(testDir, ".adv", "specs");
+    const archiveDir = join(testDir, "external-archive");
+    const docsDir = join(testDir, "docs", "specs");
+
+    // Use an invalid path that will fail writes
+    const invalidInRepo = "/dev/null/impossible/path/.adv/archive";
+
+    const change: Change = {
+      id: "ch-fail-inrepo",
+      title: "Dual write test",
+      status: "active",
+      created_at: new Date().toISOString(),
+      tasks: [],
+      deltas: {},
+    };
+
+    const result = await archiveChange({
+      change,
+      specs: new Map(),
+      paths: {
+        specs: specsDir,
+        archive: archiveDir,
+        docs: docsDir,
+        inRepoArchive: invalidInRepo,
+      },
+    });
+
+    // External archive should succeed
+    expect(result.success).toBe(true);
+    expect(result.changeId).toBe("ch-fail-inrepo");
+    // In-repo failure is warning-only — not reflected in errors
+    expect(result.errors).toHaveLength(0);
+  });
+
+  it("archiveChange skips in-repo when inRepoArchive is undefined", async () => {
+    const specsDir = join(testDir, ".adv", "specs");
+    const archiveDir = join(testDir, "external-archive");
+    const docsDir = join(testDir, "docs", "specs");
+
+    const change: Change = {
+      id: "ch-no-inrepo",
+      title: "No in-repo",
+      status: "active",
+      created_at: new Date().toISOString(),
+      tasks: [],
+      deltas: {},
+    };
+
+    const result = await archiveChange({
+      change,
+      specs: new Map(),
+      paths: {
+        specs: specsDir,
+        archive: archiveDir,
+        docs: docsDir,
+        // No inRepoArchive
+      },
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.errors).toHaveLength(0);
+  });
+
+  it("createInRepoArchive copies sibling files from source dir", async () => {
+    const { createInRepoArchive } = await import("./archive");
+    const inRepoDir = join(testDir, ".adv", "archive");
+    const sourceDir = join(testDir, "changes", "ch-siblings");
+
+    // Create source dir with sibling files
+    await mkdir(sourceDir, { recursive: true });
+    await writeFile(
+      join(sourceDir, "proposal.md"),
+      "# Proposal\nTest proposal.",
+      "utf-8",
+    );
+    await writeFile(
+      join(sourceDir, "problem-statement.md"),
+      "# Problem\nTest problem.",
+      "utf-8",
+    );
+
+    const change: Change = {
+      id: "ch-siblings",
+      title: "Siblings test",
+      status: "active",
+      created_at: new Date().toISOString(),
+      tasks: [],
+      deltas: {},
+    };
+
+    const result = await createInRepoArchive(change, inRepoDir, sourceDir);
+
+    // Verify sibling files were copied
+    const proposal = await readFile(join(result, "proposal.md"), "utf-8");
+    expect(proposal).toContain("Test proposal");
+
+    const problem = await readFile(
+      join(result, "problem-statement.md"),
+      "utf-8",
+    );
+    expect(problem).toContain("Test problem");
+  });
+});
