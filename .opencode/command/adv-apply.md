@@ -212,9 +212,19 @@ All cancellations require explicit user approval via `adv_task_cancel`. Cancella
 
 ---
 ## Phase 1: Load Change Context
-1. `adv_change_show changeId: <target>` → extract title, status, deltas
-2. `adv_task_list changeId: <target>` → total/completed counts, task details
-3. `adv_task_ready changeId: <target>` → unblocked tasks
+Single phase-start call (replaces the legacy 4-tool quartet):
+
+```
+adv_change_show changeId: <target> include: { ledger: true, snapshot: true, readyTasks: true }
+```
+
+This returns:
+- `tasks` (paginated) and `_taskPagination` — total/completed/in-progress counts
+- `_contextSnapshot` — rendered gate row + counts (matches live emission)
+- `_ledger` — durable run state for the in-progress task (or `null`)
+- `_readyTasks` + `_readyTasksMeta` — unblocked queue (top-10; override with `readyTasksLimit`)
+
+Fall back to the legacy quartet (`adv_change_show + adv_task_list + adv_task_ready + adv_task_run_status`) only if a specific call needs more than the included slice.
 
 ---
 ## Phase 1.5: Investment Check-In Preamble (addCostTimeInvestment)

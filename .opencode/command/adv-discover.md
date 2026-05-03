@@ -67,8 +67,7 @@ After all 8 steps, emit a **Discovery Checklist** table listing each step with P
 
 ## Phase 1: Load Context
 
-- `adv_change_show` for the target change
-- `adv_gate_status` to confirm proposal is already complete
+- `adv_change_show changeId: <target> include: { snapshot: true }` — single call returns change + rendered gate snapshot (replaces separate `adv_gate_status` round trip)
 - `adv_spec action: "list"` and `adv_spec action: "show"` for affected capabilities
 - Use `lgrep`/`read` to inspect the relevant code paths, interfaces, and constraints
 

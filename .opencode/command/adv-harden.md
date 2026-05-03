@@ -77,11 +77,11 @@ All 6 must be executed. Skipping requires explicit justification.
 
 ### Fetch Change Context
 
-`adv_change_show` + `adv_task_list` for target change.
+`adv_change_show changeId: <target> include: { snapshot: true }` — returns change + rendered gate snapshot in one call. The included `gates` field is sufficient for the prerequisite check below.
 
 ### Gate Prerequisite Check
 
-`adv_gate_status changeId: {change-id}`
+Inspect `gates.acceptance.status` on the loaded change. Fall back to `adv_gate_status changeId: {change-id}` only when a fresh structured breakdown is needed.
 
 If acceptance gate NOT complete (status != 'done' and status != 'legacy') → emit HARDEN BLOCKED banner citing incomplete acceptance gate → stop. Required action: `/adv-review {change-id}`.
 

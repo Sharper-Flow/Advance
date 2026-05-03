@@ -76,9 +76,9 @@ Format: `{label}: [{file}:{line}] {what}` + `Why: {why}` + `Fix: {how}` (optiona
 
 ## Phase 1: Pre-flight
 ### Load Context
-`adv_change_show` + `adv_task_list` for target. Verify tasks are done — if no implementation, stop: "Run `/adv-apply` first."
+`adv_change_show changeId: <target> include: { snapshot: true }` — returns change + rendered gate snapshot in one call. Verify tasks are done — if no implementation, stop: "Run `/adv-apply` first."
 ### Gate Check
-`adv_gate_status` → if execution gate NOT complete → emit REVIEW BLOCKED banner → stop.
+Read gate state from the included snapshot or inspect `gates` field on the response. If execution gate NOT complete → emit REVIEW BLOCKED banner → stop. Fall back to `adv_gate_status` only if a structured per-gate breakdown is needed.
 ### Cancellation & Cross-Repo Audit
 **Step 1:** Check cancelled tasks for `cancellation.approved_by_user === true`. If any lack approval → REVIEW BLOCKED → stop.
 

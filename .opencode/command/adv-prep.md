@@ -55,7 +55,9 @@ All steps must be executed. Skipping requires explicit justification.
 
 ---
 ## Phase 1: Load Context
-`adv_change_show` + `adv_task_list` + `adv_gate_status` for target. Then `adv_spec action: "list"` + `adv_spec action: "show"` for each affected capability.
+`adv_change_show changeId: <target> include: { snapshot: true, readyTasks: true }` collapses change + gate snapshot + ready-queue into one call. Add `include.ledger: true` only when picking up after a partial execution (re-entry path).
+
+Then `adv_spec action: "list"` + `adv_spec action: "show"` for each affected capability.
 
 Stop if discovery or design gates are incomplete. `/adv-prep` analyzes validated design decisions — it must not backfill pre-implementation gates.
 
