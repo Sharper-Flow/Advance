@@ -74,9 +74,10 @@ describe("benchmark-temporal scaffold (A1)", () => {
         "cold-start",
         "warm-interactive",
         "repeated-command",
+        "concurrent-clients",
       ];
       expect(ops).toHaveLength(6);
-      expect(modes).toHaveLength(3);
+      expect(modes).toHaveLength(4);
     });
   });
 
@@ -528,6 +529,43 @@ describe("benchmark-temporal scaffold (A1)", () => {
       expect(samples).toHaveLength(1);
       // Child will likely fail; fallback measures in-process and classifies
       expect(samples[0].contamination).not.toBe("clean");
+    });
+  });
+
+  describe("runConcurrentClients (A4)", () => {
+    it("returns valid result structure when Temporal is unavailable", async () => {
+      const { runConcurrentClients } = await import(
+        "../../scripts/benchmark-temporal"
+      );
+      const start = Date.now();
+      const result = await runConcurrentClients({
+        clients: 2,
+        durationSec: 1,
+      });
+      const elapsed = Date.now() - start;
+
+      expect(result.clients).toBe(2);
+      expect(result.totalOps).toBeGreaterThanOrEqual(0);
+      expect(result.durationSec).toBe(1);
+      expect(result.lostUpdates).toEqual([]);
+      expect(result.errors).toEqual([]);
+      // Should complete quickly when Temporal is unreachable (degraded fallback)
+      expect(elapsed).toBeLessThan(1500);
+    });
+
+    it("accepts custom ops list", async () => {
+      const { runConcurrentClients } = await import(
+        "../../scripts/benchmark-temporal"
+      );
+      const result = await runConcurrentClients({
+        clients: 1,
+        durationSec: 1,
+        ops: ["worktree_register"],
+      });
+
+      expect(result.clients).toBe(1);
+      expect(result.totalOps).toBeGreaterThanOrEqual(0);
+      expect(result.lostUpdates).toEqual([]);
     });
   });
 });

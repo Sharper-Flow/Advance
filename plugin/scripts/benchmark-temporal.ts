@@ -28,7 +28,7 @@ const __dirname = dirname(__filename);
 /* Types                                                              */
 /* ------------------------------------------------------------------ */
 
-export type BenchmarkMode = "cold-start" | "warm-interactive" | "repeated-command";
+export type BenchmarkMode = "cold-start" | "warm-interactive" | "repeated-command" | "concurrent-clients";
 export type BenchmarkOp =
   | "adv_status"
   | "adv_change_list"
@@ -86,6 +86,44 @@ export interface BenchmarkRecord {
 }
 
 /* ------------------------------------------------------------------ */
+/* Concurrent-clients mode types (A4)                                 */
+/* ------------------------------------------------------------------ */
+
+export type ConcurrentClientOp =
+  | "state_write"
+  | "change_state_update"
+  | "agenda_add"
+  | "wisdom_add"
+  | "worktree_register";
+
+export interface ConcurrentClientRecord {
+  clientId: number;
+  op: string;
+  startedAt: number;
+  endedAt: number;
+  source_version_observed?: number;
+  error?: string;
+}
+
+export interface ConcurrentClientResult {
+  clients: number;
+  totalOps: number;
+  opsPerSec: number;
+  durationSec: number;
+  lostUpdates: Array<{
+    clientId: number;
+    op: string;
+    prevVersion: number;
+    nextVersion: number;
+  }>;
+  errors: Array<{
+    clientId: number;
+    op: string;
+    message: string;
+  }>;
+}
+
+/* ------------------------------------------------------------------ */
 /* CLI parsing                                                        */
 /* ------------------------------------------------------------------ */
 
@@ -96,6 +134,8 @@ function parseArgs(argv: string[]): {
   gapMs?: number;
   singleShot?: boolean;
   outputDir?: string;
+  clients?: number;
+  duration?: number;
 } {
   const args: Record<string, string> = {};
   for (const arg of argv) {
@@ -111,8 +151,10 @@ function parseArgs(argv: string[]): {
   const gapMs = args.gapMs ? parseInt(args.gapMs, 10) : undefined;
   const singleShot = args.singleShot === "true";
   const outputDir = args.outputDir;
+  const clients = args.clients ? parseInt(args.clients, 10) : undefined;
+  const duration = args.duration ? parseInt(args.duration, 10) : undefined;
 
-  return { mode, op, samples, gapMs, singleShot, outputDir };
+  return { mode, op, samples, gapMs, singleShot, outputDir, clients, duration };
 }
 
 /* ------------------------------------------------------------------ */
@@ -404,6 +446,215 @@ export async function runSingleShot(op: BenchmarkOp, adapter: OpAdapter): Promis
     }),
     started_at: startedAt,
     finished_at: finishedAt,
+  };
+}
+
+/* ------------------------------------------------------------------ */
+/* Concurrent-clients runner (A4)                                     */
+/* ------------------------------------------------------------------ */
+
+export async function runConcurrentClients(
+  opts: {
+    clients: number;
+    durationSec: number;
+    ops?: string[];
+    projectDir?: string;
+  },
+): Promise<ConcurrentClientResult> {
+  const {
+    clients,
+    durationSec,
+    ops = [
+      "state_write",
+      "change_state_update",
+      "agenda_add",
+      "wisdom_add",
+      "worktree_register",
+    ],
+    projectDir = process.cwd(),
+  } = opts;
+
+  // Dynamic imports so the script can be parsed without src/ modules
+  const { getBoundedProjectWorkflowAccess } = await import(
+    "../src/tools/project-workflow-helper.ts"
+  );
+  const {
+    addAgendaItemUpdate,
+    addProjectWisdomUpdate,
+    recordMigrationEntryUpdate,
+    addWorktreeSessionUpdate,
+    purgeChangeSummaryUpdate,
+  } = await import("../src/temporal/messages.ts");
+
+  const temporal = await getBoundedProjectWorkflowAccess({
+    projectDir,
+    mutablePath: join(projectDir, "temp", "bench-concurrent"),
+  });
+
+  if (temporal.mode !== "workflow-backed") {
+    return {
+      clients,
+      totalOps: 0,
+      opsPerSec: 0,
+      durationSec,
+      lostUpdates: [],
+      errors: [],
+    };
+  }
+
+  const endTime = Date.now() + durationSec * 1000;
+  const records: ConcurrentClientRecord[] = [];
+  const lostUpdates: ConcurrentClientResult["lostUpdates"] = [];
+  const errors: ConcurrentClientResult["errors"] = [];
+
+  interface DispatchResult {
+    source_version_observed?: number;
+  }
+
+  const dispatchers: Record<
+    string,
+    (
+      handle: (typeof temporal)["handle"],
+      clientId: number,
+      counter: number,
+    ) => Promise<DispatchResult>
+  > = {
+    state_write: async (handle, clientId, counter) => {
+      await handle.executeUpdate(recordMigrationEntryUpdate, {
+        args: [
+          {
+            key: `bench-state-${clientId}-${counter}`,
+            source: "json" as const,
+            status: "done" as const,
+            recordedAt: new Date().toISOString(),
+            detail: "benchmark state_write",
+          },
+        ],
+      });
+      return {};
+    },
+    change_state_update: async (handle, clientId, counter) => {
+      await handle.executeUpdate(purgeChangeSummaryUpdate, {
+        args: [{ changeId: `bench-change-${clientId}-${counter}` }],
+      });
+      return {};
+    },
+    agenda_add: async (handle, clientId, counter) => {
+      await handle.executeUpdate(addAgendaItemUpdate, {
+        args: [
+          {
+            title: `Bench agenda ${clientId}-${counter}`,
+            description: "benchmark agenda_add",
+            priority: "medium",
+            category: "benchmark",
+          },
+        ],
+      });
+      return {};
+    },
+    wisdom_add: async (handle, clientId, counter) => {
+      await handle.executeUpdate(addProjectWisdomUpdate, {
+        args: [
+          {
+            type: "pattern",
+            content: `Bench wisdom ${clientId}-${counter}`,
+            sourceChange: `bench-change-${clientId}`,
+          },
+        ],
+      });
+      return {};
+    },
+    worktree_register: async (handle, clientId, counter) => {
+      const result = (await handle.executeUpdate(addWorktreeSessionUpdate, {
+        args: [
+          {
+            branch: `bench-branch-${clientId}`,
+            path: `/tmp/bench-wt-${clientId}`,
+            baseRef: "main",
+            headSha: `sha-${counter}`,
+            source: "tool",
+            now: new Date().toISOString(),
+            sourceVersion: counter + 1,
+          },
+        ],
+      })) as { sourceVersion: number };
+      return { source_version_observed: result.sourceVersion };
+    },
+  };
+
+  const clientPromises = Array.from({ length: clients }, async (_, clientId) => {
+    let counter = 0;
+    const lastVersion = new Map<string, number>();
+
+    while (Date.now() < endTime) {
+      const op = ops[Math.floor(Math.random() * ops.length)];
+      const startedAt = Date.now();
+      counter++;
+
+      try {
+        const dispatcher = dispatchers[op];
+        if (!dispatcher) {
+          throw new Error(`Unknown op: ${op}`);
+        }
+
+        const { source_version_observed } = await dispatcher(
+          temporal.handle,
+          clientId,
+          counter,
+        );
+
+        const endedAt = Date.now();
+
+        records.push({
+          clientId,
+          op,
+          startedAt,
+          endedAt,
+          source_version_observed,
+        });
+
+        if (source_version_observed !== undefined) {
+          const prev = lastVersion.get(op);
+          if (prev !== undefined && source_version_observed <= prev) {
+            lostUpdates.push({
+              clientId,
+              op,
+              prevVersion: prev,
+              nextVersion: source_version_observed,
+            });
+          }
+          lastVersion.set(op, source_version_observed);
+        }
+      } catch (err) {
+        const endedAt = Date.now();
+        const message = err instanceof Error ? err.message : String(err);
+        records.push({
+          clientId,
+          op,
+          startedAt,
+          endedAt,
+          error: message,
+        });
+        errors.push({ clientId, op, message });
+      }
+    }
+  });
+
+  await Promise.all(clientPromises);
+
+  // Close the Temporal connection
+  await temporal.bundle.connection.close();
+
+  const totalOps = records.length;
+  const opsPerSec = totalOps / durationSec;
+
+  return {
+    clients,
+    totalOps,
+    opsPerSec,
+    durationSec,
+    lostUpdates,
+    errors,
   };
 }
 
@@ -866,12 +1117,28 @@ async function main(): Promise<void> {
     return;
   }
 
+  // Concurrent-clients mode
+  if (args.mode === "concurrent-clients") {
+    const clients = args.clients ?? 5;
+    const duration = args.duration ?? 30;
+    console.error(`[BENCH] Starting concurrent-clients: ${clients} clients × ${duration}s`);
+    const result = await runConcurrentClients({
+      clients,
+      durationSec: duration,
+    });
+    console.log(JSON.stringify(result, null, 2));
+    console.error(`[BENCH] Concurrent-clients complete. Total ops: ${result.totalOps}`);
+    return;
+  }
+
   // Full benchmark mode
   if (!args.mode || !args.op) {
     console.error("Usage:");
-    console.error("  --mode=cold-start|warm-interactive|repeated-command");
+    console.error("  --mode=cold-start|warm-interactive|repeated-command|concurrent-clients");
     console.error("  --op=adv_status|adv_change_list|adv_change_show|adv_task_list|adv_task_show|adv_wisdom_add");
     console.error("  [--samples=N] [--gapMs=N] [--outputDir=path]");
+    console.error("Or for concurrent-clients:");
+    console.error("  --mode=concurrent-clients --clients=N --duration=SECONDS");
     console.error("Or for single-shot (cold-start child process):");
     console.error("  --op=NAME --single-shot");
     process.exit(1);
