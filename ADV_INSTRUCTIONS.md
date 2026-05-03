@@ -192,7 +192,7 @@ Tab title: `<emoji> <shortname> · <normalized change>` when a change is active,
 
 - Change ID/title, gate progress (`[✓ research] [○ impl] ...`), task counts, current task, workdir
 
-Emitted on: `adv_gate_complete`, `adv_task_update` to `in_progress`.
+Emitted on: `adv_change_create`, `adv_change_reenter`, `adv_gate_complete`, `adv_status` primary change, and task-state ticker tools (`adv_task_update`, `adv_task_ready`, `adv_task_add`, `adv_task_cancel`).
 
 `adv_change_show` returns structured JSON for direct LLM consumption — no `_contextSnapshot` field.
 

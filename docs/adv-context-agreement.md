@@ -80,6 +80,7 @@ The snapshot is included automatically when ADV tools expose current change stat
 | Task cancelled | `adv_task_cancel` → batch cancellation |
 | Task created | `adv_task_add` → successful creation |
 | Task ready for work | `adv_task_ready` |
+| Change created | `adv_change_create` response |
 | Gate transitions | `adv_gate_complete` response |
 | Gate re-entry | `adv_change_reenter` response |
 | Project overview | Recent entries in `adv_status` |
@@ -126,7 +127,7 @@ Emit when the agent switches `workdir` to a different repository for a cross-rep
 | `plugin/src/tools/status.ts` | Adds full-box `_contextSnapshot` to primary change; compact ticker to non-primary changes |
 | `plugin/src/tools/gate.ts` | Emits updated `_contextSnapshot` in `adv_gate_complete` responses |
 | `plugin/src/tools/task.ts` | Emits `_contextSnapshot` on `adv_task_update` (→ `in_progress` / → `done`), `adv_task_ready`, `adv_task_cancel`, and `adv_task_add` |
-| `plugin/src/tools/change.ts` | Emits `_contextSnapshot` on `adv_change_reenter` (via `buildReentryResult`) |
+| `plugin/src/tools/change.ts` | Emits `_contextSnapshot` on `adv_change_create` and `adv_change_reenter` (via `buildReentryResult`) |
 
 ## Spec
 
