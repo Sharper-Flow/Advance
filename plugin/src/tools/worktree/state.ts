@@ -431,3 +431,16 @@ export async function listSessions(
   if (!state) return [];
   return Object.values(state.session_registry);
 }
+
+/**
+ * Snapshot of `change_summaries` map keyed by changeId. Used by triage
+ * (T18) to classify worktrees whose underlying change is archived.
+ * Returns empty object when the project workflow is unreachable.
+ */
+export async function getChangeSummaries(
+  access: WorktreeStateAccess,
+): Promise<Record<string, { status?: string }>> {
+  const state = await readProjectState(access);
+  if (!state) return {};
+  return (state.change_summaries ?? {}) as Record<string, { status?: string }>;
+}
