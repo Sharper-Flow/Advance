@@ -337,14 +337,124 @@ async function loadMigrationStatus(store: Store) {
 }
 
 // =============================================================================
+// View Filter
+// =============================================================================
+
+/** Status output view selector type — exported for shared typing.
+ *  rq-advStatusView01. */
+export type AdvStatusView = "summary" | "health" | "changes" | "hygiene";
+
+/**
+ * Apply the view filter to the full status output.
+ *
+ * The full output is built unconditionally (the cost of computing it is
+ * dominated by the tool's underlying queries, not by serialization). The
+ * filter scopes the response shape per `view`. `formatted` is preserved
+ * across all views since it is the human-readable summary block.
+ *
+ * Field selection per design spec:
+ *   - summary  (default): specs count + recent changes (id+title+recency
+ *                         only) + recommendations + temporal_health.ok
+ *                         (boolean) + worktree count + formatted.
+ *   - health             : full temporal_health + search_attributes +
+ *                         opencode_session_debt + diagnostics + metrics
+ *                         counters (placeholder until AC6 lands).
+ *   - changes            : full status.changes detail (recent + byStatus).
+ *   - hygiene            : recommendations full + opencode_session_debt
+ *                         detail + project_metadata + _healthSnapshot
+ *                         (closed-vs-active leak signals).
+ */
+export function applyStatusView(
+  full: Record<string, unknown>,
+  view: AdvStatusView,
+): Record<string, unknown> {
+  const projection: Record<string, unknown> = {
+    formatted: full.formatted,
+    ...(full._projectContext ? { _projectContext: full._projectContext } : {}),
+    view,
+  };
+
+  const changesObj = full.changes as
+    | {
+        recent?: Array<{
+          id: string;
+          title: string;
+          recency?: unknown;
+          minutesSinceActivity?: number;
+        }>;
+        byStatus?: Record<string, number>;
+      }
+    | undefined;
+  const temporalHealth = full.temporal_health as
+    | { server_alive?: boolean }
+    | undefined;
+  const worktreeCensus = full.worktree_census as
+    | { total?: number }
+    | undefined;
+  const specs = full.specs as { count?: number } | undefined;
+
+  switch (view) {
+    case "summary": {
+      projection.specs = { count: specs?.count };
+      projection.changes = {
+        recent: (changesObj?.recent ?? []).map((c) => ({
+          id: c.id,
+          title: c.title,
+          recency: c.recency,
+          minutesSinceActivity: c.minutesSinceActivity,
+        })),
+      };
+      projection.recommendations = full.recommendations ?? [];
+      projection.temporal_health_ok = !!temporalHealth?.server_alive;
+      projection.worktree_count = worktreeCensus?.total ?? 0;
+      break;
+    }
+    case "health": {
+      projection.temporal_health = full.temporal_health;
+      projection.search_attributes = full.search_attributes;
+      projection.opencode_session_debt = full.opencode_session_debt;
+      projection.diagnostics = full.diagnostics;
+      // Metrics counters surface here once AC6 lands.
+      if (full.metrics) projection.metrics = full.metrics;
+      break;
+    }
+    case "changes": {
+      projection.changes = full.changes;
+      projection.recommendations = full.recommendations ?? [];
+      break;
+    }
+    case "hygiene": {
+      projection.recommendations = full.recommendations ?? [];
+      projection.opencode_session_debt = full.opencode_session_debt;
+      projection.project_metadata = full.project_metadata;
+      projection._healthSnapshot = full._healthSnapshot;
+      projection.migration_status = full.migration_status;
+      break;
+    }
+  }
+
+  return projection;
+}
+
+// =============================================================================
 // Tool Definitions
 // =============================================================================
 
 // rq-advcfg01: Status Config Diagnostics and Feature Flags
+//
+// rq-advStatusView01 — adv_status accepts an optional view selector that
+// scopes the response to one of four lenses (summary / health / changes /
+// hygiene). The default "summary" view omits the hygiene-archaeology fields
+// that bloat the response when callers only need orientation.
 export const statusTools = {
   adv_status: {
     description:
-      "Show project overview: specs, active changes, and next-step recommendations",
+      "Show project overview: specs, active changes, and next-step recommendations. " +
+      "Use the optional `view` selector to scope the response: " +
+      "`summary` (default) returns lightweight orientation; " +
+      "`health` returns full Temporal/STSL/session-debt diagnostics + metrics; " +
+      "`changes` returns full active-change detail; " +
+      "`hygiene` returns leak detection + recommendations + project metadata.",
     args: {
       target_path: z
         .string()
@@ -352,9 +462,25 @@ export const statusTools = {
         .describe(
           "Optional absolute path to another ADV project. When provided, reads that project as a disk snapshot and returns _projectContext.",
         ),
+      view: z
+        .enum(["summary", "health", "changes", "hygiene"])
+        .optional()
+        .default("summary")
+        .describe(
+          "Output view selector. `summary` (default) omits hygiene archaeology and full diagnostics; " +
+            "`health` surfaces Temporal/STSL/session-debt detail + metrics counters; " +
+            "`changes` returns the full recent-change list; " +
+            "`hygiene` surfaces archived/closed leaks + recommendations + project metadata.",
+        ),
     },
     execute: async (
-      { target_path }: { target_path?: string },
+      {
+        target_path,
+        view = "summary",
+      }: {
+        target_path?: string;
+        view?: "summary" | "health" | "changes" | "hygiene";
+      },
       store: Store,
     ) => {
       return withOptionalTargetPathStore(
@@ -571,7 +697,7 @@ export const statusTools = {
             activeStore.paths.projectMetadata,
           );
 
-          const output = {
+          const fullOutput = {
             ...status,
             ...(featureFlags ? { feature_flags: featureFlags } : {}),
             temporal_health: temporalHealth,
@@ -594,6 +720,7 @@ export const statusTools = {
             ...(projectContext ? { _projectContext: projectContext } : {}),
           };
 
+          const output = applyStatusView(fullOutput, view);
           return formatToolOutput(output);
         },
       );

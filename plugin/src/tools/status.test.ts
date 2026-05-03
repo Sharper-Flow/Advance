@@ -271,7 +271,9 @@ Vague in-flight work.
     });
 
     test("includes OpenCode session debt and doctor recommendation when stale rows exist", async () => {
-      mockScanOpenCodeSessionDebt.mockResolvedValueOnce({
+      // Mock both calls (health view + summary view) since we issue
+      // two requests below.
+      mockScanOpenCodeSessionDebt.mockResolvedValue({
         available: true,
         db_path: "/home/user/.local/share/opencode/opencode.db",
         checked_at: "2026-05-02T02:30:00.000Z",
@@ -290,16 +292,27 @@ Vague in-flight work.
         ignored_with_parts: [],
       });
 
-      const result = await statusTools.adv_status.execute({}, store);
-      const parsed = parseToolOutput(result);
+      const healthResult = await statusTools.adv_status.execute(
+        { view: "health" },
+        store,
+      );
+      const health = parseToolOutput(healthResult);
 
-      expect(parsed.opencode_session_debt.available).toBe(true);
-      expect(parsed.opencode_session_debt.repairable_stale).toHaveLength(1);
-      expect(parsed.formatted.sessionDebtSection).toContain(
+      expect(health.opencode_session_debt.available).toBe(true);
+      expect(health.opencode_session_debt.repairable_stale).toHaveLength(1);
+      expect(health.formatted.sessionDebtSection).toContain(
         "1 stale blank assistant",
       );
+
+      // Recommendations live in summary view (and a few others); fetch
+      // separately for the recommendation assertion.
+      const summaryResult = await statusTools.adv_status.execute(
+        { view: "summary" },
+        store,
+      );
+      const summary = parseToolOutput(summaryResult);
       expect(
-        parsed.recommendations.find((r: string) =>
+        (summary.recommendations as string[] | undefined)?.find((r: string) =>
           r.includes("Stale OpenCode blank assistant messages"),
         ),
       ).toBeDefined();
@@ -325,13 +338,23 @@ Vague in-flight work.
         ignored_with_parts: [],
       });
 
-      const result = await statusTools.adv_status.execute({}, store);
+      const result = await statusTools.adv_status.execute(
+        { view: "health" },
+        store,
+      );
       const parsed = parseToolOutput(result);
 
       expect(parsed.opencode_session_debt.live_in_flight).toHaveLength(1);
       expect(parsed.formatted.sessionDebtSection).toContain("1 live/in-flight");
+      // Note: in health view, recommendations are not surfaced; verify
+      // the summary view separately for the no-debt-recommendation case.
+      const summaryResult = await statusTools.adv_status.execute(
+        { view: "summary" },
+        store,
+      );
+      const summary = parseToolOutput(summaryResult);
       expect(
-        parsed.recommendations.find((r: string) =>
+        (summary.recommendations as string[] | undefined)?.find((r: string) =>
           r.includes("Stale OpenCode blank assistant messages"),
         ),
       ).toBeUndefined();
@@ -354,7 +377,10 @@ Vague in-flight work.
           saVerification: { ok: true, checkedAt: Date.now() },
         });
 
-        const result = await statusTools.adv_status.execute({}, store);
+        const result = await statusTools.adv_status.execute(
+          { view: "health" },
+          store,
+        );
         const parsed = parseToolOutput(result);
 
         expect(parsed.search_attributes).toBeDefined();
@@ -377,12 +403,25 @@ Vague in-flight work.
           saVerification: { ok: false, checkedAt: Date.now() },
         });
 
-        const result = await statusTools.adv_status.execute({}, store);
-        const parsed = parseToolOutput(result);
+        const healthResult = await statusTools.adv_status.execute(
+          { view: "health" },
+          store,
+        );
+        const health = parseToolOutput(healthResult);
 
-        expect(parsed.search_attributes).toBeDefined();
-        expect(parsed.search_attributes.ok).toBe(false);
-        const saRec = parsed.recommendations.find(
+        expect(health.search_attributes).toBeDefined();
+        expect(health.search_attributes.ok).toBe(false);
+
+        // Recommendation is surfaced via summary view (recommendations
+        // are not in health-view projection per AC5).
+        const summaryResult = await statusTools.adv_status.execute(
+          { view: "summary" },
+          store,
+        );
+        const summary = parseToolOutput(summaryResult);
+        const saRec = (
+          summary.recommendations as string[] | undefined
+        )?.find(
           (r: string) =>
             r.includes("search attributes") ||
             r.includes("adv_temporal_register_search_attributes"),
@@ -406,7 +445,10 @@ Vague in-flight work.
           saVerification: null,
         });
 
-        const result = await statusTools.adv_status.execute({}, store);
+        const result = await statusTools.adv_status.execute(
+          { view: "health" },
+          store,
+        );
         const parsed = parseToolOutput(result);
 
         expect(parsed.search_attributes).toBeDefined();
@@ -484,7 +526,10 @@ Vague in-flight work.
 
         await store.sync();
 
-        const result = await statusTools.adv_status.execute({}, store);
+        const result = await statusTools.adv_status.execute(
+          { view: "hygiene" },
+          store,
+        );
         const parsed = parseToolOutput(result);
 
         expect(parsed._healthSnapshot).toBeDefined();
@@ -513,7 +558,10 @@ Vague in-flight work.
         );
         await store.sync();
 
-        const result1 = await statusTools.adv_status.execute({}, store);
+        const result1 = await statusTools.adv_status.execute(
+          { view: "hygiene" },
+          store,
+        );
         const parsed1 = parseToolOutput(result1);
         expect(parsed1._healthSnapshot.leaked_source_dirs).toBe(1);
 
@@ -524,7 +572,10 @@ Vague in-flight work.
         });
         await store.sync();
 
-        const result2 = await statusTools.adv_status.execute({}, store);
+        const result2 = await statusTools.adv_status.execute(
+          { view: "hygiene" },
+          store,
+        );
         const parsed2 = parseToolOutput(result2);
         expect(parsed2._healthSnapshot.leaked_source_dirs).toBe(1);
       });
@@ -550,7 +601,10 @@ Vague in-flight work.
         }
         await store.sync();
 
-        const result = await statusTools.adv_status.execute({}, store);
+        const result = await statusTools.adv_status.execute(
+          { view: "hygiene" },
+          store,
+        );
         const parsed = parseToolOutput(result);
 
         expect(parsed._healthSnapshot.closed_to_active_ratio).toBe(6);
@@ -562,6 +616,101 @@ Vague in-flight work.
         expect(leakRec).toContain(
           "adv_archive_sweep_orphans dryRun: true includeClosed: true",
         );
+      });
+    });
+
+    // AC5 — view enum branches
+    describe("view selector (AC5)", () => {
+      test("default view is 'summary' (no view arg)", async () => {
+        const result = await statusTools.adv_status.execute({}, store);
+        const parsed = parseToolOutput(result);
+        expect(parsed.view).toBe("summary");
+      });
+
+      test("summary view: returns specs.count + recommendations + temporal_health_ok + worktree_count", async () => {
+        const result = await statusTools.adv_status.execute(
+          { view: "summary" },
+          store,
+        );
+        const parsed = parseToolOutput(result);
+
+        expect(parsed.view).toBe("summary");
+        expect(parsed.specs).toBeDefined();
+        expect(typeof parsed.specs.count).toBe("number");
+        expect(parsed.changes).toBeDefined();
+        expect(parsed.changes.recent).toBeDefined();
+        expect(Array.isArray(parsed.recommendations)).toBe(true);
+        expect(typeof parsed.temporal_health_ok).toBe("boolean");
+        expect(typeof parsed.worktree_count).toBe("number");
+
+        // Hygiene/health archaeology MUST be omitted from summary.
+        expect(parsed.search_attributes).toBeUndefined();
+        expect(parsed._healthSnapshot).toBeUndefined();
+        expect(parsed.opencode_session_debt).toBeUndefined();
+        expect(parsed.diagnostics).toBeUndefined();
+      });
+
+      test("health view: returns temporal_health + search_attributes + opencode_session_debt + diagnostics", async () => {
+        const result = await statusTools.adv_status.execute(
+          { view: "health" },
+          store,
+        );
+        const parsed = parseToolOutput(result);
+
+        expect(parsed.view).toBe("health");
+        expect(parsed.temporal_health).toBeDefined();
+        expect(parsed.search_attributes).toBeDefined();
+        expect(parsed.opencode_session_debt).toBeDefined();
+        expect(parsed.diagnostics).toBeDefined();
+
+        // Summary-only fields are absent from health view.
+        expect(parsed.temporal_health_ok).toBeUndefined();
+        expect(parsed.worktree_count).toBeUndefined();
+      });
+
+      test("changes view: returns full active changes detail", async () => {
+        const result = await statusTools.adv_status.execute(
+          { view: "changes" },
+          store,
+        );
+        const parsed = parseToolOutput(result);
+
+        expect(parsed.view).toBe("changes");
+        expect(parsed.changes).toBeDefined();
+        expect(parsed.changes.recent).toBeDefined();
+        // changes view also surfaces recommendations for next-step guidance.
+        expect(Array.isArray(parsed.recommendations)).toBe(true);
+        // Health archaeology is absent.
+        expect(parsed.search_attributes).toBeUndefined();
+      });
+
+      test("hygiene view: returns _healthSnapshot + project_metadata + recommendations + session debt", async () => {
+        const result = await statusTools.adv_status.execute(
+          { view: "hygiene" },
+          store,
+        );
+        const parsed = parseToolOutput(result);
+
+        expect(parsed.view).toBe("hygiene");
+        expect(parsed._healthSnapshot).toBeDefined();
+        expect(parsed.opencode_session_debt).toBeDefined();
+        expect(parsed.project_metadata).toBeDefined();
+        expect(Array.isArray(parsed.recommendations)).toBe(true);
+        // Temporal health detail is NOT in hygiene view.
+        expect(parsed.temporal_health).toBeUndefined();
+      });
+
+      test("formatted block is preserved across all views", async () => {
+        for (const view of [
+          "summary",
+          "health",
+          "changes",
+          "hygiene",
+        ] as const) {
+          const result = await statusTools.adv_status.execute({ view }, store);
+          const parsed = parseToolOutput(result);
+          expect(parsed.formatted).toBeDefined();
+        }
       });
     });
   });
