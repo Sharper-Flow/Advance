@@ -39,7 +39,7 @@ import type {
 import { loadConformanceState } from "./storage/conformance";
 import { createToolMap, createDegradedToolMap } from "./tool-registry";
 import { appendDebugLog, createLogger } from "./utils/debug-log";
-import { detectConcurrentSessions } from "./utils/concurrent-sessions";
+import { detectPeerSessions } from "./utils/peer-sessions";
 import {
   extractCompletedTask,
   extractCreatedChangeId,
@@ -357,15 +357,26 @@ const advancePluginImpl: Plugin = async ({ directory, worktree, project }) => {
   // deleted in Phase D. Fresh sessions derive active context from explicit
   // tool calls / status queries rather than consuming a sidecar JSON file.
 
-  // Detect concurrent OpenCode sessions sharing this project CWD
-  const peerPids = await detectConcurrentSessions(directory);
-  if (peerPids.length > 0) {
-    debugLog(
-      `Concurrent OpenCode sessions detected: PIDs ${peerPids.join(", ")}`,
-    );
-    hooksLogger.warn(
-      `[ADV:WARN] Concurrent OpenCode sessions detected in this project (PIDs: ${peerPids.join(", ")}). Git operations from any session affect all. Limit to one git-mutating session per repo.`,
-    );
+  // Detect peer OpenCode sessions in this project (multi-session is supported;
+  // emit informational marker only — Temporal serializes state writes and
+  // per-worktree git isolation eliminates working-tree races).
+  // J4: Linux-only platform guard inside detectPeerSessions; gate the call.
+  if (process.platform === "linux") {
+    try {
+      const peerSessions = await detectPeerSessions(directory);
+      const peerCount = peerSessions.length;
+      if (peerCount > 0) {
+        debugLog(
+          `Peer sessions detected: ${peerCount} (PIDs ${peerSessions.map((p) => p.pid).join(", ")})`,
+        );
+        hooksLogger.info(
+          `[ADV:PEER_SESSIONS] ${peerCount} peer session(s) active in this project.`,
+        );
+      }
+    } catch (err) {
+      // Best-effort detection; never block init on peer-detection failure.
+      debugLog(`peer detection failed: ${(err as Error).message}`);
+    }
   }
 
   // Helper to update status flags and push the resolved status to the terminal
