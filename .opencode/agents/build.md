@@ -209,7 +209,6 @@ ERRORS:
 - `~/.local/share/opencode/plugins/advance/**/proposal.md`
 - `~/.local/share/opencode/plugins/advance/**/agenda.jsonl`
 - `~/.local/share/opencode/plugins/advance/**/wisdom.jsonl`
-- `~/.local/share/opencode/plugins/advance/**/handoff.json`
 
 **ALWAYS** use the ADV MCP tools instead:
 

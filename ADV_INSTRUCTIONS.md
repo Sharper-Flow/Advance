@@ -204,7 +204,7 @@ Emitted on: `adv_change_create`, `adv_change_reenter`, `adv_gate_complete`, `adv
 
 × NEVER read ADV state files directly (`read`, `cat`, `ls`). Use ADV MCP tools exclusively.
 
-Forbidden: `~/.local/share/opencode/plugins/advance/**/{change.json,proposal.md,agenda.jsonl,wisdom.jsonl,handoff.json}`
+Forbidden: `~/.local/share/opencode/plugins/advance/**/{change.json,proposal.md,agenda.jsonl,wisdom.jsonl}`
 
 | Need                     | Tool                                                      |
 | ------------------------ | --------------------------------------------------------- |
@@ -867,8 +867,7 @@ Location: `$XDG_DATA_HOME/opencode/plugins/advance/{project-id}/` (project-id = 
 ├── db/spec.db   # SQLite FTS cache
 ├── wisdom.jsonl      # Learnings
 ├── reflections.jsonl # Post-completion reflection reports
-├── agenda.jsonl      # Work queue
-└── handoff.json      # Session handoff (multi-session only)
+└── agenda.jsonl      # Work queue
 ```
 
 ### Worktree Policy
@@ -901,10 +900,6 @@ Implication: spec changes in worktree A invisible to B until merged. `/adv-valid
 2. **Immediately** set `workdir` to the worktree path for ALL subsequent tool calls
 3. Continue inline — no handoff, no new terminal, no navigation hints needed
 4. When deleting, pass `branch` arg to `worktree_delete` (required in inline mode)
-
-### Session Handoff (Fallback)
-
-Multi-session only: parent writes `handoff.json` → child reads/clears on startup → `[ADV:WORKTREE_SESSION]` marker injected.
 
 ### Worktree Cleanup
 

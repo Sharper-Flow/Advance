@@ -325,7 +325,6 @@ Internal state (task lists, gate checkboxes, sub-agent counts, step logs) lives 
 - `~/.local/share/opencode/plugins/advance/**/proposal.md`
 - `~/.local/share/opencode/plugins/advance/**/agenda.jsonl`
 - `~/.local/share/opencode/plugins/advance/**/wisdom.jsonl`
-- `~/.local/share/opencode/plugins/advance/**/handoff.json`
 - `~/.local/share/opencode/plugins/advance/**/conformance.json`
 
 **Additionally**, when conformance is in sibling-repo mode, NEVER read files inside the locked conformance directory (`advance-conformance-{pid}/`). Path guards block read/glob/grep/lgrep on locked sibling paths.
