@@ -42,6 +42,10 @@ import type {
   ConformanceCallerContext,
   ConformancePathContext,
 } from "./guards/conformance";
+import {
+  enforceAdvStatePathPolicy,
+  getAdvStateLockedPaths,
+} from "./guards/adv-state";
 import { loadConformanceState } from "./storage/conformance";
 import { createToolMap, createDegradedToolMap } from "./tool-registry";
 import { appendDebugLog, createLogger } from "./utils/debug-log";
@@ -500,6 +504,16 @@ const advancePluginImpl: Plugin = async ({ directory, worktree, project }) => {
     enforceConformancePathPolicy(toolName, args, {
       lockedPaths,
     } as ConformancePathContext);
+
+    // ADV-state path guard (rq-advStatePath01) — block read/glob/grep/lgrep_*
+    // against external state directories (/changes, /archive). Bash bypass is
+    // INTENTIONAL and documented in guards/adv-state.ts; defense for adversarial
+    // paths is instruction-based via AGENTS.md and ADV_INSTRUCTIONS.md.
+    if (store?.paths.external) {
+      enforceAdvStatePathPolicy(toolName, args, {
+        lockedPaths: getAdvStateLockedPaths(store.paths.external),
+      });
+    }
 
     if (args.changeId) {
       state.activeChange.id = String(args.changeId);
