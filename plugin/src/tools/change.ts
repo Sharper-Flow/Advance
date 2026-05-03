@@ -941,12 +941,6 @@ export const changeTools = {
             ...change,
             tasks: paged.items,
             _taskPagination: paged.pagination,
-            _contextSnapshot: buildChangeContextSnapshot({
-              change,
-              proposalText,
-              gates: gates ?? undefined,
-              workdir: activeStore.paths.root,
-            }),
             ...(projectContext ? { _projectContext: projectContext } : {}),
           };
 

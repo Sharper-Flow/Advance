@@ -49,18 +49,18 @@ The Context Snapshot (full box) MUST display: change ID and title, success crite
 
 **ID:** `rq-ctxsnap2` | **Priority:** **[MUST]**
 
-The Context Snapshot (full box) MUST be emitted by tools that represent major state transitions: `adv_change_show`, `adv_change_create`, `adv_gate_complete`, `adv_change_reenter`, `adv_status`, and on session resume with an active change. Transient task-state tools emit a Context Ticker instead — see `rq-ctxticker2`.
+The Context Snapshot (full box) MUST be emitted by tools that represent major state transitions: `adv_change_create`, `adv_gate_complete`, `adv_change_reenter`, `adv_status` (primary change only — see `rq-ctxticker2.4`), and on session resume with an active change. `adv_change_show` provides structured JSON for direct LLM consumption and does NOT emit a snapshot. Transient task-state tools emit a Context Ticker instead — see `rq-ctxticker2`.
 
 **Tags:** `chat-output-display`, `snapshot`, `triggers`
 
 #### Scenarios
 
-**Snapshot emitted on change load** (`rq-ctxsnap2.1`)
+**Snapshot emitted on change creation** (`rq-ctxsnap2.1`)
 
 **Given:**
-- An agent begins work on a change via `adv_change_show` or `/adv-apply`
+- An agent creates a new change via `adv_change_create`
 
-**When:** The change data is loaded
+**When:** The change data is created
 
 **Then:**
 - A context snapshot (full box) is included in the tool output
@@ -138,7 +138,7 @@ The Context Ticker MUST be a single-line, ≤80-column compact summary with thre
 
 **ID:** `rq-ctxticker2` | **Priority:** **[MUST]**
 
-The Context Ticker MUST be emitted (instead of the full snapshot) by transient task-state tools: `adv_task_update` transitioning to `in_progress` or `done`, `adv_task_ready`, `adv_task_add`, and `adv_task_cancel`. Other emission sites (`adv_change_show`, `adv_change_create`, `adv_gate_complete`, `adv_change_reenter`, `adv_status`) MUST continue to emit the full snapshot per `rq-ctxsnap2`.
+The Context Ticker MUST be emitted (instead of the full snapshot) by transient task-state tools: `adv_task_update` transitioning to `in_progress` or `done`, `adv_task_ready`, `adv_task_add`, and `adv_task_cancel`. Other emission sites (`adv_change_create`, `adv_gate_complete`, `adv_change_reenter`, `adv_status`) MUST continue to emit the full snapshot per `rq-ctxsnap2`.
 
 **Tags:** `chat-output-display`, `ticker`, `triggers`
 
@@ -180,7 +180,7 @@ The Context Ticker MUST be emitted (instead of the full snapshot) by transient t
 **Given:**
 - An active change
 
-**When:** `adv_change_show`, `adv_gate_complete`, or `adv_change_reenter` is invoked
+**When:** `adv_change_create`, `adv_gate_complete`, or `adv_change_reenter` is invoked
 
 **Then:**
 - The tool output includes a multi-line context snapshot (full box) as `_contextSnapshot`

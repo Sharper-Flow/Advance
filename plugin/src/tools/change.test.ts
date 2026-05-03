@@ -661,22 +661,9 @@ describe("Change Tools", () => {
       );
       const parsed = JSON.parse(result);
 
-      // Should include a _contextSnapshot string field
-      expect(parsed._contextSnapshot).toBeDefined();
-      expect(typeof parsed._contextSnapshot).toBe("string");
-      // Snapshot should contain the change ID and title
-      expect(parsed._contextSnapshot).toContain("addFeature");
-      expect(parsed._contextSnapshot).toContain("Add New Feature");
-      // Should contain gate progress
-      expect(parsed._contextSnapshot).toMatch(/Gates:/);
-      // Should contain task counts
-      expect(parsed._contextSnapshot).toMatch(/Tasks:/);
-      // Should contain success criteria count
-      expect(parsed._contextSnapshot).toMatch(/Success:/);
-      // Should contain workdir
-      expect(parsed._contextSnapshot).toMatch(/Workdir:/);
-      // Should use box-drawing characters
-      expect(parsed._contextSnapshot).toMatch(/[╔╗╚╝║═]/);
+      // adv_change_show provides structured JSON for direct LLM consumption
+      // _contextSnapshot was removed — agents read JSON fields directly
+      expect(parsed._contextSnapshot).toBeUndefined();
     });
 
     test("reuses gates from the loaded change without refetching store.gates.get", async () => {
@@ -688,7 +675,7 @@ describe("Change Tools", () => {
       );
       const parsed = JSON.parse(result);
 
-      expect(parsed._contextSnapshot).toBeDefined();
+      expect(parsed._contextSnapshot).toBeUndefined();
       expect(gatesSpy).not.toHaveBeenCalled();
     });
 
@@ -705,20 +692,13 @@ describe("Change Tools", () => {
         store,
       );
       const parsed = JSON.parse(result);
-      const snapshot = parsed._contextSnapshot as string;
 
-      // Task counts should reflect 1 done, 1 active, 1 pending
-      expect(snapshot).toContain("1 done");
-      expect(snapshot).toContain("1 active");
-      expect(snapshot).toContain("1 pending");
+      // _contextSnapshot removed from adv_change_show — agents read JSON fields directly
+      expect(parsed._contextSnapshot).toBeUndefined();
 
-      expect(snapshot).toMatch(/\[✓ proposal\]/);
-      expect(snapshot).toMatch(/\[✓ discovery\]/);
-      expect(snapshot).toMatch(/\[○ design\]/);
-
-      // Current task should show the in_progress task
-      expect(snapshot).toContain("tk-task0002");
-      expect(snapshot).toContain("Write tests");
+      // Verify structured data is still available in the JSON output
+      expect(parsed.id).toBe("addFeature");
+      expect(parsed.title).toBe("Add New Feature");
     });
 
     test("includes problemStatementPath when problem-statement.md exists", async () => {
