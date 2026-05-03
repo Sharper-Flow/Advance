@@ -1,0 +1,982 @@
+/**
+ * OCX Worktree Plugin
+ *
+ * Creates isolated git worktrees for AI development sessions with
+ * seamless terminal spawning across macOS, Windows, and Linux.
+ *
+ * Inspired by opencode-worktree-session by Felix Anhalt
+ * https://github.com/felixAnhalt/opencode-worktree-session
+ * License: MIT
+ *
+ * Rewritten for OCX with production-proven patterns.
+ */
+
+import type { Database } from "bun:sqlite"
+import { access, copyFile, cp, mkdir, rm, stat, symlink } from "node:fs/promises"
+import * as os from "node:os"
+import * as path from "node:path"
+import { type Plugin, tool } from "@opencode-ai/plugin"
+import type { Event } from "@opencode-ai/sdk"
+import type { OpencodeClient } from "../../utils/opencode-types"
+
+/** Logger interface for structured logging */
+interface Logger {
+	debug: (msg: string) => void
+	info: (msg: string) => void
+	warn: (msg: string) => void
+	error: (msg: string) => void
+}
+
+import { parse as parseJsonc } from "jsonc-parser"
+import { z } from "zod"
+
+import { getProjectId as getProjectIdRaw } from "../../utils/project-id"
+// T7 relocation shim: ADV's getProjectId returns string|null, the kdco
+// signature was (cwd, client?) → string. Wrap to keep call sites unchanged.
+async function getProjectId(directory: string, _client?: unknown): Promise<string> {
+	const id = await getProjectIdRaw(directory)
+	if (!id) throw new Error(`getProjectId: unable to resolve project id for ${directory}`)
+	return id
+}
+import { isWorktreeInUse } from "./in-use"
+import {
+	addSession,
+	clearPendingDelete,
+	getPendingDeletes,
+	getSession,
+	getWorktreePath,
+	incrementPendingDeleteAttempts,
+	initStateDb,
+	removeSession,
+	setPendingDelete,
+} from "./state"
+import { openTerminal } from "./terminal"
+
+/** Maximum retries for database initialization */
+const DB_MAX_RETRIES = 3
+
+/** Delay between retry attempts in milliseconds */
+const DB_RETRY_DELAY_MS = 100
+
+/** Maximum depth to traverse session parent chain */
+const MAX_SESSION_CHAIN_DEPTH = 10
+
+/** Automatic pending-delete retry cap; manual worktree_cleanup can retry after remediation. */
+const MAX_PENDING_DELETE_ATTEMPTS = 5
+
+// =============================================================================
+// TYPES & SCHEMAS
+// =============================================================================
+
+/** Result type for fallible operations */
+interface OkResult<T> {
+	readonly ok: true
+	readonly value: T
+}
+interface ErrResult<E> {
+	readonly ok: false
+	readonly error: E
+}
+type Result<T, E> = OkResult<T> | ErrResult<E>
+
+const Result = {
+	ok: <T>(value: T): OkResult<T> => ({ ok: true, value }),
+	err: <E>(error: E): ErrResult<E> => ({ ok: false, error }),
+}
+
+/**
+ * Git branch name validation - blocks invalid refs and shell metacharacters
+ * Characters blocked: control chars (0x00-0x1f, 0x7f), ~^:?*[]\\, and shell metacharacters
+ */
+function isValidBranchName(name: string): boolean {
+	// Check for control characters
+	for (let i = 0; i < name.length; i++) {
+		const code = name.charCodeAt(i)
+		if (code <= 0x1f || code === 0x7f) return false
+	}
+	// Check for invalid git ref characters and shell metacharacters
+	if (/[~^:?*[\]\\;&|`$()]/.test(name)) return false
+	return true
+}
+
+const branchNameSchema = z
+	.string()
+	.min(1, "Branch name cannot be empty")
+	.refine((name) => !name.startsWith("-"), {
+		message: "Branch name cannot start with '-' (prevents option injection)",
+	})
+	.refine((name) => !name.startsWith("/") && !name.endsWith("/"), {
+		message: "Branch name cannot start or end with '/'",
+	})
+	.refine((name) => !name.includes("//"), {
+		message: "Branch name cannot contain '//'",
+	})
+	.refine((name) => !name.includes("@{"), {
+		message: "Branch name cannot contain '@{' (git reflog syntax)",
+	})
+	.refine((name) => !name.includes(".."), {
+		message: "Branch name cannot contain '..'",
+	})
+	// biome-ignore lint/suspicious/noControlCharactersInRegex: Control character detection is intentional for security
+	.refine((name) => !/[\x00-\x1f\x7f ~^:?*[\]\\]/.test(name), {
+		message: "Branch name contains invalid characters",
+	})
+	.max(255, "Branch name too long")
+	.refine((name) => isValidBranchName(name), "Contains invalid git ref characters")
+	.refine((name) => !name.startsWith(".") && !name.endsWith("."), "Cannot start or end with dot")
+	.refine((name) => !name.endsWith(".lock"), "Cannot end with .lock")
+
+/**
+ * Worktree plugin configuration schema.
+ * Config file: .opencode/worktree.jsonc
+ */
+const worktreeConfigSchema = z.object({
+	/** When true, skip terminal spawn and session fork — agent works inline via workdir */
+	inline: z.boolean().default(true),
+	sync: z
+		.object({
+			/** Files to copy from main worktree (relative paths only) */
+			copyFiles: z.array(z.string()).default([]),
+			/** Directories to symlink from main worktree (saves disk space) */
+			symlinkDirs: z.array(z.string()).default([]),
+			/** Patterns to exclude from copying (reserved for future use) */
+			exclude: z.array(z.string()).default([]),
+		})
+		.default(() => ({ copyFiles: [], symlinkDirs: [], exclude: [] })),
+	hooks: z
+		.object({
+			/** Commands to run after worktree creation */
+			postCreate: z.array(z.string()).default([]),
+			/** Commands to run before worktree deletion */
+			preDelete: z.array(z.string()).default([]),
+		})
+		.default(() => ({ postCreate: [], preDelete: [] })),
+})
+
+type WorktreeConfig = z.infer<typeof worktreeConfigSchema>
+
+// =============================================================================
+// ERROR TYPES
+// =============================================================================
+
+class WorktreeError extends Error {
+	constructor(
+		message: string,
+		public readonly operation: string,
+		public readonly cause?: unknown,
+	) {
+		super(`${operation}: ${message}`)
+		this.name = "WorktreeError"
+	}
+}
+
+// =============================================================================
+// SESSION FORKING HELPERS
+// =============================================================================
+
+/**
+ * Check if a path exists, distinguishing ENOENT from other errors (Law 4)
+ */
+async function pathExists(filePath: string): Promise<boolean> {
+	try {
+		await access(filePath)
+		return true
+	} catch (e: unknown) {
+		if (e && typeof e === "object" && "code" in e && e.code === "ENOENT") {
+			return false
+		}
+		throw e // Re-throw permission errors, etc.
+	}
+}
+
+/**
+ * Copy file if source exists. Returns true if copied, false if source doesn't exist.
+ * Throws on copy failure (Law 4: Fail Loud)
+ */
+async function copyIfExists(src: string, dest: string): Promise<boolean> {
+	if (!(await pathExists(src))) return false
+	await copyFile(src, dest)
+	return true
+}
+
+/**
+ * Copy directory contents if source exists.
+ * @param src - Source directory path
+ * @param dest - Destination directory path
+ * @returns true if copy was performed, false if source doesn't exist
+ */
+async function copyDirIfExists(src: string, dest: string): Promise<boolean> {
+	if (!(await pathExists(src))) return false
+	await cp(src, dest, { recursive: true })
+	return true
+}
+
+interface ForkResult {
+	forkedSession: { id: string }
+	rootSessionId: string
+	planCopied: boolean
+	delegationsCopied: boolean
+}
+
+/**
+ * Fork a session and copy associated plans/delegations.
+ * Cleans up forked session on failure (atomic operation).
+ */
+async function forkWithContext(
+	client: OpencodeClient,
+	sessionId: string,
+	projectId: string,
+	getRootSessionIdFn: (sessionId: string) => Promise<string>,
+): Promise<ForkResult> {
+	// Guard clauses (Law 1)
+	if (!client) throw new WorktreeError("client is required", "forkWithContext")
+	if (!sessionId) throw new WorktreeError("sessionId is required", "forkWithContext")
+	if (!projectId) throw new WorktreeError("projectId is required", "forkWithContext")
+
+	// Get root session ID with error wrapping
+	let rootSessionId: string
+	try {
+		rootSessionId = await getRootSessionIdFn(sessionId)
+	} catch (e) {
+		throw new WorktreeError("Failed to get root session ID", "forkWithContext", e)
+	}
+
+	// Fork session
+	const forkedSessionResponse = await client.session.fork({
+		path: { id: sessionId },
+		body: {},
+	})
+	const forkedSession = forkedSessionResponse.data
+	if (!forkedSession?.id) {
+		throw new WorktreeError("Failed to fork session: no session data returned", "forkWithContext")
+	}
+
+	// Copy data with cleanup on failure
+	let planCopied = false
+	let delegationsCopied = false
+
+	try {
+		const workspaceBase = path.join(os.homedir(), ".local", "share", "opencode", "workspace")
+		const delegationsBase = path.join(os.homedir(), ".local", "share", "opencode", "delegations")
+
+		const destWorkspaceDir = path.join(workspaceBase, projectId, forkedSession.id)
+		const destDelegationsDir = path.join(delegationsBase, projectId, forkedSession.id)
+
+		await mkdir(destWorkspaceDir, { recursive: true })
+		await mkdir(destDelegationsDir, { recursive: true })
+
+		// Copy plan
+		const srcPlan = path.join(workspaceBase, projectId, rootSessionId, "plan.md")
+		const destPlan = path.join(destWorkspaceDir, "plan.md")
+		planCopied = await copyIfExists(srcPlan, destPlan)
+
+		// Copy delegations
+		const srcDelegations = path.join(delegationsBase, projectId, rootSessionId)
+		delegationsCopied = await copyDirIfExists(srcDelegations, destDelegationsDir)
+	} catch (error) {
+		client.app
+			.log({
+				body: {
+					service: "worktree",
+					level: "error",
+					message: `forkWithContext: Copy failed, cleaning up forked session: ${error}`,
+				},
+			})
+			.catch(() => {})
+		// Clean up orphaned directories
+		const workspaceBase = path.join(os.homedir(), ".local", "share", "opencode", "workspace")
+		const delegationsBase = path.join(os.homedir(), ".local", "share", "opencode", "delegations")
+		const destWorkspaceDir = path.join(workspaceBase, projectId, forkedSession.id)
+		const destDelegationsDir = path.join(delegationsBase, projectId, forkedSession.id)
+		await rm(destWorkspaceDir, { recursive: true, force: true }).catch((e) => {
+			client.app
+				.log({
+					body: {
+						service: "worktree",
+						level: "error",
+						message: `forkWithContext: Failed to clean up workspace dir ${destWorkspaceDir}: ${e}`,
+					},
+				})
+				.catch(() => {})
+		})
+		await rm(destDelegationsDir, { recursive: true, force: true }).catch((e) => {
+			client.app
+				.log({
+					body: {
+						service: "worktree",
+						level: "error",
+						message: `forkWithContext: Failed to clean up delegations dir ${destDelegationsDir}: ${e}`,
+					},
+				})
+				.catch(() => {})
+		})
+		await client.session.delete({ path: { id: forkedSession.id } }).catch((e: unknown) => {
+			client.app
+				.log({
+					body: {
+						service: "worktree",
+						level: "error",
+						message: `forkWithContext: Failed to clean up forked session ${forkedSession.id}: ${e}`,
+					},
+				})
+				.catch(() => {})
+		})
+		throw new WorktreeError(
+			`Failed to copy session data: ${error instanceof Error ? error.message : String(error)}`,
+			"forkWithContext",
+			error,
+		)
+	}
+
+	return { forkedSession, rootSessionId, planCopied, delegationsCopied }
+}
+
+// =============================================================================
+// MODULE-LEVEL STATE
+// =============================================================================
+
+/** Database instance - initialized once per plugin lifecycle */
+let db: Database | null = null
+
+/** Project root path - stored on first initialization */
+let projectRoot: string | null = null
+
+/** Flag to prevent duplicate cleanup handler registration */
+let cleanupRegistered = false
+
+/**
+ * Register process cleanup handlers for graceful database shutdown.
+ * Ensures WAL checkpoint and proper close on process termination.
+ *
+ * NOTE: process.once() is an EventEmitter method that never throws.
+ * The boolean guard is defense-in-depth for idempotency, not error recovery.
+ *
+ * @param database - The database instance to clean up
+ */
+function registerCleanupHandlers(database: Database): void {
+	if (cleanupRegistered) return // Early exit guard
+	cleanupRegistered = true
+
+	const cleanup = () => {
+		try {
+			database.exec("PRAGMA wal_checkpoint(TRUNCATE)")
+			database.close()
+		} catch {
+			// Best effort cleanup - process is exiting anyway
+		}
+	}
+
+	process.once("SIGTERM", cleanup)
+	process.once("SIGINT", cleanup)
+	process.once("beforeExit", cleanup)
+}
+
+/**
+ * Get the database instance, initializing if needed.
+ * Includes retry logic for transient initialization failures.
+ *
+ * @returns Database instance
+ * @throws {Error} if initialization fails after all retries
+ */
+async function getDb(log: Logger): Promise<Database> {
+	if (db) return db
+
+	if (!projectRoot) {
+		throw new Error("Database not initialized: projectRoot not set. Call initDb() first.")
+	}
+
+	let lastError: Error | null = null
+
+	for (let attempt = 1; attempt <= DB_MAX_RETRIES; attempt++) {
+		try {
+			db = await initStateDb(projectRoot)
+			registerCleanupHandlers(db)
+			return db
+		} catch (error) {
+			lastError = error instanceof Error ? error : new Error(String(error))
+			log.warn(`Database init attempt ${attempt}/${DB_MAX_RETRIES} failed: ${lastError.message}`)
+
+			if (attempt < DB_MAX_RETRIES) {
+				Bun.sleepSync(DB_RETRY_DELAY_MS)
+			}
+		}
+	}
+
+	throw new Error(
+		`Failed to initialize database after ${DB_MAX_RETRIES} attempts: ${lastError?.message}`,
+	)
+}
+
+/**
+ * Initialize the database with the project root path.
+ * Must be called once before any getDb() calls.
+ */
+async function initDb(root: string, log: Logger): Promise<Database> {
+	projectRoot = root
+	return getDb(log)
+}
+
+// =============================================================================
+// GIT MODULE
+// =============================================================================
+
+/**
+ * Execute a git command safely using Bun.spawn with explicit array.
+ * Avoids shell interpolation entirely by passing args as array.
+ */
+async function git(args: string[], cwd: string): Promise<Result<string, string>> {
+	try {
+		const proc = Bun.spawn(["git", ...args], {
+			cwd,
+			stdout: "pipe",
+			stderr: "pipe",
+		})
+		const [stdout, stderr, exitCode] = await Promise.all([
+			new Response(proc.stdout).text(),
+			new Response(proc.stderr).text(),
+			proc.exited,
+		])
+		if (exitCode !== 0) {
+			return Result.err(stderr.trim() || `git ${args[0]} failed`)
+		}
+		return Result.ok(stdout.trim())
+	} catch (error) {
+		return Result.err(error instanceof Error ? error.message : String(error))
+	}
+}
+
+async function branchExists(cwd: string, branch: string): Promise<boolean> {
+	const result = await git(["rev-parse", "--verify", branch], cwd)
+	return result.ok
+}
+
+async function createWorktree(
+	repoRoot: string,
+	branch: string,
+	baseBranch?: string,
+): Promise<Result<string, string>> {
+	const worktreePath = await getWorktreePath(repoRoot, branch)
+
+	// Ensure parent directory exists
+	await mkdir(path.dirname(worktreePath), { recursive: true })
+
+	const exists = await branchExists(repoRoot, branch)
+
+	if (exists) {
+		// Checkout existing branch into worktree
+		const result = await git(["worktree", "add", worktreePath, branch], repoRoot)
+		return result.ok ? Result.ok(worktreePath) : result
+	} else {
+		// Create new branch from base
+		const base = baseBranch ?? "HEAD"
+		const result = await git(["worktree", "add", "-b", branch, worktreePath, base], repoRoot)
+		return result.ok ? Result.ok(worktreePath) : result
+	}
+}
+
+async function removeWorktree(
+	repoRoot: string,
+	worktreePath: string,
+): Promise<Result<void, string>> {
+	const result = await git(["worktree", "remove", "--force", worktreePath], repoRoot)
+	return result.ok ? Result.ok(undefined) : Result.err(result.error)
+}
+
+// =============================================================================
+// FILE SYNC MODULE
+// =============================================================================
+
+/**
+ * Validate that a path is safe (no escape from base directory)
+ */
+function isPathSafe(filePath: string, baseDir: string, log: Logger): boolean {
+	// Reject absolute paths
+	if (path.isAbsolute(filePath)) {
+		log.warn(`[worktree] Rejected absolute path: ${filePath}`)
+		return false
+	}
+	// Reject obvious path traversal
+	if (filePath.includes("..")) {
+		log.warn(`[worktree] Rejected path traversal: ${filePath}`)
+		return false
+	}
+	// Verify resolved path stays within base directory
+	const resolved = path.resolve(baseDir, filePath)
+	if (!resolved.startsWith(baseDir + path.sep) && resolved !== baseDir) {
+		log.warn(`[worktree] Path escapes base directory: ${filePath}`)
+		return false
+	}
+	return true
+}
+
+/**
+ * Copy files from source directory to target directory.
+ * Skips missing files silently (production pattern).
+ */
+async function copyFiles(
+	sourceDir: string,
+	targetDir: string,
+	files: string[],
+	log: Logger,
+): Promise<void> {
+	for (const file of files) {
+		if (!isPathSafe(file, sourceDir, log)) continue
+
+		const sourcePath = path.join(sourceDir, file)
+		const targetPath = path.join(targetDir, file)
+
+		try {
+			const sourceFile = Bun.file(sourcePath)
+			if (!(await sourceFile.exists())) {
+				log.debug(`[worktree] Skipping missing file: ${file}`)
+				continue
+			}
+
+			// Ensure target directory exists
+			const targetFileDir = path.dirname(targetPath)
+			await mkdir(targetFileDir, { recursive: true })
+
+			// Copy file
+			await Bun.write(targetPath, sourceFile)
+			log.info(`[worktree] Copied: ${file}`)
+		} catch (error) {
+			const isNotFound =
+				error instanceof Error &&
+				(error.message.includes("ENOENT") || error.message.includes("no such file"))
+			if (isNotFound) {
+				log.debug(`[worktree] Skipping missing: ${file}`)
+			} else {
+				log.warn(`[worktree] Failed to copy ${file}: ${error}`)
+			}
+		}
+	}
+}
+
+/**
+ * Create symlinks for directories from source to target.
+ * Uses absolute paths for symlink targets.
+ */
+async function symlinkDirs(
+	sourceDir: string,
+	targetDir: string,
+	dirs: string[],
+	log: Logger,
+): Promise<void> {
+	for (const dir of dirs) {
+		if (!isPathSafe(dir, sourceDir, log)) continue
+
+		const sourcePath = path.join(sourceDir, dir)
+		const targetPath = path.join(targetDir, dir)
+
+		try {
+			// Check if source directory exists
+			const fileStat = await stat(sourcePath).catch(() => null)
+			if (!fileStat || !fileStat.isDirectory()) {
+				log.debug(`[worktree] Skipping missing directory: ${dir}`)
+				continue
+			}
+
+			// Ensure parent directory exists
+			const targetParentDir = path.dirname(targetPath)
+			await mkdir(targetParentDir, { recursive: true })
+
+			// Remove existing target if it exists (might be empty dir from git)
+			await rm(targetPath, { recursive: true, force: true })
+
+			// Create symlink (use absolute path for source)
+			await symlink(sourcePath, targetPath, "dir")
+			log.info(`[worktree] Symlinked: ${dir}`)
+		} catch (error) {
+			log.warn(`[worktree] Failed to symlink ${dir}: ${error}`)
+		}
+	}
+}
+
+/**
+ * Run hook commands in the worktree directory.
+ */
+async function runHooks(cwd: string, commands: string[], log: Logger): Promise<void> {
+	for (const command of commands) {
+		log.info(`[worktree] Running hook: ${command}`)
+		try {
+			// Use shell to properly handle quoted arguments and complex commands
+			const result = Bun.spawnSync(["bash", "-c", command], {
+				cwd,
+				stdout: "inherit",
+				stderr: "pipe",
+			})
+			if (result.exitCode !== 0) {
+				const stderr = result.stderr?.toString() || ""
+				log.warn(
+					`[worktree] Hook failed (exit ${result.exitCode}): ${command}${stderr ? `\n${stderr}` : ""}`,
+				)
+			}
+		} catch (error) {
+			log.warn(`[worktree] Hook error: ${error}`)
+		}
+	}
+}
+
+/**
+ * Load worktree-specific configuration from .opencode/worktree.jsonc
+ * Auto-creates config file with helpful defaults if it doesn't exist.
+ */
+async function loadWorktreeConfig(directory: string, log: Logger): Promise<WorktreeConfig> {
+	const configPath = path.join(directory, ".opencode", "worktree.jsonc")
+
+	try {
+		const file = Bun.file(configPath)
+		if (!(await file.exists())) {
+			// Auto-create config with helpful defaults and comments
+			const defaultConfig = `{
+  "$schema": "https://registry.kdco.dev/schemas/worktree.json",
+
+  // Worktree plugin configuration
+  // Documentation: https://github.com/kdcokenny/ocx
+
+  // Inline mode: agent works in the worktree via workdir instead of
+  // spawning a new terminal window with a separate OpenCode instance.
+  // Set to false to restore the old behavior (new tmux window / terminal tab).
+  // "inline": true,
+
+  "sync": {
+    // Files to copy from main worktree to new worktrees
+    // Example: [".env", ".env.local", "dev.sqlite"]
+    "copyFiles": [],
+
+    // Directories to symlink (saves disk space)
+    // Example: ["node_modules"]
+    "symlinkDirs": [],
+
+    // Patterns to exclude from copying
+    "exclude": []
+  },
+
+  "hooks": {
+    // Commands to run after worktree creation
+    // Example: ["pnpm install", "docker compose up -d"]
+    "postCreate": [],
+
+    // Commands to run before worktree deletion
+    // Example: ["docker compose down"]
+    "preDelete": []
+  }
+}
+`
+			// Ensure .opencode directory exists
+			await mkdir(path.join(directory, ".opencode"), { recursive: true })
+			await Bun.write(configPath, defaultConfig)
+			log.info(`[worktree] Created default config: ${configPath}`)
+			return worktreeConfigSchema.parse({})
+		}
+
+		const content = await file.text()
+		// Use proper JSONC parser (handles comments in strings correctly)
+		const parsed = parseJsonc(content)
+		if (parsed === undefined) {
+			log.error(`[worktree] Invalid worktree.jsonc syntax`)
+			return worktreeConfigSchema.parse({})
+		}
+		return worktreeConfigSchema.parse(parsed)
+	} catch (error) {
+		log.warn(`[worktree] Failed to load config: ${error}`)
+		return worktreeConfigSchema.parse({})
+	}
+}
+
+// =============================================================================
+// PLUGIN ENTRY
+// =============================================================================
+
+export const WorktreePlugin: Plugin = async (ctx) => {
+	const { directory, client } = ctx
+
+	const log = {
+		debug: (msg: string) =>
+			client.app
+				.log({ body: { service: "worktree", level: "debug", message: msg } })
+				.catch(() => {}),
+		info: (msg: string) =>
+			client.app
+				.log({ body: { service: "worktree", level: "info", message: msg } })
+				.catch(() => {}),
+		warn: (msg: string) =>
+			client.app
+				.log({ body: { service: "worktree", level: "warn", message: msg } })
+				.catch(() => {}),
+		error: (msg: string) =>
+			client.app
+				.log({ body: { service: "worktree", level: "error", message: msg } })
+				.catch(() => {}),
+	}
+
+	// Initialize SQLite database
+	const database = await initDb(directory, log)
+
+	async function processPendingDeletes(
+		trigger: string,
+		options: { forceAttempts?: boolean } = {},
+	): Promise<{ removed: number; retained: number }> {
+		const pendingDeletes = getPendingDeletes(database)
+		if (pendingDeletes.length === 0) return { removed: 0, retained: 0 }
+
+		const config = await loadWorktreeConfig(directory, log)
+		let removed = 0
+		let retained = 0
+
+		for (const pendingDelete of pendingDeletes) {
+			const { path: worktreePath, branch } = pendingDelete
+
+			if (!options.forceAttempts && pendingDelete.attempts >= MAX_PENDING_DELETE_ATTEMPTS) {
+				log.warn(
+					`[worktree] Skipping pending delete for ${branch} during ${trigger} — max attempts reached (${pendingDelete.attempts}/${MAX_PENDING_DELETE_ATTEMPTS}). Run worktree_cleanup after fixing the underlying issue.`,
+				)
+				retained++
+				continue
+			}
+
+			if (isWorktreeInUse(worktreePath)) {
+				log.warn(
+					`[worktree] Skipping worktree removal during ${trigger} — directory still in use: ${worktreePath} (attempt ${pendingDelete.attempts + 1})`,
+				)
+				incrementPendingDeleteAttempts(database, branch)
+				retained++
+				continue
+			}
+
+			try {
+				if (config.hooks.preDelete.length > 0) {
+					await runHooks(worktreePath, config.hooks.preDelete, log)
+				}
+
+				const addResult = await git(["add", "-A"], worktreePath)
+				if (!addResult.ok) throw new Error(`git add failed: ${addResult.error}`)
+
+				const commitResult = await git(
+					["commit", "-m", "chore(worktree): session snapshot", "--allow-empty"],
+					worktreePath,
+				)
+				if (!commitResult.ok) throw new Error(`git commit failed: ${commitResult.error}`)
+
+				const removeResult = await removeWorktree(directory, worktreePath)
+				if (!removeResult.ok) throw new Error(`remove worktree failed: ${removeResult.error}`)
+
+				clearPendingDelete(database, branch)
+				removeSession(database, branch)
+				removed++
+			} catch (error) {
+				log.warn(`[worktree] Failed pending delete for ${branch}: ${error}`)
+				incrementPendingDeleteAttempts(database, branch)
+				retained++
+			}
+		}
+
+		return { removed, retained }
+	}
+
+	return {
+		tool: {
+			worktree_create: tool({
+				description:
+					"Create a new git worktree for isolated development. When inline mode is enabled in .opencode/worktree.jsonc, returns the worktree path for the agent to use via workdir. Otherwise opens a new terminal with OpenCode in the worktree.",
+				args: {
+					branch: tool.schema
+						.string()
+						.describe("Branch name for the worktree (e.g., 'feature/dark-mode')"),
+					baseBranch: tool.schema
+						.string()
+						.optional()
+						.describe("Base branch to create from (defaults to HEAD)"),
+				},
+				async execute(args, toolCtx) {
+					// Validate branch name at boundary
+					const branchResult = branchNameSchema.safeParse(args.branch)
+					if (!branchResult.success) {
+						return `❌ Invalid branch name: ${branchResult.error.issues[0]?.message}`
+					}
+
+					// Validate base branch name at boundary
+					if (args.baseBranch) {
+						const baseResult = branchNameSchema.safeParse(args.baseBranch)
+						if (!baseResult.success) {
+							return `❌ Invalid base branch name: ${baseResult.error.issues[0]?.message}`
+						}
+					}
+
+					// Create worktree
+					const result = await createWorktree(directory, args.branch, args.baseBranch)
+					if (!result.ok) {
+						return `Failed to create worktree: ${result.error}`
+					}
+
+					const worktreePath = result.value
+
+					// Sync files from main worktree
+					const worktreeConfig = await loadWorktreeConfig(directory, log)
+					const mainWorktreePath = directory // The repo root is the main worktree
+
+					// Copy files
+					if (worktreeConfig.sync.copyFiles.length > 0) {
+						await copyFiles(mainWorktreePath, worktreePath, worktreeConfig.sync.copyFiles, log)
+					}
+
+					// Symlink directories
+					if (worktreeConfig.sync.symlinkDirs.length > 0) {
+						await symlinkDirs(mainWorktreePath, worktreePath, worktreeConfig.sync.symlinkDirs, log)
+					}
+
+					// Run postCreate hooks
+					if (worktreeConfig.hooks.postCreate.length > 0) {
+						await runHooks(worktreePath, worktreeConfig.hooks.postCreate, log)
+					}
+
+					// Inline mode: skip session fork and terminal spawn
+					if (worktreeConfig.inline) {
+						log.info(`[worktree] Inline mode — skipping terminal spawn for ${args.branch}`)
+
+						// Record session for tracking (used by delete flow)
+						// Use "inline:<branch>" as the ID to avoid PK collision when
+						// the same session creates multiple worktrees.
+						addSession(database, {
+							id: `inline:${args.branch}`,
+							branch: args.branch,
+							path: worktreePath,
+							createdAt: new Date().toISOString(),
+						})
+
+						return [
+							`Worktree created at ${worktreePath}`,
+							`Branch: ${args.branch}`,
+							``,
+							`IMPORTANT: Inline mode is active. You MUST use workdir="${worktreePath}" for ALL subsequent tool calls (bash, read, edit, glob, grep, etc). Do NOT continue operating in the original directory.`,
+						].join("\n")
+					}
+
+					// Fork session with context (replaces --session resume)
+					const projectId = await getProjectId(worktreePath, client)
+					const { forkedSession, planCopied, delegationsCopied } = await forkWithContext(
+						client,
+						toolCtx.sessionID,
+						projectId,
+						async (sid) => {
+							// Walk up parentID chain to find root session
+							let currentId = sid
+							for (let depth = 0; depth < MAX_SESSION_CHAIN_DEPTH; depth++) {
+								const session = await client.session.get({ path: { id: currentId } })
+								if (!session.data?.parentID) return currentId
+								currentId = session.data.parentID
+							}
+							return currentId
+						},
+					)
+
+					log.debug(
+						`Forked session ${forkedSession.id}, plan: ${planCopied}, delegations: ${delegationsCopied}`,
+					)
+
+					// Spawn worktree with forked session
+					const terminalResult = await openTerminal(
+						worktreePath,
+						`opencode --session ${forkedSession.id}`,
+						args.branch,
+					)
+
+					if (!terminalResult.success) {
+						log.warn(`[worktree] Failed to open terminal: ${terminalResult.error}`)
+					}
+
+					// Record session for tracking (used by delete flow)
+					addSession(database, {
+						id: forkedSession.id,
+						branch: args.branch,
+						path: worktreePath,
+						createdAt: new Date().toISOString(),
+					})
+
+					return `Worktree created at ${worktreePath}\n\nA new terminal has been opened with OpenCode.`
+				},
+			}),
+
+			worktree_delete: tool({
+				description:
+					"Delete a worktree and clean up. Changes will be committed before removal. In inline mode, provide the branch name to identify which worktree to delete.",
+				args: {
+					reason: tool.schema
+						.string()
+						.describe("Brief explanation of why you are calling this tool"),
+					branch: tool.schema
+						.string()
+						.optional()
+						.describe("Branch name of the worktree to delete (required in inline mode)"),
+				},
+				async execute(args, toolCtx) {
+					const worktreeConfig = await loadWorktreeConfig(directory, log)
+
+					// Find the worktree session record
+					let session: ReturnType<typeof getSession> = null
+
+					if (worktreeConfig.inline) {
+						// Inline mode: look up by "inline:<branch>" key
+						if (!args.branch) {
+							return `In inline mode, you must provide the branch name of the worktree to delete.`
+						}
+						session = getSession(database, `inline:${args.branch}`)
+					} else {
+						// Non-inline mode: look up by forked session ID
+						session = getSession(database, toolCtx?.sessionID ?? "")
+					}
+
+					if (!session) {
+						return `No worktree found${args.branch ? ` for branch "${args.branch}"` : " associated with this session"}`
+					}
+
+					// Queue pending delete and run one guarded cleanup attempt immediately.
+					setPendingDelete(database, { branch: session.branch, path: session.path }, client)
+					const cleanup = await processPendingDeletes("worktree_delete")
+					if (cleanup.removed > 0 && cleanup.retained === 0) {
+						return `Worktree removed and changes committed on branch "${session.branch}".`
+					}
+
+					return `Worktree scheduled for cleanup. Removed ${cleanup.removed}, retained ${cleanup.retained}. Ensure no process is using it, then retry with worktree_cleanup if needed.`
+				},
+			}),
+
+			worktree_cleanup: tool({
+				description:
+					"Retry queued worktree deletions. Safe: skips worktrees still used as a process CWD and keeps them queued.",
+				args: {
+					reason: tool.schema
+						.string()
+						.describe("Brief explanation of why you are retrying queued cleanup"),
+				},
+				async execute() {
+					const cleanup = await processPendingDeletes("worktree_cleanup", { forceAttempts: true })
+					return `Worktree cleanup complete. Removed ${cleanup.removed}, retained ${cleanup.retained}.`
+				},
+			}),
+		},
+
+		event: async ({ event }: { event: Event }): Promise<void> => {
+			// ---------------------------------------------------------------------------
+			// session.idle: handle pending SPAWN only — never touch pending deletes here.
+			// Worktree deletion on session.idle was the root cause of the CWD race
+			// condition: the shell's CWD could be deleted while it was still active.
+			// ---------------------------------------------------------------------------
+			if (event.type === "session.idle") {
+				// Spawn handling is done elsewhere; nothing to do for deletes on idle.
+				return
+			}
+
+			// ---------------------------------------------------------------------------
+			// session.deleted: safe to attempt worktree cleanup.
+			// The session terminal is gone, but we still guard against the case where
+			// another process (e.g. the spawning shell) has the worktree as its CWD.
+			// ---------------------------------------------------------------------------
+			if (event.type === "session.deleted") {
+				await processPendingDeletes("session.deleted")
+			}
+		},
+	}
+}
+
+export default WorktreePlugin
