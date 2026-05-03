@@ -5,6 +5,7 @@ import { join, resolve } from "path";
 const REPO_ROOT = resolve(__dirname, "../..");
 const SYNC_SCRIPT_PATH = join(REPO_ROOT, "scripts/sync-global.sh");
 const PROVIDER_EVAL_PATH = join(REPO_ROOT, "scripts/provider-eval.ts");
+const ADV_AGENT_PATH = join(REPO_ROOT, ".opencode/agents/adv.md");
 
 describe("sync-global.sh", () => {
   const content = readFileSync(SYNC_SCRIPT_PATH, "utf8");
@@ -337,6 +338,30 @@ describe("sync-global.sh", () => {
       expect(providerEval).toContain("loadCanonicalAdvPrompt");
       expect(providerEval).toContain("agent-parts/advance/adv.md");
       expect(providerEval).not.toContain("global provider variant");
+    });
+  });
+
+  describe("canonical ADV prompt compression", () => {
+    const advAgent = readFileSync(ADV_AGENT_PATH, "utf8");
+
+    test("canonical ADV prompt stays under the safe compression ceiling", () => {
+      const lines = advAgent.split(/\r?\n/).length;
+      expect(lines).toBeLessThanOrEqual(350);
+    });
+
+    test("canonical ADV prompt keeps safety-critical markers", () => {
+      for (const marker of [
+        "Human Checkpoints",
+        "ADV State Access Policy",
+        "Sign-Off Boundary",
+        "TDD Protocol",
+        "Worktree",
+        "Doom-loop",
+        "Cancellation",
+        "Due diligence first",
+      ]) {
+        expect(advAgent).toContain(marker);
+      }
     });
   });
 });
