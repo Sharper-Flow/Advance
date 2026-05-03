@@ -106,6 +106,8 @@ GLOBAL_COMMANDS="$HOME/.config/opencode/command"
 GLOBAL_AGENTS="$HOME/.config/opencode/agents"
 GLOBAL_SKILLS="$HOME/.config/opencode/skills"
 GLOBAL_CONFIG="$HOME/.config/opencode"
+GLOBAL_AGENT_PARTS="$GLOBAL_CONFIG/agent-parts"
+PROVIDER_PROMPT_PARTS_DIR="$GLOBAL_AGENT_PARTS/advance"
 
 # ---------------------------------------------------------------------------
 # Resolve config file: opencode.jsonc takes priority over opencode.json
@@ -312,14 +314,58 @@ PY
 # ---------------------------------------------------------------------------
 # Provider ADV Variant Generation
 #
-# Generates adv-{provider}.md variants from the canonical adv.md by copying
-# + patching frontmatter name + injecting a small provider hint block.
+# Generates skinny adv-{provider}.md stubs from the canonical adv.md frontmatter.
+# Runtime prompt text is configured via opencode.json prompt refs pointing at
+# shared global prompt parts under ~/.config/opencode/agent-parts/advance/.
 # Provider hint fragments live outside .opencode/agents/ so OpenCode does not
 # surface them as selectable repo-local agents.
 # The canonical adv.md remains the single source of truth.
 # ---------------------------------------------------------------------------
 PROVIDER_HINT_DIR="$REPO_ROOT/.opencode/agent-parts/providers"
 PROVIDERS=(claude gpt glm kimi)
+PROVIDER_STUB_DIAGNOSTIC='[ADV:PROVIDER_STUB_UNEXPANDED] Provider ADV stub did not expand through opencode.json prompt refs. Do NOT proceed with ADV workflow. Run `scripts/sync-global.sh --fix`, verify `agent.adv-{provider}.prompt` references `{file:./agent-parts/advance/adv.md}` and the provider hint, then restart OpenCode.'
+
+provider_prompt_ref() {
+  local provider="$1"
+  printf '{file:./agent-parts/advance/adv.md}\n\n{file:./agent-parts/advance/providers/%s.md}' "$provider"
+}
+
+sync_adv_prompt_parts() {
+  local canonical="$GLOBAL_AGENTS/adv.md"
+  if [ ! -f "$canonical" ]; then
+    echo "    ✗  provider prompt parts: canonical adv.md missing at $canonical"
+    return 1
+  fi
+
+  if [ "$DRY_RUN" = true ]; then
+    echo "    dry-run sync provider prompt parts: agent-parts/advance"
+    return 0
+  fi
+
+  mkdir -p "$PROVIDER_PROMPT_PARTS_DIR/providers"
+  python - <<'PY' "$canonical" "$PROVIDER_PROMPT_PARTS_DIR/adv.md"
+from pathlib import Path
+import sys
+
+source, dest = map(Path, sys.argv[1:3])
+text = source.read_text()
+if text.startswith('---\n'):
+    end = text.find('\n---', 4)
+    if end != -1:
+        text = text[end + 4:].lstrip('\n')
+dest.write_text(text)
+PY
+
+  for provider in "${PROVIDERS[@]}"; do
+    local hint_file="$PROVIDER_HINT_DIR/${provider}.md"
+    if [ ! -f "$hint_file" ]; then
+      echo "    ✗  provider prompt parts: missing provider hint $hint_file"
+      return 1
+    fi
+    cp "$hint_file" "$PROVIDER_PROMPT_PARTS_DIR/providers/${provider}.md"
+  done
+  echo "    synced provider prompt parts: agent-parts/advance"
+}
 
 generate_provider_variants() {
   local canonical="$GLOBAL_AGENTS/adv.md"
@@ -343,11 +389,10 @@ generate_provider_variants() {
     fi
 
     if [ "$DRY_RUN" = true ]; then
-      echo "    dry-run generate variant: adv-${provider}.md"
+      echo "    dry-run generate skinny variant: adv-${provider}.md"
       continue
     fi
 
-    # Copy canonical and patch frontmatter name
     local tmp_variant
     tmp_variant="$(mktemp)"
     sed -E "s/^(name:[[:space:]]*).*/\1adv-${provider}/" "$canonical" > "$tmp_variant"
@@ -374,36 +419,43 @@ PY
       sed -Ei "s/^(color:[[:space:]]*).*/\1\"$provider_color\"/" "$tmp_variant"
     fi
 
-    # inject provider hint after ADV overlay block
-    local hint_block
-    hint_block="$(cat "$hint_file")"
-    local end_marker="<!-- ADV_SYNC:END adv -->"
-    python - <<'PY' "$tmp_variant" "$end_marker" "$hint_block" "$variant"
+    python - <<'PY' "$tmp_variant" "$variant" "$provider" "$PROVIDER_STUB_DIAGNOSTIC"
 from pathlib import Path
 import sys
 
-target_path, end_marker, hint_block, output_path = sys.argv[1:5]
-target = Path(target_path).read_text()
-end = target.find(end_marker)
-if end != -1:
-    end += len(end_marker)
-    while end < len(target) and target[end] == "\n":
-        end += 1
-    result = target[:end] + "\n" + hint_block + "\n" + target[end:]
+tmp_path, output_path, provider, diagnostic = sys.argv[1:5]
+text = Path(tmp_path).read_text()
+diagnostic = diagnostic.replace('{provider}', provider)
+if text.startswith('---\n'):
+    end = text.find('\n---', 4)
+    if end != -1:
+        frontmatter = text[: end + 4]
+        result = f"{frontmatter}\n\n{diagnostic}\n"
+    else:
+        result = f"---\nname: adv-{provider}\n---\n\n{diagnostic}\n"
 else:
-    result = target + "\n" + hint_block + "\n"
-
+    result = f"---\nname: adv-{provider}\n---\n\n{diagnostic}\n"
 Path(output_path).write_text(result)
 PY
 
     rm -f "$tmp_variant"
-    echo "    generated variant: adv-${provider}.md"
+    echo "    generated skinny variant: adv-${provider}.md"
   done
 }
 
-# Check whether global opencode.json has any agent.adv-* keys configured.
-# Used to gate legacy adv.md removal so we don't break existing setups
-# until the user has explicitly opted into provider variants.
+provider_adv_has_activation_fields() {
+  # prompt-only sync-managed provider keys do not activate provider mode.
+  # Activation fields are OMP/user-owned: model, disable, variant, color.
+  jq -e '
+    (.agent // {}) as $agents |
+    ["adv-claude", "adv-gpt", "adv-glm", "adv-kimi"][] as $key |
+    (($agents[$key] // {}) | if type == "object" then any(["model", "disable", "variant", "color"][]; has(.)) else false end)
+  ' >/dev/null
+}
+
+# Check whether global opencode.json has provider ADV activation fields.
+# Used to gate legacy adv.md removal so sync-managed prompt-only keys do not
+# hide generic adv before the user opts into provider variants.
 provider_adv_configured_in_json() {
   if [ ! -f "$GLOBAL_JSON" ]; then
     return 1
@@ -411,10 +463,41 @@ provider_adv_configured_in_json() {
   if ! check_jq; then
     return 1
   fi
-  jsonc_to_json "$GLOBAL_JSON" | jq -e '.agent // {} | keys[] | select(startswith("adv-"))' &>/dev/null
+  jsonc_to_json "$GLOBAL_JSON" | provider_adv_has_activation_fields
 }
 
-# ---------------------------------------------------------------------------
+check_provider_prompt_parts() {
+  if [ ! -f "$GLOBAL_JSON" ] || ! check_jq; then
+    return 0
+  fi
+
+  local needs_parts=false
+  for provider in "${PROVIDERS[@]}"; do
+    local expected
+    expected="$(provider_prompt_ref "$provider")"
+    if jsonc_to_json "$GLOBAL_JSON" | jq -e --arg agent "adv-${provider}" --arg expected "$expected" '(.agent[$agent].prompt // "") == $expected' >/dev/null; then
+      needs_parts=true
+    fi
+  done
+
+  if [ "$needs_parts" != true ]; then
+    return 0
+  fi
+
+  if [ ! -f "$PROVIDER_PROMPT_PARTS_DIR/adv.md" ]; then
+    echo "    ✗  Provider ADV prompt part missing: $PROVIDER_PROMPT_PARTS_DIR/adv.md"
+    echo "       Run: scripts/sync-global.sh --fix"
+    ((config_issues++)) || true
+  fi
+  for provider in "${PROVIDERS[@]}"; do
+    if [ ! -f "$PROVIDER_PROMPT_PARTS_DIR/providers/${provider}.md" ]; then
+      echo "    ✗  Provider ADV prompt part missing: $PROVIDER_PROMPT_PARTS_DIR/providers/${provider}.md"
+      echo "       Run: scripts/sync-global.sh --fix"
+      ((config_issues++)) || true
+    fi
+  done
+}
+
 # Agent Tool Allowlist Drift Check
 #
 # Cross-references the `adv` agent's `tools:` allowlist in
@@ -535,7 +618,9 @@ check_config() {
     return
   fi
 
-  # Check plugin entry
+  check_provider_prompt_parts
+
+  # Validate plugin path exists
   if json_array_contains "$GLOBAL_JSON" ".plugin // []" "$ADV_PLUGIN_PATH"; then
     echo "    ✓  plugin: ADV plugin registered"
   else
@@ -730,6 +815,20 @@ fix_config() {
       ((patched++)) || true
     fi
   done
+
+  patch_provider_prompt_refs() {
+    for provider in "${PROVIDERS[@]}"; do
+      local agent="adv-${provider}"
+      local expected
+      expected="$(provider_prompt_ref "$provider")"
+      if ! jq -e --arg agent "$agent" --arg expected "$expected" '(.agent[$agent].prompt // "") == $expected' "$tmp_json" &>/dev/null; then
+        jq --arg agent "$agent" --arg expected "$expected" '.agent[$agent].prompt = $expected' "$tmp_json" > "$tmp_json.new" && mv "$tmp_json.new" "$tmp_json"
+        echo "    ✓  Set agent.$agent.prompt provider prompt refs"
+        ((patched++)) || true
+      fi
+    done
+  }
+  patch_provider_prompt_refs
 
   # Disable generic adv agent when provider variants are configured.
   # When agent.adv-* keys exist in opencode.json, the user has opted into
@@ -943,7 +1042,8 @@ fi
 echo "    $agents_copied agent(s) synced"
 
 # Generate provider ADV variants from canonical adv.md
-# (copy + patch frontmatter name + inject provider hint)
+# (skinny stub + prompt refs to shared prompt parts)
+sync_adv_prompt_parts
 generate_provider_variants
 
 # Apply repo-owned overlays to shared global agents without replacing the file.

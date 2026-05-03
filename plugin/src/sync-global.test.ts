@@ -263,9 +263,24 @@ describe("sync-global.sh", () => {
       expect(content).toMatch(/sed.*name:.*adv-\$\{provider\}/);
     });
 
-    test("sync script injects provider hint after ADV overlay block", () => {
-      expect(content).toContain("inject provider hint");
-      expect(content).toContain("agent-parts/providers");
+    test("sync script writes provider prompt parts and skinny diagnostics", () => {
+      expect(content).toContain("PROVIDER_PROMPT_PARTS_DIR");
+      expect(content).toContain("sync_adv_prompt_parts");
+      expect(content).toContain("[ADV:PROVIDER_STUB_UNEXPANDED]");
+      expect(content).toContain("agent-parts/advance/providers");
+    });
+
+    test("sync script does not embed provider hints in generated variants", () => {
+      expect(content).not.toContain(
+        "inject provider hint after ADV overlay block",
+      );
+      expect(content).not.toContain('hint_block="$(cat "$hint_file")"');
+    });
+
+    test("sync script patches prompt refs for provider variants", () => {
+      expect(content).toContain("patch_provider_prompt_refs");
+      expect(content).toContain("{file:./agent-parts/advance/adv.md}");
+      expect(content).toContain("{file:./agent-parts/advance/providers/");
     });
 
     test("sync script extends drift checks to all provider variants", () => {
@@ -278,6 +293,15 @@ describe("sync-global.sh", () => {
       expect(content).toContain("agent.adv-");
       expect(content).toContain("opencode.json");
       expect(content).toMatch(/legacy.*adv\.md.*gated|gated.*legacy.*adv\.md/i);
+    });
+
+    test("prompt-only provider config keys do not activate provider mode", () => {
+      expect(content).toContain("provider_adv_has_activation_fields");
+      expect(content).toContain("prompt-only");
+      expect(content).toContain("model");
+      expect(content).toContain("disable");
+      expect(content).toContain("variant");
+      expect(content).toContain("color");
     });
 
     test("sets agent.adv.disable: true when provider variants are configured", () => {

@@ -327,7 +327,7 @@ describe("overlay sync script support", () => {
       );
       writeFileSync(
         join(globalAgents, "adv.md"),
-        "---\ndescription: temp adv\n---\n",
+        "---\ndescription: temp adv\n---\nCANONICAL BODY SHOULD MOVE TO PROMPT PART\n",
       );
 
       const result = spawnSync("bash", [SYNC_SCRIPT_PATH, "--fix"], {
@@ -348,12 +348,13 @@ describe("overlay sync script support", () => {
     }
   });
 
-  test("generated provider variants contain provider hint block", () => {
+  test("generated provider variants are skinny stubs backed by prompt parts", () => {
     const tempHome = mkdtempSync(join(tmpdir(), "adv-provider-hints-"));
 
     try {
       const configDir = join(tempHome, ".config/opencode");
       const globalAgents = join(configDir, "agents");
+      const promptParts = join(configDir, "agent-parts", "advance");
       mkdirSync(globalAgents, { recursive: true });
       writeFileSync(
         join(configDir, "opencode.json"),
@@ -361,7 +362,7 @@ describe("overlay sync script support", () => {
       );
       writeFileSync(
         join(globalAgents, "adv.md"),
-        "---\ndescription: temp adv\n---\n",
+        "---\ndescription: temp adv\n---\nCANONICAL BODY SHOULD MOVE TO PROMPT PART\n",
       );
 
       const result = spawnSync("bash", [SYNC_SCRIPT_PATH, "--fix"], {
@@ -371,13 +372,34 @@ describe("overlay sync script support", () => {
       });
 
       expect(result.status).toBe(0);
+      expect(readFileSync(join(promptParts, "adv.md"), "utf8")).toContain(
+        "## ADV Overlay",
+      );
+
+      const config = JSON.parse(
+        readFileSync(join(configDir, "opencode.json"), "utf8"),
+      );
       for (const p of ["claude", "gpt", "glm", "kimi"]) {
         const variantContent = readFileSync(
           join(globalAgents, `adv-${p}.md`),
           "utf8",
         );
-        expect(variantContent, `adv-${p}.md missing provider hint`).toContain(
-          `<!-- PROVIDER_HINT:${p} -->`,
+        expect(variantContent, `adv-${p}.md missing stub diagnostic`).toContain(
+          "[ADV:PROVIDER_STUB_UNEXPANDED]",
+        );
+        expect(
+          variantContent,
+          `adv-${p}.md still embeds provider hint`,
+        ).not.toContain(`<!-- PROVIDER_HINT:${p} -->`);
+        expect(
+          variantContent,
+          `adv-${p}.md still embeds canonical body`,
+        ).not.toContain("## ADV Overlay");
+        expect(
+          readFileSync(join(promptParts, "providers", `${p}.md`), "utf8"),
+        ).toContain(`<!-- PROVIDER_HINT:${p} -->`);
+        expect(config.agent[`adv-${p}`].prompt).toBe(
+          `{file:./agent-parts/advance/adv.md}\n\n{file:./agent-parts/advance/providers/${p}.md}`,
         );
       }
     } finally {
