@@ -32,6 +32,30 @@ Emit COORDINATION DASHBOARD: active change count with task progress and file cou
 | Semantic conflicts | HIGH | Review both changes |
 | Hot files (2) | MEDIUM | Coordinate modifications |
 
+## Merge-Order Queue (Multi-Worktree)
+
+When multiple changes are archived but not yet merged to the default branch,
+`/adv-coordinate` can consult an **advisory merge-order queue** to suggest a
+safe merge sequence.
+
+**What it computes:** The queue reads `change_summaries` from the project
+workflow (Temporal), filters to `status === "archived"`, and builds a
+dependency graph based on `touched_files` overlaps. Changes archived earlier
+that touch overlapping files are treated as prerequisites for later-archived
+changes. The output is a topologically sorted list with `dependsOn` edges.
+
+**How to use it:** The queue is advisory only — it does not auto-merge.
+Users should invoke `/adv-archive` Phase 9 in the suggested order (earliest
+in the queue first). Cycles are rare (only when archive timestamps are
+identical AND files cross-overlap) and are reported explicitly.
+
+**Cross-session reliability:** Because Temporal serializes
+`change_summaries` writes, the queue reflects a consistent snapshot even when
+multiple sessions archive changes concurrently.
+
+**TODO:** Runtime wiring of `computeMergeOrder` into `/adv-coordinate` Phase 3
+report is a follow-up task.
+
 ## Key Tools
 | Purpose | Tool |
 |---------|------|
