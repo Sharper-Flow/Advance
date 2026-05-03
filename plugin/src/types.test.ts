@@ -43,6 +43,7 @@ import {
   InvestmentReportSchema,
   ThresholdTierSchema,
   ProjectMetadataEntrySchema,
+  RelatedRepoSchema,
   isLogicTask,
   isTrivialTask,
   hasCompleteTddEvidence,
@@ -51,6 +52,7 @@ import {
   stripTddEvidence,
   BulkCloseSelectorSchema,
   BulkCloseResultSchema,
+  type RelatedRepo,
   type Task,
 } from "./types";
 import { SAMPLE_SPEC, SAMPLE_CHANGE } from "./__tests__/setup";
@@ -3179,5 +3181,94 @@ describe("ConformanceStateSchema", () => {
     expect(ConformanceVerdictSchema.parse("PASS")).toBe("PASS");
     expect(ConformanceVerdictSchema.parse("DRIFT")).toBe("DRIFT");
     expect(() => ConformanceVerdictSchema.parse("FAIL")).toThrow();
+  });
+});
+
+describe("RelatedRepoSchema", () => {
+  test("parses minimal repo with defaults", () => {
+    const repo = RelatedRepoSchema.parse({
+      id: "backend",
+      path: "/home/user/backend",
+    });
+    expect(repo.id).toBe("backend");
+    expect(repo.path).toBe("/home/user/backend");
+    expect(repo.trusted).toBe(false);
+    expect(repo.gh_repo).toBeUndefined();
+    expect(repo.role).toBeUndefined();
+  });
+
+  test("parses repo with all fields", () => {
+    const repo = RelatedRepoSchema.parse({
+      id: "backend",
+      path: "/home/user/backend",
+      role: "Backend API server",
+      trusted: true,
+      gh_repo: "org/backend-api",
+    });
+    expect(repo.trusted).toBe(true);
+    expect(repo.gh_repo).toBe("org/backend-api");
+    expect(repo.role).toBe("Backend API server");
+  });
+
+  test("defaults trusted to false when omitted", () => {
+    const repo = RelatedRepoSchema.parse({
+      id: "api",
+      path: "/projects/api",
+    });
+    expect(repo.trusted).toBe(false);
+  });
+
+  test("accepts trusted: false explicitly", () => {
+    const repo = RelatedRepoSchema.parse({
+      id: "api",
+      path: "/projects/api",
+      trusted: false,
+    });
+    expect(repo.trusted).toBe(false);
+  });
+
+  test("rejects missing id", () => {
+    expect(() =>
+      RelatedRepoSchema.parse({
+        path: "/projects/api",
+      }),
+    ).toThrow();
+  });
+
+  test("rejects missing path", () => {
+    expect(() =>
+      RelatedRepoSchema.parse({
+        id: "api",
+      }),
+    ).toThrow();
+  });
+
+  test("rejects non-boolean trusted", () => {
+    expect(() =>
+      RelatedRepoSchema.parse({
+        id: "api",
+        path: "/projects/api",
+        trusted: "yes",
+      }),
+    ).toThrow();
+  });
+
+  test("rejects non-string gh_repo", () => {
+    expect(() =>
+      RelatedRepoSchema.parse({
+        id: "api",
+        path: "/projects/api",
+        gh_repo: 123,
+      }),
+    ).toThrow();
+  });
+
+  test("passthrough preserves extra fields", () => {
+    const repo = RelatedRepoSchema.parse({
+      id: "api",
+      path: "/projects/api",
+      custom_field: "value",
+    });
+    expect((repo as Record<string, unknown>).custom_field).toBe("value");
   });
 });

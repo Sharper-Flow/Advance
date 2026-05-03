@@ -1205,11 +1205,11 @@ export const RelatedRepoSchema = z.object({
   path: z.string(),
   /** Human-readable role description (e.g., "Backend API server", "Database migrations") */
   role: z.string().optional(),
-  /** Whether this repo is a trusted source for cross-project agent mesh coordination */
+  /** Whether this repo is trusted for automated cross-project operations (e.g., mesh issue creation) */
   trusted: z.boolean().default(false),
-  /** GitHub repository identifier for mesh issue creation (e.g., "owner/repo") */
+  /** GitHub repo in owner/name format for GH CLI operations (e.g., "org/backend-api") */
   gh_repo: z.string().optional(),
-});
+}).passthrough();
 
 export type RelatedRepo = z.infer<typeof RelatedRepoSchema>;
 
