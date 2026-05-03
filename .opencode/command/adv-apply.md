@@ -124,8 +124,14 @@ When a session on change A needs to work on change B:
 4. Resume work on change B in its isolated worktree
 5. To return to change A → switch `workdir` back to worktree-A path
 
-## Phase 0.2: Overlap Warning (Advisory)
-Check `adv_change_list` for other active changes. Compare affected files. If overlaps found → emit advisory warning listing files and overlapping change IDs. Suggest `/adv-coordinate`. Does NOT block work.
+## Phase 0.2: Overlap Warning (Conditional)
+Check `adv_change_list` for other active changes. Compare affected files.
+
+- **3+ changes touching the same file** → emit `COORDINATION REQUIRED` banner listing the file and all overlapping change IDs. **Halt `/adv-apply`** until user resolves (merge/combine changes, or proceed with explicit override).
+- **2 changes touching the same file** → emit advisory warning listing file and overlapping change ID. Does NOT block work.
+- **No overlaps** → proceed silently.
+
+Cross-change coordination is now handled automatically by `/adv-archive` (merge-order queue) and `/adv-status` (cross-change health dashboard).
 
 ## Phase 0.5: Pre-Execution Rebase (per-worktree)
 

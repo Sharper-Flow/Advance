@@ -240,7 +240,7 @@ When multiple changes are ready to merge simultaneously:
 3. **Cross-subsystem changes parallelize** — merge in any order
 4. **Manual override** — user can promote any change to head of queue
 
-`/adv-coordinate` already exists; extend it to surface the queue and let user reorder.
+``/adv-archive` Phase 9 auto-computes merge order via `computeMergeOrder`; `/adv-status` Cross-Change Health section surfaces the queue for visibility.
 
 ### 4.4 Branch deletion policy
 

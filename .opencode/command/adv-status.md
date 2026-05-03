@@ -16,6 +16,7 @@ Call `adv_status` for project overview. Format defined by `plugin/src/utils/tool
 | **ACTIVE CHANGES** | sorted by recency; per-change: id, title, status, tasks (done/total), last activity, gate progress, workdir |
 | **WORKTREES** | active worktree count; stale worktrees (>7d inactive) with branch + last activity |
 | **ARCHIVED CHANGES** | total count + last 5 (date/id/title) |
+| **CROSS-CHANGE HEALTH** | hot files (2+ changes), stale worktrees, merge-queue blockers (auto-emerges when ≥2 active changes) |
 | **RECOMMENDATIONS** | gate-based, from workflow manifest (table below) |
 
 | Recency band | Window | Meaning |
@@ -34,6 +35,18 @@ Call `adv_status` for project overview. Format defined by `plugin/src/utils/tool
 | execution | `/adv-apply <change-id>` |
 | acceptance | `/adv-review <change-id>` |
 | release | `/adv-harden <change-id>` then `/adv-archive <change-id>` |
+### Cross-Change Health Section
+
+Auto-emerges when `adv_change_list` returns ≥2 active changes. Build from `adv_change_show` on each active change:
+
+1. **Hot files** — files touched by 2+ active changes. List file + change IDs.
+2. **Stale worktrees** — worktrees with no activity >7d (already in WORKTREES section; cross-reference here)
+3. **Merge-queue blockers** — if any archived changes are unmerged, show `computeMergeOrder` queue position and dependencies
+
+If <2 active changes, emit "Cross-change health: N/A (single change in flight)".
+
+---
+
 ## Quick Actions
 | State | Action |
 |-------|--------|

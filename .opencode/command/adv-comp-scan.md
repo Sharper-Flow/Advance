@@ -36,7 +36,7 @@ Parse `$ARGUMENTS`:
 ## Phase 1: Source Mode (GitHub Repos)
 When mode is `source`:
 
-1. **Repo metadata** — `mcp_GhGrepSearchGitHub` for README, package manifests, main language
+1. **Repo metadata** — `gh_grep_searchGitHub` for README, package manifests, main language
 2. **Feature surface** — analyze source structure, API endpoints, key modules
 3. **Tech stack** — identify dependencies, frameworks, runtime
 
@@ -46,8 +46,8 @@ If repo is private or inaccessible → fallback to public mode with warning.
 ## Phase 1: Public Mode (Websites / Docs)
 When mode is `public`:
 
-1. **Firecrawl primary** — `mcp_FirecrawlFirecrawlScrape` for pricing, features, changelog pages
-2. **Kagi fallback** — `mcp_KagiKagiSearchFetch` for recent news, reviews, comparisons
+1. **Firecrawl primary** — `firecrawl_firecrawl_scrape` for pricing, features, changelog pages
+2. **Kagi fallback** — `kagi_kagi_search_fetch` for recent news, reviews, comparisons
 3. **Structured extraction** — identify feature list, pricing tiers, target audience
 
 If Firecrawl fails → use Kagi search results as primary source.
@@ -84,4 +84,3 @@ Output structured JSON: `competitor`, `mode`, `comparison`, `findings[]`, `takea
 ---
 ## Execution
 1. Parse arguments → 2. Pre-flight → 3. Phase 1 (mode-specific) → 4. Phase 2 (synthesis) → 5. Write Metadata → 6. Report
-

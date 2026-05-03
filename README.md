@@ -248,7 +248,6 @@ This keeps methodology reusable without letting random helper prompts mutate wor
 | `/adv-arch-scan`  | Scan for architecture inconsistencies using deterministic tools, research fallback, and AI heuristic |
 | `/adv-comp-scan`  | Scan competitor capabilities against this project for competitive intelligence    |
 | `/adv-refactor`   | Refresh a stale proposal or batch-refresh the oldest 30% of active changes       |
-| `/adv-coordinate` | Detect and resolve conflicts across multiple active changes                       |
 | `/adv-cleanup`    | Triage stale, abandoned, duplicate, and ready-to-archive active changes          |
 | `/adv-improve`    | Suggest targeted improvements to existing specs or implementation                 |
 | `/adv-tron`       | Investigate codebase structure, hotspots, risks, and suggest follow-up agenda candidates |

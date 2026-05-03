@@ -737,7 +737,7 @@ Implemented all 13 identified context leak surfaces where ADV drops important co
 - Phase 0 Step 3 now detects existing worktrees for the target change via `git worktree list --porcelain`
 - Healthy worktrees are offered for reuse; stale records (path deleted) are pruned automatically
 - New Phase 0.5 checks for file overlaps with other active changes (advisory only, does not block)
-- Overlap warning surfaces potential merge conflicts early with a `/adv-coordinate` suggestion
+- Overlap warning surfaces potential merge conflicts early (later integrated into /adv-status and /adv-apply)
 
 #### Worktree Documentation
 
@@ -1011,7 +1011,7 @@ Implemented all 13 identified context leak surfaces where ADV drops important co
 - `/adv-audit` - Full system audit with staged analysis
 - `/adv-ralph` - "Wreck-it Ralph" demolition protocol for removing capabilities
 - `/adv-refactor` - Multi-agent refactoring with conflict detection
-- `/adv-coordinate` - Multi-change coordination and dependency resolution
+- `/adv-coordinate` - Multi-change coordination and dependency resolution (removed: functionality integrated into /adv-archive, /adv-status, /adv-apply)
 - `/adv-roadmap` - Strategic roadmap with change sequencing
 
 #### Enhanced Commands (5)

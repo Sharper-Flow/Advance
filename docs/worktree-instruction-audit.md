@@ -152,8 +152,8 @@ In this session, advance had 4 active worktrees (alignFrontendBackend, alignFron
 ### Multi-Worktree Coordination
 
 When 3+ worktrees active simultaneously:
-- Run `/adv-coordinate` BEFORE starting work in any worktree to detect file overlap
-- adv_status worktree_census shows all active worktrees with mtime → use to detect stale ones
+- `/adv-status` Cross-Change Health section auto-detects file overlap (no manual command needed)
+- `adv_status` worktree_census shows all active worktrees with mtime → use to detect stale ones
 - For high-overlap risk (same subsystem touched by 2+ worktrees), prefer sequential execution
 ```
 

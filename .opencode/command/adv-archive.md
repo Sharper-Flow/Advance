@@ -205,11 +205,14 @@ MAIN="$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")"
 
 This resolves to the absolute path of the main checkout root from any workdir (worktree or main). Used for every subsequent default-branch operation through Step 7. If running from the main checkout itself, `$MAIN` equals the current working directory and `git -C "$MAIN" ...` is a no-op prefix — the same commands work in both modes.
 
-### Step 3.5: Overlap + Policy Scan
+### Step 3.5: Overlap + Merge-Order Scan
 
-- Reuse overlap signals already surfaced by `/adv-apply` when available
-- If other active changes touch same files or same local subsystem → mark `overlap-risk`
-- If branch policy, review requirement, or publish safety makes local merge-back the wrong fit → mark `pr-risk`
+1. **Active change overlap** — `adv_change_list` → if other active changes touch same files or same local subsystem → mark `overlap-risk`
+2. **Merge-order queue** — call `computeMergeOrder($MAIN)` from `plugin/src/validator/merge-order.ts` to get topologically sorted queue of archived-but-unmerged changes.
+   - If queue is empty or unavailable → proceed
+   - If current change appears in queue with `dependsOn` entries that are still unmerged → mark `queue-blocked` (route to PR workflow)
+   - If earlier-archived changes with overlapping files are still unmerged → mark `overlap-risk` (even if no active changes overlap)
+3. **Policy check** — If branch policy, review requirement, or publish safety makes local merge-back the wrong fit → mark `pr-risk`
 
 ### Step 4: Refresh Merge Basis
 
@@ -234,7 +237,7 @@ Allowed outcomes:
 
 - **LOCAL_FINISH / fast path** — branch is already on current default-branch basis → `git -C "$MAIN" merge --ff-only change/{change-id}`
 - **LOCAL_FINISH / reconcile path** — no `overlap-risk`, no `pr-risk`, but trunk moved → rebase the change branch in the worktree (Step 4 handles conflicts if they arise), then `git -C "$MAIN" merge --ff-only change/{change-id}`
-- **PR workflow path** — `overlap-risk`, `pr-risk`, failed lightweight verification, or non-fast-forward publish risk → push the change branch from the worktree + `gh pr create` (or queue entry when project policy uses one)
+- **PR workflow path** — `overlap-risk`, `pr-risk`, `queue-blocked`, failed lightweight verification, or non-fast-forward publish risk → push the change branch from the worktree + `gh pr create` (or queue entry when project policy uses one)
 
 ### Step 4 — Conflict-recovery flow (post-J3 expansion)
 
