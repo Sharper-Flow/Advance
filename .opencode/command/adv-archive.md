@@ -242,7 +242,17 @@ Allowed outcomes:
 - If clean → `git merge --abort` → continue
 - If conflicts → capture `git diff --name-only --diff-filter=U` → `git merge --abort` → stop with conflicting files. × Do NOT delete worktree
 
-### Step 4.7: Reconcile (for reconcile path)
+### Step 4.7: Skip-duplicate detection (T28)
+
+When a rebase conflict surfaces, /adv-archive checks whether the to-be-applied commit is content-equivalent to what's already on the default branch:
+
+- Per-conflict, run `git ls-tree origin/${default-branch} -- ${touched_files}` and compare to the to-be-skipped commit's tree at the same paths
+- If trees match → `git rebase --skip` with recorded reason "duplicate-content commit (already on default branch)"
+- If trees diverge → escalate to T28b/T28c/T28d full conflict-recovery flow (T28e documents the full Step 4)
+
+Implementation lives in `plugin/src/tools/archive-helpers/skip-duplicate.ts`. T28e (separate task) will integrate this into the broader Phase 9 flow.
+
+### Step 4.8: Reconcile (for reconcile path)
 
 - In the worktree (on the change branch): `git rebase {freshness-ref}`
 - If rebase conflicts → capture `git diff --name-only --diff-filter=U` → `git rebase --abort` → stop with conflicting files. × Do NOT delete worktree
@@ -250,7 +260,7 @@ Allowed outcomes:
 - If verification fails → route to PR workflow path or stop when project policy forbids it
 - After clean verification: `git -C "$MAIN" merge --ff-only change/{change-id}`
 
-### Step 4.8: Publish Safety (when pushing the default branch)
+### Step 4.9: Publish Safety (when pushing the default branch)
 
 If archive finalization needs a remote push of the default branch, run from `$MAIN`:
 
@@ -266,9 +276,9 @@ If push hook output indicates failure (non-zero hook exit) but push itself succe
 
 If no remote is configured OR push is skipped OR push fails: record the reason — Phase 8 footer becomes "Merged locally." instead of "Shipped."
 
-### Step 4.85: Pre-Push Hook Detection
+### Step 4.95: Pre-Push Hook Detection
 
-Before pushing (Step 4.8), detect what the project automates on pre-push so the agent doesn't redundantly run sync, and so Phase 8 can report what fired. Inspect the **main checkout** (`$MAIN`), since that is where the push runs.
+Before pushing (Step 4.9), detect what the project automates on pre-push so the agent doesn't redundantly run sync, and so Phase 8 can report what fired. Inspect the **main checkout** (`$MAIN`), since that is where the push runs.
 
 Detection (in order; stop at first match):
 
