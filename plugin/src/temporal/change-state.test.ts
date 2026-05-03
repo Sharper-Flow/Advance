@@ -118,6 +118,141 @@ describe("change workflow state", () => {
     expect(state.tasks[0]?.tdd_evidence?.green?.exit_code).toBe(0);
   });
 
+  it("treats identical duplicate task evidence as an idempotent no-op", () => {
+    const state = createChangeWorkflowState({
+      changeId: "myChange",
+      title: "My Change",
+      createdAt: "2026-04-14T00:00:00.000Z",
+    });
+    const task = addTaskToChangeState(
+      state,
+      { title: "task one", metadata: { tdd_intent: "inline" } },
+      { now: "2026-04-14T00:01:00.000Z", uuid: () => "task-1" },
+    );
+
+    const first = recordTaskEvidenceInChangeState(state, task.id, "red", {
+      command: "vitest",
+      exit_code: 1,
+      output_snippet: "expected failure",
+      recorded_at: "2026-04-14T00:02:00.000Z",
+    });
+    const duplicate = recordTaskEvidenceInChangeState(state, task.id, "red", {
+      command: "vitest",
+      exit_code: 1,
+      output_snippet: "expected failure",
+      recorded_at: "2026-04-14T00:03:00.000Z",
+    });
+
+    expect(duplicate).toBe(first);
+    expect(state.tasks[0]?.tdd_evidence?.red?.recorded_at).toBe(
+      "2026-04-14T00:02:00.000Z",
+    );
+    expect(state.tasks[0]?.tdd_phase).toBe("red");
+  });
+
+  it("rejects conflicting same-phase task evidence without correction reason", () => {
+    const state = createChangeWorkflowState({
+      changeId: "myChange",
+      title: "My Change",
+      createdAt: "2026-04-14T00:00:00.000Z",
+    });
+    const task = addTaskToChangeState(
+      state,
+      { title: "task one", metadata: { tdd_intent: "inline" } },
+      { now: "2026-04-14T00:01:00.000Z", uuid: () => "task-1" },
+    );
+
+    recordTaskEvidenceInChangeState(state, task.id, "red", {
+      command: "vitest",
+      exit_code: 1,
+      output_snippet: "expected failure",
+      recorded_at: "2026-04-14T00:02:00.000Z",
+    });
+
+    expect(() =>
+      recordTaskEvidenceInChangeState(state, task.id, "red", {
+        command: "vitest --changed",
+        exit_code: 1,
+        output_snippet: "different failure",
+        recorded_at: "2026-04-14T00:03:00.000Z",
+      }),
+    ).toThrow(/correctionReason/i);
+  });
+
+  it("allows conflicting same-phase task evidence with correction reason", () => {
+    const state = createChangeWorkflowState({
+      changeId: "myChange",
+      title: "My Change",
+      createdAt: "2026-04-14T00:00:00.000Z",
+    });
+    const task = addTaskToChangeState(
+      state,
+      { title: "task one", metadata: { tdd_intent: "inline" } },
+      { now: "2026-04-14T00:01:00.000Z", uuid: () => "task-1" },
+    );
+
+    recordTaskEvidenceInChangeState(state, task.id, "red", {
+      command: "vitest",
+      exit_code: 1,
+      output_snippet: "expected failure",
+      recorded_at: "2026-04-14T00:02:00.000Z",
+    });
+    recordTaskEvidenceInChangeState(
+      state,
+      task.id,
+      "red",
+      {
+        command: "vitest --changed",
+        exit_code: 1,
+        output_snippet: "different failure",
+        recorded_at: "2026-04-14T00:03:00.000Z",
+      },
+      { correctionReason: "Original command omitted changed test file." },
+    );
+
+    expect(state.tasks[0]?.tdd_evidence?.red?.command).toBe(
+      "vitest --changed",
+    );
+    expect(state.tasks[0]?.tdd_phase).toBe("red");
+  });
+
+  it("keeps tdd phase complete when red evidence is corrected after green", () => {
+    const state = createChangeWorkflowState({
+      changeId: "myChange",
+      title: "My Change",
+      createdAt: "2026-04-14T00:00:00.000Z",
+    });
+    const task = addTaskToChangeState(
+      state,
+      { title: "task one", metadata: { tdd_intent: "inline" } },
+      { now: "2026-04-14T00:01:00.000Z", uuid: () => "task-1" },
+    );
+
+    recordTaskEvidenceInChangeState(state, task.id, "red", {
+      command: "vitest",
+      exit_code: 1,
+      recorded_at: "2026-04-14T00:02:00.000Z",
+    });
+    recordTaskEvidenceInChangeState(state, task.id, "green", {
+      command: "vitest",
+      exit_code: 0,
+      recorded_at: "2026-04-14T00:03:00.000Z",
+    });
+    recordTaskEvidenceInChangeState(
+      state,
+      task.id,
+      "red",
+      {
+        command: "vitest --changed",
+        exit_code: 1,
+        recorded_at: "2026-04-14T00:04:00.000Z",
+      },
+      { correctionReason: "Attach focused red command." },
+    );
+
+    expect(state.tasks[0]?.tdd_phase).toBe("complete");
+  });
+
   it("records task-run events with phase, resume action, and idempotency", () => {
     const state = createChangeWorkflowState({
       changeId: "myChange",

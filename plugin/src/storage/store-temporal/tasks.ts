@@ -164,7 +164,7 @@ export function createTaskOps(deps: StoreDeps): Store["tasks"] {
       await dualWriteAfterMutation(changeId);
       return result;
     },
-    recordEvidence: async (taskId, phase, evidence) => {
+    recordEvidence: async (taskId, phase, evidence, options) => {
       const changeId = await resolveChangeId(taskId);
       if (!changeId) return null;
       invalidateChange(changeId);
@@ -172,7 +172,7 @@ export function createTaskOps(deps: StoreDeps): Store["tasks"] {
         (await getGuardedChangeHandle(input, changeId)).executeUpdate(
           recordTaskEvidenceUpdate,
           {
-            args: [taskId, phase, evidence],
+            args: [taskId, phase, evidence, options],
           },
         ),
       )) as Awaited<ReturnType<Store["tasks"]["recordEvidence"]>>;

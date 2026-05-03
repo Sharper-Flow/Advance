@@ -100,7 +100,12 @@ export const updateTaskUpdate = wf.defineUpdate<
 >(CHANGE_WORKFLOW_UPDATE_NAMES.updateTask);
 export const recordTaskEvidenceUpdate = wf.defineUpdate<
   ChangeWorkflowState["tasks"][number],
-  [string, "red" | "green", TddPhaseEvidence]
+  [
+    string,
+    "red" | "green",
+    TddPhaseEvidence,
+    { correctionReason?: string } | undefined,
+  ]
 >(CHANGE_WORKFLOW_UPDATE_NAMES.recordTaskEvidence);
 export const recordTaskRunEventUpdate = wf.defineUpdate<
   {

@@ -118,7 +118,12 @@ const updateTaskUpdate = wf.defineUpdate<
 >(CHANGE_WORKFLOW_UPDATE_NAMES.updateTask);
 const recordTaskEvidenceUpdate = wf.defineUpdate<
   ChangeWorkflowState["tasks"][number],
-  [string, "red" | "green", import("../types").TddPhaseEvidence]
+  [
+    string,
+    "red" | "green",
+    import("../types").TddPhaseEvidence,
+    { correctionReason?: string } | undefined,
+  ]
 >(CHANGE_WORKFLOW_UPDATE_NAMES.recordTaskEvidence);
 const recordTaskRunEventUpdate = wf.defineUpdate<
   {
@@ -446,6 +451,7 @@ export async function changeWorkflow(
         taskId: string,
         phase: "red" | "green",
         evidence: import("../types").TddPhaseEvidence,
+        options?: { correctionReason?: string },
       ) => {
         wf.log.info("op:start", {
           op: "recordTaskEvidenceUpdate",
@@ -457,6 +463,7 @@ export async function changeWorkflow(
           taskId,
           phase,
           evidence,
+          options,
         );
         wf.log.info("op:end", {
           op: "recordTaskEvidenceUpdate",

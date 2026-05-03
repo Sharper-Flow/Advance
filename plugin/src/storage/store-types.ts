@@ -153,6 +153,7 @@ export interface Store {
       taskId: string,
       phase: "red" | "green",
       evidence: TddPhaseEvidence,
+      options?: { correctionReason?: string },
     ) => Promise<Task | null>;
     setPhase: (taskId: string, phase: TddPhase) => Promise<Task | null>;
     cancel: (

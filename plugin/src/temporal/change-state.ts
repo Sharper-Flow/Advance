@@ -479,26 +479,68 @@ export function recordTaskEvidenceInChangeState(
   taskId: string,
   phase: "red" | "green",
   evidence: TddPhaseEvidence,
+  options?: { correctionReason?: string },
 ): Task {
   const task = getTaskOrThrow(state, taskId);
+  applyTaskEvidencePolicy(task, phase, evidence, options);
+  return task;
+}
+
+export function applyTaskEvidencePolicy(
+  task: Task,
+  phase: "red" | "green",
+  evidence: TddPhaseEvidence,
+  options?: { correctionReason?: string },
+): { duplicate: boolean } {
   if (!task.tdd_evidence) {
     task.tdd_evidence = {};
+  }
+
+  const existing = task.tdd_evidence[phase];
+  if (existing && stableEvidenceEqual(existing, evidence)) {
+    deriveTaskEvidencePhase(task);
+    return { duplicate: true };
+  }
+
+  if (existing && !options?.correctionReason?.trim()) {
+    throw new Error(
+      `Conflicting ${phase} evidence already exists for task ${task.id}; provide correctionReason to replace it.`,
+    );
   }
 
   task.tdd_evidence[phase] = {
     ...evidence,
     recorded_at: evidence.recorded_at,
   };
+  deriveTaskEvidencePhase(task);
+  return { duplicate: false };
+}
 
-  if (phase === "red") {
-    task.tdd_phase = "red";
-  } else if (task.tdd_evidence.red?.recorded_at) {
+function stableEvidenceEqual(
+  left: TddPhaseEvidence,
+  right: TddPhaseEvidence,
+): boolean {
+  return (
+    left.test_file === right.test_file &&
+    left.command === right.command &&
+    left.output_snippet === right.output_snippet &&
+    left.exit_code === right.exit_code
+  );
+}
+
+function deriveTaskEvidencePhase(task: Task): void {
+  const hasRed = Boolean(task.tdd_evidence?.red);
+  const hasGreen = Boolean(task.tdd_evidence?.green);
+
+  if (hasRed && hasGreen) {
     task.tdd_phase = "complete";
-  } else {
+  } else if (hasRed) {
+    task.tdd_phase = "red";
+  } else if (hasGreen) {
     task.tdd_phase = "green";
+  } else {
+    task.tdd_phase = "none";
   }
-
-  return task;
 }
 
 export function setTaskPhaseInChangeState(
