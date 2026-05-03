@@ -1,8 +1,11 @@
-import { basename } from "path";
+import { basename, join } from "path";
+import { readFile } from "fs/promises";
 import { z } from "zod";
 import type { Store } from "../storage/store";
 import { restartCurrentProjectTemporalWorker } from "../plugin-init";
 import { getService, getStslStats, reinitStsl } from "../temporal/service";
+import { initStateDb, listSessions } from "./worktree/state";
+import { isPidAlive } from "./session/index";
 import { repairChangeActivity } from "../temporal/activities";
 import { getTemporalHealth } from "../temporal/health-probe";
 import { sweepProject } from "../temporal/orphan-sweep";
@@ -23,6 +26,50 @@ import {
 type WorkflowReachability =
   | { reachable: true; error?: undefined }
   | { reachable: false; error: string };
+
+/**
+ * T23: count alive peer sessions from session_registry.
+ *
+ * Returns 0 when the project workflow is not reachable (best-effort —
+ * unavailability is reported separately via `project_workflow_present`).
+ */
+async function countAlivePeerSessions(
+  store: Store,
+  workflowPresent: boolean,
+): Promise<number> {
+  if (!workflowPresent) return 0;
+  try {
+    const projectRoot = store.paths.root ?? process.cwd();
+    const access = await initStateDb(projectRoot);
+    const sessions = await listSessions(access);
+    let alive = 0;
+    for (const session of sessions) {
+      if (isPidAlive(session.pid)) alive += 1;
+    }
+    return alive;
+  } catch {
+    return 0;
+  }
+}
+
+/**
+ * T23: read worker.lock holder PID at query time. Per Q3 LBP decision,
+ * this is computed at query time (not stored in workflow state) — single
+ * source of truth, no replay-determinism risk.
+ *
+ * Returns null when the lock file is absent, malformed, or unreadable.
+ */
+async function readWorkerLockHolderPid(store: Store): Promise<number | null> {
+  if (!store.paths.external) return null;
+  try {
+    const lockPath = join(store.paths.external, "worker.lock");
+    const raw = await readFile(lockPath, "utf8");
+    const parsed = JSON.parse(raw) as { pid?: unknown };
+    return typeof parsed.pid === "number" ? parsed.pid : null;
+  } catch {
+    return null;
+  }
+}
 
 /**
  * Checks whether Temporal can describe a workflow ID through the current STSL
@@ -185,6 +232,15 @@ export const temporalOpsTools = {
         searchAttributesStatus = "ok";
       }
 
+      // T23 extensions: peer_sessions count + worker_lock_holder_pid +
+      // project_workflow_present.
+      const peer_sessions = await countAlivePeerSessions(
+        store,
+        projectWorkflow.reachable,
+      );
+      const worker_lock_holder_pid = await readWorkerLockHolderPid(store);
+      const project_workflow_present = projectWorkflow.reachable;
+
       return formatToolOutput({
         success: true,
         projectId,
@@ -199,6 +255,9 @@ export const temporalOpsTools = {
         searchAttributesStatus,
         projectWorkflow,
         changeWorkflow,
+        peer_sessions,
+        worker_lock_holder_pid,
+        project_workflow_present,
         recommendedNextAction,
       });
     },

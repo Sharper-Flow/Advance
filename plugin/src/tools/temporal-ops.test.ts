@@ -301,6 +301,34 @@ describe("temporal operator tools", () => {
       reachable: true,
     });
     expect(parsed.recommendedNextAction).toBe("none");
+
+    // T23: new fields present + backward-compatible.
+    expect(parsed).toHaveProperty("peer_sessions");
+    expect(parsed).toHaveProperty("worker_lock_holder_pid");
+    expect(parsed).toHaveProperty("project_workflow_present");
+    expect(typeof parsed.peer_sessions).toBe("number");
+    expect(parsed.project_workflow_present).toBe(true);
+    // worker_lock_holder_pid is null when no worker.lock exists in the
+    // mocked external dir.
+    expect(parsed.worker_lock_holder_pid).toBeNull();
+  });
+
+  it("adv_temporal_diagnose reports project_workflow_present:false when workflow unreachable (T23)", async () => {
+    // Force unreachable: no projectId resolved (no external path).
+    const store = {
+      paths: {
+        root: "/repo",
+      },
+    } as any;
+
+    const result = await temporalOpsTools.adv_temporal_diagnose.execute(
+      {},
+      store,
+    );
+    const parsed = JSON.parse(result);
+    expect(parsed.project_workflow_present).toBe(false);
+    expect(parsed.peer_sessions).toBe(0);
+    expect(parsed.worker_lock_holder_pid).toBeNull();
   });
 
   it("adv_temporal_diagnose recommends search-attribute registration when attrs are missing", async () => {
