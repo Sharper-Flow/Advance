@@ -107,7 +107,7 @@ const runCommand = async (
 export const testTools = {
   adv_run_test: {
     description:
-      "Run a test command, capture the exit code, and record it as TDD evidence for a task.",
+      "Run a test command, capture the exit code, and record durable TDD evidence for a task.",
     args: {
       taskId: z.string().describe("Task ID to record evidence for"),
       command: z

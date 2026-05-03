@@ -219,6 +219,9 @@ describe("checkTddCompliance", () => {
       /adv_run_test.*preferred|preferred.*adv_run_test/i,
     );
     expect(issues[0].details?.recommendation).toContain("adv_task_evidence");
+    expect(issues[0].details?.recommendation).toMatch(
+      /adv_task_evidence.*externally obtained evidence only/i,
+    );
     expect(issues[0].details?.recommendation).toContain(
       "adv_task_reclassify_tdd",
     );

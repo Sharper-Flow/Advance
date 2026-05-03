@@ -33,6 +33,13 @@ describe("Test Tools", () => {
   });
 
   describe("adv_run_test", () => {
+    test("description says it runs commands and records durable TDD evidence", () => {
+      expect(testTools.adv_run_test.description).toMatch(/run/i);
+      expect(testTools.adv_run_test.description).toMatch(/record/i);
+      expect(testTools.adv_run_test.description).toMatch(/durable/i);
+      expect(testTools.adv_run_test.description).toMatch(/evidence/i);
+    });
+
     test("rejects red phase when command exits 0 (test is passing)", async () => {
       const result = await testTools.adv_run_test.execute(
         {

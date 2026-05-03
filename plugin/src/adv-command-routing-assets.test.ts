@@ -216,6 +216,20 @@ describe("ADV command routing assets", () => {
     expect(squish(delivery)).toMatch(/value.*burden/i);
   });
 
+  test("evidence guidance does not add default diagnostic context output", () => {
+    const surfaces = [
+      readFileSync(join(COMMAND_DIR, "adv-apply.md"), "utf8"),
+      readFileSync(join(REPO_ROOT, "ADV_INSTRUCTIONS.md"), "utf8"),
+      readFileSync(join(REPO_ROOT, "docs/command-voice-standard.md"), "utf8"),
+    ].map(squish);
+
+    for (const content of surfaces) {
+      expect(content).not.toMatch(/default evidence diagnostic/i);
+      expect(content).not.toMatch(/emit.*evidence diagnostic context/i);
+      expect(content).not.toMatch(/show.*evidence diagnostic context/i);
+    }
+  });
+
   test("adv-review.md uses structured context packet (not one-liner)", () => {
     const content = readFileSync(join(COMMAND_DIR, "adv-review.md"), "utf8");
     expect(content).toContain("Review Context Packet");
