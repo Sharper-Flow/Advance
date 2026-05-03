@@ -459,6 +459,8 @@ export async function runConcurrentClients(
     durationSec: number;
     ops?: string[];
     projectDir?: string;
+    /** Test-only: skip connection.close() so caller manages lifecycle. */
+    skipConnectionClose?: boolean;
   },
 ): Promise<ConcurrentClientResult> {
   const {
@@ -472,6 +474,7 @@ export async function runConcurrentClients(
       "worktree_register",
     ],
     projectDir = process.cwd(),
+    skipConnectionClose = false,
   } = opts;
 
   // Dynamic imports so the script can be parsed without src/ modules
@@ -483,6 +486,7 @@ export async function runConcurrentClients(
     addProjectWisdomUpdate,
     recordMigrationEntryUpdate,
     addWorktreeSessionUpdate,
+    removeWorktreeSessionUpdate,
     purgeChangeSummaryUpdate,
   } = await import("../src/temporal/messages.ts");
 
@@ -580,6 +584,18 @@ export async function runConcurrentClients(
       })) as { sourceVersion: number };
       return { source_version_observed: result.sourceVersion };
     },
+    worktree_remove: async (handle, clientId, counter) => {
+      await handle.executeUpdate(removeWorktreeSessionUpdate, {
+        args: [
+          {
+            branch: `bench-branch-${clientId}`,
+            now: new Date().toISOString(),
+            mode: "soft",
+          },
+        ],
+      });
+      return {};
+    },
   };
 
   const clientPromises = Array.from({ length: clients }, async (_, clientId) => {
@@ -642,8 +658,10 @@ export async function runConcurrentClients(
 
   await Promise.all(clientPromises);
 
-  // Close the Temporal connection
-  await temporal.bundle.connection.close();
+  // Close the Temporal connection unless caller manages lifecycle (tests).
+  if (!skipConnectionClose) {
+    await temporal.bundle.connection.close();
+  }
 
   const totalOps = records.length;
   const opsPerSec = totalOps / durationSec;
