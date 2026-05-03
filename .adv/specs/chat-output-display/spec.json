@@ -181,6 +181,18 @@
           "then": [
             "The tool output includes a multi-line context snapshot (full box) as _contextSnapshot"
           ]
+        },
+        {
+          "id": "rq-ctxticker2.5",
+          "title": "adv_status emits full-box for primary change, ticker for non-primary",
+          "given": [
+            "adv_status with multiple active/draft/pending changes in recentChanges"
+          ],
+          "when": "adv_status is invoked",
+          "then": [
+            "The first active/draft/pending change (primary) includes a multi-line full-box _contextSnapshot",
+            "Subsequent changes (non-primary) include a single-line context ticker as _contextSnapshot"
+          ]
         }
       ]
     },

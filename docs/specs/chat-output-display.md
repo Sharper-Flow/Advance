@@ -185,6 +185,17 @@ The Context Ticker MUST be emitted (instead of the full snapshot) by transient t
 **Then:**
 - The tool output includes a multi-line context snapshot (full box) as `_contextSnapshot`
 
+**adv_status emits full-box for primary change, ticker for non-primary** (`rq-ctxticker2.5`)
+
+**Given:**
+- `adv_status` with multiple active/draft/pending changes in `recentChanges`
+
+**When:** `adv_status` is invoked
+
+**Then:**
+- The first active/draft/pending change (primary) includes a multi-line full-box `_contextSnapshot`
+- Subsequent changes (non-primary) include a single-line context ticker as `_contextSnapshot`
+
 ---
 
 ### IDLE / ATTN Status Marker Split

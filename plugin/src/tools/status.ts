@@ -30,7 +30,7 @@ import {
   type ChangeRecency,
 } from "../types";
 import { getCommandsByGate } from "../manifest";
-import { buildChangeContextSnapshot } from "../utils/context-snapshot";
+import { buildChangeContextSnapshot, buildChangeContextTicker } from "../utils/context-snapshot";
 import {
   loadProjectConfigWithDiagnostics,
   loadProposalWithFallback,
@@ -169,6 +169,7 @@ async function enrichRecentChangeStatus(
   status: { recommendations: string[] },
   store: Store,
   clarifyMode: string,
+  isPrimary: boolean,
 ): Promise<void> {
   const changeId = String(rc.id);
   const changeResult = await store.changes.get(changeId);
@@ -181,14 +182,18 @@ async function enrichRecentChangeStatus(
     changeResult.data.title,
   );
 
+  const snapshotInput = {
+    change: changeResult.data,
+    proposalText,
+    gates: gates ?? undefined,
+    workdir: store.paths.root,
+  };
+
   Object.assign(rc, {
     parent_change_id: changeResult.data.fast_follow_of?.parent_change_id,
-    _contextSnapshot: buildChangeContextSnapshot({
-      change: changeResult.data,
-      proposalText,
-      gates: gates ?? undefined,
-      workdir: store.paths.root,
-    }),
+    _contextSnapshot: isPrimary
+      ? buildChangeContextSnapshot(snapshotInput)
+      : buildChangeContextTicker(snapshotInput),
   });
 
   const dependencyStatus = await buildExternalDependencyStatus(
@@ -447,18 +452,23 @@ export const statusTools = {
 
           // Single-pass over recent changes: context snapshot, gate recommendation,
           // clarify readiness, and recency labels — all built in one traversal.
+          // First active/draft/pending change gets full-box snapshot; others get ticker.
           const recentChanges = status.changes.recent ?? [];
           const features = activeStore.config?.features as
             | FeatureFlags
             | undefined;
           const clarifyMode = features?.clarify_enforcement ?? "advisory";
 
+          let primaryAssigned = false;
           for (const rc of recentChanges) {
+            const isPrimary = !primaryAssigned && (rc.status === "active" || rc.status === "draft" || rc.status === "pending");
+            if (isPrimary) primaryAssigned = true;
             await enrichRecentChangeStatus(
               rc,
               status,
               activeStore,
               clarifyMode,
+              isPrimary,
             );
           }
 
