@@ -629,22 +629,22 @@ function getArchivePreflightError(
   );
   if (incompleteTasks.length > 0) {
     return formatToolOutput({
-        error: "Cannot archive: incomplete tasks",
-        incompleteTasks: incompleteTasks.map((t) => ({
-          id: t.id,
-          title: t.title,
-        })),
-      });
+      error: "Cannot archive: incomplete tasks",
+      incompleteTasks: incompleteTasks.map((t) => ({
+        id: t.id,
+        title: t.title,
+      })),
+    });
   }
 
   const gates = change.gates ?? createDefaultGates();
   if (!allGatesSatisfied(gates)) {
     return formatToolOutput({
-        error:
-          "Cannot archive: incomplete gates. Complete all quality gates before archiving.",
-        incompleteGates: getIncompleteGates(gates),
-        hint: `Run /adv-gate-status ${changeId} to see gate details`,
-      });
+      error:
+        "Cannot archive: incomplete gates. Complete all quality gates before archiving.",
+      incompleteGates: getIncompleteGates(gates),
+      hint: `Run /adv-gate-status ${changeId} to see gate details`,
+    });
   }
 
   return null;
@@ -935,8 +935,6 @@ export const changeTools = {
             args: `changeId: "${changeId}"`,
           });
 
-          // Build context snapshot for context agreement
-          const gates = change.gates ?? createDefaultGates();
           const output: Record<string, unknown> = {
             ...change,
             tasks: paged.items,
@@ -1270,10 +1268,10 @@ export const changeTools = {
           design === undefined
         ) {
           return formatToolOutput({
-              error:
-                "At least one of 'proposal', 'problemStatement', 'agreement', or 'design' must be provided.",
-              hint: "Pass one or more of: proposal, problemStatement, agreement, design. See the tool description for which file each field writes.",
-            });
+            error:
+              "At least one of 'proposal', 'problemStatement', 'agreement', or 'design' must be provided.",
+            hint: "Pass one or more of: proposal, problemStatement, agreement, design. See the tool description for which file each field writes.",
+          });
         }
 
         // P1.12 Scope C: verify changeId exists before writing. Surface a
@@ -1282,9 +1280,9 @@ export const changeTools = {
         const existing = await activeStore.changes.get(changeId);
         if (!existing.success || !existing.data) {
           return formatToolOutput({
-              error: `Change '${changeId}' not found.`,
-              hint: "Fetch valid change IDs with 'adv_change_list' or confirm the target with 'adv_change_show changeId: <id>' before retrying.",
-            });
+            error: `Change '${changeId}' not found.`,
+            hint: "Fetch valid change IDs with 'adv_change_list' or confirm the target with 'adv_change_show changeId: <id>' before retrying.",
+          });
         }
 
         const result = await activeStore.changes.updateArtifacts(
@@ -1300,13 +1298,13 @@ export const changeTools = {
         }
 
         return formatToolOutput({
-            changeId,
-            proposalPath: result.proposalPath,
-            problemStatementPath: result.problemStatementPath,
-            agreementPath: result.agreementPath,
-            designPath: result.designPath,
-            ...(projectContext ? { _projectContext: projectContext } : {}),
-          });
+          changeId,
+          proposalPath: result.proposalPath,
+          problemStatementPath: result.problemStatementPath,
+          agreementPath: result.agreementPath,
+          designPath: result.designPath,
+          ...(projectContext ? { _projectContext: projectContext } : {}),
+        });
       };
 
       if (target_path) {
@@ -1364,8 +1362,8 @@ export const changeTools = {
     ) => {
       if (reason === "superseded" && !supersededBy) {
         return formatToolOutput({
-            error: "supersededBy is required when reason is 'superseded'.",
-          });
+          error: "supersededBy is required when reason is 'superseded'.",
+        });
       }
 
       const result = await store.changes.get(changeId);
@@ -1402,18 +1400,18 @@ export const changeTools = {
         }
 
         return formatToolOutput({
-            success: true,
-            change,
-            message: cleanupWarning
-              ? `Closed change ${changeId} as ${reason}. ${cleanupWarning}`
-              : `Closed change ${changeId} as ${reason}.`,
-          });
+          success: true,
+          change,
+          message: cleanupWarning
+            ? `Closed change ${changeId} as ${reason}. ${cleanupWarning}`
+            : `Closed change ${changeId} as ${reason}.`,
+        });
       } catch (error) {
         const contextMismatch = extractContextMismatch(error);
         return formatToolOutput({
-            error: error instanceof Error ? error.message : String(error),
-            ...contextMismatch,
-          });
+          error: error instanceof Error ? error.message : String(error),
+          ...contextMismatch,
+        });
       }
     },
   },
@@ -1459,14 +1457,14 @@ export const changeTools = {
       if (reason === "superseded") {
         if (selector.kind === "filter") {
           return formatToolOutput({
-              error:
-                "Filter-based bulk close with reason 'superseded' is not supported. Use explicit IDs.",
-            });
+            error:
+              "Filter-based bulk close with reason 'superseded' is not supported. Use explicit IDs.",
+          });
         }
         if (!supersededBy) {
           return formatToolOutput({
-              error: "supersededBy is required when reason is 'superseded'.",
-            });
+            error: "supersededBy is required when reason is 'superseded'.",
+          });
         }
       }
 
@@ -1481,8 +1479,8 @@ export const changeTools = {
 
       if (selection.changeIds.length === 0) {
         return formatToolOutput({
-            error: "SELECTION_ERROR: No changes matched the provided criteria.",
-          });
+          error: "SELECTION_ERROR: No changes matched the provided criteria.",
+        });
       }
 
       try {
@@ -1522,19 +1520,19 @@ export const changeTools = {
         }
 
         return formatToolOutput({
-            success: result.success,
-            closed: result.closed,
-            results: result.results,
-            diskRemoved,
-            diskFailed,
-            message: result.message,
-          });
+          success: result.success,
+          closed: result.closed,
+          results: result.results,
+          diskRemoved,
+          diskFailed,
+          message: result.message,
+        });
       } catch (error) {
         const contextMismatch = extractContextMismatch(error);
         return formatToolOutput({
-            error: error instanceof Error ? error.message : String(error),
-            ...contextMismatch,
-          });
+          error: error instanceof Error ? error.message : String(error),
+          ...contextMismatch,
+        });
       }
     },
   },
@@ -1604,13 +1602,13 @@ export const changeTools = {
       }
 
       return formatToolOutput({
-          passed,
-          errors: validationResult.errors,
-          warnings: validationResult.warnings,
-          checksPerformed: validationResult.checksPerformed,
-          checkedAt: validationResult.checkedAt,
-          formatted,
-        });
+        passed,
+        errors: validationResult.errors,
+        warnings: validationResult.warnings,
+        checksPerformed: validationResult.checksPerformed,
+        checkedAt: validationResult.checkedAt,
+        formatted,
+      });
     },
   },
 
@@ -1651,11 +1649,11 @@ export const changeTools = {
           );
           if (divergenceHint) {
             return formatToolOutput({
-                error:
-                  "Cannot archive: incomplete gates. Complete all quality gates before archiving.",
-                incompleteGates: getIncompleteGates(gates),
-                hint: divergenceHint,
-              });
+              error:
+                "Cannot archive: incomplete gates. Complete all quality gates before archiving.",
+              incompleteGates: getIncompleteGates(gates),
+              hint: divergenceHint,
+            });
           }
         }
         return preflightError;
@@ -1678,27 +1676,27 @@ export const changeTools = {
       } catch (validationError) {
         const validationErrorText = collectErrorText(validationError);
         return formatToolOutput({
-            success: false,
-            error: `Archive blocked: validation could not run: ${validationErrorText}`,
-            validationErrors: [
-              {
-                code: "VALIDATION_CONTEXT_FAILED",
-                message: validationErrorText,
-              },
-            ],
-            changeId,
-          });
+          success: false,
+          error: `Archive blocked: validation could not run: ${validationErrorText}`,
+          validationErrors: [
+            {
+              code: "VALIDATION_CONTEXT_FAILED",
+              message: validationErrorText,
+            },
+          ],
+          changeId,
+        });
       }
       if (validationResult.errors.length > 0) {
         return formatToolOutput({
-            error: `Archive blocked: ${validationResult.errors.length} validation error(s). Fix errors and retry.`,
-            validationErrors: validationResult.errors.map((e) => ({
-              code: e.code,
-              message: e.message,
-              path: e.path,
-            })),
-            changeId,
-          });
+          error: `Archive blocked: ${validationResult.errors.length} validation error(s). Fix errors and retry.`,
+          validationErrors: validationResult.errors.map((e) => ({
+            code: e.code,
+            message: e.message,
+            path: e.path,
+          })),
+          changeId,
+        });
       }
 
       const specs = await loadSpecsMap(store);
@@ -1751,11 +1749,11 @@ export const changeTools = {
           const contextMismatch = extractContextMismatch(saveError);
           if (contextMismatch) {
             return formatToolOutput({
-                success: false,
-                error: `Failed to update change status to archived: ${saveErrorText}`,
-                archivePath: archiveResult.archivePath,
-                ...contextMismatch,
-              });
+              success: false,
+              error: `Failed to update change status to archived: ${saveErrorText}`,
+              archivePath: archiveResult.archivePath,
+              ...contextMismatch,
+            });
           }
           const searchAttributeRecovery = isSearchAttributeArchiveFailure(
             saveErrorText,
@@ -1768,16 +1766,16 @@ export const changeTools = {
           // Surface the full cause chain (e.g. WorkflowUpdateFailedError →
           // the real reason) so the caller can diagnose the failure.
           return formatToolOutput({
-              success: false,
-              error: `Failed to update change status to archived: ${saveErrorText}`,
-              archivePath: archiveResult.archivePath,
-              ...searchAttributeRecovery,
-              specsUpdated: archiveResult.specsUpdated.map((s) => ({
-                capability: s.capability,
-                version: `${s.originalVersion} → ${s.newVersion}`,
-                deltas: s.deltaResults.length,
-              })),
-            });
+            success: false,
+            error: `Failed to update change status to archived: ${saveErrorText}`,
+            archivePath: archiveResult.archivePath,
+            ...searchAttributeRecovery,
+            specsUpdated: archiveResult.specsUpdated.map((s) => ({
+              capability: s.capability,
+              version: `${s.originalVersion} → ${s.newVersion}`,
+              deltas: s.deltaResults.length,
+            })),
+          });
         }
 
         // rq-archiveRetirement01: final source cleanup happens AFTER the archived status transition.
@@ -1795,26 +1793,26 @@ export const changeTools = {
       }
 
       return formatToolOutput({
-          success: archiveResult.success,
-          specsUpdated: archiveResult.specsUpdated.map((s) => ({
-            capability: s.capability,
-            version: `${s.originalVersion} → ${s.newVersion}`,
-            deltas: s.deltaResults.length,
-          })),
-          docsGenerated: archiveResult.docsGenerated,
-          archivePath: archiveResult.archivePath,
-          errors: archiveResult.errors,
-          dryRun: dryRun ?? false,
-          ...(validationResult.warnings.length > 0
-            ? {
-                validationWarnings: validationResult.warnings.map((w) => ({
-                  code: w.code,
-                  message: w.message,
-                  path: w.path,
-                })),
-              }
-            : {}),
-        });
+        success: archiveResult.success,
+        specsUpdated: archiveResult.specsUpdated.map((s) => ({
+          capability: s.capability,
+          version: `${s.originalVersion} → ${s.newVersion}`,
+          deltas: s.deltaResults.length,
+        })),
+        docsGenerated: archiveResult.docsGenerated,
+        archivePath: archiveResult.archivePath,
+        errors: archiveResult.errors,
+        dryRun: dryRun ?? false,
+        ...(validationResult.warnings.length > 0
+          ? {
+              validationWarnings: validationResult.warnings.map((w) => ({
+                code: w.code,
+                message: w.message,
+                path: w.path,
+              })),
+            }
+          : {}),
+      });
     },
   },
 
@@ -1843,8 +1841,8 @@ export const changeTools = {
       const removeList = (remove ?? []).filter(Boolean);
       if (addList.length === 0 && removeList.length === 0) {
         return formatToolOutput({
-            error: "At least one non-empty add/remove issue list is required",
-          });
+          error: "At least one non-empty add/remove issue list is required",
+        });
       }
 
       const result = await store.changes.get(changeId);
@@ -1867,19 +1865,19 @@ export const changeTools = {
         await store.changes.save(change);
       } catch (err) {
         return formatToolOutput({
-            error: `Failed to save change: ${err instanceof Error ? err.message : String(err)}`,
-          });
+          error: `Failed to save change: ${err instanceof Error ? err.message : String(err)}`,
+        });
       }
 
       return formatToolOutput({
-          success: true,
-          message: `Issues updated: +${update.added.length} -${update.removed.length}`,
-          github_issues: change.github_issues,
-          added: update.added,
-          removed: update.removed,
-          alreadyLinked: update.alreadyLinked,
-          notLinked: update.notLinked,
-        });
+        success: true,
+        message: `Issues updated: +${update.added.length} -${update.removed.length}`,
+        github_issues: change.github_issues,
+        added: update.added,
+        removed: update.removed,
+        alreadyLinked: update.alreadyLinked,
+        notLinked: update.notLinked,
+      });
     },
   },
 
@@ -1945,8 +1943,8 @@ export const changeTools = {
         return buildReentryResult(store, changeId, fromGate);
       } catch (error) {
         return formatToolOutput({
-            error: error instanceof Error ? error.message : String(error),
-          });
+          error: error instanceof Error ? error.message : String(error),
+        });
       }
     },
   },

@@ -30,7 +30,10 @@ import {
   type ChangeRecency,
 } from "../types";
 import { getCommandsByGate } from "../manifest";
-import { buildChangeContextSnapshot, buildChangeContextTicker } from "../utils/context-snapshot";
+import {
+  buildChangeContextSnapshot,
+  buildChangeContextTicker,
+} from "../utils/context-snapshot";
 import {
   loadProjectConfigWithDiagnostics,
   loadProposalWithFallback,
@@ -461,7 +464,11 @@ export const statusTools = {
 
           let primaryAssigned = false;
           for (const rc of recentChanges) {
-            const isPrimary = !primaryAssigned && (rc.status === "active" || rc.status === "draft" || rc.status === "pending");
+            const isPrimary =
+              !primaryAssigned &&
+              (rc.status === "active" ||
+                rc.status === "draft" ||
+                rc.status === "pending");
             if (isPrimary) primaryAssigned = true;
             await enrichRecentChangeStatus(
               rc,

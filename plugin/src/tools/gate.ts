@@ -105,21 +105,21 @@ async function completeGateAndBuildResponse({
   );
 
   return formatToolOutput({
-      success: true,
-      changeId,
-      gateId,
-      status: "done",
-      completed_at: completedAt,
-      completed_by: completedBy,
-      _contextSnapshot: buildChangeContextSnapshot({
-        change,
-        proposalText,
-        gates: completedGates,
-        workdir: store.paths.root,
-      }),
-      ...(boundaryWarning ? { boundaryWarning } : {}),
-      ...extraPayload,
-    });
+    success: true,
+    changeId,
+    gateId,
+    status: "done",
+    completed_at: completedAt,
+    completed_by: completedBy,
+    _contextSnapshot: buildChangeContextSnapshot({
+      change,
+      proposalText,
+      gates: completedGates,
+      workdir: store.paths.root,
+    }),
+    ...(boundaryWarning ? { boundaryWarning } : {}),
+    ...extraPayload,
+  });
 }
 
 async function handlePlanningGateCompletion({

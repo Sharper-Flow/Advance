@@ -292,14 +292,16 @@ export const reflectionTools = {
         return formatToolOutput({ error: changeResult.error });
       }
       if (!changeResult.data) {
-        return formatToolOutput({ error: `Change not found: ${args.changeId}` });
+        return formatToolOutput({
+          error: `Change not found: ${args.changeId}`,
+        });
       }
 
       const change = changeResult.data;
       if (change.status !== "archived") {
         return formatToolOutput({
-            error: `Change ${args.changeId} is not archived (status: ${change.status}). Reflection only runs on archived changes.`,
-          });
+          error: `Change ${args.changeId} is not archived (status: ${change.status}). Reflection only runs on archived changes.`,
+        });
       }
 
       const tasks = change.tasks ?? [];
@@ -585,8 +587,8 @@ export const reflectionTools = {
       await writeReflectionMarkdown(store.paths.archive, change.id, persisted);
 
       return formatToolOutput({
-          reflection: persisted,
-        });
+        reflection: persisted,
+      });
     },
   },
 };

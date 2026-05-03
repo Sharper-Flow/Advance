@@ -116,7 +116,9 @@ export const investmentTools = {
         return formatToolOutput({ error: changeResult.error });
       }
       if (!changeResult.data) {
-        return formatToolOutput({ error: `Change not found: ${args.changeId}` });
+        return formatToolOutput({
+          error: `Change not found: ${args.changeId}`,
+        });
       }
 
       const change = changeResult.data;
@@ -186,17 +188,17 @@ export const investmentTools = {
       );
 
       return formatToolOutput({
-          task_counts: taskCounts,
-          elapsed_ms: elapsedMs,
-          active_elapsed_ms: activeElapsedMs,
-          retry_total: retryTotal,
-          retry_density: retryDensity,
-          doom_loop_active: doomLoopActive,
-          per_gate_ms: perGateMs,
-          threshold_tier: thresholdTier,
-          token_hint:
-            "Token tracking not yet available — informational field reserved for v2.",
-        });
+        task_counts: taskCounts,
+        elapsed_ms: elapsedMs,
+        active_elapsed_ms: activeElapsedMs,
+        retry_total: retryTotal,
+        retry_density: retryDensity,
+        doom_loop_active: doomLoopActive,
+        per_gate_ms: perGateMs,
+        threshold_tier: thresholdTier,
+        token_hint:
+          "Token tracking not yet available — informational field reserved for v2.",
+      });
     },
   },
 };
