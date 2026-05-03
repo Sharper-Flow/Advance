@@ -547,6 +547,83 @@ Restart OpenCode after editing.
 
 ---
 
+## Thoroughness Rule (P31) + P19 Reinforcement
+
+ADV recommends a priority-9 anti-laziness rule that forbids agents from
+making decisions based on minimizing tokens, time, turn count, or effort.
+Pairs with a clarifying carve-out on P19 simplicity to close the most
+common rationalization escape hatch ("the simple solution suffices, so
+I'll skip the research/tests/related-scan").
+
+Like P28-P30, `rules.yaml` is **user-managed** so these changes must be
+applied manually.
+
+### Step 1: Strengthen P19 with a thoroughness carve-out
+
+Replace the existing `P19` block with the following (priority and name
+unchanged; adds explicit clarification that simplicity governs the
+solution, not the effort invested):
+
+```yaml
+  P19:
+    name: simplicity
+    rule: Keep code simple, clear, and well-named; prefer simple over
+      complex, complex over complicated; start with minimal solutions.
+      Simplicity refers to the SOLUTION (final code, interfaces,
+      abstractions) — not the WORK INVESTED to get there. Do not invoke
+      simplicity, KISS, or YAGNI to justify skipping research, tests,
+      verification, related-scan, or other thorough-work obligations
+      (see P31).
+    tags: [clean, simplicity, design]
+    hint: keep_it_simple
+    priority: 5
+```
+
+### Step 2: Add P31
+
+Add the following entry in the `rules:` map (P31 recommended):
+
+```yaml
+  P31:
+    name: thoroughness
+    rule: Never make decisions based on minimizing tokens, time, turn
+      count, or agent effort. Choose the correct answer over the
+      convenient one. If thoroughness requires more research, more tests,
+      more clarification, more verification, or wider scope investigation,
+      do it — even when a shortcut would technically pass. Token/turn
+      budgets are bookkeeping; user outcome quality is the objective.
+      Laziness manifests as — skipping docs because "I probably know,"
+      skipping related-scan because "it's probably fine," accepting the
+      first passing solution without considering better alternatives,
+      suppressing surface-able ideas to save turns, declaring done before
+      completeness is verified, choosing the cheap diagnosis over the
+      correct one. None of these are acceptable, regardless of token
+      cost. See P19 — simplicity governs the solution, not the effort.
+    tags: [quality, thoroughness, correctness, agent-reasoning]
+    hint: never_lazy
+    priority: 9
+```
+
+**Rationale for priority 9:** parity with `P05 ship-complete`, `P24
+tdd-first`, `P27 due-diligence`, `P28 cost-governance`. Foundational to
+agent reasoning and user-outcome quality, but not at the priority-10 tier
+reserved for absolute constraints (security, collaboration, timeouts).
+
+**Why these rules exist together:** agents pattern-match on concrete
+examples and rationalize away abstract principles. A standalone P31
+leaves the most common rationalization hatch open: "the simple solution
+suffices per P19, so the extra research/tests/scan aren't needed." The
+P19 carve-out shuts that loop by explicitly distinguishing solution
+simplicity (good) from effort minimization (forbidden by P31). Two
+reinforcing rules with concrete anti-pattern examples (skip docs / skip
+related-scan / accept first-pass / suppress better ideas / declare done
+prematurely / cheap-diagnosis-over-correct) are harder to rationalize
+past than either rule alone.
+
+Restart OpenCode after editing.
+
+---
+
 ## Project Initialization
 
 ### Option A: New Project
