@@ -415,7 +415,14 @@ export function applyStatusView(
       projection.search_attributes = full.search_attributes;
       projection.opencode_session_debt = full.opencode_session_debt;
       projection.diagnostics = full.diagnostics;
-      // Metrics counters surface here once AC6 lands.
+      // migration_status is a diagnostic field — surface here in addition
+      // to hygiene view so operators see migration health alongside
+      // temporal/STSL diagnostics.
+      projection.migration_status = full.migration_status;
+      // Recommendations array is small and useful for next-step routing
+      // even when callers ask for the diagnostic view.
+      projection.recommendations = full.recommendations ?? [];
+      // Metrics counters (AC6).
       if (full.metrics) projection.metrics = full.metrics;
       break;
     }

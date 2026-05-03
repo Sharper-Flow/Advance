@@ -85,7 +85,7 @@ describe("adv_status temporal health/migration status (C4)", () => {
   });
 
   test("includes temporal_health block when probe succeeds", async () => {
-    const result = await statusTools.adv_status.execute({}, store);
+    const result = await statusTools.adv_status.execute({ view: "health" }, store);
     const parsed = parseToolOutput(result);
 
     expect(parsed.temporal_health).toEqual({
@@ -105,7 +105,7 @@ describe("adv_status temporal health/migration status (C4)", () => {
   test("includes migration_status for current project when ledger query succeeds", async () => {
     (store.paths as { external?: string }).external =
       "/home/jrede/.local/share/opencode/plugins/advance/proj123";
-    const result = await statusTools.adv_status.execute({}, store);
+    const result = await statusTools.adv_status.execute({ view: "health" }, store);
     const parsed = parseToolOutput(result);
 
     expect(parsed.migration_status).toMatchObject({
@@ -123,7 +123,7 @@ describe("adv_status temporal health/migration status (C4)", () => {
       new Error("no temporal"),
     );
 
-    const result = await statusTools.adv_status.execute({}, store);
+    const result = await statusTools.adv_status.execute({ view: "health" }, store);
     const parsed = parseToolOutput(result);
 
     expect(parsed.temporal_health).toEqual({
@@ -156,7 +156,7 @@ describe("adv_status temporal health/migration status (C4)", () => {
     (store.paths as { external?: string }).external =
       "/home/jrede/.local/share/opencode/plugins/advance/target-proj";
 
-    const result = await statusTools.adv_status.execute({}, store);
+    const result = await statusTools.adv_status.execute({ view: "health" }, store);
     const parsed = parseToolOutput(result);
 
     expect(parsed.temporal_health.stale_queues).toEqual([
@@ -182,7 +182,7 @@ describe("adv_status temporal health/migration status (C4)", () => {
     };
     await store.changes.save(child.data!);
 
-    const result = await statusTools.adv_status.execute({}, store);
+    const result = await statusTools.adv_status.execute({ view: "health" }, store);
     const parsed = parseToolOutput(result);
 
     expect(parsed.formatted.activeSection).toContain("↳ addFeature");
@@ -196,7 +196,7 @@ describe("adv_status temporal health/migration status (C4)", () => {
   });
 
   it("surfaces per-op counters in temporal_health (KD-3)", async () => {
-    const result = await statusTools.adv_status.execute({}, store);
+    const result = await statusTools.adv_status.execute({ view: "health" }, store);
     const parsed = parseToolOutput(result);
 
     expect(parsed.temporal_health).toHaveProperty("op_counters");

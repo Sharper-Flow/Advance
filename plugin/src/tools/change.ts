@@ -879,6 +879,7 @@ export const changeTools = {
     },
   },
 
+  // rq-advChangeShowInclude01 — adv_change_show accepts opt-in include flags
   adv_change_show: {
     description:
       "Get full change details including tasks and deltas. " +

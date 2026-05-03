@@ -149,18 +149,19 @@ describe("experimental.session.compacting enrichment", () => {
     return { output: output.context, changeId };
   }
 
-  test("pushes ADV TASK CONTEXT block with current task info", async () => {
+  test("compaction context surfaces current in-progress task (AC2)", async () => {
     const { output } = await setupAndCompact({
       taskTitles: ["Active compaction task"],
       activeTaskIndex: 0,
     });
 
-    const taskContext = output.find((c) =>
-      c.includes("=== ADV TASK CONTEXT ==="),
-    );
-    expect(taskContext).toBeDefined();
-    expect(taskContext).toContain("Current:");
-    expect(taskContext).toContain("Phase:");
+    // After T4, compaction emits a single combined block via
+    // buildChangeContextSnapshot — the legacy "=== ADV TASK CONTEXT ==="
+    // block was replaced. Verify the new snapshot contains the current
+    // task indicator.
+    const block = output.join("\n");
+    expect(block).toMatch(/Current:/);
+    expect(block).toContain("Active compaction task");
   });
 
   test("pushes Progress line with done/active/pending counts", async () => {
@@ -194,20 +195,19 @@ describe("experimental.session.compacting enrichment", () => {
 
     await hooks["experimental.session.compacting"]!(input, output);
 
-    const taskContext = output.context.find((c) =>
-      c.includes("=== ADV TASK CONTEXT ==="),
-    );
-    expect(taskContext).toBeDefined();
-    expect(taskContext).toContain("Progress: 1 done | 1 active | 1 pending");
+    // After T4, compaction uses buildChangeContextSnapshot which emits
+    // counts in the format "Tasks: N done | N active | N pending".
+    const block = output.context.join("\n");
+    expect(block).toMatch(/Tasks:.*1 done.*1 active.*1 pending/);
   });
 
-  test("skips task context when store is null (graceful degradation)", async () => {
+  test("skips compaction context when no active change is set (graceful degradation)", async () => {
     // The disk store is always created even in bad dirs. Instead, test
     // that the compacting hook doesn't throw when there's no active change.
     const hooks = await AdvancePlugin(createMockPluginInput(tempDir));
     pluginInstances.push(hooks);
 
-    // Don't set active change — no change ID means no task context
+    // Don't set active change — no change ID means no compaction context
     const input = { sessionID: "test-session" };
     const output = { context: [] as string[] };
 
@@ -216,9 +216,9 @@ describe("experimental.session.compacting enrichment", () => {
       hooks["experimental.session.compacting"]!(input, output),
     ).resolves.not.toThrow();
 
-    // No ADV TASK CONTEXT block (no active change)
-    const hasTaskContext = output.context.some((c) =>
-      c.includes("=== ADV TASK CONTEXT ==="),
+    // No CONTEXT/snapshot block (no active change)
+    const hasTaskContext = output.context.some(
+      (c) => c.includes("CONTEXT:") || c.includes("ADV RESUME HINT"),
     );
     expect(hasTaskContext).toBe(false);
   });
@@ -248,20 +248,14 @@ describe("experimental.session.compacting enrichment", () => {
 
     await hooks["experimental.session.compacting"]!(input, output);
 
-    const taskContext = output.context.find((c) =>
-      c.includes("=== ADV TASK CONTEXT ==="),
-    );
-    expect(taskContext).toBeDefined();
-
-    // Every non-empty line should be <= 80 chars
-    const lines = taskContext!.split("\n");
-    for (const line of lines) {
-      if (line.trim().length > 0) {
-        expect(
-          line.length,
-          `Line too long (${line.length} chars): "${line}"`,
-        ).toBeLessThanOrEqual(80);
-      }
-    }
+    // After T4 the compaction block is bounded by an explicit byte
+    // budget (DEFAULT_COMPACTION_MAX_BYTES = 16_000) instead of a
+    // per-line 80-char cap. The legacy ADV TASK CONTEXT block was
+    // replaced by buildChangeContextSnapshot which uses a wider boxed
+    // layout (the renderer's box width grows to fit the longest task
+    // title; the change-id line is truncated separately). Verify the
+    // total block fits the budget — that's the meaningful invariant.
+    const block = output.context.join("\n");
+    expect(block.length).toBeLessThanOrEqual(16_000);
   });
 });

@@ -55,7 +55,7 @@ All steps must be executed. Skipping requires explicit justification.
 
 ---
 ## Phase 1: Load Context
-`adv_change_show changeId: <target> include: { snapshot: true, readyTasks: true }` collapses change + gate snapshot + ready-queue into one call. Add `include.ledger: true` only when picking up after a partial execution (re-entry path).
+`adv_change_show changeId: <target> include: { snapshot: true, readyTasks: true }` collapses change + gate snapshot + ready-queue into one call. Add `include.ledger: true` only when picking up after a partial execution (re-entry path). When a fresh structured per-gate breakdown is needed (e.g. for prep-checklist enforcement), fall back to `adv_gate_status changeId: <target>`.
 
 Then `adv_spec action: "list"` + `adv_spec action: "show"` for each affected capability.
 

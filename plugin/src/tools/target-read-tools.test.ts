@@ -227,7 +227,7 @@ describe("target_path read/status tools", () => {
 
   test("adv_status reads target project snapshot", async () => {
     const output = await statusTools.adv_status.execute(
-      { target_path: "/target/project" } as any,
+      { target_path: "/target/project", view: "changes" } as any,
       sourceStore,
     );
     const parsed = parseToolOutput(output);

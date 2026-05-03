@@ -1,3 +1,5 @@
+// rq-compactionFidelity01 — compaction context must use buildChangeContextSnapshot
+// rq-staleLedger01 — stale ledger references surface explicitly via formatResumeHint
 /**
  * Compaction Context Builder
  *

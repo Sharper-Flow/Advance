@@ -126,7 +126,10 @@ describe("cross-project coordination metadata", () => {
     targetChange.data!.tasks[0]!.status = "done";
     await targetStore.changes.save(targetChange.data!);
 
-    const output = await statusTools.adv_status.execute({}, sourceStore);
+    const output = await statusTools.adv_status.execute(
+      { view: "changes" },
+      sourceStore,
+    );
     const parsed = parseToolOutput(output);
     const recent = parsed.changes.recent.find(
       (change: { id: string }) => change.id === "addFeature",

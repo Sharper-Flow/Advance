@@ -1,3 +1,4 @@
+// rq-advMetricsBaseline01 — per-phase metrics counters surfaced via health view
 /**
  * In-Memory Metrics Counters
  *
