@@ -282,7 +282,21 @@ Skip for: bug fixes, mechanical work, choices constrained by security/API/archit
 
 ### Context Freshness
 
-Phase start (once): `adv_change_show` → load full change context (structured JSON for direct LLM consumption; no `_contextSnapshot`).
+Phase start (once): prefer the augmented form
+`adv_change_show changeId: <id> include: { ledger: true, snapshot: true, readyTasks: true }` —
+this single call collapses the legacy quartet
+(`adv_change_show + adv_gate_status + adv_task_ready + adv_task_run_status`)
+into one round trip:
+
+| Flag | Attached field | Replaces |
+|---|---|---|
+| `include.snapshot: true` | `_contextSnapshot` (top-level rendered string) | `adv_change_show` proposal/gate-row reading + manual reconstruction |
+| `include.ledger: true` | `_ledger` (TaskRunState for in-progress task or `null`) | `adv_task_run_status taskId: <id>` |
+| `include.readyTasks: true` | `_readyTasks` (top-N) + `_readyTasksMeta` (`{ total, limit, blockedCount }`) | `adv_task_ready changeId: <id>` |
+| `include.readyTasksLimit: N` (1-50) | overrides default top-10 slice | — |
+
+Default behavior is preserved when `include` is omitted (legacy callers and read-only inspections continue to work unchanged).
+
 Per task: `adv_task_show` → refresh only the current task. Do NOT call adv_change_show before every task — use the lighter per-task refresh.
 
 TodoWrite: use task IDs only (`tk-abc123`), not descriptions.
