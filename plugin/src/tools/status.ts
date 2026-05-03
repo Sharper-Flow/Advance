@@ -21,6 +21,7 @@ import { getTemporalRetryTelemetry } from "../temporal/retry-wrapper";
 import { getStslStats, isStslInitialized } from "../temporal/service";
 import { formatToolOutput } from "../utils/tool-output";
 import { formatStatusOutput } from "../utils/tool-formatters";
+import { listPeerSessions } from "./session/index";
 import {
   createDefaultGates,
   GATE_ORDER,
@@ -508,6 +509,30 @@ export const statusTools = {
             0,
           );
 
+          // T22: Peer Sessions — read session_registry, project to public
+          // schema, apply PID-liveness filter. Best-effort: any error
+          // surfaces as "unavailable".
+          let peerSessions:
+            | Array<{
+                sessionId: string;
+                startedAt: string;
+                worktree: string;
+                isSelf: boolean;
+              }>
+            | { unavailable: true } = { unavailable: true };
+          try {
+            const peerResult = await listPeerSessions({
+              projectRoot: activeStore.paths.root,
+            });
+            if (peerResult.unavailable) {
+              peerSessions = { unavailable: true };
+            } else {
+              peerSessions = peerResult.sessions;
+            }
+          } catch {
+            peerSessions = { unavailable: true };
+          }
+
           const formatted = formatStatusOutput({
             specCount: status.specs.count,
             requirementCount,
@@ -527,6 +552,7 @@ export const statusTools = {
                   stale: worktreeCensus.stale,
                 }
               : undefined,
+            peerSessions,
             opencodeSessionDebt: opencodeSessionDebt.available
               ? {
                   available: true,

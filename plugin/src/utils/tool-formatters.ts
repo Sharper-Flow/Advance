@@ -31,6 +31,8 @@ export interface FormattedStatus {
   healthSection: string;
   worktreeSection: string;
   sessionDebtSection: string;
+  /** T22: peer sessions section (privacy-defensive). */
+  peerSessionsSection: string;
 }
 
 export interface FormattedValidation {
@@ -80,6 +82,20 @@ export interface StatusInput {
     total: number;
     stale: Array<{ path: string; branch: string; lastActivity: string }>;
   };
+  /**
+   * T22: peer sessions list (privacy-defensive schema). Each entry shows
+   * sessionId, startedAt, worktree (basename only), and isSelf flag.
+   * Pass `undefined` when the project workflow is unreachable; the
+   * formatter renders "Peer Sessions: unavailable".
+   */
+  peerSessions?:
+    | Array<{
+        sessionId: string;
+        startedAt: string;
+        worktree: string;
+        isSelf: boolean;
+      }>
+    | { unavailable: true };
   opencodeSessionDebt?: {
     available: boolean;
     repairableStaleCount?: number;
@@ -253,6 +269,35 @@ export function formatStatusOutput(input: StatusInput): FormattedStatus {
     sessionDebtSection = `## OpenCode Session Debt\n${stale} stale blank assistant row(s), ${live} live/in-flight`;
   }
 
+  // T22: Peer Sessions section (privacy-defensive — sessionId + startedAt
+  // + worktree basename + isSelf only; no PID, no full path).
+  let peerSessionsSection: string;
+  if (!input.peerSessions) {
+    peerSessionsSection = "## Peer Sessions\n(none)";
+  } else if (
+    !Array.isArray(input.peerSessions) &&
+    "unavailable" in input.peerSessions
+  ) {
+    peerSessionsSection =
+      "## Peer Sessions\nunavailable (project workflow not reachable)";
+  } else if (Array.isArray(input.peerSessions)) {
+    if (input.peerSessions.length === 0) {
+      peerSessionsSection = "## Peer Sessions\n(none)";
+    } else {
+      const lines = [
+        "| Session ID | Started At | Worktree | Self |",
+        "|------------|------------|----------|------|",
+        ...input.peerSessions.map(
+          (s) =>
+            `| ${s.sessionId} | ${s.startedAt} | ${s.worktree} | ${s.isSelf ? "✓" : ""} |`,
+        ),
+      ];
+      peerSessionsSection = `## Peer Sessions\n${lines.join("\n")}`;
+    }
+  } else {
+    peerSessionsSection = "## Peer Sessions\n(none)";
+  }
+
   return {
     specsSection,
     activeSection,
@@ -261,6 +306,7 @@ export function formatStatusOutput(input: StatusInput): FormattedStatus {
     healthSection,
     worktreeSection,
     sessionDebtSection,
+    peerSessionsSection,
   };
 }
 
