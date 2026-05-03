@@ -526,13 +526,17 @@ function validateGateBoundary(
   // Extract command name from completedBy (may contain extra context like "adv-task LBP validation: ...")
   const commandName = completedBy.split(/\s/)[0];
 
+  // "agent" is the default — no boundary check possible.
+  // Provider-specific ADV agents (for example adv-gpt/adv-claude) are actors,
+  // not slash-command IDs. Boundary validation only applies when completedBy
+  // explicitly starts with a known command from COMMAND_MANIFEST.
+  if (commandName === "agent") return undefined;
+  if (!Object.hasOwn(COMMAND_MANIFEST, commandName)) return undefined;
+
   // Check if the completing command (or its prefix) matches an authorized command
   const isAuthorized = authorizedCommands.some(
     (cmd) => commandName === cmd || commandName.startsWith(`${cmd} `),
   );
-
-  // "agent" is the default — no boundary check possible
-  if (commandName === "agent") return undefined;
 
   if (!isAuthorized) {
     return `Gate '${gateId}' is owned by [${authorizedCommands.join(", ")}] but was completed by '${completedBy}'. This may indicate a command boundary violation. See specs adv-proposal, adv-discover, adv-prep for gate ownership rules.`;

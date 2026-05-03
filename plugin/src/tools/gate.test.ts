@@ -300,6 +300,27 @@ describe("Gate Tools", () => {
       expect(parsed.success).toBe(true);
       expect(parsed.boundaryWarning).toBeUndefined();
     });
+
+    test("does not treat provider ADV agent names as command boundary violations", async () => {
+      // Complete proposal first (sequence prerequisite)
+      await gateTools.adv_gate_complete.execute(
+        { changeId: "addFeature", gateId: "proposal" },
+        store,
+      );
+
+      const result = await gateTools.adv_gate_complete.execute(
+        {
+          changeId: "addFeature",
+          gateId: "discovery",
+          completedBy: "adv-gpt",
+        },
+        store,
+      );
+      const parsed = extractJson(result) as Record<string, unknown>;
+
+      expect(parsed.success).toBe(true);
+      expect(parsed.boundaryWarning).toBeUndefined();
+    });
   });
 });
 
