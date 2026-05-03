@@ -1078,7 +1078,12 @@ describe("ProjectConfigSchema", () => {
     const config = {
       name: "test-project",
       related_repos: [
-        { id: "backend", path: "/path/to/backend", trusted: true, gh_repo: "org/backend" },
+        {
+          id: "backend",
+          path: "/path/to/backend",
+          trusted: true,
+          gh_repo: "org/backend",
+        },
         { id: "frontend", path: "/path/to/frontend" },
       ],
     };
