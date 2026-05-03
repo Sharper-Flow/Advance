@@ -435,6 +435,51 @@ canonical methodology.
 
 ---
 
+## Clean-Not-Minimal Rule (P29)
+
+ADV recommends a clarity-first design rule that explicitly counters the
+agent failure mode of "minimize touch / minimize blast radius at the cost
+of structural quality." Like P28, `rules.yaml` is **user-managed** so this
+rule must be added manually:
+
+1. Open `~/.config/opencode/instructions/rules.yaml`
+2. Add the following entry in the `rules:` map (P29 recommended):
+
+```yaml
+rules:
+  # ... existing rules ...
+
+  P29:
+    name: clean-not-minimal
+    rule: Optimize for clarity and maintainability, not for the smallest
+      possible diff. When a wider architectural change produces a cleaner
+      result, surface it — do not suppress better ideas to minimize blast
+      radius or touch. Avoid speculative features and abstractions for
+      hypothetical future needs (YAGNI), but do not confuse YAGNI with
+      refusing necessary structural work or withholding stronger design
+      proposals.
+    tags: [clarity, design, simplicity, architecture, yagni]
+    hint: clean_not_minimal
+    priority: 7
+```
+
+**Rationale for priority 7:** parity with `P11 lifecycle`, `P12 dependencies`,
+`P13 minimize-debt`, `P14 observability` — important design guidance that
+should consistently win against pure size/diff-minimization heuristics, but
+not at the priority-9/10 tier reserved for security and safety constraints.
+
+**Why this rule exists:** earlier wording (`smallest-reversible-solution`)
+caused agents to pattern-match on "smallest" and "reversible," reading the
+rule as "minimize touch / avoid wider architectural changes." That suppressed
+legitimate proposals to refactor or restructure when the cleaner answer was
+larger. The rewrite keeps the YAGNI/anti-speculation intent but explicitly
+instructs agents to **surface** wider architectural changes when they
+produce a cleaner result.
+
+Restart OpenCode after editing.
+
+---
+
 ## Project Initialization
 
 ### Option A: New Project

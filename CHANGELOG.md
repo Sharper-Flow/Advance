@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **Archive completeness validation at preflight.** `adv_change_archive` now calls `validateChange` between preflight checks and bundle creation. Validation errors block the archive; warnings are included in the response but do not block. Validation runs before the idempotent bundle-existence check so that retries also validate.
+- **Recommended rule P29 `clean-not-minimal`** documented in `SETUP.md` (sibling to P28). Replaces the earlier `smallest-reversible-solution` framing that pattern-matched to "minimize touch / minimize blast radius" and caused agents to suppress legitimate wider-architectural-change proposals. New wording instructs agents to optimize for clarity and surface bigger changes when they produce cleaner results, while preserving YAGNI/anti-speculation intent. Like P28, `rules.yaml` is user-managed — section documents the add-manually steps.
 
 ## [0.8.2] - 2026-05-01
 
