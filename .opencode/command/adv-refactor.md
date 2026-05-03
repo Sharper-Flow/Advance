@@ -43,7 +43,7 @@ Detect requirements already implemented elsewhere. Exclude tests/mocks/legacy. P
 ### Sub-Agent 3: Conflict Scanner
 Find overlaps with archived changes. Filter by matching capabilities, focus on recent archives (last 20%), compare requirement intent.
 ### Inline: Dependency Check
-After sub-agents return, orchestrator checks stale deps via Context7 (`context7_resolve-library-id` → `context7_query-docs` for breaking changes). Runs inline because `explore` lacks Context7.
+After sub-agents return, orchestrator checks stale deps via `webfetch` against library changelogs/release notes (Context7 currently unreachable in OpenCode — see `instructions/mcp-tools.md` § "Context7 Caveat"). Runs inline because `explore` lacks webfetch in some setups.
 
 ---
 ## Phase 2: Synthesis & Intent Verification
@@ -85,4 +85,4 @@ If dry-run → list what would change. If executed → list changes by confidenc
 | Analysis | Task tool (explore × 3) |
 | Add task | `adv_task_add` |
 | Validate | `adv_change_validate` |
-| Dep check | `context7_resolve-library-id`, `context7_query-docs` |
+| Dep check | `webfetch` to library changelogs (Context7 broken) |

@@ -265,7 +265,7 @@ Required when the proposal's Discovery Agenda contains ecosystem unknowns OR an 
 
 1. First consult any `docs/*-prep.md` research pack cited in the Extends section. If it already answers the question, summarise it in the LBP Check and cite the specific sections (`Competitors & Alternatives`, `Emerging Patterns`, `Applicability to This Repo`).
 2. If no relevant pack exists OR the cited pack is stale relative to the current question:
-   - Run `kagi_search_fetch queries: ["{domain} alternatives {year}", "{domain} emerging patterns {year}"]`
+   - Run `mcp_KagiKagiSearchFetch queries: ["{domain} alternatives {year}", "{domain} emerging patterns {year}"]`
    - Record top-3 competitors/alternatives and up to 2 emerging patterns with source URLs
    - Evaluate applicability to this repo with file-path references
 3. Emit findings inline in the LBP Check section. Recommend `/adv-improve {target}` as a follow-up to persist the findings as a durable research pack when the discovery agenda will need them repeatedly.

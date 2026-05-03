@@ -112,8 +112,8 @@ Treat timeout/no-response the same as failure.
 
 1. **Retry once** — re-spawn that specific sub-agent with the same prompt
 2. **If retry also fails** — fall back to inline research for that question:
-   - Use `context7_resolve-library-id` + `context7_query-docs` for library/framework questions
-   - Use `kagi_kagi_search_fetch` for community guidance and current best practices
+   - For library/framework questions: prefer `webfetch` to the canonical docs URL (e.g. `https://platform.claude.com/docs/...`, `https://ai-sdk.dev/docs/...`, `https://react.dev/...`). Context7 (`mcp_Context7*`) is currently unreachable via function-name in OpenCode due to a hyphen-vs-underscore registration mismatch — see `instructions/mcp-tools.md` § "Context7 Caveat".
+   - Use `mcp_KagiKagiSearchFetch` for community guidance and current best practices
    - Use `grep-app_searchCode` for real-world implementation patterns
    - Emit findings with the same `VALIDATION:` / `RECOMMENDATION:` structure
    - Apply the same redaction rules during manual research: strip secrets/internal-only details and keep external queries generic
@@ -236,7 +236,7 @@ EXISTING CODEBASE PATTERNS: {summary of patterns found in Phase 1 audit}
 
 RESEARCH PROTOCOL:
 - You MUST cite sources for every factual claim
-- Use Context7 first for library/framework questions (context7_resolve-library-id → context7_query-docs)
+- For library/framework questions: prefer `webfetch` to canonical docs URLs (Context7 currently broken in OpenCode — see `instructions/mcp-tools.md` § "Context7 Caveat")
 - Use grep.app to find real-world code examples
 - Prefer simple, boring solutions over complex ones
 - If unsure, say "I don't know" rather than guess
@@ -245,7 +245,7 @@ RESEARCH PROTOCOL:
 - Use generic search terms only; never paste proprietary code, internal URLs, or customer data into grep.app or web search queries
 
 TASK:
-1. Use Context7: context7_resolve-library-id, then context7_query-docs
+1. Use webfetch against canonical library docs URLs (Context7 broken — see `instructions/mcp-tools.md` § "Context7 Caveat")
 2. Look up the CANONICAL/REFERENCE architecture for this tech stack
 3. Web search for best practices
 4. Compare the PROPOSED architecture against the REFERENCE architecture
@@ -386,6 +386,6 @@ Mark gate: `adv_gate_complete changeId: {change-id} gateId: research`
 | Update proposal | `adv_change_update` |
 | Ask user | `question` |
 | Mark gate | `adv_gate_complete` |
-| Context7 | `context7_resolve-library-id`, `context7_query-docs` |
-| Web search / best practices | `kagi_kagi_search_fetch` |
+| Library/framework docs | `webfetch` to canonical URLs (Context7 broken — see `instructions/mcp-tools.md` § "Context7 Caveat") |
+| Web search / best practices | `mcp_KagiKagiSearchFetch` |
 | Real-world code examples | `grep-app_searchCode` |

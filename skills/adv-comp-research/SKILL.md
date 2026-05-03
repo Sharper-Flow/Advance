@@ -19,7 +19,7 @@ Reusable competitive intelligence methodology for ADV comp-scan workflows. Provi
 
 When the competitor is a GitHub repository (URL matches `github.com/*`):
 
-1. **Extract repo metadata** — `gh_grep_searchGitHub` for README, package manifests, main language
+1. **Extract repo metadata** — `mcp_GhGrepSearchGitHub` for README, package manifests, main language
 2. **Read feature surface** — analyze source structure, API endpoints, key modules
 3. **Compare architecture** — layer structure, dependency graph, tech stack
 
@@ -27,8 +27,8 @@ When the competitor is a GitHub repository (URL matches `github.com/*`):
 
 When the competitor is a website, product page, or documentation:
 
-1. **Firecrawl primary** — `firecrawl_scrape` pricing, features, changelog pages
-2. **Kagi fallback** — `kagi_kagi_search_fetch` for recent news, reviews, comparisons
+1. **Firecrawl primary** — `mcp_FirecrawlFirecrawlScrape` for pricing, features, changelog pages
+2. **Kagi fallback** — `mcp_KagiKagiSearchFetch` for recent news, reviews, comparisons
 3. **Structured extraction** — identify feature list, pricing tiers, target audience
 
 ## Auto-Mode Detection

@@ -72,7 +72,7 @@ Analyze across 6 categories. Cap: **5 findings per category**. Every finding MUS
 
 ## Phase 2: LBP / Reference Comparison
 
-1. Use `context7_resolve-library-id` → `context7_query-docs` for canonical architecture of detected stack
+1. Use `webfetch` against the framework's canonical docs URL (Context7 currently broken in OpenCode — see `instructions/mcp-tools.md` § "Context7 Caveat") for canonical architecture of detected stack
 2. Build deviation table: for each area, classify as `SOUND` / `DRIFTED` / `ANTI-PATTERN` with source citation
 3. Document corrections for DRIFTED/ANTI-PATTERN findings: what's wrong (file paths), what's correct (source), minimum viable fix
 4. Include greenfield perspective: what would change rebuilding from scratch?
@@ -85,7 +85,7 @@ Analyze across 6 categories. Cap: **5 findings per category**. Every finding MUS
 
 Detect project domain from Phase 0 context. Run two targeted searches:
 
-1. `kagi_search_fetch queries: ["{domain} alternatives comparison {year}", "{domain} emerging tools trends {year}"]`
+1. `mcp_KagiKagiSearchFetch queries: ["{domain} alternatives comparison {year}", "{domain} emerging tools trends {year}"]`
 2. Extract: **top-3 competitors** (name, what they do differently, relevance to this project) and **2 emerging patterns** (name, why noteworthy, maturity signal)
 3. Every entry MUST include: source URL, one-sentence summary, relevance
 
@@ -166,8 +166,8 @@ The artifact is a **mirror** of the report findings plus the Applicability and O
 | --------- | ------------------------------------------------------------------------------ |
 | Context   | `adv_project_context`, `adv_change_list`, `adv_agenda_list`, `adv_spec`        |
 | Code      | `lgrep_search_semantic`, `lgrep_search_symbols`, `lgrep_get_file_tree`, `read` |
-| Reference | `context7_resolve-library-id`, `context7_query-docs`                           |
-| External  | `kagi_search_fetch`                                                            |
+| Reference | `webfetch` to canonical docs URLs (Context7 broken — see Context7 Caveat)        |
+| External  | `mcp_KagiKagiSearchFetch`                                                      |
 | Persist   | `write` / `morph_edit` — only under `docs/*-prep.md`                           |
 
 ---

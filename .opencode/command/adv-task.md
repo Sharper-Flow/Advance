@@ -115,7 +115,7 @@ Use the fast-track variant of the Gate Handoff Voice spine (see `docs/command-vo
 |---------|------|
 | Create change | `adv_change_create` |
 | Research | Task tool (librarian, adv-researcher) |
-| Fallback | `context7_resolve-library-id`, `context7_query-docs`, `kagi_kagi_search_fetch` |
+| Fallback | `webfetch` to library docs (Context7 broken — see Context7 Caveat), `mcp_KagiKagiSearchFetch` |
 | Context | `adv_project_context` |
 | Conflicts | `adv_change_list` |
 | Add tasks | `adv_task_add` |

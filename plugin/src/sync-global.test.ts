@@ -383,7 +383,7 @@ describe("sync-global.sh", () => {
 
     test("provider eval models native prompt-ref concatenation order", () => {
       expect(providerEval).toContain(
-        "Replicates OpenCode prompt-ref composition",
+        "Replicates sync-global.sh concatenated prompt file",
       );
       expect(providerEval).toContain(
         "return `${stripped}\\n\\n${hintContent}`",

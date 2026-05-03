@@ -67,8 +67,8 @@ Validate architectural decisions against canonical best practices. You have a **
    - If the stack uses shadcn-svelte, look up shadcn-svelte docs for the component in question
    - If shadcn-svelte is built on Bits UI, also check Bits UI docs for underlying behavior
    - If using Tailwind, check Tailwind docs for styling questions
-2. **Context7 First**: For any library or framework question, use `context7_resolve-library-id` then `context7_query-docs`
-3. **Code Examples**: Use `gh_grep_searchGitHub` to find real-world implementation patterns
+2. **Library / Framework Docs First**: For any library or framework question, use `webfetch` against the canonical docs URL (e.g. `https://platform.claude.com/docs/...`, `https://ai-sdk.dev/docs/...`). Context7 (`mcp_Context7*`) is currently unreachable in OpenCode — see `instructions/mcp-tools.md` § "Context7 Caveat"
+3. **Code Examples**: Use `mcp_GhGrepSearchGitHub` to find real-world implementation patterns
 4. **Web Research**: Use Kagi for broader context, blog posts, discussions
 5. **Academic Papers**: Use arxiv for cutting-edge research when relevant
 6. **Local Code Discovery**: Use `lgrep_search_semantic` for concept discovery and `lgrep_search_symbols` for named code paths before falling back to `grep`/`read`
