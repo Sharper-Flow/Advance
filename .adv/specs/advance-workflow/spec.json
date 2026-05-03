@@ -1306,6 +1306,113 @@
           ]
         }
       ]
+    },
+    {
+      "id": "rq-singleSystemBlock01",
+      "title": "Single ADV-controlled system entry per turn",
+      "body": "The ADV plugin must emit at most one plugin-controlled entry into output.system per experimental.chat.system.transform invocation. All sections (degraded banner, session-health banner, provider-switch hint, worktree marker, active-change line, wisdom-recording prompt) must be assembled into a single string and appended to output.system[0]. Multi-block emission via output.system.push is prohibited because it triggers assistant-prefilling rejection on OpenAI-compatible providers. The factory-failure hook follows the same single-append rule.",
+      "priority": "must",
+      "tags": ["workflow", "providers", "system-emission", "openai-compat"],
+      "scenarios": [
+        {
+          "id": "rq-singleSystemBlock01.1",
+          "title": "Healthy turn produces at most one system entry",
+          "given": [
+            "An active change is set",
+            "The plugin store initialized successfully"
+          ],
+          "when": "experimental.chat.system.transform runs",
+          "then": [
+            "output.system.length is at most 1 after the hook returns",
+            "All ADV markers (active change, worktree, wisdom prompt) appear in output.system[0]"
+          ]
+        },
+        {
+          "id": "rq-singleSystemBlock01.2",
+          "title": "Degraded mode also obeys single-entry contract",
+          "given": ["The plugin store initialization failed"],
+          "when": "experimental.chat.system.transform runs",
+          "then": [
+            "The [ADV:DEGRADED] banner is appended to output.system[0]",
+            "output.system.length is at most 1"
+          ]
+        },
+        {
+          "id": "rq-singleSystemBlock01.3",
+          "title": "Internal-call short-circuit",
+          "given": [
+            "output.system[0] matches an OpenCode internal-call pattern (title generation or summarizer)"
+          ],
+          "when": "experimental.chat.system.transform runs",
+          "then": [
+            "The assembler returns null and ADV content is NOT appended",
+            "output.system remains unchanged"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-compactionFidelity01",
+      "title": "Compaction context fidelity parity with live snapshot",
+      "body": "experimental.session.compacting must use buildChangeContextSnapshot to produce its change-context block, ensuring the compacted context contains the same gate row, ledger phase, task counts, and current task as the live emission. A specs summary block is retained alongside the snapshot. A resume-hint block is composed from store.tasks.getRun for the in-progress task. Total output is bounded by an explicit byte budget.",
+      "priority": "must",
+      "tags": ["workflow", "compaction", "fidelity"],
+      "scenarios": [
+        {
+          "id": "rq-compactionFidelity01.1",
+          "title": "Compaction uses buildChangeContextSnapshot",
+          "given": ["An active change with at least one task"],
+          "when": "experimental.session.compacting runs",
+          "then": [
+            "output.context contains the rendered change-context snapshot",
+            "The snapshot uses the same formatter as the live system-block emission"
+          ]
+        },
+        {
+          "id": "rq-compactionFidelity01.2",
+          "title": "Specs summary is retained",
+          "given": ["The project has at least one spec"],
+          "when": "experimental.session.compacting runs",
+          "then": [
+            "output.context includes an ADV SPECS CONTEXT block listing the specs"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-staleLedger01",
+      "title": "Stale ledger references surface explicitly",
+      "body": "When the in-progress task ledger references a task whose current status is cancelled or done, the resume-hint block in compaction output must surface an explicit warning naming the task ID and its terminal status, instructing the agent to re-evaluate from the current ready queue. The agent must NOT silently follow a resume hint that points at a superseded task.",
+      "priority": "must",
+      "tags": ["workflow", "ledger", "compaction", "fidelity"],
+      "scenarios": [
+        {
+          "id": "rq-staleLedger01.1",
+          "title": "Cancelled task triggers warning",
+          "given": [
+            "The in-progress task ledger references task tk-X",
+            "Task tk-X has status 'cancelled' in the change task list"
+          ],
+          "when": "Compaction context is built",
+          "then": [
+            "The resume-hint block contains a ⚠ warning naming tk-X and its 'cancelled' status",
+            "The original phase/resumeHint values are NOT surfaced"
+          ]
+        },
+        {
+          "id": "rq-staleLedger01.2",
+          "title": "Done task triggers warning",
+          "given": [
+            "The in-progress task ledger references task tk-X",
+            "Task tk-X has status 'done' in the change task list"
+          ],
+          "when": "Compaction context is built",
+          "then": [
+            "The resume-hint block contains a ⚠ warning naming tk-X and its 'done' status",
+            "The agent is directed to re-evaluate via adv_change_show include:{readyTasks:true}"
+          ]
+        }
+      ]
     }
   ]
 }

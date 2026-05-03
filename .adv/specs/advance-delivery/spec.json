@@ -549,6 +549,147 @@
           ]
         }
       ]
+    },
+    {
+      "id": "rq-advChangeShowInclude01",
+      "title": "adv_change_show accepts opt-in include flags",
+      "body": "adv_change_show must accept an optional include argument with shape { ledger?: boolean, snapshot?: boolean, readyTasks?: boolean, readyTasksLimit?: number }. When include is omitted, the response shape is unchanged (backward compatible). When include.snapshot is true, the rendered context snapshot is attached as top-level _contextSnapshot, matching the mutation-tool convention. When include.ledger is true, the in-progress task's TaskRunState (or null) is attached as _ledger. When include.readyTasks is true, the unblocked ready queue is attached as _readyTasks (top-N by priority then created_at; default 10, max 50) along with _readyTasksMeta. Cross-project target_path routing is preserved.",
+      "priority": "must",
+      "tags": ["delivery", "tools", "context-emission"],
+      "scenarios": [
+        {
+          "id": "rq-advChangeShowInclude01.1",
+          "title": "Default behavior preserved when include is omitted",
+          "given": ["A change exists with completed and pending tasks"],
+          "when": "adv_change_show is called without include",
+          "then": [
+            "The response does NOT contain _contextSnapshot, _ledger, or _readyTasks",
+            "All previously documented fields remain unchanged"
+          ]
+        },
+        {
+          "id": "rq-advChangeShowInclude01.2",
+          "title": "include.snapshot attaches _contextSnapshot",
+          "given": ["A change exists"],
+          "when": "adv_change_show is called with include: { snapshot: true }",
+          "then": [
+            "The response includes top-level _contextSnapshot string",
+            "The snapshot uses the same formatter as live system-block emission"
+          ]
+        },
+        {
+          "id": "rq-advChangeShowInclude01.3",
+          "title": "include.readyTasksLimit accepts 1-50",
+          "given": ["A request includes readyTasks:true with readyTasksLimit:N"],
+          "when": "Zod validates the args",
+          "then": [
+            "Values 1-50 inclusive are accepted",
+            "Values <1 or >50 are rejected at the schema layer"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-advStatusView01",
+      "title": "adv_status accepts optional view selector",
+      "body": "adv_status must accept an optional view argument of type 'summary' | 'health' | 'changes' | 'hygiene' (default: 'summary'). The summary view returns specs.count, simplified changes.recent (id+title+recency+minutesSinceActivity only), recommendations, temporal_health_ok (boolean), and worktree_count — explicitly omitting hygiene-archaeology fields like _healthSnapshot. The health view returns full temporal_health, search_attributes, opencode_session_debt, diagnostics, and the metrics counters. The changes view returns full status.changes detail. The hygiene view returns _healthSnapshot, opencode_session_debt detail, project_metadata, recommendations, and migration_status. The formatted block is preserved across all views.",
+      "priority": "must",
+      "tags": ["delivery", "tools", "context-emission"],
+      "scenarios": [
+        {
+          "id": "rq-advStatusView01.1",
+          "title": "Default view is summary",
+          "given": ["adv_status is called with no view arg"],
+          "when": "The tool runs",
+          "then": [
+            "The response includes view:'summary'",
+            "Hygiene archaeology fields (_healthSnapshot, search_attributes, opencode_session_debt, diagnostics) are absent"
+          ]
+        },
+        {
+          "id": "rq-advStatusView01.2",
+          "title": "Health view exposes full diagnostics",
+          "given": ["adv_status is called with view:'health'"],
+          "when": "The tool runs",
+          "then": [
+            "The response includes temporal_health, search_attributes, opencode_session_debt, diagnostics",
+            "Summary-only fields (temporal_health_ok, worktree_count) are absent"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-advMetricsBaseline01",
+      "title": "Per-phase metrics counters surfaced via health view",
+      "body": "The plugin must maintain in-memory counters for the session: adv_tool_calls (total adv_* tool invocations), adv_tool_call_count_by_name (Record<string, number> breakdown), system_block_bytes (cumulative bytes appended to output.system[0]), subagent_spawns (count of `task` tool invocations from main), and wall_time_ms. Counters reset on plugin init. They are surfaced as the metrics field on adv_status view:'health'. Per JC-1, persistence across sessions is OUT of scope for this baseline.",
+      "priority": "must",
+      "tags": ["delivery", "metrics", "observability"],
+      "scenarios": [
+        {
+          "id": "rq-advMetricsBaseline01.1",
+          "title": "Counters reset on plugin init",
+          "given": ["The plugin factory runs"],
+          "when": "resetMetrics is called",
+          "then": [
+            "All five counters are zero",
+            "adv_tool_call_count_by_name is empty"
+          ]
+        },
+        {
+          "id": "rq-advMetricsBaseline01.2",
+          "title": "Health view exposes counters",
+          "given": ["adv_status is called with view:'health'"],
+          "when": "The tool runs",
+          "then": [
+            "The response includes a metrics object with the five fields",
+            "The counters reflect activity since the most recent plugin init"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-advStatePath01",
+      "title": "ADV-state path guard blocks accidental external-state reads",
+      "body": "The plugin must block read | glob | grep | lgrep_* tools when their args reference paths inside ${external_root}/changes/** or ${external_root}/archive/**. The guard mirrors the conformance path-guard pattern. Bash is INTENTIONALLY excluded — bash gating is the enforceBashPolicy domain, and parsing arbitrary bash for path patterns is fragile. Defense-in-depth for adversarial paths is instruction-based (AGENTS.md and ADV_INSTRUCTIONS.md state 'NEVER read ADV state files directly'). This guard's role is to prevent accidental reads via tool names, not to provide adversarial isolation. In-repo .adv/specs/** is intentionally outside the guard's scope. The guard exposes a clear error message naming adv_change_show, adv_task_list, adv_task_show, etc. as the alternatives.",
+      "priority": "must",
+      "tags": ["delivery", "guards", "boundary", "context-emission"],
+      "scenarios": [
+        {
+          "id": "rq-advStatePath01.1",
+          "title": "Read against changes/ is blocked",
+          "given": ["A read tool call targets ${external_root}/changes/foo/change.json"],
+          "when": "tool.execute.before runs",
+          "then": [
+            "The guard throws an error naming the locked path",
+            "The error message points to ADV MCP tools as alternatives"
+          ]
+        },
+        {
+          "id": "rq-advStatePath01.2",
+          "title": "Read against archive/ is blocked",
+          "given": ["A read tool call targets ${external_root}/archive/old/proposal.md"],
+          "when": "tool.execute.before runs",
+          "then": ["The guard throws an error naming the locked path"]
+        },
+        {
+          "id": "rq-advStatePath01.3",
+          "title": "In-repo .adv/specs is allowed",
+          "given": ["A read tool call targets <repo>/.adv/specs/<capability>/spec.json"],
+          "when": "tool.execute.before runs",
+          "then": ["The guard does not throw; specs are git-tracked and meant to be read"]
+        },
+        {
+          "id": "rq-advStatePath01.4",
+          "title": "Bash bypass is documented gap",
+          "given": ["A bash command references ${external_root}/changes/foo/change.json"],
+          "when": "tool.execute.before runs",
+          "then": [
+            "The ADV-state path guard does NOT throw (bash is excluded)",
+            "Bash gating is enforceBashPolicy's domain",
+            "AGENTS.md and ADV_INSTRUCTIONS.md state 'NEVER read ADV state directly' as instruction-based defense for adversarial paths"
+          ]
+        }
+      ]
     }
   ]
 }
