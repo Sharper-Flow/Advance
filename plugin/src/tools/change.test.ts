@@ -1678,6 +1678,78 @@ describe("Change Tools", () => {
     });
   });
 
+  // AC3 — cross-flag verification (target_path parity + truncation)
+  describe("adv_change_show include flags — verification (AC3)", () => {
+    test("include flags work with target_path (cross-project parity)", async () => {
+      const targetDir = await createTempDir();
+      await createTestProject(targetDir);
+      // Initialize git so getProjectId resolves a project for target_path.
+      const { execFile } = await import("child_process");
+      const run = (args: string[]) =>
+        new Promise<void>((resolve, reject) => {
+          execFile("git", args, { cwd: targetDir }, (err) =>
+            err ? reject(err) : resolve(),
+          );
+        });
+      await run(["init"]);
+      await run(["commit", "--allow-empty", "-m", "initial"]);
+
+      try {
+        const createResult = await changeTools.adv_change_create.execute(
+          {
+            summary: "Cross project target",
+            target_path: targetDir,
+          },
+          store,
+        );
+        const created = parseToolOutput<{ changeId: string }>(createResult);
+        expect(created.changeId).toBeDefined();
+
+        // Read back via target_path with all include flags set.
+        const result = await changeTools.adv_change_show.execute(
+          {
+            changeId: created.changeId,
+            target_path: targetDir,
+            include: { snapshot: true, ledger: true, readyTasks: true },
+          },
+          store,
+        );
+        const parsed = parseToolOutput(result);
+        expect(parsed.id).toBe(created.changeId);
+        expect(parsed._projectContext).toBeDefined();
+        expect(parsed._contextSnapshot).toBeDefined();
+        expect(parsed._readyTasks).toBeDefined();
+        // _ledger is present (null when target has no in-progress task).
+        expect("_ledger" in parsed).toBe(true);
+      } finally {
+        await cleanupTempDir(targetDir);
+      }
+    });
+
+    test("formatToolOutput truncation envelope tolerates large include payloads", async () => {
+      // Force a large payload by requesting all include flags. We don't
+      // assert any particular truncation marker because the envelope
+      // varies — but the call MUST NOT throw and the output MUST be
+      // valid JSON the caller can re-parse.
+      const result = await changeTools.adv_change_show.execute(
+        {
+          changeId: "addFeature",
+          include: {
+            snapshot: true,
+            ledger: true,
+            readyTasks: true,
+            readyTasksLimit: 50,
+          },
+        },
+        store,
+      );
+      // formatToolOutput emits banner + JSON; parseToolOutput should
+      // recover the JSON without throwing.
+      const parsed = parseToolOutput(result);
+      expect(parsed.id).toBe("addFeature");
+    });
+  });
+
   // AC3 — adv_change_show include flags (snapshot/ledger/readyTasks)
   describe("adv_change_show include flags (AC3)", () => {
     test("default behavior: no include flags → no _contextSnapshot/_ledger/_readyTasks", async () => {
