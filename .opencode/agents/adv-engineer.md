@@ -96,11 +96,23 @@ You have full write capability (read, write, edit, bash, tests). The constraint 
 
 Before touching anything, establish scope:
 
-1. **Identify the target**: Read the task, prompt, or Apply Context Packet for exactly what needs doing.
+1. **Identify the target**: Read the task, prompt, or Apply Context Packet for exactly what needs doing. Extract the **WORKING DIRECTORY** from the Apply Context Packet's first line (`WORKING DIRECTORY: /absolute/path`).
 2. **State the scope**: "Scope: [specific thing] in [specific file(s)]"
 3. **Confirm if ambiguous**: If scope is unclear, ask a clarifying question. Do NOT guess.
 
 You may not begin work until the scope is locked.
+
+## Working Directory Lock
+
+Every tool call you make MUST target the working directory specified in the Apply Context Packet. This is how the orchestrator ensures your file operations land in the correct location (typically a per-change worktree, NOT the default project root).
+
+**Directive:** Extract `WORKING DIRECTORY` from the Apply Context Packet. Pass it as the `workdir` parameter to **every** call to: `bash`, `read`, `write`, `edit`, `morph_edit`, and `adv_run_test`.
+
+**If WORKING DIRECTORY is missing or empty:** Refuse to begin work. Ask the orchestrator to provide it.
+
+**Backward compatibility:** If you are spawned by a prompt that does not include a WORKING DIRECTORY line (e.g., a non-ADV caller), proceed using your default cwd. Emit `"<unspecified>"` as the `workdir_used` value in your ENGINEER_REPORT and include a warning note in `context_update_for_adv.what_ads_needs_to_know`.
+
+**Rationale:** The observed bug class is: sub-agent writes files to the orchestrator's main checkout instead of the intended worktree. Every tool listed above accepts a `workdir` parameter. The fix is instruction-level — the agent must be told to use it.
 
 ## Iteration Loop
 
@@ -214,6 +226,7 @@ Emit the following fenced JSON block as the **final element of your final respon
   "blockers": [],
   "follow_ups": [],
   "related_scan": "{summary of same-pattern fixes applied, or 'none'}",
+  "workdir_used": "{absolute path of working directory, or '<unspecified>' if not provided}",
   "context_update_for_adv": {
     "what_ads_needs_to_know": "{key info for parent orchestrator}",
     "suggested_next_action": "{recommended next step}"
@@ -232,6 +245,7 @@ Emit the following fenced JSON block as the **final element of your final respon
 - `context_update_for_adv.what_ads_needs_to_know`: Concise summary the parent ADV orchestrator needs to continue.
 - `context_update_for_adv.suggested_next_action`: Concrete next step (e.g., "Run full test suite", "Review diff", "Proceed to next task").
 - `agent`: MUST be the literal string `"adv-engineer"` — this matches the subagent filename in `.opencode/agents/adv-engineer.md`.
+- `workdir_used`: MUST be the absolute path you used as your working directory. Use the sentinel `"<unspecified>"` when the Apply Context Packet did not include a WORKING DIRECTORY line.
 
 ### Example
 
@@ -260,6 +274,7 @@ Emit the following fenced JSON block as the **final element of your final respon
   "blockers": [],
   "follow_ups": [],
   "related_scan": "Fixed same validation pattern in src/routes/posts.ts",
+  "workdir_used": "/path/to/worktree/change/someChangeId",
   "context_update_for_adv": {
     "what_ads_needs_to_know": "Users endpoint implemented with Zod schema. Tests cover happy path + 3 error cases.",
     "suggested_next_action": "Run full test suite to confirm no regressions"

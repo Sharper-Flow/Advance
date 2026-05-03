@@ -4,6 +4,7 @@ import { join, resolve } from "path";
 
 const REPO_ROOT = resolve(__dirname, "../..");
 const AGENT_PATH = join(REPO_ROOT, ".opencode/agents/adv-engineer.md");
+const APPLY_COMMAND_PATH = join(REPO_ROOT, ".opencode/command/adv-apply.md");
 const SYNC_SCRIPT_PATH = join(REPO_ROOT, "scripts/sync-global.sh");
 
 describe("adv-engineer assets", () => {
@@ -125,5 +126,71 @@ describe("adv-engineer assets", () => {
     expect(reportSection).toMatch(/"agent":\s*"adv-engineer"/);
     // Legacy bare-"engineer" payload value must no longer appear
     expect(reportSection).not.toMatch(/"agent":\s*"engineer"/);
+  });
+
+  // === Working Directory Lock contract drift tests ===
+
+  test("contains Working Directory Lock section heading", () => {
+    const content = readFileSync(AGENT_PATH, "utf8");
+    expect(content).toContain("## Working Directory Lock");
+  });
+
+  test("Working Directory Lock section instructs passing workdir to every tool call", () => {
+    const content = readFileSync(AGENT_PATH, "utf8");
+    const wdSection =
+      content.split("## Working Directory Lock")[1]?.split("## ")[0] ?? "";
+    const requiredTools = [
+      "bash",
+      "read",
+      "write",
+      "edit",
+      "morph_edit",
+      "adv_run_test",
+    ];
+    for (const tool of requiredTools) {
+      expect(
+        wdSection,
+        `Working Directory Lock section missing tool: ${tool}`,
+      ).toContain(tool);
+    }
+  });
+
+  test("Scope Lock section mentions WORKING DIRECTORY", () => {
+    const content = readFileSync(AGENT_PATH, "utf8");
+    const scopeSection =
+      content.split("## Scope Lock")[1]?.split("## ")[0] ?? "";
+    expect(scopeSection).toContain("WORKING DIRECTORY");
+  });
+
+  test("ENGINEER_REPORT schema contains workdir_used field", () => {
+    const content = readFileSync(AGENT_PATH, "utf8");
+    const reportSection = content.split("## ENGINEER_REPORT Payload")[1] ?? "";
+    expect(reportSection).toContain("workdir_used");
+  });
+
+  test("ENGINEER_REPORT example JSON contains workdir_used field", () => {
+    const content = readFileSync(AGENT_PATH, "utf8");
+    const reportSection = content.split("## ENGINEER_REPORT Payload")[1] ?? "";
+    // Find the example block (second ```json ... ```)
+    const jsonBlocks = reportSection.match(/```json\s*\n([\s\S]*?)```/g);
+    expect(jsonBlocks, "No JSON example blocks found").not.toBeNull();
+    // The example block should be the second one
+    const exampleBlock = jsonBlocks![1] ?? "";
+    expect(exampleBlock).toContain("workdir_used");
+  });
+
+  test("adv-apply.md Apply Context Packet starts with WORKING DIRECTORY", () => {
+    const content = readFileSync(APPLY_COMMAND_PATH, "utf8");
+    // Find the Apply Context Packet section
+    const packetSection =
+      content.split("#### Apply Context Packet")[1]?.split("### ")[0] ?? "";
+    // The first non-empty line inside the ``` block should be WORKING DIRECTORY
+    const codeBlock = packetSection.match(/```\n([\s\S]*?)```/);
+    expect(
+      codeBlock,
+      "No code block in Apply Context Packet section",
+    ).not.toBeNull();
+    const firstLine = codeBlock![1].trim().split("\n")[0];
+    expect(firstLine).toMatch(/^WORKING DIRECTORY:/);
   });
 });

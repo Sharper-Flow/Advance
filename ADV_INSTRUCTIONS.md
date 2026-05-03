@@ -646,11 +646,13 @@ ADV code-writing delegation targets `adv-engineer` (not `general`). Verify-burst
 
 Apply packet includes: WORKING DIRECTORY, CHANGE, TASK, AFFECTED FILES, DESIGN EXCERPT, ACCEPTANCE CRITERIA, EXPECTED OUTPUT.
 
+**WORKING DIRECTORY contract:** The `WORKING DIRECTORY` line is a required element of the Apply Context Packet. The `adv-engineer` agent is contractually obligated to extract it and pass it as `workdir` to every `bash`, `read`, `write`, `edit`, `morph_edit`, and `adv_run_test` call. See `.opencode/agents/adv-engineer.md § Working Directory Lock`.
+
 EXPECTED OUTPUT for delegated implementation: implement the task, run tests, emit a fenced `ENGINEER_REPORT` JSON block per `.opencode/agents/adv-engineer.md`.
 
 #### ENGINEER_REPORT Payload
 
-Required top-level keys: `schema_version`, `change_id`, `task_id`, `agent`, `scope`, `status`, `files_touched`, `verification`, `decisions`, `blockers`, `follow_ups`, `related_scan`, `context_update_for_adv` (with `what_ads_needs_to_know`, `suggested_next_action`).
+Required top-level keys: `schema_version`, `change_id`, `task_id`, `agent`, `scope`, `status`, `files_touched`, `verification`, `decisions`, `blockers`, `follow_ups`, `related_scan`, `workdir_used`, `context_update_for_adv` (with `what_ads_needs_to_know`, `suggested_next_action`).
 
 The `agent` field MUST be the literal string `"adv-engineer"` — matching the subagent filename in `.opencode/agents/adv-engineer.md`.
 
@@ -688,7 +690,7 @@ After each phase, use `adv_change_update` to record compact summaries. Do not du
 | `librarian`      | Docs, API refs, code examples                        | Context7, grep.app, Kagi                                        |
 | `adv-researcher` | Architecture validation, simplicity                  | Context7, Kagi, ADV read-only                                   |
 | `explore`        | Codebase navigation, find usages                     | Read, Glob, Grep, lgrep                                         |
-| `adv-engineer`   | Delegated ADV code-writing executor                  | Full write (read/write/edit/bash) + narrow ADV reads + evidence |
+| `adv-engineer`   | Delegated ADV code-writing executor (Working Directory Lock: must pass `workdir` to every tool call) | Full write (read/write/edit/bash) + narrow ADV reads + evidence |
 | `general`        | Verify-only bursts + generic multi-step non-ADV work | Full tool access                                                |
 | `mechanic`       | System/infra issues                                  | Vision, bash, read/write                                        |
 | `adv-tron`       | Reconnaissance, hotspot detection                    | Read, Glob, Grep, lgrep                                         |
