@@ -218,7 +218,7 @@ This resolves to the absolute path of the main checkout root from any workdir (w
 - If fetch fails and a PR/publish path is required → stop and ask the user before proceeding
 - If no remote is configured or local-only archive is intended → continue with local `{default-branch}`
 
-### Step 4.4: Main Checkout Invariant Check (HARD GATE)
+#### Step 4.4: Main Checkout Invariant Check (HARD GATE)
 
 Before any merge attempt, verify the main checkout is in a state ADV can safely fast-forward into:
 
@@ -228,39 +228,69 @@ Before any merge attempt, verify the main checkout is in a state ADV can safely 
 
 × ADV MUST NOT attempt to switch main's branch, stash main's working tree, or otherwise mutate main's state on the user's behalf. This is a stop-and-ask gate.
 
-### Step 4.5: Choose Integration Path
+#### Step 4.5: Choose Integration Path
 
 Allowed outcomes:
 
 - **LOCAL_FINISH / fast path** — branch is already on current default-branch basis → `git -C "$MAIN" merge --ff-only change/{change-id}`
-- **LOCAL_FINISH / reconcile path** — no `overlap-risk`, no `pr-risk`, but trunk moved → run compatibility preflight, rebase the change branch in the worktree, then `git -C "$MAIN" merge --ff-only change/{change-id}`
+- **LOCAL_FINISH / reconcile path** — no `overlap-risk`, no `pr-risk`, but trunk moved → rebase the change branch in the worktree (Step 4 handles conflicts if they arise), then `git -C "$MAIN" merge --ff-only change/{change-id}`
 - **PR workflow path** — `overlap-risk`, `pr-risk`, failed lightweight verification, or non-fast-forward publish risk → push the change branch from the worktree + `gh pr create` (or queue entry when project policy uses one)
 
-### Step 4.6: Compatibility Preflight (for reconcile path)
+### Step 4 — Conflict-recovery flow (post-J3 expansion)
 
-- From the change branch in the worktree: `git merge --no-commit --no-ff {freshness-ref}`
-- If clean → `git merge --abort` → continue
-- If conflicts → capture `git diff --name-only --diff-filter=U` → `git merge --abort` → stop with conflicting files. × Do NOT delete worktree
+> × Helpers ship in T28+T28b+T28c+T28d+T28f; runtime wiring into the Phase 9 orchestrator is a follow-up.
 
-### Step 4.7: Skip-duplicate detection (T28)
+When `git rebase` surfaces conflicts during Phase 9, /adv-archive runs the full classification + resolution loop:
 
-When a rebase conflict surfaces, /adv-archive checks whether the to-be-applied commit is content-equivalent to what's already on the default branch:
+1. **Detect conflicts** — `git diff --name-only --diff-filter=U` lists conflicting files.
+2. **Classify each conflict** — `classifyConflict(filePath, hunks, repoRoot)` from `plugin/src/tools/archive-helpers/conflict-classify.ts` (T28d) returns one of three classes:
+   - `duplicate_content` — to-be-applied tree matches `origin/<default>` (T28's `detectSkipDuplicate`)
+   - `auto_resolvable_trivial` — whitespace/line-ending only (no semantic delta)
+   - `divergent_content` — semantic divergence requires user input
+3. **Drive the resolution loop** — `navigateConflicts({ conflicts, repoRoot, deps })` from `plugin/src/tools/archive-helpers/conflict-loop.ts` (T28c) presents the batch summary and reads the user's mode choice:
+   - `auto` — apply skip + auto_resolve in original order; prompt for each divergent
+   - `step` — sequential walk; user confirms or overrides every conflict
+   - `abort` — `git rebase --abort` and halt
+4. **Apply per-conflict actions** — `applyResolveAction(action, filePath, repoRoot, deps)` from `plugin/src/tools/archive-helpers/conflict-resolve.ts` (T28b). Action kinds:
+   - `skip` → `git rebase --skip`
+   - `auto_resolve` → write resolved content (THEIRS side) → `git add` → `git rebase --continue`
+   - `user_resolve_in_place` → same as auto_resolve, audit notes user's rationale
+   - `abort_rebase` → `git rebase --abort` (halts archive)
+   - `skip_with_decision` → `git rebase --skip` with audit reason
+5. **Continue rebase** — `git rebase --continue` after each successful resolve; `git rebase --skip` for skips; `git rebase --abort` for the abort path.
+6. **Audit log** — every applied action produces an audit entry (class + reason + user decision when applicable). The aggregate is recorded in NavigationResult.applied[].
 
-- Per-conflict, run `git ls-tree origin/${default-branch} -- ${touched_files}` and compare to the to-be-skipped commit's tree at the same paths
-- If trees match → `git rebase --skip` with recorded reason "duplicate-content commit (already on default branch)"
-- If trees diverge → escalate to T28b/T28c/T28d full conflict-recovery flow (T28e documents the full Step 4)
+#### Example A — clean rebase (Step 4 not invoked)
 
-Implementation lives in `plugin/src/tools/archive-helpers/skip-duplicate.ts`. T28e (separate task) will integrate this into the broader Phase 9 flow.
+```
+$ git rebase origin/trunk
+Successfully rebased and updated refs/heads/change/feature.
+```
+navigateConflicts is not invoked (no conflicts detected).
 
-### Step 4.8: Reconcile (for reconcile path)
+#### Example B — single duplicate-content (auto-skip)
 
-- In the worktree (on the change branch): `git rebase {freshness-ref}`
-- If rebase conflicts → capture `git diff --name-only --diff-filter=U` → `git rebase --abort` → stop with conflicting files. × Do NOT delete worktree
-- Run lightweight verification for touched scope (targeted checks first, repo smoke check if no narrower command exists)
-- If verification fails → route to PR workflow path or stop when project policy forbids it
-- After clean verification: `git -C "$MAIN" merge --ff-only change/{change-id}`
+```
+$ git rebase origin/trunk
+CONFLICT (content): Merge conflict in src/foo.ts
+```
+classifyConflict returns `duplicate_content` (tree at REBASE_HEAD matches origin/trunk for src/foo.ts).
+navigateConflicts presents summary `auto-skippable: 1`. User picks `auto`. applyResolveAction runs `git rebase --skip` with audit "duplicate-content commit (T28: tree matches origin/trunk)".
 
-### Step 4.9: Publish Safety (when pushing the default branch)
+#### Example C — multi-mixed (batch summary → `auto` mode → 1 user prompt for divergent)
+
+```
+$ git rebase origin/trunk
+CONFLICT (content): Merge conflict in a.ts (whitespace only)
+CONFLICT (content): Merge conflict in b.ts (already on trunk)
+CONFLICT (content): Merge conflict in c.ts (semantic)
+```
+classifyConflict returns 1 trivial, 1 duplicate, 1 divergent.
+navigateConflicts presents:
+  `auto-skippable: 1, auto-resolvable: 1, divergent: 1. Reply auto/step/abort.`
+User picks `auto`. b.ts skipped, a.ts auto-resolved (THEIRS side written + add + continue), c.ts escalated → resolveDivergent stub returns user_resolve_in_place. All 3 audit entries captured.
+
+### Step 5: Publish Safety (when pushing the default branch)
 
 If archive finalization needs a remote push of the default branch, run from `$MAIN`:
 
@@ -276,9 +306,9 @@ If push hook output indicates failure (non-zero hook exit) but push itself succe
 
 If no remote is configured OR push is skipped OR push fails: record the reason — Phase 8 footer becomes "Merged locally." instead of "Shipped."
 
-### Step 4.95: Pre-Push Hook Detection
+### Step 5.5: Pre-Push Hook Detection
 
-Before pushing (Step 4.9), detect what the project automates on pre-push so the agent doesn't redundantly run sync, and so Phase 8 can report what fired. Inspect the **main checkout** (`$MAIN`), since that is where the push runs.
+Before pushing (Step 5), detect what the project automates on pre-push so the agent doesn't redundantly run sync, and so Phase 8 can report what fired. Inspect the **main checkout** (`$MAIN`), since that is where the push runs.
 
 Detection (in order; stop at first match):
 
@@ -292,24 +322,24 @@ Detection (in order; stop at first match):
 Asset-sync gap check:
 
 - `hook_strategy == "none"` AND change touched any path in synced asset list (`.opencode/`, `ADV_INSTRUCTIONS.md`, `skills/`) AND `$MAIN/scripts/sync-global.sh` exists AND is executable → run `scripts/sync-global.sh --fix` explicitly from `$MAIN` before push, capture output → `sync_action: manual fix`
-- `hook_strategy != "none"` → `sync_action: auto via hook` (rely on hook; capture push output verbatim in Step 4.8 to observe what fired)
+- `hook_strategy != "none"` → `sync_action: auto via hook` (rely on hook; capture push output verbatim in Step 5 to observe what fired)
 - No asset paths touched AND no hook → `sync_action: not needed`
 
 Record `(hook_strategy, sync_action)` for the Phase 8 archive report (footer lines `Pre-push hooks:` and `Asset sync:`).
 
 > **Known v1 limitation:** Husky v3 (package.json `husky.hooks.pre-push`) is not detected by the presence-only `.husky/pre-push` check. The `manual fix` fallback covers the gap when assets are touched.
 
-### Step 5: Verify
+### Step 6: Verify
 
 `git -C "$MAIN" log --oneline {default-branch}..change/{change-id}` → MUST return empty (every commit on the change branch is reachable from default-branch). If non-empty → stop, × do NOT delete worktree.
 
-If push was performed (Step 4.8 succeeded): `git -C "$MAIN" fetch origin {default-branch}` then compare `git -C "$MAIN" rev-parse origin/{default-branch}` with `git -C "$MAIN" rev-parse {default-branch}` → MUST be equal. If mismatch → stop, do NOT delete worktree, report drift in Phase 8.
+If push was performed (Step 5 succeeded): `git -C "$MAIN" fetch origin {default-branch}` then compare `git -C "$MAIN" rev-parse origin/{default-branch}` with `git -C "$MAIN" rev-parse {default-branch}` → MUST be equal. If mismatch → stop, do NOT delete worktree, report drift in Phase 8.
 
-### Step 6: Cleanup Worktree
+### Step 7: Cleanup Worktree
 
-Only if running in a worktree AND merge verified in Step 5: `worktree_delete branch: "change/{change-id}" reason: "Change {change-id} merged"`. If `worktree_delete` is unavailable → emit an info banner naming the manual fallback: `git -C "$MAIN" worktree remove <worktree-path>` followed by `git -C "$MAIN" branch -D change/{change-id}`.
+Only if running in a worktree AND merge verified in Step 6: `worktree_delete branch: "change/{change-id}" reason: "Change {change-id} merged"`. If `worktree_delete` is unavailable → emit an info banner naming the manual fallback: `git -C "$MAIN" worktree remove <worktree-path>` followed by `git -C "$MAIN" branch -D change/{change-id}`.
 
-### Step 7: Temp Artifacts
+### Step 8: Temp Artifacts
 
 Remove `*.bak`, `*.tmp`, `*.orig` from `$MAIN` (excluding `node_modules`).
 
