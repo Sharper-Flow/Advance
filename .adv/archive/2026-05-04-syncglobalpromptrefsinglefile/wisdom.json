@@ -1,0 +1,12 @@
+{
+  "entries": [
+    {
+      "id": "ws-9e14c74e-6994-448c-b059-3f319c4b88b0",
+      "type": "gotcha",
+      "content": "In ADV worktrees, `plugin/node_modules` may be absent even when main checkout has dependencies; run `pnpm install` in the worktree before task tests. When simulating missing `opencode`, filter only `.opencode` PATH entries so `python`/toolchain shims remain available.",
+      "source_task": "tk-f7447a1a-c223-4aac-9723-6ada519fc3c2",
+      "recorded_at": "2026-05-04T02:54:12.981Z"
+    }
+  ],
+  "count": 1
+}
