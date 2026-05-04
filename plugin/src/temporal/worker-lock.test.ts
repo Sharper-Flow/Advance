@@ -7,6 +7,7 @@ import { mkdir, readFile, writeFile, access } from "fs/promises";
 import { join } from "path";
 import {
   acquireWorkerLock,
+  isV2Lock,
   releaseWorkerLock,
   WORKER_LOCK_FILENAME,
 } from "./worker-lock";
@@ -21,6 +22,54 @@ describe("acquireWorkerLock + releaseWorkerLock", () => {
 
   afterEach(async () => {
     await cleanupTempDir(stateDir);
+  });
+
+  describe("worker lock schema detection", () => {
+    it("classifies schema_version 2 plus last_heartbeat as v2", () => {
+      expect(
+        isV2Lock({
+          pid: 12345,
+          worker_id: "00000000-0000-4000-8000-000000000000",
+          acquired_at: "2026-01-01T00:00:00.000Z",
+          schema_version: 2,
+          last_heartbeat: "2026-01-01T00:00:05.000Z",
+        }),
+      ).toBe(true);
+    });
+
+    it("classifies missing schema_version as v1 even with last_heartbeat", () => {
+      expect(
+        isV2Lock({
+          pid: 12345,
+          worker_id: "00000000-0000-4000-8000-000000000000",
+          acquired_at: "2026-01-01T00:00:00.000Z",
+          last_heartbeat: "2026-01-01T00:00:05.000Z",
+        }),
+      ).toBe(false);
+    });
+
+    it("classifies missing last_heartbeat as v1 even with schema_version 2", () => {
+      expect(
+        isV2Lock({
+          pid: 12345,
+          worker_id: "00000000-0000-4000-8000-000000000000",
+          acquired_at: "2026-01-01T00:00:00.000Z",
+          schema_version: 2,
+        }),
+      ).toBe(false);
+    });
+
+    it("classifies schema_version 1 as v1", () => {
+      expect(
+        isV2Lock({
+          pid: 12345,
+          worker_id: "00000000-0000-4000-8000-000000000000",
+          acquired_at: "2026-01-01T00:00:00.000Z",
+          schema_version: 1,
+          last_heartbeat: "2026-01-01T00:00:05.000Z",
+        }),
+      ).toBe(false);
+    });
   });
 
   it("first acquire returns owned:true with our PID and a worker_id", async () => {

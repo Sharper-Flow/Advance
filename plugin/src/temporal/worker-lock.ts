@@ -24,7 +24,9 @@
  *   {
  *     "pid": <owner-process-pid>,
  *     "worker_id": "<uuid-v4>",
- *     "acquired_at": "<ISO-8601>"
+ *     "acquired_at": "<ISO-8601>",
+ *     "schema_version": 2,
+ *     "last_heartbeat": "<ISO-8601>"
  *   }
  *
  * Acquisition (atomic via O_EXCL):
@@ -57,10 +59,30 @@ export const WORKER_LOCK_FILENAME = "worker.lock";
 const WORKER_LOCK_TMP_SUFFIX = ".tmp";
 const WORKER_LOCK_RELEASING_SUFFIX = ".releasing";
 
-export interface WorkerLockContents {
+export interface WorkerLockContentsV1 {
   pid: number;
   worker_id: string;
   acquired_at: string;
+  schema_version?: 1;
+  last_heartbeat?: never;
+}
+
+export interface WorkerLockContentsV2 {
+  pid: number;
+  worker_id: string;
+  acquired_at: string;
+  schema_version: 2;
+  last_heartbeat: string;
+}
+
+export type WorkerLockContents = WorkerLockContentsV1 | WorkerLockContentsV2;
+
+export function isV2Lock(
+  contents: Partial<WorkerLockContents>,
+): contents is WorkerLockContentsV2 {
+  return (
+    contents.schema_version === 2 && typeof contents.last_heartbeat === "string"
+  );
 }
 
 export type WorkerLockResult =
@@ -216,10 +238,13 @@ async function tryAtomicCreate(
   lockPath: string,
   pid: number,
 ): Promise<WorkerLockContents | null> {
-  const contents: WorkerLockContents = {
+  const acquiredAt = new Date().toISOString();
+  const contents: WorkerLockContentsV2 = {
     pid,
     worker_id: randomUUID(),
-    acquired_at: new Date().toISOString(),
+    acquired_at: acquiredAt,
+    schema_version: 2,
+    last_heartbeat: acquiredAt,
   };
   // Atomic write via tmp+rename so partial-write contents never appear in
   // the canonical lock path. EEXIST on the canonical path means another
