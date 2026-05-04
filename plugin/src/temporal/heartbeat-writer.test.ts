@@ -268,6 +268,46 @@ describe("heartbeat-writer", () => {
     expect(onWorkerExhausted).not.toHaveBeenCalled();
     expect(fs.rename).toHaveBeenCalledTimes(1);
   });
+
+  it("self-expires without renewing when local worker stays unserviceable past grace", async () => {
+    await writeLock(stateDir, "owner", "2026-01-01T00:00:00.000Z");
+    const debugLog = vi.fn();
+    const onWorkerExhausted = vi.fn(async () => {});
+    let nowMs = Date.parse("2026-01-01T00:00:00.000Z");
+
+    const writer = startHeartbeatWriter({
+      projectStateDir: stateDir,
+      workerId: "owner",
+      expectedQueue: "advance-proj123",
+      intervalMs: 1_000,
+      serviceabilityGraceMs: 0,
+      isLocalWorkerServiceable: () => false,
+      now: () => new Date(nowMs),
+      debugLog,
+      onWorkerExhausted,
+    });
+    await vi.advanceTimersByTimeAsync(0);
+
+    nowMs = Date.parse("2026-01-01T00:00:01.000Z");
+    await vi.advanceTimersByTimeAsync(1_000);
+
+    nowMs = Date.parse("2026-01-01T00:00:02.000Z");
+    await vi.advanceTimersByTimeAsync(1_000);
+    nowMs = Date.parse("2026-01-01T00:00:03.000Z");
+    await vi.advanceTimersByTimeAsync(1_000);
+    await writer.stop();
+
+    expect((await readLock(stateDir)).last_heartbeat).not.toBe(
+      "2026-01-01T00:00:03.000Z",
+    );
+    expect(debugLog).toHaveBeenCalledWith(
+      expect.stringContaining("local worker not serviceable"),
+    );
+    expect(getTemporalRetryTelemetry().lastError).toContain(
+      "local worker not serviceable",
+    );
+    expect(onWorkerExhausted).not.toHaveBeenCalled();
+  });
 });
 
 function createFailingFs(failures: number) {

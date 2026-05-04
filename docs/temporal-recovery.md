@@ -103,13 +103,13 @@ The diagnostic output reports:
 object. `adv_temporal_diagnose` also renders a compact `worker_lock` string when
 the lock exists.
 
-| Field | Meaning | Operator interpretation |
-| ----- | ------- | ----------------------- |
-| `worker_lock.holder_pid` | PID that currently owns `{project-state-dir}/worker.lock` | Use to correlate with the OpenCode/plugin process. An alive PID alone is not sufficient proof that a worker is polling. |
-| `worker_lock.schema_version` | Lock format version (`1` legacy, `2` heartbeat-aware) | `1` means PID-only fallback; `2` includes heartbeat freshness and can be reclaimed when stale. |
-| `worker_lock.last_heartbeat_at` | Last successful heartbeat write from the lock holder | Fresh values mean the holder is actively renewing ownership. `null` means legacy or unreadable heartbeat state. |
-| `worker_lock.heartbeat_age_ms` | Age of the latest heartbeat at probe time | Values above `STALE_HEARTBEAT_MS` (`60000` ms by default) indicate normal stale-lock reclaim should happen on the next peer startup. |
-| `last_worker_run_error` | Last observed `Worker.run()` or restart-exhaustion failure | Use with `worker_alive` / `worker_process_alive` to distinguish a crashed poller from a missing server/STSL issue. |
+| Field                           | Meaning                                                    | Operator interpretation                                                                                                              |
+| ------------------------------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `worker_lock.holder_pid`        | PID that currently owns `{project-state-dir}/worker.lock`  | Use to correlate with the OpenCode/plugin process. An alive PID alone is not sufficient proof that a worker is polling.              |
+| `worker_lock.schema_version`    | Lock format version (`1` legacy, `2` heartbeat-aware)      | `1` means PID-only fallback; `2` includes heartbeat freshness and can be reclaimed when stale.                                       |
+| `worker_lock.last_heartbeat_at` | Last successful heartbeat write from the lock holder       | Fresh values mean the holder is actively renewing ownership. `null` means legacy or unreadable heartbeat state.                      |
+| `worker_lock.heartbeat_age_ms`  | Age of the latest heartbeat at probe time                  | Values above `STALE_HEARTBEAT_MS` (`60000` ms by default) indicate normal stale-lock reclaim should happen on the next peer startup. |
+| `last_worker_run_error`         | Last observed `Worker.run()` or restart-exhaustion failure | Use with `worker_alive` / `worker_process_alive` to distinguish a crashed poller from a missing server/STSL issue.                   |
 
 If `worker_lock` or `last_worker_run_error` is `null`, formatted output omits the
 field. Null is quiet by design; use the raw `temporal_health` block only when you
@@ -249,15 +249,96 @@ the cached STSL connection/client and reports reconnect counters before/after.
 ### Worker restart
 
 If diagnose reports `worker_process_alive=false` or no worker queues are
-registered, restart the worker:
+registered, restart the worker only when the expected queue is not blocked by a
+live suspect lock:
 
 ```bash
 adv_temporal_worker_restart
 ```
 
+`adv_temporal_worker_restart` is **verified, not fire-and-forget**: it spawns a
+new worker, then awaits queue serviceability proof (default 10 s budget) before
+returning `success: true`. Failure responses include a structured envelope —
+expected queue, registered queues, worker lock, queue serviceability snapshot,
+stale running workflow count, worker diagnostics, and `recommendedNextAction` —
+so callers can act without re-running blind restart loops.
+
 The restart output includes STSL status and recommends `adv_temporal_diagnose`
 if tools still fail. Keep worker restart and STSL reconnect conceptually
 separate: restart owns worker lifecycle; reconnect owns the client connection.
+`adv_temporal_reconnect` is STSL/client-only and is not a worker-registration or
+queue-serviceability recovery path.
+
+#### Approval-gated suspect live legacy v1 lock
+
+A live PID holding a v1-schema `worker.lock` with no heartbeat is **suspect**:
+it might be a wedged owner or a peer that genuinely owns the queue. The
+restart tool refuses to silently reclaim it. The failure envelope sets
+`reason: "suspect_live_legacy_lock"`, `approvalRequired: true`, and the
+`recommendedNextAction` asks for explicit approval evidence or an OpenCode
+session restart.
+
+To reclaim with explicit approval (rare; only when the owner is known wedged):
+
+```bash
+adv_temporal_worker_restart \
+  approvedLockReclaim: true \
+  approvalEvidence: "<how the user approved>"
+```
+
+Approved reclaim records prior PID, schema version, expected queue, and the
+approval evidence in the lock audit trail. Healthy serviceable v2 locks
+(heartbeat fresh) are never reclaimed by this path; their stale-heartbeat path
+is described below.
+
+#### Approval-gated fresh v2 unserviceable lock
+
+A fresh v2 heartbeat proves the lock holder process is still renewing the lock;
+it does **not** prove the expected Temporal task queue is serviceable. If
+diagnose reports `worker_lock.schema_version=2`, a fresh heartbeat, and
+`queue_serviceability.status="not_serviceable"`, the lock is suspect rather than
+healthy.
+
+The restart tool refuses blind reclaim and returns
+`reason: "suspect_live_unserviceable_lock"`, `approvalRequired: true`, and a
+recommendation to restart the owning OpenCode session or rerun with explicit
+approval evidence. Do not use `adv_temporal_reconnect` for this shape; reconnect
+only refreshes the STSL/client plane and cannot make a worker poll a queue.
+
+#### Bounded recovery at the project-workflow access seam
+
+Hot-path tools that need workflow-backed access (notably `adv_worktree_create`
+via `tools/worktree/state.ts`) call `getBoundedProjectWorkflowAccess` with
+`recovery: "once"`. When the local readiness check fails, the helper runs a
+single non-approval `adv_temporal_worker_restart` and re-checks readiness.
+
+- If the retry succeeds, the caller continues unchanged.
+- If recovery hits a suspect live v1 lock, the helper returns `unavailable`
+  with `recommendedNextAction` requiring explicit approval — never recommends
+  in-place edits as fallback.
+- If recovery fails for any other reason, the helper returns `unavailable` with
+  a `queueServiceability` snapshot and asks the caller to run
+  `adv_temporal_diagnose`.
+
+Migration, wisdom, and agenda paths preserve the historical no-recovery
+behavior so non-creation tools do not run worker restarts implicitly.
+
+#### Poller rows are freshness evidence, not durable worker records
+
+`temporal task-queue describe` exposes pollers with `lastAccessTime`. ADV
+treats poller rows as **freshness evidence**, not as a durable worker
+registry. A live worker keeps refreshing its poller row by polling the queue;
+a wedged or exited worker stops refreshing it, so the row ages out (`stale`)
+and eventually disappears (`none`). Conversely, the **absence of a fresh
+poller row does not by itself prove the worker is dead** — it proves the
+queue cannot be served _right now_ through that probe path.
+
+Queue serviceability classification combines local evidence (registered
+queues, worker aliveness, ownership) with server poller probe status. A queue
+is serviceable when the local owner is healthy OR the server reports a fresh
+poller, and not_serviceable when neither plane confirms a live worker. This
+is the source of truth for verified restart and bounded recovery — not the
+poller row alone.
 
 ### Stale heartbeat reclaim
 
@@ -335,12 +416,13 @@ retry loops.
 
 Reload paths are intentionally separate:
 
-| Changed or failed surface | Correct reload / recovery |
-| ------------------------- | ------------------------- |
-| `plugin/src/tools/*.ts` tool code | Restart OpenCode. `adv_temporal_worker_restart` does not reload host-loaded tool modules. |
-| `plugin/src/temporal/*` workflow, activity, or worker harness code | Run `pnpm run build:worker` in `plugin/`, then run `adv_temporal_worker_restart`. The worker loads from `dist/temporal/`. |
-| Wedged/exhausted Temporal worker process with unchanged source | Run `adv_temporal_worker_restart`, then verify with `adv_status` or `adv_temporal_diagnose`. |
-| Diagnose unchanged after worker restart | Stop repeating restart; inspect stale worker lock, stale queues, and project workflow recovery path. |
+| Changed or failed surface                                                             | Correct reload / recovery                                                                                                                                              |
+| ------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `plugin/src/tools/*.ts` tool code                                                     | Restart OpenCode. `adv_temporal_worker_restart` does not reload host-loaded tool modules.                                                                              |
+| `plugin/src/temporal/*` workflow, activity, or worker harness code                    | Run `pnpm run build:worker` in `plugin/`, then run `adv_temporal_worker_restart`. The worker loads from `dist/temporal/`.                                              |
+| Wedged/exhausted Temporal worker process with unchanged source                        | Run `adv_temporal_worker_restart`, then verify with `adv_status` or `adv_temporal_diagnose`.                                                                           |
+| Suspect live legacy v1 `worker.lock` (alive PID, no heartbeat, queue not serviceable) | Restart the owning OpenCode session (preferred), or rerun `adv_temporal_worker_restart` with `approvedLockReclaim: true` + `approvalEvidence`. Never reclaim silently. |
+| Diagnose unchanged after worker restart                                               | Stop repeating restart; inspect stale worker lock, stale queues, and project workflow recovery path.                                                                   |
 
 ## Failed migration recovery
 
@@ -390,17 +472,19 @@ The Bun-host path uses one Node child per queue with restart backoff `1s -> 3s -
 
 ### Common cases
 
-| Health shape | Likely cause | Fix |
-| ------------ | ------------ | --- |
-| `server_alive=false` | Temporal dev server unreachable | Start / restore Temporal runtime first |
-| `server_alive=true`, `searchAttributes.ok=false` | Required ADV search attributes missing or wrong type | Run `adv_temporal_register_search_attributes` with approval, or manually fix wrong-type attrs |
-| `server_alive=true`, workers alive, service errors persist | Stale STSL connection/client | Run `adv_temporal_reconnect`, then `adv_temporal_diagnose` |
-| `server_alive=true`, `worker_alive=false`, `worker_lock.heartbeat_age_ms > 60000` | Stale heartbeat; peer worker spawn/reclaim is pending | Treat `normal recovery — peer worker spawn pending` as informational; start a fresh peer/session and re-check only if tools still time out |
-| `server_alive=true`, `worker_alive=true`, `worker_process_alive=false` | OOP child crashed and exhausted restart budget | Run `adv_temporal_worker_restart`; inspect `last_error` and `last_worker_run_error`. If source under `plugin/src/temporal/*` changed, run `pnpm run build:worker` first. |
-| `worker_alive=false`, `last_worker_run_error` populated | Worker.run failure or restart exhaustion already observed | Inspect the run-error message; fix the root cause before repeated restarts |
-| `worker_alive=false` | No worker registered (init failure or early bootstrap abort) | Check init logs, Node availability, and Temporal server reachability |
-| Bun host + init error about Node | Node binary not found | Install Node or set `ADV_NODE_PATH` |
-| Error about worker bundle not found | Dist worker missing for OOP path | Run `pnpm run build:worker` in `plugin/` |
+| Health shape                                                                                                            | Likely cause                                                                            | Fix                                                                                                                                                                                                         |
+| ----------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `server_alive=false`                                                                                                    | Temporal dev server unreachable                                                         | Start / restore Temporal runtime first                                                                                                                                                                      |
+| `server_alive=true`, `searchAttributes.ok=false`                                                                        | Required ADV search attributes missing or wrong type                                    | Run `adv_temporal_register_search_attributes` with approval, or manually fix wrong-type attrs                                                                                                               |
+| `server_alive=true`, workers alive, service errors persist                                                              | Stale STSL connection/client                                                            | Run `adv_temporal_reconnect`, then `adv_temporal_diagnose`                                                                                                                                                  |
+| `server_alive=true`, `worker_alive=false`, `worker_lock.heartbeat_age_ms > 60000`                                       | Stale heartbeat; peer worker spawn/reclaim is pending                                   | Treat `normal recovery — peer worker spawn pending` as informational; start a fresh peer/session and re-check only if tools still time out                                                                  |
+| `server_alive=true`, `worker_alive=true`, `worker_process_alive=false`                                                  | OOP child crashed and exhausted restart budget                                          | Run `adv_temporal_worker_restart`; inspect `last_error` and `last_worker_run_error`. If source under `plugin/src/temporal/*` changed, run `pnpm run build:worker` first.                                    |
+| `worker_alive=false`, `worker_lock.schema_version=1`, alive `holder_pid`, no `last_heartbeat_at`, queue not serviceable | Suspect live legacy v1 worker.lock — wedged owner OR peer that genuinely owns the queue | `adv_temporal_worker_restart` returns `approvalRequired: true`. Either restart the owning OpenCode session, or rerun with `approvedLockReclaim: true` + `approvalEvidence`. Do not run blind restart loops. |
+| `worker_alive=false`, `worker_lock.schema_version=2`, fresh heartbeat, queue not serviceable                            | Suspect live v2 worker.lock — holder is alive but not serving expected queue            | `adv_temporal_worker_restart` returns `approvalRequired: true`. Restart the owning session or rerun with approval evidence. Do not run `adv_temporal_reconnect` or blind restart loops.                     |
+| `worker_alive=false`, `last_worker_run_error` populated                                                                 | Worker.run failure or restart exhaustion already observed                               | Inspect the run-error message; fix the root cause before repeated restarts                                                                                                                                  |
+| `worker_alive=false`                                                                                                    | No worker registered (init failure or early bootstrap abort)                            | Check init logs, Node availability, and Temporal server reachability                                                                                                                                        |
+| Bun host + init error about Node                                                                                        | Node binary not found                                                                   | Install Node or set `ADV_NODE_PATH`                                                                                                                                                                         |
+| Error about worker bundle not found                                                                                     | Dist worker missing for OOP path                                                        | Run `pnpm run build:worker` in `plugin/`                                                                                                                                                                    |
 
 ### OOP runtime hardening and tuning
 
@@ -496,7 +580,8 @@ temporal workflow count --query 'ExecutionStatus="Running"'
 - **`24bf177`** (2026-04-22) — deleted the migration infrastructure, including the limited termination script `adv-migration-terminate.ts`. The deletion left already-enqueued workflows orphaned.
 - **2026-04-23 incident** — 5,447 `Running` workflows discovered across 21 queues with zero pollers, blocking `adv_*` tools in affected repos.
 - **`preventRecoverOrphanedTemporal`** — added the original orphaned-workflow prevention policy and `adv_status` stale-queue guardrail.
-- **`improveAdvPostCrashTemporal`** (this change) — added diagnose-first recovery, search-attribute remediation, STSL reconnect guidance, repair/orphan-sweep sequencing, and the external restart boundary.
+- **`improveAdvPostCrashTemporal`** — added diagnose-first recovery, search-attribute remediation, STSL reconnect guidance, repair/orphan-sweep sequencing, and the external restart boundary.
+- **`fixStuckTemporalWorkerRecovery`** (this change) — replaced fire-and-forget worker restart with a verified 10 s-budget recovery, added approval-gated suspect live legacy v1 lock reclaim (rq-workerSingleton01.6), added queue-serviceability classification (rq-workerHealth01) using local-owner + server-poller-probe evidence, added the bounded `recovery: "once"` seam at `getBoundedProjectWorkflowAccess` for `adv_worktree_create`, and clarified that poller rows are freshness evidence — not durable worker records. Resolves [Sharper-Flow/Opencode-Advance#22, #23, #24](https://github.com/Sharper-Flow/Opencode-Advance/issues/22).
 
 ## Disk-full / OOM surfaces
 
@@ -596,11 +681,11 @@ Use `wf.patched` **only** when shipping a behavior change to a **mutation handle
 
 Examples:
 
-| Handler | Patch name |
-| ------- | ---------- |
-| `addTask` | `add-task-v1` |
+| Handler        | Patch name         |
+| -------------- | ------------------ |
+| `addTask`      | `add-task-v1`      |
 | `completeGate` | `complete-gate-v1` |
-| `cancelTask` | `cancel-task-v1` |
+| `cancelTask`   | `cancel-task-v1`   |
 
 ### Branch structure
 
@@ -618,12 +703,17 @@ This guarantees that:
 ### Example: `addTaskUpdate`
 
 ```typescript
-import * as wf from '@temporalio/workflow';
+import * as wf from "@temporalio/workflow";
 
-export const addTaskUpdate = wf.defineUpdate<AddTaskResult, [AddTaskInput]>('addTask');
+export const addTaskUpdate = wf.defineUpdate<AddTaskResult, [AddTaskInput]>(
+  "addTask",
+);
 
-export async function addTaskHandler(wfCtx: typeof wf, input: AddTaskInput): Promise<AddTaskResult> {
-  if (wfCtx.patched('add-task-v1')) {
+export async function addTaskHandler(
+  wfCtx: typeof wf,
+  input: AddTaskInput,
+): Promise<AddTaskResult> {
+  if (wfCtx.patched("add-task-v1")) {
     // New behavior: validate input against updated schema, then append
     validateAddTaskV1(input);
     const task = createTaskV1(input);

@@ -3,8 +3,8 @@
   "name": "advance-meta",
   "title": "Advance Meta",
   "purpose": "Capability: Cross-cutting ADV concerns \u2014 config diagnostics, metadata filters, shutdown lifecycle, due-diligence routing, and synthetic-state guards. Split from `advance` capability.",
-  "version": "1.5.0",
-  "updated_at": "2026-05-02T23:50:00.000Z",
+  "version": "1.6.0",
+  "updated_at": "2026-05-04T05:50:00.000Z",
   "requirements": [
     {
       "id": "rq-synthstate01",
@@ -680,15 +680,16 @@
         },
         {
           "id": "rq-toolTimeoutOverride01.2",
-          "title": "adv_temporal_worker_restart returns within 1s on success via fire-and-forget",
+          "title": "adv_temporal_worker_restart uses bounded verified recovery",
           "given": [
-            "A worker restart that takes longer than 10s to fully complete"
+            "A Temporal worker restart is requested for the current project"
           ],
           "when": "adv_temporal_worker_restart is invoked",
           "then": [
-            "The tool returns within 1s with success:true and a verification hint pointing at adv_status / adv_temporal_diagnose",
-            "The underlying restart proceeds asynchronously",
-            "An async failure is logged via appendDebugLog without surfacing a ToolExecutionTimeout"
+            "The tool waits up to the configured verification budget (default 10s) for the expected project task queue to become serviceable",
+            "The tool returns success:true only when serviceability is proven by local worker readiness and/or fresh server-side poller evidence",
+            "The tool returns success:false with structured diagnostics when verification times out or evidence is unavailable or negative",
+            "The tool is registered with an explicit safety-net timeout override that exceeds the verification budget with modest headroom"
           ]
         }
       ]
@@ -773,7 +774,7 @@
     {
       "id": "rq-workerSingleton01",
       "title": "Singleton Temporal worker per project across sessions",
-      "body": "When multiple plugin instances initialize against the same external state directory for the same project, at most ONE Temporal worker process MUST exist for that project_id at any given time. A file-lock sentinel at {external-state-dir}/{project-id}/worker.lock coordinates ownership. Subsequent instances participate as Temporal clients only. Heartbeat freshness is the primary liveness signal for v2 worker locks, while stale-PID detection (process.kill(pid, 0)) remains the v1 fallback when heartbeat fields are absent and reclaims the lock when the recorded owner has exited.",
+      "body": "When multiple plugin instances initialize against the same external state directory for the same project, at most ONE Temporal worker process MUST exist for that project_id at any given time. A file-lock sentinel at {external-state-dir}/{project-id}/worker.lock coordinates ownership. Subsequent instances participate as Temporal clients only. Heartbeat freshness is the primary liveness signal for v2 worker locks but proves only host liveness, not expected queue serviceability. Dead-PID reclaim remains automatic. For legacy v1 fallback locks, an alive PID protects singleton ownership during passive initialization and when the expected project queue is serviceable. A v1 alive-PID lock with no heartbeat and no serviceable queue is classified as suspect during recovery decisions and may only be reclaimed through an explicit user-approved recovery path. A v2 lock whose holder's local worker is not registered to the expected queue (or whose serviceability is otherwise negative) is also classified as suspect; live unserviceable v1/v2 reclaim requires explicit approval evidence unless dead-PID or stale-heartbeat rules prove the holder stale. When a lock holder's own local worker remains unserviceable past the configured grace window, the holder MUST stop renewing the heartbeat so the v2 lock can age out without manual deletion.",
       "priority": "must",
       "scenarios": [
         {
@@ -794,7 +795,7 @@
           "title": "Subsequent plugin instance reads lock and skips worker spawn",
           "given": [
             "A worker.lock file exists and the recorded PID is alive (process.kill(pid, 0) succeeds or throws EPERM)",
-            "PID alive AND (no last_heartbeat field — v1 fallback — OR last_heartbeat within stale-grace)"
+            "Either the lock has no last_heartbeat field (v1 fallback) during passive initialization or with serviceable queue evidence, or the lock has a fresh v2 heartbeat"
           ],
           "when": "A second plugin initializes against the same project",
           "then": [
@@ -840,6 +841,50 @@
             "Acquisition is retried through the existing atomic O_EXCL path",
             "A fresh worker may acquire the singleton lock without requiring external lock cleanup"
           ]
+        },
+        {
+          "id": "rq-workerSingleton01.6",
+          "title": "Suspect legacy live lock requires approval to reclaim",
+          "given": [
+            "A v1 worker.lock exists with an alive recorded PID",
+            "The expected project queue is not serviceable within the verification budget"
+          ],
+          "when": "diagnose or restart recovery evaluates the worker state",
+          "then": [
+            "The state is classified as suspect_live_legacy_lock",
+            "No lock is reclaimed automatically",
+            "Recovery requires explicit user approval evidence or restarting the owning OpenCode session",
+            "Successful approved reclaim records prior PID, schema version, expected queue, and approval evidence"
+          ]
+        },
+        {
+          "id": "rq-workerSingleton01.7",
+          "title": "Suspect fresh-v2 unserviceable lock requires approval to reclaim",
+          "given": [
+            "A v2 worker.lock exists with an alive recorded PID and a fresh heartbeat",
+            "The expected project queue is not serviceable within the verification budget"
+          ],
+          "when": "diagnose or restart recovery evaluates the worker state",
+          "then": [
+            "The state is classified as suspect_live_unserviceable_lock",
+            "No lock is reclaimed automatically by stale-PID or stale-heartbeat rules",
+            "Recovery requires explicit user approval evidence or restarting the owning OpenCode session",
+            "Successful approved reclaim records prior PID, schema version, workerId, expected queue, and approval evidence"
+          ]
+        },
+        {
+          "id": "rq-workerSingleton01.8",
+          "title": "Lock owner self-expires heartbeat when local worker remains unserviceable",
+          "given": [
+            "The current OpenCode session holds the project worker.lock with a v2 heartbeat",
+            "The local worker is registered as the owner but is not serving the expected queue past the configured serviceability grace window"
+          ],
+          "when": "The heartbeat writer evaluates whether to renew the heartbeat",
+          "then": [
+            "The owner MUST stop renewing the heartbeat so the v2 lock can age out via the existing stale-heartbeat reclaim path",
+            "The owner records the self-expiry decision in last_worker_run_error for diagnostics",
+            "Peer sessions can reclaim through the normal stale-heartbeat path without manual lock deletion"
+          ]
         }
       ]
     },
@@ -859,6 +904,47 @@
           "then": [
             "The last worker run-loop error includes queue, message, and timestamp",
             "The diagnostic remains additive and does not require describeTaskQueue during normal plugin initialization"
+          ]
+        },
+        {
+          "id": "rq-workerHealth01.2",
+          "title": "Queue serviceability appears in diagnostics",
+          "given": [
+            "A project queue has no proven local worker readiness and no fresh server-side poller evidence"
+          ],
+          "when": "adv_status view:health or adv_temporal_diagnose is executed",
+          "then": [
+            "Diagnostics include expected queue and local worker registration status",
+            "Diagnostics include worker process or IPC details when available",
+            "Diagnostics include server poller probe status and stale running workflow count or probe status",
+            "Diagnostics include a recommended next action"
+          ]
+        },
+        {
+          "id": "rq-workerHealth01.3",
+          "title": "Fresh v2 heartbeat is liveness evidence only, not serviceability proof",
+          "given": [
+            "A worker.lock has schema_version 2 with a fresh last_heartbeat",
+            "The expected project queue is not serviceable through local registration or fresh server-side poller evidence"
+          ],
+          "when": "adv_status view:health or adv_temporal_diagnose classifies recovery state",
+          "then": [
+            "The fresh heartbeat is treated as host or owner liveness evidence only",
+            "The diagnostic does not classify the queue as serviceable or as normal recovery pending peer worker spawn",
+            "The recommended next action surfaces approval-gated suspect_live_unserviceable_lock or owner-restart guidance"
+          ]
+        },
+        {
+          "id": "rq-workerHealth01.4",
+          "title": "adv_temporal_reconnect is STSL-only and not worker-registration recovery",
+          "given": [
+            "Recovery diagnostics show worker_alive false or expected queue not serviceable"
+          ],
+          "when": "adv_temporal_diagnose, adv_status, or workflow-access guidance proposes the next action",
+          "then": [
+            "adv_temporal_reconnect is reserved for STSL or client connection issues, not for worker-registration or queue-serviceability failures",
+            "The recommended next action for worker-registration failure routes through verified worker restart or owner-restart, not reconnect",
+            "Documentation surfaces (docs/temporal-recovery.md) reflect the same STSL-only boundary for adv_temporal_reconnect"
           ]
         }
       ]
@@ -958,6 +1044,44 @@
             "All reads succeed using only the project workflow state",
             "No code path requires a sidecar SQLite or JSONL worktree-state file to function",
             "Migrations from any legacy SQLite are idempotent and reversible"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-worktreeReuse01",
+      "title": "adv_worktree_create reuses existing change worktree before recovery or create",
+      "body": "When adv_worktree_create is invoked for a branch that already has a registered git worktree (canonically `change/<change-id>`), the tool MUST detect and reuse the existing worktree before invoking project-workflow recovery or `git worktree add`. If the branch record exists in git but the on-disk path is missing, the tool MUST prune the stale git worktree metadata before creating a fresh worktree. The tool MUST NOT recommend in-place edits as a fallback path; missing workflow access surfaces as a structured failure with a recommended next action.",
+      "priority": "must",
+      "tags": ["worktree", "reuse", "preflight", "recovery"],
+      "scenarios": [
+        {
+          "id": "rq-worktreeReuse01.1",
+          "title": "Existing change worktree is reused without invoking recovery",
+          "given": [
+            "A git worktree already exists for the requested branch (for example refs/heads/change/<change-id>)",
+            "The on-disk worktree path is present"
+          ],
+          "when": "adv_worktree_create is invoked for that branch",
+          "then": [
+            "The tool returns success with the existing path, branch, baseRef, and headSha",
+            "The output marks the result as reused so callers can distinguish reuse from fresh create",
+            "No project-workflow recovery is required as a precondition for reuse",
+            "No `git worktree add` is invoked"
+          ]
+        },
+        {
+          "id": "rq-worktreeReuse01.2",
+          "title": "Stale git worktree metadata is pruned before fresh create",
+          "given": [
+            "A git worktree branch entry exists for the requested branch",
+            "The on-disk worktree path is missing"
+          ],
+          "when": "adv_worktree_create is invoked for that branch",
+          "then": [
+            "The tool prunes the stale git worktree metadata (`git worktree prune` or equivalent)",
+            "The tool proceeds to bounded fresh-create instead of an in-place fallback",
+            "No in-place edit recommendation is surfaced to the caller"
           ]
         }
       ]

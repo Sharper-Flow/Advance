@@ -100,6 +100,23 @@ const mocks = vi.hoisted(() => {
         });
       },
     ),
+    getTemporalHealth: vi.fn(async () => ({
+      server_alive: true,
+      worker_alive: true,
+      worker_process_alive: true,
+      registered_queues: [],
+      last_op_at: null,
+      last_error: null,
+      fallback_counts: {},
+      stale_queues: [],
+      reconnect_count: 0,
+      op_counters: [],
+      worker_lock: null,
+      last_worker_run_error: null,
+    })),
+    getTemporalWorkerAliveness: vi.fn(() => true),
+    getTemporalWorkerDiagnostics: vi.fn(() => []),
+    getService: vi.fn(() => null),
   };
 });
 
@@ -116,18 +133,25 @@ vi.mock("./target-project", async () => {
 });
 
 vi.mock("../temporal/health-probe", () => ({
-  getTemporalHealth: vi.fn(async () => ({
-    server_alive: true,
-    worker_alive: true,
-    worker_process_alive: true,
-    registered_queues: [],
-    last_op_at: null,
-    last_error: null,
-    fallback_counts: {},
-    stale_queues: [],
-    reconnect_count: 0,
-  })),
+  getTemporalHealth: mocks.getTemporalHealth,
 }));
+
+vi.mock("../plugin-init", async () => {
+  const actual =
+    await vi.importActual<typeof import("../plugin-init")>("../plugin-init");
+  return {
+    ...actual,
+    getTemporalWorkerAliveness: mocks.getTemporalWorkerAliveness,
+    getTemporalWorkerDiagnostics: mocks.getTemporalWorkerDiagnostics,
+  };
+});
+
+vi.mock("../temporal/service", async () => {
+  const actual = await vi.importActual<typeof import("../temporal/service")>(
+    "../temporal/service",
+  );
+  return { ...actual, getService: mocks.getService };
+});
 
 vi.mock("../storage/json", async () => {
   const actual =
@@ -234,5 +258,48 @@ describe("target_path read/status tools", () => {
 
     expect(parsed.changes.byStatus.active).toBe(1);
     expect(parsed._projectContext.stateMode).toBe("disk-snapshot");
+  });
+
+  test("adv_status target_path labels target queue serviceability separately", async () => {
+    mocks.getTemporalWorkerAliveness.mockReturnValue(false);
+    mocks.getTemporalWorkerDiagnostics.mockReturnValue([]);
+    mocks.getTemporalHealth.mockResolvedValueOnce({
+      server_alive: true,
+      worker_alive: false,
+      worker_process_alive: false,
+      registered_queues: [],
+      last_op_at: null,
+      last_error: null,
+      fallback_counts: {},
+      stale_queues: [{ queue: "advance-target", running_count: 2 }],
+      reconnect_count: 0,
+      op_counters: [],
+      worker_lock: {
+        holder_pid: 4242,
+        last_heartbeat_at: null,
+        heartbeat_age_ms: null,
+        schema_version: 1,
+      },
+      last_worker_run_error: null,
+    });
+
+    const output = await statusTools.adv_status.execute(
+      { target_path: "/target/project", view: "health" } as any,
+      sourceStore,
+    );
+    const parsed = parseToolOutput(output);
+
+    expect(parsed._projectContext.stateMode).toBe("disk-snapshot");
+    expect(parsed.temporal_queue_serviceability).toMatchObject({
+      projectId: "target",
+      expectedQueue: "advance-target",
+      status: "not_serviceable",
+    });
+    expect(parsed.formatted.healthSection).toContain(
+      "Queue serviceability: not_serviceable",
+    );
+    expect(parsed.formatted.healthSection).toContain(
+      "Worker process: degraded",
+    );
   });
 });

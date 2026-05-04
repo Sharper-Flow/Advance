@@ -103,9 +103,17 @@ export interface StatusInput {
     reason?: string;
   };
   temporalHealth?: {
+    worker_alive?: boolean;
+    worker_process_alive?: boolean;
     worker_lock?: WorkerLockHealthInput | null;
     last_worker_run_error?: WorkerRunErrorInput | null;
   };
+  temporalQueueServiceability?: {
+    status: string;
+    confidence: string;
+    expectedQueue: string;
+    blockers?: string[];
+  } | null;
 }
 
 export interface WorkerLockHealthInput {
@@ -274,6 +282,15 @@ export function formatStatusOutput(input: StatusInput): FormattedStatus {
   const healthLines = [
     `Temporal: ${input.temporalAlive ? "server alive ✓" : "server down ✗"}`,
   ];
+  const queueServiceability = input.temporalQueueServiceability;
+  if (queueServiceability) {
+    healthLines.push(
+      `Worker process: ${input.temporalHealth?.worker_process_alive ? "healthy" : "degraded"}`,
+    );
+    healthLines.push(
+      `Queue serviceability: ${queueServiceability.status} (${queueServiceability.confidence}) ${queueServiceability.expectedQueue}`,
+    );
+  }
   const workerLock = formatWorkerLockHealth(input.temporalHealth?.worker_lock);
   if (workerLock) healthLines.push(`Worker lock: ${workerLock}`);
   const workerRunError = formatWorkerRunError(

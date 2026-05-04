@@ -176,6 +176,51 @@ describe("getTemporalWorkerAliveness", () => {
     vi.resetModules();
   });
 
+  it("returns diagnostics for registered in-process and out-of-process workers", async () => {
+    const { getTemporalWorkerDiagnostics, registerInProcessTemporalWorker } =
+      await import("./plugin-init");
+    const oopDiagnostics = [
+      {
+        queue: "advance-oop",
+        dead: false,
+        restartCount: 1,
+        childExitCode: null,
+        childPid: 12345,
+        childRunning: true,
+      },
+    ];
+
+    registerInProcessTemporalWorker({
+      registerQueue: vi.fn(async () => {}),
+      shutdown: vi.fn(async () => {}),
+      queues: ["advance-live"],
+      failedQueues: ["advance-dead"],
+    } as any);
+    registerInProcessTemporalWorker({
+      registerQueue: vi.fn(async () => {}),
+      shutdown: vi.fn(async () => {}),
+      queues: ["advance-oop"],
+      isAlive: vi.fn(() => true),
+      getDiagnostics: vi.fn(() => oopDiagnostics),
+    } as any);
+
+    expect(getTemporalWorkerDiagnostics()).toEqual([
+      {
+        kind: "in_process",
+        queues: ["advance-live"],
+        failedQueues: ["advance-dead"],
+        alive: true,
+      },
+      {
+        kind: "out_of_process",
+        queues: ["advance-oop"],
+        failedQueues: [],
+        alive: true,
+        diagnostics: oopDiagnostics,
+      },
+    ]);
+  });
+
   it("returns false when all in-process queues are marked failed", async () => {
     const { getTemporalWorkerAliveness, registerInProcessTemporalWorker } =
       await import("./plugin-init");
@@ -720,11 +765,15 @@ describe("tryInitStore worker singleton (C5 / rq-workerSingleton01)", () => {
     const { tryInitStore } = await import("./plugin-init");
     await tryInitStore("/tmp/repo", "/tmp/external");
 
-    expect(mocks.startHeartbeatWriter).toHaveBeenCalledWith({
-      projectStateDir: "/tmp/external",
-      workerId: "test-worker-id",
-      intervalMs: 5000,
-    });
+    expect(mocks.startHeartbeatWriter).toHaveBeenCalledWith(
+      expect.objectContaining({
+        projectStateDir: "/tmp/external",
+        workerId: "test-worker-id",
+        expectedQueue: "advance-proj-sha",
+        intervalMs: 5000,
+        isLocalWorkerServiceable: expect.any(Function),
+      }),
+    );
   });
 
   it("does not start heartbeat writer when worker.lock is owned by another instance", async () => {
@@ -814,6 +863,7 @@ describe("tryInitStore worker singleton (C5 / rq-workerSingleton01)", () => {
     expect(result).toEqual({
       projectId: "proj-sha",
       queues: ["advance-proj-sha"],
+      expectedQueue: "advance-proj-sha",
     });
     expect(order).toEqual([
       "heartbeat.stop",

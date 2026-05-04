@@ -2,7 +2,11 @@ import { basename, join } from "path";
 import { readFile } from "fs/promises";
 import { z } from "zod";
 import type { Store } from "../storage/store";
-import { restartCurrentProjectTemporalWorker } from "../plugin-init";
+import {
+  getTemporalWorkerAliveness,
+  getTemporalWorkerDiagnostics,
+  restartCurrentProjectTemporalWorker,
+} from "../plugin-init";
 import { getService, getStslStats, reinitStsl } from "../temporal/service";
 import { initStateDb, listSessions } from "./worktree/state";
 import { isPidAlive } from "./session/index";
@@ -10,6 +14,7 @@ import { repairChangeActivity } from "../temporal/activities";
 import { getTemporalHealth } from "../temporal/health-probe";
 import { sweepProject } from "../temporal/orphan-sweep";
 import {
+  buildProjectTaskQueue,
   buildChangeWorkflowId,
   buildProjectWorkflowId,
 } from "../temporal/client";
@@ -21,7 +26,12 @@ import {
   formatWorkerRunError,
 } from "../utils/tool-formatters";
 import { STALE_HEARTBEAT_MS } from "../temporal/worker-lock";
-import { appendDebugLog } from "../utils/debug-log";
+import {
+  classifyQueueServiceability,
+  probeTaskQueuePollers,
+  type QueueServiceability,
+} from "../temporal/queue-serviceability";
+import { getProjectId } from "../utils/project-id";
 import {
   formatTargetProjectContext,
   type TargetProjectOutputContext,
@@ -31,6 +41,12 @@ import {
 type WorkflowReachability =
   | { reachable: true; error?: undefined }
   | { reachable: false; error: string };
+
+type SuspectWorkerLockReason =
+  | "suspect_live_legacy_lock"
+  | "suspect_live_unserviceable_lock";
+
+type RestartFailureReason = SuspectWorkerLockReason | "worker_restart_failed";
 
 /**
  * T23: count alive peer sessions from session_registry.
@@ -124,6 +140,7 @@ async function describeWorkflowReachability(
  */
 function recommendTemporalRecovery(input: {
   health: Awaited<ReturnType<typeof getTemporalHealth>>;
+  queueServiceability?: QueueServiceability | null;
   stslInitialized: boolean;
   searchAttributesOk: boolean;
   searchAttributesVerificationStatus: "verified" | "unverified";
@@ -138,7 +155,19 @@ function recommendTemporalRecovery(input: {
     }
     return "run adv_temporal_register_search_attributes";
   }
+  const queueServiceable = input.queueServiceability?.status === "serviceable";
+  const suspectLockReason = classifySuspectWorkerLock({
+    health: input.health,
+    queueServiceability: input.queueServiceability ?? null,
+  });
+  if (suspectLockReason === "suspect_live_legacy_lock") {
+    return "suspect live legacy v1 worker.lock — explicit approval is required to reclaim it, or restart the owning OpenCode session; do not run blind restart/reclaim loops";
+  }
+  if (suspectLockReason === "suspect_live_unserviceable_lock") {
+    return "suspect live unserviceable worker.lock — explicit approval is required to reclaim it, or restart the owning OpenCode session; do not run STSL reconnect or blind restart/reclaim loops";
+  }
   if (
+    !queueServiceable &&
     !input.health.worker_alive &&
     input.health.worker_lock?.heartbeat_age_ms !== null &&
     input.health.worker_lock?.heartbeat_age_ms !== undefined &&
@@ -146,10 +175,13 @@ function recommendTemporalRecovery(input: {
   ) {
     return "normal recovery — peer worker spawn pending";
   }
-  if (!input.health.worker_process_alive || !input.health.worker_alive) {
+  if (
+    !queueServiceable &&
+    (!input.health.worker_process_alive || !input.health.worker_alive)
+  ) {
     return "run adv_temporal_worker_restart (worker process only); if diagnose is unchanged, inspect stale worker lock/project workflow before retrying";
   }
-  if (input.health.stale_queues.length > 0)
+  if (!queueServiceable && input.health.stale_queues.length > 0)
     return "run adv_orphan_sweep dry-run";
   if (input.projectWorkflowReachable === false)
     return "run adv_workflow_repair";
@@ -172,6 +204,193 @@ function recommendPostRegistrationAction(input: {
   return "retry the previously blocked Temporal tool; worker restart is not required";
 }
 
+const DEFAULT_WORKER_RESTART_VERIFY_TIMEOUT_MS = 10_000;
+const WORKER_RESTART_VERIFY_POLL_MS = 250;
+
+type TemporalHealthSnapshot = Awaited<ReturnType<typeof getTemporalHealth>>;
+
+interface RestartServiceabilitySnapshot {
+  health: TemporalHealthSnapshot;
+  serviceability: QueueServiceability;
+  workerDiagnostics: ReturnType<typeof getTemporalWorkerDiagnostics>;
+}
+
+function readWorkerRestartVerifyTimeoutMs(): number {
+  const raw = process.env.ADV_WORKER_RESTART_VERIFY_TIMEOUT_MS;
+  if (!raw) return DEFAULT_WORKER_RESTART_VERIFY_TIMEOUT_MS;
+  const parsed = Number.parseInt(raw, 10);
+  return Number.isFinite(parsed) && parsed > 0
+    ? parsed
+    : DEFAULT_WORKER_RESTART_VERIFY_TIMEOUT_MS;
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function diagnosticsIncludeQueue(
+  diagnostics: ReturnType<typeof getTemporalWorkerDiagnostics>,
+  expectedQueue: string,
+): boolean {
+  return diagnostics.some((worker) => {
+    const failed = new Set(worker.failedQueues);
+    return worker.queues.some(
+      (queue) => queue === expectedQueue && !failed.has(queue),
+    );
+  });
+}
+
+function diagnosticsShowAliveQueue(
+  diagnostics: ReturnType<typeof getTemporalWorkerDiagnostics>,
+  expectedQueue: string,
+): boolean {
+  return diagnostics.some((worker) => {
+    const failed = new Set(worker.failedQueues);
+    return (
+      worker.alive &&
+      worker.queues.some(
+        (queue) => queue === expectedQueue && !failed.has(queue),
+      )
+    );
+  });
+}
+
+function deriveLocalOwnershipFromHealth(
+  health: TemporalHealthSnapshot,
+): "owned" | "peer" | "unknown" {
+  if (!health.worker_lock) return "unknown";
+  return health.worker_lock.holder_pid === process.pid ? "owned" : "peer";
+}
+
+function classifySuspectWorkerLock(input: {
+  health: TemporalHealthSnapshot;
+  queueServiceability?: QueueServiceability | null;
+}): SuspectWorkerLockReason | undefined {
+  const lock = input.health.worker_lock;
+  if (!lock || input.queueServiceability?.status !== "not_serviceable") {
+    return undefined;
+  }
+  if (lock.schema_version === 1) return "suspect_live_legacy_lock";
+  if (
+    lock.schema_version === 2 &&
+    (lock.heartbeat_age_ms === null ||
+      lock.heartbeat_age_ms <= STALE_HEARTBEAT_MS)
+  ) {
+    return "suspect_live_unserviceable_lock";
+  }
+  return undefined;
+}
+
+async function buildRestartServiceabilitySnapshot(input: {
+  projectId: string;
+  expectedQueue: string;
+  localOwnership: "owned" | "peer" | "unknown";
+  health?: TemporalHealthSnapshot;
+  bundle?: ReturnType<typeof getService>;
+}): Promise<RestartServiceabilitySnapshot> {
+  const [health, workerDiagnostics] = await Promise.all([
+    input.health
+      ? Promise.resolve(input.health)
+      : getTemporalHealth(input.projectId),
+    Promise.resolve(getTemporalWorkerDiagnostics()),
+  ]);
+  const bundle = input.bundle !== undefined ? input.bundle : getService();
+  const serverPollerProbe = bundle
+    ? await probeTaskQueuePollers({
+        connection: bundle.connection as unknown as Parameters<
+          typeof probeTaskQueuePollers
+        >[0]["connection"],
+        namespace: bundle.namespace,
+        taskQueue: input.expectedQueue,
+      })
+    : {
+        status: "unavailable" as const,
+        lastAccessMs: null,
+        error: "Temporal service layer not initialized",
+      };
+  const staleRunningWorkflowCount = health.stale_queues
+    .filter((queue) => queue.queue === input.expectedQueue)
+    .reduce((total, queue) => total + queue.running_count, 0);
+  const localRegistered =
+    health.registered_queues.includes(input.expectedQueue) ||
+    diagnosticsIncludeQueue(workerDiagnostics, input.expectedQueue);
+  const localWorkerAlive =
+    getTemporalWorkerAliveness() ||
+    diagnosticsShowAliveQueue(workerDiagnostics, input.expectedQueue);
+
+  return {
+    health,
+    workerDiagnostics,
+    serviceability: classifyQueueServiceability({
+      projectId: input.projectId,
+      expectedQueue: input.expectedQueue,
+      localRegistered,
+      localWorkerAlive,
+      localOwnership: input.localOwnership,
+      workerDiagnostics,
+      serverPollerProbe,
+      staleRunningWorkflowCount,
+      staleQueueProbe: health.server_alive ? "ok" : "unavailable",
+    }),
+  };
+}
+
+async function waitForRestartServiceability(input: {
+  projectId: string;
+  expectedQueue: string;
+  timeoutMs: number;
+}): Promise<RestartServiceabilitySnapshot & { elapsedMs: number }> {
+  const startedAt = Date.now();
+  let lastSnapshot: RestartServiceabilitySnapshot;
+  for (;;) {
+    lastSnapshot = await buildRestartServiceabilitySnapshot({
+      projectId: input.projectId,
+      expectedQueue: input.expectedQueue,
+      localOwnership: "owned",
+    });
+    const elapsedMs = Date.now() - startedAt;
+    if (
+      lastSnapshot.serviceability.status === "serviceable" ||
+      elapsedMs >= input.timeoutMs
+    ) {
+      return { ...lastSnapshot, elapsedMs };
+    }
+    await sleep(
+      Math.min(WORKER_RESTART_VERIFY_POLL_MS, input.timeoutMs - elapsedMs),
+    );
+  }
+}
+
+function getErrorCode(error: unknown): string | undefined {
+  return typeof error === "object" && error !== null && "code" in error
+    ? String((error as { code?: unknown }).code)
+    : undefined;
+}
+
+function classifyRestartFailure(input: {
+  error: unknown;
+  snapshot: RestartServiceabilitySnapshot;
+}): RestartFailureReason {
+  if (getErrorCode(input.error) === "WORKER_LOCK_HELD") {
+    const suspect = classifySuspectWorkerLock({
+      health: input.snapshot.health,
+      queueServiceability: input.snapshot.serviceability,
+    });
+    if (suspect) return suspect;
+  }
+  return "worker_restart_failed";
+}
+
+function restartFailureNextAction(reason: RestartFailureReason): string {
+  if (reason === "suspect_live_legacy_lock") {
+    return "Provide explicit approval evidence to reclaim the suspect live legacy v1 worker.lock, or restart the owning OpenCode session; then rerun adv_temporal_worker_restart.";
+  }
+  if (reason === "suspect_live_unserviceable_lock") {
+    return "Provide explicit approval evidence to reclaim the suspect live unserviceable worker.lock, or restart the owning OpenCode session; then rerun adv_temporal_worker_restart. Do not use STSL reconnect for worker-registration failure.";
+  }
+  return "run adv_temporal_diagnose and follow recommendedNextAction";
+}
+
 export const temporalOpsTools = {
   adv_temporal_diagnose: {
     description:
@@ -190,6 +409,23 @@ export const temporalOpsTools = {
         : undefined;
       const health = await getTemporalHealth(projectId);
       const bundle = getService();
+      const expectedQueue = projectId ? buildProjectTaskQueue(projectId) : null;
+      const queueSnapshot = expectedQueue
+        ? await buildRestartServiceabilitySnapshot({
+            projectId: projectId!,
+            expectedQueue,
+            localOwnership: deriveLocalOwnershipFromHealth(health),
+            health,
+            bundle,
+          })
+        : null;
+      const diagnoseReason =
+        queueSnapshot === null
+          ? undefined
+          : classifySuspectWorkerLock({
+              health,
+              queueServiceability: queueSnapshot.serviceability,
+            });
       const searchAttributes = bundle
         ? await checkAdvSearchAttributes(bundle.connection, bundle.namespace)
         : {
@@ -221,6 +457,7 @@ export const temporalOpsTools = {
 
       const recommendedNextAction = recommendTemporalRecovery({
         health,
+        queueServiceability: queueSnapshot?.serviceability ?? null,
         stslInitialized: bundle !== null,
         searchAttributesOk: searchAttributes.ok,
         searchAttributesVerificationStatus: searchAttributes.verificationStatus,
@@ -268,6 +505,14 @@ export const temporalOpsTools = {
           reconnectCount: health.reconnect_count,
         },
         temporalHealth: health,
+        ...(expectedQueue ? { expectedQueue } : {}),
+        ...(queueSnapshot
+          ? {
+              queue_serviceability: queueSnapshot.serviceability,
+              workerDiagnostics: queueSnapshot.workerDiagnostics,
+            }
+          : {}),
+        ...(diagnoseReason ? { reason: diagnoseReason } : {}),
         searchAttributes,
         searchAttributesStatus,
         projectWorkflow,
@@ -557,34 +802,141 @@ export const temporalOpsTools = {
 
   adv_temporal_worker_restart: {
     description:
-      "Restart the project's Temporal worker process (out-of-process Node child on Bun hosts; in-process on Node hosts). Use when the worker is wedged or the respawn loop is exhausted. Does NOT reload plugin tool code in `plugin/src/tools/*.ts`; restart OpenCode itself to reload those host-loaded modules. If workflow or activity code in `plugin/src/temporal/` changed, run `pnpm run build:worker` before this tool because the worker loads from `dist/temporal/`. Returns immediately; verify completion via adv_status or adv_temporal_diagnose.",
-    args: {},
-    execute: async (_args: Record<string, never>, store: Store) => {
-      // KD-5 fire-and-forget: kick off the restart asynchronously and
-      // return immediately. The underlying restart legitimately exceeds
-      // the 10s safety-net timeout on mature projects. Awaiting it produced
-      // false-positive ToolExecutionTimeout responses despite the restart
-      // succeeding. adv_status / adv_temporal_diagnose are the documented
-      // verification path.
-      restartCurrentProjectTemporalWorker(store.paths.root).catch((err) => {
-        appendDebugLog(
-          "adv_temporal_worker_restart",
-          `async restart failure: ${err instanceof Error ? err.message : String(err)}`,
-        );
-      });
-      const bundle = getService();
+      "Restart the project's Temporal worker process (out-of-process Node child on Bun hosts; in-process on Node hosts). Use when the worker is wedged or the respawn loop is exhausted. Does NOT reload plugin tool code in `plugin/src/tools/*.ts`; restart OpenCode itself to reload those host-loaded modules. If workflow or activity code in `plugin/src/temporal/` changed, run `pnpm run build:worker` before this tool because the worker loads from `dist/temporal/`. Waits up to 10s for the expected queue to become serviceable and returns structured diagnostics on timeout/failure.",
+    args: {
+      approvedLockReclaim: z
+        .literal(true)
+        .optional()
+        .describe(
+          "Set only after explicit user approval to reclaim a suspect live v1/v2 worker.lock when queue serviceability cannot be proven.",
+        ),
+      approvalEvidence: z
+        .string()
+        .optional()
+        .describe(
+          "Required with approvedLockReclaim:true. Cite the user's explicit approval evidence.",
+        ),
+    },
+    execute: async (
+      args: { approvedLockReclaim?: true; approvalEvidence?: string },
+      store: Store,
+    ) => {
+      const approvedLockReclaim = args.approvedLockReclaim === true;
+      const approvalEvidence = args.approvalEvidence?.trim();
+      if (approvedLockReclaim && !approvalEvidence) {
+        return formatToolOutput({
+          success: false,
+          errorClass: "ApprovalRequired",
+          error: "approvalEvidence is required when approvedLockReclaim:true.",
+          recommendedNextAction:
+            "Ask the user for explicit approval evidence before reclaiming a suspect live v1/v2 worker.lock.",
+        });
+      }
+
+      const projectId = store.paths.external
+        ? basename(store.paths.external)
+        : await getProjectId(store.paths.root);
+      if (!projectId) {
+        return formatToolOutput({
+          success: false,
+          errorClass: "ProjectIdUnavailable",
+          error:
+            "Cannot restart Temporal worker: no projectId for current directory",
+        });
+      }
+
+      const expectedQueue = buildProjectTaskQueue(projectId);
       const stats = getStslStats();
+      let restartResult: Awaited<
+        ReturnType<typeof restartCurrentProjectTemporalWorker>
+      >;
+      try {
+        restartResult = await restartCurrentProjectTemporalWorker(
+          store.paths.root,
+          {
+            approvedLockReclaim,
+            approvalEvidence,
+          },
+        );
+      } catch (error) {
+        const snapshot = await buildRestartServiceabilitySnapshot({
+          projectId,
+          expectedQueue,
+          localOwnership: "peer",
+        });
+        const reason = classifyRestartFailure({ error, snapshot });
+        return formatToolOutput({
+          success: false,
+          errorClass:
+            reason === "worker_restart_failed"
+              ? "WorkerRestartFailed"
+              : "ApprovalRequired",
+          reason,
+          approvalRequired: reason !== "worker_restart_failed",
+          error: error instanceof Error ? error.message : String(error),
+          projectId,
+          expectedQueue,
+          serviceability: snapshot.serviceability,
+          temporalHealth: snapshot.health,
+          workerDiagnostics: snapshot.workerDiagnostics,
+          worker_lock: snapshot.health.worker_lock,
+          stsl: {
+            initialized: getService() !== null,
+            reconnectCount: stats.reconnectCount,
+            reconnectFailureCount: stats.reconnectFailureCount,
+          },
+          recommendedNextAction: restartFailureNextAction(reason),
+        });
+      }
+
+      const verification = await waitForRestartServiceability({
+        projectId: restartResult.projectId,
+        expectedQueue: restartResult.expectedQueue ?? expectedQueue,
+        timeoutMs: readWorkerRestartVerifyTimeoutMs(),
+      });
+
+      if (verification.serviceability.status !== "serviceable") {
+        return formatToolOutput({
+          success: false,
+          errorClass: "WorkerRestartVerificationTimeout",
+          message:
+            "Temporal worker restart completed, but expected queue serviceability was not proven within the verification budget.",
+          projectId: restartResult.projectId,
+          expectedQueue: restartResult.expectedQueue ?? expectedQueue,
+          queues: restartResult.queues,
+          serviceability: verification.serviceability,
+          temporalHealth: verification.health,
+          workerDiagnostics: verification.workerDiagnostics,
+          worker_lock: verification.health.worker_lock,
+          elapsedMs: verification.elapsedMs,
+          stsl: {
+            initialized: getService() !== null,
+            reconnectCount: stats.reconnectCount,
+            reconnectFailureCount: stats.reconnectFailureCount,
+          },
+          ...(restartResult.reclaim ? { reclaim: restartResult.reclaim } : {}),
+          recommendedNextAction:
+            "run adv_temporal_diagnose and follow recommendedNextAction; do not assume restart succeeded",
+        });
+      }
+
       return formatToolOutput({
         success: true,
+        projectId: restartResult.projectId,
+        expectedQueue: restartResult.expectedQueue ?? expectedQueue,
+        queues: restartResult.queues,
+        serviceability: verification.serviceability,
+        workerDiagnostics: verification.workerDiagnostics,
+        elapsedMs: verification.elapsedMs,
         message:
-          "Worker restart initiated. Verify via adv_status or adv_temporal_diagnose.",
-        recommendedNextAction:
-          "Wait ~2s, then run adv_status to confirm worker_alive.",
+          "Temporal worker restart verified: expected queue is serviceable.",
+        recommendedNextAction: "retry the blocked ADV command",
         stsl: {
-          initialized: bundle !== null,
+          initialized: getService() !== null,
           reconnectCount: stats.reconnectCount,
           reconnectFailureCount: stats.reconnectFailureCount,
         },
+        ...(restartResult.reclaim ? { reclaim: restartResult.reclaim } : {}),
       });
     },
   },

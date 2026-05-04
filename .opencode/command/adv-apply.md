@@ -3,15 +3,20 @@ name: adv-apply
 description: "Implement change with TDD, retry on failure, and final verification"
 phaseGoal: "Execute the approved plan autonomously. Add discovered tasks within scope. Escalate only on failure."
 ---
+
 <!-- manifest: adv-apply · gate: execution · requiresChangeId: true · prereqs: [adv-prep] · scope: reads[specs, proposal, tasks, codebase] · modifies[tasks, codebase] -->
+
 # ADV Apply — Produce Deliverables with TDD and Retry
+
 Implement an ADV change using TDD. Produce the agreed deliverables — code, docs, ops changes, or verification artifacts — and pursue every task to completion.
+
 ## Task Completion Policy
-| Exit | Condition |
-|------|-----------|
-| ✅ Done | Implementation verified, tests pass |
-| 🔁 Doom Loop | 3 genuine fix attempts failed with documented diagnosis |
-| 🌍 Environmental | Missing external dependency → escalate immediately |
+
+| Exit             | Condition                                               |
+| ---------------- | ------------------------------------------------------- |
+| ✅ Done          | Implementation verified, tests pass                     |
+| 🔁 Doom Loop     | 3 genuine fix attempts failed with documented diagnosis |
+| 🌍 Environmental | Missing external dependency → escalate immediately      |
 
 Cross-repo tasks: switch `workdir` to target path. "Different repo" is × never a valid exit.
 
@@ -23,19 +28,24 @@ Cancellation: use `adv_task_cancel` with user approval. `adv_task_update status:
 | "This targets another repo" | Switch `workdir` and execute |
 | `adv_task_update status: cancelled` | `adv_task_cancel` with user approval |
 <UserRequest>
-  $ARGUMENTS
+$ARGUMENTS
 </UserRequest>
+
 ## Target Resolution
+
 1. If change-id provided → use directly
 2. If empty → `adv_change_list` → confirm/select via `question` tool
 3. If none → suggest `/adv-proposal`
 
 ## Gate Prerequisite Check
+
 `adv_gate_status changeId: {change-id}`
+
 - Discovery/design/planning incomplete → stop and require the pre-implementation workflow first
 - All pre-implementation stages complete → proceed to Phase 0
 
 × `/adv-apply` MUST NOT complete discovery, design, or planning gates.
+
 ## Phase 0: Embedded Methodology
 
 ### Apply Methodology
@@ -45,6 +55,7 @@ Cancellation: use `adv_task_cancel` with user approval. `adv_task_update status:
 Reusable implementation methodology for ADV apply workflows. Provides the TDD work loop shape, retry protocol, context freshness rules, and task completion criteria.
 
 **Canonical sources:**
+
 - `ADV_INSTRUCTIONS.md § Context Freshness` — two-tier context loading protocol
 - `ADV_INSTRUCTIONS.md § TDD Protocol (RSTC)` — red/green/trivial phases
 - `ADV_INSTRUCTIONS.md § Doom Loop Detection` — retry budget and escalation
@@ -52,19 +63,19 @@ Reusable implementation methodology for ADV apply workflows. Provides the TDD wo
 
 #### TDD Work Loop
 
-| Phase | Action | Evidence |
-|-------|--------|----------|
-| Red | Write failing test using editing tool → `adv_run_test phase:'red'` → show failure | Test output with exit code ≠ 0 |
-| Green | Implement using editing tool → `adv_run_test phase:'green'` → show pass | Test output with exit code 0 |
-| Trivial | Set `tdd_intent: "not_applicable"` | Rationale in task notes |
+| Phase   | Action                                                                            | Evidence                       |
+| ------- | --------------------------------------------------------------------------------- | ------------------------------ |
+| Red     | Write failing test using editing tool → `adv_run_test phase:'red'` → show failure | Test output with exit code ≠ 0 |
+| Green   | Implement using editing tool → `adv_run_test phase:'green'` → show pass           | Test output with exit code 0   |
+| Trivial | Set `tdd_intent: "not_applicable"`                                                | Rationale in task notes        |
 
 #### Retry Protocol
 
-| Error type | Examples | Action |
-|------------|----------|--------|
-| SEMANTIC | Type errors, test failures, logic bugs | Diagnose → Fix → Retry (3×) |
-| TRANSIENT | Network timeout, flaky test | Wait 5s → Retry once |
-| ENVIRONMENTAL | Missing dep, config not found | Escalate immediately |
+| Error type    | Examples                               | Action                      |
+| ------------- | -------------------------------------- | --------------------------- |
+| SEMANTIC      | Type errors, test failures, logic bugs | Diagnose → Fix → Retry (3×) |
+| TRANSIENT     | Network timeout, flaky test            | Wait 5s → Retry once        |
+| ENVIRONMENTAL | Missing dep, config not found          | Escalate immediately        |
 
 Before any retry: emit diagnosis with root cause analysis and planned approach. Each attempt must have a different strategy.
 
@@ -81,9 +92,12 @@ Before any retry: emit diagnosis with root cause analysis and planned approach. 
 - **No gate completion** — the command owns the execution gate
 - **Canonical sources** — defer to `ADV_INSTRUCTIONS.md` for detailed protocol rules
 - **No workflow sequencing** — the command owns phase ordering and task loop
+
 ### Scope Expansion During Execution
+
 <!-- rq-scopeDiscoveryProtocol01 -->
 <!-- rq-scopeFollowupSchema01 -->
+
 If new objectives or acceptance criteria are discovered during execution that were not part of the original agreement, do NOT silently fold them into the current task graph. Instead, apply the **scope-discovery protocol** from `docs/scope-discovery-protocol.md`:
 
 1. **Assess campsite eligibility** — If the discovered scope is P23-campsite-eligible (adjacent, clear, safe, focused), apply it freely without prompting.
@@ -102,22 +116,28 @@ See also `ADV_INSTRUCTIONS.md § Large-Scope Validity` — size alone is never g
 ## Phase 0.1: Worktree Isolation
 
 ### Tool Check
+
 If `worktree_create` unavailable → hard block: `[ADV:BLOCKED] Worktree tools required but unavailable. Configure worktree MCP server to proceed.` → stop.
 
 ### Detect Existing Worktree
+
 `git worktree list --porcelain` → find `change/{change-id}` branch.
+
 - Path exists (healthy) → auto-reuse: switch `workdir` to existing path
 - Path missing (stale) → `git worktree prune` → continue to create
 - No match → continue to create
 
 ### Create Worktree
+
 1. `worktree_create branch: "change/{change-id}"`
 2. **Immediately** capture returned path and set `workdir` for ALL subsequent tool calls
 3. Continue inline — no handoff, no new terminal needed
 4. When deleting later, pass `branch: "change/{change-id}"` to `worktree_delete`
 
 ### Multi-Change Worktree Switch
+
 When a session on change A needs to work on change B:
+
 1. `git worktree list --porcelain` → find `change/{change-b-id}` branch
 2. If worktree-B exists → switch `workdir` to worktree-B path
 3. If worktree-B missing → `worktree_create branch: "change/{change-b-id}"` → capture path → switch `workdir`
@@ -125,6 +145,7 @@ When a session on change A needs to work on change B:
 5. To return to change A → switch `workdir` back to worktree-A path
 
 ## Phase 0.2: Overlap Warning (Conditional)
+
 Check `adv_change_list` for other active changes. Compare affected files.
 
 - **3+ changes touching the same file** → emit `COORDINATION REQUIRED` banner listing the file and all overlapping change IDs. **Halt `/adv-apply`** until user resolves (merge/combine changes, or proceed with explicit override).
@@ -140,6 +161,7 @@ Before the task loop begins, run `preExecutionRebase` from `apply-helpers/pre-re
 **Why per-worktree is safe:** Each change runs in its own git worktree with an independent working directory. There is no shared index or working tree, so concurrent `/adv-apply` sessions on different changes cannot interfere with each other. No cross-session lock is required.
 
 **Outcomes:**
+
 - `up_to_date` — nothing to do; proceed to the task loop.
 - `rebased` — local branch was behind; rebase succeeded. Proceed to the task loop.
 - `conflict` — rebase failed with conflicts. The worktree is left clean (rebase aborted). Halt `/adv-apply` and surface the conflict to the user with the list of conflicted files.
@@ -151,8 +173,11 @@ Before the task loop begins, run `preExecutionRebase` from `apply-helpers/pre-re
 **Runtime wiring:** The actual call to `preExecutionRebase` before the task loop is OUT OF SCOPE for this document; it will be wired in a follow-up task.
 
 ---
+
 ## Cross-Repo Execution
+
 Tasks may target other repositories. See ADV_INSTRUCTIONS.md §Cross-Repo Execution for full protocol.
+
 1. Detect: check `target_repo`/`target_path` fields or path hints in title
 2. Resolve: use `related_repos` config or `target_path` directly; confirm with user if ambiguous
 3. Execute: switch `workdir` → run TDD workflow → switch back
@@ -160,20 +185,23 @@ Tasks may target other repositories. See ADV_INSTRUCTIONS.md §Cross-Repo Execut
 × Prohibited cancellation reasons: "out of scope", "different repository", "cannot modify external code", "backend/API changes needed", "would need database changes" — all require switching `workdir` and executing.
 
 ## Cross-Project Coordination
+
 When a task contributes to another ADV-enabled project, use ADV tools with explicit `target_path` instead of reading or editing ADV state files directly.
 
-| Operation | Required behavior |
-|---|---|
-| Target reads | Use `snapshot-ok` tools (`adv_change_show`, task/gate/status reads) with `target_path`; inspect `_projectContext` |
-| Target mutations | Use `temporal-required` tools with `target_path`; fail closed if target queue is unavailable |
-| Untrusted target mutations | Pass `target_confirmed: true` and `confirmationEvidence` from explicit user approval |
+| Operation                  | Required behavior                                                                                                 |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| Target reads               | Use `snapshot-ok` tools (`adv_change_show`, task/gate/status reads) with `target_path`; inspect `_projectContext` |
+| Target mutations           | Use `temporal-required` tools with `target_path`; fail closed if target queue is unavailable                      |
+| Untrusted target mutations | Pass `target_confirmed: true` and `confirmationEvidence` from explicit user approval                              |
 
 - `cross_project_links` records source/target provenance after target change creation/linking.
 - `external_dependencies` are advisory-only dependencies: unmet targets warn through `_externalDependencyStatus`; warnings do not block task/gate completion by themselves.
 - Target-project contribution workflow: create/link target change → verify source-side `cross_project_links` → read `_externalDependencyStatus` → mutate target only through ADV tools with confirmation when required.
 
 ---
+
 ## Cancellation Policy (Inline — Tier B)
+
 All cancellations require explicit user approval via `adv_task_cancel`. Cancellation is irreversible — Tier B uses inline structured prose with strict regex parsing (no LLM fallback) per `docs/command-voice-standard.md` § Inline Approval Voice and `rq-inlineApproval01.4`.
 
 **Workflow:**
@@ -199,14 +227,14 @@ All cancellations require explicit user approval via `adv_task_cancel`. Cancella
 
 3. **Parse reply with regex (no LLM fallback):**
 
-   | Pattern | Action |
-   |---|---|
-   | `^approve all$` | Cancel all listed tasks |
-   | `^reject all$` | Keep all tasks active |
-   | `^keep ([\d,\s]+)$` | Cancel inverse of listed numbers |
-   | `^cancel ([\d,\s]+)$` | Cancel only the listed numbers |
-   | `^(stop\|abort)$` | Halt; do not cancel anything |
-   | Anything else | Re-prompt with the same options. **× Do NOT** invoke LLM. **× Do NOT** advance |
+   | Pattern               | Action                                                                         |
+   | --------------------- | ------------------------------------------------------------------------------ |
+   | `^approve all$`       | Cancel all listed tasks                                                        |
+   | `^reject all$`        | Keep all tasks active                                                          |
+   | `^keep ([\d,\s]+)$`   | Cancel inverse of listed numbers                                               |
+   | `^cancel ([\d,\s]+)$` | Cancel only the listed numbers                                                 |
+   | `^(stop\|abort)$`     | Halt; do not cancel anything                                                   |
+   | Anything else         | Re-prompt with the same options. **× Do NOT** invoke LLM. **× Do NOT** advance |
 
 4. **Anchor phrase:** `approve all`
 
@@ -217,7 +245,9 @@ All cancellations require explicit user approval via `adv_task_cancel`. Cancella
 × Do NOT use the `question` tool for cancellation approval. The inline pattern is canonical per `rq-inlineApproval01.4`.
 
 ---
+
 ## Phase 1: Load Change Context
+
 Single phase-start call (replaces the legacy 4-tool quartet):
 
 ```
@@ -225,6 +255,7 @@ adv_change_show changeId: <target> include: { ledger: true, snapshot: true, read
 ```
 
 This returns:
+
 - `tasks` (paginated) and `_taskPagination` — total/completed/in-progress counts
 - `_contextSnapshot` — rendered gate row + counts (matches live emission)
 - `_ledger` — durable run state for the in-progress task (or `null`)
@@ -233,6 +264,7 @@ This returns:
 Fall back to the legacy quartet (`adv_change_show + adv_task_list + adv_task_ready + adv_task_run_status`) only if a specific call needs more than the included slice.
 
 ---
+
 ## Phase 1.5: Investment Check-In Preamble (addCostTimeInvestment)
 
 Load `skill("adv-cost-governance-methodology")` and **apply the Surfacing
@@ -272,7 +304,9 @@ Verify that the prep gate was completed with user approval. The prep gate is the
 × MUST NOT ask "Begin work?" when prep gate has `userApproved` — that approval already happened during `/adv-prep`.
 
 ---
+
 ## Phase 2: Display Contract
+
 <!-- rq-scopeFollowupSurfacing01 -->
 
 Emit a purpose line: `Working on: {change-id}`. State is visible via `_contextSnapshot` and `adv_change_show` — do not duplicate it in a banner.
@@ -282,15 +316,21 @@ Retry policy (advisory): SEMANTIC 3 retries, TRANSIENT 1 retry + 5s delay, ENVIR
 Proceed directly to Phase 3 — do NOT ask for approval to begin work. Execution-start approval is NOT a sanctioned human checkpoint under `rq-autonomy01`. Judgment calls have already been surfaced in Phase 1.5; scope and criteria were signed off at the Agreement gate.
 
 ---
+
 ## Retry Protocol
+
 ### Error Classification
-| Type | Examples | Action |
-|------|----------|--------|
-| SEMANTIC | Type errors, test failures, logic bugs | Diagnose → Fix → Retry (3×) |
-| TRANSIENT | Network timeout, flaky test | Wait 5s → Retry once |
-| ENVIRONMENTAL | Missing dep, config not found | Escalate immediately |
+
+| Type          | Examples                               | Action                      |
+| ------------- | -------------------------------------- | --------------------------- |
+| SEMANTIC      | Type errors, test failures, logic bugs | Diagnose → Fix → Retry (3×) |
+| TRANSIENT     | Network timeout, flaky test            | Wait 5s → Retry once        |
+| ENVIRONMENTAL | Missing dep, config not found          | Escalate immediately        |
+
 ### Diagnosis Requirement (Reflexion)
+
 Before ANY SEMANTIC fix, emit:
+
 ```
 [ADV:BLOCKED] RETRY {n}/3
 DIAGNOSIS: {root cause analysis}
@@ -298,52 +338,69 @@ FIX: {planned approach}
 ```
 
 Diagnosis MUST appear before fix. Each attempt must have different diagnosis and approach.
+
 ### Recording
+
 After each failed attempt: `adv_task_update taskId: {id} status: "in_progress" notes: "RETRY {n}/3 - {error_class}: {last_error}" error_recovery: { last_error, retry_count, max_retries, error_class, next_strategy, attempts[] }`
 
 The `error_recovery` field on task JSON captures: `last_error`, `retry_count`, `max_retries`, `error_class` (TRANSIENT|SEMANTIC|ENVIRONMENTAL|FATAL), `next_strategy`, and `attempts[]` (attempt_number, error, diagnosis, fix_tried, outcome, attempted_at). Left as-is on success (historical record).
+
 ### Budget Exhaustion (3 retries failed)
+
 Emit RETRY BUDGET EXHAUSTED banner showing all 3 attempts (diagnosis, fix, result for each). Classify blocking reason: SEMANTIC, KNOWLEDGE, or ENVIRONMENTAL.
 
 Ask via `question` tool: Provide hint (Recommended), Take over task, Void contract. × "Skip task" is NOT an option.
 
 ---
+
 ## Phase 3: TDD Work Loop
+
 <!-- rq-TDD008path -->
 <!-- rq-taskRunLedger01 -->
+
 ### Context Freshness (MANDATORY)
+
 Load context in two tiers:
 
 **Phase start (once):** `adv_change_show` → load full change context including proposal, design, gates, and task summary.
 
 **Per task:**
+
 1. `adv_task_show` → load current task details
 2. `adv_wisdom_list` → load accumulated learnings for this change
 3. Read relevant proposal/design sections only when the task description references them
 
 × Do NOT call `adv_change_show` before every task — reserve for phase transitions.
 × Do NOT batch tasks into local todo list with descriptive blurbs.
+
 ### Worktree Context for Sub-Agents
+
 Include `WORKING DIRECTORY: {workdir}` in every sub-agent prompt. Detect via `pwd`. Critical in worktrees — sub-agents inherit default project root, not worktree path.
+
 ### TodoWrite Rules
+
 Use task IDs only (`tk-abc123`), not descriptions. Forces context lookup via `adv_task_show`.
+
 ### Anti-Patterns (PROHIBITED)
-| × Anti-Pattern | ✓ Correct |
-|----------------|-----------|
-| "Let's skip/defer this" | Apply retry protocol |
-| "This might need manual work" | Try 3 times first |
-| "I'm not sure how to proceed" | Research, diagnose, attempt |
-| "Would you like me to skip?" | Never offer skip |
-| "Tests are flaky, marking done" | Fix flaky tests or document as environmental |
-| Marking "blocked" after 1 try | Must attempt 3 distinct fixes |
-| "This targets another repo" | Switch workdir and execute |
+
+| × Anti-Pattern                                                                                 | ✓ Correct                                                                                                  |
+| ---------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| "Let's skip/defer this"                                                                        | Apply retry protocol                                                                                       |
+| "This might need manual work"                                                                  | Try 3 times first                                                                                          |
+| "I'm not sure how to proceed"                                                                  | Research, diagnose, attempt                                                                                |
+| "Would you like me to skip?"                                                                   | Never offer skip                                                                                           |
+| "Tests are flaky, marking done"                                                                | Fix flaky tests or document as environmental                                                               |
+| Marking "blocked" after 1 try                                                                  | Must attempt 3 distinct fixes                                                                              |
+| "This targets another repo"                                                                    | Switch workdir and execute                                                                                 |
 | Shell-authored test-file content (heredoc / `python -c` / `echo > *.test.*` / `tee` / `cat >`) | Prohibited for ordinary TDD. Use `edit` / `write` / `morph_edit` for file changes, then run `adv_run_test` |
-| Silent fold of non-campsite scope | Apply scope-discovery protocol (`docs/scope-discovery-protocol.md`) |
-| "We'll handle this later" without surfacing | Apply scope-discovery protocol |
-| Quietly trimming a planned task as redundant | Apply scope-discovery protocol |
+| Silent fold of non-campsite scope                                                              | Apply scope-discovery protocol (`docs/scope-discovery-protocol.md`)                                        |
+| "We'll handle this later" without surfacing                                                    | Apply scope-discovery protocol                                                                             |
+| Quietly trimming a planned task as redundant                                                   | Apply scope-discovery protocol                                                                             |
 
 `adv_run_test` is prescribed for ordinary inline red/green work because it provides executable proof, durable evidence, and task-run ledger continuity in one command. `adv_task_evidence` is fallback for externally captured or manual evidence only when it adds unique audit/recovery value. It is not the primary inline-TDD path when the test command can run via `adv_run_test`; extra evidence-tool ceremony without reproducibility, durable audit, or recovery value is burden without benefit.
+
 ### Delegation Routing
+
 Before TDD phases, evaluate each task for delegation eligibility:
 | Priority | Check | Result |
 |----------|-------|--------|
@@ -357,6 +414,7 @@ Before TDD phases, evaluate each task for delegation eligibility:
 Step 4.5 does not override step 1 (`delegation_hint`) or step 4 (risk signals); priority order is authoritative.
 
 Hint semantics:
+
 - `inline_required` → never delegate
 - `delegate_allowed` → delegate when no risk signals force inline
 - `delegate_preferred` → delegate by default; only override if an execution precondition makes delegation impossible
@@ -369,15 +427,17 @@ Emit routing summary: `tk-{id} → {inline|adv-engineer|general-verify} ({reason
 
 #### Verify-Burst Delegation
 
-Task-level delegation (above) covers *implementation* of a single task. Separately, heavy *verification* bursts — full lint, project-wide typecheck, broad test suites — are good candidates for isolation in a `general` subagent even during inline task work. Purpose: keep the main agent's context clean of long, noisy verify output, and isolate timeout risk from hangs.
+Task-level delegation (above) covers _implementation_ of a single task. Separately, heavy _verification_ bursts — full lint, project-wide typecheck, broad test suites — are good candidates for isolation in a `general` subagent even during inline task work. Purpose: keep the main agent's context clean of long, noisy verify output, and isolate timeout risk from hangs.
 
 **When to delegate a verify burst:**
+
 - Output expected to exceed ~200 lines (heavy warnings, stack traces, coverage reports)
 - Single command runtime expected to exceed ~30s
 - Running lint + typecheck + broader tests together — parallelism pays off
 - Need timeout isolation so a hang in one check doesn't block the session
 
 **When to keep inline:**
+
 - Focused TDD red/green on the test file being driven (`adv_run_test` stays inline)
 - Quick lint or test on a single file
 - Verify step where output is already expected to be short
@@ -400,6 +460,7 @@ EXPECTED OUTPUT:
 ```
 
 **Post-spawn handling:**
+
 - Worker PASS → continue task
 - Worker FAIL with errors → main agent classifies and fixes inline
 - Worker times out or empty result → retry once with narrower scope (single command) → if still fails, run inline with output truncation
@@ -407,6 +468,7 @@ EXPECTED OUTPUT:
 Heuristic, not a hard rule. Prefer delegation when heavy; inline is fine otherwise. Focused TDD `adv_run_test` stays inline regardless.
 
 #### Apply Context Packet
+
 ```
 WORKING DIRECTORY: {workdir}
 CHANGE: {change-id} | {title}
@@ -416,7 +478,9 @@ DESIGN EXCERPT: {relevant section if task references design}
 ACCEPTANCE CRITERIA: {criteria relevant to this task}
 EXPECTED OUTPUT: implement the task, run tests, emit a fenced ENGINEER_REPORT JSON block per .opencode/agents/adv-engineer.md
 ```
+
 ### Task Flow
+
 `adv_task_ready changeId: <id>` → for each ready task:
 
 **3a. Start:** Refresh context (MANDATORY) → `adv_task_update status: "in_progress"` → record task-run `start` in the durable task-run ledger. On resume, inspect `adv_task_run_status taskId: <id>` for `requiredNextAction` and continue from that point without adding a user pause.
@@ -432,6 +496,7 @@ EXPECTED OUTPUT: implement the task, run tests, emit a fenced ENGINEER_REPORT JS
 **3c.4. Incremental Verification:** Run build/tests/lint for task scope → if fails: retry protocol → only proceed to checkpoint after pass. Record verification event in the task-run ledger.
 
 **3c.5. Checkpoint:** Call `adv_task_checkpoint` with:
+
 - `taskId: <id>`
 - `workdir: <effective workdir>`
 - `changeId: <change-id>` (assertion — must match task owner)
@@ -439,7 +504,8 @@ EXPECTED OUTPUT: implement the task, run tests, emit a fenced ENGINEER_REPORT JS
 - `expectedHeadSha: <baselineHeadSha>`
 - `verification: <task verification summary>`
 
-- `{status: 'clean' | 'committed'}` → checkpoint event is recorded in the task-run ledger; proceed to 3c.55.
+- `{status: 'clean' | 'committed', checkpointRecorded:true}` → checkpoint event is recorded in the task-run ledger; proceed to 3c.55.
+- `{status: 'clean' | 'committed', checkpointRecorded:false}` → ledger recording failed even though git checkpoint succeeded. Run `adv_task_run_status`, retry `adv_task_checkpoint` or record the missing ledger event, and MUST NOT call `adv_task_update status: done` until `checkpointRecorded:true` is observed.
 - `{status: 'failed', classification: 'SEMANTIC'}` → diagnose, re-run checkpoint (retry budget applies).
 - `{classification: 'ENVIRONMENTAL'}` → escalate via `question` tool; keep task `in_progress`.
 - `{classification: 'TRANSIENT'}` → tool already retried internally; surface remaining failure as SEMANTIC or ENVIRONMENTAL per its follow-up classification.
@@ -453,6 +519,7 @@ EXPECTED OUTPUT: implement the task, run tests, emit a fenced ENGINEER_REPORT JS
 You MUST continue to the next ready task without pausing. You MUST NOT pause between tasks, between sections, or after progress displays. Auto-continue is mandatory per `rq-autonomy01` / `rq-autonomy01.4`.
 
 #### Allowed exit conditions (ONLY these end the loop)
+
 1. `adv_task_ready` returns empty (all ready tasks done) → advance to Phase 5 verification.
 2. Doom-loop triggered (3 failed SEMANTIC retries on a task) → `[ADV:BLOCKED]` + user `question`.
 3. ENVIRONMENTAL blocker (missing dep, config, credential) → escalate via `question`.
@@ -462,6 +529,7 @@ You MUST continue to the next ready task without pausing. You MUST NOT pause bet
 7. Checkpoint failure with ENVIRONMENTAL or unresolved SEMANTIC classification → escalate via `question`.
 
 #### Invalid stop reasons (MUST NOT pause for any of these)
+
 - "Task complete" / "Section complete" / "Phase complete"
 - "Progress update" / "Status report" / "Let me summarize"
 - Asking whether to continue, proceed, or move on between tasks
@@ -469,27 +537,41 @@ You MUST continue to the next ready task without pausing. You MUST NOT pause bet
 - Any reason not enumerated in the Allowed exit conditions above
 
 ### Incremental Verification
+
 After EACH task: run build/tests/lint → if fails: retry protocol → only mark complete after pass. Incremental verification runs BEFORE the checkpoint (step 3c.4) so the checkpoint represents verified task state. Post-checkpoint fix-ups are not expected by design — verification must pass before committing.
 
 ---
+
 ## Phase 4: Progress Tracking
 
 Task state is visible via `_contextSnapshot` and `adv_task_list` — do not emit a per-task status block.
 
 ---
+
 ## Phase 5: Global Final Loop
+
 Before emitting the execution-gate handoff: run full build + all tests + lint + type check. If any fail → retry protocol → continue until pass or budget exhausted.
 
 ---
+
 ## Phase 6: Completion
+
 ### Pre-Completion Checklist
+
 Verify: all tasks done or properly cancelled, no tasks skipped/deferred, all "trivial" skips have rationale, touched-scope quality/test obligations met (directly touched files, adjacent test/doc gaps addressed, same-pattern subsystem issues fixed).
+
 ### Cancelled Task Verification
+
 If cancelled tasks exist → verify each has `cancellation.approved_by_user: true`. If any lack approval → ask via `question` tool for retroactive approval.
+
 ### Final Validation
+
 `adv_change_validate changeId: <target>` → must pass.
+
 ### Mark Gate
+
 `adv_gate_complete changeId: {change-id} gateId: execution`
+
 ### Handoff
 
 Use the Gate Handoff Voice spine (see `docs/command-voice-standard.md § Gate Handoff Voice`):
@@ -516,11 +598,15 @@ What was built and how it was verified.
 ```
 
 ---
+
 ## Trivial Tasks
+
 For tasks with `metadata.tdd_intent: "not_applicable"` (docs, config, non-code): skip Red/Green phases, verify manually, include rationale in status. These tasks are also candidates for delegation routing — see § Delegation Routing above.
 
 ---
+
 ## Key Principle
+
 All state lives in ADV tools. Contract banners are views, not source of truth.
 | State | Tool |
 |-------|------|

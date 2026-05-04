@@ -1,0 +1,47 @@
+{
+  "entries": [
+    {
+      "id": "ws-5f575ede-ffdf-4c66-8df9-2fbbab3735fb",
+      "type": "gotcha",
+      "content": "Spec-drift tests may preserve exact legacy phrases such as `v1 fallback` even when the semantic spec rewrite is correct. When changing spec law text, update assertions and keep continuity tokens intentionally where tests/docs rely on them.",
+      "source_task": "tk-eb7226ae-d159-4867-83f8-be6b789133bf",
+      "recorded_at": "2026-05-04T04:08:20.964Z"
+    },
+    {
+      "id": "ws-44f44250-cc3b-445c-9770-3e4359ed4baf",
+      "type": "gotcha",
+      "content": "Registry timeout-override tests extract only the `toolName: registerTool(...)` block, so the `rq-toolTimeoutOverride01` rationale token must appear inside that block, not only in the preceding comment.",
+      "source_task": "tk-4011612a-a78e-4642-ab23-e8f46f01c775",
+      "recorded_at": "2026-05-04T04:08:20.974Z"
+    },
+    {
+      "id": "ws-6897b77f-884c-4557-9ec0-05a384ac9821",
+      "type": "pattern",
+      "content": "When adding health diagnostics to `adv_status`, update all three planes together: raw `fullOutput`, `applyStatusView('health')` projection, and `formatStatusOutput()` labels. Otherwise new raw fields exist internally but disappear from user-facing health output.",
+      "source_task": "tk-669c7976-9641-452c-a164-ff7a6f1a28bc",
+      "recorded_at": "2026-05-04T04:08:20.978Z"
+    },
+    {
+      "id": "ws-70586b9b-bf37-4ae2-9b63-a69a134b3d76",
+      "type": "gotcha",
+      "content": "When a readiness check uses `getTemporalWorkerAliveness() && getRegisteredTemporalWorkerQueues().includes(...)`, JS short-circuit will skip the queues call when aliveness is false. Tests that rely on `vi.fn().mockReturnValueOnce([])...mockReturnValue([...])` to model recovery cycles will silently miscount. Preserve the historical eager-call pattern (compute `queues` first, then check `alive`) so each readiness check consumes one mock value from each helper.",
+      "source_task": "tk-e34aba61-8751-4138-bd34-ebd287e62703",
+      "recorded_at": "2026-05-04T04:08:20.983Z"
+    },
+    {
+      "id": "ws-fe122fc1-3226-453d-8e35-4b0f828176ce",
+      "type": "gotcha",
+      "content": "`adv_run_test` can execute a command successfully but fail to persist final evidence with `WorkflowUpdateFailedError` even when Temporal server/worker/queue and project/change workflows diagnose healthy. Do not complete the task from the shell pass alone: retry once after `adv_temporal_diagnose`; if it still fails, use `adv_task_evidence` with captured output, then require `adv_task_checkpoint` to return `checkpointRecorded:true` before `adv_task_update done`.",
+      "source_task": "tk-e2c1d852-fc8b-4038-8882-fcb8c9dcdfef",
+      "recorded_at": "2026-05-04T04:08:21.004Z"
+    },
+    {
+      "id": "ws-a6dbce41-e838-4a93-a3ca-407474a38f6b",
+      "type": "pattern",
+      "content": "For worktree-create recovery paths, use `git worktree list --porcelain` as the first authority before Temporal registry access. Existing branch/path reuse can complete without project-workflow recovery, base resolution, flock, or `git worktree add`; missing paths should run `git worktree prune` before fresh create.",
+      "source_task": "tk-65841f2f-0a4b-45c7-9856-985fbbb59f79",
+      "recorded_at": "2026-05-04T04:08:21.008Z"
+    }
+  ],
+  "count": 6
+}

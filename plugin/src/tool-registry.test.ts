@@ -284,4 +284,21 @@ describe("safeExecute timeout overrides for slow-subprocess tools", () => {
     const value = Number(valueMatch![1].replace(/_/g, ""));
     expect(value).toBeGreaterThanOrEqual(30_000);
   });
+
+  test("adv_temporal_worker_restart registers safeExecute with timeoutMs override ≥ 15s (rq-toolTimeoutOverride01.2)", () => {
+    const block = extractRegistrationBlock(
+      registrySrc,
+      "adv_temporal_worker_restart",
+    );
+    expect(
+      block,
+      "adv_temporal_worker_restart registration block not found",
+    ).not.toBeNull();
+    expect(block!).toContain("rq-toolTimeoutOverride01");
+    expect(block!).toMatch(/timeoutMs:\s*\d/);
+    const valueMatch = block!.match(/timeoutMs:\s*(\d[\d_]*)/);
+    expect(valueMatch).toBeTruthy();
+    const value = Number(valueMatch![1].replace(/_/g, ""));
+    expect(value).toBeGreaterThanOrEqual(15_000);
+  });
 });

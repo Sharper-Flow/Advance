@@ -198,7 +198,16 @@ async function resolveAccess(projectDir: string) {
     return getBoundedProjectWorkflowAccess({ projectDir });
   }
   const mutablePath = join(getExternalRoot(projectId), "worktree-state.marker");
-  return getBoundedProjectWorkflowAccess({ projectDir, mutablePath });
+  // Worktree state is the hot path for `adv_worktree_create`; ask the helper
+  // to run one bounded non-approval recovery attempt before returning
+  // `unavailable`. Suspect live legacy-v1 lock failures surface a
+  // `recommendedNextAction` requiring explicit approval rather than silently
+  // degrading to in-place behavior (rq-workerSingleton01.6).
+  return getBoundedProjectWorkflowAccess({
+    projectDir,
+    mutablePath,
+    recovery: "once",
+  });
 }
 
 async function readProjectState(

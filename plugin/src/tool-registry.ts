@@ -387,10 +387,26 @@ export function createToolMap(
       "adv_archive_purge",
       store,
     ),
-    adv_temporal_worker_restart: bindTool(
-      temporalOpsTools.adv_temporal_worker_restart,
-      "adv_temporal_worker_restart",
-      store,
+    // adv_temporal_worker_restart — rq-toolTimeoutOverride01.2.
+    // Inner verified recovery waits up to 10s for queue serviceability;
+    // 15s outer budget gives modest wrapper headroom while preserving a
+    // bounded failure envelope instead of fire-and-forget ambiguity.
+    adv_temporal_worker_restart: registerTool(
+      // rq-toolTimeoutOverride01.2: inner verification budget is 10s.
+      temporalOpsTools.adv_temporal_worker_restart.description,
+      temporalOpsTools.adv_temporal_worker_restart.args,
+      safeExecute(
+        async (args) =>
+          temporalOpsTools.adv_temporal_worker_restart.execute(
+            args as Parameters<
+              typeof temporalOpsTools.adv_temporal_worker_restart.execute
+            >[0],
+            store,
+          ),
+        "adv_temporal_worker_restart",
+        undefined,
+        { timeoutMs: 15_000 },
+      ),
     ),
     // adv_workflow_repair — KD-6 timeout override (rq-toolTimeoutOverride01).
     // Outer safety-net timeout must exceed the inner state-rebuild budget:

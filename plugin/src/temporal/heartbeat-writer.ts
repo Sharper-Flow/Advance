@@ -7,7 +7,10 @@ import {
   type WorkerLockContents,
   type WorkerLockContentsV2,
 } from "./worker-lock";
-import { recordTemporalRuntimeFailure } from "./retry-wrapper";
+import {
+  recordTemporalRuntimeFailure,
+  recordWorkerRunFailure,
+} from "./retry-wrapper";
 
 export interface HeartbeatFileHandle {
   writeFile(data: string): Promise<void>;
@@ -31,6 +34,9 @@ export interface StartHeartbeatWriterOptions {
   nonce?: () => string;
   debugLog?: (message: string) => void;
   staleHeartbeatMs?: number;
+  expectedQueue?: string;
+  serviceabilityGraceMs?: number;
+  isLocalWorkerServiceable?: () => boolean;
   onWorkerExhausted?: () => void | Promise<void>;
 }
 
@@ -46,11 +52,14 @@ export function startHeartbeatWriter(
   let timer: ReturnType<typeof setTimeout> | undefined;
   let consecutiveFailures = 0;
   let lastSuccessfulHeartbeatAt = 0;
+  let lastServiceableAt = 0;
   const lockPath = join(options.projectStateDir, WORKER_LOCK_FILENAME);
   const heartbeatFs = options.fs ?? nodeHeartbeatFs;
   const now = options.now ?? (() => new Date());
   const nonce = options.nonce ?? (() => Date.now().toString());
   const staleHeartbeatMs = options.staleHeartbeatMs ?? STALE_HEARTBEAT_MS;
+  const serviceabilityGraceMs =
+    options.serviceabilityGraceMs ?? staleHeartbeatMs;
   const debugLog =
     options.debugLog ??
     ((message: string) => appendDebugLog("heartbeat-writer", message));
@@ -73,6 +82,19 @@ export function startHeartbeatWriter(
     }
   };
 
+  const stopForServiceabilityExpiry = (): void => {
+    if (stopped) return;
+    stopped = true;
+    clearScheduledTick();
+    const queue = options.expectedQueue ?? "<unknown>";
+    const err = new Error(
+      `heartbeat writer stopped: local worker not serviceable for queue ${queue}`,
+    );
+    debugLog(err.message);
+    recordTemporalRuntimeFailure(err);
+    recordWorkerRunFailure(queue, err);
+  };
+
   const scheduleNext = (delayMs: number): void => {
     if (stopped) return;
     clearScheduledTick();
@@ -84,6 +106,17 @@ export function startHeartbeatWriter(
     inFlight = inFlight.then(async () => {
       if (stopped) return;
       try {
+        const serviceable = options.isLocalWorkerServiceable?.() ?? true;
+        if (serviceable) {
+          lastServiceableAt = now().getTime();
+        } else if (
+          now().getTime() - lastServiceableAt >=
+          serviceabilityGraceMs
+        ) {
+          stopForServiceabilityExpiry();
+          return;
+        }
+
         const stillOwner = await writeHeartbeat(
           lockPath,
           options.workerId,
@@ -132,6 +165,7 @@ export function startHeartbeatWriter(
   };
 
   lastSuccessfulHeartbeatAt = now().getTime();
+  lastServiceableAt = lastSuccessfulHeartbeatAt;
   tick();
 
   return {
