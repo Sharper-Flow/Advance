@@ -31,7 +31,11 @@ vi.mock("../utils/opencode-session-debt", async (importOriginal) => {
   };
 });
 
-// Mock getStslStats and isStslInitialized for search_attributes testing
+// Mock getStslStats and isStslInitialized for search_attributes testing.
+// `getService` is also mocked so the queue-serviceability path added by
+// the diagnose/status serviceability work (tk-669c7976) can compute a
+// "service layer not initialized" snapshot instead of throwing on the
+// missing export.
 vi.mock("../temporal/service", () => ({
   getStslStats: vi.fn().mockReturnValue({
     getServiceCalls: 0,
@@ -43,6 +47,7 @@ vi.mock("../temporal/service", () => ({
     saVerification: null,
   }),
   isStslInitialized: vi.fn().mockReturnValue(false),
+  getService: vi.fn().mockReturnValue(null),
 }));
 
 describe("Status Tools", () => {

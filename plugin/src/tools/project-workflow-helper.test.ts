@@ -52,10 +52,9 @@ vi.mock("../temporal/runtime-manager", async () => {
 });
 
 vi.mock("../utils/project-id", async () => {
-  const actual =
-    await vi.importActual<typeof import("../utils/project-id")>(
-      "../utils/project-id",
-    );
+  const actual = await vi.importActual<typeof import("../utils/project-id")>(
+    "../utils/project-id",
+  );
   return { ...actual, getProjectId: mocks.getProjectId };
 });
 
@@ -169,5 +168,101 @@ describe("getBoundedProjectWorkflowAccess recovery", () => {
 
     expect(result.mode).toBe("unavailable");
     expect(mocks.restartCurrentProjectTemporalWorker).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * Regression guard for the cross-cutting #22/#23/#24 recovery class
+ * (`fixStuckTemporalWorkerRecovery`). Models the shared incident shape:
+ *
+ * - Temporal server alive
+ * - Expected project queue not serviceable (no fresh poller, no local
+ *   registration)
+ * - `worker.lock` present with alive `holder_pid`, schema_version: 1, no
+ *   `last_heartbeat_at`
+ * - Stale running workflow count > 0 on the queue
+ * - Worktree-create style hot-path caller blocked BEFORE running any
+ *   filesystem operation: the recovery seam returns a structured failure
+ *   envelope, never a "in-place" fallback
+ *
+ * The recovery contract surfaces:
+ * - `mode: "unavailable"` with reason naming `suspect live legacy v1
+ *   worker.lock`
+ * - `recommendedNextAction` requesting explicit approval evidence; never
+ *   recommends in-place edits
+ * - `queueServiceability.status === "not_serviceable"` with evidence
+ *   covering local registration, ownership, server poller probe, and stale
+ *   running workflow count
+ * - At most one bounded `restartCurrentProjectTemporalWorker` attempt; no
+ *   blind restart loops
+ */
+describe("regression: fixStuckTemporalWorkerRecovery incident shape", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.canReachTemporalAddress.mockResolvedValue(true);
+    mocks.getRegisteredTemporalWorkerQueues.mockReturnValue([]);
+    mocks.getTemporalWorkerAliveness.mockReturnValue(false);
+    mocks.getTemporalWorkerDiagnostics.mockReturnValue([]);
+  });
+
+  it("returns a structured failure envelope for the suspect-v1-lock incident shape and runs at most one bounded recovery attempt", async () => {
+    mocks.restartCurrentProjectTemporalWorker.mockRejectedValueOnce(
+      Object.assign(new Error("worker.lock held by pid=4444"), {
+        code: "WORKER_LOCK_HELD",
+        ownerPid: 4444,
+      }),
+    );
+    mocks.getTemporalHealth.mockResolvedValueOnce({
+      server_alive: true,
+      worker_alive: false,
+      worker_process_alive: false,
+      registered_queues: [],
+      last_op_at: null,
+      last_error: null,
+      fallback_counts: { changes: 0, tasks: 0, wisdom: 0, gates: 0 },
+      stale_queues: [{ queue: "advance-proj123", running_count: 6 }],
+      reconnect_count: 0,
+      op_counters: [],
+      worker_lock: {
+        holder_pid: 4444,
+        last_heartbeat_at: null,
+        heartbeat_age_ms: null,
+        schema_version: 1,
+      },
+      last_worker_run_error: null,
+    });
+
+    const result = await getBoundedProjectWorkflowAccess({
+      projectDir: "/repo",
+      mutablePath: "/state/proj123/worktree-state.marker",
+      recovery: "once",
+    });
+
+    // Bounded recovery: exactly one non-approval restart attempt.
+    expect(mocks.restartCurrentProjectTemporalWorker).toHaveBeenCalledTimes(1);
+    expect(mocks.restartCurrentProjectTemporalWorker).toHaveBeenCalledWith(
+      "/repo",
+      { approvedLockReclaim: false, approvalEvidence: undefined },
+    );
+
+    // Structured failure envelope (#22/#23/#24 contract).
+    expect(result.mode).toBe("unavailable");
+    if (result.mode !== "unavailable") throw new Error("expected unavailable");
+    expect(result.reason).toContain("suspect live legacy v1 worker.lock");
+    expect(result.recommendedNextAction).toBeDefined();
+    expect(result.recommendedNextAction).toContain("explicit approval");
+    expect(result.recommendedNextAction).not.toContain("in-place");
+
+    // Serviceability snapshot exposes the diagnostic shape needed by
+    // diagnose/status/worktree callers.
+    expect(result.queueServiceability).toBeDefined();
+    const serviceability = result.queueServiceability!;
+    expect(serviceability.status).toBe("not_serviceable");
+    expect(serviceability.expectedQueue).toBe("advance-proj123");
+    expect(serviceability.evidence.localRegistered).toBe(false);
+    expect(serviceability.evidence.localWorkerAlive).toBe(false);
+    expect(serviceability.evidence.localOwnership).toBe("peer");
+    expect(serviceability.evidence.staleRunningWorkflowCount).toBe(6);
+    expect(serviceability.blockers.length).toBeGreaterThan(0);
   });
 });
