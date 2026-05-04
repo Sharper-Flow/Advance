@@ -1,4 +1,3 @@
-import { getTemporalAddress } from "./client";
 import { getService, getStslStats } from "./service";
 import {
   getTemporalRetryTelemetry,
@@ -15,7 +14,11 @@ import {
   getTemporalWorkerAliveness,
 } from "../plugin-init";
 import { canReachTemporalAddress } from "./runtime-manager";
-import { buildProjectTaskQueue, createTemporalClientBundle } from "./client";
+import {
+  getTemporalAddress,
+  buildProjectTaskQueue,
+  createTemporalClientBundle,
+} from "./client";
 import { getExternalRoot } from "../utils/project-id";
 import {
   WORKER_LOCK_FILENAME,
@@ -114,10 +117,12 @@ const STALE_THRESHOLD_MS = 5 * 60 * 1000;
  * - `projectId` is falsy (no current project to probe)
  * - the project queue is already in `registeredQueues` (local poller is live)
  *
- * Opens a fresh Temporal client bundle per call and closes it in
- * `finally`. Caller-visible failures are swallowed: stale-queue
- * detection is advisory and must not break `adv_status`; base Temporal
- * health is surfaced separately.
+ * Uses the STSL singleton (`getService()`) when available; falls back to a
+ * fresh `createTemporalClientBundle()` only when STSL is uninitialized (e.g.
+ * early boot before `initStsl` ran). The fallback connection is closed
+ * promptly. Caller-visible failures are swallowed: stale-queue detection
+ * is advisory and must not break `adv_status`; base Temporal health is
+ * surfaced separately.
  *
  * @param projectId - Current project id, or `undefined` when unknown.
  * @param registeredQueues - Queues currently served by a local worker.
@@ -135,6 +140,19 @@ export async function probeStaleQueues(
   const cutoff = new Date(Date.now() - STALE_THRESHOLD_MS).toISOString();
   const query = `TaskQueue="${queue}" AND ExecutionStatus="Running" AND StartTime < "${cutoff}"`;
 
+  // Primary path: use the STSL singleton. No extra connection overhead.
+  const stsl = getService();
+  if (stsl) {
+    const result = await stsl.client.workflow.count(query);
+    if (result.count > 0) {
+      return [{ queue, running_count: result.count }];
+    }
+    return [];
+  }
+
+  // Fallback: STSL not yet initialized (e.g. early boot). Create a fresh
+  // connection so stale-queue detection still works in that narrow window.
+  // Close it promptly when done.
   let bundle;
   try {
     bundle = await createTemporalClientBundle();

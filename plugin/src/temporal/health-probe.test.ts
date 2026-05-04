@@ -234,7 +234,7 @@ describe("getTemporalHealth (C3)", () => {
     expect(mocks.createTemporalClientBundle).not.toHaveBeenCalled();
   });
 
-  it("returns stale_queues=[] when the project queue is in registered_queues", async () => {
+  it("returns stale_queues=[] when the project queue is in registered_queues (STSL path, no fresh client)", async () => {
     mocks.getRegisteredTemporalWorkerQueues.mockReturnValueOnce([
       "advance-proj-a",
       "advance-proj-b",
@@ -245,24 +245,17 @@ describe("getTemporalHealth (C3)", () => {
     expect(mocks.createTemporalClientBundle).not.toHaveBeenCalled();
   });
 
-  it("returns stale_queues=[] when count() returns zero", async () => {
-    mocks.createTemporalClientBundle.mockResolvedValueOnce({
-      address: "127.0.0.1:7233",
-      namespace: "default",
-      connection: { close: vi.fn(async () => {}) },
-      client: {
-        workflow: {
-          count: vi.fn(async () => ({ count: 0 })),
-        },
-      },
-    });
-
+  it("returns stale_queues=[] when count() returns zero (STSL path)", async () => {
+    // getService() returns the mocked STSL bundle; no fresh client needed
     const health = await getTemporalHealth("target-proj");
     expect(health.stale_queues).toEqual([]);
   });
 
-  it("returns stale_queues with running_count when count() returns > 0 and queue is not registered", async () => {
-    mocks.createTemporalClientBundle.mockResolvedValueOnce({
+  it("returns stale_queues with running_count when count() returns > 0 via STSL singleton", async () => {
+    // STSL singleton returns a client with stale workflows.
+    // The default getService mock has an empty client {}, so override it
+    // for this test with a client that has workflow.count returning 42.
+    mocks.getService.mockReturnValue({
       address: "127.0.0.1:7233",
       namespace: "default",
       connection: { close: vi.fn(async () => {}) },
@@ -277,6 +270,20 @@ describe("getTemporalHealth (C3)", () => {
     expect(health.stale_queues).toEqual([
       { queue: "advance-target-proj", running_count: 42 },
     ]);
+  });
+
+  it("skips stale_queues probing when STSL is uninitialized (server_alive=false)", async () => {
+    // When getService() returns null, server_alive becomes false, and
+    // getTemporalHealth skips probeStaleQueues entirely. No fresh client
+    // should be created — stale detection is advisory and subordinate to
+    // server health.
+    mocks.getService.mockReturnValue(null);
+
+    const health = await getTemporalHealth("target-proj");
+
+    expect(health.server_alive).toBe(false);
+    expect(mocks.createTemporalClientBundle).not.toHaveBeenCalled();
+    expect(health.stale_queues).toEqual([]);
   });
 
   it("returns worker_lock=null when the project worker lock is missing", async () => {
