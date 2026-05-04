@@ -5,7 +5,7 @@
  * Primary interface for AI agents to manage specs, changes, and tasks.
  *
  * Implements the @opencode-ai/plugin SDK interface with:
- * - tool: 42 MCP tools for spec/change/task/wisdom/agenda/test management
+ * - tool: MCP tools for spec/change/task/wisdom/agenda/test management (see tool-registry.ts)
  * - event: Session status tracking, terminal UI updates
  * - tool.execute.before/after: Active change tracking, task completion detection
  * - experimental.session.compacting: Change preservation during compaction
