@@ -523,6 +523,14 @@ Disk-only orphaned changes are the inverse shape: a `change.json` snapshot exist
 but its `adv/change/*` Temporal workflow is missing. Use `adv_orphan_sweep`
 dry-run to detect these safely, then execute with user approval to re-seed.
 
+Completed `adv/change/*` executions for `archived` and `closed` changes are
+normal. Change workflows now exit once terminal state is reached: the
+archive/close update records the final status, the workflow drains in-flight
+handlers with `allHandlersFinished`, logs `workflow:completing`, and returns.
+Do not re-seed these terminal changes. `reseedChangeFromDisk` intentionally
+serves archived/closed changes from disk instead of starting another workflow
+run.
+
 ### Symptoms
 
 - `adv_agenda_add` (and other tools that route through the project workflow) fails with `Temporal worker not ready for queue advance-{projectId}` in repos that never started a local worker.
@@ -551,7 +559,13 @@ temporal workflow count \
 temporal task-queue describe --task-queue advance-{projectId}
 ```
 
-### Safe batch-termination
+### Safe batch-termination for pre-existing zombies
+
+After `terminatechangeworkflowonarchi`, newly archived or closed changes should
+appear as `Completed`, not long-lived `Running`, workflows. Batch termination is
+for pre-existing zombie executions only: old `Running` `changeWorkflow` or
+`projectWorkflow` rows with no live poller, no legitimate in-flight work, and a
+start time before the fix or incident window.
 
 > **⚠️ Update the date.** Replace `YYYY-MM-DD` below with the day **before** the incident enqueue date so you do not terminate legitimate in-flight work.
 
@@ -582,6 +596,7 @@ temporal workflow count --query 'ExecutionStatus="Running"'
 - **`preventRecoverOrphanedTemporal`** — added the original orphaned-workflow prevention policy and `adv_status` stale-queue guardrail.
 - **`improveAdvPostCrashTemporal`** — added diagnose-first recovery, search-attribute remediation, STSL reconnect guidance, repair/orphan-sweep sequencing, and the external restart boundary.
 - **`fixStuckTemporalWorkerRecovery`** (this change) — replaced fire-and-forget worker restart with a verified 10 s-budget recovery, added approval-gated suspect live legacy v1 lock reclaim (rq-workerSingleton01.6), added queue-serviceability classification (rq-workerHealth01) using local-owner + server-poller-probe evidence, added the bounded `recovery: "once"` seam at `getBoundedProjectWorkflowAccess` for `adv_worktree_create`, and clarified that poller rows are freshness evidence — not durable worker records. Resolves [Sharper-Flow/Opencode-Advance#22, #23, #24](https://github.com/Sharper-Flow/Opencode-Advance/issues/22).
+- **`terminatechangeworkflowonarchi`** — made `changeWorkflow` Complete when archive/close sets terminal status, added the `allHandlersFinished` drain before return, rejected re-entry for archived/closed changes with a domain error, and prevented disk re-seeding for terminal archived/closed changes. New `Running` terminal change workflows are no longer expected; cleanup should target only pre-existing zombies.
 
 ## Disk-full / OOM surfaces
 
