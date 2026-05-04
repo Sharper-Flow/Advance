@@ -223,6 +223,28 @@ Advance separates workflow ownership from reusable methodology.
 
 This keeps methodology reusable without letting random helper prompts mutate workflow state.
 
+## Why one agent per provider, not one agent per role
+
+Advance generates provider-specific orchestrator agents (`adv-claude`, `adv-gpt`, `adv-glm`, `adv-kimi`) instead of role-based agents like `planner`, `coder`, or `reviewer`. This is deliberate.
+
+**The problem with role agents:** Splitting the 7-gate lifecycle across agents means each agent only sees a slice of the workflow. The planner never sees how its design survives implementation. The coder never sees the acceptance criteria that govern review. The reviewer never sees the discovery evidence that shaped the agreement. Every handoff loses context — and context loss is the exact problem Advance exists to solve.
+
+**The provider-agent model:** A single ADV agent per LLM provider carries the full change lifecycle from proposal through archive. The agent sees the problem statement, the agreement, the design, the task graph, the implementation evidence, and the review findings in one continuous context. When specialized work is needed, the orchestrator delegates to bounded sub-agents for a single task — not for an entire lifecycle phase.
+
+| Aspect | Role agents (planner / coder / reviewer) | Provider agents (adv-claude / adv-gpt / …) |
+| --- | --- | --- |
+| Context continuity | Lost at every handoff | Full lifecycle in one agent |
+| Gate coherence | Each agent sees a phase slice | One agent owns all 7 gates |
+| Model tuning | One prompt fits all models | Provider-specific prompt tuning |
+| Model comparison | Hard — different agents run different phases | Same workflow, different models, directly comparable |
+| User model | "Which agent handles this phase?" | Pick a provider, get the full lifecycle |
+| Tool surface | Per-role tool subsets to maintain | Shared MCP tools, single policy layer |
+| Delegation | Role-to-role handoffs, no recovery | Scoped sub-agent tasks within a workflow |
+
+The sub-agent system still exists — `adv-engineer` handles delegated implementation, `adv-researcher` validates architecture, `explore` scans code, `librarian` fetches docs. But these are scoped tasks, not lifecycle phases. The orchestrator stays in the loop from start to finish.
+
+This design also enables model competition: run the same change on two providers and compare results. The gates, specs, tools, and evidence format are identical — only the reasoning varies.
+
 ## Command reference
 
 | Command           | Description                                                                       |
