@@ -30,6 +30,7 @@ import {
   resolveNodeExecutable,
 } from "./runtime-manager";
 import type { InProcessWorker } from "./in-process-worker";
+import { recordWorkerRunFailure } from "./retry-wrapper";
 
 const logger = createLogger("temporal-multi-worker");
 const debugLog = (msg: string): void =>
@@ -119,12 +120,19 @@ export interface ChildRegisterErrorMessage {
   message: string;
 }
 
+export interface ChildRunErrorMessage {
+  type: "run-error";
+  queue: string;
+  message: string;
+}
+
 export type ChildToParentMessage =
   | ChildReadyMessage
   | ChildErrorMessage
   | ChildWorkerStartedMessage
   | ChildRegisterAckMessage
-  | ChildRegisterErrorMessage;
+  | ChildRegisterErrorMessage
+  | ChildRunErrorMessage;
 
 export interface MultiWorkerInput {
   address: string;
@@ -220,6 +228,20 @@ export async function createMultiWorker(
           ),
         );
       }
+      return false;
+    }
+
+    if (msg.type === "run-error") {
+      if (typeof msg.queue !== "string") return false;
+      const message =
+        typeof msg.message === "string"
+          ? msg.message
+          : typeof msg.error === "string"
+            ? msg.error
+            : "Unknown worker run error";
+      queues.delete(msg.queue);
+      registerErrors.set(msg.queue, message);
+      recordWorkerRunFailure(msg.queue, new Error(message));
       return false;
     }
 
