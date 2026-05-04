@@ -69,6 +69,7 @@ import {
   getWorktreeBase,
   SYNTHETIC_TEST_PROJECT_ID_PREFIX,
 } from "../utils/project-id";
+import { getPluginRuntimeInfo } from "../utils/plugin-runtime-info";
 
 // =============================================================================
 // Health Snapshot Cache
@@ -658,6 +659,7 @@ export function applyStatusView(
       projection.recommendations = full.recommendations ?? [];
       // Metrics counters (AC6).
       if (full.metrics) projection.metrics = full.metrics;
+      projection.plugin_runtime = full.plugin_runtime;
       break;
     }
     case "changes": {
@@ -996,6 +998,7 @@ export const statusTools = {
             // AC6: in-memory counters surfaced via view: "health".
             // Counters reset on plugin init (JC-1).
             metrics: getMetrics(),
+            plugin_runtime: await getPluginRuntimeInfo(),
             diagnostics: {
               temporalWorker: temporalHealth?.worker_alive
                 ? ("healthy" as const)

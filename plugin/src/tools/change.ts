@@ -208,6 +208,21 @@ type ChangeIssueUpdate = {
   notLinked: string[];
 };
 
+function invalidGitHubIssueUrls(urls: string[]): string[] {
+  return urls.filter((value) => {
+    try {
+      const parsed = new URL(value);
+      return !(
+        parsed.protocol === "https:" &&
+        parsed.hostname === "github.com" &&
+        /^\/[^/]+\/[^/]+\/issues\/\d+$/.test(parsed.pathname)
+      );
+    } catch {
+      return true;
+    }
+  });
+}
+
 function applyIssueUpdates(
   existing: string[] | undefined,
   add: string[] = [],
@@ -2065,6 +2080,14 @@ export const changeTools = {
       if (addList.length === 0 && removeList.length === 0) {
         return formatToolOutput({
           error: "At least one non-empty add/remove issue list is required",
+        });
+      }
+
+      const invalid = invalidGitHubIssueUrls([...addList, ...removeList]);
+      if (invalid.length > 0) {
+        return formatToolOutput({
+          error: `Invalid GitHub issue URL(s): ${invalid.join(", ")}. Expected https://github.com/<owner>/<repo>/issues/<number>`,
+          invalid,
         });
       }
 

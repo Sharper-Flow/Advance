@@ -118,6 +118,16 @@ Advance is intentionally unusual. It is not just commands around an LLM.
 
 This is why Advance is more than durable functions, more than a memory layer, more than a prompt pack, and more than a test wrapper.
 
+## Standalone maintenance surfaces
+
+OCA owns the offline `oca maintain` operator command, but Advance provides the runtime-safe inspection surfaces it consumes:
+
+- `scripts/maintenance/inspect.mjs --project-root <path>` emits `schema_version: 1`, archived change summaries, release-gate eligibility, and a verification summary. OCA uses this to merge only archived changes whose `release` gate is `done`.
+- `adv_change_update_issues` accepts full GitHub issue URLs only (`https://github.com/<owner>/<repo>/issues/<number>`). Shorthand refs are rejected before persistence so invalid state cannot be saved.
+- `adv_status view=health` includes `plugin_runtime`, reporting the loaded module path, process start time, `dist/oca-build.json` marker path/data when present, worker script path, and the caveat that host-loaded tool code requires restarting OpenCode after rebuild.
+
+Maintenance remains offline by design. OCA should close/refuse active sessions before executing merge/rebuild/cleanup work; Temporal recovery is report-only unless a future Advance standalone script exposes a safe executor.
+
 ## Core workflow
 
 ```text
