@@ -964,6 +964,11 @@ export interface AdvWorktreeDeleteDeps {
   worktreePath?: string;
   hooks?: { preDelete: string[] };
   integrationCheck?: typeof verifyBranchIntegration;
+  registry?: { branch: string; changeId?: string; path: string }[];
+  mergedBranches?: (
+    defaultBranch: string,
+    repoRoot: string,
+  ) => Promise<string[]>;
 }
 
 export type AdvWorktreeDeleteResult =
@@ -980,38 +985,160 @@ export type AdvWorktreeDeleteResult =
     }
   | { ok: false; error: "REMOVE_FAILED"; reason: string };
 
+async function getWorktreeRegistryEntry(
+  branch: string,
+  deps: AdvWorktreeDeleteDeps,
+): Promise<{ branch: string; changeId?: string; path: string } | undefined> {
+  if (deps.registry) {
+    return deps.registry.find((r) => r.branch === branch);
+  }
+  const registry = await listWorktrees(deps.database);
+  return registry.find((r) => r.branch === branch);
+}
+
+async function getMergedBranchesForDelete(
+  defaultBranch: string,
+  repoRoot: string,
+  deps: AdvWorktreeDeleteDeps,
+): Promise<string[]> {
+  if (deps.mergedBranches) {
+    return deps.mergedBranches(defaultBranch, repoRoot);
+  }
+  const result = await git(["branch", "--merged", defaultBranch], repoRoot);
+  if (!result.ok) throw new Error(result.error);
+  return result.value.split("\n").filter((line) => line.trim().length > 0);
+}
+
+async function verifyNonAdvBranchIntegration(
+  branch: string,
+  deps: AdvWorktreeDeleteDeps,
+): Promise<{ ok: true } | { ok: false; reason: string; hint: string }> {
+  let defaultBranch: string;
+  try {
+    defaultBranch = await getDefaultBranch(deps.projectRoot);
+  } catch (err) {
+    return {
+      ok: false,
+      reason: "default_branch_unresolvable",
+      hint: `Could not determine default branch: ${String(err)}`,
+    };
+  }
+
+  let merged: string[];
+  try {
+    merged = await getMergedBranchesForDelete(
+      defaultBranch,
+      deps.projectRoot,
+      deps,
+    );
+  } catch (err) {
+    return {
+      ok: false,
+      reason: "git_failed",
+      hint: `Failed to list merged branches: ${String(err)}`,
+    };
+  }
+
+  const normalizedMerged = merged.map((b) => b.replace(/^[*+]\s*/, "").trim());
+  if (!normalizedMerged.includes(branch)) {
+    return {
+      ok: false,
+      reason: "branch_not_merged",
+      hint: `Merge the branch into ${defaultBranch} before deleting its worktree.`,
+    };
+  }
+
+  return { ok: true };
+}
+
+async function maybeRemoveMissingFromDiskRegistryEntry(
+  branch: string,
+  worktreePath: string,
+  deps: AdvWorktreeDeleteDeps,
+): Promise<AdvWorktreeDeleteResult | null> {
+  if (await pathExists(worktreePath)) return null;
+
+  const gitWorktree = await findGitWorktreeByBranch(deps.projectRoot, branch);
+  const branchStillExists = await branchExists(deps.projectRoot, branch);
+  if (gitWorktree || branchStillExists) return null;
+
+  await removeSession(deps.database, branch);
+  await clearPendingDelete(deps.database, branch);
+  appendDebugLog(
+    "worktree-delete",
+    `removed stale missing-from-disk registry entry for ${branch} at ${worktreePath}`,
+  );
+  return { ok: true, branch, path: worktreePath };
+}
+
 export async function advWorktreeDelete(
   branch: string,
   opts: { force?: boolean } = {},
   deps: AdvWorktreeDeleteDeps,
 ): Promise<AdvWorktreeDeleteResult> {
-  // 1. Resolve worktree path
+  // 1. Resolve registry entry and worktree path. Registry wins over path
+  // derivation so missing-from-disk cleanup can operate on stale records.
+  let registryEntry:
+    | { branch: string; changeId?: string; path: string }
+    | undefined;
+  try {
+    registryEntry = await getWorktreeRegistryEntry(branch, deps);
+  } catch {
+    registryEntry = undefined;
+  }
+
   let worktreePath: string;
   if (deps.worktreePath) {
     worktreePath = deps.worktreePath;
+  } else if (registryEntry?.path) {
+    worktreePath = registryEntry.path;
   } else {
     try {
       worktreePath = await getWorktreePath(deps.projectRoot, branch);
     } catch {
-      const registry = await listWorktrees(deps.database);
-      const record = registry.find((r) => r.branch === branch);
-      if (!record) {
+      if (!registryEntry) {
         return { ok: false, error: "WORKTREE_NOT_FOUND", branch };
       }
-      worktreePath = record.path;
+      worktreePath = registryEntry.path;
     }
   }
 
-  // 2. Branch integration check
-  const integrationFn = deps.integrationCheck ?? verifyBranchIntegration;
-  const integration = await integrationFn(branch, deps.projectRoot);
-  if (!integration.ok) {
-    return {
-      ok: false,
-      error: "INTEGRATION_REQUIRED",
-      reason: integration.reason,
-      hint: "Branch must be archived, merged, and clean",
-    };
+  // #36: stale registry cleanup must happen before ADV integration; the
+  // archived/merged/clean gate cannot inspect a worktree that no longer exists.
+  if (registryEntry) {
+    const missingFromDisk = await maybeRemoveMissingFromDiskRegistryEntry(
+      branch,
+      worktreePath,
+      deps,
+    );
+    if (missingFromDisk) return missingFromDisk;
+  }
+
+  // 2. Branch integration check. ADV-owned branches keep the archived+merged+clean
+  // contract. Non-ADV branches (registry entries without changeId) require only
+  // merged-to-default here; clean/dirty is enforced by the existing worktree
+  // status checks below.
+  if (registryEntry && !registryEntry.changeId) {
+    const integration = await verifyNonAdvBranchIntegration(branch, deps);
+    if (!integration.ok) {
+      return {
+        ok: false,
+        error: "INTEGRATION_REQUIRED",
+        reason: integration.reason,
+        hint: integration.hint,
+      };
+    }
+  } else {
+    const integrationFn = deps.integrationCheck ?? verifyBranchIntegration;
+    const integration = await integrationFn(branch, deps.projectRoot);
+    if (!integration.ok) {
+      return {
+        ok: false,
+        error: "INTEGRATION_REQUIRED",
+        reason: integration.reason,
+        hint: "Branch must be archived, merged, and clean",
+      };
+    }
   }
 
   // 3. Pre-hook uncommitted check

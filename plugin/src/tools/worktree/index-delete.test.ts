@@ -59,7 +59,7 @@ const isLinux = process.platform === "linux";
 
 function createGitRepo(): string {
   const dir = mkdtempSync(join(tmpdir(), "adv-wt-del-"));
-  execSync("git init", { cwd: dir });
+  execSync("git init -b main", { cwd: dir });
   execSync("git config user.email 'test@test.com'", { cwd: dir });
   execSync("git config user.name 'Test'", { cwd: dir });
   writeFileSync(join(dir, "README.md"), "# test");
@@ -235,6 +235,109 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
     // Worktree should be gone
     const list = execSync("git worktree list", { cwd: repoRoot }).toString();
     expect(list).not.toContain(branch);
+  });
+
+  it("#36 removes missing-from-disk registry entry when path and branch are gone", async () => {
+    const branch = "change/missing-from-disk";
+    const wtPath = join(repoRoot, "worktrees", branch);
+    const deps = createMockDeps(repoRoot, wtPath);
+    deps.registry = [
+      {
+        branch,
+        path: wtPath,
+        changeId: "missing-from-disk",
+      },
+    ];
+    deps.integrationCheck = async () => {
+      throw new Error("integration check must be skipped for missing disk");
+    };
+
+    const result = await advWorktreeDelete(branch, {}, deps);
+
+    expect(result).toEqual({
+      ok: true,
+      branch,
+      path: wtPath,
+    });
+    expect(appendDebugLog).toHaveBeenCalledWith(
+      "worktree-delete",
+      expect.stringContaining("removed stale missing-from-disk registry entry"),
+    );
+  });
+
+  it("#38 deletes clean merged non-ADV worktree branch without archived change", async () => {
+    const branch = "feature/non-adv-clean";
+    const wtPath = addWorktree(repoRoot, branch);
+    const deps = createMockDeps(repoRoot, wtPath);
+    deps.registry = [{ branch, path: wtPath }];
+    deps.mergedBranches = async () => [`+ ${branch}`];
+    deps.integrationCheck = async () => {
+      throw new Error(
+        "ADV integration check must be skipped for non-ADV branch",
+      );
+    };
+
+    const result = await advWorktreeDelete(branch, {}, deps);
+
+    expect(result).toEqual({
+      ok: true,
+      branch,
+      path: wtPath,
+    });
+    expect(
+      execSync("git worktree list", { cwd: repoRoot }).toString(),
+    ).not.toContain(branch);
+  });
+
+  it("#38 blocks dirty non-ADV worktree branch", async () => {
+    const branch = "feature/non-adv-dirty";
+    const wtPath = addWorktree(repoRoot, branch);
+    writeFileSync(join(wtPath, "dirty.txt"), "dirty");
+    const deps = createMockDeps(repoRoot, wtPath);
+    deps.registry = [{ branch, path: wtPath }];
+    deps.mergedBranches = async () => [`+ ${branch}`];
+    deps.integrationCheck = async () => {
+      throw new Error(
+        "ADV integration check must be skipped for non-ADV branch",
+      );
+    };
+
+    const result = await advWorktreeDelete(branch, {}, deps);
+
+    expect(result).toMatchObject({
+      ok: false,
+      error: "UNCOMMITTED_WORK",
+    });
+    expect(
+      execSync("git worktree list", { cwd: repoRoot }).toString(),
+    ).toContain(branch);
+  });
+
+  it("#38 blocks unmerged non-ADV worktree branch", async () => {
+    const branch = "feature/non-adv-unmerged";
+    const wtPath = addWorktree(repoRoot, branch);
+    writeFileSync(join(wtPath, "unmerged.txt"), "unmerged");
+    execSync("git add unmerged.txt", { cwd: wtPath });
+    execSync("git commit -m 'unmerged work'", { cwd: wtPath });
+    const deps = createMockDeps(repoRoot, wtPath);
+    deps.registry = [{ branch, path: wtPath }];
+    deps.mergedBranches = async () => ["main"];
+    deps.integrationCheck = async () => {
+      throw new Error(
+        "ADV integration check must be skipped for non-ADV branch",
+      );
+    };
+
+    const result = await advWorktreeDelete(branch, {}, deps);
+
+    expect(result).toMatchObject({
+      ok: false,
+      error: "INTEGRATION_REQUIRED",
+      reason: "branch_not_merged",
+    });
+    expect(
+      execSync("git worktree list", { cwd: repoRoot }).toString(),
+    ).toContain(branch);
   });
 });
 
