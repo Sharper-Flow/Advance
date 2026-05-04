@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { readFileSync, existsSync } from "fs";
 import { join, resolve } from "path";
+import { SpecSchema } from "./types";
 
 const REPO_ROOT = resolve(__dirname, "../..");
 const SYNC_SCRIPT_PATH = join(REPO_ROOT, "scripts/sync-global.sh");
@@ -431,6 +432,30 @@ describe("sync-global.sh", () => {
       expect(requirementIds).toContain("rq-providerAdvMetrics01");
       expect(scenarioIds).toContain("rq-providerAdvSkinny01.1");
       expect(scenarioIds).toContain("rq-providerAdvSkinny01.2");
+    });
+
+    test("advance-meta spec captures worker heartbeat and run-loop health requirements", () => {
+      const parsed = SpecSchema.parse(spec);
+      const workerSingleton = parsed.requirements.find(
+        (rq) => rq.id === "rq-workerSingleton01",
+      );
+      const workerHealth = parsed.requirements.find(
+        (rq) => rq.id === "rq-workerHealth01",
+      );
+
+      expect(workerSingleton?.body).toContain("heartbeat");
+      expect(workerSingleton?.body).toContain("v1 fallback");
+      expect(workerSingleton?.scenarios).toHaveLength(5);
+      expect(scenarioIds).toContain("rq-workerSingleton01.5");
+      expect(
+        workerSingleton?.scenarios?.find(
+          (s) => s.id === "rq-workerSingleton01.2",
+        )?.given,
+      ).toContain(
+        "PID alive AND (no last_heartbeat field — v1 fallback — OR last_heartbeat within stale-grace)",
+      );
+      expect(workerHealth?.scenarios).toHaveLength(1);
+      expect(scenarioIds).toContain("rq-workerHealth01.1");
     });
   });
 

@@ -87,12 +87,7 @@
       "title": "OpenCode Session Debt Diagnostics",
       "body": "ADV diagnostics must safely detect stale blank assistant messages in the shared OpenCode session database, distinguish live in-flight rows from repairable stale debt, and require dry-run plus backup before any repair deletes rows.",
       "priority": "must",
-      "tags": [
-        "diagnostics",
-        "opencode",
-        "session-debt",
-        "doctor"
-      ],
+      "tags": ["diagnostics", "opencode", "session-debt", "doctor"],
       "scenarios": [
         {
           "id": "rq-opencodeDebt01.1",
@@ -637,10 +632,7 @@
             "A project workflow whose change_summaries holds exactly N entries (where N equals the configured cap)"
           ],
           "when": "applyChangeSummaryToProjectState is called with an existing changeId (in-place update)",
-          "then": [
-            "The registry size remains exactly N",
-            "No entry is evicted"
-          ]
+          "then": ["The registry size remains exactly N", "No entry is evicted"]
         },
         {
           "id": "rq-changeSummariesCap01.2",
@@ -781,7 +773,7 @@
     {
       "id": "rq-workerSingleton01",
       "title": "Singleton Temporal worker per project across sessions",
-      "body": "When multiple plugin instances initialize against the same external state directory for the same project, at most ONE Temporal worker process MUST exist for that project_id at any given time. A file-lock sentinel at {external-state-dir}/{project-id}/worker.lock coordinates ownership. Subsequent instances participate as Temporal clients only. Stale-PID detection (process.kill(pid, 0)) reclaims the lock when the recorded owner has exited.",
+      "body": "When multiple plugin instances initialize against the same external state directory for the same project, at most ONE Temporal worker process MUST exist for that project_id at any given time. A file-lock sentinel at {external-state-dir}/{project-id}/worker.lock coordinates ownership. Subsequent instances participate as Temporal clients only. Heartbeat freshness is the primary liveness signal for v2 worker locks, while stale-PID detection (process.kill(pid, 0)) remains the v1 fallback when heartbeat fields are absent and reclaims the lock when the recorded owner has exited.",
       "priority": "must",
       "scenarios": [
         {
@@ -801,7 +793,8 @@
           "id": "rq-workerSingleton01.2",
           "title": "Subsequent plugin instance reads lock and skips worker spawn",
           "given": [
-            "A worker.lock file exists and the recorded PID is alive (process.kill(pid, 0) succeeds or throws EPERM)"
+            "A worker.lock file exists and the recorded PID is alive (process.kill(pid, 0) succeeds or throws EPERM)",
+            "PID alive AND (no last_heartbeat field — v1 fallback — OR last_heartbeat within stale-grace)"
           ],
           "when": "A second plugin initializes against the same project",
           "then": [
@@ -832,6 +825,40 @@
             "The lock-acquisition step is skipped",
             "The legacy in-process worker path is used",
             "This rollback path supports per-session debugging when needed"
+          ]
+        },
+        {
+          "id": "rq-workerSingleton01.5",
+          "title": "Stale v2 heartbeat is reclaimed even when PID remains alive",
+          "given": [
+            "A worker.lock file exists with schema_version 2 and a recorded PID that is alive",
+            "The lock last_heartbeat is older than the configured stale-heartbeat grace"
+          ],
+          "when": "A plugin attempts to acquire the lock",
+          "then": [
+            "The stale heartbeat lock file is removed",
+            "Acquisition is retried through the existing atomic O_EXCL path",
+            "A fresh worker may acquire the singleton lock without requiring external lock cleanup"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-workerHealth01",
+      "title": "Temporal worker run-loop failure is observable",
+      "body": "When a Temporal worker run loop rejects, exits unexpectedly, or exhausts restart attempts, ADV diagnostics must expose the last worker run-loop failure without requiring normal-path task-queue RPCs during plugin initialization.",
+      "priority": "must",
+      "scenarios": [
+        {
+          "id": "rq-workerHealth01.1",
+          "title": "Worker run-loop failure appears in diagnostics",
+          "given": [
+            "A Temporal worker run loop rejects or an out-of-process worker reports a run-error"
+          ],
+          "when": "adv_status or adv_temporal_diagnose inspects Temporal health",
+          "then": [
+            "The last worker run-loop error includes queue, message, and timestamp",
+            "The diagnostic remains additive and does not require describeTaskQueue during normal plugin initialization"
           ]
         }
       ]
@@ -897,9 +924,7 @@
         {
           "id": "rq-worktreeRegistry01.1",
           "title": "Worktree create persists state into project workflow registry",
-          "given": [
-            "A session invokes adv_worktree_create with a branch name"
-          ],
+          "given": ["A session invokes adv_worktree_create with a branch name"],
           "when": "The create flow completes successfully",
           "then": [
             "A WorktreeRecord is added to ProjectWorkflowState.worktree_registry via the addWorktreeSession workflow update",
@@ -942,7 +967,12 @@
       "title": "Concurrent-Session Hazard Framing Removed in Favor of Multi-Session Coordination",
       "body": "Production ADV code and ADV-managed instruction surfaces must frame multi-session as a supported design center, not as a hazard. The legacy [ADV:WARN] Concurrent OpenCode sessions detected warning is forbidden in production code. ADV_INSTRUCTIONS.md must contain the Multi-Session Coordination section, and the canonical status-marker table must list [ADV:PEER_SESSIONS].",
       "priority": "must",
-      "tags": ["multi-session", "framing", "instruction-surfaces", "status-markers"],
+      "tags": [
+        "multi-session",
+        "framing",
+        "instruction-surfaces",
+        "status-markers"
+      ],
       "scenarios": [
         {
           "id": "rq-multiSessionFraming01.1",
@@ -960,9 +990,7 @@
         {
           "id": "rq-multiSessionFraming01.2",
           "title": "ADV_INSTRUCTIONS contains Multi-Session Coordination, not Concurrent Session Hazard",
-          "given": [
-            "ADV_INSTRUCTIONS.md is inspected"
-          ],
+          "given": ["ADV_INSTRUCTIONS.md is inspected"],
           "when": "The relevant section is read",
           "then": [
             "A section titled Multi-Session Coordination is present",
@@ -990,7 +1018,12 @@
       "title": "Temporal Worker Survives Concurrent Client Load and Worker-Kill Respawn-Elect",
       "body": "The Temporal worker singleton must survive load from at least five concurrent ADV client sessions issuing state-write tool calls without lost updates, deadlocks, or replay-determinism violations. When the worker process is killed mid-load, surviving clients must respawn-elect a new worker via the singleton lock and resume normal operation.",
       "priority": "must",
-      "tags": ["temporal", "load-test", "worker-singleton", "concurrent-clients"],
+      "tags": [
+        "temporal",
+        "load-test",
+        "worker-singleton",
+        "concurrent-clients"
+      ],
       "scenarios": [
         {
           "id": "rq-temporalConcurrentLoad01.1",
