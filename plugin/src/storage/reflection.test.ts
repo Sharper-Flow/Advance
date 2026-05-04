@@ -115,6 +115,16 @@ describe("reflection storage", () => {
       expect(parsed1.change_id).toBe("change-1");
       expect(parsed2.change_id).toBe("change-2");
     });
+
+    test("writes to flat override path without creating nested .adv", async () => {
+      const entry = createTestEntry("change-flat");
+      const flatPath = join(tempDir, "reflections.jsonl");
+
+      await appendReflection(tempDir, entry, flatPath);
+
+      expect(existsSync(flatPath)).toBe(true);
+      expect(existsSync(join(tempDir, ".adv"))).toBe(false);
+    });
   });
 
   describe("getReflection", () => {
@@ -141,6 +151,25 @@ describe("reflection storage", () => {
       expect(result?.id).toBe(appended.id);
       expect(result?.plane1.efficiency.threshold_tier).toBe("auto");
       expect(result?.plane2.friction_items[0].category).toBe("tool_gap");
+    });
+
+    test("falls back to legacy nested .adv path when flat override is missing", async () => {
+      const fs = await import("fs/promises");
+      const legacyPath = join(tempDir, ".adv", "reflections.jsonl");
+      await fs.mkdir(join(tempDir, ".adv"), { recursive: true });
+      await fs.writeFile(
+        legacyPath,
+        JSON.stringify(createTestEntry("change-legacy")) + "\n",
+        "utf-8",
+      );
+
+      const result = await getReflection(
+        tempDir,
+        "change-legacy",
+        join(tempDir, "reflections.jsonl"),
+      );
+
+      expect(result?.change_id).toBe("change-legacy");
     });
   });
 
@@ -185,6 +214,29 @@ describe("reflection storage", () => {
       const result = await listReflections(tempDir, { changeId: "change-1" });
       expect(result).toHaveLength(1);
       expect(result[0].change_id).toBe("change-1");
+    });
+
+    test("flat override path wins over legacy nested .adv path", async () => {
+      const fs = await import("fs/promises");
+      const flatPath = join(tempDir, "reflections.jsonl");
+      const legacyPath = join(tempDir, ".adv", "reflections.jsonl");
+      await fs.mkdir(join(tempDir, ".adv"), { recursive: true });
+      await fs.writeFile(
+        flatPath,
+        JSON.stringify(createTestEntry("change-flat")) + "\n",
+        "utf-8",
+      );
+      await fs.writeFile(
+        legacyPath,
+        JSON.stringify(createTestEntry("change-legacy")) + "\n",
+        "utf-8",
+      );
+
+      const result = await listReflections(tempDir, {
+        reflectionsPath: flatPath,
+      });
+
+      expect(result.map((entry) => entry.change_id)).toEqual(["change-flat"]);
     });
 
     test("ignores malformed JSON lines", async () => {

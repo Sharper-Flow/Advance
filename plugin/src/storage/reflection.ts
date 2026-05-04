@@ -167,6 +167,28 @@ export const getReflectionsPath = (
   return overridePath ?? join(projectDir, ADV_DIR, REFLECTIONS_FILE);
 };
 
+function getLegacyReflectionsPath(projectDir: string): string {
+  return join(projectDir, ADV_DIR, REFLECTIONS_FILE);
+}
+
+function resolveReadableReflectionsPath(
+  projectDir: string,
+  overridePath?: string,
+): string {
+  const preferred = getReflectionsPath(projectDir, overridePath);
+  if (existsSync(preferred)) return preferred;
+
+  // External state used to be passed as `projectDir`, which expanded to
+  // `{external}/.adv/reflections.jsonl`. Keep read compatibility without
+  // creating that nested directory for new writes.
+  if (overridePath) {
+    const legacy = getLegacyReflectionsPath(projectDir);
+    if (legacy !== preferred && existsSync(legacy)) return legacy;
+  }
+
+  return preferred;
+}
+
 // =============================================================================
 // Operations
 // =============================================================================
@@ -247,7 +269,7 @@ export async function getReflection(
   changeId: string,
   overridePath?: string,
 ): Promise<ReflectionEntry | null> {
-  const path = getReflectionsPath(projectDir, overridePath);
+  const path = resolveReadableReflectionsPath(projectDir, overridePath);
 
   if (!existsSync(path)) {
     return null;
@@ -274,7 +296,10 @@ export async function listReflections(
     reflectionsPath?: string;
   },
 ): Promise<ReflectionEntry[]> {
-  const path = getReflectionsPath(projectDir, options?.reflectionsPath);
+  const path = resolveReadableReflectionsPath(
+    projectDir,
+    options?.reflectionsPath,
+  );
 
   if (!existsSync(path)) {
     return [];

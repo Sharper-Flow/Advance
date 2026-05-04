@@ -581,6 +581,7 @@ export const reflectionTools = {
       const persisted = await appendReflection(
         store.paths.external ?? store.paths.root,
         entry,
+        store.paths.reflections,
       );
 
       // Best-effort: write human-readable markdown to archive dir
