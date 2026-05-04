@@ -7,6 +7,7 @@
  */
 
 import { basename, join } from "path";
+import { access, readdir } from "fs/promises";
 import type { Store } from "../storage/store";
 import {
   buildProjectWorkflowId,
@@ -49,6 +50,11 @@ import { withOptionalTargetPathStore } from "./target-project";
 import { buildExternalDependencyStatus } from "./external-dependency-status";
 import { listChangeDirs, loadChange } from "../storage/json";
 import { archiveBundleExists } from "../archive/archive";
+import {
+  getDataHome,
+  getWorktreeBase,
+  SYNTHETIC_TEST_PROJECT_ID_PREFIX,
+} from "../utils/project-id";
 
 // =============================================================================
 // Health Snapshot Cache
@@ -61,6 +67,19 @@ interface HealthSnapshot {
   leaked_archived_source_dirs: number;
   archive_dirs: number;
   closed_to_active_ratio: number;
+}
+
+interface ExternalStateHygieneReport {
+  dry_run_only: true;
+  deletion_requires_approval: true;
+  external_root: string | null;
+  nested_adv_dir: boolean;
+  stale_db_dir: boolean;
+  worker_locks_excluded: true;
+  synthetic_project_dirs: number;
+  synthetic_worktree_dirs: number;
+  empty_worktree_prefix_dirs: string[];
+  recommendations: string[];
 }
 
 const healthSnapshotCache = new Map<
@@ -125,6 +144,93 @@ async function computeHealthSnapshot(store: Store): Promise<HealthSnapshot> {
 
   healthSnapshotCache.set(cacheKey, { snapshot, computedAt: now });
   return snapshot;
+}
+
+async function pathExists(path: string): Promise<boolean> {
+  try {
+    await access(path);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function listSubdirs(path: string): Promise<string[]> {
+  try {
+    const entries = await readdir(path, { withFileTypes: true });
+    return entries
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => entry.name);
+  } catch {
+    return [];
+  }
+}
+
+async function isEmptyDir(path: string): Promise<boolean> {
+  try {
+    const entries = await readdir(path);
+    return entries.length === 0;
+  } catch {
+    return false;
+  }
+}
+
+async function computeExternalStateHygiene(
+  store: Store,
+): Promise<ExternalStateHygieneReport> {
+  const externalRoot = store.paths.external;
+  const dataHome = getDataHome();
+  const projectId = externalRoot ? basename(externalRoot) : null;
+  const recommendations: string[] = [];
+
+  const nestedAdvDir = externalRoot
+    ? await pathExists(join(externalRoot, ".adv"))
+    : false;
+  const staleDbDir = externalRoot
+    ? await pathExists(join(externalRoot, "db"))
+    : false;
+
+  const syntheticProjectDirs = (
+    await listSubdirs(join(dataHome, "opencode", "plugins", "advance"))
+  ).filter((dir) => dir.startsWith(SYNTHETIC_TEST_PROJECT_ID_PREFIX)).length;
+  const syntheticWorktreeDirs = (
+    await listSubdirs(join(dataHome, "opencode", "worktree"))
+  ).filter((dir) => dir.startsWith(SYNTHETIC_TEST_PROJECT_ID_PREFIX)).length;
+
+  const emptyWorktreePrefixDirs: string[] = [];
+  if (projectId) {
+    const worktreeBase = getWorktreeBase(projectId);
+    const prefixDirs = await listSubdirs(worktreeBase);
+    for (const prefix of prefixDirs) {
+      const fullPath = join(worktreeBase, prefix);
+      if (await isEmptyDir(fullPath)) emptyWorktreePrefixDirs.push(fullPath);
+    }
+  }
+
+  if (nestedAdvDir)
+    recommendations.push("dry-run: nested external .adv/ detected");
+  if (staleDbDir) recommendations.push("dry-run: stale physical db/ detected");
+  if (emptyWorktreePrefixDirs.length > 0) {
+    recommendations.push("dry-run: empty worktree branch-prefix dirs detected");
+  }
+  if (syntheticProjectDirs > 0 || syntheticWorktreeDirs > 0) {
+    recommendations.push(
+      "dry-run: synthetic test state/worktree dirs detected",
+    );
+  }
+
+  return {
+    dry_run_only: true,
+    deletion_requires_approval: true,
+    external_root: externalRoot,
+    nested_adv_dir: nestedAdvDir,
+    stale_db_dir: staleDbDir,
+    worker_locks_excluded: true,
+    synthetic_project_dirs: syntheticProjectDirs,
+    synthetic_worktree_dirs: syntheticWorktreeDirs,
+    empty_worktree_prefix_dirs: emptyWorktreePrefixDirs.sort(),
+    recommendations,
+  };
 }
 
 // =============================================================================
@@ -434,6 +540,7 @@ export function applyStatusView(
       projection.opencode_session_debt = full.opencode_session_debt;
       projection.project_metadata = full.project_metadata;
       projection._healthSnapshot = full._healthSnapshot;
+      projection.external_state_hygiene = full.external_state_hygiene;
       projection.migration_status = full.migration_status;
       break;
     }
@@ -628,6 +735,8 @@ export const statusTools = {
           }
 
           const healthSnapshot = await computeHealthSnapshot(activeStore);
+          const externalStateHygiene =
+            await computeExternalStateHygiene(activeStore);
           if (healthSnapshot.closed_to_active_ratio > 5) {
             const ratio = healthSnapshot.closed_to_active_ratio;
             status.recommendations.push(
@@ -711,6 +820,7 @@ export const statusTools = {
             opencode_session_debt: opencodeSessionDebt,
             migration_status: migrationStatus,
             project_metadata: projectMetadata,
+            external_state_hygiene: externalStateHygiene,
             worktree_census: worktreeCensus,
             _healthSnapshot: healthSnapshot,
             // AC6: in-memory counters surfaced via view: "health".

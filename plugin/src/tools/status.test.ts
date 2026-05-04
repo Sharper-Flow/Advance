@@ -698,6 +698,71 @@ Vague in-flight work.
         expect(parsed.temporal_health).toBeUndefined();
       });
 
+      test("hygiene view reports external-state artifacts as dry-run only", async () => {
+        const oldXdg = process.env.XDG_DATA_HOME;
+        const dataHome = join(tempDir, "xdg-data");
+        const projectId = "proj-real";
+        const externalRoot = join(
+          dataHome,
+          "opencode",
+          "plugins",
+          "advance",
+          projectId,
+        );
+        const syntheticId = "0000000000000000abc123abc123abc123abc123";
+        process.env.XDG_DATA_HOME = dataHome;
+
+        let extStore: Store | null = null;
+        try {
+          await mkdir(join(externalRoot, ".adv"), { recursive: true });
+          await mkdir(join(externalRoot, "db"), { recursive: true });
+          await writeFile(join(externalRoot, "worker.lock"), "locked");
+          await writeFile(
+            join(externalRoot, "worker.lock.releasing"),
+            "locked",
+          );
+          await mkdir(
+            join(dataHome, "opencode", "plugins", "advance", syntheticId),
+            { recursive: true },
+          );
+          await mkdir(join(dataHome, "opencode", "worktree", syntheticId), {
+            recursive: true,
+          });
+          await mkdir(
+            join(dataHome, "opencode", "worktree", projectId, "change"),
+            { recursive: true },
+          );
+
+          extStore = await createLegacyStore(tempDir, { externalRoot });
+
+          const result = await statusTools.adv_status.execute(
+            { view: "hygiene" },
+            extStore,
+          );
+          const parsed = parseToolOutput(result);
+
+          expect(parsed.external_state_hygiene).toMatchObject({
+            dry_run_only: true,
+            deletion_requires_approval: true,
+            external_root: externalRoot,
+            nested_adv_dir: true,
+            stale_db_dir: true,
+            worker_locks_excluded: true,
+            synthetic_project_dirs: 1,
+            synthetic_worktree_dirs: 1,
+          });
+          expect(
+            parsed.external_state_hygiene.empty_worktree_prefix_dirs,
+          ).toContain(
+            join(dataHome, "opencode", "worktree", projectId, "change"),
+          );
+        } finally {
+          extStore?.close();
+          if (oldXdg === undefined) delete process.env.XDG_DATA_HOME;
+          else process.env.XDG_DATA_HOME = oldXdg;
+        }
+      });
+
       test("health view exposes metrics counters (AC6)", async () => {
         const result = await statusTools.adv_status.execute(
           { view: "health" },
