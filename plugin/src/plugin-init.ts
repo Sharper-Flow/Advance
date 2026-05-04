@@ -375,6 +375,50 @@ export function getRegisteredTemporalWorkerQueues(): string[] {
   return [...queues].sort();
 }
 
+export type TemporalWorkerDiagnostics =
+  | {
+      kind: "in_process";
+      queues: string[];
+      failedQueues: string[];
+      alive: boolean;
+    }
+  | {
+      kind: "out_of_process";
+      queues: string[];
+      failedQueues: string[];
+      alive: boolean;
+      diagnostics: unknown;
+    };
+
+export function getTemporalWorkerDiagnostics(): TemporalWorkerDiagnostics[] {
+  return [...inProcessTemporalWorkers].map((worker) => {
+    const failedQueues = [...(worker.failedQueues ?? [])];
+    const failed = new Set(failedQueues);
+    const candidate = worker as InProcessWorker & {
+      isAlive?: () => boolean;
+      getDiagnostics?: () => unknown;
+    };
+    if (typeof candidate.getDiagnostics === "function") {
+      return {
+        kind: "out_of_process",
+        queues: [...worker.queues],
+        failedQueues,
+        alive:
+          typeof candidate.isAlive === "function"
+            ? candidate.isAlive()
+            : worker.queues.some((queue) => !failed.has(queue)),
+        diagnostics: candidate.getDiagnostics(),
+      };
+    }
+    return {
+      kind: "in_process",
+      queues: [...worker.queues],
+      failedQueues,
+      alive: worker.queues.some((queue) => !failed.has(queue)),
+    };
+  });
+}
+
 export async function ensureProjectTemporalQueue(
   projectId: string,
 ): Promise<void> {

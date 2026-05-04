@@ -64,6 +64,7 @@ function createMockChild(): MockChild {
     },
     stdout,
     stderr: new EventEmitter(),
+    pid: 12345 + mockChildren.length,
     killed: false,
     exitCode: null,
     kill: vi.fn((signal?: string) => {
@@ -446,8 +447,11 @@ describe("Multi-queue worker host", () => {
     const diag = worker.getDiagnostics();
     expect(diag.queues).toEqual(["adv-change-proj1", "adv-project-proj1"]);
     expect(diag.childExitCode).toBeNull();
+    expect(diag.childPid).toBe(12345);
     expect(diag.childRunning).toBe(true);
     expect(diag.restartCount).toBe(0);
+    expect(diag.pendingRegistrations).toEqual([]);
+    expect(diag.registerErrors).toEqual([]);
 
     await worker.shutdown();
   });
