@@ -17,6 +17,7 @@ vi.mock("@temporalio/worker", () => ({
 import {
   runTemporalWorker,
   runTemporalWorkerFromEnv,
+  runMultiQueueTemporalWorker,
   createChildIPCHandler,
 } from "./worker";
 
@@ -106,6 +107,51 @@ describe("temporal worker helpers", () => {
       ([opts]) => (opts as { taskQueue: string }).taskQueue,
     );
     expect(taskQueues).toEqual(["advance-a", "advance-b", "advance-c"]);
+  });
+
+  it("runMultiQueueTemporalWorker emits run-error IPC before rethrowing worker run failures", async () => {
+    const writes: string[] = [];
+    const writeSpy = vi
+      .spyOn(process.stdout, "write")
+      .mockImplementation((chunk: string | Uint8Array) => {
+        writes.push(String(chunk));
+        return true;
+      });
+
+    try {
+      workerMocks.create
+        .mockResolvedValueOnce({ run: vi.fn(async () => {}) })
+        .mockResolvedValueOnce({
+          run: vi.fn(async () => {
+            throw new Error("poller failed");
+          }),
+        });
+
+      await expect(
+        runMultiQueueTemporalWorker(["advance-a", "advance-b"], {
+          ADV_TEMPORAL_ADDRESS: "127.0.0.1:7233",
+          ADV_TEMPORAL_NAMESPACE: "default",
+        } as NodeJS.ProcessEnv),
+      ).rejects.toThrow("poller failed");
+
+      const messages = writes.map((line) => JSON.parse(line));
+      const readyIndex = messages.findIndex(
+        (message) => message.type === "ready",
+      );
+      const runErrorIndex = messages.findIndex(
+        (message) => message.type === "run-error",
+      );
+
+      expect(readyIndex).toBeGreaterThanOrEqual(0);
+      expect(runErrorIndex).toBeGreaterThan(readyIndex);
+      expect(messages[runErrorIndex]).toEqual({
+        type: "run-error",
+        queue: "advance-b",
+        message: "poller failed",
+      });
+    } finally {
+      writeSpy.mockRestore();
+    }
   });
 
   it("runTemporalWorkerFromEnv rejects ADV_TEMPORAL_MULTI_QUEUE=1 with empty queue list", async () => {
