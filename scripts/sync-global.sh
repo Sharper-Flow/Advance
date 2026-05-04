@@ -531,7 +531,7 @@ check_provider_prompt_parts() {
 
   local needs_parts=false
   for provider in "${PROVIDERS[@]}"; do
-    local expected single_ref
+    local expected
     expected="$(provider_prompt_ref "$provider")"
 
     # Detect old multi-ref pattern and flag it
