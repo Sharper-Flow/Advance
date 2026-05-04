@@ -667,7 +667,7 @@ describe("adv_task_checkpoint", () => {
       expect(types).toContain("checkpoint");
     });
 
-    it("auto-emits verification before checkpoint on clean tree at green_recorded", async () => {
+    it("records committed checkpoint semantics when clean retry is still at green_recorded (#37)", async () => {
       const ledger = ledgerStore("optimizeCheckpointCommits", "green_recorded");
       // clean tree: no file writes
 
@@ -682,7 +682,7 @@ describe("adv_task_checkpoint", () => {
       );
       const parsed = parseToolOutput(result) as Record<string, unknown>;
 
-      expect(parsed.status).toBe("clean");
+      expect(parsed.status).toBe("committed");
       const types = ledger.recordedRunEvents.map((e) => e.type);
       // Clean checkpoint at green_recorded must auto-advance through
       // verification before recording the checkpoint event so the
@@ -693,6 +693,32 @@ describe("adv_task_checkpoint", () => {
       expect(types.indexOf("verification")).toBeLessThan(
         types.indexOf("checkpoint"),
       );
+      const checkpointEvent = ledger.recordedRunEvents.find(
+        (e) => e.type === "checkpoint",
+      );
+      expect(checkpointEvent?.payload.status).toBe("committed");
+      expect(checkpointEvent?.idempotencyKey).toContain(
+        "checkpoint:committed:",
+      );
+    });
+
+    it("returns checkpointRecorded true without re-recording when phase is already checkpointed (#37)", async () => {
+      const ledger = ledgerStore("optimizeCheckpointCommits", "checkpointed");
+
+      const result = await checkpointTools.adv_task_checkpoint.execute(
+        {
+          taskId: "tk-f0-already-checkpointed",
+          expectedBranch: "trunk",
+          verification: "pnpm test passed",
+        },
+        ledger,
+        dir,
+      );
+      const parsed = parseToolOutput(result) as Record<string, unknown>;
+
+      expect(parsed.status).toBe("clean");
+      expect(parsed.checkpointRecorded).toBe(true);
+      expect(ledger.recordedRunEvents).toHaveLength(0);
     });
   });
 

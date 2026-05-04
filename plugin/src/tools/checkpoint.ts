@@ -473,21 +473,41 @@ export const checkpointTools = {
       }
 
       if (statusOutput.trim() === "") {
+        let existingRunPhase: string | undefined;
+        try {
+          existingRunPhase = (await store.tasks.getRun(args.taskId))?.phase;
+        } catch {
+          existingRunPhase = undefined;
+        }
+
+        if (existingRunPhase === "checkpointed") {
+          return formatToolOutput({
+            status: "clean",
+            sha: actualHeadSha,
+            branch: actualBranch,
+            workdir: cwd,
+            gitRoot,
+            changeId: derivedChangeId,
+            checkpointRecorded: true,
+          } satisfies CheckpointResult);
+        }
+
         // Phase F.0: same auto-verification rule as the dirty-tree path.
         // Without this, clean checkpoints at `green_recorded` silently
         // fail their ledger write (caught + reported as
         // checkpointRecorded:false) and the run stays wedged.
-        if (mode === "complete" && args.verification) {
+        if (
+          mode === "complete" &&
+          args.verification &&
+          existingRunPhase === "green_recorded"
+        ) {
           try {
-            const run = await store.tasks.getRun(args.taskId);
-            if (run?.phase === "green_recorded") {
-              await store.tasks.recordRunEvent(args.taskId, {
-                idempotencyKey: `${args.taskId}:auto-verification:clean:${actualHeadSha}`,
-                type: "verification",
-                recordedAt: new Date().toISOString(),
-                payload: { summary: args.verification },
-              });
-            }
+            await store.tasks.recordRunEvent(args.taskId, {
+              idempotencyKey: `${args.taskId}:auto-verification:clean:${actualHeadSha}`,
+              type: "verification",
+              recordedAt: new Date().toISOString(),
+              payload: { summary: args.verification },
+            });
           } catch (autoVerificationError) {
             // Auto-verification is additive bookkeeping; the subsequent
             // checkpoint recordRunEvent will surface the underlying
@@ -503,13 +523,20 @@ export const checkpointTools = {
           }
         }
 
+        const checkpointStatus =
+          existingRunPhase === "green_recorded" &&
+          mode === "complete" &&
+          args.verification
+            ? "committed"
+            : "clean";
+
         try {
           await store.tasks.recordRunEvent(args.taskId, {
-            idempotencyKey: `${args.taskId}:checkpoint:clean:${actualHeadSha}`,
+            idempotencyKey: `${args.taskId}:checkpoint:${checkpointStatus}:${actualHeadSha}`,
             type: "checkpoint",
             recordedAt: new Date().toISOString(),
             payload: {
-              status: "clean",
+              status: checkpointStatus,
               sha: actualHeadSha,
               branch: actualBranch,
               gitRoot,
@@ -535,7 +562,7 @@ export const checkpointTools = {
         }
         // Clean tree — idempotent, no commit needed
         return formatToolOutput({
-          status: "clean",
+          status: checkpointStatus,
           sha: actualHeadSha,
           branch: actualBranch,
           workdir: cwd,
