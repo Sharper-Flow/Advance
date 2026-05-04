@@ -100,6 +100,8 @@ tools:
   # Sessions
   adv_session_list: true
   adv_session_show: true
+  # Mesh
+  adv_mesh_scan: true
   # === Worktree — orchestrator owns lifecycle ===
   adv_worktree_create: true
   adv_worktree_delete: true
