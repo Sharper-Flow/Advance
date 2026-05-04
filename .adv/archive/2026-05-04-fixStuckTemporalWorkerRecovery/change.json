@@ -1,0 +1,835 @@
+{
+  "id": "fixStuckTemporalWorkerRecovery",
+  "title": "Fix stuck Temporal worker recovery",
+  "status": "archived",
+  "created_at": "2026-05-04T04:08:20.933Z",
+  "tasks": [
+    {
+      "id": "tk-eb7226ae-d159-4867-83f8-be6b789133bf",
+      "title": "Update advance-meta spec laws for verified worker recovery\n\nTDD intent: not_applicable\nDelegation hint: inline_required\nTouched files:\n- .adv/specs/advance-meta/spec.json\n\nScope:\n- Replace rq-toolTimeoutOverride01.2 fire-and-forget restart scenario with bounded verified recovery scenario.\n- Amend rq-workerSingleton01 body and rq-workerSingleton01.2 so v1 alive-PID fallback protects passive initialization/known-serviceable owners but not suspect recovery states.\n- Add rq-workerSingleton01.6 for suspect legacy live lock requiring approval to reclaim.\n- Add rq-workerHealth01 queue serviceability diagnostics scenario.\n\nAcceptance:\n- Spec text has Given/When/Then scenarios for success, timeout/failure, and approval-gated suspect v1 live lock.\n- Normal plugin init remains exempt from describeTaskQueue/serviceability probes.\n- Existing spec-law conflict with the approved design is removed before archive validation.",
+      "type": "code",
+      "section": "Spec deltas",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-04T04:08:20.951Z",
+      "tdd_phase": "complete",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "implementation_summary": "Updated advance-meta spec to replace fire-and-forget worker restart law with bounded verified recovery, add suspect legacy live-lock approval-gated reclaim scenario, extend worker health diagnostics with queue serviceability, and update sync-global drift assertions. Verified with targeted Vitest and Prettier check.",
+      "error_recovery": {
+        "last_error": "Initial green run failed because spec body lacked exact `v1 fallback` phrase required by drift test.",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "Green test failed: workerSingleton body did not contain `v1 fallback`.",
+            "diagnosis": "Spec semantics were correct but omitted legacy phrase preserved by asset drift test.",
+            "fix_tried": "Changed body wording to `legacy v1 fallback locks`.",
+            "strategy_label": "preserve-drift-token",
+            "outcome": "succeeded",
+            "attempted_at": "2026-05-04T05:51:28.000Z"
+          }
+        ]
+      },
+      "started_at": "2026-05-04T04:08:20.961Z",
+      "tdd_evidence": {
+        "red": {
+          "exit_code": 1,
+          "recorded_at": "2026-05-04T05:50:27.943Z",
+          "test_file": "plugin/src/sync-global.test.ts"
+        },
+        "green": {
+          "exit_code": 0,
+          "recorded_at": "2026-05-04T05:51:28.545Z",
+          "test_file": "pnpm exec vitest run src/sync-global.test.ts"
+        }
+      },
+      "touched_files": [
+        ".adv/specs/advance-meta/spec.json",
+        "plugin/src/sync-global.test.ts"
+      ],
+      "completed_at": "2026-05-04T04:08:20.963Z",
+      "completed_by": "Completed spec-law update task in worktree. Commit checkpoint 8f4a9da. Red evidence corrected after initial environmental node_modules miss; green targeted spec drift test and formatting pass."
+    },
+    {
+      "id": "tk-b1452857-85bd-4b49-8905-1264809d4e73",
+      "title": "Add queue serviceability classifier and Temporal poller probe\n\nTDD intent: inline\nDelegation hint: inline_required\nTouched files:\n- plugin/src/temporal/queue-serviceability.ts\n- plugin/src/temporal/queue-serviceability.test.ts\n- plugin/src/temporal/health-probe.ts (probe reuse/adaptation if needed)\n\nRed phase:\n- Add tests for serviceable local owner, serviceable fresh server poller, stale/no poller, unavailable describeTaskQueue, stale running workflow count, and peer-owned unknown evidence.\n- Run: pnpm test -- src/temporal/queue-serviceability.test.ts src/temporal/health-probe.test.ts\n\nGreen phase:\n- Implement typed QueueServiceability result with status, confidence, evidence, and blockers.\n- Use DescribeTaskQueue when available but do not require it during normal plugin initialization.\n- Preserve 10s verification semantics: success requires at least one strong positive serviceability plane; unknown evidence cannot produce success for peer-owned queues.\n\nAcceptance:\n- Local-owner confidence works without server poller evidence.\n- Peer-owned PID-only evidence returns unknown/failure without fresh server poller evidence.\n- Probe failures are explicit as unavailable, not silently collapsed to healthy empty results.",
+      "type": "code",
+      "section": "Runtime health",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-04T04:08:20.952Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-eb7226ae-d159-4867-83f8-be6b789133bf"
+        }
+      ],
+      "tdd_phase": "complete",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "started_at": "2026-05-04T04:08:20.965Z",
+      "implementation_summary": "Added `queue-serviceability.ts` with typed classification and DescribeTaskQueue poller probing. Added tests for local-owner confidence, fresh server pollers, peer-owned unavailable evidence, stale/no poller states, and unavailable probes. Verified targeted serviceability/health tests, Prettier, and typecheck.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "tdd_evidence": {
+        "red": {
+          "exit_code": 1,
+          "recorded_at": "2026-05-04T05:53:43.184Z",
+          "test_file": "pnpm exec vitest run src/temporal/queue-serviceability.test.ts"
+        },
+        "green": {
+          "exit_code": 0,
+          "recorded_at": "2026-05-04T05:55:05.794Z",
+          "test_file": "pnpm exec vitest run src/temporal/queue-serviceability.test.ts"
+        }
+      },
+      "touched_files": [
+        "plugin/src/temporal/queue-serviceability.test.ts",
+        "plugin/src/temporal/queue-serviceability.ts"
+      ],
+      "completed_at": "2026-05-04T04:08:20.967Z",
+      "completed_by": "Completed queue serviceability helper task. Commit checkpoint 393dcfe. Tests and typecheck pass."
+    },
+    {
+      "id": "tk-4d0ab2aa-0e57-40e9-92c2-b55539ee79de",
+      "title": "Expose local worker diagnostics for in-process and OOP workers\n\nTDD intent: inline\nDelegation hint: inline_required\nTouched files:\n- plugin/src/plugin-init.ts\n- plugin/src/temporal/worker-multi.ts\n- plugin/src/temporal/out-of-process-worker.ts\n- plugin/src/plugin-init.test.ts\n- plugin/src/temporal/worker-multi.test.ts\n\nRed phase:\n- Add tests that diagnostics include queue list, childPid/childRunning/restartCount/pending registrations/register errors for OOP multi-worker.\n- Add tests that in-process local readiness can support confidence:local without DescribeTaskQueue.\n- Run: pnpm test -- src/plugin-init.test.ts src/temporal/worker-multi.test.ts\n\nGreen phase:\n- Add `getTemporalWorkerDiagnostics()` or equivalent read-only helper.\n- Ensure respawn ready/registration failures affect diagnostics and do not leave misleading healthy state.\n- Keep passive plugin init behavior unchanged; no serviceability probe during normal lock read.\n\nAcceptance:\n- Diagnostics expose enough local evidence for verified restart, diagnose, and status.\n- Both in-process and OOP local readiness paths are tested.\n- Existing singleton lock behavior remains safe for passive initialization.",
+      "type": "code",
+      "section": "Runtime health",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-05-04T04:08:20.953Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-eb7226ae-d159-4867-83f8-be6b789133bf"
+        }
+      ],
+      "tdd_phase": "complete",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "started_at": "2026-05-04T04:08:20.968Z",
+      "implementation_summary": "Added `getTemporalWorkerDiagnostics()` to expose in-process and OOP worker state with queues, failedQueues, alive state, and OOP diagnostics. Expanded plugin-init and worker-multi tests to cover diagnostic output including childPid, childRunning, restartCount, pending registrations, and register errors.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "tdd_evidence": {
+        "red": {
+          "exit_code": 1,
+          "recorded_at": "2026-05-04T05:57:00.687Z",
+          "test_file": "pnpm exec vitest run src/plugin-init.test.ts src/temporal/worker-multi.test.ts"
+        },
+        "green": {
+          "exit_code": 0,
+          "recorded_at": "2026-05-04T05:57:42.085Z",
+          "test_file": "pnpm exec vitest run src/plugin-init.test.ts src/temporal/worker-multi.test.ts"
+        }
+      },
+      "touched_files": [
+        "plugin/src/plugin-init.test.ts",
+        "plugin/src/plugin-init.ts",
+        "plugin/src/temporal/worker-multi.test.ts"
+      ],
+      "completed_at": "2026-05-04T04:08:20.970Z",
+      "completed_by": "Completed local worker diagnostics task. Commit checkpoint 3ad42fe. Tests, typecheck, and formatting pass."
+    },
+    {
+      "id": "tk-4011612a-a78e-4642-ab23-e8f46f01c775",
+      "title": "Implement verified worker restart with approval-gated suspect-lock recovery\n\nTDD intent: inline\nDelegation hint: inline_required\nTouched files:\n- plugin/src/tools/temporal-ops.ts\n- plugin/src/tool-registry.ts\n- plugin/src/plugin-init.ts\n- plugin/src/temporal/worker-lock.ts\n- plugin/src/tools/temporal-ops.test.ts\n- plugin/src/temporal/worker-lock.test.ts\n- plugin/src/tool-registry.test.ts or existing registry drift test\n\nRed phase:\n- Replace fire-and-forget tests with failing tests for 10s verified success, structured timeout failure, local-confidence success, peer-owned unknown failure, and approved suspect v1 lock reclaim.\n- Add tests that unapproved live-PID reclaim is refused with approval-required diagnostics.\n- Add test that tool registration has explicit timeout override with rq-toolTimeoutOverride01 rationale.\n- Run: pnpm test -- src/tools/temporal-ops.test.ts src/temporal/worker-lock.test.ts src/tool-registry.test.ts\n\nGreen phase:\n- Replace `adv_temporal_worker_restart` fire-and-forget body with awaited bounded verification.\n- Add optional approval args for live v1 lock reclaim (`approvedLockReclaim` + `approvalEvidence`) or equivalent explicit approval path.\n- Reuse dead-PID and stale-v2-heartbeat automatic reclaim; do not auto-reclaim live v1 locks.\n- Ensure restart path does not report failure while leaving an uncontrolled background spawn continuing.\n\nAcceptance:\n- success:true only after serviceability proof.\n- failure output includes expected queue, registered queues, worker lock, serviceability evidence, stale workflow count/probe status, worker diagnostics, and next action.\n- approved suspect-lock recovery records prior PID/schema/queue/evidence and approval evidence.\n- healthy singleton owner is never duplicated or reclaimed silently.",
+      "type": "code",
+      "section": "Recovery",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-05-04T04:08:20.954Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-b1452857-85bd-4b49-8905-1264809d4e73"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-4d0ab2aa-0e57-40e9-92c2-b55539ee79de"
+        }
+      ],
+      "tdd_phase": "complete",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "started_at": "2026-05-04T04:08:20.971Z",
+      "implementation_summary": "Replaced fire-and-forget `adv_temporal_worker_restart` with awaited bounded verification against queue serviceability. Added optional approval args for suspect live legacy v1 lock reclaim, with audit metadata for prior PID/schema/queue/evidence. Added explicit 15s safeExecute timeout override for the 10s verification budget. Preserved dead-PID/stale-v2 automatic recovery and kept fresh/live locks protected.",
+      "error_recovery": {
+        "last_error": "Initial green run failed because restart tests used a store without external project id and registry block extraction did not include the timeout-rationale comment.",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "Green suite failed: ProjectIdUnavailable in restart tests and missing rq-toolTimeoutOverride01 token inside extracted registration block.",
+            "diagnosis": "Implementation was mostly correct, but tests did not provide project identity and the comment sat outside the source range inspected by the registry test.",
+            "fix_tried": "Preferred store.paths.external for project ID resolution in the tool, updated restart tests to include external path, and moved rq-toolTimeoutOverride01.2 rationale inside the registerTool block.",
+            "strategy_label": "align-test-fixtures-and-registration-comment",
+            "outcome": "succeeded",
+            "attempted_at": "2026-05-04T02:10:18.000Z"
+          }
+        ]
+      },
+      "tdd_evidence": {
+        "red": {
+          "exit_code": 1,
+          "recorded_at": "2026-05-04T06:05:21.474Z",
+          "test_file": "pnpm exec vitest run src/tools/temporal-ops.test.ts src/temporal/worker-lock.test.ts src/tool-registry.test.ts"
+        },
+        "green": {
+          "exit_code": 0,
+          "recorded_at": "2026-05-04T06:10:37.208Z",
+          "test_file": "pnpm exec vitest run src/tools/temporal-ops.test.ts src/temporal/worker-lock.test.ts src/tool-registry.test.ts src/plugin-init.test.ts"
+        }
+      },
+      "touched_files": [
+        "plugin/src/plugin-init.test.ts",
+        "plugin/src/plugin-init.ts",
+        "plugin/src/temporal/worker-lock.test.ts",
+        "plugin/src/temporal/worker-lock.ts",
+        "plugin/src/tool-registry.test.ts",
+        "plugin/src/tool-registry.ts",
+        "plugin/src/tools/temporal-ops.test.ts",
+        "plugin/src/tools/temporal-ops.ts"
+      ],
+      "completed_at": "2026-05-04T04:08:20.973Z",
+      "completed_by": "Completed verified worker restart and approval-gated suspect-lock recovery task. Commit checkpoint b77e95c. Target tests, typecheck, lint, and formatting pass."
+    },
+    {
+      "id": "tk-669c7976-9641-452c-a164-ff7a6f1a28bc",
+      "title": "Use queue serviceability in diagnose and status health output\n\nTDD intent: inline\nDelegation hint: inline_required\nTouched files:\n- plugin/src/tools/temporal-ops.ts\n- plugin/src/tools/status.ts\n- plugin/src/temporal/health-probe.ts\n- plugin/src/tools/temporal-ops.test.ts\n- plugin/src/tools/status-temporal-health.test.ts\n- plugin/src/tools/target-read-tools.test.ts\n- SETUP.md or docs/temporal-recovery.md if field descriptions move\n\nRed phase:\n- Add tests for `suspect_live_legacy_lock` recommendation: alive v1 PID + no heartbeat + no serviceable queue recommends approval-gated recovery/OpenCode restart, not repeated blind restart.\n- Add tests that healthy serviceable peer returns no duplicate restart/reclaim recommendation.\n- Add tests that cross-project status labels current-session worker health separately from target-project queue serviceability.\n- Run: pnpm test -- src/tools/temporal-ops.test.ts src/tools/status-temporal-health.test.ts src/tools/target-read-tools.test.ts\n\nGreen phase:\n- Add queue serviceability to Temporal health/diagnose payload and formatted status output.\n- Preserve backward-compatible raw fields where practical.\n- Update recommendation ordering to use serviceability before stale queue/orphan-sweep guidance.\n\nAcceptance:\n- Diagnose classifies #22/#23/#24 shape as suspect or unserviceable with actionable next action.\n- Status output cannot imply current Advance worker health equals target PokeEdge queue health.\n- Probe unavailable states are visible, not silently healthy.",
+      "type": "code",
+      "section": "Diagnostics",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-05-04T04:08:20.955Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-b1452857-85bd-4b49-8905-1264809d4e73"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-4d0ab2aa-0e57-40e9-92c2-b55539ee79de"
+        }
+      ],
+      "tdd_phase": "complete",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "started_at": "2026-05-04T04:08:20.975Z",
+      "implementation_summary": "Added queue serviceability snapshots to `adv_temporal_diagnose` and `adv_status view:health`, including expected queue, local worker diagnostics, server poller probe status, stale workflow count, and blockers. Updated recovery recommendations so suspect live legacy v1 locks require explicit approval/OpenCode owner restart, while fresh server poller evidence can mark peer-owned queues serviceable. Formatted status now separates worker process health from target queue serviceability.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "tdd_evidence": {
+        "red": {
+          "exit_code": 1,
+          "recorded_at": "2026-05-04T06:16:12.671Z",
+          "test_file": "pnpm exec vitest run src/tools/temporal-ops.test.ts src/tools/status-temporal-health.test.ts src/tools/target-read-tools.test.ts"
+        },
+        "green": {
+          "exit_code": 0,
+          "recorded_at": "2026-05-04T06:19:23.339Z",
+          "test_file": "pnpm exec vitest run src/tools/temporal-ops.test.ts src/tools/status-temporal-health.test.ts src/tools/target-read-tools.test.ts"
+        }
+      },
+      "touched_files": [
+        "plugin/src/tools/status-temporal-health.test.ts",
+        "plugin/src/tools/status.ts",
+        "plugin/src/tools/target-read-tools.test.ts",
+        "plugin/src/tools/temporal-ops.test.ts",
+        "plugin/src/tools/temporal-ops.ts",
+        "plugin/src/utils/tool-formatters.ts"
+      ],
+      "completed_at": "2026-05-04T04:08:20.977Z",
+      "completed_by": "Completed diagnose/status serviceability task. Commit checkpoint 3cb2fdf. Target tests, typecheck, lint, and formatting pass."
+    },
+    {
+      "id": "tk-e34aba61-8751-4138-bd34-ebd287e62703",
+      "title": "Add bounded project-workflow access recovery for worktree creation\n\nTDD intent: inline\nDelegation hint: inline_required\nTouched files:\n- plugin/src/tools/project-workflow-helper.ts\n- plugin/src/tools/worktree/state.ts\n- plugin/src/tools/adv-worktree.ts\n- plugin/src/tools/worktree/index-create.test.ts\n- plugin/src/tools/worktree/state-session-lifecycle.test.ts\n- plugin/src/tools/worktree/migration.test.ts if helper shape changes\n\nRed phase:\n- Add tests that worker-unavailable project workflow access triggers exactly one bounded non-approval recovery attempt, then retries access once.\n- Add tests that approval-gated suspect-lock requirement returns structured failure instead of reclaiming or suggesting in-place edits.\n- Add tests that non-worker unavailable reasons do not run recovery.\n- Run: pnpm test -- src/tools/worktree/index-create.test.ts src/tools/worktree/state-session-lifecycle.test.ts src/tools/worktree/migration.test.ts\n\nGreen phase:\n- Centralize recovery at project-workflow access seam (`recovery: \"once\"` or adjacent helper).\n- Keep git worktree implementation decoupled from worker internals.\n- Surface expected queue, local queues, lock health, serviceability status, and next action in failure output.\n\nAcceptance:\n- `adv_worktree_create` either reaches workflow-backed access after one verified recovery or fails with actionable diagnostics.\n- No live-PID lock reclaim occurs without explicit approval args.\n- No output suggests in-place edits as fallback.",
+      "type": "code",
+      "section": "Worktree recovery",
+      "status": "done",
+      "priority": 5,
+      "created_at": "2026-05-04T04:08:20.956Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-4011612a-a78e-4642-ab23-e8f46f01c775"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-669c7976-9641-452c-a164-ff7a6f1a28bc"
+        }
+      ],
+      "tdd_phase": "complete",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "started_at": "2026-05-04T04:08:20.979Z",
+      "implementation_summary": "Added bounded `recovery: \"once\"` strategy to `getBoundedProjectWorkflowAccess`: when worker readiness fails, runs a single non-approval `restartCurrentProjectTemporalWorker` attempt and re-checks readiness. On suspect live legacy-v1 lock failures (WORKER_LOCK_HELD + schema_version=1 + not_serviceable), returns `unavailable` with rich `recommendedNextAction` requiring explicit approval and a `queueServiceability` snapshot built via `classifyQueueServiceability` + `probeTaskQueuePollers` — never recommends in-place edits as fallback (rq-workerSingleton01.6). Wired the worktree-state seam (`state.ts:resolveAccess`) to pass `recovery: \"once\"`; migration/wisdom/agenda paths preserve historical no-recovery behavior. Typecheck clean; targeted helper tests 3/3 pass; 5-file worktree batch 31/31 pass; cross-consumer sweep 107/107 pass.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "tdd_evidence": {
+        "red": {
+          "exit_code": 1,
+          "recorded_at": "2026-05-04T06:38:15.447Z",
+          "test_file": "pnpm exec vitest run src/tools/project-workflow-helper.test.ts"
+        },
+        "green": {
+          "exit_code": 0,
+          "recorded_at": "2026-05-04T06:42:23.276Z",
+          "test_file": "pnpm exec vitest run src/tools/project-workflow-helper.test.ts"
+        }
+      },
+      "touched_files": [
+        "plugin/src/tools/project-workflow-helper.test.ts",
+        "plugin/src/tools/project-workflow-helper.ts",
+        "plugin/src/tools/worktree/state.ts"
+      ],
+      "completed_at": "2026-05-04T04:08:20.982Z",
+      "completed_by": "Touched: plugin/src/tools/project-workflow-helper.ts (recovery seam + post-recovery diagnostics), plugin/src/tools/project-workflow-helper.test.ts (red→green tests for one bounded recovery, suspect-lock approval-required path, no-recovery for non-worker reasons), plugin/src/tools/worktree/state.ts (wire recovery: \"once\" at the worktree-state hot path). Checkpoint commit 5260d50."
+    },
+    {
+      "id": "tk-17a91740-21a6-415c-8511-7c7a5fab4016",
+      "title": "Update recovery docs and incident tracker for corrected Temporal model\n\nTDD intent: inline\nDelegation hint: inline_required\nTouched files:\n- docs/temporal-recovery.md\n- docs/temporal-worker-stuck-investigation.md\n- SETUP.md if health field definitions change\n- relevant docs/tests asserting guidance text\n\nRed phase:\n- Add or update docs/guidance assertions that poller rows are freshness evidence, restart is verified, live v1 lock reclaim is approval-gated, and OpenCode restart remains fallback when serviceability cannot be proven.\n- Run targeted docs/guidance tests if existing (e.g. manifest/doc drift tests); otherwise run format/check after docs updates.\n\nGreen phase:\n- Update runbook and incident tracker with final recovery ladder and new diagnostic fields.\n- Remove stale fire-and-forget guidance.\n- Preserve source-vs-dist caveat: worker code changes need build/fresh session where applicable.\n\nAcceptance:\n- Docs explain why poller rows expire but live workers keep refreshing them.\n- Docs distinguish Temporal backend correctness from ADV worker lifecycle bugs.\n- Agent-facing guidance names verified restart, approval-gated reclaim, and OpenCode restart fallback.",
+      "type": "code",
+      "section": "Docs",
+      "status": "done",
+      "priority": 6,
+      "created_at": "2026-05-04T04:08:20.957Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-4011612a-a78e-4642-ab23-e8f46f01c775"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-669c7976-9641-452c-a164-ff7a6f1a28bc"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-e34aba61-8751-4138-bd34-ebd287e62703"
+        }
+      ],
+      "tdd_phase": "green",
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "started_at": "2026-05-04T04:08:20.984Z",
+      "tdd_evidence": {
+        "green": {
+          "exit_code": 0,
+          "recorded_at": "2026-05-04T06:49:25.821Z",
+          "test_file": "pnpm exec prettier --check ../docs/temporal-recovery.md ../docs/temporal-worker-stuck-investigation.md"
+        }
+      },
+      "touched_files": [
+        "docs/temporal-recovery.md",
+        "docs/temporal-worker-stuck-investigation.md"
+      ],
+      "completed_at": "2026-05-04T04:08:20.986Z",
+      "completed_by": "Touched: docs/temporal-recovery.md (verified-restart, approval-gated reclaim, bounded recovery seam, poller-freshness, lineage), docs/temporal-worker-stuck-investigation.md (new — incident summary). Checkpoint commit 97250e6.",
+      "implementation_summary": "Updated docs/temporal-recovery.md: rewrote the worker-restart section for verified semantics (10 s budget, structured failure envelope, expected queue + queueServiceability + recommendedNextAction); added new subsections for approval-gated suspect live legacy v1 lock reclaim, bounded recovery: \"once\" at the project-workflow access seam, and an explicit \"poller rows are freshness evidence\" explanation; added a suspect-v1 row to the worker-auto-respawn health-shape table; added a suspect-v1 row to the external-restart-boundary table; added a `fixStuckTemporalWorkerRecovery` lineage entry. Created docs/temporal-worker-stuck-investigation.md as the historical incident summary covering #22/#23/#24, what was wrong (fire-and-forget restart, over-protective v1 fallback, no worktree recovery seam), what changed (4 planes: spec laws, serviceability classifier, recovery surfaces, worktree seam), final recovery ladder, and source-vs-dist caveat. SETUP.md unchanged — it does not document temporal_health field shapes. Format check passes; drift tests (sync-global + manifest) 102/102 pass.",
+      "tdd_reclassification": {
+        "from_intent": "inline",
+        "to_intent": "not_applicable",
+        "reason": "Docs/runbook task has executable green formatting and drift evidence but no logic implementation; prep validation flagged missing inline TDD, and user approved reclassification in prep approval reply.",
+        "approved_by_user": true,
+        "approval_evidence": "User replied `approve` after prep vision explicitly stated: `approve docs-task TDD reclassification from inline TDD to not_applicable`.",
+        "approved_at": "2026-05-04T07:10:20.658Z"
+      }
+    },
+    {
+      "id": "tk-8223bce9-29b2-42af-83e1-829a098cb7aa",
+      "title": "Run cross-cutting regression verification for #22/#23/#24 recovery class\n\nTDD intent: inline\nDelegation hint: inline_required\nTouched files:\n- tests touched by earlier tasks\n- docs/temporal-worker-stuck-investigation.md if final evidence summary needs update\n\nRed phase:\n- Add a failing regression/integration-style test or composed unit test that models the shared incident shape: server alive, expected queue not serviceable, v1 alive-PID lock with no heartbeat, stale running workflows, and worktree create blocked before filesystem creation.\n- Run the targeted regression command chosen by implementation.\n\nGreen phase:\n- Confirm the implemented recovery path returns structured diagnose/restart/worktree results for the incident shape.\n- Run targeted suites from all touched areas, then `pnpm run check` from plugin/.\n- If feasible in-session, run `pnpm test` for full suite; if runtime/tool behavior changed, note build+fresh OpenCode requirement for live tool validation.\n\nAcceptance:\n- Regression covers #22, #23, #24 failure class.\n- Targeted tests for serviceability, restart, lock, diagnose/status, worktree, specs/docs pass.\n- `pnpm run check` passes from plugin/.\n- Final notes clearly state whether live ADV tool behavior was source-tested only or build/fresh-session verified.",
+      "type": "code",
+      "section": "Verification",
+      "status": "done",
+      "priority": 7,
+      "created_at": "2026-05-04T04:08:20.958Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-17a91740-21a6-415c-8511-7c7a5fab4016"
+        }
+      ],
+      "tdd_phase": "green",
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "started_at": "2026-05-04T04:08:20.987Z",
+      "tdd_evidence": {
+        "green": {
+          "exit_code": 0,
+          "recorded_at": "2026-05-04T06:51:41.358Z",
+          "test_file": "pnpm exec vitest run src/tools/project-workflow-helper.test.ts"
+        }
+      },
+      "touched_files": [
+        "plugin/src/tools/project-workflow-helper.test.ts",
+        "plugin/src/tools/status.test.ts"
+      ],
+      "completed_at": "2026-05-04T04:08:20.995Z",
+      "completed_by": "Touched: plugin/src/tools/project-workflow-helper.test.ts (regression guard test), plugin/src/tools/status.test.ts (added getService to temporal/service mock). Checkpoint commit f6bb74c.",
+      "implementation_summary": "Added a labeled regression guard test (`regression: fixStuckTemporalWorkerRecovery incident shape`) in plugin/src/tools/project-workflow-helper.test.ts that models the exact #22/#23/#24 shared incident shape: server alive, expected queue not_serviceable, suspect v1 alive-PID worker.lock with no heartbeat, stale running workflow count > 0, no local registration. The test asserts: exactly one bounded non-approval restart attempt, mode=unavailable, reason naming \"suspect live legacy v1 worker.lock\", recommendedNextAction containing \"explicit approval\" and never \"in-place\", queueServiceability.status=not_serviceable, evidence covering localRegistered/localWorkerAlive/localOwnership(peer)/staleRunningWorkflowCount=6/blockers. Test passed on first run because the recovery contract from tk-e34aba61 was already in place. Fixed pre-existing mock gap in plugin/src/tools/status.test.ts (added getService to ../temporal/service mock factory; required by computeStatusQueueServiceability added in tk-669c7976 but mock had not been updated). Verification: cross-cutting touched-area sweep 19 files / 259 tests pass; full suite (pnpm test) 168 files / 3086 tests pass / 7 skipped / 0 failures; `pnpm run check` clean (typecheck + test-isolation + lint + prettier). Source-only validation: source edits to plugin/src/ do not take effect in the current OpenCode session per AGENTS.md \"Source-vs-Dist Reload Gotcha\" — live behavior of `adv_temporal_worker_restart` (verified semantics + approval-gated suspect reclaim) and `adv_worktree_create` (bounded recovery seam) requires `pnpm run build:worker` plus a fresh OpenCode session for end-to-end validation. Source-tested in-session via Vitest red→green; live-session validation deferred to a fresh session post-merge.",
+      "tdd_reclassification": {
+        "from_intent": "inline",
+        "to_intent": "separate_verification",
+        "reason": "Task is explicitly cross-cutting regression verification spanning earlier implementation tasks, not a feature/bug implementation task. It already has executable green evidence; final re-entry verification task now carries the expanded #22-#27 verification scope. Reclassifying fixes prep validation without changing scope.",
+        "approved_by_user": true,
+        "approval_evidence": "User replied `approve` to the prep vision approving the updated task graph and validation fixes before planning gate completion.",
+        "approved_at": "2026-05-04T07:11:14.059Z"
+      }
+    },
+    {
+      "id": "tk-77d794a8-3e59-4c73-af8c-c7dac37211e0",
+      "title": "Extend recovery specs for re-entry incidents #25/#26/#27\n\nTDD intent: inline\nDelegation hint: inline_required\nTouched files:\n- .adv/specs/advance-meta/spec.json\n- .adv/specs/advance-delivery/spec.json\n- plugin/src/sync-global.test.ts or related spec drift tests\n\nScope:\n- Add spec law for fresh v2 worker.lock heartbeat that is not queue-serviceable: heartbeat proves holder liveness only, not expected queue serviceability.\n- Add spec law that live unserviceable v1/v2 lock reclaim requires explicit approval evidence unless dead PID or stale v2 heartbeat proves stale.\n- Add spec law that an owner must stop renewing heartbeat when its own local worker remains unserviceable past grace, so the v2 lock can expire without manual deletion.\n- Add spec law that `adv_temporal_reconnect` is STSL-only and must not be recommended as worker-registration recovery when queue serviceability is negative.\n- Add delivery/checkpoint law for `checkpointRecorded:false`: git commit success plus ledger write failure blocks task completion until ledger retry/status recovery.\n- Add worktree law if missing: `adv_worktree_create`/apply preflight must reuse existing `change/<id>` worktree before recovery/create and must never suggest in-place edits fallback.\n\nRed phase:\n- Add failing drift/spec tests asserting the new laws and guidance tokens.\n- Run targeted spec/asset test(s).\n\nGreen phase:\n- Update specs and synced guidance assertions.\n- Re-run targeted spec/asset tests and formatting.\n\nAcceptance:\n- Specs cover #25 fresh v2 poison-pill heartbeat, #26 `checkpointRecorded:false`, #27 reconnect boundary, and transcript worktree-reuse failure.\n- Existing #22/#23/#24 verified recovery laws remain intact.\n- Spec drift tests pass.",
+      "type": "code",
+      "section": "Re-entry gaps",
+      "status": "done",
+      "priority": 8,
+      "created_at": "2026-05-04T04:08:20.989Z",
+      "tdd_phase": "complete",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "started_at": "2026-05-04T04:08:20.997Z",
+      "tdd_evidence": {
+        "red": {
+          "exit_code": 1,
+          "recorded_at": "2026-05-04T07:10:13.133Z",
+          "test_file": "pnpm exec vitest run src/sync-global.test.ts"
+        },
+        "green": {
+          "exit_code": 0,
+          "recorded_at": "2026-05-04T07:12:26.250Z",
+          "test_file": "pnpm exec vitest run src/sync-global.test.ts"
+        }
+      },
+      "touched_files": [
+        ".adv/specs/advance-delivery/spec.json",
+        ".adv/specs/advance-meta/spec.json",
+        "plugin/src/sync-global.test.ts"
+      ],
+      "completed_at": "2026-05-04T04:08:21.000Z",
+      "completed_by": "Completed re-entry spec law updates. Added advance-meta laws for fresh-v2 unserviceable suspect lock, heartbeat self-expiry, serviceability-vs-liveness diagnostics, STSL-only reconnect boundary, and worktree reuse-before-recovery. Added advance-delivery checkpoint ledger law for checkpointRecorded:false. Updated sync-global drift tests. Verification passed: targeted sync-global test and Prettier check. Checkpoint ca5b456 recorded.",
+      "implementation_summary": "Updated .adv/specs/advance-meta/spec.json and .adv/specs/advance-delivery/spec.json for #25/#26/#27/worktree/checkpoint re-entry gaps; updated plugin/src/sync-global.test.ts drift assertions. Green evidence and incremental formatting/test verification passed; checkpoint commit ca5b456 recorded.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "",
+        "attempts": []
+      }
+    },
+    {
+      "id": "tk-e2c1d852-fc8b-4038-8882-fcb8c9dcdfef",
+      "title": "Implement fresh-v2 unserviceable worker recovery and heartbeat self-expiry\n\nTDD intent: inline\nDelegation hint: inline_required\nTouched files:\n- plugin/src/temporal/heartbeat-writer.ts\n- plugin/src/temporal/heartbeat-writer.test.ts\n- plugin/src/plugin-init.ts\n- plugin/src/plugin-init.test.ts\n- plugin/src/temporal/worker-lock.ts\n- plugin/src/temporal/worker-lock.test.ts\n- plugin/src/tools/temporal-ops.ts\n- plugin/src/tools/temporal-ops.test.ts\n- plugin/src/tools/status-temporal-health.test.ts\n- plugin/src/tools/project-workflow-helper.ts\n- plugin/src/tools/project-workflow-helper.test.ts\n- plugin/src/utils/tool-formatters.ts\n\nScope:\n- Treat fresh v2 heartbeat as host/owner liveness evidence only; do not treat it as queue serviceability proof.\n- Add local-only serviceability guard to heartbeat writer/registration so a lock owner stops renewing when its own local worker remains unserviceable beyond grace.\n- Extend suspect-lock classification from legacy v1 to live unserviceable v2 where serviceability is negative but PID/heartbeat is alive/fresh.\n- Keep automatic reclaim only for dead PID or stale v2 heartbeat; live unserviceable v1/v2 reclaim requires explicit approval evidence and audit metadata.\n- Add `worker_lock_held_by_self`/equivalent diagnostics when current session owns the lock but is not serving the expected queue.\n- Ensure restart/diagnose/workflow-access recommendations do not loop blind restarts and do not recommend `adv_temporal_reconnect` for worker-registration failure.\n\nRed phase:\n- Add failing tests for fresh v2 heartbeat + no registered queue/no poller returning suspect/unserviceable instead of healthy/peer-spawn-pending.\n- Add failing heartbeat-writer test where local serviceability stays false and heartbeat stops/self-exhausts before poison-pill freshness continues indefinitely.\n- Add failing approved live-v2 reclaim test recording prior PID/schema/workerId/expectedQueue/approval evidence.\n- Add failing diagnose/status/workflow-access tests for self-owned unserviceable lock and reconnect boundary.\n\nGreen phase:\n- Implement serviceability guard, suspect v2 classification, approved reclaim audit, and recommendation ordering.\n- Run targeted Temporal/runtime/status/project-workflow tests.\n\nAcceptance:\n- #25 shape is classified actionable, not healthy.\n- No fresh v2 unserviceable owner can keep heartbeating forever without serving its queue.\n- No live v1/v2 lock is reclaimed without explicit approval unless dead/stale rules apply.\n- Diagnostics distinguish self-owned unserviceable lock, peer-owned unserviceable lock, STSL issue, and serviceable peer.",
+      "type": "code",
+      "section": "Re-entry gaps",
+      "status": "done",
+      "priority": 9,
+      "created_at": "2026-05-04T04:08:20.990Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-77d794a8-3e59-4c73-af8c-c7dac37211e0"
+        }
+      ],
+      "tdd_phase": "complete",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "started_at": "2026-05-04T04:08:21.001Z",
+      "implementation_summary": "Implemented fresh-v2 unserviceable worker recovery and heartbeat self-expiry. Heartbeat writer now accepts expected queue/local serviceability guard and stops renewing when unserviceable past grace. Worker-lock recovery distinguishes fresh/stale v2 heartbeat from queue serviceability, keeps automatic reclaim to dead/stale cases, and requires approval/audit for live unserviceable v1/v2 locks. Temporal diagnose/restart/project-workflow guidance now identifies self/peer unserviceable locks and avoids blind reconnect loops for worker-registration failures. Added regression coverage for heartbeat self-expiry, approved live-v2 reclaim, fresh-v2 suspect diagnostics, plugin-init wiring, and status/project-workflow guidance.",
+      "error_recovery": {
+        "last_error": "adv_run_test failed twice with WorkflowUpdateFailedError while recording final six-file green evidence after code/format fixes.",
+        "retry_count": 2,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "Used adv_task_evidence fallback with externally captured Bash output, then checkpointed only after checkpointRecorded:true.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "adv_run_test final six-file green evidence returned WorkflowUpdateFailedError.",
+            "diagnosis": "Temporal server, worker, queue, project workflow, and change workflow were healthy; adv_temporal_diagnose recommended retrying the blocked tool.",
+            "fix_tried": "Ran adv_task_run_status, adv_temporal_diagnose, and adv_status health; retried adv_run_test.",
+            "strategy_label": "diagnose-and-retry-adv-run-test",
+            "outcome": "failed",
+            "attempted_at": "2026-05-04T07:30:03.000Z"
+          },
+          {
+            "attempt_number": 2,
+            "error": "adv_run_test retry returned WorkflowUpdateFailedError again.",
+            "diagnosis": "Durable evidence update through adv_run_test was unreliable for this final rerun, while external test execution had already passed.",
+            "fix_tried": "Recorded final green via adv_task_evidence fallback with captured Bash output and correction reason.",
+            "strategy_label": "fallback-manual-green-evidence",
+            "outcome": "succeeded",
+            "attempted_at": "2026-05-04T07:30:39.000Z"
+          }
+        ]
+      },
+      "tdd_evidence": {
+        "red": {
+          "exit_code": 1,
+          "recorded_at": "2026-05-04T07:17:36.824Z",
+          "test_file": "pnpm exec vitest run src/temporal/heartbeat-writer.test.ts src/temporal/worker-lock.test.ts src/tools/temporal-ops.test.ts src/tools/project-workflow-helper.test.ts"
+        },
+        "green": {
+          "exit_code": 0,
+          "recorded_at": "2026-05-04T07:30:39.513Z",
+          "test_file": "src/temporal/heartbeat-writer.test.ts src/temporal/worker-lock.test.ts src/tools/temporal-ops.test.ts src/tools/project-workflow-helper.test.ts src/plugin-init.test.ts src/tools/status-temporal-health.test.ts"
+        }
+      },
+      "touched_files": [
+        "plugin/src/plugin-init.test.ts",
+        "plugin/src/plugin-init.ts",
+        "plugin/src/temporal/heartbeat-writer.test.ts",
+        "plugin/src/temporal/heartbeat-writer.ts",
+        "plugin/src/temporal/worker-lock.test.ts",
+        "plugin/src/temporal/worker-lock.ts",
+        "plugin/src/tools/project-workflow-helper.test.ts",
+        "plugin/src/tools/project-workflow-helper.ts",
+        "plugin/src/tools/temporal-ops.test.ts",
+        "plugin/src/tools/temporal-ops.ts"
+      ],
+      "completed_at": "2026-05-04T04:08:21.003Z",
+      "completed_by": "Checkpoint recorded: 44c6aee9c0942c353918bc2be38cb43118699949. Verification passed: targeted fresh-v2/heartbeat/temporal/status/project-workflow/plugin-init tests (6 files, 108 tests) and pnpm run check. Final green evidence recorded via adv_task_evidence because adv_run_test workflow update failed twice despite healthy Temporal diagnostics."
+    },
+    {
+      "id": "tk-65841f2f-0a4b-45c7-9856-985fbbb59f79",
+      "title": "Make worktree creation reuse existing change worktrees before recovery or create\n\nTDD intent: inline\nDelegation hint: inline_required\nTouched files:\n- plugin/src/tools/worktree/index.ts\n- plugin/src/tools/worktree/index-create.test.ts\n- plugin/src/tools/adv-worktree.ts if wrapper output shape changes\n- plugin/src/tools/project-workflow-helper.ts if recovery seam call order needs adjustment\n- .opencode/command/adv-apply.md\n- ADV_INSTRUCTIONS.md\n- docs/temporal-worker-stuck-investigation.md if incident notes need final update\n\nScope:\n- Add tool-level detection/reuse for existing `branch refs/heads/change/<change-id>` worktree before any workflow-backed registry recovery or `git worktree add` path.\n- If branch record exists but path is missing, prune stale git worktree metadata and continue bounded create.\n- If path exists, return success with existing path/branch/base/head and mark output as reused; do not require Temporal worker recovery first.\n- Ensure command/agent guidance says reuse existing worktree is mandatory before diagnosing worker locks.\n- Preserve merge-before-delete safety and registry update semantics.\n\nRed phase:\n- Add failing tests where `adv_worktree_create` sees an existing change branch/path and returns reuse without invoking project-workflow recovery or `git worktree add`.\n- Add failing stale-path test: missing path causes prune/create path, not in-place fallback.\n- Add guidance/assertion test if existing command assets cover worktree reuse.\n\nGreen phase:\n- Implement reuse detection and structured reused output.\n- Re-run worktree create/state tests and relevant asset tests.\n\nAcceptance:\n- Transcript failure class cannot recur: existing worktree is discovered and reused before worker recovery.\n- `adv_worktree_create` never suggests in-place edits fallback.\n- Stale/missing worktree entries are pruned/bounded before fresh create.",
+      "type": "code",
+      "section": "Re-entry gaps",
+      "status": "done",
+      "priority": 10,
+      "created_at": "2026-05-04T04:08:20.991Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-77d794a8-3e59-4c73-af8c-c7dac37211e0"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-e34aba61-8751-4138-bd34-ebd287e62703"
+        }
+      ],
+      "tdd_phase": "complete",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "started_at": "2026-05-04T04:08:21.005Z",
+      "implementation_summary": "Implemented git-authoritative worktree reuse preflight in advWorktreeCreate. The tool now parses `git worktree list --porcelain` before base resolution, stale-basis checks, flock, workflow registry writes, or `git worktree add`; if the requested branch already has an on-disk worktree, it returns success with `reused:true`, existing path, branch, baseRef, and headSha. If git worktree metadata points at a missing path, it runs `git worktree prune` and proceeds to bounded fresh create with `reused:false`. Added regression tests proving reuse avoids workflow updates/base checks and stale metadata is pruned before fresh create.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "tdd_evidence": {
+        "red": {
+          "exit_code": 1,
+          "recorded_at": "2026-05-04T07:35:09.254Z",
+          "test_file": "pnpm exec vitest run src/tools/worktree/index-create.test.ts"
+        },
+        "green": {
+          "exit_code": 0,
+          "recorded_at": "2026-05-04T07:36:03.922Z",
+          "test_file": "pnpm exec vitest run src/tools/worktree/index-create.test.ts"
+        }
+      },
+      "touched_files": [
+        "plugin/src/tools/worktree/index-create.test.ts",
+        "plugin/src/tools/worktree/index.ts"
+      ],
+      "completed_at": "2026-05-04T04:08:21.007Z",
+      "completed_by": "Checkpoint recorded: 648fbbda5fb447ebfa1c04e96ec60bb5810b89e5. Verification passed: worktree create red/green test, worktree wrapper/registry tests, and pnpm run check."
+    },
+    {
+      "id": "tk-0c9c1d7a-2b09-42b0-94f3-b3df21609e9f",
+      "title": "Harden checkpoint ledger recovery and reconnect guidance\n\nTDD intent: inline\nDelegation hint: inline_required\nTouched files:\n- plugin/src/tools/checkpoint.ts\n- plugin/src/tools/checkpoint.test.ts\n- plugin/src/tools/temporal-ops.ts\n- plugin/src/tools/temporal-ops.test.ts\n- .opencode/command/adv-apply.md\n- ADV_INSTRUCTIONS.md\n- docs/temporal-recovery.md\n\nScope:\n- Ensure `adv_task_checkpoint` returns `checkpointRecorded:false` with actionable remediation when git commit/clean checkpoint succeeds but task-run ledger update fails.\n- Ensure `/adv-apply` guidance treats `checkpointRecorded:false` as blocking task completion: run `adv_task_run_status`, retry checkpoint/ledger event, then only mark done after checkpoint recorded.\n- Ensure `adv_temporal_reconnect` guidance remains STSL/client-only and is not recommended as a worker-registration or queue-serviceability fix when the expected queue is not serviceable.\n- Preserve existing auto-verification-before-checkpoint behavior and strict ledger state machine.\n\nRed phase:\n- Add failing/reconfirming tests for dirty-tree committed checkpoint with ledger write failure and clean-tree checkpoint with ledger write failure.\n- Add failing tests that diagnose/recommendation text for worker-not-serviceable does not route through `adv_temporal_reconnect`.\n- Add command/guidance assertion if existing asset tests cover apply-loop checkpoint semantics.\n\nGreen phase:\n- Implement/remediate checkpoint outputs, apply guidance, and reconnect recommendation ordering.\n- Run targeted checkpoint, temporal-ops, and asset tests.\n\nAcceptance:\n- #26 shape cannot be marked done after `checkpointRecorded:false`.\n- #27 shape recommends verified worker recovery / owner restart / approval path as appropriate, not STSL reconnect.\n- Remediation text gives exact next actions and no blind retry loop.",
+      "type": "code",
+      "section": "Re-entry gaps",
+      "status": "done",
+      "priority": 11,
+      "created_at": "2026-05-04T04:08:20.992Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-77d794a8-3e59-4c73-af8c-c7dac37211e0"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-4011612a-a78e-4642-ab23-e8f46f01c775"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-669c7976-9641-452c-a164-ff7a6f1a28bc"
+        }
+      ],
+      "tdd_phase": "complete",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "started_at": "2026-05-04T04:08:21.009Z",
+      "implementation_summary": "Hardened checkpoint ledger recovery for both dirty commit and clean-tree paths. `adv_task_checkpoint` remediation now states `checkpointRecorded:false` blocks task completion until `adv_task_run_status` plus retry/missing ledger recovery yields `checkpointRecorded:true`. `/adv-apply` and ADV instructions now explicitly prohibit `adv_task_update status: done` after `checkpointRecorded:false`. Temporal recovery docs now separate STSL reconnect from worker-registration/queue-serviceability recovery and document fresh-v2 unserviceable lock approval-gated handling.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "tdd_evidence": {
+        "red": {
+          "exit_code": 1,
+          "recorded_at": "2026-05-04T07:40:15.274Z",
+          "test_file": "pnpm exec vitest run src/tools/checkpoint.test.ts src/adv-checkpoint-assets.test.ts src/tools/temporal-ops.test.ts"
+        },
+        "green": {
+          "exit_code": 0,
+          "recorded_at": "2026-05-04T07:44:09.074Z",
+          "test_file": "src/tools/checkpoint.test.ts src/adv-checkpoint-assets.test.ts src/tools/temporal-ops.test.ts src/adv-instructions-assets.test.ts plus repo check"
+        }
+      },
+      "touched_files": [
+        ".opencode/command/adv-apply.md",
+        "ADV_INSTRUCTIONS.md",
+        "docs/temporal-recovery.md",
+        "plugin/src/adv-checkpoint-assets.test.ts",
+        "plugin/src/tools/checkpoint.test.ts",
+        "plugin/src/tools/checkpoint.ts"
+      ],
+      "completed_at": "2026-05-04T04:08:21.011Z",
+      "completed_by": "Checkpoint recorded: 17f46f2121209a5cfd19a57517c777f9b858844b. Verification passed: checkpoint/temporal/assets targeted tests (4 files, 96 tests) and pnpm run check."
+    },
+    {
+      "id": "tk-7cc64244-c7b8-4048-8a3a-a3d73efb1ee1",
+      "title": "Run final cross-scope recovery verification for #22/#23/#24/#25/#26/#27\n\nTDD intent: separate_verification\nDelegation hint: inline_required\nTouched files:\n- tests touched by re-entry tasks\n- docs/temporal-worker-stuck-investigation.md if final evidence summary needs update\n\nScope:\n- Extend the existing regression guard to cover both original #22/#23/#24 stuck-worker shape and re-entry #25/#26/#27 shapes.\n- Verify old v1 suspect lock, fresh-v2 unserviceable lock, self-owned unserviceable lock, existing-worktree reuse, checkpointRecorded:false ledger recovery, and reconnect-not-worker-recovery recommendations compose correctly.\n- Run targeted suites from all touched areas, then `pnpm run check` from plugin/.\n- If feasible, run full `pnpm test`; otherwise document targeted evidence plus source-vs-dist build/fresh-session caveat.\n\nRed phase:\n- Add failing composed regression(s) for any uncovered cross-scope incident path.\n- Run chosen targeted regression command.\n\nGreen phase:\n- Confirm all implemented paths return structured diagnose/restart/worktree/checkpoint results.\n- Run target suites, `pnpm run check`, and full suite if feasible.\n\nAcceptance:\n- Regression coverage names #22, #23, #24, #25, #26, and #27.\n- Targeted tests for serviceability, heartbeat, restart, lock, diagnose/status, worktree, checkpoint, specs/docs pass.\n- `pnpm run check` passes from plugin/.\n- Final notes clearly state source-tested vs build/fresh-session live tool validation status.",
+      "type": "code",
+      "section": "Verification",
+      "status": "done",
+      "priority": 12,
+      "created_at": "2026-05-04T04:08:20.993Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-e2c1d852-fc8b-4038-8882-fcb8c9dcdfef"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-65841f2f-0a4b-45c7-9856-985fbbb59f79"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-0c9c1d7a-2b09-42b0-94f3-b3df21609e9f"
+        }
+      ],
+      "tdd_phase": "complete",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "started_at": "2026-05-04T04:08:21.012Z",
+      "implementation_summary": "Ran final cross-scope recovery verification for #22/#23/#24/#25/#26/#27. Verified original v1 suspect lock handling, fresh-v2 unserviceable lock handling, self/peer diagnostics, worktree reuse/prune preflight, checkpointRecorded:false ledger blocking, reconnect-not-worker-recovery boundary, spec drift, command assets, status/plugin-init paths, and full repo tests. Fixed final full-suite findings by preserving ADV_INSTRUCTIONS line ceiling and adding `rq-checkpointLedger01` citation.",
+      "error_recovery": {
+        "last_error": "First full pnpm test run failed on ADV_INSTRUCTIONS line ceiling and missing rq-checkpointLedger01 citation.",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "pnpm test failed: ADV_INSTRUCTIONS.md line count 955 > 950; spec citation invariant missing rq-checkpointLedger01 external citation.",
+            "diagnosis": "Docs additions exceeded ratcheting line ceiling and new spec requirement lacked implementation citation.",
+            "fix_tried": "Compressed ADV_INSTRUCTIONS checkpointRecorded guidance into apply-loop table and added rq-checkpointLedger01 citation comment in checkpoint.ts; reran failing invariant tests, check, and full suite.",
+            "strategy_label": "line-ceiling-and-citation-fix",
+            "outcome": "succeeded",
+            "attempted_at": "2026-05-04T07:47:36.000Z"
+          }
+        ]
+      },
+      "tdd_evidence": {
+        "red": {
+          "exit_code": 1,
+          "recorded_at": "2026-05-04T07:45:06.185Z",
+          "test_file": "Final verification is separate_verification; red phase not applicable because this task verifies completed cross-scope coverage, not a new failing behavior."
+        },
+        "green": {
+          "exit_code": 0,
+          "recorded_at": "2026-05-04T07:50:15.697Z",
+          "test_file": "full cross-scope suite and repo check"
+        }
+      },
+      "touched_files": [
+        "ADV_INSTRUCTIONS.md",
+        "plugin/src/tools/checkpoint.ts"
+      ],
+      "completed_at": "2026-05-04T04:08:21.014Z",
+      "completed_by": "Checkpoint recorded: 81d19cfa7140c35d925073080846502960ee3f49. Final verification passed: targeted cross-scope suite (13 files, 268 tests), pnpm run check, and full pnpm test (168 files passed, 2 skipped; 3096 tests passed, 7 skipped). Source-tested; live ADV tool behavior requires build + fresh OpenCode session for dist-loaded plugin changes."
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-5f575ede-ffdf-4c66-8df9-2fbbab3735fb",
+      "type": "gotcha",
+      "content": "Spec-drift tests may preserve exact legacy phrases such as `v1 fallback` even when the semantic spec rewrite is correct. When changing spec law text, update assertions and keep continuity tokens intentionally where tests/docs rely on them.",
+      "source_task": "tk-eb7226ae-d159-4867-83f8-be6b789133bf",
+      "recorded_at": "2026-05-04T04:08:20.964Z"
+    },
+    {
+      "id": "ws-44f44250-cc3b-445c-9770-3e4359ed4baf",
+      "type": "gotcha",
+      "content": "Registry timeout-override tests extract only the `toolName: registerTool(...)` block, so the `rq-toolTimeoutOverride01` rationale token must appear inside that block, not only in the preceding comment.",
+      "source_task": "tk-4011612a-a78e-4642-ab23-e8f46f01c775",
+      "recorded_at": "2026-05-04T04:08:20.974Z"
+    },
+    {
+      "id": "ws-6897b77f-884c-4557-9ec0-05a384ac9821",
+      "type": "pattern",
+      "content": "When adding health diagnostics to `adv_status`, update all three planes together: raw `fullOutput`, `applyStatusView('health')` projection, and `formatStatusOutput()` labels. Otherwise new raw fields exist internally but disappear from user-facing health output.",
+      "source_task": "tk-669c7976-9641-452c-a164-ff7a6f1a28bc",
+      "recorded_at": "2026-05-04T04:08:20.978Z"
+    },
+    {
+      "id": "ws-70586b9b-bf37-4ae2-9b63-a69a134b3d76",
+      "type": "gotcha",
+      "content": "When a readiness check uses `getTemporalWorkerAliveness() && getRegisteredTemporalWorkerQueues().includes(...)`, JS short-circuit will skip the queues call when aliveness is false. Tests that rely on `vi.fn().mockReturnValueOnce([])...mockReturnValue([...])` to model recovery cycles will silently miscount. Preserve the historical eager-call pattern (compute `queues` first, then check `alive`) so each readiness check consumes one mock value from each helper.",
+      "source_task": "tk-e34aba61-8751-4138-bd34-ebd287e62703",
+      "recorded_at": "2026-05-04T04:08:20.983Z"
+    },
+    {
+      "id": "ws-fe122fc1-3226-453d-8e35-4b0f828176ce",
+      "type": "gotcha",
+      "content": "`adv_run_test` can execute a command successfully but fail to persist final evidence with `WorkflowUpdateFailedError` even when Temporal server/worker/queue and project/change workflows diagnose healthy. Do not complete the task from the shell pass alone: retry once after `adv_temporal_diagnose`; if it still fails, use `adv_task_evidence` with captured output, then require `adv_task_checkpoint` to return `checkpointRecorded:true` before `adv_task_update done`.",
+      "source_task": "tk-e2c1d852-fc8b-4038-8882-fcb8c9dcdfef",
+      "recorded_at": "2026-05-04T04:08:21.004Z"
+    },
+    {
+      "id": "ws-a6dbce41-e838-4a93-a3ca-407474a38f6b",
+      "type": "pattern",
+      "content": "For worktree-create recovery paths, use `git worktree list --porcelain` as the first authority before Temporal registry access. Existing branch/path reuse can complete without project-workflow recovery, base resolution, flock, or `git worktree add`; missing paths should run `git worktree prune` before fresh create.",
+      "source_task": "tk-65841f2f-0a4b-45c7-9856-985fbbb59f79",
+      "recorded_at": "2026-05-04T04:08:21.008Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-04T04:08:20.948Z",
+      "completed_by": "agent",
+      "notes": "User replied `continue`, approving problem and scope for the stuck Temporal worker recovery umbrella change covering GitHub issues #22, #23, and #24."
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-04T04:08:20.949Z",
+      "completed_by": "agent",
+      "notes": "User replied `approve`, approving corrected agreement: Temporal poller rows are freshness signals, not durable worker records; ADV will harden worker ownership/recovery planes without replacing Temporal."
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-04T04:08:20.988Z",
+      "completed_by": "agent",
+      "notes": "Design re-entered for GitHub #25/#26/#27 and transcript-proven worktree/agent recovery failure. Independent validator returned VALIDATED. No product tradeoff or validator conflict; implementation gaps moved to planning."
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-04T04:08:20.998Z",
+      "completed_by": "agent",
+      "notes": "User replied `approve` to prep vision. Added re-entry tasks for #25 fresh-v2 heartbeat poison-pill, #26 checkpointRecorded:false, #27 reconnect boundary, and existing-worktree reuse before recovery/create. Reclassified docs and cross-cutting verification tasks with approved TDD intents. Validation passed with only NO_DELTAS warning."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-04T04:08:21.015Z",
+      "completed_by": "agent",
+      "notes": "Autopilot execution complete. All 13 tasks done and checkpointed. Verification passed: targeted cross-scope suite (13 files, 268 tests), pnpm run check, and full pnpm test (168 files passed, 2 skipped; 3096 tests passed, 7 skipped)."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-04T04:08:21.016Z",
+      "completed_by": "agent",
+      "notes": "Autopilot review/acceptance complete. Review found no blocking findings. Validation passed with only NO_DELTAS warning. Verification passed: targeted cross-scope suite (13 files, 268 tests), pnpm run check, pnpm run build, and full pnpm test (168 files passed, 2 skipped; 3096 tests passed, 7 skipped). Working tree clean. Source-tested; live ADV tool behavior requires build + fresh OpenCode session because OpenCode loads plugin/dist at session startup."
+    },
+    "release": {
+      "status": "done",
+      "completed_at": "2026-05-04T04:08:21.017Z",
+      "completed_by": "agent",
+      "notes": "User replied `sign off`, approving Tier B release/archive. Release verification passed before sign-off: adv_change_validate strict passed with NO_DELTAS warning only; working tree clean; branch already pushed; prior verification included pnpm run check, pnpm run build, and full pnpm test."
+    }
+  },
+  "reentry_history": [
+    {
+      "from_gate": "design",
+      "reason": "User selected `Include now` for GitHub #25 scope delta: fresh v2 worker.lock heartbeat can be poison-pill when holder is not serving the project queue.",
+      "scope_delta": "Extend recovery model beyond legacy v1 suspect locks: fresh v2 heartbeat alone must not prove queue ownership health. If a live lock holder heartbeats but the expected queue is not serviceable, diagnostics must identify self/peer holder, recovery must stop unsafe blind loops, and implementation must provide an approval-gated or bounded takeover/release path that does not require manual lock-file deletion.",
+      "reopened_by": "agent",
+      "approval_evidence": "User provided https://github.com/Sharper-Flow/Advance/issues/25 and selected `Include now` in scope decision.",
+      "reopened_at": "2026-05-04T04:08:20.980Z",
+      "gates_reset": [
+        "design",
+        "planning",
+        "execution",
+        "acceptance",
+        "release"
+      ]
+    }
+  ],
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "github_issues": [
+    "https://github.com/Sharper-Flow/Advance/issues/22",
+    "https://github.com/Sharper-Flow/Advance/issues/23",
+    "https://github.com/Sharper-Flow/Advance/issues/24",
+    "https://github.com/Sharper-Flow/Advance/issues/25",
+    "https://github.com/Sharper-Flow/Advance/issues/26",
+    "https://github.com/Sharper-Flow/Advance/issues/27"
+  ],
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_UNCLEAR_SCOPE",
+      "severity": "warning",
+      "message": "Scope section is empty or placeholder. What specific files/modules will change?",
+      "recorded_at": "2026-05-04T05:23:40.188Z"
+    }
+  ],
+  "judgment_calls": []
+}
