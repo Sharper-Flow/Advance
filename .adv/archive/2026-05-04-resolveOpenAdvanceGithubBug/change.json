@@ -1,0 +1,187 @@
+{
+  "id": "resolveOpenAdvanceGithubBug",
+  "title": "Resolve open Advance GitHub bug queue",
+  "status": "archived",
+  "created_at": "2026-05-04T17:46:51.451Z",
+  "tasks": [
+    {
+      "id": "tk-f7930f8a-a73d-4be3-894c-d8b26353705a",
+      "title": "#37 checkpoint recovery: add red tests and implement phase-aware clean-tree retry so committed checkpoint partial success can be recorded/retried without misleading clean semantics or silent ledger success.",
+      "type": "code",
+      "section": "implementation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-04T17:46:51.517Z",
+      "started_at": "2026-05-04T17:46:51.521Z",
+      "implementation_summary": "Implemented #37 checkpoint recovery tests/fix, plus inline blocker fix for adv_run_test outer safety-net timeout. Verified build and targeted vitest suites. Checkpoint recorded clean at facdaa1ab1dadfc8a22c16d2d8d0961bf61abb50.",
+      "tdd_phase": "complete",
+      "tdd_evidence": {
+        "red": {
+          "exit_code": 1,
+          "recorded_at": "2026-05-04T18:07:56.404Z",
+          "test_file": "plugin/src/tools/checkpoint.test.ts"
+        },
+        "green": {
+          "exit_code": 0,
+          "recorded_at": "2026-05-04T18:55:00.218Z",
+          "test_file": "plugin/src/tools/checkpoint.test.ts"
+        }
+      },
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "touched_files": [
+        "plugin/src/tools/checkpoint.test.ts",
+        "plugin/src/tools/checkpoint.ts"
+      ],
+      "completed_at": "2026-05-04T18:54:14.228Z",
+      "completed_by": "Completed after workflow repair. Checkpoint recorded clean at facdaa1."
+    },
+    {
+      "id": "tk-f9815213-4e6e-484f-8b72-9be4207be6e8",
+      "title": "#36/#38 worktree cleanup: add red tests and implement deletion routing for missing-from-disk registry cleanup and clean merged non-ADV branches while preserving dirty/unmerged/active ADV blocks.",
+      "type": "code",
+      "section": "implementation",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-04T17:46:51.518Z",
+      "tdd_phase": "complete",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "started_at": "2026-05-04T18:54:14.229Z",
+      "implementation_summary": "Added regression coverage and deletion routing for #36/#38. Missing-from-disk registry entries now remove stale registry/pending-delete state before ADV integration when path and branch are gone. Non-ADV registry entries without changeId now use merged-to-default routing and skip archived-change requirement while preserving dirty/unmerged blocks. Verified targeted tests, check, and build. Checkpoint ea8d72265a05f1c47cca6345244bf5dc876d3ecd.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "tdd_evidence": {
+        "red": {
+          "exit_code": 1,
+          "recorded_at": "2026-05-04T19:00:08.929Z",
+          "test_file": "plugin/src/tools/worktree/index-delete.test.ts"
+        },
+        "green": {
+          "exit_code": 0,
+          "recorded_at": "2026-05-04T19:02:39.588Z",
+          "test_file": "plugin/src/tools/worktree/index-delete.test.ts"
+        }
+      },
+      "touched_files": [
+        "plugin/src/tools/worktree/index-delete.test.ts",
+        "plugin/src/tools/worktree/index.ts"
+      ],
+      "completed_at": "2026-05-04T18:54:14.231Z",
+      "completed_by": "Completed #36/#38 worktree cleanup task. Checkpoint committed ea8d722."
+    },
+    {
+      "id": "tk-050bede6-f56a-462c-90c1-d3340edddeab",
+      "title": "#33 temporal health/status: add red tests and implement serviceability precedence for diagnose and stale-queue/status warnings, including health-probe composition.",
+      "type": "code",
+      "section": "implementation",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-05-04T17:46:51.519Z",
+      "tdd_phase": "complete",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "started_at": "2026-05-04T18:54:14.232Z",
+      "implementation_summary": "Added #33 regression coverage and serviceability precedence in adv_status. Stale queue recommendations are now suppressed for the active project queue when queue serviceability is proven by fresh server poller evidence. Existing diagnose path already gates stale-queue recovery by queueServiceability. Verified temporal health/serviceability tests, check, and build. Checkpoint 3098812bb88b6fc4c1c00693860799776455b4b3.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "tdd_evidence": {
+        "red": {
+          "exit_code": 1,
+          "recorded_at": "2026-05-04T19:06:27.879Z",
+          "test_file": "plugin/src/tools/status-temporal-health.test.ts"
+        },
+        "green": {
+          "exit_code": 0,
+          "recorded_at": "2026-05-04T19:07:42.742Z",
+          "test_file": "plugin/src/tools/status-temporal-health.test.ts"
+        }
+      },
+      "touched_files": [
+        "plugin/src/tools/status-temporal-health.test.ts",
+        "plugin/src/tools/status.ts"
+      ],
+      "completed_at": "2026-05-04T18:54:14.234Z",
+      "completed_by": "Completed #33 temporal health/status task. Checkpoint committed 3098812."
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-04T17:46:51.514Z",
+      "completed_by": "agent",
+      "notes": "User replied `approve`; worker restart recovered Temporal serviceability after initial mutation timeout/stale disk view."
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-04T17:46:51.515Z",
+      "completed_by": "agent",
+      "notes": "User approved agreement after discovery. Current-state evidence recorded: checkpoint.ts partial-success path, branch-integration archived-change requirement, worktree delete integration-before-cleanup ordering, temporal-ops multi-source health evidence."
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-04T17:46:51.516Z",
+      "completed_by": "agent",
+      "notes": "Independent validator returned CAUTION, no conflict. Accepted refinements: include health-probe stale-queue composition in #33; make #37 clean-tree retry phase-aware and preserve committed-vs-clean ledger semantics."
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-04T17:46:51.520Z",
+      "completed_by": "agent",
+      "notes": "User approved prep task graph: 3 inline-TDD implementation tasks covering #37 checkpoint recovery, #36/#38 worktree cleanup, and #33 temporal health/status precedence."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-04T18:54:14.235Z",
+      "completed_by": "agent",
+      "notes": "Execution complete: all 3 tasks done with TDD evidence and task checkpoints. Verified: pnpm exec vitest run src/tools/status-temporal-health.test.ts src/tools/temporal-ops.test.ts src/temporal/queue-serviceability.test.ts passed; pnpm test -- src/tools/worktree/index-delete.test.ts passed; pnpm run check passed; pnpm run build passed. Worktree clean at 3098812."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-04T18:54:14.236Z",
+      "completed_by": "agent",
+      "notes": "User replied `accept` after review findings showed no blockers/issues and verification passed."
+    },
+    "release": {
+      "status": "done",
+      "completed_at": "2026-05-04T18:54:14.237Z",
+      "completed_by": "agent",
+      "notes": "User replied `sign off`. Strict validation passed with non-blocking warnings only (no spec deltas, discovery evidence section warning). Conformance status has no locked specs. Verification already passed: changed-area tests, pnpm run check, pnpm run build."
+    }
+  },
+  "reentry_history": [],
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_UNCLEAR_SCOPE",
+      "severity": "warning",
+      "message": "Proposal has no Scope section. What files and modules will be affected?",
+      "recorded_at": "2026-05-04T19:09:02.549Z"
+    }
+  ]
+}
