@@ -2,13 +2,15 @@
  * Worker Lock Tests (rq-workerSingleton01)
  */
 
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { mkdir, readFile, writeFile, access } from "fs/promises";
 import { join } from "path";
 import {
   acquireWorkerLock,
+  HEARTBEAT_INTERVAL_MS,
   isV2Lock,
   releaseWorkerLock,
+  STALE_HEARTBEAT_MS,
   WORKER_LOCK_FILENAME,
 } from "./worker-lock";
 import { createTempDir, cleanupTempDir } from "../__tests__/setup";
@@ -69,6 +71,31 @@ describe("acquireWorkerLock + releaseWorkerLock", () => {
           last_heartbeat: "2026-01-01T00:00:05.000Z",
         }),
       ).toBe(false);
+    });
+  });
+
+  describe("heartbeat timing constants", () => {
+    it("uses conservative default heartbeat timing", () => {
+      expect(HEARTBEAT_INTERVAL_MS).toBe(5_000);
+      expect(STALE_HEARTBEAT_MS).toBe(60_000);
+      expect(STALE_HEARTBEAT_MS).toBeGreaterThan(2 * HEARTBEAT_INTERVAL_MS);
+    });
+
+    it("honors env overrides while preserving stale > 2 * interval", async () => {
+      vi.resetModules();
+      vi.stubEnv("ADV_WORKER_HEARTBEAT_INTERVAL_MS", "7000");
+      vi.stubEnv("ADV_WORKER_HEARTBEAT_STALE_MS", "25000");
+
+      const workerLock = await import("./worker-lock");
+
+      expect(workerLock.HEARTBEAT_INTERVAL_MS).toBe(7_000);
+      expect(workerLock.STALE_HEARTBEAT_MS).toBe(25_000);
+      expect(workerLock.STALE_HEARTBEAT_MS).toBeGreaterThan(
+        2 * workerLock.HEARTBEAT_INTERVAL_MS,
+      );
+
+      vi.unstubAllEnvs();
+      vi.resetModules();
     });
   });
 

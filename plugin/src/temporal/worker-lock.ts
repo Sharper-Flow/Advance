@@ -56,6 +56,18 @@ import { join } from "path";
 import { randomUUID } from "crypto";
 
 export const WORKER_LOCK_FILENAME = "worker.lock";
+export const HEARTBEAT_INTERVAL_MS = readPositiveIntEnv(
+  "ADV_WORKER_HEARTBEAT_INTERVAL_MS",
+  5_000,
+);
+const CONFIGURED_STALE_HEARTBEAT_MS = readPositiveIntEnv(
+  "ADV_WORKER_HEARTBEAT_STALE_MS",
+  60_000,
+);
+export const STALE_HEARTBEAT_MS =
+  CONFIGURED_STALE_HEARTBEAT_MS > 2 * HEARTBEAT_INTERVAL_MS
+    ? CONFIGURED_STALE_HEARTBEAT_MS
+    : Math.max(60_000, HEARTBEAT_INTERVAL_MS * 3);
 const WORKER_LOCK_TMP_SUFFIX = ".tmp";
 const WORKER_LOCK_RELEASING_SUFFIX = ".releasing";
 
@@ -233,6 +245,13 @@ export async function releaseWorkerLock(
 // ============================================================================
 // Internals
 // ============================================================================
+
+function readPositiveIntEnv(name: string, fallback: number): number {
+  const raw = process.env[name];
+  if (!raw) return fallback;
+  const parsed = Number.parseInt(raw, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
 
 async function tryAtomicCreate(
   lockPath: string,
