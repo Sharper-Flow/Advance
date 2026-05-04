@@ -149,8 +149,11 @@ export async function verifyBranchIntegration(
     );
   }
 
-  // Normalize branch names: git may prefix with "* " for current branch
-  const normalizedMerged = merged.map((b) => b.replace(/^\*\s*/, "").trim());
+  // Normalize branch names: git may prefix with "* " for the current branch,
+  // or "+ " for branches checked out in another worktree. The latter is the
+  // canonical case for ADV-managed worktrees at delete time, so both prefixes
+  // must be stripped before the merged-set membership check.
+  const normalizedMerged = merged.map((b) => b.replace(/^[*+]\s*/, "").trim());
   if (!normalizedMerged.includes(branch)) {
     return fail(
       "branch_not_merged",

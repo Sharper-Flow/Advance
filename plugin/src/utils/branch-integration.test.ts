@@ -154,6 +154,28 @@ describe("verifyBranchIntegration (T29)", () => {
     });
   });
 
+  it("merged branches with worktree prefix (+ ) are normalized", async () => {
+    // git prefixes a branch with `+ ` when it is checked out in another
+    // worktree (the canonical case for ADV-managed worktrees at delete time).
+    // Without the `+` normalization, adv_worktree_delete falsely reports
+    // branch_not_merged even after a verified ff-merge.
+    const result = await verifyBranchIntegration(
+      "feature/test",
+      "/fake/repo",
+      {},
+      makeDeps({
+        mergedBranches: async () => ["+ feature/test"],
+      }),
+    );
+
+    expect(result).toEqual({
+      ok: true,
+      branch: "feature/test",
+      changeId: "change-abc123",
+      defaultBranch: "main",
+    });
+  });
+
   it("dirty working tree → worktree_dirty", async () => {
     const result = await verifyBranchIntegration(
       "feature/test",
