@@ -1,0 +1,143 @@
+{
+  "id": "clarifyWorkerRestartGuidance",
+  "title": "Clarify worker restart guidance",
+  "status": "archived",
+  "created_at": "2026-05-04T02:55:28.509Z",
+  "tasks": [
+    {
+      "id": "tk-6ef68ab0-8b1a-4ba7-92aa-1d16bac292cd",
+      "title": "Correct Temporal worker restart guidance and tests\n\nTDD intent: inline\nDelegation hint: inline_required\nTouched files:\n- plugin/src/tools/temporal-ops.ts\n- plugin/src/tools/change.ts\n- docs/temporal-recovery.md\n- plugin/src/tools/temporal-ops.test.ts\n- plugin/src/tools/change.test.ts\n\nScope:\n- Update five tool-code guidance sites:\n  1. plugin/src/tools/temporal-ops.ts recommendTemporalRecovery search-attribute unverified branch\n  2. plugin/src/tools/temporal-ops.ts recommendTemporalRecovery worker-not-alive branch\n  3. plugin/src/tools/temporal-ops.ts recommendPostRegistrationAction\n  4. plugin/src/tools/temporal-ops.ts adv_temporal_worker_restart description\n  5. plugin/src/tools/change.ts ARCHIVE_SEARCH_ATTRIBUTE_RECOVERY_HINT\n- Update docs/temporal-recovery.md with bounded reload-path guidance.\n- Update tests that assert guidance text.\n\nRed phase:\n- First update/add tests so current source fails because guidance lacks the required reload-path caveats.\n- Run: pnpm test -- src/tools/temporal-ops.test.ts src/tools/change.test.ts\n\nGreen phase:\n- Implement wording updates only; do not change restart runtime behavior.\n- Keep short recovery hints concise for OpenCode agents; put full caveat in tool description/docs.\n- Run targeted tests green.\n- Run pnpm run check before checkpoint.\n\nScenarios:\n- Given an agent reads adv_temporal_worker_restart description, when it needs reload guidance, then the description distinguishes OpenCode-loaded tool modules from Temporal worker code and names the correct reload actions.\n- Given search-attribute recovery guidance recommends worker restart, when an agent follows it, then it understands worker restart does not reload plugin tool code.\n- Given worker source under plugin/src/temporal changes, when guidance describes restart, then it says to run pnpm run build:worker before adv_temporal_worker_restart.\n- Given issue #20 is implemented locally, when final report is emitted, then the issue is not auto-closed before landing and evidence is reported.",
+      "type": "code",
+      "section": "implementation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-04T02:55:28.538Z",
+      "tdd_phase": "complete",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "started_at": "2026-05-04T02:55:28.540Z",
+      "implementation_summary": "Updated Temporal worker restart guidance in temporal-ops tool descriptions/recovery hints, archive recovery hint, and temporal recovery docs. Added/updated tests to lock reload-path caveats. Verification: red targeted test failed on new assertions; green targeted test passed; pnpm run check passed after formatting. Checkpoint commit: ff09c60.",
+      "error_recovery": {
+        "last_error": "adv_task_checkpoint ledger recording failed after successful commit ff09c60: Workflow Update failed",
+        "retry_count": 2,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "Proceed with task completion using recorded task evidence and git checkpoint; note ledger recording issue for follow-up.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "adv_task_checkpoint returned checkpointRecorded:false after commit ff09c60",
+            "diagnosis": "Git checkpoint succeeded but ledger workflow update failed; Temporal diagnose shows worker/project/change reachable, likely task-run ledger binding/update issue rather than git issue.",
+            "fix_tried": "Retried adv_task_checkpoint with clean HEAD ff09c60; ledger recording still failed.",
+            "strategy_label": "retry-clean-checkpoint",
+            "outcome": "failed",
+            "attempted_at": "2026-05-04T03:27:20.000Z"
+          },
+          {
+            "attempt_number": 2,
+            "error": "adv_task_run_status with explicit target_path showed no ledger; default target showed stale red_recorded ledger from initial environmental red",
+            "diagnosis": "ADV ledger state split between target_path/current-session views; task state itself has red/green evidence and checkpoint commit exists.",
+            "fix_tried": "Re-recorded green task evidence against current session; duplicate ignored because task evidence already recorded. Temporal diagnose healthy.",
+            "strategy_label": "rebind-ledger-evidence",
+            "outcome": "failed",
+            "attempted_at": "2026-05-04T03:28:00.000Z"
+          }
+        ]
+      },
+      "tdd_evidence": {
+        "red": {
+          "exit_code": 1,
+          "recorded_at": "2026-05-04T03:22:24.248Z",
+          "test_file": "plugin/src/tools/temporal-ops.test.ts"
+        },
+        "green": {
+          "exit_code": 0,
+          "recorded_at": "2026-05-04T03:27:37.863Z",
+          "test_file": "plugin/src/tools/temporal-ops.test.ts, plugin/src/tools/change.test.ts"
+        }
+      },
+      "touched_files": [
+        "docs/temporal-recovery.md",
+        "plugin/src/tools/change.test.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/temporal-ops.test.ts",
+        "plugin/src/tools/temporal-ops.ts"
+      ],
+      "completed_at": "2026-05-04T02:55:28.543Z",
+      "completed_by": "Completed. TDD evidence recorded in task.tdd_evidence; task-run ledger checkpoint recording failed after commit and retry, but git checkpoint exists at ff09c60 and Temporal diagnose was healthy. This appears to be a ledger-recording/tooling issue, not implementation failure."
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-d4ebd61c-f164-48d9-b18e-e2d578d167a0",
+      "type": "gotcha",
+      "content": "Fresh ADV worktrees may lack gitignored `plugin/node_modules`; targeted pnpm tests can fail with `vitest: not found`. Symlinking to the main checkout's existing node_modules restored test execution without changing package deps. Also, `adv_run_test` has a 30s timeout that can reject green evidence for targeted suites that complete in ~32s; record fallback evidence with command/output when needed.",
+      "source_task": "tk-6ef68ab0-8b1a-4ba7-92aa-1d16bac292cd",
+      "recorded_at": "2026-05-04T02:55:28.544Z"
+    },
+    {
+      "id": "ws-a3c79270-dcab-4b53-9e7d-93ae493e8213",
+      "type": "failure",
+      "content": "adv_task_checkpoint can successfully commit while failing task-run ledger recording with `Workflow Update failed`. If default vs target_path task-run views diverge, record remediation in task error_recovery and verify git/task evidence before proceeding; this may indicate a ledger binding/tooling gap rather than implementation failure.",
+      "source_task": "tk-6ef68ab0-8b1a-4ba7-92aa-1d16bac292cd",
+      "recorded_at": "2026-05-04T02:55:28.545Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-04T02:55:28.535Z",
+      "completed_by": "agent",
+      "notes": "User approved proposal with `continue`; B/F/S scan had no critical findings (Coverage: B:C F:C S:C)."
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-04T02:55:28.536Z",
+      "completed_by": "agent",
+      "notes": "Discovery findings persisted; user approved acceptance criteria with `approve`; agreement.md captured objectives, AC, constraints, decisions, and no deferred questions."
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-04T02:55:28.537Z",
+      "completed_by": "agent",
+      "notes": "Design recorded. Validator verdict: CAUTION only; cautions are implementation-planning details for prep, no conflict or contract-compromise risk. Straightforward guidance-only design, no user-value tradeoff pause required."
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-04T02:55:28.539Z",
+      "completed_by": "agent",
+      "notes": "User approved prep vision with `approve`. Task graph ready: 1 inline TDD task, validation passed with NO_DELTAS advisory only."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-04T02:55:28.547Z",
+      "completed_by": "agent",
+      "notes": "Execution verified from completed task tk-6ef68ab0-8b1a-4ba7-92aa-1d16bac292cd. TDD evidence recorded, targeted tests passed, pnpm run check passed, full pnpm test passed, pnpm run build passed, and checkpoint commit ff09c60 exists. Ledger checkpoint recording had a tooling failure after successful git commit and is documented in task error_recovery."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-04T02:55:28.548Z",
+      "completed_by": "agent",
+      "notes": "User replied `accept` after acceptance summary. Review found no blockers, issues, or suggestions. Verification passed: pnpm run check; pnpm test -- src/tools/temporal-ops.test.ts src/tools/change.test.ts."
+    },
+    "release": {
+      "status": "done",
+      "completed_at": "2026-05-04T02:55:28.549Z",
+      "completed_by": "agent",
+      "notes": "User replied `sign off`. Harden status READY: no blockers/high findings after remediation. Verification passed: pnpm run check, targeted tests, pnpm run build; merge dry-run clean; conformance state empty so external conformance skipped."
+    }
+  },
+  "reentry_history": [],
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_UNCLEAR_SCOPE",
+      "severity": "warning",
+      "message": "Scope section is empty or placeholder. What specific files/modules will change?",
+      "recorded_at": "2026-05-04T03:11:02.068Z"
+    }
+  ],
+  "judgment_calls": []
+}

@@ -557,7 +557,7 @@ describe("temporal operator tools", () => {
     expect(parsed.searchAttributes.ok).toBe(false);
     expect(parsed.searchAttributes.verificationStatus).toBe("unverified");
     expect(parsed.recommendedNextAction).toBe(
-      "verify Temporal search-attribute health, run adv_temporal_reconnect or adv_temporal_worker_restart (worker process only), then retry blocked Temporal tool; restart OpenCode for plugin tool-code drift",
+      "run adv_temporal_register_search_attributes with approval; if verification remains unverified, run adv_temporal_reconnect or adv_temporal_worker_restart (worker process only), then retry blocked Temporal tool; restart OpenCode for plugin tool-code drift",
     );
   });
 

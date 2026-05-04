@@ -1,0 +1,19 @@
+{
+  "entries": [
+    {
+      "id": "ws-d4ebd61c-f164-48d9-b18e-e2d578d167a0",
+      "type": "gotcha",
+      "content": "Fresh ADV worktrees may lack gitignored `plugin/node_modules`; targeted pnpm tests can fail with `vitest: not found`. Symlinking to the main checkout's existing node_modules restored test execution without changing package deps. Also, `adv_run_test` has a 30s timeout that can reject green evidence for targeted suites that complete in ~32s; record fallback evidence with command/output when needed.",
+      "source_task": "tk-6ef68ab0-8b1a-4ba7-92aa-1d16bac292cd",
+      "recorded_at": "2026-05-04T02:55:28.544Z"
+    },
+    {
+      "id": "ws-a3c79270-dcab-4b53-9e7d-93ae493e8213",
+      "type": "failure",
+      "content": "adv_task_checkpoint can successfully commit while failing task-run ledger recording with `Workflow Update failed`. If default vs target_path task-run views diverge, record remediation in task error_recovery and verify git/task evidence before proceeding; this may indicate a ledger binding/tooling gap rather than implementation failure.",
+      "source_task": "tk-6ef68ab0-8b1a-4ba7-92aa-1d16bac292cd",
+      "recorded_at": "2026-05-04T02:55:28.545Z"
+    }
+  ],
+  "count": 2
+}

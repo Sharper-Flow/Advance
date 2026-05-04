@@ -134,7 +134,7 @@ function recommendTemporalRecovery(input: {
   if (!input.stslInitialized) return "restart OpenCode or initialize STSL";
   if (!input.searchAttributesOk) {
     if (input.searchAttributesVerificationStatus === "unverified") {
-      return "verify Temporal search-attribute health, run adv_temporal_reconnect or adv_temporal_worker_restart (worker process only), then retry blocked Temporal tool; restart OpenCode for plugin tool-code drift";
+      return "run adv_temporal_register_search_attributes with approval; if verification remains unverified, run adv_temporal_reconnect or adv_temporal_worker_restart (worker process only), then retry blocked Temporal tool; restart OpenCode for plugin tool-code drift";
     }
     return "run adv_temporal_register_search_attributes";
   }
