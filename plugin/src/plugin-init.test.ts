@@ -743,6 +743,93 @@ describe("tryInitStore worker singleton (C5 / rq-workerSingleton01)", () => {
     expect(mocks.startHeartbeatWriter).not.toHaveBeenCalled();
   });
 
+  it("manual worker restart releases old lock, reacquires, and starts a fresh heartbeat", async () => {
+    const order: string[] = [];
+    mocks.getProjectId.mockResolvedValue("proj-sha");
+    const oldWorker = {
+      registerQueue: vi.fn(async () => {}),
+      shutdown: vi.fn(async () => {
+        order.push("old.shutdown");
+      }),
+      queues: ["advance-proj-sha"],
+      failedQueues: [],
+    };
+    const newWorker = {
+      registerQueue: vi.fn(async () => {}),
+      shutdown: vi.fn(async () => {}),
+      queues: ["advance-proj-sha"],
+      failedQueues: [],
+    };
+    const oldHeartbeatStop = vi.fn(async () => {
+      order.push("heartbeat.stop");
+    });
+
+    const { getExternalRoot } = await import("./utils/project-id");
+    const { acquireWorkerLock, releaseWorkerLock } =
+      await import("./temporal/worker-lock");
+    (releaseWorkerLock as any).mockImplementationOnce(async () => {
+      order.push("releaseLock");
+    });
+    (acquireWorkerLock as any).mockImplementationOnce(async () => {
+      order.push("acquireLock");
+      return {
+        owned: true,
+        ownerPid: process.pid,
+        workerId: "fresh-worker-id",
+        lockPath: "/tmp/fresh/worker.lock",
+      };
+    });
+    mocks.ensureTemporalRuntime.mockImplementationOnce(async () => {
+      order.push("ensureRuntime");
+      return {
+        address: "127.0.0.1:7233",
+        namespace: "default",
+        startedRuntime: true,
+      };
+    });
+    mocks.createInProcessWorker.mockImplementationOnce(async () => {
+      order.push("createWorker");
+      return newWorker as any;
+    });
+    mocks.startHeartbeatWriter.mockImplementationOnce((options) => {
+      order.push(`heartbeat.start:${options.workerId}`);
+      return mocks.heartbeatWriter;
+    });
+
+    const {
+      registerInProcessTemporalWorker,
+      registerOwnedWorkerHeartbeatWriter,
+      registerOwnedWorkerLock,
+      restartCurrentProjectTemporalWorker,
+    } = await import("./plugin-init");
+    const projectStateDir = getExternalRoot("proj-sha");
+    registerInProcessTemporalWorker(oldWorker as any);
+    registerOwnedWorkerLock(projectStateDir);
+    registerOwnedWorkerHeartbeatWriter(projectStateDir, {
+      stop: oldHeartbeatStop,
+    });
+
+    const result = await restartCurrentProjectTemporalWorker("/tmp/repo");
+
+    expect(result).toEqual({
+      projectId: "proj-sha",
+      queues: ["advance-proj-sha"],
+    });
+    expect(order).toEqual([
+      "heartbeat.stop",
+      "releaseLock",
+      "old.shutdown",
+      "ensureRuntime",
+      "acquireLock",
+      "createWorker",
+      "heartbeat.start:fresh-worker-id",
+    ]);
+
+    const restartExhausted = mocks.createInProcessWorker.mock.calls[0][0]
+      .onWorkerExhausted as () => Promise<void>;
+    await restartExhausted();
+  });
+
   it("in-process onWorkerExhausted stops heartbeat, releases lock, records failure, and updates aliveness once", async () => {
     mocks.getProjectId.mockResolvedValueOnce("proj-sha");
     const ownedWorker = {

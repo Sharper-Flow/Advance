@@ -523,23 +523,57 @@ export async function restartCurrentProjectTemporalWorker(
   }
 
   await drainInProcessTemporalWorkers();
+  const projectStateDir = getExternalRoot(projectId);
   const runtime = await ensureTemporalRuntime(projectId);
+  const lock = await acquireWorkerLock(projectStateDir);
+  if (!lock.owned) {
+    throw new Error(
+      `Cannot restart Temporal worker: worker.lock held by pid=${lock.ownerPid}`,
+    );
+  }
+
   const workerProbe = probeTemporalWorkerRuntime();
-  const worker = workerProbe.supported
-    ? await createInProcessWorker({
-        address: runtime.address,
-        namespace: runtime.namespace,
-        queues: [buildProjectTaskQueue(projectId)],
-      })
-    : await createOutOfProcessWorker({
-        address: runtime.address,
-        namespace: runtime.namespace,
-        queues: [buildProjectTaskQueue(projectId)],
-        workerScript: resolveWorkerScriptPath(),
-        projectId,
-      });
-  registerInProcessTemporalWorker(worker);
-  return { projectId, queues: [...worker.queues] };
+  let worker: InProcessWorker | undefined;
+  const onWorkerExhausted = async (): Promise<void> => {
+    await handleWorkerExhausted(projectStateDir, worker);
+  };
+
+  try {
+    worker = workerProbe.supported
+      ? await createInProcessWorker({
+          address: runtime.address,
+          namespace: runtime.namespace,
+          queues: [buildProjectTaskQueue(projectId)],
+          onWorkerExhausted,
+        })
+      : await createOutOfProcessWorker({
+          address: runtime.address,
+          namespace: runtime.namespace,
+          queues: [buildProjectTaskQueue(projectId)],
+          workerScript: resolveWorkerScriptPath(),
+          projectId,
+          onWorkerExhausted,
+        });
+    registerInProcessTemporalWorker(worker);
+    const heartbeatWriter = startHeartbeatWriter({
+      projectStateDir,
+      workerId: lock.workerId,
+      intervalMs: HEARTBEAT_INTERVAL_MS,
+      onWorkerExhausted,
+    });
+    registerOwnedWorkerHeartbeatWriter(projectStateDir, heartbeatWriter);
+    registerOwnedWorkerLock(projectStateDir);
+    return { projectId, queues: [...worker.queues] };
+  } catch (err) {
+    try {
+      await releaseWorkerLock(projectStateDir);
+    } catch (releaseErr) {
+      debugLog(
+        `Error releasing worker.lock after restart failure in ${projectStateDir}: ${releaseErr}`,
+      );
+    }
+    throw err;
+  }
 }
 
 export interface ShutdownHandlers {

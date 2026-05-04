@@ -17,6 +17,10 @@ const mocks = vi.hoisted(() => {
 
   return {
     store,
+    heartbeatWriter: {
+      stop: vi.fn(async () => {}),
+    },
+    startHeartbeatWriter: vi.fn(() => mocks.heartbeatWriter),
     createStore: vi.fn(async () => store as any),
     getProjectId: vi.fn(async () => "proj-cleanup"),
     ensureTemporalRuntime: vi.fn(async () => ({
@@ -47,6 +51,8 @@ vi.mock("./utils/project-id", async () => {
 
 // Stub worker-lock so this test doesn't write real lock files.
 vi.mock("./temporal/worker-lock", () => ({
+  HEARTBEAT_INTERVAL_MS: 5000,
+  WORKER_LOCK_FILENAME: "worker.lock",
   acquireWorkerLock: vi.fn(async () => ({
     owned: true,
     ownerPid: process.pid,
@@ -54,6 +60,10 @@ vi.mock("./temporal/worker-lock", () => ({
     lockPath: "/tmp/test/worker.lock",
   })),
   releaseWorkerLock: vi.fn(async () => {}),
+}));
+
+vi.mock("./temporal/heartbeat-writer", () => ({
+  startHeartbeatWriter: mocks.startHeartbeatWriter,
 }));
 
 vi.mock("./temporal/runtime-manager", async () => {
