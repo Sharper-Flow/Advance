@@ -375,7 +375,11 @@ describe("Multi-queue worker host", () => {
   });
 
   it("does not respawn on graceful exit (code 0)", async () => {
-    const worker = await createMultiWorker(baseInput);
+    const onWorkerExhausted = vi.fn();
+    const worker = await createMultiWorker({
+      ...baseInput,
+      onWorkerExhausted,
+    });
     const child = lastMockChild!;
 
     // Simulate graceful exit
@@ -386,8 +390,32 @@ describe("Multi-queue worker host", () => {
 
     // Only one child should have been spawned (no respawn)
     expect(mockChildren.length).toBe(1);
+    expect(onWorkerExhausted).not.toHaveBeenCalled();
 
     await worker.shutdown();
+  });
+
+  it("fires onWorkerExhausted exactly once after child restart exhaustion", async () => {
+    vi.useFakeTimers();
+    const onWorkerExhausted = vi.fn();
+    await createMultiWorker({
+      ...baseInput,
+      onWorkerExhausted,
+    });
+
+    lastMockChild!.emit("exit", null, "SIGKILL");
+    await vi.advanceTimersByTimeAsync(1_050);
+    mockChildren[mockChildren.length - 1].emit("exit", null, "SIGKILL");
+    await vi.advanceTimersByTimeAsync(3_050);
+    mockChildren[mockChildren.length - 1].emit("exit", null, "SIGKILL");
+    await vi.advanceTimersByTimeAsync(10_050);
+    mockChildren[mockChildren.length - 1].emit("exit", null, "SIGKILL");
+
+    await Promise.resolve();
+    expect(onWorkerExhausted).toHaveBeenCalledTimes(1);
+    mockChildren[mockChildren.length - 1].emit("exit", null, "SIGKILL");
+    await Promise.resolve();
+    expect(onWorkerExhausted).toHaveBeenCalledTimes(1);
   });
 
   it("respawns child after crash with exponential backoff", async () => {

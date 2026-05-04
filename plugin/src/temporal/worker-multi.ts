@@ -141,6 +141,7 @@ export interface MultiWorkerInput {
   workerScript: string;
   projectId: string;
   nodeEnv?: NodeJS.ProcessEnv;
+  onWorkerExhausted?: () => void | Promise<void>;
 }
 
 export interface MultiWorker extends InProcessWorker {
@@ -186,6 +187,7 @@ export async function createMultiWorker(
     }
   >();
   const registerErrors = new Map<string, string>();
+  let exhaustedNotified = false;
   let resolveExit: () => void = () => {};
   const exitPromise = new Promise<void>((resolve) => {
     resolveExit = resolve;
@@ -252,6 +254,14 @@ export async function createMultiWorker(
     }
 
     return false;
+  }
+
+  function notifyWorkerExhausted(): void {
+    if (exhaustedNotified) return;
+    exhaustedNotified = true;
+    void Promise.resolve(input.onWorkerExhausted?.()).catch(() => {
+      // Best-effort callback; caller owns recovery/error reporting.
+    });
   }
 
   /**
@@ -398,6 +408,7 @@ export async function createMultiWorker(
           logger.info(
             `Multi-queue Temporal worker exhausted ${MAX_RESTARTS} restart attempts. Last exit code=${code}, signal=${signal ?? "none"}.`,
           );
+          notifyWorkerExhausted();
           child = null;
           resolveExit();
           return;
