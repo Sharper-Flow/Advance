@@ -3038,6 +3038,32 @@ describe("Change Tools", () => {
       );
     });
 
+    test("rejects shorthand issue refs before saving", async () => {
+      const before = await changeTools.adv_change_show.execute(
+        { changeId: "addFeature" },
+        store,
+      );
+      const beforeParsed = JSON.parse(before);
+
+      const result = await changeTools.adv_change_update_issues.execute(
+        {
+          changeId: "addFeature",
+          add: ["Sharper-Flow/Advance#40"],
+        } as any,
+        store,
+      );
+      const parsed = parseToolOutput(result);
+
+      expect(parsed.error).toContain("Invalid GitHub issue URL");
+
+      const after = await changeTools.adv_change_show.execute(
+        { changeId: "addFeature" },
+        store,
+      );
+      const afterParsed = JSON.parse(after);
+      expect(afterParsed.github_issues).toEqual(beforeParsed.github_issues);
+    });
+
     test("persists issue updates to JSON file", async () => {
       await changeTools.adv_change_update_issues.execute(
         {
