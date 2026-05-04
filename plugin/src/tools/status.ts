@@ -79,6 +79,8 @@ interface ExternalStateHygieneReport {
   synthetic_project_dirs: number;
   synthetic_worktree_dirs: number;
   empty_worktree_prefix_dirs: string[];
+  in_repo_changes: boolean;
+  in_repo_archive: boolean;
   recommendations: string[];
 }
 
@@ -207,6 +209,16 @@ async function computeExternalStateHygiene(
     }
   }
 
+  // In-repo legacy state: .adv/changes/ and .adv/archive/ should not persist
+  // after migration to Temporal. Specs (.adv/specs/) are always in-repo and OK.
+  const repoRoot = store.paths.root;
+  const inRepoChanges = repoRoot
+    ? await pathExists(join(repoRoot, ".adv", "changes"))
+    : false;
+  const inRepoArchive = repoRoot
+    ? await pathExists(join(repoRoot, ".adv", "archive"))
+    : false;
+
   if (nestedAdvDir)
     recommendations.push("dry-run: nested external .adv/ detected");
   if (staleDbDir) recommendations.push("dry-run: stale physical db/ detected");
@@ -216,6 +228,14 @@ async function computeExternalStateHygiene(
   if (syntheticProjectDirs > 0 || syntheticWorktreeDirs > 0) {
     recommendations.push(
       "dry-run: synthetic test state/worktree dirs detected",
+    );
+  }
+  if (inRepoChanges || inRepoArchive) {
+    const parts: string[] = [];
+    if (inRepoChanges) parts.push(".adv/changes/");
+    if (inRepoArchive) parts.push(".adv/archive/");
+    recommendations.push(
+      `legacy in-repo state detected (${parts.join(", ")}): run adv_migrate_cleanup after confirming specs are preserved. Specs (.adv/specs/) are always in-repo and OK.`,
     );
   }
 
@@ -229,6 +249,8 @@ async function computeExternalStateHygiene(
     synthetic_project_dirs: syntheticProjectDirs,
     synthetic_worktree_dirs: syntheticWorktreeDirs,
     empty_worktree_prefix_dirs: emptyWorktreePrefixDirs.sort(),
+    in_repo_changes: inRepoChanges,
+    in_repo_archive: inRepoArchive,
     recommendations,
   };
 }
