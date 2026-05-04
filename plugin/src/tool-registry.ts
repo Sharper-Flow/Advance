@@ -452,10 +452,13 @@ export function createToolMap(
 
     // Test Tools — adv_run_test takes (args, store, directory)
     //
-    // Outer safety-net timeout must exceed the inner subprocess budget
-    // (DEFAULT_TEST_TIMEOUT_MS = 30s in test.ts) so the subprocess is the
-    // authoritative timeout source. 35s gives 5s headroom for tool-side
-    // bookkeeping (workflow Update, evidence recording).
+    // Outer safety-net timeout must exceed the inner subprocess budget.
+    // The inner subprocess accepts timeoutMs up to the schema max (300_000
+    // in test.ts). The outer safety-net must accommodate any valid inner
+    // timeout plus bookkeeping headroom (evidence recording, workflow Update).
+    // 305s = 300s schema max + 5s bookkeeping. The inner subprocess timeout
+    // remains the authoritative wall-clock bound; the outer net catches
+    // genuine hangs (infinite loops, stuck SDK calls) beyond the inner limit.
     adv_run_test: registerTool(
       testTools.adv_run_test.description,
       testTools.adv_run_test.args,
@@ -468,7 +471,7 @@ export function createToolMap(
           ),
         "adv_run_test",
         undefined,
-        { timeoutMs: 35_000 },
+        { timeoutMs: 305_000 },
       ),
     ),
 
