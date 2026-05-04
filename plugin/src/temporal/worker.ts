@@ -226,7 +226,14 @@ export async function runMultiQueueTemporalWorker(
           });
           workerRegistry.set(queue, newWorker);
           // Fire-and-forget .run so the IPC handler returns promptly.
-          void newWorker.run();
+          void newWorker.run().catch((err) => {
+            workerRegistry.delete(queue);
+            emitIpcMessage({
+              type: "run-error",
+              queue,
+              message: err instanceof Error ? err.message : String(err),
+            });
+          });
           emitIpcMessage({ type: "register-ack", queue });
         } catch (err) {
           emitIpcMessage({

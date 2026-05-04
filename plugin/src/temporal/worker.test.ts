@@ -154,6 +154,88 @@ describe("temporal worker helpers", () => {
     }
   });
 
+  it("dynamic register emits run-error IPC and removes failed queues from child registry", async () => {
+    const writes: string[] = [];
+    let stdinDataHandler: ((chunk: Buffer) => void) | undefined;
+    let releaseInitialRun!: () => void;
+    const initialRun = vi.fn(
+      () => new Promise<void>((resolve) => (releaseInitialRun = resolve)),
+    );
+    const failedDynamicRun = vi.fn(async () => {
+      throw new Error("dynamic poller failed");
+    });
+    const replacementRun = vi.fn(async () => {});
+
+    const writeSpy = vi
+      .spyOn(process.stdout, "write")
+      .mockImplementation((chunk: string | Uint8Array) => {
+        writes.push(String(chunk));
+        return true;
+      });
+    const stdinOnSpy = vi
+      .spyOn(process.stdin, "on")
+      .mockImplementation(
+        (event: string, listener: (...args: unknown[]) => void) => {
+          if (event === "data") {
+            stdinDataHandler = listener as (chunk: Buffer) => void;
+          }
+          return process.stdin;
+        },
+      );
+
+    try {
+      workerMocks.create
+        .mockResolvedValueOnce({
+          run: initialRun,
+          shutdown: vi.fn(async () => {}),
+        })
+        .mockResolvedValueOnce({
+          run: failedDynamicRun,
+          shutdown: vi.fn(async () => {}),
+        })
+        .mockResolvedValueOnce({
+          run: replacementRun,
+          shutdown: vi.fn(async () => {}),
+        });
+
+      const runPromise = runMultiQueueTemporalWorker(["advance-a"], {
+        ADV_TEMPORAL_ADDRESS: "127.0.0.1:7233",
+        ADV_TEMPORAL_NAMESPACE: "default",
+      } as NodeJS.ProcessEnv);
+
+      await vi.waitFor(() => expect(stdinDataHandler).toBeDefined());
+      stdinDataHandler!(
+        Buffer.from('{"type":"register","queue":"advance-dyn"}\n'),
+      );
+      await vi.waitFor(() => {
+        const messages = writes.map((line) => JSON.parse(line));
+        expect(messages).toContainEqual({
+          type: "run-error",
+          queue: "advance-dyn",
+          message: "dynamic poller failed",
+        });
+      });
+
+      stdinDataHandler!(
+        Buffer.from('{"type":"register","queue":"advance-dyn"}\n'),
+      );
+      await vi.waitFor(() =>
+        expect(workerMocks.create).toHaveBeenCalledTimes(3),
+      );
+
+      const taskQueues = workerMocks.create.mock.calls.map(
+        ([opts]) => (opts as { taskQueue: string }).taskQueue,
+      );
+      expect(taskQueues).toEqual(["advance-a", "advance-dyn", "advance-dyn"]);
+
+      releaseInitialRun();
+      await runPromise;
+    } finally {
+      stdinOnSpy.mockRestore();
+      writeSpy.mockRestore();
+    }
+  });
+
   it("runTemporalWorkerFromEnv rejects ADV_TEMPORAL_MULTI_QUEUE=1 with empty queue list", async () => {
     await expect(
       runTemporalWorkerFromEnv({
