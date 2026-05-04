@@ -193,6 +193,75 @@ describe("acquireWorkerLock + releaseWorkerLock", () => {
     expect(result.ownerPid).toBe(otherPid);
   });
 
+  it("alive v2 lock with stale heartbeat is reclaimed", async () => {
+    const otherPid = 99997;
+    vi.setSystemTime(new Date("2026-01-01T00:02:00.000Z"));
+    await writeLock(stateDir, otherPid, {
+      schema_version: 2,
+      last_heartbeat: "2026-01-01T00:00:00.000Z",
+    });
+
+    const result = await acquireWorkerLock(stateDir, {
+      pid: 12345,
+      isAlive: (pid) => (pid === otherPid ? "alive" : "dead"),
+    });
+
+    expect(result.owned).toBe(true);
+    if (!result.owned) throw new Error("expected owned:true");
+    expect(result.ownerPid).toBe(12345);
+  });
+
+  it("alive v2 lock with fresh heartbeat is respected", async () => {
+    const otherPid = 99996;
+    vi.setSystemTime(new Date("2026-01-01T00:00:30.000Z"));
+    await writeLock(stateDir, otherPid, {
+      schema_version: 2,
+      last_heartbeat: "2026-01-01T00:00:00.000Z",
+    });
+
+    const result = await acquireWorkerLock(stateDir, {
+      pid: 12345,
+      isAlive: () => "alive",
+    });
+
+    expect(result.owned).toBe(false);
+    if (result.owned) throw new Error("expected owned:false");
+    expect(result.ownerPid).toBe(otherPid);
+  });
+
+  it("alive v1 lock is respected even without heartbeat", async () => {
+    const otherPid = 99995;
+    vi.setSystemTime(new Date("2026-01-01T00:02:00.000Z"));
+    await writeLock(stateDir, otherPid);
+
+    const result = await acquireWorkerLock(stateDir, {
+      pid: 12345,
+      isAlive: () => "alive",
+    });
+
+    expect(result.owned).toBe(false);
+    if (result.owned) throw new Error("expected owned:false");
+    expect(result.ownerPid).toBe(otherPid);
+  });
+
+  it("alive v2 lock with future heartbeat is reclaimed defensively", async () => {
+    const otherPid = 99994;
+    vi.setSystemTime(new Date("2026-01-01T00:00:00.000Z"));
+    await writeLock(stateDir, otherPid, {
+      schema_version: 2,
+      last_heartbeat: "2026-01-01T00:05:00.000Z",
+    });
+
+    const result = await acquireWorkerLock(stateDir, {
+      pid: 12345,
+      isAlive: (pid) => (pid === otherPid ? "alive" : "dead"),
+    });
+
+    expect(result.owned).toBe(true);
+    if (!result.owned) throw new Error("expected owned:true");
+    expect(result.ownerPid).toBe(12345);
+  });
+
   it("unreadable lock contents are treated as stale and acquired", async () => {
     // Write a corrupt lock file (not JSON).
     await writeFile(join(stateDir, WORKER_LOCK_FILENAME), "garbage{not}json");

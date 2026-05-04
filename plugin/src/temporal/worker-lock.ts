@@ -184,6 +184,11 @@ export async function acquireWorkerLock(
       await safeRemove(lockPath);
       continue;
     }
+    if (livenessState === "alive" && isStaleHeartbeat(contents)) {
+      // Owner PID is alive but the worker heartbeat is stale — reclaim.
+      await safeRemove(lockPath);
+      continue;
+    }
     // alive OR unknown_owner → respect the lock.
     return {
       owned: false,
@@ -251,6 +256,14 @@ function readPositiveIntEnv(name: string, fallback: number): number {
   if (!raw) return fallback;
   const parsed = Number.parseInt(raw, 10);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function isStaleHeartbeat(contents: WorkerLockContents): boolean {
+  if (!isV2Lock(contents)) return false;
+  const heartbeatMs = Date.parse(contents.last_heartbeat);
+  if (!Number.isFinite(heartbeatMs)) return true;
+  const ageMs = Date.now() - heartbeatMs;
+  return ageMs > STALE_HEARTBEAT_MS || ageMs < 0;
 }
 
 async function tryAtomicCreate(
