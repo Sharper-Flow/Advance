@@ -105,7 +105,9 @@ describe("ADV_INSTRUCTIONS.md drift repairs (repairDriftContradictions T2)", () 
 
     expect(crossProject).toMatch(/\|\s*`adv_status`\s*\|\s*snapshot-ok\s*\|/);
     expect(crossProject).not.toMatch(/planned to add/);
-    expect(crossProject).not.toMatch(/Tools without `target_path`[^\n]*`adv_status`/);
+    expect(crossProject).not.toMatch(
+      /Tools without `target_path`[^\n]*`adv_status`/,
+    );
   });
 
   test("worktree protocol uses canonical tool names and hard-block fallback", () => {
@@ -136,14 +138,20 @@ describe("ADV_INSTRUCTIONS.md drift repairs (repairDriftContradictions T2)", () 
   });
 
   test("reflection trigger wording is phase-number agnostic", () => {
-    const reflection = section("### Reflection Protocol", "### Task Checkpoint Commits");
+    const reflection = section(
+      "### Reflection Protocol",
+      "### Task Checkpoint Commits",
+    );
 
     expect(reflection).toMatch(/archive/i);
     expect(reflection).not.toMatch(/Phase 8/);
   });
 
   test("forbidden ADV state file list covers all external mutable state files", () => {
-    const stateAccess = section("### ADV State Access", "### Multi-Session Coordination");
+    const stateAccess = section(
+      "### ADV State Access",
+      "### Multi-Session Coordination",
+    );
 
     for (const filename of [
       "change.json",
@@ -163,7 +171,9 @@ describe("ADV_INSTRUCTIONS.md drift repairs (repairDriftContradictions T2)", () 
       "### Phase Summary Pattern",
     );
 
-    expect(subagents).toMatch(/Cap total sub-agents per command at 6 across batches/);
+    expect(subagents).toMatch(
+      /Cap total sub-agents per command at 6 across batches/,
+    );
   });
 });
 
