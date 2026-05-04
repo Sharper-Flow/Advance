@@ -1,0 +1,84 @@
+{
+  "id": "addRegressionTestWorktree",
+  "title": "Add regression test for worktree creation when peer session holds worker lock",
+  "status": "archived",
+  "created_at": "2026-05-04T15:56:19.696Z",
+  "tasks": [
+    {
+      "id": "tk-6298df6c-fa82-4b26-99a4-f0fb9f5db7ae",
+      "title": "Add GH#35 regression test to project-workflow-helper.test.ts: no local worker + peer holds worker.lock + fresh server-side pollers + recovery:once → workflow-backed, no restart attempted",
+      "type": "code",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-04T15:56:19.801Z",
+      "tdd_phase": "complete",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "started_at": "2026-05-04T15:56:19.803Z",
+      "completed_at": "2026-05-04T15:56:19.804Z",
+      "implementation_summary": "Added GH#35 regression test block (2 tests) to project-workflow-helper.test.ts. Tests verify: no local worker + peer holds worker.lock + active server-side pollers + recovery:once → workflow-backed without restart attempt. Both fresh and stale poller scenarios covered.",
+      "tdd_evidence": {
+        "red": {
+          "exit_code": 1,
+          "recorded_at": "2026-05-04T16:13:34.707Z",
+          "test_file": "src/tools/project-workflow-helper.test.ts"
+        },
+        "green": {
+          "exit_code": 0,
+          "recorded_at": "2026-05-04T16:13:19.318Z",
+          "test_file": "src/tools/project-workflow-helper.test.ts"
+        }
+      }
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-04T15:56:19.798Z",
+      "completed_by": "agent",
+      "notes": "Test-only change. GH#35 regression — verify worktree creation succeeds when peer holds worker lock with active server-side pollers."
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-04T15:56:19.799Z",
+      "completed_by": "agent",
+      "notes": "Gap: GH#34 tests verify poller probe at getBoundedProjectWorkflowAccess level but don't explicitly test the recovery:once + pollers-active combination (the exact #35 scenario). Adding targeted regression test."
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-04T15:56:19.800Z",
+      "completed_by": "agent",
+      "notes": "Test-only. Add GH#35 describe block to project-workflow-helper.test.ts. One test: recovery:once + no local worker + fresh server pollers → workflow-backed, no restart attempted."
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-04T15:56:19.802Z",
+      "completed_by": "agent",
+      "notes": "Single task: add regression test. Test-only change."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-04T15:56:19.805Z",
+      "completed_by": "agent",
+      "notes": "Task done. 2 regression tests added, all 16 tests in file pass."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-04T15:56:19.806Z",
+      "completed_by": "agent",
+      "notes": "Test-only change. 2 new tests in project-workflow-helper.test.ts. All 16 tests pass. No production code changes. Pre-existing failures in plugin-init.test.ts unrelated."
+    },
+    "release": {
+      "status": "done",
+      "completed_at": "2026-05-04T15:56:19.807Z",
+      "completed_by": "agent",
+      "notes": "Test-only. Clean tree, no uncommitted changes. Archived."
+    }
+  },
+  "reentry_history": [],
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "judgment_calls": []
+}
