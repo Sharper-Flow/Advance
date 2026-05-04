@@ -134,6 +134,25 @@ If `worktree_create` unavailable → hard block: `[ADV:BLOCKED] Worktree tools r
 3. Continue inline — no handoff, no new terminal needed
 4. When deleting later, pass `branch: "change/{change-id}"` to `worktree_delete`
 
+### Post-Creation Path Verification
+
+<!-- rq-pathVerification01 -->
+
+After worktree creation, verify that task-referenced paths exist in the worktree. This prevents the recurring class of errors where the agent reads files from its main-checkout context but the worktree (forked from the default branch) lacks them — or the paths were constructed from assumed project structure rather than actual files.
+
+1. Extract key file/directory paths from ready tasks (task `content`, `metadata.affected_files`, or design excerpts). Distinguish **read-reference paths** (files the agent will read for patterns/context) from **create-target paths** (files the task will create).
+2. Verify read-reference paths: `bash "test -e '{workdir}/{path}' && echo OK || echo MISSING"` (use `workdir` parameter).
+3. For each MISSING read-reference path:
+   a. Discover actual structure: `glob pattern: "**/{basename}" workdir: {workdir}` or `bash "ls {workdir}/"` to find the file or its directory.
+   b. If found at a different path → record the corrected path and use it for all subsequent operations on this task.
+   c. If not found at all → the file may not exist on the default branch (feature-branch-only file), or the path was assumed from common patterns. In this case:
+      - If the file is essential for the task → check if it exists in the main checkout: `bash "test -e '{main-checkout}/{path}'"` and note the discrepancy. The worktree may need a rebase or the file may need to be created differently.
+      - If the file is advisory (pattern reference) → mark it as unavailable and proceed without it; do NOT block on missing pattern files.
+4. For cross-repo tasks (detected via `target_repo`/`target_path` or path hints in title): resolve target repo from `related_repos` config or `target_path` and **switch `workdir`** to the target repo path for that task. The ADV worktree is for the current project; cross-repo task execution happens in the target repo directly.
+5. Emit brief result: `Path verification: {N} OK, {M} corrected, {K} advisory-skipped, {L} to-create`
+
+× Do NOT block Phase 1 for missing advisory files. Only block for missing essential files that prevent task execution.
+
 ### Multi-Change Worktree Switch
 
 When a session on change A needs to work on change B:
@@ -473,11 +492,14 @@ Heuristic, not a hard rule. Prefer delegation when heavy; inline is fine otherwi
 WORKING DIRECTORY: {workdir}
 CHANGE: {change-id} | {title}
 TASK: {task-id} | {task-title} | type: {type} | tdd_intent: {intent}
-AFFECTED FILES: {file list from task description}
+AFFECTED FILES: {file list from task description — use VERIFIED paths from Phase 0.1 path verification, not assumed paths}
+PROJECT STRUCTURE: {brief ls or glob output showing relevant directories/files in workdir — populated during Phase 0.1 path verification}
 DESIGN EXCERPT: {relevant section if task references design}
 ACCEPTANCE CRITERIA: {criteria relevant to this task}
 EXPECTED OUTPUT: implement the task, run tests, emit a fenced ENGINEER_REPORT JSON block per .opencode/agents/adv-engineer.md
 ```
+
+`PROJECT STRUCTURE` provides the sub-agent with a ground-truth file manifest so it can self-correct path assumptions. Populate it from the Phase 0.1 path verification output. Example: `"Directories: repositories/, api/schemas/, services/; Pattern files: repositories/base.py, api/schemas/analytics.py"`.
 
 ### Task Flow
 
