@@ -795,7 +795,7 @@ export async function changeWorkflow(
 
   // Terminal-state path: workflow Completes after handlers drain.
   // Stops the zombie-workflow leak where archived/closed changes left
-  // their workflow Running indefinitely. (rq-terminateOnArchive01)
+  // their workflow Running indefinitely.
   if (state.status === "archived" || state.status === "closed") {
     wf.log.info("workflow:completing", {
       changeId: state.changeId,

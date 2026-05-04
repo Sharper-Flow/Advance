@@ -745,7 +745,10 @@ export async function addTaskHandler(
 
 ### Cross-references
 
-- `design.md` § KD-1 — full design context, including why preemptive `wf.patched` was removed and how the validator recommended this documented-convention approach.
+- This section is the canonical runbook summary for the documented-convention
+  approach: do not add preemptive `wf.patched` calls; add a patch marker only
+  when a workflow change intentionally supports both old and new replay
+  branches.
 
 ## Background and references
 
@@ -756,7 +759,7 @@ The hybrid worker model exists because earlier wiring of the Temporal swap into 
 - **Symptom:** every opencode session emitted `[plugin-init] (warn) Plugin init failed: Webpack finished with errors ...` plus continuous `temporalio_client` retry errors. Sessions became unusable; `adv_*` tools returned `ADV_PLUGIN_INIT_FAILED` stubs.
 - **Root cause:** opencode ships as a compiled Bun 1.3.8 binary. `@temporalio/worker.Worker.create()` internally spawns a Workflow Worker Thread whose `require('@temporalio/common')` fails from Bun's install-cache path. The "Webpack finished with errors" message is misleading boilerplate — webpack itself succeeds. Upstream: [temporalio/sdk-typescript#1334](https://github.com/temporalio/sdk-typescript/issues/1334), [oven-sh/bun#27058](https://github.com/oven-sh/bun/issues/27058), [oven-sh/bun#27464](https://github.com/oven-sh/bun/issues/27464).
 - **Triggered by:** `replaceAdvStorageLayerTemporal` scaffold landing + `migrateAdvStateTemporalRetire` Phase A wiring Temporal into plugin bootstrap.
-- **Historical workaround:** during the 2026-04-21 incident, some hosts temporarily set `ADV_DISABLE_TEMPORAL=1` in shell config to route through the file-backed harness. That workaround is now retired and should be removed if still present.
+- **Historical workaround:** during the 2026-04-21 incident, some hosts temporarily set `ADV_DISABLE_TEMPORAL=1` in shell config to route through the file-backed harness. The flag is no longer recognized; setting it has no effect. It can be removed from shell config if still present.
 - **Permanent fix:** shipped in `fixTemporalWorkerBundleFailure` (archived 2026-04-21). The hybrid worker model documented above (Node host → in-process; Bun host → out-of-process Node child via `createOutOfProcessWorker`) is the structural answer. Phase 1 also narrowed the `logger.warn` → `logger.info` for the Temporal-init failure path so it stops reaching the console, added a fast `canReachTemporalAddress()` short-circuit so `adv_status` no longer hangs ~5s when the server is offline, and later Temporal-only cutover work removed runtime fallback flags entirely. Phase 3 hardened workflow determinism (`gate-reentry.ts` accepts an explicit `now`) and added the `withTestWorkflowEnvironment` helper to prevent `/tmp/temporal-test-server-*` zombie-proc leaks.
 
 ### Cross-references

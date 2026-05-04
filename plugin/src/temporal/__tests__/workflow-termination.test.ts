@@ -6,9 +6,8 @@
  * change workflow reaches a Completed state in Temporal instead of
  * remaining in Running forever (zombie).
  *
- * The current main branch leaks: `wf.condition` only exits on history
- * rotation. These tests fail on main and pass after the predicate is
- * extended with a terminal-state branch.
+ * These tests prevent regressions where `wf.condition` only exited on
+ * history rotation and terminal changes remained Running forever.
  *
  * Pattern follows `replay-determinism.test.ts` for env + worker setup.
  */
