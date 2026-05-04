@@ -72,6 +72,7 @@ const mocks = vi.hoisted(() => {
       stop: vi.fn(async () => {}),
     },
     startHeartbeatWriter: vi.fn(() => mocks.heartbeatWriter),
+    readLockContents: vi.fn(async () => null),
   };
 });
 
@@ -95,6 +96,8 @@ vi.mock("./utils/project-id", async () => {
 // path is exercised); individual tests override for not-owned coverage.
 vi.mock("./temporal/worker-lock", () => ({
   HEARTBEAT_INTERVAL_MS: 5000,
+  STALE_HEARTBEAT_MS: 60_000,
+  WORKER_LOCK_FILENAME: "worker.lock",
   acquireWorkerLock: vi.fn(async (_dir: string) => ({
     owned: true,
     ownerPid: process.pid,
@@ -102,6 +105,9 @@ vi.mock("./temporal/worker-lock", () => ({
     lockPath: "/tmp/test/worker.lock",
   })),
   releaseWorkerLock: vi.fn(async () => {}),
+  readLockContents: mocks.readLockContents,
+  isV2Lock: (contents: { schema_version?: number; last_heartbeat?: unknown }) =>
+    contents.schema_version === 2 && typeof contents.last_heartbeat === "string",
 }));
 
 vi.mock("./temporal/heartbeat-writer", () => ({
@@ -349,6 +355,25 @@ describe("plugin-init tryInitStore", () => {
 
     expect(worker.registerQueue).toHaveBeenCalledWith("advance-target-proj");
     expect(queues.has("advance-target-proj")).toBe(true);
+  });
+
+  it("ensureProjectTemporalQueue accepts a fresh peer worker lock when this session owns no worker", async () => {
+    vi.resetModules();
+    const heartbeat = new Date().toISOString();
+    mocks.readLockContents.mockResolvedValueOnce({
+      pid: 4242,
+      worker_id: "peer-worker",
+      acquired_at: heartbeat,
+      schema_version: 2,
+      last_heartbeat: heartbeat,
+    });
+
+    const { ensureProjectTemporalQueue } = await import("./plugin-init");
+
+    await expect(ensureProjectTemporalQueue("target-proj")).resolves.toBeUndefined();
+    expect(mocks.readLockContents).toHaveBeenCalledWith(
+      expect.stringContaining("/target-proj/worker.lock"),
+    );
   });
 
   it("returns initError and never calls createStore when runtime probe blocks Bun", async () => {

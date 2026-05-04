@@ -36,6 +36,7 @@ import {
 } from "./temporal/health-monitor";
 import { fileURLToPath } from "node:url";
 import { existsSync } from "node:fs";
+import { join } from "node:path";
 import { performance } from "node:perf_hooks";
 import { cleanup as cleanupTerminal } from "./events";
 import {
@@ -47,7 +48,11 @@ import { getExternalRoot, getProjectId } from "./utils/project-id";
 import {
   acquireWorkerLock,
   HEARTBEAT_INTERVAL_MS,
+  isV2Lock,
+  readLockContents,
   releaseWorkerLock,
+  STALE_HEARTBEAT_MS,
+  WORKER_LOCK_FILENAME,
   type WorkerLockReclaimAudit,
 } from "./temporal/worker-lock";
 import { recordWorkerRunFailure } from "./temporal/retry-wrapper";
@@ -480,12 +485,28 @@ export async function ensureProjectTemporalQueue(
 
   const workers = [...inProcessTemporalWorkers];
   if (workers.length === 0) {
+    if (await hasFreshPeerWorkerLock(projectId)) return;
     throw new Error(
       `Temporal worker not ready for target project queue ${queue}: no registered worker`,
     );
   }
 
   await Promise.all(workers.map((worker) => worker.registerQueue(queue)));
+}
+
+async function hasFreshPeerWorkerLock(projectId: string): Promise<boolean> {
+  try {
+    const lock = await readLockContents(
+      join(getExternalRoot(projectId), WORKER_LOCK_FILENAME),
+    );
+    if (!lock || !isV2Lock(lock)) return false;
+    const heartbeatMs = Date.parse(lock.last_heartbeat);
+    if (!Number.isFinite(heartbeatMs)) return false;
+    const ageMs = Date.now() - heartbeatMs;
+    return ageMs >= 0 && ageMs < STALE_HEARTBEAT_MS;
+  } catch {
+    return false;
+  }
 }
 
 /**

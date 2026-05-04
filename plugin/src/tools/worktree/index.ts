@@ -675,6 +675,13 @@ export interface AdvWorktreeCreateDeps {
       dir: string,
     ) => Promise<{ owned: boolean; release: () => Promise<void> }>;
   };
+  /** OCA ensure-window hook. When provided, called after worktree creation
+   *  to create/reuse a tmux window for the new worktree. Non-fatal on failure. */
+  ocaEnsureWindow?: (
+    sessionName: string,
+    windowName: string,
+    worktreePath: string,
+  ) => Promise<{ ok: boolean; error?: string }>;
 }
 
 export type AdvWorktreeCreateResult =
@@ -708,6 +715,25 @@ export async function advWorktreeCreate(
       const headSha = (
         await execGit(["rev-parse", "HEAD"], existingWorktree.path)
       ).trim();
+
+      // OCA ensure-window hook for reuse path (best-effort, non-fatal).
+      if (deps.ocaEnsureWindow) {
+        try {
+          const sessionName = path.basename(repoRoot).toLowerCase().replace(/[^a-z0-9_-]+/g, "-");
+          const changeId = inferChangeIdFromBranch(branch) ?? branch;
+          const hookResult = await deps.ocaEnsureWindow(sessionName, changeId, existingWorktree.path);
+          if (!hookResult.ok) {
+            deps.log.warn(
+              `[worktree] OCA ensure-window failed for reuse ${branch}: ${hookResult.error ?? "unknown error"}`,
+            );
+          }
+        } catch (err) {
+          deps.log.warn(
+            `[worktree] OCA ensure-window error for reuse ${branch}: ${err}`,
+          );
+        }
+      }
+
       return {
         ok: true,
         branch,
@@ -846,6 +872,24 @@ export async function advWorktreeCreate(
       } catch (err) {
         deps.log.warn(
           `[worktree] postCreate hook failed for ${branch}: ${err}`,
+        );
+      }
+    }
+
+    // Step 6.5: OCA ensure-window hook (best-effort, non-fatal).
+    if (deps.ocaEnsureWindow) {
+      try {
+        const sessionName = path.basename(repoRoot).toLowerCase().replace(/[^a-z0-9_-]+/g, "-");
+        const changeId = inferChangeIdFromBranch(branch) ?? branch;
+        const hookResult = await deps.ocaEnsureWindow(sessionName, changeId, worktreePath);
+        if (!hookResult.ok) {
+          deps.log.warn(
+            `[worktree] OCA ensure-window failed for ${branch}: ${hookResult.error ?? "unknown error"}`,
+          );
+        }
+      } catch (err) {
+        deps.log.warn(
+          `[worktree] OCA ensure-window error for ${branch}: ${err}`,
         );
       }
     }

@@ -531,3 +531,76 @@ describe("GH#34: server-side poller probe fallback", () => {
     expect(mocks.probeTaskQueuePollers).not.toHaveBeenCalled();
   });
 });
+
+/**
+ * GH#35: adv_worktree_create blocked by live peer worker lock during
+ * approved apply.
+ *
+ * Incident: Peer session holds `worker.lock` with fresh heartbeat AND
+ * server-side Temporal pollers are active (fresh/stale). This session has
+ * no local worker. `initStateDb` → `resolveAccess` →
+ * `getBoundedProjectWorkflowAccess(recovery: "once")` should return
+ * `workflow-backed` via the server-side poller probe WITHOUT attempting
+ * worker restart (which would fail with WORKER_LOCK_HELD).
+ *
+ * This is the exact combination that the GH#34 tests don't cover:
+ * `recovery: "once"` + active server pollers. Without the poller probe,
+ * the code would fall through to `runBoundedRecovery` →
+ * `restartCurrentProjectTemporalWorker` → WORKER_LOCK_HELD failure.
+ */
+describe("GH#35: worktree creation with peer lock + active pollers skips recovery", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.canReachTemporalAddress.mockResolvedValue(true);
+    // No local worker — this session doesn't own the worker lock
+    mocks.getRegisteredTemporalWorkerQueues.mockReturnValue([]);
+    mocks.getTemporalWorkerAliveness.mockReturnValue(false);
+    mocks.getTemporalWorkerDiagnostics.mockReturnValue([]);
+  });
+
+  it("returns workflow-backed via server pollers without attempting restart (recovery: once)", async () => {
+    // Peer's worker has active server-side pollers
+    mocks.probeTaskQueuePollers.mockResolvedValueOnce({
+      status: "fresh",
+      lastAccessMs: 276,
+    });
+    mocks.ensureProjectWorkflowStarted.mockResolvedValueOnce({
+      query: vi.fn(async () => ({})),
+      executeUpdate: vi.fn(async () => undefined),
+    });
+
+    const result = await getBoundedProjectWorkflowAccess({
+      projectDir: "/repo",
+      mutablePath: "/state/proj123/worktree-state.marker",
+      recovery: "once",
+    });
+
+    expect(result.mode).toBe("workflow-backed");
+    // Server-side poller probe MUST be called (it's the fix path)
+    expect(mocks.probeTaskQueuePollers).toHaveBeenCalledOnce();
+    // Worker restart MUST NOT be called — peer's pollers handle the queue
+    expect(mocks.restartCurrentProjectTemporalWorker).not.toHaveBeenCalled();
+  });
+
+  it("returns workflow-backed via stale server pollers without attempting restart (recovery: once)", async () => {
+    // Even stale pollers indicate an active peer — no restart needed
+    mocks.probeTaskQueuePollers.mockResolvedValueOnce({
+      status: "stale",
+      lastAccessMs: 45_000,
+    });
+    mocks.ensureProjectWorkflowStarted.mockResolvedValueOnce({
+      query: vi.fn(async () => ({})),
+      executeUpdate: vi.fn(async () => undefined),
+    });
+
+    const result = await getBoundedProjectWorkflowAccess({
+      projectDir: "/repo",
+      mutablePath: "/state/proj123/worktree-state.marker",
+      recovery: "once",
+    });
+
+    expect(result.mode).toBe("workflow-backed");
+    expect(mocks.probeTaskQueuePollers).toHaveBeenCalledOnce();
+    expect(mocks.restartCurrentProjectTemporalWorker).not.toHaveBeenCalled();
+  });
+});
