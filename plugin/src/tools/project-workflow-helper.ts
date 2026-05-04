@@ -21,6 +21,10 @@ import {
   type QueueServiceability,
 } from "../temporal/queue-serviceability";
 import { STALE_HEARTBEAT_MS } from "../temporal/worker-lock";
+import { ensureProjectWorkflowStarted } from "../temporal/migration";
+import { createLogger } from "../utils/debug-log";
+
+const logger = createLogger("project-workflow-helper");
 
 interface WorkflowHandleLike {
   query: (definition: unknown, ...args: unknown[]) => Promise<unknown>;
@@ -109,7 +113,7 @@ export async function getBoundedProjectWorkflowAccess(
   const expectedQueue = buildProjectTaskQueue(projectId);
 
   if (isWorkerReadyFor(expectedQueue)) {
-    return buildWorkflowBacked(projectId);
+    return buildWorkflowBackedWithBootstrap(projectId, input.projectDir);
   }
 
   if (input.recovery === "once") {
@@ -136,7 +140,7 @@ function isWorkerReadyFor(expectedQueue: string): boolean {
   return alive && queues.includes(expectedQueue);
 }
 
-function buildWorkflowBacked(projectId: string): ProjectWorkflowAccess {
+function _buildWorkflowBacked(projectId: string): ProjectWorkflowAccess {
   const bundle = getService();
   if (!bundle) {
     return {
@@ -145,6 +149,67 @@ function buildWorkflowBacked(projectId: string): ProjectWorkflowAccess {
       reason: "Temporal service layer not initialized",
     };
   }
+  return {
+    mode: "workflow-backed",
+    projectId,
+    bundle,
+    handle: bundle.client.workflow.getHandle(
+      buildProjectWorkflowId(projectId),
+    ) as unknown as WorkflowHandleLike,
+  };
+}
+
+/**
+ * Attempt to auto-bootstrap a missing project workflow before returning
+ * the handle. If bootstrap succeeds, returns workflow-backed. If it
+ * fails, returns unavailable with a clear reason.
+ *
+ * GH#31: The primary bootstrap path is in tryInitStore (fire-and-forget
+ * at plugin startup). This is a secondary sync path for tools that need
+ * the project workflow and discover it missing at call time.
+ */
+async function buildWorkflowBackedWithBootstrap(
+  projectId: string,
+  _projectDir: string,
+): Promise<ProjectWorkflowAccess> {
+  const bundle = getService();
+  if (!bundle) {
+    return {
+      mode: "unavailable",
+      projectId,
+      reason: "Temporal service layer not initialized",
+    };
+  }
+
+  // Try to ensure the project workflow exists before returning the handle.
+  try {
+    await ensureProjectWorkflowStarted(
+      {
+        workflow: bundle.client
+          .workflow as unknown as import("../temporal/migration").WorkflowClientLike,
+      },
+      {
+        projectId,
+        initializedAt: new Date().toISOString(),
+      },
+    );
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    // If already started, that's fine — the handle below will work.
+    if (!/already started|already exists/i.test(msg)) {
+      logger.debug(
+        `Project workflow bootstrap failed for ${projectId}: ${msg}`,
+      );
+      return {
+        mode: "unavailable",
+        projectId,
+        reason: `Project workflow bootstrap failed: ${msg}`,
+        recommendedNextAction:
+          "Restart the OpenCode session to trigger auto-bootstrap, or run adv_temporal_diagnose for detailed health check",
+      };
+    }
+  }
+
   return {
     mode: "workflow-backed",
     projectId,
@@ -173,7 +238,7 @@ async function runBoundedRecovery(input: {
   }
 
   if (recoveryError === null && isWorkerReadyFor(input.expectedQueue)) {
-    return buildWorkflowBacked(input.projectId);
+    return buildWorkflowBackedWithBootstrap(input.projectId, input.projectDir);
   }
 
   // Recovery failed or did not produce a serviceable worker. Build rich

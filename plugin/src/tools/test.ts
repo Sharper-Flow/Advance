@@ -287,6 +287,7 @@ export const testTools = {
       }
 
       let taskRun: TaskRunRecordOutput | undefined;
+      let ledgerSkippedWarning: string | undefined;
       try {
         const recorded = await store.tasks.recordRunEvent(args.taskId, {
           idempotencyKey: `${args.taskId}:${args.phase}:${args.command}:${exitCode}:${truncatedOutput.slice(0, TASK_RUN_IDEMPOTENCY_OUTPUT_PREVIEW_CHARS)}`,
@@ -310,7 +311,9 @@ export const testTools = {
         // Ledger recording is additive. Preserve existing evidence behavior
         // for legacy/no-ledger callers; apply flow records task-run state in
         // the normal baseline -> red -> green order.
+        // GH #30: surface the skip so agents know the ledger was not updated.
         logger.debug(`task-run evidence event skipped: ${error}`);
+        ledgerSkippedWarning = `Task-run ledger not updated: ${error instanceof Error ? error.message : String(error)}. Test evidence recorded at task level; durable ledger is stale. Run adv_task_run_status to check current ledger state.`;
       }
 
       return formatToolOutput({
@@ -321,6 +324,7 @@ export const testTools = {
         output: truncatedOutput,
         command: args.command,
         ...(taskRun ? { taskRun } : {}),
+        ...(ledgerSkippedWarning ? { ledgerSkippedWarning } : {}),
         timedOut,
         maxBufferExceeded,
         ...(timedOut && { timeoutMs: effective.timeoutMs }),

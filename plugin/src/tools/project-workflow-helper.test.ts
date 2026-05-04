@@ -42,6 +42,10 @@ const mocks = vi.hoisted(() => ({
       },
     },
   })),
+  ensureProjectWorkflowStarted: vi.fn(async () => ({
+    query: vi.fn(async () => ({})),
+    executeUpdate: vi.fn(async () => undefined),
+  })),
 }));
 
 vi.mock("../temporal/runtime-manager", async () => {
@@ -81,6 +85,10 @@ vi.mock("../temporal/service", async () => {
   );
   return { ...actual, getService: mocks.getService };
 });
+
+vi.mock("../temporal/migration", () => ({
+  ensureProjectWorkflowStarted: mocks.ensureProjectWorkflowStarted,
+}));
 
 import { getBoundedProjectWorkflowAccess } from "./project-workflow-helper";
 
@@ -312,5 +320,88 @@ describe("regression: fixStuckTemporalWorkerRecovery incident shape", () => {
     expect(serviceability.evidence.localOwnership).toBe("peer");
     expect(serviceability.evidence.staleRunningWorkflowCount).toBe(6);
     expect(serviceability.blockers.length).toBeGreaterThan(0);
+  });
+});
+
+/**
+ * GH#31: Project workflow auto-bootstrap when worker is ready but project
+ * workflow may be missing (Temporal state loss scenario).
+ */
+describe("GH#31: project workflow auto-bootstrap", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.canReachTemporalAddress.mockResolvedValue(true);
+    mocks.getRegisteredTemporalWorkerQueues.mockReturnValue([
+      "advance-proj123",
+    ]);
+    mocks.getTemporalWorkerAliveness.mockReturnValue(true);
+    mocks.getTemporalWorkerDiagnostics.mockReturnValue([]);
+  });
+
+  it("bootstraps project workflow when worker is ready", async () => {
+    mocks.ensureProjectWorkflowStarted.mockResolvedValueOnce({
+      query: vi.fn(async () => ({})),
+      executeUpdate: vi.fn(async () => undefined),
+    });
+
+    const result = await getBoundedProjectWorkflowAccess({
+      projectDir: "/repo",
+      mutablePath: "/state/proj123/worktree-state.marker",
+    });
+
+    expect(result.mode).toBe("workflow-backed");
+    expect(mocks.ensureProjectWorkflowStarted).toHaveBeenCalledOnce();
+    // Should pass projectId and initializedAt
+    const callArgs = mocks.ensureProjectWorkflowStarted.mock.calls[0];
+    expect(callArgs[1].projectId).toBe("proj123");
+    expect(callArgs[1].initializedAt).toBeDefined();
+  });
+
+  it("returns workflow-backed when bootstrap says already started", async () => {
+    // Simulate "already started" — this is the normal case when the
+    // project workflow exists.
+    mocks.ensureProjectWorkflowStarted.mockResolvedValueOnce({
+      query: vi.fn(async () => ({})),
+      executeUpdate: vi.fn(async () => undefined),
+    });
+
+    const result = await getBoundedProjectWorkflowAccess({
+      projectDir: "/repo",
+      mutablePath: "/state/proj123/worktree-state.marker",
+    });
+
+    expect(result.mode).toBe("workflow-backed");
+  });
+
+  it("returns unavailable when bootstrap fails with non-already-started error", async () => {
+    mocks.ensureProjectWorkflowStarted.mockRejectedValueOnce(
+      new Error("Temporal server connection refused"),
+    );
+
+    const result = await getBoundedProjectWorkflowAccess({
+      projectDir: "/repo",
+      mutablePath: "/state/proj123/worktree-state.marker",
+    });
+
+    expect(result.mode).toBe("unavailable");
+    if (result.mode !== "unavailable") throw new Error("expected unavailable");
+    expect(result.reason).toContain("Project workflow bootstrap failed");
+    expect(result.recommendedNextAction).toContain("adv_temporal_diagnose");
+  });
+
+  it("returns workflow-backed when bootstrap throws already-started error", async () => {
+    // ensureProjectWorkflowStarted handles already-started internally,
+    // but test the edge case where it leaks through
+    mocks.ensureProjectWorkflowStarted.mockRejectedValueOnce(
+      new Error("Workflow execution already started"),
+    );
+
+    const result = await getBoundedProjectWorkflowAccess({
+      projectDir: "/repo",
+      mutablePath: "/state/proj123/worktree-state.marker",
+    });
+
+    // Already-started is treated as success
+    expect(result.mode).toBe("workflow-backed");
   });
 });

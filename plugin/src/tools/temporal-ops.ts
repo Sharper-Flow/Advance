@@ -184,7 +184,7 @@ function recommendTemporalRecovery(input: {
   if (!queueServiceable && input.health.stale_queues.length > 0)
     return "run adv_orphan_sweep dry-run";
   if (input.projectWorkflowReachable === false)
-    return "run adv_workflow_repair";
+    return "restart OpenCode session to trigger project workflow auto-bootstrap, or run adv_temporal_diagnose for detailed health check";
   if (input.changeWorkflowReachable === false) return "run adv_workflow_repair";
   if (input.health.last_error)
     return "inspect last_error and retry blocked tool";

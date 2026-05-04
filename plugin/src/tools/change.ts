@@ -888,8 +888,10 @@ export const changeTools = {
       "durable run state; include.snapshot returns the rendered " +
       "context snapshot at top-level (matches mutation-tool convention); " +
       "include.readyTasks returns the unblocked ready queue (top-N " +
-      "by priority then created_at; default 10, max 50). Defaults are " +
-      "unchanged when include is omitted.",
+      "by priority then created_at; default 10, max 50). " +
+      "include.proposal / include.problemStatement / include.agreement / include.design " +
+      "return the raw markdown content for each artifact (GH #21). " +
+      "Defaults are unchanged when include is omitted.",
     args: {
       changeId: z.string().describe("Change ID"),
       limit: z
@@ -932,6 +934,30 @@ export const changeTools = {
             .max(50)
             .optional()
             .describe("Override default top-10 ready-task slice. Range 1-50."),
+          proposal: z
+            .boolean()
+            .optional()
+            .describe(
+              "When true, attaches raw proposal.md content as `_proposal`.",
+            ),
+          problemStatement: z
+            .boolean()
+            .optional()
+            .describe(
+              "When true, attaches raw problem-statement.md content as `_problemStatement`.",
+            ),
+          agreement: z
+            .boolean()
+            .optional()
+            .describe(
+              "When true, attaches raw agreement.md content as `_agreement`.",
+            ),
+          design: z
+            .boolean()
+            .optional()
+            .describe(
+              "When true, attaches raw design.md content as `_design`.",
+            ),
         })
         .optional()
         .describe(
@@ -955,6 +981,10 @@ export const changeTools = {
           snapshot?: boolean;
           readyTasks?: boolean;
           readyTasksLimit?: number;
+          proposal?: boolean;
+          problemStatement?: boolean;
+          agreement?: boolean;
+          design?: boolean;
         };
       },
       store: Store,
@@ -1100,6 +1130,54 @@ export const changeTools = {
               } catch (e) {
                 output._readyTasksError =
                   e instanceof Error ? e.message : String(e);
+              }
+            }
+
+            // GH #21: Artifact content include flags — read raw markdown
+            // from the change directory. Only reads when explicitly
+            // requested to avoid unnecessary I/O.
+            if (include.proposal) {
+              try {
+                const { content } = await loadProposalWithFallback(
+                  changeDir,
+                  change.title,
+                );
+                if (content) output._proposal = content;
+              } catch {
+                // File may not exist for changes without a proposal
+              }
+            }
+            if (include.problemStatement) {
+              try {
+                const text = await readFile(
+                  join(changeDir, "problem-statement.md"),
+                  "utf-8",
+                );
+                output._problemStatement = text;
+              } catch {
+                // File may not exist
+              }
+            }
+            if (include.agreement) {
+              try {
+                const text = await readFile(
+                  join(changeDir, "agreement.md"),
+                  "utf-8",
+                );
+                output._agreement = text;
+              } catch {
+                // File may not exist
+              }
+            }
+            if (include.design) {
+              try {
+                const text = await readFile(
+                  join(changeDir, "design.md"),
+                  "utf-8",
+                );
+                output._design = text;
+              } catch {
+                // File may not exist
               }
             }
           }

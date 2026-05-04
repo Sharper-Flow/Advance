@@ -83,6 +83,63 @@ export class AdvProjectContextMismatchError extends Error {
 }
 
 /**
+ * Typed error raised when the ADV project workflow is confirmed missing
+ * from Temporal (NOT_FOUND). Surfaces as `errorClass:
+ * "AdvProjectWorkflowMissing"` in the agent-visible response so the
+ * agent can suggest reseed/recovery instead of retrying.
+ *
+ * GH#31: replaces the generic timeout/fallback errors that previously
+ * obscured this specific failure mode.
+ */
+export class AdvProjectWorkflowMissingError extends Error {
+  override readonly name = "AdvProjectWorkflowMissing";
+  constructor(
+    public readonly projectId: string,
+    message?: string,
+  ) {
+    super(
+      message ??
+        `ADV project workflow not found for project '${projectId}'. ` +
+          `The Temporal server may have lost state. ` +
+          `Run adv_status to check health, or restart the OpenCode session ` +
+          `to trigger auto-bootstrap.`,
+    );
+  }
+}
+
+/**
+ * Inspect a Temporal error chain for project-workflow NOT_FOUND signals.
+ * Returns true when the error chain contains a NOT_FOUND /
+ * WorkflowExecutionNotFound message referencing the project workflow ID.
+ */
+export function isProjectWorkflowNotFoundError(
+  error: unknown,
+  projectId: string,
+): boolean {
+  const workflowId = buildProjectWorkflowId(projectId);
+  const parts: string[] = [];
+  let current: unknown = error;
+  const seen = new Set<unknown>();
+  while (current && !seen.has(current)) {
+    seen.add(current);
+    if (current instanceof Error) {
+      parts.push(current.message ?? "");
+      parts.push(current.constructor.name ?? current.name ?? "");
+      current = (current as Error & { cause?: unknown }).cause;
+    } else {
+      parts.push(String(current ?? ""));
+      break;
+    }
+  }
+  const combined = parts.join(" | ");
+  return (
+    /WorkflowExecutionNotFound|Workflow execution not found|workflow not found|NOT_FOUND/i.test(
+      combined,
+    ) && combined.includes(workflowId)
+  );
+}
+
+/**
  * Shared guard: before returning a Temporal workflow handle for a change,
  * verify the change's owner (via legacy disk snapshot) matches the
  * current store's project binding. Ownerless legacy changes are

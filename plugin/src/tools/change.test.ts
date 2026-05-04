@@ -1866,6 +1866,90 @@ describe("Change Tools", () => {
       expect(goodMin.success).toBe(true);
       expect(goodMax.success).toBe(true);
     });
+
+    // GH #21: artifact content include flags (proposal/problemStatement/agreement/design)
+    describe("artifact content include flags (GH #21)", () => {
+      test("include.proposal: true returns _proposal with markdown content", async () => {
+        const result = await changeTools.adv_change_show.execute(
+          { changeId: "addFeature", include: { proposal: true } },
+          store,
+        );
+        const parsed = JSON.parse(result);
+        expect(parsed._proposal).toBeDefined();
+        expect(typeof parsed._proposal).toBe("string");
+        expect(parsed._proposal.length).toBeGreaterThan(0);
+      });
+
+      test("include.problemStatement: true returns _problemStatement when file exists", async () => {
+        const { writeFile } = await import("fs/promises");
+        const { join } = await import("path");
+        const changesDir = (store as any).paths.changes as string;
+        await writeFile(
+          join(changesDir, "addFeature", "problem-statement.md"),
+          "# Problem Statement\n\nTest problem statement content.",
+        );
+        const result = await changeTools.adv_change_show.execute(
+          { changeId: "addFeature", include: { problemStatement: true } },
+          store,
+        );
+        const parsed = JSON.parse(result);
+        expect(parsed._problemStatement).toBeDefined();
+        expect(parsed._problemStatement).toContain("Test problem statement");
+      });
+
+      test("include.problemStatement: true omits _problemStatement when file does not exist", async () => {
+        const result = await changeTools.adv_change_show.execute(
+          { changeId: "addFeature", include: { problemStatement: true } },
+          store,
+        );
+        const parsed = JSON.parse(result);
+        expect(parsed._problemStatement).toBeUndefined();
+      });
+
+      test("include.agreement: true returns _agreement when file exists", async () => {
+        const { writeFile } = await import("fs/promises");
+        const { join } = await import("path");
+        const changesDir = (store as any).paths.changes as string;
+        await writeFile(
+          join(changesDir, "addFeature", "agreement.md"),
+          "# Agreement\n\nAgreed objectives.",
+        );
+        const result = await changeTools.adv_change_show.execute(
+          { changeId: "addFeature", include: { agreement: true } },
+          store,
+        );
+        const parsed = JSON.parse(result);
+        expect(parsed._agreement).toContain("Agreed objectives");
+      });
+
+      test("include.design: true returns _design when file exists", async () => {
+        const { writeFile } = await import("fs/promises");
+        const { join } = await import("path");
+        const changesDir = (store as any).paths.changes as string;
+        await writeFile(
+          join(changesDir, "addFeature", "design.md"),
+          "# Design\n\nImplementation plan.",
+        );
+        const result = await changeTools.adv_change_show.execute(
+          { changeId: "addFeature", include: { design: true } },
+          store,
+        );
+        const parsed = JSON.parse(result);
+        expect(parsed._design).toContain("Implementation plan");
+      });
+
+      test("no artifact flags → no _proposal/_problemStatement/_agreement/_design fields", async () => {
+        const result = await changeTools.adv_change_show.execute(
+          { changeId: "addFeature" },
+          store,
+        );
+        const parsed = JSON.parse(result);
+        expect(parsed._proposal).toBeUndefined();
+        expect(parsed._problemStatement).toBeUndefined();
+        expect(parsed._agreement).toBeUndefined();
+        expect(parsed._design).toBeUndefined();
+      });
+    });
   });
 
   describe("adv_change_show clarify integration", () => {

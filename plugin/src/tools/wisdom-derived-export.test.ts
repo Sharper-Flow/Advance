@@ -43,7 +43,10 @@ const mocks = vi.hoisted(() => {
     getService: vi.fn(() => ({
       connection: { close },
       client: {
-        workflow: { getHandle: vi.fn(() => ({ executeUpdate, query })) },
+        workflow: {
+          getHandle: vi.fn(() => ({ executeUpdate, query })),
+          start: vi.fn(async () => ({ executeUpdate, query })),
+        },
       },
     })),
     writeJsonlAtomic: vi.fn(async () => {}),

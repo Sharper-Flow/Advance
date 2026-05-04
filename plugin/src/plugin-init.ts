@@ -51,6 +51,7 @@ import {
   type WorkerLockReclaimAudit,
 } from "./temporal/worker-lock";
 import { recordWorkerRunFailure } from "./temporal/retry-wrapper";
+import { ensureProjectWorkflowStarted } from "./temporal/migration";
 
 const debugLog = (msg: string): void => appendDebugLog("plugin-init", msg);
 const logger = createLogger("plugin-init");
@@ -261,6 +262,38 @@ export async function tryInitStore(
     profilePluginInit("store_initialized", {
       duration_ms: Number((performance.now() - storeInitStartedAt).toFixed(3)),
     });
+
+    // Auto-bootstrap project workflow if missing. Idempotent — if the
+    // workflow already exists, ensureProjectWorkflowStarted returns the
+    // existing handle. After Temporal state loss (server restart, data
+    // wipe), this re-seeds the project workflow so agenda, wisdom, and
+    // worktree tools don't surface generic NOT_FOUND / timeout errors.
+    // GH#31: fire-and-forget so store creation is not blocked by a
+    // slow or unreachable Temporal server.
+    if (temporalBundle && projectId) {
+      void (async () => {
+        try {
+          await ensureProjectWorkflowStarted(
+            {
+              workflow: temporalBundle.client
+                .workflow as unknown as import("./temporal/migration").WorkflowClientLike,
+            },
+            {
+              projectId,
+              initializedAt: new Date().toISOString(),
+            },
+          );
+          debugLog(
+            `Project workflow bootstrap check completed for ${projectId}`,
+          );
+        } catch (err) {
+          debugLog(
+            `Project workflow bootstrap failed (non-fatal): ${err instanceof Error ? err.message : String(err)}`,
+          );
+        }
+      })();
+    }
+
     profilePluginInit("try_init_store_complete", {
       duration_ms: Number((performance.now() - initStartedAt).toFixed(3)),
       backend_mode: "temporal",
