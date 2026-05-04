@@ -121,9 +121,9 @@ describe("session lifecycle helpers (T21)", () => {
 
 describe("worktree path helpers", () => {
   it("infers change id from canonical change branch names", () => {
-    expect(inferChangeIdFromBranch("change/fixAdvWorktreeRegistryCleanup")).toBe(
-      "fixAdvWorktreeRegistryCleanup",
-    );
+    expect(
+      inferChangeIdFromBranch("change/fixAdvWorktreeRegistryCleanup"),
+    ).toBe("fixAdvWorktreeRegistryCleanup");
     expect(inferChangeIdFromBranch("change/foo/bar")).toBe("foo/bar");
   });
 

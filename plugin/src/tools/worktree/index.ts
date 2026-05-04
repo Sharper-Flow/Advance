@@ -754,11 +754,16 @@ export async function advWorktreeCreate(
 
     // Step 5: register in worktree_registry.
     const sessionId = generateSessionId();
-    await addSession(deps.database, {
-      sessionId,
-      branch,
-      path: worktreePath,
-    }, undefined, inferChangeIdFromBranch(branch));
+    await addSession(
+      deps.database,
+      {
+        sessionId,
+        branch,
+        path: worktreePath,
+      },
+      undefined,
+      inferChangeIdFromBranch(branch),
+    );
 
     // Step 6: postCreate hooks (T12 — best-effort; failure logs but does not abort).
     const hooks = deps.hooks;
@@ -1413,11 +1418,16 @@ export const WorktreePlugin: Plugin = async (ctx) => {
 
             // Record session for tracking (used by delete flow).
             // T13: addSession now async + sessionId/branch/path shape.
-            await addSession(database, {
-              sessionId: `inline:${args.branch}`,
-              branch: args.branch,
-              path: worktreePath,
-            }, undefined, inferChangeIdFromBranch(args.branch));
+            await addSession(
+              database,
+              {
+                sessionId: `inline:${args.branch}`,
+                branch: args.branch,
+                path: worktreePath,
+              },
+              undefined,
+              inferChangeIdFromBranch(args.branch),
+            );
 
             return [
               `Worktree created at ${worktreePath}`,
@@ -1467,11 +1477,16 @@ export const WorktreePlugin: Plugin = async (ctx) => {
 
           // Record session for tracking (used by delete flow).
           // T13: addSession now async + sessionId/branch/path shape.
-          await addSession(database, {
-            sessionId: forkedSession.id,
-            branch: args.branch,
-            path: worktreePath,
-          }, undefined, inferChangeIdFromBranch(args.branch));
+          await addSession(
+            database,
+            {
+              sessionId: forkedSession.id,
+              branch: args.branch,
+              path: worktreePath,
+            },
+            undefined,
+            inferChangeIdFromBranch(args.branch),
+          );
 
           return `Worktree created at ${worktreePath}\n\nA new terminal has been opened with OpenCode.`;
         },

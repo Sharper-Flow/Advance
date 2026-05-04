@@ -288,11 +288,16 @@ export async function migrateAndReconcile(
       const rows = await readLegacySessions(sqlitePath);
       if (!dryRun) {
         for (const row of rows) {
-          await addSession(access, {
-            sessionId: row.id,
-            branch: row.branch,
-            path: row.path,
-          }, undefined, inferChangeIdFromBranch(row.branch));
+          await addSession(
+            access,
+            {
+              sessionId: row.id,
+              branch: row.branch,
+              path: row.path,
+            },
+            undefined,
+            inferChangeIdFromBranch(row.branch),
+          );
         }
         await rename(sqlitePath, backupPath);
       }
