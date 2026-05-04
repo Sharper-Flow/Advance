@@ -333,12 +333,17 @@ export function createTemporalStoreBackend(
     if (!legacyRead.success || !legacyRead.data) return null;
     const change = legacyRead.data;
 
-    // (A5 / rq-archivePurge01.1) Archived changes are terminal — return
-    // the on-disk projection directly WITHOUT re-creating the workflow.
-    // Re-seeding would re-emit a ChangeSummary signal and undo
-    // adv_archive_purge on the very next read. Mark the result so callers
-    // (and tests) can identify disk-sourced returns.
-    if (change.status === "archived") {
+    // (A5 / rq-archivePurge01.1, M2b/terminatechangeworkflowonarchi)
+    // Archived AND closed changes are terminal — return the on-disk
+    // projection directly WITHOUT re-creating the workflow.
+    //   - For archived: re-seeding would re-emit a ChangeSummary signal
+    //     and undo adv_archive_purge on the very next read.
+    //   - For closed: change workflows now Complete on close (terminal-
+    //     state branch in workflows.ts). Re-seeding would create a new
+    //     run that immediately Completes — pointless churn.
+    // Mark the result so callers (and tests) can identify disk-sourced
+    // returns.
+    if (change.status === "archived" || change.status === "closed") {
       return {
         ...change,
         _source: "disk",

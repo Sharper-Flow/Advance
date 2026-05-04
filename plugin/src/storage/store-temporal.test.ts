@@ -1027,6 +1027,73 @@ describe("Temporal store backend adapter", () => {
     expect(start).not.toHaveBeenCalled();
   });
 
+  // M2b (terminatechangeworkflowonarchi): closed changes also Complete in
+  // Temporal (workflows.ts terminal-state branch). reseedChangeFromDisk must
+  // mirror the archived guard for closed status — otherwise a Completed
+  // closed workflow would be repeatedly resurrected from disk and
+  // immediately re-Complete on each subsequent get.
+  it("closed change with terminated workflow returns from disk WITHOUT re-seeding (M2b)", async () => {
+    const query = vi
+      .fn()
+      .mockRejectedValue(new Error("Workflow execution not found"));
+    const changeHandle = {
+      query,
+      executeUpdate: vi.fn(async () => null),
+      signal: vi.fn(async () => {}),
+    };
+
+    const start = vi.fn(async () => changeHandle); // MUST NOT be invoked
+    const bundle = {
+      client: {
+        workflow: {
+          getHandle: routeHandle(changeHandle),
+          start,
+        },
+      },
+    };
+
+    const legacy = makeLegacyStore();
+    legacy.changes.get = vi.fn(async () => ({
+      success: true,
+      data: {
+        id: "chg-closed-cancelled",
+        title: "Cancelled change",
+        status: "closed",
+        created_at: "2026-04-01T00:00:00.000Z",
+        tasks: [],
+        deltas: {},
+        wisdom: [],
+        gates: {
+          proposal: { status: "done" },
+          discovery: { status: "pending" },
+          design: { status: "pending" },
+          planning: { status: "pending" },
+          execution: { status: "pending" },
+          acceptance: { status: "pending" },
+          release: { status: "pending" },
+        },
+      },
+    })) as any;
+
+    const adapted = createTemporalStoreBackend({
+      legacy,
+      temporal: bundle as any,
+      projectId: "proj1",
+    });
+
+    const result = await adapted.changes.get("chg-closed-cancelled");
+    expect(result.success).toBe(true);
+    expect(result.data?.id).toBe("chg-closed-cancelled");
+    expect(result.data?.status).toBe("closed");
+    expect((result.data as { _source?: string } | undefined)?._source).toBe(
+      "disk",
+    );
+    // Critical invariant: workflow.start MUST NOT be called for closed
+    // changes either. Re-seeding a Completed closed workflow would create
+    // a new run that immediately Completes — pointless churn.
+    expect(start).not.toHaveBeenCalled();
+  });
+
   it("archived change missing on disk surfaces the original not-found error", async () => {
     const query = vi
       .fn()
