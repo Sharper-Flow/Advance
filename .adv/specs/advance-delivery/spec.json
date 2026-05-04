@@ -126,7 +126,9 @@
         {
           "id": "rq-ADVEXEC04.1",
           "title": "adv_run_test prescription names value categories",
-          "given": ["/adv-apply or agent guidance prescribes adv_run_test for inline TDD"],
+          "given": [
+            "/adv-apply or agent guidance prescribes adv_run_test for inline TDD"
+          ],
           "when": "The guidance is inspected",
           "then": [
             "It explains executable proof value",
@@ -157,7 +159,9 @@
         {
           "id": "rq-ADVEXEC05.1",
           "title": "Prescriptive guidance includes value category",
-          "given": ["A command or agent instruction tells the agent it MUST use a specific tool or workflow step"],
+          "given": [
+            "A command or agent instruction tells the agent it MUST use a specific tool or workflow step"
+          ],
           "when": "The guidance is reviewed",
           "then": [
             "The guidance states at least one durable value category",
@@ -167,7 +171,9 @@
         {
           "id": "rq-ADVEXEC05.2",
           "title": "Ceremony without durable value is rejected",
-          "given": ["Proposed guidance adds an extra tool call or diagnostic surface"],
+          "given": [
+            "Proposed guidance adds an extra tool call or diagnostic surface"
+          ],
           "when": "It does not improve reproducibility, durable audit, recovery, safety, validation, or governance",
           "then": [
             "The guidance is not added",
@@ -562,6 +568,61 @@
       }
     },
     {
+      "id": "rq-checkpointLedger01",
+      "title": "Checkpoint ledger recording blocks task completion when ledger write fails",
+      "body": "adv_task_checkpoint MUST surface ledger recording failures via `checkpointRecorded: false` when the git commit (or clean-tree result) succeeds but the task-run ledger event cannot be persisted. /adv-apply MUST treat `checkpointRecorded: false` as blocking task completion: the agent runs adv_task_run_status, retries the checkpoint or ledger event, and only marks the task done after `checkpointRecorded: true` is observed. Returning `checkpointRecorded: false` MUST include actionable remediation guidance and MUST NOT be silently treated as success.",
+      "priority": "must",
+      "tags": ["checkpoint", "ledger", "task-run", "apply-flow", "recovery"],
+      "scenarios": [
+        {
+          "id": "rq-checkpointLedger01.1",
+          "title": "Committed checkpoint with ledger failure surfaces checkpointRecorded:false",
+          "given": [
+            "An /adv-apply task has dirty tree changes that pass branch and HEAD guards",
+            "The git commit phase succeeds but the task-run ledger event cannot be persisted"
+          ],
+          "when": "adv_task_checkpoint executes in mode complete or cancel",
+          "then": [
+            "The tool returns status `committed` with the new commit sha",
+            "The tool returns `checkpointRecorded: false` to indicate the ledger event was not durably recorded",
+            "The remediation guidance names adv_task_run_status and a retry path for ledger recovery",
+            "The result MUST NOT be silently treated as task completion"
+          ]
+        },
+        {
+          "id": "rq-checkpointLedger01.2",
+          "title": "Clean-tree checkpoint with ledger failure surfaces checkpointRecorded:false",
+          "given": [
+            "An /adv-apply task has no dirty tree changes",
+            "The clean-tree path executes but the task-run ledger event cannot be persisted"
+          ],
+          "when": "adv_task_checkpoint executes in mode complete",
+          "then": [
+            "The tool returns status `clean` with no new commit",
+            "The tool returns `checkpointRecorded: false` to indicate the ledger event was not durably recorded",
+            "The remediation guidance names adv_task_run_status and a retry path for ledger recovery"
+          ]
+        },
+        {
+          "id": "rq-checkpointLedger01.3",
+          "title": "Apply guidance treats checkpointRecorded:false as blocking task completion",
+          "given": [
+            "An /adv-apply task has received `checkpointRecorded: false` from adv_task_checkpoint"
+          ],
+          "when": "The agent prepares to mark the task done",
+          "then": [
+            "The agent MUST run adv_task_run_status to inspect ledger state",
+            "The agent MUST retry the checkpoint or ledger event before marking the task done",
+            "The agent MUST NOT call adv_task_update with status done until checkpointRecorded:true is observed",
+            "Existing doom-loop and blocker semantics apply if recovery cannot be achieved within the retry budget"
+          ]
+        }
+      ],
+      "meta": {
+        "merged_from": "advance (fixStuckTemporalWorkerRecovery re-entry)"
+      }
+    },
+    {
       "id": "rq-archiveValidate01",
       "title": "Archive Completeness Validation",
       "body": "adv_change_archive MUST run validateChange before creating the archive bundle. Validation errors block the archive; warnings are included in the response but do not block. Validation runs before the idempotent bundle-existence check so that retries also validate.",
@@ -640,7 +701,9 @@
         {
           "id": "rq-advChangeShowInclude01.3",
           "title": "include.readyTasksLimit accepts 1-50",
-          "given": ["A request includes readyTasks:true with readyTasksLimit:N"],
+          "given": [
+            "A request includes readyTasks:true with readyTasksLimit:N"
+          ],
           "when": "Zod validates the args",
           "then": [
             "Values 1-50 inclusive are accepted",
@@ -717,7 +780,9 @@
         {
           "id": "rq-advStatePath01.1",
           "title": "Read against changes/ is blocked",
-          "given": ["A read tool call targets ${external_root}/changes/foo/change.json"],
+          "given": [
+            "A read tool call targets ${external_root}/changes/foo/change.json"
+          ],
           "when": "tool.execute.before runs",
           "then": [
             "The guard throws an error naming the locked path",
@@ -727,21 +792,29 @@
         {
           "id": "rq-advStatePath01.2",
           "title": "Read against archive/ is blocked",
-          "given": ["A read tool call targets ${external_root}/archive/old/proposal.md"],
+          "given": [
+            "A read tool call targets ${external_root}/archive/old/proposal.md"
+          ],
           "when": "tool.execute.before runs",
           "then": ["The guard throws an error naming the locked path"]
         },
         {
           "id": "rq-advStatePath01.3",
           "title": "In-repo .adv/specs is allowed",
-          "given": ["A read tool call targets <repo>/.adv/specs/<capability>/spec.json"],
+          "given": [
+            "A read tool call targets <repo>/.adv/specs/<capability>/spec.json"
+          ],
           "when": "tool.execute.before runs",
-          "then": ["The guard does not throw; specs are git-tracked and meant to be read"]
+          "then": [
+            "The guard does not throw; specs are git-tracked and meant to be read"
+          ]
         },
         {
           "id": "rq-advStatePath01.4",
           "title": "Bash bypass is documented gap",
-          "given": ["A bash command references ${external_root}/changes/foo/change.json"],
+          "given": [
+            "A bash command references ${external_root}/changes/foo/change.json"
+          ],
           "when": "tool.execute.before runs",
           "then": [
             "The ADV-state path guard does NOT throw (bash is excluded)",

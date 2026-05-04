@@ -462,9 +462,15 @@ describe("sync-global.sh", () => {
       expect(workerSingleton?.body).toContain("heartbeat");
       expect(workerSingleton?.body).toContain("v1 fallback");
       expect(workerSingleton?.body).toContain("serviceable queue");
-      expect(workerSingleton?.scenarios).toHaveLength(6);
+      // Re-entry: body extended for fresh-v2 unserviceable suspect classification
+      // and self-expiry guidance (rq-workerSingleton01.7/.8).
+      expect(workerSingleton?.body).toContain("unserviceable");
+      expect(workerSingleton?.body).toContain("stop renewing");
+      expect(workerSingleton?.scenarios).toHaveLength(8);
       expect(scenarioIds).toContain("rq-workerSingleton01.5");
       expect(scenarioIds).toContain("rq-workerSingleton01.6");
+      expect(scenarioIds).toContain("rq-workerSingleton01.7");
+      expect(scenarioIds).toContain("rq-workerSingleton01.8");
       expect(
         workerSingleton?.scenarios?.find(
           (s) => s.id === "rq-workerSingleton01.2",
@@ -477,9 +483,44 @@ describe("sync-global.sh", () => {
           ?.find((s) => s.id === "rq-workerSingleton01.6")
           ?.then.join("\n"),
       ).toContain("explicit user approval evidence");
-      expect(workerHealth?.scenarios).toHaveLength(2);
+      expect(
+        workerSingleton?.scenarios
+          ?.find((s) => s.id === "rq-workerSingleton01.7")
+          ?.then.join("\n"),
+      ).toContain("suspect_live_unserviceable_lock");
+      expect(
+        workerSingleton?.scenarios
+          ?.find((s) => s.id === "rq-workerSingleton01.8")
+          ?.then.join("\n"),
+      ).toContain("stop renewing the heartbeat");
+      expect(workerHealth?.scenarios).toHaveLength(4);
       expect(scenarioIds).toContain("rq-workerHealth01.1");
       expect(scenarioIds).toContain("rq-workerHealth01.2");
+      expect(scenarioIds).toContain("rq-workerHealth01.3");
+      expect(scenarioIds).toContain("rq-workerHealth01.4");
+      expect(
+        workerHealth?.scenarios
+          ?.find((s) => s.id === "rq-workerHealth01.3")
+          ?.then.join("\n"),
+      ).toContain("liveness evidence only");
+      expect(
+        workerHealth?.scenarios
+          ?.find((s) => s.id === "rq-workerHealth01.4")
+          ?.then.join("\n"),
+      ).toContain("STSL");
+    });
+
+    test("advance-meta spec captures worktree-reuse preflight requirement", () => {
+      const parsed = SpecSchema.parse(spec);
+      const worktreeReuse = parsed.requirements.find(
+        (rq) => rq.id === "rq-worktreeReuse01",
+      );
+      expect(worktreeReuse).toBeDefined();
+      expect(worktreeReuse?.body).toContain("reuse the existing worktree");
+      expect(worktreeReuse?.body).toContain("MUST NOT recommend in-place");
+      expect(worktreeReuse?.scenarios).toHaveLength(2);
+      expect(scenarioIds).toContain("rq-worktreeReuse01.1");
+      expect(scenarioIds).toContain("rq-worktreeReuse01.2");
     });
   });
 
