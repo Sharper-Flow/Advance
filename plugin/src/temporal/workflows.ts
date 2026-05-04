@@ -48,9 +48,12 @@ import {
   applySetPendingWorktreeDelete,
   applyUnregisterSession,
   applyUpdateSessionActivity,
+  applyUpdateWorktreeRecord,
   createProjectWorkflowState,
   listAgendaItemsFromProjectState,
+  listMaterializedWorktreesFromProjectState,
   listProjectWisdomFromProjectState,
+  listWorktreeRegistryFromProjectState,
   purgeChangeSummaryFromProjectState,
   recordMigrationEntryInProjectState,
   updateAgendaItemInProjectState,
@@ -62,6 +65,7 @@ import {
   type SetPendingWorktreeDeletePayload,
   type UnregisterSessionPayload,
   type UpdateSessionActivityPayload,
+  type UpdateWorktreeRecordPayload,
 } from "./project-state";
 
 const changeBootstrapQuery = wf.defineQuery<ChangeWorkflowBootstrapState>(
@@ -190,6 +194,20 @@ const projectWisdomQuery = wf.defineQuery<
 const projectMigrationLedgerQuery = wf.defineQuery<
   ProjectWorkflowState["migration_ledger"]
 >(PROJECT_WORKFLOW_QUERY_NAMES.migrationLedger);
+const projectWorktreeRegistryQuery = wf.defineQuery<
+  ProjectWorkflowState["worktree_registry"][string][],
+  [
+    | {
+        materialized?: boolean;
+        status?: ProjectWorkflowState["worktree_registry"][string]["status"];
+        changeId?: string;
+      }
+    | undefined,
+  ]
+>(PROJECT_WORKFLOW_QUERY_NAMES.worktreeRegistry);
+const projectMaterializedWorktreesQuery = wf.defineQuery<
+  ProjectWorkflowState["worktree_registry"][string][]
+>(PROJECT_WORKFLOW_QUERY_NAMES.materializedWorktrees);
 
 const addAgendaItemUpdate = wf.defineUpdate<
   ProjectWorkflowState["agenda"][number],
@@ -250,6 +268,10 @@ const addWorktreeSessionUpdate = wf.defineUpdate<
   Awaited<ReturnType<typeof applyAddWorktreeSession>>,
   [AddWorktreeSessionPayload]
 >(PROJECT_WORKFLOW_UPDATE_NAMES.addWorktreeSession);
+const updateWorktreeRecordUpdate = wf.defineUpdate<
+  Awaited<ReturnType<typeof applyUpdateWorktreeRecord>>,
+  [UpdateWorktreeRecordPayload]
+>(PROJECT_WORKFLOW_UPDATE_NAMES.updateWorktreeRecord);
 const removeWorktreeSessionUpdate = wf.defineUpdate<
   Awaited<ReturnType<typeof applyRemoveWorktreeSession>>,
   [RemoveWorktreeSessionPayload]
@@ -875,6 +897,12 @@ export async function projectWorkflow(
       listProjectWisdomFromProjectState(state, type),
   );
   wf.setHandler(projectMigrationLedgerQuery, () => state.migration_ledger);
+  wf.setHandler(projectWorktreeRegistryQuery, (filter) =>
+    listWorktreeRegistryFromProjectState(state, filter ?? {}),
+  );
+  wf.setHandler(projectMaterializedWorktreesQuery, () =>
+    listMaterializedWorktreesFromProjectState(state),
+  );
   wf.setHandler(
     addAgendaItemUpdate,
     safeUpdateHandler(
@@ -1047,6 +1075,28 @@ export async function projectWorkflow(
         const result = applyAddWorktreeSession(state, payload);
         wf.log.info("op:end", {
           op: "addWorktreeSessionUpdate",
+          projectId: state.projectId,
+          branch: payload.branch,
+          worktreeCount: Object.keys(state.worktree_registry).length,
+        });
+        return result;
+      },
+    ),
+  );
+  wf.setHandler(
+    updateWorktreeRecordUpdate,
+    safeUpdateHandler(
+      "updateWorktreeRecord",
+      (payload: UpdateWorktreeRecordPayload) => {
+        wf.log.info("op:start", {
+          op: "updateWorktreeRecordUpdate",
+          projectId: state.projectId,
+          branch: payload.branch,
+          status: payload.status,
+        });
+        const result = applyUpdateWorktreeRecord(state, payload);
+        wf.log.info("op:end", {
+          op: "updateWorktreeRecordUpdate",
           projectId: state.projectId,
           branch: payload.branch,
           worktreeCount: Object.keys(state.worktree_registry).length,

@@ -36,7 +36,7 @@ import type {
   PendingWorktreeDelete,
   ProjectWorkflowState,
   SessionRecord,
-  WorktreeRecord,
+  MaterializedWorktreeRecord,
 } from "../../temporal/contracts";
 import type { OpencodeClient } from "../../utils/opencode-types";
 import { appendDebugLog } from "../../utils/debug-log";
@@ -439,10 +439,13 @@ export async function clearPendingDelete(
 /** Snapshot of the worktree registry (used by triage + status). */
 export async function listWorktrees(
   access: WorktreeStateAccess,
-): Promise<WorktreeRecord[]> {
+): Promise<MaterializedWorktreeRecord[]> {
   const state = await readProjectState(access);
   if (!state) return [];
-  return Object.values(state.worktree_registry);
+  return Object.values(state.worktree_registry).filter(
+    (record): record is MaterializedWorktreeRecord =>
+      record.materialized !== false && typeof record.path === "string",
+  );
 }
 
 /** Snapshot of the session registry (used by adv_session_list at T19). */
