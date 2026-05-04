@@ -539,6 +539,62 @@ describe("rq-advshut1: bounded flush on shutdown after STSL changes", () => {
     handlers.removeProcessListeners();
   });
 
+  it("stops owned heartbeat writers before releasing worker.lock during shutdown", async () => {
+    const callOrder: string[] = [];
+    const mockStore = {
+      flush: vi.fn(async () => {
+        callOrder.push("flush");
+      }),
+      close: vi.fn(() => {
+        callOrder.push("close");
+      }),
+    } as any;
+    const mockWorker = {
+      shutdown: vi.fn(async () => {
+        callOrder.push("drainWorker");
+      }),
+      queues: ["test-queue"],
+    };
+    const heartbeatStop = vi.fn(async () => {
+      callOrder.push("heartbeat.stop");
+    });
+
+    mocks.getProjectId.mockResolvedValue("proj-shutdown");
+    mocks.createStore.mockResolvedValue(mockStore);
+    mocks.createInProcessWorker.mockResolvedValue(mockWorker as any);
+    mocks.startHeartbeatWriter.mockReturnValueOnce({ stop: heartbeatStop });
+    const { releaseWorkerLock } = await import("./temporal/worker-lock");
+    (releaseWorkerLock as any).mockImplementationOnce(async () => {
+      callOrder.push("releaseLock");
+    });
+
+    const { tryInitStore, registerShutdownHandlers } =
+      await import("./plugin-init");
+    await tryInitStore("/tmp/repo", "/tmp/external");
+
+    const handlers = registerShutdownHandlers(mockStore);
+    const exitSpy = vi
+      .spyOn(process, "exit")
+      .mockImplementation((() => {}) as any);
+
+    handlers.shutdownWithFlush();
+
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
+    expect(heartbeatStop).toHaveBeenCalledTimes(1);
+    expect(releaseWorkerLock).toHaveBeenCalledWith("/tmp/external");
+    expect(callOrder.indexOf("heartbeat.stop")).toBeLessThan(
+      callOrder.indexOf("releaseLock"),
+    );
+    expect(callOrder.indexOf("releaseLock")).toBeLessThan(
+      callOrder.lastIndexOf("drainWorker"),
+    );
+    expect(callOrder.indexOf("flush")).toBeLessThan(callOrder.indexOf("close"));
+
+    exitSpy.mockRestore();
+    handlers.removeProcessListeners();
+  });
+
   it("idempotent double-SIGINT does not double-flush", async () => {
     const mockStore = {
       flush: vi.fn(async () => {}),

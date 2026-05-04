@@ -425,12 +425,20 @@ export function getTemporalWorkerAliveness(): boolean {
 async function drainInProcessTemporalWorkers(): Promise<void> {
   const workers = [...inProcessTemporalWorkers];
   inProcessTemporalWorkers.clear();
-  // Release worker.lock files BEFORE worker shutdown so a fresh start
-  // can reclaim quickly if our shutdown stalls. Release is best-effort;
-  // stale-PID detection on next start is the authoritative recovery
-  // path. (rq-workerSingleton01.3)
+  // Stop heartbeat writers BEFORE releasing worker.lock. Otherwise a
+  // timer can fire after release and hit the identity guard with a noisy
+  // rejected heartbeat write. Release still happens before worker shutdown
+  // so a fresh start can reclaim quickly if our shutdown stalls. Release is
+  // best-effort; stale-PID detection on next start is the authoritative
+  // recovery path. (rq-workerSingleton01.3)
+  const heartbeatDirs = [...ownedWorkerHeartbeatWriters.keys()];
   const lockDirs = [...ownedWorkerLockDirs];
   ownedWorkerLockDirs.clear();
+  await Promise.all(
+    heartbeatDirs.map(async (dir) => {
+      await stopOwnedWorkerHeartbeatWriter(dir);
+    }),
+  );
   await Promise.all(
     lockDirs.map(async (dir) => {
       try {
