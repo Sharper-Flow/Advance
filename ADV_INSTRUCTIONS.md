@@ -880,7 +880,7 @@ Commands that fan out to sub-agents with reusable methodology should follow this
 
 ## Worktree Integration
 
-ADV uses external mutable state — all worktrees share changes, archive, wisdom, agenda, SQLite cache. Specs remain in-repo (`.adv/specs/`).
+ADV uses external mutable state — all worktrees share changes, archive, wisdom, agenda, reflections, and Temporal workflow state. Specs remain in-repo (`.adv/specs/`). `db_dir` / physical `db/` directories are legacy compatibility only.
 
 ### External State
 
@@ -890,11 +890,12 @@ Location: `$XDG_DATA_HOME/opencode/plugins/advance/{project-id}/` (project-id = 
 {project-id}/
 ├── changes/     # Active proposals
 ├── archive/     # Completed
-├── db/spec.db   # SQLite FTS cache
 ├── wisdom.jsonl      # Learnings
 ├── reflections.jsonl # Post-completion reflection reports
 └── agenda.jsonl      # Work queue
 ```
+
+ADV worktrees live at `$XDG_DATA_HOME/opencode/worktree/{project-id}/{branch}`. Cleanup tools report leaked external artifacts in dry-run mode first; deletion requires explicit approval. Worker-lock lifecycle artifacts are excluded from generic cleanup.
 
 ### Worktree Policy
 

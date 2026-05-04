@@ -90,7 +90,9 @@ Dependencies use Zod v4 (`^4.3.6`). Tool arg schemas use Zod and are cast via `a
 
 ### External mutable state
 
-ADV state (changes, archive, wisdom, agenda, handoff) lives **outside the repo** at `~/.local/share/opencode/plugins/advance/{project-id}/`, keyed by root commit SHA. All worktrees of the same repo share this state. Specs (`.adv/specs/`) remain in-repo and branch-local.
+ADV state (changes, archive, wisdom, agenda, reflections, handoff) lives **outside the repo** at `$XDG_DATA_HOME/opencode/plugins/advance/{project-id}/` (default `~/.local/share/...`), keyed by root commit SHA. All worktrees of the same repo share this state. Specs (`.adv/specs/`) remain in-repo and branch-local. Runtime storage is Temporal-only; physical `db/` directories and `db_dir` config are legacy compatibility artifacts only.
+
+ADV-managed worktrees live under `$XDG_DATA_HOME/opencode/worktree/{project-id}/{branch}`. Empty branch-prefix parents may be reaped with bounded `rmdir` only; broad cleanup remains dry-run/approval-gated via hygiene tools.
 
 `adv_status` also reports a worktree census from `git worktree list --porcelain` plus root-directory mtime. Stale worktrees (>7d inactive) appear in the `worktree_census` raw field and formatted Worktrees section; disk usage is intentionally not scanned in status.
 

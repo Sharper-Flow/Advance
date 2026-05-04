@@ -726,7 +726,7 @@ your-project/
 | `changes_dir`  | `".adv/changes"` | Directory for change proposals |
 | `archive_dir`  | `".adv/archive"` | Directory for archived changes |
 | `docs_dir`     | `"docs/specs"`   | Directory for generated docs   |
-| `db_dir`       | `".adv/db"`      | Legacy cache path; retained for backward-compatible configs, unused by Temporal runtime |
+| `db_dir`       | `".adv/db"`      | Deprecated compatibility field; ignored by Temporal-only runtime and not allocated in external state |
 | `project_file` | `"project.md"`   | Optional project context file  |
 
 ---

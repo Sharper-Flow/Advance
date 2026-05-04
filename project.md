@@ -13,20 +13,20 @@ OpenCode plugin repo implementing ADV — a spec-driven development orchestrator
 | Plugin runtime | Bun (ESM) |
 | Test runner | Vitest on Node.js |
 | Language | TypeScript (strict) |
-| DB (runtime) | `bun:sqlite` |
-| DB (tests) | `better-sqlite3` (mock alias) |
+| Runtime state | Temporal workflows + JSON projections |
+| DB compatibility | `db_dir` accepted as deprecated config only |
 | Schema validation | Zod v4 |
 | Package manager | pnpm |
 | Build | tsup |
 
-**Runtime ≠ test environment.** `bun:sqlite` and `@opencode-ai/plugin` are mocked in tests via vitest aliases in `vitest.config.ts`.
+**Runtime ≠ test environment.** OpenCode runs under Bun, while tests run on Node. `@opencode-ai/plugin` is mocked in tests via vitest aliases in `vitest.config.ts`; runtime storage is Temporal-only.
 
 ## Key Directories
 
 ```
 plugin/src/
   tools/        # MCP tool implementations (spec, change, task, gate, wisdom, agenda, project, status, test)
-  storage/      # JSON + SQLite persistence, migrations, external state paths
+  storage/      # JSON projections, Temporal adapters, migrations, external state paths
   guards/       # Runtime policy: bash sanitization, sub-agent nesting depth (hard limit: 1)
   validator/    # Spec compliance, prep-readiness checks, task classification
   events/       # Terminal UI helpers, status markers
@@ -39,7 +39,7 @@ plugin/src/
   overlays/           # Managed overlay blocks for global shared agents
 skills/               # Bundled methodology skills → synced to ~/.config/opencode/skills/
 docs/                 # Gate contracts, workflow diagram, checklists, generated spec docs
-scripts/              # sync-global.sh, migrate-openspec.ts, recover-db.js
+scripts/              # sync-global.sh, migrate-openspec.ts, retired recover-db.js stub
 ```
 
 ## Development Commands
@@ -71,11 +71,11 @@ CI order: typecheck → lint → format:check → test → build (Node 20.x + 22
 `.adv/specs/` defines capability requirements. Spec always wins over proposal. Archive blocks until all 7 gates pass. Spec files are git-tracked and branch-local — spec changes in one worktree are not visible in another until merged.
 
 ### ADV state is external
-Changes, archive, wisdom, agenda, and handoff live **outside the repo** at:
+Changes, archive, wisdom, agenda, reflections, and handoff live **outside the repo** at:
 ```
-~/.local/share/opencode/plugins/advance/{project-id}/
+$XDG_DATA_HOME/opencode/plugins/advance/{project-id}/
 ```
-`project-id` = root commit SHA (see `plugin/src/utils/project-id.ts`). All worktrees of the same repo share this external state.
+`project-id` = root commit SHA (see `plugin/src/utils/project-id.ts`). All worktrees of the same repo share this external state. ADV worktrees live at `$XDG_DATA_HOME/opencode/worktree/{project-id}/{branch}`. `db_dir` / physical `db/` are legacy-only and should appear only in compatibility docs or dry-run hygiene reports.
 
 ### Never read ADV state files directly
 Use ADV MCP tools (`adv_change_show`, `adv_task_list`, etc.). Direct reads via `cat`/`read`/`ls` are forbidden — state format may change and direct reads bypass caching/migration logic.
