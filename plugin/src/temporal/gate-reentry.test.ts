@@ -33,15 +33,10 @@ describe("reopenChangeFromGate — workflow-safe timestamp injection", () => {
     const change = makeChange();
     const explicitNow = "2026-04-21T12:34:56.789Z";
 
-    const result = reopenChangeFromGate(
-      change,
-      "planning",
-      "test reason",
-      undefined,
-      "agent",
-      undefined,
-      explicitNow,
-    );
+    const result = reopenChangeFromGate(change, "planning", "test reason", {
+      reopenedBy: "agent",
+      now: explicitNow,
+    });
 
     expect(result.entry.reopened_at).toBe(explicitNow);
     expect(result.timestamp).toBe(explicitNow);
@@ -52,37 +47,26 @@ describe("reopenChangeFromGate — workflow-safe timestamp injection", () => {
     const change = makeChange();
     const explicitNow = "2026-04-21T12:34:56.789Z";
 
-    // Spy on the Date constructor. When caller supplies `now`, the
-    // function must not invoke `new Date()` — critical for Temporal
-    // workflow sandbox determinism.
+    // Spy on the Date constructor. The helper should be a pure mutation over
+    // caller-provided workflow state, not a hidden wall-clock source.
     const dateSpy = vi.spyOn(globalThis, "Date");
 
-    reopenChangeFromGate(
-      change,
-      "planning",
-      "test reason",
-      undefined,
-      "agent",
-      undefined,
-      explicitNow,
-    );
+    reopenChangeFromGate(change, "planning", "test reason", {
+      reopenedBy: "agent",
+      now: explicitNow,
+    });
 
     expect(dateSpy).not.toHaveBeenCalled();
     dateSpy.mockRestore();
   });
 
-  it("falls back to `new Date().toISOString()` when caller omits `now`", () => {
+  it("requires callers to provide `now` explicitly", () => {
     const change = makeChange();
 
-    const result = reopenChangeFromGate(
-      change,
-      "planning",
-      "storage-side call",
-    );
-
-    expect(result.entry.reopened_at).toMatch(
-      /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/,
-    );
-    expect(result.timestamp).toBe(result.entry.reopened_at);
+    expect(() =>
+      reopenChangeFromGate(change, "planning", "missing timestamp", {
+        now: undefined as never,
+      }),
+    ).toThrow("reopenChangeFromGate requires an explicit `now` timestamp");
   });
 });

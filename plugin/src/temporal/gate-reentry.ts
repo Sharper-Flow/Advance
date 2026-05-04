@@ -7,21 +7,30 @@ interface ReopenChangeResult {
   timestamp: string;
 }
 
+interface ReopenChangeOptions {
+  scopeDelta?: string;
+  reopenedBy?: string;
+  approvalEvidence?: string;
+  /**
+   * ISO timestamp for this reopen event. Keep this explicit so workflow
+   * adapters and storage callers choose their own clock semantics instead of
+   * inheriting a hidden wall-clock default from this mutation helper.
+   */
+  now: string;
+}
+
 export function reopenChangeFromGate(
   change: Change,
   fromGate: GateId,
   reason: string,
-  scopeDelta?: string,
-  reopenedBy = "agent",
-  approvalEvidence?: string,
-  /**
-   * ISO timestamp for this reopen event. Provide an explicit value when
-   * calling from inside a Temporal workflow handler — `new Date()` is
-   * non-deterministic under workflow replay. Storage callers (outside
-   * workflows) can omit this and the helper will fall back to `new Date()`.
-   */
-  now?: string,
+  options: ReopenChangeOptions,
 ): ReopenChangeResult {
+  if (!options.now) {
+    throw new Error(
+      "reopenChangeFromGate requires an explicit `now` timestamp",
+    );
+  }
+
   if (!change.gates) {
     change.gates = createDefaultGates();
   }
@@ -45,13 +54,15 @@ export function reopenChangeFromGate(
     gates[gateId] = { status: "pending" };
   }
 
-  const timestamp = now ?? new Date().toISOString();
+  const timestamp = options.now;
   const entry: ReentryHistoryEntry = {
     from_gate: fromGate,
     reason,
-    ...(scopeDelta ? { scope_delta: scopeDelta } : {}),
-    reopened_by: reopenedBy,
-    ...(approvalEvidence ? { approval_evidence: approvalEvidence } : {}),
+    ...(options.scopeDelta ? { scope_delta: options.scopeDelta } : {}),
+    reopened_by: options.reopenedBy ?? "agent",
+    ...(options.approvalEvidence
+      ? { approval_evidence: options.approvalEvidence }
+      : {}),
     reopened_at: timestamp,
     gates_reset: gatesReset as [GateId, ...GateId[]],
   };

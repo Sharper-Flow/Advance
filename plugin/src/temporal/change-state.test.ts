@@ -388,6 +388,9 @@ describe("change workflow state", () => {
     expect(state.gates.discovery.status).toBe("pending");
     expect(state.gates.design.status).toBe("pending");
     expect(state.reentry_history).toHaveLength(1);
+    expect(state.reentry_history[0]?.reopened_at).toBe(
+      "2026-04-14T00:05:00.000Z",
+    );
   });
 
   it("tracks change wisdom and artifact metadata", () => {
