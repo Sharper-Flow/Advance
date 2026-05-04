@@ -1,5 +1,11 @@
 export type TemporalErrorClass = "transient" | "fallback" | "fatal";
 
+export interface WorkerRunErrorTelemetry {
+  queue: string;
+  message: string;
+  at: string;
+}
+
 interface TemporalRetryTelemetry {
   lastOpAt: string | null;
   lastError: string | null;
@@ -61,6 +67,8 @@ const temporalRetryTelemetry: TemporalRetryTelemetry = {
   lastAttempts: null,
 };
 
+let lastWorkerRunError: WorkerRunErrorTelemetry | null = null;
+
 export function getTemporalRetryTelemetry(): TemporalRetryTelemetry {
   return { ...temporalRetryTelemetry };
 }
@@ -69,10 +77,23 @@ export function getTemporalOpTelemetry(): OpTelemetry[] {
   return Array.from(temporalOpTelemetry.values()).map((t) => ({ ...t }));
 }
 
+export function recordWorkerRunFailure(queue: string, err: unknown): void {
+  lastWorkerRunError = {
+    queue,
+    message: err instanceof Error ? err.message : String(err ?? ""),
+    at: new Date().toISOString(),
+  };
+}
+
+export function getLastWorkerRunError(): WorkerRunErrorTelemetry | null {
+  return lastWorkerRunError ? { ...lastWorkerRunError } : null;
+}
+
 export function resetTemporalRetryTelemetry(): void {
   temporalRetryTelemetry.lastOpAt = null;
   temporalRetryTelemetry.lastError = null;
   temporalRetryTelemetry.lastAttempts = null;
+  lastWorkerRunError = null;
   temporalOpTelemetry.clear();
 }
 

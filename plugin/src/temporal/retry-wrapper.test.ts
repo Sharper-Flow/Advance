@@ -1,13 +1,48 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   classifyTemporalError,
+  getLastWorkerRunError,
   getTemporalRetryTelemetry,
   getTemporalOpTelemetry,
+  recordWorkerRunFailure,
   resetTemporalRetryTelemetry,
   withTemporalRetry,
 } from "./retry-wrapper";
 
 describe("retry-wrapper (C2)", () => {
+  describe("worker run-loop failure telemetry", () => {
+    it("records and retrieves the last worker run failure", () => {
+      resetTemporalRetryTelemetry();
+
+      recordWorkerRunFailure("advance-project", new Error("poller crashed"));
+
+      expect(getLastWorkerRunError()).toMatchObject({
+        queue: "advance-project",
+        message: "poller crashed",
+      });
+      expect(getLastWorkerRunError()?.at).toBeTruthy();
+    });
+
+    it("records non-Error failures as strings", () => {
+      resetTemporalRetryTelemetry();
+
+      recordWorkerRunFailure("advance-project", "worker exited");
+
+      expect(getLastWorkerRunError()).toMatchObject({
+        queue: "advance-project",
+        message: "worker exited",
+      });
+    });
+
+    it("clears worker run failure telemetry on reset", () => {
+      recordWorkerRunFailure("advance-project", new Error("poller crashed"));
+
+      resetTemporalRetryTelemetry();
+
+      expect(getLastWorkerRunError()).toBeNull();
+    });
+  });
+
   it("classifies connection-refused as transient", () => {
     expect(
       classifyTemporalError(new Error("connect ECONNREFUSED 127.0.0.1:7233")),
