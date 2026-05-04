@@ -77,7 +77,7 @@ Analyze across 6 categories. Cap: **5 findings per category**. Every finding MUS
 3. Document corrections for DRIFTED/ANTI-PATTERN findings: what's wrong (file paths), what's correct (source), minimum viable fix
 4. Include greenfield perspective: what would change rebuilding from scratch?
 
-**Fallback:** If Context7 is unavailable → use local codebase conventions and annotate each finding with `[Reference: local conventions — Context7 unavailable]`. Do not fabricate canonical sources.
+**Fallback:** If Context7 is absent → try `webfetch` against canonical docs URLs. If both Context7 and webfetch are unavailable → use local codebase conventions and annotate each finding with `[Reference: local conventions — Context7/webfetch unavailable]`. Do not fabricate canonical sources.
 
 ---
 
@@ -85,7 +85,7 @@ Analyze across 6 categories. Cap: **5 findings per category**. Every finding MUS
 
 Detect project domain from Phase 0 context. Run two targeted searches:
 
-1. `kagi_kagi_search_fetch queries: ["{domain} alternatives comparison {year}", "{domain} emerging tools trends {year}"]`
+1. `kagi_kagi_search_fetch queries: ["{domain} alternatives comparison {current-year}", "{domain} emerging tools trends {current-year}"]`
 2. Extract: **top-3 competitors** (name, what they do differently, relevance to this project) and **2 emerging patterns** (name, why noteworthy, maturity signal)
 3. Every entry MUST include: source URL, one-sentence summary, relevance
 
@@ -169,7 +169,3 @@ The artifact is a **mirror** of the report findings plus the Applicability and O
 | Reference | `context7_resolve-library-id` + `context7_query-docs` (`webfetch` fallback if absent) |
 | External  | `kagi_kagi_search_fetch`                                                       |
 | Persist   | `write` / `morph_edit` — only under `docs/*-prep.md`                           |
-
----
-
-## Output
