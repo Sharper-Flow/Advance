@@ -3,8 +3,8 @@
   "name": "advance-meta",
   "title": "Advance Meta",
   "purpose": "Capability: Cross-cutting ADV concerns \u2014 config diagnostics, metadata filters, shutdown lifecycle, due-diligence routing, and synthetic-state guards. Split from `advance` capability.",
-  "version": "1.5.0",
-  "updated_at": "2026-05-02T23:50:00.000Z",
+  "version": "1.6.0",
+  "updated_at": "2026-05-04T05:50:00.000Z",
   "requirements": [
     {
       "id": "rq-synthstate01",
@@ -680,15 +680,16 @@
         },
         {
           "id": "rq-toolTimeoutOverride01.2",
-          "title": "adv_temporal_worker_restart returns within 1s on success via fire-and-forget",
+          "title": "adv_temporal_worker_restart uses bounded verified recovery",
           "given": [
-            "A worker restart that takes longer than 10s to fully complete"
+            "A Temporal worker restart is requested for the current project"
           ],
           "when": "adv_temporal_worker_restart is invoked",
           "then": [
-            "The tool returns within 1s with success:true and a verification hint pointing at adv_status / adv_temporal_diagnose",
-            "The underlying restart proceeds asynchronously",
-            "An async failure is logged via appendDebugLog without surfacing a ToolExecutionTimeout"
+            "The tool waits up to the configured verification budget (default 10s) for the expected project task queue to become serviceable",
+            "The tool returns success:true only when serviceability is proven by local worker readiness and/or fresh server-side poller evidence",
+            "The tool returns success:false with structured diagnostics when verification times out or evidence is unavailable or negative",
+            "The tool is registered with an explicit safety-net timeout override that exceeds the verification budget with modest headroom"
           ]
         }
       ]
@@ -773,7 +774,7 @@
     {
       "id": "rq-workerSingleton01",
       "title": "Singleton Temporal worker per project across sessions",
-      "body": "When multiple plugin instances initialize against the same external state directory for the same project, at most ONE Temporal worker process MUST exist for that project_id at any given time. A file-lock sentinel at {external-state-dir}/{project-id}/worker.lock coordinates ownership. Subsequent instances participate as Temporal clients only. Heartbeat freshness is the primary liveness signal for v2 worker locks, while stale-PID detection (process.kill(pid, 0)) remains the v1 fallback when heartbeat fields are absent and reclaims the lock when the recorded owner has exited.",
+      "body": "When multiple plugin instances initialize against the same external state directory for the same project, at most ONE Temporal worker process MUST exist for that project_id at any given time. A file-lock sentinel at {external-state-dir}/{project-id}/worker.lock coordinates ownership. Subsequent instances participate as Temporal clients only. Heartbeat freshness is the primary liveness signal for v2 worker locks. Dead-PID reclaim remains automatic. For legacy v1 fallback locks, an alive PID protects singleton ownership during passive initialization and when the expected project queue is serviceable. A v1 alive-PID lock with no heartbeat and no serviceable queue is classified as suspect during recovery decisions and may only be reclaimed through an explicit user-approved recovery path.",
       "priority": "must",
       "scenarios": [
         {
@@ -794,7 +795,7 @@
           "title": "Subsequent plugin instance reads lock and skips worker spawn",
           "given": [
             "A worker.lock file exists and the recorded PID is alive (process.kill(pid, 0) succeeds or throws EPERM)",
-            "PID alive AND (no last_heartbeat field — v1 fallback — OR last_heartbeat within stale-grace)"
+            "Either the lock has no last_heartbeat field (v1 fallback) during passive initialization or with serviceable queue evidence, or the lock has a fresh v2 heartbeat"
           ],
           "when": "A second plugin initializes against the same project",
           "then": [
@@ -840,6 +841,21 @@
             "Acquisition is retried through the existing atomic O_EXCL path",
             "A fresh worker may acquire the singleton lock without requiring external lock cleanup"
           ]
+        },
+        {
+          "id": "rq-workerSingleton01.6",
+          "title": "Suspect legacy live lock requires approval to reclaim",
+          "given": [
+            "A v1 worker.lock exists with an alive recorded PID",
+            "The expected project queue is not serviceable within the verification budget"
+          ],
+          "when": "diagnose or restart recovery evaluates the worker state",
+          "then": [
+            "The state is classified as suspect_live_legacy_lock",
+            "No lock is reclaimed automatically",
+            "Recovery requires explicit user approval evidence or restarting the owning OpenCode session",
+            "Successful approved reclaim records prior PID, schema version, expected queue, and approval evidence"
+          ]
         }
       ]
     },
@@ -859,6 +875,20 @@
           "then": [
             "The last worker run-loop error includes queue, message, and timestamp",
             "The diagnostic remains additive and does not require describeTaskQueue during normal plugin initialization"
+          ]
+        },
+        {
+          "id": "rq-workerHealth01.2",
+          "title": "Queue serviceability appears in diagnostics",
+          "given": [
+            "A project queue has no proven local worker readiness and no fresh server-side poller evidence"
+          ],
+          "when": "adv_status view:health or adv_temporal_diagnose is executed",
+          "then": [
+            "Diagnostics include expected queue and local worker registration status",
+            "Diagnostics include worker process or IPC details when available",
+            "Diagnostics include server poller probe status and stale running workflow count or probe status",
+            "Diagnostics include a recommended next action"
           ]
         }
       ]
