@@ -329,6 +329,38 @@ describe("acquireWorkerLock + releaseWorkerLock", () => {
     expect(notOwners).toHaveLength(1);
   });
 
+  it("two simultaneous stale-heartbeat reclaimers produce exactly one new owner", async () => {
+    const stalePid = 99993;
+    await writeLock(stateDir, stalePid, {
+      schema_version: 2,
+      last_heartbeat: new Date(
+        Date.now() - STALE_HEARTBEAT_MS - 1_000,
+      ).toISOString(),
+    });
+
+    const [a, b] = await Promise.all([
+      acquireWorkerLock(stateDir, {
+        pid: 11111,
+        isAlive: () => "alive",
+      }),
+      acquireWorkerLock(stateDir, {
+        pid: 22222,
+        isAlive: () => "alive",
+      }),
+    ]);
+
+    const owners = [a, b].filter((r) => r.owned);
+    const notOwners = [a, b].filter((r) => !r.owned);
+    expect(owners).toHaveLength(1);
+    expect(notOwners).toHaveLength(1);
+    expect(notOwners[0].ownerPid).not.toBe(stalePid);
+
+    const canonical = JSON.parse(
+      await readFile(join(stateDir, WORKER_LOCK_FILENAME), "utf8"),
+    ) as { pid: number; worker_id: string };
+    expect(canonical.pid).toBe(owners[0].ownerPid);
+  });
+
   // T2 (KD-7): parametrize lock filename so other coordination domains
   // (e.g. git-worktree-flock at T15) can reuse this lock primitive
   // without colliding with the default worker.lock file.
