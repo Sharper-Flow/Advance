@@ -62,7 +62,7 @@ ADV pauses ONLY at these checkpoints:
 - Cancellation approval — explicit user approval required
 - Doom-loop recovery — user guidance required after 3 failed attempts
 
-**Approval surface:** First seven checkpoints (proposal, agreement, design, prep, acceptance, archive sign-off, cancellation) MUST use inline handoff text per `docs/command-voice-standard.md` § Inline Approval Voice — NOT the `question` tool. Spec ref: `rq-inlineApproval01`. Doom-loop recovery uses `question` tool (safety-critical structured choices).
+**Approval surface:** Human checkpoints listed above MUST use inline handoff text per `docs/command-voice-standard.md` § Inline Approval Voice — NOT the `question` tool. Spec ref: `rq-inlineApproval01`. Doom-loop recovery uses `question` tool (safety-critical structured choices).
 
 | Tier | Checkpoints | Parser |
 |---|---|---|
@@ -239,7 +239,7 @@ Multi-session is the supported design center. Temporal serializes ADV state writ
 
 Informational only — peer sessions are first-class and supported. No agent rule restricts behavior based on this marker.
 
-**Trust-domain note:** peer-session visibility (`adv_status`, `adv_session_list`) assumes same project = same trust domain. Multi-developer / shared-CI scenarios are out of scope; revisit via separate change if needed. The defensive opaque `session_id` schema (no PID, no full path in public output) mitigates leak risk.
+Peer-session visibility (`adv_status`, `adv_session_list`) assumes same project = same trust domain. Multi-developer / shared-CI scenarios are out of scope; revisit via separate change if needed. The defensive opaque `session_id` schema (no PID, no full path in public output) mitigates leak risk.
 
 **Useful tools:**
 
@@ -248,7 +248,7 @@ Informational only — peer sessions are first-class and supported. No agent rul
 - `adv_session_show <session_id>` — own-session details only (privacy-defensive)
 - `adv_temporal_diagnose` — peer count, worker-lock holder PID, project workflow presence
 
-### ADV MCP Tool Invocation (P1.12)
+### ADV MCP Tool Invocation
 
 × NEVER invoke ADV tools with empty parameter sets. Always provide all required args explicitly.
 
@@ -269,7 +269,7 @@ Write-in option enforced by P26 (`rules.yaml`). ADV notes:
 - 2-5 options including write-in, concise labels
 - Leave custom input enabled
 
-**Scope of question tool use:** Reserved for non-checkpoint structured choices: change-id selection / disambiguation, doom-loop recovery, drift detection in `/adv-review` and `/adv-harden`, AC clarification rounds (Phase 4.5 of `/adv-discover`), investment check-in / judgment-call surfacing (`/adv-apply` Phase 1.5), and triage commands (`/adv-idea`, `/adv-problem`, `/adv-clarify`). The seven named human checkpoints (proposal, agreement, design, prep, acceptance, archive sign-off, cancellation) use inline handoff text per `docs/command-voice-standard.md` § Inline Approval Voice and `rq-inlineApproval01`.
+**Scope of question tool use:** Reserved for non-checkpoint structured choices: change-id selection / disambiguation, doom-loop recovery, drift detection in `/adv-review` and `/adv-harden`, AC clarification rounds (Phase 4.5 of `/adv-discover`), investment check-in / judgment-call surfacing (`/adv-apply` Phase 1.5), and triage commands (`/adv-idea`, `/adv-problem`, `/adv-clarify`). Human checkpoints listed above use inline handoff text per `docs/command-voice-standard.md` § Inline Approval Voice and `rq-inlineApproval01`.
 
 ### Tradeoff Prioritizer Protocol
 
@@ -458,8 +458,8 @@ Tools with `target_path` (read or mutation) accept the optional path argument an
 | `adv_change_archive`, `adv_change_close`, `adv_change_bulk_close` | temporal-required | Mutation |
 | `adv_task_update`, `adv_task_evidence`, `adv_task_tdd`, `adv_task_cancel`, `adv_task_add` | temporal-required | Mutation |
 | `adv_gate_status`, `adv_gate_complete` | temporal-required | Read-status / mutation |
-| `adv_workflow_repair`, `adv_orphan_sweep`, `adv_temporal_reconnect` | temporal-required | Mutation (added 2026-05-02 for F4) |
-| `adv_archive_sweep_orphans` | temporal-required | Mutation (added 2026-05-02 for F4) |
+| `adv_workflow_repair`, `adv_orphan_sweep`, `adv_temporal_reconnect` | temporal-required | Mutation |
+| `adv_archive_sweep_orphans` | temporal-required | Mutation |
 | `adv_change_diagnose`, `adv_change_import`, `adv_migrate_cleanup` | snapshot-ok / temporal-required | Read-only diagnose; import & cleanup are mutations |
 | `adv_run_test` | temporal-required | Mutation (records evidence) |
 
@@ -939,4 +939,4 @@ If `adv_worktree_create`/`adv_worktree_delete` unavailable: `[ADV:BLOCKED] Workt
 ## When to Use ADV
 
 **Use for:** New features, breaking changes, architecture, compliance, unclear bug fixes via `/adv-problem`
-**Skip for:** Typos, deps, exploration
+**Use lighter workflows for:** Typos, deps, exploration

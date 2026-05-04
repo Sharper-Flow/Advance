@@ -166,3 +166,25 @@ describe("ADV_INSTRUCTIONS.md drift repairs (repairDriftContradictions T2)", () 
     expect(subagents).toMatch(/Cap total sub-agents per command at 6 across batches/);
   });
 });
+
+describe("ADV_INSTRUCTIONS.md medium cleanup (repairDriftContradictions T3)", () => {
+  const content = readFileSync(ADV_INSTRUCTIONS_PATH, "utf8");
+
+  test("human checkpoint list is canonical, with later references pointing back", () => {
+    expect(content).toMatch(/### Human Checkpoints \(Pause Required\)/);
+    expect(content).not.toMatch(/First seven checkpoints/);
+    expect(content).not.toMatch(/The seven named human checkpoints/);
+    expect(content).toMatch(/human checkpoints listed above/i);
+  });
+
+  test("stale annotations and labels are removed from live ADV instructions", () => {
+    expect(content).not.toMatch(/\(P1\.12\)/);
+    expect(content).not.toMatch(/added 2026-05-02/);
+    expect(content).not.toMatch(/Trust-domain note/);
+  });
+
+  test("When to Use ADV avoids Skip for prefix collision", () => {
+    expect(content).not.toMatch(/\*\*Skip for:\*\*/);
+    expect(content).toMatch(/\*\*Use lighter workflows for:\*\*/);
+  });
+});
