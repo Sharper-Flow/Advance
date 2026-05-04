@@ -316,5 +316,50 @@ describe("Test Tools", () => {
         expect(parsed.exitCode).toBe(1);
       });
     });
+
+    // rq-runTestTimeoutArg01: caller-controlled timeoutMs with [1s, 5min] cap.
+    describe("timeoutMs schema arg", () => {
+      test("custom timeoutMs is honored by execute (overrides default 30s)", async () => {
+        // Run a 2s sleep with a 100ms timeout passed via tool ARG (not internal
+        // bounds). Without the schema arg + plumbing, the default 30s would
+        // apply and the command would complete normally.
+        const result = await testTools.adv_run_test.execute(
+          {
+            taskId: "tk-task0001",
+            command: "sleep 2",
+            phase: "red",
+            timeoutMs: 100,
+          },
+          store,
+          tempDir,
+        );
+        const parsed = JSON.parse(result);
+
+        expect(parsed.timedOut).toBe(true);
+        expect(parsed.timeoutMs).toBe(100);
+        expect(parsed.output).toMatch(/timed out/i);
+      });
+
+      test("timeoutMs above 300_000 is rejected by schema", () => {
+        const schema = testTools.adv_run_test.args.timeoutMs;
+        expect(() => schema.parse(300_001)).toThrow();
+      });
+
+      test("timeoutMs below 1000 is rejected by schema", () => {
+        const schema = testTools.adv_run_test.args.timeoutMs;
+        expect(() => schema.parse(999)).toThrow();
+      });
+
+      test("timeoutMs at boundaries (1000 and 300_000) is accepted", () => {
+        const schema = testTools.adv_run_test.args.timeoutMs;
+        expect(schema.parse(1000)).toBe(1000);
+        expect(schema.parse(300_000)).toBe(300_000);
+      });
+
+      test("timeoutMs is optional (undefined accepted, default applies)", () => {
+        const schema = testTools.adv_run_test.args.timeoutMs;
+        expect(schema.parse(undefined)).toBeUndefined();
+      });
+    });
   });
 });

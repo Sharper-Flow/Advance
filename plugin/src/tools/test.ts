@@ -133,6 +133,15 @@ export const testTools = {
         .string()
         .optional()
         .describe("Working directory to run the test in"),
+      timeoutMs: z
+        .number()
+        .int()
+        .min(1000)
+        .max(300_000)
+        .optional()
+        .describe(
+          "Optional wall-clock timeout in milliseconds. Default 30000. Range [1000, 300000]. Use a higher value for slow commands like full test suites or `pnpm run check` (cap 5min anti-runaway).",
+        ),
       target_path: z
         .string()
         .optional()
@@ -148,6 +157,7 @@ export const testTools = {
         command: string;
         phase: "red" | "green";
         workdir?: string;
+        timeoutMs?: number;
         target_path?: string;
         target_confirmed?: true;
         confirmationEvidence?: string;
@@ -183,8 +193,13 @@ export const testTools = {
       }
 
       const cwd = args.workdir || defaultWorkdir;
+      // Precedence: tool arg (caller-controlled) > internal bounds > default.
+      // Tool arg is schema-validated to [1000, 300_000] ms; internal bounds is
+      // an unrestricted seam for tests; default protects against runaway when
+      // neither is provided.
       const effective: Required<ExecBounds> = {
-        timeoutMs: bounds?.timeoutMs ?? DEFAULT_TEST_TIMEOUT_MS,
+        timeoutMs:
+          args.timeoutMs ?? bounds?.timeoutMs ?? DEFAULT_TEST_TIMEOUT_MS,
         maxBuffer: bounds?.maxBuffer ?? DEFAULT_TEST_MAX_BUFFER,
       };
 
