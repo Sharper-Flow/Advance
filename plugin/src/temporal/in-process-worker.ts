@@ -103,9 +103,6 @@ export async function createInProcessWorker(
 
   const workflowsPath = input.workflowsPath ?? resolveWorkflowsPath();
   const effectiveActivities = input.activities ?? activities;
-  const workerFactory =
-    input.workerFactory ??
-    ((options: Parameters<typeof Worker.create>[0]) => Worker.create(options));
 
   const registered = new Map<string, TemporalWorkerInstance>();
   const failed = new Set<string>();
@@ -142,13 +139,21 @@ export async function createInProcessWorker(
     }
 
     const boot = (async () => {
-      const worker = await workerFactory({
-        connection,
-        namespace: input.namespace,
-        taskQueue,
-        workflowsPath,
-        activities: effectiveActivities,
-      });
+      const worker = input.workerFactory
+        ? await input.workerFactory({
+            connection,
+            namespace: input.namespace,
+            taskQueue,
+            workflowsPath,
+            activities: effectiveActivities,
+          })
+        : await Worker.create({
+            connection,
+            namespace: input.namespace,
+            taskQueue,
+            workflowsPath,
+            activities: effectiveActivities,
+          });
       // Re-check: shutdown may have been initiated while Worker.create was
       // in flight. If so, tear this worker down immediately and refuse to
       // register it rather than attaching it to a worker that won't be

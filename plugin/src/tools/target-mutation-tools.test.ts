@@ -121,7 +121,10 @@ vi.mock("../storage/json", async () => {
 });
 
 vi.mock("fs/promises", async () => {
+  const actual =
+    await vi.importActual<typeof import("fs/promises")>("fs/promises");
   return {
+    ...actual,
     readdir: vi.fn(async () => []),
     readFile: vi.fn(async () => ""),
     rm: vi.fn(async () => undefined),
