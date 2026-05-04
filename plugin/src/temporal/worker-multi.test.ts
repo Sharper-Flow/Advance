@@ -1,5 +1,9 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { createMultiWorker, MULTI_SHUTDOWN_GRACE_MS } from "./worker-multi";
+import {
+  getLastWorkerRunError,
+  resetTemporalRetryTelemetry,
+} from "./retry-wrapper";
 import type { ChildProcess } from "node:child_process";
 import EventEmitter from "node:events";
 
@@ -22,6 +26,7 @@ interface MockChild extends Partial<ChildProcess> {
   sendReady(): void;
   sendRegisterAck(queue: string): void;
   sendRegisterError(queue: string, message: string): void;
+  sendRunError(queue: string, message: string): void;
 }
 
 let lastMockChild: MockChild | null = null;
@@ -93,6 +98,14 @@ function createMockChild(): MockChild {
         "data",
         Buffer.from(
           JSON.stringify({ type: "register-error", queue, message }) + "\n",
+        ),
+      );
+    },
+    sendRunError(queue: string, message: string) {
+      child.stdout.emit(
+        "data",
+        Buffer.from(
+          JSON.stringify({ type: "run-error", queue, message }) + "\n",
         ),
       );
     },
@@ -172,6 +185,7 @@ describe("Multi-queue worker host", () => {
     mockChildren.length = 0;
     autoEmitReady = true;
     autoAckRegister = true;
+    resetTemporalRetryTelemetry();
   });
 
   afterEach(() => {
@@ -272,6 +286,27 @@ describe("Multi-queue worker host", () => {
     await worker.shutdown();
   });
 
+  it("records child run-error IPC in diagnostics and worker-run telemetry", async () => {
+    const worker = await createMultiWorker(baseInput);
+
+    lastMockChild!.sendRunError("adv-change-proj1", "poller failed");
+
+    expect(worker.getDiagnostics()).toMatchObject({
+      registerErrors: [
+        {
+          queue: "adv-change-proj1",
+          message: "poller failed",
+        },
+      ],
+    });
+    expect(getLastWorkerRunError()).toMatchObject({
+      queue: "adv-change-proj1",
+      message: "poller failed",
+    });
+
+    await worker.shutdown();
+  });
+
   it("ignores duplicate registerQueue calls", async () => {
     const worker = await createMultiWorker(baseInput);
     const writeCountBefore = lastMockChild!.stdin.write.mock.calls.length;
@@ -340,7 +375,11 @@ describe("Multi-queue worker host", () => {
   });
 
   it("does not respawn on graceful exit (code 0)", async () => {
-    const worker = await createMultiWorker(baseInput);
+    const onWorkerExhausted = vi.fn();
+    const worker = await createMultiWorker({
+      ...baseInput,
+      onWorkerExhausted,
+    });
     const child = lastMockChild!;
 
     // Simulate graceful exit
@@ -351,8 +390,32 @@ describe("Multi-queue worker host", () => {
 
     // Only one child should have been spawned (no respawn)
     expect(mockChildren.length).toBe(1);
+    expect(onWorkerExhausted).not.toHaveBeenCalled();
 
     await worker.shutdown();
+  });
+
+  it("fires onWorkerExhausted exactly once after child restart exhaustion", async () => {
+    vi.useFakeTimers();
+    const onWorkerExhausted = vi.fn();
+    await createMultiWorker({
+      ...baseInput,
+      onWorkerExhausted,
+    });
+
+    lastMockChild!.emit("exit", null, "SIGKILL");
+    await vi.advanceTimersByTimeAsync(1_050);
+    mockChildren[mockChildren.length - 1].emit("exit", null, "SIGKILL");
+    await vi.advanceTimersByTimeAsync(3_050);
+    mockChildren[mockChildren.length - 1].emit("exit", null, "SIGKILL");
+    await vi.advanceTimersByTimeAsync(10_050);
+    mockChildren[mockChildren.length - 1].emit("exit", null, "SIGKILL");
+
+    await Promise.resolve();
+    expect(onWorkerExhausted).toHaveBeenCalledTimes(1);
+    mockChildren[mockChildren.length - 1].emit("exit", null, "SIGKILL");
+    await Promise.resolve();
+    expect(onWorkerExhausted).toHaveBeenCalledTimes(1);
   });
 
   it("respawns child after crash with exponential backoff", async () => {

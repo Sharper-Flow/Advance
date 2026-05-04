@@ -787,6 +787,11 @@ export const statusTools = {
             archivedCount: status.changes.byStatus.archived ?? 0,
             recommendations: status.recommendations,
             temporalAlive: !!temporalHealth?.server_alive,
+            temporalHealth: {
+              worker_lock: temporalHealth?.worker_lock ?? null,
+              last_worker_run_error:
+                temporalHealth?.last_worker_run_error ?? null,
+            },
             worktreeCensus: worktreeCensus
               ? {
                   total: worktreeCensus.total,

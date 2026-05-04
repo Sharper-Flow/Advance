@@ -105,6 +105,73 @@ describe("adv_status temporal health/migration status (C4)", () => {
     });
   });
 
+  test("renders worker lock and worker-run errors in formatted health section", async () => {
+    mocks.getTemporalHealth.mockResolvedValueOnce({
+      server_alive: true,
+      worker_alive: false,
+      worker_process_alive: false,
+      registered_queues: ["advance-proj123"],
+      last_op_at: "2026-04-21T00:00:00.000Z",
+      last_error: null,
+      fallback_counts: getTemporalFallbackTelemetry(),
+      stale_queues: [],
+      reconnect_count: 0,
+      op_counters: [],
+      worker_lock: {
+        holder_pid: 4242,
+        last_heartbeat_at: "2026-04-21T00:00:02.000Z",
+        heartbeat_age_ms: 1234,
+        schema_version: 2,
+      },
+      last_worker_run_error: {
+        queue: "advance-proj123",
+        message: "Worker.run rejected",
+        at: "2026-04-21T00:00:03.000Z",
+      },
+    });
+
+    const result = await statusTools.adv_status.execute(
+      { view: "health" },
+      store,
+    );
+    const parsed = parseToolOutput(result);
+
+    expect(parsed.formatted.healthSection).toContain(
+      "Worker lock: pid=4242 v2 heartbeat=1234ms last=2026-04-21T00:00:02.000Z",
+    );
+    expect(parsed.formatted.healthSection).toContain(
+      "Last worker run error: advance-proj123: Worker.run rejected @ 2026-04-21T00:00:03.000Z",
+    );
+  });
+
+  test("omits null worker lock and worker-run error from formatted health section", async () => {
+    mocks.getTemporalHealth.mockResolvedValueOnce({
+      server_alive: true,
+      worker_alive: true,
+      worker_process_alive: true,
+      registered_queues: ["advance-proj123"],
+      last_op_at: "2026-04-21T00:00:00.000Z",
+      last_error: null,
+      fallback_counts: getTemporalFallbackTelemetry(),
+      stale_queues: [],
+      reconnect_count: 0,
+      op_counters: [],
+      worker_lock: null,
+      last_worker_run_error: null,
+    });
+
+    const result = await statusTools.adv_status.execute(
+      { view: "health" },
+      store,
+    );
+    const parsed = parseToolOutput(result);
+
+    expect(parsed.formatted.healthSection).not.toContain("Worker lock:");
+    expect(parsed.formatted.healthSection).not.toContain(
+      "Last worker run error:",
+    );
+  });
+
   test("includes migration_status for current project when ledger query succeeds", async () => {
     (store.paths as { external?: string }).external =
       "/home/jrede/.local/share/opencode/plugins/advance/proj123";

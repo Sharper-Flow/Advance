@@ -24,7 +24,9 @@
  *   {
  *     "pid": <owner-process-pid>,
  *     "worker_id": "<uuid-v4>",
- *     "acquired_at": "<ISO-8601>"
+ *     "acquired_at": "<ISO-8601>",
+ *     "schema_version": 2,
+ *     "last_heartbeat": "<ISO-8601>"
  *   }
  *
  * Acquisition (atomic via O_EXCL):
@@ -54,13 +56,45 @@ import { join } from "path";
 import { randomUUID } from "crypto";
 
 export const WORKER_LOCK_FILENAME = "worker.lock";
+export const HEARTBEAT_INTERVAL_MS = readPositiveIntEnv(
+  "ADV_WORKER_HEARTBEAT_INTERVAL_MS",
+  5_000,
+);
+const CONFIGURED_STALE_HEARTBEAT_MS = readPositiveIntEnv(
+  "ADV_WORKER_HEARTBEAT_STALE_MS",
+  60_000,
+);
+export const STALE_HEARTBEAT_MS =
+  CONFIGURED_STALE_HEARTBEAT_MS > 2 * HEARTBEAT_INTERVAL_MS
+    ? CONFIGURED_STALE_HEARTBEAT_MS
+    : Math.max(60_000, HEARTBEAT_INTERVAL_MS * 3);
 const WORKER_LOCK_TMP_SUFFIX = ".tmp";
 const WORKER_LOCK_RELEASING_SUFFIX = ".releasing";
 
-export interface WorkerLockContents {
+export interface WorkerLockContentsV1 {
   pid: number;
   worker_id: string;
   acquired_at: string;
+  schema_version?: 1;
+  last_heartbeat?: never;
+}
+
+export interface WorkerLockContentsV2 {
+  pid: number;
+  worker_id: string;
+  acquired_at: string;
+  schema_version: 2;
+  last_heartbeat: string;
+}
+
+export type WorkerLockContents = WorkerLockContentsV1 | WorkerLockContentsV2;
+
+export function isV2Lock(
+  contents: Partial<WorkerLockContents>,
+): contents is WorkerLockContentsV2 {
+  return (
+    contents.schema_version === 2 && typeof contents.last_heartbeat === "string"
+  );
 }
 
 export type WorkerLockResult =
@@ -150,6 +184,11 @@ export async function acquireWorkerLock(
       await safeRemove(lockPath);
       continue;
     }
+    if (livenessState === "alive" && isStaleHeartbeat(contents)) {
+      // Owner PID is alive but the worker heartbeat is stale — reclaim.
+      await safeRemove(lockPath);
+      continue;
+    }
     // alive OR unknown_owner → respect the lock.
     return {
       owned: false,
@@ -212,14 +251,32 @@ export async function releaseWorkerLock(
 // Internals
 // ============================================================================
 
+function readPositiveIntEnv(name: string, fallback: number): number {
+  const raw = process.env[name];
+  if (!raw) return fallback;
+  const parsed = Number.parseInt(raw, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function isStaleHeartbeat(contents: WorkerLockContents): boolean {
+  if (!isV2Lock(contents)) return false;
+  const heartbeatMs = Date.parse(contents.last_heartbeat);
+  if (!Number.isFinite(heartbeatMs)) return true;
+  const ageMs = Date.now() - heartbeatMs;
+  return ageMs > STALE_HEARTBEAT_MS || ageMs < 0;
+}
+
 async function tryAtomicCreate(
   lockPath: string,
   pid: number,
 ): Promise<WorkerLockContents | null> {
-  const contents: WorkerLockContents = {
+  const acquiredAt = new Date().toISOString();
+  const contents: WorkerLockContentsV2 = {
     pid,
     worker_id: randomUUID(),
-    acquired_at: new Date().toISOString(),
+    acquired_at: acquiredAt,
+    schema_version: 2,
+    last_heartbeat: acquiredAt,
   };
   // Atomic write via tmp+rename so partial-write contents never appear in
   // the canonical lock path. EEXIST on the canonical path means another
@@ -274,7 +331,7 @@ async function tryAtomicCreate(
   }
 }
 
-async function readLockContents(
+export async function readLockContents(
   lockPath: string,
 ): Promise<WorkerLockContents | null> {
   const raw = await readFile(lockPath, "utf8");
@@ -287,7 +344,21 @@ async function readLockContents(
   ) {
     return null;
   }
-  return parsed as WorkerLockContents;
+  if (isV2Lock(parsed)) {
+    return {
+      pid: parsed.pid,
+      worker_id: parsed.worker_id,
+      acquired_at: parsed.acquired_at,
+      schema_version: 2,
+      last_heartbeat: parsed.last_heartbeat,
+    };
+  }
+  return {
+    pid: parsed.pid,
+    worker_id: parsed.worker_id,
+    acquired_at: parsed.acquired_at,
+    schema_version: 1,
+  };
 }
 
 async function safeRemove(path: string): Promise<void> {

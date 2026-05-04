@@ -16,6 +16,11 @@ import {
 import { checkAdvSearchAttributes } from "../temporal/observability";
 import { registerMissingAdvSearchAttributes } from "../temporal/observability";
 import { formatToolOutput } from "../utils/tool-output";
+import {
+  formatWorkerLockHealth,
+  formatWorkerRunError,
+} from "../utils/tool-formatters";
+import { STALE_HEARTBEAT_MS } from "../temporal/worker-lock";
 import { appendDebugLog } from "../utils/debug-log";
 import {
   formatTargetProjectContext,
@@ -133,6 +138,14 @@ function recommendTemporalRecovery(input: {
     }
     return "run adv_temporal_register_search_attributes";
   }
+  if (
+    !input.health.worker_alive &&
+    input.health.worker_lock?.heartbeat_age_ms !== null &&
+    input.health.worker_lock?.heartbeat_age_ms !== undefined &&
+    input.health.worker_lock.heartbeat_age_ms > STALE_HEARTBEAT_MS
+  ) {
+    return "normal recovery — peer worker spawn pending";
+  }
   if (!input.health.worker_process_alive || !input.health.worker_alive) {
     return "run adv_temporal_worker_restart";
   }
@@ -240,6 +253,10 @@ export const temporalOpsTools = {
       );
       const worker_lock_holder_pid = await readWorkerLockHolderPid(store);
       const project_workflow_present = projectWorkflow.reachable;
+      const worker_lock = formatWorkerLockHealth(health.worker_lock);
+      const last_worker_run_error = formatWorkerRunError(
+        health.last_worker_run_error,
+      );
 
       return formatToolOutput({
         success: true,
@@ -258,6 +275,8 @@ export const temporalOpsTools = {
         peer_sessions,
         worker_lock_holder_pid,
         project_workflow_present,
+        ...(worker_lock ? { worker_lock } : {}),
+        ...(last_worker_run_error ? { last_worker_run_error } : {}),
         recommendedNextAction,
       });
     },

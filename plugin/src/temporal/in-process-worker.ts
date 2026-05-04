@@ -2,6 +2,12 @@ import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { NativeConnection, Worker } from "@temporalio/worker";
 import * as activities from "./activities";
+import { recordWorkerRunFailure } from "./retry-wrapper";
+
+interface TemporalWorkerInstance {
+  run(): Promise<void>;
+  shutdown(): void | Promise<void>;
+}
 
 /**
  * In-process multi-queue Temporal worker.
@@ -43,6 +49,9 @@ export interface InProcessWorker {
    */
   readonly queues: readonly string[];
 
+  /** Queues whose Worker.run() promise rejected and no longer count alive. */
+  readonly failedQueues?: readonly string[];
+
   /**
    * Shut the worker down gracefully. Waits for in-flight activities /
    * workflow tasks to drain, then closes the underlying connection.
@@ -58,6 +67,12 @@ interface CreateInProcessWorkerInput {
   workflowsPath?: string;
   /** Optional override for activities (test injection). */
   activities?: Record<string, unknown>;
+  /** Optional override for Worker.create (test injection). */
+  workerFactory?: (
+    options: Parameters<typeof Worker.create>[0],
+  ) => Promise<TemporalWorkerInstance>;
+  /** Called once when every registered queue has failed outside shutdown. */
+  onWorkerExhausted?: () => void | Promise<void>;
   /**
    * Optional override for the NativeConnection factory. Primarily used in
    * tests that pass a TestWorkflowEnvironment native-connection.
@@ -89,10 +104,26 @@ export async function createInProcessWorker(
   const workflowsPath = input.workflowsPath ?? resolveWorkflowsPath();
   const effectiveActivities = input.activities ?? activities;
 
-  const registered = new Map<string, Worker>();
+  const registered = new Map<string, TemporalWorkerInstance>();
+  const failed = new Set<string>();
   const runners = new Map<string, Promise<void>>();
   const starting = new Map<string, Promise<void>>();
   let shuttingDown = false;
+  let exhaustedNotified = false;
+
+  function onRunSettled(taskQueue: string, err: unknown): void {
+    if (!err || shuttingDown) return;
+    recordWorkerRunFailure(taskQueue, err);
+    registered.delete(taskQueue);
+    failed.add(taskQueue);
+    runners.delete(taskQueue);
+    if (!exhaustedNotified && registered.size === 0) {
+      exhaustedNotified = true;
+      void Promise.resolve(input.onWorkerExhausted?.()).catch(() => {
+        // Best-effort callback; caller owns recovery/error reporting.
+      });
+    }
+  }
 
   async function startOne(taskQueue: string): Promise<void> {
     if (shuttingDown) {
@@ -108,13 +139,21 @@ export async function createInProcessWorker(
     }
 
     const boot = (async () => {
-      const worker = await Worker.create({
-        connection,
-        namespace: input.namespace,
-        taskQueue,
-        workflowsPath,
-        activities: effectiveActivities,
-      });
+      const worker = input.workerFactory
+        ? await input.workerFactory({
+            connection,
+            namespace: input.namespace,
+            taskQueue,
+            workflowsPath,
+            activities: effectiveActivities,
+          })
+        : await Worker.create({
+            connection,
+            namespace: input.namespace,
+            taskQueue,
+            workflowsPath,
+            activities: effectiveActivities,
+          });
       // Re-check: shutdown may have been initiated while Worker.create was
       // in flight. If so, tear this worker down immediately and refuse to
       // register it rather than attaching it to a worker that won't be
@@ -129,8 +168,16 @@ export async function createInProcessWorker(
           `registerQueue("${taskQueue}") aborted — worker shut down mid-start`,
         );
       }
+      failed.delete(taskQueue);
+      if (registered.size === 0) exhaustedNotified = false;
       registered.set(taskQueue, worker);
-      runners.set(taskQueue, worker.run());
+      runners.set(
+        taskQueue,
+        worker.run().then(
+          () => onRunSettled(taskQueue, null),
+          (err) => onRunSettled(taskQueue, err),
+        ),
+      );
     })();
 
     starting.set(taskQueue, boot);
@@ -148,6 +195,10 @@ export async function createInProcessWorker(
   return {
     get queues() {
       return [...registered.keys()];
+    },
+
+    get failedQueues() {
+      return [...failed];
     },
 
     async registerQueue(taskQueue: string): Promise<void> {

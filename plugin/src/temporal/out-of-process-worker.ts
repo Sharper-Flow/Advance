@@ -24,6 +24,7 @@ export interface OutOfProcessWorkerInput {
   workerScript: string;
   projectId: string;
   nodeEnv?: NodeJS.ProcessEnv;
+  onWorkerExhausted?: () => void | Promise<void>;
 }
 
 export interface OutOfProcessWorker extends InProcessWorker {
@@ -33,6 +34,7 @@ export interface OutOfProcessWorker extends InProcessWorker {
     dead: boolean;
     restartCount: number;
     childExitCode: number | null;
+    childPid: number | null;
     childRunning: boolean;
   }>;
 }
@@ -47,6 +49,7 @@ export async function createOutOfProcessWorker(
     workerScript: input.workerScript,
     projectId: input.projectId,
     nodeEnv: input.nodeEnv,
+    onWorkerExhausted: input.onWorkerExhausted,
   });
 
   // Adapt MultiWorker to the legacy OutOfProcessWorker interface
@@ -75,6 +78,7 @@ export async function createOutOfProcessWorker(
         dead: !diag.childRunning,
         restartCount: diag.restartCount,
         childExitCode: diag.childExitCode,
+        childPid: diag.childPid,
         childRunning: diag.childRunning,
       }));
     },

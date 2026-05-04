@@ -30,6 +30,7 @@ import {
   resolveNodeExecutable,
 } from "./runtime-manager";
 import type { InProcessWorker } from "./in-process-worker";
+import { recordWorkerRunFailure } from "./retry-wrapper";
 
 const logger = createLogger("temporal-multi-worker");
 const debugLog = (msg: string): void =>
@@ -119,12 +120,19 @@ export interface ChildRegisterErrorMessage {
   message: string;
 }
 
+export interface ChildRunErrorMessage {
+  type: "run-error";
+  queue: string;
+  message: string;
+}
+
 export type ChildToParentMessage =
   | ChildReadyMessage
   | ChildErrorMessage
   | ChildWorkerStartedMessage
   | ChildRegisterAckMessage
-  | ChildRegisterErrorMessage;
+  | ChildRegisterErrorMessage
+  | ChildRunErrorMessage;
 
 export interface MultiWorkerInput {
   address: string;
@@ -133,6 +141,7 @@ export interface MultiWorkerInput {
   workerScript: string;
   projectId: string;
   nodeEnv?: NodeJS.ProcessEnv;
+  onWorkerExhausted?: () => void | Promise<void>;
 }
 
 export interface MultiWorker extends InProcessWorker {
@@ -141,6 +150,7 @@ export interface MultiWorker extends InProcessWorker {
     queues: string[];
     restartCount: number;
     childExitCode: number | null;
+    childPid: number | null;
     childRunning: boolean;
     pendingRegistrations: string[];
     registerErrors: Array<{ queue: string; message: string }>;
@@ -178,6 +188,7 @@ export async function createMultiWorker(
     }
   >();
   const registerErrors = new Map<string, string>();
+  let exhaustedNotified = false;
   let resolveExit: () => void = () => {};
   const exitPromise = new Promise<void>((resolve) => {
     resolveExit = resolve;
@@ -223,6 +234,20 @@ export async function createMultiWorker(
       return false;
     }
 
+    if (msg.type === "run-error") {
+      if (typeof msg.queue !== "string") return false;
+      const message =
+        typeof msg.message === "string"
+          ? msg.message
+          : typeof msg.error === "string"
+            ? msg.error
+            : "Unknown worker run error";
+      queues.delete(msg.queue);
+      registerErrors.set(msg.queue, message);
+      recordWorkerRunFailure(msg.queue, new Error(message));
+      return false;
+    }
+
     if (msg.type === "error" && typeof msg.queue === "string") {
       const message =
         typeof msg.message === "string" ? msg.message : "Unknown child error";
@@ -230,6 +255,14 @@ export async function createMultiWorker(
     }
 
     return false;
+  }
+
+  function notifyWorkerExhausted(): void {
+    if (exhaustedNotified) return;
+    exhaustedNotified = true;
+    void Promise.resolve(input.onWorkerExhausted?.()).catch(() => {
+      // Best-effort callback; caller owns recovery/error reporting.
+    });
   }
 
   /**
@@ -376,6 +409,7 @@ export async function createMultiWorker(
           logger.info(
             `Multi-queue Temporal worker exhausted ${MAX_RESTARTS} restart attempts. Last exit code=${code}, signal=${signal ?? "none"}.`,
           );
+          notifyWorkerExhausted();
           child = null;
           resolveExit();
           return;
@@ -509,6 +543,7 @@ export async function createMultiWorker(
         queues: [...queues],
         restartCount,
         childExitCode: child?.exitCode ?? null,
+        childPid: child?.pid ?? null,
         childRunning: Boolean(child && child.exitCode === null),
         pendingRegistrations: [...pendingRegistrations.keys()].sort(),
         registerErrors: [...registerErrors]

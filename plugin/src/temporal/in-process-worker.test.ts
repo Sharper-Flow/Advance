@@ -9,15 +9,23 @@ const mocks = vi.hoisted(() => {
   const workers: WorkerInstance[] = [];
   const runDeferreds: Array<{
     resolve: () => void;
+    reject: (err: Error) => void;
     promise: Promise<void>;
   }> = [];
 
   const createWorker = vi.fn(async (options: { taskQueue: string }) => {
     let resolveRun!: () => void;
-    const runPromise = new Promise<void>((r) => {
+    let rejectRun!: (err: Error) => void;
+    const runPromise = new Promise<void>((resolve, reject) => {
+      rejectRun = reject;
+      const r = resolve;
       resolveRun = r;
     });
-    runDeferreds.push({ resolve: resolveRun, promise: runPromise });
+    runDeferreds.push({
+      resolve: resolveRun,
+      reject: rejectRun,
+      promise: runPromise,
+    });
 
     const run = vi.fn(async () => runPromise);
     const shutdown = vi.fn(() => {
@@ -46,14 +54,56 @@ vi.mock("@temporalio/worker", () => ({
 }));
 
 import { createInProcessWorker } from "./in-process-worker";
+import {
+  getLastWorkerRunError,
+  resetTemporalRetryTelemetry,
+} from "./retry-wrapper";
 
 describe("createInProcessWorker (A4b')", () => {
   beforeEach(() => {
+    resetTemporalRetryTelemetry();
     mocks.createWorker.mockClear();
     mocks.connect.mockClear();
     mocks.connectionClose.mockClear();
     mocks.workers.length = 0;
     mocks.runDeferreds.length = 0;
+  });
+
+  it("records run failure and removes the failed queue", async () => {
+    const worker = await createInProcessWorker({
+      address: "127.0.0.1:7233",
+      namespace: "default",
+      queues: ["advance-proj-a"],
+    });
+
+    mocks.runDeferreds[0].reject(new Error("poller crashed"));
+    await vi.waitFor(() => {
+      expect(worker.queues).toEqual([]);
+    });
+
+    expect(getLastWorkerRunError()).toMatchObject({
+      queue: "advance-proj-a",
+      message: "poller crashed",
+    });
+  });
+
+  it("fires onWorkerExhausted exactly once when the last registered queue fails", async () => {
+    const onWorkerExhausted = vi.fn();
+    const worker = await createInProcessWorker({
+      address: "127.0.0.1:7233",
+      namespace: "default",
+      queues: ["advance-proj-a"],
+      onWorkerExhausted,
+    });
+
+    mocks.runDeferreds[0].reject(new Error("poller crashed"));
+    await vi.waitFor(() => {
+      expect(worker.queues).toEqual([]);
+      expect(onWorkerExhausted).toHaveBeenCalledTimes(1);
+    });
+
+    await Promise.resolve();
+    expect(onWorkerExhausted).toHaveBeenCalledTimes(1);
   });
 
   it("starts one Worker per queue on initial creation", async () => {

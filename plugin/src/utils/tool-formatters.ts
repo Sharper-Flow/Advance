@@ -102,6 +102,23 @@ export interface StatusInput {
     liveInFlightCount?: number;
     reason?: string;
   };
+  temporalHealth?: {
+    worker_lock?: WorkerLockHealthInput | null;
+    last_worker_run_error?: WorkerRunErrorInput | null;
+  };
+}
+
+export interface WorkerLockHealthInput {
+  holder_pid: number;
+  last_heartbeat_at: string | null;
+  heartbeat_age_ms: number | null;
+  schema_version: 1 | 2;
+}
+
+export interface WorkerRunErrorInput {
+  queue: string;
+  message: string;
+  at: string;
 }
 
 export interface ValidationInput {
@@ -163,6 +180,23 @@ const VALIDATION_FIX_SUGGESTIONS: Record<string, string> = {
 
 function getFixSuggestion(code: string): string {
   return VALIDATION_FIX_SUGGESTIONS[code] ?? "Review and fix";
+}
+
+export function formatWorkerLockHealth(
+  lock: WorkerLockHealthInput | null | undefined,
+): string | undefined {
+  if (!lock) return undefined;
+  const heartbeatAge =
+    lock.heartbeat_age_ms === null ? "unknown" : `${lock.heartbeat_age_ms}ms`;
+  const lastHeartbeat = lock.last_heartbeat_at ?? "unknown";
+  return `pid=${lock.holder_pid} v${lock.schema_version} heartbeat=${heartbeatAge} last=${lastHeartbeat}`;
+}
+
+export function formatWorkerRunError(
+  error: WorkerRunErrorInput | null | undefined,
+): string | undefined {
+  if (!error) return undefined;
+  return `${error.queue}: ${error.message} @ ${error.at}`;
 }
 
 // =============================================================================
@@ -237,7 +271,18 @@ export function formatStatusOutput(input: StatusInput): FormattedStatus {
       : "## Active Changes\n(none)";
 
   const archivedSection = `## Archived\n${input.archivedCount} total`;
-  const healthSection = `Temporal: ${input.temporalAlive ? "server alive ✓" : "server down ✗"}`;
+  const healthLines = [
+    `Temporal: ${input.temporalAlive ? "server alive ✓" : "server down ✗"}`,
+  ];
+  const workerLock = formatWorkerLockHealth(input.temporalHealth?.worker_lock);
+  if (workerLock) healthLines.push(`Worker lock: ${workerLock}`);
+  const workerRunError = formatWorkerRunError(
+    input.temporalHealth?.last_worker_run_error,
+  );
+  if (workerRunError) {
+    healthLines.push(`Last worker run error: ${workerRunError}`);
+  }
+  const healthSection = healthLines.join("\n");
 
   // Worktree census section
   let worktreeSection: string;

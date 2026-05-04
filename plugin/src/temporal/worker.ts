@@ -226,7 +226,14 @@ export async function runMultiQueueTemporalWorker(
           });
           workerRegistry.set(queue, newWorker);
           // Fire-and-forget .run so the IPC handler returns promptly.
-          void newWorker.run();
+          void newWorker.run().catch((err) => {
+            workerRegistry.delete(queue);
+            emitIpcMessage({
+              type: "run-error",
+              queue,
+              message: err instanceof Error ? err.message : String(err),
+            });
+          });
           emitIpcMessage({ type: "register-ack", queue });
         } catch (err) {
           emitIpcMessage({
@@ -277,7 +284,20 @@ export async function runMultiQueueTemporalWorker(
     // race), but BEFORE worker.run (which blocks forever).
     emitReady(taskQueues);
 
-    await Promise.all(workers.map((worker) => worker.run()));
+    await Promise.all(
+      workers.map(async (worker, index) => {
+        try {
+          await worker.run();
+        } catch (err) {
+          emitIpcMessage({
+            type: "run-error",
+            queue: taskQueues[index],
+            message: err instanceof Error ? err.message : String(err),
+          });
+          throw err;
+        }
+      }),
+    );
   } finally {
     await connection.close();
   }

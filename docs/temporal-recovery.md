@@ -88,12 +88,32 @@ The diagnostic output reports:
 - Temporal server reachability
 - STSL initialization and reconnect counters
 - worker / worker-process health
+- worker lock heartbeat health (`worker_lock`)
+- last worker-run failure telemetry (`last_worker_run_error`)
 - project workflow reachability
 - optional change workflow reachability
 - required ADV search-attribute status
 - stale queues
 - last Temporal error
 - recommended next action
+
+### Worker lock heartbeat fields
+
+`adv_status view: "health"` exposes the raw `temporal_health.worker_lock`
+object. `adv_temporal_diagnose` also renders a compact `worker_lock` string when
+the lock exists.
+
+| Field | Meaning | Operator interpretation |
+| ----- | ------- | ----------------------- |
+| `worker_lock.holder_pid` | PID that currently owns `{project-state-dir}/worker.lock` | Use to correlate with the OpenCode/plugin process. An alive PID alone is not sufficient proof that a worker is polling. |
+| `worker_lock.schema_version` | Lock format version (`1` legacy, `2` heartbeat-aware) | `1` means PID-only fallback; `2` includes heartbeat freshness and can be reclaimed when stale. |
+| `worker_lock.last_heartbeat_at` | Last successful heartbeat write from the lock holder | Fresh values mean the holder is actively renewing ownership. `null` means legacy or unreadable heartbeat state. |
+| `worker_lock.heartbeat_age_ms` | Age of the latest heartbeat at probe time | Values above `STALE_HEARTBEAT_MS` (`60000` ms by default) indicate normal stale-lock reclaim should happen on the next peer startup. |
+| `last_worker_run_error` | Last observed `Worker.run()` or restart-exhaustion failure | Use with `worker_alive` / `worker_process_alive` to distinguish a crashed poller from a missing server/STSL issue. |
+
+If `worker_lock` or `last_worker_run_error` is `null`, formatted output omits the
+field. Null is quiet by design; use the raw `temporal_health` block only when you
+need exact diagnostics.
 
 Agents should emit one concise diagnostic and follow the recommended next
 action. Do **not** keep cycling through `adv_status`, worker restart, and
@@ -239,6 +259,41 @@ The restart output includes STSL status and recommends `adv_temporal_diagnose`
 if tools still fail. Keep worker restart and STSL reconnect conceptually
 separate: restart owns worker lifecycle; reconnect owns the client connection.
 
+### Stale heartbeat reclaim
+
+Heartbeat-aware worker locks prevent a zombie holder from blocking later
+sessions forever. A v2 lock is considered reclaimable when its PID is still alive
+but `worker_lock.heartbeat_age_ms > STALE_HEARTBEAT_MS` (`60000` ms default).
+The next peer session that calls `acquireWorkerLock` may replace the stale holder
+and start a fresh worker.
+
+Operator playbook:
+
+1. Run `adv_temporal_diagnose`.
+2. If `server_alive=true`, `worker_alive=false`, and `worker_lock.heartbeat_age_ms > 60000`, treat `recommendedNextAction: "normal recovery — peer worker spawn pending"` as informational.
+3. Start or retry the blocked ADV command in the peer session. The peer should reclaim the lock during plugin init / worker startup.
+4. Re-run `adv_temporal_diagnose` only if tools still time out or the recommendation does not change after one fresh startup.
+5. If `last_worker_run_error` is populated, inspect it before repeated restarts; repeated identical failures are not transient.
+
+Do not manually delete `worker.lock` while a healthy heartbeat is fresh. Healthy
+v2 locks should renew every `HEARTBEAT_INTERVAL_MS` (`5000` ms default), and false
+reclaim under normal load is a bug.
+
+### Worker-exhaustion surrender path (KD-K)
+
+When every local worker queue has failed or the out-of-process child exhausts
+its restart budget, plugin-init's `onWorkerExhausted` callback performs a fast,
+best-effort surrender:
+
+1. Stop the registered heartbeat writer for the project state dir.
+2. Release this session's owned `worker.lock`.
+3. Record `last_worker_run_error` with queue `<all>` and message `worker exhausted`.
+4. Remove the exhausted worker from local aliveness tracking.
+
+This path is idempotent. It lets a peer reclaim immediately instead of waiting
+for the full stale-heartbeat grace window, while still preserving telemetry for
+operators.
+
 ### Workflow repair
 
 If diagnose shows a missing project/change workflow after server, search
@@ -325,15 +380,17 @@ The Bun-host path uses one Node child per queue with restart backoff `1s -> 3s -
 
 ### Common cases
 
-| Health shape                                                           | Likely cause                                                 | Fix                                                                                           |
-| ---------------------------------------------------------------------- | ------------------------------------------------------------ | --------------------------------------------------------------------------------------------- |
-| `server_alive=false`                                                   | Temporal dev server unreachable                              | Start / restore Temporal runtime first                                                        |
-| `server_alive=true`, `searchAttributes.ok=false`                       | Required ADV search attributes missing or wrong type         | Run `adv_temporal_register_search_attributes` with approval, or manually fix wrong-type attrs |
-| `server_alive=true`, workers alive, service errors persist             | Stale STSL connection/client                                 | Run `adv_temporal_reconnect`, then `adv_temporal_diagnose`                                    |
-| `server_alive=true`, `worker_alive=true`, `worker_process_alive=false` | OOP child crashed and exhausted restart budget               | Run `adv_temporal_worker_restart`; inspect `last_error`                                       |
-| `worker_alive=false`                                                   | No worker registered (init failure or early bootstrap abort) | Check init logs, Node availability, and Temporal server reachability                          |
-| Bun host + init error about Node                                       | Node binary not found                                        | Install Node or set `ADV_NODE_PATH`                                                           |
-| Error about worker bundle not found                                    | Dist worker missing for OOP path                             | Run `pnpm run build:worker` in `plugin/`                                                      |
+| Health shape | Likely cause | Fix |
+| ------------ | ------------ | --- |
+| `server_alive=false` | Temporal dev server unreachable | Start / restore Temporal runtime first |
+| `server_alive=true`, `searchAttributes.ok=false` | Required ADV search attributes missing or wrong type | Run `adv_temporal_register_search_attributes` with approval, or manually fix wrong-type attrs |
+| `server_alive=true`, workers alive, service errors persist | Stale STSL connection/client | Run `adv_temporal_reconnect`, then `adv_temporal_diagnose` |
+| `server_alive=true`, `worker_alive=false`, `worker_lock.heartbeat_age_ms > 60000` | Stale heartbeat; peer worker spawn/reclaim is pending | Treat `normal recovery — peer worker spawn pending` as informational; start a fresh peer/session and re-check only if tools still time out |
+| `server_alive=true`, `worker_alive=true`, `worker_process_alive=false` | OOP child crashed and exhausted restart budget | Run `adv_temporal_worker_restart`; inspect `last_error` and `last_worker_run_error` |
+| `worker_alive=false`, `last_worker_run_error` populated | Worker.run failure or restart exhaustion already observed | Inspect the run-error message; fix the root cause before repeated restarts |
+| `worker_alive=false` | No worker registered (init failure or early bootstrap abort) | Check init logs, Node availability, and Temporal server reachability |
+| Bun host + init error about Node | Node binary not found | Install Node or set `ADV_NODE_PATH` |
+| Error about worker bundle not found | Dist worker missing for OOP path | Run `pnpm run build:worker` in `plugin/` |
 
 ### OOP runtime hardening and tuning
 

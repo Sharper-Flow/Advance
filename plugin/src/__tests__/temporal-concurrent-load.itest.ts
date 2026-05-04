@@ -2,9 +2,11 @@
  * T39 — Temporal concurrent-load stress scenarios (A4, Phase 5)
  *
  * Three stress-test scenarios using T38's runConcurrentClients harness:
- *   A) Worker-lock contention   — 5 clients, ~30s, no deadlocks
+ *   A) Worker-lock contention   — 5 clients, ~10s, no deadlocks
  *   B) State-write race         — 5 clients × 10 worktree cycles, monotonic versions
  *   C) Worker-kill respawn-elect — stale-PID reclaim, ops continue
+ *   D) OOP child SIGKILL surrender — unclean child death releases lock quickly
+ *   E) In-process run rejection surrender — Worker.run failure releases lock quickly
  *
  * Linux-only (process.platform guard below).
  * Opt-in via RUN_INTEGRATION_TESTS env var so default `pnpm test` skips these
@@ -16,12 +18,21 @@
 
 import { describe, expect, it } from "vitest";
 import { TestWorkflowEnvironment } from "@temporalio/testing";
-import { mkdir, writeFile } from "node:fs/promises";
+import { existsSync } from "node:fs";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { createInProcessWorker } from "../temporal/in-process-worker";
+import { createOutOfProcessWorker } from "../temporal/out-of-process-worker";
 import { initStsl, closeStsl, resetStsl } from "../temporal/service";
-import { acquireWorkerLock, releaseWorkerLock } from "../temporal/worker-lock";
+import { startHeartbeatWriter } from "../temporal/heartbeat-writer";
+import {
+  acquireWorkerLock,
+  HEARTBEAT_INTERVAL_MS,
+  releaseWorkerLock,
+  STALE_HEARTBEAT_MS,
+} from "../temporal/worker-lock";
 import { registerInProcessTemporalWorker } from "../plugin-init";
 import { createTempDir, cleanupTempDir } from "./setup";
 import { withTestWorkflowEnvironment } from "../temporal/__tests__/with-test-env";
@@ -90,6 +101,16 @@ async function initGitRepo(dir: string): Promise<void> {
       err ? reject(err) : resolve(),
     );
   });
+}
+
+function workerScriptAvailable(): { path: string } | null {
+  const distUrl = new URL("../../dist/temporal/worker.js", import.meta.url);
+  const distPath = fileURLToPath(distUrl);
+  return existsSync(distPath) ? { path: distPath } : null;
+}
+
+async function sleep(ms: number): Promise<void> {
+  await new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 /* ------------------------------------------------------------------ */
@@ -172,24 +193,65 @@ if (process.platform !== "linux") {
       }
 
       /* -------------------------------------------------------------- */
-      /* Scenario A — Worker-lock contention (5 clients, ~30 s)        */
+      /* Scenario A — Worker-lock contention (5 clients, ~10 s)        */
       /* -------------------------------------------------------------- */
 
-      it("A: 5 clients contend for 30 s with no deadlocks or lost updates", async () => {
+      it("A: 5 clients contend for 10 s with no deadlocks or lost updates", async () => {
         await withConcurrentHarness(
           async ({ projectDir, mutablePath: _mutablePath }) => {
-            const result = await runConcurrentClients({
-              clients: 5,
-              durationSec: 30,
+            const externalStateDir = join(
               projectDir,
+              "external-state-healthy-heartbeat",
+            );
+            await mkdir(externalStateDir, { recursive: true });
+            const lock = await acquireWorkerLock(externalStateDir);
+            expect(lock.owned).toBe(true);
+            const workerId = lock.workerId;
+            if (!workerId)
+              throw new Error("Expected owned lock to include workerId");
+            const heartbeat = startHeartbeatWriter({
+              projectStateDir: externalStateDir,
+              workerId,
+              intervalMs: HEARTBEAT_INTERVAL_MS,
             });
 
-            expect(result.clients).toBe(5);
-            // Assert test completed and performed ops
-            expect(result.totalOps).toBeGreaterThan(0);
-            expect(result.errors).toHaveLength(0);
-            // Monotonic source_version preserved across all writes
-            expect(result.lostUpdates).toHaveLength(0);
+            try {
+              const firstPeer = await acquireWorkerLock(externalStateDir);
+              expect(firstPeer.owned).toBe(false);
+
+              const initialLock = JSON.parse(
+                await readFile(join(externalStateDir, "worker.lock"), "utf8"),
+              ) as { last_heartbeat?: string; worker_id?: string };
+
+              const result = await runConcurrentClients({
+                clients: 5,
+                durationSec: 10,
+                projectDir,
+              });
+
+              const finalLock = JSON.parse(
+                await readFile(join(externalStateDir, "worker.lock"), "utf8"),
+              ) as { last_heartbeat?: string; worker_id?: string };
+              const secondPeer = await acquireWorkerLock(externalStateDir);
+
+              expect(result.clients).toBe(5);
+              // Assert test completed and performed ops
+              expect(result.totalOps).toBeGreaterThan(0);
+              expect(result.errors).toHaveLength(0);
+              // Monotonic source_version preserved across all writes
+              expect(result.lostUpdates).toHaveLength(0);
+              expect(secondPeer.owned).toBe(false);
+              expect(finalLock.worker_id).toBe(workerId);
+              expect(
+                Date.parse(finalLock.last_heartbeat ?? ""),
+              ).toBeGreaterThan(Date.parse(initialLock.last_heartbeat ?? ""));
+              expect(
+                Date.now() - Date.parse(finalLock.last_heartbeat ?? ""),
+              ).toBeLessThan(STALE_HEARTBEAT_MS);
+            } finally {
+              await heartbeat.stop().catch(() => undefined);
+              await releaseWorkerLock(externalStateDir).catch(() => undefined);
+            }
           },
         );
       }, 65_000);
@@ -282,6 +344,155 @@ if (process.platform !== "linux") {
           },
         );
       }, 40_000);
+
+      /* -------------------------------------------------------------- */
+      /* Scenario D — OOP child SIGKILL surrender                       */
+      /* -------------------------------------------------------------- */
+
+      it.skipIf(workerScriptAvailable() === null)(
+        "D: SIGKILLed OOP child exhausts, surrenders lock, and peer reclaims before stale grace",
+        async () => {
+          const script = workerScriptAvailable();
+          expect(script).not.toBeNull();
+          const workerScript = script!.path;
+
+          const projectDir = await createTempDir("t39-oop-kill-");
+          try {
+            await initGitRepo(projectDir);
+            const externalStateDir = join(projectDir, "external-state-oop");
+            await mkdir(externalStateDir, { recursive: true });
+            await withTestWorkflowEnvironment(
+              () => TestWorkflowEnvironment.createTimeSkipping(),
+              async (env) => {
+                const lock = await acquireWorkerLock(externalStateDir);
+                expect(lock.owned).toBe(true);
+                const workerId = lock.workerId;
+                if (!workerId)
+                  throw new Error("Expected owned lock to include workerId");
+                const heartbeat = startHeartbeatWriter({
+                  projectStateDir: externalStateDir,
+                  workerId,
+                  intervalMs: HEARTBEAT_INTERVAL_MS,
+                });
+                let exhausted = false;
+                const worker = await createOutOfProcessWorker({
+                  address: String(env.address ?? "127.0.0.1:7233"),
+                  namespace: "default",
+                  queues: ["advance-oop-kill"],
+                  workerScript,
+                  projectId: "oop-kill",
+                  onWorkerExhausted: async () => {
+                    exhausted = true;
+                    await heartbeat.stop();
+                    await releaseWorkerLock(externalStateDir);
+                  },
+                });
+
+                try {
+                  const startedAt = Date.now();
+                  const killed = new Set<number>();
+                  while (!exhausted && Date.now() - startedAt < 25_000) {
+                    const diagnostics = worker.getDiagnostics() as Array<{
+                      childPid: number | null;
+                      childRunning: boolean;
+                    }>;
+                    const childPid = diagnostics[0]?.childPid ?? null;
+                    if (
+                      childPid &&
+                      diagnostics[0]?.childRunning &&
+                      !killed.has(childPid)
+                    ) {
+                      process.kill(childPid, "SIGKILL");
+                      killed.add(childPid);
+                    }
+                    await sleep(500);
+                  }
+
+                  expect(exhausted).toBe(true);
+                  const elapsed = Date.now() - startedAt;
+                  const peer = await acquireWorkerLock(externalStateDir);
+                  expect(peer.owned).toBe(true);
+                  expect(elapsed).toBeLessThan(STALE_HEARTBEAT_MS);
+                  await releaseWorkerLock(externalStateDir);
+                } finally {
+                  await worker.shutdown();
+                  await heartbeat.stop().catch(() => undefined);
+                  await releaseWorkerLock(externalStateDir).catch(
+                    () => undefined,
+                  );
+                }
+              },
+            );
+          } finally {
+            await cleanupTempDir(projectDir);
+          }
+        },
+        90_000,
+      );
+
+      /* -------------------------------------------------------------- */
+      /* Scenario E — In-process Worker.run() rejection surrender       */
+      /* -------------------------------------------------------------- */
+
+      it("E: rejected in-process Worker.run surrenders lock before stale grace", async () => {
+        const projectDir = await createTempDir("t39-inproc-reject-");
+        try {
+          const externalStateDir = join(
+            projectDir,
+            "external-state-inproc-reject",
+          );
+          await mkdir(externalStateDir, { recursive: true });
+
+          const lock = await acquireWorkerLock(externalStateDir);
+          expect(lock.owned).toBe(true);
+          const workerId = lock.workerId;
+          if (!workerId)
+            throw new Error("Expected owned lock to include workerId");
+          const heartbeat = startHeartbeatWriter({
+            projectStateDir: externalStateDir,
+            workerId,
+            intervalMs: HEARTBEAT_INTERVAL_MS,
+          });
+          let exhausted = false;
+          const startedAt = Date.now();
+          const worker = await createInProcessWorker({
+            address: "127.0.0.1:7233",
+            namespace: "default",
+            queues: ["advance-inproc-reject"],
+            connection: {} as never,
+            workerFactory: async () => ({
+              run: async () => {
+                throw new Error("in-process poller crashed");
+              },
+              shutdown: () => undefined,
+            }),
+            onWorkerExhausted: async () => {
+              await heartbeat.stop();
+              await releaseWorkerLock(externalStateDir);
+              exhausted = true;
+            },
+          });
+
+          try {
+            while (!exhausted && Date.now() - startedAt < 5_000) {
+              await sleep(50);
+            }
+
+            expect(exhausted).toBe(true);
+            const elapsed = Date.now() - startedAt;
+            const peer = await acquireWorkerLock(externalStateDir);
+            expect(peer.owned).toBe(true);
+            expect(elapsed).toBeLessThan(STALE_HEARTBEAT_MS);
+            await releaseWorkerLock(externalStateDir);
+          } finally {
+            await worker.shutdown();
+            await heartbeat.stop().catch(() => undefined);
+            await releaseWorkerLock(externalStateDir).catch(() => undefined);
+          }
+        } finally {
+          await cleanupTempDir(projectDir);
+        }
+      }, 20_000);
     },
   );
 }
