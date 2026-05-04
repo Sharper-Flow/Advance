@@ -97,6 +97,19 @@ describe("ADV_INSTRUCTIONS.md drift repairs (repairDriftContradictions T2)", () 
     expect(boundaries).toMatch(/\|\s*archive\s*\|.*\|\s*release\s*\|/);
   });
 
+  test("phase goals table includes lifecycle commands added to manifest phaseGoal", () => {
+    const phaseGoals = section("## Phase Goals", "## Commands");
+
+    expect(phaseGoals).toMatch(/`\/adv-discover`/);
+    expect(phaseGoals).toMatch(/current-state evidence/);
+    expect(phaseGoals).toMatch(/`\/adv-design`/);
+    expect(phaseGoals).toMatch(/validated implementation strategy/);
+    expect(phaseGoals).toMatch(/`\/adv-reflect`/);
+    expect(phaseGoals).toMatch(/durable reflection artifact/);
+    expect(phaseGoals).toMatch(/`\/adv-autopilot`/);
+    expect(phaseGoals).toMatch(/preserving all safety boundaries/);
+  });
+
   test("target_path matrix does not contradict adv_status support", () => {
     const crossProject = section(
       "#### `target_path` matrix (which tools support cross-project)",

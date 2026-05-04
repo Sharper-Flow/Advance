@@ -98,13 +98,15 @@ Each workflow command has a defined phase goal. Canonical in `manifest.ts` (`pha
 | --------------- | ----------------------------------------------------------------------------------------------------------------------------- |
 | `/adv-proposal` | Clarify the problem, user needs, and acceptance criteria scope. Establish _what_ and _why_ — no _how_.                        |
 | `/adv-research` | Produce a defined, fully-researched proposed plan ready for user approval. Validate the _how_.                                |
+| `/adv-discover` | Gather current-state evidence, resolve agreement, and capture objectives and acceptance criteria before design.               |
+| `/adv-design`   | Convert the approved agreement into a validated implementation strategy ready for planning.                                   |
 | `/adv-prep`     | Complete the flight-check: every gap closed, every dependency mapped, every task ready — ready for autonomous implementation. |
 | `/adv-apply`    | Execute the approved plan autonomously. Add discovered tasks within scope. Escalate only on failure.                          |
 | `/adv-review`   | Verify implementation matches the approved plan. Auto-fix within scope. Stop on drift.                                        |
 | `/adv-harden`   | Verify production-readiness. Auto-fix scoped issues. Stop on drift.                                                           |
 | `/adv-archive`  | Promote the change from contract to law: apply spec deltas, capture wisdom, clean up.                                         |
 | `/adv-autopilot` | Execute a full change pipeline autonomously, delegating routine human checkpoints while preserving all safety boundaries.    |
-| `/adv-reflect`  | Produce a structured two-plane reflection report for an archived change                              |
+| `/adv-reflect`  | Synthesize post-completion learnings into a durable reflection artifact for process improvement.                              |
 
 ## Commands
 
