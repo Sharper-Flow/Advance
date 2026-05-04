@@ -11,7 +11,7 @@
  */
 
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
-import { mkdtempSync, rmSync, writeFileSync } from "fs";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
 import { execSync } from "child_process";
@@ -46,7 +46,11 @@ vi.mock("./hooks", async (importOriginal) => {
   };
 });
 
-import { advWorktreeDelete, type AdvWorktreeDeleteDeps } from "./index";
+import {
+  advWorktreeDelete,
+  reapEmptyWorktreeParents,
+  type AdvWorktreeDeleteDeps,
+} from "./index";
 
 import { appendDebugLog } from "../../utils/debug-log";
 import { runHooksWithSafety } from "./hooks";
@@ -231,5 +235,50 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
     // Worktree should be gone
     const list = execSync("git worktree list", { cwd: repoRoot }).toString();
     expect(list).not.toContain(branch);
+  });
+});
+
+describe.skipIf(!isLinux)("reapEmptyWorktreeParents", () => {
+  let root: string;
+
+  beforeEach(() => {
+    root = mkdtempSync(join(tmpdir(), "adv-wt-reap-"));
+  });
+
+  afterEach(() => {
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("removes empty branch-prefix parent but preserves worktree base", async () => {
+    const base = join(root, "opencode", "worktree", "pid");
+    const parent = join(base, "change");
+    mkdirSync(parent, { recursive: true });
+
+    const removed = await reapEmptyWorktreeParents(join(parent, "foo"), base);
+
+    expect(removed).toEqual([parent]);
+    expect(existsSync(parent)).toBe(false);
+    expect(existsSync(base)).toBe(true);
+  });
+
+  it("stops when branch-prefix parent contains a sibling", async () => {
+    const base = join(root, "opencode", "worktree", "pid");
+    const parent = join(base, "change");
+    mkdirSync(join(parent, "bar"), { recursive: true });
+
+    const removed = await reapEmptyWorktreeParents(join(parent, "foo"), base);
+
+    expect(removed).toEqual([]);
+    expect(existsSync(parent)).toBe(true);
+    expect(existsSync(join(parent, "bar"))).toBe(true);
+  });
+
+  it("rejects paths outside the worktree base", async () => {
+    const base = join(root, "opencode", "worktree", "pid");
+    mkdirSync(base, { recursive: true });
+
+    await expect(
+      reapEmptyWorktreeParents(join(root, "outside", "foo"), base),
+    ).rejects.toThrow(/outside allowed namespace/);
   });
 });

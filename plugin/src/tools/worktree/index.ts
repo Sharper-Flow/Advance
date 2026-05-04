@@ -24,6 +24,7 @@ import {
   cp,
   mkdir,
   rm,
+  rmdir,
   stat,
   symlink,
 } from "node:fs/promises";
@@ -79,7 +80,12 @@ import {
   releaseGitWorktreeFlock,
 } from "../../utils/git-worktree-flock";
 import { generateSessionId } from "../../utils/session-id";
-import { getDataHome, getExternalRoot } from "../../utils/project-id";
+import {
+  assertPathInsideDirectory,
+  getDataHome,
+  getExternalRoot,
+  getWorktreeBase,
+} from "../../utils/project-id";
 
 /** Maximum retries for database initialization */
 const DB_MAX_RETRIES = 3;
@@ -232,6 +238,36 @@ async function gitWorktreeRemove(
       }
     });
   });
+}
+
+/**
+ * Remove empty branch-prefix parents after a worktree directory is gone.
+ *
+ * Uses only `rmdir` against already-empty directories. Never recursively
+ * deletes, never removes `worktreeBase`, and throws on namespace escape.
+ */
+export async function reapEmptyWorktreeParents(
+  removedWorktreePath: string,
+  worktreeBase: string,
+): Promise<string[]> {
+  const base = path.resolve(worktreeBase);
+  let current = path.dirname(path.resolve(removedWorktreePath));
+  const removed: string[] = [];
+
+  assertPathInsideDirectory(current, base);
+
+  while (current !== base) {
+    assertPathInsideDirectory(current, base);
+    try {
+      await rmdir(current);
+      removed.push(current);
+    } catch {
+      break;
+    }
+    current = path.dirname(current);
+  }
+
+  return removed;
 }
 
 // =============================================================================
@@ -914,6 +950,18 @@ export async function advWorktreeDelete(
 
   // 7. Remove from registry
   await removeSession(deps.database, branch);
+
+  // 7.5. Remove empty branch-prefix parents (e.g. `{base}/change`).
+  try {
+    await reapEmptyWorktreeParents(
+      worktreePath,
+      getWorktreeBase(deps.database.projectId),
+    );
+  } catch (err) {
+    deps.log.warn(
+      `[worktree] Skipped empty-parent cleanup for ${worktreePath}: ${String(err)}`,
+    );
+  }
 
   // 8. Return success
   return { ok: true as const, branch, path: worktreePath };
