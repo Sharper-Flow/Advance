@@ -1,0 +1,157 @@
+{
+  "id": "fixarchiveworktreepathandrunte",
+  "title": "fixArchiveWorktreePathAndRunTestTimeout",
+  "status": "archived",
+  "created_at": "2026-05-04T03:36:58.592Z",
+  "tasks": [
+    {
+      "id": "tk-19a761c8-d37e-404a-a74e-4c4ac382a936",
+      "title": "T1 — Add `worktreePath` arg to `adv_change_archive` (Edit 1 + 2)\n\n**Files:**\n- `plugin/src/tools/change.ts` — add schema arg, destructure, replace inRepoArchive resolution (per design Edit 1)\n- `plugin/src/tools/change.test.ts` — add 2 tests (worktreePath honored / omitted preserves default)\n\n**TDD:** inline. Write red test for `worktreePath` routing (fails because current impl uses store.paths.root unconditionally) → implement fix → green.\n\n**Verify:** `pnpm test src/tools/change.test.ts` passes including new tests.\n\n**Workdir:** worktree path",
+      "type": "code",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-04T03:36:58.618Z",
+      "tdd_phase": "complete",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "started_at": "2026-05-04T03:36:58.623Z",
+      "tdd_evidence": {
+        "red": {
+          "exit_code": 1,
+          "recorded_at": "2026-05-04T03:44:20.790Z",
+          "test_file": "pnpm test src/tools/change.test.ts -t \"worktreePath\""
+        },
+        "green": {
+          "exit_code": 0,
+          "recorded_at": "2026-05-04T03:45:35.567Z",
+          "test_file": "pnpm test src/tools/change.test.ts -t \"worktreePath\""
+        }
+      },
+      "touched_files": [
+        "plugin/src/tools/change.test.ts",
+        "plugin/src/tools/change.ts"
+      ],
+      "completed_at": "2026-05-04T03:36:58.625Z",
+      "implementation_summary": "Added optional worktreePath arg to adv_change_archive. When provided, in-repo bundle lands at <worktreePath>/.adv/archive/<id>/. Default behavior (no arg) preserved. 2 tests added covering both paths. Red→green TDD verified."
+    },
+    {
+      "id": "tk-78b1e929-1431-486d-8df6-ea95f5e23bf1",
+      "title": "T2 — Expose `timeoutMs` arg in `adv_run_test` (Edit 3 + 4)\n\n**Files:**\n- `plugin/src/tools/test.ts` — add schema arg with `[1000, 300000]` range, plumb through to effective timeout (per design Edit 3)\n- `plugin/src/tools/test.test.ts` — add 3 tests (custom honored / cap rejection / floor rejection)\n\n**TDD:** inline. Write red test for custom 60s timeout (fails because schema rejects unknown arg) → implement fix → green. Cap/floor tests are pure schema validation.\n\n**Verify:** `pnpm test src/tools/test.test.ts` passes.\n\n**Workdir:** worktree path",
+      "type": "code",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-04T03:36:58.619Z",
+      "tdd_phase": "complete",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "started_at": "2026-05-04T03:36:58.626Z",
+      "tdd_evidence": {
+        "red": {
+          "exit_code": 1,
+          "recorded_at": "2026-05-04T03:46:45.823Z",
+          "test_file": "pnpm test src/tools/test.test.ts -t \"timeoutMs schema arg\""
+        },
+        "green": {
+          "exit_code": 0,
+          "recorded_at": "2026-05-04T03:47:19.707Z",
+          "test_file": "pnpm test src/tools/test.test.ts -t \"timeoutMs schema arg\""
+        }
+      },
+      "touched_files": [
+        "plugin/src/tools/test.test.ts",
+        "plugin/src/tools/test.ts"
+      ],
+      "completed_at": "2026-05-04T03:36:58.628Z",
+      "implementation_summary": "Added optional timeoutMs arg to adv_run_test schema with z.number().int().min(1000).max(300_000). Plumbed through to effective.timeoutMs with precedence: arg > internal bounds > default. 5 new tests cover: custom value honored, cap rejection, floor rejection, boundary acceptance, optional/undefined."
+    },
+    {
+      "id": "tk-3054a8c0-d840-41bf-993c-d49048f898d8",
+      "title": "T3 — Doc additions (Edit 5 + 6 + 7)\n\n**Files:**\n- `AGENTS.md` — add \"Source-vs-Dist Reload Gotcha\" subsection under § Development Commands (per design Edit 5)\n- `ADV_INSTRUCTIONS.md` — add `adv_task_add` `tdd_intent` default bullet under § ADV MCP Tool Invocation (per design Edit 6)\n- `.opencode/command/adv-archive.md` — Phase 6 note about `worktreePath` (per design Edit 7)\n\n**TDD:** not_applicable — doc only.\n\n**Workdir:** worktree path",
+      "type": "code",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-05-04T03:36:58.620Z",
+      "tdd_phase": "none",
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "started_at": "2026-05-04T03:36:58.629Z",
+      "touched_files": [
+        ".opencode/command/adv-archive.md",
+        "ADV_INSTRUCTIONS.md",
+        "AGENTS.md"
+      ],
+      "completed_at": "2026-05-04T03:36:58.631Z",
+      "implementation_summary": "Doc additions covering all 4 friction items: AGENTS.md gets Source-vs-Dist Reload Gotcha subsection (#1); ADV_INSTRUCTIONS.md ADV MCP Tool Invocation block expanded with adv_task_add tdd_intent default (#3), adv_change_archive worktreePath usage (#2), adv_run_test timeoutMs usage (#4); .opencode/command/adv-archive.md Phase 6 references worktreePath arg (#2)."
+    },
+    {
+      "id": "tk-2d59ac4d-d31d-44d7-a977-9c80e98992ba",
+      "title": "T4 — Verification\n\nAfter T1-T3 complete:\n1. `pnpm test` — full suite must pass (≥ 3047 expected: 3042 prior + 5 new from T1/T2)\n2. `pnpm run check` — typecheck + lint + format clean\n3. `pnpm run build` — dist regenerated\n4. `grep -c \"worktreePath\" plugin/dist/index.js` — > 0\n5. `grep -c \"timeoutMs\" plugin/dist/index.js` — increased from baseline\n\n**TDD:** not_applicable — verification only.\n\n**Workdir:** worktree/plugin",
+      "type": "code",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-05-04T03:36:58.621Z",
+      "tdd_phase": "green",
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "started_at": "2026-05-04T03:36:58.632Z",
+      "tdd_evidence": {
+        "green": {
+          "exit_code": 0,
+          "recorded_at": "2026-05-04T03:50:04.892Z",
+          "test_file": "full plugin verification chain"
+        }
+      },
+      "completed_at": "2026-05-04T03:36:58.633Z",
+      "implementation_summary": "All 10 ACs satisfied. pnpm test: 3049/3056 (was 3042 baseline + 7 new). pnpm run check: clean. pnpm run build: dist regenerated, worktreePath × 48, timeoutMs × 46 in dist/index.js."
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-04T03:36:58.615Z",
+      "completed_by": "agent"
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-04T03:36:58.616Z",
+      "completed_by": "agent"
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-04T03:36:58.617Z",
+      "completed_by": "agent"
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-04T03:36:58.622Z",
+      "completed_by": "agent"
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-04T03:36:58.634Z",
+      "completed_by": "agent",
+      "notes": "All 4 tasks done. T1+T2 red→green TDD verified. T3 doc-only. T4 full verification: 3049 pass, check clean, dist rebuilt."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-04T03:36:58.635Z",
+      "completed_by": "agent",
+      "notes": "Zero findings, all 10 ACs satisfied with evidence. End-to-end live validation deferred to next session per AGENTS.md Source-vs-Dist gotcha (which this change documents)."
+    },
+    "release": {
+      "status": "done",
+      "completed_at": "2026-05-04T03:36:58.636Z",
+      "completed_by": "agent",
+      "notes": "User signed off via Tier B whitelist."
+    }
+  },
+  "reentry_history": [],
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "judgment_calls": []
+}
