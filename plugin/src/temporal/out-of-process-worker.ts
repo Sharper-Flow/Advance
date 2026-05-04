@@ -34,6 +34,7 @@ export interface OutOfProcessWorker extends InProcessWorker {
     dead: boolean;
     restartCount: number;
     childExitCode: number | null;
+    childPid: number | null;
     childRunning: boolean;
   }>;
 }
@@ -77,6 +78,7 @@ export async function createOutOfProcessWorker(
         dead: !diag.childRunning,
         restartCount: diag.restartCount,
         childExitCode: diag.childExitCode,
+        childPid: diag.childPid,
         childRunning: diag.childRunning,
       }));
     },

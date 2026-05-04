@@ -16,12 +16,21 @@
 
 import { describe, expect, it } from "vitest";
 import { TestWorkflowEnvironment } from "@temporalio/testing";
+import { existsSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { createInProcessWorker } from "../temporal/in-process-worker";
+import { createOutOfProcessWorker } from "../temporal/out-of-process-worker";
 import { initStsl, closeStsl, resetStsl } from "../temporal/service";
-import { acquireWorkerLock, releaseWorkerLock } from "../temporal/worker-lock";
+import { startHeartbeatWriter } from "../temporal/heartbeat-writer";
+import {
+  acquireWorkerLock,
+  HEARTBEAT_INTERVAL_MS,
+  releaseWorkerLock,
+  STALE_HEARTBEAT_MS,
+} from "../temporal/worker-lock";
 import { registerInProcessTemporalWorker } from "../plugin-init";
 import { createTempDir, cleanupTempDir } from "./setup";
 import { withTestWorkflowEnvironment } from "../temporal/__tests__/with-test-env";
@@ -90,6 +99,16 @@ async function initGitRepo(dir: string): Promise<void> {
       err ? reject(err) : resolve(),
     );
   });
+}
+
+function workerScriptAvailable(): { path: string } | null {
+  const distUrl = new URL("../../dist/temporal/worker.js", import.meta.url);
+  const distPath = fileURLToPath(distUrl);
+  return existsSync(distPath) ? { path: distPath } : null;
+}
+
+async function sleep(ms: number): Promise<void> {
+  await new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 /* ------------------------------------------------------------------ */
@@ -282,6 +301,91 @@ if (process.platform !== "linux") {
           },
         );
       }, 40_000);
+
+      /* -------------------------------------------------------------- */
+      /* Scenario D — OOP child SIGKILL surrender                       */
+      /* -------------------------------------------------------------- */
+
+      it.skipIf(workerScriptAvailable() === null)(
+        "D: SIGKILLed OOP child exhausts, surrenders lock, and peer reclaims before stale grace",
+        async () => {
+          const script = workerScriptAvailable();
+          expect(script).not.toBeNull();
+          const workerScript = script!.path;
+
+          const projectDir = await createTempDir("t39-oop-kill-");
+          try {
+            await initGitRepo(projectDir);
+            const externalStateDir = join(projectDir, "external-state-oop");
+            await mkdir(externalStateDir, { recursive: true });
+            await withTestWorkflowEnvironment(
+              () => TestWorkflowEnvironment.createTimeSkipping(),
+              async (env) => {
+                const lock = await acquireWorkerLock(externalStateDir);
+                expect(lock.owned).toBe(true);
+                const workerId = lock.workerId;
+                if (!workerId)
+                  throw new Error("Expected owned lock to include workerId");
+                const heartbeat = startHeartbeatWriter({
+                  projectStateDir: externalStateDir,
+                  workerId,
+                  intervalMs: HEARTBEAT_INTERVAL_MS,
+                });
+                let exhausted = false;
+                const worker = await createOutOfProcessWorker({
+                  address: String(env.address ?? "127.0.0.1:7233"),
+                  namespace: "default",
+                  queues: ["advance-oop-kill"],
+                  workerScript,
+                  projectId: "oop-kill",
+                  onWorkerExhausted: async () => {
+                    exhausted = true;
+                    await heartbeat.stop();
+                    await releaseWorkerLock(externalStateDir);
+                  },
+                });
+
+                try {
+                  const startedAt = Date.now();
+                  const killed = new Set<number>();
+                  while (!exhausted && Date.now() - startedAt < 25_000) {
+                    const diagnostics = worker.getDiagnostics() as Array<{
+                      childPid: number | null;
+                      childRunning: boolean;
+                    }>;
+                    const childPid = diagnostics[0]?.childPid ?? null;
+                    if (
+                      childPid &&
+                      diagnostics[0]?.childRunning &&
+                      !killed.has(childPid)
+                    ) {
+                      process.kill(childPid, "SIGKILL");
+                      killed.add(childPid);
+                    }
+                    await sleep(500);
+                  }
+
+                  expect(exhausted).toBe(true);
+                  const elapsed = Date.now() - startedAt;
+                  const peer = await acquireWorkerLock(externalStateDir);
+                  expect(peer.owned).toBe(true);
+                  expect(elapsed).toBeLessThan(STALE_HEARTBEAT_MS);
+                  await releaseWorkerLock(externalStateDir);
+                } finally {
+                  await worker.shutdown();
+                  await heartbeat.stop().catch(() => undefined);
+                  await releaseWorkerLock(externalStateDir).catch(
+                    () => undefined,
+                  );
+                }
+              },
+            );
+          } finally {
+            await cleanupTempDir(projectDir);
+          }
+        },
+        90_000,
+      );
     },
   );
 }

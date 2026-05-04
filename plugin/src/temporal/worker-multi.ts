@@ -150,6 +150,7 @@ export interface MultiWorker extends InProcessWorker {
     queues: string[];
     restartCount: number;
     childExitCode: number | null;
+    childPid: number | null;
     childRunning: boolean;
     pendingRegistrations: string[];
     registerErrors: Array<{ queue: string; message: string }>;
@@ -542,6 +543,7 @@ export async function createMultiWorker(
         queues: [...queues],
         restartCount,
         childExitCode: child?.exitCode ?? null,
+        childPid: child?.pid ?? null,
         childRunning: Boolean(child && child.exitCode === null),
         pendingRegistrations: [...pendingRegistrations.keys()].sort(),
         registerErrors: [...registerErrors]

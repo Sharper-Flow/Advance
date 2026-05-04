@@ -306,6 +306,7 @@ describe("createOutOfProcessWorker", () => {
         dead: false,
         restartCount: 0,
         childExitCode: null,
+        childPid: child.pid,
         childRunning: true,
       },
     ]);
