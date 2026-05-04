@@ -19,6 +19,7 @@ import {
   createInProcessWorker,
   type InProcessWorker,
 } from "./temporal/in-process-worker";
+import type { HeartbeatWriter } from "./temporal/heartbeat-writer";
 import { createOutOfProcessWorker } from "./temporal/out-of-process-worker";
 import {
   ensureTemporalRuntime,
@@ -41,6 +42,7 @@ import {
 } from "./utils/debug-log";
 import { getExternalRoot, getProjectId } from "./utils/project-id";
 import { acquireWorkerLock, releaseWorkerLock } from "./temporal/worker-lock";
+import { recordWorkerRunFailure } from "./temporal/retry-wrapper";
 
 const debugLog = (msg: string): void => appendDebugLog("plugin-init", msg);
 const logger = createLogger("plugin-init");
@@ -150,13 +152,19 @@ export async function tryInitStore(
       }
 
       if (shouldSpawnWorker) {
+        let spawnedWorker: InProcessWorker | undefined;
+        const onWorkerExhausted = async (): Promise<void> => {
+          await handleWorkerExhausted(projectStateDir, spawnedWorker);
+        };
         if (workerProbe.supported) {
           const workerStartedAt = performance.now();
-          worker = await createInProcessWorker({
+          spawnedWorker = await createInProcessWorker({
             address: runtime.address,
             namespace: runtime.namespace,
             queues: [buildProjectTaskQueue(projectId)],
+            onWorkerExhausted,
           });
+          worker = spawnedWorker;
           profilePluginInit("worker_started", {
             duration_ms: Number(
               (performance.now() - workerStartedAt).toFixed(3),
@@ -178,13 +186,15 @@ export async function tryInitStore(
             );
           }
           const workerStartedAt = performance.now();
-          worker = await createOutOfProcessWorker({
+          spawnedWorker = await createOutOfProcessWorker({
             address: runtime.address,
             namespace: runtime.namespace,
             queues: [buildProjectTaskQueue(projectId)],
             workerScript: resolveWorkerScriptPath(),
             projectId,
+            onWorkerExhausted,
           });
+          worker = spawnedWorker;
           profilePluginInit("worker_started", {
             duration_ms: Number(
               (performance.now() - workerStartedAt).toFixed(3),
@@ -277,9 +287,59 @@ const inProcessTemporalWorkers = new Set<InProcessWorker>();
  * if release is skipped (hard exit, etc).
  */
 const ownedWorkerLockDirs = new Set<string>();
+const ownedWorkerHeartbeatWriters = new Map<string, HeartbeatWriter>();
+const exhaustedWorkerDirs = new Set<string>();
 
 export function registerOwnedWorkerLock(projectStateDir: string): void {
+  exhaustedWorkerDirs.delete(projectStateDir);
   ownedWorkerLockDirs.add(projectStateDir);
+}
+
+export function registerOwnedWorkerHeartbeatWriter(
+  projectStateDir: string,
+  writer: HeartbeatWriter,
+): void {
+  exhaustedWorkerDirs.delete(projectStateDir);
+  ownedWorkerHeartbeatWriters.set(projectStateDir, writer);
+}
+
+async function stopOwnedWorkerHeartbeatWriter(
+  projectStateDir: string,
+): Promise<void> {
+  const writer = ownedWorkerHeartbeatWriters.get(projectStateDir);
+  if (!writer) return;
+  ownedWorkerHeartbeatWriters.delete(projectStateDir);
+  try {
+    await writer.stop();
+  } catch (e) {
+    debugLog(
+      `Error stopping worker heartbeat writer in ${projectStateDir}: ${e}`,
+    );
+  }
+}
+
+async function handleWorkerExhausted(
+  projectStateDir: string,
+  worker: InProcessWorker | undefined,
+): Promise<void> {
+  if (exhaustedWorkerDirs.has(projectStateDir)) return;
+  exhaustedWorkerDirs.add(projectStateDir);
+
+  await stopOwnedWorkerHeartbeatWriter(projectStateDir);
+
+  const ownedLock = ownedWorkerLockDirs.delete(projectStateDir);
+  if (ownedLock) {
+    try {
+      await releaseWorkerLock(projectStateDir);
+    } catch (e) {
+      debugLog(
+        `Error releasing exhausted worker.lock in ${projectStateDir}: ${e}`,
+      );
+    }
+  }
+
+  recordWorkerRunFailure("<all>", new Error("worker exhausted"));
+  if (worker) inProcessTemporalWorkers.delete(worker);
 }
 
 /**

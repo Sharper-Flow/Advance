@@ -647,6 +647,66 @@ describe("tryInitStore worker singleton (C5 / rq-workerSingleton01)", () => {
     expect(mocks.createInProcessWorker).toHaveBeenCalledTimes(1);
   });
 
+  it("in-process onWorkerExhausted stops heartbeat, releases lock, records failure, and updates aliveness once", async () => {
+    mocks.getProjectId.mockResolvedValueOnce("proj-sha");
+    const ownedWorker = {
+      registerQueue: vi.fn(async () => {}),
+      shutdown: vi.fn(async () => {}),
+      queues: ["advance-proj-sha"],
+      failedQueues: [],
+    };
+    mocks.createInProcessWorker.mockResolvedValueOnce(ownedWorker as any);
+
+    const { releaseWorkerLock } = await import("./temporal/worker-lock");
+    const { getLastWorkerRunError, resetTemporalRetryTelemetry } =
+      await import("./temporal/retry-wrapper");
+    resetTemporalRetryTelemetry();
+    const {
+      getTemporalWorkerAliveness,
+      registerOwnedWorkerHeartbeatWriter,
+      tryInitStore,
+    } = await import("./plugin-init");
+    const heartbeatStop = vi.fn(async () => {});
+    registerOwnedWorkerHeartbeatWriter("/tmp/external", {
+      stop: heartbeatStop,
+    });
+
+    await tryInitStore("/tmp/repo", "/tmp/external");
+    expect(getTemporalWorkerAliveness()).toBe(true);
+
+    const onWorkerExhausted = mocks.createInProcessWorker.mock.calls[0][0]
+      .onWorkerExhausted as () => Promise<void>;
+    await onWorkerExhausted();
+    await onWorkerExhausted();
+
+    expect(heartbeatStop).toHaveBeenCalledTimes(1);
+    expect(releaseWorkerLock).toHaveBeenCalledTimes(1);
+    expect(releaseWorkerLock).toHaveBeenCalledWith("/tmp/external");
+    expect(getLastWorkerRunError()).toMatchObject({
+      queue: "<all>",
+      message: "worker exhausted",
+    });
+    expect(getTemporalWorkerAliveness()).toBe(false);
+  });
+
+  it("wires onWorkerExhausted into out-of-process workers", async () => {
+    mocks.getProjectId.mockResolvedValueOnce("proj-sha");
+    mocks.probeTemporalWorkerRuntime.mockReturnValueOnce({
+      supported: false,
+      runtime: "bun",
+      reason: "bun",
+    });
+
+    const { tryInitStore } = await import("./plugin-init");
+    await tryInitStore("/tmp/repo", "/tmp/external");
+
+    expect(mocks.createOutOfProcessWorker).toHaveBeenCalledWith(
+      expect.objectContaining({
+        onWorkerExhausted: expect.any(Function),
+      }),
+    );
+  });
+
   it("ADV_FORCE_IN_PROCESS_WORKER=1 bypasses the lock check entirely", async () => {
     mocks.getProjectId.mockResolvedValueOnce("proj-sha");
     process.env.ADV_FORCE_IN_PROCESS_WORKER = "1";

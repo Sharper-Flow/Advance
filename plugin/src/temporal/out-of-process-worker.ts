@@ -24,6 +24,7 @@ export interface OutOfProcessWorkerInput {
   workerScript: string;
   projectId: string;
   nodeEnv?: NodeJS.ProcessEnv;
+  onWorkerExhausted?: () => void | Promise<void>;
 }
 
 export interface OutOfProcessWorker extends InProcessWorker {
@@ -47,6 +48,7 @@ export async function createOutOfProcessWorker(
     workerScript: input.workerScript,
     projectId: input.projectId,
     nodeEnv: input.nodeEnv,
+    onWorkerExhausted: input.onWorkerExhausted,
   });
 
   // Adapt MultiWorker to the legacy OutOfProcessWorker interface
