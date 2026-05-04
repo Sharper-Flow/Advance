@@ -58,6 +58,22 @@ pnpm run format:check         # prettier --check
 
 **CI order** (`.github/workflows/ci.yml`): typecheck → lint → format:check → test → build. Node 20.x + 22.x.
 
+### Source-vs-Dist Reload Gotcha
+
+OpenCode loads the plugin from `plugin/dist/index.js` at session startup and caches it in process memory. **Source edits to `plugin/src/` do NOT take effect in the current OpenCode session.** Unit tests run against source via vitest and pick up changes immediately, but live tool invocations (`adv_*` calls from the agent) continue to use the cached pre-build `dist/index.js` until the session restarts.
+
+To validate a source change end-to-end through live tool invocations:
+
+1. `pnpm run build` — regenerates `dist/index.js` (and `dist/temporal/*.js`)
+2. Restart the OpenCode session (or restart the plugin host)
+3. Re-invoke the affected tool
+
+For agent-driven changes that modify ADV tool behavior, the practical workflow is:
+
+- Verify the source fix via unit/integration tests in the same session (TDD red→green)
+- Defer end-to-end validation of live tool calls to a fresh session after rebuild
+- Note this rebuild requirement in the change's archive notes when the live behavior cannot be validated in-session
+
 ## Architecture Gotchas
 
 ### Runtime is Bun, tests run on Node

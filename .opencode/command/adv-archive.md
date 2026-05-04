@@ -135,6 +135,8 @@ Run only if the spec being archived has `conformance_required: true` in the conf
 
 `adv_change_archive changeId: <target>` — applies deltas, updates SQLite, generates docs, moves to archive.
 
+When archiving from a worktree, pass `worktreePath: <worktree-root>` so the in-repo bundle lands in the worktree's `.adv/archive/` directory and Phase 9 Step 1 can stage it on the change branch without `cp -r` workarounds. Omit the arg when running from the main checkout (default behavior writes to `store.paths.root`).
+
 ---
 
 ## Phase 7: Verify
