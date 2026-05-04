@@ -401,6 +401,102 @@ Acceptable migration loss: per-phase TDD evidence text (folded into `verificatio
 
 ---
 
+### Section 9: Removal & Test Strategy (Apply Efficiency)
+
+This refactor deletes ~5,000-7,000 LOC of source plus their associated test files. Trying to make existing tests pass against the new surface would waste enormous time and produce a broken-test thrash loop. Strategy: **rip out, rewrite. Don't salvage.**
+
+#### Categorical Removal Approach
+
+| Category | Code action | Test action |
+|---|---|---|
+| **Deleted entirely** (e.g., `change-diagnose.ts`, `mesh-scan.ts`, `archive-sweep.ts`, `change-import.ts`, `migrate-cleanup.ts`, `orphan-sweep.ts`, `gate-reentry.ts`) | `git rm` source file | `git rm` corresponding `.test.ts` |
+| **Restructured** (`workflows.ts`, `change-state.ts`, `messages.ts`) | Rewrite from scratch using new patterns | Delete old `.test.ts`; write new from scratch |
+| **Simplified** (`retry-wrapper.ts`, `health-probe.ts`, `worker-lock.ts`, `migration.ts`) | Remove most logic; keep simple core | Delete old `.test.ts`; write minimal new `.test.ts` |
+| **Refactored tools** (`change.ts`, `task.ts`, `gate.ts`, `wisdom.ts`, etc.) | Rewrite tool body to use signal-fire / query pattern | Delete old `.test.ts` if substantial mocking; write new `.test.ts` against signal/query contracts |
+| **Unchanged** (spec validator, project context, command asset tests, basic util tests) | No code change | Preserve existing tests |
+
+#### Order of Operations During Apply
+
+1. **Bulk deletions first.** `git rm` all confirmed-delete files in one commit (or per-category commits). Stops compilation of dead code paths immediately. Build will be broken — accept it.
+2. **Build new workflow surface.** Write new `messages.ts` signal definitions, new `workflows.ts` signal handlers, new tool adapter helpers. TypeScript should typecheck.
+3. **Build new tests against new surface.** TDD-style for each new construct: write failing test for signal handler / query / activity, write impl, repeat.
+4. **Refactor tools to use new adapters.** Per tool: delete old test, refactor tool body, write new test.
+5. **Update integration / asset tests.** Command asset tests, end-to-end smoke tests.
+6. **Final cleanup.** Remove unused imports, dead types, orphaned helpers.
+
+#### Heuristic: Salvage or Rewrite?
+
+| Test asserts on… | Action |
+|---|---|
+| Internal data structures we're deleting (e.g., task-run ledger phases, idempotency keys) | **Delete** — those data structures don't exist anymore |
+| Workflow update behavior with mocked `defineUpdate` | **Delete and rewrite** as signal-handler test |
+| `Workflow Update failed` error path | **Delete** — no longer exists |
+| Disk-Temporal divergence detection / repair | **Delete** — no divergence to detect |
+| TDD phase machine state transitions | **Delete** — phase machine deleted |
+| Tool's user-facing contract (e.g., `adv_change_show` returns task list) | **Likely salvageable** — update internal mocks to use signal/query, contract preserved |
+| Spec/manifest/command-asset/help-text tests | **Preserve unchanged** |
+| Pure utility functions (e.g., `formatDuration`, `parseGateId`) | **Preserve unchanged** |
+| Cross-project resolution / search attribute building | **Rewrite** — search attribute schema changes (Q6) |
+
+#### Build-Friendly Milestone Approach
+
+Don't try to keep the build green throughout. Accept temporary breakage. Recover at milestones:
+
+| Milestone | Definition | Verifies |
+|---|---|---|
+| **M1** | Bulk deletions complete; build broken (expected) | Dead code gone |
+| **M2** | New workflow surface defined; `pnpm typecheck` passes | Type contracts coherent |
+| **M3** | New signal/query/activity tests pass | Workflow contracts work |
+| **M4** | All tools refactored to new adapters; `pnpm build` passes | Tool layer connects |
+| **M5** | Integration tests pass (`pnpm test -- --run integration`) | End-to-end works |
+| **M6** | Full test suite green; LOC delta ≥30% verified | SC8 met |
+
+Each milestone is a checkpoint commit (per ADV protocol). Test failures between milestones are not investigated individually — they're either obviated by ongoing deletions or addressed in bulk at the milestone.
+
+#### Anti-Patterns To Avoid During Apply
+
+| × Anti-pattern | ✓ Right approach |
+|---|---|
+| Fix individual failing tests as they surface | Bulk-delete tests for removed surface; bulk-rewrite for restructured surface |
+| Try to keep all tests passing at every commit | Accept M1-M5 broken-build window; restore at M6 |
+| Salvage tests by adding mocks for deleted structures | Delete the test outright |
+| "Maybe we should keep `adv_workflow_repair` just in case" | No. Delete. Single source of truth means no divergence to repair. |
+| Add backwards-compat shims for old tool names | No. Hard cutover per migration plan. |
+| Comment out tests instead of deleting | Delete. Git history holds it if ever needed. |
+| Try to reuse old test setup helpers across paradigms | New test files; new helpers. Old helpers may carry assumptions baked into the dead model. |
+
+#### Test File Operations
+
+| Operation | Pattern |
+|---|---|
+| Delete a test file | `git rm plugin/src/temporal/migration.test.ts` |
+| Delete a test inside a kept file | Delete the `describe`/`it` block; commit with message noting what was removed |
+| Rewrite a test file | `git rm` old file, `git add` new file in same commit; message: "rewrite: <file> for signal-driven model" |
+| Add a new test file | `git add plugin/src/temporal/messages.signals.test.ts` |
+
+#### Estimated Test Suite Reset
+
+| Category | Files affected | Est. LOC removed |
+|---|---|---|
+| Tests for deleted source files (one-to-one) | ~10-12 test files | ~2,000-3,000 |
+| Tests for restructured source (delete + rewrite) | ~5-8 test files | ~1,500-2,500 net |
+| Tests for refactored tools (delete + rewrite) | ~10-15 test files | ~2,000-3,000 net |
+| Tests preserved unchanged | ~80-100 test files | 0 |
+
+Net test suite: probably ~150-200 LOC fewer overall (lots removed, some new), but the new tests are tighter (signal handlers are pure functions; queries are pure derivations).
+
+#### Spike Validates the Strategy
+
+The spike (per agreement R3, SC10) validates this approach by:
+1. Picking one change workflow as the spike target
+2. Doing the bulk-delete → rewrite → test-from-scratch cycle on it
+3. Measuring: time to milestone M3, LOC delta, test count
+4. Confirming the strategy scales before the full migration
+
+If spike shows "rewrite from scratch" takes >2× the salvage approach, revisit. Otherwise the strategy is locked.
+
+---
+
 ## Part 4: Acceptance Criteria (from agreement)
 
 The change ships when ALL true:
