@@ -21,7 +21,7 @@
  */
 
 import { execFile } from "child_process";
-import { join } from "path";
+import { isAbsolute, join, relative, resolve } from "path";
 import { homedir } from "os";
 import { createHash } from "crypto";
 
@@ -129,8 +129,26 @@ export async function getProjectIdFromGit(
 }
 
 // =============================================================================
-// getExternalRoot
+// External path helpers
 // =============================================================================
+
+/**
+ * Resolve the XDG data-home root used by ADV's external mutable state.
+ *
+ * Empty / unset XDG_DATA_HOME falls back to `~/.local/share`. Relative values
+ * are rejected because external state and worktree guards rely on absolute
+ * namespace boundaries.
+ */
+export function getDataHome(): string {
+  const configured = process.env.XDG_DATA_HOME;
+  if (configured === undefined || configured === "") {
+    return join(homedir(), ".local/share");
+  }
+  if (!isAbsolute(configured)) {
+    throw new Error(`XDG_DATA_HOME must be absolute: ${configured}`);
+  }
+  return resolve(configured);
+}
 
 /**
  * Resolve the external state directory for a given project ID.
@@ -140,8 +158,43 @@ export async function getProjectIdFromGit(
  * If XDG_DATA_HOME is not set, defaults to ~/.local/share.
  */
 export function getExternalRoot(projectId: string): string {
-  const dataHome = process.env.XDG_DATA_HOME || join(homedir(), ".local/share");
-  return join(dataHome, "opencode/plugins/advance", projectId);
+  return join(getDataHome(), "opencode/plugins/advance", projectId);
+}
+
+/**
+ * Resolve the per-project worktree base directory.
+ *
+ * Path: $XDG_DATA_HOME/opencode/worktree/{projectId}/
+ */
+export function getWorktreeBase(projectId: string): string {
+  return join(getDataHome(), "opencode/worktree", projectId);
+}
+
+/** Return true when `candidatePath` is inside `directory` or equal to it. */
+export function isPathInsideDirectory(
+  candidatePath: string,
+  directory: string,
+): boolean {
+  const candidate = resolve(candidatePath);
+  const root = resolve(directory);
+  const rel = relative(root, candidate);
+  return rel === "" || (!rel.startsWith("..") && !isAbsolute(rel));
+}
+
+/**
+ * Throw when `candidatePath` escapes `directory`.
+ *
+ * Useful before cleanup operations that must stay within an ADV namespace.
+ */
+export function assertPathInsideDirectory(
+  candidatePath: string,
+  directory: string,
+): void {
+  if (!isPathInsideDirectory(candidatePath, directory)) {
+    throw new Error(
+      `Path ${candidatePath} is outside allowed namespace ${directory}`,
+    );
+  }
 }
 
 // =============================================================================

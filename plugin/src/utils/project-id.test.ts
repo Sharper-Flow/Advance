@@ -10,12 +10,16 @@ import { describe, test, expect, afterEach } from "vitest";
 import {
   getProjectId,
   getProjectIdFromGit,
+  getDataHome,
   getExternalRoot,
+  getWorktreeBase,
+  isPathInsideDirectory,
+  assertPathInsideDirectory,
   SYNTHETIC_TEST_PROJECT_ID,
   SYNTHETIC_TEST_PROJECT_ID_PREFIX,
   synthesizeTestProjectId,
 } from "./project-id";
-import { join } from "path";
+import { join, resolve } from "path";
 import { homedir } from "os";
 
 describe("SYNTHETIC_TEST_PROJECT_ID_PREFIX + SYNTHETIC_TEST_PROJECT_ID", () => {
@@ -182,10 +186,71 @@ describe("getExternalRoot", () => {
     );
   });
 
+  test("falls back to ~/.local/share when XDG_DATA_HOME is empty", () => {
+    process.env.XDG_DATA_HOME = "";
+    expect(getDataHome()).toBe(join(homedir(), ".local/share"));
+    expect(getExternalRoot("abc123")).toBe(
+      join(homedir(), ".local/share/opencode/plugins/advance/abc123"),
+    );
+  });
+
+  test("rejects relative XDG_DATA_HOME paths", () => {
+    process.env.XDG_DATA_HOME = "relative/data";
+    expect(() => getDataHome()).toThrow(/XDG_DATA_HOME must be absolute/);
+    expect(() => getExternalRoot("abc123")).toThrow(
+      /XDG_DATA_HOME must be absolute/,
+    );
+  });
+
   test("handles empty string projectId gracefully", () => {
     delete process.env.XDG_DATA_HOME;
     const root = getExternalRoot("");
     // Should still return a path (caller is responsible for null-checking projectId)
     expect(root).toBe(join(homedir(), ".local/share/opencode/plugins/advance"));
+  });
+});
+
+describe("getWorktreeBase", () => {
+  const originalEnv = process.env.XDG_DATA_HOME;
+
+  afterEach(() => {
+    if (originalEnv !== undefined) process.env.XDG_DATA_HOME = originalEnv;
+    else delete process.env.XDG_DATA_HOME;
+  });
+
+  test("uses the XDG opencode worktree namespace", () => {
+    process.env.XDG_DATA_HOME = "/custom/data";
+    expect(getWorktreeBase("abc123")).toBe(
+      "/custom/data/opencode/worktree/abc123",
+    );
+  });
+
+  test("shares default data-home handling with external root", () => {
+    delete process.env.XDG_DATA_HOME;
+    expect(getWorktreeBase("abc123")).toBe(
+      join(homedir(), ".local/share/opencode/worktree/abc123"),
+    );
+  });
+});
+
+describe("path namespace guards", () => {
+  test("accept paths inside a namespace, including the namespace itself", () => {
+    const root = resolve("/tmp/adv-state");
+    expect(isPathInsideDirectory(root, root)).toBe(true);
+    expect(isPathInsideDirectory(join(root, "child"), root)).toBe(true);
+    expect(() => assertPathInsideDirectory(join(root, "child"), root)).not.toThrow();
+  });
+
+  test("reject sibling paths with the same string prefix", () => {
+    const root = resolve("/tmp/adv-state");
+    expect(isPathInsideDirectory("/tmp/adv-state-other", root)).toBe(false);
+    expect(() => assertPathInsideDirectory("/tmp/adv-state-other", root)).toThrow(
+      /outside allowed namespace/,
+    );
+  });
+
+  test("reject traversal escaping the namespace", () => {
+    const root = resolve("/tmp/adv-state");
+    expect(isPathInsideDirectory(join(root, "..", "outside"), root)).toBe(false);
   });
 });
