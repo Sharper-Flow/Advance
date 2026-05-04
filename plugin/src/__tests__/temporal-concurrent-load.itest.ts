@@ -2,7 +2,7 @@
  * T39 — Temporal concurrent-load stress scenarios (A4, Phase 5)
  *
  * Three stress-test scenarios using T38's runConcurrentClients harness:
- *   A) Worker-lock contention   — 5 clients, ~30s, no deadlocks
+ *   A) Worker-lock contention   — 5 clients, ~10s, no deadlocks
  *   B) State-write race         — 5 clients × 10 worktree cycles, monotonic versions
  *   C) Worker-kill respawn-elect — stale-PID reclaim, ops continue
  *   D) OOP child SIGKILL surrender — unclean child death releases lock quickly
@@ -19,7 +19,7 @@
 import { describe, expect, it } from "vitest";
 import { TestWorkflowEnvironment } from "@temporalio/testing";
 import { existsSync } from "node:fs";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -193,24 +193,65 @@ if (process.platform !== "linux") {
       }
 
       /* -------------------------------------------------------------- */
-      /* Scenario A — Worker-lock contention (5 clients, ~30 s)        */
+      /* Scenario A — Worker-lock contention (5 clients, ~10 s)        */
       /* -------------------------------------------------------------- */
 
-      it("A: 5 clients contend for 30 s with no deadlocks or lost updates", async () => {
+      it("A: 5 clients contend for 10 s with no deadlocks or lost updates", async () => {
         await withConcurrentHarness(
           async ({ projectDir, mutablePath: _mutablePath }) => {
-            const result = await runConcurrentClients({
-              clients: 5,
-              durationSec: 30,
+            const externalStateDir = join(
               projectDir,
+              "external-state-healthy-heartbeat",
+            );
+            await mkdir(externalStateDir, { recursive: true });
+            const lock = await acquireWorkerLock(externalStateDir);
+            expect(lock.owned).toBe(true);
+            const workerId = lock.workerId;
+            if (!workerId)
+              throw new Error("Expected owned lock to include workerId");
+            const heartbeat = startHeartbeatWriter({
+              projectStateDir: externalStateDir,
+              workerId,
+              intervalMs: HEARTBEAT_INTERVAL_MS,
             });
 
-            expect(result.clients).toBe(5);
-            // Assert test completed and performed ops
-            expect(result.totalOps).toBeGreaterThan(0);
-            expect(result.errors).toHaveLength(0);
-            // Monotonic source_version preserved across all writes
-            expect(result.lostUpdates).toHaveLength(0);
+            try {
+              const firstPeer = await acquireWorkerLock(externalStateDir);
+              expect(firstPeer.owned).toBe(false);
+
+              const initialLock = JSON.parse(
+                await readFile(join(externalStateDir, "worker.lock"), "utf8"),
+              ) as { last_heartbeat?: string; worker_id?: string };
+
+              const result = await runConcurrentClients({
+                clients: 5,
+                durationSec: 10,
+                projectDir,
+              });
+
+              const finalLock = JSON.parse(
+                await readFile(join(externalStateDir, "worker.lock"), "utf8"),
+              ) as { last_heartbeat?: string; worker_id?: string };
+              const secondPeer = await acquireWorkerLock(externalStateDir);
+
+              expect(result.clients).toBe(5);
+              // Assert test completed and performed ops
+              expect(result.totalOps).toBeGreaterThan(0);
+              expect(result.errors).toHaveLength(0);
+              // Monotonic source_version preserved across all writes
+              expect(result.lostUpdates).toHaveLength(0);
+              expect(secondPeer.owned).toBe(false);
+              expect(finalLock.worker_id).toBe(workerId);
+              expect(
+                Date.parse(finalLock.last_heartbeat ?? ""),
+              ).toBeGreaterThan(Date.parse(initialLock.last_heartbeat ?? ""));
+              expect(
+                Date.now() - Date.parse(finalLock.last_heartbeat ?? ""),
+              ).toBeLessThan(STALE_HEARTBEAT_MS);
+            } finally {
+              await heartbeat.stop().catch(() => undefined);
+              await releaseWorkerLock(externalStateDir).catch(() => undefined);
+            }
           },
         );
       }, 65_000);

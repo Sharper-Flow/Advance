@@ -103,7 +103,9 @@ export async function createInProcessWorker(
 
   const workflowsPath = input.workflowsPath ?? resolveWorkflowsPath();
   const effectiveActivities = input.activities ?? activities;
-  const workerFactory = input.workerFactory ?? Worker.create;
+  const workerFactory =
+    input.workerFactory ??
+    ((options: Parameters<typeof Worker.create>[0]) => Worker.create(options));
 
   const registered = new Map<string, TemporalWorkerInstance>();
   const failed = new Set<string>();
