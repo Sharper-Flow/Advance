@@ -406,6 +406,48 @@ describe("overlay sync script support", () => {
     }
   });
 
+  test("check mode warns and continues when opencode is unavailable for runtime canary", () => {
+    const tempHome = mkdtempSync(join(tmpdir(), "adv-provider-canary-skip-"));
+
+    try {
+      const configDir = join(tempHome, ".config/opencode");
+      mkdirSync(configDir, { recursive: true });
+      writeFileSync(
+        join(configDir, "opencode.json"),
+        JSON.stringify({ plugin: [], instructions: [] }),
+      );
+
+      const fixResult = spawnSync("bash", [SYNC_SCRIPT_PATH, "--fix"], {
+        cwd: REPO_ROOT,
+        env: { ...process.env, HOME: tempHome, CI: "true" },
+        encoding: "utf8",
+      });
+      expect(fixResult.status).toBe(0);
+
+      const pathWithoutOpencode = (process.env.PATH ?? "")
+        .split(":")
+        .filter((entry) => !entry.includes(".opencode"))
+        .join(":");
+      const checkResult = spawnSync("bash", [SYNC_SCRIPT_PATH, "--check"], {
+        cwd: REPO_ROOT,
+        env: {
+          ...process.env,
+          HOME: tempHome,
+          CI: "true",
+          PATH: pathWithoutOpencode,
+        },
+        encoding: "utf8",
+      });
+
+      expect(checkResult.status).toBe(0);
+      expect(checkResult.stdout).toContain(
+        "runtime canary: skipped (opencode not found on PATH)",
+      );
+    } finally {
+      rmSync(tempHome, { recursive: true, force: true });
+    }
+  });
+
   test("generated provider variants patch frontmatter name", () => {
     const tempHome = mkdtempSync(join(tmpdir(), "adv-provider-names-"));
 
