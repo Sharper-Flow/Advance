@@ -313,6 +313,81 @@ describe("temporal operator tools", () => {
     expect(parsed.worker_lock_holder_pid).toBeNull();
   });
 
+  it("adv_temporal_diagnose renders worker lock and worker-run errors compactly", async () => {
+    mocks.getTemporalHealth.mockResolvedValueOnce({
+      server_alive: true,
+      worker_alive: false,
+      worker_process_alive: false,
+      registered_queues: ["advance-proj123"],
+      last_op_at: null,
+      last_error: null,
+      fallback_counts: { changes: 0, tasks: 0, wisdom: 0, gates: 0 },
+      stale_queues: [],
+      reconnect_count: 0,
+      worker_lock: {
+        holder_pid: 4242,
+        last_heartbeat_at: "2026-04-21T00:00:02.000Z",
+        heartbeat_age_ms: 1234,
+        schema_version: 2,
+      },
+      last_worker_run_error: {
+        queue: "advance-proj123",
+        message: "Worker.run rejected",
+        at: "2026-04-21T00:00:03.000Z",
+      },
+    });
+    const store = {
+      paths: {
+        root: "/repo",
+        external: "/home/jrede/.local/share/opencode/plugins/advance/proj123",
+      },
+    } as any;
+
+    const result = await temporalOpsTools.adv_temporal_diagnose.execute(
+      {},
+      store,
+    );
+    const parsed = JSON.parse(result);
+
+    expect(parsed.worker_lock).toBe(
+      "pid=4242 v2 heartbeat=1234ms last=2026-04-21T00:00:02.000Z",
+    );
+    expect(parsed.last_worker_run_error).toBe(
+      "advance-proj123: Worker.run rejected @ 2026-04-21T00:00:03.000Z",
+    );
+  });
+
+  it("adv_temporal_diagnose omits null worker lock and worker-run errors", async () => {
+    mocks.getTemporalHealth.mockResolvedValueOnce({
+      server_alive: true,
+      worker_alive: true,
+      worker_process_alive: true,
+      registered_queues: ["advance-proj123"],
+      last_op_at: null,
+      last_error: null,
+      fallback_counts: { changes: 0, tasks: 0, wisdom: 0, gates: 0 },
+      stale_queues: [],
+      reconnect_count: 0,
+      worker_lock: null,
+      last_worker_run_error: null,
+    });
+    const store = {
+      paths: {
+        root: "/repo",
+        external: "/home/jrede/.local/share/opencode/plugins/advance/proj123",
+      },
+    } as any;
+
+    const result = await temporalOpsTools.adv_temporal_diagnose.execute(
+      {},
+      store,
+    );
+    const parsed = JSON.parse(result);
+
+    expect(parsed).not.toHaveProperty("worker_lock");
+    expect(parsed).not.toHaveProperty("last_worker_run_error");
+  });
+
   it("adv_temporal_diagnose reports project_workflow_present:false when workflow unreachable (T23)", async () => {
     // Force unreachable: no projectId resolved (no external path).
     const store = {

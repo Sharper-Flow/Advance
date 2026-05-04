@@ -16,6 +16,10 @@ import {
 import { checkAdvSearchAttributes } from "../temporal/observability";
 import { registerMissingAdvSearchAttributes } from "../temporal/observability";
 import { formatToolOutput } from "../utils/tool-output";
+import {
+  formatWorkerLockHealth,
+  formatWorkerRunError,
+} from "../utils/tool-formatters";
 import { appendDebugLog } from "../utils/debug-log";
 import {
   formatTargetProjectContext,
@@ -240,6 +244,10 @@ export const temporalOpsTools = {
       );
       const worker_lock_holder_pid = await readWorkerLockHolderPid(store);
       const project_workflow_present = projectWorkflow.reachable;
+      const worker_lock = formatWorkerLockHealth(health.worker_lock);
+      const last_worker_run_error = formatWorkerRunError(
+        health.last_worker_run_error,
+      );
 
       return formatToolOutput({
         success: true,
@@ -258,6 +266,8 @@ export const temporalOpsTools = {
         peer_sessions,
         worker_lock_holder_pid,
         project_workflow_present,
+        ...(worker_lock ? { worker_lock } : {}),
+        ...(last_worker_run_error ? { last_worker_run_error } : {}),
         recommendedNextAction,
       });
     },
