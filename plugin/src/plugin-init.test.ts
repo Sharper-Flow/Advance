@@ -859,6 +859,7 @@ describe("tryInitStore worker singleton (C5 / rq-workerSingleton01)", () => {
     expect(result).toEqual({
       projectId: "proj-sha",
       queues: ["advance-proj-sha"],
+      expectedQueue: "advance-proj-sha",
     });
     expect(order).toEqual([
       "heartbeat.stop",

@@ -5,6 +5,16 @@ const mocks = vi.hoisted(() => ({
     projectId: "proj123",
     queues: ["advance-proj123"],
   })),
+  getTemporalWorkerAliveness: vi.fn(() => true),
+  getTemporalWorkerDiagnostics: vi.fn(() => [
+    {
+      kind: "out_of_process",
+      queues: ["advance-proj123"],
+      failedQueues: [],
+      alive: true,
+      diagnostics: { childPid: 4321, childRunning: true },
+    },
+  ]),
   loadChange: vi.fn(async () => ({
     success: true,
     data: {
@@ -103,6 +113,8 @@ vi.mock("../plugin-init", async () => {
     ...actual,
     restartCurrentProjectTemporalWorker:
       mocks.restartCurrentProjectTemporalWorker,
+    getTemporalWorkerAliveness: mocks.getTemporalWorkerAliveness,
+    getTemporalWorkerDiagnostics: mocks.getTemporalWorkerDiagnostics,
   };
 });
 
@@ -183,6 +195,35 @@ import { temporalOpsTools } from "./temporal-ops";
 describe("temporal operator tools", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.unstubAllEnvs();
+    mocks.restartCurrentProjectTemporalWorker.mockResolvedValue({
+      projectId: "proj123",
+      queues: ["advance-proj123"],
+    });
+    mocks.getTemporalWorkerAliveness.mockReturnValue(true);
+    mocks.getTemporalWorkerDiagnostics.mockReturnValue([
+      {
+        kind: "out_of_process",
+        queues: ["advance-proj123"],
+        failedQueues: [],
+        alive: true,
+        diagnostics: { childPid: 4321, childRunning: true },
+      },
+    ]);
+    mocks.getTemporalHealth.mockResolvedValue({
+      server_alive: true,
+      worker_alive: true,
+      worker_process_alive: true,
+      registered_queues: ["advance-proj123"],
+      last_op_at: null,
+      last_error: null,
+      fallback_counts: { changes: 0, tasks: 0, wisdom: 0, gates: 0 },
+      stale_queues: [],
+      reconnect_count: 0,
+      op_counters: [],
+      worker_lock: null,
+      last_worker_run_error: null,
+    });
   });
 
   it("adv_temporal_worker_restart description clarifies worker-only reload scope", () => {
@@ -197,65 +238,167 @@ describe("temporal operator tools", () => {
     expect(description).toContain("dist/temporal");
   });
 
-  it("adv_temporal_worker_restart fires-and-forgets: invokes restart but returns immediately with verification hint", async () => {
-    const store = { paths: { root: "/repo" } } as any;
+  it("adv_temporal_worker_restart waits for verified local serviceability before success", async () => {
+    const store = {
+      paths: { root: "/repo", external: "/state/proj123" },
+    } as any;
     const result = await temporalOpsTools.adv_temporal_worker_restart.execute(
       {},
       store,
     );
     const parsed = JSON.parse(result);
 
-    // Underlying restart was kicked off asynchronously (not awaited).
     expect(mocks.restartCurrentProjectTemporalWorker).toHaveBeenCalledWith(
       "/repo",
+      { approvedLockReclaim: false, approvalEvidence: undefined },
     );
-    // Response is the fire-and-forget acknowledgment, not the restart result.
     expect(parsed.success).toBe(true);
-    expect(parsed.message).toContain("initiated");
-    expect(parsed.recommendedNextAction).toContain("adv_status");
-    expect(parsed.stsl).toEqual({
-      initialized: true,
-      reconnectCount: 0,
-      reconnectFailureCount: 0,
-    });
-    // No projectId / queues fields — those came from awaiting the result.
-    expect(parsed.projectId).toBeUndefined();
-    expect(parsed.queues).toBeUndefined();
+    expect(parsed.message).toContain("verified");
+    expect(parsed.projectId).toBe("proj123");
+    expect(parsed.expectedQueue).toBe("advance-proj123");
+    expect(parsed.serviceability.status).toBe("serviceable");
+    expect(parsed.serviceability.confidence).toBe("local");
+    expect(parsed.workerDiagnostics).toEqual([
+      {
+        kind: "out_of_process",
+        queues: ["advance-proj123"],
+        failedQueues: [],
+        alive: true,
+        diagnostics: { childPid: 4321, childRunning: true },
+      },
+    ]);
+    expect(parsed.recommendedNextAction).toBe("retry the blocked ADV command");
   });
 
-  it("adv_temporal_worker_restart returns within 1s even when restart hangs (KD-5 fire-and-forget)", async () => {
-    // Simulate a hanging restart: never resolves.
-    mocks.restartCurrentProjectTemporalWorker.mockImplementationOnce(
-      () => new Promise(() => {}),
-    );
-    const store = { paths: { root: "/repo" } } as any;
-    const start = Date.now();
+  it("adv_temporal_worker_restart returns structured timeout failure when serviceability is not proven", async () => {
+    vi.stubEnv("ADV_WORKER_RESTART_VERIFY_TIMEOUT_MS", "1");
+    mocks.getTemporalWorkerAliveness.mockReturnValue(false);
+    mocks.getTemporalWorkerDiagnostics.mockReturnValue([]);
+    mocks.getTemporalHealth.mockResolvedValue({
+      server_alive: true,
+      worker_alive: false,
+      worker_process_alive: false,
+      registered_queues: [],
+      last_op_at: null,
+      last_error: null,
+      fallback_counts: { changes: 0, tasks: 0, wisdom: 0, gates: 0 },
+      stale_queues: [{ queue: "advance-proj123", running_count: 2 }],
+      reconnect_count: 0,
+      op_counters: [],
+      worker_lock: null,
+      last_worker_run_error: null,
+    });
+
+    const store = {
+      paths: { root: "/repo", external: "/state/proj123" },
+    } as any;
     const result = await temporalOpsTools.adv_temporal_worker_restart.execute(
       {},
       store,
     );
-    const elapsed = Date.now() - start;
     const parsed = JSON.parse(result);
-    expect(parsed.success).toBe(true);
-    expect(elapsed).toBeLessThan(1000);
+
+    expect(parsed.success).toBe(false);
+    expect(parsed.errorClass).toBe("WorkerRestartVerificationTimeout");
+    expect(parsed.expectedQueue).toBe("advance-proj123");
+    expect(parsed.serviceability.status).toBe("not_serviceable");
+    expect(parsed.serviceability.blockers).toContain(
+      "local_queue_not_registered",
+    );
+    expect(parsed.temporalHealth.stale_queues).toEqual([
+      { queue: "advance-proj123", running_count: 2 },
+    ]);
+    expect(parsed.recommendedNextAction).toContain("adv_temporal_diagnose");
   });
 
-  it("adv_temporal_worker_restart logs async failures via appendDebugLog without throwing", async () => {
-    // Reject with an error; tool should not throw, response should still be success.
-    mocks.restartCurrentProjectTemporalWorker.mockImplementationOnce(
-      async () => {
-        throw new Error("simulated worker restart failure");
+  it("adv_temporal_worker_restart refuses unapproved suspect live legacy locks with diagnostics", async () => {
+    mocks.restartCurrentProjectTemporalWorker.mockRejectedValueOnce(
+      Object.assign(new Error("worker.lock held by pid=4444"), {
+        code: "WORKER_LOCK_HELD",
+        ownerPid: 4444,
+      }),
+    );
+    mocks.getTemporalWorkerAliveness.mockReturnValue(false);
+    mocks.getTemporalWorkerDiagnostics.mockReturnValue([]);
+    mocks.getTemporalHealth.mockResolvedValue({
+      server_alive: true,
+      worker_alive: false,
+      worker_process_alive: false,
+      registered_queues: [],
+      last_op_at: null,
+      last_error: null,
+      fallback_counts: { changes: 0, tasks: 0, wisdom: 0, gates: 0 },
+      stale_queues: [{ queue: "advance-proj123", running_count: 6 }],
+      reconnect_count: 0,
+      op_counters: [],
+      worker_lock: {
+        holder_pid: 4444,
+        last_heartbeat_at: null,
+        heartbeat_age_ms: null,
+        schema_version: 1,
+      },
+      last_worker_run_error: null,
+    });
+
+    const store = {
+      paths: { root: "/repo", external: "/state/proj123" },
+    } as any;
+    const result = await temporalOpsTools.adv_temporal_worker_restart.execute(
+      {},
+      store,
+    );
+    const parsed = JSON.parse(result);
+
+    expect(parsed.success).toBe(false);
+    expect(parsed.reason).toBe("suspect_live_legacy_lock");
+    expect(parsed.approvalRequired).toBe(true);
+    expect(parsed.worker_lock.holder_pid).toBe(4444);
+    expect(parsed.serviceability.status).toBe("not_serviceable");
+    expect(parsed.recommendedNextAction).toContain("explicit approval");
+  });
+
+  it("adv_temporal_worker_restart passes approved suspect-lock reclaim evidence through", async () => {
+    mocks.restartCurrentProjectTemporalWorker.mockResolvedValueOnce({
+      projectId: "proj123",
+      queues: ["advance-proj123"],
+      reclaim: {
+        reason: "approved_live_legacy_lock",
+        priorPid: 4444,
+        priorWorkerId: "00000000-0000-4000-8000-000000000000",
+        priorSchemaVersion: 1,
+        expectedQueue: "advance-proj123",
+        approvalEvidence: "user said approve live v1 lock reclaim",
+      },
+    });
+
+    const store = {
+      paths: { root: "/repo", external: "/state/proj123" },
+    } as any;
+    const result = await temporalOpsTools.adv_temporal_worker_restart.execute(
+      {
+        approvedLockReclaim: true,
+        approvalEvidence: "user said approve live v1 lock reclaim",
+      },
+      store,
+    );
+    const parsed = JSON.parse(result);
+
+    expect(mocks.restartCurrentProjectTemporalWorker).toHaveBeenCalledWith(
+      "/repo",
+      {
+        approvedLockReclaim: true,
+        approvalEvidence: "user said approve live v1 lock reclaim",
       },
     );
-    const store = { paths: { root: "/repo" } } as any;
-    const result = await temporalOpsTools.adv_temporal_worker_restart.execute(
-      {},
-      store,
-    );
-    const parsed = JSON.parse(result);
     expect(parsed.success).toBe(true);
-    // Allow microtask queue to drain so the .catch() runs before assertion exit.
-    await new Promise((r) => setImmediate(r));
+    expect(parsed.reclaim).toEqual({
+      reason: "approved_live_legacy_lock",
+      priorPid: 4444,
+      priorWorkerId: "00000000-0000-4000-8000-000000000000",
+      priorSchemaVersion: 1,
+      expectedQueue: "advance-proj123",
+      approvalEvidence: "user said approve live v1 lock reclaim",
+    });
   });
 
   it("adv_temporal_reconnect calls reinitStsl and reports before/after stats", async () => {

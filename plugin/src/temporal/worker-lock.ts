@@ -103,6 +103,7 @@ export type WorkerLockResult =
       ownerPid: number;
       workerId: string;
       lockPath: string;
+      reclaimed?: WorkerLockReclaimAudit;
     }
   | {
       owned: false;
@@ -111,6 +112,15 @@ export type WorkerLockResult =
       lockPath: string;
       reason: "lock_held_by_alive_pid";
     };
+
+export interface WorkerLockReclaimAudit {
+  reason: "approved_live_legacy_lock";
+  priorPid: number;
+  priorWorkerId: string;
+  priorSchemaVersion: 1;
+  expectedQueue: string;
+  approvalEvidence: string;
+}
 
 export interface AcquireWorkerLockOptions {
   /**
@@ -127,6 +137,15 @@ export interface AcquireWorkerLockOptions {
    * Backward-compat: omit to retain default behavior.
    */
   lockFilename?: string;
+  /**
+   * Explicit approval gate for suspect legacy v1 locks. Only applies when
+   * the current lock has schema_version 1 and an alive PID; fresh v2 locks
+   * remain protected even when this option is present.
+   */
+  approvedLiveLegacyReclaim?: {
+    expectedQueue: string;
+    approvalEvidence: string;
+  };
 }
 
 export interface ReleaseWorkerLockOptions {
@@ -150,6 +169,7 @@ export async function acquireWorkerLock(
   const lockPath = join(projectStateDir, lockFilename);
   const myPid = options.pid ?? process.pid;
   const isAlive = options.isAlive ?? defaultIsAlive;
+  let pendingReclaim: WorkerLockReclaimAudit | undefined;
 
   for (let attempt = 0; attempt < 2; attempt++) {
     const acquired = await tryAtomicCreate(lockPath, myPid);
@@ -159,6 +179,7 @@ export async function acquireWorkerLock(
         ownerPid: myPid,
         workerId: acquired.worker_id,
         lockPath,
+        ...(pendingReclaim ? { reclaimed: pendingReclaim } : {}),
       };
     }
 
@@ -186,6 +207,24 @@ export async function acquireWorkerLock(
     }
     if (livenessState === "alive" && isStaleHeartbeat(contents)) {
       // Owner PID is alive but the worker heartbeat is stale — reclaim.
+      await safeRemove(lockPath);
+      continue;
+    }
+    const approvalEvidence =
+      options.approvedLiveLegacyReclaim?.approvalEvidence.trim() ?? "";
+    if (
+      livenessState === "alive" &&
+      !isV2Lock(contents) &&
+      approvalEvidence.length > 0
+    ) {
+      pendingReclaim = {
+        reason: "approved_live_legacy_lock",
+        priorPid: contents.pid,
+        priorWorkerId: contents.worker_id,
+        priorSchemaVersion: 1,
+        expectedQueue: options.approvedLiveLegacyReclaim!.expectedQueue,
+        approvalEvidence,
+      };
       await safeRemove(lockPath);
       continue;
     }

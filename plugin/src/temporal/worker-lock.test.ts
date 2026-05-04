@@ -244,6 +244,54 @@ describe("acquireWorkerLock + releaseWorkerLock", () => {
     expect(result.ownerPid).toBe(otherPid);
   });
 
+  it("approved alive v1 lock reclaim records prior lock metadata", async () => {
+    const otherPid = 99995;
+    await writeLock(stateDir, otherPid);
+
+    const result = await acquireWorkerLock(stateDir, {
+      pid: 12345,
+      isAlive: () => "alive",
+      approvedLiveLegacyReclaim: {
+        expectedQueue: "advance-proj123",
+        approvalEvidence: "user approved suspect live v1 lock reclaim",
+      },
+    });
+
+    expect(result.owned).toBe(true);
+    if (!result.owned) throw new Error("expected owned:true");
+    expect(result.ownerPid).toBe(12345);
+    expect(result.reclaimed).toEqual({
+      reason: "approved_live_legacy_lock",
+      priorPid: otherPid,
+      priorWorkerId: "00000000-0000-4000-8000-000000000000",
+      priorSchemaVersion: 1,
+      expectedQueue: "advance-proj123",
+      approvalEvidence: "user approved suspect live v1 lock reclaim",
+    });
+  });
+
+  it("approval cannot reclaim a fresh alive v2 lock", async () => {
+    const otherPid = 99996;
+    vi.setSystemTime(new Date("2026-01-01T00:00:30.000Z"));
+    await writeLock(stateDir, otherPid, {
+      schema_version: 2,
+      last_heartbeat: "2026-01-01T00:00:00.000Z",
+    });
+
+    const result = await acquireWorkerLock(stateDir, {
+      pid: 12345,
+      isAlive: () => "alive",
+      approvedLiveLegacyReclaim: {
+        expectedQueue: "advance-proj123",
+        approvalEvidence: "user approved suspect live v1 lock reclaim",
+      },
+    });
+
+    expect(result.owned).toBe(false);
+    if (result.owned) throw new Error("expected owned:false");
+    expect(result.ownerPid).toBe(otherPid);
+  });
+
   it("alive v2 lock with future heartbeat is reclaimed defensively", async () => {
     const otherPid = 99994;
     vi.setSystemTime(new Date("2026-01-01T00:00:00.000Z"));

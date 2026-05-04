@@ -48,6 +48,7 @@ import {
   acquireWorkerLock,
   HEARTBEAT_INTERVAL_MS,
   releaseWorkerLock,
+  type WorkerLockReclaimAudit,
 } from "./temporal/worker-lock";
 import { recordWorkerRunFailure } from "./temporal/retry-wrapper";
 
@@ -556,23 +557,59 @@ export function stopWorkerHealthMonitor(): void {
   }
 }
 
+export interface RestartCurrentProjectTemporalWorkerOptions {
+  approvedLockReclaim?: boolean;
+  approvalEvidence?: string;
+}
+
+export interface RestartCurrentProjectTemporalWorkerResult {
+  projectId: string;
+  queues: string[];
+  expectedQueue: string;
+  reclaim?: WorkerLockReclaimAudit;
+}
+
 export async function restartCurrentProjectTemporalWorker(
   projectDir: string,
-): Promise<{ projectId: string; queues: string[] }> {
+  options: RestartCurrentProjectTemporalWorkerOptions = {},
+): Promise<RestartCurrentProjectTemporalWorkerResult> {
   const projectId = await getProjectId(projectDir);
   if (!projectId) {
     throw new Error(
       "Cannot restart Temporal worker: no projectId for current directory",
     );
   }
+  const expectedQueue = buildProjectTaskQueue(projectId);
+
+  if (options.approvedLockReclaim && !options.approvalEvidence?.trim()) {
+    throw new Error(
+      "Cannot restart Temporal worker with approved lock reclaim: approvalEvidence is required",
+    );
+  }
 
   await drainInProcessTemporalWorkers();
   const projectStateDir = getExternalRoot(projectId);
   const runtime = await ensureTemporalRuntime(projectId);
-  const lock = await acquireWorkerLock(projectStateDir);
+  const lock = await acquireWorkerLock(projectStateDir, {
+    ...(options.approvedLockReclaim
+      ? {
+          approvedLiveLegacyReclaim: {
+            expectedQueue,
+            approvalEvidence: options.approvalEvidence!.trim(),
+          },
+        }
+      : {}),
+  });
   if (!lock.owned) {
-    throw new Error(
-      `Cannot restart Temporal worker: worker.lock held by pid=${lock.ownerPid}`,
+    throw Object.assign(
+      new Error(
+        `Cannot restart Temporal worker: worker.lock held by pid=${lock.ownerPid}`,
+      ),
+      {
+        code: "WORKER_LOCK_HELD",
+        ownerPid: lock.ownerPid,
+        lockPath: lock.lockPath,
+      },
     );
   }
 
@@ -587,13 +624,13 @@ export async function restartCurrentProjectTemporalWorker(
       ? await createInProcessWorker({
           address: runtime.address,
           namespace: runtime.namespace,
-          queues: [buildProjectTaskQueue(projectId)],
+          queues: [expectedQueue],
           onWorkerExhausted,
         })
       : await createOutOfProcessWorker({
           address: runtime.address,
           namespace: runtime.namespace,
-          queues: [buildProjectTaskQueue(projectId)],
+          queues: [expectedQueue],
           workerScript: resolveWorkerScriptPath(),
           projectId,
           onWorkerExhausted,
@@ -607,7 +644,12 @@ export async function restartCurrentProjectTemporalWorker(
     });
     registerOwnedWorkerHeartbeatWriter(projectStateDir, heartbeatWriter);
     registerOwnedWorkerLock(projectStateDir);
-    return { projectId, queues: [...worker.queues] };
+    return {
+      projectId,
+      queues: [...worker.queues],
+      expectedQueue,
+      ...(lock.reclaimed ? { reclaim: lock.reclaimed } : {}),
+    };
   } catch (err) {
     try {
       await releaseWorkerLock(projectStateDir);
