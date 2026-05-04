@@ -1,0 +1,375 @@
+/**
+ * Changes Domain Types
+ *
+ * ValidationResult (private), ChangeStatus, ChangeListStatusFilter,
+ * ChangeClosure, BulkClose, ReentryHistory, ClarifyFindingSnapshot,
+ * CrossProjectOrigin, CrossProjectLink, ExternalDependency, FastFollowOf,
+ * Change.
+ *
+ * Imports TaskSchema (./tasks), DeltaSchema (./specs), WisdomEntrySchema
+ * (./wisdom), GatesSchema/GateIdSchema (./gates), JudgmentCallSchema
+ * (./investment).
+ */
+
+import { z } from "zod";
+import { TaskSchema } from "./tasks";
+import { DeltaSchema } from "./specs";
+import { WisdomEntrySchema } from "./wisdom";
+import { GatesSchema, GateIdSchema } from "./gates";
+import { JudgmentCallSchema } from "./investment";
+
+// =============================================================================
+// Validation Result (private — used only by ChangeSchema)
+// =============================================================================
+
+const ValidationErrorSchema = z.object({
+  code: z.string(),
+  message: z.string(),
+  path: z.string().optional(),
+  details: z.record(z.string(), z.unknown()).optional(),
+});
+
+type _ValidationError = z.infer<typeof ValidationErrorSchema>;
+
+const ValidationWarningSchema = z.object({
+  code: z.string(),
+  message: z.string(),
+  path: z.string().optional(),
+});
+
+type _ValidationWarning = z.infer<typeof ValidationWarningSchema>;
+
+const ValidationResultSchema = z.object({
+  checked_against_specs: z.array(z.string()),
+  conflicts: z.array(ValidationErrorSchema),
+  warnings: z.array(ValidationWarningSchema),
+  validated_at: z.string().optional(),
+});
+
+type _ValidationResult = z.infer<typeof ValidationResultSchema>;
+
+// =============================================================================
+// Change Status
+// =============================================================================
+
+export const ChangeStatusSchema = z.enum([
+  "draft", // Being written
+  "pending", // Awaiting approval
+  "active", // In progress
+  "archived", // Completed and promoted
+  "closed", // Retired without completion
+]);
+
+export type ChangeStatus = z.infer<typeof ChangeStatusSchema>;
+
+/**
+ * Filter-only status value for adv_change_list.
+ * "in-flight" is a union filter (draft + pending + active), not a stored status.
+ */
+export const ChangeListStatusFilterSchema = z.union([
+  ChangeStatusSchema,
+  z.literal("in-flight"),
+]);
+
+const ChangeClosureReasonSchema = z.enum([
+  "cancelled",
+  "superseded",
+  "not_planned",
+]);
+
+type _ChangeClosureReason = z.infer<typeof ChangeClosureReasonSchema>;
+
+export const ChangeClosureSchema = z.object({
+  reason: ChangeClosureReasonSchema,
+  approved_by_user: z.literal(true),
+  approval_evidence: z.string(),
+  superseded_by: z.string().optional(),
+  approved_at: z.string(),
+});
+
+export type ChangeClosure = z.infer<typeof ChangeClosureSchema>;
+
+// =============================================================================
+// Bulk Close
+// =============================================================================
+
+export const BulkCloseExplicitSelectorSchema = z.object({
+  kind: z.literal("explicit"),
+  changeIds: z.array(z.string()).min(1),
+});
+
+export const BulkCloseFilterSelectorSchema = z.object({
+  kind: z.literal("filter"),
+  filter: z.object({
+    status: z.string().optional(),
+    titleContains: z.string().optional(),
+    prefix: z.string().optional(),
+    createdBefore: z.string().optional(),
+    lastActivityBefore: z.string().optional(),
+  }),
+});
+
+export const BulkCloseSelectorSchema = z.discriminatedUnion("kind", [
+  BulkCloseExplicitSelectorSchema,
+  BulkCloseFilterSelectorSchema,
+]);
+
+export type BulkCloseSelector = z.infer<typeof BulkCloseSelectorSchema>;
+
+export const BulkCloseResultSchema = z.object({
+  success: z.boolean(),
+  closed: z.number(),
+  results: z.array(
+    z.object({
+      changeId: z.string(),
+      success: z.boolean(),
+      error: z.string().optional(),
+    }),
+  ),
+  message: z.string(),
+});
+
+export type BulkCloseResult = z.infer<typeof BulkCloseResultSchema>;
+
+// =============================================================================
+// Re-Entry History (Scope Expansion Audit Trail)
+// =============================================================================
+
+/**
+ * A single re-entry event — recorded when mid-change scope expansion
+ * triggers a cascade reopen of gates back through discovery/design/planning.
+ *
+ * Append-only audit trail: each re-entry is a new entry, never modified.
+ */
+export const ReentryHistoryEntrySchema = z.object({
+  /** Gate to reopen FROM (this gate + all downstream reset to pending) */
+  from_gate: GateIdSchema,
+  /** Human-readable reason for the re-entry */
+  reason: z.string(),
+  /** Description of what scope was added/changed (optional) */
+  scope_delta: z.string().optional(),
+  /** Who triggered the re-entry (agent name, user, command) */
+  reopened_by: z.string(),
+  /** Optional audit evidence for the re-entry (for example, direct user instruction) */
+  approval_evidence: z.string().optional(),
+  /** ISO8601 timestamp when the re-entry was triggered */
+  reopened_at: z.string(),
+  /** Gate IDs that were reset to pending (from_gate + all downstream) */
+  gates_reset: z.array(GateIdSchema).nonempty(),
+});
+
+export type ReentryHistoryEntry = z.infer<typeof ReentryHistoryEntrySchema>;
+
+// =============================================================================
+// Clarify Finding Snapshot
+// =============================================================================
+
+/**
+ * A persisted snapshot of a clarify finding — enables resolution tracking.
+ * Findings are append-only; resolved status is set when the finding is addressed.
+ */
+export const ClarifyFindingSnapshotSchema = z.object({
+  /** Finding code (e.g., CLARIFY_MISSING_SUCCESS_CRITERIA) */
+  code: z.string(),
+  /** Severity of the finding */
+  severity: z.enum(["error", "warning", "info"]),
+  /** Human-readable finding message */
+  message: z.string(),
+  /** ISO8601 timestamp when this finding was first recorded */
+  recorded_at: z.string(),
+  /** Whether this finding has been resolved */
+  resolved: z.boolean().optional(),
+  /** ISO8601 timestamp when this finding was resolved */
+  resolved_at: z.string().optional(),
+});
+
+export type ClarifyFindingSnapshot = z.infer<
+  typeof ClarifyFindingSnapshotSchema
+>;
+
+// =============================================================================
+// Cross-Project Origin (Follow-up Change Provenance)
+// =============================================================================
+
+/**
+ * Provenance metadata for changes created from another project.
+ * Set when project A creates a follow-up change in project B (e.g. pokeedge
+ * backend creating a follow-up in pokeedge-web).
+ */
+export const CrossProjectOriginSchema = z.object({
+  /** Name of the source project that created this follow-up change */
+  source_project: z.string(),
+  /** Absolute path to the source project repository */
+  source_path: z.string(),
+  /** Change ID in the source project that triggered this follow-up */
+  source_change_id: z.string().optional(),
+  /** ISO8601 timestamp when the cross-project link was established */
+  linked_at: z.string(),
+});
+
+export type CrossProjectOrigin = z.infer<typeof CrossProjectOriginSchema>;
+
+export const CrossProjectLinkRelationshipSchema = z.enum([
+  "origin",
+  "follow_up",
+  "coordinates_with",
+  "depends_on",
+]);
+
+/**
+ * Outbound or inbound coordination link to a change in another project.
+ * Links are advisory/provenance metadata; each referenced project remains
+ * authoritative for its own change state.
+ */
+export const CrossProjectLinkSchema = z.object({
+  /** Absolute path to the linked project repository root */
+  target_path: z.string().min(1),
+  /** Stable ADV project ID for the linked repository, when known */
+  target_project_id: z
+    .string()
+    .regex(/^[0-9a-f]{40}$/)
+    .optional(),
+  /** Change ID in the linked project */
+  changeId: z.string().min(1),
+  /** Relationship between this change and the linked change */
+  relationship: CrossProjectLinkRelationshipSchema,
+  /** ISO8601 timestamp when the link was established */
+  linked_at: z.string(),
+});
+
+export type CrossProjectLink = z.infer<typeof CrossProjectLinkSchema>;
+
+export const ExternalDependencyRelationshipSchema = z.enum([
+  "requires",
+  "blocks",
+  "coordinates_with",
+]);
+
+/**
+ * Advisory dependency on a change, gate, or task in another project.
+ * V1 dependencies are intentionally non-blocking; unmet dependencies surface
+ * warnings/status only and do not block gates or archive.
+ */
+export const ExternalDependencySchema = z.object({
+  /** Absolute path to the dependency project repository root */
+  target_path: z.string().min(1),
+  /** Stable ADV project ID for the dependency repository, when known */
+  target_project_id: z
+    .string()
+    .regex(/^[0-9a-f]{40}$/)
+    .optional(),
+  /** Change ID in the dependency project */
+  changeId: z.string().min(1),
+  /** Optional gate that the dependency references */
+  gate: GateIdSchema.optional(),
+  /** Optional task that the dependency references */
+  taskId: z.string().min(1).optional(),
+  /** How this change relates to the external work */
+  relationship: ExternalDependencyRelationshipSchema,
+  /** V1 dependencies are advisory-only by agreement */
+  advisory: z.literal(true),
+});
+
+export type ExternalDependency = z.infer<typeof ExternalDependencySchema>;
+
+// =============================================================================
+// Fast Follow (Same-Project Follow-up Lineage)
+// =============================================================================
+
+/**
+ * Provenance metadata for changes created as a fast-follow within the same
+ * project. Set when a child change is created with `parent_change_id` to
+ * establish same-project lineage.
+ */
+export const FastFollowOfSchema = z.object({
+  /** Change ID of the parent change in the current project */
+  parent_change_id: z.string(),
+  /** ISO8601 timestamp when the fast-follow link was established */
+  linked_at: z.string(),
+});
+
+export type FastFollowOf = z.infer<typeof FastFollowOfSchema>;
+
+// =============================================================================
+// Change
+// =============================================================================
+
+export const ChangeSchema = z
+  .object({
+    $schema: z.string().optional(),
+    id: z.string(), // camelCase title
+    title: z.string(),
+    status: ChangeStatusSchema,
+    created_at: z.string(), // ISO8601
+    created_by: z.string().optional(),
+    // Optional with safe defaults so legacy / hand-authored change.json
+    // (lacking tasks or deltas) loads via adv_workflow_repair / adv_change_import
+    // without manual schema patching. Output type stays non-optional via
+    // .default() — callers continue to see Task[] / Record<string, Delta[]>.
+    // [F3 — fixes the "expected array/record, received undefined" rejection
+    // in workflow_repair surfaced during 2026-05-02 pokeedge cleanup]
+    tasks: z.array(TaskSchema).optional().default([]),
+    deltas: z.record(z.string(), z.array(DeltaSchema)).optional().default({}),
+    validation: ValidationResultSchema.optional(),
+    /** Accumulated wisdom/learnings for this change (optional, backwards compatible) */
+    wisdom: z.array(WisdomEntrySchema).optional(),
+    /** 7-gate quality checklist (optional, backwards compatible with migration) */
+    gates: GatesSchema.optional(),
+    /** Linked GitHub issue URLs (optional, backwards compatible) */
+    github_issues: z.array(z.string().url()).optional(),
+    /** Structured closure metadata for retired changes */
+    closure: ChangeClosureSchema.optional(),
+    /** Persisted clarify finding snapshots for resolution tracking */
+    clarify_findings: z.array(ClarifyFindingSnapshotSchema).optional(),
+    /** Append-only audit trail for scope-expansion re-entry events */
+    reentry_history: z.array(ReentryHistoryEntrySchema).optional(),
+    /**
+     * Investment check-in judgment calls (addCostTimeInvestment v1).
+     * Identified during /adv-prep Phase J; surfaced at /adv-apply Phase 1.5.
+     * Absence (undefined) marks a legacy pre-v1 change — /adv-apply Phase 1.5
+     * skips surfacing silently. Empty array marks a new-generation change
+     * with zero calls identified (Phase 1.5 still records batch_surfaced_at).
+     */
+    judgment_calls: z.array(JudgmentCallSchema).optional(),
+    /**
+     * ISO8601 timestamp recorded by /adv-apply Phase 1.5 after the judgment
+     * batch is surfaced (including the N=0 silent case) for auditability.
+     */
+    batch_surfaced_at: z.string().optional(),
+    /**
+     * Cross-project origin provenance — set when this change was created
+     * as a follow-up from another project. Presence signals to /adv-discover
+     * that origin validation is required before agreement.
+     */
+    cross_project_origin: CrossProjectOriginSchema.optional(),
+    /** Cross-project coordination links to changes in other projects. */
+    cross_project_links: z.array(CrossProjectLinkSchema).optional(),
+    /** Advisory external dependencies on changes/gates/tasks in other projects. */
+    external_dependencies: z.array(ExternalDependencySchema).optional(),
+    /**
+     * Same-project fast-follow lineage — set when this change was created
+     * as a follow-up to another change within the same project. Presence
+     * signals to /adv-discover that lineage validation is required.
+     */
+    fast_follow_of: FastFollowOfSchema.optional(),
+    /**
+     * Set when /adv-autopilot was invoked on this change. Marks the change as
+     * having been driven through the routine checkpoints under autopilot
+     * delegation rather than per-gate manual approval.
+     */
+    approval_mode: z.literal("autopilot").optional(),
+    /**
+     * ISO8601 timestamp when /adv-autopilot was invoked.
+     * Set once at the start of an autopilot run; not modified afterwards.
+     */
+    autopilot_invoked_at: z.string().optional(),
+    /**
+     * Temporal project ID that owns this change. Persisted on disk snapshots
+     * so the shared guard can detect cross-project context mismatches.
+     * Optional for legacy compatibility — ownerless changes are best-effort.
+     */
+    adv_project_id: z.string().optional(),
+  })
+  .passthrough(); // Allow extra fields for forward/backward compatibility
+
+export type Change = z.infer<typeof ChangeSchema>;
