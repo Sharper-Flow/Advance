@@ -19,7 +19,10 @@ import {
   createInProcessWorker,
   type InProcessWorker,
 } from "./temporal/in-process-worker";
-import type { HeartbeatWriter } from "./temporal/heartbeat-writer";
+import {
+  startHeartbeatWriter,
+  type HeartbeatWriter,
+} from "./temporal/heartbeat-writer";
 import { createOutOfProcessWorker } from "./temporal/out-of-process-worker";
 import {
   ensureTemporalRuntime,
@@ -41,7 +44,11 @@ import {
   createLogger,
 } from "./utils/debug-log";
 import { getExternalRoot, getProjectId } from "./utils/project-id";
-import { acquireWorkerLock, releaseWorkerLock } from "./temporal/worker-lock";
+import {
+  acquireWorkerLock,
+  HEARTBEAT_INTERVAL_MS,
+  releaseWorkerLock,
+} from "./temporal/worker-lock";
 import { recordWorkerRunFailure } from "./temporal/retry-wrapper";
 
 const debugLog = (msg: string): void => appendDebugLog("plugin-init", msg);
@@ -217,6 +224,12 @@ export async function tryInitStore(
       if (worker) {
         registerInProcessTemporalWorker(worker);
         if (lock?.owned === true && !forceInProcess) {
+          const heartbeatWriter = startHeartbeatWriter({
+            projectStateDir,
+            workerId: lock.workerId,
+            intervalMs: HEARTBEAT_INTERVAL_MS,
+          });
+          registerOwnedWorkerHeartbeatWriter(projectStateDir, heartbeatWriter);
           // Register lock release on worker shutdown — release happens
           // before worker.shutdown() so a fresh start can reclaim if
           // shutdown stalls.

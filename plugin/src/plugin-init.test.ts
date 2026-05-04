@@ -68,6 +68,10 @@ const mocks = vi.hoisted(() => {
     })),
     discoverProjectPaths: vi.fn(async () => []),
     runMigrationSweep: vi.fn(async () => ({})),
+    heartbeatWriter: {
+      stop: vi.fn(async () => {}),
+    },
+    startHeartbeatWriter: vi.fn(() => mocks.heartbeatWriter),
   };
 });
 
@@ -90,6 +94,7 @@ vi.mock("./utils/project-id", async () => {
 // arbitrary tmp paths. Default: every acquire reports owned (so spawn
 // path is exercised); individual tests override for not-owned coverage.
 vi.mock("./temporal/worker-lock", () => ({
+  HEARTBEAT_INTERVAL_MS: 5000,
   acquireWorkerLock: vi.fn(async (_dir: string) => ({
     owned: true,
     ownerPid: process.pid,
@@ -97,6 +102,10 @@ vi.mock("./temporal/worker-lock", () => ({
     lockPath: "/tmp/test/worker.lock",
   })),
   releaseWorkerLock: vi.fn(async () => {}),
+}));
+
+vi.mock("./temporal/heartbeat-writer", () => ({
+  startHeartbeatWriter: mocks.startHeartbeatWriter,
 }));
 
 vi.mock("./temporal/runtime-manager", async () => {
@@ -606,6 +615,8 @@ describe("tryInitStore worker singleton (C5 / rq-workerSingleton01)", () => {
       lockPath: "/tmp/test/worker.lock",
     }));
     (releaseWorkerLock as any).mockImplementation(async () => {});
+    mocks.startHeartbeatWriter.mockImplementation(() => mocks.heartbeatWriter);
+    mocks.heartbeatWriter.stop.mockImplementation(async () => {});
     delete process.env.ADV_FORCE_IN_PROCESS_WORKER;
   });
 
@@ -647,6 +658,35 @@ describe("tryInitStore worker singleton (C5 / rq-workerSingleton01)", () => {
     expect(mocks.createInProcessWorker).toHaveBeenCalledTimes(1);
   });
 
+  it("starts the heartbeat writer when this instance owns worker.lock", async () => {
+    mocks.getProjectId.mockResolvedValueOnce("proj-sha");
+
+    const { tryInitStore } = await import("./plugin-init");
+    await tryInitStore("/tmp/repo", "/tmp/external");
+
+    expect(mocks.startHeartbeatWriter).toHaveBeenCalledWith({
+      projectStateDir: "/tmp/external",
+      workerId: "test-worker-id",
+      intervalMs: 5000,
+    });
+  });
+
+  it("does not start heartbeat writer when worker.lock is owned by another instance", async () => {
+    mocks.getProjectId.mockResolvedValueOnce("proj-sha");
+    const { acquireWorkerLock } = await import("./temporal/worker-lock");
+    (acquireWorkerLock as any).mockResolvedValueOnce({
+      owned: false,
+      ownerPid: 99999,
+      lockPath: "/tmp/external/worker.lock",
+      reason: "lock_held_by_alive_pid",
+    });
+
+    const { tryInitStore } = await import("./plugin-init");
+    await tryInitStore("/tmp/repo", "/tmp/external");
+
+    expect(mocks.startHeartbeatWriter).not.toHaveBeenCalled();
+  });
+
   it("in-process onWorkerExhausted stops heartbeat, releases lock, records failure, and updates aliveness once", async () => {
     mocks.getProjectId.mockResolvedValueOnce("proj-sha");
     const ownedWorker = {
@@ -661,13 +701,10 @@ describe("tryInitStore worker singleton (C5 / rq-workerSingleton01)", () => {
     const { getLastWorkerRunError, resetTemporalRetryTelemetry } =
       await import("./temporal/retry-wrapper");
     resetTemporalRetryTelemetry();
-    const {
-      getTemporalWorkerAliveness,
-      registerOwnedWorkerHeartbeatWriter,
-      tryInitStore,
-    } = await import("./plugin-init");
+    const { getTemporalWorkerAliveness, tryInitStore } =
+      await import("./plugin-init");
     const heartbeatStop = vi.fn(async () => {});
-    registerOwnedWorkerHeartbeatWriter("/tmp/external", {
+    mocks.startHeartbeatWriter.mockReturnValueOnce({
       stop: heartbeatStop,
     });
 
