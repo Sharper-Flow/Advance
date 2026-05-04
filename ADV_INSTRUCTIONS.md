@@ -733,7 +733,7 @@ After each phase, use `adv_change_update` to record compact summaries. Do not du
 | `explore`        | Codebase navigation, find usages                                                                     | Read, Glob, Grep, lgrep                                         |
 | `adv-engineer`   | Delegated ADV code-writing executor (Working Directory Lock: must pass `workdir` to every tool call) | Full write (read/write/edit/bash) + narrow ADV reads + evidence |
 | `general`        | Verify-only bursts + generic multi-step non-ADV work                                                 | Full tool access                                                |
-| `mechanic`       | System/infra issues                                                                                  | Vision, bash, read/write                                        |
+| `mechanic`       | System/infra issues (MCP, config, ADV diagnostics)                                                   | Vision, bash, read/write, ADV read-only diagnostics             |
 | `adv-tron`       | Reconnaissance, hotspot detection                                                                    | Read, Glob, Grep, lgrep                                         |
 
 > **Note:** `adv-tron` is repo-local (requires `.opencode/agents/adv-tron.md`). `adv-researcher` / `adv-engineer` are bundled global specialists — synced to `~/.config/opencode/agents/` by `scripts/sync-global.sh`. All ADV-shipped sub-agents use `adv-<name>` naming.
@@ -941,9 +941,7 @@ Implication: spec changes in worktree A invisible to B until merged. `/adv-valid
 
 ### Worktree Cleanup
 
-`/adv-archive` Phase 9 handles: stage → commit → detect default branch → refresh basis → choose `--ff-only` / reconcile / PR path → verify → `adv_worktree_delete` → remove `.bak`/`.tmp`/`.orig`. × Never delete worktree with unmerged commits.
-
-If `adv_worktree_create`/`adv_worktree_delete` unavailable: `[ADV:BLOCKED] Worktree tools unavailable — hard block with error. Do not proceed in-place.`
+`/adv-archive` Phase 9 handles: stage → commit → detect default branch → refresh basis → choose `--ff-only` / reconcile / PR path → verify → `adv_worktree_delete` → remove `.bak`/`.tmp`/`.orig`. × Never delete worktree with unmerged commits. If worktree tools are unavailable: `[ADV:BLOCKED] Worktree tools unavailable — hard block with error. Do not proceed in-place.`
 
 ## When to Use ADV
 

@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.3] - 2026-05-04
+
 ### Fixed
 
 - **Archive Phase 9 no longer switches branches anywhere.** `/adv-archive` Phase 9 used to run `git checkout {default-branch} && git merge --ff-only` from the current workdir, which (a) hard-failed from a worktree because the default branch is already checked out in the main checkout (`fatal: 'trunk' is already used by worktree at <main>`), and (b) violated the invariant that the main checkout always stays on the default branch. Phase 9 now resolves the main checkout path once via `MAIN="$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")"`, hard-gates on a new Step 4.4 invariant check (main MUST be on default-branch and clean — ADV will not mutate main on the user's behalf), and runs all default-branch operations (fetch, merge, push, verify, hook detection) via `git -C "$MAIN" ...`. ADV never runs `git checkout` or `git switch` during archive. Companion fix to `~/.config/opencode/instructions/worktree-guide.md` mirrors the same pattern in the manual-cleanup guidance. Asset-test contract now enforces no-checkout in Phase 9.
@@ -16,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Session observability now includes same-worktree occupancy.** Startup emits `[ADV:WORKTREE_OCCUPANCY]` when multiple OpenCode sessions share one worktree, preserving privacy by reporting count only. `adv_session_list` entries now include `lastSeenAt` for freshness-aware operators while keeping full paths/PIDs private.
 - **Archive completeness validation at preflight.** `adv_change_archive` now calls `validateChange` between preflight checks and bundle creation. Validation errors block the archive; warnings are included in the response but do not block. Validation runs before the idempotent bundle-existence check so that retries also validate.
 - **Recommended rule P29 `clean-not-minimal`** documented in `SETUP.md` (sibling to P28). Replaces the earlier `smallest-reversible-solution` framing that pattern-matched to "minimize touch / minimize blast radius" and caused agents to suppress legitimate wider-architectural-change proposals. New wording instructs agents to optimize for clarity and surface bigger changes when they produce cleaner results, while preserving YAGNI/anti-speculation intent. Like P28, `rules.yaml` is user-managed — section documents the add-manually steps.
 - **Recommended rule P30 `docs-before-probing` + P16 strengthening** documented in `SETUP.md` (sibling to P28/P29). Targets the agent failure mode of probing external library behavior via test scripts, source reads, or extrapolation from existing repo usage when the official docs already answer the question authoritatively. P30 (priority 8) makes Context7 / official docs the mandatory first move when external API/framework/library behavior is unclear; probing is reserved as a fallback when docs are missing, ambiguous, or contradicted by observed behavior. P16 is broadened in scope from internal-only (repo docs/ADRs/workflows) to internal + external (library, framework, API, vendor docs) to set the broader "docs first" stance. Like P28/P29, `rules.yaml` stays user-managed; section documents both edits.
@@ -1124,7 +1127,8 @@ Implemented all 13 identified context leak surfaces where ADV drops important co
 - **Linting**: ESLint 9 with TypeScript support
 - **Formatting**: Prettier
 
-[Unreleased]: https://github.com/Sharper-Flow/Advance/compare/v0.8.2...HEAD
+[Unreleased]: https://github.com/Sharper-Flow/Advance/compare/v0.8.3...HEAD
+[0.8.3]: https://github.com/Sharper-Flow/Advance/compare/v0.8.2...v0.8.3
 [0.8.2]: https://github.com/Sharper-Flow/Advance/compare/v0.8.1...v0.8.2
 [0.8.1]: https://github.com/Sharper-Flow/Advance/compare/v0.8.0...v0.8.1
 [0.8.0]: https://github.com/Sharper-Flow/Advance/compare/v0.7.0...v0.8.0

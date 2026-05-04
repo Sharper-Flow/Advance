@@ -73,6 +73,8 @@ export interface SessionListEntry {
   worktree: string;
   /** True when this entry represents the caller's own session. */
   isSelf: boolean;
+  /** ISO 8601 time when the session was last observed active. Optional in v1. */
+  lastSeenAt?: string;
 }
 
 export interface SessionListResult {
@@ -104,6 +106,7 @@ export function projectSession(
     startedAt: record.startedAt,
     worktree: basename(record.worktreePath || ""),
     isSelf: record.pid === selfPid,
+    lastSeenAt: record.lastSeenAt || record.startedAt,
   };
 }
 

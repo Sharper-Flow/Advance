@@ -273,7 +273,7 @@ Sub-agent nesting depth enforced by `plugin/src/guards/task.ts` (`enforceTaskPol
 | `explore`        | Need codebase structure, find patterns                               | File paths, snippets, analysis        |
 | `adv-engineer`   | Delegate ADV code-writing execution (implementation, remediation fixes) | Completed changes + fenced ENGINEER_REPORT JSON payload |
 | `general`        | Need verify-only / generic multi-step bursts (lint/typecheck/test suites) | Completed changes or verify results (file:line refs) |
-| `mechanic`       | Tool/MCP/infra failure                                               | Diagnosis and fix                     |
+| `mechanic`       | Tool/MCP/infra/ADV diagnostics                                       | Diagnosis and fix (or recommendation for caller) |
 | `adv-researcher` | Need architecture validation (ADV-managed bundled global specialist) | Assessment with recommendations       |
 | `adv-tron`       | Codebase reconnaissance, hotspots, risk mapping                      | Structure + risk report               |
 | `prioritizer`    | Multi-approach tradeoff analysis needing criteria questions          | Draft criteria questions for the user |

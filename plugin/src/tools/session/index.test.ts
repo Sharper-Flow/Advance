@@ -237,6 +237,7 @@ describe("projectSession (T19 internal)", () => {
     expect(projectSession(record, 1000)).toEqual({
       sessionId: "sess_X",
       startedAt: "2026-05-01T00:00:00Z",
+      lastSeenAt: "2026-05-01T00:00:00Z",
       worktree: "worktree-feat",
       isSelf: true,
     });

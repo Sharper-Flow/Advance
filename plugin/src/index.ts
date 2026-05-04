@@ -358,6 +358,18 @@ const advancePluginImpl: Plugin = async ({ directory, worktree, project }) => {
           `[ADV:PEER_SESSIONS] ${peerCount} peer session(s) active in this project.`,
         );
       }
+
+      // Worktree occupancy marker: detect when >1 session shares the same
+      // worktree (CWD). Count-only; no peer PID/path/branch exposed.
+      // Privacy: we already have peer CWDs internally but only emit count.
+      const allCwds = [directory, ...peerSessions.map((p) => p.cwd)];
+      const myWorktree = directory;
+      const sameWorktree = allCwds.filter((cwd) => cwd === myWorktree);
+      if (sameWorktree.length > 1) {
+        hooksLogger.info(
+          `[ADV:WORKTREE_OCCUPANCY] ${sameWorktree.length} sessions share this worktree. Nominal 1:1 violated; continuing allowed.`,
+        );
+      }
     } catch (err) {
       // Best-effort detection; never block init on peer-detection failure.
       debugLog(`peer detection failed: ${(err as Error).message}`);
