@@ -629,3 +629,92 @@ describe("applyAdvSystemBlock", () => {
     expect(output.system[0]).toContain("[ADV:DEGRADED]");
   });
 });
+
+// ─── Trunk Guard Section ─────────────────────────────────────────────────
+
+describe("trunkGuardSection", () => {
+  it("fires when not in worktree with active change", () => {
+    const result = assembleSystemBlock(
+      cleanInput({
+        state: cleanState({
+          isWorktree: false,
+          activeChange: { id: "myChange", objective: "Build feature" },
+        }),
+      }),
+    );
+    expect(result).not.toBeNull();
+    expect(result).toContain("[ADV:TRUNK_GUARD]");
+    expect(result).toContain("myChange");
+  });
+
+  it("does not fire when in worktree", () => {
+    const result = assembleSystemBlock(
+      cleanInput({
+        state: cleanState({
+          isWorktree: true,
+          activeChange: { id: "myChange", objective: null },
+        }),
+      }),
+    );
+    expect(result).not.toContain("[ADV:TRUNK_GUARD]");
+  });
+
+  it("does not fire when no active change", () => {
+    const result = assembleSystemBlock(
+      cleanInput({
+        state: cleanState({
+          isWorktree: false,
+          activeChange: { id: null, objective: null },
+        }),
+      }),
+    );
+    // No active change → no sections fire → null result (or no trunk guard)
+    if (result === null) {
+      expect(result).toBeNull();
+    } else {
+      expect(result).not.toContain("[ADV:TRUNK_GUARD]");
+    }
+  });
+
+  it("includes worktree routing instruction", () => {
+    const result = assembleSystemBlock(
+      cleanInput({
+        state: cleanState({
+          isWorktree: false,
+          activeChange: { id: "myChange", objective: null },
+        }),
+      }),
+    );
+    expect(result).toContain("adv_worktree_create");
+    expect(result).toContain("worktree-first");
+  });
+
+  it("includes emergency override guidance", () => {
+    const result = assembleSystemBlock(
+      cleanInput({
+        state: cleanState({
+          isWorktree: false,
+          activeChange: { id: "myChange", objective: null },
+        }),
+      }),
+    );
+    expect(result).toContain("emergency");
+    expect(result).toContain("audit");
+  });
+
+  it("appears before active change section in output order", () => {
+    const result = assembleSystemBlock(
+      cleanInput({
+        state: cleanState({
+          isWorktree: false,
+          activeChange: { id: "myChange", objective: null },
+        }),
+      }),
+    );
+    expect(result).not.toBeNull();
+    // Trunk guard should appear before active change section
+    const trunkPos = result!.indexOf("[ADV:TRUNK_GUARD]");
+    const activePos = result!.indexOf("[ADV] Active change:");
+    expect(trunkPos).toBeLessThan(activePos);
+  });
+});
