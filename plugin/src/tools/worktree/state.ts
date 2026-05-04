@@ -450,6 +450,15 @@ export async function updateWorktreeRecord(
   );
 }
 
+/** Lookup one branch-aware workspace registry record by branch. */
+export async function getWorktreeRecord(
+  access: WorktreeStateAccess,
+  branch: string,
+): Promise<WorktreeRecord | null> {
+  const state = await readProjectState(access);
+  return state?.worktree_registry[branch] ?? null;
+}
+
 // =============================================================================
 // REGISTRY READS — for triage / inspection paths (T18, T22)
 // =============================================================================

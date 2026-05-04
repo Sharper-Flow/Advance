@@ -64,6 +64,7 @@ import {
   addSession,
   clearPendingDelete,
   getPendingDeletes,
+  getWorktreeRecord,
   getSession,
   getWorktreePath,
   inferChangeIdFromBranch,
@@ -968,6 +969,93 @@ export async function advWorktreeCreate(
   } finally {
     await releaseGitWorktreeFlock(projectStateDir);
   }
+}
+
+export type AdvWorktreeResumeTarget =
+  | { branch: string; changeId?: string }
+  | { changeId: string; branch?: string };
+
+export type AdvWorktreeResumeResult =
+  | {
+      ok: true;
+      branch: string;
+      path: string;
+      baseRef: string;
+      headSha: string;
+      reused: boolean;
+      materialized: true;
+    }
+  | {
+      ok: false;
+      error: "SETUP_FAILED";
+      branch: string;
+      path?: string;
+      reason: string;
+    }
+  | { ok: false; error: "TARGET_REQUIRED"; hint: string }
+  | Exclude<AdvWorktreeCreateResult, { ok: true }>;
+
+function branchFromResumeTarget(
+  target: AdvWorktreeResumeTarget,
+): string | null {
+  const branch = target.branch?.trim();
+  if (branch) return branch;
+  const changeId = target.changeId?.trim();
+  if (!changeId) return null;
+  return changeId.startsWith("change/") ? changeId : `change/${changeId}`;
+}
+
+export async function advWorktreeResume(
+  target: AdvWorktreeResumeTarget,
+  opts: { base?: string; force?: boolean } = {},
+  deps: AdvWorktreeCreateDeps,
+): Promise<AdvWorktreeResumeResult> {
+  const branch = branchFromResumeTarget(target);
+  if (!branch) {
+    return {
+      ok: false,
+      error: "TARGET_REQUIRED",
+      hint: "Pass either branch or changeId",
+    };
+  }
+
+  const record = await getWorktreeRecord(deps.database, branch);
+  if (
+    record?.status === "setup_failed" ||
+    (record?.materialized !== false && record?.setupReady === false)
+  ) {
+    return {
+      ok: false,
+      error: "SETUP_FAILED",
+      branch,
+      path: record.path,
+      reason: record.setupFailureReason ?? "worktree setup did not complete",
+    };
+  }
+
+  if (record?.materialized !== false && record?.path) {
+    if (await pathExists(record.path)) {
+      const headSha = (
+        await execGit(["rev-parse", "HEAD"], record.path)
+      ).trim();
+      return {
+        ok: true,
+        branch,
+        path: record.path,
+        baseRef: record.baseRef,
+        headSha,
+        reused: true,
+        materialized: true,
+      };
+    }
+  }
+
+  const result = await advWorktreeCreate(branch, opts, deps);
+  if (!result.ok) return result;
+  return {
+    ...result,
+    materialized: true,
+  };
 }
 
 // Legacy createWorktree — kept for backward compatibility during T10 transition.
