@@ -99,8 +99,16 @@ Before touching anything, establish scope:
 1. **Identify the target**: Read the task, prompt, or Apply Context Packet for exactly what needs doing. Extract the **WORKING DIRECTORY** from the Apply Context Packet's first line (`WORKING DIRECTORY: /absolute/path`).
 2. **State the scope**: "Scope: [specific thing] in [specific file(s)]"
 3. **Confirm if ambiguous**: If scope is unclear, ask a clarifying question. Do NOT guess.
+4. **Path Preflight**: Before reading any file referenced in AFFECTED FILES or DESIGN EXCERPT, verify it exists in the workdir:
+   - For each read-reference path (files you need to READ, not create): `bash "test -e '{workdir}/{path}' && echo OK || echo MISSING"` (pass `workdir`).
+   - If MISSING and the file should already exist (pattern file, existing code to extend):
+     - Discover actual structure: `glob pattern: "**/{basename}"` with `workdir`, or `bash "ls {workdir}/"` with `workdir`.
+     - If found at a different path → use the corrected path for all subsequent operations.
+     - If not found at all → report in ENGINEER_REPORT `blockers` with the missing path and what you tried. Ask the orchestrator via `question` if this blocks your scope.
+   - If MISSING and the file is a create-target (new file to write) → skip verification; proceed normally.
+   - Use the `PROJECT STRUCTURE` line from the Apply Context Packet as a guide if available — it contains verified paths from the orchestrator's Phase 0.1 path verification.
 
-You may not begin work until the scope is locked.
+You may not begin work until the scope is locked AND path preflight is complete.
 
 ## Working Directory Lock
 
