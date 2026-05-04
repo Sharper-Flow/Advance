@@ -680,7 +680,7 @@ async function getGateDivergenceHint(
 }
 
 const ARCHIVE_SEARCH_ATTRIBUTE_RECOVERY_HINT =
-  "Run adv_temporal_diagnose. If search attributes are missing or unverified, run adv_temporal_register_search_attributes, then adv_temporal_worker_restart, then retry archive.";
+  "Run adv_temporal_diagnose. If search attributes are missing or unverified, run adv_temporal_register_search_attributes, then adv_temporal_worker_restart (worker process only), then retry archive. Restart OpenCode for plugin tool-code drift; worker restart does not reload plugin/src/tools/*.ts.";
 
 function isSearchAttributeArchiveFailure(errorText: string): boolean {
   return /search attribute|SearchAttribute|upsertSearchAttributes|AdvChangeStatus|AdvChangeId/i.test(

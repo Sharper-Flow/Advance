@@ -185,6 +185,18 @@ describe("temporal operator tools", () => {
     vi.clearAllMocks();
   });
 
+  it("adv_temporal_worker_restart description clarifies worker-only reload scope", () => {
+    const description =
+      temporalOpsTools.adv_temporal_worker_restart.description;
+
+    expect(description).toContain("Temporal worker process");
+    expect(description).toContain("out-of-process Node child");
+    expect(description).toContain("Does NOT reload plugin tool code");
+    expect(description).toContain("plugin/src/tools/*.ts");
+    expect(description).toContain("pnpm run build:worker");
+    expect(description).toContain("dist/temporal");
+  });
+
   it("adv_temporal_worker_restart fires-and-forgets: invokes restart but returns immediately with verification hint", async () => {
     const store = { paths: { root: "/repo" } } as any;
     const result = await temporalOpsTools.adv_temporal_worker_restart.execute(
@@ -545,7 +557,7 @@ describe("temporal operator tools", () => {
     expect(parsed.searchAttributes.ok).toBe(false);
     expect(parsed.searchAttributes.verificationStatus).toBe("unverified");
     expect(parsed.recommendedNextAction).toBe(
-      "verify Temporal search-attribute health, run adv_temporal_reconnect or adv_temporal_worker_restart, then retry blocked tool",
+      "verify Temporal search-attribute health, run adv_temporal_reconnect or adv_temporal_worker_restart (worker process only), then retry blocked Temporal tool; restart OpenCode for plugin tool-code drift",
     );
   });
 
@@ -612,7 +624,7 @@ describe("temporal operator tools", () => {
       "AdvDoomLoopActive",
     ]);
     expect(parsed.nextAction).toBe(
-      "run adv_temporal_worker_restart, then retry the failed workflow update or archive command",
+      "run adv_temporal_worker_restart (worker process only), then retry the failed workflow update or archive command; restart OpenCode for plugin tool-code drift",
     );
     expect(
       bundle.connection.operatorService.addSearchAttributes,

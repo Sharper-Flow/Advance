@@ -134,7 +134,7 @@ function recommendTemporalRecovery(input: {
   if (!input.stslInitialized) return "restart OpenCode or initialize STSL";
   if (!input.searchAttributesOk) {
     if (input.searchAttributesVerificationStatus === "unverified") {
-      return "verify Temporal search-attribute health, run adv_temporal_reconnect or adv_temporal_worker_restart, then retry blocked tool";
+      return "verify Temporal search-attribute health, run adv_temporal_reconnect or adv_temporal_worker_restart (worker process only), then retry blocked Temporal tool; restart OpenCode for plugin tool-code drift";
     }
     return "run adv_temporal_register_search_attributes";
   }
@@ -147,7 +147,7 @@ function recommendTemporalRecovery(input: {
     return "normal recovery — peer worker spawn pending";
   }
   if (!input.health.worker_process_alive || !input.health.worker_alive) {
-    return "run adv_temporal_worker_restart";
+    return "run adv_temporal_worker_restart (worker process only); if diagnose is unchanged, inspect stale worker lock/project workflow before retrying";
   }
   if (input.health.stale_queues.length > 0)
     return "run adv_orphan_sweep dry-run";
@@ -165,7 +165,7 @@ function recommendPostRegistrationAction(input: {
   verificationStatus: "verified" | "unverified";
 }): string {
   if (input.createdCount > 0 || input.verificationStatus === "unverified") {
-    return "run adv_temporal_worker_restart, then retry the failed workflow update or archive command";
+    return "run adv_temporal_worker_restart (worker process only), then retry the failed workflow update or archive command; restart OpenCode for plugin tool-code drift";
   }
   if (!input.ok)
     return "run adv_temporal_diagnose and follow recommendedNextAction";
@@ -557,7 +557,7 @@ export const temporalOpsTools = {
 
   adv_temporal_worker_restart: {
     description:
-      "Initiate a fire-and-forget restart of the in-process Temporal worker for the current project. Returns immediately; verify completion via adv_status or adv_temporal_diagnose. Use when the respawn loop is exhausted or the worker is wedged.",
+      "Restart the project's Temporal worker process (out-of-process Node child on Bun hosts; in-process on Node hosts). Use when the worker is wedged or the respawn loop is exhausted. Does NOT reload plugin tool code in `plugin/src/tools/*.ts`; restart OpenCode itself to reload those host-loaded modules. If workflow or activity code in `plugin/src/temporal/` changed, run `pnpm run build:worker` before this tool because the worker loads from `dist/temporal/`. Returns immediately; verify completion via adv_status or adv_temporal_diagnose.",
     args: {},
     execute: async (_args: Record<string, never>, store: Store) => {
       // KD-5 fire-and-forget: kick off the restart asynchronously and

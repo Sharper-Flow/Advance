@@ -2494,7 +2494,10 @@ describe("Change Tools", () => {
           "adv_temporal_register_search_attributes",
         );
         expect(parsed.recoveryHint).toContain("adv_temporal_worker_restart");
+        expect(parsed.recoveryHint).toContain("worker process only");
         expect(parsed.recoveryHint).toContain("retry archive");
+        expect(parsed.recoveryHint).toContain("Restart OpenCode");
+        expect(parsed.recoveryHint).toContain("plugin/src/tools/*.ts");
       } finally {
         store.changes.save = originalSave;
       }

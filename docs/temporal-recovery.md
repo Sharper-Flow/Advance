@@ -328,9 +328,19 @@ adv_orphan_sweep dryRun: false approvedByUser: true approvalEvidence: "<how user
 ### External restart boundary
 
 Restart OpenCode only when diagnostics cannot run, the plugin is fully degraded
-to `ADV_PLUGIN_INIT_FAILED` stubs, or the host process itself is wedged. If ADV
-tools are live, prefer `adv_temporal_diagnose` first so recovery preserves
-evidence and avoids noisy retry loops.
+to `ADV_PLUGIN_INIT_FAILED` stubs, the host process itself is wedged, or edited
+plugin tool code must be reloaded. If ADV tools are live, prefer
+`adv_temporal_diagnose` first so recovery preserves evidence and avoids noisy
+retry loops.
+
+Reload paths are intentionally separate:
+
+| Changed or failed surface | Correct reload / recovery |
+| ------------------------- | ------------------------- |
+| `plugin/src/tools/*.ts` tool code | Restart OpenCode. `adv_temporal_worker_restart` does not reload host-loaded tool modules. |
+| `plugin/src/temporal/*` workflow, activity, or worker harness code | Run `pnpm run build:worker` in `plugin/`, then run `adv_temporal_worker_restart`. The worker loads from `dist/temporal/`. |
+| Wedged/exhausted Temporal worker process with unchanged source | Run `adv_temporal_worker_restart`, then verify with `adv_status` or `adv_temporal_diagnose`. |
+| Diagnose unchanged after worker restart | Stop repeating restart; inspect stale worker lock, stale queues, and project workflow recovery path. |
 
 ## Failed migration recovery
 
@@ -352,7 +362,7 @@ Use this when a project's import ledger is not `done`.
 3. Recover in order:
    - Register missing search attributes with `adv_temporal_register_search_attributes` when diagnosed
    - Reconnect stale STSL with `adv_temporal_reconnect` when diagnosed
-   - Restart the worker with `adv_temporal_worker_restart`
+   - Restart the worker with `adv_temporal_worker_restart` for worker liveness failures; if worker code changed, run `pnpm run build:worker` first
    - Re-check `adv_status`
    - If worker/STSL/search attributes are healthy but project or change workflow state is still wrong, run `adv_workflow_repair` with explicit user approval evidence
 4. Re-verify with `adv_status` until `migration_status.status` returns to `done`.
@@ -386,7 +396,7 @@ The Bun-host path uses one Node child per queue with restart backoff `1s -> 3s -
 | `server_alive=true`, `searchAttributes.ok=false` | Required ADV search attributes missing or wrong type | Run `adv_temporal_register_search_attributes` with approval, or manually fix wrong-type attrs |
 | `server_alive=true`, workers alive, service errors persist | Stale STSL connection/client | Run `adv_temporal_reconnect`, then `adv_temporal_diagnose` |
 | `server_alive=true`, `worker_alive=false`, `worker_lock.heartbeat_age_ms > 60000` | Stale heartbeat; peer worker spawn/reclaim is pending | Treat `normal recovery — peer worker spawn pending` as informational; start a fresh peer/session and re-check only if tools still time out |
-| `server_alive=true`, `worker_alive=true`, `worker_process_alive=false` | OOP child crashed and exhausted restart budget | Run `adv_temporal_worker_restart`; inspect `last_error` and `last_worker_run_error` |
+| `server_alive=true`, `worker_alive=true`, `worker_process_alive=false` | OOP child crashed and exhausted restart budget | Run `adv_temporal_worker_restart`; inspect `last_error` and `last_worker_run_error`. If source under `plugin/src/temporal/*` changed, run `pnpm run build:worker` first. |
 | `worker_alive=false`, `last_worker_run_error` populated | Worker.run failure or restart exhaustion already observed | Inspect the run-error message; fix the root cause before repeated restarts |
 | `worker_alive=false` | No worker registered (init failure or early bootstrap abort) | Check init logs, Node availability, and Temporal server reachability |
 | Bun host + init error about Node | Node binary not found | Install Node or set `ADV_NODE_PATH` |
