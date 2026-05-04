@@ -195,21 +195,6 @@ function providerSwitchSection(input: AssembleSystemBlockInput): string | null {
   );
 }
 
-/** Stable: trunk guard warning. Fires when NOT in a worktree but an active
- *  change exists — the agent is running on trunk/main and should route to
- *  a worktree before making any changes. Includes emergency override guidance. */
-function trunkGuardSection(input: AssembleSystemBlockInput): string | null {
-  const { isWorktree, activeChange } = input.state;
-  if (isWorktree || !activeChange.id) return null;
-  return [
-    `[ADV:TRUNK_GUARD] Active change ${activeChange.id} is running on trunk/main — NOT in a worktree.`,
-    "× MUST NOT execute write-capable tasks (implementation, file edits, test writes) on trunk/main.",
-    "→ Route to worktree: call adv_worktree_create with branch `change/${activeChange.id}`, then switch all workdir to the returned worktree path.",
-    "✓ emergency override: if the user explicitly requests trunk work (merge/push/deploy), document the reason and user approval as audit evidence in your next action, then proceed.",
-    "This worktree-first guard fires every turn until you are working in a worktree.",
-  ].join("\n");
-}
-
 /** Stable: worktree session marker. Fires when running inside a git
  *  worktree AND an active change is set. */
 function worktreeSection(input: AssembleSystemBlockInput): string | null {
@@ -312,7 +297,6 @@ export function assembleSystemBlock(
   const stable: string[] = [];
   const stableSections = [
     degradedSection,
-    trunkGuardSection,
     healthSection,
     providerSwitchSection,
     worktreeSection,

@@ -40,21 +40,7 @@ import {
   recordSystemBlockBytes,
   resetMetrics,
 } from "./utils/metrics";
-import { enforceBashPolicy, enforceConformanceBashPolicy } from "./guards/bash";
-import { enforceTaskPolicy } from "./guards/task";
-import {
-  enforceConformanceToolPolicy,
-  enforceConformancePathPolicy,
-} from "./guards/conformance";
-import type {
-  ConformanceCallerContext,
-  ConformancePathContext,
-} from "./guards/conformance";
-import {
-  enforceAdvStatePathPolicy,
-  getAdvStateLockedPaths,
-} from "./guards/adv-state";
-import { loadConformanceState } from "./storage/conformance";
+
 import { createToolMap, createDegradedToolMap } from "./tool-registry";
 import { appendDebugLog, createLogger } from "./utils/debug-log";
 import { detectPeerSessions } from "./utils/peer-sessions";
@@ -215,10 +201,7 @@ interface PluginState extends StatusFlags {
   isWorktree: boolean;
   /** True when current checkout is the main checkout resolved via git common-dir. */
   isMainCheckout: boolean;
-  /** Current active gate (set from adv_gate_complete output). Used by conformance guards. */
-  activeGate: string | null;
-  /** Cached locked sibling-repo conformance paths. Updated on adv_conformance calls. */
-  conformanceLockedPaths: string[];
+
   /** Last detected session-resume hazard to surface in system context. */
   lastSessionHealthIssue: SessionHealthIssue | null;
   /** Provider ID seen on the previous turn — drives provider-switch hint
@@ -362,8 +345,7 @@ const advancePluginImpl: Plugin = async ({ directory, worktree, project }) => {
     lastCompletedTask: null,
     isWorktree,
     isMainCheckout,
-    activeGate: null,
-    conformanceLockedPaths: [],
+
     lastSessionHealthIssue: null,
     lastProviderID: null,
   };
@@ -480,101 +462,11 @@ const advancePluginImpl: Plugin = async ({ directory, worktree, project }) => {
     });
   };
 
-  const inferActiveGate = async (
-    args: Record<string, unknown>,
-  ): Promise<ConformanceCallerContext["gate"]> => {
-    const gateOrder: Array<NonNullable<ConformanceCallerContext["gate"]>> = [
-      "proposal",
-      "discovery",
-      "design",
-      "planning",
-      "execution",
-      "acceptance",
-      "release",
-    ];
-    const changeId = args.changeId
-      ? String(args.changeId)
-      : state.activeChange.id;
-    if (!store || !changeId) {
-      return state.activeGate as ConformanceCallerContext["gate"];
-    }
-
-    const gates = await store.gates.get(changeId);
-    if (!gates) return state.activeGate as ConformanceCallerContext["gate"];
-
-    for (const gate of gateOrder) {
-      if (gates[gate]?.status !== "done") return gate;
-    }
-    return "release";
-  };
-
-  const refreshConformanceLockedPaths = async (): Promise<string[]> => {
-    if (!store?.paths.external) return [];
-    try {
-      const conformance = await loadConformanceState(
-        store.paths.external,
-        directory,
-      );
-      const lockedPaths =
-        conformance.conformance_root_kind === "sibling" &&
-        Object.values(conformance.specs).some(
-          (entry) => entry.conformance_required && entry.locked,
-        )
-          ? [conformance.conformance_root]
-          : [];
-      state.conformanceLockedPaths = lockedPaths;
-      return lockedPaths;
-    } catch (err) {
-      debugLog(
-        `conformance locked-path refresh failed: ${(err as Error).message}`,
-      );
-      return state.conformanceLockedPaths;
-    }
-  };
-
   const handleToolExecuteBefore = async (
     toolName: string,
     args: Record<string, unknown>,
     input: Record<string, unknown>,
   ) => {
-    const lockedPaths = await refreshConformanceLockedPaths();
-
-    if (toolName === "bash") {
-      const agent = typeof input.agent === "string" ? input.agent : "unknown";
-      const command = typeof args.command === "string" ? args.command : "";
-      enforceBashPolicy(agent, command, {
-        activeChangeId: state.activeChange.id,
-        isMainCheckout: state.isMainCheckout,
-      });
-      const conformanceBash = enforceConformanceBashPolicy(command, {
-        lockedSiblingRoots: lockedPaths,
-      });
-      if (conformanceBash.action === "block") {
-        throw new Error(conformanceBash.message);
-      }
-    }
-
-    // Conformance guards (rq-confDegradation01)
-    if (toolName === "adv_conformance") {
-      const callerCtx: ConformanceCallerContext = {
-        gate: await inferActiveGate(args),
-      };
-      enforceConformanceToolPolicy(toolName, callerCtx);
-    }
-    enforceConformancePathPolicy(toolName, args, {
-      lockedPaths,
-    } as ConformancePathContext);
-
-    // ADV-state path guard (rq-advStatePath01) — block read/glob/grep/lgrep_*
-    // against external state directories (/changes, /archive). Bash bypass is
-    // INTENTIONAL and documented in guards/adv-state.ts; defense for adversarial
-    // paths is instruction-based via AGENTS.md and ADV_INSTRUCTIONS.md.
-    if (store?.paths.external) {
-      enforceAdvStatePathPolicy(toolName, args, {
-        lockedPaths: getAdvStateLockedPaths(store.paths.external),
-      });
-    }
-
     if (args.changeId) {
       state.activeChange.id = String(args.changeId);
       setActiveChange(state.activeChange.id);
@@ -587,7 +479,6 @@ const advancePluginImpl: Plugin = async ({ directory, worktree, project }) => {
       // so session-based discrimination is the deterministic signal.
       const callerSessionId =
         typeof input.sessionID === "string" ? input.sessionID : undefined;
-      enforceTaskPolicy(state.activeSubAgents, callerSessionId, mainSessionId);
       debugLog(
         `Sub-agent spawned: count=${state.activeSubAgents + 1} callerSession=${callerSessionId ?? "unknown"} mainSession=${mainSessionId ?? "null"}`,
       );
@@ -801,23 +692,6 @@ const advancePluginImpl: Plugin = async ({ directory, worktree, project }) => {
         }
 
         // Track active gate from adv_gate_complete output
-        if (input.tool === "adv_gate_complete") {
-          try {
-            const afterInput = input as unknown as {
-              args?: Record<string, unknown>;
-            };
-            const gateId =
-              typeof afterInput.args?.gateId === "string"
-                ? afterInput.args.gateId
-                : null;
-            if (gateId) {
-              state.activeGate = gateId;
-              debugLog(`adv_gate_complete: set activeGate to ${gateId}`);
-            }
-          } catch {
-            // ignore parse errors
-          }
-        }
 
         // Handle sub-agent completion
         if (input.tool === "task") {

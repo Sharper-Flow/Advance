@@ -115,29 +115,6 @@
       ]
     },
     {
-      "id": "rq-wl-mainCheckoutGuard01",
-      "title": "Main-Checkout Branch-Switch Guard",
-      "body": "ADV plugin init must detect whether the current working directory is the main git checkout (via git rev-parse --path-format=absolute --git-common-dir). When an active change exists and the session is not in a worktree, a trunk guard must fire, blocking write-capable operations unless the user explicitly overrides with documented audit evidence.",
-      "priority": "must",
-      "tags": ["worktree", "safety", "guard"],
-      "scenarios": [
-        {
-          "id": "rq-wl-mainCheckoutGuard01.1",
-          "title": "Guard fires on main checkout",
-          "given": ["Session is in the main git checkout", "An active ADV change exists"],
-          "when": "The plugin initializes",
-          "then": ["A trunk guard banner is emitted", "Write-capable task operations are blocked"]
-        },
-        {
-          "id": "rq-wl-mainCheckoutGuard01.2",
-          "title": "Guard does not fire in worktree",
-          "given": ["Session is in a git worktree"],
-          "when": "The plugin initializes",
-          "then": ["No trunk guard banner is emitted"]
-        }
-      ]
-    },
-    {
       "id": "rq-wl-cleanupEligibility01",
       "title": "Cleanup Eligibility Tracking",
       "body": "Registry entries must track cleanupEligible and cleanupBlockedBy fields. Entries with status=merged and no active sessions should be cleanup-eligible. Entries with setup_failed or active sessions should not be cleanup-eligible, with cleanupBlockedBy documenting the reason.",

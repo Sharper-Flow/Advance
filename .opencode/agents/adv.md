@@ -265,7 +265,7 @@ Choose inline vs delegation for context continuity and progress tracking.
 
 ## Sub-Agent Policy
 
-Sub-agent nesting depth enforced by `plugin/src/guards/task.ts` (`enforceTaskPolicy`, depth ≤ 1, parallel cap 3). Primary agents (`adv`, `build`, `plan` + provider variants) may spawn up to 3 concurrent sub-agents; sub-agents are blocked from spawning further sub-agents. Only `mode: subagent` agents spawnable via Task tool.
+Sub-agent nesting depth and parallelism are agent-self-enforced (no runtime guard). Recommended limits: depth ≤ 1, max 3 concurrent sub-agents per primary agent. Only `mode: subagent` agents spawnable via Task tool.
 
 | Agent            | Spawn When                                                           | Returns                               |
 | ---------------- | -------------------------------------------------------------------- | ------------------------------------- |
