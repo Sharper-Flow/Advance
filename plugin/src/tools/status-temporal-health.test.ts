@@ -280,6 +280,50 @@ describe("adv_status temporal health/migration status (C4)", () => {
     );
   });
 
+  test("#33 suppresses stale queue recommendation when serviceability is proven by fresh poller", async () => {
+    mocks.getTemporalWorkerAliveness.mockReturnValue(false);
+    mocks.getTemporalWorkerDiagnostics.mockReturnValue([]);
+    mocks.getTemporalHealth.mockResolvedValueOnce({
+      server_alive: true,
+      worker_alive: false,
+      worker_process_alive: false,
+      registered_queues: [],
+      last_op_at: "2026-04-21T00:00:00.000Z",
+      last_error: null,
+      fallback_counts: getTemporalFallbackTelemetry(),
+      stale_queues: [{ queue: "advance-target-proj", running_count: 42 }],
+      reconnect_count: 0,
+      op_counters: [],
+      worker_lock: null,
+      last_worker_run_error: null,
+    });
+    mocks.getService.mockReturnValueOnce({
+      namespace: "default",
+      connection: {
+        workflowService: {
+          describeTaskQueue: vi.fn(async () => ({
+            pollers: [{ lastAccessTime: new Date() }],
+          })),
+        },
+      },
+    } as any);
+
+    (store.paths as { external?: string }).external =
+      "/home/jrede/.local/share/opencode/plugins/advance/target-proj";
+
+    const result = await statusTools.adv_status.execute(
+      { view: "health" },
+      store,
+    );
+    const parsed = parseToolOutput(result);
+
+    expect(parsed.temporal_queue_serviceability.status).toBe("serviceable");
+    expect(parsed.temporal_queue_serviceability.confidence).toBe("server");
+    expect(parsed.recommendations).not.toEqual(
+      expect.arrayContaining([expect.stringContaining("Stale Temporal queue")]),
+    );
+  });
+
   test("renders target queue serviceability separately from worker process health", async () => {
     mocks.getTemporalWorkerAliveness.mockReturnValue(false);
     mocks.getTemporalWorkerDiagnostics.mockReturnValue([]);

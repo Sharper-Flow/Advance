@@ -762,7 +762,12 @@ export const statusTools = {
           });
 
           if (temporalHealth.stale_queues.length > 0) {
+            const serviceableQueue =
+              queueServiceability?.serviceability.status === "serviceable"
+                ? queueServiceability.expectedQueue
+                : null;
             for (const sq of temporalHealth.stale_queues) {
+              if (sq.queue === serviceableQueue) continue;
               status.recommendations.push(
                 `⚠️ Stale Temporal queue \`${sq.queue}\` has ${sq.running_count} Running workflows older than 5 min with no local poller. See docs/temporal-recovery.md § "Stale \`adv/change/*\` and \`adv/project/*\` workflows".`,
               );
