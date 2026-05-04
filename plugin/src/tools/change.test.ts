@@ -3324,4 +3324,72 @@ describe("adv_change_reenter", () => {
     expect(parsed._contextSnapshot).toMatch(/\[✓ proposal\]/);
     expect(parsed._contextSnapshot).toMatch(/\[○ discovery\]/);
   });
+
+  // M2a (terminatechangeworkflowonarchi): reject reenter on terminal-status
+  // changes with an actionable domain error instead of letting the call
+  // proceed into Temporal and fail with an opaque "workflow already
+  // completed" error. Closed/archived workflows now Complete in Temporal
+  // (see plugin/src/temporal/workflows.ts terminal-state branch), so an
+  // executeUpdate on them would fail with WorkflowExecutionAlreadyCompleted
+  // — better to short-circuit at the tool layer with remediation guidance.
+  describe("rejects reenter on terminal-status changes (M2a)", () => {
+    test("returns domain error for archived change", async () => {
+      const changeResult = await store.changes.get("addFeature");
+      changeResult.data!.status = "archived";
+      await store.changes.save(changeResult.data!);
+
+      const result = await changeTools.adv_change_reenter.execute(
+        {
+          changeId: "addFeature",
+          fromGate: "discovery",
+          reason: "Should be rejected before reaching Temporal",
+        },
+        store,
+      );
+      const parsed = parseToolOutput(result);
+
+      expect(parsed.error).toMatch(/Cannot reenter archived change/);
+      expect(parsed.error).toMatch(/adv_workflow_repair/);
+      expect(parsed.changeId).toBe("addFeature");
+    });
+
+    test("returns domain error for closed change", async () => {
+      const changeResult = await store.changes.get("addFeature");
+      changeResult.data!.status = "closed";
+      await store.changes.save(changeResult.data!);
+
+      const result = await changeTools.adv_change_reenter.execute(
+        {
+          changeId: "addFeature",
+          fromGate: "discovery",
+          reason: "Should be rejected before reaching Temporal",
+        },
+        store,
+      );
+      const parsed = parseToolOutput(result);
+
+      expect(parsed.error).toMatch(/Cannot reenter closed change/);
+      expect(parsed.error).toMatch(/adv_workflow_repair/);
+      expect(parsed.changeId).toBe("addFeature");
+    });
+
+    test("still allows reenter on draft changes (does not over-reject)", async () => {
+      // Sanity: the new guard must NOT reject non-terminal statuses.
+      // addFeature defaults to draft.
+      await store.gates.complete("addFeature", "proposal");
+
+      const result = await changeTools.adv_change_reenter.execute(
+        {
+          changeId: "addFeature",
+          fromGate: "proposal",
+          reason: "Sanity: non-terminal still proceeds",
+        },
+        store,
+      );
+      const parsed = parseToolOutput(result);
+
+      expect(parsed.success).toBe(true);
+      expect(parsed.error).toBeUndefined();
+    });
+  });
 });

@@ -2154,6 +2154,20 @@ export const changeTools = {
         return formatToolOutput({ error: `Change not found: ${changeId}` });
       }
 
+      // M2a (terminatechangeworkflowonarchi): change workflows now Complete
+      // on archive/close. Reenter on a Completed workflow would fail with an
+      // opaque WorkflowExecutionAlreadyCompleted error from Temporal. Reject
+      // at the tool layer with a domain-level message and remediation hint.
+      if (
+        result.data.status === "archived" ||
+        result.data.status === "closed"
+      ) {
+        return formatToolOutput({
+          error: `Cannot reenter ${result.data.status} change ${changeId}. Reenter is for scope expansion on active changes; archived/closed changes cannot be reopened. Use adv_workflow_repair if a workflow needs re-creation.`,
+          changeId,
+        });
+      }
+
       try {
         await store.gates.reopenFrom(
           changeId,
