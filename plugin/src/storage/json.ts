@@ -126,9 +126,9 @@ export interface ProjectPaths {
   // Mutable (external when externalRoot is provided, else in-repo fallback)
   changes: string;
   archive: string;
-  db: string;
   wisdom: string;
   agenda: string;
+  reflections: string;
   projectMetadata: string;
 
   /** External root directory, or null when using legacy in-repo paths */
@@ -153,7 +153,6 @@ export function getProjectPaths(
     // like ".adv/changes" -> "changes", "my-changes" -> "my-changes"
     const changesDir = basename(config?.changes_dir ?? ".adv/changes");
     const archiveDir = basename(config?.archive_dir ?? ".adv/archive");
-    const dbDir = basename(config?.db_dir ?? ".adv/db");
 
     return {
       root,
@@ -162,9 +161,9 @@ export function getProjectPaths(
       config: configPath,
       changes: join(ext, changesDir),
       archive: join(ext, archiveDir),
-      db: join(ext, dbDir),
       wisdom: join(ext, "wisdom.jsonl"),
       agenda: join(ext, "agenda.jsonl"),
+      reflections: join(ext, "reflections.jsonl"),
       projectMetadata: join(ext, "project-metadata.json"),
       external: ext,
     };
@@ -178,9 +177,9 @@ export function getProjectPaths(
     config: configPath,
     changes: join(root, config?.changes_dir ?? ".adv/changes"),
     archive: join(root, config?.archive_dir ?? ".adv/archive"),
-    db: join(root, config?.db_dir ?? ".adv/db"),
     wisdom: join(root, ".adv/wisdom.jsonl"),
     agenda: join(root, ".adv/agenda.jsonl"),
+    reflections: join(root, ".adv/reflections.jsonl"),
     projectMetadata: join(root, ".adv/project-metadata.json"),
     external: null,
   };

@@ -52,9 +52,10 @@ describe("getProjectPaths", () => {
     expect(paths.specs).toBe("/project/.adv/specs");
     expect(paths.changes).toBe("/project/.adv/changes");
     expect(paths.archive).toBe("/project/.adv/archive");
-    expect(paths.db).toBe("/project/.adv/db");
+    expect("db" in paths).toBe(false);
     expect(paths.wisdom).toBe("/project/.adv/wisdom.jsonl");
     expect(paths.agenda).toBe("/project/.adv/agenda.jsonl");
+    expect(paths.reflections).toBe("/project/.adv/reflections.jsonl");
     expect(paths.projectMetadata).toBe("/project/.adv/project-metadata.json");
     expect("handoff" in paths).toBe(false);
     expect(paths.external).toBeNull();
@@ -66,7 +67,8 @@ describe("getProjectPaths", () => {
       db_dir: ".custom-db",
     });
     expect(paths.specs).toBe("/project/custom/specs");
-    expect(paths.db).toBe("/project/.custom-db");
+    expect("db" in paths).toBe(false);
+    expect(paths.reflections).toBe("/project/.adv/reflections.jsonl");
   });
 
   test("uses external root for mutable paths when provided", () => {
@@ -81,9 +83,10 @@ describe("getProjectPaths", () => {
     // Mutable paths go external
     expect(paths.changes).toBe("/ext/data/abc123/changes");
     expect(paths.archive).toBe("/ext/data/abc123/archive");
-    expect(paths.db).toBe("/ext/data/abc123/db");
+    expect("db" in paths).toBe(false);
     expect(paths.wisdom).toBe("/ext/data/abc123/wisdom.jsonl");
     expect(paths.agenda).toBe("/ext/data/abc123/agenda.jsonl");
+    expect(paths.reflections).toBe("/ext/data/abc123/reflections.jsonl");
     expect(paths.projectMetadata).toBe(
       "/ext/data/abc123/project-metadata.json",
     );
@@ -99,7 +102,8 @@ describe("getProjectPaths", () => {
     );
     // Custom subdirectory names applied within external root
     expect(paths.changes).toBe("/ext/data/abc123/my-changes");
-    expect(paths.db).toBe("/ext/data/abc123/my-db");
+    expect("db" in paths).toBe(false);
+    expect(paths.reflections).toBe("/ext/data/abc123/reflections.jsonl");
     // Specs still in-repo (unaffected by external)
     expect(paths.specs).toBe("/project/.adv/specs");
   });
