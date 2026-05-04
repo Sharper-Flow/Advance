@@ -14,7 +14,7 @@ plugin/              # TypeScript plugin (the only buildable package)
     tool-registry.ts # Binds all tool definitions to the SDK
     manifest.ts      # Command manifest (phases, gates, scopes)
     tools/           # MCP tool implementations (spec, change, task, gate, wisdom, agenda, test, status, project)
-    storage/         # JSON + SQLite persistence, migrations, handoff, external state
+    storage/         # Temporal-only persistence adapters, migrations, handoff, external state
     guards/          # Runtime policy enforcement (bash sanitization, task nesting + parallelism)
     validator/       # Spec validation, prep-readiness, task classification
     events/          # Terminal UI, status markers
@@ -24,7 +24,7 @@ plugin/              # TypeScript plugin (the only buildable package)
   schemas/           # JSON schema stubs ($ref pointers; Zod types in src/types.ts are authoritative)
 .adv/specs/          # Capability specs (the laws) — git-tracked, branch-local
 .opencode/
-  command/           # 24 slash-command workflow files (adv-*.md)
+  command/           # Slash-command workflow files (adv-*.md)
   agents/            # adv-researcher (bundled global), adv-engineer (bundled global), adv-tron (repo-local); overlay-managed: adv, plan (absorbed scout), build (absorbed refine)
   overlays/          # Managed overlay blocks synced into global shared agents
 skills/              # Bundled methodology skills synced to ~/.config/opencode/skills/

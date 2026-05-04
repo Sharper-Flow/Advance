@@ -71,7 +71,8 @@ start and passes them to `adv_investment_report` as the `thresholds` argument.
 **Note:** in v1, `escalate` and `hardstop` bands drive tier changes. Anything
 below `escalate` resolves to `auto`. The `auto` band is retained in config for
 user-facing guidance and future expansion, but changing `auto.*` alone does not
-change tier classification semantics.
+change tier classification semantics. Do not tune `auto.*` to make check-ins
+earlier or later; tune `escalate.*` and `hardstop.*` instead.
 
 | Want | Action |
 |---|---|
