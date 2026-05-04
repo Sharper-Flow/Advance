@@ -30,6 +30,7 @@ import {
   removeWorktreeSessionUpdate,
   setPendingWorktreeDeleteUpdate,
   unregisterSessionUpdate,
+  updateWorktreeRecordUpdate,
   updateSessionActivityUpdate,
 } from "../../temporal/messages";
 import type {
@@ -37,8 +38,10 @@ import type {
   ProjectWorkflowState,
   SessionRecord,
   MaterializedWorktreeRecord,
+  WorktreeRecord,
 } from "../../temporal/contracts";
 import type { OpencodeClient } from "../../utils/opencode-types";
+import type { UpdateWorktreeRecordPayload } from "../../temporal/project-state";
 import { appendDebugLog } from "../../utils/debug-log";
 import { getProjectId as getProjectIdRaw } from "../../utils/project-id";
 
@@ -429,6 +432,21 @@ export async function clearPendingDelete(
       });
     },
     () => undefined,
+  );
+}
+
+/** Upsert one branch-aware workspace registry record. */
+export async function updateWorktreeRecord(
+  access: WorktreeStateAccess,
+  payload: UpdateWorktreeRecordPayload,
+): Promise<WorktreeRecord | null> {
+  return withHandle(
+    access,
+    async (handle) =>
+      (await handle.executeUpdate(updateWorktreeRecordUpdate, {
+        args: [payload],
+      })) as WorktreeRecord,
+    () => null,
   );
 }
 
