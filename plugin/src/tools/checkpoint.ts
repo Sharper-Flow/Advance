@@ -529,7 +529,7 @@ export const checkpointTools = {
             checkpointRecorded: false,
             error: err instanceof Error ? err.message : String(err),
             remediation:
-              "Git checkpoint is clean but task-run ledger recording failed. Run adv_task_run_status, then retry checkpoint or record the ledger event before marking the task done.",
+              "Git checkpoint is clean but task-run ledger recording failed. Run adv_task_run_status, then retry checkpoint or record the ledger event. Do not mark the task done until adv_task_checkpoint returns checkpointRecorded:true.",
           } satisfies CheckpointResult);
         }
         // Clean tree — idempotent, no commit needed
@@ -714,7 +714,7 @@ export const checkpointTools = {
             touched_files: touchedFiles,
             error: err instanceof Error ? err.message : String(err),
             remediation:
-              "Git checkpoint commit succeeded but task-run ledger recording failed. Run adv_task_run_status, then retry checkpoint or record the ledger event before marking the task done.",
+              "Git checkpoint commit succeeded but task-run ledger recording failed. Run adv_task_run_status, then retry checkpoint or record the ledger event. Do not mark the task done until adv_task_checkpoint returns checkpointRecorded:true.",
           } satisfies CheckpointResult);
         }
         return formatToolOutput({

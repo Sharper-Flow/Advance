@@ -147,6 +147,18 @@ describe("adv_task_checkpoint drift guards", () => {
     expect(checkpointSection).toContain("verification");
   });
 
+  test("adv-apply.md blocks task completion on checkpointRecorded:false", () => {
+    const content = readCommand("adv-apply.md");
+    const checkpointSection = content.slice(
+      content.indexOf("3c.5. Checkpoint:"),
+      content.indexOf("3c.55. Post-delegation"),
+    );
+    expect(checkpointSection).toContain("checkpointRecorded:false");
+    expect(checkpointSection).toContain("adv_task_run_status");
+    expect(checkpointSection).toContain("checkpointRecorded:true");
+    expect(checkpointSection).toMatch(/MUST NOT.*adv_task_update.*done/s);
+  });
+
   test("adv-apply.md records durable task-run ledger steps without adding pauses", () => {
     const content = readCommand("adv-apply.md");
     const taskFlow = content.slice(content.indexOf("### Task Flow"));

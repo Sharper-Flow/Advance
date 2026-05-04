@@ -249,7 +249,8 @@ the cached STSL connection/client and reports reconnect counters before/after.
 ### Worker restart
 
 If diagnose reports `worker_process_alive=false` or no worker queues are
-registered, restart the worker:
+registered, restart the worker only when the expected queue is not blocked by a
+live suspect lock:
 
 ```bash
 adv_temporal_worker_restart
@@ -265,6 +266,8 @@ so callers can act without re-running blind restart loops.
 The restart output includes STSL status and recommends `adv_temporal_diagnose`
 if tools still fail. Keep worker restart and STSL reconnect conceptually
 separate: restart owns worker lifecycle; reconnect owns the client connection.
+`adv_temporal_reconnect` is STSL/client-only and is not a worker-registration or
+queue-serviceability recovery path.
 
 #### Approval-gated suspect live legacy v1 lock
 
@@ -284,9 +287,23 @@ adv_temporal_worker_restart \
 ```
 
 Approved reclaim records prior PID, schema version, expected queue, and the
-approval evidence in the lock audit trail. Healthy v2 locks (heartbeat fresh)
-are never reclaimed by this path; their stale-heartbeat path is described
-below.
+approval evidence in the lock audit trail. Healthy serviceable v2 locks
+(heartbeat fresh) are never reclaimed by this path; their stale-heartbeat path
+is described below.
+
+#### Approval-gated fresh v2 unserviceable lock
+
+A fresh v2 heartbeat proves the lock holder process is still renewing the lock;
+it does **not** prove the expected Temporal task queue is serviceable. If
+diagnose reports `worker_lock.schema_version=2`, a fresh heartbeat, and
+`queue_serviceability.status="not_serviceable"`, the lock is suspect rather than
+healthy.
+
+The restart tool refuses blind reclaim and returns
+`reason: "suspect_live_unserviceable_lock"`, `approvalRequired: true`, and a
+recommendation to restart the owning OpenCode session or rerun with explicit
+approval evidence. Do not use `adv_temporal_reconnect` for this shape; reconnect
+only refreshes the STSL/client plane and cannot make a worker poll a queue.
 
 #### Bounded recovery at the project-workflow access seam
 
@@ -463,6 +480,7 @@ The Bun-host path uses one Node child per queue with restart backoff `1s -> 3s -
 | `server_alive=true`, `worker_alive=false`, `worker_lock.heartbeat_age_ms > 60000`                                       | Stale heartbeat; peer worker spawn/reclaim is pending                                   | Treat `normal recovery — peer worker spawn pending` as informational; start a fresh peer/session and re-check only if tools still time out                                                                  |
 | `server_alive=true`, `worker_alive=true`, `worker_process_alive=false`                                                  | OOP child crashed and exhausted restart budget                                          | Run `adv_temporal_worker_restart`; inspect `last_error` and `last_worker_run_error`. If source under `plugin/src/temporal/*` changed, run `pnpm run build:worker` first.                                    |
 | `worker_alive=false`, `worker_lock.schema_version=1`, alive `holder_pid`, no `last_heartbeat_at`, queue not serviceable | Suspect live legacy v1 worker.lock — wedged owner OR peer that genuinely owns the queue | `adv_temporal_worker_restart` returns `approvalRequired: true`. Either restart the owning OpenCode session, or rerun with `approvedLockReclaim: true` + `approvalEvidence`. Do not run blind restart loops. |
+| `worker_alive=false`, `worker_lock.schema_version=2`, fresh heartbeat, queue not serviceable                            | Suspect live v2 worker.lock — holder is alive but not serving expected queue            | `adv_temporal_worker_restart` returns `approvalRequired: true`. Restart the owning session or rerun with approval evidence. Do not run `adv_temporal_reconnect` or blind restart loops.                     |
 | `worker_alive=false`, `last_worker_run_error` populated                                                                 | Worker.run failure or restart exhaustion already observed                               | Inspect the run-error message; fix the root cause before repeated restarts                                                                                                                                  |
 | `worker_alive=false`                                                                                                    | No worker registered (init failure or early bootstrap abort)                            | Check init logs, Node availability, and Temporal server reachability                                                                                                                                        |
 | Bun host + init error about Node                                                                                        | Node binary not found                                                                   | Install Node or set `ADV_NODE_PATH`                                                                                                                                                                         |

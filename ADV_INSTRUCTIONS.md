@@ -40,10 +40,10 @@ Per-phase collaboration mode. Planning gate machine-enforced via `adv_gate_compl
 
 In autonomous phases (`/adv-review`, `/adv-harden`), before auto-remediating ask: "Will `proposal.md`'s **Success Criteria**, **Acceptance Criteria**, or **Out-of-Scope** sections need to change?"
 
-| Answer | Action |
-|---|---|
-| YES | STOP. Present finding via `question` tool (`[ADV:ATTN]`). |
-| NO | Auto-remediate within scope. |
+| Answer | Action                                                    |
+| ------ | --------------------------------------------------------- |
+| YES    | STOP. Present finding via `question` tool (`[ADV:ATTN]`). |
+| NO     | Auto-remediate within scope.                              |
 
 ### Prep Gate Machine Enforcement
 
@@ -64,10 +64,10 @@ ADV pauses ONLY at these checkpoints:
 
 **Approval surface:** Human checkpoints listed above MUST use inline handoff text per `docs/command-voice-standard.md` § Inline Approval Voice — NOT the `question` tool. Spec ref: `rq-inlineApproval01`. Doom-loop recovery uses `question` tool (safety-critical structured choices).
 
-| Tier | Checkpoints | Parser |
-|---|---|---|
-| A (reversible) | proposal, agreement, design, prep, acceptance | whitelist + LLM fallback |
-| B (irreversible) | archive sign-off, cancellation | whitelist-only, NO LLM fallback |
+| Tier             | Checkpoints                                   | Parser                          |
+| ---------------- | --------------------------------------------- | ------------------------------- |
+| A (reversible)   | proposal, agreement, design, prep, acceptance | whitelist + LLM fallback        |
+| B (irreversible) | archive sign-off, cancellation                | whitelist-only, NO LLM fallback |
 
 Archive sign-off executes inline in the same response as the whitelist match — no separate confirmation-echo turn.
 
@@ -79,14 +79,14 @@ Tier A whitelist reply (continue, go, approve, yes, ok, proceed, accept, lgtm, e
 
 Only system-level interrupts cause pauses between checkpoints:
 
-| Interrupt | Trigger |
-|---|---|
-| Doom-loop | 3 failed task attempts |
-| Cost governance / investment check-in | judgment calls to surface |
-| Drift detection | auto-fix boundary exceeded in review/harden |
-| Contract-compromise risk | identified during design |
-| Design validator `CONFLICT` | verdict requires user resolution |
-| Prep gate machine enforcement | `userApproved` required |
+| Interrupt                             | Trigger                                     |
+| ------------------------------------- | ------------------------------------------- |
+| Doom-loop                             | 3 failed task attempts                      |
+| Cost governance / investment check-in | judgment calls to surface                   |
+| Drift detection                       | auto-fix boundary exceeded in review/harden |
+| Contract-compromise risk              | identified during design                    |
+| Design validator `CONFLICT`           | verdict requires user resolution            |
+| Prep gate machine enforcement         | `userApproved` required                     |
 
 No other pauses or "shall I continue?" prompts permitted.
 
@@ -94,19 +94,19 @@ No other pauses or "shall I continue?" prompts permitted.
 
 Each workflow command has a defined phase goal. Canonical in `manifest.ts` (`phaseGoal` field on `CommandDef`). Self-check: "Am I still working toward this phase's goal?"
 
-| Phase           | Goal                                                                                                                          |
-| --------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| `/adv-proposal` | Clarify the problem, user needs, and acceptance criteria scope. Establish _what_ and _why_ — no _how_.                        |
-| `/adv-research` | Produce a defined, fully-researched proposed plan ready for user approval. Validate the _how_.                                |
-| `/adv-discover` | Gather current-state evidence, resolve agreement, and capture objectives and acceptance criteria before design.               |
-| `/adv-design`   | Convert the approved agreement into a validated implementation strategy ready for planning.                                   |
-| `/adv-prep`     | Complete the flight-check: every gap closed, every dependency mapped, every task ready — ready for autonomous implementation. |
-| `/adv-apply`    | Execute the approved plan autonomously. Add discovered tasks within scope. Escalate only on failure.                          |
-| `/adv-review`   | Verify implementation matches the approved plan. Auto-fix within scope. Stop on drift.                                        |
-| `/adv-harden`   | Verify production-readiness. Auto-fix scoped issues. Stop on drift.                                                           |
-| `/adv-archive`  | Promote the change from contract to law: apply spec deltas, capture wisdom, clean up.                                         |
-| `/adv-autopilot` | Execute a full change pipeline autonomously, delegating routine human checkpoints while preserving all safety boundaries.    |
-| `/adv-reflect`  | Synthesize post-completion learnings into a durable reflection artifact for process improvement.                              |
+| Phase            | Goal                                                                                                                          |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `/adv-proposal`  | Clarify the problem, user needs, and acceptance criteria scope. Establish _what_ and _why_ — no _how_.                        |
+| `/adv-research`  | Produce a defined, fully-researched proposed plan ready for user approval. Validate the _how_.                                |
+| `/adv-discover`  | Gather current-state evidence, resolve agreement, and capture objectives and acceptance criteria before design.               |
+| `/adv-design`    | Convert the approved agreement into a validated implementation strategy ready for planning.                                   |
+| `/adv-prep`      | Complete the flight-check: every gap closed, every dependency mapped, every task ready — ready for autonomous implementation. |
+| `/adv-apply`     | Execute the approved plan autonomously. Add discovered tasks within scope. Escalate only on failure.                          |
+| `/adv-review`    | Verify implementation matches the approved plan. Auto-fix within scope. Stop on drift.                                        |
+| `/adv-harden`    | Verify production-readiness. Auto-fix scoped issues. Stop on drift.                                                           |
+| `/adv-archive`   | Promote the change from contract to law: apply spec deltas, capture wisdom, clean up.                                         |
+| `/adv-autopilot` | Execute a full change pipeline autonomously, delegating routine human checkpoints while preserving all safety boundaries.     |
+| `/adv-reflect`   | Synthesize post-completion learnings into a durable reflection artifact for process improvement.                              |
 
 ## Commands
 
@@ -121,7 +121,7 @@ Each workflow command has a defined phase goal. Canonical in `manifest.ts` (`pha
 | `/adv-validate <change-id>` | Validate change compliance against specs; block archive on failure                  |
 | `/adv-apply <change-id>`    | Implement change with TDD, retry on failure, and final verification                 |
 | `/adv-archive <change-id>`  | Archive completed change: apply spec deltas and finalize git                        |
-| `/adv-reflect <change-id>`  | Produce a structured two-plane reflection report for an archived change                              |
+| `/adv-reflect <change-id>`  | Produce a structured two-plane reflection report for an archived change             |
 
 ### Pre-Implementation
 
@@ -135,14 +135,14 @@ Each workflow command has a defined phase goal. Canonical in `manifest.ts` (`pha
 
 ### Post-Implementation
 
-| Command                   | Purpose                                                                                 |
-| ------------------------- | --------------------------------------------------------------------------------------- |
-| `/adv-review <change-id>` | Review code for correctness, security, and architecture; emit REVIEW_FINDINGS           |
-| `/adv-harden <change-id>` | Detect low-quality code, verify test coverage, clean up; block archive on open findings |
-| `/adv-audit [capability]` | Detect drift between specs and current implementation                                   |
-| `/adv-slop-scan [path]`   | Scan for AI slop patterns including defensive and nested code                           |
+| Command                   | Purpose                                                                                              |
+| ------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `/adv-review <change-id>` | Review code for correctness, security, and architecture; emit REVIEW_FINDINGS                        |
+| `/adv-harden <change-id>` | Detect low-quality code, verify test coverage, clean up; block archive on open findings              |
+| `/adv-audit [capability]` | Detect drift between specs and current implementation                                                |
+| `/adv-slop-scan [path]`   | Scan for AI slop patterns including defensive and nested code                                        |
 | `/adv-arch-scan [path]`   | Scan for architecture inconsistencies using deterministic tools, research fallback, and AI heuristic |
-| `/adv-comp-scan <target>` | Scan competitor capabilities against this project for competitive intelligence          |
+| `/adv-comp-scan <target>` | Scan competitor capabilities against this project for competitive intelligence                       |
 
 ### Fast-Track / Advanced
 
@@ -157,17 +157,17 @@ Each workflow command has a defined phase goal. Canonical in `manifest.ts` (`pha
 
 ## Command Boundaries
 
-| Command  | Produces                                    | × MUST NOT                                      | Gate            |
-| -------- | ------------------------------------------- | ----------------------------------------------- | --------------- |
-| proposal | Problem statement, criteria, constraints    | Create tasks, complete gates, impl decisions    | None            |
-| discover | Current-state evidence, objectives, agreement, acceptance criteria | Create tasks, complete non-discovery gates | discovery       |
-| design   | Validated implementation strategy           | Create tasks, bypass validator                  | design          |
-| prep     | Task graph, gap analysis, sequencing        | Complete non-planning gates, architecture decisions | planning     |
-| task     | Change + tasks + gates (fast-track exempt)  | —                                               | discovery + planning |
-| apply    | Implementation via TDD                      | Auto-complete discovery/planning gates          | execution       |
-| review   | Review findings and acceptance evidence     | Archive, release, or expand scope silently      | acceptance      |
-| archive  | Spec promotion, release readiness, cleanup  | Skip validation, conformance, or sign-off       | release         |
-| reflect  | Reflection report (JSON + Markdown), friction analysis, improvement suggestions | Mutate change state, tasks, or gates; block archive when invoked from it | None            |
+| Command  | Produces                                                                        | × MUST NOT                                                               | Gate                 |
+| -------- | ------------------------------------------------------------------------------- | ------------------------------------------------------------------------ | -------------------- |
+| proposal | Problem statement, criteria, constraints                                        | Create tasks, complete gates, impl decisions                             | None                 |
+| discover | Current-state evidence, objectives, agreement, acceptance criteria              | Create tasks, complete non-discovery gates                               | discovery            |
+| design   | Validated implementation strategy                                               | Create tasks, bypass validator                                           | design               |
+| prep     | Task graph, gap analysis, sequencing                                            | Complete non-planning gates, architecture decisions                      | planning             |
+| task     | Change + tasks + gates (fast-track exempt)                                      | —                                                                        | discovery + planning |
+| apply    | Implementation via TDD                                                          | Auto-complete discovery/planning gates                                   | execution            |
+| review   | Review findings and acceptance evidence                                         | Archive, release, or expand scope silently                               | acceptance           |
+| archive  | Spec promotion, release readiness, cleanup                                      | Skip validation, conformance, or sign-off                                | release              |
+| reflect  | Reflection report (JSON + Markdown), friction analysis, improvement suggestions | Mutate change state, tasks, or gates; block archive when invoked from it | None                 |
 
 - Only `/adv-prep` (and exempt `/adv-task`) may call `adv_task_add`
 - `/adv-apply` stops if discovery or planning gates pending
@@ -177,17 +177,17 @@ Each workflow command has a defined phase goal. Canonical in `manifest.ts` (`pha
 
 Emit at START of each response:
 
-| Marker                     | When                                                | Emoji |
-| -------------------------- | --------------------------------------------------- | ----- |
-| `[ADV:WORK]`               | Agent actively working                              | 🟩    |
-| `[ADV:TOOLING]`            | Tool run or sub-agent in flight                     | 🟨    |
-| `[ADV:ATTN]`               | User needed (permission pending, approval, or question) | 🟥    |
+| Marker                     | When                                                          | Emoji |
+| -------------------------- | ------------------------------------------------------------- | ----- |
+| `[ADV:WORK]`               | Agent actively working                                        | 🟩    |
+| `[ADV:TOOLING]`            | Tool run or sub-agent in flight                               | 🟨    |
+| `[ADV:ATTN]`               | User needed (permission pending, approval, or question)       | 🟥    |
 | `[ADV:IDLE]`               | Agent idle, no action needed (session start or finished work) | ⬜    |
-| `[ADV:BLOCKED]`            | Doom-loop / stuck / crash                           | 🟥💀  |
-| `[ADV:TASK_STATUS_REPORT]` | Task report                                         | —     |
-| `[ADV:SKILL_CREATED]`      | Auto-created skill persisted (skill name, domain)   | 🟦    |
-| `[ADV:REFLECTION]`         | Reflection report emitted                           | 🟪    |
-| `[ADV:PEER_SESSIONS]`      | Informational; peer sessions detected in same project | ⬜    |
+| `[ADV:BLOCKED]`            | Doom-loop / stuck / crash                                     | 🟥💀  |
+| `[ADV:TASK_STATUS_REPORT]` | Task report                                                   | —     |
+| `[ADV:SKILL_CREATED]`      | Auto-created skill persisted (skill name, domain)             | 🟦    |
+| `[ADV:REFLECTION]`         | Reflection report emitted                                     | 🟪    |
+| `[ADV:PEER_SESSIONS]`      | Informational; peer sessions detected in same project         | ⬜    |
 
 Tab title: `<emoji> <shortname> · <normalized change>` when a change is active, or `<emoji> <shortname>` when idle. System-emitted: `[ADV:ACCUMULATED_WISDOM]`, `[ADV:TODO_CONTINUATION]`, `[ADV:RECORD_WISDOM]`
 
@@ -291,12 +291,12 @@ this single call collapses the legacy quartet
 (`adv_change_show + adv_gate_status + adv_task_ready + adv_task_run_status`)
 into one round trip:
 
-| Flag | Attached field | Replaces |
-|---|---|---|
-| `include.snapshot: true` | `_contextSnapshot` (top-level rendered string) | `adv_change_show` proposal/gate-row reading + manual reconstruction |
-| `include.ledger: true` | `_ledger` (TaskRunState for in-progress task or `null`) | `adv_task_run_status taskId: <id>` |
-| `include.readyTasks: true` | `_readyTasks` (top-N) + `_readyTasksMeta` (`{ total, limit, blockedCount }`) | `adv_task_ready changeId: <id>` |
-| `include.readyTasksLimit: N` (1-50) | overrides default top-10 slice | — |
+| Flag                                | Attached field                                                               | Replaces                                                            |
+| ----------------------------------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| `include.snapshot: true`            | `_contextSnapshot` (top-level rendered string)                               | `adv_change_show` proposal/gate-row reading + manual reconstruction |
+| `include.ledger: true`              | `_ledger` (TaskRunState for in-progress task or `null`)                      | `adv_task_run_status taskId: <id>`                                  |
+| `include.readyTasks: true`          | `_readyTasks` (top-N) + `_readyTasksMeta` (`{ total, limit, blockedCount }`) | `adv_task_ready changeId: <id>`                                     |
+| `include.readyTasksLimit: N` (1-50) | overrides default top-10 slice                                               | —                                                                   |
 
 Default behavior is preserved when `include` is omitted (legacy callers and read-only inspections continue to work unchanged).
 
@@ -319,44 +319,53 @@ Inline TDD is default — red/green phases WITHIN each task. × Do NOT create se
 
 Post-completion two-plane analysis for every archived change. Tool: `adv_reflect`. Persisted in `reflections.jsonl` in ADV state directory.
 
-| Aspect | Detail |
-|---|---|
-| Plane 1 — Project Execution | Efficiency, quality, process adherence, wisdom captured |
-| Plane 2 — System Friction | Tool gaps, workarounds, missing capabilities, doc gaps, UX friction, provider-specific issues |
-| Triggers | Auto during archive/release flow; manual via `/adv-reflect <change-id>` |
-| Audience | Informational — human review; does NOT trigger autonomous process modification |
-| Retrieval | `adv_change_show` for archived changes |
+| Aspect                      | Detail                                                                                        |
+| --------------------------- | --------------------------------------------------------------------------------------------- |
+| Plane 1 — Project Execution | Efficiency, quality, process adherence, wisdom captured                                       |
+| Plane 2 — System Friction   | Tool gaps, workarounds, missing capabilities, doc gaps, UX friction, provider-specific issues |
+| Triggers                    | Auto during archive/release flow; manual via `/adv-reflect <change-id>`                       |
+| Audience                    | Informational — human review; does NOT trigger autonomous process modification                |
+| Retrieval                   | `adv_change_show` for archived changes                                                        |
 
 ### Task Checkpoint Commits
+
 Every `/adv-apply` task with file changes in its workdir MUST produce a git commit via `adv_task_checkpoint` before transitioning to `status:'done'`. Cancellations MUST checkpoint before `status:'cancelled'`. Enforcement is at the `/adv-apply` command seam (step 3c.5), not in `adv_task_update` itself.
 
 **Durable Task-Run Ledger.**
+
 <!-- rq-taskRunLedger01 -->
+
 Each `/adv-apply` task records a durable task-run ledger in Temporal. Use `adv_task_run_status` to recover the current phase, `requiredNextAction`, resume hint, baseline, evidence, verification, checkpoint, and recent events after context loss or session restart. Ledger status never creates an extra user pause; it tells the agent where to resume inside the existing no-pause apply loop.
 
 Ledger recording points: task start, clean baseline, red evidence, green evidence, incremental verification, checkpoint, completion, failures, and blockers. `adv_task_checkpoint` records the checkpoint event after clean/committed git result; if git succeeds but ledger recording fails, surface remediation before marking the task done.
 
 **Apply-loop ordering:**
 
-| Step | Action                                          |
-| ---- | ----------------------------------------------- |
-| 3a   | Start — `adv_task_update status: "in_progress"` |
-| 3a.6 | Clean Baseline Capture — verify clean tree, record HEAD/branch |
-| 3b   | Red Phase — write failing test                  |
-| 3c   | Green Phase — implement, tests pass             |
-| 3c.4 | **Incremental Verification** — build/tests/lint pass |
+| Step | Action                                                                      |
+| ---- | --------------------------------------------------------------------------- |
+| 3a   | Start — `adv_task_update status: "in_progress"`                             |
+| 3a.6 | Clean Baseline Capture — verify clean tree, record HEAD/branch              |
+| 3b   | Red Phase — write failing test                                              |
+| 3c   | Green Phase — implement, tests pass                                         |
+| 3c.4 | **Incremental Verification** — build/tests/lint pass                        |
 | 3c.5 | **Checkpoint** — `adv_task_checkpoint` with change/branch/HEAD/verification |
-| 3d   | Complete — `adv_task_update status: "done"`     |
+| 3d   | Complete — `adv_task_update status: "done"`                                 |
+
+If `adv_task_checkpoint` returns `checkpointRecorded:false`, git checkpoint may
+have succeeded but task-run ledger recording did not. Run `adv_task_run_status`,
+retry checkpoint or record the missing ledger event, and do not call
+`adv_task_update status: "done"` until `checkpointRecorded:true` is observed.
 
 **Failure classification:**
 
-| Classification | Action |
-| -------------- | ------ |
-| `SEMANTIC` (hook rejection, branch/HEAD mismatch) | Diagnose, re-run (retry budget) |
-| `ENVIRONMENTAL` (not a git repo, detached HEAD) | Escalate via `question` |
-| `TRANSIENT` (index.lock contention) | Tool retries internally; remaining failure → SEMANTIC |
+| Classification                                    | Action                                                |
+| ------------------------------------------------- | ----------------------------------------------------- |
+| `SEMANTIC` (hook rejection, branch/HEAD mismatch) | Diagnose, re-run (retry budget)                       |
+| `ENVIRONMENTAL` (not a git repo, detached HEAD)   | Escalate via `question`                               |
+| `TRANSIENT` (index.lock contention)               | Tool retries internally; remaining failure → SEMANTIC |
 
 **Commit message format:**
+
 - Subject: `task(tk-xxxx): completed` or `task(tk-xxxx): cancel — <reason>`
 - Body trailers: `Change: <change-id>`, `Task: <task-id>`, `Mode: complete|cancel`, `Verification: <summary>`
 
@@ -367,7 +376,7 @@ Ledger recording points: task start, clean baseline, red evidence, green evidenc
 - × Do NOT create `--allow-empty` commits
 - × Do NOT bypass checkpoint for "small" tasks — clean-tree returns `{status:'clean'}` without committing
 - × Do NOT push, merge, archive, release, amend, or force-push from checkpoint commits
-**Publication boundary:** Checkpoint commits are local rollback/audit points only. Publication remains a separate human-gated workflow.
+  **Publication boundary:** Checkpoint commits are local rollback/audit points only. Publication remains a separate human-gated workflow.
 
 Cross-link: `/adv-apply` command (`.opencode/command/adv-apply.md`) step 3c.5.
 
@@ -391,12 +400,12 @@ After 3 failures: STOP → `[ADV:BLOCKED]` → document all 3 attempts → ask v
 
 `/adv-apply` Phase 1.5 surfaces pending judgment calls before execution. Methodology in `skills/adv-cost-governance-methodology/SKILL.md`; thresholds in `.opencode/instructions/cost-governance.md`.
 
-| Rule | Behavior |
-|---|---|
-| `adv_investment_report` tier classification | auto / escalate / hardstop |
-| Hard-stop in v1 | advisory only — does NOT trigger `adv_change_reenter` |
-| Doom-loop supersede | Doom-loop recovery supersedes investment check-in on simultaneous trigger |
-| Unresolved user-value tradeoff | Triggers `rq-autonomy01` escape-clause citation |
+| Rule                                        | Behavior                                                                  |
+| ------------------------------------------- | ------------------------------------------------------------------------- |
+| `adv_investment_report` tier classification | auto / escalate / hardstop                                                |
+| Hard-stop in v1                             | advisory only — does NOT trigger `adv_change_reenter`                     |
+| Doom-loop supersede                         | Doom-loop recovery supersedes investment check-in on simultaneous trigger |
+| Unresolved user-value tradeoff              | Triggers `rq-autonomy01` escape-clause citation                           |
 
 ### External Conformance
 
@@ -451,19 +460,19 @@ Inspect `_externalDependencyStatus` for satisfied/warning/blocking counts and dr
 
 Tools with `target_path` (read or mutation) accept the optional path argument and route through `resolveTargetProject` / `withTargetPathStore`. Tools NOT in the table operate on the current process project only.
 
-| Tool | Mode | Notes |
-|---|---|---|
-| `adv_change_show`, `adv_change_list`, `adv_change_validate` | snapshot-ok | Read-only; no `target_confirmed` needed |
-| `adv_status` | snapshot-ok | Read-only; cross-project disk-snapshot view |
-| `adv_task_show`, `adv_task_list`, `adv_task_ready` | snapshot-ok | Read-only |
-| `adv_change_update`, `adv_change_create` | temporal-required | Mutation; `target_confirmed: true` + `confirmationEvidence` required for untrusted |
-| `adv_change_archive`, `adv_change_close`, `adv_change_bulk_close` | temporal-required | Mutation |
-| `adv_task_update`, `adv_task_evidence`, `adv_task_tdd`, `adv_task_cancel`, `adv_task_add` | temporal-required | Mutation |
-| `adv_gate_status`, `adv_gate_complete` | temporal-required | Read-status / mutation |
-| `adv_workflow_repair`, `adv_orphan_sweep`, `adv_temporal_reconnect` | temporal-required | Mutation |
-| `adv_archive_sweep_orphans` | temporal-required | Mutation |
-| `adv_change_diagnose`, `adv_change_import`, `adv_migrate_cleanup` | snapshot-ok / temporal-required | Read-only diagnose; import & cleanup are mutations |
-| `adv_run_test` | temporal-required | Mutation (records evidence) |
+| Tool                                                                                      | Mode                            | Notes                                                                              |
+| ----------------------------------------------------------------------------------------- | ------------------------------- | ---------------------------------------------------------------------------------- |
+| `adv_change_show`, `adv_change_list`, `adv_change_validate`                               | snapshot-ok                     | Read-only; no `target_confirmed` needed                                            |
+| `adv_status`                                                                              | snapshot-ok                     | Read-only; cross-project disk-snapshot view                                        |
+| `adv_task_show`, `adv_task_list`, `adv_task_ready`                                        | snapshot-ok                     | Read-only                                                                          |
+| `adv_change_update`, `adv_change_create`                                                  | temporal-required               | Mutation; `target_confirmed: true` + `confirmationEvidence` required for untrusted |
+| `adv_change_archive`, `adv_change_close`, `adv_change_bulk_close`                         | temporal-required               | Mutation                                                                           |
+| `adv_task_update`, `adv_task_evidence`, `adv_task_tdd`, `adv_task_cancel`, `adv_task_add` | temporal-required               | Mutation                                                                           |
+| `adv_gate_status`, `adv_gate_complete`                                                    | temporal-required               | Read-status / mutation                                                             |
+| `adv_workflow_repair`, `adv_orphan_sweep`, `adv_temporal_reconnect`                       | temporal-required               | Mutation                                                                           |
+| `adv_archive_sweep_orphans`                                                               | temporal-required               | Mutation                                                                           |
+| `adv_change_diagnose`, `adv_change_import`, `adv_migrate_cleanup`                         | snapshot-ok / temporal-required | Read-only diagnose; import & cleanup are mutations                                 |
+| `adv_run_test`                                                                            | temporal-required               | Mutation (records evidence)                                                        |
 
 Tools without `target_path` (current-project only): `adv_temporal_register_search_attributes`, `adv_temporal_worker_restart`, `adv_reflect`, `adv_conformance`, `adv_agenda_*`, `adv_wisdom_*`, `adv_project_metadata`, `adv_project_context`, `adv_run_test` workdir-resolution.
 
@@ -488,12 +497,12 @@ with `userApproved`, the agent MUST NOT suggest splitting based on size, complex
 or task count alone. Size-triggered concerns route through cost-governance Phase 1.5
 judgment-call surfacing only.
 
-| × Bad | ✓ Good |
-|-------|--------|
-| "This seems large, want to split?" | Trust the prep gate; execute |
-| "Maybe break this into smaller changes?" | Execute as planned |
-| "Lots of tasks here, should we cut some?" | Surface real concerns as judgment calls (Phase 1.5) |
-| Mid-execution split-suggestion | Mid-execution scope discovery → scope-discovery protocol |
+| × Bad                                     | ✓ Good                                                   |
+| ----------------------------------------- | -------------------------------------------------------- |
+| "This seems large, want to split?"        | Trust the prep gate; execute                             |
+| "Maybe break this into smaller changes?"  | Execute as planned                                       |
+| "Lots of tasks here, should we cut some?" | Surface real concerns as judgment calls (Phase 1.5)      |
+| Mid-execution split-suggestion            | Mid-execution scope discovery → scope-discovery protocol |
 
 Cost-governance hardstop tier remains advisory — it informs investment check-ins,
 not split decisions. See `.opencode/instructions/cost-governance.md`.
@@ -531,19 +540,19 @@ Do NOT expand into implicit repo-wide refactors or untouched subsystems. Campsit
 
 #### Categories
 
-| Prefix | Name | Scope | v1 Enforcement |
-| ------ | ---- | ----- | -------------- |
-| **B** | Boundaries | What is explicitly in/out of scope; edge cases | Required |
-| **F** | Functional Scope | Required features, behaviors, data flows | Required |
-| **S** | Completion Signals | Measurability of success/done criteria | Required |
-| **M** | Missing Information | Critical unknowns, unspecified dependencies | Required |
-| **D** | Data Assumptions | Data shape, volume, freshness, ownership | Optional (v2 promotion path) |
-| **X** | External Dependencies | Third-party API, service, or tool constraints | Optional (v2 promotion path) |
-| **Q** | Quality Attributes | NFRs: performance, security, accessibility | Optional (v2 promotion path) |
-| **I** | Integration Points | Handoffs between systems, modules, teams | Optional (v2 promotion path) |
-| **E** | Error Handling | Failure modes, recovery, rollback paths | Optional (v2 promotion path) |
-| **C** | Conformance | Standards, compliance, regulatory requirements | Optional (v2 promotion path) |
-| **T** | Temporal Constraints | Ordering, timing, deadlines, milestones | Optional (v2 promotion path) |
+| Prefix | Name                  | Scope                                          | v1 Enforcement               |
+| ------ | --------------------- | ---------------------------------------------- | ---------------------------- |
+| **B**  | Boundaries            | What is explicitly in/out of scope; edge cases | Required                     |
+| **F**  | Functional Scope      | Required features, behaviors, data flows       | Required                     |
+| **S**  | Completion Signals    | Measurability of success/done criteria         | Required                     |
+| **M**  | Missing Information   | Critical unknowns, unspecified dependencies    | Required                     |
+| **D**  | Data Assumptions      | Data shape, volume, freshness, ownership       | Optional (v2 promotion path) |
+| **X**  | External Dependencies | Third-party API, service, or tool constraints  | Optional (v2 promotion path) |
+| **Q**  | Quality Attributes    | NFRs: performance, security, accessibility     | Optional (v2 promotion path) |
+| **I**  | Integration Points    | Handoffs between systems, modules, teams       | Optional (v2 promotion path) |
+| **E**  | Error Handling        | Failure modes, recovery, rollback paths        | Optional (v2 promotion path) |
+| **C**  | Conformance           | Standards, compliance, regulatory requirements | Optional (v2 promotion path) |
+| **T**  | Temporal Constraints  | Ordering, timing, deadlines, milestones        | Optional (v2 promotion path) |
 
 #### Finding Shape
 
@@ -558,21 +567,21 @@ Do NOT expand into implicit repo-wide refactors or untouched subsystems. Campsit
 
 #### Severity Rubric
 
-| Severity | Meaning | Example |
-| -------- | ------- | ------- |
-| CRITICAL | Structurally missing required content; cannot proceed without resolution | Missing `### Out of Scope` subsection, no `## Success Criteria` section |
-| HIGH | Vague or unmeasurable language that will cause ambiguity during implementation | Success criteria "fast response" without threshold |
-| MEDIUM | Soft ambiguity that may cause rework but is resolvable during implementation | Implicit ordering dependency not stated |
-| LOW | Minor clarity improvement; does not block execution | Inconsistent terminology across sections |
+| Severity | Meaning                                                                        | Example                                                                 |
+| -------- | ------------------------------------------------------------------------------ | ----------------------------------------------------------------------- |
+| CRITICAL | Structurally missing required content; cannot proceed without resolution       | Missing `### Out of Scope` subsection, no `## Success Criteria` section |
+| HIGH     | Vague or unmeasurable language that will cause ambiguity during implementation | Success criteria "fast response" without threshold                      |
+| MEDIUM   | Soft ambiguity that may cause rework but is resolvable during implementation   | Implicit ordering dependency not stated                                 |
+| LOW      | Minor clarity improvement; does not block execution                            | Inconsistent terminology across sections                                |
 
 #### Anti-Hallucination Evidence Rule
 
 Every finding MUST include verbatim source quote OR explicit absence marker. × MUST NOT fabricate, paraphrase, or infer.
 
-| Evidence form | Format |
-|---|---|
+| Evidence form  | Format                                           |
+| -------------- | ------------------------------------------------ |
 | Verbatim quote | `Evidence: proposal.md:{section} "{exact text}"` |
-| Absence marker | `Evidence: (no {section} section)` |
+| Absence marker | `Evidence: (no {section} section)`               |
 
 Findings without valid evidence are malformed and MUST NOT be surfaced.
 
@@ -589,27 +598,28 @@ Applies in `/adv-proposal` (B/F/S scan) and `/adv-discover` (B/F/S/M scan).
 
 Emit per scan: `Coverage: B:C F:P D:C X:C Q:P I:N/A E:P C:C T:C S:P M:M`.
 
-| Code | Meaning |
-|---|---|
-| C | Clear (no ambiguity) |
-| P | Partial (some vagueness) |
-| M | Missing (no content found) |
-| N/A | Not applicable to this change |
+| Code | Meaning                       |
+| ---- | ----------------------------- |
+| C    | Clear (no ambiguity)          |
+| P    | Partial (some vagueness)      |
+| M    | Missing (no content found)    |
+| N/A  | Not applicable to this change |
 
 Required categories (B/F/S/M) MUST have a coverage entry; optional MAY be omitted (treated as N/A).
 
 ## 7-Gate Quality Checklist
+
 <!-- rq-gatemodel01 -->
 
-| Gate              | Triggered By                         |
-| ----------------- | ------------------------------------ |
-| 1. `proposal`     | `/adv-proposal`                      |
-| 2. `discovery`    | `/adv-discover` / research workflow  |
-| 3. `design`       | `/adv-design`                        |
-| 4. `planning`     | `/adv-prep`                          |
-| 5. `execution`    | `/adv-apply`                         |
-| 6. `acceptance`   | `/adv-review` + user acceptance      |
-| 7. `release`      | `/adv-harden` + `/adv-archive`       |
+| Gate            | Triggered By                        |
+| --------------- | ----------------------------------- |
+| 1. `proposal`   | `/adv-proposal`                     |
+| 2. `discovery`  | `/adv-discover` / research workflow |
+| 3. `design`     | `/adv-design`                       |
+| 4. `planning`   | `/adv-prep`                         |
+| 5. `execution`  | `/adv-apply`                        |
+| 6. `acceptance` | `/adv-review` + user acceptance     |
+| 7. `release`    | `/adv-harden` + `/adv-archive`      |
 
 Gates are sequential. Archive blocks until release readiness is verified. See [docs/adv-gates.md](docs/adv-gates.md).
 
@@ -663,14 +673,14 @@ Inline-only: `/adv-status`, `/adv-idea`, `/adv-problem`, `/adv-proposal`, `/adv-
 
 ### Delegation Routing
 
-| Priority | Check                                                          | Result             |
-| -------- | -------------------------------------------------------------- | ------------------ |
-| 1        | `metadata.delegation_hint` set?                                | Use hint value     |
-| 2        | `tdd_intent == "not_applicable"`?                              | `delegate_allowed` |
-| 3        | Title matches `isTrivialTask` patterns?                        | `delegate_allowed` |
+| Priority | Check                                                                                  | Result             |
+| -------- | -------------------------------------------------------------------------------------- | ------------------ |
+| 1        | `metadata.delegation_hint` set?                                                        | Use hint value     |
+| 2        | `tdd_intent == "not_applicable"`?                                                      | `delegate_allowed` |
+| 3        | Title matches `isTrivialTask` patterns?                                                | `delegate_allowed` |
 | 4        | Risk signals (multi-file, cross-repo, architectural keywords, failing-test diagnosis)? | `inline_required`  |
-| 4.5      | Context-shed test passes? (4-question AND, floor ~5 files or ~50 lines) | `delegate_allowed` |
-| 5        | Default                                                        | `inline_required`  |
+| 4.5      | Context-shed test passes? (4-question AND, floor ~5 files or ~50 lines)                | `delegate_allowed` |
+| 5        | Default                                                                                | `inline_required`  |
 
 Step 4.5 is the **Context-Shed Test** — a 4-question AND-conjunctive heuristic: (1) orchestrator already made design/architectural decisions for this task, (2) task's HOW does not feed into a downstream task's decisions, (3) acceptance criteria are fully defined before delegation, (4) task is mechanical implementation of a decided plan. Gated by floor: ~5 files touched OR ~50 lines changed. All four must pass AND floor must be met for `delegate_allowed`. Conservative bias: when uncertain, default to `inline_required`.
 
@@ -719,15 +729,15 @@ After each phase, use `adv_change_update` to record compact summaries. Do not du
 
 ### Agent Roster
 
-| Agent            | Use For                                              | Tools                                                           |
-| ---------------- | ---------------------------------------------------- | --------------------------------------------------------------- |
-| `librarian`      | Docs, API refs, code examples                        | Context7, grep.app, Kagi                                        |
-| `adv-researcher` | Architecture validation, simplicity                  | Context7, Kagi, ADV read-only                                   |
-| `explore`        | Codebase navigation, find usages                     | Read, Glob, Grep, lgrep                                         |
+| Agent            | Use For                                                                                              | Tools                                                           |
+| ---------------- | ---------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| `librarian`      | Docs, API refs, code examples                                                                        | Context7, grep.app, Kagi                                        |
+| `adv-researcher` | Architecture validation, simplicity                                                                  | Context7, Kagi, ADV read-only                                   |
+| `explore`        | Codebase navigation, find usages                                                                     | Read, Glob, Grep, lgrep                                         |
 | `adv-engineer`   | Delegated ADV code-writing executor (Working Directory Lock: must pass `workdir` to every tool call) | Full write (read/write/edit/bash) + narrow ADV reads + evidence |
-| `general`        | Verify-only bursts + generic multi-step non-ADV work | Full tool access                                                |
-| `mechanic`       | System/infra issues                                  | Vision, bash, read/write                                        |
-| `adv-tron`       | Reconnaissance, hotspot detection                    | Read, Glob, Grep, lgrep                                         |
+| `general`        | Verify-only bursts + generic multi-step non-ADV work                                                 | Full tool access                                                |
+| `mechanic`       | System/infra issues                                                                                  | Vision, bash, read/write                                        |
+| `adv-tron`       | Reconnaissance, hotspot detection                                                                    | Read, Glob, Grep, lgrep                                         |
 
 > **Note:** `adv-tron` is repo-local (requires `.opencode/agents/adv-tron.md`). `adv-researcher` / `adv-engineer` are bundled global specialists — synced to `~/.config/opencode/agents/` by `scripts/sync-global.sh`. All ADV-shipped sub-agents use `adv-<name>` naming.
 
@@ -737,13 +747,13 @@ Orchestrator pattern: spawn `librarian` + `adv-researcher` in parallel → synth
 
 Enabled in `/adv-research` Phase 1.5. Filesystem-only, no API calls.
 
-| Step | Action |
-|---|---|
-| Search | Trusted skill dirs only: `~/.config/opencode/skills/*/SKILL.md`, repo `skills/*/SKILL.md` |
-| Match | Read YAML frontmatter, match `keywords` against tech stack + change domain |
-| Load | `skill("{name}")` → apply guidance |
-| Trust | × Never auto-load arbitrary `*/SKILL.md` outside trusted dirs without explicit user approval |
-| Degrade | Skip skills without frontmatter/`keywords`; no matches → proceed normally |
+| Step    | Action                                                                                       |
+| ------- | -------------------------------------------------------------------------------------------- |
+| Search  | Trusted skill dirs only: `~/.config/opencode/skills/*/SKILL.md`, repo `skills/*/SKILL.md`    |
+| Match   | Read YAML frontmatter, match `keywords` against tech stack + change domain                   |
+| Load    | `skill("{name}")` → apply guidance                                                           |
+| Trust   | × Never auto-load arbitrary `*/SKILL.md` outside trusted dirs without explicit user approval |
+| Degrade | Skip skills without frontmatter/`keywords`; no matches → proceed normally                    |
 
 Skill metadata:
 
@@ -761,11 +771,11 @@ Enabled in `/adv-discover` Phase 1.5 and `/adv-research` Phase 1.5. Conservative
 
 ### Trigger Conditions (ALL must be true)
 
-| # | Condition |
-|---|---|
-| 1 | Phase 1.5 finds no matching skill for a domain |
-| 2 | Domain is clearly relevant to the change's **core problem** (not tangential) |
-| 3 | No partial-skill match covers the domain |
+| #   | Condition                                                                    |
+| --- | ---------------------------------------------------------------------------- |
+| 1   | Phase 1.5 finds no matching skill for a domain                               |
+| 2   | Domain is clearly relevant to the change's **core problem** (not tangential) |
+| 3   | No partial-skill match covers the domain                                     |
 
 ### Naming Convention
 
@@ -813,12 +823,12 @@ metadata:
 
 Auto-created skills set `metadata.review_status: "pending"`. Next `/adv-discover` Phase 1.5:
 
-| Step | Action |
-|---|---|
-| Scan | Skills with `review_status: "pending"` BEFORE keyword matching |
-| Surface | Present pending skills to user for confirmation |
-| Confirm | Update `review_status` to `"reviewed"` |
-| Reject | Delete the skill file |
+| Step    | Action                                                         |
+| ------- | -------------------------------------------------------------- |
+| Scan    | Skills with `review_status: "pending"` BEFORE keyword matching |
+| Surface | Present pending skills to user for confirmation                |
+| Confirm | Update `review_status` to `"reviewed"`                         |
+| Reject  | Delete the skill file                                          |
 
 ### Protocol Extension Note
 

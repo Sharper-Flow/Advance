@@ -460,6 +460,28 @@ describe("adv_task_checkpoint", () => {
     expect(parsed.remediation).toContain("adv_task_run_status");
   });
 
+  it("surfaces checkpointRecorded false when clean-tree ledger write fails", async () => {
+    const storeWithTask = mockStore("optimizeCheckpointCommits", {
+      failRecordRunEvent: true,
+    });
+
+    const result = await checkpointTools.adv_task_checkpoint.execute(
+      {
+        taskId: "tk-test-clean-ledger-fail",
+        expectedBranch: "trunk",
+        verification: "pnpm test -- src/tools/checkpoint.test.ts",
+      },
+      storeWithTask,
+      dir,
+    );
+    const parsed = parseToolOutput(result) as Record<string, unknown>;
+
+    expect(parsed.status).toBe("clean");
+    expect(parsed.checkpointRecorded).toBe(false);
+    expect(parsed.remediation).toContain("adv_task_run_status");
+    expect(parsed.remediation).toContain("checkpointRecorded:true");
+  });
+
   // 16. Verification required for complete mode on dirty tree
   it("fails when verification is missing for complete mode on dirty tree", async () => {
     const storeWithTask = mockStore("optimizeCheckpointCommits");
