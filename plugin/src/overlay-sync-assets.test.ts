@@ -448,6 +448,47 @@ describe("overlay sync script support", () => {
     }
   });
 
+  test("check mode rejects stale concatenated provider prompts", () => {
+    const tempHome = mkdtempSync(join(tmpdir(), "adv-provider-stale-prompt-"));
+
+    try {
+      const configDir = join(tempHome, ".config/opencode");
+      const promptParts = join(configDir, "agent-parts", "advance");
+      mkdirSync(configDir, { recursive: true });
+      writeFileSync(
+        join(configDir, "opencode.json"),
+        JSON.stringify({ plugin: [], instructions: [] }),
+      );
+
+      const fixResult = spawnSync("bash", [SYNC_SCRIPT_PATH, "--fix"], {
+        cwd: REPO_ROOT,
+        env: { ...process.env, HOME: tempHome, CI: "true" },
+        encoding: "utf8",
+      });
+      expect(fixResult.status).toBe(0);
+
+      writeFileSync(join(promptParts, "adv-gpt.md"), "stale prompt body\n");
+
+      const checkResult = spawnSync("bash", [SYNC_SCRIPT_PATH, "--check"], {
+        cwd: REPO_ROOT,
+        env: {
+          ...process.env,
+          HOME: tempHome,
+          ADV_SKIP_RUNTIME_CANARY: "1",
+          CI: "true",
+        },
+        encoding: "utf8",
+      });
+
+      expect(checkResult.status).not.toBe(0);
+      expect(checkResult.stdout).toContain(
+        "Concatenated provider prompt stale (content mismatch)",
+      );
+    } finally {
+      rmSync(tempHome, { recursive: true, force: true });
+    }
+  });
+
   test("generated provider variants patch frontmatter name", () => {
     const tempHome = mkdtempSync(join(tmpdir(), "adv-provider-names-"));
 
