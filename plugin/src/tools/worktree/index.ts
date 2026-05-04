@@ -71,6 +71,7 @@ import {
   initStateDb,
   listWorktrees,
   removeSession,
+  updateWorktreeRecord,
 } from "./state";
 import { openTerminal } from "./terminal";
 import { runHooksWithSafety, HookFailedError } from "./hooks";
@@ -696,7 +697,14 @@ export type AdvWorktreeCreateResult =
   | { ok: false; error: "DEFAULT_BRANCH_UNRESOLVABLE"; hint: string }
   | { ok: false; error: "STALE_BASE"; reason: string; suggestion: string }
   | { ok: false; error: "BRANCH_LOCKED"; hint: string }
-  | { ok: false; error: "GIT_FAILED"; reason: string };
+  | { ok: false; error: "GIT_FAILED"; reason: string }
+  | {
+      ok: false;
+      error: "SETUP_FAILED";
+      branch: string;
+      path: string;
+      reason: string;
+    };
 
 export async function advWorktreeCreate(
   branch: string,
@@ -838,6 +846,23 @@ export async function advWorktreeCreate(
     // Step 4: execute git worktree add explicitly with the resolved base.
     const worktreePath = await getWorktreePath(repoRoot, branch);
     await mkdir(path.dirname(worktreePath), { recursive: true });
+    const sourceVersion = Date.now();
+
+    await updateWorktreeRecord(deps.database, {
+      branch,
+      path: worktreePath,
+      materialized: false,
+      changeId: inferChangeIdFromBranch(branch),
+      status: "materializing",
+      baseRef: resolvedBase,
+      headSha: "",
+      source: "tool",
+      now: new Date(sourceVersion).toISOString(),
+      sourceVersion,
+      setupReady: false,
+      cleanupEligible: false,
+      cleanupBlockedBy: ["materializing"],
+    });
 
     const exists = await branchExists(repoRoot, branch);
     let gitResult: Result<string, string>;
@@ -858,7 +883,43 @@ export async function advWorktreeCreate(
 
     const headSha = (await execGit(["rev-parse", "HEAD"], worktreePath)).trim();
 
-    // Step 5: register in worktree_registry.
+    // Step 6: postCreate hooks (T12 — best-effort; failure logs but does not abort).
+    const hooks = deps.hooks;
+    if (hooks?.postCreate?.length) {
+      try {
+        await runHooksWithSafety("postCreate", worktreePath, hooks.postCreate);
+      } catch (err) {
+        const reason = String(err instanceof Error ? err.message : err);
+        await updateWorktreeRecord(deps.database, {
+          branch,
+          path: worktreePath,
+          materialized: true,
+          changeId: inferChangeIdFromBranch(branch),
+          status: "setup_failed",
+          baseRef: resolvedBase,
+          headSha,
+          source: "tool",
+          now: new Date(sourceVersion + 1).toISOString(),
+          sourceVersion: sourceVersion + 1,
+          setupReady: false,
+          setupFailureReason: reason,
+          cleanupEligible: false,
+          cleanupBlockedBy: ["setup_failed"],
+        });
+        deps.log.warn(
+          `[worktree] postCreate hook failed for ${branch}: ${err}`,
+        );
+        return {
+          ok: false,
+          error: "SETUP_FAILED",
+          branch,
+          path: worktreePath,
+          reason,
+        };
+      }
+    }
+
+    // Step 7: register in worktree_registry only after setup is ready.
     const sessionId = generateSessionId();
     await addSession(
       deps.database,
@@ -870,18 +931,6 @@ export async function advWorktreeCreate(
       undefined,
       inferChangeIdFromBranch(branch),
     );
-
-    // Step 6: postCreate hooks (T12 — best-effort; failure logs but does not abort).
-    const hooks = deps.hooks;
-    if (hooks?.postCreate?.length) {
-      try {
-        await runHooksWithSafety("postCreate", worktreePath, hooks.postCreate);
-      } catch (err) {
-        deps.log.warn(
-          `[worktree] postCreate hook failed for ${branch}: ${err}`,
-        );
-      }
-    }
 
     // Step 6.5: OCA ensure-window hook (best-effort, non-fatal).
     if (deps.ocaEnsureWindow) {
@@ -1503,6 +1552,8 @@ export const WorktreePlugin: Plugin = async (ctx) => {
                 return `Failed to create worktree: ${createResult.hint}`;
               case "GIT_FAILED":
                 return `Failed to create worktree: ${createResult.reason}`;
+              case "SETUP_FAILED":
+                return `Failed to create worktree: setup failed for ${createResult.branch} at ${createResult.path}. ${createResult.reason}`;
               default: {
                 const _exhaustive: never = createResult;
                 void _exhaustive;

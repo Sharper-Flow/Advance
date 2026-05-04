@@ -51,7 +51,10 @@ vi.mock("./hooks", async (importOriginal) => {
 import { advWorktreeCreate, type AdvWorktreeCreateDeps } from "./index";
 
 import { runHooksWithSafety } from "./hooks";
-import { addWorktreeSessionUpdate } from "../../temporal/messages";
+import {
+  addWorktreeSessionUpdate,
+  updateWorktreeRecordUpdate,
+} from "../../temporal/messages";
 
 const isLinux = process.platform === "linux";
 
@@ -314,6 +317,39 @@ describe.skipIf(!isLinux)(
       // Worktree should exist
       const list = execSync("git worktree list", { cwd: repoRoot }).toString();
       expect(list).toContain("change/feature");
+    });
+
+    it("SETUP_FAILED — blocks ADV routing when postCreate hook fails", async () => {
+      const deps = createMockDeps(repoRoot);
+      deps.resolveDefaultBranch = async () => "main";
+      deps.detectStaleBasis = async () => ({ stale: false });
+      deps.hooks = { postCreate: ["exit 1"] };
+      vi.mocked(runHooksWithSafety).mockRejectedValueOnce(new Error("boom"));
+
+      const result = await advWorktreeCreate("change/setup-fail", {}, deps);
+
+      expect(result).toMatchObject({
+        ok: false,
+        error: "SETUP_FAILED",
+        branch: "change/setup-fail",
+      });
+      expect(workflowExecuteUpdate).toHaveBeenCalledWith(
+        updateWorktreeRecordUpdate,
+        expect.objectContaining({
+          args: [
+            expect.objectContaining({
+              branch: "change/setup-fail",
+              status: "setup_failed",
+              setupReady: false,
+              setupFailureReason: expect.stringContaining("boom"),
+            }),
+          ],
+        }),
+      );
+      expect(workflowExecuteUpdate).not.toHaveBeenCalledWith(
+        addWorktreeSessionUpdate,
+        expect.anything(),
+      );
     });
 
     it("BRANCH_LOCKED — blocks when flock is held by another session", async () => {
