@@ -20,6 +20,7 @@ import { getExternalRoot } from "../utils/project-id";
 import {
   WORKER_LOCK_FILENAME,
   readLockContents,
+  STALE_HEARTBEAT_MS,
   type WorkerLockContents,
 } from "./worker-lock";
 import { join } from "path";
@@ -220,9 +221,22 @@ export async function getTemporalHealth(
     )
     .slice(0, 10);
 
+  // worker_alive combines two signals:
+  //   1. Local process has registered queues (this process owns the worker).
+  //   2. Worker lock holder has a fresh heartbeat (another process owns the
+  //      worker but it's alive). This closes the multi-session false-negative
+  //      where Session B diagnoses "worker dead" because it checks its own
+  //      empty registry while Session A's worker is running. See GH #6.
+  const worker_alive =
+    registered_queues.length > 0 ||
+    (worker_lock != null &&
+      worker_lock.heartbeat_age_ms != null &&
+      worker_lock.heartbeat_age_ms >= 0 &&
+      worker_lock.heartbeat_age_ms < STALE_HEARTBEAT_MS);
+
   return {
     server_alive,
-    worker_alive: registered_queues.length > 0,
+    worker_alive,
     worker_process_alive,
     registered_queues,
     last_op_at: telemetry.lastOpAt,

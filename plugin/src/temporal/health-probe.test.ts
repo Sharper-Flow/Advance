@@ -323,4 +323,93 @@ describe("getTemporalHealth (C3)", () => {
     });
     expect(health.last_worker_run_error?.at).toEqual(expect.any(String));
   });
+
+  describe("worker_alive multi-session false-negative fix (#6)", () => {
+    it("reports worker_alive=true when local queues are empty but worker lock has fresh heartbeat", async () => {
+      // Simulates: Session B (no local worker) diagnoses health.
+      // Session A (lock holder) owns the worker with active heartbeat.
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date("2026-01-01T00:01:00.000Z"));
+
+      mocks.getRegisteredTemporalWorkerQueues.mockReturnValueOnce([]);
+      mocks.getTemporalWorkerAliveness.mockReturnValueOnce(false);
+      mocks.readLockContents.mockResolvedValueOnce({
+        pid: 99999,
+        worker_id: "worker-session-a",
+        acquired_at: "2026-01-01T00:00:00.000Z",
+        schema_version: 2,
+        last_heartbeat: "2026-01-01T00:00:55.000Z", // 5s ago — fresh
+      });
+
+      const health = await getTemporalHealth("target-proj");
+
+      expect(health.worker_alive).toBe(true);
+      expect(health.registered_queues).toEqual([]); // local stays empty
+      expect(health.worker_lock).toMatchObject({
+        holder_pid: 99999,
+        heartbeat_age_ms: 5_000,
+      });
+      vi.useRealTimers();
+    });
+
+    it("reports worker_alive=false when local queues are empty and worker lock has stale heartbeat", async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date("2026-01-01T00:02:00.000Z"));
+
+      mocks.getRegisteredTemporalWorkerQueues.mockReturnValueOnce([]);
+      mocks.getTemporalWorkerAliveness.mockReturnValueOnce(false);
+      mocks.readLockContents.mockResolvedValueOnce({
+        pid: 99999,
+        worker_id: "worker-session-a",
+        acquired_at: "2026-01-01T00:00:00.000Z",
+        schema_version: 2,
+        last_heartbeat: "2026-01-01T00:00:30.000Z", // 90s ago — stale (>60s threshold)
+      });
+
+      const health = await getTemporalHealth("target-proj");
+
+      expect(health.worker_alive).toBe(false);
+      vi.useRealTimers();
+    });
+
+    it("reports worker_alive=false when local queues are empty and no worker lock exists", async () => {
+      mocks.getRegisteredTemporalWorkerQueues.mockReturnValueOnce([]);
+      mocks.getTemporalWorkerAliveness.mockReturnValueOnce(false);
+      mocks.readLockContents.mockResolvedValueOnce(null);
+
+      const health = await getTemporalHealth("target-proj");
+
+      expect(health.worker_alive).toBe(false);
+    });
+
+    it("reports worker_alive=false when local queues are empty and lock has v1 schema (no heartbeat)", async () => {
+      mocks.getRegisteredTemporalWorkerQueues.mockReturnValueOnce([]);
+      mocks.getTemporalWorkerAliveness.mockReturnValueOnce(false);
+      mocks.readLockContents.mockResolvedValueOnce({
+        pid: 99999,
+        worker_id: "worker-1",
+        acquired_at: "2026-01-01T00:00:00.000Z",
+        schema_version: 1,
+        // no last_heartbeat field
+      });
+
+      const health = await getTemporalHealth("target-proj");
+
+      expect(health.worker_alive).toBe(false);
+    });
+
+    it("local registered queues still win: worker_alive=true regardless of lock state", async () => {
+      mocks.getRegisteredTemporalWorkerQueues.mockReturnValueOnce([
+        "advance-proj-a",
+      ]);
+      mocks.getTemporalWorkerAliveness.mockReturnValueOnce(true);
+      // Lock doesn't exist — shouldn't matter, local worker is authoritative
+      mocks.readLockContents.mockResolvedValueOnce(null);
+
+      const health = await getTemporalHealth("target-proj");
+
+      expect(health.worker_alive).toBe(true);
+      expect(health.registered_queues).toEqual(["advance-proj-a"]);
+    });
+  });
 });
