@@ -121,6 +121,7 @@ describe("heartbeat-writer", () => {
       rm: vi.fn(async () => {}),
     };
     const debugLog = vi.fn();
+    const onWorkerExhausted = vi.fn(async () => {});
 
     const writer = startHeartbeatWriter({
       projectStateDir: "/state",
@@ -130,6 +131,7 @@ describe("heartbeat-writer", () => {
       now: () => new Date("2026-01-01T00:00:05.000Z"),
       nonce: () => "nonce",
       debugLog,
+      onWorkerExhausted,
     });
     await vi.advanceTimersByTimeAsync(1_000);
     await vi.advanceTimersByTimeAsync(1_000);
@@ -140,6 +142,7 @@ describe("heartbeat-writer", () => {
     expect(debugLog).toHaveBeenCalledWith(
       expect.stringContaining("heartbeat writer stopped"),
     );
+    expect(onWorkerExhausted).toHaveBeenCalledTimes(1);
     expect(fs.readFile).toHaveBeenCalledTimes(2);
   });
 

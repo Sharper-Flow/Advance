@@ -92,11 +92,10 @@ export function startHeartbeatWriter(
           nonce,
         );
         if (!stillOwner) {
-          stopped = true;
-          clearScheduledTick();
           debugLog(
             `heartbeat writer stopped: lock identity no longer matches worker_id=${options.workerId}`,
           );
+          await stopForExhaustion();
           return;
         }
 
