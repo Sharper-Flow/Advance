@@ -18,6 +18,7 @@ import {
 } from "./worktree";
 import { triageWorktrees } from "./worktree/triage";
 import { initStateDb, type WorktreeStateAccess } from "./worktree/state";
+import { createOcaEnsureWindowHook } from "./worktree/oca-window-hook";
 
 /** Simple no-op-ish logger for ADV worktree tools. */
 function createLogger(): {
@@ -68,10 +69,11 @@ export const advWorktreeTools = {
       const projectRoot = store.paths.root;
       const database = await initWorktreeDb(projectRoot);
       const log = createLogger();
+      const ocaEnsureWindow = createOcaEnsureWindowHook();
       const result = await advWorktreeCreate(
         args.branch,
         { base: args.base, force: args.force },
-        { projectRoot, database, log },
+        { projectRoot, database, log, ocaEnsureWindow },
       );
       return formatToolOutput(result);
     },

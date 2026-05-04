@@ -18,9 +18,14 @@ const triageMock = vi.hoisted(() => ({
   triageWorktrees: vi.fn(),
 }));
 
+const ocaHookMock = vi.hoisted(() => ({
+  createOcaEnsureWindowHook: vi.fn(),
+}));
+
 vi.mock("./worktree", () => worktreeMock);
 vi.mock("./worktree/state", () => stateMock);
 vi.mock("./worktree/triage", () => triageMock);
+vi.mock("./worktree/oca-window-hook", () => ocaHookMock);
 
 import { advWorktreeTools } from "./adv-worktree";
 import type { Store } from "../storage/store-types";
@@ -32,7 +37,9 @@ const store = {
 describe("advWorktreeTools", () => {
   it("adv_worktree_create delegates to advWorktreeCreate", async () => {
     const database = { projectDir: "/repo", projectId: "p" };
+    const ocaEnsureWindow = vi.fn();
     stateMock.initStateDb.mockResolvedValue(database);
+    ocaHookMock.createOcaEnsureWindowHook.mockReturnValue(ocaEnsureWindow);
     worktreeMock.advWorktreeCreate.mockResolvedValue({ ok: true, path: "/wt" });
 
     const out = await advWorktreeTools.adv_worktree_create.execute(
@@ -43,7 +50,11 @@ describe("advWorktreeTools", () => {
     expect(worktreeMock.advWorktreeCreate).toHaveBeenCalledWith(
       "change/x",
       { base: "trunk", force: true },
-      expect.objectContaining({ projectRoot: "/repo", database }),
+      expect.objectContaining({
+        projectRoot: "/repo",
+        database,
+        ocaEnsureWindow,
+      }),
     );
     expect(out).toContain('"ok":true');
   });
