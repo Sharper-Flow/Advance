@@ -22,8 +22,6 @@ import {
   MAX_BODY_SIZE,
 } from "./mesh-issues";
 
-import type { MeshPayload as _MeshPayload } from "./mesh-issues";
-
 describe("buildMeshPayload", () => {
   test("builds payload with YAML frontmatter and markdown body", () => {
     const payload = buildMeshPayload({
@@ -78,8 +76,8 @@ describe("buildMeshPayload", () => {
       body: longBody,
     });
 
-    // Body should be truncated but frontmatter + notice added
-    expect(payload.length).toBeLessThan(MAX_BODY_SIZE + 2000);
+    const body = payload.split("---\n").slice(2).join("---\n");
+    expect(body.length).toBeLessThanOrEqual(MAX_BODY_SIZE);
     expect(payload).toContain("truncated");
   });
 });

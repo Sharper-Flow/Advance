@@ -94,7 +94,8 @@ export function buildMeshPayload(input: MeshIssueInput): string {
 
   let body = input.body;
   if (body.length > MAX_BODY_SIZE) {
-    body = body.slice(0, MAX_BODY_SIZE) + TRUNCATION_NOTICE;
+    const sliceAt = Math.max(0, MAX_BODY_SIZE - TRUNCATION_NOTICE.length);
+    body = body.slice(0, sliceAt) + TRUNCATION_NOTICE;
   }
 
   return `---\n${frontmatter}\n---\n${body}`;

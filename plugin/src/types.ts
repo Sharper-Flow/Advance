@@ -1211,7 +1211,10 @@ export const RelatedRepoSchema = z
     /** Whether this repo is trusted for automated cross-project operations (e.g., mesh issue creation) */
     trusted: z.boolean().default(false),
     /** GitHub repo in owner/name format for GH CLI operations (e.g., "org/backend-api") */
-    gh_repo: z.string().optional(),
+    gh_repo: z
+      .string()
+      .regex(/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/)
+      .optional(),
   })
   .passthrough();
 

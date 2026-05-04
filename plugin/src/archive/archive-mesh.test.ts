@@ -119,6 +119,46 @@ describe("createMeshIssuesForArchive", () => {
       "https://github.com/org/backend/issues/42",
     );
     expect(mockCreateMeshIssue).toHaveBeenCalledTimes(1);
+    expect(mockCreateMeshIssue.mock.calls[0][1].capability).toBe(
+      "advance-workflow",
+    );
+  });
+
+  test("uses deterministic fallback capability when deltas are empty", async () => {
+    mockCreateMeshIssue.mockResolvedValue({
+      issueNumber: 43,
+      htmlUrl: "https://github.com/org/backend/issues/43",
+      exitCode: 0,
+      stderr: "",
+    });
+
+    const change = {
+      id: "ch-no-deltas",
+      title: "No deltas",
+      status: "active",
+      created_at: new Date().toISOString(),
+      tasks: [],
+      deltas: {},
+      cross_project_links: [
+        {
+          relationship: "contributes_to",
+          target_path: "/backend",
+          changeId: "ch-target",
+          linked_at: new Date().toISOString(),
+        },
+      ],
+    } as unknown as Change;
+
+    await createMeshIssuesForArchive(change, [
+      {
+        id: "backend",
+        path: "/backend",
+        trusted: true,
+        gh_repo: "org/backend",
+      },
+    ]);
+
+    expect(mockCreateMeshIssue.mock.calls[0][1].capability).toBe("agent-mesh");
   });
 
   test("skips links that don't match any trusted repo", async () => {

@@ -63,7 +63,7 @@ export async function createMeshIssuesForArchive(
           body,
           relationship,
           changeId: change.id,
-          capability: Object.keys(change.deltas)[0] || "unknown",
+          capability: getMeshCapability(change),
           sourceProject: link.target_path,
         },
       );
@@ -84,6 +84,11 @@ export async function createMeshIssuesForArchive(
   }
 
   return { issueUrls, errors };
+}
+
+function getMeshCapability(change: Change): string {
+  const capabilities = Object.keys(change.deltas).sort();
+  return capabilities[0] ?? "agent-mesh";
 }
 
 /**

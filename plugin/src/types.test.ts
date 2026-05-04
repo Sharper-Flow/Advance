@@ -3262,6 +3262,16 @@ describe("RelatedRepoSchema", () => {
     ).toThrow();
   });
 
+  test("rejects malformed gh_repo", () => {
+    expect(() =>
+      RelatedRepoSchema.parse({
+        id: "api",
+        path: "/projects/api",
+        gh_repo: "not-owner-repo",
+      }),
+    ).toThrow();
+  });
+
   test("passthrough preserves extra fields", () => {
     const repo = RelatedRepoSchema.parse({
       id: "api",
