@@ -34,11 +34,13 @@ vi.mock("../project-workflow-helper", () => ({
 }));
 
 import {
+  getWorktreePath,
   registerSession,
   unregisterSession,
   updateSessionActivity,
   type WorktreeStateAccess,
 } from "./state";
+import { synthesizeTestProjectId } from "../../utils/project-id";
 import {
   registerSessionUpdate,
   unregisterSessionUpdate,
@@ -113,5 +115,20 @@ describe("session lifecycle helpers (T21)", () => {
     });
 
     expect(executeUpdate).not.toHaveBeenCalled();
+  });
+});
+
+describe("worktree path helpers", () => {
+  it("uses XDG_DATA_HOME via centralized project-id helper", async () => {
+    const originalXdg = process.env.XDG_DATA_HOME;
+    process.env.XDG_DATA_HOME = "/custom/data";
+    try {
+      await expect(getWorktreePath(process.cwd(), "change/test")).resolves.toBe(
+        `/custom/data/opencode/worktree/${synthesizeTestProjectId(process.cwd())}/change/test`,
+      );
+    } finally {
+      if (originalXdg === undefined) delete process.env.XDG_DATA_HOME;
+      else process.env.XDG_DATA_HOME = originalXdg;
+    }
   });
 });

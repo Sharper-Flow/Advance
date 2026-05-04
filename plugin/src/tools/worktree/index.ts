@@ -27,7 +27,6 @@ import {
   stat,
   symlink,
 } from "node:fs/promises";
-import * as os from "node:os";
 import * as path from "node:path";
 import { execFile } from "child_process";
 import { type Plugin, tool } from "@opencode-ai/plugin";
@@ -80,7 +79,7 @@ import {
   releaseGitWorktreeFlock,
 } from "../../utils/git-worktree-flock";
 import { generateSessionId } from "../../utils/session-id";
-import { getExternalRoot } from "../../utils/project-id";
+import { getDataHome, getExternalRoot } from "../../utils/project-id";
 
 /** Maximum retries for database initialization */
 const DB_MAX_RETRIES = 3;
@@ -345,20 +344,9 @@ async function forkWithContext(
   let delegationsCopied: boolean;
 
   try {
-    const workspaceBase = path.join(
-      os.homedir(),
-      ".local",
-      "share",
-      "opencode",
-      "workspace",
-    );
-    const delegationsBase = path.join(
-      os.homedir(),
-      ".local",
-      "share",
-      "opencode",
-      "delegations",
-    );
+    const dataHome = getDataHome();
+    const workspaceBase = path.join(dataHome, "opencode", "workspace");
+    const delegationsBase = path.join(dataHome, "opencode", "delegations");
 
     const destWorkspaceDir = path.join(
       workspaceBase,
@@ -401,20 +389,9 @@ async function forkWithContext(
       })
       .catch(() => {});
     // Clean up orphaned directories
-    const workspaceBase = path.join(
-      os.homedir(),
-      ".local",
-      "share",
-      "opencode",
-      "workspace",
-    );
-    const delegationsBase = path.join(
-      os.homedir(),
-      ".local",
-      "share",
-      "opencode",
-      "delegations",
-    );
+    const dataHome = getDataHome();
+    const workspaceBase = path.join(dataHome, "opencode", "workspace");
+    const delegationsBase = path.join(dataHome, "opencode", "delegations");
     const destWorkspaceDir = path.join(
       workspaceBase,
       projectId,

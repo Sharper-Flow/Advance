@@ -95,6 +95,7 @@ import {
   unregisterSession,
 } from "./state";
 import { isPidAlive } from "../session/index";
+import { getBoundedProjectWorkflowAccess } from "../project-workflow-helper";
 
 // =============================================================================
 // Helpers
@@ -334,6 +335,33 @@ describe("migrateAndReconcile (T8)", () => {
       expect(existsSync(`${sqlitePath}.bak`)).toBe(false);
     } finally {
       process.env.HOME = oldHome;
+      try {
+        execFileSync("rm", ["-rf", tmpDir]);
+      } catch {
+        // ignore
+      }
+    }
+  });
+
+  it("uses XDG_DATA_HOME for project workflow marker paths", async () => {
+    const tmpDir = join(process.cwd(), "tmp-test-xdg-marker-" + Date.now());
+    mkdirSync(tmpDir, { recursive: true });
+    createGitRepo(tmpDir);
+
+    const oldXdg = process.env.XDG_DATA_HOME;
+    process.env.XDG_DATA_HOME = "/custom/data";
+
+    try {
+      await migration.migrateAndReconcile(tmpDir, { dryRun: true });
+
+      expect(getBoundedProjectWorkflowAccess).toHaveBeenCalledWith({
+        projectDir: "/test/project",
+        mutablePath:
+          "/custom/data/opencode/plugins/advance/test-project-id/worktree-state.marker",
+      });
+    } finally {
+      if (oldXdg === undefined) delete process.env.XDG_DATA_HOME;
+      else process.env.XDG_DATA_HOME = oldXdg;
       try {
         execFileSync("rm", ["-rf", tmpDir]);
       } catch {

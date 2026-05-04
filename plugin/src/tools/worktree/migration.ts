@@ -13,7 +13,6 @@
 import { execFile } from "child_process";
 import { existsSync } from "fs";
 import { rename } from "fs/promises";
-import { homedir } from "os";
 import { join } from "path";
 
 import {
@@ -28,6 +27,7 @@ import {
 } from "../../temporal/messages";
 import { getBoundedProjectWorkflowAccess } from "../project-workflow-helper";
 import { isPidAlive } from "../session/index";
+import { getDataHome, getExternalRoot } from "../../utils/project-id";
 import {
   addSession,
   initStateDb,
@@ -74,13 +74,7 @@ async function readProjectState(
   access: WorktreeStateAccess,
 ): Promise<ProjectWorkflowState | null> {
   const mutablePath = join(
-    homedir(),
-    ".local",
-    "share",
-    "opencode",
-    "plugins",
-    "advance",
-    access.projectId,
+    getExternalRoot(access.projectId),
     "worktree-state.marker",
   );
   const resolved = await getBoundedProjectWorkflowAccess({
@@ -189,13 +183,7 @@ async function addGitCensusWorktree(
 ): Promise<void> {
   if (dryRun) return;
   const mutablePath = join(
-    homedir(),
-    ".local",
-    "share",
-    "opencode",
-    "plugins",
-    "advance",
-    access.projectId,
+    getExternalRoot(access.projectId),
     "worktree-state.marker",
   );
   const resolved = await getBoundedProjectWorkflowAccess({
@@ -226,13 +214,7 @@ async function flagMissingWorktree(
 ): Promise<void> {
   if (dryRun) return;
   const mutablePath = join(
-    homedir(),
-    ".local",
-    "share",
-    "opencode",
-    "plugins",
-    "advance",
-    access.projectId,
+    getExternalRoot(access.projectId),
     "worktree-state.marker",
   );
   const resolved = await getBoundedProjectWorkflowAccess({
@@ -288,9 +270,7 @@ export async function migrateAndReconcile(
 
   // Step 2: SQLite → Temporal migration
   const sqlitePath = join(
-    homedir(),
-    ".local",
-    "share",
+    getDataHome(),
     "opencode",
     "plugins",
     "worktree",

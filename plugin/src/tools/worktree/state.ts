@@ -19,9 +19,8 @@
  */
 
 import { join } from "node:path";
-import * as os from "node:os";
 import { getBoundedProjectWorkflowAccess } from "../project-workflow-helper";
-import { getProjectId } from "../../utils/project-id";
+import { getExternalRoot, getWorktreeBase } from "../../utils/project-id";
 import { projectStateQuery } from "../../temporal/messages";
 import {
   addWorktreeSessionUpdate,
@@ -113,18 +112,10 @@ export async function getWorktreePath(
       `getWorktreePath: unable to resolve project id for ${projectRoot}`,
     );
   }
-  // Mirrors the legacy layout: ~/.local/share/opencode/worktree/{pid}/{branch}
+  // Mirrors the legacy layout: $XDG_DATA_HOME/opencode/worktree/{pid}/{branch}
   // Branch slashes are kept literal — git accepts paths with `/` segments
   // and the standalone plugin used the same layout.
-  const base = join(
-    os.homedir(),
-    ".local",
-    "share",
-    "opencode",
-    "worktree",
-    projectId,
-  );
-  return join(base, branch);
+  return join(getWorktreeBase(projectId), branch);
 }
 
 // =============================================================================
@@ -190,20 +181,11 @@ async function resolveAccess(projectDir: string) {
   // the helper without a mutablePath so it can apply its own local-only
   // fallback. This preserves test mocks that drive the access mode
   // directly via the helper.
-  const projectId = await getProjectId(projectDir);
+  const projectId = await getProjectIdRaw(projectDir);
   if (!projectId) {
     return getBoundedProjectWorkflowAccess({ projectDir });
   }
-  const mutablePath = join(
-    os.homedir(),
-    ".local",
-    "share",
-    "opencode",
-    "plugins",
-    "advance",
-    projectId,
-    "worktree-state.marker",
-  );
+  const mutablePath = join(getExternalRoot(projectId), "worktree-state.marker");
   return getBoundedProjectWorkflowAccess({ projectDir, mutablePath });
 }
 
