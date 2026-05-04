@@ -194,6 +194,8 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
       modifies: ["proposal"],
       gates: ["discovery"],
     },
+    phaseGoal:
+      "Gather current-state evidence, resolve agreement, and capture objectives and acceptance criteria before design.",
     args_hint: "<change-id>",
   },
   "adv-design": {
@@ -211,6 +213,8 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
       modifies: ["proposal"],
       gates: ["design"],
     },
+    phaseGoal:
+      "Convert the approved agreement into a validated implementation strategy ready for planning.",
     args_hint: "<change-id>",
   },
   "adv-prep": {
@@ -246,6 +250,8 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
       modifies: [],
       gates: [],
     },
+    phaseGoal:
+      "Synthesize post-completion learnings into a durable reflection artifact for process improvement.",
     args_hint: "<change-id>",
   },
 
@@ -298,6 +304,8 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
       modifies: ["proposal"],
       gates: ["proposal", "discovery", "design", "planning", "acceptance"],
     },
+    phaseGoal:
+      "Execute a full change pipeline autonomously, delegating routine human checkpoints while preserving safety boundaries.",
   },
 
   // ---- Post-Implementation ----

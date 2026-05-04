@@ -351,15 +351,19 @@ describe("Command Manifest", () => {
   });
 
   describe("Phase goal metadata", () => {
-    // The 7 workflow commands that define the HITL boundary model
+    // Lifecycle workflow commands with canonical phase goals.
     const WORKFLOW_COMMANDS = [
       "adv-proposal",
       "adv-research",
+      "adv-discover",
+      "adv-design",
       "adv-prep",
       "adv-apply",
       "adv-review",
       "adv-harden",
       "adv-archive",
+      "adv-reflect",
+      "adv-autopilot",
     ] as const;
 
     // Non-workflow commands should NOT have phaseGoal
@@ -368,7 +372,7 @@ describe("Command Manifest", () => {
         !WORKFLOW_COMMANDS.includes(name as (typeof WORKFLOW_COMMANDS)[number]),
     );
 
-    test("all 7 workflow commands have phaseGoal populated", () => {
+    test("all lifecycle workflow commands have phaseGoal populated", () => {
       const missing: string[] = [];
       for (const name of WORKFLOW_COMMANDS) {
         const def = getCommandDef(name);
@@ -434,11 +438,15 @@ describe("Command Manifest", () => {
     test("phaseGoal values match the user-approved phase goals", () => {
       const expectedGoals: Record<string, string> = {
         "adv-proposal":
-          "Clarify the problem, user needs, and acceptance criteria scope. Establish what and why \u2014 no how.",
+          "Clarify the problem, user needs, and acceptance criteria scope. Establish what and why — no how.",
         "adv-research":
           "Produce a defined, fully-researched proposed plan ready for user approval. Validate the how.",
+        "adv-discover":
+          "Gather current-state evidence, resolve agreement, and capture objectives and acceptance criteria before design.",
+        "adv-design":
+          "Convert the approved agreement into a validated implementation strategy ready for planning.",
         "adv-prep":
-          "Complete the flight-check: every gap closed, every dependency mapped, every task ready \u2014 ready for autonomous implementation.",
+          "Complete the flight-check: every gap closed, every dependency mapped, every task ready — ready for autonomous implementation.",
         "adv-apply":
           "Execute the approved plan autonomously. Add discovered tasks within scope. Escalate only on failure.",
         "adv-review":
@@ -447,6 +455,10 @@ describe("Command Manifest", () => {
           "Verify production-readiness. Auto-fix scoped issues. Stop on drift.",
         "adv-archive":
           "Promote the change from contract to law: apply spec deltas, capture wisdom, clean up.",
+        "adv-reflect":
+          "Synthesize post-completion learnings into a durable reflection artifact for process improvement.",
+        "adv-autopilot":
+          "Execute a full change pipeline autonomously, delegating routine human checkpoints while preserving safety boundaries.",
       };
 
       for (const [name, goal] of Object.entries(expectedGoals)) {
