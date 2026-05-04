@@ -12,6 +12,8 @@
  */
 
 import { type Plugin } from "@opencode-ai/plugin";
+import { execFileSync } from "node:child_process";
+import { dirname, resolve } from "node:path";
 import {
   initializeStatus,
   cleanup as cleanupTerminal,
@@ -211,6 +213,8 @@ interface PluginState extends StatusFlags {
   } | null;
   /** True when running inside a git worktree (directory !== main repo root) */
   isWorktree: boolean;
+  /** True when current checkout is the main checkout resolved via git common-dir. */
+  isMainCheckout: boolean;
   /** Current active gate (set from adv_gate_complete output). Used by conformance guards. */
   activeGate: string | null;
   /** Cached locked sibling-repo conformance paths. Updated on adv_conformance calls. */
@@ -247,6 +251,35 @@ const resolveStatus = (s: PluginState): StatusMarker => {
 
 const debugLog = (msg: string): void => appendDebugLog("index", msg);
 const hooksLogger = createLogger("hooks");
+
+function resolveGitSessionContext(
+  directory: string,
+  worktree: string | undefined,
+): { isWorktree: boolean; isMainCheckout: boolean; mainCheckoutPath?: string } {
+  const cwd = worktree || directory;
+  try {
+    const topLevel = execFileSync(
+      "git",
+      ["rev-parse", "--path-format=absolute", "--show-toplevel"],
+      { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] },
+    ).trim();
+    const commonDir = execFileSync(
+      "git",
+      ["rev-parse", "--path-format=absolute", "--git-common-dir"],
+      { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] },
+    ).trim();
+    const mainCheckoutPath = dirname(commonDir);
+    const isMainCheckout = resolve(topLevel) === resolve(mainCheckoutPath);
+    return {
+      isWorktree: !isMainCheckout,
+      isMainCheckout,
+      mainCheckoutPath,
+    };
+  } catch {
+    const isWorktree = !!worktree && worktree !== directory;
+    return { isWorktree, isMainCheckout: !isWorktree };
+  }
+}
 
 /**
  * Build a minimal degraded hooks object for the case where the plugin
@@ -295,9 +328,10 @@ function buildFactoryFailureHooks(
 }
 
 const advancePluginImpl: Plugin = async ({ directory, worktree, project }) => {
-  const isWorktree = !!worktree && worktree !== directory;
+  const gitSession = resolveGitSessionContext(directory, worktree);
+  const { isWorktree, isMainCheckout } = gitSession;
   debugLog(
-    `Plugin init: dir=${directory}, worktree=${worktree}, isWorktree=${isWorktree}`,
+    `Plugin init: dir=${directory}, worktree=${worktree}, isWorktree=${isWorktree}, isMainCheckout=${isMainCheckout}, mainCheckoutPath=${gitSession.mainCheckoutPath ?? "unknown"}`,
   );
 
   const { effectiveDir, externalRoot } = await resolveProjectContext(
@@ -327,6 +361,7 @@ const advancePluginImpl: Plugin = async ({ directory, worktree, project }) => {
     activeChange: { id: null, objective: null },
     lastCompletedTask: null,
     isWorktree,
+    isMainCheckout,
     activeGate: null,
     conformanceLockedPaths: [],
     lastSessionHealthIssue: null,
@@ -507,7 +542,10 @@ const advancePluginImpl: Plugin = async ({ directory, worktree, project }) => {
     if (toolName === "bash") {
       const agent = typeof input.agent === "string" ? input.agent : "unknown";
       const command = typeof args.command === "string" ? args.command : "";
-      enforceBashPolicy(agent, command);
+      enforceBashPolicy(agent, command, {
+        activeChangeId: state.activeChange.id,
+        isMainCheckout: state.isMainCheckout,
+      });
       const conformanceBash = enforceConformanceBashPolicy(command, {
         lockedSiblingRoots: lockedPaths,
       });

@@ -62,6 +62,57 @@ describe("Bash Policy Guard", () => {
       expect(() => enforceBashPolicy("build", "npm install")).not.toThrow();
       expect(() => enforceBashPolicy("unknown", "rm -rf /")).not.toThrow();
     });
+
+    it("blocks branch switching from main checkout during an active change", () => {
+      expect(() =>
+        enforceBashPolicy("adv", "git checkout feature", {
+          activeChangeId: "branchAwareAdvOcaSession",
+          isMainCheckout: true,
+        }),
+      ).toThrow(/main checkout.*branch switching/i);
+
+      expect(() =>
+        enforceBashPolicy("build", "git switch -c change/foo", {
+          activeChangeId: "branchAwareAdvOcaSession",
+          isMainCheckout: true,
+        }),
+      ).toThrow(/main checkout.*branch switching/i);
+    });
+
+    it("blocks write-capable WIP mutations from main checkout during an active change", () => {
+      expect(() =>
+        enforceBashPolicy("adv", "pnpm install", {
+          activeChangeId: "branchAwareAdvOcaSession",
+          isMainCheckout: true,
+        }),
+      ).toThrow(/main checkout.*active change/i);
+    });
+
+    it("allows main-checkout read-only commands and explicit trunk override", () => {
+      expect(() =>
+        enforceBashPolicy("adv", "git status", {
+          activeChangeId: "branchAwareAdvOcaSession",
+          isMainCheckout: true,
+        }),
+      ).not.toThrow();
+
+      expect(() =>
+        enforceBashPolicy("adv", "git checkout trunk", {
+          activeChangeId: "branchAwareAdvOcaSession",
+          isMainCheckout: true,
+          trunkMutationApproved: true,
+        }),
+      ).not.toThrow();
+    });
+
+    it("allows branch switching inside a worktree", () => {
+      expect(() =>
+        enforceBashPolicy("adv", "git checkout feature", {
+          activeChangeId: "branchAwareAdvOcaSession",
+          isMainCheckout: false,
+        }),
+      ).not.toThrow();
+    });
   });
 
   describe("enforceTddBashPolicy", () => {
