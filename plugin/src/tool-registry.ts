@@ -63,6 +63,30 @@ export function registerTool(
   // difference — but the cast is still required because TypeScript treats
   // the two imports as nominal types even when they resolve to the same
   // module on disk.
+  //
+  // rq-zodParseValidation01: Add runtime z.parse() validation at the
+  // boundary during tests. The SDK and plugin each use their own Zod import
+  // identity. Even though pnpm.overrides pins a single zod@4.3.6 runtime
+  // instance, TypeScript treats them as nominal types so the `as any` cast
+  // is required. This guard validates that every value in `args` is actually
+  // a ZodType — catching schemas that were accidentally defined with
+  // undefined/null/non-Zod values that would silently fail at runtime when
+  // the SDK tries to parse incoming tool arguments.
+  //
+  // The validation does NOT validate against the SDK's Zod instance
+  // (unavailable here); it validates that the plugin's own schemas are
+  // well-formed Zod types. Malformed schemas are caught in CI, not
+  // silently accepted. Validation is test-only to avoid production
+  // overhead.
+  if (process.env.NODE_ENV === "test") {
+    for (const [key, schema] of Object.entries(args)) {
+      if (!schema || typeof schema.safeParse !== "function") {
+        throw new Error(
+          `[rq-zodParseValidation01] Tool args["${key}"] is not a Zod type — check the tool definition in the tools/ file. Received: ${typeof schema}`,
+        );
+      }
+    }
+  }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return tool({ description, args: args as any, execute });
 }
