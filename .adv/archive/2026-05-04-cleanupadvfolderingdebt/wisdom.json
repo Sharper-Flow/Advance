@@ -1,0 +1,68 @@
+{
+  "entries": [
+    {
+      "id": "ws-8c9550db-75d7-40df-88b2-cb8b9fe89646",
+      "type": "gotcha",
+      "content": "ADV evidence tools can transiently TypeError while recording TDD evidence (`evidenceResult?.task.tdd_phase`, `task.tdd_evidence`), but checkpoint/task update may still persist evidence. When this happens, run the same command via shell, include exact command/exit summary in checkpoint verification, and proceed only after green verification passes.",
+      "source_task": "tk-6b579ba1-10f8-48de-bb81-5618d28745b8",
+      "recorded_at": "2026-05-04T00:27:43.817Z"
+    },
+    {
+      "id": "ws-5e0b447f-9f0d-4ca3-a104-e1634f4ddca8",
+      "type": "gotcha",
+      "content": "Use `pnpm exec vitest run <file>` for focused Vitest verification in this repo. `pnpm test -- <file>` can behave like a broader suite run and surface unrelated test failures, which obscures task-local red/green evidence.",
+      "source_task": "tk-a6430d1d-4ebb-42c7-b3eb-03b129c4d9ad",
+      "recorded_at": "2026-05-04T00:27:43.821Z"
+    },
+    {
+      "id": "ws-5dabc744-1a5a-474f-813f-3fedb043abab",
+      "type": "pattern",
+      "content": "For safe worktree branch-prefix cleanup, expose a small bounded helper that uses `rmdir` only, stops at canonical base, and throws on namespace escape. Call sites that may receive custom/legacy paths should catch escape and skip cleanup, preserving the primary delete operation while direct helper tests enforce the safety invariant.",
+      "source_task": "tk-75061327-c04f-477b-9603-4a88450f2961",
+      "recorded_at": "2026-05-04T00:27:43.828Z"
+    },
+    {
+      "id": "ws-6bcbb950-628b-4236-942c-3223c3dc3dd1",
+      "type": "pattern",
+      "content": "Archive listing must treat `change.json.id` as canonical identity, not archive directory names. When combining Temporal, source-dir, and archive-dir sources, deduplicate loaded `Change` records by `change.id` and prefer terminal statuses to avoid duplicate archived entries from dated bundle dirs.",
+      "source_task": "tk-84243f17-4437-4ef3-b8a0-a4a63255f5c6",
+      "recorded_at": "2026-05-04T00:27:43.832Z"
+    },
+    {
+      "id": "ws-15c5337f-58a8-456f-9843-3f369c367116",
+      "type": "pattern",
+      "content": "For external-state file relocations, pass the explicit `ProjectPaths.<file>` path at write call sites, and keep read-only fallback to legacy nested `.adv/<file>` only when the flat override is missing. This preserves compatibility without re-creating nested `.adv` directories.",
+      "source_task": "tk-c5e7aa5f-594e-466a-bbb5-3a3461f24eab",
+      "recorded_at": "2026-05-04T00:27:43.836Z"
+    },
+    {
+      "id": "ws-6768a36a-a69e-4bb7-9271-a37080ec53f0",
+      "type": "convention",
+      "content": "Status hygiene findings that imply deletion must be reported as dry-run-only with `deletion_requires_approval: true`. Exclude worker lock lifecycle artifacts from generic cleanup reports when another change owns that behavior.",
+      "source_task": "tk-8be9cb95-f4c8-4881-8a57-465964db0a4f",
+      "recorded_at": "2026-05-04T00:27:43.840Z"
+    },
+    {
+      "id": "ws-453bdc72-3cdc-4ee5-9ca6-b1379831bfb0",
+      "type": "pattern",
+      "content": "For test-run cleanup of ADV external state, snapshot synthetic project/worktree dirs before Vitest and delete only newly-created synthetic dirs at teardown. Keep real project IDs untouched, and honor `.adv-test-owner` marker mismatches as a no-op guard.",
+      "source_task": "tk-99a41f6b-99c4-41de-98e0-3ffe3e03fba2",
+      "recorded_at": "2026-05-04T00:27:43.844Z"
+    },
+    {
+      "id": "ws-3c53501b-2529-4cf6-aeaa-8d3de54ae3f7",
+      "type": "gotcha",
+      "content": "Running Prettier over legacy top-level markdown (`ADV_INSTRUCTIONS.md`, `SETUP.md`, `project.md`) can cause broad unrelated reflow. For docs-refresh tasks, avoid committing formatting-only churn unless the repo check explicitly requires it; keep targeted diffs.",
+      "source_task": "tk-d1a9e1c9-0a91-46b4-b085-20dc15b869b6",
+      "recorded_at": "2026-05-04T00:27:43.848Z"
+    },
+    {
+      "id": "ws-59b5b7b0-70c9-4b62-a526-89d30bcbd8e2",
+      "type": "success",
+      "content": "Final verification for this change passed with `pnpm run check`, full `pnpm test`, and `pnpm run build`. Focused related scans should classify remaining hardcoded path matches rather than blindly eliminating defaults/tests/docs that intentionally document legacy or fallback behavior.",
+      "source_task": "tk-48183945-7890-4f83-b681-7c0296f9664c",
+      "recorded_at": "2026-05-04T00:27:43.852Z"
+    }
+  ],
+  "count": 9
+}
