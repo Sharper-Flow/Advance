@@ -616,6 +616,46 @@ async function branchExists(cwd: string, branch: string): Promise<boolean> {
   return result.ok;
 }
 
+interface GitWorktreeEntry {
+  path: string;
+  branch?: string;
+}
+
+function parseGitWorktreePorcelain(output: string): GitWorktreeEntry[] {
+  const entries: GitWorktreeEntry[] = [];
+  let current: GitWorktreeEntry | null = null;
+
+  for (const line of output.split(/\r?\n/)) {
+    if (line.startsWith("worktree ")) {
+      if (current) entries.push(current);
+      current = { path: line.slice("worktree ".length) };
+      continue;
+    }
+
+    if (current && line.startsWith("branch ")) {
+      current.branch = line.slice("branch ".length);
+    }
+  }
+
+  if (current) entries.push(current);
+  return entries;
+}
+
+async function findGitWorktreeByBranch(
+  cwd: string,
+  branch: string,
+): Promise<GitWorktreeEntry | null> {
+  const result = await git(["worktree", "list", "--porcelain"], cwd);
+  if (!result.ok) return null;
+
+  const fullRef = `refs/heads/${branch}`;
+  return (
+    parseGitWorktreePorcelain(result.value).find(
+      (entry) => entry.branch === fullRef || entry.branch === branch,
+    ) ?? null
+  );
+}
+
 // =============================================================================
 // ADV-SAFE WORKTREE CREATE (T10 — KD-13, peer-review F3, R14)
 // =============================================================================
@@ -638,7 +678,14 @@ export interface AdvWorktreeCreateDeps {
 }
 
 export type AdvWorktreeCreateResult =
-  | { ok: true; branch: string; path: string; baseRef: string; headSha: string }
+  | {
+      ok: true;
+      branch: string;
+      path: string;
+      baseRef: string;
+      headSha: string;
+      reused: boolean;
+    }
   | { ok: false; error: "DEFAULT_BRANCH_UNRESOLVABLE"; hint: string }
   | { ok: false; error: "STALE_BASE"; reason: string; suggestion: string }
   | { ok: false; error: "BRANCH_LOCKED"; hint: string }
@@ -650,6 +697,32 @@ export async function advWorktreeCreate(
   deps: AdvWorktreeCreateDeps,
 ): Promise<AdvWorktreeCreateResult> {
   const repoRoot = deps.projectRoot;
+
+  // Step 0: reuse an already-registered git worktree before any
+  // project-workflow recovery, stale-basis checks, flock, or git worktree add.
+  // This is intentionally git-authoritative: `git worktree list --porcelain`
+  // is local, cheap, and remains available when the Temporal worker is stuck.
+  const existingWorktree = await findGitWorktreeByBranch(repoRoot, branch);
+  if (existingWorktree) {
+    if (await pathExists(existingWorktree.path)) {
+      const headSha = (
+        await execGit(["rev-parse", "HEAD"], existingWorktree.path)
+      ).trim();
+      return {
+        ok: true,
+        branch,
+        path: existingWorktree.path,
+        baseRef: opts.base ?? "existing",
+        headSha,
+        reused: true,
+      };
+    }
+
+    const pruneResult = await git(["worktree", "prune"], repoRoot);
+    if (!pruneResult.ok) {
+      return { ok: false, error: "GIT_FAILED", reason: pruneResult.error };
+    }
+  }
 
   // Step 1: resolve base branch explicitly. NEVER fall through to HEAD.
   const resolveDefaultBranchFn = deps.resolveDefaultBranch ?? getDefaultBranch;
@@ -783,6 +856,7 @@ export async function advWorktreeCreate(
       path: worktreePath,
       baseRef: resolvedBase,
       headSha,
+      reused: false,
     };
   } finally {
     await releaseGitWorktreeFlock(projectStateDir);

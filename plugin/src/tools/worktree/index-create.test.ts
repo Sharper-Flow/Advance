@@ -11,7 +11,7 @@
  */
 
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
-import { mkdtempSync, rmSync, writeFileSync } from "fs";
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
 import { execSync } from "child_process";
@@ -86,15 +86,88 @@ describe.skipIf(!isLinux)(
   { sequence: { concurrent: false } },
   () => {
     let repoRoot: string;
+    let cleanupPaths: string[];
 
     beforeEach(() => {
       repoRoot = createGitRepo();
+      cleanupPaths = [];
       vi.clearAllMocks();
       vi.mocked(runHooksWithSafety).mockReset();
     });
 
     afterEach(() => {
+      for (const cleanupPath of cleanupPaths) {
+        rmSync(cleanupPath, { recursive: true, force: true });
+      }
       rmSync(repoRoot, { recursive: true, force: true });
+    });
+
+    it("reuses an existing change worktree before workflow recovery or create", async () => {
+      const existingPath = mkdtempSync(join(tmpdir(), "adv-wt-existing-"));
+      rmSync(existingPath, { recursive: true, force: true });
+      cleanupPaths.push(existingPath);
+      execSync(`git worktree add -b change/existing ${existingPath} main`, {
+        cwd: repoRoot,
+      });
+
+      const deps = createMockDeps(repoRoot);
+      const resolveDefaultBranch = vi.fn(async () => {
+        throw new Error("reuse should not resolve base branch");
+      });
+      const detectStaleBasis = vi.fn(async () => {
+        throw new Error("reuse should not run stale-basis checks");
+      });
+      deps.resolveDefaultBranch = resolveDefaultBranch;
+      deps.detectStaleBasis = detectStaleBasis;
+
+      const result = await advWorktreeCreate("change/existing", {}, deps);
+
+      expect(result).toMatchObject({
+        ok: true,
+        branch: "change/existing",
+        path: existingPath,
+        reused: true,
+      });
+      if (result.ok) {
+        expect(result.headSha).toBe(
+          execSync("git rev-parse HEAD", { cwd: existingPath })
+            .toString()
+            .trim(),
+        );
+      }
+      expect(resolveDefaultBranch).not.toHaveBeenCalled();
+      expect(detectStaleBasis).not.toHaveBeenCalled();
+      expect(workflowExecuteUpdate).not.toHaveBeenCalled();
+    });
+
+    it("prunes stale worktree metadata before fresh create", async () => {
+      const stalePath = mkdtempSync(join(tmpdir(), "adv-wt-stale-"));
+      rmSync(stalePath, { recursive: true, force: true });
+      cleanupPaths.push(stalePath);
+      execSync(`git worktree add -b change/stale ${stalePath} main`, {
+        cwd: repoRoot,
+      });
+      rmSync(stalePath, { recursive: true, force: true });
+
+      const deps = createMockDeps(repoRoot);
+      deps.resolveDefaultBranch = async () => "main";
+      deps.detectStaleBasis = async () => ({ stale: false });
+
+      const result = await advWorktreeCreate("change/stale", {}, deps);
+
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        cleanupPaths.push(result.path);
+        expect(result.branch).toBe("change/stale");
+        expect(result.reused).toBe(false);
+        expect(existsSync(result.path)).toBe(true);
+        expect(result.path).not.toBe(stalePath);
+      }
+      const list = execSync("git worktree list --porcelain", {
+        cwd: repoRoot,
+      }).toString();
+      expect(list).toContain("branch refs/heads/change/stale");
+      expect(list).not.toContain(stalePath);
     });
 
     it("DEFAULT_BRANCH_UNRESOLVABLE — blocks when default branch cannot be resolved", async () => {
