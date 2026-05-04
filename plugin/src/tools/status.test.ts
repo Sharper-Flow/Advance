@@ -366,6 +366,24 @@ Vague in-flight work.
     });
 
     describe("search_attributes", () => {
+      test("health view includes loaded plugin runtime diagnostic", async () => {
+        const result = await statusTools.adv_status.execute(
+          { view: "health" },
+          store,
+        );
+        const parsed = parseToolOutput(result);
+
+        expect(parsed.plugin_runtime).toEqual(
+          expect.objectContaining({
+            loaded_module_path: expect.any(String),
+            process_started_at: expect.any(String),
+            build_marker_path: expect.stringContaining("oca-build.json"),
+            worker_script_path: expect.stringContaining("worker.js"),
+            reload_caveat: expect.stringContaining("Restart OpenCode"),
+          }),
+        );
+      });
+
       test("includes search_attributes section with saVerification from getStslStats", async () => {
         const { getStslStats, isStslInitialized } =
           await import("../temporal/service");
