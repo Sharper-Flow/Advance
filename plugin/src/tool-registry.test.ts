@@ -106,10 +106,11 @@ describe("KD-8 worktree + session tool registrations", () => {
     await cleanupTempDir(tempDir);
   });
 
-  test("createToolMap contains all 6 new KD-8 tool names", async () => {
+  test("createToolMap contains all branch-aware worktree/session tool names", async () => {
     const map = createToolMap(store, tempDir, store.paths.agenda);
     const expected = [
       "adv_worktree_create",
+      "adv_worktree_resume",
       "adv_worktree_delete",
       "adv_worktree_cleanup",
       "adv_worktree_triage",
@@ -125,6 +126,7 @@ describe("KD-8 worktree + session tool registrations", () => {
     const map = createToolMap(store, tempDir, store.paths.agenda);
     const expected = [
       "adv_worktree_create",
+      "adv_worktree_resume",
       "adv_worktree_delete",
       "adv_worktree_cleanup",
       "adv_worktree_triage",

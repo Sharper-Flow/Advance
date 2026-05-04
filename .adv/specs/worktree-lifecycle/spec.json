@@ -1,0 +1,164 @@
+{
+  "$schema": "https://raw.githubusercontent.com/anomalyco/oc-plugins/main/advance/plugin/schemas/spec.schema.json",
+  "name": "worktree-lifecycle",
+  "title": "Worktree Lifecycle — Branch-Aware Registry, Setup Readiness, Git-First Reconciliation",
+  "purpose": "Capability: Branch-aware worktree registry with strict setup readiness, git-first workspace reconciliation, resume/materialization tool, main-checkout safety guard, and cleanup eligibility tracking.",
+  "version": "1.0.0",
+  "updated_at": "2026-05-04T00:00:00.000Z",
+  "requirements": [
+    {
+      "id": "rq-wl-branchRegistry01",
+      "title": "Branch-Aware Worktree Registry",
+      "body": "The worktree registry (ProjectWorkflowState.worktree_registry) must store per-entry: branch, path, materialized flag, changeId, status, setupReady, setupFailureReason, baseRef, headSha, source, cleanupEligible, cleanupBlockedBy. Legacy MaterializedWorktreeRecord consumers must continue to work through a materialized-only compatibility view.",
+      "priority": "must",
+      "tags": ["worktree", "registry", "temporal"],
+      "scenarios": [
+        {
+          "id": "rq-wl-branchRegistry01.1",
+          "title": "Branch-only record survives worktree delete",
+          "given": ["A worktree is deleted via git but the registry entry retains branch"],
+          "when": "The registry is queried",
+          "then": ["The entry exists with materialized=false and path=''"]
+        },
+        {
+          "id": "rq-wl-branchRegistry01.2",
+          "title": "Materialized-only view omits branch-only records",
+          "given": ["Registry has both materialized and branch-only entries"],
+          "when": "A legacy consumer requests materialized worktrees",
+          "then": ["Only entries with materialized=true are returned"]
+        }
+      ]
+    },
+    {
+      "id": "rq-wl-setupReadiness01",
+      "title": "Strict Setup Readiness",
+      "body": "advWorktreeCreate must record materializing state before git worktree add, then transition to active/idle only after postCreate hooks succeed. Hook failure writes setup_failed status with setupReady=false and the failure reason. Active session registration must be blocked on setup_failed records.",
+      "priority": "must",
+      "tags": ["worktree", "safety", "hooks"],
+      "scenarios": [
+        {
+          "id": "rq-wl-setupReadiness01.1",
+          "title": "Hook failure produces setup_failed",
+          "given": ["advWorktreeCreate is called and postCreate hook times out or returns non-zero"],
+          "when": "The create flow handles the failure",
+          "then": [
+            "Registry entry has status=setup_failed",
+            "setupReady=false",
+            "setupFailureReason contains the error",
+            "Active session is NOT registered for this worktree"
+          ]
+        },
+        {
+          "id": "rq-wl-setupReadiness01.2",
+          "title": "Successful setup transitions to active",
+          "given": ["advWorktreeCreate is called and postCreate hooks succeed"],
+          "when": "The create flow completes",
+          "then": [
+            "Registry entry has status=active or idle",
+            "setupReady=true",
+            "Active session is registered"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-wl-gitFirstReconcile01",
+      "title": "Git-First Workspace Reconciliation",
+      "body": "A git-first scanner (scanGitWorkspaceFacts) must enumerate actual git worktrees and classify their relationship to registry entries. A pure reconciler (reconcileWorktreeRegistry) must produce classification actions without IO side effects, separating git IO from deterministic state transitions.",
+      "priority": "must",
+      "tags": ["worktree", "reconciliation", "git"],
+      "scenarios": [
+        {
+          "id": "rq-wl-gitFirstReconcile01.1",
+          "title": "Orphan git worktree detected",
+          "given": ["A git worktree exists on disk but has no registry entry"],
+          "when": "scanGitWorkspaceFacts + reconcileWorktreeRegistry run",
+          "then": ["The reconciler produces an 'untracked' classification for that worktree"]
+        },
+        {
+          "id": "rq-wl-gitFirstReconcile01.2",
+          "title": "Missing worktree detected",
+          "given": ["A registry entry claims materialized=true but no git worktree exists"],
+          "when": "scanGitWorkspaceFacts + reconcileWorktreeRegistry run",
+          "then": ["The reconciler produces a 'missing' classification for that entry"]
+        }
+      ]
+    },
+    {
+      "id": "rq-wl-resumeTool01",
+      "title": "Worktree Resume / Materialization Tool",
+      "body": "advWorktreeResume must resolve a changeId or branch to an existing worktree record. It must block on setup_failed records (return SETUP_FAILED), reuse setup-ready materialized worktrees, and materialize branch-only records through the strict create path. It must return a concrete workdir path on success.",
+      "priority": "must",
+      "tags": ["worktree", "resume", "tool"],
+      "scenarios": [
+        {
+          "id": "rq-wl-resumeTool01.1",
+          "title": "Resume reuses ready worktree",
+          "given": ["A materialized worktree with setupReady=true exists for the change"],
+          "when": "advWorktreeResume is called with the changeId",
+          "then": ["Returns the existing worktree path without creating a new one"]
+        },
+        {
+          "id": "rq-wl-resumeTool01.2",
+          "title": "Resume blocks on setup_failed",
+          "given": ["A worktree record with status=setup_failed exists for the change"],
+          "when": "advWorktreeResume is called with the changeId",
+          "then": ["Returns SETUP_FAILED result with branch, path, and reason"]
+        },
+        {
+          "id": "rq-wl-resumeTool01.3",
+          "title": "Resume materializes branch-only record",
+          "given": ["A registry entry exists with materialized=false and a branch name"],
+          "when": "advWorktreeResume is called with the changeId",
+          "then": ["Creates the git worktree through the strict create path", "Returns the new worktree path"]
+        }
+      ]
+    },
+    {
+      "id": "rq-wl-mainCheckoutGuard01",
+      "title": "Main-Checkout Branch-Switch Guard",
+      "body": "ADV plugin init must detect whether the current working directory is the main git checkout (via git rev-parse --path-format=absolute --git-common-dir). When an active change exists and the session is not in a worktree, a trunk guard must fire, blocking write-capable operations unless the user explicitly overrides with documented audit evidence.",
+      "priority": "must",
+      "tags": ["worktree", "safety", "guard"],
+      "scenarios": [
+        {
+          "id": "rq-wl-mainCheckoutGuard01.1",
+          "title": "Guard fires on main checkout",
+          "given": ["Session is in the main git checkout", "An active ADV change exists"],
+          "when": "The plugin initializes",
+          "then": ["A trunk guard banner is emitted", "Write-capable task operations are blocked"]
+        },
+        {
+          "id": "rq-wl-mainCheckoutGuard01.2",
+          "title": "Guard does not fire in worktree",
+          "given": ["Session is in a git worktree"],
+          "when": "The plugin initializes",
+          "then": ["No trunk guard banner is emitted"]
+        }
+      ]
+    },
+    {
+      "id": "rq-wl-cleanupEligibility01",
+      "title": "Cleanup Eligibility Tracking",
+      "body": "Registry entries must track cleanupEligible and cleanupBlockedBy fields. Entries with status=merged and no active sessions should be cleanup-eligible. Entries with setup_failed or active sessions should not be cleanup-eligible, with cleanupBlockedBy documenting the reason.",
+      "priority": "should",
+      "tags": ["worktree", "cleanup"],
+      "scenarios": [
+        {
+          "id": "rq-wl-cleanupEligibility01.1",
+          "title": "Merged entry is cleanup-eligible",
+          "given": ["A worktree entry has status=merged", "No active sessions reference this worktree"],
+          "when": "Cleanup eligibility is evaluated",
+          "then": ["cleanupEligible=true", "cleanupBlockedBy is empty"]
+        },
+        {
+          "id": "rq-wl-cleanupEligibility01.2",
+          "title": "Active session blocks cleanup",
+          "given": ["A worktree entry has an active session"],
+          "when": "Cleanup eligibility is evaluated",
+          "then": ["cleanupEligible=false", "cleanupBlockedBy documents the active session"]
+        }
+      ]
+    }
+  ]
+}

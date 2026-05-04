@@ -173,6 +173,20 @@ export const projectWisdomQuery = wf.defineQuery<
 export const projectMigrationLedgerQuery = wf.defineQuery<
   ProjectWorkflowState["migration_ledger"]
 >(PROJECT_WORKFLOW_QUERY_NAMES.migrationLedger);
+export const projectWorktreeRegistryQuery = wf.defineQuery<
+  ProjectWorkflowState["worktree_registry"][string][],
+  [
+    | {
+        materialized?: boolean;
+        status?: WorktreeRecord["status"];
+        changeId?: string;
+      }
+    | undefined,
+  ]
+>(PROJECT_WORKFLOW_QUERY_NAMES.worktreeRegistry);
+export const projectMaterializedWorktreesQuery = wf.defineQuery<
+  ProjectWorkflowState["worktree_registry"][string][]
+>(PROJECT_WORKFLOW_QUERY_NAMES.materializedWorktrees);
 
 export const addAgendaItemUpdate = wf.defineUpdate<
   ProjectWorkflowState["agenda"][number],
@@ -238,6 +252,7 @@ import type {
   RemoveWorktreeSessionPayload,
   SetPendingWorktreeDeletePayload,
   UnregisterSessionPayload,
+  UpdateWorktreeRecordPayload,
   UpdateSessionActivityPayload,
 } from "./project-state";
 import type {
@@ -250,6 +265,11 @@ export const addWorktreeSessionUpdate = wf.defineUpdate<
   WorktreeRecord,
   [AddWorktreeSessionPayload]
 >(PROJECT_WORKFLOW_UPDATE_NAMES.addWorktreeSession);
+
+export const updateWorktreeRecordUpdate = wf.defineUpdate<
+  WorktreeRecord,
+  [UpdateWorktreeRecordPayload]
+>(PROJECT_WORKFLOW_UPDATE_NAMES.updateWorktreeRecord);
 
 export const removeWorktreeSessionUpdate = wf.defineUpdate<
   WorktreeRecord | null,

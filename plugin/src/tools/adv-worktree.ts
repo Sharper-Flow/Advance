@@ -13,6 +13,7 @@ import { formatToolOutput } from "../utils/tool-output";
 import type { Store } from "../storage/store-types";
 import {
   advWorktreeCreate,
+  advWorktreeResume,
   advWorktreeDelete,
   advWorktreeCleanup,
 } from "./worktree";
@@ -72,6 +73,49 @@ export const advWorktreeTools = {
       const ocaEnsureWindow = createOcaEnsureWindowHook();
       const result = await advWorktreeCreate(
         args.branch,
+        { base: args.base, force: args.force },
+        { projectRoot, database, log, ocaEnsureWindow },
+      );
+      return formatToolOutput(result);
+    },
+  },
+
+  adv_worktree_resume: {
+    description:
+      "Resume or materialize a branch-aware ADV worktree by change ID or branch. Reuses setup-ready worktrees, blocks setup_failed records, and returns a concrete workdir.",
+    args: {
+      changeId: z
+        .string()
+        .optional()
+        .describe("ADV change ID; maps to branch change/<changeId>"),
+      branch: z
+        .string()
+        .optional()
+        .describe("Branch name to resume (e.g., change/my-change)"),
+      base: z
+        .string()
+        .optional()
+        .describe("Base branch to create from when materialization is needed"),
+      force: z
+        .boolean()
+        .optional()
+        .describe("Force creation when materialization is needed"),
+    },
+    execute: async (
+      args: {
+        changeId?: string;
+        branch?: string;
+        base?: string;
+        force?: boolean;
+      },
+      store: Store,
+    ) => {
+      const projectRoot = store.paths.root;
+      const database = await initWorktreeDb(projectRoot);
+      const log = createLogger();
+      const ocaEnsureWindow = createOcaEnsureWindowHook();
+      const result = await advWorktreeResume(
+        { changeId: args.changeId ?? "", branch: args.branch },
         { base: args.base, force: args.force },
         { projectRoot, database, log, ocaEnsureWindow },
       );

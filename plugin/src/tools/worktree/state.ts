@@ -30,15 +30,18 @@ import {
   removeWorktreeSessionUpdate,
   setPendingWorktreeDeleteUpdate,
   unregisterSessionUpdate,
+  updateWorktreeRecordUpdate,
   updateSessionActivityUpdate,
 } from "../../temporal/messages";
 import type {
   PendingWorktreeDelete,
   ProjectWorkflowState,
   SessionRecord,
+  MaterializedWorktreeRecord,
   WorktreeRecord,
 } from "../../temporal/contracts";
 import type { OpencodeClient } from "../../utils/opencode-types";
+import type { UpdateWorktreeRecordPayload } from "../../temporal/project-state";
 import { appendDebugLog } from "../../utils/debug-log";
 import { getProjectId as getProjectIdRaw } from "../../utils/project-id";
 
@@ -432,6 +435,30 @@ export async function clearPendingDelete(
   );
 }
 
+/** Upsert one branch-aware workspace registry record. */
+export async function updateWorktreeRecord(
+  access: WorktreeStateAccess,
+  payload: UpdateWorktreeRecordPayload,
+): Promise<WorktreeRecord | null> {
+  return withHandle(
+    access,
+    async (handle) =>
+      (await handle.executeUpdate(updateWorktreeRecordUpdate, {
+        args: [payload],
+      })) as WorktreeRecord,
+    () => null,
+  );
+}
+
+/** Lookup one branch-aware workspace registry record by branch. */
+export async function getWorktreeRecord(
+  access: WorktreeStateAccess,
+  branch: string,
+): Promise<WorktreeRecord | null> {
+  const state = await readProjectState(access);
+  return state?.worktree_registry[branch] ?? null;
+}
+
 // =============================================================================
 // REGISTRY READS — for triage / inspection paths (T18, T22)
 // =============================================================================
@@ -439,10 +466,13 @@ export async function clearPendingDelete(
 /** Snapshot of the worktree registry (used by triage + status). */
 export async function listWorktrees(
   access: WorktreeStateAccess,
-): Promise<WorktreeRecord[]> {
+): Promise<MaterializedWorktreeRecord[]> {
   const state = await readProjectState(access);
   if (!state) return [];
-  return Object.values(state.worktree_registry);
+  return Object.values(state.worktree_registry).filter(
+    (record): record is MaterializedWorktreeRecord =>
+      record.materialized !== false && typeof record.path === "string",
+  );
 }
 
 /** Snapshot of the session registry (used by adv_session_list at T19). */

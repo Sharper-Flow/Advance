@@ -12,6 +12,7 @@ import {
   type ProjectWorkflowInput,
   type ProjectWorkflowState,
   type ChangeSummaryPayload,
+  type MaterializedWorktreeRecord,
   type SessionRecord,
   type WorktreeRecord,
   assertProjectWorkflowReachable,
@@ -28,6 +29,13 @@ function toProjectWisdomId(raw: string): string {
 export function createProjectWorkflowState(
   input: ProjectWorkflowInput,
 ): ProjectWorkflowState {
+  const worktreeRegistry = Object.fromEntries(
+    Object.entries(input.worktreeRegistry ?? {}).map(([branch, record]) => [
+      branch,
+      normalizeWorktreeRecord(record),
+    ]),
+  );
+
   return {
     projectId: input.projectId,
     initializedAt: input.initializedAt,
@@ -44,10 +52,68 @@ export function createProjectWorkflowState(
         : DEFAULT_CHANGE_SUMMARIES_CAP,
     // T4 (KD-1): worktree + session registries — state authority lives in
     // the project workflow. Spec: rq-worktreeRegistry01.
-    worktree_registry: input.worktreeRegistry ?? {},
+    // Branch-aware registry contract: rq-wl-branchRegistry01.
+    worktree_registry: worktreeRegistry,
     pending_worktree_deletes: input.pendingWorktreeDeletes ?? {},
     session_registry: input.sessionRegistry ?? {},
   };
+}
+
+export function normalizeWorktreeRecord(
+  record: WorktreeRecord,
+): WorktreeRecord {
+  const materialized = record.materialized ?? Boolean(record.path);
+  const setupReady =
+    record.setupReady ?? (materialized && record.status !== "setup_failed");
+  return {
+    ...record,
+    materialized,
+    setupReady,
+    cleanupEligible: record.cleanupEligible ?? false,
+    cleanupBlockedBy: record.cleanupBlockedBy ?? [],
+  };
+}
+
+export function listWorktreeRegistryFromProjectState(
+  state: ProjectWorkflowState,
+  filter: {
+    materialized?: boolean;
+    status?: WorktreeRecord["status"];
+    changeId?: string;
+  } = {},
+): WorktreeRecord[] {
+  assertProjectWorkflowReachable(state);
+  return Object.values(state.worktree_registry)
+    .map(normalizeWorktreeRecord)
+    .filter((record) => {
+      if (
+        filter.materialized !== undefined &&
+        record.materialized !== filter.materialized
+      ) {
+        return false;
+      }
+      if (filter.status !== undefined && record.status !== filter.status) {
+        return false;
+      }
+      if (
+        filter.changeId !== undefined &&
+        record.changeId !== filter.changeId
+      ) {
+        return false;
+      }
+      return true;
+    });
+}
+
+export function listMaterializedWorktreesFromProjectState(
+  state: ProjectWorkflowState,
+): MaterializedWorktreeRecord[] {
+  return listWorktreeRegistryFromProjectState(state, {
+    materialized: true,
+  }).filter(
+    (record): record is MaterializedWorktreeRecord =>
+      record.materialized === true && typeof record.path === "string",
+  );
 }
 
 export function listAgendaItemsFromProjectState(
@@ -294,6 +360,26 @@ export interface AddWorktreeSessionPayload {
   sourceVersion: number;
 }
 
+/** Payload for branch-aware workspace registry upserts. */
+export interface UpdateWorktreeRecordPayload {
+  branch: string;
+  path?: string;
+  materialized?: boolean;
+  changeId?: string;
+  status: WorktreeRecord["status"];
+  baseRef: string;
+  headSha: string;
+  source: WorktreeRecord["source"];
+  now: string;
+  sourceVersion: number;
+  setupReady?: boolean;
+  setupFailureReason?: string;
+  dirty?: boolean;
+  merged?: boolean;
+  cleanupEligible?: boolean;
+  cleanupBlockedBy?: string[];
+}
+
 /** Payload for `adv.project.removeWorktreeSession`. */
 export interface RemoveWorktreeSessionPayload {
   branch: string;
@@ -398,16 +484,64 @@ export function applyAddWorktreeSession(
   const next: WorktreeRecord = {
     branch: payload.branch,
     path: payload.path,
+    materialized: true,
     changeId: payload.changeId,
     status: "active",
+    createdAt: existing?.createdAt ?? payload.now,
+    lastSeenAt: payload.now,
+    baseRef: payload.baseRef || existing?.baseRef || "",
+    headSha: payload.headSha || existing?.headSha || "",
+    source: payload.source,
+    sourceVersion,
+    setupReady: true,
+    setupFailureReason: undefined,
+    dirty: existing?.dirty,
+    merged: existing?.merged,
+    cleanupEligible: existing?.cleanupEligible ?? false,
+    cleanupBlockedBy: existing?.cleanupBlockedBy ?? [],
+    pendingDelete: existing?.pendingDelete,
+  };
+  state.worktree_registry[payload.branch] = next;
+  return next;
+}
+
+/**
+ * Upsert a branch-aware workspace registry record. Supports both
+ * materialized worktrees and branch-only records with no path.
+ */
+export function applyUpdateWorktreeRecord(
+  state: ProjectWorkflowState,
+  payload: UpdateWorktreeRecordPayload,
+): WorktreeRecord {
+  assertProjectWorkflowReachable(state);
+  const existing = state.worktree_registry[payload.branch];
+  if (existing && payload.sourceVersion < existing.sourceVersion) {
+    return normalizeWorktreeRecord(existing);
+  }
+  const sourceVersion = existing
+    ? Math.max(payload.sourceVersion, existing.sourceVersion + 1)
+    : payload.sourceVersion;
+  const materialized = payload.materialized ?? Boolean(payload.path);
+  const next = normalizeWorktreeRecord({
+    branch: payload.branch,
+    path: payload.path,
+    materialized,
+    changeId: payload.changeId,
+    status: payload.status,
     createdAt: existing?.createdAt ?? payload.now,
     lastSeenAt: payload.now,
     baseRef: payload.baseRef,
     headSha: payload.headSha,
     source: payload.source,
     sourceVersion,
+    setupReady: payload.setupReady,
+    setupFailureReason: payload.setupFailureReason,
+    dirty: payload.dirty,
+    merged: payload.merged,
+    cleanupEligible: payload.cleanupEligible,
+    cleanupBlockedBy: payload.cleanupBlockedBy,
     pendingDelete: existing?.pendingDelete,
-  };
+  });
   state.worktree_registry[payload.branch] = next;
   return next;
 }

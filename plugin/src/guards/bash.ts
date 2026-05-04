@@ -3,6 +3,12 @@
  */
 const RESTRICTED_AGENTS = ["explore", "librarian"];
 
+export interface BashPolicyContext {
+  activeChangeId?: string | null;
+  isMainCheckout?: boolean;
+  trunkMutationApproved?: boolean;
+}
+
 /**
  * Patterns that indicate a mutation (write, delete, modify).
  */
@@ -37,6 +43,8 @@ const SAFE_WHITELIST = [
   /^git\s+diff(\s|$)/,
   /^git\s+log(\s|$)/,
 ];
+
+const GIT_BRANCH_SWITCH_PATTERN = /\bgit\s+(?:checkout|switch)\b/;
 
 export interface TddBashContext {
   activeChangeId?: string | null;
@@ -126,13 +134,21 @@ export function isMutating(command: string): boolean {
   return false;
 }
 
+function isWriteCapableAgent(agent: string): boolean {
+  return !RESTRICTED_AGENTS.includes(agent);
+}
+
 /**
  * Enforces the read-only policy for restricted agents.
  * @param agent The agent name
  * @param command The command string
  * @throws Error if the command is blocked
  */
-export function enforceBashPolicy(agent: string, command: string): void {
+export function enforceBashPolicy(
+  agent: string,
+  command: string,
+  context: BashPolicyContext = {},
+): void {
   if (RESTRICTED_AGENTS.includes(agent)) {
     if (isMutating(command)) {
       throw new Error(
@@ -141,6 +157,30 @@ export function enforceBashPolicy(agent: string, command: string): void {
           `Blocked command: ${command}\n\n` +
           `Please use read-only commands (ls, git status, git diff, rg, grep, cat, etc.) ` +
           `or switch to a primary agent (like 'general' or 'build') to perform modifications.`,
+      );
+    }
+  }
+
+  if (
+    isWriteCapableAgent(agent) &&
+    context.activeChangeId &&
+    context.isMainCheckout &&
+    !context.trunkMutationApproved
+  ) {
+    // Main-checkout branch-switch/mutation guard: rq-wl-mainCheckoutGuard01.
+    if (GIT_BRANCH_SWITCH_PATTERN.test(command)) {
+      throw new Error(
+        `Error: main checkout branch switching blocked for active change '${context.activeChangeId}'.\n` +
+          "Run ADV WIP from a change worktree, not the main checkout. " +
+          "Archive merge/push/deploy operations require explicit trunkMutationApproved evidence and must not use checkout/switch.",
+      );
+    }
+
+    if (isMutating(command)) {
+      throw new Error(
+        `Error: main checkout mutation blocked for active change '${context.activeChangeId}'.\n` +
+          "Write-capable ADV work must run in a change worktree. " +
+          "Read-only/status commands remain allowed on the main checkout.",
       );
     }
   }

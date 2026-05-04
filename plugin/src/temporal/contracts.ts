@@ -36,6 +36,8 @@ export const PROJECT_WORKFLOW_QUERY_NAMES = {
   agenda: "adv.project.agenda",
   wisdom: "adv.project.wisdom",
   migrationLedger: "adv.project.migrationLedger",
+  worktreeRegistry: "adv.project.worktreeRegistry",
+  materializedWorktrees: "adv.project.materializedWorktrees",
 } as const;
 
 export const PROJECT_WORKFLOW_UPDATE_NAMES = {
@@ -56,6 +58,7 @@ export const PROJECT_WORKFLOW_UPDATE_NAMES = {
    * these workflow updates.
    */
   addWorktreeSession: "adv.project.addWorktreeSession",
+  updateWorktreeRecord: "adv.project.updateWorktreeRecord",
   removeWorktreeSession: "adv.project.removeWorktreeSession",
   setPendingWorktreeDelete: "adv.project.setPendingWorktreeDelete",
   clearPendingWorktreeDelete: "adv.project.clearPendingWorktreeDelete",
@@ -238,15 +241,28 @@ export interface MigrationLedgerEntry {
  *
  * Spec anchors: rq-worktreeRegistry01, rq-multiSessionCoordination01.
  */
+export type WorktreeRecordStatus =
+  | "unmaterialized"
+  | "materializing"
+  | "active"
+  | "idle"
+  | "setup_failed"
+  | "pending_delete"
+  | "merged"
+  | "stale"
+  | "deleted";
+
 export interface WorktreeRecord {
   /** Branch name (registry key). */
   branch: string;
-  /** Absolute path on disk. */
-  path: string;
+  /** Absolute path on disk. Undefined for branch records with no worktree yet. */
+  path?: string;
+  /** Whether this branch currently has a materialized worktree path. */
+  materialized?: boolean;
   /** Owning ADV change id, if any. */
   changeId?: string;
   /** Lifecycle status. `deleted` is a soft-delete marker. */
-  status: "active" | "pending_delete" | "deleted";
+  status: WorktreeRecordStatus;
   /** ISO 8601 creation timestamp. */
   createdAt: string;
   /** ISO 8601 last-seen heartbeat from any peer session. */
@@ -273,9 +289,26 @@ export interface WorktreeRecord {
    * same-millisecond multi-session write loss.
    */
   sourceVersion: number;
+  /** True when setup hooks passed or legacy record is assumed runnable. */
+  setupReady?: boolean;
+  /** Setup failure detail when status is `setup_failed`. */
+  setupFailureReason?: string;
+  /** Git dirty/untracked summary from latest git-first reconciliation. */
+  dirty?: boolean;
+  /** Whether branch has been integrated into the default branch. */
+  merged?: boolean;
+  /** Whether cleanup gates currently permit safe deletion. */
+  cleanupEligible?: boolean;
+  /** Human-readable blockers when cleanupEligible is false. */
+  cleanupBlockedBy?: string[];
   /** Pending-delete marker; populated by `setPendingWorktreeDelete`. */
   pendingDelete?: PendingWorktreeDelete;
 }
+
+export type MaterializedWorktreeRecord = WorktreeRecord & {
+  path: string;
+  materialized: true;
+};
 
 /**
  * Pending-worktree-delete record. Survives across sessions so a

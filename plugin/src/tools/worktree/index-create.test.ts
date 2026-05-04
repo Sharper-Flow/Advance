@@ -17,18 +17,21 @@ import { join } from "path";
 import { execSync } from "child_process";
 
 const workflowExecuteUpdate = vi.hoisted(() => vi.fn(async () => undefined));
+const workflowQuery = vi.hoisted(() =>
+  vi.fn(async () => ({
+    session_registry: {},
+    worktree_registry: {},
+    pending_worktree_deletes: {},
+    change_summaries: {},
+  })),
+);
 
 // Mock project-workflow-helper so state.ts resolveAccess returns workflow-backed.
 vi.mock("../project-workflow-helper", () => ({
   getBoundedProjectWorkflowAccess: vi.fn(async () => ({
     mode: "workflow-backed",
     handle: {
-      query: vi.fn(async () => ({
-        session_registry: {},
-        worktree_registry: {},
-        pending_worktree_deletes: {},
-        change_summaries: {},
-      })),
+      query: workflowQuery,
       executeUpdate: workflowExecuteUpdate,
     },
   })),
@@ -48,10 +51,18 @@ vi.mock("./hooks", async (importOriginal) => {
   };
 });
 
-import { advWorktreeCreate, type AdvWorktreeCreateDeps } from "./index";
+import {
+  advWorktreeCreate,
+  advWorktreeResume,
+  type AdvWorktreeCreateDeps,
+} from "./index";
 
 import { runHooksWithSafety } from "./hooks";
-import { addWorktreeSessionUpdate } from "../../temporal/messages";
+import {
+  addWorktreeSessionUpdate,
+  updateWorktreeRecordUpdate,
+} from "../../temporal/messages";
+import { getWorktreePath } from "./state";
 
 const isLinux = process.platform === "linux";
 
@@ -92,6 +103,12 @@ describe.skipIf(!isLinux)(
       repoRoot = createGitRepo();
       cleanupPaths = [];
       vi.clearAllMocks();
+      workflowQuery.mockResolvedValue({
+        session_registry: {},
+        worktree_registry: {},
+        pending_worktree_deletes: {},
+        change_summaries: {},
+      });
       vi.mocked(runHooksWithSafety).mockReset();
     });
 
@@ -314,6 +331,159 @@ describe.skipIf(!isLinux)(
       // Worktree should exist
       const list = execSync("git worktree list", { cwd: repoRoot }).toString();
       expect(list).toContain("change/feature");
+    });
+
+    it("SETUP_FAILED — blocks ADV routing when postCreate hook fails", async () => {
+      const deps = createMockDeps(repoRoot);
+      deps.resolveDefaultBranch = async () => "main";
+      deps.detectStaleBasis = async () => ({ stale: false });
+      deps.hooks = { postCreate: ["exit 1"] };
+      vi.mocked(runHooksWithSafety).mockRejectedValueOnce(new Error("boom"));
+
+      const result = await advWorktreeCreate("change/setup-fail", {}, deps);
+
+      expect(result).toMatchObject({
+        ok: false,
+        error: "SETUP_FAILED",
+        branch: "change/setup-fail",
+      });
+      expect(workflowExecuteUpdate).toHaveBeenCalledWith(
+        updateWorktreeRecordUpdate,
+        expect.objectContaining({
+          args: [
+            expect.objectContaining({
+              branch: "change/setup-fail",
+              status: "setup_failed",
+              setupReady: false,
+              setupFailureReason: expect.stringContaining("boom"),
+            }),
+          ],
+        }),
+      );
+      expect(workflowExecuteUpdate).not.toHaveBeenCalledWith(
+        addWorktreeSessionUpdate,
+        expect.anything(),
+      );
+    });
+
+    it("GIT_FAILED — exits materializing state when git worktree add fails", async () => {
+      const blockedPath = await getWorktreePath(repoRoot, "change/git-fail");
+      execSync(`mkdir -p ${JSON.stringify(blockedPath)}`);
+      writeFileSync(join(blockedPath, "occupied"), "not a git worktree");
+      cleanupPaths.push(blockedPath);
+      const deps = createMockDeps(repoRoot);
+      deps.resolveDefaultBranch = async () => "main";
+      deps.detectStaleBasis = async () => ({ stale: false });
+
+      const result = await advWorktreeCreate("change/git-fail", {}, deps);
+
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.error).toBe("GIT_FAILED");
+      }
+      expect(workflowExecuteUpdate).toHaveBeenCalledWith(
+        updateWorktreeRecordUpdate,
+        expect.objectContaining({
+          args: [
+            expect.objectContaining({
+              branch: "change/git-fail",
+              status: "setup_failed",
+              materialized: false,
+              setupReady: false,
+              setupFailureReason: expect.any(String),
+              cleanupBlockedBy: ["git_failed"],
+            }),
+          ],
+        }),
+      );
+      expect(workflowExecuteUpdate).not.toHaveBeenCalledWith(
+        addWorktreeSessionUpdate,
+        expect.anything(),
+      );
+    });
+
+    it("resume materializes a branch-only registry record", async () => {
+      execSync("git branch change/unmade main", { cwd: repoRoot });
+      workflowQuery.mockResolvedValueOnce({
+        session_registry: {},
+        worktree_registry: {
+          "change/unmade": {
+            branch: "change/unmade",
+            materialized: false,
+            changeId: "unmade",
+            status: "idle",
+            createdAt: "2026-01-01T00:00:00.000Z",
+            lastSeenAt: "2026-01-01T00:00:00.000Z",
+            baseRef: "main",
+            headSha: "",
+            source: "tool",
+            sourceVersion: 1,
+          },
+        },
+        pending_worktree_deletes: {},
+        change_summaries: {},
+      });
+      const deps = createMockDeps(repoRoot);
+      deps.resolveDefaultBranch = async () => "main";
+      deps.detectStaleBasis = async () => ({ stale: false });
+
+      const result = await advWorktreeResume({ changeId: "unmade" }, {}, deps);
+
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.branch).toBe("change/unmade");
+        expect(result.path).toContain("change/unmade");
+        expect(result.materialized).toBe(true);
+      }
+      expect(workflowExecuteUpdate).toHaveBeenCalledWith(
+        addWorktreeSessionUpdate,
+        expect.objectContaining({
+          args: [expect.objectContaining({ branch: "change/unmade" })],
+        }),
+      );
+    });
+
+    it("resume blocks setup_failed registry records", async () => {
+      workflowQuery.mockResolvedValueOnce({
+        session_registry: {},
+        worktree_registry: {
+          "change/setup-fail": {
+            branch: "change/setup-fail",
+            path: "/tmp/setup-fail",
+            materialized: true,
+            changeId: "setup-fail",
+            status: "setup_failed",
+            createdAt: "2026-01-01T00:00:00.000Z",
+            lastSeenAt: "2026-01-01T00:00:00.000Z",
+            baseRef: "main",
+            headSha: "deadbeef",
+            source: "tool",
+            sourceVersion: 1,
+            setupReady: false,
+            setupFailureReason: "boom",
+          },
+        },
+        pending_worktree_deletes: {},
+        change_summaries: {},
+      });
+      const deps = createMockDeps(repoRoot);
+
+      const result = await advWorktreeResume(
+        { branch: "change/setup-fail" },
+        {},
+        deps,
+      );
+
+      expect(result).toMatchObject({
+        ok: false,
+        error: "SETUP_FAILED",
+        branch: "change/setup-fail",
+        reason: "boom",
+      });
+      expect(workflowExecuteUpdate).not.toHaveBeenCalledWith(
+        addWorktreeSessionUpdate,
+        expect.anything(),
+      );
     });
 
     it("BRANCH_LOCKED — blocks when flock is held by another session", async () => {

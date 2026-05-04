@@ -9,11 +9,15 @@ import {
   applyRegisterSession,
   applyRemoveWorktreeSession,
   applySetPendingWorktreeDelete,
+  applyUpdateWorktreeRecord,
   applyUnregisterSession,
   applyUpdateSessionActivity,
   createProjectWorkflowState,
+  listMaterializedWorktreesFromProjectState,
   listAgendaItemsFromProjectState,
   listProjectWisdomFromProjectState,
+  listWorktreeRegistryFromProjectState,
+  normalizeWorktreeRecord,
   purgeChangeSummaryFromProjectState,
   recordMigrationEntryInProjectState,
   updateAgendaItemInProjectState,
@@ -26,6 +30,7 @@ import {
   assertProjectWorkflowReachable,
   resolveChangeSummariesCap,
   type ProjectWorkflowState,
+  type WorktreeRecord,
 } from "./contracts";
 import type { ChangeStatus } from "../types";
 
@@ -1054,6 +1059,117 @@ describe("worktree + session mutators (T6)", () => {
       expect(out.createdAt).toBe("2026-04-18T00:01:00.000Z");
       expect(out.lastSeenAt).toBe("2026-04-18T00:02:00.000Z");
       expect(out.headSha).toBe("def");
+    });
+
+    it("preserves baseRef and headSha when session registration omits metadata", () => {
+      const state = freshState();
+      applyUpdateWorktreeRecord(state, {
+        branch: "change/foo",
+        path: "/wt/foo",
+        materialized: true,
+        changeId: "foo",
+        status: "materializing",
+        baseRef: "trunk",
+        headSha: "abc123",
+        source: "tool",
+        now: "2026-04-18T00:01:00.000Z",
+        sourceVersion: 1,
+        setupReady: false,
+      });
+
+      const out = applyAddWorktreeSession(state, {
+        branch: "change/foo",
+        path: "/wt/foo",
+        changeId: "foo",
+        baseRef: "",
+        headSha: "",
+        source: "tool",
+        now: "2026-04-18T00:02:00.000Z",
+        sourceVersion: 2,
+      });
+
+      expect(out.status).toBe("active");
+      expect(out.setupReady).toBe(true);
+      expect(out.baseRef).toBe("trunk");
+      expect(out.headSha).toBe("abc123");
+    });
+  });
+
+  describe("branch-aware workspace registry", () => {
+    it("normalizes legacy materialized worktree records", () => {
+      const legacy = {
+        branch: "change/foo",
+        path: "/wt/foo",
+        changeId: "foo",
+        status: "active",
+        createdAt: "2026-04-18T00:01:00.000Z",
+        lastSeenAt: "2026-04-18T00:02:00.000Z",
+        baseRef: "trunk",
+        headSha: "abc123",
+        source: "tool",
+        sourceVersion: 1,
+      } as WorktreeRecord;
+
+      const out = normalizeWorktreeRecord(legacy);
+
+      expect(out.status).toBe("active");
+      expect(out.materialized).toBe(true);
+      expect(out.path).toBe("/wt/foo");
+      expect(out.setupReady).toBe(true);
+      expect(out.cleanupEligible).toBe(false);
+    });
+
+    it("supports unmaterialized branch records without fake paths", () => {
+      const state = freshState();
+
+      const out = applyUpdateWorktreeRecord(state, {
+        branch: "change/unmade",
+        changeId: "unmade",
+        status: "unmaterialized",
+        materialized: false,
+        baseRef: "trunk",
+        headSha: "abc123",
+        source: "git_census",
+        now: "2026-04-18T00:01:00.000Z",
+        sourceVersion: 1,
+      });
+
+      expect(out.path).toBeUndefined();
+      expect(out.materialized).toBe(false);
+      expect(state.worktree_registry["change/unmade"]).toBe(out);
+      expect(
+        listWorktreeRegistryFromProjectState(state, { materialized: false }),
+      ).toEqual([out]);
+      expect(listMaterializedWorktreesFromProjectState(state)).toEqual([]);
+    });
+
+    it("preserves materialized worktree query behavior for existing consumers", () => {
+      const state = freshState();
+      const materialized = applyAddWorktreeSession(state, {
+        branch: "change/foo",
+        path: "/wt/foo",
+        changeId: "foo",
+        baseRef: "trunk",
+        headSha: "abc123",
+        source: "tool",
+        now: "2026-04-18T00:01:00.000Z",
+        sourceVersion: 1,
+      });
+      applyUpdateWorktreeRecord(state, {
+        branch: "change/unmade",
+        changeId: "unmade",
+        status: "unmaterialized",
+        materialized: false,
+        baseRef: "trunk",
+        headSha: "def456",
+        source: "git_census",
+        now: "2026-04-18T00:02:00.000Z",
+        sourceVersion: 1,
+      });
+
+      expect(listMaterializedWorktreesFromProjectState(state)).toEqual([
+        materialized,
+      ]);
     });
   });
 

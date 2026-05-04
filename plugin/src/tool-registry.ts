@@ -516,6 +516,11 @@ export function createToolMap(
       "adv_worktree_create",
       store,
     ),
+    adv_worktree_resume: bindTool(
+      advWorktreeTools.adv_worktree_resume,
+      "adv_worktree_resume",
+      store,
+    ),
     adv_worktree_delete: bindTool(
       advWorktreeTools.adv_worktree_delete,
       "adv_worktree_delete",
@@ -659,6 +664,7 @@ export const ADV_TOOL_NAMES: readonly string[] = [
   "adv_reflect",
   "adv_conformance",
   "adv_worktree_create",
+  "adv_worktree_resume",
   "adv_worktree_delete",
   "adv_worktree_cleanup",
   "adv_worktree_triage",
