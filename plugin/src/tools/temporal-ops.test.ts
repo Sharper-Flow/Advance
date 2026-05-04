@@ -388,6 +388,94 @@ describe("temporal operator tools", () => {
     expect(parsed).not.toHaveProperty("last_worker_run_error");
   });
 
+  it("adv_temporal_diagnose treats stale heartbeat with no local worker as peer-spawn pending", async () => {
+    mocks.getTemporalHealth.mockResolvedValueOnce({
+      server_alive: true,
+      worker_alive: false,
+      worker_process_alive: false,
+      registered_queues: [],
+      last_op_at: null,
+      last_error: null,
+      fallback_counts: { changes: 0, tasks: 0, wisdom: 0, gates: 0 },
+      stale_queues: [],
+      reconnect_count: 0,
+      worker_lock: {
+        holder_pid: 4242,
+        last_heartbeat_at: "2026-04-21T00:00:02.000Z",
+        heartbeat_age_ms: 60001,
+        schema_version: 2,
+      },
+      last_worker_run_error: null,
+    });
+    const store = {
+      paths: {
+        root: "/repo",
+        external: "/home/jrede/.local/share/opencode/plugins/advance/proj123",
+      },
+    } as any;
+
+    const result = await temporalOpsTools.adv_temporal_diagnose.execute(
+      {},
+      store,
+    );
+    const parsed = JSON.parse(result);
+
+    expect(parsed.recommendedNextAction).toBe(
+      "normal recovery — peer worker spawn pending",
+    );
+  });
+
+  it("adv_temporal_diagnose does not displace genuine or healthy recommendations with stale-lock context", async () => {
+    const staleLock = {
+      holder_pid: 4242,
+      last_heartbeat_at: "2026-04-21T00:00:02.000Z",
+      heartbeat_age_ms: 60001,
+      schema_version: 2 as const,
+    };
+    const store = {
+      paths: {
+        root: "/repo",
+        external: "/home/jrede/.local/share/opencode/plugins/advance/proj123",
+      },
+    } as any;
+
+    mocks.getTemporalHealth.mockResolvedValueOnce({
+      server_alive: false,
+      worker_alive: false,
+      worker_process_alive: false,
+      registered_queues: [],
+      last_op_at: null,
+      last_error: null,
+      fallback_counts: { changes: 0, tasks: 0, wisdom: 0, gates: 0 },
+      stale_queues: [],
+      reconnect_count: 0,
+      worker_lock: staleLock,
+      last_worker_run_error: null,
+    });
+    const serverDown = JSON.parse(
+      await temporalOpsTools.adv_temporal_diagnose.execute({}, store),
+    );
+    expect(serverDown.recommendedNextAction).toBe("restore Temporal server");
+
+    mocks.getTemporalHealth.mockResolvedValueOnce({
+      server_alive: true,
+      worker_alive: true,
+      worker_process_alive: true,
+      registered_queues: ["advance-proj123"],
+      last_op_at: null,
+      last_error: null,
+      fallback_counts: { changes: 0, tasks: 0, wisdom: 0, gates: 0 },
+      stale_queues: [],
+      reconnect_count: 0,
+      worker_lock: staleLock,
+      last_worker_run_error: null,
+    });
+    const healthy = JSON.parse(
+      await temporalOpsTools.adv_temporal_diagnose.execute({}, store),
+    );
+    expect(healthy.recommendedNextAction).toBe("none");
+  });
+
   it("adv_temporal_diagnose reports project_workflow_present:false when workflow unreachable (T23)", async () => {
     // Force unreachable: no projectId resolved (no external path).
     const store = {

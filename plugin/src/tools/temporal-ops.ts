@@ -20,6 +20,7 @@ import {
   formatWorkerLockHealth,
   formatWorkerRunError,
 } from "../utils/tool-formatters";
+import { STALE_HEARTBEAT_MS } from "../temporal/worker-lock";
 import { appendDebugLog } from "../utils/debug-log";
 import {
   formatTargetProjectContext,
@@ -136,6 +137,14 @@ function recommendTemporalRecovery(input: {
       return "verify Temporal search-attribute health, run adv_temporal_reconnect or adv_temporal_worker_restart, then retry blocked tool";
     }
     return "run adv_temporal_register_search_attributes";
+  }
+  if (
+    !input.health.worker_alive &&
+    input.health.worker_lock?.heartbeat_age_ms !== null &&
+    input.health.worker_lock?.heartbeat_age_ms !== undefined &&
+    input.health.worker_lock.heartbeat_age_ms > STALE_HEARTBEAT_MS
+  ) {
+    return "normal recovery — peer worker spawn pending";
   }
   if (!input.health.worker_process_alive || !input.health.worker_alive) {
     return "run adv_temporal_worker_restart";
