@@ -10,8 +10,16 @@ import { canReachTemporalAddress } from "../temporal/runtime-manager";
 import {
   getRegisteredTemporalWorkerQueues,
   getTemporalWorkerAliveness,
+  getTemporalWorkerDiagnostics,
+  restartCurrentProjectTemporalWorker,
 } from "../plugin-init";
 import { getProjectId } from "../utils/project-id";
+import { getTemporalHealth } from "../temporal/health-probe";
+import {
+  classifyQueueServiceability,
+  probeTaskQueuePollers,
+  type QueueServiceability,
+} from "../temporal/queue-serviceability";
 
 interface WorkflowHandleLike {
   query: (definition: unknown, ...args: unknown[]) => Promise<unknown>;
@@ -31,6 +39,8 @@ export type ProjectWorkflowAccess =
       mode: "unavailable";
       projectId: string;
       reason: string;
+      recommendedNextAction?: string;
+      queueServiceability?: QueueServiceability;
     }
   | {
       mode: "workflow-backed";
@@ -43,11 +53,27 @@ function isExternalMutablePath(path?: string): boolean {
   return Boolean(path && !path.includes("/.adv/"));
 }
 
-export async function getBoundedProjectWorkflowAccess(input: {
+export interface GetBoundedProjectWorkflowAccessInput {
   projectDir: string;
   mutablePath?: string;
   timeoutMs?: number;
-}): Promise<ProjectWorkflowAccess> {
+  /**
+   * Bounded recovery strategy when the worker readiness check fails:
+   * - `"once"`: run a single non-approval `restartCurrentProjectTemporalWorker`
+   *   attempt, re-check readiness, and emit rich diagnostics on failure.
+   *   Suspect live legacy-v1 lock failures surface a `recommendedNextAction`
+   *   requiring explicit approval; never retried silently and never
+   *   recommend in-place edits as a fallback (rq-workerSingleton01.6).
+   * - `"none"` (default): return `unavailable` on the first failed readiness
+   *   check without attempting recovery — preserves the historical behavior
+   *   for read-only and non-worktree-creation seams.
+   */
+  recovery?: "once" | "none";
+}
+
+export async function getBoundedProjectWorkflowAccess(
+  input: GetBoundedProjectWorkflowAccessInput,
+): Promise<ProjectWorkflowAccess> {
   const projectId = isExternalMutablePath(input.mutablePath)
     ? basename(dirname(input.mutablePath!))
     : await getProjectId(input.projectDir);
@@ -80,15 +106,36 @@ export async function getBoundedProjectWorkflowAccess(input: {
   }
 
   const expectedQueue = buildProjectTaskQueue(projectId);
-  const queues = getRegisteredTemporalWorkerQueues();
-  if (!getTemporalWorkerAliveness() || !queues.includes(expectedQueue)) {
-    return {
-      mode: "unavailable",
-      projectId,
-      reason: `Temporal worker not ready for queue ${expectedQueue}`,
-    };
+
+  if (isWorkerReadyFor(expectedQueue)) {
+    return buildWorkflowBacked(projectId);
   }
 
+  if (input.recovery === "once") {
+    return runBoundedRecovery({
+      projectDir: input.projectDir,
+      projectId,
+      expectedQueue,
+    });
+  }
+
+  return {
+    mode: "unavailable",
+    projectId,
+    reason: `Temporal worker not ready for queue ${expectedQueue}`,
+  };
+}
+
+function isWorkerReadyFor(expectedQueue: string): boolean {
+  // Match the historical eager-call pattern so test mocks that
+  // sequence `.mockReturnValueOnce(...)` on both helpers see one call
+  // each per readiness check.
+  const queues = getRegisteredTemporalWorkerQueues();
+  const alive = getTemporalWorkerAliveness();
+  return alive && queues.includes(expectedQueue);
+}
+
+function buildWorkflowBacked(projectId: string): ProjectWorkflowAccess {
   const bundle = getService();
   if (!bundle) {
     return {
@@ -105,4 +152,129 @@ export async function getBoundedProjectWorkflowAccess(input: {
       buildProjectWorkflowId(projectId),
     ) as unknown as WorkflowHandleLike,
   };
+}
+
+async function runBoundedRecovery(input: {
+  projectDir: string;
+  projectId: string;
+  expectedQueue: string;
+}): Promise<ProjectWorkflowAccess> {
+  let recoveryError: unknown = null;
+  try {
+    // rq-workerSingleton01.6 — never reclaim a live legacy-v1 lock without
+    // explicit approval; bounded helper recovery is non-approval only.
+    await restartCurrentProjectTemporalWorker(input.projectDir, {
+      approvedLockReclaim: false,
+      approvalEvidence: undefined,
+    });
+  } catch (err) {
+    recoveryError = err;
+  }
+
+  if (recoveryError === null && isWorkerReadyFor(input.expectedQueue)) {
+    return buildWorkflowBacked(input.projectId);
+  }
+
+  // Recovery failed or did not produce a serviceable worker. Build rich
+  // diagnostics so callers can present an actionable next action instead of
+  // silently degrading to in-place behavior.
+  const { snapshot, health } = await buildPostRecoveryServiceability({
+    projectId: input.projectId,
+    expectedQueue: input.expectedQueue,
+  });
+
+  const isSuspectLegacyLock =
+    getErrorCode(recoveryError) === "WORKER_LOCK_HELD" &&
+    health.worker_lock?.schema_version === 1 &&
+    snapshot.status !== "serviceable";
+
+  if (isSuspectLegacyLock) {
+    return {
+      mode: "unavailable",
+      projectId: input.projectId,
+      reason:
+        `Temporal worker not ready for queue ${input.expectedQueue}: ` +
+        `suspect live legacy v1 worker.lock — explicit approval is required ` +
+        `to reclaim it, or restart the owning OpenCode session; do not retry ` +
+        `in this session`,
+      recommendedNextAction:
+        "Provide explicit approval evidence to reclaim the suspect live legacy " +
+        "v1 worker.lock, or restart the owning OpenCode session; then rerun " +
+        "adv_temporal_worker_restart with approvedLockReclaim+approvalEvidence",
+      queueServiceability: snapshot,
+    };
+  }
+
+  const errorMessage =
+    recoveryError instanceof Error
+      ? recoveryError.message
+      : recoveryError !== null
+        ? String(recoveryError)
+        : "post-recovery readiness check still unavailable";
+  return {
+    mode: "unavailable",
+    projectId: input.projectId,
+    reason: `Temporal worker not ready for queue ${input.expectedQueue} after bounded recovery: ${errorMessage}`,
+    recommendedNextAction:
+      "Run adv_temporal_diagnose, follow recommendedNextAction, then rerun the blocked command",
+    queueServiceability: snapshot,
+  };
+}
+
+async function buildPostRecoveryServiceability(input: {
+  projectId: string;
+  expectedQueue: string;
+}): Promise<{
+  snapshot: QueueServiceability;
+  health: Awaited<ReturnType<typeof getTemporalHealth>>;
+}> {
+  const [health, workerDiagnostics] = await Promise.all([
+    getTemporalHealth(input.projectId),
+    Promise.resolve(getTemporalWorkerDiagnostics()),
+  ]);
+  const bundle = getService();
+  const serverPollerProbe = bundle
+    ? await probeTaskQueuePollers({
+        connection: bundle.connection as unknown as Parameters<
+          typeof probeTaskQueuePollers
+        >[0]["connection"],
+        namespace: bundle.namespace,
+        taskQueue: input.expectedQueue,
+      })
+    : {
+        status: "unavailable" as const,
+        lastAccessMs: null,
+        error: "Temporal service layer not initialized",
+      };
+  const staleRunningWorkflowCount = health.stale_queues
+    .filter((queue) => queue.queue === input.expectedQueue)
+    .reduce((total, queue) => total + queue.running_count, 0);
+  const localRegistered = getRegisteredTemporalWorkerQueues().includes(
+    input.expectedQueue,
+  );
+  const localWorkerAlive = getTemporalWorkerAliveness();
+  const localOwnership: "owned" | "peer" | "unknown" = !health.worker_lock
+    ? "unknown"
+    : health.worker_lock.holder_pid === process.pid
+      ? "owned"
+      : "peer";
+
+  const snapshot = classifyQueueServiceability({
+    projectId: input.projectId,
+    expectedQueue: input.expectedQueue,
+    localRegistered,
+    localWorkerAlive,
+    localOwnership,
+    workerDiagnostics,
+    serverPollerProbe,
+    staleRunningWorkflowCount,
+    staleQueueProbe: health.server_alive ? "ok" : "unavailable",
+  });
+  return { snapshot, health };
+}
+
+function getErrorCode(error: unknown): string | undefined {
+  return typeof error === "object" && error !== null && "code" in error
+    ? String((error as { code?: unknown }).code)
+    : undefined;
 }
