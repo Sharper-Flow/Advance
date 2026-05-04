@@ -630,4 +630,23 @@ describe("ADV command routing assets", () => {
       expect(lines, `${p}.md exceeds 20 lines`).toBeLessThanOrEqual(20);
     }
   });
+
+  test("Claude and GLM provider hints encourage adv-engineer delegation", () => {
+    const claude = readFileSync(
+      join(REPO_ROOT, ".opencode", "agent-parts", "providers", "claude.md"),
+      "utf8",
+    );
+    const glm = readFileSync(
+      join(REPO_ROOT, ".opencode", "agent-parts", "providers", "glm.md"),
+      "utf8",
+    );
+
+    expect(claude).not.toContain(
+      "Prefer doing work inline over spawning sub-agents",
+    );
+    expect(claude).not.toContain("adv_engineer");
+    expect(glm).not.toContain("adv_engineer");
+    expect(claude).toMatch(/delegation routing.*adv-engineer/s);
+    expect(glm).toMatch(/delegation routing.*adv-engineer/s);
+  });
 });
