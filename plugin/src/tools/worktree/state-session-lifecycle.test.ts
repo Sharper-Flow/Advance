@@ -34,6 +34,7 @@ vi.mock("../project-workflow-helper", () => ({
 }));
 
 import {
+  inferChangeIdFromBranch,
   getWorktreePath,
   registerSession,
   unregisterSession,
@@ -119,6 +120,19 @@ describe("session lifecycle helpers (T21)", () => {
 });
 
 describe("worktree path helpers", () => {
+  it("infers change id from canonical change branch names", () => {
+    expect(inferChangeIdFromBranch("change/fixAdvWorktreeRegistryCleanup")).toBe(
+      "fixAdvWorktreeRegistryCleanup",
+    );
+    expect(inferChangeIdFromBranch("change/foo/bar")).toBe("foo/bar");
+  });
+
+  it("does not infer change id from empty or non-change branches", () => {
+    expect(inferChangeIdFromBranch("change/")).toBeUndefined();
+    expect(inferChangeIdFromBranch("feature/foo")).toBeUndefined();
+    expect(inferChangeIdFromBranch("trunk")).toBeUndefined();
+  });
+
   it("uses XDG_DATA_HOME via centralized project-id helper", async () => {
     const originalXdg = process.env.XDG_DATA_HOME;
     process.env.XDG_DATA_HOME = "/custom/data";

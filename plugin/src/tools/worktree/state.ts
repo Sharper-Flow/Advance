@@ -96,6 +96,18 @@ export interface WorktreeStateAccess {
 // PATH HELPERS
 // =============================================================================
 
+const CHANGE_BRANCH_PREFIX = "change/";
+
+/**
+ * Infer owning ADV change id from canonical change worktree branch names.
+ * Non-canonical branches are intentionally left unowned by this helper.
+ */
+export function inferChangeIdFromBranch(branch: string): string | undefined {
+  if (!branch.startsWith(CHANGE_BRANCH_PREFIX)) return undefined;
+  const suffix = branch.slice(CHANGE_BRANCH_PREFIX.length);
+  return suffix.length > 0 ? suffix : undefined;
+}
+
 /**
  * Get the worktree path for a given project + branch. Pure path
  * derivation; matches the legacy SQLite module's path scheme so
