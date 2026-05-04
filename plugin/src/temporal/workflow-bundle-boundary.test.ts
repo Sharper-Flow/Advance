@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, normalize, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
@@ -13,6 +13,14 @@ function rel(path: string): string {
   return relative(repoRoot, path).replaceAll("\\", "/");
 }
 
+function isFile(path: string): boolean {
+  try {
+    return statSync(path).isFile();
+  } catch {
+    return false;
+  }
+}
+
 function resolveLocalImport(
   fromFile: string,
   source: string,
@@ -20,8 +28,13 @@ function resolveLocalImport(
   if (!source.startsWith(".")) return undefined;
 
   const base = normalize(join(dirname(fromFile), source));
-  const candidates = [base, `${base}.ts`, join(base, "index.ts")];
-  return candidates.find((candidate) => existsSync(candidate));
+  // Order: exact .ts file, exact path (only if file), directory/index.ts.
+  // The bare base is checked LAST and only as a file to avoid resolving a
+  // directory (e.g. `import "../types"` where `types/` exists as a folder).
+  const candidates = [`${base}.ts`, join(base, "index.ts"), base];
+  return candidates.find(
+    (candidate) => existsSync(candidate) && isFile(candidate),
+  );
 }
 
 function importSources(filePath: string): string[] {

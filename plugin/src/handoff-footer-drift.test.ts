@@ -471,8 +471,8 @@ describe("command-as-approval semantics", () => {
 // rq-ctxticker2.
 
 describe("chat-output-display drift contract", () => {
-  test("STATUS_MARKERS.IDLE exists in types.ts", () => {
-    const typesPath = join(REPO_ROOT, "plugin", "src", "types.ts");
+  test("STATUS_MARKERS.IDLE exists in types/status.ts", () => {
+    const typesPath = join(REPO_ROOT, "plugin", "src", "types", "status.ts");
     const content = readFileSync(typesPath, "utf8");
     expect(content).toMatch(/IDLE:\s*"\[ADV:IDLE\]"/);
   });

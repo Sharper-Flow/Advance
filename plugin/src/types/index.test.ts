@@ -53,8 +53,8 @@ import {
   BulkCloseSelectorSchema,
   BulkCloseResultSchema,
   type Task,
-} from "./types";
-import { SAMPLE_SPEC, SAMPLE_CHANGE } from "./__tests__/setup";
+} from ".";
+import { SAMPLE_SPEC, SAMPLE_CHANGE } from "../__tests__/setup";
 
 describe("PrioritySchema", () => {
   test("accepts valid priorities", () => {
@@ -3032,7 +3032,7 @@ describe("ConformanceStateSchema", () => {
   };
 
   test("parses a valid conformance state (subfolder kind)", async () => {
-    const { ConformanceStateSchema } = await import("./types");
+    const { ConformanceStateSchema } = await import(".");
     const result = ConformanceStateSchema.parse(VALID_STATE);
     expect(result.version).toBe(1);
     expect(result.conformance_root_kind).toBe("subfolder");
@@ -3042,7 +3042,7 @@ describe("ConformanceStateSchema", () => {
   });
 
   test("parses sibling kind", async () => {
-    const { ConformanceStateSchema } = await import("./types");
+    const { ConformanceStateSchema } = await import(".");
     const sibling = {
       ...VALID_STATE,
       conformance_root: "/abs/path/advance-conformance-abc123",
@@ -3053,7 +3053,7 @@ describe("ConformanceStateSchema", () => {
   });
 
   test("rejects unknown kind", async () => {
-    const { ConformanceStateSchema } = await import("./types");
+    const { ConformanceStateSchema } = await import(".");
     expect(() =>
       ConformanceStateSchema.parse({
         ...VALID_STATE,
@@ -3063,7 +3063,7 @@ describe("ConformanceStateSchema", () => {
   });
 
   test("parses minimal spec entry (defaults applied)", async () => {
-    const { ConformanceStateSchema } = await import("./types");
+    const { ConformanceStateSchema } = await import(".");
     const minimal = {
       version: 1,
       conformance_root: "/abs/path",
@@ -3082,26 +3082,26 @@ describe("ConformanceStateSchema", () => {
   });
 
   test("rejects state without version", async () => {
-    const { ConformanceStateSchema } = await import("./types");
+    const { ConformanceStateSchema } = await import(".");
     const { version: _v, ...invalid } = VALID_STATE;
     expect(() => ConformanceStateSchema.parse(invalid)).toThrow();
   });
 
   test("rejects state without conformance_root_kind", async () => {
-    const { ConformanceStateSchema } = await import("./types");
+    const { ConformanceStateSchema } = await import(".");
     const { conformance_root_kind: _k, ...invalid } = VALID_STATE;
     expect(() => ConformanceStateSchema.parse(invalid)).toThrow();
   });
 
   test("rejects state with wrong version literal", async () => {
-    const { ConformanceStateSchema } = await import("./types");
+    const { ConformanceStateSchema } = await import(".");
     expect(() =>
       ConformanceStateSchema.parse({ ...VALID_STATE, version: 2 }),
     ).toThrow();
   });
 
   test("rejects spec entry with non-boolean conformance_required", async () => {
-    const { ConformanceStateSchema } = await import("./types");
+    const { ConformanceStateSchema } = await import(".");
     expect(() =>
       ConformanceStateSchema.parse({
         ...VALID_STATE,
@@ -3117,7 +3117,7 @@ describe("ConformanceStateSchema", () => {
   });
 
   test("rejects last_verdict with invalid verdict literal", async () => {
-    const { ConformanceStateSchema } = await import("./types");
+    const { ConformanceStateSchema } = await import(".");
     expect(() =>
       ConformanceStateSchema.parse({
         ...VALID_STATE,
@@ -3136,7 +3136,7 @@ describe("ConformanceStateSchema", () => {
   });
 
   test("accepts override with required audit fields", async () => {
-    const { ConformanceStateSchema } = await import("./types");
+    const { ConformanceStateSchema } = await import(".");
     const stateWithOverride = {
       ...VALID_STATE,
       specs: {
@@ -3159,7 +3159,7 @@ describe("ConformanceStateSchema", () => {
   });
 
   test("rejects override missing required audit fields", async () => {
-    const { ConformanceStateSchema } = await import("./types");
+    const { ConformanceStateSchema } = await import(".");
     expect(() =>
       ConformanceStateSchema.parse({
         ...VALID_STATE,
@@ -3176,7 +3176,7 @@ describe("ConformanceStateSchema", () => {
   });
 
   test("ConformanceVerdict union accepts PASS and DRIFT only", async () => {
-    const { ConformanceVerdictSchema } = await import("./types");
+    const { ConformanceVerdictSchema } = await import(".");
     expect(ConformanceVerdictSchema.parse("PASS")).toBe("PASS");
     expect(ConformanceVerdictSchema.parse("DRIFT")).toBe("DRIFT");
     expect(() => ConformanceVerdictSchema.parse("FAIL")).toThrow();
