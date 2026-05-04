@@ -783,11 +783,30 @@ export async function changeWorkflow(
   );
 
   const thresholds = resolveHistoryThresholds();
-  // Check history length on each wakeup; continue-as-new when threshold hit
+  // Wake on either (a) terminal state reached via archive/close update,
+  // or (b) history threshold for continue-as-new rotation. Predicate reads
+  // only deterministic workflow state and `wf.workflowInfo()`, so it is
+  // replay-safe. See change `terminatechangeworkflowonarchi` for design.
   await wf.condition(() => {
+    if (state.status === "archived" || state.status === "closed") return true;
     if (shouldContinueAsNew(thresholds.changeHistoryThreshold)) return true;
     return false;
   });
+
+  // Terminal-state path: workflow Completes after handlers drain.
+  // Stops the zombie-workflow leak where archived/closed changes left
+  // their workflow Running indefinitely. (rq-terminateOnArchive01)
+  if (state.status === "archived" || state.status === "closed") {
+    wf.log.info("workflow:completing", {
+      changeId: state.changeId,
+      status: state.status,
+      reason: "terminal_status_detected",
+    });
+    // Drain any in-flight update/signal handlers before returning so we
+    // do not interrupt e.g. a concurrent applyChangeSummary handler.
+    await wf.condition(wf.allHandlersFinished);
+    return;
+  }
 
   // Continue-as-new: pass current state as seed
   const { changeId, projectId, initializedAt, title } = input;
