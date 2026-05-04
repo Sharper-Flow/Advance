@@ -70,3 +70,99 @@ describe("ADV_INSTRUCTIONS.md framing (T32 — multi-session-first)", () => {
     });
   });
 });
+
+describe("ADV_INSTRUCTIONS.md drift repairs (repairDriftContradictions T2)", () => {
+  const content = readFileSync(ADV_INSTRUCTIONS_PATH, "utf8");
+
+  const section = (start: string, end: string): string => {
+    const startIdx = content.indexOf(start);
+    expect(startIdx, `Missing section start: ${start}`).toBeGreaterThan(-1);
+    const endIdx = content.indexOf(end, startIdx + start.length);
+    expect(endIdx, `Missing section end: ${end}`).toBeGreaterThan(startIdx);
+    return content.slice(startIdx, endIdx);
+  };
+
+  test("command boundaries use canonical 7-gate ids, not retired phase labels", () => {
+    const boundaries = section("## Command Boundaries", "## Status Markers");
+
+    expect(boundaries).not.toMatch(/\|\s*research\s*\|.*\|\s*research\s*\|/);
+    expect(boundaries).not.toMatch(/\|\s*prep\s*\|.*\|\s*prep\s*\|/);
+    expect(boundaries).not.toMatch(/\|\s*apply\s*\|.*\|\s*implementation\s*\|/);
+
+    expect(boundaries).toMatch(/\|\s*discover\s*\|.*\|\s*discovery\s*\|/);
+    expect(boundaries).toMatch(/\|\s*design\s*\|.*\|\s*design\s*\|/);
+    expect(boundaries).toMatch(/\|\s*prep\s*\|.*\|\s*planning\s*\|/);
+    expect(boundaries).toMatch(/\|\s*apply\s*\|.*\|\s*execution\s*\|/);
+    expect(boundaries).toMatch(/\|\s*review\s*\|.*\|\s*acceptance\s*\|/);
+    expect(boundaries).toMatch(/\|\s*archive\s*\|.*\|\s*release\s*\|/);
+  });
+
+  test("target_path matrix does not contradict adv_status support", () => {
+    const crossProject = section(
+      "#### `target_path` matrix (which tools support cross-project)",
+      "### Cancellation Policy",
+    );
+
+    expect(crossProject).toMatch(/\|\s*`adv_status`\s*\|\s*snapshot-ok\s*\|/);
+    expect(crossProject).not.toMatch(/planned to add/);
+    expect(crossProject).not.toMatch(/Tools without `target_path`[^\n]*`adv_status`/);
+  });
+
+  test("worktree protocol uses canonical tool names and hard-block fallback", () => {
+    const worktree = section("## Worktree Integration", "## When to Use ADV");
+
+    expect(worktree).toMatch(/`adv_worktree_create`/);
+    expect(worktree).toMatch(/`adv_worktree_delete`/);
+    expect(worktree).toMatch(/hard block with error/i);
+    expect(worktree).not.toMatch(/`worktree_create`/);
+    expect(worktree).not.toMatch(/`worktree_delete`/);
+    expect(worktree).not.toMatch(/proceeding in-place/i);
+  });
+
+  test("skill-created marker has agent origin only", () => {
+    const markers = section("## Status Markers", "### Context Snapshot");
+
+    expect(markers).toMatch(/`\[ADV:SKILL_CREATED\]`/);
+    expect(markers).not.toMatch(/System-emitted:[^\n]*\[ADV:SKILL_CREATED\]/);
+  });
+
+  test("context snapshot docs describe include.snapshot exception", () => {
+    const snapshot = section("### Context Snapshot", "## Critical Protocols");
+    const freshness = section("### Context Freshness", "### TDD Protocol");
+
+    expect(snapshot).not.toMatch(/no `_contextSnapshot` field/);
+    expect(snapshot).not.toMatch(/mutation tools only/);
+    expect(freshness).toMatch(/include\.snapshot: true/);
+  });
+
+  test("reflection trigger wording is phase-number agnostic", () => {
+    const reflection = section("### Reflection Protocol", "### Task Checkpoint Commits");
+
+    expect(reflection).toMatch(/archive/i);
+    expect(reflection).not.toMatch(/Phase 8/);
+  });
+
+  test("forbidden ADV state file list covers all external mutable state files", () => {
+    const stateAccess = section("### ADV State Access", "### Multi-Session Coordination");
+
+    for (const filename of [
+      "change.json",
+      "proposal.md",
+      "problem-statement.md",
+      "agenda.jsonl",
+      "wisdom.jsonl",
+      "conformance.json",
+    ]) {
+      expect(stateAccess).toContain(filename);
+    }
+  });
+
+  test("sub-agent budget says the cap is total across batches", () => {
+    const subagents = section(
+      "### Orchestration Token-Budget Policy",
+      "### Phase Summary Pattern",
+    );
+
+    expect(subagents).toMatch(/Cap total sub-agents per command at 6 across batches/);
+  });
+});

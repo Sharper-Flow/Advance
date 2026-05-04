@@ -158,14 +158,17 @@ Each workflow command has a defined phase goal. Canonical in `manifest.ts` (`pha
 | Command  | Produces                                    | × MUST NOT                                      | Gate            |
 | -------- | ------------------------------------------- | ----------------------------------------------- | --------------- |
 | proposal | Problem statement, criteria, constraints    | Create tasks, complete gates, impl decisions    | None            |
-| research | Validated approach, findings in proposal.md | Create tasks, complete non-research gates       | research        |
-| prep     | Task graph, gap analysis, sequencing        | Complete non-prep gates, architecture decisions | prep            |
-| task     | Change + tasks + gates (fast-track exempt)  | —                                               | research + prep |
-| apply    | Implementation via TDD                      | Auto-complete research/prep gates               | implementation  |
+| discover | Current-state evidence, objectives, agreement, acceptance criteria | Create tasks, complete non-discovery gates | discovery       |
+| design   | Validated implementation strategy           | Create tasks, bypass validator                  | design          |
+| prep     | Task graph, gap analysis, sequencing        | Complete non-planning gates, architecture decisions | planning     |
+| task     | Change + tasks + gates (fast-track exempt)  | —                                               | discovery + planning |
+| apply    | Implementation via TDD                      | Auto-complete discovery/planning gates          | execution       |
+| review   | Review findings and acceptance evidence     | Archive, release, or expand scope silently      | acceptance      |
+| archive  | Spec promotion, release readiness, cleanup  | Skip validation, conformance, or sign-off       | release         |
 | reflect  | Reflection report (JSON + Markdown), friction analysis, improvement suggestions | Mutate change state, tasks, or gates; block archive when invoked from it | None            |
 
 - Only `/adv-prep` (and exempt `/adv-task`) may call `adv_task_add`
-- `/adv-apply` stops if research or prep gates pending
+- `/adv-apply` stops if discovery or planning gates pending
 - Commands that own boundary-sensitive workflow steps should include `## Command Boundary` details
 
 ## Status Markers
@@ -184,17 +187,15 @@ Emit at START of each response:
 | `[ADV:REFLECTION]`         | Reflection report emitted                           | 🟪    |
 | `[ADV:PEER_SESSIONS]`      | Informational; peer sessions detected in same project | ⬜    |
 
-Tab title: `<emoji> <shortname> · <normalized change>` when a change is active, or `<emoji> <shortname>` when idle. System-emitted: `[ADV:ACCUMULATED_WISDOM]`, `[ADV:TODO_CONTINUATION]`, `[ADV:RECORD_WISDOM]`, `[ADV:SKILL_CREATED]`
+Tab title: `<emoji> <shortname> · <normalized change>` when a change is active, or `<emoji> <shortname>` when idle. System-emitted: `[ADV:ACCUMULATED_WISDOM]`, `[ADV:TODO_CONTINUATION]`, `[ADV:RECORD_WISDOM]`
 
 ### Context Snapshot
 
 `_contextSnapshot` — compact summary closing the context agreement gap:
 
-- Change ID/title, gate progress (`[✓ research] [○ impl] ...`), task counts, current task, workdir
+- Change ID/title, gate progress (`[✓ proposal] [○ execution] ...`), task counts, current task, workdir
 
-Emitted on: `adv_change_create`, `adv_change_reenter`, `adv_gate_complete`, `adv_status` primary change, and task-state ticker tools (`adv_task_update`, `adv_task_ready`, `adv_task_add`, `adv_task_cancel`).
-
-`adv_change_show` returns structured JSON for direct LLM consumption — no `_contextSnapshot` field.
+Emitted by mutation/ticker tools such as `adv_change_create`, `adv_change_reenter`, `adv_gate_complete`, `adv_status` primary change, and task-state ticker tools (`adv_task_update`, `adv_task_ready`, `adv_task_add`, `adv_task_cancel`). Read tools omit it by default, except `adv_change_show include: { snapshot: true }`, which returns `_contextSnapshot` on request.
 
 **Cross-Repo Switch** — emit via `formatCrossRepoSwitch()`.
 
@@ -204,7 +205,7 @@ Emitted on: `adv_change_create`, `adv_change_reenter`, `adv_gate_complete`, `adv
 
 × NEVER read ADV state files directly (`read`, `cat`, `ls`). Use ADV MCP tools exclusively.
 
-Forbidden: `~/.local/share/opencode/plugins/advance/**/{change.json,proposal.md,agenda.jsonl,wisdom.jsonl}`
+Forbidden: `~/.local/share/opencode/plugins/advance/**/{change.json,proposal.md,problem-statement.md,agenda.jsonl,wisdom.jsonl,conformance.json}`
 
 | Need                     | Tool                                                      |
 | ------------------------ | --------------------------------------------------------- |
@@ -217,8 +218,6 @@ Forbidden: `~/.local/share/opencode/plugins/advance/**/{change.json,proposal.md,
 | Validate                 | `adv_change_validate`                                     |
 | Agenda                   | `adv_agenda_list`                                         |
 | Wisdom                   | `adv_wisdom_list`                                         |
-
-> **Note:** `_contextSnapshot` is available on mutation tools only (`adv_change_create`, `adv_gate_complete`, `adv_change_reenter`, `adv_status` primary change). Read tools (`adv_change_show`, `adv_task_show`) return structured JSON without `_contextSnapshot`.
 
 On direct-read failure → stop, call `adv_change_show` or `adv_task_show`.
 
@@ -322,7 +321,7 @@ Post-completion two-plane analysis for every archived change. Tool: `adv_reflect
 |---|---|
 | Plane 1 — Project Execution | Efficiency, quality, process adherence, wisdom captured |
 | Plane 2 — System Friction | Tool gaps, workarounds, missing capabilities, doc gaps, UX friction, provider-specific issues |
-| Triggers | Auto via `/adv-archive` Phase 8; manual via `/adv-reflect <change-id>` |
+| Triggers | Auto during archive/release flow; manual via `/adv-reflect <change-id>` |
 | Audience | Informational — human review; does NOT trigger autonomous process modification |
 | Retrieval | `adv_change_show` for archived changes |
 
@@ -464,7 +463,7 @@ Tools with `target_path` (read or mutation) accept the optional path argument an
 | `adv_change_diagnose`, `adv_change_import`, `adv_migrate_cleanup` | snapshot-ok / temporal-required | Read-only diagnose; import & cleanup are mutations |
 | `adv_run_test` | temporal-required | Mutation (records evidence) |
 
-Tools without `target_path` (current-project only): `adv_status`/`adv_temporal_diagnose` (planned to add), `adv_temporal_register_search_attributes`, `adv_temporal_worker_restart`, `adv_reflect`, `adv_conformance`, `adv_agenda_*`, `adv_wisdom_*`, `adv_project_metadata`, `adv_project_context`, `adv_run_test` workdir-resolution.
+Tools without `target_path` (current-project only): `adv_temporal_register_search_attributes`, `adv_temporal_worker_restart`, `adv_reflect`, `adv_conformance`, `adv_agenda_*`, `adv_wisdom_*`, `adv_project_metadata`, `adv_project_context`, `adv_run_test` workdir-resolution.
 
 When a tool you need lacks `target_path` and the work is genuinely cross-project, switch sessions: `cd <other-project> && opencode`.
 
@@ -697,7 +696,7 @@ Every sub-agent spawn must include: ROLE:, OUTPUT_SCHEMA:, BUDGET:, STOP_WHEN:. 
 
 ### Orchestration Token-Budget Policy
 
-When to spawn: 3+ independent scan dimensions. Max parallel workers: 3 (runtime-enforced via `enforceTaskPolicy`). Batch pattern: spawn 3, wait for completions, spawn next batch. Cap total sub-agents per command at 6. Use inline work for sequential or context-dependent tasks.
+When to spawn: 3+ independent scan dimensions. Max parallel workers: 3 (runtime-enforced via `enforceTaskPolicy`). Batch pattern: spawn 3, wait for completions, spawn next batch. Cap total sub-agents per command at 6 across batches. Use inline work for sequential or context-dependent tasks.
 
 ### Phase Summary Pattern
 
@@ -926,16 +925,16 @@ Implication: spec changes in worktree A invisible to B until merged. `/adv-valid
 
 ### Inline Worktree Protocol
 
-1. `worktree_create` → capture returned worktree path
+1. `adv_worktree_create` → capture returned worktree path
 2. **Immediately** set `workdir` to the worktree path for ALL subsequent tool calls
 3. Continue inline — no handoff, no new terminal, no navigation hints needed
-4. When deleting, pass `branch` arg to `worktree_delete` (required in inline mode)
+4. When deleting, pass `branch` arg to `adv_worktree_delete` (required in inline mode)
 
 ### Worktree Cleanup
 
-`/adv-archive` Phase 9 handles: stage → commit → detect default branch → refresh basis → choose `--ff-only` / reconcile / PR path → verify → `worktree_delete` → remove `.bak`/`.tmp`/`.orig`. × Never delete worktree with unmerged commits.
+`/adv-archive` Phase 9 handles: stage → commit → detect default branch → refresh basis → choose `--ff-only` / reconcile / PR path → verify → `adv_worktree_delete` → remove `.bak`/`.tmp`/`.orig`. × Never delete worktree with unmerged commits.
 
-If `worktree_create`/`worktree_delete` unavailable: `[ADV:INFO] Worktree tools not available — proceeding in-place.`
+If `adv_worktree_create`/`adv_worktree_delete` unavailable: `[ADV:BLOCKED] Worktree tools unavailable — hard block with error. Do not proceed in-place.`
 
 ## When to Use ADV
 
