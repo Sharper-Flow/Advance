@@ -318,7 +318,7 @@ async function tryAtomicCreate(
   }
 }
 
-async function readLockContents(
+export async function readLockContents(
   lockPath: string,
 ): Promise<WorkerLockContents | null> {
   const raw = await readFile(lockPath, "utf8");
@@ -331,7 +331,21 @@ async function readLockContents(
   ) {
     return null;
   }
-  return parsed as WorkerLockContents;
+  if (isV2Lock(parsed)) {
+    return {
+      pid: parsed.pid,
+      worker_id: parsed.worker_id,
+      acquired_at: parsed.acquired_at,
+      schema_version: 2,
+      last_heartbeat: parsed.last_heartbeat,
+    };
+  }
+  return {
+    pid: parsed.pid,
+    worker_id: parsed.worker_id,
+    acquired_at: parsed.acquired_at,
+    schema_version: 1,
+  };
 }
 
 async function safeRemove(path: string): Promise<void> {

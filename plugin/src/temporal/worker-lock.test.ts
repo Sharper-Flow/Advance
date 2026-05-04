@@ -9,6 +9,7 @@ import {
   acquireWorkerLock,
   HEARTBEAT_INTERVAL_MS,
   isV2Lock,
+  readLockContents,
   releaseWorkerLock,
   STALE_HEARTBEAT_MS,
   WORKER_LOCK_FILENAME,
@@ -96,6 +97,34 @@ describe("acquireWorkerLock + releaseWorkerLock", () => {
 
       vi.unstubAllEnvs();
       vi.resetModules();
+    });
+  });
+
+  describe("readLockContents schema derivation", () => {
+    it("parses v1 lock files with derived schema_version 1", async () => {
+      await writeLock(stateDir, 12345);
+
+      const contents = await readLockContents(
+        join(stateDir, WORKER_LOCK_FILENAME),
+      );
+
+      expect(contents?.schema_version).toBe(1);
+      expect(contents).not.toHaveProperty("last_heartbeat");
+    });
+
+    it("parses v2 lock files with last_heartbeat intact", async () => {
+      const lastHeartbeat = "2026-01-01T00:00:05.000Z";
+      await writeLock(stateDir, 12345, {
+        schema_version: 2,
+        last_heartbeat: lastHeartbeat,
+      });
+
+      const contents = await readLockContents(
+        join(stateDir, WORKER_LOCK_FILENAME),
+      );
+
+      expect(contents?.schema_version).toBe(2);
+      expect(contents?.last_heartbeat).toBe(lastHeartbeat);
     });
   });
 
@@ -289,7 +318,11 @@ describe("acquireWorkerLock + releaseWorkerLock", () => {
 // Helpers
 // =============================================================================
 
-async function writeLock(stateDir: string, pid: number): Promise<void> {
+async function writeLock(
+  stateDir: string,
+  pid: number,
+  extra: Record<string, unknown> = {},
+): Promise<void> {
   await mkdir(stateDir, { recursive: true });
   await writeFile(
     join(stateDir, WORKER_LOCK_FILENAME),
@@ -297,6 +330,7 @@ async function writeLock(stateDir: string, pid: number): Promise<void> {
       pid,
       worker_id: "00000000-0000-4000-8000-000000000000",
       acquired_at: "2026-01-01T00:00:00.000Z",
+      ...extra,
     }),
   );
 }
