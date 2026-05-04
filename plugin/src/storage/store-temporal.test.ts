@@ -3114,5 +3114,59 @@ describe("Temporal store backend adapter", () => {
         rmSync(tmp, { recursive: true, force: true });
       }
     });
+
+    it("deduplicates archive bundles by canonical change.json id", async () => {
+      const tmp = mkdtempSync(join(tmpdir(), "adv-archive-canonical-"));
+      try {
+        const changesDir = join(tmp, "changes");
+        const archiveDir = join(tmp, "archive");
+        const fs = await import("node:fs/promises");
+
+        mkdirSync(changesDir, { recursive: true });
+        mkdirSync(archiveDir, { recursive: true });
+
+        const canonicalChange = {
+          id: "chg-dupe",
+          title: "Archived duplicate",
+          status: "archived",
+          created_at: "2026-04-18T00:00:00.000Z",
+          tasks: [],
+          deltas: {},
+          wisdom: [],
+          gates: {},
+        };
+
+        for (const dirName of ["chg-dupe", "2026-05-01-chg-dupe"]) {
+          const bundleDir = join(archiveDir, dirName);
+          mkdirSync(bundleDir, { recursive: true });
+          await fs.writeFile(
+            join(bundleDir, "change.json"),
+            JSON.stringify(canonicalChange),
+          );
+        }
+
+        const bundle = buildEmptyVisibilityBundle();
+        const legacy = makeLegacyStore();
+        legacy.paths.changes = changesDir as any;
+        legacy.paths.archive = archiveDir as any;
+        legacy.changes.get = vi.fn(async () => ({ success: false }) as any);
+
+        const adapted = createTemporalStoreBackend({
+          legacy,
+          temporal: bundle as any,
+          projectId: "proj1",
+        });
+
+        const withArchived = await adapted.changes.list({
+          includeArchived: true,
+        });
+
+        const matches = withArchived.changes.filter((c) => c.id === "chg-dupe");
+        expect(matches).toHaveLength(1);
+        expect(matches[0].status).toBe("archived");
+      } finally {
+        rmSync(tmp, { recursive: true, force: true });
+      }
+    });
   });
 });

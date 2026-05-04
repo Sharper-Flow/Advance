@@ -646,7 +646,27 @@ export function createTemporalStoreBackend(
         }
       }
     }
-    return changes;
+
+    // Archive bundle directory names are not canonical: older bundles may be
+    // stored as `{date}-{changeId}` while `change.json.id` remains the stable
+    // change identifier. Deduplicate on loaded canonical id so terminal lists
+    // do not show duplicates when both directory forms exist.
+    const byCanonicalId = new Map<string, Change>();
+    for (const change of changes) {
+      const existing = byCanonicalId.get(change.id);
+      if (!existing) {
+        byCanonicalId.set(change.id, change);
+        continue;
+      }
+      const existingTerminal =
+        existing.status === "archived" || existing.status === "closed";
+      const candidateTerminal =
+        change.status === "archived" || change.status === "closed";
+      if (!existingTerminal && candidateTerminal) {
+        byCanonicalId.set(change.id, change);
+      }
+    }
+    return Array.from(byCanonicalId.values());
   };
 
   const buildTemporalStatus = async (): Promise<ProjectStatus> => {
