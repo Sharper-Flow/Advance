@@ -62,6 +62,8 @@ interface CreateInProcessWorkerInput {
   workflowsPath?: string;
   /** Optional override for activities (test injection). */
   activities?: Record<string, unknown>;
+  /** Called once when every registered queue has failed outside shutdown. */
+  onWorkerExhausted?: () => void | Promise<void>;
   /**
    * Optional override for the NativeConnection factory. Primarily used in
    * tests that pass a TestWorkflowEnvironment native-connection.
@@ -98,6 +100,7 @@ export async function createInProcessWorker(
   const runners = new Map<string, Promise<void>>();
   const starting = new Map<string, Promise<void>>();
   let shuttingDown = false;
+  let exhaustedNotified = false;
 
   function onRunSettled(taskQueue: string, err: unknown): void {
     if (!err || shuttingDown) return;
@@ -105,6 +108,12 @@ export async function createInProcessWorker(
     registered.delete(taskQueue);
     failed.add(taskQueue);
     runners.delete(taskQueue);
+    if (!exhaustedNotified && registered.size === 0) {
+      exhaustedNotified = true;
+      void Promise.resolve(input.onWorkerExhausted?.()).catch(() => {
+        // Best-effort callback; caller owns recovery/error reporting.
+      });
+    }
   }
 
   async function startOne(taskQueue: string): Promise<void> {
@@ -143,6 +152,7 @@ export async function createInProcessWorker(
         );
       }
       failed.delete(taskQueue);
+      if (registered.size === 0) exhaustedNotified = false;
       registered.set(taskQueue, worker);
       runners.set(
         taskQueue,

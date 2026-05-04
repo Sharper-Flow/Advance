@@ -87,6 +87,25 @@ describe("createInProcessWorker (A4b')", () => {
     });
   });
 
+  it("fires onWorkerExhausted exactly once when the last registered queue fails", async () => {
+    const onWorkerExhausted = vi.fn();
+    const worker = await createInProcessWorker({
+      address: "127.0.0.1:7233",
+      namespace: "default",
+      queues: ["advance-proj-a"],
+      onWorkerExhausted,
+    });
+
+    mocks.runDeferreds[0].reject(new Error("poller crashed"));
+    await vi.waitFor(() => {
+      expect(worker.queues).toEqual([]);
+      expect(onWorkerExhausted).toHaveBeenCalledTimes(1);
+    });
+
+    await Promise.resolve();
+    expect(onWorkerExhausted).toHaveBeenCalledTimes(1);
+  });
+
   it("starts one Worker per queue on initial creation", async () => {
     const worker = await createInProcessWorker({
       address: "127.0.0.1:7233",
