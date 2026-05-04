@@ -217,6 +217,21 @@ export const fooSignal = wf.defineSignal<[FooPayload]>("foo");
 
 **Total: 24 new + 1 retained (`applyChangeSummarySignal`) = 25 signals.** Replaces 28 updates.
 
+#### Enforcement Layer Migration (V5 validator finding)
+
+The current update-based architecture enforces several protocol rules inside the workflow handler (e.g., `cancelTaskUpdate` requires `approvedByUser: true`; `setTaskPhaseUpdate` enforces red→green→complete transitions). Under the signal-driven model, these enforcement points **move out of the workflow** to where they semantically belong:
+
+| Rule | Today (workflow update) | Proposed (where enforced) |
+|---|---|---|
+| Cancellation requires user approval | `cancelTaskUpdate` rejects without `approvedByUser: true` | **Tool layer** — `adv_task_cancel` and `adv_change_close` validate `approvedByUser + approvalEvidence` before firing the signal. Bad calls rejected at the boundary. |
+| TDD phase progression (red → green → complete) | `setTaskPhaseUpdate` enforces transitions | **Agent layer** — agent self-enforces. Workflow records final outcome via `taskCompletedSignal.verification`. No phase machine. |
+| Planning gate requires `userApproved: true` | `completeGateUpdate` rejects without it | **Tool layer** — `adv_gate_complete` validates `userApproved` before firing `gateCompletedSignal` for the planning gate. |
+| Spec-conformance lock prevents reads | (today: filesystem path guard) | **Unchanged** — path guards stay at the OS/tool layer, not workflow. |
+
+**Protocol semantics are preserved**; only the enforcement point shifts. This is consistent with the design's "trust the agent at the workflow layer; validate at the boundary" principle. Bad payloads are rejected before they ever become signals; the workflow's signal handlers can therefore stay pure mutations on `state`.
+
+This migration of enforcement is documented in tool layer specs and surfaced in `_adapters.ts` helper functions.
+
 ### Section 2: Bucket Derivation
 
 Pure function in `plugin/src/utils/buckets.ts`. Computed from current gate state + idle threshold.
@@ -311,10 +326,26 @@ Target: <2KB. Permanent. Greppable.
 | Default | Behavior |
 |---|---|
 | Most changes | Never CAN — workflow terminates at archive (~250 events typical) |
-| Defensive | If `historyLength > 5,000`, schedule CAN at next safe point |
+| Defensive trigger A | If `historyLength > 5,000`, schedule CAN at next safe point |
+| Defensive trigger B | If `workflowInfo().continueAsNewSuggested === true`, schedule CAN (Temporal-suggested, claude-tempo pattern) |
 | Safe point | After signal handler completes AND `allHandlersFinished()` |
 
+```typescript
+const CAN_THRESHOLD = 5000;
+
+async function maybeCAN(state: ChangeState): Promise<void> {
+  const info = wf.workflowInfo();
+  // V2 validator: complementary triggers — Temporal-suggested OR explicit threshold
+  const shouldCAN = info.continueAsNewSuggested || info.historyLength > CAN_THRESHOLD;
+  if (!shouldCAN) return;
+  await wf.condition(() => wf.allHandlersFinished());
+  await wf.continueAsNew<typeof changeWorkflow>({ state });
+}
+```
+
 State size bound: ~64KB worst case. Cheap.
+
+In-flight signals during CAN: per Temporal samples (`safe-message-handlers`), buffered signals are delivered to the new run. `allHandlersFinished()` ensures we don't CAN mid-handler.
 
 ### Section 6: Tool Adapter Pattern
 
@@ -370,6 +401,27 @@ client.workflow.list({ query: `AdvChangeStatus = 'active' AND AdvCurrentBucket =
 
 Task queue: `advance-changes` (single global) + `advance-host-{hostname}` (per-host activities).
 
+#### Type & Sort Notes (V3 validator findings)
+
+- **`AdvChangeTitle` type:** Use `Keyword` (exact match), NOT `Text` (tokenized). Query examples use `=` (exact equality). If full-text title search is later needed, add a separate `Text`-typed attribute. This avoids ambiguous matching semantics.
+- **Sort order:** Temporal Cloud does NOT support `ORDER BY` on user-defined search attributes; default sort is `ClosedTime DESC NULL FIRST`. ADV is self-hosted today, but for portability, **sort client-side after listing**. Do not write `ORDER BY AdvCreatedAt DESC` in any list-query string. Fetch the result set, then sort in the tool layer.
+
+Updated schema (final):
+
+```typescript
+const ADV_SEARCH_ATTRIBUTES = {
+  AdvChangeId: "Keyword",                  // exact change ID
+  AdvChangeStatus: "Keyword",              // active | archived | cancelled
+  AdvChangeTitle: "Keyword",               // exact title match (V3 fix: was Text)
+  AdvAffectedProjects: "KeywordList",      // contains-semantics for membership
+  AdvAffectedPaths: "KeywordList",
+  AdvCurrentGate: "Keyword",
+  AdvCurrentBucket: "Keyword",
+  AdvLastSignalAt: "Datetime",             // filter only; sort client-side
+  AdvCreatedAt: "Datetime",                // filter only; sort client-side
+};
+```
+
 ### Section 8: Migration Script
 
 One-shot script reads v1 disk JSON, replays as signals, verifies round-trip.
@@ -398,6 +450,65 @@ rm plugin/src/tools/migrate-cleanup.ts
 ```
 
 Acceptable migration loss: per-phase TDD evidence text (folded into `verification` placeholder), per-attempt error_recovery on completed/cancelled tasks (only relevant when blocked), workflow event history (not in our model anyway), `seenIdempotencyKeys` (not needed).
+
+#### Reliable Replay Barrier (V4 validator finding)
+
+The earlier draft used `setTimeout(500)` as a "wait for mailbox to drain" barrier before round-trip validation. This is unreliable — delivery latency varies with load and gives no correctness guarantee.
+
+**Replace with marker-signal query barrier:**
+
+```typescript
+// At the end of replay, fire a marker signal
+const markerId = `migration-${changeId}-${Date.now()}`;
+await handle.signal(migrationMarkerSignal, { markerId });
+
+// Poll a query that returns whether the marker has been processed
+async function waitForMarker(markerId: string, timeoutMs = 30_000): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const seen = await handle.query(getProcessedMarkersQuery);
+    if (seen.includes(markerId)) return;
+    await sleep(50);
+  }
+  throw new Error(`Migration marker ${markerId} not seen within ${timeoutMs}ms`);
+}
+
+await waitForMarker(markerId);
+
+// Now validate round-trip
+const newState = await handle.query(getChangeStateQuery);
+return validateRoundTrip(source, newState, changeId);
+```
+
+This requires:
+- Adding `migrationMarkerSignal` definition (only used by migration; can be deleted after migration completes)
+- Adding `getProcessedMarkersQuery` query that returns the list of marker IDs the workflow has seen
+- Both removed in post-migration cleanup
+
+#### Cross-Name Signal Ordering (V4 validator finding)
+
+Temporal guarantees ordered delivery for signals **of the same name**, but NOT across different signal names. Concrete risk during replay:
+
+- Replay fires `taskAddedSignal(tk-001)`, `taskAddedSignal(tk-002)`, `gateCompletedSignal(planning)`
+- `gateCompletedSignal` may arrive at the workflow handler BEFORE `taskAddedSignal` for tk-002 is processed
+- If the gate-completion handler does anything that depends on full task list (e.g., updating search attributes from task counts), it sees a stale state
+
+**Mitigation: gate-batched replay**
+
+```typescript
+// Replay tasks first, wait for marker, THEN gates
+for (const task of source.tasks) {
+  await replayTask(handle, task);
+}
+await waitForMarker(handle, "tasks-batch-complete");
+
+for (const gateId of GATE_ORDER) {
+  await replayGate(handle, source.gates[gateId]);
+  await waitForMarker(handle, `gate-${gateId}-complete`);
+}
+```
+
+Each batch of cross-name signals is followed by a marker barrier. This makes the migration deterministic regardless of internal Temporal scheduling.
 
 ---
 
