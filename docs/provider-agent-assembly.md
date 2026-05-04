@@ -55,7 +55,7 @@ ADV ships one canonical orchestrator source: `.opencode/agents/adv.md`. During `
 
 Mismatches between `ADV_TOOL_NAMES` and each agent's `tools:` allowlist are reported per file. Missing or stale prompt parts fail `--check`.
 
-`sync-global.sh --check` also runs a runtime canary when `opencode` is on `PATH`: `opencode debug agent adv-{provider}` must resolve a prompt with canonical ADV markers, the matching `<!-- PROVIDER_HINT:{provider} -->`, and no `[ADV:PROVIDER_STUB_UNEXPANDED]` marker. If `opencode` is unavailable, the check reports the skip reason.
+`sync-global.sh --check` also runs a runtime canary when `opencode` is on `PATH`: `opencode debug agent adv-{provider}` must resolve a prompt with canonical ADV markers, the matching `<!-- PROVIDER_HINT:{provider} -->`, and no `[ADV:PROVIDER_STUB_UNEXPANDED]` marker. If `opencode` is unavailable, the check reports the skip reason and continues with static validation.
 
 ### Metrics
 

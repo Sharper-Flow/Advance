@@ -546,6 +546,9 @@ check_provider_prompt_parts() {
       continue
     fi
 
+    # Only require prompt-part freshness once config references provider prompts.
+    # Fresh installs without provider prompt refs should not fail --check on
+    # generated files that are not yet part of runtime resolution.
     if jsonc_to_json "$GLOBAL_JSON" | jq -e --arg agent "adv-${provider}" --arg expected "$expected" '(.agent[$agent].prompt // "") == $expected' >/dev/null; then
       needs_parts=true
     fi

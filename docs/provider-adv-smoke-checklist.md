@@ -26,6 +26,7 @@ Run after `scripts/sync-global.sh --fix` and OMP apply.
 ## Runtime Canary
 
 - [ ] `scripts/sync-global.sh --check` runs provider runtime canary when `opencode` is on `PATH`
+- [ ] If `opencode` is unavailable, `scripts/sync-global.sh --check` reports the canary skip reason and continues static validation
 - [ ] `opencode debug agent adv-claude` resolved `prompt` contains `## ADV Overlay` and `<!-- PROVIDER_HINT:claude -->`
 - [ ] `opencode debug agent adv-gpt` resolved `prompt` contains `## ADV Overlay` and `<!-- PROVIDER_HINT:gpt -->`
 - [ ] `opencode debug agent adv-glm` resolved `prompt` contains `## ADV Overlay` and `<!-- PROVIDER_HINT:glm -->`
