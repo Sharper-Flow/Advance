@@ -52,8 +52,7 @@ async function registerAdvSearchAttributes(
  * timeout race so red-phase tests fail predictably instead of hanging.
  */
 async function waitForCompleted(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  handle: { result: () => Promise<any> },
+  handle: { result: () => Promise<unknown> },
   timeoutMs: number,
 ): Promise<"completed" | "timeout" | "rejected"> {
   return await Promise.race<"completed" | "timeout" | "rejected">([
@@ -84,91 +83,83 @@ function makeChangeInput(changeId: string): ChangeWorkflowInput {
 }
 
 describe("changeWorkflow terminal-state exit (terminatechangeworkflowonarchi)", () => {
-  it(
-    "Completes after archiveChangeUpdate resolves",
-    async () => {
-      await withTestWorkflowEnvironment(
-        () => TestWorkflowEnvironment.createTimeSkipping(),
-        async (env) => {
-          await registerAdvSearchAttributes(env);
+  it("Completes after archiveChangeUpdate resolves", async () => {
+    await withTestWorkflowEnvironment(
+      () => TestWorkflowEnvironment.createTimeSkipping(),
+      async (env) => {
+        await registerAdvSearchAttributes(env);
 
-          const worker = await Worker.create({
-            connection: env.nativeConnection,
-            workflowsPath,
+        const worker = await Worker.create({
+          connection: env.nativeConnection,
+          workflowsPath,
+          taskQueue: "termination-test-archive",
+        });
+
+        await worker.runUntil(async () => {
+          const input = makeChangeInput("archive-test-001");
+          const handle = await env.client.workflow.start("changeWorkflow", {
+            workflowId: `term-archive-${Date.now()}`,
             taskQueue: "termination-test-archive",
+            args: [input],
           });
 
-          await worker.runUntil(async () => {
-            const input = makeChangeInput("archive-test-001");
-            const handle = await env.client.workflow.start("changeWorkflow", {
-              workflowId: `term-archive-${Date.now()}`,
-              taskQueue: "termination-test-archive",
-              args: [input],
-            });
+          // Trigger archive — sets state.status = "archived"
+          await handle.executeUpdate(archiveChangeUpdate, { args: [] });
 
-            // Trigger archive — sets state.status = "archived"
-            await handle.executeUpdate(archiveChangeUpdate, { args: [] });
+          // After fix: workflow exits cleanly via terminal-state branch.
+          // Before fix: workflow stays Running until history rotation.
+          const outcome = await waitForCompleted(handle, 5_000);
+          expect(outcome).toBe("completed");
 
-            // After fix: workflow exits cleanly via terminal-state branch.
-            // Before fix: workflow stays Running until history rotation.
-            const outcome = await waitForCompleted(handle, 5_000);
-            expect(outcome).toBe("completed");
+          // Confirm via describe() — defense in depth
+          const description = await handle.describe();
+          expect(description.status.name).toBe("COMPLETED");
+        });
+      },
+    );
+  }, 30_000);
 
-            // Confirm via describe() — defense in depth
-            const description = await handle.describe();
-            expect(description.status.name).toBe("COMPLETED");
-          });
-        },
-      );
-    },
-    30_000,
-  );
+  it("Completes after closeChangeUpdate resolves", async () => {
+    await withTestWorkflowEnvironment(
+      () => TestWorkflowEnvironment.createTimeSkipping(),
+      async (env) => {
+        await registerAdvSearchAttributes(env);
 
-  it(
-    "Completes after closeChangeUpdate resolves",
-    async () => {
-      await withTestWorkflowEnvironment(
-        () => TestWorkflowEnvironment.createTimeSkipping(),
-        async (env) => {
-          await registerAdvSearchAttributes(env);
+        const worker = await Worker.create({
+          connection: env.nativeConnection,
+          workflowsPath,
+          taskQueue: "termination-test-close",
+        });
 
-          const worker = await Worker.create({
-            connection: env.nativeConnection,
-            workflowsPath,
+        await worker.runUntil(async () => {
+          const input = makeChangeInput("close-test-001");
+          const handle = await env.client.workflow.start("changeWorkflow", {
+            workflowId: `term-close-${Date.now()}`,
             taskQueue: "termination-test-close",
+            args: [input],
           });
 
-          await worker.runUntil(async () => {
-            const input = makeChangeInput("close-test-001");
-            const handle = await env.client.workflow.start("changeWorkflow", {
-              workflowId: `term-close-${Date.now()}`,
-              taskQueue: "termination-test-close",
-              args: [input],
-            });
-
-            // Trigger close with a closure payload — sets state.status = "closed"
-            await handle.executeUpdate(closeChangeUpdate, {
-              args: [
-                {
-                  reason: "cancelled",
-                  approved_by_user: true,
-                  approval_evidence: "Test cancellation",
-                  approved_at: new Date().toISOString(),
-                },
-              ],
-            });
-
-            const outcome = await waitForCompleted(handle, 5_000);
-            expect(outcome).toBe("completed");
-
-            const description = await handle.describe();
-            expect(description.status.name).toBe("COMPLETED");
+          // Trigger close with a closure payload — sets state.status = "closed"
+          await handle.executeUpdate(closeChangeUpdate, {
+            args: [
+              {
+                reason: "cancelled",
+                approved_by_user: true,
+                approval_evidence: "Test cancellation",
+                approved_at: new Date().toISOString(),
+              },
+            ],
           });
-        },
-      );
-    },
-    30_000,
-  );
+
+          const outcome = await waitForCompleted(handle, 5_000);
+          expect(outcome).toBe("completed");
+
+          const description = await handle.describe();
+          expect(description.status.name).toBe("COMPLETED");
+        });
+      },
+    );
+  }, 30_000);
 
   // Note: a "stays Running on non-terminal status" negative test was
   // attempted but is unstable in TimeSkipping env (the env eventually
