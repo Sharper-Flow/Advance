@@ -44,6 +44,8 @@ const mocks = vi.hoisted(() => ({
   temporalClientCtor: vi.fn(function (this: unknown) {
     return {};
   }),
+  readLockContents: vi.fn(async () => null),
+  getExternalRoot: vi.fn((projectId: string) => `/mock/external/${projectId}`),
 }));
 
 vi.mock("../plugin-init", async () => {
@@ -89,6 +91,25 @@ vi.mock("./runtime-manager", async () => {
   };
 });
 
+vi.mock("./worker-lock", async () => {
+  const actual =
+    await vi.importActual<typeof import("./worker-lock")>("./worker-lock");
+  return {
+    ...actual,
+    readLockContents: mocks.readLockContents,
+  };
+});
+
+vi.mock("../utils/project-id", async () => {
+  const actual = await vi.importActual<typeof import("../utils/project-id")>(
+    "../utils/project-id",
+  );
+  return {
+    ...actual,
+    getExternalRoot: mocks.getExternalRoot,
+  };
+});
+
 import {
   getTemporalHealth,
   resetTemporalHealthProbeState,
@@ -98,12 +119,17 @@ import {
   resetTemporalFallbackTelemetry,
   incrementFallbackCount,
 } from "./fallback-telemetry";
+import {
+  recordWorkerRunFailure,
+  resetTemporalRetryTelemetry,
+} from "./retry-wrapper";
 
 describe("getTemporalHealth (C3)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     resetTemporalHealthProbeState();
     resetTemporalFallbackTelemetry();
+    resetTemporalRetryTelemetry();
   });
 
   it("reports server_alive=true, worker_alive=true, queues, last_op_at, last_error when everything is healthy", async () => {
@@ -251,5 +277,50 @@ describe("getTemporalHealth (C3)", () => {
     expect(health.stale_queues).toEqual([
       { queue: "advance-target-proj", running_count: 42 },
     ]);
+  });
+
+  it("returns worker_lock=null when the project worker lock is missing", async () => {
+    mocks.readLockContents.mockResolvedValueOnce(null);
+
+    const health = await getTemporalHealth("target-proj");
+
+    expect(mocks.readLockContents).toHaveBeenCalledWith(
+      "/mock/external/target-proj/worker.lock",
+    );
+    expect(health.worker_lock).toBeNull();
+  });
+
+  it("surfaces worker_lock details from v2 worker.lock contents", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-01-01T00:01:00.000Z"));
+    mocks.readLockContents.mockResolvedValueOnce({
+      pid: 12345,
+      worker_id: "worker-1",
+      acquired_at: "2026-01-01T00:00:00.000Z",
+      schema_version: 2,
+      last_heartbeat: "2026-01-01T00:00:30.000Z",
+    });
+
+    const health = await getTemporalHealth("target-proj");
+
+    expect(health.worker_lock).toEqual({
+      holder_pid: 12345,
+      last_heartbeat_at: "2026-01-01T00:00:30.000Z",
+      heartbeat_age_ms: 30_000,
+      schema_version: 2,
+    });
+    vi.useRealTimers();
+  });
+
+  it("surfaces last_worker_run_error telemetry", async () => {
+    recordWorkerRunFailure("advance-proj-a", new Error("poller failed"));
+
+    const health = await getTemporalHealth("target-proj");
+
+    expect(health.last_worker_run_error).toMatchObject({
+      queue: "advance-proj-a",
+      message: "poller failed",
+    });
+    expect(health.last_worker_run_error?.at).toEqual(expect.any(String));
   });
 });

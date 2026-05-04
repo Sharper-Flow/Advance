@@ -3,6 +3,7 @@ import { getService, getStslStats } from "./service";
 import {
   getTemporalRetryTelemetry,
   getTemporalOpTelemetry,
+  getLastWorkerRunError,
   type OpTelemetry,
 } from "./retry-wrapper";
 import {
@@ -15,6 +16,13 @@ import {
 } from "../plugin-init";
 import { canReachTemporalAddress } from "./runtime-manager";
 import { buildProjectTaskQueue, createTemporalClientBundle } from "./client";
+import { getExternalRoot } from "../utils/project-id";
+import {
+  WORKER_LOCK_FILENAME,
+  readLockContents,
+  type WorkerLockContents,
+} from "./worker-lock";
+import { join } from "path";
 
 /**
  * A project task queue flagged as stale by `probeStaleQueues`.
@@ -61,6 +69,19 @@ export interface TemporalHealth {
   reconnect_count: number;
   /** Per-op telemetry counters (top-N most active ops, KD-3). */
   op_counters: OpTelemetry[];
+  worker_lock: WorkerLockHealth | null;
+  last_worker_run_error: {
+    queue: string;
+    message: string;
+    at: string;
+  } | null;
+}
+
+export interface WorkerLockHealth {
+  holder_pid: number;
+  last_heartbeat_at: string | null;
+  heartbeat_age_ms: number | null;
+  schema_version: 1 | 2;
 }
 
 let overrideTelemetry: {
@@ -132,6 +153,31 @@ export async function probeStaleQueues(
   }
 }
 
+async function readWorkerLockHealth(
+  projectId: string | undefined,
+): Promise<WorkerLockHealth | null> {
+  if (!projectId) return null;
+  try {
+    const contents: WorkerLockContents | null = await readLockContents(
+      join(getExternalRoot(projectId), WORKER_LOCK_FILENAME),
+    );
+    if (!contents) return null;
+    const lastHeartbeatAt =
+      contents.schema_version === 2 ? contents.last_heartbeat : null;
+    const heartbeatAgeMs = lastHeartbeatAt
+      ? Math.max(0, Date.now() - Date.parse(lastHeartbeatAt))
+      : null;
+    return {
+      holder_pid: contents.pid,
+      last_heartbeat_at: lastHeartbeatAt,
+      heartbeat_age_ms: heartbeatAgeMs,
+      schema_version: contents.schema_version ?? 1,
+    };
+  } catch {
+    return null;
+  }
+}
+
 export async function getTemporalHealth(
   projectId?: string,
 ): Promise<TemporalHealth> {
@@ -154,6 +200,8 @@ export async function getTemporalHealth(
   // status fields used by current callers.
   const telemetry = overrideTelemetry ?? getTemporalRetryTelemetry();
   const worker_process_alive = getTemporalWorkerAliveness();
+  const worker_lock = await readWorkerLockHealth(projectId);
+  const last_worker_run_error = getLastWorkerRunError();
 
   let stale_queues: StaleQueue[] = [];
   if (server_alive && projectId) {
@@ -183,5 +231,7 @@ export async function getTemporalHealth(
     stale_queues,
     reconnect_count: getStslStats().reconnectCount,
     op_counters: opCounters,
+    worker_lock,
+    last_worker_run_error,
   };
 }
