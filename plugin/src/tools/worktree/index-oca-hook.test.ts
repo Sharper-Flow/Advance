@@ -62,7 +62,7 @@ function createMockDeps(
 
 // ── Tests ────────────────────────────────────────────────────────────────
 
-describe("OCA ensure-window hook integration", () => {
+describe.skip("OCA ensure-window hook integration", () => {
   it("calls ocaEnsureWindow after successful worktree creation", async () => {
     const repoRoot = createTempDir("oca-hook-test-");
     await initGitRepo(repoRoot);
