@@ -339,8 +339,11 @@ export function getTemporalWorkerAliveness(): boolean {
     const candidate = worker as InProcessWorker & { isAlive?: () => boolean };
     if (typeof candidate.isAlive === "function") {
       if (candidate.isAlive()) return true;
-    } else if (worker.queues.length > 0) {
-      return true;
+    } else {
+      const failedQueues = new Set(worker.failedQueues ?? []);
+      if (worker.queues.some((queue) => !failedQueues.has(queue))) {
+        return true;
+      }
     }
   }
   return false;

@@ -162,6 +162,57 @@ vi.mock("./storage/json", () => ({
   loadAllChanges: vi.fn(async () => new Map()),
 }));
 
+describe("getTemporalWorkerAliveness", () => {
+  beforeEach(() => {
+    vi.resetModules();
+  });
+
+  it("returns false when all in-process queues are marked failed", async () => {
+    const { getTemporalWorkerAliveness, registerInProcessTemporalWorker } =
+      await import("./plugin-init");
+
+    registerInProcessTemporalWorker({
+      registerQueue: vi.fn(async () => {}),
+      shutdown: vi.fn(async () => {}),
+      queues: ["advance-dead"],
+      failedQueues: ["advance-dead"],
+    } as any);
+
+    expect(getTemporalWorkerAliveness()).toBe(false);
+  });
+
+  it("returns true when any in-process queue remains unfailed", async () => {
+    const { getTemporalWorkerAliveness, registerInProcessTemporalWorker } =
+      await import("./plugin-init");
+
+    registerInProcessTemporalWorker({
+      registerQueue: vi.fn(async () => {}),
+      shutdown: vi.fn(async () => {}),
+      queues: ["advance-dead", "advance-live"],
+      failedQueues: ["advance-dead"],
+    } as any);
+
+    expect(getTemporalWorkerAliveness()).toBe(true);
+  });
+
+  it("continues to delegate liveness to out-of-process workers", async () => {
+    const { getTemporalWorkerAliveness, registerInProcessTemporalWorker } =
+      await import("./plugin-init");
+    const isAlive = vi.fn(() => true);
+
+    registerInProcessTemporalWorker({
+      registerQueue: vi.fn(async () => {}),
+      shutdown: vi.fn(async () => {}),
+      queues: [],
+      failedQueues: ["advance-dead"],
+      isAlive,
+    } as any);
+
+    expect(getTemporalWorkerAliveness()).toBe(true);
+    expect(isAlive).toHaveBeenCalled();
+  });
+});
+
 describe("plugin-init tryInitStore", () => {
   let profileDir: string;
   let originalAdvProfile: string | undefined;

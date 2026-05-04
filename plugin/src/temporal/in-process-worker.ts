@@ -44,6 +44,9 @@ export interface InProcessWorker {
    */
   readonly queues: readonly string[];
 
+  /** Queues whose Worker.run() promise rejected and no longer count alive. */
+  readonly failedQueues?: readonly string[];
+
   /**
    * Shut the worker down gracefully. Waits for in-flight activities /
    * workflow tasks to drain, then closes the underlying connection.
@@ -91,6 +94,7 @@ export async function createInProcessWorker(
   const effectiveActivities = input.activities ?? activities;
 
   const registered = new Map<string, Worker>();
+  const failed = new Set<string>();
   const runners = new Map<string, Promise<void>>();
   const starting = new Map<string, Promise<void>>();
   let shuttingDown = false;
@@ -99,6 +103,7 @@ export async function createInProcessWorker(
     if (!err || shuttingDown) return;
     recordWorkerRunFailure(taskQueue, err);
     registered.delete(taskQueue);
+    failed.add(taskQueue);
     runners.delete(taskQueue);
   }
 
@@ -137,6 +142,7 @@ export async function createInProcessWorker(
           `registerQueue("${taskQueue}") aborted — worker shut down mid-start`,
         );
       }
+      failed.delete(taskQueue);
       registered.set(taskQueue, worker);
       runners.set(
         taskQueue,
@@ -162,6 +168,10 @@ export async function createInProcessWorker(
   return {
     get queues() {
       return [...registered.keys()];
+    },
+
+    get failedQueues() {
+      return [...failed];
     },
 
     async registerQueue(taskQueue: string): Promise<void> {
