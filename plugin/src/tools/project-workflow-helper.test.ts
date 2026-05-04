@@ -46,6 +46,10 @@ const mocks = vi.hoisted(() => ({
     query: vi.fn(async () => ({})),
     executeUpdate: vi.fn(async () => undefined),
   })),
+  probeTaskQueuePollers: vi.fn(async () => ({
+    status: "fresh" as const,
+    lastAccessMs: 500,
+  })),
 }));
 
 vi.mock("../temporal/runtime-manager", async () => {
@@ -90,6 +94,13 @@ vi.mock("../temporal/migration", () => ({
   ensureProjectWorkflowStarted: mocks.ensureProjectWorkflowStarted,
 }));
 
+vi.mock("../temporal/queue-serviceability", async () => {
+  const actual = await vi.importActual<
+    typeof import("../temporal/queue-serviceability")
+  >("../temporal/queue-serviceability");
+  return { ...actual, probeTaskQueuePollers: mocks.probeTaskQueuePollers };
+});
+
 import { getBoundedProjectWorkflowAccess } from "./project-workflow-helper";
 
 describe("getBoundedProjectWorkflowAccess recovery", () => {
@@ -103,6 +114,12 @@ describe("getBoundedProjectWorkflowAccess recovery", () => {
       .mockReturnValueOnce(false)
       .mockReturnValue(true);
     mocks.getTemporalWorkerDiagnostics.mockReturnValue([]);
+    // Server-side probe returns no pollers so the code falls through
+    // to the recovery path (these tests exercise recovery behavior).
+    mocks.probeTaskQueuePollers.mockResolvedValue({
+      status: "unavailable" as const,
+      lastAccessMs: null,
+    });
   });
 
   it("runs exactly one non-approval recovery and retries workflow access", async () => {
@@ -259,6 +276,11 @@ describe("regression: fixStuckTemporalWorkerRecovery incident shape", () => {
     mocks.getRegisteredTemporalWorkerQueues.mockReturnValue([]);
     mocks.getTemporalWorkerAliveness.mockReturnValue(false);
     mocks.getTemporalWorkerDiagnostics.mockReturnValue([]);
+    // Server-side probe returns no pollers so recovery path is exercised.
+    mocks.probeTaskQueuePollers.mockResolvedValue({
+      status: "unavailable" as const,
+      lastAccessMs: null,
+    });
   });
 
   it("returns a structured failure envelope for the suspect-v1-lock incident shape and runs at most one bounded recovery attempt", async () => {
@@ -403,5 +425,109 @@ describe("GH#31: project workflow auto-bootstrap", () => {
 
     // Already-started is treated as success
     expect(result.mode).toBe("workflow-backed");
+  });
+});
+
+/**
+ * GH#34: When no local worker exists but peer's server-side pollers
+ * service the queue, worktree tools should still get workflow-backed
+ * access instead of hitting WORKER_LOCK_HELD recovery failure.
+ */
+describe("GH#34: server-side poller probe fallback", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.canReachTemporalAddress.mockResolvedValue(true);
+    // No local worker registered
+    mocks.getRegisteredTemporalWorkerQueues.mockReturnValue([]);
+    mocks.getTemporalWorkerAliveness.mockReturnValue(false);
+    mocks.getTemporalWorkerDiagnostics.mockReturnValue([]);
+  });
+
+  it("returns workflow-backed when server-side pollers are active (no local worker)", async () => {
+    mocks.probeTaskQueuePollers.mockResolvedValueOnce({
+      status: "fresh",
+      lastAccessMs: 500,
+    });
+    mocks.ensureProjectWorkflowStarted.mockResolvedValueOnce({
+      query: vi.fn(async () => ({})),
+      executeUpdate: vi.fn(async () => undefined),
+    });
+
+    const result = await getBoundedProjectWorkflowAccess({
+      projectDir: "/repo",
+      mutablePath: "/state/proj123/worktree-state.marker",
+    });
+
+    expect(result.mode).toBe("workflow-backed");
+    expect(mocks.probeTaskQueuePollers).toHaveBeenCalled();
+    // Should NOT try to restart local worker
+    expect(mocks.restartCurrentProjectTemporalWorker).not.toHaveBeenCalled();
+  });
+
+  it("falls through to unavailable when server-side probe returns no pollers", async () => {
+    mocks.probeTaskQueuePollers.mockResolvedValueOnce({
+      status: "unavailable" as const,
+      lastAccessMs: null,
+    });
+
+    const result = await getBoundedProjectWorkflowAccess({
+      projectDir: "/repo",
+      mutablePath: "/state/proj123/worktree-state.marker",
+    });
+
+    expect(result.mode).toBe("unavailable");
+    expect(mocks.restartCurrentProjectTemporalWorker).not.toHaveBeenCalled();
+  });
+
+  it("falls through to recovery when server-side probe throws", async () => {
+    mocks.probeTaskQueuePollers.mockRejectedValueOnce(
+      new Error("gRPC connection refused"),
+    );
+
+    const result = await getBoundedProjectWorkflowAccess({
+      projectDir: "/repo",
+      mutablePath: "/state/proj123/worktree-state.marker",
+      recovery: "none",
+    });
+
+    // Falls through past server probe to the final unavailable return
+    expect(result.mode).toBe("unavailable");
+  });
+
+  it("skips server probe when local worker is ready", async () => {
+    mocks.getRegisteredTemporalWorkerQueues.mockReturnValue([
+      "advance-proj123",
+    ]);
+    mocks.getTemporalWorkerAliveness.mockReturnValue(true);
+    mocks.ensureProjectWorkflowStarted.mockResolvedValueOnce({
+      query: vi.fn(async () => ({})),
+      executeUpdate: vi.fn(async () => undefined),
+    });
+
+    const result = await getBoundedProjectWorkflowAccess({
+      projectDir: "/repo",
+      mutablePath: "/state/proj123/worktree-state.marker",
+    });
+
+    expect(result.mode).toBe("workflow-backed");
+    // Server probe should NOT be called when local worker is ready
+    expect(mocks.probeTaskQueuePollers).not.toHaveBeenCalled();
+  });
+
+  it("skips server probe when bundle is not available", async () => {
+    mocks.getService.mockReturnValueOnce(null);
+    mocks.probeTaskQueuePollers.mockResolvedValueOnce({
+      status: "fresh",
+      lastAccessMs: 500,
+    });
+
+    const result = await getBoundedProjectWorkflowAccess({
+      projectDir: "/repo",
+      mutablePath: "/state/proj123/worktree-state.marker",
+    });
+
+    expect(result.mode).toBe("unavailable");
+    // Probe should not be called without a bundle
+    expect(mocks.probeTaskQueuePollers).not.toHaveBeenCalled();
   });
 });

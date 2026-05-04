@@ -116,6 +116,32 @@ export async function getBoundedProjectWorkflowAccess(
     return buildWorkflowBackedWithBootstrap(projectId, input.projectDir);
   }
 
+  // GH#34: No local worker, but a peer session's worker may be
+  // servicing the queue server-side. Probe the Temporal server for
+  // active pollers before falling through to bounded recovery (which
+  // tries to restart the local worker and fails with WORKER_LOCK_HELD
+  // when a peer holds the lock).
+  const bundle = getService();
+  if (bundle) {
+    try {
+      const serverProbe = await probeTaskQueuePollers({
+        connection: bundle.connection as unknown as Parameters<
+          typeof probeTaskQueuePollers
+        >[0]["connection"],
+        namespace: bundle.namespace,
+        taskQueue: expectedQueue,
+      });
+      if (
+        (serverProbe.status === "fresh" || serverProbe.status === "stale") &&
+        serverProbe.lastAccessMs !== null
+      ) {
+        return buildWorkflowBackedWithBootstrap(projectId, input.projectDir);
+      }
+    } catch {
+      // Server probe failed — fall through to recovery path
+    }
+  }
+
   if (input.recovery === "once") {
     return runBoundedRecovery({
       projectDir: input.projectDir,
