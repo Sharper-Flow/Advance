@@ -5,6 +5,8 @@
  *   A) Worker-lock contention   — 5 clients, ~30s, no deadlocks
  *   B) State-write race         — 5 clients × 10 worktree cycles, monotonic versions
  *   C) Worker-kill respawn-elect — stale-PID reclaim, ops continue
+ *   D) OOP child SIGKILL surrender — unclean child death releases lock quickly
+ *   E) In-process run rejection surrender — Worker.run failure releases lock quickly
  *
  * Linux-only (process.platform guard below).
  * Opt-in via RUN_INTEGRATION_TESTS env var so default `pnpm test` skips these
@@ -386,6 +388,70 @@ if (process.platform !== "linux") {
         },
         90_000,
       );
+
+      /* -------------------------------------------------------------- */
+      /* Scenario E — In-process Worker.run() rejection surrender       */
+      /* -------------------------------------------------------------- */
+
+      it("E: rejected in-process Worker.run surrenders lock before stale grace", async () => {
+        const projectDir = await createTempDir("t39-inproc-reject-");
+        try {
+          const externalStateDir = join(
+            projectDir,
+            "external-state-inproc-reject",
+          );
+          await mkdir(externalStateDir, { recursive: true });
+
+          const lock = await acquireWorkerLock(externalStateDir);
+          expect(lock.owned).toBe(true);
+          const workerId = lock.workerId;
+          if (!workerId)
+            throw new Error("Expected owned lock to include workerId");
+          const heartbeat = startHeartbeatWriter({
+            projectStateDir: externalStateDir,
+            workerId,
+            intervalMs: HEARTBEAT_INTERVAL_MS,
+          });
+          let exhausted = false;
+          const startedAt = Date.now();
+          const worker = await createInProcessWorker({
+            address: "127.0.0.1:7233",
+            namespace: "default",
+            queues: ["advance-inproc-reject"],
+            connection: {} as never,
+            workerFactory: async () => ({
+              run: async () => {
+                throw new Error("in-process poller crashed");
+              },
+              shutdown: () => undefined,
+            }),
+            onWorkerExhausted: async () => {
+              await heartbeat.stop();
+              await releaseWorkerLock(externalStateDir);
+              exhausted = true;
+            },
+          });
+
+          try {
+            while (!exhausted && Date.now() - startedAt < 5_000) {
+              await sleep(50);
+            }
+
+            expect(exhausted).toBe(true);
+            const elapsed = Date.now() - startedAt;
+            const peer = await acquireWorkerLock(externalStateDir);
+            expect(peer.owned).toBe(true);
+            expect(elapsed).toBeLessThan(STALE_HEARTBEAT_MS);
+            await releaseWorkerLock(externalStateDir);
+          } finally {
+            await worker.shutdown();
+            await heartbeat.stop().catch(() => undefined);
+            await releaseWorkerLock(externalStateDir).catch(() => undefined);
+          }
+        } finally {
+          await cleanupTempDir(projectDir);
+        }
+      }, 20_000);
     },
   );
 }

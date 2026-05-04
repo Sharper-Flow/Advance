@@ -4,6 +4,11 @@ import { NativeConnection, Worker } from "@temporalio/worker";
 import * as activities from "./activities";
 import { recordWorkerRunFailure } from "./retry-wrapper";
 
+interface TemporalWorkerInstance {
+  run(): Promise<void>;
+  shutdown(): void | Promise<void>;
+}
+
 /**
  * In-process multi-queue Temporal worker.
  *
@@ -62,6 +67,10 @@ interface CreateInProcessWorkerInput {
   workflowsPath?: string;
   /** Optional override for activities (test injection). */
   activities?: Record<string, unknown>;
+  /** Optional override for Worker.create (test injection). */
+  workerFactory?: (
+    options: Parameters<typeof Worker.create>[0],
+  ) => Promise<TemporalWorkerInstance>;
   /** Called once when every registered queue has failed outside shutdown. */
   onWorkerExhausted?: () => void | Promise<void>;
   /**
@@ -94,8 +103,9 @@ export async function createInProcessWorker(
 
   const workflowsPath = input.workflowsPath ?? resolveWorkflowsPath();
   const effectiveActivities = input.activities ?? activities;
+  const workerFactory = input.workerFactory ?? Worker.create;
 
-  const registered = new Map<string, Worker>();
+  const registered = new Map<string, TemporalWorkerInstance>();
   const failed = new Set<string>();
   const runners = new Map<string, Promise<void>>();
   const starting = new Map<string, Promise<void>>();
@@ -130,7 +140,7 @@ export async function createInProcessWorker(
     }
 
     const boot = (async () => {
-      const worker = await Worker.create({
+      const worker = await workerFactory({
         connection,
         namespace: input.namespace,
         taskQueue,
