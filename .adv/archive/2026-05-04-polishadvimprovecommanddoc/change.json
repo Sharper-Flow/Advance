@@ -1,0 +1,139 @@
+{
+  "id": "polishadvimprovecommanddoc",
+  "title": "polishAdvImproveCommandDoc",
+  "status": "archived",
+  "created_at": "2026-05-04T02:41:47.832Z",
+  "tasks": [
+    {
+      "id": "tk-e8a82239-f0af-466a-91d4-6f03fa5e4362",
+      "title": "M2 — Expand manifest successors for adv-improve\n\n**File:** `plugin/src/manifest.ts:389`\n\n**Edit:** Change `successors: [\"adv-proposal\"],` to `successors: [\"adv-proposal\", \"adv-task\", \"adv-audit\"],`\n\n**Verify:** `pnpm test src/manifest.test.ts` passes (asserts successors is array of valid command names; `adv-task` and `adv-audit` both exist).\n\n**TDD intent:** not_applicable — single-line config change covered by existing manifest tests.\n\n**Workdir:** `/home/jrede/dev/oc-plugins/advance`",
+      "type": "code",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-04T02:41:47.851Z",
+      "tdd_phase": "green",
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "started_at": "2026-05-04T02:41:47.855Z",
+      "tdd_evidence": {
+        "green": {
+          "exit_code": 0,
+          "recorded_at": "2026-05-04T02:56:59.966Z",
+          "test_file": "pnpm test src/manifest.test.ts"
+        }
+      },
+      "touched_files": [
+        "plugin/src/manifest.ts"
+      ],
+      "completed_at": "2026-05-04T02:41:47.857Z",
+      "implementation_summary": "Added \"adv-task\" and \"adv-audit\" to successors array in manifest.ts:389. manifest.test.ts: 37/37 pass. Committed as 689eac8."
+    },
+    {
+      "id": "tk-980ed0b7-a8b3-4a18-b451-1a397ff281c9",
+      "title": "H1+M3+M1 — Apply 3 edits to .opencode/command/adv-improve.md\n\nThree independent edits to the same file. Apply in this order:\n\n**Edit A (H1) — Lines 173-175:** Delete trailing `---` separator + `## Output` heading. File should end with the Key Tools table at line 171.\n\n**Edit B (M3) — Line 88:** Replace `{year}` with `{current-year}` (both occurrences in the queries array).\n\n**Edit C (M1) — Line 80:** Rewrite Phase 2 fallback paragraph to:\n```\n**Fallback:** If Context7 is absent → try `webfetch` against canonical docs URLs. If both Context7 and webfetch are unavailable → use local codebase conventions and annotate each finding with `[Reference: local conventions — Context7/webfetch unavailable]`. Do not fabricate canonical sources.\n```\n\n**Verify after all 3:**\n- `wc -l .opencode/command/adv-improve.md` → ≤ 182\n- `grep -c \"{year}\" .opencode/command/adv-improve.md` → 0\n- `grep -c \"^## Output\" .opencode/command/adv-improve.md` → 0\n\n**TDD intent:** not_applicable — doc edits covered by `adv-improve-assets.test.ts` (28 assertions verified preserved during discovery).\n\n**Workdir:** `/home/jrede/dev/oc-plugins/advance`",
+      "type": "code",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-04T02:41:47.852Z",
+      "tdd_phase": "green",
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "started_at": "2026-05-04T02:41:47.858Z",
+      "tdd_evidence": {
+        "green": {
+          "exit_code": 0,
+          "recorded_at": "2026-05-04T02:57:46.647Z",
+          "test_file": "pnpm test src/adv-improve-assets.test.ts"
+        }
+      },
+      "touched_files": [
+        ".opencode/command/adv-improve.md"
+      ],
+      "completed_at": "2026-05-04T02:41:47.860Z",
+      "implementation_summary": "Applied 3 edits to .opencode/command/adv-improve.md: H1 (deleted trailing ## Output heading + ---), M3 ({year} → {current-year}), M1 (Phase 2 fallback now Context7 → webfetch → local). Lines: 175→171. adv-improve-assets.test.ts: 30/30 pass. Committed as 36259924."
+    },
+    {
+      "id": "tk-44b3c637-20a7-42b9-9bc9-896743785d1d",
+      "title": "Verification — Run full test + check suite\n\nFinal verification after both edit tasks complete.\n\n**Commands (all from `plugin/`):**\n1. `pnpm test src/adv-improve-assets.test.ts` — 28 assertions must pass\n2. `pnpm test src/manifest.test.ts` — successors validity must pass\n3. `pnpm run check` — typecheck + lint + format\n\n**Acceptance criteria coverage:**\n- AC1 (Output removed): grep verified in T2\n- AC2 (M1 fallback ordering): visual review of diff\n- AC3 (manifest successors): T1 + manifest.test.ts\n- AC4 ({current-year}): grep verified in T2\n- AC5 (adv-improve-assets passes): this task\n- AC6 (check passes): this task\n- AC7 (≤182 lines): wc verified in T2\n\n**TDD intent:** not_applicable — verification-only task.\n\n**Workdir:** `/home/jrede/dev/oc-plugins/advance/plugin`\n\n**Blocked by:** previous two tasks",
+      "type": "code",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-05-04T02:41:47.853Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-e8a82239-f0af-466a-91d4-6f03fa5e4362"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-980ed0b7-a8b3-4a18-b451-1a397ff281c9"
+        }
+      ],
+      "tdd_phase": "green",
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "started_at": "2026-05-04T02:41:47.861Z",
+      "tdd_evidence": {
+        "green": {
+          "exit_code": 0,
+          "recorded_at": "2026-05-04T02:58:19.267Z",
+          "test_file": "pnpm run check"
+        }
+      },
+      "completed_at": "2026-05-04T02:41:47.862Z",
+      "implementation_summary": "Verification suite passed: typecheck + lint + format (pnpm run check) all green; full test suite (3041 passed, 7 skipped, 0 failed). All 7 acceptance criteria satisfied."
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-04T02:41:47.848Z",
+      "completed_by": "agent",
+      "notes": "User approved H1=A (delete heading) inline. M3 defaulted to {current-year} per recommendation."
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-04T02:41:47.849Z",
+      "completed_by": "agent",
+      "notes": "Discovery findings concrete and pre-gathered in audit. No prior research artifacts. LBP locked (option A matches /adv-tron). Test impact verified against all 28 existing assertions."
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-04T02:41:47.850Z",
+      "completed_by": "agent",
+      "notes": "Validator skip justified: zero architectural surface, all decisions locked at proposal, test surface explicitly preserved."
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-04T02:41:47.854Z",
+      "completed_by": "agent",
+      "notes": "User approved 3-task plan inline. No judgment calls surfaced. Auto tier."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-04T02:41:47.863Z",
+      "completed_by": "agent",
+      "notes": "All 3 tasks done. Full test suite: 3041 passed, 0 failed. All ACs met."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-04T02:41:47.864Z",
+      "completed_by": "agent",
+      "notes": "Review complete: zero findings, all 7 ACs satisfied with evidence, full suite green. Auto-completing acceptance gate; presenting sign-off prompt for release."
+    },
+    "release": {
+      "status": "done",
+      "completed_at": "2026-05-04T02:41:47.865Z",
+      "completed_by": "agent",
+      "notes": "User signed off via Tier B whitelist (\"sign off\"). Validation passed with advisory warnings only (NO_DELTAS expected for doc polish; PROPOSAL_TASK_DRIFT heuristic noise)."
+    }
+  },
+  "reentry_history": [],
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "judgment_calls": []
+}
