@@ -221,6 +221,7 @@ export function buildCommitMessage(
 // rq-cc03: Audit Metadata
 // rq-cc04: Dirty-Baseline Protection
 // rq-cc05: No-Publication Authority
+// rq-checkpointLedger01: checkpointRecorded:false blocks task completion
 
 // ─── Error-class bridge helper ──────────────────────────────────────────────
 

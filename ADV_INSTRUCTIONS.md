@@ -341,20 +341,15 @@ Ledger recording points: task start, clean baseline, red evidence, green evidenc
 
 **Apply-loop ordering:**
 
-| Step | Action                                                                      |
-| ---- | --------------------------------------------------------------------------- |
-| 3a   | Start — `adv_task_update status: "in_progress"`                             |
-| 3a.6 | Clean Baseline Capture — verify clean tree, record HEAD/branch              |
-| 3b   | Red Phase — write failing test                                              |
-| 3c   | Green Phase — implement, tests pass                                         |
-| 3c.4 | **Incremental Verification** — build/tests/lint pass                        |
-| 3c.5 | **Checkpoint** — `adv_task_checkpoint` with change/branch/HEAD/verification |
-| 3d   | Complete — `adv_task_update status: "done"`                                 |
-
-If `adv_task_checkpoint` returns `checkpointRecorded:false`, git checkpoint may
-have succeeded but task-run ledger recording did not. Run `adv_task_run_status`,
-retry checkpoint or record the missing ledger event, and do not call
-`adv_task_update status: "done"` until `checkpointRecorded:true` is observed.
+| Step | Action                                                                                                                                                                                     |
+| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 3a   | Start — `adv_task_update status: "in_progress"`                                                                                                                                            |
+| 3a.6 | Clean Baseline Capture — verify clean tree, record HEAD/branch                                                                                                                             |
+| 3b   | Red Phase — write failing test                                                                                                                                                             |
+| 3c   | Green Phase — implement, tests pass                                                                                                                                                        |
+| 3c.4 | **Incremental Verification** — build/tests/lint pass                                                                                                                                       |
+| 3c.5 | **Checkpoint** — `adv_task_checkpoint` with change/branch/HEAD/verification; if `checkpointRecorded:false`, run `adv_task_run_status` and do not mark done until `checkpointRecorded:true` |
+| 3d   | Complete — `adv_task_update status: "done"`                                                                                                                                                |
 
 **Failure classification:**
 
