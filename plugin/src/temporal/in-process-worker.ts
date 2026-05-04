@@ -2,6 +2,7 @@ import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { NativeConnection, Worker } from "@temporalio/worker";
 import * as activities from "./activities";
+import { recordWorkerRunFailure } from "./retry-wrapper";
 
 /**
  * In-process multi-queue Temporal worker.
@@ -94,6 +95,13 @@ export async function createInProcessWorker(
   const starting = new Map<string, Promise<void>>();
   let shuttingDown = false;
 
+  function onRunSettled(taskQueue: string, err: unknown): void {
+    if (!err || shuttingDown) return;
+    recordWorkerRunFailure(taskQueue, err);
+    registered.delete(taskQueue);
+    runners.delete(taskQueue);
+  }
+
   async function startOne(taskQueue: string): Promise<void> {
     if (shuttingDown) {
       throw new Error(
@@ -130,7 +138,13 @@ export async function createInProcessWorker(
         );
       }
       registered.set(taskQueue, worker);
-      runners.set(taskQueue, worker.run());
+      runners.set(
+        taskQueue,
+        worker.run().then(
+          () => onRunSettled(taskQueue, null),
+          (err) => onRunSettled(taskQueue, err),
+        ),
+      );
     })();
 
     starting.set(taskQueue, boot);
