@@ -96,6 +96,7 @@ import {
 } from "./state";
 import { isPidAlive } from "../session/index";
 import { getBoundedProjectWorkflowAccess } from "../project-workflow-helper";
+import { addWorktreeSessionUpdate } from "../../temporal/messages";
 
 // =============================================================================
 // Helpers
@@ -169,11 +170,15 @@ describe("migrateAndReconcile (T8)", () => {
         1,
         { projectDir: "/test/project", projectId: "test-project-id" },
         { sessionId: "sess1", branch: "change/test1", path: "/wt1" },
+        undefined,
+        "test1",
       );
       expect(addSession).toHaveBeenNthCalledWith(
         2,
         { projectDir: "/test/project", projectId: "test-project-id" },
         { sessionId: "sess2", branch: "change/test2", path: "/wt2" },
+        undefined,
+        "test2",
       );
     } finally {
       process.env.HOME = oldHome;
@@ -255,6 +260,17 @@ describe("migrateAndReconcile (T8)", () => {
       expect(result.reconciliation.adopted.length).toBe(1);
       expect(result.reconciliation.adopted[0].branch).toBe("change/orphan");
       expect(result.reconciliation.adopted[0].path).toBe(worktreePath);
+      expect(executeUpdate).toHaveBeenCalledWith(
+        addWorktreeSessionUpdate,
+        expect.objectContaining({
+          args: [
+            expect.objectContaining({
+              branch: "change/orphan",
+              changeId: "orphan",
+            }),
+          ],
+        }),
+      );
     } finally {
       process.env.HOME = oldHome;
       try {

@@ -30,6 +30,7 @@ import { isPidAlive } from "../session/index";
 import { getDataHome, getExternalRoot } from "../../utils/project-id";
 import {
   addSession,
+  inferChangeIdFromBranch,
   initStateDb,
   listSessions,
   listWorktrees,
@@ -197,6 +198,7 @@ async function addGitCensusWorktree(
       {
         branch: payload.branch,
         path: payload.path,
+        changeId: inferChangeIdFromBranch(payload.branch),
         baseRef: "",
         headSha: "",
         source: "git_census",
@@ -290,7 +292,7 @@ export async function migrateAndReconcile(
             sessionId: row.id,
             branch: row.branch,
             path: row.path,
-          });
+          }, undefined, inferChangeIdFromBranch(row.branch));
         }
         await rename(sqlitePath, backupPath);
       }

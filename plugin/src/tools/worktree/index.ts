@@ -66,6 +66,7 @@ import {
   getPendingDeletes,
   getSession,
   getWorktreePath,
+  inferChangeIdFromBranch,
   incrementPendingDeleteAttempts,
   initStateDb,
   listWorktrees,
@@ -757,7 +758,7 @@ export async function advWorktreeCreate(
       sessionId,
       branch,
       path: worktreePath,
-    });
+    }, undefined, inferChangeIdFromBranch(branch));
 
     // Step 6: postCreate hooks (T12 — best-effort; failure logs but does not abort).
     const hooks = deps.hooks;
@@ -1416,7 +1417,7 @@ export const WorktreePlugin: Plugin = async (ctx) => {
               sessionId: `inline:${args.branch}`,
               branch: args.branch,
               path: worktreePath,
-            });
+            }, undefined, inferChangeIdFromBranch(args.branch));
 
             return [
               `Worktree created at ${worktreePath}`,
@@ -1470,7 +1471,7 @@ export const WorktreePlugin: Plugin = async (ctx) => {
             sessionId: forkedSession.id,
             branch: args.branch,
             path: worktreePath,
-          });
+          }, undefined, inferChangeIdFromBranch(args.branch));
 
           return `Worktree created at ${worktreePath}\n\nA new terminal has been opened with OpenCode.`;
         },

@@ -16,6 +16,8 @@ import { tmpdir } from "os";
 import { join } from "path";
 import { execSync } from "child_process";
 
+const workflowExecuteUpdate = vi.hoisted(() => vi.fn(async () => undefined));
+
 // Mock project-workflow-helper so state.ts resolveAccess returns workflow-backed.
 vi.mock("../project-workflow-helper", () => ({
   getBoundedProjectWorkflowAccess: vi.fn(async () => ({
@@ -27,7 +29,7 @@ vi.mock("../project-workflow-helper", () => ({
         pending_worktree_deletes: {},
         change_summaries: {},
       })),
-      executeUpdate: vi.fn(async () => undefined),
+      executeUpdate: workflowExecuteUpdate,
     },
   })),
 }));
@@ -49,6 +51,7 @@ vi.mock("./hooks", async (importOriginal) => {
 import { advWorktreeCreate, type AdvWorktreeCreateDeps } from "./index";
 
 import { runHooksWithSafety } from "./hooks";
+import { addWorktreeSessionUpdate } from "../../temporal/messages";
 
 const isLinux = process.platform === "linux";
 
@@ -193,6 +196,17 @@ describe.skipIf(!isLinux)(
         expect(result.path).toContain("change/feature");
         expect(result.headSha).toBeTruthy();
       }
+      expect(workflowExecuteUpdate).toHaveBeenCalledWith(
+        addWorktreeSessionUpdate,
+        expect.objectContaining({
+          args: [
+            expect.objectContaining({
+              branch: "change/feature",
+              changeId: "feature",
+            }),
+          ],
+        }),
+      );
 
       // Worktree should exist
       const list = execSync("git worktree list", { cwd: repoRoot }).toString();
