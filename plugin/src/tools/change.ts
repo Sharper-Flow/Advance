@@ -1750,9 +1750,19 @@ export const changeTools = {
         .describe(
           "Preview changes without writing. With dryRun: true, this tool is read-only and safe to invoke without approval.",
         ),
+      worktreePath: z
+        .string()
+        .optional()
+        .describe(
+          "Optional absolute path to a git worktree where the in-repo bundle should be written. Defaults to the project root (main checkout). Used by /adv-archive Phase 9 Step 1 so bundles land in the worktree's .adv/archive/ and can be staged on the change branch without cp -r workarounds.",
+        ),
     },
     execute: async (
-      { changeId, dryRun }: { changeId: string; dryRun?: boolean },
+      {
+        changeId,
+        dryRun,
+        worktreePath,
+      }: { changeId: string; dryRun?: boolean; worktreePath?: string },
       store: Store,
     ) => {
       const result = await store.changes.get(changeId);
@@ -1830,8 +1840,13 @@ export const changeTools = {
       const specs = await loadSpecsMap(store);
 
       // Run the archive operation
-      // Include in-repo archive path: always resolves within the repo at .adv/archive/
-      const inRepoArchive = join(store.paths.root, ".adv", "archive");
+      // Include in-repo archive path: resolves within the repo at .adv/archive/.
+      // When worktreePath is provided (e.g. /adv-archive Phase 9 from a worktree),
+      // the bundle lands inside the worktree so it can be staged on the change
+      // branch. Without worktreePath, falls back to store.paths.root (main
+      // checkout) for backward compatibility.
+      const inRepoBase = worktreePath ?? store.paths.root;
+      const inRepoArchive = join(inRepoBase, ".adv", "archive");
       const archivePaths =
         store.config?.features?.wisdom_accumulation === false
           ? { ...store.paths, wisdom: undefined, inRepoArchive }

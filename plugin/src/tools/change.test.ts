@@ -2262,6 +2262,55 @@ describe("Change Tools", () => {
       expect(change.status).toBe("active");
     });
 
+    // rq-archiveWorktreePath01: in-repo bundle lands in worktree-aware location
+    test("worktreePath routes in-repo bundle to passed path", async () => {
+      await completeArchivePreflight();
+
+      // Simulate a separate worktree directory.
+      const worktreeDir = await createTempDir();
+      try {
+        const result = await changeTools.adv_change_archive.execute(
+          { changeId: "addFeature", worktreePath: worktreeDir },
+          store,
+        );
+        const parsed = parseToolOutput(result);
+
+        expect(parsed.success).toBe(true);
+        // Primary archive (external) is unchanged in tests where store.paths.root === tempDir.
+        // The IN-REPO bundle, however, MUST land under the passed worktreePath.
+        const inRepoBundle = join(
+          worktreeDir,
+          ".adv",
+          "archive",
+          `2026-05-04-addFeature`,
+        );
+        await access(join(inRepoBundle, "change.json"));
+      } finally {
+        await cleanupTempDir(worktreeDir);
+      }
+    });
+
+    test("worktreePath omitted: in-repo bundle defaults to store.paths.root", async () => {
+      await completeArchivePreflight();
+
+      const result = await changeTools.adv_change_archive.execute(
+        { changeId: "addFeature" },
+        store,
+      );
+      const parsed = parseToolOutput(result);
+
+      expect(parsed.success).toBe(true);
+      // Default path: in-repo bundle lands under tempDir (which equals
+      // store.paths.root in this test setup) — backward-compatible behavior.
+      const inRepoBundle = join(
+        tempDir,
+        ".adv",
+        "archive",
+        `2026-05-04-addFeature`,
+      );
+      await access(join(inRepoBundle, "change.json"));
+    });
+
     test("copies problem statement artifact through adv_change_archive", async () => {
       await store.tasks.update("tk-task0001", "done");
       await store.tasks.update("tk-task0002", "done");
