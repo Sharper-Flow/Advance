@@ -4,7 +4,7 @@
  * Read-only inventory + advisory recommendations. NO auto-fix (per Q9 LBP
  * decision: triage surfaces drift; user/operator chooses remediation).
  *
- * Detects 4 orphan classes by comparing three sources of truth:
+ * Detects orphan classes by comparing three sources of truth:
  *   - Disk: `git worktree list --porcelain`
  *   - Temporal: `worktree_registry` from project workflow state
  *   - Temporal: `change_summaries[].status` for archived-not-cleaned check
@@ -15,6 +15,7 @@
  * | `stale_head`           | `detectStaleBranchHead` returns stale                  |
  * | `missing_from_temporal`| Disk has worktree, registry doesn't                    |
  * | `missing_from_disk`    | Registry has, disk doesn't                             |
+ * | `registry_missing_change_id` | Registry has change branch without owner metadata |
  * | `archived_not_cleaned` | Registry has worktree for archived change              |
  *
  * Citations: rq-worktreeRegistry01, rq-multiSessionFraming01.
@@ -41,6 +42,7 @@ export type OrphanClass =
   | "stale_head"
   | "missing_from_temporal"
   | "missing_from_disk"
+  | "registry_missing_change_id"
   | "archived_not_cleaned";
 
 export interface OrphanRecord {
@@ -184,6 +186,22 @@ export async function triageWorktrees(
       path: r.path,
       reason: `worktree_registry has ${r.branch} at ${r.path}, but no on-disk worktree exists`,
       recommendedFix: `adv_worktree_delete --reason disk_missing ${r.branch}`,
+    });
+  }
+
+  // registry_missing_change_id: registry has a canonical change worktree but
+  // cannot prove ownership for delete integration checks.
+  for (const r of registry) {
+    if (!r.branch?.startsWith("change/")) continue;
+    if (r.changeId) continue;
+    orphans.push({
+      class: "registry_missing_change_id",
+      branch: r.branch,
+      path: r.path,
+      reason: `worktree_registry has ${r.branch} at ${r.path}, but the record has no owning changeId`,
+      recommendedFix:
+        `repair registry metadata for ${r.branch} before using adv_worktree_delete, ` +
+        `or manually delete only after archived+merged+clean verification`,
     });
   }
 

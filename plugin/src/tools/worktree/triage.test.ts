@@ -173,4 +173,35 @@ describe("triageWorktrees (T18)", () => {
       "adv_worktree_delete change/archived",
     );
   });
+
+  it("reports registry_missing_change_id for change worktrees without owner metadata", async () => {
+    const wtPath = join(tempRoot, "wt-missing-change-id");
+    execFileSync(
+      "git",
+      ["worktree", "add", "-b", "change/missing-id", wtPath, "trunk"],
+      { cwd: repoRoot },
+    );
+
+    mockedListWorktrees.mockResolvedValue([
+      {
+        branch: "change/missing-id",
+        path: wtPath,
+        status: "active",
+        createdAt: "2026-05-01T00:00:00Z",
+        lastSeenAt: "2026-05-01T00:00:00Z",
+        baseRef: "trunk",
+        headSha: "deadbeef",
+        source: "tool",
+        sourceVersion: 1,
+      },
+    ]);
+
+    const result = await triageWorktrees(repoRoot);
+    const orphan = result.orphans.find(
+      (o) => o.class === "registry_missing_change_id",
+    );
+    expect(orphan).toBeDefined();
+    expect(orphan?.branch).toBe("change/missing-id");
+    expect(orphan?.recommendedFix).toContain("repair registry metadata");
+  });
 });
