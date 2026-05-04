@@ -386,7 +386,7 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
     phase: "utility",
     requiresChangeId: false,
     prerequisites: [],
-    successors: ["adv-proposal"],
+    successors: ["adv-proposal", "adv-task", "adv-audit"],
   },
   "adv-arch-scan": {
     name: "adv-arch-scan",
