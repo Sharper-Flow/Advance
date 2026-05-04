@@ -719,9 +719,16 @@ export async function advWorktreeCreate(
       // OCA ensure-window hook for reuse path (best-effort, non-fatal).
       if (deps.ocaEnsureWindow) {
         try {
-          const sessionName = path.basename(repoRoot).toLowerCase().replace(/[^a-z0-9_-]+/g, "-");
+          const sessionName = path
+            .basename(repoRoot)
+            .toLowerCase()
+            .replace(/[^a-z0-9_-]+/g, "-");
           const changeId = inferChangeIdFromBranch(branch) ?? branch;
-          const hookResult = await deps.ocaEnsureWindow(sessionName, changeId, existingWorktree.path);
+          const hookResult = await deps.ocaEnsureWindow(
+            sessionName,
+            changeId,
+            existingWorktree.path,
+          );
           if (!hookResult.ok) {
             deps.log.warn(
               `[worktree] OCA ensure-window failed for reuse ${branch}: ${hookResult.error ?? "unknown error"}`,
@@ -879,9 +886,16 @@ export async function advWorktreeCreate(
     // Step 6.5: OCA ensure-window hook (best-effort, non-fatal).
     if (deps.ocaEnsureWindow) {
       try {
-        const sessionName = path.basename(repoRoot).toLowerCase().replace(/[^a-z0-9_-]+/g, "-");
+        const sessionName = path
+          .basename(repoRoot)
+          .toLowerCase()
+          .replace(/[^a-z0-9_-]+/g, "-");
         const changeId = inferChangeIdFromBranch(branch) ?? branch;
-        const hookResult = await deps.ocaEnsureWindow(sessionName, changeId, worktreePath);
+        const hookResult = await deps.ocaEnsureWindow(
+          sessionName,
+          changeId,
+          worktreePath,
+        );
         if (!hookResult.ok) {
           deps.log.warn(
             `[worktree] OCA ensure-window failed for ${branch}: ${hookResult.error ?? "unknown error"}`,

@@ -107,7 +107,8 @@ vi.mock("./temporal/worker-lock", () => ({
   releaseWorkerLock: vi.fn(async () => {}),
   readLockContents: mocks.readLockContents,
   isV2Lock: (contents: { schema_version?: number; last_heartbeat?: unknown }) =>
-    contents.schema_version === 2 && typeof contents.last_heartbeat === "string",
+    contents.schema_version === 2 &&
+    typeof contents.last_heartbeat === "string",
 }));
 
 vi.mock("./temporal/heartbeat-writer", () => ({
@@ -370,7 +371,9 @@ describe("plugin-init tryInitStore", () => {
 
     const { ensureProjectTemporalQueue } = await import("./plugin-init");
 
-    await expect(ensureProjectTemporalQueue("target-proj")).resolves.toBeUndefined();
+    await expect(
+      ensureProjectTemporalQueue("target-proj"),
+    ).resolves.toBeUndefined();
     expect(mocks.readLockContents).toHaveBeenCalledWith(
       expect.stringContaining("/target-proj/worker.lock"),
     );

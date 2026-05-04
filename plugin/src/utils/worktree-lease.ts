@@ -182,7 +182,9 @@ export function refreshHeartbeat(input: RefreshHeartbeatInput): boolean {
   return true;
 }
 
-export function reclaimStaleLease(input: ReclaimStaleLeaseInput): ReclaimStaleLeaseResult {
+export function reclaimStaleLease(
+  input: ReclaimStaleLeaseInput,
+): ReclaimStaleLeaseResult {
   const {
     leasesDir,
     worktreePath,

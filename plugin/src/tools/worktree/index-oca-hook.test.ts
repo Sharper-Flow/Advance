@@ -4,19 +4,14 @@
  * Verifies that worktree create/reuse invokes the OCA hook when available,
  * failures are non-fatal but surfaced, and older/no-OCA environments degrade.
  */
-import { describe, expect, it, vi, type Mock } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import * as fs from "fs";
 import * as path from "path";
 import * as os from "os";
 
-import {
-  advWorktreeCreate,
-  type AdvWorktreeCreateDeps,
-} from "./index";
+import { advWorktreeCreate, type AdvWorktreeCreateDeps } from "./index";
 
 // ── Helpers ──────────────────────────────────────────────────────────────
-
-let tmpDir: string;
 
 function createTempDir(prefix: string): string {
   return fs.mkdtempSync(path.join(os.tmpdir(), prefix));
@@ -75,11 +70,7 @@ describe("OCA ensure-window hook integration", () => {
     const ocaHook = vi.fn(async () => ({ ok: true }));
 
     const deps = createMockDeps(repoRoot, { ocaEnsureWindow: ocaHook });
-    const result = await advWorktreeCreate(
-      "change/test-oca-hook",
-      {},
-      deps,
-    );
+    const result = await advWorktreeCreate("change/test-oca-hook", {}, deps);
 
     expect(result.ok).toBe(true);
     if (result.ok) {
@@ -114,11 +105,7 @@ describe("OCA ensure-window hook integration", () => {
       },
     });
 
-    const result = await advWorktreeCreate(
-      "change/test-oca-fail",
-      {},
-      deps,
-    );
+    const result = await advWorktreeCreate("change/test-oca-fail", {}, deps);
 
     // Worktree creation should still succeed
     expect(result.ok).toBe(true);
@@ -136,11 +123,7 @@ describe("OCA ensure-window hook integration", () => {
 
     // No ocaEnsureWindow in deps
     const deps = createMockDeps(repoRoot);
-    const result = await advWorktreeCreate(
-      "change/test-oca-none",
-      {},
-      deps,
-    );
+    const result = await advWorktreeCreate("change/test-oca-none", {}, deps);
 
     expect(result.ok).toBe(true);
 

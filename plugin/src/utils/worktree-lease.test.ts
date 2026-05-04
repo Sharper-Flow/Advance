@@ -16,7 +16,6 @@ import {
   releaseLease,
   reclaimStaleLease,
   leaseFilePath,
-  type LeaseRecord,
 } from "./worktree-lease";
 
 // ── Helpers ──────────────────────────────────────────────────────────────
@@ -114,7 +113,10 @@ describe("refreshHeartbeat", () => {
     });
     expect(result).toBe(true);
 
-    const lease = checkLease({ leasesDir: leasesDir(), worktreePath: "/repo/worktree/change/abc" });
+    const lease = checkLease({
+      leasesDir: leasesDir(),
+      worktreePath: "/repo/worktree/change/abc",
+    });
     expect(lease).not.toBeNull();
     expect(lease!.heartbeatAt).toBeGreaterThanOrEqual(before);
   });
@@ -140,7 +142,7 @@ describe("refreshHeartbeat", () => {
 describe("reclaimStaleLease", () => {
   it("reclaims when heartbeat is stale", () => {
     // Acquire with old heartbeat
-    const lease = acquireLease({
+    acquireLease({
       leasesDir: leasesDir(),
       worktreePath: "/repo/worktree/change/abc",
       pid: 11111,
@@ -224,7 +226,10 @@ describe("releaseLease", () => {
     });
     expect(result).toBe(true);
 
-    const lease = checkLease({ leasesDir: leasesDir(), worktreePath: "/repo/worktree/change/abc" });
+    const lease = checkLease({
+      leasesDir: leasesDir(),
+      worktreePath: "/repo/worktree/change/abc",
+    });
     expect(lease).toBeNull();
   });
 
@@ -264,7 +269,10 @@ describe("checkLease", () => {
       staleHeartbeatMs: 60_000,
     });
 
-    const lease = checkLease({ leasesDir: leasesDir(), worktreePath: "/repo/worktree/change/abc" });
+    const lease = checkLease({
+      leasesDir: leasesDir(),
+      worktreePath: "/repo/worktree/change/abc",
+    });
     expect(lease).not.toBeNull();
     expect(lease!.pid).toBe(12345);
   });
