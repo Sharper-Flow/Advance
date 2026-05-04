@@ -22,6 +22,17 @@ const mocks = vi.hoisted(() => ({
     reconnect_count: 0,
     op_counters: [],
   })),
+  getTemporalWorkerAliveness: vi.fn(() => true),
+  getTemporalWorkerDiagnostics: vi.fn(() => [
+    {
+      kind: "out_of_process",
+      queues: ["advance-proj123"],
+      failedQueues: [],
+      alive: true,
+      diagnostics: { childPid: 4321, childRunning: true },
+    },
+  ]),
+  getService: vi.fn(() => null),
   createTemporalClientBundle: vi.fn(async () => ({
     connection: { close: vi.fn(async () => {}) },
     client: {
@@ -46,6 +57,26 @@ const mocks = vi.hoisted(() => ({
 vi.mock("../temporal/health-probe", () => ({
   getTemporalHealth: mocks.getTemporalHealth,
 }));
+
+vi.mock("../plugin-init", async () => {
+  const actual =
+    await vi.importActual<typeof import("../plugin-init")>("../plugin-init");
+  return {
+    ...actual,
+    getTemporalWorkerAliveness: mocks.getTemporalWorkerAliveness,
+    getTemporalWorkerDiagnostics: mocks.getTemporalWorkerDiagnostics,
+  };
+});
+
+vi.mock("../temporal/service", async () => {
+  const actual = await vi.importActual<typeof import("../temporal/service")>(
+    "../temporal/service",
+  );
+  return {
+    ...actual,
+    getService: mocks.getService,
+  };
+});
 
 vi.mock("../temporal/client", async () => {
   const actual =
@@ -212,6 +243,9 @@ describe("adv_status temporal health/migration status (C4)", () => {
       fallback_counts: getTemporalFallbackTelemetry(),
       stale_queues: [],
       reconnect_count: 0,
+      op_counters: [],
+      worker_lock: null,
+      last_worker_run_error: null,
     });
     expect(parsed.migration_status).toBeNull();
   });
@@ -243,6 +277,51 @@ describe("adv_status temporal health/migration status (C4)", () => {
     ]);
     expect(parsed.recommendations).toEqual(
       expect.arrayContaining([expect.stringContaining("Stale Temporal queue")]),
+    );
+  });
+
+  test("renders target queue serviceability separately from worker process health", async () => {
+    mocks.getTemporalWorkerAliveness.mockReturnValue(false);
+    mocks.getTemporalWorkerDiagnostics.mockReturnValue([]);
+    mocks.getTemporalHealth.mockResolvedValueOnce({
+      server_alive: true,
+      worker_alive: false,
+      worker_process_alive: false,
+      registered_queues: [],
+      last_op_at: "2026-04-21T00:00:00.000Z",
+      last_error: null,
+      fallback_counts: getTemporalFallbackTelemetry(),
+      stale_queues: [{ queue: "advance-target-proj", running_count: 42 }],
+      reconnect_count: 0,
+      op_counters: [],
+      worker_lock: {
+        holder_pid: 4242,
+        last_heartbeat_at: null,
+        heartbeat_age_ms: null,
+        schema_version: 1,
+      },
+      last_worker_run_error: null,
+    });
+    (store.paths as { external?: string }).external =
+      "/home/jrede/.local/share/opencode/plugins/advance/target-proj";
+
+    const result = await statusTools.adv_status.execute(
+      { view: "health" },
+      store,
+    );
+    const parsed = parseToolOutput(result);
+
+    expect(parsed.diagnostics.temporalWorker).toBe("degraded");
+    expect(parsed.temporal_queue_serviceability).toMatchObject({
+      projectId: "target-proj",
+      expectedQueue: "advance-target-proj",
+      status: "not_serviceable",
+    });
+    expect(parsed.formatted.healthSection).toContain(
+      "Queue serviceability: not_serviceable",
+    );
+    expect(parsed.formatted.healthSection).toContain(
+      "Worker process: degraded",
     );
   });
 

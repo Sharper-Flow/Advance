@@ -468,6 +468,121 @@ describe("temporal operator tools", () => {
     expect(parsed.worker_lock_holder_pid).toBeNull();
   });
 
+  it("adv_temporal_diagnose recommends approval-gated recovery for suspect live legacy locks", async () => {
+    mocks.getTemporalWorkerAliveness.mockReturnValue(false);
+    mocks.getTemporalWorkerDiagnostics.mockReturnValue([]);
+    mocks.getTemporalHealth.mockResolvedValueOnce({
+      server_alive: true,
+      worker_alive: false,
+      worker_process_alive: false,
+      registered_queues: [],
+      last_op_at: null,
+      last_error: null,
+      fallback_counts: { changes: 0, tasks: 0, wisdom: 0, gates: 0 },
+      stale_queues: [{ queue: "advance-proj123", running_count: 6 }],
+      reconnect_count: 0,
+      op_counters: [],
+      worker_lock: {
+        holder_pid: 4444,
+        last_heartbeat_at: null,
+        heartbeat_age_ms: null,
+        schema_version: 1,
+      },
+      last_worker_run_error: null,
+    });
+    const store = {
+      paths: {
+        root: "/repo",
+        external: "/home/jrede/.local/share/opencode/plugins/advance/proj123",
+      },
+    } as any;
+
+    const result = await temporalOpsTools.adv_temporal_diagnose.execute(
+      { changeId: "chg123" },
+      store,
+    );
+    const parsed = JSON.parse(result);
+
+    expect(parsed.queue_serviceability.status).toBe("not_serviceable");
+    expect(parsed.reason).toBe("suspect_live_legacy_lock");
+    expect(parsed.recommendedNextAction).toContain("explicit approval");
+    expect(parsed.recommendedNextAction).not.toContain(
+      "run adv_temporal_worker_restart (worker process only)",
+    );
+  });
+
+  it("adv_temporal_diagnose treats fresh server poller evidence as serviceable for peer-owned queues", async () => {
+    mocks.getTemporalWorkerAliveness.mockReturnValue(false);
+    mocks.getTemporalWorkerDiagnostics.mockReturnValue([]);
+    mocks.getTemporalHealth.mockResolvedValueOnce({
+      server_alive: true,
+      worker_alive: false,
+      worker_process_alive: false,
+      registered_queues: [],
+      last_op_at: null,
+      last_error: null,
+      fallback_counts: { changes: 0, tasks: 0, wisdom: 0, gates: 0 },
+      stale_queues: [],
+      reconnect_count: 0,
+      op_counters: [],
+      worker_lock: {
+        holder_pid: 4444,
+        last_heartbeat_at: null,
+        heartbeat_age_ms: null,
+        schema_version: 1,
+      },
+      last_worker_run_error: null,
+    });
+    mocks.getService.mockReturnValueOnce({
+      address: "127.0.0.1:7233",
+      namespace: "default",
+      connection: {
+        close: vi.fn(async () => {}),
+        operatorService: {
+          listSearchAttributes: vi.fn(async () => ({
+            customAttributes: {
+              AdvProjectId: { indexedValueType: 2 },
+              AdvChangeId: { indexedValueType: 2 },
+              AdvChangeStatus: { indexedValueType: 2 },
+              AdvActiveGate: { indexedValueType: 2 },
+              AdvDoomLoopActive: { indexedValueType: 5 },
+            },
+          })),
+        },
+        workflowService: {
+          describeWorkflowExecution: vi.fn(async () => ({})),
+          describeTaskQueue: vi.fn(async () => ({
+            pollers: [{ lastAccessTime: new Date() }],
+          })),
+        },
+      },
+      client: {
+        workflow: {
+          getHandle: vi.fn(() => ({
+            terminate: vi.fn(async () => {}),
+            query: vi.fn(async () => []),
+          })),
+        },
+      },
+    } as any);
+    const store = {
+      paths: {
+        root: "/repo",
+        external: "/home/jrede/.local/share/opencode/plugins/advance/proj123",
+      },
+    } as any;
+
+    const result = await temporalOpsTools.adv_temporal_diagnose.execute(
+      { changeId: "chg123" },
+      store,
+    );
+    const parsed = JSON.parse(result);
+
+    expect(parsed.queue_serviceability.status).toBe("serviceable");
+    expect(parsed.queue_serviceability.confidence).toBe("server");
+    expect(parsed.recommendedNextAction).toBe("none");
+  });
+
   it("adv_temporal_diagnose renders worker lock and worker-run errors compactly", async () => {
     mocks.getTemporalHealth.mockResolvedValueOnce({
       server_alive: true,

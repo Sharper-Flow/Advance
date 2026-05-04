@@ -10,6 +10,7 @@ import { basename, join } from "path";
 import { access, readdir } from "fs/promises";
 import type { Store } from "../storage/store";
 import {
+  buildProjectTaskQueue,
   buildProjectWorkflowId,
   createTemporalClientBundle,
   getTemporalAddress,
@@ -17,9 +18,22 @@ import {
 import { canReachTemporalAddress } from "../temporal/runtime-manager";
 import { projectMigrationLedgerQuery } from "../temporal/messages";
 import { getTemporalHealth } from "../temporal/health-probe";
+import {
+  getTemporalWorkerAliveness,
+  getTemporalWorkerDiagnostics,
+} from "../plugin-init";
+import {
+  classifyQueueServiceability,
+  probeTaskQueuePollers,
+  type QueueServiceability,
+} from "../temporal/queue-serviceability";
 import { getTemporalFallbackTelemetry } from "../temporal/fallback-telemetry";
 import { getTemporalRetryTelemetry } from "../temporal/retry-wrapper";
-import { getStslStats, isStslInitialized } from "../temporal/service";
+import {
+  getService,
+  getStslStats,
+  isStslInitialized,
+} from "../temporal/service";
 import { formatToolOutput } from "../utils/tool-output";
 import { formatStatusOutput } from "../utils/tool-formatters";
 import { listPeerSessions } from "./session/index";
@@ -84,6 +98,14 @@ interface ExternalStateHygieneReport {
   recommendations: string[];
 }
 
+type TemporalHealthSnapshot = Awaited<ReturnType<typeof getTemporalHealth>>;
+
+interface StatusQueueServiceabilitySnapshot {
+  expectedQueue: string;
+  serviceability: QueueServiceability;
+  workerDiagnostics: ReturnType<typeof getTemporalWorkerDiagnostics>;
+}
+
 const healthSnapshotCache = new Map<
   string,
   { snapshot: HealthSnapshot; computedAt: number }
@@ -146,6 +168,88 @@ async function computeHealthSnapshot(store: Store): Promise<HealthSnapshot> {
 
   healthSnapshotCache.set(cacheKey, { snapshot, computedAt: now });
   return snapshot;
+}
+
+function statusDiagnosticsIncludeQueue(
+  diagnostics: ReturnType<typeof getTemporalWorkerDiagnostics>,
+  expectedQueue: string,
+): boolean {
+  return diagnostics.some((worker) => {
+    const failed = new Set(worker.failedQueues);
+    return worker.queues.some(
+      (queue) => queue === expectedQueue && !failed.has(queue),
+    );
+  });
+}
+
+function statusDiagnosticsShowAliveQueue(
+  diagnostics: ReturnType<typeof getTemporalWorkerDiagnostics>,
+  expectedQueue: string,
+): boolean {
+  return diagnostics.some((worker) => {
+    const failed = new Set(worker.failedQueues);
+    return (
+      worker.alive &&
+      worker.queues.some(
+        (queue) => queue === expectedQueue && !failed.has(queue),
+      )
+    );
+  });
+}
+
+function statusLocalOwnership(
+  health: TemporalHealthSnapshot,
+): "owned" | "peer" | "unknown" {
+  if (!health.worker_lock) return "unknown";
+  return health.worker_lock.holder_pid === process.pid ? "owned" : "peer";
+}
+
+async function computeStatusQueueServiceability(input: {
+  projectId: string | undefined;
+  health: TemporalHealthSnapshot;
+}): Promise<StatusQueueServiceabilitySnapshot | null> {
+  if (!input.projectId) return null;
+  const expectedQueue = buildProjectTaskQueue(input.projectId);
+  const workerDiagnostics = getTemporalWorkerDiagnostics();
+  const bundle = getService();
+  const serverPollerProbe = bundle
+    ? await probeTaskQueuePollers({
+        connection: bundle.connection as unknown as Parameters<
+          typeof probeTaskQueuePollers
+        >[0]["connection"],
+        namespace: bundle.namespace,
+        taskQueue: expectedQueue,
+      })
+    : {
+        status: "unavailable" as const,
+        lastAccessMs: null,
+        error: "Temporal service layer not initialized",
+      };
+  const staleRunningWorkflowCount = input.health.stale_queues
+    .filter((queue) => queue.queue === expectedQueue)
+    .reduce((total, queue) => total + queue.running_count, 0);
+  const localRegistered =
+    input.health.registered_queues.includes(expectedQueue) ||
+    statusDiagnosticsIncludeQueue(workerDiagnostics, expectedQueue);
+  const localWorkerAlive =
+    getTemporalWorkerAliveness() ||
+    statusDiagnosticsShowAliveQueue(workerDiagnostics, expectedQueue);
+
+  return {
+    expectedQueue,
+    workerDiagnostics,
+    serviceability: classifyQueueServiceability({
+      projectId: input.projectId,
+      expectedQueue,
+      localRegistered,
+      localWorkerAlive,
+      localOwnership: statusLocalOwnership(input.health),
+      workerDiagnostics,
+      serverPollerProbe,
+      staleRunningWorkflowCount,
+      staleQueueProbe: input.health.server_alive ? "ok" : "unavailable",
+    }),
+  };
 }
 
 async function pathExists(path: string): Promise<boolean> {
@@ -538,6 +642,10 @@ export function applyStatusView(
     }
     case "health": {
       projection.temporal_health = full.temporal_health;
+      projection.expected_queue = full.expected_queue;
+      projection.temporal_queue_serviceability =
+        full.temporal_queue_serviceability;
+      projection.worker_diagnostics = full.worker_diagnostics;
       projection.search_attributes = full.search_attributes;
       projection.opencode_session_debt = full.opencode_session_debt;
       projection.diagnostics = full.diagnostics;
@@ -628,7 +736,7 @@ export const statusTools = {
             ? basename(activeStore.paths.external)
             : undefined;
 
-          let temporalHealth;
+          let temporalHealth: TemporalHealthSnapshot;
           try {
             temporalHealth = await getTemporalHealth(projectId);
           } catch (err) {
@@ -642,8 +750,16 @@ export const statusTools = {
               fallback_counts: getTemporalFallbackTelemetry(),
               stale_queues: [],
               reconnect_count: 0,
+              op_counters: [],
+              worker_lock: null,
+              last_worker_run_error: null,
             };
           }
+
+          const queueServiceability = await computeStatusQueueServiceability({
+            projectId,
+            health: temporalHealth,
+          });
 
           if (temporalHealth.stale_queues.length > 0) {
             for (const sq of temporalHealth.stale_queues) {
@@ -651,6 +767,15 @@ export const statusTools = {
                 `⚠️ Stale Temporal queue \`${sq.queue}\` has ${sq.running_count} Running workflows older than 5 min with no local poller. See docs/temporal-recovery.md § "Stale \`adv/change/*\` and \`adv/project/*\` workflows".`,
               );
             }
+          }
+
+          if (
+            queueServiceability?.serviceability.status !== "serviceable" &&
+            temporalHealth.worker_lock?.schema_version === 1
+          ) {
+            status.recommendations.push(
+              "⚠️ Suspect live legacy v1 worker.lock with unproven queue serviceability — explicit approval is required for reclaim, or restart the owning OpenCode session.",
+            );
           }
 
           // Search attributes health from STSL cache
@@ -810,10 +935,15 @@ export const statusTools = {
             recommendations: status.recommendations,
             temporalAlive: !!temporalHealth?.server_alive,
             temporalHealth: {
+              worker_alive: temporalHealth?.worker_alive ?? false,
+              worker_process_alive:
+                temporalHealth?.worker_process_alive ?? false,
               worker_lock: temporalHealth?.worker_lock ?? null,
               last_worker_run_error:
                 temporalHealth?.last_worker_run_error ?? null,
             },
+            temporalQueueServiceability:
+              queueServiceability?.serviceability ?? null,
             worktreeCensus: worktreeCensus
               ? {
                   total: worktreeCensus.total,
@@ -843,6 +973,14 @@ export const statusTools = {
             ...status,
             ...(featureFlags ? { feature_flags: featureFlags } : {}),
             temporal_health: temporalHealth,
+            ...(queueServiceability
+              ? {
+                  expected_queue: queueServiceability.expectedQueue,
+                  temporal_queue_serviceability:
+                    queueServiceability.serviceability,
+                  worker_diagnostics: queueServiceability.workerDiagnostics,
+                }
+              : {}),
             search_attributes: searchAttributes,
             opencode_session_debt: opencodeSessionDebt,
             migration_status: migrationStatus,

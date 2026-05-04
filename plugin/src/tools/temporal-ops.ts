@@ -134,6 +134,7 @@ async function describeWorkflowReachability(
  */
 function recommendTemporalRecovery(input: {
   health: Awaited<ReturnType<typeof getTemporalHealth>>;
+  queueServiceability?: QueueServiceability | null;
   stslInitialized: boolean;
   searchAttributesOk: boolean;
   searchAttributesVerificationStatus: "verified" | "unverified";
@@ -148,7 +149,16 @@ function recommendTemporalRecovery(input: {
     }
     return "run adv_temporal_register_search_attributes";
   }
+  const queueServiceable = input.queueServiceability?.status === "serviceable";
   if (
+    !queueServiceable &&
+    input.health.worker_lock?.schema_version === 1 &&
+    input.queueServiceability?.status === "not_serviceable"
+  ) {
+    return "suspect live legacy v1 worker.lock — explicit approval is required to reclaim it, or restart the owning OpenCode session; do not run blind restart/reclaim loops";
+  }
+  if (
+    !queueServiceable &&
     !input.health.worker_alive &&
     input.health.worker_lock?.heartbeat_age_ms !== null &&
     input.health.worker_lock?.heartbeat_age_ms !== undefined &&
@@ -156,10 +166,13 @@ function recommendTemporalRecovery(input: {
   ) {
     return "normal recovery — peer worker spawn pending";
   }
-  if (!input.health.worker_process_alive || !input.health.worker_alive) {
+  if (
+    !queueServiceable &&
+    (!input.health.worker_process_alive || !input.health.worker_alive)
+  ) {
     return "run adv_temporal_worker_restart (worker process only); if diagnose is unchanged, inspect stale worker lock/project workflow before retrying";
   }
-  if (input.health.stale_queues.length > 0)
+  if (!queueServiceable && input.health.stale_queues.length > 0)
     return "run adv_orphan_sweep dry-run";
   if (input.projectWorkflowReachable === false)
     return "run adv_workflow_repair";
@@ -233,16 +246,27 @@ function diagnosticsShowAliveQueue(
   });
 }
 
+function deriveLocalOwnershipFromHealth(
+  health: TemporalHealthSnapshot,
+): "owned" | "peer" | "unknown" {
+  if (!health.worker_lock) return "unknown";
+  return health.worker_lock.holder_pid === process.pid ? "owned" : "peer";
+}
+
 async function buildRestartServiceabilitySnapshot(input: {
   projectId: string;
   expectedQueue: string;
   localOwnership: "owned" | "peer" | "unknown";
+  health?: TemporalHealthSnapshot;
+  bundle?: ReturnType<typeof getService>;
 }): Promise<RestartServiceabilitySnapshot> {
   const [health, workerDiagnostics] = await Promise.all([
-    getTemporalHealth(input.projectId),
+    input.health
+      ? Promise.resolve(input.health)
+      : getTemporalHealth(input.projectId),
     Promise.resolve(getTemporalWorkerDiagnostics()),
   ]);
-  const bundle = getService();
+  const bundle = input.bundle !== undefined ? input.bundle : getService();
   const serverPollerProbe = bundle
     ? await probeTaskQueuePollers({
         connection: bundle.connection as unknown as Parameters<
@@ -356,6 +380,21 @@ export const temporalOpsTools = {
         : undefined;
       const health = await getTemporalHealth(projectId);
       const bundle = getService();
+      const expectedQueue = projectId ? buildProjectTaskQueue(projectId) : null;
+      const queueSnapshot = expectedQueue
+        ? await buildRestartServiceabilitySnapshot({
+            projectId: projectId!,
+            expectedQueue,
+            localOwnership: deriveLocalOwnershipFromHealth(health),
+            health,
+            bundle,
+          })
+        : null;
+      const diagnoseReason =
+        queueSnapshot?.serviceability.status === "not_serviceable" &&
+        health.worker_lock?.schema_version === 1
+          ? "suspect_live_legacy_lock"
+          : undefined;
       const searchAttributes = bundle
         ? await checkAdvSearchAttributes(bundle.connection, bundle.namespace)
         : {
@@ -387,6 +426,7 @@ export const temporalOpsTools = {
 
       const recommendedNextAction = recommendTemporalRecovery({
         health,
+        queueServiceability: queueSnapshot?.serviceability ?? null,
         stslInitialized: bundle !== null,
         searchAttributesOk: searchAttributes.ok,
         searchAttributesVerificationStatus: searchAttributes.verificationStatus,
@@ -434,6 +474,14 @@ export const temporalOpsTools = {
           reconnectCount: health.reconnect_count,
         },
         temporalHealth: health,
+        ...(expectedQueue ? { expectedQueue } : {}),
+        ...(queueSnapshot
+          ? {
+              queue_serviceability: queueSnapshot.serviceability,
+              workerDiagnostics: queueSnapshot.workerDiagnostics,
+            }
+          : {}),
+        ...(diagnoseReason ? { reason: diagnoseReason } : {}),
         searchAttributes,
         searchAttributesStatus,
         projectWorkflow,
