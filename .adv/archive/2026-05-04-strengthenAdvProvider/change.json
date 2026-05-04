@@ -1,0 +1,189 @@
+{
+  "id": "strengthenAdvProvider",
+  "title": "Strengthen ADV provider delegation hints",
+  "status": "archived",
+  "created_at": "2026-05-04T06:56:37.813Z",
+  "tasks": [
+    {
+      "id": "tk-ab4c8954-b987-4419-941d-8e533760cda9",
+      "title": "Update Claude/GLM provider delegation hints with inline TDD. Red: add targeted asset assertion proving Claude no longer contains anti-delegation wording and both Claude/GLM contain hyphenated `adv-engineer` delegation-routing guidance. Green: update `.opencode/agent-parts/providers/claude.md` and `glm.md` so Claude replaces conflicting line, GLM adds guidance, both stay <=20 lines, and no `adv_engineer` spelling appears.",
+      "type": "code",
+      "section": "implementation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-04T06:56:37.974Z",
+      "deps": [],
+      "tdd_phase": "complete",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "started_at": "2026-05-04T06:56:37.977Z",
+      "implementation_summary": "Added provider-hint asset test for Claude/GLM delegation guidance. Replaced Claude anti-delegation hint with delegation-routing-aware `adv-engineer` preference. Added matching GLM `adv-engineer` delegation guidance. Verified targeted asset test passes.",
+      "error_recovery": {
+        "last_error": "Initial green run failed because test expected `delegation routing` before `adv-engineer`, while first hint wording placed `adv-engineer` first.",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "Resolved by reordering hint wording to make delegation-routing condition explicit before `adv-engineer`.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "GREEN phase exitCode=1: expected provider hints to match /delegation routing.*adv-engineer/s, but hint text said `adv-engineer` before `delegation routing`.",
+            "diagnosis": "Implementation intent was correct, but assertion encoded a stricter wording order to emphasize routing condition before sub-agent choice.",
+            "fix_tried": "Reworded Claude and GLM hints to say: when delegation routing marks work delegate_allowed/delegate_preferred, prefer spawning adv-engineer.",
+            "strategy_label": "align-prompt-wording-with-assertion",
+            "outcome": "succeeded",
+            "attempted_at": "2026-05-04T07:11:31.000Z"
+          }
+        ]
+      },
+      "tdd_evidence": {
+        "red": {
+          "exit_code": 1,
+          "recorded_at": "2026-05-04T07:10:39.255Z",
+          "test_file": "plugin/src/adv-command-routing-assets.test.ts"
+        },
+        "green": {
+          "exit_code": 0,
+          "recorded_at": "2026-05-04T07:11:32.404Z",
+          "test_file": "pnpm exec vitest run src/adv-command-routing-assets.test.ts"
+        }
+      },
+      "touched_files": [
+        ".opencode/agent-parts/providers/claude.md",
+        ".opencode/agent-parts/providers/glm.md",
+        "plugin/src/adv-command-routing-assets.test.ts"
+      ],
+      "completed_at": "2026-05-04T06:56:37.979Z",
+      "completed_by": "Completed with checkpoint e55fdd96f23872e7c0f16dfb7ca4db311e151a2a."
+    },
+    {
+      "id": "tk-151eccc7-19f9-47f4-a185-8acbc49efdf2",
+      "title": "Run provider assembly verification. Execute targeted provider-hint asset tests and `scripts/sync-global.sh --check` where environment permits. Record exact pass/fail output or blocker; fix only in-scope provider hint/test issues discovered by verification.",
+      "type": "code",
+      "section": "verification",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-04T06:56:37.975Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-ab4c8954-b987-4419-941d-8e533760cda9"
+        }
+      ],
+      "tdd_phase": "green",
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "tdd_reclassification": {
+        "from_intent": "inline",
+        "to_intent": "separate_verification",
+        "reason": "Prep approval explicitly called out verification task as separate-verification; task runs post-implementation provider assembly checks rather than owns product code changes.",
+        "approved_by_user": true,
+        "approval_evidence": "User approved prep after handoff stated: `mark verification task as separate-verification`.",
+        "approved_at": "2026-05-04T07:06:55.692Z"
+      },
+      "started_at": "2026-05-04T06:56:37.981Z",
+      "implementation_summary": "Ran targeted provider-hint asset test successfully (52 tests). Ran `scripts/sync-global.sh --check`; first combined command hit provider runtime canary timeout, rerun passed all ADV config/tool drift/runtime canary checks.",
+      "error_recovery": {
+        "last_error": "First combined verification command exited 1 because `sync-global.sh --check` runtime canary for adv-claude timed out after 30s.",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "Reran sync check separately; runtime canary resolved all 4 provider ADV prompts and config validation passed.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "`scripts/sync-global.sh --check` reported: runtime canary: adv-claude timed out after 30s.",
+            "diagnosis": "Transient runtime canary/OpenCode debug timeout; targeted provider test already passed and no static config/tool drift errors were present.",
+            "fix_tried": "Reran `./scripts/sync-global.sh --check` separately from worktree root.",
+            "strategy_label": "rerun-runtime-canary",
+            "outcome": "succeeded",
+            "attempted_at": "2026-05-04T07:16:00.000Z"
+          }
+        ]
+      },
+      "tdd_evidence": {
+        "green": {
+          "exit_code": 0,
+          "recorded_at": "2026-05-04T07:15:47.049Z",
+          "test_file": "pnpm --dir plugin exec vitest run src/adv-command-routing-assets.test.ts"
+        }
+      },
+      "completed_at": "2026-05-04T06:56:37.982Z",
+      "completed_by": "Verification complete. Checkpoint returned clean at e55fdd96f23872e7c0f16dfb7ca4db311e151a2a."
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-a7e53c7e-7489-4f52-ba59-6d5de834cde7",
+      "type": "gotcha",
+      "content": "In fresh ADV worktrees, `plugin/node_modules` may be absent even when main checkout has deps; install with `pnpm install --frozen-lockfile` before worktree-local Vitest. For targeted Vitest in this repo, `pnpm exec vitest run <file>` is more reliable than `pnpm test -- <file>` because the latter expanded into broader test execution during this run.",
+      "source_task": "tk-ab4c8954-b987-4419-941d-8e533760cda9",
+      "recorded_at": "2026-05-04T06:56:37.980Z"
+    },
+    {
+      "id": "ws-4957c1a5-dbda-4f97-a3c9-1d43c1e3c8c4",
+      "type": "gotcha",
+      "content": "`scripts/sync-global.sh --check` runtime canary can transiently time out on a single provider (`adv-claude timed out after 30s`) while static tool drift checks pass. Rerun the check separately before classifying as failure; in this run the next `--check` resolved all 4 provider prompts and passed.",
+      "source_task": "tk-151eccc7-19f9-47f4-a185-8acbc49efdf2",
+      "recorded_at": "2026-05-04T06:56:37.983Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-04T06:56:37.971Z",
+      "completed_by": "agent",
+      "notes": "User approved proposal after current-state evidence that Claude provider hint discourages sub-agent use and GLM lacks delegation encouragement."
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-04T06:56:37.972Z",
+      "completed_by": "agent",
+      "notes": "User approved agreement. Discovery established source files, sync path, canonical adv-engineer spelling, constraints, and acceptance criteria."
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-04T06:56:37.973Z",
+      "completed_by": "agent",
+      "notes": "Design completed after mandatory independent validator. Validator verdict CAUTION, not CONFLICT; required constraints incorporated: replace Claude anti-delegation sentence, use `adv-engineer`, preserve runtime safety, add content-aware tests."
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-04T06:56:37.976Z",
+      "completed_by": "agent",
+      "notes": "User approved prep/task graph. Two tasks planned: implementation with inline TDD and separate provider assembly verification."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-04T06:56:37.987Z",
+      "completed_by": "agent",
+      "notes": "Re-emitting execution completion after workflow repair because adv_change_archive still reported Temporal incomplete gates despite gate_status canArchive true."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-04T06:56:37.988Z",
+      "completed_by": "agent",
+      "notes": "Re-emitting acceptance completion after workflow repair because adv_change_archive still reported Temporal incomplete gates despite gate_status canArchive true."
+    },
+    "release": {
+      "status": "done",
+      "completed_at": "2026-05-04T06:56:37.989Z",
+      "completed_by": "agent",
+      "notes": "Re-emitting release completion after workflow repair; user already signed off with `sign off`."
+    }
+  },
+  "reentry_history": [],
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_UNCLEAR_SCOPE",
+      "severity": "warning",
+      "message": "Scope section is empty or placeholder. What specific files/modules will change?",
+      "recorded_at": "2026-05-04T07:03:04.292Z"
+    }
+  ],
+  "judgment_calls": []
+}

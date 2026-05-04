@@ -1,0 +1,19 @@
+{
+  "entries": [
+    {
+      "id": "ws-a7e53c7e-7489-4f52-ba59-6d5de834cde7",
+      "type": "gotcha",
+      "content": "In fresh ADV worktrees, `plugin/node_modules` may be absent even when main checkout has deps; install with `pnpm install --frozen-lockfile` before worktree-local Vitest. For targeted Vitest in this repo, `pnpm exec vitest run <file>` is more reliable than `pnpm test -- <file>` because the latter expanded into broader test execution during this run.",
+      "source_task": "tk-ab4c8954-b987-4419-941d-8e533760cda9",
+      "recorded_at": "2026-05-04T06:56:37.980Z"
+    },
+    {
+      "id": "ws-4957c1a5-dbda-4f97-a3c9-1d43c1e3c8c4",
+      "type": "gotcha",
+      "content": "`scripts/sync-global.sh --check` runtime canary can transiently time out on a single provider (`adv-claude timed out after 30s`) while static tool drift checks pass. Rerun the check separately before classifying as failure; in this run the next `--check` resolved all 4 provider prompts and passed.",
+      "source_task": "tk-151eccc7-19f9-47f4-a185-8acbc49efdf2",
+      "recorded_at": "2026-05-04T06:56:37.983Z"
+    }
+  ],
+  "count": 2
+}
