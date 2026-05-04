@@ -167,6 +167,7 @@ export function enforceBashPolicy(
     context.isMainCheckout &&
     !context.trunkMutationApproved
   ) {
+    // Main-checkout branch-switch/mutation guard: rq-wl-mainCheckoutGuard01.
     if (GIT_BRANCH_SWITCH_PATTERN.test(command)) {
       throw new Error(
         `Error: main checkout branch switching blocked for active change '${context.activeChangeId}'.\n` +

@@ -849,6 +849,7 @@ export async function advWorktreeCreate(
     await mkdir(path.dirname(worktreePath), { recursive: true });
     const sourceVersion = Date.now();
 
+    // Strict setup readiness: rq-wl-setupReadiness01.
     await updateWorktreeRecord(deps.database, {
       branch,
       path: worktreePath,
@@ -879,6 +880,22 @@ export async function advWorktreeCreate(
       );
     }
     if (!gitResult.ok) {
+      await updateWorktreeRecord(deps.database, {
+        branch,
+        path: worktreePath,
+        materialized: false,
+        changeId: inferChangeIdFromBranch(branch),
+        status: "setup_failed",
+        baseRef: resolvedBase,
+        headSha: "",
+        source: "tool",
+        now: new Date(sourceVersion + 1).toISOString(),
+        sourceVersion: sourceVersion + 1,
+        setupReady: false,
+        setupFailureReason: gitResult.error,
+        cleanupEligible: false,
+        cleanupBlockedBy: ["git_failed"],
+      });
       return { ok: false, error: "GIT_FAILED", reason: gitResult.error };
     }
 
@@ -1010,6 +1027,7 @@ export async function advWorktreeResume(
   opts: { base?: string; force?: boolean } = {},
   deps: AdvWorktreeCreateDeps,
 ): Promise<AdvWorktreeResumeResult> {
+  // Resume/materialization tool contract: rq-wl-resumeTool01.
   const branch = branchFromResumeTarget(target);
   if (!branch) {
     return {

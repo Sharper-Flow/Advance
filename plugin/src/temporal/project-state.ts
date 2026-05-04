@@ -52,6 +52,7 @@ export function createProjectWorkflowState(
         : DEFAULT_CHANGE_SUMMARIES_CAP,
     // T4 (KD-1): worktree + session registries — state authority lives in
     // the project workflow. Spec: rq-worktreeRegistry01.
+    // Branch-aware registry contract: rq-wl-branchRegistry01.
     worktree_registry: worktreeRegistry,
     pending_worktree_deletes: input.pendingWorktreeDeletes ?? {},
     session_registry: input.sessionRegistry ?? {},
@@ -488,8 +489,8 @@ export function applyAddWorktreeSession(
     status: "active",
     createdAt: existing?.createdAt ?? payload.now,
     lastSeenAt: payload.now,
-    baseRef: payload.baseRef,
-    headSha: payload.headSha,
+    baseRef: payload.baseRef || existing?.baseRef || "",
+    headSha: payload.headSha || existing?.headSha || "",
     source: payload.source,
     sourceVersion,
     setupReady: true,

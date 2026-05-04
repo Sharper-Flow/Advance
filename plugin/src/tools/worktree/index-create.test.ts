@@ -62,6 +62,7 @@ import {
   addWorktreeSessionUpdate,
   updateWorktreeRecordUpdate,
 } from "../../temporal/messages";
+import { getWorktreePath } from "./state";
 
 const isLinux = process.platform === "linux";
 
@@ -355,6 +356,42 @@ describe.skipIf(!isLinux)(
               status: "setup_failed",
               setupReady: false,
               setupFailureReason: expect.stringContaining("boom"),
+            }),
+          ],
+        }),
+      );
+      expect(workflowExecuteUpdate).not.toHaveBeenCalledWith(
+        addWorktreeSessionUpdate,
+        expect.anything(),
+      );
+    });
+
+    it("GIT_FAILED — exits materializing state when git worktree add fails", async () => {
+      const blockedPath = await getWorktreePath(repoRoot, "change/git-fail");
+      execSync(`mkdir -p ${JSON.stringify(blockedPath)}`);
+      writeFileSync(join(blockedPath, "occupied"), "not a git worktree");
+      cleanupPaths.push(blockedPath);
+      const deps = createMockDeps(repoRoot);
+      deps.resolveDefaultBranch = async () => "main";
+      deps.detectStaleBasis = async () => ({ stale: false });
+
+      const result = await advWorktreeCreate("change/git-fail", {}, deps);
+
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.error).toBe("GIT_FAILED");
+      }
+      expect(workflowExecuteUpdate).toHaveBeenCalledWith(
+        updateWorktreeRecordUpdate,
+        expect.objectContaining({
+          args: [
+            expect.objectContaining({
+              branch: "change/git-fail",
+              status: "setup_failed",
+              materialized: false,
+              setupReady: false,
+              setupFailureReason: expect.any(String),
+              cleanupBlockedBy: ["git_failed"],
             }),
           ],
         }),

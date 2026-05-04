@@ -71,6 +71,7 @@ export async function scanGitWorkspaceFacts(
   repoRoot: string,
   defaultBranch: string,
 ): Promise<GitWorkspaceFacts> {
+  // Git-first workspace reconciliation scan: rq-wl-gitFirstReconcile01.
   const [branchLines, mergedText, worktreeText] = await Promise.all([
     git(repoRoot, [
       "for-each-ref",
@@ -148,6 +149,8 @@ function cleanupBlockers(input: {
 export function reconcileWorktreeRegistry(
   input: ReconcileWorktreeRegistryInput,
 ): WorktreeRecord[] {
+  // Cleanup eligibility tracking is derived during reconciliation:
+  // rq-wl-cleanupEligibility01.
   const existingByBranch = byBranch(input.existing);
   const branchByBranch = byBranch(input.git.branches);
   const worktreeByBranch = byBranch(input.git.worktrees);

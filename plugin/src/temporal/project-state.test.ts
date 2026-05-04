@@ -1060,6 +1060,39 @@ describe("worktree + session mutators (T6)", () => {
       expect(out.lastSeenAt).toBe("2026-04-18T00:02:00.000Z");
       expect(out.headSha).toBe("def");
     });
+
+    it("preserves baseRef and headSha when session registration omits metadata", () => {
+      const state = freshState();
+      applyUpdateWorktreeRecord(state, {
+        branch: "change/foo",
+        path: "/wt/foo",
+        materialized: true,
+        changeId: "foo",
+        status: "materializing",
+        baseRef: "trunk",
+        headSha: "abc123",
+        source: "tool",
+        now: "2026-04-18T00:01:00.000Z",
+        sourceVersion: 1,
+        setupReady: false,
+      });
+
+      const out = applyAddWorktreeSession(state, {
+        branch: "change/foo",
+        path: "/wt/foo",
+        changeId: "foo",
+        baseRef: "",
+        headSha: "",
+        source: "tool",
+        now: "2026-04-18T00:02:00.000Z",
+        sourceVersion: 2,
+      });
+
+      expect(out.status).toBe("active");
+      expect(out.setupReady).toBe(true);
+      expect(out.baseRef).toBe("trunk");
+      expect(out.headSha).toBe("abc123");
+    });
   });
 
   describe("branch-aware workspace registry", () => {
