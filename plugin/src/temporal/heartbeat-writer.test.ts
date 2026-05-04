@@ -4,12 +4,17 @@ import { join } from "path";
 import { createTempDir, cleanupTempDir } from "../__tests__/setup";
 import { WORKER_LOCK_FILENAME, type WorkerLockContentsV2 } from "./worker-lock";
 import { startHeartbeatWriter } from "./heartbeat-writer";
+import {
+  getTemporalRetryTelemetry,
+  resetTemporalRetryTelemetry,
+} from "./retry-wrapper";
 
 describe("heartbeat-writer", () => {
   let stateDir: string;
 
   beforeEach(async () => {
     vi.useFakeTimers();
+    resetTemporalRetryTelemetry();
     stateDir = await createTempDir("adv-heartbeat-writer-");
   });
 
@@ -31,7 +36,7 @@ describe("heartbeat-writer", () => {
     await writer.stop();
 
     expect((await readLock(stateDir)).last_heartbeat).toBe(
-      "2026-01-01T00:00:06.000Z",
+      "2026-01-01T00:00:05.000Z",
     );
   });
 
@@ -155,7 +160,137 @@ describe("heartbeat-writer", () => {
 
     expect((await readLock(stateDir)).last_heartbeat).toBe(stoppedAt);
   });
+
+  it("logs first write failure without recording retry telemetry or exhausting", async () => {
+    const fs = createFailingFs(1);
+    const debugLog = vi.fn();
+    const onWorkerExhausted = vi.fn(async () => {});
+
+    const writer = startHeartbeatWriter({
+      projectStateDir: "/state",
+      workerId: "owner",
+      intervalMs: 1_000,
+      fs,
+      debugLog,
+      onWorkerExhausted,
+    });
+    await vi.advanceTimersByTimeAsync(1_000);
+    await writer.stop();
+
+    expect(debugLog).toHaveBeenCalledWith(
+      expect.stringContaining("heartbeat write failed (1 consecutive)"),
+    );
+    expect(getTemporalRetryTelemetry().lastError).toBeNull();
+    expect(onWorkerExhausted).not.toHaveBeenCalled();
+  });
+
+  it("records retry telemetry on second consecutive write failure and backs off", async () => {
+    const fs = createFailingFs(2);
+    const debugLog = vi.fn();
+
+    const writer = startHeartbeatWriter({
+      projectStateDir: "/state",
+      workerId: "owner",
+      intervalMs: 1_000,
+      fs,
+      debugLog,
+    });
+    await vi.advanceTimersByTimeAsync(1_000);
+    await vi.advanceTimersByTimeAsync(1_000);
+    await writer.stop();
+
+    expect(getTemporalRetryTelemetry().lastError).toContain(
+      "heartbeat write failed",
+    );
+    expect(fs.open).toHaveBeenCalledTimes(2);
+  });
+
+  it("fires onWorkerExhausted on third consecutive write failure", async () => {
+    const fs = createFailingFs(3);
+    const onWorkerExhausted = vi.fn(async () => {});
+
+    const writer = startHeartbeatWriter({
+      projectStateDir: "/state",
+      workerId: "owner",
+      intervalMs: 1_000,
+      fs,
+      onWorkerExhausted,
+    });
+    await vi.advanceTimersByTimeAsync(1_000);
+    await vi.advanceTimersByTimeAsync(1_000);
+    await vi.advanceTimersByTimeAsync(2_000);
+    await writer.stop();
+
+    expect(onWorkerExhausted).toHaveBeenCalledTimes(1);
+    expect(fs.open).toHaveBeenCalledTimes(3);
+  });
+
+  it("fires onWorkerExhausted when the next projected heartbeat would exceed stale grace", async () => {
+    const fs = createFailingFs(2);
+    const onWorkerExhausted = vi.fn(async () => {});
+    let nowMs = 0;
+
+    const writer = startHeartbeatWriter({
+      projectStateDir: "/state",
+      workerId: "owner",
+      intervalMs: 1_000,
+      staleHeartbeatMs: 1_500,
+      fs,
+      now: () => new Date(nowMs),
+      onWorkerExhausted,
+    });
+    nowMs = 1_000;
+    await vi.advanceTimersByTimeAsync(1_000);
+    nowMs = 2_000;
+    await vi.advanceTimersByTimeAsync(1_000);
+    await writer.stop();
+
+    expect(onWorkerExhausted).toHaveBeenCalledTimes(1);
+  });
+
+  it("resets consecutive failure state after a successful heartbeat", async () => {
+    const fs = createRecoveringFs();
+    const onWorkerExhausted = vi.fn(async () => {});
+
+    const writer = startHeartbeatWriter({
+      projectStateDir: "/state",
+      workerId: "owner",
+      intervalMs: 1_000,
+      fs,
+      onWorkerExhausted,
+    });
+    await vi.advanceTimersByTimeAsync(1_000);
+    await writer.stop();
+
+    expect(onWorkerExhausted).not.toHaveBeenCalled();
+    expect(fs.rename).toHaveBeenCalledTimes(1);
+  });
 });
+
+function createFailingFs(failures: number) {
+  let openCount = 0;
+  const handle = {
+    writeFile: vi.fn(async () => {}),
+    sync: vi.fn(async () => {}),
+    close: vi.fn(async () => {}),
+  };
+  return {
+    readFile: vi.fn(async () =>
+      JSON.stringify(lockContents("owner", "2026-01-01T00:00:00.000Z")),
+    ),
+    open: vi.fn(async () => {
+      openCount += 1;
+      if (openCount <= failures) throw new Error("disk full");
+      return handle;
+    }),
+    rename: vi.fn(async () => {}),
+    rm: vi.fn(async () => {}),
+  };
+}
+
+function createRecoveringFs() {
+  return createFailingFs(1);
+}
 
 async function writeLock(
   stateDir: string,

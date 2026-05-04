@@ -85,6 +85,11 @@ export function recordWorkerRunFailure(queue: string, err: unknown): void {
   };
 }
 
+export function recordTemporalRuntimeFailure(err: unknown): void {
+  temporalRetryTelemetry.lastError =
+    err instanceof Error ? err.message : String(err ?? "");
+}
+
 export function getLastWorkerRunError(): WorkerRunErrorTelemetry | null {
   return lastWorkerRunError ? { ...lastWorkerRunError } : null;
 }

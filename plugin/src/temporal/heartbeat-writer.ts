@@ -2,10 +2,12 @@ import { open, readFile, rename, rm } from "fs/promises";
 import { join } from "path";
 import { appendDebugLog } from "../utils/debug-log";
 import {
+  STALE_HEARTBEAT_MS,
   WORKER_LOCK_FILENAME,
   type WorkerLockContents,
   type WorkerLockContentsV2,
 } from "./worker-lock";
+import { recordTemporalRuntimeFailure } from "./retry-wrapper";
 
 export interface HeartbeatFileHandle {
   writeFile(data: string): Promise<void>;
@@ -28,6 +30,8 @@ export interface StartHeartbeatWriterOptions {
   now?: () => Date;
   nonce?: () => string;
   debugLog?: (message: string) => void;
+  staleHeartbeatMs?: number;
+  onWorkerExhausted?: () => void | Promise<void>;
 }
 
 export interface HeartbeatWriter {
@@ -39,45 +43,109 @@ export function startHeartbeatWriter(
 ): HeartbeatWriter {
   let stopped = false;
   let inFlight: Promise<void> = Promise.resolve();
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  let consecutiveFailures = 0;
+  let lastSuccessfulHeartbeatAt = 0;
   const lockPath = join(options.projectStateDir, WORKER_LOCK_FILENAME);
   const heartbeatFs = options.fs ?? nodeHeartbeatFs;
   const now = options.now ?? (() => new Date());
   const nonce = options.nonce ?? (() => Date.now().toString());
+  const staleHeartbeatMs = options.staleHeartbeatMs ?? STALE_HEARTBEAT_MS;
   const debugLog =
     options.debugLog ??
     ((message: string) => appendDebugLog("heartbeat-writer", message));
+
+  const clearScheduledTick = (): void => {
+    if (timer) clearTimeout(timer);
+    timer = undefined;
+  };
+
+  const stopForExhaustion = async (): Promise<void> => {
+    if (stopped) return;
+    stopped = true;
+    clearScheduledTick();
+    try {
+      await options.onWorkerExhausted?.();
+    } catch (err) {
+      debugLog(
+        `heartbeat writer exhaustion callback failed: ${formatError(err)}`,
+      );
+    }
+  };
+
+  const scheduleNext = (delayMs: number): void => {
+    if (stopped) return;
+    clearScheduledTick();
+    timer = setTimeout(tick, delayMs);
+  };
 
   const tick = (): void => {
     if (stopped) return;
     inFlight = inFlight.then(async () => {
       if (stopped) return;
-      const stillOwner = await writeHeartbeat(
-        lockPath,
-        options.workerId,
-        heartbeatFs,
-        now,
-        nonce,
-      );
-      if (!stillOwner) {
-        stopped = true;
-        clearInterval(timer);
-        debugLog(
-          `heartbeat writer stopped: lock identity no longer matches worker_id=${options.workerId}`,
+      try {
+        const stillOwner = await writeHeartbeat(
+          lockPath,
+          options.workerId,
+          heartbeatFs,
+          now,
+          nonce,
         );
+        if (!stillOwner) {
+          stopped = true;
+          clearScheduledTick();
+          debugLog(
+            `heartbeat writer stopped: lock identity no longer matches worker_id=${options.workerId}`,
+          );
+          return;
+        }
+
+        consecutiveFailures = 0;
+        lastSuccessfulHeartbeatAt = now().getTime();
+        scheduleNext(options.intervalMs);
+      } catch (err) {
+        consecutiveFailures += 1;
+        const message = formatError(err);
+        debugLog(
+          `heartbeat write failed (${consecutiveFailures} consecutive): ${message}`,
+        );
+
+        const nextDelayMs =
+          consecutiveFailures >= 2
+            ? options.intervalMs * 2
+            : options.intervalMs;
+        if (consecutiveFailures >= 2) {
+          recordTemporalRuntimeFailure(
+            new Error(`heartbeat write failed: ${message}`),
+          );
+        }
+
+        const projectedAgeMs =
+          now().getTime() - lastSuccessfulHeartbeatAt + nextDelayMs;
+        if (consecutiveFailures >= 3 || projectedAgeMs > staleHeartbeatMs) {
+          await stopForExhaustion();
+          return;
+        }
+
+        scheduleNext(nextDelayMs);
       }
     });
   };
 
-  const timer = setInterval(tick, options.intervalMs);
+  lastSuccessfulHeartbeatAt = now().getTime();
   tick();
 
   return {
     async stop(): Promise<void> {
       stopped = true;
-      clearInterval(timer);
+      clearScheduledTick();
       await inFlight;
     },
   };
+}
+
+function formatError(err: unknown): string {
+  return err instanceof Error ? err.message : String(err ?? "");
 }
 
 async function writeHeartbeat(
