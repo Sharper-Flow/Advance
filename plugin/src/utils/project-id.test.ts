@@ -238,19 +238,23 @@ describe("path namespace guards", () => {
     const root = resolve("/tmp/adv-state");
     expect(isPathInsideDirectory(root, root)).toBe(true);
     expect(isPathInsideDirectory(join(root, "child"), root)).toBe(true);
-    expect(() => assertPathInsideDirectory(join(root, "child"), root)).not.toThrow();
+    expect(() =>
+      assertPathInsideDirectory(join(root, "child"), root),
+    ).not.toThrow();
   });
 
   test("reject sibling paths with the same string prefix", () => {
     const root = resolve("/tmp/adv-state");
     expect(isPathInsideDirectory("/tmp/adv-state-other", root)).toBe(false);
-    expect(() => assertPathInsideDirectory("/tmp/adv-state-other", root)).toThrow(
-      /outside allowed namespace/,
-    );
+    expect(() =>
+      assertPathInsideDirectory("/tmp/adv-state-other", root),
+    ).toThrow(/outside allowed namespace/);
   });
 
   test("reject traversal escaping the namespace", () => {
     const root = resolve("/tmp/adv-state");
-    expect(isPathInsideDirectory(join(root, "..", "outside"), root)).toBe(false);
+    expect(isPathInsideDirectory(join(root, "..", "outside"), root)).toBe(
+      false,
+    );
   });
 });
