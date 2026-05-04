@@ -357,6 +357,55 @@ describe("temporal operator tools", () => {
     expect(parsed.recommendedNextAction).toContain("explicit approval");
   });
 
+  it("adv_temporal_worker_restart refuses unapproved fresh-v2 unserviceable locks with diagnostics", async () => {
+    mocks.restartCurrentProjectTemporalWorker.mockRejectedValueOnce(
+      Object.assign(new Error("worker.lock held by pid=4444"), {
+        code: "WORKER_LOCK_HELD",
+        ownerPid: 4444,
+      }),
+    );
+    mocks.getTemporalWorkerAliveness.mockReturnValue(false);
+    mocks.getTemporalWorkerDiagnostics.mockReturnValue([]);
+    mocks.getTemporalHealth.mockResolvedValue({
+      server_alive: true,
+      worker_alive: false,
+      worker_process_alive: false,
+      registered_queues: [],
+      last_op_at: null,
+      last_error: null,
+      fallback_counts: { changes: 0, tasks: 0, wisdom: 0, gates: 0 },
+      stale_queues: [{ queue: "advance-proj123", running_count: 6 }],
+      reconnect_count: 0,
+      op_counters: [],
+      worker_lock: {
+        holder_pid: 4444,
+        last_heartbeat_at: "2026-04-21T00:00:02.000Z",
+        heartbeat_age_ms: 1234,
+        schema_version: 2,
+      },
+      last_worker_run_error: null,
+    });
+
+    const store = {
+      paths: { root: "/repo", external: "/state/proj123" },
+    } as any;
+    const result = await temporalOpsTools.adv_temporal_worker_restart.execute(
+      {},
+      store,
+    );
+    const parsed = JSON.parse(result);
+
+    expect(parsed.success).toBe(false);
+    expect(parsed.reason).toBe("suspect_live_unserviceable_lock");
+    expect(parsed.approvalRequired).toBe(true);
+    expect(parsed.worker_lock.holder_pid).toBe(4444);
+    expect(parsed.serviceability.status).toBe("not_serviceable");
+    expect(parsed.recommendedNextAction).toContain("explicit approval");
+    expect(parsed.recommendedNextAction).not.toContain(
+      "adv_temporal_reconnect",
+    );
+  });
+
   it("adv_temporal_worker_restart passes approved suspect-lock reclaim evidence through", async () => {
     mocks.restartCurrentProjectTemporalWorker.mockResolvedValueOnce({
       projectId: "proj123",
@@ -508,6 +557,49 @@ describe("temporal operator tools", () => {
     expect(parsed.recommendedNextAction).toContain("explicit approval");
     expect(parsed.recommendedNextAction).not.toContain(
       "run adv_temporal_worker_restart (worker process only)",
+    );
+  });
+
+  it("adv_temporal_diagnose recommends approval-gated recovery for fresh-v2 unserviceable locks", async () => {
+    mocks.getTemporalWorkerAliveness.mockReturnValue(false);
+    mocks.getTemporalWorkerDiagnostics.mockReturnValue([]);
+    mocks.getTemporalHealth.mockResolvedValueOnce({
+      server_alive: true,
+      worker_alive: false,
+      worker_process_alive: false,
+      registered_queues: [],
+      last_op_at: null,
+      last_error: null,
+      fallback_counts: { changes: 0, tasks: 0, wisdom: 0, gates: 0 },
+      stale_queues: [{ queue: "advance-proj123", running_count: 6 }],
+      reconnect_count: 0,
+      op_counters: [],
+      worker_lock: {
+        holder_pid: 4444,
+        last_heartbeat_at: "2026-04-21T00:00:02.000Z",
+        heartbeat_age_ms: 1234,
+        schema_version: 2,
+      },
+      last_worker_run_error: null,
+    });
+    const store = {
+      paths: {
+        root: "/repo",
+        external: "/home/jrede/.local/share/opencode/plugins/advance/proj123",
+      },
+    } as any;
+
+    const result = await temporalOpsTools.adv_temporal_diagnose.execute(
+      { changeId: "chg123" },
+      store,
+    );
+    const parsed = JSON.parse(result);
+
+    expect(parsed.queue_serviceability.status).toBe("not_serviceable");
+    expect(parsed.reason).toBe("suspect_live_unserviceable_lock");
+    expect(parsed.recommendedNextAction).toContain("explicit approval");
+    expect(parsed.recommendedNextAction).not.toContain(
+      "adv_temporal_reconnect",
     );
   });
 

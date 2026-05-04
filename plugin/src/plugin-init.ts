@@ -145,6 +145,7 @@ export async function tryInitStore(
       // per-session behavior); used by tests and as the rollback path.
       const forceInProcess = process.env.ADV_FORCE_IN_PROCESS_WORKER === "1";
       const projectStateDir = externalRoot ?? getExternalRoot(projectId);
+      const expectedQueue = buildProjectTaskQueue(projectId);
       const lock = forceInProcess
         ? null
         : await acquireWorkerLock(projectStateDir);
@@ -169,7 +170,7 @@ export async function tryInitStore(
           spawnedWorker = await createInProcessWorker({
             address: runtime.address,
             namespace: runtime.namespace,
-            queues: [buildProjectTaskQueue(projectId)],
+            queues: [expectedQueue],
             onWorkerExhausted,
           });
           worker = spawnedWorker;
@@ -197,7 +198,7 @@ export async function tryInitStore(
           spawnedWorker = await createOutOfProcessWorker({
             address: runtime.address,
             namespace: runtime.namespace,
-            queues: [buildProjectTaskQueue(projectId)],
+            queues: [expectedQueue],
             workerScript: resolveWorkerScriptPath(),
             projectId,
             onWorkerExhausted,
@@ -228,7 +229,10 @@ export async function tryInitStore(
           const heartbeatWriter = startHeartbeatWriter({
             projectStateDir,
             workerId: lock.workerId,
+            expectedQueue,
             intervalMs: HEARTBEAT_INTERVAL_MS,
+            isLocalWorkerServiceable: () =>
+              worker ? isWorkerServingQueue(worker, expectedQueue) : false,
           });
           registerOwnedWorkerHeartbeatWriter(projectStateDir, heartbeatWriter);
           // Register lock release on worker shutdown — release happens
@@ -418,6 +422,21 @@ export function getTemporalWorkerDiagnostics(): TemporalWorkerDiagnostics[] {
       alive: worker.queues.some((queue) => !failed.has(queue)),
     };
   });
+}
+
+function isWorkerServingQueue(
+  worker: InProcessWorker,
+  expectedQueue: string,
+): boolean {
+  const failedQueues = new Set(worker.failedQueues ?? []);
+  if (
+    !worker.queues.includes(expectedQueue) ||
+    failedQueues.has(expectedQueue)
+  ) {
+    return false;
+  }
+  const candidate = worker as InProcessWorker & { isAlive?: () => boolean };
+  return typeof candidate.isAlive === "function" ? candidate.isAlive() : true;
 }
 
 export async function ensureProjectTemporalQueue(
@@ -639,8 +658,11 @@ export async function restartCurrentProjectTemporalWorker(
     const heartbeatWriter = startHeartbeatWriter({
       projectStateDir,
       workerId: lock.workerId,
+      expectedQueue,
       intervalMs: HEARTBEAT_INTERVAL_MS,
       onWorkerExhausted,
+      isLocalWorkerServiceable: () =>
+        worker ? isWorkerServingQueue(worker, expectedQueue) : false,
     });
     registerOwnedWorkerHeartbeatWriter(projectStateDir, heartbeatWriter);
     registerOwnedWorkerLock(projectStateDir);

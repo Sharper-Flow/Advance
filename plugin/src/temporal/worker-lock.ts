@@ -114,10 +114,10 @@ export type WorkerLockResult =
     };
 
 export interface WorkerLockReclaimAudit {
-  reason: "approved_live_legacy_lock";
+  reason: "approved_live_legacy_lock" | "approved_live_unserviceable_lock";
   priorPid: number;
   priorWorkerId: string;
-  priorSchemaVersion: 1;
+  priorSchemaVersion: 1 | 2;
   expectedQueue: string;
   approvalEvidence: string;
 }
@@ -138,9 +138,10 @@ export interface AcquireWorkerLockOptions {
    */
   lockFilename?: string;
   /**
-   * Explicit approval gate for suspect legacy v1 locks. Only applies when
-   * the current lock has schema_version 1 and an alive PID; fresh v2 locks
-   * remain protected even when this option is present.
+   * Explicit approval gate for suspect live locks. Historically this only
+   * covered legacy v1 locks; re-entry #25 extends it to fresh v2 locks when
+   * higher-level serviceability diagnostics have already classified the owner
+   * as unserviceable. Callers must only pass this after explicit user approval.
    */
   approvedLiveLegacyReclaim?: {
     expectedQueue: string;
@@ -212,16 +213,15 @@ export async function acquireWorkerLock(
     }
     const approvalEvidence =
       options.approvedLiveLegacyReclaim?.approvalEvidence.trim() ?? "";
-    if (
-      livenessState === "alive" &&
-      !isV2Lock(contents) &&
-      approvalEvidence.length > 0
-    ) {
+    if (livenessState === "alive" && approvalEvidence.length > 0) {
+      const v2 = isV2Lock(contents);
       pendingReclaim = {
-        reason: "approved_live_legacy_lock",
+        reason: v2
+          ? "approved_live_unserviceable_lock"
+          : "approved_live_legacy_lock",
         priorPid: contents.pid,
         priorWorkerId: contents.worker_id,
-        priorSchemaVersion: 1,
+        priorSchemaVersion: v2 ? 2 : 1,
         expectedQueue: options.approvedLiveLegacyReclaim!.expectedQueue,
         approvalEvidence,
       };

@@ -157,6 +157,54 @@ describe("getBoundedProjectWorkflowAccess recovery", () => {
     expect(result.queueServiceability?.status).toBe("not_serviceable");
   });
 
+  it("returns approval-required diagnostics for fresh-v2 unserviceable locks", async () => {
+    mocks.getRegisteredTemporalWorkerQueues.mockReset();
+    mocks.getRegisteredTemporalWorkerQueues.mockReturnValue([]);
+    mocks.getTemporalWorkerAliveness.mockReset();
+    mocks.getTemporalWorkerAliveness.mockReturnValue(false);
+    mocks.restartCurrentProjectTemporalWorker.mockRejectedValueOnce(
+      Object.assign(new Error("worker.lock held by pid=4444"), {
+        code: "WORKER_LOCK_HELD",
+        ownerPid: 4444,
+      }),
+    );
+    mocks.getTemporalHealth.mockResolvedValueOnce({
+      server_alive: true,
+      worker_alive: false,
+      worker_process_alive: false,
+      registered_queues: [],
+      last_op_at: null,
+      last_error: null,
+      fallback_counts: { changes: 0, tasks: 0, wisdom: 0, gates: 0 },
+      stale_queues: [{ queue: "advance-proj123", running_count: 6 }],
+      reconnect_count: 0,
+      op_counters: [],
+      worker_lock: {
+        holder_pid: 4444,
+        last_heartbeat_at: "2026-04-21T00:00:02.000Z",
+        heartbeat_age_ms: 1234,
+        schema_version: 2,
+      },
+      last_worker_run_error: null,
+    });
+
+    const result = await getBoundedProjectWorkflowAccess({
+      projectDir: "/repo",
+      mutablePath: "/state/proj123/worktree-state.marker",
+      recovery: "once",
+    });
+
+    expect(result.mode).toBe("unavailable");
+    if (result.mode !== "unavailable") throw new Error("expected unavailable");
+    expect(result.reason).toContain("suspect live unserviceable worker.lock");
+    expect(result.recommendedNextAction).toContain("explicit approval");
+    expect(result.recommendedNextAction).not.toContain("in-place");
+    expect(result.recommendedNextAction).not.toContain(
+      "adv_temporal_reconnect",
+    );
+    expect(result.queueServiceability?.status).toBe("not_serviceable");
+  });
+
   it("does not run recovery for non-worker unavailable reasons", async () => {
     mocks.canReachTemporalAddress.mockResolvedValueOnce(false);
 

@@ -765,11 +765,15 @@ describe("tryInitStore worker singleton (C5 / rq-workerSingleton01)", () => {
     const { tryInitStore } = await import("./plugin-init");
     await tryInitStore("/tmp/repo", "/tmp/external");
 
-    expect(mocks.startHeartbeatWriter).toHaveBeenCalledWith({
-      projectStateDir: "/tmp/external",
-      workerId: "test-worker-id",
-      intervalMs: 5000,
-    });
+    expect(mocks.startHeartbeatWriter).toHaveBeenCalledWith(
+      expect.objectContaining({
+        projectStateDir: "/tmp/external",
+        workerId: "test-worker-id",
+        expectedQueue: "advance-proj-sha",
+        intervalMs: 5000,
+        isLocalWorkerServiceable: expect.any(Function),
+      }),
+    );
   });
 
   it("does not start heartbeat writer when worker.lock is owned by another instance", async () => {

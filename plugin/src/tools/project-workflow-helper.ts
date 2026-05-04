@@ -20,6 +20,7 @@ import {
   probeTaskQueuePollers,
   type QueueServiceability,
 } from "../temporal/queue-serviceability";
+import { STALE_HEARTBEAT_MS } from "../temporal/worker-lock";
 
 interface WorkflowHandleLike {
   query: (definition: unknown, ...args: unknown[]) => Promise<unknown>;
@@ -183,24 +184,29 @@ async function runBoundedRecovery(input: {
     expectedQueue: input.expectedQueue,
   });
 
-  const isSuspectLegacyLock =
-    getErrorCode(recoveryError) === "WORKER_LOCK_HELD" &&
-    health.worker_lock?.schema_version === 1 &&
-    snapshot.status !== "serviceable";
+  const suspectLockReason =
+    getErrorCode(recoveryError) === "WORKER_LOCK_HELD"
+      ? classifySuspectWorkerLock({ health, serviceability: snapshot })
+      : undefined;
 
-  if (isSuspectLegacyLock) {
+  if (suspectLockReason) {
+    const label =
+      suspectLockReason === "suspect_live_legacy_lock"
+        ? "suspect live legacy v1 worker.lock"
+        : "suspect live unserviceable worker.lock";
     return {
       mode: "unavailable",
       projectId: input.projectId,
       reason:
         `Temporal worker not ready for queue ${input.expectedQueue}: ` +
-        `suspect live legacy v1 worker.lock — explicit approval is required ` +
+        `${label} — explicit approval is required ` +
         `to reclaim it, or restart the owning OpenCode session; do not retry ` +
         `in this session`,
       recommendedNextAction:
-        "Provide explicit approval evidence to reclaim the suspect live legacy " +
-        "v1 worker.lock, or restart the owning OpenCode session; then rerun " +
-        "adv_temporal_worker_restart with approvedLockReclaim+approvalEvidence",
+        `Provide explicit approval evidence to reclaim the ${label}, or ` +
+        "restart the owning OpenCode session; then rerun " +
+        "adv_temporal_worker_restart with approvedLockReclaim+approvalEvidence. " +
+        "Do not use STSL reconnect for worker-registration failure.",
       queueServiceability: snapshot,
     };
   }
@@ -277,4 +283,23 @@ function getErrorCode(error: unknown): string | undefined {
   return typeof error === "object" && error !== null && "code" in error
     ? String((error as { code?: unknown }).code)
     : undefined;
+}
+
+function classifySuspectWorkerLock(input: {
+  health: Awaited<ReturnType<typeof getTemporalHealth>>;
+  serviceability: QueueServiceability;
+}): "suspect_live_legacy_lock" | "suspect_live_unserviceable_lock" | undefined {
+  const lock = input.health.worker_lock;
+  if (!lock || input.serviceability.status !== "not_serviceable") {
+    return undefined;
+  }
+  if (lock.schema_version === 1) return "suspect_live_legacy_lock";
+  if (
+    lock.schema_version === 2 &&
+    (lock.heartbeat_age_ms === null ||
+      lock.heartbeat_age_ms <= STALE_HEARTBEAT_MS)
+  ) {
+    return "suspect_live_unserviceable_lock";
+  }
+  return undefined;
 }

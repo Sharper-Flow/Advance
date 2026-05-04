@@ -42,6 +42,12 @@ type WorkflowReachability =
   | { reachable: true; error?: undefined }
   | { reachable: false; error: string };
 
+type SuspectWorkerLockReason =
+  | "suspect_live_legacy_lock"
+  | "suspect_live_unserviceable_lock";
+
+type RestartFailureReason = SuspectWorkerLockReason | "worker_restart_failed";
+
 /**
  * T23: count alive peer sessions from session_registry.
  *
@@ -150,12 +156,15 @@ function recommendTemporalRecovery(input: {
     return "run adv_temporal_register_search_attributes";
   }
   const queueServiceable = input.queueServiceability?.status === "serviceable";
-  if (
-    !queueServiceable &&
-    input.health.worker_lock?.schema_version === 1 &&
-    input.queueServiceability?.status === "not_serviceable"
-  ) {
+  const suspectLockReason = classifySuspectWorkerLock({
+    health: input.health,
+    queueServiceability: input.queueServiceability ?? null,
+  });
+  if (suspectLockReason === "suspect_live_legacy_lock") {
     return "suspect live legacy v1 worker.lock — explicit approval is required to reclaim it, or restart the owning OpenCode session; do not run blind restart/reclaim loops";
+  }
+  if (suspectLockReason === "suspect_live_unserviceable_lock") {
+    return "suspect live unserviceable worker.lock — explicit approval is required to reclaim it, or restart the owning OpenCode session; do not run STSL reconnect or blind restart/reclaim loops";
   }
   if (
     !queueServiceable &&
@@ -253,6 +262,25 @@ function deriveLocalOwnershipFromHealth(
   return health.worker_lock.holder_pid === process.pid ? "owned" : "peer";
 }
 
+function classifySuspectWorkerLock(input: {
+  health: TemporalHealthSnapshot;
+  queueServiceability?: QueueServiceability | null;
+}): SuspectWorkerLockReason | undefined {
+  const lock = input.health.worker_lock;
+  if (!lock || input.queueServiceability?.status !== "not_serviceable") {
+    return undefined;
+  }
+  if (lock.schema_version === 1) return "suspect_live_legacy_lock";
+  if (
+    lock.schema_version === 2 &&
+    (lock.heartbeat_age_ms === null ||
+      lock.heartbeat_age_ms <= STALE_HEARTBEAT_MS)
+  ) {
+    return "suspect_live_unserviceable_lock";
+  }
+  return undefined;
+}
+
 async function buildRestartServiceabilitySnapshot(input: {
   projectId: string;
   expectedQueue: string;
@@ -342,22 +370,23 @@ function getErrorCode(error: unknown): string | undefined {
 function classifyRestartFailure(input: {
   error: unknown;
   snapshot: RestartServiceabilitySnapshot;
-}): "suspect_live_legacy_lock" | "worker_restart_failed" {
-  if (
-    getErrorCode(input.error) === "WORKER_LOCK_HELD" &&
-    input.snapshot.health.worker_lock?.schema_version === 1 &&
-    input.snapshot.serviceability.status !== "serviceable"
-  ) {
-    return "suspect_live_legacy_lock";
+}): RestartFailureReason {
+  if (getErrorCode(input.error) === "WORKER_LOCK_HELD") {
+    const suspect = classifySuspectWorkerLock({
+      health: input.snapshot.health,
+      queueServiceability: input.snapshot.serviceability,
+    });
+    if (suspect) return suspect;
   }
   return "worker_restart_failed";
 }
 
-function restartFailureNextAction(
-  reason: "suspect_live_legacy_lock" | "worker_restart_failed",
-): string {
+function restartFailureNextAction(reason: RestartFailureReason): string {
   if (reason === "suspect_live_legacy_lock") {
     return "Provide explicit approval evidence to reclaim the suspect live legacy v1 worker.lock, or restart the owning OpenCode session; then rerun adv_temporal_worker_restart.";
+  }
+  if (reason === "suspect_live_unserviceable_lock") {
+    return "Provide explicit approval evidence to reclaim the suspect live unserviceable worker.lock, or restart the owning OpenCode session; then rerun adv_temporal_worker_restart. Do not use STSL reconnect for worker-registration failure.";
   }
   return "run adv_temporal_diagnose and follow recommendedNextAction";
 }
@@ -391,10 +420,12 @@ export const temporalOpsTools = {
           })
         : null;
       const diagnoseReason =
-        queueSnapshot?.serviceability.status === "not_serviceable" &&
-        health.worker_lock?.schema_version === 1
-          ? "suspect_live_legacy_lock"
-          : undefined;
+        queueSnapshot === null
+          ? undefined
+          : classifySuspectWorkerLock({
+              health,
+              queueServiceability: queueSnapshot.serviceability,
+            });
       const searchAttributes = bundle
         ? await checkAdvSearchAttributes(bundle.connection, bundle.namespace)
         : {
@@ -777,7 +808,7 @@ export const temporalOpsTools = {
         .literal(true)
         .optional()
         .describe(
-          "Set only after explicit user approval to reclaim a suspect live legacy v1 worker.lock when queue serviceability cannot be proven.",
+          "Set only after explicit user approval to reclaim a suspect live v1/v2 worker.lock when queue serviceability cannot be proven.",
         ),
       approvalEvidence: z
         .string()
@@ -798,7 +829,7 @@ export const temporalOpsTools = {
           errorClass: "ApprovalRequired",
           error: "approvalEvidence is required when approvedLockReclaim:true.",
           recommendedNextAction:
-            "Ask the user for explicit approval evidence before reclaiming a suspect live legacy v1 worker.lock.",
+            "Ask the user for explicit approval evidence before reclaiming a suspect live v1/v2 worker.lock.",
         });
       }
 
@@ -837,11 +868,11 @@ export const temporalOpsTools = {
         return formatToolOutput({
           success: false,
           errorClass:
-            reason === "suspect_live_legacy_lock"
-              ? "ApprovalRequired"
-              : "WorkerRestartFailed",
+            reason === "worker_restart_failed"
+              ? "WorkerRestartFailed"
+              : "ApprovalRequired",
           reason,
-          approvalRequired: reason === "suspect_live_legacy_lock",
+          approvalRequired: reason !== "worker_restart_failed",
           error: error instanceof Error ? error.message : String(error),
           projectId,
           expectedQueue,
