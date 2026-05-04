@@ -2,6 +2,7 @@
 node_modules/
 plugin/node_modules/
 plugin/node_modules
+plugin/bun.lock
 .pnpm-store/
 
 # Build output
