@@ -1,0 +1,392 @@
+{
+  "id": "repairDriftContradictions",
+  "title": "Repair drift, contradictions, and redundancy in ADV agent instructions",
+  "status": "archived",
+  "created_at": "2026-05-04T02:42:11.426Z",
+  "tasks": [
+    {
+      "id": "tk-4650364e-68bb-47e8-9f5b-9b8094712368",
+      "title": "T1 — Manifest phaseGoal alignment with inline TDD.\n\nScope: `plugin/src/manifest.ts`, `plugin/src/manifest.test.ts`.\n\nGoal: Make M9 code-backed. Expand phaseGoal coverage to exactly four additional lifecycle workflow commands: `adv-discover`, `adv-design`, `adv-reflect`, `adv-autopilot`. Explicitly keep `adv-task` and `adv-validate` out of the phaseGoal set.\n\nInline TDD:\n1. RED: Update manifest tests first so `WORKFLOW_COMMANDS` includes the four new commands and expected goal strings; old manifest fails.\n2. GREEN: Add `phaseGoal` strings to the four manifest entries.\n3. Verify targeted `pnpm test -- src/manifest.test.ts`.\n\nAcceptance coverage: AC7, M9.\nMetadata: tdd_intent=inline; delegation_hint=inline_required.",
+      "type": "code",
+      "section": "implementation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-04T02:42:11.442Z",
+      "tdd_phase": "complete",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "started_at": "2026-05-04T02:42:11.449Z",
+      "implementation_summary": "Added manifest phaseGoal strings for exactly the four approved lifecycle commands: adv-discover, adv-design, adv-reflect, and adv-autopilot. Updated manifest tests already covered the expanded workflow command set and expected goal strings, while keeping adv-task and adv-validate outside the phaseGoal set. Verification: `pnpm test -- src/manifest.test.ts` passed with 165 passed / 2 skipped test files and 3041 passed / 7 skipped tests. Focused `pnpm exec vitest run src/manifest.test.ts -t \"Phase goal metadata\"` passed 6 tests. Checkpoint commit: 8040a47bca82bdf3436047fa43b2bf6b436de92e.",
+      "error_recovery": {
+        "last_error": "Task-run ledger desync: adv_run_test GREEN timed out at fixed 30s before ledger green event; fallback adv_task_evidence recorded task-level green evidence but not ledger event; adv_task_checkpoint committed but ledger checkpoint recording failed because ledger remained red_recorded.",
+        "retry_count": 3,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "Accepted mechanic diagnosis that task-level TDD state and git checkpoint are sufficient for this task; future change should make adv_task_evidence write ledger events or let repair re-derive ledger from task evidence.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "adv_run_test GREEN timed out after 30000ms on full manifest suite",
+            "diagnosis": "Suite takes about 52s; tool timeout too short for this command.",
+            "fix_tried": "Reran command via bash with 120s timeout and recorded fallback green evidence using adv_task_evidence.",
+            "strategy_label": "fallback-evidence-after-timeout",
+            "outcome": "succeeded",
+            "attempted_at": "2026-05-04T03:23:57.895Z"
+          },
+          {
+            "attempt_number": 2,
+            "error": "adv_run_test GREEN focused command returned Workflow Update failed",
+            "diagnosis": "Task-level green evidence already existed; ledger update path could not advance after fallback evidence desync.",
+            "fix_tried": "Retried with a focused phaseGoal test command that passes under 30s.",
+            "strategy_label": "focused-green-ledger-record",
+            "outcome": "failed",
+            "attempted_at": "2026-05-04T03:24:33.813Z"
+          },
+          {
+            "attempt_number": 3,
+            "error": "adv_task_checkpoint recorded git commit but checkpointRecorded:false with Workflow Update failed",
+            "diagnosis": "Ledger transition rejects checkpoint from red_recorded; task evidence and commit are valid but ledger cannot catch up via available tools.",
+            "fix_tried": "Retried checkpoint on clean tree and requested mechanic diagnosis.",
+            "strategy_label": "checkpoint-ledger-retry-and-mechanic",
+            "outcome": "succeeded",
+            "attempted_at": "2026-05-04T03:26:00.000Z"
+          }
+        ]
+      },
+      "tdd_evidence": {
+        "red": {
+          "exit_code": 1,
+          "recorded_at": "2026-05-04T03:21:18.645Z",
+          "test_file": "plugin/src/manifest.test.ts"
+        },
+        "green": {
+          "exit_code": 0,
+          "recorded_at": "2026-05-04T03:25:53.999Z",
+          "test_file": "plugin/src/manifest.test.ts"
+        }
+      },
+      "touched_files": [
+        "plugin/src/manifest.test.ts",
+        "plugin/src/manifest.ts"
+      ],
+      "completed_at": "2026-05-04T02:42:11.451Z",
+      "completed_by": "T1 complete. Known ledger desync accepted after mechanic diagnosis: task-level TDD evidence is compliant, git checkpoint commit exists, but task-run ledger remains red_recorded because fallback adv_task_evidence does not write ledger events and checkpoint transitions cannot skip green_recorded."
+    },
+    {
+      "id": "tk-8bd5e0f4-a445-4725-b4a0-6363bda91b13",
+      "title": "T2 — ADV_INSTRUCTIONS critical/high contract repairs with inline TDD.\n\nScope: `ADV_INSTRUCTIONS.md`, `plugin/src/adv-instructions-assets.test.ts` or a focused nearby asset test.\n\nGoal: Close C1-C3 and H1-H8:\n- C1 retired gate labels → canonical gate IDs\n- C2 target_path matrix contradiction\n- C3 worktree unavailable hard-block\n- H1 stale `clarify_enforcement` line ref\n- H2 canonical `adv_worktree_*` names\n- H3 `[ADV:SKILL_CREATED]` single origin\n- H4 `_contextSnapshot` default-vs-include wording\n- H5 reflection trigger wording\n- H6 augmented `adv_change_show include` pointer\n- H7 complete forbidden state file list\n- H8 sub-agent count total-in-batches wording\n\nInline TDD:\n1. RED: Add structural asset tests for the high-risk invariants above.\n2. GREEN: Edit `ADV_INSTRUCTIONS.md` to satisfy tests and agreement.\n3. Verify targeted ADV instruction asset tests.\n\nAcceptance coverage: AC1, AC4, AC8.\nMetadata: tdd_intent=inline; delegation_hint=inline_required.",
+      "type": "code",
+      "section": "implementation",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-04T02:42:11.443Z",
+      "tdd_phase": "complete",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "started_at": "2026-05-04T02:42:11.453Z",
+      "implementation_summary": "Added structural ADV_INSTRUCTIONS asset tests for critical/high drift invariants and repaired the document to satisfy them. Closed C1-C3 and H1-H8: command boundary gate labels now use canonical 7-gate IDs; target_path matrix no longer contradicts adv_status support or says planned-to-add; worktree protocol uses canonical adv_worktree_* names and hard-blocks unavailable tools; [ADV:SKILL_CREATED] is no longer listed as system-emitted; context snapshot docs describe the adv_change_show include.snapshot exception; reflection trigger wording is phase-number agnostic; forbidden ADV state file list includes problem-statement.md and conformance.json; sub-agent budget clarifies the six-agent cap is total across batches. Verification: focused T2 asset test passed 8 tests; full adv-instructions asset file passed 16 tests. Checkpoint commit: 0e2c6ff5ed23185a91caa42b71d816dd8777d66c.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "tdd_evidence": {
+        "red": {
+          "exit_code": 1,
+          "recorded_at": "2026-05-04T03:35:28.922Z",
+          "test_file": "pnpm exec vitest run src/adv-instructions-assets.test.ts -t \"repairDriftContradictions T2\""
+        },
+        "green": {
+          "exit_code": 0,
+          "recorded_at": "2026-05-04T03:36:32.797Z",
+          "test_file": "pnpm exec vitest run src/adv-instructions-assets.test.ts -t \"repairDriftContradictions T2\""
+        }
+      },
+      "touched_files": [
+        "ADV_INSTRUCTIONS.md",
+        "plugin/src/adv-instructions-assets.test.ts"
+      ],
+      "completed_at": "2026-05-04T02:42:11.455Z",
+      "completed_by": "T2 complete with RED/GREEN asset evidence and checkpoint commit."
+    },
+    {
+      "id": "tk-4b6fc32b-9a78-4bde-83be-78afdba5ac2c",
+      "title": "T3 — ADV_INSTRUCTIONS medium/low cleanup piece by piece.\n\nScope: remaining `ADV_INSTRUCTIONS.md` findings after T2.\n\nGoal: Close M3-M11 and L1-L9 where not already absorbed by T2/T1, using medium-aggressive piecewise cleanup:\n- reduce repeated checkpoint enumeration to one canonical list + pointers\n- remove dated annotations and stale labels (P1.12 naming, status markers, trust-domain meta notes as appropriate)\n- clarify `Skip for` prefix collision\n- trim ambiguity/skill metadata examples only where safe\n- record explicit no-change rationale for L5/L8 if safety nuance should remain\n\nInline TDD / verification:\n1. RED: Add/extend structural asset assertions for duplicated checkpoint list, status-marker consistency, or any machine-checkable cleanup.\n2. GREEN: Edit `ADV_INSTRUCTIONS.md` piece by piece.\n3. Record closure rationale for each M/L finding in implementation summary.\n\nBlocked by: T2, because critical/high repairs establish the live contract baseline.\nAcceptance coverage: AC2, AC3, AC4.\nMetadata: tdd_intent=inline; delegation_hint=inline_required.",
+      "type": "code",
+      "section": "implementation",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-05-04T02:42:11.444Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-8bd5e0f4-a445-4725-b4a0-6363bda91b13"
+        }
+      ],
+      "tdd_phase": "complete",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "started_at": "2026-05-04T02:42:11.456Z",
+      "implementation_summary": "Added medium-cleanup asset tests and cleaned ADV_INSTRUCTIONS.md piece-by-piece. Closed medium/low cleanup items that are safe to machine-guard: later checkpoint references now point back to the canonical Human Checkpoints list instead of repeating the list; stale `(P1.12)` heading suffix, dated target_path annotations, and `Trust-domain note` label were removed from live instructions; When to Use ADV now uses `Use lighter workflows for` instead of a second `Skip for` prefix. Kept ambiguity taxonomy and skill metadata examples unchanged for safety/readability (L5/L8 no-change rationale: examples are executable-format guidance and deleting them would reduce precision more than it reduces redundancy). Verification: focused T3 asset test passed 3 tests; full adv-instructions asset file passed 19 tests. Checkpoint commit: f55d2c1a763f4ac41be898cf423df8f4bc82633f.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "tdd_evidence": {
+        "red": {
+          "exit_code": 1,
+          "recorded_at": "2026-05-04T03:38:06.420Z",
+          "test_file": "pnpm exec vitest run src/adv-instructions-assets.test.ts -t \"repairDriftContradictions T3\""
+        },
+        "green": {
+          "exit_code": 0,
+          "recorded_at": "2026-05-04T03:38:36.800Z",
+          "test_file": "pnpm exec vitest run src/adv-instructions-assets.test.ts -t \"repairDriftContradictions T3\""
+        }
+      },
+      "touched_files": [
+        "ADV_INSTRUCTIONS.md",
+        "plugin/src/adv-instructions-assets.test.ts"
+      ],
+      "completed_at": "2026-05-04T02:42:11.458Z",
+      "completed_by": "T3 complete with RED/GREEN asset evidence and checkpoint commit."
+    },
+    {
+      "id": "tk-f5e0b7d1-751e-415f-a2b7-b7f2f5e4de62",
+      "title": "T4 — Repair AGENTS.md and cost-governance.md drift.\n\nScope: `AGENTS.md`, `.opencode/instructions/cost-governance.md`; optional small asset/grep test if existing test surface covers these docs.\n\nGoal:\n- M1: update stale command count (24 → 25 or remove count)\n- M2: replace `JSON + SQLite persistence` wording with Temporal/external-state wording\n- L2: clarify/remove inactive `auto.*` tuning knob so docs do not imply changing `auto.*` affects tier classification\n\nInline TDD / verification:\n1. RED where feasible: add simple asset assertion or run grep proof showing stale phrases present.\n2. GREEN: edit docs.\n3. Verify stale phrases absent and docs align with current Temporal-only/storage wording.\n\nAcceptance coverage: AC5, AC6.\nMetadata: tdd_intent=inline; delegation_hint=delegate_allowed.",
+      "type": "code",
+      "section": "implementation",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-05-04T02:42:11.445Z",
+      "tdd_phase": "complete",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "started_at": "2026-05-04T02:42:11.459Z",
+      "implementation_summary": "Added repo instruction asset drift guards and repaired AGENTS.md plus cost-governance.md. AGENTS.md now avoids stale slash-command counts and describes storage as Temporal-only persistence adapters with external state. Cost governance docs now explicitly say not to tune `auto.*` for check-in tier behavior; tune `escalate.*` / `hardstop.*` instead. Verification: `pnpm exec vitest run src/repo-instructions-assets.test.ts` passed 2 tests. Checkpoint commit: 0926b2ead34ca1056e99dd0b5e11b33c5a585166.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "tdd_evidence": {
+        "red": {
+          "exit_code": 1,
+          "recorded_at": "2026-05-04T03:39:53.276Z",
+          "test_file": "pnpm exec vitest run src/repo-instructions-assets.test.ts"
+        },
+        "green": {
+          "exit_code": 0,
+          "recorded_at": "2026-05-04T03:40:05.806Z",
+          "test_file": "pnpm exec vitest run src/repo-instructions-assets.test.ts"
+        }
+      },
+      "touched_files": [
+        ".opencode/instructions/cost-governance.md",
+        "AGENTS.md",
+        "plugin/src/repo-instructions-assets.test.ts"
+      ],
+      "completed_at": "2026-05-04T02:42:11.461Z",
+      "completed_by": "T4 complete with RED/GREEN asset evidence and checkpoint commit."
+    },
+    {
+      "id": "tk-02185090-17e6-4f6e-ae93-4237f47fbadc",
+      "title": "T5 — Findings closure matrix and final contradiction audit.\n\nScope: `ADV_INSTRUCTIONS.md`, `AGENTS.md`, `.opencode/instructions/cost-governance.md`, task implementation summaries.\n\nGoal: Verify every finding C1-C3, H1-H8, M1-M11, L1-L9 is closed with either a before/after delta or explicit no-change rationale. Perform final top-to-bottom contradiction audit of `ADV_INSTRUCTIONS.md`.\n\nSeparate verification:\n1. Build closure matrix in task notes / implementation summary.\n2. Run literal searches for retired/stale patterns (`research | Validated`, `worktree_create`, `planned to add`, duplicate `[ADV:SKILL_CREATED]`, etc.).\n3. Read affected sections and confirm no direct contradictions remain.\n\nBlocked by: T1, T2, T3, T4.\nAcceptance coverage: AC1-AC8.\nMetadata: tdd_intent=separate_verification; delegation_hint=inline_required.",
+      "type": "code",
+      "section": "verification",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-05-04T02:42:11.446Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-4650364e-68bb-47e8-9f5b-9b8094712368"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-8bd5e0f4-a445-4725-b4a0-6363bda91b13"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-4b6fc32b-9a78-4bde-83be-78afdba5ac2c"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-f5e0b7d1-751e-415f-a2b7-b7f2f5e4de62"
+        }
+      ],
+      "tdd_phase": "green",
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "tdd_reclassification": {
+        "from_intent": "inline",
+        "to_intent": "separate_verification",
+        "reason": "Task is a cross-cutting verification/audit task over completed edits; no inline red/green implementation scope.",
+        "approved_by_user": true,
+        "approval_evidence": "User replied `approve` to prep plan listing tk-02185090 as separate_verification.",
+        "approved_at": "2026-05-04T03:17:37.806Z"
+      },
+      "started_at": "2026-05-04T02:42:11.462Z",
+      "implementation_summary": "Closure matrix: C1 canonical gates closed by command boundary rows; C2 target_path contradiction closed by adv_status support row and no planned-to-add wording; C3 worktree fallback closed by adv_worktree_* hard-block wording; H1 stale P1.12 line label removed; H2 canonical adv_worktree_* names used in live worktree protocol; H3 [ADV:SKILL_CREATED] no longer duplicated as system-emitted; H4 context snapshot docs now state read tools omit by default except adv_change_show include.snapshot; H5 reflection trigger no longer cites Phase 8; H6 Context Freshness retains augmented adv_change_show include guidance; H7 forbidden state list includes problem-statement.md and conformance.json; H8 sub-agent cap says total across batches; M1/M2 AGENTS drift fixed; L2 auto.* tuning clarified; T3 medium/low cleanup verified with canonical checkpoint references, stale annotation removal, and Skip-for collision fix. L5/L8 no-change rationale: ambiguity taxonomy and skill metadata examples retained because they are format-critical guidance. Verification: instruction asset tests passed 21 tests; stale-pattern searches found no live contradictions in target docs; affected sections read top-to-bottom for direct contradictions. Checkpoint: clean at 0926b2ead34ca1056e99dd0b5e11b33c5a585166.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "tdd_evidence": {
+        "green": {
+          "exit_code": 0,
+          "recorded_at": "2026-05-04T03:41:33.348Z",
+          "test_file": "verification/audit"
+        }
+      },
+      "completed_at": "2026-05-04T02:42:11.463Z",
+      "completed_by": "T5 complete; closure matrix and final contradiction audit passed."
+    },
+    {
+      "id": "tk-3efbbafe-05a6-4858-88de-bd5f04d09378",
+      "title": "T6 — Full verification, sync check, and planning-to-apply readiness.\n\nScope: whole touched surface.\n\nGoal: Run final verification suite and prepare implementation evidence for acceptance:\n- targeted asset tests (`manifest.test.ts`, ADV instruction asset tests)\n- full `pnpm test` from `plugin/`\n- `scripts/sync-global.sh --check`\n- any formatting/typecheck commands required by repo policy\n\nSeparate verification:\n1. Run target tests after implementation batches.\n2. Run full test suite and sync check.\n3. Capture exact pass/fail evidence; remediate in-scope failures or route blockers.\n\nBlocked by: T5.\nAcceptance coverage: AC9.\nMetadata: tdd_intent=separate_verification; delegation_hint=inline_required.",
+      "type": "code",
+      "section": "verification",
+      "status": "done",
+      "priority": 5,
+      "created_at": "2026-05-04T02:42:11.447Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-02185090-17e6-4f6e-ae93-4237f47fbadc"
+        }
+      ],
+      "tdd_phase": "green",
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "tdd_reclassification": {
+        "from_intent": "inline",
+        "to_intent": "separate_verification",
+        "reason": "Task is final cross-cutting verification suite and sync check; no inline red/green implementation scope.",
+        "approved_by_user": true,
+        "approval_evidence": "User replied `approve` to prep plan listing tk-3efbbafe as separate_verification.",
+        "approved_at": "2026-05-04T03:17:37.820Z"
+      },
+      "started_at": "2026-05-04T02:42:11.464Z",
+      "implementation_summary": "Final verification passed. Targeted changed tests `pnpm exec vitest run src/manifest.test.ts src/adv-instructions-assets.test.ts src/repo-instructions-assets.test.ts`: 3 files passed, 58 tests passed. Full plugin suite `pnpm test`: 166 passed / 2 skipped test files, 3054 passed / 7 skipped tests after formatting remediation. `pnpm run check`: passed typecheck, test isolation, lint, and format:check after running `pnpm run format` to fix Prettier formatting in src/adv-instructions-assets.test.ts. `scripts/sync-global.sh --check`: passed config validation and tool drift checks for adv and provider variants. Checkpoint commit: 967b2e25777db59ce6d1cbac9623d43d0444b1f8.",
+      "error_recovery": {
+        "last_error": "Initial `pnpm run check` failed because `src/adv-instructions-assets.test.ts` needed Prettier formatting.",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "No further action; ran formatter, reran check, reran full tests, and all final verification passed.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "`pnpm run check` failed at `prettier --check src/` for `src/adv-instructions-assets.test.ts`.",
+            "diagnosis": "New asset test formatting differed from repo Prettier style.",
+            "fix_tried": "Ran `pnpm run format`, then reran `pnpm run check` and `pnpm test`.",
+            "strategy_label": "format-and-rerun-verification",
+            "outcome": "succeeded",
+            "attempted_at": "2026-05-04T03:45:30.402Z"
+          }
+        ]
+      },
+      "tdd_evidence": {
+        "green": {
+          "exit_code": 0,
+          "recorded_at": "2026-05-04T03:45:30.402Z",
+          "test_file": "final verification"
+        }
+      },
+      "touched_files": [
+        "ADV_INSTRUCTIONS.md",
+        "plugin/src/adv-instructions-assets.test.ts"
+      ],
+      "completed_at": "2026-05-04T02:42:11.468Z",
+      "completed_by": "T6 complete; final verification passed and checkpoint recorded."
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-667e2b13-a724-4170-bf49-57e02f52fd7f",
+      "type": "gotcha",
+      "content": "Fallback `adv_task_evidence` can make task-level TDD compliant without advancing the durable task-run ledger. If `adv_run_test` times out before green ledger recording, later checkpoint events may be rejected from `red_recorded`; verify `adv_task_tdd status` and git checkpoint separately, and consider a future tool fix so fallback evidence writes ledger events.",
+      "source_task": "tk-4650364e-68bb-47e8-9f5b-9b8094712368",
+      "recorded_at": "2026-05-04T02:42:11.452Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-04T02:42:11.439Z",
+      "completed_by": "agent",
+      "notes": "User pasted the adv-discover command contract after proposal handoff for repairDriftContradictions; treated as command-as-approval for proposal checkpoint and continuation into discovery."
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-04T02:42:11.440Z",
+      "completed_by": "agent",
+      "notes": "Discovery complete. Checklist executed: local lineage, relevant skills loaded (`adv-worktree`, `adv-cost-governance-methodology`), prior research checked, active/archive/agenda conflict scan done, related pattern scan done, ambiguity scan clean. Agreement persisted. User approved AC with `approve`. User decisions: add manifest phaseGoals, medium piece-by-piece voice cleanup, hard-block worktree fallback."
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-04T02:42:11.441Z",
+      "completed_by": "agent",
+      "notes": "Design complete. Architecture: three streams (ADV_INSTRUCTIONS repairs, AGENTS/cost-governance repairs, manifest phaseGoal alignment). Key decisions: code/specs win; hard-block worktree failure; canonical adv_worktree_* names; marker registry as source; phaseGoal expansion exactly adv-discover/adv-design/adv-reflect/adv-autopilot; piecewise voice cleanup. Independent adv-researcher validator returned CAUTION; both cautions resolved inline. No unresolved CONFLICT, no user-value tradeoff, no contract-compromise risk."
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-04T02:42:11.448Z",
+      "completed_by": "agent",
+      "notes": "Prep approved by user. Six-task graph synthesized. T1 manifest phaseGoal alignment; T2 ADV_INSTRUCTIONS critical/high repairs; T3 medium/low cleanup; T4 AGENTS/cost-governance drift; T5 closure matrix; T6 full verification. T5/T6 reclassified to separate_verification with explicit user approval. Strict validation passed with warnings only."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-04T02:42:11.467Z",
+      "completed_by": "agent",
+      "notes": "Execution complete. All six planned tasks are done. Checkpoint commits recorded for tasks with file changes; clean checkpoint recorded for verification-only task. Final verification passed: targeted changed tests 58 passed; full `pnpm test` 166 passed / 2 skipped files and 3054 passed / 7 skipped tests; `pnpm run check` passed; `scripts/sync-global.sh --check` passed. Worktree clean."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-04T02:42:11.469Z",
+      "completed_by": "agent",
+      "notes": "User accepted delivered work with `accept`. Acceptance review found one in-scope doc alignment gap (phase-goals table missing new manifest-backed commands); fixed, checkpointed, and re-verified before acceptance. Verification passed: targeted tests 59 passed; full pnpm test 166 passed / 2 skipped files and 3055 passed / 7 skipped tests; pnpm run check passed; sync-global --check passed."
+    },
+    "release": {
+      "status": "done",
+      "completed_at": "2026-05-04T02:42:11.470Z",
+      "completed_by": "agent",
+      "notes": "Release sign-off received from user: `sign off`. Release validation passed strict with warnings only (NO_DELTAS expected because this change intentionally updates instructions/tests, not specs; proposal-task drift warnings are non-blocking prep/discovery sections). Final hardening verification: targeted tests 59 passed; `pnpm run check` passed; full `pnpm test` rerun passed 166 passed / 2 skipped files and 3055 passed / 7 skipped tests after an isolated transient worktree session-lifecycle failure reran green; `scripts/sync-global.sh --check` passed. Worktree clean before archive."
+    }
+  },
+  "reentry_history": [],
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_UNCLEAR_SCOPE",
+      "severity": "warning",
+      "message": "Scope section is empty or placeholder. What specific files/modules will change?",
+      "recorded_at": "2026-05-04T02:59:56.357Z",
+      "resolved": true,
+      "resolved_at": "2026-05-04T03:03:27.960Z"
+    }
+  ],
+  "judgment_calls": []
+}

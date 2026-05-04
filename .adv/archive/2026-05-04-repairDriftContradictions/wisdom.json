@@ -1,0 +1,12 @@
+{
+  "entries": [
+    {
+      "id": "ws-667e2b13-a724-4170-bf49-57e02f52fd7f",
+      "type": "gotcha",
+      "content": "Fallback `adv_task_evidence` can make task-level TDD compliant without advancing the durable task-run ledger. If `adv_run_test` times out before green ledger recording, later checkpoint events may be rejected from `red_recorded`; verify `adv_task_tdd status` and git checkpoint separately, and consider a future tool fix so fallback evidence writes ledger events.",
+      "source_task": "tk-4650364e-68bb-47e8-9f5b-9b8094712368",
+      "recorded_at": "2026-05-04T02:42:11.452Z"
+    }
+  ],
+  "count": 1
+}
