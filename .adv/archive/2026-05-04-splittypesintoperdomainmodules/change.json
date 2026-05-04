@@ -1,0 +1,221 @@
+{
+  "id": "splittypesintoperdomainmodules",
+  "title": "splitTypesIntoPerDomainModules",
+  "status": "archived",
+  "created_at": "2026-05-04T06:03:17.449Z",
+  "tasks": [
+    {
+      "id": "tk-793ce9ef-609b-4c95-b2f0-e6a75d360c4b",
+      "title": "Capture baseline metrics: dist/index.js byte size (current 794,944 B), pnpm test pass count (current 1356+), pnpm run check exit code 0. Record in apply ledger as regression references for AC3, AC4, AC5.",
+      "type": "code",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-04T06:03:17.488Z",
+      "tdd_phase": "none",
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "started_at": "2026-05-04T06:03:17.495Z",
+      "completed_at": "2026-05-04T06:03:17.496Z",
+      "implementation_summary": "Captured baseline: dist/index.js=794,944B (±5% range 755,196–834,692). Build succeeds. ESM 42ms + DTS 4.9s. Test count baseline deferred to verification task (saves 55s here, same evidence)."
+    },
+    {
+      "id": "tk-137cb8ad-8f14-4900-b87f-994e6cc69955",
+      "title": "Extract leaf domain files from plugin/src/types.ts into plugin/src/types/ (10 files): specs.ts (Priority, Scenario, Requirement, Spec, Dependency, Delta, _ID_PREFIXES preserved), tasks.ts (TaskStatus, Task, TaskType, Cancellation, Tdd*, Attempt, ErrorRecovery, TaskRun*), gates.ts (GateId, Gates, GateCompletion, GATE_DEFS, helpers), wisdom.ts, investment.ts, project.ts, conformance.ts, status.ts, tdd-helpers.ts, responses.ts. Each file imports z from \"zod\" and any cross-domain types from sibling files. Old types.ts unchanged at this point — directory file resolution still favors types.ts so nothing breaks. No new symbols introduced; pure extraction.",
+      "type": "code",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-04T06:03:17.489Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-793ce9ef-609b-4c95-b2f0-e6a75d360c4b"
+        }
+      ],
+      "tdd_phase": "none",
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "started_at": "2026-05-04T06:03:17.497Z",
+      "touched_files": [
+        "plugin/src/types/agenda.ts",
+        "plugin/src/types/conformance.ts",
+        "plugin/src/types/gates.ts",
+        "plugin/src/types/investment.ts",
+        "plugin/src/types/project.ts",
+        "plugin/src/types/responses.ts",
+        "plugin/src/types/specs.ts",
+        "plugin/src/types/status.ts",
+        "plugin/src/types/tasks.ts",
+        "plugin/src/types/tdd-helpers.ts",
+        "plugin/src/types/wisdom.ts"
+      ],
+      "completed_at": "2026-05-04T06:03:17.499Z",
+      "implementation_summary": "Created 10 leaf + helper domain files: specs, tasks, gates, wisdom, investment, project, conformance, status, tdd-helpers, agenda, responses. responses.ts forward-references ChangeStatus + FastFollowOf via type-only imports from ./changes (cycle-safe). 11 files committed in checkpoint sha 7d18113. types.ts unchanged so all 76 import sites still resolve to old file."
+    },
+    {
+      "id": "tk-d6b4bcf3-75f5-45d5-a9cb-03b5e43482a1",
+      "title": "Extract branch domain files: plugin/src/types/changes.ts (Change, ChangeStatus, ReentryHistory, CrossProjectOrigin, CrossProjectLink, ExternalDependency, FastFollowOf, ClarifyFindingSnapshot, BulkClose*, ChangeClosure, ChangeListStatusFilter — imports TaskSchema from ./tasks, GatesSchema from ./gates) and plugin/src/types/agenda.ts (AgendaPriority, AgendaStatus, AgendaItem, AgendaMeta, AGENDA_PRIORITY_ORDER — imports GatesSchema from ./gates). Old types.ts still wins resolution; nothing observable changes.",
+      "type": "code",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-05-04T06:03:17.490Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-137cb8ad-8f14-4900-b87f-994e6cc69955"
+        }
+      ],
+      "tdd_phase": "none",
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "started_at": "2026-05-04T06:03:17.500Z",
+      "touched_files": [
+        "plugin/src/types/changes.ts"
+      ],
+      "completed_at": "2026-05-04T06:03:17.502Z",
+      "implementation_summary": "changes.ts created with Change, ChangeStatus, BulkClose, ReentryHistory, ClarifyFindingSnapshot, CrossProject*, ExternalDependency, FastFollowOf + private ValidationResult schemas. Imports from ./tasks (TaskSchema), ./specs (DeltaSchema), ./wisdom, ./gates, ./investment. agenda.ts (also a branch domain) was created in task 2."
+    },
+    {
+      "id": "tk-790ccc8a-f1bb-4fe3-a564-0deebcbbab83",
+      "title": "Construct plugin/src/types/index.ts barrel using named re-exports (matches storage/events/validator convention): export each symbol explicitly via `export { Schema1, type Type1, ... } from \"./<domain>\"` for all 12 domain files. 135 total exports. No `export *`. Verify no name collisions before writing (grep should confirm uniqueness).",
+      "type": "code",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-05-04T06:03:17.491Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-d6b4bcf3-75f5-45d5-a9cb-03b5e43482a1"
+        }
+      ],
+      "tdd_phase": "none",
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "started_at": "2026-05-04T06:03:17.503Z",
+      "touched_files": [
+        "plugin/src/types/index.ts"
+      ],
+      "completed_at": "2026-05-04T06:03:17.505Z",
+      "implementation_summary": "index.ts barrel created. Named re-exports for 136 symbols (135 original + TddEvidence newly exported, needed by tdd-helpers.ts). Pattern matches storage/events/validator. types.ts still wins resolution at this point."
+    },
+    {
+      "id": "tk-3586a7ef-c62e-48c8-8afc-111a4d210dae",
+      "title": "Switch resolution: delete plugin/src/types.ts. Run `git mv plugin/src/types.test.ts plugin/src/types/index.test.ts` and update its import path from `from \"./types\"` to `from \".\"`. After this, all 76 import sites resolve through the new barrel. No other source file edits required.",
+      "type": "code",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-05-04T06:03:17.492Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-790ccc8a-f1bb-4fe3-a564-0deebcbbab83"
+        }
+      ],
+      "tdd_phase": "none",
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "started_at": "2026-05-04T06:03:17.506Z",
+      "completed_at": "2026-05-04T06:03:17.507Z",
+      "implementation_summary": "types.ts deleted; types.test.ts → types/index.test.ts (with import path updates and ./types→. dynamic imports). 2 minimal test-tool path fixes outside types/: handoff-footer-drift.test.ts (asserts on types/status.ts now); workflow-bundle-boundary.test.ts (file-first directory resolver to handle the new directory-style \"../types\" import). All 3068 tests pass. Build dist=795,951B (within 755-835 KB tolerance, +0.13% from baseline)."
+    },
+    {
+      "id": "tk-40fa714c-950c-4c2f-b8f1-c677d837bff8",
+      "title": "Verification: run `pnpm test` (must pass with ≥1356 tests — AC3), `pnpm run check` (typecheck + lint + format — AC4), `pnpm run build` (AC5: dist/index.js within 755–835 KB / ±5% of 794,944 B baseline), confirm temporal/workflow-bundle-boundary.test.ts in the suite passes (AC6). Record evidence for each AC.",
+      "type": "code",
+      "status": "done",
+      "priority": 5,
+      "created_at": "2026-05-04T06:03:17.493Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-3586a7ef-c62e-48c8-8afc-111a4d210dae"
+        }
+      ],
+      "tdd_phase": "green",
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "started_at": "2026-05-04T06:03:17.508Z",
+      "implementation_summary": "Final verification passed: pnpm run check (typecheck + isolation + lint + format), pnpm test (167 passed, 1 skipped files; 3068 passed, 5 skipped tests), pnpm run build, dist/index.js 795,951 B within 755,196–834,692 B tolerance. workflow-bundle-boundary.test.ts passed in suite after resolver fix.",
+      "error_recovery": {
+        "last_error": "adv_run_test timed out after 30000ms on pnpm run check before command completed",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "ENVIRONMENTAL",
+        "next_strategy": "Resolved by bash long-timeout execution and fallback evidence; no remaining error.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "adv_run_test timeout after 30000ms",
+            "diagnosis": "pnpm run check can exceed adv_run_test default timeout; timeout is environmental/tool-limit, not implementation failure.",
+            "fix_tried": "Switch to bash execution with longer timeout and durable evidence fallback.",
+            "strategy_label": "long-timeout-bash-evidence",
+            "outcome": "succeeded",
+            "attempted_at": "2026-05-04T07:16:00.000Z"
+          }
+        ]
+      },
+      "tdd_evidence": {
+        "green": {
+          "exit_code": 0,
+          "recorded_at": "2026-05-04T07:18:00.885Z",
+          "test_file": "plugin vitest suite"
+        }
+      },
+      "completed_at": "2026-05-04T06:03:17.510Z",
+      "completed_by": "Verification complete; checkpoint clean recorded."
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-04T06:03:17.485Z",
+      "completed_by": "agent",
+      "notes": "Problem statement + proposal complete. B/F/S scan clear. 9 measurable success criteria. Discovery agenda (D1-D5) deferred for resolution."
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-04T06:03:17.486Z",
+      "completed_by": "agent",
+      "notes": "D1-D5 resolved. 9 ACs agreed. 76 import sites confirmed (not 104). Build baseline 794,944 B. DAG no cycles."
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-04T06:03:17.487Z",
+      "completed_by": "agent",
+      "notes": "Validator: CAUTION (not CONFLICT). 3 recommendations incorporated: named re-exports in barrel, _ID_PREFIXES placement in specs.ts, single atomic commit. No contract-compromise risk."
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-04T06:03:17.494Z",
+      "completed_by": "agent",
+      "notes": "6 tasks. No judgment calls (Phase J empty). Tier: auto. Worktree ready at change/splittypesintoperdomainmodules from trunk@4a24492."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-04T06:03:17.514Z",
+      "completed_by": "agent",
+      "notes": "Re-emitting after workflow repair: all 6 tasks complete; verification passed."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-04T06:03:17.515Z",
+      "completed_by": "agent",
+      "notes": "Re-emitting after workflow repair: user approved acceptance with `approve`."
+    },
+    "release": {
+      "status": "done",
+      "completed_at": "2026-05-04T06:03:17.516Z",
+      "completed_by": "agent",
+      "notes": "Re-emitting after workflow repair: user signed off archive with `sign off, ship, push, sync`."
+    }
+  },
+  "reentry_history": [],
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d"
+}
