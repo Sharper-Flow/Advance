@@ -769,60 +769,6 @@
           ]
         }
       ]
-    },
-    {
-      "id": "rq-advStatePath01",
-      "title": "ADV-state path guard blocks accidental external-state reads",
-      "body": "The plugin must block read | glob | grep | lgrep_* tools when their args reference paths inside ${external_root}/changes/** or ${external_root}/archive/**. The guard mirrors the conformance path-guard pattern. Bash is INTENTIONALLY excluded — bash gating is the enforceBashPolicy domain, and parsing arbitrary bash for path patterns is fragile. Defense-in-depth for adversarial paths is instruction-based (AGENTS.md and ADV_INSTRUCTIONS.md state 'NEVER read ADV state files directly'). This guard's role is to prevent accidental reads via tool names, not to provide adversarial isolation. In-repo .adv/specs/** is intentionally outside the guard's scope. The guard exposes a clear error message naming adv_change_show, adv_task_list, adv_task_show, etc. as the alternatives.",
-      "priority": "must",
-      "tags": ["delivery", "guards", "boundary", "context-emission"],
-      "scenarios": [
-        {
-          "id": "rq-advStatePath01.1",
-          "title": "Read against changes/ is blocked",
-          "given": [
-            "A read tool call targets ${external_root}/changes/foo/change.json"
-          ],
-          "when": "tool.execute.before runs",
-          "then": [
-            "The guard throws an error naming the locked path",
-            "The error message points to ADV MCP tools as alternatives"
-          ]
-        },
-        {
-          "id": "rq-advStatePath01.2",
-          "title": "Read against archive/ is blocked",
-          "given": [
-            "A read tool call targets ${external_root}/archive/old/proposal.md"
-          ],
-          "when": "tool.execute.before runs",
-          "then": ["The guard throws an error naming the locked path"]
-        },
-        {
-          "id": "rq-advStatePath01.3",
-          "title": "In-repo .adv/specs is allowed",
-          "given": [
-            "A read tool call targets <repo>/.adv/specs/<capability>/spec.json"
-          ],
-          "when": "tool.execute.before runs",
-          "then": [
-            "The guard does not throw; specs are git-tracked and meant to be read"
-          ]
-        },
-        {
-          "id": "rq-advStatePath01.4",
-          "title": "Bash bypass is documented gap",
-          "given": [
-            "A bash command references ${external_root}/changes/foo/change.json"
-          ],
-          "when": "tool.execute.before runs",
-          "then": [
-            "The ADV-state path guard does NOT throw (bash is excluded)",
-            "Bash gating is enforceBashPolicy's domain",
-            "AGENTS.md and ADV_INSTRUCTIONS.md state 'NEVER read ADV state directly' as instruction-based defense for adversarial paths"
-          ]
-        }
-      ]
     }
   ]
 }

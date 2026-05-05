@@ -630,10 +630,10 @@ describe("applyAdvSystemBlock", () => {
   });
 });
 
-// ─── Trunk Guard Section ─────────────────────────────────────────────────
+// ─── Removed Trunk Guard Section ─────────────────────────────────────────
 
 describe("trunkGuardSection", () => {
-  it("fires when not in worktree with active change", () => {
+  it("does not emit trunk guard when not in worktree with active change", () => {
     const result = assembleSystemBlock(
       cleanInput({
         state: cleanState({
@@ -643,7 +643,7 @@ describe("trunkGuardSection", () => {
       }),
     );
     expect(result).not.toBeNull();
-    expect(result).toContain("[ADV:TRUNK_GUARD]");
+    expect(result).not.toContain("[ADV:TRUNK_GUARD]");
     expect(result).toContain("myChange");
   });
 
@@ -676,7 +676,7 @@ describe("trunkGuardSection", () => {
     }
   });
 
-  it("includes worktree routing instruction", () => {
+  it("does not include worktree routing instruction", () => {
     const result = assembleSystemBlock(
       cleanInput({
         state: cleanState({
@@ -685,11 +685,11 @@ describe("trunkGuardSection", () => {
         }),
       }),
     );
-    expect(result).toContain("adv_worktree_create");
-    expect(result).toContain("worktree-first");
+    expect(result).not.toContain("adv_worktree_create");
+    expect(result).not.toContain("worktree-first");
   });
 
-  it("includes emergency override guidance", () => {
+  it("does not include emergency override guidance", () => {
     const result = assembleSystemBlock(
       cleanInput({
         state: cleanState({
@@ -698,11 +698,11 @@ describe("trunkGuardSection", () => {
         }),
       }),
     );
-    expect(result).toContain("emergency");
-    expect(result).toContain("audit");
+    expect(result).not.toContain("emergency");
+    expect(result).not.toContain("audit");
   });
 
-  it("appears before active change section in output order", () => {
+  it("emits only active change section when no other stable sections apply", () => {
     const result = assembleSystemBlock(
       cleanInput({
         state: cleanState({
@@ -712,9 +712,6 @@ describe("trunkGuardSection", () => {
       }),
     );
     expect(result).not.toBeNull();
-    // Trunk guard should appear before active change section
-    const trunkPos = result!.indexOf("[ADV:TRUNK_GUARD]");
-    const activePos = result!.indexOf("[ADV] Active change:");
-    expect(trunkPos).toBeLessThan(activePos);
+    expect(result).toBe("[ADV] Active change: myChange");
   });
 });

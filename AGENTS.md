@@ -15,7 +15,6 @@ plugin/              # TypeScript plugin (the only buildable package)
     manifest.ts      # Command manifest (phases, gates, scopes)
     tools/           # MCP tool implementations (spec, change, task, gate, wisdom, agenda, test, status, project)
     storage/         # Temporal-only persistence adapters, migrations, handoff, external state
-    guards/          # Runtime policy enforcement (bash sanitization, task nesting + parallelism)
     validator/       # Spec validation, prep-readiness, task classification
     events/          # Terminal UI, status markers
     utils/           # Helpers (debug-log, project-id, safe-execute)
@@ -141,11 +140,6 @@ Shared global agents (`adv`, `general`, `build`, `plan`) are NOT fully replaced 
 6. **Legacy gating** — prompt-only keys do not activate provider mode. Active provider config sets `agent.adv.disable: true` and removes global generic `adv.md`; repo-local `.opencode/agents/adv.md` remains tracked.
 
 Runtime visibility is controlled by OpenCode's native `agent.<name>.disable` field in `opencode.json` — no hidden routing, no fallback chains. The `opencode-model-preferences` (OMP) tool writes these config entries; ADV only generates the files.
-
-### Guard system
-
-- `guards/bash.ts` — sanitizes bash commands at runtime (blocks destructive patterns)
-- `guards/task.ts` — enforces sub-agent nesting (depth ≤ 1) and parallelism (max 3 concurrent from primary agents)
 
 ### Tool registration pattern
 
