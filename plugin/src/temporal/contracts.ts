@@ -23,6 +23,7 @@ export const CHANGE_WORKFLOW_QUERY_NAMES = {
   getInvestmentReport: "adv.change.getInvestmentReport",
   getReviewVerification: "adv.change.getReviewVerification",
   getTaskRunSummary: "adv.change.getTaskRunSummary",
+  getProcessedMarkers: "adv.change.getProcessedMarkers",
   // Compatibility aliases for code not yet migrated to named queries.
   state: "adv.change.getChangeState",
   ready: "adv.change.getReadyTasks",
@@ -110,6 +111,7 @@ export const CHANGE_WORKFLOW_SIGNAL_NAMES = {
   conformanceOverridden: "adv.change.conformanceOverridden",
   archiveRequested: "adv.change.archiveRequested",
   changeCancelled: "adv.change.changeCancelled",
+  migrationMarker: "adv.change.migrationMarker",
 } as const;
 
 export interface ChangeSummaryPayload {

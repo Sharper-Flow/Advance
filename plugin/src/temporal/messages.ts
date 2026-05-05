@@ -31,6 +31,7 @@ import type {
   GateInProgressSignalPayload,
   GateReenteredSignalPayload,
   GateStuckSignalPayload,
+  MigrationMarkerSignalPayload,
   ProblemStatementUpdatedSignalPayload,
   ProposalUpdatedSignalPayload,
   ReflectionRecordedSignalPayload,
@@ -83,6 +84,9 @@ export const getReviewVerificationQuery = wf.defineQuery<unknown>(
 );
 export const getTaskRunSummaryQuery = wf.defineQuery<unknown>(
   CHANGE_WORKFLOW_QUERY_NAMES.getTaskRunSummary,
+);
+export const getProcessedMarkersQuery = wf.defineQuery<string[]>(
+  CHANGE_WORKFLOW_QUERY_NAMES.getProcessedMarkers,
 );
 export const changeTasksQuery = wf.defineQuery<
   ChangeWorkflowState["tasks"],
@@ -177,6 +181,9 @@ export const archiveRequestedSignal = wf.defineSignal<
 export const changeCancelledSignal = wf.defineSignal<
   [ChangeCancelledSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.changeCancelled);
+export const migrationMarkerSignal = wf.defineSignal<
+  [MigrationMarkerSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.migrationMarker);
 
 // Compatibility exports only: old defineUpdate contracts are deleted.
 // Remaining pre-M4 adapters still import these names until their tool bodies

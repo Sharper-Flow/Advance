@@ -248,3 +248,11 @@ export const ChangeCancelledSignalPayloadSchema = z.object({
 export type ChangeCancelledSignalPayload = z.infer<
   typeof ChangeCancelledSignalPayloadSchema
 >;
+
+/** Temporary migration-only marker barrier signal. */
+export const MigrationMarkerSignalPayloadSchema = z.object({
+  markerId: z.string().min(1),
+});
+export type MigrationMarkerSignalPayload = z.infer<
+  typeof MigrationMarkerSignalPayloadSchema
+>;
