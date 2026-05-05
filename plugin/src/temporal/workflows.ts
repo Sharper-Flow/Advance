@@ -1,4 +1,5 @@
 import * as wf from "@temporalio/workflow";
+import { bucketCtxFromState, deriveBucket } from "../utils/buckets";
 import {
   ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES,
   CHANGE_WORKFLOW_UPDATE_NAMES,
@@ -106,6 +107,38 @@ const changeTasksQuery = wf.defineQuery<
 const changeReadyQuery = wf.defineQuery<
   ReturnType<typeof getReadyTasksFromChangeState>
 >(CHANGE_WORKFLOW_QUERY_NAMES.ready);
+const getCurrentBucketQuery = wf.defineQuery<ReturnType<typeof deriveBucket>>(
+  CHANGE_WORKFLOW_QUERY_NAMES.getCurrentBucket,
+);
+const getInvestmentReportQuery = wf.defineQuery<{
+  taskCounts: {
+    total: number;
+    done: number;
+    pending: number;
+    blocked: number;
+    inProgress: number;
+    cancelled: number;
+  };
+  retryCount: number;
+  tier: "auto" | "escalate" | "hardstop";
+}>(CHANGE_WORKFLOW_QUERY_NAMES.getInvestmentReport);
+const getReviewVerificationQuery = wf.defineQuery<{
+  acceptanceCriteriaCount: number;
+  incompleteTaskCount: number;
+  gatesComplete: boolean;
+  readyForAcceptance: boolean;
+}>(CHANGE_WORKFLOW_QUERY_NAMES.getReviewVerification);
+const getTaskRunSummaryQuery = wf.defineQuery<
+  Array<{
+    taskId: string;
+    status: ChangeWorkflowState["tasks"][number]["status"];
+    startedAt?: string | null;
+    completedAt?: string | null;
+    verification?: string;
+    checkpointSha?: string;
+    attempts: number;
+  }>
+>(CHANGE_WORKFLOW_QUERY_NAMES.getTaskRunSummary);
 const changeTaskQuery = wf.defineQuery<
   ChangeWorkflowState["tasks"][number] | null,
   [string]
@@ -420,6 +453,88 @@ function safeUpdateHandler<Args extends unknown[], R>(
   };
 }
 
+function deriveInvestmentReportFromState(state: ChangeWorkflowState): {
+  taskCounts: {
+    total: number;
+    done: number;
+    pending: number;
+    blocked: number;
+    inProgress: number;
+    cancelled: number;
+  };
+  retryCount: number;
+  tier: "auto" | "escalate" | "hardstop";
+} {
+  const taskCounts = {
+    total: state.tasks.length,
+    done: state.tasks.filter((task) => task.status === "done").length,
+    pending: state.tasks.filter((task) => task.status === "pending").length,
+    blocked: state.tasks.filter((task) => task.status === "blocked").length,
+    inProgress: state.tasks.filter((task) => task.status === "in_progress")
+      .length,
+    cancelled: state.tasks.filter((task) => task.status === "cancelled").length,
+  };
+  const retryCount = state.tasks.reduce((sum, task) => {
+    return (
+      sum +
+      (task.attempts?.length ?? 0) +
+      (task.error_recovery?.attempts?.length ?? 0)
+    );
+  }, 0);
+
+  const tier =
+    taskCounts.total >= 15 || retryCount >= 5
+      ? "hardstop"
+      : taskCounts.total >= 8 || retryCount >= 2
+        ? "escalate"
+        : "auto";
+
+  return { taskCounts, retryCount, tier };
+}
+
+function deriveReviewVerificationFromState(state: ChangeWorkflowState): {
+  acceptanceCriteriaCount: number;
+  incompleteTaskCount: number;
+  gatesComplete: boolean;
+  readyForAcceptance: boolean;
+} {
+  const incompleteTaskCount = state.tasks.filter(
+    (task) => task.status !== "done" && task.status !== "cancelled",
+  ).length;
+  const gatesComplete = Object.entries(state.gates)
+    .filter(([gateId]) => gateId !== "acceptance" && gateId !== "release")
+    .every(([, gate]) => gate.status === "done");
+
+  return {
+    acceptanceCriteriaCount: state.acceptanceCriteria?.length ?? 0,
+    incompleteTaskCount,
+    gatesComplete,
+    readyForAcceptance: gatesComplete && incompleteTaskCount === 0,
+  };
+}
+
+function deriveTaskRunSummaryFromState(state: ChangeWorkflowState): Array<{
+  taskId: string;
+  status: ChangeWorkflowState["tasks"][number]["status"];
+  startedAt?: string | null;
+  completedAt?: string | null;
+  verification?: string;
+  checkpointSha?: string;
+  attempts: number;
+}> {
+  return state.tasks.map((task) => ({
+    taskId: task.id,
+    status: task.status,
+    startedAt: task.started_at,
+    completedAt: task.completed_at ?? task.completedAt,
+    verification: task.verification,
+    checkpointSha: task.checkpointSha,
+    attempts:
+      (task.attempts?.length ?? 0) +
+      (task.error_recovery?.attempts?.length ?? 0),
+  }));
+}
+
 export async function changeWorkflow(
   input: ChangeWorkflowInput,
 ): Promise<void> {
@@ -494,6 +609,18 @@ export async function changeWorkflow(
     ) => listTasksFromChangeState(state, status, filter),
   );
   wf.setHandler(changeReadyQuery, () => getReadyTasksFromChangeState(state));
+  wf.setHandler(getCurrentBucketQuery, () =>
+    deriveBucket(bucketCtxFromState(state, workflowEpoch)),
+  );
+  wf.setHandler(getInvestmentReportQuery, () =>
+    deriveInvestmentReportFromState(state),
+  );
+  wf.setHandler(getReviewVerificationQuery, () =>
+    deriveReviewVerificationFromState(state),
+  );
+  wf.setHandler(getTaskRunSummaryQuery, () =>
+    deriveTaskRunSummaryFromState(state),
+  );
   wf.setHandler(changeTaskQuery, (taskId: string) =>
     getTaskFromChangeState(state, taskId),
   );
