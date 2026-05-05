@@ -399,6 +399,14 @@ client.workflow.list({ query: `AdvChangeStatus = 'active' AND AdvCurrentBucket =
 client.workflow.list({ query: `AdvChangeStatus = 'active' AND AdvCurrentBucket = 'awaiting_approval'` });
 ```
 
+Discover-phase collision check uses the search attributes above to find in-flight
+changes, then queries only a bounded high-level document projection for each
+candidate. Agents may pull proposal/problem/agreement/design/acceptance-criteria
+summaries for active changes to judge overlap, but must not pull full workflow
+event history, task-run history, TDD evidence, per-attempt recovery logs, or
+archived scratch context. This preserves the orchestrator's ability to avoid
+collisions without reintroducing Temporal-as-database history scraping.
+
 Task queue: `advance-changes` (single global) + `advance-host-{hostname}` (per-host activities).
 
 #### Type & Sort Notes (V3 validator findings)
