@@ -16,15 +16,36 @@
  *      so drift between the two files is impossible.
  */
 import * as wf from "@temporalio/workflow";
+import type { WisdomType } from "../types";
 import type {
-  ChangeClosure,
-  GateId,
-  TddReclassification,
-  WisdomType,
+  AcceptanceCriteriaSetSignalPayload,
+  AgreementUpdatedSignalPayload,
+  ArchiveRequestedSignalPayload,
+  ChangeCancelledSignalPayload,
+  ConformanceLockedSignalPayload,
+  ConformanceOverriddenSignalPayload,
+  ConformanceVerdictSignalPayload,
+  DesignUpdatedSignalPayload,
+  GateAwaitingApprovalSignalPayload,
+  GateCompletedSignalPayload,
+  GateInProgressSignalPayload,
+  GateReenteredSignalPayload,
+  GateStuckSignalPayload,
+  ProblemStatementUpdatedSignalPayload,
+  ProposalUpdatedSignalPayload,
+  ReflectionRecordedSignalPayload,
+  TaskAddedSignalPayload,
+  TaskAssignedSignalPayload,
+  TaskBlockedSignalPayload,
+  TaskCancelledSignalPayload,
+  TaskCompletedSignalPayload,
+  TaskRemovedSignalPayload,
+  TaskUpdatedSignalPayload,
+  WisdomAddedSignalPayload,
+  WorktreeCreatedSignalPayload,
+  WorktreeDeletedSignalPayload,
 } from "../types";
 import type {
-  ArtifactMetadata,
-  ArtifactKind,
   ChangeWorkflowBootstrapState,
   ChangeWorkflowState,
   MigrationLedgerEntry,
@@ -36,7 +57,6 @@ import type {
 import {
   CHANGE_WORKFLOW_QUERY_NAMES,
   CHANGE_WORKFLOW_SIGNAL_NAMES,
-  CHANGE_WORKFLOW_UPDATE_NAMES,
   PROJECT_WORKFLOW_QUERY_NAMES,
   PROJECT_WORKFLOW_UPDATE_NAMES,
 } from "./contracts";
@@ -46,7 +66,23 @@ export const changeBootstrapQuery =
     CHANGE_WORKFLOW_QUERY_NAMES.bootstrap,
   );
 export const changeStateQuery = wf.defineQuery<ChangeWorkflowState>(
-  CHANGE_WORKFLOW_QUERY_NAMES.state,
+  CHANGE_WORKFLOW_QUERY_NAMES.getChangeState,
+);
+export const getChangeStateQuery = changeStateQuery;
+export const getCurrentBucketQuery = wf.defineQuery<string>(
+  CHANGE_WORKFLOW_QUERY_NAMES.getCurrentBucket,
+);
+export const getReadyTasksQuery = wf.defineQuery<
+  ReturnType<typeof import("./change-state").getReadyTasksFromChangeState>
+>(CHANGE_WORKFLOW_QUERY_NAMES.getReadyTasks);
+export const getInvestmentReportQuery = wf.defineQuery<unknown>(
+  CHANGE_WORKFLOW_QUERY_NAMES.getInvestmentReport,
+);
+export const getReviewVerificationQuery = wf.defineQuery<unknown>(
+  CHANGE_WORKFLOW_QUERY_NAMES.getReviewVerification,
+);
+export const getTaskRunSummaryQuery = wf.defineQuery<unknown>(
+  CHANGE_WORKFLOW_QUERY_NAMES.getTaskRunSummary,
 );
 export const changeTasksQuery = wf.defineQuery<
   ChangeWorkflowState["tasks"],
@@ -62,62 +98,109 @@ export const changeTaskQuery = wf.defineQuery<
   ChangeWorkflowState["tasks"][number] | null,
   [string]
 >(CHANGE_WORKFLOW_QUERY_NAMES.task);
-export const addTaskUpdate = wf.defineUpdate<
-  ChangeWorkflowState["tasks"][number],
-  [
-    {
-      title: string;
-      type?: ChangeWorkflowState["tasks"][number]["type"];
-      section?: string;
-      blockedBy?: string[];
-      metadata?: Record<string, string>;
-    },
-  ]
->(CHANGE_WORKFLOW_UPDATE_NAMES.addTask);
-export const updateTaskUpdate = wf.defineUpdate<
-  ChangeWorkflowState["tasks"][number],
-  [
-    string,
-    {
-      status: ChangeWorkflowState["tasks"][number]["status"];
-      notes?: string;
-      implementationSummary?: string;
-      errorRecovery?: ChangeWorkflowState["tasks"][number]["error_recovery"];
-      touchedFiles?: string[];
-    },
-  ]
->(CHANGE_WORKFLOW_UPDATE_NAMES.updateTask);
-export const cancelTaskUpdate = wf.defineUpdate<
-  ChangeWorkflowState["tasks"][number],
-  [string, import("../types").Cancellation]
->(CHANGE_WORKFLOW_UPDATE_NAMES.cancelTask);
-export const reclassifyTaskTddUpdate = wf.defineUpdate<
-  ChangeWorkflowState["tasks"][number],
-  [string, TddReclassification]
->(CHANGE_WORKFLOW_UPDATE_NAMES.reclassifyTaskTdd);
-export const completeGateUpdate = wf.defineUpdate<
-  ChangeWorkflowState,
-  [GateId, string | undefined, string | undefined]
->(CHANGE_WORKFLOW_UPDATE_NAMES.completeGate);
-export const reopenFromGateUpdate = wf.defineUpdate<
-  ChangeWorkflowState,
-  [GateId, string, string | undefined, string | undefined]
->(CHANGE_WORKFLOW_UPDATE_NAMES.reopenFromGate);
-export const addChangeWisdomUpdate = wf.defineUpdate<
-  ChangeWorkflowState,
-  [WisdomType, string, string | undefined]
->(CHANGE_WORKFLOW_UPDATE_NAMES.addWisdom);
-export const updateArtifactMetadataUpdate = wf.defineUpdate<
-  void,
-  [ArtifactKind, ArtifactMetadata]
->(CHANGE_WORKFLOW_UPDATE_NAMES.updateArtifactMetadata);
-export const archiveChangeUpdate = wf.defineUpdate<ChangeWorkflowState>(
-  CHANGE_WORKFLOW_UPDATE_NAMES.archiveChange,
+
+export const proposalUpdatedSignal = wf.defineSignal<
+  [ProposalUpdatedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.proposalUpdated);
+export const problemStatementUpdatedSignal = wf.defineSignal<
+  [ProblemStatementUpdatedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.problemStatementUpdated);
+export const agreementUpdatedSignal = wf.defineSignal<
+  [AgreementUpdatedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.agreementUpdated);
+export const designUpdatedSignal = wf.defineSignal<[DesignUpdatedSignalPayload]>(
+  CHANGE_WORKFLOW_SIGNAL_NAMES.designUpdated,
 );
-export const closeChangeUpdate = wf.defineUpdate<
-  ChangeWorkflowState,
-  [ChangeClosure]
->(CHANGE_WORKFLOW_UPDATE_NAMES.closeChange);
+export const acceptanceCriteriaSetSignal = wf.defineSignal<
+  [AcceptanceCriteriaSetSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.acceptanceCriteriaSet);
+export const taskAddedSignal = wf.defineSignal<[TaskAddedSignalPayload]>(
+  CHANGE_WORKFLOW_SIGNAL_NAMES.taskAdded,
+);
+export const taskUpdatedSignal = wf.defineSignal<[TaskUpdatedSignalPayload]>(
+  CHANGE_WORKFLOW_SIGNAL_NAMES.taskUpdated,
+);
+export const taskRemovedSignal = wf.defineSignal<[TaskRemovedSignalPayload]>(
+  CHANGE_WORKFLOW_SIGNAL_NAMES.taskRemoved,
+);
+export const taskAssignedSignal = wf.defineSignal<[TaskAssignedSignalPayload]>(
+  CHANGE_WORKFLOW_SIGNAL_NAMES.taskAssigned,
+);
+export const taskCompletedSignal = wf.defineSignal<
+  [TaskCompletedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.taskCompleted);
+export const taskBlockedSignal = wf.defineSignal<[TaskBlockedSignalPayload]>(
+  CHANGE_WORKFLOW_SIGNAL_NAMES.taskBlocked,
+);
+export const taskCancelledSignal = wf.defineSignal<
+  [TaskCancelledSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.taskCancelled);
+export const gateInProgressSignal = wf.defineSignal<
+  [GateInProgressSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.gateInProgress);
+export const gateAwaitingApprovalSignal = wf.defineSignal<
+  [GateAwaitingApprovalSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.gateAwaitingApproval);
+export const gateStuckSignal = wf.defineSignal<[GateStuckSignalPayload]>(
+  CHANGE_WORKFLOW_SIGNAL_NAMES.gateStuck,
+);
+export const gateCompletedSignal = wf.defineSignal<
+  [GateCompletedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.gateCompleted);
+export const gateReenteredSignal = wf.defineSignal<
+  [GateReenteredSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.gateReentered);
+export const wisdomAddedSignal = wf.defineSignal<[WisdomAddedSignalPayload]>(
+  CHANGE_WORKFLOW_SIGNAL_NAMES.wisdomAdded,
+);
+export const reflectionRecordedSignal = wf.defineSignal<
+  [ReflectionRecordedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.reflectionRecorded);
+export const worktreeCreatedSignal = wf.defineSignal<
+  [WorktreeCreatedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.worktreeCreated);
+export const worktreeDeletedSignal = wf.defineSignal<
+  [WorktreeDeletedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.worktreeDeleted);
+export const conformanceLockedSignal = wf.defineSignal<
+  [ConformanceLockedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.conformanceLocked);
+export const conformanceVerdictSignal = wf.defineSignal<
+  [ConformanceVerdictSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.conformanceVerdict);
+export const conformanceOverriddenSignal = wf.defineSignal<
+  [ConformanceOverriddenSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.conformanceOverridden);
+export const archiveRequestedSignal = wf.defineSignal<
+  [ArchiveRequestedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.archiveRequested);
+export const changeCancelledSignal = wf.defineSignal<
+  [ChangeCancelledSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.changeCancelled);
+
+// Compatibility exports only: old defineUpdate contracts are deleted.
+// Remaining pre-M4 adapters still import these names until their tool bodies
+// are rewritten to fire signals directly.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const addTaskUpdate = taskAddedSignal as any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const updateTaskUpdate = taskUpdatedSignal as any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const cancelTaskUpdate = taskCancelledSignal as any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const reclassifyTaskTddUpdate = taskUpdatedSignal as any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const completeGateUpdate = gateCompletedSignal as any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const reopenFromGateUpdate = gateReenteredSignal as any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const addChangeWisdomUpdate = wisdomAddedSignal as any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const updateArtifactMetadataUpdate = taskUpdatedSignal as any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const archiveChangeUpdate = archiveRequestedSignal as any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const closeChangeUpdate = changeCancelledSignal as any;
 
 export const projectBootstrapQuery =
   wf.defineQuery<ProjectWorkflowBootstrapState>(

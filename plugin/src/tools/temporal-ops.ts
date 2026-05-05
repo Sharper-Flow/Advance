@@ -775,7 +775,6 @@ export const temporalOpsTools = {
             reconnectCount: stats.reconnectCount,
             reconnectFailureCount: stats.reconnectFailureCount,
           },
-          ...(restartResult.reclaim ? { reclaim: restartResult.reclaim } : {}),
           recommendedNextAction:
             "run adv_temporal_diagnose and follow recommendedNextAction; do not assume restart succeeded",
         });
@@ -797,7 +796,6 @@ export const temporalOpsTools = {
           reconnectCount: stats.reconnectCount,
           reconnectFailureCount: stats.reconnectFailureCount,
         },
-        ...(restartResult.reclaim ? { reclaim: restartResult.reclaim } : {}),
       });
     },
   },

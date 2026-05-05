@@ -72,7 +72,6 @@ export interface StatusInput {
     id: string;
     title: string;
     minutesSinceActivity: number;
-    recency: string;
     parent_change_id?: string;
   }>;
   archivedCount: number;
@@ -260,7 +259,12 @@ export function formatStatusOutput(input: StatusInput): FormattedStatus {
   };
 
   const activeLines = input.activeChanges.map((c) => {
-    const emoji = recencyEmoji(c.recency);
+    const emoji =
+      c.minutesSinceActivity <= 60
+        ? recencyEmoji("hot")
+        : c.minutesSinceActivity >= 180
+          ? recencyEmoji("stale")
+          : recencyEmoji("warm");
     const mins = c.minutesSinceActivity;
     const timeLabel =
       mins < 60 ? `${mins}m ago` : `${Math.floor(mins / 60)}h ago`;

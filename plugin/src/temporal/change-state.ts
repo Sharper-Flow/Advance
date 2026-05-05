@@ -7,8 +7,7 @@ import type {
   TddReclassification,
   WisdomType,
 } from "../types";
-import { canCompleteGate, createDefaultGates } from "../types";
-import { reopenChangeFromGate } from "./gate-reentry";
+import { canCompleteGate, createDefaultGates, GATE_ORDER } from "../types";
 import type {
   ArtifactKind,
   ArtifactMetadata,
@@ -257,34 +256,28 @@ export function reopenFromGateInChangeState(
     approvalEvidence?: string;
   },
 ): ChangeWorkflowState {
-  // Project the workflow state into the minimum Change view that
-  // reopenChangeFromGate actually touches. Avoids an unsafe
-  // `as unknown as Change` cast and keeps field drift a compile-time error.
-  const adapter: import("../types").Change = {
-    id: state.changeId,
-    title: state.title,
-    status: state.status,
-    created_at: state.createdAt,
-    tasks: state.tasks,
-    deltas: {},
-    wisdom: state.wisdom,
-    gates: state.gates,
-    reentry_history: state.reentry_history ?? [],
-  };
+  const fromIndex = GATE_ORDER.indexOf(fromGate);
+  if (fromIndex < 0) return state;
 
-  // Pass the workflow-supplied `now` directly so this state mutation records
-  // the same logical event timestamp as the surrounding workflow update.
-  reopenChangeFromGate(adapter, fromGate, input.reason, {
-    scopeDelta: input.scopeDelta,
-    reopenedBy: input.reopenedBy,
-    approvalEvidence: input.approvalEvidence,
-    now: input.now,
-  });
+  for (const gateId of GATE_ORDER.slice(fromIndex)) {
+    state.gates[gateId] = { status: "pending" };
+  }
 
-  // Copy any mutations made by the helper back onto the workflow state so
-  // the workflow stays authoritative for gates + reentry history.
-  state.gates = adapter.gates ?? state.gates;
-  state.reentry_history = adapter.reentry_history ?? state.reentry_history;
+  const gatesReset = GATE_ORDER.slice(fromIndex);
+  state.reentry_history = [
+    ...(state.reentry_history ?? []),
+    {
+      from_gate: fromGate,
+      reason: input.reason,
+      ...(input.scopeDelta ? { scope_delta: input.scopeDelta } : {}),
+      reopened_by: input.reopenedBy ?? "agent",
+      ...(input.approvalEvidence
+        ? { approval_evidence: input.approvalEvidence }
+        : {}),
+      reopened_at: input.now,
+      gates_reset: gatesReset,
+    },
+  ];
 
   return state;
 }

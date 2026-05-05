@@ -21,9 +21,16 @@ export const ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES = {
 
 export const CHANGE_WORKFLOW_QUERY_NAMES = {
   bootstrap: "adv.change.bootstrap",
-  state: "adv.change.state",
+  getChangeState: "adv.change.getChangeState",
+  getCurrentBucket: "adv.change.getCurrentBucket",
+  getReadyTasks: "adv.change.getReadyTasks",
+  getInvestmentReport: "adv.change.getInvestmentReport",
+  getReviewVerification: "adv.change.getReviewVerification",
+  getTaskRunSummary: "adv.change.getTaskRunSummary",
+  // Compatibility aliases for code not yet migrated to named queries.
+  state: "adv.change.getChangeState",
+  ready: "adv.change.getReadyTasks",
   tasks: "adv.change.tasks",
-  ready: "adv.change.ready",
   task: "adv.change.task",
 } as const;
 
@@ -81,6 +88,32 @@ export const CHANGE_WORKFLOW_UPDATE_NAMES = {
 
 export const CHANGE_WORKFLOW_SIGNAL_NAMES = {
   applyChangeSummary: "adv.change.applyChangeSummary",
+  proposalUpdated: "adv.change.proposalUpdated",
+  problemStatementUpdated: "adv.change.problemStatementUpdated",
+  agreementUpdated: "adv.change.agreementUpdated",
+  designUpdated: "adv.change.designUpdated",
+  acceptanceCriteriaSet: "adv.change.acceptanceCriteriaSet",
+  taskAdded: "adv.change.taskAdded",
+  taskUpdated: "adv.change.taskUpdated",
+  taskRemoved: "adv.change.taskRemoved",
+  taskAssigned: "adv.change.taskAssigned",
+  taskCompleted: "adv.change.taskCompleted",
+  taskBlocked: "adv.change.taskBlocked",
+  taskCancelled: "adv.change.taskCancelled",
+  gateInProgress: "adv.change.gateInProgress",
+  gateAwaitingApproval: "adv.change.gateAwaitingApproval",
+  gateStuck: "adv.change.gateStuck",
+  gateCompleted: "adv.change.gateCompleted",
+  gateReentered: "adv.change.gateReentered",
+  wisdomAdded: "adv.change.wisdomAdded",
+  reflectionRecorded: "adv.change.reflectionRecorded",
+  worktreeCreated: "adv.change.worktreeCreated",
+  worktreeDeleted: "adv.change.worktreeDeleted",
+  conformanceLocked: "adv.change.conformanceLocked",
+  conformanceVerdict: "adv.change.conformanceVerdict",
+  conformanceOverridden: "adv.change.conformanceOverridden",
+  archiveRequested: "adv.change.archiveRequested",
+  changeCancelled: "adv.change.changeCancelled",
 } as const;
 
 export interface ChangeSummaryPayload {
@@ -142,6 +175,11 @@ export interface ChangeWorkflowInput {
       | "reentry_history"
       | "artifacts"
       | "fast_follow_of"
+      | "affectedProjects"
+      | "affectedPaths"
+      | "lastSignalAt"
+      | "pendingCheckpoint"
+      | "terminated"
     >
   >;
 }
@@ -165,6 +203,18 @@ export interface ChangeWorkflowState extends ChangeWorkflowInput {
   };
   /** Same-project fast-follow lineage (optional) */
   fast_follow_of?: FastFollowOf;
+  affectedProjects?: string[];
+  affectedPaths?: string[];
+  lastSignalAt?: string;
+  pendingCheckpoint?: boolean;
+  terminated?: boolean;
+  acceptanceCriteria?: string[];
+  documents?: {
+    proposal?: string;
+    problemStatement?: string;
+    agreement?: string;
+    design?: string;
+  };
   /**
    * Closure metadata set when the workflow records a terminal close. Stored
    * on the workflow state explicitly so readers/tests don't have to rely on

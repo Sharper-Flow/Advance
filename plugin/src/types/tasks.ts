@@ -15,6 +15,7 @@ import { DependencySchema } from "./specs";
 export const TaskStatusSchema = z.enum([
   "pending",
   "in_progress",
+  "blocked",
   "done",
   "cancelled",
 ]);
@@ -155,6 +156,26 @@ export const TaskSchema = z
     completed_by: z.string().nullable().optional(),
     /** Structured summary of what was done and how — persisted at task completion */
     implementation_summary: z.string().optional(),
+    /** Signal-driven completion proof supplied by adv_task_completed. */
+    verification: z.string().optional(),
+    /** Concise completion summary supplied by adv_task_completed. */
+    summary: z.string().optional(),
+    /** Repo-relative files reported by taskCompletedSignal. */
+    filesTouched: z.array(z.string()).optional(),
+    /** Git checkpoint SHA associated with task completion. */
+    checkpointSha: z.string().optional(),
+    /** ISO8601 completion timestamp from taskCompletedSignal. */
+    completedAt: z.string().optional(),
+    /** Session/agent assigned through taskAssignedSignal. */
+    assignedTo: z.string().optional(),
+    /** Human-readable block reason from taskBlockedSignal. */
+    blockReason: z.string().optional(),
+    /** Retry/block attempts captured when a task gets stuck. */
+    attempts: z.array(AttemptSchema).optional(),
+    /** Approval evidence captured by taskCancelledSignal. */
+    cancelApproval: z.string().optional(),
+    /** ISO8601 cancellation timestamp from taskCancelledSignal. */
+    cancelledAt: z.string().optional(),
     /** Target repository ID for cross-repo tasks (matches related_repos[].id in project config) */
     target_repo: z.string().optional(),
     /** Absolute path to the target repo directory (resolved from related_repos or explicit) */

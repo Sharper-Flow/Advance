@@ -346,6 +346,16 @@ export const ChangeSchema = z
     cross_project_links: z.array(CrossProjectLinkSchema).optional(),
     /** Advisory external dependencies on changes/gates/tasks in other projects. */
     external_dependencies: z.array(ExternalDependencySchema).optional(),
+    /** Project IDs affected by this change for cross-workflow discovery. */
+    affectedProjects: z.array(z.string()).optional(),
+    /** Path hints affected by this change for collision discovery. */
+    affectedPaths: z.array(z.string()).optional(),
+    /** ISO8601 timestamp of the latest signal processed by the workflow. */
+    lastSignalAt: z.string().optional(),
+    /** True when the workflow is waiting on a checkpoint/approval boundary. */
+    pendingCheckpoint: z.boolean().optional(),
+    /** True once an archive/cancel terminal signal has been processed. */
+    terminated: z.boolean().optional(),
     /**
      * Same-project fast-follow lineage — set when this change was created
      * as a follow-up to another change within the same project. Presence

@@ -80,12 +80,19 @@ export const GATE_ORDER: GateId[] = GATE_DEFS.map((g) => g.id) as GateId[];
 
 /**
  * Gate status values.
- * - pending: Not yet completed
- * - done: Actually completed with timestamp + actor evidence
- * - legacy: Predates gate system, counts as "satisfied" but wasn't performed
- * - skipped: Explicitly skipped with documented reason (future use)
+ * - pending: Not yet started
+ * - in_progress: Agent is actively working this gate
+ * - awaiting_approval: Gate output is ready and waiting for user approval
+ * - stuck: Gate cannot progress without recovery
+ * - done: Completed with timestamp + actor evidence
  */
-const GateStatusSchema = z.enum(["pending", "done", "legacy", "skipped"]);
+const GateStatusSchema = z.enum([
+  "pending",
+  "in_progress",
+  "awaiting_approval",
+  "stuck",
+  "done",
+]);
 
 type _GateStatus = z.infer<typeof GateStatusSchema>;
 
@@ -100,8 +107,16 @@ export const GateCompletionSchema = z.object({
   completed_at: z.string().optional(),
   /** Who completed the gate (user, agent, migration) */
   completed_by: z.string().optional(),
-  /** Key decisions or context captured at gate completion */
-  notes: z.string().optional(),
+    /** Key decisions or context captured at gate completion */
+    notes: z.string().optional(),
+    /** Evidence shown while waiting for user approval */
+    approval_evidence: z.string().optional(),
+    /** Human-readable reason when gate is stuck */
+    stuck_reason: z.string().optional(),
+    /** ISO8601 timestamp when current non-pending state began */
+    started_at: z.string().optional(),
+    /** Who triggered or owns the current gate state */
+    triggered_by: z.string().optional(),
   /** Original gate ID before migration (audit trail for gate renames) */
   migrated_from: z.string().optional(),
   /** Additional old gate completions absorbed into this gate during migration */
@@ -139,11 +154,7 @@ export type Gates = z.infer<typeof GatesSchema>;
  * Legacy gates count as satisfied for sequence enforcement.
  */
 export const isGateSatisfied = (gate: GateCompletion): boolean => {
-  return (
-    gate.status === "done" ||
-    gate.status === "legacy" ||
-    gate.status === "skipped"
-  );
+  return gate.status === "done";
 };
 
 /**

@@ -497,9 +497,8 @@ function appendRecencyRecommendation(
   rc: ChangeRecency,
   changeId: string,
 ): void {
-  const recency = rc.recency;
   const minutesSinceActivity = Number(rc.minutesSinceActivity ?? 0);
-  if (recency === "stale") {
+  if (minutesSinceActivity >= 180) {
     const hours = Math.floor(minutesSinceActivity / 60);
     const label =
       hours >= 24 ? `${Math.floor(hours / 24)}d ago` : `${hours}h ago`;
@@ -509,7 +508,7 @@ function appendRecencyRecommendation(
     return;
   }
 
-  if (recency === "hot") {
+  if (minutesSinceActivity <= 60) {
     recommendations.push(
       `🔥 Change \`${changeId}\` is hot (active ${minutesSinceActivity}m ago) — likely in-flight by another agent`,
     );
@@ -749,7 +748,7 @@ export const statusTools = {
               registered_queues: [],
               last_op_at: null,
               last_error: err instanceof Error ? err.message : String(err),
-              fallback_counts: getTemporalFallbackTelemetry(),
+              fallback_counts: { ...getTemporalFallbackTelemetry() },
               stale_queues: [],
               reconnect_count: 0,
               op_counters: [],
@@ -935,7 +934,6 @@ export const statusTools = {
               id: c.id,
               title: c.title,
               minutesSinceActivity: c.minutesSinceActivity,
-              recency: c.recency,
               parent_change_id: c.parent_change_id,
             })),
             archivedCount: status.changes.byStatus.archived ?? 0,

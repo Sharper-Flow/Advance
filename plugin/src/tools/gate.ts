@@ -420,9 +420,7 @@ export const gateTools = {
           const blockedBy = GATE_ORDER.slice(
             0,
             GATE_ORDER.indexOf(gateId),
-          ).filter(
-            (g) => gates[g].status !== "done" && gates[g].status !== "legacy",
-          );
+          ).filter((g) => gates[g].status !== "done");
           return formatToolOutput({
             error: `Cannot complete ${gateId}: prior gate(s) incomplete`,
             blockedBy,

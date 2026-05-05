@@ -73,8 +73,7 @@ export async function buildExternalDependencyStatus(
           if (dependency.gate) {
             const gates = changeResult.data.gates ?? createDefaultGates();
             const gate = gates[dependency.gate];
-            const satisfied =
-              gate?.status === "done" || gate?.status === "legacy";
+            const satisfied = gate?.status === "done";
             return {
               ...base,
               status: satisfied ? ("satisfied" as const) : ("warning" as const),
